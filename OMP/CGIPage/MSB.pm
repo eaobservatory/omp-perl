@@ -256,8 +256,6 @@ sub observed_output {
 
     my $utdate = $q->param('utdate');
 
-    print $utdate;
-
     my $telescope = $q->param('telescope');
 
     my $dbconnection = new OMP::DBbackend;
@@ -322,7 +320,7 @@ sub observed_output {
     };
     }
     
-    (@msbs) and print OMP::CGIComponent::MSB::observed_form($q);
+    (@msbs) and OMP::CGIComponent::MSB::observed_form($q);
   }
 }
 
