@@ -28,12 +28,11 @@ my %tables = (
 			 priority => "INTEGER",
 			 moon => "INTEGER NULL",
 			 timeest => "REAL",
-			 sciprog => "VARCHAR(255)",
 			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    obscount tauband seeing priority moon 
-				    timeest sciprog title
+				    timeest title
 				    /],
 		       },
 	      ompproj => {
