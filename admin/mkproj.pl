@@ -144,7 +144,7 @@ for my $proj (keys %alloc) {
   die "Must supply a telescope!!!" unless exists $details{telescope};
 
   # Now weather bands
-  my ($taumin, $taumax) = (0,undef);
+  my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
   if (exists $details{taurange}) {
     ($taumin, $taumax) = split(/,/, $details{taurange});
   } elsif (exists $details{band}) {
@@ -159,13 +159,13 @@ for my $proj (keys %alloc) {
   }
 
   # And seeing
-  my ($seemin, $seemax) = (0,undef);
+  my ($seemin, $seemax) = OMP::SiteQuality::default_range('SEEING');
   if (exists $details{seeing}) {
     ($seemin, $seemax) = split(/,/, $details{seeing});
   }
 
   # cloud
-  my ($cloudmin, $cloudmax) = (0,100);
+  my ($cloudmin, $cloudmax) = OMP::SiteQuality::default_range('CLOUD');
   if (exists $details{cloud}) {
     # if we have no comma, assume this is a cloudmax and "upgrade" it
     if ($details{cloud} !~ /,/) {
@@ -177,7 +177,7 @@ for my $proj (keys %alloc) {
   }
 
   # And sky brightness
-  my ($skymin, $skymax) = (undef,undef);
+  my ($skymin, $skymax) = OMP::SiteQuality::default_range('SKY');
   if (exists $details{sky}) {
     ($skymin, $skymax) = split(/,/, $details{sky});
   }

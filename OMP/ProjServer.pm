@@ -26,6 +26,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::ProjDB;
+use OMP::SiteQuality;
 use OMP::Project;
 use OMP::Error qw/ :try /;
 
@@ -328,17 +329,17 @@ sub addProject {
       @support = map { $userdb->getUser($_) or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]") } split /[:,]/, $project[3];
     }
 
-    # Create range object for tau (defaulting to lower bound of zero)
-    $project[12] = 0 unless defined $project[12];
+    # Create range object for tau (and force defaults if required)
     my $taurange = new OMP::Range(Min => $project[12], Max => $project[13]);
+    OMP::SiteQuality::undef_to_default( 'TAU', $taurange );
 
     # And seeing
-    $project[14] = 0 unless defined $project[14];
     my $seerange = new OMP::Range(Min=>$project[14], Max=>$project[15]);
+    OMP::SiteQuality::undef_to_default( 'SEEING', $seerange );
 
     # and cloud
-    $project[16] = 0 unless defined $project[16];
     my $cloudrange = new OMP::Range(Min=>$project[16], Max=>$project[17]);
+    OMP::SiteQuality::undef_to_default( 'CLOUD', $cloudrange );
 
     # and sky brightness
     # reverse min and max for magnitudes (but how do we know?)
