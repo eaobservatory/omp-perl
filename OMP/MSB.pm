@@ -227,6 +227,11 @@ value is subtracted from the current count.
 
 The number remaining can not go below zero.
 
+If the argument is the constant C<MSB::REMOVED>
+this indicates that the MSB has not been observed but
+it has been removed from consideration (generally because
+another MSB has been observed in an SpOR folder).
+
 =cut
 
 # This is an attribute of the XML rather than this object
@@ -238,11 +243,21 @@ sub remaining {
   if (@_) {
     my $arg = shift;
 
-    # If we have a negative argument determine the new value
-    $arg += $self->_tree->getAttribute("remaining") if $arg < 0;
+    # Get the current value
+    my $current = $self->_tree->getAttribute("remaining");
 
-    # Now Force to zero if necessary
-    $arg = 0 if $arg < 0;
+
+    # Decrement the counter if the argument is negative
+    # unless either the current value or the new value are the 
+    # MAGIC value
+
+    if ($arg != REMOVED() and $current != REMOVED() and $arg < 0){
+      $current += $arg;
+
+      # Now Force to zero if necessary
+      $arg = 0 if $arg < 0;
+
+    }
 
     # Set the new value
     $self->_tree->setAttribute("remaining", $arg);
@@ -373,6 +388,40 @@ sub summary {
 
 }
 
+=item B<hasBeenObserved>
+
+Indicate that this MSB has been observed. This involves decrementing
+the C<remaining()> counter by 1 and, if this is part of an SpOR block
+and the parent tree is accessible, removing siblings from contention
+by marking them with the magic REMOVED value.
+
+It is usually combined with an update of the database contents to reflect
+the modified state.
+
+=cut
+
+sub hasBeenObserved {
+  my $self = shift;
+
+  # This is the easy bit
+  $self->remaining( -1 );
+
+  # Now for the hard part... SpOr/SpAND
+
+  # First have to find out if I have a parent that is an SpOR
+  #my $ancestor = 
+  if ($self->_tree->findnodes('ancestor-or-self::SpOR')) {
+
+    # Okay - we are in a logic nightmare
+    
+
+
+
+  }
+
+
+}
+
 
 =item B<stringify>
 
@@ -435,6 +484,24 @@ sub _get_qualified_children {
 
 }
 
+
+=back
+
+=head1 CONSTANTS
+
+The following constants are available from this class:
+
+=over 4
+
+=item B<MSB::REMOVED>
+
+The magic value indicating to C<remaining()> that the MSB
+should be removed from further consideration even though it
+has not been observed.
+
+=cut
+
+use constant REMOVED => -999;
 
 =back
 
