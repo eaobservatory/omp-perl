@@ -298,21 +298,23 @@ sub remaining {
     # Get the current value
     my $current = $self->_tree->getAttribute("remaining");
 
-
     # Decrement the counter if the argument is negative
     # unless either the current value or the new value are the 
     # MAGIC value
 
+    my $new;
     if ($arg != REMOVED() and $current != REMOVED() and $arg < 0){
-      $current += $arg;
+      $new = $current + $arg;
 
       # Now Force to zero if necessary
-      $current = 0 if $current < 0;
+      $new = 0 if $new < 0;
 
+    } else {
+      $new = $arg;
     }
 
     # Set the new value
-    $self->_tree->setAttribute("remaining", $current);
+    $self->_tree->setAttribute("remaining", $arg);
   }
 
   return $self->_tree->getAttribute("remaining");
@@ -1077,6 +1079,7 @@ sub SpObs {
     # Resolve refs if necessary
     my $el = $self->_resolve_ref( $_ );
     my $name = $el->getName;
+    next unless defined $name;
     #print "SpObs: $name\n";
     %summary = $self->$name( $el, %summary )
       if $self->can( $name );
