@@ -785,7 +785,7 @@ sub timelost {
       return $faults->timelostNonTechnical;
     }
   } else {
-    return $faults->timelost;
+    return ($faults->timelost ? $faults->timelost : new Time::Seconds(0));
   }
 }
 
