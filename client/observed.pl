@@ -92,13 +92,11 @@ for my $msbid (@$done) {
   my $projectid = $msbid->projectid;
 
   # Create a new entry in the hash if this is new ID
-  $sorted{$projectid} = [] unless exists $sorted{projectid};
+  $sorted{$projectid} = [] unless exists $sorted{$projectid};
 
   # Push this one onto the array
   push(@{ $sorted{$projectid} }, $msbid);
-
 }
-
 
 # Now create the comment and send it to feedback system
 my $fmt = "%-14s %03d %-20s %-20s %-10s %-35s";
@@ -130,6 +128,8 @@ for my $proj (keys %sorted) {
     my ($user, $host, $email) = OMP::General->determine_host;
     my $id = OMP::General->determine_user;
 
+    my $fixed_text = "<p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p>\n\n";
+
     OMP::FBServer->addComment(
 			      $proj,
 			      {
@@ -137,7 +137,7 @@ for my $proj (keys %sorted) {
 			       subject => "MSB summary for $utdate",
 			       program => "observed.pl",
 			       sourceinfo => $host,
-			       text => "<pre>\n$msg\n</pre>\n",
+			       text => "$fixed_text<pre>\n$msg\n</pre>\n",
 			      }
 			     );
   }
