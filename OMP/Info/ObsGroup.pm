@@ -438,7 +438,6 @@ sub projectStats {
       # And sort out the EXTENDED time
       $extended{$ymd}{$tel} += $extended->seconds if defined $extended && $extended->seconds > 0;
 
-
     } else {
       # We cannot tell whether this was done in extended time or not
       # so assume not.
@@ -490,6 +489,10 @@ sub projectStats {
     for my $proj (keys %{$projbycal{$ymd}}) {
       for my $inst (keys %{$projbycal{$ymd}{$proj}}) {
 	for my $cal (keys %{$projbycal{$ymd}{$proj}{$inst}}) {
+
+	  # Add on the actual observation time
+	  $proj{$ymd}{$proj}{$inst} += int($projbycal{$ymd}{$proj}{$inst}{$cal});
+
 	  # This project should be charged for calibrations
 	  # as a fraction of the total time spent time on data
 	  # that uses the calibration and instrument
@@ -499,15 +502,13 @@ sub projectStats {
 	      $cal_totals{$ymd}{$inst}{$cal} *
 	      $cals{$ymd}{$inst}{$cal};
 
-	    # Add on the actual observations
-	    $proj{$ymd}{$proj}{$inst} += int($projbycal{$ymd}{$proj}{$inst}{$cal});
-
 	    # And the calibrations
 	    $proj{$ymd}{$proj}{$inst} += int($caltime);
 
 	  } else {
 	    # oops, no relevant calibrations...
 	    push(@warnings, "No calibration data of type $cal for project $proj on $ymd\n");
+
 	  }
 
 	}
