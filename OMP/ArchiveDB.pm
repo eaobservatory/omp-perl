@@ -447,7 +447,22 @@ sub _query_files {
 
   foreach my $file ( @uniq ) {
     # Create the Obs object.
-    my $obs = readfile OMP::Info::Obs( $file );
+    my $obs;
+    try {
+      $obs = readfile OMP::Info::Obs( $file );
+    }
+    catch OMP::Error with {
+      # Just log it and go on to the next observation.
+      my $Error = shift;
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+      next;
+    }
+    otherwise {
+      # Just log it and go on to the next observation.
+      my $Error = shift;
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+      next;
+    };
 
     if( !defined( $obs ) ) { next; }
 
