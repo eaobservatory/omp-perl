@@ -21,6 +21,7 @@ use constant PROJECTID => "VARCHAR(32) not null";
 use constant USERID => "VARCHAR(32)";
 use constant FAULTID => "DOUBLE PRECISION"; # Need this precision
 use constant NUMID => "numberic(5,0) IDENTITY";
+use constant TITLE => "VARCHAR(255) null";
 
 # Actual table descriptions
 my %tables = (
@@ -39,7 +40,7 @@ my %tables = (
 			 priority => "INTEGER",
 			 moon => "INTEGER",
 			 timeest => "REAL",
-			 title => "VARCHAR(255)",
+			 title => TITLE,
 			 obscount => "INTEGER",
 			 datemin => "DATETIME",
 			 cloud => "INTEGER",
@@ -78,7 +79,7 @@ my %tables = (
 			  tagpriority => "INTEGER",
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
-			  title => "VARCHAR(255)",
+			  title => TITLE,
 			  telescope => "VARCHAR(16)",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
@@ -132,10 +133,11 @@ my %tables = (
 			     waveband => "VARCHAR(64)",
 			     target => "VARCHAR(64)",
 			     status => "INTEGER",
+			     title => TITLE,
 			     _ORDER => [qw/
 					commid checksum status projectid date
 					target instrument waveband
-					comment
+					comment title
 					/],
 			    },
 	      # XML representation of the science program. Store it in
