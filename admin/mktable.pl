@@ -251,7 +251,7 @@ my %tables = (
            filter => "VARCHAR(32)",
            airmass => "REAL",
            rows => "INT",
-           cols => "INT",
+           columns => "INT",
            rabase => "REAL",
            decbase => "REAL",
            equinox => "VARCHAR(32)",
@@ -272,6 +272,18 @@ my %tables = (
            bolometers => "VARCHAR(32)",
            velocity => "REAL",
            systemvelocity => "REAL",
+           commentdate => "DATETIME",
+           commentauthor => USERID,
+           commenttext => "TEXT",
+           _ORDER => [qw/ obslogid runnr instrument telescope
+                      utstart utend projectid object obstype
+                      exptime nexp mode speed filter airmass
+                      rows columns rabase decbase equinox
+                      raoff decoff drrecipe group standard
+                      slitname slitangle grating order
+                      wavelength pol frequency tau seeing
+                      bolometers velocity systemvelocity
+                      commentdate commentauthor commenttext /],
         },
 	     );
 
