@@ -1452,6 +1452,8 @@ sub project_home {
   } else {
     print "<tr><td colspan=2><b>There is no time remaining on this project</b></td>";
   }
+  print "<tr><td><b>Completion rate:</b></td><td>".
+    int($project->percentComplete) ."%</td>\n";
 
   print "</table>";
 
