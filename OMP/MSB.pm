@@ -1936,6 +1936,9 @@ sub _unroll_obs_recurse {
 }
 
 # Correct post translation problems
+# May well not be correct yet for scan maps since it does not
+# check whether the POL iterator was inside or outside of the chop
+# iterator.
 
 sub _fudge_unroll_obs {
   my $self = shift;
