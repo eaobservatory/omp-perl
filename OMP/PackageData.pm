@@ -920,7 +920,7 @@ have been packaged.
 
 sub _add_comment {
   my $self = shift;
-  return;
+
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
   my ($user, $host, $email) = OMP::General->determine_host;
