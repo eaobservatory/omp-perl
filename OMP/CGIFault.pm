@@ -1694,19 +1694,26 @@ sub parse_file_fault_form {
       }
 
     } else {
-      # It is the entire date
+      # It is the entire date (or maybe not a date at all)
       my $date = UnixDate($time,$format);
-      $t = Time::Piece->strptime($date,$format);
 
-      # Convert time to UT if it was given as HST
-      ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+      # Get our time piece object if we have an actual date
+      if ($date) {
+	$t = Time::Piece->strptime($date,$format);
+
+	# Convert time to UT if it was given as HST
+	($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+      }
     }
 
-    # Subtract a day if date is in the future.
-    my $gmtime = gmtime;
-    ($gmtime < $t) and $t -= 86400;
+    # Store a faultdate if we have one
+    if ($t) {
+      # Subtract a day if date is in the future.
+      my $gmtime = gmtime;
+      ($gmtime < $t) and $t -= 86400;
 
-    $parsed{faultdate} = $t;
+      $parsed{faultdate} = $t;
+    }
   }
 
   my $author = $q->param('user');
