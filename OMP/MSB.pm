@@ -784,6 +784,10 @@ decrementing the remaining counter:
    to indicate they have been removed by the OMP rather than by
    observation.
 
+ - If the structure of the MSB has been modified (either by
+   rescheduling it or by moving it out of an OR folder) the
+   checksum is recalculated.
+
 This all requires that there are no non-MSB elements in an SpOR
 since inheritance breaks if we move just the MSB (that is only
 true if the OT ignores IDREF attributes).
@@ -858,6 +862,11 @@ sub hasBeenObserved {
       }
     }
 
+  }
+
+  # Recalculate the checksum if we have changed the MSB
+  if ($self->isPeriodic || $SpOR) {
+    $self->find_checksum();
   }
 
 }
@@ -1192,6 +1201,11 @@ an MSB has been observed.
 If the MSB is not periodic, the earliest date for observation will
 be reset to the current time. If this is not acceptable use C<isPeriodic>
 before calling this method.
+
+Note that this method will change the structure of the MSB and will
+therefore also change the checksum. You must invoke the C<find_checksum>
+method after calling this method if you wish the checksum to remain
+consistent with the XML.
 
 =cut
 
