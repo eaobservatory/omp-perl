@@ -192,6 +192,7 @@ sub print_faults {
   my $separate = shift;
   my @faultids = @_;
 
+
   # Untaint the printer param
   if ($printer =~ /^(\w+)$/) {
     $printer = $1;
@@ -242,11 +243,13 @@ sub print_faults {
       # Convert it to plaintext
       my $plaintext = OMP::Display->html2plain($text);
 
+      # Escape quotes in subject
+      $subject =~  s!(\"|\')!\\$1!g;
+
       # Set up printer. Should check that enscript can be found.
       my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"[$faultid] $subject\" -P$printer";
       open(my $PRTHNDL, "| $printcom");
-      print $PRTHNDL $plaintext;
-
+      print $PRTHNDL "$plaintext";
       close($PRTHNDL);
     }
   }
