@@ -295,6 +295,10 @@ sub display_shift_table {
       my $local = localtime( $date->epoch );
       my $author = $c->author->name;
 
+      # Call author "anonymous" if name is not defined
+      ($author) and $author = $author->name
+	or $author = "Anonymous";
+
       # Get the text
       my $text = $c->text;
 
