@@ -1,6 +1,9 @@
 #!/local/perl-5.6/bin/perl
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; 
+	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+	  unless $ENV{OMP_CFG_DIR};
+      }
 
 use lib "/jac_sw/omp/msbserver";
 use CGI;
