@@ -330,7 +330,7 @@ sub _mail_comment {
 		  headers => {
 			      bcc => OMP_CONTACT_PERSON,
 			     }, );
-		);
+
   if ($cclist) {
     $details{headers}->{cc} = join(',',@$cclist);
   }
