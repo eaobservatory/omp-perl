@@ -126,7 +126,7 @@ sub store_archive {
   }
 
   # Store in memory cache (using a new copy) [if we have some observations]
-  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => [ $obsgrp->obs ])
+  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ))
     if scalar(@{$obsgrp->obs}) > 0;
 
   # Store the ObsGroup to disk.
@@ -178,19 +178,54 @@ sub retrieve_archive {
 
   my $obsgrp;
 
+  # Is this a simple query?
+  if( !simple_query( $query ) ) { return; }
+
+  # Check to see
+
   # Get the filename of whatever it is we're getting.
   my $filename = _filename_from_query( $query );
 
   # Retrieve the ObsGroup object, if it exists. Prefer in memory version
   if (exists $MEMCACHE{$filename}) {
     $obsgrp = $MEMCACHE{$filename};
-  } elsif( -e $filename ) {
-    open(my $df, "< " . $filename);
-    flock($df, LOCK_SH);
-    $obsgrp = fd_retrieve( $df );
+  } else {
+
+    # Try to grab the ObsGroup object from on-disk cache.
+    try {
+
+      # Try to open the file. If there's an error, throw an exception.
+      open(my $df, "< " . $filename)
+        or throw OMP::Error::CacheFailure("Failure to open cache $filename: $!");
+
+      # We've opened the file, so lock it for reading.
+      flock($df, LOCK_SH);
+
+      # Grab the last-written time for the file and the start time
+      # of the query. If they're different by less than two days, return
+      # because the cache will be suspect, and we'll just resort to
+      # database or files.
+      my $filetime = gmtime( (stat( $filename ))[9] );
+      my $querytime = $query->daterange->min;
+      if( abs( $filetime - $querytime ) < ( ONE_DAY * 2 ) ) { return; }
+
+      # It's all good, so retrieve the cache from the file.
+      $obsgrp = fd_retrieve( $df );
+    }
+    catch OMP::Error::CacheFailure with {
+
+      # Just write the error to log.
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      OMP::General->log_message( "Error in archive cache read: $errortext" );
+    };
+
+    # Return if we didn't get an ObsGroup from the cache, since we can't return
+    # inside the catch block.
+    if(!defined($obsgrp)) { return; }
 
     # Store in memory cache for next time around
-    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => $obsgrp->obs )
+    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ) )
       if scalar(@{$obsgrp->obs}) > 0;
   }
 
