@@ -325,10 +325,10 @@ sub _write_header {
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a HREF='/JACpublic/JCMT'>JCMT</a>",
-	       "<a HREF='/JACpublic/UKIRT'>UKIRT</a>",
-	       "<a HREF='/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
-	       "<a HREF='/JACpublic/JAC/cs'>Computing Services</a>",
+  my @links = ("<a HREF='http://www.jach.hawaii.edu/JACpublic/JCMT'>JCMT</a>",
+	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/UKIRT'>UKIRT</a>",
+	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
+	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/JAC/cs'>Computing Services</a>",
 	       "<a HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
 
   $theme->SetSideBarMenuLinks(\@links);
