@@ -466,7 +466,10 @@ The amount of time remaining on the project (in seconds).
   $time = $proj->remaining;
   $proj->remaining( $time );
 
-If the value is not defined, the allocated value is automatically inserted.
+If the value is not defined, the allocated value is automatically
+inserted.  This value never includes the time pending on the
+project. To get the time remaining taking into account the time
+pending use method C<allRemaining> instead.
 
 =cut
 
@@ -481,6 +484,25 @@ sub remaining {
   return $self->{Remaining};
 }
 
+=item B<remainingAll>
+
+Time remaining on the project including any time pending. This
+is simply that stored in the C<remaining> field minus that stored
+in the C<pending> field.
+
+ $left = $proj->allRemaining;
+
+Always returns a number greater than or equal to zero.
+
+=cut
+
+sub allRemaining {
+  my $self = shift;
+  my $all_left = $self->remaining - $self->pending;
+  $all_left = 0 if $all_left < 0.0;
+  return $all_left;
+}
+
 =item B<used>
 
 The amount of time (in seconds) used by the project so far. This
@@ -490,11 +512,14 @@ be included in this calculation).
 
   $time = $proj->used;
 
+This value can never exceed the total amount of time allocated to the
+project.
+
 =cut
 
 sub used {
   my $self = shift;
-  return ($self->allocated - ($self->remaining - $self->pending));
+  return ($self->allocated - $self->allRemaining);
 }
 
 =item B<semester>

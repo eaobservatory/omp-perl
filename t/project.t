@@ -6,7 +6,7 @@ use warnings;
 use strict;
 use Test;
 
-BEGIN { plan tests => 20 }
+BEGIN { plan tests => 21 }
 
 use OMP::Project;
 
@@ -68,6 +68,8 @@ my $used = 360;
 $proj->incPending( $used );
 ok( $proj->pending, $used );
 ok( $proj->used, $used );
+
+ok( $proj->allRemaining, ($project{allocated} - $used));
 
 $proj->consolidateTimeRemaining;
 ok( $proj->used, $used );
