@@ -61,7 +61,6 @@ require HTML::FormatText;
 require OMP::Config;
 require OMP::UserServer;
 
-
 our $VERSION = (qw$Revision$)[1];
 
 our $DEBUG = 0;
@@ -790,10 +789,20 @@ is treated as 2nd Feb UT for this calculation.
 
 =cut
 
+# Hard-wired boundaries that can not be calculated using an algorithm
+# Indexed by telescope, then semester name then YYYYMMDD date in 2 element array
+# We also need to invert so that the min date points to a semester
+my %SEM_BOUND = (
+		 UKIRT => {
+			   # 04A started early and finished very late because of WFCAM
+			   '04A' => [ 20040117, 20041001 ],
+			  },
+		);
+
+
 sub determine_semester {
   my $self = shift;
   my %args = @_;
-
   my $date = $args{date};
   if (defined $date) {
     croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
@@ -805,20 +814,24 @@ sub determine_semester {
   my $tel = $args{tel};
   $tel = 'PPARC' unless defined $tel;
 
-  # This is the standard PPARC calculation
-  if ($tel eq 'PPARC') {
-    return _determine_pparc_semester( $date );
-  } elsif ($tel eq 'JCMT' ) {
-    return _determine_pparc_semester( $date );
-  } elsif ($tel eq 'UKIRT') {
-    # 04A started early
-    my $ymd = $date->strftime("%Y%m%d");
-    if ($ymd >= 20040117 && $ymd < 20040202 ) {
-      return "04A";
-    } else {
-      return _determine_pparc_semester( $date );
+  # First we can automatically run through any special semesters
+  # in a generic search. This will have minimal impact on a telescope
+  # that has never had a special semester boundary (apart from the
+  # requirement to convert date to YYYYMMDD only once)
+  my $ymd = $date->strftime("%Y%m%d");
+  for my $ltel (keys %SEM_BOUND) {
+    for my $lsem (keys %{ $SEM_BOUND{$ltel} } ) {
+      if ($ymd > $SEM_BOUND{$ltel}{$lsem}[0] &&
+	  $ymd < $SEM_BOUND{$ltel}{$lsem}[1] ) {
+	# we have a hit
+	return $lsem;
+      }
     }
+  }
 
+  # This is the standard PPARC calculation
+  if ($tel eq 'PPARC' || $tel eq 'JCMT' || $tel eq 'UKIRT') {
+    return _determine_pparc_semester( $date );
   } else {
     croak "Unrecognized telescope '$tel'. Should not happen.\n";
   }
@@ -827,6 +840,8 @@ sub determine_semester {
 
 # Private helper sub for determine_semester
 # implements the standard PPARC calculation
+# Probably an off by one error since the PPARC boundaries are local time
+# but the calculation here assumes Hawaii + UT
 # Takes a Time::Piece object
 # Returns the semester 04b 04a etc
 # Not a class method
@@ -862,6 +877,105 @@ sub _determine_pparc_semester {
   return $sem;
 }
 
+# Convert PPARC style semester NN[AB] to UT dates
+# eg 04B becomes 20040802 to 20050201
+# Takes a semester name as argument
+
+sub _determine_pparc_semester_boundary {
+  my $sem = uc(shift);
+
+  # First convert alphabetic historical semesters to
+  # modern format. Only go back to semester V
+  my %oldsem = ( V => '92A', W => '92B', X => '93A', Y => '93B' );
+  my $old;
+  if (exists $oldsem{$sem}) {
+    $old = 1; # we have an old semester label
+    $sem = $oldsem{$sem};
+  }
+
+  if ($sem =~ /^(\d\d)([AB])$/) {
+    my $year = $1;
+    my $ab   = $2;
+
+    # Convert year to numeric year (remove "0" prefix sinc "09" and "08" are bad octal)
+    my $ny   = $year;
+    $ny =~ s/^0//;
+
+    # Convert into a 4 digit year. We are in trouble in 2094 but I'm not going to
+    # worry about it
+    if ($old || $ny > 93) {
+      $year = "19" . $year;
+    } else {
+      $year = "20" . $year;
+    }
+
+    # Boundaries without the year prefix
+    # incyr indicates whether the year should be incremented prior to
+    # concatenation
+    my %bound = (
+		 A => {
+		       incyr  => [ 0, 0 ],
+		       suffix => [qw/ 0202 0801 /],
+		      },
+		 B => {
+		       incyr  => [ 0, 1 ],
+		       suffix => [qw/ 0802 0201 /],
+		      },
+		);
+
+    my %semdetails = %{ $bound{$ab} };
+    my @bounds = map { ( $year + $semdetails{incyr}[$_] ) . $semdetails{suffix}[$_] } (0,1);
+
+  } else {
+    croak "This semester ($sem) does not look like a PPARC style semester designation";
+  }
+
+}
+
+=item B<semester_boundary>
+
+Returns a Time::Piece object for both the start of the semester and the end
+of the semester.
+
+  ($begin, $end) = OMP::General->semester_boundary( semester => '04B',
+                                                    tel => 'JCMT' );
+
+The telescope is mandatory. If a semester is not specified the current semester
+is used. 'PPARC' is a special telescope used for generic PPARC semester boundaries.
+
+=cut
+
+sub semester_boundary {
+  my $class = shift;
+  my %args = @_;
+
+  # we can not do anything without a telescope
+  throw OMP::Error::BadArgs( "Must supply a telescope!" )
+    unless exists $args{tel};
+
+  # do we have a semester? If not, get the current value
+  $args{semester} = $class->determine_semester( tel => $args{tel} )
+    unless exists $args{semester};
+
+  $args{tel}      = uc($args{tel});
+  $args{semester} = uc($args{semester});
+
+  # Do fast lookup
+  if (exists $SEM_BOUND{$args{tel}}{$args{semester}}) {
+    return  map { OMP::General->parse_date( $_  ) }
+              @{ $SEM_BOUND{$args{tel}}{$args{semester}} };
+  }
+
+  # telescope specific
+  if ($args{tel} eq 'PPARC' || $args{tel} eq 'JCMT' || $args{tel} eq 'UKIRT') {
+    return map { OMP::General->parse_date( $_  ) 
+                   } _determine_pparc_semester_boundary( $args{semester} );
+  } else {
+    croak "Unrecognized telescope '$args{tel}'. Should not happen.\n";
+  }
+
+  return ();
+}
 
 =back
 
