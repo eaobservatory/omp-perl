@@ -15,11 +15,11 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::FeedbackPage;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
-$cgi->write_page( \&fb_output, \&fb_output );
+$cgi->write_page( \&OMP::CGI::FeedbackPage::fb_output, \&OMP::CGI::FeedbackPage::fb_output );

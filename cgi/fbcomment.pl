@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::FeedbackPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,5 @@ my $ompcgi = new OMP::CGI( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: List Projects");
-$ompcgi->write_page( \&add_comment_content, \&add_comment_output );
+$ompcgi->write_page( \&OMP::CGI::FeedbackPage::add_comment_content,
+		     \&OMP::CGI::FeedbackPage::add_comment_output );
