@@ -178,25 +178,14 @@ sub storeSciProg {
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
-  # If we are already running a transaction and do not want to
-  # start a new one (or just dont want to start one) then we need
-  # to find out now
-  my $nonewtrans = 0;
-  if (exists $args{NoNewTrans} && $args{NoNewTrans}) {
-    # Do it hear to prevent problems with exists and unless
-    $nonewtrans = 1;
-  }
-
   # Before we do anything else we connect to the database
   # begin a transaction and lock out the tables.
   # This has the side effect of locking out the tables until
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
-  unless ($nonewtrans) {
-    $self->_db_begin_trans;
-    $self->_dblock;
-  }
+  $self->_db_begin_trans;
+  $self->_dblock;
 
   # Write the Science Program to disk
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp},
@@ -220,9 +209,9 @@ sub storeSciProg {
   $self->_insert_rows( @rows );
 
   # And file with feedback system. Need to distinguish a "doneMSB" event from
-  # a normal submission. Switch on nonewtrans since that is really telling
+  # a normal submission. Switch on FreezeTimeStamp since that is really telling
   # us whether this is an external submission or not
-  unless ($nonewtrans) {
+  unless ($args{FreezeTimeStamp}) {
     # Add a little note if we used the admin password
     my $note = '';
     $note = "[using the administrator password]"
@@ -236,12 +225,9 @@ sub storeSciProg {
 				  );
   }
 
-
   # Now disconnect from the database and free the lock
-  unless ($nonewtrans) {
-    $self->_dbunlock;
-    $self->_db_commit_trans;
-  }
+  $self->_dbunlock;
+  $self->_db_commit_trans;
 
   return 1;
 }
@@ -478,12 +464,8 @@ sub fetchMSB {
   # with done flags and comments even if the MSB is removed from the
   # science program during the observation. This requires a transaction.
   # Connect to the DB (and lock it out)
-  $self->_db_begin_trans;
-  $self->_dblock;
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
 			   "MSB retrieved from DB", OMP__DONE_FETCH );
-  $self->_dbunlock;
-  $self->_db_commit_trans;
 
   return $msb;
 }
@@ -583,8 +565,7 @@ sub doneMSB {
   # and making sure reorganized Science Program is stored.
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
-		       NoNewTrans => 1);
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
 
   # Now decrement the time for the project
   my $projdb = new OMP::ProjDB( 
@@ -592,7 +573,7 @@ sub doneMSB {
 			       DB => $self->db,
 			      );
 
-  $projdb->decrementTimeRemaining( $msb->estimated_time, 1 );
+  $projdb->decrementTimeRemaining( $msb->estimated_time );
 
   # Might want to send a message to the feedback system at this
   # point
@@ -670,8 +651,7 @@ sub alldoneMSB {
   # and making sure reorganized Science Program is stored.
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
-		       NoNewTrans => 1);
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
 
   # Might want to send a message to the feedback system at this
   # point
@@ -1497,9 +1477,6 @@ The arguments are:
 
 This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
-Transaction management should be done by the caller since this does update
-the tables using multiple SQL calls.
-
 =cut
 
 sub _notify_msb_done {
@@ -1517,8 +1494,7 @@ sub _notify_msb_done {
   # Turn off transaction management in $done. There must be
   # a cleverer way than this since we *know* we are in a transaction
   # per database handle.
-  my $skiptrans = ( $self->_intrans ? 1 : 0 );
-  $done->addMSBcomment( $checksum, $comment, $msb, $status, $skiptrans);
+  $done->addMSBcomment( $checksum, $comment, $msb, $status );
 
 }
 

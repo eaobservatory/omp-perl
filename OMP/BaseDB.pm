@@ -155,11 +155,18 @@ Indicate whether we are in a transaction or not.
   $intrans = $db->_intrans();
   $db->_intrans(1);
 
+Contains the total number of transactions entered into by this
+instance. Must be zero or positive.
+
 =cut
 
 sub _intrans {
   my $self = shift;
-  if (@_) { $self->{InTrans} = shift; }
+  if (@_) { 
+    my $c = shift;
+    $c = 0 if $c < 0;
+    $self->{InTrans} = $c;
+  }
   return $self->{InTrans};
 }
 
@@ -231,25 +238,22 @@ sub db {
 Begin a database transaction. This is defined as something that has
 to happen in one go or trigger a rollback to reverse it.
 
-If a transaction is already in progress this method returns
-immediately.
+This method is delegated to C<OMP::DBbackend>.
 
 =cut
 
 sub _db_begin_trans {
   my $self = shift;
-  return if $self->_intrans;
 
-  my $dbh = $self->_dbhandle or
-    throw OMP::Error::DBError("Database handle not valid");
+  my $db = $self->db
+    or throw OMP::Error::DBError("Database connection not valid");
 
-  # Begin a transaction
-  $dbh->begin_work
-    or throw OMP::Error::DBError("Error in begin_work: $DBI::errstr\n");
+  $db->begin_trans;
 
-#  $dbh->do("BEGIN TRANSACTION")
-#    or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
-  $self->_intrans(1);
+  # Keep a per-class count so that we can control
+  # our destructor
+  $self->_inctrans;
+
 }
 
 =item B<_db_commit_trans>
@@ -257,20 +261,22 @@ sub _db_begin_trans {
 Commit the transaction. This informs the database that everthing
 is okay and that the actions should be finalised.
 
+This method is delegated to C<OMP::DBbackend>.
+
 =cut
 
 sub _db_commit_trans {
   my $self = shift;
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  if ($self->_intrans) {
-    $self->_intrans(0);
-    $dbh->commit
-      or throw OMP::Error::DBError("Error committing transaction: $DBI::errstr");
-#    $dbh->do("COMMIT TRANSACTION");
+  my $db = $self->db
+    or throw OMP::Error::DBError("Database connection not valid");
 
-  }
+  $db->commit_trans;
+
+  # Keep a per-class count so that we can control
+  # our destructor
+  $self->_dectrans;
+
 }
 
 =item B<_db_rollback_trans>
@@ -278,25 +284,51 @@ sub _db_commit_trans {
 Rollback (ie reverse) the transaction. This should be called if
 we detect an error during our transaction.
 
-When called it should probably correct any work completed on the
-XML data file.
+This method is delegated to C<OMP::DBbackend>.
+
+This method triggers a full rollback of the entire transaction
+regradless of whether other classes are using the transaction.
+This is meant to be a feature!
 
 =cut
 
 sub _db_rollback_trans {
   my $self = shift;
 
-  if ($self->_intrans) {
-    my $dbh = $self->_dbhandle;
-    throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  my $db = $self->db
+    or throw OMP::Error::DBError("Database connection not valid");
 
-    $self->_intrans(0);
-    $dbh->rollback
-      or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
-#    $dbh->do("ROLLBACK TRANSACTION");
+  $db->rollback_trans;
 
-  }
+  # Reset the counter
+  $self->_intrans(0);
+
 }
+
+=item B<_inctrans>
+
+Increment the transaction count by one.
+
+=cut
+
+sub _inctrans {
+  my $self = shift;
+  my $transcount = $self->_intrans;
+  $self->_intrans( ++$transcount );
+}
+
+=item B<_dectrans>
+
+Decrement the transaction count by one. Can not go lower than zero.
+
+=cut
+
+sub _dectrans {
+  my $self = shift;
+  my $transcount = $self->_intrans;
+  $self->_intrans( --$transcount );
+}
+
 
 
 =item B<_dblock>
@@ -304,14 +336,12 @@ sub _db_rollback_trans {
 Lock the MSB database tables (ompobs and ompmsb but not the project table)
 so that they can not be accessed by other processes.
 
+NOT IMPLEMENTED.
+
 =cut
 
 sub _dblock {
   my $self = shift;
-  # Wait for infinite amount of time for lock
-  # Needs Sybase 12
-#  $dbh->do("LOCK TABLE $MSBTABLE IN EXCLUSIVE MODE WAIT")
-#    or throw OMP::Error::DBError("Error locking database: $DBI::errstr");
   $self->_locked(1);
   return;
 }
@@ -323,6 +353,8 @@ file system.
 
 For a transaction based database this is a nullop since the lock
 is automatically released when the transaction is committed.
+
+NOT IMPLEMENTED.
 
 =cut
 
@@ -687,9 +719,8 @@ sub _notify_feedback_system {
   $comment{program} = $0 unless exists $comment{program};
   $comment{status} = OMP__FB_HIDDEN unless exists $comment{status};
 
-  # Disable transactions since we can only have a single
-  # transaction at any given time with a single handle
-  $fbdb->addComment( { %comment },1);
+  # Add the comment
+  $fbdb->addComment( { %comment } );
 
 }
 
@@ -782,15 +813,60 @@ sub _mail_information {
 
 =item B<DESTROY>
 
-We rollback any transactions that have failed (this only works
-if the exceptions thrown by this module are caught in such a way
-that the object will go out of scope).
+When this object is destroyed we need to roll back the transactions
+started by this object. Since we do not know whether we are being
+destroyed because we have simply gone out of scope (eg this class
+instantiated a new DB class for a short while) or because of an error,
+only rollback transactions if the internal count of transactions in
+this class matches the active transaction count in the
+C<OMP::DBbackend> object referenced by this object.
+
+This relies on that object still being in existence (in which
+case a rollback here is too late anyway).
+
+If the counts do not match (hopefully because it has more than we
+know about) set our count to zero and decrement the C<OMP::DBbackend>
+count by the required amount.
 
 =cut
 
 sub DESTROY {
   my $self = shift;
-  $self->_db_rollback_trans;
+
+  # Get the OMP::DBbackend
+  my $db = $self->db;
+
+  # it may not exist by now (depending on object destruction
+  # order)
+  if ($db) {
+
+    # Now get the internal count
+    my $thiscount = $self->_intrans;
+
+    # Get the external count
+    my $thatcount = $db->trans_count;
+
+    if ($thiscount == $thatcount) {
+      # fair enough. Rollback (doesnt matter if both == 0)
+      $self->_db_rollback_trans;
+
+    } elsif ($thiscount < $thatcount) {
+
+      # Simply decrement this and that until we hit zero
+      while ($thiscount > 0) {
+	$self->_dectrans;
+	$db->_dectrans;
+	$thiscount--;
+      }
+
+    } else {
+
+      die "Somehow the internal transaction count ($thiscount) is bigger than the DB handle count ($thatcount). This is scary.\n";
+    }
+
+
+  }
+
 }
 
 =back

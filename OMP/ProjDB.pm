@@ -254,15 +254,11 @@ table. The confirm this value use C<confirmTimeRemaining>
 
 Units are in seconds.
 
-The optional second argument can be used to disable the transaction
-handling (if we are already in one).
-
 =cut
 
 sub decrementTimeRemaining {
   my $self = shift;
   my $time = shift;
-  my $notrans = shift;
 
   throw OMP::Error::BadArgs("Time must be supplied and must be positive")
     unless defined $time and $time > 0;
@@ -272,10 +268,8 @@ sub decrementTimeRemaining {
   my $project = $self->_get_project_row;
 
   # Transaction start
-  unless ($notrans) {
-    $self->_db_begin_trans;
-    $self->_dblock;
-  }
+  $self->_db_begin_trans;
+  $self->_dblock;
 
   # Modify the project
   $project->incPending( $time );
@@ -291,10 +285,8 @@ sub decrementTimeRemaining {
 				);
 
   # Transaction end
-  unless ($notrans) {
-    $self->_dbunlock;
-    $self->_db_commit_trans;
-  }
+  $self->_dbunlock;
+  $self->_db_commit_trans;
 
 }
 
