@@ -81,7 +81,8 @@ for my $msb ($obj->msb) {
   } else {
     ok(0);
     # skip the next few tests
-    skip("Pointless testing MSB when checksum does not match",1);
+    skip("Pointless testing MSB when checksum does not match [".
+	 $msb->checksum. "]",1);
   }
 }
 
@@ -233,7 +234,7 @@ $VAR1 = {
                                                            ],
                                                   'priority' => 3
                                                 },
-          'ac9e9c8007fad7b8e1073de45e1d8222OA' => {
+          '57e5f0628922b2fbdf8768dbb8a3c6a6OA' => {
                                                     'seeing' => '1',
                                                     'title' => 'BS1532_4h47m_-16d_G1V',
                                                     'timeest' => '64.0',
@@ -335,7 +336,7 @@ $VAR1 = {
                                                             ],
                                                    'priority' => 3
                                                  },
-          'fff3cfddba9dbed301418bbe75b814a6' => {
+          '21cb043e34033a7bf3fa38938804cc12' => {
                                                   'seeing' => '1',
                                                   'title' => 'UFTI standards',
                                                   'timeest' => '180.0',
@@ -393,7 +394,7 @@ $VAR1 = {
                                                            ],
                                                   'priority' => 3
                                                 },
-          '27ead70fae09e119876dfa78e45b138bO' => {
+          '4dff3fedf74acdddb44fa7c212dba6a8O' => {
                                                    'seeing' => '1',
                                                    'title' => 'FS1_00h33m_-12d I-band',
                                                    'timeest' => '240.0',
@@ -428,7 +429,7 @@ $VAR1 = {
                                                             ],
                                                    'priority' => 3
                                                  },
-          'e459fe51b9ecdea7aae7f755716467cbOA' => {
+          'fbacbbce577ba3b36f6acae441cb8055OA' => {
                                                     'seeing' => '1',
                                                     'title' => 'BS5_0h6m_58d_G5V',
                                                     'timeest' => '64.0',
@@ -461,7 +462,7 @@ $VAR1 = {
                                                              ],
                                                     'priority' => 3
                                                   },
-          '759a74449fdd8c8d22227c748d96ac97O' => {
+          '45753beabb569462aa6bde665e0e8da1O' => {
                                                    'seeing' => '1',
                                                    'title' => 'FS101_00h13m_30d J-band',
                                                    'timeest' => '30.0',
