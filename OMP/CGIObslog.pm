@@ -167,7 +167,7 @@ sub list_observations {
     $options{'ascending'} = 0;
     $options{'instrument'} = $inst;
     try {
-      obs_table( $obsgroup, \%options );
+      obs_table( $obsgroup, %options );
     }
     catch OMP::Error with {
       my $Error = shift;
@@ -260,10 +260,10 @@ sub obs_table {
   }
 
   my $instrument;
-  if( exists( $options{telescope} ) ) {
-    $telescope = $options{telescope};
+  if( exists( $options{instrument} ) ) {
+    $instrument = $options{instrument};
   } else {
-    $telescope = '';
+    $instrument = '';
   }
 
 # Verify the ObsGroup object.
@@ -324,7 +324,7 @@ sub obs_table {
   foreach my $obs (@allobs) {
 
     next if( ( length( $instrument . '' ) > 0 ) &&
-             ( uc( $instrument ) ne uc( $obs->instrument ) ) )
+             ( uc( $instrument ) ne uc( $obs->instrument ) ) );
 
     my %nightlog = $obs->nightlog;
     # First, check to see if the instrument has changed. If it has, close the old table
@@ -841,7 +841,7 @@ These parameters will override any values contained in the C<CGI> object.
 
 sub cgi_to_obsgroup {
   my $q = shift;
-  my %args = shift;
+  my %args = @_;
 
   my $ut = defined( $args{'ut'} ) ? $args{'ut'} : undef;
   my $inst = defined( $args{'inst'} ) ? uc( $args{'inst'} ) : undef;
@@ -861,6 +861,7 @@ sub cgi_to_obsgroup {
   my $grp;
 
   if( defined( $telescope ) ) {
+
     $grp = new OMP::Info::ObsGroup( date => $ut,
                                     telescope => $telescope,
                                     timegap => OMP::Config->getData('timegap') );
