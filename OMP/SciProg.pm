@@ -847,12 +847,24 @@ sub cloneMSBs {
 	# Select the correct target object
 	my $coords = $sources[$i + $c];
 
-	# Change the values in the node
-	$ra->setData( $coords->ra( format => 'sex'));
-	$dec->setData( $coords->dec( format => 'sex'));
+	# Change the values in the node [making sure we allow for
+	# the possibility that there is a blank coordinate]
+	# too much code repetition
+	if (defined $ra) {
+	  $ra->setData( $coords->ra( format => 'sex'));
+	} else {
+	  my $text = new XML::LibXML::Text( $coords->ra( format => 'sex') );
+	  $ranode->appendChild( $text );
+	}
+	if (defined $dec) {
+	  $dec->setData( $coords->dec( format => 'sex'));
+	} else {
+	  my $text = new XML::LibXML::Text( $coords->dec( format => 'sex') );
+	  $decnode->appendChild( $text );
+	}
 
 	# There is a remote possibility that we have no
-	# target child
+	# target child either
 	if (defined $target) {
 	  $target->setData( $coords->name );
 	} else {
