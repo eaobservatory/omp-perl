@@ -247,7 +247,7 @@ my %tables = (
            commentdate => "DATETIME",
            commentauthor => USERID,
            commenttext => "TEXT NULL",
-           commentstatus => "INTEGER"
+           commentstatus => "INTEGER",
            _ORDER => [qw/ obslogid runnr instrument telescope
                       utstart obsactive commentdate commentauthor
                       commenttext commentstatus /],
