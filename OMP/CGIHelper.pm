@@ -40,7 +40,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -113,7 +113,7 @@ sub msb_sum {
 
   my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
 					     $cookie{password},
-					     'html');
+					     'htmlcgi');
 
   print $q->h2("MSB summary"), $msbsum;
 #        $q->pre("$msbsum");
@@ -328,9 +328,31 @@ sub fb_output {
   fb_entries($q, %cookie);
 }
 
+=item B<fb_msb_content>
+
+Creates the page showing the project summary (lists MSBs).
+Also provides buttons for adding an MSB comment.
+Hides feedback entries.
+
+  fb_msb_content($cgi, %cookie)
+
+=cut
+
+sub fb_msb_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  print $q->h1("Feedback for project $cookie{projectid}");
+
+  proj_status_table($q, %cookie);
+  fb_entries_hidden($q, %cookie);
+  msb_sum($q, %cookie);
+}
+
 =item B<fb_msb_output>
 
 Creates the page showing the project summary (lists MSBs).
+Also creates and parses form for adding an MSB comment.
 Hides feedback entries.
 
   fb_msb_output($cgi, %cookie);
