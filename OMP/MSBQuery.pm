@@ -26,6 +26,7 @@ use Carp;
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
+use OMP::SiteQuality;
 use Time::Piece ':override'; # for gmtime
 
 # Inheritance
@@ -439,17 +440,18 @@ sub _root_element {
 =item B<_post_process_hash>
 
 Go through the hash creating C<OMP::Range> objects where appropriate
-and fixing up known issues such as "cloud" and "moon" which are
-treated as lower limits rather than exact matches.
+and fixing up known issues such as "cloud" and "moon" which used to be
+treated as lower limits rather than exact matches (so there are
+backwards compatibility traps in place).
 
   $query->_post_process_hash( \%hash );
 
 "date" strings are converted to a date object.
 
-"date", "tau" and "seeing" queries are each converted to two separate
-queries (one on "max" and one on "min") [but the "date" key is
-retained so that the reference date can be obtained in order to
-calculate source availability).
+"date", "tau", "sky", "moon", "cloud" and "seeing" queries are each
+converted to two separate queries (one on "max" and one on "min") [but
+the "date" key is retained so that the reference date can be obtained
+in order to calculate source availability).
 
 Also converts abbreviated form of project name to the full form
 recognised by the database, but see below for ways of stopping this.
@@ -559,16 +561,28 @@ sub _post_process_hash {
     }
   }
 
+  # Upgrade "cloud" and "moon" to percentage (if they are not
+  # already percentages - 1 is the magic value and will be confusing
+  # for "cloud" if that value is ever used for real)
+  # we may want to remove the "cloud" trap when we know all sites have
+  # updated Query Tools. When that happens "1" will mean "1%"
+  # Moon can never be 1% so we can retain this trap.
+  if (exists $href->{cloud}) {
+    my $range = OMP::SiteQuality::upgrade_cloud( $href->{cloud}->[0] );
+    $href->{cloud} = [ $range->max ];
+  }
+  if (exists $href->{moon}) {
+    my $range = OMP::SiteQuality::upgrade_moon( $href->{moon}->[0] );
+    $href->{moon} = [ $range->max ];
+  }
+
   # Loop over each key
   for my $key (keys %$href ) {
     # Skip private keys
     next if $key =~ /^_/;
 
-    if ($key eq "cloud" or $key eq "moon") {
-      # convert to range with the supplied value as the min
-      $href->{$key} = new OMP::Range( Min => $href->{$key}->[0] );
-
-    } elsif ($key eq "seeing" or $key eq "tau" or $key eq "date") {
+    if ($key eq "seeing" or $key eq "tau" or $key eq "date"
+	    or $key eq 'sky' or $key eq 'cloud' or $key eq 'moon') {
       # Convert to two independent ranges
 
       # Note that taumin indicates a MAX for the supplied value
@@ -647,35 +661,17 @@ sub _post_process_hash {
   }
 
 
-  # A taumin/taumax query should occur on both the project
-  # and the msb table
-  if (exists $href->{taumin}) {
-    for my $key (qw/ taumin taumax/) {
-      for my $tab (qw/ M. P./) {
-	$href->{"$tab$key"} = $href->{$key};
+  # Some of the min/max keys need MSB and project variants
+  for my $base (qw/ tau seeing cloud sky /) {
+    for my $mm (qw/ min max /) {
+      my $key = $base . $mm;
+      if (exists $href->{$key}) {
+	for my $tab (qw/ M. P. /) {
+	  $href->{"$tab$key"} = $href->{$key};
+	}
+	delete $href->{$key};
       }
-      delete $href->{$key};
     }
-  }
-
-  # A taumin/taumax query should occur on both the project
-  # and the msb table
-  if (exists $href->{seeingmin}) {
-    for my $key (qw/ seeingmin seeingmax/) {
-      for my $tab (qw/ M. P./) {
-	$href->{"$tab$key"} = $href->{$key};
-      }
-      delete $href->{$key};
-    }
-  }
-
-  # A cloud query should occur on both the project and MSB table
-  if (exists $href->{cloud}) {
-    my $key = "cloud";
-    for my $tab (qw/ M. P./) {
-      $href->{"$tab$key"} = $href->{$key};
-    }
-    delete $href->{$key};
   }
 
   # If we have a PERSON query and a COI query then we need to join
@@ -796,21 +792,7 @@ should be supplied in ISO format YYYY-MM-DDTHH:MM
 
   <date>2002-04-15T04:52</date>
 
-=item B<cloud and moon>
-
-Queries on "cloud" and "moon" columns are really a statement of the
-current weather conditions rather than a request for a match of exactly
-the specified value. In fact these elements are really saying that the
-retrieved records should be within the range 0 to the value in the table.
-ie the table contains an upper limit with an implied lower limit of zero.
-
-This translates to an effective query of:
-
-  <moon><min>2</min></moon>
-
-Queries on "cloud" and "moon" are translated to this form.
-
-=item B<tau and seeing>
+=item B<tau, seeing, cloud, moon and sky>
 
 Queries including tau and seeing reflect the current weather conditions
 but do not correspond to an equivalent table in the database. The database
@@ -863,8 +845,21 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 
