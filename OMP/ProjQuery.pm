@@ -165,7 +165,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) },
-			   [qw/projectid telescope support coi/]);
+			   [qw/projectid telescope support coi semester/]);
 
   # These entries are in more than one table so we have to 
   # explicitly choose the project table
