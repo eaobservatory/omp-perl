@@ -82,7 +82,7 @@ sub suffices {
   if( $group ) {
     @suffices = qw/ _pht_ _reb_ /;
   } else {
-    @suffices = qw/ _pht _reb /;
+    @suffices = qw/ _reb /;
   }
 
   if( wantarray ) { return @suffices; } else { return \@suffices; }
@@ -254,7 +254,16 @@ sub get_filename {
                    $directory . "/" . $ut . "_" . $runnr . "_lon" . $suffix . ".sdf" );
   }
 
-  return ( wantarray ? @filenames : $filenames[0] );
+  if( ! wantarray ) {
+    foreach my $file ( @filenames ) {
+      if( -e $file ) {
+        return $file;
+      }
+    }
+    return undef;
+  }
+
+  return @filenames;
 
 }
 
@@ -326,6 +335,8 @@ sub _plot_images {
   }
 
   foreach my $input_file ( @files ) {
+
+    next if ( ! -e $input_file );
 
     my $image = rndf( $input_file, 1 );
 
@@ -408,6 +419,8 @@ sub _plot_photometry {
   }
 
   foreach my $input_file ( @files ) {
+
+    next if ( ! -e $input_file );
 
     my $image = rndf( $input_file, 1 );
 
