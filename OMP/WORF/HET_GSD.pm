@@ -122,8 +122,8 @@ either 'image' or 'spectrum'. Defaults to 'image'.
 =item lut - Colour lookup table to use to display the image. Must be one
 of the lookup tables used by C<PDL::Graphics::LUT>. Defaults to 'standard'.
 
-=item size - Size of image to display. Must be one of 128, 640, 960, or
-1280. Defaults to 640.
+=item size - Size of image to display. Must be one of 'regular' or
+'thumb'. Defaults to 'regular'.
 
 =item xstart - Start pixel in x-dimension to display. If undefined, greater
 than xend, or greater than the largest extent of the array, will default
@@ -197,6 +197,7 @@ sub plot {
                          xend => $parsed{xend},
                          zmin => $parsed{zmin},
                          zmax => $parsed{zmax},
+                         size => $parsed{size},
                        );
 
 }
@@ -332,8 +333,13 @@ sub _plot_spectrum {
     throw OMP::Error("Filename passed to _plot_image must include full path");
   }
 
-  $ENV{'PGPLOT_GIF_WIDTH'} = 480;
-  $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
+  if( exists( $args{size} ) && defined( $args{size} ) && $args{size} eq 'thumb' ) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 120;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80;
+  } else {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
+  }
   $ENV{'PGPLOT_BACKGROUND'} = 'black';
   $ENV{'PGPLOT_FOREGROUND'} = 'white';
 
