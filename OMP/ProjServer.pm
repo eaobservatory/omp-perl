@@ -292,11 +292,6 @@ sub addProject {
 
     throw OMP::Error::BadArgs("Should be 10 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 10;
 
-    my $db = new OMP::ProjDB(
-			     Password => $password,
-			     DB => $class->dbConnection,
-			    );
-
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
     # Instantiate OMP::Project object
@@ -312,6 +307,13 @@ sub addProject {
 				password => $project[8],
 				allocated => $project[9],
 			       );
+
+    my $db = new OMP::ProjDB(
+			     Password => $password,
+			     DB => $class->dbConnection,
+			     ProjectID => $proj->projectid,
+			    );
+
 
     $db->addProject( $proj );
 
