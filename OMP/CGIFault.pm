@@ -434,7 +434,7 @@ sub query_fault_output {
     $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
   } elsif ($q->param('recent')) {
     # Faults active in the last 36 hours
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date></FaultQuery>";
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
   } elsif ($q->param('current')) {
     # Faults within the last 14 days
     $xml = $currentxml;
