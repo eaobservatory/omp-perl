@@ -94,6 +94,17 @@ my %tables = (
 				     taumax
 				     /],
 			 },
+	      # Time accounting for projects
+	      # See OMP::ProjDB
+	      omptimeacct => {
+			      projectid => PROJECTID,
+			      date => 'DATETIME',
+			      confirmed => 'BIT',
+			      timespent => 'INTEGER',
+			      _ORDER => [qw/ date projectid timespent
+					 confirmed
+					 /],
+			     },
 	      # Scheduling information associated with observations
 	      # that are present in MSBs.
 	      # See OMP::MSBDB
