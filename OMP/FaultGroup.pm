@@ -425,7 +425,8 @@ function of time.
   @stats = $f->faultRateStats([bin => 7,
                               startdate => $date,
                               filed => 1,
-                              loss => 1,]);
+                              loss => 1,
+                              average => 1,]);
 
 Arguments should be given in hash form.  The arguments are:
 
@@ -439,6 +440,10 @@ Arguments should be given in hash form.  The arguments are:
               range the fault falls within.  Defaults to false.
   loss      - If true, stats are calculated for time loss rate,
               rather than fault occurrence rate.  Default is false.
+  average   - If true, values are averaged after binning.  If fault
+              occurrence rate is being calculated (if 'loss'
+              parameter is false), this will be forced to have a
+              false value.  Default is false.
 
 All arguments are optional.  Returns an array.
 
@@ -455,9 +460,15 @@ sub faultRateStats {
   my %defaults = (bin => 1,
                   filed => 0,
                   stardate => undef,
-		  loss => 0,);
+		  loss => 0,
+                  average => 0,);
 
   %args = (%defaults, %args);
+
+  # Force 'average' to be false if calculating fault occurrence rate
+  if (! $args{loss}) {
+    $args{average} = 0
+  };
 
   # Populate coordinate array with Time::Piece objects as X
   # and the value 1 as Y
@@ -477,7 +488,7 @@ sub faultRateStats {
 
   # Bin up
   my @stats = OMP::PlotHelper->bin_up_by_date(days => $args{bin},
-					      method => 'sum',
+					      method => ($args{average} ? 'average' : 'sum'),
 					      values => \@coords,
 					      startdate => $args{startdate},);
 
