@@ -75,7 +75,7 @@ sub flex_page {
   }
 
   $sem = lc($sem);
-  my $flexpage = "/WWW/JAClocal/UKIRT/omp/$sem/Flex_programme_descriptions.html";
+  my $flexpage = "/web/UKIRT/observing/omp/$sem/Flex_programme_descriptions.html";
 
   # Read in flex page
   open(FLEX, $flexpage) or die "Unable to open flex page [$flexpage]: $!";
