@@ -13,10 +13,15 @@
 # will be derived from the name by taking the first letter
 # of  the first name and the surname.
 
+# All science program User ids should be SURNAMEI (eg JENNESST).
+
 # cat user.details | perl mkuser.pl
 
-# Uses the infrastructure classes so each project is inserted
+# Uses the infrastructure classes so each user is inserted
 # independently rather than as a single transaction
+
+# If a user already exists, the current details will be displayed
+# for comparison
 
 use warnings;
 use strict;
@@ -59,14 +64,20 @@ while (<>) {
   # Create new object
   my $ompuser = new OMP::User( %user );
 
-  print join("--",values %user),"\n";
+  print $ompuser->userid . ":" . $ompuser->name ."," . $ompuser->email ."\n";
 
-  # Password should be supplied by user
+  # More efficient to do the add and catch the failure rather than
+  # do an explicit verify
   try {
     OMP::UserServer->addUser( $ompuser );
   } otherwise {
-    my $E = shift;
-    print "Error: $E\n";
+    # Get the user
+    my $exist = OMP::UserServer->getUser( $ompuser->userid );
+    print "\n*** ";
+    print "Failed to add user. Existing entry retrieved for comparison:\n";
+    print "#" .$exist->userid . ":" . $exist->name ."," . $exist->email ."\n";
+    print "***\n";
+
   }
 
 }
