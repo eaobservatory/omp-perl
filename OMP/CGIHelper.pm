@@ -1489,18 +1489,20 @@ sub project_home {
 
     my $pkg_url = OMP::Config->getData('pkgdata-url');
 
-    for (sort keys %nights) {
+    for my $ymd (sort keys %nights) {
 
       # Make a link to the obslog page
-      my $ymd = $_;
-
       print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$ymd</a> ";
 
-      if ($accounts{$ymd}->hours) {
-	my $h = sprintf("%.1f", $accounts{$ymd}->hours);
-	print "($h hours) Click on date to retrieve data.";
+      if (exists $accounts{$ymd}) {
+        if ($accounts{$ymd}->hours) {
+  	  my $h = sprintf("%.1f", $accounts{$ymd}->hours);
+	  print "($h hours) Click on date to retrieve data.";
+        } else {
+	  print "(no science data taken) ";
+        }
       } else {
-	print "(no science data taken) ";
+        print "[internal error - do not know accounting information] ";
       }
 
       print "<br>";
