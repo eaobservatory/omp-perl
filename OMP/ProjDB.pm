@@ -890,9 +890,9 @@ sub _get_projects {
     for my $row (@$userref) {
       $roles{$row->{capacity}} = [] unless exists $roles{$row->{capacity}};
       push(@{ $roles{ $row->{capacity} } }, new OMP::User( userid => $row->{userid},
-						       name => $row->{name},
-						       email => $row->{email},
-						     ));
+							   name => $row->{uname},
+							   email => $row->{email},
+							 ));
       $contactable{ $row->{userid} } = $row->{contactable};
     }
 
