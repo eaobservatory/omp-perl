@@ -471,7 +471,7 @@ sub _populate {
       push(@match, $obs);
     }
   }
-  print STDOUT "Done\n" if $self->verbose;
+  print STDOUT "Done [".scalar(@match)." files match]\n" if $self->verbose;
 
   $grp->obs(\@match);
   $self->obsGrp($grp);
@@ -494,19 +494,13 @@ sub _mktmpdir {
   throw OMP::Error::FatalError("Attempt to create temporary directory failed because we have no root dir")
     unless $root;
 
+  # Need to untaint prior to creating this directory
+  $root = _untaint_dir($root);
+
   # create the directory. For now force cleanup at end. Need to
   # decide whether object destructor is okay to use since that implies
   # only one packaging per usage.
   my $dir = tempdir( DIR => $root, CLEANUP => 1 );
-
-  # If we are running in taint mode we should clean this string
-  # Should be okay if the directory exists
-  if (-d $dir) {
-    # untaint
-    $dir =~ /^(.*)$/ && ($dir = $1);
-  } else {
-    throw OMP::Error::FatalError("Temp directory [$dir] does not exist!");
-  }
 
   # store it
   $self->tmpdir( $dir );
@@ -558,11 +552,7 @@ sub _mkftpdir {
   my $ftproot = $self->ftp_rootdir;
 
   # untaint ftp root just in case
-  if (-d $ftproot) {
-    $ftproot =~ /^(.*)$/ && ($ftproot = $1);
-  } else {
-    throw OMP::Error::FatalError("Ftp root directory [$ftproot] does not exist!")
-  }
+  $ftproot = _untaint_dir( $ftproot );
 
   my $key = $self->key;
 
@@ -594,19 +584,24 @@ sub _copy_data {
   throw OMP::Error::FatalError("Output directory not defined for copy")
     unless defined $outdir;
 
+  throw OMP::Error::FatalError("Output directory does not exist!")
+    unless -d $outdir;
+
   # Loop over each file
   my $count = 0;
   for my $obs ($grp->obs) {
     my $file = $obs->filename;
+
+    if (!defined $file) {
+      print "File for this observation was not defined. Must skip.\n";
+      next;
+    }
 
     # what if we can not find it
     if ( !-e $file ) {
       print "Unable to locate file $file. Not copying\n";
       $obs->filename('');
       next;
-    } else {
-      # untaint it since it seems to exist
-      $file =~ /^(.*)$/ && ($file = $1);
     }
 
     # Get the actual filename without path
@@ -713,6 +708,21 @@ NOT YET IMPLEMENTED
 
 sub _purge_old_ftp_files {
   my $class = shift;
+
+}
+
+# not a class method
+sub _untaint_dir {
+  my $dir = shift;
+  Carp::confess "Can not untaint an undefined directory name!" unless defined $dir;
+  if (-d $dir) {
+    # untaint
+    $dir =~ /^(.*)$/ && ($dir = $1);
+  } else {
+    croak("Directory [$dir] does not exist so we can not be sure we are allowed to untaint it!");
+  }
+
+
 
 }
 
