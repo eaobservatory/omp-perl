@@ -967,6 +967,10 @@ sub write_page_fault {
     $cookie{user} = $q->param('user');
   }
 
+  if ($q->param('sort_order')) {
+    $cookie{sort_order} = $q->param('sort_order');
+  }
+
   if ($q->url_param('cat')) {
     my %categories = map {uc($_), $_} OMP::Fault->faultCategories;
     my $cat = uc($q->url_param('cat'));
