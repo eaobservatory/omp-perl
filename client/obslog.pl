@@ -76,6 +76,7 @@ my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
+my $GAPLENGTH = 300; # Length of time between timegaps, in seconds.
 
 $VERSION = sprintf "%d %03d", q$Revision$ =~ /(\d+)\.(\d+)/;
 
@@ -452,8 +453,11 @@ sub rescan {
 
   try {
     my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
-                                    date => $ut,
-                                  );
+                                       date => $ut,
+                                     );
+
+    $grp->locate_timegaps( $GAPLENGTH );
+
     %obs = $grp->groupby('instrument');
 
     my @sorted_obs = sort {
@@ -528,20 +532,34 @@ sub RaiseComment {
   $id->cancel unless !defined $id;
 
   my @comments = $obs->comments;
-  if(defined($comments[$#comments])) {
-    $status = $comments[$#comments]->status;
-  } else {
-    $status = OMP__OBS_GOOD;
-  }
+#  if(defined($comments[$#comments])) {
+#    $status = $comments[$#comments]->status;
+#  } else {
+#    $status = OMP__OBS_GOOD;
+#  }
+  $status = $obs->status;
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
   $CommentWindow->geometry('680x300');
 
   # $commentFrame contains the entire frame.
-  my $commentFrame = $CommentWindow->Frame;
+  my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
+                                                  -fill => 'both',
+                                                  -expand => 1,
+                                                );
 
-  my $contentFrame = $commentFrame->Frame;
+  my $contentFrame = $commentFrame->Frame->pack( -side => 'top',
+                                                 -fill => 'x',
+                                               );
+
+  my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
+                                                                      -fill => 'x',
+                                                                    );
+
+  my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
+                                                -fill => 'x',
+                                              );
 
   # $commentHeader contains the header information
   my $contentHeader = $contentFrame->Text( -wrap => 'none',
@@ -551,7 +569,9 @@ sub RaiseComment {
                                            -font => $HEADERFONT,
                                            -takefocus => 0,
                                            -state => 'disabled',
-                                         );
+                                         )->pack( -side => 'top',
+                                                  -fill => 'x',
+                                                );
 
   # $contentObs contains the observation info
   my $contentObs = $contentFrame->Scrolled( 'Text',
@@ -562,9 +582,77 @@ sub RaiseComment {
                                             -takefocus => 0,
                                             -state => 'disabled',
                                             -scrollbars => 'oe',
-                                          );
+                                          )->pack( -side => 'top',
+                                                   -fill => 'x',
+                                                 );
 
-  my $buttonFrame = $commentFrame->Frame;
+  # $scrolledComment is the text area that will be used for comment entry.
+  $scrolledComment = $entryFrame->Scrolled( 'Text',
+                                            -wrap => 'word',
+                                            -height => 10,
+                                            -scrollbars => 'oe',
+                                          )->pack( -side => 'bottom',
+                                                   -expand => 1,
+                                                   -fill => 'x',
+                                                 );
+
+  # $textStatus displays the string "Status:"
+  my $textStatus = $entryFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
+                                                                    -anchor => 'n',
+                                                                  );
+
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    my $radioWeather = $entryFrame->Radiobutton( -text => 'weather',
+                                                 -value => OMP__TIMEGAP_WEATHER,
+                                                 -variable => \$status,
+                                               )->pack( -side => 'left',
+                                                        -anchor => 'n',
+                                                      );
+    my $radioInstrument = $entryFrame->Radiobutton( -text => 'instrument',
+                                                    -value => OMP__TIMEGAP_INSTRUMENT,
+                                                    -variable => \$status,
+                                                  )->pack( -side => 'left',
+                                                           -anchor => 'n',
+                                                         );
+    my $radioFault = $entryFrame->Radiobutton( -text => 'fault',
+                                               -value => OMP__TIMEGAP_FAULT,
+                                               -variable => \$status,
+                                             )->pack( -side => 'left',
+                                                      -anchor => 'n',
+                                                    );
+    my $radioUnknown = $entryFrame->Radiobutton( -text => 'unknown',
+                                                 -value => OMP__TIMEGAP_UNKNOWN,
+                                                 -variable => \$status,
+                                               )->pack( -side => 'left',
+                                                        -anchor => 'n',
+                                                      );
+
+  } else {
+    my $radioGood = $entryFrame->Radiobutton( -text => 'good',
+                                              -value => OMP__OBS_GOOD,
+                                              -variable => \$status,
+                                            )->pack( -side => 'left',
+                                                     -anchor => 'n',
+                                                   );
+    my $radioBad = $entryFrame->Radiobutton( -text => 'bad',
+                                             -value => OMP__OBS_BAD,
+                                             -variable => \$status,
+                                           )->pack( -side => 'left',
+                                                    -anchor => 'n',
+                                                  );
+    my $radioQuestionable = $entryFrame->Radiobutton( -text => 'questionable',
+                                                      -value => OMP__OBS_QUESTIONABLE,
+                                                      -variable => \$status,
+                                                    )->pack( -side => 'left',
+                                                             -anchor => 'n',
+                                                           );
+
+  }
+
+  # $textUser displays the current user id.
+  my $textUser = $entryFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
+                                                                                        -anchor => 'n',
+                                                                                      );
 
   # $buttonSave is the button that allows the user to save the comment
   # to the database.
@@ -583,7 +671,9 @@ sub RaiseComment {
                                            };
                                            CloseWindow( $CommentWindow );
                                          },
-                                       );
+                                       )->pack( -side => 'left',
+                                                -anchor => 'n',
+                                              );
 
   # $buttonCancel is the button that closes the window without saving
   # any changes.
@@ -595,87 +685,9 @@ sub RaiseComment {
                                              };
                                              CloseWindow( $CommentWindow );
                                            },
-                                         );
-
-  my $entryFrame = $commentFrame->Frame( -relief => 'groove' );
-
-  # $textStatus displays the string "Status:"
-  my $textStatus = $entryFrame->Label( -text => 'Status: ' );
-
-  # $radioGood is the radio button for the status value 'good'
-  my $radioGood = $entryFrame->Radiobutton( -text => 'good',
-                                            -value => OMP__OBS_GOOD,
-                                            -variable => \$status,
-                                          );
-
-  # $radioQuestionable is the radio button for the status value 'questionable'
-  my $radioQuestionable = $entryFrame->Radiobutton( -text => 'questionable',
-                                                    -value => OMP__OBS_QUESTIONABLE,
-                                                    -variable => \$status,
-                                                  );
-
-  # $radioBad is the radio button for the status value 'bad'
-  my $radioBad = $entryFrame->Radiobutton( -text => 'bad',
-                                           -value => OMP__OBS_BAD,
-                                           -variable => \$status,
-                                         );
-
-  # $textUser displays the current user id.
-  my $textUser = $entryFrame->Label( -text => "Current user: " . $user->userid );
-
-  # $scrolledComment is the text area that will be used for comment entry.
-  $scrolledComment = $entryFrame->Scrolled( 'Text',
-                                            -wrap => 'word',
-                                            -height => 10,
-                                            -scrollbars => 'oe',
-                                          );
-
-  # Pack them all together.
-  $commentFrame->pack( -side => 'top',
-                       -fill => 'both',
-                       -expand => 1,
-                     );
-  $contentFrame->pack( -side => 'top',
-                       -fill => 'x',
-                     );
-  $entryFrame->pack( -side => 'top',
-                     -fill => 'x',
-                   );
-  $buttonFrame->pack( -side => 'bottom',
-                      -fill => 'x',
-                    );
-
-  $contentHeader->pack( -side => 'top',
-                        -fill => 'x',
-                      );
-  $contentObs->pack( -side => 'top',
-                     -fill => 'x',
-                   );
-  $scrolledComment->pack( -side => 'bottom',
-                          -expand => 1,
-                          -fill => 'x',
-                        );
-  $textStatus->pack( -side => 'left',
-                     -anchor => 'n',
-                   );
-  $radioGood->pack( -side => 'left',
-                    -anchor => 'n',
-                  );
-  $radioQuestionable->pack( -side => 'left',
-                            -anchor => 'n',
-                          );
-  $radioBad->pack( -side => 'left',
-                   -anchor => 'n',
-                 );
-  $textUser->pack( -side => 'left',
-                   -anchor => 'n',
-                 );
-  $buttonSave->pack( -side => 'left',
-                     -anchor => 'n',
-                   );
-  $buttonCancel->pack( -side => 'left',
-                       -anchor => 'n',
-                     );
+                                         )->pack( -side => 'left',
+                                                  -anchor => 'n',
+                                                );
 
   # Get the observation information.
   my %nightlog = $obs->nightlog;
@@ -727,6 +739,15 @@ sub options {
                                         InvalidUTDate( $_[0] );
                                       },
                                    );
+
+  my $tel = OMP::Config->getData( 'defaulttel' );
+  my @tels;
+  if(ref($tel) ne "ARRAY") {
+    push @tels, $tel;
+  } else {
+    push @tels, @$tel;
+  }
+
   my $buttonSave = $optionsFrame->Button( -text => 'Save',
                                           -command => sub {
                                             SaveOptions( $tempUT, $userid );
@@ -746,6 +767,15 @@ sub options {
                      );
   $useridLabel->grid( $useridEntry );
   $utLabel->grid( $utEntry );
+
+  my @telwid;
+  foreach my $ttel (@tels) {
+    push @telwid, $optionsFrame->Radiobutton( -text => $ttel,
+                                              -value => $ttel,
+                                              -variable => \$telescope,
+                                            );
+  }
+  $optionsFrame->Label( -text => "Telescope:" )->grid(@telwid);
   $buttonSave->grid( $buttonCancel );
 }
 
@@ -773,6 +803,9 @@ sub SaveComment {
   push @obsarray, $obs;
   $odb->updateObsComment( \@obsarray );
   $obs = $obsarray[0];
+
+  # And let's not forget to update the status of the observation.
+  $obs->status( $status );
 
 }
 
