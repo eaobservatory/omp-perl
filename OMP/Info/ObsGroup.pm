@@ -43,6 +43,7 @@ statistical information and summary from groups of observations.
 use 5.006;
 use strict;
 use warnings;
+use OMP::ProjServer;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
@@ -227,9 +228,17 @@ the query will not be constrained).
 
 Usually called from the constructor.
 
+If a UT date and projectID are supplied then an additional parameter,
+"inccal", can be supplied to indicate whether calibrations should
+be included along with the project information. Defaults to false.
+Note that if "inccal" is true it is likely that observations will
+match even if no data was taken for the project. [As an aside maybe
+we should have an extra flag that can be used to control that behaviour?
+Returning no matches if no project data were found?]
+
 IF THE TELESCOPE IS JCMT AND NO INSTRUMENT IS SUPPLIED WE FORCE
 SCUBA AS THE INSTRUMENT BECAUSE ARCHIVEDB CAN NOT YET HANDLE
-TO SEPARATE DATABASE QUERIES.
+TWO SEPARATE DATABASE QUERIES.
 
 =cut
 
@@ -267,8 +276,26 @@ sub populate {
 				  exists $args{telescope} &&
 				  $args{telescope} =~ /jcmt/i);
 
+  # Liust of interesting keys for the query
+  my @keys = qw/ instrument telescope /;
+
+  # Calibrations?
+  # If we have both a UT date and projectID we should look
+  # for inccal. If it is true we need to modify the query so that
+  # it does not include a projectid by default.
+  my $inccal;
+  if (exists $args{projectid} && exists $args{date} 
+      && exists $args{inccal}) {
+    $inccal = $args{inccal};
+  }
+
+  # if we are including calibrations we should not include projectid
+  if (! $inccal) {
+    push(@keys, "projectid");
+  }
+
   # Form the XML.[restrict the keys
-  for my $key (qw/ instrument telescope projectid/ ) {
+  for my $key ( @keys ) {
     if (exists $args{$key}) {
       $xmlbit .= "<$key>$args{$key}</$key>";
     }
@@ -282,6 +309,18 @@ sub populate {
 
   # run the query
   $self->runQuery( $arcquery );
+
+  # If we are really looking for a single project plus calibrations we
+  # have to massage the entries removing other science observations.
+  if ($inccal && exists $args{projectid}) {
+
+    my @newobs = grep { uc($_->projectid) eq $args{projectid} 
+			  || ! $_->isScience  } $self->obs;
+
+    # store it [comments will already be attached]
+    $self->obs(\@newobs);
+
+  }
 
 }
 
