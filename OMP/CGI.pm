@@ -88,7 +88,7 @@ sub theme {
   my $self = shift;
   if (@_) {
     my $theme = shift;
-    croak "Incorrect type. Must be a HTML::WWWTheme object"
+    confess "Incorrect type. Must be a HTML::WWWTheme object $theme"
       unless UNIVERSAL::isa( $theme, "HTML::WWWTheme");
     $self->{Theme} = $theme;
   }
@@ -186,11 +186,20 @@ sub write_header {
   my $q = $self->cgi;
   my $c = $self->cookie;
 
+  # Print the header info
+  if (defined $c) {
+    print $q->header( -cookie => $c->cookie)
+  } else {
+    print $q->header();
+  }
+
+
   # Retrieve the theme or create a new one
   my $theme = $self->theme;
   unless (defined $theme) {
     # Use the OMP theme and make some changes to it.
     $theme = new HTML::WWWTheme("/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+    croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
     $self->theme($theme);
   }
 
@@ -306,7 +315,7 @@ sub write_page {
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
-    $form_output->( %cookie );
+    $form_output->( $q, %cookie );
 
     # Write the footer
     $self->write_footer();
@@ -322,7 +331,7 @@ sub write_page {
       $self->write_header();
 
       # Run the callback
-      $form_content->( %cookie );
+      $form_content->( $q, %cookie );
 
       # Write the footer
       $self->write_footer();
