@@ -146,7 +146,7 @@ sub parse_date {
     # need to correct
     my $epoch = $time->epoch;
     my $tzoffset = $time->tzoffset;
-    if ($islocal ) {
+    if ($islocal) {
       # We are supposed to have a local time, if we have a UT
       # We need to subtract the timezone and then convert the
       # time to a localtime
@@ -170,7 +170,6 @@ sub parse_date {
   }
 
 }
-
 
 =item B<today>
 
@@ -236,6 +235,32 @@ sub yesterday {
     return $string;
   }
 
+}
+
+=item B<display_date>
+
+Given a C<Time::Piece> object return a string displaying the date in
+YYYYMMDD HH:MM:SS format and append the appropriate timezone representation.
+
+  $datestring = OMP::General->display_date($date);
+
+=cut
+
+sub display_date {
+  my $class = shift;
+  my $date = shift;
+
+  # Decide whether timezone designation should be 'UT' or local time
+  my $tz;
+  if ($date->[Time::Piece::c_islocal]) {
+    $tz = $date->strftime("%Z");
+  } else {
+    $tz = "UT";
+  }
+
+  my $string = $date->strftime("%Y%m%d %T");
+
+  return "$string $tz";
 }
 
 =item B<determine_extended>
