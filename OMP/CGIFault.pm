@@ -439,7 +439,7 @@ sub query_fault_content {
     # No recent faults, get current faults instead
     if (!$faults->[0]) {
       my %status = OMP::Fault->faultStatus;
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
       $faults = OMP::FaultServer->queryFaults($xml, "object");
     }
 
@@ -530,10 +530,10 @@ sub query_fault_output {
       push (@xml, "<text>$text</text>");	
     }
 
-    if ($q->param('search') =~ /response/) {
+    if ($q->param('action') =~ /response/) {
       push (@xml, "<isfault>0</isfault>");
       $title = "Displaying faults responded to in the last $delta days";
-    } elsif ($q->param('search') =~ /file/) {
+    } elsif ($q->param('action') =~ /file/) {
       push (@xml, "<isfault>1</isfault>");
       $title = "Displaying faults filed in the last $delta days";
     } else {
@@ -547,14 +547,14 @@ sub query_fault_output {
       # Faults within the last 14 days with 2 or more hours lost
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
       $title = "Displaying major faults";
-    } elsif ($q->param('Recent faults') or $q->param('Recent reports')) {
+    } elsif ($q->param('recent')) {
       # Faults filed in the last 36 hours
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
       $title = "Displaying recent faults";
-    } elsif ($q->param('Current faults') or $q->param('Current reports')) {
+    } elsif ($q->param('current')) {
       # Faults within the last 14 days that are 'OPEN'
       my %status = OMP::Fault->faultStatus;
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
       $title = "Displaying current faults";
     }
   }
@@ -684,7 +684,7 @@ sub query_fault_form {
 		      -size=>22,
 		      -maxlength=>50,);
   print "</td><tr><td><b>";
-  print $q->radio_group(-name=>'search',
+  print $q->radio_group(-name=>'action',
 		        -values=>['response','file','activity'],
 		        -default=>'activity',
 		        -labels=>{response=>"Responded to",
@@ -695,16 +695,17 @@ sub query_fault_form {
   print $q->textfield(-name=>'text',
 		      -size=>44,
 		      -maxlength=>256,);
+  print "&nbsp;&nbsp;";
+  print $q->submit(-name=>"Search");
   print "</b></td><td valign=bottom align=left>";
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'cat', -default=>$cookie{category});
-  print $q->submit(-name=>"Submit");
   print "</td><tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
   print $q->submit(-name=>"Major $word");
-  print $q->submit(-name=>"Recent $word");
-  print $q->submit(-name=>"Current $word");
+  print $q->submit(-name=>"recent", -label=>"Recent $word (2 days)");
+  print $q->submit(-name=>"current", -label=>"Current $word (14 days)");
   print $q->endform;
   print "</td></table>";
 }
