@@ -994,8 +994,12 @@ sub msb_comment_form {
 
   my $checksum = $q->param('checksum');
 
-  print "<table border=0><tr><td valign=top>Comment: </td><td>";
+  print "<table border=0><tr><td valign=top>User ID: </td><td>";
   print $q->startform;
+  print $q->textfield(-name=>'author',
+		      -size=>22,
+		      -maxlength=>32);
+  print "</td><tr><td valign=top>Comment: </td><td>";
   print $q->hidden(-name=>'show_output',
 		   -default=>1,);
   print $q->hidden(-name=>'msbid',
@@ -1042,10 +1046,18 @@ sub msb_hist_output {
     msb_comment_form($q);
   }
 
-  # If they've just submitted a comment show some comforting output
+  # Submit a comment
   if ($q->param("Submit")) {
     try {
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+      # Get the user object
+      my $user = OMP::UserServer->getUser($q->param('author'));
+
+      # Create the comment object
+      my $comment = new OMP::Info::Comment( author => $user,
+					    text => $q->param('comment'),
+					    status => OMP__DONE_COMMENT );
+
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
       print $q->h2("MSB comment successfully submitted");
     } catch OMP::Error::MSBMissing with {
       print "MSB not found in database";
@@ -1255,6 +1267,12 @@ sub msb_comments {
       ($status == OMP__DONE_UNDONE) and $bgcolor = '#ffd8a3';
       print "<tr><td colspan=5 bgcolor=$bgcolor><b>Date (UT):</b> " .
 	$comment->date ."<br>";
+
+      # Show comment author if there is one
+      if ($comment->author) {
+	print "<b>Author: </b>" . $comment->author->html . "<br>";
+      }
+
       print $comment->text ."</td>";
     }
 
