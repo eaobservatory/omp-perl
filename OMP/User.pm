@@ -197,6 +197,29 @@ sub html {
   return $html;
 }
 
+=item B<text_summary>
+
+[should probably be part of a general summary() method that takes
+a "format" as argument]
+
+  $text = $user->text_summary;
+
+=cut
+
+sub text_summary {
+  my $self = shift;
+  my $email = $self->email;
+  my $name = $self->name;
+  my $id = $self->userid;
+
+  my $text = "USERID: $id\n";
+
+  $text .=   "NAME:   " .(defined $name ? $name : "UNDEFINED")."\n";
+  $text .=   "EMAIL:  " .(defined $email ? $email : "UNDEFINED")."\n";
+
+  return $text;
+}
+
 =item B<stringify>
 
 Stringify overload. Returns the name of the user.
@@ -217,6 +240,8 @@ tables. All entries are compared.
   $isthere = $u->verify;
 
 Returns true or false.
+
+[simply verifies that the userid exists. Does not yet verify contents]
 
 =cut
 
