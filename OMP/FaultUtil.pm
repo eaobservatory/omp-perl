@@ -231,6 +231,105 @@ sub print_faults {
   }
 }
 
+=item B<compare>
+
+Compare two C<OMP::Fault> or C<OMP::Fault::Response> objects.
+
+  @diff = OMP::FaultUtil->compare($fault_a, $fault_b);
+
+Takes two C<OMP::Fault> or C<OMP::Fault::Response> objects as the only arguments.
+Returns a list containing the elements where the two objects differed.  The elements
+are conveniently named after the accessor methods of each object type.  Some keys
+are not included in the comparison.  For C<OMP::Response> objects only the text and author keys
+are compared.  For C<OMP::Fault> objects the faultid keys are not compared.
+
+=cut
+
+sub compare {
+  my $self = shift;
+  my $obja = shift;
+  my $objb = shift;
+
+  my @diff;
+  my @comparekeys;
+
+  if (UNIVERSAL::isa($obja, "OMP::Fault") and UNIVERSAL::isa($objb, "OMP::Fault")) {
+
+    # Comparing OMP::Fault objects
+    @comparekeys = qw/subject system type timelost faultdate urgency projects/;
+
+  } elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response") and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {
+
+    # Comparing OMP::Fault::Response objects
+    @comparekeys = qw/text author/;
+
+  } else {
+    throw OMP::Error::BadArgs("Both Arguments to compare must be of the same object type (that of either OMP::Fault or OMP::Fault::Response)\n");
+    return;
+  }
+
+  for (@comparekeys) {
+    my $keya;
+    my $keyb;
+
+    # Be more specific about what we want to compare in some cases
+    if ($_ =~ /author/) {
+      $keya = $obja->author->userid;
+      $keyb = $objb->author->userid;
+    } elsif ($_ =~ /projects/) {
+      $keya = @{$obja->projects};
+      $keyb = @{$objb->projects};
+    } elsif ($_ =~ /faultdate/) {
+      if ($obja->faultdate and $objb->faultdate) {
+	$keya = $obja->faultdate->strftime("%Y%m%d%T");
+	$keyb = $objb->faultdate->strftime("%Y%m%d%T");
+      } else {
+	next;
+      }
+    } else {
+      $keya = $obja->$_;
+      $keyb = $objb->$_;
+    }
+
+    next if (! $keya and ! $keyb);
+
+    if (! defined $keya and defined $keyb) {
+      push @diff, $_;
+    } elsif (! defined $keyb and defined $keya) {
+      push @diff, $_;
+    } elsif ($keya ne $keyb) {
+      push @diff, $_;
+    }
+  }
+
+  return @diff;
+}
+
+=item B<getResponse>
+
+Return the response object with the given response ID.
+
+  $resp = OMP::FaultUtil->getResponse($respid, $fault);
+
+where C<$respid> is the ID of the response to be returned and C<$fault>
+is an object of type C<OMP::Fault>.
+
+=cut
+
+sub getResponse {
+  my $self = shift;
+  my $respid = shift;
+  my $fault = shift;
+
+  if (UNIVERSAL::isa($fault, "OMP::Fault")) {
+    for (@{$fault->responses}) {
+      ($_->id eq $respid) and return $_;
+    }
+  } else {
+    throw OMP::Error::BadArgs("Argument to getResponse must be an object of the type OMP::Fault\n");
+  }
+
+}
 
 =back
 
