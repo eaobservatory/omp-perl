@@ -1042,8 +1042,9 @@ sub mail_report {
   my $user = shift;
 
   # Get the mailing list
-  my @mailaddr = OMP::Config->getData( 'nightrepemail', 
-				       telescope => $self->telescope);
+  my @mailaddr = map { OMP::User->new(email => $_) }
+    OMP::Config->getData( 'nightrepemail', 
+			  telescope => $self->telescope);
 
   # Should CC observers
 
@@ -1053,14 +1054,14 @@ sub mail_report {
   # Who is filing this report (need the email address)
   my $from;
   if (defined $user && defined $user->email) {
-    $from = $user->email;
+    $from = $user;
   } else {
-    $from = 'flex@' . OMP::Config->getData('maildomain');
+    $from = OMP::User->new(email => 'flex@' . OMP::Config->getData('maildomain'),);
   }
 
   # and mail it
   OMP::BaseDB->_mail_information(
-				 to => [ @mailaddr ],
+				 to => \@mailaddr,
 				 from => $from,
 				 subject => 'OBS REPORT: '.$self->date->ymd .
 				 ' at the ' . $self->telescope,
