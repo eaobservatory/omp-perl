@@ -1284,12 +1284,14 @@ sub stringify {
 "$urgency".
 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".
 "                                Actual time of failure: $actfaultdate\n".
-"\n".
-"$firstresponse\n\n";
+"\n";
+
+  $output .= OMP::General->html_to_plain("$firstresponse")."\n\n";
 
   # Now loop over remaining responses and add them in
   for (@responses[1..$#responses]) {
-    $output .= "$_\n";
+    my $plain = OMP::General->html_to_plain( "$_" );
+    $output .= "$plain\n";
   }
 
   return $output;
