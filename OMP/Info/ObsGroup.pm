@@ -48,7 +48,7 @@ use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::ObslogDB;
 use OMP::Info::Obs;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 
 use vars qw/ $VERSION /;
 $VERSION = 0.01;
@@ -165,7 +165,14 @@ sub runQuery {
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
 
   # Grab the results.
-  my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+  my $adb = new OMP::ArchiveDB();
+  try {
+    my $db = new OMP::DBbackend::Archive;
+    $adb->db( $db );
+  }
+  catch OMP::Error::DBConnection with {
+    # let it pass through
+  };
   my @result = $adb->queryArc( $q );
 
   # Store the results
