@@ -1362,17 +1362,14 @@ the B<determine_host> method.
 
 Takes no arguments.
 
+Deprecated. Use of B<is_host_local> is now recommended.
+
 =cut
 
 sub am_i_local {
   my $self = shift;
-
-  my @domain = $self->determine_host;
-
-  # Simple way of seeing if the address is local
-  if ($domain[1] and $domain[1] !~ /\./) {
-    return 1;
-  }
+  warn "am_i_local is deprecated. Please use is_host_local instead\n";
+  return $self->is_host_local;
 }
 
 =back
