@@ -432,7 +432,8 @@ sub projectStats {
   # relevant project. Above this threshold we simply charge them
   # to OTHER. This unit is in seconds
   # If this is set to 0, all unallocated gaps will be charged to OTHER
-  my $GAP_THRESHOLD = 5 * 60;
+  my $GAP_THRESHOLD = OMP::Config->getData( 'timegap' );
+
 
   my @warnings;
   my %projbycal;
@@ -479,20 +480,19 @@ sub projectStats {
       my $status = $obs->status;
       next if $status == OMP__TIMEGAP_FAULT;
 
-      if ($status == OMP__TIMEGAP_INSTRUMENT) {
-	# Charge this to CAL
-	# Need to decide how to process INSTRUMENT gaps.
-	# We really need finer control. At the very least they
-	# should be charged to generic calibrations associated
-	# with the instrument in question. Also, we need to know whether
-	# this means instrument following this gap or instrument preceeding
-	# the gap (for example taking polarimeter on and off) and also
-	# whether we should be charging just the project preceeding or
-	# following this gap. For now kluge it and charge to OTHER anyway.
-	# since that is probably close for now than charging CAL
-	$projectid = $OTHER_GAP;
+      if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_PROJECT) {
+	# INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
+	# gaps are shared by instrument, PROJECT gaps are given to the following
+	# project. In both cases we handle it properly in the next section.
+	# Simply let the default project ID go through since it will be ignored
+	# in a little while.
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
 	$projectid = $WEATHER_GAP;
+      } elsif ($status == OMP__TIMEGAP_PROJECT) {
+	# This is time that should be charged to the project
+	# following this gap. For now we do not need to do anything
+	# at all since we process these gap types explicitly later on
+	# during the gap management
       } else {
 	$projectid = $OTHER_GAP;
       }
@@ -520,7 +520,9 @@ sub projectStats {
 					 && $projectid !~ /$WEATHER_GAP$/
 					 && $projectid !~ /$OTHER_GAP$/
 					 && $projectid !~ /$EXTENDED_KEY$/
-					 && $projectid !~ /^scuba$/i);
+					 && $projectid !~ /^scuba$/i
+					 && !$isgap
+					);
 
     # Store the project ID for gap processing
     # In general should make sure we dont get projects that are all calibrations
@@ -545,12 +547,16 @@ sub projectStats {
     # Always push if we are the first element
     # Also push a projectid on the array if previous isnot an array (ie a gap)
     # OR if the previous project is not the same as the current project
-    push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
-      if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || 
-	  (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
-	  (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
-	  $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
-
+    # We do not want to push a gap onto this array since a gap should be
+    # the content [previously we pushed all gaps and then replaced them
+    # with the actual gap later on]
+    if (!$isgap) {
+      push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
+	if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || 
+	    (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
+	    (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
+	     $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
+    }
 
     # We can calculate extended time so long as we have 2 of startobs, endobs and duration
     if( (defined $startobs && defined $endobs ) ||
@@ -600,7 +606,22 @@ sub projectStats {
 	# Replace the project entry with a hash pointing to the gap
 	# Use a hash ref just to make it easy to spot rather than matching
 	# to a digit
-	$gapproj{$ymd}->{$tel}->[-1] = { OTHER => $timespent->seconds };
+	push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+      } elsif ($obs->status == OMP__TIMEGAP_PROJECT) {
+	# Always charge PROJECT gaps to the following project (this
+	# is the same logic as for short gaps). Keep this separate
+	# in case we had different types of accounting (especially
+	# if we start to share between previous project or have a POSTPROJECT
+	# and PREVPROJECT gap type). In that case will adjust the key here
+	# to be PREVIOUS, POST or SHARED
+	print "CHARGING ".$timespent->seconds." TO PROJECT GAP\n"
+	  if $DEBUG;
+	push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+      } elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
+	# Simply treat this as a generic calibration
+	print "CHARGING ".$timespent->seconds." TO INSTRUMENT GAP [$inst]\n"
+	  if $DEBUG;
+	$cals{$ymd}{$inst}{$CAL_NAME} += $timespent->seconds;
       } elsif ($timespent->seconds > 0) {
 	# Just charge to OTHER [unless we have negative time gap]
 	print "CHARGING ".$timespent->seconds." TO $projectid\n"
