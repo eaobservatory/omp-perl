@@ -30,10 +30,19 @@ to an instrument specific subclass. For now just deals with SCUBA.
 #     observations. Within a single translation this should be
 #     fine. There is no scope for providing external information
 #     on the current telescope position to the translator.
+#          [NOT A PROBLEM. NOW HANDLED BY QUEUE]
 #  *. autoTarget also needs the ability to choose a reasonable
 #     source on the basis of the known flux.
+#          [NOT A TRANSLATOR PROBLEM. HANDLED BY QUEUE]
 #  *. Need to consider how to trigger manual intervention of autoTarget
+#          [HANDLED BY QUEUE]
 #  *. Still need to add the SAMPLE_PA calculation
+#          [PART OF SCUBA::ODF]
+#  *. Need to keep track of "observe time" during translation
+#     so that time dependent stages can be calculated for a reasonable
+#     time rather than the time of translation.
+#          [ALL TIME DEPENDENT CALCULATIONS NOW DONE IN QUEUE]
+#  Some of this should be done by the queue by SCUBA::ODF
 
 
 use 5.006;
@@ -43,12 +52,14 @@ use warnings;
 use OMP::SciProg;
 use OMP::Error;
 
-use File::Temp qw/tempfile/;
 use Fcntl;
 use File::Spec;
 use File::Basename qw/basename/;
 use Time::Piece ':override';
 use Time::Seconds qw/ ONE_HOUR /;
+use SCUBA::ODF;
+use SCUBA::ODFGroup;
+use Data::Dumper;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -56,6 +67,8 @@ our $VERSION = (qw$Revision$)[1];
 our $TRANS_DIR = "/tmp/omplog";
 # Equivalent path on vax
 our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
+
+our $DEBUG = 0;
 
 use constant PI => 3.141592654;
 
@@ -92,7 +105,8 @@ sub translate {
 
   # See how many MSBs we have
   my @msbs = $sp->msb;
-  print "Number of MSBS to translate: ". scalar(@msbs) ."\n";
+  print "Number of MSBS to translate: ". scalar(@msbs) ."\n"
+    if $DEBUG;
 
 #  throw OMP::Error::TranslateFail("Only one MSB can be translated at a time")
 #    if scalar(@msbs) != 1;
@@ -101,20 +115,30 @@ sub translate {
 #  my $msb = $msbs[0];
   my @odfs;
   for my $msb (@msbs) {
-    print "MSB " . $msb->checksum . "\n";
+    print "MSB " . $msb->checksum . "\n"
+      if $DEBUG;
 
     my @obs = $msb->unroll_obs();
 
   # Treat an ODF as a hash and a macro as an array of hashes
   # until the last moment.
 
+    my $obscount = 0;
   for my $obsinfo ( @obs ) {
+    $obscount++;
+    print "Observation: $obscount\n" if $DEBUG;
+#    print Dumper($obsinfo)
+#      if $DEBUG;
 
     # Determine the mode
     my $mode = $obsinfo->{MODE};
     if ($self->can( $mode )) {
       my %translated = $self->$mode( %$obsinfo );
-      push(@odfs, \%translated);
+      my $odf = new SCUBA::ODF( Hash => \%translated );
+      $odf->vax_outputdir( $TRANS_DIR_VAX );
+
+      print $odf->summary ."\n" if $DEBUG;
+      push(@odfs, $odf);
 #      use Data::Dumper;
 #      print Dumper(\%translated);
     } else {
@@ -124,8 +148,11 @@ sub translate {
   }
   }
 
-  use Data::Dumper;
-  print Dumper(\@odfs);
+  # Create the group
+  my $grp = new SCUBA::ODFGroup( ODFs => \@odfs);
+
+  #use Data::Dumper;
+  #print Dumper($grp);
 
   # Return data or write to disk
   if ($asdata) {
@@ -136,7 +163,9 @@ sub translate {
     }
   } else {
     # Write
-    return $self->write_odfs( @odfs );
+    $grp->outputdir($TRANS_DIR);
+    $grp->syncoutputdir();
+    return $grp->writegroup();
   }
 
 }
@@ -146,6 +175,8 @@ sub translate {
 =head1 INTERNAL METHODS
 
 =head2 I/O
+
+NOT USED. NOW USES SCUBA::ODF CLASS
 
 =over 4
 
@@ -465,6 +496,16 @@ generate a SCUBA ODF:
 
   %odf = $trans->SpIterPointingObs( %info );
 
+Pointing observations are "special" because they do not
+inherit items in the same way as science observations.
+The only information obtained from the science program is:
+
+  TARGET (unless autoTarget)
+  FILTER
+
+Chop settings and choice of bolometer are set regardless
+of science program.
+
 =cut
 
 sub SpIterPointingObs {
@@ -480,8 +521,10 @@ sub SpIterPointingObs {
 	     CHOP_FUN => 'SCUBAWAVE',
 	     # Filter
 	     # GAIN
-	     # Jiggle
-	     # Offsets
+	     # Jiggle - see below
+	     # Offsets - none
+	     MAP_X => 0.0,
+	     MAP_Y => 0.0,
 	     # integrations
 	     OBSERVING_MODE => 'POINTING',
 	     SAMPLE_COORDS => 'NA',
@@ -491,26 +534,40 @@ sub SpIterPointingObs {
 	     # Target
 	    );
 
-  # If we have an array (primaryBolometer = LONG or SHORT)
-  # then we need the following jiggle
-  # This is slightly different to normal jiggle maps
+
+  # The issue of whether to point with the array or single
+  # pixel is a configuration file one.
+  # if we are array pointing the main issue is whether our
+  # filter can support arrays
   my %jiggle;
-  if ($info{primaryBolometer} eq 'LONG' or
-      $info{primaryBolometer} eq 'SHORT') {
-    # For ARRAY pointing
-    %jiggle = (
-	       JIGGLE_NAME => 'JCMTDATA_DIR:EASY_16_6P18.JIG',
-	       JIGGLE_P_SWITCH => '16'
-	      );
-  } else {
+  if ($info{waveband}->filter =~ /PHOT/i) {
+    # must be phot, just use primaryBolometer
     %jiggle = (
 	       JIGGLE_P_SWITCH => 10,
-	       );
+	       BOLOMETERS => $info{primaryBolometer},
+	      );
+  } else {
+    if (1) {
+      # ARRAY pointing
+      %jiggle = (
+		 JIGGLE_NAME => 'JCMTDATA_DIR:EASY_16_6P18.JIG',
+		 JIGGLE_P_SWITCH => '16',
+		 BOLOMETERS => 'LONG',
+		);
+    } else {
+      # Single pixel pointing
+      %jiggle = (
+		 JIGGLE_P_SWITCH => 10,
+		 BOLOMETERS => 'H7',
+		);
+    }
+
   }
+
   %odf = ( %odf, %jiggle );
 
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Offsets Ints Target Chop / ) {
+  for (qw/ General Filter CalChop Gain Ints Target / ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
@@ -544,7 +601,7 @@ sub SpIterJiggleObs {
 	     JIGGLE_P_SWITCH => 16,
 	     # Offsets
 	     # integrations
-	     OBSERVING_MODE => 'POINTING',
+	     OBSERVING_MODE => 'MAP',
 	     SAMPLE_COORDS => 'NA',
 	     SAMPLE_MODE => 'JIGGLE',
 	     SPIKE_REMOVAL => 'YES',
@@ -616,7 +673,7 @@ sub SpIterJiggleObs {
     } elsif (exists $bols{SHORT}) {
       $jiggle = "JCMTDATA_DIR:EASY_16_3P09.JIG";
     } else {
-      throw OMP::Error::SpTranslateFail("strange problem with bolometer assignments for jiggle");
+      throw OMP::Error::TranslateFail("strange problem with bolometer assignments for jiggle");
     }
 
     %jiggle = ( JIGGLE_NAME => $jiggle,
@@ -737,13 +794,13 @@ sub SpIterNoiseObs {
     $source = "SPACE1";
   } elsif ($source eq "ZENITH") {
     $source = "SPACE1";
-    $odf{EL} = "90:00:00";
+    $odf{EL} = "80:00:00";
   } elsif ($source eq 'ECCOSORB') {
     $source = "MATT";
   } elsif ($source eq 'REFLECTOR') {
     # do nothing - this is okay
   } else {
-    throw OMP::Error::SpTranslateFail("Unknown noise source: $source");
+    throw OMP::Error::TranslateFail("Unknown noise source: $source");
   }
 
   $odf{SOURCE_TYPE} = $source;
@@ -758,21 +815,32 @@ generate a SCUBA ODF:
 
  %odf = $trans->SpIterFocusObs( %info );
 
+Pointing observations are "special" because they do not
+inherit items in the same way as science observations.
+The only information obtained from the science program is:
+
+  TARGET (unless autoTarget)
+  FILTER
+
+Chop settings and choice of bolometer are set regardless
+of science program.
+
+
 =cut
 
 sub SpIterFocusObs {
   my $self = shift;
   my %info = @_;
 
+  my $isFocus = ( $info{focusAxis} =~ /z/i ? 1 : 0);
+
   # Template
   my %odf = (
 	     # General
 	     ACCEPT => 'PROMPT',
 	     # Bols
-	     CHOP_COORDS => 'AZ', # Chop params are fixed for focus
+	     # Chop
 	     CHOP_FUN => 'SCUBAWAVE',
-	     CHOP_PA => 90,
-	     CHOP_THROW => 60.0,
 	     # Filter
 
 	     FOCUS_SHIFT => $info{focusStep},
@@ -780,14 +848,22 @@ sub SpIterFocusObs {
 	     JIGGLE_P_SWITCH => '8',
 	     # Nints
 	     N_MEASUREMENTS => $info{focusPoints},
-	     OBSERVING_MODE => 'FOCUS',
+	     OBSERVING_MODE => ($isFocus ? 'FOCUS' : 'ALIGN'),
 	     SAMPLE_COORDS => 'NA',
 	     SPIKE_REMOVAL => 'YES',
 	     SWITCH_MODE => 'BMSW',
+	     ($isFocus ? () : (ALIGN_AXIS => $info{focusAxis} ) ),
 	    );
 
+  # override primary bolometer
+  $info{primaryBolometer} = "H7" if ((!defined $info{primaryBolometer})  ||
+    $info{primaryBolometer} =~ /LONG|SHORT/);
+
+  # and store it in bolometers
+  $info{bolometers} = [ $info{primaryBolometer} ];
+
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Ints / ) {
+  for (qw/ General Bols Filter Gain Ints CalChop / ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
@@ -840,7 +916,7 @@ sub getGain {
 
   my $target = $info{target};
   my $gain;
-  if ($target =~ /^(MARS|SATURN|JUPITER|MOON)$/i) {
+  if (defined $target && $target =~ /^(MARS|SATURN|JUPITER|MOON)$/i) {
     $gain = 1;
   } else {
     $gain = 10;
@@ -912,6 +988,26 @@ sub getChop {
   return %chop;
 }
 
+=item B<getCalChop>
+
+Return standard chop settings for non-science targets
+such as pointing and focus.
+
+  %chop = $trans->getCalChop( %info );
+
+=cut
+
+sub getCalChop {
+  my $self = shift;
+  my %info = @_;
+
+  return ( CHOP_COORDS => 'AZ',
+	   CHOP_THROW =>  60,
+	   CHOP_PA    =>  90,
+	 );
+
+}
+
 =item B<getTarget>
 
 Generate target specification. This is probably the most
@@ -919,6 +1015,9 @@ complicated step since it should handle orbital elements
 and the ability to choose a suitable target.
 
   %scan = $trans->getScan( %info );
+
+This is a duplicate of the C<SCUBA::ODF> method of the same
+name.
 
 =cut
 
@@ -928,9 +1027,8 @@ sub getTarget {
 
   # First see if we need to choose a target
   if ($info{autoTarget}) {
-    # Get a new target
-
-    throw OMP::Error::FatalError("autoTarget not yet supported by translator");
+    # Do nothing, this is a function of the queue
+    return ();
 
   }
 
@@ -990,7 +1088,7 @@ sub getTarget {
 
 
   } else {
-    throw OMP::Error::SpTranslateFail("This observing mode requires a target rather than coordinates of type $info{coordstype}");
+    throw OMP::Error::TranslateFail("This observing mode requires a target rather than coordinates of type $info{coordstype}");
   }
 
 
@@ -1004,6 +1102,9 @@ the "best" scan angle for SCUBA. Currently always uses 15 degrees
 or the first angle specified from the OT.
 
   %scan = $trans->getScan( %info );
+
+CHOOSING A SCAN ANGLE IS NOW A FUNCTION OF THE QUEUE
+SCUBA::ODF OBJECT
 
 =cut
 
@@ -1138,7 +1239,7 @@ sub getPol {
     $pol{MODE} = "POLPHOT";
     $pol{JIGGLE_NAME} = "JCMTDATA_DIR:NULL_1P0.JIG";
   } else {
-    throw OMP::Error::SpTranslateFail("Pol mode only available for map and phot, not $info{MODE}");
+    throw OMP::Error::TranslateFail("Pol mode only available for map and phot, not $info{MODE}");
   }
 
   # Waveplates must be stored in an array
@@ -1191,10 +1292,10 @@ sub getCentCoordSystem {
 	      or $info{coordstype} eq 'PLANET') {
       return 'PLANET';
     } else {
-      throw OMP::Error::SpTranslateFail("Unknown tracking coord combination: $info{coordstype}");
+      throw OMP::Error::TranslateFail("Unknown tracking coord combination: $info{coordstype}");
     }
   } else {
-    throw OMP::Error::SpTranslateFail("Unknown coordinate system :$tcssys");
+    throw OMP::Error::TranslateFail("Unknown coordinate system :$tcssys");
   }
 
 }
@@ -1221,7 +1322,7 @@ sub getOtherCoordSystem {
   } elsif ($tcssys eq 'FPLANE') {
     $scusys = "NA";
   } else {
-    throw OMP::Error::SpTranslateFail("Unknown TCS system: $tcssys");
+    throw OMP::Error::TranslateFail("Unknown TCS system: $tcssys");
   }
 
   return $scusys;
@@ -1261,7 +1362,7 @@ sub getSubInst {
 	next;
       }
     }
-    throw OMP::Error::SpTranslateFail("Bolometer $bol not present in any SCUBA sub-instrument")
+    throw OMP::Error::TranslateFail("Bolometer $bol not present in any SCUBA sub-instrument")
       unless defined $sub;
   }
   return $sub;
