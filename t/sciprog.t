@@ -48,13 +48,15 @@ for my $msb ($obj->msb) {
     ok(1);
 
     my %cmp = %{ $results{ $msb->checksum} };
-    my %msbsum = $msb->summary;
+    my $info = $msb->info;
+    my %msbsum = $info->summary('hashlong');
+    $msbsum{obscount} = $info->obscount;
 
     for my $key (keys %cmp) {
 
-      # Special case for the obs array
+      # Special case for the observations array
       # Really need a recursive comparator
-      if ($key eq 'obs') {
+      if ($key eq 'observations') {
 
 	foreach my $i (0..$#{$cmp{$key}}) {
 	  my %obs = %{$msbsum{$key}[$i]};
