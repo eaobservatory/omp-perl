@@ -51,6 +51,11 @@ use strict;
 use Getopt::Long;
 use Pod::Usage;
 use SrcCatalog::JCMT;
+
+# Locate the OMP software through guess work
+use FindBin;
+use lib "$FindBin::RealBin/..";
+
 use OMP::SciProg;
 
 # Options
