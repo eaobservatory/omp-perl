@@ -13,6 +13,7 @@
 #  Tag priority
 #  country 
 #  semester  (YYYYA/B)
+#  password
 #  Allocated time (hours)
 
 # cat proj.details | perl mkproj.pl
@@ -42,8 +43,8 @@ while (<>) {
   my @details  = split(/,/,$line);
   print join("--",@details),"\n";
   # insert into the table
-  $dbh->do("INSERT INTO ompproj VALUES (?,?,?,?,?,?,?,?,?,?,?)", undef,
-	  @details, $details[7],0)
+  $dbh->do("INSERT INTO ompproj VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", undef,
+	  @details, $details[-1],0)
     or die "Cannot insert into ompproj: ". $DBI::errstr;
 
 }
