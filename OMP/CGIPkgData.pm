@@ -19,7 +19,7 @@ OMP data files for the PI.
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use OMP::PackageData;
 
@@ -133,9 +133,11 @@ sub _package_data {
   $pkg->pkgdata;
   print "</PRE>\n";
 
-  my $url = $pkg->ftpurl;
-  if (defined $url) {
-    print "Retrieve your data from url: <A href=\"$url\">$url</a>";
+  my @urls = $pkg->ftpurl;
+  if (@urls) {
+    my $plural = (scalar(@urls) > 1 ? "s" : "");
+    print "Retrieve your data from the following url$plural :<br>";
+    print join("\n", map { "<A href=\"$_\">$_</a><br>" } @urls;
   } else {
     print "There must have been an untrapped error. Could not obtain a url";
   }
