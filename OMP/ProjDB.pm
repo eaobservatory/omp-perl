@@ -138,6 +138,12 @@ sub verifyPassword {
     $password = $self->password;
   }
 
+  # First verify administrator password
+  # Need to clarify the relationship of this method and
+  # _verify_project_password in OMP::MSBDB
+  # which repeats this logic and then calls this method!
+  # Do nothing yet
+
   # Retrieve the contents of the table
   my $project = $self->_get_project_row();
 
