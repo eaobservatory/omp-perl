@@ -202,7 +202,7 @@ sub CreateAccessors {
 		 if (@_) {
 		   my %new;
 		   if (ref($_[0]) eq 'HASH') {
-		     %new = @{$_[0]};
+		     %new = %{$_[0]};
 		   } else {
 		     %new = @_;
 		   }
@@ -210,7 +210,7 @@ sub CreateAccessors {
 		   %{ $self->{METHOD} } = %new;
 		 }
 		 if (wantarray) {
-		   return @{ $self->{METHOD} };
+		   return %{ $self->{METHOD} };
 		 } else {
 		   return $self->{METHOD};
 		 }
@@ -278,12 +278,12 @@ sub CreateAccessors {
       } else {
 	$code =~ s/ARRAY_CLASS_CHECK//;
       }
-    } elsif ($TYPE =~ /^\@/) {
+    } elsif ($TYPE =~ /^\%/) {
 
-      $code .= $ARRAY;
+      $code .= $HASH;
 
       # Using a class?
-      if ($TYPE =~ /^\@(.+)/) {
+      if ($TYPE =~ /^\%(.+)/) {
 	$class = $1;
 	$code =~ s/HASH_CLASS_CHECK/$HASH_CLASS_CHECK/;
 	$code =~ s/CLASS_CHECK/$CLASS_CHECK/;
