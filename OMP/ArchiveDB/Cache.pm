@@ -211,23 +211,18 @@ sub unstored_files {
     my @initial = OMP::Config->getData('instruments',
 				       telescope => $telescope
 				      );
-    print "Querying config system for cache\n";
+
     my $ishet = 0;
     for my $inst (@initial) {
       if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
 	$ishet = 1;
-	print "Inst skipping $inst\n";
 	next;
       }
-      print "Pushing $inst\n";
       push(@insts, $inst);
     }
     push(@insts, "heterodyne") if $ishet;
 
   }
-
-  use Data::Dumper;
-  print "Cache insts: ".Dumper(\@insts);
 
   my @ifiles;
   for(my $day = $query->daterange->min; $day <= $query->daterange->max; $day = $day + ONE_DAY) {

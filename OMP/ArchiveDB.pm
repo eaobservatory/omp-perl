@@ -202,7 +202,7 @@ sub _query_arcdb {
     catch OMP::Error::CacheFailure with {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
-      print "Warning when storing archive: $errortext. Continuing.\n";
+      print STDERR "Warning when storing archive: $errortext. Continuing.\n";
       OMP::General->log_message( $errortext );
     };
 
@@ -234,8 +234,6 @@ sub _query_files {
   my $self = shift;
   my $query = shift;
 
-  print "Querying files\n";
-
   my ( $telescope, $daterange, $instrument, $runnr, $filterinst );
   my @returnarray;
 
@@ -266,7 +264,6 @@ sub _query_files {
     my @initial = OMP::Config->getData('instruments',
 				       telescope => $telescope
 				      );
-    print "Querying config system\n";
     my $ishet = 0;
     for my $inst (@initial) {
       if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
@@ -281,9 +278,6 @@ sub _query_files {
   } else {
     throw OMP::Error::BadArgs( "Unable to return data. No telescope or instrument set." );
   }
-
-  use Data::Dumper;
-  print Dumper(\@instarray);
 
   my $obsgroup;
   my @files;
@@ -308,8 +302,6 @@ sub _query_files {
     for(my $day = $startday; $day <= $endday; $day = $day + ONE_DAY) {
 
       foreach my $inst ( @instarray ) {
-
-	print "Stepping through instrument $inst\n";
 
 ################################################################################
 # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
@@ -402,7 +394,6 @@ sub _query_files {
 
   foreach my $file ( @files ) {
     # Create the Obs object.
-    print "Reading file $file\n";
     my $obs = readfile OMP::Info::Obs( $file );
     if( !defined( $obs ) ) { next; }
 
@@ -467,7 +458,7 @@ sub _query_files {
   catch OMP::Error::CacheFailure with {
     my $Error = shift;
     my $errortext = $Error->{'-text'};
-    print "Warning: $errortext\n";
+    print STDERR "Warning: $errortext\n";
    OMP::General->log_message( $errortext );
   };
 
