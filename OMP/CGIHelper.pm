@@ -2108,10 +2108,8 @@ sub submit_fb_comment {
 		  program => $q->url(-relative=>1), # the name of the cgi script
 		  status => OMP__FB_IMPORTANT, };
 
-  # Strip out ^M
-  foreach (keys %$comment) {
-    $comment->{$_} =~ s/\015//g;
-  }
+  # Prepare text for storage and subsequent display
+  $comment->{text} = OMP::General->preify_text($comment->{text});
 
   try {
     OMP::FBServer->addComment( $projectid, $comment );
