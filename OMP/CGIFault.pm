@@ -372,7 +372,7 @@ sub query_fault_output {
   # Which XML query are we going to use?
   # and which title are we displaying?
   my $title;
-  my $t = OMP::General->today;
+  my $t = OMP::General->today(1);
   my %daterange;
   my $xml;
 
