@@ -411,95 +411,97 @@ sub new_instrument {
 
   my $counter = 0;
 
-  foreach my $obs( $obsgrp->obs ) {
-    my %nightlog = $obs->nightlog(display => 'long',
+  if( defined( $obsgrp ) ) {
+    foreach my $obs( $obsgrp->obs ) {
+      my %nightlog = $obs->nightlog(display => 'long',
                                   comments => 1, );
-    my @comments = $obs->comments;
-    my $status = 0;
-    if ( defined($comments[($#comments)]) ) {
-      $status = $comments[($#comments)]->status;
-    }
-
-    # Draw the header, if necessary.
-    if( !$header_printed && exists($nightlog{'_STRING_HEADER'})) {
-      $nbHeader->configure( -state => 'normal' );
-      $nbHeader->delete('0.0','end');
-
-      if( $verbose && exists($nightlog{'_STRING_HEADER_LONG'})) {
-        $nbHeader->insert('end', $nightlog{'_STRING_HEADER_LONG'});
-      } else {
-        $nbHeader->insert('end', $nightlog{'_STRING_HEADER'});
+      my @comments = $obs->comments;
+      my $status = 0;
+      if ( defined($comments[($#comments)]) ) {
+        $status = $comments[($#comments)]->status;
       }
 
-      # Clean up.
-      $nbHeader->configure( -state => 'disabled' );
-      $header_printed = 1;
-    }
+      # Draw the header, if necessary.
+      if( !$header_printed && exists($nightlog{'_STRING_HEADER'})) {
+        $nbHeader->configure( -state => 'normal' );
+        $nbHeader->delete('0.0','end');
 
-    # Take a local copy of the index for callbacks
-    my $index = $counter;
+        if( $verbose && exists($nightlog{'_STRING_HEADER_LONG'})) {
+          $nbHeader->insert('end', $nightlog{'_STRING_HEADER_LONG'});
+        } else {
+          $nbHeader->insert('end', $nightlog{'_STRING_HEADER'});
+        }
 
-    # Generate the tag name based on the index.
-    my $otag = "o" . $index;
+        # Clean up.
+        $nbHeader->configure( -state => 'disabled' );
+        $header_printed = 1;
+      }
 
-    # Get the reference position
-    my $start = $nbContent->index('insert');
+      # Take a local copy of the index for callbacks
+      my $index = $counter;
 
-    # Insert the line
-    if( $verbose && exists($nightlog{'_STRING_LONG'}) ) {
-      $nbContent->insert('end', $nightlog{'_STRING_LONG'} . "\n");
-    } else {
-      $nbContent->insert('end', $nightlog{'_STRING'} . "\n");
-    }
+      # Generate the tag name based on the index.
+      my $otag = "o" . $index;
 
-    # Remove all the tags at this position.
-    foreach my $tag ($nbContent->tag('names', $start)) {
-      $nbContent->tag('remove', $tag, $start, 'insert');
-    }
+      # Get the reference position
+      my $start = $nbContent->index('insert');
 
-    # Create a new tag.
-    $nbContent->tag('add', $otag, $start, 'insert');
+      # Insert the line
+      if( $verbose && exists($nightlog{'_STRING_LONG'}) ) {
+        $nbContent->insert('end', $nightlog{'_STRING_LONG'} . "\n");
+      } else {
+        $nbContent->insert('end', $nightlog{'_STRING'} . "\n");
+      }
 
-    # Configure the new tag.
-    $nbContent->tag('configure', $otag,
-                    -foreground => $CONTENTCOLOUR[$status],
-                   );
+      # Remove all the tags at this position.
+      foreach my $tag ($nbContent->tag('names', $start)) {
+        $nbContent->tag('remove', $tag, $start, 'insert');
+      }
 
-    my $bgcolour;
-    if( $counter % 2 ) {
-      $bgcolour = $BACKGROUND1;
-    } else {
-      $bgcolour = $BACKGROUND2;
-    }
+      # Create a new tag.
+      $nbContent->tag('add', $otag, $start, 'insert');
 
-    if($counter % 2) {
+      # Configure the new tag.
       $nbContent->tag('configure', $otag,
-                      -background => $bgcolour,
+                      -foreground => $CONTENTCOLOUR[$status],
                      );
-    } else {
-      $nbContent->tag('configure', $otag,
-                      -background => $bgcolour,
-                     );
+
+      my $bgcolour;
+      if( $counter % 2 ) {
+        $bgcolour = $BACKGROUND1;
+      } else {
+        $bgcolour = $BACKGROUND2;
+      }
+
+      if($counter % 2) {
+        $nbContent->tag('configure', $otag,
+                        -background => $bgcolour,
+                       );
+      } else {
+        $nbContent->tag('configure', $otag,
+                        -background => $bgcolour,
+                       );
+      }
+
+      # Bind the tag to double-left-click
+      $nbContent->tag('bind', $otag, '<Double-Button-1>' =>
+                      [\&RaiseComment, $obs, $index] );
+
+      # Do some funky mouse-over colour changing.
+      $nbContent->tag('bind', $otag, '<Any-Enter>' =>
+                      sub { shift->tag('configure', $otag,
+                                       -background => $HIGHLIGHTBACKGROUND,
+                                       qw/ -relief raised
+                                           -borderwidth 1 /); } );
+
+      $nbContent->tag('bind', $otag, '<Any-Leave>' =>
+                      sub { shift->tag('configure', $otag,
+                                       -background => $bgcolour,
+                                       qw/ -relief flat /); } );
+
+      # And increment the counter.
+      $counter++;
     }
-
-    # Bind the tag to double-left-click
-    $nbContent->tag('bind', $otag, '<Double-Button-1>' =>
-                    [\&RaiseComment, $obs, $index] );
-
-    # Do some funky mouse-over colour changing.
-    $nbContent->tag('bind', $otag, '<Any-Enter>' =>
-                    sub { shift->tag('configure', $otag,
-                                     -background => $HIGHLIGHTBACKGROUND,
-                                     qw/ -relief raised
-                                     -borderwidth 1 /); } );
-
-    $nbContent->tag('bind', $otag, '<Any-Leave>' =>
-                    sub { shift->tag('configure', $otag,
-                                     -background => $bgcolour,
-                                     qw/ -relief flat /); } );
-
-    # And increment the counter.
-    $counter++;
   }
 
   # Bind the mousewheel.
@@ -563,6 +565,7 @@ sub rescan {
   catch OMP::Error with {
     my $Error = shift;
     require Tk::DialogBox;
+    new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
                                      );
@@ -579,6 +582,7 @@ sub rescan {
   otherwise {
     my $Error = shift;
     require Tk::DialogBox;
+    new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
                                      );
