@@ -70,6 +70,8 @@ Object constructor. Accept arguments in hash form with keys:
   obs - expects to point to array ref of Info::Obs objects
   telescope/instrument/projectid - arguments recognized by
      populate methods are forwarded to the populate method.
+  timegap - interleaves observations with timegaps if a gap
+            longer than the value in this hash is detected.
 
   $grp = new OMP::Info::ObsGroup( obs => \@obs );
 
@@ -323,6 +325,11 @@ sub populate {
     # store it [comments will already be attached]
     $self->obs(\@newobs);
 
+  }
+
+  # Add in timegaps if necessary.
+  if(exists $args{timegap}) {
+    $self->locate_timegaps( $args{timegap} );
   }
 
 }
@@ -753,6 +760,37 @@ sub locate_timegaps {
 
   return;
 
+}
+
+=item B<summary>
+
+Returns a text-based summary for observations in an observation
+group.
+
+  $summary = $grp->summary;
+
+Currently implements the '72col' version of the C<OMP::Info::Obs::summary>
+method.
+
+=cut
+
+sub summary {
+  my $self = shift;
+
+  if(wantarray) {
+    my @summary;
+    foreach my $obs ($self->obs) {
+      my @obssum = $obs->summary( '72col' );
+      push @summary, @obssum;
+    }
+    return @summary;
+  } else {
+    my $summary;
+    foreach my $obs ($self->obs) {
+      $summary .= $obs->summary( '72col' );
+    }
+    return $summary;
+  }
 }
 
 =back
