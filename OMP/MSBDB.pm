@@ -427,7 +427,7 @@ sub fetchMSB {
     my %details = $self->_fetch_row(%args);
 
     # We could not find anything
-    throw OMP::Error::MSBMissing("Could not locate requested MSB in database")
+    throw OMP::Error::MSBMissing("Could not locate requested MSB in database. Maybe you need to resubmit the query?")
       unless %details;
 
     # Get the checksum
