@@ -1498,6 +1498,9 @@ sub _write_login {
   my $self = shift;
   my $q = $self->cgi;
 
+  # Set up the sidebar, otherwise the default sidebar will appear
+  $self->_sidebar();
+
   $self->_write_header();
 
   # Create a page body with some links to fault categories
