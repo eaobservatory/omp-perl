@@ -395,7 +395,7 @@ be included in this calculation).
 
 sub used {
   my $self = shift;
-  return ($self->allocated - $self->remaining - $self->pending);
+  return ($self->allocated - ($self->remaining - $self->pending));
 }
 
 =item B<semester>
