@@ -54,7 +54,7 @@ our $SCITABLE = "ompsciprog";
 our $DEFAULT_RESULT_COUNT = 10;
 
 # Debug messages
-our $DEBUG = 1;
+our $DEBUG = 0;
 
 =head1 METHODS
 
@@ -733,16 +733,16 @@ sub _insert_row {
   # Throw an exception if we are missing observations
   throw OMP::Error::MSBMissingObserve("1 or more of the MSBs is missing an Observe\n") if $data{obscount} == 0;
 
-  use Data::Dumper;
-  print Dumper( \%data );
-
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?)", undef,
+
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
-	   $data{tauband}, $data{seeing}, $data{priority}, $data{moon},
-	   $data{timeest}, $data{title}) 
+	   $data{tauband}, $data{seeing}, $data{priority}, 
+	   $data{telescope}, $data{moon},
+	   $data{timeest}, $data{title}, 
+	   $data{earliest}, $data{latest}) 
     or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
 
   # Now the observations
@@ -774,12 +774,12 @@ sub _insert_row {
 
     print "Inserting row: ",Dumper($obs) if $DEBUG;
 
-    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	     , undef,
 	     $obsid, $index, $proj, $obs->{instrument}, 
 	     $obs->{type}, $obs->{pol}, $obs->{wavelength},
 	     $obs->{coordstype}, $obs->{target},
-	     @coords[1..10]
+	     @coords[1..10], $obs->{timeest}
 	    )
       or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
 
@@ -889,7 +889,7 @@ sub _run_query {
   my $query = shift;
 
   # Get the sql
-  my $sql = $query->sql( $MSBTABLE );
+  my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE );
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
@@ -912,7 +912,7 @@ sub _run_query {
 
   # Now for each MSB we need to retrieve all of the Observation information
   # and store it in the results hash
-  # Convention dictates that this information 
+  # Convention dictates that this information ...???
   # For speed, do the query in one go and then sort out the result
   my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
   $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
@@ -964,6 +964,22 @@ sub _run_query {
     my $msb = $row->{msbid};
     $row->{obs} = $msbs{$msb};
   }
+
+  # KLUGE *******************************
+  # Since we do not yet have a stored procedure to calculate whether
+  # the target is observable we have to do it by hand for each
+  # observation in an MSB
+  # Note that we have to be careful about the following:
+  #  1. Checking that the observation is above that requested
+  #     in SpSchedConstraint
+  #  2. Checking that the target is within the allowed range
+  #     (between 10 and 87 deg el at JCMT and 
+  #      HA = +/- 4.5h and dec > -42 and dec < 60 deg at UKIRT )
+  #  3. Check that it stays within that range for the duration
+  #     of the observation
+  #  4. As a final check make sure that the last target in an MSB
+  #     has not set by the time the first has finished.
+
 
   return @$ref;
 }

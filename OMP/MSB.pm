@@ -26,6 +26,7 @@ use Carp;
 use XML::LibXML; # Our standard parser
 use Digest::MD5 qw/ md5_hex /;
 use OMP::Error;
+use OMP::General;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -35,6 +36,12 @@ our $DEBUG = 0;
 
 # Overloading
 use overload '""' => "stringify";
+
+# Specify default time interval. These limits
+# are the limits of unix epoch (more or less)
+our $MAXTIME = OMP::General->parse_date("2035-01-01T01:00");
+our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
+
 
 =head1 METHODS
 
@@ -105,6 +112,7 @@ sub new {
 	    CheckSum => undef,
 	    ObsSum => [],
 	    Weather => {},
+	    SchedConst => {},
 	   };
 
   # and create the object
@@ -260,6 +268,38 @@ sub weather {
   return %{$self->{Weather}};
 }
 
+=item B<sched_constraints>
+
+Return the scheduling constraints. This is usually
+the earliest and latest observation dates as well
+as, possibly, a minimum elevation to be used for observing.
+
+  %schedconst = $msb->sched_contraints;
+
+If an earliest or latest value can not be found, default values
+in the past and in the far future are chosen (so as not to constrain
+the query).
+
+=cut
+
+sub sched_constraints {
+  my $self = shift;
+  # if our cache is empty we need to fill it
+  unless (%{$self->{SchedConst}}) {
+    # Fill
+    %{$self->{SchedConst}} = $self->_get_sched_constraints;
+
+    # Fill in blanks
+    $self->{SchedConst}->{earliest} = $MINTIME
+      unless exists $self->{SchedConst}->{earliest};
+    $self->{SchedConst}->{latest} = $MAXTIME
+      unless exists $self->{SchedConst}->{latest};
+
+  }
+  return %{$self->{SchedConst}};
+}
+
+
 =item B<remaining>
 
 Returns the number of times the MSB is to be observed.
@@ -404,6 +444,42 @@ sub estimated_time {
   return $est;
 }
 
+=item B<telescope>
+
+Retrieve the telescope to be used for this MSB.
+There can only be one telescope per MSB.
+
+  $telescope = $msb->telescope;
+
+=cut
+
+sub telescope {
+  my $self = shift;
+
+  # Look in cache
+  unless ( defined $self->{Telescope} ) {
+
+    # First retrieve the observation summaries since those
+    # mention the telescope (since it is keyed from the instrument)
+    #  - yes that will cause a problem with michelle on gemini)
+    my $telescope;
+    for my $obs ( $self->obssum ) {
+      my $tel = $obs->{telescope};
+      if (defined $telescope) {
+	# Oops - two different telescopes
+	throw OMP::Error::SpBadStructure("It seems this MSB comes from two telescopes!\n")
+	  if $tel ne $telescope;
+      } else {
+	$telescope = $tel;
+      }
+    }
+    $self->{Telescope} = $telescope;
+
+  }
+
+  return $self->{Telescope};
+}
+
 =back
 
 =head2 General Methods
@@ -520,7 +596,9 @@ sub summary {
     $summary{checksum} = $self->checksum;
     $summary{remaining} = $self->remaining;
     $summary{projectid} = $self->projectID;
+    $summary{telescope} = $self->telescope;
     %summary = (%summary, $self->weather);
+    %summary = (%summary, $self->sched_constraints);
     $summary{obs} = [ $self->obssum ];
 
     $summary{_obssum} = { $self->_summarize_obs() };
@@ -992,6 +1070,48 @@ sub _get_weather_data {
 
 }
 
+=item B<_get_sched_constraints>
+
+Return the contents of the SchedConstObsComp component as a hash.
+Usually used internally by the C<sche_constraints> method.
+
+Only returns keys that are actually present.
+
+=cut
+
+sub _get_sched_constraints {
+  my $self = shift;
+
+  # First attempt to get the SpSchedConstObsComp and refs
+  # (if present)
+  my @comp;
+  push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
+        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+
+  # and use the last one in the list (hopefully we are only allowed
+  # to specify a single value). We get the last one because we want
+  # inheritance to work and the refs from outside the MSB are put in
+  # before the actual MSB contents
+  return () unless @comp;
+
+  my $el = $self->_resolve_ref($comp[-1]);
+
+  my %summary;
+
+  # Need to get earliest and latest
+  # Convert them to Time::Piece objects
+  for my $key ( qw/ earliest latest / ) {
+    my $val = $self->_get_pcdata( $el, $key );
+    if (defined $val) {
+      my $date = OMP::General->parse_date($val);
+      $summary{$key} = $date if defined $date;
+    }
+  }
+
+  return %summary;
+
+}
+
 =item B<_resolve_ref>
 
 Given a reference node, translate it to the corresponding
@@ -1091,6 +1211,7 @@ sub _get_child_elements {
   return @res;
 }
 
+
 # Methods associated with individual elements
 
 =item B<SpObs>
@@ -1118,6 +1239,9 @@ sub SpObs {
   my $el = shift;
   my %summary = @_;
   #print "In SpOBS\n";
+
+  # First get the top-level information
+  $summary{timeest} = $self->_get_pcdata($el, "elapsedTime" );
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
@@ -1238,6 +1362,7 @@ sub SpInstCGS4 {
   my $el = shift;
   my %summary = @_;
 
+  $summary{telescope} = "UKIRT";
   $summary{instrument} = "CGS4";
 
   # We have to make sure we set all instrument related components
@@ -1275,6 +1400,7 @@ sub SpInstUFTI {
   my $el = shift;
   my %summary = @_;
 
+  $summary{telescope} = "UKIRT";
   $summary{instrument} = "UFTI";
   my $filter  = $self->_get_pcdata( $el, "filter" );
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
@@ -1308,6 +1434,7 @@ sub SpInstMichelle {
   my $el = shift;
   my %summary = @_;
 
+  $summary{telescope} = "UKIRT";
   $summary{instrument} = "Michelle";
 
   # We have to make sure we set all instrument related components
@@ -1359,6 +1486,7 @@ sub SpInstIRCAM3 {
   my $el = shift;
   my %summary = @_;
 
+  $summary{telescope} = "UKIRT";
   $summary{instrument} = "IRCAM3";
 
   # We have to make sure we set all instrument related components
@@ -1396,6 +1524,7 @@ sub SpInstSCUBA {
   my $el = shift;
   my %summary = @_;
 
+  $summary{telescope} = "JCMT";
   $summary{instrument} = "SCUBA";
 
   # We have to make sure we set all instrument related components
@@ -1481,9 +1610,7 @@ sub SpTelescopeObsComp {
   } elsif ($sysname eq "conicSystem") {
 
     # Orbital elements. We need to get the (up to) 8 numbers
-    # and store them somehow. Currently store them as : separated
-    # string in the "long" entry. The subtype doesnt need to be stored
-    # since we can work it out from the number of elements
+    # and store them in an Astro::Coords.
     $summary{coordstype} = "ELEMENTS";
 
     throw OMP::Error::FatalError("Orbital elements not yet supported\n");

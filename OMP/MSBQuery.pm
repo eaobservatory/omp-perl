@@ -208,6 +208,10 @@ above the horizon and in terms of being schedulable)
 
 sub sql {
   my $self = shift;
+
+  throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
+    unless scalar(@_) ==3;
+
   my ($msbtable, $obstable, $projtable) = @_;
 
   # Retrieve the perl version of the query
@@ -260,6 +264,9 @@ sub sql {
   # 2. Query the temporary table to determine all the MSB's that had
   #    all their observations match
   # 3. Use that list of MSBs to fetch the corresponding contents
+
+  # We also DROP the temporary tables immediately since sybase
+  # keeps them around for until the connection is ended.
 
   # It is assumed that the observation information will be retrieved
   # in a subsequent query if required.
