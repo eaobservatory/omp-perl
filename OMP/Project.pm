@@ -655,11 +655,17 @@ allocated.
 
 Result is multiplied by 100 before being returned.
 
+Returns 100% if no time has been allocated.
+
 =cut
 
 sub percentComplete {
   my $self = shift;
-  return $self->used / $self->allocated * 100;
+  my $alloc = $self->allocated;
+  if ($alloc > 0.0) {
+    return $self->used / $self->allocated * 100;
+  }
+  return 100;
 }
 
 =item B<used>
