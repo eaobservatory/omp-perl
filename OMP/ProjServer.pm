@@ -334,7 +334,7 @@ sub verifyPassword {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  return $ok;
+  return ($ok ? 1 : 0);
 
 }
 
