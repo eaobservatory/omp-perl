@@ -427,7 +427,7 @@ sub _query_files {
 
           # find the file with this run number
             $runnr = '0' x (4 - length($runnr)) . $runnr;
-            @files = grep(/$runnr\.sdf$/, @files);
+            @files = grep(/$runnr\.(sdf|gsd|dat)$/, @files);
           } # if( $runnr != 0 )
 
           @files = map { $directory . '/' . $_ } @files;
