@@ -105,9 +105,9 @@ sub updateUser {
   # Make sure user's alias is not already in use by another user
   if ($user->alias) {
     my $userid = $self->verifyUser( $user->alias );
-
-    throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use." )
-      unless ($userid = $user->userid);
+    if ($userid and $userid ne $user->userid) {
+      throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use." )
+    }
   }
 
   # Modify
@@ -122,7 +122,7 @@ sub updateUser {
 =item B<verifyUser>
 
 Verify that the user exists in the database. This is a thin wrapper
-around B<getUser>. Returns true if the user exists, else returns false.
+around B<getUser>. Returns user`s ID if user exists, else returns false.
 
   $isthere = $db->verifyUser( $userid );
 
