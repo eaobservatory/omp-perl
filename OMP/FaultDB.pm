@@ -735,6 +735,10 @@ sub _mail_fault {
   my $faultuser = OMP::User->new(name=>$fault->category . " Faults",
 				 email=>$fault->mail_list);
 
+  # If there is no email address associated with author of last response
+  # use the fault list "user" for the From header
+  my $from = ($responses[-1]->author->email ? $responses[-1]->author : $faultuser);
+
   # Get the fault message
   my $msg = OMP::FaultUtil->format_fault($fault, 0);
 
@@ -742,7 +746,7 @@ sub _mail_fault {
   $self->_mail_information(message => $msg,
 			   to => [ $faultuser ],
 			   cc => [ map {$cc{$_}} keys %cc ],
-			   from => $responses[-1]->author,
+			   from => $from,
 			   subject => $subject);
 
 }
