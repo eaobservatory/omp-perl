@@ -176,6 +176,13 @@ sub translate {
     # fix up all the odfs
     for my $odffile ($grp->odfs) {
       chmod 0666, $odffile->inputfile;
+
+      # and the related vax files
+      my %files = %{$odffile->vaxfiles};
+      for my $key (keys %files) {
+	chmod 0666, $files{$key};
+      }
+
     }
 
     return $file;
