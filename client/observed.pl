@@ -144,8 +144,8 @@ for my $proj (keys %sorted) {
   }
 
   ### TEMPORARILY, if this is a UKIRT project make the comment hidden
-  my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
-  my $status = ($details->telescope eq "UKIRT" ? OMP__FB_HIDDEN : OMP__FB_IMPORTANT);
+  #my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
+  #my $status = ($details->telescope eq "UKIRT" ? OMP__FB_HIDDEN : OMP__FB_IMPORTANT);
 
   # If we are in debug mode just send to stdout. Else
   # contact feedback system
