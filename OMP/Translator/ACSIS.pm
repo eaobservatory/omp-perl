@@ -64,6 +64,10 @@ sub translate {
 
   croak "Not yet\n";
 
+  # Need to loop over each observation in the MSB and each
+  # observe eye
+  my @configs;
+
   # Need to put DTD in here
   my $xml = "<OCS_CONFIG>\n";
 
@@ -82,12 +86,14 @@ sub translate {
   # End
   $xml .= "</OCS_CONFIG>\n";
 
+  push(@configs, $xml);
+
   # Return or write
   if (!$asdata) {
     # Return XML as a string
-    return $xml;
+    return @configs;
   } else {
-    # Write the XML to a file
+    # Write the XML configs to disk
   }
 
 }
@@ -157,6 +163,61 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
+
+=head1 TODO
+
+The following infrastructure needs to be written for the ACSIS translator:
+
+TCS_CONFIG
+
+ - Need to be able to write TOML::TCS data as well as read it.
+   Essentially should become a way of stringifying a Astro::Coords
+   object rather than attempting to fudge the pre-existing XML.
+   TOML::TCS will consist of hash of Astro::Coords indexed by
+   the TAG name. The XML will no longer be retained but will
+   be generated on demand.
+
+   This therefore requires that an Astro::Coords object can represent
+   the contents of the <BASE> element. This means offsets and also
+   things like parallax, epoch, proper motion. For the offsets in
+   particular, we could compromise and store them in the TOML::TCS
+   object itself but that seems a bit odd since the API would then
+   have to include a method for fetching offsets by tag name.
+
+   Velocity is the great unknown here since the implication is that
+   we need an Astro::RadialVelocity object that represents a radial
+   velocity to be associated with our Astro::Coords object. Does the
+   Astro::RadialVelocity object also need a Astro::Telescope object or
+   can it get away with using the one associated with Astro::Coords?
+
+   Step 1:
+
+    - Write simple Astro::RadialVelocity
+
+           $v = new Astro::RadialVelocity( frame => 'LSR',
+                                           vdefn => 'radio',
+                                           velocity => 55, # km/s
+                                         #  redshift => 3.4,
+                                         );
+
+    - Support EPOCH, PARALLAX, PM1,PM2  in Astro::Coords
+
+    - Include offsets somewhere (at least in TOML::TCS but that has
+      API bloat consequences)
+
+   Step 2:
+
+    Need to construct the obsArea section. This should be fairly
+    straightforward and will have to be constructed using a combination
+    of SpIterRasterObs (etc) and SpIterOffset. Will probably need
+    to have a lookup table of position angles that are valid for
+    each instrument when scanning.
+
+FE_CONFIG
+
+    - 
+
+ACSIS_CONFIG
 
 =cut
 
