@@ -130,7 +130,6 @@ for my $proj (keys %alloc) {
   my @tagadj = split /,/, $details{tagadjustment};
   $details{tagadjustment} = \@tagadj if scalar(@tagadj) > 1;
 
-
   # Deal with support issues
   # but do not overrride one if it is already set
   if (!defined $details{support}) {
@@ -199,7 +198,7 @@ for my $proj (keys %alloc) {
 				$details{title},
 				$details{tagpriority},
 				$details{country},
-				$details{tagadj},
+				$details{tagadjustment},
 				$details{semester},
 				"xxxxxx", # default password
 				$details{allocation},
