@@ -1,22 +1,23 @@
 
 # Test OMP::Fault
 
-use Test;
-BEGIN { plan tests => 5 }
+use Test::More tests => 11;
 use strict;
-use OMP::User;
-use OMP::Fault;
-use OMP::Fault::Response;
+require_ok("OMP::User");
+require_ok("OMP::Fault");
+require_ok("OMP::Fault::Response");
 
 
 # First create the first "response"
 my $author = new OMP::User( userid => "AJA",
 	                    name   => "Andy Adamson");
+isa_ok($author, "OMP::User");
+
 my $resp = new OMP::Fault::Response( author => $author,
 				     text => "This is a test of the fault classes");
 
-ok( $resp );
-
+ok( $resp, "response object created" );
+isa_ok( $resp,"OMP::Fault::Response");
 
 # Now file a fault
 my $fault = new OMP::Fault(
@@ -24,8 +25,8 @@ my $fault = new OMP::Fault(
 			   fault    => $resp,
 			  );
 
-ok( $fault );
-
+ok( $fault, "Fault object created" );
+isa_ok($fault, "OMP::Fault");
 
 # Now respond
 my $author2 = new OMP::User( userid => "TIMJ",
@@ -36,11 +37,11 @@ my $resp2 = new OMP::Fault::Response( author => $author2,
 $fault->responses( $resp2 );
 
 my @resps = $fault->responses;
-ok( scalar(@resps), 2);
+is( scalar(@resps), 2, "Count responses");
 
 # Check isfault flags
-ok( $resps[0]->isfault );
-ok( ! $resps[1]->isfault );
+ok( $resps[0]->isfault, "check first is a fault" );
+ok( ! $resps[1]->isfault, "second response is not a fault" );
 
 
 # Print the stringified fault for info
