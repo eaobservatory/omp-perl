@@ -785,7 +785,7 @@ sub _mail_information {
 
   # Decide if we'll have attachments or not and set the MIME type accordingly
   # by checking for the presence of HTML in the message
-  my $type = ($details{message} =~ m!</!m ? "multipart/alternative" : "text/plain");
+  my $type = ($details{message} =~ m!<!m ? "multipart/alternative" : "text/plain");
 
   # Setup the message
   my %msgdetails = (From=>$details{from},
