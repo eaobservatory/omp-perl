@@ -529,7 +529,7 @@ sub summary {
 
   # Summary string and format for each
   my @keys = qw/projectid title remaining obscount tauband seeing
-    pol camera instrument wavelength target coordstype checksum/;
+    pol type instrument waveband target coordstype checksum/;
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
@@ -758,6 +758,8 @@ Returns keys:
   target
   wavelength
   coordstype
+  pol
+  type
 
 If the values are different between observations the options are
 separated with a "/".
@@ -784,14 +786,18 @@ sub _summarize_obs {
 
   my %summary;
 
-  foreach my $key (qw/ instrument wavelength target coordstype pol camera/) {
+  foreach my $key (qw/ instrument waveband target coordstype pol type/) {
+
     # Now go through each observation looking for the specific
     # key. Store the value in a hash keyed by itself so that we
-    # can automatically mask out duplicated
+    # can automatically mask out duplicated entries
 
     my %options = map { $_, undef } 
       map { defined $_->{$key} ? $_->{$key} : "MISSING" } @obs;
 
+    # Unfortunately this does not retain the order so
+    # columns are in different orders depending on where
+    # their hash keys are.
     $summary{$key} = join("/", keys %options);
 
   }
@@ -1168,11 +1174,15 @@ sub SpIterFolder {
     my $name = $child->getName;
     next unless defined $name;
 
-    # If we are SpIterRepeat or SpIterOffset we need to
-    # go down a level
-    if ($name =~ /Repeat|Offset/) {
+    # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
+    # we need to go down a level
+    if ($name =~ /Repeat|Offset|IRPOL/) {
       my %dummy = $self->SpIterFolder($child);
       push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
+
+      # SpIterIRPOL signifies something significant
+      $summary{pol} = 1 if $name =~ /IRPOL/;
+
       next;
     }
 
@@ -1180,7 +1190,10 @@ sub SpIterFolder {
     next unless $name =~ /SpIter/;
     $name =~ s/^SpIter//;
     $name =~ s/Obs$//;
+
     push(@types, $name);
+
+
   }
 
   $summary{obstype} = \@types if @types;
@@ -1216,7 +1229,7 @@ sub SpInstCGS4 {
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
-  $summary{camera} = "spectroscopy";
+  $summary{type} = "s";
 
   # Polarimeter
   my $pol = $self->_get_pcdata( $el, "polariser" );
@@ -1250,7 +1263,7 @@ sub SpInstUFTI {
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
-  $summary{camera} = "imaging";
+  $summary{type} = "i";
 
   # Polarimeter
   my $pol = $self->_get_pcdata( $el, "polariser" );
@@ -1284,9 +1297,9 @@ sub SpInstMichelle {
   # If we are IMAGING we need to pick up the filter name
   # If we are SPECTROSCOPY we need to pick up the central
   # wavelength
-  my $camera = $self->_get_pcdata( $el, "camera" );
+  my $type = $self->_get_pcdata( $el, "camera" );
 
-  if ($camera eq 'imaging') {
+  if ($type eq 'imaging') {
     my $filter = $self->_get_pcdata( $el, "filterOT" );
     $summary{waveband} = new Astro::WaveBand( Filter => $filter,
 					      Instrument => 'MICHELLE');
@@ -1301,7 +1314,7 @@ sub SpInstMichelle {
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
-  $summary{camera} = ( $camera eq "imaging" ? "imaging" : "spectroscopy" );
+  $summary{type} = ( $type eq "imaging" ? "i" : "s" );
 
   # Polarimeter
   my $pol = $self->_get_pcdata( $el, "polarimetry" );
@@ -1337,7 +1350,7 @@ sub SpInstIRCAM3 {
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
-  $summary{camera} = "imaging";
+  $summary{type} = "i";
 
   # Polarimeter
   my $pol = $self->_get_pcdata( $el, "polariser" );
@@ -1371,7 +1384,7 @@ sub SpInstSCUBA {
   $summary{wavelength} = "unknown";
 
   # Camera mode
-  $summary{camera} = "imaging";
+  $summary{type} = "i";
 
   # Polarimeter
   my $pol = $self->_get_pcdata( $el, "polarimeter" );
