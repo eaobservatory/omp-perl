@@ -187,12 +187,12 @@ sub display_form {
       print $query->textfield( -name => 'hour' . $i,
                                -size => '8',
                                -maxlength => '8',
-                               -default => ( defined( $dbtime{$projectid} ) ?
+                               -default => ( exists( $dbtime{$projectid} ) ?
                                              sprintf( "%.1f", $dbtime{$projectid}->timespent->hours ) :
                                              sprintf( "%.1f", $obstime{$projectid}->timespent->hours ) ),
                              );
       print "</td><td>";
-      if( defined( $dbtime{$projectid} ) ) {
+      if( exists( $dbtime{$projectid} ) && $dbtime{$projectid}->confirmed ) {
         print "Confirmed";
       } else {
         print "Estimated";
@@ -214,7 +214,7 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $dbtime{'FAULT'} ) ?
+                           -default => ( exists( $dbtime{'FAULT'} ) ?
                                          $dbtime{'FAULT'}->timespent->hours :
                                          '0' ),
                          );
@@ -232,7 +232,7 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $dbtime{'WEATHER'} ) ?
+                           -default => ( exists( $dbtime{'WEATHER'} ) ?
                                          $dbtime{'WEATHER'}->timespent->hours :
                                          '0' ),
                          );
@@ -246,7 +246,7 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $dbtime{'OTHER'} ) ?
+                           -default => ( exists( $dbtime{'OTHER'} ) ?
                                          $dbtime{'OTHER'}->timespent->hours :
                                          '0' ),
                          );
