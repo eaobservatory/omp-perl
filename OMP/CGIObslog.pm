@@ -396,15 +396,23 @@ sub obs_table {
       print "<td><a class=\"link_dark_small\" href=\"worf.pl?ut=";
       print $obsut;
       print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-      print "\">raw</a> / ";
+      print "\">raw</a> ";
       foreach my $suffix ( @ind_suffices ) {
+        next if ! $worf->file_exists( suffix => $suffix, group => 0 );
         print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
         print $obsut;
         print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
         print "&suffix=$suffix\">$suffix</a> ";
       }
       print "/ ";
+      if( $worf->file_exists( suffix => '', group => 1 ) ) {
+        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+        print $obsut;
+        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+        print "&group=1\">group</a> ";
+      }
       foreach my $suffix ( @grp_suffices ) {
+        next if ! $worf->file_exists( suffix => $suffix, group => 1 );
         print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
         print $obsut;
         print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
