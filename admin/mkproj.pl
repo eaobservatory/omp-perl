@@ -1,41 +1,63 @@
 #!/usr/local/bin/perl
 
-# Populates project database with initial details
+=head1 NAME
 
-# Input: .ini format text file containing project details
-#
-#[info]
-#semester=02B
-#telescope=JCMT
-#
-#[support]
-#UK=IMC
-#CN=GMS
-#INT=GMS
-#UH=GMS
-#NL=RPT
-#
-#[m01bu32]
-#tagpriority=1
-#country=UK
-#pi=HOLLANDW
-#coi=GREAVESJ,ZUCKERMANB
-#title=The Vega phenomenom around nearby stars
-#allocation=24
-#band=1
-#
-#[m01bu44]
-#tagpriority=2
-#country=UK
-#pi=RICHERJ
-#coi=FULLERG,HATCHELLJ,QUALTROUGHC,CHANDLERC,LADDN
-#title=Completion of the SCUBA survey of star formation Perseus Molecular Cloud
-#allocation=28
-#band=1
+mkproj - Populate project database with initial details
 
-# where the [info] field provides default values for each project, the [support] field can be used to index support id from the country field. Allocations are in hours and "band" is the weather band. taurange can be used directly (comma delimited range) if it is known. coi list uses user IDs and is comma delimited.
+=head1 SYNOPSIS
 
-# perl mkproj.pl  FILENAME.ini
+  mkproj defines.ini
+  mkproj -force defines.ini
+
+=head1 DESCRIPTION
+
+This program reads in a file containing the project information,
+and adds the details to the OMP database. By default projects
+that already exist in the database are ignored although this
+behaviour can be over-ridden. See L<"FORMAT"> for details on the
+file format.
+
+=head1 ARGUMENTS
+
+The following arguments are allowed:
+
+=over 4
+
+=item B<defines>
+
+The project definitions file name. See L<"FORMAT"> for details on the
+file format.
+
+=back
+
+=head1 OPTIONS
+
+The following options are supported:
+
+=over 4
+
+=item B<-force>
+
+By default projects that already exist in the database are not
+overwritten. With the C<-force> option project details in the file
+always override those already in the database. Use this option
+with care.
+
+=item B<-version>
+
+Report the version number.
+
+=item B<-help>
+
+A help message.
+
+=item B<-man>
+
+This manual page.
+
+=back
+
+=cut
 
 # Uses the infrastructure classes so each project is inserted
 # independently rather than as a single transaction
@@ -43,9 +65,30 @@
 use warnings;
 use strict;
 
+use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use OMP::ProjServer;
 use OMP::General;
+use Pod::Usage;
+use Getopt::Long;
+
+# Options
+my ($help, $man, $version,$force);
+my $status = GetOptions("help" => \$help,
+                        "man" => \$man,
+                        "version" => \$version,
+			"force" => \$force,
+                       );
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+if ($version) {
+  my $id = '$Id$ ';
+  print "mkproj - upload project details from file\n";
+  print " CVS revision: $id\n";
+  exit;
+}
 
 # Read the file
 my $file = shift(@ARGV);
@@ -97,30 +140,87 @@ for my $proj (keys %alloc) {
   die "[project $proj] Allocation is mandatory!" unless $details{allocation};
   $details{allocation} *= 3600;
 
-  print "Adding [$proj]\n";
+  print "Adding [$proj]";
 
   # Now add the project
-  OMP::ProjServer->addProject('***REMOVED***',
-			      $proj,  # project id
-			      $details{pi},
-			      $details{coi},
-			      $details{support},
-			      $details{title},
-			      $details{tagpriority},
-			      $details{country},
-			      $details{semester},
-			      "xxxxxx", # default password
-			      $details{allocation},
-			      $details{telescope},
-			      $taumin, $taumax,
-			     );
+  try {
+    OMP::ProjServer->addProject('***REMOVED***', $force,
+				$proj,  # project id
+				$details{pi},
+				$details{coi},
+				$details{support},
+				$details{title},
+				$details{tagpriority},
+				$details{country},
+				$details{semester},
+				"xxxxxx", # default password
+				$details{allocation},
+				$details{telescope},
+				$taumin, $taumax,
+			       );
+  } catch OMP::Error::ProjectExists with {
+    print " - but the project already exists. Skipping.";
 
-
+  };
+  print "\n";
 
 }
 
 
+=head1 FORMAT
 
+The input project definitions file is in the C<.ini> file format
+with the following layout. A header C<[info]> and C<[support]>
+provide general defaults that should apply to all projects
+in the file, with support indexed by country:
+
+
+ [info]
+ semester=02B
+ telescope=JCMT
+
+ [support]
+ UK=IMC
+ CN=GMS
+ INT=GMS
+ UH=GMS
+ NL=RPT
+
+Individual projects are specified in the following sections, indexed
+by project ID. C<pi>, C<coi> and C<support> must be valid OMP User IDs
+(comma-separated).
+
+ [m01bu32]
+ tagpriority=1
+ country=UK
+ pi=HOLLANDW
+ coi=GREAVESJ,ZUCKERMANB
+ title=The Vega phenomenom around nearby stars
+ allocation=24
+ band=1
+
+ [m01bu44]
+ tagpriority=2
+ country=UK
+ pi=RICHERJ
+ coi=FULLERG,HATCHELLJ
+ title=Completion of the SCUBA survey
+ allocation=28
+ band=1
+
+Allocations are in hours and "band" is the weather band. C<taurange>
+can be used directly (as a comma delimited range) if it is known.
+
+=head1 AUTHOR
+
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
 
 
 

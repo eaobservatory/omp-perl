@@ -268,7 +268,7 @@ sub verifyProject {
 
 Add details of a project to the database.
 
-  OMP::ProjServer->addProject($password, $projectid, $pi,
+  OMP::ProjServer->addProject($password, $force, $projectid, $pi,
 			      $coi, $support,
 			     $title, $tagpriority, $country,
 			     $semester, $proj_password, $allocated
@@ -276,7 +276,10 @@ Add details of a project to the database.
 
 The first password is used to verify that you are allowed to modify
 the project table. The second password is for the project itself.
-Both should be supplied as plain text.
+Both should be supplied as plain text. The second argument indicates
+whether it is desirable to overwrite an existing project. An exception
+will be thrown if this value is false and the project in question
+already exists.
 
 taumin and taumax are optional (assume minimum of zero and
 no upper limit).
@@ -291,6 +294,7 @@ separated.
 sub addProject {
   my $class = shift;
   my $password = shift;
+  my $force = shift;
   my @project = @_;
   OMP::General->log_message("ProjServer::addProject: $project[0]\n");
 
@@ -339,7 +343,7 @@ sub addProject {
 			     ProjectID => $proj->projectid,
 			    );
 
-    $db->addProject( $proj );
+    $db->addProject( $proj, $force );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

@@ -247,6 +247,11 @@ the query was made. In general this is non-fatal.
 An MSB was submitted that never resulted in an observation.
 SpIterObserve was missing.
 
+=item B<OMP::Error::ProjectExists>
+
+An attempt was made to add a project that already exists in the
+database.
+
 =item B<OMP::Error::SpBadStructure>
 
 The Science Program XML was not valid.
@@ -350,6 +355,9 @@ package OMP::Error::MSBMissing;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMissingObserve;
+use base qw/ OMP::Error /;
+
+package OMP::Error::ProjectExists;
 use base qw/ OMP::Error /;
 
 package OMP::Error::SpBadStructure;

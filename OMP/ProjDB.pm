@@ -88,9 +88,15 @@ database.
 
 The argument is of class C<OMP::Project>.
 
-No distinction is made between adding a new project or updating a
-current project. i.e. This method does not raise an error if the
-project is already in the table.
+By default, a project is only added if it does not already exist
+in the database (this is for safety reasons). An optional second
+argument can control whether the project should always force
+overwrite. If this is true the old project details will be removed.
+
+  $db->addProject( $project, $force );
+
+Throws an exception of type C<OMP::Error::ProjectExists> if the
+project exists and force is not set to true.
 
 The password stored in the object instance will be verified to
 determine if the user is allowed to update project details (this is
@@ -103,6 +109,7 @@ the database).
 sub addProject {
   my $self = shift;
   my $project = shift;
+  my $force = shift;
 
   # Verify that we can update the database
   OMP::General->verify_administrator_password( $self->password );
@@ -110,6 +117,10 @@ sub addProject {
   # Begin transaction
   $self->_db_begin_trans;
   $self->_dblock;
+
+  # See if we have the project already if we are not forcing
+  throw OMP::Error::ProjectExists("This project already exists in the database and you are not forcing overwrite")
+    if !$force && $self->verifyProject;
 
   # Rely on the update method to check the argument
   $self->_update_project_row( $project );
