@@ -3,8 +3,13 @@
 # Given a tab delimited file from Janes spreadsheet extract the
 # information required to populate the OMP database
 #
-# Columns: Project ID, PI, first initial, PI email, CoIs, Title, Supp Sci, 
-#          Allocation[nights], seeing, tau, sky brightness and moon
+# Note that as of 03A we change columns:
+# Project ID, PI, PI initial, PI email, Support, title, hours, tag priority, 
+#  moon, seeing, tau, sky, cois (multiple entries)
+
+# Problem with 03A output is that CoIs are "I\tSurname\tI\tSurname !
+
+
 # Hash is comment
 use strict;
 use warnings;
@@ -22,11 +27,24 @@ use constant HRS_PER_NIGHT => 13.0;
 my %support = (thk => 'TKERR',
 	       skl => 'SKL',
 	       mss => 'MSEIGAR',
+	       ms => 'MSEIGAR',
 	       jvb => 'JBUCKLE',
 	       cjd => 'CDAVIS',
 	       ph  => 'PHIRST',
 	       aja => 'ADAMSON',
 	      );
+
+my %seeing = (
+	      "<0.6 arcseconds" => 0.6,
+	      "<0.8 arcseconds" => 0.8,
+	      "<0.4 arcseconds" => 0.4,
+	      any => undef,
+	     );
+
+my %cloud = (
+	     thin => 2,
+	     photo => 1,
+	    );
 
 # Pipe in from standard input
 
@@ -38,26 +56,45 @@ while (<>) {
 
   my $line = $_;
 
-  my @parts = split /\t+/,$line;
+  my @parts = split /\t/,$line;
 
   # The coi field needs to be converted to an array
-  my $coi = $parts[4];
-  $coi =~ s/\"//g;
-  $coi =~ s/^\s*//;
-  $coi =~ s/\s*$//;
-  $coi = [ split /\s*,\s*/,$coi ];
+  # CoIs are 12..$#parts
+  my $coi = [];
+  for (my $i = 12; $i<$#parts; $i+=2) {
+    if (length($parts[$i]) > 0 && length($parts[$i+1]) > 0) {
+      my $surname = $parts[$i+1];
+      my $initials = $parts[$i];
+      push(@$coi, "$initials $surname");
+    }
+  }
 
   # The tau needs to be converted to a range
   my $tau = new OMP::Range( Min => 0 );
-  if (exists $taumax{$parts[9]}) {
-    $tau->max( $taumax{$parts[9]});
+  if (exists $taumax{$parts[10]}) {
+    $tau->max( $taumax{$parts[10]});
   } else {
-    print "Unable to derive tau max from string $parts[9]\n";
-    last;
+    # There is no max
+  }
+
+  # The seeing needs to be converted to a range
+  my $seeing = new OMP::Range( Min => 0 );
+  if (exists $seeing{$parts[9]}) {
+    $seeing->max( $seeing{$parts[9]});
+  } else {
+    # There is no max
+  }
+
+  # Also need cloud
+  my $cloudtxt = $parts[11];
+  $cloudtxt =~ s/\W//g;
+  my $cloud;
+  if (exists $cloud{$cloudtxt}) {
+    $cloud = $cloud{$cloudtxt};
   }
 
   # Support scientists
-  my $ss = $parts[6];
+  my $ss = $parts[4];
   if (exists $support{$ss}) {
     $ss = $support{$ss};
   } else {
@@ -66,7 +103,8 @@ while (<>) {
   }
 
   # The allocation is in nights
-  my $alloc = $parts[7] * HRS_PER_NIGHT;
+  #my $alloc = $parts[7] * HRS_PER_NIGHT;
+  my $alloc = $parts[6];
 
   # The country
   my $country = "UK";
@@ -96,6 +134,10 @@ while (<>) {
 	       tau => $tau,
 	       allocation => $alloc,
 	       country => $country,
+	       seeing => $seeing,
+	       moon => $parts[8],
+	       cloud => $cloud,
+	       tagpriority => $parts[7],
 	      });
 
 
@@ -179,6 +221,16 @@ foreach my $proj (@proj) {
     print "taurange=0,$taumax\n";
   }
 
+  # And seeing
+  my $seemax = $proj->{seeing}->max;
+  if (defined $seemax) {
+    print "seeing=0,$seemax\n";
+  }
+
+  # And cloud
+  if (defined $proj->{cloud}) {
+    print "cloud=".$proj->{cloud}."\n";
+  }
 
   print "\n";
 }
