@@ -127,6 +127,7 @@ sub respondFault {
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
   my $fault = $self->getFault($id);
+
   $self->_mail_fault($fault);
 }
 
@@ -713,48 +714,27 @@ sub _mail_fault {
 
   my @responses = $fault->responses;
 
-  my $from = $responses[-1]->author->email;
-
   my $system = $fault->systemText;
   my $type = $fault->typeText;
 
   # The email subject
   my $subject = "$system/$type - " . $fault->subject . " [$faultid]";
 
-  # Get email addresses
-  my %addresslist;
-  for (@responses) {
-    my $email = $_->author->email;
-    if ($email) {
-      $addresslist{$email} = undef;
-    }
-  }
+  # Create a list of users to Cc (but not if they authored the latest response)
+  my %cc = map {$_->author->userid, $_->author}
+    grep {$_->author->userid ne $responses[-1]->author->userid} @responses;
 
-  # Add the addresses of the response authors (if not undef) to our address list
-  # so we can mail them this response, provided they aren't the author
-  # of the latest response.
-  my @addr = map {$_}
-    grep {$_ ne $from} keys %addresslist;
-
-  my $fault_list = $fault->mail_list;
-  unshift(@addr, $fault_list)
-    unless (! $fault_list);
-
-  # Make the message from the mail list if the author has no email address
-  # Also add the latest response author to the 'To:' list
-  if ($from) {
-    push(@addr, $from);
-  } else {
-    $from = $fault_list;
-  }
+  my $faultuser = OMP::User->new(name=>$fault->category . " Faults",
+				 email=>$fault->mail_list);
 
   # Get the fault message
   my $msg = OMP::FaultUtil->format_fault($fault, 0);
 
   # Mail it off
   $self->_mail_information(message => $msg,
-			   to => join(", ",@addr),
-			   from => $from,
+			   to => [ $faultuser ],
+			   cc => [ map {$cc{$_}} keys %cc ],
+			   from => $responses[-1]->author,
 			   subject => $subject);
 
 }
@@ -822,15 +802,15 @@ sub _mail_fault_update {
 
   $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
 
-  my $email = $fault->author->email;
-  my $from = $fault->mail_list;
+  my $email = $fault->author;
 
   # Don't want to attempt to mail the fault if author doesn't have an email
   # address
-  if ($email) {
+  if ($fault->author->email) {
     $self->_mail_information(message => $msg,
-			     to => $email,
-			     from => $from,
+			     to => [ $fault->author ],
+			     from => OMP::User->new(name => $fault->category . " Faults",
+						    email=> $fault->mail_list,),
 			     subject => "Your fault [" . $fault->id . "] has been updated",);
 
   }
