@@ -210,14 +210,14 @@ for my $proj (@$projects) {
   }
 
   # print stats for this project
-  printf "    ". ("%02d "x scalar(@local))."\n", @local;
-#  $i++;
-#  last if $i > 5;
+  printf "    ". ("%02d "x scalar(@local))."\n", map {$_+0.5} @local;
+  $i++;
+  last if $i > 5;
 
 }
 
 print "Complete results:\n";
-  printf "    ". ("%02d "x scalar(@rahist))."\n", @rahist;
+  printf "    ". ("%02d "x scalar(@rahist))."\n", map {$_+0.5} @rahist;
 
 # Now plot the results
 
@@ -255,6 +255,10 @@ for my $i (0..$#rahist) {
 
 }
 
+my $outfile = "ra_coverage.eps";
+save_plot($outfile);
+print "Histogram written to file $outfile\n";
+
 plend();
 exit;
 
@@ -269,6 +273,26 @@ sub plfbox {
   plcol0(1);
   pllsty(1);
   plline(\@x, \@y);
+}
+
+# Taken from x20.t
+
+sub save_plot {
+  my $fname = shift;
+
+  my $cur_strm = plgstrm();
+  my $new_strm = plmkstrm();
+
+  # Need a white background so drop colour for now
+  plsdev("ps");
+  plsfnam($fname);
+
+  plcpstrm($cur_strm, 0);
+  plreplot();
+  plend1();
+
+  plsstrm( $cur_strm );
+
 }
 
 
