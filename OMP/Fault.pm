@@ -114,6 +114,7 @@ my %DATA = (
 				    ObservingTool => 3,
 				    QueryTool => 4,
 				    Sequencer => 5,
+				    Translator => 6,
 				    "Other/Unknown" => SYSTEMOTHER,
 				   },
 			 TYPE => {
