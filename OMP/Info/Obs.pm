@@ -70,9 +70,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               startobs => 'Time::Piece',
                               endobs => 'Time::Piece',
                               type => '$',
-                              fits => '%',
+                              fits => 'Astro::FITS::Header',
                               comments => '@OMP::Info::Comment',
-			      telescope => '$',
+                              telescope => '$',
                              );
 #'
 
