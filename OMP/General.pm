@@ -116,9 +116,14 @@ sub parse_date {
     # to be parsed is a local time not UTC. To switch to UTC
     # simply get the epoch seconds and the timezone offset
     # and run gmtime
-    my $tzoffset = $time->tzoffset;
-    my $epoch = $time->epoch;
-    my $time = gmtime( $epoch + $tzoffset );
+    # Sometime around v1.07 of Time::Piece the behaviour changed
+    # to return UTC rather than localtime from strptime!
+    # The joys of backwards compatibility.
+    if ($time->[Time::Piece::c_islocal]) {
+      my $tzoffset = $time->tzoffset;
+      my $epoch = $time->epoch;
+      $time = gmtime( $epoch + $tzoffset->seconds );
+    }
 
     # Now need to bless into class Time::Piece::Sybase
     return bless $time, "Time::Piece::Sybase";
