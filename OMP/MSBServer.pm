@@ -100,6 +100,12 @@ sub fetchMSB {
   my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>  };
   my $msbxml = "$msb";
 
+  # optionally include the OT version
+  my $otvers = '';
+  if (defined $msb->ot_version) {
+    $otvers = "<ot_version>".$msb->ot_version."</ot_version>\n";
+  }
+
   # Switch on meta_gui
   if ($msbxml =~ /meta_gui/) {
     $spprog .= q{
@@ -108,7 +114,7 @@ sub fetchMSB {
   <meta_gui_hasBeenSaved>true</meta_gui_hasBeenSaved>
   <meta_gui_dir>/tmp</meta_gui_dir>
   <meta_gui_collapsed>false</meta_gui_collapsed>
-};
+} . $otvers;
   } else {
     $spprog .= q{
 <SpProg>
