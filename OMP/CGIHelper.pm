@@ -669,7 +669,9 @@ sub list_projects_output {
     print $q->hr;
 
     foreach my $project (@$projects) {
+      print "<a href='feedback.pl?urlprojid=" . $project->projectid . "'>";
       print $q->h2('Project ' . $project->projectid);
+      print "</a>";
       my %details = (projectid=>$project->projectid, password=>'***REMOVED***');
       proj_status_table($q, %details);
 
