@@ -344,7 +344,7 @@ sub parse_display_options {
   }
   if( exists( $options->{size} ) &&
       defined( $options->{size} ) &&
-      $options->{size} =~ /^\d+$/ ) {
+      $options->{size} =~ /^\w+$/ ) {
     $parsed{size} = $options->{size};
   }
   if( exists( $options->{type} ) &&
@@ -418,11 +418,8 @@ the last pixel in the array.
 =item autocut - Level to autocut the data to display. If undefined, the
 default will be 100. Allowable values are 100, 99, 98, 95, 80, 70, 50.
 
-=item width - Width of output graphic, in pixels. If undefined, the default
-will be 640.
-
-=item height - Height of output graphic, in pixels. If undefined, the
-default will be 480.
+=item size - Size of graphic. If undefined, the default will be 'regular'.
+Allowable values are 'regular' or 'thumb'.
 
 =back
 
@@ -449,16 +446,13 @@ sub _plot_image {
     throw OMP::Error("Filename passed to _plot_image ($file) must include full path");
   }
 
-  if( exists( $args{width} ) && $args{width} =~ /^\d+$/) {
-    $ENV{'PGPLOT_GIF_WIDTH'} = $args{width};
+  if( exists( $args{size} ) && defined( $args{size} ) &&
+      $args{size} eq 'thumb' ) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 120;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80;
   } else {
-    $ENV{'PGPLOT_GIF_WIDTH'} = 640;
-  }
-
-  if( exists( $args{height} ) && $args{height} =~ /^\d+$/) {
-    $ENV{'PGPLOT_GIF_HEIGHT'} = $args{height};
-  } else {
-    $ENV{'PGPLOT_GIF_HEIGHT'} = 480;
+    $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
   }
 
   $file =~ s/\.sdf$//;
@@ -610,11 +604,8 @@ default will be the first row on the array.
 in a one-dimensional array, this value is ignored. If undefined, the default
 will be the last row on the array.
 
-=item width - Width of output graphic, in pixels. If undefined, the default
-will be 640.
-
-=item height - Height of output graphic, in pixels. If undefined, the
-default will be 480.
+=item size - Size of graphic. If undefined, the default will be 'regular'.
+Allowable values are 'regular' or 'thumb'.
 
 =back
 
@@ -638,6 +629,15 @@ sub _plot_spectrum {
 
   $file =~ s/\.sdf$//;
   my $image = rndf( $file );
+
+  if( exists( $args{size} ) && defined( $args{size} ) &&
+      $args{size} eq 'thumb' ) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 120;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80;
+  } else {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
+  }
 
   # Fudge to set bad pixels to zero.
 #  my $bad = -1e-10;
@@ -833,13 +833,6 @@ sub _plot_cube {
   $e2->setbadtoval(0);
   my $rebin = $e2->rebin($zdim, $xbin, $ybin);
 
-  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
-    my $file = $args{output_file};
-    dev "$file/GIF";
-  } else {
-    dev "-/GIF";
-  }
-
   # Grab the data information and do scaling
   my ( $dmin, $dmax );
 
@@ -862,12 +855,6 @@ sub _plot_cube {
   }
 
   # Set up a display window.
-#  my $win = PDL::Graphics::PGPLOT::Window->new( Device => $device,
-#                                                WindowXSize => 3 * $xbin,
-#                                                WindowYSize => 2.25 * $ybin,
-#                                                NXPanel => $xbin,
-#                                                NYPanel => $ybin,
-#                                              );
 
   $ENV{'PGPLOT_GIF_WIDTH'} = 480 * $xbin;
   $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $ybin;
