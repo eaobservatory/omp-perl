@@ -178,7 +178,7 @@ sub getCookie {
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
-  return $cgi->cookie($self->cookie);
+  return $cgi->cookie($self->name);
 }
 
 =back
