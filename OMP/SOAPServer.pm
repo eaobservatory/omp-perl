@@ -143,6 +143,7 @@ sub _get_faultcode {
 	     SpEmpty => 'Client.SpEmpty',
 	     SpRetrieveFail => 'Server.SpRetrieveFail',
 	     SpStoreFail => 'Server.SpStoreFail',
+	     TranslateFail => 'Server.TranslateFail',
 	     UnknownProject => 'Client.UnknownProject',
 	    );
 

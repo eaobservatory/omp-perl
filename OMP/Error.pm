@@ -257,6 +257,10 @@ Unable to retrieve the Science Program from the database.
 
 Unable to store the Science Program in the database.
 
+=item B<OMP::Error::TranslateFail>
+
+Error occurred during translation.
+
 =item B<OMP::Error::UnknownProject>
 
 The specified project is not known to the OMP.
@@ -340,6 +344,9 @@ package OMP::Error::SpRetrieveFail;
 use base qw/ OMP::Error /;
 
 package OMP::Error::SpStoreFail;
+use base qw/ OMP::Error /;
+
+package OMP::Error::TranslateFail;
 use base qw/ OMP::Error /;
 
 package OMP::Error::UnknownProject;
