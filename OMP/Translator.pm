@@ -1343,6 +1343,8 @@ sub getOtherCoordSystem {
     $scusys = "AZ";
   } elsif ($tcssys eq 'FPLANE') {
     $scusys = "NA";
+  } elsif ($tcsys eq 'SCAN') {
+    $scusys = 'SC';
   } else {
     print join("--\n",caller);
     throw OMP::Error::TranslateFail("Unknown TCS system: $tcssys");
