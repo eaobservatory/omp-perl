@@ -705,7 +705,26 @@ sub summary {
       if exists $summary{msbid} and defined $summary{msbid};
     $xml .= ">\n";
 
-    for my $key ( keys %summary ) {
+    # The order must be forced
+    my @order;
+    if ($summary{telescope} eq 'JCMT') {
+      # Generic order
+      @order = qw/ projectid priority instrument waveband title target
+	ra ha dec airmass pol type coordstype
+	  timeest obscount checksum msbid /;
+    } elsif ($summary{telescope} eq 'UKIRT') {
+      # Generic order
+      @order = qw/ projectid priority instrument waveband title target
+	ra ha dec airmass pol type coordstype
+	  timeest obscount moon cloud disperser checksum msbid /;
+    } else {
+      # Generic order
+      @order = qw/ projectid priority instrument waveband title target
+	ra ha dec airmass pol type coordstype
+	  timeest obscount checksum msbid /;
+    }
+
+    for my $key (@order ) {
       # Special case the summary and ID keys
       next if $key eq "summary";
       next if $key =~ /^_/;
