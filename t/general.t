@@ -1,7 +1,8 @@
 
 # Test OMP::General
 
-use Test::More tests => 104;
+use Test::More tests => 109;
+
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -292,7 +293,6 @@ like($@, qr/without TAU/,"Without TAU");
 my $range = OMP::General->get_band_range('JCMT', 2);
 isa_ok($range, "OMP::Range");
 
-
 # Projectid extraction
 my %extract = (
 	       'u/SERV/192' => 'project u/SERV/192 is complete',
@@ -333,3 +333,35 @@ my @fail = (qw/ [su03] [sc04] [s06] /);
 for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
 }
+
+print "# String splitting\n";
+my $sstring = 'foo bar baz';
+is(OMP::General->split_string($sstring), 3, 'Split simple string');
+
+$sstring = 'foo bar "baz xyz" xyzzy';
+is(OMP::General->split_string($sstring), 4, 'Split complicated string');
+
+my @compare_string = ('baz xyz',
+		      'xyz zyx',
+		      'foo',
+                      'bar',
+                      'corgy',
+		      '"',
+		      'waldo',);
+
+$sstring = 'foo bar "baz xyz" corgy "xyz zyx" " waldo';
+
+is_deeply([OMP::General->split_string($sstring)],
+	  \@compare_string,
+	  "Split string with odd number of double-quotes");
+
+print "# HTML entity replacement\n";
+$sstring = '&quot;foo &amp; bar&quot;';
+is(OMP::General->replace_entity($sstring),'"foo & bar"', 'Replace entities in simple string');
+
+my @compare_ent = ('<','>','"','&',);
+is_deeply([split(/\s+/,OMP::General->replace_entity('&lt; &gt; &quot; &amp;'))],
+	  \@compare_ent,
+	  "Replace all known entities");
+ 
+          
