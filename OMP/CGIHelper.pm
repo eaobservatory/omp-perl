@@ -45,8 +45,6 @@ use OMP::General;
 use OMP::Error qw(:try);
 use OMP::Constants qw(:fb :done :msb);
 
-use Data::Dumper;
-
 use Time::Piece;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -148,63 +146,15 @@ sub fb_fault_content {
     $showfault = $faults[0];
   }
 
-  &show_faults($q, \@faults);
+  OMP::CGIFault::show_faults(CGI => $q, 
+			     faults => \@faults,
+			     descending => 0,
+			     URL => "fbfault.pl",);
   print "<hr>";
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
   print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-  &fault_table($q, $showfault);
+  OMP::CGIFault::fault_table($q, $showfault, 1);
   print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
-}
-
-=item B<fb_fault_output>
-
-Parse the fault response form, submit the fault and redisplay the faults.
-
-  fb_fault_output($cgi, %cookie);
-
-=cut
-
-sub fb_fault_output {
-  my $q = shift;
-  my %cookie = @_;
-  my $title;
-
-  my $faultid = $q->param('faultid');
-  my $author = $q->param('user');
-  my $text = $q->param('text');
-
-  my $fault = OMP::FaultServer->getFault($faultid);
-
-  my $user = new OMP::User(userid => $author,);
-
-  try {
-    my $resp = new OMP::Fault::Response(author => $user,
-				        text => $text);
-    OMP::FaultServer->respondFault($fault->id, $resp);
-    $title = "Fault response successfully submitted";
-  } otherwise {
-    my $E = shift;
-    $title = "An error has prevented your response from being filed: $E";
-  };
-
-  print $q->h2($title);
-
-  proj_status_table($q, %cookie);
-
-  print "<font size=+1><b>Faults</b></font><br>";
-
-  my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations(lc($cookie{projectid}),0);
-
-  my %faults = map {$_->faultid, $_} @faults;
-  my $showfault = $faults{$faultid};
-
-  &show_faults($q, \@faults);
-  print "<hr>";
-  print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
-  print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-
-  fault_table($q, $showfault);
 }
 
 =item B<msb_sum>
