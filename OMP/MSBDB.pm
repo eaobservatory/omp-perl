@@ -716,7 +716,7 @@ sub _insert_row {
 
   # Store the data
   my $proj = $self->projectid;
-  print "Inserting row as index $index\n";
+  print "Inserting row as index $index\n" if $DEBUG;
   $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?, ?)", undef,
 	   $index, $data{checksum}, $self->projectid, $data{remaining},
 	   $self->_sciprog_filename) 
