@@ -22,4 +22,4 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project log");
-$cgi->write_page( \&projlog_content, sub { } );
+$cgi->write_page( \&projlog_content, \&projlog_content );
