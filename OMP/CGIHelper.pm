@@ -37,6 +37,7 @@ use OMP::CGIFault;
 use OMP::MSB;
 use OMP::MSBServer;
 use OMP::MSBDoneQuery;
+use OMP::NightRep;
 use OMP::TimeAcctDB;
 use OMP::FBServer;
 use OMP::UserServer;
@@ -56,7 +57,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content nightlog_content night_report/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1656,7 +1657,7 @@ sub projlog_content {
   my $projectid;
 
   # Untaint the date string
-  if ($utdatestr =~ /^(\d\d\d\d-\d\d-\d\d)$/) {
+  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
     $utdate = $1;
   } else {
     croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
@@ -1760,6 +1761,151 @@ sub projlog_content {
     print "<p><a name='taufits'></a>";
     print "<a href='$calibpage'><img src='$taufitswww/$gif'>";
     print "<br>Click here to visit the calibration page</a>";
+  }
+}
+
+=item B<nightlog_content>
+
+Create a page summarizing the events for a particular night.  This is not
+project specific.
+
+  nightlog_content($q);
+
+=cut
+
+sub nightlog_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $utdatestr = $q->url_param('utdate');
+
+  my $utdate;
+  # Untaint the date string
+  if ($utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
+    $utdate = $1;
+  } else {
+    croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
+  }
+
+  print "<h2>Nightly report for $utdate</h2>";
+
+  # Disply time accounting info
+  print "<h3>Time accounting information</h3>";
+
+  my $public_url = public_url();
+
+  # Get the time accounting information
+  my $acctdb = new OMP::TimeAcctDB(DB => new OMP::DBbackend);
+  my @timeacct = $acctdb->getTimeSpent(utdate => $utdate);
+
+  # Put the time accounting info in a table
+  print "<table><td><strong>Project ID</strong></td><td><strong>Hours</strong></td>";
+  for my $account (@timeacct) {
+    my $projectid = $account->projectid;
+    my $timespent = $account->timespent;
+    my $h = sprintf("%.1f", $timespent->hours);
+    my $confirmed = $account->confirmed;
+    print "<tr><td>";
+    print "<a href='$public_url/projecthome.pl?urlprojid=$projectid'>$projectid</a>";
+    print "<td>$h";
+    (! $confirmed) and print " [estimated]";
+    print "</td>";
+  }
+  print "</table>";
+}
+
+=item B<night_report>
+
+Create a page summarizing activity for a particular night and project.
+
+  night_report($q, %cookie);
+
+=cut
+
+sub night_report {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Get the UT date
+  my $utdatestr;
+  my $utdate;
+  if ($q->param('utdate_form')) {
+    $utdatestr = $q->param('utdate_form');
+  } elsif ($q->url_param('utdate')) {
+    # Try and get the date from the URL
+    $utdatestr = $q->url_param('utdate');
+  } else {
+    # No date, so use today.
+    $utdate = OMP::General->today;
+  }
+
+  # Get the telescope from the URL
+  my $telstr = $q->url_param('tel');
+
+  # Untaint the date and telescope strings
+  if ($utdatestr and $utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
+    $utdate = $1;
+  }
+
+  if (! $utdate) {
+    croak("UT date string [$utdatestr] does not match the expect format so we are not allowed to untaint it!");
+  }
+
+  my $tel;
+  if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
+    $tel = uc($1);
+  } else {
+    croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
+  }
+
+  # Get the night report
+  my $nr = new OMP::NightRep(date => $utdate,
+			     telescope => $tel,);
+
+  if (! $nr) {
+    print "<h2>No observing report available for $utdate at $tel</h2>";
+  } else {
+
+    print "<table border=0><td colspan=2>";
+
+    print "<h2 class='title'>Observing Report for $utdate at $tel</h2>";
+
+    # Get the next and previous UT dates
+    my $t = Time::Piece->strptime($utdate, "%Y-%m-%d");
+    my $prevdate = gmtime($t->epoch - 84000);
+    my $nextdate = gmtime($t->epoch + 84000);
+
+    # Link to previous and next date reports
+#    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
+
+    ### T E S T  U R L ###
+    my $url = "nightrep.pl";
+
+    print "</td><tr><td>";
+
+    print "<a href='$url?utdate=".$prevdate->ymd."&tel=$tel'>Go to previous</a>";
+    print " | ";
+    print "<a href='$url?utdate=".$nextdate->ymd."&tel=$tel'>Go to next</a>";
+
+    print "</td><td align='right'>";
+
+    # Form for viewing another report
+    print $q->startform;
+    print "View report for ";
+    print $q->textfield(-name=>"utdate_form",
+		        -size=>10,
+		        -default=>substr($utdate, 0, 8),);
+    print "</td><tr><td colspan=2 align=right>";
+
+    print $q->submit(-name=>"view_report",
+		     -label=>"Submit",);
+    print $q->endform;
+
+    print "</td></table>";
+
+    print "<p>";
+
+    $nr->ashtml;
   }
 }
 
