@@ -2116,6 +2116,8 @@ Display details for multiple projects in a tabular format.
 sub proj_sum_table {
   my $projects = shift;
 
+  my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+
   print "<table cellspacing=0>";
   print "<tr align=center><td>Project ID</td>";
   print "<td>PI</td>";
@@ -2130,7 +2132,7 @@ sub proj_sum_table {
 
   foreach my $project (@$projects) {
     print "<tr bgcolor=$bgcolor>";
-    print "<td><a href='projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
+    print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". $project->pi->html ."</td>";
     print "<td align=center>". $project->tagpriority ."</td>";
     print "<td align=center>". $project->allocated->pretty_print ."</td>";
