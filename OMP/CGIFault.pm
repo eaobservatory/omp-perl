@@ -33,6 +33,7 @@ use OMP::Fault::Response;
 use OMP::MSBServer;
 use OMP::User;
 use OMP::UserServer;
+use OMP::KeyServer;
 use OMP::Error qw(:try);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -75,6 +76,9 @@ sub file_fault {
   my $q = shift;
   my %cookie = @_;
 
+  # Get a new key for this form
+  my $formkey = OMP::KeyServer->genKey;
+
   # Create values and labels for the popup_menus
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @system_values = map {$systems->{$_}} sort keys %$systems;
@@ -88,6 +92,10 @@ sub file_fault {
 
   print "<table border=0 cellspacing=4><tr>";
   print $q->startform;
+
+  # Embed the key
+  print $q->hidden(-name=>'formkey',
+		   -default=>$formkey);
 
   # Need the show_output param in order for the output code ref to be called next
   print $q->hidden(-name=>'show_output',
@@ -186,6 +194,14 @@ Submit a fault and create a page that shows the status of the submission.
 sub file_fault_output {
   my $q = shift;
   my %cookie = @_;
+
+  # Get the form key
+  my $formkey = $q->param('formkey');
+
+  # Croak if key is invalid
+  my $verifykey = OMP::KeyServer->verifyKey($formkey);
+  croak "Key is invalid [perhaps you already submitted this form?]"
+    unless ($verifykey);
 
   my %status = OMP::Fault->faultStatus;
 
@@ -295,6 +311,10 @@ sub file_fault_output {
 
   # Show the fault if it was successfully filed
   if ($faultid) {
+
+    # Remove the key
+    OMP::KeyServer->removeKey($formkey);
+
     my $f = OMP::FaultServer->getFault($faultid);
     titlebar($q, ["File Fault", "Fault $faultid has been filed"], %cookie);
 
@@ -757,6 +777,14 @@ sub view_fault_output {
   my $fault = OMP::FaultServer->getFault($faultid);
 
   if ($q->param('respond')) {
+    # Get the form key
+    my $formkey = $q->param('formkey');
+
+    # Croak if key is invalid
+    my $verifykey = OMP::KeyServer->verifyKey($formkey);
+    croak "Key is invalid [perhaps you already submitted this form?]"
+      unless ($verifykey);
+
     my $author = $q->param('user');
 
     # The text.  Put it in <pre> tags if there isn't an <html>
@@ -776,11 +804,16 @@ sub view_fault_output {
       my $resp = new OMP::Fault::Response(author => $user,
 					  text => $text);
       OMP::FaultServer->respondFault($fault->id, $resp);
+
       $title = "Fault response successfully submitted";
     } otherwise {
       my $E = shift;
       $title = "An error has prevented your response from being filed: $E";
     };
+
+    # Remove key
+    OMP::KeyServer->removeKey($formkey);
+
   } elsif ($q->param('change_status')) {
     try {
       # Right now we'll just do an update by resubmitting the fault
@@ -876,8 +909,14 @@ sub response_form {
   my $faultid = shift;
   my %cookie = @_;
 
+  # Get a new key for this form
+  my $formkey = OMP::KeyServer->genKey;
+
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print $q->startform;
+  # Embed the key
+  print $q->hidden(-name=>'formkey',
+		   -default=>$formkey);
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->textfield(-name=>'user',
