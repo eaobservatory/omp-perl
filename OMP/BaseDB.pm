@@ -812,7 +812,7 @@ sub _mail_information {
 
     # Expand HTML links for our plaintext message
     my $text = $details{message};
-    $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gi;
+    $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
 
     # Create the HTML tree and parse it
     my $tree = HTML::TreeBuilder->new;
