@@ -7,9 +7,13 @@ use warnings;
 use DBI;
 use File::Spec;
 
-my $dbdir = "/jac_sw/omp/dbxml/csv";
+my $server = "SYB_UKIRT";
+my $dbuser = "sa";
+my $dbpwd  = "";
+my $database = "archive";
 
-my $dbh = DBI->connect("DBI:CSV:f_dir=$dbdir")
+
+my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd)
   or die "Cannot connect: ". $DBI::errstr;
 
 
@@ -22,9 +26,9 @@ my %tables = (
 			 tauband => "INTEGER",
 			 seeing => "INTEGER",
 			 priority => "INTEGER",
-			 moon => "INTEGER",
+			 moon => "INTEGER NULL",
 			 timeest => "REAL",
-			 sciprog => "CHAR(256)",
+			 sciprog => "CHAR(255)",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    tauband seeing priority moon timeest 
 				    sciprog
@@ -32,9 +36,9 @@ my %tables = (
 		       },
 	      ompproj => {
 			  projectid => "CHAR(32)",
-			  pi => "CHAR(256)",
+			  pi => "CHAR(255)",
 			  piemail => "CHAR(64)",
-			  coi => "CHAR(256)",
+			  coi => "CHAR(255)",
 			  coiemail => "CHAR(64)",
 			  remaining => "REAL",
 			  pending => "REAL",
@@ -56,16 +60,16 @@ my %tables = (
 			 wavelength => "REAL",
 			 coordstype => "CHAR(32)",
 			 target => "CHAR(32)",
-			 ra2000 => "REAL",
-			 dec2000 => "REAL",
-			 el1 => "REAL",
-			 el2 => "REAL",
-			 el3 => "REAL",
-			 el4 => "REAL",
-			 el5 => "REAL",
-			 el6 => "REAL",
-			 el7 => "REAL",
-			 el8 => "REAL",
+			 ra2000 => "REAL NULL",
+			 dec2000 => "REAL NULL",
+			 el1 => "REAL NULL",
+			 el2 => "REAL NULL",
+			 el3 => "REAL NULL",
+			 el4 => "REAL NULL",
+			 el5 => "REAL NULL",
+			 el6 => "REAL NULL",
+			 el7 => "REAL NULL",
+			 el8 => "REAL NULL",
 			 _ORDER => [qw/obsid msbid projectid
 				    instrument wavelength coordstype
 				    target ra2000 dec2000 el1 el2
@@ -81,6 +85,10 @@ for my $table (sort keys %tables) {
   print "$table: $str\n";
   my $sth = $dbh->prepare("CREATE TABLE $table ($str)")
     or die "Cannot prepare table $table: ". $dbh->errstr();
+
+  # We can grant permission on this table as well
+  #$dbh->do("GRANT ALL ON ompobs TO omp")
+  #  or die "Error1: $DBI::errstr";
 
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
   $sth->finish();
