@@ -135,8 +135,8 @@ my %tables = (
 					/],
 			     },
 	      ompfault => {
-			   faultid => "REAL",
-			   entity => "varchar(64)",
+			   faultid => "DOUBLE PRECISION", # Required
+			   entity => "varchar(64) null",
 			   type   => "integer",
 			   system => "integer",
 			   category => "VARCHAR(32)",
@@ -151,7 +151,7 @@ my %tables = (
 			  },
 	      ompfaultbody => {
 			       respid => "numeric(5,0) IDENTITY",
-			       faultid => "REAL",
+			       faultid => "DOUBLE PRECISION", # Required
 			       date => "datetime",
 			       isfault => "integer",
 			       text => "text",
