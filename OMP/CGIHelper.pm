@@ -311,7 +311,7 @@ sub fb_entries {
     print "<font size=+1>Entry $row->{entrynum} (on $date by ",
 
 	  # If author is not defined display sourceinfo as the author
-          ($row->{author} ? $row->{author}->html : $row->{sourceinfo}) . " )</font><br>",
+          ($row->{author} ? OMP::Display->userhtml($row->{author}, $q) : $row->{sourceinfo}) . " )</font><br>",
 	  "<b>Subject: $row->{'subject'}</b><br>",
           "$text",
 	  "<p>";
