@@ -2047,7 +2047,7 @@ sub _run_query {
 	  if ($qconstraints{observability}) {
 	    if  ( ! $coords->isObservable or
 		  ! $elconstraint->contains( $coords->el ) or
-		  ! ($coords->ha(normailize=>1)*$approach >= 0)
+		  ! ($coords->ha(normalize=>1)*$approach >= 0)
 		) {
 	      $isObservable = 0;
 	      last OBSLOOP;
