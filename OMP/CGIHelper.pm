@@ -697,24 +697,33 @@ sub support {
   # Make contact changes, if any
   if ($q->param('change_primary')) {
 
-    # Create a new contactability hash
-    my %contactable = map {
-      $_->userid, ($q->param('primary') eq $_->userid ? 1 : 0)
-    } $project->support;
+    # Get new primary contacts (frox checkbox group)
+    my %primary = map {$_, undef} $q->param('primary');
 
-    $project->contactable(%contactable);
+    # Must have atleast one primary contact defined.
+    if (%primary) {
+      # Create a new contactability hash
+      my %contactable = map {
+	$_->userid, (exists $primary{$_->userid} ? 1 : 0)
+      } $project->support;
+      
+      $project->contactable(%contactable);
 
-    # Store changes to DB
-    my $E;
-    try {
-      $projdb->addProject( $project, 1 );
-    } otherwise {
-      $E = shift;
-      print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
-    };
-    return if ($E);
+      # Store changes to DB
+      my $E;
+      try {
+	$projdb->addProject( $project, 1 );
+      } otherwise {
+	$E = shift;
+	print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
+      };
+      return if ($E);
 
-    print "<h3>Primary support contact has been changed</h3>";
+      print "<h3>Primary support contacts have been changed</h3>";
+    } else {
+      # No new primary contacts defined
+      print "<h3>Atleast one primary support contact must be defined.  Your changes have not been stored.</h3>";
+    }
   }
 
   # Get support contacts
@@ -729,13 +738,13 @@ sub support {
   print "<h3>Editing support contacts for $projectid</h3>";
 
   # List primary
-  print "<strong>Support contact</strong>: ";
+  print "<strong>Support contacts</strong>: ";
   print join(", ", map {OMP::Display->userhtml($_, $q)} @primary);
 
   # List secondary
   if (@secondary) {
     print "<br>";
-    print "<strong>Secondary Support contact</strong>: ";
+    print "<strong>Secondary support contacts</strong>: ";
     print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
   }
 
@@ -744,21 +753,22 @@ sub support {
   # Generate labels and values for primary support form
   my %labels = map {$_->userid, $_->name} @support;
   my @userids = sort map {$_->userid} @support;
+  my @defaults = map {$_->userid} @primary;
 
   # Form for defining primary support
-  print "<h3>Define primary support contact</h3>";
+  print "<h3>Define primary support contacts</h3>";
   print $q->start_form(-name=>'define_primary');
-  print $q->radio_group(-name=>'primary',
-		        -values=>\@userids,
-		        -default=>$primary[0]->userid,
-		        -linebreak=>'true',
-		        -labels=>\%labels,);
+  print $q->checkbox_group(-name=>'primary',
+			   -values=>\@userids,
+			   -defaults=>\@defaults,
+			   -linebreak=>'true',
+			   -labels=>\%labels,);
 
   # Hide project ID in form
   print $q->hidden(-name=>'projectid', -default=>$projectid);
   print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
   print $q->end_form;
-  print "<br><small>Note: Only the primary contact will recieve project email.</small>";
+  print "<br><small>Note: Only primary support contacts will recieve project email.</small>";
 }
 
 =item B<observed>
