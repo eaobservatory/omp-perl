@@ -105,6 +105,9 @@ for my $proj (keys %alloc) {
   # being careful to deal with incalloc
   for my $mod (keys %{ $alloc{$proj} }) {
 
+    die "Can not yet handle tagpriority or country updates"
+      if ($mod eq 'tagpriority' or $mod eq 'country');
+
     # Verify that SUPPORT info is correct
     if ($mod eq 'support') {
       my @support = split(/,/,$alloc{$proj}->{$mod});
