@@ -35,8 +35,6 @@ use OMP::ProjDB;
 use OMP::Constants;
 use OMP::Error;
 
-use Net::SMTP;
-
 use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
@@ -264,41 +262,19 @@ sub _mail_comment {
   throw OMP::Error::FatalError("No address in array\n")
     unless @$addrlist and defined $addrlist->[0];
 
-  # Set up the mail
-  my $smtp = new Net::SMTP('mailhost', Timeout => 30);
-
-  $smtp->mail("omp-feedback-system")
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->to(@$addrlist)
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->data()
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-
-  # Mail headers
-  $smtp->datasend("Content-type: text/html")
-    or throw OMP::Error::FatalError("Error constructing content-type header\n");
-  $smtp->datasend("To: " .join(",",@$addrlist)."\n")
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->datasend("Subject: New comment for project " . $self->projectid."\n")
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->datasend("\n")
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-
   # Mail message
   my $msg = "\nAuthor: $comment->{author}\n" .
             "Subject: $comment->{subject}\n\n" .
 	    "$comment->{text}\n";
 
-  $smtp->datasend($msg)
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $self->_mail_information(
+			   message => $msg,
+			   to => $addrlist,
+			   from => "omp-feedback-system",
+			   subject => "New comment for project " . $self->projectid,
+			   headers => ["Reply-To: omp_group\@jach.hawaii.edu","Content-type: text/html"  ],
+			  );
 
-  # Send message
-  $smtp->dataend()
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->quit
-    or throw OMP::Error::FatalError("Error constructing mail message\n");
 }
 
 =item B<_mail_comment_important>

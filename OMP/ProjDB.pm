@@ -35,7 +35,6 @@ use OMP::FeedbackDB;
 use OMP::Constants qw/ :fb /;
 
 use Crypt::PassGen qw/passgen/;
-use Net::SMTP;
 
 use base qw/ OMP::BaseDB /;
 
@@ -651,38 +650,19 @@ sub _mail_password {
 				   );
 
     # Now set up the mail
-    my $smtp = new Net::SMTP('mailhost', Timeout => 30);
-
-    $smtp->mail("omp-auto-reply")
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->to(@addr)
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->data()
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-
-    # Mail Headers
-    $smtp->datasend("To: " .join(",",@addr)."\n")
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->datasend("Subject: OMP reissue of password for $projectid\n")
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->datasend("\n")
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
 
     # Mail message content
     my $msg = "\nNew password for project $projectid: $password\n\n" .
       "This password was generated automatically at the request\nof $addr.\n".
 	  "\nPlease do not reply to this email message directly.\n";
 
-    $smtp->datasend($msg)
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-
-    # Send message
-    $smtp->dataend()
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->quit
-      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $self->_mail_information(
+			     message => $msg,
+			     to => \@addr,
+			     from => "omp-auto-reply",
+			     subject => "OMP reissue of password for $projectid",
+			     headers => ["Reply-To: omp_group\@jach.hawaii.edu" ],
+			    );
 
 
   } else {

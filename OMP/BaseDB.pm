@@ -30,6 +30,8 @@ use Carp;
 use OMP::Error;
 use OMP::Constants qw/ :fb /;
 
+use Net::SMTP;
+
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
 
@@ -391,6 +393,92 @@ sub _notify_feedback_system {
   # Disable transactions since we can only have a single
   # transaction at any given time with a single handle
   $fbdb->addComment( { %comment },1);
+
+}
+
+
+=item B<_mail_information>
+
+Mail some information to some people.
+
+  $db->_mail_information( %details );
+
+Uses C<Net::SMTP> for the mail service so that it can run in a tainted
+environment. The argument hash should have the following keys:
+
+ to   - array reference or scalar containing addresses to send mail to
+ from - the email address of the sender
+ subject - subject of the message
+ message  - the actual mail message
+ headers - additional mail headers such as Reply-To and Content-Type
+           as they would appear in the message. Stored as reference to
+           an array [optional]
+
+ $db->_mail_information( to => [qw/blah@somewhere.com blah2@nowhere.com/],
+                         from => "me@myself.com",
+                         subject => "hello",
+                         message => "this is the content\n",
+                         headers => [ "Reply-To: you\@yourself.com",
+                                      "Content-Type: text/html"],
+                       );
+
+Throws an exception on error.
+
+=cut
+
+sub _mail_information {
+  my $self = shift;
+  my %details = @_;
+
+  # Check that we have the correct keys
+  for my $key (qw/ to from subject message /) {
+    throw OMP::Error::BadArgs("_mail_information: Key $key is required")
+      unless exists $details{$key};
+  }
+
+  # Get the address list
+  # single scalar or array ref
+  my @addr = ( ref $details{'to'} ? @{$details{to}} : $details{to} );
+
+  throw OMP::Error::FatalError("Undefined address")
+    unless @addr and defined $addr[0];
+
+  # Set up the mail
+  my $smtp = new Net::SMTP('mailhost', Timeout => 30);
+
+  $smtp->mail( $details{from} )
+    or throw OMP::Error::FatalError("Error sending 'from' information\n");
+  $smtp->to(@addr)
+    or throw OMP::Error::FatalError("Error constructing 'to' information\n");
+  $smtp->data()
+    or throw OMP::Error::FatalError("Error beginning data segment of message\n");
+
+  # Mail headers
+  if (exists $details{headers}) {
+    for my $hdr (@{ $details{headers} }) {
+      $smtp->datasend("$hdr\n")
+	or throw OMP::Error::FatalError("Error adding '$hdr' header\n");
+    }
+  }
+
+  # To and subject header are special
+  $smtp->datasend("To: " .join(",",@addr)."\n")
+    or throw OMP::Error::FatalError("Error adding 'To' header\n");
+  $smtp->datasend("Subject: $details{subject}\n")
+    or throw OMP::Error::FatalError("Error adding 'subject' header\n");
+  $smtp->datasend("\n")
+    or throw OMP::Error::FatalError("Error sending header delimiter\n");
+
+
+  # Actual message
+  $smtp->datasend($details{message})
+    or throw OMP::Error::FatalError("Error adding mail message\n");
+
+  # Send message
+  $smtp->dataend()
+    or throw OMP::Error::FatalError("Error finalizing mail message\n");
+  $smtp->quit
+    or throw OMP::Error::FatalError("Error sending mail message\n");
 
 }
 
