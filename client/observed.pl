@@ -157,7 +157,6 @@ for my $proj (keys %sorted) {
 
     my $fixed_text = "<html><p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
 
-    
     OMP::FBServer->addComment(
 			      $proj,
 			      {
@@ -180,8 +179,21 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 

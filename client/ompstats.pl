@@ -1,5 +1,47 @@
 #!/local/perl/bin/perl -w
 
+=head1 NAME
+
+ompstats - Generate OMP statistics
+
+=head1 SYNOPSIS
+
+  ompstats -tel jcmt -sem 05A
+
+=head1 DESCRIPTION
+
+Plot OMP project completion statistics for a given semester and
+telescope or range of semesters.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-tel>
+
+Telescope name.
+
+=item B<-sem>
+
+Semester name, or a space-separated list of contiguous semesters.
+
+=item B<-verbose>
+
+Be verbose.
+
+=item B<-help>
+
+A help message.
+
+=item B<-man>
+
+This manual page.
+
+=back
+
+=cut
+
+
 BEGIN {
   # command line tools probably do not want full logging enabled
   # unless they are asking for it
@@ -12,6 +54,7 @@ use strict;
 
 use lib qw(/jac_sw/omp/msbserver);
 
+use Pod::Usage;
 use Getopt::Long;
 use Graphics::PLplot qw(:all);
 
@@ -23,20 +66,16 @@ my $tel;
 my @sems;
 my $verbose;
 my $help;
+my $man;
 my $result = GetOptions("tel=s" => \$tel,
 			"sem=s" => \@sems,
-			"v" => \$verbose,
-		        "h|help" => \$help,);
+			"verbose" => \$verbose,
+		        "h|help" => \$help,
+			"man" => \$man,
+		       );
 
-if (defined $help) {
-  print "$0 - Generate statistics based on OMP data\n";
-  print "$0 -tel <telescope> -sem <semester1 [semester2...]>\n";
-  print "\t-tel - Telescope name\n";
-  print "\t-sem - Semester name, or a space-separated list of contiguous semesters\n";
-  print "\t-v   - Be verbose\n";
-  print "\t-h   - Display this help message\n";
-  exit;
-}
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 die ("Please specify -tel and -sem\n")
   unless (defined $tel and defined $sems[0]);
@@ -101,3 +140,26 @@ plend();
 print "Done.\n"
   if ($verbose);
 
+=head1 AUTHOR
+
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2004-2005 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
+
+=cut
