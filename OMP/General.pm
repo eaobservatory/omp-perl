@@ -1134,7 +1134,7 @@ sub verify_administrator_password {
 
   # The encrypted admin password
   # At some point we'll pick this up from somewhere else.
-  my $admin = "Fgq1aNqFqOvsg";
+  my $admin = OMP::Config->getData("password.admin");
 
   # Encrypt the supplied password using the admin password as salt
   # unless the supplied password is undefined
@@ -1192,7 +1192,7 @@ sub verify_staff_password {
 
   # The encrypted staff password
   # At some point we'll pick this up from somewhere else.
-  my $admin = "4xePdcDbTo9.I";
+  my $admin = OMP::Config->getData("password.staff");
 
   # Encrypt the supplied password using the staff password as salt
   # unless the supplied password is undefined
@@ -1257,7 +1257,7 @@ sub verify_queman_password {
   # The encrypted passwords
   # At some point we'll pick this up from somewhere else.
   my %passwords = (
-		   UH => 'afZ1FBCsmx63Y',
+		   UH => OMP::Config->getData("password.uh"),
 		  );
 
   my $admin = (exists $passwords{$queue} ? $passwords{$queue} : "noadmin");

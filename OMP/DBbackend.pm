@@ -82,19 +82,12 @@ file rather than hard-wiring the values in the module.
 sub loginhash {
   my $class = shift;
   my %details = (
-		 driver   => "Sybase",
-		 server   => "SYB_OMP1",
-		 database => "omp",
-		 user     => "omp",
-		 password => "***REMOVED***",
+		 driver   => OMP::Config->getData("database.driver"),
+		 server   => OMP::Config->getData("database.server"),
+		 database => OMP::Config->getData("database.database"),
+		 user     => OMP::Config->getData("database.user"),
+		 password => OMP::Config->getData("database.password"),
 		);
-
-#  my %details = (
-#		 driver   => "Pg",
-#		 database => "omp2",
-#		 user     => "timj",
-#		 password => "test",
-#		);
 
   # possible override for sybase users
   if ($details{driver} eq 'Sybase') {
