@@ -20,7 +20,7 @@ my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};tim
 for my $tab (qw/ompproj ompmsb ompobs ompsciprog/) {
 
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab",{ Columns=>{} })
-    or die "Cannot select on ompmsb: ". $DBI::errstr;
+    or die "Cannot select on $tab: ". $DBI::errstr;
 
   print "\nTABLE: $tab\n";
   my @columns = sort keys %{$ref->[0]};
