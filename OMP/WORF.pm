@@ -498,7 +498,7 @@ sub list_raw_observations {
   my $currentmsbid = "";
   my $first = 1;
   my $directory = _get_raw_directory( $instrument, $ut );
-  print $directory;
+
   if( -d $directory ) {
     opendir(FILES, $directory);
     @files = grep(!/^\./, readdir(FILES));
