@@ -724,7 +724,7 @@ sub RaiseComment {
                                                       -anchor => 'n',
                                                     );
     my $radioProject = $entryFrame->Radiobutton( -text => 'project',
-                                                 -value => OMP__TIMEGAP_PROJECT,
+                                                 -value => OMP__TIMEGAP_NEXT_PROJECT,
                                                  -variable => \$status,
                                                )->pack( -side => 'left',
                                                         -anchor => 'n',
