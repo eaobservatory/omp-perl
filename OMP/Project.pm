@@ -583,7 +583,7 @@ Always returns a number greater than or equal to zero.
 sub allRemaining {
   my $self = shift;
   my $all_left = $self->remaining - $self->pending;
-  $all_left = 0 if $all_left < 0.0;
+  $all_left = new Time::Seconds(0) if $all_left < 0.0;
   return $all_left;
 }
 
