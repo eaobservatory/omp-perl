@@ -742,10 +742,10 @@ sub write_page_proposals {
 
     my $notlocal;
 
-    my @domain = OMP::General->determine_host;
-    # If the user is outside the JAC network write the page with
-    # authentication
-    if ($domain[1] and $domain[1] !~ /\./) {
+    my $private = OMP::Config->getData('omp-private');
+
+    # Do authentication if we're not running on the private web server
+    if ($q->url !~ /^$private/) {
       $notlocal = 1;
     }
 
