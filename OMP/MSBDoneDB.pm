@@ -375,6 +375,9 @@ sub _add_msb_done_info {
   throw OMP::Error::BadArgs("No projectid supplied for add_msb_done_info")
     unless exists $msbinfo{projectid};
 
+  # Must force upcase of project ID for now
+  $msbinfo{projectid} = uc( $msbinfo{projectid} );
+
   # First remove any placeholder observations
   $self->_db_delete_data( $MSBDONETABLE,
 			  " checksum = '$msbinfo{checksum}' AND " .
