@@ -179,8 +179,6 @@ sub print_faults {
     $printer = $1;
   }
 
-  my $divider = "*"x80;
-
   # If we're printing multiple faults, combine them and send it off as a
   # single print job
   if ($faultids[1]) {
@@ -199,7 +197,7 @@ sub print_faults {
       # Convert it to plaintext
       my $plaintext = OMP::Display->html2plain($text);
 
-      $toprint .= "$divider\n$divider\nSubject: $subject\n\n$plaintext\n\n";
+      $toprint .= "Subject: $subject\n\n$plaintext\f";
     }
 
     # Set up printer. Should check that enscript can be found.
@@ -211,7 +209,7 @@ sub print_faults {
 
   } else {
     # Get the fault
-    my $f = OMP::FaultServer->getFault($_);
+    my $f = OMP::FaultServer->getFault($faultids[0]);
 
     my $faultid = $f->id;
 
