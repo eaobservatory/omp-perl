@@ -29,6 +29,7 @@ use OMP::Error qw/ :try /;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctQuery;
 use OMP::General;
+use OMP::ProjDB;
 
 use base qw/ OMP::BaseDB /;
 our $ACCTTABLE  = "omptimeacct";
@@ -193,7 +194,7 @@ sub setTimeSpent {
     # Some of the projects are not real (eg WEATHER, SCUBA)
     # so in those cases we just skip
     # Rather than doing an opt-in simply look for project validity
-    next unless $projdb->verify();
+    next unless $projdb->verifyProject();
 
     # get the new totals
     my @all = $self->getTimeSpent( projectid => $proj );
