@@ -520,7 +520,7 @@ sub listSemesters {
 
 Retrieve all the telescopes associated with projects in the database.
 
-  @sem = $projdb->listSemesters()
+  @tel = $projdb->listTelescopes()
 
 =cut
 
