@@ -199,7 +199,15 @@ sub _make_theme {
   my $theme = $self->theme;
   unless (defined $theme) {
     # Use the OMP theme and make some changes to it.
-    $theme = new HTML::WWWTheme("/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+    # This is in a different place on hihi than it is on malama
+    my $themefile = "/JACpublic/JAC/software/omp/LookAndFeelConfig";
+    if (! -e $themefile) {
+      $themefile = "/WWW" . $themefile;
+      if (! -e $themefile) {
+	croak "Unable to locate OMPtheme file\n";
+      }
+    }
+    $theme = new HTML::WWWTheme($themefile);
     croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
     $self->theme($theme);
   }
