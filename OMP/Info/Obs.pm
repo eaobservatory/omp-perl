@@ -98,7 +98,7 @@ sub readfile {
     $obs = $class->new( fits => $FITS_header );
     $obs->filename( $filename );
   }
-  catch with {
+  catch Error with {
 
   };
   return $obs;
@@ -415,7 +415,7 @@ sub nightlog {
     $return{'Obsmode'} = $self->mode;
     $return{'Project ID'} = $self->projectid;
     $return{'Object'} = $self->target;
-    $return{'Tau225'} = $self->tau;
+    $return{'Tau225'} = sprintf( "%.2f", $self->tau);
     $return{'Seeing'} = $self->seeing;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Bolometers'} = $self->bolometers;
@@ -528,8 +528,26 @@ sub nightlog {
                           "Number of exposures", "Mode", "Speed", "Filter",
                           "Airmass", "Columns", "Rows", "RA", "DEC",
                           "Equinox", "DR Recipe" ];
+  } elsif( $instrument =~ /uist/i ) {
+    $return{'Observation'} = $self->runnr;
+    $return{'Group'} = $self->group;
+    $return{'Object'} = $self->target;
+    $return{'Observation type'} = $self->type;
+    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
+    $return{'Exposure time'} = $self->duration;
+    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
+    $return{'Airmass'} = $self->airmass;
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
+    $return{'RA Offset'} = $self->raoff;
+    $return{'Dec Offset'} = $self->decoff;
+    $return{'DR Recipe'} = $self->drrecipe;
+    $return{'_ORDER'} = [ "Observation", "Group", "Object",
+                          "Observation type", "UT start", "Exposure time",
+                          "Airmass", "Filter", "RA", "DEC", "Equinox",
+                          "RA Offset", "Dec Offset", "DR Recipe", ];
   }
-
   return %return;
 
 }
