@@ -418,6 +418,8 @@ exists a time object corresponding to the current UT date is returned.
 
 Hours, minutes and seconds are ignored.
 
+A warning is issued if the date is unparseable.
+
 =cut
 
 sub determine_utdate {
@@ -436,6 +438,7 @@ sub determine_utdate {
       }
     } else {
       # did not parse, use today
+      warn "Unable to parse UT date $utstr. Using today's date.\n";
       $date = $class->today( 1 );
     }
   } else {
