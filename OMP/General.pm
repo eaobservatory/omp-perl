@@ -52,6 +52,7 @@ Returns C<undef> if the time could not be parsed.
 Returns the object unchanged if the argument is already a C<Time::Piece>.
 
 It will also recognize a Sybase style date: 'Mar 15 2002  7:04AM'
+and a simple YYYYMMDD.
 
 The date is assumed to be in UT.
 
@@ -87,6 +88,9 @@ sub parse_date {
       my $n = ( $date =~ tr/:/:/ );
       $format .= "T" . ($n == 2 ? "%T" : "%R");
     }
+  } elsif ($date =~ /^\d\d\d\d\d\d\d\d\b/) {
+    # YYYYMMDD format
+    $format = "%Y%m%d";
   } else {
     # Assume Sybase date
     # Mar 15 2002  7:04AM
