@@ -65,7 +65,7 @@ my %tables = (
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
-				     remaining pending
+				     remaining pending telescope
 				     /],
 			 },
 	      ompobs => {
