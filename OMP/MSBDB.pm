@@ -607,7 +607,14 @@ sub doneMSB {
                            OMP__DONE_DONE );
 
   # Give up if we dont have a match
-  return unless defined $msb;
+  unless (defined $msb) {
+    # Disconnect and commit the comment
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+
+    # and return
+    return;
+  }
 
   # Mark it as observed
   $msb->hasBeenObserved();
@@ -704,7 +711,14 @@ sub undoMSB {
                            OMP__DONE_UNDONE );
 
   # Give up if we dont have a match
-  return unless defined $msb;
+  unless (defined $msb) {
+    # Disconnect and commit the comment
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+
+    # and return
+    return;
+  }
 
   # Mark it as not observed
   $msb->undoObserve;
@@ -786,7 +800,14 @@ sub alldoneMSB {
 			   OMP__DONE_ALLDONE );
 
   # Give up if we dont have a match
-  return unless defined $msb;
+  unless (defined $msb) {
+    # Disconnect and commit the comment
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+
+    # and return
+    return;
+  }
 
   $msb->hasBeenCompletelyObserved();
 
@@ -883,7 +904,14 @@ sub suspendMSB {
 			   $msg, OMP__DONE_SUSPENDED );
 
   # Give up if we dont have a match
-  return unless defined $msb;
+  unless (defined $msb) {
+    # Disconnect and commit the comment
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+
+    # and return
+    return;
+  }
 
   # Mark it as observed
   $msb->hasBeenSuspended($label);
