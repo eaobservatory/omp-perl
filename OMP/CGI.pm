@@ -29,6 +29,7 @@ use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error;
 use OMP::Fault;
+use OMP::CGIFault;
 use HTML::WWWTheme;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
@@ -233,6 +234,7 @@ sub _sidebar_fault {
 
   unshift(@sidebarlinks, "<font size=+1>");
   push(@sidebarlinks,"</font>");
+  push(@sidebarlinks,&sidebar_summary);
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }
@@ -630,6 +632,10 @@ sub write_page_fault {
   my %cookie = $c->getCookie;
 
   $self->_make_theme;
+
+  if ($q->param('user')) {
+    $cookie{user} = $q->param('user');
+  }
 
   if ($q->url_param('cat')) {
     my %categories = map {uc($_), $_} OMP::Fault->faultCategories;
