@@ -194,11 +194,10 @@ sub print_faults {
 
     # Set up printer. Should check that enscript can be found.
     my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"[$faultid] $subject\" -P$printer";
-    open(PRINTER, "| $printcom");
-    my $output = *PRINTER;
-    print $output $plaintext;
+    open(my $PRTHNDL, "| $printcom");
+    print $PRTHNDL $plaintext;
 
-    close(printer);
+    close($PRTHNDL);
   }
 }
 
