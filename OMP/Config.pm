@@ -78,7 +78,8 @@ reside.
  OMP::Config->cfgdir( $newdir );
  $dir = OMP::Config->cfgdir();
 
-All the config files are read when the directory changes.
+The config files are read on demand. If the config directory
+is changed, old configs are cleared.
 
 =cut
 
@@ -91,7 +92,7 @@ All the config files are read when the directory changes.
       my $dir = shift;
       if (-d $dir) {
 	$cfgdir = $dir;
-	$class->_read_configs();
+	%CONFIG = (); # reset configs
       } else {
 	throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
       }
@@ -128,11 +129,7 @@ sub getData {
   my %args = @_;
 
   # Make sure we have read some files (ie specified a cfgdir)
-  if (!exists $CONFIG{omp}) {
-    my $cfgdir = $class->cfgdir;
-    $cfgdir = (defined $cfgdir ? $cfgdir : "<undefined>");
-    throw OMP::Error::FatalError("We have not read any config files yet. Please set cfgdir [currently = '$cfgdir']");
-  }
+  $class->_checkConfig;
 
   # Need to find the relevant config table. Only choices are "omp"
   # and a valid telescope
@@ -175,7 +172,7 @@ Return a list of telescopes for which a config file exists.
 
 sub telescopes {
   my $class = shift;
-
+  $class->_checkConfig;
   return grep { $_ ne 'omp' }  keys %CONFIG;
 }
 
@@ -201,6 +198,9 @@ sub inferTelescope {
   my $class = shift;
   my $refkey = lc(shift);
   my $refval = lc(shift);
+
+  # Make sure we have read some files (ie specified a cfgdir)
+  $class->_checkConfig;
 
   my @matches;
   for my $tel (keys %CONFIG) {
@@ -243,6 +243,32 @@ sub inferTelescope {
 =head2 Internal Methods
 
 =over 4
+
+=item B<_checkConfig>
+
+Check to see if we have read a config yet. If we have no keys,
+attempt to read a config. If still no keys throw an exception.
+
+  $hashref = $pkg->_checkConfig;
+
+=cut
+
+sub _checkConfig {
+  my $class = shift;
+
+  # check for the OMP key
+  if (!exists $CONFIG{omp}) {
+    # Try to read the configs on demand
+    $class->_read_configs();
+
+    # if still no luck complain about it
+    if (!exists $CONFIG{omp}) {
+      my $cfgdir = $class->cfgdir;
+      $cfgdir = (defined $cfgdir ? $cfgdir : "<undefined>");
+      throw OMP::Error::FatalError("We have not read any config files yet. Please set cfgdir [currently = '$cfgdir']");
+    }
+  }
+}
 
 =item B<_read_configs>
 
