@@ -26,6 +26,7 @@ use warnings;
 use Carp;
 
 # OMP dependencies
+use OMP::User;
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::MSBQuery;
@@ -276,7 +277,7 @@ sub doneMSB {
 
 
     # We must have a valid user if there is an explicit reason
-    if ($reason && ! $user) {
+    if ($reason && ! defined $user) {
       throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
     }
 
@@ -511,9 +512,8 @@ sub rejectMSB {
       }
     }
 
-
     # We must have a valid user if there is an explicit reason
-    if ($reason && ! $user) {
+    if ($reason && ! defined $user) {
       throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
     }
 

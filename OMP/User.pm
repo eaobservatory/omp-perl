@@ -397,7 +397,9 @@ Stringify overload. Returns the name of the user.
 
 sub stringify {
   my $self = shift;
-  return $self->name;
+  my $name = $self->name;
+  $name = '' unless defined $name;
+  return $name;
 }
 
 =item B<verify>
