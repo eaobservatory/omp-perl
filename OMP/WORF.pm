@@ -29,8 +29,11 @@ use OMP::CGI;
 # Bring in PDL modules so we can display the graphic.
 use PDL::Lite;
 use PDL::Primitive;
+use PDL::ImageND;
+use PDL::Ufunc;
 use PDL::IO::NDF;
 use PDL::Graphics::PGPLOT;
+#use PDL::Graphics::PGPLOT::Window;
 use PDL::Graphics::LUT;
 
 our $VERSION = (qw$Revision$ )[1];
@@ -445,13 +448,20 @@ sub _plot_image {
 
   my $image = rndf($file,1);
 
-  my ($xdim, $ydim) = dims $image;
+  my ($xdim, $ydim, $zdim) = dims $image;
 
   if(!defined $ydim) {
 
     # Since _plot_image will fail if it tries to display a 1D image, shunt
     # the image off to _plot_spectrum instead of failing.
     $self->_plot_spectrum( %args );
+    return;
+  }
+
+  if( defined $zdim ) {
+
+    # Similarly for a 3D image...
+    $self->_plot_cube( %args );
     return;
   }
 
@@ -617,7 +627,13 @@ sub _plot_spectrum {
 #  $image *= ( $image > $bad );
 
   my $spectrum;
-  my ( $xdim, $ydim ) = dims $image;
+  my ( $xdim, $ydim, $zdim ) = dims $image;
+
+  if( defined $zdim ) {
+    $self->_plot_cube( %args );
+    return;
+  }
+
 # We have to check if the input data is 1D or 2D
   if(defined($ydim)) {
 
@@ -720,6 +736,148 @@ sub _plot_spectrum {
   env(0, ($xend - $xstart), $zmin, $zmax);
   label_axes( "$label ($units)", undef, $title);
   points $spectrum, $opt;
+  dev "/null";
+
+}
+
+sub _plot_cube {
+  my $self = shift;
+  my %args = @_;
+
+  my $file;
+  if( defined( $args{input_file} ) ) {
+    $file = $args{input_file};
+  } else {
+    $file = $self->obs->filename;
+  }
+  if( $file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _plot_image must include full path");
+  }
+
+  $file =~ s/\.sdf$//;
+  my $cube = rndf( $file );
+
+  my $spectrum;
+  my ( $xdim, $ydim, $zdim ) = dims $cube;
+# We have to check if the input data is 1D or 2D
+  my ( $xstart, $xend, $ystart, $yend, $zstart, $zend );
+  if(defined($zdim)) {
+
+    $xstart = ( defined ( $args{xstart} ) ?
+                $args{xstart} :
+                1 );
+    $xend = ( defined ( $args{xend} ) ?
+              $args{xend} :
+              ( $xdim - 1 ) );
+    $ystart = ( defined ( $args{ystart} ) ?
+                $args{ystart} :
+                1 );
+    $yend = ( defined ( $args{yend} ) ?
+              $args{yend} :
+              ( $ydim - 1 ) );
+    $zstart = ( defined ( $args{zstart} ) ?
+                $args{zstart} :
+                1 );
+    $zend = ( defined ( $args{zend} ) ?
+              $args{zend} :
+              ( $zdim - 1 ) );
+    if( ( ( $xstart == 0 ) && ( $xend == 0 ) ) || ( $xstart >= $xend ) ) {
+      $xstart = 0;
+      $xend = $xdim - 1;
+    }
+    if( ( ( $ystart == 0 ) && ( $yend == 0 ) ) || ( $ystart >= $yend ) ) {
+      $ystart = 0;
+      $yend = $ydim - 1;
+    }
+    if( ( ( $zstart == 0 ) && ( $zend == 0 ) ) || ( $zstart >= $zend ) ) {
+      $zstart = 0;
+      $zend = $zdim - 1;
+    }
+  } else {
+    throw OMP::Error("Trying to display a 1D or 2D file as a cube.");
+  }
+
+  # Set up binning information (in the spatial sense)
+  my ( $xbin, $ybin );
+  if( exists( $args{xbin} ) && defined( $args{xbin} ) ) {
+    $xbin = $args{xbin};
+  } else {
+    $xbin = 1;
+  }
+  if( exists( $args{ybin} ) && defined( $args{ybin} ) ) {
+    $ybin = $args{ybin};
+  } else {
+    $ybin = 3;
+  }
+
+  # Do the image manipulation so we can rebin.
+  my $e1 = $cube->xchg(1,2);
+  my $e2 = $e1->xchg(0,1);
+  $e2->setbadtoval(0);
+  my $rebin = $e2->rebin($zdim, $xbin, $ybin);
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF";
+  } else {
+    dev "-/GIF";
+  }
+
+  # Grab the data information and do scaling
+  my ( $dmin, $dmax );
+
+  if( exists $args{dmin} && defined $args{dmin} ) {
+    $dmin = $args{dmin};
+  } else {
+    $dmin = min( $rebin ) - ( max( $rebin ) - min( $rebin ) ) * 0.10;
+  }
+  if( exists $args{dmax} && defined $args{dmax} ) {
+    $dmax = $args{dmax};
+  } else {
+    $dmax = max( $rebin ) + ( max( $rebin ) - min( $rebin ) ) * 0.10;
+  }
+
+  if( ( $dmin == 0 ) && ( $dmax == 0 ) ) {
+    $dmin = min( $rebin ) - ( max( $rebin ) - min( $rebin ) ) * 0.10;
+    $dmax = max( $rebin ) + ( max( $rebin ) - min( $rebin ) ) * 0.10;
+  } elsif( ( $dmax == 0 ) && ( $dmin > $dmax ) ) {
+    $dmax = max( $rebin ) + ( max( $rebin ) - min( $rebin ) ) * 0.10;
+  }
+
+  # Set up a display window.
+#  my $win = PDL::Graphics::PGPLOT::Window->new( Device => $device,
+#                                                WindowXSize => 3 * $xbin,
+#                                                WindowYSize => 2.25 * $ybin,
+#                                                NXPanel => $xbin,
+#                                                NYPanel => $ybin,
+#                                              );
+
+  $ENV{'PGPLOT_GIF_WIDTH'} = 480 * $xbin;
+  $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $ybin;
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF", $xbin, $ybin;
+  } else {
+    dev "-/GIF", $xbin, $ybin;
+  }
+
+  # Split up the rebinned cube into spectra and display them.
+  for (my $x = 1; $x <= $xbin; $x++ ) {
+
+    for ( my $y = 1; $y <= $ybin; $y++ ) {
+
+      my $slice = $rebin->slice(':,(' . ($x - 1) . '),('. ($y - 1) . ')');
+
+      my $xwinpos = $x;
+      my $ywinpos = $ybin - $y + 1;
+      env($zstart, $zend, $dmin, $dmax, {Title => "$ywinpos, $xwinpos",});
+      line( $slice, { Panel => [ $ywinpos, $xwinpos ],
+                    } );
+    } # y for-loop
+
+  } # x for-loop
+
   dev "/null";
 
 }
