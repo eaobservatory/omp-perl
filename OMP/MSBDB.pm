@@ -233,6 +233,9 @@ order to set the state.
 
 If the argument is C<undef> the database handle is cleared.
 
+If the method argument is not of the correct type an exception
+is thrown.
+
 =cut
 
 sub _dbhandle {
@@ -241,8 +244,10 @@ sub _dbhandle {
     my $db = shift;
     if (UNIVERSAL::isa($db, "OMP::DBbackend")) {
       $self->{DB} = $db;
-    } else {
+    } elsif (!defined $db) {
       $self->{DB} = undef;
+    } else {
+      throw OMP::Error::FatalError("Attempt to set database handle in OMP::MSBDB using incorrect class");
     }
   }
   my $db = $self->{DB};
