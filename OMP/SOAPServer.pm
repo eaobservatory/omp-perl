@@ -132,6 +132,7 @@ sub _get_faultcode {
 	     SpEmpty => 'Client.SpEmpty',
 	     DBLocked => 'Server.DBLocked',
 	     DBError => 'Server.DBError',
+	     MSBMissingObserve => 'Client.MSBMissingObserve',
 	     FatalError => 'Server.UnknownError',
 	    );
 

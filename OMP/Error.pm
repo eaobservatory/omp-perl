@@ -246,6 +246,11 @@ The database is currently locked out. Please try again later.
 
 Method was called with incorrect arguments.
 
+=item B<OMP::Error::MSBMissingObserve>
+
+An MSB was submitted that never resulted in an observation.
+SpIterObserve was missing.
+
 =back
 
 =head1 KNOWN PROBLEMS
@@ -312,6 +317,9 @@ package OMP::Error::DBError;
 use base qw/ OMP::Error /;
 
 package OMP::Error::BadArgs;
+use base qw/ OMP::Error /;
+
+package OMP::Error::MSBMissingObserve;
 use base qw/ OMP::Error /;
 
 
