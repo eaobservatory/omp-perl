@@ -318,6 +318,7 @@ sub fb_entries {
 	  "<p>";
   }
 
+  print "<a href='fbcomment.pl'>Add a comment</a><p>",
 }
 
 =item B<fb_entries_hidden>
@@ -1264,14 +1265,6 @@ sub msb_hist_output {
   my $q = shift;
   my %cookie = @_;
 
-  # Use the lower-level method to fetch the science program so we
-  # can disable the feedback comment associated with this action
-  my $db = new OMP::MSBDB( Password => $cookie{password},
-			   ProjectID => $cookie{projectid},
-			   DB => new OMP::DBbackend, );
-
-  my $sp = $db->fetchSciProg(1);
-
   proj_status_table($q, %cookie);
 
   # If they clicked the "Add Comment" button bring up a comment form
@@ -1282,6 +1275,14 @@ sub msb_hist_output {
 
   # Perform any actions on the msb?
   msb_action($q);
+
+  # Use the lower-level method to fetch the science program so we
+  # can disable the feedback comment associated with this action
+  my $db = new OMP::MSBDB( Password => $cookie{password},
+			   ProjectID => $cookie{projectid},
+			   DB => new OMP::DBbackend, );
+
+  my $sp = $db->fetchSciProg(1);
 
   # Redisplay MSB comments
   my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
