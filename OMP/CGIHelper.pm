@@ -2144,9 +2144,13 @@ sub proj_sum_table {
   print "<table cellspacing=0>";
   print "<tr align=center><td>Project ID</td>";
   print "<td>PI</td>";
+  print "<td># MSBs</td>";
   print "<td>Priority</td>";
   print "<td>Allocated</td>";
   print "<td>Completed</td>";
+  print "<td>Tau range</td>";
+  print "<td>Seeing range</td>";
+  print "<td>Sky</td>";
   print "<td>Title</td>";
 
   my %bgcolor = (dark => "#6161aa",
@@ -2154,12 +2158,44 @@ sub proj_sum_table {
   my $bgcolor = $bgcolor{dark};
 
   foreach my $project (@$projects) {
-    print "<tr bgcolor=$bgcolor>";
+    # Get the MSBs for this project so we can count them
+    my $msbs;
+    try {
+      $msbs = OMP::SpServer->programDetails($project->projectid, '***REMOVED***', 'data');
+    } catch OMP::Error::UnknownProject with {
+      my $E = shift;
+    } otherwise {
+      my $E = shift;
+    };
+
+    my $nmsb = 0;
+    if ($msbs->[0]) {
+      $nmsb = scalar(@$msbs);
+    }
+
+    # Get seeing and tau info
+    my $taurange = $project->taurange;
+    my $seerange = $project->seerange;
+
+    # Make sure there is a valid range to display
+    for ($taurange, $seerange) {
+      if ($_->min == 0 and ! defined $_->max) {
+	$_ = "--";
+      } else {
+	$_ = $_->stringify;
+      }
+    }
+
+    print "<tr bgcolor=$bgcolor valign=top>";
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". $project->pi->html ."</td>";
+    print "<td align=center>$nmsb</td>";
     print "<td align=center>". $project->tagpriority ."</td>";
     print "<td align=center>". $project->allocated->pretty_print ."</td>";
     print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
+    print "<td align=center>$taurange</td>";
+    print "<td align=center>$seerange</td>";
+    print "<td align=center>". $project->cloudtxt ."</td>";
     print "<td>". $project->title ."</td>";
 
     # Alternate background color
