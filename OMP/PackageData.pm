@@ -36,7 +36,7 @@ use warnings;
 use Carp;
 
 use vars qw/ $VERSION $UseArchiveTar /;
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 # Disable $PATH - we need /usr/local/bin for gzip on Solaris
 # when running tar
@@ -101,7 +101,7 @@ sub new {
 		   FtpRootDir => OMP::Config->getData('ftpdir'),
 		   Verbose => 1,
 		   ObsGroup => undef,
-		   TarFile => undef,
+		   TarFile => [],
 		   Password => undef,
 		   UTDir => undef,
 		   FTPDir => undef,
@@ -274,18 +274,23 @@ sub key {
 
 =item B<tarfile>
 
-Name of the final packaged tar file.
+Names of the final packaged tar files.
 
+  @files = $pkg->tarfile;
   $file = $pkg->tarfile;
+
+In scalar context returns the first file.
 
 =cut
 
 sub tarfile {
   my $self = shift;
   if (@_) {
-    $self->{TarFile} = shift;
+    @{$self->{TarFile}} = @_;
   }
-  return $self->{TarFile};
+  return (wantarray ? @{$self->{TarFile}} : 
+	             (scalar @{$self->{TarFile}} ? $self->{TarFile}->[0] : undef )
+	 );
 }
 
 =item B<root_tmpdir>
@@ -456,25 +461,36 @@ sub keygen {
 
 =item B<ftpurl>
 
-Retrieve the URL required to retrieve the completed tar file.
+Retrieve the URLs required to retrieve the completed tar files.
 
-Returns undef if a tarfile has not been created.
+  @urls = $pkg->ftpurl;
+
+Returns undef (in scalar context) or empty list (list context) if a
+tarfile has not been created or if no key is defined.
+
+Returns the first URL in scalar context.
 
 =cut
 
 sub ftpurl {
   my $self = shift;
 
-  my $tarfile = $self->tarfile;
-  return undef unless $tarfile;
-  $tarfile = basename( $tarfile );
-
+  # Check for a key and abort early if none found
   my $key = $self->key;
-  return undef unless defined $key;
+  return (wantarray ? () : undef) unless defined $key;
 
+  # Get all the tarfiles
+  my @tarfiles = $self->tarfile;
+  return (wantarray ? () : undef) unless @tarfiles;
+
+  # Get the base URL
   my $baseurl = OMP::Config->getData('ftpurl');
-  return $baseurl . "/$key/$tarfile";
 
+  # Form urls [ "/" is the proper delimiter]
+  my @urls = map { "$baseurl/$key/". basename($_) } @tarfiles;
+
+  # Return, checking context
+  return (wantarray ? @urls : $urls[0] );
 }
 
 =back
@@ -746,14 +762,6 @@ sub _mktarfile {
 
   $utstr = _untaint_YYYYMMDD( $utstr );
 
-  # Generate the tar file name
-  my $outfile = File::Spec->catfile( $ftpdir,
-				     "ompdata_$utstr" . "_$$".".tar.gz"
-				   );
-
-  print STDOUT "Creating tar file ". basename($outfile) ."..."
-    if $self->verbose;
-
   # Create the tar file
   # First need to cd to the temp directory (remembering where we started
   # from). Returns tainted dir
@@ -767,39 +775,95 @@ sub _mktarfile {
   my @dirs = File::Spec->splitdir( $utdir );
   my $tardir = $dirs[-1];
 
-  # If we are using Archive::Tar (slow) we need to read all the files
-  # from the directory
-  if ($UseArchiveTar) {
-    require Archive::Tar;
+  # Open the directory
+  opendir my $dh, $utdir 
+    or croak "Error reading dir $utdir to get tar files: $!";
 
-    # we also need to explicitly read that directory
-    opendir my $dh, $utdir
-      or croak "Error reading dir $utdir to get tar files: $!";
-    my @files = map { File::Spec->catfile($tardir,$_) } 
+  # Read them into an array, ignoring hidden files
+  my @files = map { File::Spec->catfile($tardir,$_) } 
       grep { $_ !~ /^\./ } readdir $dh;
-    closedir $dh or croak "Error closing dir handle for $utdir: $!";
 
-    # Finally create the tar file
-    Archive::Tar->create_archive($outfile, 9, $tardir,@files )
+  # Close the directory handle
+  closedir $dh or croak "Error closing dir handle for $utdir: $!";
+
+  # Now need to create an array of arrays where each sub-array
+  # contains files up to a certain (uncompressed) limit specified in the config
+  # system. Note that it is obviously easier to group by uncompressed size!
+  my @infiles;
+
+  # Get the upper limit in mega bytes (converted to bytes)
+  my $upperlimit = OMP::Config->getData('tarfilelimit') * 1024 * 1024;
+
+  my $size = 0;
+  my $tmp = [];
+  for my $file (@files) {
+    # Store the file in the current array and add its size to the current total
+    $size += -s $file;
+    push(@$tmp, $file);
+
+    # check if we have exceeded the current limit
+    if ($size > $upperlimit) {
+      # Exceed limit so store the array ref in @infiles and create a new temp array
+      push(@infiles, $tmp);
+      $tmp = [];
+      $size = 0;
+    }
+  }
+  # if we have something in $tmp, push it onto infiles
+  push(@infiles, $tmp) if scalar(@$tmp);
+
+  # Somewhere to store all the tar file names
+  my @outfiles;
+
+  # Generate the tar file name [include a counter]
+  my $counter = 1; # People expect us to start at 1
+
+  # loop over all the file groups
+  for my $grp (@infiles) {
+
+    # Create the output file name for this group. Special case suffix if there is only one
+    # input group
+    my $suffix = ( scalar @infiles > 1 ? "_$counter" : '' );
+    my $outfile = File::Spec->catfile( $ftpdir,
+				       "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
+				     );
+
+    print STDOUT "Creating tar file $counter " . basename($outfile) ."...\n"
+      if $self->verbose;
+
+
+    # If we are using Archive::Tar (slow) we need to read all the files
+    # from the directory
+    if ($UseArchiveTar) {
+      require Archive::Tar;
+
+      # Finally create the tar file
+      Archive::Tar->create_archive($outfile, 2, $tardir,@$grp )
 	or croak "Error creating tar file in $outfile: ".&Tar::error;
 
-  } else {
-    # It is much faster to use the tar command directly
-    # The tar command needs to come from a config file although
-    # it would then have to be untained - for now just hardwire
-    # Must give full path
-    my $tarcmd;
-    if ($^O eq 'solaris') {
-      # GNU tar
-      $tarcmd = "/usr/local/bin/tar -zcvf ";
-    } elsif ($^O eq 'linux') {
-      $tarcmd = "/bin/tar -zcvf ";
     } else {
-      croak "Unable to determine tar command for OS $^O";
+      # It is much faster to use the tar command directly
+      # The tar command needs to come from a config file although
+      # it would then have to be untainted - for now just hardwire
+      # Must give full path
+      my $tarcmd;
+      if ($^O eq 'solaris') {
+	# GNU tar
+	$tarcmd = "/usr/local/bin/tar";
+      } elsif ($^O eq 'linux') {
+	$tarcmd = "/bin/tar";
+      } else {
+	croak "Unable to determine tar command for OS $^O";
+      }
+      system("$tarcmd","-zcvf",$outfile,@$grp) &&
+          croak "Error building the tar file: $!";
     }
-    system("$tarcmd $outfile $tardir") && 
-      croak "Error building the tar file: $!";
 
+    # Store the tarfiles
+    push(@outfiles, $outfile);
+
+    # increment the counter
+    $counter++;
 
   }
 
@@ -810,7 +874,7 @@ sub _mktarfile {
     if $self->verbose;
 
   # Store the tar file name
-  $self->tarfile ( $outfile );
+  $self->tarfile ( @outfiles );
 
 }
 
