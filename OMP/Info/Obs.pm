@@ -1150,7 +1150,11 @@ sub _populate {
   $self->filter( $generic_header{FILTER} );
   $self->camera( $generic_header{CAMERA} );
   $self->pol( $generic_header{POLARIMETRY} );
-  $self->pol_in( $generic_header{POLARIMETER} );
+  if( defined( $generic_header{POLARIMETER} ) ) {
+    $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
+  } else {
+    $self->pol_in( 'unknown' );
+  }
   $self->switch_mode( $generic_header{SWITCH_MODE} );
   $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
   $self->humidity( $generic_header{HUMIDITY} );
