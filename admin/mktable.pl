@@ -231,9 +231,11 @@ my %tables = (
                            status => "INTEGER",
                            subject => "VARCHAR(128) null",
                            urgency => "INTEGER",
+			   condition => "INTEGER",
                            _ORDER => [qw/
                                       faultid category subject faultdate type
                                       system status urgency timelost entity
+				      condition
                                       /],
                           },
               # Textual information associated with each fault. Can be
