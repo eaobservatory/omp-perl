@@ -76,6 +76,7 @@ sub new {
   # if we have fits but nothing else
   # translate the fits header to generic
   my %args = @_;
+  $obs->retainhdr($args{retainhdr}) if exists $args{retainhdr};
   # count keys
   if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 2) {
     $obs->_populate();
@@ -98,6 +99,7 @@ sub readfile {
   my $proto = shift;
   my $class = ref($proto) || $proto;
   my $filename = shift;
+  my %args = @_;
 
   my $obs;
 
@@ -123,7 +125,7 @@ sub readfile {
     } else {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
     }
-    $obs = $class->new( fits => $FITS_header );
+    $obs = $class->new( fits => $FITS_header, %args );
     $obs->filename( $filename );
   }
   catch Error with {
@@ -194,6 +196,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               projectid => '$',
                               raoff => '$',
                               rest_frequency => '$',
+                              retainhdr => '$',
                               rows => '$',
                               runnr => '$',
                               seeing => '$',
@@ -302,6 +305,9 @@ sub fits {
   my $self = shift;
   if( @_ ) {
     $self->_fits( @_ );
+
+    # Do not synchronize if we're not retaining headers.
+    return unless $self->retainhdr;
   }
 
   my $fits = $self->_fits;
@@ -323,10 +329,14 @@ sub fits {
   return $fits;
 }
 
+
 sub hdrhash {
   my $self = shift;
   if( @_ ) {
     $self->_hdrhash( @_ );
+
+    # Do not synchronize if we're not retaining headers.
+    return unless $self->retainhdr;
   }
 
   my $hdr = $self->_hdrhash;
@@ -364,6 +374,12 @@ sub status {
     }
   }
   return $self->{status};
+}
+
+sub removefits {
+  my $self = shift;
+  delete $self->{_fits};
+  delete $self->{_hdrhash};
 }
 
 =head2 General Methods
@@ -1138,10 +1154,10 @@ sub _populate {
   $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
   $self->tile( $generic_header{TILE_NUMBER} );
 
-  # Set the filename if it's not set.
-#  if( !defined($self->filename) ) {
-#    $self->filename( $self->file_from_bits );
-#  }
+  if( ! $self->retainhdr ) {
+    $self->fits( undef );
+    $self->hdrhash( undef );
+  }
 
 }
 
