@@ -531,7 +531,7 @@ sub listTelescopes {
   # Note that current project table does not know which telescope
   # it belongs to!
   my $telref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT telescope FROM $PROJTABLE" );
-  return sort map { $_->{semester} } @$telref
+  return sort map { $_->{telescope} } @$telref
 
 }
 
