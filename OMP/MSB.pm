@@ -3044,14 +3044,55 @@ sub SpInstSCUBA {
 
 =item B<SpInstHeterodyne>
 
-Heterodyne configuration.
+Heterodyne configuration. Extracts the front end and rest frequency 
+from the heterodyne XML.
 
-Not Yet Implemented.
+  %summary = $self->SpInstHeterodyne( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
 
 =cut
 
 sub SpInstHeterodyne {
-  throw OMP::Error::FatalError("The OMP database does not yet accept heterodyne observations");
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  # In principal we should be deriving the telescope from other sources
+  # since this component is generic. For now, force JCMT
+  $summary{telescope} = "JCMT";
+
+  # Instrument is derived from the front end name. The backend is
+  # irrelevant for scheduling purposes
+  $summary{instrument} = $self->_get_pcdata($el, 'feName');
+
+  # The wavelength of interest is derived from the rest frequency
+  my $rfreq  = $self->_get_pcdata( $el, "restFrequency" );
+
+  # Astro::WaveBand should probably take a velocity, velocity frame
+  # and line as argument to correctly call itself a WaveBand class
+  $summary{waveband} = new Astro::WaveBand( Frequency => $rfreq,
+					    Instrument => $summary{instrument}
+					  );
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode is really a function of front end and observing
+  # mode. "s" for spectroscopy does not really say enough
+  # For JCMT we probably should have "imaging" and "sample"
+  # to indicate mapping vs photometry mode
+  $summary{type} = 's';
+
+  # Everything else is simply information required by the
+  # translator but there is an issue over whether the translator
+  # will have to work with this subset or simply get the component
+  # XML (which could be included in %summary). For the DAS it
+  # can probably be done simply.
+  # It probably makes sense to create an Object that represents
+  # this XML. This object is then passed to the translator.
+
+  return %summary;
+
 }
 
 =item B<SpTelescopeObsComp>
