@@ -68,6 +68,14 @@ sub translate {
   my $class = shift;
   my $xml = shift;
 
+  # in some cases the msb attribute of SpObs is incorrect from the QT
+  # so we need to fudge it here if we have no SpMSB
+  if ($xml !~ /<SpMSB>/) {
+    my $old = 'msb="false"';
+    my $new = 'msb="true"';
+    $xml =~ s/$old/$new/;
+  }
+
   my $E;
   my $result;
   try {
