@@ -828,7 +828,7 @@ sub _mktarfile {
 				       "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
 				     );
 
-    print STDOUT "Creating tar file $counter " . basename($outfile) ."...\n"
+    print STDOUT "Creating tar file $counter [out of ".scalar(@infiles)."] " . basename($outfile) ."...\n"
       if $self->verbose;
 
 
