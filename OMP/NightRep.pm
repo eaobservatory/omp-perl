@@ -33,16 +33,24 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Error qw/ :try /;
+use OMP::Constants;
 use OMP::General;
 use OMP::DBbackend;
+use OMP::ArchiveDB;
+use OMP::ArcQuery;
 use OMP::Info::ObsGroup;
 use OMP::TimeAcctDB;
+use OMP::TimeAcctQuery;
+use OMP::ShiftDB;
+use OMP::ShiftQuery;
 use OMP::FaultDB;
+use OMP::FaultQuery;
 use OMP::FaultStats;
 use OMP::CommentServer;
 use OMP::CGIObslog;
 use OMP::CGIShiftlog;
 use OMP::MSBDoneDB;
+use OMP::MSBDoneQuery;
 use Time::Piece qw/ :override /;
 use Text::Wrap;
 use OMP::BaseDB;
@@ -60,14 +68,15 @@ $WARNKEY = '__WARNINGS__';
 =item B<new>
 
 Create a new night report object. Accepts a hash argument specifying
-the date and telescope to use for all queries.
+the date, delta and telescope to use for all queries.
 
   $nr = OMP::NightRep->new( telescope => 'JCMT',
 			    date => '2002-12-10',
+			    delta_day => '7',
 			  );
 
 The date can be specified as a Time::Piece object and the telescope
-can be a Astro::Telescope object.
+can be a Astro::Telescope object.  Default delta is 1 day.
 
 =cut
 
@@ -79,6 +88,7 @@ sub new {
   my $nr = bless {
 		  Telescope => undef,
 		  UTDate => undef,
+		  DeltaDay => 1,
 		  DB => undef,
 		 };
 
@@ -146,6 +156,30 @@ sub date {
   } else {
     return $self->{UTDate};
   }
+}
+
+=item B<delta_day>
+
+Return the delta in days (24 hour periods, really) associated with this object.
+
+  $delta = $nr->delta_day();
+  $nr->delta_day( 8 );
+
+To retrieve a week long summary a delta of 8 would be used since there are
+8 24 hour periods in 7 days.
+
+=cut
+
+sub delta_day {
+  my $self = shift;
+
+  if (@_) {
+    my $arg = shift;
+
+    $self->{DeltaDay} = $arg;
+  }
+
+  return $self->{DeltaDay};
 }
 
 =item B<telescope>
@@ -257,34 +291,67 @@ sub accounting {
 
 Return the time accounting database details for each project observed
 this night. A hash is returned indexed by project ID and pointing
-to the appropriate C<OMP::Project::TimeAcct> object.
+to the appropriate C<OMP::Project::TimeAcct> object or hash of accounting
+information.
 
 This is a cut down version of the C<accounting> method that returns
 details from all methods of determining project accounting including
 estimates.
 
-  %projects = $nr->accounting_db;
+  %projects = $nr->accounting_db();
+  %projects = $nr->accounting_db($data);
+
+This method takes an optional argument that if true returns a hash of
+hashes for each project with the keys 'pending', 'total' and 'confirmed'
+instead of C<OMP::Project::TimeAcct> objects.
 
 =cut
 
 sub accounting_db {
   my $self = shift;
+  my $return_data = shift;
 
   # Database connection
   my $db = new OMP::TimeAcctDB( DB => $self->db );
 
+  # Subtract 1 day from the delta since the time accouting table
+  # stores dates with times as 00:00:00 and we'll end up getting
+  # more back than we expected.
+  my $delta = $self->delta_day - 1;
+
+  # XML query
+  my $xml = "<TimeAcctQuery>".
+    "<date delta=\"". $delta ."\">". $self->date->ymd ."</date>".
+      "</TimeAcctQuery>";
+
+  # Get our sql query
+  my $query = new OMP::TimeAcctQuery( XML => $xml );
+
   # Get the time accounting statistics from
   # the TimeAcctDB table
-  # We need to also select by telescope here
-  my @dbacct = $db->getTimeSpent( utdate => $self->date,
-				  telescope => $self->telescope,
-				);
+  my @dbacct = $db->queryTimeSpent( $query );
 
-  # Convert to a hash [since we can guarantee one instance of a project
-  # for a single UT date]
+  # Keep only the results for the telescope we are querying for
+  @dbacct = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
+						     $self->telescope
+						   )} @dbacct;
+
   my %projects;
-  for my $acct (@dbacct) {
-    $projects{ $acct->projectid } = $acct;
+  if ($return_data) {
+    # Returning data
+
+    # Combine Time accounting info for a multiple nights.  See documentation
+    # for summarizeTimeAcct method in OMP::Project::TimeAcct
+    %projects = $dbacct[0]->summarizeTimeAcct( 'byproject', @dbacct )
+      unless (! $dbacct[0]);
+  } else {
+    # Returning objects
+
+    # Convert to a hash [since we can guarantee one instance of a project
+    # for a single UT date]
+    for my $acct (@dbacct) {
+      $projects{ $acct->projectid } = $acct;
+    }
   }
 
   return %projects;
@@ -348,11 +415,25 @@ Returns undef if no observations could be located.
 sub obs {
   my $self = shift;
 
+  my $db = new OMP::ArchiveDB( DB => $self->db );
+
+  # XML query to get all observations
+  my $xml = "<ArcQuery>".
+    "<telescope>". $self->telescope ."</telescope>".
+      "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+	"</ArcQuery>";
+
+  # Convert XML to an sql query
+  my $query = new OMP::ArcQuery( XML => $xml );
+
+  # Get observations
+  my @obs = $db->queryArc( $query );
+
   my $grp;
   try {
-    $grp = new OMP::Info::ObsGroup( telescope => $self->telescope,
-				    date => $self->date);
+    $grp = new OMP::Info::ObsGroup( obs => \@obs );
   };
+
   return $grp;
 }
 
@@ -371,9 +452,18 @@ sub msbs {
 
   my $db = new OMP::MSBDoneDB( DB => $self->db );
 
-  my @results = $db->observedMSBs( date => $self->date->ymd,
-				   returnall => 0,
-				 );
+  # Our XML query to get all done MSBs fdr the specified date and delta
+  my $xml = "<MSBDoneQuery>" .
+    "<status>". OMP__DONE_DONE ."</status>" .
+      "<status>" . OMP__DONE_REJECTED . "</status>" .
+	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
+	  "<status>" . OMP__DONE_ABORTED . "</status>" .
+            "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+	      "</MSBDoneQuery>";
+
+  my $query = new OMP::MSBDoneQuery( XML => $xml );
+
+  my @results = $db->queryMSBdone( $query, 0 );
 
   # Currently need to verify the telescope outside of the query
   @results = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
@@ -405,8 +495,17 @@ sub faults {
   my $self = shift;
 
   my $fdb = new OMP::FaultDB( DB => $self->db );
-  my @results = $fdb->getFaultsByDate($self->date->ymd,
-				      $self->telescope);
+
+  # XML query
+  my $xml = "<FaultQuery>".
+    "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+      "<category>". $self->telescope ."</category>".
+	"<isfault>1</isfault>".
+	  "</FaultQuery>";
+
+  my $query = new OMP::FaultQuery( XML => $xml );
+
+  my @results = $fdb->queryFaults( $query );
 
   return @results;
 }
@@ -437,9 +536,19 @@ objects.
 
 sub shiftComments {
   my $self = shift;
-  return OMP::CommentServer->getShiftLog( $self->date->ymd,
-					  $self->telescope,
-					);
+
+  my $sdb = new OMP::ShiftDB( DB => $self->db );
+
+  my $xml = "<ShiftQuery>".
+     "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
+       "<telescope>". $self->telescope ."</telescope>".
+	 "</ShiftQuery>";
+
+  my $query = new OMP::ShiftQuery( XML => $xml );
+
+  my @result = $sdb->getShiftLogs( $query );
+
+  return @result;
 }
 
 =back
@@ -601,6 +710,7 @@ sub ashtml {
   my $date = $self->date->ymd;
 
   my $total = 0.0;
+  my $total_pending = 0.0;
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
@@ -611,7 +721,7 @@ sub ashtml {
 
   # T i m e  A c c o u n t i n g
   # Get project accounting
-  my %acct = $self->accounting_db();
+  my %acct = $self->accounting_db(1);
 
   my $format = "%5.2f hrs\n";
 
@@ -636,11 +746,19 @@ sub ashtml {
 	     );
   for my $proj (qw/WEATHER OTHER EXTENDED/) {
     my $time = 0.0;
+    my $pending;
     if (exists $acct{$tel.$proj}) {
-      $time = $acct{$tel.$proj}->timespent->hours;
+      $time = $acct{$tel.$proj}->{total}->hours;
+      if ($acct{$tel.$proj}->{pending}) {
+	$pending += $acct{$tel.$proj}->{pending}->hours;
+      }
       $total += $time unless $proj eq 'EXTENDED';
     }
-    print "$text{$proj}<td>" . sprintf($format, $time) . "</td>";
+    print "$text{$proj}<td>" . sprintf($format, $time);
+    if ($pending) {
+      print " [unconfirmed]";
+    }
+    print "</td>";
   }
 
   # Project Accounting
@@ -648,11 +766,18 @@ sub ashtml {
   for my $proj (keys %acct) {
     next if $proj =~ /^$tel/;
 
-    $total += $acct{$proj}->timespent->hours;
+    $total += $acct{$proj}->{total}->hours;
+
+    my $pending;
+    if  ($acct{$proj}->{pending}) {
+      $total_pending += $acct{$proj}->{pending}->hours;
+      $pending = $acct{$proj}->{pending}->hours;
+    }
 
     print "<tr class='row_$bgcolor'>";
     print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
-    printf($format, $acct{$proj}->timespent->hours);
+    printf($format, $acct{$proj}->{total}->hours);
+    print " [unconfirmed]" if ($pending);
     print "</td>";
 
     # Alternate background color
@@ -660,7 +785,13 @@ sub ashtml {
   }
 
   print "<tr class='row_$bgcolor'>";
-  print "<td class='sum_other'>Total</td><td class='sum_other'>". sprintf($format,$total) ."</td>";
+  print "<td class='sum_other'>Total</td><td class='sum_other'>". sprintf($format,$total);
+
+  # Print total unconfirmed if any
+  print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
+    if ($total_pending > 0);
+
+  print "</td>";
 
   print "</table>";
   print "<p>";
@@ -693,20 +824,42 @@ sub ashtml {
   # Get faults
   my @faults = $self->faults;
 
+  # Sort faults by local date
+  my %faults;
+  for my $f (@faults) {
+    my $local = localtime($f->filedate->epoch);
+    push(@{$faults{$local->ymd}}, $f);
+  }
+
   print "<a name=faultsum></a>";
   print "<table class='sum_table' cellspacing='0' width='600'>";
   print "<tr class='fault_sum_table_head'>";
   print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td>";
 
-  for my $fault (@faults) {
-    print "<tr class=sum_other valign=top>";
-    print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
+  for my $date (sort keys %faults) {
+    my $timecellclass = 'time_a';
+    if ($self->delta_day != 1) {
 
-    # Use local time for fault date
-    my $local = localtime($fault->date->epoch);
-    print "<td class='time'>". $local->strftime("%H:%M %Z") ."</td>";
-    print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
-    print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
+      # Summarizing faults for more than one day
+
+      # Do all this date magic so we can use the appropriate CSS class
+      # (i.e.: time_mon, time_tue, time_wed)
+      my $filedate = @{$faults{$date}}->[0]->filedate;
+      my $local = localtime($filedate->epoch);
+      $timecellclass = 'time_' . $local->day . '_a';
+
+      print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
+    }
+    for my $fault (@{$faults{$date}}) {
+      print "<tr class=sum_other valign=top>";
+      print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
+
+      # Use local time for fault date
+      my $local = localtime($fault->date->epoch);
+      print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
+      print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
+      print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
+    }
   }
 
   print "</table>";
@@ -715,6 +868,13 @@ sub ashtml {
   # S h i f t  L o g  C o m m e n t s
   my @comments = $self->shiftComments;
 
+  # Sort shift comments by local date
+  my %comments;
+  for my $c (@comments) {
+    my $local = localtime($c->date->epoch);
+    push(@{$comments{$local->ymd}}, $c);
+  }
+
   print "<a name=shiftcom></a>";
   print "<table class='sum_table' cellspacing='0' width='600'>";
   print "<tr class='sum_table_head'>";
@@ -722,23 +882,38 @@ sub ashtml {
 
   if ($comments[0]) {
     my $bgcolor = 'a';
-    for my $c (@comments) {
-      # Use local time
-      my $date = $c->date;
-      my $local = localtime( $date->epoch );
-      my $author = $c->author->name;
+    for my $date (sort keys %comments) {
+      my $timecellclass = 'time';
+      if ($self->delta_day != 1) {
+	# Summarizing Shift comments for more than one day
+	
+	# Do all this date magic so we can use the appropriate CSS class
+	# (i.e.: time_mon, time_tue, time_wed)
+	my $cdate = @{$comments{$date}}->[0]->date;
+	my $local = localtime($cdate->epoch);
+	$timecellclass = 'time_' . $local->day;
 
-      # Get the text
-      my $text = $c->text;
+	print "<tr class=sum_other valign=top><td class=".$timecellclass."_$bgcolor colspan=2>$date</td><td colspan=1></td>";
+      }
+      for my $c (@{$comments{$date}}) {
 
-      # Now print the comment
-      print "<tr class=row_$bgcolor valign=top>";
-      print "<td class=time>".$local->strftime("%H:%M %Z") ."</td>";
-      print "<td class=time>$author</td>";
-      print "<td class=subject>$text</td>";
+	# Use local time
+	my $date = $c->date;
+	my $local = localtime( $date->epoch );
+	my $author = $c->author->name;
 
-      # Alternate bg color
-      ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+	# Get the text
+	my $text = $c->text;
+
+	# Now print the comment
+	print "<tr class=row_$bgcolor valign=top>";
+	print "<td class=time_a>$author</td>";
+	print "<td class=" . $timecellclass . "_$bgcolor>".$local->strftime("%H:%M %Z") ."</td>";
+	print "<td class=subject>$text</td>";
+
+	# Alternate bg color
+	($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+      }
     }
   } else {
     print "<tr class=sum_other valign=top><td>No comments available</td><td></td><td></td>";
@@ -748,21 +923,23 @@ sub ashtml {
   print "<p>";
 
   # O b s e r v a t i o n  L o g
-  my $grp;
-  try {
-    $grp = $self->obs;
-  } catch OMP::Error::FatalError with {
-    my $E = shift;
-    print "<pre>An error has been encountered:<p> $E</pre><p>";
-  } otherwise {
-    my $E = shift;
-    print "<pre>An error has been encountered:<p> $E</pre><p>";
-  };
+  # Display only if we are summarizing a single night
+  if ($self->delta_day == 1) {
+    my $grp;
+    try {
+      $grp = $self->obs;
+    } catch OMP::Error::FatalError with {
+      my $E = shift;
+      print "<pre>An error has been encountered:<p> $E</pre><p>";
+    } otherwise {
+      my $E = shift;
+      print "<pre>An error has been encountered:<p> $E</pre><p>";
+    };
 
-  print "<a name=obslog></a>";
-  print "<strong class='small_title'>Observation log</strong><p>";
+    print "<a name=obslog></a>";
+    print "<strong class='small_title'>Observation log</strong><p>";
 
-  if ($grp and $grp->numobs > 1) {
+    if ($grp and $grp->numobs > 1) {
       # Don't want to go to files on disk
       $OMP::ArchiveDB::FallbackToFiles = 0;
       obs_table($grp);
@@ -770,9 +947,8 @@ sub ashtml {
       # Don't display the table if no observations are available
       print "No observations available for this night";
     }
+  }
 }
-
-=cut
 
 =item B<mail_report>
 
@@ -837,7 +1013,8 @@ Council.  All Rights Reserved.
 
 =head1 AUTHOR
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 
 =cut
 
