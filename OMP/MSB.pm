@@ -1070,7 +1070,7 @@ Returns a reference to a hash summarizing the observation.
 
 Raises an C<MSBMissingObserve> exception if the observation
 does not include an observe iterator (the thing that actually
-triggers the translator to take data.
+triggers the translator to take data).
 
 Note that there is an argument that can be made to make C<OMP::Obs>
 an even more fundamental class...
@@ -1083,9 +1083,6 @@ sub SpObs {
   my %summary = @_;
   #print "In SpOBS\n";
 
-  throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
-    unless $el->findnodes(".//SpIterObserve");
-
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
   # This is almost the same as the summarize() method but I can not
@@ -1094,15 +1091,65 @@ sub SpObs {
   # tree.
   for ( $el->getChildnodes ) {
     # Resolve refs if necessary
-    my $el = $self->_resolve_ref( $_ );
-    my $name = $el->getName;
+    my $child = $self->_resolve_ref( $_ );
+    my $name = $child->getName;
     next unless defined $name;
     #print "SpObs: $name\n";
-    %summary = $self->$name( $el, %summary )
+    %summary = $self->$name( $child, %summary )
       if $self->can( $name );
   }
 
+  # Check that we have an observe iterator of some kind.
+  throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
+    unless exists $summary{obstype};
+
+  # Check to see if a Target was present but no Observe
+  # If there were calibration observations that do not need
+  # targets then we should fill in the targetname now with
+  # CAL
+  # This test needs to be expanded for SCUBA
+  if (grep /^Observe$/, @{$summary{obstype}} and !exists $summary{coords}) {
+    throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
+  } else {
+    # We have a calibration observation
+    $summary{coords} = Astro::Coords::Calibration->new;
+    $summary{coordstype} = $summary{coords}->coordstype;
+    $summary{target} = join(":",@{$summary{obstype}});
+  }
+
   return \%summary;
+
+}
+
+=item B<SpIterFolder>
+
+Examine the sequence folder looking for observes. This populates
+an array with hash key "obstype" containing all the observation
+modes used.
+
+The "obstype" key is only placed in the summary hash if an
+observe iterator of some kind is present.
+
+=cut
+
+sub SpIterFolder {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+  my @types;
+
+  for ( $el->getChildnodes ) {
+    my $name = $_->getName;
+    next unless defined $name;
+    # Remove the SpIter string
+    next unless $name =~ /SpIter/;
+    $name =~ s/SpIter//;
+    push(@types, $name);
+  }
+
+  $summary{obstype} = \@types if @types;
+
+  return %summary;
 
 }
 
@@ -1333,6 +1380,30 @@ Copyright (C) 2001 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
+
+package Astro::Coords::Calibration;
+
+# Dummy package for calibration observations. This should not be
+# part of Astro::Coords since it can not support most methods.
+
+use base qw/ Astro::Coords/;
+
+sub new {
+  my $proto = shift;
+  my $class = ref($proto) || $proto;
+
+  return bless {}, $class;
+
+}
+
+sub coordstype {
+  return "CAL";
+}
+
+sub array {
+  return (undef,undef,undef,undef,undef,undef,undef,undef,undef,undef,undef);
+}
+
 
 1;
 
