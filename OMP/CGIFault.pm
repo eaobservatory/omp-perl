@@ -21,6 +21,8 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use Time::Piece;
+
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
@@ -34,7 +36,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output view_fault_content respond_fault_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -218,12 +220,20 @@ Create a page for querying faults
 sub query_fault {
   my $q = shift;
 
-  print "<table><tr><td align=right><b>Fault ID: </b></td><td>";
+  print $q->h2("Query Faults");
+  print "<table cellspacing=3 border=0><tr><td><b>";
   print $q->startform;
-  print $q->textfield(-name=>'faultid',
-		      -size=>'22',
-		      -maxlength=>'90');
-  print "</td><tr><td colspan=2 align=right>";
+  print $q->radio_group(-name=>'list',
+		        -values=>['all','recent'],
+		        -default=>'all',
+		        -linebreak=>'true',
+		        -labels=>{all=>"List all faults",
+				  recent=>"List all recent faults"});
+  print "</b></td><td valign=bottom>";
+
+  # Need the show_output hidden field in order for the form to be processed
+  print $q->hidden(-name=>'show_output', -default=>['true']);
+
   print $q->submit(-name=>"Submit");
   print $q->endform;
   print "</td></table>";
@@ -239,11 +249,94 @@ Display a fault
 
 sub query_fault_output {
   my $q = shift;
-  my $faultid = $q->param('faultid');
+
+  # Which XML query are we going to use?
+  my $xml;
+  if ($q->param('list') =~ /all/) {
+    $xml = "<FaultQuery></FaultQuery>";
+  } else {
+    my $t = gmtime;
+
+    # Two days ago
+    $t -= 86400*2;
+    my $twodaysago = $t->ymd;
+
+    $xml = "<FaultQuery><date><min>$twodaysago</min></date></FaultQuery>";
+  }
+
+  my $faults;
+  try {
+    $faults = OMP::FaultServer->queryFaults($xml, "object");
+  } otherwise {
+    my $E = shift;
+    print "$E";
+  };
+
+  show_faults($q, $faults);
+}
+
+=item B<view_fault_content>
+
+Show a fault
+
+  show_fault($cgi);
+
+=cut
+
+sub view_fault_content {
+  my $q = shift;
+  my $faultid = $q->url_param('id');
 
   my $fault = OMP::FaultServer->getFault($faultid);
   print $q->h2("Fault ID: $faultid");
   fault_table($q, $fault);
+  print "<b><a href='respondfault.pl?id=$faultid'>Respond to this fault</a></b>";
+}
+
+=item B<respond_fault_content>
+
+Create a form for responding to a fault
+
+  respond_fault_content($cgi);
+
+=cut
+
+sub respond_fault_content {
+  my $q = shift;
+  my $faultid = $q->url_param('id');
+}
+
+=item B<show_faults>
+
+Show a list of faults
+
+  show_faults($cgi, $faults)
+
+Takes a reference to an array of fault objects as the second argument
+
+=cut
+
+sub show_faults {
+  my $q = shift;
+  my $faults = shift;
+
+  print "<table width=620>";
+  print "<tr><td><b>Fault ID</b></td><td><b>User</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Subject</b></td>";
+  for my $fault (@$faults) {
+    my $faultid = $fault->id;
+    my $user = $fault->author;
+    my $system = $fault->systemText;
+    my $type = $fault->typeText;
+    my $subject = $fault->subject;
+
+    print "<tr><td><b><a href='viewfault.pl?id=$faultid'>$faultid</b></td>";
+    print "<td>$user</td>";
+    print "<td>$system</td>";
+    print "<td>$type</td>";
+    print "<td>$subject</td>";
+  }
+
+  print "</table>";
 }
 
 =head1 AUTHOR
