@@ -642,7 +642,10 @@ sub feConfig {
   # I *think* it is optical
   if ($freqconfig{velocityDefinition} eq 'redshift') {
     $freqconfig{velocityDefinition} = "optical [derived from redshift]";
+  } elsif ($freqconfig{velocityDefinition} eq 'radio') {
+    $freqconfig{velocityDefinition} = "optical [derived from radio]";
   }
+
 
   # Velocity units
   my $velunits = "km/s";
