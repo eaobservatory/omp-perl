@@ -162,9 +162,11 @@ sub closeFault {
 
 =item B<updateFault>
 
-Update details for a fault.
+Update details for a fault.  If a second argument (either an C<OMP::User>
+object or a string identifying the user who made the update) is included
+an email will be sent to the fault owner notifying them of the update.
 
-  OMP::FaultServer->updateFault($fault);
+  OMP::FaultServer->updateFault($fault [, $user ]);
 
 Argument should be supplied as an C<OMP::Fault> object.
 
@@ -173,6 +175,7 @@ Argument should be supplied as an C<OMP::Fault> object.
 sub updateFault {
   my $class = shift;
   my $fault = shift;
+  my $user = shift;
 
   my $E;
   try {
@@ -180,7 +183,7 @@ sub updateFault {
     my $db = new OMP::FaultDB( DB => $class->dbConnection, );
 
     # Let the lower level method check the argument
-    $db->updateFault($fault);
+    $db->updateFault($fault, $user);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
