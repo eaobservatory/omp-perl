@@ -408,7 +408,7 @@ sub _fetch_comments {
   # Use convert() in select statement to get seconds back with the date field.
   my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
             "AND status in (" . join(',',@{$args{status}}) . ") " .
-	    "ORDER BY date $order";
+	    "ORDER BY commid $order";
 
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} }) or
     throw OMP::Error::DBError("Select Failed: " .$dbh->errstr);
