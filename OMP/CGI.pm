@@ -51,6 +51,11 @@ our $STYLE = "<style><!--
                  font-style: italic;
                  text-decoration: underline;
 	       }
+               span.editlink a:link, span.editlink a:visited {
+                 color: #000;
+                 font-style: normal;
+                 font-size: 12pt;
+               }
                b.white, b.white a:link, b.white a:visited {
                  color: #fff;
                  font-style: normal;
