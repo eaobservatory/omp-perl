@@ -29,6 +29,7 @@ use strict;
 use warnings;
 
 use OMP::MSBDB;
+use OMP::MSBDoneDB;
 use OMP::DBbackend;
 use OMP::General;
 use OMP::Info::Comment;
@@ -37,6 +38,7 @@ use OMP::Constants ':done';
 
 # Connect to database
 my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
+my $msbdone = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
 # Loop over info for modification
 for my $line (<>) {
@@ -56,12 +58,23 @@ for my $line (<>) {
 				  status => $status,
 				);
 
-  # Force project ID
-  $msbdb->projectid( $proj );
+   print $date->datetime, ": $proj : $checksum : $user - $status\n";
 
-  print $date->datetime, ": $proj : $checksum : $user - $status\n";
+  if ($accept) {
+    # Force project ID
+    $msbdb->projectid( $proj );
 
-  # Mark it as done
-  $msbdb->doneMSB( $checksum, $c, { adjusttime => 0 });
+    # Mark it as done
+    $msbdb->doneMSB( $checksum, $c, { adjusttime => 0 });
+  } else {
+    # Force project ID
+    $msbdone->projectid( $proj );
 
+    # Create reject text (this should be done with a proper rejectMSB method)
+    my $rejtext = "MSB Rejected";
+    $rejtext .= ": $comment" if defined $comment && $comment =~ /\w/;
+    $c->text($rejtext);
+    # Reject it
+    $msbdone->addMSBcomment( $checksum, $c );
+  }
 }
