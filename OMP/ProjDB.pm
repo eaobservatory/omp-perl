@@ -279,9 +279,6 @@ sub decrementTimeRemaining {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 author =>  'unknown',
-				 program => 'OMP::ProjDB',
-				 sourceinfo => 'unknown',
 				 subject => "Decrement time remaining",
 				 text => "$time seconds has been decremented from project <b>$projectid</b>",
 				);
@@ -324,9 +321,6 @@ sub confirmTimeRemaining {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 author =>  'unknown',
-				 program => 'OMP::ProjDB',
-				 sourceinfo => 'unknown',
 				 subject => "Consolidate time remaining",
 				 text => "Pending time has been subtracted from the time remaining for project <b>$projectid</b>",
 				);
@@ -366,9 +360,6 @@ sub rescindTimePending {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 author =>  'unknown',
-				 program => 'OMP::ProjDB',
-				 sourceinfo => 'unknown',
 				 subject => "Reset pending time",
 				 text => "Pending time has been reset without decrementing time remaining for project <b>$projectid</b>",
 				);
@@ -654,9 +645,6 @@ sub _mail_password {
     # Disable transactions since we can only have a single
     # transaction at any given time with a single handle
     $self->_notify_feedback_system(
-				   author =>  $addr,
-				   program => 'OMP::ProjDB',
-				   sourceinfo => $ip,
 				   subject => "Password change for $projectid",
 				   text => $fbmsg,
 				   );

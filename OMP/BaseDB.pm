@@ -368,6 +368,17 @@ sub _notify_feedback_system {
 				  DB => $self->db,
 				);
 
+  # text and subject must be present
+  throw OMP::Error::FatalError("Feedback message must have subject and text\n")
+    unless exists $comment{text} and exists $comment{subject};
+
+  # If the author, program or sourceinfo fields are empty supply them
+  # ourselves.
+  my ($user, $addr, $email) = $self->_determine_host;
+  $comment{author} = $email unless exists $comment{author};
+  $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
+  $comment{program} = $0 unless exists $comment{program};
+
   # Disable transactions since we can only have a single
   # transaction at any given time with a single handle
   $fbdb->addComment( { %comment },1);

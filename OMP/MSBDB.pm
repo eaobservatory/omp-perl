@@ -203,6 +203,18 @@ sub storeSciProg {
   # Insert the summaries into rows of the database
   $self->_insert_rows( @rows );
 
+  # And file with feedback system. Need to distinguish a "doneMSB" event from
+  # a normal submission. Switch on nonewtrans since that is really telling
+  # us whether this is an external submission or not
+  unless ($nonewtrans) {
+    $self->_notify_feedback_system(
+				   subject => "Science program submitted",
+				   text => "Science program submitted for project <b>".
+				   $self->projectid ."</b>\n",
+				  );
+  }
+
+
   # Now disconnect from the database and free the lock
   unless ($nonewtrans) {
     $self->_dbunlock;
@@ -230,10 +242,14 @@ to do it in such a way that it will be impossible for a partial
 science program to be retrieved (as would happen if the file is read
 just as the file is being written).
 
+The optional argument can be used to disable feedback notification (ie if it
+is being called from an internal method) if true.
+
 =cut
 
 sub fetchSciProg {
   my $self = shift;
+  my $internal = shift;
 
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
@@ -249,6 +265,15 @@ sub fetchSciProg {
   # The file name is derived automatically
   my $sp = new OMP::SciProg( XML => $self->_db_fetch_sciprog())
     or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
+
+  # And file with feedback system.
+  if ($internal) {
+    $self->_notify_feedback_system(
+				   subject => "Science program retrieved",
+				   text => "Science program retrieved for project <b>".
+				   $self->projectid ."</b>\n",
+				  );
+  }
 
   return $sp;
 }
@@ -346,7 +371,7 @@ sub fetchMSB {
   }
 
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg();
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
