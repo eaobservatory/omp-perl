@@ -285,7 +285,13 @@ sub sql {
     # Some queries can not be processed yet because they require
     # extra information or stored procedures
     next if $entry eq "elevation";
+    next if $entry eq "airmass"; # just in case
+
+    # date is not part of a query because it is the reference
+    # date for checking the source is up (scheduling constraints
+    # are handled by datemin and datemax
     next if $entry eq "date";
+
 
     # Look at the entry and convert to SQL
     if (ref($query->{$entry}) eq 'ARRAY') {
