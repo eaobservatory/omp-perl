@@ -727,11 +727,11 @@ sub msb_hist_output {
       print "An error occurred while attempting to submit the comment: $Error";
     };
 
+    proj_status_table($q, %cookie);
+
+    my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
+    msb_comments($q, $commentref);
   }
-  
-  proj_status_table($q, %cookie);
-  msb_comments($q, %cookie);
-  
 
   # If they click the "Mark as Done" button mark it as done
   if ($q->param("Mark as Done")) {
