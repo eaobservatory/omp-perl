@@ -560,12 +560,18 @@ sub _query_faultdb {
     throw OMP::Error::FatalError("User ID retrieved from fault system [$userid] does not match a valid user id")
       unless defined $users{$userid};
 
+    # Fault's system attribute is stored in the database in column 'fsystem',
+    # so replace key 'fsystem' with 'system'
+    $faultref->{system} = $faultref->{fsystem};
+    delete $faultref->{fsystem};
+
     # Determine the fault id
     my $id = $faultref->{faultid};
 
     # Create a new fault
     # One problem is that a new fault *requires* an initial "response"
     if (!exists $faults{$id}) {
+
       # Get the response object
       my $resp = new OMP::Fault::Response( %$faultref );
 
