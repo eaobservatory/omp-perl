@@ -769,23 +769,70 @@ Returns undef if the band is not known.
 
 Given a date determine the current semester.
 
-  $semester = OMP::General->determine_semester( $date );
+  $semester = OMP::General->determine_semester( date => $date, tel => 'JCMT' );
 
-Date should be of class C<Time::Piece>. The current date is used
+Date should be of class C<Time::Piece> and should be in UT. The current date is used
 if none is supplied.
+
+A telescope option is supported since semester boundaries are a function of telescope.
+If no telescope is provided, a telescope of "PPARC" will be assumed. This is a special
+class of semester selection where the year is split into two parts (labelled "A" and
+"B") beginning in February and ending in August. The year is prefixed to the A/B
+label as a two digit year. eg 99B or 05A.
+
+Other supported telescopes are JCMT (an alias for PPARC) and UKIRT (some special
+boundaries in some semesters due to instrument deliveries).
+
+Note that currently the PPARC calculation is probably incorrect for telescopes
+other than Hawaii. This is because the semester technically starts in local time
+not UT. For example, 1st Feb HST is the start of the JCMT semester A but this
+is treated as 2nd Feb UT for this calculation.
 
 =cut
 
 sub determine_semester {
   my $self = shift;
-  my $date = shift;
+  my %args = @_;
 
+  my $date = $args{date};
   if (defined $date) {
     croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
       unless UNIVERSAL::isa($date, "Time::Piece");
   } else {
     $date = gmtime();
   }
+
+  my $tel = $args{tel};
+  $tel = 'PPARC' unless defined $tel;
+
+  # This is the standard PPARC calculation
+  if ($tel eq 'PPARC') {
+    return _determine_pparc_semester( $date );
+  } elsif ($tel eq 'JCMT' ) {
+    return _determine_pparc_semester( $date );
+  } elsif ($tel eq 'UKIRT') {
+    # 04A started early
+    my $ymd = $date->strftime("%Y%m%d");
+    if ($ymd >= 20040117 && $ymd < 20040202 ) {
+      return "04A";
+    } else {
+      return _determine_pparc_semester( $date );
+    }
+
+  } else {
+    croak "Unrecognized telescope '$tel'. Should not happen.\n";
+  }
+
+}
+
+# Private helper sub for determine_semester
+# implements the standard PPARC calculation
+# Takes a Time::Piece object
+# Returns the semester 04b 04a etc
+# Not a class method
+
+sub _determine_pparc_semester {
+  my $date = shift;
 
   # 4 digit year
   my $yyyy = $date->year;
@@ -805,15 +852,16 @@ sub determine_semester {
   # previous semester, same for 199?0801
   my $sem;
   if ($mmdd > 201 && $mmdd < 802) {
-    $sem = "${yy}a";
+    $sem = "${yy}A";
   } elsif ($mmdd < 202) {
-    $sem = "${prevyy}b";
+    $sem = "${prevyy}B";
   } else {
-    $sem = "${yy}b";
+    $sem = "${yy}B";
   }
 
   return $sem;
 }
+
 
 =back
 
@@ -893,17 +941,7 @@ sub infer_projectid {
     return $1 . sprintf("%02d", $2);
   }
 
-  # First the semester
-  my $sem;
-  if (exists $args{semester}) {
-    $sem = $args{semester};
-  } elsif (exists $args{date}) {
-    $sem = $self->determine_semester( $args{date} );
-  } else {
-    $sem = $self->determine_semester();
-  }
-
-  # Now determine the telescope
+  # We need a guess at a telescope before we can guess a semester
   # In most cases the supplied ID will be able to distinguish
   # JCMT from UKIRT (for example JCMT has a letter prefix
   # such as "u03" whereas UKIRT mainly has a number "03" or "3")
@@ -921,6 +959,16 @@ sub infer_projectid {
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
     }
+  }
+
+  # Now that we have a telescope we can find the semester
+  my $sem;
+  if (exists $args{semester}) {
+    $sem = $args{semester};
+  } elsif (exists $args{date}) {
+    $sem = $self->determine_semester( date => $args{date}, tel => $tel );
+  } else {
+    $sem = $self->determine_semester( tel => $tel );
   }
 
   # Now guess the actual projectid
@@ -1353,25 +1401,6 @@ sub determine_user {
   }
 
   return $user;
-}
-
-=item B<am_i_local>
-
-Returns true if the user is local to the network.  Merely a wrapper around
-the B<determine_host> method.
-
-  $islocal = OMP::General->am_i_local();
-
-Takes no arguments.
-
-Deprecated. Use of B<is_host_local> is now recommended.
-
-=cut
-
-sub am_i_local {
-  my $self = shift;
-  warn "am_i_local is deprecated. Please use is_host_local instead\n";
-  return $self->is_host_local;
 }
 
 =back
