@@ -75,6 +75,7 @@ use lib "$FindBin::RealBin/..";
 # OMP Classes
 use OMP::Error qw/ :try /;
 use OMP::General;
+use OMP::SciProgStats;
 use OMP::ProjServer;
 use OMP::SpServer;
 
@@ -168,51 +169,16 @@ for my $proj (@$projects) {
   };
   next unless defined $sp;
 
-  # Local counter
-  my @local = map { 0 } (0..23);
+  # Get the histogram for this program
+  my @local = $sp->ra_coverage( instrument => $instrument );
 
-  # Now loop over each MSB
-  for my $msb ($sp->msb) {
-
-    my $remaining = $msb->remaining;
-
-    # Filter out complete MSBs or removed MSBs.
-    next unless $remaining > 0;
-
-    for my $obs ($msb->obssum) {
-      # skip if we are specifically looking for one instrument
-      next if (defined $instrument && $obs->{instrument} ne $instrument);
-
-      my $target = $obs->{coords};
-      if ($target->type ne 'RADEC') {
-	# warn "Target ". $target->name ." in project ". $proj->projectid . " is non-sidereal. Skipping\n";
-	next;
-      }
-      my $ra = $target->ra( format => 'h' );
-      $ra = int( $ra + 0.5);
-      $ra = 0 if $ra >= 24;
-
-      # Take into account the estimated duration of each SpObs
-      # If we are just counting SpObs this factor is always 1
-      my $dur = $obs->{timeest} / 3600;
-
-      # Total time for this SpObs is the duration of the observation
-      # times the number of repeats
-      my $incr = $remaining * $dur;
-
-      # Add an entry for each repeat of an MSB
-      $rahist[$ra] += $incr;
-      $local[$ra] += $incr;
-
-    }
-
-
-  }
+  # And increment the global sum
+  @rahist = map { $rahist[$_] + $local[$_] } (0..$#rahist);
 
   # print stats for this project
   printf "    ". ("%02d "x scalar(@local))."\n", map {$_+0.5} @local;
-#  $i++;
-#  last if $i > 5;
+  $i++;
+ last if $i > 5;
 
 }
 
