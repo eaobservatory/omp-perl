@@ -162,6 +162,9 @@ sub list_observations {
     my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
     my @result = $adb->queryArc( $arcquery );
 
+    # Sort them by reverse date
+    @result = sort {$b->startobs->epoch <=> $a->startobs->epoch} @result;
+
     # Push the results array into the results hash (keyed by instrument).
     $results{$inst} = \@result;
   }
