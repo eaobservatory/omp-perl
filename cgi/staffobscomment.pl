@@ -29,8 +29,8 @@ my @domain = OMP::General->determine_host;
 # write the page
 
 if( $domain[1] and $domain[1] !~ /\./) {
-  $cgi->write_page_noauth( \&thumbnails_page, \&thumbnails_page );
+  $cgi->write_page_noauth( \&file_comment, \&file_comment_output );
 } else {
-  $cgi->write_page_staff( \&thumbnails_page, \&thumbnails_page );
+  $cgi->write_page_staff( \&file_comment, \&file_comment_output );
 }
 
