@@ -26,7 +26,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-my @feedback = qw/sideBar cookieHeader/;
+my @feedback = qw/sideBar ompHeader/;
 
 @EXPORT_OK = (@feedback);
 
@@ -56,13 +56,13 @@ sub sideBar {
   return;
 }
 
-=item B<cookieHeader>
+=item B<ompHeader>
 
-  cookieHeader();
+  ompHeader();
 
 =cut
 
-sub cookieHeader {
+sub ompHeader {
   my $self = shift;
   my $cgi = shift;
   # throw an error here if it isn't a cgi object.
