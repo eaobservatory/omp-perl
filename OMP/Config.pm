@@ -10,7 +10,8 @@ OMP::Config - parse and supply information from OMP configuration files
 
   OMP::Config->cfgdir( "/jac_sw/omp/cfg");
 
-  $url = OMP::Config->getdata( 'omp' );
+  $url = OMP::Config->getData( 'omp' );
+  $dbserver = OMP::Config->getData( 'database.server' );
 
   $datadir = OMP::Config->getdata( 'datadir',
 				   telescope => 'JCMT',
@@ -31,6 +32,7 @@ OMP format configuration files.
 use 5.006;
 use strict;
 use warnings;
+use warnings::register;
 
 use OMP::General;
 use File::Spec;
@@ -135,6 +137,13 @@ array reference is expanded to a list). This simplifies the
 case where a single config entry is a single value in one
 file and multiple values in another.
 
+A hierarchical key is supported using a "." separator.
+
+ $value = OMP::Config->getData( "database.server" );
+
+In all other respects the hierarchical form of the command
+is identical to the non-hierarchical form.
+
 =cut
 
 sub getData {
@@ -160,16 +169,11 @@ sub getData {
     }
   }
 
-  # Does the key exist in that table [note that the telescopes are
-  # clones of the omp base table so we do not need to look in both
-  # once read]
-  my $value;
-  if (exists $CONFIG{$table}{$key}) {
-    # success
-    $value = $CONFIG{$table}{$key};
-  } else {
-    throw OMP::Error::FatalError("Key [$key] could not be found in OMP config system [telescope=$table]");
-  }
+  # Split hierarchical keys
+  my @keys = split(/\./, $key);
+
+  # Now traverse the hash looking for the supplied key
+  my $value = _traverse_cfg( [$key, $table], $CONFIG{$table}, @keys);
 
   # Now need to either replace the placeholders or convert to array
   my $retval = $class->_format_output( $value, %args );
@@ -368,6 +372,16 @@ use and return a label and the contents.
 
 Comma-separated values are converted to arrays.
 
+Primary fields are "default" for scalar entries, and associated domain/host
+aliases.
+
+Any remainining non-host/non-domain entries will be read in as hash references
+with a key corresponding to the name of the block.
+
+If a scalar "siteconfig" entry if present, the site configuration will be read
+and combined with the configuration file content. Note that site configuration
+override all others.
+
 =cut
 
 sub _read_cfg_file {
@@ -449,6 +463,30 @@ sub _read_cfg_file {
     }
   }
 
+  # Now store any other keys so long as they are neither domain nor host
+  # entries. These are assumed to be entries that do not have any domain
+  # or host specific content and should be stored as hashes
+  for my $key (keys %data) {
+    next if $key =~ /^(domain|host):/;
+    next if $key eq 'default';
+
+    # Copy the hash
+    my %temp = %{ $data{$key} };
+    $cfg{lc($key)} = \%temp;
+  }
+
+  # if we have a siteconfig, read that
+  if (exists $cfg{siteconfig}) {
+    if (-e $cfg{siteconfig}) {
+      my ($slab, $site) = $class->_read_cfg_file( $cfg{siteconfig} );
+
+      # Site overrides local
+      %cfg = ( %cfg, %$site );
+    } else {
+      warnings::warnif("Site config specified as '$file' but could not be found");
+    }
+  }
+
   # return the answer
   return ($label, \%cfg);
 }
@@ -476,6 +514,7 @@ sub _locate_aliases {
   }
   return @keys,
 }
+
 
 =item B<_determine_constants>
 
@@ -645,6 +684,58 @@ sub _format_output {
   return $input;
 }
 
+=item B<_read_key>
+
+Internal routine to parse the supplied key and return the corresponding
+data value from the internal hash.
+
+  $value = _traverse_cfg( [$key,$table], $CONFIG{$table}, @keys );
+
+The first argument is a reference to an array that simply includes the
+toplevel description of the query for use in error message creation. The original
+key request and table name are required.
+
+The second argument is a reference to the top of the config hash for
+that particular table.
+
+The third argument is the array of keys that should be used in the traversal.
+
+=cut
+
+sub _traverse_cfg {
+  my $refkey = shift;
+  my $curhash = shift;
+  my $curkey = shift;   # The current key
+  my @keys = @_;        # Remaining keys
+
+  # see if the hash entry exists
+  if (exists $curhash->{$curkey}) {
+    # if we have run out of keys, return the value
+    if (!@keys) {
+      return $curhash->{$curkey};
+    } else {
+      # Need to go down a level *if* we have a hash
+      if (ref($curhash->{$curkey}) eq 'HASH' ) {
+	return _traverse_cfg( $refkey, $curhash->{$curkey}, @keys);
+      } else {
+	throw OMP::Error::FatalError("Hierarchical key referenced [".$refkey->[0]. "] ".
+				     "but entry '$keys[0]' does not exist in hierarchy ".
+				     "[telescope=".$refkey->[1]."]");
+      }
+    }
+  } else {
+    my $keyerr;
+    if ($refkey->[0] eq $curkey) {
+      $keyerr = "'$curkey'";
+    } else {
+      $keyerr = "'$curkey' (part of ".$refkey->[0].")";
+    }
+    throw OMP::Error::FatalError("Key $keyerr could not be found in OMP config system [telescope=".$refkey->[1]."]");
+  }
+
+}
+
+
 =back
 
 =head1 FORMAT
@@ -662,6 +753,24 @@ All config files are read on startup or when the config directory is
 changed (since a telescope can be changed during the execution of a
 program) and if a telescope is specified information in the telescope
 specific files overrides that found in the basic defaults.
+
+Site-wide configuration files can be specified by using the "siteconfig"
+key. This should contain the name of a file that can contain site configuration
+information. It should be in the same format as the normal config file
+and is not expected to be in CVS. This can be used to store local encrypted
+passwords. Contens from the site file are read in last and override
+entries in the original config file.
+
+Any entries that are neither in "default" or in a domain/host configuration
+will be read in hierarchically. They can be accessed using "." separators
+to represent hierarchy.
+
+  [database]
+  server=SYB_TMP
+
+would be read using
+
+  $server = OMP::Config->getData("database.server");
 
 If we really wanted we could put telescope specific stuff and general
 stuff into a single file. For now, they are separate. Keys are
@@ -749,8 +858,22 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
+
 
 =cut
 
