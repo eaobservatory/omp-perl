@@ -47,6 +47,10 @@ The following options are supported:
 
 =over 4
 
+=item B<-version>
+
+Return the version number.
+
 =item B<-help>
 
 Display the help information.
@@ -109,14 +113,21 @@ use SrcCatalog::JCMT;
 use OMP::SciProg;
 
 # Options
-my ($help, $man);
+my ($help, $man, $version);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
+			"version" => \$version,
                        );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
+if ($version) {
+  my $id = '$Id$ '; 
+  print "cat2sp - catalogue to science program importer\n";
+  print " CVS revision: $id\n";
+  exit;
+}
 
 # These are the tags that we are looking for when we process
 # the xml
@@ -139,8 +150,8 @@ unless (defined $template && defined $coords) {
 
 
 # Open the science program template
-open(my $fh, "<$template") 
-  or die "Error opening template file $template: $!\n";
+my $sp = new OMP::SciProg( FILE => $template )
+  or die "Error opening template file $template";
 
 # Slurp in the file
 local $/ = undef;
@@ -154,7 +165,11 @@ die "No target in supplied XML"
 die "No blank target entries"
   unless isBlank($refxml);
 
-# now open the coordinates file
+# now open the coordinates file. The opening and parsing is trivial
+# we use SrcCatalog::JCMT for this since it also converts to J2000.
+# If we do not want this dependency we will need to do more tweaking
+# of the XML since GA and RB require changes to the telescope XML
+# that are not currently in place.
 
 
 # loop over each line
