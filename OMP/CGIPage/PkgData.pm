@@ -115,6 +115,9 @@ sub _package_data {
 
   print $q->h2("Retrieving data for project ". $cookie->{projectid} .
     " and UT date $utdate");
+
+  print "<p><b>Copying files and creating tar archive(s).  This normally takes several minutes per Gbyte.  Please do not point your browser to another page until the process is complete.</b></p>";
+
   if ($inccal) {
     print "[including calibrations]";
   } else {
