@@ -53,7 +53,7 @@ while (<>) {
   unless (defined $user{userid}) {
     # Split the name on space
     my @parts = split /\s+/, $user{name};
-    $user{userid} = uc(substr($parts[0],0,1) . $parts[-1]);
+    $user{userid} = $parts[-1] . uc(substr($parts[0],0,1) );
   }
 
   # Create new object
