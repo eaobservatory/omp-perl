@@ -723,7 +723,8 @@ sub _insert_project_row {
 			  $proj->projectid, $pi,
 			  $proj->title, $proj->tagpriority,
 			  $proj->country, $proj->semester, $proj->encrypted,
-			  $proj->allocated, $proj->remaining, $proj->pending,
+			  $proj->allocated->seconds,
+			  $proj->remaining->seconds, $proj->pending->seconds,
 			  $proj->telescope,$taumin,$taumax
 			);
 
