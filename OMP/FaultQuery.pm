@@ -197,12 +197,11 @@ sub _post_process_hash {
   # These are TEXT columns so need special kluging
   for (qw/ R.text /) {
     if (exists $href->{$_}) {
-      my $key = "__TEXTFIELD__" . $_;
+      my $key = "TEXTFIELD__" . $_;
       $href->{$key} = $href->{$_};
       delete $href->{$_};
     }
   }
-
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

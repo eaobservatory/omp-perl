@@ -296,7 +296,7 @@ C<$entry> can be
     using the rules for OMP::Range and array refs
     [hence recursion]
 
-KLUGE: If the key begins with __TEXTFIELD__ a "like" match
+KLUGE: If the key begins with TEXTFIELD__ a "like" match
 will be performed rather than a "=". This is so that text fields
 can be queried.
 
@@ -317,8 +317,8 @@ sub _create_sql_recurse {
     # default to actual column name and simple equality
     my $colname = $column;
     my $cmp = "equal";
-    if ($colname =~ /^__TEXTFIELD__/) {
-      $colname =~ s/^__TEXTFIELD__//;
+    if ($colname =~ /^TEXTFIELD__/) {
+      $colname =~ s/^TEXTFIELD__//;
       $cmp = "like";
     }
 
@@ -327,7 +327,6 @@ sub _create_sql_recurse {
 		    map { $self->_querify($colname, $_, $cmp); }
 		    @{ $entry }
 		   ) . ")";
-
 
   } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
     # A Range object
@@ -554,9 +553,10 @@ will extract data between 12 and 1pm on 2002 April 02.
 =back
 
 
-Specific query manipulation must be done in a subclass.
-Note that subclasses must call this method in order to get
-the above manipulation.
+Specific query manipulation must be done in a subclass (this includes
+specifying which fields are TEXT fields and prepending "TEXTFIELD__"
+on to the key name).  Note that subclasses must call this method in
+order to get the above manipulation.
 
  $q->_post_process_hash( \%hash );
 
@@ -567,7 +567,6 @@ The hash is "fixed-up" in place.
 sub _post_process_hash {
   my $self = shift;
   my $href = shift;
-
 
   # First convert all keys with "date" in the name to date objects
   for my $key (keys %$href) {
@@ -734,7 +733,7 @@ supplied keys in the query hash.
   $q->_process_elements( \%qhash, $cb, \@keys );
 
 Where the first argument is the reference to the query hash, the
-second argument is a callback (CODREF) to be executed for each
+second argument is a callback (CODEREF) to be executed for each
 array element or hash member and the last argument is an array
 of keys in the query hash to process.
 
