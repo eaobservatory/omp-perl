@@ -36,13 +36,16 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output view_fault_content respond_fault_content/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output view_fault_content view_fault_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
 	       );
 
 Exporter::export_tags(qw/ all /);
+
+# Width for HTML tables
+our $TABLEWIDTH = 620;
 
 =head1 Routines
 
@@ -185,7 +188,7 @@ sub fault_table {
     or "<b><font color=#a00c0c>Closed</font></b>";
 
   # First show the fault info
-  print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=620>";
+  print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=$TABLEWIDTH>";
   print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Status: </b>$statushtml</td>";
@@ -279,7 +282,7 @@ sub query_fault_output {
 
 Show a fault
 
-  show_fault($cgi);
+  view_fault_content($cgi);
 
 =cut
 
@@ -290,7 +293,69 @@ sub view_fault_content {
   my $fault = OMP::FaultServer->getFault($faultid);
   print $q->h2("Fault ID: $faultid");
   fault_table($q, $fault);
-  print "<b><a href='respondfault.pl?id=$faultid'>Respond to this fault</a></b>";
+  print "<p><b><font size=+1>Respond to this fault</font></b>";
+  response_form($q, $fault->id);
+#  print "<b><a href='respondfault.pl?id=$faultid'>Respond to this fault</a></b>";
+}
+
+=item B<view_fault_output>
+
+Parse any forms of the view_fault_content forms
+
+  view_fault_output($cgi);
+
+=cut
+
+sub view_fault_output {
+  my $q = shift;
+  my $faultid = $q->param('faultid');
+  my $author = $q->param('user');
+  my $text = $q->param('text');
+
+  my $fault = OMP::FaultServer->getFault($faultid);
+
+  try {
+    my $resp = new OMP::Fault::Response(author => $author,
+				        text => $text);
+    OMP::FaultServer->respondFault($fault->id, $resp);
+    print $q->h2("Fault response successfully submitted");
+  } otherwise {
+    my $E = shift;
+    print "An error had prevented your response from being filed: $E";
+  };
+
+  $fault = OMP::FaultServer->getFault($faultid);
+  fault_table($q, $fault);
+}
+
+=item B<response_form>
+
+Create a form for submitting a response
+
+  response_form($cgi, $faultid);
+
+=cut
+
+sub response_form {
+  my $q = shift;
+  my $faultid = shift;
+
+  print "<table border=0><tr><td align=right><b>User: </b></td><td>";
+  print $q->startform;
+  print $q->hidden(-name=>'show_output', -default=>['true']);
+  print $q->hidden(-name=>'faultid', -default=>$faultid);
+  print $q->textfield(-name=>'user',
+		      -size=>'25',
+		      -maxlength=>'75');
+  print "</td><tr><td></td><td>";
+  print $q->textarea(-name=>'text',
+		     -rows=>20,
+		     -columns=>72);
+  print "</td><tr><td colspan=2 align=right>";
+  print $q->submit(-name=>'respond',
+		   -label=>'Submit Response');
+  print $q->endform;
+  print "</td></table>";
 }
 
 =item B<respond_fault_content>
