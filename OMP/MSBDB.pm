@@ -43,7 +43,7 @@ use DBI;
 
 our $VERSION = (qw$Revision$)[1];
 
-# Directory in which o store our XML files
+# Directory in which to store our XML files
 our $XMLDIR = "/jac_sw/omp/dbxml";
 
 # Name of the table containing the MSB data
@@ -84,10 +84,11 @@ sub new {
   %args = @_ if @_;
 
   my $db = {
+	    InTrans => 0,
+	    Locked => 0,
 	    Password => undef,
 	    ProjectID => undef,
 	    DBH => undef,
-	    Transaction => undef,
 	   };
 
   # Populate the hash
@@ -174,6 +175,37 @@ sub _sciprog_filename {
   }
 }
 
+=item B<_locked>
+
+Indicate whether the system is currently locked.
+
+  $locked = $db->_locked();
+  $db->_locked(1);
+
+=cut
+
+sub _locked {
+  my $self = shift;
+  if (@_) { $self->{Locked} = shift; }
+  return $self->{Locked};
+}
+
+=item B<_intrans>
+
+Indicate whether we are in a transaction or not.
+
+  $intrans = $db->_intrans();
+  $db->_intrans(1);
+
+=cut
+
+sub _intrans {
+  my $self = shift;
+  if (@_) { $self->{InTrans} = shift; }
+  return $self->{InTrans};
+}
+
+
 =item B<_dbhandle>
 
 Database handle associated with this object.
@@ -192,32 +224,6 @@ sub _dbhandle {
     }
   }
   return $self->{DBH};
-}
-
-=item B<_transaction>
-
-Contains the current database transaction. We use this to guarantee
-that all SQL statements are executed at the same time (when the
-database connection is closed) rather than discovering an error
-halfway through the transaction and not being able to revert.
-
-This contains the pending SQL statements. Each time this method
-is called with an argument the values are appended to the string.
-When the argument is C<undef> the string is emptied.
-
-=cut
-
-sub _transaction {
-  my $self = shift;
-  if (@_) {
-    my $arg = shift;
-    if (defined $arg) {
-      $self->{Transaction} .= $arg;
-    } else {
-      $self->{Transaction} = undef;
-    }
-  }
-  return $self->{Transaction};
 }
 
 =back
@@ -257,11 +263,14 @@ sub storeSciProg {
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
   # Before we do anything else we connect to the database
+  # begin a transaction and lock out the tables.
   # This has the side effect of locking out the tables until
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
   $self->_dbconnect;
+  $self->_db_begin_trans;
+  $self->_dblock;
 
   # Write the Science Program to disk
   $self->_write_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
@@ -281,6 +290,8 @@ sub storeSciProg {
   }
 
   # Now disconnect from the database and free the lock
+  $self->_dbunlock;
+  $self->_db_commit_trans;
   $self->_dbdisconnect;
 
   return 1;
@@ -296,18 +307,25 @@ It is returned as an C<OMP::SciProg> object.
 It is assumed that the DB object has already been instantiated
 with the relevant project ID and password.
 
+Note that no file or database locking is involved. This method simply
+reads the file that is there and returns it. If it so happens that the
+file is about to be updated then there is nothing that can be done to
+prevent this. The routine that stores the science program guarantees
+to do it in such a way that it will be impossible for a partial
+science program to be retrieved (as would happen if the file is read
+just as the file is being written).
+
 =cut
 
 sub fetchSciProg {
   my $self = shift;
 
-  # Connect to the database and lock the table
-  # This is required solely for locking purposes since the
-  # Science Program is not retrieved from the database itself
-  $self->_dbconnect;
-
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
+  # There is no race condition with -e. If the file doesnt exist
+  # the caller can try again later or store it. If the file does exist
+  # then it will not disappear again since there is no method to delete
+  # a science program.
   my $pid = $self->projectid;
   $pid = '' unless defined $pid;
   throw OMP::Error::UnknownProject("Project \"$pid\" unknown")
@@ -317,9 +335,6 @@ sub fetchSciProg {
   # The file name is derived automatically
   my $sp = new OMP::SciProg( FILE => $self->_sciprog_filename())
     or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
-
-  # Now disconnect from the database and free the lock
-  $self->_dbdisconnect;
 
   return $sp;
 }
@@ -375,6 +390,14 @@ An exception is raised (C<MSBMissing>) if the MSB can not be located.
 This may indicate that the science program has been resubmitted or
 the checksum was invalid [there is no distinction].
 
+Fetching an MSB does not involve database locking because
+an internal consistency check is provided since we compare
+checksum (supplied or from the databse) with that in the file.
+If the checksum matches in the database but fails to match
+in the science program (because it was updated between doing
+the query and reading from the science program) then we will still
+catch an inconsitency.
+
 =cut
 
 sub fetchMSB {
@@ -398,8 +421,8 @@ sub fetchMSB {
     $self->_dbdisconnect;
 
     # We could not find anything
-    throw OMP::Error::MSBMissing("Could not locate requested MSB in database") unless %details;
-
+    throw OMP::Error::MSBMissing("Could not locate requested MSB in database")
+      unless %details;
 
     # Get the checksum
     $checksum = $details{checksum};
@@ -475,6 +498,9 @@ The MSB is located using the Project identifier (stored in the object)
 and the checksum.  If an MSB can not be located it is likely that the
 science program has been reorganized.
 
+This method locks the database since we are modifying the file on disk
+and the database tables.
+
 =cut
 
 sub doneMSB {
@@ -483,7 +509,8 @@ sub doneMSB {
 
   # Connect to the DB (and lock it out)
   $self->_dbconnect;
-
+  $self->_db_begin_trans;
+  $self->_dblock;
 
   # We could use the MSBDB::fetchMSB method if we didn't need the science
   # program object. Unfortauntely, since we intend to modify the
@@ -507,6 +534,8 @@ sub doneMSB {
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1 );
 
   # Disconnect
+  $self->_dbunlock;
+  $self->_db_commit_trans;
   $self->_dbdisconnect;
 
 }
@@ -663,24 +692,115 @@ only routines that need to be modified.
 Initiate a connection to the database and store the result in the
 object.
 
-Requires a project ID and password.
-
 =cut
 
 sub _dbconnect {
   my $self = shift;
 
-  # Forget about authentication for now
+  # Forget about authentication for now when applied to
+  # the individual projects (still need authentication to
+  # the table)
+  my $DBserver = "SYB_UKIRT";
+  my $DBuser = "omp";
+  my $DBpwd  = "***REMOVED***";
+  my $DBdatabase = "archive";
 
-  # We are going to use a CSV DB
-  # KLUGE  - no authentication error
-  my $filename = File::Spec->catdir($XMLDIR, "csv");
-  my $dbh = DBI->connect("DBI:CSV:f_dir=$filename")
+  my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0})
     or throw OMP::Error::DBConnection("Cannot connect: ". $DBI::errstr);
 
   # Store the handle
   $self->_dbhandle( $dbh );
 
+}
+
+=item B<_db_begin_trans>
+
+Begin a database transaction. This is defined as something that has
+to happen in one go or trigger a rollback to reverse it.
+
+=cut
+
+sub _db_begin_trans {
+  my $self = shift;
+  my $dbh = $self->_dbhandle;
+
+  $dbh->do("BEGIN TRANSACTION")
+    or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
+  $self->_intrans(1);
+}
+
+=item B<_db_commit_trans>
+
+Commit the transaction. This informs the database that everthing
+is okay and that the actions should be finalised.
+
+=cut
+
+sub _db_commit_trans {
+  my $self = shift;
+  my $dbh = $self->_dbhandle;
+
+  if ($self->_intrans) {
+    $self->_intrans(0);
+    $dbh->do("COMMIT TRANSACTION")
+      or throw OMP::Error::DBError("Error committing transaction: $DBI::errstr");
+  }
+}
+
+=item B<_db_rollback_trans>
+
+Rollback (ie reverse) the transaction. This should be called if
+we detect an error during our transaction.
+
+When called it should probably correct any work completed on the
+XML data file.
+
+=cut
+
+sub _db_rollback_trans {
+  my $self = shift;
+
+  my $dbh = $self->_dbhandle;
+  if ($self->_intrans) {
+    $self->_intrans(0);
+    $dbh->do("ROLLBACK TRANSACTION")
+      or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
+  }
+}
+
+
+=item B<_dblock>
+
+Lock the MSB database tables (ompobs and ompmsb but not the project table)
+so that they can not be accessed by other processes.
+
+=cut
+
+sub _dblock {
+  my $self = shift;
+  # Wait for infinite amount of time for lock
+  # Needs Sybase 12
+#  $dbh->do("LOCK TABLE $MSBTABLE IN EXCLUSIVE MODE WAIT")
+#    or throw OMP::Error::DBError("Error locking database: $DBI::errstr");
+  $self->_locked(1);
+  return;
+}
+
+=item B<_dbunlock>
+
+Unlock the system. This will allow access to the database tables and
+file system.
+
+For a transaction based database this is a nullop since the lock
+is automatically released when the transaction is committed.
+
+=cut
+
+sub _dbunlock {
+  my $self = shift;
+  if ($self->_locked()) {
+    $self->_locked(0);
+  }
 }
 
 =item B<_dbdisconnect>
@@ -722,10 +842,10 @@ sub _insert_row {
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?)", undef,
-	   $index, $proj, $data{remaining}, $data{checksum},
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", undef,
+	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
 	   $data{tauband}, $data{seeing}, $data{priority}, $data{moon},
-	   $data{timeest}, $self->_sciprog_filename) 
+	   $data{timeest}, $self->_sciprog_filename, $data{title}) 
     or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
 
   # Now the observations
@@ -738,6 +858,12 @@ sub _insert_row {
     my $obsid = sprintf( "%d%03d", $index, $count);
 
     my @coords = $obs->{coords}->array;
+
+    # Wavelength must be a number (just check for presence of any number)
+    $obs->{wavelength} = -1 unless $obs->{wavelength} =~ /\d/;
+
+    use Data::Dumper;
+    print "Inserting row: ",Dumper($obs);
 
     $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	     , undef,
@@ -771,12 +897,13 @@ sub _clear_old_rows {
   my $proj = $self->projectid;
 
   # Remove the old data
-  print "Clearing old rows for project ID $proj\n" if $DEBUG;
-  $dbh->do("DELETE FROM $MSBTABLE WHERE projectid = '$proj'")
-    or throw OMP::Error::DBError("Error removing old rows: ".$DBI::errstr);
+  print "Clearing old msb rows for project ID $proj\n" if $DEBUG;
+ $dbh->do("DELETE FROM $MSBTABLE WHERE projectid = '$proj'")
+    or throw OMP::Error::DBError("Error removing old msb rows: ".$DBI::errstr);
 
+  print "Clearing old obs rows for project ID $proj\n" if $DEBUG;
   $dbh->do("DELETE FROM $OBSTABLE WHERE projectid = '$proj'")
-    or throw OMP::Error::DBError("Error removing old rows: ".$DBI::errstr);
+    or throw OMP::Error::DBError("Error removing old obs rows: ".$DBI::errstr);
 
 }
 
