@@ -33,6 +33,7 @@ use Data::Dumper;
 use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
 use Time::HiRes qw/ gettimeofday /;
+use Text::Wrap;
 use File::Copy;
 
 use base qw/ OMP::Translator /;
@@ -602,6 +603,11 @@ sub msbHeader {
 
   if (defined $note) {
     # Notes have to be in PRE blocks to preserve formatting
+    # but we should word wrap them just to make sure (since
+    # many PIs keep on typing without pressing return - this
+    # is fine if we were expecting them to write the notes
+    # in HTML...
+    $note = wrap("","", $note);
     $ntitle = '' unless defined $ntitle;
     $html .= "<h2>Note: $ntitle</h2>\n<PRE>\n$note\n</PRE>\n";
   } else {
