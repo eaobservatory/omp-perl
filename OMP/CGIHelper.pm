@@ -1689,7 +1689,7 @@ sub projlog_content {
   print "<p><a href=\"fbworfthumb.pl?ut=$utdate&telescope=$telescope\">View WORF thumbnails</a>\n";
 
   # Link to shift comments
-  print "<p><a href='#shiftcom'>View shift comments</a> / <a href=\"fbshiftlog.pl?ut=$utdate&telescope=$telescope\">Add shift comment</a><p>";
+  print "<p><a href='#shiftcom'>View shift comments</a> / <a href=\"fbshiftlog.pl?date=$utdate&telescope=$telescope\">Add shift comment</a><p>";
 
 
   # Get code for tau plot display

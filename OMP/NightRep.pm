@@ -816,7 +816,7 @@ sub ashtml {
   print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
   if ($self->delta_day < 14) {
     print "<a href='#faultsum'>Fault Summary</a><br>";
-    print "<a href='#shiftcom'>Shift Log Comments</a> / <a href=\"shiftlog.pl?ut=$date&telescope=$tel\">Add shift log comment</a><br>";
+    print "<a href='#shiftcom'>Shift Log Comments</a> / <a href=\"shiftlog.pl?date=$date&telescope=$tel\">Add shift log comment</a><br>";
     print "<a href='#obslog'>Observation Log</a><br>";
     print "<p>";
   }
