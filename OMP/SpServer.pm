@@ -44,10 +44,12 @@ Store an OMP Science Program (as XML) in the database. The password
 must match that associated with the project specified in the science
 program.
 
-  $summary = OMP::SpServer->storeProgram($sciprog, $password);
+  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog, $password);
 
-Returns a summary of the science program (in plain text)
-that can be used to provide feedback to the user.
+Returns an array containing the summary of the science program (in
+plain text) that can be used to provide feedback to the user as well
+as the timestamp attached to the file in the database (for consistency
+checking).
 
 There may need to be a force flag to force a store even though the
 science program has been modified by a previous session.
@@ -60,7 +62,7 @@ sub storeProgram {
   my $xml = shift;
   my $password = shift;
 
-  my $string;
+  my ($string, $timestamp);
   my $E;
   try {
     # Create a science program object
@@ -77,6 +79,10 @@ sub storeProgram {
 
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";
+
+    # Retrieve the timestamp
+    $timestamp = $sp->timestamp;
+
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
@@ -90,7 +96,7 @@ sub storeProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  return $string;
+  return [$string, $timestamp];
 }
 
 =item B<fetchProgram>
