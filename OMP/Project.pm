@@ -682,7 +682,7 @@ Returns false if either of the passwords are missing.
 
 The password is B<always> compared with the encrypted administrator
 password before comparing it to the encrypted project password.  The
-encrypted project password is only used if the administrator password
+encrypted project password is only used if the staff password
 fails to verify.
 
 =cut
@@ -696,9 +696,9 @@ sub verify_password {
     $plain = $self->password;
   }
 
-  # First verify against admin password.
+  # First verify against staff password.
   # Need to turn off exceptions
-  if ( OMP::General->verify_administrator_password( $plain, 1) ) {
+  if ( OMP::General->verify_staff_password( $plain, 1) ) {
     return 1;
   } else {
 
