@@ -327,6 +327,7 @@ sub _sidebar_fault {
 
   my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
 		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
+		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
 		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a></font>",);
   if (defined $cat) {
     unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
@@ -944,8 +945,7 @@ from outside the JAC network.  This  function is becoming more and more like wri
 
   $cgi->write_page_fault( \&content, \&output );
 
-In order for params to be passed in the URL a hidden field called B<show_output> must 
-be embedded in the cgi form being submitted for the B<&output> code reference to be called.
+In order for params to be passed in the URL a hidden field called B<show_output> must be embedded in the cgi form being submitted for the B<&output> code reference to be called.
 
 =cut
 
@@ -1013,6 +1013,7 @@ sub write_page_fault {
     print "<ul>";
     print "<h3><li><a href='$publicurl/queryfault.pl?cat=CSG'>CSG Faults</a> for faults relating to JAC computer services</h3>";
     print "<h3><li><a href='$publicurl/queryfault.pl?cat=OMP'>OMP Faults</a> for faults relating to the Observation Management Project</h3>";
+    print "<h3><li><a href='$publicurl/queryfault.pl?cat=UKIRT'>UKIRT Faults</a> for faults relating to UKIRT</h3>";
     print "</ul>";
     
     $self->_write_footer();
