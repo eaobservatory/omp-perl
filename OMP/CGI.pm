@@ -861,6 +861,7 @@ sub write_page_fault {
 
   if (!$cookie{category} and !$q->param) {
     print "Please select a category from the left";
+    $self->_write_footer();
     return;
   }
 
