@@ -334,7 +334,7 @@ sub _query_files {
 
         # Get a file list.
         if( -d $directory ) {
-          opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
+          opendir( FILES, $directory );#throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
           @files = grep(!/^\./, readdir(FILES));
           closedir(FILES);
 
@@ -387,7 +387,8 @@ sub _query_files {
 
         } # if ( -d $directory )
         else {
-          throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
+#          throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
+	  next; # No data disks means no data
         }
       } # foreach my $inst ( @instarray )
     } # for( my $day... )

@@ -245,6 +245,8 @@ sub unstored_files {
 
       $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
 
+      next unless -d $directory;
+
       opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
       @ifiles = grep(!/^\./, readdir(FILES));
       closedir(FILES);
