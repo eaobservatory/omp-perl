@@ -423,7 +423,7 @@ following are supported:
  <date>      : "ut" on SCUBA and GSD, "UT_DATE" on UKIRT
  <instrument>: none on SCUBA, "frontend" on GSD, "INSTRUME" on UKIRT
  <projectid> : "proj_id" SCUBA, "projid" GSD, none on UKIRT
- <obsnum>    : "run" on SCUBA, "scan" on GSD, "OBSNUM" on UKIRT
+ <runnr>     : "run" on SCUBA, "scan" on GSD, "OBSNUM" on UKIRT
 
 Due to the layout of the database tables only a single database can
 be used for any given query. This means that you can not query on
