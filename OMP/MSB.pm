@@ -1880,6 +1880,10 @@ sub SpObs {
 
   $summary{timeest} = 0.0 unless defined $summary{timeest};
 
+  # Determine whether we have a standard or not
+  $summary{standard} = $self->_get_pcdata($el, "standard" );
+  $summary{standard} = ( $summary{standard} eq 'true' ? 1 : 0 );
+
   # Reset polarimeter bit since the presence of an SpIterPOL
   # can indicate that the polarimeter is to be used but there
   # will be nothing to indicate its absence. This only works
@@ -1889,6 +1893,15 @@ sub SpObs {
 
   # Assume we need to supply a target for most things
   $summary{autoTarget} = 0;
+
+  # Since it is possible for a single observation to include
+  # calibrations with autoTarget set we need to make sure
+  # that autoTarget will be false if there are any observations
+  # that do not use autoTarget. Do this with a second hash entry
+  # that logs whenever we hit a science target (defined as an
+  # science observe that does not have an autoTarget). Must default
+  # to false
+  $summary{scitarget} = 0;
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
@@ -1909,6 +1922,9 @@ sub SpObs {
   # Check that we have an observe iterator of some kind.
   throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
     unless exists $summary{obstype};
+
+  # If we are a standard but have no target we are really an autoTarget
+  $summary{autoTarget} = 1 if ($summary{standard} && !exists $summary{coords});
 
   # Check to see if a Target was present but no Observe
   # If there were calibration observations that do not need
@@ -2074,6 +2090,8 @@ sub SpIterFolder {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
       push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
 
     } elsif ($name eq 'SpIterJiggleObs') {
 
@@ -2081,6 +2099,8 @@ sub SpIterFolder {
       $jiggle{jigglePattern} = $self->_get_pcdata($child,
 						  'jigglePattern');
       $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
 
       push(@{$summary{$parent}{CHILDREN}}, { SpIterJiggleObs => \%jiggle});
 
@@ -2092,7 +2112,15 @@ sub SpIterFolder {
       my $auto = ( $autoTarget eq 'true' ? 1 : 0);
 
       # Focus and pointing dont need explicit targets
-      $summary{autoTarget} = $auto;
+      # Can only set the global autoTarget switch to true
+      # if we have not already had a science target. If the
+      # switch is set to false then this is also a science target
+      if ($auto) {
+	$summary{autoTarget} = $auto
+	  unless $summary{scitarget};
+      } else {
+	$summary{scitarget} = 1;
+      }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
 						       nintegrations => $nint,
@@ -2111,7 +2139,15 @@ sub SpIterFolder {
       my $auto = ( $autoTarget eq 'true' ? 1 : 0);
 
       # Focus and pointing dont need explicit targets
-      $summary{autoTarget} = $auto;
+      # Can only set the global autoTarget switch to true
+      # if we have not already had a science target. If the
+      # switch is set to false then this is also a science target
+      if ($auto) {
+	$summary{autoTarget} = $auto
+	  unless $summary{scitarget};
+      } else {
+	$summary{scitarget} = 1;
+      }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
 						       nintegrations => $nint,
@@ -2138,6 +2174,9 @@ sub SpIterFolder {
       push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
 
     } elsif ($name eq 'SpIterRasterObs') {
+
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
 
       my %scan;
       $scan{nintegrations} =  $self->_get_pcdata( $child, 'integrations');
