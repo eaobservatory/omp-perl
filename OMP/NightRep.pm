@@ -593,15 +593,14 @@ sub mail_report {
   my @mailaddr = OMP::Config->getData( 'nightrepemail', 
 				       telescope => $self->telescope);
 
-
-  # Should probably CC observers
+  # Should CC observers
 
   # Get the text
   my $report = $self->astext;
 
   # Who is filing this report (need the email address)
   my $from;
-  if (defined $user) {
+  if (defined $user && defined $user->email) {
     $from = $user->email;
   } else {
     $from = 'flex@' . OMP::Config->getData('maildomain');
