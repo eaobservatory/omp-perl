@@ -807,7 +807,7 @@ sub view_fault_output {
       # Strip out the <html> and </html> tags
       $text =~ s!</*html>!!ig;
     } else {
-      $text = preify_text($text);
+      $text = OMP::General->preify_text($text);
     }
 
     # Strip out ^M
@@ -1394,7 +1394,7 @@ sub update_fault_output {
   # "Preify" the text before we compare responses
   my $newtext = $newdetails{text};
   $newtext =~ s!</*html>!!ig;
-  $newtext = preify_text($newtext);
+  $newtext = OMP::General->preify_text($newtext);
 
   my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
 
@@ -1506,7 +1506,7 @@ sub update_resp_output {
     # Strip out the <html> and </html> tags
     $text =~ s!</*html>!!ig;
   } else {
-    $text = preify_text($text);
+    $text = OMP::General->preify_text($text);
   }
 
   # Strip out ^M
@@ -1818,7 +1818,7 @@ sub parse_file_fault_form {
     # Strip out the <html> and </html> tags
     $text =~ s!</*html>!!ig;
   } else {
-    $text = preify_text($text);
+    $text = OMP::General->preify_text($text);
   }
 
   # Strip out ^M
