@@ -1,0 +1,36 @@
+To Do list for the OMP SOAP Servers
+===================================
+
+
+MSBServer + SpServer
+--------------------
+
+ - Treat tauband and seeing as single bits of an integer
+   to allow scheduling on "band 1+2"
+
+ - Query parsing (OMP::MSBQuery)
+
+ - password authentication
+
+ - increment "pending" allocation when MSB marked as done
+
+ - Stored procedures for calculaing target elevation
+
+ - "fix" the MSBID generation code so that it caches the value
+    before deleting old rows rather than querying the database
+    each time an MSB is added to the DB.
+
+ProjServer
+----------
+
+ - implement project summary
+     - as XML
+     - as plain text
+
+ - implement queue summary (all projects, projects with time remaining)
+
+ - implement password generation + mailing
+
+ - project initialisation in database
+
+ - adjustment of time remaining
