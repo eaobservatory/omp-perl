@@ -499,6 +499,7 @@ sub _create_Obs_object {
 
   # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
   # Astro::Coords object for us. Hooray!
+
   if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
     my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
     if(defined($odfobject->getTarget)) {
