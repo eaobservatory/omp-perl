@@ -273,11 +273,11 @@ warnings about inconsistent IDs (which is generally not enforced)
 or after creating an object and making an inspired guess from the
 name. The userid in the object is not updated via this method.
 
-The guess work assumes that the name is "forname surname" 
-(although "F.Surname" is also okay) or
-alternatively "surname, forname". A simplistic attempt is made
-to catch "Jr" and "Sr". Also, "le" and "de" are treated as part of the
-surname (e.g. "U le Guin" would be "LEGUINU").
+The guess work assumes that the name is "forname surname" (although
+"F.Surname" is also okay) or alternatively "surname, forname". A
+simplistic attempt is made to catch "Jr" and "Sr". Also, "van", "le"
+and "de" are treated as part of the surname (e.g. "U le Guin" would be
+"LEGUINU").
 
 Returns undef if a user ID could not be guessed.
 
@@ -327,7 +327,9 @@ sub infer_userid {
     # Note that "le Guin" is surname LEGUIN
     if (scalar(@parts) > 2) {
       if ($parts[-2] =~ /(LE)/i ||
-	  $parts[-2] =~ /DE/i ) {
+	  $parts[-2] =~ /DE/i ||
+	  $parts[-2] =~ /van/i
+	 ) {
 	$surname = $parts[-2] . $surname;
       }
     }
