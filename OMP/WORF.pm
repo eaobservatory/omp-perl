@@ -8,8 +8,6 @@ OMP::WORF - WWW Observing Remotely Facility non-CGI functions
 
 use OMP::WORF;
 
-use OMP::WORF qw( print_summary, display_observation );
-
 =head1 DESCRIPTION
 
 This class handles all the routines that deal with image creation,
@@ -22,785 +20,681 @@ use strict;
 use warnings;
 use Carp;
 
-use lib qw( /ukirt_sw/oracdr/lib/perl5 );
-use ORAC::Frame::NDF;
-use ORAC::Inst::Defn qw( orac_configure_for_instrument );
+use OMP::Info::Obs;
+use OMP::Config;
+use OMP::Error qw/ :try /;
 
-use lib qw( /jac_sw/omp/test/omp/msbserver );
 use OMP::CGI;
+
+# Bring in PDL modules so we can display the graphic.
+use PDL;
+use PDL::IO::NDF;
+use PDL::Graphics::PGPLOT;
+use PDL::Graphics::LUT;
 
 our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw( display_observation list_raw_observations list_reduced_observations
-                obsnumsort pad print_footer print_header print_summary );
-our @EXPORT_OK = qw( _file_matches_project _get_raw_directory _get_reduced_directory
-                   %display_suffix %headers );
+our @EXPORTER = qw( );
+our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options /;
 our %EXPORT_TAGS = (
-                    'all' => [ qw( @EXPORT @EXPORT_OK ) ],
-                    'variables' => [ qw( %display_suffix %headers ) ],
-                    'routines' => [ qw( _file_matches_project _get_raw_directory
-                                        _get_reduced_directory ) ]
+                    'all' => [ qw( @EXPORT ) ],
                     );
-#Exporter::export_tags(qw/ all variables routines /);
 
-=head1 B<Variables>
+Exporter::export_tags(qw/ all /);
 
-The following variables may be exported, but are not by default.
+=head1 METHODS
 
-=over 4
-
-=item B<%headers>
-
-Provides a header translation table for B<list_raw_observations> and
-B<list_reduced_observations>.
-
-  $ufti_objectname_header = $headers{ufti}{objname};
-
-=cut
-
-our %headers = (ufti => {OBJNAME => "OBJECT",
-                         UTSTART => "DATE-OBS",
-                         UTEND => "DATE-END",
-                         UTHOUR => "UTSTART",
-                         EXPTIME => "EXP_TIME",
-                         FILTER => "FILTER",
-                         OBSTYPE => "OBSTYPE",
-                         GRATING => "",
-                         WAVELENGTH => "",
-                         AIRMASS => "AMSTART",
-                         RA => "RABASE",
-                         DEC => "DECBASE",
-                         EQUINOX => "EQUINOX",
-                         PROJECT => "PROJECT",
-                         MSBID => "MSBID" },
-               michelle => {OBJNAME => "OBJECT",
-                            UTSTART => "DATE-OBS",
-                            UTEND => "DATE-END",
-                            UTHOUR => "UTSTART",
-                            EXPTIME => "OBSTIME",
-                            FILTER => "FILTER",
-                            OBSTYPE => "OBSTYPE",
-                            GRATING => "GRATNAME",
-                            WAVELENGTH => "GRATPOS",
-                            AIRMASS => "AMSTART",
-                            RA => "RABASE",
-                            DEC => "DECBASE",
-                            EQUINOX => "EQUINOX",
-                            PROJECT => "PROJECT",
-                            MSBID => "MSBID" },
-               cgs4 => {OBJNAME => "OBJECT",
-                        UTSTART => "",
-                        UTEND => "",
-                        UTHOUR => "RUTSTART",
-                        EXPTIME => "EXPOSED",
-                        FILTER => "",
-                        OBSTYPE => "OBSTYPE",
-                        GRATING => "GRATING",
-                        WAVELENGTH => "GLAMBDA",
-                        AIRMASS => "AMSTART",
-                        RA => "MEANRA",
-                        DEC => "MEANDEC",
-                        EQUINOX => "EQUINOX",
-                        PROJECT => "PROJECT",
-                        MSBID => "MSBID" },
-               ircam => {OBJNAME => "OBJECT",
-                         UTSTART => "",
-                         UTEND => "",
-                         UTHOUR => "RUTSTART",
-                         EXPTIME => "EXPOSED",
-                         FILTER => "FILTER",
-                         OBSTYPE => "OBSTYPE",
-                         GRATING => "",
-                         WAVELENGTH => "",
-                         AIRMASS => "AMSTART",
-                         RA => "MEANRA",
-                         DEC => "MEANDEC",
-                         EQUINOX => "",         # There's no useful equinox
-                                                # header for IRCAM.
-                         PROJECT => "PROJECT",
-                         MSBID => "MSBID"} );
-
-=item B<%displaysuffix>
-
-Provides a list of file suffices that dictate whether or not a
-reduced data file will be displayed for a given instrument. If
-the list is empty for a given instrument, then all files will
-be displayed.
-
-=cut
-
-our %displaysuffix = (ufti => [],
-                  michelle => [],
-                  cgs4 => ["fc","dbs","sp","ypr"],
-                  ircam => [] );
-
-=back
-
-=head1 Routines
-
-Routines beginning with an underscore are deemed to be private and
-do not form part of the default public interface. They can be exported
-if needed.
+=head2 Constructor
 
 =over 4
 
-=item B<print_summary>
+=item B<new>
 
-Displays an HTML table listing the latest raw and reduced group
-files for a given instrument.
+Object constructor. Takes a hash as argument, the keys of which can be
+used to prepopulate the object. The key names must match the names of
+the accessor methods (ignoring case). If they do not match they are
+ignored (for now).
 
-  print_summary( $instrument, $ut, $projectid );
+  $worf = new OMP::WORF( %args );
 
-The UT date must be of the form yyyymmdd. The project ID is used to display
-a summary for that project.
+Arguments are optional.
 
 =cut
 
-sub print_summary {
-  my ( $instrument, $ut, $projectid, $password ) = @_;
+sub new {
+  my $proto = shift;
+  my $class = ref($proto) || $proto;
 
-  my @groupfiles;
-  my @groupfilessuffix;
-  my @projectgroupfiles;
-  my @group;
-  my @raw;
-  my @projectrawfiles;
-  my ( $latestgroup, $latestraw );
+  my $worf = bless {
+                    Obs => undef,
+                    Suffix => undef,
+                   }, $class;
 
-  my @files = ();
-  my $directory = _get_reduced_directory( $instrument, $ut );
-  if( -e $directory ) {
-    opendir(FILES, $directory);
-    @files = grep(!/^\./, readdir(FILES)); # skip dot files
-    closedir(FILES);
-  } else {
-    @files = ();
-  }
+  if( @_ ) {
+    my %args = @_;
 
-# Okay, now we have a list of all of the files in the directory. Let's
-# trim out everything that isn't an NDF
-
-  @files = grep(/sdf$/, @files);
-
-# Alrighty. Reduced group files are (I'm assuming) ones that begin
-# with a 'g' and have two letters followed by the UT date. Let's
-# grab all of them.
-
-  @groupfiles = grep(/^g[a-zA-Z]/, @files);
-
-# We're only concerned with files that have suffixes that are listed
-# in @displaysuffix{$instrument}. If that array is empty, don't trim
-# the file list.
-
-  if(scalar(@{$displaysuffix{$instrument}}) != 0) {
-    foreach my $elm1 (@groupfiles) {
-      foreach my $elm2 (@{$displaysuffix{$instrument}}) {
-        if ($elm1 =~ /_$elm2[\._]/) {
-          push @groupfilessuffix, $elm1;
-        }
+    # Use the constructors to populate the hash.
+    for my $key (keys %args) {
+      my $method = lc($key);
+      if ($worf->can($method)) {
+        $worf->$method( $args{$key} );
       }
     }
-  } else {
-    @groupfilessuffix = @groupfiles;
   }
 
-# And we're also only concerned with files that belong to the specific
-# OMP project.
+  # Re-bless the object with the right class, which will
+  # be OMP::WORF::$instrument
+  my $newclass = "OMP::WORF::" . uc( $worf->obs->instrument );
+  bless $worf, $newclass;
 
-  foreach my $file (@groupfilessuffix) {
-    if( _file_matches_project($directory . "/" . $file, $projectid, $instrument)) {
-      push @projectgroupfiles, $file;
-    }
-  }
+  eval "require $newclass";
+  if( $@ ) { throw OMP::FatalError "Could not load module $newclass: $@"; }
 
-# Now sort them according to the observation number
-  my $i;
-  my @foo;
-  for($i = 0; $i <= $#projectgroupfiles; $i++) {
-    $projectgroupfiles[$i] =~ /\d{8}_(\d+)_/ && ($foo[$i] = $1);
-  }
+  return $worf;
 
-  @group = sort obsnumsort @foo;
-
-# And, the latest reduced group file is...
-
-  my @baz = grep(/\d{8}_$group[$#group]_/, @projectgroupfiles);
-  $latestgroup = $baz[0];
-
-# Now let's do basically the same for the raw data files.
-
-  $directory = _get_raw_directory($instrument, $ut);
-
-  if( -e $directory ) {
-    opendir(FILES, $directory);
-    @files = grep(!/^\./, readdir(FILES));
-    closedir(FILES);
-  } else {
-    @files = ();
-  }
-
-  @files = grep(/sdf$/, @files);
-
-# We don't need to differentiate between group files and anything else,
-# so just sort them by observation number, after we only grab the ones
-# for the specific OMP project.
-
-  my @bar;
-  for($i = 0; $i <= $#files; $i++) {
-    $files[$i] =~ /\d{8}_(\d{5})/ && ($bar[$i] = pad($1,'0',5));
-  }
-
-  foreach my $file (@files) {
-    my $tfile;
-    if($instrument eq "cgs4") {
-      ($tfile = $file) =~ s/\.sdf$/\.i1/;
-    } elsif ($instrument eq "ufti") {
-      ($tfile = $file) =~ s/\.sdf$/\.header/;
-    } else {
-      $tfile = $file;
-    }
-    if( _file_matches_project($directory . "/" . $tfile, $projectid, $instrument)) {
-      push @projectrawfiles, $file;
-    }
-  }
-
-  @raw = sort {$a <=> $b} @projectrawfiles;
-
-# And, the latest raw observation is...
-
-  @baz = grep(/$raw[$#raw]/, @projectrawfiles);
-  $latestraw = $baz[0];
-
-# Now that we've figured out the latest raw and group files, print out
-# the status information.
-
-  if($latestgroup || $latestraw) {
-    print "<strong>Summary for $instrument:</strong><br>\n";
-    print "<table border=1>\n";
-    print "<tr><th>UT date</th><th>Latest raw observation</th><th>Latest reduced group observation</th></tr>\n";
-    print "<tr><td>$ut</td><td>";
-    if($latestraw) {
-      print "$latestraw (<a href=\"worf.pl?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
-    } else {
-      print "&nbsp;";
-    }
-    print "</td><td>";
-    if ($latestgroup) {
-      print "$latestgroup (<a href=\"worf.pl?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
-    } else {
-      print "&nbsp;";
-    }
-    print "</td></tr>\n";
-    print "</table>\n";
-  }
 }
-
-=item B<display_observation>
-
-Create HTML that will display a graphic for a given observation.
-
-  display_observation( \%args );
-
-Argument must be a hash reference containing observation information as follows:
-
-=over 8
-
-=item * 'file' - filename of observation, not including path.
-
-=item * 'instrument' - instrument name
-
-=item * 'type' - type of image ( image | spectrum )
-
-=item * 'obstype' - type of observation ( raw | reduced )
-
-=item * 'cut' - row or column cut ( horizontal | vertical )
-
-=item * 'rstart' - starting row/column for cut
-
-=item * 'rend' - ending row/column for cut
-
-=item * 'xscale' - scale the spectrum's x-dimension? ( autoscaled | set )
-
-=item * 'xstart' - starting position for scaled x-dimension
-
-=item * 'xend' - ending position for scaled x-dimension
-
-=item * 'yscale' - scale the spectrum's y-dimension? ( autoscaled | set )
-
-=item * 'ystart' - starting position for scaled y-dimension
-
-=item * 'yend' - ending position for scaled y-dimension
-
-=item * 'autocut' - scale data by cutting percentages ( 100 | 99 | 98 | 95 | 90 | 80 | 70 | 50 )
-
-=item * 'xcrop' - crop the image's x-dimension? ( full | crop )
-
-=item * 'xcropstart' - starting positon for cropped x-dimension
-
-=item * 'xcropend' - ending position for cropped x-dimension
-
-=item * 'ycrop' - crop the image's y-dimension? ( full | crop )
-
-=item * 'ycropstart' - starting position for cropped y-dimension
-
-=item * 'ycropend' - ending position for cropped y dimension
-
-=item * 'lut' - lookup table for colour tables. Should be one of the colour
-tables in PDL::Graphics::LUT;
-
-=item * 'width' - width in pixels of graphic
-
-=item * 'height' - height in pixels of graphic
 
 =back
 
+=head2 Accessor Methods
+
+=over 4
+
+=item B<obs>
+
+The C<Info::Obs> object WORF will display.
+
+  $obs = $worf->obs;
+  $worf->obs( $obs );
+
+Returned as a C<OMP::Info::Obs> object.
+
 =cut
 
-sub display_observation {
+sub obs {
+  my $self = shift;
+  if( @_ ) {
+    my $obs = shift;
+    $self->{Obs} = $obs
+      unless (! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) );
+  }
+  return $self->{Obs};
+}
 
+=item B<suffix>
+
+The "best" file suffix that will be used for display.
+
+  $suffix = $worf->suffix;
+  $worf->suffix( $suffix );
+
+When one observation can be associated with a number of reduced files,
+WORF must know which of those reduced files to display. This method is
+used to set the suffix of the file to display.
+
+This suffix will always be returned in lower-case.
+
+=cut
+
+sub suffix {
+  my $self = shift;
+  if( @_ ) { $self->{Suffix} = lc(shift); }
+  return $self->{Suffix};
+}
+
+=back
+
+=head2 Public Methods
+
+=over 4
+
+=item B<plot>
+
+Plots data.
+
+  $worf->plot;
+
+For the base class, this method throws an error. All plotting is handled
+by subclasses.
+
+=cut
+
+sub plot {
+  my $self = shift;
+
+  my $instrument = $self->obs->instrument;
+
+  throw OMP::Error( "WORF plotting function not defined for $instrument" );
+}
+
+=item B<suffices>
+
+Returns suffices.
+
+  @suffices = $worf->suffices( $group );
+
+For the base class this method throws an C<OMP::Error>.
+
+=cut
+
+sub suffices {
+  my $self = shift;
+  my $group = shift;
+
+  my $instrument = $self->obs->instrument;
+
+  throw OMP::Error "OMP::WORF->suffices not defined for $instrument";
+
+}
+
+=item B<findgroup>
+
+Determines group membership for a given C<OMP::WORF> object.
+
+  $grp = $worf->findgroup;
+
+Returns an integer if a group can be determined, undef otherwise.
+
+=cut
+
+sub findgroup {
+  my $self = shift;
+
+  my $grp = $self->obs->group;
+
+  return $grp;
+
+}
+
+=item B<get_filename>
+
+Determine the filename for a given observation.
+
+  $filename = $worf->get_filename( group => 0 );
+
+The optional parameter determines whether or not the reduced group
+file will be used.
+
+If a suffix has been set (see the B<suffix> method) then a reduced
+file will be used, else a raw file will be used.
+
+For the base class, this method throws an error. All filename handling
+is done by instrument-specific classes.
+
+=cut
+
+sub get_filename {
+  my $self = shift;
+  my $instrument = $self->obs->instrument;
+
+  throw OMP::Error( "WORF filename handling not defined for $instrument" );
+
+}
+
+=item B<parse_display_options>
+
+Parse display options for use by display methods.
+
+  %parsed = $worf->parse_display_options( \%options );
+
+Takes a reference to a hash as a parameter and returns a parsed
+hash.
+
+=cut
+
+sub parse_display_options {
+  my $self = shift;
   my $options = shift;
 
-  my ($file, $instrument, $type, $obstype, $cut, $rstart, $rend, $xscale,
-      $xstart, $xend, $yscale, $ystart, $yend, $autocut, $xcrop, $xcropstart,
-      $xcropend, $ycrop, $ycropstart, $ycropend, $lut, $height, $width);
+  my %parsed;
 
-  $file = $$options{file};
-  $instrument = $$options{instrument};
-  $type = $$options{type} || "image";
-  $obstype = $$options{obstype} || "reduced";
-  $cut = $$options{cut} || "horizontal";
-  $rstart = $$options{rstart} || 28;
-  $rend = $$options{rend} || 30;
-  $xscale = $$options{xscale} || "autoscaled";
-  $xstart = $$options{xstart};
-  $xend = $$options{xend};
-  $yscale = $$options{yscale} || "autoscaled";
-  $ystart = $$options{ystart};
-  $yend = $$options{yend};
-  $autocut = $$options{autocut} || 100;
-  $xcrop = $$options{xcrop} || "full";
-  $xcropstart = $$options{xcropstart};
-  $xcropend = $$options{xcropend};
-  $ycrop = $$options{ycrop} || "full";
-  $ycropstart = $$options{ycropstart};
-  $ycropend = $$options{ycropend};
-  $lut = $$options{lut} || "heat";
-  $width = $$options{width} || 640;
-  $height = $$options{height} || 480;
-
-  print "<img src=\"worf_graphic.pl?file=$file&cut=$cut&rstart=$rstart&rend=$rend&xscale=$xscale&xstart=$xstart&xend=$xend&yscale=$yscale&ystart=$ystart&yend=$yend&instrument=$instrument&type=$type&obstype=$obstype&autocut=$autocut&xcrop=$xcrop&xcropstart=$xcropstart&xcropend=$xcropend&ycrop=$ycrop&ycropstart=$ycropstart&ycropend=$ycropend&lut=$lut\" width=\"$width\" height=\"$height\">\n";
-
-}
-
-=item B<list_reduced_observations>
-
-Prints an HTML table listing all reduced observations on a given UT date
-for a given instrument and project.
-
-  list_reduced_observations( $instrument, $ut, $project );
-
-The UT date must be of the form yyyymmdd. The project ID is used to display
-only the reduced observations for that project.
-
-=cut
-
-sub list_reduced_observations {
-  my ($instrument, $ut, $project) = @_;
-  my @files;
-  my %data;
-  my ($objname, $utstart, $exptime, $filter, $grating, $wavelength, $airmass, $RA, $dec, $fileproject, $msbid);
-  my $currentproject = "NOPROJECT";
-  my $currentmsbid = "";
-  my $first = 1;
-  my $reduceddir = _get_reduced_directory( $instrument, $ut );
-  if( -d $reduceddir ) {
-    opendir(FILES, $reduceddir);
-    @files = grep(!/^\./, readdir(FILES));
-    closedir(FILES);
-    @files = grep(/sdf$/, @files);
-    @files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
-
-# Sort the files according to observation number
-
-    @files = sort obsnumsort @files;
-
-    print "<hr>\n";
-    print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
-    foreach my $file (@files) {
-      if($file =~ /^([a-zA-Z]{2})($ut)_(\d+)(_?)(\w*)\.(\w+)/) {
-        my ($prefix, $null, $obsnum, $null2, $suffix, $extension) = ($1, $2, $3, $4, $5, $6);
-
-# Find out if the suffix is in @displaysuffix{$instrument}, if that array
-# is not empty.
-
-        my $match = 0;
-        if(scalar(@{$displaysuffix{$instrument}}) != 0) {
-          foreach my $elm (@{$displaysuffix{$instrument}}) {
-            if ($suffix =~ /^$elm$/) {
-              $match = 1;
-            }
-          }
-        } else {
-          $match = 1;
-        }
-        if(($match) || (length($suffix . "") == 0)) {
-          my $fullfile = $reduceddir . "/" . $file;
-
-          my $Frm = new ORAC::Frame::NDF($fullfile);
-          $Frm->readhdr;
-
-# Get the headers from each frame. We'll present this information to the
-# user so they can make a more informed decision.
-
-          $objname = $Frm->hdr($headers{$instrument}{'OBJNAME'});
-          $utstart = $Frm->hdr($headers{$instrument}{'UTSTART'});
-          $exptime = $Frm->hdr($headers{$instrument}{'EXPTIME'});
-          $filter = $Frm->hdr($headers{$instrument}{'FILTER'});
-          $grating = $Frm->hdr($headers{$instrument}{'GRATING'});
-          $wavelength = $Frm->hdr($headers{$instrument}{'WAVELENGTH'});
-          $airmass = $Frm->hdr($headers{$instrument}{'AIRMASS'});
-          $RA = $Frm->hdr($headers{$instrument}{'RA'});
-          $dec = $Frm->hdr($headers{$instrument}{'DEC'});
-          $fileproject = $Frm->hdr($headers{$instrument}{'PROJECT'});
-          $msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
-
-# Only list files for the specific project (or if the override 'staff' project
-# is being used.
-
-          if(($project eq 'staff') || (uc($fileproject) eq uc($project))) {
-
-# If the current project does not match the project for the current frame,
-# write a new header.
-
-            if(uc($fileproject) ne uc($currentproject)) {
-              if(!$first) {
-                print "</table>";
-              } else {
-                $first = 0;
-              }
-              print "<strong>Project:</strong> ";
-              print $fileproject || "";
-              print " <strong>MSBID:</strong> ";
-              print $msbid || "";
-              print "<br>\n";
-              print "<table border=\"1\">\n";
-              print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
-              $currentproject = $fileproject;
-              $currentmsbid = $msbid;
-            }
-            if( ( uc($fileproject) eq uc($currentproject) ) && ( uc($msbid) ne uc($currentmsbid))) {
-              if(!$first) {
-                print "</table>\n";
-              } else {
-                $first = 0;
-              }
-              print "<strong>Project:</strong> ";
-              print $fileproject || "";
-              print " <strong>MSBID:</strong> ";
-              print $msbid || "";
-              print "<br>\n";
-              print "<table border=\"1\">\n";
-              print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
-              $currentmsbid = $msbid;
-            }
-          print "<tr><td>";
-          print $obsnum || "";
-          print "</td><td>";
-          print $objname || "";
-          print "</td><td>";
-          print $utstart || "";
-          print "</td><td>";
-          print $exptime || "";
-          print "</td><td>";
-          print $filter || "";
-          print "</td><td>";
-          print $grating || "";
-          print "</td><td>";
-          print $wavelength || "";
-          print "</td><td>";
-          print $airmass || "";
-          print "</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=reduced\">download</a></td></tr>\n";
-          }
-        }
-      }
-    }
-    print "</table>\n";
-  } else {
-    print "Directory for $instrument on $ut reduced data does not exist.<br>\n";
+  if( exists( $options->{xstart} ) &&
+      defined( $options->{xstart} ) &&
+      $options->{xstart} =~ /^\d+$/ ) {
+    $parsed{xstart} = $options->{xstart};
   }
-}
-
-=item B<list_raw_observations>
-
-Prints an HTML table listing all raw observations on a given UT date for
-a given instrument and project.
-
-  list_raw_observations( $instrument, $ut, $project );
-
-The UT date must be of the form yyyymmdd. The project ID is used to display
-only the raw observations for that project.
-
-=cut
-
-sub list_raw_observations {
-  my ($instrument, $ut, $project) = @_;
-  my @files;
-  my %data;
-  my ($objname, $utstart, $exptime, $filter, $grating, $wavelength, $airmass, $RA, $dec, $fileproject, $msbid);
-  my $currentproject = "NOPROJECT";
-  my $currentmsbid = "";
-  my $first = 1;
-  my $directory = _get_raw_directory( $instrument, $ut );
-
-  if( -d $directory ) {
-    opendir(FILES, $directory);
-    @files = grep(!/^\./, readdir(FILES));
-    closedir(FILES);
-
-# Get all *.sdf and files starting with two letters and eight digits
-
-    @files = grep(/sdf$/, @files);
-    @files = grep(/^[a-zA-Z]{1}\d{8}/, @files);
-
-# Sort the files according to observation number
-
-    @files = sort obsnumsort @files;
-
-    print "<hr>\n";
-    print "<strong>Raw observations for $instrument on $ut</strong><br>\n";
-    foreach my $file (@files) {
-      if($file =~ /^([a-zA-Z])($ut)_(\d+)\.(\w+)/) {
-        my ($prefix, $null, $obsnum, $extension) = ($1, $2, $3, $4);
-
-        my $fullfile = $directory . "/" . $file;
-        $fullfile =~ s/\.sdf$/\.header/;
-
-        my $Frm = new ORAC::Frame::NDF($fullfile);
-        $Frm->readhdr;
-
-# Get the headers from each frame. We'll present this information to the
-# user so they can make a more informed decision.
-
-        $objname = $Frm->hdr($headers{$instrument}{'OBJNAME'});
-        $utstart = $Frm->hdr($headers{$instrument}{'UTSTART'});
-        $exptime = $Frm->hdr($headers{$instrument}{'EXPTIME'});
-        $filter = $Frm->hdr($headers{$instrument}{'FILTER'});
-        $grating = $Frm->hdr($headers{$instrument}{'GRATING'});
-        $wavelength = $Frm->hdr($headers{$instrument}{'WAVELENGTH'});
-        $airmass = $Frm->hdr($headers{$instrument}{'AIRMASS'});
-        $RA = $Frm->hdr($headers{$instrument}{'RA'});
-        $dec = $Frm->hdr($headers{$instrument}{'DEC'});
-        $fileproject = $Frm->hdr($headers{$instrument}{'PROJECT'});
-        $msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
-
-# Only list files for the specific project (or if the override 'staff' project
-# is being used.
-
-        if(($project eq 'staff') || (uc($fileproject) eq uc($project))) {
-
-# If the current project does not match the project for the current frame,
-# write a new header.
-
-          if(uc($fileproject) ne uc($currentproject)) {
-            if(!$first) {
-              print "</table>";
-            } else {
-              $first = 0;
-            }
-            print "<strong>Project:</strong> ";
-            print $fileproject || "";
-            print " <strong>MSBID:</strong> ";
-            print $msbid || "";
-            print "<br>\n";
-            print "<table border=\"1\">\n";
-            print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>view data</th><th>download file</th></tr>\n";
-            $currentproject = $fileproject;
-            $currentmsbid = $msbid;
-          } elsif( ( uc($fileproject) eq uc($currentproject) ) && ( uc($msbid) ne uc($currentmsbid))) {
-            if(!$first) {
-              print "</table>\n";
-            } else {
-              $first = 0;
-            }
-            print "<strong>Project:</strong> ";
-            print $fileproject || "";
-            print " <strong>MSBID:</strong> ";
-            print $msbid || "";
-            print "<br>\n";
-            print "<table border=\"1\">\n";
-            print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>view data</th><th>download file</th></tr>\n";
-            $currentmsbid = $msbid;
-          }
-          print "<tr><td>";
-          print $obsnum || "";
-          print "</td><td>";
-          print $objname || "";
-          print "</td><td>";
-          print $utstart || "";
-          print "</td><td>";
-          print $exptime || "";
-          print "</td><td>";
-          print $filter || "";
-          print "</td><td>";
-          print $grating || "";
-          print "</td><td>";
-          print $wavelength || "";
-          print "</td><td>";
-          print $airmass || "";
-          print "</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=raw\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=raw\">download</a></td></tr>\n";
-        }
-      }
-    }
-    print "</table>\n";
-  } else {
-    print "Directory for $instrument on $ut raw data does not exist.<br>\n";
+  if( exists( $options->{xend} ) &&
+      defined( $options->{xend} ) &&
+      $options->{xend} =~ /^\d+$/ ) {
+    $parsed{xend} = $options->{xend};
   }
+  if( exists( $options->{ystart} ) &&
+      defined( $options->{ystart} ) &&
+      $options->{ystart} =~ /^\d+$/ ) {
+    $parsed{ystart} = $options->{ystart};
+  }
+  if( exists( $options->{yend} ) &&
+      defined( $options->{yend} ) &&
+      $options->{yend} =~ /^\d+$/ ) {
+    $parsed{yend} = $options->{yend};
+  }
+  if( exists( $options->{autocut} ) &&
+      defined( $options->{autocut} ) &&
+      $options->{autocut} =~ /^\d+$/ ) {
+    $parsed{autocut} = $options->{autocut};
+  }
+  if( exists( $options->{lut} ) && defined( $options->{lut} ) ) {
+    $parsed{lut} = $options->{lut};
+  }
+  if( exists( $options->{size} ) &&
+      defined( $options->{size} ) &&
+      $options->{size} =~ /^\d+$/ ) {
+    $parsed{size} = $options->{size};
+  }
+  if( exists( $options->{type} ) &&
+      defined( $options->{type} ) ) {
+    $parsed{type} = $options->{type};
+  }
+  if( exists( $options->{zmin} ) &&
+      defined( $options->{zmin} ) &&
+      $options->{zmin} =~ /^\d+$/ ) {
+    $parsed{zmin} = $options->{zmin};
+  }
+  if( exists( $options->{zmax} ) &&
+      defined( $options->{zmax} ) &&
+      $options->{zmax} =~ /^\d+$/ ) {
+    $parsed{zmax} = $options->{zmax};
+  }
+  if( exists( $options->{cut} ) &&
+      defined( $options->{cut} ) ) {
+    $parsed{cut} = $options->{cut};
+  }
+  if( exists( $options->{group} ) &&
+      defined( $options->{group} ) ) {
+    $parsed{group} = $options->{group};
+  }
+
+  return %parsed;
+
 }
 
-=item B<print_header>
+=back
 
-Prints a header.
+=head2 Private Methods
 
-  print_header();
+=over 4
 
-There are no arguments.
+=item B<_plot_image>
+
+Plots an image.
+
+  $worf->_plot_image( %args );
+
+The argument is a hash optionally containing the following key-value
+pairs:
+
+=over 4
+
+=item input_file - location of data file. If undefined, this method will
+use the file returned from the C<filename> method of the Obs object used
+in the contructor of the WORF object. If defined, this argument must include
+the full path.
+
+=item output_file - location of output graphic. If undefined, this method
+will output the graphic to STDOUT.
+
+=item xstart - Start pixel in x-dimension. If undefined, the default will
+be the first pixel in the array.
+
+=item xend - End pixel in x-dimension. If undefined, the default will be
+the last pixel in the array.
+
+=item ystart - Start pixel in y-dimension. If undefined, the default will
+be the first pixel in the array.
+
+=item yend - End pixel in y-dimension. If undefined, the default will be
+the last pixel in the array.
+
+=item autocut - Level to autocut the data to display. If undefined, the
+default will be 100. Allowable values are 100, 99, 98, 95, 80, 70, 50.
+
+=item width - Width of output graphic, in pixels. If undefined, the default
+will be 640.
+
+=item height - Height of output graphic, in pixels. If undefined, the
+default will be 480.
+
+=back
 
 =cut
 
-sub print_header {
-  print <<END;
-Welcome to WORF. <a href="/JACpublic/UKIRT/software/worf/help.html">Need help?</a><br>
-<hr>
-END
-};
+sub _plot_image {
+  my $self = shift;
+  my %args = @_;
 
-=item B<print_footer>
+  my $opt = {AXIS => 1,
+             JUSTIFY => 1,
+             LINEWIDTH => 1};
 
-Prints a footer.
+  my $lut = 'heat';
 
-  print_footer();
+  my $file;
+  if( defined( $args{input_file} ) ) {
+    $file = $args{input_file};
+  } else {
+    $file = $self->obs->filename;
+  }
+  if( $file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _plot_image ($file) must include full path");
+  }
 
-There are no arguments.
+  if( exists( $args{width} ) && $args{width} =~ /^\d+$/) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = $args{width};
+  } else {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 640;
+  }
 
-=cut
+  if( exists( $args{height} ) && $args{height} =~ /^\d+$/) {
+    $ENV{'PGPLOT_GIF_HEIGHT'} = $args{height};
+  } else {
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 480;
+  }
 
-sub print_footer {
-  print <<END;
-  <p>
-  <hr>
-  <address>Last Modification Author: bradc<br>Brad Cavanagh (<a href="mailto:b.cavanagh\@jach.hawaii.edu">b.cavanagh\@jach.hawaii.edu</a>)</address>
-</html>
-END
-};
+  $file =~ s/\.sdf$//;
 
-=item B<obsnumsort>
+  my $image = rndf($file,1);
 
-A sorting routine that sorts by observation number. Used for the 'sort' function.
+  my ($xdim, $ydim) = dims $image;
 
-  @sorted = sort obsnumsort @files;
+  if(!defined $ydim) {
 
-=cut
+    # Since _plot_image will fail if it tries to display a 1D image, shunt
+    # the image off to _plot_spectrum instead of failing.
+    $self->_plot_spectrum( %args );
+    return;
+  }
 
-sub obsnumsort {
-  $a =~ /[a-zA-Z]{1,2}\d{8}_(\d+)/;
-  my $a_obsnum = int($1);
-  $b =~ /[a-zA-Z]{1,2}\d{8}_(\d+)/;
-  my $b_obsnum = int($1);
-  $a_obsnum <=> $b_obsnum;
+  # We've got everything we need to display the image now.
+
+  # Get the image title.
+  my $hdr = $image->gethdr;
+  my $title = $file;
+
+  # Fudge to set bad pixels to zero.
+  my $bad = -1e-10;
+  $image *= ( $image > $bad );
+
+  # Do autocutting, if necessary.
+  if( exists( $args{autocut} ) && defined( $args{autocut} ) && $args{autocut} != 100 ) {
+
+    my ($mean, $rms, $median, $min, $max) = stats($image);
+
+    my $stddev = sqrt($rms);
+
+    if($args{autocut} == 99) {
+      $image = $image->clip(($median - 2.6467 * $stddev), ($median + 2.6467 * $stddev));
+    } elsif($args{autocut} == 98) {
+      $image = $image->clip(($median - 2.2976 * $stddev), ($median + 2.2976 * $stddev));
+    } elsif($args{autocut} == 95) {
+      $image = $image->clip(($median - 1.8318 * $stddev), ($median + 1.8318 * $stddev));
+    } elsif($args{autocut} == 90) {
+      $image = $image->clip(($median - 1.4722 * $stddev), ($median + 1.4722 * $stddev));
+    } elsif($args{autocut} == 80) {
+      $image = $image->clip(($median - 1.0986 * $stddev), ($median + 1.0986 * $stddev));
+    } elsif($args{autocut} == 70) {
+      $image = $image->clip(($median - 0.8673 * $stddev), ($median + 0.8673 * $stddev));
+    } elsif($args{autocut} == 50) {
+      $image = $image->clip(($median - 0.5493 * $stddev), ($median + 0.5493 * $stddev));
+    }
+  }
+
+  my ( $xstart, $xend, $ystart, $yend );
+  if( ( exists $args{xstart} ) && ( defined( $args{xstart} ) ) && ( $args{xstart} =~ /^\d+$/ ) && ( $args{xstart} > 0 ) ) {
+    $xstart = $args{xstart};
+  } else {
+    $xstart = 0;
+  }
+  if( ( exists $args{xend} ) && ( defined( $args{xend} ) ) && ( $args{xend} =~ /^\d+$/ ) && ( $args{xend} < $xdim ) ) {
+    $xend = $args{xend};
+  } else {
+    $xend = $xdim - 1;
+  }
+  if( ( exists $args{ystart} ) && ( defined( $args{ystart} ) ) && ( $args{ystart} =~ /^\d+$/ ) && ( $args{ystart} > 0 ) ) {
+    $ystart = $args{ystart};
+  } else {
+    $ystart = 0;
+  }
+  if( ( exists $args{yend} ) && ( defined( $args{yend} ) ) && ( $args{yend} =~ /^\d+$/ ) && ($args{yend} < $ydim ) ) {
+    $yend = $args{yend};
+  } else {
+    $yend = $ydim - 1;
+  }
+
+  if( ( ( $xstart == 0 ) && ( $xend == 0 ) ) || ( $xstart >= $xend ) ) {
+    $xstart = 0;
+    $xend = $xdim - 1;
+  }
+  if( ( ( $ystart == 0 ) && ( $yend == 0 ) ) || ( $ystart >= $yend ) ) {
+    $ystart = 0;
+    $yend = $ydim - 1;
+  }
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF";
+  } else {
+    dev "-/GIF";
+  }
+  env( $xstart, $xend, $ystart, $yend, $opt );
+  label_axes( "lut=$lut", undef, $title );
+  ctab( lut_data( $lut ) );
+  imag $image;
+  dev "/null";
+
 }
 
-=item B<pad>
+=item B<_plot_spectrum>
 
-A routine that pads strings with characters.
+Plots a spectrum.
 
-  $padded = pad( $string, $character, $endlength );
+  $worf->_plot_spectrum( %args );
 
-The string paramter is the initial string, the character parameter is the character
-you wish to pad the string with (at the beginning of the string), and the endlength
-parameter is the final length in characters of the padded string.
+The argument is a hash optionally containing the following key-value
+pairs:
+
+=over 4
+
+=item output_file - location of output graphic. If undefined, this method
+will output the graphic to STDOUT.
+
+=item xstart - Start pixel in x-dimension. If undefined, the default will
+be the first pixel in the array.
+
+=item xend - End pixel in x-dimension. If undefined, the default will be
+the last pixel in the array.
+
+=item zmin - Start value in z-dimension (data). If undefined, the default will
+be the lowest data in the array.
+
+=item zmax - End pixel in z-dimension (data). If undefined, the default will be
+the lowest data in the array.
+
+=item cut - Direction of spectrum for 2D images. If undefined, the default
+will be horizontal. Can be either vertical or horizontal.
+
+=item rstart - Start row for spectrum extraction. If the data to be plotted
+are in a one-dimensional array, this value is ignored. If undefined, the
+default will be the first row on the array.
+
+=item rend - End row for spectrum extraction. If the data to be plotted are
+in a one-dimensional array, this value is ignored. If undefined, the default
+will be the last row on the array.
+
+=item width - Width of output graphic, in pixels. If undefined, the default
+will be 640.
+
+=item height - Height of output graphic, in pixels. If undefined, the
+default will be 480.
+
+=back
 
 =cut
 
-sub pad {
-  my ($string, $character, $endlength) = @_;
-  my $result = ($character x ($endlength - length($string))) . $string;
+sub _plot_spectrum {
+  my $self = shift;
+  my %args = @_;
+
+  my $opt = {SYMBOL => 1, LINEWIDTH => 10, PLOTLINE => 0};
+
+  my $file;
+  if( defined( $args{input_file} ) ) {
+    $file = $args{input_file};
+  } else {
+    $file = $self->obs->filename;
+  }
+  if( $file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _plot_image must include full path");
+  }
+
+  $file =~ s/\.sdf$//;
+print "Loading $file\n";
+  my $image = rndf( $file );
+
+  # Fudge to set bad pixels to zero.
+  my $bad = -1e-10;
+  $image *= ( $image > $bad );
+
+  my $spectrum;
+  my ( $xdim, $ydim ) = dims $image;
+# We have to check if the input data is 1D or 2D
+  if(defined($ydim)) {
+
+    my $xstart = ( defined ( $args{xstart} ) ?
+                   $args{xstart} :
+                   1 );
+    my $xend = ( defined ( $args{xend} ) ?
+                 $args{xend} :
+                 ( $xdim - 1 ) );
+    my $ystart = ( defined ( $args{ystart} ) ?
+                   $args{ystart} :
+                   1 );
+    my $yend = ( defined ( $args{yend} ) ?
+                 $args{yend} :
+                 ( $ydim - 1 ) );
+    if( ( ( $xstart == 0 ) && ( $xend == 0 ) ) || ( $xstart >= $xend ) ) {
+      $xstart = 0;
+      $xend = $xdim - 1;
+    }
+    if( ( ( $ystart == 0 ) && ( $yend == 0 ) ) || ( $ystart >= $yend ) ) {
+      $ystart = 0;
+      $yend = $ydim - 1;
+    }
+
+    if( defined($args{cut}) && $args{cut} eq "vertical" ) {
+
+      my $slice = $image->slice("$xstart:$xend,$ystart:$yend");
+      my @stats = $slice->statsover;
+      $spectrum = $stats[0];
+
+    } else {
+
+      my $transpose = $image->transpose->copy;
+      my $slice = $transpose->slice("$ystart:$yend,$xstart:$xend");
+      my @stats = $slice->statsover;
+      $spectrum = $stats[0];
+
+    }
+
+  } else {
+
+    $spectrum = $image;
+
+  }
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF";
+  } else {
+    dev "-/GIF";
+  }
+
+# Grab the axis information
+
+  my $hdr = $image->gethdr;
+  my $title = ( defined( $hdr->{Title} ) ? $hdr->{Title} : '' );
+  my ( $axis, $axishdr, $units, $label );
+  if( defined( $hdr->{Axis} ) ) {
+    $axis = ${$hdr->{Axis}}[0];
+    $axishdr = $axis->gethdr;
+    $units = $axishdr->{Units};
+    $label = $axishdr->{Label};
+  } else {
+    $axis = $axishdr = $units = $label = '';
+  }
+
+  my ( $xstart, $xend, $zmin, $zmax );
+
+  if( exists $args{xstart} && defined $args{xstart} ) {
+    $xstart = $args{xstart};
+  } else {
+    $xstart = 0;
+  }
+  if( exists $args{xend} && defined $args{xend} ) {
+    $xend = $args{xend};
+  } else {
+    $xend = $xdim - 1;
+  }
+  if( exists $args{zmin} && defined $args{zmin} ) {
+    $zmin = $args{zmin};
+  } else {
+    $zmin = min( $spectrum ) - ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+  }
+  if( exists $args{zmax} && defined $args{zmax} ) {
+    $zmax = $args{zmax};
+  } else {
+    $zmax = max( $spectrum ) + ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+  }
+  if( ( ( $xstart == 0 ) && ( $xend == 0 ) ) || ( $xstart >= $xend ) ) {
+    $xstart = 0;
+    $xend = $xdim - 1;
+  }
+  if( ( ( $zmin == 0 ) && ( $zmax == 0 ) ) || ( $zmin >= $zmax ) ) {
+    $zmin = min( $spectrum ) - ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+    $zmax = max( $spectrum ) + ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+  }
+
+  env(0, ($xend - $xstart), $zmin, $zmax);
+  label_axes( "$label ($units)", undef, $title);
+  points $spectrum, $opt;
+  dev "/null";
+
 }
 
-=item B<_file_matches_project>
+=back
 
-Checks to see if the project ID in a file header matches the given project
-ID. Returns 0 (for false) or 1 (for true).
+=head1 SUBROUTINES
 
-  $match = _file_matches_project( $file, $projectID );
+=over 4
 
-The file parameter must be include the full path to the file.
+=item B<worf_determine_class>
 
-If the 'staff' project ID is given, then the routine will always return 'true'.
+  $worfclass = worf_determine_class( $obs );
 
-=cut
+Used to determine the subclass for a given C<Info::Obs> object. If no subclass
+can be determined, returns the base class.
 
-sub _file_matches_project {
-  my $file = shift; # note that this needs to be a full filename
-  my $projectid = shift;
-
-  if( lc($projectid) eq 'staff') { return 1; }
-
-  my $Frm = new ORAC::Frame::NDF($file);
-  $Frm->readhdr;
-
-  my $project = $Frm->hdr('PROJECT');
-  return (uc($project) eq uc($projectid));
-}
-
-=item B<_get_raw_directory>
-
-Retrieves the raw data directory given an instrument and UT date.
-Simplifies the use of ORAC::Inst::Defn::orac_configure_for_instrument().
-
-  $raw_directory = _get_raw_directory( $instrument, $ut );
-
-The UT date must be in the form yyyymmdd.
-
-This routine modifies the value of $ENV{"ORAC_DATA_IN"}.
+Returns a string.
 
 =cut
 
-sub _get_raw_directory {
-  my $instrument = shift;
-  my $ut = shift;
+sub worf_determine_class {
+  my $obs = shift;
 
-  my %options;
-  $options{'ut'} = $ut;
-  orac_configure_for_instrument( uc( $instrument ), \%options );
+  my $instrument = uc( $obs->instrument );
 
-  return $ENV{"ORAC_DATA_IN"};
-}
+  my $class;
 
-=item B<_get_reduced_directory>
+  if( defined( $instrument ) ) {
+    $class = "OMP::WORF::$instrument";
+  } else {
+    $class = "OMP::WORF";
+  }
 
-Retrieves the reduced data directory given an instrument and UT date.
-Simplifes the use of ORAC::Inst::Defn::orac_configure_for_instrument();
+  return $class;
 
-  $reduced_directory = _get_reduced_directory( $instrument, $ut );
-
-The UT date must be in the form yyyymmdd.
-
-This routine modifies the value of $ENV{"ORAC_DATA_OUT"};
-
-=cut
-
-sub _get_reduced_directory {
-  my $instrument = shift;
-  my $ut = shift;
-
-  my %options;
-  $options{'ut'} = $ut;
-  orac_configure_for_instrument( uc( $instrument ), \%options );
-
-  return $ENV{"ORAC_DATA_OUT"};
 }
 
 =back
@@ -811,7 +705,7 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
