@@ -1,16 +1,17 @@
 @ALLOWSIDEBARMOD=1;
-@SIDEBARMENUTITLE=JAC Divisions;
+@SIDEBARMENUTITLE=<font color=#ffffff>JAC Divisions</font>;
 @NOSIDEBAR=0;
 @NAVBAR=0;
+@MORELINKSTITLE=<font color=#ffffff>OMP</font>;
 @INFO=
-<A HREF="/cgi-bin/projecthome.pl">
+<A HREF="http://omp-dev.jach.hawaii.edu/cgi-bin/projecthome.pl" class="sidemain">
 	OMP Feedback system</a>,
-<A HREF="/cgi-bin/queryfault.pl">
+<A HREF="http://omp-dev.jach.hawaii.edu/cgi-bin/queryfault.pl" class="sidemain">
 	Fault System</a>,
-<A HREF="/">
+<A HREF="http://omp-dev.jach.hawaii.edu" class="sidemain">
         OMP home</a>;
 
-@SIDEBARCOLOR=#8080CC;
-@BGCOLOR=#8080CC;
-@LINK=#ffd700;
-@VLINK=#87cefff;
+@SIDEBARCOLOR=#8080cc;
+@BGCOLOR=#ffffff;
+@LINK=#393989;
+@VLINK=#393989;
