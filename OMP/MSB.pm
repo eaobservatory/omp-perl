@@ -59,6 +59,8 @@ my $SUSPEND_ATTR = "suspend"; # suspend attribute
 use constant CLOUD_DONT_CARE  => 101;
 use constant MOON_DONT_CARE   => 101;
 
+use constant NO_TARGET => 'NONE SUPPLIED';
+
 =head1 METHODS
 
 =head2 Constructor
@@ -1223,6 +1225,224 @@ sub rescheduleMSB {
   # Then update the start time
   $self->setDateMin( $now );
 
+}
+
+=item B<hasBlankTargets>
+
+Returns true if the MSB includes an undefined target component
+(i.e. RADEC target with no name and with 0:0:0 as the coordinates).
+Returns false otherwise. Does not matter if the MSB includes
+some defined target components.
+
+  $isblank = $msb->hasBlankTargets();
+
+The return valus is actually the number of blank targets located.
+RA and Dec and Title must be blank.
+
+Note that this is done by examining the XML itself rather than
+by using the C<obssum> method. This is because the C<obssum>
+method returns targets for each observation even if there is
+only one target component inherited by multiple SpObs.
+
+By default, blank target components inherited by this routine
+are ignored in the count. An optional argument can be used
+to specify that inheritance is important if it is true.
+
+  $isBlankInherit = $msb->hasBlankTarget( 1 );
+
+Note that if inheritance is enabled, a structure such as
+
+  Tel
+  SpMSB
+    Tel
+    Obs
+
+will result in one blank target even if both of those components
+are blank because the Tel in the MSB will override the inherited
+tel. With
+
+  Tel
+  SpMSB
+    Obs
+      Tel
+
+There will be a single blank target if inheritance is disabled but
+two blank targets if inheritance is enabled.
+
+For the example:
+
+  SpMSB
+    BlankTel
+      Obs
+        FilledInTel
+
+The number of blank targets is zero (since only the filled in
+target is relevant). For
+
+  SpMSB
+   BlankTel
+    Obs
+      BlankTel
+
+The number of relevant blanks is zero.
+
+=cut
+
+sub hasBlankTargets {
+  my $self = shift;
+  my $inherit = shift;
+
+  # Have to look at the XML itself
+  my $xml;
+  if ($inherit) {
+    $xml = $self->stringify;
+  } else {
+    $xml = $self->stringify_noresolve;
+  }
+
+  # First we reparse this xml
+  my $parser = new XML::LibXML;
+  my $tree = $parser->parse_string( $xml );
+
+  my @tel = $self->_get_tel_comps( tree => $tree );
+
+  # For each of these components read the target info
+  my $nblank = 0;
+  for my $tel (@tel) {
+
+    $nblank++ if $self->_is_blank_target( $tel );
+
+  }
+
+  return $nblank;
+}
+
+=item B<_is_blank_target>
+
+Returns true if the supplied target node contains a blank
+target entry (ie RA==Dec=0.0 and no target name).
+
+  $isblank = $msb->_is_blank_target( $node );
+
+=cut
+
+sub _is_blank_target {
+  my $self = shift;
+  my $tel = shift;
+
+  # Get summary of the node
+  my %summary = $self->SpTelescopeObsComp( $tel );
+
+  # Get the coordinate
+  my $c = $summary{coords};
+
+  if ($c->type eq 'RADEC' && $c->dec == 0.0 && $c->ra == 0.0
+      && (!defined $c->name || (defined $c->name && length($c->name) == 0))
+      || (defined $c->name && $c->name eq NO_TARGET)
+     ) {
+    return 1;
+  } else {
+    return 0;
+  }
+
+}
+
+
+=item B<_get_tel_comps>
+
+Retrieve all the nodes in the current MSB that correspond
+to useful telescope components. Mainly an internal routine
+for processing the catalogue cloning.
+
+  @tel = $msb->_get_tel_comps();
+
+Includes inheritance but also takes inheritance into account.
+See hasBlankTarget for a description of the inheritance rules.
+Summarising, if each non-standard SpObs includes a telescope
+component then only those components will be returned. If one
+non-standard SpObs is missing a component then all the SpObs
+components will be retrieved as well as either the component
+in the MSB or the component inherited from outside the msb (with
+priority given to the component in the MSB).
+
+Optional arguments can disable inheritance from outside the MSB:
+
+  @tel = $msb->_get_tel_comps( noinherit => 1);
+
+or can specify a new parse tree distinct from the default parse
+ tree:
+
+  @tel = $msb->_get_tel_comps( tree => $tree );
+
+Note that supplying a new tree implies noinherit = 1 because
+the reference can not be resolved between trees.
+
+=cut
+
+sub _get_tel_comps {
+  my $self = shift;
+  my %args = @_;
+
+  my $tree;
+  if (exists $args{tree} && defined $args{tree}) {
+    $tree = $args{tree};
+    $args{noinherit} = 1;
+  } else {
+    $tree = $self->_tree;
+  }
+
+  # Make sure we are sitting at an MSB
+  my ($node) = $tree->findnodes(".//SpMSB");
+  $tree = $node if defined $node;
+
+  # Now find all the telscope components
+  # We need to find the last Telescope component at the MSB
+  # level taking into account inheritance if need be
+  my @all;
+  if (!$args{noinherit}) {
+    push(@all,$tree->findnodes("child::SpTelescopeObsCompRef"));
+  }
+
+  push(@all,$tree->findnodes("child::SpTelescopeObsComp"));
+
+  my $msbtel = $all[-1];
+
+  # Resolve refs (only if we are inheriting and we have something)
+  $msbtel = $self->_resolve_ref($msbtel) if defined $msbtel && $args{noinherit};
+
+  # Now all the ones in SpObs BUT we have to be careful here.
+  # If we have a situation where the number of components
+  # in SpObs equals the number of SpObs then inheritance
+  # from above is meaningless. One caveat here is that the
+  # standard obs do not add towards the sum of SpObs.
+
+  # First find all the SpObs
+  my @spobs = $tree->findnodes(".//SpObs");
+
+  # Now find all the ones that have standard=false
+  my @nonstandard;
+  for my $obs (@spobs) {
+    my $isstd = $self->_get_pcdata($obs, "standard");
+    push(@nonstandard, $obs) if $isstd eq 'false';
+  }
+
+  # And now get the telescope components in the remainder
+  my @obstel;
+  for my $obs (@nonstandard) {
+    my ($tel) = $obs->findnodes(".//SpTelescopeObsComp");
+    push(@obstel, $tel) if defined $tel;
+  }
+
+  # Now compare count to see if we need to include the MSB tel component
+  # (assuming we have one)
+  my @tel;
+  if (scalar(@obstel) != scalar(@nonstandard)) {
+    # Need the MSB component
+    push(@tel, $msbtel) if defined $msbtel;
+  }
+  push(@tel, @obstel);
+
+  return @tel;
 }
 
 
@@ -2879,7 +3099,7 @@ sub SpTelescopeObsComp {
   throw OMP::Error::SpBadStructure("No base target position specified in SpTelescopeObsComp\n") unless $base;
 
   $summary{target} = $self->_get_pcdata($base, "targetName");
-  $summary{target} = "NONE SUPPLIED" unless defined $summary{target};
+  $summary{target} = NO_TARGET unless defined $summary{target};
 
   # Now we need to look for the coordinates. If we have hmsdegSystem
   # or degdegSystem (for Galactic) we translate those to a nice easy

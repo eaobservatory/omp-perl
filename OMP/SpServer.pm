@@ -265,6 +265,63 @@ sub programDetails {
   return $summary;
 }
 
+=item B<SpInsertCat>
+
+Given a science program and a JCMT-format source catalogue, clone
+any blank MSBs inserting the catalogue information and return the
+result.
+
+  [$xml, $info] = OMP::SpServer->SpInsertCat( $xml, $catalogue );
+
+Returns a reference to an array containing the modified science
+program XML and a string containing any informational messages
+(separated by newlines).
+
+The catalogue is supplied as a text string including new lines.
+
+=cut
+
+sub SpInsertCat {
+  my $class = shift;
+  my $xml = shift;
+  my $cat = shift;
+
+  OMP::General->log_message( "SpInsertCat: processing catalog");
+
+  my $E;
+  my ($sp, @info);
+  try {
+
+    # Create a science program from the string
+    my $sp = new OMP::SciProg( XML => $xml );
+    my $proj = $sp->projectID;
+    $proj = "<UNKNOWN>" unless defined $proj;
+    OMP::General->log_message("SpInsertCat: ProjectID: $proj");
+
+    # Extract target information from catalogue
+    my $cat = new SrcCatalog::JCMT( $cat );
+    my @coords = @{$cat->current};
+
+    # Clone the template MSBs
+    @info = $sp->cloneMSBs( @coords );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  # Return the result
+  return [ "$sp", join("\n",@info)."\n"];
+}
 
 sub returnStruct {
   my $self = shift;

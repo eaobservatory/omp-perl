@@ -747,6 +747,162 @@ sub verifyMSBs {
   return ($status, $string);
 }
 
+=item B<cloneMSBs>
+
+Go through the science program and for each MSB containing a blank
+science target, clone it using the supplied coordinate objects.
+
+  @messages = $sp->cloneMSBs( @coords );
+
+Currently can not handle coordinate types that are not RADEC.
+Non-RADEC coordinates are ignored silently. Returns an array
+of informational messages (no newlines).
+
+There is no corresponding method in the C<OMP::MSB> class because
+this method completely reorganizes the MSB layout. An C<OMP::MSB>
+objects derived from this class will be broken after cloning
+and must be retrieved from the science program object again.
+
+=cut
+
+sub cloneMSBs {
+  my $self = shift;
+  my @sources = @_;
+
+  # Remove any targets that are not RADEC
+  @sources = grep { $_->type eq 'RADEC'  } @sources;
+  return ("No targets supplied for cloning") unless scalar(@sources);
+
+  # Informational messages
+  my @info;
+
+  # Loop over each MSB
+  my $ncloned = 0;
+  for my $msb ($self->msb) {
+
+    # Count the number of useful blank target components
+    # Ignoring inheritance
+    my $blanks = $msb->hasBlankTargets(0);
+    next unless $blanks > 0;
+
+    # Warn if we do not have an exact match
+    push(@info,
+	 "Number of blank targets in MSB '".$msb->msbtitle.
+	 "' is not divisible into the number of targets supplied.",
+	 "Some targets will be missing.")
+      if scalar(@sources) % $blanks != 0;
+
+    # Calculate the max number we can support [as an index]
+    my $max = int(($#sources+1) / $blanks) * $blanks - 1;
+
+    # Now loop over the source list
+    # It is probably more efficent to generate the XML of the clone
+    # and then do all the replacements on the XML before parsing
+    # it and inserting it back into the tree. For now, do the
+    # long hand approach
+    my $nrepeats = 0;
+    for (my $i = 0; ($i+$blanks-1) <= $max; $i+= $blanks) {
+
+      # Okay now we need to deep clone the MSB
+      my $clone = $msb->_tree->cloneNode( 1 );
+
+      # There is no method in OMP::MSB (yet) for replacing target
+      # XML with other target XML. The only way we can do this
+      # currently is to take each MSB, locate the
+      # telescope components, then find the nodes corresponding to
+      # the coordinates and change the values
+      # Note that _tree is a private method so we really need
+      # to provide an explicit OMP::MSB interface for this
+      # even though it may cause the object to no longer refer to the tree
+      # Get the telescope components
+      my @tels = $msb->_get_tel_comps( tree => $clone );
+
+      # And only look at blanks
+      @tels = grep { $msb->_is_blank_target($_); } @tels;
+
+      # Now loop over the telescope components
+      my $c = 0; # Count number replaced
+      for my $tel (@tels) {
+
+	# There is no way this can happen
+	throw OMP::Error::FatalError( "Internal error: The number of blank telescope components encountered exceeds the expected number!!!\n")
+	  if $c >= $blanks;
+
+	# Now need to get the nodes corresponding to the name
+	# RA and Dec. We know they are blank already.
+	my ($targetnode) = $tel->findnodes(".//targetName");
+	my ($ranode) = $tel->findnodes(".//c1");
+	my ($decnode) = $tel->findnodes(".//c2");
+	
+	# Get the text nodes
+	my $ra = $ranode->firstChild;
+	my $dec = $decnode->firstChild;
+	my $target = $targetnode->firstChild;
+
+	# If we have fallen off the end of the array we
+	# have made a mistake
+	throw OMP::Error::FatalError("Internal error whilst stepping through spource arrays for MSB cloning")
+	  if (($i+$c) > $max);
+
+	# Select the correct target object
+	my $coords = $sources[$i + $c];
+
+	# Change the values in the node
+	$ra->setData( $coords->ra( format => 'sex'));
+	$dec->setData( $coords->dec( format => 'sex'));
+
+	# There is a remote possibility that we have no
+	# target child
+	if (defined $target) {
+	  $target->setData( $coords->name );
+	} else {
+	  my $text = new XML::LibXML::Text( $coords->name );
+	  $targetnode->appendChild( $text );
+	}
+
+	# increment the tel counter
+	$c++;
+
+      }
+
+      # Make sure we replaced the correct number
+      throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
+	unless $c == $blanks;
+
+      # Insert the clone node in the correct place
+      $msb->_tree->parentNode->insertAfter($clone, $msb);
+
+      # Keep track of the repeat count for this msb for the error message
+      $nrepeats++;
+
+    }
+
+    # And remove the template node
+    $msb->_tree->unbindNode;
+    $ncloned++;
+
+    #  info message
+    my $pluraltarg = ($blanks == 1 ? '' : 's');
+    my $pluralrep  = ($nrepeats == 1 ? '' : 's');
+    push(@info,"Cloned MSB with title '" . $msb->msbtitle . 
+	 "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
+
+
+  }
+
+  # Once we have done this we need to recreate the
+  # MSB objects because they will be pointing to invalid nodes
+  if ($ncloned > 0) {
+    $self->locate_msbs;
+  } else {
+    push(@info, "No MSBs contained blank target components. No change.");
+  }
+  # Return the informational messages
+  return @info;
+
+}
+
+
 =back
 
 =head1 AUTHORS
