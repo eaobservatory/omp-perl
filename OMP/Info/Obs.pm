@@ -74,7 +74,6 @@ sub new {
   return $obs;
 }
 
-
 =item B<readfile>
 
 Creates an C<OMP::Info::Obs> object from a given filename.
@@ -138,6 +137,8 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               object => '$',
                               mode => '$',
                               speed => '$',
+                              airmass_start => '$',
+                              airmass_end => '$',
                               airmass => '$',
                               rows => '$',
                               columns => '$',
@@ -157,6 +158,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               systemvelocity => '$',
                               nexp => '$',
                               filename => '$',
+                              chopthrow => '$',
+                              chopangle => '$',
+                              chopsystem => '$',
                               isScience => '$',
                               isSciCal => '$',
                               isGenCal => '$',
@@ -388,6 +392,9 @@ which gives a one-line summary of the observation, and a
 {_STRING_HEADER => string} key-value pair which gives the header
 for the corresponding _STRING value.
 
+There may also be {_STRING_LONG} and {_STRING_HEADER_LONG} keys that give
+multiple-line summaries of the observations.
+
 =cut
 
 sub nightlog {
@@ -412,6 +419,9 @@ sub nightlog {
   my $instrument = $self->instrument;
 
   if($instrument =~ /scuba/i) {
+
+# *** SCUBA
+
     $return{'Run'} = $self->runnr;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Obsmode'} = $self->mode;
@@ -421,16 +431,33 @@ sub nightlog {
     $return{'Seeing'} = $self->seeing;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Bolometers'} = $self->bolometers;
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
+    $return{'Dec'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
+    $return{'Coordinate Type'} = defined($self->coords) ? $self->coords->type : '';
+    $return{'Mean Airmass'} = defined($self->airmass) ? $self->airmass : 0;
+    $return{'Chop Throw'} = defined($self->chopthrow) ? $self->chopthrow : 0;
+    $return{'Chop Angle'} = defined($self->chopangle) ? $self->chopangle : 0;
+    $return{'Chop System'} = defined($self->chopsystem) ? $self->chopsystem : '';
+
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Bolometers" ];
+
     $return{'_STRING_HEADER'} = "Run  UT time   Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers";
     $return{'_STRING'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
+
+    $return{'_STRING_HEADER_LONG'} = "Run  UT start  Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
+    $return{'_STRING_LONG'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
+
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
         $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+        $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
       }
     }
   } elsif($instrument =~ /ircam/i) {
+
+# *** IRCAM
+
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
@@ -455,95 +482,168 @@ sub nightlog {
                           "UT start", "Exposure time", "Number of exposures",
                           "Filter", "Airmass", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe" ];
+
+    $return{'_STRING_HEADER'} = "Obs  Grp       Object  UT start   ExpT  Filter  ObsType  AM  RAoff DecOff Recipe";
+    $return{'_STRING'} = sprintf("%4u %4u %16.16s  %8s %6.2f %8.8s %8.8s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Filter'}, $return{'Obstype'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
+    }
+
   } elsif($instrument =~ /cgs4/i) {
+
+# *** CGS4
+
     $return{'Observation'} = $self->runnr;
-    $return{'Group'} = $self->group;
-    $return{'Object'} = $self->target;
+    $return{'Group'} = defined($self->group) ? $self->group : 0;
+    $return{'Object'} = defined($self->target) ? $self->target : '';
     $return{'Standard'} = $self->standard;
-    $return{'Observation type'} = $self->type;
+    $return{'Observation type'} = defined($self->type) ? $self->type : '';
     $return{'Slit'} = $self->slitname;
     $return{'Position Angle'} = $self->slitangle;
-    $return{'RA offset'} = sprintf( "%.3f", $self->raoff);
-    $return{'Dec offset'} = sprintf( "%.3f", $self->decoff);
+    $return{'RA offset'} = defined($self->raoff) ? sprintf( "%.3f", $self->raoff) : 0;
+    $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Airmass'} = sprintf( "%.2f", $self->airmass);
-    $return{'Exposure time'} = sprintf( "%.1f",$self->duration );
+    $return{'Airmass'} = defined($self->airmass) ? sprintf( "%.2f", $self->airmass) : 0;
+    $return{'Exposure time'} = defined($self->duration) ? sprintf( "%.1f",$self->duration ) : 0;
     $return{'Number of exposures'} = $self->nexp;
-    $return{'Grating'} = $self->grating;
+    $return{'Grating'} = defined($self->grating) ? $self->grating : '';
     $return{'Order'} = $self->order;
-    $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
-    $return{'DR Recipe'} = $self->drrecipe;
+    $return{'Wavelength'} = ( defined($self->waveband) && defined($self->waveband->wavelength) ) ?
+                             $self->waveband->wavelength :
+                             0;
+    $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
     $return{'Project ID'} = $self->projectid;
     $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Standard",
                           "Observation type", "Slit", "Position Angle",
                           "RA offset", "Dec offset", "UT time", "Airmass",
                           "Exposure time", "Grating",
                           "Order", "Wavelength", "DR Recipe" ];
+    $return{'_STRING_HEADER'} = " Obs  Grp           Object UT start   ExpT  Grating Wavelnth   Type   AM  RAoff DecOff Recipe";
+    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f  %7.7s  %7.3f %6.6s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT time'}, $return{'Exposure time'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'DR Recipe'});
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
+    }
+
   } elsif($instrument =~ /michelle/i) {
+
+# *** MICHELLE
+
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = sprintf("%.1f",$self->duration);
-    $return{'Number of exposures'} = $self->nexp;
+    $return{'Number of Exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
-    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
+    $return{'Filter'} = (defined($self->waveband) && defined($self->waveband->filter) )
+                        ? $self->waveband->filter
+                        : '';
+    $return{'Wavelength'} = (defined($self->waveband) && defined($self->waveband->wavelength))
+                            ? $self->waveband->wavelength
+                            : '';
     $return{'Airmass'} = sprintf("%.2f",$self->airmass);
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
     $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
     $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
-    $return{'RA offset'} = $self->raoff;
-    $return{'Dec offset'} = $self->decoff;
-    $return{'DR Recipe'} = $self->drrecipe;
+    $return{'RA offset'} = defined($self->raoff) ? $self->raoff : 0.0;
+    $return{'Dec offset'} = defined($self->decoff) ? $self->decoff : 0.0;
+    $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
     $return{'Standard'} = $self->standard;
-    $return{'Slit'} = $self->slitname;
+
+
     $return{'Position Angle'} = $self->slitangle;
-    $return{'Grating'} = $self->grating;
+    $return{'Grating'} = defined($self->grating) ? $self->grating : '';
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
     $return{'Project ID'} = $self->projectid;
     $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Observation type",
                           "UT start", "Exposure time",
-                          "Filter", "Airmass", "RA", "DEC", "Equinox", "RA offset", "Dec Offset", 
+                          "Filter", "Airmass", "RA", "DEC", "Equinox", "RA offset", "Dec Offset",
                           "Slit", "Position Angle", "Grating",
                           "Wavelength", "DR Recipe" ];
+
+    $return{'_STRING_HEADER'} = " Obs  Grp           Object  UT start   ExpT Nexp    Filter Grating Wvlnth     Type   AM  RAoff DecOff Recipe";
+    $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
+    }
+
   } elsif($instrument =~ /ufti/i) {
+
+# *** UFTI
+
     $return{'Observation'} = $self->runnr;
-    $return{'Group'} = $self->group;
+    $return{'Group'} = defined($self->group) ? $self->group : 0;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = sprintf("%.1f",$self->duration);
     $return{'Number of exposures'} = $self->nexp;
-    $return{'Mode'} = $self->mode;
+    $return{'Mode'} = defined($self->mode) ? $self->mode : '';
     $return{'Speed'} = $self->speed;
-    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
+    $return{'Filter'} = ( defined($self->waveband) && defined($self->waveband->filter) )
+                        ? $self->waveband->filter
+                        : '';
     $return{'Airmass'} = sprintf("%.2f",$self->airmass);
-    $return{'Columns'} = $self->columns;
-    $return{'Rows'} = $self->rows;
+    $return{'Columns'} = defined($self->columns) ? $self->columns : 0;
+    $return{'Rows'} = defined($self->rows) ? $self->rows : 0;
     $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
     $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
     $return{'RA Offset'} = $self->raoff;
     $return{'Dec Offset'} = $self->decoff;
-    $return{'DR Recipe'} = $self->drrecipe;
+    $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
     $return{'Project ID'} = $self->projectid;
     $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object",
                           "Observation type", "UT start", "Exposure time",
                           "Filter", "Airmass", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe" ];
+    $return{'_STRING_HEADER'} = "  Obs   UT Start           Object    Filter   ExpT  Coadds    AM  Array Size  Recipe";
+#    $return{'_STRING_HEADER'} = " Obs  Grp           Object UT start   ExpT    Filter    Type    AM  RAoff DecOff Recipe";
+    $return{'_STRING'} = sprintf("%5u   %-8.8s %16.16s %9.9s %6.2f    %4d  %4.2f   %9.9s %-26s",$return{'Observation'}, $return{'UT start'}, $return{'Object'}, $return{'Filter'}, $return{'Exposure time'}, $return{'Number of coadds'}, $return{'Airmass'}, $return{'Columns'} . 'x' . $return{'Rows'}, $return{'DR Recipe'});
+#    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f %9.9s %7.7s  %4.2f %6.1f %6.1f %-26.26s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Filter'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
+    }
   } elsif( $instrument =~ /uist/i ) {
+
+# *** UIST
+
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = sprintf("%.1f", $self->duration );
-    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
+    $return{'Filter'} = (defined($self->waveband) && defined($self->waveband->filter))
+                        ? $self->waveband->filter : '';
+    $return{'Wavelength'} = (defined($self->waveband) && defined($self->waveband->wavelength))
+                            ? $self->waveband->wavelength :
+                            '';
+
+    if(defined($self->slitname)) {
+      $return{'Slit Name'} = "1pix" if ( $self->slitname eq "0m" );
+      $return{'Slit Name'} = "2pix" if ( $self->slitname eq "0w" );
+      $return{'Slit Name'} = "4pix" if ( $self->slitname eq "0ew" );
+      $return{'Slit Name'} = "2p-e" if ( $self->slitname eq "36.9w" );
+      $return{'Slit Name'} = "1p-e" if ( $self->slitname eq "36.9m" );
+    }
+
+    $return{'Slit Angle'} = defined($self->slitangle) ? $self->slitangle : '';
+    $return{'Number of Exposures'} = defined($self->nexp) ? $self->nexp : 0;
+    $return{'Grating'} = defined($self->grating) ? $self->grating : '';
     $return{'Airmass'} = $self->airmass;
     $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
     $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
@@ -556,7 +656,15 @@ sub nightlog {
                           "Observation type", "UT start", "Exposure time",
                           "Airmass", "Filter", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe", ];
+    $return{'_STRING_HEADER'} = " Obs  Grp           Object  UT start   ExpT Nexp    Filter Grating Wvlnth     Type   AM  RAoff DecOff Recipe";
+    $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
+    }
   }
+
   return %return;
 
 }
@@ -656,8 +764,8 @@ sub _populate {
                                          ) );
       } elsif ( ( $generic_header{COORDINATE_TYPE} eq 'J2000' ) ||
                 ( $generic_header{COORDINATE_TYPE} eq 'B1950' ) ) {
-        $self->coords( new Astro::Coords( ra    => $generic_header{X_BASE},
-                                           dec   => $generic_header{Y_BASE},
+        $self->coords( new Astro::Coords( ra    => $generic_header{RA_BASE},
+                                           dec   => $generic_header{DEC_BASE},
                                            type  => $generic_header{COORDINATE_TYPE},
                                            units => $generic_header{COORDINATE_UNITS}
                                          ) );
@@ -679,7 +787,9 @@ sub _populate {
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
   $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
-  $self->airmass( $generic_header{AIRMASS_START} );
+  $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
+  $self->airmass_start( $generic_header{AIRMASS_START} );
+  $self->airmass_end( $generic_header{AIRMASS_END} );
   $self->rows( $generic_header{Y_DIM} );
   $self->columns( $generic_header{X_DIM} );
   $self->drrecipe( $generic_header{DR_RECIPE} );
@@ -687,8 +797,8 @@ sub _populate {
   $self->standard( $generic_header{STANDARD} );
   $self->slitname( $generic_header{SLIT_NAME} );
   $self->slitangle( $generic_header{SLIT_ANGLE} );
-  $self->raoff( $generic_header{X_OFFSET} );
-  $self->decoff( $generic_header{Y_OFFSET} );
+  $self->raoff( $generic_header{RA_TELESCOPE_OFFSET} );
+  $self->decoff( $generic_header{DEC_TELESCOPE_OFFSET} );
   $self->grating( $generic_header{GRATING_NAME} );
   $self->order( $generic_header{GRATING_ORDER} );
   $self->tau( $generic_header{TAU} );
@@ -699,6 +809,9 @@ sub _populate {
   $self->velocity( $generic_header{VELOCITY} );
   $self->systemvelocity( $generic_header{SYSTEM_VELOCITY} );
   $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
+  $self->chopthrow( $generic_header{CHOP_THROW} );
+  $self->chopangle( $generic_header{CHOP_ANGLE} );
+  $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
 
 }
 
