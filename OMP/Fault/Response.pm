@@ -75,6 +75,7 @@ sub new {
 	      Text => undef,
 	      Date => undef,
 	      IsFault => 0,
+	      RespID => undef,
 	     };
 
   bless $resp, $class;
@@ -179,6 +180,36 @@ sub isfault {
   my $self = shift;
   if (@_) { $self->{IsFault} = shift; }
   return $self->{IsFault};
+}
+
+=item B<id>
+
+Retrieve or store an ID that uniquely identifies a fault response.  This ID
+is derived from the database once the response is stored to the database.
+
+  $id = $resp->id;
+  $resp->id( $id );
+
+=cut
+
+sub id {
+  my $self = shift;
+  if (@_) { $self->{RespID} = shift; }
+  return $self->{RespID};
+}
+
+=item B<respid>
+
+A synonym for C<id> described elsewhere in this document.
+
+  $respid = $resp->respid;
+  $resp->respid($respid);
+
+=cut
+
+sub respid {
+  my $self = shift;
+  return $self->id(@_);
 }
 
 =back
