@@ -582,11 +582,13 @@ sub _insert_project_row {
 
   # Insert the contents into the table. The project ID is the
   # unique ID for the row.
-  $dbh->do("INSERT INTO $PROJTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", undef,
-	   $proj->projectid, $proj->pi, $proj->piemail, scalar($proj->coi),
-	   scalar($proj->coiemail), $proj->title, $proj->tagpriority, 
-	   $proj->country,
-	   $proj->semester, $proj->encrypted,
+  $dbh->do("INSERT INTO $PROJTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+	   undef,
+	   $proj->projectid, $proj->pi, $proj->piemail,
+	   scalar($proj->coi), scalar($proj->coiemail),
+	   scalar($proj->support), scalar($proj->supportemail),
+	   $proj->title, $proj->tagpriority,
+	   $proj->country, $proj->semester, $proj->encrypted,
 	   $proj->allocated, $proj->remaining, $proj->pending
 	  ) or throw OMP::Error::SpStoreFail("Error inserting project:".
 					     $dbh->errstr ."\n");

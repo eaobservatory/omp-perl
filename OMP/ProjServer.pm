@@ -249,7 +249,7 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be 11 elements in project array. Only found ".scalar(@project)) unless scalar(@project) == 11;
+    throw OMP::Error::BadArgs("Should be 13 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 13;
 
     my $db = new OMP::ProjDB(
 			     Password => $password,
@@ -263,12 +263,14 @@ sub addProject {
 				piemail => $project[2],
 				coi => $project[3],
 				coiemail => $project[4],
-				title => $project[5],
-				tagpriority => $project[6],
-				country => $project[7],
-				semester => $project[8],
-				password => $project[9],
-				allocated => $project[10],
+				support => $project[5],
+				supportemail => $project[6],
+				title => $project[7],
+				tagpriority => $project[8],
+				country => $project[9],
+				semester => $project[10],
+				password => $project[11],
+				allocated => $project[12],
 			       );
 
     $db->addProject( $proj );
