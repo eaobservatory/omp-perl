@@ -267,7 +267,7 @@ sub fetchSciProg {
     or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
 
   # And file with feedback system.
-  if ($internal) {
+  unless ($internal) {
     $self->_notify_feedback_system(
 				   subject => "Science program retrieved",
 				   text => "Science program retrieved for project <b>".
