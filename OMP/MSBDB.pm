@@ -914,7 +914,8 @@ sub _insert_row {
     my $obsid = sprintf( "%d%03d", $index, $count);
 
     # If coordinates have not been set then we need to raise an exception
-    # since we can not schedule this
+    # since we can not schedule this. Note that calibrations
+    # will come back as Astro::Coords::Calibration
     unless (exists $obs->{coords} and defined $obs->{coords} 
 	   and UNIVERSAL::isa($obs->{coords},"Astro::Coords")) {
       throw OMP::Error::SpBadStructure("Coordinate information could not be found in an MSB. Unable to schedule.\n");
@@ -923,7 +924,6 @@ sub _insert_row {
 
     # If we dont have an instrument we raise an exception
     unless (exists $obs->{instrument} and defined $obs->{instrument}) {
-      use Data::Dumper; print Dumper($obs);
       throw OMP::Error::SpBadStructure("No instrument defined in MSB. Unable to schedule.\n");
     }
 
