@@ -313,11 +313,8 @@ sub _mail_comment {
   $self->_mail_information(
 			   message => $msg,
 			   to => $addrlist,
-			   from => "omp-feedback-system",
+			   from => "flex@jach.hawaii.edu",
 			   subject => $subject,
-			   headers => {
-				       'Reply-To' => "flex\@jach.hawaii.edu" 
-				      },
 			  );
 
 }
