@@ -7,7 +7,7 @@ OMP::FBServer - Feedback information Server class
 =head1 SYNOPSIS
 
   OMP::FBServer->addComment( $project, $commentHash );
-  OMP::FBServer->getComments( $project, $password );
+  OMP::FBServer->getComments( $project, $password, $howMany, $showHidden );
 
 =head1 DESCRIPTION
 
@@ -59,10 +59,9 @@ sub addComment {
   my $E;
   try {
 
-    my $db = new OMP::FBDB(
-			   ProjectID => $projectid,
-			   DB => $class->dbConnection,
-			  );
+    my $db = new OMP::FeedbackDB(
+			          ProjectID => $projectid,
+			          DB => $class->dbConnection, );
 
     $db->addComment( $comment );
 
@@ -109,15 +108,11 @@ sub getComments {
   my $E;
   try {
 
-    my $db = new OMP::FBDB(
-                           ProjectID => $projectid,
-                           Password => $password,
-                           Amount => $amount,
-                           ShowHidden => $showhidden,
-                           DB => $class->dbConnection,
-                          );
+    my $db = new OMP::FeedbackDB(
+                                  ProjectID => $projectid,
+                                  DB => $class->dbConnection, );
 
-    $db->getComments( $projectid, $password );
+    $db->getComments( $password, $amount, $showhidden );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -159,14 +154,11 @@ sub deleteComment {
   my $E;
   try {
 
-    my $db = new OMP::FBDB(
-                           ProjectID => $projectid,
-                           CommentID => $comment,
-                           Password => $password,
-                           Delete => $status,
-                          );
+    my $db = new OMP::FeedbackDB(
+                                  ProjectID => $projectid,
+                                  DB => $class->dbConnection, );
 
-    $db->deleteComment( $comment, $password );
+    $db->deleteComment( $comment, $password, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
