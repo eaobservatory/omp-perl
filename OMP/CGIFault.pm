@@ -156,20 +156,18 @@ sub fault_table {
   my $q = shift;
   my $fault = shift;
 
+  # Color code the status
+  my $statushtml;
+  $fault->isOpen and $statushtml = "<b><font color=#008b24>Open</font></b>"
+    or "<b><font color=#a00c0c>Closed</font></b>";
+
   # First show the fault info
-  print "<table><tr bgcolor=#ffffff><td colspan=2 align=right><b>Fault ID: </b>" . $fault->faultid . "</td>";
+  print "<table bgcolor=#ffffff cellspacing=3 width=620>";
   print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td><td><b>Urgency: </b>" . $fault->urgency . "</td>";
-
-  # color code the status text
-  my $statushtml = $fault->statusText;
-  ($statushtml =~ /Open/) and $statushtml = "<b><font color=#008b24>$statushtml</font></b>"
-    or $statushtml = "<b><font color=#a00c0c>$statushtml</font></b>";
-
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Status: </b>$statushtml</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td>";
-  print "<tr bgcolor=#ffffff><b>Subject: </b>" . $fault->subject . "<td colspan=2></td>";
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Urgency: </b>" . $fault->urgency . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td><td><b>Status: </b>$statushtml</td>";
+  print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>" . $fault->subject . "</td>";
 
   # Then loop through and display each response
 #  my @responses = $fault->responses;
@@ -214,6 +212,7 @@ sub query_fault_output {
   my $faultid = $q->param('faultid');
 
   my $fault = OMP::FaultServer->getFault($faultid);
+  print $q->h2("Fault ID: $faultid");
   fault_table($q, $fault);
 }
 
