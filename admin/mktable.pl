@@ -15,10 +15,21 @@ use OMP::DBbackend;
 my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
 
+# Some constants to ensure that the table columns are the same
+# type/size when containing identical types of information
+use constant PROJECTID => "VARCHAR(32) not null";
+use constant USERID => "VARCHAR(32)";
+use constant FAULTID => "DOUBLE PRECISION"; # Need this precision
+use constant NUMID => "numberic(5,0) IDENTITY";
+
+# Actual table descriptions
 my %tables = (
+	      # Fundamental scheduling table. Deals with information
+              # that is part of a single MSB
+	      # Used mainly in OMP::MSBDB
 	      ompmsb => {
 			 msbid => "INTEGER",
-			 projectid=> "VARCHAR(32)",
+			 projectid=> PROJECTID,
 			 remaining => "INTEGER",
 			 checksum => "VARCHAR(64)",
 			 taumin => "REAL",
@@ -40,19 +51,26 @@ my %tables = (
 				    timeest title datemin datemax
 				    /],
 		       },
+	      # Associates individual Co-Is with associated projects
+	      # See OMP::ProjDB
 	      ompcoiuser => {
-			     userid => "VARCHAR(20) NULL",
-			     projectid => "VARCHAR(32)",
+			     userid => USERID . " NULL",
+			     projectid => PROJECTID,
 			     _ORDER => [ qw/ projectid userid /],
 			    },
+	      # Associates individual support scientists with
+	      # associated projects
+	      # See OMP::ProjDB
 	      ompsupuser => {
-			     userid => "VARCHAR(20) NULL",
-			     projectid => "VARCHAR(32)",
+			     userid => USERID . " NULL",
+			     projectid => PROJECTID,
 			     _ORDER => [ qw/ projectid userid /],
 			    },
+	      # General project details
+	      # See OMP::ProjDB
 	      ompproj => {
-			  projectid => "VARCHAR(32)",
-			  pi => "VARCHAR(20)",
+			  projectid => PROJECTID,
+			  pi => USERID,
 			  remaining => "REAL",
 			  pending => "REAL",
 			  allocated => "REAL",
@@ -60,7 +78,7 @@ my %tables = (
 			  tagpriority => "INTEGER",
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
-			  title => "VARCHAR(132)",
+			  title => "VARCHAR(255)",
 			  telescope => "VARCHAR(16)",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
@@ -68,10 +86,13 @@ my %tables = (
 				     remaining pending telescope
 				     /],
 			 },
+	      # Scheduling information associated with observations
+	      # that are present in MSBs.
+	      # See OMP::MSBDB
 	      ompobs => {
 			 obsid => "INTEGER",
 			 msbid => "INTEGER",
-			 projectid => "VARCHAR(32)",
+			 projectid => PROJECTID,
 			 instrument => "VARCHAR(32)",
 			 wavelength => "REAL",
 			 disperser => "VARCHAR(32) NULL",
@@ -96,10 +117,15 @@ my %tables = (
 				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
 			},
+	      # Log of messages/comments associated with a particular MSB
+	      # Could just as easily be called "ompmsblog". Name derives
+	      # from the fact that this table is the only place where
+	      # we explicitly log when an MSB is observed (done)
+	      # See OMP::MSBDoneDB
 	      ompmsbdone => {
 			     commid => "numeric(5,0) IDENTITY",
 			     checksum => "VARCHAR(64)",
-			     projectid => "VARCHAR(32)",
+			     projectid => PROJECTID,
 			     date => "DATETIME",
 			     comment => "TEXT",
 			     instrument => "VARCHAR(64)",
@@ -112,19 +138,24 @@ my %tables = (
 					comment
 					/],
 			    },
+	      # XML representation of the science program. Store it in
+	      # a table so we dont  have to worry about file locking.
+	      # See OMP::MSBDB
 	      ompsciprog => {
-			     projectid => "VARCHAR(32)",
+			     projectid => PROJECTID,
 			     timestamp => "INTEGER",
 			     sciprog   => "TEXT",
 			     _ORDER => [qw/
 					projectid timestamp sciprog
 					/],
 			     },
+	      # General comments associated with a project.
+	      # See OMP::FeedbackDB
 	      ompfeedback => {
-			      commid => "numeric(5,0) IDENTITY",
+			      commid => NUMID,
 			      entrynum => "numeric(4,0) not null",
-			      projectid => "varchar(32) not null",
-			      author => "varchar(50) not null",
+			      projectid => PROJECTID,
+			      author => USERID ." not null",
 			      date => "datetime not null",
 			      subject => "varchar(128) null",
 			      program => "varchar(50) not null",
@@ -132,12 +163,14 @@ my %tables = (
 			      status => "integer null",
 			      text => "text not null",
 			      _ORDER => [qw/
-					 commid entrynum projectid author date subject
-					 program sourceinfo status text
+					 commid entrynum projectid author date
+					 subject program sourceinfo status text
 					/],
 			     },
+	      # Bug/Fault meta-data
+	      # See OMP::FaultDB
 	      ompfault => {
-			   faultid => "DOUBLE PRECISION", # Required
+			   faultid => FAULTID,
 			   entity => "varchar(64) null",
 			   type   => "integer",
 			   system => "integer",
@@ -152,37 +185,48 @@ my %tables = (
 				      system status urgency timelost entity
 				      /],
 			  },
+	      # Textual information associated with each fault. Can be
+	      # responsees or the actual fault report
+	      # See OMP::FaultDB
 	      ompfaultbody => {
-			       respid => "numeric(5,0) IDENTITY",
-			       faultid => "DOUBLE PRECISION", # Required
+			       respid => NUMID,
+			       faultid => FAULTID,
 			       date => "datetime",
 			       isfault => "integer",
 			       text => "text",
-			       author => "varchar(50)",
+			       author => USERID,
 			       _ORDER => [qw/
-					  respid faultid date author isfault 
+					  respid faultid date author isfault
 					  text
 					  /],
 			      },
+	      # Table associating individual faults with projects
+	      # See OMP::FaultDB
 	      ompfaultassoc => {
-				associd => "numeric (5,0) IDENTITY",
-				faultid => "DOUBLE PRECISION",
-				projectid => "varchar(32) NULL",
+				associd => NUMID,
+				faultid => FAULTID,
+				projectid => PROJECTID,
 				_ORDER => [qw/ associd faultid projectid /],
 			       },
+	      # Fundamental unit of "user" in the OMP system. All other
+	      # tables use OMP::User userids rather than explicit names
+	      # See OMP::UserDB
 	      ompuser => {
-			  userid => "VARCHAR(32)",
+			  userid => USERID,
 			  name => "VARCHAR(255)",
 			  email => "VARCHAR(64)",
 			  _ORDER => [qw/ userid name email /],
 			 },
-       ompshiftlog => {
-       shiftid => "numeric(5,0) IDENTITY",
-       date => "DATETIME",
-       author => "VARCHAR(32)",
-       text => "TEXT",
-       _ORDER => [qw/ shiftid date author text /],
-       },
+	      # Comments associated with the observing shift.
+	      # basically a narrative timestamped log
+	      # See OMP::ShiftDB
+	      ompshiftlog => {
+			      shiftid => NUMID,
+			      date => "DATETIME",
+			      author => USERID,
+			      text => "TEXT",
+			      _ORDER => [qw/ shiftid date author text /],
+			     },
 	     );
 
 for my $table (sort keys %tables) {
