@@ -527,7 +527,7 @@ sub _post_process_hash {
 
   # These entries are in more than one table so we have to 
   # explicitly choose the MSB table
-  for (qw/ projectid timeest /) {
+  for (qw/ projectid timeest telescope /) {
     if (exists $href->{$_}) {
       my $key = "M.$_";
       $href->{$key} = $href->{$_};

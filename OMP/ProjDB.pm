@@ -718,7 +718,8 @@ sub _insert_project_row {
 			  $proj->projectid, $pi,
 			  $proj->title, $proj->tagpriority,
 			  $proj->country, $proj->semester, $proj->encrypted,
-			  $proj->allocated, $proj->remaining, $proj->pending
+			  $proj->allocated, $proj->remaining, $proj->pending,
+			  $proj->telescope
 			);
 
   # Now insert the user data

@@ -68,6 +68,7 @@ sub new {
 		    Semester => undef,
 		    Allocated => 0,
 		    Title => '',
+		    Telescope => undef,
 		    Encrypted => undef,
 		    Password => undef,
 		    ProjectID => undef,
@@ -115,6 +116,25 @@ sub allocated {
   my $self = shift;
   if (@_) { $self->{Allocated} = shift; }
   return $self->{Allocated};
+}
+
+=item B<telescope>
+
+The telescope on which the project has been allocated time.
+
+  $time = $proj->telescope;
+  $proj->telescope( $time );
+
+This is a string and not a C<Astro::Telescope> object.
+
+Telescope is always upper-cased.
+
+=cut
+
+sub telescope {
+  my $self = shift;
+  if (@_) { $self->{Telescope} = uc(shift); }
+  return $self->{Telescope};
 }
 
 =item B<coi>

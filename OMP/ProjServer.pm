@@ -271,7 +271,8 @@ Add details of a project to the database.
   OMP::ProjServer->addProject($password, $projectid, $pi,
 			      $coi, $support,
 			     $title, $tagpriority, $country,
-			     $semester, $proj_password, $allocated);
+			     $semester, $proj_password, $allocated
+                             $telescope);
 
 The first password is used to verify that you are allowed to modify
 the project table. The second password is for the project itself.
@@ -293,7 +294,7 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be 10 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 10;
+    throw OMP::Error::BadArgs("Should be 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 11;
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
@@ -319,6 +320,7 @@ sub addProject {
 				semester => $project[7],
 				password => $project[8],
 				allocated => $project[9],
+				telescope => $project[10],
 			       );
 
     my $db = new OMP::ProjDB(
