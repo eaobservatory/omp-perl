@@ -300,9 +300,8 @@ sub updateObsComment {
   my $obs_arrayref = shift;
 
   foreach my $obs ( @$obs_arrayref ) {
-#    print Dumper $obs;
     my @comments = $self->getComment( $obs );
-    $obs->comments = @comments;
+    $obs->comments(@comments);
   }
 
 }
