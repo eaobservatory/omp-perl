@@ -50,7 +50,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output update_resp_content update_resp_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output update_resp_content update_resp_output fault_summary_form fault_summary_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1932,6 +1932,209 @@ sub url_args {
     }
 
   return $url;
+}
+
+=item B<fault_summary_form>
+
+Create a form for taking parameters for a fault summary.
+
+  fault_summary_form($q);
+
+=cut
+
+sub fault_summary_form {
+  my $q = shift;
+
+  # Get available fault categories
+  my @categories = sort OMP::Fault->faultCategories;
+
+  print "<h2>Summarize faults</h2>";
+  print $q->start_form;
+  print "Category";
+  print $q->popup_menu(-name=>"category",
+		       -values=>\@categories,);
+  print "<table><td>";
+  print $q->radio_group(-name=>"period",
+		        -values=>["last_month","arbitrary"],
+		        -labels=>{last_month=>"Last month",arbitrary=>"For the past"},
+		        -default=>"last_month",
+		        -linebreak=>"true",);
+  print "</td><td valign=bottom>";
+  print $q->textfield(-name=>"days",
+		      -default=>7,
+		      -size=>3,
+		      -maxlength=>4,);
+  print " days";
+  print "</td><tr><td>";
+  print $q->submit(-name=>'submit',);
+  print "</td></table>";
+  print $q->end_form;
+}
+
+=item B<fault_summary_content>
+
+Create a page summarizing faults for a particular category, or all categories.
+
+  fault_summary_content($cgi, @categories);
+
+Takes a C<CGI> query object and an array of fault categories as its arguments.
+
+=cut
+
+sub fault_summary_content {
+  my $q = shift;
+  my $category = $q->param('category');
+  my $ompurl = OMP::Config->getData('omp-url');
+  my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
+  my %status = OMP::Fault->faultStatus;
+  my %statusOpen = OMP::Fault->faultStatusOpen;
+
+  # Generate the date portion of our XML query
+  my $queryDateStr;
+  my $today = localtime;
+  my $period;
+  if ($q->param('period') eq 'last_month') {
+    # Get results for the period between the first 
+    # and last days of the last month
+    my $today = localtime;
+    my $year;
+    my $month;
+    if ($today->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
+      $year = $1;
+      $month = $2;
+    }
+
+    $month -= 1;
+    if ($month eq 0) {
+      $month = 12;
+      $year -= 1;
+    }
+
+    my $beginDate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
+    my $endDate = $year . "-" . $month . "-" . $beginDate->month_last_day . "T23:59:59";
+    $queryDateStr = "<date><min>".$beginDate->datetime."</min><max>$endDate</max></date>";
+    $period = $beginDate->monname ." ". $beginDate->year;
+  } else {
+    # Get results between today and N days ago
+    my $days = $q->param('days');
+    (! $days) and $days = 7;
+
+    $queryDateStr = "<date delta='-".$days."'>" . $today->datetime . "</date>";
+    $period = "the past $days days";
+  }
+
+  
+  # Construct our fault query
+  my $xml = "<FaultQuery>".
+    "<category>$category</category>".
+      $queryDateStr.
+	"<isfault>1</isfault>".
+	  "</FaultQuery>";
+
+  # Run the query
+  my $faults = OMP::FaultServer->queryFaults($xml, 'object');
+
+  # Title
+  print "<h2>$category fault summary for $period</h2>";
+
+  # Check that we got some faults back
+  if (! $faults->[0]) {
+    print "<h3>No faults were filed during this period</h3>";
+    return;
+  }
+
+  # Store faults by system and type
+  my %faults;
+  my %totals;
+  my $timelost = 0;
+  for (@$faults) {
+
+    $totals{$_->systemText}++;
+    $timelost += $_->timelost;
+
+    # Store open faults and closed major faults
+    my $status;
+    if (exists $statusOpen{$_->statusText}) {
+      $status = 'open';
+    } elsif (! exists $statusOpen{$_->statusText} and $_->timelost >= 2) {
+      $status = 'closed';
+    } else {
+      next;
+    }
+
+    push (@{$faults{$status}{$_->systemText}{$_->typeText}}, $_);
+    $totals{$status}++;
+  }
+
+  # Totals
+  print "<table bgcolor=#43438c cellspacing=1><td>";
+  print "<table bgcolor=#ffffff border=0>";
+  print "<td><strong>Faults filed in period</strong></td><td align=right>".scalar(@$faults)."</td>";
+  print "<tr><td><strong>Total time lost</strong></td><td align=right>$timelost hours</td>";
+  print "<tr><td><strong>Faults open</strong></td><td align=right>$totals{open}</td>";
+  print "</table></td></table><br><br>";
+
+#  use Data::Dumper;
+#  print "<pre>";
+#  print Dumper(%faults);
+
+  # First show all open, then all major closed
+  print "<table><td>";
+  for my $showfaults (qw/open closed/) {
+    print "<table width=100% cellspacing=0 cellpadding=2><td colspan=5 bgcolor=#ffffff><font size=+1><strong>";
+
+    ($showfaults eq 'open') and print "Open faults"
+      or print "Major faults closed";
+
+    print "</strong></font></td>";
+    if (! $totals{$showfaults}) {
+      print "<tr><td solspan=5 bgcolor=#ffffff>None filed</td></table>";
+      next;
+    }
+
+    # Display faults by system
+    for my $system (sort keys %{$faults{$showfaults}}) {
+      print "<tr bgcolor=#dbdbff><td colspan=2><strong>$system</strong> <font size=-1>(total filed: $totals{$system})</font></td>";
+      print "<td align=center><font size=-1>Time lost</font></td><td align=center><font size=-1>Responses</font></td><td align=center><font size=-1>Days idle</font></td>";
+
+      my $systemTimeLost = 0;
+
+      for my $type (sort keys %{$faults{$showfaults}{$system}}) {
+	print "<tr bgcolor=#ffffff><td colspan=5><font color=#ffffff>----</font><strong>$type</strong></td>";
+
+	for my $fault (@{$faults{$showfaults}{$system}{$type}}) {
+
+	  # Find out how long since the last response
+	  my $localtime = localtime;
+	  my $locallast = localtime($fault->responses->[-1]->date->epoch);
+	  my $lastresponse = $localtime - $locallast;
+	  $lastresponse = sprintf("%d", $lastresponse->days);
+	  $systemTimeLost += $fault->timelost;
+
+	  # Setup the preview
+	  my $preview = substr($fault->responses->[0]->text, 0, 87);
+	  $preview = OMP::General->html_to_plain($preview);
+	  $preview =~ s/\"/\'\'/gi;
+	  $preview =~ s/\s+/ /gi;
+
+	  print "<tr bgcolor=#ffffff><td><font color=#ffffff>-------</font>";
+	  ($fault->timelost > 0) and print "<img src=$iconurl/timelost.gif alt=\"Fault lost time\">"
+	    or print "<img src=$iconurl/spacer.gif height=13 width=10>";
+	  print " ". $fault->id ."</td>";
+	  print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_dark\" title=\"$preview\">". $fault->subject ."</a></td>";
+	  print "<td align=right>". $fault->timelost ."</td>";
+	  print "<td align=right>". $#{$fault->responses} ."</td>";
+	  print "<td align=right>". $lastresponse ."</td>";
+	}
+      }
+
+      # Total time lost for system
+      print "<tr bgcolor=#ffffff><td colspan=2 align=right>Total time lost</td><td align=right><strong>$systemTimeLost</strong></td><td colspan=2></td>";
+
+    }
+    print "</table><tr><td><br>";
+  }
+  print "</td></table>";
 }
 
 =back
