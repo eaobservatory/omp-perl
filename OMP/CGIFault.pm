@@ -269,7 +269,7 @@ sub query_fault_content {
 
 =item B<query_fault_output>
 
-Display a fault
+Display output of fault query
 
   query_fault_output($cgi);
 
@@ -540,16 +540,18 @@ sub show_faults {
   my $faults = shift;
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
-  print "<tr><td><b>Fault ID</b></td><td><b>User</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Subject</b></td>";
+  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td></td>";
   my $colorcount;
   for my $fault (@$faults) {
     my $bgcolor;
 
+    # Alternate background color for the rows and make the background color
+    # a shade of red if the fault is urgent.
     $colorcount++;
     if ($colorcount == 1) {
-      $bgcolor = '#6161aa'; # darker
+      $bgcolor = ($fault->isUrgent ? '#c44646' : '#6161aa'); # darker
     } else {
-      $bgcolor = '#8080cc'; # lighter
+      $bgcolor = ($fault->isUrgent ? '#e87474' : '#8080cc'); # lighter
       $colorcount = 0;
     }
 
@@ -558,12 +560,18 @@ sub show_faults {
     my $system = $fault->systemText;
     my $type = $fault->typeText;
     my $subject = $fault->subject;
+    (!$subject) and $subject = "[no subject]";
 
-    print "<tr bgcolor=$bgcolor><td><b><a href='viewfault.pl?id=$faultid'>$faultid</b></td>";
+    my $status = ($fault->isOpen ? "Open" : "Closed");
+    ($fault->isNew and $status eq "Open") and $status = "New";
+
+    print "<tr bgcolor=$bgcolor><td>$faultid</td>";
+    print "<td><b><a href='viewfault.pl?id=$faultid'>$subject &nbsp;</a></b></td>";
     print "<td>$user</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
-    print "<td>$subject &nbsp;</td>";
+    print "<td>$status</td>";
+    print "<td><b><a href='viewfault.pl?id=$faultid'>[View/Respond]</a></b></td>";
   }
 
   print "</table>";
