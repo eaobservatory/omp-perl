@@ -162,7 +162,8 @@ sub queryMSB {
   my $xmlquery = shift;
   my $maxCount = shift;
 
-  OMP::General->log_message("queryMSB:\n$xmlquery\n");
+  my $m = ( defined $maxCount ? $maxCount : '[undefined]' );
+  OMP::General->log_message("queryMSB:\n$xmlquery\nMaxcount=$m\n");
 
   my @results;
   my $E;
