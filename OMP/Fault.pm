@@ -137,7 +137,6 @@ my %DATA = (
 	     "UKIRT" => {
 			 SYSTEM => {
 				    Telescope => TELESCOPE,
-				    Instrument => INSTRUMENT,
 				    Computer => COMPUTER,
 				    Dome => DOME,
 				    Ancillaries => ANCILLARIES,
