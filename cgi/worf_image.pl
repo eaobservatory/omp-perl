@@ -37,8 +37,7 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::WORF;
+use OMP::CGIComponent::WORF;
 
 # Set up global variables, system variables, etc.
 

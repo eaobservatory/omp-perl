@@ -31,8 +31,7 @@ BEGIN {
 }
 
 # OMP Modules
-use OMP::CGI;
-use OMP::CGIWORF;
+use OMP::CGIPage::WORF;
 
 use strict;
 
