@@ -1311,7 +1311,7 @@ sub _store_sciprog_todisk {
 
   # Directory for writing. Currently hard-wired into a location
   # on mauiola
-  my $cachedir = File::Spec->catdir(File::Spec->rootdir,"DSS","omp-cache");
+  my $cachedir = File::Spec->catdir(File::Spec->rootdir,"omp-cache");
 
   # Construct a simple error message
   my ($user, $addr, $email) = OMP::General->determine_host;
