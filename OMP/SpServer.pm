@@ -29,6 +29,7 @@ use OMP::SciProg;
 use OMP::MSBDB;
 use OMP::General;
 use OMP::Error qw/ :try /;
+use SrcCatalog::JCMT;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -293,7 +294,7 @@ sub SpInsertCat {
   try {
 
     # Create a science program from the string
-    my $sp = new OMP::SciProg( XML => $xml );
+    $sp = new OMP::SciProg( XML => $xml );
     my $proj = $sp->projectID;
     $proj = "<UNKNOWN>" unless defined $proj;
     OMP::General->log_message("SpInsertCat: ProjectID: $proj");
@@ -319,8 +320,11 @@ sub SpInsertCat {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+  my $infostr = join("\n", @info) . "\n";
+  my $spstr = "$sp";
+
   # Return the result
-  return [ "$sp", join("\n",@info)."\n"];
+  return [ $spstr, $infostr];
 }
 
 sub returnStruct {
