@@ -74,7 +74,8 @@ sub suffices {
   my @suffices;
 
   if( $group ) {
-    @suffices = qw/ _mos _dbs _dbsi _dbsc _fc _fci _cub /;
+#    @suffices = qw/ _mos _dbs _dbsi _dbsc _fc _fci _cub /;
+    @suffices = qw/ _mos _dbs _dbsi _fci /;
   } else {
     @suffices = qw/ _ff _raw _wce /;
   }
