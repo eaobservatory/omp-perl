@@ -24,6 +24,21 @@ For example, date parsing is required in the MSB class and in the query class.
 use 5.006;
 use strict;
 use warnings;
+
+# In some random cases with perl 5.6.1 (and possibly 5.6.0) we get
+# errors such as:
+#   Can't locate object method "SWASHNEW" via package "utf8"
+#              (perhaps you forgot to load "utf8"?)
+# Get round this by loading the utf8 module. Note that we solve the
+# bug without contaminating our lexical namespace because the use
+# line has the side effect of loading in the module that knows about
+# the SWASHNEW method. Clearly crazy that the perl core can need this
+# without loading it first. Fixed in perl 5.8.0. These are triggered
+# because the XML parser and the web server provide UTF8 characters
+# without loading associated handler code.
+if ($] >= 5.006 || $] < 5.008) {
+  eval "use utf8;";
+}
 use Carp;
 use OMP::Range;
 use OMP::UserServer;
