@@ -120,7 +120,7 @@ my %MAILLIST = (
 		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
 		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
 		"OMP" => "omp_group\@jach.hawaii.edu",
-		"DR" => "hlsg\@jach.hawaii.edu",
+		"DR" => "dr_faults\@jach.hawaii.edu",
 	       );
 
 my %DATA = (
