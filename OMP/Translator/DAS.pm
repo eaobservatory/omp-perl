@@ -566,7 +566,8 @@ sub fixedHeader {
   $html .= "<HTML><HEAD><TITLE>Project $project</TITLE></HEAD><BODY>\n";
 
   my $templatefile = lc($project) . ".txt";
-  $html .= "<H1>Project: <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$project\">$project</a> [<a href=\"http://www-private.jach.hawaii.edu:81/scubaserv/templates/03a/$templatefile\">template</a>]</H1>\n";
+  my $ompurl = OMP::Config->getData('omp-url');
+  $html .= "<H1>Project: <a href=\"$ompurl/cgi-bin/projecthome.pl?urlprojid=$project\">$project</a> [<a href=\"http://www-private.jach.hawaii.edu:81/scubaserv/templates/03a/$templatefile\">template</a>]</H1>\n";
 
   $html .= "<ul>\n";
   $html .= "<li><em>Please remember to set project ID to <em>$project</em> in the acquisition system.</em>\n";
