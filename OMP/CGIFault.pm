@@ -24,7 +24,6 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
-use OMP::DBbackend;
 use OMP::Error qw(:try);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
