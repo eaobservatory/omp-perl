@@ -1,14 +1,20 @@
-#!/local/perl-5.6/bin/perl -X
+#!/local/bin/perl -X
 #
 # shiftlog - keep a log throughout a night
 #
 # Author: Brad Cavanagh (b.cavanagh@jach.hawaii.edu)
 
+BEGIN {
+  use constant OMPLIB => "/jac_sw/omp/msbserver";
+  use File::Spec;
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{'OMP_CFG_DIR'};
+}
+
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
-use lib qw( /jac_sw/omp/msbserver );
-#use lib qw( /home/bradc/development/omp/msbserver );
+use lib OMPLIB;
 
 use OMP::CGI;
 use OMP::Info::Comment;
@@ -42,6 +48,8 @@ if($hostname =~ /ulili/i) {
 } else {
   $location = "nottelescope";
 }
+
+#$location="UKIRT";
 
 # Write the page, using the proper authentication on whether or
 # not we're at one of the telescopes
@@ -182,6 +190,7 @@ sub display_form {
   print "<input type=\"hidden\" name=\"zone\" value=\"";
   print ( defined( $params->{'zone'}) ? $params->{'zone'} : "" );
   print "\">\n";
+  print "<input type=\"hidden\" name=\"telescope\" value=\"" . $params->{'telescope'} . "\">\n";
   print "<input type=\"submit\" value=\"submit comment\"> <input type=\"reset\">\n";
   print "</form>\n";
 }
@@ -353,7 +362,7 @@ sub print_footer {
   }
   print "><br>\n";
   print "<input type=\"submit\" value=\"submit\"> <input type=\"reset\">\n";
-  print "<input type=\"hidden\" name=\"telescope=\" value=\"";
+  print "<input type=\"hidden\" name=\"telescope\" value=\"";
   print $params->{'telescope'};
   print "\"></form>\n";
   print "<form action=\"shiftlog.pl\" method=\"post\"><br>";
