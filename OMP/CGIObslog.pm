@@ -53,7 +53,7 @@ Exporter::export_tags(qw/ all /);
 
 # Colours for displaying observation status. First is 'good', second
 # is 'questionable', third is 'bad'.
-our @colour = qw/ BLACK #660000 #FFCCCC /;
+our @colour = ( "BLACK", "#660000", "#FFCCCC" );
 
 =head1 Routines
 
