@@ -30,6 +30,7 @@ use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::FaultQuery;
+use OMP::FaultUtil;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::General;
@@ -677,145 +678,31 @@ sub _mail_fault {
 
   my $faultid = $fault->id;
 
-  # Get the Private and Public cgi-bin URLs
-  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
-  my $private_url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
-
-  # Get the fault response(s)
   my @responses = $fault->responses;
 
-  # Store fault meta info to strings
+  my $from = $responses[-1]->author->email;
+
   my $system = $fault->systemText;
   my $type = $fault->typeText;
-  my $loss = $fault->timelost;
-  my $category = $fault->category;
 
   # The email subject
   my $subject = "$system/$type - " . $fault->subject . " [$faultid]";
 
-  # Only show the status if this isn't the initial filing
-  my $status = "<b>Status:</b> " . $fault->statusText
-    if $responses[1];
-
-  my $faultdatetext;
-  if ($fault->faultdate) {
-    # Convert date to local time
-    my $faultdate = localtime($fault->faultdate->epoch);
-
-    # Now convert date to string for appending to time lost
-    $faultdatetext = "hrs at ". OMP::General->display_date($faultdate);
-  }
-
-  my $faultauthor = $fault->author->html;
-
-  # Create the fault meta info portion of our message
-  my $meta =
-"<pre>".
-sprintf("%-58s %s","<b>System:</b> $system","<b>Fault type:</b> $type<br>").
-sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
-"</pre><br>";
-
-  my @msg;
-  my @addr;
-
-  # Use the address of the user that filed the latest response for the 'From:'
-  my $from = $responses[-1]->author->email
-    unless (! $responses[-1]->author->email);
-
-  # Create the message
-  # We format the message using HTML since the _mail_information method will
-  # provide a plain text version on it's own
-  if ($responses[1]) {
-    my %authors;
-
-    # Make it noticeable if this fault is urgent
-    push(@msg, "<div align=center><b>* * * * * URGENT * * * * *</b></div>")
-      if $fault->isUrgent;
-
-    # This is a response to a fault so arrange the responses in reverse order
-    # followed by the meta info
-    for (reverse @responses) {
-      my $user = $_->author;
-
-      my $author = $user->html; # This is an html mailto
-
-      # Convert date to local time
-      my $date = localtime($_->date->epoch);
-
-      # now convert date to a string for display
-      $date = OMP::General->display_date($date);
-
-      my $text = $_->text;
-
-      # Wrap the message text
-      $text = wrap('', '', $text);
-
-      # Now turn fault IDs into links
-      $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
-
-      # Store the author's email address (if not undef)
-      $authors{$user->userid} = $_->author->email
-	unless (! $_->author->email);
-
-      # Once we get to the bottom (the initial report) add in the fault meta info
-      if ($_->isfault) {
-	 push(@msg, "$category fault filed by $author on $date<br><br>$text<br><br>");
-	 push(@msg, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$meta");
-       } else {
-
-	 push(@msg, "Response filed by $author on $date<br><br>$text<br><br>");
-	 push(@msg, "--------------------------------------------------------------------------------<br>");
-       }
+  # Get email addresses
+  my %addresslist;
+  for (@responses) {
+    my $email = $_->author->email;
+    if ($email) {
+      $addresslist{$email} = undef;
     }
-
-    # Add the addresses of the response authors (if not undef) to our address list
-    # so we can mail them this response, provided they aren't the author
-    # of the latest response.
-    @addr = map {$authors{$_}}
-      grep {$authors{$_} ne $responses[-1]->author->email} keys %authors;
-
-  } else {
-
-    # This is an initial filing so arrange the message with the meta info first
-    # followed by the initial report
-    my $author = $responses[0]->author->html; # This is an html mailto
-
-    # Convert date to local time
-    my $date = localtime($responses[0]->date->epoch);
-
-    # now convert date to a string for display
-    $date = OMP::General->display_date($date);
-
-    my $text = $responses[0]->text;
-
-    # Wrap the message text
-    $text = wrap('', '', $text);
-
-    # Now turn fault IDs into links
-    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
-
-    push(@msg, "$category fault filed by $author on $date<br><br>");
-
-    # Make it noticeable if this fault is urgent
-    push(@msg, "<div align=center><b>* * * * * URGENT * * * * *</b></div>")
-      if $fault->isUrgent;
-    push(@msg, "$meta~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$text<br><br>");
   }
 
-  # Set link to response page
-  my $url = ($category eq "BUG" ?
-	     "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
-	     "$public_url/viewfault.pl?id=$faultid");
+  # Add the addresses of the response authors (if not undef) to our address list
+  # so we can mail them this response, provided they aren't the author
+  # of the latest response.
+  my @addr = map {$_}
+    grep {$_ ne $from} keys %addresslist;
 
-  my $responselink = "<a href='$url'>here</a>";
-
-  # Add the response link to the bottom of our message
-  push(@msg, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
-
-  # Our address list will start with the fault category's mailing list
-  # In order to get this partially working I have deleted the mailing lists
-  # in OMP::Fault except for the OMP mailing list - TJ
-  # add test here for undef mail_list
   my $fault_list = $fault->mail_list;
   unshift(@addr, $fault_list)
     unless (! $fault_list);
@@ -828,8 +715,11 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     $from = $fault_list;
   }
 
+  # Get the fault message
+  my $msg = OMP::FaultUtil->format_fault($fault, 0);
+
   # Mail it off
-  $self->_mail_information(message => join('',@msg),
+  $self->_mail_information(message => $msg,
 			   to => join(", ",@addr),
 			   from => $from,
 			   subject => $subject);
