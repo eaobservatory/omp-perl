@@ -436,13 +436,14 @@ sub query_fault_output {
 
     for (keys %daterange) {
       # Make sure date matches our expect format
-      ($daterange{$_} =~ /^\d{4}-\d{2}-\d{2}$/) or $daterange{$_} = undef;
+      ($daterange{$_} =~ /^\d{4}-*\d{2}-*\d{2}$/) or $daterange{$_} = undef;
       if ($daterange{$_}) {
 	# Convert min and max dates to UT;
-	$daterange{$_} = Time::Piece->strptime($daterange{$_}, "%Y-%m-%d");
+        $daterange{$_} = OMP::General->parse_date($daterange{$_}, 1);
 	my $epoch = $daterange{$_}->epoch;
 	$daterange{$_} = gmtime($epoch);
 	$daterange{$_} = $daterange{$_}->ymd;
+	($_ eq 'max') and $daterange{$_} .= "T23:59";
       }
     }
 
@@ -577,7 +578,7 @@ sub query_fault_form {
 
   # Get a default date for max date search (today)
   my $today = localtime;
-  $today = localtime->ymd;
+  $today = localtime->strftime("%Y%m%d");
 
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = map {$systems->{$_}} sort keys %$systems;
@@ -611,7 +612,7 @@ sub query_fault_form {
 		      -size=>17,
 		      -maxlength=>32,);
   print "</b></td><td></td><tr><td><b>";
-  print "between dates <small>(YYYY-MM-DD)</small> ";
+  print "between dates <small>(YYYYMMDD)</small> ";
   print $q->textfield(-name=>'mindate',
 		      -size=>10,
 		      -maxlength=>15);
