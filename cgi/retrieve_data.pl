@@ -11,8 +11,8 @@ BEGIN { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"; }
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
-use OMP::CGI;
-use OMP::CGI::PkgDataPage;
+use OMP::CGIPage;
+use OMP::CGIPage::PkgData;
 
 
 # unbuffered
@@ -21,10 +21,10 @@ $| = 1;
 
 # Create the new object for this transaction
 my $cquery = new CGI;
-my $cgi = new OMP::CGI( CGI => $cquery );
+my $cgi = new OMP::CGIPage( CGI => $cquery );
 $cgi->html_title( "OMP Data retrieval" );
 
 # Now write the page
-$cgi->write_page( \&OMP::CGI::PkgDataPage::request_data,
-		  \&OMP::CGI::PkgDataPage::request_data
+$cgi->write_page( \&OMP::CGIPage::PkgData::request_data,
+		  \&OMP::CGIPage::PkgData::request_data
 		);
