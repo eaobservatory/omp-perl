@@ -837,6 +837,9 @@ sub SpIterFocusObs {
   my $self = shift;
   my %info = @_;
 
+  # THE ALIGN AND FOCUS AXES MUST BE UPPER CASE
+  $info{focusAxis} = uc($info{focusAxis});
+
   my $isFocus = ( $info{focusAxis} =~ /z/i ? 1 : 0);
 
   # Template
@@ -858,6 +861,7 @@ sub SpIterFocusObs {
 	     SWITCH_MODE => 'BMSW',
 	     ($isFocus ? () : (ALIGN_AXIS => $info{focusAxis} ) ),
 	    );
+
 
   if ($isFocus) {
     $odf{FOCUS_SHIFT} = $info{focusStep};
