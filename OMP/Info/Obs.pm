@@ -35,6 +35,8 @@ use OMP::Range;
 use OMP::General;
 use OMP::Constants qw/ :obs /;
 use OMP::Error qw/ :try /;
+use OMP::ObslogDB;
+use OMP::DBbackend;
 
 use Astro::FITS::Header::NDF;
 use Astro::FITS::Header::GSD;
@@ -727,6 +729,35 @@ sub file_from_bits {
   }
 
   return $filename;
+}
+
+=item B<remove_comment>
+
+  $obs->remove_comment( $userid );
+
+Removes the existing comment for the given user ID from the C<OMP::Info::Obs>
+object and sets all comments for the given user ID and C<OMP::Info::Obs> object
+as inactive in the database.
+
+=cut
+
+sub remove_comment {
+  my $self = shift;
+  my $userid = shift;
+
+  if(!defined($userid)) {
+    throw OMP::Error::BadArgs("Must supply user ID in order to remove comments");
+  }
+
+  my $db = new OMP::ObslogDB( DB => new OMP::DBbackend );
+
+  $db->removeComment( $self, $userid );
+
+  my @obs;
+  push @obs, $self;
+
+  $db->updateObsComment( \@obs );
+
 }
 
 =back
