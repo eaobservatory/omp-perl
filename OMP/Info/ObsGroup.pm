@@ -319,7 +319,6 @@ sub populate {
     }
   }
 
-
   my $xml = "<ArcQuery>$xmlbit</ArcQuery>";
 
   # Form the query.
@@ -439,15 +438,14 @@ sub filter {
     for my $obs ($self->obs) {
       my $obsmode = $obs->mode || $obs->type;
       if ((uc($obs->projectid) eq $args{projectid}) && $obs->isScience) {
-	$instruments{uc($obs->instrument)}++; # Keep track of instrument
-	$obsmodes{$obsmode}++; # Keep track of obsmode
-	print "SCIENCE:     " .$obs->instrument ."/".$obsmode
-           . " [".$obs->target ."]\n"
-	     if $args{verbose};
-	push(@proj, $obs);
+        $instruments{uc($obs->instrument)}++; # Keep track of instrument
+        $obsmodes{$obsmode}++; # Keep track of obsmode
+        print "SCIENCE:     " .$obs->instrument ."/".$obsmode
+              . " [".$obs->target ."]\n" if $args{verbose};
+        push(@proj, $obs);
       } elsif ( ! $obs->isScience && $args{inccal}) {
-	$calinst{uc($obs->instrument)}++; # Keep track of cal instrument
-	push(@cal, $obs);
+        $calinst{uc($obs->instrument)}++; # Keep track of cal instrument
+        push(@cal, $obs);
       }
     }
 
@@ -481,9 +479,9 @@ sub filter {
     # since we do not want to list a whole load of pointless calibrations
     if ($args{verbose}) {
       for my $obs (@cal) {
-	my $obsmode = $obs->mode || $obs->type;
-	print "CALIBRATION: ". $obs->instrument ."/".$obsmode
-          . " [".$obs->target."]\n";
+        my $obsmode = $obs->mode || $obs->type;
+        print "CALIBRATION: ". $obs->instrument ."/".$obsmode
+              . " [".$obs->target."]\n";
       }
     }
 
@@ -1168,70 +1166,80 @@ sub locate_timegaps {
   my $self = shift;
   my $length = shift;
 
-  # Make sure the array of Obs objects is sorted in time, but only if there
-  # actually are observations.
-  $self->sort_by_time;
+  my @obslist;
+  my $counter = 0;
+  my $obs_counter = 0;
+  my $last_time;
+  my @newobs;
+  my @timegaps;
+
+  # Get a list of the observations.
   my @obs = $self->obs;
 
-#my %gaphist;
+  # Create an array of arrays.
+  @obslist = map { [ $_->startobs, +1, $_ ], [ $_->endobs, -1, $_ ] } @obs;
 
-  my @newobs;
-  for( my $i = 0; $i < $#obs; $i++ ) {
-    my $curobs = $obs[$i];
-    my $nextobs = $obs[$i+1];
-    push @newobs, $curobs;
+  # Sort according to time.
+  @obslist = sort { $a->[0] <=> $b->[0] } @obslist;
 
-#my $gaplength = abs( $nextobs->startobs - $curobs->endobs );
-#$gaphist{int($gaplength/5)}++;
+  # For each observation in the sorted array...
+  foreach my $obs (@obslist) {
+    if( $counter == 0 && defined $last_time ) {
 
-    if ( abs( $nextobs->startobs - $curobs->endobs ) > $length ) {
+      # We have a timegap. Let's see if it's longer than our threshold.
+      my $gap = $obs->[0] - $last_time;
+      if( $gap >= $length ) {
 
-      my $timegap = new OMP::Info::Obs::TimeGap;
-      # Aha, we have a timegap! We need to figure out what kind it is.
+        # It is! We have a proper timegap to record and cherish!
 
-      # Set the necessary accessors in the timegap object.
-      $timegap->instrument( $nextobs->instrument );
-      $timegap->runnr( $nextobs->runnr );
-      $timegap->startobs( $curobs->endobs );
-      $timegap->endobs( $nextobs->startobs - 1 );
-      $timegap->telescope( $curobs->telescope );
+        # Get the previous and current observations.
+        my $prev_obs = $obslist[$obs_counter-2]->[2];
+        my $curr_obs = $obslist[$obs_counter]->[2];
 
-      # Grab any comments for the timegap object.
-      my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-      my $comments = $odb->getComment( $timegap );
-      $timegap->comments( $comments );
+        # Create the TimeGap.
+        my $timegap = new OMP::Info::Obs::TimeGap;
+        $timegap->instrument( $curr_obs->instrument );
+        $timegap->runnr( $curr_obs->runnr );
+        $timegap->startobs( $prev_obs->endobs );
+        $timegap->endobs( $curr_obs->startobs - 1 );
+        $timegap->telescope( $prev_obs->telescope );
 
-      if( !defined( $timegap->status ) ) {
-        if( uc( $curobs->instrument ) eq uc( $nextobs->instrument ) ) {
+        # Get the comments for the TimeGap.
+        my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+        my $comments = $odb->getComment( $timegap );
+        $timegap->comments( $comments );
 
-          # It's either weather or a fault, so set the timegap's status
-          # to UNKNOWN.
-          $timegap->status( OMP__TIMEGAP_UNKNOWN );
-        } else {
-          $timegap->status( OMP__TIMEGAP_INSTRUMENT );
+        # Set the TimeGap status, if necessary.
+        if( !defined( $timegap->status ) ) {
+          if( uc( $prev_obs->instrument ) eq uc( $curr_obs->instrument ) ) {
+            $timegap->status( OMP__TIMEGAP_UNKNOWN );
+          } else {
+            $timegap->status( OMP__TIMEGAP_INSTRUMENT );
+          }
         }
+
+        # Push the TimeGap onto the array of TimeGaps.
+        push @timegaps, $timegap;
+
       }
-
-      # Push the timegap object onto the array.
-      push @newobs, $timegap;
-
     }
-  } # end for loop
 
-  # We need to push the last observation on the array, since
-  # it got skipped in the amazing loop structure, but only if there's
-  # more than one observation in the array.
-  if($#obs > 0) {
-    push @newobs, $obs[$#obs];
-
-    # And now, set $self to use the new observations.
-    $self->obs( \@newobs );
+    # Increment counters.
+    $counter += $obs->[1];
+    $counter == 0 && ( $last_time = $obs->[0] );
+    $obs_counter++;
   }
 
-#  foreach (sort { $a <=> $b } keys %gaphist) {
-#    print ( ($_ * 5), " ", $gaphist{$_}, "\n");
-#  }
+  # Add the TimeGaps to the list of observations.
+  push @obs, @timegaps;
 
+  # And now, set $self to use the new observations.
+  $self->obs( \@obs );
+
+  # And sort.
+  $self->sort_by_time;
+
+  # Let's return!
   return;
 
 }
