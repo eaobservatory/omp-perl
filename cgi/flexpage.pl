@@ -14,14 +14,15 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGIPage;
+use OMP::CGIComponent::Helper;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $ompcgi = new OMP::CGI( CGI => $q );
+my $ompcgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Flex programme descriptions");
-$ompcgi->write_page_proposals( \&flex_page, \&flex_page );
+$ompcgi->write_page_proposals( \&OMP::CGIComponent::Helper::flex_page,
+			       \&OMP::CGIComponent::Helper::flex_page );
