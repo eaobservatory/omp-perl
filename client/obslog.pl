@@ -1078,10 +1078,24 @@ sub submit_shift_comment {
   # Use current date if the field is blank
   my $date;
 
-  if (defined $date && $date =~ /\d/) {
+  if (defined $time && $time =~ /\d/) {
     # Now need to parse the time (either as UT or local time)
     my $islocal = ( $TZ eq 'UT' ? 0 : 1 );
     $date = OMP::General->parse_date( $time, $islocal );
+
+    # if it did not parse tell people
+    if (!defined $date) {
+      # popup the error and return
+      require Tk::Dialog;
+      my $dialog = $textw->Dialog( -text => "Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS",
+			       -title => "Error parsing time",
+			       -buttons => ["Abort"],
+			       -bitmap => 'error',
+			     );
+
+      $dialog->Show;
+      return;
+    }
   } else {
     $date = gmtime();
   }
@@ -1136,11 +1150,12 @@ sub view_shift_comments {
 
 =head1 AUTHOR
 
-Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>,
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
