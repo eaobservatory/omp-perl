@@ -1666,6 +1666,13 @@ sub _run_query {
       # create the range object
       my $elconstraint = new OMP::Range( Max => $maxel, Min => $minel );
 
+      # Rising or setting can be done simply by multiplying
+      # the hour angle by the approach value. If they are the
+      # same sign we get a positive number and so match,
+      # If we have no preference simply use zero
+      my $approach = $msb->{approach};
+      $approach = 0 unless defined $approach;
+
       # Loop over each observation.
       # We have to keep track of the reference time
       OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
@@ -1688,6 +1695,8 @@ sub _run_query {
 	    %coords = ( planet => $obs->{target});
 	  } elsif ($coordstype eq 'ELEMENTS') {
 	    %coords = (
+		       # For up-ness tests we do not need
+		       # the epoch of perihelion
 		       elements => {
 				    EPOCH => $obs->{el1},
 				    ORBINC => $obs->{el2},
@@ -1744,7 +1753,8 @@ sub _run_query {
 	  # In some cases we dont even want to test for observability
 	  if ($qconstraints{observability}) {
 	    if  ( ! $coords->isObservable or
-		  ! $elconstraint->contains( $coords->el )
+		  ! $elconstraint->contains( $coords->el ) or
+		  ! ($coords->ha(normailize=>1)*$approach >= 0)
 		) {
 	      $isObservable = 0;
 	      last OBSLOOP;
@@ -1797,7 +1807,8 @@ sub _run_query {
       # If we have an open ended range we need to
       # specify undef for the limit rather than the magic
       # value (since OMP::Range understands lower limits)
-      $msb->{$maxkey} = undef if $msb->{$maxkey} == $INF{$key};
+      $msb->{$maxkey} = undef if (defined $msb->{$maxkey} && 
+				  $msb->{$maxkey} == $INF{$key});
 
       # Set up the array
       $msb->{$key} = new OMP::Range( Min => $msb->{$minkey},
