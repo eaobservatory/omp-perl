@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 124;
+use Test::More tests => 138;
 
 use Time::Piece qw/ :override /;
 
@@ -395,5 +395,70 @@ my @compare_ent = ('<','>','"','&',);
 is_deeply([split(/\s+/,OMP::General->replace_entity('&lt; &gt; &quot; &amp;'))],
 	  \@compare_ent,
 	  "Replace all known entities");
- 
-          
+
+print "# Extended time\n";
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T03:20',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 1200, "Check project time");
+is($extend->seconds, 600, "Check extended time");
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T02:20',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 0, "Check project time");
+is($extend->seconds, 1800, "Check extended time");
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T05:20',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 1800, "Check project time");
+is($extend->seconds, 0, "Check extended time");
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T19:20',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 600, "Check project time");
+is($extend->seconds, 1200, "Check extended time");
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T20:20',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 0, "Check project time");
+is($extend->seconds, 1800, "Check extended time");
+
+# Now test the alternative options
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  start => '2002-12-10T03:20',
+							  end => '2002-12-10T03:50',
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 1200, "Check project time");
+is($extend->seconds, 600, "Check extended time");
+
+my ($projtime,$extend) = OMP::General->determine_extended( 
+							  tel => 'JCMT',
+							  end => '2002-12-10T03:50',
+							  duration => 1800,
+							  freetimeut => ['03:30','19:30'],
+							 );
+is($projtime->seconds, 1200, "Check project time");
+is($extend->seconds, 600, "Check extended time");
+

@@ -36,6 +36,12 @@ use OMP::Error;
 use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 
+# Note we have to require this module rather than use it because
+# there is a circular dependency with OMP::General such that determine_host
+# must be defined before OMP::Config BEGIN block can trigger
+require OMP::Config;
+
+
 our $VERSION = (qw$Revision$)[1];
 
 our $DEBUG = 0;
@@ -197,6 +203,132 @@ sub yesterday {
   $time -= ONE_DAY;
 
   return $time->strftime("%Y-%m-%d");
+
+}
+
+=item B<determine_extended>
+
+Given a start and end time, or a start time and duration, return
+the time that should be charged to a project and the time that 
+should be treated as EXTENDED time.
+
+  ($project, $extended) = OMP::General->determine_extended(start => $start,
+                                                           end => $end,
+							   tel => 'JCMT',
+							  );
+
+  ($project, $extended) = OMP::General->determine_extended(start => $start,
+							   tel => 'UKIRT',
+                                                           duration => $duration);
+
+  ($project, $extended) = OMP::General->determine_extended(duration => $duration,
+							   tel => 'UKIRT',
+                                                           end => $end);
+
+
+Telescope is mandatory, as are two of "start", "end" and "duration".
+Input times are Time::Piece objects (for start and end) and Time::Seconds
+objects (for duration) although and attempt is made to convert these
+into objects if scalars are detected. Returns Time::Seconds objects.
+
+=cut
+
+# "freetimeut" is an undocumented argument for overriding the range without requirng
+# a config file
+
+sub determine_extended {
+  my $class = shift;
+  my %args = @_;
+
+  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times") 
+    unless exists $args{tel};
+
+  # Convert duration as number into duration as Time::Seconds
+  if (exists $args{duration} && defined $args{duration} && not ref $args{duration}) {
+    $args{duration} = new Time::Seconds( $args{duration});
+  }
+
+  for my $key (qw/ start end /) {
+    if (exists $args{$key} && defined $args{$key} && not ref $args{$key}) {
+      $args{$key} = OMP::General->parse_date( $args{$key} );
+    }
+  }
+
+  # Try to get the start time and the end time from the hash
+  if (exists $args{start} && defined $args{start}) {
+
+    if (exists $args{end} && defined $args{end}) {
+      # We have start and end time already
+      if (! exists $args{duration} || ! defined $args{duration}) {
+	$args{duration} = $args{end} - $args{start};
+      }
+    } elsif (exists $args{duration} && defined $args{duration}) {
+      # Get the end from the start and duration
+      $args{end} = $args{start} + $args{duration}->seconds; 
+    }
+
+  } elsif (exists $args{end} && defined $args{end}) {
+    if (exists $args{duration} && defined $args{duration}) {
+      $args{start} = $args{end} - $args{duration};
+    }
+  }
+
+  # Check that we now have start, end and duration
+  throw OMP::Error::BadArgs("Must supply 2 of start, end or duration")
+    unless exists $args{start} && defined $args{start} && 
+      exists $args{end} && defined $args{end} && 
+	exists $args{duration} && defined $args{duration};
+
+  # Now we need to get the valid ranges
+  # We assume that the UT date matches that of the start and end times
+  # For testing we allow an override so that we do not have to test
+  # the Config system as well as this method
+  my @range;
+  if (exists $args{freetimeut} && defined $args{freetimeut}) {
+    @range = @{ $args{freetimeut} };
+  } else {
+    @range = OMP::Config->getData('freetimeut',telescope=>$args{tel});
+  }
+
+  # Now convert to Time::Piece object
+  my $min = OMP::General->parse_date($args{start}->ymd . "T$range[0]");
+  my $max = OMP::General->parse_date($args{end}->ymd . "T$range[1]");
+
+  throw OMP::Error::BadArgs("Error parsing the extended boundary string")
+    unless defined $min && defined $max;
+
+  # Now work out the extended time and project time
+  # If the startobs is earlier than min time we need to check endobs
+  my $extended = Time::Seconds->new(0);
+  my $timespent;
+  if ($args{start} < $min) {
+    if ($args{end} < $min) {
+      # This is entirely extended time
+      $extended = $args{end} - $args{start};
+      $timespent = new Time::Seconds(0);
+    } else {
+      # Split over shift boundary
+      $timespent = $args{end} - $min;
+      $extended = $min - $args{start};
+    }
+
+  } elsif ($args{end} > $max) {
+    if ($args{start} > $max) {
+      # Entirely extended time
+      $timespent = new Time::Seconds(0);
+      $extended = $args{end} - $args{start};
+    } else {
+      # Split over end of night boundary
+      $timespent = $max - $args{start};
+      $extended = $args{end} - $max;
+    }
+
+  } else {
+    # Duration is simply the full range
+    $timespent = $args{end} - $args{start};
+  }
+
+  return ($timespent, $extended);
 
 }
 
