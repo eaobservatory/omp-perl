@@ -409,6 +409,9 @@ sub pkgdata {
   OMP::ProjServer->verifyPassword($self->projectid, $self->password)
       or throw OMP::Error::Authentication("Unable to verify project password");
 
+  # Purge files older than the limit
+  $self->_purge_old_ftp_files();
+
   # Force a new key to make sure we can be called multiple times
   $self->keygen;
 
@@ -845,13 +848,19 @@ sub _purge_old_ftp_files {
   my @dirs = ( $self->ftp_rootdir, $self->root_tmpdir );
 
   # loop over them, unlinking files that are older than 7 days
-  find(\&_unlink_if_old, @dirs);
+  # do not bother doing a chdir
+  find({ wanted => \&_unlink_if_old,
+	 no_chdir => 1,
+	 untaint => 1,
+       },
+	 @dirs);
 
 }
 
 # Routine to unlink the old files
 sub _unlink_if_old {
-  my $file = shift;
+  my $file = $File::Find::name;
+  return unless defined $file;
 
   my @stat = stat $file;
 
@@ -867,8 +876,19 @@ sub _unlink_if_old {
   # convert to days [could use Time::Seconds]
   $age /= ONE_DAY;
 
-  if ($age > OLD_AGE) {
-    print "File is very old and should be removed: $file\n";
+  # Remove it if it is old and not a directory
+  # AND is a tar file or a data file
+  # Not sure if doing an rmtree will really hurt
+  # Should get the patterns for .sdf from config system
+  if ($age > OLD_AGE && !-d _ ) {
+    # Must untaint
+    my $untaint;
+    if ($file =~ /(.*\.tar\.gz)$/) {
+      $untaint = $1;
+    } elsif ($file =~ /(.*\.sdf)$/) {
+      $untaint = $1;
+    }
+    unlink $untaint if defined $untaint;
   }
 
 
