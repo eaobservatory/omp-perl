@@ -1744,7 +1744,7 @@ sub SpTelescopeObsComp {
     # A planet that the TCS already knows about
 
     $summary{coordstype} = "PLANET";
-    $summary{coords} = Astro::Coords( planet => $summary{target});
+    $summary{coords} = Astro::Coords->new( planet => $summary{target});
 
     throw OMP::Error::FatalError("Unable to process planet $summary{target}\n")
       unless defined $summary{coords};
