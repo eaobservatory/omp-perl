@@ -61,6 +61,13 @@ sub addUser {
   $self->_db_begin_trans;
   $self->_dblock;
 
+  # Make sure the user is not there already
+  $self->verifyUser( $user->userid )
+    and throw OMP::Error::FatalError( "This user [". 
+				      $user->userid .
+				      "] already exists. Use updateUser to modify the information");
+
+  # Add the user
   $self->_add_user( $user );
 
   # End transaction
@@ -129,6 +136,8 @@ sub getUser {
   my $self = shift;
   my $userid = shift;
 
+  return undef unless $userid;
+
   # Create a query string
   my $xml = "<UserQuery><userid>$userid</userid></UserQuery>";
   my $query = new OMP::UserQuery( XML => $xml );
@@ -136,7 +145,7 @@ sub getUser {
   my @result = $self->queryUsers( $query );
 
   if (scalar(@result) > 1) {
-    throw OMP::Error::FatalError( "Multiple faults match the supplied id [$userid] - this is not possible [bizarre] }");
+    throw OMP::Error::FatalError( "Multiple users match the supplied id [$userid] - this is not possible [bizarre] }");
   }
 
   # Guaranteed to be only one match
@@ -158,6 +167,32 @@ sub queryUsers {
   my $query = shift;
 
   return $self->_query_userdb( $query );
+}
+
+=item B<deleteUser>
+
+Delete the specified user from the system.
+
+  $db->deleteUser( $userid );
+
+=cut
+
+sub deleteUser {
+  my $self = shift;
+  my $userid = shift;
+
+  # Need to lock the database since we are writing
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Delete the user
+  $self->_db_delete_data( $USERTABLE, "userid = '$userid'");
+
+  # End transaction
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+
 }
 
 =back
@@ -224,13 +259,13 @@ sub _query_userdb {
   my $self = shift;
   my $query = shift;
 
-  my $sql = $query->sql;
+  my $sql = $query->sql( $USERTABLE );
 
   # Fetch
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Return the object equivalents
-  return [ map { new OMP::User( %$_ ) } @$ref ];
+  return map { new OMP::User( %$_ ) } @$ref;
 }
 
 

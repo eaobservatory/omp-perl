@@ -41,6 +41,8 @@ use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
 our $PROJTABLE = "ompproj";
+our $COITABLE  = "ompcoiuser";
+our $SUPTABLE  = "ompsupuser";
 
 =head1 METHODS
 
@@ -555,7 +557,10 @@ sub _delete_project_row {
   my $self = shift;
   my $projectid = shift;
 
-  $self->_db_delete_project_data( $PROJTABLE );
+  # Must clear out user link tables as well
+  for ($PROJTABLE, $COITABLE, $SUPTABLE) {
+    $self->_db_delete_project_data( $_ );
+  }
 
 }
 
@@ -573,15 +578,29 @@ sub _insert_project_row {
   my $self = shift;
   my $proj = shift;
 
-  # Insert data into table
+  # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
-			  $proj->projectid, $proj->pi, $proj->piemail,
-			  scalar($proj->coi), scalar($proj->coiemail),
-			  scalar($proj->support), scalar($proj->supportemail),
+			  $proj->projectid, $proj->pi,
 			  $proj->title, $proj->tagpriority,
 			  $proj->country, $proj->semester, $proj->encrypted,
 			  $proj->allocated, $proj->remaining, $proj->pending
 			);
+
+  # Now insert the user data
+  for my $user ($proj->coi) {
+    $self->_db_insert_data( $COITABLE,
+			    $proj->projectid,
+			    $user->userid);
+  }
+
+  for my $user ($proj->support) {
+    $self->_db_insert_data( $SUPTABLE,
+			    $proj->projectid,
+			    $user->userid);
+  }
+
+
+
 
 }
 

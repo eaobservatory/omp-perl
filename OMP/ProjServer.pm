@@ -290,28 +290,27 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be 13 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 13;
+    throw OMP::Error::BadArgs("Should be 10 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 10;
 
     my $db = new OMP::ProjDB(
 			     Password => $password,
 			     DB => $class->dbConnection,
 			    );
 
+    my $userdb = new OMP::UserDB( DB => $class->dbConnection );
+
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
 				projectid => $project[0],
-				pi => $project[1],
-				piemail => $project[2],
-				coi => $project[3],
-				coiemail => $project[4],
-				support => $project[5],
-				supportemail => $project[6],
-				title => $project[7],
-				tagpriority => $project[8],
-				country => $project[9],
-				semester => $project[10],
-				password => $project[11],
-				allocated => $project[12],
+    				pi => $userdb->getUser($project[1]),
+				coi => $userdb->getUser($project[2]),
+				support => $userdb->getUser($project[3]),
+				title => $project[4],
+				tagpriority => $project[5],
+				country => $project[6],
+				semester => $project[7],
+				password => $project[8],
+				allocated => $project[9],
 			       );
 
     $db->addProject( $proj );

@@ -31,6 +31,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::General;
+use OMP::User;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -71,14 +72,11 @@ sub new {
 		    Password => undef,
 		    ProjectID => undef,
 		    CoI => [],
-		    PIEmail => undef,
 		    TagPriority => 999,
-		    CoIEmail => [],
 		    PI => undef,
 		    Remaining => undef, # so that it defaults to allocated
 		    Pending => 0,
 		    Support => [],
-		    SupportEmail => [],
 		   }, $class;
 
   # Deal with arguments
@@ -123,18 +121,24 @@ sub allocated {
 
 The names of any co-investigators associated with the project.
 
+Return the Co-Is as an arrayC<OMP::User> objects:
+
   @names = $proj->coi;
+
+Return a colon-separated list of the Co-I user ids:
+
   $names = $proj->coi;
+
+Provide all the Co-Is for the project as an array of C<OMP::User>
+objects. If a supplied name is a string it is assumed to be a user
+ID that should be retrieved from the database:
+
   $proj->coi( @names );
   $proj->coi( \@names );
+
+Provide a list of colon-separated user IDs:
+
   $proj->coi( "name1:name2" );
-
-If the strings contain colons it is assumed that the colons are delimeters
-for multiple co-investigators. In this case, the names will be
-split and stored as separate elements in the array.
-
-If this method is called in a scalar context the names will be returned
-as a single string joined by a colon.
 
 =cut
 
@@ -149,19 +153,32 @@ sub coi {
       @names = @_;
     }
 
-    # Now split on the delimiter
-    @names = map { split /$DELIM/, $_; } @names;
+    # Now go through the array retrieving the OMP::User
+    # objects and strings
+    my @users;
+    for my $name (@names) {
+      if (UNIVERSAL::isa($name, "OMP::User")) {
+	push(@users, $name);
+      } else {
+	# Split on delimiter
+	my @split = split /$DELIM/, $name;
+
+	# Convert them to OMP::User objects
+	push(@users, map { new OMP::User( userid => $_ ) } @split);
+      }
+    }
 
     # And store the result
-    $self->{CoI} = \@names; 
+    $self->{CoI} = \@users; 
   }
 
-  # Return either the array of names or a delimited string
+  # Return either the array of name objects or a delimited string
+  my @output = @{ $self->{CoI} };
   if (wantarray) {
-    return @{ $self->{CoI} };
+    return @output;
   } else {
     # This returns empty string if we dont have anything
-    return join($DELIM, @{ $self->{CoI} } );
+    return join($DELIM, map { $_->userid } @output);
   }
 
 }
@@ -172,43 +189,27 @@ The email addresses of co-investigators associated with the project.
 
   @email = $proj->coiemail;
   $emails   = $proj->coiemail;
-  $proj->coiemail( @email );
-  $proj->coiemail( \@email );
-  $proj->coiemail( "email1:email2:email3" );
 
-If the input strings contain colons it is assumed that the colons are
-delimeters for multiple email addresses. In this case, the names will
-be split and stored as separate elements in the array.
+If this method is called in a scalar context the addresses will be
+returned as a single string joined by a comma.
 
-If this method is called in a scalar context the addresses will be returned
-as a single string joined by a colon.
+Consider using the C<coi> method to access the C<OMP::User> objects
+directly. Email addresses can not be modified using this method.
 
 =cut
 
 sub coiemail {
   my $self = shift;
-  if (@_) { 
-    my @names;
-    if (ref($_[0]) eq 'ARRAY') {
-      @names = @{ $_[0] };
-    } elsif (defined $_[0]) {
-      # If first isnt valid assume none are
-      @names = @_;
-    }
 
-    # Now split on the delimiter
-    @names = map { split /$DELIM/, $_; } @names;
-
-    # And store it
-    $self->{CoIEmail} = \@names; 
-  }
+  # Only use defined emails
+  my @email = grep { $_ } map { $_->email } $self->coi ;
 
   # Return either the array of emails or a delimited string
   if (wantarray) {
-    return @{ $self->{CoIEmail} };
+    return @email;
   } else {
     # This returns empty string if we dont have anything
-    return join($DELIM, @{ $self->{CoIEmail} });
+    return join($DELIM, @email);
   }
 
 }
@@ -326,11 +327,18 @@ Name of the principal investigator.
 
   $pi = $proj->pi;
 
+Returned and stored as a C<OMP::User> object.
+
 =cut
 
 sub pi {
   my $self = shift;
-  if (@_) { $self->{PI} = shift; }
+  if (@_) { 
+    my $pi = shift;
+    croak "PI must be of type OMP::User"
+      unless UNIVERSAL::isa($pi, "OMP::User");
+    $self->{PI} = $pi;
+  }
   return $self->{PI};
 }
 
@@ -344,8 +352,7 @@ Email address of the principal investigator.
 
 sub piemail {
   my $self = shift;
-  if (@_) { $self->{PIEmail} = shift; }
-  return $self->{PIEmail};
+  return ( defined $self->pi() ? $self->pi->email : '' );
 }
 
 =item B<projectid>
@@ -364,22 +371,29 @@ sub projectid {
   return $self->{ProjectID};
 }
 
+
 =item B<support>
 
-The names of any support scientists associated with the project.
+The names of any staff contacts associated with the project.
+
+Return the names as an arrayC<OMP::User> objects:
 
   @names = $proj->support;
+
+Return a colon-separated list of the support user ids:
+
   $names = $proj->support;
+
+Provide all the staff contacts for the project as an array of
+C<OMP::User> objects. If a supplied name is a string it is assumed to
+be a user ID that should be retrieved from the database:
+
   $proj->support( @names );
   $proj->support( \@names );
+
+Provide a list of colon-separated user IDs:
+
   $proj->support( "name1:name2" );
-
-If the strings contain colons it is assumed that the colons are delimeters
-for multiple co-investigators. In this case, the names will be
-split and stored as separate elements in the array.
-
-If this method is called in a scalar context the names will be returned
-as a single string joined by a colon.
 
 =cut
 
@@ -394,14 +408,26 @@ sub support {
       @names = @_;
     }
 
-    # Now split on the delimiter
-    @names = map { split /$DELIM/, $_; } @names;
+    # Now go through the array retrieving the OMP::User
+    # objects and strings
+    my @users;
+    for my $name (@names) {
+      if (UNIVERSAL::isa($name, "OMP::User")) {
+	push(@users, $name);
+      } else {
+	# Split on delimiter
+	my @split = split /$DELIM/, $name;
+
+	# Convert them to OMP::User objects
+	push(@users, map { new OMP::User( userid => $_ ) } @split);
+      }
+    }
 
     # And store the result
-    $self->{Support} = \@names; 
+    $self->{Support} = \@users; 
   }
 
-  # Return either the array of names or a delimited string
+  # Return either the array of name objects or a delimited string
   if (wantarray) {
     return @{ $self->{Support} };
   } else {
@@ -413,51 +439,32 @@ sub support {
 
 =item B<supportemail>
 
-The email addresses of support scientists associated with the project.
+The email addresses of co-investigators associated with the project.
 
   @email = $proj->supportemail;
   $emails   = $proj->supportemail;
-  $proj->supportemail( @email );
-  $proj->supportemail( \@email );
-  $proj->supportemail( "email1:email2:email3" );
 
-If the input strings contain colons it is assumed that the colons are
-delimeters for multiple email addresses. In this case, the names will
-be split and stored as separate elements in the array.
+If this method is called in a scalar context the addresses will be
+returned as a single string joined by a comma.
 
-If this method is called in a scalar context the addresses will be returned
-as a single string joined by a colon.
+Consider using the C<support> method to access the C<OMP::User> objects
+directly. Email addresses can not be modified using this method.
 
 =cut
 
 sub supportemail {
   my $self = shift;
-  if (@_) { 
-    my @names;
-    if (ref($_[0]) eq 'ARRAY') {
-      @names = @{ $_[0] };
-    } elsif (defined $_[0]) {
-      # If first isnt valid assume none are
-      @names = @_;
-    }
 
-    # Now split on the delimiter
-    @names = map { split /$DELIM/, $_; } @names;
-
-    # And store it
-    $self->{SupportEmail} = \@names; 
-  }
-
+  my @email = map { $_->email } $self->support;
   # Return either the array of emails or a delimited string
   if (wantarray) {
-    return @{ $self->{SupportEmail} };
+    return @email;
   } else {
     # This returns empty string if we dont have anything
-    return join($DELIM, @{ $self->{SupportEmail} });
+    return join($DELIM, @email);
   }
 
 }
-
 
 =item B<remaining>
 

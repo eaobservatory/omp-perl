@@ -66,7 +66,7 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) ==2;
+    unless scalar(@_) ==1;
 
   my ($usertable) = @_;
 

@@ -24,7 +24,10 @@ of an user of the OMP system.
 use 5.006;
 use strict;
 use warnings;
+use OMP::UserServer;
 
+# Overloading
+use overload '""' => "stringify";
 
 =head1 METHODS
 
@@ -70,6 +73,7 @@ sub new {
     }
   }
 
+  return $user;
 }
 
 =back
@@ -139,22 +143,32 @@ sub email {
 
 =over 4
 
+=item B<stringify>
+
+Stringify overload. Returns the name of the user.
+
+=cut
+
+sub stringify {
+  my $self = shift;
+  return $self->name;
+}
+
 =item B<verify>
 
 Verify that the user described in this object is a valid
 user of the OMP. This requires a query of the OMP database
 tables. All entries are compared.
 
-  $u->verify;
+  $isthere = $u->verify;
 
-Throws an exception if the user details do not match or if the
-user does not exist in the system.
+Returns true or false.
 
 =cut
 
 sub verify {
   my $self = shift;
-
+  return OMP::UserServer->verifyUser( $self->userid );
 }
 
 =back
