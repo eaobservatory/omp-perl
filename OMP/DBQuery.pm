@@ -279,8 +279,8 @@ sub _qhash_tosql {
 		    ));
 
     } else {
-      use Data::Dumper;
-      print Dumper( $query->{$entry});
+      # use Data::Dumper;
+      # print Dumper( $query->{$entry});
 
       throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range for $entry ". $query->{$entry}."\n");
     }
