@@ -298,9 +298,12 @@ sub observedDates {
 
   # Form the query
   my $xml = "<MSBDoneQuery>" .
-    "<status>". OMP__DONE_DONE ."</status>" .
-      "<projectid>$projectid</projectid>".
-	    "</MSBDoneQuery>";
+    "<status>". OMP__DONE_DONE . "</status>" .
+      "<status>" . OMP__DONE_REJECTED . "</status>" .
+	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
+	  "<status>" . OMP__DONE_ABORTED . "</status>" .
+	    "<projectid>$projectid</projectid>".
+	      "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
