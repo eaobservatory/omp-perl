@@ -1019,7 +1019,7 @@ sub write_page_fault {
       $form_output->($q, %cookie);
     } else {
       $form_content->($q, %cookie);
-    }
+   }
   } else {
     $form_content->($q, %cookie);
   }
@@ -1041,6 +1041,8 @@ sub write_page_fault_auth {
   my ($form_content, $form_output) = @_;
 
   my $q = $self->cgi;
+
+  $self->_make_theme;
 
   # Attempt to get the password cookie
   my $p = new OMP::Cookie( CGI => $q, Name => "OMPFAULTAUTH" );
