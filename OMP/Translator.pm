@@ -947,6 +947,8 @@ sub getTarget {
     $target{RA} = $c->ra( format => 's');
     $target{DEC} = $c->dec( format => 's');
 
+    $target{SOURCE_NAME} = $info{target};
+
   } elsif ($info{coordstype} eq 'PLANET') {
 
     # For named targets just use SOURCE_NAME
@@ -959,6 +961,8 @@ sub getTarget {
 
     # moving target
     $target{CENTRE_COORDS} = "PLANET";
+
+    $target{SOURCE_NAME} = $info{target};
 
     # Get the coordinate object
     my $c = $info{coords};
