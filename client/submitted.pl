@@ -69,8 +69,12 @@ use MIME::Lite;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
+use OMP::Constants qw(:fb);
 use OMP::DBbackend;
-use OMP::MSBDB;
+use OMP::FBQuery;
+use OMP::FeedbackDB;
+use OMP::ProjDB;
+use OMP::ProjQuery;
 
 # Options
 my ($help, $man, $debug);
@@ -99,12 +103,40 @@ if ($mindate) {
   $mindate = $maxdate - 86400 # 24 hours ago
 }
 
-# Instantiate a new MSBDB object
-my $db = new OMP::MSBDB( DB => new OMP::DBbackend,
-		         Password => 'pohoiki', );
+# Get our database connection
+my $dbconnection = new OMP::DBbackend;
 
-# Get the projects
-my @projects = $db->getSubmitted($mindate->epoch, $maxdate->epoch);
+# Instantiate a new FeedbackDB object
+my $db = new OMP::FeedbackDB( DB => $dbconnection );
+
+# Create our query
+my $fbxml = "<FBQuery>".
+  "<date><min>".$mindate->ymd."</min><max>".$maxdate->ymd."</max></date>".
+  "<msgtype>".OMP__FB_MSG_SP_SUBMITTED."</msgtype>".
+  "</FBQuery>";
+
+my $fbquery = new OMP::FBQuery( XML => $fbxml, );
+
+# Run our query to retrieve comments
+my $comments = $db->_fetch_comments( $fbquery );
+
+# Get project IDs for all comments returned.
+my %projects = map {$_->{projectid}, undef} @$comments;
+
+# Instantiate a new ProjDB object.  We'll need this
+# to get support details for each project returned
+my $projdb = new OMP::ProjDB( DB => $dbconnection );
+
+# XML Query on all project IDs returned
+my $projxml = "<ProjQuery>".
+  join("",map{"<projectid>$_</projectid>"} keys %projects).
+  "</ProjQuery>";
+
+# Instantiate actual ProjQuery object
+my $projquery = new OMP::ProjQuery( XML => $projxml );
+
+# Retrieve details for all projects returned
+my @projects = $projdb->listProjects( $projquery );
 
 # Sort projects according to support person
 my %proj_by_support;
@@ -127,11 +159,11 @@ if ($debug) {
 
     # Construct the message
     my $text;
-    if (@{$proj_by_support{$support}}->[1]) {
+    if ($proj_by_support{$support}->[1]) {
       $text = "Science programs have been submitted for the following projects:\n\n" .
 	join("\n", map {$_->projectid . " [" . $_->pi . "]"} @{$proj_by_support{$support}});
     } else {
-      $text = "A science program has been submitted for project " . @{$proj_by_support{$support}}->[0]->projectid . " [" . @{$proj_by_support{$support}}->[0]->pi . "].\n";
+      $text = "A science program has been submitted for project " . $proj_by_support{$support}->[0]->projectid . " [" . $proj_by_support{$support}->[0]->pi . "].\n";
     }
 
     my $msg = MIME::Lite->new( From => 'flex@jach.hawaii.edu',
