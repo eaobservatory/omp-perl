@@ -678,7 +678,6 @@ sub _mail_fault {
   my $faultid = $fault->id;
 
   # Get the Private and Public cgi-bin URLs
-  my $cgi = new OMP::CGI;
   my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
   my $private_url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
