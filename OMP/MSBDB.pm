@@ -718,12 +718,16 @@ sub _dbconnect {
 Begin a database transaction. This is defined as something that has
 to happen in one go or trigger a rollback to reverse it.
 
+If a transaction is already in progress this method returns
+immediately.
+
 =cut
 
 sub _db_begin_trans {
   my $self = shift;
-  my $dbh = $self->_dbhandle;
+  return if $self->_intrans;
 
+  my $dbh = $self->_dbhandle;
   $dbh->do("BEGIN TRANSACTION")
     or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
   $self->_intrans(1);
@@ -883,9 +887,10 @@ sub _insert_row {
 
 Remove all rows associated with the current project ID.
 
-This should probably be combined with the insert step
-to prevent the case where we remove the old rows and fail to insert the
-new ones.
+If this is combined with an insert then care should be taken
+to make sure that a single database transaction is being used
+(see C<_db_begin_trans>). This will guarantee that the old rows
+can not be removed without inserting new ones.
 
 =cut
 
@@ -961,8 +966,8 @@ references.
 
   @results  = $db->_run_query( $query );
 
-If max is undefined there is no limit on the number of results
-that can be returned.
+The query object controls the maximum number of results that
+can be retrieved (see L<OMP::MSBQuery/maxCount>).
 
 =cut
 
@@ -979,7 +984,7 @@ sub _run_query {
   throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
     unless defined $ref;
 
-  # Return the results (as a slice if necessary
+  # Return the results (as a slice if necessary)
   my $max = $query->maxCount;
 
   if (defined $max) {
