@@ -41,9 +41,15 @@ while (<>) {
   next unless $line;
 
   # We have to guess the order
-  my @details  = split(/,/,$line);
+  # Force a split into three so we can distinguish between a
+  # missing email address
+  #  userid,name,
+  # and a missing userid
+  #  name,email
+  # If a single name is supplied this is fine it it ends in a ,
+  my @details  = split(/,/,$line,3);
 
-  my ( $userid, $name, $email);
+  my ($userid, $name, $email);
   my %user;
   if (scalar(@details) == 3) {
     $user{userid} = $details[0];
@@ -53,6 +59,10 @@ while (<>) {
     $user{name} = $details[0];
     $user{email} = $details[1];
   }
+
+
+  # Convert '' email to undef since that is what it really is
+  $user{email} = undef if $user{email} eq '';
 
   # Derive user id
   unless (defined $user{userid}) {
@@ -64,7 +74,11 @@ while (<>) {
   # Create new object
   my $ompuser = new OMP::User( %user );
 
-  print $ompuser->userid . ":" . $ompuser->name ."," . $ompuser->email ."\n";
+  die "Error creating user object: $user{userid}\n"
+    unless $ompuser;
+
+  print $ompuser->userid . ":" . $ompuser->name ."," . 
+    (defined $ompuser->email ? $ompuser->email  : "EMPTY" )."\n";
 
   # More efficient to do the add and catch the failure rather than
   # do an explicit verify
@@ -73,10 +87,17 @@ while (<>) {
   } otherwise {
     # Get the user
     my $exist = OMP::UserServer->getUser( $ompuser->userid );
-    print "\n*** ";
-    print "Failed to add user. Existing entry retrieved for comparison:\n";
-    print "#" .$exist->userid . ":" . $exist->name ."," . $exist->email ."\n";
-    print "***\n";
+    if ($exist) {
+      print "\n*** ";
+      print "Failed to add user. Existing entry retrieved for comparison:\n";
+      print "#" .$exist->userid . ":" . $exist->name ."," . 
+	(defined $exist->email ? $exist->email : "EMPTY" )."\n";
+      print "***\n";
+    } else {
+      print "ERROR ADDING USER $user{userid}\n";
+      my $E= shift;
+      print $E;
+    }
 
   }
 

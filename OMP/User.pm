@@ -68,8 +68,9 @@ sub new {
     my $method = lc($key);
     if ($user->can($method)) {
       # Return immediately if an accessor methods
-      # returns undef
-      return undef unless $user->$method( $args{$key});
+      # returns undef (unless it was given undef)
+      my $retval = $user->$method( $args{$key});
+      return undef if (!defined $retval && defined $args{$key});
     }
   }
 
@@ -125,14 +126,19 @@ It must contain a "@". If the email does not look like an email
 address the value will not be changed and the method will return
 C<undef>.
 
+An undefined email address is allowed.
+
 =cut
 
 sub email {
   my $self = shift;
   if (@_) { 
     my $addr = shift;
-    return undef unless $addr =~ /\@/;
-    $self->{Email} = $addr; 
+    if (defined $addr) {
+      return undef unless $addr =~ /\@/;
+    }
+    # undef is okay
+    $self->{Email} = $addr;
   }
   return $self->{Email};
 }

@@ -212,10 +212,17 @@ sub _add_user {
   my $self = shift;
   my $user = shift;
 
+  # In some cases an email address is undefined
+  # for now allow this by defining it (eventually we will allow
+  # null fields)
+  my $email = $user->email;
+  $email = '' unless defined $email;
+
+
   $self->_db_insert_data( $USERTABLE,
 			  $user->userid,
 			  $user->name,
-			  $user->email);
+			  $email);
 
 }
 
