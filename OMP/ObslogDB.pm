@@ -228,6 +228,33 @@ sub getComment {
 #  }
 }
 
+=item B<removeComment>
+
+Remove from the database the comment for the given user id and
+C<OMP::Info::Obs> object.
+
+  $db->removeComment( $obs, $userid );
+
+This method does not permanently remove a comment, it flags all
+comments for the given user id and C<OMP::Info::Obs> object as
+being inactive. It does not update the given C<OMP::Info::Obs>
+object.
+
+=cut
+
+sub removeComment {
+  my $self = shift;
+  my $obs = shift;
+  my $userid = shift;
+
+  if(!defined($obs) || !defined($userid)) {
+    throw OMP::Error::BadArgs( "Must supply both OMP::Info::Obs object and user ID to ObslogDB->removeComment" );
+  }
+
+  $self->_set_inactive( $obs, $userid );
+
+}
+
 =item B<queryComments>
 
 Query the observation comment table. Query must be supplied as
