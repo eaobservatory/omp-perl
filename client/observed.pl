@@ -65,6 +65,10 @@ use strict;
 use Pod::Usage;
 use Getopt::Long;
 
+# Add to @INC for OMP libraries.
+use FindBin;
+use lib "$FindBin::RealBin/..";
+
 # Load the servers (but use them locally without SOAP)
 use OMP::MSBServer;
 use OMP::FBServer;
