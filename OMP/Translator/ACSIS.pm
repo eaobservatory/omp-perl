@@ -99,7 +99,7 @@ sub translate {
 
     # ACSIS_CONFIG
     # SCUBA-2 translator will need to inherit some of these methods
-    # $self->acsis_config( $cfg, %$obs );
+    $self->acsis_config( $cfg, %$obs );
 
     # HEADER_CONFIG
     $self->header_config( $cfg, %$obs );
@@ -555,8 +555,25 @@ sub jos_config {
 
   my $jos = new JAC::OCS::Config::JOS();
 
+  # Get the observing mode
+  my $mode = $self->observing_mode( %info );
+
   # need to determine recipe name
-  $jos->recipe( 'tbd' );
+  # use hash indexed by observing mode
+  my %JOSREC = (
+		focus       => 'focus',
+		pointing    => 'pointing',
+		jiggle_fast_fsw =>  'fast_jiggle_fsw',
+		jiggle_slow_fsw => 'slow_jiggle_fsw',
+		jiggle_chop => 'jiggle_chop',
+		grid_pssw   => 'raster_or_grid_pssw',
+		raster_pssw => 'raster_or_grid_pssw',
+	       );
+  if (exists $JOSREC{$mode}) {
+    $jos->recipe( $JOSREC{$mode} );
+  } else {
+    throw OMP::Error::TranslateFail( "Unable to determine jos recipe from observing mode '$mode'");
+  }
 
   # Now parameters depends on that recipe name
 
@@ -597,8 +614,10 @@ The standard modes are:
 
   focus
   pointing
-  jiggle_fsw
+  jiggle_fast_fsw
+  jiggle_slow_fsw
   jiggle_chop
+  grid_pssw
   raster_pssw
 
 =cut
