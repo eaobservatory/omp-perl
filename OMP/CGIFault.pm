@@ -27,6 +27,7 @@ use Text::Wrap;
 
 use OMP::CGI;
 use OMP::CGIHelper;
+use OMP::General;
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
@@ -352,19 +353,34 @@ sub fault_table {
   my $urgencyhtml;
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
-  my $status = $fault->statusText;
-  my $statushtml = ($fault->isOpen ?
-		    "<b><font color=#a00c0c>$status</font></b>" :
-		    "<b><font color=#008b24>$status</font></b>");
+  # Get available statuses
+  my %status = OMP::Fault->faultStatus();
+  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   # First show the fault info
   print "<div class='black'>";
+  print $q->startform;
   print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . $fault->author->html . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->filedate . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>$statushtml</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>";
+
+  # Make a form element for changing the status
+  print $q->hidden(-name=>'show_output', -default=>'true');
+  print $q->hidden(-name=>'faultid', -default=>$fault->id);
+  print $q->popup_menu(-name=>'status',
+		       -default=>$fault->status,
+		       -values=>[values %status],
+		       -labels=>\%labels,);
+  print " ";
+  print $q->submit(-name=>'change_status',
+		   -label=>'Change',);
+  print $q->endform;
+
+#  change_status_form($q, $fault);
+  print "</td>";
 
   # Display links to projects associated with this fault if any
   my @projects = $fault->projects;
@@ -760,10 +776,9 @@ sub view_fault_content {
 
     titlebar($q, ["View Fault: $faultid", $fault->subject], %cookie);
     fault_table($q, $fault);
-    change_status_form($q, $faultid);
 
     print "<p><b><font size=+1>Respond to this fault</font></b>";
-    response_form($q, $fault->id, %cookie);
+    response_form($q, $fault, %cookie);
   }
 }
 
@@ -779,7 +794,7 @@ sub view_fault_output {
   my $q = shift;
   my %cookie = @_;
 
-  my $title;
+  my @title;
 
   my $faultid = $q->param('faultid');
   my $fault = OMP::FaultServer->getFault($faultid);
@@ -793,7 +808,31 @@ sub view_fault_output {
     croak "Key is invalid [perhaps you already submitted this form?]"
       unless ($verifykey);
 
-    my $author = $q->param('user');
+    # Response author
+    my $user = new OMP::User(userid => $q->param('user'));
+
+    # Get the status (possibly changed)
+    my $status = $q->param('status');
+
+    # Now update the status if necessary
+    if ($status != $fault->status) {
+      # Lookup table for status
+      my %status = OMP::Fault->faultStatus();
+
+      # Change status in fault object
+      $fault->status($status);
+
+      my $E;
+      try {
+	# Resubmit fault with new status
+	OMP::FaultServer->updateFault($fault);
+	push @title, "Fault status changed to \"" . $fault->statusText . "\"";
+      } otherwise {
+	$E = shift;
+	push @title, "An error prevented the fault status from being updated: $E";
+      };
+	
+    }
 
     # The text.  Put it in <pre> tags if there isn't an <html>
     # tag present
@@ -806,47 +845,66 @@ sub view_fault_output {
       $text = preify_text($text);
     }
 
-    my $user = new OMP::User(userid => $author,);
-
     try {
       my $resp = new OMP::Fault::Response(author => $user,
 					  text => $text);
       OMP::FaultServer->respondFault($fault->id, $resp);
 
-      $title = "Fault response successfully submitted";
+      push @title, "Fault response successfully submitted";
     } otherwise {
       my $E = shift;
-      $title = "An error has prevented your response from being filed: $E";
+      push @title, "An error has prevented your response from being filed: $E";
     };
 
     # Remove key
     OMP::KeyServer->removeKey($formkey);
 
   } elsif ($q->param('change_status')) {
-    try {
-      # Right now we'll just do an update by resubmitting the fault
-      # with the new status parameter.  But in principal we should
-      # have a method for doing an explicit status update.
 
-      # Change the status parameter
-      $fault->status($q->param('status'));
+    # Lookup table for status
+    my %status = OMP::Fault->faultStatus();
 
-      # Resubmit the fault
-      OMP::FaultServer->updateFault($fault);
+    my $status = $q->param('status');
 
-      $title = "Status for fault $faultid has been updated.";
-    } otherwise {
-      my $E = shift;
-      $title = "An error has prevented the fault status from being updated: $E";
-    };
+    if ($status != $fault->status) {
+      # Get host (and user maybe) info
+      my @user = OMP::General->determine_host;
+      my $author;
+
+      # Make author either an email address or "user on [machine name]"
+      if ($user[2] =~ /@/) {
+	$author = $user[0];
+      } else {
+	$author = "user on $user[2]";
+      }
+
+     try {
+	# Right now we'll just do an update by resubmitting the fault
+	# with the new status parameter.  But in principal we should
+	# have a method for doing an explicit status update.
+	
+	# Change the status parameter
+	$fault->status($q->param('status'));
+	
+	# Resubmit the fault
+	OMP::FaultServer->updateFault($fault, $author);
+	
+	push @title, "Fault status changed to \"" . $fault->statusText . "\"";
+      } otherwise {
+	my $E = shift;
+	push @title, "An error has prevented the fault status from being updated: $E";
+      };
+    } else {
+      # Status is the same, dont update
+      push @title, "This fault already has a status of \"" . $fault->statusText . "\"";
+    }
   }
 
   $fault = OMP::FaultServer->getFault($faultid);
 
-  titlebar($q, ["View Fault ID: $faultid", $title], %cookie);
+  titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
 
   fault_table($q, $fault);
-  change_status_form($q, $faultid);
 }
 
 =item B<close_fault_form>
@@ -874,51 +932,57 @@ sub close_fault_form {
 
 =item B<change_status_form>
 
-Provide a form for changing the status of a fault.
+Provide a form for changing the status of a fault.  Second argument is an C<OMP::Fault> object.
 
-  change_status_form($cgi, $faultid);
+  change_status_form($cgi, $fault);
 
 =cut
 
 sub change_status_form {
   my $q = shift;
-  my $faultid = shift;
+  my $fault= shift;
 
+  my $faultid = $fault->id;
   # Get available statuses
   my %status = OMP::Fault->faultStatus();
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
-  print "<table border=0 width=$TABLEWIDTH bgcolor=#6161aa>";
-  print "<tr><td align=right>";
   print $q->startform;
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->popup_menu(-name=>'status',
+		       -default=>$fault->status,
 		       -values=>[values %status],
 		       -labels=>\%labels,);
   print " ";
   print $q->submit(-name=>'change_status',
-		   -label=>'Change status',);
+		   -label=>'Change',);
   print $q->endform;
-  print "</td></table>";
   
 }
 
 =item B<response_form>
 
-Create a form for submitting a response
+Create a form for submitting a response. Second argument is an C<OMP::Fault> object.
 
-  response_form($cgi, $faultid, %cookie);
+  response_form($cgi, $fault, %cookie);
 
 =cut
 
 sub response_form {
   my $q = shift;
-  my $faultid = shift;
+  my $fault = shift;
   my %cookie = @_;
+
+  my $faultid = $fault->id;
 
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
+
+  
+  # Get available statuses
+  my %status = OMP::Fault->faultStatus();
+  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print $q->startform;
@@ -931,11 +995,16 @@ sub response_form {
 		      -size=>'25',
 		      -maxlength=>'75',
 		      -default=>$cookie{user},);
+  print "</td><tr><td><b>Status: </b></td><td>";
+  print $q->popup_menu(-name=>'status',
+		       -default=>$fault->status,
+		       -values=>[values %status],
+		       -labels=>\%labels,);
   print "</td><tr><td></td><td>";
   print $q->textarea(-name=>'text',
 		     -rows=>20,
 		     -columns=>72);
-  print "</td><tr><td colspan=2 align=right>";
+  print "</td></tr><td colspan=2 align=right>";
   print $q->submit(-name=>'respond',
 		   -label=>'Submit Response');
   print $q->endform;
