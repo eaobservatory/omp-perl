@@ -215,10 +215,25 @@ sub telescope {
   if ( exists $href->{telescope} ) {
     $telescope = $href->{telescope}->[0];
   } elsif ( defined $self->instrument ) {
-    $telescope = uc(OMP::Config->inferTelescope('instruments', $self->instrument));
+
+    # We need to remap heterodyne instruments into their config system
+    # equivalents.
+    my $inst;
+    if($self->instrument =~ /^rxb/i) {
+      $inst = 'rxb3';
+    } elsif( $self->instrument =~ /^rxa/i) {
+      $inst = 'rxa3';
+    } else {
+      $inst = $self->instrument;
+    }
+
+    $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
   }
 
   for my $t (keys %$href) {
+
+    next if defined $telescope;
+
     try{
       $telescope = uc(OMP::Config->inferTelescope('instruments', $t));
     }
@@ -229,8 +244,6 @@ sub telescope {
       my $errortext = $Error->{'-text'};
       print "Error in ArcQuery::telescope: $errortext\n";
     };
-
-    last if defined $telescope;
   }
 
   if( ! defined( $telescope ) ) {
