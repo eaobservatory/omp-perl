@@ -791,6 +791,9 @@ sub _mail_password {
     # List of recipients of mail
     my @addr = $proj->investigators;
 
+    # Add support contacts to the list of recipients
+    push @addr, $proj->supportemail;
+
     throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
 
 
