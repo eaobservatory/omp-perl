@@ -1945,12 +1945,12 @@ sub _get_obs {
     #print "Name is $name \n";
 
     if ($self->can($name)) {
-      if ($name eq 'SpObs') {
+      if ($name eq 'SpObs' || $name eq 'SpSurveyContainer' ) {
 	# Special case. When it is an observation we want to
 	# return the final hash for the observation rather than
-	# an augmented hash used for inheritance
-	push(@obs, $self->SpObs($el, %status ));
-	
+	# an augmented hash used for inheritance.
+	# also special case Survey containers since they return Obs
+	push(@obs, $self->$name($el, %status ));
       } else {
 	%status = $self->$name($el, %status );	
       }
@@ -2764,6 +2764,9 @@ Returns a reference to a hash summarizing the observation.
 
   $summaryref = $msb->SpObs( $el, %default );
 
+Does not unroll survey containers into multiple summaries. See
+the SpSurveyContainer method for details on container unrolling.
+
 Raises an C<MSBMissingObserve> exception if the observation
 does not include an observe iterator (the thing that actually
 triggers the translator to take data).
@@ -2856,7 +2859,7 @@ sub SpObs {
       $summary{coordstype} = $summary{coords}->type;
       $summary{target} = "TBD";
 
-    } elsif (!exists $summary{coords}) {
+    } elsif (!exists $summary{coords} && !exists $summary{targets}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
     # We have a normal observe - just use it and the associated target
@@ -2878,6 +2881,144 @@ sub SpObs {
   return \%summary;
 
 }
+
+=item B<SpSurveyContainer>
+
+Parses a survey container to extract the target information.
+
+  @obs = $msb->SpSurveyContainer( $node, %default );
+
+where node is the tree node corresponding to the SpSurveyContainer
+element. This method walks the tree and returns a summary hash for each
+observation that is a child. If an SpObs does not contain a target, it will
+be expanded into multiple observations.
+
+  Survey
+    Obs Standard
+    Obs1
+    Obs2
+
+with 2 targets (A and B) with A repeated 2 times will unroll into
+the following observations:
+
+  Obs Standard
+  Obs 1 A
+  Obs 2 A
+  Obs Standard
+  Obs 1 A
+  Obs 2 A
+  Obs Standard
+  Obs 1 B
+  Obs 2 B
+
+ie it is unrolled as if it was a for loop, with blank targets
+being replaced by the loop variable. The interface is designed to
+match that of SpObs method.
+
+=cut
+
+sub SpSurveyContainer {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+  my @obs; # any observations stored in the survey container
+
+  my @searchnodes = $el->getChildnodes;
+
+  # this is a standard scan routine. It is very similar to the
+  # _get_obs method.
+  for (@searchnodes) {
+    my $node = $self->_resolve_ref( $_ );
+    my $name = $node->getName;
+
+    #print "Name is $name \n";
+    if ($self->can($name)) {
+      if ($name eq 'SpObs') {
+	# special case. Returns reference and does not augment the
+	# current hash
+	push(@obs, $self->SpObs( $node, %summary));
+      } else {
+	# parse any components at this level of the hierarchy
+	# including specifically the TargetList node
+	%summary = $self->$name( $node, %summary );
+      }
+    }
+  }
+
+  throw OMP::Error::SpBadStructure("No Target List specified for Survey container")
+    unless exists $summary{targets};
+
+  # Now expand the Observations by unrolling the survey container
+  # as in a for loop
+  my @allobs;
+
+  for my $t (@{ $summary{targets} }) {
+
+    # handle requested repeats
+    for (1..$t->{remaining}) {
+
+      # Loop over observations
+      for my $obs (@obs) {
+	# take a copy of the obs info
+	my %info = %{ $obs };
+	if (!exists $info{coords} && !$info{autoTarget}) {
+	  # merge in the target information
+	  %info = (%info, %{$t->{coords}});
+	}
+	push(@allobs, \%info);
+      }
+    }
+  }
+  return @allobs;
+}
+
+=item B<TargetList>
+
+Parse TargetList XML. To conform to the parsing interface,
+returns a hash.
+
+  %summary = $msb->TargetList( $node, %summary );
+
+This class adds a "targets" key to the input hash and returns
+the complete hash. The "targets" value is a reference to an array
+containing 3 keys:
+
+  tags     - Coordinate object
+  priority - relative priority of target [only used for MSB]
+  repeats  - number of repeats of target position
+
+Where C<tags> is an object pointing to all the specified target
+tags, with their positions and offsets.
+
+=cut
+
+sub TargetList {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  # Now process each target
+  my @targets = $el->findnodes( './/Target');
+
+  my @targs;
+  my $i;
+  for my $targ (@targets) {
+    $i++;
+    my $pri = $targ->getAttribute( 'priority' );
+    my $rem = $targ->getAttribute( 'remaining' );
+
+    my ($obscomp) = $targ->findnodes( './SpTelescopeObsComp' );
+
+    throw OMP::Error::SpBadStructure("Unable to find SpTelescopeObsComp in Target $i of SurveyContainer") unless defined $obscomp;
+
+    my %tel = $self->SpTelescopeObsComp( $obscomp );
+    push(@targs, { priority => $pri, remaining => $rem, coords => \%tel });
+  }
+  $summary{targets} = \@targs;
+
+  return %summary;
+}
+
 
 =item B<SpIterFolder>
 
