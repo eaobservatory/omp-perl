@@ -48,9 +48,10 @@ my %tables = (
 			  country => "VARCHAR(32)",
 			  tagpriority => "INTEGER",
 			  semester => "VARCHAR(5)",
+			  password => "VARCHAR(10)",
 			  _ORDER => [qw/projectid pi piemail
 				     coi coiemail tagpriority
-				     country semester allocated
+				     country semester password allocated
 				     remaining pending
 				     /],
 			 },
@@ -78,6 +79,14 @@ my %tables = (
 				    el3 el4 el5 el6 el7 el8
 				    /],
 			},
+	      ompsciprog => {
+			     projectid => "VARCHAR(32)",
+			     timestamp => "INTEGER",
+			     sciprog   => "TEXT",
+			     _ORDER => [/
+					projectid timestamp sciprog
+					/],
+			     },
 	     );
 
 for my $table (sort keys %tables) {
