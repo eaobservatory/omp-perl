@@ -816,7 +816,7 @@ sub determine_semester {
   }
 
   my $tel = uc($args{tel});
-  $tel = 'PPARC' unless defined $tel;
+  $tel = 'PPARC' unless $tel;
 
   # First we can automatically run through any special semesters
   # in a generic search. This will have minimal impact on a telescope
