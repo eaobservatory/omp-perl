@@ -4273,8 +4273,6 @@ sub SpInstHeterodyne {
 
   # Astro::WaveBand should probably take a velocity, velocity frame
   # and line as argument to correctly call itself a WaveBand class
-  use Data::Dumper;
-  print Dumper(\@subsystems);
   $summary{waveband} = new Astro::WaveBand( Frequency => $subsystems[0]->{rest_freq},
 					    Instrument => $summary{instrument}
 					  );
