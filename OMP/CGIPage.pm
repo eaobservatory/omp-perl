@@ -304,7 +304,7 @@ sub _make_theme {
     # Use the OMP theme and make some changes to it.
     # This is in a different place on hihi than it is on malama
 
-    my @themefile = ("/WWW/omp/LookAndFeelConfig",
+    my @themefile = (OMP::Config->getData('www-theme'),
 		     "/JACpublic/JAC/software/omp/LookAndFeelConfig",
 		     "/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
     my $themefile;
@@ -343,7 +343,7 @@ sub _write_footer {
 
   print $theme->MakeTopBottomBar();
   print "</td></table></td></tr></table>";
-  print "<div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>";
+  print "<br><div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>";
   print "<div ALIGN='right'><h6><a HREF='#top'>return to top...</a></h6></div></body>";
   print $theme->EndHTML();
 
@@ -366,6 +366,8 @@ sub _write_staff_login {
   my $arg = shift;
 
   my $q = $self->cgi;
+
+  $self->_make_theme();
 
   $self->_write_header();
 
@@ -411,6 +413,8 @@ sub _write_admin_login {
   my $self = shift;
 
   my $q = $self->cgi;
+
+  $self->_make_theme();
 
   $self->_write_header();
 
@@ -530,7 +534,9 @@ sub write_page {
   # reloads the page
 
   # Set up sidebar
-  $self->_sidebar();
+  if (! $noauth) {
+    $self->_sidebar();
+  }
 
   # Print HTML header (including sidebar)
   $self->_write_header();
@@ -1048,7 +1054,7 @@ Set the URL of the style-sheet
 
 {
   my $EXPTIME = 40;
-  my $STYLE = OMP::Config->getData('omp-url') . "/omp.css";
+  my $STYLE = "/" . OMP::Config->getData('www-css');
 
   sub _get_exp_time {
     return $EXPTIME;
@@ -1089,24 +1095,24 @@ sub _sidebar {
   my $ompurl = $self->public_url;
   my $cgidir = OMP::Config->getData('cgidir');
 
-  $theme->SetMoreLinksTitle("Project: $projectid");
+  $theme->SetMoreLinksTitle("<font color=#ffffff>Project $projectid</font>");
 
-  my @sidebarlinks = ("<a href='projecthome.pl'>$cookie{projectid} Project home</a>",
-		      "<a href='feedback.pl'>Feedback entries</a>",
-		      "<a href='fbmsb.pl'>Program details</a>",
-		      "<a href='fbcomment.pl'>Add comment</a>",
-		      "<a href='msbhist.pl'>MSB History</a>",
-		      "<a href='projusers.pl'>Contacts</a>",
-		      "<a href='/'>OMP home</a>",);
+  my @sidebarlinks = ("<a class='sidemain' href='projecthome.pl'>$cookie{projectid} Project home</a>",
+		      "<a class='sidemain' href='feedback.pl'>Feedback entries</a>",
+		      "<a class='sidemain' href='fbmsb.pl'>Program details</a>",
+		      "<a class='sidemain' href='fbcomment.pl'>Add comment</a>",
+		      "<a class='sidemain' href='msbhist.pl'>MSB History</a>",
+		      "<a class='sidemain' href='projusers.pl'>Contacts</a>",
+		      "<a class='sidemain' href='/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
-  push (@sidebarlinks, "<a href='fbfault.pl'>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
+  push (@sidebarlinks, "<a class='sidemain' href='fbfault.pl'>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
-  push (@sidebarlinks, "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
+  push (@sidebarlinks, "<br><a class='sidemain' href='fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
@@ -1207,14 +1213,14 @@ sub _write_header {
 
   $theme->SetHTMLStartString($start_string);
 
-  $theme->SetSideBarTop("<a href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+  $theme->SetSideBarTop("<a class='sidemain' href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a HREF='http://www.jach.hawaii.edu/JACpublic/JCMT'>JCMT</a>",
-	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/UKIRT'>UKIRT</a>",
-	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
-	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/JAC/cs'>Computing Services</a>",
-	       "<a HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
+  my @links = ("<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JCMT'>JCMT</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/UKIRT'>UKIRT</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JAC/cs'>Computing Services</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
 
   # Get the location of blank.gif
   my $blankgif = OMP::Config->getData('blankgif');
@@ -1251,7 +1257,7 @@ sub _write_login {
 
   $self->_write_header();
 
-  print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
+  print "<img src='/images/banner_white.gif'><p><p>";
   print $q->h1('Login');
 
   if (defined $failed) {
