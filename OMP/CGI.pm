@@ -285,7 +285,7 @@ sub _make_theme {
     # Use the OMP theme and make some changes to it.
     # This is in a different place on hihi than it is on malama
 
-    my @themefile = ("/JACpublic/JAC/software/omp/LookAndFeelConfig", "/jac_sw/omp/etc/LookAndFeelConfig", "/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+    my @themefile = ("/WWW/omp/LookAndFeelConfig",);
     my $themefile;
 
     foreach (@themefile) {
@@ -704,13 +704,13 @@ sub write_page_logout {
 
 =item B<write_page_fault>
 
-Creates a page for the fault system.  This system requires the use of URL parameters which
-the other write_page functions do not allow.
+Creates a page for the fault system.  Authenticates only when a user attempts to connect
+from outside the JAC network.  This  function is becoming more and more like write_page.
 
   $cgi->write_page_fault( \&content, \&output );
 
-In order for this to work a hidden field called B<show_output> must be embedded in the cgi form
-for the B<&output> code reference to be called.
+In order for params to be passed in the URL a hidden field called B<show_output> must 
+be embedded in the cgi form being submitted for the B<&output> code reference to be called.
 
 =cut
 
@@ -751,6 +751,63 @@ sub write_page_fault {
     print "Please select a category from the left";
     return;
   }
+
+  if ($q->param) {
+    if ($q->param('show_output')) {
+      $form_output->($q, %cookie);
+    } else {
+      $form_content->($q, %cookie);
+    }
+  } else {
+    $form_content->($q, %cookie);
+  }
+
+  $self->_write_footer();
+}
+
+=item B<write_page_report>
+
+Create pages in similar fashion to B<write_page_fault>, but handle cookies
+differently (i.e: do not get the category from the CGI cookie).  This function is
+used to provide a version of the fault system to users outside the JAC.  Does
+not authenticate.  It should be noted that the fault category is passed to the
+code reference along with the cookie contents even though it is never written
+to the cookie.
+
+  $cgi->write_page_report( $category, \&content, \&output );
+
+Unlike the other write_page functions, this function takes an additional
+argument that is not a code reference.  The first argument should be the
+fault category to use.
+
+=cut
+
+sub write_page_report {
+  my $self = shift;
+  my $category = shift;
+  my ($form_content, $form_output) = @_;
+
+  my $q = $self->cgi;
+
+  my $c = new OMP::Cookie( CGI => $q, Name => "OMPREPORT" );
+  $self->cookie( $c );
+
+  my %cookie = $c->getCookie;
+
+  $self->_make_theme;
+
+  # Store the user name to the cookie
+  if ($q->param('user')) {
+    $cookie{user} = $q->param('user');
+  }
+
+  $c->setCookie( $EXPTIME, %cookie);
+
+  $self->_write_header($STYLE);
+
+  # We want to store the fault category in the cookie hash, but
+  # not write it to the actual cookie.
+  $cookie{category} = $category;
 
   if ($q->param) {
     if ($q->param('show_output')) {
