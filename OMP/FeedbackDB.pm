@@ -30,8 +30,12 @@ use Carp;
 use Time::Piece;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::Project;
 use OMP::ProjDB;
+use OMP::Constants;
 use OMP::Error;
+
+use Net::SMTP;
 
 use base qw/ OMP::BaseDB /;
 
@@ -102,7 +106,8 @@ Adds a comment to the database.  Takes a hash reference containing the
 comment and all of its details. An (optional) second argument can be
 used to disable transaction management (important if you are calling
 this method from some OMP code that is already in a transaction).  A
-true value will disable transactions.
+true value will disable transactions.  This method also mails the comment
+depending on its status.
 
   $db->addComment( $comment, [ $notrans ] );
 
@@ -184,6 +189,12 @@ sub addComment {
   }
 
   # Mail the comment to interested parties
+  ($comment{status} == OMP__FB_IMPORTANT) and
+    $self->_mail_comment_important( $self->projectid, $comment );
+
+  ($comment{status} == OMP__FB_INFO) and
+    $self->_mail_comment_info( $self->projectid, $comment )
+
   #  $self->_mail_comment( $comment );
 
   return;
@@ -243,11 +254,92 @@ writetext $FBTABLE.text \@val '$values[-1]'")
 
 =item B<_mail_comment>
 
+Mail the comment to the specified addresses.
+
+$db->_mail_comment( $comment, \@addresslist );
+
+First argument should be a hash reference.
+
 =cut
 
 sub _mail_comment {
+  my $self = shift;
+  my $comment = shift;
+  my @addrlist = @_;
 
+
+  # Set up the mail
+  my $smtp = new Net::SMTP('mailhost', Timeout => 30);
+
+  $smtp->mail("omp-feedback-system")
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->to(@addrlist)
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->data()
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+  # Mail headers
+  $smtp->datasend("To: " .join(",",@addrlist)."\n")
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->datasend("Subject: New feedback comment for project $comment{projectid}\n")
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->datasend("\n")
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+  # Mail message
+  my $msg = "\nAuthor: $comment{author}\n" .
+            "Subject: $comment{subject}\n\n" .
+	    "$comment{text}\n";
+
+  $smtp->datasend($msg)
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+  # Send message
+  $smtp->dataend()
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
+  $smtp->quit
+    or throw OMP::Error::FatalError("Error constructing mail message\n");
 }
+
+=item B<_mail_comment_important>
+
+Will send the email to PI, COIs and support scientists.
+
+$db->_mail_comment_important( $projectid, $comment );
+
+=cut
+
+sub _mail_comment_important {
+  my $self = shift;
+  my $projectid = shift;
+  my $comment = shift;
+
+  my $proj = new OMP::Project( ProjectID => $projectid );
+  my @email = $proj->contacts;
+  $self->_mail_comment( $comment, \@email );
+}
+
+=item B<_mail_comment_info>
+
+Will send the message to support scientists
+
+$db->_mail_comment_info( $projectid, $comment );
+
+=cut
+
+sub _mail_comment_info {
+  my $self = shift;
+  my $projectid = shift;
+  my $comment = shift;
+
+  my $proj = new OMP::Project( ProjectID => $projectid );
+  my @email = $proj->pieamil;
+  $self->_mail_comment( $comment, \@email );
+}
+
+=cut
 
 =item B<_fetch_comments>
 
