@@ -54,6 +54,94 @@ sub display_page {
   my %cookie = @_;
   my $qv = $cgi->Vars;
 
+  # Filter out CGI variables.
+  my $inst;
+  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
+    $qv->{'inst'} =~ /([\w\d]+)/;
+    $inst = $1;
+  }
+  my $runnr;
+  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
+    $qv->{'runnr'} =~ /(\d+)/;
+    $runnr = $1;
+  }
+  my $ut;
+  my $utdatetime;
+  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
+    $ut = $1;
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
+    $utdatetime = $1;
+  }
+
+  my $xstart;
+  if( exists( $qv->{'xstart'} ) && defined( $qv->{'xstart'} ) ) {
+    $qv->{'xstart'} =~ /(\d+)/;
+    $xstart = $1;
+  }
+  my $xend;
+  if( exists( $qv->{'xend'} ) && defined( $qv->{'xend'} ) ) {
+    $qv->{'xend'} =~ /(\d+)/;
+    $xend = $1;
+  }
+  my $ystart;
+  if( exists( $qv->{'ystart'} ) && defined( $qv->{'ystart'} ) ) {
+    $qv->{'ystart'} =~ /(\d+)/;
+    $ystart = $1;
+  }
+  my $yend;
+  if( exists( $qv->{'yend'} ) && defined( $qv->{'yend'} ) ) {
+    $qv->{'yend'} =~ /(\d+)/;
+    $yend = $1;
+  }
+  my $zmin;
+  if( exists( $qv->{'zmin'} ) && defined( $qv->{'zmin'} ) ) {
+    $qv->{'zmin'} =~ /(\d+)/;
+    $zmin = $1;
+  }
+  my $zmax;
+  if( exists( $qv->{'zmax'} ) && defined( $qv->{'zmax'} ) ) {
+    $qv->{'zmax'} =~ /(\d+)/;
+    $zmax = $1;
+  }
+  my $autocut;
+  if( exists( $qv->{'autocut'} ) && defined( $qv->{'autocut'} ) ) {
+    $qv->{'autocut'} =~ /(\d+)/;
+    $autocut = $1;
+  }
+  my $cgi_group;
+  if( exists( $qv->{'group'} ) && defined( $qv->{'group'} ) ) {
+    $qv->{'group'} =~ /(\d+)/;
+    $cgi_group = $1;
+  }
+
+  my $lut;
+  if( exists( $qv->{'lut'} ) && defined( $qv->{'lut'} ) ) {
+    $qv->{'lut'} =~ /([\w\d]+)/;
+    $lut = $1;
+  }
+
+  my $size;
+  if( exists( $qv->{'size'} ) && defined( $qv->{'size'} ) ) {
+    $qv->{'size'} =~ /(\w+)/;
+    $size = $1;
+  }
+  my $type;
+  if( exists( $qv->{'type'} ) && defined( $qv->{'type'} ) ) {
+    $qv->{'type'} =~ /(\w+)/;
+    $type = $1;
+  }
+  my $cut;
+  if( exists( $qv->{'cut'} ) && defined( $qv->{'cut'} ) ) {
+    $qv->{'cut'} =~ /(\w+)/;
+    $cut = $1;
+  }
+  my $suffix;
+  if( exists( $qv->{'suffix'} ) && defined( $qv->{'suffix'} ) ) {
+    $qv->{'suffix'} =~ /([\d\w_]+)/;
+    $suffix = $1;
+  }
+
   my $projectid;
   my $password;
 
@@ -71,13 +159,10 @@ sub display_page {
                                                 'object' );
   }
 
-  $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
-  my $ut = $1;
-
   my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
-  my $obs = $adb->getObs( instrument => $qv->{'inst'},
-                          ut => $1,
-                          runnr => $qv->{'runnr'} );
+  my $obs = $adb->getObs( instrument => $inst,
+                          ut => $ut,
+                          runnr => $runnr, );
 
   if( $projectid ne 'staff' && lc( $obs->projectid ) ne lc( $projectid ) &&
       $obs->isScience ) {
@@ -91,25 +176,53 @@ sub display_page {
   $group->commentScan;
   obs_table( $group );
 
+# Display the observation.
   print "<br>\n";
   print "<img src=\"worf_image.pl?";
-  print "runnr=" . $qv->{'runnr'};
-  print "&ut=" . $qv->{'ut'};
-  print "&inst=" . $qv->{'inst'};
-  print ( defined( $qv->{'xstart'} ) ? "&xstart=" . $qv->{'xstart'} : '' );
-  print ( defined( $qv->{'xend'} ) ? "&xend=" . $qv->{'xend'} : '' );
-  print ( defined( $qv->{'ystart'} ) ? "&ystart=" . $qv->{'ystart'} : '' );
-  print ( defined( $qv->{'yend'} ) ? "&yend=" . $qv->{'yend'} : '' );
-  print ( defined( $qv->{'zmin'} ) ? "&zmin=" . $qv->{'zmin'} : '' );
-  print ( defined( $qv->{'zmax'} ) ? "&zmax=" . $qv->{'zmax'} : '' );
-  print ( defined( $qv->{'autocut'} ) ? "&autocut=" . $qv->{'autocut'} : '' );
-  print ( defined( $qv->{'lut'} ) ? "&lut=" . $qv->{'lut'} : '' );
-  print ( defined( $qv->{'size'} ) ? "&size=" . $qv->{'size'} : '' );
-  print ( defined( $qv->{'type'} ) ? "&type=" . $qv->{'type'} : '' );
-  print ( defined( $qv->{'cut'} ) ? "&cut=" . $qv->{'cut'} : '' );
-  print ( defined( $qv->{'suffix'} ) ? "&suffix=" . $qv->{'suffix'} : '' );
-  print ( defined( $qv->{'group'} ) ? "&group=" . $qv->{'group'} : '' );
+  print "runnr=$runnr";
+  print "&ut=$utdatetime";
+  print "&inst=$inst";
+  print ( defined( $xstart ) ? "&xstart=$xstart" : '' );
+  print ( defined( $xend ) ? "&xend=$xend" : '' );
+  print ( defined( $ystart ) ? "&ystart=$ystart" : '' );
+  print ( defined( $yend ) ? "&yend=$yend" : '' );
+  print ( defined( $zmin ) ? "&zmin=$zmin" : '' );
+  print ( defined( $zmax ) ? "&zmax=$zmax" : '' );
+  print ( defined( $autocut ) ? "&autocut=$autocut" : '' );
+  print ( defined( $lut ) ? "&lut=$lut" : '' );
+  print ( defined( $size ) ? "&size=$size" : '' );
+  print ( defined( $type ) ? "&type=$type" : '' );
+  print ( defined( $cut ) ? "&cut=$cut" : '' );
+  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
+  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
   print "\"><br><br>\n";
+
+# Print a link to download the FITS file.
+  print "<a href=\"worf_fits.pl?";
+  print "runnr=$runnr";
+  print "&ut=$utdatetime";
+  print "&inst=$inst";
+  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
+  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
+  print "\">Download FITS file</a> (right-click and Save As)<br>\n";
+
+# Print a link to download the NDF file.
+  print "<a href=\"worf_ndf.pl?";
+  print "runnr=$runnr";
+  print "&ut=$utdatetime";
+  print "&inst=$inst";
+  print ( defined( $suffix ) ? "&suffix=$suffix" : '' );
+  print ( defined( $cgi_group ) ? "&group=$cgi_group" : '' );
+  print "\">Download NDF file</a> (right-click and Save As)<br>\n";
+
+# Print a link to load the image using Aladin.
+  print "<a href=\"http://vizier.hia.nrc.ca/viz-bin/nph-aladin.pl?frame=launching&script=get+Local%28http:%2f%2fomp-dev.jach.hawaii.edu%2fcgi-bin%2fworf_fits.pl%3f";
+  print "runnr%3d$runnr";
+  print "%26ut%3d$utdatetime";
+  print "%26inst%3d$inst";
+  print ( defined( $suffix ) ? "%26suffix%3d$suffix" : '' );
+  print ( defined( $cgi_group ) ? "%26group%3d$cgi_group" : '' );
+  print "%29%3b\">Open with Aladin Java applet</a> (imaging mode only)<br><br>\n";
 
   OMP::CGIComponent::WORF::options_form( $cgi );
 
