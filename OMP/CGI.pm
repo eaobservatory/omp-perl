@@ -446,22 +446,22 @@ sub write_page {
       # Dont want to do any more so return immediately
       return;
 
-    }
-
-    if ($q->url_param('urlprojid')) {
+    } elsif ($q->url_param('urlprojid')) {
 
       # The project ID is in the URL.  If the URL project ID doesn't
       # match the project ID in the cookie (or there is no cookie) set
       # the cookie with the URL project ID since the user just clicked
       # a link to get here.
 
+
       if ($q->url_param('urlprojid') ne $cookie{projectid}) {
-	my $verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $password);
-	
+	my $verify;
+	$verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $cookie{password});
+
 	# If they're cookie already has the right password store the new
 	# projectid to the cookie, otherwise popup a login page
 	($verify) and %cookie = (projectid=>$q->url_param('urlprojid'), password=>$cookie{password}) or
-	  $self->_write_login($q->param('projectid'));
+	  $self->_write_login($q->url_param('urlprojid'));
       }
     }
 
