@@ -223,6 +223,30 @@ sub summary {
   }
 }
 
+=item B<uniqueid>
+
+Returns a unique ID for the object.
+
+  $id = $object->uniqueid;
+
+This method is subclassed for the C<OMP::Info::Obs::TimeGap> class because
+TimeGap dates are stored in the database using (endobs - 1), versus
+startobs for regular C<OMP::Info::Obs> objects.
+
+=cut
+
+sub uniqueid {
+  my $self = shift;
+
+  return if ( ! defined( $self->runnr ) ||
+              ! defined( $self->instrument ) ||
+              ! defined( $self->telescope ) ||
+              ! defined( $self->endobs ) );
+
+  return $self->runnr . $self->instrument . $self->telescope . $self->endobs->ymd . sprintf("%02d",$self->endobs->hour) . ":" . sprintf("%02d",$self->endobs->minute) . ":" . sprintf("%02d", ( $self->endobs->second - 1 ));
+}
+
+
 =back
 
 =head1 SEE ALSO
