@@ -292,13 +292,13 @@ sub nightlog {
 
   if($instrument =~ /scuba/i) {
     $return{'Run'} = $self->runnr;
-    $return{'UT time'} = $self->startobs->hms;
+    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Obsmode'} = $self->mode;
     $return{'Project ID'} = $self->projectid;
     $return{'Object'} = $self->target;
     $return{'Tau225'} = $self->tau;
     $return{'Seeing'} = $self->seeing;
-    $return{'Filter'} = $self->waveband->filter;
+    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Bolometers'} = $self->bolometers;
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Bolometers" ];
@@ -307,18 +307,18 @@ sub nightlog {
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Obstype'} = $self->type;
-    $return{'UT start'} = $self->startobs->hms;
+    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = $self->duration;
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
-    $return{'Filter'} = $self->waveband->filter;
+    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Airmass'} = $self->airmass;
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = $self->coords->ra;
-    $return{'DEC'} = $self->coords->dec;
-    $return{'Equinox'} = $self->coords->type;
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Obstype",
                           "UT start", "Exposure time", "Number of exposures",
@@ -334,13 +334,13 @@ sub nightlog {
     $return{'Position Angle'} = $self->slitangle;
     $return{'RA offset'} = $self->raoff;
     $return{'Dec offset'} = $self->decoff;
-    $return{'UT time'} = $self->startobs->hms;
+    $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Airmass'} = $self->airmass;
     $return{'Exposure time'} = $self->duration;
     $return{'Number of exposures'} = $self->nexp;
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
-    $return{'Wavelength'} = $self->waveband->wavelength;
+    $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Standard",
                           "Observation type", "Slit", "Position Angle",
@@ -352,18 +352,18 @@ sub nightlog {
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
-    $return{'UT start'} = $self->startobs->hms;
+    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = $self->duration;
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
-    $return{'Filter'} = $self->waveband->filter;
+    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Airmass'} = $self->airmass;
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = $self->coords->ra;
-    $return{'DEC'} = $self->coords->dec;
-    $return{'Equinox'} = $self->coords->type;
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'Standard'} = $self->standard;
     $return{'Slit'} = $self->slitname;
@@ -372,7 +372,7 @@ sub nightlog {
     $return{'Dec offset'} = $self->decoff;
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
-    $return{'Wavelength'} = $self->waveband->wavelength;
+    $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Observation type",
                           "UT start", "Exposure time", "Number of exposures",
                           "Mode", "Speed", "Filter", "Airmass", "Columns",
@@ -384,18 +384,18 @@ sub nightlog {
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
-    $return{'UT start'} = $self->startobs->hms;
+    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Exposure time'} = $self->duration;
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
-    $return{'Filter'} = $self->waveband->filter;
+    $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Airmass'} = $self->airmass;
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = $self->coords->ra;
-    $return{'DEC'} = $self->coords->dec;
-    $return{'Equinox'} = $self->coords->type;
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'_ORDER'} = [ "Observation", "Group", "Object",
                           "Observation type", "UT start", "Exposure time",
