@@ -7,7 +7,7 @@ use warnings;
 use strict;
 use Test;
 
-BEGIN { plan tests => 96 }
+BEGIN { plan tests => 22 }
 
 use OMP::SciProg;
 
