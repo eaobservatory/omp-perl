@@ -34,6 +34,9 @@ use OMP::FeedbackDB;
 use Mail::Internet;
 use MIME::Entity;
 
+# Do we want verbose logging?
+use constant VERBOSE => 1;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -254,7 +257,7 @@ sub _db_begin_trans {
   # our destructor
   $self->_inctrans;
 
-  OMP::General->log_message( "Begin DB transaction" );
+  OMP::General->log_message( "Begin DB transaction" ) if VERBOSE;
 
 }
 
@@ -279,7 +282,7 @@ sub _db_commit_trans {
   # our destructor
   $self->_dectrans;
 
-  OMP::General->log_message( "Commit DB transaction" );
+  OMP::General->log_message( "Commit DB transaction" ) if VERBOSE;
 
 }
 
@@ -307,7 +310,7 @@ sub _db_rollback_trans {
   # Reset the counter
   $self->_intrans(0);
 
-  OMP::General->log_message( "Rollback DB transaction" );
+  OMP::General->log_message( "Rollback DB transaction" ) if VERBOSE;
 
 }
 
@@ -392,7 +395,7 @@ sub _db_findmax {
   my $sql = "SELECT max($column) FROM $table ";
   $sql .= "WHERE $clause" if $clause;
 
-  OMP::General->log_message( "FindMax: $sql" );
+  OMP::General->log_message( "FindMax: $sql" ) if VERBOSE;
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -493,7 +496,7 @@ sub _db_insert_data {
   # Construct the SQL
   my $sql = "INSERT INTO $table VALUES ($placeholder)";
 
-  OMP::General->log_message( "Inserting DB data: $sql" );
+  OMP::General->log_message( "Inserting DB data: $sql" ) if VERBOSE;
 
   # Get the database handle
   my $dbh = $self->_dbhandle or
@@ -549,7 +552,7 @@ sub _db_retrieve_data_ashash {
   my $dbh = $self->_dbhandle
     or throw OMP::Error::DBError("Database handle not valid");
 
-  OMP::General->log_message( "SQL retrieval: $sql" );
+  OMP::General->log_message( "SQL retrieval: $sql" ) if VERBOSE;
 
   # Run query
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} },@_)
@@ -610,7 +613,7 @@ sub _db_update_data {
     # Construct the SQL
     my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
 
-    OMP::General->log_message( "Updating DB row: $sql" );
+    OMP::General->log_message( "Updating DB row: $sql" ) if VERBOSE;
 
     # Execute the SQL
     $dbh->do($sql)
@@ -652,7 +655,7 @@ sub _db_delete_data {
   # Construct the SQL
   my $sql = "DELETE FROM $table $clause";
 
-  OMP::General->log_message( "Deleting DB data: $sql" );
+  OMP::General->log_message( "Deleting DB data: $sql" ) if VERBOSE;
 
   # Execute the SQL
   $dbh->do($sql)
@@ -852,13 +855,13 @@ sub _mail_information {
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
 
-  OMP::General->log_message("Connecting to mailhost: $mailhost");
+  OMP::General->log_message("Connecting to mailhost: $mailhost") if VERBOSE;
   eval {
     $top->smtpsend(Host => $mailhost,
 		   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
   };
   ($@) and throw OMP::Error::MailError("$@\n");
-  OMP::General->log_message("Mail message sent");
+  OMP::General->log_message("Mail message sent") if VERBOSE;
   return;
 }
 
