@@ -15,7 +15,7 @@ my $database = "archive";
 #$server = "SYB_OMP";
 #$database = "omp";
 
-my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd)
+my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd,{RaiseError => 0, PrintError => 0})
   or die "Cannot connect: ". $DBI::errstr;
 
 
@@ -33,11 +33,12 @@ my %tables = (
 			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
 			 earliest => "DATETIME",
+			 photometric => "BIT",
 			 latest => "DATETIME",
 			 telescope => "VARCHAR(16)",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    obscount tauband seeing priority
-				    telescope moon
+				    telescope moon photometric
 				    timeest title earliest latest
 				    /],
 		       },
@@ -70,6 +71,7 @@ my %tables = (
 			 projectid => "VARCHAR(32)",
 			 instrument => "VARCHAR(32)",
 			 wavelength => "REAL",
+			 grating => "VARCHAR(32) NULL",
 			 coordstype => "VARCHAR(32)",
 			 target => "VARCHAR(32)",
 			 ra2000 => "REAL NULL",
@@ -82,12 +84,12 @@ my %tables = (
 			 el6 => "REAL NULL",
 			 el7 => "REAL NULL",
 			 el8 => "REAL NULL",
-			 pol => "INTEGER",
+			 pol => "BIT",
 			 timeest => "REAL",
 			 type => "VARCHAR(32)",
 			 _ORDER => [qw/obsid msbid projectid
-				    instrument type pol wavelength coordstype
-				    target ra2000 dec2000 el1 el2
+				    instrument type pol wavelength grating
+				    coordstype target ra2000 dec2000 el1 el2
 				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
 			},
@@ -145,18 +147,20 @@ for my $table (sort keys %tables) {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
 
+  # Usually a failure to drop is non fatal since it
+  # indicates that the table is not there to drop
   my $sth;
   print "Drop table $table\n";
   $sth = $dbh->prepare("DROP TABLE $table")
-    or die "Cannot drop table $table: ". $dbh->errstr();
+    or die "Cannot prepare SQL to drop table";
 
-  $sth->execute() or die "Cannot execute: " . $sth->errstr();
+  $sth->execute();
   $sth->finish();
 
   print "\n$table: $str\n";
   print "SQL: CREATE TABLE $table ($str)\n";
   $sth = $dbh->prepare("CREATE TABLE $table ($str)")
-    or die "Cannot create table $table: ". $dbh->errstr();
+    or die "Cannot prepare SQL for CREATE table $table: ". $dbh->errstr();
 
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
   $sth->finish();
