@@ -578,7 +578,7 @@ sub _post_process_hash {
 	  if (scalar( @{$href->{$key}} ) == 1) {
 
 	    # Now convert to a range
-      my $date = $href->{$key}->[0];
+	    my $date = $href->{$key}->[0];
 	    my $delta = $href->{_attr}->{$key}->{delta};
 
 	    # Get the units
@@ -595,7 +595,10 @@ sub _post_process_hash {
 			   'years' => ONE_YEAR,
 			  );
 
-      my $enddate = $date + $sqlunits{$units} * $delta;
+	    # KLUGE This returns a Time::Piece object rather than
+	    # the class of object that was passed in. Need to rebless
+	    my $enddate = $date + $sqlunits{$units} * $delta;
+	    bless $enddate, ref($date);
 
 	    my ($min, $max) = ( 'Min', 'Max');
 	    if ($delta < 0) {
