@@ -833,8 +833,27 @@ sub msb_hist_content {
 
   print $q->h2("MSB History for project $cookie{projectid}");
 
+  ### put code for not displaying non-existant msbs here? ###
   proj_status_table($q, %cookie);
   print $q->hr;
+
+  print "<SCRIPT LANGUAGE='javascript'> ";
+  print "function mysubmit() ";
+  print "{document.sortform.submit()}";
+  print "</SCRIPT>";
+
+
+  print $q->startform(-name=>'sortform'),
+	"Show: ",
+	$q->popup_menu(-name=>'show',
+		       -values=>[qw/all observed current/],
+		       -default=>'current',
+		       -onChange=>'mysubmit()'),
+        "&nbsp;&nbsp;&nbsp;",
+        $q->submit("Refresh"),
+        $q->endform,
+	$q->p;
+
   msb_comments($q, $commentref, $sp);
 }
 
@@ -882,11 +901,20 @@ sub msb_comments {
   my $commentref = shift;
   my $sp = shift;
 
+  my @output;
+  if ($q->query_param('show') =~ /observed/) {
+    @output = grep {$_->comments->[0]->status != OMP__DONE_FETCH} @$commentref;
+  } elsif ($q->query_param('show') =~ /current/) {
+    @output = grep {$sp->existsMSB($_->checksum)} @$commentref;
+  } else {
+    @output = @$commentref;
+  }
+
   print "<table border=1 width=100%>";
 
   my $i = 0;
   my $bgcolor;
-  foreach my $msb (@$commentref) {
+  foreach my $msb (@output) {
     $i++;
     print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
     print "<td><b>Target:</b> ".$msb->target ."</td>";
