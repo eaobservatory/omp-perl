@@ -1,70 +1,37 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <SpProg>
   <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
-  <projectID>mtest</projectID>
+  <title>A test of MSB.pm</title>
   <MetaData>
     <gui>
       <collapsed>false</collapsed>
       <filename>test.xml</filename>
     </gui>
   </MetaData>
-  <SpObs done="0" remaining="1">
-    <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
-    <MetaData>
-      <gui>
-        <collapsed>false</collapsed>
-      </gui>
-    </MetaData>
-    <standard>false</standard>
-    <SpIterFolder>
-      <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
-      <MetaData>
-        <gui>
-          <collapsed>false</collapsed>
-        </gui>
-      </MetaData>
-    </SpIterFolder>
-  </SpObs>
-  <SpMSB done="0" remaining="1">
+  <country>UK</country>
+  <projectID>M01TIM</projectID>
+  <pi>Tim Jenness</pi>
+  <SpMSB remaining="1">
     <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
     <MetaData>
       <gui>
         <collapsed>false</collapsed>
       </gui>
     </MetaData>
-    <SpSiteQualityObsComp>
+    <SpSiteQualityObsCompRef idref="0"/>
+    <SpSiteQualityObsComp id="0">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="schedInfo" type="oc"/>
-      <seeing>1</seeing>
+      <seeing>2</seeing>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tauBand>1</tauBand>
+      <tauBand>2</tauBand>
     </SpSiteQualityObsComp>
-    <SpTelescopeObsComp>
-      <ItemData name="new" package="gemini.sp.obsComp"
-        subtype="targetList" type="oc"/>
-      <MetaData>
-        <unique>true</unique>
-        <gui>
-          <collapsed>false</collapsed>
-          <selectedTelescopePos>Base</selectedTelescopePos>
-        </gui>
-      </MetaData>
-      <base>
-        <target type="science">
-          <targetName></targetName>
-          <hmsdegSystem type="J2000">
-            <c1>00:00:00</c1>
-            <c2>+00:00:00</c2>
-          </hmsdegSystem>
-        </target>
-      </base>
-    </SpTelescopeObsComp>
-    <SpObs done="0" remaining="1">
+    <SpObs msb="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
       <MetaData>
         <gui>
@@ -72,11 +39,156 @@
         </gui>
       </MetaData>
       <standard>false</standard>
+      <SpTelescopeObsComp>
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="targetList" type="oc"/>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+            <selectedTelescopePos>Base</selectedTelescopePos>
+          </gui>
+        </MetaData>
+        <base>
+          <target type="science">
+            <targetName>3C 279</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>12:56:11.166</c1>
+              <c2>-05:47:21.52</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+      </SpTelescopeObsComp>
+      <SpInstIRCAM3>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.IRCAM3" type="oc"/>
+        <instPort>West</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>256x256</readoutArea>
+        <coadds>1</coadds>
+        <sourceMag>none</sourceMag>
+        <instAper>
+          <value>4.88</value>
+          <value>10.30</value>
+          <value>0.0</value>
+          <value>1.0</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>Lp98</filter>
+        <exposureTime>0</exposureTime>
+        <acqMode/>
+      </SpInstIRCAM3>
       <SpIterFolder>
         <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
         <MetaData>
           <gui>
+            <collapsed>true</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterObserve>
+          <ItemData name="new" package="gemini.sp.iter"
+            subtype="observe" type="ic"/>
+          <repeatCount>1</repeatCount>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+        </SpIterObserve>
+      </SpIterFolder>
+    </SpObs>
+    <SpObs msb="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpTelescopeObsComp>
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="targetList" type="oc"/>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
             <collapsed>false</collapsed>
+            <selectedTelescopePos>Base</selectedTelescopePos>
+          </gui>
+        </MetaData>
+        <base>
+          <target type="science">
+            <targetName>V* V353 Aur</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>04:42:53.8</c1>
+              <c2>+36:06:52</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+      </SpTelescopeObsComp>
+      <SpInstMichelle>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.michelle" type="oc"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+          <version>1</version>
+          <unique>true</unique>
+        </MetaData>
+        <order>0</order>
+        <centralWavelength>10.5</centralWavelength>
+        <posAngle>0.0</posAngle>
+        <disperser>LowN</disperser>
+        <instPort>Centre</instPort>
+        <waveform>starev11big</waveform>
+        <instAper>
+          <value>-1.07</value>
+          <value>7.48</value>
+          <value>0.0</value>
+          <value>10.5</value>
+        </instAper>
+        <mode>CHOP</mode>
+        <obsTimeOT>20.0</obsTimeOT>
+        <filter>I105B53</filter>
+        <coadds>621</coadds>
+        <nreads>0</nreads>
+        <observationTime>40.501227375</observationTime>
+        <dutyCycle>0.3066573732446053</dutyCycle>
+        <chopFrequency>5.185028050029558</chopFrequency>
+        <maskAngle>0.0</maskAngle>
+        <mustIdles>0</mustIdles>
+        <sampling>1x1</sampling>
+        <nullReads>0</nullReads>
+        <waveplate>none</waveplate>
+        <nullCycles>3</nullCycles>
+        <pixelFOV>0.0 x 0.0</pixelFOV>
+        <idlePeriod>0.01</idlePeriod>
+        <configType>Normal</configType>
+        <scienceArea>0.0 x 0.0</scienceArea>
+        <filterCategory>Nband</filterCategory>
+        <darkFilter>Blank</darkFilter>
+        <polarimetry>no</polarimetry>
+        <readInterval>0.01</readInterval>
+        <filterOT>F105B53</filterOT>
+        <chopDelay>0.015</chopDelay>
+        <mask>2_pixels</mask>
+        <nullExposures>0</nullExposures>
+        <resetDelay>0.01</resetDelay>
+        <nresets>2</nresets>
+        <camera>imaging</camera>
+        <exposureTime>0.01</exposureTime>
+      </SpInstMichelle>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>true</collapsed>
           </gui>
         </MetaData>
         <SpIterObserve>
@@ -92,4 +204,198 @@
       </SpIterFolder>
     </SpObs>
   </SpMSB>
+  <SpMSB remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <SpObs msb="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <SpSiteQualityObsCompRef idref="3"/>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <priority>Medium</priority>
+      <standard>false</standard>
+      <SpTelescopeObsCompRef idref="1"/>
+      <SpInstCGS4Ref idref="2"/>
+      <SpSiteQualityObsComp id="3">
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="schedInfo" type="oc"/>
+        <seeing>1</seeing>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <tauBand>1</tauBand>
+      </SpSiteQualityObsComp>
+      <SpInstCGS4 id="2">
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.CGS4" type="oc"/>
+        <order>0</order>
+        <instPort>South</instPort>
+        <disperser>40lpmm</disperser>
+        <instAper>
+          <value>-0.81</value>
+          <value>12.32</value>
+          <value>0.0</value>
+          <value>2.1</value>
+        </instAper>
+        <filter>none</filter>
+        <cvfOffset>0.0</cvfOffset>
+        <acqMode>NDSTARE</acqMode>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+          <version>1.0</version>
+        </MetaData>
+        <sourceMag>none</sourceMag>
+        <exposureTime>0</exposureTime>
+        <neutralDensity>0</neutralDensity>
+        <sampling>1x1</sampling>
+        <centralWavelength>1.0</centralWavelength>
+        <coadds>1</coadds>
+        <mask>1pixel</mask>
+        <polariser>none</polariser>
+      </SpInstCGS4>
+      <SpTelescopeObsComp id="1">
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="targetList" type="oc"/>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+            <selectedTelescopePos>Base</selectedTelescopePos>
+          </gui>
+        </MetaData>
+        <base>
+          <target type="science">
+            <targetName>3C 273</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>12:29:06.7</c1>
+              <c2>+02:03:08.6</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+      </SpTelescopeObsComp>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>true</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterObserve>
+          <ItemData name="new" package="gemini.sp.iter"
+            subtype="observe" type="ic"/>
+          <repeatCount>1</repeatCount>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+        </SpIterObserve>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpObs msb="true" remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+    <SpSiteQualityObsCompRef idref="3"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <priority>Medium</priority>
+    <standard>false</standard>
+    <SpTelescopeObsCompRef idref="1"/>
+    <SpInstCGS4Ref idref="2"/>
+    <SpSiteQualityObsComp id="3">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="schedInfo" type="oc"/>
+      <seeing>1</seeing>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <tauBand>1</tauBand>
+    </SpSiteQualityObsComp>
+    <SpInstCGS4 id="2">
+      <ItemData name="new" package="orac.ukirt.inst" subtype="inst.CGS4" type="oc"/>
+      <order>1</order>
+      <instPort>South</instPort>
+      <disperser>40lpmm</disperser>
+      <instAper>
+        <value>-0.81</value>
+        <value>12.32</value>
+        <value>0.0</value>
+        <value>2.0</value>
+      </instAper>
+      <filter>none</filter>
+      <cvfOffset>0.0</cvfOffset>
+      <acqMode>NDSTARE</acqMode>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+        <version>1.0</version>
+      </MetaData>
+      <sourceMag>none</sourceMag>
+      <exposureTime>4.0</exposureTime>
+      <neutralDensity>0</neutralDensity>
+      <sampling>1x1</sampling>
+      <centralWavelength>2.0</centralWavelength>
+      <coadds>2</coadds>
+      <mask>1pixel</mask>
+      <polariser>none</polariser>
+    </SpInstCGS4>
+    <SpTelescopeObsComp id="1">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="targetList" type="oc"/>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+          <selectedTelescopePos>Base</selectedTelescopePos>
+        </gui>
+      </MetaData>
+      <base>
+        <target type="science">
+          <targetName>3C 273</targetName>
+          <hmsdegSystem type="J2000">
+            <c1>12:29:06.7</c1>
+            <c2>+02:03:08.6</c2>
+          </hmsdegSystem>
+        </target>
+      </base>
+    </SpTelescopeObsComp>
+    <SpIterFolder>
+      <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <SpIterObserve>
+        <ItemData name="new" package="gemini.sp.iter" subtype="observe" type="ic"/>
+        <repeatCount>1</repeatCount>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+      </SpIterObserve>
+    </SpIterFolder>
+  </SpObs>
 </SpProg>
