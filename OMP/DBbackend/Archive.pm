@@ -75,7 +75,7 @@ sub loginhash {
 		 server   => "SYB_LUU",
 		 database => "ukirt",
 		 user     => "staff",
-		 password => "kalapana",
+		 password => "pohoiki",
 		);
 
   # possible override
