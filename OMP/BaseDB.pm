@@ -30,6 +30,7 @@ use Carp;
 use OMP::Error;
 use OMP::Constants qw/ :fb /;
 use OMP::General;
+use OMP::FeedbackDB;
 
 use Net::SMTP;
 
@@ -285,10 +286,10 @@ XML data file.
 sub _db_rollback_trans {
   my $self = shift;
 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
   if ($self->_intrans) {
+    my $dbh = $self->_dbhandle;
+    throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
     $self->_intrans(0);
     $dbh->rollback
       or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
