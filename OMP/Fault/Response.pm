@@ -124,10 +124,9 @@ sub text {
 
 =item B<author>
 
-Name of person submitting the response. There is as yet
-no lookup to make sure that this person is allowed to submit
-or any rules concerning whether this should be a user name
-or a real name.
+OMP::User object describing the person submitting the response. There
+is as yet no lookup to make sure that this person is allowed to submit
+a fault or whether their details exist in the OMP system.
 
   $author = $resp->author;
   $resp->author( $author );
@@ -136,7 +135,12 @@ or a real name.
 
 sub author {
   my $self = shift;
-  if (@_) { $self->{Author} = shift; }
+  if (@_) {
+    my $user = shift;
+    die "Author must be supplied as OMP::User object"
+      unless UNIVERSAL::isa( $user, "OMP::User" );
+    $self->{Author} = $user;
+  }
   return $self->{Author};
 }
 
@@ -152,7 +156,7 @@ C<Time::Piece> object.
 
 sub date {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $date = shift;
     croak "Date must be supplied as Time::Piece object"
       unless UNIVERSAL::isa( $date, "Time::Piece" );

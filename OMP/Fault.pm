@@ -282,7 +282,7 @@ Fault constructor. A fault must be created with the following information:
   status    - is the fault OPEN or CLOSED [integer]
   fault     - a fault "response" object
 
-The fault message (which includes the submitting user) must be
+The fault message (which includes the submitting user id) must be
 supplied as a C<OMP::Fault::Response> object.
 
 The values for type, urgency, system and status can be obtained by
@@ -329,6 +329,7 @@ sub new {
 		     Entity => undef,
 		     Category => undef,
 		     Responses => [],
+		     Projects => [],
 		     Status => OPEN,
 		     Subject => undef,
 		    }, $class;
@@ -615,6 +616,33 @@ sub urgency {
   return $self->{Urgency};
 }
 
+=item B<projects>
+
+Array of projects associated with this fault.
+
+ $fault->projects(@projects);
+ $fault->projects(\@projects);
+ $projref  = $fault->projects();
+ @projects = $fault->projects();
+
+The project IDs themselves are I<not> verified to ensure that
+they refer to real projects. Can be empty.
+
+=cut
+
+sub projects {
+  my $self = shift;
+  if (@_) {
+    my @new = ( ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
+    @{$self->{Projects}} = @new;
+  }
+  if (wantarray()) {
+    return @{ $self->{Projects}};
+  } else {
+    return $self->{Projects};
+  }
+}
+
 =item B<entity>
 
 Context sensitive information that should be associated with the
@@ -654,7 +682,7 @@ sub category{
 =item B<responses>
 
 The responses associated with the fault. There will always be at least
-one response (the initial fault). Returned as an array of
+one response (the initial fault). Returned as a list of
 C<OMP::Fault::Response> objects. The order corresponds to the sequence
 in which the fault responses were filed.
 
@@ -745,7 +773,7 @@ sub responses {
 
 =item B<author>
 
-Returns the name of the person who initially filed the
+Returns the C<OMP::User> object of the  person who initially filed the
 fault.
 
   $author = $fault->author();
@@ -881,7 +909,7 @@ sub stringify {
 "    System is     :  $system\n".
 "                                         time: $time\n".
 "    Fault type is :  $type\n".
-"                                         loss: $tlost\n".
+"                                         loss: $tlost hrs\n".
 "    Status        :  $status\n".
 "\n".
 "    Notice will be sent to: $email\n".

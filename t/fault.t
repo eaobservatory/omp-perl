@@ -4,12 +4,15 @@
 use Test;
 BEGIN { plan tests => 5 }
 use strict;
+use OMP::User;
 use OMP::Fault;
 use OMP::Fault::Response;
 
 
 # First create the first "response"
-my $resp = new OMP::Fault::Response( author => "AJA",
+my $author = new OMP::User( userid => "AJA",
+	                    name   => "Andy Adamson");
+my $resp = new OMP::Fault::Response( author => $author,
 				     text => "This is a test of the fault classes");
 
 ok( $resp );
@@ -25,7 +28,9 @@ ok( $fault );
 
 
 # Now respond
-my $resp2 = new OMP::Fault::Response( author => "TIMJ",
+my $author2 = new OMP::User( userid => "TIMJ",
+	                     name   => "Tim Jenness");
+my $resp2 = new OMP::Fault::Response( author => $author2,
 				      text => "I respond to you");
 
 $fault->responses( $resp2 );

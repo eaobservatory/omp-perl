@@ -31,6 +31,7 @@ use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::FaultQuery;
 use OMP::Error;
+use OMP::UserDB;
 
 use base qw/ OMP::BaseDB /;
 
@@ -38,6 +39,7 @@ our $VERSION = (qw$Revision$)[1];
 
 our $FAULTTABLE = "ompfault";
 our $FAULTBODYTABLE = "ompfaultbody";
+our $ASSOCTABLE = "ompfaultassoc";
 
 our $DEBUG = 1;
 
@@ -280,6 +282,15 @@ sub _store_new_fault {
 			  $fault->status, $fault->urgency,
 			  $fault->timelost, $fault->entity);
 
+  # Insert the project association data
+  # In this case we dont need an entry if there are no projects
+  # associated with the fault since we never do a join requiring
+  # a fault id to exist.
+  my @entries = map { [ $fault->id, $_ ]  } $fault->projects;
+  for my $assoc (@entries) {
+    $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
+  }
+
   # Now loop over responses
   for my $resp ($fault->responses) {
 
@@ -296,6 +307,8 @@ Add the supplied response to the specified fault.
   $db->_add_new_response( $id, $response );
 
 Response must be an C<OMP::Fault::Response> object.
+An exception of class C<OMP::Error::Authentication> is thrown
+if the user ID associated with the response is invalid.
 
 =cut
 
@@ -308,11 +321,17 @@ sub _add_new_response {
   my $date = $resp->date;
   my $text = $resp->text;
 
+  # Verify user id is valid
+  # Create UserDB object for user determination
+  my $udb = new OMP::UserDB( DB => $self->db );
+  $udb->verifyUser($author->userid)
+    and throw OMP::Error::Authentication
+
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
 
   $self->_db_insert_data( $FAULTBODYTABLE,
-			  $id, $date, $author, $resp->isfault,
+			  $id, $date, $author->userid, $resp->isfault,
 			  {
 			   TEXT => $text,
 			   COLUMN => 'text',
@@ -358,13 +377,20 @@ sub _query_faultdb {
   my $query = shift;
 
   # Get the SQL
-  my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE);
+  my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE );
 
   # Fetch the data
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+  # Create UserDB object for user determination
+  my $udb = new OMP::UserDB( DB => $self->db );
+
+  # Create a cache for OMP::User objects since it is likely
+  # that a single user will be involved in more than a single response
+  my %users;
+
   # Now loop through the faults, creating objects and
-  # matching responses. 
+  # matching responses.
   # Use a hash to indicate whether we have already seen a fault
   my %faults;
   for my $faultref (@$ref) {
@@ -375,16 +401,36 @@ sub _query_faultdb {
     $faultref->{faultdate} = OMP::General->parse_date( $faultref->{faultdate})
       if defined $faultref->{faultdate};
 
+    # Generate a user object [hope the multiple Sybase accesses
+    # are not too much of an overhead. Else will have to do a join
+    # in the initial fault query.] and cache it
+    my $userid = $faultref->{author};
+    if (!exists $users{$userid} ) {
+      $users{$userid} = $udb->getUser( $userid );
+    }
+    $faultref->{author} = $users{$userid};
+
+    # Check it
+    throw OMP::Error::FatalError("User ID retrieved from fault system [$userid] does not match a valid user id")
+      unless defined $users{$userid};
+
+    # Determine the fault id
     my $id = $faultref->{faultid};
 
     # Create a new fault
     # One problem is that a new fault *requires* an initial "response"
     if (!exists $faults{$id}) {
-      # Get the response
+      # Get the response object
       my $resp = new OMP::Fault::Response( %$faultref );
 
       # And the fault
       $faults{$id} = new OMP::Fault( %$faultref, fault => $resp);
+
+      # Now get the associated projects
+      # Note that we are not interested in generating OMP::Project objects
+      # Only want to do this once per fault
+      my $assocref = $self->_db_retrieve_data_ashash( "SELECT * FROM $ASSOCTABLE  WHERE faultid = $id" );
+      $faults{$id}->projects( map { $_->{projectid} } @$assocref);
 
     } else {
       # Just need the response
