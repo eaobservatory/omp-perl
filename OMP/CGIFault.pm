@@ -26,6 +26,7 @@ use Date::Manip;
 use Text::Wrap;
 
 use OMP::CGI;
+use OMP::CGIHelper;
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
@@ -42,7 +43,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults update_fault_content update_fault_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults update_fault_content update_fault_output sql_match_string/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -259,7 +260,7 @@ sub file_fault_output {
     # Strip out the <html> and </html> tags
     $text =~ s!</*html>!!ig;
   } else {
-    $text = "<pre>$text</pre>";
+    $text = preify_text($text);
   }
 
   my $resp = new OMP::Fault::Response(author=>$user,
@@ -414,6 +415,14 @@ sub query_fault_content {
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
+
+    # No recent faults, get current faults instead
+    if (!$faults->[0]) {
+      my %status = OMP::Fault->faultStatus;
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
+      $faults = OMP::FaultServer->queryFaults($xml, "object");
+    }
+
     return $faults;
   } otherwise {
     my $E = shift;
@@ -496,8 +505,10 @@ sub query_fault_output {
       if ($delta);
 
     my $text = $q->param('text');
-    push (@xml, "<text>$text</text>")
-      if ($text);
+    if ($text) {
+      $text = sql_match_string($text);
+      push (@xml, "<text>$text</text>");	
+    }
 
     if ($q->param('search') =~ /response/) {
       push (@xml, "<isfault>0</isfault>");
@@ -1063,6 +1074,25 @@ sub titlebar {
   print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
     if (@$title->[1]);
   print "</table><br>";
+}
+
+=item B<sql_match_string>
+
+Return a string that can be used for case-insensitive pattern matching in
+an SQL statement (i.e.: "Cow" becomes "[Cc][Oo][Ww]").
+
+  $newstring = sql_match_string($string);
+
+=cut
+
+sub sql_match_string {
+  my $string = shift;
+
+  # In this regexp \U begins the uppercase, \E ends it and \L starts
+  # the lowercase
+  $string =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
+
+  return $string;
 }
 
 =item B<sidebar_summary>
