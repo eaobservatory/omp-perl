@@ -46,7 +46,7 @@ use constant CLOSED => 1;
 
 # Mailing list
 my %MAILLIST = (
-#		"CSG" => "csg_faults\@jach.hawaii.edu",
+		"CSG" => "csg_faults\@jach.hawaii.edu",
 #		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
 #		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
 		"OMP" => "omp_group\@jach.hawaii.edu",
