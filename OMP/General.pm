@@ -949,7 +949,7 @@ sub extract_projectid {
 
   my $projid;
 
-  if ($string =~ /\b(u\/\d\d[ab]\/[jhd]?\d+)\b/i    # UKIRT
+  if ($string =~ /\b(u\/\d\d[ab]\/[jhd]?\d+[ab]?)\b/i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][unchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
