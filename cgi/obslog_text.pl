@@ -7,6 +7,7 @@ BEGIN {
     unless exists $ENV{'OMP_CFG_DIR'};
 }
 
+use strict;
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
@@ -15,10 +16,6 @@ use lib OMPLIB;
 
 use OMP::CGI;
 use OMP::CGIObslog;
-
-use Net::Domain qw/ hostfqdn /;
-
-use strict;
 
 $| = 1; # make output unbuffered
 

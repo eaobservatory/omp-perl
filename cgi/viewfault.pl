@@ -27,11 +27,9 @@ my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
 
 $cgi->html_title("OMP Fault System: View Fault " . $q->url_param('id'));
 
-my @domain = OMP::General->determine_host;
-
 # If the user is outside the JAC network write the page with
 # authentication
-if ($domain[1] and $domain[1] !~ /\./) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_fault( \&view_fault_content, \&view_fault_output);
 } else {
   $cgi->write_page_fault_auth( \&view_fault_content, \&view_fault_output);

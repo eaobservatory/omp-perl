@@ -26,7 +26,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 # Bring in ORAC modules so we can figure out where the files
 # are, depending on the instrument.
 
-use lib qw( /ukirt_sw/oracdr/lib/perl5 );
+use lib qw( /ukirt_sw/oracdr/lib/perl5 /jcmt_sw/oracdr/lib/perl5 );
 use ORAC::Inst::Defn qw/orac_configure_for_instrument/;
 
 # Set up various variables.

@@ -19,6 +19,7 @@ use lib OMPLIB;
 use OMP::CGIShiftlog;
 use OMP::CGI;
 use OMP::Config;
+use OMP::General;
 
 use strict;
 
@@ -28,11 +29,9 @@ my $cquery = new CGI;
 my $cgi = new OMP::CGI( CGI => $cquery );
 $cgi->html_title( "OMP Shiftlog" );
 
-my @domain = OMP::General->determine_host;
-
 # write the page
 
-if( $domain[1] and $domain[1] !~ /\./) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&shiftlog_page, \&shiftlog_page );
 } else {
   $cgi->write_page_staff( \&shiftlog_page, \&shiftlog_page );

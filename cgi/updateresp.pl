@@ -28,11 +28,9 @@ $cgi->theme($theme);
 
 $cgi->html_title("OMP Fault System: Update response");
 
-my @domain = OMP::General->determine_host;
-
 # If the user is outside the JAC network write the page with
 # authentication
-if ($domain[1] and $domain[1] !~ /\./) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_fault( \&update_resp_content, \&update_resp_output);
 } else {
   $cgi->write_page_fault_auth( \&update_resp_content, \&update_resp_output);

@@ -27,6 +27,8 @@ BEGIN {
     unless exists $ENV{'OMP_CFG_DIR'};
 }
 
+use strict;
+
 # Bring in all the required modules
 
 use CGI;
@@ -37,8 +39,8 @@ use CGI::Carp qw/fatalsToBrowser/;
 use lib OMPLIB;
 use OMP::CGI;
 use OMP::CGIWORF;
+use OMP::General;
 
-use strict;
 
 # Set up global variables, system variables, etc.
 
@@ -48,11 +50,8 @@ my $query = new CGI;
 my $cgi = new OMP::CGI( CGI => $query );
 $cgi->html_title("WORF: WWW Observing Remotely Facility");
 
-my @domain = OMP::General->determine_host;
-
 # write the page
-
-if( $domain[1] and $domain[1] !~ /\./) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&display_page, \&display_page );
 } else {
   $cgi->write_page_staff( \&display_page, \&display_page );

@@ -15,8 +15,6 @@ use lib OMPLIB;
 use OMP::CGI;
 use OMP::CGIObslog;
 
-use Net::Domain qw/ hostfqdn /;
-
 use strict;
 
 $| = 1; # make output unbuffered

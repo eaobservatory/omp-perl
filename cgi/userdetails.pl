@@ -38,8 +38,7 @@ try {
 $cgi->html_title("$title: User Details for $user");
 
 # Do project authentication if the user is not local
-my $local = OMP::General->am_i_local;
-if ($local) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIUser::details, \&OMP::CGIUser::details );
 } else {
   $cgi->write_page( \&OMP::CGIUser::details, \&OMP::CGIUser::details );

@@ -21,8 +21,6 @@ my $arg = shift @ARGV;
 my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
-my @domain = OMP::General->determine_host;
-
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
 $cgi->theme($theme);
@@ -30,7 +28,7 @@ $cgi->theme($theme);
 
 # If the user is outside the JAC network write the page with
 # authentication
-if ($domain[1] and $domain[1] !~ /\./) {
+if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&observed, \&observed_output );
 } else {
   $cgi->write_page_staff( \&observed, \&observed_output );
