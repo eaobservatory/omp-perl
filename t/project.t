@@ -6,7 +6,7 @@ use warnings;
 use strict;
 use Test;
 
-BEGIN { plan tests => 11 }
+BEGIN { plan tests => 19 }
 
 use OMP::Project;
 
@@ -21,6 +21,7 @@ my %project = (
 	       piemail => "joe\@jach.hawaii.edu",
 	       coi => "name1:name2:name3",
 	       coiemail => \@coiemail,
+	       allocated => 3000,
 	      );
 
 # Instantiate a Project object
@@ -53,3 +54,19 @@ for my $i (0.. $#coiemail) {
 ok( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail));
 
 
+# Check the time allocation
+print "# Time allocation\n";
+ok( $proj->allocated, $project{allocated});
+ok( $proj->remaining, $proj->allocated );
+ok( $proj->used, 0.0 );
+
+# Set some time pending
+my $used = 360;
+$proj->incPending( $used );
+ok( $proj->pending, $used );
+ok( $proj->used, $used );
+
+$proj->consolidateTimeRemaining;
+ok( $proj->used, $used );
+ok( $proj->remaining, ($project{allocated} - $used));
+ok( $proj->pending, 0.0);
