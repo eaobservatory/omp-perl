@@ -217,6 +217,13 @@ sub obs_table {
   my $obsgroup = shift;
   my $options = shift;
 
+  my $showcomments;
+  if( exists( $options->{showcomments} ) ) {
+    $showcomments = $options->{showcomments};
+  } else {
+    $showcomments = 1;
+  }
+
 # Verify the ObsGroup object.
   if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
@@ -237,7 +244,7 @@ sub obs_table {
   }
 
   # Sort the array according to the observation time.
-  if( defined($options->{ascending}) &&
+  if( exists( $options->{ascending} ) &&
       $options->{ascending} == 0 ) {
     @obsarray = sort { $b->startobs->epoch <=> $a->startobs->epoch } @obsarray;
   } else {
@@ -266,8 +273,7 @@ sub obs_table {
     # 'showcomments' parameter is not '0'.
     if( defined( $comments ) &&
         defined( $comments->[0] ) &&
-        defined( $options->{showcomments} ) &&
-        $options->{showcomments} != '0' ) {
+        $showcomments ) {
 
       print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\">";
       my @printstrings;
