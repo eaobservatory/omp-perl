@@ -1885,20 +1885,7 @@ sub preify_text {
   my $string = shift;
 
   if ($string !~ /^<html>/i) {
-
-    # Escape sequence lookup table
-    my %lut = (">" => "&gt;",
-	       "<" => "&lt;",
-	       "&" => "&amp;",
-	       '"' => "&quot;",);
-
-    # Do the search and replace
-    # Make sure we replace ampersands first, otherwise we'll end
-    # up replacing the ampersands in the escape sequences
-    for ("&", ">", "<", '"') {
-      $string =~ s/$_/$lut{$_}/g;
-    }
-
+    $string = escape_entity( $string );
     $string = "<pre>$string</pre>";
   } else {
     $string =~ s!</*html>!!ig;
@@ -1908,6 +1895,33 @@ sub preify_text {
   $string =~ s/\015//g;
 
   return $string;
+}
+
+=item B<escape_entity>
+
+Replace a & > or < with the corresponding HTML entity.
+
+  $esc = escape_entity( $text );
+
+=cut
+
+sub escape_entity {
+  my $text = shift;
+
+  # Escape sequence lookup table
+  my %lut = (">" => "&gt;",
+	     "<" => "&lt;",
+	     "&" => "&amp;",
+	     '"' => "&quot;",);
+
+  # Do the search and replace
+  # Make sure we replace ampersands first, otherwise we'll end
+  # up replacing the ampersands in the escape sequences
+  for ("&", ">", "<", '"') {
+    $text =~ s/$_/$lut{$_}/g;
+  }
+
+  return $text;
 }
 
 =item B<replace_entity>
