@@ -524,7 +524,7 @@ sub listSupport {
   # Kluge. We should not be doing SQL at this level
   # Note that current project table does not know which telescope
   # it belongs to!
-  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, name FROM $PROJUSERTABLE S, $utable U WHERE S.userid = U.userid AND capacity = 'SUPPORT'" );
+  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, uname as 'name' FROM $PROJUSERTABLE S, $utable U WHERE S.userid = U.userid AND capacity = 'SUPPORT'" );
   map { new OMP::User( %$_ ) } @$supref
 
 }
