@@ -2319,34 +2319,6 @@ sub tau_plot_code {
   }
 }
 
-=item B<preify_text>
-
-Replace HTML characters (such as <, > and &) with their associated escape
-sequences and place text inside a <PRE> block.
-
-  $escaped = preify_text($text);
-
-=cut
-
-sub preify_text {
-  my $string = shift;
-
-  # Escape sequence lookup table
-  my %lut = (">" => "&gt;",
-	     "<" => "&lt;",
-	     "&" => "&amp;",
-	     '"' => "&quot;",);
-
-  # Do the search and replace
-  # Make sure we replace ampersands first, otherwise we'll end
-  # up replacing the ampersands in the escape sequences
-  for ("&", ">", "<", '"') {
-    $string =~ s/$_/$lut{$_}/g;
-  }
-
-  return "<pre>$string</pre>";
-}
-
 =item B<public_url>
 
 Return the URL where public cgi scripts can be found.
