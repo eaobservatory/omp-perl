@@ -121,7 +121,7 @@ my %tables = (
 			     },
 	      ompfeedback => {
 			      commid => "numeric(5,0) IDENTITY",
-			      projectid => "char(9) not null",
+			      projectid => "char(32) not null",
 			      author => "char(50) not null",
 			      date => "datetime not null",
 			      subject => "char(128) null",
