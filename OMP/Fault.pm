@@ -96,6 +96,7 @@ use constant FRONT_END_RXB => 1049;
 use constant FRONT_END_RXW => 1050;
 use constant SCUBA => 1051;
 use constant WATER_VAPOR_RAD => 1052;
+use constant IFS => 1053;
 
 # Mailing list
 my %MAILLIST = (
@@ -135,6 +136,7 @@ my %DATA = (
 				   "Front End - RxB" => FRONT_END_RXB,
 				   "Front End - RxW" => FRONT_END_RXW,
 				   SCUBA => SCUBA,
+				   IFS => IFS,
 				   "Water Vapor Rad." => WATER_VAPOR_RAD,
 				   "Visitor Instruments" => INSTRUMENT_VISITOR,
 				   Instrument => INSTRUMENT_OTHER_UNKNOWN,
