@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <SpProg>
   <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
-  <title>A test of MSB.pm</title>
+  <title>Test program for OMP classes</title>
   <MetaData>
     <gui>
       <collapsed>false</collapsed>
@@ -9,36 +9,65 @@
     </gui>
   </MetaData>
   <country>UK</country>
-  <projectID>M01TIM</projectID>
+  <projectID>M01BTJ</projectID>
   <pi>Tim Jenness</pi>
-  <SpMSB remaining="1">
-    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
+  <SpNote>
+    <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
     <MetaData>
       <gui>
         <collapsed>false</collapsed>
       </gui>
     </MetaData>
+    <note>This is a test program for the OMP server classes. It tries to
+      cover some of the special cases including calibration
+      observations, identical observations and MSB repeat counters
+      greater than 1.  It will also attempt to experiment with the logic folders.</note>
+    <title>Test program</title>
+  </SpNote>
+  <SpSiteQualityObsComp id="4">
+    <ItemData name="new" package="gemini.sp.obsComp" subtype="schedInfo" type="oc"/>
+    <seeing>1</seeing>
+    <MetaData>
+      <unique>true</unique>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <tauBand>1</tauBand>
+  </SpSiteQualityObsComp>
+  <SpMSB remaining="2">
+    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
     <SpSiteQualityObsCompRef idref="0"/>
+    <title>UFTI standards</title>
+    <MetaData>
+      <gui>
+        <collapsed>true</collapsed>
+      </gui>
+    </MetaData>
+    <priority>Low</priority>
     <SpSiteQualityObsComp id="0">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="schedInfo" type="oc"/>
-      <seeing>2</seeing>
+      <seeing>1</seeing>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tauBand>2</tauBand>
+      <tauBand>1</tauBand>
     </SpSiteQualityObsComp>
-    <SpObs msb="false" remaining="1">
+    <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <chainedToNext>false</chainedToNext>
+      <chainedToPrev>false</chainedToPrev>
+      <title>FS1_00h33m_-12d Z-band</title>
       <MetaData>
         <gui>
-          <collapsed>false</collapsed>
+          <collapsed>true</collapsed>
         </gui>
       </MetaData>
-      <standard>false</standard>
+      <standard>true</standard>
       <SpTelescopeObsComp>
         <ItemData name="new" package="gemini.sp.obsComp"
           subtype="targetList" type="oc"/>
@@ -46,23 +75,33 @@
           <unique>true</unique>
           <gui>
             <collapsed>false</collapsed>
-            <selectedTelescopePos>Base</selectedTelescopePos>
+            <selectedTelescopePos>GUIDE</selectedTelescopePos>
           </gui>
         </MetaData>
         <base>
           <target type="science">
-            <targetName>3C 279</targetName>
+            <targetName>FS1</targetName>
             <hmsdegSystem type="J2000">
-              <c1>12:56:11.166</c1>
-              <c2>-05:47:21.52</c2>
+              <c1>00  33 54.407</c1>
+              <c2>-12 07 57.0</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+        <base>
+          <target type="guide">
+            <targetName/>
+            <hmsdegSystem type="J2000">
+              <c1>0:33:54.407</c1>
+              <c2>-12:07:57.0</c2>
             </hmsdegSystem>
           </target>
         </base>
       </SpTelescopeObsComp>
-      <SpInstIRCAM3>
+      <SpInstUFTI>
         <ItemData name="new" package="orac.ukirt.inst"
-          subtype="inst.IRCAM3" type="oc"/>
-        <instPort>West</instPort>
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
         <MetaData>
           <version>1.0</version>
           <unique>true</unique>
@@ -70,48 +109,1005 @@
             <collapsed>false</collapsed>
           </gui>
         </MetaData>
-        <readoutArea>256x256</readoutArea>
+        <readoutArea>512x512</readoutArea>
         <coadds>1</coadds>
-        <sourceMag>none</sourceMag>
+        <sourceMag>13-14</sourceMag>
         <instAper>
-          <value>4.88</value>
-          <value>10.30</value>
+          <value>-12.86</value>
+          <value>17.51</value>
           <value>0.0</value>
-          <value>1.0</value>
+          <value>1.033</value>
         </instAper>
         <polariser>none</polariser>
-        <filter>Lp98</filter>
-        <exposureTime>0</exposureTime>
-        <acqMode/>
-      </SpInstIRCAM3>
+        <filter>Z</filter>
+        <exposureTime>20.0</exposureTime>
+        <title>- set configuration</title>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpDRRecipe>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <SkyRecipe>REDUCE_SKY</SkyRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <DarkRecipe>REDUCE_DARK</DarkRecipe>
+        <title>BRIGHT_POINT_SOURCE_APHOT</title>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <BiasInGroup>false</BiasInGroup>
+        <DarkInGroup>false</DarkInGroup>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <ObjectRecipe>BRIGHT_POINT_SOURCE_APHOT</ObjectRecipe>
+        <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+        <ArcInGroup>false</ArcInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <SkyInGroup>true</SkyInGroup>
+        <ObjectInGroup>true</ObjectInGroup>
+      </SpDRRecipe>
       <SpIterFolder>
         <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
         <MetaData>
           <gui>
-            <collapsed>true</collapsed>
+            <collapsed>false</collapsed>
           </gui>
         </MetaData>
-        <SpIterObserve>
-          <ItemData name="new" package="gemini.sp.iter"
-            subtype="observe" type="ic"/>
-          <repeatCount>1</repeatCount>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>20.0</exposureTime>
           <MetaData>
             <gui>
               <collapsed>false</collapsed>
             </gui>
           </MetaData>
-        </SpIterObserve>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterRepeat>
+          <ItemData name="new" package="gemini.sp.iter" subtype="repeat" type="ic"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpIterOffset>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="offset" type="ic"/>
+            <Offset1>
+              <value>11.0</value>
+              <value>10.0</value>
+            </Offset1>
+            <MetaData>
+              <gui>
+                <selectedOffsetPos>Offset8</selectedOffsetPos>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <offsetPositions>
+              <value>Offset8</value>
+              <value>Offset3</value>
+              <value>Offset5</value>
+              <value>Offset7</value>
+              <value>Offset1</value>
+            </offsetPositions>
+            <title>jitter_5_10as</title>
+            <Offset8>
+              <value>0.0</value>
+              <value>0.0</value>
+            </Offset8>
+            <Offset7>
+              <value>11.0</value>
+              <value>-11.0</value>
+            </Offset7>
+            <Offset5>
+              <value>-12.0</value>
+              <value>-10.0</value>
+            </Offset5>
+            <Offset3>
+              <value>-10.0</value>
+              <value>11.0</value>
+            </Offset3>
+            <SpIterObserve>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="observe" type="ic"/>
+              <repeatCount>1</repeatCount>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+            </SpIterObserve>
+          </SpIterOffset>
+        </SpIterRepeat>
+        <SpIterOffset>
+          <ItemData name="new" package="gemini.sp.iter" subtype="offset" type="ic"/>
+          <MetaData>
+            <gui>
+              <selectedOffsetPos>Offset0</selectedOffsetPos>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <Offset0>
+            <value>0.0</value>
+            <value>0.0</value>
+          </Offset0>
+          <offsetPositions>Offset0</offsetPositions>
+        </SpIterOffset>
       </SpIterFolder>
     </SpObs>
-    <SpObs msb="false" remaining="1">
+    <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <chainedToNext>false</chainedToNext>
+      <chainedToPrev>false</chainedToPrev>
+      <title>FS2_00h55m_00d I-band</title>
       <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>true</standard>
+      <SpTelescopeObsComp>
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="targetList" type="oc"/>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+            <selectedTelescopePos>GUIDE</selectedTelescopePos>
+          </gui>
+        </MetaData>
+        <base>
+          <target type="science">
+            <targetName>FS2</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>00  55 09.93</c1>
+              <c2>00 43 13.10</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+        <base>
+          <target type="guide">
+            <targetName/>
+            <hmsdegSystem type="J2000">
+              <c1>0:55:09.93</c1>
+              <c2>0:43:13.1</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+      </SpTelescopeObsComp>
+      <SpInstUFTI>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>512x512</readoutArea>
+        <coadds>1</coadds>
+        <sourceMag>10-11</sourceMag>
+        <instAper>
+          <value>-12.86</value>
+          <value>17.51</value>
+          <value>0.0</value>
+          <value>0.9</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>I</filter>
+        <exposureTime>10.0</exposureTime>
+        <title>- set configuration</title>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpDRRecipe>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <SkyRecipe>REDUCE_SKY</SkyRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <DarkRecipe>REDUCE_DARK</DarkRecipe>
+        <title>BRIGHT_POINT_SOURCE_APHOT</title>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <BiasInGroup>false</BiasInGroup>
+        <DarkInGroup>false</DarkInGroup>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <ObjectRecipe>BRIGHT_POINT_SOURCE_APHOT</ObjectRecipe>
+        <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+        <ArcInGroup>false</ArcInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <SkyInGroup>true</SkyInGroup>
+        <ObjectInGroup>true</ObjectInGroup>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>10.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterRepeat>
+          <ItemData name="new" package="gemini.sp.iter" subtype="repeat" type="ic"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpIterOffset>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="offset" type="ic"/>
+            <Offset1>
+              <value>11.0</value>
+              <value>10.0</value>
+            </Offset1>
+            <MetaData>
+              <gui>
+                <selectedOffsetPos>Offset8</selectedOffsetPos>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <offsetPositions>
+              <value>Offset8</value>
+              <value>Offset3</value>
+              <value>Offset5</value>
+              <value>Offset7</value>
+              <value>Offset1</value>
+            </offsetPositions>
+            <title>jitter_5_10as</title>
+            <Offset8>
+              <value>0.0</value>
+              <value>0.0</value>
+            </Offset8>
+            <Offset7>
+              <value>11.0</value>
+              <value>-11.0</value>
+            </Offset7>
+            <Offset5>
+              <value>-12.0</value>
+              <value>-10.0</value>
+            </Offset5>
+            <Offset3>
+              <value>-10.0</value>
+              <value>11.0</value>
+            </Offset3>
+            <SpIterObserve>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="observe" type="ic"/>
+              <repeatCount>1</repeatCount>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+            </SpIterObserve>
+          </SpIterOffset>
+        </SpIterRepeat>
+        <SpIterOffset>
+          <ItemData name="new" package="gemini.sp.iter" subtype="offset" type="ic"/>
+          <MetaData>
+            <gui>
+              <selectedOffsetPos>Offset0</selectedOffsetPos>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <Offset0>
+            <value>0.0</value>
+            <value>0.0</value>
+          </Offset0>
+          <offsetPositions>Offset0</offsetPositions>
+        </SpIterOffset>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
+    <SpSiteQualityObsCompRef idref="1"/>
+    <title>Array Tests</title>
+    <MetaData>
+      <gui>
+        <collapsed>true</collapsed>
+      </gui>
+    </MetaData>
+    <priority>Low</priority>
+    <SpSiteQualityObsComp id="1">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="schedInfo" type="oc"/>
+      <seeing>1</seeing>
+      <MetaData>
+        <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
+      <tauBand>1</tauBand>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <chainedToNext>false</chainedToNext>
+      <chainedToPrev>false</chainedToPrev>
+      <title>CGS4 array tests</title>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
       <standard>false</standard>
-      <SpTelescopeObsComp>
+      <SpNote>
+        <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <note>This does 2 bias frames and 4 darks with differing
+          exposure times to checkout the array performance.  You should
+          always run this once at the start of the night.  CGS4 is set
+          to a default configuration below - the action of the dark/bias
+          observations puts the blanks in.</note>
+        <title>array tests info</title>
+      </SpNote>
+      <SpInstCGS4>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.CGS4" type="oc"/>
+        <order>1</order>
+        <instPort>South</instPort>
+        <disperser>40lpmm</disperser>
+        <instAper>
+          <value>-0.25</value>
+          <value>12.18</value>
+          <value>0.0</value>
+          <value>2.1</value>
+        </instAper>
+        <filter>B2</filter>
+        <cvfOffset>0.0</cvfOffset>
+        <acqMode>STARE</acqMode>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+          <version>1.0</version>
+        </MetaData>
+        <sourceMag>none</sourceMag>
+        <exposureTime>4.0</exposureTime>
+        <neutralDensity>0</neutralDensity>
+        <sampling>1x1</sampling>
+        <centralWavelength>2.1</centralWavelength>
+        <coadds>2</coadds>
+        <mask>1pixel</mask>
+        <polariser>none</polariser>
+      </SpInstCGS4>
+      <SpDRRecipe>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <SkyRecipe>REDUCE_SKY</SkyRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <DarkRecipe>ARRAY_TESTS</DarkRecipe>
+        <title>ARRAY_TESTS</title>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <BiasInGroup>true</BiasInGroup>
+        <DarkInGroup>true</DarkInGroup>
+        <BiasRecipe>ARRAY_TESTS</BiasRecipe>
+        <ObjectRecipe>ARRAY_TESTS</ObjectRecipe>
+        <ArcInGroup>false</ArcInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <SkyInGroup>false</SkyInGroup>
+        <ObjectInGroup>false</ObjectInGroup>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterBiasObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="biasObs" type="ic"/>
+          <repeatCount>2</repeatCount>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+        </SpIterBiasObs>
+        <SpIterCGS4>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="instCGS4" type="ic"/>
+          <iterConfigList>
+            <value>acqModeIter</value>
+            <value>exposureTimeIter</value>
+          </iterConfigList>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <acqModeIter>NDSTARE</acqModeIter>
+          <exposureTimeIter/>
+        </SpIterCGS4>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>1.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>2</repeatCount>
+        </SpIterDarkObs>
+        <SpIterCGS4>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="instCGS4" type="ic"/>
+          <iterConfigList>acqModeIter</iterConfigList>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <acqModeIter>STARE</acqModeIter>
+        </SpIterCGS4>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>5.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>60.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterCGS4>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="instCGS4" type="ic"/>
+          <iterConfigList>acqModeIter</iterConfigList>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <acqModeIter>NDSTARE</acqModeIter>
+        </SpIterCGS4>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>100</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+      </SpIterFolder>
+    </SpObs>
+    <SpObs msb="false" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <chainedToNext>false</chainedToNext>
+      <chainedToPrev>false</chainedToPrev>
+      <title>UFTI array tests</title>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpNote>
+        <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <note>The UFTI configuration to use the blank filter in the
+          component below</note>
+      </SpNote>
+      <SpInstUFTI>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>1024x1024</readoutArea>
+        <coadds>2</coadds>
+        <sourceMag>none</sourceMag>
+        <instAper>
+          <value>8.13</value>
+          <value>-0.23</value>
+          <value>0.0</value>
+          <value>2.222</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>Blank</filter>
+        <exposureTime>4.0</exposureTime>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpNote>
+        <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <note>Use the ARRAY_TESTS data-reduction recipe.</note>
+      </SpNote>
+      <SpDRRecipe>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <SkyRecipe>ARRAY_TESTS</SkyRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <DarkRecipe>ARRAY_TESTS</DarkRecipe>
+        <title>ARRAY_TESTS</title>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <BiasInGroup>false</BiasInGroup>
+        <DarkInGroup>true</DarkInGroup>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <ObjectRecipe>ARRAY_TESTS</ObjectRecipe>
+        <DRRecipe>ARRAY_TESTS</DRRecipe>
+        <ArcInGroup>false</ArcInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <SkyInGroup>false</SkyInGroup>
+        <ObjectInGroup>false</ObjectInGroup>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>Take three 5-second darks, so that the first one can be
+            thrown away</note>
+        </SpNote>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>5.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>3</repeatCount>
+        </SpIterDarkObs>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>Now do a 60-second dark - using the dark observe
+            iterator below to change the exposure time. </note>
+          <title>now do a long dark</title>
+        </SpNote>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>60.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+      </SpIterFolder>
+    </SpObs>
+    <SpObs msb="false" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <chainedToNext>false</chainedToNext>
+      <chainedToPrev>false</chainedToPrev>
+      <title>UFTI+FP array tests</title>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpNote>
+        <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <note>The UFTI configuration to use the blank filter in the
+          component below.</note>
+      </SpNote>
+      <SpInstUFTI>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>1024x1024</readoutArea>
+        <coadds>2</coadds>
+        <sourceMag>none</sourceMag>
+        <instAper>
+          <value>8.13</value>
+          <value>-0.23</value>
+          <value>0.0</value>
+          <value>2.222</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>Blank</filter>
+        <exposureTime>4.0</exposureTime>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpNote>
+        <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <note>Use the ARRAY_TESTS data-reduction recipe.</note>
+      </SpNote>
+      <SpDRRecipe>
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <SkyRecipe>ARRAY_TESTS</SkyRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <DarkRecipe>ARRAY_TESTS</DarkRecipe>
+        <title>ARRAY_TESTS</title>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <BiasInGroup>false</BiasInGroup>
+        <DarkInGroup>true</DarkInGroup>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <ObjectRecipe>ARRAY_TESTS</ObjectRecipe>
+        <DRRecipe>ARRAY_TESTS</DRRecipe>
+        <ArcInGroup>false</ArcInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <SkyInGroup>false</SkyInGroup>
+        <ObjectInGroup>false</ObjectInGroup>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>Take three 5-second darks, so that the first one can be
+            thrown away</note>
+        </SpNote>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>5.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>3</repeatCount>
+        </SpIterDarkObs>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>Now do a 60-second dark - using the dark observe
+            iterator below to change the exposure time. </note>
+          <title>now do a long dark</title>
+        </SpNote>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>60.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpOR numberOfItems="2">
+    <ItemData name="new" package="gemini.sp" subtype="or" type="of"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <title>Pick 2 from 3</title>
+    <SpObs msb="true" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <SpSiteQualityObsCompRef idref="4"/>
+      <chainedToNext>false</chainedToNext>
+      <SpTelescopeObsCompRef idref="2"/>
+      <SpInstUFTIRef idref="3"/>
+      <SpDRRecipeRef idref="5"/>
+      <chainedToPrev>false</chainedToPrev>
+      <title>FS1_00h33m_-12d I-band</title>
+      <priority>Low</priority>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>true</standard>
+      <SpTelescopeObsComp id="2">
+        <ItemData name="new" package="gemini.sp.obsComp"
+          subtype="targetList" type="oc"/>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+            <selectedTelescopePos>GUIDE</selectedTelescopePos>
+          </gui>
+        </MetaData>
+        <base>
+          <target type="science">
+            <targetName>FS1</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>00  33 54.407</c1>
+              <c2>-12 07 57.0</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+        <base>
+          <target type="guide">
+            <targetName/>
+            <hmsdegSystem type="J2000">
+              <c1>0:33:54.407</c1>
+              <c2>-12:07:57.0</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+      </SpTelescopeObsComp>
+      <SpInstUFTI id="3">
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>512x512</readoutArea>
+        <coadds>1</coadds>
+        <sourceMag>13-14</sourceMag>
+        <instAper>
+          <value>-12.86</value>
+          <value>17.51</value>
+          <value>0.0</value>
+          <value>0.9</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>I</filter>
+        <exposureTime>40.0</exposureTime>
+        <title>- set configuration</title>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpDRRecipe id="5">
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <DarkInGroup>false</DarkInGroup>
+        <ArcInGroup>false</ArcInGroup>
+        <SkyRecipe>REDUCE_SKY</SkyRecipe>
+        <ObjectRecipe>BRIGHT_POINT_SOURCE_APHOT</ObjectRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+        <DarkRecipe>REDUCE_DARK</DarkRecipe>
+        <SkyInGroup>true</SkyInGroup>
+        <ObjectInGroup>true</ObjectInGroup>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <BiasInGroup>false</BiasInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <title>BRIGHT_POINT_SOURCE_APHOT</title>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>40.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterRepeat>
+          <ItemData name="new" package="gemini.sp.iter" subtype="repeat" type="ic"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpIterOffset>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="offset" type="ic"/>
+            <Offset1>
+              <value>11.0</value>
+              <value>10.0</value>
+            </Offset1>
+            <MetaData>
+              <gui>
+                <selectedOffsetPos>Offset8</selectedOffsetPos>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <offsetPositions>
+              <value>Offset8</value>
+              <value>Offset3</value>
+              <value>Offset5</value>
+              <value>Offset7</value>
+              <value>Offset1</value>
+            </offsetPositions>
+            <title>jitter_5_10as</title>
+            <Offset8>
+              <value>0.0</value>
+              <value>0.0</value>
+            </Offset8>
+            <Offset7>
+              <value>11.0</value>
+              <value>-11.0</value>
+            </Offset7>
+            <Offset5>
+              <value>-12.0</value>
+              <value>-10.0</value>
+            </Offset5>
+            <Offset3>
+              <value>-10.0</value>
+              <value>11.0</value>
+            </Offset3>
+            <SpIterObserve>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="observe" type="ic"/>
+              <repeatCount>1</repeatCount>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+            </SpIterObserve>
+          </SpIterOffset>
+        </SpIterRepeat>
+        <SpIterOffset>
+          <ItemData name="new" package="gemini.sp.iter" subtype="offset" type="ic"/>
+          <MetaData>
+            <gui>
+              <selectedOffsetPos>Offset0</selectedOffsetPos>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <Offset0>
+            <value>0.0</value>
+            <value>0.0</value>
+          </Offset0>
+          <offsetPositions>Offset0</offsetPositions>
+        </SpIterOffset>
+      </SpIterFolder>
+    </SpObs>
+    <SpObs msb="true" optional="false" remaining="2">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <SpSiteQualityObsCompRef idref="4"/>
+      <chainedToNext>false</chainedToNext>
+      <SpTelescopeObsCompRef idref="6"/>
+      <SpInstUFTIRef idref="7"/>
+      <SpDRRecipeRef idref="8"/>
+      <chainedToPrev>false</chainedToPrev>
+      <title>FS101_00h13m_30d J-band</title>
+      <priority>Low</priority>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>true</standard>
+      <SpTelescopeObsComp id="6">
         <ItemData name="new" package="gemini.sp.obsComp"
           subtype="targetList" type="oc"/>
         <MetaData>
@@ -123,15 +1119,179 @@
         </MetaData>
         <base>
           <target type="science">
-            <targetName>V* V353 Aur</targetName>
+            <targetName>FS101</targetName>
             <hmsdegSystem type="J2000">
-              <c1>04:42:53.8</c1>
-              <c2>+36:06:52</c2>
+              <c1>0:13:43.58</c1>
+              <c2>30:37:59.9</c2>
+            </hmsdegSystem>
+          </target>
+        </base>
+        <base>
+          <target type="guide">
+            <targetName>FS101</targetName>
+            <hmsdegSystem type="J2000">
+              <c1>0:13:43.58</c1>
+              <c2>30:37:59.9</c2>
             </hmsdegSystem>
           </target>
         </base>
       </SpTelescopeObsComp>
-      <SpInstMichelle>
+      <SpInstUFTI id="7">
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="inst.UFTI" type="oc"/>
+        <posAngle>0.0</posAngle>
+        <instPort>East</instPort>
+        <MetaData>
+          <version>1.0</version>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <readoutArea>512x512</readoutArea>
+        <coadds>1</coadds>
+        <sourceMag>10-11</sourceMag>
+        <instAper>
+          <value>-12.86</value>
+          <value>17.51</value>
+          <value>0.0</value>
+          <value>1.250</value>
+        </instAper>
+        <polariser>none</polariser>
+        <filter>J98</filter>
+        <exposureTime>5.0</exposureTime>
+        <title>- set configuration</title>
+        <acqMode>Normal+NDSTARE</acqMode>
+      </SpInstUFTI>
+      <SpDRRecipe id="8">
+        <ItemData name="new" package="orac.ukirt.inst"
+          subtype="DRRecipe" type="oc"/>
+        <DarkInGroup>false</DarkInGroup>
+        <ArcInGroup>false</ArcInGroup>
+        <SkyRecipe>REDUCE_SKY</SkyRecipe>
+        <ObjectRecipe>JITTER_SELF_FLAT_APHOT</ObjectRecipe>
+        <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+        <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+        <MetaData>
+          <unique>true</unique>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+        <DarkRecipe>REDUCE_DARK</DarkRecipe>
+        <SkyInGroup>true</SkyInGroup>
+        <ObjectInGroup>true</ObjectInGroup>
+        <ArcRecipe>REDUCE_ARC</ArcRecipe>
+        <BiasInGroup>false</BiasInGroup>
+        <FlatInGroup>false</FlatInGroup>
+        <title>JITTER_SELF_FLAT_APHOT</title>
+      </SpDRRecipe>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <coadds>1</coadds>
+          <exposureTime>5.0</exposureTime>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <repeatCount>1</repeatCount>
+        </SpIterDarkObs>
+        <SpIterRepeat>
+          <ItemData name="new" package="gemini.sp.iter" subtype="repeat" type="ic"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpIterOffset>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="offset" type="ic"/>
+            <Offset1>
+              <value>11.0</value>
+              <value>10.0</value>
+            </Offset1>
+            <MetaData>
+              <gui>
+                <selectedOffsetPos>Offset8</selectedOffsetPos>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <offsetPositions>
+              <value>Offset8</value>
+              <value>Offset3</value>
+              <value>Offset5</value>
+              <value>Offset7</value>
+              <value>Offset1</value>
+            </offsetPositions>
+            <title>jitter_5_10as</title>
+            <Offset8>
+              <value>0.0</value>
+              <value>0.0</value>
+            </Offset8>
+            <Offset7>
+              <value>11.0</value>
+              <value>-11.0</value>
+            </Offset7>
+            <Offset5>
+              <value>-12.0</value>
+              <value>-10.0</value>
+            </Offset5>
+            <Offset3>
+              <value>-10.0</value>
+              <value>11.0</value>
+            </Offset3>
+            <SpIterObserve>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="observe" type="ic"/>
+              <repeatCount>1</repeatCount>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+            </SpIterObserve>
+          </SpIterOffset>
+        </SpIterRepeat>
+        <SpIterOffset>
+          <ItemData name="new" package="gemini.sp.iter" subtype="offset" type="ic"/>
+          <MetaData>
+            <gui>
+              <selectedOffsetPos>Offset0</selectedOffsetPos>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <Offset0>
+            <value>0.0</value>
+            <value>0.0</value>
+          </Offset0>
+          <offsetPositions>Offset0</offsetPositions>
+        </SpIterOffset>
+      </SpIterFolder>
+    </SpObs>
+    <SpObs msb="true" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <SpSiteQualityObsCompRef idref="4"/>
+      <SpInstMichelleRef idref="10"/>
+      <SpTelescopeObsCompRef idref="9"/>
+      <title>Copy</title>
+      <priority>Low</priority>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpInstMichelle id="10">
         <ItemData name="new" package="orac.ukirt.inst"
           subtype="inst.michelle" type="oc"/>
         <MetaData>
@@ -146,7 +1306,7 @@
         <posAngle>0.0</posAngle>
         <disperser>LowN</disperser>
         <instPort>Centre</instPort>
-        <waveform>starev11big</waveform>
+        <waveform>starev13big</waveform>
         <instAper>
           <value>-1.07</value>
           <value>7.48</value>
@@ -167,10 +1327,10 @@
         <nullReads>0</nullReads>
         <waveplate>none</waveplate>
         <nullCycles>3</nullCycles>
-        <pixelFOV>0.0 x 0.0</pixelFOV>
+        <pixelFOV>0.21 x 0.21</pixelFOV>
         <idlePeriod>0.01</idlePeriod>
         <configType>Normal</configType>
-        <scienceArea>0.0 x 0.0</scienceArea>
+        <scienceArea>68.3 x 51.2</scienceArea>
         <filterCategory>Nband</filterCategory>
         <darkFilter>Blank</darkFilter>
         <polarimetry>no</polarimetry>
@@ -184,104 +1344,21 @@
         <camera>imaging</camera>
         <exposureTime>0.01</exposureTime>
       </SpInstMichelle>
-      <SpIterFolder>
-        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
-        <MetaData>
-          <gui>
-            <collapsed>true</collapsed>
-          </gui>
-        </MetaData>
-        <SpIterObserve>
-          <ItemData name="new" package="gemini.sp.iter"
-            subtype="observe" type="ic"/>
-          <repeatCount>1</repeatCount>
-          <MetaData>
-            <gui>
-              <collapsed>false</collapsed>
-            </gui>
-          </MetaData>
-        </SpIterObserve>
-      </SpIterFolder>
-    </SpObs>
-  </SpMSB>
-  <SpMSB remaining="1">
-    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
-    <MetaData>
-      <gui>
-        <collapsed>false</collapsed>
-      </gui>
-    </MetaData>
-    <SpObs msb="false" remaining="1">
-      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
-      <SpSiteQualityObsCompRef idref="3"/>
-      <MetaData>
-        <gui>
-          <collapsed>true</collapsed>
-        </gui>
-      </MetaData>
-      <priority>Medium</priority>
-      <standard>false</standard>
-      <SpTelescopeObsCompRef idref="1"/>
-      <SpInstCGS4Ref idref="2"/>
-      <SpSiteQualityObsComp id="3">
-        <ItemData name="new" package="gemini.sp.obsComp"
-          subtype="schedInfo" type="oc"/>
-        <seeing>1</seeing>
-        <MetaData>
-          <unique>true</unique>
-          <gui>
-            <collapsed>false</collapsed>
-          </gui>
-        </MetaData>
-        <tauBand>1</tauBand>
-      </SpSiteQualityObsComp>
-      <SpInstCGS4 id="2">
-        <ItemData name="new" package="orac.ukirt.inst"
-          subtype="inst.CGS4" type="oc"/>
-        <order>0</order>
-        <instPort>South</instPort>
-        <disperser>40lpmm</disperser>
-        <instAper>
-          <value>-0.81</value>
-          <value>12.32</value>
-          <value>0.0</value>
-          <value>2.1</value>
-        </instAper>
-        <filter>none</filter>
-        <cvfOffset>0.0</cvfOffset>
-        <acqMode>NDSTARE</acqMode>
-        <MetaData>
-          <unique>true</unique>
-          <gui>
-            <collapsed>false</collapsed>
-          </gui>
-          <version>1.0</version>
-        </MetaData>
-        <sourceMag>none</sourceMag>
-        <exposureTime>0</exposureTime>
-        <neutralDensity>0</neutralDensity>
-        <sampling>1x1</sampling>
-        <centralWavelength>1.0</centralWavelength>
-        <coadds>1</coadds>
-        <mask>1pixel</mask>
-        <polariser>none</polariser>
-      </SpInstCGS4>
-      <SpTelescopeObsComp id="1">
+      <SpTelescopeObsComp id="9">
         <ItemData name="new" package="gemini.sp.obsComp"
           subtype="targetList" type="oc"/>
         <MetaData>
           <unique>true</unique>
           <gui>
             <collapsed>false</collapsed>
-            <selectedTelescopePos>Base</selectedTelescopePos>
           </gui>
         </MetaData>
         <base>
           <target type="science">
-            <targetName>3C 273</targetName>
+            <targetName/>
             <hmsdegSystem type="J2000">
-              <c1>12:29:06.7</c1>
-              <c2>+02:03:08.6</c2>
+              <c1>0:00:00</c1>
+              <c2>0:00:00</c2>
             </hmsdegSystem>
           </target>
         </base>
@@ -305,77 +1382,637 @@
         </SpIterObserve>
       </SpIterFolder>
     </SpObs>
-  </SpMSB>
-  <SpObs msb="true" remaining="1">
+    <SpAND>
+      <ItemData name="new" package="gemini.sp" subtype="and" type="fo"/>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <title>CGS4 standards</title>
+      <SpObs msb="true" optional="false" remaining="1">
+        <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+        <SpSiteQualityObsCompRef idref="4"/>
+        <chainedToNext>false</chainedToNext>
+        <SpTelescopeObsCompRef idref="11"/>
+        <SpDRRecipeRef idref="13"/>
+        <chainedToPrev>false</chainedToPrev>
+        <title>BS5_0h6m_58d_G5V</title>
+        <priority>Low</priority>
+        <MetaData>
+          <gui>
+            <collapsed>true</collapsed>
+          </gui>
+        </MetaData>
+        <SpInstCGS4Ref idref="12"/>
+        <standard>true</standard>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>This observation is flagged as a standard star. ORAC-DR
+            uses this information to identify standards.    If you want
+            to turn the flag off move the yellow highlight to the
+            &quot;standard star&quot; line above and click on the
+            &quot;flag as standard&quot; box.</note>
+          <title>usage</title>
+        </SpNote>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>enter your standard star (or target) co-ordinates into
+            the target list below.  Note that although this is called a
+            &quot;target list&quot; it only allows you to specify ONE
+            astronomical target  When you have done so you can use the
+            &quot;position editor&quot; to  select a guide star, to fine
+            tune the co-ordinate based on a sky survey picture, examine
+            offset locations on the field etc.  For a step by step guide
+            to how to use the position editor use &quot;help&quot;.  IF
+            YOU WANT TO SELECT YOUR STANDARD STAR BY HAVING THE TSS
+            SEARCH WITH THE TELESCOPE &quot;NEARSTAR&quot; IN REAL TIME
+            THEN ENTER YOUR TARGET CO-ORDINATES HERE, AND DO NOT SPECIFY
+            A GUIDE STAR.  AFTER THESE ARE SENT TO THE TELESCOPE THERE
+            WILL BE A PAUSE FOR THE TSS TO SLEW TO THE CHOSEN NEARBY
+            STAR. </note>
+          <title>standard coordinates information</title>
+        </SpNote>
+        <SpTelescopeObsComp id="11">
+          <ItemData name="new" package="gemini.sp.obsComp"
+            subtype="targetList" type="oc"/>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+              <selectedTelescopePos>Base</selectedTelescopePos>
+            </gui>
+          </MetaData>
+          <base>
+            <target type="science">
+              <targetName>BS5</targetName>
+              <hmsdegSystem type="J2000">
+                <c1>0:6:15.9</c1>
+                <c2>58:26:12</c2>
+              </hmsdegSystem>
+            </target>
+          </base>
+          <base>
+            <target type="guide">
+              <targetName/>
+              <hmsdegSystem type="J2000">
+                <c1>0:6:15.9</c1>
+                <c2>58:26:12</c2>
+              </hmsdegSystem>
+            </target>
+          </base>
+        </SpTelescopeObsComp>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>For detailed advice about CGS4 see the web page at
+            http://www.jach.hawaii.edu/JACpublic/UKIRT/instruments/cgs4/handbook.html
+            Enter your desired CGS4 setup into the component below.
+            Make sure you choose the same settings for grating,
+            wavelength, order, slit width and position angle for your
+            STANDARD STAR as for your sources.  Note that if you enter a
+            central wavelength and choose a grating the order will be
+            automatically selected. You may over-ride this if you wish,
+            but seek advice on non-optimum orders from your support
+            scientist.  There is feedback showing what the wavelength
+            range and spectral resolution with the 1-pixel wide slit
+            would be.  Enter the slit width in pixels that you want to
+            use.  Slit widths wider than 1-pixel may result in lower
+            spectral resolution, depending on the seeing.    Slit
+            position angles on the sky should fall in  the range 7 to
+            -173 degrees EAST of NORTH  If you select a source magnitude
+            range the tool will enter a recommended exposure time and
+            number of coadds at each sampling position.  You may enter
+            your own value instead if you prefer. If the exposure time
+            is short (less than 1sec) consider using STARE mode instead.
+            Sampling is specified as &quot;Oversampling factor&quot; x
+            &quot;number of pixels&quot; the spectrum is stepped over.
+            So 2 x 2 sampling is Nyquist sampling stepped over 2 pixels
+            giving a total of 4 independant measurements of the
+            spectrum, 2 at each data point in the final spectrum.   </note>
+          <title>cgs4 setup</title>
+        </SpNote>
+        <SpInstCGS4 id="12">
+          <ItemData name="new" package="orac.ukirt.inst"
+            subtype="inst.CGS4" type="oc"/>
+          <order>1</order>
+          <instPort>South</instPort>
+          <disperser>40lpmm</disperser>
+          <instAper>
+            <value>-0.81</value>
+            <value>12.32</value>
+            <value>0.0</value>
+            <value>2.2</value>
+          </instAper>
+          <filter>B2</filter>
+          <cvfOffset>0.0</cvfOffset>
+          <acqMode>NDSTARE</acqMode>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+            <version>1.0</version>
+          </MetaData>
+          <sourceMag>5-6</sourceMag>
+          <exposureTime>2</exposureTime>
+          <posAngle>0.0</posAngle>
+          <neutralDensity>false</neutralDensity>
+          <sampling>2x2</sampling>
+          <centralWavelength>2.2</centralWavelength>
+          <coadds>3</coadds>
+          <mask>1pixel</mask>
+          <polariser>none</polariser>
+        </SpInstCGS4>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>The data reduction recipe specified below uses the most
+            basic data reduction recipe for speed.  (this is a good idea
+            if your exposure time short).   </note>
+          <title>DR Recipe Selection</title>
+        </SpNote>
+        <SpDRRecipe id="13">
+          <ItemData name="new" package="orac.ukirt.inst"
+            subtype="DRRecipe" type="oc"/>
+          <DarkInGroup>false</DarkInGroup>
+          <ArcInGroup>false</ArcInGroup>
+          <SkyRecipe>REDUCE_SKY</SkyRecipe>
+          <ObjectRecipe>STANDARD_STAR</ObjectRecipe>
+          <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+          <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+          <DarkRecipe>REDUCE_DARK</DarkRecipe>
+          <SkyInGroup>true</SkyInGroup>
+          <ObjectInGroup>true</ObjectInGroup>
+          <ArcRecipe>REDUCE_ARC</ArcRecipe>
+          <BiasInGroup>false</BiasInGroup>
+          <FlatInGroup>false</FlatInGroup>
+          <title>STANDARD_STAR</title>
+        </SpDRRecipe>
+        <SpIterFolder>
+          <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpNote>
+            <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+            <MetaData>
+              <gui>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <note>To repeat the quads more than once on your standard
+              star , use the repeat item below to specify how many times
+              you want to repeat it.  </note>
+            <title>set the number of repeats</title>
+          </SpNote>
+          <SpIterRepeat>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="repeat" type="ic"/>
+            <repeatCount>2</repeatCount>
+            <MetaData>
+              <gui>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <title>Repeat 2X</title>
+            <SpNote>
+              <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+              <note>this nods 20 rows along the slit  Offsets are
+                enetered in the co-ordinate frame of the slit  p = along
+                the slit q = perpendicular to the slit</note>
+              <title>offset info</title>
+            </SpNote>
+            <SpIterOffset>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="offset" type="ic"/>
+              <MetaData>
+                <gui>
+                  <selectedOffsetPos>Offset2</selectedOffsetPos>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+              <Offset3>
+                <value>0.0</value>
+                <value>0.0</value>
+              </Offset3>
+              <Offset2>
+                <value>0.0</value>
+                <value>11.74</value>
+              </Offset2>
+              <Offset1>
+                <value>0.0</value>
+                <value>11.74</value>
+              </Offset1>
+              <Offset0>
+                <value>0.0</value>
+                <value>0.0</value>
+              </Offset0>
+              <offsetPositions>
+                <value>Offset0</value>
+                <value>Offset1</value>
+                <value>Offset2</value>
+                <value>Offset3</value>
+              </offsetPositions>
+              <SpIterObserve>
+                <ItemData name="new" package="gemini.sp.iter"
+                  subtype="observe" type="ic"/>
+                <repeatCount>1</repeatCount>
+                <MetaData>
+                  <gui>
+                    <collapsed>false</collapsed>
+                  </gui>
+                </MetaData>
+              </SpIterObserve>
+            </SpIterOffset>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+      <SpObs msb="true" optional="false" remaining="1">
+        <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+        <SpSiteQualityObsCompRef idref="4"/>
+        <chainedToNext>false</chainedToNext>
+        <SpTelescopeObsCompRef idref="14"/>
+        <SpDRRecipeRef idref="16"/>
+        <chainedToPrev>false</chainedToPrev>
+        <title>BS1532_4h47m_-16d_G1V</title>
+        <priority>Low</priority>
+        <MetaData>
+          <gui>
+            <collapsed>true</collapsed>
+          </gui>
+        </MetaData>
+        <SpInstCGS4Ref idref="15"/>
+        <standard>true</standard>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>This observation is flagged as a standard star. ORAC-DR
+            uses this information to identify standards.    If you want
+            to turn the flag off move the yellow highlight to the
+            &quot;standard star&quot; line above and click on the
+            &quot;flag as standard&quot; box.</note>
+          <title>usage</title>
+        </SpNote>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>enter your standard star (or target) co-ordinates into
+            the target list below.  Note that although this is called a
+            &quot;target list&quot; it only allows you to specify ONE
+            astronomical target  When you have done so you can use the
+            &quot;position editor&quot; to  select a guide star, to fine
+            tune the co-ordinate based on a sky survey picture, examine
+            offset locations on the field etc.  For a step by step guide
+            to how to use the position editor use &quot;help&quot;.  IF
+            YOU WANT TO SELECT YOUR STANDARD STAR BY HAVING THE TSS
+            SEARCH WITH THE TELESCOPE &quot;NEARSTAR&quot; IN REAL TIME
+            THEN ENTER YOUR TARGET CO-ORDINATES HERE, AND DO NOT SPECIFY
+            A GUIDE STAR.  AFTER THESE ARE SENT TO THE TELESCOPE THERE
+            WILL BE A PAUSE FOR THE TSS TO SLEW TO THE CHOSEN NEARBY
+            STAR. </note>
+          <title>standard coordinates information</title>
+        </SpNote>
+        <SpTelescopeObsComp id="14">
+          <ItemData name="new" package="gemini.sp.obsComp"
+            subtype="targetList" type="oc"/>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+              <selectedTelescopePos>Base</selectedTelescopePos>
+            </gui>
+          </MetaData>
+          <base>
+            <target type="science">
+              <targetName>BS1532</targetName>
+              <hmsdegSystem type="J2000">
+                <c1>4:47:36.2</c1>
+                <c2>-16:56:4</c2>
+              </hmsdegSystem>
+            </target>
+          </base>
+          <base>
+            <target type="guide">
+              <targetName/>
+              <hmsdegSystem type="J2000">
+                <c1>4:47:36.2</c1>
+                <c2>-16:56:4</c2>
+              </hmsdegSystem>
+            </target>
+          </base>
+        </SpTelescopeObsComp>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>For detailed advice about CGS4 see the web page at
+            http://www.jach.hawaii.edu/JACpublic/UKIRT/instruments/cgs4/handbook.html
+            Enter your desired CGS4 setup into the component below.
+            Make sure you choose the same settings for grating,
+            wavelength, order, slit width and position angle for your
+            STANDARD STAR as for your sources.  Note that if you enter a
+            central wavelength and choose a grating the order will be
+            automatically selected. You may over-ride this if you wish,
+            but seek advice on non-optimum orders from your support
+            scientist.  There is feedback showing what the wavelength
+            range and spectral resolution with the 1-pixel wide slit
+            would be.  Enter the slit width in pixels that you want to
+            use.  Slit widths wider than 1-pixel may result in lower
+            spectral resolution, depending on the seeing.    Slit
+            position angles on the sky should fall in  the range 7 to
+            -173 degrees EAST of NORTH  If you select a source magnitude
+            range the tool will enter a recommended exposure time and
+            number of coadds at each sampling position.  You may enter
+            your own value instead if you prefer. If the exposure time
+            is short (less than 1sec) consider using STARE mode instead.
+            Sampling is specified as &quot;Oversampling factor&quot; x
+            &quot;number of pixels&quot; the spectrum is stepped over.
+            So 2 x 2 sampling is Nyquist sampling stepped over 2 pixels
+            giving a total of 4 independant measurements of the
+            spectrum, 2 at each data point in the final spectrum.   </note>
+          <title>cgs4 setup</title>
+        </SpNote>
+        <SpInstCGS4 id="15">
+          <ItemData name="new" package="orac.ukirt.inst"
+            subtype="inst.CGS4" type="oc"/>
+          <order>1</order>
+          <instPort>South</instPort>
+          <disperser>40lpmm</disperser>
+          <instAper>
+            <value>-0.81</value>
+            <value>12.32</value>
+            <value>0.0</value>
+            <value>2.2</value>
+          </instAper>
+          <filter>B2</filter>
+          <cvfOffset>0.0</cvfOffset>
+          <acqMode>NDSTARE</acqMode>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+            <version>1.0</version>
+          </MetaData>
+          <sourceMag>5-6</sourceMag>
+          <exposureTime>2</exposureTime>
+          <posAngle>0.0</posAngle>
+          <neutralDensity>false</neutralDensity>
+          <sampling>2x2</sampling>
+          <centralWavelength>2.2</centralWavelength>
+          <coadds>3</coadds>
+          <mask>1pixel</mask>
+          <polariser>none</polariser>
+        </SpInstCGS4>
+        <SpNote>
+          <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <note>The data reduction recipe specified below uses the most
+            basic data reduction recipe for speed.  (this is a good idea
+            if your exposure time short).   </note>
+          <title>DR Recipe Selection</title>
+        </SpNote>
+        <SpDRRecipe id="16">
+          <ItemData name="new" package="orac.ukirt.inst"
+            subtype="DRRecipe" type="oc"/>
+          <DarkInGroup>false</DarkInGroup>
+          <ArcInGroup>false</ArcInGroup>
+          <SkyRecipe>REDUCE_SKY</SkyRecipe>
+          <ObjectRecipe>STANDARD_STAR</ObjectRecipe>
+          <FlatRecipe>REDUCE_FLAT</FlatRecipe>
+          <BiasRecipe>REDUCE_BIAS</BiasRecipe>
+          <MetaData>
+            <unique>true</unique>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <DRRecipe>JITTER5_SELF_FLAT</DRRecipe>
+          <DarkRecipe>REDUCE_DARK</DarkRecipe>
+          <SkyInGroup>true</SkyInGroup>
+          <ObjectInGroup>true</ObjectInGroup>
+          <ArcRecipe>REDUCE_ARC</ArcRecipe>
+          <BiasInGroup>false</BiasInGroup>
+          <FlatInGroup>false</FlatInGroup>
+          <title>STANDARD_STAR</title>
+        </SpDRRecipe>
+        <SpIterFolder>
+          <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+          <SpNote>
+            <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+            <MetaData>
+              <gui>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <note>To repeat the quads more than once on your standard
+              star , use the repeat item below to specify how many times
+              you want to repeat it.  </note>
+            <title>set the number of repeats</title>
+          </SpNote>
+          <SpIterRepeat>
+            <ItemData name="new" package="gemini.sp.iter"
+              subtype="repeat" type="ic"/>
+            <repeatCount>2</repeatCount>
+            <MetaData>
+              <gui>
+                <collapsed>false</collapsed>
+              </gui>
+            </MetaData>
+            <title>Repeat 2X</title>
+            <SpNote>
+              <ItemData name="new" package="gemini.sp" subtype="none" type="no"/>
+              <MetaData>
+                <gui>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+              <note>this nods 20 rows along the slit  Offsets are
+                enetered in the co-ordinate frame of the slit  p = along
+                the slit q = perpendicular to the slit</note>
+              <title>offset info</title>
+            </SpNote>
+            <SpIterOffset>
+              <ItemData name="new" package="gemini.sp.iter"
+                subtype="offset" type="ic"/>
+              <MetaData>
+                <gui>
+                  <selectedOffsetPos>Offset2</selectedOffsetPos>
+                  <collapsed>false</collapsed>
+                </gui>
+              </MetaData>
+              <Offset3>
+                <value>0.0</value>
+                <value>0.0</value>
+              </Offset3>
+              <Offset2>
+                <value>0.0</value>
+                <value>11.74</value>
+              </Offset2>
+              <Offset1>
+                <value>0.0</value>
+                <value>11.74</value>
+              </Offset1>
+              <Offset0>
+                <value>0.0</value>
+                <value>0.0</value>
+              </Offset0>
+              <offsetPositions>
+                <value>Offset0</value>
+                <value>Offset1</value>
+                <value>Offset2</value>
+                <value>Offset3</value>
+              </offsetPositions>
+              <SpIterObserve>
+                <ItemData name="new" package="gemini.sp.iter"
+                  subtype="observe" type="ic"/>
+                <repeatCount>1</repeatCount>
+                <MetaData>
+                  <gui>
+                    <collapsed>false</collapsed>
+                  </gui>
+                </MetaData>
+              </SpIterObserve>
+            </SpIterOffset>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+    </SpAND>
+  </SpOR>
+  <SpObs msb="true" optional="false" remaining="1">
     <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
-    <SpSiteQualityObsCompRef idref="3"/>
+    <SpSiteQualityObsCompRef idref="4"/>
+    <SpInstMichelleRef idref="18"/>
+    <SpTelescopeObsCompRef idref="17"/>
+    <title>Copy</title>
+    <priority>Low</priority>
     <MetaData>
       <gui>
-        <collapsed>false</collapsed>
+        <collapsed>true</collapsed>
       </gui>
     </MetaData>
-    <priority>Medium</priority>
     <standard>false</standard>
-    <SpTelescopeObsCompRef idref="1"/>
-    <SpInstCGS4Ref idref="2"/>
-    <SpSiteQualityObsComp id="3">
-      <ItemData name="new" package="gemini.sp.obsComp"
-        subtype="schedInfo" type="oc"/>
-      <seeing>1</seeing>
+    <SpInstMichelle id="18">
+      <ItemData name="new" package="orac.ukirt.inst"
+        subtype="inst.michelle" type="oc"/>
       <MetaData>
-        <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
+        <version>1</version>
+        <unique>true</unique>
       </MetaData>
-      <tauBand>1</tauBand>
-    </SpSiteQualityObsComp>
-    <SpInstCGS4 id="2">
-      <ItemData name="new" package="orac.ukirt.inst" subtype="inst.CGS4" type="oc"/>
-      <order>1</order>
-      <instPort>South</instPort>
-      <disperser>40lpmm</disperser>
+      <order>0</order>
+      <centralWavelength>10.5</centralWavelength>
+      <posAngle>0.0</posAngle>
+      <disperser>LowN</disperser>
+      <instPort>Centre</instPort>
+      <waveform>starev13big</waveform>
       <instAper>
-        <value>-0.81</value>
-        <value>12.32</value>
+        <value>-1.07</value>
+        <value>7.48</value>
         <value>0.0</value>
-        <value>2.0</value>
+        <value>10.5</value>
       </instAper>
-      <filter>none</filter>
-      <cvfOffset>0.0</cvfOffset>
-      <acqMode>NDSTARE</acqMode>
-      <MetaData>
-        <unique>true</unique>
-        <gui>
-          <collapsed>false</collapsed>
-        </gui>
-        <version>1.0</version>
-      </MetaData>
-      <sourceMag>none</sourceMag>
-      <exposureTime>4.0</exposureTime>
-      <neutralDensity>0</neutralDensity>
+      <mode>CHOP</mode>
+      <obsTimeOT>20.0</obsTimeOT>
+      <filter>I105B53</filter>
+      <coadds>621</coadds>
+      <nreads>0</nreads>
+      <observationTime>40.501227375</observationTime>
+      <dutyCycle>0.3066573732446053</dutyCycle>
+      <chopFrequency>5.185028050029558</chopFrequency>
+      <maskAngle>0.0</maskAngle>
+      <mustIdles>0</mustIdles>
       <sampling>1x1</sampling>
-      <centralWavelength>2.0</centralWavelength>
-      <coadds>2</coadds>
-      <mask>1pixel</mask>
-      <polariser>none</polariser>
-    </SpInstCGS4>
-    <SpTelescopeObsComp id="1">
+      <nullReads>0</nullReads>
+      <waveplate>none</waveplate>
+      <nullCycles>3</nullCycles>
+      <pixelFOV>0.21 x 0.21</pixelFOV>
+      <idlePeriod>0.01</idlePeriod>
+      <configType>Normal</configType>
+      <scienceArea>68.3 x 51.2</scienceArea>
+      <filterCategory>Nband</filterCategory>
+      <darkFilter>Blank</darkFilter>
+      <polarimetry>no</polarimetry>
+      <readInterval>0.01</readInterval>
+      <filterOT>F105B53</filterOT>
+      <chopDelay>0.015</chopDelay>
+      <mask>2_pixels</mask>
+      <nullExposures>0</nullExposures>
+      <resetDelay>0.01</resetDelay>
+      <nresets>2</nresets>
+      <camera>imaging</camera>
+      <exposureTime>0.01</exposureTime>
+    </SpInstMichelle>
+    <SpTelescopeObsComp id="17">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="targetList" type="oc"/>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
-          <selectedTelescopePos>Base</selectedTelescopePos>
         </gui>
       </MetaData>
       <base>
         <target type="science">
-          <targetName>3C 273</targetName>
+          <targetName/>
           <hmsdegSystem type="J2000">
-            <c1>12:29:06.7</c1>
-            <c2>+02:03:08.6</c2>
+            <c1>0:00:00</c1>
+            <c2>0:00:00</c2>
           </hmsdegSystem>
         </target>
       </base>
@@ -398,4 +2035,202 @@
       </SpIterObserve>
     </SpIterFolder>
   </SpObs>
+  <SpObs msb="true" optional="false" remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+    <SpSiteQualityObsCompRef idref="4"/>
+    <SpInstMichelleRef idref="18"/>
+    <SpTelescopeObsCompRef idref="17"/>
+    <title>Copy</title>
+    <priority>Low</priority>
+    <MetaData>
+      <gui>
+        <collapsed>true</collapsed>
+      </gui>
+    </MetaData>
+    <standard>false</standard>
+    <SpInstMichelle id="18">
+      <ItemData name="new" package="orac.ukirt.inst"
+        subtype="inst.michelle" type="oc"/>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+        <version>1</version>
+        <unique>true</unique>
+      </MetaData>
+      <order>0</order>
+      <centralWavelength>10.5</centralWavelength>
+      <posAngle>0.0</posAngle>
+      <disperser>LowN</disperser>
+      <instPort>Centre</instPort>
+      <waveform>starev13big</waveform>
+      <instAper>
+        <value>-1.07</value>
+        <value>7.48</value>
+        <value>0.0</value>
+        <value>10.5</value>
+      </instAper>
+      <mode>CHOP</mode>
+      <obsTimeOT>20.0</obsTimeOT>
+      <filter>I105B53</filter>
+      <coadds>621</coadds>
+      <nreads>0</nreads>
+      <observationTime>40.501227375</observationTime>
+      <dutyCycle>0.3066573732446053</dutyCycle>
+      <chopFrequency>5.185028050029558</chopFrequency>
+      <maskAngle>0.0</maskAngle>
+      <mustIdles>0</mustIdles>
+      <sampling>1x1</sampling>
+      <nullReads>0</nullReads>
+      <waveplate>none</waveplate>
+      <nullCycles>3</nullCycles>
+      <pixelFOV>0.21 x 0.21</pixelFOV>
+      <idlePeriod>0.01</idlePeriod>
+      <configType>Normal</configType>
+      <scienceArea>68.3 x 51.2</scienceArea>
+      <filterCategory>Nband</filterCategory>
+      <darkFilter>Blank</darkFilter>
+      <polarimetry>no</polarimetry>
+      <readInterval>0.01</readInterval>
+      <filterOT>F105B53</filterOT>
+      <chopDelay>0.015</chopDelay>
+      <mask>2_pixels</mask>
+      <nullExposures>0</nullExposures>
+      <resetDelay>0.01</resetDelay>
+      <nresets>2</nresets>
+      <camera>imaging</camera>
+      <exposureTime>0.01</exposureTime>
+    </SpInstMichelle>
+    <SpTelescopeObsComp id="17">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="targetList" type="oc"/>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <base>
+        <target type="science">
+          <targetName/>
+          <hmsdegSystem type="J2000">
+            <c1>0:00:00</c1>
+            <c2>0:00:00</c2>
+          </hmsdegSystem>
+        </target>
+      </base>
+    </SpTelescopeObsComp>
+    <SpIterFolder>
+      <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+      <MetaData>
+        <gui>
+          <collapsed>true</collapsed>
+        </gui>
+      </MetaData>
+      <SpIterObserve>
+        <ItemData name="new" package="gemini.sp.iter" subtype="observe" type="ic"/>
+        <repeatCount>1</repeatCount>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+      </SpIterObserve>
+    </SpIterFolder>
+  </SpObs>
+  <SpAND>
+    <ItemData name="new" package="gemini.sp" subtype="and" type="fo"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <SpTelescopeObsComp id="0">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="targetList" type="oc"/>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+          <selectedTelescopePos>Base</selectedTelescopePos>
+        </gui>
+      </MetaData>
+      <base>
+        <target type="science">
+          <targetName>test</targetName>
+          <hmsdegSystem type="J2000">
+            <c1>0:00:00</c1>
+            <c2>0:00:00</c2>
+          </hmsdegSystem>
+        </target>
+      </base>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="2">
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="schedInfo" type="oc"/>
+      <seeing>2</seeing>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <tauBand>2</tauBand>
+    </SpSiteQualityObsComp>
+    <SpInstIRCAM3 id="1">
+      <ItemData name="new" package="orac.ukirt.inst"
+        subtype="inst.IRCAM3" type="oc"/>
+      <instPort>West</instPort>
+      <MetaData>
+        <version>1.0</version>
+        <unique>true</unique>
+      </MetaData>
+      <readoutArea>256x256</readoutArea>
+      <coadds>1</coadds>
+      <sourceMag>none</sourceMag>
+      <instAper>
+        <value>5.21</value>
+        <value>12.40</value>
+        <value>0.0</value>
+        <value>1.0</value>
+      </instAper>
+      <polariser>none</polariser>
+      <filter>Lp98</filter>
+      <exposureTime>0.12</exposureTime>
+      <acqMode/>
+    </SpInstIRCAM3>
+    <SpObs msb="true" optional="false" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <SpSiteQualityObsCompRef idref="2"/>
+      <SpTelescopeObsCompRef idref="0"/>
+      <SpInstIRCAM3Ref idref="1"/>
+      <priority>Low</priority>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterDarkObs>
+          <ItemData name="new" package="orac.ukirt.iter"
+            subtype="darkObs" type="ic"/>
+          <repeatCount>1</repeatCount>
+          <coadds>1</coadds>
+          <exposureTime>0.12</exposureTime>
+        </SpIterDarkObs>
+        <SpIterObserve>
+          <ItemData name="new" package="gemini.sp.iter"
+            subtype="observe" type="ic"/>
+          <repeatCount>1</repeatCount>
+        </SpIterObserve>
+      </SpIterFolder>
+    </SpObs>
+  </SpAND>
 </SpProg>
