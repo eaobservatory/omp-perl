@@ -40,7 +40,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults update_fault_content update_fault_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -103,19 +103,25 @@ sub file_fault {
 		       -values=>\@type_values,
 		       -default=>\$type_values[0],
 		       -labels=>\%type_labels,);
-  print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
-  print $q->textfield(-name=>'loss',
-		      -default=>'0',
-		      -size=>'4',
-		      -maxlength=>'10',);
-  print "</td><tr><td align=right><b>Time of fault:</td><td>";
-  print $q->textfield(-name=>'time',
-		      -size=>20,
-		      -maxlength=>128,);
-  print "<b>";
-  print $q->radio_group(-name=>'tz',
-		        -values=>['UT','HST'],
-		        -default=>'UT',);
+
+  # If we're using the bug report system don't
+  # provide fields for taking "time lost" and "time of fault"
+  if ($cookie{category} !~ /bug/i) {
+    print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
+    print $q->textfield(-name=>'loss',
+			-default=>'0',
+			-size=>'4',
+			-maxlength=>'10',);
+    print "</td><tr><td align=right><b>Time of fault:</td><td>";
+    print $q->textfield(-name=>'time',
+			-size=>20,
+			-maxlength=>128,);
+    print "<b>";
+    print $q->radio_group(-name=>'tz',
+			  -values=>['UT','HST'],
+			  -default=>'UT',);
+  }
+
   print "</b>";
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
@@ -224,7 +230,6 @@ sub file_fault_output {
 			     subject=>$q->param('subject'),
 			     system=>$q->param('system'),
 			     type=>$q->param('type'),
-			     timelost=>$q->param('loss'),
 			     urgency=>$urgency,
 			     fault=>$resp);
 
@@ -233,6 +238,9 @@ sub file_fault_output {
   }
 
   ($t) and $fault->faultdate($t);
+
+  # Should convert this to a Time::Seconds object
+  ($q->param('loss')) and $fault->timelost($q->param('loss'));
 
   # Submit the fault the the database
   my $faultid;
@@ -357,7 +365,13 @@ sub query_fault_content {
   };
 
   if ($faults->[0]) {
-    show_faults($q, $faults, "viewfault.pl");
+    # Make the link to the report viewing script if we're using
+    # the report system
+    if ($cookie{category} =~ /bug/i) {
+      show_faults($q, $faults, "viewreport.pl");
+    } else {
+      show_faults($q, $faults, "viewfault.pl");
+    }
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -390,7 +404,15 @@ sub query_fault_output {
   if ($q->param('Submit')) {
     my @xml;
 
-    my $category = $q->param('cat');
+
+    # Make sure users of the bug reporting system can't
+    # view faults for another category
+    my $category;
+    if ($cookie{category} =~ /bug/i) {
+      $category = "BUG";
+    } else {
+      $category = $q->param('cat');
+    }
     push (@xml, "<category>$category</category>");
 
     if ($q->param('system') !~ /any/) {
@@ -460,7 +482,13 @@ sub query_fault_output {
   print "<p>";
 
   if ($faults->[0]) {
-    show_faults($q, $faults, "viewfault.pl");
+    # Make the link to the report viewing script if we're using
+    # the report system
+    if ($cookie{category} =~ /bug/i) {
+      show_faults($q, $faults, "viewreport.pl");
+    } else {
+      show_faults($q, $faults, "viewfault.pl");
+    }
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -621,8 +649,15 @@ sub view_fault_content {
     # Got the fault ID, so display the fault
     my $fault = OMP::FaultServer->getFault($faultid);
 
-    titlebar($q, ["View Fault ID: $faultid", $fault->subject], %cookie);
+    # If the user is "logged in" to the report problem system
+    # make sure they can only see problem reports and not faults
+    # for other categories.
+    if ($cookie{category} =~ /bug/i and $fault->category ne "BUG") {
+      print "[$faultid] is not a problem report.";
+      return;
+    }
 
+    titlebar($q, ["View Fault: $faultid", $fault->subject], %cookie);
     fault_table($q, $fault);
     close_fault_form($q, $faultid)
       if ($fault->isOpen);
@@ -738,17 +773,69 @@ sub response_form {
   print "</td></table>";
 }
 
-=item B<respond_fault_content>
+=item B<update_fault_content>
 
-Create a form for responding to a fault
+Create a form for updating fault details
 
-  respond_fault_content($cgi);
+  update_fault_content($cgi);
 
 =cut
 
-sub respond_fault_content {
+sub update_fault_content {
   my $q = shift;
   my $faultid = $q->url_param('id');
+  my %cookie = @_;
+
+  # Get the fault
+  my $fault = OMP::FaultServer->getFault($faultid);
+
+  # Form for taking new details.  Displays current values.
+  print $q->h2("Update fault details: $faultid");
+  print "<table><tr><td><b>Time lost (". $fault->timelost ."):</b> </td><td>";
+  print $q->startform;
+  print $q->hidden(-name=>'show_output', -default=>['true']);
+  print $q->hidden(-name=>'faultid', -default=>$faultid);
+  print $q->textfield(-name=>'timelost',
+		      -size=>4,
+		      -maxlength=>8);
+  print $q->endform;
+  print "</td></table>";
+}
+
+=item B<update_fault_output>
+
+Take parameters from the fault update content page and update
+the fault.
+
+  update_fault_output($cgi);
+
+=cut
+
+sub update_fault_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $faultid = $q->param('faultid');
+
+  # Get the fault
+  my $fault = OMP::FaultServer->getFault($faultid);
+
+  # Change timelost
+  if ($q->param('timelost')) {
+    # Convert to Time::Seconds object
+
+    $fault->timelost($q->param('timelost'));
+  }
+
+  # Now do the update
+  OMP::FaultServer->updateFault($fault);
+
+  $fault = OMP::FaultServer->getFault($faultid);
+
+  print $q->h2("Fault $faultid has been updated");
+
+  # Display the fault in it's new form
+  fault_table($q, $fault);
 }
 
 =item B<show_faults>
