@@ -318,8 +318,8 @@ sub weather {
 
 =item B<remote_trigger>
 
-Returns information on weather this MSB has been initiated via
-a remote observation trigger or not. 
+Returns information on whether this MSB has been initiated via
+a remote observation trigger or not.
 
   %info = $msb->remote_trigger();
   $msb->remote_trigger( %info );
