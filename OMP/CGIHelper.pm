@@ -1902,6 +1902,7 @@ View proposals for specific projects.
 
 sub proposals {
   my $q = shift;
+  my %cookie = @_;
 
   my $projectid;
 
@@ -1915,6 +1916,11 @@ sub proposals {
     # Proposals directory
     my $propdir = OMP::Config->getData('propdir');
 
+    # Which directories to use?
+    my @dirs;
+    push(@dirs, $propdir);
+    ($cookie{notlocal}) and push(@dirs, $propdir . "/restricted");
+
     my $propfilebase = $projectid;
 
     $propfilebase =~ s/\W//g;
@@ -1927,11 +1933,15 @@ sub proposals {
 
     my $propfile;
     my $type;
-    for my $ext (qw/ps pdf ps.gz txt/) {
-      if (-e "$propdir/$propfilebase.$ext") {
-	$propfile = "$propdir/$propfilebase.$ext";
-	$type = $extensions{$ext};
-	last;
+
+  dirloop:
+    for my $dir (@dirs) {
+      for my $ext (qw/ps pdf ps.gz txt/) {
+	if (-e "$dir/$propfilebase.$ext") {
+	  $propfile = "$dir/$propfilebase.$ext";
+	  $type = $extensions{$ext};
+	  last dirloop;
+	}
       }
     }
 
@@ -1951,7 +1961,7 @@ sub proposals {
       # Proposal file not found
 
       print $q->header;
-      print "<h2>Proposal file not found</h2>";
+      print "<h2>Proposal file not available</h2>";
     }
 
   } else {
