@@ -519,7 +519,7 @@ sub rejectMSB {
 
 
     # Default comment
-    $reason = "This MSB was observed but was not accepted by the observer/TSS. No reason was given"
+    $reason = "This MSB was observed but was not accepted by the observer/TSS. No reason was given."
       unless defined $reason;
 
     # Form the comment object
