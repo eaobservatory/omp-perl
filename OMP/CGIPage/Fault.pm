@@ -577,7 +577,7 @@ sub query_fault_output {
       # Put up the query form again if there are lots of faults displayed
       if ($faults->[15]) {
 	print "<P>";
-	$self->query_fault_form($hidefields);
+	$comp->query_fault_form($hidefields);
       }
     }
   } else {
