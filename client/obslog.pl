@@ -1151,7 +1151,8 @@ sub create_options_widget {
                  )->pack( -side => 'left' );
 
   $topline->Button( -text => 'Set User',
-                    -command => sub { set_user( \$RefUser, $w ) },
+                    -command => sub { set_user( \$RefUser, $w );
+                                      $RefUser = $user->userid; },
                     -width => 10,
                   )->pack( -side => 'left' );
 
