@@ -98,6 +98,18 @@ sub store_archive {
     throw OMP::Error::FatalError("Error untaininting the filename $filename");
   }
 
+  # If the query is for the current day we should remove the last
+  # observation from the cache just in case the data have been read
+  # whilst the file is open for write (this is true for GSD observations
+  # since they are always appended to during acquisition)
+  if ($query->istoday) {
+    # Get reference to array of observation objects
+    my $ref = $obsgrp->obs;
+    # remove last
+    pop(@$ref);
+  }
+
+
   # Store the ObsGroup to disk.
   try {
     sysopen( DF, $filename, O_RDWR|O_CREAT, 0666);
