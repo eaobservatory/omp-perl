@@ -140,40 +140,46 @@ sub list_observations {
 
   ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
 
-  # We need to get an Info::ObsGroup object for this query object.
-  my $obsgroup;
-  try {
-    $obsgroup = cgi_to_obsgroup( $q, $ut, $inst );
-    print "<h2>Observations for $inst on $ut</h2><br>\n";
-  }
-  catch OMP::Error with {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  }
-  otherwise {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  };
+  if( defined( $inst ) &&
+      defined( $ut ) ) {
+    # We need to get an Info::ObsGroup object for this query object.
+    my $obsgroup;
+    try {
+      $obsgroup = cgi_to_obsgroup( $q, $ut, $inst );
+      print "<h2>Observations for $inst on $ut</h2><br>\n";
+    }
+    catch OMP::Error with {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext<br>\n";
+    }
+    otherwise {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext<br>\n";
+    };
 
-  # And display the table.
-  my %options;
-  $options{'showcomments'} = 1;
-  $options{'ascending'} = 0;
-  try {
-    obs_table( $obsgroup, \%options );
+    # And display the table.
+    my %options;
+    $options{'showcomments'} = 1;
+    $options{'ascending'} = 0;
+    try {
+      obs_table( $obsgroup, \%options );
+    }
+    catch OMP::Error with {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext<br>\n";
+    }
+    otherwise {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext<br>\n";
+    };
+  } else {
+    print "<h3>No observations available</h3><br>\n";
   }
-  catch OMP::Error with {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  }
-  otherwise {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print "Error: $errortext<br>\n";
-  };
+
   print_obslog_footer( $q );
 
 }
@@ -440,18 +446,23 @@ sub obs_inst_summary {
   }
 
   my @printarray;
-  print "<table border=\"1\"><tr><td><strong>";
-  foreach my $inst ( sort keys %results ) {
-    my $header = "<a href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
-    push @printarray, $header;
-    if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
-      $firstinst = $inst;
+  if( scalar keys %results ) {
+    print "<table border=\"1\"><tr><td><strong>";
+    foreach my $inst ( sort keys %results ) {
+      my $header = "<a href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
+      push @printarray, $header;
+      if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
+        $firstinst = $inst;
+      }
     }
-  }
-  print join "</strong></td><td><strong>", @printarray;
-  print "</strong></td></tr></table><br>\n";
+    print join "</strong></td><td><strong>", @printarray;
+    print "</strong></td></tr></table><br>\n";
 
-  return ( $firstinst, $ut );
+    return ( $firstinst, $ut );
+
+  } else {
+    return ( undef, undef );
+  }
 
 }
 
