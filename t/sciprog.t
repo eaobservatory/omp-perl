@@ -106,7 +106,7 @@ for my $msb ($obj->msb) {
     ok(0);
     # skip the next few tests
     skip("Pointless testing MSB when checksum does not match [".
-	 $msb->checksum. "]",1);
+	 $msb->checksum. "] [title=".$msb->msbtitle."]",1);
   }
 }
 
@@ -153,7 +153,8 @@ exit;
 
 __DATA__
 $VAR1 = {
-          'f75a6dc58da9273913d3266a1c3f3463A' => {
+#          'f75a6dc58da9273913d3266a1c3f3463A' => {
+	   '455c01c9b8309d014dc81271c45fe75fA' => {
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => 101,
                                                    'remaining' => '1',
@@ -200,7 +201,8 @@ $VAR1 = {
                                                                    }, 'OMP::Range' ),
                                                    'priority' => 3
                                                  },
-	 'b4822233821bd8f53ab1a3c95b327c28O' => {
+#	 'b4822233821bd8f53ab1a3c95b327c28O' => {
+         '9be325e8058efc658e3e04cda69fa4abO' => {                                                 'telescope' => 'UKIRT',
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => 101,
                                                    'remaining' => '2',
@@ -247,7 +249,8 @@ $VAR1 = {
                                                                    }, 'OMP::Range' ),
                                                    'priority' => 3
                                                  },
-          'f723d9868568bb625755d3ff57ba1915' => {
+#          'f723d9868568bb625755d3ff57ba1915' => {
+           'c050ad5c7961d3ad21e654269e7b28a4' => {
                                                   'telescope' => 'UKIRT',
                                                   'cloud' => 101,
                                                   'remaining' => '1',
@@ -282,7 +285,7 @@ $VAR1 = {
                                                                                   }, 'Astro::Coords::Calibration' ),
                                                                'type' => 's',
                                                                'instrument' => 'CGS4',
-                                                               'timeest' => '28.0'
+                                                               'timeest' => '179.0'
                                                              },
                                                              {
                                                                'telescope' => 'UKIRT',
@@ -307,7 +310,7 @@ $VAR1 = {
                                                                                   }, 'Astro::Coords::Calibration' ),
                                                                'type' => 'i',
                                                                'instrument' => 'UFTI',
-                                                               'timeest' => '16.0'
+                                                               'timeest' => '75.0'
                                                              },
                                                              {
                                                                'telescope' => 'UKIRT',
@@ -332,7 +335,7 @@ $VAR1 = {
                                                                                   }, 'Astro::Coords::Calibration' ),
                                                                'type' => 'i',
                                                                'instrument' => 'UFTI',
-                                                               'timeest' => '16.0'
+                                                               'timeest' => '75.0'
                                                              }
                                                            ],
                                                   'seeing' => bless( {
@@ -340,7 +343,7 @@ $VAR1 = {
                                                                        'Max' => '0.4'
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Array Tests',
-                                                  'timeest' => '60.0',
+                                                  'timeest' => '329.0',
                                                   'projectid' => 'TJ01',
                                                   'moon' => 101,
                                                   'tau' => bless( {
@@ -349,7 +352,8 @@ $VAR1 = {
                                                                   }, 'OMP::Range' ),
                                                   'priority' => 3
                                                 },
-          '21bef2414c47c1d1b863cb036801a26d' => {
+#          '21bef2414c47c1d1b863cb036801a26d' => {
+           'ed69d6514357775e2037d6dc0301434d' => {
                                                   'telescope' => 'UKIRT',
                                                   'cloud' => 101,
                                                   'remaining' => '1',
@@ -395,7 +399,8 @@ $VAR1 = {
                                                                   }, 'OMP::Range' ),
                                                   'priority' => 3
                                                 },
-          'bc34d57d94224154a445598ad60e147eOA' => {
+#          'bc34d57d94224154a445598ad60e147eOA' => {
+           '53dd1ebb190da0b306d65ecd79a8b434OA' => {
                                                     'telescope' => 'UKIRT',
                                                     'cloud' => 101,
                                                     'remaining' => '1',
@@ -440,7 +445,8 @@ $VAR1 = {
                                                                     }, 'OMP::Range' ),
                                                     'priority' => 3
                                                   },
-          '15a547e0edb2cb0c81f0af34c1242b06A' => {
+#          '15a547e0edb2cb0c81f0af34c1242b06A' => {
+           '50431bcfb6237208fe27008d5676b0f2A' => {
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => 101,
                                                    'remaining' => '6',
@@ -468,7 +474,7 @@ $VAR1 = {
                                                                                    }, 'Astro::Coords::Equatorial' ),
                                                                 'type' => 's',
                                                                 'instrument' => 'Michelle',
-                                                                'timeest' => '41.250668292'
+                                                                'timeest' => '123.752004876'
                                                               },
                                                               {
                                                                 'telescope' => 'UKIRT',
@@ -522,7 +528,7 @@ $VAR1 = {
                                                                         'Max' => '0.4'
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'Pol test',
-                                                   'timeest' => '49.490668292',
+                                                   'timeest' => '131.992004876',
                                                    'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
@@ -531,7 +537,8 @@ $VAR1 = {
                                                                    }, 'OMP::Range' ),
                                                    'priority' => 2
                                                  },
-          '75487f16203ecf5c8af5377cbf5cfd3eO' => {
+#          '75487f16203ecf5c8af5377cbf5cfd3eO' => {
+           '36bcaeaba76f6a44b7088e71b34856d5O' => {
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => 101,
                                                    'remaining' => '1',
@@ -578,7 +585,8 @@ $VAR1 = {
                                                                    }, 'OMP::Range' ),
                                                    'priority' => 3
                                                  },
-          '35f15b8b7d395bb3ea0b955567ec454c' => {
+#          '35f15b8b7d395bb3ea0b955567ec454c' => {
+          'f5e0350c606c4f082269b459d1736b50' => {
                                                   'telescope' => 'UKIRT',
                                                   'cloud' => 101,
                                                   'remaining' => '1',
@@ -624,7 +632,8 @@ $VAR1 = {
                                                                   }, 'OMP::Range' ),
                                                   'priority' => 3
                                                 },
-          'f001ffe51a696895375246378d7e034cOA' => {
+#          'f001ffe51a696895375246378d7e034cOA' => {
+           '32c856c0ddbb532c748d134169ccb312OA' => {
                                                     'telescope' => 'UKIRT',
                                                     'cloud' => 101,
                                                     'remaining' => '1',
@@ -669,7 +678,8 @@ $VAR1 = {
                                                                     }, 'OMP::Range' ),
                                                     'priority' => 3
                                                   },
-          '7cad9ca196339ba303eb436ed3ce7801' => {
+#          '7cad9ca196339ba303eb436ed3ce7801' => {
+           'c08db4fb2eea8e8486e99bc1ee0f7ac2' => {
                                                   'telescope' => 'UKIRT',
                                                   'cloud' => 101,
                                                   'remaining' => '2',
@@ -742,7 +752,8 @@ $VAR1 = {
                                                                   }, 'OMP::Range' ),
                                                   'priority' => 3
                                                 },
-          '971e659be8cbb43a91fce29383319b84O' => {
+#          '971e659be8cbb43a91fce29383319b84O' => {
+           'f7ec47641cadef30e7a3cc62002b632cO' => {
                                                    'telescope' => 'UKIRT',
                                                    'cloud' => 101,
                                                    'remaining' => '1',
