@@ -209,23 +209,27 @@ my %DATA = (
 				  Human => HUMAN,
 				 },
 			},
-	    "BUG"    => {
-			 SYSTEM => {
-				    "JCMT-OT" => JCMT_OT,
-				    "UKIRT-OT" => UKIRT_OT,
-				    "OMP Feedback system" => OMP_FEEDBACK_SYSTEM,
-				    "ORAC-DR" => ORAC_DR,
-				    Miscellaneous => MISCELLANEOUS,
-				   },
-			 TYPE => {
-				  GUI => GUI,
-				  Exception => EXCEPTION,
-				  Scheduling => SCHEDULING,
-				  Other => TYPEOTHER,
-				  Human => HUMAN,
-				 },
+	   );
+
+# Miscellaneous options for each category
+my %OPTIONS = (
+	       CSG => {
+		       CAN_LOSE_TIME => 0,
+		       CAN_ASSOC_PROJECTS => 0,
+		      },
+	       JCMT => {
+			CAN_LOSE_TIME => 1,
+			CAN_ASSOC_PROJECTS => 1,
+		       },
+	       OMP => {
+		       CAN_LOSE_TIME => 0,
+		       CAN_ASSOC_PROJECTS => 0,
+		      },
+	       UKIRT => {
+			 CAN_LOSE_TIME => 1,
+			 CAN_ASSOC_PROJECTS => 1,
 			},
-	    );
+	      );
 
 # Urgency
 my %URGENCY = (
@@ -405,6 +409,50 @@ sub faultStatusClosed {
   my $class = shift;
   return %STATUS_CLOSED;
 }
+
+=item B<faultCanAssocProjects>
+
+Given a fault category, this badly named method will return true if faults for that
+category can be associated with projects.
+
+  $canAssoc = OMP::Fault->faultCanAssocProjects( $category );
+
+=cut
+
+sub faultCanAssocProjects {
+  my $class = shift;
+  my $category = uc(shift);
+
+  if (exists $OPTIONS{$category}{CAN_ASSOC_PROJECTS}) {
+    return $OPTIONS{$category}{CAN_ASSOC_PROJECTS};
+  } else {
+    return 0;
+  }
+}
+
+=cut
+
+=item B<faultCanLoseTime>
+
+Given a fault category, this method will return true if a time lost can value can be specified
+for a fault in that category.
+
+  $canLoseTime = OMP::Fault->faultCanLoseTime( $category );
+
+=cut
+
+sub faultCanLoseTime {
+  my $class = shift;
+  my $category = uc(shift);
+
+  if (exists $OPTIONS{$category}{CAN_LOSE_TIME}) {
+    return $OPTIONS{$category}{CAN_LOSE_TIME};
+  } else {
+    return 0;
+  }
+}
+
+=cut
 
 =back
 
