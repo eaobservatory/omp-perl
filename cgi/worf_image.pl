@@ -1,4 +1,4 @@
-#!/local/perl/bin/perl
+#!/local/perl/bin/perl -XT
 #
 # WWW Observing Remotely Facility (WORF)
 #
@@ -10,6 +10,20 @@
 # Authors: Frossie Economou (f.economou@jach.hawaii.edu)
 #          Brad Cavanagh (b.cavanagh@jach.hawaii.edu)
 
+use strict;
+
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
+}
+
 # Set up the environment for PGPLOT
 
 BEGIN {
@@ -20,29 +34,13 @@ BEGIN {
   $ENV{'PGPLOT_BACKGROUND'} = 'white';
   $ENV{'PGPLOT_FOREGROUND'} = 'black';
   $ENV{'HDS_SCRATCH'} = "/tmp";
-
-  use constant OMPLIB => "/jac_sw/omp/msbserver";
-  use File::Spec;
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-# Bring in all the required modules
-
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
-
-# we need to point to a different directory to see ORAC and OMP modules
-
-use lib OMPLIB;
+# Load OMP modules
 use OMP::CGI;
 use OMP::CGIWORF;
 
-use strict;
-
 # Set up global variables, system variables, etc.
-
-$| = 1;  # make output unbuffered
 
 my $query = new CGI;
 

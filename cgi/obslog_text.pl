@@ -1,23 +1,21 @@
-#!/local/bin/perl -X
-
-BEGIN {
-  use constant OMPLIB => "/jac_sw/omp/msbserver";
-  use File::Spec;
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
-}
-
+#!/local/perl/bin/perl -XT
 use strict;
 
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
+}
 
-use lib OMPLIB;
-
+# Load OMP modules
 use OMP::CGI;
 use OMP::CGIObslog;
-
-$| = 1; # make output unbuffered
 
 my $query = new CGI;
 

@@ -1,22 +1,23 @@
 #!/local/perl/bin/perl -XT
+use strict;
 
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
+}
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
-	  unless exists $ENV{OMP_CFG_DIR};
-      }
-
-use lib qw(/jac_sw/omp/msbserver);
-
+# Load OMP modules
 use OMP::CGI;
 use OMP::CGIUser;
 use OMP::UserServer;
 use OMP::Error qw(:try);
-
-use strict;
-use warnings;
 
 my $arg = shift @ARGV;
 
@@ -26,4 +27,4 @@ my $cgi = new OMP::CGI( CGI => $q );
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: Edit support contacts");
-$cgi->write_page_noauth( \&OMP::CGIHelper::support, \&OMP::CGIHelper::support );
+$cgi->write_page_noauth( \&OMP::CGIHelper::support, \&OMP::CGIHelper::support);

@@ -1,4 +1,4 @@
-#!/local/perl/bin/perl
+#!/local/perl/bin/perl -XT
 #
 # WWW Observing Remotely Facility (WORF)
 #  Data File Download tool (DFD)
@@ -10,18 +10,19 @@
 #
 # Author: Brad Cavanagh (b.cavanagh@jach.hawaii.edu)
 
-# Bring in CGI module to allow us to change the MIME type and
-# send all fatal error messages back to the browser.
+use strict;
 
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
-
-# Bring in OMP modules for user verification.
-
-#use lib qw( /jac_sw/omp/test/omp/msbserver );
-#use OMP::CGI;
-#use OMP::ProjServer;
-#use OMP::General;
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
+}
 
 # Bring in ORAC modules so we can figure out where the files
 # are, depending on the instrument.
@@ -31,7 +32,6 @@ use ORAC::Inst::Defn qw/orac_configure_for_instrument/;
 
 # Set up various variables.
 
-$| = 1; # Make output unbuffered.
 my @instruments = ( "cgs4", "ircam", "michelle", "ufti", "scuba" );
 my $query = new CGI;
 
