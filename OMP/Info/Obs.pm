@@ -211,7 +211,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               type => '$',
                               user_az_corr => '$',
                               user_el_corr => '$',
-                              utdate => '$',
+                              utdate => 'Time::Piece',
                               velocity => '$',
                               velsys => '$',
                               waveband => 'Astro::WaveBand',
@@ -703,7 +703,19 @@ sub nightlog {
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n  %12.12s %4.4s %6.2f %10.10s %6.3f %6.6s     %9.9s  %6.6s %4d %7.7s", $return{'Mode'}, $return{'Slit'}, $return{'Slit Angle'}, $return{'Grism'}, $return{'Wavelength'}, $return{'Filter'}, $return{'Readout Area'}, $return{'Camera'}, $return{'Nexp'}, $return{'Speed'});
 
     } elsif( $instrument =~ /michelle/i ) {
-
+      $return{'Mode'} = $self->mode;
+      $return{'Chop Angle'} = sprintf("%.2f", $self->chopangle);
+      $return{'Chop Throw'} = sprintf("%.2f", $self->chopthrow);
+      if( $self->mode =~ /spectroscopy/i ) {
+        $return{'Slit Angle'} = sprintf("%.2f", $self->slitangle);
+        $return{'Slit'} = $self->slitname;
+        $return{'Wavelength'} = sprintf("%.4f", $self->waveband->wavelength);
+      } else {
+        $return{'Slit Angle'} = 0;
+        $return{'Slit'} = '-';
+        $return{'Wavelength'} = 0;
+      }
+      
     }
 
   }
@@ -763,9 +775,9 @@ sub file_from_bits {
     } elsif( $instrument =~ /michelle/i ) {
       $filename .= "/m" . $utdate . "_" . $runnr . ".sdf";
     }
-  } elsif( $instrument =~ /^(rx|het)/i ) {
+  } elsif( $instrument =~ /^(rx|het|fts)/i ) {
     my $project = $self->projectid;
-    my $ut = $self->startobs->datetime;
+    my $ut = $self->startobs;
     my $timestring = sprintf("%02u%02u%02u_%02u%02u%02u",
                              $ut->yy,
                              $ut->mon,
