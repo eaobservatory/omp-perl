@@ -1172,34 +1172,9 @@ sub getScan {
 
   } else {
     # We have to choose the best one
-    # Relies on the sample coords as well
-    # If we are in NA scanning with the array we have
-    # to calculate the best angle. Else it doesnt really
-    # matter since we cant be fully-sampled
-
-    # Need to get bolometer information
-    my %bols = $self->getBols( %info );
-
-    if ($scan{SAMPLE_COORDS} eq 'NA'
-       && $bols{BOLOMETERS} =~ /LONG|SHORT/) {
-      # Calculate the angle between the map and nasmyth Y
-      # This is a combination of the MAP_PA, the parallactic angle
-      # and the elevation. Need to check exactly which way round
-      # to combine.
-      # This requires the coordinate object
-      my $c       = $info{coords};
-      my $par_ang = $c->pa(format => 'd');
-      my $el      = $c->el(format => 'd');
-      my $map_pa  = $info{MAP_PA};
-
-      # Not going to do this yet so just return the first
-      # one
-      $scan{SAMPLE_PA} = $scanpas[0];
-
-    } else {
-      # Just return the first one
-      $scan{SAMPLE_PA} = $scanpas[0];
-    }
+    # Do the real choosing at ODF submission time. For now
+    # just pass on the allowed angles.
+    $scan{_SCAN_ANGLES} = \@scanpas;
 
   }
 
@@ -1279,7 +1254,14 @@ sub getPol {
 
   # Waveplates must be stored in an array
   # pending the writing of the file to disk
-  $pol{WPLATE_NAME} = $info{waveplate};
+  # For jiggle we just store them straight in WPLATE_NAME
+  # For scan we want to calculate the RA/Dec angles at submission
+  if ($info{MODE} eq 'SpIterRasterObs') {
+    $pol{_WPLATE_ANGLES} = $info{waveplate};
+  } else {
+    $pol{WPLATE_NAME} = $info{waveplate};
+  }
+
 
   # number of measurements is just the number
   # of waveplate positions
