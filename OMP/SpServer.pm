@@ -37,7 +37,10 @@ use Compress::Zlib;
 use constant OMP__SCIPROG_XML => 0;
 use constant OMP__SCIPROG_OBJ => 1;
 use constant OMP__SCIPROG_GZIP => 2;
+use constant OMP__SCIPROG_AUTO => 3;
 
+# GZIP threshold in bytes
+use constant GZIP_THRESHOLD => 30_000;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -89,12 +92,13 @@ sub storeProgram {
   my $E;
   try {
 
-    # Attempt to gunzip it (assume not gzipped if this fails)
-#    my $unzip = CompressZlib::memGunzip( $xml );
-#    if (defined $unzip) {
-#      $xml = $unzip;
-#      undef $unzip;
-#    }
+    # Attempt to gunzip it if it looks like a gzip stream
+    if (substr($xml,0,2) eq chr(37).chr(137)) {
+      # GZIP magic number verifies
+      $xml = CompressZlib::memGunzip( $xml );
+      throw OMP::Error::SpStoreFail("Science program looked like a gzip byte stream but did not uncompress correctly")
+        unless defined $xml;
+    }
 
     # Create a science program object
     my $sp = new OMP::SciProg( XML => $xml );
@@ -178,6 +182,7 @@ types:
   "XML"    OMP__SCIPROG_XML   (default)  Plain text XML
   "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
   "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
+  "AUTO"   OMP__SCIPROG_AUTO  plain text or gzip depending on size
 
 These are not exported and are defined in the OMP::SpServer namespace.
 
@@ -200,6 +205,7 @@ sub fetchProgram {
     $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
     $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
     $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
   }
 
   OMP::General->log_message( "fetchProgram: project $projectid (format = $rettype)\n");
@@ -236,10 +242,17 @@ sub fetchProgram {
     return $sp;
   } else {
 
-    # Return the stringified form, compressed or not
+    # Return the stringified form, compressed
     my $string;
-    if ($rettype == OMP__SCIPROG_GZIP) {
-      $string = Compress::Zlib::memGzip( "$sp" );
+    if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
+      $string = "$sp";
+
+      # Force gzip if requested
+      if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
+	# Compress the string if its length is greater than the 
+	# threshold value
+	$string = Compress::Zlib::memGzip( "$sp" );
+      }
 
       throw OMP::Error::FatalError("Unable to gzip compress science program")
 	unless defined $string;
