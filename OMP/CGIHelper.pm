@@ -1643,10 +1643,12 @@ sub projlog_content {
   # Get code for tau plot display
   my $plot_html = tau_plot_code($utdate);
 
-  # Link to the tau fits image on this page
+  # Link to the tau fits and wvm graph images on this page
   if ($plot_html) {
     print"<p><a href='#taufits'>View polynomial fit</a>";
   }
+
+  print "<p><a href='#wvm'>View WVM graph</a>";
 
   # Make a form for submitting MSB comments if an 'Add Comment'
   # button was clicked
@@ -1716,6 +1718,11 @@ sub projlog_content {
   if ($plot_html) {
     print "<p>$plot_html";
   }
+
+  print "<p>";
+  # Display WVM graph
+  my $wvm_html = wvm_graph_code($utdate);
+  print $wvm_html;
 }
 
 =item B<nightlog_content>
@@ -1767,16 +1774,6 @@ sub nightlog_content {
   }
   print "</table>";
 }
-
-=item B<multi_night_report>
-
-Create a page summarizing activity for several nights.
-
-  multi_night_report($cgi, %cookie);
-
-=cut
-
-sub multi_night_report { }
 
 =item B<night_report>
 
@@ -1951,14 +1948,14 @@ sub night_report {
     ($plot_html) and print "<p>$plot_html</p>";
 
     # Display WVM graph
-    my $wvmend;
-   ($utdate_end) and $wvmend = $utdate_end or $wvmend = $utdate;
-    my $wvmformat = "%d/%m/%y"; # Date format for wvm graph URL
-    print "<a name='wvm'></a>";
-    print "<br>";
-    print "<strong class='small_title'>WVM graph</strong><p>";
-    print "<div align=left>";
-    print "<img src='http://www.ukirt.jach.hawaii.edu/JCMT/cgi-bin/wvm_graph.pl?datestart=". $utdate->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
+    # Display WVM graph
+    my $wvm_html;
+    if ($utdate_end) {
+      $wvm_html = wvm_graph_code($utdate->ymd, $utdate_end->ymd);
+    } else {
+      $wvm_html = wvm_graph_code($utdate->ymd);
+    }
+    print $wvm_html;
 
   }
 }
@@ -2360,6 +2357,37 @@ sub tau_plot_code {
 	."<br>Click here to visit the calibration page</a>";
   } else {
     return undef;
+  }
+}
+
+=item B<wvm_graph_code>
+
+Returns HTML code for displaying a wvm graph.  Takes UT start and end dates as the only arguments
+
+  $wvm_html = wvm_graph_code('2003-03-22', '2003-03-25');
+
+UT end date is optional and if not provided the graph will display for a 24 hour period beginning on the UT start date.
+
+=cut
+
+sub wvm_graph_code {
+  my $wvmstart = shift;
+  my $wvmend = shift;
+
+  # Convert dates to time objects
+  $wvmstart = OMP::General->parse_date($wvmstart);
+  $wvmend = OMP::General->parse_date($wvmend);
+
+  if (! $wvmstart) {
+    print "Error: No start date for WVM graph provided.";
+  } else {
+    ($wvmend) or $wvmend = $wvmstart;
+    my $wvmformat = "%d/%m/%y"; # Date format for wvm graph URL
+    print "<a name='wvm'></a>";
+    print "<br>";
+    print "<strong class='small_title'>WVM graph</strong><p>";
+    print "<div align=left>";
+    print "<img src='http://www.ukirt.jach.hawaii.edu/JCMT/cgi-bin/wvm_graph.pl?datestart=". $wvmstart->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
   }
 }
 
