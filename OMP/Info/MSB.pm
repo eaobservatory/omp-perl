@@ -67,17 +67,19 @@ Create the accessor methods from a signature of their contents.
 
 __PACKAGE__->CreateAccessors( projectid => '$__UC__',
 			      msbid => '$',
-                              tau => 'OMP::Range', 
+                              tau => 'OMP::Range',
                               checksum => '$',
                               seeing => 'OMP::Range',
                               priority => '$',
-                              moon =>  '$',
+			      schedpri => '$',
+                              moon =>  'OMP::Range',
+			      sky => 'OMP::Range',
                               timeest => '$',
                               title => '$',
                               datemin => 'Time::Piece',
                               datemax => 'Time::Piece',
                               telescope => '$',
-                              cloud => '$__ANY__',
+                              cloud => 'OMP::Range',
                               observations => '@OMP::Info::Obs',
  	                      wavebands => '$',
  	                      targets => '$',
@@ -86,6 +88,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
 			      nrepeats => '$',
 			      elevation => 'OMP::Range',
                               remaining => '$',
+			      completion => '$',
                               comments => '@OMP::Info::Comment',
                               approach => '$',
                              );
@@ -105,9 +108,21 @@ Scalar accessors:
 
 =item B<priority>
 
+Priority allocated by the TAG (integer part) and the PI (decimal part).
+
+=item B<schedpri>
+
+The scheduling priority. Not necessarily the same as the (TAG) priority.
+
 =item B<timeest>
 
 =item B<title>
+
+Title of the MSB.
+
+=item B<completion>
+
+Completion percentage for the project associated with this MSB.
 
 =item B<remaining>
 
@@ -135,11 +150,23 @@ Accessors requiring/returning C<OMP::Range> objects:
 
 =item B<tau>
 
+Tau range.
+
 =item B<seeing>
+
+Seeing range in arcsec.
 
 =item B<moon>
 
+Allowed Moon illumination percentage range. 0% implies the moon is not up.
+
 =item B<cloud>
+
+Allowed cloud attenuation variability percentage range
+
+=item B<sky>
+
+Allowed Sky brightness range. Units and filter are telescope dependent.
 
 =item B<elevation>
 
@@ -471,6 +498,7 @@ scheduling consideration or if the remaining field is not defined.
 sub isRemoved {
   my $self = shift;
   return 1 if !defined $self->remaining;
+  return 1 if $self->remaining == OMP__MSB_REMOVED;
   return ($self->remaining < 0 ? 1 : 0 );
 }
 
@@ -567,7 +595,8 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title elevation
-       datemin datemax telescope cloud remaining msbid ra airmass ha dec az approach/) {
+	   datemin datemax telescope cloud sky remaining msbid ra airmass
+	   ha dec az approach schedpri completion /) {
     $summary{$_} = $self->$_();
   }
 
@@ -588,7 +617,7 @@ sub summary {
   if (!defined $summary{remaining}) {
     $remstatus = "Remaining count unknown";
     $summary{remaining} = "N/A";
-  } elsif ($summary{remaining} == OMP__MSB_REMOVED) {
+  } elsif ($self->isRemoved) {
     $remstatus = "REMOVED from consideration";
     $summary{remaining} = "REM"; # Magic value
   } elsif ($summary{remaining} == 0) {
@@ -627,7 +656,7 @@ sub summary {
   }
 
   # Fill in some unknowns
-  for (qw/ timeest priority title seeing tau/) {
+  for (qw/ timeest priority title seeing tau cloud sky /) {
     $summary{$_} = "??" unless defined $summary{$_};
   }
 
@@ -754,28 +783,33 @@ sub summary {
       next if $key =~ /^_/;
       next unless defined $summary{$key};
 
-      # This will skip OMP::Range objects!
-      next if ref($summary{$key});
+      # Allow OMP::Range objects to stringify in the summary
+      if (ref($summary{$key})) {
+	next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
+
+	# Now we know we have to escape the > and < and &
+	$summary{$key} = OMP::General::escape_entity( $summary{$key}."" );
+      }
 
       # Currently Matt needs the msbid to be included
       # in the XML elements as well as an attribute
       # next if $key eq "msbid";
 
       # Create XML segment
-      $xml .= "<$key>$summary{$key}</$key>\n";
+      $xml .= "  <$key>$summary{$key}</$key>\n";
     }
 
     # Now add in the observations if we are doing the long version
     if ($format !~ /short/) {
       for (@obs) {
-	$xml .= $_->summary("xml");
+	$xml .= '    '.$_->summary("xml");
       }
     }
 
     # And the comments
     if ($format !~ /short/) {
       for ($self->comments) {
-	$xml .= $_->summary('xml');
+	$xml .= '     '.$_->summary('xml');
       }
     }
 
@@ -980,16 +1014,19 @@ sub getResultColumns {
   if ($tel eq 'JCMT') {
     @order = qw/ projectid priority instrument waveband title target
       ra dec coordstype ha az airmass pol type
-	timeest remaining obscount checksum msbid /;
+	timeest remaining obscount checksum msbid completion/;
   } elsif ($tel eq 'UKIRT') {
     @order = qw/ projectid priority instrument waveband title target
-      ra dec coordstype ha airmass pol type
-	timeest remaining obscount moon cloud disperser checksum msbid /;
+		 ra dec coordstype ha airmass pol type
+		 timeest remaining obscount moon cloud
+		 sky disperser checksum msbid
+		 completion
+		 /;
   } else {
     # Generic order
     @order = qw/ projectid priority instrument waveband title target
       ra dec coordstype ha airmass pol type
-	timeest remaining obscount checksum msbid /;
+	timeest remaining obscount checksum msbid completion /;
   }
 
   return @order;
@@ -1009,6 +1046,7 @@ Uses a telescope name to control the column information.
 
 # best to use a single data structure for this
 my %coltypes = (
+		schedpri => 'Float',
 		remaining => 'Integer',
 		projectid => 'String',
 		priority => 'Float',
@@ -1029,9 +1067,13 @@ my %coltypes = (
 		obscount => 'Integer',
 		checksum => 'String',
 		msbid => 'Integer',
-		moon => 'Integer',
-		cloud => 'Integer',
+		moon => 'String',
+		tau => 'String',
+		cloud => 'String',
+		sky => 'String',
+		seeing => 'String',
 		disperser => 'String',
+		completion => 'Float',
 	       );
 
 sub getTypeColumns {
@@ -1067,8 +1109,21 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 

@@ -33,7 +33,11 @@ use warnings::register;
 use Carp;
 use Time::Seconds;
 use OMP::General;
+use OMP::SiteQuality;
 use OMP::User;
+
+use Scalar::Util qw/ looks_like_number /;
+use List::Util qw/ min max /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -77,10 +81,12 @@ sub new {
 		    Encrypted => undef,
 		    Password => undef,
 		    ProjectID => undef,
+
+		    # weather constrints
 		    TauRange => undef,
 		    SeeingRange => undef,
-		    Cloud => undef,
-		    CoI => [],
+		    CloudRange => undef,
+		    SkyRange => undef,
 
 		    # Country and tag priority now
 		    # can have more than one value
@@ -88,6 +94,8 @@ sub new {
 		    Queue => {},
 
 		    PI => undef,
+		    CoI => [],
+
 		    Remaining => undef, # so that it defaults to allocated
 		    Pending => Time::Seconds->new(0),
 		    Support => [],
@@ -176,6 +184,9 @@ tau is not within this range.
 
 Returns an C<OMP::Range> object.
 
+If a single number is provided it is assumed to be specifying the
+upper bound of a new range object.
+
 This interface will change when non-contiguous tau ranges are supported.
 (The method may even disappear).
 
@@ -185,6 +196,9 @@ sub taurange {
   my $self = shift;
   if (@_) {
     my $range = shift;
+    if (defined $range && !ref($range) && looks_like_number($range)) {
+      $range = new OMP::Range( Max => $range );
+    }
     croak "Tau range must be specified as an OMP::Range object"
       unless UNIVERSAL::isa($range, "OMP::Range");
     $self->{TauRange} = $range;
@@ -192,44 +206,95 @@ sub taurange {
   return $self->{TauRange};
 }
 
-=item B<seerange>
+=item B<seeingrange>
 
-Range of seeing conditions (in arcseconds)  in which the observations can be performed. No observations can be performed when the seeing
-is not within this range.
+Range of seeing conditions (in arcseconds) in which the observations
+can be performed. No observations can be performed when the seeing is
+not within this range.
 
-  $range = $proj->seerange();
+  $range = $proj->seeingrange();
 
 Returns an C<OMP::Range> object (or undef).
 
+If a single number is provided it is assumed to be specifying the
+upper bound of a new range object.
+
 =cut
 
-sub seerange {
+sub seeingrange {
   my $self = shift;
   if (@_) {
     my $range = shift;
-    croak "Tau range must be specified as an OMP::Range object"
+    if (defined $range && !ref($range) && looks_like_number($range)) {
+      $range = new OMP::Range( Max => $range );
+    }
+    croak "Seeing range must be specified as an OMP::Range object"
       unless UNIVERSAL::isa($range, "OMP::Range");
     $self->{SeeingRange} = $range;
   }
   return $self->{SeeingRange};
 }
 
-=item B<cloud>
+=item B<cloudrange>
 
-Any cloud condition constraints. C<undef> indicates no constraints,
-1 indicates "photometric" and 2 indicates "cirrus".
+Cloud constraints as a percentage attenuation variability, stored as an
+C<OMP::Range> object. C<undef> indicates no constraints,
 
-  $cloud = $proj->cloud( 1 );
+  $cloud = $proj->cloudrange();
+
+Special cases values of 0, 1 and 101 to match the old non-percentage
+implementation. If a number between 2 and 100 is provided, it is
+assumed to be the upper limit.
 
 =cut
 
-sub cloud {
+sub cloudrange {
   my $self = shift;
   if (@_) {
-    $self->{Cloud} = shift;
+    my $range = shift;
+    if (defined $range && !ref($range) && looks_like_number($range)) {
+      $range = OMP::SiteQuality::upgrade_cloud();
+    }
+    croak "Cloud range must be specified as an OMP::Range object"
+      unless UNIVERSAL::isa($range, "OMP::Range");
+    $self->{CloudRange} = $range;
   }
-  return $self->{Cloud};
+  return $self->{CloudRange};
 }
+
+=item B<skyrange>
+
+Range of sky brightness conditions in which the observations can be
+performed. No observations can be performed when the sky is not within
+this range. The filter and units for which this sky brightness is
+defined is dependent on the telescope implementation with the caveat
+that when magnitudes are used the range may be flipped from what was
+submitted in the OT in order for the contains() method and stringification
+to work correctly.
+
+  $range = $proj->skyrange();
+
+Returns an C<OMP::Range> object (or undef).
+
+If a single number is provided it is assumed to be specifying the
+upper bound of a new range object.
+
+=cut
+
+sub skyrange {
+  my $self = shift;
+  if (@_) {
+    my $range = shift;
+    if (defined $range && !ref($range) && looks_like_number($range)) {
+      $range = new OMP::Range( Max => $range );
+    }
+    croak "Sky range must be specified as an OMP::Range object"
+      unless UNIVERSAL::isa($range, "OMP::Range");
+    $self->{SkyRange} = $range;
+  }
+  return $self->{SkyRange};
+}
+
 
 =item B<telescope>
 
@@ -1088,7 +1153,7 @@ sub isTOO {
   my $self = shift;
   my @pri = $self->tagpriority;
   for my $p (@pri) {
-    return 1 if $p < 0;
+    return 1 if $p <= 0;
   }
   return 0;
 }
@@ -1170,6 +1235,7 @@ with this project.
 sub conditionstxt {
   my $self = shift;
 
+  # currently only interested in the worst cloud conditions
   my $cloud = $self->cloudtxt;
   $cloud = '' if $cloud eq 'any';
   $cloud = substr($cloud,0,4) if $cloud;
@@ -1178,57 +1244,83 @@ sub conditionstxt {
   my $seeing = $self->seerange();
   my $seetxt = '';
   if ($seeing) {
-    my $min = $seeing->min();
-    $seeing->min(undef) if defined $min && $min == 0;
+    OMP::SiteQuality::undef_to_default( 'SEEING', $seeing );
     # only put text if we have a range
     unless (!$seeing->min && !$seeing->max) {
       $seetxt = "s:$seeing";
     }
   }
 
+  # Tau range (fix lower end for prettification)
   my $taurange = $self->taurange();
   my $tautxt = '';
   if ($taurange) {
-    my $min = $taurange->min;
-    $taurange->min(undef) if defined $min && $min == 0;
+    OMP::SiteQuality::undef_to_default( 'TAU', $taurange );
     unless (!$taurange->min && !$taurange->max) {
       # only create if we have a range defined
       $tautxt = "t:$taurange";
     }
   }
 
-  my $txt = join(",", grep { $_} ($tautxt, $seetxt, $cloud) );
+  # Sky brightness
+  my $skyrange = $self->skyrange();
+  my $skytxt = '';
+  if ($skyrange) {
+    # map any leftover INF to undef
+    $skyrange = OMP::SiteQuality::from_db( 'SKY', $skyrange );
+    unless (!$skyrange->min && !$skyrange->max) {
+      # only create if we have a range defined
+      $skytxt = "b:$skyrange";
+    }
+  }
+
+  # form the text string
+  my $txt = join(",", grep { $_} ($tautxt, $seetxt, $skytxt, $cloud) );
 
   return ( $txt ? $txt : 'any' );
 }
 
 =item B<cloudtxt>
 
-The textual description of the cloud constraints. One of:
+Approximate textual description of the cloud constraints. One of:
+"any", or a combination of "cirrus", "thick" or "photometric".
 
-  any
-  cirrus or photometric
-  photometric
-
- my $text = $proj->cloudtxt;
+  my $text = $proj->cloudtxt;
 
 =cut
 
+my @cloudlut;
 sub cloudtxt {
   my $self = shift;
-  my $cloud = $self->cloud;
-  return "any" unless defined $cloud;
+  my $cloud = $self->cloudrange;
+  return 'any' unless defined $cloud;
 
-  my %lut = (0 => "photometric",
-	     1 => "cirrus or photometric",
-	    );
-
-  if (exists $lut{$cloud}) {
-    return $lut{$cloud};
-  } else {
-    return "????";
+  # initialise the cloud lookup array
+  if (!@cloudlut) {
+    $cloudlut[0] = 'photometric';
+    $cloudlut[$_] = 'cirrus' for (1..OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX);
+    $cloudlut[$_] = 'thick' for ((OMP::SiteQuality::OMP__CLOUD_CIRRUS_MAX+1)..100);
   }
 
+  my $min = max( 0, int( $cloud->min || 0 ) );
+  my $max = min( 100, int( $cloud->max || 100 ) );
+
+
+  my %text; # somewhere to count how many times we have seen a key
+  my @texts; # somewhere to retain the ordering
+  for my $i ($min..$max) {
+    $text{$cloudlut[$i]}++;
+    push(@texts, $cloudlut[$i]) if $text{$cloudlut[$i]} == 1;
+  }
+
+  if (@texts == 0) {
+    return "????";
+  } elsif (@texts == 3) {
+    return "any";
+  } else {
+    # Start with worse conditions
+    return join(" or ", reverse @texts);
+  }
 }
 
 =item B<summary>
@@ -1470,14 +1562,28 @@ sub isScience {
 
 =back
 
-=head1 COPYRIGHT
-
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research
-Council.  All Rights Reserved.
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2005 Particle Physics and Astronomy Research
+Council.  All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
+
 
 =cut
 
