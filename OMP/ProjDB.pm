@@ -29,6 +29,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Error qw/ :try /;
 use OMP::Project;
+use OMP::FeedbackDB;
 
 use Crypt::PassGen qw/passgen/;
 use Net::SMTP;
@@ -489,10 +490,10 @@ sub _mail_password {
     throw OMP::Error::BadArgs("No email address defined for sending password\n") unless defined $piemail;
 
     # Try and work out who is making the request
-    my $addr;
+    my ($addr, $ip);
     if (exists $ENV{REMOTE_ADDR}) {
       # We are being called from a CGI context
-      $addr = $ENV{REMOTE_ADDR};
+      $addr = $ip = $ENV{REMOTE_ADDR};
 
       # User name (only set if they have logged in)
       $addr = $ENV{REMOTE_USER} . "@" . $addr
@@ -500,7 +501,7 @@ sub _mail_password {
 
     } else {
       # localhost
-      $addr = hostfqdn;
+      $addr = $ip = hostfqdn;
 
       $addr = $ENV{USER} . "@" . $addr
 	if exists $ENV{USER};
@@ -509,7 +510,19 @@ sub _mail_password {
 
     # First thing to do is to register this action with
     # the feedback system
+    my $fbmsg = "New password issued for project $projectid at the request of $addr\n";
 
+    # Dont share the database connection
+    my $fbdb = new OMP::FeedbackDB( ProjectID => $projectid,
+				    DB => new OMP::DBbackend,
+				  );
+    $fbdb->addComment({
+		      author =>  $addr,
+		      program => 'OMP::ProjDB',
+		      sourceinfo => $ip,
+		      subject => "Password change for $projectid",
+		      text => $fbmsg,
+		      });
 
     # Now set up the mail
     my $smtp = new Net::SMTP('mailhost', Timeout => 30);
