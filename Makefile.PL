@@ -8,6 +8,7 @@ WriteMakefile(
 		    Digest::MD5 => '2.20',
 		    Astro::SLA  => '0.95',
 		    Astro::Coords => '0.03',
+		    Astro::FITS::HdrTrans => 0,
 		   },
     dist          => { COMPRESS => "gzip -9f" },
    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
