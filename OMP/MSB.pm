@@ -107,7 +107,7 @@ sub new {
   if (exists $args{XML}) {
     # Now convert XML to parse tree
     $parser = new XML::LibXML;
-    $parser->validation(1);
+    $parser->validation(0);
     $tree = eval { $parser->parse_string( $args{XML} ) };
     return undef if $@;
   } elsif (exists $args{TREE}) {
