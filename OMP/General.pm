@@ -364,6 +364,45 @@ sub determine_extended {
 
 }
 
+=item B<determine_utdate>
+
+Determine the relevant UT date to use. If the argument
+can be parsed as a UT date by C<parse_date> the object corresponding
+to that date is returned. If no date can be parsed, or no argument
+exists a time object corresponding to the current UT date is returned.
+
+  $tobj = OMP::General->determine_utdate( $utstring );
+  $tobj = OMP::General->determine_utdate();
+
+Hours, minutes and seconds are ignored.
+
+=cut
+
+sub determine_utdate {
+  my $class = shift;
+  my $utstr = shift;
+
+  my $date;
+  if (defined $utstr) {
+    $date = OMP::General->parse_date( $utstr );
+    if (defined $date) {
+      # Have a date object, check that we have no hours, minutes
+      # or seconds
+      if ($date->hour != 0 || $date->min != 0 || $date->sec != 0) {
+	# Force pure date
+	$date = OMP::General->parse_date( $date->ymd );
+      }
+    } else {
+      # did not parse, use today
+      $date = $class->today( 1 );
+    }
+  } else {
+    $date = $class->today( 1 );
+  }
+
+  return $date;
+}
+
 =back
 
 =head2 Strings

@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 149;
+use Test::More tests => 153;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -118,6 +118,24 @@ is($yesterday->sec,0,"Zero seconds");
 my $diff = $today - $yesterday;
 isa_ok($diff, "Time::Seconds");
 is($diff, ONE_DAY, "Check time difference");
+
+print "# UT date determination\n";
+
+# See if we get today
+my $detut = OMP::General->determine_utdate();
+is($detut->epoch, $today->epoch, "Blank should be today");
+
+$detut = OMP::General->determine_utdate("blah");
+is($detut->epoch, $today->epoch, "Unparsable should be today");
+
+# Now force a parse
+$detut = OMP::General->determine_utdate( $yesterday->ymd );
+is($detut->epoch, $yesterday->epoch, "Parse a Y-M-D");
+
+# and include hms
+$detut = OMP::General->determine_utdate( $yesterday->ymd ."T04:40:34" );
+is($detut->epoch, $yesterday->epoch, "Parse a Y-M-DTH:M:S");
+
 
 print "# Verification\n";
 
