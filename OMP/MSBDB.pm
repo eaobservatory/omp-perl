@@ -588,6 +588,15 @@ sub _db_store_sciprog {
   $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'$sp')", undef,
 	  $proj, $sp->timestamp) or
 	    throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
+
+  # Now fetch it back to check for truncation issues
+  my $xml = $self->_db_fetch_sciprog();
+  if (length($xml) ne length("$sp")) {
+    my $orilen = length("$sp");
+    my $newlen = length($xml);
+    throw OMP::Error::SpStoreFail("Science program was truncated during store (now $newlen rather than $orilen)\n");
+  }
+
 }
 
 =item B<_db_fetch_sciprog>
@@ -608,7 +617,13 @@ sub _db_fetch_sciprog {
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  my $ref = $dbh->selectall_arrayref("SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
+  # need to set the textsize to a value large enough to contain
+  # the science program itself. I would like to do this by setting
+  # it to the length of the current science program but frossie
+  # insists that I just pick a large number and be done with it
+  # (until the JCMT board is over)
+  my $ref = $dbh->selectall_arrayref("SET TEXTSIZE 330000000
+(SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')", { Columns => {}});
 
   throw OMP::Error::SpRetrieveFail("Error retrieving science program XML from database: ". $dbh->errstr) unless defined $ref;
 
