@@ -303,7 +303,8 @@ Password is plain text. Project ID is case insensitive.
 =cut
 
 sub verifyPassword {
-  my $project = shift;
+  my $class = shift;
+  my $projectid = shift;
   my $password = shift;
 
   my $ok;
