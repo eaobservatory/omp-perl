@@ -701,24 +701,49 @@ sub locate_msbs {
     push(@spmsb, $_) unless $parent;
   }
 
-  # Create new OMP::MSB objects
-  my $refhash = $self->refs;
-  my $projectid = $self->projectID;
+  # Populate the static arguments for the MSB constuctor
+  my %EXTRAS = (
+		OTVERSION => $self->ot_version,
+		PROJECTID => $self->projectID,
+		REFS => scalar $self->refs,
+	       );
 
   # Only have a telescope entry if we know the telescope
-  my %EXTRAS;
   my $tel = $self->telescope;
   $EXTRAS{TELESCOPE} = $tel if defined $tel;
 
-  # returns empty list if fails and so this can not be put directly
-  # in the hash constructor without protecting the missing entry
-  my $otvers = $self->ot_version;
-  my @objs = map { new OMP::MSB( TREE => $_, 
-				 REFS => $refhash,
-				 PROJECTID => $projectid,
-				 OTVERSION => $otvers,
-				 %EXTRAS,
-                               ) } @spmsb;
+  # Loop over each MSB creating the MSB objects.
+  # Trick here is that for MSBs that are within Survey containers
+  # we need to create multiple MSB objects
+  # This means we will not be using a simple map
+  my @objs;
+  for my $msbnode (@spmsb) {
+    # Look for a survey container ancestor
+    my ($sc) = $msbnode->findnodes('ancestor-or-self::SpSurveyContainer');
+    if ($sc) {
+      # We need to extract the TargetList information from the survey
+      # container and iterate over the target information
+      my ($tl) = $sc->findnodes('.//TargetList');
+      throw OMP::Error::SpBadStructure("No Target List specified for Survey container") unless defined $tl;
+
+      # parse the target list
+      my %results = OMP::MSB->TargetList( $tl );
+
+      # "targets" contains the array of targets that we have found
+      for my $targ (@{ $results{targets} } ) {
+	push(@objs, new OMP::MSB( TREE => $msbnode,
+				  %EXTRAS,
+				  OVERRIDE => $targ,
+				)
+	    );
+	print "Priority ". $targ->{priority}."\n";
+      }
+
+    } else {
+      # Not a survey, just create the object and store it
+      push(@objs, new OMP::MSB( TREE => $msbnode, %EXTRAS ));
+    }
+  }
 
   # Remove duplicates
   # Build up a hash keyed by checksum
