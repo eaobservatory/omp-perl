@@ -444,6 +444,18 @@ sub write_page {
 
     }
 
+    if ($q->url_param('urlprojid')) {
+
+      # The project ID is in the URL.  If the URL project ID doesn't
+      # match the project ID in the cookie (or there is no cookie) set
+      # the cookie with the URL project ID since the user just clicked
+      # a link to get here.
+
+      if ($q->url_param('urlprojid') ne $cookie{projectid}) {
+	%cookie = (projectid=>$q->url_param('urlprojid'), password=>'***REMOVED***');
+      }
+    }
+
     # Set the cookie with a new expiry time (this occurs even if we
     # already have one. This allows for automatic expiry if noone
     # reloads the page
@@ -464,22 +476,6 @@ sub write_page {
 
       $form_content->( $q, %cookie);
 
-    } elsif ($q->url_param('urlprojid')) {
-      # The project ID is in the URL.  If the URL project ID doesn't
-      # match the project ID in the cookie (or there is no cookie) set
-      # the cookie with the URL project ID and call the content code ref
-      # since the user just clicked a link to get here.
-
-      if ($q->url_param('urlprojid') != $cookie{projectid}) {
-	%cookie = (projectid=>$q->url_param('urlprojid'), password=>'***REMOVED***');
-	$c->setCookie( $EXPTIME, %cookie );
-	$form_content->( $q, %cookie );
-      } else {
-	# The URL project ID matches the cookie project ID so call the output
-	# code ref. (The user didn't just click a link)
-	
-	$form_output->( $q, %cookie );
-      }
 
     } else {
       $form_output->( $q, %cookie);
