@@ -946,6 +946,53 @@ sub addMSBcomment {
 
 }
 
+=item B<getMSBCount>
+
+Return the total number of MSBs, and the total number of active MSBs, for a
+given list of projects.
+
+  %msbcount = OMP::MSBServer->getMsbCount(@projectids);
+
+The only argument is a list (or reference to a list) of project IDs.
+Returns a hash of hashes indexed by project ID where the second-level
+hashes contain the keys 'total' and 'active' (each points to a number).
+If a project has no MSBs, not key is included for that project.  If
+a project has no MSBs with remaining observations, no 'active' key
+is returned for that project.
+
+=cut
+
+sub getMSBCount {
+  my $class = shift;
+  my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
+
+  my $E;
+  my %result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(
+			    DB => $class->dbConnection
+			   );
+
+    %result = $db->getMSBCount(@projectids);
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return %result;
+}
+
 =item B<getResultColumns>
 
 Retrieve the column names that will be used for the XML query
