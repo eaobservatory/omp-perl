@@ -14,18 +14,17 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::ProjectPage;
-use OMP::UserServer;
+use OMP::CGIPage;
+use OMP::CGIPage::Project;
 use OMP::Error qw(:try);
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: Edit support contacts");
-$cgi->write_page_noauth( \&OMP::CGI::ProjectPage::support,
-			 \&OMP::CGI::ProjectPage::support);
+$cgi->write_page_noauth( \&OMP::CGIPage::Project::support,
+			 \&OMP::CGIPage::Project::support );
