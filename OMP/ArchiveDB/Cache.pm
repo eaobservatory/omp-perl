@@ -53,6 +53,9 @@ our %EXPORT_TAGS = (
 
 Exporter::export_tags( qw/ all / );
 
+# In-memory cache
+my %MEMCACHE;
+
 =head1 METHODS
 
 =over 4
@@ -82,6 +85,8 @@ sub store_archive {
     throw OMP::Error::BadArgs( "Must supply an ObsGroup object to store information in cache" );
   }
 
+
+
   # Check to make sure the cache directory exists. If it doesn't, create it.
   if( ! -d $TEMPDIR ) {
     mkdir $TEMPDIR;
@@ -109,14 +114,24 @@ sub store_archive {
     pop(@$ref);
   }
 
+  # Should probably strip all comments to save space (since in general
+  # we can not trust the comments when we re-read the cacche at a later date)
+  # Should we make sure we work on copies here?
+  # It seems that comments are already gone by this point
+  for my $obs ($obsgrp->obs) {
+    @{$obs->comments} = ();
+  }
+
+  # Store in memory cache (using a new copy)
+  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => [ $obsgrp->obs ]);
 
   # Store the ObsGroup to disk.
   try {
-    sysopen( DF, $filename, O_RDWR|O_CREAT, 0666);
-    flock(DF, LOCK_EX);
-    nstore_fd($obsgrp, \*DF);
-    truncate(DF, tell(DF));
-    close(DF);
+    sysopen( my $df, $filename, O_RDWR|O_CREAT, 0666);
+    flock($df, LOCK_EX);
+    nstore_fd($obsgrp, $df);
+    truncate($df, tell($df));
+    close($df);
   }
   catch Error with {
     throw OMP::Error::CacheFailure( $! );
@@ -142,6 +157,11 @@ telescope, instrument, date, and projectid
 will be cached. Exotic queries (such as ranges other than
 date ranges) are not supported.
 
+Observation comments are not added by this routine since they are
+probably invalid anyway (they can be changed at any time, whereas the
+data headers are constant once written). Use the C<commentScan> method
+of C<OMP::Info::ObsGroup> to add the comments.
+
 =cut
 
 sub retrieve_archive {
@@ -156,15 +176,16 @@ sub retrieve_archive {
   # Get the filename of whatever it is we're getting.
   my $filename = _filename_from_query( $query );
 
-  # Retrieve the ObsGroup object, if it exists.
-  if( -e $filename ) {
-    open(DF, "< " . $filename);
-    flock(DF, LOCK_SH);
-    $obsgrp = fd_retrieve( \*DF );
+  # Retrieve the ObsGroup object, if it exists. Prefer in memory version
+  if (exists $MEMCACHE{$filename}) {
+    $obsgrp = $MEMCACHE{$filename};
+  } elsif( -e $filename ) {
+    open(my $df, "< " . $filename);
+    flock($df, LOCK_SH);
+    $obsgrp = fd_retrieve( $df );
 
-    # Because the comments may have changed since the cache
-    # was created, we need to get them again.
-    $obsgrp->commentScan;
+    # Store in memory cache for next time around
+    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => $obsgrp->obs );
   }
 
   # And return.
@@ -264,10 +285,11 @@ sub unstored_files {
 
       next unless -d $directory;
 
-      opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
-      @ifiles = grep(!/^\./, readdir(FILES));
+      opendir( my $dh, $directory ) 
+	or throw OMP::Error( "Unable to open data directory $directory: $!" );
+      @ifiles = grep(!/^\./, readdir($dh));
 
-      closedir(FILES);
+      closedir($dh);
 
       my $regexp = OMP::Config->getData( 'filenameregexp',
                                          telescope => $tel,
