@@ -823,22 +823,24 @@ sub _mail_information {
     # Attach the plain text message
     $msg->attach(Type=>"text/plain",
 		 Data=>$plaintext)
-      or throw OMP::Error::FatalError("Error attaching plain text message\n");
+      or throw OMP::Error::MailError("Error attaching plain text message\n");
 
     # Now attach the original message (it should come up as the default message
     # in the mail reader)
     $msg->attach(Type=>"text/html",
 		 Data=>$details{message})
-      or throw OMP::Error::FatalError("Error attaching HTML message\n");
+      or throw OMP::Error::MailError("Error attaching HTML message\n");
 
   }
 
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
   MIME::Lite->send("smtp", $mailhost, Timeout => 30);
-  $msg->send
-    or throw OMP::Error::FatalError("Error sending message\n");
 
+  eval {
+    $msg->send;
+  };
+    ($@) and throw OMP::Error::MailError("$@\n");
 }
 
 =item B<DESTROY>
