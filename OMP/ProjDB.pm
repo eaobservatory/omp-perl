@@ -680,6 +680,14 @@ sub _get_project_row {
   throw OMP::Error::UnknownProject("No project supplied")
     unless $projectid;
 
+  # check for the odd case of no word characters in the projectid
+  # whilst string is still technically "true"
+  # This triggers an unknown project error (since we know there is no
+  # valid project of that name) but should probably be
+  # trapped by the query builder
+  throw OMP::Error::UnknownProject("Supplied project ($projectid) has no word characters")
+    unless $projectid =~ /\w/;
+
   # Create the query
   my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
   my $query = new OMP::ProjQuery( XML => $xml );
@@ -691,7 +699,7 @@ sub _get_project_row {
     unless @projects;
 
   # Check that we only have one
-  throw OMP::Error::FatalError( "More than one project retrieved!")
+  throw OMP::Error::FatalError( "More than one project retrieved when requesting project '$projectid'!")
     unless @projects == 1;
 
   return $projects[0];
