@@ -2053,17 +2053,6 @@ sub unroll_obs {
 
   }
 
-  # Fudge the special cases
-  # SCAN MAP polarimetry requires that we only specify one
-  # waveplate position per ODF - we cannot do that during
-  # the recursive unrolling very easily because of the case
-  # where a single pol iterator contains both a scan map
-  # and jiggle map pol observe
-  # This should probably be done in the translator prior
-  # to translation rather than fudged in a telescope specific
-  # manner here.
-  $self->_fudge_unroll_obs(\@longobs);
-
   #use Data::Dumper;
   #print Dumper( \@longobs);
 
@@ -2115,7 +2104,8 @@ sub _unroll_obs_recurse {
 
     # Get the key - there can only be one
     my @keys = keys %$iter;
-    throw OMP::Error::FatalError "More than one hash key in iterator"
+    throw OMP::Error::FatalError "More than one hash key in iterator [".
+      join(",",@keys)."]"
       unless scalar(@keys) == 1;
 
     my $key = $keys[0];
@@ -2156,42 +2146,6 @@ sub _unroll_obs_recurse {
 
 
 }
-
-# Correct post translation problems
-# May well not be correct yet for scan maps since it does not
-# check whether the POL iterator was inside or outside of the chop
-# iterator.
-
-sub _fudge_unroll_obs {
-  my $self = shift;
-  my $obs = shift;
-  return unless @$obs;
-
-  my @newobs;
-  # loop through the observations and tweak
-  # Only look for SCAN MAP and pol
-  if ($obs->[0]->{telescope} eq 'JCMT') {
-    foreach my $this (@$obs) {
-      if ($this->{instrument} eq 'SCUBA' && $this->{MODE} eq 'SpIterRasterObs'
-	 && exists $this->{waveplate}) {
-	# Scan map pol can only support a single waveplate position
-	# per chop throw.
-	# create an odf per waveplate
-	my %odf = %$this;
-	my @wplate = @{$odf{waveplate}};
-	delete $odf{waveplate};
-	# waveplate still has to be an array
-	push(@newobs,map { { %odf, waveplate => [$_] } } @wplate);;
-      } else {
-	push(@newobs,$this);
-      }
-    }
-  }
-
-  # overwrite old array
-  @$obs = @newobs;
-}
-
 
 # Methods associated with individual elements
 
@@ -2355,7 +2309,7 @@ sub SpIterFolder {
   for my $child ( $el->getChildnodes ) {
     my $name = $child->getName;
     next unless defined $name;
-    # Special components found within iterators that 
+    # Special components found within iterators that
     # we can identify and need to open
     if ($name eq 'SECONDARY') {
       # SpIterChop details
@@ -2373,7 +2327,6 @@ sub SpIterFolder {
 
       # Store the chop details
       $summary{$parent}{ATTR} = \@chops;
-#      push(@{$summary{$parent}}, {$name => \@chops});
     } elsif ($name eq 'POLIter') {
       # SpIterPOL iterator for waveplates
 
@@ -2381,11 +2334,14 @@ sub SpIterFolder {
       my @waveplate = $self->_get_pcvalues( $child );
 
       # Store the waveplate angles
-#      push(@{$summary{$parent}}, {$name => \@waveplate});
-      $summary{$parent}{ATTR}  = [{waveplate => \@waveplate }];
+      # Treat this as a true iterator (one waveplate per obs)
+      # Note that this is not true for JCMT jiggle pol maps
+      # but is true for JCMT scan maps and IRPOL observations.
+      # Need to fix up this discrepancy later but must take
+      # care to retain hierarchy here.
+      $summary{$parent}{ATTR}  = [map { { waveplate => [$_]} } @waveplate ];
     } elsif ($name eq 'repeatCount') {
       # SpIterRepeat
-#      push(@{$summary{$parent}}, {$name => $child->firstChild->toString});
       my $repeat = $child->firstChild->toString;
       $summary{$parent}{ATTR} = [ map { { repeat => undef } } 1..$repeat ];
 
@@ -2404,7 +2360,6 @@ sub SpIterFolder {
 	$details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
 	push(@offsets, \%details);
       }
-#      push(@{$summary{$parent}}, {$name => \@offsets});
       $summary{$parent}{ATTR} = \@offsets;
     }
 

@@ -69,7 +69,7 @@ our $TRANS_DIR = "/observe/ompodf";
 # Equivalent path on vax
 our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
-our $DEBUG = 0;
+our $DEBUG = 1;
 
 use constant PI => 3.141592654;
 
@@ -104,6 +104,8 @@ sub translate {
   my $sp = shift;
   my $asdata = shift;
 
+  print join("\n",$sp->summary('asciiarray'))."\n" if $DEBUG;
+
   # See how many MSBs we have
   my @msbs = $sp->msb;
   print "Number of MSBS to translate: ". scalar(@msbs) ."\n"
@@ -118,6 +120,11 @@ sub translate {
   for my $msb (@msbs) {
     print "MSB " . $msb->checksum . "\n"
       if $DEBUG;
+
+    # First thing we need to do is correct for the inconsistencies
+    # with JIGGLE and SCAN polarimetry. For SCAN we have to iterate
+    # over waveplates. For JIGGLE we just put them all in a single ODF
+    $self->correct_wplate( $msb );
 
     my @obs = $msb->unroll_obs();
 
@@ -141,6 +148,8 @@ sub translate {
       # find it. This technique runs into problems if the MSB was
       # suspended in the middle of a calibration that has now been
       # deferred and is not present.
+      #print "SKIPPING: $skip\n";
+      #print "Current label: " . $obsinfo->{obslabel}."\n";
       if ($skip && defined $suspend) {
 	# compare labels
 	if ($obsinfo->{obslabel} eq $suspend) {
@@ -149,6 +158,8 @@ sub translate {
 	  # Do *not* skip if this is a calibration observation
 	  # calibration observation is defined by either an unknown
 	  # target or one of Focus, Pointing, Noise, Skydip
+	  print "MODE: ". $obsinfo->{MODE} ."\n";
+	  print "AUTO: ". $obsinfo->{autoTarget}."\n";
 	  if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
 	     !$obsinfo->{autoTarget}) {
 	    next;
@@ -226,229 +237,103 @@ sub translate {
 
 =head1 INTERNAL METHODS
 
-=head2 I/O
-
-NOT USED. NOW USES SCUBA::ODF CLASS
+=head2 MSB manipulation
 
 =over 4
 
-=item B<write_odfs>
+=item B<correct_wplate>
 
-Write the supplied ODFs to disk and return the name of a macro
-file. Argument is a list of ODF hashes.
+For SCUBA, the waveplate iterator behaves differently depending on the
+observing mode. For SCAN map the iterator is a file/odf iterator
+so we need do nothing extra here. For jiggle the iterator is not
+a real iterator (in the sense that we only get one file out regardless
+of waveplate iterator) so we must correct the MSB internal structure
+before it is unrolled into MSBs.
 
-  $macro = $trans->write_odfs( @odfs );
+  OMP::Translator->correct_wplate( $msb );
+
+If we have both a SCAN and JIGGLE observe as a child of a single
+waveplate iterator we would need to clone it into two different iterators.
+Since this is unusual in practice and extremely difficult to get correct
+(since you have to account for all structures below the iterator) we 
+croak in this situation.
 
 =cut
 
-sub write_odfs {
+sub correct_wplate {
   my $self = shift;
-  my @odfs = @_;
+  my $msb = shift;
 
-  # Write out the odfs one at a time
-  my @files = map { $self->write_odf( $_ ); } @odfs;
+  # Note that this returns references to each observation summary.
+  # We can modify this hash in place without putting the structure
+  # back into the object. This will trigger a nice bug if the obssum
+  # method is changed to return a copy.
+  my @obs = $msb->obssum;
 
-  # If we only have one ODF return that rather than use
-  # a macro
-  return basename($files[0]) if @files == 1;
+  # loop over each observation
+  for my $obs (@obs) {
+    # do the cowardly high level test first
+    # just assume that a Raster plus Jiggle is bad news if pol is true
 
-  # Now write out the macro
-  my ($fh, $filename) = open_odf_file( PREFIX => "macro",
-				       SUFFIX => ".m",
-				       DIR => $TRANS_DIR,
-				     )
-    or throw OMP::Error::FatalError("Error creating macro file");
+    # do not care what happens if this is not polarimetry
+    next unless $obs->{pol};
 
-  print $fh "MACRO\n";
-  for (@files) {
-    # Main problem here is that the files have unix paths
-    # in them. These really need to be stripped of directory
-    # information since SCUBA will be setup with the correct
-    # search path.
-    print $fh basename($_)."\n";
-  }
-  close $fh
-    or throw OMP::Error::FatalError("Error closing macro file: $filename");
+    my %modes = map { $_ => undef } @{$obs->{obstype}};
 
-  # return the macro filename
-  return $filename;
-}
-
-=item B<write_odf>
-
-Write a single ODF to disk and return the name of that file.
-
-  $file = $self->write_odf( \%odf );
-
-The ODF is represented as a hash.
-
-If a parameter holds a reference to an array it is assumed that the
-contents of the array are written to disk and the parameter will
-be the corresponding file name.
-
-There is a chance that in the future this may become a method of the
-ODF rather than a method of the translator. This is because a SCUBA
-ODF will write differently to an ACSIS one.
-
-=cut
-
-sub write_odf {
-  my $self = shift;
-  my $odf = shift;
-
-  # Open the file
-  # File::Temp is no good here since it will return filenames
-  # that will not work on the case-insensitive vax when using NFS.
-  my ($fh, $filename) = open_odf_file( PREFIX => "scuba",
-				       SUFFIX => ".odf",
-				       DIR => $TRANS_DIR,
-				)
-    or throw OMP::Error::FatalError("Error creating ODF");
-
-  foreach my $key (keys %$odf) {
-    my $ref = ref($odf->{$key});
-    if (not $ref) {
-      print $fh "$key      " . $odf->{$key} . "\n";
-    } elsif ($ref eq 'ARRAY') {
-      # An array indicates another file is to be created
-      # containing the array contents
-      my ($subfh, $subfile) = open_odf_file( PREFIX => lc($key),
-					     SUFFIX => "." . lc($key),
-					     DIR => $TRANS_DIR,
-					   )
-	or throw OMP::Error::FatalError("Error writing config file for ODF key $key");
-
-      print $subfh join("\n", @{$odf->{$key}}),"\n";
-      close $subfh
-	or throw OMP::Error::FatalError("Error closing config file ($subfile) for ODF key $key");
-
-      # Now write the filename to the ODF
-      # This will probably need a full VAX path
-      print "WRITING ARRAY $key to $subfile\n";
-      print $fh "$key      $TRANS_DIR_VAX" . basename($subfile) . "\n";
-
-    } else {
-      throw OMP::Error::FatalError("Unable to write an ODF that contains reference to $ref when key is $key");
-    }
-
-  }
-
-  close $fh
-    or throw OMP::Error::FatalError("Error closing ODF: $filename");
-
-  # return the macro filename
-  return $filename;
-
-}
-
-=item B<open_odf_file>
-
-Create and open a date stamped ODf file. File names are constructed as
-
-   DIR/PREFIX_TIME_INDEXSUFFIX
-
-where TIME is the unix time (seconds resolution), INDEX is a 3 digit
-zero padded number starting at 001 and incrementing until a new file
-can be created. PREFIX and SUFFIX are supplied by the caller. PREFIX
-must not include directory paths.
-
-   ($fh, $filename) = open_odf_file( PREFIX => 'scuba',
-                                     SUFFIX => '.odf',
-                                     DIR    => $directory);
-
-If directory is not specified File::Spec->tmpdir will be used.
-PREFIX must be supplied but SUFFIX is optional.
-
-The file is guaranteed not to clobber an existing file.
-
-Returns the file handle and the filename. It is not automatically
-deleted.
-
-File::Temp is not used since that currently does not have an option
-to generate these types of files (and probably never will). It also
-generates case sensitive files which is not good when mounting a unix
-disk from a VAX.
-
-=cut
-
-sub open_odf_file {
-  my %defaults = (
-		  DIR => File::Spec->tmpdir,
-		  SUFFIX => '',
-		 );
-
-  # Read argument list
-  my %args = (%defaults, @_);
-
-  # Error if no PREFIX
-  throw OMP::Error::FatalError("PREFIX must be supplied to open_odf_file")
-    unless exists $args{PREFIX};
-
-  # Current time
-  my $time = time;
-
-  # Rather than attempting to open up to 1000 files before
-  # finding a new one (since three digits allows for that)
-  # do a quick readdir first to look for something plausible
-  # via a pattern match. Of course, if the directory is filled
-  # with junk the overhead of reading the directory may be 
-  # much higher than the possibility of being able to open
-  # 1000 files in less than a second!
-  # Might skip this code completely
-  my $guess = $args{PREFIX} . '_' . $time . '_(\d\d\d)' . $args{SUFFIX};
-
-  opendir my $DIRH, "$args{DIR}"
-    or throw OMP::Error::FatalError("Error reading directory $args{DIR}: $!");
-  my @numbers = sort { $a <=> $b }
-    map { /$guess/ && $1 }  grep /$guess$/, readdir($DIRH);
-  closedir($DIRH);
-
-  # First index to try
-  my $start = 1 + (@numbers ? $numbers[-1] : 0 );
-
-  # Get current umask and set to known umask
-  my $umask = umask;
-  umask(066);
-
-  # Now try to open the file up to 100 times
-  # The looping is not really required if combined with the
-  # readdir.
-  # If we turn off the readdir we will need to make sure this number
-  # matches the number of digts supported in INDEX.
-  my $MAX_TRIES = 100;
-  my $end = $MAX_TRIES + $start;
-  for (my $i = $start; $i < $end; $i++) {
-
-    # Create the file name
-    my $file = File::Spec->catfile($args{DIR},
-				   $args{PREFIX} ."_$time". '_'.
-				   sprintf("%03d", $i) . $args{SUFFIX});
-
-    my $open_success = sysopen(my $fh, $file,
-			       O_CREAT|O_RDWR|O_EXCL,0600);
-
-    if ($open_success) {
-      # Reset umask
-      umask($umask);
-
-      # Opened successfully
-      return( $fh, $file );
-
-    } else {
-      # Abort with error if there was some error other than
-      # EEXIST
-      unless ($!{EEXIST}) {
-	umask($umask);
-	throw OMP::Error::FatalError("Could not create temp file $file: $!");
+    if (exists $modes{Raster}) {
+      # PHOTOM and MAP/JIGGLE spell bad news
+      if (exists $modes{Stare} || exists $modes{Jiggle}) {
+	throw OMP::Error::TranslateFail("Can not combine a jiggle map/phot pol and scan map pol observe eye in a single observation. Please use separate observations.");
       }
     }
 
-    # Loop for another try
+    # skip to next observation unless we have a Jiggle or Stare
+    next unless exists $modes{Stare} or exists $modes{Jiggle};
+
+    # Now need to recurse through the data structure changing
+    # waveplate iterator to a single array rather than an array
+    # separate positions.
+    for my $child (@{ $obs->{SpIter}->{CHILDREN} }) {
+      $self->_fix_wplate_recurse( $child );
+    }
+
   }
 
-  # Oh well no write
-  umask($umask);
-  return ();
+}
+
+# When we hit SpIterPOL we correct the ATTR array
+# This modifies it in-place. No need to re-register.
+
+sub _fix_wplate_recurse {
+  my $self = shift;
+  my $this = shift;
+
+  # Loop over keys in children [the iterators]
+  for my $key (keys %$this) {
+
+    if ($key eq 'SpIterPOL') {
+      # FIX UP - it does not make any sense to have another
+      # waveplate iterator below this level but we do support it
+      my @wplate = map { @{$_->{waveplate}} } @{ $this->{$key}->{ATTR}};
+
+      # and store it back
+      $this->{$key}->{ATTR} = [ { waveplate => \@wplate } ];
+
+    }
+
+    # Now need to go deeper if need be
+    if (UNIVERSAL::isa($this->{$key},"HASH") &&
+	exists $this->{$key}->{CHILDREN}) {
+      # This means we have some children to analyze
+
+      for my $child (@{ $this->{$key}->{CHILDREN} }) {
+	$self->_fix_wplate_recurse( $child );
+      }
+
+    }
+
+  }
+
 }
 
 
