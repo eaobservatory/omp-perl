@@ -30,6 +30,7 @@ use OMP::Cookie;
 use OMP::Error;
 use OMP::Fault;
 use OMP::FaultDB;
+use OMP::FaultServer;
 use OMP::CGIFault;
 use OMP::General;
 use OMP::UserServer;
@@ -882,6 +883,13 @@ sub write_page_fault {
     my %categories = map {uc($_), $_} OMP::Fault->faultCategories;
     my $cat = uc($q->url_param('cat'));
     (defined $categories{$cat}) and $cookie{category} = $cat;
+  }
+
+  # If there is a fault ID in the URL get the fault and set the 
+  # cookie category to whatever category the fault is
+  if ($q->url_param('id')) {
+    my $fault = OMP::FaultServer->getFault($q->url_param('id'));
+    $cookie{category} = $fault->category;
   }
 
   if (defined $cookie{category}) {
