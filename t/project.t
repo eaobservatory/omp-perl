@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 25;
+use Test::More tests => 27;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -22,6 +22,14 @@ my %project = (
 				    email => "joe\@jach.hawaii.edu"),
 	       piemail => "joe\@jach.hawaii.edu",
 	       coi => "name1:name2:name3",
+	       support => [new OMP::User( userid => 'xx',
+					 name => 'fem',
+					 email => 'xx@jach',
+				       ),
+	       new OMP::User( userid => 'xy',
+					 name => 'bloke',
+					 email => 'xy@jach',
+				       ),],
 	       allocated => 3000,
 	      );
 
@@ -67,10 +75,21 @@ for my $i (0.. $#coiemail) {
 is( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail),
   "Join coi email addresses using delimiter");
 
+# Support email
+is( $proj->supportemail, join("$OMP::Project::DELIM", 
+			      map { $_->email } @{$project{support}}),
+  "test support addresses");
+
 # and investigators
-is( $proj->investigators, join("$OMP::Project::DELIM", $project{piemail},
-			       @coiemail),
-  "Join investigator emails using delimiter");
+is( $proj->investigators, (1 + @coiemail),
+  "Count investigators");
+
+# Contact lists
+$proj->contactable( name1 => 1);
+
+# should now be 4 contacts for the project
+is( $proj->contacts, (1 + 1 + scalar(@{$project{support}})),
+  "number of contacts");
 
 # Check the time allocation
 print "# Time allocation\n";
