@@ -90,10 +90,20 @@ my %tables = (
 			 pol => "BIT",
 			 timeest => "REAL",
 			 type => "VARCHAR(32)",
+       date => "DATETIME",
+       runnr => "INTEGER",
+       duration => "REAL",
+       endobs => "DATETIME",
+       commenttext => "TEXT",
+       commentauthor => "VARCHAR(32)",
+       commentdate => "DATETIME",
+       commentstatus => "INTEGER",
 			 _ORDER => [qw/obsid msbid projectid
 				    instrument type pol wavelength disperser
 				    coordstype target ra2000 dec2000 el1 el2
-				    el3 el4 el5 el6 el7 el8 timeest
+				    el3 el4 el5 el6 el7 el8 timeest date runnr
+            duration endobs commenttext commentauthor
+            commentdate commentstatus
 				    /],
 			},
 	      ompmsbdone => {
@@ -176,6 +186,13 @@ my %tables = (
 			  email => "VARCHAR(64)",
 			  _ORDER => [qw/ userid name email /],
 			 },
+       ompshiftlog => {
+       shiftid => "numeric(5,0) IDENTITY",
+       date => "DATETIME",
+       author => "VARCHAR(32)",
+       text => "TEXT",
+       _ORDER => [qw/ shiftid date author text /],
+       },
 	     );
 
 for my $table (sort keys %tables) {
@@ -192,7 +209,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompuser';
   next if $table eq 'ompsupuser';
   next if $table eq 'ompcoiuser';
-
+  next if $table eq 'ompshiftlog';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
