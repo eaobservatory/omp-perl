@@ -464,6 +464,8 @@ an externally supplied password (note that if we simply stored
 the plain text password in the object using C<password()> the
 encrypted password would automatically be regenerated.
 
+Note that because we use unix C<crypt> we are limited to 8 characters.
+
 Returns false if either of the passwords are missing.
 
 =cut
