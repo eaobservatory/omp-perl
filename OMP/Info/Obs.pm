@@ -299,8 +299,8 @@ sub nightlog {
     $return{'Seeing'} = $self->seeing;
     $return{'Filter'} = $self->waveband->filter;
     $return{'Bolometers'} = $self->bolometers;
-    $return{'_ORDER'} = ( "Run", "UT time", "Obsmode", "Project ID", "Object",
-                          "Tau225", "Seeing", "Filter", "Bolometers" );
+    $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
+                          "Tau225", "Seeing", "Filter", "Bolometers" ];
   } elsif($instrument =~ /ircam/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
@@ -319,10 +319,10 @@ sub nightlog {
     $return{'DEC'} = $self->coords->dec;
     $return{'Equinox'} = $self->coords->type;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = ( "Observation", "Group", "Object", "Obstype",
+    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Obstype",
                           "UT start", "Exposure time", "Number of exposures",
                           "Mode", "Speed", "Filter", "Airmass", "Columns",
-                          "Rows", "RA", "DEC", "Equinox", "DR Recipe" );
+                          "Rows", "RA", "DEC", "Equinox", "DR Recipe" ];
   } elsif($instrument =~ /cgs4/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
@@ -341,11 +341,11 @@ sub nightlog {
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = $self->waveband->wavelength;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = ( "Observation", "Group", "Object", "Standard",
+    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Standard",
                           "Observation type", "Slit", "Position Angle",
                           "RA offset", "Dec offset", "UT time", "Airmass",
                           "Exposure time", "Number of exposures", "Grating",
-                          "Order", "Wavelength", "DR Recipe" );
+                          "Order", "Wavelength", "DR Recipe" ];
   } elsif($instrument =~ /michelle/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
@@ -372,12 +372,12 @@ sub nightlog {
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = $self->waveband->wavelength;
-    $return{'_ORDER'} = ( "Observation", "Group", "Object", "Observation type",
+    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Observation type",
                           "UT start", "Exposure time", "Number of exposures",
                           "Mode", "Speed", "Filter", "Airmass", "Columns",
                           "Rows", "RA", "DEC", "Equinox", "Slit", "Position Angle",
                           "RA offset", "Dec offset", "Grating", "Order",
-                          "Wavelength", "DR Recipe" );
+                          "Wavelength", "DR Recipe" ];
   } elsif($instrument =~ /ufti/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
@@ -396,11 +396,11 @@ sub nightlog {
     $return{'DEC'} = $self->coords->dec;
     $return{'Equinox'} = $self->coords->type;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = ( "Observation", "Group", "Object",
+    $return{'_ORDER'} = [ "Observation", "Group", "Object",
                           "Observation type", "UT start", "Exposure time",
                           "Number of exposures", "Mode", "Speed", "Filter",
                           "Airmass", "Columns", "Rows", "RA", "DEC",
-                          "Equinox", "DR Recipe" );
+                          "Equinox", "DR Recipe" ];
   }
 
   return %return;
