@@ -27,14 +27,18 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = qw/OMP__OK OMP__ERROR
-                OMP__FATAL/;
+my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
+my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
+
+@EXPORT_OK = qw/@status, @fb/;
 
 %EXPORT_TAGS = (
-		'status'=>[ @EXPORT_OK ]
+		'all' =>[ @EXPORT_OK ],
+		'status'=>\@status,
+		'fb' =>\@fb,
 	       );
 
-Exporter::export_tags('status');
+Exporter::export_tags(qw/status all fb/);
 
 =head1 CONSTANTS
 
@@ -78,6 +82,38 @@ use constant OMP__SPBADRET => -9;
 use constant OMP__SPBADXML => -10;
 use constant OMP__SPEMPTY => -11;
 
+
+=item B<OMP__FB_INFO>
+
+This constant contains the definition of info feedback status.
+
+=cut
+
+use constant OMP__FB_INFO => 1;
+
+=item B<OMP__FB_IMPORTANT>
+
+This constant contains the definition of important feedback status.
+
+=cut
+
+use constant OMP__FB_IMPORTANT => 2;
+
+=item B<OMP__FB_HIDDEN>
+
+This constant contains the definition of hidden feedback status.
+
+=cut
+
+use constant OMP__FB_HIDDEN => 0;
+
+=item B<OMP__FB_DELETE>
+
+This constant contains the definition of delete feedback status.
+
+=cut
+
+use constant OMP__FB_DELETE => -1;
 
 =back
 
