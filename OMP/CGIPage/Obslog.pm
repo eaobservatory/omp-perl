@@ -225,7 +225,8 @@ sub list_observations_txt {
 
   my $obsgroup;
   try {
-    $obsgroup = cgi_to_obsgroup( $query, inccal => 1, timegap => 0 );
+    # This should be the actual cookie with the project id information
+    $obsgroup = cgi_to_obsgroup( $query, {}, inccal => 1, timegap => 0 );
   }
   catch OMP::Error with {
     my $Error = shift;
