@@ -386,7 +386,6 @@ sub sql {
                 DROP TABLE $tempcount";
 
   print "SQL: $sql\n";
-  exit;
 
   return "$sql\n";
 
@@ -681,7 +680,7 @@ sub _querify {
     unless exists $cmptable{$cmp};
 
   # Do we need to quote it
-  my $quote = ( $value =~ /[A-Za-z]/ ? "'" : '' );
+  my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
 
   # If we are dealing with a project ID we should make sure we upper
   # case it (more efficient to upper case everything than to do a
