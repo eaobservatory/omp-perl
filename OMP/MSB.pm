@@ -2160,7 +2160,7 @@ sub _get_tel_comps {
   # standard obs do not add towards the sum of SpObs.
 
   # First find all the SpObs
-  my @spobs = $self->_get_Spobs();
+  my @spobs = $self->_get_SpObs();
 
   # Now find all the ones that have standard=false
   my @nonstandard;
