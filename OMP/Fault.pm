@@ -93,7 +93,7 @@ use constant INSTRUMENT_OTHER_UNKNOWN => 1043;
 my %MAILLIST = (
 		"CSG" => "csg_faults\@jach.hawaii.edu",
 #		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
-#		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
+		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
 		"OMP" => "omp_group\@jach.hawaii.edu",
 	       );
 
