@@ -442,6 +442,36 @@ sub title {
   return $self->{Title};
 }
 
+=item investigators
+
+Return the contact email addresses for all those people with registered
+involvement in the project. This is simply a combination of PI and
+Co-I email addresses.
+
+  my @email = $proj->investigators;
+  my $email = $proj->investigators;
+
+Like C<coiemail> this method returns a list in list context and
+a delimited string in scalar context.
+
+=cut
+
+sub investigators {
+  my $self = shift;
+
+  # Get all the email addresses
+  my @email = ( $self->piemail, $self->coiemail);
+
+  # Return either the array of emails or a delimited string
+  if (wantarray) {
+    return @email;
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @email );
+  }
+
+}
+
 =back
 
 =head2 General Methods

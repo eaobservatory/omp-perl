@@ -6,7 +6,7 @@ use warnings;
 use strict;
 use Test;
 
-BEGIN { plan tests => 19 }
+BEGIN { plan tests => 20 }
 
 use OMP::Project;
 
@@ -53,6 +53,9 @@ for my $i (0.. $#coiemail) {
 
 ok( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail));
 
+# and investigators
+ok( $proj->investigators, join("$OMP::Project::DELIM", $project{piemail},
+			       @coiemail));
 
 # Check the time allocation
 print "# Time allocation\n";
