@@ -379,8 +379,6 @@ sub summary {
     for my $msb (@msbs) {
       $count++;
       my %data = $msb->summary;
-      use Data::Dumper;
-      print Dumper(\%data) if $count == 1;
       my $status;
       if ($data{remaining} == 0) {
 	$status = "COMPLETE";
