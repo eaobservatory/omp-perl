@@ -485,7 +485,7 @@ sub SpIterStareObs {
 	    );
 
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Offsets Ints Target / ) {
+  for (qw/ General Bols Filter Gain Offsets Ints Target Chop Pol/ ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
@@ -746,7 +746,7 @@ sub SpIterRasterObs {
 	    );
 
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Offsets Ints Target Chop Scan/ ) {
+  for (qw/ General Bols Filter Gain Offsets Ints Target Chop Scan Pol/ ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
@@ -996,6 +996,8 @@ sub getChop {
   my %chop;
   $chop{CHOP_THROW} = $info{CHOP_THROW};
   $chop{CHOP_PA} = $info{CHOP_PA};
+
+  throw OMP::Error::TranslateFail("This observing mode requires a CHOP iterator") unless defined $chop{CHOP_PA};
 
   my $system = $info{CHOP_SYSTEM};
   $chop{CHOP_COORDS} = $self->getOtherCoordSystem($system, %info);
@@ -1330,6 +1332,7 @@ sub getOtherCoordSystem {
   my %info = @_;
 
   my $scusys;
+  $tcssys = 'undefined value' unless $tcssys;
   if ($tcssys eq 'TRACKING') {
     $scusys = "LO";
   } elsif ($tcssys eq 'AZEL') {
@@ -1337,6 +1340,7 @@ sub getOtherCoordSystem {
   } elsif ($tcssys eq 'FPLANE') {
     $scusys = "NA";
   } else {
+    print join("--\n",caller);
     throw OMP::Error::TranslateFail("Unknown TCS system: $tcssys");
   }
 
