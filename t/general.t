@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 160;
+use Test::More tests => 164;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -513,3 +513,21 @@ is($extend->seconds, 600, "Check extended time");
 is($projtime->seconds, 1200, "Check project time");
 is($extend->seconds, 600, "Check extended time");
 
+print "# HTML character escaping\n";
+my $pstring = "<foo bar=\"baz\"><&>";
+is(OMP::General->preify_text($pstring),'<pre>&lt;foo bar=&quot;baz&quot;&gt;&lt;&amp;&gt;</pre>', 'Escape HTML in string');
+
+my @compare_pre = ('<pre>&lt;','&gt;','&amp;</pre>');
+is_deeply([split(/\s+/,OMP::General->preify_text("< > &"))],
+	  \@compare_pre,
+	  "Make sure that ampersands in escape sequences aren't escaped");
+
+print "# HTML to plaintext\n";
+my $html = "<strong>Hello<br>there</strong>";
+is(OMP::General->html_to_plain($html),"Hello\nthere\n", "Convert BR to newline");
+
+$html = "<a href='ftp://ftp.jach.hawaii.edu/'>FTP link</a>";
+is(OMP::General->html_to_plain($html),"FTP link [ftp://ftp.jach.hawaii.edu/]\n", "Display hyperlink URL");
+
+#$html = "<a href='http://www.jach.hawaii.edu/index.html' class='biglink'>Home</a>";
+#is(OMP::General->html_to_plain($html),"Home [http://www.jach.hawaii.edu/index.html]\n", "Display hyperlink URL but not other hyperlink attributes");
