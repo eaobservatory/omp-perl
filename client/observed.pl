@@ -155,7 +155,7 @@ for my $proj (keys %sorted) {
   } else {
     my ($user, $host, $email) = OMP::General->determine_host;
 
-    my $fixed_text = "<p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p>\n\n";
+    my $fixed_text = "<p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
 
     
     OMP::FBServer->addComment(
