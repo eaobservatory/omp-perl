@@ -433,7 +433,7 @@ sub write_page {
       ($verify) and %cookie = (projectid=>$projectid, password=>$password) or
 	throw OMP::Error::Authentication("Password or project ID are incorrect");
 
-    } elsif (! exists $cookie{password}) {
+    } elsif (! exists $cookie{password} or $q->url_param('urlprojid')) {
       # Else no password at all (even in the cookie) so put up log in form
       # Just put up the password form
 
