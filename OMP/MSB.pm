@@ -318,6 +318,66 @@ sub remaining {
   return $self->_tree->getAttribute("remaining");
 }
 
+=item B<msbtitle>
+
+Return the MSB title.
+
+ $title = $msb->msbtitle;
+
+Return undef if the title is not present.
+
+We can not use C<title> as the method name since this clashes
+with the XML element name (and the internal tree traversal routine
+will attempt to call this routine when it encounters the element
+of the same name).
+
+=cut
+
+sub msbtitle {
+  my $self = shift;
+  my $title = $self->_get_pcdata( $self->_tree, "title");
+  return $title;
+}
+
+=item B<internal_priority>
+
+Return the MSB internal priority.
+
+ $title = $msb->internal_priority;
+
+Internal priority is converted from a string (in the XML) to a
+number:
+
+  0  Target of Opportunity [none of those listed below]
+  1  High
+  2  Medium
+  3  Low
+
+Return 1 if the priority is not present.
+
+=cut
+
+sub internal_priority {
+  my $self = shift;
+  my $pri = $self->_get_pcdata( $self->_tree, "priority");
+
+  if (defined $pri) {
+    if ($pri =~ /high/i) {
+      $pri = 1;
+    } elsif ($pri =~ /medium/i) {
+      $pri = 2;
+    } elsif ($pri =~ /low/i) {
+      $pri = 3;
+    } else {
+      $pri = 0;
+    }
+
+  } else {
+    $pri = 1;
+  }
+
+  return $pri;
+}
 
 =back
 
@@ -431,6 +491,16 @@ sub summary {
     $summary{obs} = [ $self->obssum ];
 
     $summary{_obssum} = { $self->_summarize_obs };
+
+    # MSB internal priority and estimated time
+    $summary{priority} = $self->internal_priority;
+    $summary{timeest} = 1;
+
+    # Title and observation count
+    $summary{title} = $self->msbtitle;
+    $summary{title} = "unknown" unless defined $summary{title};
+    $summary{obscount} = scalar(@{$summary{obs}});
+
 
   }
 
@@ -893,6 +963,8 @@ that tag and return the PCDATA entry from the last matching element.
  $pcdata = $msb->_get_pcdata( $el, $tag );
 
 Convenience wrapper.
+
+Returns undef if the element can not be found.
 
 =cut
 
