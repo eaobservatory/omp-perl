@@ -101,6 +101,8 @@ sub readfile {
 
   my $obs;
 
+  my $SAVEOUT;
+
   try {
     my $FITS_header;
     if( $filename =~ /\.sdf$/ ) {
@@ -110,13 +112,13 @@ sub readfile {
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
 
       # Redirect STDOUT in case this fails.
-      open(SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
+      open($SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
       open(STDOUT, ">/dev/null") or throw OMP::Error::FatalError("Can't open STDOUT to /dev/null.");
 
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
 
       close(STDOUT);
-      open(STDOUT, ">&SAVEOUT");	
+      open(STDOUT, ">&$SAVEOUT");	
 
     } else {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
@@ -128,7 +130,7 @@ sub readfile {
 
     if( $filename =~ /\.(gsd|dat)$/ ) {
       close(STDOUT);
-      open(STDOUT, ">&SAVEOUT");
+      open(STDOUT, ">&$SAVEOUT");
     }
 
     my $Error = shift;
@@ -619,12 +621,12 @@ sub nightlog {
     $return{'Airmass'} = defined( $self->airmass ) ? sprintf( "%.2f", $self->airmass ) : 0;
     $return{'Exposure time'} = defined( $self->duration ) ? sprintf( "%.2f", $self->duration ) : 0;
     $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
-    $return{'Project ID'} = $self->projectid;
+    $return{'Project ID'} = defined( $self->projectid ) ? $self->projectid : '';
     $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
     $return{'_STRING_HEADER'} = " Obs  Grp Tile  Project ID UT Start      Object     Type  ExpT  Filt     Offsets    AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %4d %11.11s %8.8s %11.11s %8.8s %5.2f %5.5s %5.1f/%5.1f  %4.2f %-18.18s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+    $return{'_STRING'} = sprintf("%4d %4d %4d %11.11s %8.8s %11.11s %8.8s %5.2f %5.5s %5.1f/%5.1f  %4.2f %-18.18s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Filter'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
   } elsif($instrument =~ /(cgs4|ircam|ufti|uist|michelle)/i) {
 
@@ -1134,6 +1136,7 @@ sub _populate {
   $self->humidity( $generic_header{HUMIDITY} );
   $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
   $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
+  $self->tile( $generic_header{TILE_NUMBER} );
 
   # Set the filename if it's not set.
 #  if( !defined($self->filename) ) {
