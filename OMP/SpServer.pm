@@ -96,6 +96,17 @@ sub storeProgram {
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";
 
+    # Verify the science program and attach that to the string
+    # we are not expecting any fatal errors here
+    my ($spstat, $spreason) = $sp->verifyMSBs;
+    if ($spstat == 1) {
+      $string = $spreason . "\n" . $string;
+    } elsif ($spstat == 2) {
+      # Fatal error
+      throw OMP::Error::FatalError("Error verifying science program: $spreason");
+    }
+
+
     # Retrieve the timestamp
     $timestamp = $sp->timestamp;
 

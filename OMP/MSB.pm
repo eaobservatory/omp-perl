@@ -848,6 +848,64 @@ sub stringify_noresolve {
   return $self->_tree->toString;
 }
 
+=item B<verifyMSB>
+
+Do a simple verification of the MSB itself.
+
+Returns a status and a string describing any problems.
+
+  ($status, $reason) = $msb->verifyMSB;
+
+Allowed status values are:
+
+  0 - everything okay
+  1 - some warnings were raised
+  2 - fatal error
+
+Note that fatal errors will probably have been caught during the
+initial pass. This method does not attempt to check instrumental
+specific problems.
+
+If you receive a fatal error, you would normally want to throw
+an explicit exception.
+
+Currently, only checks to make sure that none of the targets are
+centred at 0h RA, 0 deg Dec - this is the default setting for the
+target component in the Observing Tool.
+
+=cut
+
+sub verifyMSB {
+  my $self = shift;
+
+  # Assume good status
+  my $status = 0;
+
+  # Get the observations
+  my @obs = $self->obssum;
+
+  for my $obs (@obs) {
+    my $target = $obs->{coords};
+    next unless $target;
+    next unless $target->type eq 'RADEC';
+
+    if ($target->ra == 0.0 and $target->dec == 0.0) {
+      $status = 1;
+    }
+  }
+
+  # Check status
+  my $string = '';
+  if ($status == 1) {
+    $string = "Some of the observations in the MSB contained default\n" .
+      "settings for the target information. Please specify a real target\n" .
+	"if this is not correct";
+  }
+
+  return ($status, $string);
+}
+
+
 
 =item B<_summarize_obs>
 

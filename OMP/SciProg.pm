@@ -671,6 +671,54 @@ sub stringify {
   $self->_tree->toString;
 }
 
+=item B<verifyMSBs>
+
+Verify that each of the constituent MSBs is okay (as defined
+by the C<verifyMSB> method in C<OMP::MSB> class).
+
+Returns a status and a string describing any problems.
+
+  ($status, $reason) = $msb->verifyMSBs;
+
+Allowed status values are:
+
+  0 - everything okay
+  1 - some warnings were raised
+  2 - fatal error
+
+Note that fatal errors will probably have been caught during the
+initial pass. This method does not attempt to check instrumental
+specific problems.
+
+If you receive a fatal error, you would normally want to throw
+an explicit exception.
+
+=cut
+
+sub verifyMSBs {
+  my $self = shift;
+
+  # Assume good status
+  my $status = 0;
+
+  # Loop over the MSBs
+  my $count = 0;
+  my $string = '';
+  for my $msb ($self->msb) {
+    $count++;
+    my ($msbstatus, $msbstring) = $msb->verifyMSB;
+    next if $msbstatus == 0;
+
+    # Raise status if required
+    $status = $msbstatus if $status < $msbstatus;
+
+    # Cache the string and indicate the MSB number
+    $string .= "MSB $count: $msbstring\n";
+
+  }
+
+  return ($status, $string);
+}
 
 =back
 
