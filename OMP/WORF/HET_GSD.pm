@@ -399,9 +399,16 @@ sub _plot_spectrum {
     $zend = ( max $outpdl ) + 0.05 * ( ( max $outpdl ) - ( min $outpdl ) );
   }
 
-  # Display.
+  if( ( $xstart == 0 && $xend == 0 ) || ( $xstart >= $xend ) ) {
+    $xstart = min $velpdl;
+    $xend = max $velpdl;
+  }
+  if( ( $zstart == 0 && $zend == 0 ) || ( $zstart >= $zend ) ) {
+    $zstart = ( min $outpdl ) - 0.05 * ( ( max $outpdl ) - ( min $outpdl ) );
+    $zend = ( max $outpdl ) + 0.05 * ( ( max $outpdl ) - ( min $outpdl ) );
+  }
 
-#print STDERR "$xstart $xend $zstart $zend\n";
+  # Display.
   env( $xstart, $xend, $zstart, $zend );
   label_axes( "Velocity / km s\\u-1", "Spectrum (K)", $file );
   pgsci(3);
