@@ -565,6 +565,8 @@ sub queryMSB {
   # the maximum number
   my @results = $self->_run_query($query);
 
+  return @results if $format eq 'object';
+
   # Now go through the hash and translate it to an XML string
   # This assumes that the database table contains everything
   # we need for a summary (ie we don't want to have to open
