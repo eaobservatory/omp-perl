@@ -650,7 +650,7 @@ sub msb_table {
   # Only bother with a remaining column if we have remaining
   # information
   print "<td><b>Remaining:</b></td>"
-    if ($program->[0]->remaining);
+    if (defined $program->[0]->remaining);
 
   # And let's have an N Repeats column if that's available
   print "<td><b>N Repeats:</b></td>"
@@ -677,9 +677,9 @@ sub msb_table {
     print "<td>" . $msb->waveband . "</td>";
     print "<td>" . $msb->instrument . "</td>";
     print "<td>" . $msb->remaining . "</td>"
-      if ($msb->remaining);
+      if (defined $msb->remaining);
     print "<td>" . $msb->nrepeats . "</td>"
-      if ($msb->nrepeats);
+      if (defined $msb->nrepeats);
 
   }
 
