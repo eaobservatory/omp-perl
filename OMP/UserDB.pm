@@ -356,6 +356,13 @@ sub _query_userdb {
   # Fetch
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+  # The user name attribute is stored in the database in column 'uname',
+  # so replace key 'uname' with 'name'
+  for (@$ref) {
+    $_->{name} = $_->{uname};
+    delete $_->{uname};
+  }
+
   # Return the object equivalents
   return map { $_->{email} = undef if (defined $_->{email} && length($_->{email}) eq 0);
 		 new OMP::User( %$_ ) } @$ref;
