@@ -56,6 +56,8 @@ use Astro::Telescope;
 use Astro::Coords;
 use Data::Dumper;
 
+use POSIX qw/ log10 /;
+
 # Use this for the reliable file opening
 use File::Spec;
 use Fcntl;
@@ -76,6 +78,9 @@ our $DEFAULT_RESULT_COUNT = 10;
 
 # Debug messages
 our $DEBUG = 0;
+
+# The maximum HA used for calculating the scheduling priority
+use constant HAMAX => 4.5;
 
 =head1 METHODS
 
@@ -1986,8 +1991,6 @@ sub _run_query {
 			 $OMP::ProjDB::PROJQUEUETABLE,
 			 $OMP::ProjDB::PROJUSERTABLE );
 
-  print "SQL: $sql\n";
-
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
@@ -2074,6 +2077,10 @@ sub _run_query {
 
   # An array to store the successful matches
   my @observable;
+
+  # max and min priority in all acceptable results
+  my $primin = 1E30;
+  my $primax = -1E30;
 
   # Decide whether to do an explicit check for observability
   if (0) {
@@ -2166,6 +2173,12 @@ sub _run_query {
       # If we have no preference simply use zero
       my $approach = $msb->{approach};
       $approach = 0 unless defined $approach;
+
+      # In order to calculate the scheduling priority we need
+      # calculate the mean Hour Angle for each of the observations
+      # in the results
+      my $nh = 0;
+      my $hasum = 0;
 
       # Loop over each observation.
       # We have to keep track of the reference time
@@ -2276,6 +2289,9 @@ sub _run_query {
 	    }
 	  }
 
+	  # Include the HA for the start and end of the observation
+	  $nh++;
+	  $hasum += abs($coords->ha( format => 'radians' ));
 
 	}
 
@@ -2284,6 +2300,24 @@ sub _run_query {
       # If the MSB is observable store it in the output array
       if ($isObservable) {
 	push(@observable, $msb);
+
+	# check priority [TAG range]
+	my $pri = int($msb->{priority});
+	if ($pri > $primax) {
+	  $primax = $pri;
+	} elsif ($pri < $primin) {
+	  $primin = $pri;
+	}
+
+	# calculate mean hour angle
+	my $hamean = 0;
+	$hamean = $hasum / $nh if $hasum > 0;
+
+	# and convert to hours
+	$hamean *= Astro::SLA::DR2H;
+
+	# Store the mean hour angle for later
+	$msb->{hamean} = $hamean;
 
 	# Jump out the loop if we have enough matches
 	# A negative $max will never match
@@ -2294,6 +2328,57 @@ sub _run_query {
     }
 
   }
+
+  # calculate the priority scale factor
+  # but only if we have priorities larger than 10 (since we need
+  # a dynamic range of 10 in the final number
+  my $dynrange = 10;
+  my $priscale = 1;
+  my $prioff   = 0;
+  my $prirange = $primax - $primin;
+  if ($prirange > $dynrange) {
+    $prioff = $primin;
+    $priscale = $prirange / $dynrange;
+
+  } elsif ($primax > $dynrange) {
+    # if the max priority is greater than 10, but the
+    # separation between min and max is less than 10,
+    # make sure the offset brings everything to a 0 to 10
+    # range
+    $prioff = $primax - $dynrange;
+  }
+
+  # calculate the scheduling priority for the observable MSBs
+  for my $msb (@observable) {
+
+    # hour angle contribution
+    my $hapart = ( 1 + ( $msb->{hamean} / HAMAX ) ) ** 2;
+    delete $msb->{hamean};
+
+    # Completion component.
+    # Need the log of the time remaining. Sometimes a project
+    # can have 0 time remaining so provide an upper limit
+    my $comppart;
+    if ($msb->{completion} > 99.99) {
+      $comppart = 2;
+    } else {
+      $comppart = - log10( 100 - $msb->{completion} );
+    }
+
+    # the priority component, scales from 1 to 10
+    my $pripart = ($msb->{priority} - $prioff) / $priscale;
+
+    # calculate the scheduling priority
+    $msb->{schedpri} = $hapart + $comppart + $pripart;
+  }
+
+  # At this point we need to resort by schedpri
+  # Note that because we ORDER BY PRIORITY and jump out the
+  # loop when we have enough matches, it's possible that some
+  # MSBs will be missed that have a relatively low priority but
+  # higher relative schedpri. The only way to be sure is to
+  # work out the observability constraints for all matching
+  # MSBs and then filter.
 
   # Convert the rows to MSB info objects
   return $self->_msb_row_to_msb_object( @observable );
