@@ -922,7 +922,7 @@ sub _summarize_obs {
 
   my %summary;
 
-  foreach my $key (qw/ instrument waveband target coordstype pol type ha airmass disperser/) {
+  foreach my $key (qw/ instrument waveband target coordstype pol type ha airmass ra disperser/) {
 
     # Now go through each observation looking for the specific
     # key. Store the value in a hash keyed by itself so that we

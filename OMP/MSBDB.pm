@@ -1374,9 +1374,11 @@ sub _run_query {
 	  $obs->{ha} = sprintf("%.1f",$coords->ha( format => "h", 
 						   normalize => 1));
 	  $obs->{airmass} = sprintf("%.3f",$coords->airmass);
+	  $obs->{ra} = sprintf("%.1f", $coords->ra_app(format => "h"));
 	} else {
 	  $obs->{ha} = "CAL";
 	  $obs->{airmass} = "CAL";
+	  $obs->{ra} = "CAL";
 	}
 
       }
