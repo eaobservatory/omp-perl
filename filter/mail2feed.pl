@@ -5,15 +5,16 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase"
 
 use strict;
 use lib "/jac_sw/omp/msbserver";
-use OMP::FBServer;
 use Mail::Audit;
 
-my $mail = new Mail::Audit::OMP(
-#				loglevel => 4,
-#				log => "/tmp/omp-mailaudit.log",
-			       );
+my $mail = new Mail::Audit(
+			   loglevel => 4,
+			   log => "/tmp/omp-mailaudit.log",
+			  );
 
 # Look for project ID
+# Note that the act of searching for the projectid forces the
+# project ID to become a header itself.
 $mail->reject("Sorry. Could not discern project ID from the subject line.")
   unless $mail->projectid;
 
@@ -23,19 +24,22 @@ $mail->reject("Sorry. This email looks like spam. Rejecting.")
 
 
 # looks like we can accept this
-$mail->accept;
+$mail->accept_feedback;
 
 
 exit;
 
-package Mail::Audit::OMP;
+# Simply have to place new routines in the Mail::Audit package since
+# we are not able to subclass.
+package Mail::Audit;
 
 # Process OMP feedback mail messages
 use base qw/ Mail::Audit/;
-
+use OMP::User;
+use OMP::FBServer;
 
 # Accept a message and send it to the feedback system
-sub accept {
+sub accept_feedback {
   my $self = shift;
 
   Mail::Audit::_log(1,"Accepting");
@@ -48,12 +52,21 @@ sub accept {
   my $project = $self->get("projectid");
   chomp($project); # header includes newline
 
+  # Try to guess the author
+  my $author = OMP::User->extract_user_from_email( $from );
+  if ($author) {
+    Mail::Audit::_log(1,"Determined OMP user: $author");
+  } else {
+    Mail::Audir::_log(1,"Unable to determine OMP user from From address");
+  }
+
   # Need to translate the from address to a valid OMP user id
   # if possible. For now we have to just use undef
+  Mail::Audit::_log(1,"Sending to feedback system with Project $project");
 
   # Contact the feedback system
   OMP::FBServer->addComment( $project, {
-					author => undef,
+					author => $author,
 					program => $0,
 					subject => $subject,
 					sourceinfo => $srcip,
