@@ -270,7 +270,7 @@ sub _sidebar_logout {
 		      "<a href='$ompurl$cgidir/fbcomment.pl'>Add comment</a>",
 		      "<a href='$ompurl$cgidir/msbhist.pl'>MSB History</a>",
 		      "<a href='$ompurl$cgidir/projusers.pl'>Contacts</a>",
-		      "<a href='$ompurl$cgidir/'>OMP home</a>",);
+		      "<a href='/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
