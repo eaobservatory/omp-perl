@@ -922,7 +922,7 @@ The current index is obtained by reading the highest value from the
 database. For efficiency we only want to do this once per transaction.
 
 In order to guarantee uniqueness it should be obtained before the old
-rows are removed. This does not happen currently.
+rows are removed.
 
 =cut
 
@@ -1013,12 +1013,12 @@ sub _insert_rows {
   my $self = shift;
   my @summaries = @_;
 
+  # Get the next index to use for the MSB table
+  my $index = $self->_get_next_index();
+
   # We need to remove the existing rows associated with this
   # project id
   $self->_clear_old_rows;
-
-  # Get the next index to use for the MSB table
-  my $index = $self->_get_next_index();
 
   # Get the DB handle
   my $dbh = $self->_dbhandle or
@@ -1092,6 +1092,7 @@ sub _insert_row {
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
+  OMP::General->log_message( "Inserting MSB row as index $index [$proj]");
 
   # If the upper limits for range variables are undefined we
   # need to specify an infinity ourselves for the database
