@@ -31,8 +31,6 @@ use OMP::UserServer;
 use overload '""' => "stringify",
   fallback => 1;
 
-*uname = \&name;
-
 =head1 METHODS
 
 =head2 Constructors
