@@ -285,9 +285,11 @@ sub getAssociations {
 =item B<updateFault>
 
 Update details for a fault by deleting the entry from the database
-and creating a new entry with the updated details.
+and creating a new entry with the updated details.  Second optional argument
+is the identity of the user who updated the fault (either a string
+or an C<OMP::User> object).  If this is not given no email will be sent.
 
-  $db->updateFault( $fault );
+  $db->updateFault( $fault, $user);
 
 Argument should be supplied as an C<OMP::Fault> object.
 This method will not update the associated responses.
@@ -297,6 +299,11 @@ This method will not update the associated responses.
 sub updateFault {
   my $self = shift;
   my $fault = shift;
+  my $user = shift;
+
+  # Get the fault from the DB so we can compare it later with our
+  # new fault and notify the "owner" of changes made
+  my $oldfault = $self->getFault($fault->id);
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -308,9 +315,10 @@ sub updateFault {
   # End transaction
   $self->_dbunlock;
   $self->_db_commit_trans;
-}
 
-=back
+  # Mail notice to fault "owner"
+  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+}
 
 =head2 Internal Methods
 
@@ -618,7 +626,7 @@ sub _mail_fault {
   my $category = $fault->category;
 
   # Only show the status if this isn't the initial filing
-  my $status = "<b>Status:</b> " . ($fault->isOpen ? "Open" : "Closed")
+  my $status = "<b>Status:</b> " . $fault->statusText
     if $responses[1];
 
   my $faultdatetext = "hrs at ". $fault->faultdate . " UT"
@@ -737,6 +745,70 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 			   to => join(", ",@addr),
 			   from => $from,
 			   subject => $subject);
+
+}
+
+=item B<_mail_fault_update>
+
+Determine what fault properties have changed and mail current properties
+to the fault owner.  First argument is an C<OMP::Fault> object containing
+the faults current properties.  Second argument is an C<OMP::Fault> object
+containing the faults properties before the update occurred.  Final argument
+is a string or C<OMP::User> object identifying the user who updated the
+fault.
+
+  $db->_mail_fault_update($currentfault, $oldfault, $user);
+
+=cut
+
+sub _mail_fault_update {
+  my $self = shift;
+  my $fault = shift;
+  my $oldfault = shift;
+  my $user = shift;
+
+  # Convert user object to HTML string
+  if (UNIVERSAL::isa($user, "OMP::User")) {
+    $user = $user->html;
+  }
+
+  my $msg = "Fault " . $fault->id . " [" . $fault->subject . "] has been changed as follows by $user:<br><br>";
+
+  # Map property names to their accessor method names
+  my %property = (
+		  Status => "statusText",
+		  "Time lost" => "timelost",
+		 );
+
+  # Build up a message
+  for (keys %property) {
+    my $method = $property{$_};
+    my $oldfault_prop = $oldfault->$method;
+    my $newfault_prop = $fault->$method;
+    if ($oldfault_prop ne $newfault_prop) {
+      $msg .= "$_ updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
+    }
+  }
+
+  my $cgi = new OMP::CGI;
+  my $public_url = $cgi->public_url;
+
+  $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
+
+  my $email = $fault->author->email;
+  my $from = $fault->mail_list;
+
+  (! $from) and $from = "kynan\@jach.hawaii.edu";  #while testing
+
+  # Don't want to attempt to mail the fault if author doesn't have an email
+  # address (which would be very odd at this point)
+  if ($email) {
+    $self->_mail_information(message => $msg,
+			     to => $email,
+			     from => $from,
+			     subject => "Your fault [" . $fault->id . "] has been updated",);
+
+  }
 
 }
 
