@@ -38,8 +38,9 @@ use Carp;
 use vars qw/ $VERSION $UseArchiveTar /;
 $VERSION = '0.01';
 
-# Disable $PATH
-$ENV{PATH} = "/usr/bin:/bin";
+# Disable $PATH - we need /usr/local/bin for gzip on Solaris
+# when running tar
+$ENV{PATH} = "/usr/bin:/bin:/usr/local/bin";
 
 # Do we want to ues the slower Archive::Tar
 $UseArchiveTar = 0;
@@ -794,7 +795,7 @@ sub _mktarfile {
     my $tarcmd;
     if ($^O eq 'solaris') {
       # GNU tar
-      $tarcmd = "/local/bin/tar -zcvf ";
+      $tarcmd = "/usr/local/bin/tar -zcvf ";
     } elsif ($^O eq 'linux') {
       $tarcmd = "/bin/tar -zcvf ";
     } else {
