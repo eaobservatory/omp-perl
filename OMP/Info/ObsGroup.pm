@@ -441,6 +441,11 @@ sub projectStats {
   # that is already at the end of the array
   my %gapproj;
 
+  # Keep a list of ALL significant projects. In general this is not
+  # much of a problem but is important if we have projects that
+  # only consist of calibrations (esp E&C)
+  my %sigprojects;
+
   # Go through all the observations, determining the time spent on 
   # each project and the calibration requirements for each observation
   # Note that calibrations are not spread over instruments
@@ -487,6 +492,9 @@ sub projectStats {
     my $ymd = $obs->startobs->ymd;
     my $timespent;
     my $duration = $obs->duration;
+
+    # Store the project ID if it is significant
+    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/ && $projectid !~ /^scuba$/i);
 
     # Store the project ID for gap processing
     # In general should make sure we dont get projects that are all calibrations
@@ -786,6 +794,13 @@ sub projectStats {
 	my $key = $tel . $type;
 	$proj_totals{$ymd}{$key} += $other{$ymd}{$tel}{$type};
       }
+    }
+  }
+
+  # Now add in the missing projects - forcing an entry
+  for my $ymd (keys %sigprojects) {
+    for my $proj (keys %{$sigprojects{$ymd}}) {
+      $proj_totals{$ymd}{$proj} += 0;
     }
   }
 
