@@ -8,7 +8,7 @@ OMP::User - A User of the OMP system
 
   use OMP::User;
 
-  $u = new OMP::User( id => 'xyz',
+  $u = new OMP::User( userid => 'xyz',
                       name => 'Mr Z',
                       email => 'xyz@abc.def.com');
 
