@@ -2,7 +2,7 @@ package OMP::CGI;
 
 =head1 NAME
 
-OMP::CGI - Content for the OMP Feedback system CGI scripts
+OMP::CGI - Content and functions for the OMP Feedback system CGI scripts
 
 =head1 SYNOPSIS
 
@@ -14,8 +14,9 @@ $cgi->write_page(\&form_content, \&form_ouptut);
 
 =head1 DESCRIPTION
 
-This class provides the functions and content that are common to all of the
-OMP feedback system CGI scripts, such as cookie management and look and feel.
+This class generates the content of the OMP feedback system CGI scripts by
+piecing together code from different places.  It also handles cookie
+management and look and feel.
 
 =cut
 
@@ -26,6 +27,7 @@ use Carp;
 
 use lib qw(/jac_sw/omp/msbserver);
 use OMP::Cookie;
+use OMP::CGIHelper;
 use OMP::Error;
 use HTML::WWWTheme;
 
@@ -228,7 +230,7 @@ sub _write_login {
   $self->_write_header();
 
   print $q->h1('Login'),
-    "Please enter enter the project ID and password. These are required for access to the feedback system.";
+    "Please enter the project ID and password. These are required for access to the feedback system.";
 
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
@@ -258,9 +260,15 @@ the form and its output using the code references provided to this method.
 
   $cgi->write_page( \&form_content, \&form_output );
 
-Currently if the page does not contain a form the &form_content code
-reference should be given twice, and the &form_output should not be given
-at all.
+The subroutines passed to this method should shift off the first
+element of @_ as that is the C<CGI> query object.  The rest of the elements
+should be dumped to a hash as they contain the cookie contents:
+
+sub form_output {
+  my $query = shift;
+  my %cookie = @_;
+  ...
+}
 
 =cut
 
@@ -270,11 +278,6 @@ sub write_page {
 
   my $q = $self->cgi;
   # Check to see that they are defined...
-#  throw OMP::Error::BadArgs("Code reference not given")
-#    unless defined($form_content);
-#  throw OMP::Error::BadArgs("Code reference not given")
-#    unless defined($form_output);
-
   # Check that they are code refs
   foreach ($form_content, $form_output) {
     throw OMP::Error::BadArgs("Code reference not given")
@@ -323,7 +326,12 @@ sub write_page {
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
-    $form_output->( %cookie );
+    if ($q->param('password')) {
+      proj_status_table( $q, %cookie);
+      $form->content( $q, %cookie);
+    } else {
+      $form_output->( $q, %cookie);
+    }
 
     # Write the footer
     $self->_write_footer();
@@ -345,7 +353,7 @@ sub write_page {
       $self->_write_header();
 
       # Run the callback
-      $form_content->( %cookie );
+      $form_content->( $q, %cookie );
 
       # Write the footer
       $self->_write_footer();
