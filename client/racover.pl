@@ -177,8 +177,8 @@ for my $proj (@$projects) {
 
   # print stats for this project
   printf "    ". ("%02d "x scalar(@local))."\n", map {$_+0.5} @local;
-  $i++;
- last if $i > 5;
+#  $i++;
+# last if $i > 5;
 
 }
 
