@@ -494,7 +494,11 @@ sub projectStats {
     my $duration = $obs->duration;
 
     # Store the project ID if it is significant
-    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/ && $projectid !~ /^scuba$/i);
+    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/ 
+					 && $projectid !~ /$WEATHER_GAP$/
+					 && $projectid !~ /$OTHER_GAP$/
+					 && $projectid !~ /$EXTENDED_KEY$/
+					 && $projectid !~ /^scuba$/i);
 
     # Store the project ID for gap processing
     # In general should make sure we dont get projects that are all calibrations
