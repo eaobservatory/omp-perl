@@ -4,6 +4,8 @@ use 5.006;
 use warnings;
 use strict;
 
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
+
 use lib "/jac_sw/omp/msbserver";
 use OMP::MSBServer;
 
