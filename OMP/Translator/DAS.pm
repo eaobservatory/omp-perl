@@ -489,7 +489,7 @@ sub fixedHeader {
   $html .= "<ul>\n";
   $html .= "<li><em>Please remember to set project ID to <em>$project</em> in the acquisition system.</em>\n";
   my $cat = $VAX_TRANS_DIR . $CATALOGUE;
-  $html .= "<LI>Target information has been written to catalogue file: <b>$cat</b> when appropriate. The additional target information in this document is for information only (or may be a comet or planet).\n";
+  $html .= "<LI>Target information has been written to catalogue file: <b>$cat</b> when appropriate. The additional target information in this document is for information only (or may be a comet or planet). The catalogue includes pointing targets.\n";
   $html .= "</ul>\n";
 
   return $html;
