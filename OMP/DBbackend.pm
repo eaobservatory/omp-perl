@@ -45,6 +45,47 @@ our $VERSION = (qw$Revision$)[1];
 
 =head1 METHODS
 
+=head2 Connections Details
+
+This class method returns the information required to connect to a
+database. The details are returned in a hash with the following
+keys:
+
+  server  =>  Database server (e.g. SYB_*)
+  database=>  The database to use for the transaction
+  user    =>  database login name
+  password=>  password for user
+
+This is a class method so that it can easily be subclassed.
+
+  %details = OMP::DBbackend->loginhash;
+
+The following environment variables are recognised to override
+these values:
+
+  OMP_DBSERVER - the server to use
+
+In the future this method may well read the details from a config
+file rather than hard-wiring the values in the module.
+
+=cut
+
+sub loginhash {
+  my $class = shift;
+  my %details = (
+		 server   => "SYB_TMP",
+		 database => "omp",
+		 user     => "omp",
+		 password => "***REMOVED***",
+		);
+
+  # possible override
+  $details{server} = $ENV{OMP_DBSERVER}
+    if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
+
+  return %details;
+}
+
 =head2 Constructor
 
 =over 4
@@ -116,13 +157,14 @@ sub connect {
   my $self = shift;
 
   # Database details
-  my $DBserver = "SYB_UKIRT";
-  my $DBuser = "omp";
-  my $DBpwd  = "***REMOVED***";
-  my $DBdatabase = "archive";
+  my %details   = $self->loginhash;
+  my $DBserver   = $details{server};
+  my $DBuser     = $details{user};
+  my $DBpwd      = $details{password};
+  my $DBdatabase = $details{database};
 
   # We are using sybase
-  my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0})
+  my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })
     or throw OMP::Error::DBConnection("Cannot connect to database: $DBI::errstr");
 
   # Store the handle
