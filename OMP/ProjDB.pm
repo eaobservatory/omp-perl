@@ -828,9 +828,11 @@ sub _get_projects {
     $projhash->{taumin} = 0 unless defined $projhash->{taumin};
 
     # TAU_INF should be converted to undef
-    if (!defined $projhash->{taumax}) {
+    if (defined $projhash->{taumax}) {
+      # want to overcome precision errors
+      my $tauint = int($projhash->{taumax} + 0.5);
       $projhash->{taumax} = undef
-	if $projhash->{taumax} == $TAU_INF;
+	if $tauint == $TAU_INF;
     }
 
     # KLUGE: Use 2 decimal places for now until we switch to DOUBLES
