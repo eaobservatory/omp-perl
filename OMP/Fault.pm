@@ -468,7 +468,7 @@ sub faultdate {
   if (@_) { 
     my $date = shift;
     croak "Date must be supplied as Time::Piece object"
-      unless UNIVERSAL::isa( $date, "Time::Piece" );
+      if (defined $date && ! UNIVERSAL::isa( $date, "Time::Piece" ));
     $self->{FaultDate} = $date;
   }
   return $self->{FaultDate};

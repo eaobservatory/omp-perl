@@ -385,18 +385,38 @@ sub _query_faultdb {
 				 $dbh->errstr)
     if $dbh->err;
 
-  # Now loop through the faults, creating objects and retrieving
-  # matching responses
-  for (@$ref) {
-#    my $fault = new OMP::Fault( %$_ );
+  # Now loop through the faults, creating objects and
+  # matching responses. 
+  # Use a hash to indicate whether we have already seen a fault
+  my %faults;
+  for my $faultref (@$ref) {
 
+    # First convert dates to date objects
+    # 'Mar 15 2002  7:04AM' is Sybase format
+    $faultref->{date} = OMP::General->parse_date( $faultref->{date} );
+    $faultref->{faultdate} = OMP::General->parse_date( $faultref->{faultdate})
+      if defined $faultref->{faultdate};
 
+    my $id = $faultref->{faultid};
+
+    # Create a new fault
+    # One problem is that a new fault *requires* an initial "response"
+    if (!exists $faults{$id}) {
+      # Get the response
+      my $resp = new OMP::Fault::Response( %$faultref );
+
+      # And the fault
+      $faults{$id} = new OMP::Fault( %$faultref, fault => $resp);
+
+    } else {
+      # Just need the response
+      $faults{$id}->respond( new OMP::Fault::Response( %$faultref ) );
+
+    }
   }
 
-
-  use Data::Dumper;
-  print Dumper($ref);
-
+  # Now return the values in the hash
+  return values %faults;
 }
 
 =back

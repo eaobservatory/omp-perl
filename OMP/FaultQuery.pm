@@ -49,6 +49,17 @@ database table.
 
 Returns undef if the query could not be formed.
 
+The SQL returned by this query will include an entry for each response
+that matches (in the joined fault and response table).  This needs to
+be the case since a query on date or author must include the fault
+response table but it is therefore possible to match partial
+faults. In order to overcome this and to obtain a full fault
+(including responses) the data returned by the query must be sifted
+for fault IDs and the responses must be retrieved by additional
+queries to the response table. [we could of course create a temporary
+table with just the faultids and then do an internal query that
+gets all the faults with that faultid]
+
 =cut
 
 sub sql {
@@ -70,10 +81,21 @@ sub sql {
   # If the resulting query contained anything we should prepend
   # an AND so that it fits in with the rest of the SQL. This allows
   # an empty query to work without having a naked "AND".
-  $subsql = " WHERE " . $subsql if $subsql;
+  $subsql = " AND " . $subsql if $subsql;
 
   # Now need to put this SQL into the template query
-  my $sql = "SELECT * FROM $faulttable $subsql";
+  # This returns a row per response
+  # So will duplicate static fault info
+  my $temp = "#ompfaultid";
+  my $sql = "(SELECT F.faultid 
+               INTO $temp
+                FROM $faulttable F, $resptable R 
+                 WHERE R.faultid = F.faultid 
+                  $subsql GROUP BY F.faultid)
+             (SELECT * FROM $temp T, $faulttable F, $resptable R
+                WHERE T.faultid = F.faultid AND F.faultid = R.faultid)
+
+             DROP TABLE $temp";
 
   return "$sql\n";
 
@@ -123,6 +145,17 @@ sub _post_process_hash {
     # Nothing yet
 
   }
+
+  # These entries are in more than one table so we have to 
+  # explicitly choose the Fault table
+  for (qw/ faultid /) {
+    if (exists $href->{$_}) {
+      my $key = "F.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
