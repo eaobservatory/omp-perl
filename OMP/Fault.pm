@@ -28,6 +28,9 @@ use warnings;
 use strict;
 use Carp;
 
+use Time::Piece;
+use Time::Seconds;
+
 our $VERSION = (qw$Revision$)[1];
 
 # Overloading
@@ -501,6 +504,22 @@ sub isOpen {
   my $self = shift;
   my $status = $self->status;
   return ( $status == OPEN ? 1 : 0 );
+}
+
+=item B<isNew>
+
+Is the fault new (36 hours old or less)?
+
+=cut
+
+sub isNew {
+  my $self = shift;
+  my $status = $self->status;
+  my $date = $self->date;
+  my $t = localtime;
+
+  $t -= 129600; # 36 hours ago
+  return ( $date >= $t ? 1 : 0 );
 }
 
 =item B<subject>
