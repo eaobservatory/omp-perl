@@ -150,7 +150,7 @@ sub fb_entries {
   my $q = shift;
   my %cookie = @_;
 
-  my $status = [qw/ OMP__FB_DELETE /];
+  my $status = [OMP__FB_IMPORTANT, OMP__FB_INFO];
   my $comments = OMP::FBServer->getComments( $cookie{projectid},
 					     $cookie{password},
 					     $status,);
