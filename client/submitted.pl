@@ -120,6 +120,13 @@ my $fbquery = new OMP::FBQuery( XML => $fbxml, );
 # Run our query to retrieve comments
 my $comments = $db->_fetch_comments( $fbquery );
 
+if (! defined @$comments) {
+  if ($debug) {
+    print "No comments returned by query.\n";
+  }
+  exit;
+}
+
 # Get project IDs for all comments returned.
 my %projects = map {$_->{projectid}, undef} @$comments;
 
@@ -177,6 +184,22 @@ if ($debug) {
     $msg->send
       or die "Error sending message: $!\n";
   }
+}
+
+# Subroutine to generate the project information snippet
+# Takes a project object and the submitter's hostname as
+# arguments.
+sub proj_info {
+  my $project = shift;
+  my $host = shift;
+
+  my $text;
+  my $offset = 78 - length( $project->id );
+
+  $text = sprintf("%s%${offset}s", "[". $project->id ."]", "submitted by: $host\n");
+  $text .= "Title: ". $project->title ."\n";
+  $text .= "PI: ". $project->pi ."\n";
+  $text .= "CoI(s): ". $project->coi ."\n";
 }
 
 =head1 AUTHOR
