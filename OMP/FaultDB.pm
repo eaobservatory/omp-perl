@@ -537,10 +537,15 @@ sub _update_fault_row {
     # Delete the row for this fault
     $self->_db_delete_data( $FAULTTABLE, $clause );
 
+    # Date must be formatted for sybase
+    my $faultdate = $fault->faultdate;
+    $faultdate = $faultdate->strftime("%Y%m%d %T")
+      if defined $faultdate;
+
     # Insert the new values
     $self->_db_insert_data( $FAULTTABLE,
 			    $fault->id, $fault->category, $fault->subject,
-			    $fault->faultdate, $fault->type, $fault->system,
+			    $faultdate, $fault->type, $fault->system,
 			    $fault->status, $fault->urgency,
 			    $fault->timelost, $fault->entity );
   } else {
