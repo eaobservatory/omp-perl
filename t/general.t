@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 27 }
+BEGIN { plan tests => 35 }
 
 use OMP::General;
 
@@ -16,21 +16,21 @@ my $sec  = 0.0;
 
 # Create two input dates. One in ISO format, the other in
 # Sybase style
-my @input;
+my @dateinput;
 
 # ISO
-push(@input,  sprintf("%04d-%02d-%02dT%02d:%02d",
-		     $year, $mon, $day, $hh, $mm));
+push(@dateinput,  sprintf("%04d-%02d-%02dT%02d:%02d",
+	   	     $year, $mon, $day, $hh, $mm));
 
 # Sybase
-push(@input,  sprintf("$mon_str %02d %04d  %d:%02dAM",
+push(@dateinput,  sprintf("$mon_str %02d %04d  %d:%02dAM",
 		      $day, $year, $hh, $mm));
 
 print "# parse_date\n";
 
-print "# Input date: $input[0]\n";
+print "# Input date: $dateinput[0]\n";
 
-for my $in (@input) {
+for my $in (@dateinput) {
 
   $date = OMP::General->parse_date( $in );
 
@@ -69,7 +69,7 @@ ok( ! OMP::General->verify_administrator_password( "blah", 1 ) );
 
 print "# Semester\n";
 
-my $refdate = OMP::General->parse_date($input[0]);
+my $refdate = OMP::General->parse_date($dateinput[0]);
 my $sem = OMP::General->determine_semester( $refdate );
 ok($sem, "98b");
 
