@@ -957,9 +957,10 @@ sub contacts {
   my $self = shift;
 
   # Get all the User objects
-  my @users = grep {$self->contactable($_->userid) and $_->email} ( $self->investigators, $self->support );
+  # Store in a hash to weed out duplicates
+  my %users = map {$_->userid, $_} grep {$self->contactable($_->userid) and $_->email} ( $self->investigators, $self->support );
 
-  return @users;
+  return map {$users{$_}} keys %users;
 }
 
 =item B<contactable>
