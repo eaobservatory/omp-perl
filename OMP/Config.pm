@@ -326,9 +326,11 @@ sub _read_configs {
   opendir my $dh, $dir
     or throw OMP::Error::FatalError("Error reading config directory [$dir]: $!");
 
-  # files must end in .cfg
+  # files must end in .cfg and not be hidden
   # and we must prefix the actual directory name
-  my @files = map {File::Spec->catfile($dir,$_) } grep /\.cfg$/, readdir $dh;
+  my @files = map {File::Spec->catfile($dir,$_) } 
+         grep { $_ !~ /^\./ }
+            grep /\.cfg$/, readdir $dh;
 
   warn "No config files read from directory $dir!"
     unless scalar(@files);
