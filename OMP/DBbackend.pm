@@ -42,6 +42,7 @@ use DBI;
 use DBD::Sybase; # This triggers immediate failure if $SYBASE not right
 
 our $VERSION = (qw$Revision$)[1];
+our $DEBUG = 0;
 
 =head1 METHODS
 
@@ -206,6 +207,9 @@ sub connect {
   my $DBuser     = $details{user};
   my $DBpwd      = $details{password};
   my $DBdatabase = $details{database};
+
+  print "SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
+    if $DEBUG;
 
   # We are using sybase
   my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })
