@@ -222,7 +222,7 @@ sub storeSciProg {
 
   # Write the Science Program to disk
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp},
-			  $args{Force} )
+			  $args{Force}, $args{NoCache} )
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
   # Get the summaries for each msb as a hash containing observations
@@ -699,9 +699,10 @@ sub doneMSB {
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
-  # This will require a back door password and the ability to
-  # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+  # Note that we need the timestamp to change but do not want
+  # feedback table notification of this (since we have done that
+  # already).
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
 
   OMP::General->log_message("Science program stored back to database");
 
@@ -817,9 +818,11 @@ sub undoMSB {
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
-  # This will require a back door password and the ability to
-  # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+  # Note that we need the timestamp to change but do not want
+  # feedback table notification of this (since we have done that
+  # already).
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
+
 
   # Might want to send a message to the feedback system at this
   # point
@@ -905,9 +908,10 @@ sub alldoneMSB {
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
-  # This will require a back door password and the ability to
-  # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+  # Note that we need the timestamp to change but do not want
+  # feedback table notification of this (since we have done that
+  # already).
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
 
   # Might want to send a message to the feedback system at this
   # point
