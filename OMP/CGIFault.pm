@@ -807,8 +807,9 @@ sub view_fault_output {
     if (! $validuser) {
       push @title, "The user ID you entered does not exist.  Please enter another and submit again";
       titlebar($q ,["File Fault", join('<br>',@title)], %cookie);
-      file_fault_form(cgi => $q,
-		      cookie => \%cookie,);
+      response_form(cgi => $q,
+		    cookie => \%cookie,
+		    fault => $fault,);
     }
 
     # Get the status (possibly changed)
