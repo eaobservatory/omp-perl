@@ -4,6 +4,7 @@ WriteMakefile(
     'NAME'      => 'OMP',
     'VERSION'   => '0.01',
     'PREREQ_PM' => {
+                    Test::More => 0,
 		    Digest::MD5 => '2.20',
 		    Astro::SLA  => '0.95',
 		    Astro::Coords => '0.03',
