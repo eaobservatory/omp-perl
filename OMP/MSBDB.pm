@@ -840,8 +840,7 @@ sub _insert_row {
     # Wavelength must be a number (just check for presence of any number)
     $obs->{wavelength} = -1 unless $obs->{wavelength} =~ /\d/;
 
-    use Data::Dumper;
-    print "Inserting row: ",Dumper($obs);
+    print "Inserting row: ",Dumper($obs) if $DEBUG;
 
     $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	     , undef,
@@ -917,7 +916,6 @@ sub _fetch_row {
   # and construct the SQL command
   my $statement = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
-  print "Executing statement: $statement\n";
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
