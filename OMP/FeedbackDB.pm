@@ -313,7 +313,7 @@ sub _mail_comment {
   $self->_mail_information(
 			   message => $msg,
 			   to => $addrlist,
-			   from => "flex@jach.hawaii.edu",
+			   from => "flex\@jach.hawaii.edu",
 			   subject => $subject,
 			  );
 
