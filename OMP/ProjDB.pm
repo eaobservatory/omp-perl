@@ -35,8 +35,6 @@ use OMP::FeedbackDB;
 
 use Crypt::PassGen qw/passgen/;
 use Net::SMTP;
-use Net::hostent qw/ gethost /;
-use Net::Domain qw/ hostfqdn /;
 
 use base qw/ OMP::BaseDB /;
 
@@ -642,33 +640,11 @@ sub _mail_password {
     throw OMP::Error::BadArgs("No email address defined for sending password\n") unless defined $piemail;
 
     # Try and work out who is making the request
-    my ($addr, $ip);
-    if (exists $ENV{REMOTE_ADDR}) {
-      # We are being called from a CGI context
-      $ip = $ENV{REMOTE_ADDR};
-
-      # Try to translate number to name
-      my $name = gethost( $ip );
-      $ip = $name->name if $name;
-
-      # Copy it
-      $addr = $ip;
-
-      # User name (only set if they have logged in)
-      $addr = $ENV{REMOTE_USER} . "@" . $addr
-	if exists $ENV{REMOTE_USER};
-
-    } else {
-      # localhost
-      $addr = $ip = hostfqdn;
-
-      $addr = $ENV{USER} . "@" . $addr
-	if exists $ENV{USER};
-
-    }
+    my ($user, $ip, $addr) = $self->_determine_host;
 
     # List of recipients of mail
     my @addr = ($proj->piemail, $proj->coiemail);
+
 
     # First thing to do is to register this action with
     # the feedback system
