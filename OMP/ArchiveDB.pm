@@ -28,10 +28,8 @@ use 5.006;
 use strict;
 use warnings;
 
-BEGIN { $ENV{ORAC_DIR} = "/jcmt_sw/oracdr"; };
-
 use lib qw( /jac_sw/omp/msbserver );
-use lib qw( $ENV{ORAC_DIR}/lib/perl5 );
+use lib qw( /jcmt_sw/oracdr/lib/perl5 );
 
 use OMP::ArcQuery;
 use OMP::General;
