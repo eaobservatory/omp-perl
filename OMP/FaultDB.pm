@@ -204,6 +204,34 @@ sub getFault {
   return $result[0];
 }
 
+=item B<getFaultsByDate>
+
+Retrieve faults from the specified UT date. Date must be in the format
+'YYYY-MM-DD'.
+
+  @faults = $db->getFaultsByDate( $ut );
+
+This method returns an array of C<OMP::Fault> objects, or undef if none
+can be found in the database.
+
+=cut
+
+sub getFaultsByDate {
+  my $self = shift;
+  my $date = shift;
+
+  # I don't know if this is the proper query to make, since there are
+  # potentially two dates associated with any given fault (date filed
+  # and date occurred). We're looking for date occurred in this instance.
+  # If this date is not 'date', then it'll have to be changed (confused?)
+  my $xml = "<FaultQuery><date delta=\"1\">$date</date></FaultQuery>";
+  my $query = new OMP::FaultQuery( XML => $xml );
+
+  my @result = $self->queryFaults( $query );
+
+  return @result;
+}
+
 =item B<queryFaults>
 
 Query the fault database and retrieve the matching fault objects.
