@@ -26,10 +26,16 @@ use warnings;
 
 use OMP::Error;
 use Astro::Telescope;
+use Astro::SLA;
 
 # Unix directory for writing ODFs
 our $TRANS_DIR = "/observe/ompodf";
 
+# VAX equivalent
+our $VAX_TRANS_DIR = "OBSERVE:[OMPODF]";
+
+# This is the name of the source catalogue
+# We write it into $TRANS_DIR
 our $CATALOGUE = "omp.cat";
 
 # Debugging
@@ -160,6 +166,9 @@ sub translate {
 
 	# Back end
 	$html .= $self->beConfig( %$obsinfo );
+
+	# Switch mode
+	$html .= $self->switchConfig( %$obsinfo );
 
       }
 
@@ -426,19 +435,23 @@ sub feConfig {
   # probably should abort if we are "redshift"
   # The OT converts redshift to velocity so this is not a problem
   # so long as I can work out the velocityDefinition
-#  throw OMP::Error::TranslateFail("Can not translate redshifts at this time")
-#    if $freqconfig{velocityDefinition} eq 'redshift';
+  # I *think* it is optical
+  if ($freqconfig{velocityDefinition} eq 'redshift') {
+    $freqconfig{velocityDefinition} = "optical [derived from redshift]";
+  }
 
   # Velocity units
   my $velunits = "km/s";
 
-  my $html = "<h3>Frontend configuration: <em>Rx".
+  my $html = "<h3>Frontend configuration: <em>".
     $summary{instrument}."</em></h3>\n";
   $html .= "<table>";
   $html .= "<tr><td><b>Molecule:</b></td><td>".
-    $freqconfig{molecule}."</td></tr>";
+    (defined $freqconfig{molecule} ? $freqconfig{molecule} : "No line")
+      ."</td></tr>";
   $html .= "<tr><td><b>Transition:</b></td><td>".
-    $freqconfig{transition}."</td></tr>";
+    (defined $freqconfig{transition} ? $freqconfig{transition} : "No line")
+      ."</td></tr>";
   $html .= "<tr><td><b>Rest Frequency:</b></td><td>".
     _HztoGHz($freqconfig{restFrequency})." GHz</td></tr>";
 
@@ -453,7 +466,8 @@ sub feConfig {
   $html .= "<tr><td><b>Velocity definition:</b></td><td>".
     $freqconfig{velocityDefinition}." </td></tr>";
 
-  my $vframe = (exists $freqconfig{velocityFrame} ? $freqconfig{velocityFrame}
+  my $vframe = ((exists $freqconfig{velocityFrame} && 
+		defined $freqconfig{velocityFrame}) ? $freqconfig{velocityFrame}
 		: '<i>UNKNOWN</i>');
   $html .= "<tr><td><b>Velocity Frame:</b></td><td>".
     $vframe." </td></tr>";
@@ -530,6 +544,105 @@ sub targetConfig {
 
   return $html;
 
+}
+
+=item B<switchConfig>
+
+Return the HTML associated with this particular switch configuration.
+
+  $html .= OMP::Translator::DAS->switchConfig( %summary );
+
+=cut
+
+sub switchConfig {
+  my $self = shift;
+  my %summary = @_;
+
+  my $html = '';
+
+  # Force PSSW if Raster mode
+  $summary{switchingMode} = "Position" if $summary{MODE} eq 'SpIterRasterObs';
+
+  throw OMP::Error::TranslateFail("Switching mode not specified")
+    unless exists $summary{switchingMode} && defined $summary{switchingMode};
+
+  # Allowed options are Beam, Position and Frequency
+  if ($summary{switchingMode} eq 'Beam') {
+
+    throw OMP::Error::TranslateFail("Can not do a Beam-switched RASTER")
+      if $summary{MODE} eq 'SpIterRasterObs';
+
+    $html .= "<h3>Switch mode: Beam switched</h3>\n";
+
+    $html .= "<table>";
+    $html .= "<tr><td><b>Chop System:</b></td><td>".
+      $summary{CHOP_SYSTEM}." </td></tr>";
+    $html .= "<tr><td><b>Chop Throw:</b></td><td>".
+      $summary{CHOP_THROW}." arcsec</td></tr>";
+    $html .= "<tr><td><b>Chop PA:</b></td><td>".
+      $summary{CHOP_PA}." deg</td></tr>";
+
+
+    $html .= "</table>\n";
+
+
+  } elsif ($summary{switchingMode} eq 'Position') {
+
+    # First look for a REFERENCE
+    throw OMP::Error::TranslateFail("Position switched observation did not specify a REFERENCE") unless exists $summary{coordtags}->{REFERENCE};
+
+    $html .= "<h3>Switch mode: Position switched</h3>";
+
+    my $ref = $summary{coordtags}->{REFERENCE};
+
+    # Position switch positions must be specified as offsets from Base
+    # even if we have a real position
+    my $refc = $ref->{coords};
+    my $refoffx = $ref->{OFFSET_DX};
+    my $refoffy = $ref->{OFFSET_DY};
+
+    # if we have some offsets just use them directly
+    my ($offx,$offy);
+    if (defined $refoffx && defined $refoffy) {
+      ($offx,$offy) = ($refoffx, $refoffy);
+
+    } else {
+      # The base position
+      my $c= $summary{coords};
+
+      # Get the distance to the centre
+      my @offsets = $c->distance($refc);
+
+      # Convert to arcseconds
+      ($offx, $offy) = map { $_ * DR2AS } @offsets;
+    }
+
+    $html .= "Position switch reference position is at offset (<b>$offx</b>, <b>$offy</b>) arcsec\n [Tangent plane offsets in the tracking coordinate system]\n";
+
+  } elsif ($summary{switchingMode} =~ /Frequency/) {
+
+    throw OMP::Error::TranslateFail("Can not do a Frequency-switched RASTER")
+      if $summary{MODE} eq 'SpIterRasterObs';
+
+    # Sanity check Fast with Slow
+    my $fast = ($summary{switchingMode} =~ /fast/i ? 1 : 0);
+
+    $html .= "<h3>Switch mode: Frequency switched</h3>";
+
+    $html .= "<table>";
+    $html .= "<tr><td><b>Mode:</b></td><td>".
+      ($fast ? "Fast" : "Slow") . " </td></tr>";
+    $html .= "<tr><td><b>Offset:</b></td><td>".
+      $summary{frequencyOffset}." MHz</td></tr>";
+    $html .= "<tr><td><b>Switch rate:</b></td><td>".
+      $summary{frequencyRate}." Hz</td></tr>" if $fast;
+    $html .= "</table>\n";
+
+  } else {
+    throw OMP::Error::TranslateFail("Unrecognized switch mode: $summary{switchingMode}");
+  }
+
+  return $html;
 }
 
 
