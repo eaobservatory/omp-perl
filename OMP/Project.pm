@@ -536,7 +536,7 @@ sub summary {
     for my $key (sort keys %summary) {
       next if $key eq 'projectid';
       my $value = $summary{$key};
-      if (defined $value) {
+      if (defined $value and length($value) > 0) {
 	$xml .= "<$key>$value</$key>";
       } else {
 	$xml .= "<$key/>";
@@ -545,6 +545,7 @@ sub summary {
     }
     $xml .= "</OMPProjectSummary>\n";
 
+    return $xml;
   }
 
 }

@@ -239,29 +239,58 @@ sub issuePassword {
   return;
 }
 
-=item B<projectSummary>
+=item B<projectDetails>
 
-Retrieve a summary of the current project. This is returned in
-XML format:
+Retrieve a summary of the current project. This is returned in either
+XML format, as a reference to a hash, as an C<OMP::Project> object or
+as a hash and is specified using the optional argument.
 
-  $xml = $proj->projectSummary;
+  $xml = $proj->projectDetails( 'xml' );
+  $href = $proj->projectDetails( 'data' );
+  $obj  = $proj->projectDetails( 'object' );
+  %hash = $proj->projectDetails;
 
-The XML is in the format described in C<OMP::Project>. In a list
-context returns a hash containing the project details.
+The XML is in the format described in C<OMP::Project>.
+
+If the mode is not specified XML is returned in scalar context and
+a hash (not a reference) is returned in list context.
+
+Password verification is performed.
 
 =cut
 
-sub projectSummary {
+sub projectDetails {
   my $self = shift;
+  my $mode = lc(shift);
+
+  throw OMP::Error::Authentication("Incorrect password for project ".
+				  $self->projectid ."\n")
+    unless $self->verifyPassword;
 
   # First thing to do is to retrieve the table row
   # for this project
   my $project = $self->_get_project_row;
 
   if (wantarray) {
-    return $project->summary;
+    $mode ||= "xml";
   } else {
-    return scalar( $project->summary );
+    # An internal mode
+    $mode ||= "hash";
+  }
+
+  if ($mode eq 'xml') {
+    my $xml = $project->summary;
+    return $xml;
+  } elsif ($mode eq 'object') {
+    return $project;
+  } elsif ($mode eq 'data') {
+    my %hash = $project->summary;
+    return \%hash;
+  } elsif ($mode eq 'hash') {
+    my %hash = $project->summary;
+    return \%hash;
+  } else {
+    throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
   }
 }
 

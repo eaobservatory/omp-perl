@@ -125,6 +125,59 @@ sub summary {
 
 }
 
+=item B<projectDetails>
+
+Return the details of a single project. The summary is returned as a
+data structure (a reference to a hash), as an C<OMP::Project> object
+or as XML.
+
+  $href = OMP::SpServer->projectDetails( $project, $password, "data" );
+  $xml = OMP::SpServer->projectDetails( $project,$password, "xml" );
+  $obj = OMP::SpServer->projectDetails( $project,$password, "object" );
+
+Note that this may cause problems for a strongly typed language.
+
+The default is to return XML since that is a simple string.
+
+=cut
+
+sub projectDetails {
+  my $class = shift;
+  my $projectid = shift;
+  my $password = shift;
+  my $mode = lc(shift);
+  $mode ||= 'xml';
+
+  my $E;
+  my $summary;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			     Password => $password,
+			    );
+
+    $summary = $db->projectDetails( $mode );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $summary;
+}
+
 =item B<verifyProject>
 
 Verify that the specified project is active and present in the
