@@ -8,6 +8,7 @@ OMP::MSBServer - OMP MSB Server class
 
   $xml = OMP::MSBServer->fetchMSB( $uniqueKey );
   @results = OMP::MSBServer->queryMSB( $xmlQuery, $max );
+  OMP::MSBServer->doneMSB( $project, $checksum );
 
 =head1 DESCRIPTION
 
