@@ -19,6 +19,7 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
+$cgi->theme($theme);
 
 $cgi->write_page_noauth( \&observed, \&observed_output );
 
