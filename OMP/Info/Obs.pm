@@ -250,11 +250,10 @@ sub hdrhash {
   }
 
   my $hdr = $self->_hdrhash;
-  if( ! defined( $hdr ) ) {
+  if( ! defined( $hdr ) || scalar keys %$hdr == 0) {
     my $fits = $self->fits;
     if( defined( $fits ) ) {
       my $FITS_header = $self->fits;
-
       tie my %header, ref($FITS_header), $FITS_header;
 
       $self->_hdrhash( \%header );
