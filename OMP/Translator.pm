@@ -83,6 +83,12 @@ sub translate {
 		    B3 => 'DAS',
 		    WC => 'DAS',
 		    WD => 'DAS',
+		    RXA3 => 'DAS',
+		    RXA3 => 'DAS',
+		    RXB3 => 'DAS',
+		    RXWC => 'DAS',
+		    RXWD => 'DAS',
+		    RXW=> 'DAS',
 		  );
 
   # We need to farm off this data to a subclass that knows how to
