@@ -499,7 +499,7 @@ sub listProjects {
 
 =item B<listSemesters>
 
-Retrieve all the semesters that have programs in the database.
+Retrieve all the semesters associated with projects in the database.
 
   @sem = $projdb->listSemesters()
 
@@ -513,6 +513,25 @@ sub listSemesters {
   # it belongs to!
   my $semref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT semester FROM $PROJTABLE" );
   return sort map { $_->{semester} } @$semref
+
+}
+
+=item B<listTelescopes>
+
+Retrieve all the telescopes associated with projects in the database.
+
+  @sem = $projdb->listSemesters()
+
+=cut
+
+sub listTelescopes {
+  my $self = shift;
+
+  # Kluge. We should not be doing SQL at this level
+  # Note that current project table does not know which telescope
+  # it belongs to!
+  my $telref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT telescope FROM $PROJTABLE" );
+  return sort map { $_->{semester} } @$telref
 
 }
 
