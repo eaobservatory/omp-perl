@@ -324,6 +324,8 @@ sub query_fault_output {
   my $title;
   my $t = gmtime;
   my %daterange;
+  my $mindate;
+  my $maxdate;
   my $xml;
 
   # XML query to return faults from the last 14 days
@@ -392,25 +394,24 @@ sub query_fault_output {
       push (@xml, "<author>$author</author>");
     }
 
-    # Get our min and max dates and make sure they match our expect format
-    $daterange{min} = $q->param('mindate');
-    $daterange{max} = $q->param('maxdate');
+    # Get our min and max dates
+    $mindate = $q->param('mindate');
+    $maxdate = $q->param('maxdate');
 
-    for (keys %daterange) {
-      # Make sure date matches our expect format
-      ($daterange{$_} =~ /^\d{4}-*\d{2}-*\d{2}$/) or $daterange{$_} = undef;
-      if ($daterange{$_}) {
-	# Convert min and max dates to UT;
-        $daterange{$_} = OMP::General->parse_date($daterange{$_}, 1);
-	my $epoch = $daterange{$_}->epoch;
-	$daterange{$_} = gmtime($epoch);
-	$daterange{$_} = $daterange{$_}->ymd;
-	($_ eq 'max') and $daterange{$_} .= "T23:59";
-      }
+    # Imply end of day for max date if no time was specified
+    ($maxdate !~ /T/) and $maxdate .= "T23:59";
+
+    # Convert dates to UT
+    $mindate = OMP::General->parse_date($mindate, 1);
+    $maxdate = OMP::General->parse_date($maxdate, 1);
+
+    # Do a min/max date query
+    if ($mindate or $maxdate) {
+      push (@xml, "<date>");
+      ($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
+      ($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
+      push (@xml, "</date>");
     }
-
-    # Always do a min/max date query
-    push (@xml, "<date><min>$daterange{min}</min><max>$daterange{max}</max></date>");
 
     # Get the text param and unescape things like &amp; &quot;
     my $text = $q->param('text');
@@ -569,10 +570,6 @@ sub query_fault_form {
   my $q = shift;
   my %cookie = @_;
 
-  # Get a default date for max date search (today)
-  my $today = localtime;
-  $today = localtime->strftime("%Y%m%d");
-
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = map {$systems->{$_}} sort keys %$systems;
   unshift( @systems, "any" );
@@ -611,13 +608,12 @@ sub query_fault_form {
   print "</b></td><td></td><tr><td><b>";
   print "between dates <small>(YYYYMMDD)</small> ";
   print $q->textfield(-name=>'mindate',
-		      -size=>10,
-		      -maxlength=>15);
+		      -size=>18,
+		      -maxlength=>32);
   print " and ";
   print $q->textfield(-name=>'maxdate',
-		      -size=>10,
-		      -default=>$today,
-		      -maxlength=>15);
+		      -size=>18,
+		      -maxlength=>32);
   print "</b></td><td></td><tr><td><b>";
   print "System </b>";
   print $q->popup_menu(-name=>'system',
