@@ -519,9 +519,9 @@ sub msbHeader {
   $html .= "<H1>MSB: $title</H1>\n";
   $html .= '<!-- MSBID: '. $msb->checksum . " -->\n";
 
-  # Notes are no longer required
   if (defined $note) {
-    $html .= "<h2>Note: $ntitle</h2>\n$note\n";
+    # Notes have to be in PRE blocks to preserve formatting
+    $html .= "<h2>Note: $ntitle</h2>\n<PRE>\n$note\n</PRE>\n";
   } else {
     $html .= "<h2>No note supplied</h2>";
   }
