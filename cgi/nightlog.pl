@@ -18,8 +18,11 @@ use warnings;
 my $arg = shift @ARGV;
 
 my $q = new CGI;
+
 my $cgi = new OMP::CGI( CGI => $q );
 
+my $utdate = $q->url_param('utdate');
+
 my $title = $cgi->html_title;
-$cgi->html_title("$title: Night Report");
+$cgi->html_title("$title: Night Report - $utdate");
 $cgi->write_page_staff( \&nightlog_content, \&nightlog_content );
