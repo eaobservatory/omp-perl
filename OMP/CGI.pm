@@ -202,6 +202,27 @@ sub _sidebar_logout {
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
+=item B<_sidebar_fault>
+
+Put fault system links in the sidebar
+
+  $cgi->_sidebar_fault;
+
+=cut
+
+sub _sidebar_fault {
+  my $self = shift;
+  my $theme = $self->theme;
+
+  $theme->SetMoreLinksTitle("Fault System");
+
+  my @sidebarlinks = ("<font size=+1><a href='filefault.pl'>File a fault</a>",
+		      "<a href='queryfault.pl'>Query faults</a>",
+		      "<a href='viewfault.pl'>View/Respond to a fault</a></font>",);
+
+  $theme->SetInfoLinks(\@sidebarlinks);
+}
+
 =item B<_make_theme>
 
 Create the theme object.
@@ -553,6 +574,9 @@ sub write_page_fault {
   my $q = $self->cgi;
 
   $self->_make_theme;
+
+  $self->_sidebar_fault;
+
   $self->_write_header();
 
   if ($q->param) {
