@@ -251,6 +251,33 @@ sub getAssociations {
   return @ids;
 }
 
+=item B<updateFault>
+
+Update details for a fault by deleting the entry from the database
+and creating a new entry with the updated details.
+
+  $db->updateFault( $fault );
+
+Argument should be supplied as an C<OMP::Fault> object.
+This method will not update the associated responses.
+
+=cut
+
+sub updateFault {
+  my $self = shift;
+  my $fault = shift;
+
+  # Begin transaction
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Do the update
+  $self->_update_fault_row( $fault );
+
+  # End transaction
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+}
 
 =back
 
@@ -488,6 +515,40 @@ sub _query_faultdb {
   return @faults{@faults};
 }
 
+=item B<_update_fault_row>
+
+Delete and reinsert fault values.
+
+  $db->_update_fault_row( $fault );
+
+where C<$fault> is an object of type C<OMP::Fault>.
+
+=cut
+
+sub _update_fault_row {
+  my $self = shift;
+  my $fault = shift;
+
+  if (UNIVERSAL::isa($fault, "OMP::Fault")) {
+
+    # Our where clause for the delete
+    my $clause = "faultid = ". $fault->id;
+
+    # Delete the row for this fault
+    $self->_db_delete_data( $FAULTTABLE, $clause );
+
+    # Insert the new values
+    $self->_db_insert_data( $FAULTTABLE,
+			    $fault->id, $fault->category, $fault->subject,
+			    $fault->faultdate, $fault->type, $fault->system,
+			    $fault->status, $fault->urgency,
+			    $fault->timelost, $fault->entity );
+  } else {
+    throw OMP::Error::BadArgs("Argument to _update_fault_row must be of type OMP::Fault\n");
+  }
+}
+
+
 =item B<_mail_fault>
 
 Mail a fault and its responses to the fault email list and anyone who has previously
@@ -593,7 +654,11 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   }
 
   # Set link to response page
-  my $responselink = "<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid'>here</a>";
+  my $url = ($category eq "BUG" ?
+	     "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
+	     "http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid");
+
+  my $responselink = "<a href='$url'>here</a>";
 
   # Add the response link to the bottom of our message
   push(@msg, "--------------------------------<br>To respond to this fault go $responselink");
