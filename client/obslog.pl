@@ -572,6 +572,10 @@ sub rescan {
     my $label = $dbox->add( 'Label',
                             -text => "Error: " . $Error->{-text} )->pack;
     my $but = $dbox->Show;
+
+    # Add logging.
+    OMP::General->log_message( "OMP::Error in obslog.pl/rescan:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+
     undef %obs;
   }
   otherwise {
@@ -584,6 +588,10 @@ sub rescan {
     my $label = $dbox->add( 'Label',
                             -text => "Error: " . $Error->{-text} )->pack;
     my $but = $dbox->Show;
+
+    # Add logging.
+    OMP::General->log_message( "General error in obslog.pl/rescan:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+
   };
 
   $id->cancel unless !defined($id);
