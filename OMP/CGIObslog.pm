@@ -210,7 +210,7 @@ sub list_observations_txt {
 
   my $obsgroup;
   try {
-    $obsgroup = cgi_to_obsgroup( $query );
+    $obsgroup = cgi_to_obsgroup( $query, inccal => 1, timegap => 0 );
   }
   catch OMP::Error with {
     my $Error = shift;
@@ -363,6 +363,8 @@ sub obs_table {
 
   my $currentinst = (length( $instrument . '' ) == 0 ) ? $allobs[0]->instrument : $instrument;
 
+  my $ut = $allobs[0]->startobs->ymd;
+
   if( $text ) {
 
   } else {
@@ -399,7 +401,7 @@ sub obs_table {
 
   my $ncols;
   if( $text ) {
-    print "\nObservations for " . uc( $currentinst ) . "\n";
+    print "\nObservations for " . uc( $currentinst ) . " on $ut\n";
     print $nightlog{_STRING_HEADER}, "\n";
   } else {
     $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
@@ -1031,6 +1033,12 @@ sub cgi_to_obsgroup {
   my $inst = defined( $args{'inst'} ) ? uc( $args{'inst'} ) : undef;
   my $projid = defined( $args{'projid'} ) ? $args{'projid'} : undef;
   my $telescope = defined( $args{'telescope'} ) ? uc( $args{'telescope'} ) : undef;
+  my $inccal = defined( $args{'inccal'} ) ? $args{'inccal'} : 0;
+  my $timegap = defined( $args{'timegap'} ) ? $args{'timegap'} : 1;
+
+  my %options;
+  if( $inccal ) { $options{'inccal'} = $inccal; }
+  if( $timegap ) { $options{'timegap'} = OMP::Config->getData('timegap'); }
 
   my $qv = $q->Vars;
   $ut = ( defined( $ut ) ? $ut : $qv->{'ut'} );
@@ -1038,15 +1046,15 @@ sub cgi_to_obsgroup {
   $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
   $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
 
-  if( ! defined( $telescope ) || length( $telescope . '' ) == 0 ) {
-    my $hostname = hostfqdn;
-    if( $hostname =~ /ulili/i ) {
-      $telescope = "JCMT";
-    } elsif( $hostname =~ /mauiola/i ) {
-      $telescope = "UKIRT";
+  if( !defined( $telescope ) || length( $telescope . '' ) == 0 ) {
+    if( defined( $inst ) && length( $inst . '' ) != 0) {
+      $telescope = uc( OMP::Config->inferTelescope('instruments', $inst));
+    } elsif( defined( $projid ) ) {
+      $telescope = OMP::ProjServer->getTelescope( $projid );
+    } else {
+      throw OMP::Error("CGIObslog: Cannot determine telescope!\n");
     }
   }
-
 
   if( !defined( $ut ) ) {
     throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
@@ -1059,7 +1067,8 @@ sub cgi_to_obsgroup {
                                     telescope => $telescope,
                                     projectid => $projid,
                                     instrument => $inst,
-                                    timegap => OMP::Config->getData('timegap') );
+                                    %options,
+                                  );
   } else {
 
     if( defined( $projid ) ) {
@@ -1067,16 +1076,19 @@ sub cgi_to_obsgroup {
         $grp = new OMP::Info::ObsGroup( date => $ut,
                                         instrument => $inst,
                                         projectid => $projid,
-                                        timegap => OMP::Config->getData('timegap') );
+                                        %options,
+                                      );
       } else {
         $grp = new OMP::Info::ObsGroup( date => $ut,
                                         projectid => $projid,
-                                        timegap => OMP::Config->getData('timegap') );
+                                        %options,
+                                      );
       }
     } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
       $grp = new OMP::Info::ObsGroup( date => $ut,
                                       instrument => $inst,
-                                      timegap => OMP::Config->getData('timegap') );
+                                      %options,
+                                    );
     } else {
       throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
     }
