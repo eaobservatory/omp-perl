@@ -101,6 +101,11 @@ sub new {
 
   # Look for a SpProg
   my ($root) = $tree->findnodes('.//SpProg');
+
+  # Panic - look for an SpObs. If we fine one we have to accept that
+  ($root) = $tree->findnodes('.//SpObs') unless defined $root;
+
+  # Abort if we have no root node at all
   throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor") 
     unless defined $root;
 
@@ -163,11 +168,21 @@ sub projectID {
     if (! defined $el) {
       # Look up the root and create a new element
       my ($root) = $self->_tree->findnodes('.//SpProg');
+      my $nodename = 'projectID';
+
+      # There is a chance that we have simply a bare SpObs
+      unless (defined $root) {
+	($root) = $self->_tree->findnodes('.//SpObs');
+	# So that we do not have trouble later on we do not want to insert 
+	# a 'projectID' node into the SpObs since that matches a method name
+	# in the recursive node traversal
+	$nodename = 'project';
+      }
 
       throw OMP::Error::SpBadStructure("Error obtaining root node in projectID discovery")
 	unless defined $root;
 
-      $el = new XML::LibXML::Element( 'projectID' );
+      $el = new XML::LibXML::Element( $nodename );
       $root->appendChild( $el );
       $el->appendText( $self->{ProjectID});
     } else {
@@ -198,6 +213,27 @@ sub ot_version {
     # Clean it.
     $ver =~ s/-//g;
 
+    return $ver;
+  }
+  # return explicit undef rather than empty list
+  return undef;
+}
+
+=item B<telescope>
+
+The telescope ID associated with this science programme.
+Returns C<undef> if no telescope name is available (which should
+be the case for OT versions older than 20040914).
+
+This is a read-only parameter.
+
+=cut
+
+sub telescope {
+  my $self = shift;
+  my @nodes = $self->_tree->findnodes('.//telescope');
+  if (defined $nodes[-1]) {
+    my $ver = $nodes[-1]->getFirstChild->toString;
     return $ver;
   }
   # return explicit undef rather than empty list
@@ -663,6 +699,12 @@ sub locate_msbs {
   # Create new OMP::MSB objects
   my $refhash = $self->refs;
   my $projectid = $self->projectID;
+
+  # Only have a telescope entry if we know the telescope
+  my %EXTRAS;
+  my $tel = $self->telescope;
+  $EXTRAS{TELESCOPE} = $tel if defined $tel;
+
   # returns empty list if fails and so this can not be put directly
   # in the hash constructor without protecting the missing entry
   my $otvers = $self->ot_version;
@@ -670,6 +712,7 @@ sub locate_msbs {
 				 REFS => $refhash,
 				 PROJECTID => $projectid,
 				 OTVERSION => $otvers,
+				 %EXTRAS,
                                ) } @spmsb;
 
   # Remove duplicates
