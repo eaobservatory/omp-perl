@@ -20,22 +20,40 @@ use warnings;
 use Carp;
 
 use CGI;
-use PDL::Graphics::LUT;
+use CGI::Carp qw/fatalsToBrowser/;
+use Net::Domain qw/ hostfqdn /;
+
+use OMP::CGI;
+use OMP::Constants;
+use OMP::General;
+use OMP::Info::Comment;
+use OMP::Info::Obs;
+use OMP::Info::ObsGroup;
+use OMP::ObslogDB;
+use OMP::BaseDB;
+use OMP::ArchiveDB;
+use OMP::DBbackend::Archive;
+use OMP::Error qw/ :try /;
+
+use Data::Dumper;
 
 our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw( print_display_properties verify_query );
+our @EXPORT = qw( obs_table obs_summary obs_comment_form
+                  file_comment file_comment_output list_observations
+                  obs_add_comment cgi_to_obs cgi_to_obsgroup );
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
                     );
 
-#Exporter::export_tags(qw/ all /);
+Exporter::export_tags(qw/ all /);
 
-my @instruments = qw(cgs4 ufti ircam michelle scuba uist);
-my @ctabs = lut_names();
+# Colours for displaying observation status. First is 'good', second
+# is 'questionable', third is 'bad'.
+our @colour = qw/ BLACK #660000 #FFCCCC /;
 
 =head1 Routines
 
@@ -43,493 +61,743 @@ All routines are exported by default.
 
 =over 4
 
-=item B<print_display_properties>
+=item B<file_comment>
 
-Prints the HTML form that allows users to change display properties.
+Creates a page with a form for filing a comment.
 
-  print_display_properties( $instrument, $file, $obstype );
+  file_comment( $cgi );
 
-The file argument is the filename without the path, and the obstype
-argument is either 'raw' or 'reduced', depending on observation type.
+Only argument should be the C<CGI> object.
 
 =cut
 
-sub print_display_properties {
+sub file_comment {
+  my $q = shift;
+  my %cookie = @_;
 
-  my $instrument = shift;
-  my $file = shift;
-  my $obstype = shift;
+  # Get the Info::Obs object
+  my $obs = cgi_to_obs( $q );
 
-  my $query = new CGI;
+  # Print a summary about the observation.
+  obs_summary( $q, $obs );
 
-  print $query->startform(undef, "worf.pl");
-  print "Show me the ";
-  print $query->popup_menu(-name=>'size',
-                           -values=>['640','960','1280','128'],
-                           -labels=>{640=>'small (~150K)',
-                                     960=>'medium (~300K)',
-                                     1280=>'large (~450K)',
-                                     128=>'thumbnail'},
-                           );
-  print $query->popup_menu('type', ['image','spectrum']) . "<br>\n<br>\n";
-  print "\n<b>Image settings:</b><br>\n";
+  # Display a form for adding a comment.
+  obs_comment_form( $q, $obs, \%cookie );
 
-  print "Auto-cut (percentage): ", $query->popup_menu('autocut', ['100','99','98','95','90','80','70','50']) . "<br>\n";
-  print "X axis: ", $query->radio_group('xcrop',['full','crop']);
-  print " from ", $query->textfield('xcropstart','',8,8);
-  print " to ", $query->textfield('xcropend','',8,8) . "<br>\n";
-  print "Y axis: ", $query->radio_group('ycrop',['full','crop']);
-  print " from ", $query->textfield('ycropstart','',8,8);
-  print " to ", $query->textfield('ycropend','',8,8) . "<br>\n";
+  # Print a footer
+  print_obscomment_footer( $q );
 
-  print "Colour table ",$query->popup_menu('lut',\@ctabs, 'heat') . "<br>\n";
+}
 
-  print "<b>Spectrum settings:</b><br>\n";
-  print "Row or Column range: From ",$query->textfield('rstart','28',4,4);
-  print " to ",$query->textfield('rend','30',4,4);
-  print "   Cut: ",$query->radio_group('cut',['horizontal','vertical']);
-  
-# get xstart xend
+=item B<file_comment_output>
 
-  print "<br> X axis:  ",$query->radio_group('xscale',['autoscaled','set']);
-  print "  from  ",$query->textfield('xstart','',8,8);
-  print "  to  ",$query->textfield('xend','',8,8);
+Submit a comment and create a page with a form for filing a comment.
 
-# get ystart yend
+  file_comment_output( $cgi );
 
-  print "<br> Y axis: ",$query->radio_group('yscale',['autoscaled','set']);
-  print "  from  ",$query->textfield('ystart','',8,20);
-  print "  to  ",$query->textfield('yend','',8,20);
+Only argument should be the C<CGI> object.
+
+=cut
+
+sub file_comment_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Insert the comment into the database.
+  obs_add_comment( $q );
+
+  # Get the updated Info::Obs object.
+  my $obs = cgi_to_obs( $q );
+
+  # Print a summary about the observation.
+  obs_summary( $q, $obs );
+
+  # Display a form for adding a comment.
+  obs_comment_form( $q, $obs, \%cookie );
+
+  # Print a footer
+  print_obscomment_footer( $q );
+
+}
+
+=item B<list_observations>
+
+Create a page containing a list of observations.
+
+  list_observations( $cgi );
+
+Only argument should be the C<CGI> object.
+
+=cut
+
+sub list_observations {
+  my $q = shift;
+  my %cookie = @_;
+
+  print_obslog_header();
+
+  my ($inst, $ut);
+
+  ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
+
+  # We need to get an Info::ObsGroup object for this query object.
+  my $obsgroup;
+  try {
+    $obsgroup = cgi_to_obsgroup( $q, $ut, $inst );
+    print "<h2>Observations for $inst on $ut</h2><br>\n";
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  }
+  otherwise {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  };
+
+  # And display the table.
+  my %options;
+  $options{'showcomments'} = 1;
+  $options{'ascending'} = 0;
+  try {
+    obs_table( $obsgroup, \%options );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  }
+  otherwise {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  };
+  print_obslog_footer( $q );
+
+}
+
+=item B<obs_table>
+
+Prints an HTML table containing a summary of information about a
+group of observations.
+
+  obs_table( $obsgroup, $options );
+
+The first argument is the C<OMP::Info::ObsGroup>
+object, and the second optional argument tells the function how to
+display things. It is a hash reference optionally containing the
+following keys:
+
+=over 4
+
+=item *
+
+showcomments - Boolean on whether or not to print comments [true].
+
+=item *
+
+ascending - Boolean on if observations should be printed in
+chronologically ascending or descending order [true].
+
+=back
+
+This function will print a colour legend before the table.
+
+=cut
+
+sub obs_table {
+  my $obsgroup = shift;
+  my $options = shift;
+
+# Verify the ObsGroup object.
+  if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
+    throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
+  }
+
+  print "&nbsp;Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font><br>\n";
+  print "<table border=\"1\">\n<tr><td>";
+
+  # Print the headers.
+  my @obsarray = $obsgroup->obs;
+  my $obs = $obsarray[0];
+  if( defined( $obs ) ) {
+    my %nightlog = $obs->nightlog;
+    print join("</td><td>", @{$nightlog{_ORDER}} );
+    print "</td><td>Comments</td></tr>\n";
+  } else {
+    print "No observations available";
+  }
+
+  # Sort the array according to the observation time.
+  if( defined($options->{ascending}) &&
+      $options->{ascending} == 0 ) {
+    @obsarray = sort { $b->startobs->epoch <=> $a->startobs->epoch } @obsarray;
+  } else {
+    @obsarray = sort { $a->startobs->epoch <=> $a->startobs->epoch } @obsarray;
+  }
+
+  # Print each observation.
+  foreach $obs ( @obsarray ) {
+
+    my %nightlog = $obs->nightlog;
+    my $comments = $obs->comments;
+    my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
+    my $colour = defined( $status ) ? $colour[$status] : $colour[0];
+    my $instrument = $obs->instrument;
+    print "<tr><td><font color=\"$colour\">";
+    print join("</font></td><td><font color=\"$colour\">" , map {
+      ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
+    } @{$nightlog{_ORDER}} );
+    print "</font></td><td><a href=\"obscomment.pl?ut=";
+    my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+    $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+    print $obsut;
+    print "&runnr=" . $obs->runnr . "&inst=" . $instrument . "\">edit/view</a></td></tr>\n";
+
+    # Print the comments underneath, if there are any, and if the
+    # 'showcomments' parameter is not '0'.
+    if( defined( $comments ) &&
+        defined( $comments->[0] ) &&
+        defined( $options->{showcomments} ) &&
+        $options->{showcomments} != '0' ) {
+
+      print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\">";
+      my @printstrings;
+      foreach my $comment (@$comments) {
+        my $string = "<font color=\"";
+        $string .= $colour[$comment->status];
+        $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->userid . ":";
+        $string .= "</strong> " . $comment->text;
+        $string .= "</font>";
+        push @printstrings, $string;
+      }
+      if($#printstrings > -1) {
+        print join "<br>", @printstrings;
+      };
+      print "</td></tr>\n";
+    }
+  }
+
+  print "</td></tr></table>";
+}
+
+=item B<obs_summary>
+
+Prints a table containing a summary about a given observation
+
+  obs_summary( $cgi, $obs );
+
+The first argument is a C<CGI> object, and the second is an
+C<Info::Obs> object.
+
+=cut
+
+sub obs_summary {
+  my $cgi = shift;
+  my $obs = shift;
+
+  # Verify that we do have an Info::Obs object.
+  if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
+    throw OMP::Error::BadArgs("Must supply an Info::Obs object");
+  }
+
+  my @comments = $obs->comments;
+
+  print "<table border=\"1\">\n";
+  print "<tr><td><strong>Instrument</strong></td><td><strong>Observation date</strong></td><td><strong>Run number</strong></td></tr>\n";
+  print "<tr><td>";
+  print $obs->instrument;
+  print "</td><td>";
+  print $obs->startobs;
+  print "</td><td>";
+  print $obs->runnr;
+  print "</td></tr></table>\n";
+
+  if( defined( $comments[0] ) ) {
+    print "<table border=\"1\" width=\"100%\">";
+    foreach my $comment ( @comments ) {
+      print "<tr><td width=\"20%\">";
+      print $comment->author->userid, "<br>", $comment->date->cdate, "<br>";
+      if($comment->status == OMP__OBS_GOOD) {
+        print "GOOD";
+      } elsif($comment->status == OMP__OBS_QUESTIONABLE) {
+        print "QUESTIONABLE";
+      } elsif($comment->status == OMP__OBS_BAD) {
+        print "BAD";
+      } else {
+        print "unknown";
+      }
+      print "</td><td valign=\"top\">";
+      print $comment->text;
+      print "</td></tr>\n";
+    }
+    print "</table>\n";
+  }
+}
+
+=item B<obs_inst_summary>
+
+Prints a table summarizing observations taken for a telescope,
+broken up by instrument.
+
+  ( $inst, $ut ) = obs_inst_summary( $q );
+
+The first argument must be a C<CGI> object.
+
+The function will return the name of the active instrument in the
+table and the UT date for the observations. These two values are
+normally given in the C<CGI> object.
+
+An instrument is "active" if it is given in the C<CGI> object. If
+no instrument is defined in the C<CGI> object, then the first
+instrument in the table (listed alphabetically) that has one or
+more observations for the UT date is considered "active".
+
+If a UT date is not supplied in the C<CGI> object, then the returned
+UT date will be the current one, and the table will give a summary
+of observations for the current UT date.
+
+=cut
+
+sub obs_inst_summary {
+  my $q = shift;
+  my $cookie = shift;
+
+  my $qv = $q->Vars;
+
+  my $ut = ( defined( $qv->{'ut'} ) ? $qv->{'ut'} : OMP::General->today() );
+
+  my $firstinst;
+  if( defined( $qv->{'inst'} ) ) {
+    $firstinst = $qv->{'inst'};
+  }
+
+  my $telescope;
+  # Form an instrument array, depending on where we're at. If we don't know
+  # where we are, just push every single instrument onto the array.
+  #
+  # First, check the 'projectid' in the cookie.
+  my $projectid = $cookie->{'projectid'};
+  if( defined( $projectid ) && ! OMP::General->am_i_staff( $projectid ) ) {
+    my $proj = new OMP::ProjDB( ProjectID => $projectid,
+                                DB => new OMP::DBbackend );
+    if( defined( $proj ) ) {
+      $telescope = uc( $proj->telescope );
+    }
+  }
+
+  if( ! defined( $telescope ) ) {
+
+    # Okay, the cookie didn't work, or we're on the staff project.
+    # Check the hostname of the computer the script is running on.
+    # If it's ulili, we're at JCMT. If it's mauiola, we're at UKIRT.
+    # Otherwise, we don't know where we are.
+    my $hostname = hostfqdn;
+    if( $hostname =~ /ulili/i ) {
+      $telescope = "JCMT";
+    } elsif( $hostname =~ /mauiola/i ) {
+      $telescope = "UKIRT";
+    } else {
+      $telescope = "na";
+    }
+  }
+
+  # Now that we know where we are (or not), form the instrument array.
+  my @instarray;
+  if( $telescope eq 'JCMT' ) {
+    push @instarray, 'scuba';
+  } elsif( $telescope eq 'UKIRT' ) {
+    push @instarray, qw/ cgs4 ircam michelle ufti uist /;
+  } else {
+    push @instarray, qw/ scuba cgs4 ircam michelle ufti uist /;
+  }
+
+  # Alright. Now, for each instrument in the array, form an
+  # Info::ObsGroup object.
+  my %results;
+  foreach my $inst ( @instarray ) {
+    my $grp;
+    try {
+      $grp = new OMP::Info::ObsGroup( instrument => uc( $inst ),
+                                      date => $ut,
+                                    );
+    }
+    catch OMP::Error with {
+#      my $Error = shift;
+#      my $errortext = $Error->{'-text'};
+#      print "Error: $errortext<br>\n";
+    }
+    otherwise {
+#      my $Error = shift;
+#      my $errortext = $Error->{'-text'};
+#      print "Error: $errortext<br>\n";
+    };
+    if( defined( $grp ) ) {
+      $results{$inst} = $grp;
+    }
+  }
+
+  my @printarray;
+  print "<table border=\"1\"><tr><td><strong>";
+  foreach my $inst ( sort keys %results ) {
+    my $header = "<a href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
+    push @printarray, $header;
+    if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
+      $firstinst = $inst;
+    }
+  }
+  print join "</strong></td><td><strong>", @printarray;
+  print "</strong></td></tr></table><br>\n";
+
+  return ( $firstinst, $ut );
+
+}
+
+=item B<obs_comment_form>
+
+Prints a form that is used to enter a comment about an observation.
+
+  obs_comment_form( $cgi, $obs, $cookie );
+
+The first argument must be a C<CGI> object, the second must be an
+C<Info::Obs> object, and the third is a hash reference containing
+cookie information.
+
+=cut
+
+sub obs_comment_form {
+  my $q = shift;
+  my $obs = shift;
+  my $cookie = shift;
+
+  my %status_label = ( '0' => 'Good',
+                       '1' => 'Questionable',
+                       '2' => 'Bad' ) ;
+  my @status_value = qw/ 0 1 2 /;
+
+  # Verify we have an Info::Obs object.
+  if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
+    throw OMP::Error::BadArgs("Must supply Info::Obs object");
+  }
+
+  print $q->startform;
+  print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
+  print "Author: </td><td>";
+
+  print $q->textfield( -name => 'user',
+                       -size => '16',
+                       -maxlength => '90',
+                       -default => $cookie->{user},
+                     );
+
+  print "</td></tr>\n";
+  print "<tr><td>Status: </td><td>";
+
+  my $status;
+  my $comments = $obs->comments;
+  if( defined( $comments ) &&
+      defined( $comments->[0] ) ) {
+    $status = $comments->[0]->status;
+  } else {
+    $status = OMP__OBS_GOOD;
+  }
+
+  print $q->popup_menu( -name => 'status',
+                        -values => \@status_value,
+                        -labels => \%status_label,
+                        -default => $status,
+                        );
+
+  print "</td></tr>\n";
+  print "<tr><td colspan=\"2\">";
+
+  print $q->textarea( -name => 'text',
+                      -rows => 20,
+                      -columns => 78,
+                    );
+
+  my $ut = $obs->startobs->ymd;
+  my $runnr = $obs->runnr;
+  my $instrument = $obs->instrument;
+  print $q->hidden( -name => 'ut',
+                    -value => $ut,
+                  );
+  print $q->hidden( -name => 'runnr',
+                    -value => $runnr,
+                  );
+  print $q->hidden( -name => 'inst',
+                    -value => $instrument,
+                  );
+
+  print "</td></tr>\n<tr><td colspan=\"2\">";
+
+  print $q->submit( -name => 'Submit Comment' );
+
+  print "</td></tr></table>\n";
+
+  print $q->endform;
+
+}
+
+=item B<obs_add_comment>
+
+Store a comment in the database.
+
+  obs_add_comment( $cgi );
+
+The only argument should be the C<CGI> object.
+
+=cut
+
+sub obs_add_comment {
+  my $q = shift;
+
+  # Set up variables.
+  my $qv = $q->Vars;
+  my $user = $qv->{'user'};
+  my $status = $qv->{'status'};
+  my $text = ( defined( $qv->{'text'} ) ? $qv->{'text'} : "" );
+
+  if( ! defined($user)) {
+#    print "Must supply user in order to store a comment.<br>\n";
+    return;
+  }
+
+  # Get the Info::Obs object from the CGI object
+  my $obs = cgi_to_obs( $q );
+
+  # Get the OMP::User object.
+  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+  my $user_obj = $udb->getUser( $user );
+
+  if( ! defined( $user_obj ) ) {
+    print "Must supply valid user in order to store a comment.<br>\n";
+    return;
+  }
+
+  # Form the Info::Comment object.
+  my $comment = new OMP::Info::Comment( author => $user_obj,
+                                        text => $text,
+                                        status => $status,
+                                      );
+
+  # Store the comment in the database.
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  $odb->addComment( $comment, $obs );
+
+  # Display congratulatory message.
+  print "Comment successfully stored in database.<br>\n";
+
+}
+
+=item B<cgi_to_obs>
+
+Given a C<CGI> object, return an C<Info::Obs> object.
+
+  $obs = cgi_to_obs( $cgi );
+
+In order for this method to work properly, the C<CGI> object
+must have the following variables:
+
+=over 4
+
+=item *
+
+ut - In the form YYYY-MM-DD-hh-mm-ss, where the month, day, hour,
+minute and second can be optionally zero-padded. The month is 1-based
+(i.e. a value of "1" is January) and the hour is 0-based and based on
+the 24-hour clock.
+
+=item *
+
+runnr - The run number of the observation.
+
+=item *
+
+inst - The instrument that the observation was taken with. Case-insensitive.
+
+=back
+
+=cut
+
+sub cgi_to_obs {
+  my $q = shift;
+
+  my $qv = $q->Vars;
+  my $ut = $qv->{'ut'};
+  my $runnr = $qv->{'runnr'};
+  my $inst = uc( $qv->{'inst'} );
+
+  # Form the Time::Piece object
+  my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
+
+  # Form the Info::Obs object.
+  my $obs = new OMP::Info::Obs( runnr => $runnr,
+                                startobs => $startobs,
+                                instrument => $inst,
+                              );
+
+  # Comment-ise the Info::Obs object.
+  my @obs;
+  push @obs, $obs;
+  my $db = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  $db->updateObsComment( \@obs );
+  $obs = $obs[0];
+
+  # And return the Info::Obs object.
+  return $obs;
+
+}
+
+=item B<cgi_to_obsgroup>
+
+Given a C<CGI> object, return an C<Info::ObsGroup> object.
+
+  $obsgroup = cgi_to_obsgroup( $cgi, $ut, $inst, $projid );
+
+In order for this method to work properly, the C<CGI> object
+should have the following variables:
+
+=over 4
+
+=item *
+
+ut - In the form YYYY-MM-DD.
+
+=item *
+
+inst - The instrument that the observation was taken with. Case-insensitive.
+
+=item *
+
+projid - The project ID for which observations will be returned.
+
+=back
+
+The C<inst> and C<projid> variables are optional, but either one or the
+other (or both) must be defined.
+
+The last three parameters are optional and will override any values found
+in the C<CGI> object passed as the first parameter.
+
+=cut
+
+sub cgi_to_obsgroup {
+  my $q = shift;
+  my $ut = shift;
+  my $inst = uc( shift );
+  my $projid = shift;
+
+  my $qv = $q->Vars;
+  $ut = ( defined( $ut ) ? $ut : $qv->{'ut'} );
+  $inst = ( defined( $inst ) ? $inst : uc( $qv->{'inst'} ) );
+  $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
+
+  if( !defined( $ut ) ) {
+    throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
+  }
+
+  my $grp;
+
+  if( defined( $projid ) ) {
+    if( defined( $inst ) ) {
+      $grp = new OMP::Info::ObsGroup( date => $ut,
+                                      instrument => $inst,
+                                      projectid => $projid );
+    } else {
+      $grp = new OMP::Info::ObsGroup( date => $ut,
+                                      projectid => $projid );
+    }
+  } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
+    $grp = new OMP::Info::ObsGroup( date => $ut,
+                                    instrument => $inst );
+  } else {
+    throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
+  }
+
+  return $grp;
+
+}
+
+=item B<print_obslog_header>
+
+Prints a header for obslog.
+
+  print_obslog_header();
+
+There are no arguments.
+
+=cut
+
+sub print_obslog_header {
+  print <<END;
+Welcome to obslog. <a href="#changeut">Change the UT date</a><br>
+<hr>
+END
+};
+
+
+
+=item B<print_obslog_footer>
+
+Print a footer that allows for changing of the UT date.
+
+  print_obslog_footer( $cgi );
+
+Only argument is the C<CGI> object.
+
+=cut
+
+sub print_obslog_footer {
+  my $q = shift;
+
+  my $qv = $q->Vars;
+
+  print "<br>\n";
+  print $q->startform;
+
+  if(defined($qv->{'inst'})) {
+    print $q->hidden( -name => 'inst',
+                      -value => $qv->{'inst'},
+                    );
+  }
+
+  print "<a name=\"changeut\">Enter</a> new UT date (yyyy-mm-dd format): ";
+  print $q->textfield( -name => 'ut',
+                       -default => ( defined( $qv->{'ut'} ) ?
+                                     $qv->{'ut'} :
+                                     "" ),
+                       -size => '16',
+                       -maxlength => '10',
+                     );
 
   print "<br>\n";
 
-  print $query->hidden(-name=>'file', -default=>[$file]);
-  print $query->hidden(-name=>'view', -default=>['yes']);
-  print $query->hidden(-name=>'instrument', -default=>[$instrument]);
-  print $query->hidden(-name=>'obstype', -default=>[$obstype]);
-
-  print $query->submit('modify');
-  print $query->defaults('defaults');
-
-  print $query->endform;
+  print $q->submit( -name => 'Submit New UT' );
+  print $q->endform;
 }
 
-=item B<verify_query>
+=item B<print_obscomment_footer>
 
-Verifies values in a CGI query hash. To be used for the CGI query object
-formed when the form printed by B<print_display_properties> is submitted.
+Prints a footer that gives a link back to obslog.
 
-  verify_query( \%query, \%verified );
+  print_obscomment_footer( $cgi );
 
-The query argument must be a hash reference optionally containing observation
-information as follows (listed are valid keys that will be verified):
-
-=over 8
-
-=item * 'view' - list all observations for a given instrument? ( yes | no )
-
-=item * 'file' - filename of observation, not including path.
-
-=item * 'instrument' - instrument name
-
-=item * 'type' - type of image ( image | spectrum )
-
-=item * 'obstype' - type of observation ( raw | reduced )
-
-=item * 'cut' - row or column cut ( horizontal | vertical )
-
-=item * 'rstart' - starting row/column for cut
-
-=item * 'rend' - ending row/column for cut
-
-=item * 'xscale' - scale the spectrum's x-dimension? ( autoscaled | set )
-
-=item * 'xstart' - starting position for scaled x-dimension
-
-=item * 'xend' - ending position for scaled x-dimension
-
-=item * 'yscale' - scale the spectrum's y-dimension? ( autoscaled | set )
-
-=item * 'ystart' - starting position for scaled y-dimension
-
-=item * 'yend' - ending position for scaled y-dimension
-
-=item * 'autocut' - scale data by cutting percentages ( 100 | 99 | 98 | 95 | 90 | 80 | 70 | 50 )
-
-=item * 'xcrop' - crop the image's x-dimension? ( full | crop )
-
-=item * 'xcropstart' - starting positon for cropped x-dimension
-
-=item * 'xcropend' - ending position for cropped x-dimension
-
-=item * 'ycrop' - crop the image's y-dimension? ( full | crop )
-
-=item * 'ycropstart' - starting position for cropped y-dimension
-
-=item * 'ycropend' - ending position for cropped y dimension
-
-=item * 'lut' - lookup table for colour tables. Should be one of the colour
-tables in PDL::Graphics::LUT;
-
-=item * 'size' - size of output graphic ( 128 | 640 | 960 | 1280 )
-
-=item * 'ut' - UT date for which observations are displayed, of
-the form yyyy-mm-dd.
-
-=item * 'runnr' - run number of observation
-
-=item * 'uttime' - time at which observation was taken (of the form
-hhmmss -- notice there are no colons separating hours, minutes, and
-seconds).
-
-=back
-
-The verified argument will contain verified values for use by routines
-in the observation tool.
+The only argument is the C<CGI> object.
 
 =cut
 
-sub verify_query {
+sub print_obscomment_footer {
   my $q = shift;
-  my $v = shift;
+  my $qv = $q->Vars;
 
-  if($q->{view}) {
+  $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
 
-# The 'view' parameter must be either yes or no.
-# Default to 'no'.
-
-    if($q->{view} eq 'yes') {
-      $v->{view} = 'yes';
-    } else {
-      $v->{view} = 'no';
-    }
-  } else {
-    $v->{view} = 'no';
-  }
-
-  if($q->{file}) {
-
-# The 'file' parameter must be just a filename. No pipes, slashes, or other weird
-# characters that can allow for shell manipulation. If it doesn't match the proper
-# format, set it to an empty string.
-
-    # first, strip out anything that's not a letter, a digit, an underscore, or a period
-    my $t_file = $q->{file};
-    $t_file =~ s/[^a-zA-Z0-9\._]//g;
-
-    # now check to make sure it's in some sort of format -- one or two letters, eight digits,
-    # an underscore, and ending with .sdf
-    if($t_file =~ /^[a-zA-Z]{1,2}\d{8}_\w+\.sdf$/) {
-      $v->{file} = $t_file;
-    } else {
-      $v->{file} = '';
-    }
-  } else {
-    $v->{file} = '';
-  }
-
-  if($q->{instrument}) {
-
-# The 'instrument' parameter must match one of the strings listed in the @instrument array.
-# If it doesn't, set it to an empty string.
-
-    # first, strip out anything that's not a letter or a number
-    my $t_instrument = $q->{instrument};
-    $t_instrument =~ s/[^a-zA-Z0-9]//g;
-
-    # this parameter needs to match exactly one of the strings listed in @instruments
-    my $match = 0;
-    foreach my $t_inst (@instruments) {
-      if($t_instrument eq $t_inst) {
-        $v->{instrument} = $t_inst;
-        $match = 1;
-      }
-    }
-    if ($match == 0) {
-      $v->{instrument} = "";
-    }
-  } else {
-    $v->{instrument} = '';
-  }
-
-  if($q->{obstype}) {
-
-# The 'obstype' parameter must be either 'raw' or 'reduced'.
-# Default to 'reduced'.
-    if($q->{obstype} eq 'raw') {
-      $v->{obstype} = 'raw';
-    } else {
-      $v->{obstype} = 'reduced';
-    }
-  } else {
-    $v->{obstype} = 'reduced';
-  }
-
-  if($q->{all}) {
-
-# The 'all' parameter must be either 'yes' or 'no'.
-# Default to 'no'.
-    if($q->{all} eq 'yes') {
-      $v->{all} = 'yes';
-    } else {
-      $v->{all} = 'no';
-    }
-  } else {
-    $v->{all} = 'no';
-  }
-
-  if($q->{rstart}) {
-
-# The 'rstart' parameter must be digits.
-    $v->{rstart} = $q->{rstart};
-    $v->{rstart} =~ s/[^0-9]//g;
-  } else {
-    $v->{rstart} = 0;
-  }
-
-  if($q->{rend}) {
-
-# The 'rend' parameter must be digits.
-    $v->{rend} = $q->{rend};
-    $v->{rend} =~ s/[^0-9]//g;
-  } else {
-    $v->{rend} = 0;
-  }
-
-  if($q->{cut}) {
-
-# The 'cut' parameter must be either 'horizontal' or 'vertical'.
-# Default to 'horizontal'.
-    if($q->{cut} eq 'vertical') {
-      $v->{cut} = 'vertical';
-    } else {
-      $v->{cut} = 'horizontal';
-    }
-  } else {
-    $v->{cut} = 'horizontal';
-  }
-
-  if($q->{xscale}) {
-
-# The 'xscale' parameter must be either 'autoscaled' or 'set'.
-# Default to 'autoscaled'.
-    if($q->{xscale} eq 'set') {
-      $v->{xscale} = 'set';
-    } else {
-      $v->{xscale} = 'autoscaled';
-    }
-  } else {
-    $v->{xscale} = 'autoscaled';
-  }
-
-  if($q->{xstart}) {
-
-# The 'xstart' parameter must be digits.
-    $v->{xstart} = $q->{xstart};
-    $v->{xstart} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{xstart} = 0;
-  }
-
-  if($q->{xend}) {
-
-# The 'xend' parameter must be digits.
-    $v->{xend} = $q->{xend};
-    $v->{xend} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{xend} = 0;
-  }
-
-  if($q->{yscale}) {
-
-# The 'yscale' parameter must be either 'autoscaled' or 'set'.
-# Default to 'autoscaled'.
-    if($q->{yscale} eq 'set') {
-      $v->{yscale} = 'set';
-    } else {
-      $v->{yscale} = 'autoscaled';
-    }
-  } else {
-    $v->{yscale} = 'autoscaled';
-  }
-
-  if($q->{ystart}) {
-
-# The 'ystart' parameter must be a number. This can include
-# exponents (like 1.0e-12)
-
-    $v->{ystart} = $q->{ystart};
-    $v->{ystart} =~ s/[^0-9\.e\-]//g;
-  } else {
-    $v->{ystart} = 0;
-  }
-
-  if($q->{yend}) {
-
-# The 'yend' parameter must be a number. This can include
-# exponents (like 1.0e-12)
-    $v->{yend} = $q->{yend};
-    $v->{yend} =~ s/[^0-9\.e\-]//g;
-  } else {
-    $v->{yend} = 0;
-  }
-
-  if($q->{type}) {
-
-# The 'type' parameter must be either 'image' or 'spectrum'.
-# Default to 'image'.
-    if($q->{type} eq 'spectrum') {
-      $v->{type} = 'spectrum';
-    } else {
-      $v->{type} = 'image';
-    }
-  } else {
-    $v->{type} = 'image';
-  }
-
-  if($q->{autocut}) {
-
-# The 'autocut' parameter must be digits.
-# Default to '100'.
-    $v->{autocut} = $q->{autocut};
-    $v->{autocut} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{autocut} = 100;
-  }
-
-  if($q->{xcrop}) {
-
-# The 'xcrop' parameter must be either 'full' or 'crop'.
-# Default to 'full'.
-    if($q->{xcrop} eq 'crop') {
-      $v->{xcrop} = 'crop';
-    } else {
-      $v->{xcrop} = 'full';
-    }
-  } else {
-    $v->{xcrop} = 'full';
-  }
-
-  if($q->{xcropstart}) {
-
-# The 'xcropstart' parameter must be digits.
-# Default to '0'.
-    $v->{xcropstart} = $q->{xcropstart};
-    $v->{xcropstart} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{xcropstart} = 0;
-  }
-
-  if($q->{xcropend}) {
-
-# The 'xcropend' parameter must be digits.
-# Default to '0'.
-    $v->{xcropend} = $q->{xcropend};
-    $v->{xcropend} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{xcropend} = 0;
-  }
-
-  if($q->{ycrop}) {
-
-# The 'ycrop' parameter must be either 'full' or 'crop'.
-# Default to 'full'.
-    if($q->{ycrop} eq 'crop') {
-      $v->{ycrop} = 'crop';
-    } else {
-      $v->{ycrop} = 'full';
-    }
-  } else {
-    $v->{ycrop} = 'full';
-  }
-
-  if($q->{ycropstart}) {
-
-# The 'ycropstart' parameter must be digits.
-# Default to '0'.
-    $v->{ycropstart} = $q->{ycropstart};
-    $v->{ycropstart} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{ycropstart} = 0;
-  }
-
-  if($q->{ycropend}) {
-
-# The 'ycropend' parameter must be digits.
-# Default to '0'.
-    $v->{ycropend} = $q->{ycropend};
-    $v->{ycropend} =~ s/[^0-9\.]//g;
-  } else {
-    $v->{ycropend} = 0;
-  }
-
-  if($q->{lut}) {
-
-# The 'lut' parameter must be one of the standard lookup tables.
-# Default is 'standard'.
-
-    # first, strip out anything that's not a letter or a number
-    my $t_lut = $q->{lut};
-    $t_lut =~ s/[^a-zA-Z0-9]//g;
-
-    # this parameter needs to match exactly one of the strings listed in @ctabs
-    my $match = 0;
-    foreach my $t_ctab (@ctabs) {
-      if($t_lut eq $t_ctab) {
-        $v->{lut} = $t_ctab;
-        $match = 1;
-      }
-    }
-    if ($match == 0) {
-      $v->{lut} = 'heat';
-    }
-  } else {
-    $v->{lut} = 'heat';
-  }
-
-  if($q->{size}) {
-
-# The 'size' parameter must be [128 | 640 | 960 | 1280]
-# Default is '640'.
-    $v->{size} = $q->{size};
-    $v->{size} =~ s/[^0-9]//;
-  } else {
-    $v->{size} = 640;
-  }
-
-  if($q->{ut}) {
-
-# The 'ut' paramter must be in the form yyyy-mm-dd.
-    my $t_ut = $q->{ut};
-    if($t_ut =~ /\d{4}-\d\d-\d\d/) {
-      $v->{ut} = $t_ut;
-    }
-  }
-
-  if($q->{runnr}) {
-
-# The 'runnr' parameter must be an integer.
-    ($v->{runnr} = $q->{runnr}) =~ s/[^0-9]//g;
-  }
-
-  if($q->{uttime}) {
-
-# The 'uttime' parameter must be an integer.
-    ($v->{uttime} = $q->{uttime}) =~ s/[^0-9]//g;
-  }
+  print "<br>\n";
+  print "<a href=\"obslog.pl?ut=$1&inst=" . $qv->{'inst'} . "\">back to obslog</a>\n";
 }
 
-=back
-
-=head1 AUTHOR
-
-Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
-All Rights Reserved.
-
-=cut
 
 1;
