@@ -314,7 +314,7 @@ sub populate {
   # have to massage the entries removing other science observations.
   if ($inccal && exists $args{projectid}) {
 
-    my @newobs = grep { uc($_->projectid) eq $args{projectid} 
+    my @newobs = grep { uc($_->projectid) eq uc($args{projectid}) 
 			  || ! $_->isScience  } $self->obs;
 
     # store it [comments will already be attached]
