@@ -897,14 +897,19 @@ sub _populate {
   # are allocated to the project rather than shared. This is
   # not true for SCUBA. For UKIRT we will have to set things up
   # so that calibrations are not shared amongst projects at all
-  $self->calType($self->projectid);
+  if( defined( $self->projectid ) ) {
+    $self->calType($self->projectid);
+  }
 
   # Build the Astro::Coords object
 
   # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
   # Astro::Coords object for us. Hooray!
 
-  if( $generic_header{'INSTRUMENT'} =~ /scuba/i ) {
+  if( $generic_header{'INSTRUMENT'} =~ /scuba/i &&
+      exists( $generic_header{'COORDINATE_TYPE'} ) &&
+      defined( $generic_header{'COORDINATE_TYPE'} ) ) {
+
     require SCUBA::ODF;
     my $odfobject = new SCUBA::ODF( HdrHash => $header );
 
