@@ -832,11 +832,20 @@ sub _mail_information {
 		 Type=>$type,
 		 Encoding=>'8bit',);
 
+  # Get rid of duplicate users
+  my %users;
+  %{$users{to}} = map {$_->userid, $_} @{$args{to}};
+
+  if ($args{cc}) {
+    %{$users{cc}} = map {$_->userid, $_}
+      grep {! $users{to}{$_->userid}} @{$args{cc}};
+  }
+
   # Form To and Cc address lists
   for my $hdr (qw/ To Cc /) {
-    if (exists $args{lc($hdr)}) {
-      $details{$hdr} = join(',', map {$_->as_email_hdr}
-			    grep {$_->email} @{$args{lc($hdr)}});
+    if (%{$users{lc($hdr)}}) {
+      $details{$hdr} = join(',', map {$users{lc($hdr)}{$_}->as_email_hdr}
+			    grep {$users{lc($hdr)}{$_}->email} keys %{$users{lc($hdr)}});
     }
   }
 
