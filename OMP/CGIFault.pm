@@ -133,6 +133,15 @@ sub file_fault_output {
     return;
   }
 
+  # Make sure user is valid
+  my $user = OMP::UserServer->getUser($q->param('user'));
+  if (! $user) {
+    push @title, "The user ID you entered does not exist.  Please enter another and submit again";
+    titlebar($q ,["File Fault", join('<br>',@title)], %cookie);
+    file_fault_form(cgi => $q,
+		    cookie => \%cookie,);
+  }
+
   my %status = OMP::Fault->faultStatus;
 
   # Get the fault details
