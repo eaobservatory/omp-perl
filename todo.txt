@@ -89,3 +89,12 @@ ProjServer
    to retrieve the science program
 
      [done]
+
+- Allow for <semester> </semester> queries. If semester is not specified
+  default to current semester. This allows override queries to be on
+  SERV or JAC for example.
+
+- Add support for <name> query to work without false positives. 
+  ie use jennesst - this requires special name field in proj table
+  containing : separated list of ids for all coi and pi names.
+
