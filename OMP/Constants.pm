@@ -32,8 +32,9 @@ my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT OMP__DONE_UNDONE/;
 my @msb = qw/ OMP__MSB_REMOVED /;
+my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
 
-@EXPORT_OK = (@status, @fb, @done, @msb);
+@EXPORT_OK = (@status, @fb, @done, @msb, @obs);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -41,6 +42,7 @@ my @msb = qw/ OMP__MSB_REMOVED /;
 		'fb' =>\@fb,
 		'msb' => \@msb,
 		'done'=> \@done,
+    'obs' => \@obs,
 	       );
 
 Exporter::export_tags( keys %EXPORT_TAGS);
@@ -195,6 +197,32 @@ use constant OMP__MSB_REMOVED => -999;
 
 =back
 
+=head2 Observation status
+
+=item OMP__OBS_GOOD
+
+Flags an observation as good.
+
+=cut
+
+use constant OMP__OBS_GOOD => 0;
+
+=item OMP__OBS_QUESTIONABLE
+
+Flags an observation as questionable -- neither good nor bad.
+
+=cut
+
+use constant OMP__OBS_QUESTIONABLE => 1;
+
+=item OMP__OBS_BAD
+
+Flags an observation as bad.
+
+=cut
+
+use constant OMP__OBS_BAD => 2;
+
 =head1 TAGS
 
 Individual sets of constants can be imported by 
@@ -228,6 +256,10 @@ Constants associated with the MSB done table.
 
 Constants associated with MSBs.
 
+=item :obs
+
+Constants associated with observation statuses.
+
 =back
 
 =head1 USAGE
@@ -254,9 +286,9 @@ $Id$
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
-Frossie Economou E<lt>frossie@jach.hawaii.eduE<gt> and
-Kynan Delorey E<lt>kynan@jach.hawaii.eduE<gt>.
-
+Frossie Economou E<lt>frossie@jach.hawaii.eduE<gt>,
+Kynan Delorey E<lt>kynan@jach.hawaii.eduE<gt>, and
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 REQUIREMENTS
 
