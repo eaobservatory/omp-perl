@@ -50,14 +50,8 @@ my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
                        );
 
-my $ut;
-my $time = gmtime;
-my $currentut = $time->ymd;
-if(defined($opt{ut}) && ( $opt{ut} =~ /^(\d{4})-?(\d\d)-?(\d\d)$/ ) ) {
-  $ut = "$1-$2-$3";
-} else {
-  $ut = $currentut;
-};
+my $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
+my $currentut = OMP::General->today;
 my $utdisp = "Current UT date: $ut";
 
 my $user;
@@ -66,37 +60,11 @@ my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
 } else {
-  my $tel = OMP::Config->getData( 'defaulttel' );
-  if( ref($tel) eq "ARRAY" ) {
-    require Tk::DialogBox;
-    require Tk::LabEntry;
-    my $newtel;
-    my $w = new MainWindow;
-    my $dbox = $w->DialogBox( -title => "Select telescope",
-                              -buttons => ["Accept","Cancel"],
-                            );
-    my $txt = $dbox->add('Label',
-                         -text => "Select telescope for obslog",
-                        )->pack;
-    foreach my $ttel ( @$tel ) {
-      my $rad = $dbox->add('Radiobutton',
-                           -text => $ttel,
-                           -value => $ttel,
-                           -variable => \$newtel,
-                          )->pack;
-    }
-    $w->withdraw();
-    my $but = $dbox->Show;
-
-    if( $but eq 'Accept' && $newtel ne '') {
-      $telescope = uc($newtel);
-    } else {
-      exit; # Hrm.
-    }
-    $w->destroy;
-  } else {
-    $telescope = uc($tel);
-  }
+  my $w = new MainWindow;
+  $w->withdraw;
+  $telescope = OMP::General->determine_tel( $w );
+  $w->destroy;
+  die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
 my $HEADERCOLOUR = 'midnightblue';
