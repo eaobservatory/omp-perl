@@ -101,7 +101,7 @@ my $term = new Term::ReadLine 'Disable or enable a project';
 # Get administrator password
 my $attribs = $term->Attribs;
 $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $password = $term->readline( "Please enter administrator password: ");
+my $password = $term->readline( "Please enter the staff password: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
 print "\n";
