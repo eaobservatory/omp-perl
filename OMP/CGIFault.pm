@@ -80,113 +80,8 @@ sub file_fault {
   my $q = shift;
   my %cookie = @_;
 
-  # Get a new key for this form
-  my $formkey = OMP::KeyServer->genKey;
-
-  # Create values and labels for the popup_menus
-  my $systems = OMP::Fault->faultSystems($cookie{category});
-  my @system_values = map {$systems->{$_}} sort keys %$systems;
-  my %system_labels = map {$systems->{$_}, $_} keys %$systems;
-
-  my $types = OMP::Fault->faultTypes($cookie{category});
-  my @type_values = map {$types->{$_}} sort keys %$types;
-  my %type_labels = map {$types->{$_}, $_} keys %$types;
-
   titlebar($q, ["File Fault"], %cookie);
-
-  print "<table border=0 cellspacing=4><tr>";
-  print $q->startform;
-
-  # Embed the key
-  print $q->hidden(-name=>'formkey',
-		   -default=>$formkey);
-
-  # Need the show_output param in order for the output code ref to be called next
-  print $q->hidden(-name=>'show_output',
-		   -default=>'true');
-
-  print "<td align=right><b>User:</b></td><td>";
-  print $q->textfield(-name=>'user',
-		      -size=>'16',
-		      -maxlength=>'90',
-		      -default=>$cookie{user},);
-
-  print "</td><tr><td align=right><b>System:</b></td><td>";
-  print $q->popup_menu(-name=>'system',
-		       -values=>\@system_values,
-		       -default=>\$system_values[0],
-		       -labels=>\%system_labels,);
-  print "</td><tr><td align=right><b>Type:</b></td><td>";
-  print $q->popup_menu(-name=>'type',
-		       -values=>\@type_values,
-		       -default=>\$type_values[0],
-		       -labels=>\%type_labels,);
-
-  # If we're using the bug report system don't
-  # provide fields for taking "time lost" and "time of fault"
-  if ($cookie{category} !~ /bug/i) {
-    print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
-    print $q->textfield(-name=>'loss',
-			-default=>'0',
-			-size=>'4',
-			-maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault:</td><td>";
-    print $q->textfield(-name=>'time',
-			-size=>20,
-			-maxlength=>128,);
-    print "<b>";
-    print $q->radio_group(-name=>'tz',
-			  -values=>['UT','HST'],
-			  -default=>'UT',);
-    # print "</b><br><font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font><b>";
-  }
-
-  print "</b>";
-  print "</td><tr><td align=right><b>Subject:</b></td><td>";
-  print $q->textfield(-name=>'subject',
-		      -size=>'60',
-		      -maxlength=>'256',);
-  print "</td><tr><td colspan=2>";
-  print $q->textarea(-name=>'message',
-		     -rows=>20,
-		     -columns=>78,);
-
-  # If were in the ukirt or jcmt fault categories create a checkbox group
-  # for specifying an association with projects.
-
-  if ($cookie{category} =~ /(jcmt|ukirt)/i) {
-    # Values for checkbox group will be tonights projects
-    my $aref = OMP::MSBServer->observedMSBs({
-					     usenow => 1,
-					     format => 'data',
-					     returnall => 0,});
-    if (@$aref[0]) {
-      my %projects;
-      for (@$aref) {
-	$projects{$_->projectid} = $_->projectid;
-      }
-      print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
-      print $q->checkbox_group(-name=>'assoc',
-			       -values=>[keys %projects] );
-      print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
-    } else {
-      print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
-    }
-    print "<font size=-1>(separated by spaces)</font><b>:</b>";
-    print "</td><tr><td colspan=2>";
-    print $q->textfield(-name=>'assoc2',
-		        -size=>50,
-		        -maxlength=>300,);
-  }
-
-  print "</td><tr><td><b>";
-  print $q->checkbox(-name=>'urgency',
-		     -value=>'urgent',
-		     -label=>"This fault is urgent");
-  print "</b></td><td align=right>";
-  print $q->submit(-name=>'Submit Fault');
-  print $q->endform;
-  print "</td></table>";
+  file_fault_form($q, %cookie);
 }
 
 =item B<file_fault_output>
@@ -208,6 +103,29 @@ sub file_fault_output {
   my $verifykey = OMP::KeyServer->verifyKey($formkey);
   croak "Key is invalid [perhaps you already submitted this form?]"
     unless ($verifykey);
+
+  # Make sure all the necessary params were provided
+  my %params = (User => "user",
+		Subject => "subject",
+	        "Fault report" => "message");
+  my @error;
+  for (keys %params) {
+    if (! $q->param($params{$_})) {
+      push @error, $_;
+    }
+  }
+
+  # Put the form back up if params are missing
+  my @title;
+  if ($error[0]) {
+    push @title, "The following fields were not filled in:";
+    titlebar($q, ["File Fault", join('<br>',@title)], %cookie);
+    print "<ul>";
+    print map {"<li>$_"} @error;
+    print "</ul>";
+    file_fault_form($q, %cookie);
+    return;
+  }
 
   my %status = OMP::Fault->faultStatus;
 
@@ -1078,6 +996,156 @@ sub change_status_form {
   
 }
 
+=item B<file_fault_form>
+
+Create a form for filing a fault.  First argument is a C<CGI> query object.  Second
+argument is a hash containing the key 'category' whose value is a valid C<OMP::Fault>
+category.
+
+  file_fault_form($cgi, %cookie);
+
+=cut
+
+sub file_fault_form {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Get a new key for this form
+  my $formkey = OMP::KeyServer->genKey;
+
+  # Create values and labels for the popup_menus
+  my $systems = OMP::Fault->faultSystems($cookie{category});
+  my @system_values = map {$systems->{$_}} sort keys %$systems;
+  my %system_labels = map {$systems->{$_}, $_} keys %$systems;
+
+  my $types = OMP::Fault->faultTypes($cookie{category});
+  my @type_values = map {$types->{$_}} sort keys %$types;
+  my %type_labels = map {$types->{$_}, $_} keys %$types;
+
+  # Set defaults.  Use cookie values if param values aren't available.
+  my %defaults = (user => $cookie{user},
+		  system => $system_values[0],
+		  type => $type_values[0],
+		  loss => undef,
+		  time => undef,
+		  tz => 'UT',
+		  subject => undef,
+		  message => undef,
+		  assoc => undef,
+		  assoc2 => undef,
+		  urgency => undef,);
+
+  for (keys %defaults) {
+    if ($q->param($_)) {
+      $defaults{$_} = $q->param($_);
+    }
+  }
+
+  print "<table border=0 cellspacing=4><tr>";
+  print $q->startform;
+
+  # Embed the key
+  print $q->hidden(-name=>'formkey',
+		   -default=>$formkey);
+
+  # Need the show_output param in order for the output code ref to be called next
+  print $q->hidden(-name=>'show_output',
+		   -default=>'true');
+
+  print "<td align=right><b>User:</b></td><td>";
+  print $q->textfield(-name=>'user',
+		      -size=>'16',
+		      -maxlength=>'90',
+		      -default=>$defaults{user},);
+
+  print "</td><tr><td align=right><b>System:</b></td><td>";
+  print $q->popup_menu(-name=>'system',
+		       -values=>\@system_values,
+		       -default=>$defaults{system},
+		       -labels=>\%system_labels,);
+  print "</td><tr><td align=right><b>Type:</b></td><td>";
+  print $q->popup_menu(-name=>'type',
+		       -values=>\@type_values,
+		       -default=>$defaults{type},
+		       -labels=>\%type_labels,);
+
+  # If we're using the bug report system don't
+  # provide fields for taking "time lost" and "time of fault"
+  if ($cookie{category} !~ /bug/i) {
+    print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
+    print $q->textfield(-name=>'loss',
+			-default=>$defaults{loss},
+			-size=>'4',
+			-maxlength=>'10',);
+    print "</td><tr><td align=right valign=top><b>Time of fault:</td><td>";
+    print $q->textfield(-name=>'time',
+			-default=>$defaults{time},
+			-size=>20,
+			-maxlength=>128,);
+    print "<b>";
+    print $q->radio_group(-name=>'tz',
+			  -values=>['UT','HST'],
+			  -default=>$defaults{tz},);
+    # print "</b><br><font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font><b>";
+  }
+
+  print "</b>";
+  print "</td><tr><td align=right><b>Subject:</b></td><td>";
+  print $q->textfield(-name=>'subject',
+		      -size=>'60',
+		      -maxlength=>'256',
+		      -default=>$defaults{subject},);
+  print "</td><tr><td colspan=2>";
+  print $q->textarea(-name=>'message',
+		     -rows=>20,
+		     -columns=>78,
+		     -default=>$defaults{message},);
+
+  # If were in the ukirt or jcmt fault categories create a checkbox group
+  # for specifying an association with projects.
+
+  if ($cookie{category} =~ /(jcmt|ukirt)/i) {
+    # Values for checkbox group will be tonights projects
+    my $aref = OMP::MSBServer->observedMSBs({
+					     usenow => 1,
+					     format => 'data',
+					     returnall => 0,});
+    if (@$aref[0]) {
+      my %projects;
+      for (@$aref) {
+	$projects{$_->projectid} = $_->projectid;
+      }
+      print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
+      print $q->checkbox_group(-name=>'assoc',
+			       -values=>[keys %projects]
+			       -default=>$defaults{assoc},);
+      print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
+    } else {
+      print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
+    }
+    print "<font size=-1>(separated by spaces)</font><b>:</b>";
+    print "</td><tr><td colspan=2>";
+    print $q->textfield(-name=>'assoc2',
+		        -size=>50,
+		        -maxlength=>300,
+		        -default=>$defaults{assoc2},);
+  }
+
+  print "</td><tr><td><b>";
+
+  # Even though there is only a single option for urgency I'm using a checkbox group
+  # since it's easier to set a default this way
+  print $q->checkbox_group(-name=>'urgency',
+			   -values=>['urgent'],
+			   -labels=>{urgent => "This fault is urgent"},
+			   -default=>$defaults{urgency},);
+  print "</b></td><td align=right>";
+  print $q->submit(-name=>'Submit Fault');
+  print $q->endform;
+  print "</td></table>";
+
+}
+
 =item B<response_form>
 
 Create a form for submitting a response. Second argument is an C<OMP::Fault> object.
@@ -1096,13 +1164,12 @@ sub response_form {
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
 
-  
   # Get available statuses
   my %status = OMP::Fault->faultStatus();
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   # Set defaults.  Use cookie values if param values aren't available.
-  my %defaults = (user => $cookie{$_},
+  my %defaults = (user => $cookie{user},
 		  text => undef,
 		  status => $fault->status,);
   for (keys %defaults) {
@@ -1113,6 +1180,7 @@ sub response_form {
 
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print $q->startform;
+
   # Embed the key
   print $q->hidden(-name=>'formkey',
 		   -default=>$formkey);
