@@ -266,10 +266,6 @@ sub _store_new_fault {
   my $self = shift;
   my $fault = shift;
 
-  # Get the DB handle
-  my $dbh = $self->_dbhandle or
-    throw OMP::Error::DBError("Database handle not valid");
-
   # First store the main fault information
 
   # Date must be formatted for sybase
