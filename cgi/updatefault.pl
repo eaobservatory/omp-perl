@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIFault;
+use OMP::CGI::FaultPage;
 use OMP::General;
 
 my $arg = shift @ARGV;
@@ -32,7 +32,9 @@ $cgi->html_title("OMP Fault System: Update fault");
 # If the user is outside the JAC network write the page with
 # authentication
 if (OMP::General->is_host_local) {
-  $cgi->write_page_fault( \&update_fault_content, \&update_fault_output);
+  $cgi->write_page_fault( \&OMP::CGI::FaultPage::update_fault_content,
+			  \&OMP::CGI::FaultPage::update_fault_output);
 } else {
-  $cgi->write_page_fault_auth( \&update_fault_content, \&update_fault_output);
+  $cgi->write_page_fault_auth( \&OMP::CGI::FaultPage::update_fault_content,
+			       \&OMP::CGI::FaultPage::update_fault_output);
 }
