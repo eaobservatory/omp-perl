@@ -446,6 +446,57 @@ sub verify_administrator_password {
   return $status;
 }
 
+=item B<verify_staff_password>
+
+Compare the supplied password with the staff password. Throw
+an exception if the two do not match. This provides access to some
+parts of the system normally restricted to principal investigators.
+
+  OMP::General->verify_staff_password( $input );
+
+Note that the supplied password is assumed to be unencrypted.
+
+An optional second argument can be used to disable the exception
+throwing. If the second argument is true the routine will return
+true or false depending on whether the password is verified.
+
+  $isokay = OMP::General->verify_staff_password( $input, 1 );
+
+Always fails if the supplied password is undefined.
+
+The password is always compared with the administrator password
+first.
+
+=cut
+
+sub verify_staff_password {
+  my $self = shift;
+  my $password = shift;
+  my $retval = shift;
+
+  # The encrypted staff password
+  # At some point we'll pick this up from somewhere else.
+  my $admin = "bf4xPHRr.bUxE";
+
+  # Encrypt the supplied password using the staff password as salt
+  # unless the supplied password is undefined
+  my $encrypted = ( defined $password ? crypt($password, $admin) : "fail" );
+
+  # A bit simplistic at the present time
+  my $status;
+  if ($encrypted eq $admin) {
+    $status = 1;
+  } else {
+    # Throw an exception if required
+    if ($retval) {
+      $status = 0;
+    } else {
+      throw OMP::Error::Authentication("Failed to match staff password\n");
+    }
+  }
+  return $status;
+}
+
 =back
 
 =head2 Logging
