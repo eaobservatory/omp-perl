@@ -432,10 +432,7 @@ sub _store_new_fault {
   # In this case we dont need an entry if there are no projects
   # associated with the fault since we never do a join requiring
   # a fault id to exist.
-  my @entries = map { [ $fault->id, $_ ]  } $fault->projects;
-  for my $assoc (@entries) {
-    $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
-  }
+  $self->_insert_assoc_rows($fault->id, $fault->projects);
 
   # Now loop over responses
   for my $resp ($fault->responses) {
@@ -632,10 +629,7 @@ sub _update_fault_row {
     # In this case we dont need an entry if there are no projects
     # associated with the fault since we never do a join requiring
     # a fault id to exist.
-    my @entries = map { [ $fault->id, $_ ]  } $fault->projects;
-    for my $assoc (@entries) {
-      $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
-    }
+    $self->_insert_assoc_rows($fault->id, $fault->projects);
 
   } else {
     throw OMP::Error::BadArgs("Argument to _update_fault_row must be of type OMP::Fault\n");
@@ -670,6 +664,35 @@ sub _update_response_row {
 
   } else {
     throw OMP::Error::BadArgs("Argument to _update_response_row must be of type OMP::Fault::Response\n");
+  }
+}
+
+=item B<_insert_assoc_rows>
+
+Insert fault project association entries.  Do a delete first to get rid of
+any old associations.
+
+  $db->_insert_assoc_rows($faultid, @projects);
+
+Takes a fault ID as the first argument and an array of project IDs as the
+second argument
+
+=cut
+
+sub _insert_assoc_rows {
+  my $self = shift;
+  my $faultid = shift;
+  my @projects = @_;
+
+  # Delete clause
+  my $clause = "faultid = $faultid";
+
+  # Do the delete
+  $self->_db_delete_data( $ASSOCTABLE, $clause );
+
+  my @entries = map { [ $faultid, $_ ]  } @projects;
+  for my $assoc (@entries) {
+    $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
   }
 }
 
