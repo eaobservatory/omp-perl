@@ -9,6 +9,7 @@ OMP::General - general purpose methods
   use OMP::General
 
   $date = OMP::General->parse_date( "1999-01-05T05:15" );
+  $today = OMP::General->today();
 
 =head1 DESCRIPTION
 
@@ -89,6 +90,22 @@ sub parse_date {
 
 }
 
+
+=item B<today>
+
+Return the UT date for today in C<YYYY-MM-DD> format.
+
+  $today = OMP::General->today();
+
+=cut
+
+sub today {
+  my $class = shift;
+  my $time = gmtime();
+
+  return $time->strftime("%Y-%m-%d");
+
+}
 
 =back
 
