@@ -33,7 +33,7 @@ $cgi->html_title("Fault Summary");
 my @domain = OMP::General->determine_host;
 
 if ($domain[1] and $domain[1] !~ /\./) {
-  $cgi->write_page_fault( \&fault_summary_form, \&fault_summary_content);
+  $cgi->write_page_noauth( \&fault_summary_form, \&fault_summary_content);
 } else {
-  $cgi->write_page_fault_auth( \&fault_summary_form, \&fault_summary_content);
+  $cgi->write_page_staff( \&fault_summary_form, \&fault_summary_content);
 }
