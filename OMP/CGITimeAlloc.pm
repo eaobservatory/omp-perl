@@ -130,6 +130,8 @@ sub display_form {
   my $telescope = $params->{'telescope'};
   $telescope = uc($telescope);
 
+  print "<H1>Project time accounting for UT $ut</H1>\n";
+
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
   my @accounts = $db->getTimeSpent( utdate => $ut );
@@ -185,6 +187,16 @@ sub display_form {
   if( defined( $obsgroup ) ) {
     my ($warnings,@obstime) = $obsgroup->projectStats;
 
+    # Any warnings?
+    if (@$warnings) {
+      print "Warnings from the time accounting:<p><pre>\n";
+      for my $line (@$warnings ) {
+	print $line;
+      }
+      print "</pre><p>\n";
+    }
+
+
     # Convert the TimeAcct array into a hash for easier project
     # searching.
     foreach my $obstime ( @obstime ) {
@@ -219,21 +231,21 @@ sub display_form {
                           );
       print "</td></tr>\n";
       print "<tr><td>&nbsp;</td><td colspan=\"2\">";
-      my $hours = sprintf("%5.3f",$obstime{$projectid}->timespent->hours);
+      my $hours = sprintf("%5.2f",$obstime{$projectid}->timespent->hours);
       print "$hours hours from data headers</td></tr>\n";
+
+      # If we have an estimate explicitly add a sentence about it
+      if (exists $dbtime{$projectid} && ! $dbtime{$projectid}->confirmed) {
+	print "</td></tr>\n";
+	print "<tr><td>&nbsp;</td><td colspan=\"2\">";
+	my $hours = sprintf("%5.2f",$dbtime{$projectid}->timespent->hours);
+	print "$hours hours estimated from accepted MSBs</td></tr>\n";
+
+      }
 
       $i++;
     }
     print "</table>";
-
-    # Any warnings?
-    if (@$warnings) {
-      print "Warnings from the time accounting:<p><pre>\n";
-      for my $line (@$warnings ) {
-	print $line;
-      }
-      print "</pre><p>\n";
-    }
 
   }
 
@@ -247,7 +259,7 @@ sub display_form {
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
-                        -default => 'FAULT',
+                        -default => $telescope.'FAULT',
                       );
   print " hours<br>\n";
   my $fdb = new OMP::FaultDB( DB => new OMP::DBbackend );
@@ -265,21 +277,21 @@ sub display_form {
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
-                        -default => 'WEATHER',
+                        -default => $telescope.'WEATHER',
                       );
   print " hours<br>\n";
 
   $i++;
-  print "Other time lost: ";
+  print "Unknown time: ";
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( exists( $dbtime{$telescope."EXTENDED"} ) ?
-                                         $dbtime{$telescope."EXTENDED"}->timespent->hours :
+                           -default => ( exists( $dbtime{$telescope."UNKNOWN"} ) ?
+                                         $dbtime{$telescope."UNKNOWN"}->timespent->hours :
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
-                        -default => 'OTHER',
+                        -default => $telescope.'UNKNOWN',
                       );
   print " hours<br><br>\n";
 
