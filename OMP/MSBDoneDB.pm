@@ -127,7 +127,7 @@ since there is no way to determine the MSB parameters.
 Optionally, an object of class C<OMP::Info::MSB> can be supplied
 instead of the checksum.
 
-  $db->addMSBComment( $msbinfo, $comment );
+  $db->addMSBcomment( $msbinfo, $comment );
 
 This can be used to extract summary information if the MSB is not
 currently in the table. [No attempt is made to query the MSB table
@@ -137,18 +137,18 @@ If a number is supplied instead of a comment object, it is assumed
 to be an index into the comments contained in the C<OMP::Info::MSB>
 object.
 
-  $db->addMSBComment( $msbinfo, $index );
+  $db->addMSBcomment( $msbinfo, $index );
 
 It is also possible to supply the comment as a string (anything that
 is not an integer or a reference will be treated as a string). The
 default status of such an object would be OMP__DONE_COMMENT.
 
-  $db->addMSBComment( $msbinfo, $comment_string);
+  $db->addMSBcomment( $msbinfo, $comment_string);
 
 If no comment is supplied at all, the last comment will be extracted
 from the C<OMP::Info::Comment> object (if supplied) and stored.
 
-  $db->addMSBComment( $msbinfo );
+  $db->addMSBcomment( $msbinfo );
 
 If the comment does not specify a status default behaviour is to treat
 the comment as OMP__DONE_COMMENT. See C<OMP::Constants> for more
@@ -430,15 +430,15 @@ sub _add_msb_done_info {
 Given an MSB info object and comment update the MSB done table to
 contain this information.
 
-If the MSB object contains sufficient information to fill the table 
-(eg target, waveband, instruments) the information from the info object
-will be used. If it is not defined the information will be
-retrieved from the done table (we cannot read it from the MSB table
-because that would involve reading the msb and obs table in order to
-reconstruct the target and instrument info). An exception is triggered
-if the information for the table is not available (this is the reason
-why the checksum and project ID are required even though, in
-principal, this information could be obtained from the MSB object).
+If the MSB object contains sufficient information to fill the table
+(eg target, waveband, instruments) the information from the info
+object will be used. If it is not defined the information will be
+retrieved from the done table. Finally, if it is still not defined we
+will attempt to read it from the science program (assuming the science
+program has not been modified recently).  An exception is triggered if
+the information for the table is not available (this is the reason why
+the checksum and project ID are required even though, in principal,
+this information could be obtained from the MSB object).
 
   $db->_store_msb_done_comment( $msbinfo, $comment );
 
@@ -490,6 +490,18 @@ sub _store_msb_done_comment {
       $msbinfo = $self->historyMSB( $checksum );
       last;
     }
+  }
+
+  # One last ditch effort. Retrieve the actual science program
+  # and look for the MSB
+  unless ($msbinfo) {
+    # Cant use the OMP::MSBDB->fetchMSB method since that
+    # will call this class to register the fetch! Just do it
+    # in two calls without the associated feedback messages
+    # This will have a bit of an overhead.
+    my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project );
+    my $sp = $msbdb->fetchSciProg(1);
+    $msbinfo = $sp->fetchMSB( $checksum )
   }
 
   # throw an exception if we dont have anything
