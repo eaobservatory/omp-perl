@@ -171,6 +171,10 @@ sub plot {
 
   my $file = $self->get_filename( $options{group} );
 
+  if( length( $self->suffix . '' ) == 0 && ! $options{group} ) {
+    $file =~ s/sdf$/I1/;
+  }
+
   my %parsed = $self->parse_display_options( \%options );
 
   if( exists( $parsed{type} ) &&
