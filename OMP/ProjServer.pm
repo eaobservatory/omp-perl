@@ -44,6 +44,8 @@ Generate a new password for the specified project and mail the
 resulting plain text password to the PI (or the person
 designated to recieve it in the project database).
 
+  OMP::ProjServer->issuePassword( $projectid );
+
 There is no return value. Throws an C<OMP::Error::UnknownProject>
 if the requested project is not in the system.
 
@@ -120,6 +122,52 @@ sub summary {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+
+}
+
+=item B<verifyProject>
+
+Verify that the specified project is active and present in the
+database.
+
+  $result = OMP::ProjServer->verifyProject( $projectid );
+
+Returns true or false.
+
+=cut
+
+sub verifyProject {
+  my $class = shift;
+
+  my $projectid = shift;
+
+  my $there;
+  my $E;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			    );
+
+    $there = $db->verifyProject();
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $there;
 
 }
 
