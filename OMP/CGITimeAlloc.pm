@@ -131,64 +131,80 @@ sub display_form {
 # but if we're at JCMT, restrict to SCUBA.
   my $obsgroup;
   if( $telescope =~ /jcmt/i ) {
-    $obsgroup = new OMP::Info::ObsGroup( instrument => 'scuba',
-                                         date => $ut,
-                                       );
+    try {
+      $obsgroup = new OMP::Info::ObsGroup( instrument => 'scuba',
+                                           date => $ut,
+                                         );
+    } catch OMP::Error with {
+
+    } otherwise {
+
+    };
   } else {
-    $obsgroup = new OMP::Info::ObsGroup( telescope => $telescope,
-                                         date => $ut,
-                                       );
+    try {
+      $obsgroup = new OMP::Info::ObsGroup( telescope => $telescope,
+                                           date => $ut,
+                                         );
+    } catch OMP::Error with {
+
+    } otherwise {
+
+    };
   }
 
-  # Retrieve the TimeAcct objects for the group
-  my @obstime = $obsgroup->projectStats;
+  my @obstime;
+  my $i = 1;
 
-  # Convert the TimeAcct array into a hash for easier project
-  # searching.
-  foreach my $obstime ( @obstime ) {
-    $obstime{$obstime->projectid} = $obstime;
-  }
-
-  # Print a header.
-  print "For UT $ut the following projects were observed:<br>\n";
   print $query->startform;
   print $query->hidden( -name => 'ut',
                         -default => $ut,
                       );
-  print "<table>";
-  print "<tr><th>Project</th><th>Hours</th><th>Status</th></tr>\n";
-  # For each TimeAcct object, print a form entry.
-  my $i = 1;
-  foreach my $projectid (keys %obstime) {
 
-    print "<tr><td>";
-    print $projectid;
-    print "</td><td>";
-    print $query->textfield( -name => 'hour' . $i,
-                             -size => '8',
-                             -maxlength => '8',
-                             -default => ( defined( $dbtime{$projectid} ) ?
-                                           sprintf( "%.1f", $dbtime{$projectid}->timespent->hours ) :
-                                           sprintf( "%.1f", $obstime{$projectid}->timespent->hours ) ),
-                           );
-    print "</td><td>";
-    if( defined( $dbtime{$projectid} ) ) {
-      print "Confirmed";
-    } else {
-      print "Estimated";
+  # Retrieve the TimeAcct objects for the group
+  if( defined( $obsgroup ) ) {
+    @obstime = $obsgroup->projectStats;
+
+    # Convert the TimeAcct array into a hash for easier project
+    # searching.
+    foreach my $obstime ( @obstime ) {
+      $obstime{$obstime->projectid} = $obstime;
     }
-    print $query->hidden( -name => 'project' . $i,
-                          -default => $projectid,
-                        );
-    print "</td></tr>\n";
-    print "<tr><td>&nbsp;</td><td colspan=\"2\">";
-    my $hours = sprintf("%5.3f",$obstime{$projectid}->timespent->hours);
-    print "$hours hours from data headers</td></tr>\n";
 
-    $i++;
+    # Print a header.
+    print "For UT $ut the following projects were observed:<br>\n";
+    print "<table>";
+    print "<tr><th>Project</th><th>Hours</th><th>Status</th></tr>\n";
+    # For each TimeAcct object, print a form entry.
+    foreach my $projectid (keys %obstime) {
+
+      print "<tr><td>";
+      print $projectid;
+      print "</td><td>";
+      print $query->textfield( -name => 'hour' . $i,
+                               -size => '8',
+                               -maxlength => '8',
+                               -default => ( defined( $dbtime{$projectid} ) ?
+                                             sprintf( "%.1f", $dbtime{$projectid}->timespent->hours ) :
+                                             sprintf( "%.1f", $obstime{$projectid}->timespent->hours ) ),
+                             );
+      print "</td><td>";
+      if( defined( $dbtime{$projectid} ) ) {
+        print "Confirmed";
+      } else {
+        print "Estimated";
+      }
+      print $query->hidden( -name => 'project' . $i,
+                            -default => $projectid,
+                          );
+      print "</td></tr>\n";
+      print "<tr><td>&nbsp;</td><td colspan=\"2\">";
+      my $hours = sprintf("%5.3f",$obstime{$projectid}->timespent->hours);
+      print "$hours hours from data headers</td></tr>\n";
+
+      $i++;
+    }
+    print "</table>";
   }
-  print "</table>";
-
   # Display miscellaneous time form (faults, weather, other).
   print "Time lost to faults: ";
   print $query->textfield( -name => 'hour' . $i,
@@ -253,6 +269,7 @@ sub submit_allocations {
   # Grab the UT date from the query object. If it does not exist,
   # default to the current UT date.
   my $ut;
+
   if( defined( $q->{'ut'} ) &&
      $q->{'ut'} =~ /(\d{4}-\d\d-\d\d)/ ) {
     $ut = $1; # This removes taint from the UT date given.
@@ -279,6 +296,9 @@ sub submit_allocations {
                                         confirmed => 1,
                                       );
     push @acct, $t;
+
+    print "Submitting " . $timealloc{$projectid} . " hours for $projectid for $ut<br>\n";
+
   }
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
@@ -309,15 +329,26 @@ sub verify_query {
 
   my $v;
 
+  ############################################################
+  # HORRIBLE HORRIBLE BAD LINE OF CODE COMING UP
+  ############################################################
+  # So why is this horrible? Well, it completely negates the
+  # whole purpose of this function, which is to verify
+  # values in the query. However, one will have to think of
+  # some good way to verify "projectN" and "hourN" at a later
+  # date.
+  ############################################################
+  $v = $q;
+
   if( defined($q->{'ut'}) &&
-      $q->{'ut'} =~ /^(\d{4}-\d\d-\d\d)$/ ) {
+      $q->{'ut'} =~ /(\d{4}-\d\d-\d\d)/ ) {
     $v->{'ut'} = $1;
   } else {
     my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
     $v->{'ut'} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
   }
 
-  if( !defined($q->{'ut'}) ) {
+  if( !defined($q->{'telescope'}) ) {
     my $hostname = hostfqdn;
     if($hostname =~ /mauiola/i) {
       $v->{'telescope'} = "ukirt";
