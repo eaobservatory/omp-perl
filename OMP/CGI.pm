@@ -318,7 +318,9 @@ sub _sidebar_fault {
 		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
 		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
 		      "<a href='queryfault.pl?cat=dr'>DR Faults</a>",
-		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a>",
+		      "<br><a href='".
+		      OMP::Config->getData('omp-url')
+		      ."'>OMP home</a>",
 		      "$sidebarform</font>",);
 
   if (defined $cat) {
