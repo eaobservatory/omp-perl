@@ -24,7 +24,7 @@ use Carp;
 
 # External modules
 use XML::LibXML; # Our standard parser
-use Digest::MD5 qw/ md5_hex /;
+use Digest::MD5 2.20 qw/ md5_hex /;
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
@@ -534,7 +534,7 @@ sub find_checksum {
   my $string = $self->_get_qualified_children_as_string;
 
   # and generate a checksum
-  my $checksum = md5_hex( "$string" );
+  my $checksum = md5_hex( $string );
 
   # In order to ditinguish MSBs associated with logic we prefixx
   # an OR and/or AND if the MSB is in such a construct. Otherwise
@@ -951,8 +951,8 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  use Data::Dumper;
-  print Dumper(\@obs);
+  #use Data::Dumper;
+  #print Dumper(\@obs);
 
   return @obs;
 }
@@ -1442,8 +1442,8 @@ sub unroll_obs {
   my $self = shift;
   my @obs = $self->obssum;
 
-  use Data::Dumper;
-  print "INPUT ",Dumper( \@obs);
+  #use Data::Dumper;
+  #print "INPUT ",Dumper( \@obs);
 
   # Loop over each observation in the MSB
   my @longobs;
@@ -1464,8 +1464,8 @@ sub unroll_obs {
 
   }
 
-  use Data::Dumper;
-  print Dumper( \@longobs);
+  #use Data::Dumper;
+  #print Dumper( \@longobs);
 
   return @longobs;
 
