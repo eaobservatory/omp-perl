@@ -631,7 +631,6 @@ think of a good reason why).
 
 sub _db_fetch_sciprog {
   my $self = shift;
-  my $sp = shift;
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
