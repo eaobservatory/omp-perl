@@ -152,10 +152,16 @@ sub store_archive {
 Retrieve information about an C<OMP::ArcQuery> query
 from temporary files.
 
-  $obsgrp = retrieve_archive( $query );
+  $obsgrp = retrieve_archive( $query, $return_if_suspect );
 
 Returns an C<OMP::Info::ObsGroup> object, or undef if
 no results match the given query.
+
+The second optional argument is a boolean determining whether
+or not the method should return with C<undef> if the cache
+is suspect. See the C<suspect_cache> method for further
+information. If this argument is not given, this method
+will return C<undef> if the cache is suspect.
 
 Only queries that are made up of a combination of
 telescope, instrument, date, and projectid
@@ -171,15 +177,21 @@ of C<OMP::Info::ObsGroup> to add the comments.
 
 sub retrieve_archive {
   my $query = shift;
+  my $return_if_suspect = shift;
 
   if( ! defined( $query ) ) {
     throw OMP::Error::BadArgs( "Must supply a query to retrieve information from cache" );
   }
 
+  $return_if_suspect = ( defined( $return_if_suspect ) ? $return_if_suspect : 1 );
+
   my $obsgrp;
 
   # Is this a simple query?
   if( !simple_query( $query ) ) { return; }
+
+  # Is this a suspect cache?
+  if( $return_if_suspect && suspect_cache( $query ) ) { return; }
 
   # Check to see
 
@@ -267,7 +279,9 @@ sub unstored_files {
   my @files;
   my @ofiles;
 
-  my $obsgrp = retrieve_archive( $query );
+  # We want to have a cache returned for us, even if it's suspect.
+  my $return_if_suspect = 0;
+  my $obsgrp = retrieve_archive( $query, $return_if_suspect );
 
   # Get a list of files that are stored in the cache.
   if( defined( $obsgrp ) ) {
@@ -301,8 +315,8 @@ sub unstored_files {
     my $ishet = 0;
     for my $inst (@initial) {
       if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
-	$ishet = 1;
-	next;
+        $ishet = 1;
+        next;
       }
       push(@insts, $inst);
     }
@@ -326,8 +340,8 @@ sub unstored_files {
 
       next unless -d $directory;
 
-      opendir( my $dh, $directory ) 
-	or throw OMP::Error( "Unable to open data directory $directory: $!" );
+      opendir( my $dh, $directory )
+        or throw OMP::Error( "Unable to open data directory $directory: $!" );
       @ifiles = grep(!/^\./, readdir($dh));
 
       closedir($dh);
