@@ -111,6 +111,10 @@ Scalar accessors:
 
 =item B<remaining>
 
+Number of repeat counts remaining. The isRemoved check should be
+made prior to using this number just in case the MSB has been removed
+from consideration.
+
 =item B<msbid>
 
 Not to be confused with the checksum, this is simply a link
@@ -455,6 +459,19 @@ sub addComment {
   my @comments = $self->comments;
   push(@comments, $comment);
   $self->comments( \@comments );
+}
+
+=item B<isRemoved>
+
+Returns true if the MSB status indicates that it has been removed from
+scheduling consideration or if the remaining field is not defined.
+
+=cut
+
+sub isRemoved {
+  my $self = shift;
+  return 1 if !defined $self->remaining;
+  return ($self->remaining < 0 ? 1 : 0 );
 }
 
 =item B<summary>
