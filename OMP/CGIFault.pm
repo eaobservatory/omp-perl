@@ -328,7 +328,7 @@ sub query_fault_content {
   };
 
   if ($faults->[0]) {
-    show_faults($q, $faults);
+    show_faults($q, $faults, "viewfault.pl");
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -418,7 +418,7 @@ sub query_fault_output {
   print "<p>";
 
   if ($faults->[0]) {
-    show_faults($q, $faults);
+    show_faults($q, $faults, "viewfault.pl");
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -651,17 +651,21 @@ sub respond_fault_content {
 
 Show a list of faults
 
-  show_faults($cgi, $faults)
+  show_faults($cgi, $faults, $url);
 
-Takes a reference to an array of fault objects as the second argument
+Takes a reference to an array of fault objects as the second argument. Optional third
+argument is a URL for the links.
 
 =cut
 
 sub show_faults {
   my $q = shift;
   my $faults = shift;
+  my $url = shift;
 
-  my $url = $q->url(-relative=>1);
+  # Use the current URL for links if it hasnt been provided as an argument
+  $url = $q->url
+    if (! $url);
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td></td>";
@@ -695,7 +699,7 @@ sub show_faults {
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
-    print "<td><b><a href='$url.pl?id=$faultid'>[View/Respond]</a></b></td>";
+    print "<td><b><a href='$url?id=$faultid'>[View/Respond]</a></b></td>";
   }
 
   print "</table>";
