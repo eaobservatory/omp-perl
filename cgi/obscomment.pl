@@ -70,7 +70,7 @@ sub verifyParams {
   # The 'ut' parameter is of the form yyyy-mm-dd-hh-mm-ss.
   if(defined($qparams->{'ut'})) {
     my $ut = $qparams->{'ut'};
-    if($ut =~ /^\d{4]-\d\d-\d\d-\d\d-\d\d-\d\d$/) {
+    if($ut =~ /^\d{4}-\d\d-\d\d-\d\d-\d\d-\d\d$/) {
       $vparams->{'ut'} = $ut;
     }
   }
