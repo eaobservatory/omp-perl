@@ -33,7 +33,8 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Range;
 
-use Storable qw/ nstore retrieve /;
+use Fcntl qw/ :DEFAULT :flock /;
+use Storable qw/ nstore_fd fd_retrieve /;
 use Time::Piece qw/ :override /;
 use Time::Seconds;
 
@@ -92,7 +93,11 @@ sub store_archive {
 
   # Store the ObsGroup to disk.
   try {
-    nstore $obsgrp, $filename;
+    sysopen( DF, $filename, O_RDWR|O_CREAT, 0666);
+    flock(DF, LOCK_EX);
+    nstore_fd($obsgrp, \*DF);
+    truncate(DF, tell(DF));
+    close(DF);
   }
   catch Error with {
     throw OMP::Error::CacheFailure( $! );
@@ -134,7 +139,9 @@ sub retrieve_archive {
 
   # Retrieve the ObsGroup object, if it exists.
   if( -e $filename ) {
-    $obsgrp = retrieve( $filename );
+    open(DF, "< " . $filename);
+    flock(DF, LOCK_SH);
+    $obsgrp = fd_retrieve( \*DF );
 
     # Because the comments may have changed since the cache
     # was created, we need to get them again.
