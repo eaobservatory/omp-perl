@@ -1281,9 +1281,9 @@ sub getPol {
   my %pol;
   if ($info{MODE} eq 'SpIterRasterObs' or
       $info{MODE} eq 'SpIterJiggleObs') {
-    $pol{MODE} = "POLMAP";
+    $pol{OBSERVING_MODE} = "POLMAP";
   } elsif ($info{MODE} eq 'SpIterStareObs') {
-    $pol{MODE} = "POLPHOT";
+    $pol{OBSERVING_MODE} = "POLPHOT";
     $pol{JIGGLE_NAME} = "JCMTDATA_DIR:NULL_1P0.JIG";
   } else {
     throw OMP::Error::TranslateFail("Pol mode only available for map and phot, not $info{MODE}");
