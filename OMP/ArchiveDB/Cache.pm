@@ -107,14 +107,30 @@ sub store_archive {
   }
 
   # If the query is for the current day we should remove the last
-  # observation from the cache just in case the data have been read
-  # whilst the file is open for write (this is true for GSD observations
-  # since they are always appended to during acquisition)
+  # observation for each instrument from the cache just in case the data
+  # have been read whilst the file is open for write (this is true for
+  # GSD observations since they are always appended to during acquisition)
   if ($query->istoday) {
-    # Get reference to array of observation objects
-    my $ref = $obsgrp->obs;
-    # remove last
-    pop(@$ref);
+
+    my @all_obs;
+    my %grouped = $grp->groupby('instrument');
+    foreach my $inst (keys %grouped) {
+      # $grouped{$inst} is an ObsGroup object of only that instrument.
+      # They're not sorted, of course, so sort by time.
+      $grouped{$inst}->sort_by_time;
+
+      # Grab all of the Obs objects.
+      my @obs = $grouped{$inst}->obs;
+
+      # Remove the last one.
+      pop(@obs);
+
+      # And push it onto our holding array.
+      push(@all_obs, @obs);
+    }
+
+    # Re-form our ObsGroup object.
+    $obsgrp->obs( @all_obs );
   }
 
   # Should probably strip all comments to save space (since in general
