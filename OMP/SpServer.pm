@@ -180,7 +180,7 @@ sub programDetails {
 
     # Retrieve the Science Program object
     # without sending explicit notification
-    my $sp = $db->fetchSciProg(1));
+    my $sp = $db->fetchSciProg(1);
 
     # Create a summary of the science program
     $summary = $sp->summary($mode);
