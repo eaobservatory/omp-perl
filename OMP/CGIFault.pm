@@ -576,8 +576,7 @@ sub query_fault_output {
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
     } elsif ($q->param('current')) {
       # Faults within the last 14 days that are 'OPEN'
-      my %status = OMP::Fault->faultStatus;
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
     }
   }
 
