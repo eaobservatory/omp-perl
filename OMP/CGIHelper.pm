@@ -192,7 +192,7 @@ sub fb_entries {
 	"Order: ",
 	$q->popup_menu(-name=>'order',
 		       -values=>[qw/ascending descending/],
-		       -default=>'ascending'
+		       -default=>'ascending',
 		       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
 	"Show: ",
