@@ -813,7 +813,7 @@ sub ashtml {
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  print "<a href='$worflink?ut=$date&telescope=$tel'>WORF thumbnails</a><br>";
+  print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
   if ($self->delta_day < 14) {
     print "<a href='#faultsum'>Fault Summary</a><br>";
     print "<a href='#shiftcom'>Shift Log Comments</a><br>";
