@@ -42,7 +42,7 @@ sub accept {
 
   # Get the information we need
   my $from = $self->get("from");
-  my $srcip = (  $from =~ /@(.*)$/ ? $1 : $from );
+  my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
   my $subject = $self->get("subject");
   my $text = "<PRE>\n" . join('',@{ $self->body }) . "\n</PRE>";
   my $project = $self->get("projectid");
@@ -56,8 +56,6 @@ sub accept {
 					sourceinfo => $srcip,
 					text => $text,
 				       });
-
-  print "Sending to Feedback from project $project\n";
 
   Mail::Audit::_log(1, "Sent to feedback system with Project $project");
 
@@ -80,6 +78,7 @@ sub projectid {
   if ($subject =~ /(u\/\d\d[ab]\/h?\d+)/i         # UKIRT
       or $subject =~ /(m\d\d[ab][uncih]\d+)/i     # JCMT
       or $subject =~ /\b(m\d\d[ab]\w+)\b/i        # m01btj 
+      or $subject =~ /(u\/SERV\/\d+)/i            # UKIRT SERVice
      ) {
     my $pid = $1;
     $self->put_header("projectid", $pid);
