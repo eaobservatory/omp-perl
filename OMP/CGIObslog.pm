@@ -74,7 +74,7 @@ Only argument should be the C<CGI> object.
 sub file_comment {
   my $q = shift;
   my %cookie = @_;
-
+#print "calling file_comment<br>\n";
   # Get the Info::Obs object
   my $obs = cgi_to_obs( $q );
 
@@ -911,6 +911,10 @@ sub obs_comment_form {
                   );
   print $q->hidden( -name => 'timegap',
                     -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
+                  );
+
+  print $q->hidden( -name => 'show_output',
+                    -value => 1,
                   );
 
   print "</td></tr>\n<tr><td colspan=\"2\">";
