@@ -699,7 +699,14 @@ sub _copy_data {
   # Loop over each file
   my $count = 0;
   for my $obs ($grp->obs) {
-    my $file = $obs->filename;
+
+    # Untaint the filename
+    my $file;
+    if ($obs->filename =~ m!(.*\.sdf$)!) {
+      $file = $1;
+    }
+
+    #    my $file = $obs->filename;
 
     if (!defined $file) {
       print "File for this observation was not defined. Must skip.\n";
