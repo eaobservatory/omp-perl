@@ -102,6 +102,8 @@ use constant FRONT_END_RXW => 1050;
 use constant SCUBA => 1051;
 use constant WATER_VAPOR_RAD => 1052;
 use constant IFS => 1053;
+use constant FRONT_END_RXH3 => 1054;
+use constant SURFACE => 1055;
 
 # Mailing list
 my %MAILLIST = (
@@ -140,6 +142,8 @@ my %DATA = (
 				   "Front End - RxA" => FRONT_END_RXA,
 				   "Front End - RxB" => FRONT_END_RXB,
 				   "Front End - RxW" => FRONT_END_RXW,
+				   "Front End - RxH3" => FRONT_END_RXH3,
+				   Surface => SURFACE,
 				   SCUBA => SCUBA,
 				   IFS => IFS,
 				   "Water Vapor Rad." => WATER_VAPOR_RAD,
