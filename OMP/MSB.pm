@@ -89,6 +89,10 @@ The PROJECTID key can be used to inform the MSB the project with
 which it is associated. This information can be added at a later 
 date by using the C<projectID()> method.
 
+The OTVERSION key can be used to set the ot_version method.
+
+The TELESCOPE key can be used to set the MSB telescope from the parent.
+
 If parsed, the MSB is checked for well formedness. The XML form of the
 MSB is assumed to be self-contained (no external references).
 
@@ -140,6 +144,10 @@ sub new {
 
   # and create the object
   bless $msb, $class;
+
+  # Set the telescope if defined
+  $msb->telescope( $args{TELESCOPE} ) 
+    if (exists $args{TELESCOPE} && defined $args{TELESCOPE});
 
   # Force the setting of an obscounter in each
   # SpObs so that we can use it to label our observations
@@ -711,13 +719,29 @@ There can only be one telescope per MSB.
 
   $telescope = $msb->telescope;
 
+The telescope name can be set
+
+  $msb->telescope( $tel );
+
+in the case where the parent science programme knows the telescope
+(and therefore does not require it to be determiend from the
+instruments in the MSB.
+
 =cut
 
 sub telescope {
   my $self = shift;
 
+  # Allow it to be set
+  if (@_) {
+    $self->{Telescope} = shift;
+  }
+
   # Look in cache
   unless ( defined $self->{Telescope} ) {
+
+    # Rely on the instrumentation components to guess the telscope
+    # name if we have no other idea
 
     # First retrieve the observation summaries since those
     # mention the telescope (since it is keyed from the instrument)
