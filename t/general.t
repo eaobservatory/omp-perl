@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 165;
+use Test::More tests => 168;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -365,12 +365,17 @@ like($@, qr/without TAU/,"Without TAU");
 
 # Band ranges
 my $range = OMP::General->get_band_range('JCMT', 2,3);
-isa_ok($range, "OMP::Range","Make sure we get Range object");
+isa_ok($range, "OMP::Range","Make sure we get Range object Band 2,3");
 is($range->max,0.12);
 is($range->min,0.05);
 
+$range = OMP::General->get_band_range('JCMT',1);
+isa_ok($range, "OMP::Range","Make sure we get Range object Band 1");
+is($range->max,0.05);
+is($range->min,0.0);
+
 $range = OMP::General->get_band_range( 'JCMT', 4,5);
-isa_ok($range, "OMP::Range","Make sure we get range object");
+isa_ok($range, "OMP::Range","Make sure we get range object Band 4,5");
 is($range->max,undef);
 is($range->min,0.12);
 
