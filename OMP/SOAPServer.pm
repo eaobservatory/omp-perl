@@ -182,6 +182,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 package SOAP::Fault;
 
+no warnings 'redefine';
 use overload '""' => "stringify";
 
 sub stringify {
