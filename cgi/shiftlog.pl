@@ -46,7 +46,7 @@ if($hostname =~ /ulili/i) {
 # Write the page, using the proper authentication on whether or
 # not we're at one of the telescopes
 if((uc($location) eq 'JCMT') || (uc($location) eq 'UKIRT')) {
-  $cgi->write_page_noauth( \&obslog_output, \&obslog_output );
+  $cgi->write_page_noauth( \&shiftlog_output, \&shiftlog_output );
 } else {
   $cgi->write_page( \&shiftlog_output, \&shiftlog_output );
 }
