@@ -181,10 +181,10 @@ sub queryArc {
       # Trap errors with connection. If we have fatal error
       # talking to DB we should fallback to files (if allowed)
       try {
-	@results = $self->_query_arcdb( $query, $retainhdr );
-	$dbqueryok = 1;
+        @results = $self->_query_arcdb( $query, $retainhdr );
+        $dbqueryok = 1;
       } otherwise {
-	# just need to drop through and catch any exceptions
+        # just need to drop through and catch any exceptions
       };
     }
 
@@ -197,17 +197,13 @@ sub queryArc {
       # OR if the query succeded but we can not be sure the data are
       # in the DB yet (ie less than a week)
       if ( !$dbqueryok ||                  # Always look to files if query failed
-	  ($tdiff < ONE_WEEK && !@results) # look to files if we got no 
-	                                   # results and younger than a week
+           ($tdiff < ONE_WEEK && !@results) # look to files if we got no
+                                            # results and younger than a week
 	 ) {
-
-	# then go to files
-        @results = $self->_query_files( $query, $retainhdr )
-	
+        # then go to files
+        @results = $self->_query_files( $query, $retainhdr );
       }
-
     }
-
   }
 
   # Return what we have
@@ -480,6 +476,7 @@ sub _query_files {
   my @uniq = grep { ! $seen{$_} ++ } @files;
 
   foreach my $file ( @uniq ) {
+
     # Create the Obs object.
     my $obs;
     try {
