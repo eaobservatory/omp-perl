@@ -261,6 +261,9 @@ sub _mail_comment {
   my $comment = shift;
   my $addrlist = shift;
 
+  throw OMP::Error::FatalError("No address in array\n")
+    unless @$addrlist and defined $addrlist->[0];
+
   # Set up the mail
   my $smtp = new Net::SMTP('mailhost', Timeout => 30);
 
