@@ -20,7 +20,7 @@ my $dbh = $db->handle;
 use constant PROJECTID => "VARCHAR(32) not null";
 use constant USERID => "VARCHAR(32)";
 use constant FAULTID => "DOUBLE PRECISION"; # Need this precision
-use constant NUMID => "numberic(5,0) IDENTITY";
+use constant NUMID => "numeric(5,0) IDENTITY";
 use constant TITLE => "VARCHAR(255) null";
 
 # Actual table descriptions
@@ -230,6 +230,49 @@ my %tables = (
 			      text => "TEXT",
 			      _ORDER => [qw/ shiftid date author text /],
 			     },
+        # Observation log table, used to store basic
+        # information about observations, along with
+        # comments associated with those observations.
+        # See OMP::ArchiveDB
+        ompobslog => {
+           obslogid => NUMID,
+           runnr => "INT",
+           instrument => "VARCHAR(32)",
+           telescope => "VARCHAR(32)",
+           utstart => "DATETIME",
+           utend => "DATETIME",
+           projectid => PROJECTID,
+           object => "VARCHAR(32)",
+           obstype => "VARCHAR(32)",
+           exptime => "REAL",
+           nexp => "INT",
+           mode => "VARCHAR(32)",
+           speed => "VARCHAR(32)",
+           filter => "VARCHAR(32)",
+           airmass => "REAL",
+           rows => "INT",
+           cols => "INT",
+           rabase => "REAL",
+           decbase => "REAL",
+           equinox => "VARCHAR(32)",
+           raoff => "REAL",
+           decoff => "REAL",
+           drrecipe => "VARCHAR(32)",
+           group => "INT",
+           standard => "INT",
+           slitname => "VARCHAR(32)",
+           slitangle => "REAL",
+           grating => "VARCHAR(32)",
+           order => "INT",
+           wavelength => "REAL",
+           pol => "INT",
+           frequency => "REAL",
+           tau => "REAL",
+           seeing => "REAL",
+           bolometers => "VARCHAR(32)",
+           velocity => "REAL",
+           systemvelocity => "REAL",
+        },
 	     );
 
 for my $table (sort keys %tables) {
@@ -247,6 +290,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompsupuser';
   next if $table eq 'ompcoiuser';
   next if $table eq 'ompshiftlog';
+  next if $table eq 'ompobslog';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
