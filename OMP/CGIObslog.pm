@@ -583,8 +583,9 @@ sub obs_comment_form {
                         11 => 'Weather',
                         12 => 'Fault',
                         13 => 'Unknown',
+                        14 => 'Project',
                       );
-  my @timegap_value = qw/ 10 11 12 13 /;
+  my @timegap_value = qw/ 10 11 12 14 13 /;
 
   # Verify we have an Info::Obs object.
   if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
@@ -604,15 +605,9 @@ sub obs_comment_form {
   print "</td></tr>\n";
   print "<tr><td>Status: </td><td>";
 
-  my $status;
+  my $status = $obs->status;
   my $comments = $obs->comments;
   if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-    if( defined( $comments ) &&
-        defined( $comments->[0] ) ) {
-      $status = $comments->[0]->status;
-    } else {
-      $status = OMP__TIMEGAP_UNKNOWN;
-    }
 
     print $q->popup_menu( -name => 'status',
                           -values => \@timegap_value,
@@ -620,12 +615,6 @@ sub obs_comment_form {
                           -default => $status,
                         );
   } else {
-    if( defined( $comments ) &&
-        defined( $comments->[0] ) ) {
-      $status = $comments->[0]->status;
-    } else {
-      $status = OMP__OBS_GOOD;
-    }
 
     print $q->popup_menu( -name => 'status',
                           -values => \@status_value,
@@ -656,6 +645,9 @@ sub obs_comment_form {
                   );
   print $q->hidden( -name => 'inst',
                     -value => $instrument,
+                  );
+  print $q->hidden( -name => 'timegap',
+                    -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
                   );
 
   print "</td></tr>\n<tr><td colspan=\"2\">";
