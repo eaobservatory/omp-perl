@@ -78,6 +78,7 @@ sub new {
 		  OtherTime => undef,
 		  ScienceTime => undef,
 		  ShutdownTime => undef,
+		  Telescope => undef,
 		  WeatherLoss => undef,
 		 }, $class;
 
@@ -564,28 +565,24 @@ sub weather_loss {
   return $self->{WeatherLoss};
 }
 
-=item B<semesters>
+=item B<telescope>
 
-The semester (or semesters) that the time accounts fall within.
+The telescope that the time accounts are associated with.
 
-  @semesters $tg->semesters();
-  $tg->semesters(@semesters);
+  $tel = $tg->telescope();
+  $tg->telescope($tel);
 
-Call with either an array or reference to an array of semesters to set
-this value. Call with undef to unset this value.  Returns an array
-or reference to an array.
+Returns a string.
 
 =cut
 
-sub semesters {
+sub telescope {
   my $self = shift;
   if (@_) {
-    my @sems = shift;
-    @{$self->{Semester}} = sort @sems;
-  } elsif (! defined $self->{Semester}) {
-    # Get the semesters
-    
+    my $tel = shift;
+    $self->{Telescope} = uc($tel);
   }
+  return $self->{Telescope};
 }
 
 =item B<db>
@@ -765,6 +762,7 @@ Populate the object.
 
   $tg->populate(
                 accounts => \@accounts,
+                telescope => $tel,
               );
 
 Arguments are to be given in hash form, with the keys being the names
@@ -946,7 +944,7 @@ sub _get_special_accts {
   my $proj = shift;
 
   my @accounts = $self->accounts;
-  my $regexpart = join('|', OMP::Config->getData('defaulttel'));
+  my $regexpart = $self->telescope;
 
   @accounts = grep {$_->projectid =~ /^(${regexpart})${proj}$/} @accounts;
   if (wantarray) {
