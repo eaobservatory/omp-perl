@@ -815,7 +815,7 @@ Returns good status or throws exception on error (!!).
 
 sub _store_sci_prog {
   my $self = shift;
-  throw OMP::Error::BadArgs('Usage: $db->_write_sci_prog( $sp )') unless @_;
+  throw OMP::Error::BadArgs('Usage: $db->_store_sci_prog( $sp )') unless @_;
   my $sp = shift;
 
   my $freeze = shift;
@@ -980,6 +980,8 @@ If we can not open the file send an email.
 
 This method is not meant to be JAC-agnostic.
 
+Filename separators (/) are replaced with underscores.
+
 =cut
 
 sub _store_sciprog_todisk {
@@ -993,6 +995,7 @@ sub _store_sciprog_todisk {
   # Construct a simple error message
   my ($user, $addr, $email) = OMP::General->determine_host;
   my $projectid = uc($sp->projectID);
+  $projectid =~ s/\/_/g; # replace slashes with underscores
   my $err = "Error writing science program ($projectid) to disk\n" .
     "Request from $email\nReason:\n\n";
   my %deferr = ( to => 'timj@jach.hawaii.edu',
