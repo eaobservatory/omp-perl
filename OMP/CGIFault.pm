@@ -507,37 +507,39 @@ sub query_fault_output {
 
   # Make a link to this script with an argument to alter sort order
   if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
-
-    my $sort_url = $q->self_url;
-    $sort_url =~ s/(\;|\?|\&)sort_order\=ascending//g;
-    if ($sort_url =~ /\?/) {
-      $sort_url .= "&sort_order=descending";
-    } else {
-      $sort_url .= "?sort_order=descending";
-    }
-
+    my $sort_url = url_args($q, "sort_order", "ascending", "descending");
     print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
-
   } else {
-
-    my $sort_url = $q->self_url;
-    $sort_url =~ s/(\;|\?|\&)sort_order\=descending//g;
-    if ($sort_url =~ /\?/) {
-      $sort_url .= "&sort_order=ascending";
-    } else {
-      $sort_url .= "?sort_order=ascending";
-    }
-
+    my $sort_url = url_args($q, "sort_order", "descending", "ascending");
     print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
+  }
+  print "<br>";
 
+  # Link to this script with an argument to alter sort criteria
+  if ($q->param('orderby') eq "filedate") {
+    my $url = url_args($q, "orderby", "filedate", "response");
+    print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a>"
+  } else {
+    my $url = url_args($q, "orderby", "response", "filedate");
+    print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response";
+  }
+  print "<p>";
+
+  my %showfaultargs = (CGI => $q,
+		       faults => $faults,);
+
+  if ($q->param('orderby') eq 'response' or ! $q->param('orderby')) {
+    $showfaultargs{orderby} = 'response';
+  } elsif ($q->param('orderby') eq 'filedate') {
+    $showfaultargs{orderby} = 'filedate';
   }
 
   if ($faults->[0]) {
-    if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
-      show_faults(CGI => $q, faults => $faults);
-    } else {
-      show_faults(CGI => $q, faults => $faults, descending => 1);
+    unless ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
+      $showfaultargs{descending} = 1;
     }
+
+    show_faults(%showfaultargs);
 
     # Faults to print
     my @faultids = map{$_->id} @$faults;
@@ -686,7 +688,7 @@ sub view_fault_content {
   my $q = shift;
   my %cookie = @_;
 
-  # First try and get the fault ID fro mthe sidebar form param, then 
+  # First try and get the fault ID from the sidebar form param, then 
   # try and get it from the URL or from the regular form param
   my $faultid;
   if ($q->param('goto_fault')) {
@@ -1589,6 +1591,7 @@ Show a list of faults
 
   show_faults(CGI => $cgi, 
 	      faults => $faults,
+	      orderby => 'response',
 	      descending => 1,
 	      URL => "fbfault.pl");
 
@@ -1598,8 +1601,10 @@ CGI: A C<CGI> query object
 faults: A reference to an array of C<OMP::Fault> objects
 descending: If true faults are listed in descending order
 URL: The absolute or relative path to the script to be used for the view/respond link
+orderby: Should be either 'response' (to sort by date of latest response) or 'filedate'
 
-The B<URL> and B<descending> keys are optional.
+Only the B<CGI> and B<faults> keys are required.
+
 
 =cut
 
@@ -1626,7 +1631,9 @@ sub show_faults {
 
   print "<td><b>Replies</b></td><td> </td>";
 
-  my $colorcount;
+  if ($args{orderby} eq 'response') {
+    @$faults = sort {@{$a->responses}->[-1]->date->epoch <=> @{$b->responses}->[-1]->date->epoch} @$faults;
+  }
 
   my @faults;
   # Sort faults in the order they are to be displayed
@@ -1636,6 +1643,7 @@ sub show_faults {
     @faults = @$faults;
   }
 
+  my $colorcount;
   for my $fault (@faults) {
     my $bgcolor;
 
@@ -1858,6 +1866,34 @@ sub parse_file_fault_form {
   $parsed{text} = OMP::General->preify_text($text);
 
   return %parsed;
+}
+
+=item B<url_args>
+
+Alter query parameters in the current URL.  Useful for creating links to the
+same script but with different parameters.
+
+  $url = url_args($cgi, $key, $oldvalue, $newvalue);
+
+All arguments are required.
+
+=cut
+
+sub url_args {
+  my $q = shift;
+  my $key = shift;
+  my $oldvalue = shift;
+  my $newvalue = shift;
+
+  my $url = $q->self_url;
+  $url =~ s/(\;|\?|\&)$key\=$oldvalue//g;
+    if ($url =~ /\?/) {
+      $url .= "&" . $key . "=" . $newvalue;
+    } else {
+      $url .= "?" . $key . "=" . $newvalue;
+    }
+
+  return $url;
 }
 
 =back
