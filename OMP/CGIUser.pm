@@ -163,7 +163,6 @@ sub details {
     }
   }
 
-  print "<h4>User associated faults for the past 2 weeks</h4>";
   # Query for faults user is associated with
   my $today = OMP::General->today . "T23:59";
   my $xml = "<FaultQuery>".
@@ -179,15 +178,18 @@ sub details {
   my %faults;
   map {push @{$faults{$_->category}}, $_} @$faults;
 
-  print "<table>";
-  print "<td>Category</td><td align=center>Subject</td>";
-  for my $category (sort keys %faults) {
-    for (@{$faults{$category}}) {
-      print "<tr><td>" . $_->category ."</td>";
-      print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
+  if (%faults) {
+    print "<h4>User associated faults for the past 2 weeks</h4>";
+    print "<table>";
+    print "<td>Category</td><td align=center>Subject</td>";
+    for my $category (sort keys %faults) {
+      for (@{$faults{$category}}) {
+	print "<tr><td>" . $_->category ."</td>";
+	print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
+      }
     }
+    print "</table><br>";
   }
-  print "</table><br>";
 }
 
 =item B<list_users>
