@@ -34,8 +34,10 @@ my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
 my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
+my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
+                  OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN /;
 
-@EXPORT_OK = (@status, @fb, @done, @msb, @obs);
+@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -44,6 +46,7 @@ my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
 		'msb' => \@msb,
 		'done'=> \@done,
     'obs' => \@obs,
+    'timegap' => \@timegap,
 	       );
 
 Exporter::export_tags( keys %EXPORT_TAGS);
@@ -261,6 +264,44 @@ Flags an observation as bad.
 =cut
 
 use constant OMP__OBS_BAD => 2;
+
+=back
+
+=head2 Timegap reasons
+
+=over 4
+
+=item OMP__TIMEGAP_INSTRUMENT
+
+Flags a timegap as being caused by an instrument change.
+
+=cut
+
+use constant OMP__TIMEGAP_INSTRUMENT => 10;
+
+=item OMP__TIMEGAP_WEATHER
+
+Flags a timegap as being caused by weather.
+
+=cut
+
+use constant OMP__TIMEGAP_WEATHER => 11;
+
+=item OMP__TIMEGAP_FAULT
+
+Flags a timegap as being caused by a fault.
+
+=cut
+
+use constant OMP__TIMEGAP_FAULT => 12;
+
+=item OMP__TIMEGAP_UNKNOWN
+
+Flags a timegap as being caused by unknown reasons.
+
+=cut
+
+use constant OMP__TIMEGAP_UNKNOWN => 13;
 
 =back
 
