@@ -233,6 +233,9 @@ sub _query_arcdb {
 
   foreach my $sql (@sql) {
 
+    # Temporary Logging
+    OMP::General->log_message( "ArchiveDB query: $sql" );
+    
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash( $sql );
 
