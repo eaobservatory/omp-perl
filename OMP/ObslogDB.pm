@@ -453,16 +453,24 @@ sub _reorganize_comments {
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
+    my $date = eval { Time::Piece->strptime( $row->{longcommentdate},
+                                             "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ); };
+    if( $@ ) {
+      throw OMP::Error("Could not parse comment date: " . $row->{longcommentdate} );
+    }
+    my $startobs = eval { Time::Piece->strptime( $row->{longdate},
+                                                 "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ); };
+    if( $@ ) {
+      throw OMP::Error("Could not parse observation start date: " . $row->{longdate} );
+    }
     my $comment = new OMP::Info::Comment(
                 text => $row->{commenttext},
-                date => Time::Piece->strptime( $row->{longcommentdate},
-                                               "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ),
+                date => $date,
                 status => $row->{commentstatus},
                 runnr => $row->{runnr},
                 instrument => $row->{instrument},
                 telescope => $row->{telescope},
-                startobs => Time::Piece->strptime( $row->{longdate},
-                                                   "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ),
+                startobs => $startobs,
               );
 
     # Retrieve the user information so we can create the author
