@@ -15,6 +15,8 @@ my @coiemail = ( qw/email1@a email2@b email3@c / );
 
 # Project hash
 my %project = (
+	      # country => ['UK','CA'],
+	       tagpriority => 5,
 	       password => "atest",
 	       projectid => "M01Btj",
 	       pi => new OMP::User( userid => "JBLOGGS",
@@ -36,14 +38,32 @@ my %project = (
 # Instantiate a Project object
 my $proj = new OMP::Project( %project );
 
+# and check it
 ok($proj, "Instantiate a project object");
 isa_ok( $proj, "OMP::Project");
 
-# sned useful class summary
+# and check we can actually specify a country after a tag priority
+my @countries = qw/ UK CA/;
+$proj->country(\@countries);
+
+# send useful class summary
 print map { "#$_\n" } split "\n", Dumper($proj);
 
 # Project id should be case insensitive
 is( $proj->projectid, uc($project{projectid}),"Check projectid");
+
+# Check tagpriority and queue
+is($proj->tagpriority('UK'), $project{tagpriority}, "Check UK priority");
+my @pri = $proj->tagpriority;
+is(@pri, @countries, "Check number of priorities matches number of countries");
+
+is($proj->country, join("/",sort @countries), 
+   "Country list in scalar context");
+is($proj->tagpriority, join(",", map { $project{tagpriority} } @countries),
+  "check that we have the right number of priorities in scalar context");
+
+$proj->tagpriority(UK => 4);
+is($proj->tagpriority('UK'), 4, "Check new UK priority");
 
 # Check the password
 is( $proj->password, $project{password}, "Check password" );
