@@ -8,6 +8,9 @@ MSBServer + SpServer
  - Treat tauband and seeing as single bits of an integer        [1.0]
    to allow scheduling on "band 1+2"
 
+ - decide on whether project ID should be case sensitive
+   and implement that decision.
+
 MSBServer
 ---------
 
