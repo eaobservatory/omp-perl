@@ -2718,7 +2718,13 @@ sub SpIterFolder {
 
       my %stare;
       $stare{nintegrations} = $nint;
-      $stare{widePhotom}    = $widePhotom if defined $widePhotom;
+      if (defined $widePhotom) {
+	if ($widePhotom eq 'true' || $widePhotom == 1) {
+	  $stare{widePhotom} = 1;
+	} else {
+	  $stare{widePhotom} = 0;
+	}
+      }
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
