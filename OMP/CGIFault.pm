@@ -427,23 +427,70 @@ sub query_fault_output {
       push (@xml, "<author>$author</author>");
     }
 
-    # Get our min and max dates
-    my $mindatestr = $q->param('mindate');
-    my $maxdatestr = $q->param('maxdate');
+    # Generate the date portion of our query
+    my $queryDateStr;
+    if ($q->param('period') eq 'arbitrary') {
+      
+      # Get our min and max dates
+      my $mindatestr = $q->param('mindate');
+      my $maxdatestr = $q->param('maxdate');
 
-    # Convert dates to UT
-    $mindate = OMP::General->parse_date($mindatestr, 1);
-    $maxdate = OMP::General->parse_date($maxdatestr, 1);
+      # Convert dates to UT
+      $mindate = OMP::General->parse_date($mindatestr, 1);
+      $maxdate = OMP::General->parse_date($maxdatestr, 1);
 
-    # Imply end of day (23:59) for max date if no time was specified
-    ($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
+      if ($mindate and $maxdate) {
+	# Imply end of day (23:59) for max date if no time was specified
+	($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
 
-    # Do a min/max date query
-    if ($mindate or $maxdate) {
-      push (@xml, "<date>");
-      ($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
-      ($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
-      push (@xml, "</date>");
+	# Do a min/max date query
+	if ($mindate or $maxdate) {
+	  push (@xml, "<date>");
+	  ($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
+	  ($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
+	  push (@xml, "</date>");
+	}
+
+	# Convert dates back to localtime
+	$mindate = localtime($mindate->epoch);
+	$maxdate = localtime($maxdate->epoch);
+      }
+    } elsif ($q->param('period') eq 'days') {
+      my $days = $q->param('days');
+      (! $days) and $days = 14;
+
+      $maxdate = localtime($t->epoch);
+      $mindate = localtime($maxdate->epoch - $days * ONE_DAY);
+
+      push (@xml, "<date delta='-$days'>". $t->datetime ."</date>");
+    } elsif ($q->param('period') eq 'last_month') {
+      # Get results for the period between the first 
+      # and last days of the last month
+      my $year;
+      my $month;
+      if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
+	$year = $1;
+	$month = $2;
+      }
+
+      $month -= 1;
+      if ($month eq 0) {
+	$month = 12;
+	$year -= 1;
+      }
+
+      my $tempdate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
+      $mindate = gmtime($tempdate->epoch);
+      my $tempdate2 = Time::Piece->strptime($year . $month . $tempdate->month_last_day . "T23:59:59", "%Y%m%dT%H:%M:%S");
+      $maxdate = gmtime($tempdate2->epoch);
+
+      push (@xml, "<date><min>".$mindate->datetime."</min><max>".$maxdate->datetime."</max></date>");
+
+      # Convert dates to localtime
+      $mindate = localtime($mindate->epoch);
+      $maxdate = localtime($maxdate->epoch);
+    } else {
+      push (@xml, "<date delta='-7'>". $t->ymd ."</date>");
     }
 
     # Get the text param and unescape things like &amp; &quot;
@@ -452,12 +499,15 @@ sub query_fault_output {
       push (@xml, "<text>$text</text>");
     }
 
+    # Return either only faults filed or only faults responded to
     if ($q->param('action') =~ /response/) {
       push (@xml, "<isfault>0</isfault>");
-
     } elsif ($q->param('action') =~ /file/) {
       push (@xml, "<isfault>1</isfault>");
+    }
 
+    if ($q->param('timelost')) {
+      push (@xml, "<timelost><min>.001</min></timelost>");
     }
 
     # Our query XML
@@ -505,61 +555,80 @@ sub query_fault_output {
     } elsif ($faults->[0]) {
       $title = "1 fault returned matching your query";
     } else {
-      $title = "No faults found matching your query";
+      print "<h3>No faults found matching your query</h3>";
     }
   }
 
-  titlebar($q, ["View Faults", $title], %cookie);
+  # Show results as a summary if that option was checked
+  if ($q->param('summary') and $faults->[0]) {
+    &fault_summary_content($q, $faults, $mindate, $maxdate);
+  } elsif ($faults->[0]) {
+    titlebar($q, ["View Faults", $title], %cookie);
 
-  query_fault_form($q, %cookie);
-  print "<p>";
+    query_fault_form($q, %cookie);
+    print "<p>";
 
-  # Make a link to this script with an argument to alter sort order
-  if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
-    my $sort_url = url_args($q, "sort_order", "ascending", "descending");
-    print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
+    # Total up and display time lost
+    my $total_loss;
+    for (@$faults) {
+      $total_loss += $_->timelost;
+    }
+
+    print "<strong>Total time lost: $total_loss hours</strong>";
+
+    print "<p>";
+
+    # Make a link to this script with an argument to alter sort order
+    if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
+      my $sort_url = url_args($q, "sort_order", "ascending", "descending");
+      print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
+    } else {
+      my $sort_url = url_args($q, "sort_order", "descending", "ascending");
+      print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
+    }
+    print "<br>";
+
+    # Link to this script with an argument to alter sort criteria
+    if ($q->param('orderby') eq "filedate") {
+      my $url = url_args($q, "orderby", "filedate", "response");
+      print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a>"
+    } else {
+      my $url = url_args($q, "orderby", "response", "filedate");
+      print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response";
+    }
+
+
+    print "<p>";
+
+    my %showfaultargs = (CGI => $q,
+			 faults => $faults,);
+    
+    if ($q->param('orderby') eq 'response' or ! $q->param('orderby')) {
+      $showfaultargs{orderby} = 'response';
+    } elsif ($q->param('orderby') eq 'filedate') {
+      $showfaultargs{orderby} = 'filedate';
+    }
+    
+    if ($faults->[0]) {
+      unless ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
+	$showfaultargs{descending} = 1;
+      }
+
+      show_faults(%showfaultargs);
+
+      # Faults to print
+      my @faultids = map{$_->id} @$faults;
+      
+      print_form($q, 1, @faultids);
+      
+      # Put up the query form again if there are lots of faults displayed
+      if ($faults->[15]) {
+	print "<P>";
+	query_fault_form($q, %cookie);
+      }
+    }
   } else {
-    my $sort_url = url_args($q, "sort_order", "descending", "ascending");
-    print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
-  }
-  print "<br>";
-
-  # Link to this script with an argument to alter sort criteria
-  if ($q->param('orderby') eq "filedate") {
-    my $url = url_args($q, "orderby", "filedate", "response");
-    print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a>"
-  } else {
-    my $url = url_args($q, "orderby", "response", "filedate");
-    print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response";
-  }
-  print "<p>";
-
-  my %showfaultargs = (CGI => $q,
-		       faults => $faults,);
-
-  if ($q->param('orderby') eq 'response' or ! $q->param('orderby')) {
-    $showfaultargs{orderby} = 'response';
-  } elsif ($q->param('orderby') eq 'filedate') {
-    $showfaultargs{orderby} = 'filedate';
-  }
-
-  if ($faults->[0]) {
-    unless ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
-      $showfaultargs{descending} = 1;
-    }
-
-    show_faults(%showfaultargs);
-
-    # Faults to print
-    my @faultids = map{$_->id} @$faults;
-
-    print_form($q, 1, @faultids);
-
-    # Put up the query form again if there are lots of faults displayed
-    if ($faults->[15]) {
-      print "<P>";
-      query_fault_form($q, %cookie);
-    }
+    query_fault_form($q, %cookie);
   }
 }
 
@@ -629,7 +698,7 @@ sub query_fault_form {
   # Get the date so we can figure out our local timezone
   my $today = localtime;
 
-  print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
+  print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td colspan=2>";
   print $q->startform(-method=>'GET');
   print $q->hidden(-name=>'faultsearch', -default=>['true']);
 
@@ -640,12 +709,18 @@ sub query_fault_form {
 		        -labels=>{response=>"responded to",
 				  file=>"filed",
 				  activity=>"with any activity"});
-  print "</td><td></td><tr><td><b>by user <small>(ID)</small> </b>";
+  print "</td><tr><td colspan=2><b>by user <small>(ID)</small> </b>";
   print $q->textfield(-name=>'author',
 		      -size=>17,
 		      -maxlength=>32,);
-  print "</b></td><td></td><tr><td><b>";
-  print "between dates <small>(YYYYMMDD)</small> ";
+  print "</b></td><tr><td valign=top align=right><b>";
+  print $q->radio_group(-name=>'period',
+		        -values=>['arbitrary','days','last_month'],
+		        -default=>'arbitrary',
+		        -labels=>{arbitrary=>'between dates',days=>'in the last',last_month=>'in the last calendar month'},
+			-linebreak=>'true',);
+  print "</b></td><td valign=top><b>";
+  print "<small>(YYYYMMDD)</small> ";
   print $q->textfield(-name=>'mindate',
 		      -size=>18,
 		      -maxlength=>32);
@@ -653,11 +728,15 @@ sub query_fault_form {
   print $q->textfield(-name=>'maxdate',
 		      -size=>18,
 		      -maxlength=>32);
-
   # Display the local timezone since date searches are localtime
   print " ". $today->strftime("%Z");
-
-  print "</b></td><td></td><tr><td><b>";
+  print "<br>";
+  print $q->textfield(-name=>'days',
+		      -size=>3,
+		      -maxlength=>4,);
+  print " days";
+  print "<br>";
+  print "</b></td><tr><td colspan=2><b>";
   print "System </b>";
   print $q->popup_menu(-name=>'system',
 		       -values=>\@systems,
@@ -668,12 +747,38 @@ sub query_fault_form {
 		       -values=>\@types,
 		       -labels=>\%typelabels,
 		       -default=>'any',);
-  print "</td><td></td><tr><td><b>Status </b>";
+  print "<b>Status </b>";
   print $q->popup_menu(-name=>'status',
 		       -values=>\@status,
 		       -labels=>\%statuslabels,
 		       -default=>'any',);
-  print "</b></td><td></td><tr><td>";
+
+  print "</td><tr><td colspan=2>";
+  print "<b>";
+
+  # Only display option to return time-losing faults if the category allows it
+  if (OMP::Fault->faultCanLoseTime($cookie{category})) {
+    print $q->checkbox(-name=>'timelost',
+		       -value=>'true',
+		       -label=>'Return time-losing faults only',
+		       -checked=>0,);
+    print "&nbsp;&nbsp;";
+  }
+
+  # Only display option to return affected projects if the category allows it
+  if (OMP::Fault->faultCanAssocProjects($cookie{category})) {
+    print $q->checkbox(-name=>'show_affected',
+		       -value=>'true',
+		       -label=>'Show affected projects',
+		       -checked=>0,);
+  }
+
+  print "<br>";
+  print $q->checkbox(-name=>'summary',
+		     -value=>'true',
+		     -label=>'Organize by system/type',
+		     -checked=>0,);
+  print "</b></td><tr><td colspan=2>";
   print $q->textfield(-name=>'text',
 		      -size=>44,
 		      -maxlength=>256,);
@@ -1184,9 +1289,9 @@ sub file_fault_form {
 			 -labels=>\%status_labels,);
   }
 
-  # If we're using the bug report system don't
-  # provide fields for taking "time lost" and "time of fault"
-  if ($cookie->{category} !~ /bug/i) {
+  # Only provide fields for taking "time lost" and "time of fault"
+  # if the category allows it
+  if (OMP::Fault->faultCanLoseTime($cookie->{category})) {
     print "</td><tr><td align=right><b>Time lost <small>(hours)</small>:</b></td><td>";
     print $q->textfield(-name=>'loss',
 			-default=>$defaults{loss},
@@ -1215,15 +1320,16 @@ sub file_fault_form {
 		     -columns=>78,
 		     -default=>$defaults{message},);
 
-  # If were in the ukirt or jcmt fault categories create a checkbox group
-  # for specifying an association with projects.
+  # If were in a category that allows project association create a
+  # checkbox group for specifying an association with projects.
 
-  if ($cookie->{category} =~ /(jcmt|ukirt)/i) {
+  if (OMP::Fault->faultCanAssocProjects($cookie->{category})) {
     # Values for checkbox group will be tonights projects
     my $aref = OMP::MSBServer->observedMSBs({
 					     usenow => 1,
 					     format => 'data',
 					     returnall => 0,});
+
     if (@$aref[0] and ! $fault) {
       # We don't want this checkbox group if this form is being used for editing a fault
       my %projects;
@@ -1237,11 +1343,16 @@ sub file_fault_form {
 	  unless ($tel !~ /$category/i);
 	
       }
-      print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
-      print $q->checkbox_group(-name=>'assoc',
-			       -values=>[keys %projects],
-			       -default=>$defaults{assoc},);
-      print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
+      if (%projects) {
+	print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
+	print $q->checkbox_group(-name=>'assoc',
+				 -values=>[keys %projects],
+				 -default=>$defaults{assoc},
+				 -linebreak=>'true',);
+	print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
+      } else {
+	print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
+      }
     } else {
       print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
     }
@@ -1709,7 +1820,16 @@ sub show_faults {
     my $replies = $#{$fault->responses};  # The number of actual replies
 
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
-    print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b></td>";
+    print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b>";
+
+    # Show affected projects?
+    if ($q->param('show_affected') and $fault->projects) {
+      print "<br>";
+      my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
+      print join (" | ", @projlinks);
+    }
+
+    print "</td>";
     print "<td>" . OMP::Display->userhtml($user, $q) . "</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
@@ -1756,7 +1876,8 @@ sub print_form {
 		   -default=>join(',',@faultids));
   print $q->submit(-name=>'print',
 		   -label=>'Send to printer');
-  print $q->radio_group(-name=>'printer',
+  print "&nbsp;";
+  print $q->popup_menu(-name=>'printer',
 			-values=>\@printers,);
   if ($advanced) {
     print "<br>Using method ";
@@ -1764,8 +1885,9 @@ sub print_form {
 			 -values=>["separate","combined"],
 			 -labels=>{separate => "One fault per page",
 				   combined => "Combined",},);
-    print $q->endform;
   }
+
+  print $q->endform;
 }
 
 =item B<titlebar>
@@ -1956,7 +2078,7 @@ sub fault_summary_form {
   print "<table><td>";
   print $q->radio_group(-name=>"period",
 		        -values=>["last_month","arbitrary"],
-		        -labels=>{last_month=>"Last month",arbitrary=>"For the past"},
+		        -labels=>{last_month=>"Last calendar month",arbitrary=>"For the past"},
 		        -default=>"last_month",
 		        -linebreak=>"true",);
   print "</td><td valign=bottom>";
@@ -1975,7 +2097,7 @@ sub fault_summary_form {
 
 Create a page summarizing faults for a particular category, or all categories.
 
-  fault_summary_content($cgi, @categories);
+  fault_summary_content($cgi, $faults,[$mindate, $maxdate]);
 
 Takes a C<CGI> query object and an array of fault categories as its arguments.
 
@@ -1983,59 +2105,66 @@ Takes a C<CGI> query object and an array of fault categories as its arguments.
 
 sub fault_summary_content {
   my $q = shift;
+  my $faults = shift;
+  my $mindate = shift;
+  my $maxdate = shift;
   my $category = $q->param('category');
   my $ompurl = OMP::Config->getData('omp-url');
   my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
   my %status = OMP::Fault->faultStatus;
+  my $systems = OMP::Fault->faultSystems($faults->[0]->category);
+  my $types = OMP::Fault->faultTypes($faults->[0]->category);
   my %statusOpen = OMP::Fault->faultStatusOpen;
 
-  # Generate the date portion of our XML query
-  my $queryDateStr;
-  my $today = localtime;
-  my $period;
-  if ($q->param('period') eq 'last_month') {
-    # Get results for the period between the first 
-    # and last days of the last month
+  if (! $faults) {
+    # Generate the date portion of our XML query
+    my $queryDateStr;
     my $today = localtime;
-    my $year;
-    my $month;
-    if ($today->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
-      $year = $1;
-      $month = $2;
+    my $period;
+    if ($q->param('period') eq 'last_month') {
+      # Get results for the period between the first 
+      # and last days of the last month
+      my $today = localtime;
+      my $year;
+      my $month;
+      if ($today->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
+	$year = $1;
+	$month = $2;
+      }
+
+      $month -= 1;
+      if ($month eq 0) {
+	$month = 12;
+	$year -= 1;
+      }
+
+      my $beginDate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
+      my $endDate = $year . "-" . $month . "-" . $beginDate->month_last_day . "T23:59:59";
+      $queryDateStr = "<date><min>".$beginDate->datetime."</min><max>$endDate</max></date>";
+      $period = $beginDate->monname ." ". $beginDate->year;
+    } else {
+      # Get results between today and N days ago
+      my $days = $q->param('days');
+      (! $days) and $days = 7;
+      
+      $queryDateStr = "<date delta='-".$days."'>" . $today->datetime . "</date>";
+      $period = "the past $days days";
     }
 
-    $month -= 1;
-    if ($month eq 0) {
-      $month = 12;
-      $year -= 1;
-    }
 
-    my $beginDate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
-    my $endDate = $year . "-" . $month . "-" . $beginDate->month_last_day . "T23:59:59";
-    $queryDateStr = "<date><min>".$beginDate->datetime."</min><max>$endDate</max></date>";
-    $period = $beginDate->monname ." ". $beginDate->year;
-  } else {
-    # Get results between today and N days ago
-    my $days = $q->param('days');
-    (! $days) and $days = 7;
+    # Construct our fault query
+    my $xml = "<FaultQuery>".
+      "<category>$category</category>".
+	$queryDateStr.
+	  "<isfault>1</isfault>".
+	    "</FaultQuery>";
 
-    $queryDateStr = "<date delta='-".$days."'>" . $today->datetime . "</date>";
-    $period = "the past $days days";
+    # Run the query
+    $faults = OMP::FaultServer->queryFaults($xml, 'object');
+
+    # Title
+    print "<h2>$category fault summary for $period</h2>";
   }
-
-  
-  # Construct our fault query
-  my $xml = "<FaultQuery>".
-    "<category>$category</category>".
-      $queryDateStr.
-	"<isfault>1</isfault>".
-	  "</FaultQuery>";
-
-  # Run the query
-  my $faults = OMP::FaultServer->queryFaults($xml, 'object');
-
-  # Title
-  print "<h2>$category fault summary for $period</h2>";
 
   # Check that we got some faults back
   if (! $faults->[0]) {
@@ -2046,63 +2175,130 @@ sub fault_summary_content {
   # Store faults by system and type
   my %faults;
   my %totals;
+  my %timelost;
+  my %sysID; # IDs used to identify table rows that belong to a particular system
   my $timelost = 0;
+  my $totalfiled = 0;
+  $totals{open} = 0;
+
   for (@$faults) {
 
     $totals{$_->systemText}++;
     $timelost += $_->timelost;
 
+    # Keep track of number of faults that were filed during the query period
+    my $filedate = $_->responses->[0]->date;
+    if ($mindate and $maxdate) {
+      ($filedate->epoch >= $mindate->epoch and $filedate->epoch <= $maxdate->epoch) and $totalfiled++;
+    }
     # Store open faults and closed major faults
     my $status;
     if (exists $statusOpen{$_->statusText}) {
       $status = 'open';
-    } elsif (! exists $statusOpen{$_->statusText} and $_->timelost >= 2) {
-      $status = 'closed';
     } else {
-      next;
+      $status = 'closed';
+      $sysID{$_->systemText} = sprintf("%08d",$systems->{$_->systemText}) . "sys";
     }
 
-    push (@{$faults{$status}{$_->systemText}{$_->typeText}}, $_);
+    push (@{$faults{$_->systemText}{$status}{$_->typeText}}, $_);
     $totals{$status}++;
+
+    $timelost{$status}{$_->systemText} += $_->timelost;
   }
 
   # Totals
   print "<table bgcolor=#43438c cellspacing=1><td>";
-  print "<table bgcolor=#ffffff border=0>";
-  print "<td><strong>Faults filed in period</strong></td><td align=right>".scalar(@$faults)."</td>";
-  print "<tr><td><strong>Total time lost</strong></td><td align=right>$timelost hours</td>";
-  print "<tr><td><strong>Faults open</strong></td><td align=right>$totals{open}</td>";
-  print "</table></td></table><br><br>";
+  print "<table bgcolor=#ffffff border=0><td>";
 
-#  use Data::Dumper;
-#  print "<pre>";
-#  print Dumper(%faults);
+  print "<strong>Faults returned by query: </strong>".scalar(@$faults);
+  if ($mindate and $maxdate) {
+    print "<br><strong>Query period: </strong>".$mindate->strftime("%Y%m%d %H:%M") ." - ". $maxdate->strftime("%Y%m%d %H:%M %Z");
+    print "<br><strong>Matching faults filed in period: </strong>$totalfiled";
+  }
+
+  print "<br><strong>Total time lost:</strong> $timelost hours";
+  print "<br><strong>Open faults:</strong> $totals{open}";
+  print "</td></table></td></table><br><br>";
 
   # First show all open, then all major closed
   print "<table><td>";
-  for my $showfaults (qw/open closed/) {
-    print "<table width=100% cellspacing=0 cellpadding=2><td colspan=5 bgcolor=#ffffff><font size=+1><strong>";
+  print "<table width=100% cellspacing=0 cellpadding=2 border=0><td colspan=7 bgcolor=#ffffff><font size=+1><strong>";
 
-    ($showfaults eq 'open') and print "Open faults"
-      or print "Major faults closed";
+  print "All faults";
 
-    print "</strong></font></td>";
-    if (! $totals{$showfaults}) {
-      print "<tr><td solspan=5 bgcolor=#ffffff>None filed</td></table>";
-      next;
-    }
+  print "</strong></font>";
 
-    # Display faults by system
-    for my $system (sort keys %{$faults{$showfaults}}) {
-      print "<tr bgcolor=#dbdbff><td colspan=2><strong>$system</strong> <font size=-1>(total filed: $totals{$system})</font></td>";
-      print "<td align=center><font size=-1>Time lost</font></td><td align=center><font size=-1>Responses</font></td><td align=center><font size=-1>Days idle</font></td>";
+  # Don't hide closed faults if we only have closed faults
+  my $toggleDef;
+  my $toggleText;
+  my $class;
+  if ($totals{open} > 0) {
+    $toggleDef = 'show';
+    $class = 'hide';
+    $toggleText = "Show closed faults";
+  } else {
+    $toggleDef = 'hide';
+    $class = 'show';
+    $toggleText = "Hide closed faults";
+  }
 
-      my $systemTimeLost = 0;
+  # Create argument list for calling toggle script
+  my $argumentStr = join(",", map {"'$sysID{$_}'"} keys %sysID);
+  $argumentStr = "'function__toggleClosed'," . $argumentStr;
 
-      for my $type (sort keys %{$faults{$showfaults}{$system}}) {
-	print "<tr bgcolor=#ffffff><td colspan=5><font color=#ffffff>----</font><strong>$type</strong></td>";
+  # Create link for toggling display of all closed faults
+  if ($totals{closed} > 0 and $totals{open} > 0) {
+    print "&nbsp;<a href=\"#\" class=\"link_option\" onclick=\"toggle($argumentStr); return false\"><img border=\"0\" src=\"$iconurl/$toggleDef.gif\" width=\"10\" height=\"10\" id=\"imgfunction__toggleClosed\"></a>";
+    print "&nbsp;<a href=\"#\" class=\"link_option\" onclick=\"toggle($argumentStr); return false\"><span id=\"function__toggleClosed\" function=\"$toggleDef\">$toggleText</span></a>";
+    print "</td>";
+  }
 
-	for my $fault (@{$faults{$showfaults}{$system}{$type}}) {
+  # Display faults by system
+  for my $system (sort keys %faults) {
+    print "<tr><td colspan=2 class='row_system_title'>$system <span class='misc_info'>(total: $totals{$system})</span></td>";
+    print "<td class='row_system'>Filed by</td>";
+    print "<td class='row_system'>Last response by</td>";
+    print "<td class='row_system'>Time lost</td>";
+    print "<td class='row_system'>Responses</td>";
+    print "<td class='row_system'>Days idle</td>";
+
+    my $systemTimeLost = 0;
+
+    for my $status (qw/open closed/) {
+      
+      next if (! $faults{$system}{$status});
+
+      # Use different background colors for different statuses
+      my $bgcolor;
+      ($status eq 'open') and $bgcolor = '#ffffff'
+	or $bgcolor = '#e0e0e0';
+
+      # Make a button for toggling view of closed faults
+      if ($status eq 'closed') {
+	print "<tr>";
+	print "<td class='row_closed_title' colspan=4>";
+	print "<a class=\"link_option\" href=\"#\" onclick=\"toggle('$sysID{$system}'); return false\"><img border=\"0\" src=\"$iconurl/$toggleDef.gif\" width=\"10\" height=\"10\" id=\"img$sysID{$system}\"></a>";
+        print "&nbsp;<a class=\"link_option\" href=\"#\" onclick=\"toggle('$sysID{$system}'); return false\">Closed faults</a></td>";
+	print "<td class='row_closed'><span id=\"info$sysID{$system}\" value=\"$timelost{$status}{$system}\">";
+	($class eq 'hide') and print $timelost{$status}{$system};
+        print "</span>&nbsp;</td><td colspan=2 class='row_closed'>&nbsp;</td>";
+	print "</tr>";
+      }
+
+      for my $type (sort keys %{$faults{$system}{$status}}) {
+
+	my $rowID = $sysID{$system} . "_" . $types->{$type};
+
+	($status eq 'closed') and print "<tr id=\"$rowID\" class=\"$class\">"
+	  or print "<tr>";
+
+	print "<td bgcolor=$bgcolor colspan=7><font color=$bgcolor>----</font><strong>$type</strong></td>";
+
+	my $count = 0;
+
+	for my $fault (@{$faults{$system}{$status}{$type}}) {
+
+	  $count++;
 
 	  # Find out how long since the last response
 	  my $localtime = localtime;
@@ -2117,23 +2313,49 @@ sub fault_summary_content {
 	  $preview =~ s/\"/\'\'/gi;
 	  $preview =~ s/\s+/ /gi;
 
-	  print "<tr bgcolor=#ffffff><td><font color=#ffffff>-------</font>";
+	  my $subject = ($fault->subject) ? $fault->subject : "No subject";
+
+	  my $author = OMP::Display->userhtml($fault->responses->[0]->author, $q);
+	  my $respAuthor;
+	  ($fault->responses->[1]) and
+	    $respAuthor = OMP::Display->userhtml($fault->responses->[-1]->author, $q);
+
+	  my $faultRowID = $rowID . "_" . $count;
+
+	  ($status eq 'closed') and print "<tr id=\"$faultRowID\" class=\"$class\""
+	    or print "<tr ";
+
+	  print "bgcolor=$bgcolor><td><font color=$bgcolor>------</font>";
 	  ($fault->timelost > 0) and print "<img src=$iconurl/timelost.gif alt=\"Fault lost time\">"
 	    or print "<img src=$iconurl/spacer.gif height=13 width=10>";
-	  print " ". $fault->id ."</td>";
-	  print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_dark\" title=\"$preview\">". $fault->subject ."</a></td>";
-	  print "<td align=right>". $fault->timelost ."</td>";
-	  print "<td align=right>". $#{$fault->responses} ."</td>";
-	  print "<td align=right>". $lastresponse ."</td>";
+	  print " <a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_id\" title=\"$preview\">". $fault->id ."</td>";
+	  print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_subject\" title=\"$preview\">". $subject ."</a>";
+
+	  # Show affected projects?
+	  if ($q->param('show_affected') and $fault->projects) {
+	    print "<br><span class='proj_fault_link'>";
+	    my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
+	    print join (" | ", @projlinks);
+	    print "</span>";
+	  }
+
+	  print "</td>";
+	  print "<td align=right class='userid'>". $fault->responses->[0]->author->html . "</td>";
+	  print "<td align=right class='userid'>";
+	  ($respAuthor) and print $respAuthor
+	    or print "n/a";
+	  print "</td>";
+	  print "<td align=right><span class='fault_numbers'>". $fault->timelost ."</span></td>";
+	  print "<td align=right><span class='fault_numbers'>". $#{$fault->responses} ."</span></td>";
+	  print "<td align=right><span class='fault_numbers'>". $lastresponse ."</span></td>";
 	}
       }
-
-      # Total time lost for system
-      print "<tr bgcolor=#ffffff><td colspan=2 align=right>Total time lost</td><td align=right><strong>$systemTimeLost</strong></td><td colspan=2></td>";
-
     }
-    print "</table><tr><td><br>";
+    # Total time lost for system
+    print "<tr bgcolor=#ffffff><td colspan=4 align=right>Total time lost</td><td align=right><span class='fault_total'>$systemTimeLost</span></td><td colspan=2></td>";
+
   }
+  print "</table><tr><td><br>";
   print "</td></table>";
 }
 
