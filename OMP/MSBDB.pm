@@ -304,6 +304,61 @@ sub fetchSciProg {
   return $sp;
 }
 
+=item B<removeSciProg>
+
+Remove the science program from the database.
+
+  $db->removeSciProg();
+
+Hopefully this is intentional. Project or administrator password
+is required (both password and project ID are obtained from the object).
+
+=cut
+
+sub removeSciProg {
+  my $self = shift;
+
+  # Verify the password
+  $self->_verify_project_password();
+
+  # Before we do anything else we connect to the database
+  # begin a transaction and lock out the tables.
+  # This has the side effect of locking out the tables until
+  # we have finished with them (else it will block waiting for
+  # access). This allows us to use the DB lock to control when we
+  # can write a science program to disk)
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Remove the science program
+  $self->_remove_old_sciprog();
+
+  # Remove the observation and MSB entries
+  $self->_clear_old_rows();
+
+  # Add a little note if we used the admin password
+  my $note = '';
+  $note = "[using the administrator password]"
+    if OMP::General->verify_administrator_password( $self->password, 1);
+
+  $self->_notify_feedback_system(
+				 subject => "Science program deleted",
+				 text => "Science program for project <b>".
+				 $self->projectid ."</b> deleted $note\n",
+				);
+
+  OMP::General->log_message( "Science program deleted for project " .
+			     $self->projectid() . 
+			     " $note\n"
+			   );
+
+  # Now disconnect from the database and free the lock
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+
 =item B<fetchMSB>
 
 Retrieve an MSB (in the form of an OMP::MSB object) from the database.
@@ -1264,7 +1319,7 @@ sub _run_query {
     # Slice if necessary
     if (defined $max) {
       $max--; # convert to index
-      $max = ( $max < $#$ref ? $max : $#$ref);
+      $max = ( $max < $#$ref && $max > -1 ? $max : $#$ref);
     } else {
       $max = $#$ref;
     }
@@ -1394,6 +1449,7 @@ sub _run_query {
 	push(@observable, $msb);
 
 	# Jump out the loop if we have enough matches
+	# A negative $max will never match
 	last if scalar(@observable) == $max;
 
       }
