@@ -201,6 +201,16 @@ sub comment_form {
 
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
+
+  # Store the cookie values in hidden fields so that they can be retrieved if the
+  # cookie expires before the comment is submitted.  Otherwise the comment will be
+  # lost and a login form will be popped up.  the addComment method doesn't
+  # actually require a password to work, however...
+
+        $q->hidden(-name=>'password',
+		   -default=>$cookie{password}),
+        $q->hidden(-name=>'projectid',
+		   -default=>$cookie{projectid}),
         $q->br,
 	"Email Address: </td><td>",
 	$q->textfield(-name=>'author',
@@ -294,7 +304,7 @@ sub add_comment_output {
   my $comment = { author => $q->param('author'),
 		  subject => $q->param('subject'),
 		  text => $q->param('text'),
-		  program => $q->param('program'), 
+		  program => $q->url(-relative=>1), # the name of the cgi script
 		  status => OMP__FB_IMPORTANT, };
 
   OMP::FBServer->addComment( $cookie{projectid}, $comment )

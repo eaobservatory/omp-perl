@@ -233,6 +233,12 @@ sub _write_login {
 
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
+
+    # This hidden field contains the 'login_form' param that lets us know we've just come
+    # from the login form, so we'll be sure to run the form_content callback and not
+    # form_output.
+        $q->hidden(-name=>'login_form',
+		   -default=>1,),
         $q->br,
 	"Project ID: </td><td colspan='2'>",
 	$q->textfield(-name=>'projectid',
@@ -295,7 +301,6 @@ sub write_page {
 
   # See if we are reading a form or not
   if ($q->param) {
-
     # Does this form include a password field?
     if ($q->param('password')) {
       # Okay need to get user name and password and
@@ -325,7 +330,9 @@ sub write_page {
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
-    if ($q->param('password')) {
+    if ($q->param('login_form')) {
+      # If there's a 'login_form' param then we know we just came from
+      # the login form.
       $form_content->( $q, %cookie);
     } else {
       $form_output->( $q, %cookie);
