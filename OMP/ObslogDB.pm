@@ -35,7 +35,8 @@ use OMP::Info::Comment;
 use OMP::ObsQuery;
 use Time::Piece;
 use Time::Seconds;
-
+use OMP::UserDB;
+use Data::Dumper;
 use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
@@ -47,31 +48,25 @@ our $OBSLOGTABLE = "ompobslog";
 
 =over 4
 
-=item B<addObslog>
+=item B<addComment>
 
-Add an observation to the database.
+Add a comment to the database.
 
-  $db->addObslog( $comment, $instrument, $utdate, $runnr, $status );
+  $db->addComment( $comment, $obs, $user );
 
-The comment is supplied as an C<OMP::Info::Comment> object (and will
-therefore include a status and a date).
+The supplied parameters are an C<Info::Comment> object or a string as
+the comment text, and an C<Info::Obs> object for which the comment was
+made. The third paramter is optional, and can either be a string
+containing a user ID or an C<OMP::User> object.
 
-If the observation has not yet been observed this command will succeed,
-adding the comment to the table.
-
-Optionally, an object of class C<OMP::Info::Obs> can be supplied instead
-of the telescope, instrument, UT date, and run number.
-
-  $db->addObslog( $comment, $obs );
-
-If the observation already has a comment associated with it, that old
-comment will be deleted and replaced with the new comment.
+If the observation already has comments associated with it, those comments
+will be flagged as inactive, and the new comment will be inserted into
+the database and flagged as active.
 
 It is possible to supply the comment as a string (anything that is not
 a reference will be treated as a string). The default status of such an
-comment will be set as OMP__COMMENT_GOOD.
-
-  $db->addObslog( $comment_string, $instrument, $utdate, $runnr );
+comment will be set as OMP__COMMENT_GOOD. See C<OMP::Constants> for
+more information on comment status values.
 
 It is also possible to supply the comment as an integer, which will
 be assumed to be an index into the comments contained in the
@@ -80,64 +75,30 @@ C<OMP::Info::Obs> object.
 If no comment is supplied at all, the last comment will be extracted
 from the C<OMP::Info::Comment> object (if supplied) and stored.
 
-If the observation does not specifiy a status, default behaviour is to treat
-the observation status as OMP__OBS_GOOD. See C<OMP::Constants> for more
-information on the different observation statuses.
+This method will not update the comments within any passed C<OMP::Info::Obs>
+object.
 
 =cut
 
-sub addObslog {
+sub addComment {
   my $self = shift;
 
   # Simple arguments
   my $comment = shift;
-  my $instrument = shift;
-  my $utdate = shift;
-  my $runnr = shift;
+  my $obs = shift;
+  my $user = shift;
 
-  my $obsinfo;
-
-  if( UNIVERSAL::isa( $instrument, "OMP::Info::Obs" ) ) {
-    $obsinfo = $instrument; # So we don't get confused later on
-    my $projectid = $self->projectid;
-    my $obsproj = $obsinfo->projectid;
-    if( defined $projectid and !defined $obsproj ) {
-      $obsproj->projectid( $projectid );
-    } elsif( !defined $projectid and !defined $obsproj ) {
-      throw OMP::Error::FatalError( "Unable to determine projectid" );
-    } elsif( defined $obsproj and !defined $projectid ) {
-      $self->projectid( $obsproj );
-    }
+  # See if we are a blessed reference
+  if( ref( $comment ) ) {
+    # Fall over if we aren't a comment object.
+    throw OMP::Error::BadArgs( "Wrong class for comment object: " . ref( $comment ) )
+    unless UNIVERSAL::isa( $comment, "OMP::Info::Comment" );
+  } elsif( $comment =~ /^\d+$/ ) {
+    # An integer index.
+    $comment = ( $obs->comments )[$comment];
   } else {
-    my $projectid = $self->projectid;
-    if( !defined $projectid ) {
-      throw OMP::Error::FatalError( "Project ID not available." );
-    }
-    $obsinfo = new OMP::Info::Obs( projectid => $projectid,
-                                   instrument => $instrument,
-                                   runnr => $runnr,
-                                   utdate => $utdate
-                                 );
-  }
-
-  # Do we have a comment or an index (or no comment at all)?
-
-  if( $comment ) {
-    # See if we are a blessed reference
-    if( ref( $comment ) ) {
-      # Fall over if we aren't a comment object.
-      throw OMP::Error::BadArgs( "Wrong class for comment object: " . ref( $comment ) )
-           unless UNIVERSAL::isa( $comment, "OMP::Info::Comment" );
-    } elsif( $comment =~ /^\d+$/ ) {
-      # An integer index.
-      $comment = ( $obsinfo->comments )[$comment];
-    } else {
-      # Some other random text. Don't bother to add a status yet.
-      $comment = new OMP::Info::Comment( text => $comment );
-    }
-  } else {
-    # Assume last index
-    $comment = ( $obsinfo->comments )[-1];
+    # Some other random text. Don't bother to add a status yet.
+    $comment = new OMP::Info::Comment( text => $comment );
   }
 
   # Make sure we have a defined comment.
@@ -148,91 +109,152 @@ sub addObslog {
   # looking for an instrument, a run number, and a UT date in the Obs
   # object.
   throw OMP::Error::BadArgs("Unable to uniquely identify observation")
-    unless ( defined $obsinfo->instrument and
-             defined $obsinfo->runnr and
-             defined $obsinfo->startobs );
+    unless ( defined $obs->instrument and
+             defined $obs->runnr and
+             defined $obs->startobs );
+
+  # Grab or verify the user id if it's given.
+  my $userobj;
+  if( $user ) {
+    if(UNIVERSAL::isa( $user, 'OMP::User' ) ) {
+      my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+      if(!$udb->verifyUser($user->userid)) {
+        throw OMP::Error::BadArgs("Must supply a valid user");
+      };
+      $userobj = $user;
+    } else {
+      my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+      $userobj = $udb->getUser( $user );
+      if(!defined($userobj)) {
+        throw OMP::Error::BadArgs("User id $user is not in database");
+      }
+    }
+    $comment->{Author} = $userobj;
+  } elsif (UNIVERSAL::isa( $comment, 'OMP::Info::Comment' ) ) {
+    my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+    if(!$udb->verifyUser($comment->author->userid)) {
+      throw OMP::Error::BadArgs("Must supply a valid user with the comment");
+    }
+  }
 
   # Lock the database (since we are writing).
   $self->_db_begin_trans;
   $self->_dblock;
 
-  # Delete old observations.
-  $self->_delete_obslog($obsinfo);
+  # Set old observations in the archive to "inactive".
+  $self->_set_inactive( $obs );
 
   # Add the new comment to the current observation.
-  $obsinfo->{comments}->[0] = $comment;
+  $obs->comments->[0] = $comment;
 
   # Write the observation to database.
-  $self->_store_obslog($obsinfo);
+  $self->_store_comment( $obs );
 
   # End transaction.
   $self->_dbunlock;
   $self->_db_commit_trans;
-
 }
 
-=item B<retrieveObslog>
+=item B<getComment>
 
-Retrieve comments for a given observation. Observation must be
-supplied as an C<OMP::Info::Obs> object.
+Retrieve the most recent open comment for a given observation.
+Observation must be supplied as an C<OMP::Info::Obs> object.
 
-  @results = $db->retrieveObslog( $obs );
-  $results = $db->retrieveObslog( $obs );
+  $comment = $db->getComment( $obs );
 
-The method returns either an array of C<Info::Comment> objects or
-reference to an array of C<Info::Comment> objects.
+In this case the method returns an C<Info::Comment> object.
+
+An additional optional argument may be supplied to indicate that
+all comments for the observation are to be returned.
+
+  @allcomments = $db->getComment( $obs, $allcomments );
+  $allcomments = $db->getComment( $obs, $allcomments );
+
+If the value for this argument is 1, then all comments for the
+given observation will be returned. In this case an array of
+C<Info::Comment> objects will be returned in list context, or
+a reference to an array of C<Info::Comment> objects in scalar
+context.
+
+Note that the passed C<Info::Obs> object remains unchanged.
 
 =cut
 
-sub retrieveObslog {
+sub getComment {
 
   my $self = shift;
   my $obs = shift;
+  my $allcomments = shift;
 
-  # First check to see if the observation object actually has
-  # comments associated with it. If it does, then we don't have
-  # to make a costly database call.
-  if(defined($obs->comments)) {
-    return $obs->comments;
+  if( !defined($obs->instrument) ||
+      !defined($obs->runnr) ||
+      !defined($obs->startobs) ) {
+    throw OMP::Error::BadArgs("Must supply an Info::Obs object with defined instrument, run number, and date");
+  }
+
+  my $startobs = $obs->startobs;
+
+  # If $allcomments is true, then we don't want to limit
+  # the query. Otherwise, we want to retrive comments
+  # only for which obsactive = 1.
+  my $obsactivestring;
+  if($allcomments) {
+    $obsactivestring = "<obsactive>1</obsactive>";
+  } else {
+    $obsactivestring = "";
   }
 
   # Form a query to retrieve the observation comments.
   my $xml = "<ObsQuery>" .
-    ( $obs->instrument ? "<instrument>" . $obs->instrument . "</instrument>" : "" ) .
-    ( $obs->runnr ? "<runnr>" . $obs->runnr . "</runnr>" : "" ) .
-    ( $obs->startobs ? "<startobs>" . $obs->startobs->ymd . "T" . $obs->startobs->hms . "</startobs>" : "" ) .
+    "<instrument>" . $obs->instrument . "</instrument>" .
+    "<runnr>" . $obs->runnr . "</runnr>" .
+    "<date>" . $startobs->ymd . "T" . $startobs->hms . "</date>" .
+    $obsactivestring .
     "</ObsQuery>";
 
   my $query = new OMP::ObsQuery( XML => $xml );
-  my @results = $self->queryObslog( $query );
+  my @results = $self->queryComments( $query );
 
-  return (wantarray ? @results : \@results);
+  # Return based on context and arguments.
+  if( $allcomments ) {
+    return (wantarray ? @results : \@results);
+  } else {
+    return $results[0];
+  }
 }
 
-=item B<queryObslog>
+=item B<queryComments>
 
 Query the observation comment table. Query must be supplied as
 an C<OMP::ObsQuery> object.
 
-  @results = $db->queryObslog( $query );
+  @results = $db->queryComments( $query );
 
-Returns an array of C<Info::Obs> objects in list context, or
-a reference to an array of C<Info::Obs> objects in scalar context.
+Returns an array of C<Info::Comment> objects in list context, or
+a reference to an array of C<Info::Comment> objects in scalar context.
 
 =cut
 
-sub queryObslog {
+sub queryComments {
 
   my $self = shift;
   my $query = shift;
 
+  my $query_hash = $query->query_hash;
+
 # Do some rudimentary checks on the query to make sure we're not
 # trying to get every comment from the beginning of time
-  if(defined($query->date)) {
-    if(UNIVERSAL::isa($query->date) eq 'OMP::Range') {
-      if($query->date->isinverted or !$query->date->isbound) {
+  if(defined($query_hash->{date})) {
+    my $date;
+    if(ref($query_hash->{date}) eq 'ARRAY') {
+      $date = $query_hash->{date}->[0];
+    } else {
+      $date = $query_hash->{date};
+    }
+    if(UNIVERSAL::isa($date, 'OMP::Range')) {
+      if($date->isinverted or !$date->isbound) {
         throw OMP::Error::BadArgs("Date range muse be closed and consecutive");
-      } elsif( ( $query->date->{Max} - $query->date->{Min} ) > ONE_YEAR ) {
+      } elsif( ( $date->{Max} - $date->{Min} ) > ONE_YEAR ) {
         throw OMP::Error::BadArgs("Date range must be less than one year");
       }
     }
@@ -241,14 +263,14 @@ sub queryObslog {
   }
 
 # Send the query off to yet another method.
-  my @results = $self->_fetch_obslog_info( $query );
+  my @results = $self->_fetch_comment_info( $query );
 
-# Create an array of Info::Obs objects from the returned
+# Create an array of Info::Comment objects from the returned
 # hash.
-  my @obs = $self->_reorganize_obslog( \@results );
+  my @comments = $self->_reorganize_comments( \@results );
 
 # And return either the array or a reference to the array.
-  return ( wantarray ? @obs : \@obs );
+  return ( wantarray ? @comments : \@comments );
 
 }
 
@@ -258,7 +280,7 @@ sub queryObslog {
 
 =over 4
 
-=item B<_fetch_obslog_info>
+=item B<_fetch_comment_info>
 
 Retrieve the information from the observation log table using
 the supplied query.
@@ -274,15 +296,15 @@ In list context returns all matches as a list of hash references.
 
 =cut
 
-sub _fetch_obslog_info {
+sub _fetch_comment_info {
   my $self = shift;
   my $query = shift;
 
   # Generate the SQL statement.
-  my $sql = $self->sql( $OBSLOGTABLE );
+  my $sql = $query->sql( $OBSLOGTABLE );
 
   # Run the query.
-  my $ref = $self->_retrieve_data_ashash( $sql );
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # If they want all the info just return the ref.
   # Otherwise, return the first entry.
@@ -294,60 +316,61 @@ sub _fetch_obslog_info {
   }
 }
 
-=item B<_reorganize_obslog>
+=item B<_reorganize_comments>
 
 Given the results from the query (returned as a row per observation)
-convert this output to an array of C<Info::Obs> objects.
+convert this output to an array of C<Info::Comment> objects.
 
-  @results = $db->_reorganize_obslog( $query_output );
+  @results = $db->_reorganize_comments( $query_output );
 
 =cut
 
-sub _reorganize_obslog {
+sub _reorganize_comments {
   my $self = shift;
   my $rows = shift;
 
   my @return;
 
-# For each row returned by the query, create an Info::Obs object
+# For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
-  for my $row (%$rows) {
-
-    my $obs = new OMP::Info::Obs(
-      instrument => $row->{instrument},
-      startobs => OMP::General->parse_date( $row->{startobs} ),
-      runnr => $row->{runnr},
-      comments => [
-                   new OMP::Info::Comment(
-                     text => $row->{comment},
-                     date => $row->{date},
-                     status => $row->{status} )
-                   ],
-      );
-    push @return, $obs;
+  for my $row (@$rows) {
+    my $comment = new OMP::Info::Comment(
+                text => $row->{commenttext},
+                date => OMP::General->parse_date( $row->{commentdate} ),
+                status => $row->{commentstatus},
+              );
+    # Retrieve the user information so we can create the author
+    # property.
+    my $db = new OMP::UserDB( DB => new OMP::DBbackend );
+    my $author = $db->getUser( $row->{commentauthor} );
+    $comment->{Author} =  $author;
+    push @return, $comment;
   }
 
   return @return;
 
 }
 
-=item B<_store_obslog>
+=item B<_store_comment>
 
 Store the given C<Info::Obs> object in the observation log
-database..
+database.
 
-  $db->_store_obslog( $obs );
+  $db->_store_comment( $obs );
+
+This method will store the comment as being active, i.e. the
+"obsactive" flag in the table will be set to 1.
 
 =cut
 
-sub _store_obslog {
+sub _store_comment {
   my $self = shift;
   my $obs = shift;
 
   if( !defined($obs->instrument) ||
       !defined($obs->startobs) ||
       !defined($obs->runnr) ) {
-    throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store an observation in the database");
+    throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
   }
 
   # Check the comment status. Default it to OMP__OBS_GOOD.
@@ -364,38 +387,46 @@ sub _store_obslog {
   my $ct = $obs->comments->[0]->date;
   my $cdate = $ct->strftime("%b %e %Y %T");
 
+  my %text = ( "TEXT" => $obs->comments->[0]->text,
+               "COLUMN" => "commenttext" );
+
   $self->_db_insert_data( $OBSLOGTABLE,
-                          $obs->instrument,
-                          $date,
                           $obs->runnr,
-                          $obs->comments->[0]->text,
-                          $obs->comments->[0]->status,
-                          $obs->comments->[0]->user,
-                          $cdate
+                          $obs->instrument,
+                          $obs->telescope,
+                          $date,
+                          "1",
+                          $cdate,
+                          $obs->comments->[0]->author->userid,
+                          \%text,
+                          $status
                         );
 
 }
 
-=item B<_delete_obslog>
+=item B<_set_inactive>
 
-Delete the observation matching that passed as a parameter
-from the database.
+Set all observations to inactive, using the given observation as a template.
 
-  $db->_delete_obslog( $obs );
+  $db->_set_inactive( $obs );
 
-The given observation must have instrument, date, and run number
-defined in order to uniquely identify an observation in the
-database.
+Passed argument is an C<Info::Obs> object. This method will set all
+archived observations in the database with the same run number, instrument,
+and time of observation as the given observation as being inactive.
+It will do this by toggling the "obsactive" flag in the database from 1
+to 0.
 
 =cut
 
-sub _delete_obslog {
+sub _set_inactive {
   my $self = shift;
   my $obs = shift;
 
-  throw OMP::Error::BadArgs("Must supply an observation object")
+  # Rudimentary input checking.
+  throw OMP::Error::BadArgs("Must supply an Info::Obs object")
     unless $obs;
-
+  throw OMP::Error::BadArgs("Must supply an Info::Obs object")
+    unless UNIVERSAL::isa($obs, 'OMP::Info::Obs');
   throw OMP::Error::BadArgs("Must supply instrument, date, and run number")
     unless (
             defined $obs->instrument &&
@@ -404,17 +435,20 @@ sub _delete_obslog {
            );
 
   my $instrument = $obs->instrument;
-  my $startobs = $obs->startobs;
   my $runnr = $obs->runnr;
+  my $startobs = $obs->startobs;
 
-  # Translate the date into a Sybase-compliant date.
   my $date = $startobs->strftime("%Y%m%d %T");
 
   # Form the WHERE clause.
-  my $where = "date = $date AND instrument = $instrument AND runnr = $runnr";
+  my $where = "date = '$date' AND instrument = '$instrument' AND runnr = $runnr";
 
-  # And delete the data from the database.
-  $self->_db_delete_data( $OBSLOGTABLE, $where );
+  # Set up the %new hash (hash of things to be updated)
+  my %new = ( obsactive => 0 );
+
+  # And do the update.
+  $self->_db_update_data( $OBSLOGTABLE, \%new, $where );
+
 }
 
 =back
