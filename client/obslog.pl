@@ -1,48 +1,85 @@
-#!/local/bin/perl
+#!/local/bin/perl -X
 
 use strict;
 
 my ($MW, $VERSION, $BAR, $STATUS);
 
-# Add to @INC for OMP and ORAC libraries.
-use FindBin;
-use lib "$FindBin::RealBin/..";
-#use lib qw( /home/bradc/development/omp/msbserver/ );
 BEGIN {
 
 # set up the intial Tk "status loading" window and load in the Tk modules
 
   use Tk;
+  use Tk::NoteBook;
   use Tk::ProgressBar;
-  use Data::Dumper;
+
+  use FindBin;
+  use constant OMPLIB => "$FindBin::RealBin/..";
+  use lib OMPLIB;
 
   use OMP::Constants;
   use OMP::General;
+  use OMP::Config;
   use OMP::Error qw/ :try /;
 
   use Time::Piece qw/ :override /;
 
-  # Check to see if we're at JCMT. If we are, set the environment
-  # variable ORAC_DATA_ROOT.
-  use Net::Domain;
-  if( Net::Domain->domainname =~ "jcmt" ) {
-    $ENV{'ORAC_DATA_ROOT'} = "/jcmtdata/raw/scuba";
-  }
+  use File::Spec;
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{'OMP_CFG_DIR'};
 
 }
 
 # global variables
+$| = 1;
 my $MainWindow;
 my $obslog;  # refers to the object that holds the obslog information
-my %obs; # keys are instruments, values are arrays of Info::Obs objects
+my %obs; # keys are instruments, values are ObsGroup objects
+my %notebook_contents; # All the notebook content windows
+my %notebook_headers; # All the notebook header windows
+my $notebook; # The widget that holds the tabbed windows.
+my $lastinst; # The instrument of the most recent observation.
+my $current_instrument; # The instrument currently displayed.
+my $verbose; # Long or short output
+my $id;
+
 my $ut;
+my $utdisp;
   { my $time = gmtime;
     $ut = $time->ymd;
-#    $ut = '2002-08-16';
+    $utdisp = "Current UT date: $ut";
   };
 my $contentHeader;
 my $contentBody;
 my $user;
+my $telescope = OMP::Config->getData( 'defaulttel' );
+if( ref($telescope) eq "ARRAY" ) {
+  require Tk::DialogBox;
+  require Tk::LabEntry;
+  my $newtel;
+  my $w = new MainWindow;
+  my $dbox = $w->DialogBox( -title => "Select telescope",
+                            -buttons => ["Accept","Cancel"],
+                          );
+  my $txt = $dbox->add('Label',
+                       -text => "Select telescope for obslog",
+                      )->pack;
+  foreach my $tel ( @$telescope ) {
+    my $rad = $dbox->add('Radiobutton',
+                         -text => $tel,
+                         -value => $tel,
+                         -variable => \$newtel,
+                        )->pack;
+  }
+  $w->withdraw();
+  my $but = $dbox->Show;
+
+  if( $but eq 'Accept' && $newtel ne '') {
+    $telescope = $newtel;
+  } else {
+    exit; # Hrm.
+  }
+  $w->destroy;
+}
 
 my $HEADERCOLOUR = 'midnightblue';
 my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
@@ -62,9 +99,7 @@ $user = &get_userid();
 
 &create_main_window();
 
-&full_rescan('SCUBA',$ut,\%obs);
-
-$MainWindow->repeat($SCANFREQ, sub { full_rescan('SCUBA',$ut,\%obs); });
+&full_rescan($ut, $telescope);
 
 MainLoop();
 
@@ -150,7 +185,7 @@ sub get_userid {
 sub create_main_window {
   $MainWindow = MainWindow->new;
   $MainWindow->title("OMP Observation Log Tool");
-  $MainWindow->geometry('680x350');
+  $MainWindow->geometry('785x350');
 
 # $mainFrame contains the entire frame.
   my $mainFrame = $MainWindow->Frame;
@@ -169,14 +204,14 @@ sub create_main_window {
 # comments.
   my $buttonRescan = $buttonbarFrame->Button( -text => 'Rescan',
                                               -command => sub {
-                                                full_rescan( 'SCUBA', $ut, \%obs );
+                                                full_rescan( $ut, $telescope );
                                               },
                                             );
 
 # $buttonOptions is the button that allows the user to modify options.
   my $buttonOptions = $buttonbarFrame->Button( -text => 'Options',
                                                -command => sub {
-                                                 options( 'SCUBA' );
+                                                 options();
                                                },
                                              );
 
@@ -187,34 +222,33 @@ sub create_main_window {
                                                 },
                                               );
 
+# $buttonVerbose is the button that switches between short and long display.
+  my $buttonVerbose = $buttonbarFrame->Checkbutton( -text => 'Short/Long Display',
+                                                    -variable => \$verbose,
+                                                    -command => sub {
+                                                      redraw( undef,
+                                                              $current_instrument,
+                                                              $verbose );
+                                                    },
+                                                  );
+
+# $labelUT is a label that tells the UT date
+  my $labelUT = $buttonbarFrame->Label( -textvariable => \$utdisp,
+                                      );
+
 # $buttonHelp is the button that brings up a help dialogue.
   my $buttonHelp = $buttonbarFrame->Button( -text => 'Help',
                                             -command => \&help
                                           );
 
-# $contentFrame holds the content (header and observations)
-  my $contentFrame = $MainWindow->Frame;
-
-# $contentHeader holds the header
-  $contentHeader = $contentFrame->Text( -wrap => 'none',
-                                        -relief => 'flat',
-                                        -foreground => $HEADERCOLOUR,
-                                        -height => 1,
-                                        -font => $HEADERFONT,
-                                        -takefocus => 0,
-                                        -state => 'disabled',
-                                      );
-
-  $contentBody = $contentFrame->Scrolled('Text',
-                                         -wrap => 'word',
-                                         -scrollbars => 'oe',
-                                         -state => 'disabled',
-                                        );
+# $notebook holds the pages for content
+  $notebook = $MainWindow->NoteBook();
 
   $mainFrame->pack( -side => 'top',
                     -fill => 'both',
                     -expand => 1
                   );
+
   $buttonbarFrame->pack( -side => 'top',
                          -fill => 'x'
                        );
@@ -223,19 +257,14 @@ sub create_main_window {
   $buttonDumpText->pack( -side => 'left' );
   $buttonOptions->pack( -side => 'left' );
   $buttonHelp->pack( -side => 'right' );
+  $labelUT->pack( -side => 'right' );
+  $buttonVerbose->pack( -side => 'right' );
 
-  $contentFrame->pack( -side => 'top',
-                       -fill => 'both',
-                       -expand => 1
-                     );
-  $contentHeader->pack( -side => 'top',
-                        -fill => 'both',
-                      );
-  $contentBody->pack( -expand => 1,
-                      -fill => 'both',
-                    );
+  $notebook->pack( -side => 'top',
+                   -fill => 'both',
+                   -expand => 1,
+                 );
 
-  &BindMouseWheel($contentBody);
 }
 
 sub update_status {
@@ -248,93 +277,82 @@ sub update_status {
   $w->update;
 } # end update_status
 
-#sub new_instrument {
-#
-#  my $notebook = shift;
-#  my $instrument = shift;
-#
-#  if( ( $notebook->raised ) eq "" ) {
-#    $notebook_current = 0;
-#  } else {
-#    $notebook_current += 1;
-#  }
-#  $notebook_names[$notebook_current] = $instrument;
-#
-#  # Create a new page.
-#  my $nbPage = $notebook->add( $notebook_names[$notebook_current],
-#                               -label => $notebook_names[$notebook_current],
-#                               -raisecmd => \&page_raised
-#                             );
-#
-#  # Add a header to the page.
-#  my $nbPageFrame = $nbPage->Frame;
-#  my $nbHeader = $nbPageFrame->Text( -wrap => 'none',
-#                                     -relief => 'flat',
-#                                     -foreground => 'midnightblue',
-#                                     -height => 2,
-#                                     -font => $LISTFONT,
-#                                     -takefocus => 0
-#                                   );
-#
-#  my $nbContent = $nbPageFrame->Scrolled('Text',
-#                                         -wrap => 'none',
-#                                         -scrollbars => 'oe',
-#                                        );
-#
-#  # Pack the notebook.
-#  $nbPageFrame->pack( -side => 'top',
-#                      -fill => 'both',
-#                      -expand => 1
-#                    );
-#  $nbHeader->pack( -side => 'top',
-#                   -fill => 'x',
-#                 );
-#  $nbContent->pack( -expand => 1,
-#                    -fill => 'both'
-#                  );
-#
-#  $notebook->raise( $notebook_names[$notebook_current] );
-#  &page_raised;
-#}
+sub new_instrument {
 
-sub page_raised { }
+  my $notebook = shift;
+  my $instrument = shift;
+  my $obsgrp = shift;
 
-sub redraw {
-  my $inst = shift;
-  my $hashref = shift;
+  if( exists( $notebook_contents{$instrument} ) ) {
+    $notebook->delete( $instrument );
+    delete($notebook_contents{$instrument});
+    delete($notebook_headers{$instrument});
+  }
 
-  my $obs_arrayref = $hashref->{$inst};
+  # Create a new page.
+  my $nbPage = $notebook->add( $instrument,
+                               -label => $instrument,
+                               -raisecmd => \&page_raised
+                             );
 
+  # Add a header to the page.
+  my $nbPageFrame = $nbPage->Frame;
+  my $nbHeader = $nbPageFrame->Text( -wrap => 'none',
+                                     -relief => 'flat',
+                                     -foreground => 'midnightblue',
+                                     -height => 2,
+                                     -font => $LISTFONT,
+                                     -takefocus => 0
+                                   );
+
+  my $nbContent = $nbPageFrame->Scrolled('Text',
+                                         -wrap => 'none',
+                                         -scrollbars => 'oe',
+                                        );
+
+  $notebook_contents{$instrument} = $nbContent;
+  $notebook_headers{$instrument} = $nbHeader;
+  # Pack the notebook.
+  $nbPageFrame->pack( -side => 'top',
+                      -fill => 'both',
+                      -expand => 1
+                    );
+  $nbHeader->pack( -side => 'top',
+                   -fill => 'x',
+                 );
+  $nbContent->pack( -expand => 1,
+                    -fill => 'both'
+                  );
+
+  # Fill it with information from the ObsGroup
   my $header_printed = 0;
 
-  # Clear the contents of the text window
-  $contentBody->configure( -state => 'normal');
-  $contentBody->delete('0.0','end');
+  $nbContent->configure( -state => 'normal' );
+  $nbContent->delete('0.0','end');
 
   my $counter = 0;
 
-  foreach my $obs (@$obs_arrayref) {
+  foreach my $obs( $obsgrp->obs ) {
     my %nightlog = $obs->nightlog;
     my @comments = $obs->comments;
-    my $status;
-    if(defined($comments[($#comments)])) {
+    my $status = 0;
+    if ( defined($comments[($#comments)]) ) {
       $status = $comments[($#comments)]->status;
-    } else {
-      $status = 0;
     }
 
     # Draw the header, if necessary.
-    if(!$header_printed) {
+    if( !$header_printed ) {
+      $nbHeader->configure( -state => 'normal' );
+      $nbHeader->delete('0.0','end');
 
-      # Clear the header.
-      $contentHeader->configure( -state => 'normal');
-      $contentHeader->delete('0.0', 'end');
-
-      # Insert the line.
-      $contentHeader->insert('end', $nightlog{'_STRING_HEADER'});
+      if( $verbose && exists($nightlog{'_STRING_HEADER_LONG'})) {
+        $nbHeader->insert('end', $nightlog{'_STRING_HEADER_LONG'});
+      } else {
+        $nbHeader->insert('end', $nightlog{'_STRING_HEADER'});
+      }
 
       # Clean up.
-      $contentHeader->configure( -state => 'disabled' );
+      $nbHeader->configure( -state => 'disabled' );
       $header_printed = 1;
     }
 
@@ -345,128 +363,138 @@ sub redraw {
     my $otag = "o" . $index;
 
     # Get the reference position
-    my $start = $contentBody->index('insert');
+    my $start = $nbContent->index('insert');
 
     # Insert the line
-    $contentBody->insert('end', $nightlog{'_STRING'} . "\n");
+    if( $verbose && exists($nightlog{'_STRING_LONG'}) ) {
+      $nbContent->insert('end', $nightlog{'_STRING_LONG'} . "\n");
+    } else {
+      $nbContent->insert('end', $nightlog{'_STRING'} . "\n");
+    }
 
     # Remove all the tags at this position.
-    foreach my $tag ($contentBody->tag('names', $start)) {
-      $contentBody->tag('remove', $tag, $start, 'insert');
+    foreach my $tag ($nbContent->tag('names', $start)) {
+      $nbContent->tag('remove', $tag, $start, 'insert');
     }
 
     # Create a new tag.
-    $contentBody->tag('add', $otag, $start, 'insert');
+    $nbContent->tag('add', $otag, $start, 'insert');
 
     # Configure the new tag.
-    $contentBody->tag('configure', $otag,
-                      -foreground => $CONTENTCOLOUR[$status],
-                     );
+    $nbContent->tag('configure', $otag,
+                    -foreground => $CONTENTCOLOUR[$status],
+                   );
 
     # Bind the tag to double-left-click
-    $contentBody->tag('bind', $otag, '<Double-Button-1>' =>
-                      sub {
-                        RaiseComment( $obs, $index );
-                        } );
+    $nbContent->tag('bind', $otag, '<Double-Button-1>' =>
+                    [\&RaiseComment, $obs, $index] );
 
     # Do some funky mouse-over colour changing.
-    $contentBody->tag('bind', $otag, '<Any-Enter>' =>
-                      sub { shift->tag('configure', $otag,
-                                        -background => $HIGHLIGHTBACKGROUND,
-                                       qw/ -relief raised
-                                           -borderwidth 1 /); } );
+    $nbContent->tag('bind', $otag, '<Any-Enter>' =>
+                    sub { shift->tag('configure', $otag,
+                                     -background => $HIGHLIGHTBACKGROUND,
+                                     qw/ -relief raised
+                                     -borderwidth 1 /); } );
 
-    $contentBody->tag('bind', $otag, '<Any-Leave>' =>
-                      sub { shift->tag('configure', $otag,
-                                       -background => undef,
-                                       qw/ -relief flat /); } );
+    $nbContent->tag('bind', $otag, '<Any-Leave>' =>
+                    sub { shift->tag('configure', $otag,
+                                     -background => undef,
+                                     qw/ -relief flat /); } );
 
 
     # And increment the counter.
     $counter++;
   }
 
+  # Bind the mousewheel.
+  &BindMouseWheel($nbContent);
+
   # And disable the text widget.
-  $contentBody->configure( -state => 'disable' );
+  $nbContent->configure( -state => 'disable' );
 
-  # And scroll down to the bottom.
-  $contentBody->see('end');
+  $nbContent->see('end');
 
+  $notebook->raise( $instrument );
+}
+
+sub page_raised {
+  $current_instrument = $notebook->raised();
+}
+
+sub redraw {
+  my $widget = shift;
+  my $current = shift;
+  my $verbose = shift;
+
+  foreach my $inst (keys %notebook_contents) {
+    $notebook->delete($inst);
+    delete($notebook_contents{$inst});
+  }
+
+  foreach my $inst (keys %obs) {
+    new_instrument( $notebook, $inst, $obs{$inst}, $verbose );
+  }
+
+  if( defined( $current ) && exists( $notebook_contents{$current}) ) {
+    $notebook->raise($current);
+  } else {
+    $notebook->raise( $lastinst );
+  }
 }
 
 sub rescan {
-  my $inst = shift;
-  my $utref = shift;
+  my $ut = shift;
+  my $telescope = shift;
 
-  my $ut = $utref;
+  try {
+    my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
+                                    date => $ut,
+                                  );
+    %obs = $grp->groupby('instrument');
 
-  # This should be calling OMP::Info::ObsGroup directly
+    my @sorted_obs = sort {
+      $b->startobs <=> $a->startobs
+    } $grp->obs;
 
-  # Form the XML.
-  my $xml = "<ArcQuery><instrument>$inst</instrument><date delta=\"1\">$ut</date></ArcQuery>";
-
-  # Form the query.
-  my $arcquery = new OMP::ArcQuery( XML => $xml );
-
-  my @result;
-  {
-    no warnings;
-    # Grab the results.
-    my $adb = new OMP::ArchiveDB;
-    try {
-      my $db = new OMP::DBbackend::Archive;
-      $adb->db( $db );
-    }
-    catch OMP::Error::DBConnection with {
-      # Let this one slide through untouched.
-    };
-    try {
-      @result = $adb->queryArc( $arcquery );
-    }
-    catch OMP::Error with {
-      my $Error = shift;
-      require Tk::DialogBox;
-      my $dbox = $MainWindow->DialogBox( -title => "Error",
-                                         -buttons => ["OK"],
-                                       );
-
-      my $label = $dbox->add( 'Label',
-                              -text => "Error: " . $Error->{-text} )->pack;
-      my $but = $dbox->Show;
-    }
-    otherwise {
-    };
-
-    # Add the comments.
-    my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-    $odb->updateObsComment( \@result );
+    $lastinst = $sorted_obs[0]->instrument;
   }
+  catch OMP::Error with {
+    my $Error = shift;
+    require Tk::DialogBox;
+    my $dbox = $MainWindow->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
 
-  # And return the results.
-  return @result;
+    my $label = $dbox->add( 'Label',
+                            -text => "Error: " . $Error->{-text} )->pack;
+    my $but = $dbox->Show;
+  }
+  otherwise {
+  };
+
+  $id->cancel unless !defined($id);
+  $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
 
 }
 
-
 # Perform a full rescan/redraw sequence.
 sub full_rescan {
-  my $inst = shift;
   my $ut = shift;
-  my $hashref = shift;
+  my $telescope = shift;
 
-  my @result = rescan($inst, $ut);
-
-  undef $hashref->{$inst};
-  push @{$hashref->{$inst}}, @result;
-
-  redraw($inst, $hashref);
+  rescan( $ut, $telescope );
+  redraw( undef, $current_instrument, $verbose );
 }
 
 sub dump_to_disk {
 
+  my $current = $notebook->raised;
+  my $contentHeader = $notebook_headers{$current};
+  my $contentBody = $notebook_contents{$current};
   my $header = $contentHeader->get('0.0', 'end');
   my $text = $contentBody->get('0.0', 'end');
-  open( FILE, ">" . $ut . ".log" ) or return; # just a quickie, need a better way to handle this
+  my $filename = "$ut-$current.log";
+  open( FILE, ">" . $filename ) or return; # just a quickie, need a better way to handle this
   print FILE $header;
   print FILE $text;
   close FILE;
@@ -474,17 +502,23 @@ sub dump_to_disk {
                                      -buttons => ["OK"],
                                    );
   my $label = $dbox->add( 'Label',
-                          -text => "Data has been saved in " . $ut . ".log" )->pack;
+                          -text => "Data has been saved in " . $filename )->pack;
   my $but = $dbox->Show;
 }
 
 # Display the comment window and allow for editing, etc, etc, etc.
 sub RaiseComment {
+
+  my $widget = shift;
   my $obs = shift;
   my $index = shift;
 
+#  my $obs = \$obsref;
+
   my $status;
   my $scrolledComment;
+
+  $id->cancel unless !defined $id;
 
   my @comments = $obs->comments;
   if(defined($comments[$#comments])) {
@@ -535,7 +569,8 @@ sub RaiseComment {
                                                         $user,
                                                         $obs,
                                                         $index );
-                                           redraw( $obs->instrument, \%obs );
+                                           redraw( undef, uc($obs->instrument), $verbose );
+                                           $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
                                            CloseWindow( $CommentWindow );
                                          },
                                        );
@@ -544,6 +579,7 @@ sub RaiseComment {
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
                                            -command => sub {
+                                             $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
                                              CloseWindow( $CommentWindow );
                                            },
                                          );
@@ -656,7 +692,6 @@ sub RaiseComment {
 }
 
 sub options {
-  my $inst = shift;
 
   my $optionsWindow = MainWindow->new;
   my $optionsFrame = $optionsWindow->Frame;
@@ -682,7 +717,7 @@ sub options {
   my $buttonSave = $optionsFrame->Button( -text => 'Save',
                                           -command => sub {
                                             SaveOptions( $tempUT, $userid );
-                                            full_rescan( 'SCUBA', $ut, \%obs );
+                                            full_rescan( $ut, $telescope );
                                             CloseWindow( $optionsWindow );
                                           },
                                         );
@@ -726,10 +761,6 @@ sub SaveComment {
   $odb->updateObsComment( \@obsarray );
   $obs = $obsarray[0];
 
-  # And update the global %obs hash.
-  my $instrument = uc( $obs->instrument );
-  $obs{$instrument}->[$index] = $obs;
-
 }
 
 sub CloseWindow {
@@ -747,6 +778,7 @@ sub SaveOptions {
   my $userid = shift;
 
   $ut = $utdate;
+  $utdisp = "Current UT date: $ut";
 
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
   my $tempuser = $udb->getUser( $userid );
