@@ -20,16 +20,16 @@ my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout
 my %tables = (
 	      ompmsb => {
 			 msbid => "INTEGER",
-			 projectid=> "INTEGER",
+			 projectid=> "VARCHAR(32)",
 			 remaining => "INTEGER",
-			 checksum => "CHAR(64)",
+			 checksum => "VARCHAR(64)",
 			 tauband => "INTEGER",
 			 seeing => "INTEGER",
 			 priority => "INTEGER",
 			 moon => "INTEGER NULL",
 			 timeest => "REAL",
-			 sciprog => "CHAR(255)",
-			 title => "VARCHAR",
+			 sciprog => "VARCHAR(255)",
+			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    obscount tauband seeing priority moon 
@@ -37,17 +37,17 @@ my %tables = (
 				    /],
 		       },
 	      ompproj => {
-			  projectid => "CHAR(32)",
-			  pi => "CHAR(255)",
-			  piemail => "CHAR(64)",
-			  coi => "CHAR(255)",
-			  coiemail => "CHAR(64)",
+			  projectid => "VARCHAR(32)",
+			  pi => "VARCHAR(255)",
+			  piemail => "VARCHAR(64)",
+			  coi => "VARCHAR(255)",
+			  coiemail => "VARCHAR(64)",
 			  remaining => "REAL",
 			  pending => "REAL",
 			  allocated => "REAL",
-			  country => "CHAR(32)",
+			  country => "VARCHAR(32)",
 			  tagpriority => "INTEGER",
-			  semester => "CHAR(5)",
+			  semester => "VARCHAR(5)",
 			  _ORDER => [qw/projectid pi piemail
 				     coi coiemail tagpriority
 				     country semester allocated
@@ -57,11 +57,11 @@ my %tables = (
 	      ompobs => {
 			 obsid => "INTEGER",
 			 msbid => "INTEGER",
-			 projectid => "INTEGER",
-			 instrument => "CHAR(32)",
+			 projectid => "VARCHAR(32)",
+			 instrument => "VARCHAR(32)",
 			 wavelength => "REAL",
-			 coordstype => "CHAR(32)",
-			 target => "CHAR(32)",
+			 coordstype => "VARCHAR(32)",
+			 target => "VARCHAR(32)",
 			 ra2000 => "REAL NULL",
 			 dec2000 => "REAL NULL",
 			 el1 => "REAL NULL",
@@ -81,7 +81,6 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
-
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
