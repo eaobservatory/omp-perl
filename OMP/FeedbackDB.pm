@@ -255,6 +255,8 @@ sub alterStatus {
 
 Stores a comment in the database.
 
+  $db->_store_comment($comment);
+
 =cut
 
 sub _store_comment {
@@ -263,8 +265,15 @@ sub _store_comment {
 
   my $projectid = $self->projectid;
 
+  # Create the comment entry number
+  my $clause = "projectid = \"$projectid\"";
+  my $entrynum = $self->_db_findmax( $FBTABLE, "entrynum", $clause);
+  (defined $entrynum) and $entrynum++
+    or $entrynum = 1;
+
   # Store the data
   $self->_db_insert_data( $FBTABLE,
+			  $entrynum,
 			  $projectid,
 			  @$comment{ 'author',
 				     'date',
@@ -396,7 +405,7 @@ sub _fetch_comments {
 
   # Construct the SQL
   # Use convert() in select statement to get seconds back with the date field.
-  my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
+  my $sql = "select author, entrynum, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
             "AND status in (" . join(',',@{$args{status}}) . ") " .
 	    "ORDER BY commid $order";
 
