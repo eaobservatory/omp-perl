@@ -1427,12 +1427,13 @@ sub _sidebar {
   my $q = $self->cgi;
   my $cat = $self->_get_param('cat');
 
-  my $title = (defined $cat and $cat ne "ANYCAT" ? "$cat Faults" : "Select a fault system");
+  my $title = (defined $cat and $cat ne "ANYCAT" ? "$cat Faults" : "<font color=#ffffff>Select a fault system</font>");
   $theme->SetMoreLinksTitle($title);
 
   # Construct our HTML for the sidebar fault form
-  my $sidebarform = $q->start_form .
-    "<br>Fault ID:<br>".
+  my $sidebarform =
+    "<br><font color=#ffffff>Fault ID:</font><br>".
+      $q->start_form .
       $q->textfield(-name=>'goto_fault',
 		    -size=>14,
 		    -maxlength=>20,) .
@@ -1440,20 +1441,20 @@ sub _sidebar {
 			$q->submit("View Fault") .
 			  $q->end_form ;
 
-  my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
-		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
-		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
-		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
-		      "<a href='queryfault.pl?cat=dr'>DR Faults</a>",
-		      "<a href='queryfault.pl?cat=anycat'>All Faults</a>",
-		      "<br><a href='".
+  my @sidebarlinks = ("<a class='sidemain' href='queryfault.pl?cat=csg'>CSG Faults</a>",
+		      "<a class='sidemain' href='queryfault.pl?cat=omp'>OMP Faults</a>",
+		      "<a class='sidemain' href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
+		      "<a class='sidemain' href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
+		      "<a class='sidemain' href='queryfault.pl?cat=dr'>DR Faults</a>",
+		      "<a class='sidemain' href='queryfault.pl?cat=anycat'>All Faults</a>",
+		      "<br><a class='sidemain' href='".
 		      OMP::Config->getData('omp-url')
 		      ."'>OMP home</a>",
 		      "$sidebarform</font>",);
 
   if (defined $cat and $cat ne "ANYCAT") {
-    unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
-	                    "<a href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
+    unshift (@sidebarlinks, "<a class='sidemain' href='filefault.pl?cat=$cat'>File a fault</a>",
+	                    "<a class='sidemain' href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
   }
 
   $theme->SetInfoLinks(\@sidebarlinks);
