@@ -931,10 +931,7 @@ sub _mail_password {
     my ($user, $ip, $addr) = OMP::General->determine_host;
 
     # List of recipients of mail
-    my @addr = $proj->investigators;
-
-    # Add support contacts to the list of recipients
-    push @addr, $proj->support;
+    my @addr = $proj->contacts;
 
     throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
 
