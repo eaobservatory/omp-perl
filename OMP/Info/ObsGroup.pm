@@ -67,6 +67,8 @@ Object constructor. Accept arguments in hash form with keys:
   telescope/instrument/projectid - arguments recognized by
      populate methods are forwarded to the populate method.
 
+  $grp = new OMP::Info::ObsGroup( obs => \@obs );
+
 =cut
 
 sub new {
