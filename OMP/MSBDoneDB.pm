@@ -251,7 +251,6 @@ sub observedMSBs {
   my $self = shift;
   my $date = shift;
   my $allcomment = shift;
-  my $style = shift;
 
   # Construct the query
   $date ||= OMP::General->today;
