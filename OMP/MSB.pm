@@ -981,16 +981,14 @@ sub _summarize_obs {
   foreach my $key (qw/ instrument waveband target coordstype pol type ha airmass ra disperser/) {
 
     # Now go through each observation looking for the specific
-    # key. Store the value in a hash keyed by itself so that we
-    # can automatically mask out duplicated entries
+    # key. Need to do this long hand since order over observations
+    # must be preserved (although something like cgs4/ircam/cgs4
+    # would come out as cgs4/ircam to save space [that is better
+    # than it coming out as "ircam/cgs4"])
+    my @unique = $self->_compress_array( map { defined $_ ? $_->{$key} : "NONE" } @obs);
 
-    my %options = map { $_, undef } 
-      map { defined $_->{$key} ? $_->{$key} : "NONE" } @obs;
-
-    # Unfortunately this does not retain the order so
-    # columns are in different orders depending on where
-    # their hash keys are.
-    $summary{$key} = join("/", keys %options);
+    # Now put the array together
+    $summary{$key} = join("/", @unique);
 
   }
 
@@ -1367,6 +1365,47 @@ sub _get_child_elements {
   return @res;
 }
 
+=item B<_compress_array>
+
+Helper method to compress an array so that only the first occurrence
+of a particular element remains (but the order is not changed).
+
+  @compressed = $msb->_compress_array( @array );
+
+For example
+
+  CGS4, UKIRT, CGS4
+
+is returned as
+
+  CGS4, UKIRT
+
+undefined values are by default converted to empty strings.
+
+=cut
+
+sub _compress_array {
+  my $self = shift;
+  my @array = @_;
+
+  my (%unique, @unique);
+  for (@array) {
+
+    my $value = ( defined $_ ? $_ : "" );
+
+    # If it is in our hash skip to the next one
+    next if exists $unique{ $value };
+
+    # Store it in our hash
+    $unique{$value} = undef;
+
+    # And push on the value
+    push(@unique, $value);
+
+  }
+
+  return @unique;
+}
 
 # Methods associated with individual elements
 
@@ -1441,8 +1480,8 @@ sub SpObs {
 
     # The target name should not include duplicates here
     # Use a hash to compress it
-    my %types = map { $_, undef  } @{$summary{obstype}};
-    $summary{target} = join(":", keys %types);
+    my @compressed = $self->_compress_array( @{ $summary{obstype}});
+    $summary{target} = join(":", @compressed);
   }
 
   return \%summary;
