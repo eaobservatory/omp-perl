@@ -655,7 +655,7 @@ sub RaiseComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
-  $CommentWindow->geometry('680x300');
+  $CommentWindow->geometry('760x300');
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -710,74 +710,95 @@ sub RaiseComment {
                                                    -fill => 'x',
                                                  );
 
+  my $radioFrame = $entryFrame->Frame->pack( -side => 'top',
+                                             -fill => 'x',
+                                           );
+
   # $textStatus displays the string "Status:"
-  my $textStatus = $entryFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
-                                                                    -anchor => 'n',
+  my $textStatus = $radioFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
                                                                   );
 
   if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-    my $radioWeather = $entryFrame->Radiobutton( -text => 'weather',
+    my $radioWeather = $radioFrame->Radiobutton( -text => 'weather',
                                                  -value => OMP__TIMEGAP_WEATHER,
                                                  -variable => \$status,
                                                )->pack( -side => 'left',
-                                                        -anchor => 'n',
                                                       );
-    my $radioInstrument = $entryFrame->Radiobutton( -text => 'instrument',
+    my $radioInstrument = $radioFrame->Radiobutton( -text => 'instrument',
                                                     -value => OMP__TIMEGAP_INSTRUMENT,
                                                     -variable => \$status,
                                                   )->pack( -side => 'left',
-                                                           -anchor => 'n',
                                                          );
-    my $radioFault = $entryFrame->Radiobutton( -text => 'fault',
+    my $radioFault = $radioFrame->Radiobutton( -text => 'fault',
                                                -value => OMP__TIMEGAP_FAULT,
                                                -variable => \$status,
                                              )->pack( -side => 'left',
-                                                      -anchor => 'n',
                                                     );
-    my $radioLastProject = $entryFrame->Radiobutton( -text => 'last proj.',
+    my $radioLastProject = $radioFrame->Radiobutton( -text => 'last proj.',
                                                      -value => OMP__TIMEGAP_PREV_PROJECT,
                                                      -variable => \$status,
                                                    )->pack( -side => 'left',
-                                                            -anchor => 'n',
                                                           );
-    my $radioNextProject = $entryFrame->Radiobutton( -text => 'next proj.',
+    my $radioNextProject = $radioFrame->Radiobutton( -text => 'next proj.',
                                                      -value => OMP__TIMEGAP_NEXT_PROJECT,
                                                      -variable => \$status,
                                                    )->pack( -side => 'left',
-                                                            -anchor => 'n',
                                                           );
-    my $radioUnknown = $entryFrame->Radiobutton( -text => 'unknown',
+
+    # Second row of buttons...
+    my $radioFrame2 = $entryFrame->Frame->pack( -side => 'top',
+                                                -fill => 'x',
+                                              );
+
+    my $textStatus2 = $radioFrame2->Label( -text => '            ' )->pack( -side => 'left',
+                                                                          );
+    my $radioNotDriver = $radioFrame2->Radiobutton( -text => 'observer not driver',
+                                                    -value => OMP__TIMEGAP_NOT_DRIVER,
+                                                    -variable => \$status,
+                                                  )->pack( -side => 'left',
+                                                         );
+    my $radioScheduled = $radioFrame2->Radiobutton( -text => 'scheduled downtime',
+                                                    -value => OMP__TIMEGAP_SCHEDULED,
+                                                    -variable => \$status,
+                                                  )->pack( -side => 'left',
+                                                         );
+    my $radioOverhead = $radioFrame2->Radiobutton( -text => 'queue overhead',
+                                                   -value => OMP__TIMEGAP_QUEUE_OVERHEAD,
+                                                   -variable => \$status,
+                                                 )->pack( -side => 'left',
+                                                        );
+    my $radioLogistics = $radioFrame2->Radiobutton( -text => 'logistics',
+                                                    -value => OMP__TIMEGAP_LOGISTICS,
+                                                    -variable => \$status,
+                                                  )->pack( -side => 'left',
+                                                         );
+    my $radioUnknown = $radioFrame->Radiobutton( -text => 'unknown',
                                                  -value => OMP__TIMEGAP_UNKNOWN,
                                                  -variable => \$status,
                                                )->pack( -side => 'left',
-                                                        -anchor => 'n',
                                                       );
 
   } else {
-    my $radioGood = $entryFrame->Radiobutton( -text => 'good',
+    my $radioGood = $radioFrame->Radiobutton( -text => 'good',
                                               -value => OMP__OBS_GOOD,
                                               -variable => \$status,
                                             )->pack( -side => 'left',
-                                                     -anchor => 'n',
                                                    );
-    my $radioBad = $entryFrame->Radiobutton( -text => 'bad',
+    my $radioBad = $radioFrame->Radiobutton( -text => 'bad',
                                              -value => OMP__OBS_BAD,
                                              -variable => \$status,
                                            )->pack( -side => 'left',
-                                                    -anchor => 'n',
                                                   );
-    my $radioQuestionable = $entryFrame->Radiobutton( -text => 'questionable',
+    my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
                                                       -value => OMP__OBS_QUESTIONABLE,
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
-                                                             -anchor => 'n',
                                                            );
 
   }
 
   # $textUser displays the current user id.
-  my $textUser = $entryFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
-                                                                                        -anchor => 'n',
+  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
                                                                                       );
 
   # $buttonSave is the button that allows the user to save the comment
