@@ -26,5 +26,4 @@ $cgi->theme($theme);
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: List Projects");
-$cgi->write_page_noauth( \&list_projects, \&list_projects_output );
-
+$cgi->write_page_staff( \&list_projects, \&list_projects_output );
