@@ -51,6 +51,12 @@ use strict;
 use Pod::Usage;
 use Getopt::Long;
 
+# run relative to the client directory
+use FindBin;
+use lib "$FindBin::RealBin/../";
+
+
+
 # Load the servers (but use them locally without SOAP)
 use OMP::TransServer;
 use File::Spec;
