@@ -226,7 +226,7 @@ sub project_window {
   add_project($f, 0, "Time lost to Faults", {}, \$final{$tel."FAULTS"});
 
   # Calculate the time lost
-  $final{$tel."FAULTS"} = sprintf("%.1f",$nr->timelost->hours);
+  $final{$tel."FAULTS"} = sprintf("%.2f",$nr->timelost->hours);
 
   # Widget with the total
   add_project($f, 0,"Total time", {}, \$total_time);
