@@ -416,6 +416,7 @@ sub write_page {
   $self->_make_theme;
 
   # See if we are reading a form or not
+
   if ($q->param) {
     # Does this form include a password field?
     if ($q->param('password')) {
@@ -462,6 +463,24 @@ sub write_page {
       # the content code ref.
 
       $form_content->( $q, %cookie);
+
+    } elsif ($q->url_param('urlprojid')) {
+      # The project ID is in the URL.  If the URL project ID doesn't
+      # match the project ID in the cookie (or there is no cookie) set
+      # the cookie with the URL project ID and call the content code ref
+      # since the user just clicked a link to get here.
+
+      if ($q->url_param('urlprojid') != $cookie{projectid}) {
+	%cookie = (projectid=>$q->url_param('urlprojid'), password=>'***REMOVED***');
+	$c->setCookie( $EXPTIME, %cookie );
+	$form_content->( $q, %cookie );
+      } else {
+	# The URL project ID matches the cookie project ID so call the output
+	# code ref. (The user didn't just click a link)
+	
+	$form_output->( $q, %cookie );
+      }
+
     } else {
       $form_output->( $q, %cookie);
     }
