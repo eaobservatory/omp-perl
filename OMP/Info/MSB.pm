@@ -705,26 +705,8 @@ sub summary {
       if exists $summary{msbid} and defined $summary{msbid};
     $xml .= ">\n";
 
-    # The order must be forced
-    my @order;
-    if ($summary{telescope} eq 'JCMT') {
-      # Generic order
-      @order = qw/ projectid priority instrument waveband title target
-	ra ha dec airmass pol type coordstype
-	  timeest obscount checksum msbid /;
-    } elsif ($summary{telescope} eq 'UKIRT') {
-      # Generic order
-      @order = qw/ projectid priority instrument waveband title target
-	ra ha dec airmass pol type coordstype
-	  timeest obscount moon cloud disperser checksum msbid /;
-    } else {
-      # Generic order
-      @order = qw/ projectid priority instrument waveband title target
-	ra ha dec airmass pol type coordstype
-	  timeest obscount checksum msbid /;
-    }
-
-    for my $key (@order ) {
+    # force key order
+    for my $key ($self->getResultColumns($summary{telescope})) {
       # Special case the summary and ID keys
       next if $key eq "summary";
       next if $key =~ /^_/;
@@ -909,6 +891,103 @@ sub _process_coords {
 =back
 
 =end __INTERNAL__
+
+=head2 Class Methods
+
+=over 4
+
+=item B<getResultColumns>
+
+Returns the data columns (ie XML element names for
+XML summary) that are of interest for a particular telescope.
+Returns a list in the order that they should be displayed.
+
+ @columns = OMP::Info::MSB->getResultsColumns( $telescope );
+
+Accepts a telescope name as argument. Default columns are returned
+if the telescope can not be determined.
+
+=cut
+
+sub getResultColumns {
+  my $class = shift;
+  my $tel = shift;
+  $tel = '' unless $tel;
+
+  # The order must be forced
+  my @order;
+  if ($tel eq 'JCMT') {
+    @order = qw/ projectid priority instrument waveband title target
+      ra ha dec airmass pol type coordstype
+	timeest obscount checksum msbid /;
+  } elsif ($tel eq 'UKIRT') {
+    @order = qw/ projectid priority instrument waveband title target
+      ra ha dec airmass pol type coordstype
+	timeest obscount moon cloud disperser checksum msbid /;
+  } else {
+    # Generic order
+    @order = qw/ projectid priority instrument waveband title target
+      ra ha dec airmass pol type coordstype
+	timeest obscount checksum msbid /;
+  }
+
+  return @order;
+}
+
+=item B<getTypeColumns>
+
+Retrieves an array of data types associated with each column
+returned using an XML summary format. The order matches the
+order returned by C<getResultColumns>
+
+  @types = OMP::Info::MSB->getTypeColumns( $tel );
+
+Uses a telescope name to control the column information.
+
+=cut
+
+# best to use a single data structure for this
+my %coltypes = (
+		projectid => 'String',
+		priority => 'Float',
+		instrument => 'String',
+		waveband => 'String',
+		title => 'String',
+		target => 'String',
+		ra => 'String',
+		ha => 'String',
+		dec => 'String',
+		airmass => 'String',
+		pol => 'Integer',  # Boolean?
+		type => 'String',
+		coordstype => 'String',
+		timeest => 'String',  # can keep this as hours?
+		obscount => 'Integer',
+		checksum => 'String',
+		msbid => 'Integer',
+		moon => 'Integer',
+		cloud => 'Integer',
+		disperser => 'String',
+	       );
+
+sub getTypeColumns {
+  my $class = shift;
+  my $tel = shift;
+  $tel = '' unless $tel;
+
+  my @order = $class->getResultColumns;
+
+  my @types;
+  for my $col (@order) {
+    if (exists $coltypes{$col}) {
+      push(@types, $coltypes{$col});
+    } else {
+      throw OMP::Error::FatalError("Error determining type of column $col");
+    }
+  }
+  return @types;
+
+}
 
 =head1 AUTHORS
 

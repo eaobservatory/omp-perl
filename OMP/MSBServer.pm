@@ -29,6 +29,7 @@ use Carp;
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::MSBQuery;
+use OMP::Info::MSB;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
@@ -677,6 +678,86 @@ sub addMSBcomment {
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
+
+}
+
+=item B<getResultColumns>
+
+Retrieve the column names that will be used for the XML query
+results. Requires a telescope name be provided as single argument.
+
+  $colnames = OMP::MSBServer->getResultColumns( $tel );
+
+Returns an array (as a reference).
+
+=cut
+
+sub getResultColumns {
+  my $class = shift;
+  my $tel = shift;
+
+  my $E;
+  my @result;
+  try {
+    # Create a new object but we dont know any setup values
+    @result = OMP::Info::MSB->getResultColumns( $tel );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return \@result;
+
+}
+
+=item B<getTypeColumns>
+
+Retrieve the data types associated with the column names that will be
+used for the XML query results (as returned by
+getResultColumns). Requires a telescope name be provided as single
+argument.
+
+  $coltypes = OMP::MSBServer->getTypeColumns( $tel );
+
+Returns an array (as a reference).
+
+=cut
+
+sub getTypeColumns {
+  my $class = shift;
+  my $tel = shift;
+
+  my $E;
+  my @result;
+  try {
+    # Create a new object but we dont know any setup values
+    @result = OMP::Info::MSB->getTypeColumns( $tel );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return \@result;
 
 }
 
