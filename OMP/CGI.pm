@@ -329,12 +329,15 @@ sub _write_footer {
 
 Create the login form.
 
-$cgi->_write_login;
+$cgi->_write_login($projectid);
+
+Optional parameter is a project ID to appear as the default in the project ID text box.
 
 =cut
 
 sub _write_login {
   my $self = shift;
+  my $projectid = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
 
@@ -355,6 +358,7 @@ sub _write_login {
         $q->br,
 	"Project ID: </td><td colspan='2'>",
 	$q->textfield(-name=>'projectid',
+		      -default=>$projectid,
 		      -size=>17,
 		      -maxlength=>30),
 	$q->br,
@@ -452,7 +456,12 @@ sub write_page {
       # a link to get here.
 
       if ($q->url_param('urlprojid') ne $cookie{projectid}) {
-	%cookie = (projectid=>$q->url_param('urlprojid'), password=>'***REMOVED***');
+	my $verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $password);
+	
+	# If they're cookie already has the right password store the new
+	# projectid to the cookie, otherwise popup a login page
+	($verify) and %cookie = (projectid=>$q->url_param('urlprojid'), password=>$cookie{password}) or
+	  $self->_write_login($q->param('projectid'));
       }
     }
 
