@@ -13,6 +13,8 @@ my $DBuser = "omp";
 my $DBpwd  = "***REMOVED***";
 my $DBdatabase = "archive";
 
+# Maximum length of text displayed from a column
+use constant LONGEST => 32;
 
 my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd)
   or die "Cannot connect: ". $DBI::errstr;
@@ -38,7 +40,7 @@ foreach my $tab (@tab) {
       push(@full, $entry);
     }
     # strip long entries
-    @full = map {  $_ = "<LONG>" if length($_) > 32; $_ } @full;
+    @full = map {  $_ = "<LONG>" if length($_) > LONGEST; $_ } @full;
     print join(",",@full),"\n";
   }
 
