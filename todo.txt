@@ -38,3 +38,7 @@ To Do list for the OMP SOAP Servers
   deal with sources that never rise above the min elevation 
 
 - multi-wavelength filters are not supported at all
+
+- When we can support multiple allocations for a single project (keyed by tau
+range) "doneMSB" will require a tau value since we will need to know from
+which allocation the time should be subtracted.
