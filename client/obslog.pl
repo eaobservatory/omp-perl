@@ -404,7 +404,14 @@ sub rescan {
   {
     no warnings;
     # Grab the results.
-    my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+    my $adb = new OMP::ArchiveDB;
+    try {
+      my $db = new OMP::DBbackend::Archive;
+      $adb->db( $db );
+    }
+    catch OMP::Error::DBConnection with {
+      # Let this one slide through untouched.
+    };
     try {
       @result = $adb->queryArc( $arcquery );
     }
