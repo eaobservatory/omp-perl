@@ -557,7 +557,8 @@ sub fb_msb_observed {
   my $projectid = shift;
 
   # Get observed MSBs
-  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid});
+  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
+					       format => 'data'});
 
   # Generate the HTML table
   (@$observed) and msb_table($q, $observed);
