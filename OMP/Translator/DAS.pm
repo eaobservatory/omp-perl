@@ -29,6 +29,7 @@ use Astro::Telescope;
 use Astro::SLA ();
 use File::Spec;
 use SrcCatalog::JCMT;
+use Data::Dumper;
 
 # Unix directory for writing ODFs
 our $TRANS_DIR = "/observe/ompodf";
@@ -159,8 +160,7 @@ sub translate {
       # Targets are different because we need to index them by name once
       # we are complete.
 
-      use Data::Dumper;
-      print STDERR Dumper($obsinfo);
+      print STDERR Dumper($obsinfo) if $DEBUG;
 
       # Start new observation
       my $mode = $self->obsMode( %$obsinfo );
@@ -224,12 +224,6 @@ sub translate {
 
   $html .= $self->fixedFooter();
 
-  # For debugging
-  #print $html;
-
-  use Data::Dumper;
-  print Dumper({TARGETS=>\@targets, FILES=>\%files});
-
   if ($asdata) {
     # How do I return the catalogue????
     # Return it as Hash until we can be bothered to develop an object
@@ -273,7 +267,6 @@ sub translate {
     # For each of the targets add the projectid
     for (@targets) {
       $_->comment("Project: $projectid");
-      print Dumper($_);
     }
 
     # Insert the new sources at the start
@@ -484,7 +477,8 @@ sub fixedHeader {
 
   $html .= "<HTML><HEAD><TITLE>Project $project</TITLE></HEAD><BODY>\n";
 
-  $html .= "<H1>Project: <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$project\">$project</a></H1>\n";
+  my $templatefile = lc($project) . ".txt";
+  $html .= "<H1>Project: <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$project\">$project</a> [<a href=\"http://www-private.jach.hawaii.edu:81/scubaserv/templates/03a/$templatefile\">template</a>]</H1>\n";
 
   $html .= "<ul>\n";
   $html .= "<li><em>Please remember to set project ID to <em>$project</em> in the acquisition system.</em>\n";
@@ -521,11 +515,11 @@ sub msbHeader {
 
   if (defined $note) {
     # Notes have to be in PRE blocks to preserve formatting
+    $ntitle = '' unless defined $ntitle;
     $html .= "<h2>Note: $ntitle</h2>\n<PRE>\n$note\n</PRE>\n";
   } else {
     $html .= "<h2>No note supplied</h2>";
   }
-
   return $html;
 }
 
@@ -564,8 +558,6 @@ sub obsMode {
   if ($otMode eq 'SpIterStareObs') {
     # Work it out from the offsets
     if (exists $summary{offsets} ) {
-      use Data::Dumper;
-      print Dumper(\%summary);
       my %data = offsets_to_grid( @{ $summary{offsets} } );
       $mode = $data{TYPE};
     } else {
@@ -1130,8 +1122,6 @@ sub offsets_to_grid {
 
   # Go through all the X+Y coordinates making sure that they increment
   # by a constant amount
-  #use Data::Dumper;
-  #print Dumper(\@xsort,\@ysort);
   my $contig = 0;
 
   if (!exists $results{TYPE}) {
@@ -1147,7 +1137,7 @@ sub offsets_to_grid {
 	    if ($diff != $delta) {
 	      # non-contiguous
 	      $contig=0;
-	      print "Delta: $delta  Diff: $diff I: $i\n";
+	      #print "Delta: $delta  Diff: $diff I: $i\n";
 	      last XY;
 	    }
 	  } else {
@@ -1180,7 +1170,7 @@ sub offsets_to_grid {
     my $nx = scalar(@xsort);
     my $ny = scalar(@ysort);
 
-    print "DX= $dx NX=$nx DY = $dy  NY=$ny\n";
+    #print "DX= $dx NX=$nx DY = $dy  NY=$ny\n";
 
     # Simply calculate the expected offsets and compare with what
     # we got
@@ -1192,23 +1182,23 @@ sub offsets_to_grid {
     ROW: for my $iy (1..$ny) {
 	# Expected Y offset
 	my $ey = $ymin + ($dy*($iy-1));
-	print "Y offset = $ey\n";
+	#print "Y offset = $ey\n";
 	for my $ix (1.. $nx) {
 	  # This is the requested offset
 	  my $off = $offsets[$n];
 
 	  # This is the X expected offset
 	  my $ex = $xmin + ($dx*($ix-1));
-	  print "X offset = $ex [counter= $n]\n";
+	  #print "X offset = $ex [counter= $n]\n";
 
-	  print "Required offset: ". $off->{OFFSET_DX} .",".
-	    $off->{OFFSET_DY}."\n";
+	  #print "Required offset: ". $off->{OFFSET_DX} .",".
+	  #  $off->{OFFSET_DY}."\n";
 	  # Compare offsets
 	  if ($off->{OFFSET_DX} != $ex ||
 	      $off->{OFFSET_DY} != $ey) {
 	    # This is not a grid in the expected order
 	    $contig = 0;
-	    print "NON-CONTIGUOUS: GRID\n";
+	    #print "NON-CONTIGUOUS: GRID\n";
 	    last ROW;
 	  }
 	
@@ -1232,7 +1222,7 @@ sub offsets_to_grid {
 	if (($nx % 2) != 1 || ($ny % 2) != 1);
       $results{OFFSETS} = [[$xmin + (($nx-1)/2)*$dx, $ymin + (($ny-1)/2)*$dy]];
 
-      print Dumper(\%results);
+      print STDERR "GRID DEBUG:". Dumper(\%results) if $DEBUG;
 
       return %results;
 
@@ -1255,7 +1245,7 @@ sub offsets_to_grid {
     }
 
     $results{OFFSETS} = \@off;
-    print Dumper(\%results);
+    print STDERR "PATTERN DEBUG: ".Dumper(\%results) if $DEBUG;
 
   } elsif ($results{TYPE} eq 'GRID') {
     throw OMP::Error::FatalError("Unexpectedly obtained GRID solution");
