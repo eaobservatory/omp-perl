@@ -954,9 +954,10 @@ sub hasBeenObserved {
     # Do we need to subtract an additional value?
     # due to a bug in the OT. The bug has not been fixed
     # until 04a (deliberately since it is safer that way)
+    # The 04A OT was released on 20031223
     print "OT Version: ". $self->ot_version ."\n" if $DEBUG;
     if (defined $self->ot_version && $self->ot_version > 20030522 && 
-	$self->ot_version < 20040101) {
+	$self->ot_version < 20031223) {
       print "Fudging numberOfItems due to OT bug\n" if $DEBUG;
       $n--;
     }
