@@ -883,6 +883,10 @@ sub _insert_row {
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
+  # Throw an exception if we are missing tauband or seeing
+  throw OMP::Error::SpBadStructure("There seems to be no site quality information. Unable to schedule MSB.\n")
+    unless (defined $data{seeing} and defined $data{tauband});
+
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
@@ -901,6 +905,12 @@ sub _insert_row {
     # Get the obs id (based on the msb id)
     my $obsid = sprintf( "%d%03d", $index, $count);
 
+    # If coordinates have not been set then we need to raise an exception
+    # since we can not schedule this
+    unless (exists $obs->{coords} and defined $obs->{coords} 
+	   and UNIVERSAL::isa($obs->{coords},"Astro::Coords")) {
+      throw OMP::Error::SpBadStructure("Coordinate information could not be found in an MSB. Unable to schedule.\n");
+    }
     my @coords = $obs->{coords}->array;
 
     # Wavelength must be a number (just check for presence of any number)
