@@ -520,41 +520,74 @@ sub historyMSB {
 
 =item B<observedMSBs>
 
-Return all the MSBs observed (ie "marked as done") on the specified
-date.
+Return all the MSBs observed (ie "marked as done" or MSBs started) on
+the specified date and/or for the specified project.
 
-  $output = OMP::MSBServer->observedMSBs( $date, $allcomments, 'xml' );
+  $output = OMP::MSBServer->observedMSBs( { date => $date,
+					    returnall => 1,
+					    format => 'xml',
+					    projectid => $proj,
+					  } );
 
-The C<allcomments> parameter governs whether all the comments
+The C<returnall> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
 
 The output format matches that returned by C<historyMSB>.
 
-If no date is defined (e.g. an empty string is sent) the current UT
-date is used.
+If the current date is required use the "usenow" flag:
+
+  $output = OMP::MSBServer->observedMSBs( { usenow => 1,
+					    returnall => 1,
+					    format => 'xml',
+					  } );
+
+At least one of "usenow", "projectid" or "date" must be defined
+else the query is too open-ended (and would result in every MSB
+ever observed).
+
+Note that the argument is a reference to a hash.
 
 =cut
 
 sub observedMSBs {
   my $class = shift;
-  my $date = shift;
-  my $allcomments = shift;
-  my $type = lc(shift);
-  $type ||= 'xml';
+  my $args = shift;
 
-  OMP::General->log_message("observedMSBs: date $date\n");
+  my $type = lc( $args->{format} );
+  $type ||= 'xml';
+  delete $args->{format};
+
+  # Check basic consistency of arguments
+  if (!exists $args->{usenow} && !exists $args->{date} &&
+     !exists $args->{projectid}) {
+    throw OMP::Error::BadArgs("observedMSBs: Please supply one of usenow, date or projectid");
+  }
+
+  # Log message
+  my $string;
+  my $dstr = (exists $args->{date} ? $args->{date} : "<undef>");
+  my $pstr = (exists $args->{projectid} ? $args->{projectid} : "<undef>");
+  my $ustr = (exists $args->{usenow} ? $args->{usenow} : "<undef>");
+  OMP::General->log_message("observedMSBs: date: $dstr project: $pstr  UseNow: $ustr\n");
+
 
   my $E;
   my $result;
   try {
+
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(
 				DB => $class->dbConnection
 			       );
 
-    $result = $db->observedMSBs( $date, $allcomments );
+    # Do we have a project?
+    $db->projectid( $args->{projectid} )
+      if exists $args->{projectid} && defined $args->{projectid};
+    delete $args->{projectid};
+
+    $result = $db->observedMSBs( %$args );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

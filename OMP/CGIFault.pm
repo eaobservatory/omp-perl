@@ -154,8 +154,10 @@ sub file_fault {
 
   if ($cookie{category} =~ /(jcmt|ukirt)/i) {
     # Values for checkbox group will be tonights projects
-    my $today = OMP::General->today;
-    my $aref = OMP::MSBServer->observedMSBs($today, 0, 'data');
+    my $aref = OMP::MSBServer->observedMSBs({
+					     usenow => 1,
+					     format => 'data',
+					     returnall => 0,});
     if (@$aref[0]) {
       my %projects;
       for (@$aref) {

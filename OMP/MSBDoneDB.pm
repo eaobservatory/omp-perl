@@ -239,15 +239,22 @@ Return all the MSBs observed (ie "marked as done") on the specified
 date. If a project ID has been set only those MSBs observed on the
 date for the specified project will be returned.
 
-  $output = $db->observedMSBs( $date, $allcomments );
-  @output = $db->observedMSBs( $date, $allcomments );
+  $output = $db->observedMSBs( date => $date, returnall => $allcomments );
+  @output = $db->observedMSBs( date => $date, returnall => $allcomments );
 
-The C<allcomments> parameter governs whether all the comments
+The C<returnall> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
 
-If no date is defined the current UT date is used.
+If no date is defined the date is not used in the query at all.
+If the current UT date is required then use the "usenow" key:
+
+  $output = $db->observedMSBs( usenow => 1, returnall => $allcomments);
+
+"usenow" overrides any date. If neither date nor usenow are specified
+no date is used in the query (ie all dates) but a project must
+be specified.
 
 The definition of "observed" includes MSBs that were completed,
 rejected, suspended or aborted.
@@ -256,11 +263,18 @@ rejected, suspended or aborted.
 
 sub observedMSBs {
   my $self = shift;
-  my $date = shift;
-  my $allcomment = shift;
+  my %args = @_;
+
+  # Do we mean today? Override if we have usenow
+  my $date;
+  if (exists $args{usenow} && $args{usenow}) {
+    $date = OMP::General->today;
+  } elsif (exists $args{date}) {
+    # Use the supplied date if we have one
+    $date = $args{date};
+  }
 
   # Construct the query
-  $date ||= OMP::General->today;
   my $projectid = $self->projectid;
 
   my $xml = "<MSBDoneQuery>" .
@@ -268,13 +282,13 @@ sub observedMSBs {
       "<status>" . OMP__DONE_REJECTED . "</status>" .
 	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
 	  "<status>" . OMP__DONE_ABORTED . "</status>" .
-            "<date delta=\"1\">$date</date>" .
+            ($date ?"<date delta=\"1\">$date</date>" : "" ) .
 	      ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
 	        "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  my @results = $self->queryMSBdone( $query, $allcomment );
+  my @results = $self->queryMSBdone( $query, $args{returnall} );
   return (wantarray ? @results : \@results );
 }
 

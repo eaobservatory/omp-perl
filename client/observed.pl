@@ -80,7 +80,9 @@ my $utdate = shift(@ARGV);
 $utdate = OMP::General->today unless $utdate;
 
 # Get the list of MSBs
-my $done = OMP::MSBServer->observedMSBs( $utdate, 0, 'data');
+my $done = OMP::MSBServer->observedMSBs( {date => $utdate, 
+					  returnall => 0, 
+					  format => 'data'} );
 
 # Now sort by project ID
 my %sorted;
@@ -126,10 +128,12 @@ for my $proj (keys %sorted) {
     print $msg;
   } else {
     my ($user, $host, $email) = OMP::General->determine_host;
+    my $id = OMP::General->determine_user;
+
     OMP::FBServer->addComment(
 			      $proj,
 			      {
-			       author => $user,
+			       author => $id,
 			       subject => "MSB summary for $utdate",
 			       program => "observed.pl",
 			       sourceinfo => $host,
