@@ -219,7 +219,7 @@ component observation.
   @obs = $msb->obssum;
   $msb->obssum( @obs );
 
-The C<summarize_obs> method is automatically invoked if this
+The C<_get_obs> method is automatically invoked if this
 method is called without argument and the array is empty.
 
 Usually called by the C<summary> method to form a summary
@@ -427,17 +427,47 @@ sub summary {
     $summary{checksum} = $self->checksum;
     $summary{remaining} = $self->remaining;
     $summary{projectid} = $self->projectID;
-
     %summary = (%summary, $self->weather);
+    $summary{obs} = [ $self->obssum ];
 
-    my @obs = $self->obssum;
+    $summary{_obssum} = { $self->_summarize_obs };
 
   }
 
-  # Summary string
-  my $head = "Project  Remainder  Checksum Tauband seeing\n";
-  my @keys = qw/projectid remaining checksum tauband seeing/;
-  my $string = join("\t", @summary{@keys}); # hash slice
+  # Get merged copy which may have observation summaries in
+  # it (we don't want to contaminate the summary that has
+  # obs details as a separate entity)
+  my %local = %summary;
+  %local = (%summary, %{$summary{_obssum}}) if exists $summary{_obssum};
+
+  #use Data::Dumper;
+  #print Dumper(\%local);
+
+  # Summary string and format for each
+  my @keys = qw/projectid remaining tauband seeing
+    instrument wavelength target coordstype checksum/;
+
+  # Field widths %s does not substr a string - real pain
+  # Therefore need to substr ourselves
+  my @width = qw/ 10 3 3 3 20 20 20 6 40/;
+  my @format = map { "%-$_"."s" } @width;
+
+  # Substr each string using the supplied widths.
+  my @sub = map { 
+    substr($local{$keys[$_]},0,$width[$_])
+  } 0..$#width;
+
+  # ...and the header
+  my @head = map {
+    substr(ucfirst($keys[$_]),0,$width[$_])
+  } 0..$#width;
+
+  # Create the new format
+  my $format = join(" ", @format);
+
+  # Form the string and the header
+  my $string = sprintf $format, @sub; # hash slice
+  my $head   = sprintf $format, @head;
 
   $summary{summary} = {
 		       keys   => \@keys,
@@ -456,12 +486,14 @@ sub summary {
     $xml .= "id=\"$summary{id}\"" if exists $summary{id};
     $xml .= ">\n";
 
-    for my $key (keys %summary) {
+    for my $key ( keys %local ) {
       # Special case the summary and ID keys
       next if $key eq "summary";
       next if $key eq "id";
+      next if $key =~ /^_/;
+      next if ref($local{$key});
 
-      $xml .= "<$key>$summary{$key}</$key>\n";
+      $xml .= "<$key>$local{$key}</$key>\n";
 
     }
     $xml .= "</SpMSBSummary>\n";
@@ -622,11 +654,25 @@ sub stringify_noresolve {
 
 =item B<_summarize_obs>
 
-For each individual observation comprising the MSB, determine the
-average properties that can be used for scheduling.
+Return a summary of the individual observations suitable
+for the query tool or for a one line summary.
 
-Return the summary as a hash. Usually invoked from the C<summary>
-method.
+This summary is not used for scheduling (individual queries to
+the observation table should be used for that).
+
+Usually invoked via the C<summary> method.
+
+  %hash = $msb->_summarize_obs;
+
+Returns keys:
+
+  instrument
+  target
+  wavelength
+  coordstype
+
+If the values are different between observations the options are
+separated with a "/".
 
 =cut
 
@@ -635,14 +681,24 @@ sub _summarize_obs {
   my @obs = $self->obssum;
 
   my %summary;
-  for my $sum (@obs) {
-    
 
+  foreach my $key (qw/ instrument wavelength target coordstype/) {
+    # Now go through each observation looking for the specific
+    # key. Store the value in a hash keyed by itself so that we
+    # can automatically mask out duplicated
+
+    my %options = map { $_, undef } map { $_->{$key} } @obs;
+
+    $summary{$key} = join("/", keys %options);
 
   }
 
-}
+  #use Data::Dumper;
+  #print Dumper(\%summary);
 
+  return %summary;
+
+}
 
 =item B<_get_obs>
 
@@ -672,15 +728,26 @@ sub _get_obs {
 
   my %status; # for storing current parameters
   my @obs; # for storing results
+
+  # If we are a long SpObs we want to use ourself rather
+  # than the children
+  my @searchnodes;
+  if ($self->_tree->getName eq 'SpObs') {
+    @searchnodes = $self->_tree;
+  } else {
+    @searchnodes = $self->_tree->getChildnodes;
+  }
+
+
   # Get all the children and loop over them
-  for ( $self->_tree->getChildnodes ) {
+  for ( @searchnodes ) {
 
     # Resolve refs if required
     my $el = $self->_resolve_ref( $_ );
 
     # Get the name of the item
     my $name = $el->getName;
-    print "Name is $name \n";
+    #print "Name is $name \n";
 
     if ($self->can($name)) {
       if ($name eq 'SpObs') {
@@ -698,8 +765,8 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  use Data::Dumper;
-  print Dumper(\@obs);
+  #use Data::Dumper;
+  #print Dumper(\@obs);
 
   return @obs;
 }
@@ -900,7 +967,7 @@ sub SpObs {
   my $self = shift;
   my $el = shift;
   my %summary = @_;
-  print "In SpOBS\n";
+  #print "In SpOBS\n";
 
   throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
     unless $el->findnodes(".//SpIterObserve");
@@ -915,7 +982,7 @@ sub SpObs {
     # Resolve refs if necessary
     my $el = $self->_resolve_ref( $_ );
     my $name = $el->getName;
-    print "SpObs: $name\n";
+    #print "SpObs: $name\n";
     %summary = $self->$name( $el, %summary )
       if $self->can( $name );
   }
@@ -1037,7 +1104,7 @@ sub SpTelescopeObsComp {
   my $self = shift;
   my $el = shift;
   my %summary = @_;
-  print "In target\n";
+  #print "In target\n";
 
   # Get the base target element
   my ($base) = $el->findnodes(".//base/target");
@@ -1070,7 +1137,7 @@ sub SpTelescopeObsComp {
     my $type = $system->getAttribute("type");
 
     # degdeg uses different keys to hmsdeg
-    print "System: $sysname\n";
+    #print "System: $sysname\n";
     my ($long ,$lat);
     if ($sysname eq "hmsdegSystem") {
       $long = "ra";
@@ -1088,7 +1155,7 @@ sub SpTelescopeObsComp {
 
     throw OMP::Error::FatalError( "Coordinate frame $type not yet supported by the OMP\n") unless defined $summary{coords};
 
-    $summary{type} = $summary{coords}->type;
+    $summary{coordstype} = $summary{coords}->type;
 
   } elsif ($sysname eq "conicSystem") {
 
@@ -1096,7 +1163,7 @@ sub SpTelescopeObsComp {
     # and store them somehow. Currently store them as : separated
     # string in the "long" entry. The subtype doesnt need to be stored
     # since we can work it out from the number of elements
-    $summary{type} = "ELEMENTS";
+    $summary{coordstype} = "ELEMENTS";
 
     throw OMP::Error::FatalError("Orbital elements not yet supported\n");
 
@@ -1104,7 +1171,7 @@ sub SpTelescopeObsComp {
 
     # A planet that the TCS already knows about
 
-    $summary{type} = "PLANET";
+    $summary{coordstype} = "PLANET";
     $summary{coords} = Astro::Coords( planet => $summary{target});
 
     throw OMP::Error::FatalError("Unable to process planet $summary{target}\n")
