@@ -543,7 +543,7 @@ sub fb_msb_observed {
       "<projectid>$projectid</projectid>".
 	    "</MSBDoneQuery>";
 
-  # Now get the observed MSBs
+  # Now get back the observed MSBs
   my $observed = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
 
   # Generate the HTML table
@@ -625,7 +625,7 @@ sub msb_table {
   my $program = shift;
 
   print "<table width=100%>";
-  print "<tr bgcolor=#7979aa><td><b>MSB</b></td>";
+  print "<tr bgcolor=#bcbee3><td><b>MSB</b></td>";
   print "<td><b>Target:</b></td>";
   print "<td><b>Waveband:</b></td>";
   print "<td><b>Instrument:</b></td>";
@@ -633,7 +633,11 @@ sub msb_table {
   # Only bother with a remaining column if we have remaining
   # information
   print "<td><b>Remaining:</b></td>"
-    if (@$program && defined $program->[0]->remaining);
+    if ($program->[0]->remaining);
+
+  # And let's have an N Repeats column if that's available
+  print "<td><b>N Repeats:</b></td>"
+    if ($program->[0]->nrepeats);
 
   # Note that this doesnt really work as code shared for MSB and
   # MSB Done summaries
@@ -656,7 +660,9 @@ sub msb_table {
     print "<td>" . $msb->waveband . "</td>";
     print "<td>" . $msb->instrument . "</td>";
     print "<td>" . $msb->remaining . "</td>"
-      if defined $msb->remaining;
+      if ($msb->remaining);
+    print "<td>" . $msb->nrepeats . "</td>"
+      if ($msb->nrepeats);
 
   }
 
