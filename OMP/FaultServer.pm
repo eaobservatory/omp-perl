@@ -160,6 +160,47 @@ sub closeFault {
   return;
 }
 
+=item B<updateFault>
+
+Update details for a fault.
+
+  OMP::FaultServer->updateFault($fault);
+
+Argument should be supplied as an C<OMP::Fault> object.
+
+=cut
+
+sub updateFault {
+  my $class = shift;
+  my $fault = shift;
+
+  my $E;
+  try {
+
+    my $db = new OMP::FaultDB( DB => $class->dbConnection, );
+
+    # Let the lower level method check the argument
+    $db->updateFault($fault);
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return;
+
+}
+
+
 =item B<getFault>
 
 Get the specified fault.
