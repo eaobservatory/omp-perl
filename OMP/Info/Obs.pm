@@ -326,7 +326,7 @@ sub status {
     # exist, then set the status as being good.
     my @comments = $self->comments;
     if( defined( $comments[0] ) ) {
-      $self->{status} = $comments[0]->status;
+      $self->{status} = $comments[$#comments]->status;
     } else {
       $self->{status} = OMP__OBS_GOOD;
     }
