@@ -222,10 +222,16 @@ sub storeSciProg {
   # a normal submission. Switch on nonewtrans since that is really telling
   # us whether this is an external submission or not
   unless ($nonewtrans) {
+    # Add a little note if we used the admin password
+    my $note = '';
+    $note = "[using the administrator password]"
+      if OMP::General->verify_administrator_password( $self->password, 1);
+
+
     $self->_notify_feedback_system(
 				   subject => "Science program submitted",
 				   text => "Science program submitted for project <b>".
-				   $self->projectid ."</b>\n",
+				   $self->projectid ."</b> $note\n",
 				  );
   }
 
@@ -283,10 +289,15 @@ sub fetchSciProg {
 
   # And file with feedback system.
   unless ($internal) {
+    # Add a little note if we used the admin password
+    my $note = '';
+    $note = "[using the administrator password]"
+      if OMP::General->verify_administrator_password( $self->password, 1);
+
     $self->_notify_feedback_system(
 				   subject => "Science program retrieved",
 				   text => "Science program retrieved for project <b>".
-				   $self->projectid ."</b>\n",
+				   $self->projectid ."</b> $note\n",
 				  );
   }
 
