@@ -127,8 +127,10 @@ sub nightlog {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "WEATHER";
   } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "FAULT";
-  } elsif( $self->status == OMP__TIMEGAP_PROJECT ) {
-    $return{'_STRING'} = $return{'_STRING_LONG'} .= "PROJECT";
+  } elsif( $self->status == OMP__TIMEGAP_NEXT_PROJECT ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "NEXT PROJECT";
+  } elsif( $self->status == OMP__TIMEGAP_PREV_PROJECT ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "LAST PROJECT";
   } else {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
   }
@@ -185,8 +187,10 @@ sub summary {
       $obssum .= "WEATHER";
     } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
       $obssum .= "FAULT";
-    } elsif( $self->status == OMP__TIMEGAP_PROJECT ) {
-      $obssum .= "PROJECT";
+    } elsif( $self->status == OMP__TIMEGAP_NEXT_PROJECT ) {
+      $obssum .= "NEXT PROJECT";
+    } elsif( $self->status == OMP__TIMEGAP_PREV_PROJECT ) {
+      $obssum .= "LAST PROJECT";
     } else {
       $obssum .= "UNKNOWN";
     }

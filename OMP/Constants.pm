@@ -35,8 +35,8 @@ my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
 my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
 my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
-                  OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN 
-                  OMP__TIMEGAP_PROJECT /;
+                  OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
+                  OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT /;
 
 @EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap);
 
@@ -299,11 +299,22 @@ use constant OMP__TIMEGAP_FAULT => 12;
 =item OMP__TIMEGAP_PROJECT
 
 Flags a timegap so that the time lost will be charged to
-the project.
+the project to which the observation following the timegap
+belongs.
 
 =cut
 
-use constant OMP__TIMEGAP_PROJECT => 14;
+use constant OMP__TIMEGAP_NEXT_PROJECT => 14;
+
+=item OMP__TIMEGAP_PREV_PROJECT
+
+Flags a timegap so that the time lost will be charged to
+the project to which the observation preceding the timegap
+belongs.
+
+=cut
+
+use constant OMP__TIMEGAP_PREV_PROJECT => 15;
 
 =item OMP__TIMEGAP_UNKNOWN
 
