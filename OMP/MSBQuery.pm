@@ -498,8 +498,13 @@ sub _querify {
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z]/ ? "'" : '' );
 
-  # If the name is projectid we need to make sure it comes from the
-  # MSB table
+  # If we are dealing with a project ID we should
+  # make sure we upper case it (more efficient to upper case everything than
+  # to do a query that ignores case)
+  $value = uc($value) if $name eq 'projectid';
+
+  # Additionally, If the name is projectid we need to make sure it
+  # comes from the MSB table
   $name = "M." . $name if $name eq 'projectid';
 
   # Form query

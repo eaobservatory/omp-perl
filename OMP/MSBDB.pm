@@ -73,7 +73,8 @@ Create a new instance of an C<OMP::MSBDB> object.
 
 The password and project if arguments are required for Science Program
 access.  The password refers to the Project (see C<OMP::ProjDB>).
-MSB-based methods do not need to know this information.
+MSB-based methods do not need to know this information so it does
+not always need to be supplied.
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -96,13 +97,11 @@ The project ID associated with this object.
   $pid = $db->projectid;
   $db->projectid( "M01BU53" );
 
+All project IDs are upper-cased automatically.
+
 =cut
 
-sub projectid {
-  my $self = shift;
-  if (@_) { $self->{ProjectID} = shift; }
-  return $self->{ProjectID};
-}
+# inherit from base class
 
 =item B<password>
 
@@ -113,11 +112,7 @@ The password associated with this object.
 
 =cut
 
-sub password {
-  my $self = shift;
-  if (@_) { $self->{Password} = shift; }
-  return $self->{Password};
-}
+# inherit from base class
 
 =back
 

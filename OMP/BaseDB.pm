@@ -73,13 +73,17 @@ sub new {
 	    DB => undef,
 	   };
 
-  # Populate the hash
-  for (qw/Password ProjectID/) {
-    $db->{$_} = $args{$_} if exists $args{$_};
-  }
-
-  # and create the object
+  # create the object (else we cant use accessor methods)
   my $object = bless $db, $class;
+
+  # Populate the object by invoking the accessor methods
+  # Do this so that the values can be processed in a standard
+  # manner. Note that the keys are directly related to the accessor
+  # method name
+  for (qw/Password ProjectID/) {
+    my $method = lc($_);
+    $object->$method( $args{$_} ) if exists $args{$_};
+  }
 
   # Check the DB handle
   $object->_dbhandle( $args{DB} ) if exists $args{DB};
@@ -93,6 +97,38 @@ sub new {
 =head2 Accessor Methods
 
 =over 4
+
+=item B<projectid>
+
+The project ID associated with this object.
+
+  $pid = $db->projectid;
+  $db->projectid( "M01BU53" );
+
+All project IDs are upper-cased automatically.
+
+=cut
+
+sub projectid {
+  my $self = shift;
+  if (@_) { $self->{ProjectID} = uc(shift); }
+  return $self->{ProjectID};
+}
+
+=item B<password>
+
+The password associated with this object.
+
+ $passwd = $db->password;
+ $db->password( $passwd );
+
+=cut
+
+sub password {
+  my $self = shift;
+  if (@_) { $self->{Password} = shift; }
+  return $self->{Password};
+}
 
 =item B<_locked>
 
