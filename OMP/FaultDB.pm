@@ -831,8 +831,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
   # Mail it off
   $self->_mail_information(message => join('',@msg),
-			   #to => join(", ",@addr),
-			   to => "kynan\@jach.hawaii.edu",
+			   to => join(", ",@addr),
 			   from => $from,
 			   subject => $subject);
 
