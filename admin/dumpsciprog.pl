@@ -79,7 +79,7 @@ for my $projid (@projects) {
   } catch OMP::Error::SpBadStructure with {
     # Want to know if a program stored in the DB is truncated
     my $E = shift;
-    print "Science program truncated: $E\n";
+    print "Science program truncated [$projid]: $E\n";
   } otherwise {
     print "No science program available for $projid\n";
 
