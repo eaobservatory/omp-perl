@@ -1457,6 +1457,17 @@ sub noneRemaining {
   $self->pending( 0 );
 }
 
+=item B<isScience>
+
+Return true if the project's primary queue is not E&C.
+
+=cut
+
+sub isScience {
+  my $self = shift;
+  return ($self->primaryqueue eq 'EC' ? 0 : 1);
+}
+
 =back
 
 =head1 COPYRIGHT
