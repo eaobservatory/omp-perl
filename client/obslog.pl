@@ -5,15 +5,15 @@ use strict;
 my ($MW, $VERSION, $BAR, $STATUS);
 
 # Add to @INC for OMP and ORAC libraries.
-#use lib '/home/bradc/development/omp/msbserver';
-use lib '/jac_sw/omp/msbserver';
+use FindBin;
+use lib "$FindBin::RealBin/..";
 
 BEGIN {
 
 # set up the intial Tk "status loading" window and load in the Tk modules
 
-	use Tk;
-	use Tk::ProgressBar;
+  use Tk;
+  use Tk::ProgressBar;
   use Data::Dumper;
 
   use OMP::Constants;
