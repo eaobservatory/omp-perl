@@ -348,16 +348,28 @@ sub observed {
   my $q = shift;
   my %cookie = @_;
 
-  my $utdate = OMP::General->today;
+  my $utdate;
+  ($q->param('utdate')) and $utdate = $q->param('utdate')
+    or $utdate = OMP::General->today;
 
   my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
   my $commentref = $msbdb->observedMSBs($utdate, 0, 'data');
 
-  print $q->h1("MSBs observed on $utdate");
+  ($commentref) and print $q->h1("MSBs observed on $utdate")
+    or print $q->h1("No MSBs observed on $utdate");
+
+  print $q->startform;
+  print "Enter a UT Date: ";
+  print $q->textfield(-name=>'utdate',
+		      -size=>15,
+		      -maxlength=>75);
+  print "&nbsp;&nbsp;";
+  print $q->submit("Submit");
+  print $q->endform;
+  print $q->hr;
 
   # Sort the comments by project ID
-
   my %sorted;
   foreach my $msb (@$commentref) {
     my $projectid = $msb->{projectid};
