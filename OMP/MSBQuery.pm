@@ -25,6 +25,8 @@ use Carp;
 # External modules
 use XML::LibXML; # Our standard parser
 use OMP::Error;
+use OMP::General;
+use Time::Piece ':override'; # for gmtime
 
 # Package globals
 
@@ -129,6 +131,36 @@ sub maxCount {
   }
 }
 
+=item B<refDate>
+
+Return the date object associated with the query. If no date has
+been specified explicitly in the query the current date is returned.
+
+  $date = $query->refDate;
+
+The time can not be specified.
+
+=cut
+
+sub refDate {
+  my $self = shift;
+
+  # Get the hash form of the query
+  my $href = $self->query_hash;
+
+  # Check for "date" key
+  my $date;
+  if ( exists $href->{date} ) {
+    $date = $href->{date};
+  } else {
+    # Need to get a gmtime object that stringifies as a Sybase date
+    $date = gmtime;
+
+    # Rebless
+    bless $date, "Time::Piece::Sybase";
+  }
+  return $date;
+}
 
 =item B<_parser>
 
@@ -247,6 +279,13 @@ sub sql {
       throw OMP::Error::MSBMalformedQuery("Query hash contained a non-HASH non-ARRAY: ". $query->{$entry}."\n");
     }
   }
+
+  # The date stuff has to be done independently since the date
+  # key is not compared directly - earliest and latest are used
+  # instead
+  my $date = $self->refDate;
+  push(@sql, " earliest < '$date' AND latest > '$date' " );
+
   # Now join it all together with an AND
   my $subsql = join(" AND ", @sql);
 
@@ -262,10 +301,9 @@ sub sql {
   #    corresponding MSB obscount and the total number of observations
   #    that matched within each MSB. The result is stored to a temp table
   # 2. Query the temporary table to determine all the MSB's that had
-  #    all their observations match
-  # 3. Use that list of MSBs to fetch the corresponding contents
+  #    all their observations match and return the MSB information
 
-  # We also DROP the temporary tables immediately since sybase
+  # We also DROP the temporary table immediately since sybase
   # keeps them around for until the connection is ended.
 
   # It is assumed that the observation information will be retrieved
@@ -344,7 +382,7 @@ Convert the XML parse tree to a query data structure.
   $query->_convert_to_perl;
 
 Invoked automatically by the C<query_hash> method
-unless the data structure has alrady been created.
+unless the data structure has already been created.
 Result is stored in C<query_hash>.
 
 =cut
@@ -424,6 +462,9 @@ key=instrument value=scuba secondkey=undef
 Note that single values are always stored in arrays in case
 a second value turns up. Note also that special cases become
 hashes rather than arrays.
+
+If the second key is C<date> the date string is converted to
+a date object.
 
 =cut
 
@@ -580,6 +621,16 @@ will select SCUBA or CGS4.
 Neither C<min> nor C<max> can be included more than once for a
 particular element. The most recent values for C<min> and C<max> will
 be used. It is also illegal to use ranges inside a plural element.
+
+=item B<Reference date>
+
+The C<date> element can be used to specify a specific date
+for the query. This date is used for determining source availability
+and is compared with any date constraints for a particular MSB. If a date
+is not supplied the current date is automatically inserted. The date
+should be supplied in ISO format YYYY-MM-DDTHH:MM
+
+  <date>2002-04-15T04:52</date>
 
 =back
 

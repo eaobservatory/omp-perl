@@ -40,6 +40,9 @@ use OMP::MSB;
 use OMP::Error;
 use OMP::ProjDB;
 
+use Astro::Telescope;
+use Astro::Coords;
+
 use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
@@ -958,17 +961,6 @@ sub _run_query {
   throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
     unless defined $ref;
 
-  # Return the results (as a slice if necessary)
-  my $max = $query->maxCount;
-
-  if (defined $max) {
-    $max--; # convert to index
-    $max = ( $max < $#$ref ? $max : $#$ref);
-  } else {
-    $max = $#$ref;
-  }
-  @$ref = @$ref[0..$max];
-
   # Now for each MSB we need to retrieve all of the Observation information
   # and store it in the results hash
   # Convention dictates that this information ...???
@@ -993,26 +985,13 @@ sub _run_query {
     }
     delete $row->{msbid}; # not needed
 
-    # Create the coordinate and waveband objects
+    # Create the waveband objects
+    # Only create the coordinate object if required since there is
+    # some overhead involved and we don't want to do it for every single
+    # row since there could be thousands of observations even though
+    # we only need the first 10
     $row->{waveband} = new Astro::WaveBand(Instrument => $row->{instrument},
 					   Wavelength => $row->{wavelength});
-
-    # Let Astro::Coords work out what we mean by all this :-)
-    $row->{coords} = new Astro::Coords(ra => $row->{ra2000},
-				       dec => $row->{dec2000},
-				       type => 'J2000',
-				       planet => $row->{target},
-				       elements => {
-						    EPOCH => $row->{el1},
-						    ORBINC => $row->{el2},
-						    ANODE => $row->{el3},
-						    PERIH => $row->{el4},
-						    AORQ => $row->{el5},
-						    E => $row->{el6},
-						    AORL => $row->{el7},
-						    DM => $row->{el8},
-						   },
-				      );
 
   }
 
@@ -1024,23 +1003,138 @@ sub _run_query {
     $row->{obs} = $msbs{$msb};
   }
 
-  # KLUGE *******************************
-  # Since we do not yet have a stored procedure to calculate whether
-  # the target is observable we have to do it by hand for each
-  # observation in an MSB
-  # Note that we have to be careful about the following:
-  #  1. Checking that the observation is above that requested
-  #     in SpSchedConstraint
-  #  2. Checking that the target is within the allowed range
-  #     (between 10 and 87 deg el at JCMT and 
-  #      HA = +/- 4.5h and dec > -42 and dec < 60 deg at UKIRT )
-  #  3. Check that it stays within that range for the duration
-  #     of the observation
-  #  4. As a final check make sure that the last target in an MSB
-  #     has not set by the time the first has finished.
+  # Now to limit the number of matches to return
+  # Determine how many MSBs we have been asked to return
+  my $max = $query->maxCount;
 
+  # An array to store the successful matches
+  my @observable;
 
-  return @$ref;
+  # Decide whether to do an explicit check for observability
+  if (0) {
+
+    # Slice if necessary
+    if (defined $max) {
+      $max--; # convert to index
+      $max = ( $max < $#$ref ? $max : $#$ref);
+    } else {
+      $max = $#$ref;
+    }
+    @observable = @$ref[0..$max];
+
+  } else {
+
+    # KLUGE *******************************
+    # Since we do not yet have a stored procedure to calculate whether
+    # the target is observable we have to do it by hand for each
+    # observation in an MSB
+    # Note that we have to be careful about the following:
+    #  1. Checking that the observation is above that requested
+    #     in SpSchedConstraint
+    #  2. Checking that the target is within the allowed range
+    #     (between 10 and 87 deg el at JCMT and 
+    #      HA = +/- 4.5h and dec > -42 and dec < 60 deg at UKIRT )
+    #  3. Check that it stays within that range for the duration
+    #     of the observation
+    #  4. As a final check make sure that the last target in an MSB
+    #     has not set by the time the first has finished.
+    #     (this happens automatically since we increment the reference
+    #     date by the estimated duration of each observation)
+
+    # The reference date is obtained from the query. It will either
+    # be the current time or a time that was specified in the query.
+    my $refdate = $query->refDate;
+
+    # Loop over each MSB in order
+    for my $msb ( @$ref ) {
+
+      # Reset the reference time for this msb
+      my $date = $refdate;
+
+      # Get the telescope name from the MSB and create a telescope object
+      my $telescope = new Astro::Telescope( $msb->{telescope} );
+
+      # Use a flag variable to indicate whether all
+      # the observations are observable
+      # Begin by assuming all is okay so that we can drop out the
+      # loop and unset it on failure
+      my $isObservable = 1;
+
+      # Loop over each observation.
+      # We have to keep track of the reference time
+      for my $obs ( @{ $msb->{obs} } ) {
+
+	# Create the coordinate object in order to calculate
+	# observability
+	# Let Astro::Coords work out what we mean by all this :-)
+	$obs->{coords} = new Astro::Coords(ra => $obs->{ra2000},
+					   dec => $obs->{dec2000},
+					   type => 'J2000',
+					   planet => $obs->{target},
+					   elements => {
+							EPOCH => $obs->{el1},
+							ORBINC => $obs->{el2},
+							ANODE => $obs->{el3},
+							PERIH => $obs->{el4},
+							AORQ => $obs->{el5},
+							E => $obs->{el6},
+							AORL => $obs->{el7},
+							DM => $obs->{el8},
+						       },
+					  );
+
+	# Get the coordinate object.
+	my $coords = $obs->{coords};
+
+	# Set the teelscope
+	$coords->telescope( $telescope );
+
+	# Set the time
+	$coords->datetime( $date );
+
+	# Now see if we are observable (dropping out the loop if not
+	# since there is no point checking further)
+	# This knows about different telescopes automatically
+	# Also check that we are above the minimum elevation
+	# (which is not related to the queries but is a scheduling constraint)
+	if  ( ! $coords->isObservable or
+	      $coords->elevation < $obs->{minel}) {
+	  $isObservable = 0;
+	  last;
+	}
+
+	# Add the estimated time of the observation to the reference
+	# time for the next time round the loop and to see if this 
+	# observation has set since we started it
+	$date += $obs->{timeest}; # check that this is in seconds
+	
+	# Now change the date and check again
+	$coords->datetime( $date );
+
+	# Repeat the check for observability. Note that this will not
+	# deal with the case at JCMT where we transit above 87 degrees
+	if  ( ! $coords->isObservable or
+	      $coords->elevation < $obs->{minel}) {
+	  $isObservable = 0;
+	  last;
+	}
+
+      }
+
+      # If the MSB is observable store it in the output array
+      if ($isObservable) {
+	push(@observable, $msb);
+
+	# Jump out the loop if we have enough matches
+	last if scalar(@observable) == $max;
+
+      }
+
+    }
+
+  }
+
+  return @observable;
 }
 
 
