@@ -11,9 +11,10 @@ OMP::MSBDoneDB - Manipulate MSB Done table
   $db = new OMP::MSBDoneDB( ProjectID => 'm01bu05',
                             DB => new OMP::DBbackend);
 
-  $xml = OMP::MSBServer->historyMSB( $checksum, 'xml');
+  @output = OMP::MSBServer->historyMSB( $checksum );
   $db->addMSBcomment( $checksum, $comment );
-
+  @output = $db->observedMSBs( $date, $allcomments );
+  @output = $db->queryMSBdone( $query, $allcomments );
 
 =head1 DESCRIPTION
 
@@ -313,8 +314,12 @@ sub queryMSBdone {
   }
 
   # Create an array from the hash. Sort by projectid
+  # and then by target and date of most recent comment
   my @all = map { $msbs->{$_} }
-    sort { $msbs->{$a}{projectid} cmp $msbs->{$b}{projectid} } keys %$msbs;
+    sort { $msbs->{$a}->projectid cmp $msbs->{$b}->projectid 
+      || $msbs->{$a}->target cmp $msbs->{$b}->target 
+	|| $msbs->{$a}->comments->[-1]->date <=> $msbs->{$b}->comments->[-1]->date
+  } keys %$msbs;
 
   return (wantarray ? @all : \@all);
 }
