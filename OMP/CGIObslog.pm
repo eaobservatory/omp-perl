@@ -575,7 +575,7 @@ sub obs_table {
       } else {
         print "<td>&nbsp;</td>";
       }
-      print "<td>" . $obs->runnr . "</td>";
+      print "<td><font color=\"$colour\">" . $obs->runnr . "</font></td>";
       print "</tr>\n";
     }
 
