@@ -51,6 +51,7 @@ our $XMLDIR = "/jac_sw/omp/dbxml";
 our $MSBTABLE = "ompmsb";
 our $PROJTABLE = "ompproj";
 our $OBSTABLE = "ompobs";
+our $SCITABLE = "ompsciprog";
 
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 10;
