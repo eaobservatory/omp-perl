@@ -716,7 +716,7 @@ sub view_fault_output {
 		  Response => "text",);
     my @error;
     for (keys %params) {
-      if (length($q->param($params{$_}) < 1) {
+      if (length($q->param($params{$_})) < 1) {
 	push @error, $_;
       }
     }
