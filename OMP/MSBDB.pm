@@ -237,7 +237,7 @@ sub storeSciProg {
 				   subject => "Science program submitted",
 				   text => "Science program submitted for project <b>".
 				            $self->projectid ."</b> $note\n",
-				   status => OMP__FB_SUPPORT,
+				   status => OMP__FB_HIDDEN,
 				  );
   }
 
