@@ -114,7 +114,9 @@ All project IDs are upper-cased automatically.
 
 sub projectid {
   my $self = shift;
-  if (@_) { $self->{ProjectID} = uc(shift); }
+  if (@_) {
+    $self->{ProjectID} = uc(shift);
+  }
   return $self->{ProjectID};
 }
 
