@@ -497,44 +497,14 @@ sub worf_output {
 
 sub print_JAC_header {
   print <<END;
-<div align=center>
-<nobr>
-<a HREF="/JACpublic/"><img align=top height=64
-SRC="/JACpublic/JAC/templates/jac_logo.gif" alt="JACH |"></a>
-<a HREF="/JACpublic/JCMT/home.html"><img align=top
-height=64 SRC="/JACpublic/JAC/templates/jcmt_small.gif" alt="JCMT |"></a>
-<a href="/JACpublic/UKIRT/home.html"><img align=top
-height=64 src="/JACpublic/JAC/templates/uklogo_sm.gif" alt="UKIRT |"></a>
-<a href="/JACpublic/JAC/cs"><img align=top height=64
-src="/JACpublic/JAC/templates/dont_panic.gif" alt="Computer Services |"></a>
-<a href="/JACpublic/UKIRT/software/"><img align=top height=64
-src="/JACpublic/JAC/templates/usglogo.gif" alt="USG |"></a>
-<a href="/cgi-bin/worf.pl">WORF</a>
-</nobr>
-</div>
-  <hr>
-Welcome to WORF. <a href="/JACpublic/JAC/UKIRT/software/worf/help.html">Need help?</a><p>
+Welcome to WORF. <a href="/JACpublic/JAC/UKIRT/software/worf/help.html">Need help?</a><br>
+<hr>
 END
 };
 
 sub print_JAC_footer {
   print <<END;
   <p>
-<div align=center>
-<nobr>
-<a HREF="/JACpublic/"><img align=top height=64
-SRC="/JACpublic/JAC/templates/jac_logo.gif" alt="JACH |"></a>
-<a HREF="/JACpublic/JCMT/home.html"><img align=top
-height=64 SRC="/JACpublic/JAC/templates/jcmt_small.gif" alt="JCMT |"></a>
-<a href="/JACpublic/UKIRT/home.html"><img align=top
-height=64 src="/JACpublic/JAC/templates/uklogo_sm.gif" alt="UKIRT |"></a>
-<a href="/JACpublic/JAC/cs"><img align=top height=64
-src="/JACpublic/JAC/templates/dont_panic.gif" alt="Computer Services |"></a>
-<a href="/JACpublic/UKIRT/software/"><img align=top height=64
-src="/JACpublic/JAC/templates/usglogo.gif" alt="USG |"></a>
-<a href="/cgi-bin/worf.pl">WORF</a>
-</nobr>
-</div>
   <hr>
   <address>Last Modification Author: bradc<br>Brad Cavanagh (<a href="mailto:b.cavanagh\@jach.hawaii.edu">b.cavanagh\@jach.hawaii.edu</a>)</address>
 </html>
