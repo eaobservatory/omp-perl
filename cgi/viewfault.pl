@@ -30,5 +30,5 @@ my @domain = OMP::General->determine_host;
 if ($domain[1] and $domain[1] !~ /\./) {
   $cgi->write_page_fault( \&view_fault_content, \&view_fault_output);
 } else {
-  $cgi->write_page_fault_auth( \&query_fault_content, \&query_fault_output);
+  $cgi->write_page_fault_auth( \&view_fault_content, \&view_fault_output);
 }
