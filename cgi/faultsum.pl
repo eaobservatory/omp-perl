@@ -28,5 +28,10 @@ $cgi->theme($theme);
 
 $cgi->html_title("Fault Summary");
 
-$cgi->write_page_noauth( \&fault_summary_form, \&fault_summary_content);
-
+# If the user is outside the JAC network write the page with
+# authentication
+if ($domain[1] and $domain[1] !~ /\./) {
+  $cgi->write_page_fault( \&fault_summary_form, \&fault_summary_content);
+} else {
+  $cgi->write_page_fault_auth( \&fault_summary_form, \&fault_summary_content);
+}
