@@ -1984,7 +1984,8 @@ sub night_report {
       print "<a href='#wvm'>View WVM graph</a><br>";
     }
 
-    $nr->ashtml( worfstyle => 'staff' );
+    $nr->ashtml( worfstyle => 'staff',
+                 commentstyle => 'staff', );
 
     # Display tau plot
     ($plot_html) and print "<p>$plot_html</p>";
