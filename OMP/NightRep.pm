@@ -603,7 +603,9 @@ Project Time Summary
   my %text = ( WEATHER => "Time lost to weather:",
 	       OTHER   =>  "Other time:",
 	       EXTENDED => "Extended Time:",
+	       CAL      => "Unallocated calibrations:",
 	     );
+
   for my $proj (qw/ WEATHER OTHER EXTENDED /) {
     my $time = 0.0;
     if (exists $acct{$tel.$proj}) {
@@ -728,14 +730,14 @@ sub ashtml {
 
   print "<table class='sum_table' cellspacing='0' width='600'>";
   print "<tr class='sum_table_head'>";
-  print "<td colspan='2'><strong class='small_title'>Project Time Summary</strong></td>";
+  print "<td colspan='3'><strong class='small_title'>Project Time Summary</strong></td>";
 
   # Time lost to faults
   my $faultloss = $self->timelost->hours;
 
   print "<tr class='sum_other'>";
   print "<td>Time lost to faults</td>";
-  print "<td>" . sprintf($format, $faultloss) . " <a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+  print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
 
   $total += $faultloss;
 
@@ -744,8 +746,10 @@ sub ashtml {
 	      WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
 	      EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
 	      OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
+	      CAL => "<tr class='proj_time_sum_weather_row'><td>Unallocated Calibrations</td>",
 	     );
-  for my $proj (qw/WEATHER OTHER EXTENDED/) {
+
+  for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
     my $time = 0.0;
     my $pending;
     if (exists $acct{$tel.$proj}) {
@@ -755,44 +759,85 @@ sub ashtml {
       }
       $total += $time unless $proj eq 'EXTENDED';
     }
-    print "$text{$proj}<td>" . sprintf($format, $time);
+    print "$text{$proj}<td colspan=2>" . sprintf($format, $time);
     if ($pending) {
       print " [unconfirmed]";
     }
     print "</td>";
   }
 
+  # Sort project accounting by country
+  my %acct_by_country;
+  for my $proj (keys %acct) {
+     next if $proj =~ /^$tel/;
+
+    # No determine_country method exists, so we'll get project
+    # details instead
+    my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
+     $acct_by_country{$details->country}{$proj} = $acct{$proj};
+#    push(@{$acct_by_country{$details->country}}, {$acct{$proj});
+  }
+
   # Project Accounting
   my $bgcolor = "a";
-  for my $proj (keys %acct) {
-    next if $proj =~ /^$tel/;
+  for my $country (sort keys %acct_by_country) {
 
-    $total += $acct{$proj}->{total}->hours;
-
-    my $pending;
-    if  ($acct{$proj}->{pending}) {
-      $total_pending += $acct{$proj}->{pending}->hours;
-      $pending = $acct{$proj}->{pending}->hours;
+    # Get country total timespent
+    my $country_total;
+    for (keys %{$acct_by_country{$country}}) {
+      $country_total += $acct_by_country{$country}{$_}->{total}->hours
     }
 
-    print "<tr class='row_$bgcolor'>";
-    print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
-    printf($format, $acct{$proj}->{total}->hours);
-    print " [unconfirmed]" if ($pending);
-    print "</td>";
+    my $rowcount = 0;
+    #my $totalrows = scalar(%{$acct_by_country{$country}});
 
-    # Alternate background color
-    ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+    for my $proj (sort keys %{$acct_by_country{$country}}) {
+      $rowcount++;
+
+      my $account = $acct_by_country{$country}{$proj};
+      $total += $account->{total}->hours;
+
+      my $pending;
+      if  ($account->{pending}) {
+	$total_pending += $account->{pending}->hours;
+	$pending = $account->{pending}->hours;
+      }
+
+      print "<tr class='row_$bgcolor'>";
+      print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
+      printf($format, $account->{total}->hours);
+      print " [unconfirmed]" if ($pending);
+      print "</td>";
+      if ($self->delta_day != 1) {
+	if ($rowcount == 1) {
+	  print "<td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
+	} else {
+	  print "<td class=country_$country></td>";
+	}
+      } else {
+	print "<td></td>";
+      }
+
+      # Alternate background color
+      ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+    }
   }
 
   print "<tr class='row_$bgcolor'>";
-  print "<td class='sum_other'>Total</td><td class='sum_other'>". sprintf($format,$total);
+  print "<td class='sum_other'>Total</td><td colspan=2 class='sum_other'>". sprintf($format,$total);
 
   # Print total unconfirmed if any
   print " [". sprintf($format, $total_pending) . " of which is unconfirmed]"
     if ($total_pending > 0);
 
   print "</td>";
+
+  # Get clear time
+  my $cleartime = $total - $acct{$tel.'WEATHER'}->{total}->hours;
+
+  print "<tr class='proj_time_sum_weather_row'>";
+  print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
+
 
   print "</table>";
   print "<p>";
