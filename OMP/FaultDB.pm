@@ -716,9 +716,10 @@ sub _mail_fault {
 
   my $system = $fault->systemText;
   my $type = $fault->typeText;
+  my $category = $fault->category;
 
   # The email subject
-  my $subject = "$system/$type - " . $fault->subject . " [$faultid]";
+  my $subject = "[$faultid] $system/$type - " . $fault->subject;
 
   # Create a list of users to Cc (but not if they authored the latest response)
   my %cc = map {$_->author->userid, $_->author}
