@@ -589,6 +589,16 @@ sub RaiseComment {
   $contentObs->insert( 'end', $nightlog{'_STRING'} );
   $contentObs->configure( -state => 'disabled' );
 
+  # Get a comment for this observation and user (if one exists)
+  # and pre-fill the entry box.
+  foreach my $comment ( $obs->comments ) {
+    if($comment->author->userid eq $user->userid) {
+      $scrolledComment->delete( '0.0', 'end' );
+      $scrolledComment->insert( 'end', $comment->text );
+      last;
+    }
+  }
+
 }
 
 sub options {
