@@ -29,7 +29,7 @@ use OMP::SciProg;
 use OMP::MSBDB;
 use OMP::General;
 use OMP::Error qw/ :try /;
-use SrcCatalog::JCMT;
+use Astro::Catalog;
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -295,7 +295,7 @@ The catalogue is supplied as a text string including new lines.
 sub SpInsertCat {
   my $class = shift;
   my $xml = shift;
-  my $cat = shift;
+  my $catstr = shift;
 
   OMP::General->log_message( "SpInsertCat: processing catalog");
 
@@ -310,8 +310,9 @@ sub SpInsertCat {
     OMP::General->log_message("SpInsertCat: ProjectID: $proj");
 
     # Extract target information from catalogue
-    my $cat = new SrcCatalog::JCMT( $cat );
-    my @coords = @{$cat->current};
+    my $cat = new Astro::Catalog(Format => 'JCMT',
+				 Data => $catstr );
+    my @coords = map { $_->coords } $cat->allstars;
 
     # Clone the template MSBs
     @info = $sp->cloneMSBs( @coords );

@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 =head1 NAME
 
@@ -54,7 +54,8 @@ use strict;
 
 use Getopt::Long;
 use Pod::Usage;
-use SrcCatalog::JCMT;
+use Astro::Catalog;
+use Astro::Catalog::Star;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -108,10 +109,12 @@ for (@coords) {
 }
 
 # Create a catalog object
-my $cat = new SrcCatalog::JCMT( \@coords );
+my @stars = map { new Astro::Catalog::Star(Coords=>$_) } @coords;
+my $cat = new Astro::Catalog(Stars => \@stars);
+$cat->origin("OMP sp2cat");
 
 # And write it to stdout
-$cat->writeCatalog( \*STDOUT );
+$cat->write_catalog( File => \*STDOUT, Format => 'JCMT' );
 
 =back
 

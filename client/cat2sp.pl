@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 =head1 NAME
 
@@ -108,9 +108,8 @@ use lib "$FindBin::RealBin/..";
 # This code will be much much more complicated if we have to do it
 # without Astro::Coords and without XML::LibXML [aka OMP::SciProg]
 # For now we assume the script is being run locally so we can guarantee
-# availability. With the next release of starlink at least Astro::SLA
-# will be widely available so that we can use SrcCatalog::JCMT
-use SrcCatalog::JCMT;
+# availability.
+use Astro::Catalog;
 use OMP::SciProg;
 
 # Options
@@ -146,9 +145,9 @@ my $sp = new OMP::SciProg( FILE => $template )
 # If we do not want this dependency we will need to do more tweaking
 # of the XML since GA and RB require changes to the telescope XML
 # that are not currently in place.
-my $cat = new SrcCatalog::JCMT( $coords );
-my @sources = @{$cat->current};
-
+my $cat = new Astro::Catalog(Format => 'JCMT',
+			     File => $coords );
+my @sources = map { $_->coords } $cat->allstars;
 
 # Now clone the msbs
 my @info = $sp->cloneMSBs( @sources );
