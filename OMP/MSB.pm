@@ -2182,10 +2182,11 @@ sub SpIterFolder {
       # if we have not already had a science target. If the
       # switch is set to false then this is also a science target
       if ($auto) {
-	$summary{autoTarget} = $auto
+	$summary{autoTarget} = 1
 	  unless $summary{scitarget};
       } else {
 	$summary{scitarget} = 1;
+	$summary{autoTarget} = 0;
       }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
@@ -2209,10 +2210,11 @@ sub SpIterFolder {
       # if we have not already had a science target. If the
       # switch is set to false then this is also a science target
       if ($auto) {
-	$summary{autoTarget} = $auto
+	$summary{autoTarget} = 1
 	  unless $summary{scitarget};
       } else {
 	$summary{scitarget} = 1;
+	$summary{autoTarget} = 0;
       }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
