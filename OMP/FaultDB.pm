@@ -325,7 +325,7 @@ sub _add_new_response {
   # Create UserDB object for user determination
   my $udb = new OMP::UserDB( DB => $self->db );
   $udb->verifyUser($author->userid)
-    and throw OMP::Error::Authentication
+    or throw OMP::Error::Authentication("Must supply a valid user id for the fault system [".$author->userid." invalid]");
 
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
