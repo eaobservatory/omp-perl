@@ -21,7 +21,11 @@ For example, date parsing is required in the MSB class and in the query class.
 
 =cut
 
+use 5.006;
+use strict;
+use warnings;
 use Carp;
+use OMP::Range;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -220,12 +224,21 @@ The band is determined from the supplied details. Recognized
 keys are:
 
   TAU       - the current CSO tau
+  TAURANGE  - OMP::Range object containing a tau range
   TELESCOPE - name of the telescope
 
-Currently TAU is only used if TELESCOPE=JCMT. In all other cases
-(and if TELESCOPE is not supplied) the band returned is 0.
-If TELESCOPE=JCMT the TAU must be present. An exception is thrown
-if TAU is not present in that case.
+Currently TAU or TAURANGE are only used if TELESCOPE=JCMT. In all
+other cases (and if TELESCOPE is not supplied) the band returned is 0.
+If TELESCOPE=JCMT either TAU or TAURANGE must be present. An exception
+is thrown if neither TAU nor TAURANGE are present.
+
+From a single tau value it is not possible to distinguish a split band
+(e.g. "2*") from a "normal" band (e.g. "2"). In these cases the normal
+band is always returned.
+
+If a tau range is supplied, this method will return an array of all
+bands that present in that range (including partial bands). In this
+case starred bands will be recognized correctly.
 
 =cut
 
@@ -242,6 +255,8 @@ sub determine_band {
       throw OMP::Error::FatalError("CSO TAU supplied but not defined. Unable to determine band")
 	unless defined $cso;
 
+      # do not use the OMP::Range objects here (yet KLUGE) because
+      # OMP::Range can not yet do >= with the contains method
       if ($cso >= 0 && $cso <= 0.05) {
 	$band = 1;
       } elsif ($cso > 0.05 && $cso <= 0.08) {
@@ -256,6 +271,10 @@ sub determine_band {
 	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
       }
 
+    } elsif (exists $details{TAURANGE}) {
+
+      croak "Sorry. Not yet supported. Please write\n";
+
     } else {
       throw OMP::Error::FatalError("Unable to determine band for JCMT without TAU");
     }
@@ -267,6 +286,64 @@ sub determine_band {
   }
 
   return $band;
+}
+
+=item B<get_band_range>
+
+Given a band name, return the OMP::Range object that defines the band.
+
+  $range = OMP::General->get_band_range($telescope, @bands);
+
+If multiple bands are supplied the range will include the extreme values.
+(BUG: no check is made to determine whether the bands are contiguous)
+
+Only defined for JCMT. Returns an unbounded range (lowe limit zero) for
+any other telescope.
+
+Returns undef if the band is not known.
+
+=cut
+
+{
+  # Specify the bands
+  my %bands = (
+	       0   => new OMP::Range( Min => 0 ),
+	       1   => new OMP::Range( Min => 0,    Max => 0.05),
+	       2   => new OMP::Range( Min => 0.05, Max => 0.08),
+	       3   => new OMP::Range( Min => 0.08, Max => 0.12),
+	       4   => new OMP::Range( Min => 0.12, Max => 0.20),
+	       5   => new OMP::Range( Min => 0.20 ),
+	       '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
+	       '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
+	      );
+
+  sub get_band_range {
+    my $class = shift;
+    my $tel = shift;
+    my @bands = @_;
+
+    if ($tel eq 'JCMT') {
+
+      my ($min, $max) = (50,-50);
+      for my $band (@bands) {
+	if (exists $bands{$band}) {
+	  my ($bmin, $bmax) = $bands{$band}->minmax;
+	  $min = $bmin if $bmin < $min;
+	  $max = $bmax if $bmax > $max;
+	} else {
+	  return undef;
+	}
+
+      }
+
+      return new OMP::Range( Min => $min, Max => $max );
+
+
+    } else {
+      return $bands{"0"};
+    }
+
+  }
 }
 
 =back
@@ -313,6 +390,7 @@ sub determine_semester {
   # Need to put the month in the correct
   # semester. Note that 199?0201 is in the
   # previous semester, same for 199?0801
+  my $sem;
   if ($mmdd > 201 && $mmdd < 802) {
     $sem = "${yy}a";
   } elsif ($mmdd < 202) {
