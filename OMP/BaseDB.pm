@@ -29,11 +29,9 @@ use Carp;
 # OMP Dependencies
 use OMP::Error;
 use OMP::Constants qw/ :fb /;
+use OMP::General;
 
 use Net::SMTP;
-
-use Net::Domain qw/ hostfqdn /;
-use Net::hostent qw/ gethost /;
 
 =head1 METHODS
 
@@ -384,7 +382,7 @@ sub _notify_feedback_system {
 
   # If the author, program or sourceinfo fields are empty supply them
   # ourselves.
-  my ($user, $addr, $email) = $self->_determine_host;
+  my ($user, $addr, $email) = OMP::General->determine_host;
   $comment{author} = $email unless exists $comment{author};
   $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
   $comment{program} = $0 unless exists $comment{program};
@@ -517,57 +515,6 @@ sub _verify_administrator_password {
 
   return;
 }
-
-=item B<_determine_host>
-
-Determine the host and user name of the person either running this task. This
-is either determined by using the CGI environment variables (REMOTE_ADDR and
-REMOTE_USER) or, if they are not set, the current host running the program
-and the associated user name.
-
-  ($user, $host, $email) = $db->_determine_host;
-
-The user name is not always available (especially if running from CGI).
-The email address is simply determined as C<$user@$host> and is identical
-to the host name if no user name is determined.
-
-=cut
-
-sub _determine_host {
-  my $self = shift;
-
-  # Try and work out who is making the request
-  my ($user, $addr);
-
-  if (exists $ENV{REMOTE_ADDR}) {
-    # We are being called from a CGI context
-    my $ip = $ENV{REMOTE_ADDR};
-
-    # Try to translate number to name
-    $addr = gethost( $ip );
-    $addr = (defined $addr and ref $addr ? $addr->name : '' );
-
-    # User name (only set if they have logged in)
-    $user = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} : '' );
-
-  } else {
-    # localhost
-    $addr = hostfqdn;
-    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
-
-  }
-
-  # Build a pseudo email address
-  my $email = '';
-  $email = $addr if $addr;
-  $email = $user . "@" . $email if $user;
-
-  # Replce space with _
-  $email =~ s/\s+/_/g;
-
-  return ($user, $addr, $email);
-}
-
 
 =back
 

@@ -21,6 +21,8 @@ For example, date parsing is required in the MSB class and in the query class.
 =cut
 
 use Time::Piece ':override';
+use Net::Domain qw/ hostfqdn /;
+use Net::hostent qw/ gethost /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -106,6 +108,58 @@ sub today {
   return $time->strftime("%Y-%m-%d");
 
 }
+
+=item B<_determine_host>
+
+Determine the host and user name of the person either running this
+task. This is either determined by using the CGI environment variables
+(REMOTE_ADDR and REMOTE_USER) or, if they are not set, the current
+host running the program and the associated user name.
+
+  ($user, $host, $email) = OMP::General->determine_host;
+
+The user name is not always available (especially if running from
+CGI).  The email address is simply determined as C<$user@$host> and is
+identical to the host name if no user name is determined.
+
+=cut
+
+sub determine_host {
+  my $class = shift;
+
+  # Try and work out who is making the request
+  my ($user, $addr);
+
+  if (exists $ENV{REMOTE_ADDR}) {
+    # We are being called from a CGI context
+    my $ip = $ENV{REMOTE_ADDR};
+
+    # Try to translate number to name
+    $addr = gethost( $ip );
+    $addr = (defined $addr and ref $addr ? $addr->name : '' );
+
+    # User name (only set if they have logged in)
+    $user = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} : '' );
+
+  } else {
+    # localhost
+    $addr = hostfqdn;
+    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
+
+  }
+
+  # Build a pseudo email address
+  my $email = '';
+  $email = $addr if $addr;
+  $email = $user . "@" . $email if $user;
+
+  # Replce space with _
+  $email =~ s/\s+/_/g;
+
+  return ($user, $addr, $email);
+}
+
+
 
 =back
 

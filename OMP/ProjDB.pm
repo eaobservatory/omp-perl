@@ -628,7 +628,7 @@ sub _mail_password {
       unless defined $password;
 
     # Try and work out who is making the request
-    my ($user, $ip, $addr) = $self->_determine_host;
+    my ($user, $ip, $addr) = OMP::General->determine_host;
 
     # List of recipients of mail
     my @addr = $proj->investigators;
