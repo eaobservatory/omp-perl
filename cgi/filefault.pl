@@ -1,4 +1,4 @@
-#!/local/perl-5.6/blead/bin/perl5.7.3 -XT
+#!/local/perl-5.6/bin/perl -XT
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
@@ -9,6 +9,7 @@ use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIFault;
+use OMP::General;
 use strict;
 use warnings;
 
@@ -22,4 +23,13 @@ my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
 $cgi->theme($theme);
 
 $cgi->html_title("OMP Fault System: File Fault");
-$cgi->write_page_fault( \&file_fault, \&file_fault_output);
+
+my @domain = OMP::General->determine_host;
+
+# If the user is outside the JAC network write the page with
+# authentication
+if ($domain[1] and $domain[1] !~ /\./) {
+  $cgi->write_page_fault( \&file_fault, \&file_fault_output);
+} else {
+  $cgi->write_page_fault_auth( \&file_fault, \&file_fault_output);
+}
