@@ -1476,7 +1476,7 @@ sub project_home {
 
     my $pkg_url = OMP::Config->getData('pkgdata-url');
 
-    for (%nights) {
+    for (sort keys %nights) {
 
       # Make a link to the obslog page
       my $ymd = $_;
