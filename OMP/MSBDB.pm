@@ -1661,21 +1661,37 @@ sub _run_query {
 	if ($obs->{coordstype} eq 'CAL') {
 	  $obs->{coords} = new Astro::Coords();
 	} else {
-	  $obs->{coords} = new Astro::Coords(ra => $obs->{ra2000},
-					     dec => $obs->{dec2000},
-					     type => 'J2000',
-					     planet => $obs->{target},
-					     elements => {
-							  EPOCH => $obs->{el1},
-							  ORBINC => $obs->{el2},
-							  ANODE => $obs->{el3},
-							  PERIH => $obs->{el4},
-							  AORQ => $obs->{el5},
-							  E => $obs->{el6},
-							  AORL => $obs->{el7},
-							  DM => $obs->{el8},
-							 },
-					    );
+	  my %coords;
+	  my $coordstype = $obs->{coordstype};
+	  if ($coordstype eq 'RADEC') {
+	    %coords = (
+		       ra => $obs->{ra2000},
+		       dec => $obs->{dec2000},
+		       type => 'J2000',
+		      );
+	  } elsif ($coordstype eq 'PLANET') {
+	    %coords = ( planet => $obs->{target});
+	  } elsif ($coordstype eq 'ELEMENTS') {
+	    %coords = (
+		       elements => {
+				    EPOCH => $obs->{el1},
+				    ORBINC => $obs->{el2},
+				    ANODE => $obs->{el3},
+				    PERIH => $obs->{el4},
+				    AORQ => $obs->{el5},
+				    E => $obs->{el6},
+				    AORL => $obs->{el7},
+				    DM => $obs->{el8},
+				   },
+		      );
+	  } elsif ($coordstype eq 'FIXED') {
+	    %coords = ( az => $obs->{ra2000},
+			dec => $obs->{dec2000});
+	  }
+	  $coords{name} = $obs->{target};
+
+	  # and create the object
+	  $obs->{coords} = new Astro::Coords(%coords);
 	}
 
 	# Get the coordinate object.
