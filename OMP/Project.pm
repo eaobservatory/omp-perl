@@ -1160,6 +1160,48 @@ sub verify_password {
 
 }
 
+=item B<conditionstxt>
+
+A short textual summary of the site quality constraints associated
+with this project.
+
+=cut
+
+sub conditionstxt {
+  my $self = shift;
+
+  my $cloud = $self->cloudtxt;
+  $cloud = '' if $cloud eq 'any';
+  $cloud = substr($cloud,0,4) if $cloud;
+
+  # Seeing. Need to fix lower end for prettification
+  my $seeing = $self->seerange();
+  my $seetxt = '';
+  if ($seeing) {
+    my $min = $seeing->min();
+    $seeing->min(undef) if defined $min && $min == 0;
+    # only put text if we have a range
+    unless (!$seeing->min && !$seeing->max) {
+      $seetxt = "s:$seeing";
+    }
+  }
+
+  my $taurange = $self->taurange();
+  my $tautxt = '';
+  if ($taurange) {
+    my $min = $taurange->min;
+    $taurange->min(undef) if defined $min && $min == 0;
+    unless (!$taurange->min && !$taurange->max) {
+      # only create if we have a range defined
+      $tautxt = "t:$taurange";
+    }
+  }
+
+  my $txt = join(",", grep { $_} ($tautxt, $seetxt, $cloud) );
+
+  return ( $txt ? $txt : 'any' );
+}
+
 =item B<cloudtxt>
 
 The textual description of the cloud constraints. One of:
