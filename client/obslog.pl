@@ -723,12 +723,18 @@ sub RaiseComment {
                                              )->pack( -side => 'left',
                                                       -anchor => 'n',
                                                     );
-    my $radioProject = $entryFrame->Radiobutton( -text => 'project',
-                                                 -value => OMP__TIMEGAP_NEXT_PROJECT,
-                                                 -variable => \$status,
-                                               )->pack( -side => 'left',
-                                                        -anchor => 'n',
-                                                      );
+    my $radioLastProject = $entryFrame->Radiobutton( -text => 'last proj.',
+                                                     -value => OMP__TIMEGAP_PREV_PROJECT,
+                                                     -variable => \$status,
+                                                   )->pack( -side => 'left',
+                                                            -anchor => 'n',
+                                                          );
+    my $radioNextProject = $entryFrame->Radiobutton( -text => 'next proj.',
+                                                     -value => OMP__TIMEGAP_NEXT_PROJECT,
+                                                     -variable => \$status,
+                                                   )->pack( -side => 'left',
+                                                            -anchor => 'n',
+                                                          );
     my $radioUnknown = $entryFrame->Radiobutton( -text => 'unknown',
                                                  -value => OMP__TIMEGAP_UNKNOWN,
                                                  -variable => \$status,
