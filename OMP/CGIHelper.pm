@@ -1969,7 +1969,7 @@ sub night_report {
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if ($utdate !~ /\d{4}-\d{2}-\d{2}/ or $utdate_end !~ /\d{4}-\d{2}-\d{2}/);
+      if (! $utdate or ! $utdate_end);
 
     # Derive delta from start and end UT dates
     $delta = $utdate_end - $utdate;
@@ -1981,7 +1981,7 @@ sub night_report {
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if ($utdate !~ /\d{4}-\d{2}-\d{2}/);
+      if (! $utdate);
 
   } else {
     # No form params.  Get params from URL
@@ -2002,7 +2002,7 @@ sub night_report {
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
-      if ($utdate !~ /\d{4}-\d{2}-\d{2}/);
+      if (! $utdate);
 
     } else {
       # No UT date in URL.  Use current date.

@@ -1312,7 +1312,7 @@ sub file_fault_form {
 		      -size=>'60',
 		      -maxlength=>'128',
 		      -default=>$defaults{subject},);
-  print "</td><tr><td colspan=2>";
+  print "</td><tr><td colspan=2 align=right>";
 
   print $q->textarea(-name=>'message',
 		     -rows=>20,
