@@ -173,6 +173,27 @@ sub telescope {
   return $telescope;
 }
 
+=item B<instrument>
+
+Instrument to use for this query. Returns undef if no instrument
+is supplied.
+
+=cut
+
+sub instrument {
+  my $self = shift;
+
+  # Get the hash form of the query
+  my $href = $self->query_hash;
+
+  # check for telescope
+  my $instrument;
+  if ( exists $href->{instrument} ) {
+    $instrument = $href->{instrument}->[0];
+  }
+
+  return $instrument;
+}
 
 =item B<_tables>
 
