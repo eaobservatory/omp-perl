@@ -181,6 +181,7 @@ sub _sidebar_logout {
   my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
 		      "<a href='fbmsb.pl'>Program details</a>",
 		      "<a href='fbcomment.pl'>Add comment</a>",
+		      "<a href='msbhist.pl'>MSB History</a>",
 		      "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
