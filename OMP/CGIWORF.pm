@@ -106,7 +106,14 @@ sub thumbnails_page {
   if( exists($qv->{'telescope'}) && defined( $qv->{'telescope'} ) ) {
     $telescope = $qv->{'telescope'};
   } else {
-    throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
+    my $hostname = hostfqdn;
+    if($hostname =~ /ulili/i) {
+      $telescope = "JCMT";
+    } elsif ($hostname =~ /mauiola/i) {
+      $telescope = "UKIRT";
+    } else {
+      throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
+    }
   }
 
   # Grab the UT date.
@@ -122,12 +129,18 @@ sub thumbnails_page {
   my @instruments = OMP::Config->getData( 'instruments',
                                           telescope => $telescope );
 
+  # Print a header table.
+  print "<table class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\">";
+  print "<td><strong class=\"small_title\">WORF Thumbnails for $ut</strong></td></tr></table>\n";
+
   # For each instrument, we're going to get the directory listing for
   # the appropriate night. If the instrument name begins with "rx", skip
   # it (since all heterodyne instruments will be gobbled up by the
   # "heterodyne" instrument, and they all write to the same directory).
 
   foreach my $instrument ( @instruments ) {
+
+    next if $instrument =~ /^rx/i;
 
     # Get the directory.
     my $directory = OMP::Config->getData('reducedgroupdir',
@@ -151,22 +164,19 @@ sub thumbnails_page {
                                         telescope => $telescope
                                        );
     my $groupregex = join ',', @grpregex;
-    @grpregex = split /\|\|\|/, $groupregex;
-    my @matchfiles;
-    foreach my $regex ( @grpregex ) {
-      my @tmp = grep /$regex/, @files;
-      push @matchfiles, @tmp;
-    }
+    my @matchfiles = grep /$groupregex/, @files;
 
     # Sort them just in case they're not sorted.
-    @matchfiles = sort @matchfiles;
+    @matchfiles = sort obsnumsort @matchfiles;
 
     # Now we have a list of all the group files for the telescope
     # that match the group format.
 
-    # Start the table.
-    print "<table border=\"0\" cellpadding=\"5\">\n";
+    print "<table class=\"sum_table\" border=\"0\">\n";
+    my $rowclass="row_b";
+    print "<tr class=\"$rowclass\">";
 
+    my $curgrp;
     # Create Info::Obs objects for each file.
     FILELOOP: foreach my $file ( @matchfiles ) {
 
@@ -212,7 +222,16 @@ sub thumbnails_page {
       # the thumbnail along with a link to the fullsized WORF page
       # for that observation.
       if( $file =~ /\d\.sdf$/ ) {
-        print "<tr><td>";
+        if( defined( $curgrp ) ) {
+          if( $obs->runnr != $curgrp ) {
+            $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
+            print "</tr><tr class=\"$rowclass\">";
+            $curgrp = $obs->runnr;
+          }
+        } else {
+          $curgrp = $obs->runnr;
+        }
+        print "<td>";
         print "<a href=\"worf.pl?ut=$obsut&runnr=";
         print $obs->runnr . "&inst=" . $obs->instrument;
         print "&group=1\">";
@@ -223,14 +242,23 @@ sub thumbnails_page {
         print "&group=1";
         print "&size=thumb\"></a>";
         print "</td><td>";
-        print "Instrument: " . $obs->instrument . "<br>\n";
-        print "Group number: " . $obs->runnr . "<br>\n";
-        print "Suffix: none\n</td></tr>";
+        print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
+        print "Group&nbsp;number:&nbsp;" . $obs->runnr . "<br>\n";
+        print "Suffix:&nbsp;none\n</td>";
         next FILELOOP;
       } else {
         foreach my $suffix ( @grp_suffices ) {
           if( $file =~ /$suffix\.sdf$/ ) {
-            print "<tr><td>";
+            if( defined( $curgrp ) ) {
+              if( $obs->runnr != $curgrp ) {
+                $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
+                print "</tr>\n<tr class=\"$rowclass\">";
+                $curgrp = $obs->runnr;
+              }
+            } else {
+              $curgrp = $obs->runnr;
+            }
+            print "<td>";
             print "<a href=\"worf.pl?ut=$obsut&runnr=";
             print $obs->runnr . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
@@ -243,9 +271,9 @@ sub thumbnails_page {
             print "&size=thumb";
             print "&suffix=$suffix\"></a>";
             print "</td><td>";
-            print "Instrument: " . $obs->instrument . "<br>\n";
-            print "Group number: " . $obs->runnr . "<br>\n";
-            print "Suffix: " . $suffix . "\n</td></tr>";
+            print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
+            print "Group&nbsp;number:&nbsp;" . $obs->runnr . "<br>\n";
+            print "Suffix:&nbsp;" . $suffix . "\n</td>";
             next FILELOOP;
           }
         }
@@ -432,6 +460,26 @@ sub options_form {
   print $cgi->submit( -name => 'Submit' );
 
   print $cgi->endform;
+
+}
+
+sub obsnumsort {
+
+# Sorting routine to sort files by observation number, numerically instead of alphabetically
+# (so that 19 comes before 143)
+
+        $a =~ /_(\d+)(_)?/;
+        my $a_obsnum = $1;
+        my $a_nosuffix = $2;
+        $b =~ /_(\d+)(_)?/;
+        my $b_obsnum = $1;
+        my $b_nosuffix = $2;
+        if( $a_obsnum == $b_obsnum ) {
+          return 1 if defined $a_nosuffix;
+          return -1 if defined $b_nosuffix;
+          return 0;
+        }
+        $a_obsnum <=> $b_obsnum;
 
 }
 
