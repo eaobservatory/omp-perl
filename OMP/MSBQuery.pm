@@ -178,7 +178,7 @@ sub constraints {
 Returns an SQL representation of the MSB Query using the specified
 database table.
 
-  $sql = $query->sql( $msbtable, $obstable, $projtable );
+  $sql = $query->sql( $msbtable, $obstable, $projtable, $coitable );
 
 Returns undef if the query could not be formed.
 
@@ -249,22 +249,44 @@ sub sql {
   $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
     if $constraints{allocation};
 
-  # Now need to put this SQL into the template query
-  my $sql = "(SELECT
+
+  # It is more efficient if we only join the COI table
+  # if we are actually going to use it. Also if no coitable
+  # supplied raise an error
+  my $c_sql = '';
+  my $c_table = '';
+  if ($subsql =~ /\bC\.userid\b/ ) {
+
+    # Complain loudly
+    throw OMP::Error::FatalError( "Doing a query on COI table without defining the name of the coitable")
+      unless $coitable;
+
+    $c_table = ", $coitable C";
+    $c_sql = " AND P.projectid = C.projectid";
+
+  }
+
+  my $top_sql = "(SELECT
           M.msbid, M.obscount, COUNT(*) AS nobs
            INTO $tempcount
-           FROM $msbtable M,$obstable O, $projtable P, $coitable C
+           FROM $msbtable M,$obstable O, $projtable P $c_table
             WHERE M.msbid = O.msbid
-              AND P.projectid = M.projectid
-                AND P.projectid = C.projectid
-               $constraint_sql
-                $subsql
+              AND P.projectid = M.projectid $c_sql";
+
+  # The end of the query is generic
+  my $bottom_sql = "
               GROUP BY M.msbid)
                (SELECT * FROM $msbtable M2, $tempcount T
                  WHERE M2.msbid = T.msbid
                    AND M2.obscount = T.nobs)
 
                 DROP TABLE $tempcount";
+
+  # Now need to put this SQL into the template query
+  my $sql = "$top_sql
+              $constraint_sql
+                $subsql
+                  $bottom_sql";
 
   #print "$sql\n";
 
