@@ -882,7 +882,7 @@ Returns keys:
 
   instrument
   target
-  wavelength
+  waveband
   coordstype
   pol
   type
