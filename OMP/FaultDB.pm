@@ -349,6 +349,8 @@ Queries must be supplied as C<OMP::FaultQuery> objects.
 
   @faults = $db->_query_faultdb( $query );
 
+Faults are returned sorted by fault ID.
+
 =cut
 
 sub _query_faultdb {
@@ -391,8 +393,13 @@ sub _query_faultdb {
     }
   }
 
+  # Sort the keys by faultid
+  # [more efficient than sorting the objects by faultid]
+  my @faults = sort { $a <=> $b } keys %faults;
+
   # Now return the values in the hash
-  return values %faults;
+  # as a hash slice
+  return @faults{@faults};
 }
 
 =back
