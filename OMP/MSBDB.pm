@@ -54,7 +54,7 @@ our $SCITABLE = "ompsciprog";
 our $DEFAULT_RESULT_COUNT = 10;
 
 # Debug messages
-our $DEBUG = 0;
+our $DEBUG = 1;
 
 =head1 METHODS
 
@@ -589,12 +589,27 @@ sub _db_store_sciprog {
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  print "Entering _db_store_sciprog\n" if $DEBUG;
+  print "Timestamp: ", $sp->timestamp,"\n" if $DEBUG;
+  print "Project:   ", $proj,"\n" if $DEBUG;
 
-  $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'$sp')", undef,
+  # Insert the timestamp and project ID
+  $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'')", undef,
 	  $proj, $sp->timestamp) or
-	    throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
+	    throw OMP::Error::SpStoreFail("Error inserting timestamp and project ID into science program database: ". $dbh->errstr);
+
+  # Now insert the text field using writetext
+  # Do it this way because a TEXT field will only (seemingly) take
+  # a science program of size 65536 bytes using an INSERT before it starts
+  # giving really strange syntax error warnings.
+  $dbh->do("declare \@val varbinary(16) 
+select \@val = textptr(sciprog) from ompsciprog where projectid = \"$proj\" 
+writetext ompsciprog.sciprog \@val '$sp'")
+    or throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
+
 
   # Now fetch it back to check for truncation issues
+  # This adds quite a bit of overhead. XXXX remove before release
   my $xml = $self->_db_fetch_sciprog();
   if (length($xml) ne length("$sp")) {
     my $orilen = length("$sp");
@@ -702,6 +717,7 @@ summaries into the observation table.
 sub _insert_row {
   my $self = shift;
   my %data = @_;
+  print "Entering _insert_row\n" if $DEBUG;
 
   # Get the next index (we do this ourselves)
   my $index = $self->_get_next_index();
@@ -716,6 +732,9 @@ sub _insert_row {
 
   # Throw an exception if we are missing observations
   throw OMP::Error::MSBMissingObserve("1 or more of the MSBs is missing an Observe\n") if $data{obscount} == 0;
+
+  use Data::Dumper;
+  print Dumper( \%data );
 
   # Store the data
   my $proj = $self->projectid;
@@ -755,9 +774,10 @@ sub _insert_row {
 
     print "Inserting row: ",Dumper($obs) if $DEBUG;
 
-    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	     , undef,
-	     $obsid, $index, $proj, $obs->{instrument}, $obs->{wavelength},
+	     $obsid, $index, $proj, $obs->{instrument}, 
+	     $obs->{type}, $obs->{pol}, $obs->{wavelength},
 	     $obs->{coordstype}, $obs->{target},
 	     @coords[1..10]
 	    )
@@ -913,6 +933,28 @@ sub _run_query {
       $msbs{$msb} = [ $row ];
     }
     delete $row->{msbid}; # not needed
+
+    # Create the coordinate and waveband objects
+    $row->{waveband} = new Astro::WaveBand(Instrument => $row->{instrument},
+					   Wavelength => $row->{wavelength});
+
+    # Let Astro::Coords work out what we mean by all this :-)
+    $row->{coords} = new Astro::Coords(ra => $row->{ra2000},
+				       dec => $row->{dec2000},
+				       type => 'J2000',
+				       planet => $row->{target},
+				       elements => {
+						    EPOCH => $row->{el1},
+						    ORBINC => $row->{el2},
+						    ANODE => $row->{el3},
+						    PERIH => $row->{el4},
+						    AORQ => $row->{el5},
+						    E => $row->{el6},
+						    AORL => $row->{el7},
+						    DM => $row->{el8},
+						   },
+				      );
+
   }
 
   # And now attach it to the relevant MSB
