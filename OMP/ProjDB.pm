@@ -496,6 +496,27 @@ sub listProjects {
 
 }
 
+
+=item B<listSemesters>
+
+Retrieve all the semesters that have programs in the database.
+
+  @sem = $projdb->listSemesters()
+
+=cut
+
+sub listSemesters {
+  my $self = shift;
+
+  # Kluge. We should not be doing SQL at this level
+  # Note that current project table does not know which telescope
+  # it belongs to!
+  my $semref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT semester FROM $PROJTABLE" );
+  return sort map { $_->{semester} } @$semref
+
+}
+
+
 =item B<listSupport>
 
 Retrieve all the support scientists (as a list of C<OMP::User> objects)
