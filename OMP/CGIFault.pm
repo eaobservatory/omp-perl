@@ -322,7 +322,7 @@ sub query_fault_output {
   my %cookie = @_;
 
   my $title;
-  my $t = OMP::General->today(1);
+  my $t = gmtime;
   my %daterange;
   my $xml;
 
