@@ -358,7 +358,7 @@ sub project_window {
 }
 
 # Round to nearest 0.05
-# Accepts number, returns 
+# Accepts number, returns number with the decimal part rounded to 0.05
 
 sub _round_to_ohfive {
   my $num = shift;
@@ -535,7 +535,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
