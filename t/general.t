@@ -1,9 +1,10 @@
 
 # Test OMP::General
 
-use Test::More tests => 138;
+use Test::More tests => 149;
 
 use Time::Piece qw/ :override /;
+use Time::Seconds;
 
 require_ok('OMP::General');
 
@@ -90,10 +91,33 @@ is( $newdate->sec, $sec, "Check second");
 ok( ! $newdate->[Time::Piece::c_islocal], "Check we have utc date");
 
 
-print "# today()\n";
+print "# today() and yesterday\n";
 
 my $today = OMP::General->today;
 like( $today, qr/^\d\d\d\d-\d\d-\d\d$/, "Test that date is ISO format" );
+
+# And yesterday
+my $yesterday = OMP::General->yesterday;
+like( $yesterday, qr/^\d\d\d\d-\d\d-\d\d$/, "Test that date is ISO format" );
+
+# Now using objects
+$today = OMP::General->today(1);
+isa_ok( $today, "Time::Piece" );
+$yesterday = OMP::General->yesterday(1);
+isa_ok( $yesterday, "Time::Piece" );
+
+# Check that we have 0 hms
+is($today->hour,0,"Zero hours");
+is($today->min,0,"Zero minutes");
+is($today->sec,0,"Zero seconds");
+is($yesterday->hour,0,"Zero hours");
+is($yesterday->min,0,"Zero minutes");
+is($yesterday->sec,0,"Zero seconds");
+
+# And we have one day between them
+my $diff = $today - $yesterday;
+isa_ok($diff, "Time::Seconds");
+is($diff, ONE_DAY, "Check time difference");
 
 print "# Verification\n";
 

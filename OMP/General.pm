@@ -178,14 +178,26 @@ Return the UT date for today in C<YYYY-MM-DD> format.
 
   $today = OMP::General->today();
 
+If true, the optional argument will cause the routine to return
+a Time::Piece object (midnight on the specified date) rather than
+a string.
+
+  $obj = OMP::General->today( 1 );
+
 =cut
 
 sub today {
   my $class = shift;
+  my $useobj = shift;
   my $time = gmtime();
 
-  return $time->strftime("%Y-%m-%d");
+  my $string = $time->ymd;
 
+  if ($useobj) {
+    return $class->parse_date( $string );
+  } else {
+    return $string;
+  }
 }
 
 =item B<yesterday>
@@ -194,15 +206,35 @@ Return the UT date for yesterday in C<YYYY-MM-DD> format.
 
   $y = OMP::General->yesterday();
 
+If true, the optional argument will cause the routine to return
+a Time::Piece object (midnight on the specified date) rather than
+a string.
+
+  $obj = OMP::General->yesterday( 1 );
+
 =cut
 
 sub yesterday {
   my $class = shift;
-  my $time = gmtime();
+  my $useobj = shift;
 
+  # Get today as an object (probably more efficient to just use gmtime
+  # here rather than the today() method since we are not interested in
+  # hms anyway and using gmtime will result in one less parse
+  my $time = gmtime;
+
+  # Convert to yesterday
   $time -= ONE_DAY;
 
-  return $time->strftime("%Y-%m-%d");
+  # Convert to a string
+  my $string = $time->ymd;
+
+
+  if ($useobj) {
+    return $class->parse_date( $string );
+  } else {
+    return $string;
+  }
 
 }
 
