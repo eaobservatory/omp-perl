@@ -614,10 +614,6 @@ Constants associated with time gaps.
 
 Constants associated the logging system.
 
-=item :obs
-
-Observation status.
-
 =back
 
 =head1 USAGE

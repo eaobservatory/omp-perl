@@ -1103,8 +1103,6 @@ sub getSubmitted {
 
 =item B<getMSBCount>
 
-=item B<getMSBCount>
-
 Return the total number of MSBs, and the total number of active MSBs, for a
 given list of projects.
 
@@ -2607,6 +2605,8 @@ sub _get_msb_count {
 
   return %projectid;
 }
+
+=back
 
 =head1 SEE ALSO
 

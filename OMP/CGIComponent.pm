@@ -167,6 +167,8 @@ sub url_args {
   return $url;
 }
 
+=back
+
 =head1 AUTHOR
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,

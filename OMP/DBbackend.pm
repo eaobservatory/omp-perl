@@ -387,6 +387,8 @@ sub get_sql_typecast {
   }
 }
 
+=back
+
 =head2 Constructor
 
 =over 4

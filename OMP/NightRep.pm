@@ -1426,6 +1426,8 @@ sub mail_report {
 
 =head2 Internal Methods
 
+=over 4
+
 =item B<_get_date_xml>
 
 Return the date portion of an XML query.

@@ -488,32 +488,48 @@ Plots an image.
 The argument is a hash optionally containing the following key-value
 pairs:
 
-=over 4
+=over 8
 
-=item input_file - location of data file. If undefined, this method will
-use the file returned from the C<filename> method of the Obs object used
-in the contructor of the WORF object. If defined, this argument must include
+=item input_file
+
+location of data file. If undefined, this method will use the file
+returned from the C<filename> method of the Obs object used in the
+contructor of the WORF object. If defined, this argument must include
 the full path.
 
-=item output_file - location of output graphic. If undefined, this method
-will output the graphic to STDOUT.
+=item output_file
 
-=item xstart - Start pixel in x-dimension. If undefined, the default will
-be the first pixel in the array.
+location of output graphic. If undefined, this method will output the
+graphic to STDOUT.
 
-=item xend - End pixel in x-dimension. If undefined, the default will be
-the last pixel in the array.
+=item xstart
 
-=item ystart - Start pixel in y-dimension. If undefined, the default will
-be the first pixel in the array.
+Start pixel in x-dimension. If undefined, the default will be the
+first pixel in the array.
 
-=item yend - End pixel in y-dimension. If undefined, the default will be
-the last pixel in the array.
+=item xend
 
-=item autocut - Level to autocut the data to display. If undefined, the
-default will be 100. Allowable values are 100, 99, 98, 95, 80, 70, 50.
+End pixel in x-dimension. If undefined, the default will be the last
+pixel in the array.
 
-=item size - Size of graphic. If undefined, the default will be 'regular'.
+=item ystart
+
+Start pixel in y-dimension. If undefined, the default will be the
+first pixel in the array.
+
+=item yend
+
+End pixel in y-dimension. If undefined, the default will be the last
+pixel in the array.
+
+=item autocut
+
+Level to autocut the data to display. If undefined, the default will
+be 100. Allowable values are 100, 99, 98, 95, 80, 70, 50.
+
+=item size
+
+Size of graphic. If undefined, the default will be 'regular'.
 Allowable values are 'regular' or 'thumb'.
 
 =back
@@ -728,35 +744,53 @@ Plots a spectrum.
 The argument is a hash optionally containing the following key-value
 pairs:
 
-=over 4
+=over 8
 
-=item output_file - location of output graphic. If undefined, this method
-will output the graphic to STDOUT.
+=item output_file
 
-=item xstart - Start pixel in x-dimension. If undefined, the default will
-be the first pixel in the array.
+location of output graphic. If undefined, this method will output the
+graphic to STDOUT.
 
-=item xend - End pixel in x-dimension. If undefined, the default will be
-the last pixel in the array.
+=item xstart
 
-=item zmin - Start value in z-dimension (data). If undefined, the default will
-be the lowest data in the array.
+Start pixel in x-dimension. If undefined, the default will be the
+first pixel in the array.
 
-=item zmax - End pixel in z-dimension (data). If undefined, the default will be
+=item xend
+
+End pixel in x-dimension. If undefined, the default will be the last
+pixel in the array.
+
+=item zmin
+
+Start value in z-dimension (data). If undefined, the default will be
 the lowest data in the array.
 
-=item cut - Direction of spectrum for 2D images. If undefined, the default
-will be horizontal. Can be either vertical or horizontal.
+=item zmax
 
-=item rstart - Start row for spectrum extraction. If the data to be plotted
-are in a one-dimensional array, this value is ignored. If undefined, the
+End pixel in z-dimension (data). If undefined, the default will be the
+lowest data in the array.
+
+=item cut
+
+Direction of spectrum for 2D images. If undefined, the default will be
+horizontal. Can be either vertical or horizontal.
+
+=item rstart
+
+Start row for spectrum extraction. If the data to be plotted are in a
+one-dimensional array, this value is ignored. If undefined, the
 default will be the first row on the array.
 
-=item rend - End row for spectrum extraction. If the data to be plotted are
-in a one-dimensional array, this value is ignored. If undefined, the default
-will be the last row on the array.
+=item rend
 
-=item size - Size of graphic. If undefined, the default will be 'regular'.
+End row for spectrum extraction. If the data to be plotted are in a
+one-dimensional array, this value is ignored. If undefined, the
+default will be the last row on the array.
+
+=item size
+
+Size of graphic. If undefined, the default will be 'regular'.
 Allowable values are 'regular' or 'thumb'.
 
 =back
