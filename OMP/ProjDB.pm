@@ -34,6 +34,8 @@ use OMP::Project;
 use OMP::FeedbackDB;
 use OMP::ProjQuery;
 use OMP::Constants qw/ :fb /;
+use OMP::User;
+use OMP::UserDB;
 
 use Crypt::PassGen qw/passgen/;
 
@@ -393,13 +395,16 @@ sub projectDetails {
   my $self = shift;
   my $mode = lc(shift);
 
-  throw OMP::Error::Authentication("Incorrect password for project ".
-				  $self->projectid ."\n")
-    unless $self->verifyPassword;
-
   # First thing to do is to retrieve the table row
   # for this project
   my $project = $self->_get_project_row;
+
+  # Now that we have it we can verify the project password
+  # We dont use verifyPassword since that would involve an
+  # additional fetch from the database
+  throw OMP::Error::Authentication("Incorrect password for project ".
+				  $self->projectid ."\n")
+    unless $project->verify_password( $self->password );
 
   if (wantarray) {
     $mode ||= "xml";
@@ -485,21 +490,21 @@ sub _get_project_row {
   # Project
   my $projectid = $self->projectid;
 
-  # Go and do the database thing
-  my $sql = "SELECT * FROM $PROJTABLE WHERE projectid = '$projectid' ";
+  # Create the query
+  my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
+  my $query = new OMP::ProjQuery( XML => $xml );
 
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+  my @projects = $self->_get_projects( $query );
 
   # Throw an exception if we got no results
   throw OMP::Error::UnknownProject( "Unable to retrieve details for project $projectid" )
-    unless @$ref;
+    unless @projects;
 
-  # Create the project object
-  my $proj = new OMP::Project( %{$ref->[0]} );
-  throw OMP::Error::FatalError( "Unable to instantiate OMP::Project object")
-    unless defined $proj;
+  # Check that we only have one
+  throw OMP::Error::FatalError( "More than one project retrieved!")
+    unless @projects == 1;
 
-  return $proj;
+  return $projects[0];
 }
 
 
@@ -624,8 +629,48 @@ sub _get_projects {
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+  # For now this includes just the general information
+  # We now need to get the user information separately
+  # In future I might forumalate a query that gives
+  # you all the user information in one go.
+
+  # First create a UserDB object
+  my $udb = new OMP::UserDB( DB => $self->db );
+
+  # Loop over each project
+  my @projects;
+  for my $projhash (@$ref) {
+
+    # Remove the user id from PI field
+    my $piuserid = $projhash->{pi};
+    delete $projhash->{pi};
+
+    # Create a new OMP::Project object
+    my $proj = new OMP::Project( %$projhash );
+    next unless $proj;
+
+    # Now create the PI user
+    $proj->pi( $udb->getUser( $piuserid ) );
+
+    # Project ID
+    my $projectid = $proj->projectid;
+
+    # Now the Co-I via another query
+    my $utable = $OMP::UserDB::USERTABLE;
+
+    my $coiref = $self->_db_retrieve_data_ashash( "SELECT * FROM $COITABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
+    $proj->coi( map { new OMP::User( %$_ ) } @$coiref );
+
+    # And finally support scientists
+    my $supref = $self->_db_retrieve_data_ashash( "SELECT * FROM $SUPTABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
+    $proj->support( map { new OMP::User( %$_ ) } @$supref );
+
+    push(@projects, $proj);
+
+  }
+
   # Return the results as Project objects
-  return map { new OMP::Project( %{$_} ); } @$ref;
+  return @projects;
 }
 
 =item B<_mail_password>

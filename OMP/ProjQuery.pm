@@ -104,9 +104,8 @@ to queries on "remaining" and "pending" columns.
 
   $query->_post_process_hash( \%hash );
 
-Also converts abbreviated form of project name to the full form
-recognised by the database (this is why a telescope is required
-if a projectid is supplied).
+Does not convert abbreviated project names to full form
+(this would require knowledge of a telescope).
 
 =cut
 
@@ -116,10 +115,6 @@ sub _post_process_hash {
 
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
-
-  # Need a telescope if we have a project ID.
-  throw OMP::Error::MSBMalformedQuery( "Please supply a telescope")
-    if (!exists $href->{telescope} and exists $href->{projectid});
 
   # Loop over each key
   for my $key (keys %$href ) {
@@ -140,21 +135,6 @@ sub _post_process_hash {
 
       # Remove the status column
       delete $href->{status};
-
-    } elsif ($key eq 'projectid') {
-
-      # Get the telescope and date if we know it
-      my %options;
-      $options{telescope} = $href->{telescope}->[0] 
-	if exists $href->{telescope};
-      $options{date} = $href->{date}->[0]
-	if exists $href->{date}->[0];
-
-      # Translate project IDs
-      for my $pid (@{ $href->{$key}}) {
-	$pid = OMP::General->infer_projectid(%options,
-					     projectid => $pid);
-      }
 
     }
 

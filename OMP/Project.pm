@@ -335,7 +335,7 @@ sub pi {
   my $self = shift;
   if (@_) { 
     my $pi = shift;
-    croak "PI must be of type OMP::User"
+    Carp::confess "PI must be of type OMP::User"
       unless UNIVERSAL::isa($pi, "OMP::User");
     $self->{PI} = $pi;
   }
@@ -681,6 +681,7 @@ sub verify_password {
   if ( OMP::General->verify_administrator_password( $plain, 1) ) {
     return 1;
   } else {
+
     # Need to verify against this password
     my $encrypted = $self->encrypted;
 
@@ -724,7 +725,8 @@ sub summary {
   # retrieve the information from the object
   my %summary;
   for my $key (qw/allocated coi coiemail country encrypted password pending
-	       pi piemail projectid remaining semester tagpriority/) {
+	       pi piemail projectid remaining semester tagpriority
+	       support supportemail /) {
     $summary{$key} = $self->$key;
   }
 
