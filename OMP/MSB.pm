@@ -949,7 +949,7 @@ sub hasBeenSuspended {
   # look for the label
   my $isvalid = grep /$label/, @labels;
 
-  throw OMP::Error::FatalError("Supplied observation label [$label] can not be found in MSB") unless $isvalid;
+  throw OMP::Error::FatalError("Supplied observation label [$label] can not be found in MSB [contains: ".join(",",@labels)."]") unless $isvalid;
 
   # Set the suspend attribute in the MSB
   $self->_tree->setAttribute($SUSPEND_ATTR, $label);

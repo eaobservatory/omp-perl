@@ -700,7 +700,7 @@ sub queryMSBdone {
 
 Associate a comment with a previously observed MSB.
 
-  OMP::MSBServer->addMSBComment( $project, $checksum, $comment );
+  OMP::MSBServer->addMSBcomment( $project, $checksum, $comment );
 
 =cut
 
