@@ -998,6 +998,10 @@ without a Tk widget is identical to querying the config system directly.
 Returns undef if the user presses the "cancel" button when prompted
 for a telescope selection.
 
+If a Term::ReadLine object is provided, the routine will prompt for 
+a telescope if there is a choice. This has the same behaviour as for the
+Tk option. Returns undef if the telescope was not valid after a prompt.
+
 =cut
 
 sub determine_tel {
@@ -1015,6 +1019,17 @@ sub determine_tel {
       } else {
 	return $tel;
       }
+    } elsif (UNIVERSAL::isa($w, "Term::ReadLine")) {
+      # Prompt for it
+      my $res = $w->readline("Which telescope [".join(",",@$tel)."] : ");
+      $res = uc($res);
+      if (grep /^$res$/i, @$tel) {
+	return $res;
+      } else {
+	# no match
+	return ();
+      }
+
     } else {
       # Can put up a widget
       require Tk::DialogBox;
