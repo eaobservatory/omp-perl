@@ -63,6 +63,7 @@ sub new {
 		    UserID => undef,
 		    Email => undef,
 		    Name => undef,
+		    Alias => undef,
 		   }, $class;
 
   # Go through the input args invoking relevant methods
@@ -310,6 +311,21 @@ sub email {
     $self->{Email} = $addr;
   }
   return $self->{Email};
+}
+
+=item B<alias>
+
+Return the user's alias.
+
+  $alias = $u->alias;
+  $u->alias( $alias );
+
+=cut
+
+sub alias {
+  my $self = shift;
+  if (@_) {$self->{Alias} = shift;}
+  return $self->{Alias};
 }
 
 =back
