@@ -8,6 +8,7 @@ our $VERSION = (qw$ Revision: $ )[1];
 
 use OMP::CGI;
 use OMP::TimeAcctDB;
+use OMP::FaultStats;
 use OMP::Project::TimeAcct;
 use OMP::Error qw(:try);
 
@@ -47,6 +48,8 @@ sub timealloc {
 
   display_form( $q );
 
+  display_ut_form( $q );
+
 }
 
 =item B<timealloc_output>
@@ -68,6 +71,8 @@ sub timealloc_output {
 
   display_form( $q );
 
+  display_ut_form( $q );
+
 }
 
 =item B<display_form>
@@ -81,7 +86,8 @@ The optional parameter should be the C<CGI> object.
 =cut
 
 sub display_form {
-  my $q = shift;
+  my $query = shift;
+  my $q = $query->Vars;
 
   my $faultproj;
   my $weatherproj;
@@ -98,18 +104,16 @@ sub display_form {
     $ut = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
   }
 
-$ut = "2002-08-29";
-
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
   my @accounts = $db->getTimeSpent( utdate => $ut );
 
   # Print a header.
   print "For UT $ut the following projects were observed:<br>\n";
-  print $q->startform;
-  print $q->hidden( -name => 'ut',
-                    -default => $ut,
-                  );
+  print $query->startform;
+  print $query->hidden( -name => 'ut',
+                        -default => $ut,
+                      );
   print "<table>";
   print "<tr><th>Project</th><th>Hours</th><th>Status</th></tr>\n";
   # For each TimeAcct object, print a form entry.
@@ -130,33 +134,63 @@ $ut = "2002-08-29";
     print "<tr><td>";
     print $timeacct->projectid;
     print "</td><td>";
-    print $q->textfield( -name => 'hour' . $i,
-                         -size => '8',
-                         -maxlength => '16',
-                         -default => $timeacct->timespent->hours,
-                       );
+    print $query->textfield( -name => 'hour' . $i,
+                             -size => '8',
+                             -maxlength => '16',
+                             -default => $timeacct->timespent->hours,
+                           );
     print "</td><td>";
     print ($timeacct->confirmed ? "Confirmed" : "Estimated");
-    print $q->hidden( -name => 'project' . $i,
-                      -default => $timeacct->projectid,
-                    );
+    print $query->hidden( -name => 'project' . $i,
+                          -default => $timeacct->projectid,
+                        );
     print "</td></tr>\n";
     $i++;
   }
   print "</table>";
-  print $q->submit( -name => 'CONFIRM APPORTIONING' );
-  print $q->endform;
 
   # Display miscellaneous time form (faults, weather, other).
   print "Time lost to faults: ";
-  print ( defined( $faultproj ) ? $faultproj->timespent->hours : "0" );
+  print $query->textfield( -name => 'hour' . $i,
+                           -size => '8',
+                           -maxlength => '16',
+                           -default => ( defined( $faultproj ) ? $faultproj->timespent->hours : '0' ),
+                         );
+  print $query->hidden( -name => 'project' . $i,
+                        -default => 'FAULT',
+                      );
   print " hours<br>\n";
+  my $fdb = new OMP::FaultDB( DB => new OMP::DBbackend );
+  my @results = $fdb->getFaultsByDate($ut);
+  my $faultstats = new OMP::FaultStats( faults => \@results );
+  print $faultstats->summary('html');
+
+  $i++;
   print "Time lost to weather: ";
-  print ( defined( $weatherproj ) ? $weatherproj->timespent->hours : "0" );
+  print $query->textfield( -name => 'hour' . $i,
+                           -size => '8',
+                           -maxlength => '16',
+                           -default => ( defined( $weatherproj ) ? $weatherproj->timespent->hours : '0' ),
+                         );
+  print $query->hidden( -name => 'project' . $i,
+                        -default => 'WEATHER',
+                      );
   print " hours<br>\n";
+
+  $i++;
   print "Other time lost: ";
-  print ( defined( $otherproj ) ? $otherproj->timespent->hours : "0" );
-  print " hours<br>\n";
+  print $query->textfield( -name => 'hour' . $i,
+                           -size => '8',
+                           -maxlength => '16',
+                           -default => ( defined( $otherproj ) ? $otherproj->timespent->hours : '0' ),
+                         );
+  print $query->hidden( -name => 'project' . $i,
+                        -default => 'OTHER',
+                      );
+  print " hours<br><br>\n";
+
+  print $query->submit( -name => 'CONFIRM APPORTIONING' );
+  print $query->endform;
 
 }
 
@@ -197,6 +231,22 @@ sub submit_allocations {
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
   $db->setTimeSpent( @acct );
+}
+
+sub display_ut_form {
+  my $query = shift;
+  my $q = $query->Vars;
+
+  print $query->startform;
+  print "Enter new UT date (yyyy-mm-dd format): ";
+  print $query->textfield( -name => 'ut',
+                       -size => '10',
+                       -maxlength => '10',
+                       -default => $q->{'ut'},
+                     );
+  print "<br>\n";
+  print $query->submit( -name => 'Submit UT date' );
+  print $query->endform;
 }
 
 sub pad {
