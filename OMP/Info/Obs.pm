@@ -305,10 +305,12 @@ sub nightlog {
     $return{'Bolometers'} = $self->bolometers;
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Bolometers" ];
-    $return{'_STRING_HEADER'} = "Run  UT time   Obsmode   Project ID  Object   Tau225  Seeing  Filter     Bolometers";
-    $return{'_STRING'} = sprintf("%-3u  %8s  %-9s %-11s %-8s %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
-    if(defined($self->comments->[0])) {
-      $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$self->comments->[0]->{Date}->ymd . ' ' . $self->comments->[0]->{Date}->hms, $self->comments->[0]->{Author}->userid, $self->comments->[0]->{Text});
+    $return{'_STRING_HEADER'} = "Run  UT time   Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers";
+    $return{'_STRING'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->{Date}->ymd . ' ' . $comment->{Date}->hms, $comment->{Author}->userid, $comment->{Text});
+      }
     }
   } elsif($instrument =~ /ircam/i) {
     $return{'Observation'} = $self->runnr;
