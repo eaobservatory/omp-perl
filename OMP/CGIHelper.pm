@@ -829,11 +829,13 @@ sub msb_hist_content {
 
   my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
 
+  my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
+
   print $q->h2("MSB History for project $cookie{projectid}");
 
   proj_status_table($q, %cookie);
   print $q->hr;
-  msb_comments($q, $commentref);
+  msb_comments($q, $commentref, $sp);
 }
 
 =item B<msb_comments_by_project>
@@ -868,15 +870,17 @@ sub msb_comments_by_project {
 
 Creates an HTML table of MSB comments.
 
-  msb_comments($cgi, $msbcomments);
+  msb_comments($cgi, $msbcomments, $sp);
 
-Takes a reference to an array of C<OMP::Info::MSB> objects.
+Takes a reference to an array of C<OMP::Info::MSB> objects as the second argument.
+Last argument is an optional Sp object.
 
 =cut
 
 sub msb_comments {
   my $q = shift;
   my $commentref = shift;
+  my $sp = shift;
 
   print "<table border=1 width=100%>";
 
@@ -910,9 +914,13 @@ sub msb_comments {
 		     -default=>$msb->checksum);
     print $q->hidden(-name=>'projectid',
 		     -default=>$msb->projectid);
+
+    # Make a "mark as done" button if the MSB exists in the science program
+    if ($sp and $sp->existsMSB($msb->checksum)) {
+      print $q->submit("Mark as Done");
+      print " ";
+    }
     print $q->submit("Add Comment");
-    print " ";
-    print $q->submit("Mark as Done");
     print $q->endform;
     print "</td>";
   }
