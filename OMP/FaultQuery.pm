@@ -203,6 +203,16 @@ sub _post_process_hash {
     }
   }
 
+  # These entries have a different column name in the table,
+  # so replace them with the actual column name
+  for (qw/ system /) {
+    if (exists $href->{$_}) {
+      my $key = "f".$_;
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
 
