@@ -10,6 +10,8 @@
 # Authors: Frossie Economou (f.economou@jach.hawaii.edu)
 #          Brad Cavanagh (b.cavanagh@jach.hawaii.edu)
 
+BEGIN { $ENV{'ORAC_DIR'} = "/jcmt_sw/oracdr"; }
+
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use PDL::Graphics::LUT;
