@@ -753,8 +753,9 @@ environment. The argument hash should have the following keys:
                          from => "me@myself.com",
                          subject => "hello",
                          message => "this is the content\n",
-                         headers => { Reply-To => "you\@yourself.com",
-                                      Content-Type => "text/html"},
+                         headers => {
+				     Reply-To => "you\@yourself.com", 
+				    },
                        );
 
 Composes the message using C<Mime::Lite> objects so that we end up with a
