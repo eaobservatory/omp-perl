@@ -671,8 +671,9 @@ sub extract_projectid {
 
   my $projid;
 
-  if ($string =~ /\b(u\/\d\d[ab]\/[jh]?\d+)\b/i        # UKIRT
-      or $string =~ /\b([ms]\d\d[ab][unchi]\d+)\b/i # JCMT [inc service]
+  if ($string =~ /\b(u\/\d\d[ab]\/[jhd]?\d+)\b/i    # UKIRT
+      or $string =~ /\b([ms]\d\d[ab][unchid]\d+)\b/i # JCMT [inc serv/ddt]
+      or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service
