@@ -14,15 +14,15 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::ProjectPage;
+use OMP::CGIPage;
+use OMP::CGIPage::Project;
 
 use HTML::WWWTheme;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
@@ -30,5 +30,6 @@ $cgi->theme($theme);
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: List Projects");
-$cgi->write_page_staff( \&OMP::CGI::ProjectPage::list_projects,
-			\&OMP::CGI::ProjectPage::list_projects_output );
+$cgi->write_page_staff( \&OMP::CGIPage::Project::list_projects,
+			\&OMP::CGIPage::Project::list_projects_output,
+			"noauth", );
