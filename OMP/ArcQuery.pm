@@ -418,6 +418,97 @@ sub _post_process_hash {
 
 }
 
+=item B<_create_sql_recurse>
+
+Routine called to translate each key of the query hash into SQL.
+Separated from C<_qhash_tosql> in order to allow recursion.
+Returns a chunk of SQL
+
+  $sql = $self->_create_sql( $column, $entry );
+
+where C<$column> is the database column name and 
+C<$entry> can be 
+
+  - An array of values that will be ORed
+  - An OMP::Range object
+  - A hash containing items to be ORed
+    using the rules for OMP::Range and array refs
+    [hence recursion]
+
+KLUGE: If the key begins with TEXTFIELD__ a "like" match
+will be performed rather than a "=". This is so that text fields
+can be queried.
+
+Column names beginning with an _ are ignored.
+
+Any ranges made up of Time::Piece objects will have one second
+subtracted from the end date, such that date ranges are inclusive
+on the minimum and exclusive on the maximum.
+
+=cut
+
+sub _create_sql_recurse {
+  my $self = shift;
+  my $column = shift;
+  my $entry = shift;
+
+  return undef if $column =~ /^_/;
+
+  my $sql;
+  if (ref($entry) eq 'ARRAY') {
+
+    # default to actual column name and simple equality
+    my $colname = $column;
+    my $cmp = "equal";
+    if ($colname =~ /^TEXTFIELD__/) {
+      $colname =~ s/^TEXTFIELD__//;
+      $cmp = "like";
+    }
+
+    # use an OR join [must surround it with parentheses]
+    $sql = "(".join(" OR ",
+		    map { $self->_querify($colname, $_, $cmp); }
+		    @{ $entry }
+		   ) . ")";
+
+  } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
+    # A Range object
+    my %range = $entry->minmax_hash;
+
+    # We need to redefine the max date so that this check will be
+    # exclusive on the maximum, so that we don't return entries
+    # from the UKIRT archive for the day we want plus the next
+    # day (because dates in the UKIRT archive only have a resolution
+    # of one day and not one second)
+    if (UNIVERSAL::isa( $range{'max'}, "Time::Piece")) {
+      $range{'max'} -= 1;
+      bless $range{'max'}, ref($range{'min'});
+    }
+
+    # an AND clause
+    $sql = join(" AND ",
+		map { $self->_querify($column, $range{$_}, $_);}
+		keys %range
+	       );
+
+  } elsif (ref($entry) eq 'HASH') {
+    # Call myself but join with an OR
+    my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
+		      } keys %$entry;
+
+    # Need to bracket each of the sub entries
+    $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
+
+  } else {
+    # use Data::Dumper;
+    # print Dumper($entry);
+
+    throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range non-HASH for $column: $entry\n");
+  }
+
+  # print "SQL: $column: $sql\n";
+  return $sql;
+}
 
 =end __PRIVATE__METHODS__
 
