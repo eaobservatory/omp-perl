@@ -30,6 +30,7 @@ use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::FaultQuery;
+use OMP::Error;
 
 use base qw/ OMP::BaseDB /;
 
@@ -38,6 +39,7 @@ our $VERSION = (qw$Revision$)[1];
 our $FAULTTABLE = "ompfault";
 our $FAULTBODYTABLE = "ompfaultbody";
 
+our $DEBUG = 1;
 
 =head1 METHODS
 
@@ -167,7 +169,8 @@ Retrieve the specified fault from the database.
 
   $fault = $db->getFault( $id );
 
-Returned as a C<OMP::Fault> object.
+Returned as a C<OMP::Fault> object. Returns undef if the fault can not
+be found in the database.
 
 =cut
 
@@ -182,7 +185,9 @@ sub getFault {
 
   my @result = $self->queryFaults( $query );
 
-  throw OMP::FatalError( "Multiple faults match the supplied id [$id] - this is not possible") unless @result == 1;
+  if (scalar(@result) > 1) {
+    throw OMP::Error::FatalError( "Multiple faults match the supplied id [$id] - this is not possible [bizarre]");
+  }
 
   # Guaranteed to be only one match
   return $result[0];
