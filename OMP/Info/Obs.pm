@@ -658,13 +658,15 @@ sub nightlog {
 
   }
 
-  foreach my $comment ($self->comments) {
-    if(defined($comment)) {
-      if( exists( $return{'_STRING'} ) ) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
-      }
-      if( exists( $return{'_STRING_LONG'} ) ) {
-        $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+  if( $display eq 'long' ) {
+    foreach my $comment ($self->comments) {
+      if(defined($comment)) {
+        if( exists( $return{'_STRING'} ) ) {
+          $return{'_STRING'} .= sprintf("\n %19s UT / %s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        }
+        if( exists( $return{'_STRING_LONG'} ) ) {
+          $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        }
       }
     }
   }
