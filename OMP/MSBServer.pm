@@ -121,6 +121,10 @@ sub fetchMSB {
   # Also add in the projectID
   $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
 
+  OMP::General->log_message( "fetchMSB: Success: Projectid: " . 
+			     $msb->projectID . " and checksum: ".
+			     $msb->checksum ."\n");
+
   return "$spprog$msbxml$spprogend" if defined $msb;
 }
 
