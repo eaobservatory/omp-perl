@@ -1500,7 +1500,7 @@ sub project_home {
 	my $h = sprintf("%.1f", $accounts{$ymd}->hours);
 	print "($h hours) Click on date to retrieve data.";
       } else {
-	print "(no data taken) ";
+	print "(no science data taken) ";
       }
 
       print "<br>";
