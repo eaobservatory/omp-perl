@@ -129,7 +129,7 @@ Returns the project ID associated with this science program.
 sub projectID {
   my $self = shift;
   if (@_) { 
-    $self->{ProjectID} = shift; 
+    $self->{ProjectID} = uc(shift); 
   } else {
     $self->find_projectid unless defined $self->{ProjectID};
   }

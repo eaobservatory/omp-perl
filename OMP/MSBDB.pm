@@ -992,7 +992,7 @@ sub _store_sciprog_todisk {
 
   # Construct a simple error message
   my ($user, $addr, $email) = OMP::General->determine_host;
-  my $projectid = $sp->projectID;
+  my $projectid = uc($sp->projectID);
   my $err = "Error writing science program ($projectid) to disk\n" .
     "Request from $email\nReason:\n\n";
   my %deferr = ( to => 'timj@jach.hawaii.edu',
