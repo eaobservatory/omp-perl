@@ -102,7 +102,7 @@ sub summary {
 			     DB => $class->dbConnection,
 			    );
 
-    $db->issuePassword();
+    throw OMP::Error( "Not yet implemented");
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
