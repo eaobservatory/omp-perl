@@ -1967,6 +1967,10 @@ sub night_report {
     $utdate = OMP::General->parse_date($q->param('utdate_form'));
     $utdate_end = OMP::General->parse_date($q->param('utdate_end'));
 
+    # Croak if date format is wrong
+    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+      if ($utdate !~ /\d{4}-\d{2}-\d{2}/ or $utdate_end !~ /\d{4}-\d{2}-\d{2}/);
+
     # Derive delta from start and end UT dates
     $delta = $utdate_end - $utdate;
     $delta = $delta->days + 1;  # Need to add 1 to our delta
@@ -1974,6 +1978,11 @@ sub night_report {
   } elsif ($q->param('utdate_form')) {
     # Get UT date from single night form
     $utdate = OMP::General->parse_date($q->param('utdate_form'));
+
+    # Croak if date format is wrong
+    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+      if ($utdate !~ /\d{4}-\d{2}-\d{2}/);
+
   } else {
     # No form params.  Get params from URL
 
@@ -1990,6 +1999,10 @@ sub night_report {
     # Get start date from URL
     if ($q->url_param('utdate')) {
       $utdate = OMP::General->parse_date($q->url_param('utdate'));
+
+    # Croak if date format is wrong
+    croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
+      if ($utdate !~ /\d{4}-\d{2}-\d{2}/);
 
     } else {
       # No UT date in URL.  Use current date.
