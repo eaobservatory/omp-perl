@@ -780,11 +780,17 @@ fault.
 
 This information is retrieved from the first response object.
 
+Returns immediately if called in void context.
+
 =cut
 
 sub author {
   my $self = shift;
+  return unless defined wantarray;
   my $firstresp = $self->responses->[0];
+  throw OMP::Error::FatalError("No fault body! Should not happen.")
+    unless $firstresp;
+
   return $firstresp->author;
 }
 
@@ -796,17 +802,30 @@ time the fault response was filed will be used instead.
 
   $date = $fault->date;
 
+Throws an C<OMP::Error::FatalError> if no response is attached.
+
+In void context returns nothing.
+
 =cut
 
 sub date {
   my $self = shift;
 
+  return unless defined wantarray;
+
   # Look at the fault date
   my $faultdate = $self->faultdate;
   return $faultdate if $faultdate;
 
+  use Data::Dumper;
+  print Dumper($self);
+
   # Else look at the first response
   my $firstresp = $self->responses->[0];
+
+  throw OMP::Error::FatalError("No fault body! Should not happen.")
+    unless $firstresp;
+
   return $firstresp->date;
 }
 
