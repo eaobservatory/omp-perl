@@ -833,8 +833,12 @@ sub obs_comment_form {
                         13 => 'Unknown',
                         14 => 'Next Project',
                         15 => 'Last Project',
+                        16 => 'Observer Not Driver',
+                        17 => 'Scheduled Downtime',
+                        18 => 'Queue Overhead',
+                        19 => 'Logistics',
                       );
-  my @timegap_value = qw/ 10 11 12 15 14 13 /;
+  my @timegap_value = qw/ 10 11 12 15 14 16 17 18 19 13 /;
 
   # Verify we have an Info::Obs object.
   if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
