@@ -158,9 +158,16 @@ my %tables = (
 			       text => "text",
 			       author => "varchar(50)",
 			       _ORDER => [qw/
-					  respid faultid date author isfault text
+					  respid faultid date author isfault 
+					  text
 					  /],
 			      },
+	      ompuser => {
+			  userid => "VARCHAR(32)",
+			  name => "VARCHAR(255)",
+			  email => "VARCHAR(64)",
+			  _ORDER => [qw/ userid name email /],
+			 },
 	     );
 
 for my $table (sort keys %tables) {
@@ -173,6 +180,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompmsbdone';
   next if $table eq 'ompfault';
   next if $table eq 'ompfaultbody';
+  next if $table eq 'ompuser';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
