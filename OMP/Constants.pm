@@ -28,7 +28,7 @@ require Exporter;
 @ISA = qw/Exporter/;
 
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
-my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
+my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE OMP__FB_SUPPORT/;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
@@ -130,6 +130,14 @@ This constant contains the definition of delete feedback status.
 =cut
 
 use constant OMP__FB_DELETE => -1;
+
+=item B<OMP__FB_SUPPORT>
+
+This constant contatins the definition of a support feedback status.
+
+=cut
+
+use constant OMP__FB_SUPPORT => 3;
 
 =back
 
