@@ -61,6 +61,7 @@ sub new {
 	   Theme => undef,
 	   CGI => undef,
 	   Cookie => undef,
+	   Title => 'OMP Feedback System',
 	  };
 
   # create the object (else we cant use accessor methods)
@@ -148,6 +149,23 @@ sub cookie {
   return $self->{Cookie};
 }
 
+=item B<html_title>
+
+Return the string to be used for the HTML title.
+
+  $title = $c->html_title;
+  $c->html_title( $title );
+
+Default value is "OMP Feedback System".
+
+=cut
+
+sub html_title {
+  my $self = shift;
+  if (@_) { $self->{Title} = shift; }
+  return $self->{Title};
+}
+
 =back
 
 =head2 General Methods
@@ -233,7 +251,8 @@ sub _write_header {
     print $q->header( -expires => '-1d' );
   }
 
-  $theme->SetHTMLStartString("<html><head><title>OMP Feedback System</title></head>");
+  my $title = $self->html_title;
+  $theme->SetHTMLStartString("<html><head><title>$title</title></head>");
 
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
