@@ -655,6 +655,75 @@ sub verify_staff_password {
   return $status;
 }
 
+=item B<verify_queueman_password>
+
+Compare the supplied password with the queue manager password. Throw
+an exception if the two do not match. This provides access to some
+parts of the system normally restricted to queue managers.
+
+  OMP::General->verify_queueman_password( $input, $queue );
+
+Note that the supplied password is assumed to be unencrypted. The
+queue name (usually country name) must be supplied.
+
+An optional third argument can be used to disable the exception
+throwing. If the second argument is true the routine will return
+true or false depending on whether the password is verified.
+
+  $isokay = OMP::General->verify_queueman_password( $input, $queue, 1 );
+
+Always fails if the supplied password is undefined. The country
+must be defined unless the password is either the staff or administrator
+password (which is compared first).
+
+=cut
+
+sub verify_queman_password {
+  my $self = shift;
+  my $password = shift;
+  my $queue = shift;
+  my $retval = shift;
+
+  # First try staff password
+  my $status = OMP::General->verify_staff_password( $password,1);
+
+  # Return immediately if all is well
+  # Else try against the queue password
+  return $status if $status;
+
+  # rather than throwing conditional exceptions with complicated
+  # repeating if statements just paper over the cracks until the
+  # final failure triggers the throwing of exceptions
+  $queue = "UNKNOWN" unless $queue;
+  $queue = uc($queue);
+
+  # The encrypted passwords
+  # At some point we'll pick this up from somewhere else.
+  my %passwords = (
+		   UH => 'afZ1FBCsmx63Y',
+		  );
+
+  my $admin = (exists $passwords{$queue} ? $passwords{$queue} : "noadmin");
+
+  # Encrypt the supplied password using the queue password as salt
+  # unless the supplied password is undefined
+  my $encrypted = ( defined $password ? crypt($password, $admin)
+		    : "fail" );
+
+  # A bit simplistic at the present time
+  if ($encrypted eq $admin) {
+    $status = 1;
+  } else {
+    # Throw an exception if required
+    if ($retval) {
+      $status = 0;
+    } else {
+      throw OMP::Error::Authentication("Failed to match queue password password\n");
+    }
+  }
+  return $status;
+}
+
 =item B<am_i_staff>
 
 Compare the supplied project ID with the internal staff project ID.

@@ -745,6 +745,9 @@ password before comparing it to the encrypted project password.  The
 encrypted project password is only used if the staff password
 fails to verify.
 
+Additionally, each country has a special queue manager password
+that is also checked.
+
 =cut
 
 sub verify_password {
@@ -756,9 +759,9 @@ sub verify_password {
     $plain = $self->password;
   }
 
-  # First verify against staff password.
+  # First verify against staff and queue manager passwords.
   # Need to turn off exceptions
-  if ( OMP::General->verify_staff_password( $plain, 1) ) {
+  if ( OMP::General->verify_queman_password( $plain, $self->country,1) ) {
     return 1;
   } else {
 
