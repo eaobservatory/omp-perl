@@ -135,14 +135,21 @@ sub queryArc {
 
     my $date = $query->daterange->min;
     my $currentdate = gmtime;
+    my $db_status = 1;
 
     # First the database
-    if( $self->db && ( ( $currentdate - $date ) > ONE_DAY ) ) {
-      @results = $self->_query_arcdb( $query );
+    if( !defined( $self->db ) ) { $db_status = 0; }
+    try {
+      if( $db_status && $self->db && ( ( $currentdate - $date ) > ONE_DAY ) ) {
+        @results = $self->_query_arcdb( $query );
+      }
     }
-
-    if( ( ( $currentdate - $date ) < ONE_WEEK ) &&
-        ( $FallbackToFiles ) ) {
+    catch OMP::Error with {
+      $db_status = 0;
+    };
+    if( ( ( ( $currentdate - $date ) < ONE_WEEK ) &&
+          ( $FallbackToFiles ) ) ||
+        ( $db_status == 0 ) ) {
       if( ( $currentdate - $date ) < ONE_DAY ) {
         @results = $self->_query_files( $query );
       } else {
@@ -399,7 +406,11 @@ sub _query_files {
     } # for( my $day... )
   } # if( simple_query( $query ) ) { } else
 
-  foreach my $file ( @files ) {
+  # Remove duplicates from the list of files.
+  my %seen = ();
+  my @uniq = grep { ! $seen{$_} ++ } @files;
+
+  foreach my $file ( @uniq ) {
     # Create the Obs object.
     my $obs = readfile OMP::Info::Obs( $file );
     if( !defined( $obs ) ) { next; }
