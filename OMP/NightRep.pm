@@ -1019,7 +1019,7 @@ sub ashtml {
       print "<a name=obslog></a>";
       
       if ($grp and $grp->numobs > 1) {
-	obs_table($grp,
+	OMP::CGIHelper::obs_table($grp,
                   sort => 'chronological',);
       } else {
 	# Don't display the table if no observations are available
