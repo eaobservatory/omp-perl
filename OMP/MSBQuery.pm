@@ -117,9 +117,14 @@ sub airmass {
     for my $method (qw/max min/) {
       my $value = $elevation->$method;
       next unless defined $value;
-      $value = 1.0/cos($value * D2R);
+      $value = 1.0/sin($value * D2R);
       $airmass_el->$method( $value );
     }
+
+    # Of course, an airmass has an inverted sense of range
+    # from an elevation
+    my ($min, $max) = $airmass_el->minmax;
+    $airmass_el->minmax($max, $min);
 
   }
 
@@ -127,7 +132,7 @@ sub airmass {
   # airmass and elevation.
   if (defined $airmass_el) {
     $airmass->intersection( $airmass_el )
-      or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect");
+      or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect: airmass $airmass and from el: $airmass_el");
   }
 
   return $airmass;
