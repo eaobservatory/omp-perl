@@ -134,8 +134,9 @@ sub msb_sum_hidden {
   my %cookie = @_;
 
   my $sp;
+  my $projectid = $cookie{projectid};
   try {
-    $sp = OMP::SpServer->programDetails($cookie{projectid},
+    $sp = OMP::SpServer->programDetails($projectid,
 					$cookie{password},
 					'data' );
 
