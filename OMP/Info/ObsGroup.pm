@@ -428,12 +428,8 @@ sub groupby {
     push @{$group{$obs->$method}}, $obs;
   }
 
-  my %return;
-  foreach my $key (keys %group) {
-    $return{$key} = new OMP::Info::ObsGroup( obs => $group{$key} );
-  }
+  return map { $_, new OMP::Info::ObsGroup(obs=>$group{$_}) } keys %group;
 
-  return %return;
 }
 
 =back
