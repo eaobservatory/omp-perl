@@ -58,22 +58,26 @@ my %tables = (
                          seeingmin => "REAL",
                          seeingmax => "REAL",
                          priority => "INTEGER",
-                         moon => "INTEGER",
+                         moonmax => "INTEGER",
+                         moonmin => "INTEGER",
                          timeest => "REAL",
                          title => TITLE,
                          obscount => "INTEGER",
                          datemin => $DATE,
-                         cloud => "INTEGER",
+                         cloudmax => "INTEGER",
+                         cloudmin => "INTEGER",
                          datemax => $DATE,
                          telescope => "VARCHAR(16)",
                          minel => "REAL NULL",
                          maxel => "REAL NULL",
                          approach => "INTEGER NULL",
+                         skymax => "REAL",
+                         skymin => "REAL",
                          _ORDER => [qw/ msbid projectid remaining checksum
                                     obscount taumin taumax seeingmin seeingmax
-                                    priority telescope moon cloud
+                                    priority telescope moonmax cloudmax
                                     timeest title datemin datemax minel maxel
-                                    approach
+                                    approach moonmin cloudmin skymin skymax
                                     /],
                        },
               # Associates users with a project
@@ -98,7 +102,7 @@ my %tables = (
                           remaining => "REAL",
                           pending => "REAL",
                           allocated => "REAL",
-                          semester => "VARCHAR(5)",
+                          semester => "VARCHAR(10)",
                           encrypted => "VARCHAR(20)",
                           title => TITLE,
                           telescope => "VARCHAR(16)",
@@ -106,12 +110,16 @@ my %tables = (
                           taumax => "REAL",
                           seeingmin => "REAL",
                           seeingmax => "REAL",
-                          cloud => "INTEGER",
+                          cloudmax => "INTEGER",
+                          cloudmin => "INTEGER",
+                          skymax => "REAL",
+                          skymin => "REAL",
                           state => $BOOL,
                           _ORDER => [qw/projectid pi
                                      title semester encrypted allocated
                                      remaining pending telescope taumin
-                                     taumax seeingmin seeingmax cloud state
+                                     taumax seeingmin seeingmax cloudmax state
+				     cloudmin skymin skymax
                                      /],
                          },
               # Queue details for each project
@@ -121,9 +129,10 @@ my %tables = (
                                uniqid => $NUMID,
                                country => 'VARCHAR(32) NOT NULL',
                                tagpriority => 'INTEGER',
+                               tagadj => 'INTEGER',
                                _ORDER => [qw/
                                           uniqid projectid country
-                                          tagpriority isprimary
+                                          tagpriority isprimary tagadj
                                          /],
                               },
               # Time accounting for projects
