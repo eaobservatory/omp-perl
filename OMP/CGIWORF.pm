@@ -301,7 +301,7 @@ sub thumbnails_page {
       # for that observation.
       if( $file =~ /\d\.sdf$/ ) {
         if( defined( $curgrp ) ) {
-          if( $obs->runnr != $curgrp ) {
+          if( defined( $obs->runnr ) && $obs->runnr != $curgrp ) {
             $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
             print "</tr><tr class=\"$rowclass\">";
             $curgrp = $obs->runnr;
@@ -346,7 +346,7 @@ sub thumbnails_page {
           if( ( ( uc($telescope) eq 'UKIRT') && ($file =~ /$suffix\./ ) ) ||
               ( ( uc($telescope) eq 'JCMT')  && ($file =~ /$suffix/   ) ) ) {
             if( defined( $curgrp ) ) {
-              if( $obs->runnr != $curgrp ) {
+              if( defined( $obs->runnr ) && $obs->runnr != $curgrp ) {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
                 print "</tr>\n<tr class=\"$rowclass\">";
                 $curgrp = $obs->runnr;
