@@ -124,6 +124,7 @@ is zero then the default number are returned (usually 100).
 
 The format of the resulting document is:
 
+  <?xml version="1.0" encoding="ISO-8859-1"?>
   <QueryResult>
    <SpMSBSummary id="unique">
      <something>XXX</something>
@@ -178,7 +179,8 @@ sub queryMSB {
 
   # Convert results to an XML document
   my $tag = "QueryResult";
-  my $result = "<$tag>\n". join("\n",@results). "\n</$tag>\n";
+  my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
+  my $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
   return $result;
 }
