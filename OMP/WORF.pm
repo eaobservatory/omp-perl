@@ -1120,6 +1120,10 @@ sub _return_fits {
     throw OMP::Error("Filename passed to _return_fits ($input_file) must be an NDF and end with .sdf");
   }
 
+  # Untaint, but unsafely.
+  $input_file =~ /(.*)/;
+  $input_file = $1;
+
   # Remove the .sdf from the end.
   $input_file =~ s/\.sdf$//;
 
@@ -1127,17 +1131,11 @@ sub _return_fits {
   ( undef, my $fits_file ) = tempfile( );
   $fits_file .= ".fits";
 
-  # We need to convert the file to FITS. Find the CONVERT binary.
-  my $convert_bin;
-  if( defined( $ENV{'CONVERT_DIR'} ) &&
-      -d $ENV{'CONVERT_DIR'} &&
-      -e File::Spec->catfile( $ENV{'CONVERT_DIR'}, "convert_mon" ) ) {
-    $convert_bin = File::Spec->catfile( $ENV{'CONVERT_DIR'}, "convert_mon" );
-  } elsif( -d "/star/bin/convert" &&
-           -e "/star/bin/convert/convert_mon" ) {
-    $convert_bin = "/star/bin/convert/convert_mon";
-  } else {
-    throw OMP::Error("Could not find CONVERT binary");
+  # We need to convert the file to FITS. Use the convert_mon in
+  # /star/bin/convert/convert_mon.
+  my $convert_bin = "/star/bin/convert/convert_mon";
+  if( ! -e $convert_bin ) {
+    throw OMP::Error( "Could not find convert_mon in /star/bin/convert/convert_mon" );
   }
 
   # Do the conversion, but have a locally-scoped path so we can
@@ -1145,7 +1143,6 @@ sub _return_fits {
   {
     local $ENV{'PATH'} = "/star/bin:/usr/bin:/bin";
     local $ENV{'ADAM_USER'} = "/tmp";
-    $convert_bin = "/star/bin/convert/convert_mon";
     my $ams = new Starlink::AMS::Init(1);
     $ams->messages(0);
     if( ! defined( $TASK ) ) {
