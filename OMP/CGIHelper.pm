@@ -1679,13 +1679,13 @@ Return the URL where public cgi scripts can be found.
 
 sub public_url {
   # Location of the config file
-  OMP::Config->cfgdir( "/jac_sw/omp_dev/cfg" );
+  OMP::Config->cfgdir( "/jac_sw/omp_dev/msbserver/cfg" );
 
   # Get the base URL
-  my $url = OMP::Config->getdata( 'omp-url' );
+  my $url = OMP::Config->getData( 'omp-url' );
 
   # Now the CGI dir
-  my $cgidir = OMP::Config->getdata( 'cgidir' );
+  my $cgidir = OMP::Config->getData( 'cgidir' );
 
   return "$url/$cgidir";
 }
@@ -1700,13 +1700,13 @@ Return the URL where private cgi scripts can be found.
 
 sub private_url {
   # Location of the config file
-  OMP::Config->cfgdir( "/jac_sw/omp_dev/cfg" );
+  OMP::Config->cfgdir( "/jac_sw/omp_dev/msbserver/cfg" );
 
   # Get the base URL
-  my $url = OMP::Config->getdata( 'omp-private' );
+  my $url = OMP::Config->getData( 'omp-private' );
 
   # Now the CGI dir
-  my $cgidir = OMP::Config->getdata( 'cgidir' );
+  my $cgidir = OMP::Config->getData( 'cgidir' );
 
   return "$url/$cgidir";
 }
