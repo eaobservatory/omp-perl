@@ -429,7 +429,9 @@ sub fb_msb_active {
 	print "All $total MSBs in the science program have been observed.<br>\n";
       } 
 
-      # Nice little message letting us no of msbs present in the table
+    } else {
+
+      # Nice little message letting us know no of msbs present in the table
       # that have not been observed.
       if ($done > 0) {
 	if ($done == 1) {
@@ -478,8 +480,10 @@ sub msb_table {
   # Only bother with a remaining column if we have remaining
   # information
   print "<td><b>Remaining:</b></td>"
-    if @$program && exists $program->{remaining};
+    if @$program && exists $program->[0]->{remaining};
 
+  # Note that this doesnt really work as code shared for MSB and
+  # MSB Done summaries
   my $i;
   foreach my $msb (@$program) {
     # skip if we have a remaining field and it is 0 or less
@@ -487,7 +491,7 @@ sub msb_table {
 
     # Skip if this is only a fetch comment
     next if (exists $msb->{comment} && 
-	     $msb->{status}->{comment}->[0] == &OMP__DONE_FETCH);
+	     $msb->{comment}[0]{status} == &OMP__DONE_FETCH);
 
     # Create a summary of the observation details and display
     # this in the table cells
@@ -498,7 +502,7 @@ sub msb_table {
     # This is a kluge - we cant really share the code hear until
     # an OMP::DoneInfo object can be treated the same as a
     # OMP::MSBInfo object
-    if (exists $msb->{_obssum}) {
+    if (exists $msb{_obssum}) {
       print "<td>" . $msb{_obssum}{target} . "</td>";
       print "<td>" . $msb{_obssum}{waveband} . "</td>";
       print "<td>" . $msb{_obssum}{instrument} . "</td>";
@@ -507,10 +511,7 @@ sub msb_table {
       print "<td>" . $msb->{target} . "</td>";
       print "<td>" . $msb->{waveband} . "</td>";
       print "<td>" . $msb->{instrument} . "</td>";
-      use Data::Dumper;
-      print Dumper($msb);
     }
-
 
   }
 
