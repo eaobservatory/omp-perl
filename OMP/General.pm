@@ -154,6 +154,11 @@ The user name is not always available (especially if running from
 CGI).  The email address is simply determined as C<$user@$host> and is
 identical to the host name if no user name is determined.
 
+If the environment variable C<$OMP_NOGETHOST> is set
+this method will return a hostname of "localhost". This is used
+when no network connection is available and you do not wish to
+wait for a timeout from C<gethostbyname>.
+
 =cut
 
 sub determine_host {
@@ -162,7 +167,10 @@ sub determine_host {
   # Try and work out who is making the request
   my ($user, $addr);
 
-  if (exists $ENV{REMOTE_ADDR}) {
+  if (exists $ENV{OMP_NOGETHOST}) {
+    $addr = "localhost";
+    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
+  } elsif (exists $ENV{REMOTE_ADDR}) {
     # We are being called from a CGI context
     my $ip = $ENV{REMOTE_ADDR};
 
