@@ -24,6 +24,7 @@ use Carp;
 use Net::Domain;
 use File::Spec;
 use Astro::Coords::Offset;
+use List::Util qw/ min max /;
 
 # Need to find the OCS Config (temporary kluge)
 #use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
@@ -55,6 +56,9 @@ our %FE_MAP = (
 	       RXB3 => 'RXB',
 	      );
 
+# Telescope diameter in metres
+use constant DIAM => 15;
+
 =head1 METHODS
 
 =over 4
@@ -83,9 +87,13 @@ sub translate {
   # OT version
   my $otver = $msb->ot_version;
   print "OTVERS: $otver \n";
+
+  # Correct Stare and Jiggle observations such that multiple offsets are
+  # combined
+  $self->correct_offsets( $msb, "Stare", "Jiggle" );
+
   # Now unroll the MSB into constituent observations details
   my @configs;
-
   for my $obs ($msb->unroll_obs) {
 
     # Create blank configuration
@@ -301,8 +309,42 @@ sub observing_area {
 	       SYSTEM => $info{SCAN_SYSTEM},
 	     );
 
+    # Offset
+    my $offx = ($info{OFFSET_DX} || 0);
+    my $offy = ($info{OFFSET_DY} || 0);
+
+    # Now rotate to the MAP_PA
+    ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
+
+    my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
+					 system => 'TRACKING' );
+
+    $oa->offsets( $off );
   } else {
-    
+    # Just insert offsets, either as an offsets array or explicit
+    my @offsets;
+    if (exists $info{offsets}) {
+      @offsets = @{ $info{offsets} };
+    } else {
+      @offsets = ( { OFFSET_DX => ($info{OFFSET_DX} || 0),
+		     OFFSET_DY => ($info{OFFSET_DY} || 0),
+		     OFFSET_PA => ($info{OFFSET_PA} || 0),
+		   } );
+    }
+
+    my $refpa = ($offsets[0]->{OFFSET_PA} || 0);
+    my @out;
+    for my $o (@offsets) {
+      # Rotate to reference
+      my ($x, $y) = ($o->{OFFSET_DX}, $o->{OFFSET_DY});
+      if ($o->{OFFSET_PA} != $refpa) {
+	# this should never happen with the OT formalism
+	($x, $y) = $self->PosAngRot( $x, $y, ( $refpa - $o->{OFFSET_PA}));
+      }
+      push(@out, new Astro::Coords::Offset( $x, $y, projection => 'TAN',
+					    system => 'TRACKING'));
+    }
+    $oa->offsets( @out );
   }
 
   # need to decide on public vs private
@@ -412,11 +454,12 @@ sub acsis_config {
   # Store it in the object
   $cfg->acsis( $acsis );
 
-  # The easy bits
+  # Now configure the individual ACSIS components
   $self->line_list( $cfg, %info );
   $self->spw_list( $cfg, %info );
   $self->correlator( $cfg, %info );
-  $self->acsisdr_recipe( $cfg, %info );
+#  $self->acsisdr_recipe( $cfg, %info );
+  $self->cubes( $cfg, %info );
 #  $self->acsis_machine_table( $cfg, %info );
 
 
@@ -837,7 +880,11 @@ sub spw_list {
       throw OMP::Error::FatalError("Do not know how to process more than 2 subbands");
     }
 
-    $spws{ "SPW" . $spwcount} = $spw;
+    # Determine the Spectral Window label and store it in the output hash and
+    # the subsystem hash
+    my $splab = "SPW". $spwcount;
+    $spws{$splab} = $spw;
+    $ss->{spw} = $splab;
 
     $spwcount++;
   }
@@ -851,7 +898,7 @@ sub spw_list {
 
 }
 
-=item B<line_list>
+=item B<acsisdr_recipe>
 
 Configure the real time pipeline.
 
@@ -883,10 +930,189 @@ sub acsisdr_recipe {
 						       validation => 0);
   $acsis->semantic_links( $sl );
 
+  # and the basic gridder configuration
+  my $g = new JAC::OCS::Config::ACSIS::GridderConfig( EntityFile => $filename,
+						      validation => 0,
+						    );
+  $acsis->gridder_config( $g );
+
   # Write the observing mode to the recipe
   $mode =~ s/_/\//g;
   $acsis->red_obs_mode( $mode );
   $acsis->red_recipe_id( "incorrect. Should be read from file");
+
+}
+
+=item B<cubes>
+
+Configure the output cube(s).
+
+  $trans->cubes( $cfg, %info );
+
+=cut
+
+sub cubes {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # get the observing mode
+  my $obsmode = $self->observing_mode( %info );
+
+  # Create the cube list
+  my $cl = new JAC::OCS::Config::ACSIS::CubeList();
+
+  # Get the subsystem information
+  my $freq = $info{freqconfig}->{subsystems};
+
+  # Now loop over subsystems to create cube specifications
+  my %cubes;
+  my $count = 1;
+  for my $ss (@$freq) {
+
+    # Create the cube(s). One cube per subsystem.
+    my $cube = new JAC::OCS::Config::ACSIS::Cube;
+    my $cubid = "CUBE" . $count;
+
+    # Data source
+    throw OMP::Error::FatalError( "Spectral window ID not defined. Internal inconsistency")
+       unless defined $ss->{spw};
+    $cube->spw_id( $ss->{spw} );
+
+    # Presumably the gridder should not regrid the full spectral dimension
+    # if a specific line region has been specified. For now just use full range.
+    # The cube example xml seems to start at channel 0
+    my $int = new JAC::OCS::Config::Interval( Min => 0,
+					      Max => ( $ss->{nchannels_full}-1),
+					      Units => 'channel');
+    $cube->spw_interval( $int );
+
+    # Tangent point (aka group centre) is the base position without offsets
+    $cube->group_centre( $info{coords} );
+
+    # Calculate Nyquist value for this map
+    my $nyq = $self->nyquist( %info );
+
+    # Until HARP comes we use TopHat for all observing modes
+    # HARP without image rotator will require Gaussian.
+    # This will need support for rotated coordinate frames in the gridder
+    my $grid_func = "TopHat";
+    $grid_func = "Gaussian" if $obsmode =~ /raster/;
+    $cube->grid_function( $grid_func );
+
+    # The size and number of pixels depends on the observing mode.
+    # For raster, we have a regular grid but the 
+    my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
+    if ($obsmode =~ /raster/) {
+      # This will be more complicated for HARP since DY will possibly
+      # be larger and we will need to take the receptor spacing into account
+
+      # For single pixel instrument define the Y pixel as the spacing
+      # between scan rows
+      $ysiz = $info{SCAN_DY};
+
+      # The X spacing should be half Nyquist or the Y spacing (whichever is smallest)
+      $xsiz = min ($ysiz, $nyq->arcsec / 2 );
+
+      # read the map position angle
+      $mappa = $info{MAP_PA}; # degrees
+
+      # and the map area in pixels
+      $nx = int( ( $info{MAP_WIDTH} / $xsiz ) + 0.5 ) ;
+      $ny = int( ( $info{MAP_HEIGHT} / $ysiz ) + 0.5 );
+
+      $offx = ($info{OFFSET_DX} || 0);
+      $offy = ($info{OFFSET_DY} || 0);
+
+      # These should be rotated to the MAP_PA coordinate frame
+      # if it is meant to be in the coordinate frame of the map
+      # for now rotate to ra/dec.
+      if ($info{OFFSET_PA} != 0) {
+	($offx, $offy) = $self->PosAngRot( $offx, $offy, $info{OFFSET_PA});
+      }
+
+    } elsif ($obsmode =~ /grid|jiggle/i) {
+      # Need to know:
+      #  - the extent of the offset grid
+      #  - the extent of the jiggle pattern
+      #  - the footprint of the array
+      # GRID + single pixel is easy since it is just the offset pattern
+      
+
+      # Need to find the extent of the jiggle pattern and the middle of it
+      $xsiz = 1; $ysiz = 1; $nx = 20; $ny = 20;
+
+    } else {
+      throw OMP::Error::TranslateFail("Do not yet know how to size a cube for mode $obsmode");
+    }
+
+
+    # the gridder can not handle a rotated coordinate frame so we now
+    # need to rotate the map dimensions to unrotated frame
+    if ($mappa != 0) {
+      throw OMP::Error::TranslateFail("Do not yet handle rotated output cubes");
+    }
+
+    throw OMP::Error::TranslateFail( "Unable to determine X pixel size")
+      unless defined $xsiz;
+    throw OMP::Error::TranslateFail( "Unable to determine Y pixel size")
+      unless defined $ysiz;
+
+    # Store the parameters
+    $cube->pixsize( new Astro::Coords::Angle($xsiz, units => 'arcsec'),
+		    new Astro::Coords::Angle($ysiz, units => 'arcsec'));
+    $cube->npix( $nx, $ny );
+
+    # offset in pixels
+    $cube->offset( $offx / $xsiz, $offy / $ysiz);
+
+    # Decide whether the grid is regridding in sky coordinates or in AZEL
+    # Focus and Pointing are AZEL
+    if ($obsmode =~ /point|focus/) {
+      $cube->tcs_coord( 'AZEL' );
+    } else {
+      $cube->tcs_coord( 'TRACKING' );
+    }
+
+    # Currently always use TAN projection since that is what SCUBA uses
+    $cube->projection( "TAN" );
+
+    # Gaussian requires a FWHM and truncation radius
+    if ($grid_func eq 'Gaussian') {
+
+      # For an oversampled map, the SCUBA regridder has been analysed empirically 
+      # to determine an optimum smoothing gaussian HWHM of lambda / 5d ( 0.4 of Nyquist).
+      # This compromises smoothness vs beam size. For ACSIS, we are really limited
+      # by the pixel size so our FWHM should be related to the larger value
+      # of  lambda/2.5D, Ypix or Xpix
+
+      # Use the SCUBA optimum ratios derived by Claire Chandler of
+      # HWHM = lambda / 5D (ie 0.4 of Nyquist) or FWHM = lambda / 2.5D
+      # (or 0.8 Nyquist)
+      my $fwhm = max ( $nyq->arcsec * 0.8, $xsiz, $ysiz );
+      $cube->fwhm( $fwhm );
+
+      # Truncation radius is half the pixel size for TopHat
+      # For Gausian we use 3 HWHM (that's what SCUBA used)
+      $cube->truncation_radius( $fwhm * 1.5 );
+    }
+
+    $cubes{$cubid} = $cube;
+    $count++;
+  }
+
+  # Store it
+  $cl->cubes( %cubes );
+
+  print "Start to stringify...\n";
+  print $cl->stringify;
+  print "DONE\n";
+
+  $acsis->cube_list( $cl );
 
 }
 
@@ -925,6 +1151,9 @@ sub observing_mode {
     return 'pointing';
   } elsif ($mode eq 'SpIterFocusObs' ) {
     return 'focus';
+  } elsif ($mode eq 'SpIterStareObs' ) {
+    # should check switch mode
+    return 'grid_pssw';
   } elsif ($mode eq 'SpIterJiggleObs' ) {
     # depends on switch mode
     return 'jiggle_chop';
@@ -1090,6 +1319,24 @@ sub bandwidth_mode {
 
   }
 
+}
+
+=item B<nyquist>
+
+Returns the Nyquist sampling value for this observation. Defined as lambda/2D
+
+  $ny = $trans->nyquist( %info );
+
+Returns an Astro::Coords::Angle object
+
+=cut
+
+sub nyquist {
+  my $self = shift;
+  my %info = @_;
+  my $wav = $info{wavelength} * 1E-6; # microns to metres
+  my $ny = $wav / ( 2 * DIAM );
+  return new Astro::Coords::Angle( $ny, units => 'rad' );
 }
 
 =back
