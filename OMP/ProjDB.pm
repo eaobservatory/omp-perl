@@ -885,7 +885,7 @@ sub _mail_password {
 			     to => \@addr,
 			     from => "omp-auto-reply",
 			     subject => "OMP reissue of password for $projectid",
-			     headers => ["Reply-To: omp_group\@jach.hawaii.edu" ],
+			     headers => {"Reply-To" => "flex\@jach.hawaii.edu" },
 			    );
 
 
