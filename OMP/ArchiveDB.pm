@@ -227,6 +227,10 @@ sub _query_files {
     }
   } elsif( $query_hash->{date}->isa('OMP::Range') ) {
     $daterange = $query_hash->{date};
+    # Subtract one second from the range, because the max date is not inclusive.
+    my $max = $daterange->max;
+    $max = $max - 1;
+    $daterange->max($max);
   }
 
   my ( $instrument, $runnr );
