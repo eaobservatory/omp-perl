@@ -23,7 +23,7 @@ my $dbh = $db->handle;
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser/;
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser ompuser/;
 
 foreach my $tab (@tab) {
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab")

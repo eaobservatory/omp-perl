@@ -47,7 +47,7 @@ my %identity_column = (
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser/;
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser ompuser/;
 
 for my $tab (@tab) {
   my $restore = retrieve($tab);
