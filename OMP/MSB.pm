@@ -34,6 +34,8 @@ use OMP::Constants qw/ :msb /;
 use Astro::Coords;
 use Astro::WaveBand;
 
+use Astro::SLA qw(); # elements
+
 our $VERSION = (qw$Revision$)[1];
 
 our $DEBUG = 0;
@@ -1711,17 +1713,20 @@ sub SpTelescopeObsComp {
   # We know there is only one system element per target
   my ($system) = $self->_get_child_elements($base, qr/System$/);
 
+  # Get the coordinate system name
   my $sysname = $system->getName;
+
+  # Get the coordinate frame. This is either "type" or "SYSTEM"
+  my $type = ($sysname eq 'spherSystem'  ? $system->getAttribute("SYSTEM")
+	      : $system->getAttribute("type"));
+
+
   if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem"
      or $sysname eq 'spherSystem') {
 
     # Get the "long" and "lat"
     my $c1 = $self->_get_pcdata( $system, "c1");
     my $c2 = $self->_get_pcdata( $system, "c2");
-
-    # Get the coordinate frame. This is either "type" or "SYSTEM"
-    my $type = ($sysname eq 'spherSystem'  ? $system->getAttribute("SYSTEM")
-		: $system->getAttribute("type"));
 
     # degdeg uses different keys to hmsdeg
     #print "System: $sysname\n";
@@ -1754,7 +1759,48 @@ sub SpTelescopeObsComp {
     # and store them in an Astro::Coords.
     $summary{coordstype} = "ELEMENTS";
 
-    throw OMP::Error::FatalError("Orbital elements not yet supported\n");
+    # Lookup table for XML to SLALIB
+    # should probably put this in Astro::Coords::Elements
+    # and default to knowledge of units if, for example,
+    # supplied as 'inclination' rather than 'orbinc'
+    my %lut = (EPOCH  => 'epoch',
+	       ORBINC => 'inclination',
+	       ANODE  => 'anode',
+	       PERIH  => 'perihelion',
+	       AORQ   => 'aorq',
+	       E      => 'e',
+	       AORL   => 'LorM',
+	       DM     => 'n',
+	      );
+
+    # Create an elements hash
+    my %elements;
+    for my $el (keys %lut) {
+
+      # Skip if we are dealing with "comet" or minor planet
+      # and are at DM
+      next if ($el eq 'DM' && ($type =~ /Comet/i || $type =~ /Minor/i));
+
+      # AORL is not relevant for comet
+      next if ($el eq 'AORL' && $type =~ /Comet/i);
+
+      # Get the value from XML
+      my $value = $self->_get_pcdata( $system, $lut{$el});
+
+      # Convert from epoch year to MJD
+      if ($el eq 'EPOCH') {
+	$value = Astro::SLA::slaEpj2d( $value );
+      } elsif ($el =~ /ORBINC|ANODE|PERIH|AORL|DM/) {
+	# Convert to radians
+	$value *= Astro::SLA::DD2R;
+      }
+
+      # Store the value
+      $elements{$el} = $value;
+
+    }
+
+    $summary{coords} = Astro::Coords->new( elements => \%elements );
 
   } elsif ($sysname eq "namedSystem") {
 
