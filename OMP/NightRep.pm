@@ -839,9 +839,10 @@ sub ashtml {
   $cleartime -= $acct{$tel.'WEATHER'}->{total}->hours
     if exists $acct{$tel.'WEATHER'};
 
-  print "<tr class='proj_time_sum_weather_row'>";
-  print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
-
+  if ($cleartime > 0) {
+    print "<tr class='proj_time_sum_weather_row'>";
+    print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
+  }
 
   print "</table>";
   print "<p>";
