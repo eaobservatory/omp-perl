@@ -79,14 +79,26 @@ sub new {
     return undef;
   }
 
+  # ************** KLUGE **********************
+  # Namespace issues with XML::LibXML 2.5.11. If it finds
+  # xmlns="" it does not import into the default namespace (seemingly)
+  # unless written as xmlns:="". This may be a problem with my
+  # understanding of the problem. Should test with v2.6 when supported.
+  # For now kluge it by putting in the colon
+  $xml =~ s/xmlns=/xmlns:=/;
+
   # Now convert XML to parse tree
   my $parser = new XML::LibXML;
-  $parser->validation(1); # switch on validation
+  $parser->validation(0); # switch on validation
   my $tree = eval { $parser->parse_string( $xml ) };
   if ($@) {
     throw OMP::Error::SpBadStructure("Error whilst parsing science program: $@\n");
   }
 
+  # Look for a SpProg
+  my ($root) = $tree->findnodes('.//SpProg');
+  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor") 
+    unless defined $root;
 
   # Now create our Science Program hash
   my $sp = {
@@ -147,6 +159,10 @@ sub projectID {
     if (! defined $el) {
       # Look up the root and create a new element
       my ($root) = $self->_tree->findnodes('.//SpProg');
+
+      throw OMP::Error::SpBadStructure("Error obtaining root node in projectID discovery")
+	unless defined $root;
+
       $el = new XML::LibXML::Element( 'projectID' );
       $root->appendChild( $el );
       $el->appendText( $self->{ProjectID});
