@@ -245,10 +245,6 @@ If "timegap" is true then gaps will be included in the observation group.
 Default is to not include them. The size of the gaps is specfied as
 the value to "timegap".
 
-IF THE TELESCOPE IS JCMT AND NO INSTRUMENT IS SUPPLIED WE FORCE
-SCUBA AS THE INSTRUMENT BECAUSE ARCHIVEDB CAN NOT YET HANDLE
-TWO SEPARATE DATABASE QUERIES.
-
 =cut
 
 sub populate {
@@ -275,13 +271,8 @@ sub populate {
     $args{telescope} = OMP::ProjServer->getTelescope( $args{projectid});
   }
 
-  # KLUGE JCMT and SCUBA
-  $args{instrument} = 'scuba' if (!exists $args{instrument} &&
-				  exists $args{telescope} &&
-				  $args{telescope} =~ /jcmt/i);
-
-  # Liust of interesting keys for the query
-  my @keys = qw/ instrument telescope /;
+  # List of interesting keys for the query
+  my @keys = qw/ telescope /;
 
   # Calibrations?
   # If we have both a UT date and projectID we should look
@@ -296,6 +287,21 @@ sub populate {
   # if we are including calibrations we should not include projectid
   if (! $inccal) {
     push(@keys, "projectid");
+  }
+
+  # Expand out and remap heterodyne instruments.
+  if( exists $args{instrument} ) {
+    if( $args{instrument} =~ /^rxa/i ) {
+      $xmlbit .= "<instrument>rxa3i</instrument>";
+    } elsif( $args{instrument} =~ /^rxb/i ) {
+      $xmlbit .= "<instrument>rxb</instrument>";
+    } elsif( $args{instrument} =~ /^rxw/i ) {
+      $xmlbit .= "<instrument>rxw</instrument>";
+    } elsif( $args{instrument} =~ /^heterodyne/i ) {
+      $xmlbit .= "<instrument>rxa3i</instrument><instrument>rxb</instrument><instrument>rxw</instrument>";
+    } else {
+      $xmlbit .= "<instrument>" . $args{instrument} . "</instrument>";
+    }
   }
 
   # Form the XML.[restrict the keys
@@ -741,11 +747,16 @@ sub locate_timegaps {
     $a->startobs <=> $b->startobs
   } $self->obs;
 
+#my %gaphist;
+
   my @newobs;
   for( my $i = 0; $i < $#obs; $i++ ) {
     my $curobs = $obs[$i];
     my $nextobs = $obs[$i+1];
     push @newobs, $curobs;
+
+#my $gaplength = abs( $nextobs->startobs - $curobs->endobs );
+#$gaphist{int($gaplength/5)}++;
 
     if ( abs( $nextobs->startobs - $curobs->endobs ) > $length ) {
 
@@ -790,6 +801,10 @@ sub locate_timegaps {
     # And now, set $self to use the new observations.
     $self->obs( \@newobs );
   }
+
+#  foreach (sort { $a <=> $b } keys %gaphist) {
+#    print ( ($_ * 5), " ", $gaphist{$_}, "\n");
+#  }
 
   return;
 
