@@ -229,6 +229,8 @@ sub project_users {
       print $q->checkbox(-name=>$userid,
 			 -checked=>$contactable{$userid},
 			 -label=>"",);
+    } else {
+      print "<small>no email</small>";
     }
     print "</td>";
   }
