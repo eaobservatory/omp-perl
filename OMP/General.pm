@@ -471,8 +471,9 @@ sub infer_projectid {
       or $projid =~ /^u\/serv\//i             # UKIRT serv
 	or $projid =~ /^cnsrv/i               # Canadian service
 	  or $projid =~ /^nls/i               # Dutch service
-	    or $projid =~ /^SDF/i             # MEGA proposal
-	      or $projid =~ /^[A-Za-z]+$/;
+	    or $projid =~ /^uksrv/i           # UK service
+	      or $projid =~ /^SDF/i           # MEGA proposal
+		or $projid =~ /^[A-Za-z]+$/;
 
   # If it's a special reserved ID (two characters + digit)
   # return it - padding the number)
