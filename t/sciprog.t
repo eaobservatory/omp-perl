@@ -9,7 +9,7 @@ use Test;
 use Data::Dumper;
 
 
-BEGIN { plan tests => 258 }
+BEGIN { plan tests => 260 }
 
 use OMP::SciProg;
 
@@ -41,6 +41,12 @@ ok($obj->projectID, "TJ01");
 # Should be 11
 my @msbs = $obj->msb;
 ok(scalar(@msbs), 11);
+
+# Check that an MSB exists
+ok( $obj->existsMSB( $msbs[10]->checksum));
+# or not
+ok( ! $obj->existsMSB( "blahblah" ));
+
 
 # Go through the MSBs to see what we can find out about them
 for my $msb ($obj->msb) {

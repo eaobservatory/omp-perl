@@ -503,6 +503,32 @@ sub fetchMSB {
   return $found;
 }
 
+=item B<existsMSB>
+
+Given a checksum, determine whether that MSB is present in the science program.
+Returns a boolean.
+
+  if ($sp->existsMSB( $checksum )) {
+     ...
+  }
+
+=cut
+
+sub existsMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  # This should be optimized by creating a hash
+  # and simply using exist rather than stepping through the
+  # science program each time.
+  for my $msb ($self->msb) {
+    if ($checksum eq $msb->checksum) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 =item B<locate_msbs>
 
 Find the MSBs within a science program and store references
