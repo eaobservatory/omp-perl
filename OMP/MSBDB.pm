@@ -563,6 +563,9 @@ Mark the specified MSB as having been observed.
 
   $db->doneMSB( $checksum );
 
+Optionally takes a second argument, a C<OMP::Info::Comment> object
+containing an override comment and associated user.
+
 The MSB is located using the Project identifier (stored in the object)
 and the checksum.  If an MSB can not be located it is likely that the
 science program has been reorganized.
@@ -582,6 +585,7 @@ Invokes the C<hasBeenObserved> method on the MSB object.
 sub doneMSB {
   my $self = shift;
   my $checksum = shift;
+  my $comment = shift;
 
   OMP::General->log_message("Attempting to mark MSB for project ". $self->projectid . " as done [$checksum]");
 
@@ -609,11 +613,20 @@ sub doneMSB {
      OMP::General->log_message("Unable to retrieve corresponding MSB");
   }
 
+  # Work out the reason and user
+  my $author;
+  my $reason = "MSB marked as done";
+  if ($comment) {
+    $author = $comment->author;
+    $reason .= ": ". $comment->text
+      if $comment->text;
+  }
+
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-                           "MSB marked as done",
-                           OMP__DONE_DONE );
+                           $reason,
+                           OMP__DONE_DONE, $author );
 
   OMP::General->log_message("Marked MSB as done in the done table");
 
@@ -1948,6 +1961,7 @@ sub _run_query {
 	  } elsif ($coordstype eq 'PLANET') {
 	    %coords = ( planet => $obs->{target});
 	  } elsif ($coordstype eq 'ELEMENTS') {
+
 	    %coords = (
 		       # For up-ness tests we do not need
 		       # the epoch of perihelion
@@ -2105,7 +2119,9 @@ Send a message to the MSB done system so that the message can be
 stored in the done table.
 
   $self->_notify_msb_done( $checksum, $projectid, $msb,
-			   "MSB retrieved from DB", OMP__DONE_FETCH );
+			   "MSB retrieved from DB", OMP__DONE_FETCH,
+			   $user,
+			 );
 
 The arguments are:
 
@@ -2114,6 +2130,7 @@ The arguments are:
   msb - The MSB object (optional)
   message - the required message
   status - the type of message (see OMP::Constants)
+  user   - OMP::User object [optional]
 
 This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
@@ -2121,7 +2138,7 @@ This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
 sub _notify_msb_done {
   my $self = shift;
-  my ($checksum, $projectid, $msb, $text, $status) = @_;
+  my ($checksum, $projectid, $msb, $text, $status, $user) = @_;
 
   $projectid = $self->projectid
     unless defined $projectid;
@@ -2138,6 +2155,9 @@ sub _notify_msb_done {
   # Create a comment object
   my $comment = new OMP::Info::Comment( text => $text,
 					status => $status);
+
+  # Add the author if supplied
+  $comment->author( $user ) if $user;
 
   # Add the comment
   $done->addMSBcomment( $info, $comment );
