@@ -29,9 +29,11 @@ my %tables = (
 			 moon => "INTEGER NULL",
 			 timeest => "REAL",
 			 sciprog => "CHAR(255)",
+			 title => "VARCHAR",
+			 obscount => "INTEGER",
 			 _ORDER => [qw/ msbid projectid remaining checksum
-				    tauband seeing priority moon timeest 
-				    sciprog
+				    obscount tauband seeing priority moon 
+				    timeest sciprog title
 				    /],
 		       },
 	      ompproj => {
@@ -79,6 +81,7 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
+
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
@@ -86,12 +89,13 @@ for my $table (sort keys %tables) {
   my $sth = $dbh->prepare("CREATE TABLE $table ($str)")
     or die "Cannot prepare table $table: ". $dbh->errstr();
 
-  # We can grant permission on this table as well
-  #$dbh->do("GRANT ALL ON ompobs TO omp")
-  #  or die "Error1: $DBI::errstr";
-
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
   $sth->finish();
+
+  # We can grant permission on this table as well
+  $dbh->do("GRANT ALL ON $table TO omp")
+    or die "Error1: $DBI::errstr";
+
 }
 
 # Close connection
