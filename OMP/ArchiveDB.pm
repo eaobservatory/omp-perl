@@ -368,7 +368,7 @@ sub _query_files {
 
             # get the header information, form an Info::Obs object, and push that onto the array
 
-            my $obs = _create_Obs_object( \%generic_header, $FITS_header );
+            my $obs = _create_Obs_object( \%generic_header, \%header );
 
             push @returnarray, $obs;
           }
@@ -454,8 +454,8 @@ C<OMP::Info::Obs> object.
 
   $obs = _create_Obs_object( \%generic_header, $FITS_header );
 
-The second argument, an C<Astro::FITS::Header> object, is
-optional.
+The second argument, a reference to a hash containing a
+one-to-one mapping between FITS keywords and FITS values, is optional.
 
 =cut
 
@@ -496,7 +496,6 @@ sub _create_Obs_object {
   # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
   # Astro::Coords object for us. Hooray!
   if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
-
     my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
     if(defined($odfobject->getTarget)) {
       $args{coords} = $odfobject->getTarget;
