@@ -34,16 +34,17 @@ our $VERSION = (qw$ Revision: $ )[1];
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = ( qw/display_observation list_raw_observations list_reduced_observations
-                obsnumsort print_footer print_header print_summary/ );
-our @EXPORT_OK = ( qw/_file_matches_project _get_raw_directory _get_reduced_directory
-                   %display_suffix %headers/ );
+our @EXPORT = qw( display_observation list_raw_observations list_reduced_observations
+                obsnumsort pad print_footer print_header print_summary );
+our @EXPORT_OK = qw( _file_matches_project _get_raw_directory _get_reduced_directory
+                   %display_suffix %headers );
 our %EXPORT_TAGS = (
                     'all' => [ qw( @EXPORT @EXPORT_OK ) ],
                     'variables' => [ qw( %display_suffix %headers ) ],
                     'routines' => [ qw( _file_matches_project _get_raw_directory
                                         _get_reduced_directory ) ]
                     );
+#Exporter::export_tags(qw/ all variables routines /);
 
 =item B<Variables>
 
@@ -254,13 +255,13 @@ sub print_summary {
     print "<tr><th>UT date</th><th>Latest raw observation</th><th>Latest reduced group observation</th></tr>\n";
     print "<tr><td>$ut</td><td>";
     if($latestraw) {
-      print "$latestraw (<a href=\"?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
+      print "$latestraw (<a href=\"worf.pl?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
     } else {
       print "&nbsp;";
     }
     print "</td><td>";
     if ($latestgroup) {
-      print "$latestgroup (<a href=\"?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
+      print "$latestgroup (<a href=\"worf.pl?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
     } else {
       print "&nbsp;";
     }
@@ -388,7 +389,12 @@ sub list_reduced_observations {
     @files = grep(!/^\./, readdir(FILES));
     closedir(FILES);
     @files = grep(/sdf$/, @files);
-    @files = sort @files;
+    @files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
+
+# Sort the files according to observation number
+
+    @files = sort obsnumsort @files;
+
     print "<hr>\n";
     print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
     foreach my $file (@files) {
@@ -460,7 +466,7 @@ sub list_reduced_observations {
               print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
               $currentmsbid = $msbid;
             }
-            print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=reduced\">download</a></td></tr>\n";
+            print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=reduced\">download</a></td></tr>\n";
           }
         }
       }
@@ -492,6 +498,7 @@ sub list_raw_observations {
   my $currentmsbid = "";
   my $first = 1;
   my $directory = _get_raw_directory( $instrument, $ut );
+  print $directory;
   if( -d $directory ) {
     opendir(FILES, $directory);
     @files = grep(!/^\./, readdir(FILES));
@@ -500,7 +507,7 @@ sub list_raw_observations {
 # Get all *.sdf and files starting with two letters and eight digits
 
     @files = grep(/sdf$/, @files);
-    @files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
+    @files = grep(/^[a-zA-Z]{1}\d{8}/, @files);
 
 # Sort the files according to observation number
 
@@ -513,6 +520,7 @@ sub list_raw_observations {
         my ($prefix, $null, $obsnum, $extension) = ($1, $2, $3, $4);
 
         my $fullfile = $directory . "/" . $file;
+        $fullfile =~ s/\.sdf$/\.header/;
 
         my $Frm = new ORAC::Frame::NDF($fullfile);
         $Frm->readhdr;
@@ -562,7 +570,7 @@ sub list_raw_observations {
             print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>view data</th><th>download file</th></tr>\n";
             $currentmsbid = $msbid;
           }
-          print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td><a href=\"?view=yes&instrument=$instrument&file=$file&obstype=raw\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=raw\">download</a></td></tr>\n";
+          print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=raw\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=raw\">download</a></td></tr>\n";
         }
       }
     }
@@ -582,7 +590,7 @@ There are no arguments.
 
 =cut
 
-sub print_JAC_header {
+sub print_header {
   print <<END;
 Welcome to WORF. <a href="/JACpublic/UKIRT/software/worf/help.html">Need help?</a><br>
 <hr>
@@ -599,7 +607,7 @@ There are no arguments.
 
 =cut
 
-sub print_JAC_footer {
+sub print_footer {
   print <<END;
   <p>
   <hr>
@@ -622,6 +630,23 @@ sub obsnumsort {
   $b =~ /[a-zA-Z]{1,2}\d{8}_(\d+)/;
   my $b_obsnum = $1;
   $a_obsnum <=> $b_obsnum;
+}
+
+=item B<pad>
+
+A routine that pads strings with characters.
+
+  $padded = pad( $string, $character, $endlength );
+
+The string paramter is the initial string, the character parameter is the character
+you wish to pad the string with (at the beginning of the string), and the endlength
+parameter is the final length in characters of the padded string.
+
+=cut
+
+sub pad {
+  my ($string, $character, $endlength) = @_;
+  my $result = ($character x ($endlength - length($string))) . $string;
 }
 
 =item B<_file_matches_project>
