@@ -153,13 +153,40 @@ sub fb_entries {
   my $q = shift;
   my %cookie = @_;
 
-  my $status = [OMP__FB_IMPORTANT, OMP__FB_INFO];
+
+  my $status = [OMP__FB_IMPORTANT];
+
+  if ($q->param("show")) {
+    $status = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN];
+    ($q->param("show") eq 'info') and pop @$status;
+    ($q->param("show") eq 'important') and $status = [OMP__FB_IMPORTANT];
+  }
+
+  my $order;
+  ($q->param("order")) and $order = $q->param("order")
+    or $order = 'ascending';
+
   my $comments = OMP::FBServer->getComments( $cookie{projectid},
 					     $cookie{password},
-					     $status, 'ascending');
+					     $status, $order);
+
 
   print $q->h2("Feedback entries"),
-        "<a href='fbcomment.pl'>Add a comment</a>",
+	$q->startform,
+        "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
+	"Order: ",
+	$q->popup_menu(-name=>'order',
+		       -values=>[qw/ascending descending/],
+		       -default=>'ascending'),
+        "&nbsp;&nbsp;&nbsp;",
+	"Show: ",
+
+	$q->popup_menu(-name=>'show',
+		       -values=>[qw/important info hidden/],
+		       -default=>'important'),
+        "&nbsp;&nbsp;",
+        $q->submit("Refresh"),
+        $q->endform,
 	$q->p;
 
   my $i = 1;
