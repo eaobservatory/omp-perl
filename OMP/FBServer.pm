@@ -51,7 +51,7 @@ to be added to the feedback database.
 
 =cut
 
-sub addComments {
+sub addComment {
   my $class = shift;
   my $projectid = shift;
   my $comment = shift;
