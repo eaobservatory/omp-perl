@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 35 }
+BEGIN { plan tests => 53 }
 
 use OMP::General;
 
@@ -157,3 +157,47 @@ eval {
   OMP::General->infer_projectid( projectid => "h01"  );
 };
 ok( $@ =~ /Unable to determine telescope from supplied project ID/ );
+
+
+# Band allocations
+print "# Band determination\n";
+
+# first none
+ok(OMP::General->determine_band, 0);
+
+# Now UKIRT
+ok(OMP::General->determine_band(TELESCOPE => 'UKIRT'), 0);
+
+# And JCMT
+my %bands = (
+	     0.03 => 1,
+	     0.05 => 1,
+	     0.07 => 2,
+	     0.08 => 2,
+	     0.1  => 3,
+	     0.12 => 3,
+	     0.15 => 4,
+	     0.2  => 4,
+	     0.25 => 5,
+	     0.4  => 5,
+	    );
+
+for my $cso (keys %bands) {
+  ok(OMP::General->determine_band(TELESCOPE => 'JCMT',
+				  TAU => $cso), $bands{$cso});
+}
+
+# Test out of range
+eval { OMP::General->determine_band(TELESCOPE=>'JCMT',TAU=> undef) };
+ok($@);
+ok($@ =~ /not defined/);
+
+eval { OMP::General->determine_band(TELESCOPE=>'JCMT',TAU=>-0.05) };
+ok($@);
+ok($@ =~ /out of range/);
+
+
+eval { OMP::General->determine_band(TELESCOPE=>'JCMT') };
+ok($@);
+ok($@ =~ /without TAU/);
+

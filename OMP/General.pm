@@ -201,6 +201,72 @@ sub determine_host {
 
 =back
 
+=head2 Time Allocation Bands
+
+=over 4
+
+=item B<determine_band>
+
+Determine the time allocation band. This is used for scheduling
+and for decrementing observing time.
+
+  $band = OMP::General->determine_band( %details );
+
+The band is determined from the supplied details. Recognized
+keys are:
+
+  TAU       - the current CSO tau
+  TELESCOPE - name of the telescope
+
+Currently TAU is only used if TELESCOPE=JCMT. In all other cases
+(and if TELESCOPE is not supplied) the band returned is 0.
+If TELESCOPE=JCMT the TAU must be present. An exception is thrown
+if TAU is not present in that case.
+
+=cut
+
+sub determine_band {
+  my $self = shift;
+  my %details = @_;
+
+  # JCMT is the only interesting one
+  my $band;
+  if (exists $details{TELESCOPE} and $details{TELESCOPE} eq 'JCMT') {
+
+    if (exists $details{TAU}) {
+      my $cso = $details{TAU};
+      throw OMP::Error::FatalError("CSO TAU supplied but not defined. Unable to determine band")
+	unless defined $cso;
+
+      if ($cso >= 0 && $cso <= 0.05) {
+	$band = 1;
+      } elsif ($cso > 0.05 && $cso <= 0.08) {
+	$band = 2;
+      } elsif ($cso > 0.08 && $cso <= 0.12) {
+	$band = 3;
+      } elsif ($cso > 0.12 && $cso <= 0.2) {
+	$band = 4;
+      } elsif ($cso > 0.2) {
+	$band = 5;
+      } else {
+	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
+      }
+
+    } else {
+      throw OMP::Error::FatalError("Unable to determine band for JCMT without TAU");
+    }
+
+
+  } else {
+    # Everything else is boring
+    $band = 0;
+  }
+
+  return $band;
+}
+
+=back
+
 =head2 Semesters
 
 =over 4
