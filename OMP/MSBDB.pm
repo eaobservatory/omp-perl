@@ -921,8 +921,15 @@ sub _insert_row {
     }
     my @coords = $obs->{coords}->array;
 
+    # If we dont have an instrument we raise an exception
+    unless (exists $obs->{instrument} and defined $obs->{instrument}) {
+      use Data::Dumper; print Dumper($obs);
+      throw OMP::Error::SpBadStructure("No instrument defined in MSB. Unable to schedule.\n");
+    }
+
     # Wavelength must be a number (just check for presence of any number)
-    $obs->{wavelength} = -1 unless $obs->{wavelength} =~ /\d/;
+    $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and 
+                                     $obs->{wavelength} =~ /\d/);
 
     print "Inserting row: ",Dumper($obs) if $DEBUG;
 
