@@ -12,6 +12,8 @@ my $dbuser = "sa";
 my $dbpwd  = "";
 my $database = "archive";
 
+#$server = "SYB_OMP";
+#$database = "omp";
 
 my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd)
   or die "Cannot connect: ". $DBI::errstr;
@@ -72,8 +74,10 @@ my %tables = (
 			 el6 => "REAL NULL",
 			 el7 => "REAL NULL",
 			 el8 => "REAL NULL",
+			 pol => "INTEGER",
+			 type => "VARCHAR(32)",
 			 _ORDER => [qw/obsid msbid projectid
-				    instrument wavelength coordstype
+				    instrument type pol wavelength coordstype
 				    target ra2000 dec2000 el1 el2
 				    el3 el4 el5 el6 el7 el8
 				    /],
@@ -89,14 +93,15 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
-  #next unless $table eq 'ompsciprog';
+  next unless $table eq 'ompobs';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
 
+   my $sth;
   print "Drop table $table\n";
-  my $sth = $dbh->prepare("DROP TABLE $table")
+  $sth = $dbh->prepare("DROP TABLE $table")
     or die "Cannot drop table $table: ". $dbh->errstr();
 
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
