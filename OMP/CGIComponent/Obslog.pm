@@ -73,7 +73,7 @@ object, and the third optional argument tells the function how to
 display things. It is a hash reference optionally containing the
 following keys:
 
-=over 4
+=over 8
 
 =item *
 
@@ -579,9 +579,10 @@ sub obs_summary {
 Prints a table summarizing observations taken for a telescope,
 broken up by instrument.
 
-  ( $inst, $ut ) = obs_inst_summary( $q );
+  ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
 
-The first argument must be a C<CGI> object.
+The first argument must be a C<CGI> object and the second argument
+is a reference to a hash containing the cookie information.
 
 The function will return the name of the active instrument in the
 table and the UT date for the observations. These two values are
@@ -873,7 +874,7 @@ Given a C<CGI> object, return an C<Info::Obs> object.
 In order for this method to work properly, the C<CGI> object
 must have the following variables:
 
-=over 4
+=over 8
 
 =item *
 
@@ -961,14 +962,15 @@ sub cgi_to_obs {
 
 =item B<cgi_to_obsgroup>
 
-Given a C<CGI> object, return an C<Info::ObsGroup> object.
+Given a C<CGI> object and a reference to cookie information, return an
+C<Info::ObsGroup> object.
 
-  $obsgroup = cgi_to_obsgroup( $cgi, ut => $ut, inst => $inst );
+  $obsgroup = cgi_to_obsgroup( $cgi, \%cookie, ut => $ut, inst => $inst );
 
-In order for this method to work properly, the C<CGI> object
-should have the following variables:
+In order for this method to work properly, the cookie hash
+should have the following keys:
 
-=over 4
+=over 8
 
 =item *
 
@@ -987,17 +989,25 @@ projid - The project ID for which observations will be returned.
 The C<inst> and C<projid> variables are optional, but either one or the
 other (or both) must be defined.
 
-The parameters following the C<CGI> object are optional and can include:
+The parameters following the cookie are optional and can include:
 
-=over 4
+=over 8
 
-=item * ut - The UT date in the form YYYY-MM-DD.
+=item *
 
-=item * inst - The instrument that the observation was taken with.
+ut - The UT date in the form YYYY-MM-DD.
 
-=item * projid - The project ID for which observations will be returned.
+=item *
 
-=item * telescope - The telescope that the observations were taken with.
+inst - The instrument that the observation was taken with.
+
+=item *
+
+projid - The project ID for which observations will be returned.
+
+=item *
+
+telescope - The telescope that the observations were taken with.
 
 =back
 
