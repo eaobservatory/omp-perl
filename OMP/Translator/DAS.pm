@@ -26,7 +26,9 @@ use warnings;
 
 use OMP::Error;
 use Astro::Telescope;
-use Astro::SLA;
+use Astro::SLA ();
+use File::Spec;
+use SrcCatalog::JCMT;
 
 # Unix directory for writing ODFs
 our $TRANS_DIR = "/observe/ompodf";
@@ -66,13 +68,19 @@ sub translate {
   my $sp = shift;
   my $asdata = shift;
 
+  # Project
+  my $projectid = $sp->projectID;
+
   # Need to get the MSBs [which we assume will all be translated by this class]
   my @msbs = $sp->msb;
 
   # Now loop over MSBs
   # Targets have to be collated and written to a catalog file
+  # And additional data files need to be kept [as arrays of lines for now
+  # indexed by future file name]
   my $html = '';
   my @targets;
+  my %files;
 
   # Process standard information
   $html .= $self->fixedHeader( $sp );
@@ -130,6 +138,9 @@ sub translate {
     # Unroll the observations
     my @obs = $msb->unroll_obs();
 
+    # Fudge Raster observations that have more than one offset
+    @obs = map { $self->fudge_raster_offsets($_) } @obs;
+
     # Ignore suspension for now
     for my $obsinfo ( @obs ) {
       $obscount++;
@@ -153,27 +164,59 @@ sub translate {
 
       # Start new observation
       my $mode = $self->obsMode( %$obsinfo );
-      $html .= "<h2>Observation #$obscount: $mode</h2>\n";
+      $html .= "<hr><h2>Observation #$obscount: $mode</h2>\n";
+
+      # Quick variable to indicate whether we are a science observation
+      my $issci = 0;
+      $issci = 1 if ($obsinfo->{MODE} eq 'SpIterStareObs' ||
+		    $obsinfo->{MODE} eq 'SpIterRasterObs');
+
+      # Want the target and the frontend in a table
+      $html .= "<table>";
 
       # Target information (assuming we have not already specified it)
-      $html .= $self->targetConfig( %$obsinfo );
+      $html .= "<tr valign=\"top\">\n";
 
       # BE/FE configuration are not required for FOCUS and POINTING
-      if ($mode ne 'FOCUS' && $mode ne 'POINTING') {
+      if ($issci) {
 
 	# Front end configuration (assuming we have not already specified it)
+	$html .= "<td>";
 	$html .= $self->feConfig( %$obsinfo );
 
 	# Back end
 	$html .= $self->beConfig( %$obsinfo );
-
-	# Switch mode
-	$html .= $self->switchConfig( %$obsinfo );
-
+	$html .= "</td>";
       }
 
+      $html .= "<td>\n";
+      $html .= $self->targetConfig( %$obsinfo );
+      $html .= "</td>";
+
+
+      # Switch mode
+      $html .= "<td>";
+      $html .= $self->switchConfig( %$obsinfo ) if $issci;
+
       # Actual observing mode (inc cell)
-      #my ($snippet, %files) = $self->
+      my $otmode = $obsinfo->{MODE};
+      if ($self->can( $otmode )) {
+	# Need to return HTML + optional file info
+	my ($htmldata, %newfiles) = $self->$otmode( %$obsinfo );
+
+	# Combine with previous data
+	$html .= $htmldata;
+	for my $newfile (keys %newfiles) {
+	  # assume each file name is unique
+	  $files{$newfile} = $newfiles{$newfile};
+	}
+
+      } else {
+	throw OMP::Error::TranslateFail("Do not know how to translate observations in mode: $otmode");
+      }
+
+      $html .= "</td>";
+      $html .= "</table>\n";
 
     }
 
@@ -184,12 +227,22 @@ sub translate {
   # For debugging
   #print $html;
 
+  use Data::Dumper;
+  print Dumper({TARGETS=>\@targets, FILES=>\%files});
+
   if ($asdata) {
     # How do I return the catalogue????
-    return $html;
+    # Return it as Hash until we can be bothered to develop an object
+    return { 
+	    HTML => $html,
+	    TARGETS => \@targets,
+	    FILES => \%files,
+	   };
+
   } else {
-    # Write this file to disk and all the target information
-    # to a catalogue
+
+    # Write this HTML file to disk along with the patterns and all the
+    # target information to a catalogue
     my $file = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
     open my $fh, ">$file" or 
       throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
@@ -197,7 +250,40 @@ sub translate {
     print $fh $html;
 
     close($fh) 
-      or throw OMP::Error::FatalError("Error closing translation [$file]: $!\n");
+      or throw OMP::Error::FatalError("Error closing HTML translation [$file]: $!\n");
+
+    # Now the pattern files et al
+    for my $f (keys %files) {
+      open my $fh, ">$f" or
+	throw OMP::Error::FatalError("Could not write translation file [$file] to disk: $!\n");
+
+      for my $l ( @{ $files{$f} } ) {
+	chomp($l);
+	print $fh "$l\n";
+      }
+
+      close($fh) 
+	or throw OMP::Error::FatalError("Error closing translation [$file]: $!\n");
+
+    }
+
+    # Now the catalogue file
+    my $cat = new SrcCatalog::JCMT('/local/progs/etc/poi.dat');
+
+    # For each of the targets add the projectid
+    for (@targets) {
+      $_->comment("Project: $projectid");
+      print Dumper($_);
+    }
+
+    # Insert the new sources at the start
+    unshift(@{$cat->sources}, @targets);
+    $cat->reset;
+
+    # And write it out
+    my $outfile = File::Spec->catfile( $TRANS_DIR, $CATALOGUE);
+    $cat->writeCatalog($outfile);
+
     return $file;
   }
 }
@@ -247,8 +333,12 @@ sub correct_offsets {
     next unless exists $modes{Stare};
 
     # Now need to recurse through the data structure changing
-    # waveplate iterator to a single array rather than an array
+    # offset iterator to a single array rather than an array
     # separate positions.
+
+    # Note that this will not do the right thing if you have
+    # a Raster and Stare as child of offset iterator because the
+    # raster will not unroll correctly
     for my $child (@{ $obs->{SpIter}->{CHILDREN} }) {
       $self->_fix_offset_recurse( $child );
     }
@@ -268,13 +358,29 @@ sub _fix_offset_recurse {
   for my $key (keys %$this) {
 
     if ($key eq 'SpIterOffset') {
-      # FIX UP - it does not make any sense to have another
-      # offset iterator below this level but we do support it
-      my @offsets = @{ $this->{$key}->{ATTR}};
 
-      # and store it back
-      $this->{$key}->{ATTR} = [ { offsets => \@offsets } ];
+      # Need to determine whether this Offset iterator has a child
+      # that is a StareObs
+      my @children;
+      push(@children,$self->_list_children( $this ));
 
+      # Look for Stare
+      my $isstare;
+      for my $c (@children) {
+	if ($c eq 'SpIterStareObs') {
+	  $isstare = 1;
+	  last;
+	}
+      }
+
+      if ($isstare) {
+	# FIX UP - it does not make any sense to have another
+	# offset iterator below this level but we do support it
+	my @offsets = @{ $this->{$key}->{ATTR}};
+
+	# and store it back
+	$this->{$key}->{ATTR} = [ { offsets => \@offsets } ];
+      }
     }
 
     # Now need to go deeper if need be
@@ -292,6 +398,63 @@ sub _fix_offset_recurse {
 
   }
 
+}
+
+# Returns list of children
+sub _list_children {
+  my $self = shift;
+  my $this = shift;
+
+  my @children;
+  for my $key (keys %$this) {
+
+    # Store all children
+    push(@children,$key);
+
+    if (UNIVERSAL::isa($this->{$key},"HASH") &&
+	exists $this->{$key}->{CHILDREN}) {
+      # This means we have some children to analyze
+      for my $child (@{ $this->{$key}->{CHILDREN} }) {
+	push(@children,$self->_list_children( $child ));
+      }
+    }
+  }
+  return @children;
+}
+
+=item B<fudge_raster_offsets>
+
+Given an unrolled observation, duplicate it for all offsets if we
+happen to have a raster with multiple offsets defined.
+
+  @obs = OMP::Translator::DAS->fudge_raster_offsets( $obs );
+
+This is required because it is difficult to correct the sequence
+directly if a raster and sample share the same offset iterator.
+
+In most cases simply returns the input argument.
+
+=cut
+
+sub fudge_raster_offsets {
+  my $self = shift;
+  my $obs = shift;
+
+  my @outobs;
+  if ($obs->{MODE} eq 'SpIterRasterObs' && exists $obs->{offsets}) {
+    for my $off (@{$obs->{offsets}}) {
+      my %newobs = %$obs;
+      $newobs{OFFSET_DX} = $off->{OFFSET_DX};
+      $newobs{OFFSET_DY} = $off->{OFFSET_DY};
+      $newobs{OFFSET_PA} = $off->{OFFSET_PA};
+      delete $newobs{offsets};
+      push(@outobs, \%newobs);
+    }
+
+  } else {
+    push(@outobs, $obs);
+  }
+  return @outobs;
 }
 
 
@@ -321,9 +484,13 @@ sub fixedHeader {
 
   $html .= "<HTML><HEAD><TITLE>Project $project</TITLE></HEAD><BODY>\n";
 
-  $html .= "<H1>$project</H1>\n";
+  $html .= "<H1>Project: <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$project\">$project</a></H1>\n";
 
-  $html .= "<em>Please remember to set project ID to <em>$project</em> in the acquisition system.</em><br><br>\n";
+  $html .= "<ul>\n";
+  $html .= "<li><em>Please remember to set project ID to <em>$project</em> in the acquisition system.</em>\n";
+  my $cat = $VAX_TRANS_DIR . $CATALOGUE;
+  $html .= "<LI>Target information has been written to catalogue file: <b>$cat</b> when appropriate. The additional target information in this document is for information only (or may be a comet or planet).\n";
+  $html .= "</ul>\n";
 
   return $html;
 }
@@ -352,6 +519,7 @@ sub msbHeader {
   $html .= "<H1>MSB: $title</H1>\n";
   $html .= '<!-- MSBID: '. $msb->checksum . " -->\n";
 
+  # Notes are no longer required
   if (defined $note) {
     $html .= "<h2>Note: $ntitle</h2>\n$note\n";
   } else {
@@ -614,10 +782,10 @@ sub switchConfig {
       my @offsets = $c->distance($refc);
 
       # Convert to arcseconds
-      ($offx, $offy) = map { $_ * DR2AS } @offsets;
+      ($offx, $offy) = map { sprintf("%.1f",$_ * Astro::SLA::DR2AS) } @offsets;
     }
 
-    $html .= "Position switch reference position is at offset (<b>$offx</b>, <b>$offy</b>) arcsec\n [Tangent plane offsets in the tracking coordinate system]\n";
+    $html .= "Position switch reference position is at offset (<b>$offx</b>, <b>$offy</b>) arcsec\n [Tangent plane offsets in the tracking coordinate system from the tracking centre]\n";
 
   } elsif ($summary{switchingMode} =~ /Frequency/) {
 
@@ -643,6 +811,214 @@ sub switchConfig {
   }
 
   return $html;
+}
+
+=item B<offsetConfig>
+
+Return any information concerning the offset position for the observation.
+
+  $html .= OMP::Translator::DAS->offsetConfig( %summary );
+
+For PATTERN observing this will return no offset.
+
+=cut
+
+sub offsetConfig {
+  my $self = shift;
+  my %summary = @_;
+
+  my $html = '';
+
+
+
+  return $html;
+}
+
+=item B<SpIterStareObs>
+
+SAMPLE/GRID/PATTERN details.
+
+  ($html, %files) = OMP::Translator::DAS->SpIterStareObs( %summary );
+
+The hash contains the pattern file details (if appropriate).
+The keys are the names of the files to be written, the values
+are reference to arrays containing the contents of the file.
+
+=cut
+
+sub SpIterStareObs {
+  my $self = shift;
+  my %summary = @_;
+
+  my $html = '';
+  my %extras;
+
+  # Underlying sample details are pretty straightforward
+  $html .= "<h3>Sample details:</h3>\n";
+
+  $html .= "<table>";
+  $html .= "<tr><td><b>Number of cycles per sample:</b></td><td>".
+      $summary{nintegrations} . " </td></tr>";
+  $html .= "<tr><td><b>Seconds per cycle:</b></td><td>".
+      $summary{secsPerCycle} . " sec</td></tr>";
+  $html .= "<tr><td><b>Continuous cal?</b></td><td>".
+      $summary{continuousCal} . " </td></tr>";
+  $html .= "<tr><td><b>Cycle Reversal?</b></td><td>".
+      $summary{cycleReversal} . " </td></tr>";
+
+  $html .= "</table>\n";
+
+  # Now we need to do is get the mode
+  my %data = offsets_to_grid( @{ $summary{offsets} } );
+
+  # Offsets
+  if ($data{TYPE} eq 'SAMPLE' || $data{TYPE} eq 'GRID') {
+
+    # Map centre (offset and PA)
+    # if we had used an offset iterator
+    my @offsets = @{ $data{OFFSETS}->[0] };
+    if ($offsets[0] != 0.0 && $offsets[1] != 0.0) {
+      $html .= "This observation is offset from the tracking centre:\n";
+
+      $html .= "<table>";
+      $html .= "<tr><td><b>X offset:</b></td><td>".
+	$offsets[0] . " arcsec</td></tr>";
+      $html .= "<tr><td><b>Y offset:</b></td><td>".
+	$offsets[1] . " arcsec</td></tr>";
+      $html .= "<tr><td><b>Position Angle:</b></td><td>".
+	$data{PA} . " deg</td></tr>";
+      $html .= "</table>\n";
+    } else {
+      $html .= "This observation is centred on the tracking centre.<BR>\n";
+    }
+
+  }
+
+  # Specific parameters
+  if ($data{TYPE} eq 'GRID') {
+    $html .= "This is a GRID observation. The GRID parameters are:\n";
+
+      $html .= "<table>";
+      $html .= "<tr><td><b>Number of samples in X:</b></td><td>".
+	$data{GRID_NX} . " </td></tr>";
+      $html .= "<tr><td><b>Number of samples in Y:</b></td><td>".
+	$data{GRID_NY} . " </td></tr>";
+      $html .= "<tr><td><b>X increment:</b></td><td>".
+	$data{GRID_DX} . " arcsec</td></tr>";
+      $html .= "<tr><td><b>Y increment:</b></td><td>".
+	$data{GRID_DY} . " arcsec</td></tr>";
+      $html .= "<tr><td><b>GRID Position Angle:</b></td><td>".
+	$data{PA} . " deg</td></tr>";
+      $html .= "</table>\n";
+
+  } elsif ($data{TYPE} eq 'PATTERN') {
+
+    # Store the offsets in an array
+    # where each line is "dx dy"
+    # One offset per array element
+    my @lines = map { $_->[0] ."," . $_->[1] } @{ $data{OFFSETS} };
+    unshift(@lines, "# CENTRE_OFFSET_X,      CENTRE_OFFSET_Y");
+
+    # Determine a filename
+    my $pattfile = "pattern" . sprintf("%03d",_get_next_file_number()) .".dat";
+
+    $html .= "This is a PATTERN observation containing ".scalar(@lines)." offset positions. The coordinates are stored in file <b>$VAX_TRANS_DIR"."$pattfile</b>\n<br>";
+
+    $html .= "Note that the Position Angle of these offsets is non-zero so cell must be set accordingly. The PA is $data{PA} deg.<br>\n" if $data{PA} != 0.0;
+
+    # Now create the real file name (full path)
+    $pattfile = File::Spec->catfile($TRANS_DIR,$pattfile);
+
+    # Store it
+    $extras{$pattfile} = \@lines;
+
+  } elsif ($data{TYPE} ne 'SAMPLE') {
+    throw OMP::Error::FatalError("Unable to determine sample type");
+  }
+
+
+  return ($html, %extras);
+}
+
+=item B<SpIterRasterObs>
+
+Raster details.
+
+  ($html) = OMP::Translator::DAS->SpIterRasterObs( %summary );
+
+=cut
+
+sub SpIterRasterObs {
+  my $self = shift;
+  my %summary = @_;
+
+  my $html = '';
+
+  $html .= "<H3>Rastering details</H3>\n";
+
+  # Map centre (offset and PA)
+  # if we had used an offset iterator
+  if (exists $summary{OFFSET_DX} && exists $summary{OFFSET_DY} &&
+      exists $summary{OFFSET_PA}) {
+    $html .= "This raster map is offset from the tracking centre:\n";
+
+    $html .= "<table>";
+    $html .= "<tr><td><b>X offset:</b></td><td>".
+      $summary{OFFSET_DX} . " arcsec</td></tr>";
+    $html .= "<tr><td><b>Y offset:</b></td><td>".
+      $summary{OFFSET_DY} . " arcsec</td></tr>";
+    $html .= "<tr><td><b>Position Angle:</b></td><td>".
+      $summary{OFFSET_PA} . " deg</td></tr>";
+    $html .= "</table>\n";
+
+  }
+
+  # Map size
+  $html .= "Map parameters:\n";
+
+  # Need the Delta X and the Number of X 
+  my $dx = $summary{SCAN_VELOCITY} * $summary{sampleTime};
+
+  # Make sure the number of positions encompasses the full size
+  my $nx = int(($summary{MAP_WIDTH} / $dx) + 0.99);
+  my $ny = int(($summary{MAP_HEIGHT} / $summary{SCAN_DY}) +0.99);
+
+  $html .= "<table>";
+  $html .= "<tr><td><b>Sample time per point:</b></td><td>".
+    $summary{sampleTime} . " sec</td></tr>";
+  $html .= "<tr><td><b>Number of rows:</b></td><td>".
+    $ny . " </td></tr>";
+  $html .= "<tr><td><b>Number of samples per row:</b></td><td>".
+    $nx . " </td></tr>";
+  $html .= "<tr><td><b>X pixel increment:</b></td><td>".
+    $dx." arcsec</td></tr>";
+  $html .= "<tr><td><b>Y scan increment:</b></td><td>".
+    $summary{SCAN_DY}." arcsec</td></tr>";
+  $html .= "<tr><td><b>Map position angle:</b></td><td>".
+    $summary{MAP_PA}." deg</td></tr>";
+  $html .= "</table>\n";
+
+  return ($html);
+}
+
+=item B<SpIterPointingObs>
+
+A simple pointing. No action needed.
+
+=cut
+
+sub SpIterPointingObs {
+  return ("");
+}
+
+=item B<SpIterFocusObs>
+
+A simple focus. No action needed.
+
+=cut
+
+sub SpIterFocusObs {
+  return ("");
 }
 
 
@@ -680,10 +1056,9 @@ sub _HztoMHz {
 #  GRID_DY => Y spacing in arcseconds   [GRID]
 #  GRID_NX => Number of positions in X  [GRID]
 #  GRID_NX => Number of positions in Y  [GRID]
-#  GRID_X => X Centre of grid pattern [GRID]
-#  GRID_Y => Y centre of grid pattern [GRID]
 #  PA => Position angle of offsets    [GRID and PATTERN and SAMPLE]
-#  OFFSETS => Array of arrays with OFFSET_DX and OFFSET_DY [PATTERN/SAMPLE]
+#  OFFSETS => Array of arrays with OFFSET_DX and OFFSET_DY [ALL]
+#       for SAMPLE and GRID there will be a single offset (the centre position)
 
 # Note that if the offsetx/y of the GRID is not the centre of the
 # grid (ie the grid has even NX or NY) then we return the coordinates
@@ -696,11 +1071,11 @@ sub offsets_to_grid {
   if (scalar(@offsets) == 1) {
     return (TYPE => 'SAMPLE', 
 	    PA => $offsets[0]->{OFFSET_PA},
-	    OFFSETS => [ $offsets[0]->{OFFSET_DX},
-			 $offsets[0]->{OFFSET_DY} ]);
+	    OFFSETS => [ [ $offsets[0]->{OFFSET_DX},
+			   $offsets[0]->{OFFSET_DY} ]]);
   } elsif (scalar(@offsets) == 0) {
     # No offsets - just use the origin
-    return (TYPE => 'SAMPLE', PA=>0.0, OFFSETS=>[0.0,0.0]);
+    return (TYPE => 'SAMPLE', PA=>0.0, OFFSETS=>[[0.0,0.0]]);
   }
 
   # All the offsets should be at a single PA (that is what the OT
@@ -847,8 +1222,7 @@ sub offsets_to_grid {
       # we know that NX and NY are odd
       throw OMP::Error::FatalError("NX and NY must be odd by this point in the code - internal error [got $nx and $ny]")
 	if (($nx % 2) != 1 || ($ny % 2) != 1);
-      $results{GRID_X} = $xmin + (($nx-1)/2)*$dx;
-      $results{GRID_Y} = $ymin + (($ny-1)/2)*$dy;
+      $results{OFFSETS} = [[$xmin + (($nx-1)/2)*$dx, $ymin + (($ny-1)/2)*$dy]];
 
       print Dumper(\%results);
 
@@ -885,6 +1259,14 @@ sub offsets_to_grid {
 
   return %results;
 
+}
+
+# This is just returns a number that is guaranteed to increase
+# by 1 each time it is called
+my $start = 0;
+sub _get_next_file_number {
+  $start++;
+  return $start;
 }
 
 
