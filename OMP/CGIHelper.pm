@@ -1763,7 +1763,7 @@ Create a page summarizing activity for several nights.
 
 =cut
 
-sub multi_night_report
+sub multi_night_report { }
 
 =item B<night_report>
 
