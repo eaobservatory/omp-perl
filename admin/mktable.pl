@@ -91,8 +91,6 @@ my %tables = (
 			  remaining => "REAL",
 			  pending => "REAL",
 			  allocated => "REAL",
-			  country => "VARCHAR(32)",
-			  tagpriority => "INTEGER",
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
 			  title => TITLE,
@@ -104,12 +102,22 @@ my %tables = (
 			  cloud => "INTEGER",
                           state => "BIT",
 			  _ORDER => [qw/projectid pi
-				     title tagpriority
-				     country semester encrypted allocated
+				     title semester encrypted allocated
 				     remaining pending telescope taumin
 				     taumax seeingmin seeingmax cloud state
 				     /],
 			 },
+	      # Queue details for each project
+	      ompprojqueue => {
+			       projectid => PROJECTID,
+			       uniqid => NUMID,
+			       country => 'VARCHAR(32) NOT NULL',
+			       tagpriority => 'INTEGER',
+			       _ORDER => [qw/
+					  uniqid projectid country
+					  tagpriority
+					 /],
+			      },
 	      # Time accounting for projects
 	      # See OMP::ProjDB
 	      omptimeacct => {
@@ -303,10 +311,17 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompobslog';
   next if $table eq 'omptimeacct';
   next if $table eq 'ompprojuser';
+  next if $table eq 'ompprojqueue';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
+
+  # Make sure we mean it
+  my $confirm = $term->readline( "Dropping/Creating table $table. ".
+				 "Are you sure [y/n]: ");
+
+  next unless $confirm =~ /^y/i;
 
   # Usually a failure to drop is non fatal since it
   # indicates that the table is not there to drop
