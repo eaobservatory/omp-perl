@@ -2142,6 +2142,18 @@ sub SpInstSCUBA {
   return %summary;
 }
 
+=item B<SpInstHeterodyne>
+
+Heterodyne configuration.
+
+Not Yet Implemented.
+
+=cut
+
+sub SpInstHeterodyne {
+  throw OMP::Error::FatalError("The OMP database does not yet accept heterodyne observations");
+}
+
 =item B<SpTelescopeObsComp>
 
 Target information.
