@@ -22,6 +22,7 @@ use warnings;
 use Carp;
 
 # External modules
+use OMP::Config;
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
@@ -152,8 +153,6 @@ sub returncomment {
 Telescope to use for this query. This governs the query since the
 tables are different.
 
-A telescope must be specified in the query.
-
 =cut
 
 sub telescope {
@@ -166,7 +165,10 @@ sub telescope {
   my $telescope;
   if ( exists $href->{telescope} ) {
     $telescope = $href->{telescope}->[0];
-  } else {
+  } elsif ( defined $self->instrument ) {
+    $telescope = OMP::Config->inferTelescope('instruments', $self->instrument);
+  }
+  if( ! defined( $telescope ) ) {
     throw OMP::Error::DBMalformedQuery( "No telescope supplied!");
   }
 
