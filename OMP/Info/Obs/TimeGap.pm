@@ -127,6 +127,8 @@ sub nightlog {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "WEATHER";
   } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "FAULT";
+  } elsif( $self->status == OMP__TIMEGAP_PROJECT ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "PROJECT";
   } else {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
   }
