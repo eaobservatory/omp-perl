@@ -100,7 +100,7 @@ sub readfile {
   }
   catch Error with {
     my $Error = shift;
-    print "Error in Info::Obs::readfile: " . $Error->{'-text'} . "\n";
+    print "Error in Info::Obs::readfile: $Error\n";
   };
   return $obs;
 }
@@ -450,8 +450,8 @@ sub nightlog {
 
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
-        $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING_LONG'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
   } elsif($instrument =~ /ircam/i) {
@@ -487,7 +487,7 @@ sub nightlog {
     $return{'_STRING'} = sprintf("%4u %4u %16.16s  %8s %6.2f %8.8s %8.8s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Filter'}, $return{'Obstype'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
 
@@ -524,7 +524,7 @@ sub nightlog {
     $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f  %7.7s  %7.3f %6.6s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT time'}, $return{'Exposure time'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'DR Recipe'});
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
 
@@ -574,7 +574,7 @@ sub nightlog {
     $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
 
@@ -614,7 +614,7 @@ sub nightlog {
 #    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f %9.9s %7.7s  %4.2f %6.1f %6.1f %-26.26s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Filter'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
   } elsif( $instrument =~ /uist/i ) {
@@ -660,7 +660,7 @@ sub nightlog {
     $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
-        $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
+        $return{'_STRING'} .= sprintf("\n %19s UT / %-.15s: %-50s",$comment->date->ymd . ' ' . $comment->date->hms, $comment->author->name, $comment->text);
       }
     }
   }
