@@ -252,7 +252,7 @@ sub fault_table {
   # First show the fault info
   print "<div class='black'>";
   print $q->startform;
-  print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . $fault->author->html . "</b></td>";
+  print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate"  . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
@@ -311,7 +311,7 @@ sub fault_table {
       $bgcolor = '#bcbce2';
     } else {
       $bgcolor = '#dcdcf2';
-      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $respdate;
+      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . OMP::Display->userhtml($resp->author, $q) . "</td><td><b>Date: </b>" . $respdate;
 
       # Link to respons editing page
       if (! $noedit) {
@@ -1709,7 +1709,7 @@ sub show_faults {
 
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
     print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b></td>";
-    print "<td>" . $user->html . "</td>";
+    print "<td>" . OMP::Display->userhtml($user, $q) . "</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
