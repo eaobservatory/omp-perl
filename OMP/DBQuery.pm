@@ -599,7 +599,12 @@ sub _post_process_hash {
 
       # If we are in a hash convert all hash members
       $self->_process_elements($href, 
-			       sub { OMP::General->parse_date(shift)},
+			       sub { my $string = shift;
+				     my $date = OMP::General->parse_date($string);
+				     throw OMP::Error::DBMalformedQuery("Error parsing date string '$string'")
+				       unless defined $date;
+				     return $date;
+				   },
 			       [ $key ] );
 
       # See if there is a range attribute
