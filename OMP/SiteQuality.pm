@@ -242,7 +242,7 @@ sub default_range {
 
   return new OMP::Range( Min => $OMPRANGES{$cat}->[0],
 			 Max => $OMPRANGES{$cat}->[1],
-			 PosDef => ( $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
+			 PosDef => ( defined $OMPRANGES{$cat}->[0] && $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
 		       );
 }
 
