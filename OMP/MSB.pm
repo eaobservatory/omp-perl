@@ -1867,6 +1867,8 @@ search for a matching element just the values).
 
   @matches = $msb->_get_pcvalues( $node );
 
+Returns an empty list if the tag does not exist.
+
 =cut
 
 sub _get_pcvalues {
@@ -1882,6 +1884,10 @@ sub _get_pcvalues {
     # assume we already have it
     $node = $el;
   }
+
+  # return empty list if no node
+  return () unless defined $node;
+
   my @valuenodes = $self->_get_children_by_name( $node, 'value');
   my @values = map { $_->firstChild->toString } @valuenodes;
 
