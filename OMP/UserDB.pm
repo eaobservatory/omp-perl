@@ -216,8 +216,6 @@ sub _add_user {
   # for now allow this by defining it (eventually we will allow
   # null fields)
   my $email = $user->email;
-  $email = '' unless defined $email;
-
 
   $self->_db_insert_data( $USERTABLE,
 			  $user->userid,
@@ -272,7 +270,8 @@ sub _query_userdb {
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Return the object equivalents
-  return map { new OMP::User( %$_ ) } @$ref;
+  return map { $_->{email} = undef if (defined $_->{email} && length($_->{email}) eq 0);
+		 new OMP::User( %$_ ) } @$ref;
 }
 
 

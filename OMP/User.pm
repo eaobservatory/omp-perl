@@ -126,7 +126,8 @@ It must contain a "@". If the email does not look like an email
 address the value will not be changed and the method will return
 C<undef>.
 
-An undefined email address is allowed.
+An undefined or null string email address is allowed.
+A null string is treated as undef.
 
 =cut
 
@@ -135,6 +136,12 @@ sub email {
   if (@_) { 
     my $addr = shift;
     if (defined $addr) {
+      # Also translate '' to undef
+      if (length($addr) == 0) {
+	# Need to do this so that we match our input string
+	$self->{Email} = undef;
+	return '';
+      }
       return undef unless $addr =~ /\@/;
     }
     # undef is okay
