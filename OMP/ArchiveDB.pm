@@ -343,6 +343,7 @@ sub _query_files {
   foreach my $file ( @files ) {
     # Create the Obs object.
     my $obs = readfile OMP::Info::Obs( $file );
+    if( !defined( $obs ) ) { next; }
 
     # If the observation's time falls within the range, we'll create the object.
     my $match_date = 0;
