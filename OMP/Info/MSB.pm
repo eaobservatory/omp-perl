@@ -499,7 +499,7 @@ sub summary {
   my %summary;
 
   # These are the scalar/objects
-  for (qw/ projectid checksum tau seeing priority moon timeest title
+  for (qw/ projectid checksum tau seeing priority moon timeest title minel
        datemin datemax telescope cloud remaining msbid ra airmass ha/) {
     $summary{$_} = $self->$_();
   }
