@@ -43,10 +43,6 @@ use Data::Dumper;
 use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
-# For taint checking with Net::Domain when etc/resolv.conf
-# has no domain 
-BEGIN { $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin" unless ${^TAINT} == 0; }
-
 # just in case we need to know where we are
 use FindBin;
 

@@ -559,6 +559,11 @@ sub determine_host {
     $user = (exists $ENV{USER} ? $ENV{USER} : '' );
 
   } else {
+    # For taint checking with Net::Domain when etc/resolv.conf
+    # has no domain
+    local $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin" 
+      unless ${^TAINT} == 0;
+
     # localhost
     $addr = hostfqdn;
     $user = (exists $ENV{USER} ? $ENV{USER} : '' );

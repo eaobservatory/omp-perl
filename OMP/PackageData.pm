@@ -38,10 +38,6 @@ use Carp;
 use vars qw/ $VERSION $UseArchiveTar /;
 $VERSION = '0.02';
 
-# Disable $PATH - we need /usr/local/bin for gzip on Solaris
-# when running tar
-$ENV{PATH} = "/usr/bin:/bin:/usr/local/bin";
-
 # Do we want to ues the slower Archive::Tar
 $UseArchiveTar = 0;
 
@@ -861,6 +857,11 @@ sub _mktarfile {
       } else {
 	croak "Unable to determine tar command for OS $^O";
       }
+      # Locally Disable $PATH under taint checking 
+      #  - we need /usr/local/bin for gzip on Solaris
+      #    when running tar
+      local $ENV{PATH} = "/usr/bin:/bin:/usr/local/bin";
+
       system("$tarcmd","-zcvf",$outfile,@$grp) &&
           croak "Error building the tar file: $!";
     }
