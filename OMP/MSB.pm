@@ -2764,6 +2764,7 @@ sub SpTelescopeObsComp {
 	       E      => 'e',
 	       AORL   => 'LorM',
 	       DM     => 'n',
+	       EPOCHPERIH => 'epochPerih',
 	      );
 
     # Create an elements hash
