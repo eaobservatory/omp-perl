@@ -1285,6 +1285,11 @@ sub getPol {
   } elsif ($info{MODE} eq 'SpIterStareObs') {
     $pol{OBSERVING_MODE} = "POLPHOT";
     $pol{JIGGLE_NAME} = "JCMTDATA_DIR:NULL_1P0.JIG";
+
+    # override the number of jiggles per switch if we are a photom
+    # observation
+    $pol{JIGGLE_P_SWITCH} = 4;
+
   } else {
     throw OMP::Error::TranslateFail("Pol mode only available for map and phot, not $info{MODE}");
   }
@@ -1292,6 +1297,10 @@ sub getPol {
   # Waveplates must be stored in an array
   # pending the writing of the file to disk
   $pol{WPLATE_NAME} = $info{waveplate};
+
+  # number of measurements is just the number
+  # of waveplate positions
+  $pol{N_MEASUREMENTS} = scalar(@{$info{waveplate}});
 
   return %pol;
 }
