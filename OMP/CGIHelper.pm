@@ -2234,7 +2234,7 @@ sub proj_sum_table {
     # Get the MSBs for this project so we can count them
     my $msbs;
     try {
-      $msbs = OMP::SpServer->programDetails($project->projectid, '***REMOVED***', 'data');
+      $msbs = OMP::SpServer->programDetails($project->projectid, '***REMOVED***', 'objects');
     } catch OMP::Error::UnknownProject with {
       my $E = shift;
     } otherwise {
@@ -2245,6 +2245,10 @@ sub proj_sum_table {
     if ($msbs->[0]) {
       $nmsb = scalar(@$msbs);
     }
+
+    # Count remaining msbs
+    my @remaining = grep { $_->remaining > 0 } @$msbs;
+    my $nremaining = scalar(@remaining);
 
     # Get seeing and tau info
     my $taurange = $project->taurange;
@@ -2265,7 +2269,7 @@ sub proj_sum_table {
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". $project->pi->html ."</td>";
     print "<td>". $support ."</td>";
-    print "<td align=center>$nmsb</td>";
+    print "<td align=center>$nremaining/$nmsb</td>";
     print "<td align=center>". $project->tagpriority ."</td>";
     print "<td align=center>". $project->allocated->pretty_print ."</td>";
     print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
