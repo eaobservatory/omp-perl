@@ -61,39 +61,50 @@ B<list_reduced_observations>.
 
 =cut
 
-our %headers = (ufti => {objname => "OBJECT",
-                        utstart => "DATE-OBS",
-                        exptime => "EXP_TIME",
-                        filter => "FILTER",
-                        grating => "",
-                        wavelength => "",
-                        airmass => "AMSTART",
+our %headers = (ufti => {OBJNAME => "OBJECT",
+                        UTSTART => "DATE-OBS",
+                        EXPTIME => "EXP_TIME",
+                        FILTER => "FILTER",
+                        GRATING => "",
+                        WAVELENGTH => "",
+                        AIRMASS => "AMSTART",
                         RA => "RABASE",
-                        dec => "DECBASE",
-                        project => "PROJECT",
+                        DEC => "DECBASE",
+                        PROJECT => "PROJECT",
                         MSBID => "MSBID" },
-               michelle => {objname => "OBJECT",
-                            utstart => "DATE-OBS",
-                            exptime => "OBSTIME",
-                            filter => "FILTER",
-                            grating => "GRATNAME",
-                            wavelength => "GRATPOS",
-                            airmass => "AMSTART",
+               michelle => {OBJNAME => "OBJECT",
+                            UTSTART => "DATE-OBS",
+                            EXPTIME => "OBSTIME",
+                            FILTER => "FILTER",
+                            GRATING => "GRATNAME",
+                            WAVELENGTH => "GRATPOS",
+                            AIRMASS => "AMSTART",
                             RA => "RABASE",
-                            dec => "DECBASE",
-                            project => "PROJECT",
+                            DEC => "DECBASE",
+                            PROJECT => "PROJECT",
                             MSBID => "MSBID" },
-               cgs4 => {objname => "OBJECT",
-                        utstart => "RUTSTART",
-                        exptime => "EXPOSED",
-                        filter => "",
-                        grating => "GRATING",
-                        wavelength => "GLAMBDA",
-                        airmass => "AMSTART",
+               cgs4 => {OBJNAME => "OBJECT",
+                        UTSTART => "RUTSTART",
+                        EXPTIME => "EXPOSED",
+                        FILTER => "",
+                        GRATING => "GRATING",
+                        WAVELENGTH => "GLAMBDA",
+                        AIRMASS => "AMSTART",
                         RA => "MEANRA",
-                        dec => "MEANDEC",
-                        project => "PROJECT",
-                        MSBID => "MSBID" } );
+                        DEC => "MEANDEC",
+                        PROJECT => "PROJECT",
+                        MSBID => "MSBID" },
+               ircam => {OBJNAME => "OBJECT",
+                         UTSTART => "RUTSTART",
+                         EXPTIME => "EXPOSED",
+                         FILTER => "FILTER",
+                         GRATING => "",
+                         WAVELENGTH => "",
+                         AIRMASS => "AMSTART",
+                         RA => "MEANRA",
+                         DEC => "MEANDEC",
+                         PROJECT => "PROJECT",
+                         MSBID => "MSBID"} );
 
 =item B<%displaysuffix>
 
@@ -423,16 +434,16 @@ sub list_reduced_observations {
 # Get the headers from each frame. We'll present this information to the
 # user so they can make a more informed decision.
 
-          $objname = $Frm->hdr($headers{$instrument}{'objname'});
-          $utstart = $Frm->hdr($headers{$instrument}{'utstart'});
-          $exptime = $Frm->hdr($headers{$instrument}{'exptime'});
-          $filter = $Frm->hdr($headers{$instrument}{'filter'});
-          $grating = $Frm->hdr($headers{$instrument}{'grating'});
-          $wavelength = $Frm->hdr($headers{$instrument}{'wavelength'});
-          $airmass = $Frm->hdr($headers{$instrument}{'airmass'});
+          $objname = $Frm->hdr($headers{$instrument}{'OBJNAME'});
+          $utstart = $Frm->hdr($headers{$instrument}{'UTSTART'});
+          $exptime = $Frm->hdr($headers{$instrument}{'EXPTIME'});
+          $filter = $Frm->hdr($headers{$instrument}{'FILTER'});
+          $grating = $Frm->hdr($headers{$instrument}{'GRATING'});
+          $wavelength = $Frm->hdr($headers{$instrument}{'WAVELENGTH'});
+          $airmass = $Frm->hdr($headers{$instrument}{'AIRMASS'});
           $RA = $Frm->hdr($headers{$instrument}{'RA'});
-          $dec = $Frm->hdr($headers{$instrument}{'dec'});
-          $fileproject = $Frm->hdr($headers{$instrument}{'project'});
+          $dec = $Frm->hdr($headers{$instrument}{'DEC'});
+          $fileproject = $Frm->hdr($headers{$instrument}{'PROJECT'});
           $msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
 
 # Only list files for the specific project (or if the override 'staff' project
@@ -528,16 +539,16 @@ sub list_raw_observations {
 # Get the headers from each frame. We'll present this information to the
 # user so they can make a more informed decision.
 
-        $objname = $Frm->hdr($headers{$instrument}{'objname'});
-        $utstart = $Frm->hdr($headers{$instrument}{'utstart'});
-        $exptime = $Frm->hdr($headers{$instrument}{'exptime'});
-        $filter = $Frm->hdr($headers{$instrument}{'filter'});
-        $grating = $Frm->hdr($headers{$instrument}{'grating'});
-        $wavelength = $Frm->hdr($headers{$instrument}{'wavelength'});
-        $airmass = $Frm->hdr($headers{$instrument}{'airmass'});
+        $objname = $Frm->hdr($headers{$instrument}{'OBJNAME'});
+        $utstart = $Frm->hdr($headers{$instrument}{'UTSTART'});
+        $exptime = $Frm->hdr($headers{$instrument}{'EXPTIME'});
+        $filter = $Frm->hdr($headers{$instrument}{'FILTER'});
+        $grating = $Frm->hdr($headers{$instrument}{'GRATING'});
+        $wavelength = $Frm->hdr($headers{$instrument}{'WAVELENGTH'});
+        $airmass = $Frm->hdr($headers{$instrument}{'AIRMASS'});
         $RA = $Frm->hdr($headers{$instrument}{'RA'});
-        $dec = $Frm->hdr($headers{$instrument}{'dec'});
-        $fileproject = $Frm->hdr($headers{$instrument}{'project'});
+        $dec = $Frm->hdr($headers{$instrument}{'DEC'});
+        $fileproject = $Frm->hdr($headers{$instrument}{'PROJECT'});
         $msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
 
 # Only list files for the specific project (or if the override 'staff' project
