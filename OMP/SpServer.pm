@@ -97,7 +97,7 @@ sub storeProgram {
     # Attempt to gunzip it if it looks like a gzip stream
     if (substr($xml,0,2) eq chr(0x1f).chr(0x8b)) {
       # GZIP magic number verifies
-      $xml = CompressZlib::memGunzip( $xml );
+      $xml = Compress::Zlib::memGunzip( $xml );
       throw OMP::Error::SpStoreFail("Science program looked like a gzip byte stream but did not uncompress correctly")
         unless defined $xml;
     }
