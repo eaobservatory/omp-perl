@@ -74,7 +74,7 @@ BEGIN {
   use FindBin;
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
-
+#use lib qw[ /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib/ ];
   use OMP::Constants;
   use OMP::General;
   use OMP::Config;
@@ -144,6 +144,8 @@ my @CONTENTCOLOUR = qw/ black brown red /;
 my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
+my $BACKGROUND1 = '#D3D3D3';
+my $BACKGROUND2 = '#DDDDDD';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
@@ -461,6 +463,23 @@ sub new_instrument {
                     -foreground => $CONTENTCOLOUR[$status],
                    );
 
+    my $bgcolour;
+    if( $counter % 2 ) {
+      $bgcolour = $BACKGROUND1;
+    } else {
+      $bgcolour = $BACKGROUND2;
+    }
+
+    if($counter % 2) {
+      $nbContent->tag('configure', $otag,
+                      -background => $bgcolour,
+                     );
+    } else {
+      $nbContent->tag('configure', $otag,
+                      -background => $bgcolour,
+                     );
+    }
+
     # Bind the tag to double-left-click
     $nbContent->tag('bind', $otag, '<Double-Button-1>' =>
                     [\&RaiseComment, $obs, $index] );
@@ -474,9 +493,8 @@ sub new_instrument {
 
     $nbContent->tag('bind', $otag, '<Any-Leave>' =>
                     sub { shift->tag('configure', $otag,
-                                     -background => undef,
+                                     -background => $bgcolour,
                                      qw/ -relief flat /); } );
-
 
     # And increment the counter.
     $counter++;
