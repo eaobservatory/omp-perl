@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 23;
+use Test::More tests => 25;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
