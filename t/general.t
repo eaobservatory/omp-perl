@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 10 }
+BEGIN { plan tests => 8 }
 
 use OMP::General;
 
