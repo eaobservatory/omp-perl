@@ -37,7 +37,7 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSB;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::ProjDB;
 
 use Astro::Telescope;
@@ -412,6 +412,11 @@ sub doneMSB {
   my $self = shift;
   my $checksum = shift;
 
+  # Administrator password so that we can fetch and store
+  # science programs without resorting to knowing the
+  # actual password or to disabling password authentication
+  $self->password("***REMOVED***");
+
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
   $self->_dblock;
@@ -420,7 +425,7 @@ sub doneMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg();
+  my $sp = $self->fetchSciProg(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -437,6 +442,24 @@ sub doneMSB {
   # indicate that the timestamp is not to be modified
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
 		     NoNewTrans => 1);
+
+  # Now decrement the time for the project
+  my $projdb = new OMP::ProjDB( 
+			       ProjectID => $sp->projectID,
+			       DB => $self->db,
+			      );
+
+  $projdb->decrementTimeRemaining( $msb->estimated_time, 1 );
+
+  # Might want to send a message to the feedback system at this
+  # point
+  $self->_notify_feedback_system(
+				 author => "OM",
+				 program => "OMP::MSBDB",
+				 subject => "MSB Observed",
+				 text => "Marked MSB with checksum"
+				 . " $checksum as done",
+				);
 
   # Disconnect
   $self->_dbunlock;
@@ -701,20 +724,35 @@ object.
 Throws C<OMP::Error::Authentication> exception if the password does
 not match.
 
+If the password matches the administrator password this routine always
+succeeds.
+
 =cut
 
 sub _verify_project_password {
   my $self = shift;
 
-  my $proj = new OMP::ProjDB(
-			     ProjectID => $self->projectid,
-			     DB => $self->db,
-			     Password => $self->password,
-			    );
+  # First try the administrator password
+  # Use a try block since we dont want anyone to notice
+  # that we even tried to use this
+  my $success;
+  try {
+    $self->_verify_administrator_password;
+    $success = 1;
+  } catch OMP::Error::Authentication with {
 
-  $proj->verifyPassword()
-    or throw OMP::Error::Authentication("Incorrect password for project ID ".
-				       $self->projectid ."\n");
+    # Now try the project password
+    my $proj = new OMP::ProjDB(
+			       ProjectID => $self->projectid,
+			       DB => $self->db,
+			       Password => $self->password,
+			      );
+
+    $proj->verifyPassword()
+      or throw OMP::Error::Authentication("Incorrect password for project ID ".
+					  $self->projectid );
+
+  };
 
   return;
 }
