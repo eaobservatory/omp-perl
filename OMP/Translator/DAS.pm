@@ -28,7 +28,7 @@ use OMP::Error;
 use Astro::Telescope;
 use Astro::SLA ();
 use File::Spec;
-use SrcCatalog::JCMT;
+use SrcCatalog::JCMT 0.12; # For MAX_SRC_LENGTH
 use Data::Dumper;
 use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
@@ -798,6 +798,15 @@ sub targetConfig {
     # Must remove spaces from target name
     my $name = $c->name();
     $name =~ s/\s+//g if defined $name;
+
+    # and limit it in length to match the spec that will be written
+    # to the source catalogue
+    my $maxlen = &SrcCatalog::JCMT::MAX_SRC_LENGTH;
+    if (length($name) > $maxlen) {
+      $name = substr($name,0,$maxlen);
+    }
+
+    # now store it back
     $c->name($name);
 
     $html .= "<H3>Target Information: <em>".$name."</em></H3>\n";
