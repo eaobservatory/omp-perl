@@ -35,7 +35,9 @@ use OMP::Range;
 use OMP::General;
 use OMP::Constants qw/ :obs /;
 use OMP::Error qw/ :try /;
+
 use Astro::FITS::Header::NDF;
+use Astro::FITS::Header::GSD;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
@@ -99,7 +101,11 @@ sub readfile {
   my $obs;
 
   try {
-    $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+    if( $filename =~ /sdf$/ ) {
+      $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+    } elsif( $filename =~ /gsd$/ ) {
+      $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
+    }
     $obs = $class->new( fits => $FITS_header );
     $obs->filename( $filename );
   }
@@ -120,52 +126,58 @@ Create the accessor methods from a signature of their contents.
 
 =cut
 
-__PACKAGE__->CreateAccessors( projectid => '$',
-                              checksum => '$',
-                              waveband => 'Astro::WaveBand',
-                              instrument => '$',
-                              disperser => '$',
-                              coords => 'Astro::Coords',
-                              target => '$',
-                              pol => '$',
-                              timeest => '$',
-                              duration => '$',
-                              startobs => 'Time::Piece',
-                              endobs => 'Time::Piece',
-                              type => '$',
-                              _fits => 'Astro::FITS::Header',
+__PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               _hdrhash => '%',
-                              comments => '@OMP::Info::Comment',
-                              telescope => '$',
-                              runnr => '$',
-                              utdate => '$',
-                              object => '$',
-                              mode => '$',
-                              speed => '$',
+
+                              airmass => '$',
                               airmass_start => '$',
                               airmass_end => '$',
-                              airmass => '$',
-                              rows => '$',
-                              columns => '$',
-                              drrecipe => '$',
-                              group => '$',
-                              standard => '$',
-                              slitname => '$',
-                              slitangle => '$',
-                              raoff => '$',
-                              decoff => '$',
-                              grating => '$',
-                              order => '$',
-                              tau => '$',
-                              seeing => '$',
+                              backend => '$',
                               bolometers => '@',
-                              velocity => '$',
-                              systemvelocity => '$',
-                              nexp => '$',
-                              filename => '$',
-                              chopthrow => '$',
+                              checksum => '$',
                               chopangle => '$',
                               chopsystem => '$',
+                              chopthrow => '$',
+                              columns => '$',
+                              comments => '@OMP::Info::Comment',
+                              coords => 'Astro::Coords',
+                              cycle_length => '$',
+                              decoff => '$',
+                              disperser => '$',
+                              drrecipe => '$',
+                              duration => '$',
+                              endobs => 'Time::Piece',
+                              filename => '$',
+                              grating => '$',
+                              group => '$',
+                              instrument => '$',
+                              mode => '$',
+                              nexp => '$',
+                              number_of_cycles => '$',
+                              object => '$',
+                              order => '$',
+                              pol => '$',
+                              projectid => '$',
+                              raoff => '$',
+                              rest_frequency => '$',
+                              rows => '$',
+                              runnr => '$',
+                              seeing => '$',
+                              slitangle => '$',
+                              slitname => '$',
+                              speed => '$',
+                              standard => '$',
+                              startobs => 'Time::Piece',
+                              target => '$',
+                              tau => '$',
+                              timeest => '$',
+                              telescope => '$',
+                              type => '$',
+                              utdate => '$',
+                              velocity => '$',
+                              velsys => '$',
+                              waveband => 'Astro::WaveBand',
+
                               isScience => '$',
                               isSciCal => '$',
                               isGenCal => '$',
@@ -500,6 +512,32 @@ sub nightlog {
     $return{'_STRING_HEADER_LONG'} = "Run  UT start  Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
     $return{'_STRING_LONG'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
 
+  } elsif( $instrument =~ /^rx/i ) {
+
+# *** Heterodyne instruments
+
+    $return{'Run'} = $self->runnr;
+    my $utdate = $self->startobs->ymd;
+    $utdate =~ s/-//g;
+    $return{'UT'} = $utdate . " " . $self->startobs->hms;
+    $return{'Mode'} = uc($self->mode);
+    $return{'Source'} = $self->target;
+    $return{'Cycle Length'} = $self->cycle_length;
+    $return{'Number of Cycles'} = $self->number_of_cycles;
+    $return{'Receiver'} = uc($self->instrument);
+    $return{'Frequency'} = $self->rest_frequency;
+    $return{'Velocity'} = $self->velocity;
+    $return{'Velsys'} = $self->velsys;
+    $return{'Project ID'} = $self->projectid;
+
+    $return{'_ORDER'} = [ "Run", "Project ID", "UT", "Mode", "Source", "Cycle Length", "Number of Cycles",
+                          "Receiver", "Frequency", "Velocity", "Velsys" ];
+
+    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
+    $return{'_STRING'} = sprintf("%4s %8s  %17s %10s %10s %3d/%3d %5s  %3d %5d/%6s", $return{'Run'}, $return{'Project ID'}, $return{'UT'}, $return{'Mode'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Receiver'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'});
+    $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
+    $return{'_STRING_LONG'} = $return{'_STRING'};
+
   } elsif($instrument =~ /ircam/i) {
 
 # *** IRCAM
@@ -561,8 +599,12 @@ sub nightlog {
                           "RA offset", "Dec offset", "UT time", "Airmass",
                           "Exposure time", "Grating",
                           "Order", "Wavelength", "DR Recipe" ];
-    $return{'_STRING_HEADER'} = " Obs  Grp           Object UT start   ExpT  Grating Wavelnth   Type   AM  RAoff DecOff Recipe";
-    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f  %7.7s  %7.3f %6.6s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT time'}, $return{'Exposure time'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'DR Recipe'});
+
+    $return{'_STRING_HEADER'} = " Obs  Grp Project ID  UT Start         Object     Type   ExpT  RAoff DecOff    AM Recipe";
+    $return{'_STRING'} = sprintf("%4d %4d %10s  %8s %14.14s %8.8s  %5.1f   %4.1f   %4.1f  %4.2f  %16s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+
+#    $return{'_STRING_HEADER'} = " Obs  Grp           Object UT start   ExpT  Grating Wavelnth   Type   AM  RAoff DecOff Recipe";
+#    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f  %7.7s  %7.3f %6.6s %4.2f %6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT time'}, $return{'Exposure time'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'DR Recipe'});
 
   } elsif($instrument =~ /michelle/i) {
 
@@ -701,6 +743,70 @@ sub nightlog {
 
   return %return;
 
+}
+
+=item B<file_from_bits>
+
+  $filename = $obs->file_from_bits;
+
+Returns a filename based on information given in the C<Obs> object.
+
+=cut
+
+sub file_from_bits {
+  my $self = shift;
+  my $filename;
+
+  my $instrument = $self->instrument;
+  throw OMP::Error("file_from_bits: Unable to determine instrument to create filename.")
+    unless defined $instrument;
+
+  if( $instrument =~ /(ufti|ircam|cgs4|michelle|uist)/i ) {
+
+    my $utdate;
+    ( $utdate = $self->startobs->ymd ) =~ s/-//g;
+    my $runnr = sprintf( "%05u", $self->runnr );
+
+    $filename = OMP::Config->getData( 'rawdatadir',
+                                      telescope => 'UKIRT',
+                                      instrument => $instrument,
+                                      utdate => $self->startobs->ymd );
+
+    if( $instrument =~ /ufti/i ) {
+      $filename .= "/f" . $utdate . "_" . $runnr . ".sdf";
+    } elsif( $instrument =~ /uist/i ) {
+      $filename .= "/u" . $utdate . "_" . $runnr . ".sdf";
+    } elsif( $instrument =~ /ircam/i ) {
+      $filename .= "/i" . $utdate . "_" . $runnr . ".sdf";
+    } elsif( $instrument =~ /cgs4/i ) {
+      $filename .= "/c" . $utdate . "_" . $runnr . ".sdf";
+    } elsif( $instrument =~ /michelle/i ) {
+      $filename .= "/m" . $utdate . "_" . $runnr . ".sdf";
+    }
+  } elsif( $instrument =~ /^(rx|het)/i ) {
+    my $project = $self->projectid;
+    my $ut = $self->startobs->datetime;
+    my $timestring = sprintf("%02u%02u%02u_%02u%02u%02u",
+                             $ut->yy,
+                             $ut->mon,
+                             $ut->mday,
+                             $ut->hour,
+                             $ut->min,
+                             $ut->sec);
+    my $backend = $self->backend;
+    my $runnr = sprintf( "%04u", $self->runnr );
+    $filename = OMP::Config->getData( 'rawdatadir',
+                                      telescope => 'JCMT',
+                                      instrument => 'heterodyne',
+                                      utdate => $self->startobs->ymd );
+    $filename = "$project\@" . $timestring . "_" . $backend . "_" . $runnr . ".gsd";
+  } elsif( $instrument =~ /scuba/i ) {
+
+  } else {
+    throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
+  }
+
+  return $filename;
 }
 
 =back
@@ -855,11 +961,20 @@ sub _populate {
                            "" ) );
   $self->bolometers( $generic_header{BOLOMETERS} );
   $self->velocity( $generic_header{VELOCITY} );
-  $self->systemvelocity( $generic_header{SYSTEM_VELOCITY} );
+  $self->velsys( $generic_header{VELSYS} );
   $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
   $self->chopthrow( $generic_header{CHOP_THROW} );
   $self->chopangle( $generic_header{CHOP_ANGLE} );
   $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
+  $self->rest_frequency( $generic_header{REST_FREQUENCY} );
+  $self->cycle_length( $generic_header{CYCLE_LENGTH} );
+  $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
+  $self->backend( $generic_header{BACKEND} );
+
+  # Set the filename if it's not set.
+  if( !defined($self->filename) ) {
+    $self->filename = file_from_bits( \%generic_header );
+  }
 
 }
 
