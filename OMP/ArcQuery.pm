@@ -357,7 +357,7 @@ my %lut = (
 	   projectid => {
 		    $SCUTAB => 'S.proj_id',
 		    $GSDTAB => 'G.projid',
-		    $UKIRTTAB => 'U.project',
+		    $UKIRTTAB => 'U.PROJECT',
 		   },
 
 	  );
