@@ -530,91 +530,25 @@ sub _populate {
   # It might make sense for ObsGroup to have a calibration switch
   # but for now we vary our query to include the project ID and utdate
   # only if calibrations are not required
+
+  # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
+  # switch and optimize for it.
   my %query = ( telescope => $tel,
 		date => $self->utdate,
+		inccal => $self->inccal,
+		projectid => $self->projectid,
 	      );
 
-  # Decide whether to optimize for project ID
-  $query{projectid} = $self->projectid
-    unless $self->inccal;
-
-  # Since we need the calibrations we do a full ut query and
-  # then select the calibrations and project info. This needs
-  # to be done in ObsGroup. KLUGE
+  # information for the user
   print STDOUT "Querying database for relevant data files...[tel:$tel / ut:".
     substr($query{date},0,8)." / project '".$self->projectid."']\n"
-    if $self->verbose;
-
-  my $grp = new OMP::Info::ObsGroup( %query );
-
-  # If we asked for everything we now have to go through and select
-  # out project observations and the calibrations
-  # Now go through and get the bits we need
-  # Anything associated with the project or anything from the
-  # night that is not a science observation
-
-  # We need to go through each obs returned even if we
-  # did a project-centric query. This is because some project
-  # observations are actually calibrations
-
-
-  # Go through looking for project informaton
-  # Do this so we can warn if we do not get any data for this night
-  my (@proj,@cal);
-
-  # Also keep track of instrumentation used so that we do not ship
-  # calibrations for instruments that the project was not interested
-  my %instruments;
-  my %calinst;  # keep track of calibration instruments for error reporting
-
-  for my $obs ($grp->obs) {
-    my $obsmode = $obs->mode || $obs->type;
-    if ((uc($obs->projectid) eq uc($self->projectid)) && $obs->isScience) {
-      $instruments{uc($obs->instrument)}++; # Keep track of instrument
-      print "SCIENCE:     " .$obs->instrument ."/".$obsmode ." [".$obs->target ."]\n" 
-	if $self->verbose;
-      push(@proj, $obs);
-    } elsif ( ! $obs->isScience && $self->inccal) {
-      $calinst{uc($obs->instrument)}++; # Keep track of cal instrument
-      push(@cal, $obs);
-    }
-  }
-
-  # Now prune calibrations to remove uninteresting instruments
-  # Note: cal array will be empty if we didn't find any science observations;
-  # for this reason we store the number of cals before we filter so that we
-  # can compare against the number later
-  my $ncal = scalar(@cal);
-  if (scalar(keys %instruments) == 0) {
-
-    # Don't waste time filtering if we know we aren't going to match anything
-    @cal = ();
-  } else {
-    my $match = join("|",keys %instruments);
-    @cal = grep { $_->instrument =~ /^$match$/i } @cal;
-  }
-
-  # And print out calibration matches
-  # since we do not want to list a whole load of pointless calibrations
-  for my $obs (@cal) {
-    my $obsmode = $obs->mode || $obs->type;
-    print "CALIBRATION: ". $obs->instrument ."/".$obsmode . " [".$obs->target."]\n" 
       if $self->verbose;
-  }
 
-  # warn if we have cals but no science
-  if (scalar(@proj) == 0 && $ncal > 0) {
-    my $instlist = join(",",keys %calinst);
-    my $plural = (keys %calinst > 1 ? "s" : "");
-    print STDOUT "\nThis request matched calibrations but no science observations (calibrations for instrument$plural $instlist)\n..."
-      if $self->verbose;
-  }
+  # Query the database
+  my $grp = new OMP::Info::ObsGroup( %query, verbose => $self->verbose, sort => 1 );
 
-  # Store the new observations [calibrations first]
-  $grp->obs([@cal,@proj]);
-
-  my @obs = $grp->obs;
-  print STDOUT "Done [".scalar(@obs)." files match]\n" if $self->verbose;
+  # Inform them of how many we have found
+  print STDOUT "Done [".$grp->numobs." files match]\n" if $self->verbose;
 
   # Store the result
   $self->obsGrp($grp);

@@ -240,15 +240,24 @@ calibrations from instruments used for the project are returned.  This
 means that no observations are returned if no science observations are
 taken regardless of the number of calibrations available in the night.
 
-If "timegap" is true then gaps will be included in the observation group.
-Default is to not include them. The size of the gaps is specfied as
-the value to "timegap".
+If "timegap" is true then gaps will be included in the observation
+group.  Default is to not include them. The size of the gaps is
+specfied as the value to "timegap". If "timegap" is false, a "sort"
+key can be used to indicate whether the observations should be sorted
+by time order ("sort" is always true when timegaps are calculated).
+If "sort" is false and inccal is true, the observations will be sorted
+such that the calibrations appear before the science observations
+in the list.
+
+A "verbose" flag can be used to turn on message output. Default
+is false.
 
 =cut
 
 sub populate {
   my $self = shift;
-  my %args = @_;
+  my %def = ( verbose => 0, sort => 1 );
+  my %args = (%def, @_);
 
   throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
     unless exists $args{telescope} || exists $args{instrument}
@@ -303,7 +312,7 @@ sub populate {
     }
   }
 
-  # Form the XML.[restrict the keys
+  # Form the XML.[restrict the keys]
   for my $key ( @keys ) {
     if (exists $args{$key}) {
       $xmlbit .= "<$key>$args{$key}</$key>";
@@ -323,33 +332,178 @@ sub populate {
   # have to massage the entries removing other science observations.
   # and instruments that are not important to the project
   if ($inccal && exists $args{projectid}) {
-
-    # First generate a list of instruments that are important
-    # even if they are not science observations.
-    # KLUGE: This duplicates some code in OMP::PackageData so we need to think
-    # more about this
-    my %instruments;
-    for ($self->obs) {
-      $instruments{uc($_->instrument)}++ 
-	if (uc($_->projectid) eq uc($args{projectid}));
-    }
-    # Generate an instrument pattern match
-    my $match = join("|",keys %instruments);
-
-    my @newobs = grep { uc($_->projectid) eq uc($args{projectid}) 
-			  || (! $_->isScience && $_->instrument =~ /^$match$/i)
-			} $self->obs;
-
-    # store it [comments will already be attached]
-    $self->obs(\@newobs);
-
+    # if timegap is true, disable sort here for efficiency since we
+    # will be sorted later on.
+    my $sort = (exists $args{timegap} && $args{timegap} ? 0 : $args{sort});
+    $self->filter( projectid => $args{projectid}, inccal => $inccal,
+		   verbose => $args{verbose}, sort => $sort,
+		 );
   }
 
-  # Add in timegaps if necessary.
+  # Add in timegaps if necessary (not forgetting to sort if asked)
   if(exists $args{timegap}) {
     $self->locate_timegaps( $args{timegap} );
+  } elsif ($args{sort}) {
+    $self->sort_by_time();
   }
 
+}
+
+=item B<filter>
+
+Filter the current observation list using the rules specified
+in the arguments. Observations that do not match the filter
+are removed.
+
+If a projectid is specified, only science observations and relevant
+calibrations associated with that particular project are retained
+(which may be an empty list if no projects observations are present).
+
+Currently, it is an error for this method to be called
+without an explicit project ID being available unless
+inccal is set to false (in which case science observations
+are retained and calibrations removed).
+
+  $grp->filter( projectid => $projectid );
+  $grp->filter( inccal => 0 );
+
+The inccal flag can be used to control the filter. By default, inccal
+is true. If projectid is set and inccal is true, calibrations will be
+included for each science observation associated with the project. If
+inccal is false, calibrations will be removed from the observation
+list even if they are tagged as belonging to the project.
+
+  $grp->filter( projectid => $projectid, inccal => 1 );
+
+A "sort" key, indicates whether the observations should be sorted
+by time of observations (default=1) or whether all calibrations
+observations should be listed before science observations (false).
+The latter is useful for pipelining.
+
+A "verbose" key can be used to control print statements to stdout.
+Default is false.
+
+  $grp->filter( projectid => $projectid, verbose => 1 );
+
+=cut
+
+sub filter {
+  my $self = shift;
+  my %def = ( inccal => 1, sort => 1 );
+  my %args = (%def, @_);
+
+  throw OMP::Error::BadArgs("Must supply a projectid or set inccal to false to filter_cals")
+    if (! exists $args{projectid} && $args{inccal});
+
+  # if inccal is false, we just need to go through the observations
+  # removing non-Science observations. Easy enough
+  if (!$args{inccal}) {
+    # if a projectid has been set, include that in the grep
+    my @newobs;
+    if (exists $args{projectid}) {
+      @newobs = grep { uc($_->projectid) eq uc($args{projectid}) &&
+		       $_->isScience } $self->obs;
+    } else {
+      @newobs = grep { $_->isScience } $self->obs;
+    }
+
+    # update the object
+    $self->obs( \@newobs );
+
+    # Sort if required
+    $self->sort_by_time() if $args{sort};
+
+    return;
+  } elsif (exists $args{projectid}) {
+    # We have a projectid and we have to include calibrations
+    # relevant for that projectid
+
+    # Sort everything first so that we get the science and calibration
+    # observations themselves in time order
+    $self->sort_by_time;
+
+    # Step one is to go through all the observations, extracting
+    # the science observations associated with this project
+    # and generating an array of calibration observations and matching
+    # instruments
+    my @proj;   # All the science observations
+    my @cal;    # Calibration observations
+
+    my %instruments;  # List of all science instruments
+    my %calinst;      # List of all calibration instruments
+
+    for my $obs ($self->obs) {
+      my $obsmode = $obs->mode || $obs->type;
+      if ((uc($obs->projectid) eq uc($args{projectid})) && $obs->isScience) {
+	$instruments{uc($obs->instrument)}++; # Keep track of instrument
+	print "SCIENCE:     " .$obs->instrument ."/".$obsmode
+           . " [".$obs->target ."]\n"
+	     if $args{verbose};
+	push(@proj, $obs);
+      } elsif ( ! $obs->isScience && $args{inccal}) {
+	$calinst{uc($obs->instrument)}++; # Keep track of cal instrument
+	push(@cal, $obs);
+      }
+    }
+
+    # Now prune calibrations to remove uninteresting instruments
+    # Note: cal array will be empty if we didn't find any science observations;
+    # for this reason we store the number of cals before we filter so that we
+    # can compare against the number later
+    my $ncal = scalar(@cal);
+    if (scalar(keys %instruments) == 0) {
+
+      # Don't waste time filtering if we know we aren't going to match anything
+      @cal = ();
+    } else {
+      my $match = join("|",keys %instruments);
+      @cal = grep { $_->instrument =~ /^$match$/i } @cal;
+    }
+
+    # And print out calibration matches
+    # since we do not want to list a whole load of pointless calibrations
+    for my $obs (@cal) {
+      my $obsmode = $obs->mode || $obs->type;
+      print "CALIBRATION: ". $obs->instrument ."/".$obsmode
+        . " [".$obs->target."]\n" 
+          if $args{verbose};
+    }
+
+    # warn if we have cals but no science
+    if ($args{verbose} && scalar(@proj) == 0 && $ncal > 0) {
+      my $instlist = join(",",keys %calinst);
+      my $plural = (keys %calinst > 1 ? "s" : "");
+      print STDOUT "\nThis request matched calibrations but no science observations (calibrations for instrument$plural $instlist)\n..."
+    }
+
+    # Store
+    $self->obs([@proj,@cal]);
+
+    # Sort into time order if applicable
+    $self->sort_by_time() if $args{sort};
+
+  } else {
+    throw OMP::Error::BadArgs("Should not be here. Inccal is true but projectid not specified");
+  }
+
+  return;
+}
+
+=item B<sort_by_time>
+
+Sort the observations in the group into time order.
+
+ $grp->sort_by_time;
+
+=cut
+
+sub sort_by_time {
+  my $self = shift;
+  my @obs = sort {
+    $a->startobs <=> $b->startobs
+  } $self->obs;
+  $self->obs(\@obs);
+  return;
 }
 
 =item B<commentScan>
@@ -998,9 +1152,8 @@ sub locate_timegaps {
 
   # Make sure the array of Obs objects is sorted in time, but only if there
   # actually are observations.
-  my @obs = sort {
-    $a->startobs <=> $b->startobs
-  } $self->obs;
+  $self->sort_by_time;
+  my @obs = $self->obs;
 
 #my %gaphist;
 
@@ -1111,7 +1264,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
