@@ -170,7 +170,7 @@ for my $proj (@$projects) {
 
   my $sp;
   try {
-    $sp = OMP::SpServer->fetchProgram($proj->projectid, $password, 1);
+    $sp = OMP::SpServer->fetchProgram($proj->projectid, $password, "OBJECT");
   } catch OMP::Error::UnknownProject with {
     print "Unable to retrieve science programme. Skipping\n";
   };
