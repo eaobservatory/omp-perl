@@ -637,11 +637,14 @@ sub projectStats {
     }
 
     # Add on the general calibrations (for each instrument)
+    # if there were any
     for my $proj (keys %{$proj{$ymd}}) {
       for my $inst (keys %{$proj{$ymd}{$proj}}) {
-	$proj{$ymd}{$proj}{$inst} += int( $cals{$ymd}{$inst}{$CAL_NAME} * 
-					  $proj{$ymd}{$proj}{$inst} / 
-					  $total{$inst});
+	if ($total{$inst} > 0) {
+	  $proj{$ymd}{$proj}{$inst} += int( $cals{$ymd}{$inst}{$CAL_NAME} * 
+					    $proj{$ymd}{$proj}{$inst} / 
+					    $total{$inst});
+	}
       }
     }
   }
@@ -742,8 +745,9 @@ sub projectStats {
 	      for my $proj (@either) {
 		next unless defined $proj;
 		next unless not ref($proj);
-		
+
 		$proj = $tel . $proj if $proj =~ /$CAL_NAME$/ && $proj !~ /^$tel/i;
+
 		if (exists $proj_totals{$ymd}{$proj} || $proj =~ /$CAL_NAME$/) {
 		  $proj_totals{$ymd}{$proj} += $gap;
 
