@@ -108,10 +108,12 @@ sub file_fault_output {
   # Make sure all the necessary params were provided
   my %params = (User => "user",
 		Subject => "subject",
-	        "Fault report" => "message");
+	        "Fault report" => "message",
+	        Type => "type",
+	        System => "system",);
   my @error;
   for (keys %params) {
-    if (! $q->param($params{$_})) {
+    if (length($q->param($params{$_})) < 1) {
       push @error, $_;
     }
   }
@@ -714,7 +716,7 @@ sub view_fault_output {
 		  Response => "text",);
     my @error;
     for (keys %params) {
-      if (! $q->param($params{$_})) {
+      if (length($q->param($params{$_}) < 1) {
 	push @error, $_;
       }
     }
@@ -944,6 +946,13 @@ sub file_fault_form {
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
+  # Add some empty values to our menus (this is part of making sure that a 
+  # meaningful value is selected by the user)
+  push @system_values, undef;
+  push @type_values, undef;
+  $type_labels{''} = "Select a type";
+  $system_labels{''} = "Select a system";
+
   # Set defaults.  There's probably a better way of doing what I'm about
   # to do...
   my %defaults;
@@ -951,8 +960,8 @@ sub file_fault_form {
 
   if (!$fault) {
     %defaults = (user => $cookie->{user},
-		 system => $system_values[0],
-		 type => $type_values[0],
+		 system => '',
+		 type => '',
 		 loss => undef,
 		 time => undef,
 		 tz => 'UT',
@@ -1036,7 +1045,7 @@ sub file_fault_form {
 			-default=>$defaults{user},);
   } else {
     print " <strong>$defaults{user}</strong>";
-    print $q->hidden(-name=>'user', -default=>$defaults{user});
+    print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
   }
 
   print "</td><tr><td align=right><b>System:</b></td><td>";
@@ -1216,7 +1225,7 @@ sub response_form {
 			-default=>$defaults{user},);
   } else {
     print " <strong>$defaults{user}</strong>";
-    print $q->hidden(-name=>'user', -default=>$defaults{user});
+    print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
   }
 
   # Only show the status if we are filing a new response
@@ -1362,6 +1371,7 @@ sub update_fault_output {
 	for (@response_changed) {
 	  $response->$_($newdetails{$_});
 	}
+
 	OMP::FaultServer->updateResponse($fault->id, $response);
       }
 
@@ -1434,6 +1444,9 @@ sub update_resp_output {
   my $respid = $q->param('respid');
   my $text = $q->param('text');
   my $author = $q->param('user');
+
+  # User may be a hidden param
+  (! $author) and $author = $q->param('user_hidden');
 
   # Convert author to OMP::User object
   $author = OMP::UserServer->getUser($author);
@@ -1694,6 +1707,10 @@ sub parse_file_fault_form {
   }
 
   my $author = $q->param('user');
+
+  # User may be a hidden param
+  (! $author) and $author = $q->param('user_hidden');
+
   $parsed{author} = OMP::UserServer->getUser($author);
 
   # The text.  Put it in <pre> tags if there isn't an <html>
