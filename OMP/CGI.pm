@@ -220,7 +220,8 @@ sub _sidebar_logout {
 
   $theme->SetMoreLinksTitle("Project: $projectid");
 
-  my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
+  my @sidebarlinks = ("<a href='projecthome.pl'>$cookie{projectid} Project home</a>",
+		      "<a href='feedback.pl'>Feedback entries</a>",
 		      "<a href='fbmsb.pl'>Program details</a>",
 		      "<a href='fbcomment.pl'>Add comment</a>",
 		      "<a href='msbhist.pl'>MSB History</a>",
