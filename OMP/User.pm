@@ -28,7 +28,8 @@ use Carp;
 use OMP::UserServer;
 
 # Overloading
-use overload '""' => "stringify";
+use overload '""' => "stringify",
+  fallback => 1;
 
 =head1 METHODS
 
@@ -78,10 +79,42 @@ sub new {
   return $user;
 }
 
+=item B<extract_user>
+
+Attempt to extract a OMP::User object from an email
+"From:" line or from a HTML hyperlink. This is simply
+a thin layer above B<extract_user_from_email> and
+B<extract_user_from_href>. The method tries to
+determine which method would be best to use.
+
+  $user = OMP::User->extract_user( $string );
+
+Returns undef if no user information could be extracted.
+
+=cut
+
+sub extract_user {
+  my $class = shift;
+  my $string = shift;
+
+  # First see if we have a mailto
+  my $result;
+  if ($string =~ /mailto:/) {
+    # looks like HTML
+    $result = $class->extract_user_from_href( $string );
+  } elsif ($string =~ /@/) {
+    # Looks like an email
+    $result = $class->extract_user_from_email( $string );
+  }
+
+  return $result;
+
+}
+
 =item B<extract_user_from_email>
 
 Attempt to extract a OMP::User object from an email
-From line. Assumes the email information is of the
+"From:" line. Assumes the email information is of the
 form 
 
    Name Label <x@a.b.c>
@@ -384,6 +417,49 @@ Returns true or false.
 sub verify {
   my $self = shift;
   return OMP::UserServer->verifyUser( $self->userid );
+}
+
+=item B<domain>
+
+Returns the domain associated with the email address. Returns
+undef if no email address is stored in the object.
+
+  $domain = $u->domain;
+
+=cut
+
+sub domain {
+  my $self = shift;
+  my $email = $self->email;
+  return unless $email;
+
+  # chop off the front
+  $email =~ s/.*@//;
+  return $email;
+}
+
+=item B<addressee>
+
+Return the user name associated with the email address. (the
+part in front of the "@").
+
+  $to = $u->addressee;
+
+=cut
+
+sub addressee {
+  my $self = shift;
+  my $email = $self->email;
+  return unless $email;
+
+  # use a pattern match in case we have somehow managed
+  # to get  "Label <to@domain>
+  if ($email =~ /<?(.*)@/) {
+    return $1;
+  } else {
+    return undef;
+  }
+
 }
 
 =item B<infer_userid>

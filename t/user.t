@@ -1,8 +1,22 @@
 #!perl
 
-use Test::More tests => 31;
+use Test::More tests => 53;
 use strict;
 require_ok("OMP::User");
+
+
+# Create a simply user object
+my $user = new OMP::User( name => "Frossie Economou",
+			  email => 'frossie@frossie.net',
+			  userid => 'FROSSIE',
+			);
+
+isa_ok( $user, "OMP::User" );
+is( $user->name, "Frossie Economou", "Check name");
+is( $user->email, 'frossie@frossie.net', "Check email");
+is( $user->userid, "FROSSIE", "Check userid");
+is( $user->domain, "frossie.net", "Check email domain");
+is( $user->addressee, "frossie", "Check email addressee");
 
 # see if we can guess some user ids
 my %guessed = (
@@ -27,7 +41,7 @@ for my $userid (keys %guessed) {
 }
 
 
-# Now extract User information from emails
+# Now extract User information from emails and HTML
 my @extract = (
 	       {
 		href => '<A href="mailto:timj@jach.hawaii.edu">Tim Jenness</a>',
@@ -47,10 +61,16 @@ my @extract = (
 
 for my $test ( @extract ) {
 
+  # First explicitly
   my $emailuser = OMP::User->extract_user_from_email( $test->{email} );
   my $hrefuser = OMP::User->extract_user_from_href( $test->{href} );
 
-  for my $user ($emailuser, $hrefuser) {
+  # then implictly
+  my $guess1 = OMP::User->extract_user( $test->{email} );
+  my $guess2 = OMP::User->extract_user( $test->{href} );
+
+
+  for my $user ($emailuser, $hrefuser, $guess1, $guess2) {
     isa_ok($user, "OMP::User");
 
     if (defined $user) {
