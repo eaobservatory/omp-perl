@@ -9,8 +9,8 @@ use OMP::Fault::Response;
 
 
 # First create the first "response"
-my $resp = new OMP::Fault::Response( "AJA",
-				     "This is a test of the fault classes");
+my $resp = new OMP::Fault::Response( user => "AJA",
+				     text => "This is a test of the fault classes");
 
 ok( $resp );
 
@@ -25,8 +25,8 @@ ok( $fault );
 
 
 # Now respond
-my $resp2 = new OMP::Fault::Response( "TIMJ",
-				      "I respond to you");
+my $resp2 = new OMP::Fault::Response( user => "TIMJ",
+				      text => "I respond to you");
 
 $fault->responses( $resp2 );
 
