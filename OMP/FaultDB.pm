@@ -427,7 +427,7 @@ sub _store_new_fault {
 			  $fault->id, $fault->category, $fault->subject,
 			  $faultdate, $fault->type, $fault->system,
 			  $fault->status, $fault->urgency,
-			  $fault->timelost, $fault->entity);
+			  $fault->timelost, $fault->entity, $fault->condition);
 
   # Insert the project association data
   # In this case we dont need an entry if there are no projects
@@ -626,7 +626,8 @@ sub _update_fault_row {
 			    $fault->id, $fault->category, $fault->subject,
 			    $faultdate, $fault->type, $fault->system,
 			    $fault->status, $fault->urgency,
-			    $fault->timelost, $fault->entity );
+			    $fault->timelost, $fault->entity,
+			    $fault->condition, );
 
     # Insert the project association data
     # In this case we dont need an entry if there are no projects
@@ -787,6 +788,7 @@ sub _mail_fault_update {
 		  subject => "Subject",
 		  category => "Category",
 		  urgency => "Urgency",
+		  condition => "Condition",
 		  projects => "Projects",
 		 );
 
