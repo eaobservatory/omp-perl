@@ -540,7 +540,7 @@ sub _populate {
 
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
-  # to be done in ObsGroup.
+  # to be done in ObsGroup. KLUGE
   print STDOUT "Querying database for relevant data files...\n"
     if $self->verbose;
 
