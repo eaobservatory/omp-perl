@@ -189,6 +189,7 @@ sub _query_arcdb {
     catch OMP::Error::CacheFailure with {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
+      print "Warning: $errortext. Continuing.\n";
       OMP::General->log_message( $errortext );
     };
 
@@ -406,7 +407,7 @@ sub _query_files {
   catch OMP::Error::CacheFailure with {
     my $Error = shift;
     my $errortext = $Error->{'-text'};
-    print "Error: $errortext\n";
+    print "Warning: $errortext\n";
    OMP::General->log_message( $errortext );
   };
 
