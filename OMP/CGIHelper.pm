@@ -23,7 +23,6 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use lib qw(/jac_sw/omp/msbserver);
 use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::MSBServer;
@@ -36,9 +35,11 @@ use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
 require Exporter;
 
+$| = 1;
+
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -79,20 +80,21 @@ sub proj_status_table {
 		   "<a href=\"$case_url\">Science Case</a>" :
 		   "<b>Science Case</b>" );
 
-  my %summary;
-  foreach (qw/pi piemail title projectid coi coiemail allocated allRemaining country/) {
-    $summary{$_} = $project->$_;
-  }
+
+  # Get the CoI email(s)
+  my $coiemail = join(", ",map{$_->html} $project->coi);
+  my $supportemail = join(", ",map{$_->html} $project->support);
 
   print $q->h2("Current project status"),
         "<table border='1' width='100%'><tr bgcolor='#7979aa'>",
-	"<td><b>PI:</b> <a href='mailto:$summary{piemail}'>$summary{pi}</a></td>",
-	"<td colspan=2><b>Title:</b> $summary{title}</td>",
+	"<td><b>PI:</b>" . $project->pi->html . "</a></td>",
+	"<td><b>Title:</b> " . $project->title . "</td>",
 	"<td> $case_href </td>",
-	"<tr bgcolor='#7979aa'><td><b>CoI: </b> <a href='mailto:$summary{coiemail}'>$summary{coi}</a></td>",
-        "<td><b>Time allocated:</b> " . int($summary{allocated}/60) . " min </td>",
-	"<td><b>Time Remaining:</b> " . int($summary{allRemaining}/60) . " min </td>",
-	"<td><b>Country:</b> $summary{country} </td>",
+	"<tr bgcolor='#7979aa'><td colspan='2'><b>CoI:</b> $coiemail</td>",
+	"<td><b>Staff Contact:</b> $supportemail</td>",
+        "<tr bgcolor='#7979aa'><td><b>Time allocated:</b> " . int($project->allocated/60) . " min </td>",
+	"<td><b>Time Remaining:</b> " . int($project->allRemaining/60) . " min </td>",
+	"<td><b>Country:</b>" . $project->country . "</td>",
         "</table><p>";
 }
 
@@ -213,7 +215,7 @@ sub fb_entries {
     # make the date more readable here
     # make the author a mailto link here
 
-    print "<font size=+1>$row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</b></font><br>",
+    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</b></font><br>",
           "$row->{'text'}",
 	  "<p>";
   }
@@ -379,7 +381,8 @@ sub fb_msb_observed {
   my $projectid = shift;
 
   my $history = OMP::MSBServer->historyMSB($projectid, '', 'data');
-  msb_table($q, $history);
+
+  (@$history) and msb_table($q, $history);
 }
 
 =item B<fb_msb_active>
@@ -394,11 +397,18 @@ sub fb_msb_active {
   my $q = shift;
   my $projectid = shift;
 
-  my $xmlquery = "<MSBQuery><projectid>$projectid</projectid><disableconstraint>observability</disableconstraint><disableconstraint>allocation</disableconstraint></MSBQuery>";
+  my $active;
+  eval {
+    $active = OMP::SpServer->programDetails($projectid,
+					    '***REMOVED***',
+					    'data');
+  };
 
-  my $active = OMP::MSBServer->queryMSB($xmlquery);
-
-  msb_table($q, $active);
+  if ($@) {
+    print "Error obtaining science program details for project $projectid <$@>";
+  } else {
+    msb_table($q, $active);
+  }
 }
 
 =item B<msb_table>
@@ -426,7 +436,7 @@ sub msb_table {
     print "<td><b>Instrument:</b> $msb->{instrument}</td>";
   }
 
-  print "</table>";
+  print "</table>\n";
 }
 
 =item B<observed>
@@ -453,7 +463,7 @@ sub observed {
   # Create the MSB comment tables
   msb_comments_by_project($q, $commentref);
 
-  observed_form($q);
+  (@$commentref) and print observed_form($q);
 }
 
 =item B<observed_output>
@@ -473,47 +483,46 @@ sub observed_output {
     msb_comment_form($q);
   }
 
-  (!$q->param("Add Comment")) and print $q->h2("MSB Comments for " . $q->param('utdate'));
+  if (!$q->param("Add Comment")) {
+    my $utdate = $q->param('utdate');
+    my $commentref = OMP::MSBServer->observedMSBs($utdate, 1, 'data');
+    msb_comments_by_project($q, $commentref);
 
-  # If they've just submitted a comment show some comforting output
-  # or catch an error
-  if ($q->param("Submit")) {
-    try {
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
-      print $q->h2("MSB comment successfully submitted");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to submit the comment: $Error";
-    };
+    (@$commentref) and print $q->h2("MSBs observed on $utdate")
+      or print $q->h2("No MSBs observed on $utdate");
 
-  }
+    # If they've just submitted a comment show some comforting output
+    # or catch an error
+    if ($q->param("Submit")) {
+      try {
+	OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+	print $q->h2("MSB comment successfully submitted");
+      } catch OMP::Error::MSBMissing with {
+	print "MSB not found in database";
+      } otherwise {
+	my $Error = shift;
+	print "An error occurred while attempting to submit the comment: $Error";
+      };
+    }
 
   # If they click the "Mark as Done" button mark it as done
 
-  if ($q->param("Mark as Done")) {
-
-    try {
-      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-      print $q->h2("MSB marked as Done");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to mark the MSB as Done: $Error";
-    };
-
-  }
-
-  if (!$q->param("Add Comment")) {
-    my $commentref = OMP::MSBServer->observedMSBs($q->param('utdate'), 1, 'data');
+    if ($q->param("Mark as Done")) {
+      try {
+	OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
+	print $q->h2("MSB marked as Done");
+      } catch OMP::Error::MSBMissing with {
+	print "MSB not found in database";
+      } otherwise {
+	my $Error = shift;
+	print "An error occurred while attempting to mark the MSB as Done: $Error";
+      };
+    }
 
     observed_form($q);
     print $q->hr;
 
-    msb_comments_by_project($q, $commentref);
-    observed_form($q);
+    (@$commentref) and print observed_form($q);
   }
 }
 
@@ -537,6 +546,108 @@ sub observed_form {
   print $q->submit("View Comments");
   print $q->endform;
 
+}
+
+=item B<list_projects>
+
+Create a page with a form prompting for the semester to list projects for.
+
+  list_projects($cgi);
+
+=cut
+
+sub list_projects {
+  my $q = shift;
+
+  print $q->h2("List projects");
+
+  list_projects_form($q);
+
+  print $q->hr;
+}
+
+=item B<list_projects_output>
+
+Create a page with a project listing for given semester and a form.
+
+  list_projects_output($cgi);
+
+=cut
+
+sub list_projects_output {
+  my $q = shift;
+  my $semester = $q->param('semester');
+  my $status = $q->param('status');
+
+  my $xmlquery;
+  if ($status eq 'all') {
+    $xmlquery = "<ProjQuery><semester>$semester</semester></ProjQuery>";
+  } else {
+    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester></ProjQuery>";
+  }
+
+  my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
+
+  if (@$projects) {
+    # Display a list of projects if any were returned
+    print $q->h2("Projects for semester $semester");
+
+    list_projects_form($q);
+
+    print $q->hr;
+
+    foreach my $project (@$projects) {
+      print $q->h2('Project ' . $project->projectid);
+
+      print $q->h3('MSBs observed');
+      fb_msb_observed($q, $project->projectid);
+
+      print $q->h3('MSBs to be observed');
+      fb_msb_active($q,$project->projectid);
+
+      print $q->hr;
+    }
+
+    list_projects_form($q);
+  } else {
+    # Otherwise just put the form back up
+    print $q->h2("No projects for semester $semester");
+
+    list_projects_form($q);
+
+    print $q->hr;
+  }
+}
+
+=item B<list_project_form>
+
+Create a form for taking the semester parameter
+
+  list_projects_form($cgi);
+
+=cut
+
+sub list_projects_form {
+  my $q = shift;
+  my $semester = OMP::General->determine_semester();
+
+  print "<table border=0><tr><td>Semester: </td><td>";
+  print $q->startform;
+  print $q->textfield(-name=>'semester',
+		      -default=>$semester,
+		      -size=>10,
+		      -maxlength=>30,);
+  print "</td><tr><td align='right'>Show: </td><td>";
+  print $q->radio_group(-name=>'status',
+		        -values=>['active', 'inactive', 'all'],
+			-labels=>{active=>'Active',
+				  inactive=>'Inactive',
+				  all=>'All',},
+		        -default=>'all',);
+  print "</td><td>&nbsp;&nbsp;&nbsp;";
+  print $q->submit(-name=>'Submit');
+  print $q->endform();
+  print "</td></table>";
 }
 
 =item B<msb_comment_form>
