@@ -1023,15 +1023,19 @@ sub _populate {
 
       # Observations with STANDARD=T are science calibrations
       # Observations with PROJECT =~ /CAL/ are generic calibrations
-      # DARKS and BIAS are generic calibrations
-      # FLAT and ARC are science calibrations
+      # BIAS are generic calibrations
+      # DARKs are generic calibrations if they have an ARRAY_TESTS-like DR recipe
+      # DARK and FLAT and ARC are science calibrations
+      my $drrecipe = (exists $generic_header{DR_RECIPE} && defined $generic_header{DR_RECIPE}
+		      ? $generic_header{DR_RECIPE} : '');
       if ($self->projectid =~ /CAL$/ ||
           length($self->projectid) == 0 ||
-          $self->type =~ /DARK|BIAS/
+          $self->type =~ /BIAS/ ||
+	  $drrecipe =~ /ARRAY_TESTS|MEASURE_READNOISE|DARK_AND_BPM/
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
-      } elsif ($self->type =~ /FLAT|ARC/ ||
+      } elsif ($self->type =~ /DARK|FLAT|ARC/ ||
                $generic_header{STANDARD}
               ) {
         $self->isSciCal( 1 );
