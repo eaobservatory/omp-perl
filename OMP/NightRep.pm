@@ -40,6 +40,8 @@ use OMP::TimeAcctDB;
 use OMP::FaultDB;
 use OMP::FaultStats;
 use OMP::CommentServer;
+use OMP::CGIObslog;
+use OMP::CGIShiftlog;
 use OMP::MSBDoneDB;
 use Time::Piece qw/ :override /;
 use Text::Wrap;
@@ -574,6 +576,172 @@ Project Time Summary
   return $str;
 }
 
+=item B<ashtml>
+
+Generate a summary of the night formatted using HTML.
+
+  $nr->ashtml();
+
+=cut
+
+sub ashtml {
+  my $self = shift;
+
+  my $tel  = $self->telescope;
+  my $date = $self->date->ymd;
+
+  my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+
+  print "<a href='#faultsum'>Fault Summary</a><br>";
+  print "<a href='#shiftcom'>Shift Log Comments</a><br>";
+  print "<a href='#obslog'>Observation Log</a><br>";
+  print "<p>";
+
+  # T i m e  A c c o u n t i n g
+  # Get project accounting
+  my %acct = $self->accounting_db();
+
+  my $format = "%5.2f hrs\n";
+
+  print "<table class='sum_table' cellspacing='0' width='600'>";
+  print "<tr class='sum_table_head'>";
+  print "<td colspan='2'><strong class='small_title'>Project Time Summary</strong></td>";
+
+  # Time lost to faults
+  print "<tr class='sum_other'>";
+  print "<td>Time lost to faults</td>";
+  print "<td>" . sprintf($format, $self->timelost->hours) . " <a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+
+  # Time lost to weather, extended accounting
+  my %text = (
+	      WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
+	      EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
+	     );
+  for my $proj (qw/WEATHER EXTENDED/) {
+    my $time = 0.0;
+    if (exists $acct{$tel.$proj}) {
+      $time = $acct{$tel.$proj}->timespent->hours;
+    }
+    print "$text{$proj}<td>" . sprintf($format, $time) . "</td>";
+  }
+
+  # Project Accounting
+  my $bgcolor = "a";
+  for my $proj (keys %acct) {
+    next if $proj =~ /^$tel/;
+
+    print "<tr class='row_$bgcolor'>";
+    print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
+    printf($format, $acct{$proj}->timespent->hours);
+    print "</td>";
+
+    # Alternate background color
+    ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+  }
+
+  print "</table>";
+  print "<p>";
+
+  # M S B  S u m m a r y
+  # Get observed MSBs
+  my %msbs = $self->msbs;
+
+  print "<table class='sum_table' cellspacing='0' width='600'>";
+  print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
+
+  for my $proj (keys %msbs) {
+    print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?urlprojid=$proj' class='link_dark'>$proj</a></td>";
+    print "<td>Target</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
+
+    for my $msb (@{$msbs{$proj}}) {
+      print "<tr class='row_a'>";
+      print "<td></td>";
+      print "<td>". substr($msb->targets,0,30) ."</td>";
+      print "<td>". $msb->wavebands ."</td>";
+      print "<td>". $msb->instruments ."</td>";
+      print "<td>". $msb->nrepeats ."</td>";
+    }
+  }
+
+  print "</table>";
+  print "<p>";
+
+  # F a u l t S u m m a r y
+  # Get faults
+  my @faults = $self->faults;
+
+  print "<a name=faultsum></a>";
+  print "<table class='sum_table' cellspacing='0' width='600'>";
+  print "<tr class='fault_sum_table_head'>";
+  print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td>";
+
+  for my $fault (@faults) {
+    print "<tr class=sum_other valign=top>";
+    print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
+
+    # Use local time for fault date
+    my $local = localtime($fault->date->epoch);
+    print "<td class='time'>". $local->strftime("%H:%M %Z") ."</td>";
+    print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
+    print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
+  }
+
+  print "</table>";
+  print "<p>";
+
+  # S h i f t  L o g  C o m m e n t s
+  my @comments = $self->shiftComments;
+
+  print "<a name=shiftcom></a>";
+  print "<table class='sum_table' cellspacing='0' width='600'>";
+  print "<tr class='sum_table_head'>";
+  print "<td colspan=3><strong class='small_title'>Shift Log Comments</strong></td>";
+
+  if ($comments[0]) {
+    my $bgcolor = 'a';
+    for my $c (@comments) {
+      # Use local time
+      my $date = $c->date;
+      my $local = localtime( $date->epoch );
+      my $author = $c->author->name;
+
+      # Get the text
+      my $text = $c->text;
+
+      # Now print the comment
+      print "<tr class=row_$bgcolor valign=top>";
+      print "<td class=time>".$local->strftime("%H:%M %Z") ."</td>";
+      print "<td class=time>$author</td>";
+      print "<td class=subject>$text</td>";
+
+      # Alternate bg color
+      ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+    }
+  } else {
+    print "<tr class=sum_other valign=top><td>No comments available</td><td></td><td></td>";
+  }
+
+  print "</table>";
+  print "<p>";
+
+  # O b s e r v a t i o n  L o g
+  my $grp;
+#  my $grp = $self->obs;  # Commented out for testing
+
+  print "<a name=obslog></a>";
+  print "<strong class='small_title'>Observation log</strong><p>";
+
+  if ($grp and $grp->numobs > 1) {
+      # Don't want to go to files on disk
+      $OMP::ArchiveDB::FallbackToFiles = 0;
+      obs_table($grp);
+    } else {
+      # Don't display the table if no observations are available
+      print "No observations available for this night";
+    }
+}
+
+=cut
 
 =item B<mail_report>
 
