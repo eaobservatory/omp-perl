@@ -1,13 +1,18 @@
 #!/usr/local/bin/perl
 
 # Populates project database with initial details
-# of JAC staff
+# of JAC staff test projects
 
 # Input: text file containing project details
 #
 # CSV file containing:
 #  Root Project name (person initials, no number)
 #  OMP User id
+#  TELESCOPE
+
+# If telescope is not supplied it is assumed that half the
+# projects created (1->5) will be UKIRT and half (6-10) will
+# be JCMT
 
 # Comments are supported
 
@@ -55,9 +60,10 @@ while (<>) {
   next if $line =~ /^#/;
 
   # split on comma
-  my @file  = split(/,/,$line);
+  my @file  = split(/,/,$line,3);
 
-
+  my $tel = $file[2];
+  $tel = "????" unless $tel;
 
 
   # Now need to create some project details:
@@ -70,15 +76,20 @@ while (<>) {
 		 "JAC",
 		 "JAC",
 		 "omptest",  # Password should be supplied by user
-		 10000,"UKIRT"
+		 10000,$tel
 		);
 
   print join("--",@details),"\n";
 
   # Now loop over 9 project ids
-  for my $i (1..9) {
+  for my $i (1..10) {
     # Calculate the project ID
     $details[0] = $file[0] . sprintf("%02d", $i);
+
+    # Insert telescope
+    if (!$file[2]) {
+      $details[10] = ( $i <= 5 ? "UKIRT" : "JCMT" );
+    }
 
     # Upload
     OMP::ProjServer->addProject("***REMOVED***", @details[0..10] );
