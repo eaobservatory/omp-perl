@@ -1476,12 +1476,7 @@ sub project_home {
       my $utdate = $_->strftime("%Y%m%d");
       my $ymd = $_->ymd;
 
-      #### DISABLE LINK FOR UKIRT PROJECTS TEMPORARILY ####
-      if ($project->telescope !~ /^ukirt$/i) {
-	print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
-      } else {
-	print "$utdate ";
-      }
+      print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
 
       if ($accounts{$_->epoch}) {
 	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
