@@ -402,6 +402,7 @@ sub locate_msbs {
   # Remove duplicates
   # Build up a hash keyed by checksum
   my %unique;
+  my $unbound = 0;
   for my $msb (@objs) {
     my $checksum = $msb->checksum;
     if (exists $unique{$checksum}) {
@@ -410,14 +411,25 @@ sub locate_msbs {
       $unique{$checksum}->remaining($newtotal);
 
       # Remove the current msb object from the science program tree
-    #  print "About to unbind Node\n";
       $msb->_tree->unbindNode;
-    #  print "Done\n";
+      $unbound = 1;
 
     } else {
       $unique{$checksum} = $msb;
     }
   }
+
+  # If we've deleted some msbs from the tree we need to rescan 
+  # the internal idrefs to make sure that we are no longer holding
+  # references to objects that are not in the tree
+  # Note that since we store a hash reference in the MSB objects
+  # we can just update the hash itself. If OMP::MSB copies the hash
+  # we are in trouble.
+  # if we dont do this we are bound to get a core dump at some point
+  # it is quicker to use a variable to indicate that we had
+  # duplicates rather than compare the contents of @objs with the
+  # contents of "values %unique"
+  $self->locate_refs if $unbound;
 
   # The hash now contains all the unique objects
   @objs = values %unique;
