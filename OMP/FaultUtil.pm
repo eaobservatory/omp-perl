@@ -165,13 +165,17 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
 Print faults using enscript
 
-  print_faults($printer, @faultids);
+  print_faults($printer, 0, @faultids);
+
+If the second argument is true send faults as seperate print jobs. All three
+arguments must be present.
 
 =cut
 
 sub print_faults {
   my $self = shift;
   my $printer = shift;
+  my $separate = shift;
   my @faultids = @_;
 
   # Untaint the printer param
@@ -179,17 +183,18 @@ sub print_faults {
     $printer = $1;
   }
 
-  # If we're printing multiple faults, combine them and send it off as a
+  # If not printing faults separately, combine them and send it off as a
   # single print job
-  if ($faultids[1]) {
+  if (! $separate) {
     my $toprint;
 
     for (@faultids) {
       # Get the fault
       my $f = OMP::FaultServer->getFault($_);
 
-      # Get the subject
+      # Get the subject and fault ID
       my $subject = $f->subject;
+      my $faultid = $f->id;
 
       # Get the raw fault text
       my $text = OMP::FaultUtil->format_fault($f, 1);
@@ -197,7 +202,7 @@ sub print_faults {
       # Convert it to plaintext
       my $plaintext = OMP::Display->html2plain($text);
 
-      $toprint .= "Subject: $subject\n\n$plaintext\f";
+      $toprint .= "Fault ID: $faultid\nSubject: $subject\n\n$plaintext\f";
     }
 
     # Set up printer. Should check that enscript can be found.
@@ -208,26 +213,28 @@ sub print_faults {
     close($PRTHNDL);
 
   } else {
-    # Get the fault
-    my $f = OMP::FaultServer->getFault($faultids[0]);
+    for (@faultids) {
+      # Get the fault
+      my $f = OMP::FaultServer->getFault($_);
 
-    my $faultid = $f->id;
+      my $faultid = $f->id;
 
-    # Get the subject
-    my $subject = $f->subject;
+      # Get the subject
+      my $subject = $f->subject;
 
-    # Get the raw fault text
-    my $text = OMP::FaultUtil->format_fault($f, 1);
+      # Get the raw fault text
+      my $text = OMP::FaultUtil->format_fault($f, 1);
 
-    # Convert it to plaintext
-    my $plaintext = OMP::Display->html2plain($text);
+      # Convert it to plaintext
+      my $plaintext = OMP::Display->html2plain($text);
 
-    # Set up printer. Should check that enscript can be found.
-    my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"[$faultid] $subject\" -P$printer";
-    open(my $PRTHNDL, "| $printcom");
-    print $PRTHNDL $plaintext;
+      # Set up printer. Should check that enscript can be found.
+      my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"[$faultid] $subject\" -P$printer";
+      open(my $PRTHNDL, "| $printcom");
+      print $PRTHNDL $plaintext;
 
-    close($PRTHNDL);
+      close($PRTHNDL);
+    }
   }
 }
 
