@@ -143,9 +143,6 @@ sub fb_fault_content {
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
   print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
   &fault_table($q, $showfault);
-  print "<br><font size=+1><b>Respond to this fault</b></font><br>";
-  &response_form($q, $showfault->faultid, %cookie);
-
 }
 
 =item B<fb_fault_output>
