@@ -907,7 +907,7 @@ sub create_shiftlog_widget {
   # Popup all the comments for the night
   $topbar->Button(-text => 'Submit Shift Comment',
 		  -command => sub {submit_shift_comment($text, $user,
-			       $RefTime, $TZ, $telescope)},
+			       \$RefTime, $TZ, $telescope)},
 		 )->pack(-side => 'right');
 
   # Submit this comment
@@ -961,9 +961,12 @@ sub update_shift_comment_time {
 sub submit_shift_comment {
   my $textw = shift;
   my $user = shift;
-  my $time = shift;
+  my $RefTimeRef = shift;
   my $TZ = shift;
   my $tel = shift;
+
+  # Dereferenece
+  my $time = $$RefTimeRef;
 
   # Need to read the contents of the Text widget
   my $content = $textw->get('0.0','end');
