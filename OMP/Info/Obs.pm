@@ -160,11 +160,13 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               airmass => '$',
                               airmass_start => '$',
                               airmass_end => '$',
+                              ambient_temp => '$',
                               backend => '$',
                               bolometers => '@',
                               camera => '$',
                               checksum => '$',
                               chopangle => '$',
+                              chopfreq => '$',
                               chopsystem => '$',
                               chopthrow => '$',
                               columns => '$',
@@ -180,6 +182,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               filter => '$',
                               grating => '$',
                               group => '$',
+                              humidity => '$',
                               instrument => '$',
                               inst_dhs => '$',
                               mode => '$',
@@ -188,6 +191,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               object => '$',
                               order => '$',
                               pol => '$',
+                              pol_in => '$',
                               projectid => '$',
                               raoff => '$',
                               rest_frequency => '$',
@@ -199,11 +203,14 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               speed => '$',
                               standard => '$',
                               startobs => 'Time::Piece',
+                              switch_mode => '$',
                               target => '$',
                               tau => '$',
                               timeest => '$',
                               telescope => '$',
                               type => '$',
+                              user_az_corr => '$',
+                              user_el_corr => '$',
                               utdate => '$',
                               velocity => '$',
                               velsys => '$',
@@ -552,6 +559,7 @@ sub nightlog {
     $return{'Tau225'} = sprintf( "%.2f", $self->tau);
     $return{'Seeing'} = $self->seeing;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
+    $return{'Pol In?'} = defined( $self->pol_in ) ? $self->pol_in : '';
     $return{'Bolometers'} = $self->bolometers;
     $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
     $return{'Dec'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
@@ -562,7 +570,7 @@ sub nightlog {
     $return{'Chop System'} = defined($self->chopsystem) ? $self->chopsystem : '';
 
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
-                          "Tau225", "Seeing", "Filter", "Bolometers" ];
+                          "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
 
     $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers";
     $return{'_STRING'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
@@ -1003,16 +1011,16 @@ sub _populate {
       # DARKS and BIAS are generic calibrations
       # FLAT and ARC are science calibrations
       if ($self->projectid =~ /CAL$/ ||
-	  length($self->projectid) == 0 ||
-	  $self->type =~ /DARK|BIAS/
-	 ) {
-	$self->isGenCal( 1 );
-	$self->isScience( 0 );
+          length($self->projectid) == 0 ||
+          $self->type =~ /DARK|BIAS/
+         ) {
+        $self->isGenCal( 1 );
+        $self->isScience( 0 );
       } elsif ($self->type =~ /FLAT|ARC/ ||
-	       $generic_header{STANDARD}
-	      ) {
-	$self->isSciCal( 1 );
-	$self->isScience( 0 );
+               $generic_header{STANDARD}
+              ) {
+        $self->isSciCal( 1 );
+        $self->isScience( 0 );
       }
 
     } elsif ($self->telescope eq 'JCMT') {
@@ -1023,14 +1031,14 @@ sub _populate {
       # observations of planets are generic
       # Standard spectra are science calibrations
       if ($self->projectid =~ /JCMT/ ||
-	  $self->mode =~ /fivepoint|focus/i  ||
-	  $self->target =~ /mars|uranus|saturn|venus|neptune|jupiter|mercury/i
-	 ) {
-	$self->isGenCal( 1 );
-	$self->isScience( 0 );
+          $self->mode =~ /fivepoint|focus/i  #||
+#          $self->target =~ /mars|uranus|saturn|venus|neptune|jupiter|mercury/i
+         ) {
+        $self->isGenCal( 1 );
+        $self->isScience( 0 );
       } elsif ($self->target =~ /w3oh|l1551|crl618|omc1|n2071|oh231|irc10216|16293-2422|ngc6334i|g34\.3|w75n|n7027|n7538/i) {
-	$self->isSciCal( 1 );
-	$self->isScience( 0 );
+        $self->isSciCal( 1 );
+        $self->isScience( 0 );
       }
 
     }
@@ -1069,12 +1077,20 @@ sub _populate {
   $self->chopthrow( $generic_header{CHOP_THROW} );
   $self->chopangle( $generic_header{CHOP_ANGLE} );
   $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
+  $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
   $self->rest_frequency( $generic_header{REST_FREQUENCY} );
   $self->cycle_length( $generic_header{CYCLE_LENGTH} );
   $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
   $self->backend( $generic_header{BACKEND} );
   $self->filter( $generic_header{FILTER} );
   $self->camera( $generic_header{CAMERA} );
+  $self->pol( $generic_header{POLARIMETRY} );
+  $self->pol_in( $generic_header{POLARIMETER} );
+  $self->switch_mode( $generic_header{SWITCH_MODE} );
+  $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
+  $self->humidity( $generic_header{HUMIDITY} );
+  $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
+  $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
 
   # Set the filename if it's not set.
 #  if( !defined($self->filename) ) {
