@@ -213,6 +213,10 @@ the query will not be constrained).
 
 Usually called from the constructor.
 
+IF THE TELESCOPE IS JCMT AND NO INSTRUMENT IS SUPPLIED WE FORCE
+SCUBA AS THE INSTRUMENT BECAUSE ARCHIVEDB CAN NOT YET HANDLE
+TO SEPARATE DATABASE QUERIES.
+
 =cut
 
 sub populate {
@@ -244,6 +248,10 @@ sub populate {
     $args{telescope} = $proj->telescope;
   }
 
+  # KLUGE JCMT and SCUBA
+  $args{instrument} = 'scuba' if (!exists $args{instrument} &&
+				  exists $args{telescope} &&
+				  $args{telescope} =~ /jcmt/i);
 
   # Form the XML.[restrict the keys
   for my $key (qw/ instrument telescope projectid/ ) {
