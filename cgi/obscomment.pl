@@ -1,37 +1,37 @@
-#!/local/bin/perl -X
+#!/local/perl/bin/perl -XT
+use strict;
 
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
 BEGIN {
-  use constant OMPLIB => "/jac_sw/omp/msbserver";
-  use File::Spec;
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
 }
 
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
-
-use lib OMPLIB;
-
-use OMP::CGI;
-use OMP::CGIObslog;
+use OMP::CGIPage;
+use OMP::CGIPage::Obslog;
 
 use Net::Domain qw/ hostfqdn /;
 
-use strict;
-
 $| = 1; # make output unbuffered
-my $cquery = new CGI;
-my $cgi = new OMP::CGI( CGI => $cquery );
+my $cquery = new CGI;;
+my $cgi = new OMP::CGIPage( CGI => $cquery );
+
 $cgi->html_title( "OMP Observation Log" );
 
 # Check to see if we're at one of the telescopes or not. Do this
-# by a hostname lookup, then checking if we're on ulili (JCMT)
-# or mauiola (UKIRT).
+# by a hostname lookup, then checking if we're on omp2 (JCMT)
+# or omp1 (UKIRT).
 my $location;
 my $hostname = hostfqdn;
-if($hostname =~ /ulili/i) {
+if($hostname =~ /omp2/i) {
   $location = "jcmt";
-} elsif ($hostname =~ /mauiola/i) {
+} elsif ($hostname =~ /omp1/i) {
   $location = "ukirt";
 } else {
   $location = "nottelescope";
@@ -40,7 +40,7 @@ if($hostname =~ /ulili/i) {
 # Write the page, using the proper authentication on whether or
 # not we're at one of the telescopes
 if(($location eq "jcmt") || ($location eq "ukirt")) {
-  $cgi->write_page_noauth( \&file_comment, \&file_comment_output );
+  $cgi->write_page( \&file_comment, \&file_comment_output, 'no_project_auth' );
 } else {
-  $cgi->write_page( \&file_comment, \&file_comment_output );
+  $cgi->write_page_staff( \&file_comment, \&file_comment_output, 'no_project_auth');
 }
