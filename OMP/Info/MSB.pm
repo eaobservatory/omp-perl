@@ -639,7 +639,7 @@ sub summary {
     # Add the 'add comment' button
     if ($format eq 'htmlcgi') {
       push(@text, "<br><form method='post' action='/cgi-bin/fbmsb.pl' enctype='application/x-www-form-urlencoded'>");
-      push(@text, "<input type='hidden' name='checksum' value=\'$summary{checksum}\' /><input type='hidden' name='projectid' value=\'$summary{projectid}\' /><input type='submit' name='Add Comment' value='Add Comment' /></form>");
+      push(@text, "<input type='hidden' name='checksum' value=\'$summary{checksum}\' /><input type='hidden' name='projectid' value=\'$summary{projectid}\' /><input type='hidden' name='show_output' value='1' /><input type='submit' name='Add Comment' value='Add Comment' /></form>");
     }
 
     # Return a list or a string
