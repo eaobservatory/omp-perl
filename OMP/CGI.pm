@@ -406,7 +406,7 @@ sub _write_header {
 
   $theme->SetHTMLStartString("<html><head><title>$title</title>$style<link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/></head>");
 
-  $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+  $theme->SetSideBarTop("<a href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   # These links will go under the 'JAC Divisions' heading
   my @links = ("<a HREF='http://www.jach.hawaii.edu/JACpublic/JCMT'>JCMT</a>",
