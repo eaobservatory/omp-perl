@@ -35,7 +35,7 @@ my $obj = new OMP::SciProg( FILE => $file );
 ok($obj);
 
 # Check the project ID
-ok($obj->projectID, "M01BTJ");
+ok($obj->projectID, "TJ01");
 
 # Now count the number of MSBs
 # Should be 9
@@ -170,7 +170,7 @@ $VAR1 = {
                                                                       }, 'OMP::Range' ),
                                                    'title' => '-',
                                                    'timeest' => '0.24',
-                                                   'projectid' => 'M01BTJ',
+                                                   'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
                                                                      'Min' => 0,
@@ -217,7 +217,7 @@ $VAR1 = {
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'FS101_00h13m_30d J-band',
                                                    'timeest' => '30.0',
-                                                   'projectid' => 'M01BTJ',
+                                                   'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
                                                                      'Min' => 0,
@@ -319,7 +319,7 @@ $VAR1 = {
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Array Tests',
                                                   'timeest' => '60.0',
-                                                  'projectid' => 'M01BTJ',
+                                                  'projectid' => 'TJ01',
                                                   'moon' => 101,
                                                   'tau' => bless( {
                                                                     'Min' => 0,
@@ -365,7 +365,7 @@ $VAR1 = {
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
-                                                  'projectid' => 'M01BTJ',
+                                                  'projectid' => 'TJ01',
                                                   'moon' => 101,
                                                   'tau' => bless( {
                                                                     'Min' => 0,
@@ -410,7 +410,7 @@ $VAR1 = {
                                                                        }, 'OMP::Range' ),
                                                     'title' => 'BS1532_4h47m_-16d_G1V',
                                                     'timeest' => '64.0',
-                                                    'projectid' => 'M01BTJ',
+                                                    'projectid' => 'TJ01',
                                                     'moon' => 101,
                                                     'tau' => bless( {
                                                                       'Min' => 0,
@@ -501,7 +501,7 @@ $VAR1 = {
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'Pol test',
                                                    'timeest' => '49.490668292',
-                                                   'projectid' => 'M01BTJ',
+                                                   'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
                                                                      'Min' => 0,
@@ -548,7 +548,7 @@ $VAR1 = {
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'FS1_00h33m_-12d I-band',
                                                    'timeest' => '240.0',
-                                                   'projectid' => 'M01BTJ',
+                                                   'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
                                                                      'Min' => 0,
@@ -594,7 +594,7 @@ $VAR1 = {
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
-                                                  'projectid' => 'M01BTJ',
+                                                  'projectid' => 'TJ01',
                                                   'moon' => 101,
                                                   'tau' => bless( {
                                                                     'Min' => 0,
@@ -639,7 +639,7 @@ $VAR1 = {
                                                                        }, 'OMP::Range' ),
                                                     'title' => 'BS5_0h6m_58d_G5V',
                                                     'timeest' => '64.0',
-                                                    'projectid' => 'M01BTJ',
+                                                    'projectid' => 'TJ01',
                                                     'moon' => 101,
                                                     'tau' => bless( {
                                                                       'Min' => 0,
@@ -712,7 +712,7 @@ $VAR1 = {
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'UFTI standards',
                                                   'timeest' => '180.0',
-                                                  'projectid' => 'M01BTJ',
+                                                  'projectid' => 'TJ01',
                                                   'moon' => 101,
                                                   'tau' => bless( {
                                                                     'Min' => 0,
@@ -758,7 +758,7 @@ $VAR1 = {
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'Copy',
                                                    'timeest' => '40.501227375',
-                                                   'projectid' => 'M01BTJ',
+                                                   'projectid' => 'TJ01',
                                                    'moon' => 101,
                                                    'tau' => bless( {
                                                                      'Min' => 0,
