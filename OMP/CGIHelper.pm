@@ -1708,6 +1708,20 @@ sub projlog_content {
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a>";
 
+  # Setup tau fits image info
+  my $taufitsdir = "/WWW/omp/data/taufits";
+  my $taufitswww = "../data/taufits";
+  my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+
+  my $gif = $gifdate . "new.gif";
+
+  # Link to the tau fits image on this page
+  if (-e "$taufitsdir/$gif") {
+    print"<p><a href='#taufits'>View polynomial fit</a>";
+  }
+
   # Display observation log
   try {
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
@@ -1744,6 +1758,13 @@ sub projlog_content {
 
   print "<a name='shiftcom'></a>";
   display_shift_comments(\%shift_args, \%cookie);
+
+  # Display polynomial fit image
+  if (-e "$taufitsdir/$gif") {
+    print "<p><a name='taufits'></a>";
+    print "<a href='$calibpage'><img src='$taufitswww/$gif'>";
+    print "<br>Click here to visit the calibration page</a>";
+  }
 }
 
 =item B<preify_text>
