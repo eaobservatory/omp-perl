@@ -55,8 +55,11 @@ my %tables = (
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
 			  title => "VARCHAR(132)",
+			  support => "VARCHAR(255) NULL",
+			  supportemail => "VARCHAR(64) NULL",
 			  _ORDER => [qw/projectid pi piemail
-				     coi coiemail title tagpriority
+				     coi coiemail support supportemail
+				     title tagpriority
 				     country semester encrypted allocated
 				     remaining pending
 				     /],
