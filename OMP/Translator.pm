@@ -60,6 +60,7 @@ use Time::Seconds qw/ ONE_HOUR /;
 use SCUBA::ODF;
 use SCUBA::ODFGroup;
 use Data::Dumper;
+use Astro::Telescope;
 
 our $VERSION = (qw$Revision$)[1];
 
