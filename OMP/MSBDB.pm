@@ -1522,6 +1522,8 @@ sub _run_query {
   # No point hanging around if nothing retrieved
   return () unless @$ref;
 
+  throw OMP::Error::MSBMalformedQuery("Result of query did not include msbid field!") unless exists $ref->[0]->{msbid};
+
   # Now for each MSB we need to retrieve all of the Observation
   # information and store it in the results hash
   # Convention dictates that this information ...???
