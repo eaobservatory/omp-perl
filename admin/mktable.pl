@@ -249,7 +249,7 @@ my %tables = (
            commenttext => "TEXT NULL",
            commentstatus => "INTEGER",
            _ORDER => [qw/ obslogid runnr instrument telescope
-                      utstart obsactive commentdate commentauthor
+                      date obsactive commentdate commentauthor
                       commenttext commentstatus /],
         },
 	     );
