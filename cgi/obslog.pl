@@ -24,11 +24,12 @@ use OMP::ArchiveDB;
 use OMP::ObslogDB;
 use OMP::BaseDB;
 use OMP::DBbackend::Archive;
+use Net::Domain qw/ hostfqdn /;
 
 use strict;
 
 # Define colours.
-my @colour = qw/ BLACK GREEN BROWN /;
+my @colour = qw/ BLACK #660000 #FFCCCC /;
 
 # Undefine the orac_warn filehandle
 my $Prt = new ORAC::Print;
@@ -53,10 +54,26 @@ my $current_ut;
 #    $current_ut = '2002-06-02';
   }
 
-# write the page
+# Check to see if we're at one of the telescopes or not. Do this
+# by a hostname lookup, then checking if we're on ulili (JCMT)
+# or mauiola (UKIRT).
+my $location;
+my $hostname = hostfqdn;
+if($hostname =~ /ulili/i) {
+  $location = "jcmt";
+} elsif ($hostname =~ /mauiola/i) {
+  $location = "ukirt";
+} else {
+  $location = "nottelescope";
+}
 
-
-$cgi->write_page( \&obslog_output, \&obslog_output );
+# Write the page, using the proper authentication on whether or
+# not we're at one of the telescopes
+if(($location eq "jcmt") || ($location eq "ukirt")) {
+  $cgi->write_page_noauth( \&obslog_output, \&obslog_output );
+} else {
+  $cgi->write_page( \&obslog_output, \&obslog_output );
+}
 
 sub obslog_output {
 # this subroutine is basically the "main" subroutine for this CGI
@@ -71,7 +88,10 @@ sub obslog_output {
 
   my $projectid = $cookie{'projectid'};
   my $password = $cookie{'password'};
-
+  if(length($projectid . "") == 0) {
+    $projectid = 'staff';
+    $password = 'kalapana';
+  }
 # Verify the $query->param() hash
   verify_query( \%params, \%verified );
 
@@ -79,7 +99,7 @@ sub obslog_output {
   my $ut = $verified{'ut'} || $current_ut;
 
 # Print out the page
-print "<META HTTP-EQUIV=\"refresh\" content=\"300;URL=obslog.pl?ut=$ut&inst=" . $verified{'inst'} . "\">\n";
+print "<META HTTP-EQUIV=\"refresh\" content=\"300;URL=obslog.pl?ut=$ut&inst=" . $verified{'inst'} . "&collapse=" . $verified{'collapse'} . "\">\n";
 
   print_header();
 
@@ -113,18 +133,20 @@ sub list_observations {
     return;
   }
 
-#  my @instarray;
-#  if(defined($verified->{'inst'})) {
-#    push @instarray, $verified->{'inst'};
-#  } else {
-#    push @instarray, @instruments;
-#  }
+  my @instarray;
+  if($location eq 'jcmt') {
+    push @instarray, "scuba";
+  } elsif($location eq 'ukirt') {
+    push @instarray, qw/ cgs4 ircam michelle ufti uist /;
+  } else {
+    push @instarray, @instruments;
+  }
 
   my %results;
 
   # Grab the Info::Obs objects from either the archive or off disk for each
   # available instrument.
-  foreach my $inst (@instruments) {
+  foreach my $inst (@instarray) {
 
     # Form the XML.
     my $xml = "<ArcQuery><instrument>$inst</instrument><date delta=\"1\">$ut</date>";
@@ -173,6 +195,12 @@ sub list_observations {
     $firstinst = $verified->{'inst'};
   }
   print "<h2>Observations for $firstinst for $ut</h2>\n";
+  if($verified->{'collapse'} eq 'f') {
+    print "<a href=\"obslog.pl?inst=$firstinst&ut=$ut&collapse=t\">Don't show comments</a>\n";
+  } else {
+    print "<a href=\"obslog.pl?inst=$firstinst&ut=$ut&collapse=f\">Show comments</a>\n";
+  }
+  print "&nbsp;Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font><br>\n";
   print "<table border=\"1\">\n<tr><td>";
 
   # Print the headers.
@@ -209,8 +237,9 @@ sub list_observations {
     print "&runnr=" . $obs->runnr . "&inst=" . $firstinst . "\">edit/view</a></td></tr>\n";
     # "Print each observation," he says. As easy as that, eh?
 
-    # Print the comment underneath, if there is one.
-    if(defined($comment)) {
+    # Print the comment underneath, if there is one, and if the 'collapse'
+    # query parameter is 'f'.
+    if(defined($comment) && $verified->{'collapse'} eq 'f') {
       print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\"><font color=\"$colour\">";
       print "<strong>" . $comment->date->cdate . " UT / " . $comment->author->userid . ":";
       print "</strong> " . $comment->text;
@@ -250,6 +279,18 @@ sub verify_query {
       $v->{'ut'} = $ut;
     }
   }
+
+  # The 'collapse' parameter is either 't' or 'f' (defaults to 'f')
+  if(defined($q->{'collapse'})) {
+    if($q->{'collapse'} =~ /^t$/i) {
+      $v->{'collapse'} = 't';
+    } else {
+      $v->{'collapse'} = 'f';
+    }
+  } else {
+    $v->{'collapse'} = 'f';
+  }
+
 }
 
 =item B<print_header>
