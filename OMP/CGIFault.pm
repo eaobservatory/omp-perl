@@ -1231,8 +1231,7 @@ sub file_fault_form {
 	# Make sure to only include projects associated with the current
 	# telescope category
 	my $category = $cookie->{category};
-	my @instruments = split(m!\/!, $_->instrument);
-	my $tel = OMP::Config->inferTelescope('instruments',@instruments);
+	my $tel = OMP::Config->inferTelescope('instruments',$_->instrument);
 	$projects{$_->projectid} = $_->projectid
 	  unless ($tel !~ /$category/i);
 	
@@ -1802,7 +1801,7 @@ sub titlebar {
   }
 
   print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
-  print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
+  print "<tr><td><font size=+2><b>$title->[1]</b></font></td>"
     if ($title->[1]);
   print "</table><br>";
 }

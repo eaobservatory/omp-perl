@@ -282,7 +282,7 @@ sub display_shift_table {
      if (scalar(keys %comments) > 1) {
       # Summarizing Shift comments for more than one day
 
-       my $cdate = @{$comments{$date}}->[0]->date;
+       my $cdate = $comments{$date}->[0]->date;
        my $local = localtime($cdate->epoch);
        $timecellclass = 'time_' . $local->day;
 
