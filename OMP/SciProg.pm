@@ -1049,7 +1049,6 @@ sub cloneMSBs {
   # MSB objects because they will be pointing to invalid nodes
   if ($ncloned > 0) {
     $self->locate_msbs;
-    print "$self";
   } else {
     push(@info, "No MSBs contained blank target components. No change.");
   }
