@@ -1617,17 +1617,12 @@ sub projlog_content {
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a><p>";
 
-  # Setup tau fits image info
-  my $taufitsdir = "/WWW/omp/data/taufits";
-  my $taufitswww = "../data/taufits";
-  my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
-  my $gifdate = $utdate;
-  $gifdate =~ s/-//g;
 
-  my $gif = $gifdate . "new.gif";
+  # Get code for tau plot display
+  my $plot_html = tau_plot_code($utdate);
 
   # Link to the tau fits image on this page
-  if (-e "$taufitsdir/$gif") {
+  if ($plot_html) {
     print"<p><a href='#taufits'>View polynomial fit</a>";
   }
 
@@ -1696,10 +1691,8 @@ sub projlog_content {
   display_shift_comments(\%shift_args, \%cookie);
 
   # Display polynomial fit image
-  if (-e "$taufitsdir/$gif") {
-    print "<p><a name='taufits'></a>";
-    print "<a href='$calibpage'><img src='$taufitswww/$gif'>";
-    print "<br>Click here to visit the calibration page</a>";
+  if ($plot_html) {
+    print "<p>$plot_html";
   }
 }
 
@@ -1822,10 +1815,7 @@ sub night_report {
     my $nextdate = gmtime($t->epoch + 84000);
 
     # Link to previous and next date reports
-#    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
-
-    ### T E S T  U R L ###
-    my $url = "nightrep.pl";
+    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
 
     print "</td><tr><td>";
 
@@ -1851,7 +1841,13 @@ sub night_report {
 
     print "<p>";
 
+    my $plot_html = tau_plot_code($utdate);
+    ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
+
     $nr->ashtml;
+
+    # Display tau plot
+    ($plot_html) and print "<p>$plot_html</p>";
   }
 }
 
@@ -2146,6 +2142,38 @@ sub proj_sum_table {
 
   print "</table>";
 
+}
+
+=item B<tau_plot_code>
+
+Returns HTML code for displaying a tau plot.
+
+  $html = tau_plot_code($utdate);
+
+Takes a UT date string as the only argument.  Returns undef if no tau plot
+exists for the given date.
+
+=cut
+
+sub tau_plot_code {
+  my $utdate = shift;
+
+  # Setup tau fits image info
+  my $dir = "/WWW/omp/data/taufits";
+  my $www = "../data/taufits";
+  my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+
+  my $gif = $gifdate . "new.gif";
+
+  if (-e "$dir/$gif") {
+    return "<a name='taufits'></a>"
+      ."<a href='$calibpage'><img src='$www/$gif'>"
+	."<br>Click here to visit the calibration page</a>";
+  } else {
+    return undef;
+  }
 }
 
 =item B<preify_text>
