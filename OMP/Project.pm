@@ -83,6 +83,7 @@ sub new {
 		    Pending => Time::Seconds->new(0),
 		    Support => [],
 		    State => 1,
+		    Contactable => {},
 		   }, $class;
 
   # Deal with arguments
@@ -262,6 +263,9 @@ ID that should be retrieved from the database:
 Provide a list of colon-separated user IDs:
 
   $proj->coi( "name1:name2" );
+
+Co-Is are by default non-contactable so no call is made to
+the C<contactable> method if the CoI information is updated.
 
 =cut
 
@@ -460,6 +464,9 @@ Name of the principal investigator.
 
 Returned and stored as a C<OMP::User> object.
 
+By default when a PI is updated it is made contactable. If this
+is not the case the C<contactable> method must be called explicitly.
+
 =cut
 
 sub pi {
@@ -469,6 +476,10 @@ sub pi {
     Carp::confess "PI must be of type OMP::User"
       unless UNIVERSAL::isa($pi, "OMP::User");
     $self->{PI} = $pi;
+
+    # And force them to be contactable
+    $self->contactable( $pi->userid => 1 );
+
   }
   return $self->{PI};
 }
@@ -526,6 +537,9 @@ Provide a list of colon-separated user IDs:
 
   $proj->support( "name1:name2" );
 
+By default when a support contact is updated it is made contactable. If this
+is not the case the C<contactable> method must be called explicitly.
+
 =cut
 
 sub support {
@@ -552,6 +566,11 @@ sub support {
 	# Convert them to OMP::User objects
 	push(@users, map { new OMP::User( userid => $_ ) } @split);
       }
+    }
+
+    # make them contactable
+    for (@users) {
+      $self->contactable( $_->userid => 1 );
     }
 
     # And store the result
@@ -755,8 +774,9 @@ sub investigators {
 
 =item contacts
 
-Return an array of C<OMP::User> objects for all those people associated
-with the project. This is the investigators and support scientists.
+Return an array of C<OMP::User> objects for all those people
+associated with the project. This is the investigators and support
+scientists who are listed as "contactable".
 
   my @users = $proj->contacts;
 
@@ -771,6 +791,56 @@ sub contacts {
   return @users;
 }
 
+=item B<contactable>
+
+A hash (indexed by OMP user ID) indicating whether a particular person
+associated with this project should be sent email notifications concerning
+a change in project state. If a particular user is not present in this
+hash the assumption should be that they do not want to be contacted.
+
+A case can be made for always contacting the PI and support scientists.
+
+Values can be modified by specifying a set of key value pairs:
+
+  $proj->contactable( TIMJ => 1, JRANDOM => 0);
+
+and the current state for a user can be retrieved by specifying a single
+user id:
+
+  $iscontactable = $proj->contactable( 'TIMJ' );
+
+The key is always upper-cased.
+
+Returns a hash reference in scalar context and a list in list context
+when no arguments are supplied.
+
+  %contacthash = $proj->contactable;
+  $cref = $proj->contactable;
+
+=cut
+
+sub contactable {
+  my $self = shift;
+  if (@_) {
+    if (scalar @_ == 1) {
+      # A single key
+      return $self->{Contactable}->{uc($_[0])};
+    } else {
+      # key/value pairs
+      my %args = @_;
+      for my $u (keys %args) {
+	# make sure we are case-insensitive
+	$self->{Contactable}->{uc($u)} = $args{$u};
+      }
+    }
+  }
+  # return something
+  if (wantarray) {
+    return %{ $self->{Contactable} };
+  } else {
+    return $self->{Contactable};
+  }
+}
 
 =back
 

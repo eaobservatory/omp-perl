@@ -69,21 +69,20 @@ my %tables = (
 				    approach
 				    /],
 		       },
-	      # Associates individual Co-Is with associated projects
+	      # Associates users with a project
 	      # See OMP::ProjDB
-	      ompcoiuser => {
-			     userid => USERID . " NULL",
-			     projectid => PROJECTID,
-			     _ORDER => [ qw/ projectid userid /],
-			    },
-	      # Associates individual support scientists with
-	      # associated projects
-	      # See OMP::ProjDB
-	      ompsupuser => {
-			     userid => USERID . " NULL",
-			     projectid => PROJECTID,
-			     _ORDER => [ qw/ projectid userid /],
-			    },
+	      ompprojuser => {
+			      uniqid => NUMID,
+			      userid => USERID,
+			      projectid => PROJECTID,
+			      # PI, COI, SUPPORT
+			      capacity => "VARCHAR(16)",
+			      contactable => "BIT",
+			      _ORDER => [qw/
+					 uniqid projectid userid
+					 capacity contactable
+					/],
+			     },
 	      # General project details
 	      # See OMP::ProjDB
 	      ompproj => {
@@ -108,7 +107,7 @@ my %tables = (
 				     title tagpriority
 				     country semester encrypted allocated
 				     remaining pending telescope taumin
-				     taumax seeingmin seeingmax cloud, state
+				     taumax seeingmin seeingmax cloud state
 				     /],
 			 },
 	      # Time accounting for projects
@@ -300,11 +299,10 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompfaultbody';
   next if $table eq 'ompfaultassoc';
   next if $table eq 'ompuser';
-  next if $table eq 'ompsupuser';
-  next if $table eq 'ompcoiuser';
   next if $table eq 'ompshiftlog';
   next if $table eq 'ompobslog';
   next if $table eq 'omptimeacct';
+  next if $table eq 'ompprojuser';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}

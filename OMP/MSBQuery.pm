@@ -261,7 +261,7 @@ sub sql {
   throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
     unless scalar(@_) ==4;
 
-  my ($msbtable, $obstable, $projtable, $coitable) = @_;
+  my ($msbtable, $obstable, $projtable, $projusertable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -321,25 +321,30 @@ sub sql {
   # It is more efficient if we only join the COI table
   # if we are actually going to use it. Also if no coitable
   # supplied raise an error
-  my $c_sql = '';
-  my $c_table = '';
-  if ($subsql =~ /\bC\.userid\b/ ) {
+  # Only do a join if required by the CoI or Person query
+  my @join_tables;
+  my @join_sql;
+  # Note that we match multiple times but we do not reset the position
+  # this allows us to jump out eventually.
+  my %found;
+  while ($subsql =~ /\b(U\d)\.userid\b/cg ) {
+    # Keep track of the tables we have covered already
+    next if exists $found{$1};
+    $found{$1}++;
 
-    # Complain loudly
-    throw OMP::Error::FatalError( "Doing a query on COI table without defining the name of the coitable")
-      unless $coitable;
-
-    $c_table = ", $coitable C";
-    $c_sql = " AND P.projectid = C.projectid";
-
+    push(@join_tables, ", $projusertable $1");
+    push(@join_sql, " P.projectid = $1.projectid ");
   }
+  my $u_sql = '';
+  $u_sql = " AND " . join(" AND ", @join_sql) if @join_sql;
 
   my $top_sql = "(SELECT
           M.msbid, M.obscount, COUNT(*) AS nobs
            INTO $tempcount
-           FROM $msbtable M,$obstable O, $projtable P $c_table
-            WHERE M.msbid = O.msbid
-              AND P.projectid = M.projectid $c_sql";
+           FROM $msbtable M,$obstable O, $projtable P " .
+	     join(" ", @join_tables)
+          ."  WHERE M.msbid = O.msbid
+              AND P.projectid = M.projectid $u_sql";
 
   # The end of the query is generic
   # make sure we include tagpriority here since it is faster
@@ -560,7 +565,7 @@ sub _post_process_hash {
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
 			   [qw/projectid telescope semester country name
-			    pi coi instrument /]);
+			    pi coi instrument person /]);
 
 
   # These entries are in more than one table so we have to 
@@ -604,12 +609,36 @@ sub _post_process_hash {
     delete $href->{$key};
   }
 
-  # A coi query is really a query on C.userid
+  # If we have a PERSON query and a COI query then we need to join
+  # multiple tables
+  my $counter = 1;
+  my $prefix = 'U';
+
+  # A coi query is really a query on the ompprojuser table
+  # See also OMP::ProjQuery where this code is duplicated
   if (exists $href->{coi}) {
-    my $key = "C.userid";
-    $href->{$key} = $href->{coi};
-    delete $href->{coi};
+    my $U = $prefix . $counter;
+    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
+		     "$U.capacity" => ['COI']};
+    $counter++;
   }
+
+  # Person requires multiple bits
+  # since it wants a PI or a COI to match
+  # Note that we actually bring in the PI column from ompprojuser and do
+  # not attempt to use P.pi
+  # WHERE (P.pi = 'XXX' OR ( U.userid = 'XXX' AND U.capacity = 'COI' )
+  # is more complicated to construct from the hash
+  if (exists $href->{person}) {
+    my $U = $prefix . $counter;
+    $href->{person} = {
+		       _JOIN => 'AND',
+		       auser => {"$U.userid" => $href->{person}},
+		       acapacity => { "$U.capacity"=> ['COI','PI']},
+		      };
+    $counter++;
+  }
+
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

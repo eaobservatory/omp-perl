@@ -46,7 +46,7 @@ our $VERSION = (qw$Revision$ )[1];
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $projtable, $coitable );
+  $sql = $query->sql( $projtable, $projusertable );
 
 Returns undef if the query could not be formed.
 
@@ -56,9 +56,9 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) ==3;
+    unless scalar(@_) == 2;
 
-  my ($projtable, $coitable, $suptable) = @_;
+  my ($projtable, $projusertable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -70,30 +70,33 @@ sub sql {
 
   # Now need to put this SQL into the template query
   # Only do a join if required by the CoI or Support query
+  my @join_tables;
+  my @join_sql;
+  # Note that we match multiple times but we do not reset the position
+  # this allows us to jump out eventually.
+  my %found;
+  while ($subsql =~ /\b(U\d)\.userid\b/cg ) {
+    # Keep track of the tables we have covered already
+    next if exists $found{$1};
+    $found{$1}++;
 
-  my $c_table = '';
-  my $c_sql = '';
-  if ($subsql =~ /\bC\.userid\b/) {
-    $c_table = ", $coitable C";
-    $c_sql = " P.projectid = C.projectid ";
-  }
-  my $s_table = '';
-  my $s_sql = '';
-  if ($subsql =~ /\bS\.userid\b/) {
-    $s_table = ", $suptable S";
-    $s_sql = " P.projectid = S.projectid ";
+    push(@join_tables, ", $projusertable $1");
+    push(@join_sql, " P.projectid = $1.projectid ");
   }
 
   # Construct the the where clause. Depends on which
   # additional queries are defined
-  my @where = grep { $_ } ($s_sql, $c_sql, $subsql);
+  my @where = grep { $_ } (@join_sql, $subsql);
   my $where = '';
   $where = " WHERE " . join( " AND ", @where)
     if @where;
 
   # The final query
-  my $sql = "SELECT * FROM $projtable P $s_table $c_table
-              $where ORDER BY P.projectid";
+  # Note that we are only interested in the ProjTable contents
+  # since the user information is read after the match
+  my $sql = "SELECT DISTINCT P.projectid, P.* FROM $projtable P " .
+    join(" ",@join_tables) .
+      "$where ORDER BY P.projectid";
 
   #print "SQL: $sql\n";
   return "$sql\n";
@@ -165,7 +168,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) },
-			   [qw/projectid telescope support coi semester/]);
+			   [qw/projectid telescope support coi semester person pi/]);
 
   # These entries are in more than one table so we have to 
   # explicitly choose the project table
@@ -177,19 +180,54 @@ sub _post_process_hash {
     }
   }
 
-  # A coi query is really a query on C.userid
+  # Need to do multiple joins each time we have a distinct query
+  # for a USER
+  my $counter = 1;
+  my $prefix = 'U';
+
+  # A coi query is really a query on U.userid but with capacity of COI
   if (exists $href->{coi}) {
-    my $key = "C.userid";
-    $href->{$key} = $href->{coi};
-    delete $href->{coi};
+    my $U = $prefix . $counter;
+    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
+		     "$U.capacity" => ['COI']};
+    $counter++;
   }
 
   # Similarly for "support" query
   if (exists $href->{support}) {
-    my $key = "S.userid";
-    $href->{$key} = $href->{support};
-    delete $href->{support};
+    my $U = $prefix . $counter;
+    $href->{support} = { _JOIN => 'AND', "$U.userid" => $href->{support}, 
+			 "$U.capacity" => ['SUPPORT']};
+    $counter++;
   }
+
+  # "person" means CoI or PI in ompprojuser table
+  # i.e. userid = "Y" AND capacity in ('PI', 'COI')
+  # but only if we are looking for distinct projects
+
+  # if someone uses <person>X</person><person>Y</person>
+  # this is deemed to be an OR and not an AND ie
+  # userid in ('X','Y') AND capacity in ('PI','COI')
+  # Also want distinct U.projectid if at all possible
+  # Note that hash refs indicate OR so we could do this as
+  # auser => { userid => 'X', userid => 'Y'},
+  # acapacity => { capacity => 'PI', capacity => 'COI' }
+
+  if (exists $href->{person}) {
+    my $U = $prefix . $counter;
+    $href->{person} = {
+		       _JOIN => 'AND',
+		       auser => {"$U.userid" => $href->{person}},
+		       acapacity => { "$U.capacity"=> ['COI','PI']},
+		      };
+    $counter++;
+  }
+
+  # "support" means
+  #  userid = 'Y' AND capacity = 'SUPPORT'
+  # but this is difficult since we have no way of grouping AND
+  # entries 
+  # Maybe  support => { _JOIN => 'AND', capacity => 'SUPPORT', userid => 'Y'}
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

@@ -44,8 +44,7 @@ use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
 our $PROJTABLE = "ompproj";
-our $COITABLE  = "ompcoiuser";
-our $SUPTABLE  = "ompsupuser";
+our $PROJUSERTABLE = "ompprojuser";
 
 # inifinite tau [this should match the number in OMP::MSBDB]
 my $TAU_INF = 101;
@@ -524,7 +523,7 @@ sub listSupport {
   # Kluge. We should not be doing SQL at this level
   # Note that current project table does not know which telescope
   # it belongs to!
-  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, name FROM $SUPTABLE S, $utable U WHERE S.userid = U.userid" );
+  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, name FROM $PROJUSERTABLE S, $utable U WHERE S.userid = U.userid AND capacity = 'SUPPORT'" );
   map { new OMP::User( %$_ ) } @$supref
 
 }
@@ -675,7 +674,7 @@ sub _delete_project_row {
   my $self = shift;
 
   # Must clear out user link tables as well
-  $self->_db_delete_project_data( $PROJTABLE, $COITABLE, $SUPTABLE );
+  $self->_db_delete_project_data( $PROJTABLE, $PROJUSERTABLE );
 
 }
 
@@ -728,28 +727,28 @@ sub _insert_project_row {
 			);
 
   # Now insert the user data
-  # We need to insert a column for this project id even if there
-  # is no associated user since we would like to do joins that will
-  # require P.projectid = C.projectid later - this will fail is 
-  # "C" does not contain a projectid.
+  # All users end up in the same table. Contact information for a particular
+  # user is available via the contactable method in the OMP::Project.
 
-  # Get COI data
-  my %users;
-  $users{$COITABLE} = [ map { [ $proj->projectid, $_->userid ] } $proj->coi ];
-  $users{$SUPTABLE} = [
-		       map {
-			 [ $proj->projectid, $_->userid ] 
-		       } $proj->support 
-		      ];
+  # Loop over all the users. Note that this is *not* the output from the 
+  # contacts method since that will only contain contactable people
+  my %contactable = $proj->contactable;
 
-  for my $table (keys %users) {
-    my @users = @{ $users{$table} };
+  # Group all the user information
+  my %roles = (PI => [$proj->pi],
+	       COI => [$proj->coi],
+	       SUPPORT => [$proj->support]
+	      );
 
-    # Must be at least one entry
-    @users = ( [ $proj->projectid, undef ] ) unless @users;
-
-    for my $user (@users) {
-      $self->_db_insert_data( $table, $user->[0], $user->[1] );
+  # Loop over all the different roles
+  for my $role (keys %roles) {
+    for my $user (@{ $roles{$role} }) {
+      # Note that we must convert undef to 0 here for the DB
+      my $cancontact = ( $contactable{ $user->userid} ? 1 : 0);
+      $self->_db_insert_data( $PROJUSERTABLE,
+			      $proj->projectid, $user->userid,
+			      $role, $cancontact
+			    );
     }
   }
 
@@ -757,7 +756,8 @@ sub _insert_project_row {
 
 =item B<_get_projects>
 
-Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery> object).
+Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery>
+object).
 
   @projects = $db->_get_projects( $query );
 
@@ -769,14 +769,14 @@ sub _get_projects {
   my $self = shift;
   my $query = shift;
 
-  my $sql = $query->sql( $PROJTABLE, $COITABLE, $SUPTABLE );
+  my $sql = $query->sql( $PROJTABLE, $PROJUSERTABLE );
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-#  use Data::Dumper;
-#  print "Count returned: $#$ref\n";
-#  print Dumper($ref) if $#$ref < 15;
+  #use Data::Dumper;
+  #print "Count returned: $#$ref\n";
+  #print Dumper($ref) if $#$ref < 15;
 
   # For now this includes just the general information
   # We now need to get the user information separately
@@ -857,20 +857,36 @@ sub _get_projects {
     throw OMP::Error::FatalError( "The PI user ID ($piuserid) is not recognized by the OMP system. Please fix project $projectid\n")
       unless defined $pi;
 
+    # This is a kluge for now since we have the PI in two places in the
+    # database for historical reasons: once in the ompproj table and once
+    # in ompprojuser.
     $proj->pi( $pi );
 
-    # Now the Co-I via another query
+    # Now the Co-I and support people via another query
     my $utable = $OMP::UserDB::USERTABLE;
 
-    my $coiref = $self->_db_retrieve_data_ashash( "SELECT * FROM $COITABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
-    $proj->coi( map { new OMP::User( %$_ ) } @$coiref );
+    # A fairly simple query
+    my $userref = $self->_db_retrieve_data_ashash( "SELECT * FROM $PROJUSERTABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
 
-    # And finally support scientists
-    my $supref = $self->_db_retrieve_data_ashash( "SELECT * FROM $SUPTABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
-    $proj->support( map { new OMP::User( %$_ ) } @$supref );
+    # Loop over the results and assign to different roles
+    my %roles;
+    my %contactable;
+    for my $row (@$userref) {
+      $roles{$row->{capacity}} = [] unless exists $roles{$row->{capacity}};
+      push(@{ $roles{ $row->{capacity} } }, new OMP::User( userid => $row->{userid},
+						       name => $row->{name},
+						       email => $row->{email},
+						     ));
+      $contactable{ $row->{userid} } = $row->{contactable};
+    }
 
+    # And assign the results
+    $proj->coi( @{ $roles{COI} } ) if exists $roles{COI};
+    $proj->support( @{ $roles{SUPPORT} } ) if exists $roles{SUPPORT};
+    $proj->contactable( %contactable );
+
+    # And store it
     push(@projects, $proj);
-
   }
 
   # Return the results as Project objects
