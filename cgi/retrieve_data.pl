@@ -3,12 +3,14 @@
 use 5.006;
 use strict;
 
+use FindBin;
+#use lib "$FindBin::RealBin/../";
+use lib "/jac_sw/omp/msbserver";
+
 use CGI;
 use OMP::CGI;
 use OMP::CGIPkgData;
 
-use FindBin;
-use lib "$FindBin::RealBin/../";
 
 # unbuffered
 $| = 1;
