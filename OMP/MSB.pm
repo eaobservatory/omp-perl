@@ -130,6 +130,10 @@ sub new {
   # and create the object
   bless $sp, $class;
 
+  # fix up any problems
+  $sp->_fixup_msb;
+
+  return $sp;
 }
 
 =back
@@ -1094,6 +1098,68 @@ sub rescheduleMSB {
 
 }
 
+
+=item B<_fixup_msb>
+
+Fix up the XML associated with the MSB. This is used to correct any
+problems in the OT-generated XML. Hopefully should be a no-op if the
+OT generates perfect XML.
+
+  $msb->_fixup_msb();
+
+Called from the constructor.
+
+=cut
+
+sub _fixup_msb {
+  my $self = shift;
+
+  # Firstly need to make sure that the optional flag is true if we
+  # are an observation in an MSB that has the "standard" flag set to
+  # true (and are a JCMT observation).
+
+  # Get the telescope
+  my $tel = $self->telescope;
+
+  if ($tel eq 'JCMT') {
+
+    # Get all the observations (same as code in addFITStoObs)
+    my @observations;
+    if ($self->_tree->getName eq 'SpObs') {
+      @observations = $self->_tree;
+    } else {
+      # Get the SpObs elements
+      push(@observations, $self->_tree->findnodes('.//SpObs'));
+    }
+
+    # go through the Observations
+    for my $obs (@observations) {
+
+      # Get the msb attribute
+      my $ismsb = $self->_get_attribute( $obs, 'msb');
+      $ismsb = ( $ismsb eq 'true' ? 1 : 0);
+
+      # if we are an msb we cant be optional anyway
+      next if $ismsb;
+
+      # Get the optional attribute
+      my $opt = $self->_get_attribute( $obs, 'optional');
+      $opt = ( $opt eq 'true' ? 1 : 0);
+
+      # are we a standard
+      my $isstd =  $self->_get_pcdata($obs, "standard" );
+      $isstd = ( $isstd eq 'true' ? 1 : 0);
+
+      # Fixup the XML if required. Hopefully this should be fixed in the OT
+      # No point changing anything if it is correct already
+      if ($isstd && !$opt) {
+	$obs->setAttribute("optional", "true")
+      }
+
+    }
+  }
+
+}
 
 
 =item B<_summarize_obs>
