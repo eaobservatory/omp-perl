@@ -150,6 +150,7 @@ sub verifyParams {
   # The 'text' parameter can be anything.
   if(defined($qparams->{'text'})) {
     $vparams->{'text'} = $qparams->{'text'};
+    $vparams->{'text'} =~ s/\015//g; # get rid of ^M
   }
 
   return %$vparams;
