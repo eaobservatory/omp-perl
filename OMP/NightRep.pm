@@ -40,6 +40,10 @@ use OMP::TimeAcctDB;
 use OMP::FaultDB;
 use OMP::FaultStats;
 use OMP::CommentServer;
+use OMP::MSBDoneDB;
+use Time::Piece qw/ :override /;
+use Text::Wrap;
+use OMP::BaseDB;
 
 # This is the key used to specify warnings in result hashes
 use vars qw/ $WARNKEY /;
@@ -347,6 +351,41 @@ sub obs {
   return $grp;
 }
 
+=item B<msbs>
+
+Retrieve MSB information for the night and telescope in question.
+
+
+Information is returned in a hash indexed by project ID and with
+values of C<OMP::Info::MSB> objects.
+
+=cut
+
+sub msbs {
+  my $self = shift;
+
+  my $db = new OMP::MSBDoneDB( DB => $self->db );
+
+  my @results = $db->observedMSBs( date => $self->date->ymd,
+				   returnall => 0,
+				 );
+
+  # Currently need to verify the telescope outside of the query
+  @results = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
+						      $self->telescope
+						    )} @results;
+
+  # Index by project id
+  my %index;
+  for my $msb (@results) {
+    my $proj = $msb->projectid;
+    $index{$proj} = [] unless exists $index{$proj};
+    push(@{$index{$proj}}, $msb);
+  }
+
+  return %index;
+}
+
 =item B<faults>
 
 Return the fault objects relevant to this telescope and UT date.
@@ -396,6 +435,175 @@ sub shiftComments {
   return OMP::CommentServer->getShiftLog( $self->date->ymd,
 					  $self->telescope,
 					);
+}
+
+=back
+
+=head2 Summarizing
+
+=over 4
+
+=item B<astext>
+
+Generate a plain text summary of the night.
+
+  $text = $nr->astext;
+
+In scalar context returns a single string. In list context returns
+a collection of lines (without newlines).
+
+=cut
+
+sub astext {
+  my $self = shift;
+
+  my $tel  = $self->telescope;
+  my $date = $self->date->ymd;
+
+  my @lines;
+
+  # The start
+  my $str = qq{
+
+    Observing Report for $date at the $tel
+
+Project Time Summary
+
+};
+
+  #   T I M E   A C C O U N T I N G
+  # Time lost to faults
+  my $format = "  %-25s %5.2f hrs\n";
+  $str .= sprintf("$format", "Time lost to faults:", $self->timelost->hours );
+
+  # Just do project accounting
+  my %acct = $self->accounting_db();
+
+  # Weather and Extended and UNKNOWN and OTHER
+  my %text = ( WEATHER => "Time lost to weather:",
+	       EXTENDED => "Extended Time:",
+	     );
+  for my $proj (qw/ WEATHER EXTENDED /) {
+    my $time = 0.0;
+    if (exists $acct{$tel.$proj}) {
+      $time = $acct{$tel.$proj}->timespent->hours;
+    }
+    $str .= sprintf("$format", $text{$proj}, $time);
+  }
+
+  for my $proj (keys %acct) {
+    next if $proj =~ /^$tel/;
+    $str .= sprintf("$format", $proj.':', $acct{$proj}->timespent->hours);
+  }
+
+  $str .= "\n";
+
+  # M S B   S U M M A R Y 
+  # Add MSB summary here
+  $str .= "Observation summary\n\n";
+
+  my %msbs = $self->msbs;
+
+  for my $proj (keys %msbs) {
+    $str .= "  $proj\n";
+    for my $msb (@{$msbs{$proj}}) {
+      $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
+		      $msb->wavebands, $msb->title). "\n";
+    }
+  }
+  $str .= "\n";
+
+  # Fault summary
+  my @faults = $self->faults;
+
+  $str .= "Fault Summary\n\n";
+
+  if (@faults) {
+    for my $fault (@faults) {
+      my $date = $fault->date;
+      my $local = localtime($date->epoch);
+      $str.= "  ". $fault->faultid ." [". $local->strftime("%H:%M %Z")."] ".
+	$fault->subject ."(".$fault->timelost." hrs lost)\n";
+
+    }
+  } else {
+    $str .= "  No faults filed on this night.\n";
+  }
+
+  $str .= "\n";
+
+  # Shift log summary
+  $str .= "Comments\n\n";
+
+  my @comments = $self->shiftComments;
+  $Text::Wrap::columns = 72;
+
+  for my $c (@comments) {
+    # Use local time
+    my $date = $c->date;
+    my $local = localtime( $date->epoch );
+    my $author = $c->author->name;
+
+    # Get the text and format it
+    my $text = $c->text;
+
+    # Really need to convert HTML to text using general method
+    $text =~ s/\&apos\;/\'/g;
+    $text =~ s/<BR>/\n/gi;
+
+    # Word wrap
+    $text = wrap("    ","    ",$text);
+
+    # Now print the comment
+    $str .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
+    $str .= $text ."\n\n";
+  }
+
+
+  # Observation log
+  $str .= "Observation Log\n\n";
+
+  $str .= $self->obs->summary('72col');
+
+  if (wantarray) {
+    return split("\n", $str);
+  }
+  return $str;
+}
+
+
+=item B<mail_report>
+
+Mail a text version of the report to the relevant mailing list.
+
+  $nr->mail_report;
+
+=cut
+
+sub mail_report {
+  my $self = shift;
+
+  # Get the mailing list
+  my $mailaddr = OMP::Config->getData( 'nightrepemail', 
+				       telescope => $self->telescope);
+
+  $mailaddr = 'timj@jach.hawaii.edu';
+  # Should probably CC observers
+
+  # Get the text
+  my $report = $self->astext;
+
+  # Who are we
+  my ($user, $host, $from) = OMP::General->determine_host();
+
+  # and mail it
+  OMP::BaseDB->_mail_information(
+				 to => [ $mailaddr ],
+				 from => $from,
+				 subject => 'OBS REPORT: '.$self->date->ymd .
+				 ' at the ' . $self->telescope,
+				 message => $report,
+				);
 }
 
 =back
