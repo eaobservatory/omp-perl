@@ -3160,6 +3160,7 @@ sub SpInstHeterodyne {
 			  velocity => $self->_get_pcdata($el, "velocity"),
 			  velocityDefinition => $self->_get_pcdata($el,
 								   "velocityDefinition"),
+			  velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
 			  bandWidth => $self->_get_pcdata($el,"bandWidth"),
 			  sideBand => $self->_get_pcdata($el,"band"),
 			  mixers => $self->_get_pcdata($el,"mixers"),
