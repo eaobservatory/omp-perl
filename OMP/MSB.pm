@@ -1246,7 +1246,9 @@ sub SpObs {
   #print "In SpOBS\n";
 
   # First get the top-level information
-  $summary{timeest} = $self->_get_pcdata($el, "elapsedTime" );
+  $summary{timeest} = $self->_get_pcdata($el, "estimatedDuration" );
+  $summary{timeest} = $self->_get_pcdata($el, "elapsedTime" )
+    unless defined $summary{timeest}; # to support old format XML
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
