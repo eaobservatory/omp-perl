@@ -834,18 +834,17 @@ sub _mail_information {
 
   # Get rid of duplicate users
   my %users;
-  %{$users{to}} = map {$_->userid, $_} @{$args{to}};
+  %{$users{to}} = map {$_->email, $_} grep {$_->email} @{$args{to}};
 
   if ($args{cc}) {
-    %{$users{cc}} = map {$_->userid, $_}
-      grep {! $users{to}{$_->userid}} @{$args{cc}};
+    %{$users{cc}} = map {$_->email, $_} grep {$_->email}
+      grep {! $users{to}{$_->email}} @{$args{cc}};
   }
 
   # Form To and Cc address lists
   for my $hdr (qw/ To Cc /) {
-    if (%{$users{lc($hdr)}}) {
-      $details{$hdr} = join(',', map {$users{lc($hdr)}{$_}->as_email_hdr}
-			    grep {$users{lc($hdr)}{$_}->email} keys %{$users{lc($hdr)}});
+    if (defined %{$users{lc($hdr)}}) {
+      $details{$hdr} = join(',', map {$users{lc($hdr)}{$_}->as_email_hdr} keys %{$users{lc($hdr)}});
     }
   }
 
