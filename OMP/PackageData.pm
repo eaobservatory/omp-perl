@@ -541,7 +541,8 @@ sub _populate {
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
   # to be done in ObsGroup. KLUGE
-  print STDOUT "Querying database for relevant data files...\n"
+  print STDOUT "Querying database for relevant data files...[tel:$tel / ut:".
+    substr($query{date},0,8)." / project '".$self->projectid."']\n"
     if $self->verbose;
 
   my $grp = new OMP::Info::ObsGroup( %query );
@@ -568,7 +569,7 @@ sub _populate {
 
   for my $obs ($grp->obs) {
     my $obsmode = $obs->mode || $obs->type;
-    if (uc($obs->projectid) eq $self->projectid && $obs->isScience) {
+    if ((uc($obs->projectid) eq uc($self->projectid)) && $obs->isScience) {
       $instruments{uc($obs->instrument)}++; # Keep track of instrument
       print "SCIENCE:     " .$obs->instrument ."/".$obsmode ." [".$obs->target ."]\n" 
 	if $self->verbose;
