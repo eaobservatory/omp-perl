@@ -27,15 +27,12 @@ use Carp;
 
 # OMP Dependencies
 use OMP::Error;
-use OMP::Constants qw/ :fb /;
+use OMP::Constants qw/ :fb :logging /;
 use OMP::General;
 use OMP::FeedbackDB;
 
 use Mail::Internet;
 use MIME::Entity;
-
-# Do we want verbose logging?
-use constant VERBOSE => 1;
 
 =head1 METHODS
 
@@ -251,14 +248,16 @@ sub _db_begin_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
-  OMP::General->log_message( "Begin DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Begin DB transaction",
+			     OMP__LOG_DEBUG );
   $db->begin_trans;
 
   # Keep a per-class count so that we can control
   # our destructor
   $self->_inctrans;
 
-  OMP::General->log_message( "Begun DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Begun DB transaction",
+			     OMP__LOG_DEBUG );
 
 }
 
@@ -277,14 +276,16 @@ sub _db_commit_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
-  OMP::General->log_message( "Commit DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Commit DB transaction",
+			     OMP__LOG_DEBUG );
   $db->commit_trans;
 
   # Keep a per-class count so that we can control
   # our destructor
   $self->_dectrans;
 
-  OMP::General->log_message( "Committed DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Committed DB transaction",
+			     OMP__LOG_DEBUG );
 
 }
 
@@ -307,13 +308,15 @@ sub _db_rollback_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
-  OMP::General->log_message( "Rolling back DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Rolling back DB transaction",
+			     OMP__LOG_DEBUG );
   $db->rollback_trans;
 
   # Reset the counter
   $self->_intrans(0);
 
-  OMP::General->log_message( "Rolled back DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Rolled back DB transaction",
+			     OMP__LOG_DEBUG );
 
 }
 
@@ -398,7 +401,7 @@ sub _db_findmax {
   my $sql = "SELECT max($column) FROM $table ";
   $sql .= "WHERE $clause" if $clause;
 
-  OMP::General->log_message( "FindingMax: $sql" ) if VERBOSE;
+  OMP::General->log_message( "FindingMax: $sql", OMP__LOG_DEBUG );
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -411,8 +414,8 @@ sub _db_findmax {
     or throw OMP::Error::DBError("DB Error executing max SQL: $DBI::errstr");
 
   my $max = ($sth->fetchrow_array)[0];
-  OMP::General->log_message( "FoundMax: ". (defined $max ? $max:0) )
-      if VERBOSE;
+  OMP::General->log_message( "FoundMax: ". (defined $max ? $max:0), OMP__LOG_DEBUG );
+
   return  ( defined $max ? $max : 0 );
 
 }
@@ -515,20 +518,20 @@ sub _db_insert_data {
   # Construct the SQL
   my $sql = "INSERT INTO $table VALUES ($placeholder)";
 
-  OMP::General->log_message( "Inserting DB data and retrieving handle" )
-      if VERBOSE;
+  OMP::General->log_message( "Inserting DB data and retrieving handle",
+			     OMP__LOG_DEBUG );
 
   # Get the database handle
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
-  OMP::General->log_message( "Inserting DB data: $sql" ) if VERBOSE;
+  OMP::General->log_message( "Inserting DB data: $sql", OMP__LOG_DEBUG );
 
   # Insert the easy data
   $dbh->do($sql,undef,@toinsert)
     or throw OMP::Error::DBError("Error inserting data into table $table [$sql]: $DBI::errstr");
 
-  OMP::General->log_message( "Inserted easy data." ) if VERBOSE;
+  OMP::General->log_message( "Inserted easy data.", OMP__LOG_DEBUG );
 
   # Now the text data
   for my $textdata ( @textfields ) {
@@ -536,8 +539,8 @@ sub _db_insert_data {
     my $dummy = $textdata->{DUMMY};
     my $col = $textdata->{COLUMN};
 
-    OMP::General->log_message( "Inserting DB text data column: $col" )
-	if VERBOSE;
+    OMP::General->log_message( "Inserting DB text data column: $col",
+			       OMP__LOG_DEBUG );
 
     # Need to double up quotes to escape them in SQL
     # Since we are quoting $text with a single quote
@@ -550,11 +553,11 @@ select \@val = textptr($col) from $table where $col like \"$dummy\"
 writetext $table.$col \@val '$text'")
     or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
 
-    OMP::General->log_message( "Text data inserted." ) if VERBOSE;
+    OMP::General->log_message( "Text data inserted.", OMP__LOG_DEBUG );
 
   }
 
-  OMP::General->log_message( "Inserted DB data" ) if VERBOSE;
+  OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
 }
 
 =item B<_db_retrieve_data_ashash>
@@ -580,7 +583,7 @@ sub _db_retrieve_data_ashash {
   my $dbh = $self->_dbhandle
     or throw OMP::Error::DBError("Database handle not valid");
 
-  OMP::General->log_message( "SQL retrieval: $sql" ) if VERBOSE;
+  OMP::General->log_message( "SQL retrieval: $sql", OMP__LOG_DEBUG );
 
   # Run query
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} },@_)
@@ -592,7 +595,7 @@ sub _db_retrieve_data_ashash {
     if $dbh->err;
 
   OMP::General->log_message("Data retrieved: " . (scalar @$ref) .
-			    " rows match") if VERBOSE;
+			    " rows match", OMP__LOG_DEBUG);
 
   # Return the results
   return $ref;
@@ -644,13 +647,13 @@ sub _db_update_data {
     # Construct the SQL
     my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
 
-    OMP::General->log_message( "Updating DB row: $sql" ) if VERBOSE;
+    OMP::General->log_message( "Updating DB row: $sql", OMP__LOG_DEBUG );
 
     # Execute the SQL
     $dbh->do($sql)
       or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
 
-    OMP::General->log_message("Row updated.") if VERBOSE;
+    OMP::General->log_message("Row updated.", OMP__LOG_DEBUG);
 
   }
 
@@ -688,13 +691,13 @@ sub _db_delete_data {
   # Construct the SQL
   my $sql = "DELETE FROM $table $clause";
 
-  OMP::General->log_message( "Deleting DB data: $sql" ) if VERBOSE;
+  OMP::General->log_message( "Deleting DB data: $sql", OMP__LOG_DEBUG );
 
   # Execute the SQL
   $dbh->do($sql)
     or throw OMP::Error::DBError("Error deleting [$sql]: " .$dbh->errstr);
 
-  OMP::General->log_message("Row deleted.") if VERBOSE;
+  OMP::General->log_message("Row deleted.", OMP__LOG_DEBUG );
 
 }
 
@@ -768,7 +771,7 @@ sub _notify_feedback_system {
   my $self = shift;
   my %comment = @_;
 
-  OMP::General->log_message("Notifying feedback system") if VERBOSE;
+  OMP::General->log_message("BaseDB Notifying feedback system", OMP__LOG_DEBUG );
 
   # We have to share the database connection because we have
   # locked out the project table making it impossible for
@@ -793,7 +796,7 @@ sub _notify_feedback_system {
   # Add the comment
   $fbdb->addComment( { %comment } );
 
-  OMP::General->log_message("Feedback message completed.") if VERBOSE;
+  OMP::General->log_message("Feedback message completed.", OMP__LOG_DEBUG);
 
 }
 
@@ -907,13 +910,14 @@ sub _mail_information {
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
 
-  OMP::General->log_message("Connecting to mailhost: $mailhost") if VERBOSE;
+  OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
   eval {
     $top->smtpsend(Host => $mailhost,
 		   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
   };
   ($@) and throw OMP::Error::MailError("$@\n");
-  OMP::General->log_message("Mail message sent") if VERBOSE;
+  OMP::General->log_message("Mail message sent to ". join(",",@{$args{to}} ),
+			    OMP__LOG_INFO);
   return;
 }
 
@@ -954,8 +958,8 @@ sub DESTROY {
 
     if ($thiscount == $thatcount) {
       # fair enough. Rollback (doesnt matter if both == 0)
-      OMP::General->log_message("DESTROY: Rollback transaction $thiscount")
-	  if VERBOSE;
+      OMP::General->log_message("DESTROY: Rollback transaction $thiscount",
+				OMP__LOG_DEBUG);
       $self->_db_rollback_trans;
 
     } elsif ($thiscount < $thatcount) {
