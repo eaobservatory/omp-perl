@@ -50,6 +50,11 @@ This manual page.
 Do not send messages to the feedback system. Send all messages
 to standard output.
 
+=item B<-yesterday>
+
+If no date is supplied, default to the date for yesterday
+An error is thrown if a date is also supplied.
+
 =back
 
 =cut
@@ -66,10 +71,11 @@ use OMP::FBServer;
 use OMP::General;
 
 # Options
-my ($help, $man, $debug);
+my ($help, $man, $debug, $yesterday);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
+			"yesterday" => \$yesterday,
 		       );
 
 pod2usage(1) if $help;
@@ -77,7 +83,18 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 # Get the UT date
 my $utdate = shift(@ARGV);
-$utdate = OMP::General->today unless $utdate;
+
+die "Can not specify both a date [$utdate] and the -yesterday flag\n"
+  if ($yesterday && defined $utdate);
+
+# Default the date
+if (!$utdate) {
+  if ($yesterday) {
+    $utdate = OMP::General->yesterday;
+  } else {
+    $utdate = OMP::General->today;
+  }
+}
 
 # Get the list of MSBs
 my $done = OMP::MSBServer->observedMSBs( {date => $utdate, 
@@ -126,14 +143,13 @@ for my $proj (keys %sorted) {
     print $msg;
   } else {
     my ($user, $host, $email) = OMP::General->determine_host;
-    my $id = OMP::General->determine_user;
 
     my $fixed_text = "<p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p>\n\n";
 
     OMP::FBServer->addComment(
 			      $proj,
 			      {
-			       author => $id,
+			       author => undef, # this is done by cron
 			       subject => "MSB summary for $utdate",
 			       program => "observed.pl",
 			       sourceinfo => $host,
