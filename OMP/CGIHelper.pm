@@ -1471,10 +1471,10 @@ sub project_home {
 
     }
   } else {
-    print "<h3>No data has been acquired for this project</h3>";
+    print "<h3>No data have been acquired for this project</h3>";
   }
 
-  # Display observed MSBs if any data has been taken for this project
+  # Display observed MSBs if any data have been taken for this project
   if (@$nights) {
     print "<h3>The following MSBs have been observed:</h3>";
     fb_msb_observed($q, $cookie{projectid});
