@@ -547,7 +547,7 @@ sub summary {
 
   # Fill in some unknowns
   for (qw/ timeest priority title seeing tau/) {
-    $summary{$_} ||= "??";
+    $summary{$_} = "??" unless defined $summary{$_};
   }
 
 
