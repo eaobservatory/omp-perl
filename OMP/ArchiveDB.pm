@@ -256,7 +256,9 @@ sub _query_files {
   # If we have a simple query, go to the cache for stored information and files
   if( simple_query( $query ) ) {
     ( $obsgroup, @files ) = unstored_files( $query );
-    @obs = $obsgroup->obs;
+    if( defined( $obsgroup ) ) {
+      @obs = $obsgroup->obs;
+    }
   } else {
     # Okay, we don't have a simple query, so get the file list the hard way.
 
@@ -338,7 +340,6 @@ sub _query_files {
   } # if( simple_query( $query ) ) { } else
 
   foreach my $file ( @files ) {
-
     # Create the Obs object.
     my $obs = readfile OMP::Info::Obs( $file );
 
@@ -390,7 +391,6 @@ sub _query_files {
   # and another with uncached information. We need to merge them together. Let's
   # push the cached information onto the uncached information, then sort it, then
   # store it in the cache.
-
   push @returnarray, @obs;
 
   # We need to sort the return array by date.
