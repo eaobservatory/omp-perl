@@ -30,6 +30,7 @@ our $VERSION = (qw$ Revision: $ )[1];
 
 use OMP::Fault;
 use OMP::FaultDB;
+use Time::Seconds;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -78,7 +79,9 @@ sub new {
 
   my $f = bless {
                  Date => undef,
-                 TimeLost => undef,
+		 TimeLost => undef,
+		 TimeLostTechnical => undef,
+		 TimeLostNonTechnical => undef,
                 }, $class;
 
   # If we have a "faults" argument we grab the information
@@ -87,13 +90,25 @@ sub new {
   # of faults?)
   if( exists( $args{faults} ) ) {
     my $timelost;
+    my $timelost_technical;
+    my $timelost_nontech;
     my $date;
+
     foreach my $fault ( @{$args{faults}} ) {
-      $timelost += new Time::Seconds( $fault->timelost * 3600 );
+      my $loss = new Time::Seconds($fault->timelost * ONE_HOUR);
+      if ($fault->typeText =~ /human/i or $fault->statusText =~ /not a fault/i) {
+	# Fault is non-technical
+	$timelost_nontech += $loss;
+      } else {
+	$timelost_technical += $loss;
+      }
+      $timelost += $loss;
       $date = $fault->faultdate;
     }
     $f->date( $date );
     $f->timelost( $timelost );
+    $f->timelostTechnical( $timelost_technical );
+    $f->timelostNonTechnical( $timelost_nontech );
   } elsif( @_ ) {
     $f->populate( %args );
   }
@@ -146,6 +161,47 @@ sub timelost {
     $self->{TimeLost} = $time;
   }
   return $self->{TimeLost};
+}
+
+=item B<timelostTechnical>
+
+Time lost to technical faults (those with type that is not "human" or status other than "Not a fault").
+The time is represented by a Time::Seconds object.
+
+  $time = $f->timelostTechnical;
+  $f->timelostTechnical( new Time::Seconds( 3600 ) );
+
+=cut
+
+sub timelostTechnical {
+  my $self = shift;
+  if(@_) {
+    my $time = shift;
+    $time = new Time::Seconds( $time )
+      unless UNIVERSAL::isa($time, "Time::Seconds");
+    $self->{TimeLostTechnical} = $time;
+  }
+  return $self->{TimeLostTechnical};
+}
+
+=item B<timelostNonTechnical>
+
+Time lost to non-technical faults (those with type that is "human" or status of "Not a fault").  The time is represented by a Time::Seconds object.
+
+  $time = $f->timelostNonTechnical;
+  $f->timelostNonTechnical( new Time::Seconds( 3600 ) );
+
+=cut
+
+sub timelostNonTechnical {
+  my $self = shift;
+  if(@_) {
+    my $time = shift;
+    $time = new Time::Seconds( $time )
+      unless UNIVERSAL::isa($time, "Time::Seconds");
+    $self->{TimeLostNonTechnical} = $time;
+  }
+  return $self->{TimeLostNonTechnical};
 }
 
 =back
