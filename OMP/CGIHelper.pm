@@ -154,7 +154,7 @@ sub fb_fault_content {
   print "<hr>";
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
   print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
-  OMP::CGIFault::fault_table($q, $showfault, 1);
+  OMP::CGIFault::fault_table($q, $showfault, 'noedit');
   print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
 }
 
