@@ -455,6 +455,52 @@ sub getTelescope {
 
 }
 
+=item B<verifyTelescope>
+
+Given a telescope and a project ID, returns true if the telescope
+associated with the project matches the supplied telescope, else
+returns false. Also returns true if the project ID begins with a
+telescope prefix that matches - this removes the need for a database
+query.
+
+  $isthistel = OMP::ProjServer->verifyTelescope( $projectid, $tel );
+
+=cut
+
+sub verifyTelescope {
+  my $class = shift;
+  my $projectid = shift;
+  my $tel = shift;
+
+  my $ismatch;
+  my $E;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			    );
+
+    $ismatch = $db->verifyTelescope($tel);
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $ismatch;
+}
+
 =back
 
 =head1 SEE ALSO
