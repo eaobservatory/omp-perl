@@ -76,12 +76,16 @@ sub translate {
 #    if scalar(@msbs) != 1;
 
   # Now unroll the MSB into constituent observations details
-  my $msb = $msbs[0];
-  my @obs = $msb->unroll_obs();
+#  my $msb = $msbs[0];
+  my @odfs;
+  for my $msb (@msbs) {
+    print "MSB " . $msb->checksum . "\n";
+
+    my @obs = $msb->unroll_obs();
 
   # Treat an ODF as a hash and a macro as an array of hashes
   # until the last moment.
-  my @odfs;
+
   for my $obsinfo ( @obs ) {
 
     # Determine the mode
@@ -96,7 +100,7 @@ sub translate {
     }
 
   }
-
+  }
   # Return data or write to disk
   if ($asdata) {
     if (wantarray) {
@@ -482,8 +486,10 @@ sub SpIterNoiseObs {
   } elsif ($source eq "ZENITH") {
     $source = "SPACE1";
     $odf{EL} = "90:00:00";
-  } elsif ($source eq 'MATT' or $source eq 'REFLECTOR') {
-    # do nothing - these are okay
+  } elsif ($source eq 'ECCOSORB') {
+    $source = "MATT";
+  } elsif ($source eq 'REFLECTOR') {
+    # do nothing - this is okay
   } else {
     throw OMP::Error::SpTranslateFail("Unknown noise source: $source");
   }
