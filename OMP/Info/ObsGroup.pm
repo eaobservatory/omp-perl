@@ -434,7 +434,6 @@ sub projectStats {
   # If this is set to 0, all unallocated gaps will be charged to OTHER
   my $GAP_THRESHOLD = OMP::Config->getData( 'timegap' );
 
-
   my @warnings;
   my %projbycal;
   my %cals;
@@ -459,6 +458,9 @@ sub projectStats {
   # much of a problem but is important if we have projects that
   # only consist of calibrations (esp E&C)
   my %sigprojects;
+
+  # In some cases we need to know the most recent observation
+  my $prevobs;
 
   # Go through all the observations, determining the time spent on 
   # each project and the calibration requirements for each observation
@@ -488,11 +490,10 @@ sub projectStats {
 	# in a little while.
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
 	$projectid = $WEATHER_GAP;
-      } elsif ($status == OMP__TIMEGAP_NEXT_PROJECT) {
+      } elsif ($status == OMP__TIMEGAP_PREV_PROJECT) {
 	# This is time that should be charged to the project
-	# following this gap. For now we do not need to do anything
-	# at all since we process these gap types explicitly later on
-	# during the gap management
+	# preceeding this gap. For now we do not need to do anything
+
       } else {
 	$projectid = $OTHER_GAP;
       }
@@ -617,6 +618,29 @@ sub projectStats {
 	print "CHARGING ".$timespent->seconds." TO PROJECT GAP\n"
 	  if $DEBUG;
 	push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+      } elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
+	# Must charge the previous project
+	print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
+	  if $DEBUG;
+	if (defined $prevobs) {
+	  my $previnst = $prevobs->instrument;
+	  my $prevymd = $prevobs->startobs->ymd;
+	  my $prevprojectid = $prevobs->projectid;
+	  my $prevtel = uc($prevobs->telescope);
+	  my $prevcal = $prevobs->calType;
+	  # This is a horrible hack. Should not be duplicating this code
+	  if ($prevobs->isScience) {
+	    # Charge to the project
+	    $projbycal{$prevymd}{$prevprojectid}{$previnst}{$prevcal} += $timespent->seconds;
+	  } else {
+	    # Charge to calibration
+	    if ($prevobs->isGenCal) {
+	      $cals{$prevymd}{$previnst}{$CAL_NAME} += $timespent->seconds;
+	    } else {
+	      $cals{$prevymd}{$previnst}{$prevcal} += $timespent->seconds;
+	    }
+	  }
+	}
       } elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
 	# Simply treat this as a generic calibration
 	print "CHARGING ".$timespent->seconds." TO INSTRUMENT GAP [$inst]\n"
@@ -641,6 +665,10 @@ sub projectStats {
 	$cals{$ymd}{$inst}{$cal} += $timespent->seconds;
       }
     }
+
+    # Log the most recent information
+    $prevobs = $obs if !$isgap;
+
   }
 
 
