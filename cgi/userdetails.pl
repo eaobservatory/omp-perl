@@ -12,6 +12,7 @@ use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIUser;
+use OMP::General;
 use OMP::UserServer;
 use OMP::Error qw(:try);
 
@@ -35,4 +36,11 @@ try {
 (! $user) and $user = "Uknown User";
 
 $cgi->html_title("$title: User Details for $user");
-$cgi->write_page( \&OMP::CGIUser::details, \&OMP::CGIUser::details );
+
+# Do project authentication if the user is not local
+my $local = OMP::General->am_i_local;
+if ($local) {
+  $cgi->write_page_noauth( \&OMP::CGIUser::details, \&OMP::CGIUser::details );
+} else {
+  $cgi->write_page( \&OMP::CGIUser::details, \&OMP::CGIUser::details );
+}
