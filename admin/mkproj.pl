@@ -10,29 +10,24 @@
 #  PI email
 #  Co-investigator
 #  Co-I email
+#  Title
 #  Tag priority
 #  country 
 #  semester  (YYYYA/B)
-#  password
+#  password                [plain text]
 #  Allocated time (hours)
 
 # cat proj.details | perl mkproj.pl
 
-# BUGS: Each project is inserted independently rather than as
-#       a single transaction
+# Uses the infrastructure classes so each project is inserted
+# independently rather than as a single transaction
 
 use warnings;
 use strict;
-use DBI;
 
-my $DBserver = "SYB_UKIRT";
-my $DBuser = "omp";
-my $DBpwd  = "***REMOVED***";
-my $DBdatabase = "archive";
-
-
-my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd)
-  or die "Cannot connect: ". $DBI::errstr;
+use OMP::ProjDB;
+use OMP::Project;
+use OMP::ProjServer;
 
 
 while (<>) {
@@ -42,12 +37,8 @@ while (<>) {
   # We have to guess the order
   my @details  = split(/,/,$line);
   print join("--",@details),"\n";
-  # insert into the table
-  $dbh->do("INSERT INTO ompproj VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", undef,
-	  @details, $details[-1],0)
-    or die "Cannot insert into ompproj: ". $DBI::errstr;
+
+  # Password should be supplied by user
+  OMP::ProjServer->addProject("***REMOVED***", @details );
 
 }
-
-# Close connection
-$dbh->disconnect();
