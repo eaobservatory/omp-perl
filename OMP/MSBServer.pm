@@ -66,7 +66,11 @@ sub fetchMSB {
 Send a query to the MSB server (encoded as an XML document) and
 retrieve results as an array of mini XML documents.
 
-  @results = OMP::MSBServer->queryMSB( $xml, $max );
+  Results array = OMP::MSBServer->queryMSB( $xml, $max );
+
+The results are returned as an array reference. SOAP does the right
+thing here. If the elements are returned as a list SOAP will treat
+them as independent output parameters.
 
 The query string is described in OMP/SN/003 but looks something like:
 
@@ -124,7 +128,7 @@ sub queryMSB {
   # creating many XML summaries only to throw away 90%
   my @results = $db->queryMSB( $query );
 
-  return @results;
+  return \@results;
 }
 
 =item B<doneMSB>
