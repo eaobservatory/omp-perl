@@ -464,8 +464,10 @@ sub full_rescan {
 
 sub dump_to_disk {
 
+  my $header = $contentHeader->get('0.0', 'end');
   my $text = $contentBody->get('0.0', 'end');
   open( FILE, ">" . $ut . ".log" ) or return; # just a quickie, need a better way to handle this
+  print FILE $header;
   print FILE $text;
   close FILE;
   my $dbox = $MainWindow->DialogBox( -title => "File Saved",
