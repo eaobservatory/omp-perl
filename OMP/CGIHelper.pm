@@ -159,10 +159,12 @@ sub fb_entries {
 
   my $i = 1;
   foreach my $row (@$comments) {
-    print "<font size=+1>Entry $i (on $row->{'date'} by $row->{'author'})</b></font>",
-          $q->p,
+    # make the date more readable here
+    # make the author a mailto link here
+
+    print "<font size=+1>Entry $i (on $row->{'date'} by $row->{'author'})</b></font><br>",
           "$row->{'text'}",
-	  $q->p;
+	  "<p><p>";
     $i++;
   }
 
