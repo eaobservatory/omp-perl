@@ -406,7 +406,7 @@ sub summary {
     return $xml;
 
   } elsif( $format eq '72col' ) {
-    my $obssum = sprintf("%4.4s %8.8s %10.10s %8.8s %-20.20s %-17.17s\n",$self->runnr, $self->startobs->hms, $self->projectid, $self->instrument, $self->target, $self->mode);
+    my $obssum = sprintf("%4.4s %8.8s %11.11s %8.8s %-20.20s %-16.16s\n",$self->runnr, $self->startobs->hms, $self->projectid, $self->instrument, $self->target, $self->mode);
     my $commentsum;
     foreach my $comment ( $self->comments ) {
       if(defined($comment)) {
