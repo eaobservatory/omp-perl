@@ -1648,12 +1648,13 @@ sub preify_text {
   # Escape sequence lookup table
   my %lut = (">" => "&gt;",
 	     "<" => "&lt;",
-	     "&" => "&amp;",);
+	     "&" => "&amp;",
+	     '"' => "&quot;",);
 
   # Do the search and replace
   # Make sure we replace ampersands first, otherwise we'll end
   # up replacing the ampersands in the escape sequences
-  for ("&", ">", "<") {
+  for ("&", ">", "<", '"') {
     $string =~ s/$_/$lut{$_}/g;
   }
 
