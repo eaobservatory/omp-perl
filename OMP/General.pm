@@ -282,7 +282,7 @@ sub determine_extended {
 
   for my $key (qw/ start end /) {
     if (exists $args{$key} && defined $args{$key} && not ref $args{$key}) {
-      $args{$key} = OMP::General->parse_date( $args{$key} );
+      $args{$key} = $class->parse_date( $args{$key} );
     }
   }
 
@@ -323,8 +323,8 @@ sub determine_extended {
   }
 
   # Now convert to Time::Piece object
-  my $min = OMP::General->parse_date($args{start}->ymd . "T$range[0]");
-  my $max = OMP::General->parse_date($args{end}->ymd . "T$range[1]");
+  my $min = $class->parse_date($args{start}->ymd . "T$range[0]");
+  my $max = $class->parse_date($args{end}->ymd . "T$range[1]");
 
   throw OMP::Error::BadArgs("Error parsing the extended boundary string")
     unless defined $min && defined $max;
@@ -384,13 +384,13 @@ sub determine_utdate {
 
   my $date;
   if (defined $utstr) {
-    $date = OMP::General->parse_date( $utstr );
+    $date = $class->parse_date( $utstr );
     if (defined $date) {
       # Have a date object, check that we have no hours, minutes
       # or seconds
       if ($date->hour != 0 || $date->min != 0 || $date->sec != 0) {
 	# Force pure date
-	$date = OMP::General->parse_date( $date->ymd );
+	$date = $class->parse_date( $date->ymd );
       }
     } else {
       # did not parse, use today
@@ -922,6 +922,80 @@ sub extract_projectid {
 
   return $projid;
 
+}
+
+=back
+
+=head2 Telescopes
+
+=over 4
+
+=item B<determine_tel>
+
+Return the telescope name to use in the current environment.
+This is usally obtained from the config system but if the config
+system returns a choice of telescopes a Tk window will popup
+requesting that the specific telescope be chosen.
+
+If no Tk window reference is supplied, and multiple telescopes
+are available, returns all the telescopes (either as a list
+in list context or an array ref in scalar context). ie, if called
+with a Tk widget, guarantees to return a single telescope, if called
+without a Tk widget is identical to querying the config system directly.
+
+  $tel = OMP::General->determine_tel( $MW );
+
+Returns undef if the user presses the "cancel" button when prompted
+for a telescope selection.
+
+=cut
+
+sub determine_tel {
+  my $class = shift;
+  my $w = shift;
+
+  my $tel = OMP::Config->getData( 'defaulttel' );
+
+  my $telescope;
+  if( ref($tel) eq "ARRAY" ) {
+    if (! defined $w) {
+      # Have no choice but to return the array
+      if (wantarray) {
+	return @$tel;
+      } else {
+	return $tel;
+      }
+    } else {
+      # Can put up a widget
+      require Tk::DialogBox;
+      my $newtel;
+      my $dbox = $w->DialogBox( -title => "Select telescope",
+				-buttons => ["Accept","Cancel"],
+			      );
+      my $txt = $dbox->add('Label',
+			   -text => "Select telescope for obslog",
+			  )->pack;
+      foreach my $ttel ( @$tel ) {
+	my $rad = $dbox->add('Radiobutton',
+			     -text => $ttel,
+			     -value => $ttel,
+			     -variable => \$newtel,
+			    )->pack;
+      }
+      my $but = $dbox->Show;
+
+      if( $but eq 'Accept' && $newtel ne '') {
+	$telescope = uc($newtel);
+      } else {
+	# Pressed cancel
+	return ();
+      }
+    }
+  } else {
+    $telescope = uc($tel);
+  }
+
+  return $telescope;
 }
 
 =back
