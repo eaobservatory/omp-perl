@@ -17,4 +17,5 @@ my $arg = shift @ARGV;
 my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
-$cgi->write_page_noauth( \&file_fault, sub { });
+$cgi->html_title("OMP Fault System: File Fault");
+$cgi->write_page_noauth( \&file_fault, \&file_fault_output);
