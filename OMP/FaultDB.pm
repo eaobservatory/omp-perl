@@ -802,6 +802,12 @@ sub _mail_fault_update {
 
   # Build up a message
   for (@details_changed) {
+    if ($_ =~ /system/) {
+      $_ = "systemText";
+    } elsif ($_ =~ /type/) {
+      $_ = "typeText";
+    }
+
     my $property = $property{$_};
     my $oldfault_prop = $oldfault->$_;
     my $newfault_prop = $fault->$_;
