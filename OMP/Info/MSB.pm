@@ -82,6 +82,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
  	                      targets => '$',
  	                      instruments => '$',
 			      coordstypes => '$',
+			      nrepeats => '$',
                               remaining => '$',
                               comments => '@OMP::Info::Comment'
                              );
@@ -105,10 +106,19 @@ Scalar accessors:
 
 =item B<title>
 
+=item B<remaining>
+
 =item B<msbid>
 
 Not to be confused with the checksum, this is simply a link
 to the database row used to store MSB information.
+
+=item B<nrepeats>
+
+Number of times this MSB has been repeated (the complement
+to the "remaining" field). In many cases this entry is empty.
+Only really relevant when using results from the
+MSB done table.
 
 =back
 
