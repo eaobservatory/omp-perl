@@ -31,6 +31,7 @@ use OMP::Config;
 use OMP::General;
 use OMP::Fault;
 use OMP::FaultUtil;
+use OMP::FaultStats;
 use OMP::Display;
 use OMP::FaultServer;
 use OMP::Fault::Response;
@@ -255,7 +256,7 @@ sub fault_table {
   print "<tr bgcolor=#ffffff><td>$urgencyhtml</td><td></td>";
 
   # Link to fault editing page
-  print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update the details of this fault</a></span></td>";
+  print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
 
   # Then loop through and display each response
   my @responses = $fault->responses;
@@ -319,19 +320,24 @@ sub query_fault_content {
   query_fault_form($q, %cookie);
   print "<p>";
 
-  # Display recent faults
-  my $t = gmtime;
+  my $t = OMP::General->today(1);
+
+  # XML for getting recent faults
   my $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+
+  # XML for getting current faults
+  my $currentxml = "<FaultQuery>".
+    "<category>$cookie{category}</category>".
+      "<date delta='-14'>" . $t->datetime . "</date>".
+	"</FaultQuery>";
 
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
 
-    # No recent faults, get current faults instead
-    if (!$faults->[0]) {
-      my %status = OMP::Fault->faultStatus;
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
-      $faults = OMP::FaultServer->queryFaults($xml, "object");
+    # Get current if no recent faults returned
+    if (! $faults->[0]) {
+      $faults = OMP::FaultServer->queryFaults($currentxml, "object");
     }
 
     return $faults;
@@ -341,12 +347,12 @@ sub query_fault_content {
   };
 
   if ($faults->[0]) {
-    # Make the link to the report viewing script if we're using
-    # the report system
-    if ($cookie{category} =~ /bug/i) {
-      show_faults($q, $faults, "viewreport.pl");
+
+    # Use cookie prefs for defining sort order
+    if ($cookie{sort_order} eq "descending") {
+      show_faults($q, $faults, 1);
     } else {
-      show_faults($q, $faults, "viewfault.pl");
+      show_faults($q, $faults);
     }
 
     # Put up the query form again if there are lots of faults displayed
@@ -369,14 +375,20 @@ sub query_fault_output {
   my $q = shift;
   my %cookie = @_;
 
-  # Which XML query are we going to use?
-  # and which title are we displaying?
   my $title;
   my $t = OMP::General->today(1);
   my %daterange;
   my $xml;
 
-  # Print faults
+  # XML query to return faults filed in the last 14 days
+  my %faultstatus = OMP::Fault->faultStatus;
+  my $currentxml = "<FaultQuery>".
+    "<category>$cookie{category}</category>".
+      "<date delta='-14'>" . $t->datetime . "</date>".
+	"<status>$faultstatus{Open}</status>".
+	  "</FaultQuery>";
+
+  # Print faults if print button was clicked
   if ($q->param('print')) {
     my $printer = $q->param('printer');
     my @fprint = split(',',$q->param('faults'));
@@ -387,20 +399,11 @@ sub query_fault_output {
     return;
   }
 
-  # The 'Submit' submit button was clicked
-  if ($q->param('Search')) {
+  if ($q->param('search')) {
+    # The 'Search' submit button was clicked
     my @xml;
 
-
-    # Make sure users of the bug reporting system can't
-    # view faults for another category
-    my $category;
-    if ($cookie{category} =~ /bug/i) {
-      $category = "BUG";
-    } else {
-      $category = $q->param('cat');
-    }
-    push (@xml, "<category>$category</category>");
+    push (@xml, "<category>$cookie{category}</category>");
 
     if ($q->param('system') !~ /any/) {
       my $system = $q->param('system');
@@ -467,24 +470,40 @@ sub query_fault_output {
     # Our query XML
     $xml = "<FaultQuery><category>$cookie{category}</category>" . join('',@xml) . "</FaultQuery>";
 
+  } elsif ($q->param('major')) {
+    # Faults within the last 14 days with 2 or more hours lost
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
+  } elsif ($q->param('recent')) {
+    # Faults filed in the last 36 hours
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+  } elsif ($q->param('current')) {
+    # Faults within the last 14 days
+    $xml = $currentxml;
+    $title = "Displaying faults filed in the last 14 days";
   } else {
-    # One of the other submit buttons was clicked
-    if ($q->param('Major faults') or $q->param('Major reports')) {
-      # Faults within the last 14 days with 2 or more hours lost
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
-    } elsif ($q->param('recent')) {
-      # Faults filed in the last 36 hours
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
-    } elsif ($q->param('current')) {
-      # Faults within the last 14 days
-      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
-    }
+    # Initial display of query page.  Do the 'recent' query.
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+    $title = "Displaying faults with any activity in the last 2 days";
   }
 
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
+
+    # If this is the initial display of faults and no recent faults were
+    # returned, display faults for the last 14 days.
+    if (! $q->param and ! $faults->[0]) {
+      my $xml = "<FaultQuery>".
+	"<category>$cookie{category}</category>".
+	  "<date delta='-14'>" . $t->datetime . "</date>".
+	    "</FaultQuery>";
+      $title = "No faults filed in the last 2 days, displaying faults for the last 14 days";
+
+      $faults = OMP::FaultServer->queryFaults($xml, "object");
+    }
+
     return $faults;
+
   } otherwise {
     my $E = shift;
     print "$E";
@@ -505,13 +524,10 @@ sub query_fault_output {
   print "<p>";
 
   if ($faults->[0]) {
-    # Make the link to the report viewing script if we're using
-    # the report system
-
-    if ($cookie{category} =~ /bug/i) {
-      show_faults($q, $faults, "viewreport.pl");
+    if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
+      show_faults($q, $faults, 1);
     } else {
-      show_faults($q, $faults, "viewfault.pl");
+      show_faults($q, $faults);
     }
 
     # Faults to print
@@ -570,12 +586,6 @@ sub query_fault_form {
   my $q = shift;
   my %cookie = @_;
 
-  # If this is a report problems script use the word reports instead of faults
-  my $word;
-  my $script = $q->url(-relative=>1);
-  ($script =~ /report/) and $word = "reports"
-    or $word = "faults";
-
   # Get a default date for max date search (today)
   my $today = localtime;
   $today = localtime->strftime("%Y%m%d");
@@ -600,7 +610,7 @@ sub query_fault_form {
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
-  print "<b>Find $word ";
+  print "<b>Find faults ";
   print $q->radio_group(-name=>'action',
 		        -values=>['response','file','activity'],
 		        -default=>'activity',
@@ -642,16 +652,16 @@ sub query_fault_form {
 		      -size=>44,
 		      -maxlength=>256,);
   print "&nbsp;&nbsp;";
-  print $q->submit(-name=>"Search");
+  print $q->submit(-name=>"search", -label=>"Search",);
   print "</b></td>";
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'cat', -default=>$cookie{category});
   print "<tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
-  print $q->submit(-name=>"Major $word");
-  print $q->submit(-name=>"recent", -label=>"Recent $word (2 days)");
-  print $q->submit(-name=>"current", -label=>"Current $word (14 days)");
+  print $q->submit(-name=>"major", -label=>"Major faults");
+  print $q->submit(-name=>"recent", -label=>"Recent faults (2 days)");
+  print $q->submit(-name=>"current", -label=>"Current faults (14 days)");
   print $q->endform;
   print "</td></table>";
 }
@@ -1129,7 +1139,7 @@ sub file_fault_form {
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
 		      -size=>'60',
-		      -maxlength=>'256',
+		      -maxlength=>'128',
 		      -default=>$defaults{subject},);
   print "</td><tr><td colspan=2>";
 
@@ -1550,26 +1560,70 @@ sub update_resp_output {
 
 Show a list of faults
 
-  show_faults($cgi, $faults, $url);
+  show_faults($cgi, $faults, 1);
 
-Takes a reference to an array of fault objects as the second argument. Optional third
-argument is a URL for the links.
+Takes a reference to an array of fault objects as the second argument. If the third argument is true the faults are listed in descending order.
 
 =cut
 
 sub show_faults {
   my $q = shift;
   my $faults = shift;
-  my $url = shift;
+  my $descending = shift;
 
-  # Use the current URL for links if it hasnt been provided as an argument
-  $url = $q->url
-    if (! $url);
+  my $default;
+  if ($descending) {
+    $default = "descending";
+  } else {
+    $default = "ascending";
+  }
+
+  # Generate stats so we can decide to show fields like "time lost"
+  # only if any faults have lost time
+  my $stats = new OMP::FaultStats( faults => $faults );
+  # Set URL for links
+  my $url = "viewfault.pl";
+
+  # Display form for sort order
+  print "<script language='javascript'> ";
+  print "function mysubmit() ";
+  print "{document.sortform.submit()}";
+  print "</script>";
+
+  print $q->startform(-name=>'sortform');
+  print "<b>Order by </b>";
+  print $q->hidden(-name=>'show_output',
+		   -default=>1);
+  print $q->popup_menu(-name=>'sort_order',
+		       -values=>[qw/ascending descending/],
+		       -labels=>{ascending => "oldest first", descending => "most recent first",},
+		       -default=>$default,
+		       -onChange=>'mysubmit()');
+  print $q->submit(-name=>"refresh", -label=>"Refresh");
+  print $q->endform;
+  print $q->p;
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
-  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td><b>Replies</b></td><td></td>";
+  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
+
+  # Show time lost field?
+  if ($stats->timelost > 0) {
+    print "<td align=center><b>Loss</b></td>";
+  }
+
+  print "<td><b>Replies</b></td><td> </td>";
+
   my $colorcount;
-  for my $fault (@$faults) {
+
+  my @faults;
+  # Sort faults in the order they are to be displayed
+  if ($descending) {
+    @faults = reverse @$faults;
+  } else {
+    @faults = @$faults;
+  }
+
+  for my $fault (@faults) {
     my $bgcolor;
 
     # Alternate background color for the rows and make the background color
@@ -1586,6 +1640,7 @@ sub show_faults {
     my $user = $fault->author;
     my $system = $fault->systemText;
     my $type = $fault->typeText;
+
     my $subject = $fault->subject;
     (!$subject) and $subject = "[no subject]";
 
@@ -1600,6 +1655,15 @@ sub show_faults {
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
+
+    # Show time lost field?
+    if ($stats->timelost > 0) {
+      my $timelost = $fault->timelost;
+      ($timelost == 0) and $timelost = "--" or $timelost = $timelost . " hrs";
+      print "<td align=center>$timelost</td>";
+    }
+
+
     print "<td align='center'>$replies</td>";
     print "<td><b><a href='$url?id=$faultid'>[View/Respond]</a></b></td>";
   }
