@@ -19,8 +19,6 @@ OMP::Cookie - Cookie management
 
   $c->flushCookie;
 
-  $html = $c->sidebar;
-
 =head1 DESCRIPTION
 
 This class provides cookie management for the OMP feedback tool.
@@ -154,10 +152,9 @@ sub cookie {
 =item B<setCookie>
 
 Creates the CGI cookie object. Name=value pairs should be in the form of a
-hash. If expire time is given it should be the first argument and in the form
-of minutes.  Expire time defaults to 30 minutes.
+hash. The expiry time should be specified as a number of minutes.
 
-  $c->setCookie(5, %contents);
+  $c->setCookie(2, %contents);
 
 =cut
 
@@ -179,12 +176,36 @@ sub setCookie {
   return;
 }
 
+=item B<flushCookie>
+
+Delete the cookie by setting an expiry time in the past.
+
+  $c->flushCookie();
+
+=cut
+
+sub flushCookie {
+  my $self = shift;
+
+  # Get the CGI object
+  my $cgi = $self->cgi
+    or throw OMP::Error::FatalError("No CGI object present\n");
+
+  # create the cookie
+  my $cookie = $cgi->cookie(-name=>$self->name,
+			    -value=>'null',
+			    -expires=>'-5m',);
+
+  $self->cookie($cookie);
+  return;
+}
+
 =item B<getCookie>
 
 Calls the C<CGI> method to retrieve the cookie from the browser and return
 the name=value pairs.
 
-%contents = $c->getCookie;
+  %contents = $c->getCookie;
 
 =cut
 
@@ -199,9 +220,6 @@ sub getCookie {
 }
 
 =back
-
-
-
 
 =head1 AUTHORS
 
