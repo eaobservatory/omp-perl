@@ -48,7 +48,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output sql_match_string/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output update_resp_content update_resp_output sql_match_string/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -131,102 +131,27 @@ sub file_fault_output {
 
   my %status = OMP::Fault->faultStatus;
 
-  my $urgency;
-  my %urgency = OMP::Fault->faultUrgency;
-  if ($q->param('urgency') =~ /urgent/) {
-    $urgency = $urgency{Urgent};
-  } else {
-    $urgency = $urgency{Normal};
-  }
+  # Get the fault details
+  my %faultdetails = parse_file_fault_form($q);
 
-  # Get the associated projects
-  my %projects;
-  if ($q->param('assoc') or $q->param('assoc2')) {
-    my @assoc = $q->param('assoc');
-
-    # Strip out commas and seperate on spaces
-    my $assoc2 = $q->param('assoc2');
-    $assoc2 =~ s/,/ /g;
-    my @assoc2 = split(/\s+/,$assoc2);
-
-    %projects = map {lc($_), undef} @assoc, @assoc2;
-  }
-
-  # If the time of fault was provided use it otherwise
-  # do nothing
-  my $t;
-  if ($q->param('time')) {
-    my $format = "%Y-%m-%dT%H:%M";
-    my $time = $q->param('time');
-
-    if ($time =~ /^(\d\d*?)\W*(\d{2})$/) {
-      # Just the time (something like HH:MM)
-      my $hh = $1;
-      my $mm = $2;
-      if ($q->param('tz') =~ /HST/) {
-	# Time is local
-	my $date = localtime;
-	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
-
-	# Convert to UT
-	$t -= $t->tzoffset;
-      } else {
-
-	# Time is already UT
-	my $date = gmtime;
-	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
-      }
-
-    } else {
-      # It is the entire date
-      my $date = UnixDate($time,$format);
-      $t = Time::Piece->strptime($date,$format);
-
-      # Convert time to UT if it was given as HST
-      ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
-    }
-
-    # Subtract a day if date is in the future.
-    my $gmtime = gmtime;
-    ($gmtime < $t) and $t -= 86400;
-  }
-
-  my $author = $q->param('user');
-  my $user = OMP::UserServer->getUser($author);
-
-  # The text.  Put it in <pre> tags if there isn't an <html>
-  # tag present
-  my $text = $q->param('message');
-  if ($text =~ /<html>/i) {
-
-    # Strip out the <html> and </html> tags
-    $text =~ s!</*html>!!ig;
-  } else {
-    $text = preify_text($text);
-  }
-
-  # Strip out ^M
-  $text =~ s/\015//g;
-
-  my $resp = new OMP::Fault::Response(author=>$user,
-				      text=>$text,);
+  my $resp = new OMP::Fault::Response(author=>$faultdetails{author},
+				      text=>$faultdetails{text},);
 
   # Create the fault object
   my $fault = new OMP::Fault(category=>$cookie{category},
-			     subject=>$q->param('subject'),
-			     system=>$q->param('system'),
-			     type=>$q->param('type'),
-			     urgency=>$urgency,
+			     subject=>$faultdetails{subject},
+			     system=>$faultdetails{system},
+			     type=>$faultdetails{type},
+			     urgency=>$faultdetails{urgency},
 			     fault=>$resp);
 
-  if (%projects) {
-    $fault->projects([keys %projects]);
-  }
 
-  ($t) and $fault->faultdate($t);
+  # The following are not always present
+  ($faultdetails{projects}) and $fault->projects($faultdetails{projects});
 
-  # Should convert this to a Time::Seconds object
-  ($q->param('loss')) and $fault->timelost($q->param('loss'));
+  ($faultdetails{faultdate}) and $fault->faultdate($faultdetails{faultdate});
+
+  ($faultdetails{timelost}) and $fault->timelost($faultdetails{timelost});
 
   # Submit the fault the the database
   my $faultid;
@@ -302,7 +227,6 @@ sub fault_table {
 		   -label=>'Change',);
   print $q->endform;
 
-#  change_status_form($q, $fault);
   print "</td>";
 
   # Display links to projects associated with this fault if any
@@ -315,7 +239,11 @@ sub fault_table {
     print "</td>";
   }
 
+  # Display if urgent
   print "<tr bgcolor=#ffffff><td>$urgencyhtml</td><td></td>";
+
+  # Link to fault editing page
+  print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update the details of this fault</a></span></td>";
 
   # Then loop through and display each response
   my @responses = $fault->responses;
@@ -328,7 +256,10 @@ sub fault_table {
       $bgcolor = '#bcbce2';
     } else {
       $bgcolor = '#dcdcf2';
-      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $resp->date . "</td>";
+      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $resp->date;;
+
+      # Link to respons editing page
+      print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
     }
 
     # Show the response
@@ -342,7 +273,11 @@ sub fault_table {
     # Now turn fault IDs into links
     $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?id=$1'>$1</a>!g;
 
-    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $text . "</td></table><br></td>";
+    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>$text</td></table><br></td>";
+
+
+
+
 
   }
   print "</table>";
@@ -741,7 +676,10 @@ sub view_fault_content {
 
     # Response form
     print "<p><b><font size=+1>Respond to this fault</font></b>";
-    response_form($q, $fault, %cookie);
+    response_form(cgi => $q,
+		  cookie => \%cookie,
+		  fault => $fault,);
+
   }
 }
 
@@ -788,7 +726,9 @@ sub view_fault_output {
       print "<ul>";
       print map {"<li>$_"} @error;
       print "</ul>";
-      response_form($q, $fault);
+      response_form(cgi => $q,
+		    cookie => \%cookie,
+		    fault => $fault,);
       fault_table($q, $fault);
       return;
     }
@@ -850,7 +790,9 @@ sub view_fault_output {
     # Encountered an error, redisplay form
     if ($E) {
       titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
-      response_form($q, $fault);
+      response_form(cgi => $q,
+		    cookie => \%cookie,
+		    fault => $fault,);
       fault_table($q, $fault);
       return;
     }
@@ -1039,6 +981,12 @@ sub file_fault_form {
     # The fault text.  Strip out <PRE> tags.  If there aren't any <PRE> tags
     # we'll assume this fault used explicit HTML formatting so we'll add in
     # an opening <html> tag.
+    my $message = $fault->responses->[0]->text;
+    if ($message =~ m!^<pre>(.*?)</pre>$!is) {
+      $message = $1;
+    } else {
+      $message = "<html>" . $message;
+    }
 
     %defaults = (user=> $fault->responses->[0]->author->userid,
 		 system => $fault->system,
@@ -1047,7 +995,7 @@ sub file_fault_form {
 		 time => $faultdate,
 		 tz => 'UT',
 		 subject => $fault->subject,
-		 message => $fault->responses->[0]->text,
+		 message => $message,
 		 assoc2 => join(',',@assoc),
 		 urgency => $urgent,);
 
@@ -1073,11 +1021,23 @@ sub file_fault_form {
   print $q->hidden(-name=>'show_output',
 		   -default=>'true');
 
+  # Embed the fault ID if we are editing a fault
+  print $q->hidden(-name=>'faultid', -default=>$fault->id)
+    unless (! $fault);
+
+
   print "<td align=right><b>User:</b></td><td>";
-  print $q->textfield(-name=>'user',
-		      -size=>'16',
-		      -maxlength=>'90',
-		      -default=>$defaults{user},);
+
+  # DISABLE USER FIELD IF FORM IS FOR EDITING
+  if (! $fault) {
+    print $q->textfield(-name=>'user',
+			-size=>'16',
+			-maxlength=>'90',
+			-default=>$defaults{user},);
+  } else {
+    print " <strong>$defaults{user}</strong>";
+    print $q->hidden(-name=>'user', -default=>$defaults{user});
+  }
 
   print "</td><tr><td align=right><b>System:</b></td><td>";
   print $q->popup_menu(-name=>'system',
@@ -1117,20 +1077,11 @@ sub file_fault_form {
 		      -default=>$defaults{subject},);
   print "</td><tr><td colspan=2>";
 
-  # Make a disabled textarea if we're editing a fault TEMPORARILY until
-  # we come up with a way of editing responses
-  if (! $fault) {
-    print $q->textarea(-name=>'message',
-		       -rows=>20,
-		       -columns=>78,
-		       -default=>$defaults{message},);
-  } else {
-    print $q->textarea(-name=>'message',
-		       -rows=>20,
-		       -columns=>78,
-		       -disabled=>undef,
-		       -default=>"EDITING OF FAULT TEXT IS NOT YET SUPPORTED\n\n" . $defaults{message},);
-  }
+  print $q->textarea(-name=>'message',
+		     -rows=>20,
+		     -columns=>78,
+		     -default=>$defaults{message},);
+
   # If were in the ukirt or jcmt fault categories create a checkbox group
   # for specifying an association with projects.
 
@@ -1180,16 +1131,24 @@ sub file_fault_form {
 
 =item B<response_form>
 
-Create a form for submitting a response. Second argument is an C<OMP::Fault> object.
+Create a form for submitting or editing a response.
 
-  response_form($cgi, $fault, %cookie);
+  response_form(cgi => $cgi,
+		cookie => \%cookie,
+                respid => $respid,
+		fault => $fault);
+
+C<fault> is always a required argument but C<respid> is only required if the
+form is going to be used for editing instead of normal response submission.  The response ID sould be that of the response to be edited.
 
 =cut
 
 sub response_form {
-  my $q = shift;
-  my $fault = shift;
-  my %cookie = @_;
+  my %args = @_;
+  my $q = $args{cgi};
+  my $fault = $args{fault};
+  my $respid = $args{respid};
+  my $cookie = $args{cookie};
 
   my $faultid = $fault->id;
 
@@ -1201,9 +1160,35 @@ sub response_form {
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   # Set defaults.  Use cookie values if param values aren't available.
-  my %defaults = (user => $cookie{user},
-		  text => undef,
-		  status => $fault->status,);
+  my %defaults;
+  if ($respid) {
+    # Setup defaults for response editing
+    my $response = OMP::FaultUtil->getResponse($respid, $fault);
+
+    (! $response) and croak "Unable to retrieve response with ID [$respid] from fault [".$fault->id."]\n";
+
+    my $text = $response->text;
+
+    # Prepare text for editing
+    if ($text =~ m!^<pre>(.*?)</pre>$!is) {
+      $text = $1;
+    } else {
+      $text = "<html>" . $text;
+    }
+
+
+    %defaults = (user => $response->author->userid,
+		 text => $text,
+		 submitlabel => "Submit changes",);
+  } else {
+
+    %defaults = (user => $cookie->{user},
+		 text => undef,
+		 status => $fault->status,
+		 submitlabel => "Submit response",);
+  }
+
+  # Param list values take precedence
   for (keys %defaults) {
     if ($q->param($_)) {
       $defaults{$_} = $q->param($_);
@@ -1218,23 +1203,39 @@ sub response_form {
 		   -default=>$formkey);
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'faultid', -default=>$faultid);
-  print $q->textfield(-name=>'user',
-		      -size=>'25',
-		      -maxlength=>'75',
-		      -default=>$defaults{user},);
-  print "</td><tr><td><b>Status: </b></td><td>";
-  print $q->popup_menu(-name=>'status',
-		       -default=>$defaults{status},
-		       -values=>[values %status],
-		       -labels=>\%labels,);
+
+  # Embed the response ID if we are editing a response
+  print $q->hidden(-name=>'respid', -default=>$respid)
+    if ($respid);
+
+  # DISABLE USER FIELD IF FORM IS FOR EDITING
+  if (! $respid) {
+    print $q->textfield(-name=>'user',
+			-size=>'25',
+			-maxlength=>'75',
+			-default=>$defaults{user},);
+  } else {
+    print " <strong>$defaults{user}</strong>";
+    print $q->hidden(-name=>'user', -default=>$defaults{user});
+  }
+
+  # Only show the status if we are filing a new response
+  if (! $respid) {
+    print "</td><tr><td><b>Status: </b></td><td>";
+    print $q->popup_menu(-name=>'status',
+			 -default=>$defaults{status},
+			 -values=>[values %status],
+			 -labels=>\%labels,);
+  }
+
   print "</td><tr><td></td><td>";
   print $q->textarea(-name=>'text',
 		     -rows=>20,
-		     -columns=>72
-		     -default=>$defaults{text});
+		     -columns=>72,
+		     -default=>$defaults{text},);
   print "</td></tr><td colspan=2 align=right>";
   print $q->submit(-name=>'respond',
-		   -label=>'Submit Response');
+		   -label=>$defaults{submitlabel});
   print $q->endform;
   print "</td></table>";
 }
@@ -1243,7 +1244,7 @@ sub response_form {
 
 Create a form for updating fault details
 
-  update_fault_content($cgi);
+  update_fault_content($cgi, %cookie);
 
 =cut
 
@@ -1270,6 +1271,9 @@ sub update_fault_content {
     print $q->endform;
     print "</td></table>";
   } else {
+
+    titlebar($q, ["Update Fault [$faultid]"], %cookie);
+
     # Get the fault
     my $fault = OMP::FaultServer->getFault($faultid);
 
@@ -1293,26 +1297,186 @@ sub update_fault_output {
   my $q = shift;
   my %cookie = @_;
 
+  # For the titlebar
+  my @title;
+
   my $faultid = $q->param('faultid');
+
+  # Get host (and user maybe) info of the user who is modifying the fault
+  my @user = OMP::General->determine_host;
+  my $author;
+
+  # Make author either an email address or "user on [machine name]"
+  if ($user[2] =~ /@/) {
+    $author = $user[0];
+  } else {
+    $author = "user on $user[2]";
+  }
+
+  # Get the original fault
+  my $fault = OMP::FaultServer->getFault($faultid);
+
+  # Get new properties
+  my %newdetails = parse_file_fault_form($q);
+
+  # Store details in a fault object for comparison
+  my $new_f = new OMP::Fault(category=>$cookie{category},
+			     fault=>$fault->responses->[0],
+			     %newdetails);
+
+  my @details_changed = OMP::FaultUtil->compare($new_f, $fault);
+
+  # Store details in a fault response object for comparison
+  my $new_r = new OMP::Fault::Response(%newdetails);
+
+  # Our original response
+  my $response = $fault->responses->[0];
+
+  # "Preify" the text before we compare responses
+  my $newtext = $newdetails{text};
+  $newtext =~ s!</*html>!!ig;
+  $newtext = preify_text($newtext);
+
+  my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
+
+  if ($details_changed[0] or $response_changed[0]) {
+    # Changes have been made so we'll do an update
+
+    my $E;
+    try {
+
+      if ($details_changed[0]) {
+
+	# Apply changes to fault
+	for (@details_changed) {
+	  $fault->$_($newdetails{$_});
+	}
+
+	# Store changes to DB
+	OMP::FaultServer->updateFault($fault, $author);
+      }
+
+      if ($response_changed[0]) {
+
+	# Apply changes to response
+	for (@response_changed) {
+	  $response->$_($newdetails{$_});
+	}
+	OMP::FaultServer->updateResponse($fault->id, $response);
+      }
+
+      push @title, "This fault has been updated";
+
+      # Get the fault in it's new form
+      $fault = OMP::FaultServer->getFault($faultid);
+
+    } otherwise {
+      $E = shift;
+      push @title, "An error has occurred which prevented the fault from being updated";
+      push @title, "$E";
+    };
+  } else {
+    push @title, "No changes were made";
+  }
+
+  titlebar($q, ["Update Fault [". $fault-> id ."]", join('<br>',@title)], %cookie);
+
+  # Display the fault
+  fault_table($q, $fault);
+}
+
+=item B<update_resp_content>
+
+Create a form for updating fault details
+
+  update_resp_content($cgi, %cookie);
+
+=cut
+
+sub update_resp_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $faultid = $q->url_param('id');
+  my $respid = $q->url_param('respid');
+
+  if ($faultid and $respid) {
+    titlebar($q, ["Update Response [$faultid]"], %cookie);
+
+    # Get the fault
+    my $fault = OMP::FaultServer->getFault($faultid);
+
+    (! $fault) and croak "Unable to retrieve fault with ID [$faultid]\n";
+
+    # Form for taking new details.  Displays current values.
+    response_form(cgi => $q,
+		  cookie => \%cookie,
+		  fault => $fault,
+		  respid => $respid,);
+  } else {
+    croak "A fault ID and response ID must be provided in the URL\n";
+  }
+}
+
+=item B<update_resp_output>
+
+Submit changes to a fault response.
+
+  update_resp_output($cgi, %cookie);
+
+=cut
+
+sub update_resp_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $faultid = $q->param('faultid');
+  my $respid = $q->param('respid');
+  my $text = $q->param('text');
+  my $author = $q->param('user');
+
+  # Convert author to OMP::User object
+  $author = OMP::UserServer->getUser($author);
+
+  # Prepare the text
+  if ($text =~ /<html>/i) {
+    # Strip out the <html> and </html> tags
+    $text =~ s!</*html>!!ig;
+  } else {
+    $text = preify_text($text);
+  }
+
+  # Strip out ^M
+  $text =~ s/\015//g;
 
   # Get the fault
   my $fault = OMP::FaultServer->getFault($faultid);
 
-  # Change timelost
-  if ($q->param('timelost')) {
-    # Convert to Time::Seconds object
+  # Get the response object
+  my $response = OMP::FaultUtil->getResponse($respid, $fault);
 
-    $fault->timelost($q->param('timelost'));
-  }
+  # Make changes to the response object
+  $response->author($author);
+  $response->text($text);
 
-  # Now do the update
-  OMP::FaultServer->updateFault($fault);
+  # SHOULD DO A COMPARISON TO SEE IF CHANGES WERE ACTUALLY MADE
 
-  $fault = OMP::FaultServer->getFault($faultid);
+  # Submit the changes
+  my @title = ("Update Response");
+  try {
+    OMP::FaultServer->updateResponse($faultid, $response);
+    push @title, "Response has been updated"
+  } otherwise {
+    my $E = shift;
+    push @title, "Unable to update response";
+    print "<pre>$E</pre>";
+  };
 
-  print $q->h2("Fault $faultid has been updated");
+  titlebar($q, \@title, %cookie);
 
-  # Display the fault in it's new form
+  # Redisplay fault
+  my $fault = OMP::FaultServer->getFault($faultid);
+
   fault_table($q, $fault);
 }
 
@@ -1443,6 +1607,112 @@ sub titlebar {
   print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
     if (@$title->[1]);
   print "</table><br>";
+}
+
+=item B<parse_file_fault_form>
+
+Take the arguments from the fault filing form and parse them so they can be used to create
+the fault and fault response objects.  Only argument is a C<CGI> query object.
+
+  parse_file_fault_form($q);
+
+Returns the following keys:
+
+  subject, faultdate, timelost, system, type, urgency, projects, author, text
+
+=cut
+
+sub parse_file_fault_form {
+  my $q = shift;
+
+  my %parsed = (subject => $q->param('subject'),
+	        timelost => $q->param('loss'),
+	        system => $q->param('system'),
+	        type => $q->param('type'),);
+
+  # Determine the urgency
+  my %urgency = OMP::Fault->faultUrgency;
+  if ($q->param('urgency') =~ /urgent/) {
+    $parsed{urgency} = $urgency{Urgent};
+  } else {
+    $parsed{urgency} = $urgency{Normal};
+  }
+
+  # Get the associated projects
+  if ($q->param('assoc') or $q->param('assoc2')) {
+    my @assoc = $q->param('assoc');
+
+    # Strip out commas and seperate on spaces
+    my $assoc2 = $q->param('assoc2');
+    $assoc2 =~ s/,/ /g;
+    my @assoc2 = split(/\s+/,$assoc2);
+
+    # Use a hash to eliminate duplicates
+    my %projects = map {lc($_), undef} @assoc, @assoc2;
+    $parsed{projects} = [keys %projects];
+  }
+
+  # If the time of fault was provided use it otherwise
+  # do nothing
+  if ($q->param('time')) {
+    my $t;
+    my $format = "%Y-%m-%dT%H:%M";
+    my $time = $q->param('time');
+
+    if ($time =~ /^(\d\d*?)\W*(\d{2})$/) {
+      # Just the time (something like HH:MM)
+      my $hh = $1;
+      my $mm = $2;
+      if ($q->param('tz') =~ /HST/) {
+	# Time is local
+	my $date = localtime;
+	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
+
+	# Convert to UT
+	$t -= $t->tzoffset;
+      } else {
+
+	# Time is already UT
+	my $date = gmtime;
+	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
+      }
+
+    } else {
+      # It is the entire date
+      my $date = UnixDate($time,$format);
+      $t = Time::Piece->strptime($date,$format);
+
+      # Convert time to UT if it was given as HST
+      ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+    }
+
+    # Subtract a day if date is in the future.
+    my $gmtime = gmtime;
+    ($gmtime < $t) and $t -= 86400;
+
+    $parsed{faultdate} = $t;
+  }
+
+  my $author = $q->param('user');
+  $parsed{author} = OMP::UserServer->getUser($author);
+
+  # The text.  Put it in <pre> tags if there isn't an <html>
+  # tag present
+  my $text = $q->param('message');
+  if ($text =~ /<html>/i) {
+
+    # Strip out the <html> and </html> tags
+    $text =~ s!</*html>!!ig;
+  } else {
+    $text = preify_text($text);
+  }
+
+  # Strip out ^M
+  $text =~ s/\015//g;
+
+  $parsed{text} = $text;
+
+  return %parsed;
 }
 
 =item B<sql_match_string>
