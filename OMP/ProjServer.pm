@@ -168,9 +168,9 @@ Return the details of a single project. The summary is returned as a
 data structure (a reference to a hash), as an C<OMP::Project> object
 or as XML.
 
-  $href = OMP::SpServer->projectDetails( $project, $password, "data" );
-  $xml = OMP::SpServer->projectDetails( $project,$password, "xml" );
-  $obj = OMP::SpServer->projectDetails( $project,$password, "object" );
+  $href = OMP::ProjServer->projectDetails( $project, $password, "data" );
+  $xml = OMP::ProjServer->projectDetails( $project,$password, "xml" );
+  $obj = OMP::ProjServer->projectDetails( $project,$password, "object" );
 
 Note that this may cause problems for a strongly typed language.
 
@@ -408,6 +408,50 @@ sub verifyPassword {
   $class->throwException( $E ) if defined $E;
 
   return ($ok ? 1 : 0);
+
+}
+
+=item B<getTelescope>
+
+Obtain the telescope associated with the specified project.
+
+  $tel = OMP::ProjServer->getTelescope( $project );
+
+Returns null if the project does not exist.
+
+=cut
+
+sub getTelescope {
+  my $class = shift;
+  my $projectid = shift;
+
+  my $tel;
+  my $E;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			    );
+
+    $tel = $db->getTelescope();
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $tel;
 
 }
 

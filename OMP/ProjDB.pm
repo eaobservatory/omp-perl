@@ -211,6 +211,30 @@ sub verifyProject {
   return $there
 }
 
+=item B<getTelescope>
+
+Simplified access to the telescope related to the specified
+project. Does not require a password. Returns the telescope
+name or undef if the project does not exist.
+
+  $tel = $proj->getTelescope();
+
+=cut
+
+sub getTelescope {
+  my $self = shift;
+
+  # Use a try block since we know that _get_project_row raises
+  # an exception
+  my $tel;
+  try {
+    my $p = $self->_get_project_row();
+    $tel = $p->telescope;
+  };
+
+  return $tel;
+}
+
 =item B<issuePassword>
 
 Generate a new password for the current project and email it to
