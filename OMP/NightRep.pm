@@ -902,6 +902,15 @@ Project Time Summary
   my $totalobserved = 0.0; # Total time spent observing
   my $totalproj = 0.0;
 
+  # Get planned shutdown time
+  my $shuttime = $self->shutdownTime;
+
+  # Convert shutdown time to hours, we won't ever want to see seconds.
+  $shuttime = $shuttime->hours;
+
+  # Add shutdown time to total
+  $total += $shuttime;
+
   # Time lost to faults
   my $format = "  %-25s %5.2f hrs\n";
   my $faultloss = $self->timelost->hours;
@@ -936,6 +945,10 @@ Project Time Summary
     $totalproj += $acct{$proj}->timespent->hours;
   }
 
+  if ($shuttime) {
+    $str .= "\n";
+    $str .= sprintf($format, "Planned shutdown time:", $shuttime);
+  }
   $str .= "\n";
   $str .= sprintf($format, "Project time", $totalproj);
   $str .= "\n";
