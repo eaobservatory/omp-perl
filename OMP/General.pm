@@ -1252,11 +1252,17 @@ sub log_message {
   return;
 }
 
+=back
+
+=head2 String manipulation
+
+=over 4
+
 =item B<split_string>
 
-Split a string that uses a whitespace as a delimiter into a series of substrings.  Substrings
-that are surrounded by double-quotes will be separated out using the double-quotes as the
-delimiters.
+Split a string that uses a whitespace as a delimiter into a series of
+substrings. Substrings that are surrounded by double-quotes will be
+separated out using the double-quotes as the delimiters.
 
   $string = 'foo "baz xyz" bar';
   @substrings = OMP::General->split_string($string);
@@ -1325,7 +1331,8 @@ sub replace_entity {
 
 =head1 AUTHORS
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
