@@ -53,6 +53,13 @@ our $STYLE = "<style><!--
                  font-size: 11pt;
                  color: #ffffff;
                }
+               HR {
+                 height : 1;
+                 color  : #babadd;
+               }
+               A {
+                 font-family:arial,sans-serif;
+               }
                //--></style>";
 
 
