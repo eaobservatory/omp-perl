@@ -2,138 +2,29 @@ To Do list for the OMP SOAP Servers
 ===================================
 
 
-MSBServer + SpServer
---------------------
-
- - Treat tauband and seeing as single bits of an integer        [1.0]
-   to allow scheduling on "band 1+2"
-
-    [not required since the query is now built up as
-      "band 1 or band 2"] Still needs to affect scheduling and
-     time decrementing though.
-
-MSBServer
----------
-
- - Query parsing (OMP::MSBQuery)                                [4.0]
-
-    [done first pass]
-
-
- - increment "pending" allocation when MSB marked as done       [1.0]
-    [done for simple projects that do not have separate
-     allocations for weather bands]
-
- - Stored procedures for calculating target elevation           [5.0??10??]
-    [done [in perl]]
-
-
-SpServer
---------
-
- - password authentication                                      [3.0]
-    [via OMP::ProjDB]
-    [done]
-
- - "fix" the MSBID generation code so that it caches the value  [1.0]
-    before deleting old rows rather than querying the database
-    each time an MSB is added to the DB.
-
-      [This has now been optimised so that the ID is cached
-       during a store] Store a large science program still takes
-       some time. Especially noticable since we have to do that
-       to modify a MSB remaining flag.
-
 - [possible] Reuse existing MSBID slots when resubmitting a
   science program if it has not changed at all (Only really true
-  when doneMSB is used).
-
-
-ProjServer
-----------
-
- [Effectively to write OMP::ProjDB and OMP::ProjServer]
-
- - implement project summary                        [1.0]
-     - as XML
-     - as plain text
-
-  [Done]
-
-
- - implement queue summary                          [3.0]
-    (all projects, projects with time remaining)
-      [done]
-
-
- - implement password generation + mailing          [2.0]
-     [done]
-
- - project initialisation in database               [3.0]
-     [done]
-
-
- - adjustment of time remaining                     [1.0]
-     [done]
+  when doneMSB is used). [we probably want to disallow this to
+  force people to do queries after each observation]
 
  - "allocated" vs "fallback" allocations
      [possibly just using tagpriority]
 
- - back door password available to all authentication schemes
-
-     [done]
-
  - Allocation per weather band (in a system that works for
    both telescopes).
-
- - Include switch in query to disable checks for:
-     - target observability
-     - remaining count > 0
-     - time remaining on project
-   This will allow us to list all the msbs without having
-   to retrieve the science program
-
-     [done]
-
-- Allow for <semester> </semester> queries. If semester is not specified
-  default to current semester. This allows override queries to be on
-  SERV or JAC for example.
-     [done]
-
-
-- Add support for <name> query to work without false positives. 
-  ie use jennesst - this requires special name field in proj table
-  containing : separated list of ids for all coi and pi names.
-  [possibly just have "person" table which has the names, "userid"
-   and email - then need admin cgi script for it]
-     [done]
-
 
 - Add proper sorting by tagpriority, internal MSB priority and possibly
   completion rate.  [also needs the tagpriority to come back from the query 
   even though that is in the project table]
+  return order sorted in tagpriority order
+   - allow it to be weighted by completion rate?
 
-- Add fault tracking system (for OMP) and later for JCMT,CSG and UKIRT
-
-- Do we want TELESCOPE to be a property of a project or of a MSB?
-     [Need to add TELESCOPE to project table]
-
-
-- Add generic staff password in addition to admin password
-     [done]
-
-- Rationalize the MSB summary output code so that we can
-  do HTML, HTML_long, ascii, ascii_long in that class rather than
-  kludging it on SciProg or the CGI code.
-     [done via Info object]
 
 - Queries of the form <date delta="-1" /> should default to 
-  a range of "now" and "now -1". Currently this does not work.
+  a range of "now" and "now -1". Currently this does not work because
+  the parser skips if there is no content in the element.
 
 - Waveband code does not seem to handle significant figures properly.
-
-- return order sorted in tagpriority order
-   - allow it to be weighted by completion rate?
 
 - When an observation has a negative wavelength (eg a dark) it should
   not be stored in the obs table unless the MSB consists solely
@@ -142,3 +33,6 @@ ProjServer
   a tweak of obscount value stored in msb table. Need to write something
   to the obs table so still have to write entries if they are the only
   entries.
+
+- Make sure the calculation for default minel is clever enough to
+  deal with sources that never rise above the min elevation 
