@@ -395,6 +395,50 @@ sub disableProject {
 
 }
 
+=item B<enableProject>
+
+Re-enable a project so that it will show up in from future queries by
+setting the project state to 1 (enabled).
+
+  $db->enableProject();
+
+Requires the administrator password.
+
+=cut
+
+sub enableProject {
+  my $self = shift;
+
+  # Verify that we can update the database
+  OMP::General->verify_administrator_password( $self->password );
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  # Transaction start
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Modify the project
+  $project->state( 1 );
+
+  # Update the contents in the table
+  $self->_update_project_row( $project );
+
+  # Notify the feedback system
+  my $projectid = $self->projectid;
+  $self->_notify_feedback_system(
+				 subject => "[$projectid] Project enabled",
+				 text => "project <b>$projectid</b> enabled",
+				 msgtype => OMP__FB_MSG_PROJECT_ENABLED,
+				);
+
+  # Transaction end
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
 
 =item B<projectDetails>
 
