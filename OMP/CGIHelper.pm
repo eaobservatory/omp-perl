@@ -537,9 +537,17 @@ sub fb_msb_observed {
   my $q = shift;
   my $projectid = shift;
 
-  my $history = OMP::MSBServer->historyMSB($projectid, '', 'data');
+  # Set up our xml query
+  my $xml = "<MSBDoneQuery>" .
+    "<status>". OMP__DONE_DONE ."</status>" .
+      "<projectid>$projectid</projectid>".
+	    "</MSBDoneQuery>";
 
-  (@$history) and msb_table($q, $history);
+  # Now get the observed MSBs
+  my $observed = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
+
+  # Generate the HTML table
+  (@$observed) and msb_table($q, $observed);
 }
 
 =item B<fb_msb_active>
@@ -1389,12 +1397,17 @@ sub project_home {
     print "<h3>No data has been acquired for this project</h3>";
   }
 
-  # Display observed MSBs
-  print "<h3>The following MSBs have been observed:</h3>";
-  fb_msb_observed($q, $cookie{projectid});
+  # Display observed MSBs if any data has been taken for this project
+  if (@$nights) {
+    print "<h3>The following MSBs have been observed:</h3>";
+    fb_msb_observed($q, $cookie{projectid});
+    print "<br>";
+  } else {
+    print "<h3>No MSBs have been observed</h3>";
+  }
 
   # Link to the MSB history page
-  print "<br>Click <a href='http://www.ukirt.jach.hawaii.edu/cgi-bin/msbhist.pl'>here</a> for more details on the observing history of each MSB.";
+  print "Click <a href='http://www.ukirt.jach.hawaii.edu/cgi-bin/msbhist.pl'>here</a> for more details on the observing history of each MSB.";
   
   # Display remaining MSBs
   print "<h3>Observations remaining to be observed:</h3>";
