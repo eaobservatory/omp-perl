@@ -48,21 +48,38 @@ to be added to the feedback database.
 
    OMP::FBServer->addComment( $project, $commentHash );
 
-   OMP::FBServer::addComment( OMP::FBServer, $project, $commentHash );
+=over 4
+
+=item Hash reference should contain the following key/value pairs:
+
+=item B<author>
+The name of the author of the comment.
+
+=item B<subject>
+The subject of the comment.
+
+=item B<program>
+The program used to submit the comment.
+
+=item B<sourceinfo>
+The IP address of the machine comment is being submitted from.
+
+=item B<text>
+The text of the comment (HTML tags are encouraged).
+
+=back
 
 =cut
 
 sub addComment {
   my $class = shift;
   my $projectid = shift;
-  my $password = shift;
   my $comment = shift;
 
   my $E;
   try {
 
     my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-			          Password => $password,
 				  DB => $class->dbConnection, );
 
     $db->addComment( $comment );
@@ -107,6 +124,8 @@ sub getComments {
   my $amount = shift;
   my $showhidden = shift;
 
+  my $commentref;
+
   my $E;
   try {
 
@@ -114,7 +133,7 @@ sub getComments {
 				  Password => $password,
                                   DB => $class->dbConnection, );
 
-    $db->getComments( $amount, $showhidden );
+    $commentref = $db->getComments( $amount, $showhidden );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -131,7 +150,7 @@ sub getComments {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-
+  return $commentref;
 }
 
 =item B<deleteComment>
