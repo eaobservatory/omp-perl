@@ -160,7 +160,6 @@ sub addComment {
   }
 
   # Check that the project actually exists
-  print "Verifying project\n";
   my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
                                 DB => $self->db, );
 
