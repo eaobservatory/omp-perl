@@ -801,7 +801,14 @@ sub file_from_bits {
                                       utdate => $self->startobs->ymd );
     $filename = "$project\@" . $timestring . "_" . $backend . "_" . $runnr . ".gsd";
   } elsif( $instrument =~ /scuba/i ) {
-
+    my $utdate;
+    ( $utdate = $self->startobs->ymd ) =~ s/-//g;
+    my $runnr = sprintf( "%04u", $self->runnr );
+    $filename = OMP::Config->getData( 'rawdatadir',
+                                      telescope => 'JCMT',
+                                      instrument => 'SCUBA',
+                                      utdate => $self->startobs->ymd );
+    $filename .= $utdate . "_dem_" . $runnr . ".sdf";
   } else {
     throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
   }
@@ -972,9 +979,9 @@ sub _populate {
   $self->backend( $generic_header{BACKEND} );
 
   # Set the filename if it's not set.
-  if( !defined($self->filename) ) {
-    $self->filename = file_from_bits( \%generic_header );
-  }
+#  if( !defined($self->filename) ) {
+#    $self->filename( $self->file_from_bits );
+#  }
 
 }
 
