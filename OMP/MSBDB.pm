@@ -216,10 +216,7 @@ sub storeSciProg {
   # us whether this is an external submission or not
   unless ($args{FreezeTimeStamp}) {
     # Add a little note if we used the admin password
-    my $note = '';
-    $note = "[using the administrator password]"
-      if OMP::General->verify_administrator_password( $self->password, 1);
-
+    my $note = $self->_password_text_info();
 
     $self->_notify_feedback_system(
 				   subject => "Science program submitted",
@@ -280,9 +277,7 @@ sub fetchSciProg {
   # And file with feedback system.
   unless ($internal) {
     # Add a little note if we used the admin password
-    my $note = '';
-    $note = "[using the administrator password]"
-      if OMP::General->verify_administrator_password( $self->password, 1);
+    my $note = $self->_password_text_info();
 
     $self->_notify_feedback_system(
 				   subject => "Science program retrieved",
@@ -327,9 +322,7 @@ sub removeSciProg {
   $self->_clear_old_rows();
 
   # Add a little note if we used the admin password
-  my $note = '';
-  $note = "[using the administrator password]"
-    if OMP::General->verify_administrator_password( $self->password, 1);
+  my $note = $self->_password_text_info();
 
   $self->_notify_feedback_system(
 				 subject => "Science program deleted",
@@ -1174,6 +1167,9 @@ administrator access.
 
   $db->_verify_project_password( $allow_staff );
 
+THIS DOES NOT WORK AT THE MOMENT BECAUSE THE OMP::PROJECT CLASS
+ALWAYS CHECKS AGAINST STAFF,ADMIN AND QUEUE PASSWORD ANYWAY
+
 =cut
 
 sub _verify_project_password {
@@ -1198,6 +1194,51 @@ sub _verify_project_password {
 					$self->projectid );
 
   return;
+}
+
+=item B<_password_text_info>
+
+Retrieve some text describing whether the password was actually the
+staff, administrator or queue password. This can be appendended to
+feedback messages. Returns empty string if the actual project
+password was used.
+
+  $string = $self->_password_text_info();
+
+The assumption is that the password will verify against the project.
+Requires that the project details are retrieved from the project
+database. This is required in order to determine the associated
+queue information.
+
+=cut
+
+sub _password_text_info {
+  my $self = shift;
+  my $password = $self->password();
+
+  my $note = '';
+  if (OMP::General->verify_administrator_password( $password, 1)) {
+    $note = "[using the administrator password]"
+  } elsif (OMP::General->verify_staff_password( $password, 1)) {
+    $note = "[using the staff password]"
+  } else {
+    # get database connection
+    my $projdb = new OMP::ProjDB(
+				 ProjectID => $self->projectid,
+				 DB => $self->db,
+				 Password => $self->password,
+				);
+
+    # get the project information
+    my $proj = $projdb->projectDetails('object');
+
+    if ($proj && OMP::General->verify_queueman_password($password, $proj->country, 1)) {
+      $note = "[using the ".$proj->country." queue manager password]";
+    }
+
+
+  }
+
 }
 
 =back
