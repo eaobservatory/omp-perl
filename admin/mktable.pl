@@ -42,243 +42,244 @@ $DATE = "DATETIME";
 
 # Actual table descriptions
 my %tables = (
-	      # Fundamental scheduling table. Deals with information
+              # Fundamental scheduling table. Deals with information
               # that is part of a single MSB
-	      # Used mainly in OMP::MSBDB
-	      ompmsb => {
-			 msbid => "INTEGER",
-			 projectid=> PROJECTID,
-			 remaining => "INTEGER",
-			 checksum => "VARCHAR(64)",
-			 taumin => "REAL",
-			 taumax => "REAL",
-			 seeingmin => "REAL",
-			 seeingmax => "REAL",
-			 priority => "INTEGER",
-			 moon => "INTEGER",
-			 timeest => "REAL",
-			 title => TITLE,
-			 obscount => "INTEGER",
-			 datemin => $DATE,
-			 cloud => "INTEGER",
-			 datemax => $DATE,
-			 telescope => "VARCHAR(16)",
-			 minel => "REAL NULL",
-			 maxel => "REAL NULL",
-			 approach => "INTEGER NULL",
-			 _ORDER => [qw/ msbid projectid remaining checksum
-				    obscount taumin taumax seeingmin seeingmax
-				    priority telescope moon cloud
-				    timeest title datemin datemax minel maxel
-				    approach
-				    /],
-		       },
-	      # Associates users with a project
-	      # See OMP::ProjDB
-	      ompprojuser => {
-			      uniqid => NUMID,
-			      userid => USERID,
-			      projectid => PROJECTID,
-			      # PI, COI, SUPPORT
-			      capacity => "VARCHAR(16)",
-			      contactable => "BIT",
-			      _ORDER => [qw/
-					 uniqid projectid userid
-					 capacity contactable
-					/],
-			     },
-	      # General project details
-	      # See OMP::ProjDB
-	      ompproj => {
-			  projectid => PROJECTID,
-			  pi => USERID,
-			  remaining => "REAL",
-			  pending => "REAL",
-			  allocated => "REAL",
-			  semester => "VARCHAR(5)",
-			  encrypted => "VARCHAR(20)",
-			  title => TITLE,
-			  telescope => "VARCHAR(16)",
-			  taumin => "REAL",
-			  taumax => "REAL",
-			  seeingmin => "REAL",
-			  seeingmax => "REAL",
-			  cloud => "INTEGER",
+              # Used mainly in OMP::MSBDB
+              ompmsb => {
+                         msbid => "INTEGER",
+                         projectid=> PROJECTID,
+                         remaining => "INTEGER",
+                         checksum => "VARCHAR(64)",
+                         taumin => "REAL",
+                         taumax => "REAL",
+                         seeingmin => "REAL",
+                         seeingmax => "REAL",
+                         priority => "INTEGER",
+                         moon => "INTEGER",
+                         timeest => "REAL",
+                         title => TITLE,
+                         obscount => "INTEGER",
+                         datemin => $DATE,
+                         cloud => "INTEGER",
+                         datemax => $DATE,
+                         telescope => "VARCHAR(16)",
+                         minel => "REAL NULL",
+                         maxel => "REAL NULL",
+                         approach => "INTEGER NULL",
+                         _ORDER => [qw/ msbid projectid remaining checksum
+                                    obscount taumin taumax seeingmin seeingmax
+                                    priority telescope moon cloud
+                                    timeest title datemin datemax minel maxel
+                                    approach
+                                    /],
+                       },
+              # Associates users with a project
+              # See OMP::ProjDB
+              ompprojuser => {
+                              uniqid => NUMID,
+                              userid => USERID,
+                              projectid => PROJECTID,
+                              # PI, COI, SUPPORT
+                              capacity => "VARCHAR(16)",
+                              contactable => "BIT",
+                              _ORDER => [qw/
+                                         uniqid projectid userid
+                                         capacity contactable
+                                        /],
+                             },
+              # General project details
+              # See OMP::ProjDB
+              ompproj => {
+                          projectid => PROJECTID,
+                          pi => USERID,
+                          remaining => "REAL",
+                          pending => "REAL",
+                          allocated => "REAL",
+                          semester => "VARCHAR(5)",
+                          encrypted => "VARCHAR(20)",
+                          title => TITLE,
+                          telescope => "VARCHAR(16)",
+                          taumin => "REAL",
+                          taumax => "REAL",
+                          seeingmin => "REAL",
+                          seeingmax => "REAL",
+                          cloud => "INTEGER",
                           state => "BIT",
-			  _ORDER => [qw/projectid pi
-				     title semester encrypted allocated
-				     remaining pending telescope taumin
-				     taumax seeingmin seeingmax cloud state
-				     /],
-			 },
-	      # Queue details for each project
-	      ompprojqueue => {
-			       projectid => PROJECTID,
-			       isprimary => "BIT",
-			       uniqid => NUMID,
-			       country => 'VARCHAR(32) NOT NULL',
-			       tagpriority => 'INTEGER',
-			       _ORDER => [qw/
-					  uniqid projectid country
-					  tagpriority isprimary
-					 /],
-			      },
-	      # Time accounting for projects
-	      # See OMP::ProjDB
-	      omptimeacct => {
-			      projectid => PROJECTID,
-			      date => $DATE,
-			      confirmed => 'BIT',
-			      timespent => 'INTEGER',
-			      _ORDER => [qw/ date projectid timespent
-					 confirmed
-					 /],
-			     },
-	      # Scheduling information associated with observations
-	      # that are present in MSBs.
-	      # See OMP::MSBDB
-	      ompobs => {
-			 obsid => "INTEGER",
-			 msbid => "INTEGER",
-			 projectid => PROJECTID,
-			 instrument => "VARCHAR(32)",
-			 wavelength => "REAL",
-			 disperser => "VARCHAR(32) NULL",
-			 coordstype => "VARCHAR(32)",
-			 target => "VARCHAR(32)",
-			 ra2000 => "REAL NULL",
-			 dec2000 => "REAL NULL",
-			 el1 => "REAL NULL",
-			 el2 => "REAL NULL",
-			 el3 => "REAL NULL",
-			 el4 => "REAL NULL",
-			 el5 => "REAL NULL",
-			 el6 => "REAL NULL",
-			 el7 => "REAL NULL",
-			 el8 => "REAL NULL",
-			 pol => "BIT",
-			 timeest => "REAL",
-			 type => "VARCHAR(32)",
-			 _ORDER => [qw/obsid msbid projectid
-				    instrument type pol wavelength disperser
-				    coordstype target ra2000 dec2000 el1 el2
-				    el3 el4 el5 el6 el7 el8 timeest
-				    /],
-			},
-	      # Log of messages/comments associated with a particular MSB
-	      # Could just as easily be called "ompmsblog". Name derives
-	      # from the fact that this table is the only place where
-	      # we explicitly log when an MSB is observed (done)
-	      # See OMP::MSBDoneDB
-	      ompmsbdone => {
-			     commid => "numeric(5,0) IDENTITY",
-			     checksum => "VARCHAR(64)",
-			     projectid => PROJECTID,
-			     date => $DATE,
-			     comment => "TEXT",
-			     instrument => "VARCHAR(64)",
-			     waveband => "VARCHAR(64)",
-			     target => "VARCHAR(64)",
-			     status => "INTEGER",
-			     title => TITLE,
-			     userid => USERID . " NULL",
-			     _ORDER => [qw/
-					commid checksum status projectid date
-					target instrument waveband
-					comment title userid
-					/],
-			    },
-	      # XML representation of the science program. Store it in
-	      # a table so we dont  have to worry about file locking.
-	      # See OMP::MSBDB
-	      ompsciprog => {
-			     projectid => PROJECTID,
-			     timestamp => "INTEGER",
-			     sciprog   => "TEXT",
-			     _ORDER => [qw/
-					projectid timestamp sciprog
-					/],
-			     },
-	      # General comments associated with a project.
-	      # See OMP::FeedbackDB
-	      ompfeedback => {
-			      commid => NUMID,
-			      entrynum => "numeric(4,0) not null",
-			      projectid => PROJECTID,
-			      author => USERID ." not null",
-			      date => "$DATE not null",
-			      subject => "varchar(128) null",
-			      program => "varchar(50) not null",
-			      sourceinfo => "varchar(60) not null",
-			      status => "integer null",
-			      text => "text not null",
-			      _ORDER => [qw/
-					 commid entrynum projectid author date
-					 subject program sourceinfo status text
-					/],
-			     },
-	      # Bug/Fault meta-data
-	      # See OMP::FaultDB
-	      ompfault => {
-			   faultid => FAULTID,
-			   entity => "varchar(64) null",
-			   type   => "integer",
-			   system => "integer",
-			   category => "VARCHAR(32)",
-			   timelost => "REAL",
-			   faultdate => "$DATE null",
-			   status => "INTEGER",
-			   subject => "VARCHAR(128) null",
-			   urgency => "INTEGER",
-			   _ORDER => [qw/
-				      faultid category subject faultdate type
-				      system status urgency timelost entity
-				      /],
-			  },
-	      # Textual information associated with each fault. Can be
-	      # responsees or the actual fault report
-	      # See OMP::FaultDB
-	      ompfaultbody => {
-			       respid => NUMID,
-			       faultid => FAULTID,
-			       date => $DATE,
-			       isfault => "integer",
-			       text => "text",
-			       author => USERID,
-			       _ORDER => [qw/
-					  respid faultid date author isfault
-					  text
-					  /],
-			      },
-	      # Table associating individual faults with projects
-	      # See OMP::FaultDB
-	      ompfaultassoc => {
-				associd => NUMID,
-				faultid => FAULTID,
-				projectid => PROJECTID,
-				_ORDER => [qw/ associd faultid projectid /],
-			       },
-	      # Fundamental unit of "user" in the OMP system. All other
-	      # tables use OMP::User userids rather than explicit names
-	      # See OMP::UserDB
-	      ompuser => {
-			  userid => USERID,
-			  name => "VARCHAR(255)",
-			  email => "VARCHAR(64) NULL",
-			  alias => USERID . " NULL",
-			  _ORDER => [qw/ userid name email alias /],
-			 },
-	      # Comments associated with the observing shift.
-	      # basically a narrative timestamped log
-	      # See OMP::ShiftDB
-	      ompshiftlog => {
-			      shiftid => NUMID,
-			      date => $DATE,
-			      author => USERID,
+                          _ORDER => [qw/projectid pi
+                                     title semester encrypted allocated
+                                     remaining pending telescope taumin
+                                     taumax seeingmin seeingmax cloud state
+                                     /],
+                         },
+              # Queue details for each project
+              ompprojqueue => {
+                               projectid => PROJECTID,
+                               isprimary => "BIT",
+                               uniqid => NUMID,
+                               country => 'VARCHAR(32) NOT NULL',
+                               tagpriority => 'INTEGER',
+                               _ORDER => [qw/
+                                          uniqid projectid country
+                                          tagpriority isprimary
+                                         /],
+                              },
+              # Time accounting for projects
+              # See OMP::ProjDB
+              omptimeacct => {
+                              projectid => PROJECTID,
+                              date => $DATE,
+                              confirmed => 'BIT',
+                              timespent => 'INTEGER',
+                              _ORDER => [qw/ date projectid timespent
+                                         confirmed
+                                         /],
+                             },
+              # Scheduling information associated with observations
+              # that are present in MSBs.
+              # See OMP::MSBDB
+              ompobs => {
+                         obsid => "INTEGER",
+                         msbid => "INTEGER",
+                         projectid => PROJECTID,
+                         instrument => "VARCHAR(32)",
+                         wavelength => "REAL",
+                         disperser => "VARCHAR(32) NULL",
+                         coordstype => "VARCHAR(32)",
+                         target => "VARCHAR(32)",
+                         ra2000 => "REAL NULL",
+                         dec2000 => "REAL NULL",
+                         el1 => "REAL NULL",
+                         el2 => "REAL NULL",
+                         el3 => "REAL NULL",
+                         el4 => "REAL NULL",
+                         el5 => "REAL NULL",
+                         el6 => "REAL NULL",
+                         el7 => "REAL NULL",
+                         el8 => "REAL NULL",
+                         pol => "BIT",
+                         timeest => "REAL",
+                         type => "VARCHAR(32)",
+                         _ORDER => [qw/obsid msbid projectid
+                                    instrument type pol wavelength disperser
+                                    coordstype target ra2000 dec2000 el1 el2
+                                    el3 el4 el5 el6 el7 el8 timeest
+                                    /],
+                        },
+              # Log of messages/comments associated with a particular MSB
+              # Could just as easily be called "ompmsblog". Name derives
+              # from the fact that this table is the only place where
+              # we explicitly log when an MSB is observed (done)
+              # See OMP::MSBDoneDB
+              ompmsbdone => {
+                             commid => "numeric(5,0) IDENTITY",
+                             checksum => "VARCHAR(64)",
+                             projectid => PROJECTID,
+                             date => $DATE,
+                             comment => "TEXT",
+                             instrument => "VARCHAR(64)",
+                             waveband => "VARCHAR(64)",
+                             target => "VARCHAR(64)",
+                             status => "INTEGER",
+                             title => TITLE,
+                             userid => USERID . " NULL",
+                             _ORDER => [qw/
+                                        commid checksum status projectid date
+                                        target instrument waveband
+                                        comment title userid
+                                        /],
+                            },
+              # XML representation of the science program. Store it in
+              # a table so we dont  have to worry about file locking.
+              # See OMP::MSBDB
+              ompsciprog => {
+                             projectid => PROJECTID,
+                             timestamp => "INTEGER",
+                             sciprog   => "TEXT",
+                             _ORDER => [qw/
+                                        projectid timestamp sciprog
+                                        /],
+                             },
+              # General comments associated with a project.
+              # See OMP::FeedbackDB
+              ompfeedback => {
+                              commid => NUMID,
+                              entrynum => "numeric(4,0) not null",
+                              projectid => PROJECTID,
+                              author => USERID ." not null",
+                              date => "$DATE not null",
+                              subject => "varchar(128) null",
+                              program => "varchar(50) not null",
+                              sourceinfo => "varchar(60) not null",
+                              status => "integer null",
+                              text => "text not null",
+                              _ORDER => [qw/
+                                         commid entrynum projectid author date
+                                         subject program sourceinfo status text
+                                        /],
+                             },
+              # Bug/Fault meta-data
+              # See OMP::FaultDB
+              ompfault => {
+                           faultid => FAULTID,
+                           entity => "varchar(64) null",
+                           type   => "integer",
+                           system => "integer",
+                           category => "VARCHAR(32)",
+                           timelost => "REAL",
+                           faultdate => "$DATE null",
+                           status => "INTEGER",
+                           subject => "VARCHAR(128) null",
+                           urgency => "INTEGER",
+                           _ORDER => [qw/
+                                      faultid category subject faultdate type
+                                      system status urgency timelost entity
+                                      /],
+                          },
+              # Textual information associated with each fault. Can be
+              # responsees or the actual fault report
+              # See OMP::FaultDB
+              ompfaultbody => {
+                               respid => NUMID,
+                               faultid => FAULTID,
+                               date => $DATE,
+                               isfault => "integer",
+                               text => "text",
+                               author => USERID,
+                               _ORDER => [qw/
+                                          respid faultid date author isfault
+                                          text
+                                          /],
+                              },
+              # Table associating individual faults with projects
+              # See OMP::FaultDB
+              ompfaultassoc => {
+                                associd => NUMID,
+                                faultid => FAULTID,
+                                projectid => PROJECTID,
+                                _ORDER => [qw/ associd faultid projectid /],
+                               },
+              # Fundamental unit of "user" in the OMP system. All other
+              # tables use OMP::User userids rather than explicit names
+              # See OMP::UserDB
+              ompuser => {
+                          userid => USERID,
+                          name => "VARCHAR(255)",
+                          email => "VARCHAR(64) NULL",
+                          alias => USERID . " NULL",
+                          _ORDER => [qw/ userid name email alias /],
+                         },
+              # Comments associated with the observing shift.
+              # basically a narrative timestamped log
+              # See OMP::ShiftDB
+              ompshiftlog => {
+                              shiftid => NUMID,
+                              date => $DATE,
+                              author => USERID,
                               telescope => "VARCHAR(32)",
-			      text => "TEXT",
-			      _ORDER => [qw/ shiftid date author telescope text /],
-			     },
+                              text => "TEXT",
+                              _ORDER => [qw/ shiftid date author 
+                                             telescope text /],
+                             },
         # Observation log table, used to store basic
         # information about observations, along with
         # comments associated with those observations.
@@ -298,7 +299,7 @@ my %tables = (
                       date obsactive commentdate commentauthor
                       commenttext commentstatus /],
         },
-	     );
+             );
 
 for my $table (sort keys %tables) {
 
@@ -325,7 +326,7 @@ for my $table (sort keys %tables) {
 
   # Make sure we mean it
   my $confirm = $term->readline( "Dropping/Creating table $table. ".
-				 "Are you sure [y/n]: ");
+                                 "Are you sure [y/n]: ");
 
   next unless $confirm =~ /^y/i;
 
