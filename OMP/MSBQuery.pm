@@ -237,12 +237,58 @@ sub sql {
     }
   }
   # Now join it all together with an AND
-  my $sql = join(" AND ", @sql);
+  my $subsql = join(" AND ", @sql);
+
+  # Some explanation is probably in order.
+  # We do three queries
+  # 1. Do a query on MSB and OBS tables looking for relevant
+  #    matches but only retrieving the matching MSBID, the
+  #    corresponding MSB obscount and the total number of observations
+  #    that matched within each MSB. The result is stored to a temp table
+  # 2. Query the temporary table to determine all the MSB's that had
+  #    all their observations match
+  # 3. Use that list of MSBs to fetch the corresponding contents
+ 
+  # It is assumed that the observation information will be retrieved
+  # in a subsequent query if required.
+
+  # Now need to put this SQL into the template query
+  my $sql = "(SELECT
+          ompmsb.msbid, ompmsb.obscount, COUNT(*) AS nobs
+           INTO #omptemp
+           FROM ompmsb,ompobs, ompproj
+            WHERE ompmsb.msbid = ompobs.msbid
+              AND ompproj.projectid = ompmsb.projectid
+               AND ompmsb.remaining > 0
+                AND (ompproj.remaining - ompproj.pending) >= ompmsb.timeest
+                AND $subsql
+              GROUP BY ompmsb.msbid)
+                (SELECT msbid INTO #ompmsbtemp FROM #omptemp
+                 WHERE nobs = obscount)
+               (SELECT * FROM ompmsb,#ompmsbtemp
+                 WHERE ompmsb.msbid = #ompmsbtemp.msbid
+                 )";
+
+  # Same as above but without worrying about elapsed time
+  $sql = "(SELECT
+          ompmsb.msbid, ompmsb.obscount, COUNT(*) AS nobs
+           INTO #omptemp
+           FROM ompmsb,ompobs, ompproj
+            WHERE ompmsb.msbid = ompobs.msbid
+              AND ompproj.projectid = ompmsb.projectid
+               AND ompmsb.remaining > 0
+                AND $subsql
+              GROUP BY ompmsb.msbid)
+                (SELECT msbid INTO #ompmsbtemp FROM #omptemp
+                 WHERE nobs = obscount)
+               (SELECT * FROM ompmsb,#ompmsbtemp
+                 WHERE ompmsb.msbid = #ompmsbtemp.msbid
+                 )";
 
   print "SQL: $sql\n";
 
-  # Now need to put this SQL into the template query
 
+  return "$sql\n";
   return "SELECT * FROM $msbtable WHERE remaining > 0";
 }
 
