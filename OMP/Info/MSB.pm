@@ -84,9 +84,10 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
  	                      instruments => '$',
 			      coordstypes => '$',
 			      nrepeats => '$',
-			      minel => '$',
+			      elevation => 'OMP::Range',
                               remaining => '$',
-                              comments => '@OMP::Info::Comment'
+                              comments => '@OMP::Info::Comment',
+                              approach => '$',
                              );
 #' for the emacs color coding 
 
@@ -109,10 +110,6 @@ Scalar accessors:
 =item B<title>
 
 =item B<remaining>
-
-=item B<minel>
-
-The minimum usable elevation for the targets within this MSB.
 
 =item B<msbid>
 
@@ -139,6 +136,10 @@ Accessors requiring/returning C<OMP::Range> objects:
 =item B<moon>
 
 =item B<cloud>
+
+=item B<elevation>
+
+The minimum and maximum usable elevation for all the targets within this MSB.
 
 =back
 
@@ -548,8 +549,8 @@ sub summary {
   my %summary;
 
   # These are the scalar/objects
-  for (qw/ projectid checksum tau seeing priority moon timeest title minel
-       datemin datemax telescope cloud remaining msbid ra airmass ha dec az/) {
+  for (qw/ projectid checksum tau seeing priority moon timeest title elevation
+       datemin datemax telescope cloud remaining msbid ra airmass ha dec az approach/) {
     $summary{$_} = $self->$_();
   }
 

@@ -1361,9 +1361,13 @@ sub _insert_row {
   my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
   my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
 
-  # If a minimum elevation has not been supplied we do not care.
+  # If a max or minimum elevation has not been supplied we do not care.
   # A NULL can be stored in the table. We will calculate a suitable
   # minimum elevation when we fetch the entries from the database.
+  my ($maxel, $minel);
+  if ($data{elevation}) {
+    ($minel, $maxel) = $data{elevation}->minmax;
+  }
 
   # cloud and moon are implicit ranges
 
@@ -1374,7 +1378,8 @@ sub _insert_row {
 			  $data{seeing}->min, $seeingmax, $data{priority},
 			  $data{telescope}, $data{moon}, $data{cloud},
 			  $data{timeest}, $data{title},
-			  "$data{datemin}", "$data{datemax}", $data{minel});
+			  "$data{datemin}", "$data{datemax}", $minel,
+			  $maxel, $data{approach});
 
   # Now the observations
   # We dont use the generic interface here since we want to
@@ -1652,9 +1657,14 @@ sub _run_query {
       # [and we may well do that eventually]
       # THIS MUST BE IN DEGREES
       my $minel = $msb->{minel};
-      $minel = 30 unless defined $minel;
+      $minel = 30 unless defined $minel; # use 30 for now as min
+      $minel *= Astro::SLA::DD2R; # convert to radians
 
-      $minel *= Astro::SLA::DD2R;
+      my $maxel = $msb->{maxel};
+      $maxel *= Astro::SLA::DD2R if defined $maxel;
+
+      # create the range object
+      my $elconstraint = new OMP::Range( Max => $maxel, Min => $minel );
 
       # Loop over each observation.
       # We have to keep track of the reference time
@@ -1734,7 +1744,8 @@ sub _run_query {
 	  # In some cases we dont even want to test for observability
 	  if ($qconstraints{observability}) {
 	    if  ( ! $coords->isObservable or
-		  $coords->el <= $minel) {
+		  ! $elconstraint->contains( $coords->el )
+		) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }
@@ -1743,7 +1754,7 @@ sub _run_query {
 	  # Now check for hour angle and elevation constraints
 	  # imposed from the query.
 	  if ($harange) {
-	    unless ($harange->contains($coords->ha(format => 'h'))) {
+	    unless ($harange->contains($coords->ha(format => 'h',normalize=>1))) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }

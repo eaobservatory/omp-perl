@@ -300,8 +300,10 @@ the query).
 The earliest and latest dates are returned in keys "datemin" and
 "datemax" so that they match the style used for other ranges.
 
-Minimum elevation is stored in key "minel", the monitoring period is
-stored in key "period" (unit of days).
+The allowed elevation range is stored in key "elevation",
+the monitoring period is stored in key "period" (unit of days)
+and any preference as to whether the sources are rising or setting
+is in "approach".
 
 =cut
 
@@ -1476,14 +1478,29 @@ sub _get_sched_constraints {
     }
   }
 
-  # Now read the minimum elevation. Can be undefined.
-  # We use undef to indicate that the science program did not
-  # care. This allows the scheduling system to decide what a
-  # useful minel should be.
-  $summary{minel} = $self->_get_pcdata( $el, "minEl");
+  # Now read the minimum and maximum elevation. Can be undefined.  We
+  # use undef to indicate that the science program did not care. This
+  # allows the scheduling system to decide what a useful minel and
+  # maxel should be. The maximum elevation can also be undefined we
+  # create an OMP::Range object regardless
+  my $minel = $self->_get_pcdata( $el, "minEl");
+  my $maxel = $self->_get_pcdata( $el, "maxEl");
+  $summary{minel} = new OMP::Range( Min => $minel, Max => $maxel);
 
   # See whether we have any period specified
   $summary{period} = $self->_get_pcdata( $el, "period" );
+
+  # see whether we care about rising or setting
+  # -1 indicates rising, +1 indicates setting
+  my $approach = $self->_get_pcdata( $el, "meridianApproach");
+  if (defined $approach) {
+    if ($approach =~ /^ris/) {
+      $approach = -1;
+    } elsif ($approach =~ /^set/) {
+      $approach = 1;
+    }
+  }
+  $summary{approach} = $approach; # undef is okay - no preference
 
   return %summary;
 
