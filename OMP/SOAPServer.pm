@@ -137,6 +137,7 @@ sub _get_faultcode {
 	     DBError => 'Server.DBError',
 	     MSBMissingObserve => 'Client.MSBMissingObserve',
 	     FatalError => 'Server.UnknownError',
+	     SpChangedOnDisk => 'Server.SpChangedOnDisk',
 	    );
 
   my $faultcode;
