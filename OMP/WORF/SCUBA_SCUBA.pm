@@ -390,7 +390,7 @@ sub _plot_images {
 
     env( $xstart, $xend, $ystart, $yend, {JUSTIFY => 1} );
     label_axes( undef, undef, $title );
-    ctab( lut_data( $lut ) );
+#    ctab( lut_data( $lut ) );
     imag $image, {JUSTIFY=>1};
 
   }
