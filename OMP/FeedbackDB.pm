@@ -138,7 +138,7 @@ Stores a comment in the database.
 
 sub _store_comment {
   my $self = shift;
-  my $comment = shift;
+  my $ref = shift;
 
   my $projectid = $self->projectid;
   my @values = @$ref{ 'author',
@@ -146,7 +146,7 @@ sub _store_comment {
 		      'subject',
 		      'program',
 		      'sourceinfo',
-		      'status',
+		      'status'
 		      'text', };
 
   my $dbh = $self->_dbhandle;
