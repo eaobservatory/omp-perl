@@ -42,10 +42,10 @@ use Time::Piece;
 use Time::Seconds;
 use ORAC::Inst::Defn qw/ orac_configure_for_instrument /;
 use ORAC::Frame;
-
-use base qw/ OMP::BaseDB /;
+use SCUBA::ODF;
 
 use Data::Dumper;
+use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -236,10 +236,15 @@ sub _query_files {
       $instrument = $query_hash->{instrument}->[0];
     } else {
       $instrument = $query_hash->{instrument};
-      }
+    }
+  } elsif( defined( $query_hash->{telescope} ) &&
+           ref( $query_hash->{telescope} ) eq "ARRAY" &&
+           lc( $query_hash->{telescope}->[0] ) eq "jcmt" ) {
+    $instrument = "scuba";
   } else {
     $instrument = "";
   }
+
   if( defined( $query_hash->{runnr} ) ) {
     $runnr = $query_hash->{runnr}->[0];
   } else {
@@ -251,7 +256,7 @@ sub _query_files {
   if(length($instrument . "") != 0) {
     push @instarray, $instrument;
   } else {
-    push @instarray, 'cgs4', 'ufti', 'ircam', 'michelle', 'uist'; #, 'scuba';
+    push @instarray, 'cgs4', 'ufti', 'ircam', 'michelle', 'uist', 'scuba';
   }
 
 # We need to loop over every UT day in the date range. Get the start day and the end
@@ -272,7 +277,7 @@ sub _query_files {
 
       # Get a file list.
       if( -d $directory ) {
-        opendir( FILES, $directory);
+        opendir( FILES, $directory );
         my @files = grep(!/^\./, readdir(FILES));
         closedir(FILES);
 
@@ -322,7 +327,6 @@ sub _query_files {
         }
 
         foreach my $file ( @files ) {
-
           # Open up the header
           my $fullfile = $directory . "/" . $file;
           $fullfile =~ s/\.sdf$/\.header/;
@@ -409,7 +413,7 @@ sub _reorganize_archive {
     # we can just use the instrument-specific translation.
     my $telescope = $newrow->{TELESCOP};
     my $instrument = $newrow->{INSTRUME};
-    if($telescope =~ /UKIRT/i) {
+    if(defined($telescope) && $telescope =~ /UKIRT/i) {
 
       # We need to temporarily set the instrument header to
       # 'UKIRTDB' so the correct translation can be used.
@@ -417,8 +421,9 @@ sub _reorganize_archive {
     }
 
     # Hack to get SCUBA to be recognized.
-    if(defined($newrow->{SEEING})) {
+    if(defined($newrow->{BOLOMS})) {
       $newrow->{INSTRUME} = 'SCUBA';
+      $instrument = "SCUBA";
     }
 
     # Now do the translation.
@@ -428,7 +433,7 @@ sub _reorganize_archive {
     $generic_header{INSTRUMENT} = $instrument;
 
     # Create an Info::Obs object.
-    my $obs = _create_Obs_object( \%generic_header, undef );
+    my $obs = _create_Obs_object( \%generic_header, $newrow );
 
     # And push it onto the @return array.
     push @return, $obs;
@@ -484,32 +489,48 @@ sub _create_Obs_object {
 
   # Build the Astro::Coords object
 
-  # Default the equinox to J2000, but if it's 1950 change to B1950. Anything else will be
-  # converted to J2000.
-  my $type = "J2000";
-  if ( $generic_header->{EQUINOX} =~ /1950/ ) {
-    $type = "B1950";
-  }
-  if ( defined ( $generic_header->{COORDINATE_TYPE} ) ) {
-    if ( $generic_header->{COORDINATE_TYPE} eq 'galactic' ) {
-      $args{coords} = new Astro::Coords( lat   => $generic_header->{Y_BASE},
-                                         long  => $generic_header->{X_BASE},
-                                         type  => $generic_header->{COORDINATE_TYPE},
-                                         units => $generic_header->{COORDINATE_UNITS}
-                                       );
-    } elsif ( ( $generic_header->{COORDINATE_TYPE} eq 'J2000' ) ||
-              ( $generic_header->{COORDINATE_TYPE} eq 'B1950' ) ) {
-      $args{coords} = new Astro::Coords( ra    => $generic_header->{X_BASE},
-                                         dec   => $generic_header->{Y_BASE},
-                                         type  => $generic_header->{COORDINATE_TYPE},
-                                         units => $generic_header->{COORDINATE_UNITS}
-                                       );
+  # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
+  # Astro::Coords object for us. Hooray!
+  if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
+
+    my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
+    if(defined($odfobject->getTarget)) {
+      $args{coords} = $odfobject->getTarget;
+    };
+  } else {
+
+    # Default the equinox to J2000, but if it's 1950 change to B1950.
+    # Anything else will be converted to J2000.
+    my $type = "J2000";
+    if ( $generic_header->{EQUINOX} =~ /1950/ ) {
+      $type = "B1950";
+    }
+    if ( defined ( $generic_header->{COORDINATE_TYPE} ) ) {
+      if ( $generic_header->{COORDINATE_TYPE} eq 'galactic' ) {
+        $args{coords} = new Astro::Coords( lat   => $generic_header->{Y_BASE},
+                                           long  => $generic_header->{X_BASE},
+                                           type  => $generic_header->{COORDINATE_TYPE},
+                                           units => $generic_header->{COORDINATE_UNITS}
+                                         );
+      } elsif ( ( $generic_header->{COORDINATE_TYPE} eq 'J2000' ) ||
+                ( $generic_header->{COORDINATE_TYPE} eq 'B1950' ) ) {
+        $args{coords} = new Astro::Coords( ra    => $generic_header->{X_BASE},
+                                           dec   => $generic_header->{Y_BASE},
+                                           type  => $generic_header->{COORDINATE_TYPE},
+                                           units => $generic_header->{COORDINATE_UNITS}
+                                         );
+      }
     }
   }
 
   $args{runnr} = $generic_header->{OBSERVATION_NUMBER};
   $args{utdate} = $generic_header->{UTDATE};
-  $args{mode} = $generic_header->{OBSERVATION_MODE};
+  if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
+    my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
+    $args{mode} = $odfobject->mode_summary;
+  } else {
+    $args{mode} = $generic_header->{OBSERVATION_MODE};
+  }
   $args{speed} = $generic_header->{SPEED_GAIN};
   $args{airmass} = $generic_header->{AIRMASS_START};
   $args{rows} = $generic_header->{Y_DIM};
@@ -524,15 +545,16 @@ sub _create_Obs_object {
   $args{grating} = $generic_header->{GRATING_NAME};
   $args{order} = $generic_header->{GRATING_ORDER};
   $args{tau} = $generic_header->{TAU};
-  $args{seeing} = $generic_header->{SEEING};
+  $args{seeing} = sprintf("%.1f",$generic_header->{SEEING});
   $args{bolometers} = $generic_header->{BOLOMETERS};
   $args{velocity} = $generic_header->{VELOCITY};
   $args{systemvelocity} = $generic_header->{SYSTEM_VELOCITY};
 
   # Build the Astro::FITS::Header object
-  if(defined($FITS_header)) {
-    $args{fits} = $FITS_header;
-  }
+# Leave this out for now.
+#  if(defined($FITS_header)) {
+#    $args{fits} = $FITS_header;
+#  }
 
   # Create the Info::Obs object and push it onto the return array
   my $obj = new OMP::Info::Obs( %args );
