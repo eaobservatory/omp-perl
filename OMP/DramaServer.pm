@@ -38,7 +38,7 @@ $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 =over
 
-=item B<getParam>
+=item B<getParams>
 
 For the named task (which may include a host name specification if 
 supplied as TASK@host), retrieve the value of the named parameter(s).
@@ -61,7 +61,7 @@ SDS (structured) parameters are not yet supported.
 
 =cut
 
-sub getParam {
+sub getParams {
   my $class = shift;
   my $task = shift;
   my $param = shift;
@@ -97,6 +97,35 @@ sub getParam {
   $xml .= "</DRAMA>\n";
   return $xml;
 }
+
+=item B<getEnviroParam>
+
+Retrieve a single parameter value from the JCMT environment task.
+
+  $pressure = OMP::DramaServer->getEnviroParam("Pressure");
+
+=cut
+
+sub getEnviroParam {
+  my $class = shift;
+  my $in = shift;
+
+  my $task = 'ENVIRO@jaux';
+  my $param = "STATE.$in";
+
+  my $errmsg = '';
+  my $sds = pgetw( $task, $param,{ -error => sub {
+				     $errmsg = $_[1];
+				   } } );
+  throw OMP::Error::FatalError("DRAMA Error: $errmsg")
+    unless defined $sds;
+
+  my %param;
+  tie %param, "Sds::Tie",$sds;
+
+  return $param{$in};
+}
+
 
 =back
 
