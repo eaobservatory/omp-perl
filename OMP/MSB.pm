@@ -26,6 +26,7 @@ use Carp;
 use XML::LibXML; # Our standard parser
 use Digest::MD5 qw/ md5_hex /;
 use OMP::Error;
+use Astro::Coords;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -102,6 +103,7 @@ sub new {
 	    Tree => $tree,
 	    CheckSum => undef,
 	    ObsSum => [],
+	    Weather => {},
 	   };
 
   # and create the object
@@ -230,11 +232,32 @@ sub obssum {
   if (@_) {
     @{ $self->{ObsSum} } = @_;
   } elsif (scalar(@{$self->{ObsSum}}) == 0) {
-    $self->summarize_obs;
+    $self->_get_obs;
   }
   return @{ $self->{ObsSum} };
 }
 
+
+=item B<weather>
+
+Return the weather constraints associated with this
+MSB. This is usually conditions such as seeing and tauband.
+
+Returns a hash containing the relevant values for this MSB.
+
+  %weather = $msb->weather();
+
+=cut
+
+sub weather {
+  my $self = shift;
+  # if our cache is empty we need to fill it
+  unless (%{$self->{Weather}}) {
+    # Fill
+    %{$self->{Weather}} = $self->_get_weather_data;
+  }
+  return %{$self->{Weather}};
+}
 
 =item B<remaining>
 
@@ -405,16 +428,19 @@ sub summary {
     $summary{remaining} = $self->remaining;
     $summary{projectid} = $self->projectID;
 
+    %summary = (%summary, $self->weather);
+
     my @obs = $self->obssum;
 
   }
 
   # Summary string
-  my $head = "Project  Remainder  Checksum\n";
-  my $string = "$summary{projectid}\t$summary{remaining}\t$summary{checksum}";
+  my $head = "Project  Remainder  Checksum Tauband seeing\n";
+  my @keys = qw/projectid remaining checksum tauband seeing/;
+  my $string = join("\t", @summary{@keys}); # hash slice
 
   $summary{summary} = {
-		       keys => [qw/projectid remaining checksum/],
+		       keys   => \@keys,
 		       string => $string,
 		       header => $head,
 		      };
@@ -594,7 +620,31 @@ sub stringify_noresolve {
 }
 
 
-=item B<summarize_obs>
+=item B<_summarize_obs>
+
+For each individual observation comprising the MSB, determine the
+average properties that can be used for scheduling.
+
+Return the summary as a hash. Usually invoked from the C<summary>
+method.
+
+=cut
+
+sub _summarize_obs {
+  my $self = shift;
+  my @obs = $self->obssum;
+
+  my %summary;
+  for my $sum (@obs) {
+    
+
+
+  }
+
+}
+
+
+=item B<_get_obs>
 
 Walk through the MSB calculating a summary for each observation
 that is present.
@@ -611,7 +661,7 @@ is returned by this method on completion.
 
 =cut
 
-sub summarize_obs {
+sub _get_obs {
   my $self = shift;
 
 
@@ -704,6 +754,37 @@ sub _get_qualified_children_as_string {
   return $string;
 }
 
+=item B<_get_weather_data>
+
+Return the contents of the SiteQuality component as a hash.
+Usually used internally by the C<weather> method.
+
+=cut
+
+sub _get_weather_data {
+  my $self = shift;
+
+  # First get the SpSiteQualityComp and refs
+  my @comp;
+  push(@comp, $self->_tree->findnodes(".//SpSiteQualityObsCompRef"),
+        $self->_tree->findnodes(".//SpSiteQualityObsComp"));
+
+  # and use the last one in the list (hopefully we are only allowed
+  # to specify a single value
+  return () unless @comp;
+
+  my $el = $self->_resolve_ref($comp[-1]);
+
+  my %summary;
+
+  # Need to get "seeing" and "tauband"
+  $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
+  $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
+
+  return %summary;
+
+}
+
 =item B<_resolve_ref>
 
 Given a reference node, translate it to the corresponding
@@ -756,6 +837,41 @@ sub _get_pcdata {
   $pcdata = $tauband[-1]->firstChild->toString
     if @tauband;
   return $pcdata;
+}
+
+=item B<_get_child_elements>
+
+Retrieves child elements of the specified name or matching the
+specified regexp. The regexp must be supplied using qr (it is
+assumed to be a regexp if the argument is a reference).
+
+  @el = $msb->_get_child_element( $parent, qr/System$/ );
+
+  @el = $msb->_get_child_elements( $parent, "hmsdegSystem" );
+
+Need to use this until I can find how to use XPath to specify
+a match.
+
+
+=cut
+
+sub _get_child_elements {
+  my $self = shift;
+  my $el = shift;
+  my $name = shift;
+
+  my @res;
+  if (ref($name)) {
+
+    @res = grep { $_->getName =~ /$name/ } $el->getChildnodes;
+
+  } else {
+
+    @res = $el->findnodes(".//$name");
+
+  }
+
+  return @res;
 }
 
 # Methods associated with individual elements
@@ -827,6 +943,10 @@ sub SpInstCGS4 {
 
   $summary{instrument} = "CGS4";
 
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+  $summary{wavelength} = $self->_get_pcdata( $el, "centralWavelength" );
+
   return %summary;
 }
 
@@ -848,6 +968,7 @@ sub SpInstUFTI {
   my %summary = @_;
 
   $summary{instrument} = "UFTI";
+  $summary{wavelength} = "unknown";
 
   return %summary;
 }
@@ -871,6 +992,10 @@ sub SpInstMichelle {
 
   $summary{instrument} = "Michelle";
 
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+  $summary{wavelength} = $self->_get_pcdata( $el, "centralWavelength" );
+
   return %summary;
 }
 
@@ -893,25 +1018,104 @@ sub SpInstIRCAM3 {
 
   $summary{instrument} = "IRCAM3";
 
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+  $summary{wavelength} = "unknown";
+
   return %summary;
 }
 
-=item B<SpSiteQualityObsComp>
+=item B<SpTelescopeObsComp>
 
-Site quality component.
+Target information.
 
- %summary = $msb->SpSiteQualityObsComp( $el, %summary );
+  %summary = $msb->SpTelescopeObsComp( $el, %summary );
 
 =cut
 
-sub SpSiteQualityObsComp {
+sub SpTelescopeObsComp {
   my $self = shift;
   my $el = shift;
   my %summary = @_;
-  print "In site quality\n";
-  # Need to get "seeing" and "tauband"
-  $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
-  $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
+  print "In target\n";
+
+  # Get the base target element
+  my ($base) = $el->findnodes(".//base/target");
+
+  # Could be an error (it is for now) but we may be specifying 
+  # "best guess" as an option for the translator for pointing and
+  # standards
+  throw OMP::Error::FatalError("No base target position specified in SpTelescopeObsComp\n") unless $base;
+
+  $summary{target} = $self->_get_pcdata($base, "targetName");
+
+  # Now we need to look for the coordinates. If we have hmsdegSystem
+  # or degdegSystem (for Galactic) we translate those to a nice easy
+  # J2000. If we have conicSystem or namedSystem then we have a moving
+  # source on our hands and we have to work out it's azel dynamically
+  # If we have a degdegSystem with altaz we can always schedule it.
+
+  # Search for the element matching (this will be targetName 90% of the time)
+  # We know there is only one system element per target
+  my ($system) = $self->_get_child_elements($base, qr/System$/);
+
+  my $sysname = $system->getName;
+  if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem") {
+
+    # Get the "long" and "lat"
+    my $c1 = $self->_get_pcdata( $system, "c1");
+    my $c2 = $self->_get_pcdata( $system, "c2");
+
+    # Get the coordinate frame
+    my $type = $system->getAttribute("type");
+
+    # degdeg uses different keys to hmsdeg
+    print "System: $sysname\n";
+    my ($long ,$lat);
+    if ($sysname eq "hmsdegSystem") {
+      $long = "ra";
+      $lat = "dec";
+    } else {
+      $long = "long";
+      $lat = "lat";
+    }
+
+    # Create a new coordinate object
+    $summary{coords} = new Astro::Coords( $long => $c1,
+					  $lat => $c2,
+					  type => $type
+					);
+
+    throw OMP::Error::FatalError( "Coordinate frame $type not yet supported by the OMP\n") unless defined $summary{coords};
+
+    $summary{type} = $summary{coords}->type;
+
+  } elsif ($sysname eq "conicSystem") {
+
+    # Orbital elements. We need to get the (up to) 8 numbers
+    # and store them somehow. Currently store them as : separated
+    # string in the "long" entry. The subtype doesnt need to be stored
+    # since we can work it out from the number of elements
+    $summary{type} = "ELEMENTS";
+
+    throw OMP::Error::FatalError("Orbital elements not yet supported\n");
+
+  } elsif ($sysname eq "namedSystem") {
+
+    # A planet that the TCS already knows about
+
+    $summary{type} = "PLANET";
+    $summary{coords} = Astro::Coords( planet => $summary{target});
+
+    throw OMP::Error::FatalError("Unable to process planet $summary{target}\n")
+      unless defined $summary{coords};
+
+  } else {
+
+    throw OMP::Error::FatalError("Target system ($sysname) not recognized\n");
+
+  }
+
 
   return %summary;
 }
