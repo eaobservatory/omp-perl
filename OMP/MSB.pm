@@ -923,6 +923,10 @@ sub telescope {
 	$telescope = $tel;
       }
     }
+
+    throw OMP::Error::SpBadStructure("Unable to determine telescope for MSB")
+      unless defined $telescope;
+
     $self->{Telescope} = $telescope;
 
   }
@@ -2098,6 +2102,15 @@ or can specify a new parse tree distinct from the default parse
 Note that supplying a new tree implies noinherit = 1 because
 the reference can not be resolved between trees.
 
+If a target override is in effect, this target will be given priority
+at the SpMSB level regardless of any SpTelescopeObsComp components
+at that level.
+
+This routine duplicates the logic for target inheritance also found in
+the C<stringify> method (and implicit in the C<obssum>
+generation. Especially in the use of "standard" for autoTarget
+generation.
+
 =cut
 
 sub _get_tel_comps {
@@ -2116,20 +2129,34 @@ sub _get_tel_comps {
   my ($node) = $tree->findnodes(".//SpMSB");
   $tree = $node if defined $node;
 
-  # Now find all the telscope components
-  # We need to find the last Telescope component at the MSB
-  # level taking into account inheritance if need be
-  my @all;
-  if (!$args{noinherit}) {
-    push(@all,$tree->findnodes("child::SpTelescopeObsCompRef"));
+  # Now find all the telescope components
+
+  # First at the MSB level
+  my $msbtel;
+
+  # Check for target override, priority
+  my $or = $self->override_target;
+  if (defined $or && exists $or->{telNode}) {
+
+  } else {
+    # We need to find the last Telescope component at the MSB
+    # level taking into account inheritance if need be
+    my @all;
+    if (!$args{noinherit}) {
+      push(@all,$tree->findnodes("child::SpTelescopeObsCompRef"));
+    }
+
+    push(@all,$tree->findnodes("child::SpTelescopeObsComp"));
+
+    $msbtel = $all[-1];
+
+    # Resolve refs (only if we are inheriting and we have something)
+    $msbtel = $self->_resolve_ref($msbtel) 
+      if defined $msbtel && $args{noinherit};
   }
 
-  push(@all,$tree->findnodes("child::SpTelescopeObsComp"));
-
-  my $msbtel = $all[-1];
-
-  # Resolve refs (only if we are inheriting and we have something)
-  $msbtel = $self->_resolve_ref($msbtel) if defined $msbtel && $args{noinherit};
+  # Trap for Survey Container child until we can work out what to do
+  throw OMP::Error::FatalError("Unexpected survey container located in MSB when counting target components. Logic needs fixing to account for this. Please contact TJ") if $tree->findnodes( './/SpSurveyContainer' );
 
   # Now all the ones in SpObs BUT we have to be careful here.
   # If we have a situation where the number of components
@@ -2138,13 +2165,14 @@ sub _get_tel_comps {
   # standard obs do not add towards the sum of SpObs.
 
   # First find all the SpObs
-  my @spobs = $tree->findnodes(".//SpObs");
+  my @spobs = $self->_get_Spobs();
 
   # Now find all the ones that have standard=false
   my @nonstandard;
   for my $obs (@spobs) {
     my $isstd = $self->_get_pcdata($obs, "standard");
-    push(@nonstandard, $obs) if $isstd eq 'false';
+    $isstd = $self->_str_to_bool( $isstd );
+    push(@nonstandard, $obs) if !$isstd;
   }
 
   # And now get the telescope components in the remainder
@@ -2823,18 +2851,30 @@ sub _get_attribute {
   my $self = shift;
   my $el = shift;
   my $name = shift;
-
-  my @attr = $el->getAttributes;
-  my $value;
-  for my $attr (@attr) {
-    my $attr_name = $attr->getName;
-    if ($attr_name eq $name) {
-      $value = $attr->getValue;
-      last;
-    }
-  }
-  return $value;
+  return $el->getAttribute( $name );
 }
+
+=item B<_get_attributes>
+
+Given a node and a list of attributes, returns a hash with all
+the attributes indexed by the key.
+
+  %attrs = $msb->_get_attributes( $node, $k1, $k2 ... );
+
+=cut
+
+sub _get_attributes {
+  my $self = shift;
+  my $node = shift;
+  my @keys = @_;
+
+  my %attrs;
+  for my $a (@keys) {
+    $attrs{$a} = $node->getAttribute( $a );
+  }
+  return %attrs;
+}
+
 
 =item B<_get_attribute_child>
 
@@ -2856,7 +2896,7 @@ sub _get_attribute_child {
   my $value;
   if (@matches) {
     my $child = $matches[-1];
-    $value = $self->_get_attribute( $child, $attr);
+    $value = $child->getAttribute( $attr );
   }
 
   return $value;
@@ -4169,16 +4209,76 @@ sub SpInstHeterodyne {
 
   $summary{instrument} =~ s/\(.*\)$//;
 
-  # The wavelength of interest is derived from the rest frequency
-  my $rfreq  = $self->_get_pcdata( $el, "restFrequency" );
+  # In more recent versions of XML, (eg ACSIS spec), much of the useful
+  # information is contained in the subsystems element
+  my ($subsys) = $el->findnodes(".//subsystems");
+  my @subsystems;
+  if ($subsys) {
 
-  if (!defined $rfreq) {
-    throw OMP::Error::SpBadStructure("No rest frequency supplied!");
+    # Now parse each subsystem
+    my @subs = $subsys->findnodes(".//subsystem");
+
+    throw OMP::Error::SpBadStructure( "Must be at least one subsystem/spectral region in the XML")
+      unless @subs;
+
+    # Now extract the information
+    for my $sub (@subs) {
+
+      my %subconf = $self->_get_attributes( $sub,
+					    (qw| if bw overlap channels |) );
+
+      # Find the line information
+      my @lines = $sub->findnodes( ".//line");
+      throw OMP::Error::SpBadStructure( "Can only be one line specification per subsystem/spectral region")
+	if @lines != 1;
+
+      %subconf = (%subconf, 
+		  $self->_get_attributes($lines[0],
+					 qw| species transition rest_freq |));
+
+      # Verify the content
+      for my $a (keys %subconf) {
+	throw OMP::Error::SpBadStructure("Could not find attribute '$a' in subsystem XML") unless defined $subconf{$a};
+      }
+
+      push(@subsystems, \%subconf);
+    }
+
+
+  } else {
+    # Rest frequency, molecule, bandwidth and transition come
+    # from old XML
+    my %subconf;
+
+    # The wavelength of interest is derived from the rest frequency
+    $subconf{rest_freq}  = $self->_get_pcdata( $el, "restFrequency" );
+
+    # We have to have this
+    if (!defined $subconf{rest_freq}) {
+      throw OMP::Error::SpBadStructure("No rest frequency supplied!");
+    }
+
+    # We have to have a bandwidth
+    $subconf{bw} = $self->_get_pcdata($el,"bandWidth");
+    if (!defined $subconf{bw}) {
+      throw OMP::Error::SpBadStructure("No band width supplied!");
+    }
+
+
+    # These are optional (from the old translator viewpoint)
+    $subconf{species} = $self->_get_pcdata($el,"molecule");
+    $subconf{transition} = $self->_get_pcdata($el,"transition");
+
+    push(@subsystems, \%subconf);
   }
+
+  throw OMP::Error::SpBadStructure("Unable to find any subsystem information in heterodyne component") unless @subsystems;
 
   # Astro::WaveBand should probably take a velocity, velocity frame
   # and line as argument to correctly call itself a WaveBand class
-  $summary{waveband} = new Astro::WaveBand( Frequency => $rfreq,
+  use Data::Dumper;
+  print Dumper(\@subsystems);
+  $summary{waveband} = new Astro::WaveBand( Frequency => $subsystems[0]->{rest_freq},
 					    Instrument => $summary{instrument}
 					  );
   $summary{wavelength} = $summary{waveband}->wavelength;
@@ -4186,20 +4286,33 @@ sub SpInstHeterodyne {
   # Translator specific stuff [really need to tweak Astro::Waveband
   # so that it handles velocity properly
   $summary{freqconfig} = {
-			  restFrequency => $rfreq,
+			  # Front end configuration
+			  restFrequency => $subsystems[0]->{rest_freq},
+			  sideBand => $self->_get_pcdata($el,"band"),
+			  mixers => $self->_get_pcdata($el,"mixers"),
+			  sideBandMode => $self->_get_pcdata($el,"mode"),
+			  transition => $subsystems[0]->{"transition"},
+			  molecule => $subsystems[0]->{"species"},
+
+			  # Helper information
+			  skyFrequency => $self->_get_pcdata( $el, 'skyFrequency'),
+
+			  # Backend configuration
+			  beName => $self->_get_pcdata($el, "beName"),
+			  bandWidth => $subsystems[0]->{bw},
+			  configuration => $self->_get_pcdata($el,"configuration"),
+			  subsystems => \@subsystems,
+
+			  # In new TOML the velocity is stored in the telescope
+			  # object. Read the old values for compatibility
+			  # with old DAS TOML
+
 			  # The velocity field always has the optical velocity
 			  optVelocity => $self->_get_pcdata($el, "velocity"),
 			  velocityDefinition => $self->_get_pcdata($el,
 								   "velocityDefinition"),
 			  velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
 			  velocity => $self->_get_pcdata($el,"referenceFrameVelocity"),
-			  bandWidth => $self->_get_pcdata($el,"bandWidth"),
-			  sideBand => $self->_get_pcdata($el,"band"),
-			  mixers => $self->_get_pcdata($el,"mixers"),
-			  sideBandMode => $self->_get_pcdata($el,"mode"),
-			  transition => $self->_get_pcdata($el,"transition"),
-			  molecule => $self->_get_pcdata($el,"molecule"),
-			  configuration => $self->_get_pcdata($el,"configuration"),
 			 };
 
   # Camera mode is really a function of front end and observing
