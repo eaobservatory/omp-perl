@@ -60,13 +60,14 @@ This manual page.
 
 use strict;
 
-my ($MW, $VERSION, $BAR, $STATUS);
+my ($VERSION, $BAR, $STATUS);
 
 BEGIN {
 
 # set up the intial Tk "status loading" window and load in the Tk modules
 
   use Tk;
+  use Tk::Toplevel;
   use Tk::NoteBook;
   use Tk::ProgressBar;
 
@@ -93,7 +94,7 @@ BEGIN {
 
 # global variables
 $| = 1;
-my $MainWindow;
+my $MainWindow; # The Toplevel frame for obslog itself
 my $obslog;  # refers to the object that holds the obslog information
 my %obs; # keys are instruments, values are ObsGroup objects
 my %notebook_contents; # All the notebook content windows
@@ -128,14 +129,20 @@ my $utdisp = "Current UT date: $ut";
 
 my $user;
 
+# Create a mainwindow that can be shared by everyone
+# we have found that creating two MainWindow's sometimes leads
+# to core dumps on some X servers
+my $MW = new MainWindow;
+$MW->withdraw; # hide it
+
 my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
 } else {
-  my $w = new MainWindow;
+  my $w = $MW->Toplevel;
   $w->withdraw;
   $telescope = OMP::General->determine_tel( $w );
-  $w->destroy;
+  $w->destroy if Exists($w);
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
@@ -164,16 +171,16 @@ $user = &get_userid();
 MainLoop();
 
 sub display_loading_status {
-	$MW = new MainWindow();
-	$MW->positionfrom('user');
-	$MW->geometry('+40+40');
-	$MW->title('Observation Log Utility');
-	$MW->resizable(0,0);
-	$MW->iconname('obslog');
-	$STATUS = $MW->Label(qw(-width 40 -anchor w -foreground blue),
+        my $w = $MW->Toplevel;
+	$w->positionfrom('user');
+	$w->geometry('+40+40');
+	$w->title('Observation Log Utility');
+	$w->resizable(0,0);
+	$w->iconname('obslog');
+	$STATUS = $w->Label(qw(-width 40 -anchor w -foreground blue),
 											 -text => "Obslog $VERSION ...");
 	$STATUS->grid(-row => 0, -column => 0, -sticky => 'w');
-	$BAR = $MW->ProgressBar(-from =>0, -to=>100,
+	$BAR = $w->ProgressBar(-from =>0, -to=>100,
 													-width=>15, -length=>270,
 													-blocks => 20, -anchor => 'w',
 													-colors => [0, 'blue'],
@@ -181,11 +188,11 @@ sub display_loading_status {
 													-borderwidth => 3,
 													-troughcolor => 'grey',
 												 )->grid(-sticky => 's');
-	$MW->update;
+	$w->update;
 
   use subs 'update_status';
 
-  update_status 'Loading Obslog modules', 10, $MW, $STATUS, $BAR;
+  update_status 'Loading Obslog modules', 10, $w, $STATUS, $BAR;
 
   # Tk
   require Tk::Radiobutton;
@@ -196,58 +203,59 @@ sub display_loading_status {
   eval 'use OMP::ObsQuery';
   die "Error loading OMP::ObsQuery: $@" if $@;
 
-  update_status 'Loading Archive modules', 25, $MW, $STATUS, $BAR;
+  update_status 'Loading Archive modules', 25, $w, $STATUS, $BAR;
 
   eval 'use OMP::ArchiveDB';
   die "Error loading OMP::ArchiveDB: $@" if $@;
   eval 'use OMP::ArcQuery';
   die "Error loading OMP::ArcQuery: $@" if $@;
 
-  update_status 'Loading Shiftlog modules', 50, $MW, $STATUS, $BAR;
+  update_status 'Loading Shiftlog modules', 50, $w, $STATUS, $BAR;
 
   eval 'use OMP::ShiftDB';
   die "Error loading OMP::ShiftDB: $@" if $@;
   eval 'use OMP::ShiftQuery';
   die "Error loading OMP::ShiftQuery: $@" if $@;
 
-  update_status 'Loading Info modules', 60, $MW, $STATUS, $BAR;
+  update_status 'Loading Info modules', 60, $w, $STATUS, $BAR;
 
   eval 'use OMP::Info::Obs';
   die "Error loading OMP::Info::Obs: $@" if $@;
   eval 'use OMP::Info::Comment';
   die "Error loading OMP::Info::Comment: $@" if $@;
 
-  update_status 'Loading Time::Piece modules', 65, $MW, $STATUS, $BAR;
+  update_status 'Loading Time::Piece modules', 65, $w, $STATUS, $BAR;
 
   eval 'use Time::Piece qw/ :override /';
   die "Error loading Time::Piece: $@" if $@;
 
-  update_status 'Loading DBbackend modules', 75, $MW, $STATUS, $BAR;
+  update_status 'Loading DBbackend modules', 75, $w, $STATUS, $BAR;
 
   eval 'use OMP::DBbackend';
   die "Error loading OMP::DBbackend: $@" if $@;
   eval 'use OMP::DBbackend::Archive';
   die "Error loading OMP::DBbackend::Archive: $@" if $@;
 
-  update_status 'Complete', 99, $MW, $STATUS, $BAR;
+  update_status 'Complete', 99, $w, $STATUS, $BAR;
   sleep 1;
   $STATUS->destroy if Exists($STATUS);
   $BAR->destroy if Exists($BAR);
-  $MW->destroy if Exists($MW);
+  $w->destroy if Exists($w);
 
 }
 
 sub get_userid {
-   my $MW = new MainWindow;
-   my $user = OMP::General->determine_user( $MW );
+   my $w = $MW->Toplevel;
+   $w->withdraw;
+   my $user = OMP::General->determine_user( $w );
    throw OMP::Error::Authentication("Unable to obtain valid user name")
      unless defined $user;
-   $MW->destroy if Exists($MW);
+   $w->destroy if Exists($w);
    return $user;
 }
 
 sub create_main_window {
-  $MainWindow = MainWindow->new;
+  $MainWindow = $MW->Toplevel;
   $MainWindow->title("OMP Observation Log Tool");
   $MainWindow->geometry('785x450');
 
