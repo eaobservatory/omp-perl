@@ -1394,7 +1394,7 @@ sub getSubInst {
     my @lines = <DATA>;
     my $sub;
     for my $line (@lines) {
-      next unless $line =~ /^SETBOL/;
+      next unless $line =~ /^\s*SETBOL/;
       $line =~ s/^\s+//; # trim leading space
       my @parts = split /\s+/, $line;
       my ($flatbol, $flatsub) = @parts[1,2];
