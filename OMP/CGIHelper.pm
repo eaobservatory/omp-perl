@@ -26,6 +26,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use lib qw(/jac_sw/omp/msbserver);
 use OMP::ProjServer;
 use OMP::SpServer;
+use OMP::MSBServer;
 use OMP::FBServer;
 use OMP::Constants;
 
@@ -35,7 +36,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -276,6 +277,115 @@ sub fb_msb_output {
   proj_status_table($q, %cookie);
   fb_entries_hidden($q, %cookie);
   msb_sum($q, %cookie);
+}
+
+=item B<msb_hist_output>
+
+Create a page with a comment submission form or a message saying the comment was submitted.
+
+  msb_hist_output($cgi, %cookie);
+
+=cut
+
+sub msb_hist_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  # If they clicked the "Add Comment" button bring up a comment form
+  if ($q->param("Add Comment")) {
+
+    my $checksum = $q->param('checksum');
+
+    print $q->h2("Add a comment to MSB");
+
+    proj_status_table($q, %cookie);
+
+    print $q->hr;
+    print "<table border=0><tr><td valign=top>Comment: </td><td>";
+    print $q->startform;
+    print $q->hidden(-name=>'msbid',
+		     -default=>$checksum);
+    print $q->textarea(-name=>'comment',
+		       -rows=>5,
+		       -columns=>50);
+    print "</td><tr><td colspan=2 align=right>";
+    print $q->submit("Submit");
+    print $q->endform;
+    print "</td></table>";
+  }
+
+  # If they click the "Mark as Done" button mark it as done
+
+  # If they've just submitted a comment show some comforting output
+  if ($q->param("Submit")) {
+    OMP::MSBServer->addMSBcomment( $cookie{projectid}, $q->param('msbid'), $q->param('comment'));
+
+    print $q->h2("MSB comment submitted");
+
+    proj_status_table($q, %cookie);
+    msb_comments($q, %cookie);
+  }
+
+}
+
+=item B<msb_hist_content>
+
+Create a page with a summary of MSBs and their associated comments
+
+  msb_hist_content($cgi, %cookie);
+
+=cut
+
+sub msb_hist_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  print $q->h2("MSB History for project $cookie{projectid}");
+
+  proj_status_table($q, %cookie);
+  msb_comments($q, %cookie);
+}
+
+=item B<msb_comments>
+
+A list of MSBS and their comments
+
+  msb_comments($cgi, %cookie);
+
+=cut
+
+sub msb_comments {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+
+  print $q->hr;
+  print "<table border=1>";
+  my $i = 0;
+  foreach my $msb (@$commentref) {
+    $i++;
+    print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
+    print "<td><b>Target:</b> $msb->{target}</td>";
+    print "<td><b>Waveband:</b> $msb->{waveband}</td>";
+    print "<td><b>Instrument:</b> $msb->{instrument}</td>";
+
+    foreach my $comment (@{$msb->{comment}}) {
+      print "<tr><td colspan=4><b>Date:</b> $comment->{date}<br>";
+      print "$comment->{text}</td>";
+    }
+
+    print "<tr><td align=right colspan=4>";
+    print $q->startform;
+    print $q->hidden(-name=>'checksum',
+		     -default=>$msb->{checksum});
+    print $q->submit("Add Comment");
+    print " ";
+    print $q->submit("Mark as Done");
+    print $q->endform;
+    print "</td>";
+  }
+  print "</table>";
 }
 
 =item B<add_comment_content>
