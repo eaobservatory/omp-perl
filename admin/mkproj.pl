@@ -24,9 +24,13 @@ use warnings;
 use strict;
 use DBI;
 
-my $dbdir =  "/jac_sw/omp/dbxml/csv";
+my $DBserver = "SYB_UKIRT";
+my $DBuser = "omp";
+my $DBpwd  = "***REMOVED***";
+my $DBdatabase = "archive";
 
-my $dbh = DBI->connect("DBI:CSV:f_dir=$dbdir")
+
+my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd)
   or die "Cannot connect: ". $DBI::errstr;
 
 
@@ -36,9 +40,9 @@ while (<>) {
 
   # We have to guess the order
   my @details  = split(/,/,$line);
-  print join("--",@details);
+  print join("--",@details),"\n";
   # insert into the table
-  $dbh->do("INSERT INTO ompproj VALUES (?,?,?,?,?,?,?,?,?,?)", undef,
+  $dbh->do("INSERT INTO ompproj VALUES (?,?,?,?,?,?,?,?,?,?,?)", undef,
 	  @details, $details[7],0)
     or die "Cannot insert into ompproj: ". $DBI::errstr;
 
