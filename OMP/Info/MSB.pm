@@ -815,6 +815,10 @@ turned on this method will return just "IRCAM" and "CGS4".
   @wavebands = $msb->_process_obs( "waveband", 1 );
   $wavebands = $msb->_process_obs( "waveband", 1 );
 
+If the method is "pol" the return value in scalar context is
+treated as the OR of all the booleans. (ie pol is true if
+any one of the observations uses the polarimeter).
+
 =cut
 
 sub _process_obs {
@@ -835,7 +839,12 @@ sub _process_obs {
   if (wantarray) {
     return @results;
   } else {
-    return join("/", @results);
+    if ($method eq 'pol') {
+      my $count = grep { $_ } @results;
+      return ( $count ? 1 : 0 );
+    } else {
+      return join("/", @results);
+    }
   }
 }
 
@@ -996,7 +1005,7 @@ my %coltypes = (
                 az => 'String',
                 el => 'String',
 		airmass => 'String',
-		pol => 'Integer',  # Boolean?
+		pol => 'Boolean',  # Boolean?
 		type => 'String',
 		coordstype => 'String',
 		timeest => 'String',  # can keep this as hours?
