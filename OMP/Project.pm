@@ -30,6 +30,8 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use OMP::General;
+
 our $VERSION = (qw$Revision$)[1];
 
 # Delimiter for co-i strings
@@ -621,9 +623,15 @@ an externally supplied password (note that if we simply stored
 the plain text password in the object using C<password()> the
 encrypted password would automatically be regenerated.
 
-Note that because we use unix C<crypt> we are limited to 8 characters.
+Note that because we currently use unix C<crypt> we are limited to 8
+characters. We could overcome this by shifting to MD5.
 
 Returns false if either of the passwords are missing.
+
+The password is B<always> compared with the encrypted administrator
+password before comparing it to the encrypted project password.  The
+encrypted project password is only used if the administrator password
+fails to verify.
 
 =cut
 
@@ -636,15 +644,22 @@ sub verify_password {
     $plain = $self->password;
   }
 
-  my $encrypted = $self->encrypted;
+  # First verify against admin password.
+  # Need to turn off exceptions
+  if ( OMP::General->verify_administrator_password( $plain, 1) ) {
+    return 1;
+  } else {
+    # Need to verify against this password
+    my $encrypted = $self->encrypted;
 
-  # Return false immediately if either are undefined
-  return 0 unless defined $plain and defined $encrypted;
+    # Return false immediately if either are undefined
+    return 0 unless defined $plain and defined $encrypted;
 
-  # The encrypted password includes the salt as the first
-  # two letters. Therefore we encrypt the plain text password
-  # using the encrypted password as salt
-  return ( crypt($plain, $encrypted) eq $encrypted );
+    # The encrypted password includes the salt as the first
+    # two letters. Therefore we encrypt the plain text password
+    # using the encrypted password as salt
+    return ( crypt($plain, $encrypted) eq $encrypted );
+  }
 
 }
 

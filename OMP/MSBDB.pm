@@ -888,27 +888,16 @@ succeeds.
 sub _verify_project_password {
   my $self = shift;
 
-  # First try the administrator password
-  # Use a try block since we dont want anyone to notice
-  # that we even tried to use this
-  my $success;
-  try {
-    $self->_verify_administrator_password;
-    $success = 1;
-  } catch OMP::Error::Authentication with {
+  # Ask the project DB class
+  my $proj = new OMP::ProjDB(
+			     ProjectID => $self->projectid,
+			     DB => $self->db,
+			     Password => $self->password,
+			    );
 
-    # Now try the project password
-    my $proj = new OMP::ProjDB(
-			       ProjectID => $self->projectid,
-			       DB => $self->db,
-			       Password => $self->password,
-			      );
-
-    $proj->verifyPassword()
-      or throw OMP::Error::Authentication("Incorrect password for project ID ".
-					  $self->projectid );
-
-  };
+  $proj->verifyPassword()
+    or throw OMP::Error::Authentication("Incorrect password for project ID ".
+					$self->projectid );
 
   return;
 }

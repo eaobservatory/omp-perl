@@ -227,10 +227,7 @@ sub alterStatus {
   my $status = shift;
 
   # Verify admin password.
-  my $db = new OMP::BaseDB( Password => $self->password,
-			    DB => $self->db );
-
-  $db->_verify_administrator_password;
+  OMP::General->verify_administrator_password( $self->password );
 
   # Begin trans
   $self->_db_begin_trans;

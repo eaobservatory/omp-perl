@@ -482,42 +482,6 @@ sub _mail_information {
 
 =back
 
-=head2 Verification
-
-=over 4
-
-=item B<_verify_administrator_password>
-
-Compare the password stored in the object (obtainable using the
-C<password> method) with the administrator password. Throw an
-exception if the two do not match. This safeguard is used to prevent
-people from modifying the contents of the project database without
-having permission.
-
-Note that the password stored in the object is assumed to be unencrypted.
-
-=cut
-
-sub _verify_administrator_password {
-  my $self = shift;
-  my $password = $self->password;
-
-  # The encrypted admin password
-  # At some point we'll pick this up from somewhere else.
-  my $admin = "Fgq1aNqFqOvsg";
-
-  # Encrypt the supplied password using the admin password as salt
-  my $encrypted = crypt($password, $admin);
-
-  # A bit simplistic at the present time
-  throw OMP::Error::Authentication("Failed to match administrator password\n")
-    unless ($encrypted eq $admin);
-
-  return;
-}
-
-=back
-
 =head1 SEE ALSO
 
 For related classes see C<OMP::MSBDB>, C<OMP::ProjDB> and

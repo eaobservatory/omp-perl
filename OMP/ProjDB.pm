@@ -96,7 +96,7 @@ sub addProject {
   my $project = shift;
 
   # Verify that we can update the database
-  $self->_verify_administrator_password;
+  OMP::General->verify_administrator_password( $self->password );
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -136,12 +136,6 @@ sub verifyPassword {
   } else {
     $password = $self->password;
   }
-
-  # First verify administrator password
-  # Need to clarify the relationship of this method and
-  # _verify_project_password in OMP::MSBDB
-  # which repeats this logic and then calls this method!
-  # Do nothing yet
 
   # Retrieve the contents of the table
   my $project = $self->_get_project_row();

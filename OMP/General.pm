@@ -34,6 +34,8 @@ our $DEBUG = 0;
 
 There are no instance methods, only class (static) methods.
 
+=head2 Dates
+
 =over 4
 
 =item B<parse_date>
@@ -161,6 +163,61 @@ sub determine_host {
   return ($user, $addr, $email);
 }
 
+=item B<determine_semester>
+
+Given a date determine the current semester.
+
+  $semester = OMP::General->determine_semester( $date );
+
+Date should be of class C<Time::Piece>. The current date is used
+if none is supplied.
+
+=cut
+
+sub determine_semester {
+  my $self = shift;
+  my $date = shift;
+
+  if (defined $date) {
+    croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
+      unless UNIVERSAL::isa($date, "Time::Piece");
+  } else {
+    $date = gmtime();
+  }
+
+  # 4 digit year
+  my $yyyy = $date->year;
+
+  # Month plus two digit day
+  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
+
+  # Calculate previous year
+  my $prev_yyyy = $yyyy - 1;
+
+  # Two digit years
+  my $yy = substr( $yyyy, 2, 2);
+  my $prevyy = substr( $prev_yyyy, 2, 2);
+
+  # Need to put the month in the correct
+  # semester. Note that 199?0201 is in the
+  # previous semester, same for 199?0801
+  if ($mmdd > 201 && $mmdd < 802) {
+    $sem = "${yy}a";
+  } elsif ($mmdd < 202) {
+    $sem = "${prevyy}b";
+  } else {
+    $sem = "${yy}b";
+  }
+
+  return $sem;
+}
+
+=back
+
+=head2 Projects
+
+=over 4
+
 =item B<infer_projectid>
 
 Given a subset of a project ID attempt to determine the actual
@@ -260,54 +317,60 @@ sub infer_projectid {
 
 }
 
+=back
 
-=item B<determine_semester>
+=head2 Verification
 
-Given a date determine the current semester.
+=over 4
 
-  $semester = OMP::General->determine_semester( $date );
+=item B<verify_administrator_password>
 
-Date should be of class C<Time::Piece>. The current date is used
-if none is supplied.
+Compare the supplied password with the administrator password. Throw
+an exception if the two do not match. This safeguard is used to
+prevent people from modifying the contents of the project database
+without having permission.
+
+  OMP::General->verify_administrator_password( $input );
+
+Note that the supplied password is assumed to be unencrypted.
+
+An optional second argument can be used to disable the exception
+throwing. If the second argument is true the routine will return
+true or false depending on whether the password is verified.
+
+  $isokay = OMP::General->verify_administrator_password( $input, 1 );
+
+Always fails if the supplied password is undefined.
 
 =cut
 
-sub determine_semester {
+sub verify_administrator_password {
   my $self = shift;
-  my $date = shift;
+  my $password = shift;
+  my $retval = shift;
 
-  if (defined $date) {
-    croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
-      unless UNIVERSAL::isa($date, "Time::Piece");
+  # The encrypted admin password
+  # At some point we'll pick this up from somewhere else.
+  my $admin = "Fgq1aNqFqOvsg";
+
+  # Encrypt the supplied password using the admin password as salt
+  # unless the supplied password is undefined
+  my $encrypted = ( defined $password ? crypt($password, $admin) : "fail" );
+
+  # A bit simplistic at the present time
+  my $status;
+  if ($encrypted eq $admin) {
+    $status = 1;
   } else {
-    $date = gmtime();
+    # Throw an exception if required
+    if ($retval) {
+      $status = 0;
+    } else {
+      throw OMP::Error::Authentication("Failed to match administrator password\n");
+    }
   }
 
-  # 4 digit year
-  my $yyyy = $date->year;
-
-  # Month plus two digit day
-  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
-
-  # Calculate previous year
-  my $prev_yyyy = $yyyy - 1;
-
-  # Two digit years
-  my $yy = substr( $yyyy, 2, 2);
-  my $prevyy = substr( $prev_yyyy, 2, 2);
-
-  # Need to put the month in the correct
-  # semester. Note that 199?0201 is in the
-  # previous semester, same for 199?0801
-  if ($mmdd > 201 && $mmdd < 802) {
-    $sem = "${yy}a";
-  } elsif ($mmdd < 202) {
-    $sem = "${prevyy}b";
-  } else {
-    $sem = "${yy}b";
-  }
-
-  return $sem;
+  return $retval;
 }
 
 =back
