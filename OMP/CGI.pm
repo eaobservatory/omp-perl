@@ -300,7 +300,7 @@ sub _sidebar_fault {
   my $theme = $self->theme;
   my $q = $self->cgi;
 
-  my $title = (defined $cat ? "$cat Faults" : "Select a fault system");
+  my $title = (defined $cat and $cat ne "ANYCAT" ? "$cat Faults" : "Select a fault system");
   $theme->SetMoreLinksTitle($title);
 
   # Construct our HTML for the sidebar fault form
@@ -318,12 +318,13 @@ sub _sidebar_fault {
 		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
 		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
 		      "<a href='queryfault.pl?cat=dr'>DR Faults</a>",
+		      "<a href='queryfault.pl?cat=anycat'>All Faults</a>",
 		      "<br><a href='".
 		      OMP::Config->getData('omp-url')
 		      ."'>OMP home</a>",
 		      "$sidebarform</font>",);
 
-  if (defined $cat) {
+  if (defined $cat and $cat ne "ANYCAT") {
     unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
 	                    "<a href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
   }
@@ -1092,7 +1093,7 @@ sub write_page_fault {
   if ($q->url_param('cat')) {
     my %categories = map {uc($_), $_} OMP::Fault->faultCategories;
     my $cat = uc($q->url_param('cat'));
-    (defined $categories{$cat}) and $cookie{category} = $cat;
+    (defined $categories{$cat} or $cat eq 'ANYCAT') and $cookie{category} = $cat;
   }
 
   # If there is a fault ID in the URL get the fault and set the 
@@ -1153,7 +1154,11 @@ sub write_page_fault {
     print "<h3><li><a href='queryfault.pl?cat=JCMT'>JCMT Faults</a> for faults relating to JCMT</h3>";
     print "<h3><li><a href='queryfault.pl?cat=DR'>DR Faults</a> for faults relating to data reduction systems.</h3>";
     print "</ul>";
-    
+    print $q->h2("Or");
+    print "<ul>";
+    print "<h3><li><a href='queryfault.pl?cat=ANYCAT'>Search for faults in all categories</a></h3>";
+    print "</ul>";
+
     $self->_write_footer();
     return;
   }
