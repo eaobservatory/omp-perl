@@ -28,6 +28,7 @@ use Carp;
 use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error;
+use OMP::Fault;
 use HTML::WWWTheme;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
@@ -204,21 +205,34 @@ sub _sidebar_logout {
 
 =item B<_sidebar_fault>
 
-Put fault system links in the sidebar
+Put fault system links in the sidebar.
 
-  $cgi->_sidebar_fault;
+  $cgi->_sidebar_fault($category);
+
+Optional argument is a valid fault category.  If the category isnt specified put up a
+list of links to the available categories.
 
 =cut
 
 sub _sidebar_fault {
   my $self = shift;
+  my $cat = shift;
   my $theme = $self->theme;
 
-  $theme->SetMoreLinksTitle("Fault System");
+  my $title = (defined $cat ? "$cat Faults" : "Select a fault system");
+  $theme->SetMoreLinksTitle($title);
 
-  my @sidebarlinks = ("<font size=+1><a href='filefault.pl'>File a fault</a>",
-		      "<a href='queryfault.pl'>Query faults</a>",
-		      "<a href='viewfault.pl'>View/Respond to a fault</a></font>",);
+  my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
+		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
+		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
+		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a></font>",);
+  if (defined $cat) {
+    unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
+	                    "<a href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
+  }
+
+  unshift(@sidebarlinks, "<font size=+1>");
+  push(@sidebarlinks,"</font>");
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }
@@ -608,27 +622,50 @@ sub write_page_fault {
   my $self = shift;
   my ($form_content, $form_output) = @_;
 
-  my %cookie = $self->cookie;
   my $q = $self->cgi;
+
+  my $c = new OMP::Cookie( CGI => $q, Name => "OMPFAULT" );
+  $self->cookie( $c );
+
+  my %cookie = $c->getCookie;
 
   $self->_make_theme;
 
-  $self->_sidebar_fault;
+  if ($q->url_param('cat')) {
+    my %categories = map {uc($_), $_} OMP::Fault->faultCategories;
+    my $cat = uc($q->url_param('cat'));
+    (defined $categories{$cat}) and $cookie{category} = $cat;
+  }
+
+  if (defined $cookie{category}) {
+    $self->_sidebar_fault($cookie{category});
+  } else {
+    $self->_sidebar_fault;
+  }
+
+  $c->setCookie( $EXPTIME, %cookie);
 
   my $style = "<style><!--
-  body{font-family:arial,sans-serif}
-  //--></style>";
+               body{font-family:arial,sans-serif}
+               //--></style>";
 
   $self->_write_header($style);
 
-  if ($q->param) {
-    if ($q->param('show_output')) {
-      $form_output->($q, %cookie);
+  if (defined $cookie{category}) {
+
+    if ($q->param) {
+      if ($q->param('show_output')) {
+	$form_output->($q, %cookie);
+      } else {
+	$form_content->($q, %cookie);
+      }
     } else {
       $form_content->($q, %cookie);
     }
+
   } else {
-    $form_content->($q, %cookie);
+    # Fault category is not defined anywhere
+    print "Please select a category.";
   }
 
   $self->_write_footer();
