@@ -1006,27 +1006,43 @@ sub list_projects_form {
 
 =item B<msb_comment_form>
 
-Create an MSB comment form.
+Create a form for submitting an MSB comment.  If any of the values the form
+takes are available in the query param list they can be used as defaults.
 
-  msb_comment_form($cgi);
+  msb_comment_form($cgi, 1);
+
+The first argument is a C<CGI> query object.  If the second argument is true
+any available params are used as defaults.
 
 =cut
 
 sub msb_comment_form {
   my $q = shift;
+  my $defaults = shift;
 
-  my $checksum = $q->param('checksum');
+  my %defaults;
+  if ($defaults) {
+    # Use query param values as defaults
+    %defaults = map {$_, $q->param($_)} qw/author comment msbid/;
+  } else {
+    %defaults = (author => undef,
+		 comment => undef,
+		 msbid =>$q->param('checksum'),)
+  }
 
   print "<table border=0><tr><td valign=top>User ID: </td><td>";
   print $q->startform;
   print $q->textfield(-name=>'author',
 		      -size=>22,
-		      -maxlength=>32);
+		      -maxlength=>32,
+		      -default=>$defaults{author},);
   print "</td><tr><td valign=top>Comment: </td><td>";
+  print $q->hidden(-name=>'submit_msb_comment',
+		   -default=>1,);
   print $q->hidden(-name=>'show_output',
 		   -default=>1,);
   print $q->hidden(-name=>'msbid',
-		   -default=>$checksum);
+		   -default=>$defaults{msbid},);
   ($q->param('projectid')) and print $q->hidden(-name=>'projectid',
 						-default=>$q->param('projectid'));
 
@@ -1034,7 +1050,8 @@ sub msb_comment_form {
 					     -default=>$q->param('utdate'));
   print $q->textarea(-name=>'comment',
 		     -rows=>5,
-		     -columns=>50);
+		     -columns=>50,
+		     -default=>$defaults{comment},);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit("Submit");
   print $q->endform;
@@ -1069,52 +1086,8 @@ sub msb_hist_output {
     msb_comment_form($q);
   }
 
-  # Submit a comment
-  if ($q->param("Submit")) {
-    try {
-      # Get the user object
-      my $user = OMP::UserServer->getUser($q->param('author')) or
-	throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
-
-      # Create the comment object
-      my $comment = new OMP::Info::Comment( author => $user,
-					    text => $q->param('comment'),
-					    status => OMP__DONE_COMMENT );
-
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
-      print $q->h2("MSB comment successfully submitted");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to submit the comment: $Error";
-    };
-
-    # If they click the "Mark as Done" button mark it as done
-  } elsif ($q->param("Remove")) {
-    try {
-      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-      print $q->h2("MSB removed from consideration");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to mark the MSB as Done: $Error";
-    };
-
-    # If they clicked "Undo" unmark it as done
-  } elsif ($q->param("Undo")) {
-    try {
-      OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum'));
-      print $q->h2("MSB done mark removed");
-    } catch OMP::Error::MSBMissing with {
-      print "MSB not found in database";
-    } otherwise {
-      my $Error = shift;
-      print "An error occurred while attempting to remove the MSB Done mark: $Error";
-    };
-
-  }
+  # Perform any actions on the msb?
+  msb_action($q);
 
   # Redisplay MSB comments
   my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
@@ -1696,14 +1669,40 @@ sub projlog_content {
 
   print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
 
-  
   # Make links for retrieving data
   my $pkgdataurl = OMP::Config->getData('pkgdata-url');
   print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
   print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
 
   # Link to shift comments
-  print "<p><a href='#shiftcom'>View shift comments</a>";
+  print "<p><a href='#shiftcom'>View shift comments</a><p>";
+
+  # Make a form for submitting MSB comments if an 'Add Comment'
+  # button was clicked
+  if ($q->param("Add Comment")) {
+    print $q->h2("Add a comment to MSB");
+    msb_comment_form($q);
+  }
+
+  # Find out if (and execute) any actions are to be taken on an MSB
+  msb_action($q);
+
+  # Display MSBs observed on this date
+
+  # Use the lower-level method to fetch the science program so we
+  # can disable the feedback comment associated with this action
+  my $db = new OMP::MSBDB( Password => $cookie{password},
+			   ProjectID => $cookie{projectid},
+			   DB => new OMP::DBbackend, );
+
+  my $sp = $db->fetchSciProg(1);
+
+  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
+					       date => $utdate,
+					       returnall => 1,
+					       format => 'data',});
+  print $q->h2("MSB history for $utdate");
+  msb_comments($q, $observed, $sp);
 
   # Setup tau fits image info
   my $taufitsdir = "/WWW/omp/data/taufits";
@@ -1761,6 +1760,83 @@ sub projlog_content {
     print "<p><a name='taufits'></a>";
     print "<a href='$calibpage'><img src='$taufitswww/$gif'>";
     print "<br>Click here to visit the calibration page</a>";
+  }
+}
+
+=item B<msb_action>
+
+Working in conjunction with the B<msb_comments> function described elsewhere
+in this document this function decides if the form generated by B<msb_comments>
+was submitted, and if so, what action to take.
+
+  msb_action($q);
+
+Takes a C<CGI> query object as the only argument.
+
+=cut
+
+sub msb_action {
+  my $q = shift;
+
+  if ($q->param("submit_msb_comment")) {
+    # Submit a comment
+    try {
+
+      # Get the user object
+      my $user = OMP::UserServer->getUser($q->param('author'));
+
+      # Make sure we got a user object
+      if (! $user) {
+	print "Must supply a valid OMP user ID in order to submit a comment";
+
+	# Redisplay the comment form and return
+	msb_comment_form($q, 1);
+	return;
+      }
+
+      # Create the comment object
+      my $comment = new OMP::Info::Comment( author => $user,
+					    text => $q->param('comment'),
+					    status => OMP__DONE_COMMENT );
+
+      # Add the comment
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'),
+				     $q->param('msbid'),
+				     $comment );
+      print $q->h2("MSB comment successfully submitted");
+    } catch OMP::Error::MSBMissing with {
+      my $Error = shift;
+      print "MSB not found in database:<p>$Error";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred preventing the comment submission:<p>$Error";
+    };
+
+  } elsif ($q->param("Remove")) {
+    # Mark msb as 'done'
+    try {
+      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum') );
+      print $q->h2("MSB removed from consideration");
+    } catch OMP::Error::MSBMissing with {
+      my $Error = shift;
+      print "MSB not found in database:<p>$Error";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to mark the MSB as Done:<p>$Error";
+    };
+
+  } elsif ($q->param("Undo")) {
+    # Unmark msb as 'done'
+    try {
+      OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum') );
+      print $q->h2("MSB done mark removed");
+    } catch OMP::Error::MSBMissing with {
+      my $Error = shift;
+      print "MSB not found in database:<p>$Error";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to remove the MSB Done mark:<p>$Error";
+    };
   }
 }
 
