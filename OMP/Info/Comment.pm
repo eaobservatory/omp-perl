@@ -36,6 +36,8 @@ use Time::Piece;
 
 our $VERSION = (qw$Revision$)[1];
 
+use base qw/ OMP::Info::Base /;
+
 # Overloading
 use overload '""' => "stringify";
 
@@ -66,35 +68,35 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  # Arguments
-  my %args = @_;
+  my $comm = $class->SUPER::new( @_ );
 
-  # initialize the hash
-  my $comm = {
-	      Author => undef,
-	      Text => undef,
-	      Date => undef,
-	      Status => undef,
-	     };
-
-  bless $comm, $class;
-
-  # if a date has not been supplied get current
-  $args{date} = gmtime() unless (exists $args{date} or exists $args{Date});
-
-  # Invoke accessors to configure object
-  for my $key (keys %args) {
-    my $method = lc($key);
-    if ($comm->can($method)) {
-      $comm->$method( $args{$key});
-    }
-  }
+#  $comm->_populate();
 
   # Return the object
   return $comm;
 }
 
 =back
+
+=begin __PRIVATE__
+
+=head2 Create Accessor Methods
+
+Create the accessor methods from a signature of their contents.
+
+=cut
+
+__PACKAGE__->CreateAccessors( _text => '$',
+                              author => 'OMP::User',
+                              _date => 'Time::Piece',
+                              status => '$',
+                              runnr => '$',
+                              instrument => '$',
+                              telescope => '$',
+                              startobs => 'Time::Piece',
+                            );
+
+=end __PRIVATE__
 
 =head2 Accessor methods
 
@@ -120,80 +122,37 @@ sub text {
       $text =~ s/^\s+//s;
       $text =~ s/\s+$//s;
     }
-    $self->{Text} = $text;
+    $self->_text( $text );
   }
-  return ( defined $self->{Text} ? $self->{Text} : '' );
-}
 
-=item B<author>
-
-
-C<OMP::User> object describing the person submitting the
-response. There is as yet no lookup to make sure that this person is
-allowed to submit a fault or whether their details exist in the OMP
-system.
-
-  $author = $comm->author;
-  $comm->author( $author );
-
-This field can be optional but the database backends will probably
-refuse to store it unless a user is specified (if the user is a
-computer program we will simply need to add a user that refers to
-that program).
-
-C<undef> is allowed in order to clear the field. In some cases
-this is a valid thing to do (especially in a constructor.
-
-=cut
-
-sub author {
-  my $self = shift;
-  if (@_) {
-    my $user = shift;
-    if (defined $user) {
-      # Check type if it is defined
-      croak "Author must be supplied as OMP::User object"
-	unless UNIVERSAL::isa( $user, "OMP::User" );
-    }
-    $self->{Author} = $user;
-  }
-  return $self->{Author};
+  return ( defined $self->_text ? $self->_text : '' );
 }
 
 =item B<date>
 
-The date the comment was filed. Returned (and must be supplied) as a
-C<Time::Piece> object.
+Date the comment was filed. Must be a Time::Piece object.
 
   $date = $comm->date;
   $comm->date( $date );
+
+If the date is not defined when the C<Info::Comment> object
+is created, it will default to the current time.
 
 =cut
 
 sub date {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $date = shift;
-    croak "Date must be supplied as Time::Piece object"
-      unless UNIVERSAL::isa( $date, "Time::Piece" );
-    $self->{Date} = $date;
+    $self->_date( $date );
   }
-  return $self->{Date};
+
+  if( ! defined( $self->_date ) ) {
+    $self->_date( gmtime() );
+  }
+
+  return $self->_date;
 }
-
-=item B<status>
-
-Status indicator associated with the comment.
-
-=cut
-
-sub status {
-  my $self = shift;
-  if (@_) { $self->{Status} = shift; }
-  return $self->{Status};
-}
-
-=back
 
 =head2 General Methods
 
@@ -233,8 +192,6 @@ sub summary {
     $summary{$_} = $self->$_();
   }
 
-
-
   if ($format eq 'hash') {
     return (wantarray ? %summary : \%summary );
   } elsif ($format eq 'xml') {
@@ -262,11 +219,12 @@ C<OMP::Info::Obs>, C<OMP::Fault>, C<OMP::User>
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
-All Rights Reserved.
+Copyright (C) 2002-2004 Particle Physics and Astronomy Research
+Council.  All Rights Reserved.
 
 =cut
 
