@@ -1071,6 +1071,25 @@ sub clearqueue {
   return;
 }
 
+=item B<isTOO>
+
+Return true if the project is a Target-Of-Opportunity, else
+returns false. Can not be used to set T-O-O status.
+
+Returns true if the project is a T-O-O in any of the queues
+it is associated with.
+
+=cut
+
+sub isTOO {
+  my $self = shift;
+  my @pri = $self->tagpriority;
+  for my $p (@pri) {
+    return 1 if $p < 0;
+  }
+  return 0;
+}
+
 =back
 
 =head2 General Methods

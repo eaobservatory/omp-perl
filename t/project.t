@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 38;
+use Test::More tests => 40;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -80,6 +80,11 @@ is( $proj->password, $project{password}, "Check password" );
 ok( $proj->verify_password ,"verify password");
 print "# Password: ", $proj->password, " Encrypted form: ", 
   $proj->encrypted, "\n";
+
+# T-O-O
+ok(!$proj->isTOO, "IS this not a T-O-O?");
+$proj->tagpriority( UK => -1);
+ok($proj->isTOO, "IS this a T-O-O?");
 
 # Check the CoI stuff
 
