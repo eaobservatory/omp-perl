@@ -368,6 +368,113 @@ sub _db_findmax {
 
 }
 
+=item B<_db_insert_data>
+
+Insert an array of data values into a database table.
+
+  $db->_db_insert_data( $table, @data );
+
+It is assumed that the data is in the array in the same order
+it appears in the database table [this method does not support
+named inserts].
+
+If an entry in the data array contains a reference to a hash
+(rather than a scalar) it is assumed that this indicates
+a TEXT field (which must be inserted in a different manner
+to normal fields) and must have the following keys:
+
+  TEXT => the text to be inserted
+  COLUMN  => the name of the column
+
+=cut
+
+sub _db_insert_data {
+  my $self = shift;
+  my $table = shift;
+  my @data = @_;
+
+  # Now go through the data array building up the placeholder sql
+  # deciding which fields can be stored immediately and which must be
+  # insert as text fields
+
+  # Some dummy text field that we can replace later
+  # Have something that ends in a number so that ++ will
+  # work for us in a logical way
+  my $dummytext = 'pwned!1';
+
+  # The insert place holder SQL
+  my $placeholder = '';
+
+  # Data to store now
+  my @toinsert;
+
+  # Data to store later
+  my @textfields;
+  for my $column (@data) {
+
+    # Prepend a comma
+    # if we have already stored something in the variable
+    $placeholder .= "," if $placeholder;
+
+    # Plain text
+    if (not ref($column)) {
+
+      # the data we will insert immediately
+      push(@toinsert, $column);
+
+      # Add a placeholder (the comma should be in already)
+      $placeholder .= "?";
+
+    } elsif (ref($column) eq "HASH" && exists $column->{TEXT}
+	    && exists $column->{COLUMN}) {
+
+      # Add the dummy text to the hash
+      $column->{DUMMY} = $dummytext;
+
+      # store the information for later
+      # including the dummy string
+      push(@textfields, $column);
+
+      # Update the SQL placeholder
+      $placeholder .= "'$dummytext'";
+
+      # Update the dummy string for next time
+      $dummytext++;
+
+    } else {
+      throw OMP::Error::DBError("Do not understand how to insert a column '$column' into a database");
+    }
+
+  }
+
+
+  # Construct the SQL
+  my $sql = "INSERT INTO $table VALUES ($placeholder)";
+
+  # Get the database handle
+  my $dbh = $self->_dbhandle or
+    throw OMP::Error::DBError("Database handle not valid");
+
+  # Insert the easy data
+  $dbh->do($sql,undef,@toinsert)
+    or throw OMP::Error::DBError("Error inserting data into table $table: $DBI::errstr");
+
+
+  # Now the text data
+  for my $textdata ( @textfields ) {
+    my $text = $textdata->{TEXT};
+    my $dummy = $textdata->{DUMMY};
+    my $col = $textdata->{COLUMN};
+
+    # Now replace the dummy text using writetext
+    $dbh->do("declare \@val varbinary(16)
+select \@val = textptr($col) from $table where text like \"$dummy\"
+writetext $table.$col \@val '$text'")
+    or throw OMP::Error::DBError("Error inserting text data into table $table, column $col into database: ". $dbh->errstr);
+
+  }
+
+}
 
 =back
 

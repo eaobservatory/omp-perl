@@ -272,13 +272,12 @@ sub _store_new_fault {
   $faultdate = $faultdate->strftime("%Y%m%d %T")
     if defined $faultdate;
 
-  # Simply use "do" since there is only a single insert
-  # (without the text field)
-  $dbh->do("INSERT INTO $FAULTTABLE VALUES (?,?,?,?,?,?,?,?,?,?)",undef,
-	   $fault->id, $fault->category, $self->subject, $faultdate, 
-	   $fault->type, $fault->system, $fault->status, $fault->urgency, 
-	   $fault->timelost, $fault->entity)
-    or throw OMP::Error::DBError("Error inserting new MSB done rows: $DBI::errstr");
+  # Insert the data into the table
+  $self->_db_insert_data( $FAULTTABLE,
+			  $fault->id, $fault->category, $fault->subject,
+			  $faultdate, $fault->type, $fault->system,
+			  $fault->status, $fault->urgency,
+			  $fault->timelost, $fault->entity);
 
   # Now loop over responses
   for my $resp ($fault->responses) {
@@ -311,25 +310,13 @@ sub _add_new_response {
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
 
-  # Get the DB handle
-  my $dbh = $self->_dbhandle or
-    throw OMP::Error::DBError("Database handle not valid");
-
-  # Dummy entry for the text field
-  my $dummy = "pwned!2";
-
-  # Insert the general information
-  $dbh->do("INSERT INTO $FAULTBODYTABLE VALUES (?,?,?,?,'$dummy')",undef,
-	   $id, $date, $author, $resp->isfault)
-    or throw OMP::Error::DBError("Error inserting new fault response: $DBI::errstr");
-
-  # Now the text field
-  # Now replace the text using writetext
-  $dbh->do("declare \@val varbinary(16)
-select \@val = textptr(text) from $FAULTBODYTABLE where text like \"$dummy\"
-writetext $FAULTBODYTABLE.text \@val '$text'")
-    or throw OMP::Error::DBError("Error inserting fault body into database: ". $dbh->errstr);
-
+  $self->_db_insert_data( $FAULTBODYTABLE,
+			  $id, $date, $author, $resp->isfault,
+			  {
+			   TEXT => $text,
+			   COLUMN => 'text',
+			  }
+			);
 
 }
 
