@@ -1424,7 +1424,7 @@ sub project_home {
   print "<h2>$cookie{projectid}: $title</h2>";
 
   # Is this project a TOO?
-  ($project->istoo) and print "<i>This project is a target of opportunity</i><br>";
+  ($project->isTOO) and print "<i>This project is a target of opportunity</i><br>";
   
   # Make it obvious if this project is disabled
   (! $project->state) and print "<h2>This project is disabled</h2>";
