@@ -421,14 +421,29 @@ sub projectDetails {
   }
 }
 
-=item B<projectsSummary>
+=item B<listProjects>
 
-Retrieve a summary of all the projects or all the active projects.
+Return all the projects for the given semesters and countries.
+
+  @projects = $db->listProjects( [ $sem1, $sem2 ], 
+                                 [ $country ], $status );
+
+The semesters and countries are specified in arrays. If the arrays are
+empty all semesters or countries are queried. Status should be one of
+
+ active   - projects with time remaining
+ inactive - projects with no time remaining
+ all      - all projects
+
+Returned as a list of C<OMP::Project> objects.
 
 =cut
 
-sub projectsSummary {
+sub listProjects {
   my $self = shift;
+
+  # Silly to have nothing in here other than a method call
+  return $self->_get_projects( @_ );
 
 }
 
@@ -585,6 +600,63 @@ sub _insert_project_row {
 	   $proj->allocated, $proj->remaining, $proj->pending
 	  ) or throw OMP::Error::SpStoreFail("Error inserting project:".
 					     $dbh->errstr ."\n");
+
+}
+
+=item B<_get_projects>
+
+Retrieve list of projects that are either active or inactive (or both)
+in the specified semester(s) and specified countries.
+
+  @projects = $db->_get_projects( \@semesters, \@country, $status);
+
+Returned as an array of C<OMP::Project> objects.
+
+=cut
+
+sub _get_projects {
+  my $self = shift;
+  my $sem = shift;
+  my $countries = shift;
+  my $status = uc(shift);
+
+  # Build up the sql
+  my $sql = "SELECT * FROM $PROJTABLE ";
+
+  # Somewhere to build up the clause
+  my @where;
+
+  # semesters
+  push(@where, join(" OR ", map { " semester = '$_' " } map { uc($_) } @$sem))
+    if @$sem;
+
+  # Countries
+  push(@where, join(" OR ", map { " country = '$_' " } map { uc($_) } @$countries))
+    if @$countries;
+
+  # status
+  my $statql;
+  if ($status eq "ACTIVE") {
+    $statql = " (remaining - pending) > 0 ";
+  } elsif ($status eq "INACTIVE") {
+    $statql = " (remaining - pending) = 0 ";
+  }
+  push(@where, $statql) if $statql;
+
+  # Put the query together
+  my $where = " WHERE " if @where;
+  $sql .= $where . join( " AND ", @where);
+
+  # Database 
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  # Run the query
+  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} })
+    or throw OMP::Error::DBError("Error retrieving project listing:".
+				$dbh->errstr);
+
+  return map { new OMP::Project( %{$_} ); } @$ref;
 
 }
 

@@ -85,31 +85,53 @@ sub issuePassword {
   return 1;
 }
 
-=item B<summary>
+=item B<listProjects>
 
-Return a summary of the projects in the database table.
-The contents of the summary depends on the arguments.
+Return all the projects in the database table
+that match supplied criteria.
 
-Can be used to return a summmary of a single project or
-all the active/closed/semester projects.
+  $projects = OMP::ProjServer->listProjects( \@semesters,
+                                             \@countries,
+                                             $status, $format );
+
+Where both semester and country names are supplied in arrays and the
+status can be used to indicate whether "active" (time is remaining on
+the project), "inactive" (no time remains) or any project (does not
+matter how much time remains) can be returned. Empty arrays for
+semester and country indicates no preference. Only statuses of
+"active" or "inactive" will cause specific queries on time reamining.
+
+The format of the returned data is controlled by the last argument.
+This can either be "object" (a reference to an array containing
+C<OMP::Project> objects), "hash" (reference to an array of hashes), or
+"xml" (return data as XML document). The format of the XML is the same
+as for C<projectDetails> except that a wrapper element of
+C<E<lt>OMPProjectsE<gt>> surrounds the core data.
 
 =cut
 
-sub summary {
+sub listProjects {
   my $class = shift;
-  my $projectid = shift;
+  my $sem = shift;
+  my $country = shift;
+  my $status = shift;
+  my $mode = lc( shift );
+  $mode = "xml" unless $mode;
 
-  OMP::General->log_message("ProjServer::summary: $projectid\n");
+  OMP::General->log_message("ProjServer::listProjects: \n"
+			    . "Sem: [" . join(",", @$sem) . "]\n"
+			    . "Country: [". join(",", @$country)  ."]\n"
+			    . "Status: $status\n");
 
+  my @projects;
   my $E;
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $projectid,
 			     DB => $class->dbConnection,
 			    );
 
-    throw OMP::Error( "Not yet implemented");
+    @projects = $db->listProjects( $sem, $country, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -126,6 +148,14 @@ sub summary {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+  if ($mode eq "xml") {
+    return "<OMPProjects>\n" . join("\n", map { scalar($_->summary) } @projects)
+      . "\n</OMPProjects>\n";
+  } elsif ($mode eq "hash") {
+    return [ map { {$_->summary} } @projects  ];
+  } else {
+    return \@projects;
+  }
 
 }
 
