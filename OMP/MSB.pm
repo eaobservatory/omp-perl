@@ -3141,7 +3141,15 @@ sub SpInstHeterodyne {
 
   # Instrument is derived from the front end name. The backend is
   # irrelevant for scheduling purposes
-  $summary{instrument} = $self->_get_pcdata($el, 'feName');
+  $summary{instrument} = uc($self->_get_pcdata($el, 'feName'));
+
+  # We need to tidy up this instrument name because
+  # i) we really need Rx in front of A3 but not HARP
+  # ii) W(C) is not an instrument
+  $summary{instrument} = "RX". $summary{instrument}
+    unless ($summary{instrument} =~ /^RX/ || $summary{instrument} eq 'HARP');
+
+  $summary{instrument} =~ s/\(.*\)$//;
 
   # The wavelength of interest is derived from the rest frequency
   my $rfreq  = $self->_get_pcdata( $el, "restFrequency" );
@@ -3251,6 +3259,19 @@ sub SpTelescopeObsComp {
 
     # Now extract the coordinate information
     $tags{$tag} =  { $self->_extract_coord_info( $target ) };
+
+    # There may be an offset for REFERENCE or SKY
+    if ($tag eq 'REFERENCE' || $tag eq 'SKY') {
+      # Look for an offset
+      my ($offset) = $b->findnodes('.//OFFSET');
+
+      if (defined $offset) {
+	# Parse the offset information
+	$tags{$tag}->{OFFSET_DX} = $self->_get_pcdata($offset, 'DC1');
+	$tags{$tag}->{OFFSET_DY} = $self->_get_pcdata($offset, 'DC2');
+      }
+
+    }
 
   }
 
