@@ -508,6 +508,11 @@ sub _reorganize_archive {
     # it was before.
     $obs->instrument( $instrument );
 
+    # Check the filename. If it's not set, call file_from_bits and set it.
+    if( !defined( $obs->filename ) ) {
+      $obs->filename( $obs->file_from_bits );
+    }
+
     # And push it onto the @return array.
     push @return, $obs;
   }
