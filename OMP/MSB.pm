@@ -2260,13 +2260,15 @@ sub SpObs {
 
   } else {
     # We have a calibration observation
-    $summary{coords} = Astro::Coords::Calibration->new;
+    $summary{coords} = Astro::Coords::Calibration->new();
     $summary{coordstype} = $summary{coords}->type;
 
     # The target name should not include duplicates here
     # Use a hash to compress it
     my @compressed = $self->_compress_array( @{ $summary{obstype}});
     $summary{target} = join(":", @compressed);
+    $summary{coords}->name( $summary{target} );
+
   }
 
   return \%summary;
@@ -2932,7 +2934,8 @@ sub SpTelescopeObsComp {
     }
 
     # Create a new coordinate object
-    $summary{coords} = new Astro::Coords( %coords );
+    $summary{coords} = new Astro::Coords( %coords,
+					   name => $summary{target});
 
     throw OMP::Error::FatalError( "Coordinate frame $type not yet supported by the OMP\n") unless defined $summary{coords};
 
