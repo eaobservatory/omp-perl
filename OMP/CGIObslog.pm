@@ -405,20 +405,19 @@ sub obs_inst_summary {
       $telescope = "JCMT";
     } elsif( $hostname =~ /mauiola/i ) {
       $telescope = "UKIRT";
-    } else {
-      $telescope = "na";
     }
   }
 
-  # Now that we know where we are (or not), form the instrument array.
-  my @instarray;
-  if( $telescope eq 'JCMT' ) {
-    push @instarray, 'scuba';
-  } elsif( $telescope eq 'UKIRT' ) {
-    push @instarray, qw/ cgs4 ircam michelle ufti uist /;
-  } else {
-    push @instarray, qw/ scuba cgs4 ircam michelle ufti uist /;
+# DEBUGGING ONLY
+#$telescope = "JCMT";
+
+  if( ! defined( $telescope ) ) {
+    throw OMP::Error( "Unable to determine telescope" );
   }
+
+  # Now that we know where we are (or not), form the instrument array.
+  my @instarray = OMP::Config->getData( 'instruments',
+                                        telescope => $telescope );
 
   # Alright. Now, for each instrument in the array, form an
   # Info::ObsGroup object.
