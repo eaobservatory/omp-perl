@@ -34,6 +34,8 @@ for my $tab (qw/ompproj ompmsb ompobs ompsciprog/) {
       $entry =~ s/\s+$//;
       push(@full, $entry);
     }
+    # strip long entries
+    @full = map {  $_ = "<LONG>" if length($_) > 32; $_ } @full;
     print join(",",@full),"\n";
   }
 
