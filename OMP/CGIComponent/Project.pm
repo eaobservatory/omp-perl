@@ -237,16 +237,12 @@ sub proj_sum_table {
 
     # Get seeing and tau info
     my $taurange = $project->taurange;
-    my $seerange = $project->seerange;
+    my $seerange = $project->seeingrange;
+    my $skyrange = $project->skyrange;
 
-    # Make sure there is a valid range to display
-    for ($taurange, $seerange) {
-      if ($_->min == 0 and ! defined $_->max) {
-	$_ = "--";
-      } else {
-	$_ = $_->stringify;
-      }
-    }
+    $taurange = '--' if OMP::SiteQuality::is_default( $taurange );
+    $seerange = '--' if OMP::SiteQuality::is_default( $seerange );
+    $skyrange = '--' if OMP::SiteQuality::is_default( $skyrange );
 
     my $support = join(", ", map {$_->userid} $project->support);
 
@@ -263,6 +259,7 @@ sub proj_sum_table {
     print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
     print "<td align=center>$taurange</td>";
     print "<td align=center>$seerange</td>";
+    print "<td align=center>$skyrange</td>";
     print "<td align=center>". $project->cloudtxt ."</td>";
     print "<td>". $project->title ."</td>";
 
