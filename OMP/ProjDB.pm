@@ -918,7 +918,7 @@ sub _mail_password {
     my @addr = $proj->investigators;
 
     # Add support contacts to the list of recipients
-    push @addr, $proj->supportemail;
+    push @addr, $proj->support;
 
     throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
 
@@ -926,7 +926,7 @@ sub _mail_password {
     # First thing to do is to register this action with
     # the feedback system
     my $fbmsg = "New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
-      join(",", map {"<a href=\"mailto:$_\">$_</a>"} @addr)."\n";
+      join(",", map {$_->html} @addr)."\n";
 
     # Disable transactions since we can only have a single
     # transaction at any given time with a single handle
@@ -946,7 +946,7 @@ sub _mail_password {
     $self->_mail_information(
 			     message => $msg,
 			     to => \@addr,
-			     from => "omp-auto-reply",
+			     from => OMP::User->new(name => "omp-auto-reply"),
 			     subject => "[$projectid] OMP reissue of password for $projectid",
 			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
 					},
@@ -956,8 +956,8 @@ sub _mail_password {
     # aren't working...
     $self->_mail_information(
 			     message => $msg,
-			     to => ["frossie\@jach.hawaii.edu"],
-			     from => "omp-auto-reply",
+			     to => [OMP::User->new(email=>"frossie\@jach.hawaii.edu")],
+			     from => OMP::User->new(name => "omp-auto-reply"),
 			     subject => "[$projectid] OMP reissue of password for $projectid",
 			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
 					},
