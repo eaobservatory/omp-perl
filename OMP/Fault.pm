@@ -839,9 +839,8 @@ sub stringify {
 
   # Only want to say something about urgency if it is urgent
   my $urgency = '';
-  if ($urgcode == $URGENCY{Urgent}) {
-    $urgency = "                     ***** Fault is URGENT ****\n";
-  }
+  $urgency = "                     ***** Fault is URGENT ****\n"
+    if $self->isUrgent;
 
   # Guess email address
   my $email = lc($category) . "_faults";
