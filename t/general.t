@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 92;
+use Test::More tests => 95;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -202,6 +202,10 @@ my @input = (
 	      projectid => "JCMTCAL",
 	      result => "JCMTCAL",
 	     },
+	     {
+	      projectid => 'm02bh37a2',
+	      result => 'm02bh37a2',
+	     }
 
 	    );
 
@@ -288,6 +292,8 @@ my %extract = (
 	       'ukirtcal'   => '[ukirtcal] blah di blah',
 	       'tj03'       => 'hello tj03',
 	       'thk125'     => 'this is [thk125]',
+	       'm02bh37b1'  => 'this is uh project m02bh37b1',
+	       'M02BH07A3'  => 'this is uh project M02BH07A3',
 	      );
 
 for my $proj (keys %extract) {
