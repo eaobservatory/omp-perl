@@ -36,6 +36,8 @@ use overload '""' => "stringify";
 use constant TYPEOTHER => -1;
 use constant SYSTEMOTHER => -1;
 use constant HUMAN => 0;
+use constant OPEN => 0;
+use constant CLOSED => 1;
 
 my %DATA = (
 	     "CSG" => {
@@ -118,10 +120,21 @@ my %URGENCY = (
 	       Info   => 2,
 	      );
 
+# Status
+my %STATUS = (
+	      Open => OPEN,
+	      Closed => CLOSED,
+	     );
+
 # Now invert %DATA and %URGENCY
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
   $INVERSE_URGENCY{ $URGENCY{$_} } = $_;
+}
+
+my %INVERSE_STATUS;
+for (keys %STATUS) {
+  $INVERSE_STATUS{ $STATUS{$_} } = $_;
 }
 
 # Loop over categories
@@ -222,13 +235,25 @@ be associated with fixing a particular fault.
 
   %urgency = OMP::Fault->faultUrgency();
 
-Returns empty list if the fault category is not recognized.
-
 =cut
 
 sub faultUrgency {
   my $class = shift;
   return %URGENCY;
+}
+
+=item B<faultStatus>
+
+Return a hash containing the different statuses that can be associated
+with a fault.
+
+  %status = OMP::Fault->faultStatus();
+
+=cut
+
+sub faultStatus {
+  my $class = shift;
+  return %STATUS;
 }
 
 =back
@@ -248,14 +273,15 @@ Fault constructor. A fault must be created with the following information:
   type      - fault type                            [integer]
   urgency   - how urgent is the fault?              [integer]
   entity    - specific thing (eg instrument or computer name) [string]
+  status    - is the fault OPEN or CLOSED [integer]
   fault     - a fault "response" object
 
 The fault message (which includes the submitting user) must be
 supplied as a C<OMP::Fault::Response> object.
 
-The values for type, urgency and system can be obtained by using
-the C<faultTypes>, C<faultUrgency> and C<faultSystems> method. These
-values should  be supplied as a hash:
+The values for type, urgency, system and status can be obtained by
+using the C<faultTypes>, C<faultUrgency>, C<faultSystems> and
+C<faultStatus> methods. These values should be supplied as a hash:
 
   my $fault = new OMP::Fault( %details );
 
@@ -297,6 +323,7 @@ sub new {
 		     Entity => undef,
 		     Category => undef,
 		     Responses => [],
+		     Status => OPEN,
 		    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -370,7 +397,7 @@ sub type {
 Fault system (supplied as an integer - see C<faultSystems>).
 
   $sys = $fault->system();
-  $fault->  ( $sys  );
+  $fault->system( $sys  );
 
 =cut
 
@@ -378,6 +405,22 @@ sub system {
   my $self = shift;
   if (@_) { $self->{System} = shift; }
   return $self->{System};
+}
+
+=item B<status>
+
+Fault status (supplied as an integer - see C<faultStatus>).
+Indicates whether the fault is "open" or "closed".
+
+  $status = $fault->status();
+  $fault->status( $status  );
+
+=cut
+
+sub status {
+  my $self = shift;
+  if (@_) { $self->{Status} = shift; }
+  return $self->{Status};
 }
 
 =item B<timelost>
@@ -503,6 +546,10 @@ actual array). In list context returns the response objects as a list.
   @responses = $fault->responses();
   $responses = $fault->responses;
 
+When new responses are stored the first response object has its
+primary flag set to "true" and all other responses have their primary
+flags set to "false".
+
 =cut
 
 sub responses {
@@ -535,6 +582,15 @@ sub responses {
     } else {
       push(@{$self->{Responses}}, @input);
     }
+
+    # Now modify the primary flags
+    my $i = 0;
+    for (@{ $self->{Responses} }) {
+      my $primary = ($i == 0 ? 1 : 0);
+      $_->primary( $primary );
+      $i++;
+    }
+
   }
 
   # See if we are in void context
@@ -582,6 +638,8 @@ sub stringify {
   my $tlost = $self->timelost;
   my $typecode = $self->type;
   my $syscode = $self->system;
+  my $statcode = $self->status;
+  my $urgcode  = $self->urgency;
   my $category = $self->category;
   my $faultdate = $self->faultdate;
   my $entity = $self->entity;
@@ -598,10 +656,16 @@ sub stringify {
     $actfaultdate = "UNKNOWN";
   }
 
-  # Convert system and type codes to a string.
+  # Convert system, type and status codes to a string.
   my $system = $INVERSE{$category}{SYSTEM}{$syscode};
   my $type = $INVERSE{$category}{TYPE}{$typecode};
+  my $status = $INVERSE_STATUS{$statcode};
 
+  # Only want to say something about urgency if it is urgent
+  my $urgency = '';
+  if ($urgcode == $URGENCY{Urgent}) {
+    $urgency = "                     ***** Fault is URGENT ****\n";
+  }
 
   # Guess email address
   my $email = lc($category) . "_faults";
@@ -611,20 +675,22 @@ sub stringify {
 
   # Now build up the message
   my $output = 
-"--------------------------------------------------------------------------------".
+"--------------------------------------------------------------------------------\n".
 "    Report by     :  $user\n".
 "                                         date: $day\n".
 "    System is     :  $system\n".
 "                                         time: $time\n".
 "    Fault type is :  $type\n".
 "                                         loss: $tlost\n".
+"    Status        :  $status\n".
 "\n".
 "    Notice will be sent to: $email\n".
 "\n".
-"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~".
+"$urgency".
+"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".
 "                                Actual time of failure: $actfaultdate\n".
 "\n".
-"$firstresponse\n";
+"$firstresponse\n\n";
 
   # Now loop over remaining responses and add them in
   for (@responses[1..$#responses]) {
