@@ -32,6 +32,7 @@ use OMP::ArchiveDB::Cache;
 use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Info::Obs;
+use OMP::Info::ObsGroup;
 use OMP::Config;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
@@ -403,8 +404,6 @@ sub _query_files {
 
   # We need to sort the return array by date.
   @returnarray = sort {$a->startobs->epoch <=> $b->startobs->epoch} @returnarray;
-
-#print Dumper @returnarray;
 
   # And store it in the cache.
   try {
