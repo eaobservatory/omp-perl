@@ -401,9 +401,9 @@ sub sql {
                     AND M2.projectid = P2.projectid 
                       AND M2.projectid = Q2.projectid 
                         AND Q2.country = T.country)
-                          ORDER BY newpriority;
+                          ORDER BY newpriority 
 
-                DROP TABLE $tempcount ;";
+                DROP TABLE $tempcount";
   # PostgresQL will not allow the DROP TABLE within the same query.
   # Need to provide an explicit cleanup method to all query classes.
 
