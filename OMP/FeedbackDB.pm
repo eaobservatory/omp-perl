@@ -41,6 +41,8 @@ use base qw/ OMP::BaseDB /;
 # This is picked up by OMP::MSBDB
 our $FBTABLE = "ompfeedback";
 
+use constant OMP_CONTACT_PERSON => 'frossie@jach.hawaii.edu';
+
 =head1 METHODS
 
 =head2 Constructor
@@ -338,13 +340,13 @@ sub _mail_comment_important {
 
   my $proj = $projdb->_get_project_row;
 
-  my @email = $proj->contacts;
+  my @email = ($proj->contacts, OMP_CONTACT_PERSON);
   $self->_mail_comment( $comment, \@email );
 }
 
 =item B<_mail_comment_info>
 
-Will send the message to support emails
+Will send the message to PI only.
 
   $db->_mail_comment_info( $projectid, $comment );
 
@@ -366,7 +368,7 @@ sub _mail_comment_info {
   # we specfy the administrator password here]
   my $proj = $projdb->_get_project_row;
 
-  my @email = $proj->piemail;
+  my @email = ($proj->piemail, OMP_CONTACT_PERSON);
 
   $self->_mail_comment( $comment, \@email );
 }
