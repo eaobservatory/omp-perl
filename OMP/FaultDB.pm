@@ -349,6 +349,8 @@ sub updateResponse {
   $self->_db_commit_trans;
 }
 
+=back
+
 =head2 Internal Methods
 
 =over 4

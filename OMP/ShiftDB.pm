@@ -158,7 +158,11 @@ sub getShiftLogs {
 
 }
 
+=back
+
 =head2 Private Methods
+
+=over 4
 
 =item B<_fetch_shiftlog_info>
 

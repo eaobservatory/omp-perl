@@ -93,6 +93,7 @@ my $cat = new SrcCatalog::JCMT( \@coords );
 # And write it to stdout
 $cat->writeCatalog( \*STDOUT );
 
+=back
 
 =head1 AUTHOR
 

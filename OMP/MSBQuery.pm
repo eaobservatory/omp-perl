@@ -700,7 +700,7 @@ Constraints on the observability of the target are not calculated in
 SQL. These must be done post-query. Methods are provided to make the
 target constraints available (essentially the minimum elevation).
 
-=item B<constraints>
+=item B<query constraints>
 
 Additionally there are a number of constraints that are
 always applied to the query simply because they make

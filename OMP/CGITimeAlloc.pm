@@ -1,5 +1,21 @@
 package OMP::CGITimeAlloc;
 
+=head1 NAME
+
+OMP::CGITimeAlloc - Web display of time accounting information
+
+=head1 SYNOPSIS
+
+  use OMP::CGITimeAlloc;
+
+=head1 DESCRIPTION
+
+Helper methods for displaying a web page summarizing time usage
+of projects for particular nights.
+
+=cut
+
+
 use 5.006;
 use strict;
 use warnings;
@@ -33,7 +49,7 @@ $| = 1;
 
 Exporter::export_tags(qw/ all /);
 
-=head1 Routines
+=head1 ROUTINES
 
 =over 4
 
@@ -267,6 +283,12 @@ sub display_form {
 
 }
 
+=item B<submit_allocations>
+
+NONE
+
+=cut
+
 sub submit_allocations {
   my $q = shift;
 
@@ -328,6 +350,12 @@ sub display_ut_form {
   print $query->endform;
 }
 
+=item B<verify_query>
+
+NONE
+
+=cut
+
 sub verify_query {
   my $q = shift;
 
@@ -370,9 +398,30 @@ sub verify_query {
 
 }
 
+=item B<pad>
+
+This should probably go in OMP::General.
+
+  $padded = pad( $string, $character, $finallength);
+
+=cut
+
 sub pad {
   my ($string, $character, $endlength) = @_;
   my $result = ($character x ($endlength - length($string))) . $string;
 }
+
+=back
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
 
 1;

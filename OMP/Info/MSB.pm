@@ -1028,9 +1028,16 @@ sub getTypeColumns {
 
 }
 
+=back
+
+=head1 SEE ALSO
+
+L<OMP::Info::Obs>
+
 =head1 AUTHORS
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 

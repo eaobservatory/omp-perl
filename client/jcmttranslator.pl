@@ -18,9 +18,7 @@ suitable for reading into the new DRAMA Queue.
 
 The following arguments are allowed:
 
-=over 4
-
-=back
+NONE
 
 =head1 OPTIONS
 

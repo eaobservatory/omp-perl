@@ -573,6 +573,8 @@ sub _clean_string {
   return $in;
 }
 
+=back
+
 =end __PRIVATE__
 
 =head1 AUTHOR

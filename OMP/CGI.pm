@@ -594,7 +594,7 @@ sub _write_staff_login {
   $self->_write_footer();
 }
 
-=item B<_write_staff_login>
+=item B<_write_admin_login>
 
 Create a login page that takes an OMP user id and administrator password.
 

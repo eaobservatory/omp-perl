@@ -353,4 +353,17 @@ sub submit_comment {
 
 }
 
+=back
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
+
 1;

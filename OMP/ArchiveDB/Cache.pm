@@ -461,6 +461,8 @@ sub _filename_from_query {
   return $filename;
 }
 
+=back
+
 =head1 SEE ALSO
 
 For related classes see C<OMP::ArcQuery>, C<OMP::ArchiveDB>, and

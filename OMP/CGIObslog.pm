@@ -826,5 +826,17 @@ sub print_obscomment_footer {
   print "<a href=\"obslog.pl?ut=$1&inst=" . $qv->{'inst'} . "\">back to obslog</a>\n";
 }
 
+=back
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
 
 1;

@@ -84,7 +84,11 @@ sub sql {
 
 }
 
+=back
+
 =begin __PRIVATE__METHODS__
+
+=over 4
 
 =item B<_root_element>
 
@@ -97,5 +101,19 @@ sub _root_element {
   return "ShiftQuery";
 }
 
+=back
+
+=end __PRIVATE__METHODS__
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
 
 1;

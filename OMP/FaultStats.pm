@@ -148,6 +148,8 @@ sub timelost {
   return $self->{TimeLost};
 }
 
+=back
+
 =head2 General Methods
 
 =over 4
@@ -178,12 +180,6 @@ sub populate {
     }
   }
 };
-
-=back
-
-=head2 General Methods
-
-=over 4
 
 =item B<summary>
 
@@ -217,5 +213,18 @@ sub summary {
 
   return $return;
 }
+
+=back
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
 
 1;

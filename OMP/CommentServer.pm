@@ -115,6 +115,8 @@ sub getShiftLog {
   return @result;
 }
 
+=back
+
 =head1 COPYRIGHT
 
 Copyright (C) 2001-2002 Particle Physics and Astronomy Council.
