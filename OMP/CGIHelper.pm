@@ -1471,7 +1471,8 @@ sub project_home {
   my $title = $project->title;
   my $semester = $project->semester;
   my $allocated = $project->allocated->pretty_print;
-  my $remaining = $project->allRemaining->pretty_print;
+  ($project->allRemaining->seconds > 0) and
+    my $remaining = $project->allRemaining->pretty_print;
   my $pi = $project->pi->html;
   my $taurange = $project->taurange;
 
@@ -1511,7 +1512,13 @@ sub project_home {
   print "in tau range $taurange"
     unless ($taurange->min == 0 and ! defined $taurange->max);
   print "</td>";
-  print "<tr><td><b>Time remaining on project:</b></td><td>$remaining</td>";
+
+  if ($remaining) {
+    print "<tr><td><b>Time remaining on project:</b></td><td>$remaining</td>";
+  } else {
+    print "<tr><td colspan=2><b>There is no time remaining on this project</b></td>";
+  }
+
   print "</table>";
 
   # Get nights for which data was taken
