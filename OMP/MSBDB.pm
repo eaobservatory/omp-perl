@@ -10,7 +10,7 @@ OMP::MSBDB - A database of MSBs
   $db = new OMP::MSBDB( Password => $passwd, 
                         ProjectID => $sp->projectID );
 
-  $status = $db->store( SciProg => $sp );
+  $status = $db->storeSciProg( SciProg => $sp );
 
   $msb = $db->fetchMSB( DBID => $id,
                         CheckSum => $checksum );
@@ -47,7 +47,9 @@ our $VERSION = (qw$Revision$)[1];
 our $XMLDIR = "/jac_sw/omp/dbxml";
 
 # Name of the table containing the MSB data
-our $TABLE = "ompmsb";
+our $MSBTABLE = "ompmsb";
+our $PROJTABLE = "ompproj";
+our $OBSTABLE = "ompobs";
 
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 10;
@@ -702,6 +704,9 @@ Insert a row into the database using the information provided in the hash.
 The contents of the hash are usually defined by the C<OMP::MSB> class
 and its C<summary()> method.
 
+This method inserts MSB data into the MSB table and the observation
+summaries into the observation table.
+
 =cut
 
 sub _insert_row {
@@ -717,10 +722,33 @@ sub _insert_row {
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
-  $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?, ?)", undef,
-	   $index, $data{checksum}, $self->projectid, $data{remaining},
-	   $self->_sciprog_filename) 
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?)", undef,
+	   $index, $proj, $data{remaining}, $data{checksum},
+	   $data{tauband}, $data{seeing}, $data{priority}, $data{moon},
+	   $data{timeest}, $self->_sciprog_filename) 
     or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
+
+  # Now the observations
+  my $count;
+  for my $obs (@{ $data{obs} }) {
+
+    $count++;
+
+    # Get the obs id (based on the msb id)
+    my $obsid = sprintf( "%d%03d", $index, $count);
+
+    my @coords = $obs->{coords}->array;
+
+    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	     , undef,
+	     $obsid, $index, $proj, $obs->{instrument}, $obs->{wavelength},
+	     $obs->{coordstype}, $obs->{target},
+	     @coords[1..10]
+	    )
+      or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
+
+  }
+
 
 }
 
@@ -742,9 +770,12 @@ sub _clear_old_rows {
   my $dbh = $self->_dbhandle;
   my $proj = $self->projectid;
 
-  # Store the data
+  # Remove the old data
   print "Clearing old rows for project ID $proj\n" if $DEBUG;
-  $dbh->do("DELETE FROM $TABLE WHERE projectid = '$proj'")
+  $dbh->do("DELETE FROM $MSBTABLE WHERE projectid = '$proj'")
+    or throw OMP::Error::DBError("Error removing old rows: ".$DBI::errstr);
+
+  $dbh->do("DELETE FROM $OBSTABLE WHERE projectid = '$proj'")
     or throw OMP::Error::DBError("Error removing old rows: ".$DBI::errstr);
 
 }
@@ -778,7 +809,7 @@ sub _fetch_row {
   my @substrings = map { " $_ = $query{$_} " } keys %query;
 
   # and construct the SQL command
-  my $statement = "SELECT * FROM $TABLE WHERE" .
+  my $statement = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
 
   # prepare and execute
@@ -813,7 +844,7 @@ sub _run_query {
   my $query = shift;
 
   # Get the sql
-  my $sql = $query->sql( $TABLE );
+  my $sql = $query->sql( $MSBTABLE );
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
