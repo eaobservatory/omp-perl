@@ -299,11 +299,13 @@ sub _mail_comment {
             "Subject: [" . $self->projectid . "] $comment->{subject}\n\n" .
 	    "$comment->{text}\n";
 
+  my $projectid = $self->projectid;
+
   $self->_mail_information(
 			   message => $msg,
 			   to => $addrlist,
 			   from => "omp-feedback-system",
-			   subject => "New comment for project " . $self->projectid,
+			   subject => "[$projectid] $comment->{subject}\n\n",
 			   headers => ["Reply-To: flex\@jach.hawaii.edu","Content-type: text/html"  ],
 			  );
 
