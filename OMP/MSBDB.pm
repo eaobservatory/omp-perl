@@ -185,7 +185,7 @@ sub storeSciProg {
 
   # Write the Science Program to disk
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
-    or return undef;
+    or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
   # We need to remove the existing rows associated with this
   # project id
@@ -491,8 +491,8 @@ sub _store_sci_prog {
   # the timestamp else undef)
   my $tstamp = $self->_get_old_sciprog_timestamp;
 
-  # If we already have a file of that name we have to
-  # check the timestamp and remove it
+  # If we have a timestamp we need to compare it with what we
+  # have now
   if (defined $tstamp) {
 
     # Disable timestamp checks if freeze is set
@@ -503,6 +503,9 @@ sub _store_sci_prog {
       if (defined $spstamp) {
 	throw OMP::Error::SpStoreFail("Science Program has changed on disk\n")
 	  unless $tstamp == $spstamp;
+      } else {
+	throw OMP::Error::SpStoreFail("A science program is already in the database with a timestamp but this science program does not include a timestamp at all.\n")
+
       }
     }
 
@@ -576,6 +579,8 @@ to accept an insert.
 
  $self->_db_store_sciprog( $sp );
 
+Return true on success or throws an exception on failure.
+
 =cut
 
 sub _db_store_sciprog {
@@ -597,6 +602,7 @@ sub _db_store_sciprog {
     throw OMP::Error::SpStoreFail("Science program was truncated during store (now $newlen rather than $orilen)\n");
   }
 
+  return 1;
 }
 
 =item B<_db_fetch_sciprog>
