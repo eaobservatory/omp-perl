@@ -291,7 +291,7 @@ sub project_window {
     my $hfmt = "%.2f";
 
     # Label
-    $w->Label( -text => $proj.":" )->grid(-row=>$Row, -col=>0,
+    $w->Label( -text => $proj.":" )->grid(-row=>$Row, -column=>0,
 					  -sticky => 'e');
 
     # Decide on the default value
@@ -316,7 +316,7 @@ sub project_window {
       # Create the entry widget
       my $ent = $w->Entry( -width => 10, -textvariable => $varref
 			 )->grid(-row=>$Row,
-				 -col => 1);
+				 -column => 1);
 
       # Bind "leave" and "enter" to update the total
       if (defined $cb) {
@@ -324,7 +324,7 @@ sub project_window {
 	$ent->bind("<Return>",$cb);
       }
     } else {
-      $w->Label( -textvariable => $varref)->grid(-row=>$Row, -col=>1);
+      $w->Label( -textvariable => $varref)->grid(-row=>$Row, -column=>1);
     }
 
     # Notes about the data source
@@ -333,7 +333,7 @@ sub project_window {
       if ($times->{DB}->confirmed) {
 	$status = "CONFIRMED";
       }
-      $w->Label(-text => $status)->grid(-row=>$Row, -col=>2);
+      $w->Label(-text => $status)->grid(-row=>$Row, -column=>2);
 
       # Now also add the MSB estimate if it is an estimate
       # Note that we put it after the DATA estimate
@@ -341,18 +341,18 @@ sub project_window {
       	my $hrs = sprintf($hfmt, 
 			  _round_to_ohfive($times->{DB}->timespent->hours));
 	$w->Label(-text => "$hrs hrs from MSB acceptance")->grid(-row=>$Row,
-								 -col=>4);
+								 -column=>4);
       }
 
     } elsif (exists $times->{DATA} && !$times->{DATA}->confirmed) {
-            $w->Label(-text => "ESTIMATED")->grid(-row=>$Row, -col=>2);
+            $w->Label(-text => "ESTIMATED")->grid(-row=>$Row, -column=>2);
     }
 
     if (exists $times->{DATA}) {
       my $hrs = sprintf($hfmt, 
 			_round_to_ohfive($times->{DATA}->timespent->hours));
       $w->Label(-text => "$hrs hrs from data headers")->grid(-row=>$Row,
-							     -col=>3);
+							     -column=>3);
     }
 
   }
