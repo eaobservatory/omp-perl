@@ -21,6 +21,7 @@ use strict;
 use warnings;
 use Carp;
 
+use Net::Domain;
 use File::Spec;
 use Astro::Coords::Offset;
 
@@ -42,6 +43,9 @@ our $WIRE_DIR = OMP::Config->getData( 'acsis_translator.wiredir' );
 
 # Debugging messages
 our $DEBUG = 0;
+
+# Version number
+our $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 =head1 METHODS
 
@@ -68,6 +72,9 @@ sub translate {
   # Project
   my $projectid = $msb->projectID;
 
+  # OT version
+  my $otver = $msb->ot_version;
+  print "OTVERS: $otver \n";
   # Now unroll the MSB into constituent observations details
   my @configs;
 
@@ -75,6 +82,11 @@ sub translate {
 
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
+
+    # Add comment
+    $cfg->comment( "Translated on ". gmtime() ."UT on host ".
+		   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
+		   "using Translator version $VERSION on an MSB created by the OT version $otver\n");
 
     # First, configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs );
@@ -86,6 +98,8 @@ sub translate {
     $self->fe_config( $cfg, %$obs );
 
     # ACSIS_CONFIG
+    # SCUBA-2 translator will need to inherit some of these methods
+    # $self->acsis_config( $cfg, %$obs );
 
     # HEADER_CONFIG
     $self->header_config( $cfg, %$obs );
@@ -370,6 +384,24 @@ sub instrument_config {
 
   $cfg->instrument_setup( $inst );
 
+}
+
+=item B<acsis_config>
+
+Configure ACSIS.
+
+  $trans->acsis_config( $cfg, %info );
+
+=cut
+
+sub acsis_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my $acsis = new JAC::OCS::Config::ACSIS();
+
+  $cfg->acsis( $acsis );
 }
 
 =item B<slew_config>
