@@ -44,6 +44,10 @@ SpServer
        some time. Especially noticable since we have to do that
        to modify a MSB remaining flag.
 
+- [possible] Reuse existing MSBID slots when resubmitting a
+  science program if it has not changed at all (Only really true
+  when doneMSB is used).
+
 
 ProjServer
 ----------
@@ -59,6 +63,7 @@ ProjServer
 
  - implement queue summary                          [3.0]
     (all projects, projects with time remaining)
+      [done]
 
 
  - implement password generation + mailing          [2.0]
@@ -93,12 +98,16 @@ ProjServer
 - Allow for <semester> </semester> queries. If semester is not specified
   default to current semester. This allows override queries to be on
   SERV or JAC for example.
+     [done]
+
 
 - Add support for <name> query to work without false positives. 
   ie use jennesst - this requires special name field in proj table
   containing : separated list of ids for all coi and pi names.
   [possibly just have "person" table which has the names, "userid"
    and email - then need admin cgi script for it]
+     [done]
+
 
 - Add proper sorting by tagpriority, internal MSB priority and possibly
   completion rate.  [also needs the tagpriority to come back from the query 
@@ -107,14 +116,21 @@ ProjServer
 - Add fault tracking system (for OMP) and later for JCMT,CSG and UKIRT
 
 - Do we want TELESCOPE to be a property of a project or of a MSB?
+     [Need to add TELESCOPE to project table]
+
 
 - Add generic staff password in addition to admin password
+     [done]
 
 - Rationalize the MSB summary output code so that we can
   do HTML, HTML_long, ascii, ascii_long in that class rather than
   kludging it on SciProg or the CGI code.
+     [done via Info object]
 
 - Queries of the form <date delta="-1" /> should default to 
   a range of "now" and "now -1". Currently this does not work.
 
 - Waveband code does not seem to handle significant figures properly.
+
+- return order sorted in tagpriority order
+   - allow it to be weighted by completion rate?
