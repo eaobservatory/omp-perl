@@ -34,6 +34,15 @@ A help message.
 
 This manual page.
 
+=item B<-old>
+
+By default the file name written to stdout, is in a format suitable
+for upload directly to the modern OCS queue (an XML format). If this
+switch is enabled, the file written to stdout will be specific to
+the translated config class (ie a single HTML file for DAS translations,
+a SCUBA ODF macro for SCUBA). Note that if this switch is enabled,
+mixed instrument MSBs are not supported.
+
 =item B<-cwd>
 
 Write the translated files to the current working directory
@@ -64,11 +73,12 @@ use OMP::TransServer;
 use File::Spec;
 
 # Options
-my ($help, $man, $debug, $cwd);
+my ($help, $man, $debug, $cwd, $old);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
 			"cwd" => \$cwd,
+			"old" => \$old,
 		       );
 
 pod2usage(1) if $help;
@@ -78,7 +88,10 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 $OMP::Translator::DEBUG = 1 if $debug;
 
 # Translation directory override
-$OMP::Translator::TRANS_DIR = "." if $cwd;
+OMP::Translator->outputdir(".") if $cwd;
+
+# Configure translation mode
+OMP::Translator->backwards_compatibility_mode( 1 ) if $old;
 
 # Now for the action
 # Read from standard input
