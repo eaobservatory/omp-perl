@@ -615,7 +615,7 @@ sub _plot_spectrum {
   my $self = shift;
   my %args = @_;
 
-  my $opt = {SYMBOL => 1, LINEWIDTH => 10, PLOTLINE => 0};
+  my $opt;
 
   my $file;
   if( defined( $args{input_file} ) ) {
@@ -634,9 +634,11 @@ sub _plot_spectrum {
       $args{size} eq 'thumb' ) {
     $ENV{'PGPLOT_GIF_WIDTH'} = 120;
     $ENV{'PGPLOT_GIF_HEIGHT'} = 80;
+    $opt = {SYMBOL => 1, LINEWIDTH => 1, PLOTLINE => 0};
   } else {
     $ENV{'PGPLOT_GIF_WIDTH'} = 480;
     $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
+    $opt = {SYMBOL => 1, LINEWIDTH => 10, PLOTLINE => 0};
   }
 
   # Fudge to set bad pixels to zero.
@@ -751,7 +753,7 @@ sub _plot_spectrum {
   }
 
   env(0, ($xend - $xstart), $zmin, $zmax);
-  label_axes( "$label ($units)", undef, $title);
+  label_axes( undef, undef, $title);
   points $spectrum, $opt;
   dev "/null";
 
