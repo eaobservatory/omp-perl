@@ -849,8 +849,11 @@ sub _store_sci_prog {
   my $exstat = $self->_db_store_sciprog( $sp );
 
   # For initial safety purposes, store a text version on disk
-  # dont care about exit status
-  $self->_store_sciprog_todisk( $sp );
+  # dont care about exit status - do not call this if we are
+  # using a FreezeTimeStamp
+  unless ($freeze) {
+    $self->_store_sciprog_todisk( $sp );
+  }
 
   return $exstat;
 }
