@@ -434,17 +434,25 @@ sub log_message {
 
   my $logmsg = "$datestamp PID: $$  User: $email\nMsg: $message\n";
 
+  # Get current umask
+  my $umask = umask;
+
+  # Set umask to 0 so that we can remove all protections
+  umask 0;
+
   # First check the directory and create it if it isnt here
   unless (-d $logdir) {
-    umask 0;
     mkdir $logdir, 0777
-      or return;
+      or do { umask $umask; return};
   }
 
   # Open the file for append
   # Creating the file if it is not there already
   open my $fh, ">> $path"
-    or return;
+    or do { umask $umask; return };
+
+  # Reset umask
+  umask $umask;
 
   # Get an exclusive lock (this blocks)
   flock $fh, LOCK_EX;
