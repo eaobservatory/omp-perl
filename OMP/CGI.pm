@@ -457,6 +457,11 @@ sub write_page {
 
   my %cookie = $c->getCookie;
 
+  # If a 'user' field has been filled in store that value in the cookie
+  if ($q->param('user')) {
+    $cookie{user} = $q->param('user');
+  }
+
   # Retrieve the theme or create a new one
   $self->_make_theme;
 
@@ -672,6 +677,11 @@ sub write_page_fault {
   $c->setCookie( $EXPTIME, %cookie);
 
   $self->_write_header($STYLE);
+
+  if (!$cookie{category}) {
+    print "Please select a category from the left";
+    return;
+  }
 
   if ($q->param) {
     if ($q->param('show_output')) {
