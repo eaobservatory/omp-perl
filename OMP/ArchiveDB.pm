@@ -142,8 +142,12 @@ sub queryArc {
 
     if( ( ( $currentdate - $date ) < ONE_WEEK ) &&
         ( $FallbackToFiles ) ) {
-      @results = $self->_query_files( $query )
-        unless @results;
+      if( ( $currentdate - $date ) < ONE_DAY ) {
+        @results = $self->_query_files( $query );
+      } else {
+        @results = $self->_query_files( $query )
+          unless @results;
+      }
     }
   }
 
