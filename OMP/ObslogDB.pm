@@ -491,7 +491,7 @@ sub _set_inactive {
 
   # Rudimentary input checking.
   throw OMP::Error::BadArgs("Must supply an Info::Obs object")
-    unless $obs;
+    unless ( defined $obs );
   throw OMP::Error::BadArgs("Must supply an Info::Obs object")
     unless UNIVERSAL::isa($obs, 'OMP::Info::Obs');
   throw OMP::Error::BadArgs("Must supply instrument, date, and run number")
