@@ -47,10 +47,10 @@ sub request_data {
 
   # if we have a date, package up the data
   if ($utdate) {
-    &_package_data($utdate, \%cookie);
+    &_package_data($q, $utdate, \%cookie);
 
   } else {
-    &_write_form(\%cookie);
+    &_write_form($q, \%cookie);
   }
 
 }
@@ -65,11 +65,12 @@ sub request_data {
 
 Write the form requesting a UT date.
 
-  _write_form( \%cookie );
+  _write_form( $q, \%cookie );
 
 =cut
 
 sub _write_form {
+  my $q = shift;
   my $cookie = shift;
 
   print $q->h2("Retrieve data for project ". $cookie->{projectid} );
@@ -90,11 +91,12 @@ sub _write_form {
 
 Write output HTML and package up the data.
 
-  _package_data( $utdate_string, \%cookie );
+  _package_data( $q, $utdate_string, \%cookie );
 
 =cut
 
 sub _package_data {
+  my $q = shift;
   my $utdate = shift;
   my $cookie = shift;
 
