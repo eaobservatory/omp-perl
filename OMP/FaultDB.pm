@@ -798,8 +798,16 @@ sub _mail_fault_update {
     }
 
     my $property = $property{$_};
-    my $oldfault_prop = $oldfault->$_;
-    my $newfault_prop = $fault->$_;
+    my $oldfault_prop;
+    my $newfault_prop;
+
+    if (ref($fault->$_) eq "ARRAY") {
+      $oldfault_prop = join(', ',@{$oldfault->$_});
+      $newfault_prop = join(', ',@{$fault->$_});
+    } else {
+      $oldfault_prop = $oldfault->$_;
+      $newfault_prop = $fault->$_;
+    }
 
     $msg .= "$property updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
   }
