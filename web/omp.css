@@ -338,8 +338,8 @@ b.white, b.white a:link, b.white a:visited {
 }
                
 div.footer, div.footer a:link, div.footer a:visited {
-  font-size: 11pt;
-  color: #ffffff;
+  font-size: 9pt;
+  color: #393989;
 }
 
 HR {
@@ -412,4 +412,27 @@ A {
   font-size: x-small;
   font-weight: normal;
   color: #000000;
+}
+
+a.sidemain:link{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none;}
+a.sidemain:visited{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none;}
+a.sidemain:active{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
+a.sidemain:hover{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
+
+.cell_standout { 
+  border: 1px solid #d63e3e;
+  background-color: #f9b1b1;
+}
+
+.infobox { 
+  border: 1px solid #383898;
+  background-color: #bcbee3;
+}
+
+.row_clear {
+  background-color: #ffffff;
+}
+
+.row_shaded { 
+  background-color: #dddddd;
 }
