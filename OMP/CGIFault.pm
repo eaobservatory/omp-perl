@@ -363,9 +363,12 @@ sub query_fault_output {
   # XML query to return faults from the last 14 days
   my %faultstatus = OMP::Fault->faultStatus;
   my $currentxml = "<FaultQuery>".
-    "<category>$cookie{category}</category>".
+    category_xml( $cookie{category} ).
       "<date delta='-14'>" . $t->datetime . "</date>".
 	"</FaultQuery>";
+
+  # Setup an argument for use with the query_fault_form function
+  my $hidefields = ($cookie{category} ne 'ANYCAT' ? 0 : 1);
 
   # Print faults if print button was clicked
   if ($q->param('print')) {
@@ -387,7 +390,7 @@ sub query_fault_output {
     # The 'Search' submit button was clicked
     my @xml;
 
-    push (@xml, "<category>$cookie{category}</category>");
+    push (@xml, category_xml( $cookie{category} ));
 
     if ($q->param('system') !~ /any/) {
       my $system = $q->param('system');
@@ -537,21 +540,27 @@ sub query_fault_output {
     }
 
     # Our query XML
-    $xml = "<FaultQuery><category>$cookie{category}</category>" . join('',@xml) . "</FaultQuery>";
+    $xml = "<FaultQuery>" . join('',@xml) . "</FaultQuery>";
 
   } elsif ($q->param('major')) {
     # Faults within the last 14 days with 2 or more hours lost
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
+    $xml = "<FaultQuery>".
+      category_xml( $cookie{category} ).
+	"<date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
   } elsif ($q->param('recent')) {
     # Faults active in the last 36 hours
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
+    $xml = "<FaultQuery>".
+      category_xml( $cookie{category} ).
+	"<date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
   } elsif ($q->param('current')) {
     # Faults within the last 14 days
     $xml = $currentxml;
     $title = "Displaying faults with any activity in the last 14 days";
   } else {
     # Initial display of query page
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
+    $xml = "<FaultQuery>".
+      category_xml( $cookie{category} ).
+	"<date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
     $title = "Displaying faults with any activity in the last 7 days";
   }
 
@@ -591,7 +600,7 @@ sub query_fault_output {
   } elsif ($faults->[0]) {
     titlebar($q, ["View Faults", $title], %cookie);
 
-    query_fault_form($q, %cookie);
+    query_fault_form($q, $hidefields, %cookie);
     print "<p>";
 
     # Total up and display time lost
@@ -627,7 +636,9 @@ sub query_fault_output {
     print "<p>";
 
     my %showfaultargs = (CGI => $q,
-			 faults => $faults,);
+			 faults => $faults,
+			 showcat => ($cookie{category} ne 'ANYCAT' ? 0 : 1),
+			);
     
     if ($q->param('orderby') eq 'response' or ! $q->param('orderby')) {
       $showfaultargs{orderby} = 'response';
@@ -650,12 +661,12 @@ sub query_fault_output {
       # Put up the query form again if there are lots of faults displayed
       if ($faults->[15]) {
 	print "<P>";
-	query_fault_form($q, %cookie);
+	query_fault_form($q, $hidefields, %cookie);
       }
     }
   } else {
     titlebar($q, ["View Faults", $title], %cookie);
-    query_fault_form($q, %cookie);
+    query_fault_form($q, $hidefields, %cookie);
   }
 }
 
@@ -692,29 +703,42 @@ sub query_faults {
 
 =item B<query_fault_form>
 
-Create a form for querying faults
+Create a form for querying faults.  First argument is the CGI object.
+If the second argument is true, no fields are provided for selecting
+system/type (useful for non-category specific fault queries). Final
+argument is a cookie hash.
 
-  query_fault_form($cgi);
+  query_fault_form($cgi, $hidesystype, %cookie);
 
 =cut
 
 sub query_fault_form {
   my $q = shift;
+  my $hidefields = shift;
   my %cookie = @_;
 
-  my $systems = OMP::Fault->faultSystems($cookie{category});
-  my @systems = map {$systems->{$_}} sort keys %$systems;
-  unshift( @systems, "any" );
-  my %syslabels = map {$systems->{$_}, $_} %$systems;
-  $syslabels{any} = 'Any';
+  my $systems;
+  my $types;
+  my @systems;
+  my @types;
+  my %syslabels;
+  my %typelabels;
 
-  my $types = OMP::Fault->faultTypes($cookie{category});
-  my @types = map {$types->{$_}} sort keys %$types;
-  unshift( @types, "any");
-  my %typelabels = map {$types->{$_}, $_} %$types;
-  $typelabels{any} = 'Any';
+  if (! $hidefields) {
+    $systems = OMP::Fault->faultSystems($cookie{category});
+    @systems = map {$systems->{$_}} sort keys %$systems;
+    unshift( @systems, "any" );
+    %syslabels = map {$systems->{$_}, $_} %$systems;
+    $syslabels{any} = 'Any';
 
-  my %status = OMP::Fault->faultStatus($cookie{category});
+    $types = OMP::Fault->faultTypes($cookie{category});
+    @types = map {$types->{$_}} sort keys %$types;
+    unshift( @types, "any");
+    %typelabels = map {$types->{$_}, $_} %$types;
+    $typelabels{any} = 'Any';
+  }
+
+  my %status = OMP::Fault->faultStatus;
   my @status = map {$status{$_}} sort keys %status;
   unshift( @status, "any", "all_open", "all_closed");
   my %statuslabels = map {$status{$_}, $_} %status;
@@ -763,17 +787,21 @@ sub query_fault_form {
 		      -maxlength=>4,);
   print " days";
   print "<br>";
-  print "</b></td><tr><td colspan=2><b>";
-  print "System </b>";
-  print $q->popup_menu(-name=>'system',
-		       -values=>\@systems,
-		       -labels=>\%syslabels,
-		       -default=>'any',);
-  print "<b>Type </b>";
-  print $q->popup_menu(-name=>'type',
-		       -values=>\@types,
-		       -labels=>\%typelabels,
-		       -default=>'any',);
+  print "</b></td><tr><td colspan=2>";
+
+  if (! $hidefields) {
+    print "<b>System </b>";
+    print $q->popup_menu(-name=>'system',
+			 -values=>\@systems,
+			 -labels=>\%syslabels,
+			 -default=>'any',);
+    print "<b>Type </b>";
+    print $q->popup_menu(-name=>'type',
+			 -values=>\@types,
+			 -labels=>\%typelabels,
+			 -default=>'any',);
+  }
+
   print "<b>Status </b>";
   print $q->popup_menu(-name=>'status',
 		       -values=>\@status,
@@ -1804,15 +1832,17 @@ Show a list of faults
 	      faults => $faults,
 	      orderby => 'response',
 	      descending => 1,
-	      URL => "fbfault.pl");
+	      url => "fbfault.pl"
+              showcat => 1,);
 
 Takes the following key/value pairs as arguments:
 
 CGI: A C<CGI> query object
 faults: A reference to an array of C<OMP::Fault> objects
 descending: If true faults are listed in descending order
-URL: The absolute or relative path to the script to be used for the view/respond link
+url: The absolute or relative path to the script to be used for the view/respond link
 orderby: Should be either 'response' (to sort by date of latest response) or 'filedate'
+showcat: true if a category column should be displayed
 
 Only the B<CGI> and B<faults> keys are required.
 
@@ -1825,6 +1855,7 @@ sub show_faults {
   my $faults = $args{faults};
   my $descending = $args{descending};
   my $url = $args{url};
+  my $showcat = $args{showcat};
 
   (! $url) and $url = "viewfault.pl";
 
@@ -1833,7 +1864,14 @@ sub show_faults {
   my $stats = new OMP::FaultStats( faults => $faults );
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
-  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
+  print "<tr>";
+
+  # Show category column?
+  print "<td><b>Category</b></td>"
+    unless (! $showcat);
+
+  print "<td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
+
 
   # Show time lost field?
   if ($stats->timelost > 0) {
@@ -1881,7 +1919,13 @@ sub show_faults {
 
     my $replies = $#{$fault->responses};  # The number of actual replies
 
-    print "<tr bgcolor=$bgcolor><td>$faultid</td>";
+    print "<tr bgcolor=$bgcolor>";
+
+    # Show category column?
+    print "<td>". $fault->category ."</td>"
+      unless (! $showcat);
+
+    print "<td>$faultid</td>";
     print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b>";
 
     # Show affected projects?
@@ -1982,7 +2026,7 @@ sub titlebar {
     # Replace the word "fault" with "report"
     $title->[0] =~ s/fault/report/ig;
   } else {
-    $toptitle = "$cookie{category} Faults";
+    $toptitle = ($cookie{category} ne "ANYCAT" ? $cookie{category} : "All") . " Faults";
   }
 
   print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
@@ -2180,8 +2224,6 @@ sub fault_summary_content {
   my $ompurl = OMP::Config->getData('omp-url');
   my $iconurl = $ompurl . OMP::Config->getData('iconsdir');
   my %status = OMP::Fault->faultStatus;
-  my $systems = OMP::Fault->faultSystems($faults->[0]->category);
-  my $types = OMP::Fault->faultTypes($faults->[0]->category);
   my %statusOpen = OMP::Fault->faultStatusOpen;
 
   if (! $faults) {
@@ -2245,6 +2287,7 @@ sub fault_summary_content {
   my %totals;
   my %timelost;
   my %sysID; # IDs used to identify table rows that belong to a particular system
+  my %typeID; # IDs used to identify table rows that belong to a particular type
   my $timelost = 0;
   my $totalfiled = 0;
   $totals{open} = 0;
@@ -2259,15 +2302,17 @@ sub fault_summary_content {
     if ($mindate and $maxdate) {
       ($filedate->epoch >= $mindate->epoch and $filedate->epoch <= $maxdate->epoch) and $totalfiled++;
     }
+
     # Store open faults and closed major faults
     my $status;
     if (exists $statusOpen{$_->statusText}) {
       $status = 'open';
     } else {
       $status = 'closed';
-      $sysID{$_->systemText} = sprintf("%08d",$systems->{$_->systemText}) . "sys";
+      $sysID{$_->systemText} = sprintf("%08d",$_->system) . "sys";
     }
 
+    $typeID{$_->typeText} = sprintf("%08d",$_->type) . "type";
     push (@{$faults{$_->systemText}{$status}{$_->typeText}}, $_);
     $totals{$status}++;
 
@@ -2354,7 +2399,7 @@ sub fault_summary_content {
 
       for my $type (sort keys %{$faults{$system}{$status}}) {
 
-	my $rowID = $sysID{$system} . "_" . $types->{$type};
+	my $rowID = $sysID{$system} . "_" . $typeID{$type};
 
 	($status eq 'closed') and print "<tr id=\"$rowID\" class=\"$class\">"
 	  or print "<tr>";
@@ -2424,6 +2469,27 @@ sub fault_summary_content {
   }
   print "</tr></table>";
   print "</table>";
+}
+
+=item B<category_xml>
+
+Given a string that is the name of a fault category, return a snippet of xml containing
+the named category surrounded by an opening and closing category tag.
+
+  my $xmlpart = category_xml($category);
+
+Returns an empty string if the given category is 'ANYCAT' or if the only argument is undef.
+
+=cut
+
+sub category_xml {
+  my $cat = shift;
+
+  if (defined $cat and $cat ne "ANYCAT") {
+    return "<category>$cat</category>";
+  } else {
+    return "";
+  }
 }
 
 =back
