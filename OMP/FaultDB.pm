@@ -540,7 +540,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   # Create the message
   # We format the message using HTML since the _mail_information method will
   # provide a plain text version on it's own
-  if (@responses[1]) {
+  if ($responses[1]) {
     my %authors;
 
     # Make it noticeable if this fault is urgent
