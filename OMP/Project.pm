@@ -567,7 +567,7 @@ sub remaining {
   return $self->{Remaining};
 }
 
-=item B<remainingAll>
+=item B<allRemaining>
 
 Time remaining on the project including any time pending. This
 is simply that stored in the C<remaining> field minus that stored
