@@ -254,7 +254,7 @@ sub inferTelescope {
   }
 
   if (scalar(@matches) == 0) {
-    throw OMP::Error::FatalError("No matches in config system for value $refval using key $refkey");
+    throw OMP::Error::BadCfgKey("No matches in config system for value $refval using key $refkey");
   } elsif (scalar(@matches) > 1) {
     throw OMP::Error::FatalError("Multiple matches in config system for value $refval using key $refkey. Telescopes: " . join(",",@matches));
   }
@@ -752,7 +752,7 @@ sub _traverse_cfg {
     } else {
       $keyerr = "'$curkey' (part of ".$refkey->[0].")";
     }
-    throw OMP::Error::FatalError("Key $keyerr could not be found in OMP config system [telescope=".$refkey->[1]."]");
+    throw OMP::Error::BadCfgKey("Key $keyerr could not be found in OMP config system [telescope=".$refkey->[1]."]");
   }
 
 }
