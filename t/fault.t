@@ -2,7 +2,7 @@
 # Test OMP::Fault
 
 use Test;
-BEGIN { plan tests => 3 }
+BEGIN { plan tests => 5 }
 use strict;
 use OMP::Fault;
 use OMP::Fault::Response;
@@ -33,4 +33,14 @@ $fault->responses( $resp2 );
 my @resps = $fault->responses;
 ok( scalar(@resps), 2);
 
-print $fault;
+# Check primary flags
+ok( $resps[0]->primary );
+ok( ! $resps[1]->primary );
+
+
+# Print the stringified fault for info
+# Need to prepend #
+my $string = "$fault";
+my @lines = split("\n", $string);
+$string = join("", map { "#$_\n"} @lines);
+print $string;
