@@ -440,6 +440,7 @@ sub fetchMSB {
   my $checksum;
 
   # If we are querying the database by MSB ID...
+  my $usingmsbid;
   if (exists $args{msbid} && defined $args{msbid}) {
 
     # Call method to do search on database. This assumes that we
@@ -457,6 +458,9 @@ sub fetchMSB {
     # And the project ID
     $self->projectid( $details{projectid} );
 
+    # indicate that we used an MSBID
+    $usingmsbid = 1;
+
   } elsif (exists $args{checksum}) {
     $checksum = $args{checksum};
   } else {
@@ -469,6 +473,19 @@ sub fetchMSB {
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
 
+  # if we did not get an MSB back this means the checksums
+  # are now different to what was stored in the database
+  # if the checksum was requested we provide a different error to
+  # that triggered if we got an msbid
+  unless ($msb) {
+    if ($usingmsbid) {
+      # used an MSBID
+      throw OMP::Error::FatalError("A checksum was obtained from the database table but there was no corresponding MSB in the science program. This likely means that the checksum calculation has been changed/broken since the Science Program was submitted");
+    } else {
+      # user supplied checksum
+      throw OMP::Error::MSBMissing("Unable to retrieve MSB in science program - the required checksum does not match any current MSBs.");
+    }
+  }
 
   # To aid with the translation to a sequence we now
   # have to add checksum and projectid as explicit elements
