@@ -73,9 +73,8 @@ BEGIN {
 
   use FindBin;
   use constant OMPLIB => "$FindBin::RealBin/..";
-#use constant OMPLIB => "/home/bradc/development/omp/msbserver/";
   use lib OMPLIB;
-#use lib qw[ /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib/ ];
+
   use OMP::Constants;
   use OMP::General;
   use OMP::Config;
@@ -189,6 +188,7 @@ sub display_loading_status {
 
   # Tk
   require Tk::Radiobutton;
+  require Tk::Dialog;
 
   eval 'use OMP::ObslogDB';
   die "Error loading OMP::ObslogDB: $@" if $@;
@@ -271,13 +271,6 @@ sub create_main_window {
                                               },
                                             );
 
-# $buttonOptions is the button that allows the user to modify options.
-  my $buttonOptions = $buttonbarFrame->Button( -text => 'Options',
-                                               -command => sub {
-                                                 options();
-                                               },
-                                             );
-
 # $buttonDumpText is the button that dumps the current listing to disk.
   my $buttonDumpText = $buttonbarFrame->Button( -text => 'Dump Text',
                                                 -command => sub {
@@ -312,6 +305,9 @@ sub create_main_window {
   my $shiftFrame = $mainFrame->Frame();
   create_shiftlog_widget( $shiftFrame );
 
+  my $optionsFrame = $mainFrame->Frame();
+  create_options_widget( $optionsFrame );
+
   $mainFrame->pack( -side => 'top',
                     -fill => 'both',
                     -expand => 1
@@ -320,6 +316,11 @@ sub create_main_window {
   $buttonbarFrame->pack( -side => 'top',
                          -fill => 'x'
                        );
+
+  $optionsFrame->pack( -side => 'bottom',
+                       -fill => 'x',
+                       -expand => 1,
+                     );
 
   $shiftFrame->pack( -side => 'bottom',
 		   -fill => 'x',
@@ -333,7 +334,6 @@ sub create_main_window {
   $buttonExit->pack( -side => 'left' );
   $buttonRescan->pack( -side => 'left' );
   $buttonDumpText->pack( -side => 'left' );
-  $buttonOptions->pack( -side => 'left' );
 #  $buttonHelp->pack( -side => 'right' );
   $labelUT->pack( -side => 'right' );
   $buttonVerbose->pack( -side => 'right' );
@@ -386,6 +386,7 @@ sub new_instrument {
   my $nbContent = $nbPageFrame->Scrolled('Text',
                                          -wrap => 'word',
                                          -scrollbars => 'oe',
+                                         -height => 100,
                                         );
 
   $notebook_contents{$instrument} = $nbContent;
@@ -596,6 +597,7 @@ sub full_rescan {
 
   rescan( $ut, $telescope );
   redraw( undef, $current_instrument, $verbose );
+
 }
 
 sub dump_to_disk {
@@ -817,69 +819,6 @@ sub RaiseComment {
 
 }
 
-sub options {
-
-  my $optionsWindow = MainWindow->new;
-  my $optionsFrame = $optionsWindow->Frame;
-
-  my $userid = $user->userid;
-  my $tempUT = $ut;
-
-  my $useridLabel = $optionsFrame->Label( -text => 'New userid: ' );
-  my $useridEntry = $optionsFrame->Entry( -textvariable => \$userid,
-                                          -width => 25,
-                                        );
-  my $utLabel = $optionsFrame->Label( -text => 'New UT date: ' );
-  my $utEntry = $optionsFrame->Entry( -textvariable => \$tempUT,
-                                      -width => 25,
-                                      -validate => 'focusout',
-                                      -validatecommand => sub {
-                                        $_[0] =~ /\d{4}-\d\d-\d\d/
-                                      },
-                                      -invalidcommand => sub {
-                                        InvalidUTDate( $_[0] );
-                                      },
-                                   );
-
-  my $tel = OMP::Config->getData( 'defaulttel' );
-  my @tels;
-  if(ref($tel) ne "ARRAY") {
-    push @tels, $tel;
-  } else {
-    push @tels, @$tel;
-  }
-
-  my $buttonSave = $optionsFrame->Button( -text => 'Save',
-                                          -command => sub {
-                                            SaveOptions( $tempUT, $userid );
-                                            full_rescan( $ut, $telescope );
-                                            CloseWindow( $optionsWindow );
-                                          },
-                                        );
-  my $buttonCancel = $optionsFrame->Button( -text => 'Cancel',
-                                            -command => sub {
-                                              CloseWindow( $optionsWindow );
-                                            },
-                                          );
-
-  $optionsFrame->pack( -side => 'top',
-                       -fill => 'both',
-                       -expand => 1,
-                     );
-  $useridLabel->grid( $useridEntry );
-  $utLabel->grid( $utEntry );
-
-  my @telwid;
-  foreach my $ttel (@tels) {
-    push @telwid, $optionsFrame->Radiobutton( -text => $ttel,
-                                              -value => $ttel,
-                                              -variable => \$telescope,
-                                            );
-  }
-  $optionsFrame->Label( -text => "Telescope:" )->grid(@telwid);
-  $buttonSave->grid( $buttonCancel );
-}
-
 sub help { }
 
 sub SaveComment {
@@ -918,29 +857,6 @@ sub CloseWindow {
 sub InvalidUTDate {
   my $string = shift;
   print "Invalid UT date: $string\n";
-}
-
-sub SaveOptions {
-  my $utdate = shift;
-  my $userid = shift;
-
-  $ut = $utdate;
-  $utdisp = "Current UT date: $ut";
-
-  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-  my $tempuser = $udb->getUser( $userid );
-  if(defined($tempuser)) {
-    $user = $tempuser;
-  } else {
-    # Do a warning here.
-  }
-
-  $id->cancel unless !defined($id);
-  if( $ut eq $currentut ) {
-    $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-  };
-
-
 }
 
 sub BindMouseWheel {
@@ -1149,7 +1065,159 @@ sub view_shift_comments {
 
 }
 
-=head1 AUTHOR
+######################### O P T I O N S #######################
+
+sub create_options_widget {
+  my $w = shift;
+
+  # Create a holder frame
+  my $options = $w->Frame()->pack( -side => 'top',
+                                   -expand => 1,
+                                   -fill => 'x',
+                                 );
+
+  my $topline = $options->Frame->pack( -side => 'top',
+                                        -expand => 1,
+                                        -fill => 'x',
+                                      );
+
+  my $bottomline = $options->Frame->pack( -side => 'bottom',
+                                           -expand => 1,
+                                           -fill => 'x',
+                                         );
+
+  # Fill in the top line.
+  $topline->Label( -text => 'Current user:',
+                   -width => 15,
+                 )->pack( -side => 'left' );
+
+  my $RefUser = $user->userid;
+  $topline->Entry( -textvariable => \$RefUser,
+                   -width => 20,
+                 )->pack( -side => 'left' );
+
+  $topline->Button( -text => 'Set User',
+                    -command => sub { set_user( \$RefUser, $w ) },
+                    -width => 10,
+                  )->pack( -side => 'left' );
+
+  $topline->Label( -text => 'Current telescope:',
+                 )->pack( -side => 'left',
+                        );
+
+  # Fill in the bottom line.
+  $bottomline->Label( -text => 'Current UT:',
+                      -width => 15,
+                    )->pack( -side => 'left' );
+
+  my $RefUT = $ut;
+  $bottomline->Entry( -textvariable => \$RefUT,
+                      -width => 20,
+                    )->pack( -side => 'left' );
+
+  $bottomline->Button( -text => 'Set UT',
+                       -command => sub { set_UT( \$RefUT, $w ) },
+                       -width => 10,
+                     )->pack( -side => 'left' );
+
+  # Create radiobuttons for the available telescopes
+  my $tel = OMP::Config->getData( 'defaulttel' );
+  my @tels;
+  if(ref($tel) ne "ARRAY") {
+    push @tels, $tel;
+  } else {
+    push @tels, @$tel;
+  }
+  my @telwid;
+  my $newTel = $telescope;
+  foreach my $ttel (@tels) {
+    $bottomline->Radiobutton( -text => $ttel,
+                              -value => $ttel,
+                              -variable => \$newTel,
+                              -command => sub { set_telescope( \$ttel, $w ) },
+                            )->pack( -side => 'left' );
+  }
+
+}
+
+sub set_user {
+  my $RefUser = shift;
+  my $w = shift;
+
+  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+  my $newUser = $udb->getUser( $$RefUser );
+  if( defined( $newUser ) ) {
+    $user = $newUser;
+  } else {
+    # we've got an error in the user ID
+    require Tk::DialogBox;
+    my $dbox = $w->DialogBox( -title => "User ID error",
+                            );
+
+    my $txt = $dbox->add('Label',
+                         -text => "User ID " . $$RefUser . " does not exist in database\nUser ID not changed.",
+                        )->pack;
+    my $but = $dbox->Show;
+  }
+
+  # We don't need to rescan just for changing the user.
+}
+
+sub set_UT {
+  my $RefUT = shift;
+  my $w = shift;
+
+  my $newUT = $$RefUT;
+
+  my $UTdate = OMP::General->parse_date( $newUT );
+
+  if(!defined($UTdate)) {
+    # we've got an error in the date
+    require Tk::DialogBox;
+    my $dbox = $w->DialogBox( -title => "Date error",
+                            );
+
+    my $txt = $dbox->add('Label',
+                         -text => "Error parsing date. Please ensure date\nis in YYYY-MM-DD format.",
+                        )->pack;
+    my $but = $dbox->Show;
+  } else {
+
+    $ut = $UTdate->ymd;
+    $utdisp = "Current UT date: $ut";
+
+    full_rescan($ut, $telescope);
+
+    $id->cancel unless !defined($id);
+    if( $ut eq $currentut ) {
+      $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+    };
+  }
+
+}
+
+sub set_telescope {
+  my $RefTel = shift;
+  my $tel = $$RefTel;
+
+  # Only do the switch if the telescope they clicked on is different
+  # from the currently displayed telescope.
+  if( uc($tel) ne uc($telescope) ) {
+
+    $telescope = $tel;
+
+    full_rescan( $ut, $telescope );
+
+    $id->cancel unless !defined($id);
+    if( $ut eq $currentut ) {
+      $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+    };
+
+  }
+
+}
+
+=head1 AUTHORS
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>,
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
