@@ -43,6 +43,7 @@ statistical information and summary from groups of observations.
 use 5.006;
 use strict;
 use warnings;
+use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::ObslogDB;
@@ -75,14 +76,14 @@ sub new {
 
   my $grp = bless {
 		   ObsArray => [],
-		  } $class;
+		  }, $class;
 
   # if we have an "obs" arg we just store the objects
   if (exists $args{obs}) {
-    $self->obs($args{obs});
+    $grp->obs($args{obs});
   } elsif (@_) {
     # any other args are forwarded to populate
-    $self->populate( %args );
+    $grp->populate( %args );
   }
 
   return $grp;
@@ -163,7 +164,7 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
-  @result = $adb->queryArc( $arcquery );
+  my @result = $adb->queryArc( $q );
 
   # Store the results
   $self->obs(\@result);
@@ -209,18 +210,28 @@ sub populate {
   my $self = shift;
   my %args = @_;
 
-  throw OMP::Error::BadArgs("Must supply a telescope")
-    unless 
+  throw OMP::Error::BadArgs("Must supply a telescope or instrument")
+    unless exists $args{telescope} || exists $args{instrument};
 
-  my $utstring;
-  if (ref($ut)) {
-    $utstring = $ut->strftime("%Y-%m-%d");
-  } else {
-    $utstring = $ut;
+  # if we have a date it could be either object or string
+  # also need special XML code
+  my $xmlbit = '';
+  if (exists $args{date}) {
+    if (ref($args{date})) {
+      $args{date} = $args{date}->strftime("%Y-%m-%d");
+    }
+    $xmlbit = "<date delta=\"1\">$args{date}</date>";
   }
 
-  # Form the XML.
-  my $xml = "<ArcQuery><instrument>$inst</instrument><date delta=\"1\">$ut</date></ArcQuery>";
+  # Form the XML.[restrict the keys
+  for my $key (qw/ instrument telescope projectid/ ) {
+    if (exists $args{$key}) {
+      $xmlbit .= "<$key>$args{$key}</$key>";
+    }
+  }
+
+
+  my $xml = "<ArcQuery>$xmlbit</ArcQuery>";
 
   # Form the query.
   my $arcquery = new OMP::ArcQuery( XML => $xml );
