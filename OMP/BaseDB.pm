@@ -28,6 +28,7 @@ use Carp;
 
 # OMP Dependencies
 use OMP::Error;
+use OMP::Constants qw/ :fb /;
 
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -350,10 +351,19 @@ feedback system (see C<OMP::FeedbackDB>) and usually
 consist of:
 
   author      - the name of the system/person submitting comment
-  program     - the program implementing the change (usually this class)
+                  Default is to use the current hostname and user
+                  (or REMOTE_ADDR and REMOTE_USER if set)
+
+  program     - the program implementing the change (defaults to
+                this program [C<$0>])
   sourceinfo  - IP address of computer submitting comment
-  subject     - subject of comment
-  text        - the comment itself (HTML)
+                Defaults to the current hostname or $REMOTE_ADDR 
+                if set.
+
+  subject     - subject of comment (Required)
+  text        - the comment itself (HTML) (Required)
+  status      - whether to mail out the comment or not. Default
+                is not to mail anyone.
 
 =cut
 
@@ -378,6 +388,7 @@ sub _notify_feedback_system {
   $comment{author} = $email unless exists $comment{author};
   $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
   $comment{program} = $0 unless exists $comment{program};
+  $comment{status} = OMP__FB_HIDDEN unless exists $comment{status};
 
   # Disable transactions since we can only have a single
   # transaction at any given time with a single handle

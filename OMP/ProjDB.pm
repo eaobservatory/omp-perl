@@ -32,6 +32,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Error qw/ :try /;
 use OMP::Project;
 use OMP::FeedbackDB;
+use OMP::Constants qw/ :fb /;
 
 use Crypt::PassGen qw/passgen/;
 use Net::SMTP;
@@ -280,7 +281,8 @@ sub decrementTimeRemaining {
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
 				 subject => "Decrement time remaining",
-				 text => "$time seconds has been decremented from project <b>$projectid</b>",
+				 text => "$time seconds has been provisionally decremented from project <b>$projectid</b>",
+				 status => OMP__FB_INFO,
 				);
 
   # Transaction end
@@ -323,6 +325,7 @@ sub confirmTimeRemaining {
   $self->_notify_feedback_system(
 				 subject => "Consolidate time remaining",
 				 text => "Pending time has been subtracted from the time remaining for project <b>$projectid</b>",
+				 status => OMP__FB_IMPORTANT,
 				);
 
   # Transaction end
@@ -644,6 +647,7 @@ sub _mail_password {
     $self->_notify_feedback_system(
 				   subject => "Password change for $projectid",
 				   text => $fbmsg,
+				   status => OMP__FB_INFO,
 				   );
 
     # Now set up the mail
