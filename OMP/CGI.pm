@@ -286,7 +286,7 @@ sub _write_header {
 
   my $title = $self->html_title;
 
-  $theme->SetHTMLStartString("<html><head><title>$title</title>$style</head>");
+  $theme->SetHTMLStartString("<html><head><title>$title</title>$style<link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/></head>");
 
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
