@@ -85,7 +85,10 @@ C<undef> indicates that the range has no lower bound.
 
 sub max {
   my $self = shift;
-  $self->{Max} = shift if @_;
+  if (@_) {
+    my $max = shift;
+    $self->{Max} = $max;
+  }
   return $self->{Max};
 }
 
@@ -181,6 +184,7 @@ sub stringify {
 
   if (defined $min and defined $max) {
     # Bound
+    no warnings 'numeric'; #KLUGE
     if ($max < $min) {
       return "<=$max and >=$min";
     } else {
@@ -210,6 +214,7 @@ sub equate {
   # Need to check that both are objects
   return 0 unless defined $comparison;
   return 0 unless UNIVERSAL::isa($comparison, "OMP::Range");
+  no warnings 'numeric'; # KLUGE
   return 0 if $self->min != $comparison->min;
   return 0 if $self->max != $comparison->max;
 
