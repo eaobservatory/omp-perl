@@ -464,6 +464,9 @@ sub confirm_totals {
   # Now store the times
   $db->setTimeSpent( @acct );
 
+  # and update the night report
+  $nr->db_accounts( new OMP::TimeAcctGroup(accounts => \@acct) );
+
 }
 
 # Simple routine to remove the main frame and repopuplate it
