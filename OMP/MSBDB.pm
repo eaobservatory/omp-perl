@@ -243,6 +243,8 @@ because one has been started higher up). We do this since the
 begin transaction method might well decide to rollback a previous
 transaction if it is asked to start a new one.
 
+The scheduling fields (eg tauband and seeing) must be populated.
+
 Returns true on success and C<undef> on error (this may be
 modified to raise an exception).
 
@@ -280,6 +282,9 @@ sub storeSciProg {
   # And store the science program MSB summary into the database
   for my $msb ($args{SciProg}->msb) {
     my %summary = $msb->summary;
+
+    throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")
+      unless (exists $summary{tauband} or exists $summary{seeing});
 
     # Add the contents to the database
     $self->_insert_row( %summary );
@@ -761,8 +766,11 @@ sub _db_begin_trans {
   my $self = shift;
   return if $self->_intrans;
 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  my $dbh = $self->_dbhandle or
+    throw OMP::Error::DBError("Database handle not valid");
+
+  # Set DBI AutoCommit
+  $dbh->{AutoCommit} = 0;
 
   $dbh->do("BEGIN TRANSACTION")
     or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
@@ -782,6 +790,8 @@ sub _db_commit_trans {
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   if ($self->_intrans) {
+    $dbh->commit;
+    $dbh->{AutoCommit} = 1;
     $self->_intrans(0);
     $dbh->do("COMMIT TRANSACTION")
       or throw OMP::Error::DBError("Error committing transaction: $DBI::errstr");
@@ -805,6 +815,8 @@ sub _db_rollback_trans {
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
   if ($self->_intrans) {
     $self->_intrans(0);
+    $dbh->rollback;
+    $dbh->{AutoCommit} = 1;
     $dbh->do("ROLLBACK TRANSACTION")
       or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
   }
