@@ -31,6 +31,7 @@ use Carp;
 use Time::Piece;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::FBQuery;
 use OMP::Project;
 use OMP::ProjDB;
 use OMP::UserServer;
@@ -73,9 +74,9 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =over 4
 
-=item B<getComments>
+=item B<getComents>
 
-Returns an array of hashes containing comments for the project. If
+Returns an array of hashes containing feedback comments. If
 arguments are given they should be in the form of a hash whos keys are
 B<status> and B<order>.  Value for B<status> should be an array
 reference containing the desired status types of the comments to be
@@ -97,19 +98,54 @@ sub getComments {
 
   my %args = (%defaults, @_);
 
-  # Verify the password
-  my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
-			        DB => $self->db );
+  # Form status portion of XML query
+  my $status_part = join("", map {"<status>" . $_ . "</status>"} @{$args{status}});
 
-  throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
-    unless $projdb->verifyPassword( $self->password );
+  # Verify project password if projectid is set
+  if ($self->projectid) {
+    # Verify the password
+    my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
+				  DB => $self->db );
+
+    throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
+      unless $projdb->verifyPassword( $self->password );
+  }
+
+  # Form complete XML Query
+  my $xml = "<FBQuery>".
+    ($self->projectid ? "<projectid>". $self->projectid ."</projectid>" : "").
+      $status_part .
+	"</FBQuery>";
+
+  # Create the query object
+  my $query = new OMP::FBQuery( XML => $xml );
 
   # Get the comments
-  my $comments = $self->_fetch_comments( %args );
+  my $comments = $self->_fetch_comments( $query );
 
   # Strip out the milliseconds
   for (@$comments) {
     $_->{date} =~ s/:000/ /g;
+  }
+
+  # Group by project ID if we might have comments for multiple projects
+  if (! $self->projectid) {
+    my %project;
+    if ($args{order} eq 'ascending') {
+      map {push @{$project{$_->projectid}}, $_} sort {$a->{commid} <=> $b->{commid}} @$comments;
+    } else {
+      map {push @{$project{$_->projectid}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;	
+    }
+    $comments = \%project;
+  } else {
+    # Just order comments by comment ID if only returning results for a single project
+    my @sorted;
+    if ($args{order} eq 'ascending') {
+      @sorted = map {$_} sort {$a->{commid} <=> $b->{commid}} @$comments;
+    } else {
+      @sorted = map {$_} sort {$b->{commid} <=> $a->{commid}} @$comments;
+    }
+    $comments = \@sorted;
   }
 
   return $comments;
@@ -129,7 +165,7 @@ depending on its status.
 
 =item B<author>
 
-The name of the author of the comment.
+The comment author provided as an object of class C<OMP::User>
 
 =item B<subject>
 
@@ -146,6 +182,16 @@ The IP address of the machine comment is being submitted from.
 =item B<text>
 
 The text of the comment (HTML tags are encouraged).
+
+=item B<status>
+
+The status of the comment (see OMP::Constants for available statuses).  Defaults
+to B<OMP__FB_IMPORTANT>.
+
+=item B<msgtype>
+
+The type of message the comment containts (see OMP::Constants for available types).
+Defaults to B<OMP__FB_MSG_COMMENT>.
 
 =back
 
@@ -164,7 +210,8 @@ sub addComment {
 		   date => $t->strftime("%b %e %Y %T"),
 		   program => 'unspecified',
 		   sourceinfo => 'unspecified',
-		   status => OMP__FB_IMPORTANT, );
+		   status => OMP__FB_IMPORTANT,
+		   msgtype => OMP__FB_MSG_COMMENT, );
 
   # Override defaults
   $comment = {%defaults, %$comment};
@@ -174,6 +221,9 @@ sub addComment {
     throw OMP::Error::BadArgs("$_ must be specified")
       unless $comment->{$_};
   }
+
+  # Prepare text for storage and subsequent display
+  $comment->{text} = OMP::General->preify_text($comment->{text});
 
   # Must have sourceinfo if we don't have an author
   #  if (! $comment->{author} and ! $comment->{sourceinfo}) {
@@ -287,11 +337,14 @@ sub _store_comment {
 				     'subject',
 				     'program',
 				     'sourceinfo',
-				     'status',},
+				     'status',
+				   },
 			  {
 			   TEXT => $comment->{text},
 			   COLUMN => 'text',
-			  });
+			  },
+			  $comment->{msgtype},
+			);
 
 }
 
@@ -451,18 +504,14 @@ sub _mail_comment_info {
 =item B<_fetch_comments>
 
 Internal method to retrieve the comments from the database.  
+
 The hash argument controls the sort order of the results and the
 status of comments to be retrieved.
 
-Only argument is an array reference containing the desired statuses of the
-comments to be returned.
+Only argument is a query represented in the form of an C<OMP::FBQuery>
+object.
 
-  $db->_fetch_comments( %args );
-
-Recognized hash keys are:
-
- order: "descending" or "ascending" by date
- status: Reference to array listing all desired status types
+  $db->_fetch_comments( $query );
 
 Returns either a reference or a list depending on the calling context.
 
@@ -470,24 +519,12 @@ Returns either a reference or a list depending on the calling context.
 
 sub _fetch_comments {
   my $self = shift;
-  my %args = @_;
+  my $query = shift;
 
-  my $projectid = $self->projectid;
+  # Generate the SQL query
+  my $sql = $query->sql( $FBTABLE );
 
-  my $order;
-  ($args{order} eq 'descending') and $order = 'desc'
-    or $order = 'asc';
-
-  $args{status} = [OMP__FB_IMPORTANT, OMP__FB_INFO] unless defined $args{status}
-    and ref($args{status}) eq "ARRAY";
-
-  # Construct the SQL
-  # Use convert() in select statement to get seconds back with the date field.
-  my $sql = "select author, entrynum, commid, date, program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
-            "AND status in (" . join(',',@{$args{status}}) . ") " .
-	    "ORDER BY commid $order";
-
-  # Fetch the data
+  # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Replace comment user IDs with OMP::User objects and
