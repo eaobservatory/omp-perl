@@ -25,6 +25,8 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use lib qw(/jac_sw/omp/msbserver);
 use OMP::ProjServer;
+use OMP::SpServer;
+use OMP::FBServer;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -32,7 +34,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/ proj_status_table /);
+@EXPORT_OK = (qw/fb_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -83,8 +85,93 @@ sub proj_status_table {
         "</table><p>";
 }
 
+=item B<msb_sum_hidden>
+
+Creates text showing current number of msbs, but not actually display the
+program details.
+
+msb_sum_hidden($cgi, %cookie);
+
+=cut
+
+sub msb_sum_hidden {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $sp;
+  eval {
+    $sp = OMP::SpServer->programDetails($cookie{projectid},
+					$cookie{password},
+					'data' );
+  };
+
+  if ($@) {
+    print "Error obtaining science program details<$@>";
+    $sp = [];
+  }
+
+  print $q->h2("Current MSB status"),
+        scalar(@$sp). " MSBs currently stored in database. Click <a href='feedback.pl?msb=1'>here</a> to list them all.",
+	$q->hr;
+
+}
+
+=item B<fb_entries>
+
+Get the feedback entries and display them
+
+fb_entries($cgi, %cookie);
+
+=cut
+
+sub fb_entries {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $comments = OMP::FBServer->getComments( $cookie{projectid},
+					     $cookie{password} );
+
+  print $q->h2("Feedback entries"),
+        "<a href='feedback.pl?comment=1'>Add a comment</a>",
+	$q->p;
+
+  my $i = 1;
+  foreach my $row (@$comments) {
+    print "<font size=+1>Entry $i (on $row->{'date'} by $row->{'author'})</b></font>",
+          $q->p,
+          "$row->{'text'}",
+	  $q->p;
+    $i++;
+  }
+
+}
+
+=item B<fb_output>
+
+Creates the page showing feedback entries.
+
+fb_output($cgi, %cookie);
+
+=cut
+
+sub fb_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  print  $q->h1("Feedback for project $cookie{projectid}");
+
+  proj_status_table($q, %cookie);
+  msb_sum_hidden($q, %cookie);
+  fb_entries($q, %cookie);
+}
+
+
 =back
 
+=head1 AUTHORS
+
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
 
