@@ -327,9 +327,9 @@ sub _mail_comment {
 		  to => $addrlist,
 		  from => "$comment->{author} <flex\@jach.hawaii.edu>",
 		  subject => $subject,
-#		  headers => {
-#			      bcc => OMP_CONTACT_PERSON,
-#			     }, );
+		  headers => {
+			      bcc => OMP_CONTACT_PERSON,
+			     }, );
 		);
   if ($cclist) {
     $details{headers}->{cc} = join(',',@$cclist);
