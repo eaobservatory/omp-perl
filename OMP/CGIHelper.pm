@@ -150,8 +150,10 @@ sub fb_entries {
   my $q = shift;
   my %cookie = @_;
 
+  my $status = [qw/ OMP__FB_DELETE /];
   my $comments = OMP::FBServer->getComments( $cookie{projectid},
-					     $cookie{password} );
+					     $cookie{password},
+					     $status,);
 
   print $q->h2("Feedback entries"),
         "<a href='fbcomment.pl'>Add a comment</a>",
