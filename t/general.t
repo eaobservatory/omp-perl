@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 170;
+use Test::More tests => 172;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -307,7 +307,10 @@ my @input = (
 	      projectid => 'm03ad07b',
 	      result => 'm03ad07b',
 	     },
-
+	     {
+	      projectid => 'm04bu35a',
+	      result=>'m04bu35a',
+	     }
 	    );
 
 for my $input (@input) {
@@ -414,6 +417,7 @@ my %extract = (
 	       'm03au05fb' => 'a fallback project: m03au05fb',
 	       'u/ec/1'    => 'A UKIRT E&C project u/ec/1',
                'm03ad07a'  => 'A JCMT DDT project m03ad07a',
+	       'm03bu135d' => 'A fallback project m03bu135d of a different type',
 	      );
 
 for my $proj (keys %extract) {
