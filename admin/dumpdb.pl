@@ -11,6 +11,8 @@ use FindBin;
 use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
 use Storable qw(nstore);
+use File::Copy;
+use Time::Piece;
 
 my $dumpdir = "/DSS/omp-cache/tables";
 
@@ -23,7 +25,7 @@ my $dbh = $db->handle;
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser ompuser/;
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser ompuser omptimeacct/;
 
 foreach my $tab (@tab) {
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab")
@@ -36,6 +38,28 @@ foreach my $tab (@tab) {
   }
   nstore($ref, "$tab");
 
+  # Take a permanent copy of the old dump if it is larger than
+  # the new dump.
+  @new_dump = stat($tab);
+  @old_dump = stat($tab . "_2");
+  if (@old_dump[7] > @new_dump[7]) {
+    $date = localtime;
+    copy($tab . "_2", $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"));
+
+    # If new dump is less than 75 percent of old dump size 
+    # send a warning
+    if (@new_dump / @old_dump * 100 < 75) {
+      my $msg = MIME::Lite->new(
+				From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
+				To => "kynan\@jach.hawaii.edu",
+				Subject => "Warning: table $tab has shrunken significantly",
+				Data => "New size is @new_dump[7].  Was previously @old_dump[7].  This could mean an accidental deletion has occurred.",
+			       );
+
+      MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+      $msg->send;
+    }
+  }
 }
 
 $dbh->disconnect;
