@@ -45,7 +45,7 @@ our $VERSION = (qw$Revision$ )[1];
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $faulttable, $resptable );
+  $sql = $query->sql( $usertable );
 
 Returns undef if the query could not be formed.
 
@@ -136,6 +136,17 @@ sub _post_process_hash {
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
                            [qw/ userid alias /]);
+
+
+  # These entries have a different column name in the table,
+  # so replace them with the actual column name
+  for (qw/ name /) {
+    if (exists $href->{$_}) {
+      my $key = "u".$_;
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
