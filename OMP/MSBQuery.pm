@@ -125,7 +125,7 @@ sub airmass {
 
   # Now determine the final range based on both
   # airmass and elevation.
-  if (defined $arimass_el) {
+  if (defined $airmass_el) {
     $airmass->intersection( $airmass_el )
       or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect");
   }
