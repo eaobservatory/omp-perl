@@ -126,11 +126,11 @@ sub retrieve_archive {
   # Retrieve the ObsGroup object, if it exists.
   if( -e $filename ) {
     $obsgrp = retrieve( $filename );
-  }
 
-  # Because the comments may have changed since the cache
-  # was created, we need to get them again.
-  $obsgrp->commentScan;
+    # Because the comments may have changed since the cache
+    # was created, we need to get them again.
+    $obsgrp->commentScan;
+  }
 
   # And return.
   return $obsgrp;
@@ -166,13 +166,17 @@ sub unstored_files {
     throw OMP::Error::BadArgs( "Must supply a query to retrieve list of files not existing in cache" );
   }
 
+  my @difffiles;
   my @files;
+  my @ofiles;
 
   my $obsgrp = retrieve_archive( $query );
 
   # Get a list of files that are stored in the cache.
-  my @obs = $obsgrp->obs;
-  my @ofiles = map { $_->filename } @obs;
+  if( defined( $obsgrp ) ) {
+    my @obs = $obsgrp->obs;
+    @ofiles = map { $_->filename } @obs;
+  }
 
   my $telescope;
   # Need a try block because $query->telescope will throw
@@ -226,17 +230,17 @@ sub unstored_files {
 
   # At this point we have two arrays, one (@ofiles) containing
   # a list of files that have already been cached, and the
-  # other (@ifiles) containing a list of all files applicable
+  # other (@files) containing a list of all files applicable
   # to this query. We need to find all the files that exist
   # in the second array but not the first.
 
   my %seen;
   @seen{@ofiles} = ();
   foreach my $item (@ifiles) {
-    push( @files, $item ) unless exists $seen{$item};
+    push( @difffiles, $item ) unless exists $seen{$item};
   }
 
-  return ( $obsgrp, @files );
+  return ( $obsgrp, @difffiles );
 }
 
 =item B<cached_on>
@@ -321,6 +325,10 @@ Returns true if the query is simple and false otherwise.
 
 sub simple_query {
   my $query = shift;
+
+  my $isfile = $query->isfile;
+  $query->isfile(1);
+
   my $query_hash = $query->query_hash;
 
   my $simple = 1;
@@ -329,11 +337,14 @@ sub simple_query {
     if( uc( $key ) ne 'DATE' and
         uc( $key ) ne 'INSTRUMENT' and
         uc( $key ) ne 'TELESCOPE' and
-        uc( $key ) ne 'PROJECTID' ) {
+        uc( $key ) ne 'PROJECTID' and
+        uc( $key ) ne '_ATTR' ) {
       $simple = 0;
       last;
     }
   }
+
+  $query->isfile($isfile);
 
   return $simple;
 }
