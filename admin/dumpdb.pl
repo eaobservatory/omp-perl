@@ -3,6 +3,15 @@
 # Dump the contents of the omp tables to disk
 # [excluding the sciprog, user, obs and msb tables]
 
+# The sciprog table is excluded because there are problems
+# with text truncation for large science programs and we 
+# have a special dumpsciprog routine specifically for this.
+# We might be able to overcome this by using
+#
+#   SET TEXTSIZE 330000000
+#
+# on sybase.
+
 use warnings;
 use strict;
 
