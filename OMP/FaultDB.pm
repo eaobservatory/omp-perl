@@ -91,7 +91,7 @@ sub fileFault {
   # Mail out the fault
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
-#  $self->_mail_fault($fault);
+  $self->_mail_fault($fault);
 
   # Return the id
   return $id;
