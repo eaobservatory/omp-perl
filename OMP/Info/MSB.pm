@@ -867,6 +867,9 @@ The callback is passed the calibration object.
 
   @ha = $msb->_process_coords( sub { my $c = shift; return $c->ha} );
 
+If any type other than CAL exists the CAL is removed in order to
+give more space to the more important information.
+
 =cut
 
 sub _process_coords {
@@ -882,8 +885,14 @@ sub _process_coords {
     } else {
       push(@results, "CAL");
     }
-
   }
+
+  # remove CAL if we have more than one result
+  if (scalar(@results) > 1 ) {
+    # look for CAL
+    @results = grep { $_ !~ /^CAL$/ } @results;
+  }
+
   @results = $self->_compress_array( @results );
   return @results;
 }
