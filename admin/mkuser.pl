@@ -26,6 +26,8 @@
 use warnings;
 use strict;
 
+use lib qw(/jac_sw/omp/msbserver);
+
 use OMP::UserDB;
 use OMP::User;
 use OMP::UserServer;
