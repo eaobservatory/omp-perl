@@ -158,15 +158,14 @@ sub proj_status_table {
   # Get the support
   my $supportemail = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
-  print "<table border='0' cellspacing=1 cellpadding=2 width='100%' bgcolor='#bcbee3'><tr>",
-	"<td colspan=3><font size=+2><b>Current project status</b></font></td>",
-	"<tr bgcolor=#7979aa>",
+  print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
+	"<tr>",
 	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid)."</td>",
 	"<td><b>Title:</b> " . $project->title . "</td>",
 	"<td> $case_href </td>",
-	"<tr bgcolor='#7979aa'><td colspan='2'><b>CoI:</b> $coiemail</td>",
+	"<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
 	"<td><b>Staff Contact:</b> $supportemail</td>",
-        "<tr bgcolor='#7979aa'><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
+        "<tr><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
 	"<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
 	"<td><b>Country:</b>" . $project->country . "</td>",
         "</table><p>";
@@ -208,7 +207,7 @@ sub proj_sum_table {
                  disabled => "#e26868",
 		 heading => "#c2c5ef",);
 
-  my $bgcolor = $bgcolor{dark};
+  my $rowclass = 'row_shaded';
 
   my $hsem;
   my $hcountry;
@@ -252,9 +251,9 @@ sub proj_sum_table {
     my $support = join(", ", map {$_->userid} $project->support);
 
     # Make it noticeable if the project is disabled
-    (! $project->state) and $bgcolor = $bgcolor{disabled};
+    (! $project->state) and $rowclass = 'row_disabled';
 
-    print "<tr bgcolor=$bgcolor valign=top>";
+    print "<tr class=${rowclass} valign=top>";
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
     print "<td>". $support ."</td>";
@@ -267,9 +266,9 @@ sub proj_sum_table {
     print "<td align=center>". $project->cloudtxt ."</td>";
     print "<td>". $project->title ."</td>";
 
-    # Alternate background color
-    ($bgcolor eq $bgcolor{dark}) and $bgcolor = $bgcolor{light}
-      or $bgcolor = $bgcolor{dark};
+    # Alternate row class style
+    ($rowclass eq 'row_shaded') and $rowclass = 'row_clear'
+      or $rowclass = 'row_shaded';
   }
 
   print "</table>";
