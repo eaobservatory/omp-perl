@@ -648,6 +648,14 @@ sub SpIterJiggleObs {
     %odf = ( %odf, $self->$method( %info ) );
   }
 
+  # If we have asked for LONG but not SHORT give them short anyway
+  if ($odf{BOLOMETERS} =~ /^LONG/i && $odf{BOLOMETERS} !~ /SHORT/i) {
+    $odf{BOLOMETERS} .= ",SHORT";
+  } elsif ($odf{BOLOMETERS} =~ /^SHORT/i && $odf{BOLOMETERS} !~ /LONG/i) {
+    # Else we have SHORT but no LONG - add LONG
+    $odf{BOLOMETERS} .= ",LONG";
+  }
+
   return %odf;
 
 }
@@ -1397,7 +1405,7 @@ sub getSubInst {
     throw OMP::Error::TranslateFail("Bolometer $bol not present in any SCUBA sub-instrument")
       unless defined $sub;
   }
-  print "Associated sub instrument: $sub\n";
+  print "Associated sub instrument: $sub\n" if $DEBUG;
   return $sub;
 }
 
