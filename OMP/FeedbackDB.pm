@@ -93,7 +93,7 @@ sub getComments {
     unless $projdb->verifyPassword( $self->password );
 
   # Get the comments
-  my $comment = $self->_fetch_comments( $amount, $status );
+  my $comment = $self->_fetch_comments( $status );
 
 
   # Throw out comments that with a status that isn't wanted
@@ -209,7 +209,7 @@ sub addComment {
 
 Alters the status of a comment.
 
-  $db->alterStatus( $projectid, $commentid, $adminpass, $status);
+  $db->alterStatus( $commentid, $status);
 
 Last argument should be a feedback constant as defined in C<OMP::Constants>.
 
@@ -217,19 +217,26 @@ Last argument should be a feedback constant as defined in C<OMP::Constants>.
 
 sub alterStatus {
   my $self = shift;
-  my $projectid = shift;
   my $commentid = shift;
-  my $adminpass = shift;
   my $status = shift;
 
   # Verify admin password.
+  my $db = new OMP::BaseDB( Password => $self->password,
+			    DB => $self->db );
+
+  $db->_verify_administrator_password;
 
   # Begin trans
+  $self->_db_begin_trans;
+  $self->_dblock;
 
   # Alter comment's status
   $self->_alter_status( $commentid, $status );
 
   # End trans
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
 
 }
 
@@ -386,7 +393,7 @@ sub _fetch_comments {
 
   # Fetch the data
   # Use convert() in select statement to get seconds back with the date field.
-  my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\"" .
+  my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
             "AND status in (" . join(',',@$status) . ")";
 
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} }) or
@@ -415,12 +422,12 @@ sub _alter_status {
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  my $sql = "UPDATE $FBTABLE" .
-            "SET status = $status" .
+  my $sql = "UPDATE $FBTABLE " .
+            "SET status = $status " .
 	    "WHERE commid = $commid";
 
   $dbh->do($sql)
-;
+    or throw OMP::Error::DBError("Statement Failed: " .$dbh->errstr);
 }
 
 =back
