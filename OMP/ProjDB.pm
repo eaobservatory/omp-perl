@@ -474,23 +474,21 @@ in the database table associated with the current object.
 
 =cut
 
+# This could be done by calling _get_projects with an XML
+# query of <projectid>$projectid</projectid>
+
 sub _get_project_row {
   my $self = shift;
-
-  # Database
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   # Project
   my $projectid = $self->projectid;
 
-
   # Go and do the database thing
-  my $statement = "SELECT * FROM $PROJTABLE WHERE projectid = '$projectid' ";
-  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} })
-    or throw OMP::Error::DBError("Error retrieving project $projectid:".
-				$dbh->errstr);
+  my $sql = "SELECT * FROM $PROJTABLE WHERE projectid = '$projectid' ";
 
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  # Throw an exception if we got no results
   throw OMP::Error::UnknownProject( "Unable to retrieve details for project $projectid" )
     unless @$ref;
 
@@ -603,17 +601,11 @@ sub _get_projects {
 
   my $sql = $query->sql( $PROJTABLE );
 
-  # Database 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
   # Run the query
-  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} })
-    or throw OMP::Error::DBError("Error retrieving project listing:".
-				$dbh->errstr);
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+  # Return the results as Project objects
   return map { new OMP::Project( %{$_} ); } @$ref;
-
 }
 
 =item B<_mail_password>

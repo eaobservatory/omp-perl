@@ -442,7 +442,8 @@ sub _db_insert_data {
       $dummytext++;
 
     } else {
-      throw OMP::Error::DBError("Do not understand how to insert a column '$column' into a database");
+      throw OMP::Error::DBError("Do not understand how to insert data of class '".
+				ref($column) ."' into a database");
     }
 
   }
@@ -468,12 +469,48 @@ sub _db_insert_data {
 
     # Now replace the dummy text using writetext
     $dbh->do("declare \@val varbinary(16)
-select \@val = textptr($col) from $table where text like \"$dummy\"
+select \@val = textptr($col) from $table where $col like \"$dummy\"
 writetext $table.$col \@val '$text'")
-    or throw OMP::Error::DBError("Error inserting text data into table $table, column $col into database: ". $dbh->errstr);
+    or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
 
   }
 
+}
+
+=item B<_db_retrieve_data_ashash>
+
+Retrieve data from a database table as a reference to
+an array containing references to hashes for each row retrieved.
+Requires the SQL to be used for the query.
+
+ $ref = $db->_db_retrieve_data_ashash( $sql );
+
+Additional arguments are assumed to be "bind values" and are
+passed to the DBI method directly.
+
+ $ref = $db->_db_retrieve_data_ashash( $sql, @bind_values );
+
+=cut
+
+sub _db_retrieve_data_ashash {
+  my $self = shift;
+  my $sql = shift;
+
+  # Get the handle
+  my $dbh = $self->_dbhandle
+    or throw OMP::Error::DBError("Database handle not valid");
+
+  # Run query
+  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} },@_)
+    or throw OMP::Error::DBError("Error retrieving data using [$sql]:".
+                                $dbh->errstr);
+
+  # Check to see if we only got a partial return array
+  throw OMP::Error::DBError("Only retrieved partial dataset: " . $dbh->errstr)
+    if $dbh->err;
+
+  # Return the results
+  return $ref;
 }
 
 =item B<_db_update_data>

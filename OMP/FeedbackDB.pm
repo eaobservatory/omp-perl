@@ -12,7 +12,7 @@ OMP::FeedbackDB - Manipulate the feedback database
 
   $db->addComment( $comment );
   $db->getComments( \@status );
-  $db->alterStatus( $projectid, $commentid, $adminpass, $status );
+  $db->alterStatus( $commentid, $status );
 
 
 =head1 DESCRIPTION
@@ -71,15 +71,17 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =item B<getComments>
 
-Returns an array of hashes containing comments for the project. If arguments are given they should be
-in the form of a hash whos keys are B<status> and B<order>.  Value for B<status> should be an
-array reference containing the desired status types of the comments to be returned.
-Status types are defined in C<OMP::Constants>.  Value for B<order> should be 'ascending' or
-'descending'.  Defaults to returning comments with a status of B<OMP__FB_IMPORTANT> or B<OMP__FB_INFO>,
-and sorts the comments in ascending order.
+Returns an array of hashes containing comments for the project. If
+arguments are given they should be in the form of a hash whos keys are
+B<status> and B<order>.  Value for B<status> should be an array
+reference containing the desired status types of the comments to be
+returned.  Status types are defined in C<OMP::Constants>.  Value for
+B<order> should be 'ascending' or 'descending'.  Defaults to returning
+comments with a status of B<OMP__FB_IMPORTANT> or B<OMP__FB_INFO>, and
+sorts the comments in ascending order.
 
   @status = ( qw/OMP__FB_IMPORTANT OMP__FB_INFO/ );
-  $db->getComments( status => \@status, order => 'descending' );
+  $comm = $db->getComments( status => \@status, order => 'descending' );
 
 =cut
 
@@ -360,20 +362,28 @@ sub _mail_comment_info {
 
 =item B<_fetch_comments>
 
-Internal method to retrive the comments from the database.  Only argument is an
-array reference containing the desired statuses of the comments to be returned.
-Returns either a reference or a list depending on what is wanted.
+Internal method to retrieve the comments from the database.  
+The hash argument controls the sort order of the results and the
+status of comments to be retrieved.
 
-  $db->_fetch_comments( $status );
+Only
+argument is an array reference containing the desired statuses of the
+comments to be returned.
+
+  $db->_fetch_comments( %args );
+
+Recognized hash keys are:
+
+ order: "descending" or "ascending" by date
+ status: Reference to array listing all desired status types
+
+Returns either a reference or a list depending on the calling context.
 
 =cut
 
 sub _fetch_comments {
   my $self = shift;
   my %args = @_;
-
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   my $projectid = $self->projectid;
 
@@ -384,14 +394,14 @@ sub _fetch_comments {
   $args{status} = [OMP__FB_IMPORTANT, OMP__FB_INFO] unless defined $args{status}
     and ref($args{status}) eq "ARRAY";
 
-  # Fetch the data
+  # Construct the SQL
   # Use convert() in select statement to get seconds back with the date field.
   my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
             "AND status in (" . join(',',@{$args{status}}) . ") " .
 	    "ORDER BY commid $order";
 
-  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} }) or
-    throw OMP::Error::DBError("Select Failed: " .$dbh->errstr);
+  # Fetch the data
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   if (wantarray) {
     return @$ref;

@@ -806,15 +806,17 @@ Currently we retrieve the timestamp from a database table.
 
 sub _get_old_sciprog_timestamp {
   my $self = shift;
-
   my $proj = $self->projectid;
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  my $ref = $dbh->selectall_arrayref("SELECT timestamp FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
+  # Construct and run the query
+  my $sql = "SELECT timestamp FROM $SCITABLE WHERE projectid = '$proj'";
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Assume that no $ref means no entry in db
   return undef unless defined $ref;
+
+  # Assume that an emptry array means no entry in db
+  return undef unless @$ref;
 
   my $tstamp = $ref->[0]->{timestamp};
   return $tstamp;
@@ -896,10 +898,14 @@ sub _db_fetch_sciprog {
   # it to the length of the current science program but frossie
   # insists that I just pick a large number and be done with it
   # (until the JCMT board is over)
-  my $ref = $dbh->selectall_arrayref("SET TEXTSIZE 330000000
-(SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')", { Columns => {}});
+  my $sql = "SET TEXTSIZE 330000000 
+            (SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')";
 
-  throw OMP::Error::SpRetrieveFail("Error retrieving science program XML from database: ". $dbh->errstr) unless defined $ref;
+  # Run the query
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  # It is not there!
+  throw OMP::Error::SpRetrieveFail("Science program does not seem to be in database") unless @$ref;
 
   return $ref->[0]->{sciprog};
 }
@@ -988,7 +994,6 @@ each MSB summary.
 =cut
 
 sub _insert_rows {
-
   my $self = shift;
   my @summaries = @_;
 
@@ -1086,7 +1091,7 @@ sub _insert_row {
 			  $data{seeing}->min, $seeingmax, $data{priority},
 			  $data{telescope}, $data{moon}, $data{cloud},
 			  $data{timeest}, $data{title},
-			  $data{datemin}, $data{datemax});
+			  "$data{datemin}", "$data{datemax}");
 
   # Now the observations
   # We dont use the generic interface here since we want to
@@ -1121,8 +1126,6 @@ sub _insert_row {
     $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and 
                                      $obs->{wavelength} =~ /\d/);
 
-    print "Inserting row: ",Dumper($obs) if $DEBUG;
-
     $obsst->execute(
 		    $obsid, $index, $proj, $obs->{instrument}, 
 		    $obs->{type}, $obs->{pol}, $obs->{wavelength},
@@ -1133,7 +1136,6 @@ sub _insert_row {
       or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
 
   }
-
 
 }
 
@@ -1191,20 +1193,17 @@ sub _fetch_row {
 
   # and construct the SQL command using bind variables so that 
   # we dont have to worry about quoting
-  my $statement = "SELECT * FROM $MSBTABLE WHERE" .
+  my $sql = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
-  print "STATEMENT: $statement\n" if $DEBUG;
+  print "STATEMENT: $sql\n" if $DEBUG;
 
-  # prepare and execute
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  # Run the query
+  my $ref = $self->_db_retrieve_data_ashash($sql,
+					    map { $query{$_} } sort keys %query
+					   );
 
-  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} },
-				      map { $query{$_} } sort keys %query
-				    );
-
-  throw OMP::Error::DBError("Error fetching specified row:".$DBI::errstr)
-    unless defined $ref;
+  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
+    unless @$ref;
 
   # The result is now the first entry in @$ref
   my %result;
@@ -1233,29 +1232,18 @@ sub _run_query {
   # Get the sql
   my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE );
 
-  # prepare and execute
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  # Run the initial query
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
-  throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
-    unless defined $ref;
+  # No point hanging around if nothing retrieved
+  return () unless @$ref;
 
   # Now for each MSB we need to retrieve all of the Observation
   # information and store it in the results hash
   # Convention dictates that this information ...???
-  # For speed, do the query in one go and then sort out the result
   my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
   $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
-  my $obsref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
-
-  # Its possible to get an error after some data has been
-  # retrieved...
-  throw OMP::Error::DBError("Error retrieving matching observations:".
-				 $dbh->errstr)
-    if $dbh->err;
-
-
+  my $obsref = $self->_db_retrieve_data_ashash( $sql );
 
   # Now loop over the results and store the observations in the
   # correct place. First need to create the obs arrays by msbid

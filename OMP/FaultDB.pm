@@ -355,21 +355,11 @@ sub _query_faultdb {
   my $self = shift;
   my $query = shift;
 
+  # Get the SQL
   my $sql = $query->sql( $FAULTTABLE, $FAULTBODYTABLE);
 
-  # prepare and execute
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
-  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
-  throw OMP::Error::DBError("Error executing fault query:".$DBI::errstr)
-    unless defined $ref;
-
-  # Its possible to get an error after some data has been
-  # retrieved...
-  throw OMP::Error::DBError("Error retrieving fault data ".
-				 $dbh->errstr)
-    if $dbh->err;
+  # Fetch the data
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Now loop through the faults, creating objects and
   # matching responses. 

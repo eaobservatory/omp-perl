@@ -309,24 +309,20 @@ sub _fetch_msb_done_info {
 
   # and construct the SQL command using bind variables so that 
   # we dont have to worry about quoting
-  my $statement = "SELECT * FROM $MSBDONETABLE WHERE" .
+  my $sql = "SELECT * FROM $MSBDONETABLE WHERE" .
     join("AND", @substrings);
 
   # If we have a date field need to add a bit of extra
   # query
   if ($date) {
-    $statement .= " date > '$date' AND date < dateadd(dd,1,'$date') " . 
+    $sql .= " date > '$date' AND date < dateadd(dd,1,'$date') " . 
       " AND status = " . OMP__DONE_DONE();
   }
 
-
-  # prepare and execute
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
-  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} },
-				      map { $args{$_} } sort keys %args
-				    );
+  # Run the query
+  my $ref = $self->_db_retrieve_data_ashash( $sql,
+					     map { $args{$_} } sort keys %args
+					   );
 
   # If they want all the info just return the ref
   # else return the first entry
@@ -370,10 +366,6 @@ the main purpose of the table.
 sub _add_msb_done_info {
   my $self = shift;
   my %msbinfo = @_;
-
-  # Get the DB handle
-  my $dbh = $self->_dbhandle or
-    throw OMP::Error::DBError("Database handle not valid");
 
   # Get the projectid
   $msbinfo{projectid} = $self->projectid
