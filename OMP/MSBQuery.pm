@@ -347,7 +347,7 @@ sub sql {
 
                 DROP TABLE $tempcount";
 
-  print "SQL: $sql\n";
+#  print "SQL: $sql\n";
 
 
   return "$sql\n";
