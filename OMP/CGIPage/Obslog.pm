@@ -148,8 +148,8 @@ sub list_observations {
   ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
 
   my $tempinst;
-  if( $inst =~ /rxa/i ) { $tempinst = "rxa3i"; }
-  elsif( $inst =~ /rxb/i ) { $tempinst = "rxb"; }
+  if( $inst =~ /rxa/i ) { $tempinst = "rxa3"; }
+  elsif( $inst =~ /rxb/i ) { $tempinst = "rxb3"; }
   else { $tempinst = $inst; }
 
   my $telescope = OMP::Config->inferTelescope( 'instruments', $tempinst );
