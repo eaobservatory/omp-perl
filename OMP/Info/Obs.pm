@@ -33,7 +33,7 @@ use warnings;
 use Carp;
 use OMP::Range;
 use OMP::General;
-use OMP::Constants qw/ :obs /;
+use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
 use OMP::ObslogDB;
 use OMP::DBbackend;
@@ -112,6 +112,7 @@ sub readfile {
 
   try {
     my $FITS_header;
+
     if( $filename =~ /\.sdf$/ ) {
 
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
@@ -130,9 +131,9 @@ sub readfile {
 
     my $Error = shift;
 
-    OMP::General->log_message("OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'} );
-    croak "OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'} . "\n";
+    OMP::General->log_message("OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
 
+    throw OMP::Error::ObsRead("Error reading FITS header from file: " . $Error->{'-text'});
   };
 
   return $obs;
