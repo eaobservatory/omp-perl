@@ -464,7 +464,41 @@ sub statusText {
   return $INVERSE_STATUS{$self->status};
 }
 
+=item B<urgencyText>
 
+=cut
+
+sub urgencyText {
+  my $self = shift;
+  return $INVERSE_URGENCY{$self->urgency};
+}
+
+=item B<isUrgent>
+
+True if the fault is urgent.
+
+  $isurgent = $fault->isUrgent();
+
+=cut
+
+sub isUrgent {
+  my $self = shift;
+  my $urgcode = $self->urgency;
+  return ( $urgcode == $URGENCY{Urgent} ? 1 : 0);
+}
+
+
+=item B<isOpen>
+
+Is the fault open (1) or closed (0)?
+
+=cut
+
+sub isOpen {
+  my $self = shift;
+  my $status = $self->status;
+  return ( $status == OPEN ? 1 : 0 );
+}
 
 =item B<subject>
 
