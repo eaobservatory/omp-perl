@@ -334,7 +334,7 @@ sub _mail_comment {
 			     }, );
 
   if ($cclist) {
-    $details{headers}->{cc} = join(',',@$cclist);
+    $details{cc} = join(',',@$cclist);
   }
 
   # include a BCC to the OMP person
