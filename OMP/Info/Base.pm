@@ -168,7 +168,9 @@ sub CreateAccessors {
 		   my $self = shift;
 		   if (@_) { 
 		     my $argument = shift;
-		     CLASS_CHECK;
+         if (defined $argument) {
+		       CLASS_CHECK;
+         }
 		     $self->{METHOD} = $argument;
 		   }
 		   return $self->{METHOD};
@@ -204,18 +206,25 @@ sub CreateAccessors {
 		 my $self = shift;
 		 $self->{METHOD} = {} unless $self->{METHOD};
 		 if (@_) {
-		   my %new;
-		   if (ref($_[0]) eq 'HASH') {
-		     %new = %{$_[0]};
-		   } else {
-		     %new = @_;
-		   }
-		   HASH_CLASS_CHECK;
-		   %{ $self->{METHOD} } = %new;
+       if (defined $_[0]) {
+  		   my %new;
+         if (ref($_[0]) eq 'HASH') {
+           %new = %{$_[0]};
+         } else {
+           %new = @_;
+         }
+         HASH_CLASS_CHECK;
+         %{ $self->{METHOD} } = %new;
+       } else {
+         # clear class
+         $self->{METHOD} = undef;
+         return undef;
+       }
 		 }
 		 if (wantarray) {
-		   return %{ $self->{METHOD} };
+		   return (defined $self->{METHOD} ? %{ $self->{METHOD} } : () );
 		 } else {
+       $self->{METHOD} = {} if !defined $self->{METHOD};
 		   return $self->{METHOD};
 		 }
 	       }
