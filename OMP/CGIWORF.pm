@@ -143,14 +143,26 @@ sub thumbnails_page {
     next if $instrument =~ /^rx/i;
 
     # Get the directory.
-    my $directory = OMP::Config->getData('reducedgroupdir',
-                                         telescope => $telescope,
-                                         instrument => $instrument,
-                                         utdate => $ut,
-                                        );
+    my $directory;
+    if( $instrument =~ /heterodyne/i ) {
+      $directory = OMP::Config->getData('rawdatadir',
+                                        telescope => $telescope,
+                                        instrument => $instrument,
+                                        utdate => $ut,
+                                       );
+      $directory =~ s/\/dem$//;
+    } else {
+      $directory = OMP::Config->getData('reducedgroupdir',
+                                        telescope => $telescope,
+                                        instrument => $instrument,
+                                        utdate => $ut,
+                                       );
+    }
 
     # Get a directory listing.
     my $dir_h;
+#print "directory: $directory<br>\n";
+    next if ( ! -d $directory );
     opendir( $dir_h, $directory ) or
       throw OMP::Error( "Could not open directory $directory for WORF thumbnail display: $!\n" );
 
@@ -211,14 +223,17 @@ sub thumbnails_page {
       };
 
       # Get a list of suffices.
-      my @grp_suffices = $worf->suffices( 1 );
+      my @suffices = $worf->suffices( 1 );
+      if( $instrument =~ /heterodyne/ ) {
+        @suffices = $worf->suffices( 0 );
+      }
 
       # Format the observation start time so WORF can understand it.
       my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
       $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
 
       # If this file's suffix is either blank or matches one of the
-      # suffices in @grp_suffices, write the HTML that will display
+      # suffices in @suffices, write the HTML that will display
       # the thumbnail along with a link to the fullsized WORF page
       # for that observation.
       if( $file =~ /\d\.sdf$/ ) {
@@ -234,12 +249,13 @@ sub thumbnails_page {
         print "<td>";
         print "<a href=\"worf.pl?ut=$obsut&runnr=";
         print $obs->runnr . "&inst=" . $obs->instrument;
-        print "&group=1\">";
+        if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
+        print "\">";
         print "<img src=\"worf_image.pl?";
         print "runnr=" . $obs->runnr;
         print "&ut=" . $obsut;
         print "&inst=" . $obs->instrument;
-        print "&group=1";
+        if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
         print "&size=thumb\"></a>";
         print "</td><td>";
         print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
@@ -247,8 +263,8 @@ sub thumbnails_page {
         print "Suffix:&nbsp;none\n</td>";
         next FILELOOP;
       } else {
-        foreach my $suffix ( @grp_suffices ) {
-          if( $file =~ /$suffix\.sdf$/ ) {
+        foreach my $suffix ( @suffices ) {
+          if( $file =~ /$suffix/ ) {
             if( defined( $curgrp ) ) {
               if( $obs->runnr != $curgrp ) {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
@@ -262,12 +278,13 @@ sub thumbnails_page {
             print "<a href=\"worf.pl?ut=$obsut&runnr=";
             print $obs->runnr . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
-            print "&group=1\">";
+            if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
+            print "\">";
             print "<img src=\"worf_image.pl?";
             print "runnr=" . $obs->runnr;
             print "&ut=" . $obsut;
             print "&inst=" . $obs->instrument;
-            print "&group=1";
+            if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
             print "&size=thumb";
             print "&suffix=$suffix\"></a>";
             print "</td><td>";
