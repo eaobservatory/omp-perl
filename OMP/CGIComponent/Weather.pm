@@ -25,6 +25,7 @@ use Carp;
 
 use OMP::Config;
 use OMP::General;
+use Time::Seconds qw(ONE_DAY);
 
 $| = 1;
 
@@ -86,6 +87,9 @@ sub wvm_graph_code {
   my $wvmstart = shift;
   my $wvmend = shift;
 
+  # Get WVM script URL
+  my $wvm_url = OMP::Config->getData('wvm-url');
+
   # Convert dates to time objects
   $wvmstart = OMP::General->parse_date($wvmstart);
   $wvmend = OMP::General->parse_date($wvmend);
@@ -95,13 +99,14 @@ sub wvm_graph_code {
   if (! $wvmstart) {
     $string .= "Error: No start date for WVM graph provided.";
   } else {
-    ($wvmend) or $wvmend = $wvmstart;
-    my $wvmformat = "%Y-%m-%d"; # Date format for wvm graph URL
+    # End date default is the end of the start date
+    ($wvmend) or $wvmend = $wvmstart + (ONE_DAY - 1);
+
     $string .= "<a name='wvm'></a>";
     $string .= "<br>";
     $string .= "<strong class='small_title'>WVM graph</strong><p>";
     $string .= "<div align=left>";
-    $string .= "<img src='http://www.jach.hawaii.edu/JACpublic/JCMT/software/bin/wvm/wvm_graph.pl?datestart=". $wvmstart->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
+    $string .= "<img src='${wvm_url}?datestart=". $wvmstart->datetime ."&dateend=". $wvmend->datetime ."'><br><br></div>";
   }
   return $string;
 }
