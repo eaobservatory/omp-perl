@@ -525,7 +525,21 @@ Convert hashes with min/max to C<OMP::Range> objects.
 
 Convert dates (anything with "date" in the key) to date objects.
 
+=item *
+
+Dates with an attribute of "delta" (but specified without
+a min/max range) will be converted into a range bounded by
+the supplied date and the date plus the delta. Default is
+for "delta" to be in units of days. A "units" attribute
+can be used to change the units. Acceptable units are
+"days","hours","minutes","seconds".
+
+  <date range="60" units="minutes">2002-02-04T12:00</date>
+
+will extract data between 12 and 1pm on 2002 April 02.
+
 =back
+
 
 Specific query manipulation must be done in a subclass.
 Note that subclasses must call this method in order to get
@@ -546,11 +560,63 @@ sub _post_process_hash {
   for my $key (keys %$href) {
     next if $key =~ /^_/;
 
-    if ($key =~ /date/) {
+    if ($key =~ /date/ ) {
+
       # If we are in a hash convert all hash members
       $self->_process_elements($href, 
 			       sub { OMP::General->parse_date(shift)},
 			       [ $key ] );
+
+      # See if there is a range attribute
+      if (exists $href->{_attr}->{$key}->{delta}) {
+
+	# There is but now see if we have an array
+	if (ref($href->{$key}) eq 'ARRAY') {
+
+	  # with only one element
+	  if (scalar( @{$href->{$key}} ) == 1) {
+
+	    # Now convert to a range
+	    my $date = $href->{$key}->[0] . ''; # stringify
+	    my $delta = $href->{_attr}->{$key}->{delta};
+
+	    # Get the units
+	    my $units = "days";
+	    $units =  $href->{_attr}->{$key}->{units}
+	      if exists $href->{_attr}->{$key}->{units};
+
+	    # Derive sql units
+	    my %sqlunits =(
+			   'days' => 'dd',
+			   'seconds' => 'ss',
+			   'minutes' => 'mi',
+			   'hours' => 'hh',
+			   'years' => 'yy',
+			  );
+
+	    # Form the sql function
+	    my $sqldelta = "dateadd($sqlunits{$units},$delta,'$date')";
+
+	    my ($min, $max) = ( 'Min', 'Max');
+	    if ($delta < 0) {
+	      # negative
+	      $min = 'Max';
+	      $max = 'Min';
+	    }
+
+	    $href->{$key} = new OMP::Range( $min => $date,
+					    $max => $sqldelta);
+
+
+	  }
+
+
+	}
+
+
+      }
+
+
     }
   }
 
@@ -559,13 +625,16 @@ sub _post_process_hash {
     # Skip private keys
     next if $key =~ /^_/;
 
-    if (UNIVERSAL::isa($href->{$key}, "HASH")) {
+    if (ref($href->{$key}) eq "HASH") {
       # Convert to OMP::Range object
       $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
 				      Max => $href->{$key}->{max},
 				    );
     }
   }
+
+  # Convert date
+
 
   # Done
 }
@@ -615,6 +684,11 @@ sub _querify {
 
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
+
+  # We do not want to quote if we have a SQL function
+  # dateadd is special
+  $quote = '' if $value =~ /^dateadd/;
+
 
   # If we have "name" then we need to create a query on both
   # pi and coi together. This is of course not portable and should
@@ -669,7 +743,6 @@ sub _process_elements {
 
     # Check it exists
     if (exists $href->{$key}) {
-
       my $ref = ref($href->{$key}); # The reference type
       my $val = $href->{$key}; # The value
 
