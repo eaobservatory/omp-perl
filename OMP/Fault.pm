@@ -9,9 +9,10 @@ OMP::Fault - A software bug or system fault object
   use OMP::Fault;
 
   $fault = new OMP::Fault( %details  );
-  $fault->responses( OMP::Fault::Response->new(author => $user,
-                                               text => $text) );
+  $fault->respond( OMP::Fault::Response->new(author => $user,
+                                             text => $text) );
 
+  $fault->close_fault();
 
 
 =head1 DESCRIPTION
@@ -378,6 +379,17 @@ sub id {
   return $self->{FaultID};
 }
 
+=item B<faultid>
+
+Synonym for C<id>
+
+=cut
+
+sub faultid {
+  my $self = shift;
+  return $self->id(@_);
+}
+
 =item B<type>
 
 Fault type (supplied as an integer - see C<faultTypes>).
@@ -513,8 +525,8 @@ Must be provided.
 
 sub category{
   my $self = shift;
-  if (@_) { $self->{Entity} = shift; }
-  return $self->{Entity};
+  if (@_) { $self->{Category} = uc(shift); }
+  return $self->{Category};
 }
 
 =item B<responses>
@@ -550,6 +562,8 @@ actual array). In list context returns the response objects as a list.
 When new responses are stored the first response object has its
 isfault flag set to "true" and all other responses have their isfault
 flags set to "false".
+
+See also C<respond> method.
 
 =cut
 
@@ -607,11 +621,78 @@ sub responses {
   }
 }
 
+=item B<author>
+
+Returns the name of the person who initially filed the
+fault.
+
+  $author = $fault->author();
+
+This information is retrieved from the first response object.
+
+=cut
+
+sub author {
+  my $self = shift;
+  my $firstresp = $self->responses->[0];
+  return $firstresp->author;
+}
+
+=item B<date>
+
+Date associated with the initial filing of the fault. If the time of
+the fault has not been specified (ie C<faultdate> is undefined) the
+time the fault response was filed will be used instead.
+
+  $date = $fault->date;
+
+=cut
+
+sub date {
+  my $self = shift;
+
+  # Look at the fault date
+  my $faultdate = $self->faultdate;
+  return $faultdate if $faultdate;
+
+  # Else look at the first response
+  my $firstresp = $self->responses->[0];
+  return $firstresp->date;
+}
+
 =back
 
 =head2 General Methods
 
 =over 4
+
+=item B<close_fault>
+
+Change the status of the fault to "CLOSED".
+
+=cut
+
+sub close_fault {
+  my $self = shift;
+  $self->status( CLOSED );
+}
+
+=item B<respond>
+
+Add a fault response.
+
+  $fault->respond( $response );
+
+A convenience wrapper around the C<responses> method.
+(effectively a synonym).
+
+=cut
+
+sub respond {
+  my $self = shift;
+  my $response = shift;
+  $self->responses( $response );
+}
 
 =item B<stringify>
 
