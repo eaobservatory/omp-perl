@@ -791,11 +791,14 @@ sub print_obslog_footer {
                     );
   }
 
+  my $time = localtime;
+  my $currentut = $time->ymd;
+
   print "<a name=\"changeut\">Enter</a> new UT date (yyyy-mm-dd format): ";
   print $q->textfield( -name => 'ut',
                        -default => ( defined( $qv->{'ut'} ) ?
                                      $qv->{'ut'} :
-                                     "" ),
+                                     $currentut ),
                        -size => '16',
                        -maxlength => '10',
                      );
