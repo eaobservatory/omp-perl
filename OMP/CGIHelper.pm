@@ -1405,14 +1405,14 @@ sub project_home {
   my $allocated = $project->allocated->pretty_print;
   ($project->allRemaining->seconds > 0) and
     my $remaining = $project->allRemaining->pretty_print;
-  my $pi = $project->pi->html;
+  my $pi = "<a href=userdetails.pl?user=".$project->pi->userid.">".$project->pi."</a>";
   my $taurange = $project->taurange;
   my $seerange = $project->seerange;
   my $cloud = $project->cloud;
 
   # Store coi and support html emails
-  my $coi = join(", ",map{$_->html} $project->coi);
-  my $support = join(", ",map{$_->html} $project->support);
+  my $coi = join(", ",map{"<a href=userdetails.pl?user=".$_->userid.">$_</a>"} $project->coi);
+  my $support = join(", ",map{"<a href=userdetails.pl?user=".$_->userid.">$_</a>"} $project->support);
 
   # Make a big header for the page with the project ID and title
   print "<table width=100%><tr><td>";
