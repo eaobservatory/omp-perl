@@ -377,6 +377,14 @@ sub parse_display_options {
       defined( $options->{output_file} ) ) {
     $parsed{output_file} = $options->{output_file};
   }
+  if( exists( $options->{xbin} ) &&
+      defined( $options->{xbin} ) ) {
+    $parsed{xbin} = $options->{xbin};
+  }
+  if( exists( $options->{ybin} ) &&
+      defined( $options->{ybin} ) ) {
+    $parsed{ybin} = $options->{ybin};
+  }
 
   return %parsed;
 
@@ -673,7 +681,7 @@ sub _plot_spectrum {
   } else {
     $ENV{'PGPLOT_GIF_WIDTH'} = 480;
     $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
-    $opt = {SYMBOL => 1, LINEWIDTH => 10, PLOTLINE => 0};
+    $opt = {SYMBOL => 1, LINEWIDTH => 1, PLOTLINE => 0};
   }
 
   # Do caching for thumbnails.
@@ -811,7 +819,8 @@ sub _plot_spectrum {
 
   env(0, ($xend - $xstart), $zmin, $zmax);
   label_axes( undef, undef, $title);
-  points $spectrum, $opt;
+#  points $spectrum, $opt;
+  line $spectrum;
   dev "/null";
 
   # Also write the cache file if necessary.
@@ -819,7 +828,8 @@ sub _plot_spectrum {
     dev "$cachefile/GIF";
     env(0, ($xend - $xstart), $zmin, $zmax);
     label_axes( undef, undef, $title);
-    points $spectrum, $opt;
+#    points $spectrum, $opt;
+    line $spectrum;
     dev "/null";
   }
 
@@ -836,7 +846,16 @@ sub _plot_cube {
     $file = $self->obs->filename;
   }
   if( $file !~ /^\// ) {
-    throw OMP::Error("Filename passed to _plot_image must include full path");
+    throw OMP::Error("Filename passed to _plot_cube must include full path");
+  }
+
+  if( exists( $args{size} ) && defined( $args{size} ) &&
+      $args{size} eq 'thumb' ) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 120;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80;
+  } else {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
   }
 
   $file =~ s/\.sdf$//;
@@ -860,11 +879,11 @@ sub _plot_cube {
     $yend = ( defined ( $args{yend} ) ?
               $args{yend} :
               ( $ydim - 1 ) );
-    $zstart = ( defined ( $args{zstart} ) ?
-                $args{zstart} :
+    $zstart = ( defined ( $args{zmin} ) ?
+                $args{zmin} :
                 1 );
-    $zend = ( defined ( $args{zend} ) ?
-              $args{zend} :
+    $zend = ( defined ( $args{zmax} ) ?
+              $args{zmax} :
               ( $zdim - 1 ) );
     if( ( ( $xstart == 0 ) && ( $xend == 0 ) ) || ( $xstart >= $xend ) ) {
       $xstart = 0;
@@ -896,9 +915,10 @@ sub _plot_cube {
   }
 
   # Do the image manipulation so we can rebin.
-  my $e1 = $cube->xchg(1,2);
+  $cube->badflag(0);
+  my $e = 0 * ($cube < -1e25) + $cube * ($cube >= -1e25);
+  my $e1 = $e->xchg(1,2);
   my $e2 = $e1->xchg(0,1);
-  $e2->setbadtoval(0);
   my $rebin = $e2->rebin($zdim, $xbin, $ybin);
 
   # Grab the data information and do scaling
@@ -922,10 +942,14 @@ sub _plot_cube {
     $dmax = max( $rebin ) + ( max( $rebin ) - min( $rebin ) ) * 0.10;
   }
 
-  # Set up a display window.
-
-  $ENV{'PGPLOT_GIF_WIDTH'} = 480 * $xbin;
-  $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $ybin;
+  if( exists( $args{size} ) && defined( $args{size} ) &&
+      $args{size} eq 'thumb' ) {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 120 * $xbin;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80 * $ybin;
+  } else {
+    $ENV{'PGPLOT_GIF_WIDTH'} = 480 * $xbin;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $ybin;
+  }
 
   if(exists($args{output_file}) && defined( $args{output_file} ) ) {
     my $file = $args{output_file};
@@ -940,9 +964,8 @@ sub _plot_cube {
     for ( my $y = 1; $y <= $ybin; $y++ ) {
 
       my $slice = $rebin->slice(':,(' . ($x - 1) . '),('. ($y - 1) . ')');
-
       my $xwinpos = $x;
-      my $ywinpos = $ybin - $y + 1;
+      my $ywinpos = $y;
       env($zstart, $zend, $dmin, $dmax, {Title => "$ywinpos, $xwinpos",});
       line( $slice, { Panel => [ $ywinpos, $xwinpos ],
                     } );
