@@ -409,7 +409,9 @@ sub locate_msbs {
       $unique{$checksum}->remaining($newtotal);
 
       # Remove the current msb object from the science program tree
+    #  print "About to unbind Node\n";
       $msb->_tree->unbindNode;
+    #  print "Done\n";
 
     } else {
       $unique{$checksum} = $msb;
