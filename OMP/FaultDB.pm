@@ -722,7 +722,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   my $responselink = "<a href='$url'>here</a>";
 
   # Add the response link to the bottom of our message
-  push(@msg, "--------------------------------<br>To respond to this fault go $responselink");
+  push(@msg, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
 
   # Our address list will start with the fault category's mailing list
   # COMMENTED OUT DURING TESTING
