@@ -332,6 +332,43 @@ sub _dbunlock {
   }
 }
 
+=item B<_db_findmax>
+
+Find the maximum value of a column in the specified table using
+the supplied WHERE clause.
+
+  $max = $db->_db_findmax( $table, $column, $clause);
+
+The WHERE clause is optional (and should not include the "WHERE").
+
+=cut
+
+sub _db_findmax {
+  my $self = shift;
+  my $table = shift;
+  my $column = shift;
+  my $clause = shift;
+
+  # Construct the SQL
+  my $sql = "SELECT max($column) FROM $table ";
+  $sql .= "WHERE $clause" if $clause;
+
+  # Now run the query
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $sth = $dbh->prepare( $sql )
+    or throw OMP::Error::DBError("Error preparing max SQL statment");
+
+  $sth->execute or 
+    throw OMP::Error::DBError("DB Error executing max SQL: $DBI::errstr");
+
+  my $max = ($sth->fetchrow_array)[0];
+  return  ( defined $max ? $max : 0 );
+
+}
+
+
 =back
 
 =head2 Feedback system

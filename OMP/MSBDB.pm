@@ -929,23 +929,11 @@ rows are removed.
 sub _get_next_index {
   my $self = shift;
 
-  # Return the current index by doing a sort in descending order
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
-  my $sth = $dbh->prepare("SELECT msbid FROM $MSBTABLE ORDER BY msbid DESC")
-    or throw OMP::Error::DBError("Can not prepare statement for index retrieval: ". $dbh->errstr);
-
-  $sth->execute() or
-    throw OMP::Error::DBError("Can not execute SELECT: ". $sth->errstr());
-
-  my $ref = $sth->fetch;
-
-  $sth->finish;
+  # Return the current max index
+  my $max = $self->_db_findmax( $MSBTABLE, "msbid" );
 
   # Get the next highest
-  my $highest = $ref->[0]; 
-  $highest++;
+  $max++;
 
   return $highest;
 }
