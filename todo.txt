@@ -105,3 +105,7 @@ ProjServer
   even though that is in the project table]
 
 - Add fault tracking system (for OMP) and later for JCMT,CSG and UKIRT
+
+- Do we want TELESCOPE to be a property of a project or of a MSB?
+
+- Add generic staff password in addition to admin password
