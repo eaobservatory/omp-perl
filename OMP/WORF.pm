@@ -38,7 +38,8 @@ require Exporter;
 
 our @ISA = qw/Exporter/;
 our @EXPORTER = qw( );
-our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options /;
+our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options
+                  file_exists /;
 our %EXPORT_TAGS = (
                     'all' => [ qw( @EXPORT ) ],
                     );
@@ -91,7 +92,7 @@ sub new {
   bless $worf, $newclass;
 
   eval "require $newclass";
-  if( $@ ) { throw OMP::FatalError "Could not load module $newclass: $@"; }
+  if( $@ ) { throw OMP::Error::FatalError "Could not load module $newclass: $@"; }
 
   return $worf;
 
@@ -213,10 +214,12 @@ sub findgroup {
 
 Determine the filename for a given observation.
 
-  $filename = $worf->get_filename( group => 0 );
+  $filename = $worf->get_filename( 0 );
 
 The optional parameter determines whether or not the reduced group
-file will be used.
+file will be used. If no parameter is given, this method will return
+the filename for an individual observation. If the parameter is B<true>,
+then the group filename will be returned.
 
 If a suffix has been set (see the B<suffix> method) then a reduced
 file will be used, else a raw file will be used.
@@ -231,6 +234,49 @@ sub get_filename {
   my $instrument = $self->obs->instrument;
 
   throw OMP::Error( "WORF filename handling not defined for $instrument" );
+
+}
+
+=item B<file_exists>
+
+Determine if a file exists matching the given suffix.
+
+  $exists = $worf->file_exists( suffix => $suffix,
+                                group => $group );
+
+The two parameters are optional. If the suffix parameter is not given,
+the B<suffix> accessor will be used. If the group parameter is not
+given, then the method will default to the appropriate individual
+observation.
+
+This method returns a logical boolean.
+
+=cut
+
+sub file_exists {
+  my $self = shift;
+  my %args = @_;
+
+  my ( $suffix, $group );
+  if( exists( $args{suffix} ) && defined( $args{suffix} ) ) {
+    $suffix = $args{suffix};
+  } else {
+    $suffix = $self->suffix;
+  }
+
+  if( exists( $args{group} ) && defined( $args{group} ) ) {
+    $group = $args{group};
+  } else {
+    $group = 0;
+  }
+
+  my $worf = new OMP::WORF( obs => $self->obs,
+                            suffix => $suffix,
+                          );
+
+  my $file = $worf->get_filename( $group );
+
+  return ( -e $file );
 
 }
 
@@ -290,12 +336,12 @@ sub parse_display_options {
   }
   if( exists( $options->{zmin} ) &&
       defined( $options->{zmin} ) &&
-      $options->{zmin} =~ /^\d+$/ ) {
+      $options->{zmin} =~ /^-?\d+$/ ) {
     $parsed{zmin} = $options->{zmin};
   }
   if( exists( $options->{zmax} ) &&
       defined( $options->{zmax} ) &&
-      $options->{zmax} =~ /^\d+$/ ) {
+      $options->{zmax} =~ /^-?\d+$/ ) {
     $parsed{zmax} = $options->{zmax};
   }
   if( exists( $options->{cut} ) &&
@@ -365,11 +411,12 @@ sub _plot_image {
   my $self = shift;
   my %args = @_;
 
-  my $opt = {AXIS => 1,
-             JUSTIFY => 1,
-             LINEWIDTH => 1};
+  my $opt = { AXIS => 1,
+              JUSTIFY => 1,
+              LINEWIDTH => 1,
+              DRAWWEDGE => 1 };
 
-  my $lut = 'heat';
+  my $lut = ( exists($args{lut}) && defined($args{lut}) ? $args{lut} : 'real' );
 
   my $file;
   if( defined( $args{input_file} ) ) {
@@ -414,31 +461,43 @@ sub _plot_image {
   my $title = $file;
 
   # Fudge to set bad pixels to zero.
-  my $bad = -1e-10;
-  $image *= ( $image > $bad );
+#  my $bad = -1e-10;
+#  $image *= ( $image > $bad );
 
-  # Do autocutting, if necessary.
-  if( exists( $args{autocut} ) && defined( $args{autocut} ) && $args{autocut} != 100 ) {
+  if( exists( $args{zmin} ) && defined( $args{zmin} ) &&
+      exists( $args{zmax} ) && defined( $args{zmax} ) &&
+      ( $args{zmin} != 0 || $args{zmax} != 0 ) ) {
+
+    my $zmin = $args{zmin};
+    my $zmax = $args{zmax};
+
+    if($zmin > $zmax) { ($zmax, $zmin) = ($zmin, $zmax); }
+    $image = $image->clip($zmin, $zmax);
+  } elsif( exists( $args{autocut} ) && defined( $args{autocut} ) && $args{autocut} != 100 ) {
 
     my ($mean, $rms, $median, $min, $max) = stats($image);
 
-    my $stddev = sqrt($rms);
-
     if($args{autocut} == 99) {
-      $image = $image->clip(($median - 2.6467 * $stddev), ($median + 2.6467 * $stddev));
+      $image = $image->clip(($median - 2.6467 * $rms), ($median + 2.6467 * $rms));
     } elsif($args{autocut} == 98) {
-      $image = $image->clip(($median - 2.2976 * $stddev), ($median + 2.2976 * $stddev));
+      $image = $image->clip(($median - 2.2976 * $rms), ($median + 2.2976 * $rms));
     } elsif($args{autocut} == 95) {
-      $image = $image->clip(($median - 1.8318 * $stddev), ($median + 1.8318 * $stddev));
+      $image = $image->clip(($median - 1.8318 * $rms), ($median + 1.8318 * $rms));
     } elsif($args{autocut} == 90) {
-      $image = $image->clip(($median - 1.4722 * $stddev), ($median + 1.4722 * $stddev));
+      $image = $image->clip(($median - 1.4722 * $rms), ($median + 1.4722 * $rms));
     } elsif($args{autocut} == 80) {
-      $image = $image->clip(($median - 1.0986 * $stddev), ($median + 1.0986 * $stddev));
+      $image = $image->clip(($median - 1.0986 * $rms), ($median + 1.0986 * $rms));
     } elsif($args{autocut} == 70) {
-      $image = $image->clip(($median - 0.8673 * $stddev), ($median + 0.8673 * $stddev));
+      $image = $image->clip(($median - 0.8673 * $rms), ($median + 0.8673 * $rms));
     } elsif($args{autocut} == 50) {
-      $image = $image->clip(($median - 0.5493 * $stddev), ($median + 0.5493 * $stddev));
+      $image = $image->clip(($median - 0.5493 * $rms), ($median + 0.5493 * $rms));
     }
+  } else {
+
+    # default to 99% cut
+    my ($mean, $rms, $median, $min, $max) = stats($image);
+    $image = $image->clip(($median - 2.6467 * $rms), ($median + 2.6467 * $rms));
+
   }
 
   my ( $xstart, $xend, $ystart, $yend );
@@ -479,7 +538,7 @@ sub _plot_image {
     dev "-/GIF";
   }
   env( $xstart, $xend, $ystart, $yend, $opt );
-  label_axes( "lut=$lut", undef, $title );
+  label_axes( undef, undef, $title );
   ctab( lut_data( $lut ) );
   imag $image;
   dev "/null";
@@ -550,12 +609,11 @@ sub _plot_spectrum {
   }
 
   $file =~ s/\.sdf$//;
-print "Loading $file\n";
   my $image = rndf( $file );
 
   # Fudge to set bad pixels to zero.
-  my $bad = -1e-10;
-  $image *= ( $image > $bad );
+#  my $bad = -1e-10;
+#  $image *= ( $image > $bad );
 
   my $spectrum;
   my ( $xdim, $ydim ) = dims $image;
@@ -651,8 +709,10 @@ print "Loading $file\n";
     $xstart = 0;
     $xend = $xdim - 1;
   }
-  if( ( ( $zmin == 0 ) && ( $zmax == 0 ) ) || ( $zmin >= $zmax ) ) {
+  if( ( $zmin == 0 ) && ( $zmax == 0 ) ) {
     $zmin = min( $spectrum ) - ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+    $zmax = max( $spectrum ) + ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
+  } elsif( ( $zmax == 0 ) && ( $zmin > $zmax ) ) {
     $zmax = max( $spectrum ) + ( max( $spectrum ) - min( $spectrum ) ) * 0.10;
   }
 
