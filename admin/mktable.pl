@@ -230,8 +230,9 @@ my %tables = (
 			      shiftid => NUMID,
 			      date => "DATETIME",
 			      author => USERID,
+            telescope => "VARCHAR(32)",
 			      text => "TEXT",
-			      _ORDER => [qw/ shiftid date author text /],
+			      _ORDER => [qw/ shiftid date author telescope text /],
 			     },
         # Observation log table, used to store basic
         # information about observations, along with
