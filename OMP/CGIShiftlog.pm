@@ -80,13 +80,13 @@ sub shiftlog_page {
   print_header();
 
   # Submit the comment.
-  submit_comment( $verified, \%cookie );
+  submit_comment( $verified );
 
   # Display the comments for the current shift.
   display_shift_comments( $verified, \%cookie );
 
   # Display a form for inputting comments.
-  display_comment_form( $q, $verified, \%cookie );
+  display_comment_form( $q, $verified );
 
   # Display a form for changing the date.
   display_date_form( $q, $verified );
@@ -117,6 +117,11 @@ sub parse_query {
 # Telescope. This is a string made up of word characters.
   if( exists( $q->{'telescope'} ) ) {
     ( $return{'telescope'} = $q->{'telescope'} ) =~ s/\W//g;
+  }
+
+# User. This is a string made up of word characters.
+  if( exists( $q->{'user'} ) ) {
+    ( $return{'user'} = $q->{'user'} ) =~ s/\W//g;
   }
 
 # Time Zone for display. This is either UT or HST. Defaults to UT.
@@ -286,17 +291,14 @@ Prints a form used to enter a shiftlog comment.
 
   display_comment_form( $cgi, $verified, $cookie );
 
-The first argument is the C<CGI> object, the second is
-a hash reference to a verified
-query (see B<parse_query>), and the second is a hash
-reference to a cookie.
+The first argument is the C<CGI> object and the second is
+a hash reference to a verified query (see B<parse_query>).
 
 =cut
 
 sub display_comment_form {
   my $cgi = shift;
   my $v = shift;
-  my $cookie = shift;
 
   print $cgi->startform;
   print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
@@ -304,7 +306,8 @@ sub display_comment_form {
   print $cgi->textfield( -name => 'user',
                          -size => '16',
                          -maxlength => '90',
-                         -default => $cookie->{'user'},
+                         -default => $v->{'user'},
+                         -override => 1,
                        );
 
   print "</td></tr>\n";
@@ -422,17 +425,15 @@ sub display_telescope_form {
 
 Submits a comment to the database.
 
-  submit_comment( $verified, $cookie );
+  submit_comment( $verified );
 
-The first argument is a hash reference to a verified
-query (see B<parse_query>), and the second is a reference
-to a cookie.
+The only argument is a hash reference to a verified
+query (see B<parse_query>).
 
 =cut
 
 sub submit_comment {
   my $v = shift;
-  my $cookie = shift;
 
   if( !defined( $v->{'text'} ) ) { return; }
 
@@ -440,7 +441,7 @@ sub submit_comment {
   my $zone = $v->{'zone'};
   my $entryzone = $v->{'entryzone'};
   my $date = $v->{'date'};
-  my $user = $cookie->{'user'};
+  my $user = $v->{'user'};
   my $time = $v->{'time'};
   my $text = $v->{'text'};
 
@@ -495,12 +496,14 @@ sub submit_comment {
     print "Error in CGIShiftlog.pm, submit_comment(), comment submission:\n";
     print $Error->{'-text'};
     print "<br>Comment will not be stored<br>\n";
+    return;
   }
   otherwise {
     my $Error = shift;
     print "Error in CGIShiftlog.pm, submit_comment(), comment submission:\n";
     print $Error->{'-text'};
     print "<br>Comment will not be stored<br>\n";
+    return;
   };
 
   print "Comment successfully entered into database.<br>\n";
