@@ -173,6 +173,7 @@ sub submit_allocations {
 
   # Build a hash with keys of project IDs and values of hours
   # allocated to those project IDs.
+  my %timealloc;
   my $i = 1;
   while ( defined( $q->{'project' . $i} ) ) {
     $timealloc{$q->{'project' . $i}} = $q->{'hour' . $i};
