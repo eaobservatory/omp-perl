@@ -221,9 +221,10 @@ sub _write_header {
 
   # Print the header info
   if (defined $c) {
-    print $q->header( -cookie => $c->cookie);
+    print $q->header( -cookie => $c->cookie,
+		      -expires => '-1d' );
   } else {
-    print $q->header;
+    print $q->header( -expires => '-1d' );
   }
 
   $theme->SetHTMLStartString("<html><head><title>OMP Feedback System</title></head>");
