@@ -1856,7 +1856,7 @@ sub night_report {
   my $nr = new OMP::NightRep(%args);
 
   if (! $nr) {
-    print "<h2>No observing report available for $utdate at $tel</h2>";
+    print "<h2>No observing report available for". $utdate->ymd ."at $tel</h2>";
   } else {
 
     print "<table border=0><td colspan=2>";
@@ -2216,6 +2216,7 @@ sub proj_sum_table {
   print "<table cellspacing=0>";
   print "<tr align=center><td>Project ID</td>";
   print "<td>PI</td>";
+  print "<td>Support</td>";
   print "<td># MSBs</td>";
   print "<td>Priority</td>";
   print "<td>Allocated</td>";
@@ -2258,9 +2259,12 @@ sub proj_sum_table {
       }
     }
 
+    my $support = join(", ", map {$_->userid} $project->support);
+
     print "<tr bgcolor=$bgcolor valign=top>";
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". $project->pi->html ."</td>";
+    print "<td>". $support ."</td>";
     print "<td align=center>$nmsb</td>";
     print "<td align=center>". $project->tagpriority ."</td>";
     print "<td align=center>". $project->allocated->pretty_print ."</td>";
