@@ -469,7 +469,10 @@ sub infer_projectid {
   return $projid if $projid =~ /^u\/\d\d[ab]/ # UKIRT
     or $projid =~ /^m\d\d[ab]/                # JCMT
       or $projid =~ /^u\/serv\//i             # UKIRT serv
-	or $projid =~ /^[A-Za-z]+$/;
+	or $projid =~ /^cnsrv/i               # Canadian service
+	  or $projid =~ /^nls/i               # Dutch service
+	    or $projid =~ /^SDF/i             # MEGA proposal
+	      or $projid =~ /^[A-Za-z]+$/;
 
   # If it's a special reserved ID (two characters + digit)
   # return it - padding the number)

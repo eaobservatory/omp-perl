@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 59;
+use Test::More tests => 62;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -149,8 +149,19 @@ my @input = (
 	     {
 	      projectid => "UKIRTCAL",
 	      result => "UKIRTCAL",
+	     },
+	     {
+	      projectid => "SDF1_30EW",
+	      result => "SDF1_30EW",
+	     },
+	     {
+	      projectid => "cnsrv01b03",
+	      result => "cnsrv01b03",
+	     },
+	     {
+	      projectid => 'nls0003',
+	      result    => 'nls0003',
 	     }
-
 
 
 	    );
