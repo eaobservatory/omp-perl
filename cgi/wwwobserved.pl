@@ -14,14 +14,14 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::MSBPage;
+use OMP::CGIPage;
+use OMP::CGIPage::MSB;
 use OMP::General;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
@@ -31,9 +31,10 @@ $cgi->theme($theme);
 # If the user is outside the JAC network write the page with
 # authentication
 if (OMP::General->is_host_local) {
-  $cgi->write_page_noauth( \&OMP::CGI::MSBPage::observed,
-			   \&OMP::CGI::MSBPage::observed_output );
+  $cgi->write_page_noauth( \&OMP::CGIPage::MSB::observed,
+			   \&OMP::CGIPage::MSB::observed_output );
 } else {
-  $cgi->write_page_staff( \&OMP::CGI::MSBPage::observed,
-			  \&OMP::CGI::MSBPage::observed_output );
+  $cgi->write_page_staff( \&OMP::CGIPage::MSB::observed,
+			  \&OMP::CGIPage::MSB::observed_output,
+			  "noauth" );
 }
