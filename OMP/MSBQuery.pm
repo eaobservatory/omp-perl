@@ -259,9 +259,9 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) ==4;
+    unless scalar(@_) ==5;
 
-  my ($msbtable, $obstable, $projtable, $projusertable) = @_;
+  my ($msbtable, $obstable, $projtable, $projqueuetable, $projusertable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -335,11 +335,28 @@ sub sql {
     push(@join_tables, ", $projusertable $1");
     push(@join_sql, " P.projectid = $1.projectid ");
   }
+
+  # Add Q table
+  # We always need to add the Q table since we always need
+  # to store the matching country in the country table
+  # so that we can limit the MSB matches when we do the secondd
+  # query (else all we get are matching MSBIDs and no constraint
+  # on country in the second phase).
+  # Additionally, if we are not constraining country we still need
+  # to include Q else the obscount will be too high. We in fact
+  # wish to return clone MSBs if the country is different.
+  push(@join_tables, ", $projqueuetable Q");
+  push(@join_sql, " P.projectid = Q.projectid ");
+
   my $u_sql = '';
   $u_sql = " AND " . join(" AND ", @join_sql) if @join_sql;
 
+  # Use DISTINCT here when we include Q.country else things
+  # go crazy and we get millions of rows when trying to group
+  # by msbid and by country. Have not really worked out why
+  # we need DISTINCT here....
   my $top_sql = "(SELECT
-          M.msbid, M.obscount, COUNT(*) AS nobs
+          DISTINCT M.msbid, M.obscount, Q.country, COUNT(*) AS nobs
            INTO $tempcount
            FROM $msbtable M,$obstable O, $projtable P " .
 	     join(" ", @join_tables)
@@ -358,15 +375,19 @@ sub sql {
   # Note that internal priority field is redefined as a combined tagpriority
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
+  # We always need to join the QUEUE table since that includes the priority.
   my $bottom_sql = "
-              GROUP BY M.msbid)
+              GROUP BY M.msbid, Q.country)
                SELECT M2.*, P2.taumin, P2.taumax,
-                (convert(float,P2.tagpriority) + convert(float,M2.priority)/100) AS priority
-                FROM $msbtable M2, $tempcount T, $projtable P2
+                (convert(float,Q2.tagpriority) + convert(float,M2.priority)/100) AS priority
+                FROM $msbtable M2, $tempcount T, $projtable P2, 
+                       $projqueuetable Q2
                  WHERE (M2.msbid = T.msbid
                    AND M2.obscount = T.nobs 
-                    AND M2.projectid = P2.projectid )
-                      ORDER BY priority
+                    AND M2.projectid = P2.projectid 
+                      AND M2.projectid = Q2.projectid 
+                        AND Q2.country = T.country)
+                          ORDER BY priority
 
                 DROP TABLE $tempcount";
 
@@ -596,6 +617,16 @@ sub _post_process_hash {
       delete $href->{$_};
     }
   }
+
+  # And these are found in the queue table
+  for (qw/ country tagpriority /) {
+    if (exists $href->{$_}) {
+      my $key = "Q.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
 
   # A taumin/taumax query should occur on both the project
   # and the msb table

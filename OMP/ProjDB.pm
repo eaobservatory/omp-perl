@@ -45,6 +45,7 @@ use base qw/ OMP::BaseDB /;
 # This is picked up by OMP::MSBDB
 our $PROJTABLE = "ompproj";
 our $PROJUSERTABLE = "ompprojuser";
+our $PROJQUEUETABLE = "ompprojqueue";
 
 # inifinite tau [this should match the number in OMP::MSBDB]
 my $TAU_INF = 101;
@@ -550,7 +551,7 @@ sub listCountries {
   # Kluge. We should not be doing SQL at this level
   # Note that current project table does not know which telescope
   # it belongs to!
-  my $cref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT country FROM $PROJTABLE" );
+  my $cref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT country FROM $PROJQUEUETABLE" );
   return map { $_->{country} } @$cref;
 }
 
@@ -674,7 +675,7 @@ sub _delete_project_row {
   my $self = shift;
 
   # Must clear out user link tables as well
-  $self->_db_delete_project_data( $PROJTABLE, $PROJUSERTABLE );
+  $self->_db_delete_project_data( $PROJTABLE, $PROJUSERTABLE, $PROJQUEUETABLE);
 
 }
 
@@ -718,13 +719,22 @@ sub _insert_project_row {
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
 			  $proj->projectid, $pi,
-			  $proj->title, $proj->tagpriority,
-			  $proj->country, $proj->semester, $proj->encrypted,
+			  $proj->title, -999, "COUNTRY_MOVED_TO_OMPPROJQUEUE",
+			  $proj->semester, $proj->encrypted,
 			  $proj->allocated->seconds,
 			  $proj->remaining->seconds, $proj->pending->seconds,
 			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
 			  $cloud, $proj->state,
 			);
+
+  # Now insert the queue information
+  my %queue = $proj->queue;
+  for my $c (keys %queue) {
+    $self->_db_insert_data( $PROJQUEUETABLE,
+			    $proj->projectid,
+			    uc($c), $queue{$c}
+			  );
+  }
 
   # Now insert the user data
   # All users end up in the same table. Contact information for a particular
@@ -769,7 +779,7 @@ sub _get_projects {
   my $self = shift;
   my $query = shift;
 
-  my $sql = $query->sql( $PROJTABLE, $PROJUSERTABLE );
+  my $sql = $query->sql( $PROJTABLE, $PROJQUEUETABLE, $PROJUSERTABLE );
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
@@ -862,6 +872,7 @@ sub _get_projects {
     # in ompprojuser.
     $proj->pi( $pi );
 
+    # ------------ Proj User table --------------------
     # Now the Co-I and support people via another query
     my $utable = $OMP::UserDB::USERTABLE;
 
@@ -884,6 +895,18 @@ sub _get_projects {
     $proj->coi( @{ $roles{COI} } ) if exists $roles{COI};
     $proj->support( @{ $roles{SUPPORT} } ) if exists $roles{SUPPORT};
     $proj->contactable( %contactable );
+
+    # -------- Queue information ---------
+    my $sql = "SELECT * FROM $PROJQUEUETABLE WHERE projectid = '$projectid'";
+    my $qref = $self->_db_retrieve_data_ashash( $sql );
+
+    my %queue;
+    for my $row (@$qref) {
+      $queue{uc($row->{country})} = $row->{tagpriority};
+    }
+    # Store new info, but make sure we have cleared the hash first
+    $proj->clearqueue;
+    $proj->queue(\%queue);
 
     # And store it
     push(@projects, $proj);

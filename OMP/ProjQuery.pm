@@ -55,10 +55,10 @@ Returns undef if the query could not be formed.
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) == 2;
+  throw OMP::Error::DBMalformedQuery("ProjQuery: sql method invoked with incorrect number of arguments\n") 
+    unless scalar(@_) == 3;
 
-  my ($projtable, $projusertable) = @_;
+  my ($projtable, $projqueuetable, $projusertable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -82,6 +82,12 @@ sub sql {
 
     push(@join_tables, ", $projusertable $1");
     push(@join_sql, " P.projectid = $1.projectid ");
+  }
+
+  # Join with the Q table if required
+  if ($subsql =~ /\bQ\./) {
+    push(@join_tables, ", $projqueuetable Q");
+    push(@join_sql, " P.projectid = Q.projectid ");
   }
 
   # Construct the the where clause. Depends on which
@@ -168,7 +174,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) },
-			   [qw/projectid telescope support coi semester person pi/]);
+			   [qw/projectid telescope support coi semester person pi country/]);
 
   # These entries are in more than one table so we have to 
   # explicitly choose the project table
@@ -179,6 +185,17 @@ sub _post_process_hash {
       delete $href->{$_};
     }
   }
+
+  # These entries are in the queue table [but also currently
+  # in the proj table for backwards compatibility reasons
+  for (qw/ country tagpriority /) {
+    if (exists $href->{$_}) {
+      my $key = "Q.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
 
   # Need to do multiple joins each time we have a distinct query
   # for a USER

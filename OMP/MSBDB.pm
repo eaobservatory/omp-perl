@@ -1856,6 +1856,7 @@ sub _run_query {
 
   # Get the sql
   my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE,
+			 $OMP::ProjDB::PROJQUEUETABLE,
 			 $OMP::ProjDB::PROJUSERTABLE );
 
   # Run the initial query

@@ -29,6 +29,7 @@ persistent store but the object does not implement that persistence).
 use 5.006;
 use strict;
 use warnings;
+use warnings::register;
 use Carp;
 use Time::Seconds;
 use OMP::General;
@@ -39,6 +40,10 @@ our $VERSION = (qw$Revision$)[1];
 # Delimiter for co-i strings
 our $DELIM = ":";
 
+# Name for the internal cache key. Specify it here since it
+# is used in two different methods without having an
+# explicit accessor!!
+my $TAGPRI_KEY = '__tagpri_cache';
 
 =head1 METHODS
 
@@ -65,7 +70,6 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $proj = bless {
-		    Country => undef,
 		    Semester => undef,
 		    Allocated => Time::Seconds->new(0),
 		    Title => '',
@@ -77,7 +81,11 @@ sub new {
 		    SeeingRange => undef,
 		    Cloud => undef,
 		    CoI => [],
-		    TagPriority => 999,
+
+		    # Country and tag priority now
+		    # can have more than one value
+		    Queue => {},
+
 		    PI => undef,
 		    Remaining => undef, # so that it defaults to allocated
 		    Pending => Time::Seconds->new(0),
@@ -347,12 +355,43 @@ Country from which project is allocated.
 
   $id = $proj->country;
 
+Stores the country in a hash, but does not override previous country
+entries or assign a priority. Use the C<queue> method for full control
+of the contents of the country and priority.
+
+  $proj->country( @countries );
+  $proj->country( \@countries );
+
+In scalar context returns all the countries associated with this
+project, separated by a '/'. In list context returns all the
+countries separately. The country order is sorted alphabetically.
+
+If this is the first country to be stored and a TAG priority
+has been set previously, then that TAG priority is applied to
+all the new countries.
+
 =cut
 
 sub country {
   my $self = shift;
-  if (@_) { $self->{Country} = uc(shift); }
-  return $self->{Country};
+  if (@_) { 
+    # trap array ref
+    my @c = ( ref($_[0]) ? @{$_[0]} : @_);
+
+    # are we meant to apply a cached tag priority?
+    # Yes, if there are no previous countries
+    my $tagpri;
+    $tagpri = $self->{$TAGPRI_KEY}
+      unless (keys %{$self->queue});
+
+    # Store the queue without a tag priority
+    $self->queue( map { uc($_) => $tagpri } @c );
+  }
+  if (wantarray) {
+    return sort keys %{ $self->queue };
+  } else {
+    return join( "/", sort keys %{ $self->queue } );
+  }
 }
 
 =item B<password>
@@ -723,16 +762,90 @@ sub semester {
 
 The priority of this project relative to all the other projects
 in the queue. This priority is determined by the Time Allocation
-Group (TAG).
+Group (TAG). Since a project can have different priorities in
+different queues, the queue name (aka country) must be supplied.
+
+  $pri = $proj->tagpriority( $country );
+
+If multiple countries are specified (using a reference to an array),
+corresponding priorities are returned (undef if project is not
+associated with that country).
+
+  @pris = $proj->tagpriority( \@countries );
+
+If no country is supplied, all priorities are returned. In scalar
+context they are returned as a single comma-separated string, all are
+returned in list context. They are returned in an order corresponding
+to the alphabetical order of the countries.
 
   $pri = $proj->tagpriority;
+  @pri = $proj->tagpriority;
+
+If the single argument is a number, it is deemed to be the priority
+for all projects. Multiple priorities can be set using a hash in list
+form or reference to a hash (an error will be raised if the country
+does not exist; this differs from the C<queue()> method.). Differing
+priorities can not be set for multiple queues without specifying the
+specific queue since the internal ordering of the countries is not
+defined.
+
+  $proj->tagpriority( CA => 1, UK => 5 );
+  $proj->tagpriority( \%update );
+
+Use the queue() method to set priorities and country information.
+
+If this method is called before a country is associated with the
+object then, for backwards compatibility reasons, the TAG priority
+is cached and applied if a country is set explicitly with the
+C<country> method (and only the first time that is used).
 
 =cut
 
 sub tagpriority {
   my $self = shift;
-  if (@_) { $self->{TagPriority} = shift; }
-  return $self->{TagPriority};
+  my $delim = ","; # for scalar context
+  if (@_) { 
+    if (scalar @_ == 1 && ref($_[0]) ne 'HASH') {
+      # if we have a number, it is being set
+      if ($_[0] =~ /\d/) {
+	# set every priority
+	my @c = $self->country;
+	if (@c) {
+	  for my $c (@c) {
+	    $self->queue( $c => $_[0]);
+	  }
+	} else {
+	  # Store it for later
+	  $self->{$TAGPRI_KEY} = $_[0];
+	}
+      } else {
+	# A country has been requested or more than one
+	my @c = ( ref($_[0]) ? @{$_[0]} : @_);
+	my %queue = $self->queue;
+	my @pris = map { $queue{uc($_)} } @c;
+	return (wantarray ? @pris : join($delim,@pris));
+      }
+    } else {
+      # More than one argument, assume hash
+      my %queue = $self->queue;
+      my %args = (ref($_[0]) eq 'HASH' ? %{$_[0]} : @_);
+      for my $c (keys %args) {
+	my $uc = uc($c);
+	# check that the country is supported
+	croak "Country $c not recognized"
+	  unless exists $queue{$uc};
+	$self->queue( $c => $args{$c});
+      }
+    }
+  }
+
+  # Return everything as a list or a single string
+  my @countries = sort values %{ $self->queue };
+  if (wantarray) {
+    return @countries;
+  } else {
+    return join($delim,@countries);
+  }
 }
 
 =item B<title>
@@ -757,13 +870,16 @@ Co-I C<OMP::User> objects.
 
   my @users = $proj->investigators;
 
+In scalar context acts just like an array. This may change.
+
 =cut
 
 sub investigators {
   my $self = shift;
 
-  # Get all the User objects
-  return ( $self->pi, $self->coi);
+  # Get all the User objects (forcing list context in coi method)
+  my @inv = ($self->pi, $self->coi);
+  return @inv;
 }
 
 =item contacts
@@ -773,6 +889,8 @@ associated with the project. This is the investigators and support
 scientists who are listed as "contactable".
 
   my @users = $proj->contacts;
+
+In scalar context acts just like an array. This may change.
 
 =cut
 
@@ -836,6 +954,61 @@ sub contactable {
   }
 }
 
+=item B<queue>
+
+Queue entries and corresponding TAG priorities (see also C<country>
+and C<tagpriority> methods for alternative views). Returns a hash
+with keys of "country" and values of TAG priority.
+
+  %queue = $proj->queue;
+
+Returns a hash reference in scalar context:
+
+  $ref = $proj->queue();
+
+Can be used to set countries and priorities:
+
+  $proj->queue( CA => 22, UK => 1 );
+
+or
+
+  $proj->queue( \%queue );
+
+Other country information is retained. The queue can be cleared with
+the C<clearqueue> command.
+
+=cut
+
+sub queue {
+  my $self = shift;
+  if (@_) {
+    # either a hash ref as first arg or a list
+    my %args = ( ref($_[0]) ? %{$_[0]} : @_);
+    for my $c (keys %args) {
+      $self->{Queue}->{uc($c)} = $args{$c};
+    }
+  }
+  if (wantarray) {
+    return %{ $self->{Queue} };
+  } else {
+    return $self->{Queue};
+  }
+}
+
+=item B<clearqueue>
+
+Clear all queue information (country and TAG priority).
+
+ $proj->clearqueue();
+
+=cut
+
+sub clearqueue {
+  my $self = shift;
+  %{$self->queue} = ();
+  return;
+}
+
 =back
 
 =head2 General Methods
@@ -884,21 +1057,22 @@ sub verify_password {
 
   # First verify against staff and queue manager passwords.
   # Need to turn off exceptions
-  if ( OMP::General->verify_queman_password( $plain, $self->country,1) ) {
-    return 1;
-  } else {
-
-    # Need to verify against this password
-    my $encrypted = $self->encrypted;
-
-    # Return false immediately if either are undefined
-    return 0 unless defined $plain and defined $encrypted;
-
-    # The encrypted password includes the salt as the first
-    # two letters. Therefore we encrypt the plain text password
-    # using the encrypted password as salt
-    return ( crypt($plain, $encrypted) eq $encrypted );
+  # Need to check each country
+  for my $c ($self->country) {
+    return 1
+      if OMP::General->verify_queman_password( $plain, $c,1);
   }
+
+  # Need to verify against this password
+  my $encrypted = $self->encrypted;
+
+  # Return false immediately if either are undefined
+  return 0 unless defined $plain and defined $encrypted;
+
+  # The encrypted password includes the salt as the first
+  # two letters. Therefore we encrypt the plain text password
+  # using the encrypted password as salt
+  return ( crypt($plain, $encrypted) eq $encrypted );
 
 }
 
