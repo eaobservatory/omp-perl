@@ -474,7 +474,9 @@ sub find_projectid {
   if (defined $element) {
     $self->projectID( $element->getFirstChild->toString );
   } else {
-    throw OMP::Error::UnknownProject("The Science Program does not contain a project identifier");
+#    throw OMP::Error::UnknownProject("The Science Program does not contain a 
+#project identifier");
+     $self->projectID( "UNKNOWN" );
   }
 
 }
