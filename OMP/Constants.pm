@@ -187,7 +187,7 @@ The MSB was started but was aborted part way through.
 
 =cut
 
-use constant OMP__DONE_ABORTED => 4;
+use constant OMP__DONE_ABORTED => 7;
 
 =item OMP__DONE_REJECTED
 
