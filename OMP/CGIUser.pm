@@ -24,6 +24,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::CGI;
 use OMP::Config;
 use OMP::DBbackend;
+use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::General;
 use OMP::ProjDB;
@@ -83,7 +84,9 @@ sub details {
   }
 
   print "<h3>User Details for $user</h3>";
-  print $user->html ." (".$user->email.")<br>";
+  print $user->html;
+  print " (".$user->email.")<br>"
+    if ($user->email);
 
   # Get projects user belongs to
   my @projects;
@@ -162,9 +165,17 @@ sub details {
 
 =item B<list_users>
 
+Create a page listing all OMP users.
+
+  list_users($q);
+
+Takes an C<OMP::CGI> object as an argument.
+
 =cut
 
 sub list_users {
+  my $q = shift;
+
   print "<h2>OMP users</h2>";
 
   my $users = OMP::UserServer->queryUsers( "<UserQuery></UserQuery>" );
@@ -176,7 +187,7 @@ sub list_users {
     for (@$users) {
       print "<tr bgcolor='#7979aa'>";
       print "<TD>" . $_->userid ."</TD>";
-      print "<TD><a href=$ompurl/userdetails.pl?user=" . $_->userid .">$_</a></TD>";
+      print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
       print "<TD><a href=\"update_user.pl?".$_->userid."\">Update</a></TD>";
     }
