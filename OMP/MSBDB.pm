@@ -156,10 +156,29 @@ Requires a password and project identifier. If the FreezeTimeStamp
 key is present and set to true timestamp checking is disabled and
 the timestamp is not updated when writing XML to disk. This is to
 allows the science program to be modified internally without affecting
-the external checking (e.g. marking an MSB as being observed).
+the external checking but can be dangerous if used without thought
+since it will most likely lead to confusion, either because the
+PI re-uploads without realising that the program has been modified,
+or because the back up system looks at the timestamp to determine whether
+to backup the file. Timestamps should be modified when re-uploading
+after a MSB accept for this reason. FreezeTimeStamp implies NoFeedback
+and NoCache (unless set explicitly).
 
   $status = $db->storeSciProg( SciProg => $sp,
-                               FreezeTimeStamp => 1);
+                               FreezeTimeStamp => 1,
+                               NoFeedback => 1,
+                               NoCache => 1);
+
+The NoFeedback key can be used to disable the writing of an
+entry to the feedback table on store. This is useful when an MSB
+is being accepted since the MSB acceptance will itself lead
+to a feedback entry.
+
+The NoCache switch, if true, can be used to prevent the system
+from attempting to write a backup of the submitted science program
+to disk. This is important for MSB acceptance etc, since the
+purpose for the cache is to track a limited number of PI submissions,
+not to track MSB accepts.
 
 The C<Force> key can be used for force the saving of the program
 to the database even if the timestamps do not match. This option
@@ -187,6 +206,10 @@ sub storeSciProg {
   # Check them
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
+
+  # Implied states
+  $args{NoCache} = 1 if (!exists $args{NoCache} && $args{FreezeTimeStamp});
+  $args{NoFeedback} = 1 if (!exists $args{NoFeedback} && $args{FreezeTimeStamp});
 
   # Before we do anything else we connect to the database
   # begin a transaction and lock out the tables.
@@ -219,10 +242,8 @@ sub storeSciProg {
   # Insert the summaries into rows of the database
   $self->_insert_rows( @rows );
 
-  # And file with feedback system. Need to distinguish a "doneMSB" event from
-  # a normal submission. Switch on FreezeTimeStamp since that is really telling
-  # us whether this is an external submission or not
-  unless ($args{FreezeTimeStamp}) {
+  # And file with feedback system unless told otherwise
+  unless ($args{NoFeedback}) {
     # Add a little note if we used the admin password
     my $note = $self->_password_text_info();
 
@@ -1005,9 +1026,10 @@ sub suspendMSB {
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
-  # This will require a back door password and the ability to
-  # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+  # Note that we need the timestamp to change but do not want
+  # feedback table notification of this (since we have done that
+  # already).
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
 
   # Disconnect
   $self->_dbunlock;
@@ -1097,7 +1119,7 @@ sub listModifiedPrograms {
 
 Store the science program to the "database"
 
-  $status = $db->_store_sci_prog( $sp, $freeze, $force );
+  $status = $db->_store_sci_prog( $sp, $freeze, $force, $nocache );
 
 The XML is stored in the database. Transaction management deals with the
 case where the upload fails part way through.
@@ -1117,13 +1139,18 @@ read the timestamp.
 If the optional second argument is present and true, timestamp
 checking is disabled and the timestamp is not modified. This is to
 allow internal reorganizations to use this routine without affecting
-external checking (for example, when marking the MSB as done).
+external checking.
 
 A third (optional) argument [presence of which requires the second
 argument to be supplied] can be used to disable time stamp checking
 completely whilst still generating a new timestamp. This option should
 be used with care and should not be used without explicit request
 of the owner of the science program. Default is false.
+
+The fourth (optional) argument [requiring the previous two optional args]
+controls whether the file is written to the backup file cache or not. By
+default the cache file is written unless the timestamp is to be frozen.
+ie default is true is freeze is true but false otherwise.
 
 Returns good status or throws exception on error (!!).
 
@@ -1136,6 +1163,17 @@ sub _store_sci_prog {
 
   my $freeze = shift;
   my $force = shift;
+
+
+  # Default to freeze state if not defined
+  my $nocache;
+  if (@_) {
+    $nocache = shift;
+  } else {
+    $nocache = $freeze;
+  }
+
+
 
   # Check to see if sci prog exists already (if it does it returns
   # the timestamp else undef)
@@ -1173,8 +1211,8 @@ sub _store_sci_prog {
 
   # For initial safety purposes, store a text version on disk
   # dont care about exit status - do not call this if we are
-  # using a FreezeTimeStamp
-  unless ($freeze) {
+  # not caching
+  unless ($nocache) {
     $self->_store_sciprog_todisk( $sp );
   }
 
