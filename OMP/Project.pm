@@ -638,6 +638,9 @@ Co-I email addresses.
 Like C<coiemail> this method returns a list in list context and
 a delimited string in scalar context.
 
+B<For now this only returns the PI information. Do this until
+we are sure who we should be contacting with Feedback information>
+
 =cut
 
 sub investigators {
@@ -645,6 +648,7 @@ sub investigators {
 
   # Get all the email addresses
   my @email = ( $self->piemail, $self->coiemail);
+  @email = ($self->piemail);
 
   # Return either the array of emails or a delimited string
   if (wantarray) {
