@@ -40,6 +40,7 @@ use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done /;
+use OMP::Range;
 
 use Time::Piece;
 
@@ -151,7 +152,7 @@ The C<Force> key can be used for force the saving of the program
 to the database even if the timestamps do not match. This option
 should be used with care. Default is false (no force).
 
-The scheduling fields (eg tauband and seeing) must be populated.
+The scheduling fields (eg tau and seeing) must be populated.
 
 Returns true on success and C<undef> on error (this may be
 modified to raise an exception).
@@ -201,7 +202,7 @@ sub storeSciProg {
     my $summary = { $_->summary };
 
     throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")
-      unless (exists $summary->{tauband} or exists $summary->{seeing});
+      unless (exists $summary->{tau} or exists $summary->{seeing});
 
     # Return the reference to the array
     $summary;
@@ -1002,9 +1003,9 @@ sub _insert_row {
   my $dbh = $data{_dbh} or
     throw OMP::Error::DBError("Database handle not valid in _insert_row");
 
-  # Throw an exception if we are missing tauband or seeing
+  # Throw an exception if we are missing tau or seeing
   throw OMP::Error::SpBadStructure("There seems to be no site quality information. Unable to schedule MSB.\n")
-    unless (defined $data{seeing} and defined $data{tauband});
+    unless (defined $data{seeing} and defined $data{tau});
 
   # Throw an exception if we are missing observations
   throw OMP::Error::MSBMissingObserve("1 or more of the MSBs is missing an Observe\n") if $data{obscount} == 0;
@@ -1015,12 +1016,13 @@ sub _insert_row {
 
   # Simply use "do" since there is only a single insert if we
   # can not have multiple statement handles
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
-	   $data{tauband}, $data{seeing}, $data{priority},
-	   $data{telescope}, $data{moon}, $data{photometric},
-	   $data{timeest}, $data{title}, 
-	   $data{earliest}, $data{latest}) 
+	   $data{tau}->min, $data{tau}->max, $data{seeing}->min,
+	   $data{seeing}->max, $data{priority},
+	   $data{telescope}, $data{moon}, $data{cloud},
+	   $data{timeest}, $data{title},
+	   $data{earliest}, $data{latest})
     or throw OMP::Error::DBError("Error inserting new MSB rows: $DBI::errstr");
 
   # Now the observations
@@ -1192,9 +1194,9 @@ sub _run_query {
 			    $dbh->errstr)
     unless defined $obsref;
 
-  # Now loop over the results and store the observations in the correct
-  # place. First need to create the obs arrays by msbid (using msbid as
-  # key)
+  # Now loop over the results and store the observations in the
+  # correct place. First need to create the obs arrays by msbid
+  # (using msbid as key)
   my %msbs;
   for my $row (@$obsref) {
     my $msb = $row->{msbid};
@@ -1374,6 +1376,26 @@ sub _run_query {
 
     }
 
+  }
+
+  # Now fix up the seeing and tau entries so that they
+  # are array ranges rather than max and min
+  for my $msb (@observable) {
+    for my $key (qw/ tau seeing /) {
+
+      # Determine the key names
+      my $maxkey = $key . "max";
+      my $minkey = $key . "min";
+
+      # Set up the array
+      $msb->{$key} = new OMP::Range( Min => $msb->{$minkey},
+				     Max => $msb->{$maxkey});
+
+      # Remove old entries from hash
+      delete $msb->{$maxkey};
+      delete $msb->{$minkey};
+
+    }
   }
 
   return @observable;

@@ -27,6 +27,7 @@ use XML::LibXML; # Our standard parser
 use Digest::MD5 qw/ md5_hex /;
 use OMP::Error;
 use OMP::General;
+use OMP::Range;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -42,6 +43,11 @@ use overload '""' => "stringify";
 our $MAXTIME = OMP::General->parse_date("2035-01-01T01:00");
 our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
 
+# Upper limits for ranges
+use constant CLOUD_INF  => 101;
+use constant MOON_INF   => 101;
+use constant SEEING_INF => 101;
+use constant TAU_INF    => 101;
 
 =head1 METHODS
 
@@ -250,7 +256,7 @@ sub obssum {
 =item B<weather>
 
 Return the weather constraints associated with this
-MSB. This is usually conditions such as seeing and tauband.
+MSB. This is usually conditions such as seeing and tau.
 
 Returns a hash containing the relevant values for this MSB.
 
@@ -630,7 +636,7 @@ sub summary {
 #  print Dumper(\%local);
 
   # Summary string and format for each
-  my @keys = qw/projectid title remaining obscount tauband seeing
+  my @keys = qw/projectid title remaining obscount tau seeing
     pol type instrument waveband target coordstype timeest/;
 
   # Fix up the magic value
@@ -1084,24 +1090,33 @@ sub _get_weather_data {
 
   my %summary;
 
-  # Need to get "seeing" and "tauband"
-  $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
-  $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
+  # Need to get "seeing" and "tau". These are ranges
+  # so store the upper and lower limits in an array
+  $summary{tau} = $self->_get_range( $el, "tau" );
+  $summary{seeing} = $self->_get_range( $el, "seeing" );
 
-  # and (if defined) photometric flag
-  $summary{photometric} = $self->_get_pcdata( $el, "photometric");
-  $summary{photometric} = 0 unless defined $summary{photometric};
+  # and (if defined) cloud information
+  # This is an implict range (bounded by 0)
+  # so the default value should be some high number
+  $summary{cloud} = $self->_get_pcdata( $el, "cloud");
+  $summary{cloud} = CLOUD_INF unless defined $summary{cloud};
 
-  # Moon (default to 0 if it isnt there)
+  # Moon
+  # This is an implict range (essentially the fraction of
+  # illumination) bounded by 0 [since you essentially
+  # never complain if your observation comes up with no moon
+  # present]
   $summary{moon} = $self->_get_pcdata( $el, "moon");
-  $summary{moon} = 0 unless defined $summary{moon};
+  $summary{moon} = MOON_INF unless defined $summary{moon};
 
 
   # Big kluge - if the site quality is there but we
   # dont have any values defined (due to a bug in the OT)
   # then make something up
-  $summary{tauband} = 0 unless defined $summary{tauband};
-  $summary{seeing} = 0 unless defined $summary{seeing};
+  $summary{tau} = new OMP::Range( Min => 0, Max => TAU_INF)
+    unless defined $summary{tau};
+  $summary{seeing} = new OMP::Range( Min => 0, Max => SEEING_INF)
+    unless defined $summary{seeing};
 
 
 #  use Data::Dumper;
@@ -1215,6 +1230,46 @@ sub _get_pcdata {
   }
 
   return $pcdata;
+}
+
+=item B<_get_range>
+
+Given an element and a tag name, find the element corresponding
+to that tag, look inside it and return the contents of C<max> and
+C<min> elements as an C<OMP::Range> object.
+
+The XML is expected to look something like:
+
+  <seeing>
+    <max>25.0</max>
+    <min>0.0</min>
+  </seeing>
+
+Returns C<undef> if element could not be located
+or if neither C<max> nor C<min> could be found.
+
+=cut
+
+sub _get_range {
+  my $self = shift;
+  my ($el, $tag) = @_;
+
+  my $result;
+
+  # Get the element
+  my @matches = $el->getElementsByTagName( $tag );
+  if (@matches) {
+
+    # Now just look for max and min elements
+    my $min = $self->_get_pcdata( $matches[-1], "min");
+    my $max = $self->_get_pcdata( $matches[-1], "max");
+
+    $result = new OMP::Range(Min => $min, Max => $max)
+      if defined $min and defined $max;
+
+  }
+
+  return $result;
 }
 
 =item B<_get_child_elements>

@@ -25,20 +25,22 @@ my %tables = (
 			 projectid=> "VARCHAR(32)",
 			 remaining => "INTEGER",
 			 checksum => "VARCHAR(64)",
-			 tauband => "INTEGER",
-			 seeing => "INTEGER",
+			 taumin => "REAL",
+			 taumax => "REAL",
+			 seeingmin => "REAL",
+			 seeingmax => "REAL",
 			 priority => "INTEGER",
 			 moon => "INTEGER",
 			 timeest => "REAL",
 			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
 			 earliest => "DATETIME",
-			 photometric => "INTEGER",
+			 cloud => "INTEGER",
 			 latest => "DATETIME",
 			 telescope => "VARCHAR(16)",
 			 _ORDER => [qw/ msbid projectid remaining checksum
-				    obscount tauband seeing priority
-				    telescope moon photometric
+				    obscount taumin taumax seeingmin seeingmax
+				    priority telescope moon cloud
 				    timeest title earliest latest
 				    /],
 		       },
