@@ -133,12 +133,13 @@ sub queryArc {
     @results = retrieve_archive( $query )->obs;
   } else {
 
-    # First the database
-    if( $self->db ) {
-      @results = $self->_query_arcdb( $query );
-    }
     my $date = $query->daterange->min;
     my $currentdate = gmtime;
+
+    # First the database
+    if( $self->db && ( ( $currentdate - $date ) > ONE_DAY ) ) {
+      @results = $self->_query_arcdb( $query );
+    }
 
     if( ( ( $currentdate - $date ) < ONE_WEEK ) &&
         ( $FallbackToFiles ) ) {
