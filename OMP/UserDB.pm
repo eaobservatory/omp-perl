@@ -102,10 +102,12 @@ sub updateUser {
   $self->_db_begin_trans;
   $self->_dblock;
 
-  # Make sure user's alias is not already in use
+  # Make sure user's alias is not already in use by another user
   if ($user->alias) {
-    $self->verifyUser( $user->alias )
-      and throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use." );
+    my $userid = $self->verifyUser( $user->alias );
+
+    throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use." )
+      unless ($userid = $user->userid);
   }
 
   # Modify
