@@ -644,7 +644,8 @@ sub summary {
 
     # XML version
     my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{msbid}\"" if exists $summary{msbid};
+    $xml .= "id=\"$summary{msbid}\"" 
+      if exists $summary{msbid} and defined $summary{msbid};
     $xml .= ">\n";
 
     for my $key ( keys %summary ) {
