@@ -289,6 +289,11 @@ sub _post_process_hash {
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
 
+  # If we're looking at a file, we don't need to do these translations.
+  if($self->isfile) {
+    return;
+  }
+
   # Check we only have one instrument
   if (exists $href->{telescope}) {
     throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query") if scalar(@{$href->{telescope}}) > 1;
@@ -340,10 +345,6 @@ sub _post_process_hash {
 
   } else {
 
-# If we're doing a file lookup, don't bother doing any of these translations
-    if ($self->isfile) {
-      return;
-    }
     # No instrument specified so we must select the tables
     my $tel = $href->{telescope}->[0];
     if ($tel eq 'UKIRT') {
