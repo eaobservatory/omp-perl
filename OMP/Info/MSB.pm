@@ -63,7 +63,7 @@ Create the accessor methods from a signature of their contents.
 
 =cut
 
-__PACKAGE__->CreateAccessors( projectid => '$',
+__PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               tau => 'OMP::Range', 
                               checksum => '$',
                               seeing => 'OMP::Range',
@@ -228,6 +228,28 @@ sub target {
 
 }
 
+=item B<addComment>
+
+Push a comment onto the stack.
+
+  $msb->addComment;
+
+The comment must be of class C<OMP::Info::Comment>.
+
+=cut
+
+sub addComment {
+  my $self = shift;
+  my $comment = shift;
+
+  # Go verbose in order for the observations() method
+  # to check class. Alternative is to check class here
+  # and then use the array reference
+  my @comments = $self->comments;
+  push(@comments, $comment);
+  $self->comments( \@comments );
+}
+
 =item B<summary>
 
 Return a summary of this object in the requested format.
@@ -298,7 +320,7 @@ sub summary {
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 10 10 3 3 8 8 3 3 20 20 20 6 5 /;
+  my @width = qw/ 11 10 3 3 8 8 3 3 20 20 20 6 5 /;
   throw OMP::Error::FatalError("Bizarre problem in OMP::Info::MSB::summary ")
     unless @width == @keys;
   my $textformat = join(" ",map { "%-$_"."s" } @width);
@@ -320,20 +342,19 @@ sub summary {
     $summary{$_} = $self->$_();
   }
 
-  # Fix up the magic value
-  $summary{remaining} = "REM" if $summary{remaining} == OMP__MSB_REMOVED();
-
   # Now get a long text form for the remaining number
   my $remstatus;
-  if ($summary{remaining} eq 'REM' or 
-      $summary{remaining} == OMP__MSB_REMOVED) {
+  if (!defined $summary{remaining}) {
+    $remstatus = "Remaining count unknown";
+    $summary{remaining} = "N/A";
+  } elsif ($summary{remaining} == OMP__MSB_REMOVED) {
     $remstatus = "REMOVED from consideration";
+    $summary{remaining} = "REM"; # Magic value
   } elsif ($summary{remaining} == 0) {
     $remstatus = "COMPLETE";
   } else {
     $remstatus = "$summary{remaining} remaining to be observed";
   }
-
 
   # Get the observations but retain them as objects for now
   my @obs = $self->observations;
@@ -371,9 +392,13 @@ sub summary {
 
     # Substr each string using the supplied widths.
     my @sub = map { 
-      substr($summary{$keys[$_]},0,$width[$_])
-    } grep { 
-      exists $summary{$keys[$_]} && defined $summary{$keys[$_]}
+      my $key;
+      if (exists $summary{$keys[$_]} && defined $summary{$keys[$_]}) {
+	$key = $summary{$keys[$_]};
+      } else {
+	$key = '';
+      }
+      substr($key,0,$width[$_])
     } 0..$#width;
 
     return sprintf $textformat, @sub;
@@ -457,6 +482,8 @@ sub summary {
       next if $key eq "summary";
       next if $key =~ /^_/;
       next unless defined $summary{$key};
+
+      # This will skip OMP::Range objects!
       next if ref($summary{$key});
 
       # Currently Matt needs the msbid to be included
@@ -471,6 +498,12 @@ sub summary {
     for (@obs) {
       $xml .= $_->summary("xml");
     }
+
+    # And the comments
+    for ($self->comments) {
+      $xml .= $_->summary('xml');
+    }
+
 
     $xml .= "</SpMSBSummary>\n";
 
