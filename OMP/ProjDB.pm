@@ -593,20 +593,30 @@ sub _insert_project_row {
 			);
 
   # Now insert the user data
-  for my $user ($proj->coi) {
-    $self->_db_insert_data( $COITABLE,
-			    $proj->projectid,
-			    $user->userid);
+  # We need to insert a column for this project id even if there
+  # is no associated user since we would like to do joins that will
+  # require P.projectid = C.projectid later - this will fail is 
+  # "C" does not contain a projectid.
+
+  # Get COI data
+  my %users;
+  $users{$COITABLE} = [ map { [ $proj->projectid, $_->userid ] } $proj->coi ];
+  $users{$SUPTABLE} = [
+		       map {
+			 [ $proj->projectid, $_->userid ] 
+		       } $proj->support 
+		      ];
+
+  for my $table (keys %users) {
+    my @users = @{ $users{$table} };
+
+    # Must be at least one entry
+    @users = ( [ $proj->projectid, undef ] ) unless @users;
+
+    for my $user (@users) {
+      $self->_db_insert_data( $table, $user->[0], $user->[1] );
+    }
   }
-
-  for my $user ($proj->support) {
-    $self->_db_insert_data( $SUPTABLE,
-			    $proj->projectid,
-			    $user->userid);
-  }
-
-
-
 
 }
 
