@@ -240,7 +240,7 @@ $VAR1 = {
                                                                                                  }
                                                                                     }, 'Astro::WaveBand' ),
                                                                'wavelength' => '2.1',
-                                                               'target' => 'CGS4:Bias:Dark',
+                                                               'target' => 'Bias:CGS4:Dark',
                                                                'coordstype' => 'CAL',
                                                                'obstype' => [
                                                                               'Bias',
