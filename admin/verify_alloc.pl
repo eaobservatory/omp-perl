@@ -30,8 +30,7 @@ use OMP::UserServer;
 use Data::Dumper;
 
 # hard-wire for testing
-my $file = "data/alloc02b_jcmt.ini";
-$file = "data/allocCANSERV_jcmt.ini";
+my $file = "data/alloc03b_jcmt.ini";
 
 my %alloc;
 tie %alloc, 'Config::IniFiles', ( -file => $file );
@@ -41,7 +40,9 @@ my %users;
 for my $proj (keys %alloc) {
   next if $proj eq 'info';
   my @users = ($alloc{$proj}->{pi}, split(",", $alloc{$proj}->{coi}));
+  #@users = ($alloc{$proj}->{pi});
   for (@users) {
+    next unless $_ =~ /\w/;
     $users{$_}++;
   }
 }
