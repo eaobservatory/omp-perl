@@ -392,24 +392,17 @@ sub _add_msb_done_info {
   my $t = gmtime;
   my $date = $t->strftime("%b %e %Y %T");
 
-  # Dummy text for the TEXT field
-  my $dummy = "pwned!2";
-
-  # Simply use "do" since there is only a single insert
-  # (without the text field)
-  $dbh->do("INSERT INTO $MSBDONETABLE VALUES (?,?,?,?,?,?,?,'$dummy')",undef,
-	   $msbinfo{checksum}, $msbinfo{status}, $msbinfo{projectid},
-	   $date, $msbinfo{target}, $msbinfo{instrument}, $msbinfo{waveband})
-    or throw OMP::Error::DBError("Error inserting new MSB done rows: $DBI::errstr");
-
-  # Now the text field
-  # Now replace the text using writetext
-  $dbh->do("declare \@val varbinary(16)
-select \@val = textptr(comment) from $MSBDONETABLE where comment like \"$dummy\"
-writetext $MSBDONETABLE.comment \@val '$msbinfo{comment}'")
-    or throw OMP::Error::DBError("Error inserting comment into database: ". $dbh->errstr);
-
-
+  # insert rows into table
+  $self->_db_insert_data( $MSBDONETABLE,
+			  $msbinfo{checksum}, $msbinfo{status}, 
+			  $msbinfo{projectid}, "$date", # Force stringify
+			  $msbinfo{target}, $msbinfo{instrument}, 
+			  $msbinfo{waveband},
+			  {
+			   TEXT => $msbinfo{comment},
+			   COLUMN => 'comment',
+			  }
+			);
 
 }
 

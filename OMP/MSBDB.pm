@@ -838,16 +838,10 @@ sub _db_store_sciprog {
   my $self = shift;
   my $sp = shift;
   my $proj = $self->projectid;
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   print "Entering _db_store_sciprog\n" if $DEBUG;
   print "Timestamp: ", $sp->timestamp,"\n" if $DEBUG;
   print "Project:   ", $proj,"\n" if $DEBUG;
-
-  # Insert the timestamp and project ID
-  $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'')", undef,
-	  $proj, $sp->timestamp) or
-	    throw OMP::Error::SpStoreFail("Error inserting timestamp and project ID into science program database: ". $dbh->errstr);
 
   # Escape characters
   # For some reason the DB upload does not allow single quotes
@@ -860,14 +854,14 @@ sub _db_store_sciprog {
   my $spxml = "$sp";
   $spxml =~ s/\'/\&apos;/g;
 
-  # Now insert the text field using writetext
-  # Do it this way because a TEXT field will only (seemingly) take
-  # a science program of size 65536 bytes using an INSERT before it starts
-  # giving really strange syntax error warnings.
-  $dbh->do("declare \@val varbinary(16) 
-select \@val = textptr(sciprog) from ompsciprog where projectid = \"$proj\" 
-writetext ompsciprog.sciprog \@val '$spxml'")
-    or throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
+  # Insert the data into the science program
+  $self->_db_insert_data($SCITABLE,
+			 $proj, $sp->timestamp,
+			 {
+			  TEXT => $spxml,
+			  COLUMN => 'sciprog',
+			 }
+			);
 
 
   # Now fetch it back to check for truncation issues
@@ -1087,18 +1081,19 @@ sub _insert_row {
   my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
   my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
 
-  # Simply use "do" since there is only a single insert if we
-  # can not have multiple statement handles
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
-	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
-	   $data{tau}->min, $taumax, $data{seeing}->min,
-	   $seeingmax, $data{priority},
-	   $data{telescope}, $data{moon}, $data{cloud},
-	   $data{timeest}, $data{title},
-	   $data{datemin}, $data{datemax})
-    or throw OMP::Error::DBError("Error inserting new MSB rows: $DBI::errstr");
+
+  # Insert the MSB data
+  $self->_db_insert_data( $MSBTABLE,
+			  $index, $proj, $data{remaining}, $data{checksum},
+			  $data{obscount}, $data{tau}->min, $taumax, 
+			  $data{seeing}->min, $seeingmax, $data{priority},
+			  $data{telescope}, $data{moon}, $data{cloud},
+			  $data{timeest}, $data{title},
+			  $data{datemin}, $data{datemax});
 
   # Now the observations
+  # We dont use the generic interface here since we want to
+  # reuse the statement handle
   # Get the observation query handle
   my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");

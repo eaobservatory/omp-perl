@@ -259,38 +259,21 @@ sub _store_comment {
   my $self = shift;
   my $comment = shift;
 
-
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
   my $projectid = $self->projectid;
 
-  my @values = @$comment{ 'author',
-			  'date',
-			  'subject',
-			  'program',
-			  'sourceinfo',
-			  'status',
-			  'text', };
-
   # Store the data
-  # Since a text field will [oddly] only store 65536 bytes we will use
-  # writetext to insert the text field.  But first a string will be
-  # inserted in the text field so we can search on it before replacing
-  # it with the proper text.
-
-  my $key = "pwned!1"; # insert this into the text field for now
-                       # then search on it when we do the writetext
-
-  my $sql = "insert into $FBTABLE values (?,?,?,?,?,?,?,'$key')";
-  $dbh->do( $sql, undef, $projectid, @values[0..5] ) or
-    throw OMP::Error::DBError("Insert failed: " .$dbh->errstr);
-
-  # Now replace the text using writetext
-  $dbh->do("declare \@val varbinary(16)
-select \@val = textptr(text) from $FBTABLE where text like \"$key\"
-writetext $FBTABLE.text \@val '$values[-1]'")
-    or throw OMP::Error::DBError("Error inserting comment into database: ". $dbh->errstr);
+  $self->_db_insert_data( $FBTABLE,
+			  $projectid,
+			  @$comment{ 'author',
+				     'date',
+				     'subject',
+				     'program',
+				     'sourceinfo',
+				     'status',},
+			  {
+			   TEXT => $comment->{text},
+			   COLUMN => 'text',
+			  });
 
 }
 

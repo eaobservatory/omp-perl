@@ -580,21 +580,15 @@ sub _insert_project_row {
   my $self = shift;
   my $proj = shift;
 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
-  # Insert the contents into the table. The project ID is the
-  # unique ID for the row.
-  $dbh->do("INSERT INTO $PROJTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-	   undef,
-	   $proj->projectid, $proj->pi, $proj->piemail,
-	   scalar($proj->coi), scalar($proj->coiemail),
-	   scalar($proj->support), scalar($proj->supportemail),
-	   $proj->title, $proj->tagpriority,
-	   $proj->country, $proj->semester, $proj->encrypted,
-	   $proj->allocated, $proj->remaining, $proj->pending
-	  ) or throw OMP::Error::SpStoreFail("Error inserting project:".
-					     $dbh->errstr ."\n");
+  # Insert data into table
+  $self->_db_insert_data( $PROJTABLE,
+			  $proj->projectid, $proj->pi, $proj->piemail,
+			  scalar($proj->coi), scalar($proj->coiemail),
+			  scalar($proj->support), scalar($proj->supportemail),
+			  $proj->title, $proj->tagpriority,
+			  $proj->country, $proj->semester, $proj->encrypted,
+			  $proj->allocated, $proj->remaining, $proj->pending
+			);
 
 }
 
