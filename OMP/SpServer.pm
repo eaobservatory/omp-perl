@@ -145,6 +145,56 @@ sub fetchProgram {
   return "$sp";
 }
 
+
+=item B<programDetails>
+
+Return a detailed summary of the science program. The summary is returned
+as pre-formatted text.
+
+  $text = OMP::SpServer->programDetails( $project );
+
+No password is required. This may change in the future.
+
+=cut
+
+sub programDetails {
+  my $class = shift;
+  my $projectid = shift;
+
+  my $E;
+  my $summary;
+  try {
+
+    # Create new DB object
+    my $db = new OMP::MSBDB( 
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection, );
+
+    # Retrieve the Science Program object
+    my $sp = $db->fetchSciProg;
+
+    # Create a summary of the science program
+    $summary = $sp->summary('ascii');
+
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  # Return the stringified form
+  return $summary;
+}
+
 =back
 
 =head1 SEE ALSO
