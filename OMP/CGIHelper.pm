@@ -1391,6 +1391,8 @@ sub project_home {
     my $remaining = $project->allRemaining->pretty_print;
   my $pi = $project->pi->html;
   my $taurange = $project->taurange;
+  my $seerange = $project->seerange;
+  my $cloud = $project->cloud;
 
   # Store coi and support html emails
   my $coi = join(", ",map{$_->html} $project->coi);
@@ -1428,6 +1430,13 @@ sub project_home {
   # If range is from 0 to infinity dont bother displaying it
   print "in tau range $taurange"
     unless ($taurange->min == 0 and ! defined $taurange->max);
+
+  print " in seeing range $seerange"
+    unless ($seerange->min ==0 and ! defined $seerange->max);
+
+  print " with sky " . $project->cloudtxt
+    if defined $cloud;
+
   print "</td>";
 
   if ($remaining) {
@@ -1746,11 +1755,21 @@ sub nightlog_content {
   print "</table>";
 }
 
+=item B<multi_night_report>
+
+Create a page summarizing activity for several nights.
+
+  multi_night_report($cgi, %cookie);
+
+=cut
+
+sub multi_night_report
+
 =item B<night_report>
 
-Create a page summarizing activity for a particular night and project.
+Create a page summarizing activity for a particular night.
 
-  night_report($q, %cookie);
+  night_report($cgi, %cookie);
 
 =cut
 
@@ -1782,6 +1801,14 @@ sub night_report {
 
   if (! $utdate) {
     croak("UT date string [$utdatestr] does not match the expect format so we are not allowed to untaint it!");
+  }
+
+  # Are we summarizing multiple nights?
+  my $utdate_end;
+  my $multiple;
+  if ($q->url_param('multiple')) {
+    
+
   }
 
   my $tel;
