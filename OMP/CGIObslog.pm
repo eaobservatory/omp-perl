@@ -135,7 +135,7 @@ sub list_observations {
   my $q = shift;
   my %cookie = @_;
 
-  print_obslog_header();
+  print_obslog_header( $q );
 
   my ($inst, $ut);
 
@@ -956,36 +956,18 @@ sub cgi_to_obsgroup {
 
 Prints a header for obslog.
 
-  print_obslog_header();
+  print_obslog_header( $q );
 
-There are no arguments.
+The only argument is the C<CGI> object.
 
 =cut
 
 sub print_obslog_header {
-  print <<END;
-Welcome to obslog. <a href="#changeut">Change the UT date</a><br>
-<hr>
-END
-};
-
-
-
-=item B<print_obslog_footer>
-
-Print a footer that allows for changing of the UT date.
-
-  print_obslog_footer( $cgi );
-
-Only argument is the C<CGI> object.
-
-=cut
-
-sub print_obslog_footer {
   my $q = shift;
 
   my $qv = $q->Vars;
 
+  print "Welcome to obslog.<hr>\n";
   print "<br>\n";
   print $q->startform;
 
@@ -1011,6 +993,24 @@ sub print_obslog_footer {
 
   print $q->submit( -name => 'Submit New UT' );
   print $q->endform;
+
+
+};
+
+=item B<print_obslog_footer>
+
+Print a footer.
+
+  print_obslog_footer( $cgi );
+
+Only argument is the C<CGI> object.
+
+Currently essentially a no-op.
+
+=cut
+
+sub print_obslog_footer {
+
 }
 
 =item B<print_obscomment_footer>
