@@ -409,20 +409,27 @@ sub obs_inst_summary {
   }
 
 # DEBUGGING ONLY
-#$telescope = "JCMT";
+$telescope = "JCMT";
 
   if( ! defined( $telescope ) ) {
     throw OMP::Error( "Unable to determine telescope" );
   }
 
   # Now that we know where we are (or not), form the instrument array.
-  my $instarray = OMP::Config->getData( 'instruments',
-                                        telescope => $telescope );
+  my $instruments = OMP::Config->getData( 'instruments',
+                                          telescope => $telescope );
+
+  my @instarray;
+  if( ref( $instruments ) eq 'ARRAY' ) {
+    push @instarray, @$instruments;
+  } else {
+    push @instarray, $instruments;
+  }
 
   # Alright. Now, for each instrument in the array, form an
   # Info::ObsGroup object.
   my %results;
-  foreach my $inst ( @$instarray ) {
+  foreach my $inst ( @instarray ) {
     my $grp;
     try {
       $grp = new OMP::Info::ObsGroup( instrument => uc( $inst ),
