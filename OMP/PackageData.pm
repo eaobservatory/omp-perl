@@ -62,6 +62,12 @@ use File::Temp qw/ tempdir /;
 use OMP::Config;
 use Archive::Tar;
 
+# ONE day in seconds. Should probably use Time::Seconds
+use constant ONE_DAY => 60 * 60 * 24;
+
+# Age in days of files to be purged
+use constant OLD_AGE => 1;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -824,10 +830,47 @@ Remove files that are older than 4 days from the FTP directory.
 
 NOT YET IMPLEMENTED
 
+Note that files and directories created in order to create the 
+tar file itself are cleaned up automatically when the process
+exits. [but will be left around if the previous invocation
+crashed]. For that reason we look for old files in both root_tmpdir
+and ftp_rootdir.
+
 =cut
 
 sub _purge_old_ftp_files {
-  my $class = shift;
+  my $self = shift;
+
+  # Get the directories
+  my @dirs = ( $self->ftp_rootdir, $self->root_tmpdir );
+
+  # loop over them, unlinking files that are older than 7 days
+  find(\&_unlink_if_old, @dirs);
+
+}
+
+# Routine to unlink the old files
+sub _unlink_if_old {
+  my $file = shift;
+
+  my @stat = stat $file;
+
+  # get the current time
+  my $time = time;
+
+  # Get the change time
+  my $ctime = $stat[10];
+
+  # get the difference
+  my $age = $time - $ctime;
+
+  # convert to days [could use Time::Seconds]
+  $age /= ONE_DAY;
+
+  if ($age > OLD_AGE) {
+    print "File is very old and should be removed: $file\n";
+  }
+
 
 }
 
