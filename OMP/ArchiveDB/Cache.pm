@@ -210,9 +210,14 @@ sub unstored_files {
   } catch OMP::Error::DBMalformedQuery with { };
 
   my $instrument = $query->instrument;
+
   my @insts;
   if( defined( $instrument ) ) {
-    push @insts, $instrument;
+    if($instrument =~ /^rx/i) {
+      push @insts, 'heterodyne';
+    } else {
+      push @insts, $instrument;
+    }
   } elsif( defined( $telescope ) ) {
     # Need to make sure we kluge the rx -> heterodyne conversion
     my @initial = OMP::Config->getData('instruments',
@@ -249,6 +254,7 @@ sub unstored_files {
 
       opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
       @ifiles = grep(!/^\./, readdir(FILES));
+
       closedir(FILES);
 
       my $regexp = OMP::Config->getData( 'filenameregexp',
