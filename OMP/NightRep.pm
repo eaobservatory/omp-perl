@@ -416,7 +416,17 @@ Returns undef if no observations could be located.
 sub obs {
   my $self = shift;
 
-  my $db = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+#  my $db = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+
+  my $db = new OMP::ArchiveDB();
+  try {
+    my $fred = new OMP::DBbackend::Archive;
+    $db->db( $fred );
+  }
+  catch OMP::Error::DBConnection with {
+    # let it pass through
+  };
+
 
   # XML query to get all observations
   my $xml = "<ArcQuery>".
