@@ -383,7 +383,7 @@ sub accounting_hdr {
   my $obsgrp = $self->obs;
   my ($warnings, @hdacct);
   if ($obsgrp) {
-    # locate time gaps > 1 second
+    # locate time gaps > 1 second when calculating statistics
     $obsgrp->locate_timegaps( 1 );
 
     ($warnings, @hdacct) = $obsgrp->projectStats();
@@ -732,7 +732,9 @@ Project Time Summary
   # Observation log
   $str .= "Observation Log\n\n";
 
-  $str .= $self->obs->summary('72col');
+  my $grp = $self->obs;
+  $grp->locate_timegaps( OMP::Config->getData("timegap") );
+  $str .= $grp->summary('72col');
 
   if (wantarray) {
     return split("\n", $str);
@@ -981,6 +983,7 @@ sub ashtml {
       my $grp;
       try {
 	$grp = $self->obs;
+	$grp->locate_timegaps( OMP::Config->getData("timegap") );
       } catch OMP::Error::FatalError with {
 	my $E = shift;
 	print "<pre>An error has been encountered:<p> $E</pre><p>";
