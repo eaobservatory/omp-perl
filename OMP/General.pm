@@ -46,7 +46,7 @@ use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
 use File::Spec;
 use Fcntl qw/ :flock /;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 
@@ -1217,7 +1217,7 @@ sub verify_queman_password {
     if ($retval) {
       $status = 0;
     } else {
-      throw OMP::Error::Authentication("Failed to match queue password password\n");
+      throw OMP::Error::Authentication("Failed to match queue manager password for queue '$queue'\n");
     }
   }
   return $status;
@@ -1330,8 +1330,13 @@ sub log_message {
 
   # "Constants"
   my $logdir;
-  eval {
+  # Look for the logdir but make sure this is none fatal
+  # so for any error ignore it. in some cases a bare eval{}
+  # here did not catch everyhing so use a try with empty otherwise
+  try {
     $logdir = OMP::Config->getData( "logdir" );
+  } otherwise {
+    # empty - we want to catch everything
   };
   my $fallback_logdir = File::Spec->catdir( File::Spec->tmpdir, "ompLogs");
   my $datestamp = gmtime;
