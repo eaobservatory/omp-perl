@@ -188,17 +188,14 @@ passed to the constructor.
 
 =over 4
 
-=item B<OMP::Error::FatalError>
-
-Used when we have no choice but to abort but using a non-standard
-reason. It's constructor takes two arguments. The first is a text
-value, the second is a numeric value, C<OMP__FATAL>. These values are
-what will be returned by the overload methods.
-
 =item B<OMP::Error::Authentication>
 
 The password provided could not be authenticated. Also encoded
 in the constant C<OMP__AUTHFAIL>
+
+=item B<OMP::Error::BadArgs>
+
+Method was called with incorrect arguments.
 
 =item B<OMP::Error::DBConnection>
 
@@ -208,13 +205,20 @@ Unable to make a connection to the database backend.
 
 Generic error with the backend database.
 
+=item B<OMP::Error::DBLocked>
+
+The database is currently locked out. Please try again later.
+
+=item B<OMP::Error::FatalError>
+
+Used when we have no choice but to abort but using a non-standard
+reason. It's constructor takes two arguments. The first is a text
+value, the second is a numeric value, C<OMP__FATAL>. These values are
+what will be returned by the overload methods.
+
 =item B<OMP::Error::MSBMalformedQuery>
 
 The query XML could not be understood.
-
-=item B<OMP::Error::UnknownProject>
-
-The specified project is not known to the OMP.
 
 =item B<OMP::Error::MSBMissing>
 
@@ -222,34 +226,38 @@ The requested MSB could not be found in the current MSB database.
 This is likely if the science program has been resubmitted since
 the query was made. In general this is non-fatal.
 
-=item B<OMP::Error::SpStoreFail>
+=item B<OMP::Error::MSBMissingObserve>
 
-Unable to store the Science Program in the database.
-
-=item B<OMP::Error::SpRetrieveFail>
-
-Unable to retrieve the Science Program from the database.
+An MSB was submitted that never resulted in an observation.
+SpIterObserve was missing.
 
 =item B<OMP::Error::SpBadStructure>
 
 The Science Program XML was not valid.
 
+=item B<OMP::Error::SpChangedOnDisk>
+
+The version of the science program in the database was not derived
+from the version of the science program being submitted (the timestamps
+differ).
+
 =item B<OMP::Error::SpEmpty>
 
 No MSBs were present in the Science Program.
 
-=item B<OMP::Error::DBLocked>
+=item B<OMP::Error::SpRetrieveFail>
 
-The database is currently locked out. Please try again later.
+Unable to retrieve the Science Program from the database.
 
-=item B<OMP::Error::BadArgs>
+=item B<OMP::Error::SpStoreFail>
 
-Method was called with incorrect arguments.
+Unable to store the Science Program in the database.
 
-=item B<OMP::Error::MSBMissingObserve>
+=item B<OMP::Error::UnknownProject>
 
-An MSB was submitted that never resulted in an observation.
-SpIterObserve was missing.
+The specified project is not known to the OMP.
+
+
 
 =back
 
@@ -285,13 +293,22 @@ use vars qw/$VERSION/;
 # flush method added to the base class
 use base qw/ Error::Simple /;
 
-package OMP::Error::FatalError;
-use base qw/ OMP::Error /;
-
 package OMP::Error::Authentication;
 use base qw/ OMP::Error /;
 
+package OMP::Error::BadArgs;
+use base qw/ OMP::Error /;
+
 package OMP::Error::DBConnection;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DBError;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DBLocked;
+use base qw/ OMP::Error /;
+
+package OMP::Error::FatalError;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMalformedQuery;
@@ -300,36 +317,26 @@ use base qw/ OMP::Error /;
 package OMP::Error::MSBMissing;
 use base qw/ OMP::Error /;
 
-package OMP::Error::UnknownProject;
-use base qw/ OMP::Error /;
-
-package OMP::Error::SpStoreFail;
-use base qw/ OMP::Error /;
-
-package OMP::Error::SpRetrieveFail;
+package OMP::Error::MSBMissingObserve;
 use base qw/ OMP::Error /;
 
 package OMP::Error::SpBadStructure;
 use base qw/ OMP::Error /;
 
-package OMP::Error::SpEmpty;
-use base qw/ OMP::Error /;
-
 package OMP::Error::SpChangedOnDisk;
 use base qw/ OMP::Error /;
 
-package OMP::Error::DBLocked;
+package OMP::Error::SpEmpty;
 use base qw/ OMP::Error /;
 
-package OMP::Error::DBError;
+package OMP::Error::SpRetrieveFail;
 use base qw/ OMP::Error /;
 
-package OMP::Error::BadArgs;
+package OMP::Error::SpStoreFail;
 use base qw/ OMP::Error /;
 
-package OMP::Error::MSBMissingObserve;
+package OMP::Error::UnknownProject;
 use base qw/ OMP::Error /;
-
 
 1;
 

@@ -122,22 +122,21 @@ sub _get_faultcode {
 
   # Translation table
   my %lut = (
-	     BadArgs => 'Client.BadArgs',
-	     ChangedOnDisk => 'Server.ChangedOnDisk',
 	     Authentication => 'Client.Authentication',
-	     DBConnectionFail => 'Server.DBConnection',
-	     MSBMalformedQuery => 'Client.MSBMalformedQuery',
-	     UnknownProject => 'Client.UnknownProject',
-	     MSBMissing => 'Client.MSBMissing',
-	     SpStoreFail => 'Server.SpStoreFail',
-	     SpRetrieveFail => 'Server.SpRetrieveFail',
-	     SpBadStructure => 'Client.SpBadStructure',
-	     SpEmpty => 'Client.SpEmpty',
-	     DBLocked => 'Server.DBLocked',
+	     BadArgs => 'Client.BadArgs',
+	     DBConnection => 'Server.DBConnection',
 	     DBError => 'Server.DBError',
-	     MSBMissingObserve => 'Client.MSBMissingObserve',
+	     DBLocked => 'Server.DBLocked',
 	     FatalError => 'Server.UnknownError',
+	     MSBMalformedQuery => 'Client.MSBMalformedQuery',
+	     MSBMissing => 'Client.MSBMissing',
+	     MSBMissingObserve => 'Client.MSBMissingObserve',
+	     SpBadStructure => 'Client.SpBadStructure',
 	     SpChangedOnDisk => 'Server.SpChangedOnDisk',
+	     SpEmpty => 'Client.SpEmpty',
+	     SpRetrieveFail => 'Server.SpRetrieveFail',
+	     SpStoreFail => 'Server.SpStoreFail',
+	     UnknownProject => 'Client.UnknownProject',
 	    );
 
   my $faultcode;
