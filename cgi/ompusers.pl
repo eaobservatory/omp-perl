@@ -1,71 +1,27 @@
 #!/local/perl-5.6/bin/perl -XT
 
-# simple CGI script to list current OMP users. Needs
-# to be rewritten by Kynan.
-
-use 5.006;
-use warnings;
-use strict;
-
 use CGI;
-use CGI::Carp qw/ fatalsToBrowser /;
-use HTML::WWWTheme;
+use CGI::Carp qw/fatalsToBrowser/;
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
+	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+	  unless exists $ENV{OMP_CFG_DIR};
+      }
 
-use lib "/jac_sw/omp/msbserver";
-use OMP::UserServer;
-use Error qw/ :try /;
+use lib qw(/jac_sw/omp_dev/msbserver);
 
+use OMP::CGI;
+use OMP::CGIUser;
 
+use strict;
+use warnings;
 
-$|=1; # Make unbuffered
-
+my $arg = shift @ARGV;
 
 my $q = new CGI;
-print $q->header;
+my $cgi = new OMP::CGI( CGI => $q );
 
-# Use the OMP theme and make some changes to it.
+my $title = $cgi->html_title;
 
-my $root = "/WWW/omp-private/LookAndFeelConfig";
-my $file;
-for  ( $root, "/WWW$root") {
-  if (-e $_) {
-    $file = $_;
-    last;
-  }
-}
-
-die "Can not find theme file" unless $file;
-
-my $theme = new HTML::WWWTheme("$file");
-
-$theme->SetHTMLStartString("<html><head><title>OMP User information</title></head>");
-$theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
-
-print $theme->StartHTML(),
-      $theme->MakeHeader(),
-      $theme->MakeTopBottomBar();
-
-print "<h1>OMP users</h1>";
-
-my $users = OMP::UserServer->queryUsers( "<UserQuery></UserQuery>" );
-
-if (@$users) {
-  print "<TABLE border='1' width='100%'>\n";
-  for (@$users) {
-    print "<tr bgcolor='#7979aa'>";
-    print "<TD>" . $_->userid ."</TD>";
-    print "<TD>" . $_->html ."</TD>";
-    print "<TD>" . $_->email . "</TD>";
-    print "<TD><a href=\"update_user.pl?".$_->userid."\">Update</a></TD>";
-  }
-  print "</TABLE>\n";
-} else {
-  print "No OMP users found!<br>\n";
-}
-
-# End the document
-print $theme->MakeTopBottomBar(),
-      $theme->MakeFooter(),
-      $theme->EndHTML();
+$cgi->html_title("$title: OMP Users");
+$cgi->write_page_noauth( \&OMP::CGIUser::list_users, \&OMP::CGI::list_users );
