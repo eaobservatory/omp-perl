@@ -38,7 +38,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary /);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -110,6 +110,10 @@ sub file_fault {
   print $q->textfield(-name=>'subject',
 		      -size=>'60',
 		      -maxlength=>'256',);
+  print "</td><tr><td colspan=2>";
+  print $q->textarea(-name=>'message',
+		     -rows=>20,
+		     -columns=>78,);
 
   # If were in the ukirt or jcmt fault categories create a checkbox group
   # for specifying an association with projects.
@@ -118,8 +122,7 @@ sub file_fault {
     # Values for checkbox group will be tonights projects
     my $today = OMP::General->today;
     my $aref = OMP::MSBServer->observedMSBs($today, 0, 'data');
-    if (defined $aref) {
-      # my %projects = map {$_->projectid, $->projectid} @$aref;
+    if (@$aref[0]) {
       my %projects;
       for (@$aref) {
 	$projects{$_->projectid} = $_->projectid;
@@ -127,18 +130,22 @@ sub file_fault {
       print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
       print $q->checkbox_group(-name=>'assoc',
 			       -values=>[keys %projects] );
+      print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
+    } else {
+      print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
     }
+    print "<font size=-1>(separated by spaces)</font><b>:</b>";
+    print "</td><tr><td colspan=2>";
+    print $q->textfield(-name=>'assoc2',
+		        -size=>50,
+		        -maxlength=>300,);
   }
 
-  print "</td><tr><td colspan=2>";
-  print $q->textarea(-name=>'message',
-		     -rows=>20,
-		     -columns=>78,);
-  print "</td><tr><td colspan=4><b>";
+  print "</td><tr><td><b>";
   print $q->checkbox(-name=>'urgency',
 		     -value=>'urgent',
 		     -label=>"This fault is urgent");
-  print "</b></td><tr><td colspan=2 align=right>";
+  print "</b></td><td align=right>";
   print $q->submit(-name=>'Submit Fault');
   print $q->endform;
   print "</td></table>";
@@ -166,7 +173,18 @@ sub file_fault_output {
     $urgency = $urgency{Normal};
   }
 
-  my @projects = $q->param('projects');
+  # Get the associated projects
+  my %projects;
+  if ($q->param('assoc') or $q->param('assoc2')) {
+    my @assoc = $q->param('assoc');
+
+    # Strip out commas and seperate on spaces
+    my $assoc2 = $q->param('assoc2');
+    $assoc2 =~ s/,/ /g;
+    my @assoc2 = split(/\s+/,$assoc2);
+
+    %projects = map {$_, undef} @assoc, @assoc2;
+  }
 
   my $author = $q->param('user');
   my $user = new OMP::User(userid => $author);
@@ -181,8 +199,11 @@ sub file_fault_output {
 			     type=>$q->param('type'),
 			     timelost=>$q->param('loss'),
 			     urgency=>$urgency,
-			     projects=>\@projects,
 			     fault=>$resp);
+
+  if (defined %projects) {
+    $fault->projects([keys %projects]);
+  }
 
   # Submit the fault the the database
   my $faultid;
@@ -233,12 +254,25 @@ sub fault_table {
 		    "<b><font color=#a00c0c>Closed</font></b>");
 
   # First show the fault info
-  print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=$TABLEWIDTH>";
-  print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author->html . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Status: </b>$statushtml</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td>$urgencyhtml</td>";
-  print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>$subject</td>";
+  print "<div class='black'>";
+  print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b>Report by: </b>" . $fault->author->html . "</td>";
+  print "<tr><td>";
+  print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
+  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>$statushtml</td>";
+
+  # Display links to projects associated with this fault if any
+  my @projects = $fault->projects;
+
+  if ($projects[0]) {
+    my @html = map {"<a href='feedback.pl?urlprojid=$_'>$_</a>"} @projects;
+    print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
+    print join(', ',@html);
+    print "</td>";
+  }
+
+  print "<tr bgcolor=#ffffff><td>$urgencyhtml</td><td></td>";
 
   # Then loop through and display each response
   my @responses = $fault->responses;
@@ -259,6 +293,8 @@ sub fault_table {
 
   }
   print "</table>";
+  print "</td></table>";
+  print "</div>";
 }
 
 =item B<query_fault>
@@ -625,6 +661,8 @@ sub show_faults {
   my $q = shift;
   my $faults = shift;
 
+  my $url = $query->url(-relative=>1);
+
   print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td></td>";
   my $colorcount;
@@ -652,12 +690,12 @@ sub show_faults {
     ($fault->isNew and $status eq "Open") and $status = "New";
 
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
-    print "<td><b><a href='viewfault.pl?id=$faultid'>$subject &nbsp;</a></b></td>";
+    print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b></td>";
     print "<td>" . $user->html . "</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
-    print "<td><b><a href='viewfault.pl?id=$faultid'>[View/Respond]</a></b></td>";
+    print "<td><b><a href='$url.pl?id=$faultid'>[View/Respond]</a></b></td>";
   }
 
   print "</table>";
