@@ -1077,6 +1077,9 @@ sub getTarget {
 
   }
 
+  # Can not have spaces in source name
+  $info{target}  =~ s/\s+/_/g;
+
   # Switch on coords type
   my %target;
   if ($info{coordstype} eq 'RADEC') {
