@@ -492,18 +492,19 @@ sub _post_process_hash {
     if (! exists $href->{telescope} &&
 	! $href->{_attr}->{projectid}->{full});
 
-  # If tau has been specified and is negative remove it from
-  # the query
-  if (exists $href->{tau}) {
-    delete $href->{tau}
-      if $href->{tau}->[0] <= 0;
+  # Force moon and cloud to be integers (since that is the column type)
+  for my $key (qw/ moon cloud /) {
+    if (exists $href->{$key}) {
+      $href->{$key}->[0] = OMP::General::nint( $href->{$key}->[0] );
+    }
   }
 
-  # If seeing has been specified and is negative remove it from
-  # the query
-  if (exists $href->{seeing}) {
-    delete $href->{seeing}
-      if $href->{seeing}->[0] <= 0;
+  # Remove negatives when values are meant to be positive
+  for my $key (qw/ tau seeing cloud moon /) {
+    if (exists $href->{$key}) {
+      delete $href->{$key}
+        if $href->{$key}->[0] <= 0;
+    }
   }
 
   # We always need a reference date
