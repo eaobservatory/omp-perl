@@ -276,7 +276,7 @@ sub _mail_comment {
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->datasend("Subject: New feedback comment for project $comment->{projectid}\n")
+  $smtp->datasend("Subject: New feedback comment for project " . $self->projectid."\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->datasend("\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
@@ -328,7 +328,16 @@ sub _mail_comment_info {
   my $projectid = shift;
   my $comment = shift;
 
-  my $proj = new OMP::Project( ProjectID => $projectid );
+  # Get a ProjDB object so we can get info from the database
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+				DB => $self->db,
+			      );
+
+  # This is an internal method that removes password
+  # verification. Since comments are not meant to need password
+  # to be added we can not use $projdb->projectDetails [unless
+  # we specfy the administrator password here]
+  my $proj = $projdb->_get_project_row;
 
   my @email = $proj->piemail;
 
