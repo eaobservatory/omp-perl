@@ -32,6 +32,11 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use Astro::FITS::Header::NDF;
+use Astro::FITS::HdrTrans;
+use Astro::WaveBand;
+use Astro::Coords;
+use Time::Piece;
 
 use base qw/ OMP::Info::Base /;
 
@@ -46,6 +51,47 @@ use overload '""' => "stringify";
 =over 4
 
 =item B<new>
+
+
+=cut
+
+sub new {
+  my $proto = shift;
+  my $class = ref($proto) || $proto;
+
+  my $obs = $class->SUPER::new( @_ );
+
+  # if we have fits but nothing else
+  # translate the fits header to generic
+  my %args = @_;
+  # count keys
+  if (exists $args{fits} && scalar( keys %args ) < 2) {
+    $obs->_populate();
+  }
+
+  return $obs;
+}
+
+
+=item B<readfile>
+
+Creates an C<OMP::Info::Obs> object from a given filename.
+
+  $o = readfile OMP::Info::Obs( $filename, $instrument );
+
+=cut
+
+sub readfile {
+  my $proto = shift;
+  my $class = ref($proto) || $proto;
+  my $filename = shift;
+  my $instrument = shift;
+
+  my $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+  my $obs = $class->new( fits => $FITS_header );
+  $obs->filename( $filename );
+  return $obs;
+}
 
 =back
 
@@ -97,6 +143,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               systemvelocity => '$',
                               nexp => '$',
                               filename => '$',
+                              isScience => '$',
+                              isSciCal => '$',
+                              isGenCal => '$',
                             );
 #'
 
@@ -123,6 +172,12 @@ Scalar accessors:
 =item B<type>
 
 =item B<filename>
+
+=item B<isScience>
+
+=item B<isSciCal>
+
+=item B<isGenCal>
 
 [Imaging or Spectroscopy]
 
@@ -422,6 +477,145 @@ sub nightlog {
 }
 
 =back
+
+=head2 Private Methods
+
+=over 4
+
+=item B<_populate>
+
+Given an C<OMP::Info::Obs> object that has the 'fits' accessor, populate
+the remainder of the accessors.
+
+  $obs->_populate();
+
+Note that if other accessors exist prior to running this method, they will
+be overwritten.
+
+=cut
+
+sub _populate {
+  my $self = shift;
+  my $FITS_header = $self->fits;
+
+  tie my %header, ref($FITS_header), $FITS_header;
+  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS(\%header);
+
+  $self->projectid( $generic_header{PROJECT} );
+  $self->checksum( $generic_header{MSBID} );
+  $self->instrument( $generic_header{INSTRUMENT} );
+  $self->duration( $generic_header{EXPOSURE_TIME} );
+  $self->disperser( $generic_header{GRATING_NAME} );
+  $self->type( $generic_header{OBSERVATION_TYPE} );
+  $self->telescope( $generic_header{TELESCOPE} );
+  $self->filename( $generic_header{FILENAME} );
+
+  # Build the Astro::WaveBand object
+  if ( length( $generic_header{WAVELENGTH} . "" ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{WAVELENGTH},
+                                           Instrument => $generic_header{INSTRUMENT} ) );
+  } elsif ( length( $generic_header{FILTER} . "" ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Filter     => $generic_header{FILTER},
+                                           Instrument => $generic_header{INSTRUMENT} ) );
+  }
+
+  # Build the Time::Piece startobs and endobs objects
+  if(length($generic_header{UTSTART} . "") != 0) {
+    my $startobs = Time::Piece->strptime($generic_header{UTSTART}, '%Y-%m-%dT%T');
+    $self->startobs( $startobs );
+  }
+  if(length($generic_header{UTEND} . "") != 0) {
+    my $endobs = Time::Piece->strptime($generic_header{UTEND}, '%Y-%m-%dT%T');
+    $self->endobs( $endobs );
+  }
+
+  # Build the Astro::Coords object
+
+  # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
+  # Astro::Coords object for us. Hooray!
+
+  if( $generic_header{'INSTRUMENT'} =~ /scuba/i ) {
+    require SCUBA::ODF;
+    my $odfobject = new SCUBA::ODF( HdrHash => \%header );
+
+    if(defined($odfobject->getTarget)) {
+      $self->coords( $odfobject->getTarget );
+    };
+
+    # Let's get the real object name as well.
+    if(defined($odfobject->getTargetName)) {
+      $self->target( $odfobject->getTargetName );
+    };
+
+    # Set science/scical/gencal.
+    $self->isScience( $odfobject->isScienceObs );
+    $self->isSciCal( $odfobject->iscal );
+    $self->isGenCal( $odfobject->isGenericCal );
+
+    # Set the observation mode.
+    $self->mode( $odfobject->mode_summary );
+
+  } else {
+
+    # Default the equinox to J2000, but if it's 1950 change to B1950.
+    # Anything else will be converted to J2000.
+    my $type = "J2000";
+    if ( $generic_header{EQUINOX} =~ /1950/ ) {
+      $type = "B1950";
+    }
+    if ( defined ( $generic_header{COORDINATE_TYPE} ) ) {
+      if ( $generic_header{COORDINATE_TYPE} eq 'galactic' ) {
+        $self->coords( new Astro::Coords( lat   => $generic_header{Y_BASE},
+                                           long  => $generic_header{X_BASE},
+                                           type  => $generic_header{COORDINATE_TYPE},
+                                           units => $generic_header{COORDINATE_UNITS}
+                                         ) );
+      } elsif ( ( $generic_header{COORDINATE_TYPE} eq 'J2000' ) ||
+                ( $generic_header{COORDINATE_TYPE} eq 'B1950' ) ) {
+        $self->coords( new Astro::Coords( ra    => $generic_header{X_BASE},
+                                           dec   => $generic_header{Y_BASE},
+                                           type  => $generic_header{COORDINATE_TYPE},
+                                           units => $generic_header{COORDINATE_UNITS}
+                                         ) );
+      }
+    }
+
+    # Set the target name.
+    $self->target( $generic_header{OBJECT} );
+
+    # Set science/scical/gencal.
+    $self->isScience( 1 );
+    $self->isSciCal( 0 );
+    $self->isGenCal( 0 );
+
+    # Set the observation mode.
+    $self->mode( $generic_header{OBSERVATION_MODE} );
+  }
+
+  $self->runnr( $generic_header{OBSERVATION_NUMBER} );
+  $self->utdate( $generic_header{UTDATE} );
+  $self->speed( $generic_header{SPEED_GAIN} );
+  $self->airmass( $generic_header{AIRMASS_START} );
+  $self->rows( $generic_header{Y_DIM} );
+  $self->columns( $generic_header{X_DIM} );
+  $self->drrecipe( $generic_header{DR_RECIPE} );
+  $self->group( $generic_header{DR_GROUP} );
+  $self->standard( $generic_header{STANDARD} );
+  $self->slitname( $generic_header{SLIT_NAME} );
+  $self->slitangle( $generic_header{SLIT_ANGLE} );
+  $self->raoff( $generic_header{X_OFFSET} );
+  $self->decoff( $generic_header{Y_OFFSET} );
+  $self->grating( $generic_header{GRATING_NAME} );
+  $self->order( $generic_header{GRATING_ORDER} );
+  $self->tau( $generic_header{TAU} );
+  $self->seeing( defined( $generic_header{SEEING} ?
+                           sprintf("%.1f",$generic_header{SEEING}) :
+                           "" ) );
+  $self->bolometers( $generic_header{BOLOMETERS} );
+  $self->velocity( $generic_header{VELOCITY} );
+  $self->systemvelocity( $generic_header{SYSTEM_VELOCITY} );
+
+}
 
 =head1 AUTHORS
 
