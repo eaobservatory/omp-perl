@@ -156,7 +156,7 @@ sub cookie {
 
 =item B<_sidebar_logout>
 
-Put a logout a link in the sidebar.
+Put a logout link in the sidebar.
 
   $cgi->_sidebar_logout;
 
@@ -166,7 +166,12 @@ sub _sidebar_logout {
   my $self = shift;
   my $theme = $self->theme;
 
-  my @sidebarlinks = ("<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
+  $theme->SetMoreLinksTitle("Feedback links");
+
+  my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
+		      "<a href='fbmsb.pl'>Program details</a>",
+		      "<a href='fbcomment.pl'>Add comment</a>",
+		      "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
@@ -213,6 +218,20 @@ sub _write_header {
   $theme->SetHTMLStartString("<html><head><title>OMP Feedback Tool</title></head>");
 
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+
+  # These links will go under the 'JAC Divisions' heading
+  my @links = ("<a HREF='/JACpublic/JCMT'>JCMT</a>",
+	       "<a HREF='/JACpublic/UKIRT'>UKIRT</a>",
+	       "<a HREF='/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
+	       "<a HREF='/JACpublic/JAC/cs'>Computing Services</a>",
+	       "<a HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
+
+
+
+
+
+
+  $theme->SetSideBarMenuLinks(\@links);
 
   print $theme->StartHTML(),
         $theme->MakeHeader(),
@@ -279,7 +298,8 @@ sub _write_login {
 	"</td><td>",
 	$q->submit("Submit"),
 	$q->endform;
-  print "</td></table>";
+  print "</td></table><p>";
+  print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'>";
 
   $self->_write_footer();
 }
