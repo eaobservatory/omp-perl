@@ -36,13 +36,14 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGIWORF;
+use OMP::CGIPage;
+use OMP::CGIPage::WORF;
+use OMP::General;
 
 # Set up global variables, system variables, etc.
 
 my $query = new CGI;
-my $cgi = new OMP::CGI( CGI => $query );
+my $cgi = new OMP::CGIPage( CGI => $query );
 $cgi->html_title("WORF: WWW Observing Remotely Facility");
 
 # write the page
