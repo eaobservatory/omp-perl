@@ -23,15 +23,17 @@ use Carp;
 use CGI;
 use PDL::Graphics::LUT;
 
-our $VERSION = (qw$ Revision: $ )[1];
+our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw/print_display_properties verify_query/;
+our @EXPORT = qw( print_display_properties verify_query );
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
                     );
+
+#Exporter::export_tags(qw/ all /);
 
 my @instruments = qw(cgs4 ufti ircam michelle);
 my @ctabs = lut_names();
