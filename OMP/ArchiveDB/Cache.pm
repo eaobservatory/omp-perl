@@ -33,6 +33,8 @@ use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Range;
 
+use Carp;
+
 use Fcntl qw/ :DEFAULT :flock /;
 use Storable qw/ nstore_fd fd_retrieve /;
 use Time::Piece qw/ :override /;
@@ -89,7 +91,8 @@ sub store_archive {
 
   # Check to make sure the cache directory exists. If it doesn't, create it.
   if( ! -d $TEMPDIR ) {
-    mkdir $TEMPDIR;
+    mkdir $TEMPDIR
+      or throw OMP::Error::CacheFailure( "Error creating temporary directory for cache: $!" );
     chmod 0777, $TEMPDIR;
   }
 
@@ -128,7 +131,8 @@ sub store_archive {
 
   # Store the ObsGroup to disk.
   try {
-    sysopen( my $df, $filename, O_RDWR|O_CREAT, 0666);
+    sysopen( my $df, $filename, O_RDWR|O_CREAT, 0666)
+      or croak "Unable to write to cache file: $!";
     flock($df, LOCK_EX);
     nstore_fd($obsgrp, $df);
     truncate($df, tell($df));
