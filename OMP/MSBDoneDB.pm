@@ -128,23 +128,19 @@ sub historyMSB {
   my $checksum = shift;
   my $style = shift;
 
-  # Form hash
-  my %query;
-  $query{checksum} = $checksum if $checksum;
-  $query{projectid} = $self->projectid if $self->projectid;
-  $query{allinfo} = 1; # want all the information
+  # Construct the query
+  my $projectid = $self->projectid;
 
-  # First read the rows from the database table
-  # and get the array ref
-  my @rows = $self->_fetch_msb_done_info( %query );
+  my $xml = "<MSBDoneQuery>" .
+    ( $checksum ? "<checksum>$checksum</checksum>" : "" ) .
+      ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
+	  "</MSBDoneQuery>";
 
-  # Now reorganize the data structure to better match
-  # our output format
-  my $msbs = $self->_reorganize_msb_done( \@rows );
+  my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  # Now reformat the data structure to the required output
-  # format
-  return $self->_format_output_info( $msbs, $checksum, $style);
+  # Assume we have already got all the information
+  # so we do not need to do a subsequent query
+  return $self->queryMSBdone( $query, 0, $style);
 
 }
 
@@ -216,15 +212,47 @@ sub observedMSBs {
   my $allcomment = shift;
   my $style = shift;
 
-  # Construct the query 
-  my %query;
-  $query{date} = $date;
-  $query{projectid} = $self->projectid if $self->projectid;
-  $query{allinfo} = 1; # want all the information
+  # Construct the query
+  $date = ( $date ? $date : OMP::General->today );
+  my $projectid = $self->projectid;
+
+  my $xml = "<MSBDoneQuery>" .
+    "<status>". OMP__DONE_DONE ."</status>" .
+      "<date delta=\"1\">$date</date>" .
+	( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
+	    "</MSBDoneQuery>";
+
+  my $query = new OMP::MSBDoneQuery( XML => $xml );
+
+  return $self->queryMSBdone( $query, $allcomment, $style );
+}
+
+
+=item B<queryMSBdone>
+
+Query the MSB done table. Query must be supplied as an
+C<OMP::MSBDoneQuery> object.
+
+  @results = $db->queryMSBdone( $query, $allcomments, $style );
+
+The C<allcomments> parameter governs whether all the comments
+associated with the observed MSBs are returned (regardless of when
+they were added) or only those added for the specified night. If the
+value is false only the comments for the night are returned.
+
+The output format matches that returned by C<historyMSB>.
+
+=cut
+
+sub queryMSBdone {
+  my $self = shift;
+  my $query = shift;
+  my $allcomment = shift;
+  my $style = shift;
 
   # First read the rows from the database table
   # and get the array ref
-  my @rows = $self->_fetch_msb_done_info( %query );
+  my @rows = $self->_fetch_msb_done_info( $query );
 
   # Now reorganize the data structure to better match
   # our output format
@@ -233,6 +261,9 @@ sub observedMSBs {
   # If all the comments are required then we now need
   # to loop through this hash and refetch the data
   # using a different query. 
+  # The query should tell us whether this is required.
+  # Note that there is a possibility of infinite looping
+  # since historyMSB calls this routine
   if ($allcomment) {
     foreach my $checksum (keys %$msbs) {
       # over write the previous entry
@@ -246,6 +277,7 @@ sub observedMSBs {
 
 }
 
+
 =back
 
 =head2 Internal Methods
@@ -254,29 +286,12 @@ sub observedMSBs {
 
 =item B<_fetch_msb_done_info>
 
-Retrieve the information from the MSB done table. Can retrieve the
-most recent information of all information associated with the MSB.
+Retrieve the information from the MSB done table using the supplied
+query.  Can retrieve the most recent information or all information
+associated with the MSB.
 
-  %msbinfo = $db->_fetch_msb_done_info( checksum => $sum,
-                                         projectid => $proj);
-
-  @allmsbinfo = $db->_fetch_msb_done_info( checksum => $sum,
-                                           projectid => $proj,
-                                           allinfo => 1);
-
-Project ID is retrieved from the object if none is supplied.
-Returns empty list if no rows can be found.
-
-If no checksum is supplied information for all MSBs associated with
-the project is retrieved (if C<allinfo> is true, else just the last
-one is retrieved). If no checksum and no project ID then all will be
-retrieved.
-
-Finally, if C<date> is supplied only those MSBs that were observed
-on the specified UT date (ie those with status C<OMP__DONE_DONE>)
-will be retrieved. Bear in mind that only comments submitted
-on that date will be retrieved. If you want all comments for a particular
-MSB then a subsequent targetted query will be required.
+  %msbinfo = $db->_fetch_msb_done_info( $query, 0 );
+  @allmsbinfo = $db->_fetch_msb_done_info( $query, 1);
 
 =cut
 
@@ -284,46 +299,20 @@ MSB then a subsequent targetted query will be required.
 
 sub _fetch_msb_done_info {
   my $self = shift;
-  my %args = @_;
+  my $query = shift;
+  my $allinfo = shift;
+  $allinfo = ( $allinfo ? $allinfo : 1 );
 
-  # Decide whether to retrieve all information or just the last
-  my $allinfo = ( exists $args{allinfo} ? $args{allinfo} : 0 );
-  delete $args{allinfo} if exists $args{allinfo};
-
-  # Need to remove date field from the list since it
-  # is a special case
-  my $date;
-  if (exists $args{date}) {
-    $date = $args{date};
-    delete $args{date};
-
-    # Default it to something if not defined
-    $date = OMP::General->today() unless $date;
-  }
-
-  # Get the project id if it is here
-  $args{projectid} = $self->projectid
-    if !exists $args{projectid} and defined $self->projectid;
-
-  # Assume that query keys match column names
-  my @substrings = map { " $_ = ? " } sort keys %args;
-
-  # and construct the SQL command using bind variables so that 
-  # we dont have to worry about quoting
-  my $sql = "SELECT * FROM $MSBDONETABLE WHERE" .
-    join("AND", @substrings);
-
-  # If we have a date field need to add a bit of extra
-  # query
-  if ($date) {
-    $sql .= " date > '$date' AND date < dateadd(dd,1,'$date') " . 
-      " AND status = " . OMP__DONE_DONE();
-  }
+  # Generate the SQL
+  my $sql = $query->sql( $MSBDONETABLE );
 
   # Run the query
-  my $ref = $self->_db_retrieve_data_ashash( $sql,
-					     map { $args{$_} } sort keys %args
-					   );
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  use Data::Dumper;
+  print Dumper( $ref );
+  print "\nFrom $sql\n";
+#  exit;
 
   # If they want all the info just return the ref
   # else return the first entry
@@ -586,7 +575,10 @@ sub _format_output_info {
     my $xml = "<msbHistories>\n";
 
     # loop through each MSB
+    Carp::cluck("OOPS");
     for my $msb (keys %msbs) {
+
+      print "MSB: $msb\n";
 
       # If an explicit msb has been mentioned we only want to
       # include that MSB
