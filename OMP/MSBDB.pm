@@ -34,6 +34,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::SciProg;
+use OMP::MSB;
 
 # External dependencies
 use File::Spec;
@@ -46,6 +47,9 @@ our $XMLDIR = "/jac_sw/omp/dbxml";
 
 # Name of the table containing the MSB data
 our $TABLE = "ompmsb";
+
+# Default number of results to return from a query
+our $DEFAULT_RESULT_COUNT = 10;
 
 =head1 METHODS
 
@@ -391,6 +395,49 @@ sub fetchMSB {
   return $msb;
 }
 
+=item B<queryMSB>
+
+Query the database for the MSBs that match the supplied query.
+
+  @results = $db->queryMSB( $query );
+
+The query is represented by an C<OMP::MSBQuery> object. 
+
+The results are actually summaries of the table entries rather than
+direct summaries of MSBs. It is assumed that the table contains
+all the necessary information from the MSB itself so that there is
+no need to open each science program to obtain more information.
+
+=cut
+
+sub queryMSB {
+  my $self = shift;
+  my $query = shift;
+
+  # Connect to the DB
+  $self->_dbconnect;
+
+  # Run the query and obtain an array of hashes in order up to
+  # the maximum number
+  my @results = $self->_run_query($query);
+
+  # Disconnect
+  $self->_dbdisconnect;
+
+  # Now go through the hash and translate it to an XML string
+  # This assumes that the database table contains everything
+  # we need for a summary (ie we don't want to have to open
+  # up the science programs to get extra information)
+  # We also will need to fix the order at some point since the
+  # QT will probably be relying on it for display
+  # Use the OMP::MSB code to generate an MSBSummary
+  # (since that is the code used to generate the table entry)
+
+  my @xml = map { scalar(OMP::MSB->summary($_))  } @results;
+
+  return @xml;
+}
+
 =back
 
 =head2 Internal Methods
@@ -652,6 +699,43 @@ sub _fetch_row {
   %result = %{ $ref->[0] } if @$ref;
 
   return %result;
+}
+
+=item B<_run_query>
+
+Run a query on the database table using an C<OMP::MSBQuery> object and
+return the matching rows (up to a maximum number) as an array of hash
+references.
+
+  @results  = $db->_run_query( $query );
+
+If max is undefined there is no limit on the number of results
+that can be returned.
+
+=cut
+
+sub _run_query {
+  my $self = shift;
+  my $query = shift;
+
+  # Get the sql
+  my $sql = $query->sql( $TABLE );
+
+  # prepare and execute
+  my $dbh = $self->_dbhandle;
+  my $ref = $dbh->selectall_hashref( $sql );
+
+  # Return the results (as a slice if necessary
+  my $max = $query->maxCount;
+
+  if (defined $max) {
+    $max--; # convert to index
+    $max = ( $max < $#$ref ? $max : $#$ref);
+  } else {
+    $max = $#$ref;
+  }
+
+  return @$ref[0..$max];
 }
 
 =back
