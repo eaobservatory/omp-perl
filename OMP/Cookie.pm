@@ -32,6 +32,7 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::Config;
 use OMP::Error;
 
 =head1 METHODS
@@ -169,6 +170,10 @@ sub setCookie {
   # If expire time is just a number default to minutes in the future
   $exptime =~ /^\d+$/ and $exptime = '+' . $exptime . 'm';
 
+  # Get the domain
+  OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+  my $domain = OMP::Config->getData('cookie-domain');
+
   # Get the CGI object
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
@@ -176,6 +181,7 @@ sub setCookie {
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
 			    -value=>\%contents,
+			    -domain=>$domain,
 			    -expires=>$exptime);
 
   $self->cookie($cookie);
@@ -193,6 +199,10 @@ Delete the cookie by setting an expiry time in the past.
 sub flushCookie {
   my $self = shift;
 
+  # Get the domain
+  OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+  my $domain = OMP::Config->getData('cookie-domain');
+
   # Get the CGI object
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
@@ -200,6 +210,7 @@ sub flushCookie {
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
 			    -value=>'null',
+			    -domain=>$domain,
 			    -expires=>'-5m',);
 
   $self->cookie($cookie);
