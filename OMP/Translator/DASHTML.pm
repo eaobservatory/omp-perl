@@ -29,6 +29,8 @@ use OMP::Error qw/ :try /;
 use Astro::Catalog;
 use Astro::Catalog::Star;
 use File::Spec;
+use File::Copy;
+use Time::Seconds;
 use Time::HiRes qw/ gettimeofday /;
 
 # Location of ouytput directory from the vaxes viewpoint
@@ -43,25 +45,35 @@ our $DEBUG = 0;
 
 =item B<new>
 
-  $tr = new OMP::Translator::DASHTML( $html, \@targets, \%files, $catfile );
+  $tr = new OMP::Translator::DASHTML( $html, \@targets, \%files, 
+                                      $projectid, $catfile );
 
+The projectid is used for tagging the MSB targets in the output catalogue.
 The catfile argument specifies the root name to be used for writing catalogue
 files (since this is embedded in the HTML by the translator).
+
+No arguments are allowed in order to create a blank container (then
+use the push() method to extend it.
 
 =cut
 
 sub new {
   my $proto = shift;
   my $class = ( ref($proto) || $proto );
-  throw OMP::Error::FatalError( "Need 4 args not ".scalar(@_) )
-    unless scalar(@_) == 4;
-  my ($html, $targ, $files, $catfile) = @_;
+
+  my ($html, $targ, $files, $catfile, $proj) = ('', [], {}, undef, undef);
+  if ( @_ ) {
+    throw OMP::Error::FatalError( "Need 5 args not ".scalar(@_) )
+      unless scalar(@_) == 5;
+    ($html, $targ, $files, $catfile, $proj) = @_;
+  }
 
   return bless {
 		HTML => $html,
 		TARGETS => [ @$targ ],
 		FILES => { %$files },
 		CATFILE => $catfile,
+		PROJECTID => $proj,
 	       };
 
 }
@@ -69,6 +81,37 @@ sub new {
 =head2 General Methods
 
 =over 4
+
+=item B<telescope>
+
+Telescope name (JCMT).
+
+=cut
+
+sub telescope {
+  return "JCMT";
+}
+
+=item B<instrument>
+
+Instrument name (DAS).
+
+=cut
+
+sub instrument {
+  return "DAS";
+}
+
+=item B<duration>
+
+Observation duration (unknown).
+
+=cut
+
+sub duration {
+  return Time::Seconds->new(0);
+}
+
 
 =item B<write_file>
 
@@ -190,7 +233,7 @@ sub write_file {
 
   # For each of the targets add the projectid
   for (@targets) {
-    $_->comment("Project: $projectid");
+    $_->comment("Project: ".$self->{PROJECTID});
   }
 
   # Insert the new sources at the start
@@ -211,25 +254,36 @@ sub write_file {
   return $file;
 }
 
-=item B<append>
+=item B<push_config>
 
-Append a translation to this object.
+Append a translation or translations to this object.
 
-  $das->append( $das2 );
+  $das->push_config( @more );
 
 Argument must be a OMP::Translator::DASHTML object.
 
 =cut
 
-sub append {
+sub push_config {
   my $self = shift;
-  my $new = shift;
 
-  $self->{HTML} .= $new->{HTML};
-  push(@{ $self->{TARGETS} }, @{ $new->{TARGETS} } );
+  for my $new ( @_ ) {
 
-  # Need to fix up pattern file names
+    $self->{HTML} .= $new->{HTML};
 
+    # Astro::Catalog will filter out duplicates
+    push(@{ $self->{TARGETS} }, @{ $new->{TARGETS} } );
+
+    # Need to fix up pattern file names
+    # but for now assume that they are unique within a single
+    # instance of the translator
+    for my $f ( keys %{ $new->{FILES} } ) {
+      if ( exists $self->{FILES}->{$f}) {
+	throw OMP::Error::FatalError("Internal error file $f exists in both instances of object");
+      }
+      $self->{FILES}->{$f} = $new->{FILES}->{$f};
+    }
+  }
 }
 
 =back
@@ -258,7 +312,18 @@ Default output directory for writing the HTML and associated files.
     }
 }
 
+=item B<container_class>
 
+Name of the class that can be used to store multiple configurations.
+In this case, returns the name of the class itself since the append
+method can be used.
+
+=cut
+
+sub container_class {
+  my $class = shift;
+  return (ref $class || $class);
+}
 
 =back
 
