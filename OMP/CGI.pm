@@ -2,7 +2,7 @@ package OMP::CGI;
 
 =head1 NAME
 
-OMP::CGI - Content and functions for the OMP Feedback system CGI scripts
+OMP::CGI - Content and functions for the MOP Feedback system CGI scripts
 
 =head1 SYNOPSIS
 
@@ -49,6 +49,10 @@ our $STYLE = "<style><!--
                  font-style: italic;
                  text-decoration: underline;
 	       }
+               div.footer, div.footer a:link, div.footer a:visited {
+                 font-size: 11pt;
+                 color: #ffffff;
+               }
                //--></style>";
 
 
@@ -358,6 +362,7 @@ sub _write_footer {
 
   print $theme->MakeTopBottomBar(),
         $theme->MakeFooter(),
+        "<div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>",
 	$theme->EndHTML();
 
 }
