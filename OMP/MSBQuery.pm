@@ -375,22 +375,41 @@ sub sql {
           ."  WHERE M.msbid = O.msbid
               AND P.projectid = M.projectid $u_sql";
 
+  # We need to calculate the intersection of the project TAG Allocated
+  # site quality constraints and the MSB specified constraints. This
+  # is required so that the QT user can get a feel for how marginal an
+  # observation is. The SQL code for this is quite repetitive so we
+  # define it here in a loop.
+  # There is no explicit function to find the min or max of 2 columns
+  # from a row so we calculate the SIGN and use that to control which
+  # of the project mins or MSB mins is returned
+  # The factor of 2 comes in because we either add 1, say to +1 or to -1
+  # obtaining 2 and 0 (or 0 and -2)
+  my $minmax;
+  for my $col (qw/ tau seeing cloud sky / ) {
+    $minmax .= "
+    (abs(1-sign(M2.${col}min-P2.${col}min))*P2.${col}min/2 + 
+         abs(sign(P2.${col}min-M2.${col}min)-1)*M2.${col}min/2) AS ${col}min,
+    (abs(sign(P2.${col}max-M2.${col}max)-1)*P2.${col}max/2 + 
+         abs(1-sign(M2.${col}max-P2.${col}max))*M2.${col}max/2) AS ${col}max,\n";
+  }
+
   # The end of the query is generic
   # make sure we include tagpriority here since it is faster
   # than doing an explicit project query later on (although
   # there may be a saving in the fact that the number of MSBs
   # returned is far greater than the number of projects required
   # could in reality generate a OMP::Project object from this and
-  # store it in the Info::MSB object. Need to consider this so KLUGE
-  # NOTE THAT TAUMIN and TAUMAX from this query are the project allocations
-  # AND NOT THE INTERSECTION OF PROJECT ALLOCATION AND USER REQUEST
+  # store it in the Info::MSB object. Need to consider this so KLUGE.
+
   # Note that internal priority field is redefined as a combined tagpriority
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
   # We always need to join the QUEUE table since that includes the priority.
   my $bottom_sql = "GROUP BY M.msbid, Q.country $stmt_end
-              SELECT M2.*, P2.taumin, P2.taumax,
-                (".
+              SELECT M2.*," .
+                $minmax .
+                "(".
  		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority")
 		      . " + " .
 			OMP::DBbackend->get_sql_typecast("float","M2.priority")
