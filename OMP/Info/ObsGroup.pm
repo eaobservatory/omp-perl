@@ -184,6 +184,20 @@ sub runQuery {
   return;
 }
 
+=item B<numobs>
+
+Returns the number of observations within the group.
+
+  $num = $grp->numobs;
+
+=cut
+
+sub numobs {
+  my $self = shift;
+  my $obs = $self->obs;
+  return scalar(@$obs);
+}
+
 =item B<populate>
 
 Retrieve the observation details and associated comments for
