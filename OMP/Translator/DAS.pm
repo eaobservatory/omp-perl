@@ -743,6 +743,9 @@ Backend configuration.
 
   $html = OMP::Translator::DAS->beconfig( %summary );
 
+Either a bandwidth in MHz or the name of a special DAS
+configuration.
+
 =cut
 
 sub beConfig {
@@ -754,8 +757,15 @@ sub beConfig {
 
   my $html = "<h3>DAS configuration</h3>\n";
   $html .= "<table>";
-  $html .= "<tr><td><b>Bandwidth:</b></td><td>".
-    int(_HztoMHz($freqconfig{bandWidth}))." MHz</td></tr>";
+
+  if ($freqconfig{configuration}) {
+    $html .= "<tr><td><b>Use special DAS mode:</b></td><td>".
+      $freqconfig{configuration} ."</td></tr>";
+  } else {
+    # need bandwidth information
+    $html .= "<tr><td><b>Bandwidth:</b></td><td>".
+      int(_HztoMHz($freqconfig{bandWidth}))." MHz</td></tr>";
+  }
 
   $html .= "</table>\n";
   return $html;
@@ -1031,9 +1041,6 @@ sub SpIterStareObs {
     $html .= "<tr><td><b>Continuous cal?</b></td><td>".
       $summary{continuousCal} . " </td></tr>";
   }
-
-  $html .= "<tr><td><b>Cycle Reversal?</b></td><td>".
-      $summary{cycleReversal} . " </td></tr>";
 
   $html .= "</table>\n";
 

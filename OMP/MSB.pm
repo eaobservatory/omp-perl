@@ -2703,7 +2703,6 @@ sub SpIterFolder {
       # For Het
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
-      my $crev  = $self->_get_pcdata( $child, 'cycleReversal');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
 
       # Frequency switch parameters [inc backwards compatibility]
@@ -2719,7 +2718,6 @@ sub SpIterFolder {
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
-      $stare{cycleReversal} = $crev if defined $crev;
       $stare{frequencyRate} = $freqRate if defined $freqRate;
       $stare{frequencyOffset} = $freqOffset if defined $freqOffset;
 
@@ -3208,6 +3206,7 @@ sub SpInstHeterodyne {
 			  sideBandMode => $self->_get_pcdata($el,"mode"),
 			  transition => $self->_get_pcdata($el,"transition"),
 			  molecule => $self->_get_pcdata($el,"molecule"),
+			  configuration => $self->_get_pcdata($el,"configuration"),
 			 };
 
   # Camera mode is really a function of front end and observing
