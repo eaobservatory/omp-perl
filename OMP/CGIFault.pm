@@ -558,6 +558,9 @@ sub view_fault_content {
     titlebar($q, ["View Fault ID: $faultid", $fault->subject], %cookie);
 
     fault_table($q, $fault);
+    close_fault_form($q, $faultid)
+      if ($fault->isOpen);
+
     print "<p><b><font size=+1>Respond to this fault</font></b>";
     response_form($q, $fault->id, %cookie);
   }
@@ -565,7 +568,7 @@ sub view_fault_content {
 
 =item B<view_fault_output>
 
-Parse any forms of the view_fault_content forms
+Process the view_fault_content "respond" and "close fault" forms
 
   view_fault_output($cgi);
 
@@ -578,28 +581,63 @@ sub view_fault_output {
   my $title;
 
   my $faultid = $q->param('faultid');
-  my $author = $q->param('user');
-  my $text = $q->param('text');
-
   my $fault = OMP::FaultServer->getFault($faultid);
 
-  my $user = new OMP::User(userid => $author,);
+  if ($q->param('respond')) {
+    my $author = $q->param('user');
+    my $text = $q->param('text');
 
-  try {
-    my $resp = new OMP::Fault::Response(author => $user,
-				        text => $text);
-    OMP::FaultServer->respondFault($fault->id, $resp);
-    $title = "Fault response successfully submitted";
-  } otherwise {
-    my $E = shift;
-    $title = "An error has prevented your response from being filed: $E";
-  };
+    my $user = new OMP::User(userid => $author,);
+
+    try {
+      my $resp = new OMP::Fault::Response(author => $user,
+					  text => $text);
+      OMP::FaultServer->respondFault($fault->id, $resp);
+      $title = "Fault response successfully submitted";
+    } otherwise {
+      my $E = shift;
+      $title = "An error has prevented your response from being filed: $E";
+    };
+  } elsif ($q->param('close')) {
+    try {
+      OMP::FaultServer->closeFault($faultid);
+      $title = "Fault $faultid has been closed";
+    } otherwise {
+      my $E = shift;
+      $title = "An error has prevented the fault from being closed: $E";
+    };
+  }
 
   $fault = OMP::FaultServer->getFault($faultid);
 
   titlebar($q, ["View Fault ID: $faultid", $title], %cookie);
 
   fault_table($q, $fault);
+  close_fault_form($q, $faultid)
+    if ($fault->isOpen);
+}
+
+=item B<close_fault_form>
+
+Create a form with a button for closing a fault
+
+  close_fault_form($cgi, $faultid);
+
+=cut
+
+sub close_fault_form {
+  my $q = shift;
+  my $faultid = shift;
+
+  print "<table border=0 width=$TABLEWIDTH bgcolor=#6161aa>";
+  print "<tr><td align=right>";
+  print $q->startform;
+  print $q->hidden(-name=>'show_output', -default=>'true');
+  print $q->hidden(-name=>'faultid', -default=>$faultid);
+  print $q->submit(-name=>'close',
+		   -label=>'Close Fault',);
+  print $q->endform;
+  print "</td></table>";
 }
 
 =item B<response_form>
