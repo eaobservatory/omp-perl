@@ -303,66 +303,6 @@ sub fault_table {
   print "</div>";
 }
 
-=item B<query_fault_content>
-
-Create a page for querying faults
-
-  query_fault($cgi);
-
-=cut
-
-sub query_fault_content {
-  my $q = shift;
-  my %cookie = @_;
-
-  titlebar($q, ["View Faults"], %cookie);
-
-  query_fault_form($q, %cookie);
-  print "<p>";
-
-  my $t = OMP::General->today(1);
-
-  # XML for getting recent faults
-  my $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
-
-  # XML for getting current faults
-  my $currentxml = "<FaultQuery>".
-    "<category>$cookie{category}</category>".
-      "<date delta='-14'>" . $t->datetime . "</date>".
-	"</FaultQuery>";
-
-  my $faults;
-  try {
-    $faults = OMP::FaultServer->queryFaults($xml, "object");
-
-    # Get current if no recent faults returned
-    if (! $faults->[0]) {
-      $faults = OMP::FaultServer->queryFaults($currentxml, "object");
-    }
-
-    return $faults;
-  } otherwise {
-    my $E = shift;
-    print "$E";
-  };
-
-  if ($faults->[0]) {
-
-    # Use cookie prefs for defining sort order
-    if ($cookie{sort_order} eq "descending") {
-      show_faults($q, $faults, 1);
-    } else {
-      show_faults($q, $faults);
-    }
-
-    # Put up the query form again if there are lots of faults displayed
-    if ($faults->[15]) {
-      print "<P>";
-      query_fault_form($q, %cookie);
-    }
-  }
-}
-
 =item B<query_fault_output>
 
 Display output of fault query
@@ -522,6 +462,32 @@ sub query_fault_output {
 
   query_fault_form($q, %cookie);
   print "<p>";
+
+  # Make a link to this script with an argument to alter sort order
+  if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
+
+    my $sort_url = $q->self_url;
+    $sort_url =~ s/(\;|\?|\&)sort_order\=descending//g;
+    if ($sort_url =~ /\?/) {
+      $sort_url .= "&sort_order=ascending";
+    } else {
+      $sort_url .= "?sort_order=ascending";
+    }
+
+    print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
+
+  } else {
+    my $sort_url = $q->self_url;
+    $sort_url =~ s/(\;|\?|\&)sort_order\=ascending//g;
+    if ($sort_url =~ /\?/) {
+      $sort_url .= "&sort_order=descending";
+    } else {
+      $sort_url .= "?sort_order=descending";
+    }
+
+    print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
+
+  }
 
   if ($faults->[0]) {
     if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
@@ -1571,37 +1537,11 @@ sub show_faults {
   my $faults = shift;
   my $descending = shift;
 
-  my $default;
-  if ($descending) {
-    $default = "descending";
-  } else {
-    $default = "ascending";
-  }
-
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
   my $stats = new OMP::FaultStats( faults => $faults );
   # Set URL for links
   my $url = "viewfault.pl";
-
-  # Display form for sort order
-  print "<script language='javascript'> ";
-  print "function mysubmit() ";
-  print "{document.sortform.submit()}";
-  print "</script>";
-
-  print $q->startform(-name=>'sortform');
-  print "<b>Order by </b>";
-  print $q->hidden(-name=>'show_output',
-		   -default=>1);
-  print $q->popup_menu(-name=>'sort_order',
-		       -values=>[qw/ascending descending/],
-		       -labels=>{ascending => "oldest first", descending => "most recent first",},
-		       -default=>$default,
-		       -onChange=>'mysubmit()');
-  print $q->submit(-name=>"refresh", -label=>"Refresh");
-  print $q->endform;
-  print $q->p;
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
