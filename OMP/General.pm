@@ -193,7 +193,8 @@ sub today {
   my $string = $time->ymd;
 
   if ($useobj) {
-    return $class->parse_date( $string );
+    # return $class->parse_date( $string );
+    return $time;
   } else {
     return $string;
   }
