@@ -240,7 +240,7 @@ sub determine_host {
     my $ip = $ENV{REMOTE_ADDR};
 
     # Try to translate number to name if we have network
-    if (!exists $ENV{REMOTE_ADDR}) {
+    if (!exists $ENV{OMP_NOGETHOST}) {
       $addr = gethost( $ip );
 
       # if we have nothing just use the IP
