@@ -104,6 +104,15 @@ use constant WATER_VAPOR_RAD => 1052;
 use constant IFS => 1053;
 use constant FRONT_END_RXH3 => 1054;
 use constant SURFACE => 1055;
+use constant OT => 1056;
+use constant OT_LIBRARIES => 1057;
+use constant OBSERVING_DATABASE => 1058;
+use constant JCMT_DR => 1059;
+use constant SPECX => 1060;
+use constant AIPSPLUSPLUS => 1061;
+use constant SURF => 1062;
+use constant STARLINK => 1063;
+use constant WORF => 1064;
 
 # Mailing list
 my %MAILLIST = (
@@ -111,6 +120,7 @@ my %MAILLIST = (
 		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
 		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
 		"OMP" => "omp_group\@jach.hawaii.edu",
+		"DR" => "hlsg\@jach.hawaii.edu",
 	       );
 
 my %DATA = (
@@ -166,7 +176,15 @@ my %DATA = (
 	     "UKIRT" => {
 			 SYSTEM => {
 				    Telescope => TELESCOPE,
-				    Computer => COMPUTER,
+				    "Computer [Deprecated]" => COMPUTER,
+				    OT => OT,
+				    "OT Libraries" => OT_LIBRARIES,
+				    "ORAC-DR" => ORAC_DR,
+				    "Query Tool" => QUERYTOOL,
+				    "Sequence Console" => SEQUENCER_QUEUE,
+				    Translator => TRANSLATOR,
+				    "Observing Database" => DBSERVER,
+				    "Web feedback system" => OMP_FEEDBACK_SYSTEM,
 				    Dome => DOME,
 				    Ancillaries => ANCILLARIES,
 				    "Instrument - CGS4" => INSTRUMENT_CGS4,
@@ -182,7 +200,9 @@ my %DATA = (
 			 TYPE => {
 				  Mechanical => MECHANICAL,
 				  Electronic => ELECTRONIC,
-				  Software => SOFTWARE,
+				  "Software [Deprecated]" => SOFTWARE,
+				  Bug => BUG,
+				  Network => NETWORK,
 				  Cryogenic => CRYOGENIC,
 				  "Other/Unknown" => TYPEOTHER,
 				  Human => HUMAN,
@@ -209,6 +229,23 @@ my %DATA = (
 				  Human => HUMAN,
 				 },
 			},
+	    "DR"     => {
+			 SYSTEM => {
+				    "JCMT-DR" => JCMT_DR,
+				    SPECX => SPECX,
+				    "AIPS++" => AIPSPLUSPLUS,
+				    SURF => SURF,
+				    STARLINK => STARLINK,
+				    "ORAC-DR" => ORAC_DR,
+				    OTHER => SYSTEMOTHER,
+				   },
+			 TYPE => {
+				  Bug => BUG,
+				  "Feature Request" => FEATURE_REQUEST,
+				  Human => HUMAN,
+				  Other => TYPEOTHER,
+				 },
+			},
 	   );
 
 # Miscellaneous options for each category
@@ -216,19 +253,28 @@ my %OPTIONS = (
 	       CSG => {
 		       CAN_LOSE_TIME => 0,
 		       CAN_ASSOC_PROJECTS => 0,
+		       IS_TELESCOPE => 0,
 		      },
 	       JCMT => {
 			CAN_LOSE_TIME => 1,
 			CAN_ASSOC_PROJECTS => 1,
+			IS_TELESCOPE => 1,
 		       },
 	       OMP => {
 		       CAN_LOSE_TIME => 0,
 		       CAN_ASSOC_PROJECTS => 0,
+		       IS_TELESCOPE => 0,
 		      },
 	       UKIRT => {
 			 CAN_LOSE_TIME => 1,
 			 CAN_ASSOC_PROJECTS => 1,
+			 IS_TELESCOPE => 1,
 			},
+	       DR => {
+		      CAN_LOSE_TIME => 0,
+		      CAN_ASSOC_PROJECTS => 0,
+		      IS_TELESCOPE => 0,
+		     },
 	      );
 
 # Urgency
@@ -452,7 +498,22 @@ sub faultCanLoseTime {
   }
 }
 
+=item B<faultIsTelescope>
+
+Given a fault category, this method will return true if the category is associated with a telescope.
+
 =cut
+
+sub faultIsTelescope {
+  my $class = shift;
+  my $category = uc(shift);
+
+  if (exists $OPTIONS{$category}{IS_TELESCOPE}) {
+    return $OPTIONS{$category}{CAN_LOSE_TIME};
+  } else {
+    return 0;
+  }
+}
 
 =back
 
