@@ -97,4 +97,11 @@ ProjServer
 - Add support for <name> query to work without false positives. 
   ie use jennesst - this requires special name field in proj table
   containing : separated list of ids for all coi and pi names.
+  [possibly just have "person" table which has the names, "userid"
+   and email - then need admin cgi script for it]
 
+- Add proper sorting by tagpriority, internal MSB priority and possibly
+  completion rate.  [also needs the tagpriority to come back from the query 
+  even though that is in the project table]
+
+- Add fault tracking system (for OMP) and later for JCMT,CSG and UKIRT
