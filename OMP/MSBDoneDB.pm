@@ -176,8 +176,17 @@ sub addMSBcomment {
   my $msb = shift;
   my $status = shift;
 
+  # Lock the database (since we are writing)
+  $self->_db_begin_trans;
+  $self->_dblock;
+
   $self->_store_msb_done_comment( $checksum, $self->projectid, $msb,
 				$comment, $status );
+
+
+  # End transaction
+  $self->_dbunlock;
+  $self->_db_commit_trans;
 
 }
 
@@ -269,6 +278,8 @@ on that date will be retrieved. If you want all comments for a particular
 MSB then a subsequent targetted query will be required.
 
 =cut
+
+# This should probably be done using a DBQuery class
 
 sub _fetch_msb_done_info {
   my $self = shift;
