@@ -241,9 +241,9 @@ sub proj_sum_table {
     my $seerange = $project->seeingrange;
     my $skyrange = $project->skyrange;
 
-    $taurange = '--' if OMP::SiteQuality::is_default( $taurange );
-    $seerange = '--' if OMP::SiteQuality::is_default( $seerange );
-    $skyrange = '--' if OMP::SiteQuality::is_default( $skyrange );
+    $taurange = '--' if OMP::SiteQuality::is_default( 'TAU',$taurange );
+    $seerange = '--' if OMP::SiteQuality::is_default( 'SEEING',$seerange );
+    $skyrange = '--' if OMP::SiteQuality::is_default( 'SKY',$skyrange );
 
     my $support = join(", ", map {$_->userid} $project->support);
 
