@@ -18,6 +18,9 @@ OMP::SiteQual - Site quality helper functions
   $range = upgrade_cloud( $oldcloud );
   $range = upgrade_moon( $oldmoon );
 
+  $range = get_tauband_range('JCMT', @bands);
+  $band  = determine_tauband( TELESCOPE => 'JCMT', TAU => 0.05);
+
 =head1 DESCRIPTION
 
 Helper functions for handling site quality issues.
@@ -385,6 +388,145 @@ sub upgrade_moon {
     ($min,$max) = (0, $old);
   }
   return new OMP::Range( Min => $min, Max => $max, posdef => 1 );
+}
+
+=item B<determine_tauband>
+
+Determine the tau allocation band(s) corresponding to specific tau values.
+
+  $band = determine_tauband( %details );
+
+The band is determined from the supplied details. Recognized
+keys are:
+
+  TAU       - a single CSO tau
+  TAURANGE  - OMP::Range object containing a tau range
+  TELESCOPE - name of the telescope
+
+Currently TAU or TAURANGE are only used if TELESCOPE=JCMT. In all
+other cases (and if TELESCOPE is not supplied) the band returned is 0.
+If TELESCOPE=JCMT either TAU or TAURANGE must be present. An exception
+is thrown if neither TAU nor TAURANGE are present.
+
+From a single tau value it is not possible to distinguish a split band
+(e.g. "2*") from a "normal" band (e.g. "2"). In these cases the normal
+band is always returned.
+
+If a tau range is supplied, this method will return an array of all
+bands present in that range (including partial bands). In this
+case starred bands will be recognized correctly.
+
+  $band = determine_tauband( TELESCOPE => 'JCMT', TAU => 0.06 );
+
+=cut
+
+sub determine_tauband {
+  my %details = @_;
+
+  # JCMT is the only interesting one
+  my $band;
+  if (exists $details{TELESCOPE} and $details{TELESCOPE} eq 'JCMT') {
+
+    if (exists $details{TAU}) {
+      my $cso = $details{TAU};
+      throw OMP::Error::FatalError("CSO TAU supplied but not defined. Unable to determine band")
+	unless defined $cso;
+
+      # do not use the OMP::Range objects here (yet KLUGE) because
+      # OMP::Range can not yet do >= with the contains method
+      if ($cso >= 0 && $cso <= 0.05) {
+	$band = 1;
+      } elsif ($cso > 0.05 && $cso <= 0.08) {
+	$band = 2;
+      } elsif ($cso > 0.08 && $cso <= 0.12) {
+	$band = 3;
+      } elsif ($cso > 0.12 && $cso <= 0.2) {
+	$band = 4;
+      } elsif ($cso > 0.2 && $cso <= 0.32) {
+	$band = 5;
+      } elsif ($cso > 0.32) {
+	$band = 6;
+      } else {
+	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
+      }
+
+    } elsif (exists $details{TAURANGE}) {
+
+      croak "Sorry. Not yet supported. Please write\n";
+
+    } else {
+      throw OMP::Error::FatalError("Unable to determine band for JCMT without TAU");
+    }
+
+
+  } else {
+    # Everything else is boring
+    $band = 0;
+  }
+
+  return $band;
+}
+
+=item B<get_tauband_range>
+
+Given a band name, return the OMP::Range object that defines the band.
+The use of a tau band simplifies the allocation process by allowing a
+single integer to refer to a tau range.  The band definitions are
+telescope specific.
+
+  $range = get_tauband_range($telescope, @bands);
+
+If multiple bands are supplied the range will include the extreme values.
+(BUG: no check is made to determine whether the bands are contiguous)
+
+Only defined for JCMT. Returns an unbounded range (lowe limit zero) for
+any other telescope.
+
+Returns undef if the band is not known.
+
+=cut
+
+{
+  # Specify the bands
+  my %bands = (
+	       0   => new OMP::Range( Min => 0 ),
+	       1   => new OMP::Range( Min => 0,    Max => 0.05),
+	       2   => new OMP::Range( Min => 0.05, Max => 0.08),
+	       3   => new OMP::Range( Min => 0.08, Max => 0.12),
+	       4   => new OMP::Range( Min => 0.12, Max => 0.20),
+	       5   => new OMP::Range( Min => 0.20, Max => 0.32),
+	       6   => new OMP::Range( Min => 0.32 ),
+	       '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
+	       '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
+	      );
+
+  sub get_tauband_range {
+    my $tel = shift;
+    my @bands = @_;
+
+    if (defined $tel && $tel eq 'JCMT') {
+
+      my ($min, $max) = (50,-50);
+      for my $band (@bands) {
+	if (exists $bands{$band}) {
+	  my ($bmin, $bmax) = $bands{$band}->minmax;
+	  $min = $bmin if $bmin < $min;
+	  # Take into account unbounded upper limit
+	  $max = $bmax if (!defined $bmax || $bmax > $max);
+	} else {
+	  return undef;
+	}
+
+      }
+
+      return new OMP::Range( Min => $min, Max => $max );
+
+
+    } else {
+      return $bands{"0"};
+    }
+
+  }
 }
 
 =back

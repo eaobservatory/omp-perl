@@ -57,7 +57,7 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use OMP::ProjDB;
 use OMP::DBbackend;
-use OMP::General;
+use OMP::SiteQuality;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -168,7 +168,7 @@ for my $proj (keys %alloc) {
     } elsif ($mod eq 'band') {
       # A tau band
       my @bands = split( /,/, $alloc{$proj}->{band});
-      my $taurange = OMP::General->get_band_range($project->telescope, @bands);
+      my $taurange = OMP::SiteQuality::get_tauband_range($project->telescope, @bands);
       die "Error determining tau range from band ".$alloc{proj}->{band}." !"
 	unless defined $taurange;
       print "Chaning tau range from ". $project->taurange ." to $taurange\n";
@@ -222,7 +222,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2003 Particle Physics and Astronomy Research Council.
+Copyright (C) 2003-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut

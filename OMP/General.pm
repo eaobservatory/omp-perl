@@ -24,6 +24,7 @@ For example, date parsing is required in the MSB class and in the query class.
 use 5.006;
 use strict;
 use warnings;
+use warnings::register;
 
 # In some random cases with perl 5.6.1 (and possibly 5.6.0) we get
 # errors such as:
@@ -51,6 +52,7 @@ use Fcntl qw/ :flock /;
 use OMP::Error qw/ :try /;
 use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
+use OMP::SiteQuality;
 
 require HTML::TreeBuilder;
 require HTML::FormatText;
@@ -464,7 +466,7 @@ the database.
 
 This method converts the string as follows:
 
-=over 4
+=over 8
 
 =item *
 
@@ -624,6 +626,9 @@ sub is_host_local {
 
 =head2 Time Allocation Bands
 
+These methods are now deprecated in favour of the C<OMP::SiteQuality>
+class. Please do not use these in new code.
+
 =over 4
 
 =item B<determine_band>
@@ -658,49 +663,8 @@ case starred bands will be recognized correctly.
 sub determine_band {
   my $self = shift;
   my %details = @_;
-
-  # JCMT is the only interesting one
-  my $band;
-  if (exists $details{TELESCOPE} and $details{TELESCOPE} eq 'JCMT') {
-
-    if (exists $details{TAU}) {
-      my $cso = $details{TAU};
-      throw OMP::Error::FatalError("CSO TAU supplied but not defined. Unable to determine band")
-	unless defined $cso;
-
-      # do not use the OMP::Range objects here (yet KLUGE) because
-      # OMP::Range can not yet do >= with the contains method
-      if ($cso >= 0 && $cso <= 0.05) {
-	$band = 1;
-      } elsif ($cso > 0.05 && $cso <= 0.08) {
-	$band = 2;
-      } elsif ($cso > 0.08 && $cso <= 0.12) {
-	$band = 3;
-      } elsif ($cso > 0.12 && $cso <= 0.2) {
-	$band = 4;
-      } elsif ($cso > 0.2 && $cso <= 0.32) {
-	$band = 5;
-      } elsif ($cso > 0.32) {
-	$band = 6;
-      } else {
-	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
-      }
-
-    } elsif (exists $details{TAURANGE}) {
-
-      croak "Sorry. Not yet supported. Please write\n";
-
-    } else {
-      throw OMP::Error::FatalError("Unable to determine band for JCMT without TAU");
-    }
-
-
-  } else {
-    # Everything else is boring
-    $band = 0;
-  }
-
-  return $band;
+  warnings::warnif( "OMP::General::determine_band deprecated. Use OMP::SiteQuality instead");
+  return OMP::SiteQuality::determine_tauband( @_ );
 }
 
 =item B<get_band_range>
@@ -719,48 +683,12 @@ Returns undef if the band is not known.
 
 =cut
 
-{
-  # Specify the bands
-  my %bands = (
-	       0   => new OMP::Range( Min => 0 ),
-	       1   => new OMP::Range( Min => 0,    Max => 0.05),
-	       2   => new OMP::Range( Min => 0.05, Max => 0.08),
-	       3   => new OMP::Range( Min => 0.08, Max => 0.12),
-	       4   => new OMP::Range( Min => 0.12, Max => 0.20),
-	       5   => new OMP::Range( Min => 0.20, Max => 0.32),
-	       6   => new OMP::Range( Min => 0.32 ),
-	       '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
-	       '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
-	      );
-
-  sub get_band_range {
-    my $class = shift;
-    my $tel = shift;
-    my @bands = @_;
-
-    if (defined $tel && $tel eq 'JCMT') {
-
-      my ($min, $max) = (50,-50);
-      for my $band (@bands) {
-	if (exists $bands{$band}) {
-	  my ($bmin, $bmax) = $bands{$band}->minmax;
-	  $min = $bmin if $bmin < $min;
-	  # Take into account unbounded upper limit
-	  $max = $bmax if (!defined $bmax || $bmax > $max);
-	} else {
-	  return undef;
-	}
-
-      }
-
-      return new OMP::Range( Min => $min, Max => $max );
-
-
-    } else {
-      return $bands{"0"};
-    }
-
-  }
+sub get_band_range {
+  my $class = shift;
+  my $tel = shift;
+  my @bands = @_;
+  warnings::warnif( "OMP::General::get_band_range deprecated. Use OMP::SiteQuality instead");
+  return OMP::SiteQuality::get_tauband_range( $tel, @_);
 }
 
 =back

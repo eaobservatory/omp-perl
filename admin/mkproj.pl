@@ -69,7 +69,6 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use OMP::ProjServer;
 use OMP::SiteQuality;
-use OMP::General;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -150,7 +149,8 @@ for my $proj (keys %alloc) {
   } elsif (exists $details{band}) {
     # Get the tau range from the weather bands if it exists
     my @bands = split( /,/, $details{band});
-    my $taurange = OMP::General->get_band_range($details{telescope}, @bands);
+    my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope},
+						       @bands);
     die "Error determining tau range from band '$details{band}' !"
       unless defined $taurange;
 
