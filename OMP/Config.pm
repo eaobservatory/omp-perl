@@ -307,6 +307,9 @@ sub _checkConfig {
 Read all the configuration files in the config directory and store
 the results.
 
+If the $OMP_SITE_CONFIG environment variable is set this overrides 
+all the non-telescope settings.
+
 =cut
 
 sub _read_configs {
@@ -395,8 +398,6 @@ with a key corresponding to the name of the block.
 If a scalar "siteconfig" entry if present, the site configuration will be read
 and combined with the configuration file content. Note that site configuration
 override all others.
-
-If the $OMP_SITE_CONFIG environment variable is set this overrides everything.
 
 =cut
 
