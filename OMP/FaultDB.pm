@@ -89,7 +89,7 @@ sub fileFault {
   # Mail out the fault
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
-#  $self->_mail_fault($fault);
+  $self->_mail_fault($fault);
 
   # Return the id
   return $id;
@@ -125,7 +125,7 @@ sub respondFault {
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
   my $fault = $self->getFault($id);
-#  $self->_mail_fault($fault);
+  $self->_mail_fault($fault);
 }
 
 =item B<closeFault>
@@ -317,7 +317,7 @@ sub updateFault {
   $self->_db_commit_trans;
 
   # Mail notice to fault "owner"
-#  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
 }
 
 =item B<updateResponse>
@@ -677,14 +677,14 @@ sub _mail_fault {
   # Get the fault response(s)
   my @responses = $fault->responses;
 
-  # The email subject
-  my $subject = "[$faultid] " . $fault->subject;
-
   # Store fault meta info to strings
   my $system = $fault->systemText;
   my $type = $fault->typeText;
   my $loss = $fault->timelost;
   my $category = $fault->category;
+
+  # The email subject
+  my $subject = "$system/$type - " . $fault->subject . " [$faultid]";
 
   # Only show the status if this isn't the initial filing
   my $status = "<b>Status:</b> " . $fault->statusText
