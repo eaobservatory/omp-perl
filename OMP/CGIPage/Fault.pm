@@ -1427,7 +1427,7 @@ sub _sidebar {
   my $q = $self->cgi;
   my $cat = $self->_get_param('cat');
 
-  my $title = (defined $cat and $cat ne "ANYCAT" ? "$cat Faults" : "<font color=#ffffff>Select a fault system</font>");
+  my $title = (defined $cat and $cat ne "ANYCAT" ? "<font color=#ffffff>${cat} Faults</font>" : "<font color=#ffffff>Select a fault system</font>");
   $theme->SetMoreLinksTitle($title);
 
   # Construct our HTML for the sidebar fault form
