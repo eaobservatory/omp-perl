@@ -1129,10 +1129,6 @@ sub getTarget {
     # Get the coordinate object
     my $c = $info{coords};
 
-    # initialise for current time
-    my $time = new Time::Piece;
-    $c->datetime( $time );
-
     $target{AZ} = $c->az(format => 's');
     $target{EL} = $c->el(format => 's');
     $target{CENTRE_COORDS} = "AZ";
