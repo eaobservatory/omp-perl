@@ -31,7 +31,8 @@ use OMP::Constants qw/ :fb /;
 use OMP::General;
 use OMP::FeedbackDB;
 
-use MIME::Lite;
+use Mail::Internet;
+use MIME::Entity;
 
 =head1 METHODS
 
@@ -744,103 +745,102 @@ Mail some information to some people.
 Uses C<Net::SMTP> for the mail service so that it can run in a tainted
 environment. The argument hash should have the following keys:
 
- to   - array reference or scalar containing addresses to send mail to
- from - the email address of the sender
+ to   - array reference of C<OMP::User> objects
+ cc   - array reference of C<OMP::User> objects
+ bcc  - array reference of C<OMP::User> objects
+ from - an C<OMP::User> object
  subject - subject of the message
- message  - the actual mail message
+ message - the actual mail message
  headers - additional mail headers such as Reply-To and Content-Type
            in paramhash format
 
- $db->_mail_information( to => [qw/blah@somewhere.com blah2@nowhere.com/],
-                         from => "me@myself.com",
-                         subject => "hello",
-                         message => "this is the content\n",
-                         headers => {
-				     Reply-To => "you\@yourself.com", 
-				    },
-                       );
+  $db->_mail_information( to => [$user1, $user2],
+			  from => $user3,
+			  subject => "hello",
+			  message => "this is the content\n",
+			  headers => {
+				      Reply-To => "you\@yourself.com", 
+				     },
+			);
 
-Composes the message using C<Mime::Lite> objects so that we end up with a
-multipart message with a plaintext attachment if any HTML is in the
+Composes a multipart message with a plaintext attachment if any HTML is in the
 message.  Throws an exception on error.
 
 =cut
 
 sub _mail_information {
   my $self = shift;
-  my %details = @_;
+  my %args = @_;
 
   # Check that we have the correct keys
   for my $key (qw/ to from subject message /) {
     throw OMP::Error::BadArgs("_mail_information: Key $key is required")
-      unless exists $details{$key};
+      unless exists $args{$key};
   }
-
-  # Get the address list
-  # single scalar or array ref
-  my @addr = ( ref $details{'to'} ? @{$details{to}} : $details{to} );
-
-  throw OMP::Error::FatalError("Undefined address")
-    unless @addr and defined $addr[0];
 
   # Decide if we'll have attachments or not and set the MIME type accordingly
   # by checking for the presence of HTML in the message
-  my $type = ($details{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
+  my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
 
   # Setup the message
-  my %msgdetails = (From=>$details{from},
-		    To=>join(",",@addr),
-		    Subject=>$details{subject},
-		    Type=>$type,
-		    Encoding=>'8bit');
+  my %details = (From=>$args{from}->as_email_hdr,
+		 Subject=>$args{subject},
+		 Type=>$type,
+		 Encoding=>'8bit',);
 
-  if ($details{cc}) {
-    $msgdetails{cc} = $details{cc};
+  # Form To and Cc address lists
+  for my $hdr (qw/ To Cc /) {
+    if (exists $args{lc($hdr)}) {
+      $details{$hdr} = join(',', map {$_->as_email_hdr}
+			    grep {$_->email} @{$args{lc($hdr)}});
+    }
   }
+
+  throw OMP::Error::MailError("Undefined address [we have nobody to send the email to]")
+    unless ($details{To});
 
   # No HTML in message so we won't be attaching anything.  Just include the
   # message content
-  ($type eq "text/plain") and $msgdetails{Data} = $details{message};
+  ($type eq "text/plain") and $details{Data} = $args{message};
 
   # Create the message
-  my $msg = MIME::Lite->new(%msgdetails);
+  my $top = MIME::Entity->build(%details);
 
   # Add any additional headers
-  if ($details{headers}) {
-    for my $hdr (keys %{ $details{headers} }) {
-      $msg->attr($hdr => $details{headers}->{$hdr});
+  if ($args{headers}) {
+    for my $hdr (keys %{ $args{headers} }) {
+      $top->add($hdr => $args{headers}->{$hdr});
     }
   }
-  
+
   # Convert the HTML to plain text and attach it to the message if we're
   # sending a multipart/alternative message
   if ($type eq "multipart/alternative" ) {
 
     # Convert the HTML to text and store it
-    my $text = $details{message};
+    my $text = $args{message};
     my $plaintext = OMP::General->html_to_plain($text);
 
     # Attach the plain text message
-    $msg->attach(Type=>"text/plain",
+    $top->attach(Type=>"text/plain",
 		 Data=>$plaintext)
       or throw OMP::Error::MailError("Error attaching plain text message\n");
 
     # Now attach the original message (it should come up as the default message
     # in the mail reader)
-    $msg->attach(Type=>"text/html",
-		 Data=>$details{message})
+    $top->attach(Type=>"text/html",
+		 Data=>$args{message})
       or throw OMP::Error::MailError("Error attaching HTML message\n");
-
   }
 
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
-  MIME::Lite->send("smtp", $mailhost, Timeout => 30);
 
   eval {
-    $msg->send;
+    $top->smtpsend(Host => $mailhost,
+		   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
   };
-    ($@) and throw OMP::Error::MailError("$@\n");
+  ($@) and throw OMP::Error::MailError("$@\n");
 }
 
 =item B<DESTROY>

@@ -1952,7 +1952,9 @@ sub night_report {
     ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
 
     # Link to WVM graph
-    print "<a href='#wvm'>View WVM graph</a><br>";
+    if (! $utdate_end) {
+      print "<a href='#wvm'>View WVM graph</a><br>";
+    }
 
     $nr->ashtml;
 
@@ -1960,15 +1962,11 @@ sub night_report {
     ($plot_html) and print "<p>$plot_html</p>";
 
     # Display WVM graph
-    # Display WVM graph
     my $wvm_html;
-    if ($utdate_end) {
-      $wvm_html = wvm_graph_code($utdate->ymd, $utdate_end->ymd);
-    } else {
+    if (! $utdate_end) {
       $wvm_html = wvm_graph_code($utdate->ymd);
+      print $wvm_html;
     }
-    print $wvm_html;
-
   }
 }
 
