@@ -203,6 +203,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               switch_mode => '$',
                               target => '$',
                               tau => '$',
+                              tile => '$',
                               timeest => '$',
                               telescope => '$',
                               type => '$',
@@ -602,6 +603,29 @@ sub nightlog {
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
+  } elsif($instrument =~ /wfcam/i) {
+
+# WFCAM
+
+    $return{'Observation'} = $self->runnr;
+    $return{'Group'} = defined( $self->group ) ? $self->group : 0;
+    $return{'Tile'} = defined( $self->tile ) ? $self->tile : 0;
+    $return{'Object'} = defined( $self->target ) ? $self->target : '';
+    $return{'Observation type'} = defined( $self->type ) ? $self->type : '';
+    $return{'Filter'} = defined( $self->filter ) ? $self->filter : '';
+    $return{'RA offset'} = defined( $self->raoff ) ? sprintf( "%.3f", $self->raoff ) : 0;
+    $return{'Dec offset'} = defined( $self->decoff ) ? sprintf( "%.3f", $self->decoff ) : 0;
+    $return{'UT time'} = defined( $self->startobs ) ? $self->startobs->hms : '';
+    $return{'Airmass'} = defined( $self->airmass ) ? sprintf( "%.2f", $self->airmass ) : 0;
+    $return{'Exposure time'} = defined( $self->duration ) ? sprintf( "%.2f", $self->duration ) : 0;
+    $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
+                          "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
+                          "Airmass", "DR Recipe" ];
+    $return{'_STRING_HEADER'} = " Obs  Grp Tile  Project ID UT Start      Object     Type  ExpT  Filt     Offsets    AM Recipe";
+    $return{'_STRING'} = sprintf("%4d %4d %4d %11.11s %8.8s %11.11s %8.8s %5.2f %5.5s %5.1f/%5.1f  %4.2f %-18.18s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+
   } elsif($instrument =~ /(cgs4|ircam|ufti|uist|michelle)/i) {
 
 # UKIRT instruments
@@ -712,7 +736,7 @@ sub nightlog {
         $return{'Slit'} = '-';
         $return{'Wavelength'} = 0;
       }
-      
+
     }
 
   }
