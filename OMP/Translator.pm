@@ -788,10 +788,18 @@ sub SpIterNoiseObs {
 	    );
 
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Ints / ) {
+  for (qw/ General Filter Gain Ints / ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
+
+  # bolometer choice purely depends on filter
+  if ($odf{FILTER} =~ /PHOT/) {
+    $odf{BOLOMETERS} = "P2000,P1350";
+  } else {
+    $odf{BOLOMETERS} = "LONG,SHORT";
+  }
+
 
   # Source type is the only noise-specific thing that changes
   my $source = $info{noiseSource};
