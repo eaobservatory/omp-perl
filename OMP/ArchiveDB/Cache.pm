@@ -245,10 +245,10 @@ sub unstored_files {
 
   my %seen;
   @seen{@ofiles} = ();
-  foreach my $item (@ifiles) {
+
+  foreach my $item (@files) {
     push( @difffiles, $item ) unless exists $seen{$item};
   }
-
   return ( $obsgrp, @difffiles );
 }
 
