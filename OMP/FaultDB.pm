@@ -320,6 +320,35 @@ sub updateFault {
   ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
 }
 
+=item B<updateResponse>
+
+Update a fault response by deleting the response for the database and then reinserting
+it with new values.
+
+  $db->update Response( $faultid, $response );
+
+The first argument should be the ID of the fault that the response is associated with.
+The second argument should be an C<OMP::Fault::Response> object.
+
+=cut
+
+sub updateResponse {
+  my $self = shift;
+  my $faultid = shift;
+  my $response = shift;
+
+  # Begin transaction
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Do the update
+  $self->_update_response_row($faultid, $response);
+
+  # End transaction
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+}
+
 =head2 Internal Methods
 
 =over 4
@@ -592,6 +621,36 @@ sub _update_fault_row {
   }
 }
 
+=item B<_update_response_row>
+
+Delete and reinsert a fault response.
+
+  $db->_update_response_rows( $faultid, $response );
+
+where C<$faultid> is the id of the fault the response should be associated with
+and C<$response> is an C<OMP::Fault::Response> object.
+
+=cut
+
+sub _update_response_row {
+  my $self = shift;
+  my $faultid = shift;
+  my $resp = shift;
+
+  if (UNIVERSAL::isa($resp, "OMP::Fault::Response")) {
+    # Where clause for the delete
+    my $clause = "respid = ". $resp->id;
+
+    # Delete the response
+    $self->_db_delete_data( $FAULTBODYTABLE, $clause );
+
+    # Now re-add the response (this will result in a new response ID)
+    $self->_add_new_response( $faultid, $resp );
+
+  } else {
+    throw OMP::Error::BadArgs("Argument to _update_response_row must be of type OMP::Fault::Response\n");
+  }
+}
 
 =item B<_mail_fault>
 
@@ -643,15 +702,6 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
   my @msg;
   my @addr;
-
-  # Our address list will start with the fault category's mailing list
-  # COMMENTED OUT DURING TESTING
-  # In order to get this partially working I have deleted the mailing lists
-  # in OMP::Fault except for the OMP mailing list - TJ
-  # add test here for undef mail_list
-  my $fault_list = $fault->mail_list;
-  unshift(@addr, $fault_list)
-    if defined $fault_list;
 
   # Use the address of the user that filed the latest response for the 'From:'
   my $from = $responses[-1]->author->email
@@ -735,6 +785,14 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   # Add the response link to the bottom of our message
   push(@msg, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
 
+  # Our address list will start with the fault category's mailing list
+  # In order to get this partially working I have deleted the mailing lists
+  # in OMP::Fault except for the OMP mailing list - TJ
+  # add test here for undef mail_list
+  my $fault_list = $fault->mail_list;
+  unshift(@addr, $fault_list)
+    unless (! $fault_list);
+
   # Make the message from the mail list if the author has no email address
   # Also add the latest response author to the 'To:' list
   if ($from) {
@@ -775,12 +833,18 @@ sub _mail_fault_update {
     $user = $user->html;
   }
 
-  my $msg = "Fault " . $fault->id . " [" . $fault->subject . "] has been changed as follows by $user:<br><br>";
+  my $msg = "Fault " . $fault->id . " [" . $oldfault->subject . "] has been changed as follows by $user:<br><br>";
 
   # Map property names to their accessor method names
   my %property = (
-		  Status => "statusText",
+		  "Status" => "statusText",
+		  "System" => "systemText",
+		  "Type" => "typeText",
 		  "Time lost" => "timelost",
+		  "Time of fault" => "faultdate",
+		  "Subject" => "subject",
+		  "Category" => "category",
+		  "Urgency" => "urgencyText",
 		 );
 
   # Build up a message
@@ -804,7 +868,7 @@ sub _mail_fault_update {
   (! $from) and $from = "kynan\@jach.hawaii.edu";  #while testing
 
   # Don't want to attempt to mail the fault if author doesn't have an email
-  # address (which would be very odd at this point)
+  # address
   if ($email) {
     $self->_mail_information(message => $msg,
 			     to => $email,
