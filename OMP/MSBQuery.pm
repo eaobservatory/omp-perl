@@ -330,7 +330,7 @@ Also converts abbreviated form of project name to the full form
 recognised by the database.
 
 The current semester is used for all queries unless a semester
-is explicitly specified in the query.
+or a projectid is explicitly specified in the query.
 
 Tau must be positive. If it is not positive it will be ignored.
 
@@ -474,9 +474,11 @@ sub _post_process_hash {
     delete $href->{coi};
   }
 
-  # Add a semester if we have not got one
+  # Add a semester if we have not got one and no projectid
+  # specified.
   # Since we always want to default to current semester
-  if (!exists $href->{semester}) {
+  # in the general case.
+  if (!exists $href->{semester} && !exists $href->{projectid}) {
     $href->{semester} = [ OMP::General->determine_semester ];
   }
 
