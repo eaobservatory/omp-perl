@@ -965,7 +965,8 @@ sub list_projects_output {
   my $private_url = private_url();
 
   my $semester = $q->param('semester');
-  my $status = $q->param('status');
+  my $state = ($q->param('state') eq 'all' ? undef : $q->param('state'));
+  my $status = ($q->param('status') eq 'all' ? undef : $q->param('status'));
   my $support = $q->param('support');
   my $country = $q->param('country');
   my $telescope = $q->param('telescope');
@@ -974,18 +975,39 @@ sub list_projects_output {
   ($country =~ /any/i) and $country = undef;
   ($telescope =~ /any/i) and $telescope = undef;
 
-  my $xmlquery;
-  if ($status eq 'all') {
-    $xmlquery = "<ProjQuery><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
-  } else {
-    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
-  }
+  my $xmlquery = "<ProjQuery><state>$state</state><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
+
 
   OMP::General->log_message("Projects list retrieved by user $cookie{userid}");
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
   if (@$projects) {
+    # First group the projects by country and telescope, then sort
+    # by TAG priority
+    #
+    # NOTE: This may be too slow.  We will probably want to let the
+    # database do the sorting and grouping for us in the future,
+    # although that will require OMP::ProjQuery to support 
+    # <orderby> and <groupby> tags
+    my @sorted;
+
+    if ($telescope and $country) {
+      @sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
+    } else {
+      my %group;
+      for (@$projects) {
+	push @{$group{$_->telescope}{$_->country}}, $_;
+      }
+
+      for my $telescope (sort keys %group) {
+	for my $country (sort keys %{$group{$telescope}}) {
+	  my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
+	  push @sorted, @sortedcountry;
+	}
+      }
+    }
+
     # Display a list of projects if any were returned
     print $q->h2("Projects for semester $semester");
 
@@ -995,10 +1017,10 @@ sub list_projects_output {
 
     if ($q->param('table_format')) {
 
-      proj_sum_table($projects, $q);
+      proj_sum_table(\@sorted, $q);
 
-     } else {
-      foreach my $project (@$projects) {
+    } else {
+      foreach my $project (@sorted) {
 	print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
 	print $q->h2('Project ' . $project->projectid);
 	print "</a>";
@@ -1009,8 +1031,7 @@ sub list_projects_output {
 	fb_msb_observed($q, $project->projectid);
 	
 	print $q->h3('MSBs to be observed');
-	fb_msb_active($q,$project->projectid);
-	
+	fb_msb_active($q,$project->projectid);	
       }
 
     }
@@ -1021,7 +1042,7 @@ sub list_projects_output {
 
   } else {
     # Otherwise just put the form back up
-    print $q->h2("No projects for semester $semester");
+    print $q->h2("No projects for semester $semester matching your query");
 
     list_projects_form($q);
 
@@ -1081,10 +1102,17 @@ sub list_projects_form {
   print "</td><tr><td align='right'>Show: </td><td>";
   print $q->radio_group(-name=>'status',
 		        -values=>['active', 'inactive', 'all'],
-			-labels=>{active=>'Active',
-				  inactive=>'Inactive',
-				  all=>'All',},
+			-labels=>{active=>'Time remaining',
+				  inactive=>'No time remaining',
+				  all=>'Both',},
 		        -default=>'active',);
+  print "<br>";
+  print $q->radio_group(-name=>'state',
+		        -values=>[1,0,'all'],
+		        -labels=>{1=>'Enabled',
+				  0=>'Disabled',
+				  all=>'Both',},
+		        -default=>1,);
   print "</td><tr><td align='right'>Support: </td><td>";
   print $q->popup_menu(-name=>'support',
 		       -values=>\@values,
