@@ -1840,6 +1840,15 @@ sub unroll_obs {
 
   }
 
+  # Fudge the special cases
+  # SCAN MAP polarimetry requires that we only specify one
+  # waveplate position per ODF - we cannot do that during
+  # the recursive unrolling very easily because of the case
+  # where a single pol iterator contains both a scan map
+  # and jiggle map pol observe
+  $self->_fudge_unroll_obs(\@longobs);
+
+
   #use Data::Dumper;
   #print Dumper( \@longobs);
 
@@ -1926,6 +1935,37 @@ sub _unroll_obs_recurse {
 
 }
 
+# Correct post translation problems
+
+sub _fudge_unroll_obs {
+  my $self = shift;
+  my $obs = shift;
+  return unless @$obs;
+
+  my @newobs;
+  # loop through the observations and tweak
+  # Only look for SCAN MAP and pol
+  if ($obs->[0]->{telescope} eq 'JCMT') {
+    foreach my $this (@$obs) {
+      if ($this->{instrument} eq 'SCUBA' && $this->{MODE} eq 'SpIterRasterObs'
+	 && exists $this->{waveplate}) {
+	# Scan map pol can only support a single waveplate position
+	# per chop throw.
+	# create an odf per waveplate
+	my %odf = %$this;
+	my @wplate = @{$odf{waveplate}};
+	delete $odf{waveplate};
+	# waveplate still has to be an array
+	push(@newobs,map { { %odf, waveplate => [$_] } } @wplate);;
+      } else {
+	push(@newobs,$this);
+      }
+    }
+  }
+
+  # overwrite old array
+  @$obs = @newobs;
+}
 
 
 # Methods associated with individual elements
