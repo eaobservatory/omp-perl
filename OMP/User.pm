@@ -161,6 +161,7 @@ sub html {
   my $self = shift;
   my $email = $self->email;
   my $name = $self->name;
+  my $id = $self->userid;
 
   my $html;
   if ($email) {
@@ -171,9 +172,19 @@ sub html {
 
     $html = "<A HREF=\"mailto:$email\">$name</A>";
 
-  } else {
+  } elsif ($name) {
+
     # Just a name
     $html = "<B>$name</B>";
+
+  } elsif ($id) {
+
+    $html = "<B>$id</B>";
+
+  } else {
+    # User id
+
+    $html = "<I>No name specified</I>";
 
   }
 
