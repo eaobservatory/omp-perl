@@ -9,7 +9,8 @@ OMP::Fault - A software bug or system fault object
   use OMP::Fault;
 
   $fault = new OMP::Fault( %details  );
-  $fault->respond( OMP::Fault::Response->new($user, $text, $date) );
+  $fault->responses( OMP::Fault::Response->new(author => $user,
+                                               text => $text) );
 
 
 
@@ -547,7 +548,7 @@ actual array). In list context returns the response objects as a list.
   $responses = $fault->responses;
 
 When new responses are stored the first response object has its
-primary flag set to "true" and all other responses have their primary
+isfault flag set to "true" and all other responses have their isfault
 flags set to "false".
 
 =cut
@@ -583,11 +584,11 @@ sub responses {
       push(@{$self->{Responses}}, @input);
     }
 
-    # Now modify the primary flags
+    # Now modify the isfault flags
     my $i = 0;
     for (@{ $self->{Responses} }) {
-      my $primary = ($i == 0 ? 1 : 0);
-      $_->primary( $primary );
+      my $isfault = ($i == 0 ? 1 : 0);
+      $_->isfault( $isfault );
       $i++;
     }
 
@@ -632,7 +633,7 @@ sub stringify {
   return '' unless @responses;
 
   # Get the main descriptive information for the top
-  my $user = $responses[0]->user;
+  my $author = $responses[0]->author;
   my $date = $responses[0]->date;
   my $firstresponse = $responses[0]->text;
   my $tlost = $self->timelost;
@@ -676,7 +677,7 @@ sub stringify {
   # Now build up the message
   my $output = 
 "--------------------------------------------------------------------------------\n".
-"    Report by     :  $user\n".
+"    Report by     :  $author\n".
 "                                         date: $day\n".
 "    System is     :  $system\n".
 "                                         time: $time\n".

@@ -9,7 +9,7 @@ use OMP::Fault::Response;
 
 
 # First create the first "response"
-my $resp = new OMP::Fault::Response( user => "AJA",
+my $resp = new OMP::Fault::Response( author => "AJA",
 				     text => "This is a test of the fault classes");
 
 ok( $resp );
@@ -25,7 +25,7 @@ ok( $fault );
 
 
 # Now respond
-my $resp2 = new OMP::Fault::Response( user => "TIMJ",
+my $resp2 = new OMP::Fault::Response( author => "TIMJ",
 				      text => "I respond to you");
 
 $fault->responses( $resp2 );
@@ -33,9 +33,9 @@ $fault->responses( $resp2 );
 my @resps = $fault->responses;
 ok( scalar(@resps), 2);
 
-# Check primary flags
-ok( $resps[0]->primary );
-ok( ! $resps[1]->primary );
+# Check isfault flags
+ok( $resps[0]->isfault );
+ok( ! $resps[1]->isfault );
 
 
 # Print the stringified fault for info

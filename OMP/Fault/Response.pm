@@ -8,14 +8,14 @@ OMP::Fault::Response - a fault response
 
   use OMP::Fault::Response;
 
-  $resp = new OMP::Fault::Response( user => $user,
+  $resp = new OMP::Fault::Response( author => $user,
                                     text => $text,
                                     date => $date );
-  $resp = new OMP::Fault::Response( user => $user, 
+  $resp = new OMP::Fault::Response( author => $user, 
                                     text => $text );
 
   $body = $resp->text;
-  $user = $resp->user;
+  $user = $resp->author;
 
 
 =head1 DESCRIPTION
@@ -50,12 +50,12 @@ use overload '""' => "stringify";
 Create a new fault response object. The name of the person submitting
 the response and the response itself must be supplied to the
 constructor. The response date and an indication of whether the
-response is a true response or the actual fault (via "primary") are
+response is a true response or the actual fault (via "isfault") are
 optional.
 
-  $resp = new OMP::Fault::Response( user => $user, 
+  $resp = new OMP::Fault::Response( author => $author, 
                                     text => $text,
-                                    primary => 1 );
+                                    isfault => 1 );
 
 If it is not specified the current date will be used. The date must be
 supplied as a C<Time::Piece> object and is assumed to be UT.
@@ -71,10 +71,10 @@ sub new {
 
   # initialize the hash
   my $resp = {
-	      User => undef,
+	      Author => undef,
 	      Text => undef,
 	      Date => undef,
-	      Primary => 0,
+	      IsFault => 0,
 	     };
 
   bless $resp, $class;
@@ -90,9 +90,9 @@ sub new {
     }
   }
 
-  # Check that we have user and text
-  croak "Must supply a fault user"
-    unless $resp->user;
+  # Check that we have author and text
+  croak "Must supply a fault author"
+    unless $resp->author;
   croak "Must supply a fault response (text)"
     unless $resp->text;
 
@@ -122,22 +122,22 @@ sub text {
   return $self->{Text};
 }
 
-=item B<user>
+=item B<author>
 
 Name of person submitting the response. There is as yet
 no lookup to make sure that this person is allowed to submit
 or any rules concerning whether this should be a user name
 or a real name.
 
-  $user = $resp->user;
-  $resp->user( $user );
+  $author = $resp->author;
+  $resp->author( $author );
 
 =cut
 
-sub user {
+sub author {
   my $self = shift;
-  if (@_) { $self->{User} = shift; }
-  return $self->{User};
+  if (@_) { $self->{Author} = shift; }
+  return $self->{Author};
 }
 
 =item B<date>
@@ -161,20 +161,20 @@ sub date {
   return $self->{Date};
 }
 
-=item B<primary>
+=item B<isfault>
 
-Is this response the original fault (primary = 1) or is it a response
-to some other fault (primary = 0).
+Is this response the original fault (isfault = 1) or is it a response
+to some other fault (isfault = 0).
 
 This flag is usually set automatically when the object is stored in
 a C<OMP::Fault>.
 
 =cut
 
-sub primary {
+sub isfault {
   my $self = shift;
-  if (@_) { $self->{Primary} = shift; }
-  return $self->{Primary};
+  if (@_) { $self->{IsFault} = shift; }
+  return $self->{IsFault};
 }
 
 =back
@@ -190,7 +190,8 @@ This is the default stringification overload.
 
 Defaults to the familiar JAC style fault response. Note that the
 default stringification style is only helpful for true responses and
-not for the initial "response".
+not for the initial "response" (we could use C<isfault> but then the
+stringifcation would simply be the text).
 
 =cut
 
@@ -198,7 +199,7 @@ sub stringify {
   my $self = shift;
 
   my $text = $self->text;
-  my $user = $self->user;
+  my $author = $self->author;
 
   # Get date and format it
   my $date = $self->date->strftime("%Y-%m-%d");
@@ -206,7 +207,7 @@ sub stringify {
 
   my $string = 
 ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n".
-"    RESPONSE by : $user\n".
+"    RESPONSE by : $author\n".
 "                                      date : $date\n".
 "\n".
 "$text\n";

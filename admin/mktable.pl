@@ -134,6 +134,32 @@ my %tables = (
 					 program sourceinfo status text
 					/],
 			     },
+	      ompfault => {
+			   faultid => "REAL",
+			   entity => "varchar(64)",
+			   type   => "integer",
+			   system => "integer",
+			   category => "VARCHAR(32)",
+			   timelost => "REAL",
+			   faultdate => "datetime null",
+			   status => "INTEGER",
+			   urgency => "INTEGER",
+			   _ORDER => [qw/
+				      faultid category faultdate type system
+				      status urgency timelost entity
+				      /],
+			  },
+	      ompfaultbody => {
+			       respid => "numeric(5,0) IDENTITY",
+			       faultid => "REAL",
+			       date => "datetime",
+			       isfault => "integer",
+			       text => "text",
+			       author => "varchar(50)",
+			       _ORDER => [qw/
+					  respid faultid date author isfault text
+					  /],
+			      },
 	     );
 
 for my $table (sort keys %tables) {
@@ -144,6 +170,8 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompobs';
   next if $table eq 'ompfeedback';
   next if $table eq 'ompmsbdone';
+  next if $table eq 'ompfault';
+  next if $table eq 'ompfaultbody';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
