@@ -30,7 +30,8 @@ The following options are supported:
 =item B<-ut>
 
 Override the UT date used for the report. By default the current date
-is used.
+is used.  The UT can be specified in either YYYY-MM-DD or YYYYMMDD format.
+If the supplied date is not parseable, the current date will be used.
 
 =item B<-tel>
 

@@ -6,7 +6,7 @@ nightrep - Review and send end of night observing report
 
 =head1 SYNOPSIS
 
-  nightrep 
+  nightrep
   nightrep -ut 2002-12-10
   nightrep -tel jcmt
   nightrep -ut 2002-10-05 -tel ukirt
@@ -31,7 +31,8 @@ The following options are supported:
 =item B<-ut>
 
 Override the UT date used for the report. By default the current date
-is used.
+is used. The UT can be specified in either YYYY-MM-DD or YYYYMMDD format.
+If the supplied date is not parseable, the current date will be used.
 
 =item B<-tel>
 
