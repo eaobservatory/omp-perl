@@ -46,6 +46,8 @@ use strict;
 
 use Carp;
 use OMP::Constants qw/ :done /;
+use OMP::Info::MSB;
+use OMP::Info::Comment;
 use Time::Piece;
 
 use base qw/ OMP::BaseDB /;
@@ -64,69 +66,20 @@ our $MSBDONETABLE = "ompmsbdone";
 Retrieve the observation history for the specified MSB (identified
 by checksum and project ID) or project.
 
-  $xml = OMP::MSBServer->historyMSB( $checksum, 'xml');
-  $hashref = OMP::MSBServer->historyMSB( $checksum, 'data');
-  $arrref  = OMP::MSBServer->historyMSB( '', 'data');
+  $msbinfo = $db->historyMSB( $checksum );
+  $arrref  = $db->historyMSB();
 
-If the checksum is not supplied a full project observation history
-is returned. Note that the information retrieved consists of:
+The information is retrieved as an C<OMP::Info::MSB> object
+(with a checksum supplied) or an array of those objects.
 
- - Target name, waveband and instruments
- - Date of observation or comment
- - Comment associated with action
-
-The XML is retrieved in the following style:
-
- <msbHistories>
-   <msbHistory checksum="yyy" projectid="M01BU53">
-     <instrument>UFTI</instrument>
-     <waveband>J/H</waveband>
-     <target>FS21</target>
-     <comment>
-       <text>MSB retrieved</text>
-       <date>2002-04-02T05:52</date>
-     </comment>
-     <comment>
-       <text>MSB marked as done</text>
-       <date>2002-04-02T06:52</date>
-     </comment>
-   </msbHistory>
-   <msbHistory checksum="xxx" projectid="M01BU53">
-     ...
-   </msbHistory>
- <msbHistories>
-
-When checksum is defined the data structure is of the form:
-
-  $data = {
-	   checksum => "xxx",
-           projectid => "M01BU53",
-           instrument => "UFTI",
-           waveband => "J/H",
-           target => "FS21",
-           comment => [
-                       { 
-                          status => 0,
-                          text => "MSB retrieved",
-                        date => "2002-04-02T05:52"
-                       },
-                       { 
-                          status => 1,
-                        text => "MSB marked as done",
-                        date => "2002-04-02T06:52"
-                       },
-                      ],
-  };
-
-When checksum is not defined an array is returned (as a reference in perl)
-containing a hash as defined above for each MSB in the project.
+If the checksum is not supplied a full project observation history is
+returned (this is simply an array of MSB information objects).
 
 =cut
 
 sub historyMSB {
   my $self = shift;
   my $checksum = shift;
-  my $style = shift;
 
   # Construct the query
   my $projectid = $self->projectid;
@@ -140,7 +93,7 @@ sub historyMSB {
 
   # Assume we have already got all the information
   # so we do not need to do a subsequent query
-  return $self->queryMSBdone( $query, 0, $style);
+  return $self->queryMSBdone( $query );
 
 }
 
@@ -193,14 +146,12 @@ Return all the MSBs observed (ie "marked as done") on the specified
 date. If a project ID has been set only those MSBs observed on the
 date for the specified project will be returned.
 
-  $output = $db->observedMSBs( $date, $allcomments, $style );
+  $output = $db->observedMSBs( $date, $allcomments );
 
 The C<allcomments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
-
-The output format matches that returned by C<historyMSB>.
 
 If no date is defined the current UT date is used.
 
@@ -213,7 +164,7 @@ sub observedMSBs {
   my $style = shift;
 
   # Construct the query
-  $date = ( $date ? $date : OMP::General->today );
+  $date ||= OMP::General->today;
   my $projectid = $self->projectid;
 
   my $xml = "<MSBDoneQuery>" .
@@ -224,7 +175,7 @@ sub observedMSBs {
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  return $self->queryMSBdone( $query, $allcomment, $style );
+  return $self->queryMSBdone( $query, $allcomment );
 }
 
 
@@ -233,7 +184,7 @@ sub observedMSBs {
 Query the MSB done table. Query must be supplied as an
 C<OMP::MSBDoneQuery> object.
 
-  @results = $db->queryMSBdone( $query, $allcomments, $style );
+  @results = $db->queryMSBdone( $query, $allcomments );
 
 The C<allcomments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
@@ -248,7 +199,6 @@ sub queryMSBdone {
   my $self = shift;
   my $query = shift;
   my $allcomment = shift;
-  my $style = shift;
 
   # First read the rows from the database table
   # and get the array ref
