@@ -887,6 +887,10 @@ sub list_projects_form {
   my @a = grep {$_ =~ /$sem/i} @sem;
   (!@a) and unshift @sem, $sem;
 
+  # Get the telescopes for our popup menu
+  my @tel = $db->listTelescopes;
+  unshift @tel, "Any";
+
   my @support = $db->listSupport;
   my @sorted = sort {$a->userid cmp $b->userid} @support;
   my @values = map {$_->userid} @sorted;
@@ -908,6 +912,10 @@ sub list_projects_form {
   print $q->popup_menu(-name=>'semester',
 		       -values=>\@sem,
 		       -default=>$sem,);
+  print "</td><tr><td align='right'>Telescope: </td><td>";
+  print $q->popup_menu(-name=>'telescope',
+		       -values=>\@tel,
+		       -default=>'Any',);
   print "</td><tr><td align='right'>Show: </td><td>";
   print $q->radio_group(-name=>'status',
 		        -values=>['active', 'inactive', 'all'],
