@@ -1222,6 +1222,7 @@ sub SpInstUFTI {
 
   $summary{instrument} = "UFTI";
   $summary{wavelength} = "unknown";
+  $summary{filter} = $self->_get_pcdata( $el, "filter" );
 
   return %summary;
 }
