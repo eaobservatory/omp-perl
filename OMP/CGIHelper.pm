@@ -2160,7 +2160,7 @@ sub tau_plot_code {
 
   # Setup tau fits image info
   my $dir = "/WWW/omp/data/taufits";
-  my $www = OMP::Config->getData('omp-url') . "/data";
+  my $www = OMP::Config->getData('omp-url') . "/data/taufits";
   my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
