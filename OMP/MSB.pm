@@ -3175,10 +3175,12 @@ sub SpInstHeterodyne {
   # so that it handles velocity properly
   $summary{freqconfig} = {
 			  restFrequency => $rfreq,
-			  velocity => $self->_get_pcdata($el, "velocity"),
+			  # The velocity field always has the optical velocity
+			  optVelocity => $self->_get_pcdata($el, "velocity"),
 			  velocityDefinition => $self->_get_pcdata($el,
 								   "velocityDefinition"),
 			  velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
+			  velocity => $self->_get_pcdata($el,"referenceFrameVelocity"),
 			  bandWidth => $self->_get_pcdata($el,"bandWidth"),
 			  sideBand => $self->_get_pcdata($el,"band"),
 			  mixers => $self->_get_pcdata($el,"mixers"),

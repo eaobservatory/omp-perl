@@ -640,10 +640,17 @@ sub feConfig {
   # The OT converts redshift to velocity so this is not a problem
   # so long as I can work out the velocityDefinition
   # I *think* it is optical
+  # optVelocity is always the optical velocity. We have to use that
+  # for redshifts
+  # For backwards compatibility we use optVelocity if we do not have
+  # a velocity
   if ($freqconfig{velocityDefinition} eq 'redshift') {
     $freqconfig{velocityDefinition} = "optical [derived from redshift]";
-  } elsif ($freqconfig{velocityDefinition} eq 'radio') {
+    $freqconfig{velocity} = $freqconfig{optVelocity};
+  } elsif (!defined $freqconfig{velocity} && 
+	   $freqconfig{velocityDefinition} eq 'radio') {
     $freqconfig{velocityDefinition} = "optical [derived from radio]";
+    $freqconfig{velocity} = $freqconfig{optVelocity};
   }
 
 
