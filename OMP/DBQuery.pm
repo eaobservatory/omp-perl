@@ -246,22 +246,28 @@ Returned SQL segment does not include "WHERE".
 sub _qhash_tosql {
   my $self = shift;
   my $skip = shift;
-  $skip = [ ] unless defined $skip;
+  $skip = [] unless defined $skip;
 
   # Retrieve the perl version of the query
   my $query = $self->query_hash;
+
+  # Remove the elements that are not "useful"
+  # ie those that start with _ and those that
+  # are in the skip array
+  # [tried it with a grep but it didnt work first
+  # time out - may come back to this later]
+  my @keys;
+  for my $entry (keys %$query) {
+    next if $entry =~ /^_/;
+    next if grep /^$entry$/, @$skip;
+    push(@keys, $entry);
+  }
 
   # Walk through the hash generating the core SQL
   # a chunk at a time - skipping if required
   my @sql = grep { defined $_ } map {
     $self->_create_sql_recurse( $_, $query->{$_} )
-  } grep {
-    # Only pass the key through if it is not in skip
-    # array [trap for case where skip array is empty
-    my $key = $_;
-    (@$skip ? scalar(grep !/^$key$/, @$skip) : 1 );
-
-  } keys %$query;
+  } @keys;
 
   # Now join it all together with an AND
   my $clause = join(" AND ", @sql);
@@ -324,7 +330,9 @@ sub _create_sql_recurse {
     # Call myself but join with an OR
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
 		      } keys %$entry;
-    $sql = "(". join(" OR ", @chunks ) . ")";
+
+    # Need to bracket each of the sub entries
+    $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
 
   } else {
     # use Data::Dumper;
