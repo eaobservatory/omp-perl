@@ -1299,8 +1299,8 @@ sub _store_sciprog_todisk {
   $projectid =~ s/\//_/g; # replace slashes with underscores
   my $err = "Error writing science program ($projectid) to disk\n" .
     "Request from $email\nReason:\n\n";
-  my %deferr = ( to => 'timj@jach.hawaii.edu',
-		 from => 'omp_group@jach.hawaii.edu',
+  my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
+		 from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
 		 subject => 'failed to write sci prog to disk');
 
   # Check we have a directory
