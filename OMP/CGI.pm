@@ -533,6 +533,41 @@ sub write_page_logout {
   $self->_write_footer();
 }
 
+=item B<write_page_fault>
+
+Creates a page for the fault system.  This system requires the use of URL parameters which
+the other write_page functions do not allow.
+
+  $cgi->write_page_fault( \&content, \&output );
+
+In order for this to work a hidden field called B<show_output> must be embedded in the cgi form
+for the B<&output> code reference to be called.
+
+=cut
+
+sub write_page_fault {
+  my $self = shift;
+  my ($form_content, $form_output) = @_;
+
+  my %cookie = $self->cookie;
+  my $q = $self->cgi;
+
+  $self->_make_theme;
+  $self->_write_header();
+
+  if ($q->param) {
+    if ($q->param('show_output')) {
+      $form_output->($q, %cookie);
+    } else {
+      $form_content->($q, %cookie);
+    }
+  } else {
+    $form_content->($q, %cookie);
+  }
+
+  $self->_write_footer();
+}
+
 =back
 
 =head1 AUTHORS
