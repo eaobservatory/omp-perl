@@ -45,6 +45,7 @@ use warnings;
 use strict;
 
 use OMP::Constants qw/ :done /;
+use Time::Piece;
 
 use base qw/ OMP::BaseDB /;
 
@@ -60,7 +61,7 @@ our $MSBDONETABLE = "ompmsbdone";
 =item B<historyMSB>
 
 Retrieve the observation history for the specified MSB (identified
-by checksum and project ID).
+by checksum and project ID) or project.
 
   $xml = OMP::MSBServer->historyMSB( $checksum, 'xml');
   $hashref = OMP::MSBServer->historyMSB( $checksum, 'data');
@@ -178,6 +179,61 @@ sub addMSBcomment {
 
 }
 
+=item B<observedMSBs>
+
+Return all the MSBs observed (ie "marked as done") on the specified
+date. If a project ID has been set only those MSBs observed on the
+date for the specified project will be returned.
+
+  $output = $db->observedMSBs( $date, $allcomments, $style );
+
+The C<allcomments> parameter governs whether all the comments
+associated with the observed MSBs are returned (regardless of when
+they were added) or only those added for the specified night. If the
+value is false only the comments for the night are returned.
+
+The output format matches that returned by C<historyMSB>.
+
+If no date is defined the current UT date is used.
+
+=cut
+
+sub observedMSBs {
+  my $self = shift;
+  my $date = shift;
+  my $allcomment = shift;
+  my $style = shift;
+
+  # Construct the query 
+  my %query;
+  $query{date} = $date;
+  $query{projectid} = $self->projectid if $self->projectid;
+  $query{allinfo} = 1; # want all the information
+
+  # First read the rows from the database table
+  # and get the array ref
+  my @rows = $self->_fetch_msb_done_info( %query );
+
+  # Now reorganize the data structure to better match
+  # our output format
+  my $msbs = $self->_reorganize_msb_done( \@rows );
+
+  # If all the comments are required then we now need
+  # to loop through this hash and refetch the data
+  # using a different query. 
+  if ($allcomment) {
+    foreach my $checksum (keys %$msbs) {
+      # over write the previous entry
+      $msbs->{$checksum} = $self->historyMSB($checksum,  'data');
+    }
+  }
+
+  # Now reformat the data structure to the required output
+  # format
+  return $self->_format_output_info( $msbs, undef, $style);
+
+}
+
 =back
 
 =head2 Internal Methods
@@ -199,9 +255,16 @@ most recent information of all information associated with the MSB.
 Project ID is retrieved from the object if none is supplied.
 Returns empty list if no rows can be found.
 
-If no checksum is supplied information for all MSBs associated with the
-project is retrieved (if C<allinfo> is true, else just the last one is
-retrieved). If no checksum and no project ID then all will be retrieved.
+If no checksum is supplied information for all MSBs associated with
+the project is retrieved (if C<allinfo> is true, else just the last
+one is retrieved). If no checksum and no project ID then all will be
+retrieved.
+
+Finally, if C<date> is supplied only those MSBs that were observed
+on the specified UT date (ie those with status C<OMP__DONE_DONE>)
+will be retrieved. Bear in mind that only comments submitted
+on that date will be retrieved. If you want all comments for a particular
+MSB then a subsequent targetted query will be required.
 
 =cut
 
@@ -212,6 +275,17 @@ sub _fetch_msb_done_info {
   # Decide whether to retrieve all information or just the last
   my $allinfo = ( exists $args{allinfo} ? $args{allinfo} : 0 );
   delete $args{allinfo} if exists $args{allinfo};
+
+  # Need to remove date field from the list since it
+  # is a special case
+  my $date;
+  if (exists $args{date}) {
+    $date = $args{date};
+    delete $args{date};
+
+    # Default it to something if not defined
+    $date = OMP::General->today() unless $date;
+  }
 
   # Get the project id if it is here
   $args{projectid} = $self->projectid
@@ -224,6 +298,14 @@ sub _fetch_msb_done_info {
   # we dont have to worry about quoting
   my $statement = "SELECT * FROM $MSBDONETABLE WHERE" .
     join("AND", @substrings);
+
+  # If we have a date field need to add a bit of extra
+  # query
+  if ($date) {
+    $statement .= " date > '$date' AND date < dateadd(dd,1,'$date') " . 
+      " AND status = " . OMP__DONE_DONE();
+  }
+
 
   # prepare and execute
   my $dbh = $self->_dbhandle;

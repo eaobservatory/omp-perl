@@ -394,6 +394,58 @@ sub historyMSB {
   return $result;
 }
 
+=item B<observedMSBs>
+
+Return all the MSBs observed (ie "marked as done") on the specified
+date.
+
+  $output = OMP::MSBServer->observedMSBs( $date, $allcomments, 'xml' );
+
+The C<allcomments> parameter governs whether all the comments
+associated with the observed MSBs are returned (regardless of when
+they were added) or only those added for the specified night. If the
+value is false only the comments for the night are returned.
+
+The output format matches that returned by C<historyMSB>.
+
+If no date is defined (e.g. an empty string is sent) the current UT
+date is used.
+
+=cut
+
+sub observedMSBs {
+  my $class = shift;
+  my $date = shift;
+  my $allcomments = shift;
+  my $type = shift;
+
+  my $E;
+  my $result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDoneDB(
+				DB => $class->dbConnection
+			       );
+
+    $result = $db->observedMSBs( $date, $allcomments, $type );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $result;
+}
+
 =item B<addMSBcomment>
 
 Associate a comment with a previously observed MSB.
