@@ -226,7 +226,7 @@ sub db_accounts {
 
     # XML query
     my $xml = "<TimeAcctQuery>".
-      $self->_get_date_xml .
+      $self->_get_date_xml(timeacct=>1) .
 	"</TimeAcctQuery>";
 
     # Get our sql query
@@ -310,7 +310,7 @@ sub faults {
 
     # XML query to get faults that occurred on the dates we are reporting for
     $xml{actual} = "<FaultQuery>".
-      $self->_get_date_xml('faultdate') .
+      $self->_get_date_xml(tag => 'faultdate') .
 	"<category>". $self->telescope ."</category>".
 	  "</FaultQuery>";
 
@@ -1380,26 +1380,30 @@ sub mail_report {
 
 Return the date portion of an XML query.
 
-  $xmlpart = $self->_get_date_xml($tagname);
+  $xmlpart = $self->_get_date_xml(tag => $tagname, timeacct => 1);
 
-The name of the date tag defaults to 'date', but this can be overridden
-by providing the name as an argument to this method.
+Arguments are provided in hash form.  The name of the date tag defaults to
+'date', but this can be overridden by providing a 'tag' key that points to
+the name to be used. If the 'timeacct' key points to a true value, the
+query will adjust the delta so that it returns only the correct time accounts.
 
 =cut
 
 sub _get_date_xml {
   my $self = shift;
-  my $tag = shift;
-  (! defined $tag) and $tag = "date";
+  my %args = @_;
+  my $tag = (defined $args{tag} ? $args{tag} : "date");
 
   if ($self->date_end) {
     return "<$tag><min>".$self->date->ymd."</min><max>".$self->date_end->ymd."</max></$tag>";
   } else {
     # Use the delta
-    # Subtract 1 day from the delta since the time accouting table
-    # stores dates with times as 00:00:00 and we'll end up getting
-    # more back than we expected.
-    my $delta = $self->delta_day - 1;
+    # Subtract 1 day from the delta (if we are doing time account query
+    # since the time accouting table stores dates with times as 00:00:00
+    # and we'll end up getting more back than we expected.
+    my $delta = $self->delta_day;
+    $delta -= 1
+      if (defined $args{timeacct});
     return "<$tag delta=\"$delta\">". $self->date->ymd ."</$tag>";
   }
 }
