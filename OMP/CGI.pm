@@ -223,12 +223,12 @@ sub _make_theme {
     foreach (@themefile) {
       if (-e $_) {
 	$themefile = $_;
+	last;
       }
     }
 
-    if (! -e $themefile) {
-      croak "Unable to locate OMPtheme file\n";
-    }
+    croak "Unable to locate OMPtheme file\n"
+      unless $themefile;
 
     $theme = new HTML::WWWTheme($themefile);
     croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
