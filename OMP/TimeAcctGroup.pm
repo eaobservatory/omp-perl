@@ -77,6 +77,7 @@ sub new {
 		  ObservedTime => undef,
 		  OtherTime => undef,
 		  ScienceTime => undef,
+		  ShutdownTime => undef,
 		  WeatherLoss => undef,
 		 }, $class;
 
@@ -187,7 +188,7 @@ sub totaltime {
   }
 }
 
-=item B<totaltime_nonext>
+=item B<totaltime_non_ext>
 
 The total time spent, except for extended time.  This
 value is represented by a C<Time::Seconds> object.
@@ -304,7 +305,7 @@ sub ec_time {
   if (@_) {
     $self->_mutate_time('ECTime',$_[0]);
   } elsif (! defined $self->{ECTime}) {
-    # Get only EC accounts
+    # Get EC accounts
     my @acct = $self->_get_accts('eng');
 
     # Add it up
@@ -495,6 +496,40 @@ sub science_time {
   return $self->{ScienceTime};
 }
 
+=item B<shutdown_time>
+
+Time spent on a planned shutdown.
+
+  $time = $tg->shutdown_time();
+  $tg->shutdown_time($time);
+
+Call with a either a number of seconds or a C<Time::Seconds>
+object to set this value.  Call with an undef value to unset
+this value.  Returns 0 seconds if undefined.
+
+=cut
+
+sub shutdown_time {
+  my $self = shift;
+  if (@_) {
+    $self->_mutate_time('ShutdownTime',$_[0]);
+  } elsif (! defined $self->{ShutdownTime}) {
+    # Get SHUTDOWN accounts
+    my @accts = $self->_get_special_accts('_SHUTDOWN');
+
+    # Add it up
+    my $shuttime = Time::Seconds->new(0);
+    for my $acct (@accts) {
+      $shuttime += $acct->timespent;
+    }
+
+    # Store to cache
+    $self->{ShutdownTime} = $shuttime;
+  }
+
+  return $self->{ShutdownTime};
+}
+
 =item B<weather_loss>
 
 The total time lost to weather.  This value is represented by a
@@ -606,6 +641,15 @@ Returns a hash containing the following keys:
             to faults on that date. These values are binned up
             by 7 day periods.
 
+  __ALLOC__  - contains the total time allocated to projects
+               during the semesters spanned by the accounts in
+               this group.  Value is represented by an
+               C<OMP::Seconds> object.
+  __OFFSET__ - contains the total time spent during previous
+               semesters on projects associated with the accounts
+               in this group.  Value is represented by an
+               C<OMP::Seconds> object.
+
 =cut
 
 sub completion_stats {
@@ -623,6 +667,9 @@ sub completion_stats {
     $alloc += $projdb->getTotalAlloc($telescope, $sem);
   };
 
+  # DEBUG
+  printf "\nTotal allocation: [%.1f] hours\n", $alloc->hours;
+
   # Offset correction: get total time spent on the projects
   # we have accounts for, prior to date of the first account.
   # Subtract this number from the total allocation.
@@ -636,7 +683,14 @@ sub completion_stats {
   my $query = new OMP::TimeAcctQuery(XML=>$xml);
   my @offset_accts = $tdb->queryTimeSpent( $query );
   my $offset_grp = $self->new(accounts=>\@offset_accts);
-  $alloc -= $offset_grp->science_time;
+
+  #DEBUG
+  printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n", $offset_grp->science_time->hours;
+
+  my $final_alloc = $alloc - $offset_grp->science_time;
+
+  #DEBUG
+  printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
 
   # Get all accounts grouped by UT date
   my %groups = $self->group_by_ut(1);
@@ -646,7 +700,7 @@ sub completion_stats {
   my (@sci_cumul, @fault, @weather, @ec);
   for my $x (sort keys %groups) {
     $sci_total += $groups{$x}->science_time;
-    push @sci_cumul, [$x, $sci_total / $alloc * 100];
+    push @sci_cumul, [$x, $sci_total / $final_alloc * 100];
     push @weather, [$x, $groups{$x}->weather_loss->hours];
     push @ec, [$x, $groups{$x}->ec_time->hours];
     push @fault, [$x, $groups{$x}->fault_loss->hours];
@@ -657,10 +711,12 @@ sub completion_stats {
 		    fault => \@fault,
 		    ec => \@ec,
 		    weather => \@weather,
+		    __ALLOC__ => $alloc,
+		    __OFFSET__ => $offset_grp->science_time,
 		   );
 
   for my $stat (keys %returnhash) {
-    next if $stat eq 'science';
+    next if $stat eq 'science' or $stat =~ /^__/;
     @{$returnhash{$stat}} = OMP::PlotHelper->bin_up(size => 7,
 						    method => 'sum',
 						    values => $returnhash{$stat});
@@ -814,8 +870,8 @@ sub _get_non_special_accts {
 =item B<_get_accts>
 
 Return either science accounts (accounts that are not associated with
-projects in the E&C queue) or E&C accounts.  Special accounts are not
-returned (WEATHER, CAL, EXTENDED, OTHER, __FAULT__).
+projects in the E&C queue) or E&C.  Special
+accounts are not returned (WEATHER, CAL, EXTENDED, OTHER, __FAULT__).
 
   @accts = $self->_get_accts('sci'|'eng');
 
