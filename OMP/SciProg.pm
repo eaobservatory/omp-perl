@@ -983,24 +983,12 @@ sub cloneMSBs {
 	throw OMP::Error::FatalError( "Internal error: The number of blank telescope components encountered exceeds the expected number!!!\n")
 	  if $c >= $blanks;
 
-	# Find the SCIENCE or BASE position
-	my ($sci) = $tel->findnodes('.//BASE[@TYPE="SCIENCE"]');
-	($sci) = $tel->findnodes('.//BASE[@TYPE="BASE"]') if !defined $sci;
+	# Find the SCIENCE or BASE position, and retrieve it as a DOM
+	my $tcs = new JAC::OCS::Config::TCS( DOM => $tel );
+	my $sci = $tcs->getSciTag()->_tree;
 
 	throw OMP::Error::SpBadStructure("Unable to find SCIENCE/BASE position in target component")
 	  unless defined $sci;
-
-
-	# Now need to get the nodes corresponding to the name
-	# RA and Dec. We know they are blank already.
-	my ($targetnode) = $sci->findnodes(".//targetName");
-	my ($ranode) = $sci->findnodes(".//c1");
-	my ($decnode) = $sci->findnodes(".//c2");
-	
-	# Get the text nodes
-	my $ra = $ranode->firstChild;
-	my $dec = $decnode->firstChild;
-	my $target = $targetnode->firstChild;
 
 	# If we have fallen off the end of the array we
 	# have made a mistake
@@ -1010,30 +998,22 @@ sub cloneMSBs {
 	# Select the correct target object
 	my $coords = $sources[$i + $c];
 
-	# Change the values in the node [making sure we allow for
-	# the possibility that there is a blank coordinate]
-	# too much code repetition
-	if (defined $ra) {
-	  $ra->setData( $coords->ra( format => 'sex'));
-	} else {
-	  my $text = new XML::LibXML::Text( $coords->ra( format => 'sex') );
-	  $ranode->appendChild( $text );
-	}
-	if (defined $dec) {
-	  $dec->setData( $coords->dec( format => 'sex'));
-	} else {
-	  my $text = new XML::LibXML::Text( $coords->dec( format => 'sex') );
-	  $decnode->appendChild( $text );
-	}
+	# Now replace this node, with a JAC::OCS::Config::TCS::BASE
+	# object
+	my $base = JAC::OCS::Config::TCS::BASE->new();
+	$base->tag( $sci->getAttribute( 'TYPE' ) );
+	$base->coords( $coords );
 
-	# There is a remote possibility that we have no
-	# target child either
-	if (defined $target) {
-	  $target->setData( $coords->name );
-	} else {
-	  my $text = new XML::LibXML::Text( $coords->name );
-	  $targetnode->appendChild( $text );
-	}
+	# Now create a mini DOM from the stringified base position
+	# (there is no dom() method yet that will automatically create
+	# a dom on demand)
+	my $dom = $self->_parser->parse_balanced_chunk( $base->stringify );
+
+	# and insert it after the current base position
+	$sci->parentNode->insertAfter($dom, $sci);
+
+	# and remove the old node
+	$sci->unbindNode;
 
 	# increment the tel counter
 	$c++;
@@ -1069,6 +1049,7 @@ sub cloneMSBs {
   # MSB objects because they will be pointing to invalid nodes
   if ($ncloned > 0) {
     $self->locate_msbs;
+    print "$self";
   } else {
     push(@info, "No MSBs contained blank target components. No change.");
   }
