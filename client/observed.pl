@@ -78,11 +78,11 @@ use OMP::Constants qw(:fb);
 
 # Options
 my ($help, $man, $debug, $yesterday);
-my $status = GetOptions("help" => \$help,
-			"man" => \$man,
-			"debug" => \$debug,
-			"yesterday" => \$yesterday,
-		       );
+my $optstatus = GetOptions("help" => \$help,
+			   "man" => \$man,
+			   "debug" => \$debug,
+			   "yesterday" => \$yesterday,
+			  );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -145,7 +145,7 @@ for my $proj (keys %sorted) {
 
   ### TEMPORARILY, if this is a UKIRT project make the comment hidden
   #my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
-  #my $status = ($details->telescope eq "UKIRT" ? OMP__FB_HIDDEN : OMP__FB_IMPORTANT);
+  my $status = OMP__FB_IMPORTANT;
 
   # If we are in debug mode just send to stdout. Else
   # contact feedback system
