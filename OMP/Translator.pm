@@ -1343,7 +1343,7 @@ sub getOtherCoordSystem {
     $scusys = "AZ";
   } elsif ($tcssys eq 'FPLANE') {
     $scusys = "NA";
-  } elsif ($tcsys eq 'SCAN') {
+  } elsif ($tcssys eq 'SCAN') {
     $scusys = 'SC';
   } else {
     print join("--\n",caller);
