@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 53 }
+BEGIN { plan tests => 54 }
 
 use OMP::General;
 
@@ -142,6 +142,10 @@ my @input = (
 	     {
 	      projectid => "tj125",
 	      result => "tj125",
+	     },
+	     {
+	      projectid => "UKIRTCAL",
+	      result => "UKIRTCAL",
 	     }
 
 
