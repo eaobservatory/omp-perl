@@ -53,10 +53,11 @@ my %tables = (
 			  country => "VARCHAR(32)",
 			  tagpriority => "INTEGER",
 			  semester => "VARCHAR(5)",
-			  password => "VARCHAR(10)",
+			  encrypted => "VARCHAR(20)",
+			  title => "VARCHAR(132)",
 			  _ORDER => [qw/projectid pi piemail
-				     coi coiemail tagpriority
-				     country semester password allocated
+				     coi coiemail title tagpriority
+				     country semester encrypted allocated
 				     remaining pending
 				     /],
 			 },
@@ -113,23 +114,24 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
-   next if $table eq 'ompproj';
-   next if $table eq 'ompsciprog';
-   next if $table eq 'ompmsb';
-   next if $table eq 'ompobs';
- # next if $table eq 'ompfeedback';
+  # Comment out as required
+  next if $table eq 'ompproj';
+  next if $table eq 'ompsciprog';
+  next if $table eq 'ompmsb';
+  next if $table eq 'ompobs';
+  next if $table eq 'ompfeedback';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
 
-   my $sth;
-   print "Drop table $table\n";
-   $sth = $dbh->prepare("DROP TABLE $table")
+  my $sth;
+  print "Drop table $table\n";
+  $sth = $dbh->prepare("DROP TABLE $table")
     or die "Cannot drop table $table: ". $dbh->errstr();
 
-   $sth->execute() or die "Cannot execute: " . $sth->errstr();
-   $sth->finish();
+  $sth->execute() or die "Cannot execute: " . $sth->errstr();
+  $sth->finish();
 
   print "\n$table: $str\n";
   print "SQL: CREATE TABLE $table ($str)\n";
