@@ -327,7 +327,7 @@ sub updateFault {
   $self->_db_commit_trans;
 
   # Mail notice to fault "owner"
-#  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
 }
 
 =item B<updateResponse>
