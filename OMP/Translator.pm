@@ -69,7 +69,7 @@ our $TRANS_DIR = "/observe/ompodf";
 # Equivalent path on vax
 our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
-our $DEBUG = 1;
+our $DEBUG = 0;
 
 use constant PI => 3.141592654;
 
@@ -921,8 +921,15 @@ sub getOffsets {
 
   # Must remove rotation
   my $rpa = $pa * PI / 180; # radians
-  my $xoff = $dx * cos( $pa )  +  $dy * sin( $pa );
-  my $yoff = $dx * sin( $pa )  +  $dy * cos( $pa );
+  my $xoff = $dx * cos( $rpa )  -  $dy * sin( $rpa );
+  my $yoff = $dx * sin( $rpa )  +  $dy * cos( $rpa );
+
+  # Only allow 2 decimal places in offsets (SCUBA has a smallest
+  # beam of 7 arcsec and pointing accuracy of ~ 1 arcsev
+  $xoff = sprintf("%.2f", $xoff);
+  $xoff = "0.0" if $xoff == 0; # trap -0.0
+  $yoff = sprintf("%.2f", $yoff);
+  $yoff = "0.0" if $yoff == 0; # trap -0.0
 
   return ( MAP_X => $xoff, MAP_Y => $yoff);
 }
