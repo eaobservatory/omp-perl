@@ -783,9 +783,9 @@ sub print_observations {
 		@files = grep(/sdf$/, @files);
 		@files = sort @files;
 		print "<hr>\n";
-		print "<strong>Reduced observations for $instrument on $ut</strong><br>\n";
+		print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
 		foreach my $file (@files) {
-			if($file =~ /^([a-zA-Z]{1,2})($ut)_(\d+)(_?)(\w*)\.(\w+)/) {
+			if($file =~ /^([a-zA-Z]{2})($ut)_(\d+)(_?)(\w*)\.(\w+)/) {
 				my ($prefix, $null, $obsnum, $null, $suffix, $extension) = ($1, $2, $3, $4, $5, $6);
 
 # Find out if the suffix is in @groupsuffix{$instrument}, if that array
