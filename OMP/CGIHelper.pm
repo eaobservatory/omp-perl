@@ -1697,7 +1697,7 @@ sub public_url {
   # Now the CGI dir
   my $cgidir = OMP::Config->getData( 'cgidir' );
 
-  return "$url/$cgidir";
+  return "$url" . "$cgidir";
 }
 
 =item B<private_url>
@@ -1715,7 +1715,7 @@ sub private_url {
   # Now the CGI dir
   my $cgidir = OMP::Config->getData( 'cgidir' );
 
-  return "$url/$cgidir";
+  return "$url" . "$cgidir";
 }
 
 =back
