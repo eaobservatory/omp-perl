@@ -264,12 +264,6 @@ sub sql {
   my $subsql = $self->_qhash_tosql( [qw/ elevation airmass date
 				     disableconstraint ha /]);
 
-  # Append the msbtable alias to the taumin and taumax columns
-  # since those columns exist in both the proj and msb table and
-  # our query needs to know which ones to compare.
-  # THIS IS A STUPID HACK!!! SORRY TIM!!!
-  $subsql =~ s/(taumin|taumax)/M\.$1/g;
-
   # If the resulting query contained anything we should prepend
   # an AND so that it fits in with the rest of the SQL. This allows
   # an empty query to work without having a naked "AND".
@@ -538,6 +532,17 @@ sub _post_process_hash {
       my $key = "M.$_";
       $href->{$key} = $href->{$_};
       delete $href->{$_};
+    }
+  }
+
+  # A taumin/taumax query should occur on both the project
+  # and the msb table
+  if (exists $href->{taumin}) {
+    for my $key (qw/ taumin taumax/) {
+      for my $tab (qw/ M. P./) {
+	$href->{"$tab$key"} = $href->{$key};
+      }
+      delete $href->{$key};
     }
   }
 
