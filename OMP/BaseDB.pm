@@ -187,11 +187,12 @@ sub _db_begin_trans {
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
-  # Set DBI AutoCommit
-  $dbh->{AutoCommit} = 0;
+  # Begin a transaction
+  $dbh->begin_work
+    or throw OMP::Error::DBError("Error in begin_work: $DBI::errstr\n");
 
-  $dbh->do("BEGIN TRANSACTION")
-    or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
+#  $dbh->do("BEGIN TRANSACTION")
+#    or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
   $self->_intrans(1);
 }
 
@@ -208,11 +209,11 @@ sub _db_commit_trans {
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   if ($self->_intrans) {
-    $dbh->commit;
-    $dbh->{AutoCommit} = 1;
     $self->_intrans(0);
-    $dbh->do("COMMIT TRANSACTION")
+    $dbh->commit
       or throw OMP::Error::DBError("Error committing transaction: $DBI::errstr");
+#    $dbh->do("COMMIT TRANSACTION");
+
   }
 }
 
@@ -234,10 +235,10 @@ sub _db_rollback_trans {
 
   if ($self->_intrans) {
     $self->_intrans(0);
-    $dbh->rollback;
-    $dbh->{AutoCommit} = 1;
-    $dbh->do("ROLLBACK TRANSACTION")
+    $dbh->rollback
       or throw OMP::Error::DBError("Error rolling back transaction (ironically): $DBI::errstr");
+#    $dbh->do("ROLLBACK TRANSACTION");
+
   }
 }
 
