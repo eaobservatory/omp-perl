@@ -76,6 +76,10 @@ for my $projid (@projects) {
     print $fh $xml;
     close $fh;
 
+  } catch OMP::Error::SpBadStructure with {
+    # Want to know if a program stored in the DB is truncated
+    my $E = shift;
+    print "Science program truncated: $E\n";
   } otherwise {
     print "No science program available for $projid\n";
 
