@@ -412,6 +412,9 @@ sub _query_files {
       last;
     }
 
+    # Don't bother checking other things because we know they won't match.
+    next unless $match_date;
+
     # Filter by keywords given in the query string. Look at filters other than DATE,
     # RUNNR, and _ATTR.
     # Assume a match, and if we find something that doesn't match, remove it (since
