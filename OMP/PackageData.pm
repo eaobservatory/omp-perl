@@ -35,11 +35,22 @@ use strict;
 use warnings;
 use Carp;
 
-use vars qw/ $VERSION /;
+use vars qw/ $VERSION $UseArchiveTar /;
 $VERSION = '0.01';
+
+# Disable $PATH
+$ENV{PATH} = "/usr/bin:/bin";
+
+# Do we want to ues the slower Archive::Tar
+$UseArchiveTar = 0;
 
 use File::Spec;
 use File::Copy;
+
+# Must be using untaint versions of File::Find and File::Path
+use File::Find '1.04';
+use File::Path '1.05';
+
 use File::Basename;
 use Cwd;
 use OMP::General;
@@ -525,29 +536,35 @@ sub _populate {
   # Now go through and get the bits we need
   # Anything associated with the project or anything from the
   # night that is not a science observation
-  if ($self->inccal) {
 
-    # Go through looking for project informaton
-    # Do this so we can warn if we do not get any data for this night
-    my (@proj,@cal);
-    for my $obs ($grp->obs) {
-      if (uc($obs->projectid) eq $self->projectid ) {
-	push(@proj, $obs);
-      } elsif ( ! $obs->isScience ) {
-	push(@cal, $obs);
-      }
-    }
+  # We need to go through each obs returned even if we
+  # did a project-centric query. This is because some project
+  # observations are actually calibrations
 
-    # warn if we have cals but no science
-    if (scalar(@proj) == 0  && scalar(@cal) > 0) {
-      print STDOUT "\nThis request matched calibrations but no science observations\n..."
+
+  # Go through looking for project informaton
+  # Do this so we can warn if we do not get any data for this night
+  my (@proj,@cal);
+  for my $obs ($grp->obs) {
+    if (uc($obs->projectid) eq $self->projectid && $obs->isScience) {
+      print "SCIENCE:     " .$obs->mode ." [".$obs->target ."]\n" 
 	if $self->verbose;
+      push(@proj, $obs);
+    } elsif ( ! $obs->isScience && $self->inccal) {
+      print "CALIBRATION: ". $obs->mode . " [".$obs->target."]\n" 
+	if $self->verbose;
+      push(@cal, $obs);
     }
-
-    # Store the new observations
-    $grp->obs([@proj,@cal]);
-
   }
+
+  # warn if we have cals but no science
+  if (scalar(@proj) == 0  && scalar(@cal) > 0) {
+    print STDOUT "\nThis request matched calibrations but no science observations\n..."
+      if $self->verbose;
+  }
+
+  # Store the new observations [calibrations first]
+  $grp->obs([@cal,@proj]);
 
   my @obs = $grp->obs;
   print STDOUT "Done [".scalar(@obs)." files match]\n" if $self->verbose;
@@ -753,16 +770,41 @@ sub _mktarfile {
   my @dirs = File::Spec->splitdir( $utdir );
   my $tardir = $dirs[-1];
 
-  # we also need to explicitly read that directory
-  opendir my $dh, $utdir
-    or croak "Error reading dir $utdir to get tar files: $!";
-  my @files = map { File::Spec->catfile($tardir,$_) } 
-    grep { $_ !~ /^\./ } readdir $dh;
-  closedir $dh or croak "Error closing dir handle for $utdir: $!";
+  # If we are using Archive::Tar (slow) we need to read all the files
+  # from the directory
+  if ($UseArchiveTar) {
+    require Archive::Tar;
 
-  # Finally create the tar file
-  Archive::Tar->create_archive($outfile, 9, $tardir,@files )
-      or croak "Error creating tar file in $outfile: ".&Tar::error;
+    # we also need to explicitly read that directory
+    opendir my $dh, $utdir
+      or croak "Error reading dir $utdir to get tar files: $!";
+    my @files = map { File::Spec->catfile($tardir,$_) } 
+      grep { $_ !~ /^\./ } readdir $dh;
+    closedir $dh or croak "Error closing dir handle for $utdir: $!";
+
+    # Finally create the tar file
+    Archive::Tar->create_archive($outfile, 9, $tardir,@files )
+	or croak "Error creating tar file in $outfile: ".&Tar::error;
+
+  } else {
+    # It is much faster to use the tar command directly
+    # The tar command needs to come from a config file although
+    # it would then have to be untained - for now just hardwire
+    # Must give full path
+    my $tarcmd;
+    if ($^O eq 'solaris') {
+      # GNU tar
+      $tarcmd = "/local/bin/tar -zcvf ";
+    } elsif ($^O eq 'linux') {
+      $tarcmd = "/bin/tar -zcvf ";
+    } else {
+      croak "Unable to determine tar command for OS $^O";
+    }
+    system("$tarcmd $outfile $tardir") && 
+      croak "Error building the tar file";
+
+
+  }
 
   # change back again
   chdir $cwd || croak "Error changing back to directory $cwd: $!";
