@@ -206,7 +206,7 @@ $VAR1 = {
                                                                      'Min' => 0,
                                                                      'Max' => undef
                                                                    }, 'OMP::Range' ),
-                                                   'priority' => 3
+                                                   'priority' => 99
                                                  },
 #	 'b4822233821bd8f53ab1a3c95b327c28O' => {
          '9be325e8058efc658e3e04cda69fa4abO' => {                                                 'telescope' => 'UKIRT',
@@ -254,7 +254,7 @@ $VAR1 = {
                                                                      'Min' => 0,
                                                                      'Max' => undef
                                                                    }, 'OMP::Range' ),
-                                                   'priority' => 3
+                                                   'priority' => 99
                                                  },
 #          'f723d9868568bb625755d3ff57ba1915' => {
            'c050ad5c7961d3ad21e654269e7b28a4' => {
@@ -357,7 +357,7 @@ $VAR1 = {
                                                                     'Min' => 0,
                                                                     'Max' => undef
                                                                   }, 'OMP::Range' ),
-                                                  'priority' => 3
+                                                  'priority' => 99
                                                 },
 #          '21bef2414c47c1d1b863cb036801a26d' => {
            'ed69d6514357775e2037d6dc0301434d' => {
@@ -404,7 +404,7 @@ $VAR1 = {
                                                                     'Min' => 0,
                                                                     'Max' => undef
                                                                   }, 'OMP::Range' ),
-                                                  'priority' => 3
+                                                  'priority' => 99
                                                 },
 #          'bc34d57d94224154a445598ad60e147eOA' => {
            '53dd1ebb190da0b306d65ecd79a8b434OA' => {
@@ -450,7 +450,7 @@ $VAR1 = {
                                                                       'Min' => 0,
                                                                       'Max' => undef
                                                                     }, 'OMP::Range' ),
-                                                    'priority' => 3
+                                                    'priority' => 99
                                                   },
 #          '15a547e0edb2cb0c81f0af34c1242b06A' => {
            '50431bcfb6237208fe27008d5676b0f2A' => {
@@ -542,7 +542,7 @@ $VAR1 = {
                                                                      'Min' => 0,
                                                                      'Max' => undef
                                                                    }, 'OMP::Range' ),
-                                                   'priority' => 2
+                                                   'priority' => 50
                                                  },
 #          '75487f16203ecf5c8af5377cbf5cfd3eO' => {
            '36bcaeaba76f6a44b7088e71b34856d5O' => {
@@ -590,7 +590,7 @@ $VAR1 = {
                                                                      'Min' => 0,
                                                                      'Max' => undef
                                                                    }, 'OMP::Range' ),
-                                                   'priority' => 3
+                                                   'priority' => 99
                                                  },
 #          '35f15b8b7d395bb3ea0b955567ec454c' => {
           'f5e0350c606c4f082269b459d1736b50' => {
@@ -637,7 +637,7 @@ $VAR1 = {
                                                                     'Min' => 0,
                                                                     'Max' => undef
                                                                   }, 'OMP::Range' ),
-                                                  'priority' => 3
+                                                  'priority' => 99
                                                 },
 #          'f001ffe51a696895375246378d7e034cOA' => {
            '32c856c0ddbb532c748d134169ccb312OA' => {
@@ -683,7 +683,7 @@ $VAR1 = {
                                                                       'Min' => 0,
                                                                       'Max' => undef
                                                                     }, 'OMP::Range' ),
-                                                    'priority' => 3
+                                                    'priority' => 99
                                                   },
 #          '7cad9ca196339ba303eb436ed3ce7801' => {
            'c08db4fb2eea8e8486e99bc1ee0f7ac2' => {
@@ -757,7 +757,7 @@ $VAR1 = {
                                                                     'Min' => 0,
                                                                     'Max' => undef
                                                                   }, 'OMP::Range' ),
-                                                  'priority' => 3
+                                                  'priority' => 99
                                                 },
 #          '971e659be8cbb43a91fce29383319b84O' => {
            'f7ec47641cadef30e7a3cc62002b632cO' => {
@@ -804,6 +804,6 @@ $VAR1 = {
                                                                      'Min' => 0,
                                                                      'Max' => undef
                                                                    }, 'OMP::Range' ),
-                                                   'priority' => 3
+                                                   'priority' => 99
                                                  }
         };
