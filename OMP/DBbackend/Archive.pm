@@ -72,6 +72,7 @@ sub loginhash {
   # will choose the correct one.
 
   my %details = (
+		 driver   => 'Sybase',
 		 server   => "SYB_LUU",
 		 database => "ukirt",
 		 user     => "staff",
@@ -79,8 +80,10 @@ sub loginhash {
 		);
 
   # possible override
-  $details{server} = $ENV{OMP_ARCDBSERVER}
-    if (exists $ENV{OMP_ARCDBSERVER} and defined $ENV{OMP_ARCDBSERVER});
+  if ($details{driver} eq 'Sybase') {
+    $details{server} = $ENV{OMP_ARCDBSERVER}
+      if (exists $ENV{OMP_ARCDBSERVER} and defined $ENV{OMP_ARCDBSERVER});
+  }
 
   return %details;
 

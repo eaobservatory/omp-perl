@@ -43,7 +43,6 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase" unless exists $ENV{SYBASE} }
 use OMP::Error;
 use OMP::General;
 use DBI;
-use DBD::Sybase; # This triggers immediate failure if $SYBASE not right
 
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
@@ -60,7 +59,8 @@ This class method returns the information required to connect to a
 database. The details are returned in a hash with the following
 keys:
 
-  server  =>  Database server (e.g. SYB_*)
+  driver  =>  DBI driver to use for database connection [Sybase or Pg]
+  server  =>  Database server (e.g. SYB_*) [only used for sybase]
   database=>  The database to use for the transaction
   user    =>  database login name
   password=>  password for user
@@ -82,20 +82,23 @@ file rather than hard-wiring the values in the module.
 sub loginhash {
   my $class = shift;
   my %details = (
+		 driver   => "Sybase",
 		 server   => "SYB_TMP",
 		 database => "omp",
 		 user     => "omp",
 		 password => "***REMOVED***",
 		);
 
-  # possible override
-  $details{server} = $ENV{OMP_DBSERVER}
-    if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
+  # possible override for sybase users
+  if ($details{driver} eq 'Sybase') {
+    $details{server} = $ENV{OMP_DBSERVER}
+      if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
 
-  # If we are now switching to SYB_UKIRT we have to change
-  # the database field [this is only for development]
-  $details{database} = 'archive'
-    if $details{server} eq 'SYB_UKIRT';
+    # If we are now switching to SYB_UKIRT we have to change
+    # the database field [this is only for development]
+    $details{database} = 'archive'
+      if (defined $details{server} && $details{server} eq 'SYB_UKIRT');
+  }
 
   return %details;
 }
@@ -253,19 +256,37 @@ sub connect {
   my $self = shift;
 
   # Database details
-  my %details   = $self->loginhash;
+  my %details    = $self->loginhash;
+  my $DBIdriver  = $details{driver};
   my $DBserver   = $details{server};
   my $DBuser     = $details{user};
   my $DBpwd      = $details{password};
   my $DBdatabase = $details{database};
 
-  print "SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
+  # Work out arguments for "generic" DBI layer. Shame they can not all
+  # be the same
+  my $dboptions = "";
+  if ($DBIdriver eq "Sybase") {
+    $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=120";
+  } elsif ($DBIdriver eq 'Pg') {
+    $DBserver = "<IRRELEVANT>";
+    $dboptions = ":dbname=${DBserver}";
+  } elsif ($DBIdriver eq 'mSQL') {
+    $DBserver = "<IRRELEVANT>";
+    $dboptions = ":database=$DBdatabase";
+  } else {
+    $DBserver = "<IRRELEVANT>";
+    warn "DBI driver $DBIdriver not tested with OMP system. Leap of faith";
+    $dboptions = ":database=$DBdatabase";
+  }
+
+  print "DBI DRIVER: $DBIdriver; SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
     if $DEBUG;
 
-  OMP::General->log_message( "------------> Login to DB server $DBserver as $DBuser <-----");
+  OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver as $DBuser <-----");
 
   # We are using sybase
-  my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })
+  my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, { PrintError => 0 })
     or throw OMP::Error::DBConnection("Cannot connect to database: $DBI::errstr");
 
   # Indicate that we have connected
