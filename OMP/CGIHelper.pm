@@ -841,7 +841,7 @@ sub list_projects_output {
     print $q->hr;
 
     foreach my $project (@$projects) {
-      print "<a href='http://omp.jach.hawaii.edu/projecthome.pl?urlprojid=" . $project->projectid . "'>";
+      print "<a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=" . $project->projectid . "'>";
       print $q->h2('Project ' . $project->projectid);
       print "</a>";
       my %details = (projectid=>$project->projectid, password=>$cookie{password});
