@@ -401,6 +401,9 @@ sub _fetch_comments {
   ($args{order} eq 'descending') and $order = 'desc'
     or $order = 'asc';
 
+  $args{status} = [OMP__FB_IMPORTANT, OMP__FB_INFO] unless defined $args{status}
+    and ref($args{status}) eq "ARRAY";
+
   # Fetch the data
   # Use convert() in select statement to get seconds back with the date field.
   my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
