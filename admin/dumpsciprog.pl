@@ -17,12 +17,11 @@ use OMP::Error qw/ :try /;
 use Data::Dumper;
 
 # Abort if $OMP_DUMP_DIR is not set
-die "Must specify output data directory via \$OMP_DUMP_DIR"
+$ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
   unless exists $ENV{OMP_DUMP_DIR};
 
 chdir $ENV{OMP_DUMP_DIR}
   or die "Error changing to directory $ENV{OMP_DUMP_DIR}: $!\n";
-
 
 # Now query the database for all projects
 my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>",
