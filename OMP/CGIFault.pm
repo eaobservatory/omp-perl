@@ -1231,7 +1231,8 @@ sub file_fault_form {
 	# Make sure to only include projects associated with the current
 	# telescope category
 	my $category = $cookie->{category};
-	my $tel = OMP::Config->inferTelescope('instruments',$_->instrument);
+	my @instruments = split(m!\/!, $_->instrument);
+	my $tel = OMP::Config->inferTelescope('instruments',@instruments);
 	$projects{$_->projectid} = $_->projectid
 	  unless ($tel !~ /$category/i);
 	
