@@ -74,32 +74,52 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =over 4
 
-=item B<getComents>
+=item B<getComments>
 
 Returns an array of hashes containing feedback comments. If
 arguments are given they should be in the form of a hash whos keys are
-B<status> and B<order>.  Value for B<status> should be an array
-reference containing the desired status types of the comments to be
-returned.  Status types are defined in C<OMP::Constants>.  Value for
-B<order> should be 'ascending' or 'descending'.  Defaults to returning
-comments with a status of B<OMP__FB_IMPORTANT> or B<OMP__FB_INFO>, and
-sorts the comments in ascending order.
+any of the following:
+
+  B<status>  - An array reference containing status types for
+               the desired comments.  Status types are defined
+               in C<OMP::Constants>.  Example: OMP__FB_INFO.
+               Provide undef value for status in order for
+               this criteria to be ignored.
+  B<order>   - Either 'descending' or 'ascending'.
+  B<msgtype> - An array reference containing message types for
+               the desired comments.  Message types are defined
+               in C<OMP::Constants>.  Example:
+               OMP__FB_MSG_COMMENT.  By default this criteria is
+               ignored.
+
+Defaults to returning comments with a status of B<OMP__FB_IMPORTANT>
+or B<OMP__FB_INFO>, and sorts the comments in ascending order.
+Results are returned as a reference to a hash of hashes if there might
+be comments for more than one project, otherwise results are returned
+as a reference to an array.
 
   @status = ( qw/OMP__FB_IMPORTANT OMP__FB_INFO/ );
-  $comm = $db->getComments( status => \@status, order => 'descending' );
+  $comm = $db->getComments( status => \@status,
+                            order => 'descending',
+                            msgtype => OMP__FB_MSG_COMMENT );
 
 =cut
 
 sub getComments {
   my $self = shift;
 
-  my %defaults = (status => [OMP__FB_IMPORTANT, OMP__FB_INFO],
+  my %defaults = (status => [OMP__FB_IMPORTANT, OMP__FB_INFO,],
+		  msgtype => undef,
 		  order => 'ascending',);
 
   my %args = (%defaults, @_);
 
-  # Form status portion of XML query
-  my $status_part = join("", map {"<status>" . $_ . "</status>"} @{$args{status}});
+  # Form status and msgtype portions of XML query
+  my %xmlpart;
+  for my $part (qw/status msgtype/) {
+    $xmlpart{$part} = join("", map {"<$part>" . $_ . "</$part>"} @{$args{$part}})
+      if (defined ($args{$part}));
+  }
 
   # Verify project password if projectid is set
   if ($self->projectid) {
@@ -114,7 +134,7 @@ sub getComments {
   # Form complete XML Query
   my $xml = "<FBQuery>".
     ($self->projectid ? "<projectid>". $self->projectid ."</projectid>" : "").
-      $status_part .
+      join("", map {$xmlpart{$_}} keys %xmlpart).
 	"</FBQuery>";
 
   # Create the query object
@@ -132,9 +152,9 @@ sub getComments {
   if (! $self->projectid) {
     my %project;
     if ($args{order} eq 'ascending') {
-      map {push @{$project{$_->projectid}}, $_} sort {$a->{commid} <=> $b->{commid}} @$comments;
+      map {push @{$project{$_->{projectid}}}, $_} sort {$a->{commid} <=> $b->{commid}} @$comments;
     } else {
-      map {push @{$project{$_->projectid}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;	
+      map {push @{$project{$_->{projectid}}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;	
     }
     $comments = \%project;
   } else {
