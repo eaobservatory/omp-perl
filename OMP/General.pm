@@ -201,6 +201,8 @@ sub determine_host {
   $email = $addr if $addr;
   $email = $user . "@" . $email if $user;
 
+  $email = "UNKNOWN" unless $email;
+
   # Replce space with _
   $email =~ s/\s+/_/g;
 
