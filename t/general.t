@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 97;
+use Test::More tests => 99;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -112,6 +112,18 @@ my @input = (
 	      semester => "02a",
 	      telescope => "ukirt",
 	      result => "u/02a/H01",
+	     },
+	     {
+	      projectid => "j28",
+	      semester => "02a",
+	      telescope => "ukirt",
+	      result => "u/02a/j28",
+	     },
+	     {
+	      projectid => "j4",
+	      semester => "02a",
+	      telescope => "ukirt",
+	      result => "u/02a/j04",
 	     },
 	     {
 	      projectid => "22",

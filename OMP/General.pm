@@ -524,7 +524,8 @@ number with a letter prefix it is assumed to be the JCMT style (ie u03
 project and expanded to "u/serv/01" (for "s1"). If the supplied ID is
 ambiguous (most likely from a UH ID since both JCMT and UKIRT would
 use a shortened id of "h01") the telescope must be supplied or else
-the routine will croak. JCMT service programs can be abbreviated with
+the routine will croak. Japanese UKIRT programs can be abbreviated
+as "j4" for "u/02b/j4". JCMT service programs can be abbreviated with
 the letter "s" and the country code ("su03" maps to s02bu03, valid
 prefixes are "su", "si", and "sc". Dutch service programmes can not
 be abbreviated). In general JCMT service programs do not really benefit
@@ -564,7 +565,7 @@ sub infer_projectid {
   # If it's a special reserved ID (two characters + digit)
   # and *not* an abbreviated JCMT service programme
   # return it - padding the number)
-  if ($projid !~ /^s[uic]\d\d/ && 
+  if ($projid !~ /^s[uic]\d\d/i && 
       $projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
     return $1 . sprintf("%02d", $2);
   }
@@ -590,9 +591,9 @@ sub infer_projectid {
     $tel = uc($args{telescope});
   } else {
     # Guess
-    if ($projid =~ /^s?\d+$/) {
+    if ($projid =~ /^[sj]?\d+$/i) {
       $tel = "UKIRT";
-    } elsif ($projid =~ /^s?[unci]\d+$/) {
+    } elsif ($projid =~ /^s?[unci]\d+$/i) {
       $tel = "JCMT";
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
@@ -606,7 +607,7 @@ sub infer_projectid {
     # Get the prefix and numbers if supplied project id is in 
     # that form
 
-    if ($projid =~ /^([hsHS]?)(\d+)$/ ) {
+    if ($projid =~ /^([hsHSJj]?)(\d+)$/ ) {
       my $prefix = $1;
       my $digits = $2;
 
