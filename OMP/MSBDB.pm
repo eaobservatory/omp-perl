@@ -50,6 +50,11 @@ use Time::Piece;
 use Astro::Telescope;
 use Astro::Coords;
 
+# Use this for the reliable file opening
+use File::Spec;
+use Fcntl;
+use Errno; # else $!{EEXIST} does not work
+
 use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
@@ -843,6 +848,9 @@ sub _store_sci_prog {
   # and store it
   $self->_db_store_sciprog( $sp );
 
+  # For initial safety purposes, store a text version on disk
+  $self->_store_sciprog_todisk( $sp );
+
 }
 
 
@@ -946,6 +954,128 @@ sub _db_store_sciprog {
   }
 
   return 1;
+}
+
+=item B<_store_sciprog_todisk>
+
+Write the science program to disk. A new version is created for each
+submission.
+
+  $db->_store_sciprog_todisk( $sp );
+
+This method exists simply to store old versions of science programmes
+as backups in case the database goes down. Once we feel confident
+with the database backup system we will remove this overhead.
+
+If we can not open the file send an email.
+
+This method is not meant to be JAC-agnostic.
+
+=cut
+
+sub _store_sciprog_todisk {
+  my $self = shift;
+  my $sp = shift;
+
+  # Directory for writing. Currently hard-wired into a location
+  # on mauiola
+  my $cachedir = File::Spec->catdir(File::Spec->rootdir,"DSS","omp-cache");
+
+  # Construct a simple error message
+  my ($user, $addr, $email) = OMP::General->determine_host;
+  my $projectid = $sp->projectID;
+  my $err = "Error writing science program ($projectid) to disk\n" .
+    "Request from $email\nReason:\n\n";
+  my %deferr = ( to => 'timj@jach.hawaii.edu',
+		 from => 'omp_group@jach.hawaii.edu',
+		 subject => 'failed to write sci prog to disk');
+
+  # Check we have a directory
+  unless (-d $cachedir) {
+    $self->_mail_information(%deferr,
+			     message => "$err directory $cachedir not present"
+			    );
+    return;
+  }
+
+  # Open a unique output file named "projectid_NNN.xml"
+  # Code stolen from SCUBA::ODF
+  # First read the disk to get the number
+  my $guess = $projectid . '_(\d\d\d)';
+  opendir my $DIRH,$cachedir
+    || do {
+      $self->_mail_information(%deferr,
+			       message => "$err Error reading directory $cachedir"
+			      );
+      return;
+    };
+  my @numbers = sort { $a <=> $b }
+    map { /$guess/ && $1 }  grep /$guess$/, readdir($DIRH);
+  closedir($DIRH);
+
+  # First index to try
+  my $start = 1 + (@numbers ? $numbers[-1] : 0 );
+
+  # Get current umask and set to known umask
+  my $umask = umask;
+  umask(066);
+
+  # Now try to open the file up to 20 times
+  # The looping is not really required if combined with the
+  # readdir (it simply allows for a number of concurrent accesses
+  # by different threads).
+  # If we turn off the readdir we will need to make sure this number
+  # matches the number of digits supported in INDEX.
+  my $MAX_TRIES = 20;
+  my ($fh, $file);
+  my $end = $MAX_TRIES + $start;
+  for (my $i = $start; $i < $end; $i++) {
+
+    # Create the file name
+    my $file = File::Spec->catfile($cachedir,
+				  $projectid . '_'. sprintf("%03d",$i));
+
+    my $open_success = sysopen($fh, $file,
+                               O_CREAT|O_RDWR|O_EXCL,0600);
+
+    if ($open_success) {
+      # abort the loop
+      last;
+    } else {
+      # Abort with error if there was some error other than
+      # EEXIST
+      unless ($!{EEXIST}) {
+        umask($umask);
+	$self->_mail_information(%deferr,
+				 message => "$err Could not create temp file $file: $!"
+			      );
+	return;
+
+      }
+      # clear the file handle so that we can know on exit of the loop
+      # whether we did a good open.
+      undef $fh;
+    }
+
+    # Loop for another try
+  }
+
+  # reset umask
+  umask($umask);
+
+  # if we do not have a filehandle we need to abort
+  if (!$fh) {
+    $self->_mail_information(%deferr,
+			     message => "$err Could not create temp file after $MAX_TRIES attempts!!!"
+			    );
+    return;
+  }
+
+  # Now write the science program and return
+  print $fh "$sp";
+  close $fh;
+
+  return;
 }
 
 =item B<_db_fetch_sciprog>
