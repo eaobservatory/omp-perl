@@ -22,6 +22,9 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Fault;
+use OMP::FaultDB;
+use OMP::Fault::Response;
+use OMP::DBbackend;
 use OMP::Error qw(:try);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -95,6 +98,49 @@ sub file_fault {
   print $q->submit(-name=>'Submit Fault');
   print $q->endform;
   print "</td></table>";
+}
+
+=item B<file_fault_output>
+
+Submit a fault and create a page that shows the status of the submission.
+
+  file_fault_output( $cgi );
+
+=cut
+
+sub file_fault_output {
+  my $q = shift;
+
+  # Create the fault object;
+  my %status = OMP::Fault->faultStatus;
+
+  my $resp = new OMP::Fault::Response(author=>$q->param('user'),
+				      text=>$q->param('message'),);
+
+  my $fault = new OMP::Fault(category=>"OMP",
+			     subject=>$q->param('subject'),
+			     system=>$q->param('system'),
+			     type=>$q->param('type'),
+			     fault=>$resp);
+
+  # Submit the fault the the database
+  my $db = new OMP::FaultDB( DB => new OMP::DBbackend );
+
+  my $faultid;
+  try {
+    $faultid = $db->fileFault($fault);
+  } otherwise {
+    my $E = shift;
+    print $q->h2("An error has occurred");
+    print "$E";
+  };
+
+  # Show the fault if it was successfully filed
+  if ($faultid) {
+    $db->getFault($faultid);
+    print $q->h2("Fault $faultid was successfully filed");
+
+  }
 }
 
 =head1 AUTHOR
