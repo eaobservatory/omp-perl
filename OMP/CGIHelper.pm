@@ -1703,10 +1703,10 @@ sub project_home {
   # Display nights where data was taken
   if (%nights) {
 
-    # Sort time spent by night
+    # Sort account objects by night
     my %accounts;
     for (@accounts) {
-      $accounts{$_->date->ymd} = $_->timespent;
+      $accounts{$_->date->ymd} = $_;
     }
 
     print "<h3>Observations were acquired on the following dates:</h3>";
@@ -1719,9 +1719,14 @@ sub project_home {
       print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$ymd</a> ";
 
       if (exists $accounts{$ymd}) {
-        if ($accounts{$ymd}->hours) {
-  	  my $h = sprintf("%.1f", $accounts{$ymd}->hours);
-	  print "($h hours) Click on date to retrieve data.";
+	my $timespent = $accounts{$ymd}->timespent;
+        if ($timespent->hours) {
+  	  my $h = sprintf("%.1f", $timespent->hours);
+
+	  # If the time spent is unconfirmed, say so
+	  print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
+
+	  print "($h hours) click on date to retrieve data";
         } else {
 	  print "(no science data taken) ";
         }
