@@ -13,7 +13,7 @@ use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
 
 # Maximum length of text displayed from a column
-use constant LONGEST => 32;
+use constant LONGEST => 40;
 
 # Connect
 my $db = new OMP::DBbackend;
