@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::MSBPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,4 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: MSB History");
-$cgi->write_page( \&msb_hist_content, \&msb_hist_output );
+$cgi->write_page( \&OMP::CGI::MSBPage::msb_hist_content, \&OMP::CGI::MSBPage::msb_hist_output );

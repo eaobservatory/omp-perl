@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::MSBPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: View MSBs");
-$cgi->write_page( \&fb_msb_output, \&fb_msb_output);
+$cgi->write_page( \&OMP::CGI::MSBPage::fb_msb_output,
+		  \&OMP::CGI::MSBPage::fb_msb_output);
