@@ -147,6 +147,7 @@ sub historyMSB {
       push(@{ $msbs{ $row->{checksum} }->{comment} }, {
 						       text => $row->{comment},
 						       date => $row->{date},
+						       status => $row->{status},
 						      });
 
 
@@ -162,6 +163,7 @@ sub historyMSB {
 					       {
 						text => $row->{comment},
 						date => $row->{date},
+						status => $row->{status},
 					       }
 					      ],
 				  };
