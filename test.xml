@@ -36,7 +36,7 @@
         <collapsed>false</collapsed>
       </gui>
     </MetaData>
-    <tau><max>0.09</max><min>0</min></tau>
+    <csoTau><max>0.09</max><min>0</min></csoTau>
   </SpSiteQualityObsComp>
   <SpMSB remaining="2">
     <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
@@ -62,7 +62,7 @@
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tau><max>0.09</max><min>0</min></tau>
+      <csoTau><max>0.09</max><min>0</min></csoTau>
     </SpSiteQualityObsComp>
     <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
@@ -367,10 +367,6 @@
           <SpIterOffset>
             <ItemData name="new" package="gemini.sp.iter"
               subtype="offset" type="ic"/>
-            <Offset1>
-              <value>11.0</value>
-              <value>10.0</value>
-            </Offset1>
             <MetaData>
               <gui>
                 <selectedOffsetPos>Offset8</selectedOffsetPos>
@@ -455,7 +451,7 @@
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tau><max>0.09</max><min>0</min></tau>
+      <csoTau><max>0.09</max><min>0</min></csoTau>
     </SpSiteQualityObsComp>
     <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
