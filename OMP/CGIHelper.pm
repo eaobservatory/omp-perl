@@ -1272,15 +1272,15 @@ sub msb_comments {
 
       # Set the background color for the cell
       $bgcolor = $colors{$comment->status};
-      print "<tr><td colspan=5 bgcolor=$bgcolor><div class='black'><b>Date (UT):</b> " .
+      print "<tr bgcolor=$bgcolor valign=top><td><div class='black'><font size =-2>Date (UT):  " .
 	$comment->date ."<br>";
 
       # Show comment author if there is one
       if ($comment->author) {
-	print "<b>Author: </b>" . $comment->author->html . "<br></div>";
+	print "Author: " . $comment->author->html . "</font></div>";
       }
 
-      print $comment->text ."</td>";
+      print "<td colspan=4>" . $comment->text ."</td>";
     }
 
     print "<tr bgcolor='#d3d3dd'><td align=right colspan=5>";
@@ -1677,6 +1677,20 @@ sub projlog_content {
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a><p>";
 
+  # Setup tau fits image info
+  my $taufitsdir = "/WWW/omp/data/taufits";
+  my $taufitswww = "../data/taufits";
+  my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+
+  my $gif = $gifdate . "new.gif";
+
+  # Link to the tau fits image on this page
+  if (-e "$taufitsdir/$gif") {
+    print"<p><a href='#taufits'>View polynomial fit</a>";
+  }
+
   # Make a form for submitting MSB comments if an 'Add Comment'
   # button was clicked
   if ($q->param("Add Comment")) {
@@ -1703,20 +1717,6 @@ sub projlog_content {
 					       format => 'data',});
   print $q->h2("MSB history for $utdate");
   msb_comments($q, $observed, $sp);
-
-  # Setup tau fits image info
-  my $taufitsdir = "/WWW/omp/data/taufits";
-  my $taufitswww = "../data/taufits";
-  my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
-  my $gifdate = $utdate;
-  $gifdate =~ s/-//g;
-
-  my $gif = $gifdate . "new.gif";
-
-  # Link to the tau fits image on this page
-  if (-e "$taufitsdir/$gif") {
-    print"<p><a href='#taufits'>View polynomial fit</a>";
-  }
 
   # Display observation log
   try {
