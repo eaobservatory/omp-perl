@@ -64,6 +64,7 @@ Create the accessor methods from a signature of their contents.
 =cut
 
 __PACKAGE__->CreateAccessors( projectid => '$__UC__',
+			      msbid => '$',
                               tau => 'OMP::Range', 
                               checksum => '$',
                               seeing => 'OMP::Range',
@@ -102,6 +103,11 @@ Scalar accessors:
 =item B<timeest>
 
 =item B<title>
+
+=item B<msbid>
+
+Not to be confused with the checksum, this is simply a link
+to the database row used to store MSB information.
 
 =back
 
@@ -376,7 +382,7 @@ sub summary {
   # so that we can process textshorthdr without querying
   # the object
   my @keys = qw/projectid title remaining obscount tau seeing
-    pol type instrument waveband target coordstype timeest/;
+    pol type instrument waveband target coordstype timeest /;
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
@@ -398,7 +404,7 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title
-       datemin datemax telescope cloud remaining /) {
+       datemin datemax telescope cloud remaining msbid/) {
     $summary{$_} = $self->$_();
   }
 
