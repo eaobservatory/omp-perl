@@ -170,7 +170,7 @@ sub options_form {
   print "</td><td>zmin: </td><td>";
   print $cgi->textfield( -name => 'zmin',
                          -size => '16',
-                         -maxlength => '5',
+                         -maxlength => '6',
                          -default => ( defined($qv->{zmin}) ?
                                        $qv->{zmin} :
                                        '0' ),
@@ -196,7 +196,7 @@ sub options_form {
   print "</td><td>zmax: </td><td>";
   print $cgi->textfield( -name => 'zmax',
                          -size => '16',
-                         -maxlength => '5',
+                         -maxlength => '6',
                          -default => ( defined($qv->{zmax}) ?
                                        $qv->{zmax} :
                                        '0' ),
