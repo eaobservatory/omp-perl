@@ -7,8 +7,7 @@
 #
 # CSV file containing:
 #  Root Project name (person initials, no number)
-#  Staff member
-#  computer user id (no jach)
+#  OMP User id
 
 # Comments are supported
 
@@ -17,17 +16,11 @@
 #  Project ID
 #     thk -> thk01, thk02, thk03 -> thk09
 #  Principal Investigator
-#      Support scientist name
-#  PI email
-#       tkerr -> tkerr@jach.hawaii.edu
+#      USER ID
 #  Co-investigator
 #       blank
-#  Co-I email
-#       blank
 #  Support
-#       support scientist name
-#  Support email
-#       support scientist email
+#       support scientist user id
 #  Title
 #       "Staff testing"
 #  Tag priority
@@ -41,7 +34,7 @@
 #  Allocated time (seconds)
 #          10000 [3 hours]
 
-# cat proj.details | perl mkproj_ss.pl
+# cat proj.details | perl mkproj_staff.pl
 
 # Uses the infrastructure classes so each project is inserted
 # independently rather than as a single transaction
@@ -52,7 +45,8 @@ use strict;
 use OMP::ProjDB;
 use OMP::Project;
 use OMP::ProjServer;
-
+use OMP::User;
+use OMP::UserServer;
 
 while (<>) {
   chomp;
@@ -60,17 +54,17 @@ while (<>) {
   next unless $line =~ /\w/;
   next if $line =~ /^#/;
 
-  # aplit on comma
+  # split on comma
   my @file  = split(/,/,$line);
+
+
+
 
   # Now need to create some project details:
   my @details = ("$file[0]??",
 		 $file[1],
-		 $file[2] . "\@jach.hawaii.edu",
-		 '',
 		 '',
 		 $file[1],
-		 $file[2] . "\@jach.hawaii.edu",
 		 "Support scientist testing",
 		 1,
 		 "JAC",
@@ -87,7 +81,7 @@ while (<>) {
     $details[0] = $file[0] . sprintf("%02d", $i);
 
     # Upload
-    OMP::ProjServer->addProject("***REMOVED***", @details[0..12] );
+    OMP::ProjServer->addProject("***REMOVED***", @details[0..9] );
   }
 
 }
