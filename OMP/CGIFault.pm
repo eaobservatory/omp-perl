@@ -145,6 +145,7 @@ sub file_fault_output {
 			     subject=>$faultdetails{subject},
 			     system=>$faultdetails{system},
 			     type=>$faultdetails{type},
+			     status=>$faultdetails{status},
 			     urgency=>$faultdetails{urgency},
 			     fault=>$resp);
 
@@ -175,7 +176,7 @@ sub file_fault_output {
     my $f = OMP::FaultServer->getFault($faultid);
     titlebar($q, ["File Fault", "Fault $faultid has been filed"], %cookie);
 
-    fault_table($q, $f);
+    fault_table($q, $f, 'nostatus');
   }
 }
 
@@ -183,17 +184,26 @@ sub file_fault_output {
 
 Put a fault into a an HTML table
 
-  fault_table($cgi, $fault, 1);
+  fault_table($cgi, $fault, 'noedit');
 
-Takes an C<OMP::Fault> object as the second argument.  If the optional
-last argument is true the edit links are not displayed.
+Takes an C<OMP::Fault> object as the second argument.  Takes a third argument
+which is a string of either "noedit" or "nostatus".  "noedit" displays the fault without links for updating the text and details, and without the status update form.  "nostatus" displays the fault just without the status update form.
 
 =cut
 
 sub fault_table {
   my $q = shift;
   my $fault = shift;
-  my $noedit = shift;
+  my $option = shift;
+
+  my $nostatus;
+  my $noedit;
+
+  if ($option =~ /noedit/) {
+    $noedit = 1;
+  } elsif ($option =~ /nostatus/) {
+    $nostatus = 1;
+  }
 
   my $subject;
   ($fault->subject) and $subject = $fault->subject
@@ -230,18 +240,22 @@ sub fault_table {
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>";
 
-  # Make a form element for changing the status
-  print $q->hidden(-name=>'show_output', -default=>'true');
-  print $q->hidden(-name=>'faultid', -default=>$fault->id);
-  print $q->popup_menu(-name=>'status',
-		       -default=>$fault->status,
-		       -values=>[values %status],
-		       -labels=>\%labels,);
-  print " ";
-  print $q->submit(-name=>'change_status',
-		   -label=>'Change',);
-  print $q->endform;
-
+  unless ($noedit or $nostatus) {
+    # Make a form element for changing the status
+    print $q->hidden(-name=>'show_output', -default=>'true');
+    print $q->hidden(-name=>'faultid', -default=>$fault->id);
+    print $q->popup_menu(-name=>'status',
+			 -default=>$fault->status,
+			 -values=>[values %status],
+			 -labels=>\%labels,);
+    print " ";
+    print $q->submit(-name=>'change_status',
+		     -label=>'Change',);
+    print $q->endform;
+  } else {
+    # Display only
+    print $fault->statusText;
+  }
   print "</td>";
 
   # Display links to projects associated with this fault if any
@@ -482,7 +496,19 @@ sub query_fault_output {
   print "<p>";
 
   # Make a link to this script with an argument to alter sort order
-  if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
+  if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
+
+    my $sort_url = $q->self_url;
+    $sort_url =~ s/(\;|\?|\&)sort_order\=ascending//g;
+    if ($sort_url =~ /\?/) {
+      $sort_url .= "&sort_order=descending";
+    } else {
+      $sort_url .= "?sort_order=descending";
+    }
+
+    print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
+
+  } else {
 
     my $sort_url = $q->self_url;
     $sort_url =~ s/(\;|\?|\&)sort_order\=descending//g;
@@ -494,24 +520,13 @@ sub query_fault_output {
 
     print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
 
-  } else {
-    my $sort_url = $q->self_url;
-    $sort_url =~ s/(\;|\?|\&)sort_order\=ascending//g;
-    if ($sort_url =~ /\?/) {
-      $sort_url .= "&sort_order=descending";
-    } else {
-      $sort_url .= "?sort_order=descending";
-    }
-
-    print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
-
   }
 
   if ($faults->[0]) {
-    if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
-      show_faults(CGI => $q, faults => $faults, descending => 1);
+    if ($q->param('sort_order') eq "ascending" or $cookie{sort_order} eq "ascending") {
+      show_faults(CGI => $q, faults => $faults);
     } else {
-      show_faults(CGI => $q, faults => $faults,);
+      show_faults(CGI => $q, faults => $faults, descending => 1);
     }
 
     # Faults to print
@@ -979,6 +994,11 @@ sub file_fault_form {
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
+  # Get available statuses
+  my %status = OMP::Fault->faultStatus();
+  my @status_values = map {$status{$_}} sort keys %status;
+  my %status_labels = map {$status{$_}, $_} %status;
+
   # Add some empty values to our menus (this is part of making sure that a 
   # meaningful value is selected by the user) if a new fault is being filed
   unless ($fault) {
@@ -997,6 +1017,7 @@ sub file_fault_form {
     %defaults = (user => $cookie->{user},
 		 system => '',
 		 type => '',
+		 status => $status{Open},
 		 loss => undef,
 		 time => undef,
 		 tz => 'HST',
@@ -1098,6 +1119,14 @@ sub file_fault_form {
 		       -values=>\@type_values,
 		       -default=>$defaults{type},
 		       -labels=>\%type_labels,);
+
+  unless ($fault) {
+    print "</td><tr><td align=right><b>Status:</b></td><td>";
+    print $q->popup_menu(-name=>'status',
+			 -values=>\@status_values,
+			 -default=>$defaults{status},
+			 -labels=>\%status_labels,);
+  }
 
   # If we're using the bug report system don't
   # provide fields for taking "time lost" and "time of fault"
@@ -1726,7 +1755,7 @@ the fault and fault response objects.  Only argument is a C<CGI> query object.
 
 Returns the following keys:
 
-  subject, faultdate, timelost, system, type, urgency, projects, author, text
+  subject, faultdate, timelost, system, type, status, urgency, projects, author, text
 
 =cut
 
@@ -1736,7 +1765,8 @@ sub parse_file_fault_form {
   my %parsed = (subject => $q->param('subject'),
 	        timelost => $q->param('loss'),
 	        system => $q->param('system'),
-	        type => $q->param('type'),);
+	        type => $q->param('type'),
+	        status => $q->param('status'));
 
   # Determine the urgency
   my %urgency = OMP::Fault->faultUrgency;
@@ -1809,18 +1839,8 @@ sub parse_file_fault_form {
   # The text.  Put it in <pre> tags if there isn't an <html>
   # tag present
   my $text = $q->param('message');
-  if ($text =~ /<html>/i) {
 
-    # Strip out the <html> and </html> tags
-    $text =~ s!</*html>!!ig;
-  } else {
-    $text = OMP::General->preify_text($text);
-  }
-
-  # Strip out ^M
-  $text =~ s/\015//g;
-
-  $parsed{text} = $text;
+  $parsed{text} = OMP::General->preify_text($text);
 
   return %parsed;
 }
