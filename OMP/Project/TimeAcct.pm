@@ -267,8 +267,8 @@ sub summarizeTimeAcct {
   my $format = lc(shift);
   my @acct = @_;
 
-  use Data::Dumper;
-  print Dumper(\@acct);
+  #use Data::Dumper;
+  #print Dumper(\@acct);
 
   # loop over each object populating a results hash
   my %results;
