@@ -14,7 +14,8 @@ use warnings;
 
 use lib qw(/jac_sw/omp/msbserver);
 
-use OMP::SpServer;
+use OMP::MSBDB;
+use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;
 use Data::Dumper;
@@ -31,12 +32,21 @@ my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>",
 					     "object");
 
 
+
+
+
 # Now for each of these projects attempt to read a science program
 for my $proj (@$projects) {
   my $projid = $proj->projectid;
   try {
-    # Use back door password
-    my $xml = OMP::SpServer->fetchProgram($projid, "***REMOVED***");
+
+    # Create new DB object using backdoor password
+    my $db = new OMP::MSBDB( Password => "***REMOVED***",
+			     ProjectID => $projid,
+			     DB => new OMP::DBbackend);
+
+    my $xml = $db->fetchSciProg;
+
     print "Retrieved science program for project $projid\n";
 
     # Write it out
