@@ -2,14 +2,16 @@ package OMP::FeedbackDB;
 
 =head1 NAME
 
-OMP::ProjDB - Manipulate the project database
+OMP::FeedbackDB - Manipulate the feedback database
 
 =head1 SYNOPSIS
 
-  $projdb = new OMP::ProjDB( ProjectID => $projectid,
+  $db = new OMP::feedbackDB( ProjectID => $projectid,
+			     Password => $password,
 			     DB => $dbconnection );
 
-  $projdb->issuePassword();
+  $db->addComment( $comment );
+  $db->getComments();
 
 
 =head1 DESCRIPTION
@@ -45,7 +47,8 @@ our $FBTABLE = "ompfeedback";
 Create a new instance of an C<OMP::FeedbackDB> object.
 
   $db = new OMP::FeedbackDB( ProjectID => $project,
-                         DB => $connection);
+                             Password => $password,
+			     DB => $connection );
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -69,33 +72,28 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =over 4
 
-=item B<verifyPassword>
+=item B<getComments>
 
-Verify that the supplied plain text password matches the password
-stored in the project database.
+Returns an array reference containing comments for the project.
 
-  $verified = 1 if $db->verifyPassword( $plain_password );
-
-Returns true if the passwords match.
+  $db->getComments( $password, $amount, $showHidden );
 
 =cut
 
-sub verifyPassword {
+sub getComments {
   my $self = shift;
-  my $password = shift;
+  my $amount = shift;
+  my $showhidden = shift;
 
-  # Retrieve the contents of the table
-  my $project = $self->_get_project_row();
-
-  # Now verify the passwords
-  return $self->_verify_password( $password, $project->password);
+  # Get the comments
+  my $commentref = $self->_fetch_comments( $amount, $showhidden );
 
 }
 
 =item B<addComment>
 
-Note that there are no arguments and no return values. It either
-succeeds or fails.
+Adds a comment to the database.  Takes a hash reference containing the
+comment and all its details as the only argument.
 
 =cut
 
@@ -120,7 +118,7 @@ sub addComment {
   $self->_db_commit_trans;
 
   # Mail the comment to interested parties
-  $self->_mail_comment( $comment );
+  #  $self->_mail_comment( $comment );
 
   return;
 }
@@ -134,10 +132,30 @@ sub addComment {
 
 =item B<_store_comment>
 
+Stores a comment in the database.
+
 =cut
 
 sub _store_comment {
+  my $self = shift;
+  my $comment = shift;
 
+  my $projectid = $self->projectid;
+  my @values = @$ref{ 'author',
+		      'date',
+		      'subject',
+		      'program',
+		      'sourceinfo',
+		      'status',
+		      'text', };
+
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  # Store the data
+  my $sql = "insert into $FBTABLE $projectid , @values";
+  $dbh->do( $sql ) or
+    throw OMP::Error::DBError("Insert failed");
 
 }
 
@@ -149,6 +167,36 @@ sub _mail_comment {
 
 }
 
+=item B<_fetch_comments>
+
+Internal method to retrive the comments from the database.  Returns either
+a reference or a list depending on what is wanted.
+
+=cut
+
+sub _fetch_comments {
+  my $self = shift;
+  my $amount = shift;
+  my $showhidden = shift;
+
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $projectid = $self->projectid;
+
+  # Fetch the data
+  my $sql = "select * from $FBTABLE where projid = $projectid";
+  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} });
+
+  throw OMP::Error::UnknownProject( "Unable to retrieve comments for project $projectid" )
+    unless @$ref;
+
+  if (wantarray) {
+    return @$ref;
+  } else {
+    return $ref;
+  }
+}
 
 =back
 
@@ -157,8 +205,9 @@ sub _mail_comment {
 Copyright (C) 2001-2002 Particle Physics and Astronomy Research
 Council.  All Rights Reserved.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut

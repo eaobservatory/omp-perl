@@ -54,14 +54,15 @@ to be added to the feedback database.
 sub addComment {
   my $class = shift;
   my $projectid = shift;
+  my $password = shift;
   my $comment = shift;
 
   my $E;
   try {
 
-    my $db = new OMP::FeedbackDB(
-			          ProjectID => $projectid,
-			          DB => $class->dbConnection, );
+    my $db = new OMP::FeedbackDB( ProjectID => $projectid,
+			          Password => $password,
+				  DB => $class->dbConnection, );
 
     $db->addComment( $comment );
 
@@ -108,11 +109,11 @@ sub getComments {
   my $E;
   try {
 
-    my $db = new OMP::FeedbackDB(
-                                  ProjectID => $projectid,
+    my $db = new OMP::FeedbackDB( ProjectID => $projectid,
+				  Password => $password,
                                   DB => $class->dbConnection, );
 
-    $db->getComments( $password, $amount, $showhidden );
+    $db->getComments( $amount, $showhidden );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -135,12 +136,12 @@ sub getComments {
 =item B<deleteComment>
 
 Alter the status of a comment, rendering it either hidden or visible.
-Requires an admin password. Third argument should be 'true' or 'false'.
+Requires an admin password. Fifth argument should be 'true' or 'false'.
 
 Does not return anything, but will throw an error if it fails to alter
 the status.
 
-    OMP::FBServer->deleteComment( $project, $commentid, $adminpass, $status );
+    OMP::FBServer->deleteComment( $project, $commentid, $password, $adminpass, $status );
 
 =cut
 
@@ -149,16 +150,17 @@ sub deleteComment {
   my $projectid = shift;
   my $comment = shift;
   my $password = shift;
+  my $adminpass = shift;
   my $status = shift;
 
   my $E;
   try {
 
-    my $db = new OMP::FeedbackDB(
-                                  ProjectID => $projectid,
+    my $db = new OMP::FeedbackDB( ProjectID => $projectid,
+				  Password => $password,
                                   DB => $class->dbConnection, );
 
-    $db->deleteComment( $comment, $password, $status );
+    $db->deleteComment( $comment, $adminpass, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
