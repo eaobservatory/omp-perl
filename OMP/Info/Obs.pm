@@ -914,10 +914,12 @@ sub _populate {
   $self->inst_dhs( $generic_header{INST_DHS} );
 
   # Build the Astro::WaveBand object
-  if ( length( $generic_header{GRATING_WAVELENGTH} . "" ) != 0 ) {
+  if ( defined( $generic_header{GRATING_WAVELENGTH} ) &&
+       length( $generic_header{GRATING_WAVELENGTH} ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{GRATING_WAVELENGTH},
                                            Instrument => $generic_header{INSTRUMENT} ) );
-  } elsif ( length( $generic_header{FILTER} . "" ) != 0 ) {
+  } elsif ( defined( $generic_header{FILTER} ) &&
+            length( $generic_header{FILTER} ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Filter     => $generic_header{FILTER},
                                            Instrument => $generic_header{INSTRUMENT} ) );
   }
