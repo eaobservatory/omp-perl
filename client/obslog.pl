@@ -75,6 +75,8 @@ BEGIN {
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
 
+  use lib qw( /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib );
+
   use OMP::Constants;
   use OMP::General;
   use OMP::Config;
@@ -412,7 +414,8 @@ sub new_instrument {
   my $counter = 0;
 
   foreach my $obs( $obsgrp->obs ) {
-    my %nightlog = $obs->nightlog('long');
+    my %nightlog = $obs->nightlog(display => 'long',
+                                  comments => 1, );
     my @comments = $obs->comments;
     my $status = 0;
     if ( defined($comments[($#comments)]) ) {
@@ -805,7 +808,8 @@ sub RaiseComment {
                                                 );
 
   # Get the observation information.
-  my %nightlog = $obs->nightlog('long');
+  my %nightlog = $obs->nightlog(display => 'long',
+                                comments => 1, );
 
   # Insert the header information.
   $contentHeader->configure( -state => 'normal' );
