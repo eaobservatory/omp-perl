@@ -1686,7 +1686,7 @@ sub _run_query {
 		      );
 	  } elsif ($coordstype eq 'FIXED') {
 	    %coords = ( az => $obs->{ra2000},
-			dec => $obs->{dec2000});
+			el => $obs->{dec2000});
 	  }
 	  $coords{name} = $obs->{target};
 
@@ -1696,6 +1696,9 @@ sub _run_query {
 
 	# Get the coordinate object.
 	my $coords = $obs->{coords};
+
+	# throw if we have a problem
+	throw OMP::Error::FatalError("Major problem generating coordinate object") unless defined $coords;
 
 	# Set the teelscope
 	$coords->telescope( $telescope );
