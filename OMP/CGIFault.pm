@@ -316,6 +316,7 @@ sub query_fault_output {
       # We'll weed out the closed faults later on since we cant exclude them in our
       # xml query
       $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
+      $title = "Displaying current faults";
     }
   }
 
