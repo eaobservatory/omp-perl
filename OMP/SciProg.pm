@@ -374,15 +374,35 @@ sub summary {
 
 
     # Now process each MSB
+    # We probably should put this in the OMP::MSB::summary method
     my $count;
     for my $msb (@msbs) {
       $count++;
       my %data = $msb->summary;
-      push(@text, " MSB $count:");
+      use Data::Dumper;
+      print Dumper(\%data) if $count == 1;
+      my $status;
+      if ($data{remaining} == 0) {
+	$status = "COMPLETE";
+      } else {
+	$status = "$data{remaining} remaining to be observed";
+      }
+      push(@text, " MSB $count: $status");
+      push(@text, "\tTitle:    $data{title}");
+      push(@text, "\tDuration: $data{timeest} sec");
+      push(@text, "\tPriority: $data{priority}\tSeeing: $data{seeing}\tTau: $data{tauband}");
 
+      push(@text, "\tObservations:");
       # Now go through the observations
+      my $obscount = 0;
       for my $obs (@{$data{obs}}) {
-	push(@text,"\t\t".$obs->{instrument});
+	$obscount++;
+	push(@text,"\t $obscount - Inst:".$obs->{instrument}
+	     . "\tTarget: ".$obs->{target}
+	     . "\tCoords: ".$obs->{coords}
+	     . "\tWaveband: ". $obs->{waveband}
+
+	    );
 
       }
 
