@@ -103,11 +103,12 @@ my %tables = (
 			  seeingmin => "REAL",
 			  seeingmax => "REAL",
 			  cloud => "INTEGER",
+                          state => "BIT",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
 				     remaining pending telescope taumin
-				     taumax seeingmin seeingmax cloud
+				     taumax seeingmin seeingmax cloud, state
 				     /],
 			 },
 	      # Time accounting for projects
