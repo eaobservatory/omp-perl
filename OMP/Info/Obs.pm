@@ -94,7 +94,8 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               seeing => '$',
                               bolometers => '$',
                               velocity => '$',
-                              systemvelocity => '$'
+                              systemvelocity => '$',
+                              nexp => '$',
                             );
 #'
 
@@ -382,7 +383,7 @@ sub nightlog {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
-    $return{'Observation type'} -> $self->type;
+    $return{'Observation type'} = $self->type;
     $return{'UT start'} = $self->startobs->hms;
     $return{'Exposure time'} = $self->duration;
     $return{'Number of exposures'} = $self->nexp;
