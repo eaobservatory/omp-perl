@@ -3836,6 +3836,9 @@ sub SpIterFolder {
       my $rowsPerCal = $self->_get_pcdata($child, "rowsPerCal");
       $scan{rowsPerCal} = $rowsPerCal if defined $rowsPerCal;
 
+      my $rowsPerRef = $self->_get_pcdata($child, "rowsPerRef");
+      $scan{rowsPerRef} = $rowsPerRef if defined $rowsPerRef;
+
       # scan information is in <obsArea>
       # PA
       my ($node) = $child->findnodes(".//obsArea/PA");
