@@ -29,6 +29,7 @@ use OMP::SpServer;
 use OMP::MSBServer;
 use OMP::FBServer;
 use OMP::General;
+use OMP::Error qw(:try);
 use OMP::Constants qw(:fb :done);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -37,7 +38,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -340,24 +341,21 @@ sub fb_msb_output {
 
 Create a page with a list of all the MSBs observed for a given UT sorted by project
 
-  observed($cgi, %cookie);
+  observed($cgi);
 
 =cut
 
 sub observed {
   my $q = shift;
-  my %cookie = @_;
 
-  my $utdate;
-  ($q->param('utdate')) and $utdate = $q->param('utdate')
-    or $utdate = OMP::General->today;
+  my $utdate = OMP::General->today;
 
   my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
   my $commentref = $msbdb->observedMSBs($utdate, 0, 'data');
 
-  ($commentref) and print $q->h1("MSBs observed on $utdate")
-    or print $q->h1("No MSBs observed on $utdate");
+  (@$commentref) and print $q->h2("MSBs observed on $utdate")
+    or print $q->h2("No MSBs observed on $utdate");
 
   print $q->startform;
   print "Enter a UT Date: ";
@@ -365,24 +363,94 @@ sub observed {
 		      -size=>15,
 		      -maxlength=>75);
   print "&nbsp;&nbsp;";
-  print $q->submit("Submit");
+  print $q->submit("View Comments");
   print $q->endform;
   print $q->hr;
-
-  # Sort the comments by project ID
-  my %sorted;
-  foreach my $msb (@$commentref) {
-    my $projectid = $msb->{projectid};
-    $sorted{$projectid} = [] unless exists $sorted{projectid};
-    push(@{ $sorted{$projectid} }, $msb);
-  }
-
+  
   # Create the MSB comment tables
-  foreach my $projectid (keys %sorted) {
-    print $q->h2("Project: $projectid");
-    msb_comments($q, \$projectid);
-    print $q->hr;
+  msb_comments_by_project($q, $commentref);
+}
+
+=item B<observed_output>
+
+Create an msb comment page for private use with a comment submission form.
+
+  observed_output($cgi);
+
+=cut
+
+sub observed_output {
+  my $q = shift;
+
+  # If they clicked the "Add Comment" button bring up a comment form
+  if ($q->param("Add Comment")) {
+    print $q->h2("Add a comment to MSB");
+    msb_comment_form($q);
   }
+
+  (!$q->param("Add Comment")) and print $q->h2("MSB Comments for " . $q->param('utdate'));
+
+  # If they've just submitted a comment show some comforting output
+  # or catch an error
+  if ($q->param("Submit")) {
+    try {
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+      print $q->h2("MSB comment successfully submitted");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occured while attempting to submit the comment: $Error";
+    };
+
+  }
+
+  # If they click the "Mark as Done" button mark it as done
+  if ($q->param("Mark as Done")) {
+
+    OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
+
+    print $q->h2("MSB marked as Done");
+
+  }
+
+  if (!$q->param("Add Comment")) {
+    my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
+    my $commentref = $msbdb->observedMSBs($q->param('utdate'), 1, 'data');
+
+    msb_comments_by_project($q, $commentref);
+  }
+}
+
+=item B<msb_comment_form>
+
+Create an MSB comment form.
+
+  msb_comment_form($cgi);
+
+=cut
+
+sub msb_comment_form {
+  my $q = shift;
+
+  my $checksum = $q->param('checksum');
+
+  print "<table border=0><tr><td valign=top>Comment: </td><td>";
+  print $q->startform;
+  print $q->hidden(-name=>'msbid',
+		   -default=>$checksum);
+  ($q->param('projectid')) and print $q->hidden(-name=>'projectid',
+						-default=>$q->param('projectid'));
+
+  ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
+					     -default=>$q->param('utdate'));
+  print $q->textarea(-name=>'comment',
+		     -rows=>5,
+		     -columns=>50);
+  print "</td><tr><td colspan=2 align=right>";
+  print $q->submit("Submit");
+  print $q->endform;
+  print "</td></table>";
 }
 
 =item B<msb_hist_output>
@@ -400,47 +468,40 @@ sub msb_hist_output {
   # If they clicked the "Add Comment" button bring up a comment form
   if ($q->param("Add Comment")) {
 
-    my $checksum = $q->param('checksum');
-
     print $q->h2("Add a comment to MSB");
 
     proj_status_table($q, %cookie);
-
-    print $q->hr;
-    print "<table border=0><tr><td valign=top>Comment: </td><td>";
-    print $q->startform;
-    print $q->hidden(-name=>'msbid',
-		     -default=>$checksum);
-    print $q->textarea(-name=>'comment',
-		       -rows=>5,
-		       -columns=>50);
-    print "</td><tr><td colspan=2 align=right>";
-    print $q->submit("Submit");
-    print $q->endform;
-    print "</td></table>";
+    msb_comment_form($q);
   }
 
   # If they've just submitted a comment show some comforting output
-  if ($q->param("Submit")) {
-    OMP::MSBServer->addMSBcomment( $cookie{projectid}, $q->param('msbid'), $q->param('comment'));
+    if ($q->param("Submit")) {
+    try {
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+      print $q->h2("MSB comment successfully submitted");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occured while attempting to submit the comment: $Error";
+    };
 
-    print $q->h2("MSB comment submitted");
-
-    proj_status_table($q, %cookie);
-    msb_comments($q, %cookie);
   }
+  
+  proj_status_table($q, %cookie);
+  msb_comments($q, %cookie);
+  
 
   # If they click the "Mark as Done" button mark it as done
   if ($q->param("Mark as Done")) {
-    my $checksum = $q->param('checksum');
-
-    OMP::MSBServer->alldoneMSB( $cookie{projectid}, $checksum);
+    
+    OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
 
     print $q->h2("MSB marked as Done");
 
     proj_status_table($q, %cookie);
 
-    my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+    my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
     msb_comments($q, $commentref);
 
   }
@@ -468,6 +529,34 @@ sub msb_hist_content {
   msb_comments($q, $commentref);
 }
 
+=item B<msb_comments_by_project>
+
+Show MSB comments sorted by project
+
+  msb_comments_by_project($cgi, $msbcomments);
+
+Takes a reference to a data structure containing MSBs and their comments sorted by project.
+
+=cut
+
+sub msb_comments_by_project {
+  my $q = shift;
+  my $comments = shift;
+  my %sorted;
+
+  foreach my $msb (@$comments) {
+    my $projectid = $msb->{projectid};
+    $sorted{$projectid} = [] unless exists $sorted{projectid};
+    push(@{ $sorted{$projectid} }, $msb);
+  }
+
+  foreach my $projectid (keys %sorted) {
+    print $q->h2("Project: $projectid");
+    msb_comments($q, \@{$sorted{$projectid}});
+    print $q->hr;
+  }
+}
+
 =item B<msb_comments>
 
 Creates an HTML table of MSB comments.
@@ -482,7 +571,7 @@ sub msb_comments {
   my $q = shift;
   my $commentref = shift;
 
-  print "<table border=1>";
+  print "<table border=1 width=100%>";
 
   my $i = 0;
   my $bgcolor;
@@ -504,8 +593,14 @@ sub msb_comments {
 
     print "<tr><td align=right colspan=4>";
     print $q->startform;
+
+    # Some hidden params to pass
+    ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
+					       -default=>$q->param('utdate'));
     print $q->hidden(-name=>'checksum',
 		     -default=>$msb->{checksum});
+    print $q->hidden(-name=>'projectid',
+		     -default=>$msb->{projectid});
     print $q->submit("Add Comment");
     print " ";
     print $q->submit("Mark as Done");
