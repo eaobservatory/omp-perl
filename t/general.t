@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 176;
+use Test::More tests => 184;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -147,15 +147,40 @@ ok( ! OMP::General->verify_administrator_password( "blah", 1 ),
 print "# Semester\n";
 
 my $refdate = OMP::General->parse_date($dateinput[0]);
-my $sem = OMP::General->determine_semester( $refdate );
-is($sem, "98b","Check semester 98b");
+my $sem = OMP::General->determine_semester( date => $refdate );
+is($sem, "98B","Check semester 98B");
 
 $date = gmtime(1014756003); # 2002-02-26
 isa_ok( $date, "Time::Piece");
-is( OMP::General->determine_semester($date), "02a", "Check semester 02a");
+is( OMP::General->determine_semester(date => $date), "02A", "Check semester 02A");
 
 $date = gmtime(1028986003); # 2002-08-10
-is( OMP::General->determine_semester($date), "02b","Check semesters 02b");
+is( OMP::General->determine_semester(date => $date), "02B","Check semesters 02B");
+
+# Strange UKIRT boundary
+$date = gmtime(1075186003); # 2004-01-27
+is( OMP::General->determine_semester(date => $date, tel => 'UKIRT'),
+    "04A","Check UKIRT semesters 04A");
+
+$date = gmtime(1095892304); # 2004-09-22
+is( OMP::General->determine_semester(date => $date, tel => 'UKIRT'),
+    "04A","Check UKIRT semesters 04A lateness");
+
+# Run semester determination in reverse
+# These are time piece objects
+
+my (@bound) = OMP::General->semester_boundary( tel => 'JCMT', semester => '04A');
+
+is($bound[0]->ymd, '2004-02-02', "JCMT 04A start");
+is($bound[1]->ymd, '2004-08-01', "JCMT 04A end");
+
+@bound = OMP::General->semester_boundary( tel => 'JCMT', semester => '03B');
+is($bound[0]->ymd, '2003-08-02', "JCMT 03B start");
+is($bound[1]->ymd, '2004-02-01', "JCMT 03B end");
+
+@bound = OMP::General->semester_boundary( tel => 'UKIRT', semester => '04A');
+is($bound[0]->ymd, '2004-01-17', "UKIRT 04A start");
+is($bound[1]->ymd, '2004-10-01', "UKIRT 04A end");
 
 print "# Project ID\n";
 
@@ -552,7 +577,7 @@ my $html = "<strong>Hello<br>there</strong>";
 is(OMP::General->html_to_plain($html),"Hello\nthere\n", "Convert BR to newline");
 
 $html = "<a href='ftp://ftp.jach.hawaii.edu/'>FTP link</a>";
-is(OMP::General->html_to_plain($html),"FTP link [ftp://ftp.jach.hawaii.edu/]\n", "Display hyperlink URL");
+is(OMP::General->html_to_plain($html),"FTP link [ ftp://ftp.jach.hawaii.edu/ ]\n", "Display hyperlink URL");
 
 #$html = "<a href='http://www.jach.hawaii.edu/index.html' class='biglink'>Home</a>";
 #is(OMP::General->html_to_plain($html),"Home [http://www.jach.hawaii.edu/index.html]\n", "Display hyperlink URL but not other hyperlink attributes");
