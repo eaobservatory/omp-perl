@@ -129,9 +129,9 @@ if ($debug) {
     my $text;
     if (@{$proj_by_support{$support}}->[1]) {
       $text = "Science programs have been submitted for the following projects:\n\n" .
-	join("\n", map {$_->projectid} @{$proj_by_support{$support}});
+	join("\n", map {$_->projectid . " [" . $_->pi . "]"} @{$proj_by_support{$support}});
     } else {
-      $text = "A science program has been submitted for project " . @{$proj_by_support{$support}}->[0]->projectid . ".\n";
+      $text = "A science program has been submitted for project " . @{$proj_by_support{$support}}->[0]->projectid . " [" . @{$proj_by_support{$support}}->[0]->pi . "].\n";
     }
 
     my $msg = MIME::Lite->new( From => 'flex@jach.hawaii.edu',
