@@ -8,7 +8,7 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
 	  unless exists $ENV{OMP_CFG_DIR};
       }
 
-use lib qw(/jac_sw/omp_dev/msbserver);
+use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIUser;
