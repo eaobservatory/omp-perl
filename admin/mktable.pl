@@ -156,7 +156,7 @@ my %tables = (
 			     _ORDER => [qw/
 					commid checksum status projectid date
 					target instrument waveband
-					comment title
+					comment title userid
 					/],
 			    },
 	      # XML representation of the science program. Store it in
