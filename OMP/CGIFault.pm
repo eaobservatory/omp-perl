@@ -559,7 +559,7 @@ sub query_fault_output {
     } elsif ($faults->[0]) {
       $title = "1 fault returned matching your query";
     } else {
-      print "<h3>No faults found matching your query</h3>";
+      $title = "No faults found matching your query";
     }
   }
 
@@ -632,6 +632,7 @@ sub query_fault_output {
       }
     }
   } else {
+    titlebar($q, ["View Faults", $title], %cookie);
     query_fault_form($q, %cookie);
   }
 }
@@ -1301,7 +1302,7 @@ sub file_fault_form {
 			-default=>$defaults{loss},
 			-size=>'4',
 			-maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault <font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font>:</td><td>";
+    print "</td><tr><td align=right valign=top><b>Time of fault <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>:</td><td>";
     print $q->textfield(-name=>'time',
 			-default=>$defaults{time},
 			-size=>20,
@@ -1317,6 +1318,14 @@ sub file_fault_form {
 		      -size=>'60',
 		      -maxlength=>'128',
 		      -default=>$defaults{subject},);
+
+  # Put up this reminder for telescope related filings
+  if (OMP::Fault->faultIsTelescope($cookie->{category})) {
+    print "</td><tr><td colspan=2>";
+    print "<small>Please remember to identify the instrument being used and "
+      ."the data frame number if either are relevant</small>";
+  }
+
   print "</td><tr><td colspan=2 align=right>";
 
   print $q->textarea(-name=>'message',
