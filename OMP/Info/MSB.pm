@@ -1014,21 +1014,21 @@ sub getResultColumns {
   # The order must be forced
   my @order;
   if ($tel eq 'JCMT') {
-    @order = qw/ projectid priority schedpri instrument waveband title target
-      ra dec coordstype ha az airmass pol type
-	timeest remaining obscount checksum msbid completion tau /;
+    @order = qw/ projectid priority schedpri completion instrument waveband title target
+                 ra dec coordstype ha az airmass tau pol type
+	         timeest remaining obscount
+                 checksum msbid /;
   } elsif ($tel eq 'UKIRT') {
-    @order = qw/ projectid priority schedpri instrument waveband title target
-		 ra dec coordstype ha airmass pol type
-		 timeest remaining obscount moon cloud
-		 sky disperser checksum msbid
-		 completion tau seeing
-		 /;
+    @order = qw/ projectid priority schedpri completion instrument waveband title target
+		 ra dec coordstype ha airmass tau seeing cloud moon sky pol type
+		 timeest remaining obscount disperser
+                 checksum /;
   } else {
     # Generic order
-    @order = qw/ projectid priority schedpri instrument waveband title target
-      ra dec coordstype ha airmass pol type
-	timeest remaining obscount checksum msbid completion tau seeing /;
+    @order = qw/ projectid priority schedpri completion instrument waveband title target
+                 ra dec coordstype ha airmass tau seeing pol type
+	         timeest remaining obscount
+                 checksum msbid /;
   }
 
   return @order;
