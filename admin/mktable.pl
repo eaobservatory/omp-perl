@@ -61,6 +61,7 @@ my %tables = (
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
 			  title => "VARCHAR(132)",
+			  telescope => "VARCHAR(16)",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
