@@ -1471,10 +1471,10 @@ sub project_home {
 
   # Merge our results
   my %nights = map {$_->date->ymd, undef} @accounts;
+
   for (@$nights) {
     $nights{$_->ymd} = undef;
   }
-
 
   # Display nights where data was taken
   if (%nights) {
@@ -1496,9 +1496,11 @@ sub project_home {
 
       print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$ymd</a> ";
 
-      if ($accounts{$ymd}) {
+      if ($accounts{$ymd}->hours) {
 	my $h = sprintf("%.1f", $accounts{$ymd}->hours);
-	print "($h hours) ";
+	print "($h hours) Click on date to retrieve data.";
+      } else {
+	print "(no data taken) ";
       }
 
       print "<br>";
