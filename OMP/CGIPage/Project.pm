@@ -371,7 +371,7 @@ sub project_home {
   # one for it
   if ($country =~ /(UK|INT|CA|NL|UH|JAC|JP)/) {
     my $country = lc($country);
-    print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/flag_$country.gif'>";
+    print "<img src='/images/flag_$country.gif'>";
   }
   print "</td></table>";
 
