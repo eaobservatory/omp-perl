@@ -1089,12 +1089,17 @@ sub view_shift_comments {
 
   my $T = $w->Toplevel;
 
-  my $Frame = $T->Frame->pack();
+  my $Frame = $T->Frame->pack( -fill => 'both',
+                               -expand => 1,
+                             );
 
   my $textw = $Frame->Scrolled('Text',
 			       -width =>80, -wrap => 'word', -height => 15,
 			       -scrollbars => 'e',
-			 )->pack(-side=>'top');
+			 )->pack(-side=>'top',
+               -fill => 'both',
+               -expand => 1,
+              );
 
   my $button = $Frame->Button( -text => "Close", -command => sub {$T->destroy}
 			     )->pack(-side=>'right');
@@ -1103,12 +1108,14 @@ sub view_shift_comments {
   for my $c (@comments) {
     my $date = $c->date;
     my $user = $c->author->name;
-    my $text = $c->text;
+    my $text = OMP::General->html_to_plain( $c->text );
 
     $textw->insert('end', $date->datetime . "UT by $user\n");
     $textw->insert('end', "$text\n\n");
 
   }
+
+  &BindMouseWheel( $textw );
 
 }
 
