@@ -2878,8 +2878,38 @@ sub SpTelescopeObsComp {
   my $sysname = $system->getName;
 
   # Get the coordinate frame. This is either "type" or "SYSTEM"
-  my $type = ($sysname eq 'spherSystem'  ? $system->getAttribute("SYSTEM")
-	      : $system->getAttribute("type"));
+
+  # Frossie says: The OT was using the type attribute when in fact
+  # type is a reserved java keyword. Therefore Shaun changed it to
+  # upper case TYPE. To avoid breaking existing programs I am changing
+  # this to look for either case. The need for this will evaporate
+  # after about a semester.
+
+  # Code being replaced:
+
+
+  #  my $type = ($sysname eq 'spherSystem' ? 
+  #  $system->getAttribute("SYSTEM") : $system->getAttribute("type"));
+
+  # New code:
+
+  my $type;
+
+  if ($sysname eq 'spherSystem') {
+
+    $type = $system->getAttribute("SYSTEM");
+
+  } elsif (defined $system->getAttribute("type")) {
+
+    $type = $system->getAttribute("type");
+
+  } else {
+
+    $type = $system->getAttribute("TYPE");
+
+    }
+
+
 
 
   if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem"
