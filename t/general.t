@@ -1,10 +1,10 @@
 
 # Test OMP::General
 
-use Test;
-BEGIN { plan tests => 54 }
+use Test::More tests => 59;
+use Time::Piece qw/ :override /;
 
-use OMP::General;
+require_ok('OMP::General');
 
 my $year = 1999;
 my $mon  = 1;
@@ -34,7 +34,8 @@ for my $in (@dateinput) {
 
   $date = OMP::General->parse_date( $in );
 
-  ok( $date );
+  ok( $date, "Instantiate a Time::Piece object" );
+  isa_ok($date, "Time::Piece");
 
   unless (defined $date) {
     print "# Skipping tests since we returned undef\n";
@@ -45,39 +46,41 @@ for my $in (@dateinput) {
   print "# Output date: $date\n";
 
   # Compare
-  ok( $date->year, $year);
-  ok( $date->mon, $mon);
-  ok( $date->mday, $day);
-  ok( $date->hour, $hh);
-  ok( $date->min, $mm);
-  ok( $date->sec, $sec);
+  is( $date->year, $year, "Check year");
+  is( $date->mon, $mon, "Check month");
+  is( $date->mday, $day, "Check day");
+  is( $date->hour, $hh, "Check hour");
+  is( $date->min, $mm, "Check minute");
+  is( $date->sec, $sec, "Check second");
 
   # Check that the object is UTC by using undocumented internal hack
-  ok( ! $date->[Time::Piece::c_islocal]);
+  ok( ! $date->[Time::Piece::c_islocal], "Check we have utc date");
 }
 
 print "# today()\n";
 
 my $today = OMP::General->today;
-ok( $today =~ /^\d\d\d\d-\d\d-\d\d$/ );
+like( $today, qr/^\d\d\d\d-\d\d-\d\d$/, "Test that date is ISO format" );
 
 print "# Verification\n";
 
 # At least test that we fail to match the admin password
 # (after always matching for some time!)
-ok( ! OMP::General->verify_administrator_password( "blah", 1 ) );
+ok( ! OMP::General->verify_administrator_password( "blah", 1 ),
+  "Check that we fail to verify the admin password");
 
 print "# Semester\n";
 
 my $refdate = OMP::General->parse_date($dateinput[0]);
 my $sem = OMP::General->determine_semester( $refdate );
-ok($sem, "98b");
+is($sem, "98b","Check semester 98b");
 
 $date = gmtime(1014756003); # 2002-02-26
-ok( OMP::General->determine_semester($date), "02a");
+isa_ok( $date, "Time::Piece");
+is( OMP::General->determine_semester($date), "02a", "Check semester 02a");
 
 $date = gmtime(1028986003); # 2002-08-10
-ok( OMP::General->determine_semester($date), "02b");
+is( OMP::General->determine_semester($date), "02b","Check semesters 02b");
 
 print "# Project ID\n";
 
@@ -153,24 +156,26 @@ my @input = (
 	    );
 
 for my $input (@input) {
-  ok( OMP::General->infer_projectid(%$input), $input->{result});
+  is( OMP::General->infer_projectid(%$input), $input->{result},
+    "Verify projectid is " . $input->{result});
 }
 
 # Test the failure when we cant decide which telescope
 eval {
   OMP::General->infer_projectid( projectid => "h01"  );
 };
-ok( $@ =~ /Unable to determine telescope from supplied project ID/ );
+like( $@, qr/Unable to determine telescope from supplied project ID/,
+    "Verify ambiguity");
 
 
 # Band allocations
 print "# Band determination\n";
 
 # first none
-ok(OMP::General->determine_band, 0);
+is(OMP::General->determine_band, 0, "Band 0");
 
 # Now UKIRT
-ok(OMP::General->determine_band(TELESCOPE => 'UKIRT'), 0);
+is(OMP::General->determine_band(TELESCOPE => 'UKIRT'), 0, "Band 0 UKIRT");
 
 # And JCMT
 my %bands = (
@@ -187,21 +192,25 @@ my %bands = (
 	    );
 
 for my $cso (keys %bands) {
-  ok(OMP::General->determine_band(TELESCOPE => 'JCMT',
-				  TAU => $cso), $bands{$cso});
+  is(OMP::General->determine_band(TELESCOPE => 'JCMT',
+				  TAU => $cso), $bands{$cso},
+    "Verify band for tau $cso");
 }
 
 # Test out of range
 eval { OMP::General->determine_band(TELESCOPE=>'JCMT',TAU=> undef) };
-ok($@);
-ok($@ =~ /not defined/);
+ok($@,"Got error ok");
+like($@, qr/not defined/,"not defined");
 
 eval { OMP::General->determine_band(TELESCOPE=>'JCMT',TAU=>-0.05) };
-ok($@);
-ok($@ =~ /out of range/);
+ok($@, "Got error okay");
+like($@, qr/out of range/,"out of range");
 
 
 eval { OMP::General->determine_band(TELESCOPE=>'JCMT') };
-ok($@);
-ok($@ =~ /without TAU/);
+ok($@,"Got error okay");
+like($@, qr/without TAU/,"Without TAU");
 
+# Band ranges
+my $range = OMP::General->get_band_range('JCMT', 2);
+isa_ok($range, "OMP::Range");
