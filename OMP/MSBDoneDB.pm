@@ -237,8 +237,8 @@ C<OMP::MSBDoneQuery> object.
 
 The C<allcomments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
-they were added) or only those added for the specified night. If the
-value is false only the comments for the night are returned.
+they were added) or only those matching the specific query. If the
+value is false only the comments matched by the query are returned.
 
 The output format matches that returned by C<historyMSB>.
 
@@ -272,8 +272,9 @@ sub queryMSBdone {
   }
 
   # Now reformat the data structure to the required output
-  # format
-  return $self->_format_output_info( $msbs, undef, $style);
+  # format. Pass in the query object so that this routine
+  # can determine whether we are only asking for a checksum.
+  return $self->_format_output_info( $msbs, $query, $style);
 
 }
 
@@ -290,8 +291,12 @@ Retrieve the information from the MSB done table using the supplied
 query.  Can retrieve the most recent information or all information
 associated with the MSB.
 
-  %msbinfo = $db->_fetch_msb_done_info( $query, 0 );
-  @allmsbinfo = $db->_fetch_msb_done_info( $query, 1);
+  @allmsbinfo = $db->_fetch_msb_done_info( $query );
+
+In scalar context returns the first match via a reference to a hash.
+
+  $msbinfo = $db->_fetch_msb_done_info( $query );
+
 
 =cut
 
@@ -300,8 +305,6 @@ associated with the MSB.
 sub _fetch_msb_done_info {
   my $self = shift;
   my $query = shift;
-  my $allinfo = shift;
-  $allinfo = ( $allinfo ? $allinfo : 1 );
 
   # Generate the SQL
   my $sql = $query->sql( $MSBDONETABLE );
@@ -309,22 +312,22 @@ sub _fetch_msb_done_info {
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-  use Data::Dumper;
-  print Dumper( $ref );
-  print "\nFrom $sql\n";
+#  use Data::Dumper;
+#  print Dumper( $ref );
+#  print "\nFrom $sql\n";
 #  exit;
 
   # If they want all the info just return the ref
   # else return the first entry
   if ($ref) {
-    if ($allinfo) {
+    if (wantarray) {
       return @$ref;
     } else {
       my $hashref = (defined $ref->[0] ? $ref->[0] : {});
       return %{ $hashref };
     }
   } else {
-    return ();
+    return (wantarray ? () : {} );
   }
 
 }
@@ -565,8 +568,10 @@ is required. The style governs the output format.
 sub _format_output_info {
   my $self = shift;
   my %msbs = %{ shift() };
-  my $checksum = shift;
+  my $query = shift;
   my $style = shift;
+
+  my $checksum = ( scalar($query->checksums()) ? ($query->checksums)[0] : undef );
 
   # Now form the XML if required
   if ( defined $style && $style eq 'xml' ) {
@@ -575,10 +580,7 @@ sub _format_output_info {
     my $xml = "<msbHistories>\n";
 
     # loop through each MSB
-    Carp::cluck("OOPS");
     for my $msb (keys %msbs) {
-
-      print "MSB: $msb\n";
 
       # If an explicit msb has been mentioned we only want to
       # include that MSB
