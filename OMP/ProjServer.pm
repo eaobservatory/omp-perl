@@ -314,7 +314,7 @@ sub addProject {
     }
 
     # Create range object for tau (defaulting to lower bound of zero
-    $project[12] = 0 unless defined $project[12];
+    $project[11] = 0 unless defined $project[11];
     my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
 
     # Instantiate OMP::Project object
