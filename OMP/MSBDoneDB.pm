@@ -105,10 +105,12 @@ When checksum is defined the data structure is of the form:
            target => "FS21",
            comment => [
                        { 
-                        text => "MSB retrieved",
+                          status => 0,
+                          text => "MSB retrieved",
                         date => "2002-04-02T05:52"
                        },
                        { 
+                          status => 1,
                         text => "MSB marked as done",
                         date => "2002-04-02T06:52"
                        },
