@@ -145,6 +145,11 @@ sub verifyPassword {
   # Obviate the need for a db query
   return 1 if OMP::General->verify_administrator_password( $password, 1 );
 
+  # If we have a user name of "staff" then we special case
+  # the authentication
+  return OMP::General->verify_staff_password( $password, 1 )
+    if $self->projectid =~ /^staff$/i;
+
   # Retrieve the contents of the table
   my $project = $self->_get_project_row();
 
