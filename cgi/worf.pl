@@ -382,7 +382,7 @@ sub worf_output {
 		$q_xcropend = 0;
 	}
 	
-	if($query->param('xcrop')) {
+	if($query->param('ycrop')) {
 
 # The 'ycrop' parameter must be either 'full' or 'crop'.
 # Default to 'full'.
