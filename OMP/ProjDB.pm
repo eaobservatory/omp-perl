@@ -292,8 +292,6 @@ sub _generate_password {
 
   my ($password) = passgen( NLETT => 8, NWORDS => 1);
 
-  print "Password: $password\n";
-
   return $password;
 
 }
