@@ -170,8 +170,7 @@ prior to Base64 encoding.
 A third argument controls what form the returned science program should
 take.
 
-  $gzip = OMP::SpServer->fetchProgram( $project, $password,
-                                       OMP__SCIPROG_GZIP);
+  $gzip = OMP::SpServer->fetchProgram( $project, $password, "GZIP" );
 
 The following values can be used to specify different return
 types:
@@ -191,14 +190,17 @@ sub fetchProgram {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
-  my $rettype = uc(shift);
+  my $rettype = shift;
 
   $rettype = OMP__SCIPROG_XML unless defined $rettype;
+  $rettype = uc($rettype);
 
   # Translate input strings to constants
-  $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
-  $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
-  $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+  if ($rettype !~ /^\d$/) {
+    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
+    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
+    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+  }
 
   OMP::General->log_message( "fetchProgram: project $projectid (format = $rettype)\n");
 
