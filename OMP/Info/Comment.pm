@@ -120,16 +120,30 @@ sub text {
 
 =item B<author>
 
-Name of person submitting the comment. This field is optional.
+
+C<OMP::User> object describing the person submitting the
+response. There is as yet no lookup to make sure that this person is
+allowed to submit a fault or whether their details exist in the OMP
+system.
 
   $author = $comm->author;
   $comm->author( $author );
+
+This field can be optional but the database backends will probably
+refuse to store it unless a user is specified (if the user is a
+computer program we will simply need to add a user that refers to
+that program).
 
 =cut
 
 sub author {
   my $self = shift;
-  if (@_) { $self->{Author} = shift; }
+  if (@_) {
+    my $user = shift;
+    croak "Author must be supplied as OMP::User object"
+      unless UNIVERSAL::isa( $user, "OMP::User" );
+    $self->{Author} = $user;
+  }
   return $self->{Author};
 }
 
@@ -230,7 +244,7 @@ sub summary {
 
 =head1 SEE ALSO
 
-C<OMP::Fault>, C<OMP::FaultDB>.
+C<OMP::Info::Obs>, C<OMP::Fault>, C<OMP::User>
 
 =head1 AUTHORS
 
