@@ -209,7 +209,7 @@ sub display_shift_comments {
     $projectid = $cookie->{'projectid'};
   } else {
     $projectid = 'staff';
-    $password = 'kalapana';
+    $password = 'pohoiki';
   }
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
