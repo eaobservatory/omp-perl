@@ -315,6 +315,7 @@ sub _sidebar_fault {
 		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
 		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
 		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
+		      "<a href='queryfault.pl?cat=dr'>DR Faults</a>",
 		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a>",
 		      "$sidebarform</font>",);
 
@@ -1105,6 +1106,7 @@ sub write_page_fault {
     print "<h3><li><a href='queryfault.pl?cat=OMP'>OMP Faults</a> for faults relating to the Observation Management Project</h3>";
     print "<h3><li><a href='queryfault.pl?cat=UKIRT'>UKIRT Faults</a> for faults relating to UKIRT</h3>";
     print "<h3><li><a href='queryfault.pl?cat=JCMT'>JCMT Faults</a> for faults relating to JCMT</h3>";
+    print "<h3><li><a href='queryfault.pl?cat=DR'>DR Faults</a> for faults relating to data reduction systems.</h3>";
     print "</ul>";
     
     $self->_write_footer();
