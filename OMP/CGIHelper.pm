@@ -30,6 +30,7 @@ use OMP::SpServer;
 use OMP::DBServer;
 use OMP::Info::ObsGroup;
 use OMP::CGIObslog;
+use OMP::CGIShiftlog;
 use OMP::FaultDB;
 use OMP::FaultServer;
 use OMP::CGIFault;
@@ -1704,13 +1705,17 @@ sub projlog_content {
   print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
   print "<a href='$pkgdataurl?utdate=$utdate'>Retrieve data excluding calibrations</a>";
 
+  # Link to shift comments
+  print "<p><a href='#shiftcom'>View shift comments</a>";
+
+  # Display observation log
   try {
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
 				      date => $utdate,
 				      inccal => 1,);
 
     if ($grp->numobs > 1) {
-      print "<h3>Observation log</h3>";
+      print "<h2>Observation log</h2>";
 
       # Don't want to go to files on disk
       $OMP::ArchiveDB::FallbackToFiles = 0;
@@ -1723,6 +1728,22 @@ sub projlog_content {
     print "<h2>No observations available for this night</h2>";
   };
 
+  # Get a project object for this project
+  my $proj;
+  try {
+    $proj = OMP::ProjServer->projectDetails($projectid, $cookie{password}, "object");
+  } otherwise {
+    my $E = shift;
+    croak "Unable to retrieve the details of this project:\n$E";
+  };
+
+  # Display shift log
+  my %shift_args = (date => $utdate,
+		    telescope => $proj->telescope,
+		    zone => "UT");
+
+  print "<a name='shiftcom'></a>";
+  display_shift_comments(\%shift_args, \%cookie);
 }
 
 =item B<preify_text>
