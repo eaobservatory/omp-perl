@@ -115,8 +115,8 @@ sub msb_sum {
 					     $cookie{password},
 					     'html');
 
-  print $q->h2("MSB summary"),
-        $q->pre("$msbsum");
+  print $q->h2("MSB summary"), $msbsum;
+#        $q->pre("$msbsum");
 
 }
 
