@@ -271,11 +271,13 @@ This method can be called either as a class or instance method.
 Although the latter is only interesting if used to raise
 warnings about inconsistent IDs (which is generally not enforced)
 or after creating an object and making an inspired guess from the
-name. The userid in the object is not updated.
+name. The userid in the object is not updated via this method.
 
-The guess work assumes that the name is "forname surname" or
+The guess work assumes that the name is "forname surname" 
+(although "F.Surname" is also okay) or
 alternatively "surname, forname". A simplistic attempt is made
-to catch "Jr" and "Sr".
+to catch "Jr" and "Sr". Also, "le" and "de" are treated as part of the
+surname (e.g. "U le Guin" would be "LEGUINU").
 
 Returns undef if a user ID could not be guessed.
 
@@ -311,13 +313,21 @@ sub infer_userid {
     # We want the last word for surname and the first for forname
     # since we do allow middle names
     my @parts = split(/\s+/,$name);
+
+    # if we only got a single match, see what happens if we split
+    # on dot (checking for T.Jenness)
+    if (scalar(@parts) == 1) {
+      @parts = split(/\./, $name);
+    }
+
     return undef if scalar(@parts) < 2;
     $forname = $parts[0];
     $surname = $parts[-1];
 
     # Note that "le Guin" is surname LEGUIN
     if (scalar(@parts) > 2) {
-      if ($parts[-2] =~ /(LE)/i) {
+      if ($parts[-2] =~ /(LE)/i ||
+	  $parts[-2] =~ /DE/i ) {
 	$surname = $parts[-2] . $surname;
       }
     }

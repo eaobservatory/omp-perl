@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 10;
+use Test::More tests => 13;
 use strict;
 require_ok("OMP::User");
 
@@ -17,6 +17,9 @@ my %guessed = (
 	       MOZARTW => 'Wolfgang Gottlieb Mozart',
 	       LEGUINU => 'Ursula K Le Guin',
 	       LEPERSONA => 'Le Person, A.',
+	       CDEA    => 'A.B.CDE',
+	       DELOREYK => 'K.Delorey',
+	       DEWITTS => 'Shaun de Witt',
 	      );
 
 for my $userid (keys %guessed) {
