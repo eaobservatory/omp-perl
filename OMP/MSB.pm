@@ -354,7 +354,8 @@ sub remaining {
     # MAGIC value
 
     my $new;
-    if ($arg != REMOVED() and $current != REMOVED() and $arg < 0){
+    if ($arg != OMP__MSB_REMOVED() and 
+	$current != OMP__MSB_REMOVED() and $arg < 0){
       $new = $current + $arg;
 
       # Now Force to zero if necessary
@@ -672,7 +673,7 @@ sub hasBeenObserved {
 
       for (@msbs) {
 	# Eek this should be happening on little OMP::MSB objects
-	$_->setAttribute("remaining",REMOVED());
+	$_->setAttribute("remaining",OMP__MSB_REMOVED());
       }
     }
 
@@ -683,9 +684,10 @@ sub hasBeenObserved {
 =item B<hasBeenCompletelyObserved>
 
 Indicate that this MSB has been completely observed. This involves
-decrementing the C<remaining()> counter to the value C<REMOVED>. Since
-this is not associated with an actual observation no rearranging of OR
-blocks is required (see C<hasBeenObserved>).
+decrementing the C<remaining()> counter to the value
+C<OMP__MSB_REMOVED>. Since this is not associated with an actual
+observation no rearranging of OR blocks is required (see
+C<hasBeenObserved>).
 
   $msb->hasBeenCompletelyObserved();
 
@@ -700,7 +702,7 @@ sub hasBeenCompletelyObserved {
   my $self = shift;
 
   # This is the easy bit
-  $self->remaining( REMOVED() );
+  $self->remaining( OMP__MSB_REMOVED() );
 
 }
 
@@ -1333,6 +1335,13 @@ sub SpObs {
 
   $summary{timeest} = 0.0 unless defined $summary{timeest};
 
+  # Reset polarimeter bit since the presence of an SpIterPOL
+  # can indicate that the polarimeter is to be used but there
+  # will be nothing to indicate its absence. This only works
+  # if we are not reading polarimeter information from
+  # instrument components (from which we can inherit)
+  $summary{pol} = 0;
+
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
   # This is almost the same as the summarize() method but I can not
@@ -1359,7 +1368,7 @@ sub SpObs {
   # CAL
   # This test needs to be expanded for SCUBA
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle|Stare/, @{$summary{obstype}}) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
@@ -1408,13 +1417,19 @@ sub SpIterFolder {
     next unless defined $name;
 
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
+    # or other iterators
     # we need to go down a level
-    if ($name =~ /Repeat|Offset|IRPOL|POL/) {
+    if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop)/) {
       my %dummy = $self->SpIterFolder($child);
-      push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
 
-      # SpIterIRPOL signifies something significant
-      $summary{pol} = 1 if $name =~ /IRPOL$/;
+      # Need to decide whether to just keep all the hash values
+      # returned by recursion since we really need to look
+      # inside all these iterators for information when
+      # translating
+      push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
+      $summary{pol} = $dummy{pol} if exists $dummy{pol};
+
+      # SpIterPOL and SpIterIRPOL signifies something significant
       $summary{pol} = 1 if $name =~ /POL$/;
 
       next;
@@ -1468,8 +1483,8 @@ sub SpInstCGS4 {
   $summary{type} = "s";
 
   # Polarimeter
-  my $pol = $self->_get_pcdata( $el, "polariser" );
-  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
+  #my $pol = $self->_get_pcdata( $el, "polariser" );
+  #$summary{pol} = ( $pol eq "none" ? 0 : 1 );
 
 
   return %summary;
@@ -1504,8 +1519,8 @@ sub SpInstUFTI {
   $summary{type} = "i";
 
   # Polarimeter
-  my $pol = $self->_get_pcdata( $el, "polariser" );
-  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
+  #my $pol = $self->_get_pcdata( $el, "polariser" );
+  #$summary{pol} = ( $pol eq "none" ? 0 : 1 );
 
   return %summary;
 }
@@ -1558,8 +1573,8 @@ sub SpInstMichelle {
   $summary{type} = ( $type eq "imaging" ? "i" : "s" );
 
   # Polarimeter
-  my $pol = $self->_get_pcdata( $el, "polarimetry" );
-  $summary{pol} = ( $pol eq "no" ? 0 : 1 );
+  #my $pol = $self->_get_pcdata( $el, "polarimetry" );
+  #$summary{pol} = ( $pol eq "no" ? 0 : 1 );
 
   return %summary;
 }
@@ -1596,8 +1611,8 @@ sub SpInstIRCAM3 {
   $summary{type} = "i";
 
   # Polarimeter
-  my $pol = $self->_get_pcdata( $el, "polariser" );
-  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
+  #my $pol = $self->_get_pcdata( $el, "polariser" );
+  #$summary{pol} = ( $pol eq "none" ? 0 : 1 );
 
 
   return %summary;
