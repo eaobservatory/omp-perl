@@ -35,6 +35,7 @@ use OMP::CGI;
 use OMP::ProjDB;
 use OMP::ShiftQuery;
 use OMP::ShiftDB;
+use OMP::Error qw/ :try /;
 
 our $VERSION = (qw$Revision$ )[1];
 
@@ -44,7 +45,7 @@ our @ISA = qw/Exporter/;
 our @EXPORT = qw( shiftlog_page shiftlog_page_submit parse_query
                   display_shift_comments display_shift_table
                   display_comment_form display_shift_form
-                  display_telescope_form submit_comment );
+                  display_telescope_form submit_comment print_header );
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
                     );
@@ -60,7 +61,8 @@ All routines are exported by default.
 
 =item B<shiftlog_page>
 
-Creates a page with a form for filing a shiftlog entry.
+Creates a page with a form for filing a shiftlog entry
+after a form on that page has been submitted.
 
   shiftlog_page( $cgi );
 
@@ -72,22 +74,26 @@ sub shiftlog_page {
   my $q = shift;
   my %cookie = @_;
 
-}
+  my $verified = parse_query( $q );
 
-=item B<shiftlog_page_submit>
+  # Print a header.
+  print_header();
 
-Creates a page with a form for filing a shiftlog entry
-after a form on that page has been submitted.
+  # Submit the comment.
+  submit_comment( $verified, \%cookie );
 
-  shiftlog_page_submit( $cgi );
+  # Display the comments for the current shift.
+  display_shift_comments( $verified, \%cookie );
 
-The only argument is the C<CGI> object.
+  # Display a form for inputting comments.
+  display_comment_form( $q, $verified, \%cookie );
 
-=cut
+  # Display a form for changing the date.
+  display_date_form( $q, $verified );
 
-sub shiftlog_page_submit {
-  my $q = shift;
-  my %cookie = @_;
+  # Display a form for changing the telescope.
+  display_telescope_form( $q, $verified );
+
 }
 
 =item B<parse_query>
@@ -103,7 +109,65 @@ will return a hash reference.
 =cut
 
 sub parse_query {
-  my $q = shift;
+  my $cgi = shift;
+
+  my $q = $cgi->Vars;
+  my %return = ();
+
+# Telescope. This is a string made up of word characters.
+  if( exists( $q->{'telescope'} ) ) {
+    ( $return{'telescope'} = $q->{'telescope'} ) =~ s/\W//g;
+  }
+
+# Time Zone for display. This is either UT or HST. Defaults to UT.
+  if( exists( $q->{'zone'} ) ) {
+    if( $q->{'zone'} =~ /hst/i ) {
+      $return{'zone'} = 'HST';
+    } else {
+      $return{'zone'} = 'UT';
+    }
+  } else {
+    $return{'zone'} = 'UT';
+  }
+
+# Time Zone for entry. This is either UT or HST. Defaults to HST.
+  if( exists( $q->{'entryzone'} ) ) {
+    if( $q->{'entryzone'} =~ /ut/i ) {
+      $return{'entryzone'} = 'UT';
+    } else {
+      $return{'entryzone'} = 'HST';
+    }
+  } else {
+    $return{'entryzone'} = 'HST';
+  }
+
+# Date. This is in yyyy-mm-dd format. If it is not set, it
+# will default to the current UT date.
+  if( exists( $q->{'date'} ) ) {
+    my $dateobj = OMP::General->parse_date( $q->{'date'} );
+    $return{'date'} = $dateobj->ymd;
+  } else {
+    my $dateobj = gmtime;
+    $return{'date'} = $dateobj->ymd;
+  }
+
+# Time. This is in hh:mm format. If it is not set, it will
+# default to the current local time.
+  if( exists( $q->{'time'} ) && $q->{'time'} =~ /(\d\d):?(\d\d)/ ) {
+    $return{'time'} = "$1:$2";
+  } else {
+    my $dateobj = localtime;
+    ( $return{'time'} = $dateobj->hms ) =~ s/:\d\d$//;
+  }
+
+# Text. Anything goes, but leading/trailing whitespace is stripped.
+  if( exists( $q->{'text'} ) ) {
+    ( $return{'text'} = $q->{'text'} ) =~ s/^\s+//s;
+    $return{'text'} =~ s/\s+$//s;
+  }
+
+  return \%return;
+
 }
 
 =item B<display_shift_comments>
@@ -120,11 +184,17 @@ to a cookie.
 Note that timestamps on comments will always be displayed
 in HST regardless of the timezone setting.
 
+This function will print nothing if neither the telescope
+nor date are given in the verified query.
+
 =cut
 
 sub display_shift_comments {
   my $v = shift;
   my $cookie = shift;
+
+  return unless defined $v->{'telescope'};
+  return unless defined $v->{'date'};
 
   # Verify the project id and password given in the cookie
   # with information in the database.
@@ -193,16 +263,15 @@ sub display_shift_table {
   my $telescope = shift;
   my $comments = shift;
 
-  print "<h2>Shift comments for $date $zone for $telescope</h2>\n";
+  print "<h2>Shift comments for shift on $date $zone for $telescope</h2>\n";
   print "<table border=\"1\">\n";
-  print "<tr><td><strong>HST time<br>User ID</strong></td><td><strong>comment</strong></td></tr>\n";
+  print "<tr><td><strong>HST time<br>User Name</strong></td><td><strong>comment</strong></td></tr>\n";
   foreach my $comment (@$comments) {
     print "<tr><td>";
     my $hstdate = $comment->date - 10 * ONE_HOUR;
     print $hstdate->hms;
-#    print ( $comment->date->hms );
     print "<br>";
-    print $comment->author->userid;
+    print $comment->author->name;
     print "</td><td>";
     print $comment->text;
     print "</td></tr>\n";
@@ -239,20 +308,24 @@ sub display_comment_form {
                        );
 
   print "</td></tr>\n";
-  
-  print "<tr><td>Time: (HHMM or HH:MM format)</td><td>";
+
+  print "<tr><td>Time: (HHMM or HH:MM, 24hr format)</td><td>";
   print $cgi->textfield( -name => 'time',
                          -size => '16',
                          -maxlength => '5',
+                         -default => '',
+                         -override => 1,
                        );
   print "&nbsp;";
-  print $v->{'zone'};
+  print $v->{'entryzone'};
   print " (will default to current time if blank)</td></tr>\n";
 
   print "<tr><td>Comment:</td><td>";
   print $cgi->textarea( -name => 'text',
                         -rows => 20,
                         -columns => 78,
+                        -default => '',
+                        -override => 1,
                       );
   print "</td></tr></table>\n";
   print $cgi->hidden( -name => 'date',
@@ -263,7 +336,7 @@ sub display_comment_form {
                     );
   print $cgi->hidden( -name => 'telescope',
                       -value => $v->{'telescope'},
-                    );  
+                    );
   print $cgi->submit( -name => 'Submit Comment' );
   print $cgi->endform;
 
@@ -288,21 +361,19 @@ sub display_date_form {
 
   print "<br>\n";
   print $cgi->startform;
-  print "<a name=\"changeut\">New</a> date (yyyy-mm-dd format, please: ";
+  print "<a name=\"changeut\">New</a> date (yyyy-mm-dd format, please): ";
   print $cgi->textfield( -name => 'date',
                          -size => '16',
                          -maxlength => '10',
+                         -default => $v->{'date'},
                        );
-  print "&nbsp;&nbsp;";
-  print $cgi->radio_group( -name => 'zone',
-                           -values => ['UT', 'HST'],
-                           -default => ( defined( $v->{'zone'} ) ?
-                                         $v->{'zone'} :
-                                         'UT' ),
-                           -linebreak => 'false',
-                         );
+  print "&nbsp;&nbsp;UT<br>";
+
   print $cgi->hidden( -name => 'telescope',
                       -value => $v->{'telescope'},
+                    );
+  print $cgi->hidden( -name => 'zone',
+                      -value => 'UT',
                     );
   print $cgi->submit( -name => 'Submit New Date' );
   print $cgi->endform;
@@ -326,32 +397,134 @@ sub display_telescope_form {
   my $cgi = shift;
   my $v = shift;
 
+  my @tels = OMP::Config->telescopes();
+  @tels = map { uc } @tels;
+
   print "<br>\n";
   print $cgi->startform;
   print "<a name=\"changetelescope\">Change</a> telescope: ";
   print $cgi->radio_group( -name => 'telescope',
-                           -values => ['JCMT', 'UKIRT'],
+                           -values => \@tels,
                            -default => $v->{'telescope'},
-                           -linebreak => 'false',
                          );
-
+  print "<br>";
+  print $cgi->hidden( -name => 'date',
+                      -value => $v->{'date'},
+                    );
+  print $cgi->hidden( -name => 'zone',
+                      -value => $v->{'zone'},
+                    );
+  print $cgi->submit( -name => 'Submit New Telescope' );
+  print $cgi->endform;
 }
 
 =item B<submit_comment>
 
 Submits a comment to the database.
 
-  submit_comment( $verified );
+  submit_comment( $verified, $cookie );
 
-The only argument is a hash reference to a verified
-query (see B<parse_query>).
+The first argument is a hash reference to a verified
+query (see B<parse_query>), and the second is a reference
+to a cookie.
 
 =cut
 
 sub submit_comment {
   my $v = shift;
+  my $cookie = shift;
+
+  if( !defined( $v->{'text'} ) ) { return; }
+
+  my $telescope = $v->{'telescope'};
+  my $zone = $v->{'zone'};
+  my $entryzone = $v->{'entryzone'};
+  my $date = $v->{'date'};
+  my $user = $cookie->{'user'};
+  my $time = $v->{'time'};
+  my $text = $v->{'text'};
+
+  my ($userobj, $commentobj);
+
+# Get the OMP::User object.
+  try {
+    my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+    $userobj = $udb->getUser( $user );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    print "Error in CGIShiftlog.pm, submit_comment(), user verification:\n";
+    print $Error->{'-text'};
+    print "<br>Comment will not be stored<br>\n";
+    return;
+  }
+  otherwise {
+    my $Error = shift;
+    print "Error in CGIShiftlog.pm, submit_comment(), user verification:\n";
+    print $Error->{'-text'};
+    print "<br>Comment will not be stored<br>\n";
+    return;
+  };
+
+# Form the date.
+  $time =~ /(\d\d):(\d\d)/;
+  my ($hour, $minute) = ($1, $2);
+
+  # Convert the time zone to UT, if necessary.
+  if( ($entryzone =~ /hst/i) && ($zone =~ /ut/i)) {
+    $hour += 10;
+    $hour %= 24;
+  }
+
+  my $datestring = "$date $hour:$minute:00";
+  my $datetime = Time::Piece->strptime( $datestring, "%Y-%m-%d %H:%M:%S" );
+
+# Create an OMP::Info::Comment object.
+  my $comment = new OMP::Info::Comment( author => $userobj,
+                                        text => $v->{'text'},
+                                        date => $datetime,
+                                      );
+
+# Store the comment in the database.
+  try {
+    my $sdb = new OMP::ShiftDB( DB => new OMP::DBbackend );
+    $sdb->enterShiftLog( $comment, $telescope );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    print "Error in CGIShiftlog.pm, submit_comment(), comment submission:\n";
+    print $Error->{'-text'};
+    print "<br>Comment will not be stored<br>\n";
+  }
+  otherwise {
+    my $Error = shift;
+    print "Error in CGIShiftlog.pm, submit_comment(), comment submission:\n";
+    print $Error->{'-text'};
+    print "<br>Comment will not be stored<br>\n";
+  };
+
+  print "Comment successfully entered into database.<br>\n";
 
 }
+
+=item B<print_header>
+
+Prints a header.
+
+  print_header();
+
+There are no arguments.
+
+=cut
+
+sub print_header {
+  print <<END;
+Welcome to shiftlog. <a href="#changeut">Change the date</a>
+<a href="#changetelescope">Change the telescope</a><br>
+<hr>
+END
+};
+
 
 =back
 
