@@ -257,7 +257,7 @@ sub _sidebar_logout {
 		      "<a href='fbmsb.pl'>Program details</a>",
 		      "<a href='fbcomment.pl'>Add comment</a>",
 		      "<a href='msbhist.pl'>MSB History</a>",
-		      "<a href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp'>OMP home</a>",);
+		      "<a href='http://omp.jach.hawaii.edu/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
