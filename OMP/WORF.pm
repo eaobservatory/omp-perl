@@ -297,8 +297,11 @@ sub file_exists {
 
   my $file = $worf->get_filename( $group );
 
-  return ( -e $file );
-
+  if( defined( $file ) ) {
+    return ( -e $file );
+  } else {
+    return 0;
+  }
 }
 
 =item B<parse_display_options>
