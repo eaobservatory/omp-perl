@@ -454,7 +454,7 @@ sub _populate {
   # then select the calibrations and project info. This needs
   # to be done in ObsGroup.
   my $grp = new OMP::Info::ObsGroup( telescope => $tel,
-				     utdate => $self->utdate,
+				     date => $self->utdate,
 				   );
 
   # Now go through and get the bits we need
