@@ -384,6 +384,8 @@ If a scalar "siteconfig" entry if present, the site configuration will be read
 and combined with the configuration file content. Note that site configuration
 override all others.
 
+If the $OMP_SITE_CONFIG environment variable is set this overrides everything.
+
 =cut
 
 sub _read_cfg_file {
@@ -485,7 +487,19 @@ sub _read_cfg_file {
       # Site overrides local
       %cfg = ( %cfg, %$site );
     } else {
-      warnings::warnif("Site config specified as '$file' but could not be found");
+      warnings::warnif("Site config specified in '$file' as '$cfg{siteconfig}' but could not be found");
+    }
+  }
+
+  # if we have a siteconfig override environment variable, read that
+  if (exists $ENV{OMP_SITE_CONFIG}) {
+    if (-e $ENV{OMP_SITE_CONFIG}) {
+      my ($slab, $site) = $class->_read_cfg_file( $ENV{OMP_SITE_CONFIG} );
+
+      # Site overrides local
+      %cfg = ( %cfg, %$site );
+    } else {
+      warnings::warnif("Site config specified as '$file' in \$OMP_SITE_CONFIG but could not be found");
     }
   }
 
@@ -760,8 +774,11 @@ Site-wide configuration files can be specified by using the "siteconfig"
 key. This should contain the name of a file that can contain site configuration
 information. It should be in the same format as the normal config file
 and is not expected to be in CVS. This can be used to store local encrypted
-passwords. Contens from the site file are read in last and override
+passwords. Contents from the site file are read in last and override
 entries in the original config file.
+
+Finally, if $OMP_SITE_CONFIG environment variable is set this config
+file is read last.
 
 Any entries that are neither in "default" or in a domain/host configuration
 will be read in hierarchically. They can be accessed using "." separators
