@@ -494,9 +494,16 @@ sub show_faults {
   print "</table>";
 }
 
+=back
+
 =head1 AUTHOR
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
 
 =cut
 
