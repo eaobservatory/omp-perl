@@ -504,6 +504,10 @@ sub _create_Obs_object {
     if(defined($odfobject->getTarget)) {
       $args{coords} = $odfobject->getTarget;
     };
+    # Let's get the real object name as well.
+    if(defined($odfobject->getTargetName)) {
+      $args{target} = $odfobject->getTargetName;
+    };
   } else {
 
     # Default the equinox to J2000, but if it's 1950 change to B1950.
