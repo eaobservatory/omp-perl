@@ -711,10 +711,89 @@ sub write_page {
 
 }
 
+=item B<write_page_proposals>
+
+Write a page with the ability to server proposal files in whatever format they
+are in.  Yes, this task is so special it gets its own subroutine.  Prompts
+for project password if not run locally.  If the output subroutine is being
+called the header is not written and must be written instead by the output
+subroutine.
+
+  $cgi->write_page_proposals( \&form_content, \&form_output );
+
+=cut
+
+sub write_page_proposals {
+  my $self = shift;
+  my ($form_content, $form_output) = @_;
+
+  my $q = $self->cgi;
+
+  my $c = new OMP::Cookie( CGI => $q );
+
+  $self->cookie( $c );
+
+  my %cookie = $c->getCookie;
+
+  # Retrieve the theme or create a new one
+  $self->_make_theme;
+
+  if ($q->param) {
+
+    my $notlocal;
+
+    my @domain = OMP::General->determine_host;
+    # If the user is outside the JAC network write the page with
+    # authentication
+    if ($domain[1] and $domain[1] !~ /\./) {
+      $notlocal = 1;
+    }
+
+    if ($notlocal) {
+
+      # Store the password and project id for verification
+      if ($q->param('login_form')) {
+	$cookie{projectid} = $q->param('projectid');
+	$cookie{password} = $q->param('password');
+      }
+
+      # Verify a password of some sort
+      my $verify;
+      if (exists $cookie{projectid} and exists $cookie{password}) {
+	$verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
+      } else {
+	$self->_write_login($q->url_param('urlprojid'));
+	return;
+      }
+
+      if (! $verify) {
+	$self->_write_login($q->url_param('urlprojid'));
+	return;
+      }
+
+    }
+
+    $form_output->($q, %cookie);
+
+  } else {
+    # Set the cookie with a new expiry time (this occurs even if we
+    # already have one. This allows for automatic expiry if noone
+    # reloads the page
+    $c->setCookie( $EXPTIME, %cookie );
+
+    # Print HTML header
+    $self->_write_header($STYLE);
+
+    $form_content->($q, %cookie);
+
+    $self->_write_footer();
+  }
+}
+
 =item B<write_page_noauth>
 
 Creates the page but doesnt do a login.  This is for cgi scripts that call functions
-which dont require a password and/or project ID.
+which dont require a password.
 
   $cgi->write_page_noauth( \&form_content, \&form_output );
 
@@ -724,8 +803,11 @@ sub write_page_noauth {
   my $self = shift;
   my ($form_content, $form_output) = @_;
 
-  my %cookie = $self->cookie;
   my $q = $self->cgi;
+
+  my %cookie;
+  $cookie{projectid} = $q->url_param('urlprojid')
+    if ($q->url_param('urlprojid'));
 
   $self->_make_theme;
   $self->_write_header($STYLE);
@@ -757,7 +839,7 @@ sub write_page_staff {
   $self->cookie( $c );
 
   my %cookie = $c->getCookie;
-
+  
   # If we just came from the login form override the cookie contents with
   # the query parameters.
   if ($q->param('login_form')) {
@@ -780,7 +862,7 @@ sub write_page_staff {
 
     $self->_write_header($STYLE);
 
-    if ($q->param('show_output')) {
+    if ($q->param('show_output') or $q->url_param('output')) {
       $form_output->($q, %cookie);
     } else {
       $form_content->($q, %cookie);
