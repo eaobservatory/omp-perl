@@ -34,10 +34,14 @@ A help message.
 
 This manual page.
 
+=item B<-cwd>
+
+Write the translated files to the current working directory
+rather than to the standard translation directory location.
+
 =item B<-debug>
 
-Do not send messages to the feedback system. Send all messages
-to standard output.
+Turn on debugging messages.
 
 =back
 
@@ -60,17 +64,21 @@ use OMP::TransServer;
 use File::Spec;
 
 # Options
-my ($help, $man, $debug);
+my ($help, $man, $debug, $cwd);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
+			"cwd" => \$cwd,
 		       );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
-# deubgging
+# debugging
 $OMP::Translator::DEBUG = 1 if $debug;
+
+# Translation directory override
+$OMP::Translator::TRANS_DIR = "." if $cwd;
 
 # Now for the action
 # Read from standard input

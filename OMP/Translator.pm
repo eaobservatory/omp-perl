@@ -37,6 +37,8 @@ use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
 
+our $TRANS_DIR;
+
 our $DEBUG = 0;
 
 =head1 METHODS
@@ -132,6 +134,12 @@ sub translate {
   OMP::General->log_message( "Translate request: Project:$projectid Checksums:\n\t"
 			     .join("\t",@checksums)
 			   );
+
+  # Set DEBUGGING in the class depending on the debugging state here
+  $class->debug( $DEBUG );
+
+  # And set the translation directory if defined
+  $class->transdir( $TRANS_DIR ) if defined $TRANS_DIR;
 
   # Now translate (but being careful to propogate calling context)
   if (wantarray) {

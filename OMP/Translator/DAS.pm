@@ -246,6 +246,9 @@ sub translate {
     close($fh) 
       or throw OMP::Error::FatalError("Error closing HTML translation [$file]: $!\n");
 
+    # And make sure it is readable regardless of umask
+    chmod 0666, $file;
+
     # Now the pattern files et al
     for my $f (keys %files) {
       open my $fh, ">$f" or
@@ -258,6 +261,9 @@ sub translate {
 
       close($fh) 
 	or throw OMP::Error::FatalError("Error closing translation [$file]: $!\n");
+
+      # And make sure they are readable regardless of umask
+      chmod 0666, $f;
 
     }
 
@@ -277,9 +283,47 @@ sub translate {
     my $outfile = File::Spec->catfile( $TRANS_DIR, $CATALOGUE);
     $cat->writeCatalog($outfile);
 
+    # And make sure it is readable regardless of umask
+    chmod 0666, $outfile;
+
     return $file;
   }
 }
+
+=item B<debug>
+
+Method to enable and disable global debugging state.
+
+  OMP::Translator::DAS->debug( 1 );
+
+=cut
+
+sub debug {
+  my $class = shift;
+  my $state = shift;
+
+  $DEBUG = ($state ? 1 : 0 );
+}
+
+=item B<transdir>
+
+Override the translation directory.
+
+  OMP::Translator::DAS->transdir( $dir );
+
+Note that this does not override the VAX name used for processing
+inside files since that can not be determined directly from
+this directory name.
+
+=cut
+
+sub transdir {
+  my $class = shift;
+  my $dir = shift;
+
+  $TRANS_DIR = $dir;
+}
+
 
 =back
 
