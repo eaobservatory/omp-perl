@@ -337,6 +337,10 @@ sub updateObsComment {
 
   my $obs_arrayref = shift;
 
+# Check to see if we actually have observations before doing this.
+# If we don't, just return the array.
+  return @$obs_arrayref if $#{@$obs_arrayref} < 1;
+
 # What we're going to do is sort the array by time, then
 # get the start and end dates of the whole shmozzle, then
 # form a query that spans that range. Then when we get
@@ -344,6 +348,7 @@ sub updateObsComment {
 # appropriate Obs objects.
 
   my @obsarray = sort { $a->startobs->epoch <=> $b->startobs->epoch } @$obs_arrayref;
+
   my $start = $obsarray[0]->startobs;
   my $end = $obsarray[-1]->startobs;
 
