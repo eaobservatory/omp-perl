@@ -66,7 +66,9 @@ number and instrument are sufficient but sometimes the acquisition
 system reuses observation numbers by mistake. A UT date and
 run number stand a much better chance of working.
 
-  $obsinfo = $db->getObs( $telescope, $ut, $run );
+  $obsinfo = $db->getObs( telescope => $telescope,
+                          ut => $ut,
+                          runnr => $runnr );
 
 Information is returned as a C<OMP::Info::Obs> object (or C<undef>
 if no observation matches).
@@ -88,21 +90,30 @@ unique].
 
 sub getObs {
   my $self = shift;
-  my $tel = shift;
-  my $ut = shift;
-  my $runnr = shift;
+  my %args = @_;
+
+  my $xml = "<ArcQuery>";
+  if( defined( $args{telescope} ) && length( $args{telescope} . '' ) > 0 ) {
+    $xml .= "<telescope>" . $args{telescope} . "</telescope>";
+  }
+  if( defined( $args{runnr} ) && length( $args{runnr} . '' ) > 0 ) {
+    $xml .= "<runnr>" . $args{runnr} . "</runnr>";
+  }
+  if( defined( $args{instrument} ) && length( $args{instrument} . '' ) > 0 ) {
+    $xml .= "<instrument>" . $args{instrument} . "</instrument>";
+  }
+  if( defined( $args{ut} ) && length( $args{ut} . '' ) > 0 ) {
+    $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
+  }
+
+  $xml .= "</ArcQuery>";
 
   # Construct a query
-  my $xml = "<ArcQuery><telescope>$tel</telescope><date>$ut</date><runnr>$runnr</runnr></ArcQuery>";
   my $query = new OMP::ArcQuery( XML => $xml );
 
   my @result = $self->queryArc( $query );
 
-  if (scalar(@result) > 1) {
-    throw OMP::Error::FatalError( "Multiple observations match the supplied information [Telescope=$tel UT=$ut Run=$runnr] - this is not possible [bizarre]");
-  }
-
-  # Guaranteed to be only one match
+  # Just return the first result.
   return $result[0];
 
 }
