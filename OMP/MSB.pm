@@ -385,6 +385,25 @@ sub internal_priority {
   return $pri;
 }
 
+=item B<estimated_time>
+
+Return the estimated time (in seconds) for the MSB to be executed.
+
+  $est = $msb->estimated_time;
+
+Returns 0 if the value can not be determined.
+
+=cut
+
+sub estimated_time {
+  my $self = shift;
+  my $est = $self->_get_pcdata( $self->_tree, "elapsedTime");
+
+  $est = 0 unless defined $est;
+
+  return $est;
+}
+
 =back
 
 =head2 General Methods
@@ -508,7 +527,7 @@ sub summary {
 
     # MSB internal priority and estimated time
     $summary{priority} = $self->internal_priority;
-    $summary{timeest} = 1;
+    $summary{timeest} = $self->estimated_time;
 
     # Title and observation count
     $summary{title} = $self->msbtitle;
@@ -529,11 +548,11 @@ sub summary {
 
   # Summary string and format for each
   my @keys = qw/projectid title remaining obscount tauband seeing
-    pol type instrument waveband target coordstype checksum/;
+    pol type instrument waveband target coordstype timeest/;
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 10 10 3 3 3 3 3 3 20 20 20 6 40/;
+  my @width = qw/ 10 10 3 3 3 3 3 3 20 20 20 6 5 /;
   throw OMP::Error("Bizarre problem in MSB::summary ")
     unless @width == @keys;
 
