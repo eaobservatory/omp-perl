@@ -109,3 +109,7 @@ ProjServer
 - Do we want TELESCOPE to be a property of a project or of a MSB?
 
 - Add generic staff password in addition to admin password
+
+- Rationalize the MSB summary output code so that we can
+  do HTML, HTML_long, ascii, ascii_long in that class rather than
+  kludging it on SciProg or the CGI code.
