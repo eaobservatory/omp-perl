@@ -347,8 +347,9 @@ sub project_home {
     my $remaining = $project->allRemaining->pretty_print;
   my $pi = OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid);
   my $taurange = $project->taurange;
-  my $seerange = $project->seerange;
-  my $cloud = $project->cloud;
+  my $seerange = $project->seeingrange;
+  my $skyrange = $project->skyrange;
+  my $cloud = $project->cloudrange;
 
   # Store coi and support html emails
   my $coi = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid)} $project->coi);
@@ -400,13 +401,16 @@ sub project_home {
 
   # If range is from 0 to infinity dont bother displaying it
   print "in tau range $taurange"
-    unless ($taurange->min == 0 and ! defined $taurange->max);
+    if !OMP::SiteQuality::is_default( 'TAU',$taurange );
 
   print " in seeing range $seerange"
-    unless ($seerange->min ==0 and ! defined $seerange->max);
+    if !OMP::SiteQuality::is_default( 'SEEING',$seerange );
+
+  print " with sky brightness $skyrange"
+    if !OMP::SiteQuality::is_default( 'SKY',$skyrange );
 
   print " with sky " . $project->cloudtxt
-    if defined $cloud;
+    if !OMP::SiteQuality::is_default( 'CLOUD',$cloud );
 
   print "</td>";
 
