@@ -256,7 +256,7 @@ writetext $FBTABLE.text \@val '$values[-1]'")
 
 Mail the comment to the specified addresses.
 
-$db->_mail_comment( $comment, \@addresslist );
+  $db->_mail_comment( $comment, \@addresslist );
 
 First argument should be a hash reference.
 
@@ -265,20 +265,20 @@ First argument should be a hash reference.
 sub _mail_comment {
   my $self = shift;
   my $comment = shift;
-  my @addrlist = @_;
+  my $addrlist = shift;
 
   # Set up the mail
   my $smtp = new Net::SMTP('mailhost', Timeout => 30);
 
   $smtp->mail("omp-feedback-system")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->to(@addrlist)
+  $smtp->to(@$addrlist)
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->data()
     or throw OMP::Error::FatalError("Error constructing mail message\n");
 
   # Mail headers
-  $smtp->datasend("To: " .join(",",@addrlist)."\n")
+  $smtp->datasend("To: " .join(",",@$addrlist)."\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
@@ -306,7 +306,7 @@ sub _mail_comment {
 
 Will send the email to PI, COI and support emails.
 
-$db->_mail_comment_important( $projectid, $comment );
+  $db->_mail_comment_important( $projectid, $comment );
 
 =cut
 
@@ -325,7 +325,7 @@ sub _mail_comment_important {
 
 Will send the message to support emails
 
-$db->_mail_comment_info( $projectid, $comment );
+  $db->_mail_comment_info( $projectid, $comment );
 
 =cut
 
