@@ -2690,11 +2690,11 @@ sub SpIterFolder {
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
 
       # Frequency switch parameters [inc backwards compatibility]
-      my $freqRate = $self->_get_pcdata( $child, 'frequencyOffsetRate');
-      $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate')
+      my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
+      $freqRate = $self->_get_pcdata( $child, 'frequencyOffsetRate')
 	unless defined $freqRate;
-      my $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow');
-      $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw')
+      my $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw');
+      $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow')
 	unless defined $freqOffset;
 
       my %stare;
