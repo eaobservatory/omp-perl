@@ -294,7 +294,9 @@ C<$entry> can be
   - An OMP::Range object
   - A hash containing items to be ORed
     using the rules for OMP::Range and array refs
-    [hence recursion]
+    [hence recursion]. If a _TYPE field is present in this
+    hash that can be used in the join rather than OR. ie
+    _TYPE => 'AND' will allow the hash values to be ANDed
 
 KLUGE: If the key begins with TEXTFIELD__ a "like" match
 will be performed rather than a "=". This is so that text fields
@@ -358,12 +360,15 @@ sub _create_sql_recurse {
 	       );
 
   } elsif (ref($entry) eq 'HASH') {
-    # Call myself but join with an OR
+    # Call myself but join with an OR or AND
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
 		      } keys %$entry;
 
+    # Use an OR by default but if we have a key _JOIN then use it
+    my $j = ( exists $entry->{_JOIN} ? uc($entry->{_JOIN}) : "OR");
+
     # Need to bracket each of the sub entries
-    $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
+    $sql = "(". join(" $j ", map { "($_)" } grep {defined $_} @chunks ) . ")";
 
   } else {
 
