@@ -46,7 +46,7 @@ $| = 1;  # make output unbuffered
 
 my $query = new CGI;
 my $cgi = new OMP::CGI( CGI => $query );
-$cgi->html_title("WORF: UKIRT WWW Observing Remotely Facility");
+$cgi->html_title("WORF: WWW Observing Remotely Facility");
 
 # write the page
 
