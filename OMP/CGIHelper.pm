@@ -55,7 +55,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text unescape_text public_url private_url projlog_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1751,6 +1751,31 @@ sub preify_text {
   }
 
   return "<pre>$string</pre>";
+}
+
+=item B<unescape_text>
+
+Replace some HTML escape sequences with their associated characters.
+
+  $text = unescape_text($text);
+
+=cut
+
+sub unescape_text {
+  my $string = shift;
+
+  # Escape sequence lookup table
+  my %lut = ("&gt;" => ">",
+	     "&lt;" => "<",
+	     "&amp;" => "&",
+	     "&quot;" => '"',);
+
+  # Do the search and replace
+  for (keys %lut) {
+    $string =~ s/$_/$lut{$_}/g;
+  }
+
+  return $string;
 }
 
 =item B<public_url>
