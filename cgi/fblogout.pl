@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::Feedback;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,4 @@ my $ompcgi = new OMP::CGI( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Logout");
-$ompcgi->write_page_logout( \&fb_logout );
+$ompcgi->write_page_logout( \&OMP::CGI::Feedback::fb_logout );
