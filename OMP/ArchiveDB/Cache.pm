@@ -122,8 +122,9 @@ sub store_archive {
     @{$obs->comments} = ();
   }
 
-  # Store in memory cache (using a new copy)
-  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => [ $obsgrp->obs ]);
+  # Store in memory cache (using a new copy) [if we have some observations]
+  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => [ $obsgrp->obs ])
+    if scalar(@{$obsgrp->obs}) > 0;
 
   # Store the ObsGroup to disk.
   try {
@@ -185,7 +186,8 @@ sub retrieve_archive {
     $obsgrp = fd_retrieve( $df );
 
     # Store in memory cache for next time around
-    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => $obsgrp->obs );
+    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => $obsgrp->obs )
+      if scalar(@{$obsgrp->obs}) > 0;
   }
 
   # And return.
