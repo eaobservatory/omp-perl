@@ -12,6 +12,8 @@ BEGIN {
   use Tk::NoteBook;
   use Tk::ProgressBar;
 
+  use Getopt::Long;
+
   use FindBin;
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
@@ -42,43 +44,56 @@ my $current_instrument; # The instrument currently displayed.
 my $verbose; # Long or short output
 my $id;
 
-my $ut;
-my $utdisp;
-  { my $time = gmtime;
-    $ut = $time->ymd;
-    $utdisp = "Current UT date: $ut";
-  };
-my $contentHeader;
-my $contentBody;
-my $user;
-my $telescope = OMP::Config->getData( 'defaulttel' );
-if( ref($telescope) eq "ARRAY" ) {
-  require Tk::DialogBox;
-  require Tk::LabEntry;
-  my $newtel;
-  my $w = new MainWindow;
-  my $dbox = $w->DialogBox( -title => "Select telescope",
-                            -buttons => ["Accept","Cancel"],
-                          );
-  my $txt = $dbox->add('Label',
-                       -text => "Select telescope for obslog",
-                      )->pack;
-  foreach my $tel ( @$telescope ) {
-    my $rad = $dbox->add('Radiobutton',
-                         -text => $tel,
-                         -value => $tel,
-                         -variable => \$newtel,
-                        )->pack;
-  }
-  $w->withdraw();
-  my $but = $dbox->Show;
+my ( %opt );
+my $status = GetOptions("ut=s" => \$opt{ut},
+                        "tel=s" => \$opt{tel},
+                       );
 
-  if( $but eq 'Accept' && $newtel ne '') {
-    $telescope = $newtel;
-  } else {
-    exit; # Hrm.
+my $ut;
+my $time = gmtime;
+my $currentut = $time->ymd;
+if(defined($opt{ut}) && ( $opt{ut} =~ /^(\d{4})-?(\d\d)-?(\d\d)$/ ) ) {
+  $ut = "$1-$2-$3";
+} else {
+  $ut = $currentut;
+};
+my $utdisp = "Current UT date: $ut";
+
+my $user;
+
+my $telescope;
+if(defined($opt{tel})) {
+  $telescope = uc($opt{tel});
+} else {
+  my $tel = OMP::Config->getData( 'defaulttel' );
+  if( ref($tel) eq "ARRAY" ) {
+    require Tk::DialogBox;
+    require Tk::LabEntry;
+    my $newtel;
+    my $w = new MainWindow;
+    my $dbox = $w->DialogBox( -title => "Select telescope",
+                              -buttons => ["Accept","Cancel"],
+                            );
+    my $txt = $dbox->add('Label',
+                         -text => "Select telescope for obslog",
+                        )->pack;
+    foreach my $ttel ( @$tel ) {
+      my $rad = $dbox->add('Radiobutton',
+                           -text => $ttel,
+                           -value => $ttel,
+                           -variable => \$newtel,
+                          )->pack;
+    }
+    $w->withdraw();
+    my $but = $dbox->Show;
+
+    if( $but eq 'Accept' && $newtel ne '') {
+      $telescope = $newtel;
+    } else {
+      exit; # Hrm.
+    }
+    $w->destroy;
   }
-  $w->destroy;
 }
 
 my $HEADERCOLOUR = 'midnightblue';
@@ -242,7 +257,8 @@ sub create_main_window {
                                           );
 
 # $notebook holds the pages for content
-  $notebook = $MainWindow->NoteBook();
+  my $nbFrame = $mainFrame->Frame( );
+  $notebook = $nbFrame->NoteBook( );
 
   $mainFrame->pack( -side => 'top',
                     -fill => 'both',
@@ -252,6 +268,10 @@ sub create_main_window {
   $buttonbarFrame->pack( -side => 'top',
                          -fill => 'x'
                        );
+  $nbFrame->pack( -side => 'bottom',
+                  -fill => 'both',
+                  -expand => 1,
+                );
   $buttonExit->pack( -side => 'left' );
   $buttonRescan->pack( -side => 'left' );
   $buttonDumpText->pack( -side => 'left' );
@@ -278,10 +298,9 @@ sub update_status {
 } # end update_status
 
 sub new_instrument {
-
-  my $notebook = shift;
   my $instrument = shift;
   my $obsgrp = shift;
+  my $verbose = shift;
 
   if( exists( $notebook_contents{$instrument} ) ) {
     $notebook->delete( $instrument );
@@ -292,11 +311,11 @@ sub new_instrument {
   # Create a new page.
   my $nbPage = $notebook->add( $instrument,
                                -label => $instrument,
-                               -raisecmd => \&page_raised
+                               -raisecmd => \&page_raised,
                              );
 
   # Add a header to the page.
-  my $nbPageFrame = $nbPage->Frame;
+  my $nbPageFrame = $nbPage->Frame( );
   my $nbHeader = $nbPageFrame->Text( -wrap => 'none',
                                      -relief => 'flat',
                                      -foreground => 'midnightblue',
@@ -313,9 +332,9 @@ sub new_instrument {
   $notebook_contents{$instrument} = $nbContent;
   $notebook_headers{$instrument} = $nbHeader;
   # Pack the notebook.
-  $nbPageFrame->pack( -side => 'top',
-                      -fill => 'both',
-                      -expand => 1
+  $nbPageFrame->pack( -side => 'bottom',
+                      -fill => 'x',
+                      -expand => 1,
                     );
   $nbHeader->pack( -side => 'top',
                    -fill => 'x',
@@ -432,12 +451,12 @@ sub redraw {
   }
 
   foreach my $inst (keys %obs) {
-    new_instrument( $notebook, $inst, $obs{$inst}, $verbose );
+    new_instrument( $inst, $obs{$inst}, $verbose );
   }
 
   if( defined( $current ) && exists( $notebook_contents{$current}) ) {
     $notebook->raise($current);
-  } else {
+  } elsif( defined( $lastinst ) && exists( $notebook_contents{$lastinst}) ) {
     $notebook->raise( $lastinst );
   }
 }
@@ -468,12 +487,15 @@ sub rescan {
     my $label = $dbox->add( 'Label',
                             -text => "Error: " . $Error->{-text} )->pack;
     my $but = $dbox->Show;
+    undef %obs;
   }
   otherwise {
   };
 
   $id->cancel unless !defined($id);
-  $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+  if( $ut eq $currentut ) {
+    $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+  };
 
 }
 
@@ -570,7 +592,10 @@ sub RaiseComment {
                                                         $obs,
                                                         $index );
                                            redraw( undef, uc($obs->instrument), $verbose );
-                                           $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                           if(defined($id)) { $id->cancel; }
+                                           if( $currentut eq $ut ) {
+                                             $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                           };
                                            CloseWindow( $CommentWindow );
                                          },
                                        );
@@ -579,7 +604,10 @@ sub RaiseComment {
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
                                            -command => sub {
-                                             $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                             if(defined($id)) { $id->cancel; }
+                                             if( $ut eq $currentut ) {
+                                               $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                             };
                                              CloseWindow( $CommentWindow );
                                            },
                                          );
@@ -787,6 +815,13 @@ sub SaveOptions {
   } else {
     # Do a warning here.
   }
+
+  $id->cancel unless !defined($id);
+  if( $ut eq $currentut ) {
+    $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+  };
+
+
 }
 
 sub BindMouseWheel {
