@@ -67,8 +67,8 @@ sub new {
   my ($parser, $tree);
   if (exists $args{XML}) {
     # Now convert XML to parse tree
-    XML::LibXML->validation(1);
     $parser = new XML::LibXML;
+    $parser->validation(1);
     $tree = eval { $parser->parse_string( $args{XML} ) };
     throw OMP::Error::MSBMalformedQuery("Error parsing XML query")
       if $@;

@@ -80,8 +80,8 @@ sub new {
   }
 
   # Now convert XML to parse tree
-  XML::LibXML->validation(1);
   my $parser = new XML::LibXML;
+  $parser->validation(1); # switch on validation
   my $tree = eval { $parser->parse_string( $xml ) };
   if ($@) {
     throw OMP::Error::SpBadStructure("Error whilst parsing science program: $@\n");

@@ -87,8 +87,8 @@ sub new {
   my $refs = {};
   if (exists $args{XML}) {
     # Now convert XML to parse tree
-    XML::LibXML->validation(1);
     $parser = new XML::LibXML;
+    $parser->validation(1);
     $tree = eval { $parser->parse_string( $args{XML} ) };
     return undef if $@;
   } elsif (exists $args{TREE}) {
