@@ -253,6 +253,7 @@ sub project_window {
 	      -command => sub {&confirm_totals($nr,%final);
 			       &confirm_popup($w);
 			       &redraw_main_window($w);
+			       $nr->mail_report;
 			     }
 	     )->pack(-side =>'right');
 
