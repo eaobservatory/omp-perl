@@ -922,7 +922,7 @@ sub _mail_password {
     # Mail message content
     my $msg = "\nNew password for project $projectid: $password\n\n" .
       "This password was generated automatically at the request\nof $addr.\n".
-	  "\nPlease do not reply to this email message directly.\n";
+	"\nPlease do not reply to this email message directly.\n";
 
     $self->_mail_information(
 			     message => $msg,
@@ -930,7 +930,16 @@ sub _mail_password {
 			     from => "omp-auto-reply",
 			     subject => "[$projectid] OMP reissue of password for $projectid",
 			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
-                                         "bcc" => 'frossie@jach.hawaii.edu' },
+},
+			    );
+
+    # Mail a copy to frossie.  For some reason the Bcc and Cc headers
+    # aren't working...
+    $self->_mail_information(
+			     message => $msg,
+			     to => "frossie\@jach.hawaii.edu",
+			     from => "omp-auto-reply",
+			     subject => "[$projectid] OMP reissue of password for $projectid",
 			    );
 
 
