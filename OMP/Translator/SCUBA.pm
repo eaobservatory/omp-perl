@@ -54,150 +54,97 @@ our $DEBUG = 0;
 
 =item B<translate>
 
-Convert the science program object (C<OMP::SciProg>) into
+Convert the Science Program MSB (C<OMP::MSB>) into
 a observing sequence understood by the instrument data acquisition
-system (an ODF).
+system (an ODF, or multiple ODFs).
 
-  $odf = OMP::Translate->translate( $sp );
-  $data = OMP::Translate->translate( $sp, 1);
-  @data = OMP::Translate->translate( $sp, 1);
+  @odfs = OMP::Translate->translate( $msb );
 
-By default returns the name of an observation definition file, or if
-more than one observation is generated from the SpObs, the name of a
-SCUBA macro file. An optional second parameter can be used to indicate
-that no file should be written to disk but that the translated
-information is to be returned as a data structure (for scuba and array
-of hashes).
+Always returns the translated result as a list of C<SCUBA::ODF> objects.
+An exception will be thrown if the MSB is not a SCUBA MSB.
+
+MSBs will be pre-filtered by the caller, assumed to be C<OMP::Translator>.
 
 =cut
 
 sub translate {
   my $self = shift;
-  my $sp = shift;
+  my $msb = shift;
   my $asdata = shift;
 
-  # See how many MSBs we have (after pruning)
-  my @msbs = $self->PruneMSBs($sp->msb);
+  print "MSB " . $msb->checksum . "\n"
+    if $DEBUG;
 
-#  throw OMP::Error::TranslateFail("Only one MSB can be translated at a time")
-#    if scalar(@msbs) != 1;
+  # First thing we need to do is correct for the inconsistencies
+  # with JIGGLE and SCAN polarimetry. For SCAN we have to iterate
+  # over waveplates. For JIGGLE we just put them all in a single ODF
+  $self->correct_wplate( $msb );
 
-  # Now unroll the MSB into constituent observations details
-#  my $msb = $msbs[0];
+  my @obs = $msb->unroll_obs();
+
+  # See if the MSB was suspended
+  my $suspend = $msb->isSuspended;
+
+  # Treat an ODF as a hash and a macro as an array of hashes
+  # until the last moment.
   my @odfs;
-  for my $msb (@msbs) {
-    print "MSB " . $msb->checksum . "\n"
-      if $DEBUG;
 
-    # First thing we need to do is correct for the inconsistencies
-    # with JIGGLE and SCAN polarimetry. For SCAN we have to iterate
-    # over waveplates. For JIGGLE we just put them all in a single ODF
-    $self->correct_wplate( $msb );
+  # by default do not skip observations unless we are suspended
+  my $skip = ( defined $suspend ? 1 : 0);
+  my $obscount = 0;
+  for my $obsinfo ( @obs ) {
+    $obscount++;
+    print "Observation: $obscount\n" if $DEBUG;
+    #    print Dumper($obsinfo)
+    #      if $DEBUG;
 
-    my @obs = $msb->unroll_obs();
-
-    # See if the MSB was suspended
-    my $suspend = $msb->isSuspended;
-
-    # Treat an ODF as a hash and a macro as an array of hashes
-    # until the last moment.
-
-    # by default do not skip observations unless we are suspended
-    my $skip = ( defined $suspend ? 1 : 0);
-    my $obscount = 0;
-    for my $obsinfo ( @obs ) {
-      $obscount++;
-      print "Observation: $obscount\n" if $DEBUG;
-#    print Dumper($obsinfo)
-#      if $DEBUG;
-
-      # if we are suspended and we have not yet found the
-      # relevant observation then we need to skip until we do
-      # find it. This technique runs into problems if the MSB was
-      # suspended in the middle of a calibration that has now been
-      # deferred and is not present.
-      #print "SKIPPING: $skip\n";
-      #print "Current label: " . $obsinfo->{obslabel}."\n";
-      if ($skip && defined $suspend) {
-	# compare labels
-	if ($obsinfo->{obslabel} eq $suspend) {
-	  $skip = 0; # no longer skip
-	} else {
-	  # Do *not* skip if this is a calibration observation
-	  # calibration observation is defined by either an unknown
-	  # target, a standrd or one of Focus, Pointing, Noise, Skydip
-	  print "MODE: ". $obsinfo->{MODE} ."\n" if $DEBUG;
-	  print "AUTO: ". $obsinfo->{autoTarget}."\n" if $DEBUG;
-	  if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
-	     !$obsinfo->{autoTarget} && !$obsinfo->{standard}) {
-	    next;
-	  }
+    # if we are suspended and we have not yet found the
+    # relevant observation then we need to skip until we do
+    # find it. This technique runs into problems if the MSB was
+    # suspended in the middle of a calibration that has now been
+    # deferred and is not present.
+    #print "SKIPPING: $skip\n";
+    #print "Current label: " . $obsinfo->{obslabel}."\n";
+    if ($skip && defined $suspend) {
+      # compare labels
+      if ($obsinfo->{obslabel} eq $suspend) {
+	$skip = 0; # no longer skip
+      } else {
+	# Do *not* skip if this is a calibration observation
+	# calibration observation is defined by either an unknown
+	# target, a standrd or one of Focus, Pointing, Noise, Skydip
+	print "MODE: ". $obsinfo->{MODE} ."\n" if $DEBUG;
+	print "AUTO: ". $obsinfo->{autoTarget}."\n" if $DEBUG;
+	if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
+	    !$obsinfo->{autoTarget} && !$obsinfo->{standard}) {
+	  next;
 	}
       }
-
-      # Determine the mode
-      my $mode = $obsinfo->{MODE};
-      if ($self->can( $mode )) {
-	my %translated = $self->$mode( %$obsinfo );
-	my $odf = new SCUBA::ODF( Hash => \%translated );
-	$odf->vax_outputdir( $TRANS_DIR_VAX );
-
-	print $odf->summary ."\n" if $DEBUG;
-	push(@odfs, $odf);
-#      use Data::Dumper;
-#      print Dumper(\%translated);
-      } else {
-	throw OMP::Error::TranslateFail("Unknown observing mode: $mode");
-      }
-
     }
-  }
 
-  # Create the group
-  my $grp = new SCUBA::ODFGroup( ODFs => \@odfs);
+    # Determine the mode
+    my $mode = $obsinfo->{MODE};
+    if ($self->can( $mode )) {
+      my %translated = $self->$mode( %$obsinfo );
+      my $odf = new SCUBA::ODF( Hash => \%translated );
+      $odf->vax_outputdir( $TRANS_DIR_VAX );
 
-  #use Data::Dumper;
-  #print Dumper($grp);
+      print $odf->summary ."\n" if $DEBUG;
+      push(@odfs, $odf);
 
-  # Return data or write to disk
-  if ($asdata) {
-    if (wantarray) {
-      return @odfs;
-    } else {
-      return \@odfs;
-    }
-  } else {
-    # Write
-    $grp->outputdir($TRANS_DIR);
-    $grp->syncoutputdir();
-
-    # indicate that we are not writing SCUCD compatible
-    # files
-    for my $odf ($grp->odfs) {
+      # We know that these ODFs will not be sent directly to SCUCD
       $odf->writeSCUCD(0);
+
+      #      use Data::Dumper;
+      #      print Dumper(\%translated);
+    } else {
+      throw OMP::Error::TranslateFail("Unknown observing mode: $mode");
     }
 
-    # get the output file
-    my $file = $grp->writegroup();
-
-    # Make sure the queue can read these files
-    # regardless of how they were created
-    chmod 0666, $file;
-
-    # fix up all the odfs
-    for my $odffile ($grp->odfs) {
-      chmod 0666, $odffile->inputfile;
-
-      # and the related vax files
-      my %files = %{$odffile->vaxfiles};
-      for my $key (keys %files) {
-	chmod 0666, $files{$key};
-      }
-
-    }
-
-    return $file;
   }
+
+  # Return the translated objects
+  return @odfs;
 
 }
 

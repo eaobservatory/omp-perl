@@ -36,14 +36,15 @@ use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
 use Time::HiRes qw/ gettimeofday /;
 use Text::Wrap;
-use File::Copy;
+
+use OMP::Translator::DASHTML;
 
 use base qw/ OMP::Translator /;
 
-# Unix directory for writing ODFs
-our $TRANS_DIR = "/observe/ompodf";
-
 # VAX equivalent
+# this is hard-wired regardless of the output translation directory
+# since there is no easy way to decide how a unix path maps to
+# the vax mount
 our $VAX_TRANS_DIR = "OBSERVE:[OMPODF]";
 
 # This is the name of the source catalogue
@@ -59,36 +60,24 @@ our $DEBUG = 0;
 
 =item B<translate>
 
-Convert the science program object (C<OMP::SciProg>) into
-a observing sequence understood by the instrument data acquisition
-system.
+Convert the Science Program MSB object (C<OMP::MSB>) into a observing
+sequence understood by the instrument data acquisition system.
 
-  $html = OMP::Translate->translate( $sp );
-  $data = OMP::Translate->translate( $sp, 1);
-  @data = OMP::Translate->translate( $sp, 1);
+  $object = OMP::Translate::DAS->translate( $omp );
 
-By default returns the name of a HTML file. If the optional
-second argument is true, returns the contents of the HTML as a single
-string.
+Returns an object of class C<OMP::Translator::DASHTML>.
 
-This routine writes an HTML file and associated catalogue and pattern
-files. Backup files are also written that are timestamped to prevent
-overwriting.  An accuracy of 1 milli second is used in forming the
-unique names.
+MSBs will be pre-filtered by the caller, assumed to be C<OMP::Translator>.
 
 =cut
 
 sub translate {
   my $self = shift;
-  my $sp = shift;
+  my $msb = shift;
   my $asdata = shift;
 
-  # Project
-  my $projectid = $sp->projectID;
-
-  # Need to get the MSBs [which we assume will all be translated by this class]
-  # and prune them
-  my @msbs = $self->PruneMSBs($sp->msb);
+  print "MSB " . $msb->checksum . "\n"
+    if $DEBUG;
 
   # Now loop over MSBs
   # Targets have to be collated and written to a catalog file
@@ -99,250 +88,154 @@ sub translate {
   my %files;
 
   # Process standard information
-  $html .= $self->fixedHeader( $sp );
+  $html .= $self->fixedHeader( $msb );
   my $obscount = 0;
-  for my $msb (@msbs) {
 
-    # If we are going to do this by unrolling the sequence
-    # we have to be aware of two things:
-    #  1. The unrolled sequence will include repeats of
-    #     frontend/backend configuration and target information
-    #     So we will have to spot when things change
-    #  2. Waveplates must not be unrolled (they are by default)
-    #   Although I am not sure about this yet
-    #  3. Offset iterators must be converted back into grids
-    #     and patterns when used in conjunction with a Sample
+  # Project
+  my $projectid = $msb->projectID;
 
-    # With this in mind it may well be easier to deal with each
-    # observation separately and then unroll the sequence
-    # in the translator
+  # If we are going to do this by unrolling the sequence
+  # we have to be aware of two things:
+  #  1. The unrolled sequence will include repeats of
+  #     frontend/backend configuration and target information
+  #     So we will have to spot when things change
+  #  2. Waveplates must not be unrolled (they are by default)
+  #   Although I am not sure about this yet
+  #  3. Offset iterators must be converted back into grids
+  #     and patterns when used in conjunction with a Sample
 
-    # From a TSS perspective it makes sense to provide information
-    # as it changes rather than repeat it for each "observe"
-    # ie
-    #   - Configure Frontend
-    #   - Move to target1
-    #   - Pointing [choose your own target]
-    #   - Move to target1
-    #   - Configure backend
-    #   - Configure "cell"
-    #   - Do raster
-    #   - New target
-    #   - Configure Cell
-    #   - Do sample
+  # With this in mind it may well be easier to deal with each
+  # observation separately and then unroll the sequence
+  # in the translator
 
-    # Offset grids need some checking to distinguish "pattern"
-    # from "GRID" observation. A "PATTERN" will also require that
-    # we write the pattern file to disk.
+  # From a TSS perspective it makes sense to provide information
+  # as it changes rather than repeat it for each "observe"
+  # ie
+  #   - Configure Frontend
+  #   - Move to target1
+  #   - Pointing [choose your own target]
+  #   - Move to target1
+  #   - Configure backend
+  #   - Configure "cell"
+  #   - Do raster
+  #   - New target
+  #   - Configure Cell
+  #   - Do sample
 
-    # Catalogue files will need to include the velocity information
-    # This has ramifications for the Astro::Catalog class (and also
-    # for Astro::Coords).
+  # Offset grids need some checking to distinguish "pattern"
+  # from "GRID" observation. A "PATTERN" will also require that
+  # we write the pattern file to disk.
 
-    # Astro::Coords may have to include offset information as well
-    # in order to support REFERENCE positions
-    # For the DAS all REFERENCE positions must be supplied as an
-    # offset (ie need to be able to subtract two coordinates
-    # and convert to tangent plane)
+  # Catalogue files will need to include the velocity information
+  # This has ramifications for the Astro::Catalog class (and also
+  # for Astro::Coords).
 
-    # MSB header information
-    $html .= $self->msbHeader( $msb );
+  # Astro::Coords may have to include offset information as well
+  # in order to support REFERENCE positions
+  # For the DAS all REFERENCE positions must be supplied as an
+  # offset (ie need to be able to subtract two coordinates
+  # and convert to tangent plane)
 
-    # Correct offset issues
-    $self->correct_offsets( $msb );
+  # MSB header information
+  $html .= $self->msbHeader( $msb );
 
-    # Unroll the observations
-    my @obs = $msb->unroll_obs();
+  # Correct offset issues
+  $self->correct_offsets( $msb );
 
-    # Fudge Raster observations that have more than one offset
-    @obs = map { $self->fudge_raster_offsets($_) } @obs;
+  # Unroll the observations
+  my @obs = $msb->unroll_obs();
 
-    # Ignore suspension for now
-    for my $obsinfo ( @obs ) {
-      $obscount++;
+  # Fudge Raster observations that have more than one offset
+  @obs = map { $self->fudge_raster_offsets($_) } @obs;
 
-      # Store the target
-      push(@targets, $obsinfo->{coords}) if defined $obsinfo->{coords};
+  # Ignore suspension for now
+  for my $obsinfo ( @obs ) {
+    $obscount++;
 
-      # What are we going to do about PATTERN files???
-      # In general we can not write them to disk in this phase
-      # but we also need to make sure we write them with a unique
-      # name so that the HTML can track them.
-      # The HTML is pretty fixed at this point (unless we insert 
-      # A large string and do a replacement)
-      # We could generate the text for the file and return it
-      # in addition to the HTML, indexed by the name used in the XML??
-      # Targets are different because we need to index them by name once
-      # we are complete.
+    # Store the target
+    push(@targets, $obsinfo->{coords}) if defined $obsinfo->{coords};
 
-      print STDERR Dumper($obsinfo) if $DEBUG;
+    # What are we going to do about PATTERN files???
+    # In general we can not write them to disk in this phase
+    # but we also need to make sure we write them with a unique
+    # name so that the HTML can track them.
+    # The HTML is pretty fixed at this point (unless we insert 
+    # A large string and do a replacement)
+    # We could generate the text for the file and return it
+    # in addition to the HTML, indexed by the name used in the XML??
+    # Targets are different because we need to index them by name once
+    # we are complete.
 
-      # Start new observation
-      my $mode = $self->obsMode( %$obsinfo );
-      $html .= "<hr><h2>Observation #$obscount: $mode</h2>\n";
+    print STDERR Dumper($obsinfo) if $DEBUG;
 
-      # Project reminder
-      $html .= "<B>Please remember to change project id to '<blink>$projectid</blink>' if it is not already set.</b><p>";
+    # Start new observation
+    my $mode = $self->obsMode( %$obsinfo );
+    $html .= "<hr><h2>Observation #$obscount: $mode</h2>\n";
 
-
-      # Quick variable to indicate whether we are a science observation
-      my $issci = 0;
-      $issci = 1 if ($obsinfo->{MODE} eq 'SpIterStareObs' ||
-		    $obsinfo->{MODE} eq 'SpIterRasterObs');
-
-      # Want the target and the frontend in a table
-      $html .= "<table>";
-
-      # Target information (assuming we have not already specified it)
-      $html .= "<tr valign=\"top\">\n";
-
-      # BE/FE configuration are not required for FOCUS and POINTING
-      if ($issci) {
-
-	# Front end configuration (assuming we have not already specified it)
-	$html .= "<td>";
-	$html .= $self->feConfig( %$obsinfo );
-
-	# Back end
-	$html .= $self->beConfig( %$obsinfo );
-	$html .= "</td>";
-      }
-
-      $html .= "<td>\n";
-      $html .= $self->targetConfig( %$obsinfo );
-      $html .= "</td>";
+    # Project reminder
+    $html .= "<B>Please remember to change project id to '<blink>$projectid</blink>' if it is not already set.</b><p>";
 
 
-      # Switch mode
+    # Quick variable to indicate whether we are a science observation
+    my $issci = 0;
+    $issci = 1 if ($obsinfo->{MODE} eq 'SpIterStareObs' ||
+		   $obsinfo->{MODE} eq 'SpIterRasterObs');
+
+    # Want the target and the frontend in a table
+    $html .= "<table>";
+
+    # Target information (assuming we have not already specified it)
+    $html .= "<tr valign=\"top\">\n";
+
+    # BE/FE configuration are not required for FOCUS and POINTING
+    if ($issci) {
+
+      # Front end configuration (assuming we have not already specified it)
       $html .= "<td>";
-      $html .= $self->switchConfig( %$obsinfo ) if $issci;
+      $html .= $self->feConfig( %$obsinfo );
 
-      # Actual observing mode (inc cell)
-      my $otmode = $obsinfo->{MODE};
-      if ($self->can( $otmode )) {
-	# Need to return HTML + optional file info
-	my ($htmldata, %newfiles) = $self->$otmode( %$obsinfo );
+      # Back end
+      $html .= $self->beConfig( %$obsinfo );
+      $html .= "</td>";
+    }
 
-	# Combine with previous data
-	$html .= $htmldata;
-	for my $newfile (keys %newfiles) {
-	  # assume each file name is unique
-	  $files{$newfile} = $newfiles{$newfile};
-	}
+    $html .= "<td>\n";
+    $html .= $self->targetConfig( %$obsinfo );
+    $html .= "</td>";
 
-      } else {
-	throw OMP::Error::TranslateFail("Do not know how to translate observations in mode: $otmode");
+
+    # Switch mode
+    $html .= "<td>";
+    $html .= $self->switchConfig( %$obsinfo ) if $issci;
+
+    # Actual observing mode (inc cell)
+    my $otmode = $obsinfo->{MODE};
+    if ($self->can( $otmode )) {
+      # Need to return HTML + optional file info
+      my ($htmldata, %newfiles) = $self->$otmode( %$obsinfo );
+
+      # Combine with previous data
+      $html .= $htmldata;
+      for my $newfile (keys %newfiles) {
+	# assume each file name is unique
+	$files{$newfile} = $newfiles{$newfile};
       }
 
-      $html .= "</td>";
-      $html .= "</table>\n";
-
+    } else {
+      throw OMP::Error::TranslateFail("Do not know how to translate observations in mode: $otmode");
     }
+
+    $html .= "</td>";
+    $html .= "</table>\n";
 
   }
 
   $html .= $self->fixedFooter();
 
-  if ($asdata) {
-    # How do I return the catalogue????
-    # Return it as Hash until we can be bothered to develop an object
-    return { 
-	    HTML => $html,
-	    TARGETS => \@targets,
-	    FILES => \%files,
-	   };
+  # Create the object form
+  return new OMP::Translator::DASHTML( $html, \@targets, \%files, 
+				       $CATALOGUE, $projectid);
 
-  } else {
-
-    # Write this HTML file to disk along with the patterns and all the
-    # target information to a catalogue
-
-    # We always write backup files tagged with the current time to millisecond
-    # resolution.
-    my ($epoch, $mus) = gettimeofday;
-    my $time = gmtime();
-    my $suffix = $time->strftime("%Y%m%d_%H%M%S") ."_".substr($mus,0,3);
-
-    # The public easy to recognize name of the html file
-    my $htmlroot = File::Spec->catfile( $TRANS_DIR, "hettrans" );
-    my $htmlfile = $htmlroot . ".html";
-
-    # The internal name
-    my $file = $htmlroot . "_" . $suffix . ".html";
-    open my $fh, ">$file" or 
-      throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
-
-    print $fh $html;
-
-    close($fh) 
-      or throw OMP::Error::FatalError("Error closing HTML translation [$file]: $!\n");
-
-    # And make sure it is readable regardless of umask
-    chmod 0666, $file;
-
-    # Now for a soft link - the html file is not important because we will
-    # return the timestamped file to prevent cache errors in mozilla
-    # It is there as a back up
-    if (-e $htmlfile) {
-      unlink $htmlfile;
-    }
-    symlink $file, $htmlfile;
-
-    # Now the pattern files et al
-    for my $f (keys %files) {
-      open my $fh, ">$f" or
-	throw OMP::Error::FatalError("Could not write translation file [$file] to disk: $!\n");
-
-      for my $l ( @{ $files{$f} } ) {
-	chomp($l);
-	print $fh "$l\n";
-      }
-
-      close($fh) 
-	or throw OMP::Error::FatalError("Error closing translation [$file]: $!\n");
-
-      # And make sure they are readable regardless of umask
-      chmod 0666, $f;
-
-      # and make a backup
-      copy( $f, $f . "_" . $suffix);
-
-    }
-
-    # Now the catalogue file
-    my $cat;
-    eval {
-       $cat = new Astro::Catalog(Format => 'JCMT',
-				 File => '/local/progs/etc/poi.dat');
-    };
-    unless (defined $cat) {
-      warnings::warnif("Unable to read local pointing catalogue.");
-      $cat = new Astro::Catalog() unless defined $cat;
-    }
-    $cat->origin("JCMT DAS Translator");
-
-    # For each of the targets add the projectid
-    for (@targets) {
-      $_->comment("Project: $projectid");
-    }
-
-    # Insert the new sources at the start
-    unshift(@{$cat->allstars},
-	    map {new Astro::Catalog::Star(Coords=>$_)} @targets);
-
-    # And write it out
-    my $outfile = File::Spec->catfile( $TRANS_DIR, $CATALOGUE);
-    $cat->write_catalog( File => $outfile, Format => 'JCMT' );
-
-    # And make sure it is readable regardless of umask
-    chmod 0666, $outfile;
-
-    # and make a backup
-    copy( $outfile, $outfile . "_" . $suffix);
-
-
-    return $file;
-  }
 }
 
 =item B<debug>
@@ -359,26 +252,6 @@ sub debug {
 
   $DEBUG = ($state ? 1 : 0 );
 }
-
-=item B<transdir>
-
-Override the translation directory.
-
-  OMP::Translator::DAS->transdir( $dir );
-
-Note that this does not override the VAX name used for processing
-inside files since that can not be determined directly from
-this directory name.
-
-=cut
-
-sub transdir {
-  my $class = shift;
-  my $dir = shift;
-
-  $TRANS_DIR = $dir;
-}
-
 
 =back
 
@@ -574,7 +447,7 @@ sub fixedHeader {
   # Project
   my $project = $sp->projectID;
 
-  $html .= "<HTML><HEAD><TITLE>Project $project</TITLE></HEAD><BODY>\n";
+  $html .= "<HTML><HEAD><TITLE>Project $project</TITLE></HEAD><BODY><!-- END HEADER ->\n";
 
   my $templatefile = lc($project) . ".txt";
   my $ompurl = OMP::Config->getData('omp-url');
@@ -641,7 +514,7 @@ Standard footer to close the HTML associated with this translation.
 sub fixedFooter {
   my $self = shift;
 
-  my $html = "<hr><em>Translated on ".gmtime(time)."UTC\n</BODY></HTML>";
+  my $html = "<!-- BEGIN FOOTER --><hr><em>Translated on ".gmtime(time)."UTC\n</BODY></HTML>";
   return $html;
 }
 
@@ -1125,9 +998,6 @@ sub SpIterStareObs {
       $html .= "<tr><td>".$_->[0]."</td><td>".$_->[1]."</td></tr>\n";
     }
     $html .="</table>\n";
-
-    # Now create the real file name (full path)
-    $pattfile = File::Spec->catfile($TRANS_DIR,$pattfile);
 
     # Store it
     $extras{$pattfile} = \@lines;

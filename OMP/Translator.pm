@@ -17,13 +17,13 @@ This class converts a science program object (an C<OMP::SciProg>)
 into a sequence understood by the data acquisition system.
 
 In the case of SCUBA, an Observation Definition File (ODF) is
-generated (or if there is more than one observation a SCUBA
-macro). For DAS heterodyne systems a HTML summary of the
-MSB will be generated.
+generated (or multiple ODFs). For DAS heterodyne systems a HTML
+summary of the MSB will be generated. For ACSIS, XML configuration files
+are generated.
 
-The actually translation is done in a subclass. The top level class
+The actual translation is done in a subclass. The top level class
 determines the correct class to use for the MSB and delegates the
-translation to that class.
+translation of each observation within the MSB to that class.
 
 =cut
 
@@ -31,15 +31,19 @@ use 5.006;
 use strict;
 use warnings;
 
+use File::Spec;
+use Scalar::Util qw/ blessed /;
+
+use lib qw| /home/timj/dev/ocsq/lib |;
+use lib qw| /jac_sw/hlsroot/ocsq/lib |;
+use Queue::EntryXMLIO qw/ writeXML /;
+
 use OMP::Constants qw/ :msb /;
 use OMP::SciProg;
 use OMP::Error;
 use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
-
-our $TRANS_DIR;
-
 our $DEBUG = 0;
 
 =head1 METHODS
@@ -52,13 +56,25 @@ Convert the science program object (C<OMP::SciProg>) into
 a observing sequence understood by the instrument data acquisition
 system.
 
-  $odf = OMP::Translate->translate( $sp );
+  $xmlfile = OMP::Translate->translate( $sp );
   $data = OMP::Translate->translate( $sp, 1);
   @data = OMP::Translate->translate( $sp, 1);
 
 The actual translation is implemented by the relevant subclass.
-Currently Heterodyne and SCUBA data can be translated but a single
-Science Program can not include a mixture of Heterodyne and SCUBA MSBs.
+Currently JCMT Heterodyne and SCUBA data can be translated.
+
+By default, this method returns the name of an XML file that specifies
+the location of each translated configuration using the dialect
+understood by the standard JAC observing queue interface. 
+
+If the optional argument is true, this method will return either a
+list of translated configuration objects (the type of which depends on
+the instrument) or a reference to an array of such objects. The expected
+object classes will be:
+
+  SCUBA -   SCUBA::ODF
+  ACSIS -   JAC::OCS::Config
+  DAS   -   Reference to hash
 
 If there is more than one MSB to translate, REMOVED MSBs will be ignored.
 
@@ -80,7 +96,22 @@ sub translate {
   # Return immediately if we have nothing to translate
   return () if scalar(@msbs) == 0;
 
+  # The high level translator classes must process each MSB in turn
+  # and on the basis of the instrument content, delegate the content
+  # to an instrument specific translator.
+  # The complication is that if an MSB includes multiple Observations
+  # each of which is a different instrument, the translator must
+  # delegate each Observation to each instrument in turn.
+
+  # What we will end up doing is
+  #   1. Unrolling the MSBs into individual observes
+  #   2. sending the unrolled information one at a time to each translator
+  #   3. hold the translated output in memory
+  #   4. write out everything at once
+
   # Translator class associated with each instrument
+  # This should be configuration driven
+  #  OMP::Config->getData( 'translator.SCUBA' );
   my %class_lut = ( SCUBA => 'SCUBA',
 		    A3 => 'DAS',
 		    B3 => 'DAS',
@@ -92,44 +123,12 @@ sub translate {
 		    RXWC => 'DAS',
 		    RXWD => 'DAS',
 		    RXW=> 'DAS',
+		    DAS => 'DAS',
+		    ACSIS => 'ACSIS',
+		    HARP => 'ACSIS',
 		  );
 
-  # We need to farm off this data to a subclass that knows how to
-  # process the instruments in question. For now, throw an error
-  # if we are mixing SCUBA with Heterodyne
-  my $class;
-  for my $msb (@msbs) {
-    for my $obs ($msb->obssum) {
-      my $inst = $obs->{instrument};
-      if (exists $class_lut{$inst}) {
-	my $nclass = $class_lut{$inst};
-	if (!defined $class) {
-	  # first time so we just store it
-	  $class = $nclass;
-	} elsif ($class ne $nclass) {
-	  # Different classes required. Can not yet handle this
-	  throw OMP::Error::TranslateFail("We can not currently translate MSBs containing more than one observing system [$class and $nclass in this case]");
-	}
-	
-      } else {
-	throw OMP::Error::TranslateFail("Do not know how to translate MSBs for instrument $inst");
-      }
-    }
-  }
 
-  # Sanity check [should not be important]
-  throw OMP::Error::TranslateFail("Internal error: Translator Class not set")
-    if ! defined $class;
-
-  # Create the full class name
-  $class = $thisclass . '::' . $class;
-  print "Class is : $class\n" if $DEBUG;
-
-  # And load it on demand
-  eval "require $class;";
-  if ($@) {
-    throw OMP::Error::FatalError("Error loading class '$class': $@\n");
-  }
 
   # Log the translation details
   my $projectid = $sp->projectID;
@@ -138,17 +137,255 @@ sub translate {
 			     .join("\t",@checksums)
 			   );
 
-  # Set DEBUGGING in the class depending on the debugging state here
-  $class->debug( $DEBUG );
+  # Loop over each MSB
+  my @configs; # Somewhere to put the translated output
+  for my $msb (@msbs) {
 
-  # And set the translation directory if defined
-  $class->transdir( $TRANS_DIR ) if defined $TRANS_DIR;
+    # Survey Containers in child nodes present a problem since
+    # the _get_SpObs method does not return clones for each target
+    # that is present in the survey container (maybe it should)
+    # That logic is currently contained in the SpSurveyContainer
+    # parse and the MSB stringification. MSB stringification also
+    # correctly handles the override targets from a parent survey
+    # container
 
-  # Now translate (but being careful to propogate calling context)
-  if (wantarray) {
-    return $class->translate($sp, $asdata);
+    # rather than duplicating container logic in another place
+    # we either need to
+    # 1. Fix _get_SpObs (or add a new method) to return cloned 
+    #    SpObs nodes with the correct target available
+    # 2. Reparse from a stringified form
+
+    # 2 is quicker but we also need to solve the suspend problem
+    # since survey containers do not currently deal with obs_counters
+    # properly when summarising.
+
+    # Force stringify
+    my $msbxml = "$msb";
+
+    # regenerate
+    my $fullmsb = new OMP::MSB( XML => $msbxml,
+				PROJECTID => $msb->projectID,
+				OTVERSION => $msb->ot_version,
+				TELESCOPE => $msb->telescope,
+			      );
+
+    # Get all the component nodes (Sp* is fine 
+    # since we want SpInst and SpObsComp)
+    # unless this MSB is actually an SpObs
+    my @components;
+    @components = grep { $_->getName =~ /Sp.*/ && $_->getName ne 'SpObs'} 
+      $fullmsb->_tree->findnodes( 'child::*' )
+	unless $fullmsb->_tree->getName eq 'SpObs';
+
+    # Need to include all the code for determining whether the MSB
+    # was suspended and whether to skip the observation or not
+    my $suspend = $msb->isSuspended;
+
+    # by default do not skip observations unless we are suspended
+    my $skip = ( defined $suspend ? 1 : 0);
+
+    # Loop over each SpObs separately since that controls the 
+    # instrument granularity (each SpObs can only refer to a single instrument)
+    for my $spobs ($fullmsb->_get_SpObs) {
+
+      # We need to create a mini MSB object derived from each SpObs
+      # For this to work, we need to copy the Component nodes from the
+      # main SpMSB into the start of the SpObs itself
+
+      # Get the first child of the SpObs (as an insertion point)
+      my $child = $spobs->firstChild;
+
+      # Insert telescope information
+
+      # now insert the component nodes
+      for my $node ( @components ) {
+	$spobs->insertBefore( $node, $child );
+      }
+
+      # Create a dummy MSB object (which will be fine so long as we
+      # do not access attributes of an MSB such as isSuspended)
+      my $tmpmsb = new OMP::MSB( TREE => $spobs,
+				 PROJECTID => $msb->projectID,
+				 OTVERSION => $msb->ot_version,
+			       );
+
+      # Now we can ask this MSB for its instrument
+      # First we need to summarise the observation
+      my @sum = $tmpmsb->obssum();
+
+      # And verify that we can load the correct translator
+      # by getting the instrument
+      my $inst = uc($sum[0]->{instrument});
+
+      # and overriding this with backend if we have one
+      $inst = uc($sum[0]->{freqconfig}->{beName})
+	if (exists $sum[0]->{freqconfig} && 
+	    exists $sum[0]->{freqconfig}->{beName});
+
+
+      # check we have the class
+      throw OMP::Error::TranslateFail("Instrument '$inst' has no corresponding Translator class")
+	unless exists $class_lut{$inst};
+
+      # Create the full class name
+      my $class = $class_lut{$inst};
+      $class = $thisclass . '::' . $class;
+      print "Class is : $class\n" if $DEBUG;
+
+      # Load the class
+      eval "require $class;";
+      if ($@) {
+	throw OMP::Error::FatalError("Error loading class '$class': $@\n");
+      }
+
+      # Set DEBUGGING in the class depending on the debugging state here
+      $class->debug( $DEBUG );
+
+      # And forward to the correct translator
+      # We always ask for the DATA version.
+      push(@configs, $class->translate( $tmpmsb ) );
+
+    }
+
+  }
+
+  # Now we have an array of translated objects
+  # Array of SCUBA::ODF objects
+  #   - What do we do about the waveplate files?
+  # Array of JAC::OCS::Config objects
+  #
+  # Now need to either return them or write them to disk
+  # If we write them to disk we return the QueueEntry XML to the
+  # caller.
+
+  # SCUBA::ODF and JAC::OCS::Config should have the same interface
+  # for writing to disk. OMP::Translator::DASHTML also matches.
+
+  # If they want the data we do not write anything
+  if ($asdata) {
+    if (wantarray) {
+      return @configs;
+    } else {
+      return \@configs;
+    }
   } else {
-    return scalar($class->translate($sp,$asdata));
+    # We write to disk and return the name of the wrapper file
+    return $self->write_configs( \@configs );
+  }
+}
+
+
+=item B<outputdir>
+
+Set (or retrieve) the default output directory for writing config information.
+Initially set to current working directory.
+
+  $dir = OMP::Translator->outputdir();
+  OMP::Translator->outputdir();
+
+=cut
+
+{
+  my $OUTPUT_DIR = File::Spec->curdir;
+  sub outputdir {
+    my $self = shift;
+    if (@_) {
+      $OUTPUT_DIR = shift;
+    }
+    return $OUTPUT_DIR;
+  }
+}
+
+=item B<backwards_compatibility_mode>
+
+Controls the global state of the translator when writing output files.
+By default, files are written in a format suitable for uploading to
+the new OCS queue using an XML format.
+
+If this switch is enabled, the file name returned by the translator
+will be instrument specific and multiple instruments can not be
+combined within a single translation.
+
+=cut
+
+  {
+    my $cmode = 0;
+    sub backwards_compatibility_mode {
+      my $class = shift;
+      if ( @_ ) {
+	$cmode = shift;
+      }
+      return $cmode;
+    }
+  }
+
+
+=item B<write_configs>
+
+Write each config object to disk and return the name of an XML
+file containing all the information required for loading the OCS queue.
+
+  $qxml = OMP::Translator->write_configs( \@configs );
+
+This method does not care what type of object is passed in so long
+as the following methods are supported:
+
+ telescope  - name of telescope
+ instrument - name of instrument
+ duration   - estimated duration (Time::Seconds)
+ write_file - write file to disk and return name of file
+
+An exception is thrown if the telescope is not the same for each
+config.
+
+By default the configs are written to the directory specified by the
+C<outputdir> class method. Optional hash argument of "transdir" can
+be used to specify a different location.
+
+ $qxml = OMP::Translator->write_configs( \@configs, transdir => $dir);
+
+=cut
+
+sub write_configs {
+  my $class = shift;
+  my $configs = shift;
+  my %opts = @_;
+
+  # Specified outputdir overrides default
+  my $outdir = (defined $opts{transdir} ? $opts{transdir} : 
+		$class->outputdir );
+
+
+  if ( $class->backwards_compatibility_mode) {
+
+    # check our config objects are all the same type
+    my $class = blessed( $configs->[0] );
+    my $inst = $configs->[0]->instrument;
+    for my $c ( @$configs ) {
+      if ( blessed($c) ne $class) {
+	throw OMP::Error::TranslateFail( "Attempting to write different instrument configurations to incompatible output files. Compatibility mode only supports a single translated instrument/backend [$inst vs ".$c->instrument."]");
+      }
+    }
+
+    # Now work out the container class
+    my $cclass = $configs->[0]->container_class();
+    eval "require $cclass;";
+    throw OMP::Error::FatalError("Unable to load container class $cclass: $@")
+      if $@;
+    my $container = $cclass->new();
+    $container->push_config( @$configs[1..$#$configs] );
+
+    # Now write the container
+    return $container->write_file( $outdir, { chmod => 0666 });
+
+  } else {
+
+    # Delegate the writing to the XMLIO class
+    return Queue::EntryXMLIO::writeXML({outputdir => $outdir,
+					fprefix => "translated",
+					chmod => 0666,
+				       },
+				       @$configs );
   }
 
 }
@@ -165,7 +402,7 @@ Routines common to more than one translator.
 
 Rotate coordinates through a specified position angle.
 Position Angle is defined as "East of North". This means
-that the rotation angle is a reverse of the normal mathematical defintion
+that the rotation angle is a reverse of the normal mathematical definition
 of "North of East"
 
           N
@@ -262,8 +499,21 @@ sub PruneMSBs {
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2003 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =head1 AUTHOR
 
