@@ -607,6 +607,8 @@ sub list_projects_output {
 
     foreach my $project (@$projects) {
       print $q->h2('Project ' . $project->projectid);
+      my %details = (projectid=>$project->projectid, password=>'***REMOVED***');
+      proj_status_table($q, %details);
 
       print $q->h3('MSBs observed');
       fb_msb_observed($q, $project->projectid);
