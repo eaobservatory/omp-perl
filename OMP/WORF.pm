@@ -316,22 +316,22 @@ sub parse_display_options {
 
   if( exists( $options->{xstart} ) &&
       defined( $options->{xstart} ) &&
-      $options->{xstart} =~ /^\d+$/ ) {
+      $options->{xstart} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{xstart} = $options->{xstart};
   }
   if( exists( $options->{xend} ) &&
       defined( $options->{xend} ) &&
-      $options->{xend} =~ /^\d+$/ ) {
+      $options->{xend} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{xend} = $options->{xend};
   }
   if( exists( $options->{ystart} ) &&
       defined( $options->{ystart} ) &&
-      $options->{ystart} =~ /^\d+$/ ) {
+      $options->{ystart} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{ystart} = $options->{ystart};
   }
   if( exists( $options->{yend} ) &&
       defined( $options->{yend} ) &&
-      $options->{yend} =~ /^\d+$/ ) {
+      $options->{yend} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{yend} = $options->{yend};
   }
   if( exists( $options->{autocut} ) &&
@@ -353,12 +353,12 @@ sub parse_display_options {
   }
   if( exists( $options->{zmin} ) &&
       defined( $options->{zmin} ) &&
-      $options->{zmin} =~ /^-?[0-9e\-]+$/ ) {
+      $options->{zmin} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{zmin} = $options->{zmin};
   }
   if( exists( $options->{zmax} ) &&
       defined( $options->{zmax} ) &&
-      $options->{zmax} =~ /^-?[0-9e\-]+$/ ) {
+      $options->{zmax} =~ /^-?[0-9e\-\.]+$/ ) {
     $parsed{zmax} = $options->{zmax};
   }
   if( exists( $options->{cut} ) &&
