@@ -517,10 +517,12 @@ sub rejectMSB {
       throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
     }
 
-
     # Default comment
     $reason = "This MSB was observed but was not accepted by the observer/TSS. No reason was given."
       unless defined $reason;
+
+    # Add prefix
+    $reason = "MSB rejected: $reason";
 
     # Form the comment object
     my $comment = new OMP::Info::Comment( status => OMP__DONE_REJECTED,
