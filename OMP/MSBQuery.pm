@@ -296,8 +296,12 @@ sub sql {
 
   # Get the names of the temporary tables
   # Sybase limit if 13 characters for uniqueness
-  my $tempcount = "#ompcnt";
-  my $tempmsb = "#ompmsb";
+  # Assumes we are connecting to OMP::DBbackend
+  my $tempcount = OMP::DBbackend->get_temptable_prefix."ompcnt";
+
+  # Get string we need to use in select to signify we are 
+  # creating a temporary table
+  my $tempnew = OMP::DBbackend->get_temptable_constructor();
 
 
   # Additionally there are a number of constraints that are
@@ -316,7 +320,9 @@ sub sql {
   $constraint_sql .= " AND M.remaining > 0 " if $constraints{remaining};
   $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
     if $constraints{allocation};
-  $constraint_sql .= " AND P.state = 1 " if $constraints{state};
+  $constraint_sql .= " AND P.state = ".
+    OMP::DBbackend->get_boolean_true 
+    ." " if $constraints{state};
 
   # It is more efficient if we only join the COI table
   # if we are actually going to use it. Also if no coitable
@@ -356,9 +362,9 @@ sub sql {
   # by msbid and by country. Have not really worked out why
   # we need DISTINCT here....
   my $top_sql = "(SELECT
-          DISTINCT M.msbid, M.obscount, Q.country, COUNT(*) AS nobs
-           INTO $tempcount
-           FROM $msbtable M,$obstable O, $projtable P " .
+         DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
+           INTO $tempnew $tempcount
+            FROM $msbtable M,$obstable O, $projtable P " .
 	     join(" ", @join_tables)
           ."  WHERE M.msbid = O.msbid
               AND P.projectid = M.projectid $u_sql";
@@ -376,10 +382,13 @@ sub sql {
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
   # We always need to join the QUEUE table since that includes the priority.
-  my $bottom_sql = "
-              GROUP BY M.msbid, Q.country)
-               SELECT M2.*, P2.taumin, P2.taumax,
-                (convert(float,Q2.tagpriority) + convert(float,M2.priority)/100) AS priority
+  my $bottom_sql = "GROUP BY M.msbid, Q.country );
+              SELECT M2.*, P2.taumin, P2.taumax,
+                (".
+ 		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority")
+		      . " + " .
+			OMP::DBbackend->get_sql_typecast("float","M2.priority")
+			    . "/100) AS newpriority
                 FROM $msbtable M2, $tempcount T, $projtable P2, 
                        $projqueuetable Q2
                  WHERE (M2.msbid = T.msbid
@@ -387,9 +396,10 @@ sub sql {
                     AND M2.projectid = P2.projectid 
                       AND M2.projectid = Q2.projectid 
                         AND Q2.country = T.country)
-                          ORDER BY priority
+                          ORDER BY newpriority";
 
-                DROP TABLE $tempcount";
+# This needs to be put back in for Sybase and fixed for Postgres
+#                DROP TABLE $tempcount";
 
   # Now need to put this SQL into the template query
   my $sql = "$top_sql
