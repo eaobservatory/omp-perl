@@ -57,55 +57,55 @@ $cgi->html_title("WORF: UKIRT WWW Observing Remotely Facility");
 
 # Header translation hashes
 my %headers = (ufti => {objname => "OBJECT",
-  											utstart => "DATE-OBS",
-  											exptime => "EXP_TIME",
-  											filter => "FILTER",
-  											grating => "",
-  											wavelength => "",
-  											airmass => "AMSTART",
-  											RA => "RABASE",
-  											dec => "DECBASE",
-  										  project => "PROJECT",
-  										  MSBID => "MSBID" },
-  						 michelle => {objname => "OBJECT",
-  													utstart => "DATE-OBS",
-  													exptime => "OBSTIME",
-  													filter => "FILTER",
-  													grating => "GRATNAME",
-  													wavelength => "GRATPOS",
-  													airmass => "AMSTART",
-  													RA => "RABASE",
-  													dec => "DECBASE",
-  												  project => "PROJECT",
-  												  MSBID => "MSBID" },
-  						 cgs4 => {objname => "OBJECT",
-  											utstart => "RUTSTART",
-  											exptime => "EXPOSED",
-  											filter => "",
-  											grating => "GRATING",
-  											wavelength => "GLAMBDA",
-  											airmass => "AMSTART",
-  											RA => "MEANRA",
-  											dec => "MEANDEC",
-  										  project => "PROJECT",
-  										  MSBID => "MSBID" } );
+                        utstart => "DATE-OBS",
+                        exptime => "EXP_TIME",
+                        filter => "FILTER",
+                        grating => "",
+                        wavelength => "",
+                        airmass => "AMSTART",
+                        RA => "RABASE",
+                        dec => "DECBASE",
+                        project => "PROJECT",
+                        MSBID => "MSBID" },
+               michelle => {objname => "OBJECT",
+                            utstart => "DATE-OBS",
+                            exptime => "OBSTIME",
+                            filter => "FILTER",
+                            grating => "GRATNAME",
+                            wavelength => "GRATPOS",
+                            airmass => "AMSTART",
+                            RA => "RABASE",
+                            dec => "DECBASE",
+                            project => "PROJECT",
+                            MSBID => "MSBID" },
+               cgs4 => {objname => "OBJECT",
+                        utstart => "RUTSTART",
+                        exptime => "EXPOSED",
+                        filter => "",
+                        grating => "GRATING",
+                        wavelength => "GLAMBDA",
+                        airmass => "AMSTART",
+                        RA => "MEANRA",
+                        dec => "MEANDEC",
+                        project => "PROJECT",
+                        MSBID => "MSBID" } );
 
 # Reduced group file suffixes (for each instrument, a list of suffixes that will
 # be displayed for later viewing)
 # If the array is empty, then display everything available
 my %groupsuffix = (ufti => [],
-  								 michelle => [],
-  								 cgs4 => ["fc","dbs","sp","ypr"],
-  								 ircam => [] );
+                   michelle => [],
+                   cgs4 => ["fc","dbs","sp","ypr"],
+                   ircam => [] );
 
 # Set up the UT date
 my $ut;
   {
-  	my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
-  	$ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
+    my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
+    $ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
 
 # for demo purposes
-#  	$ut = "20020310";
+#    $ut = "20020310";
   }
 
 # write the page
@@ -130,13 +130,13 @@ sub worf_output {
 # The 'view' parameter must be either yes or no.
 # Default to 'no'.
 
-  	if($query->param('view') eq 'yes') {
-  		$q_view = 'yes';
-  	} else {
-  		$q_view = 'no';
-  	}
+    if($query->param('view') eq 'yes') {
+      $q_view = 'yes';
+    } else {
+      $q_view = 'no';
+    }
   } else {
-  	$q_view = 'no';
+    $q_view = 'no';
   }
   
   if($query->param('file')) {
@@ -145,21 +145,21 @@ sub worf_output {
 # characters that can allow for shell manipulation. If it doesn't match the proper
 # format, set it to an empty string.
 
-  	# first, strip out anything that's not a letter, a digit, an underscore, or a period
-  	
-  	my $t_file = $query->param('file');
-  	$t_file =~ s/[^a-zA-Z0-9\._]//g;
-  	
-  	# now check to make sure it's in some sort of format -- one or two letters, eight digits,
-  	# an underscore, and ending with .sdf
-  	
-  	if($t_file =~ /^[a-zA-Z]{1,2}\d{8}_\w+\.sdf$/) {
-  		$q_file = $t_file;
-  	} else {
-  		$q_file = '';
-  	}
+    # first, strip out anything that's not a letter, a digit, an underscore, or a period
+    
+    my $t_file = $query->param('file');
+    $t_file =~ s/[^a-zA-Z0-9\._]//g;
+    
+    # now check to make sure it's in some sort of format -- one or two letters, eight digits,
+    # an underscore, and ending with .sdf
+    
+    if($t_file =~ /^[a-zA-Z]{1,2}\d{8}_\w+\.sdf$/) {
+      $q_file = $t_file;
+    } else {
+      $q_file = '';
+    }
   } else {
-  	$q_file = '';
+    $q_file = '';
   }
   
   if($query->param('instrument')) {
@@ -167,26 +167,26 @@ sub worf_output {
 # The 'instrument' parameter must match one of the strings listed in the @instrument array.
 # If it doesn't, set it to an empty string.
   
-  	# first, strip out anything that's not a letter or a number
-  	
-  	my $t_instrument = $query->param('instrument');
-  	$t_instrument =~ s/[^a-zA-Z0-9]//g;
-  	
-  	# this parameter needs to match exactly one of the strings listed in @instruments
-  	
-  	my $match = 0;
-  	
-  	foreach my $t_inst (@instruments) {
-  		if($t_instrument eq $t_inst) {
-  			$q_instrument = $t_inst;
-  			$match = 1;
-  		}
-  	}
-  	if ($match == 0) {
-  		$q_instrument = "";
-  	}
+    # first, strip out anything that's not a letter or a number
+    
+    my $t_instrument = $query->param('instrument');
+    $t_instrument =~ s/[^a-zA-Z0-9]//g;
+    
+    # this parameter needs to match exactly one of the strings listed in @instruments
+    
+    my $match = 0;
+    
+    foreach my $t_inst (@instruments) {
+      if($t_instrument eq $t_inst) {
+        $q_instrument = $t_inst;
+        $match = 1;
+      }
+    }
+    if ($match == 0) {
+      $q_instrument = "";
+    }
   } else {
-  	$q_instrument = '';
+    $q_instrument = '';
   }
 
   if($query->param('obstype')) {
@@ -194,13 +194,13 @@ sub worf_output {
 # The 'obstype' parameter must be either 'raw' or 'reduced'.
 # Default to 'reduced'.
 
-  	if($query->param('obstype') eq 'raw') {
-  		$q_obstype = 'raw';
-  	} else {
-  		$q_obstype = 'reduced';
-  	}
+    if($query->param('obstype') eq 'raw') {
+      $q_obstype = 'raw';
+    } else {
+      $q_obstype = 'reduced';
+    }
   } else {
-  	$q_obstype = 'reduced';
+    $q_obstype = 'reduced';
   }
   
   if($query->param('all')) {
@@ -208,47 +208,47 @@ sub worf_output {
 # The 'all' parameter must be either 'yes' or 'no'.
 # Default to 'no'.
 
-  	if($query->param('all') eq 'yes') {
-  		$q_all = 'yes';
-  	} else {
-  		$q_all = 'no';
-  	}
+    if($query->param('all') eq 'yes') {
+      $q_all = 'yes';
+    } else {
+      $q_all = 'no';
+    }
   } else {
-  	$q_all = 'no';
+    $q_all = 'no';
   }
   
   if($query->param('rstart')) {
-  	
+    
 # The 'rstart' parameter must be digits.
 
-  	$q_rstart = $query->param('rstart');
-  	$q_rstart =~ s/[^0-9]//g;
+    $q_rstart = $query->param('rstart');
+    $q_rstart =~ s/[^0-9]//g;
   } else {
-  	$q_rstart = 0;
+    $q_rstart = 0;
   }
 
   if($query->param('rend')) {
 
 # The 'rend' parameter must be digits.
-  	
-  	$q_rend = $query->param('rend');
-  	$q_rend =~ s/[^0-9]//g;
+    
+    $q_rend = $query->param('rend');
+    $q_rend =~ s/[^0-9]//g;
   } else {
-  	$q_rend = 0;
+    $q_rend = 0;
   }
 
   if($query->param('cut')) {
 
 # The 'cut' parameter must be either 'horizontal' or 'vertical'.
 # Default to 'horizontal'.
-  	
-  	if($query->param('cut') eq 'vertical') {
-  		$q_cut = 'vertical';
-  	} else {
-  		$q_cut = 'horizontal';
-  	}
+    
+    if($query->param('cut') eq 'vertical') {
+      $q_cut = 'vertical';
+    } else {
+      $q_cut = 'horizontal';
+    }
   } else {
-  	$q_cut = 'horizontal';
+    $q_cut = 'horizontal';
   }
   
   if($query->param('xscale')) {
@@ -256,33 +256,33 @@ sub worf_output {
 # The 'xscale' parameter must be either 'autoscaled' or 'set'.
 # Default to 'autoscaled'.
 
-  	if($query->param('xscale') eq 'set') {
-  		$q_xscale = 'set';
-  	} else {
-  		$q_xscale = 'autoscaled';
-  	}
+    if($query->param('xscale') eq 'set') {
+      $q_xscale = 'set';
+    } else {
+      $q_xscale = 'autoscaled';
+    }
   } else {
-  	$q_xscale = 'autoscaled';
+    $q_xscale = 'autoscaled';
   }
   
   if($query->param('xstart')) {
 
 # The 'xstart' parameter must be digits.
-  	
-  	$q_xstart = $query->param('xstart');
-  	$q_xstart =~ s/[^0-9\.]//g;
+    
+    $q_xstart = $query->param('xstart');
+    $q_xstart =~ s/[^0-9\.]//g;
   } else {
-  	$q_xstart = 0;
+    $q_xstart = 0;
   }
   
   if($query->param('xend')) {
 
 # The 'xend' parameter must be digits.
 
-  	$q_xend = $query->param('xend');
-  	$q_xend =~ s/[^0-9\.]//g;
+    $q_xend = $query->param('xend');
+    $q_xend =~ s/[^0-9\.]//g;
   } else {
-  	$q_xend = 0;
+    $q_xend = 0;
   }
 
   if($query->param('yscale')) {
@@ -290,13 +290,13 @@ sub worf_output {
 # The 'yscale' parameter must be either 'autoscaled' or 'set'.
 # Default to 'autoscaled'.
 
-  	if($query->param('yscale') eq 'set') {
-  		$q_yscale = 'set';
-  	} else {
-  		$q_yscale = 'autoscaled';
-  	}
+    if($query->param('yscale') eq 'set') {
+      $q_yscale = 'set';
+    } else {
+      $q_yscale = 'autoscaled';
+    }
   } else {
-  	$q_yscale = 'autoscaled';
+    $q_yscale = 'autoscaled';
   }
   
   if($query->param('ystart')) {
@@ -304,10 +304,10 @@ sub worf_output {
 # The 'ystart' parameter must be a number. This can include
 # exponents (like 1.0e-12)
 
-  	$q_ystart = $query->param('ystart');
-  	$q_ystart =~ s/[^0-9\.e\-]//g;
+    $q_ystart = $query->param('ystart');
+    $q_ystart =~ s/[^0-9\.e\-]//g;
   } else {
-  	$q_ystart = 0;
+    $q_ystart = 0;
   }
 
   if($query->param('yend')) {
@@ -315,10 +315,10 @@ sub worf_output {
 # The 'yend' parameter must be a number. This can include
 # exponents (like 1.0e-12)
 
-  	$q_yend = $query->param('yend');
-  	$q_yend =~ s/[^0-9\.e\-]//g;
+    $q_yend = $query->param('yend');
+    $q_yend =~ s/[^0-9\.e\-]//g;
   } else {
-  	$q_yend = 0;
+    $q_yend = 0;
   }
   
   if($query->param('type')) {
@@ -326,13 +326,13 @@ sub worf_output {
 # The 'type' parameter must be either 'image' or 'spectrum'.
 # Default to 'image'.
 
-  	if($query->param('type') eq 'spectrum') {
-  		$q_type = 'spectrum';
-  	} else {
-  		$q_type = 'image';
-  	}
+    if($query->param('type') eq 'spectrum') {
+      $q_type = 'spectrum';
+    } else {
+      $q_type = 'image';
+    }
   } else {
-  	$q_type = 'image';
+    $q_type = 'image';
   }
   
   if($query->param('autocut')) {
@@ -340,10 +340,10 @@ sub worf_output {
 # The 'autocut' parameter must be digits.
 # Default to '100'.
 
-  	$q_autocut = $query->param('autocut');
-  	$q_autocut =~ s/[^0-9\.]//g;
+    $q_autocut = $query->param('autocut');
+    $q_autocut =~ s/[^0-9\.]//g;
   } else {
-  	$q_autocut = 100;
+    $q_autocut = 100;
   }
   
   if($query->param('xcrop')) {
@@ -351,13 +351,13 @@ sub worf_output {
 # The 'xcrop' parameter must be either 'full' or 'crop'.
 # Default to 'full'.
 
-  	if($query->param('xcrop') eq 'crop') {
-  		$q_xcrop = 'crop';
-  	} else {
-  		$q_xcrop = 'full';
-  	}
+    if($query->param('xcrop') eq 'crop') {
+      $q_xcrop = 'crop';
+    } else {
+      $q_xcrop = 'full';
+    }
   } else {
-  	$q_xcrop = 'full';
+    $q_xcrop = 'full';
   }
   
   if($query->param('xcropstart')) {
@@ -365,10 +365,10 @@ sub worf_output {
 # The 'xcropstart' parameter must be digits.
 # Default to '0'.
 
-  	$q_xcropstart = $query->param('xcropstart');
-  	$q_xcropstart =~ s/[^0-9\.]//g;
+    $q_xcropstart = $query->param('xcropstart');
+    $q_xcropstart =~ s/[^0-9\.]//g;
   } else {
-  	$q_xcropstart = 0;
+    $q_xcropstart = 0;
   }
   
   if($query->param('xcropend')) {
@@ -376,10 +376,10 @@ sub worf_output {
 # The 'xcropend' parameter must be digits.
 # Default to '0'.
 
-  	$q_xcropend = $query->param('xcropend');
-  	$q_xcropend =~ s/[^0-9\.]//g;
+    $q_xcropend = $query->param('xcropend');
+    $q_xcropend =~ s/[^0-9\.]//g;
   } else {
-  	$q_xcropend = 0;
+    $q_xcropend = 0;
   }
   
   if($query->param('ycrop')) {
@@ -387,13 +387,13 @@ sub worf_output {
 # The 'ycrop' parameter must be either 'full' or 'crop'.
 # Default to 'full'.
 
-  	if($query->param('ycrop') eq 'crop') {
-  		$q_ycrop = 'crop';
-  	} else {
-  		$q_ycrop = 'full';
-  	}
+    if($query->param('ycrop') eq 'crop') {
+      $q_ycrop = 'crop';
+    } else {
+      $q_ycrop = 'full';
+    }
   } else {
-  	$q_ycrop = 'full';
+    $q_ycrop = 'full';
   }
   
   if($query->param('ycropstart')) {
@@ -401,48 +401,48 @@ sub worf_output {
 # The 'ycropstart' parameter must be digits.
 # Default to '0'.
 
-  	$q_ycropstart = $query->param('ycropstart');
-  	$q_ycropstart =~ s/[^0-9\.]//g;
+    $q_ycropstart = $query->param('ycropstart');
+    $q_ycropstart =~ s/[^0-9\.]//g;
   } else {
-  	$q_ycropstart = 0;
+    $q_ycropstart = 0;
   }
   
   if($query->param('ycropend')) {
-  	
+    
 # The 'ycropend' parameter must be digits.
 # Default to '0'.
 
-  	$q_ycropend = $query->param('ycropend');
-  	$q_ycropend =~ s/[^0-9\.]//g;
+    $q_ycropend = $query->param('ycropend');
+    $q_ycropend =~ s/[^0-9\.]//g;
   } else {
-  	$q_ycropend = 0;
+    $q_ycropend = 0;
   }
   
   if($query->param('lut')) {
 
 # The 'lut' parameter must be one of the standard lookup tables.
 # Default is 'standard'.
-  	
-  	# first, strip out anything that's not a letter or a number
-  	
-  	my $t_lut = $query->param('lut');
-  	$t_lut =~ s/[^a-zA-Z0-9]//g;
-  	
-  	# this parameter needs to match exactly one of the strings listed in @ctabs
-  	
-  	my $match = 0;
-  	
-  	foreach my $t_ctab (@ctabs) {
-  		if($t_lut eq $t_ctab) {
-  			$q_lut = $t_ctab;
-  			$match = 1;
-  		}
-  	}
-  	if ($match == 0) {
-  		$q_lut = 'heat';
-  	}
+    
+    # first, strip out anything that's not a letter or a number
+    
+    my $t_lut = $query->param('lut');
+    $t_lut =~ s/[^a-zA-Z0-9]//g;
+    
+    # this parameter needs to match exactly one of the strings listed in @ctabs
+    
+    my $match = 0;
+    
+    foreach my $t_ctab (@ctabs) {
+      if($t_lut eq $t_ctab) {
+        $q_lut = $t_ctab;
+        $match = 1;
+      }
+    }
+    if ($match == 0) {
+      $q_lut = 'heat';
+    }
   } else {
-  	$q_lut = 'heat';
+    $q_lut = 'heat';
   }
   
   if($query->param('size')) {
@@ -450,13 +450,13 @@ sub worf_output {
 # The 'size' parameter must be [128 | 640 | 960 | 1280]
 # Default is '640'.
 
-  	my $t_size = $query->param('size');
-  	$t_size =~ s/[^0-9]//;
-  	$ENV{'PGPLOT_GIF_WIDTH'} = $t_size;
-  	$ENV{'PGPLOT_GIF_HEIGHT'} = $t_size * 3 / 4;
+    my $t_size = $query->param('size');
+    $t_size =~ s/[^0-9]//;
+    $ENV{'PGPLOT_GIF_WIDTH'} = $t_size;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = $t_size * 3 / 4;
   } else {
-  	$ENV{'PGPLOT_GIF_WIDTH'} = 640;
-  	$ENV{'PGPLOT_GIF_HEIGHT'} = 480;
+    $ENV{'PGPLOT_GIF_WIDTH'} = 640;
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 480;
   }
 
 # Print out the page
@@ -464,13 +464,13 @@ sub worf_output {
   print_JAC_header();
   
   foreach my $instrument (@instruments) {
-  	print_summary($instrument, $ut, $projectid, $password);
+    print_summary($instrument, $ut, $projectid, $password);
   }
   
   print "<hr>List all reduced group observations for ";
   my @string;
   foreach my $instrument (@instruments) {
-  	push @string, (sprintf "<a href=\"worf.pl?all=yes&instrument=%s\">%s</a>", $instrument, $instrument);
+    push @string, (sprintf "<a href=\"worf.pl?all=yes&instrument=%s\">%s</a>", $instrument, $instrument);
   }
   print join ", ", @string;
   print " for $ut.<br>\n";
@@ -479,16 +479,16 @@ sub worf_output {
   print $query->startform(undef,"worf.pl");
   
   if ( $q_view eq 'yes' ) {
-  	display_observation($q_file, $q_cut, $q_rstart, $q_rend, $q_xscale, $q_xstart, $q_xend,
-  											$q_yscale, $q_ystart, $q_yend, $q_instrument, $q_type, $q_obstype,
-  											$q_autocut, $q_xcrop, $q_xcropstart, $q_xcropend, $q_ycrop, $q_ycropstart,
-  											$q_ycropend, $q_lut, $q_instrument);
+    display_observation($q_file, $q_cut, $q_rstart, $q_rend, $q_xscale, $q_xstart, $q_xend,
+                        $q_yscale, $q_ystart, $q_yend, $q_instrument, $q_type, $q_obstype,
+                        $q_autocut, $q_xcrop, $q_xcropstart, $q_xcropend, $q_ycrop, $q_ycropstart,
+                        $q_ycropend, $q_lut, $q_instrument);
   }
   
   print $query->endform;
   
   if ($q_all eq 'yes' ) {
-  	print_observations ($q_instrument, $ut, $projectid);
+    print_observations ($q_instrument, $ut, $projectid);
   }
   
   print_JAC_footer();
@@ -562,31 +562,31 @@ sub print_summary {
 # the file list.
 
   if(scalar(@{$groupsuffix{$instrument}}) != 0) {
-  	foreach my $elm1 (@groupfiles) {
-  		foreach my $elm2 (@{$groupsuffix{$instrument}}) {
-  			if ($elm1 =~ /_$elm2[\._]/) {
-  				push @groupfilessuffix, $elm1;
-  			}
-  		}
-  	}
+    foreach my $elm1 (@groupfiles) {
+      foreach my $elm2 (@{$groupsuffix{$instrument}}) {
+        if ($elm1 =~ /_$elm2[\._]/) {
+          push @groupfilessuffix, $elm1;
+        }
+      }
+    }
   } else {
-  	@groupfilessuffix = @groupfiles;
+    @groupfilessuffix = @groupfiles;
   }
 
 # And we're also only concerned with files that belong to the specific
 # OMP project.
 
   foreach my $file (@groupfilessuffix) {
-  	if(file_matches_project($directory . "/" . $file, $projectid, $instrument)) {
-  		push @projectgroupfiles, $file;
-  	}
+    if(file_matches_project($directory . "/" . $file, $projectid, $instrument)) {
+      push @projectgroupfiles, $file;
+    }
   }
 
 # Now sort them according to the observation number
   my $i;
   my @foo;
   for($i = 0; $i <= $#projectgroupfiles; $i++) {
-  	$projectgroupfiles[$i] =~ /\d{8}_(\d+)_/ && ($foo[$i] = $1);
+    $projectgroupfiles[$i] =~ /\d{8}_(\d+)_/ && ($foo[$i] = $1);
   }
 
   @group = sort {$a <=> $b} @foo;
@@ -612,21 +612,21 @@ sub print_summary {
 
   my @bar;
   for($i = 0; $i <= $#files; $i++) {
-  	$files[$i] =~ /\d{8}_(\d{5})/ && ($bar[$i] = pad($1,'0',5));
+    $files[$i] =~ /\d{8}_(\d{5})/ && ($bar[$i] = pad($1,'0',5));
   }
 
   foreach my $file (@files) {
-  	my $tfile;
-  	if($instrument eq "cgs4") {
-  		($tfile = $file) =~ s/\.sdf$/\.header/;
-  	} elsif ($instrument eq "ufti") {
-  		($tfile = $file) =~ s/\.sdf$/\.header/;
-  	} else {
-  		$tfile = $file;
-  	}
-  	if(file_matches_project($directory . "/" . $tfile, $projectid, $instrument)) {
-  		push @projectrawfiles, $file;
-  	}
+    my $tfile;
+    if($instrument eq "cgs4") {
+      ($tfile = $file) =~ s/\.sdf$/\.header/;
+    } elsif ($instrument eq "ufti") {
+      ($tfile = $file) =~ s/\.sdf$/\.header/;
+    } else {
+      $tfile = $file;
+    }
+    if(file_matches_project($directory . "/" . $tfile, $projectid, $instrument)) {
+      push @projectrawfiles, $file;
+    }
   }
 
   @raw = sort {$a <=> $b} @projectrawfiles;
@@ -640,23 +640,23 @@ sub print_summary {
 # the status information.
 
   if($latestgroup || $latestraw) {
-  	print "<strong>Summary for $instrument:</strong><br>\n";
-  	print "<table border=1>\n";
-  	print "<tr><th>UT date</th><th>Latest raw observation</th><th>Latest reduced group observation</th></tr>\n";
-  	print "<tr><td>$ut</td><td>";
-  	if($latestraw) {
-  		print "$latestraw (<a href=\"worf.pl?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
-  	} else {
-  		print "&nbsp;";
-  	}
-  	print "</td><td>";
-  	if ($latestgroup) {
-  		print "$latestgroup (<a href=\"worf.pl?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
-  	} else {
-  		print "&nbsp;";
-  	}
-  	print "</td></tr>\n";
-  	print "</table>\n";
+    print "<strong>Summary for $instrument:</strong><br>\n";
+    print "<table border=1>\n";
+    print "<tr><th>UT date</th><th>Latest raw observation</th><th>Latest reduced group observation</th></tr>\n";
+    print "<tr><td>$ut</td><td>";
+    if($latestraw) {
+      print "$latestraw (<a href=\"worf.pl?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
+    } else {
+      print "&nbsp;";
+    }
+    print "</td><td>";
+    if ($latestgroup) {
+      print "$latestgroup (<a href=\"worf.pl?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
+    } else {
+      print "&nbsp;";
+    }
+    print "</td></tr>\n";
+    print "</table>\n";
   }
 }
 
@@ -692,7 +692,7 @@ sub display_observation {
 
   my($file, $cut, $rstart, $rend, $xscale, $xstart, $xend, $yscale, $ystart, $yend, $instrument, $type, $obstype, $autocut, $xcrop, $xcropstart, $xcropend, $ycrop, $ycropstart, $ycropend, $lut, $instrument) = @_;
 
-  print_display_properties();	
+  print_display_properties();  
 
   print "<br>\n";
 
@@ -714,12 +714,12 @@ sub print_display_properties {
 
   print "Show me the ";
   print $query->popup_menu(-name=>'size',
-  												 -values=>['640','960','1280','128'],
-  												 -labels=>{640=>'small (~150K)',
-  																	 960=>'medium (~300K)',
-  																	 1280=>'large (~450K)',
-  																	 128=>'thumbnail'},
-  												 );
+                           -values=>['640','960','1280','128'],
+                           -labels=>{640=>'small (~150K)',
+                                     960=>'medium (~300K)',
+                                     1280=>'large (~450K)',
+                                     128=>'thumbnail'},
+                           );
   print $query->popup_menu('type', ['image','spectrum']) . "<br>\n<br>\n";
   print "\n<b>Image settings:</b><br>\n";
 
@@ -774,95 +774,95 @@ sub print_observations {
   my $first = 1;
   my $reduceddir = get_reduced_directory( $instrument, $ut );
   if( -d $reduceddir ) {
-  	opendir(FILES, $reduceddir);
-  	@files = grep(!/^\./, readdir(FILES));
-  	closedir(FILES);
-  	@files = grep(/sdf$/, @files);
-  	@files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
+    opendir(FILES, $reduceddir);
+    @files = grep(!/^\./, readdir(FILES));
+    closedir(FILES);
+    @files = grep(/sdf$/, @files);
+    @files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
 
 # Sort the files according to observation number
 
-  	@files = sort obsnumsort @files;
+    @files = sort obsnumsort @files;
 
-  	print "<hr>\n";
-  	print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
-  	foreach my $file (@files) {
-  		if($file =~ /^([a-zA-Z]{2})($ut)_(\d+)(_?)(\w*)\.(\w+)/) {
-  			my ($prefix, $null, $obsnum, $null, $suffix, $extension) = ($1, $2, $3, $4, $5, $6);
+    print "<hr>\n";
+    print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
+    foreach my $file (@files) {
+      if($file =~ /^([a-zA-Z]{2})($ut)_(\d+)(_?)(\w*)\.(\w+)/) {
+        my ($prefix, $null, $obsnum, $null, $suffix, $extension) = ($1, $2, $3, $4, $5, $6);
 
 # Find out if the suffix is in @groupsuffix{$instrument}, if that array
 # is not empty.
 
-  			my $match = 0;
-  			if(scalar(@{$groupsuffix{$instrument}}) != 0) {
-  				foreach my $elm (@{$groupsuffix{$instrument}}) {
-  					if ($suffix =~ /^$elm$/) {
-  						$match = 1;
-  					}
-  				}
-  			} else {
-  				$match = 1;
-  			}
-  			if(($match) || (length($suffix . "") == 0)) {
-  				my $fullfile = $reduceddir . "/" . $file;
-  		
-  				my $Frm = new ORAC::Frame::NDF($fullfile);
-  				$Frm->readhdr;
+        my $match = 0;
+        if(scalar(@{$groupsuffix{$instrument}}) != 0) {
+          foreach my $elm (@{$groupsuffix{$instrument}}) {
+            if ($suffix =~ /^$elm$/) {
+              $match = 1;
+            }
+          }
+        } else {
+          $match = 1;
+        }
+        if(($match) || (length($suffix . "") == 0)) {
+          my $fullfile = $reduceddir . "/" . $file;
+      
+          my $Frm = new ORAC::Frame::NDF($fullfile);
+          $Frm->readhdr;
 
 # Get the headers from each frame. We'll present this information to the
 # user so they can make a more informed decision.
-  				
-  				$objname = $Frm->hdr($headers{$instrument}{'objname'});
-  				$utstart = $Frm->hdr($headers{$instrument}{'utstart'});
-  				$exptime = $Frm->hdr($headers{$instrument}{'exptime'});
-  				$filter = $Frm->hdr($headers{$instrument}{'filter'});
-  				$grating = $Frm->hdr($headers{$instrument}{'grating'});
-  				$wavelength = $Frm->hdr($headers{$instrument}{'wavelength'});
-  				$airmass = $Frm->hdr($headers{$instrument}{'airmass'});
-  				$RA = $Frm->hdr($headers{$instrument}{'RA'});
-  				$dec = $Frm->hdr($headers{$instrument}{'dec'});
-  				$fileproject = $Frm->hdr($headers{$instrument}{'project'});
-  				$msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
+          
+          $objname = $Frm->hdr($headers{$instrument}{'objname'});
+          $utstart = $Frm->hdr($headers{$instrument}{'utstart'});
+          $exptime = $Frm->hdr($headers{$instrument}{'exptime'});
+          $filter = $Frm->hdr($headers{$instrument}{'filter'});
+          $grating = $Frm->hdr($headers{$instrument}{'grating'});
+          $wavelength = $Frm->hdr($headers{$instrument}{'wavelength'});
+          $airmass = $Frm->hdr($headers{$instrument}{'airmass'});
+          $RA = $Frm->hdr($headers{$instrument}{'RA'});
+          $dec = $Frm->hdr($headers{$instrument}{'dec'});
+          $fileproject = $Frm->hdr($headers{$instrument}{'project'});
+          $msbid = $Frm->hdr($headers{$instrument}{'MSBID'});
 
 # Only list files for the specific project (or if the override 'staff' project
 # is being used.
 
-  				if(($project eq 'staff') || (uc($fileproject) eq uc($project))) {
-  				
+          if(($project eq 'staff') || (uc($fileproject) eq uc($project))) {
+          
 # If the current project does not match the project for the current frame,
 # write a new header.
 
-  					if(uc($fileproject) ne uc($currentproject)) {
-  						if(!$first) {
-  							print "</table>";
-  						} else {
-  							$first = 0;
-  						}
-  						print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
-  						print "<table border=\"1\">\n";
-  						print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
-  						$currentproject = $fileproject;
-  						$currentmsbid = $msbid;
-  					}
-  					if( ( uc($fileproject) eq uc($currentproject) ) && ( uc($msbid) ne uc($currentmsbid))) {
-  						if(!$first) {
-  							print "</table>\n";
-  						} else {
-  							$first = 0;
-  						}
-  						print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
-  						print "<table border=\"1\">\n";
-  						print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
-  						$currentmsbid = $msbid;
-  					}
-  					print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file\">download</a></td></tr>\n";
-  				}
-  			}
-  		}
-  	}
-  	print "</table>\n";
+            if(uc($fileproject) ne uc($currentproject)) {
+              if(!$first) {
+                print "</table>";
+              } else {
+                $first = 0;
+              }
+              print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+              print "<table border=\"1\">\n";
+              print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
+              $currentproject = $fileproject;
+              $currentmsbid = $msbid;
+            }
+            if( ( uc($fileproject) eq uc($currentproject) ) && ( uc($msbid) ne uc($currentmsbid))) {
+              if(!$first) {
+                print "</table>\n";
+              } else {
+                $first = 0;
+              }
+              print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+              print "<table border=\"1\">\n";
+              print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
+              $currentmsbid = $msbid;
+            }
+            print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file\">download</a></td></tr>\n";
+          }
+        }
+      }
+    }
+    print "</table>\n";
   } else {
-  	print "Directory for $instrument on $ut reduced data does not exist.<br>\n";
+    print "Directory for $instrument on $ut reduced data does not exist.<br>\n";
   }
 }
 

@@ -37,11 +37,11 @@ my $query = new CGI;
 
 my $ut;
   {
-  	my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
-  	$ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
+    my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
+    $ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
 
 # for demo purposes only
-#  	$ut = "20020310";
+#    $ut = "20020310";
   }
 
 # Set up and verify $query variables. We will only have filename and
@@ -59,9 +59,9 @@ if($query->param('file')) {
   $t_file =~ s/[^a-zA-Z0-9\._]//g;
 
   if($t_file =~ /^[a-zA-Z]{1,2}\d{8}_\w+\.sdf$/) {
-  	$q_file = $t_file;
+    $q_file = $t_file;
   } else {
-  	$q_file = '';
+    $q_file = '';
   }
 } else {
   $q_file = '';
@@ -83,13 +83,13 @@ if($query->param('instrument')) {
   my $match = 0;
   
   foreach my $t_inst (@instruments) {
-  	if($t_instrument eq $t_inst) {
-  		$q_instrument = $t_inst;
-  		$match = 1;
-  	}
+    if($t_instrument eq $t_inst) {
+      $q_instrument = $t_inst;
+      $match = 1;
+    }
   }
   if ($match == 0) {
-  	$q_instrument = "";
+    $q_instrument = "";
   }
 } else {
   $q_instrument = '';
@@ -99,7 +99,7 @@ if($query->param('instrument')) {
 # empty strings.
 
 if( ( length( $q_file . '' ) != 0 ) &&
-  	( length( $q_instrument . '' ) != 0 ) ) {
+    ( length( $q_instrument . '' ) != 0 ) ) {
 
 # Now this is the real meat. Configure %ENV using
 # ORAC::Inst::Defn::orac_configure_for_instrument.
@@ -112,8 +112,8 @@ if( ( length( $q_file . '' ) != 0 ) &&
 
   open(FILE, $filepath . "/" . $q_file) or die "Could not open file $filepath" . "/" . "$q_file: $!";
   {
-  	undef $/;
-  	$data = <FILE>;
+    undef $/;
+    $data = <FILE>;
   }
 
   print $query->header(-type => 'image/x-ndf');
