@@ -1111,14 +1111,16 @@ sub getChopDefault {
 
 =item B<getTarget>
 
-Generate target specification. This is probably the most
-complicated step since it should handle orbital elements
-and the ability to choose a suitable target.
+Generate target specification from an Astro::Coords object. This is
+probably the most complicated step since it should handle orbital
+elements and the ability to choose a suitable target.
 
   %scan = $trans->getScan( %info );
 
-This is a duplicate of the C<SCUBA::ODF> method of the same
-name.
+Trailing and leading spaces are removed from target names.
+Spaces within a target name are replaced by underscores.
+
+This is a duplicate of the C<SCUBA::ODF> method C<setTarget>.
 
 =cut
 
@@ -1132,6 +1134,10 @@ sub getTarget {
     return ();
 
   }
+
+  # Remove leading and trailing space from target name
+  $info{target} =~ s/^\s+//;
+  $info{target} =~ s/\s+$//;
 
   # Can not have spaces in source name
   $info{target}  =~ s/\s+/_/g;
