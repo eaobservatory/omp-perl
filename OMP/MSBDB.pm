@@ -1230,7 +1230,8 @@ sub _run_query {
   my $query = shift;
 
   # Get the sql
-  my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE );
+  my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE,
+			 $OMP::ProjDB::COITABLE );
 
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );

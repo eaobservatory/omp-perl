@@ -192,9 +192,9 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) ==3;
+    unless scalar(@_) ==4;
 
-  my ($msbtable, $obstable, $projtable) = @_;
+  my ($msbtable, $obstable, $projtable, $coitable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -253,9 +253,10 @@ sub sql {
   my $sql = "(SELECT
           M.msbid, M.obscount, COUNT(*) AS nobs
            INTO $tempcount
-           FROM $msbtable M,$obstable O, $projtable P
+           FROM $msbtable M,$obstable O, $projtable P, $coitable C
             WHERE M.msbid = O.msbid
               AND P.projectid = M.projectid
+                AND P.projectid = C.projectid
                $constraint_sql
                 $subsql
               GROUP BY M.msbid)
@@ -414,11 +415,12 @@ sub _post_process_hash {
   }
 
   # Case sensitivity
-  # If we are dealing with a these we should make sure we upper
+  # If we are dealing with these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
-			   [qw/projectid telescope semester country/]);
+			   [qw/projectid telescope semester country name
+			    pi coi /]);
 
 
   # These entries are in more than one table so we have to 
@@ -430,6 +432,14 @@ sub _post_process_hash {
       delete $href->{$_};
     }
   }
+
+  # A coi query is really a query on C.userid
+  if (exists $href->{coi}) {
+    my $key = "C.userid";
+    $href->{$key} = $href->{coi};
+    delete $href->{coi};
+  }
+
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};

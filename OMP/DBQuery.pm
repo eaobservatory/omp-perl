@@ -563,21 +563,13 @@ sub _querify {
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
 
-  # Substring comparators fields
-  if ($name eq "name" or $name eq "coi" or $name eq "pi") {
-    $cmp = "like";
-  }
-
   # If we have "name" then we need to create a query on both
-  # pi and coi together
+  # pi and coi together. This is of course not portable and should
+  # not be in the base class implementation
   my @list;
   if ($name eq "name") {
     # two columns
-    @list = (qw/ coi pi /);
-
-    # case insensitive [the SQL way]
-    $value =~ s/([a-zA-Z])/[\U$1\L$1]/g;
-
+    @list = (qw/ pi C.userid /);
   } else {
     @list = ( $name );
   }
