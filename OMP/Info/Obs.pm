@@ -557,7 +557,7 @@ sub nightlog {
     $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined($self->airmass) ? sprintf( "%.2f", $self->airmass) : 0;
-    $return{'Exposure time'} = defined($self->duration) ? sprintf( "%.1f",$self->duration ) : 0;
+    $return{'Exposure time'} = defined($self->duration) ? sprintf( "%.2f",$self->duration ) : 0;
     $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
     $return{'Project ID'} = $self->projectid;
     $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "UT time", "Object",
