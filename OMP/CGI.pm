@@ -41,7 +41,7 @@ use HTML::WWWTheme;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 # Expiry time for cookies
-our $EXPTIME = 10;
+our $EXPTIME = 40;
 
 # Stylesheet
 our $STYLE = OMP::Config->getData('omp-url') . "/omp.css";
