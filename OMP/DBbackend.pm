@@ -39,6 +39,7 @@ use Carp;
 # OMP
 use OMP::Error;
 use DBI;
+use DBD::Sybase; # This triggers immediate failure if $SYBASE not right
 
 our $VERSION = (qw$Revision$)[1];
 
