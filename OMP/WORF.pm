@@ -27,7 +27,8 @@ use OMP::Error qw/ :try /;
 use OMP::CGI;
 
 # Bring in PDL modules so we can display the graphic.
-use PDL;
+use PDL::Lite;
+use PDL::Primitive;
 use PDL::IO::NDF;
 use PDL::Graphics::PGPLOT;
 use PDL::Graphics::LUT;
