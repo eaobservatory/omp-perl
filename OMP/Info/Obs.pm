@@ -45,6 +45,7 @@ use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;
 use Text::Wrap qw/ $columns &wrap /;
+use File::Basename;
 
 # Text wrap column size.
 $Text::Wrap::columns = 72;
@@ -761,6 +762,46 @@ sub remove_comment {
 
 }
 
+=item B<simple_filename>
+
+Returns a filename (without path contents) that is suitable
+for use in data processing. Usually this only refers to
+JCMT heterodyne data where the filename stored in the
+DB is impossible to use in specx. Most instruments simply
+return the root filename without modification.
+
+The filename returned has no path attached.
+
+ $simple = $obs->simple_filename();
+
+Note that this method does uses the C<filename>
+method implicitly. Note also that this method
+must work with a valid Obs object.
+
+=cut
+
+sub simple_filename {
+  my $self = shift;
+
+  # Get the filename
+  my $infile = $self->filename;
+
+  # Get the filename without path
+  my $base = basename( $infile );
+
+  if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA') {
+    # Want YYYYMMDD_backend_nnnn.dat
+    my $yyyy = $self->startobs->strftime('%Y%m%d');
+    $base = $yyyy . '_' . $self->backend .'_' .
+      sprintf('%04u', $self->runnr) . '.dat';
+
+  }
+
+  # Return the simplified filename
+  return $base;
+
+}
+
 =back
 
 =head2 Private Methods
@@ -793,7 +834,7 @@ sub _populate {
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
   $generic_header{TELESCOPE} =~ /^(\w+)/;
-  $self->telescope( $1 );
+  $self->telescope( uc($1) );
   $self->filename( $generic_header{FILENAME} );
 
 
@@ -892,6 +933,48 @@ sub _populate {
 
     # Set the observation mode.
     $self->mode( $generic_header{OBSERVATION_MODE} );
+
+    # if we are UKIRT or JCMT Heterodyne try to generate the calibration
+    # flags. We should probably put this in the header translator
+    if ($self->telescope eq 'UKIRT') {
+
+      # Observations with STANDARD=T are science calibrations
+      # Observations with PROJECT =~ /CAL/ are generic calibrations
+      # DARKS and BIAS are generic calibrations
+      # FLAT and ARC are science calibrations
+      if ($self->projectid =~ /CAL$/ ||
+	  length($self->projectid) == 0 ||
+	  $self->type =~ /DARK|BIAS/
+	 ) {
+	$self->isGenCal( 1 );
+	$self->isScience( 0 );
+      } elsif ($self->type =~ /FLAT|ARC/ ||
+	       $generic_header{STANDARD}
+	      ) {
+	$self->isSciCal( 1 );
+	$self->isScience( 0 );
+      }
+
+    } elsif ($self->telescope eq 'JCMT') {
+      # SCUBA is done in other branch
+
+      # fivepoint/focus are generic
+      # anything with 'jcmt' or 'jcmtcal' is generic
+      # observations of planets are generic
+      # Standard spectra are science calibrations
+      if ($self->projectid =~ /JCMT/ ||
+	  $self->mode =~ /fivepoint|focus/i  ||
+	  $self->target =~ /mars|uranus|saturn|venus|neptune|jupiter|mercury/i
+	 ) {
+	$self->isGenCal( 1 );
+	$self->isScience( 0 );
+      } elsif ($self->target =~ /w3oh|l1551|crl618|omc1|n2071|oh231|irc10216|16293-2422|ngc6334i|g34\.3|w75n|n7027|n7538/i) {
+	$self->isSciCal( 1 );
+	$self->isScience( 0 );
+      }
+
+    }
+
   }
 
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
