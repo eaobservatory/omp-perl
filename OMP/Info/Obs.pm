@@ -982,7 +982,8 @@ sub _populate {
     # Default the equinox to J2000, but if it's 1950 change to B1950.
     # Anything else will be converted to J2000.
     my $type = "J2000";
-    if ( $generic_header{EQUINOX} =~ /1950/ ) {
+    if ( defined( $generic_header{EQUINOX} ) &&
+         $generic_header{EQUINOX} =~ /1950/ ) {
       $type = "B1950";
     }
     if ( defined ( $generic_header{COORDINATE_TYPE} ) ) {
@@ -1046,8 +1047,8 @@ sub _populate {
       # For now, only check name matches (names should match pointing
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
-      if ($self->projectid =~ /JCMT/ ||
-          $self->mode =~ /fivepoint|focus/i
+      if (( defined( $self->projectid ) && $self->projectid =~ /JCMT/  ) ||
+          ( defined( $self->mode ) && $self->mode =~ /fivepoint|focus/i )
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
