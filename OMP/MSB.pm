@@ -1367,6 +1367,9 @@ target entry (ie RA==Dec=0.0 and no target name).
 
   $isblank = $msb->_is_blank_target( $node );
 
+Note that the coordinate can be blank either because it
+has a value of 0 or because it is not defined at all.
+
 =cut
 
 sub _is_blank_target {
