@@ -43,6 +43,6 @@ if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIPage::User::details,
 			   \&OMP::CGIPage::User::details );
 } else {
-  $cgi->write_page( \&OMP::CGIPage::User::details,
-		    \&OMP::CGIPage::User::details );
+  $cgi->write_page_noauth( \&OMP::CGIPage::User::details,
+			   \&OMP::CGIPage::User::details );
 }
