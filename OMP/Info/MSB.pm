@@ -484,7 +484,7 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title
-       datemin datemax telescope cloud remaining msbid/) {
+       datemin datemax telescope cloud remaining msbid ra airmass ha/) {
     $summary{$_} = $self->$_();
   }
 
