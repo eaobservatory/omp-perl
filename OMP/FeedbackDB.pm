@@ -387,7 +387,7 @@ sub _mail_comment_support {
 
   # Only mail if there is a support address
   $self->_mail_comment( $comment, \@email )
-    if (@email);
+    if ($email[0]);
 }
 
 =item B<_mail_comment_info>
