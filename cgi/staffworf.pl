@@ -46,9 +46,14 @@ $| = 1;  # make output unbuffered
 
 my $query = new CGI;
 my $cgi = new OMP::CGI( CGI => $query );
-$cgi->html_title("WORF: UKIRT WWW Observing Remotely Facility");
+$cgi->html_title("WORF: WWW Observing Remotely Facility");
+
+my @domain = OMP::General->determine_host;
 
 # write the page
 
-$cgi->write_page_staff( \&display_page, \&display_page );
-
+if( $domain[1] and $domain[1] !~ /\./) {
+  $cgi->write_page_noauth( \&thumbnails_page, \&thumbnails_page );
+} else {
+  $cgi->write_page_staff( \&thumbnails_page, \&thumbnails_page );
+}
