@@ -26,6 +26,7 @@ use Carp;
 use XML::LibXML; # Our standard parser
 use OMP::Error;
 use OMP::General;
+use OMP::Range;
 use Time::Piece ':override'; # for gmtime
 
 # Package globals
@@ -162,6 +163,28 @@ sub refDate {
   return $date;
 }
 
+=item B<airmass>
+
+Return the requested airmass range as an C<OMP::Range> object.
+
+  $range = $query->airmass;
+
+Returns C<undef> if the range has not been specified.
+
+=cut
+
+sub airmass {
+  my $self = shift;
+
+  # Get the hash form of the query
+  my $href = $self->query_hash;
+
+  # Check for "airmass" key
+  my $airmass;
+  $airmass = $href->{airmass} if exists $href->{airmass};
+  return $airmass;
+}
+
 =item B<_parser>
 
 Retrieves or sets the underlying XML parser object. This will only be
@@ -262,21 +285,33 @@ sub sql {
     # Look at the entry and convert to SQL
     if (ref($query->{$entry}) eq 'ARRAY') {
       # use an OR join [must surround it with parentheses]
-      push(@sql, "(".join(" or ", 
+      push(@sql, "(".join(" OR ", 
 			  map { $self->_querify($entry, $_); }
 			  @{ $query->{$entry} } 
 			 ) . ")");
 
+    } elsif (UNIVERSAL::isa( $query->{$entry}, "OMP::Range")) {
+      # A Range object
+      my %range = $query->{$entry}->minmax_hash;
+
+      # an AND clause
+      push(@sql,join(" AND ",
+		     map { $self->_querify($entry, $range{$_}, $_);}
+		     keys %range
+		    ));
+
     } elsif (ref($query->{$entry}) eq 'HASH') {
+      # Obsolete branch for when we used to specify ranges
+      # as hashes
 
       # Use an AND join
-      push(@sql,join(" and ", 
+      push(@sql,join(" AND ", 
 		     map { $self->_querify($entry, $query->{$entry}->{$_}, $_);}
 		     keys %{ $query->{$entry} } 
 		    ));
 
     } else {
-      throw OMP::Error::MSBMalformedQuery("Query hash contained a non-HASH non-ARRAY: ". $query->{$entry}."\n");
+      throw OMP::Error::MSBMalformedQuery("Query hash contained a non-HASH non-ARRAY non-OMP::Range: ". $query->{$entry}."\n");
     }
   }
 
@@ -293,6 +328,8 @@ sub sql {
   # an AND so that it fits in with the rest of the SQL. This allows
   # an empty query to work without having a naked "AND".
   $subsql = " AND " . $subsql if $subsql;
+
+  #print "SQL: $subsql\n";
 
   # Some explanation is probably in order.
   # We do three queries
@@ -433,6 +470,10 @@ sub _convert_to_perl {
 
   }
 
+  # Do some post processing to convert to OMP::Ranges and
+  # to fix up some standard keys
+  $self->_post_process_hash( \%query );
+
   # Store the hash
   $self->query_hash(\%query);
 
@@ -515,6 +556,57 @@ sub _add_text_to_hash {
 
 }
 
+=item B<_post_process_hash>
+
+Go through the hash creating C<OMP::Range> objects where appropriate
+and fixing up known issues such as "cloud" and "moon" which are
+treated as lower limits rather than exact matches.
+
+  $query->_post_process_hash( \%hash );
+
+"tau" and "seeing" queries are each converted to two separate
+queries (one on "max" and one on "min").
+
+=cut
+
+sub _post_process_hash {
+  my $self = shift;
+  my $href = shift;
+
+  for my $key (keys %$href ) {
+
+    if (UNIVERSAL::isa($href->{$key}, "HASH")) {
+      # Convert to OMP::Range object
+      $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
+				      Max => $href->{$key}->{max},
+				    );
+
+    } elsif ($key eq "cloud" or $key eq "moon") {
+      # convert to range with the supplied value as the min
+      $href->{$key} = new OMP::Range( Min => $href->{$key}->[0] );
+
+    } elsif ($key eq "seeing" or $key eq "tau") {
+      # Convert to two independent ranges
+
+      # Note that taumin indicates a MAX for the supplied value
+      # and taumax indicates a minimum for the supplied value
+      my %outkey = ( max => "Min", min => "Max");
+
+      # Loop over min and max
+      for my $type (qw/ min max /) {
+	$href->{"$key$type"} = new OMP::Range( $outkey{$type} =>
+					       $href->{$key}->[0]);
+      }
+
+      # And remove the old key
+      delete $href->{$key};
+
+    }
+
+  }
+
+}
+
 =item B<_querify>
 
 Convert the column name, column value and optional comparator
@@ -525,8 +617,8 @@ to an SQL sub-query.
 
 Determines whether we have a number or string for quoting rules.
 
-Some keys are duplicated in different tables. In those cases (project ID
-is the main one) the table prefix is automatically added.
+Some keys are duplicated in different tables. In those cases (project
+ID is the main one) the table prefix is automatically added.
 
 =cut
 
@@ -540,8 +632,8 @@ sub _querify {
   # Lookup table for comparators
   my %cmptable = (
 		  equal => "=",
-		  min   => ">",
-		  max   => "<",
+		  min   => ">=",
+		  max   => "<=",
 		 );
 
   # Convert the string form to SQL form
@@ -551,9 +643,9 @@ sub _querify {
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z]/ ? "'" : '' );
 
-  # If we are dealing with a project ID we should
-  # make sure we upper case it (more efficient to upper case everything than
-  # to do a query that ignores case)
+  # If we are dealing with a project ID we should make sure we upper
+  # case it (more efficient to upper case everything than to do a
+  # query that ignores case)
   $value = uc($value) if $name eq 'projectid';
 
   # Additionally, If the name is projectid we need to make sure it
@@ -602,6 +694,8 @@ Why dont we just use attributes?
 
 Using explicit elements is probably easier to generate.
 
+Ranges are inclusive.
+
 =item B<Multiple matches>
 
 Elements that contain other elements are assumed to be containing
@@ -643,6 +737,39 @@ is not supplied the current date is automatically inserted. The date
 should be supplied in ISO format YYYY-MM-DDTHH:MM
 
   <date>2002-04-15T04:52</date>
+
+=item B<cloud and moon>
+
+Queries on "cloud" and "moon" columns are really a statement of the
+current weather conditions rather than a request for a match of exactly
+the specified value. In fact these elements are really saying that the
+retrieved records should be within the range 0 to the value in the table.
+ie the table contains an upper limit with an implied lower limit of zero.
+
+This translates to an effective query of:
+
+  <moon><min>2</min></moon>
+
+Queries on "cloud" and "moon" are translated to this form.
+
+=item B<tau and seeing>
+
+Queries including tau and seeing reflect the current weather conditions
+but do not correspond to an equivalent table in the database. The database
+contains allowable ranges (e.g. taumin and taumax) and the supplied
+value must lie within the range. Therefore for a query such as:
+
+  <tau>0.06</tau>
+
+the query would become
+
+  taumin <= 0.05 AND taumax >= 0.05
+
+=item B<target observability>
+
+Constraints on the observability of the target are not calculated in
+SQL. These must be done post-query. Methods are provided to make the
+target constraints available.
 
 =back
 
