@@ -503,7 +503,8 @@ sub _store_msb_done_comment {
     my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,
 				Password => '***REMOVED***');
     my $sp = $msbdb->fetchSciProg(1);
-    $msbinfo = $sp->fetchMSB( $checksum )
+    my $msb = $sp->fetchMSB( $checksum );
+    $msbinfo = $msb->info() if $msb;
   }
 
   # throw an exception if we dont have anything
