@@ -895,6 +895,9 @@ sub _insert_row {
   throw OMP::Error::SpBadStructure("There seems to be no site quality information. Unable to schedule MSB.\n")
     unless (defined $data{seeing} and defined $data{tauband});
 
+  # Throw an exception if we are missing observations
+  throw OMP::Error::MSBMissingObserve("1 or more of the MSBs is missing an Observe\n") if $data{obscount} == 0;
+
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
