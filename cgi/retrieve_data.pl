@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl -XT
+#!/local/perl/bin/perl -XT
 
 use 5.006;
 use strict;

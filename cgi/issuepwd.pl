@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; 
 	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
