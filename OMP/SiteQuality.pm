@@ -239,6 +239,10 @@ C<OMP::Range> object using the default settings.
 
   $range = default_range( 'TAU' );
 
+In list context simply returns the min and max values.
+
+  ($min, $max) = default_range( 'SEEING' );
+
 =cut
 
 sub default_range {
@@ -246,10 +250,12 @@ sub default_range {
   throw OMP::Error::BadArgs("Unrecognized site quality")
     if !exists $OMPRANGES{$cat};
 
-  return new OMP::Range( Min => $OMPRANGES{$cat}->[0],
-			 Max => $OMPRANGES{$cat}->[1],
-			 PosDef => ( defined $OMPRANGES{$cat}->[0] && $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
-		       );
+  my $def = new OMP::Range( Min => $OMPRANGES{$cat}->[0],
+			    Max => $OMPRANGES{$cat}->[1],
+			    PosDef => ( defined $OMPRANGES{$cat}->[0] && $OMPRANGES{$cat}->[0] == 0 ? 1 : 0),
+			  );
+
+  return (wantarray ? $def->minmax : $def );
 }
 
 =item B<check_posdef>
