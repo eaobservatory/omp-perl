@@ -297,6 +297,9 @@ sub file_exists {
 
   my $file = $worf->get_filename( $group );
 
+  # Strip out any ".i1".
+  $file =~ s/\.i1//;
+
   if( defined( $file ) ) {
     return ( -e $file );
   } else {
@@ -596,21 +599,47 @@ sub _plot_image {
   } else {
     dev "-/GIF";
   }
+#print STDERR "setting up environment\n";
   env( $xstart, $xend, $ystart, $yend, $opt );
+#print STDERR "labelling axes\n";
   label_axes( undef, undef, $title );
-  ctab( lut_data( $lut ) );
+#print STDERR "setting colour table to $lut\n";
+#  ctab( lut_data( $lut, 0, "ramp" ) );
+#  open(OUTFILE, ">/tmp/worfout.txt");
+#  print OUTFILE "LUT: $lut\n";
+#  print OUTFILE lut_data($lut);
+
+#  my $lum;
+#  my $r;
+#  my $g;
+#  my $b;
+#  ($lum, $r, $g, $b) = lut_data($lut);
+#  my $lum = lut_data($lut);
+#$lum = cat $lum, $r;
+#  my $llum = list $lum;
+#print OUTFILE $ctab;
+#print OUTFILE $lum;
+#print OUTFILE lut_data($lut);
+#close OUTFILE;
+#  ctab(lut_data('idl5'));
+#  ctab($ctab);
+#  ctab(\$lum, \$r, \$g, \$b);
+
+#ctab("fire");
+#print STDERR "displaying image\n";
   imag $image;
+#print STDERR "setting dev to null\n";
   dev "/null";
 
   # Also write the cache file if necessary.
-  if( defined( $cachefile ) ) {
-    dev "$cachefile/GIF";
-    env( $xstart, $xend, $ystart, $yend, $opt );
-    label_axes( undef, undef, $title );
-    ctab( lut_data( $lut ) );
-    imag $image;
-    dev "/null";
-  }
+#  if( defined( $cachefile ) ) {
+#    dev "$cachefile/GIF";
+#    env( $xstart, $xend, $ystart, $yend, $opt );
+#    label_axes( undef, undef, $title );
+#    ctab( lut_data( $lut ) );
+#    imag $image;
+#    dev "/null";
+#  }
 }
 
 =item B<_plot_spectrum>
