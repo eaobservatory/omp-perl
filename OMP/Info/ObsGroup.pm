@@ -292,13 +292,13 @@ sub populate {
   # Expand out and remap heterodyne instruments.
   if( exists $args{instrument} ) {
     if( $args{instrument} =~ /^rxa/i ) {
-      $xmlbit .= "<instrument>rxa3i</instrument>";
+      $xmlbit .= "<instrument>rxa3</instrument>";
     } elsif( $args{instrument} =~ /^rxb/i ) {
       $xmlbit .= "<instrument>rxb</instrument>";
     } elsif( $args{instrument} =~ /^rxw/i ) {
       $xmlbit .= "<instrument>rxw</instrument>";
     } elsif( $args{instrument} =~ /^heterodyne/i ) {
-      $xmlbit .= "<instrument>rxa3i</instrument><instrument>rxb</instrument><instrument>rxw</instrument>";
+      $xmlbit .= "<instrument>rxa3</instrument><instrument>rxb</instrument><instrument>rxw</instrument>";
     } else {
       $xmlbit .= "<instrument>" . $args{instrument} . "</instrument>";
     }
