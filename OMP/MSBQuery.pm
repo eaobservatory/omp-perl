@@ -557,7 +557,7 @@ sub _post_process_hash {
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
 			   [qw/projectid telescope semester country name
-			    pi coi /]);
+			    pi coi instrument /]);
 
 
   # These entries are in more than one table so we have to 
