@@ -28,7 +28,7 @@ use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::MSBServer;
 use OMP::FBServer;
-use OMP::Constants;
+use OMP::Constants qw(:fb :done);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -156,10 +156,13 @@ sub fb_entries {
 
   my $status = [OMP__FB_IMPORTANT];
 
-  if ($q->param("show")) {
-    $status = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN];
-    ($q->param("show") eq 'info') and pop @$status;
-    ($q->param("show") eq 'important') and $status = [OMP__FB_IMPORTANT];
+  if ($q->param("show") ne undef) {
+    my %status;
+    $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
+    $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
+    $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN];
+
+    $status = $status{$q->param("show")};
   }
 
   my $order;
@@ -182,8 +185,9 @@ sub fb_entries {
 	"Show: ",
 
 	$q->popup_menu(-name=>'show',
-		       -values=>[qw/important info hidden/],
-		       -default=>'important'),
+		       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],
+		       -default=>OMP__FB_IMPORTANT,
+		       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"}),
         "&nbsp;&nbsp;",
         $q->submit("Refresh"),
         $q->endform,
@@ -341,13 +345,23 @@ sub msb_hist_output {
     print "</td></table>";
   }
 
-  # If they click the "Mark as Done" button mark it as done
-
   # If they've just submitted a comment show some comforting output
   if ($q->param("Submit")) {
     OMP::MSBServer->addMSBcomment( $cookie{projectid}, $q->param('msbid'), $q->param('comment'));
 
     print $q->h2("MSB comment submitted");
+
+    proj_status_table($q, %cookie);
+    msb_comments($q, %cookie);
+  }
+
+  # If they click the "Mark as Done" button mark it as done
+  if ($q->param("Mark as Done")) {
+    my $checksum = $q->param('checksum');
+
+    OMP::MSBServer->alldoneMSB( $cookie{projectid}, $checksum);
+
+    print $q->h2("MSB marked as Done");
 
     proj_status_table($q, %cookie);
     msb_comments($q, %cookie);
@@ -389,7 +403,9 @@ sub msb_comments {
 
   print $q->hr;
   print "<table border=1>";
+
   my $i = 0;
+  my $bgcolor;
   foreach my $msb (@$commentref) {
     $i++;
     print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
@@ -398,7 +414,11 @@ sub msb_comments {
     print "<td><b>Instrument:</b> $msb->{instrument}</td>";
 
     foreach my $comment (@{$msb->{comment}}) {
-      print "<tr><td colspan=4><b>Date:</b> $comment->{date}<br>";
+      ($comment->{status} == OMP__DONE_FETCH) and $bgcolor = '#c9d5ea';
+      ($comment->{status} == OMP__DONE_DONE) and $bgcolor = '#c6bee0';
+      ($comment->{status} == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
+      ($comment->{status} == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
+      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date:</b> $comment->{date}<br>";
       print "$comment->{text}</td>";
     }
 
