@@ -235,8 +235,9 @@ in order prior to inserting the clause into the main SQL query.
 
   $where = $q->_qhash_tosql( \@skip );
 
-First argument is a reference to an array that contains the names of keys
-in the query hash that should be skipped when constructing the SQL.
+First argument is a reference to an array that contains the names of
+keys in the query hash that should be skipped when constructing the
+SQL.
 
 Returned SQL segment does not include "WHERE".
 
@@ -245,46 +246,22 @@ Returned SQL segment does not include "WHERE".
 sub _qhash_tosql {
   my $self = shift;
   my $skip = shift;
-  $skip = [] unless defined $skip;
+  $skip = [ ] unless defined $skip;
 
   # Retrieve the perl version of the query
   my $query = $self->query_hash;
 
   # Walk through the hash generating the core SQL
-  # a chunk at a time
-  my @sql;
-  for my $entry ( keys %$query) {
-    next if $entry =~ /^_/;  # Skip internal keys
+  # a chunk at a time - skipping if required
+  my @sql = grep { defined $_ } map {
+    $self->_create_sql_recurse( $_, $query->{$_} )
+  } grep {
+    # Only pass the key through if it is not in skip
+    # array [trap for case where skip array is empty
+    my $key = $_;
+    (@$skip ? scalar(grep !/^$key$/, @$skip) : 1 );
 
-    # Some queries can not be processed yet because they require
-    # extra information or stored procedures
-    next if grep /^$entry$/, @$skip;
-
-    # Look at the entry and convert to SQL
-    if (ref($query->{$entry}) eq 'ARRAY') {
-      # use an OR join [must surround it with parentheses]
-      push(@sql, "(".join(" OR ", 
-			  map { $self->_querify($entry, $_); }
-			  @{ $query->{$entry} } 
-			 ) . ")");
-
-    } elsif (UNIVERSAL::isa( $query->{$entry}, "OMP::Range")) {
-      # A Range object
-      my %range = $query->{$entry}->minmax_hash;
-
-      # an AND clause
-      push(@sql,join(" AND ",
-		     map { $self->_querify($entry, $range{$_}, $_);}
-		     keys %range
-		    ));
-
-    } else {
-      # use Data::Dumper;
-      # print Dumper( $query->{$entry});
-
-      throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range for $entry ". $query->{$entry}."\n");
-    }
-  }
+  } keys %$query;
 
   # Now join it all together with an AND
   my $clause = join(" AND ", @sql);
@@ -293,6 +270,74 @@ sub _qhash_tosql {
   return $clause;
 
 }
+
+
+=item B<_create_sql_recurse>
+
+Routine called to translate each key of the query hash into SQL.
+Separated from C<_qhash_tosql> in order to allow recursion.
+Returns a chunk of SQL
+
+  $sql = $self->_create_sql( $column, $entry );
+
+where C<$column> is the database column name and 
+C<$entry> can be 
+
+  - An array of values that will be ORed
+  - An OMP::Range object
+  - A hash containing items to be ORed
+    using the rules for OMP::Range and array refs
+    [hence recursion]
+
+Column names beginning with an _ are ignored.
+
+=cut
+
+sub _create_sql_recurse {
+  my $self = shift;
+  my $column = shift;
+  my $entry = shift;
+
+  return undef if $column =~ /^_/;
+
+  my $sql;
+  if (ref($entry) eq 'ARRAY') {
+
+    # use an OR join [must surround it with parentheses]
+    $sql = "(".join(" OR ",
+		    map { $self->_querify($column, $_); }
+		    @{ $entry }
+		   ) . ")";
+
+
+  } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
+    # A Range object
+    my %range = $entry->minmax_hash;
+
+    # an AND clause
+    $sql = join(" AND ",
+		map { $self->_querify($column, $range{$_}, $_);}
+		keys %range
+	       );
+
+  } elsif (ref($entry) eq 'HASH') {
+    # Call myself but join with an OR
+    my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
+		      } keys %$entry;
+    $sql = "(". join(" OR ", @chunks ) . ")";
+
+  } else {
+    # use Data::Dumper;
+    # print Dumper($entry);
+
+    throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range non-HASH for $column: $entry\n");
+  }
+
+  # print "SQL: $column: $sql\n";
+  return $sql;
+}
+
+
 
 =item B<_convert_to_perl>
 
