@@ -14,15 +14,15 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::UserPage;
+use OMP::CGIPage;
+use OMP::CGIPage::User;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project Contacts");
-$cgi->write_page( \&OMP::CGI::UserPage::project_users,
-		  \&OMP::CGI::UserPage::project_users_output );
+$cgi->write_page( \&OMP::CGIPage::User::project_users,
+		  \&OMP::CGIPage::User::project_users_output );
