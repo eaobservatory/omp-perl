@@ -39,7 +39,7 @@ use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::ProjDB;
-use OMP::Constants qw/ :done /;
+use OMP::Constants qw/ :done :fb /;
 use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
@@ -235,6 +235,7 @@ sub storeSciProg {
     $self->_notify_feedback_system(
 				   subject => "Science program submitted",
 				   text => "Science program submitted for project <b>".
+				   status => OMP__FB_SUPPORT,
 				   $self->projectid ."</b> $note\n",
 				  );
   }
