@@ -415,6 +415,8 @@ sub acsis_config {
   # The easy bits
   $self->line_list( $cfg, %info );
   $self->spw_list( $cfg, %info );
+  $self->correlator( $cfg, %info );
+  $self->acsisdr_recipe( $cfg, %info );
 #  $self->acsis_machine_table( $cfg, %info );
 
 
@@ -643,6 +645,50 @@ sub acsis_machine_table {
 
 }
 
+=item B<correlator>
+
+Read the relevant correlator information from template files.
+
+  $trans->correlator( $cfg, %info );
+
+=cut
+
+sub correlator {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Get the channel mode
+  # Note that only the first subsystem is currently recognized
+  my $subsys = $info{freqconfig}->{subsystems}->[0];
+
+  # Create the new machine table
+  my $root = $self->ocs_frontend( $info{instrument}, 1 ) . '_correlator_' . 
+                                  $subsys->{chanmode} . '.ent';
+  my $templ = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
+
+  # This entity xml file has both ACSIS_corr and ACSIS_IF.
+  # We could read this directly into an ACSIS config object and then extract out
+  # the bits we need but we would first need to make the ACSIS object less picky
+  # when it finds there are missing XML chunks. For now do it in 2 reads.
+  my $corr = new JAC::OCS::Config::ACSIS::ACSIS_CORR( EntityFile => $templ, validation => 0 );
+  my $if = new JAC::OCS::Config::ACSIS::ACSIS_IF( EntityFile => $templ, validation => 0 );
+
+  $acsis->acsis_corr( $corr );
+  $acsis->acsis_if( $if );
+
+  # For now, assume that the ACSIS_map xml can also be read from the template
+  # file and that our naming convention for spectral windows matches that used
+  # in the template file
+  my $map = new JAC::OCS::Config::ACSIS::ACSIS_MAP( EntityFile => $templ, validation => 0 );
+  $acsis->acsis_map( $map );
+
+}
+
 =item B<line_list>
 
 Configure the line list information.
@@ -805,6 +851,45 @@ sub spw_list {
 
 }
 
+=item B<line_list>
+
+Configure the real time pipeline.
+
+  $trans->acsisdr_recipe( $cfg, %info );
+
+=cut
+
+sub acsisdr_recipe {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Get the observing mode
+  my $mode = $self->observing_mode( %info );
+  my $root = $mode . '_dr_recipe.ent';
+  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root );
+
+  # Read the recipe itself
+  my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
+						       validation => 0);
+  $acsis->red_config_list( $dr );
+
+  # and now the mapping that is also recipe specific
+  my $sl = new JAC::OCS::Config::ACSIS::SemanticLinks( EntityFile => $filename,
+						       validation => 0);
+  $acsis->semantic_links( $sl );
+
+  # Write the observing mode to the recipe
+  $mode =~ s/_/\//g;
+  $acsis->red_obs_mode( $mode );
+  $acsis->red_recipe_id( "incorrect. Should be read from file");
+
+}
+
 =item B<observing_mode>
 
 Retrieves the ACSIS observing mode from the OT observation summary
@@ -860,14 +945,22 @@ RXA3 becomes RXA.
 Takes the OMP instrument name as argument. Returned string is upper cased.
 Returns undef if the frontend is not recognized.
 
+If the second argument is true, a version is returned that has the "x" 
+in lower case
+
+  $fe = $trans->ocs_frontend( $ompfe, 1);
+
 =cut
 
 sub ocs_frontend {
   my $self = shift;
   my $ompfe = uc( shift );
+  my $lc = shift;
 
-  return $FE_MAP{$ompfe} if exists $FE_MAP{$ompfe};
-  return;
+  my $answer;
+  $answer = $FE_MAP{$ompfe} if exists $FE_MAP{$ompfe};
+  $answer =~ tr|X|x| if (defined $answer && $lc);
+  return $answer;
 }
 
 =item B<bandwidth_mode>
@@ -968,6 +1061,9 @@ sub bandwidth_mode {
 
     # configuration name
     $s->{configname} = $s->{bwlabel} . '_' . $nsubband . 'x' . $nchan_per_sub;
+
+    # channel mode
+    $s->{chanmode} = $nsubband . 'x' . $nchan_per_sub;
 
     # Now we need to calculate the reference channels for each subband
     # (middle channel if 1 subband)
