@@ -1697,7 +1697,7 @@ sub projlog_content {
 
   try {
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
-				      date => $utdate
+				      date => $utdate,
 				      inccal => 1,);
 
     if ($grp->numobs > 1) {
