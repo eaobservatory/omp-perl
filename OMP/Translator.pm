@@ -27,8 +27,11 @@ use strict;
 use warnings;
 
 use OMP::SciProg;
+use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
+
+our $TRANS_DIR = "/tmp/omplog";
 
 =head1 METHODS
 
@@ -52,6 +55,19 @@ is generated from the SpObs, a SCUBA macro file.
 
 sub translate {
   my $self = shift;
+  my $sp = shift;
+
+  # See how many MSBs we have
+  my @msbs = $sp->msb;
+
+  throw OMP::Error::TranslateFail("Only one MSB can be translated at a time")
+    if scalar(@msbs) != 1;
+
+  # Now get the MSB info
+  my $msbinfo = $msbs[0]->info;
+
+
+
 
 }
 
