@@ -70,3 +70,10 @@ ProjServer
 
  - adjustment of time remaining                     [1.0]
      [done]
+
+ - "allocated" vs "fallback" allocations
+
+ - back door password available to all authentication schemes
+
+ - Allocation per weather band (in a system that works for
+   both telescopes).
