@@ -390,6 +390,13 @@ sub obs_table {
     }
   }
 
+  unless (@allobs) {
+    if ($text) {
+      print "No observations for this night\n";
+    }
+    return;
+  }
+
   my $currentinst = (length( $instrument . '' ) == 0 ) ? $allobs[0]->instrument : $instrument;
 
   my $ut = $allobs[0]->startobs->ymd;
