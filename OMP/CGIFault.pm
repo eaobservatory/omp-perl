@@ -30,6 +30,8 @@ use OMP::CGIHelper;
 use OMP::Config;
 use OMP::General;
 use OMP::Fault;
+use OMP::FaultUtil;
+use OMP::Display;
 use OMP::FaultServer;
 use OMP::Fault::Response;
 use OMP::MSBServer;
@@ -502,6 +504,17 @@ sub query_fault_output {
   my $delta;
   my $xml;
 
+  # Print faults
+  if ($q->param('print')) {
+    my $printer = $q->param('printer');
+    my @fprint = split(',',$q->param('faults'));
+
+    OMP::FaultUtil->print_faults($printer, @fprint);
+
+    titlebar($q, ["View Faults", "Sent faults to printer $printer"], %cookie);
+    return;
+  }
+
   # The 'Submit' submit button was clicked
   if ($q->param('Search')) {
     my @xml;
@@ -580,8 +593,6 @@ sub query_fault_output {
     }
   }
 
-  print
-
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
@@ -614,6 +625,25 @@ sub query_fault_output {
     } else {
       show_faults($q, $faults, "viewfault.pl");
     }
+
+    # Printing options
+    # Get printers
+    my @printers = OMP::Config->getData('printers');
+
+    # Faults to print
+    my @faultids = map{$_->id} @$faults;
+
+    print $q->startform;
+    # Want to show output
+    print $q->hidden(-name=>'show_output', -default=>'true');
+    print $q->hidden(-name=>'faults',
+		     -default=>join(',',@faultids),);
+    print $q->submit(-name=>'print',
+		     -label=>'Print faults using');
+
+    print $q->radio_group(-name=>'printer',
+			  -values=>@printers,);
+    print $q->endform;
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -776,6 +806,16 @@ sub view_fault_content {
     # Got the fault ID, so display the fault
     my $fault = OMP::FaultServer->getFault($faultid);
 
+    # Send the fault to a printer if print button was clicked
+    if ($q->param('print')) {
+      my $printer = $q->param('printer');
+      my @fprint = split(',',$q->param('faults'));
+
+      OMP::FaultUtil->print_faults($printer, @fprint);
+      titlebar($q, ["View Fault: $faultid", "Fault sent to printer $printer"], %cookie);
+      return;
+    }
+
     # If the user is "logged in" to the report problem system
     # make sure they can only see problem reports and not faults
     # for other categories.
@@ -786,7 +826,23 @@ sub view_fault_content {
 
     titlebar($q, ["View Fault: $faultid", $fault->subject], %cookie);
     fault_table($q, $fault);
+ 
+    # Printing options
+    # Get printers
+    my @printers = OMP::Config->getData('printers');
 
+    print "<br>";
+    print $q->startform;
+    print $q->hidden(-name=>'faults',
+		     -default=>$fault->id,);
+    print $q->submit(-name=>'print',
+		     -label=>'Print fault using');
+
+    print $q->radio_group(-name=>'printer',
+			  -values=>@printers,);
+    print $q->endform;
+
+    # Response form
     print "<p><b><font size=+1>Respond to this fault</font></b>";
     response_form($q, $fault, %cookie);
   }
@@ -951,6 +1007,21 @@ sub view_fault_output {
   titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
 
   fault_table($q, $fault);
+
+  # Printing options
+  # Get printers
+  my @printers = OMP::Config->getData('printers');
+
+  print "<br>";
+  print $q->startform;
+  print $q->hidden(-name=>'faults',
+		   -default=>$fault->id);
+  print $q->submit(-name=>'print',
+		   -label=>'Print fault using');
+
+  print $q->radio_group(-name=>'printer',
+			-values=>@printers,);
+  print $q->endform;
 }
 
 =item B<close_fault_form>
