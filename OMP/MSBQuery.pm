@@ -179,7 +179,7 @@ sub sql {
   my $self = shift;
   my $table = shift;
 
-  return "SELECT * FROM $table";
+  return "SELECT * FROM $table WHERE remaining > 0";
 }
 
 =item B<stringify>
