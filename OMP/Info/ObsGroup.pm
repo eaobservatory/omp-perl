@@ -132,7 +132,7 @@ sub obs {
 
     for (@obs) {
       throw OMP::Error::BadArgs("Observation must be a OMP::Info::Obs")
-	unless UNIVERSAL::isa($_,"OMP::Info::Obs");
+      unless UNIVERSAL::isa($_,"OMP::Info::Obs");
     }
 
     @{$self->{ObsArray}} = @obs;
@@ -695,14 +695,14 @@ sub locate_timegaps {
   my $self = shift;
   my $length = shift;
 
-  # Make sure the array of Obs objects is sorted in time.
+  # Make sure the array of Obs objects is sorted in time, but only if there
+  # actually are observations.
   my @obs = sort {
     $a->startobs <=> $b->startobs
   } $self->obs;
 
   my @newobs;
   for( my $i = 0; $i < $#obs; $i++ ) {
-
     my $curobs = $obs[$i];
     my $nextobs = $obs[$i+1];
     push @newobs, $curobs;
@@ -742,11 +742,14 @@ sub locate_timegaps {
   } # end for loop
 
   # We need to push the last observation on the array, since
-  # it got skipped in the amazing loop structure.
-  push @newobs, $obs[$#obs];
+  # it got skipped in the amazing loop structure, but only if there's
+  # more than one observation in the array.
+  if($#obs > 0) {
+    push @newobs, $obs[$#obs];
 
-  # And now, set $self to use the new observations.
-  $self->obs( \@newobs );
+    # And now, set $self to use the new observations.
+    $self->obs( \@newobs );
+  }
 
   return;
 
