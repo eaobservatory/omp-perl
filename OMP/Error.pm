@@ -197,6 +197,10 @@ in the constant C<OMP__AUTHFAIL>
 
 Method was called with incorrect arguments.
 
+=item B<OMP::Error::CacheFailure>
+
+Problem occurred with Archive caching.
+
 =item B<OMP::Error::DBConnection>
 
 Unable to make a connection to the database backend.
@@ -309,6 +313,9 @@ package OMP::Error::Authentication;
 use base qw/ OMP::Error /;
 
 package OMP::Error::BadArgs;
+use base qw/ OMP::Error /;
+
+package OMP::Error::CacheFailure;
 use base qw/ OMP::Error /;
 
 package OMP::Error::DBConnection;
