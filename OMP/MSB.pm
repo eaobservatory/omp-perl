@@ -1119,7 +1119,11 @@ sub SpObs {
     # We have a calibration observation
     $summary{coords} = Astro::Coords::Calibration->new;
     $summary{coordstype} = $summary{coords}->coordstype;
-    $summary{target} = join(":",@{$summary{obstype}});
+
+    # The target name should not include duplicates here
+    # Use a hash to compress it
+    my %types = map { $_, undef  } @{$summary{obstype}};
+    $summary{target} = join(":", keys %types);
   }
 
   return \%summary;
@@ -1135,6 +1139,11 @@ modes used.
 The "obstype" key is only placed in the summary hash if an
 observe iterator of some kind is present.
 
+Sometimes an SpIterFolder contains other folders such as SpIterRepeat
+and SpIterOffset. These may contain SpIterObserve and so must be
+examined a special cases of SpIterFolder. All iterators (except Repeat
+and Offset) are pushed onto the obstype array regardless of depth.
+
 =cut
 
 sub SpIterFolder {
@@ -1143,9 +1152,18 @@ sub SpIterFolder {
   my %summary = @_;
   my @types;
 
-  for ( $el->getChildnodes ) {
-    my $name = $_->getName;
+  for my $child ( $el->getChildnodes ) {
+    my $name = $child->getName;
     next unless defined $name;
+
+    # If we are SpIterRepeat or SpIterOffset we need to
+    # go down a level
+    if ($name =~ /Repeat|Offset/) {
+      my %dummy = $self->SpIterFolder($child);
+      push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
+      next;
+    }
+
     # Remove the SpIter string
     next unless $name =~ /SpIter/;
     $name =~ s/^SpIter//;
