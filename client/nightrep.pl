@@ -67,6 +67,7 @@ use Getopt::Long;
 use Pod::Usage;
 
 use Tk;
+use Tk::Toplevel;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -99,6 +100,12 @@ if ($version) {
   exit;
 }
 
+# Now we can start
+# Create a base Tk system that can be used by nightrep
+# Multiple MainWindows seemingly lead to core dumps
+my $MW = new MainWindow();
+$MW->withdraw;
+
 # First thing we need to do is determine the telescope and
 # the UT date
 $ut = OMP::General->determine_utdate( $ut )->ymd;
@@ -108,7 +115,7 @@ my $telescope;
 if(defined($tel)) {
   $telescope = uc($tel);
 } else {
-  my $w = new MainWindow;
+  my $w = $MW->Toplevel;
   $w->withdraw;
   $telescope = OMP::General->determine_tel( $w );
   $w->destroy;
@@ -118,16 +125,14 @@ if(defined($tel)) {
 # Night report
 my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
 
-# Now we can start
-my $MW = new MainWindow();
-
 # Now put up a button bar
-my $TopButtons = $MW->Frame()->pack(-side => 'top');
+my $TL = $MW->Toplevel;
+my $TopButtons = $TL->Frame()->pack(-side => 'top');
 top_button_bar( $TopButtons );
 
 # Now scan the project database and put up the project
 # entries
-my $Projects = $MW->Frame()->pack(-side => 'top');
+my $Projects = $TL->Frame()->pack(-side => 'top');
 project_window( $Projects, $NR );
 
 # And time for the event loop
