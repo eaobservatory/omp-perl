@@ -361,7 +361,12 @@ sub _mail_comment_important {
   my $proj = $projdb->_get_project_row;
 
   my @email = ($proj->contacts);
-  my @cc = ($comment->{author}->email);
+
+  my @cc;
+  if ($comment->{author}) {
+    @cc = $comment->{author}->email;
+  }
+
   $self->_mail_comment( $comment, \@email, \@cc );
 }
 
