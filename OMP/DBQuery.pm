@@ -711,7 +711,7 @@ sub _querify {
   # add pattern matches if we have like
   my $quote;
   if ($cmp eq 'like') {
-    $quote "'";
+    $quote = "'";
 
     # Alter our search string for case-insensitivity
     $value =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
