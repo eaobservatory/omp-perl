@@ -1683,7 +1683,7 @@ sub _insert_row {
                                      $obs->{wavelength} =~ /\d/);
 
     $obsst->execute(
-		    $obsid, $index, $proj, $obs->{instrument}, 
+		    $obsid, $index, $proj, uc($obs->{instrument}), 
 		    $obs->{type}, $obs->{pol}, $obs->{wavelength},
 		    $obs->{disperser},
 		    $obs->{coords}->type, $obs->{target},
