@@ -115,7 +115,7 @@ sub translate {
   # Create the full class name
 
   $class = $thisclass . '::' . $class;
-  print "Class is : $class\n";
+  print "Class is : $class\n" if $DEBUG;
 
   # Now translate (but being careful to propogate calling context)
   if (wantarray) {
