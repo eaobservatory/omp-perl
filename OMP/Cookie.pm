@@ -11,10 +11,9 @@ OMP::Cookie - Cookie management
 
   $c = new OMP::Cookie( CGI => $q, Name => $name );
 
-  $c->setCookie( $exptime, {
-			    password => $pass,
-			    projectid => $projid 
-			   } );
+  $c->setCookie( $exptime, %contents);
+
+  print $q->header($c->cookie);
 
   %contents = $c->getCookie;
 
@@ -24,7 +23,7 @@ OMP::Cookie - Cookie management
 
 =head1 DESCRIPTION
 
-Blah blah
+This class provides cookie management for the OMP feedback tool.
 
 =cut
 
@@ -49,6 +48,10 @@ Create a new instance of an C<OMP::Cookie> object.
 
   $c = new OMP::Cookie( Name => $name, CGI => $q );
 
+The cookie name defaults to "OMPFBLOGIN", thus the Name parameter is 
+optional in the constructor.
+
+
 =cut
 
 sub new {
@@ -70,7 +73,7 @@ sub new {
   # Populate object
   for my $key (keys %args) {
     my $method = lc($key);
-    $object->$method( $args{$_});
+    $object->$method( $args{$key});
   }
 
   return $object;
@@ -113,7 +116,7 @@ sub cgi {
   if (@_) {
     my $cgi = shift;
     croak "Incorrect type. Must be a CGI object"
-      if UNIVERSAL::isa( $cgi, "CGI");
+      unless UNIVERSAL::isa( $cgi, "CGI");
     $self->{CGI} = $cgi;
   }
   return $self->{CGI};
@@ -121,7 +124,8 @@ sub cgi {
 
 =item B<cookie>
 
-The cookie object.
+Return the cookie object.  This is what you would give to the C<CGI>
+header() method.
 
   $cookie = $c->cookie;
   $c->cookie( $cookie );
@@ -134,7 +138,7 @@ sub cookie {
     my $cookie = shift;
 
     croak "Incorrect type. Must be a CGI object"
-      if UNIVERSAL::isa( $cookie, "CGI::Cookie");
+      unless UNIVERSAL::isa( $cookie, "CGI::Cookie");
 
     $self->{Cookie} = $cookie;
   }
@@ -148,6 +152,12 @@ sub cookie {
 =over 4
 
 =item B<setCookie>
+
+Creates the CGI cookie object. Name=value pairs should be in the form of a
+hash. If expire time is given it should be the first argument and in the form
+of minutes.  Expire time defaults to 30 minutes.
+
+  $c->setCookie(5, %contents);
 
 =cut
 
@@ -171,14 +181,21 @@ sub setCookie {
 
 =item B<getCookie>
 
+Calls the C<CGI> method to retrieve the cookie from the browser and return
+the name=value pairs.
+
+%contents = $c->getCookie;
+
 =cut
 
 sub getCookie {
   my $self = shift;
+
+  #Get the CGI object
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
-  return $cgi->cookie($self->name);
+  return $cgi->cookie(-name=>$self->name);
 }
 
 =back
