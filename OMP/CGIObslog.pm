@@ -372,6 +372,7 @@ sub obs_table {
       print join("</font></td><td><font color=\"$colour\">" , map {
         ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
       } @{$nightlog{_ORDER}} );
+      $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
     }
     print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
     my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
