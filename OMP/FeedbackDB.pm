@@ -296,7 +296,7 @@ sub _mail_comment {
   my $addrlist = shift;
  # Mail message
   my $msg = "\nAuthor: $comment->{author}\n" .
-            "Subject: $comment->{subject}\n\n" .
+            "Subject: [" . $self->project . "] $comment->{subject}\n\n" .
 	    "$comment->{text}\n";
 
   $self->_mail_information(
@@ -304,7 +304,7 @@ sub _mail_comment {
 			   to => $addrlist,
 			   from => "omp-feedback-system",
 			   subject => "New comment for project " . $self->projectid,
-			   headers => ["Reply-To: omp_group\@jach.hawaii.edu","Content-type: text/html"  ],
+			   headers => ["Reply-To: flex\@jach.hawaii.edu","Content-type: text/html"  ],
 			  );
 
 }
