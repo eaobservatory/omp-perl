@@ -113,6 +113,8 @@ Priority allocated by the TAG (integer part) and the PI (decimal part).
 =item B<schedpri>
 
 The scheduling priority. Not necessarily the same as the (TAG) priority.
+Usually depends on the time it was calculated (the airmass/hour angle is used
+in the calculation) and so is not calculated dynamically in this class.
 
 =item B<timeest>
 
@@ -1012,11 +1014,11 @@ sub getResultColumns {
   # The order must be forced
   my @order;
   if ($tel eq 'JCMT') {
-    @order = qw/ projectid priority instrument waveband title target
+    @order = qw/ projectid priority schedpri instrument waveband title target
       ra dec coordstype ha az airmass pol type
 	timeest remaining obscount checksum msbid completion tau /;
   } elsif ($tel eq 'UKIRT') {
-    @order = qw/ projectid priority instrument waveband title target
+    @order = qw/ projectid priority schedpri instrument waveband title target
 		 ra dec coordstype ha airmass pol type
 		 timeest remaining obscount moon cloud
 		 sky disperser checksum msbid
@@ -1024,7 +1026,7 @@ sub getResultColumns {
 		 /;
   } else {
     # Generic order
-    @order = qw/ projectid priority instrument waveband title target
+    @order = qw/ projectid priority schedpri instrument waveband title target
       ra dec coordstype ha airmass pol type
 	timeest remaining obscount checksum msbid completion tau seeing /;
   }
