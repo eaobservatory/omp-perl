@@ -758,10 +758,31 @@ Generate a summary of the night formatted using HTML.
 
   $nr->ashtml();
 
+This method takes an optional hash argument with the following keys:
+
+=over 4
+
+=item *
+
+worfstyle - Write WORF links to the staff WORF page. Can be either 'staff'
+or 'project', and will default to 'project'.
+
+=back
+
 =cut
 
 sub ashtml {
   my $self = shift;
+  my %options = @_;
+
+  # Check the options.
+  my $worfstyle;
+  if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+      lc( $options{worfstyle} ) eq 'staff' ) {
+    $worfstyle = 'staff';
+  } else {
+    $worfstyle = 'project';
+  }
 
   # Need to load CGI specified classes
   require OMP::CGIObslog;
@@ -1022,7 +1043,9 @@ sub ashtml {
       
       if ($grp and $grp->numobs > 1) {
 	OMP::CGIHelper::obs_table($grp,
-                  sort => 'chronological',);
+                            sort => 'chronological',
+                            worfstyle => $worfstyle,
+                           );
       } else {
 	# Don't display the table if no observations are available
 	print "No observations available for this night";
