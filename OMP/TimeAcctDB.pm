@@ -288,7 +288,7 @@ sub incPending {
   my $current = $self->verifyTimeAcctEntry( $pending );
 
   # add the two together
-  if ($current) {
+  if (defined $current) {
     $pending->incTime( $current );
   }
 
