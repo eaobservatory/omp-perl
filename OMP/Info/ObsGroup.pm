@@ -398,6 +398,17 @@ sub projectStats {
   my %night_totals;
   for my $obs (@obs) {
     my $projectid = $obs->projectid;
+
+    # if we have a SCUBA project ID that seems to be a science observation
+    # we charge this to projectID JCMTCAL. Clearly SCUBA::ODF should be responsible
+    # for this logic but for now we add it here for testing.
+    # This should be a rare occurence
+    if ($projectid =~  /scuba/i && $obs->isScience) {
+      # use JCMTCAL rather than tagging as a calibrator because we don't
+      # want other people charged for it
+      $projectid = 'JCMTCAL';
+    }
+
     my $inst = $obs->instrument;
     my $startobs = $obs->startobs;
     my $tel = uc($obs->telescope);
