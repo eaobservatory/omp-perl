@@ -116,7 +116,7 @@ for my $proj (keys %sorted) {
 			       subject => "MSB summary for $utdate",
 			       program => "observed.pl",
 			       sourceinfo => $host,
-			       text => $msg,
+			       text => "<pre>\n$msg\n</pre>\n",
 			      }
 			     );
   }
