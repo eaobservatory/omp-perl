@@ -258,7 +258,7 @@ sub file_fault_output {
   }
 
   my $resp = new OMP::Fault::Response(author=>$user,
-				      text=>$q->param('message'),);
+				      text=>$text,);
 
   # Create the fault object
   my $fault = new OMP::Fault(category=>$cookie{category},
