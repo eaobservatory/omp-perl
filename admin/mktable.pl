@@ -95,11 +95,25 @@ my %tables = (
 					projectid timestamp sciprog
 					/],
 			     },
+	      ompfeedback => {
+			      commid => "numeric(5,0) IDENTITY",
+			      projid => "char(9) not null",
+			      author => "char(50) not null",
+			      date => "datetime not null",
+			      status => "bit null",
+			      text => "text not null",
+			      _ORDER => [qw/
+					 commid projid author date status text
+					/],
+			     },
 	     );
 
 for my $table (sort keys %tables) {
- # next if $table eq 'ompproj';
- # next if $table eq 'ompsciprog';
+   next if $table eq 'ompproj';
+   next if $table eq 'ompsciprog';
+   next if $table eq 'ompmsb';
+   next if $table eq 'ompobs';
+ # next if $table eq 'ompfeedback';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
