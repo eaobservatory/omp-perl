@@ -791,10 +791,14 @@ is treated as 2nd Feb UT for this calculation.
 
 # Hard-wired boundaries that can not be calculated using an algorithm
 # Indexed by telescope, then semester name then YYYYMMDD date in 2 element array
-# We also need to invert so that the min date points to a semester
+# These are inclusive numbers
 my %SEM_BOUND = (
 		 UKIRT => {
 			   # 04A started early and finished very late because of WFCAM
+			   # this also forces 03B to finish early
+			   # Note that we do not attempt to indicate undef when the
+			   # date is the normal date but with a new uppoer or lower bound
+			   '03B' => [ 20030802, 20040116 ],
 			   '04A' => [ 20040117, 20041001 ],
 			  },
 		);
@@ -821,8 +825,8 @@ sub determine_semester {
   my $ymd = $date->strftime("%Y%m%d");
   for my $ltel (keys %SEM_BOUND) {
     for my $lsem (keys %{ $SEM_BOUND{$ltel} } ) {
-      if ($ymd > $SEM_BOUND{$ltel}{$lsem}[0] &&
-	  $ymd < $SEM_BOUND{$ltel}{$lsem}[1] ) {
+      if ($ymd >= $SEM_BOUND{$ltel}{$lsem}[0] &&
+	  $ymd <= $SEM_BOUND{$ltel}{$lsem}[1] ) {
 	# we have a hit
 	return $lsem;
       }
@@ -934,14 +938,23 @@ sub _determine_pparc_semester_boundary {
 
 =item B<semester_boundary>
 
-Returns a Time::Piece object for both the start of the semester and the end
-of the semester.
+Returns a Time::Piece object for both the start of the semester and
+the end of the semester (both dates are in the semester such that if
+they are passed to C<determine_semester> the semester returned will
+match the semester given to this routine).
 
   ($begin, $end) = OMP::General->semester_boundary( semester => '04B',
                                                     tel => 'JCMT' );
 
 The telescope is mandatory. If a semester is not specified the current semester
 is used. 'PPARC' is a special telescope used for generic PPARC semester boundaries.
+
+If semester is a reference to an array, the beginning and end dates will refer
+to the start of the earliest semester and the end of the latest semester. An exception
+will be thrown if the semesters themselves are not contiguous.
+
+  ($begin, $end) = OMP::General->semester_boundary( semester => [qw/ 04A 04B/],
+                                                    tel => 'UKIRT' );
 
 =cut
 
@@ -958,23 +971,44 @@ sub semester_boundary {
     unless exists $args{semester};
 
   $args{tel}      = uc($args{tel});
-  $args{semester} = uc($args{semester});
 
-  # Do fast lookup
-  if (exists $SEM_BOUND{$args{tel}}{$args{semester}}) {
-    return  map { OMP::General->parse_date( $_  ) }
-              @{ $SEM_BOUND{$args{tel}}{$args{semester}} };
+  # The semester can either be a single value or an array reference
+  my @sem = (ref($args{semester}) ? @{ $args{semester}} : $args{semester} );
+
+  my @dates;
+  for my $sem (@sem) {
+    $sem = uc($sem);
+
+    # Do fast lookup
+    if (exists $SEM_BOUND{$args{tel}}{$sem} ) {
+      push(@dates, $SEM_BOUND{$args{tel}}{$sem} );
+      next;
+    }
+
+    # telescope specific
+    if ($args{tel} eq 'PPARC' || $args{tel} eq 'JCMT' || $args{tel} eq 'UKIRT') {
+      push(@dates, [ _determine_pparc_semester_boundary( $sem ) ] );
+    } else {
+      croak "Unrecognized telescope '$args{tel}'. Should not happen.\n";
+    }
+
   }
 
-  # telescope specific
-  if ($args{tel} eq 'PPARC' || $args{tel} eq 'JCMT' || $args{tel} eq 'UKIRT') {
-    return map { OMP::General->parse_date( $_  ) 
-                   } _determine_pparc_semester_boundary( $args{semester} );
-  } else {
-    croak "Unrecognized telescope '$args{tel}'. Should not happen.\n";
+  # Check continuity. First sort
+  @dates = sort { $a->[0] <=> $b->[0] } @dates;
+
+  my ($start, $end) = @{ $dates[0] };
+  for my $d (1..$#dates) {
+    # check continuity
+    if ($dates[$d]->[0] - $end > 1) {
+      throw OMP::Error::FatalError("Gap in semester range specified to semester_boundary method");
+    }
+    $end = $dates[$d][1];
   }
 
-  return ();
+  # Return
+  return  map { OMP::General->parse_date( $_  ) } ($start, $end);
+
 }
 
 =back

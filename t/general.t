@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 184;
+use Test::More tests => 188;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -181,6 +181,14 @@ is($bound[1]->ymd, '2004-02-01', "JCMT 03B end");
 @bound = OMP::General->semester_boundary( tel => 'UKIRT', semester => '04A');
 is($bound[0]->ymd, '2004-01-17', "UKIRT 04A start");
 is($bound[1]->ymd, '2004-10-01', "UKIRT 04A end");
+
+@bound = OMP::General->semester_boundary( tel => 'UKIRT', semester => 'Y');
+is($bound[0]->ymd, '1993-08-02', "UKIRT Semester Y start");
+is($bound[1]->ymd, '1994-02-01', "UKIRT Semester Y end");
+
+@bound = OMP::General->semester_boundary( tel => 'UKIRT', semester => [qw/03A 03B/]);
+is($bound[0]->ymd, '2003-02-02', "UKIRT 03A start (2 semesters)");
+is($bound[1]->ymd, '2004-01-16', "UKIRT 03B end (2 semesters)");
 
 print "# Project ID\n";
 
