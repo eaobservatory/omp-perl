@@ -2588,6 +2588,10 @@ sub proj_sum_table {
   my $hsem;
   my $hcountry;
 
+  # Count msbs for each project
+  my @projectids = map {$_->projectid} @$projects;
+  my %msbcount = OMP::MSBServer->getMSBCount(@projectids);
+
   foreach my $project (@$projects) {
 
     if ($headings) {
@@ -2601,24 +2605,11 @@ sub proj_sum_table {
       }
     }
 
-    # Get the MSBs for this project so we can count them
-    my $msbs;
-    try {
-      $msbs = OMP::SpServer->programDetails($project->projectid, '***REMOVED***', 'objects');
-    } catch OMP::Error::UnknownProject with {
-      my $E = shift;
-    } otherwise {
-      my $E = shift;
-    };
-
-    my $nmsb = 0;
-    if ($msbs->[0]) {
-      $nmsb = scalar(@$msbs);
-    }
-
-    # Count remaining msbs
-    my @remaining = grep { $_->remaining > 0 } @$msbs;
-    my $nremaining = scalar(@remaining);
+    # Get MSB counts
+    my $nmsb = $msbcount{$project->projectid}{total};
+    my $nremaining = $msbcount{$project->projectid}{active};
+    (! defined $nmsb) and $nmsb = 0;
+    (! defined $nremaining) and $nremaining = 0;
 
     # Get seeing and tau info
     my $taurange = $project->taurange;
