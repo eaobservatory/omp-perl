@@ -1416,7 +1416,7 @@ sub project_home {
     } else {
       print "<h3>There are " . scalar(@$comments) . " important comments";
     }
-    print " for this project.<h3>";
+    print " for this project.</h3>";
     print "Click <a href='feedback.pl'>here</a> to see them.";
   } else {
     print "<h3>There are no important comments for this project</h3>";
