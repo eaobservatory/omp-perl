@@ -529,6 +529,15 @@ sub _add_msb_done_info {
   # insert rows into table
   # Note that "title" was added at a later date - hence its position
   # at the end of the insert
+
+  # The user ID must be stored if the status is DONE_COMMENT, but always
+  # store the user ID if it is available regardless of status.
+  my $userid = $comment->author->userid
+    unless (! $comment->author);
+
+  throw OMP::Error::BadArgs("An OMP user ID is required for making a comment but none was supplied")
+    if ($comment->status == OMP__DONE_COMMENT and ! $userid);
+
   $self->_db_insert_data( $MSBDONETABLE,
 			  $checksum, $comment->status,
 			  $projectid, $date,
@@ -538,9 +547,8 @@ sub _add_msb_done_info {
 			   TEXT => $comment->text,
 			   COLUMN => 'comment',
 			  }, $msbinfo->title,
-			  ($comment->status == OMP__DONE_COMMENT ? $comment->author->userid : undef),
+			  $userid,
 			);
-  
 }
 
 =item B<_store_msb_done_comment>
