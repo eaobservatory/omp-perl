@@ -407,8 +407,8 @@ sub _db_findmax {
   my $sth = $dbh->prepare( $sql )
     or throw OMP::Error::DBError("Error preparing max SQL statment");
 
-  $sth->execute or 
-    throw OMP::Error::DBError("DB Error executing max SQL: $DBI::errstr");
+  $sth->execute
+    or throw OMP::Error::DBError("DB Error executing max SQL: $DBI::errstr");
 
   my $max = ($sth->fetchrow_array)[0];
   OMP::General->log_message( "FoundMax: ". (defined $max ? $max:0) )
@@ -446,6 +446,10 @@ sub _db_insert_data {
   # deciding which fields can be stored immediately and which must be
   # insert as text fields
 
+  # Sybase has a special routine for storing large text fields
+  # Otherwise try to use the actual INSERT command
+  my $has_write_text = $self->db->has_writetext;
+
   # Some dummy text field that we can replace later
   # Have something that ends in a number so that ++ will
   # work for us in a logical way
@@ -474,21 +478,31 @@ sub _db_insert_data {
       # Add a placeholder (the comma should be in already)
       $placeholder .= "?";
 
-    } elsif (ref($column) eq "HASH" && exists $column->{TEXT}
-	    && exists $column->{COLUMN}) {
+    } elsif (ref($column) eq "HASH" 
+	     && exists $column->{TEXT}
+	     && exists $column->{COLUMN}) {
 
-      # Add the dummy text to the hash
-      $column->{DUMMY} = $dummytext;
+      if ($has_write_text) {
+	# Use the optimized non-truncating writetext function
 
-      # store the information for later
-      # including the dummy string
-      push(@textfields, $column);
+	# Add the dummy text to the hash
+	$column->{DUMMY} = $dummytext;
 
-      # Update the SQL placeholder
-      $placeholder .= "'$dummytext'";
+	# store the information for later
+	# including the dummy string
+	push(@textfields, $column);
 
-      # Update the dummy string for next time
-      $dummytext++;
+	# Update the SQL placeholder
+	$placeholder .= "'$dummytext'";
+
+	# Update the dummy string for next time
+	$dummytext++;
+
+      } else {
+	# Put this in the INSERT directly
+	push(@toinsert, $column->{TEXT});
+	$placeholder .= "?";
+      }
 
     } else {
       throw OMP::Error::DBError("Do not understand how to insert data of class '".
