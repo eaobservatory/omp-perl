@@ -544,7 +544,7 @@ The XML query must match that described in C<OMP::MSBDoneQuery>.
 
 =cut
 
-sub queryMSBDone {
+sub queryMSBdone {
   my $class = shift;
   my $xml = shift;
   my $allcomments = shift;
