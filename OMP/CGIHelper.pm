@@ -34,7 +34,7 @@ use OMP::MSBServer;
 use OMP::FBServer;
 use OMP::General;
 use OMP::Error qw(:try);
-use OMP::Constants qw(:fb :done);
+use OMP::Constants qw(:fb :done :msb);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -1128,7 +1128,27 @@ sub msb_comments {
   my $bgcolor;
   foreach my $msb (@output) {
     $i++;
-    print "<tr><td><b>MSB $i</b></td>";
+
+    # If the MSB exists in the science program we'll provide a "Remove" button and we'll
+    # be able to display the number of remaining observations.
+    my $exists = ($sp and $sp->existsMSB($msb->checksum) ? 1 : 0 );
+    my $remstatus;
+    if ($exists) {
+      my $remaining = $sp->fetchMSB($msb->checksum)->remaining;
+      if ($remaining == OMP__MSB_REMOVED) {
+	$remstatus = "REMOVED";
+      } elsif ($remaining == 0) {
+	$remstatus = "COMPLETE";
+      } else {
+	$remstatus = "Remaining: $remaining";
+      }
+    }
+
+    print "<tr valign=top><td><b>MSB $i</b></td>";
+    print "<td>";
+    print "<b>$remstatus</b>"
+      if ($remstatus);
+    print "</td>";
     print "<td><b>Target:</b> ".$msb->target ."</td>";
     print "<td><b>Waveband:</b>". $msb->waveband ."</td>";
     print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
@@ -1140,12 +1160,12 @@ sub msb_comments {
       ($status == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
       ($status == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
       ($status == OMP__DONE_UNDONE) and $bgcolor = '#ffd8a3';
-      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date (UT):</b> " .
+      print "<tr><td colspan=5 bgcolor=$bgcolor><b>Date (UT):</b> " .
 	$comment->date ."<br>";
       print $comment->text ."</td>";
     }
 
-    print "<tr bgcolor='#d3d3dd'><td align=right colspan=4>";
+    print "<tr bgcolor='#d3d3dd'><td align=right colspan=5>";
     print $q->startform;
 
     # Some hidden params to pass
@@ -1159,9 +1179,9 @@ sub msb_comments {
     print $q->hidden(-name=>'projectid',
 		     -default=>$msb->projectid);
 
-    # Make "mark as done" and "undo" buttons if the MSB exists in the 
+    # Make "Remove" and "undo" buttons if the MSB exists in the 
     # science program
-    if ($sp and $sp->existsMSB($msb->checksum)) {
+    if ($exists) {
       print $q->submit("Remove");
       print " ";
       print $q->submit("Undo");
