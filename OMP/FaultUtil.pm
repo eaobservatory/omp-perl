@@ -301,11 +301,11 @@ sub compare {
       $keya = join(",",@{$obja->projects});
       $keyb = join(",",@{$objb->projects});
     } elsif ($_ =~ /faultdate/) {
-      if ($obja->faultdate and $objb->faultdate) {
-	$keya = $obja->faultdate->strftime("%Y%m%d%T");
-	$keyb = $objb->faultdate->strftime("%Y%m%d%T");
-      } else {
-	next;
+      if ($obja->faultdate) {
+	$keya = $obja->faultdate->epoch;
+      }
+      if ($objb->faultdate) {
+	$keyb = $objb->faultdate->epoch;
       }
     } else {
       $keya = $obja->$_;
