@@ -898,10 +898,32 @@ sub cgi_to_obs {
   my $q = shift;
 
   my $qv = $q->Vars;
-  my $ut = $qv->{'ut'};
-  my $runnr = $qv->{'runnr'};
-  my $inst = uc( $qv->{'inst'} );
-  my $timegap = $qv->{'timegap'};
+
+  my $ut;
+  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
+    $ut = $1;
+  }
+
+  my $runnr;
+  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
+    $qv->{'runnr'} =~ /^(\d+)$/;
+    $runnr = $1;
+  }
+
+  my $inst;
+  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
+    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $inst = $1;
+  }
+
+  my $timegap;
+  if( exists( $qv->{'timegap'} ) && defined( $qv->{'timegap'} ) ) {
+    $qv->{'timegap'} =~ /^([01])$/;
+    $timegap = $1;
+  } else {
+    $timegap = 0;
+  }
 
   # Form the Time::Piece object
   my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
