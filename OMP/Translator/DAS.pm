@@ -1144,6 +1144,20 @@ sub SpIterRasterObs {
   # Get the cell definition
   my ($cellx, $celly, $cellpa) = _calculate_cell( %summary );
 
+  # If we have a cell of 0,0 turn it into 1 arcsec
+  if ($cellx == 0 || $celly == 0) {
+    $html .= "<b>Cell error:</b>";
+    if ($cellx == 0) {
+      $html .= " cellx was 0.0 ";
+      $cellx = 1.0;
+    }
+    if ($celly == 0) {
+      $html .= " celly was 0.0 ";
+      $celly = 1.0;
+    }
+
+  }
+
   # Calculate the number of samples
   # Make sure the number of positions encompasses the full size
   my $nx = int(($summary{MAP_WIDTH} / $cellx) + 0.99);
@@ -1158,6 +1172,10 @@ sub SpIterRasterObs {
   $html .= "<table>";
   $html .= "<tr><td><b>Integration time per point:</b></td><td>".
     $summary{sampleTime} . " sec</td></tr>";
+
+  $html .= "<tr><td><b>#Rows per calibration:</b></td><td>".
+    $summary{rowsPerCal} . "</td></tr>"
+      if (exists $summary{rowsPerCal} && defined $summary{rowsPerCal});
 
   $html .= "<tr><td><b>Number of repeats:</b></td><td>".
     $summary{nintegrations} . "</td></tr>";
