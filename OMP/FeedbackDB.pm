@@ -180,7 +180,7 @@ sub addComment {
   #  }
 
   # Make sure author is an OMP::User object
-  if ($comment->{author}) {
+  if (defined $comment->{author}) {
     throw OMP::Error::BadArgs("Author must be supplied as an OMP::User object")
       unless UNIVERSAL::isa( $comment->{author}, "OMP::User" );
   }
@@ -280,7 +280,8 @@ sub _store_comment {
   $self->_db_insert_data( $FBTABLE,
 			  $entrynum,
 			  $projectid,
-			  ($comment->{author} ? $comment->{author}->userid : undef),
+			  (defined $comment->{author} ? 
+			   $comment->{author}->userid : undef),
 			  @$comment{ 'date',
 				     'subject',
 				     'program',
@@ -363,7 +364,7 @@ sub _mail_comment_important {
   my @email = ($proj->contacts);
 
   my @cc;
-  if ($comment->{author}) {
+  if (defined $comment->{author}) {
     @cc = $comment->{author}->email;
   }
 
