@@ -1348,6 +1348,13 @@ sub _run_query {
     # be the current time or a time that was specified in the query.
     my $refdate = $query->refDate;
 
+
+    # Determine whether we are interested in checking for
+    # observability. We cant jump out the for loop because
+    # the person receiving the query will still want to 
+    # know hour angle and things
+    my %qconstraints = $query->constraints;
+
     # Loop over each MSB in order
     for my $msb ( @$ref ) {
 
@@ -1403,14 +1410,17 @@ sub _run_query {
 	$obs->{minel} = -1 unless defined $obs->{minel};
 
 	# Now see if we are observable (dropping out the loop if not
-	# since there is no point checking further)
-	# This knows about different telescopes automatically
-	# Also check that we are above the minimum elevation
-	# (which is not related to the queries but is a scheduling constraint)
-	if  ( ! $coords->isObservable or
-	      $coords->el < $obs->{minel}) {
-	  $isObservable = 0;
-	  last;
+	# since there is no point checking further) This knows about
+	# different telescopes automatically Also check that we are
+	# above the minimum elevation (which is not related to the
+	# queries but is a scheduling constraint)
+	# In some cases we dont even want to test for observability
+	if ($qconstraints{observability}) {
+	  if  ( ! $coords->isObservable or
+		$coords->el < $obs->{minel}) {
+	    $isObservable = 0;
+	    last;
+	  }
 	}
 
 	# Add the estimated time of the observation to the reference
@@ -1423,10 +1433,12 @@ sub _run_query {
 
 	# Repeat the check for observability. Note that this will not
 	# deal with the case at JCMT where we transit above 87 degrees
-	if  ( ! $coords->isObservable or
-	      $coords->el < $obs->{minel}) {
-	  $isObservable = 0;
-	  last;
+	if ($qconstraints{observability}) {
+	  if  ( ! $coords->isObservable or
+		$coords->el < $obs->{minel}) {
+	    $isObservable = 0;
+	    last;
+	  }
 	}
 
 	# Store the details in the Obs array that we will

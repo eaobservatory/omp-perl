@@ -82,6 +82,7 @@ sub new {
 	   Parser => $parser,
 	   Tree => $tree,
 	   QHash => {},
+	   Constraints => undef,
 	  };
 
   # and create the object
@@ -190,6 +191,71 @@ sub airmass {
   return $airmass;
 }
 
+=item B<constraints>
+
+Returns a hash containing the general project constraints that 
+can be applied to this query.
+
+Supported constraints are:
+
+  observability  - is the source up
+  remaining      - is the MSB still to be observed
+  allocation     - has the full project allocation been used
+
+Each of these will have a true (constraint is active) or false
+(constraint is disabled) value.
+
+If the query includes an instruction to disable all constraints
+this will be respected by setting all values to false.
+
+Default is all values set to true.
+
+  my %constraints = $q->constraints;
+
+The constraints are cached (ie only calculated once per instance).
+
+=cut
+
+sub constraints {
+  my $self = shift;
+
+  # Check in cache
+  return %{ $self->{Constraints} } if $self->{Constraints};
+
+  # Get the query in hash form
+  my $href = $self->query_hash;
+
+  # Default values
+  my %constraints = (
+		     observability => 1,
+		     remaining => 1,
+		     allocation => 1,
+		    );
+
+  # Go through the disableconstraint array making a hash
+  if (exists $href->{disableconstraint}) {
+    for my $con (@{ $href->{disableconstraint} } ) {
+      $con = lc( $con );
+      # immediately drop out if we hit "all"
+      if ($con eq "all" ) {
+	for my $key (keys %constraints) {
+	  $constraints{$key} = 0;
+	}
+	last;
+      } elsif (exists $constraints{$con}) {
+	# If its in the allowed constraints list set to false
+	$constraints{$con} = 0;
+      }
+    }
+  }
+
+  # Store it in cache
+  $self->{Constraints} = \%constraints;
+
+  return %constraints;
+
+}
+
 =item B<_parser>
 
 Retrieves or sets the underlying XML parser object. This will only be
@@ -286,6 +352,7 @@ sub sql {
     # extra information or stored procedures
     next if $entry eq "elevation";
     next if $entry eq "airmass"; # just in case
+    next if $entry eq "disableconstraint";
 
     # date is not part of a query because it is the reference
     # date for checking the source is up (scheduling constraints
@@ -356,6 +423,23 @@ sub sql {
   my $tempcount = "#ompcnt";
   my $tempmsb = "#ompmsb";
 
+
+  # Additionally there are a number of constraints that are
+  # always applied to the query simply because they make
+  # sense for the OMP. These are:
+  #  observability  - is the source up
+  #  remaining      - is the MSB still to be observed
+  #  allocation     - has the full project allocation been used
+  # These constraints can be disabled individually by using
+  # XML eg. <disableconstraint>observability</disableconstraint>
+  # All can be disabled using "all".
+  my %constraints = $self->constraints;
+  my $constraint_sql = '';
+
+  $constraint_sql .= " AND M.remaining > 0 " if $constraints{remaining};
+  $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
+    if $constraints{allocation};
+
   # Now need to put this SQL into the template query
   my $sql = "(SELECT
           M.msbid, M.obscount, COUNT(*) AS nobs
@@ -363,8 +447,7 @@ sub sql {
            FROM $msbtable M,$obstable O, $projtable P
             WHERE M.msbid = O.msbid
               AND P.projectid = M.projectid
-               AND M.remaining > 0
-                AND (P.remaining - P.pending) >= M.timeest
+               $constraint_sql
                 $subsql
               GROUP BY M.msbid)
                (SELECT * FROM $msbtable M2, $tempcount T
@@ -373,23 +456,7 @@ sub sql {
 
                 DROP TABLE $tempcount";
 
-  # Same as above but without worrying about elapsed time
-  $sql = "(SELECT
-          M.msbid, M.obscount, COUNT(*) AS nobs
-           INTO $tempcount
-           FROM $msbtable M,$obstable O, $projtable P
-            WHERE M.msbid = O.msbid
-              AND P.projectid = M.projectid
-               AND M.remaining > 0
-                $subsql
-              GROUP BY M.msbid)
-               (SELECT * FROM $msbtable M2, $tempcount T
-                 WHERE M2.msbid = T.msbid
-                   AND M2.obscount = T.nobs)
-
-                DROP TABLE $tempcount";
-
-  #print "SQL: $sql\n";
+  #print "$sql\n";
 
   return "$sql\n";
 
