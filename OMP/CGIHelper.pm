@@ -1499,6 +1499,11 @@ sub project_home {
     $nights{$_->ymd} = undef;
   }
 
+  # Link to obslog for current day
+  my $today = OMP::General->today();
+  print "<br><a href=\"utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$today\">".
+    "Click here to remote eavesdrop</a><br>";
+
   # Display nights where data was taken
   if (%nights) {
 
@@ -1507,11 +1512,6 @@ sub project_home {
     for (@accounts) {
       $accounts{$_->date->ymd} = $_->timespent;
     }
-
-    # Link to obslog for current day
-    my $today = OMP::General->today();
-    print "<br><a href=\"utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$today\">".
-      "Click here to remote eavesdrop</a><br>";
 
     print "<h3>Observations were acquired on the following dates:</h3>";
 
