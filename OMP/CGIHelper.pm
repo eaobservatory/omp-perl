@@ -1340,7 +1340,7 @@ sub project_home {
   # Store coi and support html emails
   my $coi = join(", ",map{$_->html} $project->coi);
   my $support = join(", ",map{$_->html} $project->support);
-  
+
   # Make a big header for the page with the project ID and title
   print "<table width=100%><tr><td>";
   print "<h2>$cookie{projectid}: $title</h2>";
@@ -1376,24 +1376,17 @@ sub project_home {
   print "<tr><td><b>Time remaining on project:</b></td><td>$remaining</td>";
   print "</table>";
 
-  # Get observed MSBS (with relative comments only)
-  my $xml = "<MSBDoneQuery><projectid>$cookie{projectid}</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
-  my $done = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
+  # Get nights for which data was taken
+  my $nights = OMP::MSBServer->observedDates($project->projectid);
 
-  # Extract out the nights of the comments
-  my %nights;
-  for my $msb (@$done) {
-    for ($msb->comments) {
-      $nights{$_->date->ymd} = undef;
+  # Display nights where data was taken
+  if (@$nights) {
+    print "<h3>Observations were acquired on the following dates:</h3>";
+    for (@$nights) {
+      print "$_<br>";
     }
-  }
-
-  # Display the nights where data was taken (if any)
-  if (%nights) {
-    print "<h3>Data taken on the following nights:</h3>";
-    for (keys %nights) {
-      print $_ . "<br>";
-    }
+  } else {
+    print "<h3>No data has been acquired for this project</h3>";
   }
 
   # Display observed MSBs
@@ -1417,15 +1410,16 @@ sub project_home {
 
   # Link to feedback comments page (if there are any important
   # comments)
-
   if (@$comments) {
     if (scalar(@$comments) == 1) {
-      print "There is 1 important comment";
+      print "<h3>There is 1 important comment";
     } else {
-      print "<br><br>There are " . scalar(@$comments) . " important comments";
+      print "<h3>There are " . scalar(@$comments) . " important comments";
     }
-    print " for this project.<br>";
+    print " for this project.<h3>";
     print "Click <a href='feedback.pl'>here</a> to see them.";
+  } else {
+    print "<h3>There are no important comments for this project</h3>";
   }
 
   # The "end of run" report goes somewhere in here
