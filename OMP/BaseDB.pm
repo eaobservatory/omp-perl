@@ -32,7 +32,9 @@ use OMP::Constants qw/ :fb /;
 use OMP::General;
 use OMP::FeedbackDB;
 
-use Net::SMTP;
+use MIME::Lite;
+require HTML::TreeBuilder;
+require HTML::FormatText;
 
 =head1 METHODS
 
@@ -745,18 +747,19 @@ environment. The argument hash should have the following keys:
  subject - subject of the message
  message  - the actual mail message
  headers - additional mail headers such as Reply-To and Content-Type
-           as they would appear in the message. Stored as reference to
-           an array [optional]
+           in paramhash format
 
  $db->_mail_information( to => [qw/blah@somewhere.com blah2@nowhere.com/],
                          from => "me@myself.com",
                          subject => "hello",
                          message => "this is the content\n",
-                         headers => [ "Reply-To: you\@yourself.com",
-                                      "Content-Type: text/html"],
+                         headers => { Reply-To => "you\@yourself.com",
+                                      Content-Type => "text/html"},
                        );
 
-Throws an exception on error.
+Composes the message using C<Mime::Lite> objects so that we end up with a
+multipart message with a plaintext attachment if any HTML is in the
+message.  Throws an exception on error.
 
 =cut
 
@@ -777,43 +780,61 @@ sub _mail_information {
   throw OMP::Error::FatalError("Undefined address")
     unless @addr and defined $addr[0];
 
-  # Set up the mail
-  my $smtp = new Net::SMTP('mailhost', Timeout => 30)
-    or throw OMP::Error::FatalError("Unable to connect to the SMTP server at this time");
+  # Decide if we'll have attachments or not and set the MIME type accordingly
+  # by checking for the presence of HTML in the message
+  my $type = ($details{message} =~ m!</!m ? "multipart/alternative" : "text/plain");
 
-  $smtp->mail( $details{from} )
-    or throw OMP::Error::FatalError("Error sending 'from' information\n");
-  $smtp->to(@addr)
-    or throw OMP::Error::FatalError("Error constructing 'to' information\n");
-  $smtp->data()
-    or throw OMP::Error::FatalError("Error beginning data segment of message\n");
+  # Setup the message
+  my %msgdetails = (From=>$details{from},
+		    To=>join(",",@addr),
+		    Subject=>$details{subject},
+		    Type=>$type,
+		    Encoding=>'8bit');
 
-  # Mail headers
-  if (exists $details{headers}) {
-    for my $hdr (@{ $details{headers} }) {
-      $smtp->datasend("$hdr\n")
-	or throw OMP::Error::FatalError("Error adding '$hdr' header\n");
+  # No HTML in message so we won't be attaching anything.  Just include the
+  # message content
+  ($type eq "text/plain") and $msgdetails{Data} = $details{message};
+
+  # Create the message
+  my $msg = MIME::Lite->new(%msgdetails);
+
+  # Add any additional headers
+  if ($details{headers}) {
+    for my $hdr (keys %{ $details{headers} }) {
+      $msg->attr($hdr => $details{headers}->{$hdr});
     }
   }
 
-  # To and subject header are special
-  $smtp->datasend("To: " .join(",",@addr)."\n")
-    or throw OMP::Error::FatalError("Error adding 'To' header\n");
-  $smtp->datasend("Subject: $details{subject}\n")
-    or throw OMP::Error::FatalError("Error adding 'subject' header\n");
-  $smtp->datasend("\n")
-    or throw OMP::Error::FatalError("Error sending header delimiter\n");
+  # Convert the HTML to plain text and attach it to the message if we're
+  # sending a multipart/alternative message
+  if ($type eq "multipart/alternative" ) {
 
+    # Create the HTML tree and parse it
+    my $tree = HTML::TreeBuilder->new;
+    $tree->parse($details{message});
+    $tree->eof;
 
-  # Actual message
-  $smtp->datasend($details{message})
-    or throw OMP::Error::FatalError("Error adding mail message\n");
+    # Convert the HTML to text and store it
+    my $formatter = HTML::FormatText->new(leftmargin => 0);
+    my $plaintext = $formatter->format($tree);
 
-  # Send message
-  $smtp->dataend()
-    or throw OMP::Error::FatalError("Error finalizing mail message\n");
-  $smtp->quit
-    or throw OMP::Error::FatalError("Error sending mail message\n");
+    # Attach the plain text message
+    $msg->attach(Type=>"text/plain",
+		 Data=>$plaintext)
+      or throw OMP::Error::FatalError("Error attaching plain text message\n");
+
+    # Now attach the original message (it should come up as the default message
+    # in the mail reader)
+    $msg->attach(Type=>"text/html",
+		 Data=>$details{message})
+      or throw OMP::Error::FatalError("Error attaching HTML message\n");
+
+  }
+
+  # Send message (via Net::SMTP)
+  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+  $msg->send
+    or throw OMP::Error::FatalError("Error sending message\n");
 
 }
 
