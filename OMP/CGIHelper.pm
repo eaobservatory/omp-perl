@@ -414,7 +414,7 @@ sub observed_output {
     my $commentref = $msbdb->observedMSBs($q->param('utdate'), 1, 'data');
 
     observed_form($q);
-    print $q->h2;
+    print $q->hr;
 
     msb_comments_by_project($q, $commentref);
     observed_form($q);
