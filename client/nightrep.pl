@@ -117,8 +117,6 @@ if(defined($tel)) {
 # Night report
 my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
 
-print "Date is $ut and Telescope is $telescope\n";
-
 # Now we can start
 my $MW = new MainWindow();
 
