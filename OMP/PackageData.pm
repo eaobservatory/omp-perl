@@ -878,6 +878,11 @@ sub _add_comment {
   my ($user, $host, $email) = OMP::General->determine_host;
   my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
 
+  # In some cases with weird firewalls the host is not actually available
+  # Have not tracked down the reason yet so for now we allow it to
+  # go through [else data retrieval does not work]
+  $host = (defined $host ? $host : '<undefined>');
+
   OMP::FBServer->addComment(
 			    $projectid,
 			    {
