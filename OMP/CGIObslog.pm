@@ -409,7 +409,7 @@ sub obs_inst_summary {
   }
 
 # DEBUGGING ONLY
-$telescope = "JCMT";
+#$telescope = "JCMT";
 
   if( ! defined( $telescope ) ) {
     throw OMP::Error( "Unable to determine telescope" );
