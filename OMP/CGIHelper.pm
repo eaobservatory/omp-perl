@@ -1050,7 +1050,8 @@ sub msb_hist_output {
   if ($q->param("Submit")) {
     try {
       # Get the user object
-      my $user = OMP::UserServer->getUser($q->param('author'));
+      my $user = OMP::UserServer->getUser($q->param('author')) or
+	throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
 
       # Create the comment object
       my $comment = new OMP::Info::Comment( author => $user,
