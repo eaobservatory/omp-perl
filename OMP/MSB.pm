@@ -806,6 +806,14 @@ sub find_checksum {
   my $replace = " $OBSNUM_ATTR=\"". '\d+"';
   $string =~ s/$replace//g;
 
+  # Old versions of XML::LibXML did not touch &quot;
+  # Modern versions of libxml2 change &quot; in PCDATA to "
+  # on stringification. This code ensures that old parsers
+  # generate modern checksums (the reverse would have been more
+  # obvious but it is much harder to change a quote to &quot;
+  # given an XML string.
+  $string =~ s/\&quot\;/\"/g;
+
   # and generate a checksum
   my $checksum = md5_hex( $string );
 
