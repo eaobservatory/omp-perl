@@ -2355,7 +2355,7 @@ sub fault_summary_content {
     print "<tr bgcolor=#afafe0><td colspan=4 align=right>Total time lost</td><td align=right><span class='fault_total'>$systemTimeLost</span></td><td colspan=2></td>";
 
   }
-  print "</table>";
+  print "</tr></table>";
   print "</table>";
 }
 
