@@ -817,9 +817,6 @@ sub date {
   my $faultdate = $self->faultdate;
   return $faultdate if $faultdate;
 
-  use Data::Dumper;
-  print Dumper($self);
-
   # Else look at the first response
   my $firstresp = $self->responses->[0];
 
