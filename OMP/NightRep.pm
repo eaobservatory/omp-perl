@@ -649,6 +649,7 @@ Project Time Summary
   #   T I M E   A C C O U N T I N G
   # Total time
   my $total = 0.0;
+  my $totalobserved; # Total time spent observing
 
   # Time lost to faults
   my $format = "  %-25s %5.2f hrs\n";
@@ -671,6 +672,7 @@ Project Time Summary
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->timespent->hours;
       $total += $time unless $proj eq 'EXTENDED';
+      $totalobserved += $time unless $proj =~ /^(OTHER|WEATHER)$/;
     }
     $str .= sprintf("$format", $text{$proj}, $time);
   }
@@ -679,13 +681,16 @@ Project Time Summary
     next if $proj =~ /^$tel/;
     $str .= sprintf("$format", $proj.':', $acct{$proj}->timespent->hours);
     $total += $acct{$proj}->timespent->hours;
+    $totalobserved += $acct{$proj}->timespent->hours;
   }
 
+  $str .= "\n";
+  $str .= sprintf($format, "Total time observed:", $totalobserved);
   $str .= "\n";
   $str .= sprintf($format, "Total time:", $total);
   $str .= "\n";
 
-  # M S B   S U M M A R Y 
+  # M S B   S U M M A R Y
   # Add MSB summary here
   $str .= "Observation summary\n\n";
 
