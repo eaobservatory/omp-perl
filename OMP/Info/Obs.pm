@@ -196,6 +196,8 @@ sub summary {
     $xml .= "</SpObsSummary>\n";
     return $xml;
 
+  } else {
+    throw OMP::Error::BadArgs("Format $format not yet implemented");
   }
 
 
@@ -203,11 +205,15 @@ sub summary {
 
 =item B<stringify>
 
+String representation of the object. Called automatically on
+stringification. Effectively a call to C<summary> method
+with format "text".
+
 =cut
 
 sub stringify {
   my $self = shift;
-  return "NOT YET IMPLEMENTED";
+  return $self->summary("text");
 }
 
 =back
