@@ -73,7 +73,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               fits => 'Astro::FITS::Header',
                               comments => '@OMP::Info::Comment',
                               telescope => '$',
-                             );
+                              runnr => '$',
+                              utdate => '$',
+                            );
 #'
 
 =end __PRIVATE__
