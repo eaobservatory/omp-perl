@@ -251,13 +251,14 @@ sub _db_begin_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
+  OMP::General->log_message( "Begin DB transaction" ) if VERBOSE;
   $db->begin_trans;
 
   # Keep a per-class count so that we can control
   # our destructor
   $self->_inctrans;
 
-  OMP::General->log_message( "Begin DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Begun DB transaction" ) if VERBOSE;
 
 }
 
@@ -276,13 +277,14 @@ sub _db_commit_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
+  OMP::General->log_message( "Commit DB transaction" ) if VERBOSE;
   $db->commit_trans;
 
   # Keep a per-class count so that we can control
   # our destructor
   $self->_dectrans;
 
-  OMP::General->log_message( "Commit DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Committed DB transaction" ) if VERBOSE;
 
 }
 
@@ -305,12 +307,13 @@ sub _db_rollback_trans {
   my $db = $self->db
     or throw OMP::Error::DBError("Database connection not valid");
 
+  OMP::General->log_message( "Rolling back DB transaction" ) if VERBOSE;
   $db->rollback_trans;
 
   # Reset the counter
   $self->_intrans(0);
 
-  OMP::General->log_message( "Rollback DB transaction" ) if VERBOSE;
+  OMP::General->log_message( "Rolled back DB transaction" ) if VERBOSE;
 
 }
 
@@ -395,7 +398,7 @@ sub _db_findmax {
   my $sql = "SELECT max($column) FROM $table ";
   $sql .= "WHERE $clause" if $clause;
 
-  OMP::General->log_message( "FindMax: $sql" ) if VERBOSE;
+  OMP::General->log_message( "FindingMax: $sql" ) if VERBOSE;
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -408,6 +411,8 @@ sub _db_findmax {
     throw OMP::Error::DBError("DB Error executing max SQL: $DBI::errstr");
 
   my $max = ($sth->fetchrow_array)[0];
+  OMP::General->log_message( "FoundMax: ". (defined $max ? $max:0) )
+      if VERBOSE;
   return  ( defined $max ? $max : 0 );
 
 }
@@ -527,6 +532,7 @@ writetext $table.$col \@val '$text'")
 
   }
 
+  OMP::General->log_message( "Inserted DB data" ) if VERBOSE;
 }
 
 =item B<_db_retrieve_data_ashash>
@@ -562,6 +568,9 @@ sub _db_retrieve_data_ashash {
   # Check to see if we only got a partial return array
   throw OMP::Error::DBError("Only retrieved partial dataset: " . $dbh->errstr)
     if $dbh->err;
+
+  OMP::General->log_message("Data retrieved: " . (scalar keys %$ref) .
+			    " rows match") if VERBOSE;
 
   # Return the results
   return $ref;
@@ -619,6 +628,8 @@ sub _db_update_data {
     $dbh->do($sql)
       or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
 
+    OMP::General->log_message("Row updated.") if VERBOSE;
+
   }
 
 }
@@ -660,6 +671,8 @@ sub _db_delete_data {
   # Execute the SQL
   $dbh->do($sql)
     or throw OMP::Error::DBError("Error deleting [$sql]: " .$dbh->errstr);
+
+  OMP::General->log_message("Row deleted.") if VERBOSE;
 
 }
 
@@ -730,6 +743,8 @@ sub _notify_feedback_system {
   my $self = shift;
   my %comment = @_;
 
+  OMP::General->log_message("Notifying feedback system") if VERBOSE;
+
   # We have to share the database connection because we have
   # locked out the project table making it impossible for
   # the feedback system to verify the project
@@ -751,6 +766,8 @@ sub _notify_feedback_system {
 
   # Add the comment
   $fbdb->addComment( { %comment } );
+
+  OMP::General->log_message("Feedback message completed.") if VERBOSE;
 
 }
 
