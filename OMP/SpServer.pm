@@ -81,8 +81,8 @@ sub storeProgram {
   try {
     # Create a science program object
     my $sp = new OMP::SciProg( XML => $xml );
-    OMP::General->log_message( "storeProgram: Project ",
-			     $sp->projectID, "\n");
+    OMP::General->log_message( "storeProgram: Project " .
+			     $sp->projectID . "\n");
 
     # Create a new DB object
     my $db = new OMP::MSBDB( Password => $password,
