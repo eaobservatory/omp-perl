@@ -80,12 +80,16 @@ sub new {
   }
 
   # ************** KLUGE **********************
-  # Namespace issues with XML::LibXML 2.5.11. If it finds
+  # Namespace issues with XML::LibXML libxml2 2.5.11. If it finds
   # xmlns="" it does not import into the default namespace (seemingly)
   # unless written as xmlns:="". This may be a problem with my
   # understanding of the problem. Should test with v2.6 when supported.
   # For now kluge it by putting in the colon
-  $xml =~ s/xmlns=/xmlns:=/;
+  #$xml =~ s/xmlns=/xmlns:=/;
+  # Unfortunately this does not work with older versions of libxml2
+  # so until we upgrade mauiola we need to remove the line completely
+  # Use non-greedy match
+  $xml =~ s/xmlns=\"http:\/\/(.*?)\"//;
 
   # Now convert XML to parse tree
   my $parser = new XML::LibXML;
