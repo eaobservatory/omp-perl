@@ -30,6 +30,8 @@ $cgi->html_title("Fault Summary");
 
 # If the user is outside the JAC network write the page with
 # authentication
+my @domain = OMP::General->determine_host;
+
 if ($domain[1] and $domain[1] !~ /\./) {
   $cgi->write_page_fault( \&fault_summary_form, \&fault_summary_content);
 } else {
