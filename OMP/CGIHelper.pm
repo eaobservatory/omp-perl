@@ -291,7 +291,7 @@ sub fb_entries {
     my %status;
     $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
     $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
-    $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN];
+    $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
 
     $status = $status{$q->param("show")};
   }
@@ -1503,7 +1503,7 @@ sub project_home {
 
   # If range is from 0 to infinity dont bother displaying it
   print "in tau range $taurange"
-    unless ($taurange->min == 0 and ! $taurange->max);
+    unless ($taurange->min == 0 and ! defined $taurange->max);
   print "</td>";
   print "<tr><td><b>Time remaining on project:</b></td><td>$remaining</td>";
   print "</table>";
