@@ -39,6 +39,7 @@ use Carp;
 use OMP::Range;
 use OMP::Error;
 use OMP::Constants qw/ :msb /;
+use Time::Seconds 1.01;
 
 use base qw/ OMP::Info::Base /;
 
@@ -482,7 +483,7 @@ sub summary {
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 11 10 3 3 9 8 3 3 20 20 20 6 5 /;
+  my @width = qw/ 11 10 3 3 9 8 3 3 20 20 20 6 8 /;
   throw OMP::Error::FatalError("Bizarre problem in OMP::Info::MSB::summary ")
     unless @width == @keys;
   my $textformat = join(" ",map { "%-$_"."s" } @width);
@@ -503,6 +504,9 @@ sub summary {
        datemin datemax telescope cloud remaining msbid ra airmass ha/) {
     $summary{$_} = $self->$_();
   }
+
+  # Convert to Time::Seconds and pretty print
+  $summary{timeest} = new Time::Seconds( $summary{timeest} )->pretty_print;
 
   # obscount
   $summary{obscount} = $self->obscount;
