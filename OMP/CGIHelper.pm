@@ -1358,7 +1358,8 @@ sub issuepwd {
   my $q = shift;
 
   print "<H1>OMP Password Request Page</h1>";
-  print "You can use this page to request an updated password for your project.";
+  print "You can use this page to request an updated password for your project.<br>";
+  print "Example project IDs: u/02b/20, m03ac18<br><br>";
   print "The password will be mailed to your registered email address.";
 
   print $q->startform;
