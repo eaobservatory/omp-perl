@@ -161,7 +161,7 @@ sub display_shift_comments {
   }
 
   # Form the XML.
-  my $xml = "<ShiftQuery><date delta=\"1\">$ut</date><telescope>$telescope></ShiftQuery>";
+  my $xml = "<ShiftQuery><date delta=\"1\">$ut</date><telescope>$telescope</telescope></ShiftQuery>";
 
   # Form the query.
   my $query = new OMP::ShiftQuery( XML => $xml );
