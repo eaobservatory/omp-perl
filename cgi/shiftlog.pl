@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl-5.6/bin/perl -X
 #
 # shiftlog - keep a log throughout a night
 #
@@ -16,6 +16,7 @@ use OMP::ShiftDB;
 use OMP::DBbackend;
 use OMP::General;
 use OMP::UserDB;
+use Time::Piece qw/ :override /;
 use Time::Seconds;
 use Net::Domain qw/ hostfqdn /;
 
@@ -158,7 +159,7 @@ sub display_form {
   print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
   print ( defined( $params->{'user'} ) ? $params->{'user'} : "");
   print "\"></td></tr>\n";
-  print "<tr><td>Time: (HHMM or HH:MM format)</td><td><input type=\"text\" name=\"time\" value=\"";
+  print "<tr><td>Time: (HHMM or HH:MM format, will default to current time if blank)</td><td><input type=\"text\" name=\"time\" value=\"";
   print "\">  <input type=\"radio\" name=\"tz\" value=\"HST\" checked> HST ";
   print "<input type=\"radio\" name=\"tz\" value=\"UT\"> UT</td></tr>\n";
   print "<tr><td>Comment:</td><td><textarea name=\"text\" rows=\"16\" cols=\"50\">";
@@ -251,6 +252,9 @@ sub verify_query {
     } elsif($q->{time} =~ /^(\d\d):(\d\d)$/) {
       $v->{time} = $1 . $2;
     }
+  } else {
+    my $time = localtime;
+    $v->{time} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
   }
 
   # The 'tz' parameter is either HST or UT (default to HST)
