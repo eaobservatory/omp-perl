@@ -875,7 +875,7 @@ sub list_projects_output {
 
     if ($q->param('table_format')) {
 
-      proj_sum_table($projects);
+      proj_sum_table($projects, $q);
 
      } else {
       foreach my $project (@$projects) {
@@ -2285,12 +2285,13 @@ sub msb_action {
 
 Display details for multiple projects in a tabular format.
 
-  proj_sum_table($projects);
+  proj_sum_table($projects, $cgi);
 
 =cut
 
 sub proj_sum_table {
   my $projects = shift;
+  my $q = shift;
 
   my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
@@ -2352,7 +2353,7 @@ sub proj_sum_table {
 
     print "<tr bgcolor=$bgcolor valign=top>";
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
-    print "<td>". $project->pi->html ."</td>";
+    print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
     print "<td>". $support ."</td>";
     print "<td align=center>$nremaining/$nmsb</td>";
     print "<td align=center>". $project->tagpriority ."</td>";
