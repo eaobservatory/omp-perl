@@ -247,39 +247,66 @@ sub display_shift_comments {
 
   # At this point we have an array of relevant Info::Comment objects,
   # so display them.
-  display_shift_table( $date, $v->{'zone'}, $v->{'telescope'}, \@result );
+  print "<h2>Shift comments for shift on $date ".$v->{'zone'}." for ".$v->{'telescope'}."</h2>\n";
+  display_shift_table( \@result );
 }
 
 =item B<display_shift_table>
 
-Prints a table that displays shiftlog comments for a specific
-date.
+Prints a table that displays shiftlog comments.
 
-  display_shift_table( $date, $timezone, $telescope, $comments );
+  display_shift_table( $comments );
 
-The first three arguments are strings used for display purposes. The
-fourth argument is a reference to an array of C<Info::Comment> objects.
+The only argument is a reference to an array of C<Info::Comment> objects.
 
 =cut
 
 sub display_shift_table {
-  my $date = shift;
-  my $zone = shift;
-  my $telescope = shift;
   my $comments = shift;
 
-  print "<h2>Shift comments for shift on $date $zone for $telescope</h2>\n";
-  print "<table border=\"1\">\n";
-  print "<tr><td><strong>HST time<br>User Name</strong></td><td><strong>comment</strong></td></tr>\n";
-  foreach my $comment (@$comments) {
-    print "<tr><td>";
-    my $hstdate = $comment->date - 10 * ONE_HOUR;
-    print $hstdate->hms;
-    print "<br>";
-    print $comment->author->name;
-    print "</td><td>";
-    print $comment->text;
-    print "</td></tr>\n";
+  print "<table class='sum_table' cellspacing='0' width='600'>";
+  print "<tr class='sum_table_head'>";
+  print "<td colspan=3><strong class='small_title'>Shift Log Comments</strong></td>";
+
+  # Sort shift comments by local date
+  my %comments;
+  for my $c (@$comments) {
+    my $local = localtime($c->date->epoch);
+    push(@{$comments{$local->ymd}}, $c);
+  }
+
+  my $bgcolor = 'a';
+  for my $date (sort keys %comments) {
+    my $timecellclass = 'time';  # CSS style class
+
+     if (scalar(keys %comments) > 1) {
+      # Summarizing Shift comments for more than one day
+
+       my $cdate = @{$comments{$date}}->[0]->date;
+       my $local = localtime($cdate->epoch);
+       $timecellclass = 'time_' . $local->day;
+
+      print "<tr class=sum_other valign=top><td class=".$timecellclass."_$bgcolor colspan=2>$date</td><td colspan=1></td>";
+    }
+    for my $c (@{$comments{$date}}) {
+
+      # Use local time
+      my $date = $c->date;
+      my $local = localtime( $date->epoch );
+      my $author = $c->author->name;
+
+      # Get the text
+      my $text = $c->text;
+
+      # Now print the comment
+      print "<tr class=row_$bgcolor valign=top>";
+      print "<td class=time_a>$author</td>";
+      print "<td class=" . $timecellclass . "_$bgcolor>".$local->strftime("%H:%M %Z") ."</td>";
+      print "<td class=subject>$text</td>";
+
+      # Alternate bg color
+      ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+    }
   }
   print "</table>";
 
