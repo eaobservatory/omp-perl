@@ -178,7 +178,7 @@ Return the UT date for today in C<YYYY-MM-DD> format.
   $today = OMP::General->today();
 
 If true, the optional argument will cause the routine to return
-a Time::Piece object (midnight on the specified date) rather than
+a Time::Piece object (current time on the specified date) rather than
 a string.
 
   $obj = OMP::General->today( 1 );
