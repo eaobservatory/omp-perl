@@ -443,6 +443,7 @@ sub obs {
   my $grp;
   try {
     $grp = new OMP::Info::ObsGroup( obs => \@obs );
+    $grp->commentScan;
   };
 
   return $grp;
