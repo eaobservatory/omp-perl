@@ -527,6 +527,50 @@ sub observedMSBs {
   return $result;
 }
 
+=item B<observedDates>
+
+Return an array (as reference) of all dates (in YYYYMMDD format) on
+which data for the specified project has been taken.
+
+  $ref = OMP::MSBServer->observedDates( $projectid );
+
+A project ID must be supplied.
+
+=cut
+
+sub observedDates {
+  my $class = shift;
+  my $projectid = shift;
+
+  my $E;
+  my @result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDoneDB(
+				ProjectID => $projectid,
+				DB => $class->dbConnection
+			       );
+
+    @result = $db->observedDates();
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+
+  return \@result;
+}
+
 =item B<queryMSBdone>
 
 Return all the MSBs that match the specified XML query 

@@ -270,6 +270,67 @@ sub observedMSBs {
   return (wantarray ? @results : \@results );
 }
 
+=item B<observedDates>
+
+Return a list of all dates on which data for the specified
+project has been taken.
+
+  @dates = $db->observedDates();
+
+Assumes that this information can be gleaned from the MSBDone
+database rather than from the data archive itself. It is arguably
+more efficient to do it this way since there are far fewer MSBs
+observed than actual data files.
+
+Throws an exception if the project ID can not be determined from the
+class (since there is no reason why you would want to ask for 
+all the nights that any data was observed).
+
+=cut
+
+sub observedDates {
+  my $self = shift;
+  my $projectid = $self->projectid;
+
+  throw OMP::Error::FatalError("observedDates method must have access to a project ID") unless $projectid;
+
+  # Form the query
+  my $xml = "<MSBDoneQuery>" .
+    "<status>". OMP__DONE_DONE ."</status>" .
+      "<projectid>$projectid</projectid>".
+	    "</MSBDoneQuery>";
+
+  my $query = new OMP::MSBDoneQuery( XML => $xml );
+
+  # Execute the query - note that we dont need all the comments
+  # since we are only interested in dates
+  my @results = $self->queryMSBdone( $query, 0 );
+
+  # Now need to go through each MSB forming a hash indexed by
+  # the actual UT day
+  my %days;
+  for my $msb (@results) {
+    # Get the comments
+    my @comments = $msb->comments;
+
+    for my $comment (@comments) {
+      # this should always be true since that was the query
+      if ($comment->status == OMP__DONE_DONE) {
+	my $date = $comment->date;
+	my $ut = sprintf("%04d%02d%02d", $date->year, $date->mon, $date->mday);
+
+	# Store it in the hash
+	$days{$ut}++;
+      }
+
+    }
+
+  }
+
+  # Now return the keys in sorted order
+  return sort keys %days;
+
+}
 
 =item B<queryMSBdone>
 
