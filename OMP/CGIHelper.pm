@@ -223,7 +223,7 @@ sub fb_entries_hidden {
   my $comments = OMP::FBServer->getComments($cookie{projectid},
 					    $cookie{password});
   print $q->h2("Feedback entries"),
-        "There are " .scalar(@$comments). " comments for this project. Click <a href='feedback.pl'>here</a> to view them all.",
+        "There are " .scalar(@$comments). " comments for this project. Click <a href='feedback.pl'>here</a> to view the comments marked 'important'.",
 	$q->hr;
 }
 
