@@ -564,6 +564,7 @@ sub _populate {
   # Also keep track of instrumentation used so that we do not ship
   # calibrations for instruments that the project was not interested
   my %instruments;
+  my %calinst;  # keep track of calibration instruments for error reporting
 
   for my $obs ($grp->obs) {
     my $obsmode = $obs->mode || $obs->type;
@@ -573,6 +574,7 @@ sub _populate {
 	if $self->verbose;
       push(@proj, $obs);
     } elsif ( ! $obs->isScience && $self->inccal) {
+      $calinst{uc($obs->instrument)}++; # Keep track of cal instrument
       push(@cal, $obs);
     }
   }
@@ -601,7 +603,9 @@ sub _populate {
 
   # warn if we have cals but no science
   if (scalar(@proj) == 0 && $ncal > 0) {
-    print STDOUT "\nThis request matched calibrations but no science observations\n..."
+    my $instlist = join(",",keys %calinst);
+    my $plural = (keys %calinst > 1 ? "s" : "");
+    print STDOUT "\nThis request matched calibrations but no science observations (calibrations for instrument$plural $instlist)\n..."
       if $self->verbose;
   }
 
