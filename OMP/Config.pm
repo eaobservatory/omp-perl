@@ -154,7 +154,7 @@ sub getData {
     # success
     $value = $CONFIG{$table}{$key};
   } else {
-    throw OMP::Error::FatalError("Key [$key] could not be found in OMP config system");
+    throw OMP::Error::FatalError("Key [$key] could not be found in OMP config system [telescope=$table]");
   }
 
   # Now need to either replace the placeholders or convert to array
