@@ -462,6 +462,10 @@ sub _reorganize_archive {
     # Create an Info::Obs object.
     my $obs = new OMP::Info::Obs( hdrhash => $newrow );
 
+    # If the telescope is UKIRT, set the instrument back to whatever
+    # it was before.
+    $obs->instrument( $instrument );
+
     # And push it onto the @return array.
     push @return, $obs;
   }
