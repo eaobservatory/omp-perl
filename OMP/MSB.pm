@@ -847,6 +847,8 @@ from the object.
 
   %hash = OMP::MSB->_summarize_obs( \@obs );
 
+NO LONGER USED. Use OMP::Info:: classes instead.
+
 =cut
 
 sub _summarize_obs {
@@ -949,8 +951,8 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  #use Data::Dumper;
-  #print Dumper(\@obs);
+  use Data::Dumper;
+  print Dumper(\@obs);
 
   return @obs;
 }
@@ -1181,6 +1183,36 @@ sub _get_pcdata {
   return $pcdata;
 }
 
+=item B<_get_attribute>
+
+Get the required attribute value from an element. Returns
+C<undef> if the attribute is not present.
+
+  $value = $msb->_get_attribute( $el, $attrname );
+
+Wrapper around XML::LibXML methods to compensate for the 
+complete lack of getAttribute method in the API.
+
+=cut
+
+sub _get_attribute {
+  my $self = shift;
+  my $el = shift;
+  my $name = shift;
+
+  my @attr = $el->getAttributes;
+  my $value;
+  for my $attr (@attr) {
+    my $attr_name = $attr->getName;
+    if ($attr_name eq $name) {
+      $value = $attr->getValue;
+      last;
+    }
+  }
+  return $value;
+}
+
+
 =item B<_get_range>
 
 Given an element and a tag name, find the element corresponding
@@ -1345,6 +1377,9 @@ sub SpObs {
   # instrument components (from which we can inherit)
   $summary{pol} = 0;
 
+  # Also reset iterators
+  $summary{SpIter} = { order => [] };
+
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
   # This is almost the same as the summarize() method but I can not
@@ -1419,6 +1454,71 @@ sub SpIterFolder {
     my $name = $child->getName;
     next unless defined $name;
 
+    # Special components found within iterators that 
+    # we can identify and need to open
+    if ($name eq 'SECONDARY') {
+      # SpIterChop details
+
+      my @chops;
+      for my $chops ($child->getChildnodes) {
+	my $name = $chops->getName;
+	next unless $name eq 'CHOP';
+	my %details;
+	$details{SYSTEM} = $self->_get_attribute( $chops, 'SYSTEM');
+	$details{THROW}  = $self->_get_pcdata($chops, 'THROW');
+	$details{PA}  = $self->_get_pcdata($chops, 'PA');
+	push(@chops, \%details);
+      }
+
+      # Store the chop details
+      $summary{SpIter}->{SpIterChop} = \@chops;
+
+    } elsif ($name eq 'POLIter') {
+      # SpIterPOL iterator for waveplates
+
+      # Get the value tags
+      my @value;
+      if ($XML::LibXML::VERSION < 1.4) {
+	@value = $child->getElementsByTagName( 'value' );
+      } else {
+	@value = $child->getChildrenByTagName( 'value' );
+      }
+
+      # Get the numbers
+      my @waveplate = map { $_->firstChild->toString } @value;
+
+      # Store the waveplate angles
+      $summary{SpIter}->{SpIterPOL} = \@waveplate;
+
+    } elsif ($name eq 'repeatCount') {
+      # SpIterRepeat
+      $summary{SpIter}->{SpIterRepeat} = $child->firstChild->toString;
+
+    } elsif ($name eq 'obsArea') {
+      # SpIterOffset
+      # This code is very like the SECONDARY chop code
+      my $pa = $self->_get_pcdata( $child, 'PA');
+
+      my @offsets;
+      for my $off ($child->getChildnodes) {
+	my $name = $off->getName;
+	next unless $name eq 'OFFSET';
+	my %details;
+	$details{PA} = $pa;
+	$details{dx}  = $self->_get_pcdata($off, 'DC1');
+	$details{dy}  = $self->_get_pcdata($off, 'DC2');
+	push(@offsets, \%details);
+      }
+      $summary{SpIter}->{SpIterOffset} = \@offsets;
+
+    }
+
+    # Only interested in iterators
+    next unless $name =~ /SpIter/;
+
+    # Cache it
+    #push(@{ $summary{SpIter}->{order}}, $name);
+
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # or other iterators
     # we need to go down a level
@@ -1431,6 +1531,12 @@ sub SpIterFolder {
 	delete $dummy{obstype};
       }
 
+      # As is SpIter
+      if (exists $dummy{SpIter}) {
+	%{$summary{SpIter}} = ( %{$summary{SpIter}}, %{$dummy{SpIter}});
+	delete $dummy{SpIter};
+      }
+
       # Merge information with child iterators
       %summary = (%summary, %dummy);
 
@@ -1441,7 +1547,6 @@ sub SpIterFolder {
     }
 
     # Remove the SpIter string
-    next unless $name =~ /SpIter/;
     $name =~ s/^SpIter//;
     $name =~ s/Obs$//;
 
