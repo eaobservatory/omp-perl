@@ -32,9 +32,13 @@ my %tables = (
 			 timeest => "REAL",
 			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
+			 earliest => "DATETIME",
+			 latest => "DATETIME",
+			 telescope => "VARCHAR(16)",
 			 _ORDER => [qw/ msbid projectid remaining checksum
-				    obscount tauband seeing priority moon 
-				    timeest title
+				    obscount tauband seeing priority
+				    telescope moon
+				    timeest title earliest latest
 				    /],
 		       },
 	      ompproj => {
@@ -75,11 +79,12 @@ my %tables = (
 			 el7 => "REAL NULL",
 			 el8 => "REAL NULL",
 			 pol => "INTEGER",
+			 timeest => "REAL",
 			 type => "VARCHAR(32)",
 			 _ORDER => [qw/obsid msbid projectid
 				    instrument type pol wavelength coordstype
 				    target ra2000 dec2000 el1 el2
-				    el3 el4 el5 el6 el7 el8
+				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
 			},
 	      ompsciprog => {
@@ -93,7 +98,8 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
-  next unless $table eq 'ompobs';
+ # next if $table eq 'ompproj';
+ # next if $table eq 'ompsciprog';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
