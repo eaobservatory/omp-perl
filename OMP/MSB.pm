@@ -487,7 +487,7 @@ sub summary {
 
     # Summarize the observations if required
     $summary{_obssum} = { $self->_summarize_obs($summary{obs})}
-      if exists $summary{obs};
+      if (exists $summary{obs} && defined $summary{obs});
 
   } else {
 
@@ -498,7 +498,7 @@ sub summary {
     %summary = (%summary, $self->weather);
     $summary{obs} = [ $self->obssum ];
 
-    $summary{_obssum} = { $self->_summarize_obs };
+    $summary{_obssum} = { $self->_summarize_obs() };
 
     # MSB internal priority and estimated time
     $summary{priority} = $self->internal_priority;
@@ -522,12 +522,12 @@ sub summary {
   #print Dumper(\%local);
 
   # Summary string and format for each
-  my @keys = qw/projectid remaining tauband seeing
+  my @keys = qw/projectid title remaining obscount tauband seeing
     instrument wavelength target coordstype checksum/;
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 10 3 3 3 20 20 20 6 40/;
+  my @width = qw/ 10 10 3 3 3 3 20 20 20 6 40/;
   my @format = map { "%-$_"."s" } @width;
 
   # Substr each string using the supplied widths.
@@ -753,7 +753,7 @@ Returns keys:
 If the values are different between observations the options are
 separated with a "/".
 
-If an array references is supplied as an argument it is assumed
+If an array reference is supplied as an argument it is assumed
 to contain the observation summaries rather than retrieving it
 from the object.
 
@@ -764,8 +764,10 @@ from the object.
 sub _summarize_obs {
   my $self = shift;
   my @obs;
-  if (@_) {
+  if (@_ && ref($_[0]) eq 'ARRAY') {
     @obs = @{$_[0]};
+  } elsif (@_) {
+    confess "Got an argument that wasn't an array (",scalar(@_),")!\n";
   } else {
     @obs = $self->obssum;
   }
