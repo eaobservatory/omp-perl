@@ -33,6 +33,8 @@ use Data::Dumper;
 use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
 
+use base qw/ OMP::Translator /;
+
 # Unix directory for writing ODFs
 our $TRANS_DIR = "/observe/ompodf";
 
@@ -75,7 +77,8 @@ sub translate {
   my $projectid = $sp->projectID;
 
   # Need to get the MSBs [which we assume will all be translated by this class]
-  my @msbs = $sp->msb;
+  # and prune them
+  my @msbs = $self->PruneMSBs($sp->msb);
 
   # Now loop over MSBs
   # Targets have to be collated and written to a catalog file
@@ -167,6 +170,10 @@ sub translate {
       # Start new observation
       my $mode = $self->obsMode( %$obsinfo );
       $html .= "<hr><h2>Observation #$obscount: $mode</h2>\n";
+
+      # Project reminder
+      $html .= "<B>Please remember to change project id to '<blink>$projectid</blink>' if it is not already set.</b><p>";
+
 
       # Quick variable to indicate whether we are a science observation
       my $issci = 0;
@@ -850,7 +857,8 @@ sub switchConfig {
   } elsif ($summary{switchingMode} eq 'Position') {
 
     # First look for a REFERENCE
-    throw OMP::Error::TranslateFail("Position switched observation did not specify a REFERENCE") unless exists $summary{coordtags}->{REFERENCE};
+    throw OMP::Error::TranslateFail("Position switched observation did not specify a REFERENCE") 
+      unless exists $summary{coordtags}->{REFERENCE};
 
     $html .= "<h3>Switch mode: Position switched</h3>";
 
@@ -878,7 +886,8 @@ sub switchConfig {
       ($offx, $offy) = map { sprintf("%.1f",$_ * Astro::SLA::DR2AS) } @offsets;
     }
 
-    $html .= "Position switch reference position is at offset (<b>$offx</b>, <b>$offy</b>) arcsec\n [Tangent plane offsets in the tracking coordinate system from the tracking centre]\n";
+    $html .= "Position Switch offset: <b>$offx</b>, <b>$offy</b> arcsec<br>\n";
+    $html .= "Frame of offset: <b>RJ</b> [PA=0.0]<br>\n";
 
   } elsif ($summary{switchingMode} =~ /Frequency/) {
 
@@ -950,12 +959,17 @@ sub SpIterStareObs {
   $html .= "<h3>Sample details:</h3>\n";
 
   $html .= "<table>";
-  $html .= "<tr><td><b>Number of cycles per sample:</b></td><td>".
-      $summary{nintegrations} . " </td></tr>";
   $html .= "<tr><td><b>Seconds per cycle:</b></td><td>".
       $summary{secsPerCycle} . " sec</td></tr>";
-  $html .= "<tr><td><b>Continuous cal?</b></td><td>".
+  $html .= "<tr><td><b>Number of cycles per sample:</b></td><td>".
+      $summary{nintegrations} . " </td></tr>";
+
+  # Continuous cal is irrelevant for FSW
+  if ($summary{switchingMode} !~ /Frequency/i) {
+    $html .= "<tr><td><b>Continuous cal?</b></td><td>".
       $summary{continuousCal} . " </td></tr>";
+  }
+
   $html .= "<tr><td><b>Cycle Reversal?</b></td><td>".
       $summary{cycleReversal} . " </td></tr>";
 
@@ -964,8 +978,9 @@ sub SpIterStareObs {
   # Now we need to do is get the mode
   my %data = offsets_to_grid( @{ $summary{offsets} } );
 
-  # Offsets
-  if ($data{TYPE} eq 'SAMPLE' || $data{TYPE} eq 'GRID') {
+  # Offsets [only for SAMPLE since a GRID must use CELL
+  # and a PATTERN never needds offset centre.
+  if ($data{TYPE} eq 'SAMPLE') {
 
     # Map centre (offset and PA)
     # if we had used an offset iterator
@@ -980,6 +995,8 @@ sub SpIterStareObs {
 	$offsets[1] . " arcsec</td></tr>";
       $html .= "<tr><td><b>Position Angle:</b></td><td>".
 	$data{PA} . " deg</td></tr>";
+      $html .= "<tr><td><b>Cell:</b></td><td>".
+	" 1 x 1 arcsec at $data{PA} deg PA</td></tr>";
       $html .= "</table>\n";
     } else {
       $html .= "This observation is centred on the tracking centre.<BR>\n";
@@ -989,20 +1006,12 @@ sub SpIterStareObs {
 
   # Specific parameters
   if ($data{TYPE} eq 'GRID') {
-    $html .= "This is a GRID observation. The GRID parameters are:\n";
+    $html .= "GRID parameters:<br>\n";
 
-      $html .= "<table>";
-      $html .= "<tr><td><b>Number of samples in X:</b></td><td>".
-	$data{GRID_NX} . " </td></tr>";
-      $html .= "<tr><td><b>Number of samples in Y:</b></td><td>".
-	$data{GRID_NY} . " </td></tr>";
-      $html .= "<tr><td><b>X increment:</b></td><td>".
-	$data{GRID_DX} . " arcsec</td></tr>";
-      $html .= "<tr><td><b>Y increment:</b></td><td>".
-	$data{GRID_DY} . " arcsec</td></tr>";
-      $html .= "<tr><td><b>GRID Position Angle:</b></td><td>".
-	$data{PA} . " deg</td></tr>";
-      $html .= "</table>\n";
+    $html .= _map_html( $data{GRID_DX}, $data{GRID_DY}, $data{PA},
+			$data{GRID_NX}, $data{GRID_NY},
+			$data{OFFSETS}->[0]->[0], $data{OFFSETS}->[0]->[1],$data{PA}
+		      );
 
   } elsif ($data{TYPE} eq 'PATTERN') {
 
@@ -1019,7 +1028,9 @@ sub SpIterStareObs {
 
     $html .= "Note that the Position Angle of these offsets is non-zero so cell must be set accordingly. The PA is $data{PA} deg.<br>\n" if $data{PA} != 0.0;
 
-    $html .= "The offsets are (in arcsec):\n";
+    $html .= _cell_html(1,1,$data{PA});
+
+    $html .= "For information the offsets are (in arcsec):\n";
     $html .= "<table>\n";
     $html .= "<tr><td><b>dX</b></td><td><b>dY</b></td></tr>\n";
     for (@{$data{OFFSETS}}) {
@@ -1057,51 +1068,28 @@ sub SpIterRasterObs {
 
   $html .= "<H3>Rastering details</H3>\n";
 
-  # Map centre (offset and PA)
-  # if we had used an offset iterator
-  if (exists $summary{OFFSET_DX} && exists $summary{OFFSET_DY} &&
-      exists $summary{OFFSET_PA}) {
-    $html .= "This raster map is offset from the tracking centre:\n";
-
-    $html .= "<table>";
-    $html .= "<tr><td><b>X offset:</b></td><td>".
-      $summary{OFFSET_DX} . " arcsec</td></tr>";
-    $html .= "<tr><td><b>Y offset:</b></td><td>".
-      $summary{OFFSET_DY} . " arcsec</td></tr>";
-    $html .= "<tr><td><b>Position Angle:</b></td><td>".
-      $summary{OFFSET_PA} . " deg</td></tr>";
-    $html .= "</table>\n";
-
-  }
-
-  # Map size
-  $html .= "Map parameters:\n";
-
-  # Need the Delta X and the Number of X 
+  # Need the Delta X (spacing in the raster direction)
   my $dx = $summary{SCAN_VELOCITY} * $summary{sampleTime};
 
+  # Calculate the number of samples
   # Make sure the number of positions encompasses the full size
   my $nx = int(($summary{MAP_WIDTH} / $dx) + 0.99);
   my $ny = int(($summary{MAP_HEIGHT} / $summary{SCAN_DY}) +0.99);
 
-  $html .= "<table>";
-  $html .= "<tr><td><b>Sample time per point:</b></td><td>".
-    $summary{sampleTime} . " sec</td></tr>";
-  $html .= "<tr><td><b>Number of rows:</b></td><td>".
-    $ny . " </td></tr>";
-  $html .= "<tr><td><b>Number of samples per row:</b></td><td>".
-    $nx . " </td></tr>";
-  $html .= "<tr><td><b>X pixel increment:</b></td><td>".
-    $dx." arcsec</td></tr>";
-  $html .= "<tr><td><b>Y scan increment:</b></td><td>".
-    $summary{SCAN_DY}." arcsec</td></tr>";
-  $html .= "<tr><td><b>Map position angle:</b></td><td>".
-    $summary{MAP_PA}." deg</td></tr>";
-  $html .= "</table>\n";
+  $html .= _map_html( $dx, $summary{SCAN_DY}, $summary{MAP_PA},
+		      $nx, $ny,
+		      $summary{OFFSET_DX}, $summary{OFFSET_DY},
+		      $summary{OFFSET_PA}
+		    );
 
-  if ($summary{nintegrations} > 1) {
-    $html .= "Please <em>REPEAT</em> this raster <b>$summary{nintegrations}</b> times.<br>\n";
-  }
+  $html .= "<table>";
+  $html .= "<tr><td><b>Integration time per point:</b></td><td>".
+    $summary{sampleTime} . " sec</td></tr>";
+
+  $html .= "<tr><td><b>Number of repeats:</b></td><td>".
+    $summary{nintegrations} . "</td></tr>";
+
+  $html .= "</table>\n";
 
   return ($html);
 }
@@ -1141,6 +1129,109 @@ sub _HztoMHz {
   my $hz = shift;
   $hz /= 1E6;
   return $hz;
+}
+
+# Return HTML describing a generic map (GRID or RASTER)
+# Args: dx,dy,mappa,nx,ny,offx,offy,offpa
+# Where offset,dx,dy are in arcsec
+# mappa and offpa are in degrees
+# nx,ny are forced to ddd number
+
+sub _map_html {
+  my ($cellx,$celly,$cellpa,$nx,$ny,$offx,$offy,$offpa) = @_;
+
+  my $html = '';
+
+  # Note that if a map dy/dx is zero this suggests a cell
+  # specification of 1
+  $cellx = 1 if $cellx == 0;
+  $celly = 1 if $celly == 0;
+
+  # Cannot have even number of rows
+  $nx++ if $nx%2 == 0;
+  $ny++ if $ny%2 == 0;
+
+  # First need to generate the CELL coordinates
+  $html .= _cell_html( $cellx, $celly, $cellpa);
+
+  # Map centre (offset and PA)
+  # if we had used an offset iterator
+  my ($celloffx, $celloffy) = (0.0,0.0);
+
+  if (defined $offx && defined $offy && defined $offpa) {
+
+    # Need to calculate this offset in terms of the cell coordinate
+    # We have an offset at one PA and we need to map it to coordinates
+    # in CELL system (which will have non arcsec units and possibly
+    # different PA)
+    ($celloffx, $celloffy) = _convert_to_cell($cellx, $celly, $cellpa,
+					      $offx,  $offy, $offpa);
+
+  }
+
+  # And in HTML land
+  $html .= "<table>";
+  $html .= "<tr><td><b>Map Size:</b></td>".
+    "<td> $nx x $ny</td><tr>";
+  $html .= "<tr><td><b>Centre Offset:</b></td><td>".
+    "($celloffx, $celloffy) [cell]</td></tr>";
+  $html .= "</table>\n";
+
+  return $html;
+}
+
+
+
+# Return HTML describing cell coordinate frame
+# Args: cellx, celly, cellPA
+sub _cell_html {
+  my ($cellx, $celly, $cellpa) = @_;
+  my $html;
+
+  # Match JCMT heterodyne templates
+  $html .= "<table>";
+  $html .= "<tr><td><b>CELL (x,y)</b></td><td>Cell size:</td>".
+    "<td>$cellx x $celly arcsec</td></tr>";
+  $html .= "<tr><td></td><td>Frame:</td><td>".
+    " RJ</td></tr>";
+  $html .= "<tr><td></td><td>Position Angle:</td><td>".
+    $cellpa . " deg</td></tr>";
+  $html .= "</table>\n";
+
+  return $html;
+}
+
+# Calculate the coordinates of a position in CELL coordinates
+# Args: cell definition (cellx, celly, cellPA)
+#       offset position (dx, dy, pa)
+# Assumes the frames share the same 
+# Returned: cell dx, cell dy
+# Note that input Position Angles are specified in degrees
+
+sub _convert_to_cell {
+  my ($cellx, $celly, $cellpa, $offx, $offy, $offpa) = @_;
+
+  # If the position angles are identical the cell coordinates
+  # are simply offx/cellx, offy/celly
+  # The important angle is therefore the difference between
+  # cell and offset PA
+
+  # First we need to rotate offsets to cell PA
+  # The coordinates for a straight offset with 0 cell
+  # must be the same as a straight rotation
+  my $diffpa = $offpa - $cellpa;
+
+  my ($xoff, $yoff) = __PACKAGE__->PosAngRot( $offx, $offy, $diffpa );
+
+  # Then we need to divide by the cell size
+  throw OMP::Error::TranslateFail("Cell size must be non-zero!")
+    if ($cellx == 0 || $celly == 0);
+
+  my $dxcell = $xoff / $cellx;
+  my $dycell = $yoff / $celly;
+
+  return ($dxcell, $dycell);
+
 }
 
 # Given an array of offsets (OFFSET_DX,OFFSET_DY,PA) determine

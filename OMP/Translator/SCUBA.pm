@@ -36,6 +36,8 @@ use SCUBA::FlatField;
 use Data::Dumper;
 use Astro::Telescope;
 
+use base qw/ OMP::Translator /;
+
 our $VERSION = (qw$Revision$)[1];
 
 # Unix directory for writing ODFs
@@ -45,8 +47,6 @@ our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
 # Debugging
 our $DEBUG = 0;
-
-use constant PI => 3.141592654;
 
 =head1 METHODS
 
@@ -76,8 +76,8 @@ sub translate {
   my $sp = shift;
   my $asdata = shift;
 
-  # See how many MSBs we have
-  my @msbs = $sp->msb;
+  # See how many MSBs we have (after pruning)
+  my @msbs = $self->PruneMSBs($sp->msb);
 
 #  throw OMP::Error::TranslateFail("Only one MSB can be translated at a time")
 #    if scalar(@msbs) != 1;
@@ -950,16 +950,7 @@ sub getOffsets {
   my $dy = ( exists $info{OFFSET_DY} ? $info{OFFSET_DY} : 0.0 );;
 
   # Must remove rotation
-  my $rpa = $pa * PI / 180; # radians
-  my $xoff = $dx * cos( $rpa )  -  $dy * sin( $rpa );
-  my $yoff = $dx * sin( $rpa )  +  $dy * cos( $rpa );
-
-  # Only allow 2 decimal places in offsets (SCUBA has a smallest
-  # beam of 7 arcsec and pointing accuracy of ~ 1 arcsev
-  $xoff = sprintf("%.2f", $xoff);
-  $xoff = "0.0" if $xoff == 0; # trap -0.0
-  $yoff = sprintf("%.2f", $yoff);
-  $yoff = "0.0" if $yoff == 0; # trap -0.0
+  my ($xoff, $yoff) = __PACKAGE__->PosAngRot( $dx, $dy, $pa);
 
   return ( MAP_X => $xoff, MAP_Y => $yoff);
 }
