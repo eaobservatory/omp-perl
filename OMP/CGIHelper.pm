@@ -208,14 +208,14 @@ sub msb_sum_hidden {
 
     # Our XML query for retrieving all MSBs
     my $xml = "<MSBQuery>"
-      ."<projectid>$projectid</projectid>"
+      ."<projectid full=\"1\">$projectid</projectid>"
 	."<disableconstraint>all</disableconstraint>"
 	  ."</MSBQuery>";
 
     my $query = new OMP::MSBQuery( XML => $xml );
 
     # Run the query
-    @msbs = $db->queryMSB($query, "object");
+    @msbs = $db->queryMSB($query);
 
   } catch OMP::Error::UnknownProject with {
     print "Science program for $projectid not present in database";
