@@ -48,6 +48,9 @@ The key is obtained from a query to the MSB server and is all that
 is required to uniquely specify the MSB (the key is the ID string
 for <SpMSBSummary> elements).
 
+The MSB is contained in an SpProg element for compatibility with
+standard Science Program classes.
+
 Returns empty string on error (but should raise an exception).
 
 =cut
@@ -75,9 +78,16 @@ sub fetchMSB {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-
   # Return stringified form of object
-  return "$msb" if defined $msb;
+  # Note that we have to make these actual Science Programs
+  # so that the OM and Java Sp class know what to do.
+  my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg>
+  <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
+};
+  my $spprogend = "\n</SpProg>\n";
+
+  return "$spprog$msb$spprogend" if defined $msb;
 }
 
 =item B<queryMSB>
