@@ -579,8 +579,9 @@ sub _insert_project_row {
   my $proj = shift;
 
   # Insert the generic data into table
+  my $pi = $proj->pi->userid;
   $self->_db_insert_data( $PROJTABLE,
-			  $proj->projectid, $proj->pi,
+			  $proj->projectid, $pi,
 			  $proj->title, $proj->tagpriority,
 			  $proj->country, $proj->semester, $proj->encrypted,
 			  $proj->allocated, $proj->remaining, $proj->pending
