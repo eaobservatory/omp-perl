@@ -88,8 +88,8 @@ sub proj_status_table {
 	"<td colspan=2><b>Title:</b> $summary{title}</td>",
 	"<td> $case_href </td>",
 	"<tr bgcolor='#7979aa'><td><b>CoI: </b> <a href='mailto:$summary{coiemail}'>$summary{coi}</a></td>",
-        "<td><b>Time allocated:</b> $summary{allocated}</td>",
-	"<td><b>Time Remaining:</b> $summary{remaining}",
+        "<td><b>Time allocated:</b> " . int($summary{allocated}/60) . " min </td>",
+	"<td><b>Time Remaining:</b> " . int($summary{remaining}/60) . " min </td>",
 	"<td><b>Country:</b> $summary{country} </td>",
         "</table><p>";
 }
