@@ -118,6 +118,15 @@ for my $proj (keys %alloc) {
 	join( " and ", @support)."\n";
       $project->support(@support);
 
+    } elsif ($mod eq 'pi') {
+      # Need to generate an OMP::User object
+      my $pi = $alloc{$proj}->{$mod};
+      die "Unable to locate user $pi in database [mode = $mod]\n"
+	  unless OMP::UserServer->verifyUser( $pi );
+      $pi = OMP::UserServer->getUser( $pi );
+      print "Changing $mod from ". $project->$mod . " to $pi\n";
+      $project->$mod( $pi );
+
     } elsif ($project->can($mod)) {
       print "Changing $mod from ".$project->$mod ." ";
       $project->$mod( $alloc{$proj}->{$mod} );
