@@ -470,6 +470,9 @@ tarfile has not been created or if no key is defined.
 
 Returns the first URL in scalar context.
 
+If a list of file names are provided as an argument, those files are
+converted into urls rather than the internal object tarfiles.
+
 =cut
 
 sub ftpurl {
@@ -479,8 +482,8 @@ sub ftpurl {
   my $key = $self->key;
   return (wantarray ? () : undef) unless defined $key;
 
-  # Get all the tarfiles
-  my @tarfiles = $self->tarfile;
+  # Get all the tarfiles (either from arglist or from object)
+  my @tarfiles = (@_ ? @_ : $self->tarfile);
   return (wantarray ? () : undef) unless @tarfiles;
 
   # Get the base URL
@@ -815,6 +818,9 @@ sub _mktarfile {
   # Somewhere to store all the tar file names
   my @outfiles;
 
+  # Convenience variable containing the number of tar files
+  my $ntar = scalar(@infiles);
+
   # Generate the tar file name [include a counter]
   my $counter = 1; # People expect us to start at 1
 
@@ -823,12 +829,12 @@ sub _mktarfile {
 
     # Create the output file name for this group. Special case suffix if there is only one
     # input group
-    my $suffix = ( scalar @infiles > 1 ? "_$counter" : '' );
+    my $suffix = ( $ntar > 1 ? "_$counter" : '' );
     my $outfile = File::Spec->catfile( $ftpdir,
 				       "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
 				     );
 
-    print STDOUT "Creating tar file $counter [out of ".scalar(@infiles)."] " . basename($outfile) ."...\n"
+    print STDOUT "Creating tar file $counter [of $ntar] " . basename($outfile) ."...\n"
       if $self->verbose;
 
 
@@ -861,6 +867,12 @@ sub _mktarfile {
 
     # Store the tarfiles
     push(@outfiles, $outfile);
+
+    # Print message in verbose mode
+    if ($self->verbose) {
+      my $url = $self->ftpurl($outfile);
+      print STDOUT "Tar File $counter of $ntar ready for retrieval from: <a href=\"$url\">here</a>\n";
+    }
 
     # increment the counter
     $counter++;
@@ -908,7 +920,7 @@ have been packaged.
 
 sub _add_comment {
   my $self = shift;
-
+  return;
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
   my ($user, $host, $email) = OMP::General->determine_host;
@@ -936,8 +948,6 @@ sub _add_comment {
 =item B<_purge_old_ftp_files>
 
 Remove files that are older than 4 days from the FTP directory.
-
-NOT YET IMPLEMENTED
 
 Note that files and directories created in order to create the 
 tar file itself are cleaned up automatically when the process
