@@ -90,20 +90,10 @@ my %tables = (
 			 pol => "BIT",
 			 timeest => "REAL",
 			 type => "VARCHAR(32)",
-       date => "DATETIME",
-       runnr => "INTEGER",
-       duration => "REAL",
-       endobs => "DATETIME",
-       commenttext => "TEXT",
-       commentauthor => "VARCHAR(32)",
-       commentdate => "DATETIME",
-       commentstatus => "INTEGER",
 			 _ORDER => [qw/obsid msbid projectid
 				    instrument type pol wavelength disperser
 				    coordstype target ra2000 dec2000 el1 el2
-				    el3 el4 el5 el6 el7 el8 timeest date runnr
-            duration endobs commenttext commentauthor
-            commentdate commentstatus
+				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
 			},
 	      ompmsbdone => {
