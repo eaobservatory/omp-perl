@@ -302,8 +302,10 @@ sub fb_entries {
 
   print $q->h2("Feedback entries"),
 	$q->startform(-name=>'sortform'),
-        "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
+	"<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
 	"Order: ",
+	$q->hidden(-name=>'show_content',
+		   -default=>1),
 	$q->popup_menu(-name=>'order',
 		       -values=>[qw/ascending descending/],
 		       -default=>'ascending',
@@ -366,7 +368,7 @@ sub fb_entries_hidden {
 
 =item B<comment_form>
 
-Create a comment submission form.
+Create a feedback comment submission form.
 
   comment_form($cgi, %cookie);
 
@@ -384,7 +386,9 @@ sub comment_form {
   # lost and a login form will be popped up.  the addComment method doesn't
   # actually require a password to work, however...
 
-        $q->hidden(-name=>'password',
+    	$q->hidden(-name=>'show_output',
+		   -default=>1),
+	$q->hidden(-name=>'password',
 		   -default=>$cookie{password}),
         $q->hidden(-name=>'projectid',
 		   -default=>$cookie{projectid}),
@@ -716,10 +720,10 @@ sub observed_output {
 
   # If they click the "Mark as Done" button mark it as done
 
-    if ($q->param("Mark as Done")) {
+    if ($q->param("Remove")) {
       try {
 	OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-	print $q->h2("MSB marked as Done");
+	print $q->h2("MSB removed from consideration");
       } catch OMP::Error::MSBMissing with {
 	print "MSB not found in database";
       } otherwise {
@@ -747,6 +751,8 @@ sub observed_form {
   my $q = shift;
 
   print $q->startform;
+  print $q->hidden(-name=>'show_output',
+		   -default=>1,);
   print "Enter a UT Date: ";
   print $q->textfield(-name=>'utdate',
 		      -size=>15,
@@ -872,6 +878,8 @@ sub list_projects_form {
 
   print "<table border=0><tr><td>Semester: </td><td>";
   print $q->startform;
+  print $q->hidden(-name=>'show_output',
+		   -default=>1,);
   print $q->popup_menu(-name=>'semester',
 		       -values=>\@sem,
 		       -default=>$sem,);
@@ -913,6 +921,8 @@ sub msb_comment_form {
 
   print "<table border=0><tr><td valign=top>Comment: </td><td>";
   print $q->startform;
+  print $q->hidden(-name=>'show_output',
+		   -default=>1,);
   print $q->hidden(-name=>'msbid',
 		   -default=>$checksum);
   ($q->param('projectid')) and print $q->hidden(-name=>'projectid',
@@ -964,10 +974,10 @@ sub msb_hist_output {
     };
 
     # If they click the "Mark as Done" button mark it as done
-  } elsif ($q->param("Mark as Done")) {
+  } elsif ($q->param("Remove")) {
     try {
       OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-      print $q->h2("MSB marked as Done");
+      print $q->h2("MSB removed from consideration");
     } catch OMP::Error::MSBMissing with {
       print "MSB not found in database";
     } otherwise {
@@ -1125,6 +1135,9 @@ sub msb_comments {
     # Some hidden params to pass
     ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
 					       -default=>$q->param('utdate'));
+
+    print $q->hidden(-name=>'show_output',
+		     -default=>1,);
     print $q->hidden(-name=>'checksum',
 		     -default=>$msb->checksum);
     print $q->hidden(-name=>'projectid',
@@ -1133,7 +1146,7 @@ sub msb_comments {
     # Make "mark as done" and "undo" buttons if the MSB exists in the 
     # science program
     if ($sp and $sp->existsMSB($msb->checksum)) {
-      print $q->submit("Mark as Done");
+      print $q->submit("Remove");
       print " ";
       print $q->submit("Undo");
       print " ";
@@ -1233,6 +1246,8 @@ sub issuepwd {
   print "The password will be mailed to your registered email address.";
 
   print $q->startform;
+  print $q->hidden(-name=>'show_output',
+		   -default=>1,);
   print "Project ID: ",$q->textfield('projectid','',8,20);
   print "<P>", $q->submit( '  Request password  ');
   print $q->endform;
