@@ -44,6 +44,14 @@ use constant HUMAN => 0;
 use constant OPEN => 0;
 use constant CLOSED => 1;
 
+# Mailing list
+my %MAILLIST = (
+		"CSG" => "csg_faults\@jach.hawaii.edu",
+		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
+		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
+		"OMP" => "omp_faults\@jach.hawaii.edu",
+	       );
+
 my %DATA = (
 	     "CSG" => {
 		       SYSTEM => {
@@ -130,6 +138,7 @@ my %STATUS = (
 	      Open => OPEN,
 	      Closed => CLOSED,
 	     );
+
 
 # Now invert %DATA and %URGENCY
 my %INVERSE_URGENCY;
@@ -832,6 +841,21 @@ sub date {
 
 =over 4
 
+=item B<mail_list>
+
+Mailing list associated with the fault category. This value is
+fixed by the class and can not be modified.
+
+  $list = $fault->mail_list;
+
+=cut
+
+sub mail_list {
+  my $self = shift;
+  my $cat = $self->category;
+  return $MAILLIST{$cat};
+}
+
 =item B<close_fault>
 
 Change the status of the fault to "CLOSED".
@@ -911,8 +935,8 @@ sub stringify {
   $urgency = "                     ***** Fault is URGENT ****\n"
     if $self->isUrgent;
 
-  # Guess email address
-  my $email = lc($category) . "_faults";
+  # Get email address
+  my $email = $self->mail_list;
 
   # Entity has a special meaning if the system is Instrument
   # or we have CSG. Ignore that for now
