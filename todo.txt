@@ -72,8 +72,11 @@ ProjServer
      [done]
 
  - "allocated" vs "fallback" allocations
+     [possibly just using tagpriority]
 
  - back door password available to all authentication schemes
+
+     [done]
 
  - Allocation per weather band (in a system that works for
    both telescopes).
@@ -84,3 +87,5 @@ ProjServer
      - time remaining on project
    This will allow us to list all the msbs without having
    to retrieve the science program
+
+     [done]
