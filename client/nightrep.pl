@@ -211,10 +211,13 @@ sub project_window {
   }
 
   # Now put up the WEATHER, UNKNOWN
-  for my $label ( qw/WEATHER UNKNOWN/ ) {
+  my %strings = ( WEATHER => "Time lost to weather",
+		  OTHER => 'Other time',
+		);
+  for my $label ( qw/WEATHER OTHER/ ) {
     my $proj = $tel . $label;
     my $times = (exists $times{$proj} ? $times{$proj} : {});
-    add_project( $f, 1,"Time lost to ".lc($label), $times, \$final{$proj},
+    add_project( $f, 1, $strings{$label}, $times, \$final{$proj},
 	       $sums);
   }
 
