@@ -1957,6 +1957,10 @@ sub proposals {
       print $q->header(-type=>$type);
       print join("",@file);
 
+      # Enter log message
+      my $message = "Proposal for $projectid retrieved.";
+      OMP::General->log_message( $message );
+
     } else {
       # Proposal file not found
 
