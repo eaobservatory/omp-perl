@@ -128,13 +128,17 @@ hash. The value determines the type of accessor method.
   % - hash (ref) accessor
   @ - array (ref) accessor
   'string' - class name (supplied object must be of specified class)
+  @string   - array containing specific class
+  %string  - hash containing specific class
+  $__UC__ - upper case all arguments (scalar only)
+  $__LC__ - lower case all arguments (scalar only)
 
 Scalar accessor accept scalars to modify the contents and return the
 scalar.  Hash/Array accessors accept either lists or a reference. They
-return a list in list context and a reference in scalar context. If
-and @ or % is followed by a string this indicates that the array/hash
-can only accept arguments of that class (all arguments or array
-elements are tested).
+return a list in list context and a reference in scalar context. If an
+@ or % is followed by a string this indicates that the array/hash can
+only accept arguments of that class (all arguments or array elements
+are tested).
 
 Class accessors are the same as scalar accessors except their
 arguments are tested to make sure they are of the right class.
@@ -235,6 +239,9 @@ sub CreateAccessors {
 			   }
 			  };
 
+  my $UPCASE = q{ $argument = uc($argument); };
+  my $DOWNCASE = q{ $argument = lc($argument); };
+
   # Loop over the supplied keys
   my $class = '';
   for my $key (keys %struct) {
@@ -249,7 +256,15 @@ sub CreateAccessors {
       $code .= $SCALAR;
 
       # Remove the CHECK block
-      $code =~ s/CLASS_CHECK//;
+      if ($TYPE =~ /__UC__/) {
+	# upper case
+	$code =~ s/CLASS_CHECK/$UPCASE/;
+      } elsif ($TYPE =~ /__LC__/) {
+	# lower case
+	$code =~ s/CLASS_CHECK/$DOWNCASE/;
+      } else {
+	$code =~ s/CLASS_CHECK//;	
+      }
 
     } elsif ($TYPE =~ /^\@/) {
 
