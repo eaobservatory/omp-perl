@@ -449,9 +449,6 @@ sub _read_cfg_file {
     }
   }
 
-  use Data::Dumper;
-  print Dumper( \%cfg);
-
   # return the answer
   return ($label, \%cfg);
 }
