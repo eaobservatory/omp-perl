@@ -9,8 +9,13 @@ our $VERSION = (qw$ Revision: $ )[1];
 use OMP::CGI;
 use OMP::TimeAcctDB;
 use OMP::FaultStats;
+use OMP::Info::ObsGroup;
 use OMP::Project::TimeAcct;
+#use OMP::ArchiveServer;
 use OMP::Error qw(:try);
+
+use Net::Domain qw/ hostfqdn /;
+use Data::Dumper;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -46,9 +51,12 @@ sub timealloc {
   my $q = shift;
   my %cookie = @_;
 
-  display_form( $q );
+  my $qvars = $q->Vars;
+  my $params = verify_query( $qvars );
 
-  display_ut_form( $q );
+  display_form( $q, $params );
+
+  display_ut_form( $q, $params );
 
 }
 
@@ -67,11 +75,14 @@ sub timealloc_output {
   my $q = shift;
   my %cookie = @_;
 
-  submit_allocations( $q );
+  my $qvars = $q->Vars;
+  my $params = verify_query( $qvars );
 
-  display_form( $q );
+  submit_allocations( $params );
 
-  display_ut_form( $q );
+  display_form( $q, $params );
+
+  display_ut_form( $q, $params );
 
 }
 
@@ -79,34 +90,64 @@ sub timealloc_output {
 
 Display a form for time allocations.
 
-  display_form( $q );
+  display_form( $q, $params );
 
-The optional parameter should be the C<CGI> object.
+The first parameter is a C<CGI> object, and the second parameter
+is a hash containing the verified CGI query parameters.
 
 =cut
 
 sub display_form {
   my $query = shift;
-  my $q = $query->Vars;
+  my $params = shift;
 
   my $faultproj;
   my $weatherproj;
   my $otherproj;
 
-  # Retrieve the projects displayed on the UT date given in the query
-  # object. If no such UT date is given, use the current UT date.
-  my $ut;
-  if( defined( $q->{'ut'} ) &&
-     $q->{'ut'} =~ /(\d{4}-\d\d-\d\d)/ ) {
-    $ut = $1; # This removes taint from the UT date given.
-  } else {
-    my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
-    $ut = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
-  }
+  my %dbtime;
+  my %obstime;
+
+  # Retrieve the projects displayed on the UT date given and for
+  # the telescope given.
+  my $ut = $params->{'ut'};
+  my $telescope = $params->{'telescope'};
 
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
   my @accounts = $db->getTimeSpent( utdate => $ut );
+  foreach my $account ( @accounts ) {
+    $dbtime{$account->projectid} = $account;
+  }
+
+  # Retrieve an ObsGroup object for the UT date.
+
+# ************************************************************
+# * NOTE                                                     *
+# ************************************************************
+# This code is currently telescope-specific, in that if we're
+# getting information for the JCMT, all we're going to get is
+# SCUBA information. If we're at UKIRT, just go through fine,
+# but if we're at JCMT, restrict to SCUBA.
+  my $obsgroup;
+  if( $telescope =~ /jcmt/i ) {
+    $obsgroup = new OMP::Info::ObsGroup( instrument => 'scuba',
+                                         date => $ut,
+                                       );
+  } else {
+    $obsgroup = new OMP::Info::ObsGroup( telescope => $telescope,
+                                         date => $ut,
+                                       );
+  }
+
+  # Retrieve the TimeAcct objects for the group
+  my @obstime = $obsgroup->projectStats;
+
+  # Convert the TimeAcct array into a hash for easier project
+  # searching.
+  foreach my $obstime ( @obstime ) {
+    $obstime{$obstime->projectid} = $obstime;
+  }
 
   # Print a header.
   print "For UT $ut the following projects were observed:<br>\n";
@@ -118,33 +159,31 @@ sub display_form {
   print "<tr><th>Project</th><th>Hours</th><th>Status</th></tr>\n";
   # For each TimeAcct object, print a form entry.
   my $i = 1;
-  foreach my $timeacct (@accounts) {
-    if($timeacct->projectid =~ /FAULT/) {
-      $faultproj = $timeacct;
-      next;
-    }
-    if($timeacct->projectid =~ /WEATHER/) {
-      $weatherproj = $timeacct;
-      next;
-    }
-    if($timeacct->projectid =~ /OTHER/) {
-      $otherproj = $timeacct;
-      next;
-    }
+  foreach my $projectid (keys %obstime) {
+
     print "<tr><td>";
-    print $timeacct->projectid;
+    print $projectid;
     print "</td><td>";
     print $query->textfield( -name => 'hour' . $i,
                              -size => '8',
-                             -maxlength => '16',
-                             -default => $timeacct->timespent->hours,
+                             -maxlength => '8',
+                             -default => ( defined( $dbtime{$projectid} ) ?
+                                           sprintf( "%.1f", $dbtime{$projectid}->timespent->hours ) :
+                                           sprintf( "%.1f", $obstime{$projectid}->timespent->hours ) ),
                            );
     print "</td><td>";
-    print ($timeacct->confirmed ? "Confirmed" : "Estimated");
+    print ( ( defined( $dbtime{$projectid} ) && $dbtime{$projectid}->confirmed ) ?
+            "Confirmed" :
+            "Estimated"
+          );
     print $query->hidden( -name => 'project' . $i,
-                          -default => $timeacct->projectid,
+                          -default => $projectid,
                         );
     print "</td></tr>\n";
+    print "<tr><td>&nbsp;</td><td colspan=\"2\">";
+    my $hours = sprintf("%5.3f",$obstime{$projectid}->timespent->hours);
+    print "$hours hours from data headers</td></tr>\n";
+
     $i++;
   }
   print "</table>";
@@ -154,7 +193,9 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $faultproj ) ? $faultproj->timespent->hours : '0' ),
+                           -default => ( defined( $dbtime{'FAULT'} ) ?
+                                         $dbtime{'FAULT'}->timespent->hours :
+                                         '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
                         -default => 'FAULT',
@@ -170,7 +211,9 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $weatherproj ) ? $weatherproj->timespent->hours : '0' ),
+                           -default => ( defined( $dbtime{'WEATHER'} ) ?
+                                         $dbtime{'WEATHER'}->timespent->hours :
+                                         '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
                         -default => 'WEATHER',
@@ -182,12 +225,21 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( defined( $otherproj ) ? $otherproj->timespent->hours : '0' ),
+                           -default => ( defined( $dbtime{'OTHER'} ) ?
+                                         $dbtime{'OTHER'}->timespent->hours :
+                                         '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
                         -default => 'OTHER',
                       );
   print " hours<br><br>\n";
+
+  print $query->hidden( -name => 'ut',
+                        -default => $params->{'ut'},
+                      );
+  print $query->hidden( -name => 'telescope',
+                        -default => $params->{'telescope'},
+                      );
 
   print $query->submit( -name => 'CONFIRM APPORTIONING' );
   print $query->endform;
@@ -195,8 +247,7 @@ sub display_form {
 }
 
 sub submit_allocations {
-  my $query = shift;
-  my $q = $query->Vars;
+  my $q = shift;
 
   # Grab the UT date from the query object. If it does not exist,
   # default to the current UT date.
@@ -235,7 +286,7 @@ sub submit_allocations {
 
 sub display_ut_form {
   my $query = shift;
-  my $q = $query->Vars;
+  my $q = shift;
 
   print $query->startform;
   print "Enter new UT date (yyyy-mm-dd format): ";
@@ -245,8 +296,42 @@ sub display_ut_form {
                        -default => $q->{'ut'},
                      );
   print "<br>\n";
+  print $query->hidden( -name => 'telescope',
+                        -default => $q->{'telescope'},
+                      );
   print $query->submit( -name => 'Submit UT date' );
   print $query->endform;
+}
+
+sub verify_query {
+  my $q = shift;
+
+  my $v;
+
+  if( defined($q->{'ut'}) &&
+      $q->{'ut'} =~ /^(\d{4}-\d\d-\d\d)$/ ) {
+    $v->{'ut'} = $1;
+  } else {
+    my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
+    $v->{'ut'} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
+  }
+
+  if( !defined($q->{'ut'}) ) {
+    my $hostname = hostfqdn;
+    if($hostname =~ /mauiola/i) {
+      $v->{'telescope'} = "ukirt";
+    } else {
+      $v->{'telescope'} = "jcmt";
+    }
+  } else {
+    my $temptel = $q->{'telescope'};
+    $temptel =~ s/[^a-zA-Z0-9]//g;
+    $temptel =~ /(.*)/;
+    $v->{'telescope'} = $1;
+  }
+
+  return $v;
+
 }
 
 sub pad {
