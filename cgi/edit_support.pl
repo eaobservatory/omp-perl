@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIUser;
+use OMP::CGI::ProjectPage;
 use OMP::UserServer;
 use OMP::Error qw(:try);
 
@@ -27,4 +27,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: Edit support contacts");
-$cgi->write_page_noauth( \&OMP::CGIHelper::support, \&OMP::CGIHelper::support);
+$cgi->write_page_noauth( \&OMP::CGI::ProjectPage::support,
+			 \&OMP::CGI::ProjectPage::support);
