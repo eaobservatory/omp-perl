@@ -5,7 +5,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
 
-use lib qw(/jac_sw/omp_dev/msbserver);
+use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIFault;
@@ -19,6 +19,7 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp/LookAndFeelConfig");
+$cgi->theme($theme);
 
 $cgi->html_title("OMP: File a Report");
 $cgi->write_page_report("OMP", \&file_fault, \&file_fault_output);
