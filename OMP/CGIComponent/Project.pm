@@ -260,7 +260,6 @@ sub proj_sum_table {
     print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
     print "<td align=center>$taurange</td>";
     print "<td align=center>$seerange</td>";
-    print "<td align=center>$skyrange</td>";
     print "<td align=center>". $project->cloudtxt ."</td>";
     print "<td align=center>$skyrange</td>";
     print "<td>". $project->title ."</td>";
