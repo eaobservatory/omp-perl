@@ -111,6 +111,9 @@ The time allocated for the project (in seconds).
   $time = $proj->allocated;
   $proj->allocated( $time );
 
+Returned as a C<Time::Seconds> object (this allows easy conversion
+to hours, minutes and seconds).
+
 Note that for semesters 02B (SCUBA) no projects were allocated time at
 non-contiguous weather bands. In the future this will not be the case
 so whilst this method will always return the total allocated time the
@@ -120,7 +123,13 @@ internals of the module may be much more complicated.
 
 sub allocated {
   my $self = shift;
-  if (@_) { $self->{Allocated} = shift; }
+  if (@_) { 
+    # if we have a Time::Seoncds object just store it. Else create one.
+    my $time = shift;
+    $time = new Time::Seconds( $time )
+      unless UNIVERSAL::isa($time, "Time::Seconds");
+    $self->{Allocated} = $time;
+  }
   return $self->{Allocated};
 }
 
@@ -366,11 +375,19 @@ remaining project allocation pending approval by the queue managers.
   $time = $proj->pending();
   $proj->pending( $time );
 
+Returns a C<Time::Seconds> object.
+
 =cut
 
 sub pending {
   my $self = shift;
-  if (@_) { $self->{Pending} = shift; }
+  if (@_) {
+    # if we have a Time::Seoncds object just store it. Else create one.
+    my $time = shift;
+    $time = new Time::Seconds( $time )
+      unless UNIVERSAL::isa($time, "Time::Seconds");
+    $self->{Pending} = $time;
+  }
   return $self->{Pending};
 }
 
@@ -531,12 +548,18 @@ inserted.  This value never includes the time pending on the
 project. To get the time remaining taking into account the time
 pending use method C<allRemaining> instead.
 
+Returns a C<Time::Seconds> object.
+
 =cut
 
 sub remaining {
   my $self = shift;
   if (@_) { 
-    $self->{Remaining} = shift; 
+    # if we have a Time::Seoncds object just store it. Else create one.
+    my $time = shift;
+    $time = new Time::Seconds( $time )
+      unless UNIVERSAL::isa($time, "Time::Seconds");
+    $self->{Remaining} = $time;
   } else {
     $self->{Remaining} = $self->allocated
       unless defined $self->{Remaining};
