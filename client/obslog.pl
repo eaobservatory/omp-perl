@@ -12,13 +12,12 @@ BEGIN {
 
 # set up the intial Tk "status loading" window and load in the Tk modules
 
-# use lib qw( /local/perl-5.6/lib/site_perl/5.6.0/i686-linux/ );
 	use Tk;
 	use Tk::ProgressBar;
-#  use Tk::NoteBook;
   use Data::Dumper;
 
   use OMP::Constants;
+  use OMP::General;
 
   use Time::Piece qw/ :override /;
 
@@ -31,17 +30,18 @@ my %obs; # keys are instruments, values are arrays of Info::Obs objects
 my $ut;
   { my $time = gmtime;
     $ut = $time->ymd;
-#    $ut = '2002-08-14';
+#    $ut = '2002-08-16';
   };
 my $contentHeader;
 my $contentBody;
+my $user;
 
 my $HEADERCOLOUR = 'midnightblue';
 my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my $CONTENTCOLOUR = qw/ black brown red /;
+my @CONTENTCOLOUR = qw/ black brown red /;
 my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my $HIGHLIGHTBACKGROUND = '#CCFFCC';
+my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
@@ -50,11 +50,14 @@ $VERSION = sprintf "%d %03d", q$Revision$ =~ /(\d+)\.(\d+)/;
 
 &display_loading_status();
 
+$user = &get_userid();
+
 &create_main_window();
 
 &full_rescan('SCUBA',$ut,\%obs);
 
 $MainWindow->repeat($SCANFREQ, sub { full_rescan('SCUBA',$ut,\%obs); });
+
 MainLoop();
 
 sub display_loading_status {
@@ -127,10 +130,19 @@ sub display_loading_status {
 
 }
 
+sub get_userid {
+   my $MW = new MainWindow;
+   my $user = OMP::General->determine_user( $MW );
+   throw OMP::Error::Authentication("Unable to obtain valid user name")
+     unless defined $user;
+   $MW->destroy if Exists($MW);
+   return $user;
+}
+
 sub create_main_window {
   $MainWindow = MainWindow->new;
   $MainWindow->title("OMP Observation Log Tool");
-  $MainWindow->geometry('640x350');
+  $MainWindow->geometry('680x350');
 
 # $mainFrame contains the entire frame.
   my $mainFrame = $MainWindow->Frame;
@@ -148,12 +160,16 @@ sub create_main_window {
 # $buttonRescan is the button that rescans for new observations and
 # comments.
   my $buttonRescan = $buttonbarFrame->Button( -text => 'Rescan',
-                                              -command => [ \&full_rescan, 'SCUBA',$ut,\%obs ],
+                                              -command => sub {
+                                                full_rescan( 'SCUBA', $ut, \%obs );
+                                              },
                                             );
 
 # $buttonOptions is the button that allows the user to modify options.
   my $buttonOptions = $buttonbarFrame->Button( -text => 'Options',
-                                               -command => \&options
+                                               -command => sub {
+                                                 options( 'SCUBA' );
+                                               },
                                              );
 
 # $buttonHelp is the button that brings up a help dialogue.
@@ -202,6 +218,8 @@ sub create_main_window {
   $contentBody->pack( -expand => 1,
                       -fill => 'both',
                     );
+
+  &BindMouseWheel($contentBody);
 }
 
 sub update_status {
@@ -267,7 +285,9 @@ sub page_raised { }
 
 sub redraw {
   my $inst = shift;
-  my $obs_arrayref = shift;
+  my $hashref = shift;
+
+  my $obs_arrayref = $hashref->{$inst};
 
   my $header_printed = 0;
 
@@ -279,6 +299,13 @@ sub redraw {
 
   foreach my $obs (@$obs_arrayref) {
     my %nightlog = $obs->nightlog;
+    my @comments = $obs->comments;
+    my $status;
+    if(defined($comments[($#comments)])) {
+      $status = $comments[($#comments)]->status;
+    } else {
+      $status = 0;
+    }
 
     # Draw the header, if necessary.
     if(!$header_printed) {
@@ -317,13 +344,13 @@ sub redraw {
 
     # Configure the new tag.
     $contentBody->tag('configure', $otag,
-                      -foreground => 'black',
+                      -foreground => $CONTENTCOLOUR[$status],
                      );
 
     # Bind the tag to double-left-click
     $contentBody->tag('bind', $otag, '<Double-Button-1>' =>
                       sub {
-                        RaiseComment( $obs );
+                        RaiseComment( $obs, $index );
                         } );
 
     # Do some funky mouse-over colour changing.
@@ -353,7 +380,9 @@ sub redraw {
 
 sub rescan {
   my $inst = shift;
-  my $ut = shift;
+  my $utref = shift;
+
+  my $ut = $utref;
 
   # Form the XML.
   my $xml = "<ArcQuery><instrument>$inst</instrument><date delta=\"1\">$ut</date></ArcQuery>";
@@ -361,13 +390,17 @@ sub rescan {
   # Form the query.
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
-  # Grab the results.
-  my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
-  my @result = $adb->queryArc( $arcquery );
+  my @result;
+  {
+    no warnings;
+    # Grab the results.
+    my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+    @result = $adb->queryArc( $arcquery );
 
-  # Add the comments.
-  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-  $odb->updateObsComment( \@result );
+    # Add the comments.
+    my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+    $odb->updateObsComment( \@result );
+  }
 
   # And return the results.
   return @result;
@@ -383,25 +416,30 @@ sub full_rescan {
 
   my @result = rescan($inst, $ut);
 
-  redraw($inst,\@result);
+  undef $hashref->{$inst};
+  push @{$hashref->{$inst}}, @result;
 
-  $hashref->{$inst} = @result;
+  redraw($inst, $hashref);
 }
 
 # Display the comment window and allow for editing, etc, etc, etc.
 sub RaiseComment {
   my $obs = shift;
-return;
+  my $index = shift;
+
   my $status;
-  if(defined($obs->comments->[0])) {
-    $status = $obs->comments->[0]->status;
+  my $scrolledComment;
+
+  my @comments = $obs->comments;
+  if(defined($comments[$#comments])) {
+    $status = $comments[$#comments]->status;
   } else {
     $status = OMP__OBS_GOOD;
   }
 
   my $CommentWindow = MainWindow->new;
-  $CommentWindow->title("OMP Observation Log Tool Commenting");
-  $CommentWindow->geometry('+40+40');
+  $CommentWindow->title("OMP Observation Log Tool Commenting System");
+  $CommentWindow->geometry('680x300');
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame;
@@ -409,7 +447,7 @@ return;
   my $contentFrame = $commentFrame->Frame;
 
   # $commentHeader contains the header information
-  my $commentHeader = $contentFrame->Text( -wrap => 'none',
+  my $contentHeader = $contentFrame->Text( -wrap => 'none',
                                            -relief => 'flat',
                                            -foreground => $HEADERCOLOUR,
                                            -height => 1,
@@ -418,30 +456,43 @@ return;
                                            -state => 'disabled',
                                          );
 
-  # $commentBody contains the content
-  my $commentBody = $contentFrame->Text( -wrap => 'word',
-                                         -relief => 'flat',
-                                         -height => 2,
-                                         -font => $CONTENTFONT,
-                                         -takefocus => 0,
-                                         -state => 'disabled',
-                                       );
+  # $contentObs contains the observation info
+  my $contentObs = $contentFrame->Scrolled( 'Text',
+                                            -wrap => 'word',
+                                            -relief => 'flat',
+                                            -height => 5,
+                                            -font => $CONTENTFONT,
+                                            -takefocus => 0,
+                                            -state => 'disabled',
+                                            -scrollbars => 'oe',
+                                          );
 
   my $buttonFrame = $commentFrame->Frame;
 
   # $buttonSave is the button that allows the user to save the comment
   # to the database.
   my $buttonSave = $buttonFrame->Button( -text => 'Save',
-                                          -command => sub { print "save"; },
-                                        );
+                                         -command => sub {
+                                           my $t = $scrolledComment->get( '0.0', 'end' );
+                                           SaveComment( $status,
+                                                        $t,
+                                                        $user,
+                                                        $obs,
+                                                        $index );
+                                           redraw( $obs->instrument, \%obs );
+                                           CloseWindow( $CommentWindow );
+                                         },
+                                       );
 
   # $buttonCancel is the button that closes the window without saving
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
-                                            -command => sub { print "cancel"; },
-                                          );
+                                           -command => sub {
+                                             CloseWindow( $CommentWindow );
+                                           },
+                                         );
 
-  my $entryFrame = $commentFrame->Frame;
+  my $entryFrame = $commentFrame->Frame( -relief => 'groove' );
 
   # $textStatus displays the string "Status:"
   my $textStatus = $entryFrame->Label( -text => 'Status: ' );
@@ -464,49 +515,199 @@ return;
                                            -variable => \$status,
                                          );
 
+  # $textUser displays the current user id.
+  my $textUser = $entryFrame->Label( -text => "Current user: " . $user->userid );
+
   # $scrolledComment is the text area that will be used for comment entry.
-  my $scrolledComment = $entryFrame->Scrolled( 'Text',
-                                               -wrap => 'none',
-                                               -scrollbars => 'oe',
-                                             );
+  $scrolledComment = $entryFrame->Scrolled( 'Text',
+                                            -wrap => 'word',
+                                            -height => 10,
+                                            -scrollbars => 'oe',
+                                          );
 
   # Pack them all together.
   $commentFrame->pack( -side => 'top',
                        -fill => 'both',
                        -expand => 1,
                      );
-$contentFrame->pack( -side => 'top',
+  $contentFrame->pack( -side => 'top',
+                       -fill => 'x',
+                     );
+  $entryFrame->pack( -side => 'top',
                      -fill => 'x',
                    );
-$entryFrame->pack( -side => 'top',
-                   -fill => 'x',
-                 );
-$buttonFrame->pack( -side => 'bottom',
-                    -fill => 'x',
-                  );
-
-$commentHeader->pack( -side => 'top',
+  $buttonFrame->pack( -side => 'bottom',
                       -fill => 'x',
                     );
-$commentBody->pack( -side => 'top',
-                    -fill => 'x',
-                  );
 
-$textStatus->pack( -side => 'left',
-                 );
-$radioGood->pack( -side => 'left',
-                );
-$radioQuestionable->pack( -side => 'left',
-                        );
-$radioBad->pack( -side => 'left',
-               );
-$scrolledComment->pack( -side => 'bottom',
+  $contentHeader->pack( -side => 'top',
                         -fill => 'x',
                       );
+  $contentObs->pack( -side => 'top',
+                     -fill => 'x',
+                   );
+  $scrolledComment->pack( -side => 'bottom',
+                          -expand => 1,
+                          -fill => 'x',
+                        );
+  $textStatus->pack( -side => 'left',
+                     -anchor => 'n',
+                   );
+  $radioGood->pack( -side => 'left',
+                    -anchor => 'n',
+                  );
+  $radioQuestionable->pack( -side => 'left',
+                            -anchor => 'n',
+                          );
+  $radioBad->pack( -side => 'left',
+                   -anchor => 'n',
+                 );
+  $textUser->pack( -side => 'left',
+                   -anchor => 'n',
+                 );
+  $buttonSave->pack( -side => 'left',
+                     -anchor => 'n',
+                   );
+  $buttonCancel->pack( -side => 'left',
+                       -anchor => 'n',
+                     );
 
-  print "will display observation " . $obs->runnr . "\n";
+  # Get the observation information.
+  my %nightlog = $obs->nightlog;
+
+  # Insert the header information.
+  $contentHeader->configure( -state => 'normal' );
+  $contentHeader->delete( '0.0', 'end' );
+  $contentHeader->insert( 'end', $nightlog{'_STRING_HEADER'} );
+  $contentHeader->configure( -state => 'disabled' );
+
+  # Insert the observation information.
+  $contentObs->configure( -state => 'normal' );
+  $contentObs->delete( '0.0', 'end' );
+  $contentObs->insert( 'end', $nightlog{'_STRING'} );
+  $contentObs->configure( -state => 'disabled' );
+
 }
 
-sub options { }
+sub options {
+  my $inst = shift;
+
+  my $optionsWindow = MainWindow->new;
+  my $optionsFrame = $optionsWindow->Frame;
+
+  my $userid = $user->userid;
+  my $tempUT = $ut;
+
+  my $useridLabel = $optionsFrame->Label( -text => 'New userid: ' );
+  my $useridEntry = $optionsFrame->Entry( -textvariable => \$userid,
+                                          -width => 25,
+                                        );
+  my $utLabel = $optionsFrame->Label( -text => 'New UT date: ' );
+  my $utEntry = $optionsFrame->Entry( -textvariable => \$tempUT,
+                                      -width => 25,
+                                      -validate => 'focusout',
+                                      -validatecommand => sub {
+                                        $_[0] =~ /\d{4}-\d\d-\d\d/
+                                      },
+                                      -invalidcommand => sub {
+                                        InvalidUTDate( $_[0] );
+                                      },
+                                   );
+  my $buttonSave = $optionsFrame->Button( -text => 'Save',
+                                          -command => sub {
+                                            SaveOptions( $tempUT, $userid );
+                                            full_rescan( 'SCUBA', $ut, \%obs );
+                                            CloseWindow( $optionsWindow );
+                                          },
+                                        );
+  my $buttonCancel = $optionsFrame->Button( -text => 'Cancel',
+                                            -command => sub {
+                                              CloseWindow( $optionsWindow );
+                                            },
+                                          );
+
+  $optionsFrame->pack( -side => 'top',
+                       -fill => 'both',
+                       -expand => 1,
+                     );
+  $useridLabel->grid( $useridEntry );
+  $utLabel->grid( $utEntry );
+  $buttonSave->grid( $buttonCancel );
+}
 
 sub help { }
+
+sub SaveComment {
+  my $status = shift;
+  my $text = shift;
+  my $user = shift;
+  my $obs = shift;
+  my $index = shift;
+
+  chomp $text;
+
+  # Add the comment to the database
+  my $comment = new OMP::Info::Comment( author => $user,
+                                        text => $text,
+                                        status => $status );
+
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  $odb->addComment( $comment, $obs );
+
+  # Add the comment to the observation.
+  my @obsarray;
+  push @obsarray, $obs;
+  $odb->updateObsComment( \@obsarray );
+  $obs = $obsarray[0];
+
+  # And update the global %obs hash.
+  my $instrument = uc( $obs->instrument );
+  $obs{$instrument}->[$index] = $obs;
+
+}
+
+sub CloseWindow {
+  my $window = shift;
+  $window->destroy if Exists($window);
+}
+
+sub InvalidUTDate {
+  my $string = shift;
+  print "Invalid UT date: $string\n";
+}
+
+sub SaveOptions {
+  my $utdate = shift;
+  my $userid = shift;
+
+  $ut = $utdate;
+
+  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+  my $tempuser = $udb->getUser( $userid );
+  if(defined($tempuser)) {
+    $user = $tempuser;
+  } else {
+    # Do a warning here.
+  }
+}
+
+sub BindMouseWheel {
+
+# Mousewheel binding from Mastering Perl/Tk, pp 370-371.
+
+  my($w) = @_;
+
+  if ($^O eq 'MSWin32') {
+    $w->bind('<MouseWheel>' =>
+             [ sub { $_[0]->yview('scroll', -($_[1] / 120) * 3, 'units') },
+                 Ev('D') ]
+            );
+  } else {
+    $w->bind('<4>' => sub {
+               $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif;
+             });
+    $w->bind('<5>' => sub {
+               $_[0]->yview('scroll', +3, 'units') unless $Tk::strictMotif;
+             });
+  }
+} # end BindMouseWheel
