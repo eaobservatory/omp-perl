@@ -493,28 +493,37 @@ sub request_extra_project {
   # Cancel if we have changed our mind
   return if $but ne "Accept";
 
-  # Now need to verify the project
+  # Now need to verify the project - also check to see whether it is disabled
   if (OMP::ProjServer->verifyProject($proj)) {
     # Yay
     # Popup information on the project
     my $p = OMP::ProjServer->projectDetails($proj,"***REMOVED***","object");
-    my $dialog = $w->DialogBox(-title => "Project: $proj",
-			       -buttons => ["Accept","Cancel"]);
+    if ($p->state) {
+      my $dialog = $w->DialogBox(-title => "Project: $proj",
+				 -buttons => ["Accept","Cancel"]);
 
-    # All information
-    $dialog->add("Label", -text => "Title: ". $p->title
-	   )->pack(-side=>'top');
-    $dialog->add("Label", -text => "PI: ". $p->pi
-	   )->pack(-side=>'top');
+      # All information
+      $dialog->add("Label", -text => "Title: ". $p->title
+		  )->pack(-side=>'top');
+      $dialog->add("Label", -text => "PI: ". $p->pi
+		  )->pack(-side=>'top');
 
-    $but = $dialog->Show;
-    # Cancel if we have changed our mind
-    return if $but ne "Accept";
+      $but = $dialog->Show;
+      # Cancel if we have changed our mind
+      return if $but ne "Accept";
 
-    # Add information to the table
-    $finalRef->{$proj} += 0;
-    add_project($w, 1, $proj, {}, \$finalRef->{$proj}, $sums);
-
+      # Add information to the table
+      $finalRef->{$proj} += 0;
+      add_project($w, 1, $proj, {}, \$finalRef->{$proj}, $sums);
+    } else {
+      require Tk::Dialog;
+      my $dialog = $w->Dialog( -text => "This project exists but is disabled",
+			       -title => "Selected project unavailable",
+			       -buttons => ["OK"],
+			       -bitmap => 'error',
+			     );
+      $dialog->Show;
+    }
   } else {
     # Not yay
     require Tk::Dialog;
