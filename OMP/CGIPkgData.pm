@@ -113,14 +113,14 @@ sub _package_data {
   print $q->h2("Retrieving data for project ". $cookie->{projectid} .
     " and UT date $utdate");
 
+  # we use verbose messages
+  print "<PRE>\n";
   my $pkg = new OMP::PackageData( utdate => $utdate,
 				  projectid => $cookie->{projectid},
 				  password => $cookie->{password},
+				  inccal => $inccal,
 				);
 
-
-  # we use verbose messages
-  print "<PRE>\n";
   $pkg->pkgdata;
   print "</PRE>\n";
 
