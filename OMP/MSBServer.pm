@@ -27,6 +27,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::MSBDB;
+use OMP::MSBDoneDB;
 use OMP::MSBQuery;
 use OMP::Error qw/ :try /;
 
@@ -370,9 +371,9 @@ sub historyMSB {
   my $result;
   try {
     # Create a new object but we dont know any setup values
-    my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+    my $db = new OMP::MSBDoneDB(ProjectID => $project,
+				DB => $class->dbConnection
+			       );
 
     $result = $db->historyMSB( $checksum, $type );
 
@@ -411,9 +412,9 @@ sub addMSBcomment {
   my $result;
   try {
     # Create a new object but we dont know any setup values
-    my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+    my $db = new OMP::MSBDoneDB(ProjectID => $project,
+				DB => $class->dbConnection
+			       );
 
     $result = $db->addMSBcomment( $checksum, $comment );
 
