@@ -249,6 +249,9 @@ value is false only the comments for the night are returned.
 
 If no date is defined the current UT date is used.
 
+The definition of "observed" includes MSBs that were completed,
+rejected, suspended or aborted.
+
 =cut
 
 sub observedMSBs {
@@ -262,9 +265,12 @@ sub observedMSBs {
 
   my $xml = "<MSBDoneQuery>" .
     "<status>". OMP__DONE_DONE ."</status>" .
-      "<date delta=\"1\">$date</date>" .
-	( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
-	    "</MSBDoneQuery>";
+      "<status>" . OMP__DONE_REJECTED . "</status>" .
+	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
+	  "<status>" . OMP__DONE_ABORTED . "</status>" .
+            "<date delta=\"1\">$date</date>" .
+	      ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
+	        "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -330,7 +336,12 @@ sub observedDates {
 
     for my $comment (@comments) {
       # this should always be true since that was the query
-      if ($comment->status == OMP__DONE_DONE) {
+      my $cstat = $comment->status;
+      if ($cstat == OMP__DONE_DONE ||
+	  $cstat == OMP__DONE_REJECTED ||
+	  $cstat == OMP__DONE_ABORTED ||
+	  $cstat == OMP__DONE_SUSPENDED
+	 ) {
 	my $date = $comment->date;
 	my $ut = sprintf("%04d%02d%02d", $date->year, $date->mon, $date->mday);
 
