@@ -73,9 +73,7 @@ BEGIN {
   use OMP::MSBQuery;
   use OMP::MSBServer;
 
-  use File::Spec;
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
+  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
 
 }
 
@@ -215,9 +213,17 @@ sub scan_for_msbs {
   $textWidget->tagConfigure('new_msb',
                             -background => $HIGHLIGHTBACKGROUND,
                            );
+  $textWidget->tagConfigure('boldnew_msb',
+                            -background => $HIGHLIGHTBACKGROUND,
+                            -font => [ -weight => 'bold' ],
+                           );
   for( my $i = 0; $i < scalar( @BACKGROUND ); $i++ ) {
     $textWidget->tagConfigure("bg$i",
                               -background => $BACKGROUND[$i],
+                             );
+    $textWidget->tagConfigure("boldbg$i",
+                              -background => $BACKGROUND[$i],
+                              -font => [ -weight => 'bold' ],
                              );
   }
 
@@ -229,14 +235,14 @@ sub scan_for_msbs {
     if( $new_checksums{$checksum} ) {
       $textWidget->insert('end',
                           "Project ID: " . $seen_msbs{$checksum}->projectid . "\n",
-                          'new_msb');
+                          'boldnew_msb');
       $textWidget->insert('end',
                           "$seen_msbs{$checksum}",
                           'new_msb');
     } else {
       $textWidget->insert('end',
                           "Project ID: " . $seen_msbs{$checksum}->projectid . "\n",
-                          "bg$bgindex"
+                          "boldbg$bgindex"
                          );
       $textWidget->insert('end',
                           "$seen_msbs{$checksum}",
