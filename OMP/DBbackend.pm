@@ -215,7 +215,7 @@ sub connect {
   print "SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
     if $DEBUG;
 
-  OMP::General->log_message( "Login to DB server $DBserver as $DBuser" );
+  OMP::General->log_message( "------------> Login to DB server $DBserver as $DBuser <-----");
 
   # We are using sybase
   my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })
