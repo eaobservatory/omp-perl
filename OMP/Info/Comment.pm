@@ -48,8 +48,9 @@ use overload '""' => "stringify";
 
 =item B<new>
 
-Create a new comment object. The comment must be supplied in the constructor
-but "author", "status" and "date" are optional.
+Create a new comment object. 
+The comment must ideally be supplied in the constructor but this is
+not enforced. "author", "status" and "date" are optional.
 
 
   $resp = new OMP::Info::Comment( author => $author,
@@ -88,10 +89,6 @@ sub new {
       $comm->$method( $args{$key});
     }
   }
-
-  # Check that we have text
-  croak "Must supply comment text"
-    unless $comm->text;
 
   # Return the object
   return $comm;
@@ -134,14 +131,20 @@ refuse to store it unless a user is specified (if the user is a
 computer program we will simply need to add a user that refers to
 that program).
 
+C<undef> is allowed in order to clear the field. In some cases
+this is a valid thing to do (especially in a constructor.
+
 =cut
 
 sub author {
   my $self = shift;
   if (@_) {
     my $user = shift;
-    croak "Author must be supplied as OMP::User object"
-      unless UNIVERSAL::isa( $user, "OMP::User" );
+    if (defined $user) {
+      # Check type if it is defined
+      croak "Author must be supplied as OMP::User object"
+	unless UNIVERSAL::isa( $user, "OMP::User" );
+    }
     $self->{Author} = $user;
   }
   return $self->{Author};
