@@ -41,6 +41,7 @@ use Carp;
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase" unless exists $ENV{SYBASE} }
 
 use OMP::Error;
+use OMP::General;
 use DBI;
 use DBD::Sybase; # This triggers immediate failure if $SYBASE not right
 
@@ -213,6 +214,8 @@ sub connect {
 
   print "SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
     if $DEBUG;
+
+  OMP::General->log_message( "Login to DB server $DBserver as $DBuser" );
 
   # We are using sybase
   my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })

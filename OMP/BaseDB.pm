@@ -254,6 +254,8 @@ sub _db_begin_trans {
   # our destructor
   $self->_inctrans;
 
+  OMP::General->log_message( "Begin DB transaction" );
+
 }
 
 =item B<_db_commit_trans>
@@ -276,6 +278,8 @@ sub _db_commit_trans {
   # Keep a per-class count so that we can control
   # our destructor
   $self->_dectrans;
+
+  OMP::General->log_message( "Commit DB transaction" );
 
 }
 
@@ -302,6 +306,8 @@ sub _db_rollback_trans {
 
   # Reset the counter
   $self->_intrans(0);
+
+  OMP::General->log_message( "Rollback DB transaction" );
 
 }
 
@@ -385,6 +391,8 @@ sub _db_findmax {
   # Construct the SQL
   my $sql = "SELECT max($column) FROM $table ";
   $sql .= "WHERE $clause" if $clause;
+
+  OMP::General->log_message( "FindMax: $sql" );
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -485,6 +493,8 @@ sub _db_insert_data {
   # Construct the SQL
   my $sql = "INSERT INTO $table VALUES ($placeholder)";
 
+  OMP::General->log_message( "Inserting DB data: $sql" );
+
   # Get the database handle
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
@@ -538,6 +548,8 @@ sub _db_retrieve_data_ashash {
   # Get the handle
   my $dbh = $self->_dbhandle
     or throw OMP::Error::DBError("Database handle not valid");
+
+  OMP::General->log_message( "SQL retrieval: $sql" );
 
   # Run query
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} },@_)
@@ -598,6 +610,8 @@ sub _db_update_data {
     # Construct the SQL
     my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
 
+    OMP::General->log_message( "Updating DB row: $sql" );
+
     # Execute the SQL
     $dbh->do($sql)
       or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
@@ -637,6 +651,8 @@ sub _db_delete_data {
 
   # Construct the SQL
   my $sql = "DELETE FROM $table $clause";
+
+  OMP::General->log_message( "Deleting DB data: $sql" );
 
   # Execute the SQL
   $dbh->do($sql)
