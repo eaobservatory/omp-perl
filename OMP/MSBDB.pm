@@ -924,7 +924,7 @@ sub _fetch_row {
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
-  my $ref = $dbh->selectall_hashref( $statement );
+  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} } );
 
   throw OMP::Error::DBError("Error fetching specified row:".$DBI::errstr)
     unless defined $ref;
@@ -958,7 +958,7 @@ sub _run_query {
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
-  my $ref = $dbh->selectall_hashref( $sql );
+  my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
   throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
     unless defined $ref;
 
