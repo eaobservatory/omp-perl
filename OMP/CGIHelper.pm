@@ -47,6 +47,7 @@ use OMP::Constants qw(:fb :done :msb);
 
 use Time::Piece;
 use Time::Seconds;
+use Text::Wrap;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -289,12 +290,15 @@ sub fb_entries {
     # make the date more readable here
     # make the author a mailto link here
 
+    # Wrap the message text
+    my $text = wrap('', '' ,$row->{'text'});
+
     print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by ",
 
       # If author is not defined display sourceinfo as the author
           ($row->{author} ? $row->{author}->html : $row->{sourceinfo}) . " )</font><br>",
 	  "<b>Subject: $row->{'subject'}</b><br>",
-          "$row->{'text'}",
+          "$text",
 	  "<p>";
   }
 
