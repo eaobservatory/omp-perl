@@ -569,7 +569,7 @@ sub _db_retrieve_data_ashash {
   throw OMP::Error::DBError("Only retrieved partial dataset: " . $dbh->errstr)
     if $dbh->err;
 
-  OMP::General->log_message("Data retrieved: " . (scalar keys %$ref) .
+  OMP::General->log_message("Data retrieved: " . (scalar @$ref) .
 			    " rows match") if VERBOSE;
 
   # Return the results
