@@ -186,7 +186,7 @@ sub _post_process_hash {
   }
 
   # These entries must be forced to come from Response table
-  for (qw/ author date isfault text /) {
+  for (qw/ author date isfault text respid /) {
     if (exists $href->{$_}) {
       my $key = "R.$_";
       $href->{$key} = $href->{$_};
