@@ -796,7 +796,7 @@ sub _populate {
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
-  $self->instrument( $generic_header{INSTRUMENT} );
+  $self->instrument( uc( $generic_header{INSTRUMENT} ) );
   $self->duration( $generic_header{EXPOSURE_TIME} );
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
