@@ -301,6 +301,8 @@ sub msb_comments {
     # Some hidden params to pass
     ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
 					       -default=>$q->param('utdate'));
+    ($q->param('telescope')) and print $q->hidden(-name=>'telescope',
+					       -default=>$q->param('telescope'));
 
     print $q->hidden(-name=>'show_output',
 		     -default=>1,);
@@ -404,8 +406,12 @@ sub msb_comment_form {
   ($q->param('projectid')) and print $q->hidden(-name=>'projectid',
 						-default=>$q->param('projectid'));
 
+  # Pass along UT Date and Telescope parameters, if they are available
   ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
 					     -default=>$q->param('utdate'));
+  ($q->param('telescope')) and print $q->hidden(-name=>'telescope',
+					        -default=>$q->param('telescope'));
+
   print $q->textarea(-name=>'comment',
 		     -rows=>5,
 		     -columns=>50,
@@ -585,6 +591,9 @@ sub observed_form {
 
   # Get the telescopes for our popup menu
   my @tel = $db->listTelescopes;
+  my %tel_labels = map {$_, $_} @tel;
+  unshift @tel, 0;
+  $tel_labels{0} = "Please select";
 
   print "<table><td align='right'><b>";
   print $q->startform;
@@ -597,7 +606,9 @@ sub observed_form {
 		      -default=>$utdate,);
   print "</td><td></td><tr><td align='right'><b>Telescope: </b></td><td>";
   print $q->popup_menu(-name=>'telescope',
-		       -values=>\@tel,);
+		       -values=>\@tel,
+		       -labels=>\%tel_labels,
+		       -default=>0,);
   print "</td><td colspan=2>";
   print $q->submit("View Comments");
   print $q->endform;
