@@ -1069,6 +1069,32 @@ sub getSubmitted {
   return @projects;
 }
 
+=item B<listModified>
+
+Return an array of project IDs for projects whose programs have been modified
+since the given date.
+
+  @projects = $db->listModified($time);
+
+Only argument is a C<Time::Piece> object.  Returns undef if no projects have
+been modified.
+
+=cut
+
+sub listModified {
+  my $self = shift;
+  my $date = shift;
+
+  # No XML query interface to science programs, so we'll have to do an SQL query
+  my $sql = "SELECT projectid FROM $SCITABLE WHERE timestamp > " . $date->epoch;
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  my @results = map { $_->{projectid} } @$ref;
+}
+
+
+=cut
+
 =back
 
 =head2 Internal Methods
