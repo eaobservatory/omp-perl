@@ -616,10 +616,10 @@ sub doneMSB {
   # Work out the reason and user
   my $author;
   my $reason = "MSB marked as done";
-  if ($comment) {
+  if (defined $comment) {
     $author = $comment->author;
     $reason .= ": ". $comment->text
-      if $comment->text;
+      if defined $comment->text && $comment->text =~ /\w/;
   }
 
   # Update the msb done table (need to do this even if the MSB
@@ -2157,7 +2157,7 @@ sub _notify_msb_done {
 					status => $status);
 
   # Add the author if supplied
-  $comment->author( $user ) if $user;
+  $comment->author( $user ) if defined $user;
 
   # Add the comment
   $done->addMSBcomment( $info, $comment );
