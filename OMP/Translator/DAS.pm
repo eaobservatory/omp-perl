@@ -32,6 +32,8 @@ use SrcCatalog::JCMT;
 use Data::Dumper;
 use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
+use Time::HiRes qw/ gettimeofday /;
+use File::Copy;
 
 use base qw/ OMP::Translator /;
 
@@ -65,6 +67,11 @@ system (an ODF).
 By default returns the name of a HTML file. If the optional
 second argument is true, returns the contents of the HTML as a single
 string.
+
+This routine writes an HTML file and associated catalogue and pattern
+files. Backup files are also written that are timestamped to prevent
+overwriting.  An accuracy of 1 milli second is used in forming the
+unique names.
 
 =cut
 
@@ -246,7 +253,19 @@ sub translate {
 
     # Write this HTML file to disk along with the patterns and all the
     # target information to a catalogue
-    my $file = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
+
+    # We always write backup files tagged with the current time to millisecond
+    # resolution.
+    my ($epoch, $mus) = gettimeofday;
+    my $time = gmtime();
+    my $suffix = $time->strftime("%Y%m%d_%H%M%S") ."_".substr($mus,0,3);
+    print "New suffix : $suffix\n";
+
+    # The public easy to recognize name of the html file
+    my $htmlfile = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
+
+    # The internal name
+    my $file = $htmlfile . "_" . $suffix;
     open my $fh, ">$file" or 
       throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
 
@@ -257,6 +276,14 @@ sub translate {
 
     # And make sure it is readable regardless of umask
     chmod 0666, $file;
+
+    # Now for a soft link - the html file is not important because we will
+    # return the timestamped file to prevent cache errors in mozilla
+    # It is there as a back up
+    if (-e $htmlfile) {
+      unlink $htmlfile;
+    }
+    symlink $file, $htmlfile;
 
     # Now the pattern files et al
     for my $f (keys %files) {
@@ -273,6 +300,9 @@ sub translate {
 
       # And make sure they are readable regardless of umask
       chmod 0666, $f;
+
+      # and make a backup
+      copy( $f, $f . "_" . $suffix);
 
     }
 
@@ -294,6 +324,10 @@ sub translate {
 
     # And make sure it is readable regardless of umask
     chmod 0666, $outfile;
+
+    # and make a backup
+    copy( $outfile, $outfile . "_" . $suffix);
+
 
     return $file;
   }
