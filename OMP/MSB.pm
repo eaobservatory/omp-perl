@@ -2737,7 +2737,13 @@ sub SpIterFolder {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
       my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
-      $currAz = ($currAz =~ /^false$/i ? 0 : 1);
+      # Defaults to false if not present
+      if (defined $currAz) {
+	$currAz = ($currAz =~ /^false$/i ? 0 : 1);
+      } else {
+	$currAz = 0;
+      }
+
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint,
 							currentAz => $currAz,
