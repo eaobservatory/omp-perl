@@ -449,10 +449,15 @@ sub summary {
 
   } elsif( $format eq '72col' ) {
 
+    # Make sure we can handle a missing startobs (e.g. if this object
+    # is created from a science program before it is observed)
+    my $startobs = $self->startobs;
+    my $start = (defined $startobs ? $startobs->hms : '<NONE>');
+
     # Protect against undef [easy since the sprintf expects strings]
     # Silently fix things.
     my @strings = map { defined $_ ? $_ : '' } $self->runnr, 
-      $self->startobs->hms, $self->projectid, $self->instrument, 
+      $start, $self->projectid, $self->instrument, 
 	$self->target, $self->mode;
 
     my $obssum = sprintf("%4.4s %8.8s %11.11s %8.8s %-20.20s %-16.16s\n",
