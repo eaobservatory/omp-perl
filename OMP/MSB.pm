@@ -29,6 +29,8 @@ use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
 
+our $DEBUG = 0;
+
 # Overloading
 use overload '""' => "stringify";
 
@@ -285,6 +287,12 @@ are not present for the calculation). This is so that the transient
 information (eg the number of times the MSB is to be observed) can
 be separated from the information that uniquely identifies the MSB.
 
+If the MSB is within a logic element (SpAND or SpOR) then that element
+name (actually a substring) is appended to the checksum. This is done
+so that we can make some attempt to protect against MSBs being
+consolidated when one MSB is in some logic and another is outside some
+logic.
+
 =cut
 
 sub find_checksum {
@@ -294,16 +302,19 @@ sub find_checksum {
   # the XML and stripping off the tags and allows me to expand references).
   # I want to do this without having to know anything about XML.
 
-  my @children = $self->_get_qualified_children;
-
-  # Now generate a string form of the MSB
-  my $string;
-  for my $child (@children) {
-    $string .= $child->toString;
-  }
+  my $string = $self->_get_qualified_children_as_string;
 
   # and generate a checksum
   my $checksum = md5_hex( $string );
+
+  # In order to ditinguish MSBs associated with logic we prefixx
+  # an OR and/or AND if the MSB is in such a construct. Otherwise
+  # the MSB consolidation code might move MSBs out of a logic block
+  # without realising the effect it will have. This is a first order
+  # effect - if people start copying MSBs around within the same or
+  # other logic then this fix wont be good enough.
+  $checksum .= "O" if $self->_tree->findnodes('ancestor-or-self::SpOR');
+  $checksum .= "A" if $self->_tree->findnodes('ancestor-or-self::SpAND');
 
   # And store it
   $self->checksum($checksum);
@@ -482,11 +493,11 @@ sub hasBeenObserved {
     # be doing this in a cleverer way.
     # For now KLUGE KLUGE KLUGE
     if ($n == 0) {
-      print "Attempting to REMOVE remaining MSBs\n";
+      print "Attempting to REMOVE remaining MSBs\n" if $DEBUG;
       my @msbs = $SpOR->findnodes(".//SpMSB");
-      print "Located SpMSB...\n";
+      print "Located SpMSB...\n" if $DEBUG;
       push(@msbs, $SpOR->findnodes('.//SpObs[@msb="true"]'));
-      print "Located SpObs...\n";
+      print "Located SpObs...\n" if $DEBUG;
 
       for (@msbs) {
 	# Eek this should be happening on little OMP::MSB objects
@@ -509,14 +520,48 @@ This method is also invoked via a stringification overload.
 
   print "$sp";
 
-The XML is fully expanded in the sense that references (IDREFs)
+By default the XML is fully expanded in the sense that references (IDREFs)
 are resolved and included.
+
+  $resolved = $msb->stringify;
+  $resolved = "$msb";
 
 =cut
 
 sub stringify {
   my $self = shift;
-  $self->_tree->toString;
+
+  # Getting the children is easy.
+  my $resolved = $self->_get_qualified_children_as_string;
+
+  my $tree = $self->_tree; # for efficiency;
+
+  # We now need the wrapper element and it's attributes
+  my @attr = $tree->getAttributes;
+  my $name = $tree->getName;
+
+  # Build up the wrapper
+  return "<$name ".
+    join(" ",
+	 map { $_->getName . '="'. $_->getValue .'"' } @attr)
+      .">\n"
+	. $resolved
+	  . "\n</$name>";
+
+
+}
+
+=item B<stringify_noresolve>
+
+Convert the parse tree to XML string without resolving any
+internal references. This returns the XML equivalent to that
+found in the original science program.
+
+=cut
+
+sub stringify_noresolve {
+  my $self = shift;
+  return $self->_tree->toString;
 }
 
 
@@ -560,6 +605,29 @@ sub _get_qualified_children {
 
 }
 
+
+=item B<_get_qualified_children_as_string>
+
+Obtain a stringified form of the child elements of the MSB with
+all the references resolved.
+
+  $string = $msb->_get_qualified_children_as_string;
+
+=cut
+
+sub _get_qualified_children_as_string {
+  my $self = shift;
+
+  my @children = $self->_get_qualified_children;
+
+  # Now generate a string form of the MSB
+  my $string;
+  for my $child (@children) {
+    $string .= $child->toString;
+  }
+
+  return $string;
+}
 
 =back
 
