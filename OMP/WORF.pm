@@ -108,6 +108,10 @@ sub new {
   my $newclass = "OMP::WORF::" . uc( $worf->obs->inst_dhs );
   bless $worf, $newclass;
 
+  # Horrible taint removal step.
+  $newclass =~ /(.+)/;
+  $newclass = $1;
+
   eval "require $newclass";
   if( $@ ) { throw OMP::Error::FatalError "Could not load module $newclass: $@"; }
 
@@ -455,6 +459,28 @@ sub _plot_image {
     $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
   }
 
+  # Do caching for thumbnails.
+  my $cachefile;
+  if( defined( $args{size} ) && $args{size} eq 'thumb' ) {
+    my $suffix = ( defined( $self->suffix ) ? $self->suffix : '' );
+    $cachefile = "/tmp/worfthumbs/" . $self->obs->startobs->ymd . $self->obs->instrument . $self->obs->runnr . $suffix . ".gif";
+
+    # If the cachefile exists, display that. Otherwise, just continue on.
+    if( -e $cachefile ) {
+
+      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( CACHE );
+      binmode( STDOUT );
+
+      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+
+      close( CACHE );
+
+      return;
+    }
+
+  }
+
   $file =~ s/\.sdf$//;
 
   my $image = rndf($file,1);
@@ -565,6 +591,15 @@ sub _plot_image {
   imag $image;
   dev "/null";
 
+  # Also write the cache file if necessary.
+  if( defined( $cachefile ) ) {
+    dev "$cachefile/GIF";
+    env( $xstart, $xend, $ystart, $yend, $opt );
+    label_axes( undef, undef, $title );
+    ctab( lut_data( $lut ) );
+    imag $image;
+    dev "/null";
+  }
 }
 
 =item B<_plot_spectrum>
@@ -639,6 +674,28 @@ sub _plot_spectrum {
     $ENV{'PGPLOT_GIF_WIDTH'} = 480;
     $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
     $opt = {SYMBOL => 1, LINEWIDTH => 10, PLOTLINE => 0};
+  }
+
+  # Do caching for thumbnails.
+  my $cachefile;
+  if( $args{size} eq 'thumb' ) {
+    my $suffix = ( defined( $self->suffix ) ? $self->suffix : '' );
+    $cachefile = "/tmp/" . $self->obs->startobs->ymd . $self->obs->instrument . $self->obs->runnr . $suffix . ".gif";
+
+    # If the cachefile exists, display that. Otherwise, just continue on.
+    if( -e $cachefile ) {
+
+      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( CACHE );
+      binmode( STDOUT );
+
+      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+
+      close( CACHE );
+
+      return;
+    }
+
   }
 
   # Fudge to set bad pixels to zero.
@@ -756,6 +813,15 @@ sub _plot_spectrum {
   label_axes( undef, undef, $title);
   points $spectrum, $opt;
   dev "/null";
+
+  # Also write the cache file if necessary.
+  if( defined( $cachefile ) ) {
+    dev "$cachefile/GIF";
+    env(0, ($xend - $xstart), $zmin, $zmax);
+    label_axes( undef, undef, $title);
+    points $spectrum, $opt;
+    dev "/null";
+  }
 
 }
 
