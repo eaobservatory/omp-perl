@@ -508,33 +508,43 @@ sub faults {
 
   my $fdb = new OMP::FaultDB( DB => $self->db );
 
-  my @xml;
+  my %xml;
   # We have to do two separate queries in order to get back faults that
   # were filed on and occurred on the reporting dates
 
   # XML query to get faults filed on the dates we are reaporting for
-  $xml[0] = "<FaultQuery>".
+  $xml{filed} = "<FaultQuery>".
     "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
       "<category>". $self->telescope ."</category>".
 	"<isfault>1</isfault>".
 	  "</FaultQuery>";
 
   # XML query to get faults that occurred on the dates we are reporting for
-  $xml[1] = "<FaultQuery>".
+  $xml{actual} = "<FaultQuery>".
     "<faultdate delta=\"". $self->delta_day ."\">". $self->date->ymd . "</faultdate>".
       "<category>". $self->telescope ."</category>".
 	"</FaultQuery>";
 
   # Do both queries and merge the results
   my %results;
-  for my $xmlquery (@xml) {
-    my $query = new OMP::FaultQuery( XML => $xmlquery );
+  for my $xmlquery (keys %xml) {
+    my $query = new OMP::FaultQuery( XML => $xml{$xmlquery} );
     my @results = $fdb->queryFaults( $query );
+
     for (@results) {
-      # use fault date epoch followed by ID for key so that we can
+      # Use fault date epoch followed by ID for key so that we can
       # sort properly and maintain uniqueness
-      $results{$_->date->epoch . $_->id} = $_;
+      if ($xmlquery =~ /filed/) {
+	# Don't keep results that have an actual date if they were
+	# returned by our "filed on" query
+	if (! $_->faultdate) {
+	  $results{$_->date->epoch . $_->id} = $_;
+	}
+      } else {
+	$results{$_->date->epoch . $_->id} = $_;
+      }
     }
+    
   }
 
   # Convert result hash to array
