@@ -628,9 +628,11 @@ sub _reorganize_archive {
     # Create an Info::Obs object.
     my $obs = new OMP::Info::Obs( hdrhash => $newrow, retainhdr => $retainhdr );
 
-    # If the telescope is UKIRT, set the instrument back to whatever
-    # it was before.
-    $obs->instrument( $instrument );
+    # If the instrument wasn't heterodyne (RxA3, RxB3 or RxW) then set
+    # the instrument back to what it was before.
+    if( $instrument !~ /^rx/i ) {
+      $obs->instrument( $instrument );
+    }
 
     # Check the filename. If it's not set, call file_from_bits and set it.
     if( !defined( $obs->filename ) ) {
