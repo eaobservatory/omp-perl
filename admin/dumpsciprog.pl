@@ -29,7 +29,7 @@ use Time::Piece;
 use File::Spec;
 
 # Abort if $OMP_DUMP_DIR is not set
-$ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
+$ENV{OMP_DUMP_DIR} = "/omp-cache/sciprogs"
   unless exists $ENV{OMP_DUMP_DIR};
 
 chdir $ENV{OMP_DUMP_DIR}
