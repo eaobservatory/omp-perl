@@ -1373,6 +1373,15 @@ Inheritance is respected.
 
   ($title, $note) = $msb->getObserverNote( );
 
+By default returns the observer note that is furthest down in the
+hierarchy (closest to the observe). If the optional argument is true,
+all the show to observer notes in the hierarchy will be returned
+as a list of array references (each with title and note).
+
+  [$title1,$note1],[$title2,$note2] = $msb->getObserverNote(1);
+
+The note order is from highest to lowest in the hierarchy.
+
 Returns empty list if no note can be found with observeInstruction
 set to "true".
 
@@ -1380,6 +1389,7 @@ set to "true".
 
 sub getObserverNote {
   my $self = shift;
+  my $retall = shift;
 
   # First attempt to get the SpNote and refs
   # (if present)
@@ -1388,24 +1398,27 @@ sub getObserverNote {
         $self->_tree->findnodes(".//SpNote"));
 
   # Find the last component that refers to an observer note
-  my $el;
-  for my $c (reverse @comp) {
+  my @el;
+  for my $c (@comp) {
     my $resolved = $self->_resolve_ref( $c );
     if ($resolved->getAttribute("observeInstruction") eq 'true') {
-      $el = $resolved;
-      last;
+      push(@el, $resolved);
     }
   }
 
   # No matches
-  return () unless defined $el;
+  return () unless @el;
 
-  # Extract
-  my $title = $self->_get_pcdata( $el, "title" );
-  my $note  = $self->_get_pcdata( $el, "note" );
+  my @retval = map { [ $self->_get_pcdata($_,"title"),
+		       $self->_get_pcdata($_,"note")
+		     ] } @el;
 
-  return ($title, $note);
-
+  if ($retall) {
+    return @retval;
+  } else {
+    # Only return the last in the list
+    return @{$retval[-1]};
+  }
 }
 
 
