@@ -206,7 +206,8 @@ sub stringify {
   my $author = $self->author;
 
   # Get date and format it
-  my $date = $self->date->strftime("%Y-%m-%d");
+  my $date = $self->date;
+  $date = (defined $date ? $date->strftime("%Y-%m-%d") : "ERROR");
 
 
   my $string = 
