@@ -324,7 +324,7 @@ sub _create_sql_recurse {
 
     # use an OR join [must surround it with parentheses], but use
     # an AND if we have multiple text strings
-    $sql = "(".join( "OR" ,
+    $sql = "(".join( " OR ",
 		    map { $self->_querify($colname, $_, $cmp); }
 		    @{ $entry }
 		   ) . ")";
@@ -708,7 +708,7 @@ sub _querify {
   throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
     unless exists $cmptable{$cmp};
 
-  # add pattern matches if we have like
+  # add pattern matches and always quote if we have like
   my $quote;
   if ($cmp eq 'like') {
     $quote = "'";
@@ -719,6 +719,9 @@ sub _querify {
   } else {
     $quote ='';
   }
+
+  # Also quote if we have word characters or a semicolon
+  $quote = "'" if $value =~ /[A-Za-z:]/;
 
   # We do not want to quote if we have a SQL function
   # dateadd is special
