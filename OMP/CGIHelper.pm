@@ -33,6 +33,7 @@ use OMP::FaultServer;
 use OMP::CGIFault;
 use OMP::MSB;
 use OMP::MSBServer;
+use OMP::MSBDoneQuery;
 use OMP::FBServer;
 use OMP::General;
 use OMP::Error qw(:try);
@@ -684,20 +685,20 @@ Create a page with a list of all the MSBs observed for a given UT sorted by proj
 sub observed {
   my $q = shift;
 
-  my $utdate = OMP::General->today;
+#  my $utdate = OMP::General->today;
 
-  my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
+#  my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
 
-  (@$commentref) and print $q->h2("MSBs observed on $utdate")
-    or print $q->h2("No MSBs observed on $utdate");
+#  (@$commentref) and print $q->h2("MSBs observed on $utdate")
+#    or print $q->h2("No MSBs observed on $utdate");
 
   observed_form($q);
-  print $q->hr;
+#  print $q->hr;
 
   # Create the MSB comment tables
-  msb_comments_by_project($q, $commentref);
+#  msb_comments_by_project($q, $commentref);
 
-  (@$commentref) and print observed_form($q);
+#  (@$commentref) and print observed_form($q);
 }
 
 =item B<observed_output>
@@ -718,13 +719,34 @@ sub observed_output {
   }
 
   if (!$q->param("Add Comment")) {
+    # Just viewing comments
     observed_form($q);
-    my $utdate = $q->param('utdate');
-    my $commentref = OMP::MSBServer->observedMSBs($utdate, 1, 'data');
-    msb_comments_by_project($q, $commentref);
+    print $q->hr;
 
-    (@$commentref) and print $q->h2("MSBs observed on $utdate")
+    my $utdate = $q->param('utdate');
+    my $telescope = $q->param('telescope');
+
+    my $dbconnection = new OMP::DBbackend;
+
+    my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
+
+    # Now keep only the comments that are for the telescope we want
+    # to see observed msbs for
+    my @msbs;
+    for my $msb (@$commentref) {
+      my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
+				    Password => "***REMOVED***",
+				    DB => $dbconnection );
+      my $proj = $projdb->projectDetails( 'object' );
+      if ($proj->telescope eq $telescope) {
+	push @msbs, $msb;
+      }
+    }
+
+    (@msbs) and print $q->h2("MSBs observed on $utdate")
       or print $q->h2("No MSBs observed on $utdate");
+
+     msb_comments_by_project($q, \@msbs);
 
     # If they've just submitted a comment show some comforting output
     # or catch an error
@@ -754,9 +776,7 @@ sub observed_output {
       };
     }
 
-    print $q->hr;
-
-    (@$commentref) and print observed_form($q);
+    (@msbs) and print observed_form($q);
   }
 }
 
@@ -771,16 +791,30 @@ Create a form with a textfield for inputting a UT date and submitting it.
 sub observed_form {
   my $q = shift;
 
+  my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
+
+  # Get today's date and use that ase the default
+  my $utdate = OMP::General->today;
+
+  # Get the telescopes for our popup menu
+  my @tel = $db->listTelescopes;
+
+  print "<table><td align='right'><b>";
   print $q->startform;
   print $q->hidden(-name=>'show_output',
 		   -default=>1,);
-  print "Enter a UT Date: ";
+  print "UT Date: </b><td>";
   print $q->textfield(-name=>'utdate',
 		      -size=>15,
-		      -maxlength=>75);
-  print "&nbsp;&nbsp;";
+		      -maxlength=>75,
+		      -default=>$utdate,);
+  print "</td><td></td><tr><td align='right'><b>Telescope: </b></td><td>";
+  print $q->popup_menu(-name=>'telescope',
+		       -values=>\@tel,);
+  print "</td><td colspan=2>";
   print $q->submit("View Comments");
   print $q->endform;
+  print "</td></table>";
 
 }
 
@@ -1143,10 +1177,6 @@ sub msb_comments_by_project {
     $sorted{$projectid} = [] unless exists $sorted{$projectid};
     push(@{ $sorted{$projectid} }, $msb);
   }
-
-  print "<pre>sorted";
-  print Dumper(%sorted);
-  print "</pre>";
 
   foreach my $projectid (keys %sorted) {
     print $q->h2("Project: <a href='$public_url/projecthome.pl?urlprojid=$projectid'>$projectid</a>");
