@@ -25,11 +25,11 @@ sub obscomment_output {
 
   my %params = $query->Vars;
   my $projectid = $cookie{'projectid'};
-  my $password = cookie{'password'};
+  my $password = $cookie{'password'};
 
 # Verify the project id with password
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => $dbconnection );
+                                DB => new OMP::DBbackend );
   my $verified = $projdb->verifyPassword( $password );
   if( !$verified ) {
     print "<br>Could not verify password for project $projectid.<br>n";
@@ -42,7 +42,7 @@ sub obscomment_output {
 # Verify the comment author is in the database.
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
   if( defined( $vparams{'author'} ) ) {
-    my $userVerified = $db->verifyUser( $vparams{'author'} );
+    my $userVerified = $udb->verifyUser( $vparams{'author'} );
     if( ! $userVerified ) {
       print "<br>Could not verify author " . $vparams{'author'} . " is in database.<br>\n";
       return;
@@ -65,7 +65,7 @@ sub obscomment_output {
 
 sub verifyParams {
   my $qparams = shift;
-  my $vparams;
+  my $vparams = {};
 
   # The 'ut' parameter is of the form yyyy-mm-dd-hh-mm-ss.
   if(defined($qparams->{'ut'})) {
@@ -117,12 +117,14 @@ sub updateComment {
 
   if( ! defined( $params->{'author'} ) ||
       ! defined( $params->{'status'} ) ) {
+    print "Unable to store comment with no valid author or status<br>\n";
     return;
   }
 
   if( ! defined( $params->{'ut'} ) ||
       ! defined( $params->{'runnr'} ) ||
       ! defined( $params->{'inst'} ) ) {
+    print "Unable to store comment with no associated observation<br>\n";
     return;
   }
 
@@ -133,7 +135,7 @@ sub updateComment {
                                  instrument => $params->{'inst'} );
 
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-  my $user = $udb->getUser( $params->{'author'};
+  my $user = $udb->getUser( $params->{'author'} );
 
   my $comment = new OMP::Info::Comment( author => $user,
                                         text => $params->{'text'},
@@ -165,7 +167,8 @@ sub displayComment {
                                  instrument => $params->{'inst'} );
 
   # Grab the most recent active comment.
-  my $comment = $db->getComment( $obs );
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+  my $comment = $odb->getComment( $obs );
 
   # Print it out.
   print "<table border=\"1\">\n";
@@ -203,7 +206,7 @@ sub displayForm {
 
   print "<form action=\"obscomment.pl\" method=\"post\"><br>\n";
   print "Author: <input type=\"text\" name=\"author\" value=\"";
-  print $params->{Author}->userid;
+  print defined($params->{author}) ? $params->{author} : "";
   print "\"><br>\n";
   print "Status: <select name=\"status\">\n";
   print "<option value=\"" . OMP__OBS_GOOD . "\"";
@@ -215,22 +218,22 @@ sub displayForm {
   if ($params->{status} == OMP__OBS_QUESTIONABLE) { print " selected>"; }
   else { print ">"; }
   print "Questionable</option>\n";
-  print "<option value="" . OMP__OBS_BAD . "\"";
+  print "<option value=\"" . OMP__OBS_BAD . "\"";
   if ($params->{status} == OMP__OBS_BAD) { print " selected>"; }
   else { print ">"; }
   print "Bad</option>\n";
   print "</select>\n";
   print "<textarea name=\"text\" rows=\"20\" columns=\"80\">";
-  print $params->{text};
+  print defined($params->{text}) ? $params->{text} : "";
   print "</textarea>\n";
   print "<input type=\"hidden\" name=\"ut\" value=\"";
-  print $params->{ut};
+  print defined($params->{ut}) ? $params->{ut} : "";
   print "\">\n";
   print "<input type=\"hidden\" name=\"runnr\" value=\"";
-  print $params->{runnr};
+  print defined($params->{runnr}) ? $params->{runnr} : "";
   print "\">\n";
   print "<input type=\"hidden\" name=\"inst\" value=\"";
-  print $params->{inst};
+  print defined($params->{inst}) ? $params->{inst} : "";
   print "\">\n";
 
   print "<input type=\"submit\"> <input type=\"reset\"><br>\n";
