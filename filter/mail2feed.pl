@@ -48,9 +48,12 @@ sub accept {
   my $project = $self->get("projectid");
   chomp($project); # header includes newline
 
+  # Need to translate the from address to a valid OMP user id
+  # if possible. For now we have to just use undef
+
   # Contact the feedback system
   OMP::FBServer->addComment( $project, {
-					author => $from,
+					author => undef,
 					program => $0,
 					subject => $subject,
 					sourceinfo => $srcip,
