@@ -71,6 +71,7 @@ sub new {
 	      User => $user,
 	      Text => $text,
 	      Date => undef,
+	      Primary => 0,
 	     };
 
   bless $resp, $class;
@@ -143,6 +144,22 @@ sub date {
     $self->{Date} = $date;
   }
   return $self->{Date};
+}
+
+=item B<primary>
+
+Is this response the original fault (primary = 1) or is it a response
+to some other fault (primary = 0).
+
+This flag is usually set automatically when the object is stored in
+a C<OMP::Fault>.
+
+=cut
+
+sub primary {
+  my $self = shift;
+  if (@_) { $self->{Primary} = shift; }
+  return $self->{Primary};
 }
 
 =back
