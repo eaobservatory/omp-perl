@@ -9,12 +9,8 @@ MSBServer + SpServer
    to allow scheduling on "band 1+2"
 
     [not required since the query is now built up as
-      "band 1 or band 2"]
-
- - decide on whether project ID should be case sensitive
-   and implement that decision.
-
-    [implemented as case insensitive - everything is now upper cased]
+      "band 1 or band 2"] Still needs to affect scheduling and
+     time decrementing though.
 
 MSBServer
 ---------
@@ -25,13 +21,11 @@ MSBServer
 
 
  - increment "pending" allocation when MSB marked as done       [1.0]
-    [needs interaction with OMP::ProjDB class]
+    [done for simple projects that do not have separate
+     allocations for weather bands]
 
  - Stored procedures for calculating target elevation           [5.0??10??]
-
-    [this will be done in perl as a first test implementation.
-     Should not be too onerous because we only have to test
-     the first N rather than all the matches]
+    [done [in perl]]
 
 
 SpServer
@@ -39,13 +33,16 @@ SpServer
 
  - password authentication                                      [3.0]
     [via OMP::ProjDB]
+    [done]
 
  - "fix" the MSBID generation code so that it caches the value  [1.0]
     before deleting old rows rather than querying the database
     each time an MSB is added to the DB.
 
       [This has now been optimised so that the ID is cached
-       during a store]
+       during a store] Store a large science program still takes
+       some time. Especially noticable since we have to do that
+       to modify a MSB remaining flag.
 
 
 ProjServer
@@ -65,10 +62,11 @@ ProjServer
 
 
  - implement password generation + mailing          [2.0]
+     [done]
 
  - project initialisation in database               [3.0]
-   [probably as method on server and a master
-    password]. We need to define server methods
-    for modifying project contents.
+     [done]
+
 
  - adjustment of time remaining                     [1.0]
+     [done]
