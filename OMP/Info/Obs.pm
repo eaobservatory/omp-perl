@@ -1040,15 +1040,18 @@ sub _populate {
 
       # fivepoint/focus are generic
       # anything with 'jcmt' or 'jcmtcal' is generic
-      # observations of planets are generic
-      # Standard spectra are science calibrations
+      # Do not include planets in the list.
+      # Standard spectra are science calibrations but we have to be
+      # careful with this since they may also be science observations.
+      # For now, only check name matches (names should match pointing
+      # catalog name exactly) and also that it is a single SAMPLE. Should really
+      # be cleverer than that...
       if ($self->projectid =~ /JCMT/ ||
-          $self->mode =~ /fivepoint|focus/i  #||
-#          $self->target =~ /mars|uranus|saturn|venus|neptune|jupiter|mercury/i
+          $self->mode =~ /fivepoint|focus/i
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
-      } elsif ($self->target =~ /w3oh|l1551|crl618|omc1|n2071|oh231|irc10216|16293-2422|ngc6334i|g34\.3|w75n|n7027|n7538/i) {
+      } elsif ($self->mode() eq 'SAMPLE'  && $self->target =~ /^(w3\(oh\)|l1551-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
         $self->isSciCal( 1 );
         $self->isScience( 0 );
       }
