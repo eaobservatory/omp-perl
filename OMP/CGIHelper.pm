@@ -2532,9 +2532,14 @@ sub tau_plot_code {
   $gifdate =~ s/-//g;
   $gifdate = substr($gifdate,0,8);
 
-  my $gif = $gifdate . "new.gif";
+  my $gif;
+  if (-e "$dir/$gifdate" . "new.gif") {
+    $gif = $gifdate . "new.gif";
+  } elsif (-e "$dir/$gifdate" . "new350.gif") {
+    $gif = $gifdate . "new350.gif";
+  }
 
-  if (-e "$dir/$gif") {
+  if ($gif) {
     return "<a name='taufits'></a>"
       ."<a href='$calibpage'><img src='$www/$gif'>"
 	."<br>Click here to visit the calibration page</a>";
