@@ -82,7 +82,7 @@ sub suffices {
   if( $group ) {
     @suffices = qw/ _pht_ _reb_ /;
   } else {
-    @suffices = qw/ _reb _noise /;
+    @suffices = qw/ _pht _reb /;
   }
 
   if( wantarray ) { return @suffices; } else { return \@suffices; }
