@@ -463,10 +463,6 @@ sub new_instrument {
       $nbContent->tag('add', $otag, $start, 'insert');
 
       # Configure the new tag.
-      $nbContent->tag('configure', $otag,
-                      -foreground => $CONTENTCOLOUR[$status],
-                     );
-
       my $bgcolour;
       if( $counter % 2 ) {
         $bgcolour = $BACKGROUND1;
@@ -476,10 +472,12 @@ sub new_instrument {
 
       if($counter % 2) {
         $nbContent->tag('configure', $otag,
+                        -foreground => $CONTENTCOLOUR[$status],
                         -background => $bgcolour,
                        );
       } else {
         $nbContent->tag('configure', $otag,
+                        -foreground => $CONTENTCOLOUR[$status],
                         -background => $bgcolour,
                        );
       }
@@ -492,12 +490,14 @@ sub new_instrument {
       $nbContent->tag('bind', $otag, '<Any-Enter>' =>
                       sub { shift->tag('configure', $otag,
                                        -background => $HIGHLIGHTBACKGROUND,
+                                       -foreground => $CONTENTCOLOUR[$status],
                                        qw/ -relief raised
                                            -borderwidth 1 /); } );
 
       $nbContent->tag('bind', $otag, '<Any-Leave>' =>
                       sub { shift->tag('configure', $otag,
                                        -background => $bgcolour,
+                                       -foreground => $CONTENTCOLOUR[$status],
                                        qw/ -relief flat /); } );
 
       # And increment the counter.
