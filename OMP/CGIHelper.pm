@@ -577,8 +577,8 @@ sub fb_msb_active {
 	}
       }
 
-      # Now print the table if we have content
-      msb_table($q, $active);
+      # Now print the table (with an est. time column) if we have content
+      msb_table($q, $active, 1);
 
     }
 
@@ -597,30 +597,37 @@ sub fb_msb_active {
 
 Create a table containing information about given MSBs
 
-  msb_table($cgi, $msbs);
+  msb_table($cgi, $msbs, $show_estimated);
 
-Second argument should be an array of 
-C<OMP::Info::MSB> objects.
+Second argument should be an array reference containing 
+C<OMP::Info::MSB> objects.  If the optional third argument
+is true, a column name "Est. time" will appear for presenting
+estimated time in seconds.
 
 =cut
 
 sub msb_table {
   my $q = shift;
   my $program = shift;
+  my $est_column = shift;
 
   print "<table width=100%>";
   print "<tr bgcolor=#bcbee3><td><b>MSB</b></td>";
-  print "<td><b>Target:</b></td>";
-  print "<td><b>Waveband:</b></td>";
-  print "<td><b>Instrument:</b></td>";
+  print "<td><b>Target</b></td>";
+  print "<td><b>Waveband</b></td>";
+  print "<td><b>Instrument</b></td>";
+
+  # Show the estimated time column  if it's been asked for
+  print "<td><b>Est. time</b></td>"
+    unless (! $est_column);
 
   # Only bother with a remaining column if we have remaining
   # information
-  print "<td><b>Remaining:</b></td>"
+  print "<td><b>Remaining</b></td>"
     if (defined $program->[0]->remaining);
 
   # And let's have an N Repeats column if that's available
-  print "<td><b>N Repeats:</b></td>"
+  print "<td><b>N Repeats</b></td>"
     if (defined $program->[0]->nrepeats);
 
   # Note that this doesnt really work as code shared for MSB and
@@ -643,10 +650,21 @@ sub msb_table {
     print "<td>" . $msb->target . "</td>";
     print "<td>" . $msb->waveband . "</td>";
     print "<td>" . $msb->instrument . "</td>";
+
+    if ($est_column) {
+      if ($msb->timeest) {
+	# Convert estimated time from seconds to hours
+	my $timeest = sprintf "%.2f hours", ($msb->timeest / ONE_HOUR);
+	print "<td>$timeest</td>";
+      } else {
+	print "<td>--</td>";
+      }
+    }
+
     print "<td>" . $msb->remaining . "</td>"
-      if (defined $msb->remaining);
+      unless (! defined $msb->remaining);
     print "<td>" . $msb->nrepeats . "</td>"
-      if (defined $msb->nrepeats);
+      unless (! defined $msb->nrepeats);
   }
 
   print "</table>\n";
@@ -1465,7 +1483,7 @@ sub msb_comments {
       print "<td colspan=4>" . $comment->text ."</td>";
     }
 
-    print "<tr bgcolor='#d3d3dd'><td align=right colspan=5>";
+    print "<tr bgcolor='#d3d3dd'><td align=left colspan=5>";
     print $q->startform;
 
     # Some hidden params to pass
@@ -1765,7 +1783,7 @@ sub project_home {
   print "Click <a href='msbhist.pl'>here</a> for more details on the observing history of each MSB.";
   
   # Display remaining MSBs
-  print "<h3>Observations remaining to be observed:</h3>";
+  print "<h3>MSBs remaining to be observed:</h3>";
   fb_msb_active($q, $cookie{projectid});
 
   # Link to the program details page
