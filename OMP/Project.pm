@@ -732,15 +732,11 @@ sub title {
 
 =item investigators
 
-Return the contact email addresses for all those people with registered
-involvement in the project. This is simply a combination of PI and
-Co-I email addresses.
+Return user information for all those people with registered
+involvement in the project. This is simply an array of PI and
+Co-I C<OMP::User> objects.
 
-  my @email = $proj->investigators;
-  my $email = $proj->investigators;
-
-Like C<coiemail> this method returns a list in list context and
-a delimited string in scalar context.
+  my @users = $proj->investigators;
 
 B<For now this only returns the PI information. Do this until
 we are sure who we should be contacting with Feedback information>
@@ -750,47 +746,29 @@ we are sure who we should be contacting with Feedback information>
 sub investigators {
   my $self = shift;
 
-  # Get all the email addresses
-  my @email = ( $self->piemail, $self->coiemail);
-  @email = ($self->piemail);
+  # Get all the User objects
+  my @users = ( $self->pi, $self->coi);
+  @users = ($self->pi);
 
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email );
-  }
-
+  return @users;
 }
 
 =item contacts
 
-Return the contact email addresses for all those people associated
+Return an array of C<OMP::User> objects for all those people associated
 with the project. This is the investigators and support scientists.
 
-  my @email = $proj->contacts;
-  my $email = $proj->contacts;
-
-Like C<coiemail> this method returns a list in list context and
-a delimited string in scalar context.
+  my @users = $proj->contacts;
 
 =cut
 
 sub contacts {
   my $self = shift;
 
-  # Get all the email addresses
-  my @email = ( $self->investigators, $self->supportemail);
+  # Get all the User objects
+  my @users = ( $self->investigators, $self->support );
 
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email );
-  }
-
+  return @users;
 }
 
 
