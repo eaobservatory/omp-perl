@@ -33,6 +33,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Project;
 use OMP::ProjDB;
+use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
 
@@ -103,16 +104,14 @@ sub getComments {
     unless $projdb->verifyPassword( $self->password );
 
   # Get the comments
-  my $comment = $self->_fetch_comments( %args );
+  my $comments = $self->_fetch_comments( %args );
 
-
-  # Throw out comments that with a status that isn't wanted
   # Strip out the milliseconds
-  for (@$comment) {
+  for (@$comments) {
     $_->{date} =~ s/:000/ /g;
   }
 
-  return $comment;
+  return $comments;
 }
 
 =item B<addComment>
@@ -170,9 +169,20 @@ sub addComment {
   $comment = {%defaults, %$comment};
 
   # Check for required fields
-  for (qw/ author text /) {
-    throw OMP::Error::BadArgs("$_ was not specified")
+  for (qw/ text /) {
+    throw OMP::Error::BadArgs("$_ must be specified")
       unless $comment->{$_};
+  }
+
+  # Must have sourceinfo if we don't have an author
+  #  if (! $comment->{author} and ! $comment->{sourceinfo}) {
+  #    throw OMP::Error::BadArgs("Sourceinfo must be specified if author is not given");
+  #  }
+
+  # Make sure author is an OMP::User object
+  if ($comment->{author}) {
+    throw OMP::Error::BadArgs("Author must be supplied as an OMP::User object")
+      unless UNIVERSAL::isa( $comment->{author}, "OMP::User" );
   }
 
   # Check that the project actually exists
@@ -269,8 +279,8 @@ sub _store_comment {
   $self->_db_insert_data( $FBTABLE,
 			  $entrynum,
 			  $projectid,
-			  @$comment{ 'author',
-				     'date',
+			  ($comment->{author} ? $comment->{author}->userid : undef),
+			  @$comment{ 'date',
 				     'subject',
 				     'program',
 				     'sourceinfo',
@@ -419,6 +429,13 @@ sub _fetch_comments {
 
   # Fetch the data
   my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  # Replace comment user IDs with OMP::User objects
+  # If user is undef leave it alone
+  for (@$ref) {
+    my $user = $_->{author};
+    ($user) and $_->{author} = OMP::UserServer->getUser($user);
+  }
 
   if (wantarray) {
     return @$ref;
