@@ -21,6 +21,7 @@ use 5.006;
 use strict;
 use warnings;
 
+use OMP::Error qw/ :try /;
 use OMP::SciProg;
 use OMP::Translator;
 
@@ -72,9 +73,7 @@ sub translate {
   try {
     # Convert to science program
     my $sp = new OMP::SciProg( XML => $xml );
-
     $result = OMP::Translator->translate( $sp );
-
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
@@ -82,7 +81,7 @@ sub translate {
   } otherwise {
     # No difference yet
     $E = shift;
-  }
+  };
 
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
