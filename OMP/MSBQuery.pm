@@ -328,8 +328,6 @@ sub sql {
   # an empty query to work without having a naked "AND".
   $subsql = " AND " . $subsql if $subsql;
 
-  print "RefDate is ", $self->refDate, "\n";
-
   #print "SQL: $subsql\n";
 
   # Some explanation is probably in order.
