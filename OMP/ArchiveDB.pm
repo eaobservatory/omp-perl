@@ -28,6 +28,8 @@ use strict;
 use warnings;
 
 use OMP::ArcQuery;
+use OMP::ArchiveDB::Cache;
+use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Info::Obs;
 use OMP::Config;
@@ -118,15 +120,24 @@ sub queryArc {
   my $self = shift;
   my $query = shift;
 
-  # First the database
-  my @results = $self->_query_arcdb( $query );
+  my @results;
 
-  my $date = $query->daterange->min;
-  my $currentdate = gmtime;
+  # First check if the cached information is suspect.
+  if( ! suspect_cache( $query ) && simple_query( $query ) ) {
+    @results = retrieve_archive( $query )->obs;
+  } else {
 
-  if( ( $currentdate - $date ) < ONE_WEEK ) {
-    @results = $self->_query_files( $query )
-      unless @results;
+    # First the database
+    if( $self->db ) {
+      @results = $self->_query_arcdb( $query );
+    }
+    my $date = $query->daterange->min;
+    my $currentdate = gmtime;
+
+    if( ( $currentdate - $date ) < ONE_WEEK ) {
+      @results = $self->_query_files( $query )
+        unless @results;
+    }
   }
 
   # Return what we have
@@ -170,6 +181,19 @@ sub _query_arcdb {
   # Convert the data from a hash into an array of Info::Obs objects.
   my @return = $self->_reorganize_archive( $ref );
 
+  if( scalar( @return ) > 0 ) {
+    # Push the stuff in the cache, but only if we have results.
+    try {
+      store_archive( $query, new OMP::Info::ObsGroup( obs => \@return ) );
+    }
+    catch OMP::Error::CacheFailure with {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      OMP::General->log_message( $errortext );
+    };
+
+  }
+
   return @return;
 }
 
@@ -196,7 +220,7 @@ sub _query_files {
   my $self = shift;
   my $query = shift;
 
-  my ( $telescope, $daterange );
+  my ( $telescope, $daterange, $instrument, $runnr );
   my @returnarray;
 
   $query->isfile(1);
@@ -204,22 +228,8 @@ sub _query_files {
   my $query_hash = $query->query_hash;
 
   $daterange = $query->daterange;
-
-  my ( $instrument, $runnr );
-
-  if( defined( $query_hash->{instrument} ) ) {
-    if( ref( $query_hash->{instrument} ) eq "ARRAY" ) {
-      $instrument = $query_hash->{instrument}->[0];
-    } else {
-      $instrument = $query_hash->{instrument};
-    }
-  } elsif( defined( $query_hash->{telescope} ) &&
-           ref( $query_hash->{telescope} ) eq "ARRAY" &&
-           lc( $query_hash->{telescope}->[0] ) eq "jcmt" ) {
-    $instrument = "scuba";
-  } else {
-    $instrument = "";
-  }
+  $instrument = $query->instrument;
+  $telescope = $query->telescope;
 
   if( defined( $query_hash->{runnr} ) ) {
     $runnr = $query_hash->{runnr}->[0];
@@ -229,34 +239,48 @@ sub _query_files {
 
   my @instarray;
 
-  if(length($instrument . "") != 0) {
+  if( defined( $instrument ) && length($instrument . "") != 0) {
     push @instarray, $instrument;
+  } elsif( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
+    push @instarray, OMP::Config->getData('instruments',
+                                          telescope => $telescope
+                                         );
   } else {
-    push @instarray, 'cgs4', 'ufti', 'ircam', 'michelle', 'uist', 'scuba';
+    throw OMP::Error::BadArgs( "Unable to return data. No telescope or instrument set." );
   }
 
-# We need to loop over every UT day in the date range. Get the start day and the end
-# day from the $daterange object.
+  my $obsgroup;
+  my @files;
+  my @obs;
 
-  my $startday = $daterange->min->ymd;
-  $startday =~ s/-//g;
-  my $endday = $daterange->max->ymd;
-  $endday =~ s/-//g;
+  # If we have a simple query, go to the cache for stored information and files
+  if( simple_query( $query ) ) {
+    ( $obsgroup, @files ) = unstored_files( $query );
+    @obs = $obsgroup->obs;
+  } else {
+    # Okay, we don't have a simple query, so get the file list the hard way.
 
-  for(my $day = $startday; $day <= $endday; $day++) {
+    # We need to loop over every UT day in the date range. Get the start day and the end
+    # day from the $daterange object.
+    my $startday = $daterange->min->ymd;
+    $startday =~ s/-//g;
+    my $endday = $daterange->max->ymd;
+    $endday =~ s/-//g;
 
-    foreach my $inst ( @instarray ) {
-      my $telescope = OMP::Config->inferTelescope('instruments', $inst);
-      my $directory = OMP::Config->getData( 'rawdatadir',
-                                            telescope => $telescope,
-                                            utdate => $day,
-                                            instrument => $inst );
+    for(my $day = $startday; $day <= $endday; $day = $day + ONE_DAY) {
 
-      # Get a file list.
-      if( -d $directory ) {
-        opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
-        my @files = grep(!/^\./, readdir(FILES));
-        closedir(FILES);
+      foreach my $inst ( @instarray ) {
+        my $telescope = OMP::Config->inferTelescope('instruments', $inst);
+        my $directory = OMP::Config->getData( 'rawdatadir',
+                                              telescope => $telescope,
+                                              utdate => $day,
+                                              instrument => $inst );
+
+        # Get a file list.
+        if( -d $directory ) {
+          opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
+          @files = grep(!/^\./, readdir(FILES));
+          closedir(FILES);
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -264,8 +288,8 @@ sub _query_files {
 # and have a ".sdf" suffix. If this is not the case, then this line will have
 # to be modified accordingly.
 
-        @files = grep(/_\d+\.sdf$/, @files);
-        @files = sort {
+          @files = grep(/_\d+\.sdf$/, @files);
+          @files = sort {
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -281,14 +305,14 @@ sub _query_files {
 #          my $b_Frm = new ORAC::Frame($directory . "/" . $b);
 #          my $b_obsnum = $b_Frm->number;;
 
-          $a =~ /_(\d+)\.sdf$/;
-          my $a_obsnum = int($1);
-          $b =~ /_(\d+)\.sdf$/;
-          my $b_obsnum = int($1);
+            $a =~ /_(\d+)\.sdf$/;
+            my $a_obsnum = int($1);
+            $b =~ /_(\d+)\.sdf$/;
+            my $b_obsnum = int($1);
 
-          $a_obsnum <=> $b_obsnum; } @files;
+            $a_obsnum <=> $b_obsnum; } @files;
 
-        if( $runnr != 0 ) {
+          if( $runnr != 0 ) {
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -299,68 +323,92 @@ sub _query_files {
 # are to be minimised.
 
           # find the file with this run number
-          $runnr = '0' x (4 - length($runnr)) . $runnr;
-          @files = grep(/$runnr\.sdf$/, @files);
+            $runnr = '0' x (4 - length($runnr)) . $runnr;
+            @files = grep(/$runnr\.sdf$/, @files);
+          } # if( $runnr != 0 )
+
+          @files = map { $directory . '/' . $_ } @files;
+
+        } # if ( -d $directory )
+        else {
+          throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
         }
+      } # foreach my $inst ( @instarray )
+    } # for( my $day... )
+  } # if( simple_query( $query ) ) { } else
 
-        foreach my $file ( @files ) {
+  foreach my $file ( @files ) {
 
-          # Create the Obs object.
-          my $obs = readfile OMP::Info::Obs( $directory . "/" . $file, $inst );
+    # Create the Obs object.
+    my $obs = readfile OMP::Info::Obs( $file );
 
-          # If the observation's time falls within the range, we'll create the object.
-          my $match_date = 0;
+    # If the observation's time falls within the range, we'll create the object.
+    my $match_date = 0;
 
-          if( $daterange->contains($obs->startobs) ) {
-            $match_date = 1;
-          } elsif( $daterange->{Max} < $obs->startobs ) {
-            last;
-          }
+    if( $daterange->contains($obs->startobs) ) {
+      $match_date = 1;
+    } elsif( $daterange->max < $obs->startobs ) {
+      last;
+    }
 
-          # Filter by keywords given in the query string. Look at filters other than DATE,
-          # RUNNR, and _ATTR.
-          # Assume a match, and if we find something that doesn't match, remove it (since
-          # we'll probably always match on telescope at the very least).
+    # Filter by keywords given in the query string. Look at filters other than DATE,
+    # RUNNR, and _ATTR.
+    # Assume a match, and if we find something that doesn't match, remove it (since
+    # we'll probably always match on telescope at the very least).
 
-          # We're only going to filter if:
-          # - the thing in the query object is an OMP::Range or a scalar, and
-          # - the thing in the Obs object is a scalar
-          my $match_filter = 1;
-          foreach my $filter (keys %$query_hash) {
-            if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
-              next;
-            }
-            foreach my $filterarray ($query_hash->{$filter}) {
-              if( OMP::Info::Obs->can(lc($filter)) ) {
-                my $value = $obs->$filter;
-                my $matcher = uc($obs->$filter);
-                if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
-                  $match_filter = $filterarray->contains( $matcher );
-                } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
-                  foreach my $filter2 (@$filterarray) {
-                    if($matcher !~ /$filter2/i) {
-                      $match_filter = 0;
-                    }
-                  }
-                }
+    # We're only going to filter if:
+    # - the thing in the query object is an OMP::Range or a scalar, and
+    # - the thing in the Obs object is a scalar
+    my $match_filter = 1;
+    foreach my $filter (keys %$query_hash) {
+      if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+        next;
+      }
+      foreach my $filterarray ($query_hash->{$filter}) {
+        if( OMP::Info::Obs->can(lc($filter)) ) {
+          my $value = $obs->$filter;
+          my $matcher = uc($obs->$filter);
+          if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
+            $match_filter = $filterarray->contains( $matcher );
+          } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
+            foreach my $filter2 (@$filterarray) {
+              if($matcher !~ /$filter2/i) {
+                $match_filter = 0;
               }
             }
           }
-
-          if( $match_date && $match_filter ) {
-            push @returnarray, $obs;
-          }
         }
-      } else {
-        throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
       }
     }
 
+    if( $match_date && $match_filter ) {
+      push @returnarray, $obs;
+    }
   }
 
-  # We need to sort the return array by date.
+  # Alright. Now we have potentially two arrays: one with cached information
+  # and another with uncached information. We need to merge them together. Let's
+  # push the cached information onto the uncached information, then sort it, then
+  # store it in the cache.
 
+  push @returnarray, @obs;
+
+  # We need to sort the return array by date.
   @returnarray = sort {$a->startobs->epoch <=> $b->startobs->epoch} @returnarray;
+
+#print Dumper @returnarray;
+
+  # And store it in the cache.
+  try {
+    my $obsgroup = new OMP::Info::ObsGroup( obs => \@returnarray );
+    store_archive( $query, $obsgroup );
+  }
+  catch OMP::Error::CacheFailure with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext\n";
+   OMP::General->log_message( $errortext );
+  };
 
   return @returnarray;
 }
