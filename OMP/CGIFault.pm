@@ -326,7 +326,7 @@ sub fault_table {
   print "</div>";
 }
 
-=item B<query_fault>
+=item B<query_fault_content>
 
 Create a page for querying faults
 
