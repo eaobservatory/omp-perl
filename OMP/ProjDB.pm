@@ -46,6 +46,9 @@ our $PROJTABLE = "ompproj";
 our $COITABLE  = "ompcoiuser";
 our $SUPTABLE  = "ompsupuser";
 
+# inifinite tau
+my $TAU_INF = 101;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -736,8 +739,12 @@ sub _insert_project_row {
   # Get some extra information
   my $pi = $proj->pi->userid;
   my $taurange = $proj->taurange;
-  # NULL is a valid upper limit. 0 is always valid lower limit
-  my ($taumin, $taumax) = ( $taurange ? $taurange->minmax : (0,undef));
+  # TAU_INF is a valid upper limit. 0 is always valid lower limit
+  my ($taumin, $taumax) = ( $taurange ? $taurange->minmax : (0,$TAU_INF));
+
+  # do not allow any undefs for tau
+  $taumin = 0 unless defined $taumin;
+  $taumax = $TAU_INF unless defined $taumax;
 
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
@@ -819,6 +826,12 @@ sub _get_projects {
     # Convert the taumin, taumax to a OMP::Range object
     # old entries may have NULL for min when we really mean ZERO
     $projhash->{taumin} = 0 unless defined $projhash->{taumin};
+
+    # TAU_INF should be converted to undef
+    if (!defined $projhash->{taumax}) {
+      $projhash->{taumax} = undef
+	if $projhash->{taumax} == $TAU_INF;
+    }
 
     # KLUGE: Use 2 decimal places for now until we switch to DOUBLES
     for (qw/ taumin taumax/ ) {
