@@ -334,7 +334,7 @@ Retrieve the observation history for the specified MSB (identified
 by checksum and project ID).
 
   $xml = OMP::MSBServer->historyMSB( $project, $checksum, 'xml');
-  $hashref = OMP::MSBServer->historyMSB( $project, $checksum, 'data');
+  $info = OMP::MSBServer->historyMSB( $project, $checksum, 'data');
   $arrref  = OMP::MSBServer->historyMSB( $project, '', 'data');
 
 If the checksum is not supplied a full project observation history
@@ -344,49 +344,21 @@ is returned. Note that the information retrieved consists of:
  - Date of observation or comment
  - Comment associated with action
 
-The XML is retrieved in the following style:
+Only "data" and "xml" are understood as valid types.  If "data" is
+specified the results are retrieved as either a single
+C<OMP::Info::MSB> object or a reference to an array of
+C<OMP::Info::MSB> objects. If XML is requested (the default) an XML
+string is returned with a wrapper element of SpMSBSummaries and
+content matching that generated from C<OMP::Info::MSB> objects.
 
- <msbHistories projectid="M01BU53" projectid="M01BU53">
-   <msbHistory checksum="yyy">
-     <instrument>UFTI</instrument>
-     <waveband>J/H</waveband>
-     <target>FS21</target>
-     <comment>
-       <text>MSB retrieved</text>
-       <date>2002-04-02T05:52</date>
-     </comment>
-     <comment>
-       <text>MSB marked as done</text>
-       <date>2002-04-02T06:52</date>
-     </comment>
-   </msbHistory>
-   <msbHistory checksum="xxx" projectid="M01BU53">
-     ...
-   </msbHistory>
- <msbHistories>
-
-When checksum is defined the data structure is of the form:
-
-  $data = {
-           projectid => "M01BU53",
-           checksum => 'xxx',
-           instrument => "UFTI",
-           waveband => "J/H",
-           target => "FS21",
-           comment => [
-                       { 
-                        text => "MSB retrieved",
-                        date => "2002-04-02T05:52"
-                       },
-                       { 
-                        text => "MSB marked as done",
-                        date => "2002-04-02T06:52"
-                       },
-                      ],
-  };
-
-When checksum is not defined an array is returned (as a reference in perl)
-containing a hash as defined above for each MSB in the project.
+   <SpMSBSummaries>
+     <SpMSBSummary>
+       ...
+     </SpMSBSummary>
+     <SpMSBSummary>
+       ...
+     </SpMSBSummary>
+   </SpMSBSummaries>
 
 =cut
 
@@ -394,9 +366,11 @@ sub historyMSB {
   my $class = shift;
   my $project = shift;
   my $checksum = shift;
-  my $type = shift;
+  my $type = lc(shift);
+  $type ||= 'xml';
 
-  OMP::General->log_message("historyMSB: $project $checksum\n");
+  OMP::General->log_message("historyMSB: project:$project, checksum:" .
+			    (defined $checksum ? $checksum : "none") ."\n");
 
   my $E;
   my $result;
@@ -406,7 +380,7 @@ sub historyMSB {
 				DB => $class->dbConnection
 			       );
 
-    $result = $db->historyMSB( $checksum, $type );
+    $result = $db->historyMSB( $checksum );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -421,6 +395,17 @@ sub historyMSB {
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
+
+  if ($type eq 'xml') {
+    # Generate the XML
+    my $xml = "<SpMSBSummaries>\n";
+    my @msbs = ( ref($result) eq 'ARRAY' ? @$result : $result );
+    for my $msb (@msbs) {
+      $xml .= $msb->summary('xml') . "\n";
+    }
+    $xml .= "</SpMSBSummaries>\n";
+    $result = $xml;
+  }
 
   return $result;
 }
@@ -448,7 +433,8 @@ sub observedMSBs {
   my $class = shift;
   my $date = shift;
   my $allcomments = shift;
-  my $type = shift;
+  my $type = lc(shift);
+  $type ||= 'xml';
 
   OMP::General->log_message("observedMSBs: date $date\n");
 
@@ -460,7 +446,7 @@ sub observedMSBs {
 				DB => $class->dbConnection
 			       );
 
-    $result = $db->observedMSBs( $date, $allcomments, $type );
+    $result = $db->observedMSBs( $date, $allcomments );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -475,6 +461,18 @@ sub observedMSBs {
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
+
+  if ($type eq 'xml') {
+    # Generate the XML
+    my $xml = "<SpMSBSummaries>\n";
+    my @msbs = ( ref($result) eq 'ARRAY' ? @$result : $result );
+    for my $msb (@msbs) {
+      $xml .= $msb->summary('xml') . "\n";
+    }
+    $xml .= "</SpMSBSummaries>\n";
+    $result = $xml;
+  }
+
 
   return $result;
 }
