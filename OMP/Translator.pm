@@ -33,6 +33,7 @@ use warnings;
 
 use OMP::SciProg;
 use OMP::Error;
+use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -124,6 +125,13 @@ sub translate {
   if ($@) {
     throw OMP::Error::FatalError("Error loading class '$class': $@\n");
   }
+
+  # Log the translation details
+  my $projectid = $sp->projectID;
+  my @checksums = map { $_->checksum . "\n" } $sp->msb;
+  OMP::General->log_message( "Translate request: Project:$projectid Checksums:\n\t"
+			     .join("\t",@checksums)
+			   );
 
   # Now translate (but being careful to propogate calling context)
   if (wantarray) {
