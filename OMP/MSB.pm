@@ -1442,9 +1442,16 @@ sub SpObs {
   #print "In SpOBS\n";
 
   # First get the top-level information
+  # Could do these with callbacks of the right name
+  # but that might get confused with the identical
+  # MSB element names.
+  # note that this returns the last element if there are
+  # repeats.
   $summary{timeest} = $self->_get_pcdata($el, "estimatedDuration" );
   $summary{timeest} = $self->_get_pcdata($el, "elapsedTime" )
     unless defined $summary{timeest}; # to support old format XML
+
+  $summary{timeest} = 0.0 unless defined $summary{timeest};
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
