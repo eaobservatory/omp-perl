@@ -393,6 +393,9 @@ sub projectStats {
   my $self = shift;
   my @obs = $self->obs;
 
+  # If we do not have any observations we return empty
+  return (["No observations for statistics"]) unless @obs;
+
   my @warnings;
   my %projbycal;
   my %cals;
@@ -528,7 +531,7 @@ sub projectStats {
 	  # This project should be charged for calibrations
 	  # as a fraction of the total time spent time on data
 	  # that uses the calibration and instrument
-	  if (exists $cals{$ymd}{$inst}{$cal}) {
+	  if (exists $cals{$ymd}{$inst}{$cal} && $cals{$ymd}{$inst}{$cal}>0) {
 	    # We have a calibration
 	    my $caltime = $projbycal{$ymd}{$proj}{$inst}{$cal} / 
 	      $cal_totals{$ymd}{$inst}{$cal} *
