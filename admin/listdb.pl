@@ -22,7 +22,7 @@ my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};tim
 my @tab;
 (@ARGV) and @tab = @ARGV or
   @tab = qw/ompproj ompmsb ompobs ompsciprog ompfeedback ompmsbdone 
-  ompfault ompfaultbody/;
+  ompfault ompfaultbody ompuser ompsupuser ompcoiuser/;
 
 foreach my $tab (@tab) {
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab",{ Columns=>{} })
