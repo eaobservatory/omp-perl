@@ -101,6 +101,7 @@ sub new {
 	    XMLRefs => $refs,
 	    Tree => $tree,
 	    CheckSum => undef,
+	    ObsSum => [],
 	   };
 
   # and create the object
@@ -206,6 +207,32 @@ sub _xmlrefs {
   } else {
     return $self->{XMLRefs};
   }
+}
+
+=item B<obssum>
+
+Returns (or sets) an array containing summary hashes for each
+component observation.
+
+  @obs = $msb->obssum;
+  $msb->obssum( @obs );
+
+The C<summarize_obs> method is automatically invoked if this
+method is called without argument and the array is empty.
+
+Usually called by the C<summary> method to form a summary
+of the MSB itself.
+
+=cut
+
+sub obssum {
+  my $self = shift;
+  if (@_) {
+    @{ $self->{ObsSum} } = @_;
+  } elsif (scalar(@{$self->{ObsSum}}) == 0) {
+    $self->summarize_obs;
+  }
+  return @{ $self->{ObsSum} };
 }
 
 
@@ -377,6 +404,8 @@ sub summary {
     $summary{checksum} = $self->checksum;
     $summary{remaining} = $self->remaining;
     $summary{projectid} = $self->projectID;
+
+    my @obs = $self->obssum;
 
   }
 
@@ -565,6 +594,66 @@ sub stringify_noresolve {
 }
 
 
+=item B<summarize_obs>
+
+Walk through the MSB calculating a summary for each observation
+that is present.
+
+We have to walk through the tree properly in order to determine
+correct inheritance. This is a pain. The alternative is to find
+each observe and then find ancestors and siblings - problem here
+is to stop XPath going beyond the MSB itself.
+We are essentially doing a SAX parse.
+
+When complete, the object contains an array of summary hashes
+that can be returned using the C<obssum> method. The same array
+is returned by this method on completion.
+
+=cut
+
+sub summarize_obs {
+  my $self = shift;
+
+
+  # Get an element
+  # If a processing method exists simply call it with
+  # a hash containing the current state.
+  # if returns a new hash with the new state
+
+  my %status; # for storing current parameters
+  my @obs; # for storing results
+  # Get all the children and loop over them
+  for ( $self->_tree->getChildnodes ) {
+
+    # Resolve refs if required
+    my $el = $self->_resolve_ref( $_ );
+
+    # Get the name of the item
+    my $name = $el->getName;
+    print "Name is $name \n";
+
+    if ($self->can($name)) {
+      if ($name eq 'SpObs') {
+	# Special case. When it is an observation we want to
+	# return the final hash for the observation rather than
+	# an augmented hash used for inheritance
+	push(@obs, $self->SpObs($el, %status ));
+	
+      } else {
+	%status = $self->$name($el, %status );	
+      }
+    }
+  }
+
+  # Now we have all the hashes we can store them in the object
+  $self->obssum( @obs ) if @obs;
+
+  use Data::Dumper;
+  print Dumper(\@obs);
+
+  return @obs;
+}
+
 =item B<_get_qualified_children>
 
 Retrieve the parse trees that represent the component
@@ -579,27 +668,13 @@ with the corresponding <SpXXX id="blah">).
 sub _get_qualified_children {
   my $self = shift;
 
-  # First get the children
-  my @children = $self->_tree->findnodes('child::*');
-
-  # Now go through the array replacing refs if required
-  for my $child (@children) {
-
-    # Check to see if this has an idref attr
-    if ($child->hasAttribute("idref")) {
-      my $ref = $child->getAttribute("idref");
-      # We have to make sure that we have the key
-      if (exists $self->_xmlrefs->{$ref}) {
-	# ...and do the replacement if we need to
-	# using the implicit aliasing of the loop variable
-	$child = $self->_xmlrefs->{$ref};
-      } else {
-	carp "There is a reference to an element that does not exist\n";
-      }
-    }
-
-
-  }
+  # First get the children with findnodes and then for each of those
+  # store either the element itself, or for references, the resolved
+  # node.
+  my @children = 
+    map { 
+      $self->_resolve_ref( $_ );
+    } $self->_tree->findnodes('child::*');
 
   return @children;
 
@@ -627,6 +702,218 @@ sub _get_qualified_children_as_string {
   }
 
   return $string;
+}
+
+=item B<_resolve_ref>
+
+Given a reference node, translate it to the corresponding
+element.
+
+ $el = $mab->_resolve_ref( $ref );
+
+Returns itself if there is no idref. Raises an exception if there is
+an idref but it can not be resolved.
+
+=cut
+
+sub _resolve_ref {
+  my $self = shift;
+  my $ref = shift;
+
+  my $idref;
+  $idref= $ref->getAttribute("idref") if $ref->can("getAttribute");
+  return $ref unless defined $idref;
+
+  # We have to make sure that we have the key
+  my $el;
+  if (exists $self->_xmlrefs->{$idref}) {
+    # ...and do the replacement if we need to
+    # using the implicit aliasing of the loop variable
+    $el = $self->_xmlrefs->{$idref};
+  } else {
+    throw OMP::Error::FatalError("There is a reference to an element that does not exist (idref=$idref)\n");
+  }
+  return $el;
+}
+
+
+=item B<_get_pcdata>
+
+Given an element and a tag name, find the element corresponding to
+that tag and return the PCDATA entry from the last matching element.
+
+ $pcdata = $msb->_get_pcdata( $el, $tag );
+
+Convenience wrapper.
+
+=cut
+
+sub _get_pcdata {
+  my $self = shift;
+  my ($el, $tag ) = @_;
+  my @tauband = $el->getElementsByTagName( $tag );
+  my $pcdata;
+  $pcdata = $tauband[-1]->firstChild->toString
+    if @tauband;
+  return $pcdata;
+}
+
+# Methods associated with individual elements
+
+=item B<SpObs>
+
+Walk through an SpObs element to determine its parameters.
+
+Takes as argument the object representing the SpObs element
+in the tree and a hash of C<default> parameters derived from
+components prior to this element in the hierarchy.
+Returns a reference to a hash summarizing the observation.
+
+  $summaryref = $msb->SpObs( $el, %default );
+
+Raises an C<MSBMissingObserve> exception if the observation
+does not include an observe iterator (the thing that actually
+triggers the translator to take data.
+
+Note that there is an argument that can be made to make C<OMP::Obs>
+an even more fundamental class...
+
+=cut
+
+sub SpObs {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+  print "In SpOBS\n";
+
+  throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
+    unless $el->findnodes(".//SpIterObserve");
+
+  # Now walk through all the child elements extracting information
+  # and overriding the default values (if present)
+  # This is almost the same as the summarize() method but I can not
+  # think of an obvious way to combine the loops and recursion seems
+  # like overkill since I dont want to go down multiple depths in the
+  # tree.
+  for ( $el->getChildnodes ) {
+    # Resolve refs if necessary
+    my $el = $self->_resolve_ref( $_ );
+    my $name = $el->getName;
+    print "SpObs: $name\n";
+    %summary = $self->$name( $el, %summary )
+      if $self->can( $name );
+  }
+
+  return \%summary;
+
+}
+
+=item B<SpInstCGS4>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstCGS4( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstCGS4 {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{instrument} = "CGS4";
+
+  return %summary;
+}
+
+=item B<SpInstUFTI>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstUFTI( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstUFTI {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{instrument} = "UFTI";
+
+  return %summary;
+}
+
+=item B<SpInstMichelle>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstMichelle( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstMichelle {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{instrument} = "Michelle";
+
+  return %summary;
+}
+
+=item B<SpInstIRCAM3>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstIRCAM3( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstIRCAM3 {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{instrument} = "IRCAM3";
+
+  return %summary;
+}
+
+=item B<SpSiteQualityObsComp>
+
+Site quality component.
+
+ %summary = $msb->SpSiteQualityObsComp( $el, %summary );
+
+=cut
+
+sub SpSiteQualityObsComp {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+  print "In site quality\n";
+  # Need to get "seeing" and "tauband"
+  $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
+  $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
+
+  return %summary;
 }
 
 =back
