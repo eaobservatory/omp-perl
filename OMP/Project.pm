@@ -563,7 +563,7 @@ sub pi {
   my $self = shift;
   if (@_) { 
     my $pi = shift;
-    Carp::confess "PI must be of type OMP::User"
+    throw OMP::Error::BadArgs("PI must be of type OMP::User")
       unless UNIVERSAL::isa($pi, "OMP::User");
     $self->{PI} = $pi;
 

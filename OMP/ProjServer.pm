@@ -312,7 +312,7 @@ sub addProject {
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
-    # Split CoI and Support on colon
+    # Split CoI and Support on colon or comma
     my @coi;
     if ($project[2]) {
       @coi = map { $userdb->getUser($_) 
@@ -347,10 +347,18 @@ sub addProject {
     }
     my $primary = uc($project[6]->[0]);
 
+    throw OMP::Error::FatalError("Must supply a telescope")
+      unless defined $project[10];
+
+    # Get the PI information
+    my $pi = $userdb->getUser( $project[1] );
+    throw OMP::Error::FatalError("PI [$project[1]] not recognized by the OMP")
+      unless defined $pi;
+
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
 				projectid => $project[0],
-    				pi => $userdb->getUser($project[1]),
+    				pi => $pi,
 				coi => \@coi,
 				support => \@support,
 				title => $project[4],
