@@ -8,7 +8,9 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
 	  unless exists $ENV{OMP_CFG_DIR};
       }
 
-use lib qw(/jac_sw/omp/msbserver);
+
+#use lib qw(/jac_sw/omp/msbserver);
+use lib "/home/timj/omp/msbserver";
 
 use OMP::CGI;
 use OMP::CGIHelper;
@@ -30,7 +32,7 @@ my @domain = OMP::General->determine_host;
 if ($domain[1] and $domain[1] !~ /\./) {
   $cgi->write_page_noauth( \&night_report, \&night_report );
 } else {
-  $cgi->write_page_staff( \&night_report, \&night_rerport );
+  $cgi->write_page_staff( \&night_report, \&night_report );
 }
 
 
