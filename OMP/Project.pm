@@ -825,9 +825,11 @@ associated with that country).
   @pris = $proj->tagpriority( \@countries );
 
 If no country is supplied, all priorities are returned. In scalar
-context they are returned as a single comma-separated string, all are
-returned in list context. They are returned in an order corresponding
-to the alphabetical order of the countries.
+context only the primary queue tag priority is returned unless that is
+not defined in which case all priorities are returned as a single
+comma-separated string, all are returned in list context. They are
+returned in an order corresponding to the alphabetical order of the
+countries.
 
   $pri = $proj->tagpriority;
   @pri = $proj->tagpriority;
@@ -895,7 +897,13 @@ sub tagpriority {
   if (wantarray) {
     return @countries;
   } else {
-    return join($delim,@countries);
+    my %queue = $self->queue;
+    my $primary = $self->primaryqueue;
+    if (!defined $primary || !exists $queue{$primary}) {
+      return join($delim,@countries);
+    } else {
+      return $queue{$primary};
+    }
   }
 }
 

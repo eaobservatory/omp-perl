@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 35;
+use Test::More tests => 38;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -59,12 +59,16 @@ is(@pri, @countries, "Check number of priorities matches number of countries");
 is($proj->primaryqueue, $countries[0], "Check primary queue");
 
 
+is($proj->tagpriority($countries[1]), $project{tagpriority},
+		     "Priority by country");
 is($proj->country, $countries[0], "Country list in scalar context");
-is($proj->tagpriority, join(",", map { $project{tagpriority} } @countries),
+is($proj->tagpriority, $project{tagpriority},
   "check that we have the right number of priorities in scalar context");
 
 my @outcountries = $proj->country;
+my @outpri = $proj->tagpriority;
 for my $i (0..$#countries) {
+  is( $outpri[$i], $project{tagpriority}, "Check TAG $i");
   is( $outcountries[$i], $countries[$i], "Check country $i");
 }
 
