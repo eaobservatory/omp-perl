@@ -53,7 +53,7 @@ sub accept_feedback {
   my $from = $self->get("from");
   my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
   my $subject = $self->get("subject");
-  my $text = OMP::General->preify_text( join('',@{ $self->body }) );
+  my $text = join('',@{ $self->body });
   my $project = $self->get("projectid");
   chomp($project); # header includes newline
 
