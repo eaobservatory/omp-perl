@@ -264,8 +264,8 @@ sub fetchSciProg {
   throw OMP::Error::UnknownProject("No science program available for \"$pid\"")
     unless $self->_get_old_sciprog_timestamp;
 
-  # Verify the password
-  $self->_verify_project_password();
+  # Verify the password [staff access is allowed]
+  $self->_verify_project_password(1);
 
   # Instantiate a new Science Program object
   # The file name is derived automatically
@@ -941,10 +941,25 @@ not match.
 If the password matches the administrator password this routine always
 succeeds.
 
+If the optional argument is set to true, an additional comparison with
+the staff password will be used before querying the project
+database. In some cases staff can have access to project data and this
+provides a means to give some staff access without giving full
+administrator access.
+
+  $db->_verify_project_password( $allow_staff );
+
 =cut
 
 sub _verify_project_password {
   my $self = shift;
+  my $allow_staff = shift;
+
+  # Is the staff password sufficient?
+  if ($allow_staff) {
+    # dont throw an exception on failure
+    return if OMP::General->verify_administrator_password($self->password, 1);
+  }
 
   # Ask the project DB class
   my $proj = new OMP::ProjDB(
