@@ -655,7 +655,7 @@ sub verify_staff_password {
   return $status;
 }
 
-=item B<verify_queueman_password>
+=item B<verify_queman_password>
 
 Compare the supplied password with the queue manager password. Throw
 an exception if the two do not match. This provides access to some
@@ -670,7 +670,7 @@ An optional third argument can be used to disable the exception
 throwing. If the second argument is true the routine will return
 true or false depending on whether the password is verified.
 
-  $isokay = OMP::General->verify_queueman_password( $input, $queue, 1 );
+  $isokay = OMP::General->verify_queman_password( $input, $queue, 1 );
 
 Always fails if the supplied password is undefined. The country
 must be defined unless the password is either the staff or administrator

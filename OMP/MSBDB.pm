@@ -1232,7 +1232,7 @@ sub _password_text_info {
     # get the project information
     my $proj = $projdb->projectDetails('object');
 
-    if ($proj && OMP::General->verify_queueman_password($password, $proj->country, 1)) {
+    if ($proj && OMP::General->verify_queman_password($password, $proj->country, 1)) {
       $note = "[using the ".$proj->country." queue manager password]";
     }
 
