@@ -14,16 +14,17 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::UserPage;
+use OMP::CGIPage;
+use OMP::CGIPage::User;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: OMP Users");
-$cgi->write_page_noauth( \&OMP::CGI::UserPage::list_users,
-			 \&OMP::CGI::UserPage::list_users );
+$cgi->write_page_noauth( \&OMP::CGIPage::User::list_users,
+			 \&OMP::CGIPage::User::list_users,
+		         "noauth" );
