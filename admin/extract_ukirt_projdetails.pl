@@ -4,6 +4,12 @@
 # information required to populate the OMP database
 #
 
+# As of 04A columns are now:
+#  Project ID, PI name, PI email, PI userid, Support ID, Support2 ID, Title, Hours,
+#    tag priority, moon, seeing, tau, sky, cois
+#
+# but note that tau is different - it's a number
+
 # As of 03B columns are now:
 # Project ID, PI userid, Support, Title, hours, tag priority, moon, seeing
 #  tau, sky, cois (multiple entries as user ids)
@@ -49,16 +55,17 @@ my %cloud = (
 
 # Index into array
 use constant PROJECTID => 0;
-use constant PI => 1;
-use constant SA => 2;
-use constant TITLE => 3;
-use constant HOURS => 4;
-use constant TAGPRI => 5;
-use constant MOON => 7;
-use constant SEEING => 8;
-use constant TAU => 9;
-use constant CLOUD => 10;
-use constant COI => 11;
+use constant PI => 3;
+use constant SA => 4;
+use constant SA2 => 5;
+use constant TITLE => 6;
+use constant HOURS => 7;
+use constant TAGPRI => 8;
+use constant MOON => 9;
+use constant SEEING => 10;
+use constant TAU => 11;
+use constant CLOUD => 12;
+use constant COI => 13;
 
 # Pipe in from standard input
 
@@ -73,7 +80,7 @@ while (<>) {
   my @parts = split /\t/,$line;
 
   # The coi field needs to be converted to an array
-  # CoIs are 11..$#parts and now use user ids
+  # CoIs are 13..$#parts and now use user ids
   my $coi = [grep /\w/, @parts[COI..$#parts]];
 
   # The tau needs to be converted to a range
@@ -81,7 +88,10 @@ while (<>) {
   if (exists $taumax{$parts[TAU]}) {
     $tau->max( $taumax{$parts[TAU]});
   } else {
-    # There is no max
+    # There is no default max but there may be embedded value
+    if ($parts[TAU] =~ /^tau\s*<\s*(.*)/) {
+      $tau->max( $1 );
+    }
   }
 
   # The seeing needs to be converted to a range
@@ -101,13 +111,18 @@ while (<>) {
   }
 
   # Support scientists
-  my $ss = $parts[SA];
-  if (exists $support{$ss}) {
-    $ss = $support{$ss};
-  } else {
-    print "Can not determine support scientist $ss\n";
-    exit;
+  my @support;
+  for (SA,SA2) {
+    my $ss = $parts[$_];
+    if (exists $support{$ss}) {
+      push(@support,$support{$ss});
+    } else {
+      print "Can not determine support scientist $ss\n";
+      exit;
+    }
   }
+
+  # Support 2
 
   # The allocation is in hours
   my $alloc = $parts[HOURS];
@@ -135,7 +150,7 @@ while (<>) {
 	       pi => $parts[PI],
 	       coi => $coi,
 	       title => $parts[TITLE],
-	       support => $ss,
+	       support => \@support,
 	       tau => $tau,
 	       allocation => $alloc,
 	       country => $country,
@@ -154,7 +169,7 @@ foreach my $proj (@proj) {
   print "[". uc($proj->{projectid}) ."]\n";
   print "tagpriority=" . (exists $proj->{tagpriority} ? $proj->{tagpriority} : 1) . "\n";
 
-  print "support=" . $proj->{support} . "\n";
+  print "support=" . join(",", @{$proj->{support}}) . "\n";
   print "pi=" . uc($proj->{pi}) ."\n";
   print "coi=" . join(",", map { uc($_) } @{$proj->{coi}})."\n";
   print "title=".$proj->{title}."\n";
