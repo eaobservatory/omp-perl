@@ -138,7 +138,7 @@ sub verifyUser {
 			     DB => $class->dbConnection,
 			    );
 
-    $status = $db-verifyUser($userid);
+    $status = $db->verifyUser($userid);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
