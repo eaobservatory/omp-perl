@@ -538,6 +538,8 @@ retrieving and storing it.
 The time remaining on the project is decremented by the estimated
 time taken to observe the MSB.
 
+Invokes the C<hasBeenObserved> method on the MSB object.
+
 =cut
 
 sub doneMSB {
@@ -662,7 +664,7 @@ sub undoMSB {
   return unless defined $msb;
 
   # Mark it as not observed
-  $msb->remaining_inc( 1 );
+  $msb->undoObserve;
 
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
@@ -707,6 +709,9 @@ retrieving and storing it.
 
 No time is removed from the project since this action is not associated
 with observing.
+
+Invokes the C<hasBeenCompletelyObserved> method on the relevant MSB
+object.
 
 =cut
 
