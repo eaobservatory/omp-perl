@@ -388,7 +388,7 @@ sub project_home {
   # Display a flex page link for UKIRT.  Temporary, of course.
   if ($project->telescope =~ /ukirt/i) {
     my $sem = $project->semester;
-    print "<tr><td><a href='http://www.jach.hawaii.edu/JAClocal/cgi-bin/omp/flexpage.pl?output=1&sem=$sem'>View the Flex programme descriptions page</a></td>";
+    print "<tr><td><a href='http://www.jach.hawaii.edu/jac-bin/omp/flexpage.pl?output=1&sem=$sem'>View the Flex programme descriptions page</a></td>";
   }
 
   print "</table>";
