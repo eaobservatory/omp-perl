@@ -121,39 +121,9 @@ sub queryArc {
   # First the database
   my @results = $self->_query_arcdb( $query );
 
-  $query->isfile(1);
-  my $query_hash = $query->query_hash;
-  # If nothing so far, look on disk, but only if the date
-  # we're searching for is within the past week.
-  my $daterange;
-  if( ref( $query_hash->{date} ) eq 'ARRAY' ) {
-    if (scalar( @{$query_hash->{date}} ) == 1) {
-      my $timepiece = new Time::Piece;
-      $timepiece = $query_hash->{date}->[0];
-      my $maxdate;
-      if( ($timepiece->hour == 0) && ($timepiece->minute == 0) && ($timepiece->second == 0) ) {
-        # We're looking at an entire day, so set up an OMP::Range object with Min equal to this
-        # date and Max equal to this date plus one day.
-        $maxdate = $timepiece + ONE_DAY - 1; # constant from Time::Seconds
-      } else {
-        # We're looking at a specific time, so set up an OMP::Range object with Min equal to
-        # this date minus one second and Max equal to this date plus one second. These plus/minus
-        # seconds are necessary because OMP::Range does an exclusive check instead of inclusive.
-        $maxdate = $timepiece + 1;
-        $timepiece = $timepiece - 1;
-      }
-      $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
-    }
-  } elsif( UNIVERSAL::isa($query_hash->{date}, "OMP::Range" ) ) {
-    $daterange = $query_hash->{date};
-    # Subtract one second from the range, because the max date is not inclusive.
-    my $max = $daterange->max;
-    $max = $max - 1;
-    $daterange->max($max);
-  }
-
-  my $date = $daterange->min;
+  my $date = $query->daterange->min;
   my $currentdate = gmtime;
+
   if( ( $currentdate - $date ) < ONE_WEEK ) {
     @results = $self->_query_files( $query )
       unless @results;
@@ -233,34 +203,7 @@ sub _query_files {
 
   my $query_hash = $query->query_hash;
 
-# If we have an array of dates (there should be only one), then we use that as the date.
-# Otherwise, we should have an OMP::Range object.
-
-  if( ref( $query_hash->{date} ) eq 'ARRAY' ) {
-    if (scalar( @{$query_hash->{date}} ) == 1) {
-      my $timepiece = new Time::Piece;
-      $timepiece = $query_hash->{date}->[0];
-      my $maxdate;
-      if( ($timepiece->hour == 0) && ($timepiece->minute == 0) && ($timepiece->second == 0) ) {
-        # We're looking at an entire day, so set up an OMP::Range object with Min equal to this
-        # date and Max equal to this date plus one day.
-        $maxdate = $timepiece + ONE_DAY - 1; # constant from Time::Seconds
-      } else {
-        # We're looking at a specific time, so set up an OMP::Range object with Min equal to
-        # this date minus one second and Max equal to this date plus one second. These plus/minus
-        # seconds are necessary because OMP::Range does an exclusive check instead of inclusive.
-        $maxdate = $timepiece + 1;
-        $timepiece = $timepiece - 1;
-      }
-      $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
-    }
-  } elsif( UNIVERSAL::isa( $query_hash->{date}, "OMP::Range" ) ) {
-    $daterange = $query_hash->{date};
-    # Subtract one second from the range, because the max date is not inclusive.
-    my $max = $daterange->max;
-    $max = $max - 1;
-    $daterange->max($max);
-  }
+  $daterange = $query->daterange;
 
   my ( $instrument, $runnr );
 
@@ -295,9 +238,9 @@ sub _query_files {
 # We need to loop over every UT day in the date range. Get the start day and the end
 # day from the $daterange object.
 
-  my $startday = $daterange->{Min}->ymd;
+  my $startday = $daterange->min->ymd;
   $startday =~ s/-//g;
-  my $endday = $daterange->{Max}->ymd;
+  my $endday = $daterange->max->ymd;
   $endday =~ s/-//g;
 
   for(my $day = $startday; $day <= $endday; $day++) {
@@ -409,7 +352,7 @@ sub _query_files {
           }
         }
       } else {
-        throw OMP::Error( "Data directory $directory unavailable.\n" );
+        throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
       }
     }
 
