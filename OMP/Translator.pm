@@ -165,7 +165,20 @@ sub translate {
     # Write
     $grp->outputdir($TRANS_DIR);
     $grp->syncoutputdir();
-    return $grp->writegroup();
+
+    # get the output file
+    my $file = $grp->writegroup();
+
+    # Make sure the queue can read these files
+    # regardless of how they were created
+    chmod 0666, $file;
+
+    # fix up all the odfs
+    for my $odffile ($grp->odfs) {
+      chmod 0666, $odffile->inputfile;
+    }
+
+    return $file;
   }
 
 }
