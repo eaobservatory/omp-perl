@@ -232,7 +232,11 @@ sub _query_files {
   my ( $instrument, $runnr );
 
   if( defined( $query_hash->{instrument} ) ) {
-    $instrument = $query_hash->{instrument};
+    if( ref( $query_hash->{instrument} ) eq "ARRAY" ) {
+      $instrument = $query_hash->{instrument}->[0];
+    } else {
+      $instrument = $query_hash->{instrument};
+      }
   } else {
     $instrument = "";
   }
