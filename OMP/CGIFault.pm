@@ -57,7 +57,7 @@ $| = 1;
 Exporter::export_tags(qw/ all /);
 
 # Width for HTML tables
-our $TABLEWIDTH = 620;
+our $TABLEWIDTH = '100%';
 
 # Text wrap column size
 $Text::Wrap::columns = 80;
@@ -1514,7 +1514,7 @@ sub show_faults {
     if (! $url);
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
-  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td></td>";
+  print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td><b>Replies</b></td><td></td>";
   my $colorcount;
   for my $fault (@$faults) {
     my $bgcolor;
@@ -1539,12 +1539,15 @@ sub show_faults {
     my $status = $fault->statusText;
     ($fault->isNew and $fault->isOpen) and $status = "New";
 
+    my $replies = $#{$fault->responses};  # The number of actual replies
+
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
     print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b></td>";
     print "<td>" . $user->html . "</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
+    print "<td align='center'>$replies</td>";
     print "<td><b><a href='$url?id=$faultid'>[View/Respond]</a></b></td>";
   }
 
