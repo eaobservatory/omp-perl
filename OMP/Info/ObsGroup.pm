@@ -24,9 +24,8 @@ OMP::Info::ObsGroup - General manipulations of groups of Info::Obs objects
   %summary = $grp->stats;
   $html = $grp->format( 'html' );
 
-  %grouping = $grp->groupby_msbid;
-  %grouping = $grp->groupby_inst;
-  %grouping = $grp->groupby_mode;
+  %grouping = $grp->groupby('msbid');
+  %grouping = $grp->groupby('instrument');
 
   # retrieve OMP::Info::MSB objects
   @msbs = $grp->getMSBs;
@@ -400,6 +399,41 @@ sub projectStats {
 
   return @return;
 
+}
+
+=item B<groupby>
+
+Returns a hash of C<OMP::Info::ObsGroup> objects grouped by accessor.
+
+  %grouped = $grp->groupby('instrument');
+
+The argument must be a valid C<OMP::Info::Obs> accessor. If it is not,
+this method will throw an C<OMP::Error::BadArgs> error.
+
+The keys of the returned hash will be the discrete values for the accessor
+found in the given C<OMP::Info::ObsGroup> object, and the values will be
+C<OMP::Info::ObsGroup> objects corresponding to those keys.
+
+=cut
+
+sub groupby {
+  my $self = shift;
+  my $method = shift;
+
+  throw OMP::Error::BadArgs("Cannot group by $method in Info::ObsGroup->groupby")
+    unless OMP::Info::Obs->can($method);
+
+  my %group;
+  foreach my $obs ($self->obs) {
+    push @{$group{$obs->$method}}, $obs;
+  }
+
+  my %return;
+  foreach my $key (keys %group) {
+    $return{$key} = new OMP::Info::ObsGroup( obs => $group{$key} );
+  }
+
+  return %return;
 }
 
 =back
