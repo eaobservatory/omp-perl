@@ -1547,19 +1547,27 @@ sub log_message {
   # Check the logging level.
   return unless $class->_log_logok( $severity );
 
+  # Get the current date
+  my $datestamp = gmtime;
+
   # "Constants"
   my $logdir;
+
   # Look for the logdir but make sure this is none fatal
   # so for any error ignore it. in some cases a bare eval{}
   # here did not catch everyhing so use a try with empty otherwise
   try {
-    $logdir = OMP::Config->getData( "logdir" );
+    # Make sure a date is available to the config system
+    $logdir = OMP::Config->getData( "logdir", utdate => $datestamp );
   } otherwise {
     # empty - we want to catch everything
   };
   my $fallback_logdir = File::Spec->catdir( File::Spec->tmpdir, "ompLogs");
-  my $datestamp = gmtime;
-  my $filename = "log." . $datestamp->strftime("%Y%m%d");
+  my $today = $datestamp->strftime("%Y%m%d");
+
+  # The filename depends on whether the logdir includes the ut date
+  my $file1 = "omp.log";
+  my $file2 = "omp_$today.log";
 
   # Create the message
   my ($user, $host, $email) = OMP::General->determine_host;
@@ -1567,7 +1575,9 @@ sub log_message {
   my $sevstr = $class->_log_level_string( $severity );
 
   # Create the log message without a prefix
-  my $logmsg = "$datestamp PID: $$  User: $email\nMsg: $message\n";
+  my $logmsg = colored("$datestamp",'blue underline').
+     " PID: ".colored("$$","green underline") .
+     " User: ".colored("$email","green underline")."\nMsg: $message\n";
 
   # Split on newline, attached prefix, and then join on new line
   my @lines = split(/\n/, $logmsg);
@@ -1582,6 +1592,8 @@ sub log_message {
   # Try both the logdir and the back up
   for my $thisdir ($logdir, $fallback_logdir) {
     next unless defined $thisdir;
+
+    my $filename = ($thisdir =~ /$today/ ? $file1 : $file2 );
 
     my $path = File::Spec->catfile( $thisdir, $filename);
 
