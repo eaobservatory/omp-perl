@@ -48,7 +48,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output update_resp_content update_resp_output sql_match_string/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output update_resp_content update_resp_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -419,10 +419,10 @@ sub query_fault_output {
     push (@xml, "<date delta='-$delta'>" . $t->datetime . "</date>")
       if ($delta);
 
+    # Get the text param and unescape things like &amp; &quot;
     my $text = $q->param('text');
-    if ($text) {
-      $text = sql_match_string($text);
-      push (@xml, "<text>$text</text>");	
+    if (defined $text) {
+      push (@xml, "<text>$text</text>");
     }
 
     if ($q->param('action') =~ /response/) {
@@ -992,7 +992,7 @@ sub file_fault_form {
     # an opening <html> tag.
     my $message = $fault->responses->[0]->text;
     if ($message =~ m!^<pre>(.*?)</pre>$!is) {
-      $message = unescape_text($1);
+      $message = OMP::General->replace_entity($1);
     } else {
       $message = "<html>" . $message;
     }
@@ -1180,7 +1180,7 @@ sub response_form {
 
     # Prepare text for editing
     if ($text =~ m!^<pre>(.*?)</pre>$!is) {
-      $text = unescape_text($1);
+      $text = OMP::General->replace_entity($1);
     } else {
       $text = "<html>" . $text;
     }
@@ -1740,25 +1740,6 @@ sub parse_file_fault_form {
   $parsed{text} = $text;
 
   return %parsed;
-}
-
-=item B<sql_match_string>
-
-Return a string that can be used for case-insensitive pattern matching in
-an SQL statement (i.e.: "Cow" becomes "[Cc][Oo][Ww]").
-
-  $newstring = sql_match_string($string);
-
-=cut
-
-sub sql_match_string {
-  my $string = shift;
-
-  # In this regexp \U begins the uppercase, \E ends it and \L starts
-  # the lowercase
-  $string =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
-
-  return $string;
 }
 
 =back
