@@ -22,7 +22,7 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::Fault;
-use OMP::FaultDB;
+use OMP::FaultServer;
 use OMP::Fault::Response;
 use OMP::DBbackend;
 use OMP::Error qw(:try);
@@ -35,7 +35,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -124,11 +124,9 @@ sub file_fault_output {
 			     fault=>$resp);
 
   # Submit the fault the the database
-  my $db = new OMP::FaultDB( DB => new OMP::DBbackend );
-
   my $faultid;
   try {
-    $faultid = $db->fileFault($fault);
+    $faultid = OMP::FaultServer->fileFault($fault);
   } otherwise {
     my $E = shift;
     print $q->h2("An error has occurred");
@@ -137,10 +135,86 @@ sub file_fault_output {
 
   # Show the fault if it was successfully filed
   if ($faultid) {
-    $db->getFault($faultid);
+    my $f = OMP::FaultServer->getFault($faultid);
     print $q->h2("Fault $faultid was successfully filed");
-
+    print $f;
+    fault_table($q, $f);
   }
+}
+
+=item B<fault_table>
+
+Put a fault into a an HTML table
+
+  fault_table($cgi, $fault);
+
+Takes an C<OMP::Fault> object as the last argument.
+
+=cut
+
+sub fault_table {
+  my $q = shift;
+  my $fault = shift;
+
+  # First show the fault info
+  print "<table><tr bgcolor=#ffffff><td colspan=2 align=right><b>Fault ID: </b>" . $fault->faultid . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td><td><b>Urgency: </b>" . $fault->urgency . "</td>";
+
+  # color code the status text
+  my $statushtml = $fault->statusText;
+  ($statushtml =~ /Open/) and $statushtml = "<b><font color=#008b24>$statushtml</font></b>"
+    or $statushtml = "<b><font color=#a00c0c>$statushtml</font></b>";
+
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Status: </b>$statushtml</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td>";
+  print "<tr bgcolor=#ffffff><b>Subject: </b>" . $fault->subject . "<td colspan=2></td>";
+
+  # Then loop through and display each response
+#  my @responses = $fault->responses;
+#  for my $resp (@responses) {
+#    print
+#  }
+  print "</table>";
+}
+
+=item B<query_fault>
+
+Create a page for querying faults
+
+  query_fault($cgi);
+
+=cut
+
+sub query_fault {
+  my $q = shift;
+
+  print "<table><tr><td align=right><b>Fault ID: </b></td><td>";
+  print $q->startform;
+  print $q->textfield(-name=>'faultid',
+		      -size=>'22',
+		      -maxlength=>'90');
+  print "</td><tr><td colspan=2 align=right>";
+  print $q->submit(-name=>"Submit");
+  print $q->endform;
+  print "</td></table>";
+}
+
+=item B<query_fault_output>
+
+Display a fault
+
+  query_fault_output($cgi);
+
+=cut
+
+sub query_fault_output {
+  my $q = shift;
+  my $faultid = $q->param('faultid');
+
+  my $fault = OMP::FaultServer->getFault($faultid);
+  fault_table($q, $fault);
 }
 
 =head1 AUTHOR
