@@ -8,9 +8,15 @@ OMP::SiteQual - Site quality helper functions
 
   use OMP::SiteQual;
 
-  $mapped = mapsky( $sky );
-  $sky = unmapsky( $mapped );
+  ($dbmin, $dbmax) = to_db( 'TAU', $skyrange );
+  $range = from_db( 'SEEING', $dbskymin, $dbskymax );
+  $range = default_range( 'SKY' );
+  print "default" if is_default( 'TAU', $range );
+  check_posdef( 'TAU', $range );
+  undef_to_default( 'TAU', $range );
 
+  $range = upgrade_cloud( $oldcloud );
+  $range = upgrade_moon( $oldmoon );
 
 =head1 DESCRIPTION
 
