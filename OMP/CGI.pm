@@ -44,36 +44,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 our $EXPTIME = 10;
 
 # Stylesheet
-our $STYLE = "<style><!--
-               body{font-family:arial,sans-serif}
-               div.black a:link, div.black a:visited {
-                 color: #000;
-                 font-style: italic;
-                 text-decoration: underline;
-	       }
-               span.editlink a:link, span.editlink a:visited {
-                 color: #000;
-                 font-style: normal;
-                 font-size: 12pt;
-               }
-               b.white, b.white a:link, b.white a:visited {
-                 color: #fff;
-                 font-style: normal;
-                 text-decoration: none;
-               }
-               div.footer, div.footer a:link, div.footer a:visited {
-                 font-size: 11pt;
-                 color: #ffffff;
-               }
-               HR {
-                 height : 1;
-                 color  : #babadd;
-               }
-               A {
-                 font-family:arial,sans-serif;
-               }
-               //--></style>";
-
+our $STYLE = OMP::Config->getData('omp-url') . "/omp.css";
 
 =head1 METHODS
 
@@ -381,8 +352,7 @@ Create the document header (and provide the cookie).  Cookie is optional.
 
   $cgi->_write_header([$style]);
 
-
-Optional argument is style sheet tags to be embedded in the HTML header
+Optional argument is a URL for the location of a stylesheet to be used.
 
 =cut
 
@@ -411,7 +381,7 @@ sub _write_header {
 
   my $title = $self->html_title;
 
-  $theme->SetHTMLStartString("<html><head><title>$title</title>$style<link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/></head>");
+  $theme->SetHTMLStartString("<html><head><title>$title</title><link rel='stylesheet' type='text/css' href='$style' title='ompstyle'><link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/></head>");
 
   $theme->SetSideBarTop("<a href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
