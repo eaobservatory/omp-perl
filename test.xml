@@ -26,14 +26,17 @@
   </SpNote>
   <SpSiteQualityObsComp id="4">
     <ItemData name="new" package="gemini.sp.obsComp" subtype="schedInfo" type="oc"/>
-    <seeing>1</seeing>
+    <seeing>
+      <max>0.4</max>
+      <min>0.0</min>
+    </seeing>
     <MetaData>
       <unique>true</unique>
       <gui>
         <collapsed>false</collapsed>
       </gui>
     </MetaData>
-    <tauBand>1</tauBand>
+    <tau><max>0.09</max><min>0</min></tau>
   </SpSiteQualityObsComp>
   <SpMSB remaining="2">
     <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
@@ -49,14 +52,17 @@
     <SpSiteQualityObsComp id="0">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="schedInfo" type="oc"/>
-      <seeing>1</seeing>
+      <seeing>
+        <max>0.4</max>
+        <min>0.0</min>
+      </seeing>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tauBand>1</tauBand>
+      <tau><max>0.09</max><min>0</min></tau>
     </SpSiteQualityObsComp>
     <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
@@ -439,14 +445,17 @@
     <SpSiteQualityObsComp id="1">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="schedInfo" type="oc"/>
-      <seeing>1</seeing>
+      <seeing>
+        <max>0.4</max>
+        <min>0.0</min>
+      </seeing>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tauBand>1</tauBand>
+      <tau><max>0.09</max><min>0</min></tau>
     </SpSiteQualityObsComp>
     <SpObs msb="false" optional="false" remaining="1">
       <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
@@ -2170,14 +2179,16 @@
     <SpSiteQualityObsComp id="23">
       <ItemData name="new" package="gemini.sp.obsComp"
         subtype="schedInfo" type="oc"/>
-      <seeing>2</seeing>
+      <seeing>
+        <max>0.8</max>
+        <min>0.0</min>
+      </seeing>
       <MetaData>
         <unique>true</unique>
         <gui>
           <collapsed>false</collapsed>
         </gui>
       </MetaData>
-      <tauBand>2</tauBand>
     </SpSiteQualityObsComp>
     <SpInstIRCAM3 id="22">
       <ItemData name="new" package="orac.ukirt.inst"
