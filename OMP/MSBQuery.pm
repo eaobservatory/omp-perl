@@ -2,7 +2,7 @@ package OMP::MSBQuery;
 
 =head1 NAME
 
-OMP::MSBQuery - Class representing an OMP query
+OMP::MSBQuery - Class representing an OMP query of the MSB database
 
 =head1 SYNOPSIS
 
@@ -29,6 +29,9 @@ use OMP::General;
 use OMP::Range;
 use Time::Piece ':override'; # for gmtime
 
+# Inheritance
+use base qw/ OMP::DBQuery /;
+
 # Package globals
 
 our $VERSION = (qw$Revision$ )[1];
@@ -42,96 +45,12 @@ use overload '""' => "stringify";
 
 =head1 METHODS
 
-=head2 Constructor
-
-=over 4
-
-=item B<new>
-
-The constructor takes an XML representation of the query and
-returns the object.
-
-  $query = new OMP::MSBQuery( XML => $xml, MaxCount => $max );
-
-Throws MSBMalformedQuery exception if the XML is not valid.
-
-=cut
-
-sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-
-  croak 'Usage : OMP::MSBQuery->new(XML => $xml)' unless @_;
-
-  my %args = @_;
-
-  my ($parser, $tree);
-  if (exists $args{XML}) {
-    # Now convert XML to parse tree
-    $parser = new XML::LibXML;
-    $parser->validation(1);
-    $tree = eval { $parser->parse_string( $args{XML} ) };
-    throw OMP::Error::MSBMalformedQuery("Error parsing XML query [$args{XML}]")
-      if $@;
-  } else {
-    # Nothing of use
-    return undef;
-  }
-
-  my $q = {
-	   Parser => $parser,
-	   Tree => $tree,
-	   QHash => {},
-	   Constraints => undef,
-	  };
-
-  # and create the object
-  bless $q, $class;
-
-  # Read other hash values if appropriate - use proper accessors here
-  $q->maxCount($args{MaxCount}) if exists $args{MaxCount};
-
-  return $q;
-}
-
-=back
-
 =head2 Accessor Methods
 
 Instance accessor methods. Methods beginning with an underscore
 are deemed to be private and do not form part of the publi interface.
 
 =over 4
-
-=item B<maxCount>
-
-Return (or set) the maximum number of rows that are to be returned
-by the query. In general this number must be used after the SQL
-query has been executed.
-
-  $max = $query->maxCount;
-  $query->maxCount( $max );
-
-If the value is undefined or negative all results are returned. If the
-supplied value is zero a default value is used instead.
-
-=cut
-
-sub maxCount {
-  my $self = shift;
-  if (@_) {
-    my $max = shift;
-    if (defined $max and $max >= 0) {
-      $self->{MaxCount} = $max;
-    }
-  }
-  my $current = $self->{MaxCount};
-  if (!defined $current || $current == 0) {
-    return $DEFAULT_RESULT_COUNT;
-  } else {
-    return $current;
-  }
-}
 
 =item B<refDate>
 
@@ -143,7 +62,7 @@ called]
 
   $date = $query->refDate;
 
-The time can not be specified. 
+The time can not be specified as an input argument.
 
 This allows the target availability to be calculated.
 
@@ -256,61 +175,6 @@ sub constraints {
 
 }
 
-=item B<_parser>
-
-Retrieves or sets the underlying XML parser object. This will only be
-defined if the constructor was invoked with an XML string rather
-than a pre-existing C<XML::LibXML::Element>.
-
-=cut
-
-sub _parser {
-  my $self = shift;
-  if (@_) { $self->{Parser} = shift; }
-  return $self->{Parser};
-}
-
-=item B<_tree>
-
-Retrieves or sets the base of the document tree associated
-with the science program. In general this is DOM based. The
-interface does not guarantee the underlying object type
-since that relies on the choice of XML parser.
-
-=cut
-
-sub _tree {
-  my $self = shift;
-  if (@_) { $self->{Tree} = shift; }
-  return $self->{Tree};
-}
-
-=item B<query_hash>
-
-Retrieve query in the form of a perl hash. Entries are either hashes
-or arrays. Keys with array references refer to multiple matches (OR
-relationship) [assuming there is more than one element in the array]
-and Keys with hash references refer to ranges (whose hashes must have
-C<max> and/or C<min> as keys).
-
-  $hashref = $query->query_hash();
-
-=cut
-
-sub query_hash {
-  my $self = shift;
-  if (@_) { 
-    $self->{QHash} = shift; 
-  } else {
-    # Check to see if we have something
-    unless (%{ $self->{QHash} }) {
-      $self->_convert_to_perl;
-    }
-  }
-  return $self->{QHash};
-}
-
-
 =back
 
 =head2 General Methods
@@ -319,7 +183,7 @@ sub query_hash {
 
 =item B<sql>
 
-Returns an SQL representation of the Query using the specified
+Returns an SQL representation of the MSB Query using the specified
 database table.
 
   $sql = $query->sql( $msbtable, $obstable, $projtable );
@@ -340,61 +204,14 @@ sub sql {
 
   my ($msbtable, $obstable, $projtable) = @_;
 
-  # Retrieve the perl version of the query
-  my $query = $self->query_hash;
-
-  # Walk through the hash generating the core SQL
-  # a chunk at a time
-  my @sql;
-  for my $entry ( keys %$query) {
-
-    # Some queries can not be processed yet because they require
-    # extra information or stored procedures
-    next if $entry eq "elevation";
-    next if $entry eq "airmass"; # just in case
-    next if $entry eq "disableconstraint";
-
-    # date is not part of a query because it is the reference
-    # date for checking the source is up (scheduling constraints
-    # are handled by datemin and datemax
-    next if $entry eq "date";
-
-
-    # Look at the entry and convert to SQL
-    if (ref($query->{$entry}) eq 'ARRAY') {
-      # use an OR join [must surround it with parentheses]
-      push(@sql, "(".join(" OR ", 
-			  map { $self->_querify($entry, $_); }
-			  @{ $query->{$entry} } 
-			 ) . ")");
-
-    } elsif (UNIVERSAL::isa( $query->{$entry}, "OMP::Range")) {
-      # A Range object
-      my %range = $query->{$entry}->minmax_hash;
-
-      # an AND clause
-      push(@sql,join(" AND ",
-		     map { $self->_querify($entry, $range{$_}, $_);}
-		     keys %range
-		    ));
-
-    } elsif (ref($query->{$entry}) eq 'HASH') {
-      # Obsolete branch for when we used to specify ranges
-      # as hashes
-
-      # Use an AND join
-      push(@sql,join(" AND ", 
-		     map { $self->_querify($entry, $query->{$entry}->{$_}, $_);}
-		     keys %{ $query->{$entry} } 
-		    ));
-
-    } else {
-      throw OMP::Error::MSBMalformedQuery("Query hash contained a non-HASH non-ARRAY non-OMP::Range: ". $query->{$entry}."\n");
-    }
-  }
-
-  # Now join it all together with an AND
-  my $subsql = join(" AND ", @sql);
+  # Generate the WHERE clause from the query hash
+  # Note that we ignore elevation, airmass and date since
+  # these can not be dealt with in the database at the present
+  # time [they are used to calculate source availability]
+  # Disabling constraints on queries should be left to this
+  # subclass
+  my $subsql = $self->_qhash_tosql( [qw/ elevation airmass date
+				     disableconstraint /]);
 
   # If the resulting query contained anything we should prepend
   # an AND so that it fits in with the rest of the SQL. This allows
@@ -464,185 +281,19 @@ sub sql {
   return "SELECT * FROM $msbtable WHERE remaining > 0";
 }
 
-=item B<stringify>
-
-Convert the Query object into XML.
-
-  $string = $query->stringify;
-
-This method is also invoked via a stringification overload.
-
-  print "$query";
-
-=cut
-
-sub stringify {
-  my $self = shift;
-  $self->_tree->toString;
-}
-
 =begin __PRIVATE__METHODS__
 
-=item B<_convert_to_perl>
+=item B<_root_element>
 
-Convert the XML parse tree to a query data structure.
-
-  $query->_convert_to_perl;
-
-Invoked automatically by the C<query_hash> method
-unless the data structure has already been created.
-Result is stored in C<query_hash>.
+Class method that returns the name of the XML root element to be
+located in the query XML. This changes depending on whether we
+are doing an MSB or Project query.
+Returns "MSBQuery" by default.
 
 =cut
 
-sub _convert_to_perl {
-  my $self = shift;
-  my $tree = $self->_tree;
-
-  my %query;
-
-  # Get the root element
-  my @msbquery = $tree->findnodes('MSBQuery');
-  throw OMP::Error::MSBMalformedQuery("Could not find <MSBQuery> element")
-    unless @msbquery == 1;
-  my $msbquery = $msbquery[0];
-
-  # Loop over children
-  for my $child ($msbquery->childNodes) {
-    my $name = $child->getName;
-    #print "Name: $name\n";
-
-    # Get the attributes
-    my %attr = map {  $_->getName, $_->getValue} $child->getAttributes;
-
-    # Now need to look inside to see what the children are
-    for my $grand ( $child->childNodes ) {
-
-      if ($grand->isa("XML::LibXML::Text")) {
-
-	# This is just PCDATA
-
-	# Make sure this is not simply white space
-	my $string = $grand->toString;
-	next unless $string =~ /\w/;
-
-	$self->_add_text_to_hash( \%query, $name, $string, \%attr );
-
-      } else {
-
-	# We have an element. Get its name and add the contents
-	# to the hash (we assume only one text node)
-	my $childname = $grand->getName;
-	$self->_add_text_to_hash(\%query, 
-				 $name, $grand->firstChild->toString,
-				 $childname, \%attr );
-
-      }
-
-    }
-
-
-  }
-
-  # Do some post processing to convert to OMP::Ranges and
-  # to fix up some standard keys
-  $self->_post_process_hash( \%query );
-
-  # Store the hash
-  $self->query_hash(\%query);
-
-#  use Data::Dumper;
-#  print Dumper(\%query);
-
-}
-
-=item B<_add_text_to_hash>
-
-Add content to the query hash. Compares keys of arguments with
-the existing content and does the right thing depending on whether
-the key has occurred before or it has a special case (max or min).
-
-$query->_add_text_to_hash( \%query, $key, $value, $secondkey );
-
-The secondkey is used as the primary key unless it is one of the
-special reserved key (min or max). In that case the secondkey
-is used as a hash key in the hash pointed to by $key.
-
-For example, key=instruments value=cgs4 secondkey=instrument
-
-  $query{instrument} = [ "cgs4" ];
-
-key=elevation value=20 sescondkey=max
-
-  $query{elevation} = { max => 20 }
-
-key=instrument value=scuba secondkey=undef
-
-  $query{instrument} = [ "cgs4", "scuba" ];
-
-Note that single values are always stored in arrays in case
-a second value turns up. Note also that special cases become
-hashes rather than arrays.
-
-Attributes associated with the elements can be supplied as a final argument
-(always the last) identified by it being a reference to a hash. These
-attributes are copied into the query hash as key C<_attr> - pointing
-to a hash with the attributes. Attributes are overwritten if new
-values are provided later.
-
-=cut
-
-sub _add_text_to_hash {
-  my $self = shift;
-  my $hash = shift;
-  my $key = shift;
-  my $value = shift;
-
-  # Last arg can be a hash ref in special case
-  my $attr;
-  if (ref($_[-1]) eq 'HASH' ) {
-    $attr = pop(@_);
-  }
-
-  # Read any remaining args
-  my $secondkey = shift;
-
-  # Check to see if we have a special key
-  $secondkey = '' unless defined $secondkey;
-  my $special = ( $secondkey =~ /max|min/ ? 1 : 0 );
-
-  # primary key is the secondkey if we are not special
-  $key = $secondkey unless $special or length($secondkey) eq 0;
-
-  # Clean up the value since SQL does not like new lines
-  # in the middle of a clause
-  $value =~ s/^\s+//;
-  $value =~ s/\s+\Z//;
-
-
-  if (exists $hash->{$key}) {
-
-    if ($special) {
-      # Add it into the hash ref
-      $hash->{$key}->{$secondkey} = $value;
-
-    } else {
-      # Append it to the array
-      push(@{$hash->{$key}}, $value);
-    }
-
-  } else {
-    if ($special) {
-      $hash->{$key} = { $secondkey => $value };
-    } else {
-      $hash->{$key} = [ $value ];
-    }
-  }
-
-  # Store attributes if they are supplied
-  $hash->{_attr} = {} unless exists $hash->{_attr};
-  $hash->{_attr}->{$key} = $attr if defined $attr;
-
+sub _root_element {
+  return "MSBQuery";
 }
 
 =item B<_post_process_hash>
@@ -669,22 +320,30 @@ sub _post_process_hash {
   my $self = shift;
   my $href = shift;
 
-  # Do date conversion as a special case since
-  # the semester calculation relies on this having been done
-  # Need to keep it in an array for consistency of interface
-  # Insert current date if none present
-  my $date;
+  # Do the generic pre-processing
+  $self->SUPER::_post_process_hash( $href );
+
+  # Need a telescope
+  throw OMP::Error::MSBMalformedQuery( "Please supply a telescope")
+    unless exists $href->{telescope};
+
+  # We always need a reference date
   if (exists $href->{date}) {
-    # Convert to object
-    $date = OMP::General->parse_date( $href->{date}->[0]);
+    # But not a date range
+    throw OMP::Error::MSBMalformedQuery( "date can not be specified as a range. Only a specific date can be supplied.")
+      unless ref($href->{date}) eq "ARRAY";
+
   } else {
     # Need to get a gmtime object that stringifies as a Sybase date
-    $date = gmtime;
+    my $date = gmtime;
 
     # Rebless
     bless $date, "Time::Piece::Sybase";
+
+    # And store it
+    $href->{date} = [ $date ];
+
   }
-  $href->{date} = [ $date ];
 
   # Also do timeest as a special case since that becomes
   # a hash (and so wont be modified in the loop once converted
@@ -723,13 +382,7 @@ sub _post_process_hash {
     # Skip private keys
     next if $key =~ /^_/;
 
-    if (UNIVERSAL::isa($href->{$key}, "HASH")) {
-      # Convert to OMP::Range object
-      $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
-				      Max => $href->{$key}->{max},
-				    );
-
-    } elsif ($key eq "cloud" or $key eq "moon") {
+    if ($key eq "cloud" or $key eq "moon") {
       # convert to range with the supplied value as the min
       $href->{$key} = new OMP::Range( Min => $href->{$key}->[0] );
 
@@ -768,100 +421,32 @@ sub _post_process_hash {
 
   }
 
+  # Case sensitivity
+  # If we are dealing with a these we should make sure we upper
+  # case them (more efficient to upper case everything than to do a
+  # query that ignores case)
+  for my $key (qw/ projectid telescope/) {
+    if (exists $href->{$key}) {
+      # Process all elements in array
+      $href->{$key} = [ map { uc($_); } @{ $href->{$key} } ];
+    }
+  }
+
+  # These entries are in more than one table so we have to 
+  # explicitly choose the MSB table
+  for (qw/ projectid timeest /) {
+    if (exists $href->{$_}) {
+      my $key = "M.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
   # Remove attribute since we dont need them anymore
   delete $href->{_attr};
 
 }
 
-=item B<_querify>
-
-Convert the column name, column value and optional comparator
-to an SQL sub-query.
-
-  $sql = $q->_querify( "elevation", 20, "min");
-  $sql = $q->_querify( "instrument", "SCUBA" );
-
-Determines whether we have a number or string for quoting rules.
-
-Some keys are duplicated in different tables. In those cases (project
-ID is the main one) the table prefix is automatically added.
-
-"coi" and "pi" queries are always done using LIKE rather than equals.
-
-A "name" element is converted to a query in both the "pi" and
-"coi" fields (ie you are interested in whether the named person
-is associated with the project at all). ie for each query on "name"
-a query for both "pi" and "coi" is returned with a logical OR.
-
-
-
-=cut
-
-sub _querify {
-  my $self = shift;
-  my ($name, $value, $cmp) = @_;
-
-  # Default comparator is "equal"
-  $cmp = "equal" unless defined $cmp;
-
-  # Lookup table for comparators
-  my %cmptable = (
-		  equal => "=",
-		  min   => ">=",
-		  max   => "<=",
-		  like  => "like",
-		 );
-
-  # Convert the string form to SQL form
-  throw OMP::Error::MSBMalformedQuery("Unknown comparator $cmp in query\n")
-    unless exists $cmptable{$cmp};
-
-  # Do we need to quote it
-  my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
-
-  # If we are dealing with a project ID we should make sure we upper
-  # case it (more efficient to upper case everything than to do a
-  # query that ignores case)
-  $value = uc($value) if $name eq 'projectid';
-
-  # same for telescope
-  $value = uc($value) if $name eq 'telescope';
-
-  # Additionally, If the name is projectid we need to make sure it
-  # comes from the MSB table
-  $name = "M." . $name if $name eq 'projectid';
-
-  # Same with timeest
-  $name = "M." . $name if $name eq 'timeest';
-
-  # Substring comparators fields
-  if ($name eq "name" or $name eq "coi" or $name eq "pi") {
-    $cmp = "like";
-  }
-
-  # If we have "name" then we need to create a query on both
-  # pi and coi together
-  my @list;
-  if ($name eq "name") {
-    # two columns
-    @list = (qw/ coi pi /);
-
-    # case insensitive [the SQL way]
-    $value =~ s/([a-zA-Z])/[\U$1\L$1]/g;
-
-  } else {
-    @list = ( $name );
-  }
-
-  # Loop over all keys in list
-  my $sql = join( " OR ",
-		  map { "$_ $cmptable{$cmp} $quote$value$quote"  } @list);
-
-
-  # Form query
-  return $sql
-
-}
 
 =end __PRIVATE__METHODS__
 
@@ -1003,7 +588,7 @@ using "all".
 
 =head1 SEE ALSO
 
-OMP/SN/004
+OMP/SN/004, C<OMP::DBQuery>
 
 =head1 AUTHORS
 
