@@ -26,7 +26,6 @@ use Carp;
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
-use Time::Piece ':override'; # for gmtime
 
 # Inheritance
 use base qw/ OMP::DBQuery /;
@@ -88,7 +87,7 @@ sub sql {
 Class method that returns the name of the XML root element to be
 located in the query XML. This changes depending on whether we
 are doing an MSB or Project query.
-Returns "MSBQuery" by default.
+Returns "ProjQuery" by default.
 
 =cut
 
@@ -106,7 +105,8 @@ to queries on "remaining" and "pending" columns.
   $query->_post_process_hash( \%hash );
 
 Also converts abbreviated form of project name to the full form
-recognised by the database (this is why a telescope is required).
+recognised by the database (this is why a telescope is required
+if a projectid is supplied).
 
 =cut
 
@@ -117,9 +117,9 @@ sub _post_process_hash {
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
 
-  # Need a telescope
+  # Need a telescope if we have a project ID.
   throw OMP::Error::MSBMalformedQuery( "Please supply a telescope")
-    unless exists $href->{telescope};
+    if (!exists $href->{telescope} and exists $href->{projectid});
 
   # Loop over each key
   for my $key (keys %$href ) {
