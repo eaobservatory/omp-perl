@@ -909,9 +909,22 @@ sub getGain {
   my $self = shift;
   my %info = @_;
 
+  # If we are too far away from the tracking centre then we
+  # are not really observing the bright source
+  my $toofar = 0;
+  if (exists $info{OFFSET_DX} && exists $info{OFFSET_DY}) {
+    my $mapx = $info{OFFSET_DX};
+    my $mapy = $info{OFFSET_DY};
+
+    my $dist = ($mapx**2 + $mapy**2);
+    my $threshold = 75*75;
+    $toofar = 1 if $dist > $threshold;
+  }
+
   my $target = $info{target};
   my $gain;
-  if (defined $target && $target =~ /^(MARS|SATURN|JUPITER|MOON|VENUS)$/i) {
+  if (defined $target && $target =~ /^(MARS|SATURN|JUPITER|MOON|VENUS)$/i
+     && !$toofar) {
     $gain = 1;
   } else {
     $gain = 10;
