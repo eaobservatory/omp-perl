@@ -12,13 +12,20 @@ use 5.006;
 use strict;
 use warnings;
 
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
+	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg";
+	$ENV{PATH} = "/usr/bin";
+      }
+
 use lib qw(/jac_sw/omp/msbserver);
 
+use OMP::Config;
 use OMP::MSBDB;
 use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;
 use Data::Dumper;
+use Time::Piece;
 
 # Abort if $OMP_DUMP_DIR is not set
 $ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
@@ -27,23 +34,42 @@ $ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
 chdir $ENV{OMP_DUMP_DIR}
   or die "Error changing to directory $ENV{OMP_DUMP_DIR}: $!\n";
 
-# Now query the database for all projects
-my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>",
-					     "object");
+my $dumplog = $ENV{OMP_DUMP_DIR} . "/dumpsciprog.log";
 
+# Get the date of the last dump
+my $date;
+if (-e $dumplog) {
+  open my $fh, "$dumplog" or die "Error opening file $dumplog: $!";
+  my $line = <$fh>;
+  close $fh;
+  $date = gmtime($line);
+  (! $date) and die "Unable to parse date of last dump!";
+}
 
+my $db = new OMP::MSBDB( DB => new OMP::DBbackend );
 
+# Query the database for all projects whose programs have been modified
+# since the last dump
+my @projects;
+if ($date) {
+  @projects = map { OMP::ProjServer->projectDetails( $_, "***REMOVED***", "object" ) }
+    $db->listModified($date);
+} else {
+  my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>", "object");
+  @projects = @$projects;
+}
 
+exit unless ($projects[0]);
 
 # Now for each of these projects attempt to read a science program
-for my $proj (@$projects) {
+for my $proj (@projects) {
   my $projid = $proj->projectid;
   try {
 
     # Create new DB object using backdoor password
     my $db = new OMP::MSBDB( Password => "***REMOVED***",
 			     ProjectID => $projid,
-			     DB => new OMP::DBbackend);
+			     DB => new OMP::DBbackend );
 
     my $xml = $db->fetchSciProg(1);
 
@@ -66,5 +92,12 @@ for my $proj (@$projects) {
 # Now dump the project info
 my $outfile = "projects.dump";
 open my $fh, ">$outfile" or die "Error opening file $outfile: $!";
-print $fh Dumper($projects);
+print $fh Dumper(@projects);
 close $fh;
+
+# Write date of this dump to the log
+my $today = gmtime;
+open my $log, ">$dumplog" or die "Error opening file $dumplog: $!";
+print $log $today->epoch;
+print $log "\nTHIS FILE KEEPS TRACK OF THE MOST RECENT SCIENCE PROGRAM DUMP.\nREMOVING THIS FILE WILL RESULT IN A REFETCH OF ALL SCIENCE PROGRAMS.";
+close $log;
