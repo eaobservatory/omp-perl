@@ -79,7 +79,7 @@ __PACKAGE__->CreateAccessors( projectid => '$',
  	                      targets => '$',
  	                      instruments => '$',
                               remaining => '$',
-                              comments => '@OMP::Info::Comments'
+                              comments => '@OMP::Info::Comment'
                              );
 
 =end __PRIVATE__
@@ -390,7 +390,7 @@ sub summary {
 
     # Now go through the observations
     my $obscount = 0;
-    for my $obs (@{$summary{obs}}) {
+    for my $obs (@obs) {
       $obscount++;
       push(@text, "\t $obscount - Inst:".$obs->instrument
 	   . "\tTarget: ".$obs->target

@@ -1,13 +1,3 @@
-# Dummy class for automatic constructors and accessors
-package OMP::Info::ObsBase;
-
-# Cheat and use automatic accessors. Very lazy
-use Class::Struct;
-struct(
-      );
-
-
-# Real work starts here
 package OMP::Info::Obs;
 
 =head1 NAME
@@ -78,7 +68,7 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               timeest => '$',
                               type => '$',
                               fits => '%',
-                              comments => '@OMP::Info::Comments',
+                              comments => '@OMP::Info::Comment',
                              );
 
 =end __PRIVATE__
