@@ -650,12 +650,16 @@ sub list_projects_output {
   my $q = shift;
   my $semester = $q->param('semester');
   my $status = $q->param('status');
+  my $support = $q->param('support');
+  my $country = $q->param('country');
 
+  ($support eq 'dontcare') and $support = undef;
+  ($country =~ /any/i) and $country = undef;
   my $xmlquery;
   if ($status eq 'all') {
-    $xmlquery = "<ProjQuery><semester>$semester</semester></ProjQuery>";
+    $xmlquery = "<ProjQuery><semester>$semester</semester><support>$support</support><country>$country</country></ProjQuery>";
   } else {
-    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester></ProjQuery>";
+    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country></ProjQuery>";
   }
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
@@ -705,14 +709,35 @@ Create a form for taking the semester parameter
 
 sub list_projects_form {
   my $q = shift;
-  my $semester = OMP::General->determine_semester();
+
+  my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
+
+  my $sem = OMP::General->determine_semester;
+  my @sem = $db->listSemesters;
+
+  # Make sure the current semester is a selectable option
+  my @a = grep {$_ =~ /$sem/i} @sem;
+  (!@a) and unshift @sem, $sem;
+
+  my @support = $db->listSupport;
+  my @sorted = sort {$a->userid cmp $b->userid} @support;
+  my @values = map {$_->userid} @sorted;
+
+  my %labels = map {$_->userid, $_} @support;
+  $labels{dontcare} = "Any";
+  unshift @values, 'dontcare';
+
+  my @c = $db->listCountries;
+
+  # Take serv and jac out of the countries list
+  my @countries = grep {$_ !~ /^serv$|^jac$/i} @c;
+  unshift @countries, 'Any';
 
   print "<table border=0><tr><td>Semester: </td><td>";
   print $q->startform;
-  print $q->textfield(-name=>'semester',
-		      -default=>$semester,
-		      -size=>10,
-		      -maxlength=>30,);
+  print $q->popup_menu(-name=>'semester',
+		       -values=>\@sem,
+		       -default=>$sem,);
   print "</td><tr><td align='right'>Show: </td><td>";
   print $q->radio_group(-name=>'status',
 		        -values=>['active', 'inactive', 'all'],
@@ -720,7 +745,17 @@ sub list_projects_form {
 				  inactive=>'Inactive',
 				  all=>'All',},
 		        -default=>'active',);
+  print "</td><tr><td align='right'>Support: </td><td>";
+  print $q->popup_menu(-name=>'support',
+		       -values=>\@values,
+		       -labels=>\%labels,
+		       -default=>'dontcare',);
+  print "</td><tr><td align='right'>Country: </td><td>";
+  print $q->popup_menu(-name=>'country',
+		       -values=>\@countries,
+		       -default=>'Any',);
   print "</td><td>&nbsp;&nbsp;&nbsp;";
+
   print $q->submit(-name=>'Submit');
   print $q->endform();
   print "</td></table>";
