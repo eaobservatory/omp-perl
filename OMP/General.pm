@@ -34,6 +34,7 @@ use File::Spec;
 use Fcntl qw/ :flock /;
 use OMP::Error;
 use Time::Seconds qw/ ONE_DAY /;
+use Text::Balanced qw/ extract_delimited /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -1015,6 +1016,75 @@ sub log_message {
   close $fh;
 
   return;
+}
+
+=item B<split_string>
+
+Split a string that uses a whitespace as a delimiter into a series of substrings.  Substrings
+that are surrounded by double-quotes will be separated out using the double-quotes as the
+delimiters.
+
+  $string = 'foo "baz xyz" bar';
+  @substrings = OMP::General->split_string($string);
+
+Returns an array of substrings.
+
+=cut
+
+sub split_string {
+  my $self = shift;
+  my $string = shift;
+
+  my @substrings;
+
+  # Loop over the string extracting out the double-quoted substrings
+  while ($string =~ /\".*?\"/s) {
+    my $savestring = '';
+    if ($string !~/^\"/) {
+      # Modify the string so that it begins with a quoted string and
+      # store the portion of the string preceding the quoted string
+      my $index = index($string, '"');
+      $savestring .= substr($string, 0, $index);
+      $string = substr($string, $index);
+    }
+
+    # Extract out the quoted string
+    my ($extracted, $remainder) = extract_delimited($string,'"');
+    $extracted =~ s/^\"(.*?)\"$/$1/; # Get rid of the begin and end quotes
+    push @substrings, $extracted;
+    $string = $savestring . $remainder;
+  }
+
+  # Now split the string apart on white space
+  push @substrings, split(/\s+/,$string);
+
+  return @substrings;
+}
+
+=item B<replace_entity>
+
+Replace some HTML entity references with their associated characters.
+
+  $text = replace_entity($text);
+
+=cut
+
+sub replace_entity {
+  my $self = shift;
+  my $string = shift;
+
+  # Escape sequence lookup table
+  my %lut = ("&gt;" => ">",
+	     "&lt;" => "<",
+	     "&amp;" => "&",
+	     "&quot;" => '"',);
+
+  # Do the search and replace
+  for (keys %lut) {
+    $string =~ s/$_/$lut{$_}/gi;
+  }
+
+  return $string;
 }
 
 =back
