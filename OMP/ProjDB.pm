@@ -1078,7 +1078,7 @@ sub _mail_password {
 
     # First thing to do is to register this action with
     # the feedback system
-    my $fbmsg = "New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
+    my $fbmsg = "<html>New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
       join(",", map {$_->html} @addr)."\n";
 
     # Disable transactions since we can only have a single
