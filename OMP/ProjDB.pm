@@ -797,9 +797,9 @@ sub _get_projects {
     # Convert the taumin, taumax to a OMP::Range object
     # old entries may have NULL for min when we really mean ZERO
     $projhash->{taumin} = 0 unless defined $projhash->{taumin};
-    $projhash->taurange( new OMP::Range(Min => $projhash->{taumin},
-					Max => $projhash->{taumax},
-				       ));
+    $projhash->{taurange} = new OMP::Range(Min => $projhash->{taumin},
+					   Max => $projhash->{taumax},
+					  );
     delete $projhash->{taumin};
     delete $projhash->{taumax};
 
