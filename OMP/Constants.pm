@@ -177,7 +177,8 @@ use constant OMP__DONE_COMMENT => 3;
 
 =item OMP__MSB_REMOVED
 
-The MSB has been removed from consideration.
+The MSB has been removed from consideration even though it may
+not have been observed.
 
 =cut
 
