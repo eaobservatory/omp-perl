@@ -42,6 +42,7 @@ if ($] >= 5.006 || $] < 5.008) {
 use Carp;
 use OMP::Constants qw/ :logging /;
 use OMP::Range;
+use Term::ANSIColor qw/ colored /;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -1482,11 +1483,11 @@ by defining the environment OMP_LOG_LEVEL to one of "IMPORTANT", "INFO" or
     my $class = shift;
     my $sev = shift;
     $sev = OMP__LOG_INFO unless defined $sev;
-    return "ERROR:    " if $sev & OMP__LOG_ERROR;
-    return "WARNING:  " if $sev & OMP__LOG_WARNING;
-    return "IMPORTANT:" if $sev & OMP__LOG_IMPORTANT;
-    return "INFO:     " if $sev & OMP__LOG_INFO;
-    return "DEBUG:    " if $sev & OMP__LOG_DEBUG;
+    return colored("ERROR:    ",'red')     if $sev & OMP__LOG_ERROR;
+    return colored("WARNING:  ",'yellow')  if $sev & OMP__LOG_WARNING;
+    return colored("IMPORTANT:",'green')   if $sev & OMP__LOG_IMPORTANT;
+    return colored("INFO:     ",'cyan')    if $sev & OMP__LOG_INFO;
+    return colored("DEBUG:    ",'magenta') if $sev & OMP__LOG_DEBUG;
   }
 
 }
