@@ -179,8 +179,8 @@ sub display_form {
   print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
   print ( defined( $params->{'user'} ) ? $params->{'user'} : "");
   print "\"></td></tr>\n";
-  print "<tr><td>Time: (HHMM or HH:MM format, will default to current time if blank)</td><td><input type=\"text\" name=\"time\" value=\"";
-  print "\"></td></tr>\n";
+  print "<tr><td>Time: (HHMM or HH:MM format)</td><td><input type=\"text\" name=\"time\" value=\"";
+  print "\"> " . $params->{'zone'} . " (will default to current time if blank)</td></tr>\n";
   print "<tr><td>Comment:</td><td><textarea name=\"text\" rows=\"16\" cols=\"50\">";
   print "</textarea></td></tr>\n";
   print "</table>\n";
