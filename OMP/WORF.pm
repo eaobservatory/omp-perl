@@ -29,7 +29,7 @@ use ORAC::Inst::Defn qw( orac_configure_for_instrument );
 use lib qw( /jac_sw/omp/test/omp/msbserver );
 use OMP::CGI;
 
-our $VERSION = (qw$ Revision: $ )[1];
+our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
 
