@@ -34,6 +34,8 @@ These functions write the web page.
 Request the UT date of interest and/or package the data
 and serve it.
 
+If inccal is not specified it defaults to true.
+
 =cut
 
 sub request_data {
@@ -50,6 +52,7 @@ sub request_data {
 
     my $inccal = $q->url_param('inccal');
     $inccal = $q->param('inccal') unless $inccal;
+    $inccal = 1 unless defined $inccal;
 
     &_package_data($q, $utdate, $inccal, \%cookie);
 
