@@ -323,15 +323,26 @@ sub _create_sql_recurse {
     }
 
     # Link all of the search queries together with an OR [must be inside
-    # parentheses]
-    $sql = "(".join( " OR ",
-		     # Join all of the search strings with an AND
-		     # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
-		     map { join( " AND ",
-				 map {
-				   $self->_querify($colname, $_, $cmp);
-				 } OMP::General->split_string($_) )
-			 } @{ $entry } ) . ")";
+    # parentheses] but AND them if we have spaces in the string and
+    # are a TEXT query
+    if ($colname =~ /^TEXTFIELD__/) {
+      $sql = "(".join( " OR ",
+		       # Join all of the search strings with an AND
+		       # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
+		       map { join( " AND ",
+				   map {
+				     $self->_querify($colname, $_, $cmp);
+				   } OMP::General->split_string($_) )
+			   } @{ $entry } ) . ")";
+    } else {
+      # Just OR the individual entries
+      # No special handling of spaces in strings
+      $sql = "(".join( " OR ",
+		       map { $self->_querify($colname, $_, $cmp); }
+		       @{ $entry }
+		       ) . ")";
+    }
+
 
   } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
     # A Range object
