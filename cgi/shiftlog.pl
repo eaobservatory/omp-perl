@@ -243,6 +243,7 @@ sub verify_query {
   # The 'text' parameter can be anything
   if(defined($q->{text})) {
     $v->{text} = $q->{text};
+    $v->{text} =~ s/\015//g; # get rid of ^M
   }
 
   # The 'time' parameter is four digits
