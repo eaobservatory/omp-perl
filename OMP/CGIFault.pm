@@ -767,7 +767,7 @@ sub view_fault_output {
       # Strip out the <html> and </html> tags
       $text =~ s!</*html>!!ig;
     } else {
-      $text = "<pre>$text</pre>";
+      $text = preify_text($text);
     }
 
     my $user = new OMP::User(userid => $author,);
