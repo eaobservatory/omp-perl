@@ -35,6 +35,7 @@ use OMP::MSB;
 use OMP::MSBServer;
 use OMP::MSBDoneQuery;
 use OMP::FBServer;
+use OMP::UserServer;
 use OMP::General;
 use OMP::Error qw(:try);
 use OMP::Constants qw(:fb :done :msb);
@@ -335,8 +336,11 @@ sub fb_entries {
     # make the date more readable here
     # make the author a mailto link here
 
-    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</font><br>",
-          "<b>Subject: $row->{'subject'}</b><br>",
+    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by ",
+
+      # If author is not defined display sourceinfo as the author
+          ($row->{author} ? $row->{author}->html : $row->{sourceinfo}) . " )</font><br>",
+	  "<b>Subject: $row->{'subject'}</b><br>",
           "$row->{'text'}",
 	  "<p>";
   }
@@ -401,10 +405,10 @@ sub comment_form {
         $q->hidden(-name=>'projectid',
 		   -default=>$cookie{projectid}),
         $q->br,
-	"Email Address: </td><td>",
+	"User ID: </td><td>",
 	$q->textfield(-name=>'author',
-		      -size=>30,
-		      -maxlength=>60),
+		      -size=>20,
+		      -maxlength=>32),
         "</td><tr><td align='right'>Subject: </td><td>",
 	$q->textfield(-name=>'subject',
 		      -size=>50,
@@ -483,7 +487,16 @@ sub fb_msb_output {
 
   if ($q->param("Submit")) {
     try {
-      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+      # Get the user object
+      my $user = OMP::UserServer->getUser($q->param('author')) or
+	throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
+
+      # Create the comment object
+      my $comment = new OMP::Info::Comment( author => $user,
+					    text => $q->param('comment'),
+					    status => OMP__DONE_COMMENT );
+
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
       print $q->h2("MSB comment successfully submitted");
     } catch OMP::Error::MSBMissing with {
       print "MSB not found in database";
@@ -752,7 +765,17 @@ sub observed_output {
     # or catch an error
     if ($q->param("Submit")) {
       try {
-	OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+	# Get the user object
+	my $user = OMP::UserServer->getUser($q->param('author')) or
+	  throw OMP::Error::BadArgs( "Must supply a valid OMP user ID");
+	
+	# Create the comment object
+	my $comment = new OMP::Info::Comment( author => $user,
+					      text => $q->param('comment'),
+					      status => OMP__DONE_COMMENT );
+	
+	OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $comment);
+	
 	print $q->h2("MSB comment successfully submitted");
       } catch OMP::Error::MSBMissing with {
 	print "MSB not found in database";
@@ -761,9 +784,9 @@ sub observed_output {
 	print "An error occurred while attempting to submit the comment: $Error";
       };
     }
-
-  # If they click the "Mark as Done" button mark it as done
-
+    
+    # If they click the "Mark as Done" button mark it as done
+    
     if ($q->param("Remove")) {
       try {
 	OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
@@ -772,10 +795,10 @@ sub observed_output {
 	print "MSB not found in database";
       } otherwise {
 	my $Error = shift;
-	print "An error occurred while attempting to mark the MSB as Done: $Error";
-      };
+      print "An error occurred while attempting to mark the MSB as Done: $Error";
+    };
     }
-
+    
     (@msbs) and print observed_form($q);
   }
 }
@@ -1342,7 +1365,11 @@ sub add_comment_output {
   # to the addComment method as the sourceinfo param
   my @host = OMP::General->determine_host;
 
-  my $comment = { author => $q->param('author'),
+  # Get the OMP::User object
+  my $user = OMP::UserServer->getUser($q->param('author')) or
+    throw OMP::Error::BadArgs("Must supply a valid OMP User ID");
+
+  my $comment = { author => $user,
 		  subject => $q->param('subject'),
 		  sourceinfo => $host[1],
 		  text => $q->param('text'),
