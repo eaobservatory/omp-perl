@@ -74,8 +74,7 @@ sub suffices {
   my @suffices;
 
   if( $group ) {
-#    @suffices = qw/ _mos _dbs _dbsi _dbsc _fc _fci _cub /;
-    @suffices = qw/ _mos _dbs _dbsi _fci /;
+    @suffices = qw/ _mos _dbs _dbsi _fci _dbsc _fc _cub/;
   } else {
     @suffices = qw/ _ff _raw _wce /;
   }
@@ -181,6 +180,14 @@ sub plot {
     $self->_plot_spectrum( input_file => $file,
                            %parsed,
                          );
+
+  } elsif( exists( $parsed{type} ) &&
+           defined( $parsed{type} ) &&
+           $parsed{type} =~ /cube/i ) {
+
+    $self->_plot_cube( input_file => $file,
+                       %parsed,
+                     );
 
   } else {
 
