@@ -139,10 +139,15 @@ database query by adding additional matches from disk).
 sub queryArc {
   my $self = shift;
   my $query = shift;
+  my $retainhdr = shift;
+
+  if( !defined( $retainhdr ) ) {
+    $retainhdr = 0;
+  }
 
   my @results;
 
-  my $grp = retrieve_archive( $query );
+  my $grp = retrieve_archive( $query, $retainhdr );
 
   if(defined($grp)) {
     @results = $grp->obs;
@@ -176,7 +181,7 @@ sub queryArc {
       # Trap errors with connection. If we have fatal error
       # talking to DB we should fallback to files (if allowed)
       try {
-	@results = $self->_query_arcdb( $query );
+	@results = $self->_query_arcdb( $query, $retainhdr );
 	$dbqueryok = 1;
       } otherwise {
 	# just need to drop through and catch any exceptions
@@ -197,7 +202,7 @@ sub queryArc {
 	 ) {
 
 	# then go to files
-        @results = $self->_query_files( $query )
+        @results = $self->_query_files( $query, $retainhdr )
 	
       }
 
@@ -229,6 +234,11 @@ Results are returned sorted by date.
 sub _query_arcdb {
   my $self = shift;
   my $query = shift;
+  my $retainhdr = shift;
+
+  if( !defined( $retainhdr ) ) {
+    $retainhdr = 0;
+  }
 
   my @return;
 
@@ -248,7 +258,7 @@ sub _query_arcdb {
     my $ref = $self->_db_retrieve_data_ashash( $sql );
 
     # Convert the data from a hash into an array of Info::Obs objects.
-    my @reorg = $self->_reorganize_archive( $ref );
+    my @reorg = $self->_reorganize_archive( $ref, $retainhdr );
 
     push @return, @reorg;
   }
@@ -292,6 +302,11 @@ queries that go over a single night?
 sub _query_files {
   my $self = shift;
   my $query = shift;
+  my $retainhdr = shift;
+
+  if( !defined( $retainhdr ) ) {
+    $retainhdr = 0;
+  }
 
   my ( $telescope, $daterange, $instrument, $runnr, $filterinst );
   my @returnarray;
@@ -460,7 +475,7 @@ sub _query_files {
     # Create the Obs object.
     my $obs;
     try {
-      $obs = readfile OMP::Info::Obs( $file );
+      $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
     }
     catch OMP::Error with {
       # Just log it and go on to the next observation.
@@ -561,6 +576,11 @@ objects.
 sub _reorganize_archive {
   my $self = shift;
   my $rows = shift;
+  my $retainhdr = shift;
+
+  if( !defined( $retainhdr ) ) {
+    $retainhdr = 0;
+  }
 
   my @return;
 
@@ -601,7 +621,7 @@ sub _reorganize_archive {
     }
 
     # Create an Info::Obs object.
-    my $obs = new OMP::Info::Obs( hdrhash => $newrow );
+    my $obs = new OMP::Info::Obs( hdrhash => $newrow, retainhdr => $retainhdr );
 
     # If the telescope is UKIRT, set the instrument back to whatever
     # it was before.

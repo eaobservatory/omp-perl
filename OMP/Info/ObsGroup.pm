@@ -166,9 +166,14 @@ Previous observations are overwritten.
 sub runQuery {
   my $self = shift;
   my $q = shift;
+  my $retainhdr = shift;
 
   throw OMP::Error::FatalError("runQuery: The query argument must be an OMP::ArcQuery class")
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
+
+  if( !defined( $retainhdr ) ) {
+    $retainhdr = 0;
+  }
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
@@ -179,7 +184,7 @@ sub runQuery {
   catch OMP::Error::DBConnection with {
     # let it pass through
   };
-  my @result = $adb->queryArc( $q );
+  my @result = $adb->queryArc( $q, $retainhdr );
 
   # Store the results
   $self->obs(\@result);
@@ -259,6 +264,12 @@ sub populate {
   my %def = ( verbose => 0, sort => 1 );
   my %args = (%def, @_);
 
+  my $retainhdr = 0;
+  if( exists( $args{retainhdr} ) ) {
+    $retainhdr = $args{retainhdr};
+    delete $args{retainhdr};
+  }
+
   throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
     unless exists $args{telescope} || exists $args{instrument}
       || exists $args{projectid};
@@ -325,7 +336,7 @@ sub populate {
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
   # run the query
-  $self->runQuery( $arcquery );
+  $self->runQuery( $arcquery, $retainhdr );
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
