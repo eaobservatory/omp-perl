@@ -175,9 +175,41 @@ sub print_faults {
   my @faultids = @_;
 
   # Untaint the printer param
-  ($printer =~ /(^\w+$)/) and $printer = $1;
+  if ($printer =~ /^(\w+)$/) {
+    $printer = $1;
+  }
 
-  for (@faultids) {
+  my $divider = "*"x80;
+
+  # If we're printing multiple faults, combine them and send it off as a
+  # single print job
+  if ($faultids[1]) {
+    my $toprint;
+
+    for (@faultids) {
+      # Get the fault
+      my $f = OMP::FaultServer->getFault($_);
+
+      # Get the subject
+      my $subject = $f->subject;
+
+      # Get the raw fault text
+      my $text = OMP::FaultUtil->format_fault($f, 1);
+
+      # Convert it to plaintext
+      my $plaintext = OMP::Display->html2plain($text);
+
+      $toprint .= "$divider\n$divider\nSubject: $subject\n\n$plaintext\n\n";
+    }
+
+    # Set up printer. Should check that enscript can be found.
+    my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"Faults\" -P$printer";
+    open(my $PRTHNDL, "| $printcom");
+    print $PRTHNDL $toprint;
+
+    close($PRTHNDL);
+
+  } else {
     # Get the fault
     my $f = OMP::FaultServer->getFault($_);
 
@@ -200,6 +232,7 @@ sub print_faults {
     close($PRTHNDL);
   }
 }
+
 
 =back
 
