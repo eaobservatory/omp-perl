@@ -506,7 +506,10 @@ sub summary {
   }
 
   # Convert to Time::Seconds and pretty print
-  # unless we are asking for hashlong
+  # unless we are asking for hashlong. Need to do this until
+  # we can fix the DB writing code since MSBDB uses hashlong to generate
+  # the summary and can not then write the time estimates to the
+  # database table.
   unless ($format eq 'hashlong') {
     $summary{timeest} = new Time::Seconds( $summary{timeest} )->pretty_print;
   }
