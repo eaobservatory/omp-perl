@@ -99,9 +99,12 @@ sub getComments {
 =item B<addComment>
 
 Adds a comment to the database.  Takes a hash reference containing the
-comment and all of its details as the only argument.
+comment and all of its details. An (optional) second argument can be
+used to disable transaction management (important if you are calling
+this method from some OMP code that is already in a transaction).  A
+true value will disable transactions.
 
-$db->addComment( $comment );
+  $db->addComment( $comment, [ $notrans ] );
 
 =over 4
 
@@ -135,6 +138,7 @@ The text of the comment (HTML tags are encouraged).
 sub addComment {
   my $self = shift;
   my $comment = shift;
+  my $notrans = shift;
 
   throw OMP::Error::BadArgs( "Comment was not a hash reference" )
     unless UNIVERSAL::isa($comment, "HASH");
@@ -156,6 +160,7 @@ sub addComment {
   }
 
   # Check that the project actually exists
+  print "Verifying project\n";
   my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
                                 DB => $self->db, );
 
@@ -165,15 +170,19 @@ sub addComment {
   # We need to think carefully about transaction management
 
   # Begin transaction
-  $self->_db_begin_trans;
-  $self->_dblock;
+  unless ($notrans) {
+    $self->_db_begin_trans;
+    $self->_dblock;
+  }
 
   # Store comment in the database
   $self->_store_comment( $comment );
 
   # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+  unless ($notrans) {
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+  }
 
   # Mail the comment to interested parties
   #  $self->_mail_comment( $comment );

@@ -11,12 +11,14 @@ OMP::ProjDB - Manipulate the project database
 
   $projdb->issuePassword();
 
+  $projdb->verifyPassword( $password );
+  $projdb->verifyProject();
 
 =head1 DESCRIPTION
 
 This class manipulates information in the project database.  It is the
 only interface to the database tables. The tables should not be
-accessed by directly to avoid loss of data integrity.
+accessed directly to avoid loss of data integrity.
 
 
 =cut
@@ -33,6 +35,7 @@ use OMP::FeedbackDB;
 
 use Crypt::PassGen qw/passgen/;
 use Net::SMTP;
+use Net::hostent qw/ gethost /;
 use Net::Domain qw/ hostfqdn /;
 
 use base qw/ OMP::BaseDB /;
@@ -155,7 +158,7 @@ sub verifyPassword {
 Verify that the current project is valid (i.e. it has active entries
 in the database tables).
 
-  $
+  $exists = $db->verifyProject();
 
 Returns true if the project exists or false if it does not.
 
@@ -491,7 +494,14 @@ sub _mail_password {
     my ($addr, $ip);
     if (exists $ENV{REMOTE_ADDR}) {
       # We are being called from a CGI context
-      $addr = $ip = $ENV{REMOTE_ADDR};
+      $ip = $ENV{REMOTE_ADDR};
+
+      # Try to translate number to name
+      my $name = gethost( $ip );
+      $ip = $name->name if $name;
+
+      # Copy it
+      $addr = $ip;
 
       # User name (only set if they have logged in)
       $addr = $ENV{REMOTE_USER} . "@" . $addr
@@ -510,17 +520,23 @@ sub _mail_password {
     # the feedback system
     my $fbmsg = "New password issued for project $projectid at the request of $addr\n";
 
-    # Dont share the database connection
+    # We have to share the database connection because we have
+    # locked out the project table making it impossible for
+    # the feedback system to verify the project
     my $fbdb = new OMP::FeedbackDB( ProjectID => $projectid,
-				    DB => new OMP::DBbackend,
+				    DB => $self->db,
 				  );
+
+    # Disable transactions since we can only have a single
+    # transaction at any given time with a single handle
     $fbdb->addComment({
 		      author =>  $addr,
 		      program => 'OMP::ProjDB',
 		      sourceinfo => $ip,
 		      subject => "Password change for $projectid",
 		      text => $fbmsg,
-		      });
+		      },1);
+
 
     # Now set up the mail
     my $smtp = new Net::SMTP('mailhost', Timeout => 30);
