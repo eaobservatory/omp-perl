@@ -448,6 +448,15 @@ sub _post_process_hash {
 
   }
 
+  # Add a semester if we have not got one and no projectid
+  # specified.
+  # Since we always want to default to current semester
+  # in the general case.
+  if (!exists $href->{semester} && !exists $href->{projectid}) {
+    $href->{semester} = [ OMP::General->determine_semester ];
+  }
+
+
   # Case sensitivity
   # If we are dealing with these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
@@ -473,15 +482,6 @@ sub _post_process_hash {
     $href->{$key} = $href->{coi};
     delete $href->{coi};
   }
-
-  # Add a semester if we have not got one and no projectid
-  # specified.
-  # Since we always want to default to current semester
-  # in the general case.
-  if (!exists $href->{semester} && !exists $href->{projectid}) {
-    $href->{semester} = [ OMP::General->determine_semester ];
-  }
-
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
