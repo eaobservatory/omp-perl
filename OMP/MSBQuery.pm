@@ -410,7 +410,7 @@ sub sql {
               SELECT M2.*," .
                 $minmax .
                 "(".
- 		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority")
+ 		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority + Q2.tagadj")
 		      . " + " .
 			OMP::DBbackend->get_sql_typecast("float","M2.priority")
 			    . "/100) AS newpriority,
@@ -516,6 +516,12 @@ sub _post_process_hash {
     if (exists $href->{$key}) {
       $href->{$key}->[0] = OMP::General::nint( $href->{$key}->[0] );
     }
+  }
+
+  # priority is a call on the Q.tagpriority and Q.tagadjustment columns
+  if (exists $href->{priority}) {
+    $href->{"Q.tagpriority + Q.tagadj"} = $href->{priority};
+    delete $href->{priority};
   }
 
   # Remove negatives when values are meant to be positive
