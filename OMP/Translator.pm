@@ -493,12 +493,11 @@ sub SpIterSkydipObs {
   }
 
   # Override project ID for all calibrations?
-  # we do not want to voerride projectids since we need to
+  # we do not want to override projectids since we need to
   # know what the project really was in order to doneMSB even
   # if we dont charge. This is because the queue only has access
   # the ODFs and currently only looks in the last entry - if you
-  # end at a skydip you wont get a doneMSB.
-  #$odf{PROJECT_ID} = 'SCUBA';
+  # end at a skydip you wont get a doneMSB unless we do this
 
   return %odf;
 }
@@ -968,8 +967,24 @@ sub getGeneral {
   my $self = shift;
   my %info = @_;
 
+  # translate generic project IDs into "SCUBA"
+  my $projid = uc($info{PROJECTID});
+  if ($projid eq 'JCMTCAL' || $projid eq 'CAL') {
+    $projid = 'SCUBA';
+  } elsif ($projid eq 'UNKNOWN') {
+    # if we do not know the project ID we should leave it
+    # unknown unless we know that we have a calibration
+    # observation
+    # calibration observation is defined by either an unknown
+    # target or one of Focus, Pointing, Noise, Skydip
+    if ($info{MODE} =~ /(Focus|Pointing|Noise|Skydip)/i ||
+	$info{autoTarget}) {
+      $projid = 'SCUBA';
+    }
+  }
+
   return ( MSBID => $info{MSBID},
-	   PROJECT_ID => $info{PROJECTID},
+	   PROJECT_ID => $projid,
 	   INSTRUMENT => 'SCUBA',
 	   DATA_KEPT => 'DEMOD',
 	   ENG_MODE  => 'FALSE',
