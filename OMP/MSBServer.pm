@@ -27,6 +27,10 @@ use Carp;
 # OMP dependencies
 use OMP::MSBDB;
 use OMP::MSBQuery;
+use OMP::Error qw/ :try /;
+
+# Inherit server specific class
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -52,13 +56,28 @@ sub fetchMSB {
   my $class = shift;
   my $key = shift;
 
-  # Create a new object but we dont know any setup values
-  my $db = new OMP::MSBDB();
+  my $msb;
+  my $E;
+  try {
 
-  my $msb = $db->fetchMSB( id => $key );
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB();
 
+    $msb = $db->fetchMSB( id => $key );
+
+  } catch OMP::Error with {
+    # Just rethrow OMP::Errors
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+
+  # Return stringified form of object
   return "$msb" if defined $msb;
-  return '';
 }
 
 =item B<queryMSB>
@@ -105,6 +124,8 @@ The format of the resulting document is:
 
 The elements inside C<SpMSBSummary> may or may not relate to
 tables in the database.
+
+Throws an exception on error.
 
 =cut
 
