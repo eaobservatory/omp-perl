@@ -241,6 +241,10 @@ match even if no data was taken for the project. [As an aside maybe
 we should have an extra flag that can be used to control that behaviour?
 Returning no matches if no project data were found?]
 
+If "timegap" is true then gaps will be included in the observation group.
+Default is to not include them. The size of the gaps is specfied as
+the value to "timegap".
+
 IF THE TELESCOPE IS JCMT AND NO INSTRUMENT IS SUPPLIED WE FORCE
 SCUBA AS THE INSTRUMENT BECAUSE ARCHIVEDB CAN NOT YET HANDLE
 TWO SEPARATE DATABASE QUERIES.
@@ -392,7 +396,7 @@ sub projectStats {
   my @warnings;
   my %projbycal;
   my %cals;
-  my %extended; # Extended time by telescope
+  my %other; # Extended time, weather time and OTHER gaps by telescope
   my %instlut; # Lookup table to map instruments to telescope when sharing
                # Generic calibrations
 
@@ -402,6 +406,29 @@ sub projectStats {
   my %night_totals;
   for my $obs (@obs) {
     my $projectid = $obs->projectid;
+    my $tel = uc($obs->telescope);
+
+    # If we have a TIMEGAP we want to treat it as a special observation
+    # that only depends on telescope (like JCMTCAL)
+    my $isgap = 0;
+    if (UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap")) {
+      $isgap = 1;
+
+      # The projectid for these things should really be $tel . $type
+      # but that is not how these have been implemented so we need to do it ourselves
+      # Faults are explicitly calculated elsewhere in the fault system itself
+      my $status = $obs->status;
+      next if $status == OMP__TIMEGAP_FAULT;
+
+      if ($status == OMP__TIMEGAP_INSTRUMENT) {
+	# Charge this to CAL
+	$projectid = "CAL";
+      } elsif ($status == OMP__TIMEGAP_WEATHER) {
+	$projectid = "WEATHER";
+      } else {
+	$projectid = "OTHER";
+      }
+    }
 
     # if we have a SCUBA project ID that seems to be a science observation
     # we charge this to projectID JCMTCAL. Clearly SCUBA::ODF should be responsible
@@ -415,7 +442,6 @@ sub projectStats {
 
     my $inst = $obs->instrument;
     my $startobs = $obs->startobs;
-    my $tel = uc($obs->telescope);
     my $endobs = $obs->endobs;
     my $ymd = $obs->startobs->ymd;
     my $timespent;
@@ -435,8 +461,10 @@ sub projectStats {
 								    tel => $tel,
 								   );
 
-      # And sort out the EXTENDED time
-      $extended{$ymd}{$tel} += $extended->seconds if defined $extended && $extended->seconds > 0;
+      # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
+      # "nothing" to extended observing!]
+      $other{$ymd}{$tel}{EXTENDED} += $extended->seconds 
+	if defined $extended && $extended->seconds > 0 && !$isgap;
 
     } else {
       # We cannot tell whether this was done in extended time or not
@@ -449,7 +477,11 @@ sub projectStats {
     $instlut{$ymd}{$inst} = $tel unless exists $instlut{$ymd}{$inst};
 
     my $cal = $obs->calType;
-    if ($obs->isScience) {
+    if ($isgap) {
+      # Just need to add into the %other hash
+      $other{$ymd}{$tel}{$projectid} += $timespent->seconds;
+
+    } elsif ($obs->isScience) {
       $projbycal{$ymd}{$projectid}{$inst}{$cal} += $timespent->seconds;
     } else {
       if ($obs->isGenCal) {
@@ -463,7 +495,7 @@ sub projectStats {
     }
   }
 
-  print Dumper( \%projbycal, \%cals, \%extended) if $DEBUG;
+  print Dumper( \%projbycal, \%cals, \%other) if $DEBUG;
 
   # Now go through the science observations to find the total
   # of each required calibration regardless of project
@@ -604,11 +636,13 @@ sub projectStats {
     }
   }
 
-  # Add in the extended time
-  for my $ymd (keys %extended) {
-    for my $tel (keys %{ $extended{$ymd} }) {
-      my $key = $tel . "EXTENDED";
-      $proj_totals{$ymd}{$key} += $extended{$ymd}{$tel};
+  # Add in the extended/weather and other time
+  for my $ymd (keys %other) {
+    for my $tel (keys %{ $other{$ymd} }) {
+      for my $type (keys %{ $other{$ymd}{$tel} }) {
+	my $key = $tel . $type;
+	$proj_totals{$ymd}{$key} += $other{$ymd}{$tel}{$type};
+      }
     }
   }
 

@@ -313,6 +313,9 @@ sub accounting_hdr {
   my $obsgrp = $self->obs;
   my ($warnings, @hdacct);
   if ($obsgrp) {
+    # locate time gaps > 5 minutes
+    $obsgrp->locate_timegaps( 5 * 60);
+
     ($warnings, @hdacct) = $obsgrp->projectStats();
   } else {
     $warnings = [];
