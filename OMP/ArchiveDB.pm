@@ -125,9 +125,43 @@ sub queryArc {
   # First the database
   my @results = $self->_query_arcdb( $query );
 
-  # If nothing so far, look on disk
-  @results = $self->_query_files( $query )
-    unless @results;
+  $query->isfile(1);
+  my $query_hash = $query->query_hash;
+  # If nothing so far, look on disk, but only if the date
+  # we're searching for is within the past week.
+  my $daterange;
+  if( ref( $query_hash->{date} ) eq 'ARRAY' ) {
+    if (scalar( @{$query_hash->{date}} ) == 1) {
+      my $timepiece = new Time::Piece;
+      $timepiece = $query_hash->{date}->[0];
+      my $maxdate;
+      if( ($timepiece->hour == 0) && ($timepiece->minute == 0) && ($timepiece->second == 0) ) {
+        # We're looking at an entire day, so set up an OMP::Range object with Min equal to this
+        # date and Max equal to this date plus one day.
+        $maxdate = $timepiece + ONE_DAY - 1; # constant from Time::Seconds
+      } else {
+        # We're looking at a specific time, so set up an OMP::Range object with Min equal to
+        # this date minus one second and Max equal to this date plus one second. These plus/minus
+        # seconds are necessary because OMP::Range does an exclusive check instead of inclusive.
+        $maxdate = $timepiece + 1;
+        $timepiece = $timepiece - 1;
+      }
+      $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
+    }
+  } elsif( UNIVERSAL::isa($query_hash->{date}, "OMP::Range" ) ) {
+    $daterange = $query_hash->{date};
+    # Subtract one second from the range, because the max date is not inclusive.
+    my $max = $daterange->max;
+    $max = $max - 1;
+    $daterange->max($max);
+  }
+
+  my $date = $daterange->min;
+  my $currentdate = gmtime;
+  if( ( $currentdate - $date ) < ONE_WEEK ) {
+    @results = $self->_query_files( $query )
+      unless @results;
+  }
 
   # Return what we have
   return @results;
@@ -224,7 +258,7 @@ sub _query_files {
       }
       $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
     }
-  } elsif( $query_hash->{date}->isa('OMP::Range') ) {
+  } elsif( UNIVERSAL::isa( $query_hash->{date}, "OMP::Range" ) ) {
     $daterange = $query_hash->{date};
     # Subtract one second from the range, because the max date is not inclusive.
     my $max = $daterange->max;
@@ -330,49 +364,36 @@ sub _query_files {
         }
 
         foreach my $file ( @files ) {
-          # Open up the header
-          my $fullfile = $directory . "/" . $file;
-          if($inst =~ /scuba/i) {
-            $fullfile =~ s/\.sdf$//;
-          } else {
-            $fullfile =~ s/\.sdf$/\.header/;
-          }
 
-          my $FITS_header = new Astro::FITS::Header::NDF( File => $fullfile );
-          tie my %header, ref($FITS_header), $FITS_header;
-          my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS(\%header);
+          # Create the Obs object.
+          my $obs = readfile OMP::Info::Obs( $directory . "/" . $file, $inst );
+
           # If the observation's time falls within the range, we'll create the object.
           my $match_date = 0;
-          my $startobs = OMP::General->parse_date($generic_header{UTSTART});
-          if( $daterange->contains($startobs) ) {
+          if( $daterange->contains($obs->startobs) ) {
             $match_date = 1;
-          } elsif( $daterange->{Max} < $startobs ) {
+          } elsif( $daterange->{Max} < $obs->startobs ) {
             last;
           }
 
-          # Filter by keywords given in the query string. Look at filters other than DATE,
-          # RUNNR, and _ATTR.
-          my $match_filter = 0;
-          foreach my $filter (keys %$query_hash) {
-            if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
-              next;
-            }
-            foreach my $filterarray ($query_hash->{$filter}) {
-              my $matcher = uc($generic_header{uc($filter)});
-              foreach my $filter2 (@$filterarray) {
-                if($matcher =~ /$filter2/i) {
-                  $match_filter = 1;
-                }
-              }
-            }
-          }
-
+#          # Filter by keywords given in the query string. Look at filters other than DATE,
+#          # RUNNR, and _ATTR.
+#          my $match_filter = 0;
+#          foreach my $filter (keys %$query_hash) {
+#            if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+#              next;
+#            }
+#            foreach my $filterarray ($query_hash->{$filter}) {
+#              my $matcher = uc($generic_header{uc($filter)});
+#              foreach my $filter2 (@$filterarray) {
+#                if($matcher =~ /$filter2/i) {
+#                  $match_filter = 1;
+#                }
+#              }
+#            }
+#          }
+          my $match_filter = 1;
           if( $match_date && $match_filter ) {
-
-            # get the header information, form an Info::Obs object, and push that onto the array
-
-            my $obs = _create_Obs_object( \%generic_header, \%header );
-
             push @returnarray, $obs;
           }
         }
@@ -435,14 +456,20 @@ sub _reorganize_archive {
       $instrument = "SCUBA";
     }
 
-    # Now do the translation.
-    my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($newrow);
-
-    # Replace the INSTRUMENT generic header.
-    $generic_header{INSTRUMENT} = $instrument;
+    # Create an Astro::FITS::Header object out of this hash.
+    # First create an array of Astro::FITS::Header::Item objects.
+    my @items;
+    foreach my $key (keys %{$newrow}) {
+      my $item = new Astro::FITS::Header::Item( Keyword => $key,
+                                                Value => $newrow->{$key},
+                                              );
+      push @items, $item;
+    }
+    # Create the Header object.
+    my $header = new Astro::FITS::Header( Cards => \@items );
 
     # Create an Info::Obs object.
-    my $obs = _create_Obs_object( \%generic_header, $newrow );
+    my $obs = new OMP::Info::Obs( fits => $header );
 
     # And push it onto the @return array.
     push @return, $obs;
@@ -450,131 +477,6 @@ sub _reorganize_archive {
 
   return @return;
 
-}
-
-=item B<_create_Obs_object>
-
-Given a set of generic headers and FITS headers, create an
-C<OMP::Info::Obs> object.
-
-  $obs = _create_Obs_object( \%generic_header, $FITS_header );
-
-The second argument, a reference to a hash containing a
-one-to-one mapping between FITS keywords and FITS values, is optional.
-
-=cut
-
-sub _create_Obs_object {
-  my $generic_header = shift;
-  my $FITS_header = shift;
-  my %args;
-  $args{projectid} = $generic_header->{PROJECT};
-  $args{checksum} = $generic_header->{MSBID};
-  $args{instrument} = $generic_header->{INSTRUMENT};
-  $args{duration} = $generic_header->{EXPOSURE_TIME};
-  $args{target} = $generic_header->{OBJECT};
-  $args{disperser} = $generic_header->{GRATING_NAME};
-  $args{type} = $generic_header->{OBSERVATION_TYPE};
-  $args{telescope} = $generic_header->{TELESCOPE};
-
-  # Build the Astro::WaveBand object
-  if ( length( $generic_header->{WAVELENGTH} . "" ) != 0 ) {
-    $args{waveband} = new Astro::WaveBand( Wavelength => $generic_header->{WAVELENGTH},
-                                           Instrument => $generic_header->{INSTRUMENT} );
-  } elsif ( length( $generic_header->{FILTER} . "" ) != 0 ) {
-    $args{waveband} = new Astro::WaveBand( Filter     => $generic_header->{FILTER},
-                                           Instrument => $generic_header->{INSTRUMENT} );
-  }
-
-  # Build the Time::Piece startobs and endobs objects
-  if(length($generic_header->{UTSTART} . "") != 0) {
-    my $startobs = Time::Piece->strptime($generic_header->{UTSTART}, '%Y-%m-%dT%T');
-    $args{startobs} = $startobs;
-  }
-  if(length($generic_header->{UTEND} . "") != 0) {
-    my $endobs = Time::Piece->strptime($generic_header->{UTEND}, '%Y-%m-%dT%T');
-    $args{endobs} = $endobs;
-  }
-
-  # Build the Astro::Coords object
-
-  # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
-  # Astro::Coords object for us. Hooray!
-
-  if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
-    my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
-    if(defined($odfobject->getTarget)) {
-      $args{coords} = $odfobject->getTarget;
-    };
-    # Let's get the real object name as well.
-    if(defined($odfobject->getTargetName)) {
-      $args{target} = $odfobject->getTargetName;
-    };
-  } else {
-
-    # Default the equinox to J2000, but if it's 1950 change to B1950.
-    # Anything else will be converted to J2000.
-    my $type = "J2000";
-    if ( $generic_header->{EQUINOX} =~ /1950/ ) {
-      $type = "B1950";
-    }
-    if ( defined ( $generic_header->{COORDINATE_TYPE} ) ) {
-      if ( $generic_header->{COORDINATE_TYPE} eq 'galactic' ) {
-        $args{coords} = new Astro::Coords( lat   => $generic_header->{Y_BASE},
-                                           long  => $generic_header->{X_BASE},
-                                           type  => $generic_header->{COORDINATE_TYPE},
-                                           units => $generic_header->{COORDINATE_UNITS}
-                                         );
-      } elsif ( ( $generic_header->{COORDINATE_TYPE} eq 'J2000' ) ||
-                ( $generic_header->{COORDINATE_TYPE} eq 'B1950' ) ) {
-        $args{coords} = new Astro::Coords( ra    => $generic_header->{X_BASE},
-                                           dec   => $generic_header->{Y_BASE},
-                                           type  => $generic_header->{COORDINATE_TYPE},
-                                           units => $generic_header->{COORDINATE_UNITS}
-                                         );
-      }
-    }
-  }
-
-  $args{runnr} = $generic_header->{OBSERVATION_NUMBER};
-  $args{utdate} = $generic_header->{UTDATE};
-  if( $generic_header->{'INSTRUMENT'} =~ /scuba/i ) {
-    my $odfobject = new SCUBA::ODF( HdrHash => $FITS_header );
-    $args{mode} = $odfobject->mode_summary;
-  } else {
-    $args{mode} = $generic_header->{OBSERVATION_MODE};
-  }
-  $args{speed} = $generic_header->{SPEED_GAIN};
-  $args{airmass} = $generic_header->{AIRMASS_START};
-  $args{rows} = $generic_header->{Y_DIM};
-  $args{columns} = $generic_header->{X_DIM};
-  $args{drrecipe} = $generic_header->{DR_RECIPE};
-  $args{group} = $generic_header->{DR_GROUP};
-  $args{standard} = $generic_header->{STANDARD};
-  $args{slitname} = $generic_header->{SLIT_NAME};
-  $args{slitangle} = $generic_header->{SLIT_ANGLE};
-  $args{raoff} = $generic_header->{X_OFFSET};
-  $args{decoff} = $generic_header->{Y_OFFSET};
-  $args{grating} = $generic_header->{GRATING_NAME};
-  $args{order} = $generic_header->{GRATING_ORDER};
-  $args{tau} = $generic_header->{TAU};
-  $args{seeing} = defined( $generic_header->{SEEING} ?
-                           sprintf("%.1f",$generic_header->{SEEING}) :
-                           "" );
-  $args{bolometers} = $generic_header->{BOLOMETERS};
-  $args{velocity} = $generic_header->{VELOCITY};
-  $args{systemvelocity} = $generic_header->{SYSTEM_VELOCITY};
-
-  # Build the Astro::FITS::Header object
-# Leave this out for now.
-#  if(defined($FITS_header)) {
-#    $args{fits} = $FITS_header;
-#  }
-
-  # Create the Info::Obs object and push it onto the return array
-  my $obj = new OMP::Info::Obs( %args );
-
-  return $obj;
 }
 
 =back
