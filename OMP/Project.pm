@@ -83,6 +83,11 @@ sub new {
 
 =item B<allocated>
 
+The time allocated for the project (in seconds).
+
+  $time = $proj->allocated;
+  $proj->allocated( $time );
+
 =cut
 
 sub allocated {
@@ -93,25 +98,71 @@ sub allocated {
 
 =item B<coi>
 
+The names of any co-investigators associated with the project.
+
+  @names = $proj->coi;
+  $ref   = $proj->coi;
+  $proj->coi( @names );
+  $proj->coi( \@names );
+
 =cut
 
 sub coi {
   my $self = shift;
-  if (@_) { $self->{CoI} = shift; }
-  return $self->{CoI};
+  if (@_) { 
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+      @names = @{ $_[0] };
+    } else {
+      @names = @_;
+    }
+    $self->{CoI} = \@names; 
+  }
+
+  if (wantarray) {
+    return @{ $self->{CoI} };
+  } else {
+    return $self->{CoI};
+  }
+
 }
 
 =item B<coiemail>
+
+The email addresses of co-investigators associated with the project.
+
+  @email = $proj->coiemail;
+  $ref   = $proj->coiemail;
+  $proj->coiemail( @email );
+  $proj->coiemail( \@email );
 
 =cut
 
 sub coiemail {
   my $self = shift;
-  if (@_) { $self->{CoIEmail} = shift; }
-  return $self->{CoIEmail};
+  if (@_) { 
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+      @names = @{ $_[0] };
+    } else {
+      @names = @_;
+    }
+    $self->{CoIEmail} = \@names; 
+  }
+
+  if (wantarray) {
+    return @{ $self->{CoIEmail} };
+  } else {
+    return $self->{CoIEmail};
+  }
+
 }
 
-=item B<projectid>
+=item B<country>
+
+Country from which project is allocated.
+
+  $id = $proj->country;
 
 =cut
 
@@ -123,15 +174,88 @@ sub country {
 
 =item B<password>
 
+Plain text version of the password (if available). If this object has
+been instantiated from a database table it is likely that only the
+encrypted password is available (see C<encrypted> method). If this
+password is updated the encrypted version is automatically updated.
+
+  $plain = $proj->password;
+  $proj->password( $plain );
+
+If the plain password is C<undef>, the plain password is cleared but
+the encrypted password will not be cleared.
+
 =cut
 
 sub password {
   my $self = shift;
-  if (@_) { $self->{Password} = shift; }
+  if (@_) {
+    my $plain = shift;
+
+    # If the password is defined we encrypt it, else
+    # just undefine the password without modifying encrypted
+    # version. This is also necessary to allow the encrypted()
+    # method to clear the plain text password
+    if (defined $plain) {
+      # Time to encrypt
+      # Generate the salt from a random set
+      # See the crypt entry in perlfunc
+      my $salt = join '', 
+	('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
+
+      # Encrypt and store it
+      # Note that we store the plain password after this
+      # step to prevent the encrypted() method clearing it
+      # and ruining everything [the easy approach is simply 
+      # to not use the accessor method]
+      $self->encrypted( crypt( $plain, $salt) );
+
+    }
+
+    # Now store the plain password
+    $self->{Password} = $plain;
+
+  }
+
   return $self->{Password};
 }
 
+
+=item B<encrypted>
+
+Encrypted password associated with the project.
+
+  $password = $proj->encrypted;
+
+If available, the plain text password can be obtained using
+the C<password> method. The encrypted password is updated
+if the plain text password is updated. Also, if the encrypted
+password is updated the plain text version is cleared.
+
+=cut
+
+sub encrypted {
+  my $self = shift;
+  if (@_) {
+    $self->{Encrypted} = shift;
+
+    # Clear the plain text password
+    # Note that undef is treated as a special case so that
+    # we dont get into infinite recursion when password() calls
+    # this method.
+    $self->password(undef);
+  }
+  return $self->{Encrypted};
+}
+
+
 =item B<pending>
+
+The amount of time (in seconds) that is to be removed from the
+remaining project allocation pending approval by the queue managers.
+
+  $time = $proj->pending();
+  $proj->pending( $time );
 
 =cut
 
@@ -143,6 +267,10 @@ sub pending {
 
 =item B<pi>
 
+Name of the principal investigator.
+
+  $pi = $proj->pi;
+
 =cut
 
 sub pi {
@@ -152,6 +280,10 @@ sub pi {
 }
 
 =item B<piemail>
+
+Email address of the principal investigator.
+
+  $email = $proj->piemail;
 
 =cut
 
@@ -163,6 +295,10 @@ sub piemail {
 
 =item B<projectid>
 
+Project ID.
+
+ $id = $proj->projectid;
+
 =cut
 
 sub projectid {
@@ -172,6 +308,11 @@ sub projectid {
 }
 
 =item B<remaining>
+
+The amount of time remaining on the project (in seconds).
+
+  $time = $proj->remaining;
+  $proj->remaining( $time );
 
 =cut
 
@@ -183,6 +324,10 @@ sub remaining {
 
 =item B<semester>
 
+The semester for which the project was allocated time.
+
+  $semester = $proj->semester;
+
 =cut
 
 sub semester {
@@ -192,6 +337,12 @@ sub semester {
 }
 
 =item B<tagpriority>
+
+The priority of this project relative to all the other projects
+in the queue. This priority is determined by the Time Allocation
+Group (TAG).
+
+  $pri = $proj->tagpriority;
 
 =cut
 
@@ -207,6 +358,47 @@ sub tagpriority {
 =head2 General Methods
 
 =over 4
+
+=item B<verify_password>
+
+Verify that the plain text password matches the encrypted
+password.
+
+If an argument is supplied it is assumed to be a plain text password
+that we are comparing with the encrypted version in the object.
+
+  $verified = 1 if $proj->verify_password();
+  $verified = 1 if $proj->verify_password( $plain );
+
+This is useful if we are trying to do password verification with
+an externally supplied password (note that if we simply stored
+the plain text password in the object using C<password()> the
+encrypted password would automatically be regenerated.
+
+Returns false if either of the passwords are missing.
+
+=cut
+
+sub verify_password {
+  my $self = shift;
+  my $plain;
+  if (@_) {
+    $plain = shift;
+  } else {
+    $plain = $self->password;
+  }
+
+  my $encrypted = $self->encrypted;
+
+  # Return false immediately if either are undefined
+  return 0 unless defined $plain and defined $encrypted;
+
+  # The encrypted password includes the salt as the first
+  # two letters. Therefore we encrypt the plain text password
+  # using the encrypted password as salt
+  return ( crypt($plain, $encrypted) eq $encrypted );
+
+}
 
 =item B<summary>
 
@@ -236,7 +428,7 @@ sub summary {
 
   # retrieve the information from the object
   my %summary;
-  for my $key (qw/allocated coi coiemail country password pending
+  for my $key (qw/allocated coi coiemail country encrypted password pending
 	       pi piemail projectid remaining semester tagpriority/) {
     $summary{$key} = $self->$key;
   }
@@ -271,8 +463,8 @@ sub summary {
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
-All Rights Reserved.
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research
+Council.  All Rights Reserved.
 
 =head1 AUTHOR
 

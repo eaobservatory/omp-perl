@@ -79,19 +79,30 @@ stored in the project database.
 
   $verified = 1 if $db->verifyPassword( $plain_password );
 
+If the password is not supplied it is assumed to have been provided
+using the object constructor.
+
+  $verified = 1 if $db->verifyPassword( );
+
 Returns true if the passwords match.
 
 =cut
 
 sub verifyPassword {
   my $self = shift;
-  my $password = shift;
+
+  my $password;
+  if (@_) {
+    $password = shift;
+  } else {
+    $password = $self->password;
+  }
 
   # Retrieve the contents of the table
   my $project = $self->_get_project_row();
 
   # Now verify the passwords
-  return $self->_verify_password( $password, $project->password);
+  return $project->verify_password( $password );
 
 }
 
@@ -130,9 +141,12 @@ sub issuePassword {
   # Generate a new plain text password
   my $newpassword = $self->_generate_password;
 
-  # Store the encrypted password in the project object
-  # and in the database
-  $self->_store_password( $project, $newpassword );
+  # Store this password in the project object
+  # This will automatically encrypt it
+  $project->password( $newpassword );
+
+  # Store the encrypted password in the database
+  $self->_store_password( $project );
 
   # Mail the password to the right people
   $self->_mail_password( $project );
@@ -144,6 +158,42 @@ sub issuePassword {
   return;
 }
 
+=item B<projectSummary>
+
+Retrieve a summary of the current project. This is returned in
+XML format:
+
+  $xml = $proj->projectSummary;
+
+The XML is in the format described in C<OMP::Project>. In a list
+context returns a hash containing the project details.
+
+=cut
+
+sub projectSummary {
+  my $self = shift;
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  if (wantarray) {
+    return $project->summary;
+  } else {
+    return scalar( $project->summary );
+  }
+}
+
+=item B<projectsSummary>
+
+Retrieve a summary of all the projects or all the active projects.
+
+=cut
+
+sub projectsSummary {
+  my $self = shift;
+
+}
 
 =back
 
@@ -172,85 +222,55 @@ sub _generate_password {
 
 =item B<_store_password>
 
-Store the password (provided in plain text) in the database table.
+Store the encrypted password (retrieved from the project object) in
+the database table.
 
-  $db->_store_password( $password );
-
-The password is encrypted prior to storing it.
+  $db->_store_password( $project );
 
 =cut
 
 sub _store_password {
   my $self = shift;
-  my $password = shift;
+  my $project = shift;
 
-  my $encrypt = $self->_encrypt_password( $password );
+  my $encrypt = $project->encrypted;
 
 
 }
-
-=item B<_encrypt_password>
-
-Given a plain text password, return the encrypted form.
-
-  $encrypted = $db->_encrypt_password( $password );
-
-=cut
-
-# Yes, _encrypt_password and _generate_password could be
-# placed in a OMP::Password class. I have not done this
-# because they will only be used by this class and 
-# OMP::ProjDB will still be the thing that updates the table.
-
-sub _encrypt_password {
-  my $self = shift;
-  my $password = shift;
-
-  # Generate the salt from a random set
-  # See the crypt entry in perlfunc
-  my $salt = join '', ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
-
-  # Return it
-  return crypt( $password, $salt );
-}
-
-
-=item B<_verify_password>
-
-Given a plain text password and an encrypted password, verify that
-the encrypted password was generated from the plain text version.
-
-  $the_same = 1 if $db->_verify_password( $plain, $crypt );
-
-=cut
-
-sub _verify_password {
-  my $self = shift;
-  my $plain = shift;
-  my $crypt = shift;
-
-  # The encrypted password includes the salt as the first
-  # two letters. Therefore we encrypt the plain text password
-  # using the encrypted password as salt
-  return ( crypt($plain, $crypt) eq $crypt );
-
-}
-
 
 =item B<_get_project_row>
 
-Retrieve the contents of the project table relating to the current
-project.
+Retrieve the C<OMP::Project> object constructed from the row
+in the database table associated with the current object.
 
-  %info  = $db->_get_project_row;
+  $proj  = $db->_get_project_row;
 
 =cut
 
 sub _get_project_row {
   my $self = shift;
 
-  
+  # Database
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
+  # Project
+  my $projectid = $self->projectid;
+
+
+  # Go and do the database thing
+  my $statement = "SELECT * FROM $PROJTABLE WHERE projectid = $projectid ";
+  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} });
+
+  throw OMP::Error::UnknownProject( "Unable to retrieve details for project $projectid" )
+    unless @$ref;
+
+  # Create the project object
+  my $proj = new OMP::Project( %{$ref->[0]} );
+  throw OMP::Error::FatalError( "Unable to instantiate OMP::Project object")
+    unless defined $proj;
+
+  return $proj;
 }
 
 
