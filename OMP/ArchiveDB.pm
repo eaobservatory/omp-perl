@@ -28,8 +28,10 @@ use 5.006;
 use strict;
 use warnings;
 
-use lib '/home/bradc/development/oracdr/lib/perl5/';
-use lib '/home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib/';
+BEGIN { $ENV{ORAC_DIR} = "/jcmt_sw/oracdr"; };
+
+use lib qw( /jac_sw/omp/msbserver );
+use lib qw( $ENV{ORAC_DIR}/lib/perl5 );
 
 use OMP::ArcQuery;
 use OMP::General;
