@@ -402,6 +402,9 @@ sub summary {
     $summary{$_} = $self->$_();
   }
 
+  # obscount
+  $summary{obscount} = $self->obscount;
+
   # Now get a long text form for the remaining number
   my $remstatus;
   if (!defined $summary{remaining}) {
