@@ -14,14 +14,14 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::Feedback;
+use OMP::CGIPage;
+use OMP::CGIPage::Feedback;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $ompcgi = new OMP::CGI( CGI => $q );
+my $ompcgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Logout");
-$ompcgi->write_page_logout( \&OMP::CGI::Feedback::fb_logout );
+$ompcgi->write_page_logout( \&OMP::CGIPage::Feedback::fb_logout );
