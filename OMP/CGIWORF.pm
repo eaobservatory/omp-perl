@@ -331,6 +331,8 @@ sub thumbnails_page {
         print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
         print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
         print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
+        print "Project:&nbsp;" . ( defined( $obs->projectid ) ? $obs->projectid : '' ) . "<br>\n";
+        print "Exposure time:&nbsp;" . ( defined( $obs->duration ) ? $obs->duration : '' ) . "<br>\n";
         print "Suffix:&nbsp;none\n</td>";
         $displayed{$key}++;
         next FILELOOP;
@@ -376,7 +378,9 @@ sub thumbnails_page {
             print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
             print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
             print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
-           print "Suffix:&nbsp;" . $suffix . "\n</td>";
+        print "Project:&nbsp;" . ( defined( $obs->projectid ) ? $obs->projectid : '' ) . "<br>\n";
+        print "Exposure time:&nbsp;" . ( defined( $obs->duration ) ? $obs->duration : '' ) . "<br>\n";
+            print "Suffix:&nbsp;" . $suffix . "\n</td>";
             $displayed{$key}++;
             next FILELOOP;
           }
