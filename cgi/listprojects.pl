@@ -17,19 +17,13 @@ BEGIN {
 use OMP::CGIPage;
 use OMP::CGIPage::Project;
 
-use HTML::WWWTheme;
-
 my $arg = shift @ARGV;
 
 my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 
-# Set our theme
-my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
-$cgi->theme($theme);
-
 my $title = $cgi->html_title;
 $cgi->html_title("$title: List Projects");
-$cgi->write_page_staff( \&OMP::CGIPage::Project::list_projects,
-			\&OMP::CGIPage::Project::list_projects_output,
-			"noauth", );
+$cgi->write_page_staff(\&OMP::CGIPage::Project::list_projects,
+		 \&OMP::CGIPage::Project::list_projects_output,
+		 "noauth", );
