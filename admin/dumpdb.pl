@@ -23,7 +23,7 @@ use Storable qw(nstore);
 use File::Copy;
 use Time::Piece;
 
-my $dumpdir = "/DSS/omp-cache/tables";
+my $dumpdir = "/omp-cache/tables";
 
 chdir $dumpdir
   or die "Error changing to directory $dumpdir: $!\n";
@@ -34,7 +34,7 @@ my $dbh = $db->handle;
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser ompuser ompprojuser omptimeacct ompprojqueue/;
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompuser ompprojuser omptimeacct ompprojqueue ompshiftlog ompobslog ompobs/;
 
 foreach my $tab (@tab) {
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab")
