@@ -1422,12 +1422,14 @@ sub SpIterFolder {
     if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop)/) {
       my %dummy = $self->SpIterFolder($child);
 
-      # Need to decide whether to just keep all the hash values
-      # returned by recursion since we really need to look
-      # inside all these iterators for information when
-      # translating
-      push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
-      $summary{pol} = $dummy{pol} if exists $dummy{pol};
+      # obstype is a special key
+      if (exists $dummy{obstype}) {
+	push(@types, @{$dummy{obstype}});
+	delete $dummy{obstype};
+      }
+
+      # Merge information with child iterators
+      %summary = (%summary, %dummy);
 
       # SpIterPOL and SpIterIRPOL signifies something significant
       $summary{pol} = 1 if $name =~ /POL$/;
