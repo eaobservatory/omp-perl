@@ -7,7 +7,7 @@ OMP::FBServer - Feedback information Server class
 =head1 SYNOPSIS
 
   OMP::FBServer->addComment( $project, $commentHash );
-  OMP::FBServer->getComments( $project, $password, $howMany, $showHidden );
+  OMP::FBServer->getComments( $project, $password, $status );
 
 =head1 DESCRIPTION
 
