@@ -719,7 +719,7 @@ sub _insert_project_row {
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
 			  $proj->projectid, $pi,
-			  $proj->title, -999, "COUNTRY_MOVED_TO_OMPPROJQUEUE",
+			  $proj->title,
 			  $proj->semester, $proj->encrypted,
 			  $proj->allocated->seconds,
 			  $proj->remaining->seconds, $proj->pending->seconds,
@@ -898,6 +898,7 @@ sub _get_projects {
 
     # And assign the results
     $proj->coi( @{ $roles{COI} } ) if exists $roles{COI};
+
     $proj->support( @{ $roles{SUPPORT} } ) if exists $roles{SUPPORT};
     $proj->contactable( %contactable );
 
