@@ -22,6 +22,7 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use Time::Piece;
+use Time::Seconds;
 use Date::Manip;
 use Text::Wrap;
 
@@ -409,15 +410,15 @@ sub query_fault_output {
     }
 
     # Get our min and max dates
-    $mindate = $q->param('mindate');
-    $maxdate = $q->param('maxdate');
-
-    # Imply end of day for max date if no time was specified
-    ($maxdate !~ /T/) and $maxdate .= "T23:59";
+    my $mindatestr = $q->param('mindate');
+    my $maxdatestr = $q->param('maxdate');
 
     # Convert dates to UT
-    $mindate = OMP::General->parse_date($mindate, 1);
-    $maxdate = OMP::General->parse_date($maxdate, 1);
+    $mindate = OMP::General->parse_date($mindatestr, 1);
+    $maxdate = OMP::General->parse_date($maxdatestr, 1);
+
+    # Imply end of day (23:59) for max date if no time was specified
+    ($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
 
     # Do a min/max date query
     if ($mindate or $maxdate) {
