@@ -605,6 +605,29 @@ sub faultdate {
   return $self->{FaultDate};
 }
 
+=item B<filedate>
+
+Date the fault was initially filed. Returned as a C<Time::Piece> object.
+
+  $date = $fault->filedate();
+
+Can not be set (it is derived from the first response).
+
+=cut
+
+sub filedate {
+  my $self = shift;
+
+  # Look at the first response
+  my $firstresp = $self->responses->[0];
+
+  throw OMP::Error::FatalError("No fault body! Should not happen.")
+    unless $firstresp;
+
+  return $firstresp->date;
+}
+
+
 =item B<urgency>
 
 Urgency associated with the fault. Options are "urgent", "normal"
@@ -826,13 +849,8 @@ sub date {
   my $faultdate = $self->faultdate;
   return $faultdate if $faultdate;
 
-  # Else look at the first response
-  my $firstresp = $self->responses->[0];
-
-  throw OMP::Error::FatalError("No fault body! Should not happen.")
-    unless $firstresp;
-
-  return $firstresp->date;
+  # Else return the file date
+  return $self->filedate;
 }
 
 =back
