@@ -804,6 +804,8 @@ sub msb_hist_output {
   my $q = shift;
   my %cookie = @_;
 
+  my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
+
   # If they clicked the "Add Comment" button bring up a comment form
   if ($q->param("Add Comment")) {
 
@@ -814,7 +816,7 @@ sub msb_hist_output {
   }
 
   # If they've just submitted a comment show some comforting output
-    if ($q->param("Submit")) {
+  if ($q->param("Submit")) {
     try {
       OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
       print $q->h2("MSB comment successfully submitted");
@@ -825,14 +827,8 @@ sub msb_hist_output {
       print "An error occurred while attempting to submit the comment: $Error";
     };
 
-    proj_status_table($q, %cookie);
-
-    my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
-    msb_comments($q, $commentref);
-  }
-
-  # If they click the "Mark as Done" button mark it as done
-  if ($q->param("Mark as Done")) {
+    # If they click the "Mark as Done" button mark it as done
+  } elsif ($q->param("Mark as Done")) {
     try {
       OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
       print $q->h2("MSB marked as Done");
@@ -843,12 +839,24 @@ sub msb_hist_output {
       print "An error occurred while attempting to mark the MSB as Done: $Error";
     };
 
-    proj_status_table($q, %cookie);
-
-    my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
-    msb_comments($q, $commentref);
+    # If they clicked "Undo" unmark it as done
+  } elsif ($q->param("Undo")) {
+    try {
+      OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum'));
+      print $q->h2("MSB done mark removed");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to remove the MSB Done mark: $Error";
+    };
 
   }
+
+  # Redisplay MSB comments and stuff
+  proj_status_table($q, %cookie);
+  my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
+  msb_comments($q, $commentref, $sp);
 
 }
 
@@ -970,6 +978,7 @@ sub msb_comments {
       ($status == OMP__DONE_DONE)    and $bgcolor = '#c6bee0';
       ($status == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
       ($status == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
+      ($status == OMP__DONE_UNDONE) and $bgcolor = '#ffd8a3';
       print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date:</b> " .
 	$comment->date ."<br>";
       print $comment->text ."</td>";
@@ -986,11 +995,15 @@ sub msb_comments {
     print $q->hidden(-name=>'projectid',
 		     -default=>$msb->projectid);
 
-    # Make a "mark as done" button if the MSB exists in the science program
+    # Make "mark as done" and "undo" buttons if the MSB exists in the 
+    # science program
     if ($sp and $sp->existsMSB($msb->checksum)) {
       print $q->submit("Mark as Done");
       print " ";
+      print $q->submit("Undo");
+      print " ";
     }
+
     print $q->submit("Add Comment");
     print $q->endform;
     print "</td>";
