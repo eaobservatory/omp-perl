@@ -209,7 +209,7 @@ sub write_file {
       or throw OMP::Error::FatalError("Error closing translation [$outfile]: $!\n");
 
     # and make sure the file protections are correct
-    chmod $options{chmod}, $f
+    chmod $options{chmod}, $outfile
       if exists $options{chmod};
 
     # and make a backup
@@ -241,14 +241,15 @@ sub write_file {
 	  map {new Astro::Catalog::Star(Coords=>$_)} @targets);
 
   # And write it out
-  my $outfile = File::Spec->catfile( $TRANS_DIR, $self->{CATFILE});
-  $cat->write_catalog( File => $outfile, Format => 'JCMT' );
+  my $catroot = ( $self->{CATFILE} || "omp.cat" );
+  my $outcat = File::Spec->catfile( $TRANS_DIR, $catroot);
+  $cat->write_catalog( File => $outcat, Format => 'JCMT' );
 
-  chmod $options{chmod}, $outfile
+  chmod $options{chmod}, $outcat
     if exists $options{chmod};
 
   # and make a backup
-  copy( $outfile, $outfile . "_" . $suffix);
+  copy( $outcat, $outcat . "_" . $suffix);
 
 
   return $file;
@@ -262,12 +263,20 @@ Append a translation or translations to this object.
 
 Argument must be a OMP::Translator::DASHTML object.
 
+If no projectid or catalogue file name is defined, the first one
+available will be copied into this object.
+
 =cut
 
 sub push_config {
   my $self = shift;
 
   for my $new ( @_ ) {
+
+    my $cat = $new->{CATFILE};
+    my $proj = $new->{PROJECTID};
+    $self->{CATFILE} = $cat unless $self->{CATFILE};
+    $self->{PROJECTID} = $proj unless $self->{PROJECTID};
 
     $self->{HTML} .= $new->{HTML};
 
