@@ -104,16 +104,9 @@ sub readfile {
   try {
     my $FITS_header;
     if( $filename =~ /\.sdf$/ ) {
-      # Redirect STDOUT in case this fails (if reading in the NDF fails,
-      # AFHN directs the error messages to STDOUT, which is not really what
-      # we want, since it's ugly).
-      open(SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
-      open(STDOUT, ">/dev/null") or throw OMP::Error::FatalError("Can't open STDOUT to /dev/null.");
 
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
 
-      close(STDOUT);
-      open(STDOUT, ">&SAVEOUT");	
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
 
       # Redirect STDOUT in case this fails.
@@ -133,14 +126,18 @@ sub readfile {
   }
   catch Error with {
 
-    close(STDOUT);
-    open(STDOUT, ">&SAVEOUT");
+    if( $filename =~ /\.(gsd|dat)$/ ) {
+      close(STDOUT);
+      open(STDOUT, ">&SAVEOUT");
+    }
 
     my $Error = shift;
 
-    OMP::General->log_message( "OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+    OMP::General->log_message("OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'} );
+    croak "OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'} . "\n";
 
   };
+
   return $obs;
 }
 
