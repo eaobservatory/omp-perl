@@ -285,7 +285,7 @@ sub _make_theme {
     # Use the OMP theme and make some changes to it.
     # This is in a different place on hihi than it is on malama
 
-    my @themefile = ("/WWW/omp/LookAndFeelConfig",);
+    my @themefile = ("/WWW/omp/LookAndFeelConfig","/JACpublic/JAC/software/omp/LookAndFeelConfig");
     my $themefile;
 
     foreach (@themefile) {
