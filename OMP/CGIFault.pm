@@ -372,8 +372,8 @@ sub query_fault_output {
   # Which XML query are we going to use?
   # and which title are we displaying?
   my $title;
-  my $t = gmtime;
-  my $delta;
+  my $t = OMP::General->today;
+  my %daterange;
   my $xml;
 
   # Print faults
@@ -430,9 +430,24 @@ sub query_fault_output {
       push (@xml, "<author>$author</author>");
     }
 
-    $delta = $q->param('days');
-    push (@xml, "<date delta='-$delta'>" . $t->datetime . "</date>")
-      if ($delta);
+    # Get our min and max dates and make sure they match our expect format
+    $daterange{min} = $q->param('mindate');
+    $daterange{max} = $q->param('maxdate');
+
+    for (keys %daterange) {
+      # Make sure date matches our expect format
+      ($daterange{$_} =~ /^\d{4}-\d{2}-\d{2}$/) or $daterange{$_} = undef;
+      if ($daterange{$_}) {
+	# Convert min and max dates to UT;
+	$daterange{$_} = Time::Piece->strptime($daterange{$_}, "%Y-%m-%d");
+	my $epoch = $daterange{$_}->epoch;
+	$daterange{$_} = gmtime($epoch);
+	$daterange{$_} = $daterange{$_}->ymd;
+      }
+    }
+
+    # Always do a min/max date query
+    push (@xml, "<date><min>$daterange{min}</min><max>$daterange{max}</max></date>");
 
     # Get the text param and unescape things like &amp; &quot;
     my $text = $q->param('text');
@@ -560,6 +575,10 @@ sub query_fault_form {
   ($script =~ /report/) and $word = "reports"
     or $word = "faults";
 
+  # Get a default date for max date search (today)
+  my $today = localtime;
+  $today = localtime->ymd;
+
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = map {$systems->{$_}} sort keys %$systems;
   unshift( @systems, "any" );
@@ -580,11 +599,28 @@ sub query_fault_form {
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
-  print "<b>Display $word for the last ";
-  print $q->textfield(-name=>'days',
-		      -size=>3,
-		      -maxlength=>5);
-  print " days</b></td><td></td><tr><td><b>";
+  print "<b>Find $word ";
+  print $q->radio_group(-name=>'action',
+		        -values=>['response','file','activity'],
+		        -default=>'activity',
+		        -labels=>{response=>"responded to",
+				  file=>"filed",
+				  activity=>"with any activity"});
+  print "</td><td></td><tr><td><b>by user <small>(ID)</small> </b>";
+  print $q->textfield(-name=>'author',
+		      -size=>17,
+		      -maxlength=>32,);
+  print "</b></td><td></td><tr><td><b>";
+  print "between dates <small>(YYYY-MM-DD)</small> ";
+  print $q->textfield(-name=>'mindate',
+		      -size=>10,
+		      -maxlength=>15);
+  print " and ";
+  print $q->textfield(-name=>'maxdate',
+		      -size=>10,
+		      -default=>$today,
+		      -maxlength=>15);
+  print "</b></td><td></td><tr><td><b>";
   print "System </b>";
   print $q->popup_menu(-name=>'system',
 		       -values=>\@systems,
@@ -595,35 +631,23 @@ sub query_fault_form {
 		       -values=>\@types,
 		       -labels=>\%typelabels,
 		       -default=>'any',);
-  print "</td><tr><td><b>Status </b>";
+  print "</td><td></td><tr><td><b>Status </b>";
   print $q->popup_menu(-name=>'status',
 		       -values=>\@status,
 		       -labels=>\%statuslabels,
 		       -default=>'any',);
-  print "</td><tr><td><b>User ID </b>";
-  print $q->textfield(-name=>'author',
-		      -size=>22,
-		      -maxlength=>50,);
-  print "</td><tr><td><b>";
-  print $q->radio_group(-name=>'action',
-		        -values=>['response','file','activity'],
-		        -default=>'activity',
-		        -labels=>{response=>"Responded to",
-				  file=>"Filed",
-				  activity=>"With any activity"});
-
-  print "</b></td><tr><td>";
+  print "</b></td><td></td><tr><td>";
   print $q->textfield(-name=>'text',
 		      -size=>44,
 		      -maxlength=>256,);
   print "&nbsp;&nbsp;";
   print $q->submit(-name=>"Search");
-  print "</b></td><td valign=bottom align=left>";
+  print "</b></td>";
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'cat', -default=>$cookie{category});
-  print "</td><tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
+  print "<tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
   print $q->submit(-name=>"Major $word");
   print $q->submit(-name=>"recent", -label=>"Recent $word (2 days)");
   print $q->submit(-name=>"current", -label=>"Current $word (14 days)");
@@ -1106,7 +1130,7 @@ sub file_fault_form {
 		      -size=>'60',
 		      -maxlength=>'256',
 		      -default=>$defaults{subject},);
-  print "</td><tr><td colspan=2>";
+  print "</td><tr><td colspan=2 align=right>";
 
   print $q->textarea(-name=>'message',
 		     -rows=>20,
