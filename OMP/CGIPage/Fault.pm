@@ -205,7 +205,7 @@ sub file_fault_output {
 				      text=>$faultdetails{text},);
 
   # Create the fault object
-  my $category = $self->_get_param('cat');
+  my $category = $q->param('category');
   my $fault = new OMP::Fault(category=>$category,
 			     subject=>$faultdetails{subject},
 			     system=>$faultdetails{system},
