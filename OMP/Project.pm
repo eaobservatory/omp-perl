@@ -32,6 +32,10 @@ use warnings;
 use Carp;
 our $VERSION = (qw$Revision$)[1];
 
+# Delimiter for co-i strings
+our $DELIM = ":";
+
+
 =head1 METHODS
 
 =head2 Constructor
@@ -40,10 +44,10 @@ our $VERSION = (qw$Revision$)[1];
 
 =item B<new>
 
-Object constructor. Takes a hash as argument, the keys of which can
-be used to prepopulate the object. The key names must match the
-names of the accessor methods (modulo case). If they do not match
-they are ignored (for now).
+Object constructor. Takes a hash as argument, the keys of which can be
+used to prepopulate the object. The key names must match the names of
+the accessor methods (ignoring case). If they do not match they are
+ignored (for now).
 
   $proj = new OMP::Project( %args );
 
@@ -56,7 +60,22 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  my $proj = bless {}, $class;
+  my $proj = bless {
+		    Country => undef,
+		    Semester => undef,
+		    Allocated => 0,
+		    Title => '',
+		    Encrypted => undef,
+		    Password => undef,
+		    ProjectID => undef,
+		    CoI => [],
+		    PIEmail => undef,
+		    TagPriority => 999,
+		    CoIEmail => [],
+		    PI => undef,
+		    Remaining => 0,
+		    Pending => 0,
+		   }, $class;
 
   # Deal with arguments
   if (@_) {
@@ -101,9 +120,17 @@ sub allocated {
 The names of any co-investigators associated with the project.
 
   @names = $proj->coi;
-  $ref   = $proj->coi;
+  $names = $proj->coi;
   $proj->coi( @names );
   $proj->coi( \@names );
+  $proj->coi( "name1:name2" );
+
+If the strings contain colons it is assumed that the colons are delimeters
+for multiple co-investigators. In this case, the names will be
+split and stored as separate elements in the array.
+
+If this method is called in a scalar context the names will be returned
+as a single string joined by a colon.
 
 =cut
 
@@ -116,13 +143,20 @@ sub coi {
     } else {
       @names = @_;
     }
+
+    # Now split on the delimiter
+    @names = map { split /$DELIM/, $_; } @names;
+
+    # And store the result
     $self->{CoI} = \@names; 
   }
 
+  # Return either the array of names or a delimited string
   if (wantarray) {
     return @{ $self->{CoI} };
   } else {
-    return $self->{CoI};
+    # This returns empty string if we dont have anything
+    return join($DELIM, @{ $self->{CoI} } );
   }
 
 }
@@ -132,9 +166,17 @@ sub coi {
 The email addresses of co-investigators associated with the project.
 
   @email = $proj->coiemail;
-  $ref   = $proj->coiemail;
+  $emails   = $proj->coiemail;
   $proj->coiemail( @email );
   $proj->coiemail( \@email );
+  $proj->coiemail( "email1:email2:email3" );
+
+If the input strings contain colons it is assumed that the colons are
+delimeters for multiple email addresses. In this case, the names will
+be split and stored as separate elements in the array.
+
+If this method is called in a scalar context the addresses will be returned
+as a single string joined by a colon.
 
 =cut
 
@@ -147,13 +189,20 @@ sub coiemail {
     } else {
       @names = @_;
     }
+
+    # Now split on the delimiter
+    @names = map { split /$DELIM/, $_; } @names;
+
+    # And store it
     $self->{CoIEmail} = \@names; 
   }
 
+  # Return either the array of emails or a delimited string
   if (wantarray) {
     return @{ $self->{CoIEmail} };
   } else {
-    return $self->{CoIEmail};
+    # This returns empty string if we dont have anything
+    return join($DELIM, @{ $self->{CoIEmail} });
   }
 
 }
@@ -299,11 +348,13 @@ Project ID.
 
  $id = $proj->projectid;
 
+The project ID is always upcased.
+
 =cut
 
 sub projectid {
   my $self = shift;
-  if (@_) { $self->{ProjectID} = shift; }
+  if (@_) { $self->{ProjectID} = uc(shift); }
   return $self->{ProjectID};
 }
 
@@ -314,12 +365,35 @@ The amount of time remaining on the project (in seconds).
   $time = $proj->remaining;
   $proj->remaining( $time );
 
+If the value is not defined, the allocated value is automatically inserted.
+
 =cut
 
 sub remaining {
   my $self = shift;
-  if (@_) { $self->{Remaining} = shift; }
+  if (@_) { 
+    $self->{Remaining} = shift; 
+  } else {
+    $self->{Remaining} = $self->allocated
+      unless defined $self->{Remaining};
+  }
   return $self->{Remaining};
+}
+
+=item B<used>
+
+The amount of time (in seconds) used by the project so far. This
+is calculated as the difference between the allocated amount and
+the time remaining on the project (the time pending is assumed to
+be included in this calculation).
+
+  $time = $proj->used;
+
+=cut
+
+sub used {
+  my $self = shift;
+  return ($self->allocated - $self->remaining - $self->pending);
 }
 
 =item B<semester>
@@ -352,6 +426,19 @@ sub tagpriority {
   return $self->{TagPriority};
 }
 
+=item B<title>
+
+The title of the project.
+
+  $title = $proj->title;
+
+=cut
+
+sub title {
+  my $self = shift;
+  if (@_) { $self->{Title} = shift; }
+  return $self->{Title};
+}
 
 =back
 
@@ -457,7 +544,6 @@ sub summary {
   }
 
 }
-
 
 =back
 
