@@ -49,6 +49,11 @@ our $STYLE = "<style><!--
                  font-style: italic;
                  text-decoration: underline;
 	       }
+               b.white, b.white a:link, b.white a:visited {
+                 color: #fff;
+                 font-style: normal;
+                 text-decoration: none;
+               }
                div.footer, div.footer a:link, div.footer a:visited {
                  font-size: 11pt;
                  color: #ffffff;
