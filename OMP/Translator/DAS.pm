@@ -761,7 +761,12 @@ sub targetConfig {
     my $c = $summary{coords};
     $c->telescope( new Astro::Telescope('JCMT') );
 
-    $html .= "<H3>Target Information: <em>".$summary{target}."</em></H3>\n";
+    # Must remove spaces from target name
+    my $name = $c->name();
+    $name =~ s/\s+//g if defined $name;
+    $c->name($name);
+
+    $html .= "<H3>Target Information: <em>".$name."</em></H3>\n";
     $html.= "<PRE>". $c->status ."</PRE>\n";
 
     # if we have orbital elements we need a bit more
