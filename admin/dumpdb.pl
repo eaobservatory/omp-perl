@@ -17,7 +17,7 @@ use OMP::Error qw/ :try /;
 use Data::Dumper;
 
 # Abort if $OMP_DUMP_DIR is not set
-die "Must specify output date directory via \$OMP_DUMP_DIR"
+die "Must specify output data directory via \$OMP_DUMP_DIR"
   unless exists $ENV{OMP_DUMP_DIR};
 
 chdir $ENV{OMP_DUMP_DIR}
