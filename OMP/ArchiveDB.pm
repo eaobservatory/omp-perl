@@ -41,10 +41,15 @@ use Time::Piece;
 use Time::Seconds;
 use SCUBA::ODF;
 
+use vars qw/ $VERSION $FallbackToFiles /;
+
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
+
+# Do we want to fall back to files?
+$FallbackToFiles = 1;
 
 =head1 METHODS
 
@@ -134,7 +139,8 @@ sub queryArc {
     my $date = $query->daterange->min;
     my $currentdate = gmtime;
 
-    if( ( $currentdate - $date ) < ONE_WEEK ) {
+    if( ( ( $currentdate - $date ) < ONE_WEEK ) &&
+        ( $FallbackToFiles ) ) {
       @results = $self->_query_files( $query )
         unless @results;
     }
