@@ -620,9 +620,13 @@ sub ashtml {
   print "<td colspan='2'><strong class='small_title'>Project Time Summary</strong></td>";
 
   # Time lost to faults
+  my $faultloss = $self->timelost->hours;
+
   print "<tr class='sum_other'>";
   print "<td>Time lost to faults</td>";
-  print "<td>" . sprintf($format, $self->timelost->hours) . " <a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+  print "<td>" . sprintf($format, $faultloss) . " <a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
+
+  $total += $faultloss;
 
   # Time lost to weather, extended accounting
   my %text = (
