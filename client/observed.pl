@@ -21,7 +21,19 @@ Usually run via a cron job every night.
 
 =head1 ARGUMENTS
 
-The following arguments are supported:
+The following arguments are allowed:
+
+=over 4
+
+=item B<date>
+
+If supplied, the date should be in YYYYMMDD or YYYY-MM-DD format.
+
+=back
+
+=head1 OPTIONS
+
+The following options are supported:
 
 =over 4
 
@@ -75,7 +87,7 @@ my %sorted;
 for my $msbid (@$done) {
 
   # Get the project ID
-  my $projectid = $msbid->{projectid};
+  my $projectid = $msbid->projectid;
 
   # Create a new entry in the hash if this is new ID
   $sorted{$projectid} = [] unless exists $sorted{projectid};
@@ -87,19 +99,24 @@ for my $msbid (@$done) {
 
 
 # Now create the comment and send it to feedback system
-my $fmt = "%-8s %-20s %-20s %-10s %-35s";
+my $fmt = "%-14s %03d %-20s %-20s %-10s %-35s";
+my $hfmt= "%-14s Rpt %-20s %-20s %-10s %-35s";
 for my $proj (keys %sorted) {
 
   # Each project info is sent independently to the
   # feedback system so we need to construct a message string
-  my $msg = sprintf "$fmt\n", "Project", "Target", "Instrument",
+  my $msg = sprintf "$hfmt\n", "Project", "Target", "Instrument",
     "Waveband", "Checksum";
 
   for my $msbid ( @{ $sorted{$proj} } ) {
 
+    # Note that %s does not truncate strings so we have to do that
+    # This will be problematic if the format is modified
     $msg .= sprintf "$fmt\n",
-      $proj,$msbid->{target},
-	$msbid->{instrument},$msbid->{waveband},$msbid->{checksum};
+      $proj,$msbid->nrepeats,substr($msbid->target,0,20),
+	substr($msbid->instrument,0,20),
+	  substr($msbid->waveband,0,10),
+	    $msbid->checksum;
 
   }
 
