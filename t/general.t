@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 173;
+use Test::More tests => 176;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -347,7 +347,7 @@ my %bands = (
 	     0.15 => 4,
 	     0.2  => 4,
 	     0.25 => 5,
-	     0.4  => 5,
+	     0.4  => 6,
 	    );
 
 for my $cso (keys %bands) {
@@ -373,18 +373,25 @@ like($@, qr/without TAU/,"Without TAU");
 # Band ranges
 my $range = OMP::General->get_band_range('JCMT', 2,3);
 isa_ok($range, "OMP::Range","Make sure we get Range object Band 2,3");
-is($range->max,0.12);
-is($range->min,0.05);
+is($range->max,0.12,"Upper bound");
+is($range->min,0.05,"Lower bound");
 
 $range = OMP::General->get_band_range('JCMT',1);
 isa_ok($range, "OMP::Range","Make sure we get Range object Band 1");
-is($range->max,0.05);
-is($range->min,0.0);
+is($range->max,0.05,"Upper bound");
+is($range->min,0.0,"Lower bound");
 
-$range = OMP::General->get_band_range( 'JCMT', 4,5);
-isa_ok($range, "OMP::Range","Make sure we get range object Band 4,5");
-is($range->max,undef);
-is($range->min,0.12);
+$range = OMP::General->get_band_range( 'JCMT', 4,5,6);
+isa_ok($range, "OMP::Range","Make sure we get range object Band 4,5,6");
+is($range->max,undef,"Upper bound");
+is($range->min,0.12, "Lower bound");
+
+$range = OMP::General->get_band_range( 'JCMT', 1,2,3);
+isa_ok($range, "OMP::Range","Make sure we get range object Band 1,2,3");
+is($range->max,0.12, "Upper bound");
+is($range->min,0.0, "Lower bound");
+
+
 
 # Projectid extraction
 my %extract = (
