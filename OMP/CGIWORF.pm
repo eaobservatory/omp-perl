@@ -264,7 +264,8 @@ sub thumbnails_page {
 
       # If necessary, let's filter them for project ID.
       if( $projectid ne 'staff' &&
-          uc( $obs->projectid ) ne uc( $projectid ) ) {
+          uc( $obs->projectid ) ne uc( $projectid ) &&
+          ! $obs->isScience ) {
         next FILELOOP;
       }
 
@@ -392,12 +393,65 @@ sub thumbnails_page {
 
 sub display_graphic {
   my $cgi = shift;
-
-  my $obs = cgi_to_obs( $cgi );
-
   my $qv = $cgi->Vars;
 
-  my $suffix = ( defined( $qv->{'suffix'} ) ? $qv->{'suffix'} : '' );
+  my $ut;
+  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
+    $ut = $1;
+  }
+
+  my $suffix;
+  if( exists( $qv->{'suffix'} ) && defined( $qv->{'suffix'} ) ) {
+    $qv->{'suffix'} =~ /^(\w+)$/;
+    $suffix = $1;
+  } else {
+    $suffix = '';
+  }
+
+  my $runnr;
+  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
+    $qv->{'runnr'} =~ /^(\d+)$/;
+    $runnr = $1;
+  }
+
+  my $inst;
+  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
+    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $inst = $1;
+  }
+
+  my $size;
+  if( exists( $qv->{'size'} ) && defined( $qv->{'size'} ) ) {
+    $qv->{'inst'} =~ /^(thumb|regular)$/;
+    $size = $1;
+  } else {
+    $size = '';
+  }
+
+  if( defined( $ut ) && defined( $runnr ) && defined( $inst ) &&
+      defined( $size ) && $size =~ /^thumb$/ ) {
+
+    # See if the cache file exists. It will be of the form
+    # $ut . $inst . $runnr . $suffix . ".gif"
+    my $cachefile = "/tmp/worfthumbs/" . $ut . $inst . $runnr . $suffix . ".gif";
+
+    if( -e $cachefile ) {
+
+      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( CACHE );
+      binmode( STDOUT );
+
+      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+
+      close( CACHE );
+print STDERR "Displaying $cachefile from CGIWORF.\n";
+      return;
+    }
+
+  }
+
+  my $obs = cgi_to_obs( $cgi );
 
   display_observation( $cgi, $obs, $suffix );
 
