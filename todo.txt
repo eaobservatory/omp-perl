@@ -77,3 +77,10 @@ ProjServer
 
  - Allocation per weather band (in a system that works for
    both telescopes).
+
+ - Include switch in query to disable checks for:
+     - target observability
+     - remaining count > 0
+     - time remaining on project
+   This will allow us to list all the msbs without having
+   to retrieve the science program
