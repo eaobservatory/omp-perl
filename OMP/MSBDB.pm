@@ -1101,6 +1101,31 @@ sub getSubmitted {
   return @projects;
 }
 
+=item B<getMSBCount>
+
+=item B<getMSBCount>
+
+Return the total number of MSBs, and the total number of active MSBs, for a
+given list of projects.
+
+  %projectid = $db->getMsbCount(@projectids);
+
+The only argument is a list (or reference to a list) of project IDs.
+Returns a hash of hashes indexed by project ID where the second-level
+hashes contain the keys 'total' and 'active' (each points to a number).
+If a project has no MSBs, not key is included for that project.  If
+a project has no MSBs with remaining observations, no 'active' key
+is returned for that project.
+
+=cut
+
+sub getMSBCount {
+  my $self = shift;
+  my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
+  my %result = $self->_get_msb_count(@projectids);
+  return %result;
+}
+
 =item B<listModifiedPrograms>
 
 Return an array of project IDs for projects whose programs have been modified
@@ -2397,8 +2422,45 @@ sub _get_submitted {
   return @projectids;
 }
 
-=back
+=item B<_get_msb_count>
 
+Query the database for the total number of MSBs, and the total number
+of active MSBs, for a given list of projects.
+
+  %projectid = $db->_get_msb_count(@projectids);
+
+The only argument is a list (or reference to a list) of project IDs.
+Returns a hash of hashes indexed by project ID where the second-level
+hashes contain the keys 'total' and 'active' (each points to a number).
+If a project has no MSBs, not key is included for that project.  If
+a project has no MSBs with remaining observations, no 'active' key
+is returned for that project.
+
+=cut
+
+sub _get_msb_count {
+  my $self = shift;
+  my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
+
+  # SQL query
+  my $sql = "SELECT projectid, COUNT(*) AS \"count\" FROM $MSBTABLE\n".
+    "WHERE projectid IN (". join(",", map {"\"".uc($_)."\""} @projectids).")\n";
+  my $groupby_sql = "GROUP BY projectid";
+
+  my %projectid;
+  for my $msbcount (qw/total active/) {
+    # Add AND clause to the query if we are looking for active msbs
+    my $query = $sql .
+      ($msbcount eq 'active' ? "AND remaining > 0\n" . $groupby_sql : $groupby_sql);
+
+    my $ref = $self->_db_retrieve_data_ashash($query);
+    for my $row (@$ref) {
+      $projectid{$row->{projectid}}->{$msbcount} = $row->{count};
+    }
+  }
+
+  return %projectid;
+}
 
 =head1 SEE ALSO
 
