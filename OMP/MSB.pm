@@ -3167,6 +3167,10 @@ sub SpInstHeterodyne {
   # The wavelength of interest is derived from the rest frequency
   my $rfreq  = $self->_get_pcdata( $el, "restFrequency" );
 
+  if (!defined $rfreq) {
+    throw OMP::Error::SpBadStructure("No rest frequency supplied!");
+  }
+
   # Astro::WaveBand should probably take a velocity, velocity frame
   # and line as argument to correctly call itself a WaveBand class
   $summary{waveband} = new Astro::WaveBand( Frequency => $rfreq,
