@@ -36,17 +36,27 @@ our $GSDTAB = 'jcmt..SCA G';
 our $SUBTAB = 'jcmt..SUB H';
 our $SPHTAB = 'jcmt..SPH I';
 our $UKIRTTAB = 'ukirt..COMMON U';
-our %insttable = ( CGS4 => [ $UKIRTTAB ],
-                   UFTI => [ $UKIRTTAB ],
-                   UIST => [ $UKIRTTAB ],
+our $UFTITAB = 'ukirt..UFTI F';
+our $CGS4TAB = 'ukirt..CGS4 C';
+our $UISTTAB = 'ukirt..UIST I';
+our $IRCAMTAB = 'ukirt..IRCAM3 I';
+
+our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
+                   UFTI => [ $UKIRTTAB, $UFTITAB ],
+                   UIST => [ $UKIRTTAB, $UISTTAB ],
                    MICHELLE => [ $UKIRTTAB ],
-                   IRCAM => [ $UKIRTTAB ],
+                   IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                               },
+                   $UKIRTTAB => { $UFTITAB => '(U.idkey = F.idkey)',
+                                  $CGS4TAB => '(U.idkey = C.idkey)',
+                                  $UISTTAB => '(U.idkey = I.idkey)',
+                                  $IRCAMTAB => '(U.idkey = I.idkey)',
+                                },
                  );
 
 # Lookup table
