@@ -28,8 +28,6 @@ use 5.006;
 use strict;
 use warnings;
 
-use lib qw( /jcmt_sw/oracdr/lib/perl5 );
-
 use OMP::ArcQuery;
 use OMP::General;
 use OMP::Info::Obs;
