@@ -581,7 +581,7 @@ sub nightlog {
       $return{'Order'} = $self->order;
       $return{'Nexp'} = $self->nexp;
 
-      push @{$return{'_ORDER'}}, [ "Slit Name", "PA", "Grating", "Order", "Wavelength", "RA", "Dec", "Nexp" ];
+      push @{$return{'_ORDER'}}, ( "Slit Name", "PA", "Grating", "Order", "Wavelength", "RA", "Dec", "Nexp" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Slit Name      PA    Grating  Order            RA          Dec  Nexp";
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %4d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
 
@@ -600,7 +600,8 @@ sub nightlog {
         $return{'Dec'} = "--:--:--";
       }
       $return{'Nexp'} = $self->nexp;
-      push @{$return{'_ORDER'}}, [ "Filter", "Readout Area", "Speed", "RA", "Dec" ];
+
+      push @{$return{'_ORDER'}}, ( "Filter", "Readout Area", "Speed", "RA", "Dec" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Filter  Readout Area      Speed            RA          Dec  Nexp";
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %6.6s     %9.9s %10s  %12.12s %12.12s  %4d", $return{'Filter'}, $return{'Readout Area'}, $return{'Speed'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
 
@@ -632,7 +633,7 @@ sub nightlog {
       $return{'Camera'} = $self->camera;
       $return{'Nexp'} = $self->nexp;
 
-      push @{$return{'_ORDER'}}, [ "Mode", "Slit", "Slit Angle", "Grism", "Wavelength", "Filter", "Readout Area", "Camera", "Nexp", "Speed" ];
+      push @{$return{'_ORDER'}}, ( "Mode", "Slit", "Slit Angle", "Grism", "Wavelength", "Filter", "Readout Area", "Camera", "Nexp", "Speed" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n          Mode Slit     PA      Grism Wvlnth Filter  Readout Area  Camera Nexp   Speed";
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n  %12.12s %4.4s %6.2f %10.10s %6.3f %6.6s     %9.9s  %6.6s %4d %7.7s", $return{'Mode'}, $return{'Slit'}, $return{'Slit Angle'}, $return{'Grism'}, $return{'Wavelength'}, $return{'Filter'}, $return{'Readout Area'}, $return{'Camera'}, $return{'Nexp'}, $return{'Speed'});
 
