@@ -548,7 +548,7 @@ sub accounting_db {
     # Combine Time accounting info for a multiple nights.  See documentation
     # for summarizeTimeAcct method in OMP::Project::TimeAcct
     %projects = $dbacct[0]->summarizeTimeAcct( 'byproject', @dbacct )
-      unless (! $dbacct[0]);
+      unless (! defined $dbacct[0]);
   } else {
     # Returning objects
 
