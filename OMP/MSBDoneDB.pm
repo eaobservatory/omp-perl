@@ -48,6 +48,7 @@ use Carp;
 use OMP::Constants qw/ :done /;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
+use OMP::MSBDoneQuery;
 use Time::Piece;
 
 use base qw/ OMP::BaseDB /;
