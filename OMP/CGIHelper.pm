@@ -34,6 +34,7 @@ use OMP::CGIFault;
 use OMP::MSB;
 use OMP::MSBServer;
 use OMP::MSBDoneQuery;
+use OMP::TimeAcctDB;
 use OMP::FBServer;
 use OMP::UserServer;
 use OMP::General;
@@ -1508,13 +1509,34 @@ sub project_home {
   print "</table>";
 
   # Get nights for which data was taken
-  my $nights = OMP::MSBServer->observedDates($project->projectid);
+  my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
 
   # Display nights where data was taken
   if (@$nights) {
+
+    # Get the time spent on each night
+    my $acctdb = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
+    my @accounts = $acctdb->getTimeSpent( projectid => $project->projectid );
+
+    # Sort time spent by night
+    my %accounts;
+    for (@accounts) {
+      $accounts{$_->date->epoch} = $_->timespent;
+    }
+
     print "<h3>Observations were acquired on the following dates:</h3>";
     for (@$nights) {
-      print "$_<br>";
+
+      # Link date to obslog
+      print "<a href='http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl?ut=" . $_->ymd . "'>" . $_->ymd . "</a>";
+
+      if ($accounts{$_->epoch}) {
+	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
+	print " ($h hours)";
+      }
+
+      print "<br>";
+
     }
   } else {
     print "<h3>No data has been acquired for this project</h3>";
