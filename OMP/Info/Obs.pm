@@ -846,7 +846,8 @@ sub _populate {
   $self->duration( $generic_header{EXPOSURE_TIME} );
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
-  $self->telescope( $generic_header{TELESCOPE} );
+  $generic_header{TELESCOPE} =~ /^(\w+)/;
+  $self->telescope( $1 );
   $self->filename( $generic_header{FILENAME} );
 
   # Build the Astro::WaveBand object
