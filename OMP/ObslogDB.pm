@@ -339,7 +339,7 @@ sub updateObsComment {
 
 # Check to see if we actually have observations before doing this.
 # If we don't, just return the array.
-  return @$obs_arrayref if $#{@$obs_arrayref} < 1;
+  return @$obs_arrayref if $#{$obs_arrayref} < 1;
 
 # What we're going to do is sort the array by time, then
 # get the start and end dates of the whole shmozzle, then
