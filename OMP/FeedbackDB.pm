@@ -296,7 +296,7 @@ sub _store_comment {
 
 Mail the comment to the specified addresses.
 
-  $db->_mail_comment( $comment, \@addresslist );
+  $db->_mail_comment( $comment, \@addresslist, \@cclist );
 
 First argument should be a hash reference.
 
@@ -306,14 +306,14 @@ sub _mail_comment {
   my $self = shift;
   my $comment = shift;
   my $addrlist = shift;
+  my $cclist = shift;
 
   # If there is HTML in the message we'll use "<br>" instead of "\n"
   # to start a new line when adding any text to the message
   my $newline = ($comment->{text} =~ m!</!m ? "<br>" : "\n");
 
   # Mail message
-  my $msg = "Author: $comment->{author}$newline" .
-            "$comment->{text}";
+  my $msg = "$comment->{text}";
 
   my $projectid = $self->projectid;
 
@@ -322,16 +322,21 @@ sub _mail_comment {
   ($comment->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $comment->{subject}"
     or $subject = "$comment->{subject}";
 
+  # Setup message details
+  my %details = ( message => $msg,
+		  to => $addrlist,
+		  from => "$comment->{author} <flex\@jach.hawaii.edu>",
+		  subject => $subject,
+#		  headers => {
+#			      bcc => OMP_CONTACT_PERSON,
+#			     }, );
+		);
+  if ($cclist) {
+    $details{headers}->{cc} = join(',',@$cclist);
+  }
+
   # include a BCC to the OMP person
-  $self->_mail_information(
-			   message => $msg,
-			   to => $addrlist,
-			   from => "flex\@jach.hawaii.edu",
-			   subject => $subject,
-			   headers => {
-				       bcc => OMP_CONTACT_PERSON,
-				      },
-			  );
+  $self->_mail_information(%details);
 
 }
 
@@ -355,7 +360,8 @@ sub _mail_comment_important {
   my $proj = $projdb->_get_project_row;
 
   my @email = ($proj->contacts);
-  $self->_mail_comment( $comment, \@email );
+  my @cc = ($comment->{author}->email);
+  $self->_mail_comment( $comment, \@email, \@cc );
 }
 
 =item B<_mail_comment_info>
