@@ -26,6 +26,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::UserServer;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -743,6 +744,59 @@ sub am_i_staff {
   my $projectid = shift;
 
   return $projectid =~ /^staff$/i;
+}
+
+=item B<determine_user>
+
+See if the user ID can be guessed from the system environment
+without asking for it.
+
+  $user = OMP::General->determine_user( );
+
+Uses the C<$USER> environment variable for the first guess. If that
+is not available or is not verified as a valid user the method either
+returns C<undef> or, if the optional widget object is supplied,
+popups up a Tk dialog box requesting input from the user.
+
+  $user = OMP::General->determine_user( $MW );
+
+If the userid supplied via the widget is still not valid, give
+up and return undef.
+
+Returns the user as an OMP::User object.
+
+=cut
+
+sub determine_user {
+  my $class = shift;
+  my $w = shift;
+
+  my $user;
+  if (exists $ENV{USER}) {
+    $user = OMP::UserServer->getUser($ENV{USER});
+  }
+
+  unless ($user) {
+    # no user so far so if we have a widget popup dialog
+    if ($w) {
+      require Tk::DialogBox;
+      require Tk::LabEntry;
+      my $dbox = $w->DialogBox( -title => "Request OMP user ID",
+				-buttons => ["Accept","Don't Know"],
+			      );
+      my $ent = $dbox->add('LabEntry',
+		 -label => "Enter your OMP User ID:",
+		 -width => 15)->pack;
+      my $but = $dbox->Show;
+      if ($but eq 'Accept') {
+	my $id = $ent->get;
+	$user = OMP::UserServer->getUser($id);
+      }
+
+    }
+  }
+
+  return $user;
 }
 
 =back
