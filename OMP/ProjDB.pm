@@ -225,20 +225,33 @@ name or undef if the project does not exist.
 
 =cut
 
-sub getTelescope {
-  my $self = shift;
+{
+  # Cache project -> telescope mappings
+  my %PROJTELESCOPE;
 
-  # Use a try block since we know that _get_project_row raises
-  # an exception
-  my $tel;
-  try {
-    my $p = $self->_get_project_row();
-    $tel = uc($p->telescope);
-  } catch OMP::Error::UnknownProject with {
-    $tel = undef;
-  };
+  sub getTelescope {
+    my $self = shift;
 
-  return $tel;
+    my $tel;
+    # Try to get the value from our cache, otherwise go
+    # to the database
+    if (exists $PROJTELESCOPE{$self->projectid}) {
+      $tel = $PROJTELESCOPE{$self->projectid};
+    } else {
+      # Use a try block since we know that _get_project_row raises
+      # an exception
+      try {
+	my $p = $self->_get_project_row();
+	$tel = uc($p->telescope);
+
+	# Cache result
+	$PROJTELESCOPE{$p->projectid} = $tel;
+      } catch OMP::Error::UnknownProject with {
+	$tel = undef;
+      };
+    }
+    return $tel;
+  }
 }
 
 =item B<verifyTelescope>
@@ -560,19 +573,21 @@ sub listCountries {
 
 =item B<getTotalAlloc>
 
-Return the total TAG allocation for all projects in a given semester.
+Return the total TAG allocation for all projects in a given telescope and semester.
 
-  $total = $projdb->getTotalAlloc( $semester );
+  $total = $projdb->getTotalAlloc( $telescope, $semester );
 
+The first argument is a telescope name.  The second argument is a semester name.
 Returned as a C<Time::Seconds> object.
 
 =cut
 
 sub getTotalAlloc {
   my $self = shift;
+  my $telescope = shift;
   my $semester = shift;
 
-  return Time::Seconds->new( $self->_get_total_alloc(uc($semester)) );
+  return Time::Seconds->new( $self->_get_total_alloc($telescope, $semester) );
 }
 
 =back
@@ -600,18 +615,35 @@ sub _generate_password {
 
 =item B<_get_total_alloc>
 
-Retrieve the total TAG allocation for all projects in a given semester.
+Retrieve the total TAG allocation for all projects in a given semester not
+in the E & C queue.
 
-  $total = $projdb->_get_total_alloc( $semester );
+  $total = $projdb->_get_total_alloc( $telescope, $semester );
+
+First argument is a telescope name, second is a semester name.
 
 =cut
 
 sub _get_total_alloc {
   my $self = shift;
+  my $telescope = shift;
   my $semester = shift;
 
+  throw OMP::Error::BadArgs("No telescope defined")
+    unless (defined $telescope);
+
+  throw OMP::Error::BadArgs("No semester defined")
+    unless (defined $semester);
+
+  $telescope = uc($telescope);
+  $semester = uc($semester);
+
   # The SQL query
-  my $sql = "SELECT sum(allocated) FROM $PROJTABLE WHERE semester = \"$semester\"";
+  my $sql = "SELECT sum(P.allocated)".
+    " FROM $PROJTABLE P, $PROJQUEUETABLE Q".
+      " WHERE P.projectid = Q.projectid".
+	" AND semester = \"$semester\" AND telescope = \"$telescope\"".
+	  " AND country != \"EC\"";
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -839,14 +871,63 @@ sub _get_projects {
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-  #use Data::Dumper;
-  #print "Count returned: $#$ref\n";
-  #print Dumper($ref) if $#$ref < 15;
+  # Get user and queue information; do a separate query for every
+  # N projects, where N is the value of $MAX_ID
+  my $MAX_ID = 100;
+  my $utable = $OMP::UserDB::USERTABLE; #--- Proj user table ---#
+  my $userquery_sql = "SELECT P.projectid, P.userid, P.capacity, P.contactable, U.uname, U.email\n".
+    "FROM $PROJUSERTABLE P, $utable U\n".
+      "WHERE P.userid = U.userid AND ";
+  my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE WHERE ";
 
-  # For now this includes just the general information
-  # We now need to get the user information separately
-  # In future I might forumalate a query that gives
-  # you all the user information in one go.
+  my %projroles;
+  my %projcontactable;
+  my %projqueue;
+  my %projpri_queue;
+  my $start_index = 0;
+  while ($start_index <= $#$ref) {
+    my $end_index = ( $start_index + $MAX_ID < $#$ref ?
+		      $start_index + $MAX_ID : $#$ref);
+    my $proj_list = join(",", map {"\"".$_->{projectid}."\""}
+			 @$ref[$start_index..$end_index]
+			);
+
+    # First do the user info query
+    $sql = $userquery_sql . "projectid in ($proj_list)";
+    my $userref = $self->_db_retrieve_data_ashash( $sql );
+
+    # Loop over the results and assign to different roles
+    for my $row (@$userref) {
+      my $projectid = $row->{projectid};
+      my $capacity = $row->{capacity};
+      my $userid = $row->{userid};
+
+      # Store the results for assignment to project objects later on
+      $projroles{$projectid}->{$capacity} = []
+	unless exists $projroles{$projectid}->{$capacity};
+
+      push(@{ $projroles{$projectid}->{$capacity} },
+	   new OMP::User( userid => $userid,
+			  name => $row->{uname},
+			  email => $row->{email},
+			));
+
+      $projcontactable{$projectid}->{$userid} = $row->{contactable};
+    }
+
+    # Now do the queue info query
+    $sql = $queuequery_sql . "projectid in ($proj_list)";
+    my $queueref = $self->_db_retrieve_data_ashash( $sql );
+
+    # Loop over results and store for later assignment to project objects
+    for my $row (@$queueref) {
+      my $projectid = $row->{projectid};
+      $projqueue{$projectid}{uc($row->{country})} = $row->{tagpriority};
+      $projpri_queue{$projectid} = uc($row->{country}) if $row->{isprimary};
+    }
+
+    $start_index = $end_index + 1;
+  }
 
   # First create a UserDB object
   my $udb = new OMP::UserDB( DB => $self->db );
@@ -917,55 +998,24 @@ sub _get_projects {
     # Project ID
     my $projectid = $proj->projectid;
 
-    # Now create the PI user
-    my $pi = $udb->getUser( $piuserid );
-    throw OMP::Error::FatalError( "The PI user ID ($piuserid) is not recognized by the OMP system. Please fix project $projectid\n")
-      unless defined $pi;
-
+    # -------- Assign User information ---------
     # This is a kluge for now since we have the PI in two places in the
     # database for historical reasons: once in the ompproj table and once
     # in ompprojuser.
-    $proj->pi( $pi );
+    $proj->pi($projroles{$projectid}{PI}->[0]);
 
-    # ------------ Proj User table --------------------
-    # Now the Co-I and support people via another query
-    my $utable = $OMP::UserDB::USERTABLE;
+    # Now add other users to the project
+    $proj->coi( @{ $projroles{$projectid}{COI} } )
+      if exists $projroles{$projectid}{COI};
+    $proj->support( @{ $projroles{$projectid}{SUPPORT} } )
+      if exists $projroles{$projectid}{SUPPORT};
+    $proj->contactable( %{$projcontactable{$projectid}} );
 
-    # A fairly simple query
-    my $userref = $self->_db_retrieve_data_ashash( "SELECT * FROM $PROJUSERTABLE P, $utable U WHERE projectid = '$projectid' AND P.userid = U.userid" );
-
-    # Loop over the results and assign to different roles
-    my %roles;
-    my %contactable;
-    for my $row (@$userref) {
-      $roles{$row->{capacity}} = [] unless exists $roles{$row->{capacity}};
-      push(@{ $roles{ $row->{capacity} } }, new OMP::User( userid => $row->{userid},
-							   name => $row->{uname},
-							   email => $row->{email},
-							 ));
-      $contactable{ $row->{userid} } = $row->{contactable};
-    }
-
-    # And assign the results
-    $proj->coi( @{ $roles{COI} } ) if exists $roles{COI};
-
-    $proj->support( @{ $roles{SUPPORT} } ) if exists $roles{SUPPORT};
-    $proj->contactable( %contactable );
-
-    # -------- Queue information ---------
-    my $sql = "SELECT * FROM $PROJQUEUETABLE WHERE projectid = '$projectid'";
-    my $qref = $self->_db_retrieve_data_ashash( $sql );
-
-    my %queue;
-    my $primary;
-    for my $row (@$qref) {
-      $queue{uc($row->{country})} = $row->{tagpriority};
-      $primary = uc($row->{country}) if $row->{isprimary};
-    }
+    # -------- Assign Queue information ---------
     # Store new info, but make sure we have cleared the hash first
     $proj->clearqueue;
-    $proj->queue(\%queue);
-    $proj->primaryqueue( $primary );
+    $proj->queue($projqueue{$projectid});
+    $proj->primaryqueue($projpri_queue{$projectid});
 
     # And store it
     push(@projects, $proj);
