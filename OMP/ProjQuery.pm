@@ -46,7 +46,7 @@ our $VERSION = (qw$Revision$ )[1];
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $projtable );
+  $sql = $query->sql( $projtable, $coitable );
 
 Returns undef if the query could not be formed.
 
@@ -56,9 +56,9 @@ sub sql {
   my $self = shift;
 
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
-    unless scalar(@_) ==1;
+    unless scalar(@_) ==3;
 
-  my ($projtable) = @_;
+  my ($projtable, $coitable, $suptable) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -68,14 +68,34 @@ sub sql {
   # subclass
   my $subsql = $self->_qhash_tosql();
 
-  # If the resulting query contained anything we should prepend
-  # an AND so that it fits in with the rest of the SQL. This allows
-  # an empty query to work without having a naked "AND".
-  $subsql = " WHERE " . $subsql if $subsql;
-
   # Now need to put this SQL into the template query
-  my $sql = "SELECT * FROM $projtable $subsql";
+  # Only do a join if required by the CoI or Support query
 
+  my $c_table = '';
+  my $c_sql = '';
+  if ($subsql =~ /\bC\.userid\b/) {
+    $c_table = ", $coitable C";
+    $c_sql = " P.projectid = C.projectid ";
+  }
+  my $s_table = '';
+  my $s_sql = '';
+  if ($subsql =~ /\bS\.userid\b/) {
+    $s_table = ", $suptable S";
+    $s_sql = " P.projectid = S.projectid ";
+  }
+
+  # Construct the the where clause. Depends on which
+  # additional queries are defined
+  my @where = grep { $_ } ($s_sql, $c_sql, $subsql);
+  my $where = '';
+  $where = " WHERE " . join( " AND ", @where)
+    if @where;
+
+  # The final query
+  my $sql = "SELECT * FROM $projtable P $s_table $c_table
+              $where";
+
+  #print "SQL: $sql\n";
   return "$sql\n";
 
 }
@@ -144,8 +164,32 @@ sub _post_process_hash {
   # If we are dealing with a these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) }, 
-			   [qw/projectid telescope/]);
+  $self->_process_elements($href, sub { uc(shift) },
+			   [qw/projectid telescope support coi/]);
+
+  # These entries are in more than one table so we have to 
+  # explicitly choose the project table
+  for (qw/ projectid /) {
+    if (exists $href->{$_}) {
+      my $key = "P.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
+  # A coi query is really a query on C.userid
+  if (exists $href->{coi}) {
+    my $key = "C.userid";
+    $href->{$key} = $href->{coi};
+    delete $href->{coi};
+  }
+
+  # Similarly for "support" query
+  if (exists $href->{support}) {
+    my $key = "S.userid";
+    $href->{$key} = $href->{support};
+    delete $href->{support};
+  }
 
 
   # Remove attributes since we dont need them anymore

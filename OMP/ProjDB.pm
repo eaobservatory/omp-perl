@@ -536,8 +536,11 @@ sub _update_project_row {
 
   if (UNIVERSAL::isa( $proj, "OMP::Project")) {
 
+    # Update the projectid stored in this DB instance
+    $self->projectid( $proj->projectid );
+
     # First we delete the current contents
-    $self->_delete_project_row( $proj->projectid );
+    $self->_delete_project_row();
 
     # Then we insert the new values
     $self->_insert_project_row( $proj );
@@ -554,18 +557,17 @@ sub _update_project_row {
 
 Delete the specified project from the database table.
 
-  $db->_delete_project_row( $project_string );
+  $db->_delete_project_row();
+
+The project ID is picked up from the DB object.
 
 =cut
 
 sub _delete_project_row {
   my $self = shift;
-  my $projectid = shift;
 
   # Must clear out user link tables as well
-  for ($PROJTABLE, $COITABLE, $SUPTABLE) {
-    $self->_db_delete_project_data( $_ );
-  }
+  $self->_db_delete_project_data( $PROJTABLE, $COITABLE, $SUPTABLE );
 
 }
 
@@ -634,10 +636,14 @@ sub _get_projects {
   my $self = shift;
   my $query = shift;
 
-  my $sql = $query->sql( $PROJTABLE );
+  my $sql = $query->sql( $PROJTABLE, $COITABLE, $SUPTABLE );
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+#  use Data::Dumper;
+#  print "Count returned: $#$ref\n";
+#  print Dumper($ref) if $#$ref < 15;
 
   # For now this includes just the general information
   # We now need to get the user information separately
