@@ -758,6 +758,9 @@ consist of:
   text        - the comment itself (HTML) (Required)
   status      - whether to mail out the comment or not. Default
                 is not to mail anyone.
+  msgtype     - the type of comment being submitted (any of the
+                constants defined in OMP::Constants that begin
+                with OMP__FB_MSG_)
 
 =cut
 
@@ -785,6 +788,7 @@ sub _notify_feedback_system {
   $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
   $comment{program} = $0 unless exists $comment{program};
   $comment{status} = OMP__FB_HIDDEN unless exists $comment{status};
+  $comment{msgtype} = OMP__FB_MSG_COMMENT unless exists $comment{msgtype};
 
   # Add the comment
   $fbdb->addComment( { %comment } );
