@@ -782,7 +782,8 @@ sub _summarize_obs {
     # key. Store the value in a hash keyed by itself so that we
     # can automatically mask out duplicated
 
-    my %options = map { $_, undef } map { $_->{$key} } @obs;
+    my %options = map { $_, undef } 
+      map { defined $_->{$key} ? $_->{$key} : "MISSING" } @obs;
 
     $summary{$key} = join("/", keys %options);
 
@@ -932,7 +933,9 @@ sub _get_weather_data {
         $self->_tree->findnodes(".//SpSiteQualityObsComp"));
 
   # and use the last one in the list (hopefully we are only allowed
-  # to specify a single value
+  # to specify a single value). We get the last one because we want
+  # inheritance to work and the refs from outside the MSB are put in
+  # before the actual MSB contents
   return () unless @comp;
 
   my $el = $self->_resolve_ref($comp[-1]);
@@ -942,6 +945,9 @@ sub _get_weather_data {
   # Need to get "seeing" and "tauband"
   $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
   $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
+
+#  use Data::Dumper;
+#  print Dumper(\%summary);
 
   return %summary;
 
