@@ -180,7 +180,8 @@ sub ot_version {
 
     return $ver;
   }
-  return;
+  # return explicit undef rather than empty list
+  return undef;
 }
 
 =item B<msb>
