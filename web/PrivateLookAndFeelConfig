@@ -3,11 +3,11 @@
 @NOSIDEBAR=0;
 @NAVBAR=0;
 @INFO=
-<A HREF="http://omp-private.jach.hawaii.edu/cgi-bin/listprojects.pl">
+<A HREF="/cgi-bin/listprojects.pl">
 	List projects</a>,
-<A HREF="http://omp-private.jach.hawaii.edu/cgi-bin/wwwobserved.pl">
+<A HREF="/cgi-bin/wwwobserved.pl">
 	Observed MSBs</a>,
-<A HREF="http://omp-private.jach.hawaii.edu/cgi-bin/ompusers.pl">
+<A HREF="/cgi-bin/ompusers.pl">
 	OMP user info</a>,
 <A HREF="http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl">
 	OMP Feedback system</a>,
