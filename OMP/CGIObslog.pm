@@ -395,8 +395,8 @@ sub obs_table {
       foreach my $comment (@$comments) {
         my $string = "<font color=\"";
         $string .= $colour[$comment->status];
-        $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-        $string .= "</strong> " . $comment->text;
+        $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+        $string .= " " . $comment->text;
         $string .= "</font>";
         $string =~ s/\n/\<br\>/g;
         push @printstrings, $string;
