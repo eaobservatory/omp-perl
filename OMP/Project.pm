@@ -75,6 +75,8 @@ sub new {
 		    PI => undef,
 		    Remaining => undef, # so that it defaults to allocated
 		    Pending => 0,
+		    Support => [],
+		    SupportEmail => [],
 		   }, $class;
 
   # Deal with arguments
@@ -360,6 +362,101 @@ sub projectid {
   return $self->{ProjectID};
 }
 
+=item B<support>
+
+The names of any support scientists associated with the project.
+
+  @names = $proj->support;
+  $names = $proj->support;
+  $proj->support( @names );
+  $proj->support( \@names );
+  $proj->support( "name1:name2" );
+
+If the strings contain colons it is assumed that the colons are delimeters
+for multiple co-investigators. In this case, the names will be
+split and stored as separate elements in the array.
+
+If this method is called in a scalar context the names will be returned
+as a single string joined by a colon.
+
+=cut
+
+sub support {
+  my $self = shift;
+  if (@_) { 
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+      @names = @{ $_[0] };
+    } elsif (defined $_[0]) {
+      # If the first name isnt valid assume none are
+      @names = @_;
+    }
+
+    # Now split on the delimiter
+    @names = map { split /$DELIM/, $_; } @names;
+
+    # And store the result
+    $self->{Support} = \@names; 
+  }
+
+  # Return either the array of names or a delimited string
+  if (wantarray) {
+    return @{ $self->{Support} };
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @{ $self->{Support} } );
+  }
+
+}
+
+=item B<supportemail>
+
+The email addresses of support scientists associated with the project.
+
+  @email = $proj->supportemail;
+  $emails   = $proj->supportemail;
+  $proj->supportemail( @email );
+  $proj->supportemail( \@email );
+  $proj->supportemail( "email1:email2:email3" );
+
+If the input strings contain colons it is assumed that the colons are
+delimeters for multiple email addresses. In this case, the names will
+be split and stored as separate elements in the array.
+
+If this method is called in a scalar context the addresses will be returned
+as a single string joined by a colon.
+
+=cut
+
+sub supportemail {
+  my $self = shift;
+  if (@_) { 
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+      @names = @{ $_[0] };
+    } elsif (defined $_[0]) {
+      # If first isnt valid assume none are
+      @names = @_;
+    }
+
+    # Now split on the delimiter
+    @names = map { split /$DELIM/, $_; } @names;
+
+    # And store it
+    $self->{SupportEmail} = \@names; 
+  }
+
+  # Return either the array of emails or a delimited string
+  if (wantarray) {
+    return @{ $self->{SupportEmail} };
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @{ $self->{SupportEmail} });
+  }
+
+}
+
+
 =item B<remaining>
 
 The amount of time remaining on the project (in seconds).
@@ -471,6 +568,36 @@ sub investigators {
   }
 
 }
+
+=item contacts
+
+Return the contact email addresses for all those people associated
+with the project. This is the investigators and support scientists.
+
+  my @email = $proj->contacts;
+  my $email = $proj->contacts;
+
+Like C<coiemail> this method returns a list in list context and
+a delimited string in scalar context.
+
+=cut
+
+sub contacts {
+  my $self = shift;
+
+  # Get all the email addresses
+  my @email = ( $self->investigators, $self->supportemail);
+
+  # Return either the array of emails or a delimited string
+  if (wantarray) {
+    return @email;
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @email );
+  }
+
+}
+
 
 =back
 
