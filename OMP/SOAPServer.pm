@@ -88,8 +88,9 @@ sub throwException {
   chomp($Estring);
 
   # Get the error number - defaulting to OMP__ERROR if required
-  my $Enum = $E->value;
-  $Enum = OMP__ERROR unless defined $Enum;
+  # Make sure we can invoke the value method.
+  my $Enum = OMP__ERROR;
+  $Enum = $E->value if $E->can("value") && defined $E->value;
 
   OMP::General->log_message("Rethrowing SOAP exception: $Estring\n");
 
