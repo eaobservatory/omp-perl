@@ -113,7 +113,7 @@ sub store_archive {
   if ($query->istoday) {
 
     my @all_obs;
-    my %grouped = $grp->groupby('instrument');
+    my %grouped = $obsgrp->groupby('instrument');
     foreach my $inst (keys %grouped) {
       # $grouped{$inst} is an ObsGroup object of only that instrument.
       # They're not sorted, of course, so sort by time.
