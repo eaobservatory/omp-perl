@@ -757,19 +757,13 @@ Co-I C<OMP::User> objects.
 
   my @users = $proj->investigators;
 
-B<For now this only returns the PI information. Do this until
-we are sure who we should be contacting with Feedback information>
-
 =cut
 
 sub investigators {
   my $self = shift;
 
   # Get all the User objects
-  my @users = ( $self->pi, $self->coi);
-#  @users = ($self->pi);
-
-  return @users;
+  return ( $self->pi, $self->coi);
 }
 
 =item contacts
