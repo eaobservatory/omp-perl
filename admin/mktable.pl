@@ -270,6 +270,7 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
+
   # Comment out as required
   next if $table eq 'ompproj';
   next if $table eq 'ompsciprog';
@@ -285,6 +286,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompcoiuser';
   next if $table eq 'ompshiftlog';
   next if $table eq 'ompobslog';
+  next if $table eq 'omptimeacct';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
