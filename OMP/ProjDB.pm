@@ -829,7 +829,7 @@ sub _insert_project_row {
   my ($taumin, $taumax)     = OMP::SiteQuality::to_db( 'TAU',
 						       $proj->taurange );
   my ($seemin, $seemax)     = OMP::SiteQuality::to_db( 'SEEING',
-						       $proj->seerange );
+						       $proj->seeingrange );
   my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db( 'CLOUD',
 						       $proj->cloudrange );
   my ($skymin, $skymax)     = OMP::SiteQuality::to_db( 'SKY',
