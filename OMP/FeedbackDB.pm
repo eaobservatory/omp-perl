@@ -36,6 +36,7 @@ use OMP::ProjDB;
 use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
+use OMP::Config;
 
 use Text::Wrap;
 
@@ -43,8 +44,6 @@ use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
 our $FBTABLE = "ompfeedback";
-
-use constant OMP_CONTACT_PERSON => 'frossie@jach.hawaii.edu';
 
 =head1 METHODS
 
@@ -298,27 +297,32 @@ sub _store_comment {
 
 =item B<_mail_comment>
 
-Mail the comment to the specified addresses.
+Mail the comment to the specified users.  
 
-  $db->_mail_comment( $comment, \@addresslist, \@cclist );
+  $db->_mail_comment( comment => $comment,
+		      to => \@to,
+		      cc => \@cc,
+		      bcc => \@bcc, );
 
-First argument should be a hash reference.
+Arguments should be provided in the form of a hash with the following keys:
+ comment - a hash reference containing comment details
+ to      - array reference containing C<OMP::User> objects
+ cc      - array reference containing C<OMP::User> objects
+ bcc     - array reference containing C<OMP::User> objects
 
 =cut
 
 sub _mail_comment {
   my $self = shift;
-  my $comment = shift;
-  my $addrlist = shift;
-  my $cclist = shift;
+  my %args = @_;
 
   # If there is HTML in the message we'll use "<br>" instead of "\n"
   # to start a new line when adding any text to the message
-  my $newline = ($comment->{text} =~ m!</!m ? "<br>" : "\n");
+  my $newline = ($args{comment}->{text} =~ m!</!m ? "<br>" : "\n");
 
   # Mail message (Format with HTML since the mail method will convert to
   # plaintext)
-  my $msg = "Author: $comment->{author}<br><br>$comment->{text}";
+  my $msg = $args{comment}->{text};
 
   # Word wrap the message
   $msg = wrap('', '', $msg);
@@ -327,30 +331,27 @@ sub _mail_comment {
 
   # Put projectid in subject header if it isn't already there
   my $subject;
-  ($comment->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $comment->{subject}"
-    or $subject = "$comment->{subject}";
+  ($args{comment}->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $args{comment}->{subject}"
+    or $subject = "$args{comment}->{subject}";
+
+  my $from = (defined $args{comment}->{author} ?
+	      $args{comment}->{author} : OMP::User->new(email=>'flex@' . OMP::Config->getData('maildomain')));
 
   # Setup message details
   my %details = ( message => $msg,
-		  to => $addrlist,
-		  from => "flex\@jach.hawaii.edu",
+		  to => $args{to},
+		  from => $from,
+		  bcc => $args{bcc},
 		  subject => $subject,
 		  headers => {
-			      bcc => OMP_CONTACT_PERSON,
+			      "Reply-to" => "flex\@jach.hawaii.edu",
 			     }, );
 
-  if ($cclist) {
-    $details{cc} = join(',',@$cclist);
+  if ($args{cc}) {
+    $details{cc} = $args{cc};
   }
 
   $self->_mail_information(%details);
-
-#  if ($cclist) {
-#    # Mail another copy since CC'ing doesn't work at all for some reason
-#    $details{to} = join(',',@$cclist);
-#    $self->_mail_information(%details);
-#  }
-
 }
 
 =item B<_mail_comment_important>
@@ -372,14 +373,25 @@ sub _mail_comment_important {
 
   my $proj = $projdb->_get_project_row;
 
-  my @email = ($proj->contacts);
+  my @to = $proj->contacts;
 
   my @cc;
   if (defined $comment->{author}) {
-    @cc = $comment->{author}->email;
+    push (@cc, $comment->{author});
   }
 
-  $self->_mail_comment( $comment, \@email, \@cc );
+  # Bcc the OMP contact person(s)
+  my @ompcontacts = OMP::Config->getData('omp-bcc');
+  my @bcc;
+  for (@ompcontacts) {
+    my $user = OMP::User->new(email=>$_);
+    push(@bcc, $user);
+  }
+
+  $self->_mail_comment( comment => $comment,
+			to => \@to,
+			cc => \@cc,
+		        bcc => \@bcc, );
 }
 
 =item B<_mail_comment_support>
@@ -400,11 +412,11 @@ sub _mail_comment_support {
 
   my $project = $projdb->_get_project_row;
 
-  my @email = $project->supportemail;
+  my @to = $project->support;
 
   # Only mail if there is a support address
-  $self->_mail_comment( $comment, \@email )
-    if ($email[0]);
+  $self->_mail_comment( comment => $comment, to => \@to )
+    if ($to[0]);
 }
 
 =item B<_mail_comment_info>
@@ -431,9 +443,9 @@ sub _mail_comment_info {
   # we specfy the administrator password here]
   my $proj = $projdb->_get_project_row;
 
-  my @email = ($proj->piemail);
+  my @to = ($proj->pi);
 
-  $self->_mail_comment( $comment, \@email );
+  $self->_mail_comment( comment => $comment, to => \@to );
 }
 
 =item B<_fetch_comments>
@@ -442,8 +454,7 @@ Internal method to retrieve the comments from the database.
 The hash argument controls the sort order of the results and the
 status of comments to be retrieved.
 
-Only
-argument is an array reference containing the desired statuses of the
+Only argument is an array reference containing the desired statuses of the
 comments to be returned.
 
   $db->_fetch_comments( %args );
