@@ -400,7 +400,7 @@ sub summary {
     for my $msb (@msbs) {
       $count++;
       my $info = $msb->info;
-      push(@lines, $info->summary('textlong'));
+      push(@lines, $info->summary('html'));
     }
 
     # Return a list or a string
