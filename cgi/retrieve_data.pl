@@ -1,21 +1,23 @@
-#!/local/perl/bin/perl -XT
+#!/local/perl-5.6/bin/perl -XT
+
+use 5.006;
 use strict;
 
-# Standard initialisation (not much shorter than the previous
-# code but no longer has the module path hard-coded)
-BEGIN {
-  my $retval = do "./omp-cgi-init.pl";
-  unless ($retval) {
-    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
-    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
-    warn "couldn't run omp-cgi-init.pl"       unless $retval;
-    exit;
-  }
-}
+use FindBin;
+#use lib "$FindBin::RealBin/../";
+use lib "/jac_sw/omp/msbserver";
 
-# Load OMP modules
+BEGIN { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"; }
+
+use CGI;
+use CGI::Carp qw/fatalsToBrowser/;
 use OMP::CGI;
-use OMP::CGIPkgData;
+use OMP::CGI::PkgDataPage;
+
+
+# unbuffered
+$| = 1;
+
 
 # Create the new object for this transaction
 my $cquery = new CGI;
@@ -23,6 +25,6 @@ my $cgi = new OMP::CGI( CGI => $cquery );
 $cgi->html_title( "OMP Data retrieval" );
 
 # Now write the page
-$cgi->write_page( \&OMP::CGIPkgData::request_data,
-		  \&OMP::CGIPkgData::request_data
+$cgi->write_page( \&OMP::CGI::PkgDataPage::request_data,
+		  \&OMP::CGI::PkgDataPage::request_data
 		);
