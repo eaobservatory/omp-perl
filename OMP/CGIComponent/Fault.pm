@@ -691,6 +691,11 @@ sub file_fault_form {
   print $q->hidden(-name=>'formkey',
 		   -default=>$formkey);
 
+  # Embed fault category in case the user's cookie changes to
+  # another category while fault is being filed
+  print $q->hidden(-name=>'category',
+		   -default=>$self->category,);
+
   # Need the show_output param in order for the output code ref to be called next
   print $q->hidden(-name=>'show_output',
 		   -default=>'true');
