@@ -143,10 +143,11 @@ my %tables = (
 			   timelost => "REAL",
 			   faultdate => "datetime null",
 			   status => "INTEGER",
+			   subject => "VARCHAR(128) null",
 			   urgency => "INTEGER",
 			   _ORDER => [qw/
-				      faultid category faultdate type system
-				      status urgency timelost entity
+				      faultid category subject faultdate type
+				      system status urgency timelost entity
 				      /],
 			  },
 	      ompfaultbody => {

@@ -269,7 +269,8 @@ sub faultStatus {
 Fault constructor. A fault must be created with the following information:
 
   category  - fault category: UKIRT, JCMT, CSG or OMP [string]
-  faultdate - date the fault occurred               [date]
+  subject     - short summary of the fault            [string]
+  faultdate - date the fault occurred                 [date]
   timelost  - time lost to the fault (hours)        [float]
   system    - fault category                        [integer]
   type      - fault type                            [integer]
@@ -326,6 +327,7 @@ sub new {
 		     Category => undef,
 		     Responses => [],
 		     Status => OPEN,
+		     Subject => undef,
 		    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -418,6 +420,66 @@ sub system {
   my $self = shift;
   if (@_) { $self->{System} = shift; }
   return $self->{System};
+}
+
+=item B<typeText>
+
+Return the textual description of the current fault type.
+A fault can not be modified using this method.
+
+  $type = $fault->typeText();
+
+=cut
+
+sub typeText {
+  my $self = shift;
+  return $INVERSE{$self->category}{TYPE}{$self->type};
+}
+
+=item B<systemText>
+
+Return the textual description of the current fault system.
+A fault can not be modified using this method.
+
+  $system = $fault->systemText();
+
+=cut
+
+sub systemText {
+  my $self = shift;
+  return $INVERSE{$self->category}{SYSTEM}{$self->system};
+}
+
+=item B<statusText>
+
+Return the textual description of the current fault status.
+A fault can not be modified using this method.
+
+  $status = $fault->statusText();
+
+=cut
+
+sub statusText {
+  my $self = shift;
+  return $INVERSE_STATUS{$self->status};
+}
+
+
+
+=item B<subject>
+
+Short description of the fault that can be easily displayed
+in summary tables and in email responses.
+
+  $subj = $fault->subject();
+  $fault->subject( $subj  );
+
+=cut
+
+sub subject {
+  my $self = shift;
+  if (@_) { $self->{Subject} = shift; }
+  return $self->{Subject};
 }
 
 =item B<status>
@@ -719,9 +781,6 @@ sub stringify {
   my $date = $responses[0]->date;
   my $firstresponse = $responses[0]->text;
   my $tlost = $self->timelost;
-  my $typecode = $self->type;
-  my $syscode = $self->system;
-  my $statcode = $self->status;
   my $urgcode  = $self->urgency;
   my $category = $self->category;
   my $faultdate = $self->faultdate;
@@ -740,9 +799,9 @@ sub stringify {
   }
 
   # Convert system, type and status codes to a string.
-  my $system = $INVERSE{$category}{SYSTEM}{$syscode};
-  my $type = $INVERSE{$category}{TYPE}{$typecode};
-  my $status = $INVERSE_STATUS{$statcode};
+  my $system = $self->systemText;
+  my $type = $self->typeText;
+  my $status = $self->statusText;
 
   # Only want to say something about urgency if it is urgent
   my $urgency = '';

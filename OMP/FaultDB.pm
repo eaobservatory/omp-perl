@@ -274,10 +274,10 @@ sub _store_new_fault {
 
   # Simply use "do" since there is only a single insert
   # (without the text field)
-  $dbh->do("INSERT INTO $FAULTTABLE VALUES (?,?,?,?,?,?,?,?,?)",undef,
-	   $fault->id, $fault->category, $faultdate, $fault->type,
-	  $fault->system, $fault->status, $fault->urgency, $fault->timelost,
-	  $fault->entity)
+  $dbh->do("INSERT INTO $FAULTTABLE VALUES (?,?,?,?,?,?,?,?,?,?)",undef,
+	   $fault->id, $fault->category, $self->subject, $faultdate, 
+	   $fault->type, $fault->system, $fault->status, $fault->urgency, 
+	   $fault->timelost, $fault->entity)
     or throw OMP::Error::DBError("Error inserting new MSB done rows: $DBI::errstr");
 
   # Now loop over responses
