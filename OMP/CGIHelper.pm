@@ -28,6 +28,7 @@ use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::MSBServer;
 use OMP::FBServer;
+use OMP::General;
 use OMP::Constants qw(:fb :done);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -491,8 +492,13 @@ sub add_comment_output {
   my $q = shift;
   my %cookie = @_;
 
+  # Get the address of the machine remotely running this cgi script to be given
+  # to the addComment method as the sourceinfo param
+  my @host = OMP::General->determine_host;
+
   my $comment = { author => $q->param('author'),
 		  subject => $q->param('subject'),
+		  sourceinfo => $host[1],
 		  text => $q->param('text'),
 		  program => $q->url(-relative=>1), # the name of the cgi script
 		  status => OMP__FB_IMPORTANT, };
