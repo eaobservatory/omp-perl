@@ -207,10 +207,27 @@ sub unstored_files {
   if( defined( $instrument ) ) {
     push @insts, $instrument;
   } elsif( defined( $telescope ) ) {
-    @insts = OMP::Config->getData( 'instruments',
-                                   telescope => $telescope,
-                                 );
+    # Need to make sure we kluge the rx -> heterodyne conversion
+    my @initial = OMP::Config->getData('instruments',
+				       telescope => $telescope
+				      );
+    print "Querying config system for cache\n";
+    my $ishet = 0;
+    for my $inst (@initial) {
+      if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
+	$ishet = 1;
+	print "Inst skipping $inst\n";
+	next;
+      }
+      print "Pushing $inst\n";
+      push(@insts, $inst);
+    }
+    push(@insts, "heterodyne") if $ishet;
+
   }
+
+  use Data::Dumper;
+  print "Cache insts: ".Dumper(\@insts);
 
   my @ifiles;
   for(my $day = $query->daterange->min; $day <= $query->daterange->max; $day = $day + ONE_DAY) {
@@ -224,6 +241,8 @@ sub unstored_files {
                                             utdate => $day,
                                           );
 
+      $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
+
       opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
       @ifiles = grep(!/^\./, readdir(FILES));
       closedir(FILES);
@@ -233,9 +252,9 @@ sub unstored_files {
                                        );
       @ifiles = grep /$regexp/, @ifiles;
       @ifiles = sort {
-        $a =~ /_(\d+)\.sdf$/;
+        $a =~ /_(\d+)\.(sdf|dat)$/;
         my $a_obsnum = int($1);
-        $b =~ /_(\d+)\.sdf$/;
+        $b =~ /_(\d+)\.(sdf|dat)$/;
         my $b_obsnum = int($1);
         $a_obsnum <=> $b_obsnum; } @ifiles;
       @ifiles = map { $directory . '/' . $_ } @ifiles;

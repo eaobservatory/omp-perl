@@ -234,6 +234,8 @@ sub _query_files {
   my $self = shift;
   my $query = shift;
 
+  print "Querying files\n";
+
   my ( $telescope, $daterange, $instrument, $runnr, $filterinst );
   my @returnarray;
 
@@ -260,12 +262,28 @@ sub _query_files {
     }
     push @instarray, $instrument;
   } elsif( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
-    push @instarray, OMP::Config->getData('instruments',
-                                          telescope => $telescope
-                                         );
+    # Need to make sure we kluge the rx -> heterodyne conversion
+    my @initial = OMP::Config->getData('instruments',
+				       telescope => $telescope
+				      );
+    print "Querying config system\n";
+    my $ishet = 0;
+    for my $inst (@initial) {
+      if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
+	$ishet = 1;
+	next;
+      }
+      push(@instarray, $inst);
+    }
+    push(@instarray, "heterodyne") if $ishet;
+
+
   } else {
     throw OMP::Error::BadArgs( "Unable to return data. No telescope or instrument set." );
   }
+
+  use Data::Dumper;
+  print Dumper(\@instarray);
 
   my $obsgroup;
   my @files;
@@ -291,6 +309,8 @@ sub _query_files {
 
       foreach my $inst ( @instarray ) {
 
+	print "Stepping through instrument $inst\n";
+
 ################################################################################
 # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
 ################################################################################
@@ -314,13 +334,14 @@ sub _query_files {
 # observations.
 ################################################################################
 
-        if( uc($inst) eq 'SCUBA' ) {
-          $directory .= "/dem";
-        }
+	$directory =~ s/\/dem$// unless $inst =~ /scuba/i;
+#        if( uc($inst) eq 'SCUBA' ) {
+#          $directory .= "/dem";
+#        }
 
         # Get a file list.
         if( -d $directory ) {
-          opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
+          opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
           @files = grep(!/^\./, readdir(FILES));
           closedir(FILES);
 
@@ -381,6 +402,7 @@ sub _query_files {
 
   foreach my $file ( @files ) {
     # Create the Obs object.
+    print "Reading file $file\n";
     my $obs = readfile OMP::Info::Obs( $file );
     if( !defined( $obs ) ) { next; }
 

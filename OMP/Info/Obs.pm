@@ -103,7 +103,7 @@ sub readfile {
   try {
     if( $filename =~ /sdf$/ ) {
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
-    } elsif( $filename =~ /gsd$/ ) {
+    } elsif( $filename =~ /(gsd|dat)$/ ) {
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
     }
     $obs = $class->new( fits => $FITS_header );
