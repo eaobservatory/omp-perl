@@ -120,7 +120,7 @@ for my $proj (keys %alloc) {
   # TAG priority
   my @tag = split /,/, $details{tagpriority};
 
-  die "Number of TAG priorities is neither 1 nor number of countries"
+  die "Number of TAG priorities is neither 1 nor number of countries [$proj]"
     unless ($#tag == 0 || $#tag == $#{$details{country}});
 
   $details{tagpriority} = \@tag if scalar(@tag) > 1;
