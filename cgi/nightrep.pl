@@ -9,8 +9,7 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
       }
 
 
-#use lib qw(/jac_sw/omp/msbserver);
-use lib "/home/timj/omp/msbserver";
+use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIHelper;
