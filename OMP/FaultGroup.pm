@@ -28,7 +28,9 @@ our $VERSION = (qw$ Revision: $ )[1];
 
 use OMP::Fault;
 use OMP::FaultDB;
+use OMP::General;
 use OMP::PlotHelper;
+use OMP::Project::TimeAcct;
 
 use Time::Piece;
 use Time::Seconds;
@@ -146,7 +148,8 @@ represented by a Time::Seconds object.
   $f->timelost( new Time::Seconds( 3600 ) );
 
 If called with only an undef value, this method will clear
-the value this method returns.
+the value this method returns.  If undefined, a C<Time::Seconds>
+object is returned with a value of 0 seconds.
 
 =cut
 
@@ -170,9 +173,9 @@ sub timelost {
 
     # Calculate time lost since the value is not already cached
     my @faults = $self->faults;
-    my $timelost;
-    my $timelost_nontech;
-    my $timelost_technical;
+    my $timelost = 0;
+    my $timelost_nontech = 0;
+    my $timelost_technical = 0;
     for my $fault ( @faults ) {
       my $loss = new Time::Seconds($fault->timelost * ONE_HOUR);
       if ($fault->typeText =~ /human/i or $fault->statusText =~ /not a fault/i) {
@@ -190,7 +193,11 @@ sub timelost {
     $self->timelostNonTechnical( $timelost_nontech );
     $self->timelostTechnical( $timelost_technical );
   }
-  return $self->{TimeLost};
+  if (! defined $self->{TimeLost}) {
+    return Time::Seconds->new(0);
+  } else {
+    return $self->{TimeLost};
+  }
 }
 
 =item B<timelostTechnical>
@@ -202,7 +209,8 @@ The time is represented by a Time::Seconds object.
   $f->timelostTechnical( new Time::Seconds( 3600 ) );
 
 If called with only an undef value, this method will clear
-the value this method returns.
+the value this method returns. If undefined, a C<Time::Seconds>
+object is returned with a value of 0 seconds.
 
 =cut
 
@@ -220,7 +228,11 @@ sub timelostTechnical {
       $self->{TimeLostTechnical} = $time;
     }
   }
-  return $self->{TimeLostTechnical};
+  if (! defined $self->{TimeLostTechnical}) {
+    return Time::Seconds->new(0);
+  } else {
+    return $self->{TimeLostTechnical};
+  }
 }
 
 =item B<timelostNonTechnical>
@@ -231,7 +243,8 @@ Time lost to non-technical faults (those with type that is "human" or status of 
   $f->timelostNonTechnical( new Time::Seconds( 3600 ) );
 
 If called with only an undef value, this method will clear
-the value this method returns.
+the value this method returns. If undefined, a C<Time::Seconds>
+object is returned with a value of 0 seconds.
 
 =cut
 
@@ -249,7 +262,11 @@ sub timelostNonTechnical {
       $self->{TimeLostNonTechnical} = $time;
     }
   }
-  return $self->{TimeLostNonTechnical};
+  if (! defined $self->{TimeLostNonTechnical}) {
+    return Time::Seconds->new(0);
+  } else {
+    return $self->{TimeLostNonTechnical};
+  }
 }
 
 =item B<categories>
@@ -493,6 +510,48 @@ sub faultRateStats {
 					      startdate => $args{startdate},);
 
   return @stats;
+}
+
+
+=item B<timeacct>
+
+Return an array of C<OMP::Project::TimeAcct> group objects.  One
+C<OMP::Project::TimeAcct> object is created for each UT date where
+time was lost.  The special project ID assigned to each object
+is "__FAULT__".
+
+  @acct = $f->timeacct();
+  $acct = $f->timeacct();
+
+Returns either an array or a reference to an array.
+
+=cut
+
+sub timeacct {
+  my $self = shift;
+  my @fault = $self->faults;
+  my %faults_by_ut;
+
+  for my $fault (@fault) {
+    if ($fault->timelost) {
+      push @{$faults_by_ut{$fault->date->strftime('%Y%m%d')}}, $fault;
+    }
+  }
+
+  my @acct;
+  for my $ut (sort keys %faults_by_ut) {
+    my $fgroup = $self->new(faults=>$faults_by_ut{$ut});
+    my $acct = new OMP::Project::TimeAcct(projectid => '__FAULT__',
+					  date => OMP::General->parse_date($ut),
+					  timespent => $fgroup->timelost,
+					  confirmed => 1,);
+    push @acct, $acct;
+  }
+  if (wantarray) {
+    return @acct;
+  } else {
+    return \@acct;
+  }
 }
 
 =back
