@@ -72,7 +72,7 @@ my %lut = (
 		    $GSDTAB => 'G.ut',
 		    $UKIRTTAB => 'U.UT_DATE',
 		   },
-	   obsnum => {
+	   runnr => {
 		    $SCUTAB => 'S.run',
 		    $GSDTAB => 'G.scan',
 		    $UKIRTTAB => 'U.OBSNUM',
