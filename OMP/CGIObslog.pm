@@ -507,7 +507,7 @@ sub obs_table {
       if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
         print "&timegap=1";
       }
-      print "\">edit/view</a></td>";
+      print "\">comment</a></td>";
     }
 
     if( $text ) {
@@ -556,10 +556,15 @@ sub obs_table {
           print "</td>";
         }
         catch OMP::Error with {
+          my $Error = shift;
+          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+          print "<td>&nbsp;</td>";
 #        next;
         }
         otherwise {
-          print "<td>b</td>";
+          my $Error = shift;
+          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+          print "<td>&nbsp;</td>";
 #        next;
         };
       } else {
