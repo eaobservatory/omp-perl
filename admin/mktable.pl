@@ -89,15 +89,23 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
-  #next unless $table eq 'ompproj';
+  #next unless $table eq 'ompsciprog';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
+
+  print "Drop table $table\n";
+  my $sth = $dbh->prepare("DROP TABLE $table")
+    or die "Cannot drop table $table: ". $dbh->errstr();
+
+  $sth->execute() or die "Cannot execute: " . $sth->errstr();
+  $sth->finish();
+
   print "\n$table: $str\n";
   print "SQL: CREATE TABLE $table ($str)\n";
-  my $sth = $dbh->prepare("CREATE TABLE $table ($str)")
-    or die "Cannot prepare table $table: ". $dbh->errstr();
+  $sth = $dbh->prepare("CREATE TABLE $table ($str)")
+    or die "Cannot create table $table: ". $dbh->errstr();
 
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
   $sth->finish();
