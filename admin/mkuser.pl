@@ -61,8 +61,13 @@ while (<>) {
   }
 
 
-  # Convert '' email to undef since that is what it really is
-  $user{email} = undef if $user{email} eq '';
+  # Convert broken email to undef. Define broken as an email address
+  # that does not have an @
+  $user{email} = undef unless $user{email} =~ /\@/;
+
+  # remove spaces from email address
+  $user{email} =~ s/\s//g if defined $user{email};
+
 
   # Derive user id
   unless (defined $user{userid}) {
