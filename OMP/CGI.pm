@@ -301,7 +301,7 @@ sub _write_login {
 	$q->br,
 	"</td><tr><td>Password: </td><td>",
 	$q->password_field(-name=>'password',
-			   -size=>10,
+			   -size=>17,
 			   -maxlength=>30),
 	"</td><td>",
 	$q->submit("Submit"),
