@@ -1022,7 +1022,7 @@ sub getResultColumns {
     @order = qw/ projectid priority schedpri completion instrument waveband title target
 		 ra dec coordstype ha airmass tau seeing cloud moon sky pol type
 		 timeest remaining obscount disperser
-                 checksum /;
+                 checksum msbid /;
   } else {
     # Generic order
     @order = qw/ projectid priority schedpri completion instrument waveband title target
