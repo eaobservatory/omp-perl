@@ -327,20 +327,25 @@ sub _plot_images {
 
   my @files = @{$args{input_file}};
 
+  my $numfiles;
+  foreach my $file ( @files ) {
+    if( -e $file ) { $numfiles++ };
+  }
+
   if( exists( $args{size} ) && defined( $args{size} ) &&
       $args{size} eq 'thumb' ) {
     $ENV{'PGPLOT_GIF_WIDTH'} = 120;
-    $ENV{'PGPLOT_GIF_HEIGHT'} = 80 * ( $#files + 1 );
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80 * $numfiles;
   } else {
     $ENV{'PGPLOT_GIF_WIDTH'} = 480;
-    $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * ( $#files + 1 );
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $numfiles;
   }
 
   if(exists($args{output_file}) && defined( $args{output_file} ) ) {
     my $file = $args{output_file};
-    dev "$file/GIF", 1, ( $#files + 1 );
+    dev "$file/GIF", 1, $numfiles;
   } else {
-    dev "-/GIF", 1, ( $#files + 1 );
+    dev "-/GIF", 1, $numfiles;
   }
 
   foreach my $input_file ( @files ) {
@@ -417,20 +422,25 @@ sub _plot_photometry {
 
   my @files = @{$args{input_file}};
 
+  my $numfiles;
+  foreach my $file ( @files ) {
+    if( -e $file ) { $numfiles++ };
+  }
+
   if( exists( $args{size} ) && defined( $args{size} ) &&
       $args{size} eq 'thumb' ) {
     $ENV{'PGPLOT_GIF_WIDTH'} = 120;
-    $ENV{'PGPLOT_GIF_HEIGHT'} = 80 * ( $#files + 1 );
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 80 * $numfiles;
   } else {
     $ENV{'PGPLOT_GIF_WIDTH'} = 480;
-    $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * ( $#files + 1 );
+    $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * $numfiles;
 }
 
   if(exists($args{output_file}) && defined( $args{output_file} ) ) {
     my $file = $args{output_file};
-    dev "$file/GIF", 1, ( $#files + 1 );
+    dev "$file/GIF", 1, $numfiles;
   } else {
-    dev "-/GIF", 1, ( $#files + 1 );
+    dev "-/GIF", 1, $numfiles;
   }
 
   foreach my $input_file ( @files ) {
