@@ -31,6 +31,7 @@ use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/ :msb /;
+use OMP::SiteQuality;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -58,10 +59,7 @@ our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
 my $OBSNUM_ATTR = "obsnum";
 my $SUSPEND_ATTR = "suspend"; # suspend attribute
 
-# Default values for "DONT CARE"
-use constant CLOUD_DONT_CARE  => 101;
-use constant MOON_DONT_CARE   => 101;
-
+# Definition of missing target
 use constant NO_TARGET => 'NONE SUPPLIED';
 
 =head1 METHODS
@@ -2748,29 +2746,52 @@ sub _get_weather_data {
   $summary{tau} = $self->_get_range( $el, "csoTau" );
   $summary{seeing} = $self->_get_range( $el, "seeing" );
 
-  # and (if defined) cloud information
-  # This is an implict range (bounded by 0)
-  # so the default value should be some high number
+  # Sky brightness
+  $summary{sky} = $self->_get_range( $el, "skyBrightness" );
+
+  # if the units are magnitudes the sense of min and max should be reversed
+  # for the purposes of the Range object
+  if (defined $summary{sky}) {
+    my @minmax = $summary{sky}->minmax;
+    $summary{sky}->minmax( reverse @minmax );
+  }
+
+  # cloud is now defined as percentage attenuation variability and is a range
+  # object. For backwards compatibility we need to support explicit
+  # values of  0 (photometric) and 1 (cirrus)
   $summary{cloud} = $self->_get_pcdata( $el, "cloud");
-  $summary{cloud} = CLOUD_DONT_CARE unless defined $summary{cloud};
+  if (!defined $summary{cloud}) {
+    $summary{cloud} = $self->_get_range( $el, "cloud" );
+  } else {
+    $summary{cloud} = OMP::SiteQuality::upgrade_cloud( $summary{cloud} );
+  }
 
   # Moon
-  # This is an implict range (essentially the fraction of
-  # illumination) bounded by 0 [since you essentially
-  # never complain if your observation comes up with no moon
-  # present]
+  # Now defined as %age illumination
+  # but we need to fallback to the old definitions
   $summary{moon} = $self->_get_pcdata( $el, "moon");
-  $summary{moon} = MOON_DONT_CARE unless defined $summary{moon};
+  if (!defined $summary{moon}) {
+    $summary{moon} = $self->_get_range( $el, "moon" );
+  } else {
+    $summary{moon} = OMP::SiteQuality::upgrade_moon( $summary{moon} );
+  }
 
+  # set the positive definite status
+  for my $key (qw/ tau seeing moon cloud sky /) {
+    OMP::SiteQuality::check_posdef( $key, $summary{$key} );
+  }
 
-  # Big kluge - if the site quality is there but we
-  # dont have any values defined (due to a bug in the OT)
-  # then make something up
-  $summary{tau} = new OMP::Range( Min => 0 )
+  # If the specification was missing, replace with the default range
+  $summary{tau} = OMP::SiteQuality::default_range( 'TAU' )
     unless defined $summary{tau};
-  $summary{seeing} = new OMP::Range( Min => 0 )
+  $summary{seeing} = OMP::SiteQuality::default_range( 'SEEING' )
     unless defined $summary{seeing};
-
+  $summary{moon} = OMP::SiteQuality::default_range( 'MOON' )
+    unless defined $summary{moon};
+  $summary{cloud} = OMP::SiteQuality::default_range( 'CLOUD' )
+    unless defined $summary{cloud};
+  $summary{sky} = OMP::SiteQuality::default_range( 'SKY' )
+    unless defined $summary{sky};
 
 #  print Dumper(\%summary);
 
@@ -2963,6 +2984,9 @@ Returns C<undef> if the element can not be found.
 Returns C<undef> if the element can be found but does not contain
 anything (eg E<lt>targetName/E<gt>).
 
+Returns undef if the element is found but it contains more than one child.
+(ie more elements).
+
 =cut
 
 sub _get_pcdata {
@@ -2976,6 +3000,11 @@ sub _get_pcdata {
     my $child = $matches[-1]->firstChild;
     # Return undef if the element contains no text children
     return undef unless defined $child;
+
+    my @children = $matches[-1]->childNodes;
+    return undef if scalar(@children) > 1;
+
+    # convert to string
     $pcdata = $child->toString;
   }
 
