@@ -107,12 +107,14 @@ Text content forming the comment. Should be in plain text.
   $text = $comm->text;
   $comm->text( $text );
 
+Returns empty string if text has not been set.
+
 =cut
 
 sub text {
   my $self = shift;
   if (@_) { $self->{Text} = shift; }
-  return $self->{Text};
+  return ( defined $self->{Text} ? $self->{Text} : '' );
 }
 
 =item B<author>
