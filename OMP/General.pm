@@ -1552,7 +1552,7 @@ sub html_to_plain {
   my $text = shift;
 
   # Expand HTML links for our plaintext message
-  $text =~ s!<a\s+href=\W*(\w+://.*?/*)\W*?\s*\W*?>(.*?)</a>!$2 \[$1\]!gis;
+  $text =~ s!<a\s+href=\W*(\w+://.*?/*)\W*?\s*\W*?>(.*?)</a>!$2 \[ $1 \]!gis;
 
   # Create the HTML tree and parse it
   my $tree = HTML::TreeBuilder->new;
