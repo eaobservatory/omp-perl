@@ -1155,7 +1155,7 @@ sub SpObs {
   } else {
     # We have a calibration observation
     $summary{coords} = Astro::Coords::Calibration->new;
-    $summary{coordstype} = $summary{coords}->coordstype;
+    $summary{coordstype} = $summary{coords}->type;
 
     # The target name should not include duplicates here
     # Use a hash to compress it
@@ -1538,30 +1538,6 @@ Copyright (C) 2001 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
-
-package Astro::Coords::Calibration;
-
-# Dummy package for calibration observations. This should not be
-# part of Astro::Coords since it can not support most methods.
-
-use base qw/ Astro::Coords/;
-
-sub new {
-  my $proto = shift;
-  my $class = ref($proto) || $proto;
-
-  return bless {}, $class;
-
-}
-
-sub coordstype {
-  return "CAL";
-}
-
-sub array {
-  return (undef,undef,undef,undef,undef,undef,undef,undef,undef,undef,undef);
-}
-
 
 1;
 
