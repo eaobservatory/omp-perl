@@ -186,7 +186,16 @@ sub thumbnails_page {
       }
 
       # Create a WORF object.
-      my $worf = new OMP::WORF( obs => $obs );
+      my $worf;
+      try {
+        $worf = new OMP::WORF( obs => $obs );
+      }
+      catch OMP::Error with {
+        next FILELOOP;
+      }
+      otherwise {
+        next FILELOOP;
+      };
 
       # Get a list of suffices.
       my @grp_suffices = $worf->suffices( 1 );
