@@ -1387,13 +1387,17 @@ sub _run_query {
 	# is not observable between the two reference times
 	# For example at JCMT where the source may transit above
 	# 87 degrees
-	for my $delta (0, $obs->timeest) {
+	for my $delta (0, $obs->{timeest}) {
 
 	  # increment the date
 	  $date += $delta;
 
 	  # Set the time in the coordinates object
 	  $coords->datetime( $date );
+
+	  # If we are a CAL observation just skip
+	  # make sure to add the time estimate though!
+	  next if $obs->{coordstype} eq 'CAL';
 
 	  # Now see if we are observable (dropping out the loop if not
 	  # since there is no point checking further) This knows about
@@ -1412,13 +1416,13 @@ sub _run_query {
 	  # Now check for hour angle and elevation constraints
 	  # imposed from the query.
 	  if ($harange) {
-	    if ($harange->contains($coords->ha(format => 'h'))) {
+	    unless ($harange->contains($coords->ha(format => 'h'))) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }
 	  }
 	  if ($amrange) {
-	    if ($amrange->contains($coords->airmass)) {
+	    unless ($amrange->contains($coords->airmass)) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }
