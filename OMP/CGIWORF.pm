@@ -38,7 +38,7 @@ require Exporter;
 
 our @ISA = qw/Exporter/;
 our @EXPORT = qw( display_page display_graphic display_observation
-                  options_form );
+                  options_form thumbnails_page );
 
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
@@ -98,6 +98,124 @@ sub display_page {
 }
 
 sub thumbnails_page {
+  my $cgi = shift;
+  my $qv = $cgi->Vars;
+
+  # Figure out which telescope we're doing.
+  my $telescope;
+  if( exists($qv->{'telescope'}) && defined( $qv->{'telescope'} ) ) {
+    $telescope = $qv->{'telescope'};
+  } else {
+    throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
+  }
+
+  # Grab the UT date.
+  my $ut;
+  if( exists( $qv->{'ut'}) && defined( $qv->{'ut'} ) ) {
+    ( $ut = $qv->{'ut'} ) =~ s/-//g;
+  } else {
+    # Default to today's UT date.
+    ( $ut = OMP::General->today() ) =~ s/-//g;
+  }
+
+  # Get the list of instruments for that telescope.
+  my @instruments = OMP::Config->getData( 'instruments',
+                                          telescope => $telescope );
+
+  # For each instrument, we're going to get the directory listing for
+  # the appropriate night. If the instrument name begins with "rx", skip
+  # it (since all heterodyne instruments will be gobbled up by the
+  # "heterodyne" instrument, and they all write to the same directory).
+
+  foreach my $instrument ( @instruments ) {
+
+    # Get the directory.
+    my $directory = OMP::Config->getData('reducedgroupdir',
+                                         instrument => $instrument,
+                                         utdate => $ut,
+                                        );
+
+    # Get a directory listing.
+    my $dir_h;
+    opendir( $dir_h, $directory ) or
+      throw OMP::Error( "Could not open directory $directory for WORF thumbnail display: $!\n" );
+
+    my @files = readdir $dir_h or
+      throw OMP::Error( "Could not read directory $directory for WORF thumbnail display: $!\n" );
+
+    closedir $dir_h;
+
+    # Filter the files according to the groupregexp config.
+    my @grpregex = OMP::Config->getData('groupregexp',
+                                        telescope => $telescope
+                                       );
+    my $groupregex = join ',', @grpregex;
+    @grpregex = split '|||', $groupregex;
+    my @matchfiles;
+    foreach my $regex ( @grpregex ) {
+      my @tmp = grep /$regex/, @files;
+      push @matchfiles, @tmp;
+    }
+
+    # Sort them just in case they're not sorted.
+    @matchfiles = sort @matchfiles;
+
+    # Now we have a list of all the group files for the telescope
+    # that match the group format.
+
+    # Create Info::Obs objects for each file.
+    FILELOOP: foreach my $file ( @matchfiles ) {
+
+      my $obs = readfile OMP::Info::Obs( $file );
+
+      # If necessary, let's filter them for project ID.
+      if( exists( $qv->{'projid'} ) && defined( $qv->{'projid'} ) &&
+          uc( $obs->projectid ) ne uc( $qv->{'projid'} ) ) {
+        next FILELOOP;
+      }
+
+      # Create a WORF object.
+      my $worf = new OMP::WORF( obs => $obs );
+
+      # Get a list of suffices.
+      my @grp_suffices = $worf->suffices( 1 );
+
+      # Write the HTML that will display the thumbnail image along with
+      # a link to the fullsized WORF page for that image.
+      if( $worf->file_exists( suffix => '', group => 1 ) ) {
+        print "<a href=\"worf.pl?ut=$ut&runnr=";
+        print $obs->runnr . "&inst=" . $obs->instrument;
+        print "&group=1\">";
+        print "<img src=\"worf_image.pl?";
+        print "runnr=" . $obs->runnr;
+        print "&ut=" . $ut;
+        print "&inst=" . $obs->instrument;
+        print "&group=1";
+        print "&size=thumb\"></a> ";
+        next FILELOOP;
+      }
+
+      foreach my $suffix ( @grp_suffices ) {
+
+        if( $worf->file_exists( suffix => $suffix, group => 1 ) ) {
+          print "<a href=\"worf.pl?ut=$ut&runnr=";
+          print $obs->runnr . "&inst=" . $obs->instrument;
+          print "&suffix=$suffix";
+          print "&group=1\">";
+          print "<img src=\"worf_image.pl?";
+          print "runnr=" . $obs->runnr;
+          print "&ut=" . $ut;
+          print "&inst=" . $obs->instrument;
+          print "&group=1";
+          print "&size=thumb";
+          print "&suffix=$suffix\"></a> ";
+          next FILELOOP;
+        }
+      }
+
+    }
+
+  }
 
 }
 
