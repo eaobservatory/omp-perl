@@ -4646,6 +4646,23 @@ sub SpTelescopeObsComp {
   $summary{coordstype} = $summary{coords}->type;
   $summary{target} = $summary{coords}->name;
 
+  # And do a elements verification test
+  # We might want to do this in JAC::OCS::Config
+  if ($summary{coordstype} eq 'ELEMENTS') {
+    # calculate elevation (requires apparent RA/Dec which requires
+    # elements perturbing
+    my $err;
+    {
+      local ($@);
+      eval {
+	$summary{coords}->el();
+      };
+      $err = $@ if $@;
+    }
+    throw OMP::Error::FatalError("Unable to use the supplied elements for the target $summary{target} in MSB '".$self->msbtitle ."'. Please check your elements. Error was: $err")
+      if defined $err;
+  }
+
   # normalise missing target
   $summary{target} = NO_TARGET unless $summary{target};
 
