@@ -1688,15 +1688,24 @@ sub projlog_content {
 
   (! $projectid) and croak("Project ID string [$cookie{projectid}] does not match the expect format so we are not allowed to untaint it!");
 
-  my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
-				    date => $utdate,);
-
-  # Don't want to go to files on disk
-  $OMP::ArchiveDB::FallbackToFiles = 0;
-
   print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
-  print "<h3>Observation log</h3>";
-  obs_table($grp);
+
+  # Make links for retrieving data
+  my $pkgdataurl = OMP::Config->getData('pkgdata-url');
+  print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
+  print "<a href='$pkgdataurl?utdate=$utdate'>Retrieve data excluding calibrations</a>";
+
+  try {
+    my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
+				      date => $utdate,);
+    print "<h3>Observation log</h3>";
+    # Don't want to go to files on disk
+    $OMP::ArchiveDB::FallbackToFiles = 0;
+    obs_table($grp);
+  } otherwise {
+    print "<h2>No observation log for this night</h2>";
+  };
+
 }
 
 =item B<preify_text>
