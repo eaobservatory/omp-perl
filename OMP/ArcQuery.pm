@@ -220,9 +220,9 @@ sub telescope {
     # equivalents.
     my $inst;
     if($self->instrument =~ /^rxb/i) {
-      $inst = 'rxb3';
+      $inst = 'rxb';
     } elsif( $self->instrument =~ /^rxa/i) {
-      $inst = 'rxa3';
+      $inst = 'rxa3i';
     } else {
       $inst = $self->instrument;
     }

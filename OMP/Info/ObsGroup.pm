@@ -312,13 +312,13 @@ sub populate {
   # Expand out and remap heterodyne instruments.
   if( exists $args{instrument} ) {
     if( $args{instrument} =~ /^rxa/i ) {
-      $xmlbit .= "<instrument>rxa3</instrument>";
+      $xmlbit .= "<instrument>rxa3i</instrument>";
     } elsif( $args{instrument} =~ /^rxb/i ) {
       $xmlbit .= "<instrument>rxb</instrument>";
     } elsif( $args{instrument} =~ /^rxw/i ) {
       $xmlbit .= "<instrument>rxw</instrument>";
     } elsif( $args{instrument} =~ /^heterodyne/i ) {
-      $xmlbit .= "<instrument>rxa3</instrument><instrument>rxb</instrument><instrument>rxw</instrument>";
+      $xmlbit .= "<instrument>rxa3i</instrument><instrument>rxb</instrument><instrument>rxw</instrument>";
     } else {
       $xmlbit .= "<instrument>" . $args{instrument} . "</instrument>";
     }
@@ -480,8 +480,8 @@ sub filter {
       #   - They are a generic calibration
       #   - They are a SciCal that uses the same observing mode as us
       $match = join("|", keys %obsmodes);
-      @cal = grep { my $obsmode = $_->mode || $_->type; 
-		    uc($_->projectid) eq $args{projectid} || 
+      @cal = grep { my $obsmode = $_->mode || $_->type;
+		    uc($_->projectid) eq $args{projectid} ||
 		    $_->isGenCal || $obsmode =~ /^$match/i } @cal;
 
     }
