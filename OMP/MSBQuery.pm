@@ -177,6 +177,7 @@ Supported constraints are:
   observability  - is the source up
   remaining      - is the MSB still to be observed
   allocation     - has the full project allocation been used
+  state          - is the project enabled
 
 Each of these will have a true (constraint is active) or false
 (constraint is disabled) value.
@@ -206,6 +207,7 @@ sub constraints {
 		     observability => 1,
 		     remaining => 1,
 		     allocation => 1,
+		     state => 1,
 		    );
 
   # Go through the disableconstraint array making a hash
@@ -304,6 +306,7 @@ sub sql {
   #  observability  - is the source up
   #  remaining      - is the MSB still to be observed
   #  allocation     - has the full project allocation been used
+  #  state          - is the project enabled
   # These constraints can be disabled individually by using
   # XML eg. <disableconstraint>observability</disableconstraint>
   # All can be disabled using "all".
@@ -313,7 +316,7 @@ sub sql {
   $constraint_sql .= " AND M.remaining > 0 " if $constraints{remaining};
   $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
     if $constraints{allocation};
-
+  $constraint_sql .= " AND P.state = 1 " if $constraints{state};
 
   # It is more efficient if we only join the COI table
   # if we are actually going to use it. Also if no coitable
