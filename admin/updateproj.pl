@@ -55,7 +55,8 @@ use strict;
 
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
-use OMP::ProjServer;
+use OMP::ProjDB;
+use OMP::DBbackend;
 use OMP::General;
 use Pod::Usage;
 use Getopt::Long;
@@ -82,16 +83,58 @@ my $file = shift(@ARGV);
 my %alloc;
 tie %alloc, 'Config::IniFiles', ( -file => $file );
 
+# Connect to the database
+my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
+
 # Loop over each project and update it
 for my $proj (keys %alloc) {
 
-  # First need to get the project information from the database
+  # Set the project ID in the DB object
+  $projdb->projectid( $proj );
+
+  # First check that the project exists
+  if (! $projdb->verifyProject) {
+    warn "Project $proj does not exist in DB so can not update it!\n";
+    next;
+  }
+
+  # Then need to get the project information from the database
+  my $project = $projdb->_get_project_row();
 
   # Then need to go through the hash values and update
   # being careful to deal with incalloc
+  for my $mod (keys %{ $alloc{$proj} }) {
+    if ($project->can($mod)) {
+      print "Changing $mod from ".$project->$mod ." ";
+      $project->$mod( $alloc{$proj}->{$mod} );
+      print " to " .$alloc{$proj}->{$mod} ."\n";
+    } elsif ($mod eq 'incalloc') {
+      # Special case
+      my $inc = $alloc{$proj}->{$mod} * 3600;
+
+      print "Changing allocation from ".$project->allocated ." ";
+
+      # The allocation should be the time spent plus
+      # the new increment (converted to hours)
+      my $newtotal = $project->used + $inc;
+      $project->allocated( $newtotal );
+
+      # The time remaining on the project is now the increment
+      $project->remaining( $inc );
+      $project->pending(0);
+
+      print "to $newtotal seconds\n";
+    } else {
+      warn "Unrecognized key in project $proj: $mod\n";
+    }
+
+  }
+
 
   # Now store the project details back in the database
+  $projdb->_update_project_row( $project );
 
+  print "Update details for project $proj\n";
 
 }
 
