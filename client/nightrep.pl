@@ -227,6 +227,10 @@ sub project_window {
   # Calculate the time lost
   $final{$tel."FAULTS"} = sprintf("%.1f",$nr->timelost->hours);
 
+  # Widget with the total
+  add_project($f, 0,"Total time", {}, \$total_time);
+
+
   # And finally extended time if we determined that we had extended
   # time (difficult to imagine extended time if we have no data 
   # taken in extended time)
@@ -234,10 +238,6 @@ sub project_window {
 		 : {});
   add_project( $f, 1,"Extended time", $exttime, 
 	       \$final{$tel."EXTENDED"},$sums);
-
-
-  # Widget with the total
-  add_project($f, 0,"Total time", {}, \$total_time);
 
   # And force a summation
   $sums->();
