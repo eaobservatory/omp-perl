@@ -357,18 +357,13 @@ sub observed {
   (@$commentref) and print $q->h2("MSBs observed on $utdate")
     or print $q->h2("No MSBs observed on $utdate");
 
-  print $q->startform;
-  print "Enter a UT Date: ";
-  print $q->textfield(-name=>'utdate',
-		      -size=>15,
-		      -maxlength=>75);
-  print "&nbsp;&nbsp;";
-  print $q->submit("View Comments");
-  print $q->endform;
+  observed_form($q);
   print $q->hr;
-  
+
   # Create the MSB comment tables
   msb_comments_by_project($q, $commentref);
+
+  observed_form($q);
 }
 
 =item B<observed_output>
@@ -418,8 +413,34 @@ sub observed_output {
     my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
     my $commentref = $msbdb->observedMSBs($q->param('utdate'), 1, 'data');
 
+    observed_form($q);
+    print $q->h2;
+
     msb_comments_by_project($q, $commentref);
+    observed_form($q);
   }
+}
+
+=item B<observed_form>
+
+Create a form with a textfield for inputting a UT date and submitting it.
+
+  observed_form($cgi);
+
+=cut
+
+sub observed_form {
+  my $q = shift;
+
+  print $q->startform;
+  print "Enter a UT Date: ";
+  print $q->textfield(-name=>'utdate',
+		      -size=>15,
+		      -maxlength=>75);
+  print "&nbsp;&nbsp;";
+  print $q->submit("View Comments");
+  print $q->endform;
+
 }
 
 =item B<msb_comment_form>
