@@ -41,6 +41,7 @@ use OMP::Error;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done :fb /;
+use OMP::SiteQuality;
 use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
@@ -75,12 +76,6 @@ our $DEFAULT_RESULT_COUNT = 10;
 
 # Debug messages
 our $DEBUG = 0;
-
-# Artificial "INFINITIES" for unbounded ranges
-my %INF = (
-	   tau => 101,
-	   seeing => 5000,
-	  );
 
 =head1 METHODS
 
@@ -1800,10 +1795,13 @@ sub _insert_row {
   print "Inserting row as index $index\n" if $DEBUG;
   OMP::General->log_message( "Inserting MSB row as index $index [$proj]");
 
-  # If the upper limits for range variables are undefined we
-  # need to specify an infinity ourselves for the database
-  my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
-  my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
+  # Convert the ranges to database values
+  my ($taumin, $taumax) = OMP::SiteQuality::to_db('TAU',$data{tau});
+  my ($seeingmin, $seeingmax) = OMP::SiteQuality::to_db('SEEING',
+							$data{seeing});
+  my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db('CLOUD',$data{cloud});
+  my ($skymin, $skymax) = OMP::SiteQuality::to_db('SKY',$data{sky});
+  my ($moonmin, $moonmax) = OMP::SiteQuality::to_db('MOON',$data{moon});
 
   # If a max or minimum elevation has not been supplied we do not care.
   # A NULL can be stored in the table. We will calculate a suitable
@@ -1907,9 +1905,19 @@ the database column names.
 
 The query will be formed by using any or all of C<checksum>,
 C<id> and C<projectid> depending on whether they are set in the
-argument hash or in the object.
+argument hash or in the object. If the projectid is not specified,
+it is automatically inserted into the query from the object state.
 
 Returns empty list if no match can be found.
+
+If projectid is specified without explicitly specifiying an MSB id
+or checksum, all results are returned in a list containing an
+C<OMP::Info::MSB> object for each matching row. In scalar context,
+returns the first matching MSB object.
+
+  @objects = $db->_fetch_row( projectid => $p );
+
+No attempt is made to retrieve the corresponding observation information.
 
 =cut
 
@@ -1917,9 +1925,12 @@ sub _fetch_row {
   my $self = shift;
   my %query = @_;
 
-  # Get the project id if it is here
+  # Get the project id if it is here and not specified already
   $query{projectid} = $self->projectid
-    if defined $self->projectid;
+    if (!exists $query{projectid} && defined $self->projectid);
+
+  # We are in multiple match mode if we only have one key (the projectid)
+  my $multi = ( scalar keys %query == 1 && exists $query{projectid} ? 1 : 0 );
 
   # Assume that query keys match column names
   my @substrings = map { " $_ = ? " } sort keys %query;
@@ -1940,11 +1951,16 @@ sub _fetch_row {
 #  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
 #    unless @$ref;
 
-  # The result is now the first entry in @$ref
-  my %result;
-  %result = %{ $ref->[0] } if @$ref;
-
-  return %result;
+  # if we are returning multiple results create OMP::Info::MSB objects
+  if ($multi) {
+    my @objects = $self->_msb_row_to_msb_object( @$ref );
+    return ( wantarray ? @objects : $objects[1]);
+  } else {
+    # one result, the first entry in @$ref
+    my %result;
+    %result = %{ $ref->[0] } if @$ref;
+    return %result;
+  }
 }
 
 =item B<_run_query>
@@ -2276,44 +2292,86 @@ sub _run_query {
 
   }
 
-  # Now fix up the seeing and tau entries so that they
+  # Convert the rows to MSB info objects
+  return $self->_msb_row_to_msb_object( @observable );
+
+}
+
+=item B<_msb_row_to_msb_object>
+
+Convert a row hash from the C<ompmsb> table into an OMP::Info::MSB
+object.
+
+  @objects = $msb->_msb_row_to_msb_object( @rows );
+
+The rows must be supplied as references to the row hash.
+If the hash includes a key "observations" containing an
+array of observation information, those are converted to
+OMP::Info::Obs objects.
+
+=cut
+
+sub _msb_row_to_msb_object {
+  my $self = shift;
+  my @observable = @_;
+
+  # Now fix up the site quality entries so that they
   # are OMP::Range objects rather than max and min
   for my $msb (@observable) {
-    for my $key (qw/ tau seeing /) {
+
+    # For old table design, we promote cloud and moon (without min/max)
+    # cloud fix up for old usage
+    # It is probably cleaner to adjust from_db() so that it
+    # recognizes an old style number for cloud or moon
+    if (exists $msb->{cloud}) {
+      my $range = OMP::SiteQuality::upgrade_cloud( $msb->{cloud} );
+      $msb->{cloudmin} = $range->min;
+      $msb->{cloudmax} = $range->max;
+      delete $msb->{cloud};
+    }
+    if (exists $msb->{moon}) {
+      my $range = OMP::SiteQuality::upgrade_moon( $msb->{moon} );
+      $msb->{moonmin} = $range->min;
+      $msb->{moonmax} = $range->max;
+      delete $msb->{moon};
+    }
+
+    # loop over each xxxmin xxxmax component
+    for my $key (qw/ tau seeing cloud sky moon /) {
 
       # Determine the key names
       my $maxkey = $key . "max";
       my $minkey = $key . "min";
 
-      # If we have an open ended range we need to
-      # specify undef for the limit rather than the magic
-      # value (since OMP::Range understands lower limits)
-      $msb->{$maxkey} = undef if (defined $msb->{$maxkey} && 
-				  $msb->{$maxkey} == $INF{$key});
+      # convert to range object
+      $msb->{$key} = OMP::SiteQuality::from_db( $key,
+						$msb->{$minkey},
+						$msb->{$maxkey}
+					      );
 
-      # Set up the array
-      $msb->{$key} = new OMP::Range( Min => $msb->{$minkey},
-				     Max => $msb->{$maxkey});
+      # ensure that we have the correct handling in case some nulls
+      # crept into the table
+      OMP::SiteQuality::undef_to_default( $key, $msb->{$key});
 
       # Remove old entries from hash
       delete $msb->{$maxkey};
       delete $msb->{$minkey};
 
     }
-  }
-
-  # Now convert the hashes to OMP::Info objects
-  for my $msb (@observable) {
 
     # Fix up date objects - should be OMP::Range
     for (qw/ datemax datemin /) {
       $msb->{$_} = OMP::General->parse_date( $msb->{$_});
     }
 
-    # Observations
-    for my $obs (@{$msb->{observations}}) {
-      $obs = new OMP::Info::Obs( %$obs );
+    # Now convert Observations to OMP::Info::Obs objects
+    if (exists $msb->{observations}) {
+      for my $obs (@{$msb->{observations}}) {
+	$obs = new OMP::Info::Obs( %$obs );
+      }
     }
+
+    # Now convert the hashes to OMP::Info objects
     $msb = new OMP::Info::MSB( %$msb );
   }
 
