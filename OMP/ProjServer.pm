@@ -25,7 +25,8 @@ use warnings;
 use Carp;
 
 # OMP dependencies
-use OMP::SciProg;
+use OMP::ProjDB;
+use OMP::Project;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
@@ -122,6 +123,72 @@ sub summary {
 
 }
 
+=item B<addProject>
+
+Add details of a project to the database.
+
+  OMP::ProjServer->addProject($password, $projectid, $pi,
+			     $piemail, $coi, $coiemail,
+			     $title, $tagpriority, $country,
+			     $semester, $proj_password, $allocated);
+
+The first password is used to verify that you are allowed to
+modify the project table. The second password is for the project itself.
+Both should be supplied as plain text.
+
+We may not want to have this as a public method on a SOAP Server!
+
+=cut
+
+sub addProject {
+  my $class = shift;
+  my $password = shift;
+  my @project = @_;
+
+  my $E;
+  try {
+
+    throw OMP::Error::BadArgs("Should be 11 elements in project array. Only found ".scalar(@project)) unless scalar(@project) == 11;
+
+    my $db = new OMP::ProjDB(
+			     Password => $password,
+			     DB => $class->dbConnection,
+			    );
+
+    # Instantiate OMP::Project object
+    my $proj = new OMP::Project(
+				projectid => $project[0],
+				pi => $project[1],
+				piemail => $project[2],
+				coi => $project[3],
+				coiemail => $project[4],
+				title => $project[5],
+				tagpriority => $project[6],
+				country => $project[7],
+				semester => $project[8],
+				password => $project[9],
+				allocated => $project[10],
+			       );
+
+    $db->addProject( $proj );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return 1;
+}
 
 =back
 
