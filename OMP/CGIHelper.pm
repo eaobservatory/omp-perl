@@ -113,7 +113,7 @@ sub msb_sum {
 
   my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
 					     $cookie{password},
-					     'ascii');
+					     'html');
 
   print $q->h2("MSB summary"),
         $q->pre("$msbsum");
