@@ -14,13 +14,13 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::ProjectPage;
+use OMP::CGIPage;
+use OMP::CGIPage::Project;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
-$cgi->write_page_proposals( \&OMP::CGI::ProjectPage::proposals,
-			    \&OMP::CGI::ProjectPage::proposals);
+$cgi->write_page_proposals( \&OMP::CGIPage::Project::proposals,
+			    \&OMP::CGIPage::Project::proposals);
