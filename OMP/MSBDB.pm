@@ -162,6 +162,11 @@ should be used with care. Default is false (no force).
 
 The scheduling fields (eg tau and seeing) must be populated.
 
+Any suspend-MSB flags are cleared unless the FreezeTimeStamp
+flag is true - the assumption being that the
+PI has reconfigured their science program. If this is problematic
+the OT will have to have an ability to clear suspend status.
+
 Returns true on success and C<undef> on error (this may be
 modified to raise an exception).
 
@@ -179,6 +184,13 @@ sub storeSciProg {
   # Check them
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
+
+  # clear any suspend flags unless we are freezing
+  unless ($args{FreezeTimeStamp}) {
+    for my $msb ($args{SciProg}->msb) {
+      $msb->clearSuspended;
+    }
+  }
 
   # Before we do anything else we connect to the database
   # begin a transaction and lock out the tables.

@@ -121,32 +121,57 @@ sub translate {
 
     my @obs = $msb->unroll_obs();
 
-  # Treat an ODF as a hash and a macro as an array of hashes
-  # until the last moment.
+    # See if the MSB was suspended
+    my $suspend = $msb->isSuspended;
 
+    # Treat an ODF as a hash and a macro as an array of hashes
+    # until the last moment.
+
+    # by default do not skip observations unless we are suspended
+    my $skip = ( defined $suspend ? 1 : 0);
     my $obscount = 0;
-  for my $obsinfo ( @obs ) {
-    $obscount++;
-    print "Observation: $obscount\n" if $DEBUG;
+    for my $obsinfo ( @obs ) {
+      $obscount++;
+      print "Observation: $obscount\n" if $DEBUG;
 #    print Dumper($obsinfo)
 #      if $DEBUG;
 
-    # Determine the mode
-    my $mode = $obsinfo->{MODE};
-    if ($self->can( $mode )) {
-      my %translated = $self->$mode( %$obsinfo );
-      my $odf = new SCUBA::ODF( Hash => \%translated );
-      $odf->vax_outputdir( $TRANS_DIR_VAX );
+      # if we are suspended and we have not yet found the
+      # relevant observation then we need to skip until we do
+      # find it. This technique runs into problems if the MSB was
+      # suspended in the middle of a calibration that has now been
+      # deferred and is not present.
+      if ($skip && defined $suspend) {
+	# compare labels
+	if ($obsinfo->{obslabel} eq $suspend) {
+	  $skip = 0; # no longer skip
+	} else {
+	  # Do *not* skip if this is a calibration observation
+	  # calibration observation is defined by either an unknown
+	  # target or one of Focus, Pointing, Noise, Skydip
+	  if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
+	     !$obsinfo->{autoTarget}) {
+	    next;
+	  }
+	}
+      }
 
-      print $odf->summary ."\n" if $DEBUG;
-      push(@odfs, $odf);
+      # Determine the mode
+      my $mode = $obsinfo->{MODE};
+      if ($self->can( $mode )) {
+	my %translated = $self->$mode( %$obsinfo );
+	my $odf = new SCUBA::ODF( Hash => \%translated );
+	$odf->vax_outputdir( $TRANS_DIR_VAX );
+
+	print $odf->summary ."\n" if $DEBUG;
+	push(@odfs, $odf);
 #      use Data::Dumper;
 #      print Dumper(\%translated);
-    } else {
-      throw OMP::Error::TranslateFail("Unknown observing mode: $mode");
-    }
+      } else {
+	throw OMP::Error::TranslateFail("Unknown observing mode: $mode");
+      }
 
-  }
+    }
   }
 
   # Create the group
@@ -166,6 +191,12 @@ sub translate {
     # Write
     $grp->outputdir($TRANS_DIR);
     $grp->syncoutputdir();
+
+    # indicate that we are not writing SCUCD compatible
+    # files
+    for my $odf ($grp->odfs) {
+      $odf->writeSCUCD(0);
+    }
 
     # get the output file
     my $file = $grp->writegroup();
@@ -942,6 +973,7 @@ sub getGeneral {
 	   INSTRUMENT => 'SCUBA',
 	   DATA_KEPT => 'DEMOD',
 	   ENG_MODE  => 'FALSE',
+	   '_OBSLABEL' => $info{obslabel},
 	 );
 }
 

@@ -51,6 +51,10 @@ use overload '""' => "stringify";
 our $MAXTIME = OMP::General->parse_date("2035-01-01T01:00");
 our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
 
+# This is the attribute name for the observation counter
+my $OBSNUM_ATTR = "obsnum";
+my $SUSPEND_ATTR = "suspend"; # suspend attribute
+
 # Default values for "DONT CARE"
 use constant CLOUD_DONT_CARE  => 101;
 use constant MOON_DONT_CARE   => 101;
@@ -672,6 +676,15 @@ sub find_checksum {
 
   my $string = $self->_get_qualified_children_as_string;
 
+  # make sure that we generate the same checksum regardless of whether
+  # an obsnunm attribute is present in an SpObs. This is because we need
+  # to make sure the checksum is the same regardless of counter
+  # It doesn't really matter because the only time it shouldn't be the
+  # same is when the MSBID is explicitly in the XML but it is important
+  # for backwards compatibility for the existing checksums
+  my $replace = " $OBSNUM_ATTR=\"". '\d+"';
+  $string =~ s/$replace//g;
+
   # and generate a checksum
   my $checksum = md5_hex( $string );
 
@@ -763,6 +776,8 @@ This all requires that there are no non-MSB elements in an SpOR
 since inheritance breaks if we move just the MSB (that is only
 true if the OT ignores IDREF attributes).
 
+If an MSB was suspended that flag is now cleared.
+
 =cut
 
 sub hasBeenObserved {
@@ -774,6 +789,9 @@ sub hasBeenObserved {
   # Deal with any periodicity issues
   $self->rescheduleMSB()
     if $self->isPeriodic;
+
+  # unsuspend
+  $self->clearSuspended;
 
   # Now for the hard part... SpOr/SpAND
 
@@ -849,6 +867,8 @@ observation is scheduled to be observed again).
 It is usually combined with an update of the database contents to
 reflect the modified state.
 
+Any suspend flags are cleared.
+
 =cut
 
 sub undoObserve {
@@ -858,6 +878,9 @@ sub undoObserve {
   # Reset datemin if we are a monitoring MSB
   $self->scheduleMSBnow()
     if $self->isPeriodic;
+
+  # unsuspend
+  $self->clearSuspended;
 
 }
 
@@ -878,7 +901,8 @@ Essentially a thin layer around C<remaining>.
 
 If this MSB is meant to be observed periodically, the earliest
 observing date ("datemin") is reset to the current day (ie the
-observation is scheduled to be observed again).
+observation is scheduled to be observed again). [but this is
+not really an issue if it has been removed]
 
 =cut
 
@@ -928,10 +952,41 @@ sub hasBeenSuspended {
   throw OMP::Error::FatalError("Supplied observation label [$label] can not be found in MSB") unless $isvalid;
 
   # Set the suspend attribute in the MSB
-  $self->_tree->setAttribute("suspend", $label);
+  $self->_tree->setAttribute($SUSPEND_ATTR, $label);
 
 }
 
+=item B<isSuspended>
+
+If the MSB has been suspended return the label of the observation
+at which it was supsended. Return C<undef> if the MSB has not been
+suspended.
+
+  $label = $msb->isSuspended();
+
+=cut
+
+sub isSuspended {
+  my $self = shift;
+
+  return $self->_tree->getAttribute($SUSPEND_ATTR);
+
+}
+
+=item B<clearSuspended>
+
+Clear the suspended state of the MSB.
+
+  $msb->clearSuspended;
+
+Usually called by hasBeenObserved() when an MSB has been completed.
+
+=cut
+
+sub clearSuspended {
+  my $self = shift;
+  $self->_tree->removeAttribute( $SUSPEND_ATTR );
+}
 
 =item B<addFITStoObs>
 
@@ -1400,7 +1455,7 @@ sub _set_obs_counter {
   for my $obs (@obs) {
     $counter++;
     # look for a "obsnum" attribute
-    my $attr = $self->_get_attribute( $obs, "obsnum" );
+    my $attr = $self->_get_attribute( $obs, $OBSNUM_ATTR );
 
     if (defined $attr) {
       # someone has already set obsnum
@@ -1408,7 +1463,7 @@ sub _set_obs_counter {
       $counter = $attr;
     } else {
       # no value was present so we set one
-      $obs->setAttribute("obsnum", $counter);
+      $obs->setAttribute( $OBSNUM_ATTR, $counter);
     }
   }
 }
@@ -1433,7 +1488,7 @@ sub _clear_obs_counter {
 
   my $counter = -1;
   for my $obs (@obs) {
-    $obs->removeAttribute( "obsnum" );
+    $obs->removeAttribute( $OBSNUM_ATTR );
   }
 }
 
@@ -1713,6 +1768,10 @@ C<undef> if the attribute is not present.
 Wrapper around XML::LibXML methods to compensate for the 
 complete lack of getAttribute method in the API.
 
+[strangely enough getAttribute does exist in the API so this
+method is useless. Must fix up at some point since it is
+much slower than getAttribute]
+
 =cut
 
 sub _get_attribute {
@@ -1983,6 +2042,7 @@ sub unroll_obs {
     # Add MSB information that should propogate to header
     $config{MSBID} = $self->checksum;
     $config{PROJECTID} = $self->projectID;
+    $config{SUSPENDED} = $self->isSuspended;
 
     # this counts the number of "observes" in an SpObs
     # the "minor" counter
@@ -2197,7 +2257,7 @@ sub SpObs {
   $summary{scitarget} = 0;
 
   # Retrieve the observation number in this MSB
-  $summary{msb_obsnum} = $self->_get_attribute( $el, "obsnum" );
+  $summary{msb_obsnum} = $self->_get_attribute( $el, $OBSNUM_ATTR );
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
