@@ -848,6 +848,23 @@ sub consolidateTimeRemaining {
 
 }
 
+=item B<noneRemaining>
+
+Force the project to have zero time remaining to be observed.
+Also sets pending time to zero.
+
+Used to disable a project. [if this is a common occurrence we
+may wish to have an additional flag that disables a project
+rather than setting the time to zero. This is important if we
+wish to re-enable a project]
+
+=cut
+
+sub noneRemaining {
+  my $self = shift;
+  $self->remaining( 0 );
+  $self->pending( 0 );
+}
 
 =back
 

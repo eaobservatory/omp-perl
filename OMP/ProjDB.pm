@@ -280,7 +280,7 @@ sub decrementTimeRemaining {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 subject => "Decrement time remaining",
+				 subject => "[$projectid] Decrement time remaining",
 				 text => "$time seconds has been provisionally decremented from project <b>$projectid</b>",
 				);
 
@@ -320,7 +320,7 @@ sub confirmTimeRemaining {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 subject => "Consolidate time remaining",
+				 subject => "[$projectid] Consolidate time remaining",
 				 text => "Pending time has been subtracted from the time remaining for project <b>$projectid</b>",
 				 status => OMP__FB_IMPORTANT,
 				);
@@ -360,8 +360,55 @@ sub rescindTimePending {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 subject => "Reset pending time",
+				 subject => "[$projectid] Reset pending time",
 				 text => "Pending time has been reset without decrementing time remaining for project <b>$projectid</b>",
+				);
+
+  # Transaction end
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+=item B<disableProject>
+
+Remove the project from future queries by setting the time
+remaining to 0.0.
+
+  $db->disableProject();
+
+In the future project objects may be modified to support a true
+"disable"/"enable".
+
+Requires the administrator password.
+
+=cut
+
+sub disableProject {
+  my $self = shift;
+
+  # Verify that we can update the database
+  OMP::General->verify_administrator_password( $self->password );
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  # Transaction start
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Modify the project
+  $project->noneRemaining();
+
+  # Update the contents in the table
+  $self->_update_project_row( $project );
+
+  # Notify the feedback system
+  my $projectid = $self->projectid;
+  $self->_notify_feedback_system(
+				 subject => "[$projectid] Project disabled",
+				 text => "project <b>$projectid</b> disabled",
 				);
 
   # Transaction end
@@ -489,6 +536,8 @@ sub _get_project_row {
 
   # Project
   my $projectid = $self->projectid;
+  throw OMP::Error::UnknownProject("No project supplied")
+    unless $projectid;
 
   # Create the query
   my $xml = "<ProjQuery><projectid>$projectid</projectid></ProjQuery>";
