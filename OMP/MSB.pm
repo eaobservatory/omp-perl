@@ -2049,7 +2049,7 @@ sub unroll_obs {
     my $counter = 0;
 
     # Now loop over iterators
-    $self->_unroll_obs_recurse(\@longobs, $counter, $obs->{SpIter}, %config);
+    $self->_unroll_obs_recurse(\@longobs, \$counter, $obs->{SpIter}, %config);
 
   }
 
@@ -2076,7 +2076,7 @@ sub unroll_obs {
 sub _unroll_obs_recurse {
   my $self = shift;
   my $obsarr = shift;
-  my $obscounter = shift;
+  my $obscounter_ref = shift; # reference so that it can be changed everywhere
   my $iterator = shift;
   my %config = @_;
 
@@ -2123,11 +2123,11 @@ sub _unroll_obs_recurse {
     if ($key =~ /Obs$/) {
       # An observation
       # Calculate the label
-      $obscounter++;
-      $config{obslabel} = "obs" . $config{msb_obsnum} . "_" . $obscounter;
+      $$obscounter_ref++;
+      $config{obslabel} = "obs" . $config{msb_obsnum} . "_" . $$obscounter_ref;
 
       # dump observation details
-#      print "Dump observation details $key\n";
+      #print "Dump observation details $key - $$obscounter_ref\n";
       push(@$obsarr, {%config, MODE => $key, %{$iter->{$key}}});
 
 
@@ -2143,9 +2143,9 @@ sub _unroll_obs_recurse {
 
       # The next layer down ignores the ATTR array
 
-#      print "Recursing for $key\n";
+      #print "Recursing for $key\n";
       for my $extra (@ATTR) {
-	$self->_unroll_obs_recurse( $obsarr, $obscounter, $iter->{$key}, 
+	$self->_unroll_obs_recurse( $obsarr, $obscounter_ref, $iter->{$key}, 
 				    %config, %$extra );
       }
 
