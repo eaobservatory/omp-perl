@@ -455,7 +455,8 @@ sub timelost {
 
 Date the fault occurred. This may be different from the date
 it was filed. Not required (default is that the date it was
-filed is good enough). Must be a C<Time::Piece> object.
+filed is good enough). Must be a C<Time::Piece> object
+(or undef).
 
   $date = $fault->faultdate();
   $fault->faultdate( $date  );
