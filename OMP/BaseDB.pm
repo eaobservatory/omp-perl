@@ -927,6 +927,8 @@ sub DESTROY {
 
     if ($thiscount == $thatcount) {
       # fair enough. Rollback (doesnt matter if both == 0)
+      OMP::General->log_message("DESTROY: Rollback transaction $thiscount")
+	  if VERBOSE;
       $self->_db_rollback_trans;
 
     } elsif ($thiscount < $thatcount) {
