@@ -276,7 +276,7 @@ sub displayForm {
     }
   }
   print "<form action=\"obscomment.pl\" method=\"post\"><br>\n";
-  print "<table border=\"0\" width=\"40%\"><tr><td>";
+  print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
   print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
   print ( defined($params->{user}) ? $params->{user} : "" );
   print "\"></td></tr>\n";
@@ -295,7 +295,7 @@ sub displayForm {
   else { print ">"; }
   print "Bad</option>\n";
   print "</select></td></tr>\n";
-  print "<tr><td colspan=\"2\"><textarea name=\"text\">";
+  print "<tr><td colspan=\"2\"><textarea name=\"text\" rows=\"16\" cols=\"50\">";
   print defined($params->{text}) ? $params->{text} : "";
   print "</textarea></td></tr>\n";
   print "<tr><td><input type=\"hidden\" name=\"ut\" value=\"";
