@@ -34,7 +34,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -83,6 +83,27 @@ sub proj_status_table {
 	"<td><b>Time Remaining:</b> $summary{remaining}",
 	"<td><b>Country:</b> $summary{country} </td>",
         "</table><p>";
+}
+
+=item B<msb_sum>
+
+Displays the project details (lists all MSBs)
+
+msb_sum($cgi, %cookie);
+
+=cut
+
+sub msb_sum {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
+					     $cookie{password}, 
+					     'ascii');
+
+  print $q->h2("MSB summary"),
+        $q->pre("$msbsum");
+
 }
 
 =item B<msb_sum_hidden>
@@ -146,6 +167,25 @@ sub fb_entries {
 
 }
 
+=item B<fb_entries_hidden>
+
+Generate text showing number of comments, but not actually displaying them.
+
+fb_entries_hidden($cgi, %cookie);
+
+=cut
+
+sub fb_entries_hidden {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $comments = OMP::FBServer->getComments($cookie{projectid},
+					    $cookie{password});
+  print $q->h2("Feedback entries"),
+        "There are " .scalar(@$comments). " comments for this project. Click <a href='feedback.pl'>here</a> to view them all.",
+	$q->hr;
+}
+
 =item B<fb_output>
 
 Creates the page showing feedback entries.
@@ -158,13 +198,32 @@ sub fb_output {
   my $q = shift;
   my %cookie = @_;
 
-  print  $q->h1("Feedback for project $cookie{projectid}");
+  print $q->h1("Feedback for project $cookie{projectid}");
 
   proj_status_table($q, %cookie);
   msb_sum_hidden($q, %cookie);
   fb_entries($q, %cookie);
 }
 
+=item B<fb_msb_output>
+
+Creates the page showing the project summary (lists MSBs).
+Hides feedback entries.
+
+fb_msb_output($cgi, %cookie);
+
+=cut
+
+sub fb_msb_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  print $q-.h1("Feedback for project $cookie{projectid}");
+
+  proj_status_table($q, %cookie);
+  fb_entries_hidden($q, %cookie);
+  msb_sum($q, %cookie);
+}
 
 =back
 
