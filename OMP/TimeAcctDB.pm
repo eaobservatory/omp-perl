@@ -30,6 +30,7 @@ use OMP::Project::TimeAcct;
 use OMP::TimeAcctQuery;
 use OMP::General;
 use OMP::ProjDB;
+use OMP::ProjServer;
 
 use base qw/ OMP::BaseDB /;
 our $ACCTTABLE  = "omptimeacct";
@@ -54,7 +55,10 @@ objects that are relevant.
   @accpimts = $db->getTimeAccounting( utdate => $date );
 
 The date must either be supplied as a Time::Piece object
-or in YYYY-MM-DD format.
+or in YYYY-MM-DD format. If a telescope is specified along with
+the UT date, the resulting projects will be filtered by telescope.
+
+  @accpimts = $db->getTimeAccounting( utdate => $date, telescope => 'JCMT' );
 
 When a request for a project query is called in scalar context
 returns a reference to an array containing two elements:
@@ -98,8 +102,17 @@ sub getTimeSpent {
   # Run the query
   my @matches = $self->queryTimeSpent( $q );
 
-  # determine context?
+  # If we have a telescope specified must do an additional filter
+  # but only if we did not do a project query
+  if ($args{telescope} && ! $args{projectid} ) {
+    my $tel = uc($args{telescope});
+    @matches = grep { OMP::ProjServer->verifyTelescope($_->projectid, $tel) }
+      @matches;
+  }
 
+
+  # determine context?
+  return @matches
 }
 
 =item B<verifyTimeAcctEntry>
