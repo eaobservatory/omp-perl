@@ -146,7 +146,7 @@ sub _store_comment {
 		      'subject',
 		      'program',
 		      'sourceinfo',
-		      'status'
+		      'status',
 		      'text', };
 
   my $dbh = $self->_dbhandle;
