@@ -477,6 +477,7 @@ sub msbs {
   my @results = $db->queryMSBdone( $query, 0 );
 
   # Currently need to verify the telescope outside of the query
+  # This verification really slows things down
   @results = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
 						      $self->telescope
 						    )} @results;
@@ -507,17 +508,37 @@ sub faults {
 
   my $fdb = new OMP::FaultDB( DB => $self->db );
 
-  # XML query
-  my $xml = "<FaultQuery>".
+  my @xml;
+  # We have to do two separate queries in order to get back faults that
+  # were filed on and occurred on the reporting dates
+
+  # XML query to get faults filed on the dates we are reaporting for
+  $xml[0] = "<FaultQuery>".
     "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
       "<category>". $self->telescope ."</category>".
 	"<isfault>1</isfault>".
 	  "</FaultQuery>";
 
-  my $query = new OMP::FaultQuery( XML => $xml );
+  # XML query to get faults that occurred on the dates we are reporting for
+  $xml[1] = "<FaultQuery>".
+    "<faultdate delta=\"". $self->delta_day ."\">". $self->date->ymd . "</faultdate>".
+      "<category>". $self->telescope ."</category>".
+	"</FaultQuery>";
 
-  my @results = $fdb->queryFaults( $query );
+  # Do both queries and merge the results
+  my %results;
+  for my $xmlquery (@xml) {
+    my $query = new OMP::FaultQuery( XML => $xmlquery );
+    my @results = $fdb->queryFaults( $query );
+    for (@results) {
+      # use fault date epoch followed by ID for key so that we can
+      # sort properly and maintain uniqueness
+      $results{$_->date->epoch . $_->id} = $_;
+    }
+  }
 
+  # Convert result hash to array
+  my @results = map {$results{$_}} sort keys %results;
   return @results;
 }
 
@@ -727,10 +748,12 @@ sub ashtml {
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  print "<a href='#faultsum'>Fault Summary</a><br>";
-  print "<a href='#shiftcom'>Shift Log Comments</a><br>";
-  print "<a href='#obslog'>Observation Log</a><br>";
-  print "<p>";
+  if ($self->delta_day < 14) {
+    print "<a href='#faultsum'>Fault Summary</a><br>";
+    print "<a href='#shiftcom'>Shift Log Comments</a><br>";
+    print "<a href='#obslog'>Observation Log</a><br>";
+    print "<p>";
+  }
 
   # T i m e  A c c o u n t i n g
   # Get project accounting
@@ -857,156 +880,112 @@ sub ashtml {
   print "</table>";
   print "<p>";
 
-  # M S B  S u m m a r y
-  # Get observed MSBs
-  my %msbs = $self->msbs;
+  if ($self->delta_day < 14) {
+    # M S B  S u m m a r y
+    # Get observed MSBs
+    my %msbs = $self->msbs;
 
-  print "<table class='sum_table' cellspacing='0' width='600'>";
-  print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
+    print "<table class='sum_table' cellspacing='0' width='600'>";
+    print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
+    
+    for my $proj (keys %msbs) {
+      print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?urlprojid=$proj' class='link_dark'>$proj</a></td>";
+      print "<td>Target</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
 
-  for my $proj (keys %msbs) {
-    print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?urlprojid=$proj' class='link_dark'>$proj</a></td>";
-    print "<td>Target</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
-
-    for my $msb (@{$msbs{$proj}}) {
-      print "<tr class='row_a'>";
-      print "<td></td>";
-      print "<td>". substr($msb->targets,0,30) ."</td>";
-      print "<td>". $msb->wavebands ."</td>";
-      print "<td>". $msb->instruments ."</td>";
-      print "<td>". $msb->nrepeats ."</td>";
+      for my $msb (@{$msbs{$proj}}) {
+	print "<tr class='row_a'>";
+	print "<td></td>";
+	print "<td>". substr($msb->targets,0,30) ."</td>";
+	print "<td>". $msb->wavebands ."</td>";
+	print "<td>". $msb->instruments ."</td>";
+	print "<td>". $msb->nrepeats ."</td>";
+      }
     }
-  }
+    
+    print "</table>";
+    print "<p>";
 
-  print "</table>";
-  print "<p>";
+    # F a u l t  S u m m a r y
+    # Get faults
+    my @faults = $self->faults;
 
-  # F a u l t S u m m a r y
-  # Get faults
-  my @faults = $self->faults;
-
-  # Sort faults by local date
-  my %faults;
-  for my $f (@faults) {
-    my $local = localtime($f->filedate->epoch);
-    push(@{$faults{$local->ymd}}, $f);
-  }
-
-  print "<a name=faultsum></a>";
-  print "<table class='sum_table' cellspacing='0' width='600'>";
-  print "<tr class='fault_sum_table_head'>";
-  print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td>";
-
-  for my $date (sort keys %faults) {
-    my $timecellclass = 'time_a';
-    if ($self->delta_day != 1) {
-
-      # Summarizing faults for more than one day
-
-      # Do all this date magic so we can use the appropriate CSS class
-      # (i.e.: time_mon, time_tue, time_wed)
-      my $filedate = @{$faults{$date}}->[0]->filedate;
-      my $local = localtime($filedate->epoch);
-      $timecellclass = 'time_' . $local->day . '_a';
-
-      print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
+    # Sort faults by local date
+    my %faults;
+    for my $f (@faults) {
+      my $local = localtime($f->date->epoch);
+      push(@{$faults{$local->ymd}}, $f);
     }
-    for my $fault (@{$faults{$date}}) {
-      print "<tr class=sum_other valign=top>";
-      print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
 
-      # Use local time for fault date
-      my $local = localtime($fault->date->epoch);
-      print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
-      print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
-      print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
-    }
-  }
+    print "<a name=faultsum></a>";
+    print "<table class='sum_table' cellspacing='0' width='600'>";
+    print "<tr class='fault_sum_table_head'>";
+    print "<td colspan=4><strong class='small_title'>Fault Summary</strong></td>";
 
-  print "</table>";
-  print "<p>";
-
-  # S h i f t  L o g  C o m m e n t s
-  my @comments = $self->shiftComments;
-
-  # Sort shift comments by local date
-  my %comments;
-  for my $c (@comments) {
-    my $local = localtime($c->date->epoch);
-    push(@{$comments{$local->ymd}}, $c);
-  }
-
-  print "<a name=shiftcom></a>";
-  print "<table class='sum_table' cellspacing='0' width='600'>";
-  print "<tr class='sum_table_head'>";
-  print "<td colspan=3><strong class='small_title'>Shift Log Comments</strong></td>";
-
-  if ($comments[0]) {
-    my $bgcolor = 'a';
-    for my $date (sort keys %comments) {
-      my $timecellclass = 'time';
+    for my $date (sort keys %faults) {
+      my $timecellclass = 'time_a';
       if ($self->delta_day != 1) {
-	# Summarizing Shift comments for more than one day
 	
+	# Summarizing faults for more than one day
+
 	# Do all this date magic so we can use the appropriate CSS class
 	# (i.e.: time_mon, time_tue, time_wed)
-	my $cdate = @{$comments{$date}}->[0]->date;
-	my $local = localtime($cdate->epoch);
-	$timecellclass = 'time_' . $local->day;
+	my $fdate = @{$faults{$date}}->[0]->date;
+	my $local = localtime($fdate->epoch);
+	$timecellclass = 'time_' . $local->day . '_a';
 
-	print "<tr class=sum_other valign=top><td class=".$timecellclass."_$bgcolor colspan=2>$date</td><td colspan=1></td>";
-      }
-      for my $c (@{$comments{$date}}) {
+	print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
+    }
+      for my $fault (@{$faults{$date}}) {
+	print "<tr class=sum_other valign=top>";
+	print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
 
-	# Use local time
-	my $date = $c->date;
-	my $local = localtime( $date->epoch );
-	my $author = $c->author->name;
-
-	# Get the text
-	my $text = $c->text;
-
-	# Now print the comment
-	print "<tr class=row_$bgcolor valign=top>";
-	print "<td class=time_a>$author</td>";
-	print "<td class=" . $timecellclass . "_$bgcolor>".$local->strftime("%H:%M %Z") ."</td>";
-	print "<td class=subject>$text</td>";
-
-	# Alternate bg color
-	($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
+	# Use local time for fault date
+	my $local = localtime($fault->date->epoch);
+	print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
+	print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
+	print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
       }
     }
-  } else {
-    print "<tr class=sum_other valign=top><td>No comments available</td><td></td><td></td>";
-  }
 
-  print "</table>";
-  print "<p>";
+    print "</table>";
+    print "<p>";
 
-  # O b s e r v a t i o n  L o g
-  # Display only if we are summarizing a single night
-  if ($self->delta_day == 1) {
-    my $grp;
-    try {
-      $grp = $self->obs;
-    } catch OMP::Error::FatalError with {
-      my $E = shift;
-      print "<pre>An error has been encountered:<p> $E</pre><p>";
-    } otherwise {
-      my $E = shift;
-      print "<pre>An error has been encountered:<p> $E</pre><p>";
-    };
+    # S h i f t  L o g  C o m m e n t s
+    my @comments = $self->shiftComments;
 
-    print "<a name=obslog></a>";
-    print "<strong class='small_title'>Observation log</strong><p>";
+    print "<a name=shiftcom></a>";
 
-    if ($grp and $grp->numobs > 1) {
-      # Don't want to go to files on disk
-      $OMP::ArchiveDB::FallbackToFiles = 0;
-      obs_table($grp);
+    if ($comments[0]) {
+      OMP::CGIShiftlog::display_shift_table( \@comments );
     } else {
-      # Don't display the table if no observations are available
-      print "No observations available for this night";
+      print "<strong>No Shift comments available</strong>";
+    }
+    print "<p>";
+
+    # O b s e r v a t i o n  L o g
+    # Display only if we are summarizing a single night
+    if ($self->delta_day == 1) {
+      my $grp;
+      try {
+	$grp = $self->obs;
+      } catch OMP::Error::FatalError with {
+	my $E = shift;
+	print "<pre>An error has been encountered:<p> $E</pre><p>";
+      } otherwise {
+	my $E = shift;
+	print "<pre>An error has been encountered:<p> $E</pre><p>";
+      };
+
+      print "<a name=obslog></a>";
+      
+      if ($grp and $grp->numobs > 1) {
+	# Don't want to go to files on disk
+	$OMP::ArchiveDB::FallbackToFiles = 0;
+	obs_table($grp);
+      } else {
+	# Don't display the table if no observations are available
+	print "No observations available for this night";
+      }
     }
   }
 }
