@@ -23,7 +23,6 @@ use 5.006;
 use strict;
 use warnings;
 
-use OMP::SciProg;
 use OMP::Error;
 
 use Fcntl;
@@ -1194,7 +1193,7 @@ sub getScan {
   my @scanpas = @{ $info{SCAN_PA}};
 
   # If nothing specified use the SCUBA symmetry
-  @scanpas = (14.5,74.5,-45.5);
+  @scanpas = (14.5,74.5,-45.5) unless @scanpas;
 
   # If only one, run with it
   if (scalar(@scanpas) == 1) {
