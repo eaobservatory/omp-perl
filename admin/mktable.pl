@@ -71,7 +71,7 @@ my %tables = (
 			 projectid => "VARCHAR(32)",
 			 instrument => "VARCHAR(32)",
 			 wavelength => "REAL",
-			 grating => "VARCHAR(32) NULL",
+			 disperser => "VARCHAR(32) NULL",
 			 coordstype => "VARCHAR(32)",
 			 target => "VARCHAR(32)",
 			 ra2000 => "REAL NULL",
@@ -88,7 +88,7 @@ my %tables = (
 			 timeest => "REAL",
 			 type => "VARCHAR(32)",
 			 _ORDER => [qw/obsid msbid projectid
-				    instrument type pol wavelength grating
+				    instrument type pol wavelength disperser
 				    coordstype target ra2000 dec2000 el1 el2
 				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
