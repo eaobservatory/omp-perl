@@ -7,7 +7,10 @@ use FindBin;
 #use lib "$FindBin::RealBin/../";
 use lib "/jac_sw/omp/msbserver";
 
+BEGIN { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"; }
+
 use CGI;
+use CGI::Carp qw/fatalsToBrowser/;
 use OMP::CGI;
 use OMP::CGIPkgData;
 
