@@ -135,7 +135,7 @@ sub nightlog {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
   }
 
-  my $length = $self->endobs - $self->startobs;
+  my $length = $self->endobs - $self->startobs + 1;
   $return{'_STRING'} = $return{'_STRING_LONG'} .= sprintf("  Length: %s", $length->pretty_print);
 
   foreach my $comment ($self->comments) {
