@@ -126,12 +126,19 @@ The return argument is an XML representation of the science
 program (encoded in base64 for speed over SOAP if we are using
 SOAP).
 
+If an optional third argument is set to true, this method will
+return the C<OMP::SciProg> object rather than the XML representation.
+[only useful if used outside of SOAP]
+
+  $sp = OMP::SpServer->fetchProgram($project, $password, 1);
+
 =cut
 
 sub fetchProgram {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
+  my $retobj = shift;
 
   OMP::General->log_message( "fetchProgram: project $projectid\n");
 
@@ -161,9 +168,16 @@ sub fetchProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  # Return the stringified form
-  return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => "$sp")
-	  : "$sp" );
+
+  if ($retobj) {
+    # return the object
+    return $sp;
+  } else {
+    # Return the stringified form
+    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => "$sp")
+	    : "$sp" );
+  }
+
 }
 
 =item B<programDetails>
