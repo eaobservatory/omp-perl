@@ -533,12 +533,15 @@ sub summary {
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
   my @width = qw/ 10 10 3 3 3 3 20 20 20 6 40/;
+  throw OMP::Error("Bizarre problem in MSB::summary ")
+    unless @width == @keys;
+
   my @format = map { "%-$_"."s" } @width;
 
   # Substr each string using the supplied widths.
   my @sub = map { 
     substr($local{$keys[$_]},0,$width[$_])
-  } grep { exists $local{$keys[$_]} } 0..$#width;
+  } grep { exists $local{$keys[$_]} && defined $local{$keys[$_]}} 0..$#width;
 
   # ...and the header
   my @head = map {
@@ -949,6 +952,13 @@ sub _get_weather_data {
   $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
   $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
 
+  # Big kluge - if the site quality is there but we
+  # dont have any values defined (due to a bug in the OT)
+  # then make something up
+  $summary{tauband} = 0 unless defined $summary{tauband};
+  $summary{seeing} = 0 unless defined $summary{seeing};
+
+
 #  use Data::Dumper;
 #  print Dumper(\%summary);
 
@@ -1108,7 +1118,8 @@ sub SpObs {
   # targets then we should fill in the targetname now with
   # CAL
   # This test needs to be expanded for SCUBA
-  if ( grep /^Observe$/, @{$summary{obstype}} ) {
+  if ( grep /^Observe$/, @{$summary{obstype}} or
+       grep /Pointing|Photom/, @{$summary{obstype}}) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
@@ -1271,6 +1282,32 @@ sub SpInstIRCAM3 {
   my %summary = @_;
 
   $summary{instrument} = "IRCAM3";
+
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+  $summary{wavelength} = "unknown";
+
+  return %summary;
+}
+
+=item B<SpInstSCUBA>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstSCUBA( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstSCUBA {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{instrument} = "SCUBA";
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
