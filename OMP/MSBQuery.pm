@@ -453,8 +453,7 @@ sub _post_process_hash {
   }
 
   # Also do timeest as a special case since that becomes
-  # a hash (and so wont be modified in the loop once converted
-  # to a range)
+  # Must deal with the attributes
   if (exists $href->{timeest}) {
 
     my $key = "timeest";
@@ -472,7 +471,14 @@ sub _post_process_hash {
       }
 
       # Now scale all values by this factor
-      if (ref($href->{timeest}) eq 'HASH') {
+      # 99% of the time we have an OMP::Range object here
+      if (UNIVERSAL::isa($href->{timeest},"OMP::Range")) {
+	my @minmax = $href->{timeest}->minmax;
+	for (@minmax) {
+	  $_ *= $factor if defined $_;
+	}
+	$href->{timeest}->minmax(@minmax);
+      } elsif (ref($href->{timeest}) eq 'HASH') {
 	for (keys %{ $href->{timeest} }) {
 	  $href->{timeest}->{$_} *= $factor;
 	}
