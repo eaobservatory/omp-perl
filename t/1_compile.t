@@ -12,9 +12,9 @@ use File::Find;
 
 our @modules;
 
-# If ORAC_SKIP_COMPILE_TEST environment variable is set we
+# If SKIP_COMPILE_TEST environment variable is set we
 # just skip this test because it takes a long time
-if (exists $ENV{ORAC_SKIP_COMPILE_TEST}) {
+if (exists $ENV{SKIP_COMPILE_TEST}) {
   print "1..0 # Skip compile tests not required\n";
   exit;
 }
