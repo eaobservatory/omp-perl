@@ -174,7 +174,7 @@ sub summary {
 
   my $format = lc(shift);
 
-  if( $format eq '72col' ) {
+  if( ( $format eq '72col' ) or ( $format eq 'text' ) ) {
     my $obssum = "Time gap: ";
 
     if( $self->status == OMP__TIMEGAP_INSTRUMENT ) {
