@@ -1669,7 +1669,7 @@ sub show_faults {
   print "<td><b>Replies</b></td><td> </td>";
 
   if ($args{orderby} eq 'response') {
-    @$faults = sort {@{$a->responses}->[-1]->date->epoch <=> @{$b->responses}->[-1]->date->epoch} @$faults;
+    @$faults = sort {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch} @$faults;
   }
 
   my @faults;
@@ -1800,9 +1800,9 @@ sub titlebar {
     $toptitle = "$cookie{category} Faults";
   }
 
-  print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;@$title->[0]</font></td>";
+  print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
   print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
-    if (@$title->[1]);
+    if ($title->[1]);
   print "</table><br>";
 }
 

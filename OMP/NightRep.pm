@@ -966,7 +966,7 @@ sub ashtml {
 
 	# Do all this date magic so we can use the appropriate CSS class
 	# (i.e.: time_mon, time_tue, time_wed)
-	my $fdate = @{$faults{$date}}->[0]->date;
+	my $fdate = $faults{$date}->[0]->date;
 	my $local = localtime($fdate->epoch);
 	$timecellclass = 'time_' . $local->day . '_a';
 
