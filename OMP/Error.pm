@@ -213,6 +213,10 @@ The database is currently locked out. Please try again later.
 
 The DB query XML could not be understood.
 
+=item B<OMP::Error::DirectoryNotFound>
+
+The requested directory could not be found.
+
 =item B<OMP::Error::FatalError>
 
 Used when we have no choice but to abort but using a non-standard
@@ -317,6 +321,9 @@ package OMP::Error::DBLocked;
 use base qw/ OMP::Error /;
 
 package OMP::Error::DBMalformedQuery;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DirectoryNotFound;
 use base qw/ OMP::Error /;
 
 package OMP::Error::FatalError;
