@@ -25,6 +25,7 @@ use strict;
 use warnings;
 use Carp;
 
+use OMP::Config;
 use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error qw(:try);
@@ -414,7 +415,10 @@ sub _write_header {
 	       "<a HREF='http://www.jach.hawaii.edu/JACpublic/JAC/cs'>Computing Services</a>",
 	       "<a HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
 
+  # Get the location of blank.gif
+  my $blankgif = OMP::Config->getData('blankgif');
   $theme->SetSideBarMenuLinks(\@links);
+  $theme->SetBlankGif($blankgif);
 
   print $theme->StartHTML(),
         $theme->MakeHeader(),
