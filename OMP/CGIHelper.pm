@@ -1478,7 +1478,7 @@ sub report_output {
   $t -= $t->tzoffset;
 
   print "<pre>";
-  print Dumper($obs);
+  #  print Dumper($obs);
   print "</pre>";
 
   print "<h2>Report for $date, $shift shift</h2>";
