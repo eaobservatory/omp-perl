@@ -1413,7 +1413,7 @@ sub project_home {
   }
 
   # Link to the MSB history page
-  print "Click <a href='http://www.ukirt.jach.hawaii.edu/cgi-bin/msbhist.pl'>here</a> for more details on the observing history of each MSB.";
+  print "Click <a href='/msbhist.pl'>here</a> for more details on the observing history of each MSB.";
   
   # Display remaining MSBs
   print "<h3>Observations remaining to be observed:</h3>";

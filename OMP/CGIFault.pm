@@ -295,7 +295,7 @@ sub fault_table {
   my @projects = $fault->projects;
 
   if ($projects[0]) {
-    my @html = map {"<a href='feedback.pl?urlprojid=$_'>$_</a>"} @projects;
+    my @html = map {"<a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
     print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
     print join(', ',@html);
     print "</td>";
