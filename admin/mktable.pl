@@ -82,10 +82,13 @@ my %tables = (
 			  encrypted => "VARCHAR(20)",
 			  title => TITLE,
 			  telescope => "VARCHAR(16)",
+			  taumin => "REAL",
+			  taumax => "REAL NULL",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
-				     remaining pending telescope
+				     remaining pending telescope taumin
+				     taumax
 				     /],
 			 },
 	      # Scheduling information associated with observations
@@ -217,7 +220,7 @@ my %tables = (
 	      ompuser => {
 			  userid => USERID,
 			  name => "VARCHAR(255)",
-			  email => "VARCHAR(64)",
+			  email => "VARCHAR(64) NULL",
 			  _ORDER => [qw/ userid name email /],
 			 },
 	      # Comments associated with the observing shift.
