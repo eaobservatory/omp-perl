@@ -74,6 +74,7 @@ sub new {
   my ($parser, $tree);
   my $refs = {};
   if (exists $args{XML}) {
+    # Now convert XML to parse tree
     XML::LibXML->validation(1);
     $parser = new XML::LibXML;
     $tree = eval { $parser->parse_string( $args{XML} ) };
@@ -89,8 +90,6 @@ sub new {
 
   my $projid;
   $projid = $args{PROJECTID} if exists $args{PROJECTID};
-
-  # Now convert XML to parse tree
 
   # Now create our Science Program hash
   my $sp = {
@@ -332,15 +331,24 @@ In scalar context the summary is returned in XML format:
 
 The XML format will be something like the following:
 
- <SpMSBSummary>
+ <SpMSBSummary id="string">
     <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
     <remaining>2</remaining>
      ...
   </SpMSBSummary>
 
-where the elements match the key names in the hash. Routines above
-this one may add an ID to the SpMSBSummary element to allow an MSB
-to be located in the database.
+where the elements match the key names in the hash. An C<id> key
+is treated specially. When present this id is used in the SpMSBSummary
+element directly.
+
+If an optional argument is supplied this method will act like
+a class method that uses the supplied hash to form a summary rather
+than the object itself.
+
+  $summary = OMP::MSB->summary( \%hash );
+
+Warnings will be issued if fundamental keys such as "remaining",
+"checksumn" and "projectid" are missing.
 
 =cut
 
@@ -348,11 +356,17 @@ sub summary {
   my $self = shift;
 
   my %summary;
+  if (@_) {
+    my $summary_ref = shift;
+    %summary = %$summary_ref;
+  } else {
 
-  # Populate the hash
-  $summary{checksum} = $self->checksum;
-  $summary{remaining} = $self->remaining;
-  $summary{projectid} = $self->projectID;
+    # Populate the hash from the object if no arg
+    $summary{checksum} = $self->checksum;
+    $summary{remaining} = $self->remaining;
+    $summary{projectid} = $self->projectID;
+
+  }
 
   # Summary string
   my $head = "Project  Remainder  Checksum\n";
@@ -371,11 +385,14 @@ sub summary {
 
   } else {
     # XML version
-    my $xml = "<SpMSBSummary>\n";
+    my $xml = "<SpMSBSummary ";
+    $xml .= "id=\"$summary{id}\"" if exists $summary{id};
+    $xml .= ">\n";
 
     for my $key (keys %summary) {
-      # Special case the summary key
+      # Special case the summary and ID keys
       next if $key eq "summary";
+      next if $key eq "id";
 
       $xml .= "<$key>$summary{$key}</$key>\n";
 
