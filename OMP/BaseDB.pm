@@ -459,7 +459,7 @@ sub _db_insert_data {
 
   # Insert the easy data
   $dbh->do($sql,undef,@toinsert)
-    or throw OMP::Error::DBError("Error inserting data into table $table: $DBI::errstr");
+    or throw OMP::Error::DBError("Error inserting data into table $table [$sql]: $DBI::errstr");
 
 
   # Now the text data
