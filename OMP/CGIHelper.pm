@@ -56,7 +56,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output public_url private_url projlog_content nightlog_content night_report proj_sum_page proposals/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output public_url private_url projlog_content nightlog_content night_report proj_sum_page proposals flex_page/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1402,6 +1402,10 @@ sub project_home {
   # Make a big header for the page with the project ID and title
   print "<table width=100%><tr><td>";
   print "<h2>$cookie{projectid}: $title</h2>";
+
+  # Make it obvious if this project is disabled
+  (! $project->state) and print "<h2>This project is disabled</h2>";
+
   print "</td><td align=right valign=top>";
 
   # We'll display a flag icon representing the country if we have
@@ -2079,6 +2083,32 @@ sub proposals {
     # Didn't get project ID, put up form?
   }
 
+}
+
+=item B<flex_page>
+
+Routine to serve the UKIRT flex page through the OMP feedback pages.
+
+  flex_page($q, %cookie);
+
+=cut
+
+sub flex_page {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $flexpage = "/WWW/JAClocal/UKIRT/omp/03a/Flex_programme_descriptions.html";
+
+  # Read in flex page
+  open(FLEX, $flexpage) or die "Unable to open flex page [$flexpage]: $!";
+
+  my @output = <FLEX>;  # Slurp!
+
+  close(FLEX);
+
+  # Display the page
+  print "Content-Type: text/html\n\n";
+  print join("",@output);
 }
 
 =item B<sumbit_fb_comment>
