@@ -9,7 +9,7 @@ use Test;
 use Data::Dumper;
 
 
-BEGIN { plan tests => 139 }
+BEGIN { plan tests => 199 }
 
 use OMP::SciProg;
 
@@ -40,7 +40,7 @@ ok($obj->projectID, "M01BTJ");
 # Now count the number of MSBs
 # Should be 9
 my @msbs = $obj->msb;
-ok(scalar(@msbs), 9);
+ok(scalar(@msbs), 11);
 
 # Go through the MSBs to see what we can find out about them
 for my $msb ($obj->msb) {
@@ -63,6 +63,7 @@ for my $msb ($obj->msb) {
 	  foreach my $obskey (keys %cmpobs) {
 	    # Skipping refs prevents comparison of coordinates
 	    next if ref($cmpobs{$obskey});
+	    next if ref($obs{$obskey});
 
 	    ok($obs{$obskey}, $cmpobs{$obskey});
 	  }
@@ -125,61 +126,201 @@ exit;
 
 __DATA__
 $VAR1 = {
-          '9d96e30de1b6cb6a2e06f793fa85da49' => {
+          'cdc423f56111e9be173eeda6cc28d49dA' => {
+                                                   'seeing' => '1',
+                                                   'title' => 'Pol test',
+                                                   'timeest' => '49.490668292',
+                                                   'projectid' => 'M01BTJ',
+                                                   'remaining' => '6',
+                                                   'tauband' => '1',
+                                                   'obscount' => 3,
+                                                   'obs' => [
+                                                              {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'MICHELLE',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '10.0'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '10.0',
+                                                                'coordstype' => 'RADEC',
+                                                                'target' => 'eek',
+                                                                'pol' => 1,
+                                                                'obstype' => [
+                                                                               'Observe'
+                                                                             ],
+                                                                'coords' => bless( {
+                                                                                     'dec2000' => '0',
+                                                                                     'ra2000' => '0'
+                                                                                   }, 'Astro::Coords::Equatorial' ),
+                                                                'instrument' => 'Michelle',
+                                                                'type' => 's'
+                                                              },
+                                                              {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'CGS4',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '1.0'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '1.0',
+                                                                'coordstype' => 'RADEC',
+                                                                'target' => 'mars',
+                                                                'pol' => 1,
+                                                                'obstype' => [
+                                                                               'Observe'
+                                                                             ],
+                                                                'coords' => bless( {
+                                                                                     'dec2000' => '0',
+                                                                                     'ra2000' => '0'
+                                                                                   }, 'Astro::Coords::Equatorial' ),
+                                                                'instrument' => 'CGS4',
+                                                                'type' => 's'
+                                                              },
+                                                              {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'IRCAM',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '3.6',
+                                                                                                    'filter' => 'Lp98'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '3.6',
+                                                                'coordstype' => 'RADEC',
+                                                                'target' => 'mars',
+                                                                'pol' => 1,
+                                                                'obstype' => [
+                                                                               'Observe'
+                                                                             ],
+                                                                'coords' => $VAR1->{'cdc423f56111e9be173eeda6cc28d49dA'}{'obs'}[1]{'coords'},
+                                                                'instrument' => 'IRCAM3',
+                                                                'type' => 'i'
+                                                              }
+                                                            ],
+                                                   'priority' => 2
+                                                 },
+          '4cbbd5b208c2386866e59fa5225caa1f' => {
                                                   'seeing' => '1',
-                                                  'title' => 'UFTI standards',
-                                                  'timeest' => 1,
+                                                  'title' => 'Copy',
+                                                  'timeest' => '40.501227375',
                                                   'projectid' => 'M01BTJ',
-                                                  'remaining' => '2',
+                                                  'remaining' => '1',
                                                   'tauband' => '1',
-                                                  'obscount' => 2,
+                                                  'obscount' => 1,
                                                   'obs' => [
                                                              {
-                                                               'wavelength' => 'unknown',
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'MICHELLE',
+                                                                                      'Cache' => {
+                                                                                                   'wavelength' => '10.5',
+                                                                                                   'filter' => 'F105B53'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => '10.5',
+                                                               'pol' => 0,
+                                                               'target' => 'NONE SUPPLIED',
                                                                'coordstype' => 'RADEC',
-                                                               'target' => 'FS1',
                                                                'obstype' => [
-                                                                              'Dark',
                                                                               'Observe'
                                                                             ],
-                                                               'filter' => 'Z',
+                                                               'instrument' => 'Michelle',
+                                                               'type' => 'i',
                                                                'coords' => bless( {
-                                                                                    'dec2000' => '-0.211752071498212',
-                                                                                    'ra2000' => '0.147946251981751'
-                                                                                  }, 'Astro::Coords::Equatorial' ),
-                                                               'instrument' => 'UFTI'
-                                                             },
-                                                             {
-                                                               'wavelength' => 'unknown',
-                                                               'coordstype' => 'RADEC',
-                                                               'target' => 'FS2',
-                                                               'obstype' => [
-                                                                              'Dark',
-                                                                              'Observe'
-                                                                            ],
-                                                               'filter' => 'I',
-                                                               'coords' => bless( {
-                                                                                    'dec2000' => '0.0125717035648514',
-                                                                                    'ra2000' => '0.240704902127233'
-                                                                                  }, 'Astro::Coords::Equatorial' ),
-                                                               'instrument' => 'UFTI'
+                                                                                    'dec2000' => '0',
+                                                                                    'ra2000' => '0'
+                                                                                  }, 'Astro::Coords::Equatorial' )
                                                              }
                                                            ],
                                                   'priority' => 3
                                                 },
-          '38dc5ccd06862f24bca0c18257d3b13aA' => {
+          'ac9e9c8007fad7b8e1073de45e1d8222OA' => {
+                                                    'seeing' => '1',
+                                                    'title' => 'BS1532_4h47m_-16d_G1V',
+                                                    'timeest' => '64.0',
+                                                    'projectid' => 'M01BTJ',
+                                                    'remaining' => '1',
+                                                    'tauband' => '1',
+                                                    'obscount' => 1,
+                                                    'obs' => [
+                                                               {
+                                                                 'waveband' => bless( {
+                                                                                        'Instrument' => 'CGS4',
+                                                                                        'Cache' => {
+                                                                                                     'wavelength' => '2.2'
+                                                                                                   }
+                                                                                      }, 'Astro::WaveBand' ),
+                                                                 'wavelength' => '2.2',
+                                                                 'target' => 'BS1532',
+                                                                 'coordstype' => 'RADEC',
+                                                                 'pol' => 0,
+                                                                 'obstype' => [
+                                                                                'Observe'
+                                                                              ],
+                                                                 'coords' => bless( {
+                                                                                      'dec2000' => '-0.295561812551618',
+                                                                                      'ra2000' => '1.25490627659436'
+                                                                                    }, 'Astro::Coords::Equatorial' ),
+                                                                 'instrument' => 'CGS4',
+                                                                 'type' => 's'
+                                                               }
+                                                             ],
+                                                    'priority' => 3
+                                                  },
+          '77013c6318b6cba06ec7499584f205fd' => {
+                                                  'seeing' => '1',
+                                                  'title' => 'Copy',
+                                                  'timeest' => '40.501227375',
+                                                  'projectid' => 'M01BTJ',
+                                                  'remaining' => '1',
+                                                  'tauband' => '1',
+                                                  'obscount' => 1,
+                                                  'obs' => [
+                                                             {
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'MICHELLE',
+                                                                                      'Cache' => {
+                                                                                                   'wavelength' => '10.5',
+                                                                                                   'filter' => 'F105B53'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => '10.5',
+                                                               'pol' => 0,
+                                                               'target' => 'NONE SUPPLIED',
+                                                               'coordstype' => 'RADEC',
+                                                               'obstype' => [
+                                                                              'Observe'
+                                                                            ],
+                                                               'instrument' => 'Michelle',
+                                                               'type' => 'i',
+                                                               'coords' => bless( {
+                                                                                    'dec2000' => '0',
+                                                                                    'ra2000' => '0'
+                                                                                  }, 'Astro::Coords::Equatorial' )
+                                                             }
+                                                           ],
+                                                  'priority' => 3
+                                                },
+          '1d040d928406c17f39f0948136253752A' => {
                                                    'seeing' => '2',
                                                    'title' => '-',
-                                                   'timeest' => 1,
+                                                   'timeest' => '0.24',
                                                    'projectid' => 'M01BTJ',
                                                    'remaining' => '1',
                                                    'tauband' => '2',
                                                    'obscount' => 1,
                                                    'obs' => [
                                                               {
-                                                                'wavelength' => 'unknown',
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'IRCAM',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '3.6',
+                                                                                                    'filter' => 'Lp98'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '3.6',
                                                                 'target' => 'test',
                                                                 'coordstype' => 'RADEC',
+                                                                'pol' => 0,
                                                                 'obstype' => [
                                                                                'Dark',
                                                                                'Observe'
@@ -188,24 +329,193 @@ $VAR1 = {
                                                                                      'dec2000' => '0',
                                                                                      'ra2000' => '0'
                                                                                    }, 'Astro::Coords::Equatorial' ),
-                                                                'instrument' => 'IRCAM3'
+                                                                'instrument' => 'IRCAM3',
+                                                                'type' => 'i'
                                                               }
                                                             ],
                                                    'priority' => 3
                                                  },
-          'dfe282baeba181e3a6e5433711fd7286' => {
+          'fff3cfddba9dbed301418bbe75b814a6' => {
+                                                  'seeing' => '1',
+                                                  'title' => 'UFTI standards',
+                                                  'timeest' => '180.0',
+                                                  'projectid' => 'M01BTJ',
+                                                  'remaining' => '2',
+                                                  'tauband' => '1',
+                                                  'obscount' => 2,
+                                                  'obs' => [
+                                                             {
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'UFTI',
+                                                                                      'Cache' => {
+                                                                                                   'wavelength' => '1.033',
+                                                                                                   'filter' => 'Z'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => '1.033',
+                                                               'target' => 'FS1',
+                                                               'coordstype' => 'RADEC',
+                                                               'pol' => 0,
+                                                               'obstype' => [
+                                                                              'Dark',
+                                                                              'Observe'
+                                                                            ],
+                                                               'coords' => bless( {
+                                                                                    'dec2000' => '-0.211752071498212',
+                                                                                    'ra2000' => '0.147946251981751'
+                                                                                  }, 'Astro::Coords::Equatorial' ),
+                                                               'instrument' => 'UFTI',
+                                                               'type' => 'i'
+                                                             },
+                                                             {
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'UFTI',
+                                                                                      'Cache' => {
+                                                                                                   'wavelength' => '0.9',
+                                                                                                   'filter' => 'I'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => '0.9',
+                                                               'target' => 'FS2',
+                                                               'coordstype' => 'RADEC',
+                                                               'pol' => 0,
+                                                               'obstype' => [
+                                                                              'Dark',
+                                                                              'Observe'
+                                                                            ],
+                                                               'coords' => bless( {
+                                                                                    'dec2000' => '0.0125717035648514',
+                                                                                    'ra2000' => '0.240704902127233'
+                                                                                  }, 'Astro::Coords::Equatorial' ),
+                                                               'instrument' => 'UFTI',
+                                                               'type' => 'i'
+                                                             }
+                                                           ],
+                                                  'priority' => 3
+                                                },
+          '27ead70fae09e119876dfa78e45b138bO' => {
+                                                   'seeing' => '1',
+                                                   'title' => 'FS1_00h33m_-12d I-band',
+                                                   'timeest' => '240.0',
+                                                   'projectid' => 'M01BTJ',
+                                                   'remaining' => '1',
+                                                   'tauband' => '1',
+                                                   'obscount' => 1,
+                                                   'obs' => [
+                                                              {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'UFTI',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '0.9',
+                                                                                                    'filter' => 'I'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '0.9',
+                                                                'target' => 'FS1',
+                                                                'coordstype' => 'RADEC',
+                                                                'pol' => 0,
+                                                                'obstype' => [
+                                                                               'Dark',
+                                                                               'Observe'
+                                                                             ],
+                                                                'coords' => bless( {
+                                                                                     'dec2000' => '-0.211752071498212',
+                                                                                     'ra2000' => '0.147946251981751'
+                                                                                   }, 'Astro::Coords::Equatorial' ),
+                                                                'instrument' => 'UFTI',
+                                                                'type' => 'i'
+                                                              }
+                                                            ],
+                                                   'priority' => 3
+                                                 },
+          'e459fe51b9ecdea7aae7f755716467cbOA' => {
+                                                    'seeing' => '1',
+                                                    'title' => 'BS5_0h6m_58d_G5V',
+                                                    'timeest' => '64.0',
+                                                    'projectid' => 'M01BTJ',
+                                                    'remaining' => '1',
+                                                    'tauband' => '1',
+                                                    'obscount' => 1,
+                                                    'obs' => [
+                                                               {
+                                                                 'waveband' => bless( {
+                                                                                        'Instrument' => 'CGS4',
+                                                                                        'Cache' => {
+                                                                                                     'wavelength' => '2.2'
+                                                                                                   }
+                                                                                      }, 'Astro::WaveBand' ),
+                                                                 'wavelength' => '2.2',
+                                                                 'target' => 'BS5',
+                                                                 'coordstype' => 'RADEC',
+                                                                 'pol' => 0,
+                                                                 'obstype' => [
+                                                                                'Observe'
+                                                                              ],
+                                                                 'coords' => bless( {
+                                                                                      'dec2000' => '1.01991223722375',
+                                                                                      'ra2000' => '0.0273362194093612'
+                                                                                    }, 'Astro::Coords::Equatorial' ),
+                                                                 'instrument' => 'CGS4',
+                                                                 'type' => 's'
+                                                               }
+                                                             ],
+                                                    'priority' => 3
+                                                  },
+          '759a74449fdd8c8d22227c748d96ac97O' => {
+                                                   'seeing' => '1',
+                                                   'title' => 'FS101_00h13m_30d J-band',
+                                                   'timeest' => '30.0',
+                                                   'projectid' => 'M01BTJ',
+                                                   'remaining' => '2',
+                                                   'tauband' => '1',
+                                                   'obscount' => 1,
+                                                   'obs' => [
+                                                              {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'UFTI',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '1.250',
+                                                                                                    'filter' => 'J98'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
+                                                                'wavelength' => '1.250',
+                                                                'target' => 'FS101',
+                                                                'coordstype' => 'RADEC',
+                                                                'pol' => 0,
+                                                                'obstype' => [
+                                                                               'Dark',
+                                                                               'Observe'
+                                                                             ],
+                                                                'coords' => bless( {
+                                                                                     'dec2000' => '0.534652042713915',
+                                                                                     'ra2000' => '0.0598924277232287'
+                                                                                   }, 'Astro::Coords::Equatorial' ),
+                                                                'instrument' => 'UFTI',
+                                                                'type' => 'i'
+                                                              }
+                                                            ],
+                                                   'priority' => 3
+                                                 },
+          '59dc992988a3e66e6f588eff9cfe2c44' => {
                                                   'seeing' => '1',
                                                   'title' => 'Array Tests',
-                                                  'timeest' => 1,
+                                                  'timeest' => '60.0',
                                                   'projectid' => 'M01BTJ',
                                                   'remaining' => '1',
                                                   'tauband' => '1',
                                                   'obscount' => 3,
                                                   'obs' => [
                                                              {
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'CGS4',
+                                                                                      'Cache' => {
+                                                                                                   'wavelength' => '2.1'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
                                                                'wavelength' => '2.1',
                                                                'target' => 'CGS4:Bias:Dark',
                                                                'coordstype' => 'CAL',
+                                                               'pol' => 0,
                                                                'obstype' => [
                                                                               'Bias',
                                                                               'CGS4',
@@ -217,181 +527,76 @@ $VAR1 = {
                                                                               'Dark'
                                                                             ],
                                                                'coords' => bless( {}, 'Astro::Coords::Calibration' ),
-                                                               'instrument' => 'CGS4'
+                                                               'instrument' => 'CGS4',
+                                                               'type' => 's'
                                                              },
                                                              {
-                                                               'wavelength' => 'unknown',
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'UFTI',
+                                                                                      'Cache' => {
+                                                                                                   'filter' => 'Blank'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => undef,
                                                                'target' => 'Dark',
                                                                'coordstype' => 'CAL',
+                                                               'pol' => 0,
                                                                'obstype' => [
                                                                               'Dark',
                                                                               'Dark'
                                                                             ],
-                                                               'filter' => 'Blank',
                                                                'coords' => bless( {}, 'Astro::Coords::Calibration' ),
-                                                               'instrument' => 'UFTI'
+                                                               'instrument' => 'UFTI',
+                                                               'type' => 'i'
                                                              },
                                                              {
-                                                               'wavelength' => 'unknown',
+                                                               'waveband' => bless( {
+                                                                                      'Instrument' => 'UFTI',
+                                                                                      'Cache' => {
+                                                                                                   'filter' => 'Blank'
+                                                                                                 }
+                                                                                    }, 'Astro::WaveBand' ),
+                                                               'wavelength' => undef,
                                                                'target' => 'Dark',
                                                                'coordstype' => 'CAL',
+                                                               'pol' => 0,
                                                                'obstype' => [
                                                                               'Dark',
                                                                               'Dark'
                                                                             ],
-                                                               'filter' => 'Blank',
                                                                'coords' => bless( {}, 'Astro::Coords::Calibration' ),
-                                                               'instrument' => 'UFTI'
+                                                               'instrument' => 'UFTI',
+                                                               'type' => 'i'
                                                              }
                                                            ],
                                                   'priority' => 3
                                                 },
-          'c0add034d39c866fe01f92203d8a470d' => {
-                                                  'seeing' => '1',
-                                                  'title' => 'Copy',
-                                                  'timeest' => 1,
-                                                  'projectid' => 'M01BTJ',
-                                                  'remaining' => '2',
-                                                  'tauband' => '1',
-                                                  'obscount' => 1,
-                                                  'obs' => [
-                                                             {
-                                                               'wavelength' => '10.5',
-                                                               'target' => 'NONE SUPPLIED',
-                                                               'coordstype' => 'RADEC',
-                                                               'obstype' => [
-                                                                              'Observe'
-                                                                            ],
-                                                               'instrument' => 'Michelle',
-                                                               'coords' => bless( {
-                                                                                    'dec2000' => '0',
-                                                                                    'ra2000' => '0'
-                                                                                  }, 'Astro::Coords::Equatorial' )
-                                                             }
-                                                           ],
-                                                  'priority' => 3
-                                                },
-          '09a49ff69bc1facf1741f40690eb9fddOA' => {
-                                                    'seeing' => '1',
-                                                    'title' => 'BS5_0h6m_58d_G5V',
-                                                    'timeest' => 1,
-                                                    'projectid' => 'M01BTJ',
-                                                    'remaining' => '1',
-                                                    'tauband' => '1',
-                                                    'obscount' => 1,
-                                                    'obs' => [
-                                                               {
-                                                                 'wavelength' => '2.2',
-                                                                 'target' => 'BS5',
-                                                                 'coordstype' => 'RADEC',
-                                                                 'obstype' => [
-                                                                                'Observe'
-                                                                              ],
-                                                                 'coords' => bless( {
-                                                                                      'dec2000' => '1.01991223722375',
-                                                                                      'ra2000' => '0.0273362194093612'
-                                                                                    }, 'Astro::Coords::Equatorial' ),
-                                                                 'instrument' => 'CGS4'
-                                                               }
-                                                             ],
-                                                    'priority' => 3
-                                                  },
-          '86fcce791167f6001afbba2c4758a67bOA' => {
-                                                    'seeing' => '1',
-                                                    'title' => 'BS1532_4h47m_-16d_G1V',
-                                                    'timeest' => 1,
-                                                    'projectid' => 'M01BTJ',
-                                                    'remaining' => '1',
-                                                    'tauband' => '1',
-                                                    'obscount' => 1,
-                                                    'obs' => [
-                                                               {
-                                                                 'wavelength' => '2.2',
-                                                                 'target' => 'BS1532',
-                                                                 'coordstype' => 'RADEC',
-                                                                 'obstype' => [
-                                                                                'Observe'
-                                                                              ],
-                                                                 'coords' => bless( {
-                                                                                      'dec2000' => '-0.295561812551618',
-                                                                                      'ra2000' => '1.25490627659436'
-                                                                                    }, 'Astro::Coords::Equatorial' ),
-                                                                 'instrument' => 'CGS4'
-                                                               }
-                                                             ],
-                                                    'priority' => 3
-                                                  },
-          'daaf4147b757592f3ebc07b40b48565dO' => {
-                                                   'seeing' => '1',
-                                                   'title' => 'FS1_00h33m_-12d I-band',
-                                                   'timeest' => 1,
-                                                   'projectid' => 'M01BTJ',
-                                                   'remaining' => '1',
-                                                   'tauband' => '1',
-                                                   'obscount' => 1,
-                                                   'obs' => [
-                                                              {
-                                                                'wavelength' => 'unknown',
-                                                                'target' => 'FS1',
-                                                                'coordstype' => 'RADEC',
-                                                                'obstype' => [
-                                                                               'Dark',
-                                                                               'Observe'
-                                                                             ],
-                                                                'filter' => 'I',
-                                                                'instrument' => 'UFTI',
-                                                                'coords' => bless( {
-                                                                                     'dec2000' => '-0.211752071498212',
-                                                                                     'ra2000' => '0.147946251981751'
-                                                                                   }, 'Astro::Coords::Equatorial' )
-                                                              }
-                                                            ],
-                                                   'priority' => 3
-                                                 },
-          '210b74070afcc4b6f5e704edcebb033bO' => {
-                                                   'seeing' => '1',
-                                                   'title' => 'FS101_00h13m_30d J-band',
-                                                   'timeest' => 1,
-                                                   'projectid' => 'M01BTJ',
-                                                   'remaining' => '2',
-                                                   'tauband' => '1',
-                                                   'obscount' => 1,
-                                                   'obs' => [
-                                                              {
-                                                                'wavelength' => 'unknown',
-                                                                'target' => 'FS101',
-                                                                'coordstype' => 'RADEC',
-                                                                'obstype' => [
-                                                                               'Dark',
-                                                                               'Observe'
-                                                                             ],
-                                                                'filter' => 'J98',
-                                                                'coords' => bless( {
-                                                                                     'dec2000' => '0.534652042713915',
-                                                                                     'ra2000' => '0.0598924277232287'
-                                                                                   }, 'Astro::Coords::Equatorial' ),
-                                                                'instrument' => 'UFTI'
-                                                              }
-                                                            ],
-                                                   'priority' => 3
-                                                 },
-          '0ff472509ce854839965add501651718O' => {
+          '3da1576f522f33443dfe5d47f4b11fb2O' => {
                                                    'seeing' => '1',
                                                    'title' => 'Copy',
-                                                   'timeest' => 1,
+                                                   'timeest' => '40.501227375',
                                                    'projectid' => 'M01BTJ',
                                                    'remaining' => '1',
                                                    'tauband' => '1',
                                                    'obscount' => 1,
                                                    'obs' => [
                                                               {
+                                                                'waveband' => bless( {
+                                                                                       'Instrument' => 'MICHELLE',
+                                                                                       'Cache' => {
+                                                                                                    'wavelength' => '10.5',
+                                                                                                    'filter' => 'F105B53'
+                                                                                                  }
+                                                                                     }, 'Astro::WaveBand' ),
                                                                 'wavelength' => '10.5',
+                                                                'pol' => 0,
                                                                 'target' => 'NONE SUPPLIED',
                                                                 'coordstype' => 'RADEC',
                                                                 'obstype' => [
                                                                                'Observe'
                                                                              ],
                                                                 'instrument' => 'Michelle',
+                                                                'type' => 'i',
                                                                 'coords' => bless( {
                                                                                      'dec2000' => '0',
                                                                                      'ra2000' => '0'
