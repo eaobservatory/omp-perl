@@ -605,7 +605,7 @@ sub shiftComments {
   # Strip HTML from comments
   for my $comment (@result) {
     my $text = $comment->text;
-    $text =~ s/<.*?>//sg;
+    $text =~ s!</*\w+\s*.*?>!!sg;
     $comment->text($text);
   }
 
