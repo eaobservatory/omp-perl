@@ -333,11 +333,14 @@ with the XML element name (and the internal tree traversal routine
 will attempt to call this routine when it encounters the element
 of the same name).
 
+Title is set to "-" if none is present.
+
 =cut
 
 sub msbtitle {
   my $self = shift;
   my $title = $self->_get_pcdata( $self->_tree, "title");
+  $title = "-" unless defined $title;
   return $title;
 }
 
@@ -995,17 +998,25 @@ that tag and return the PCDATA entry from the last matching element.
 
 Convenience wrapper.
 
-Returns undef if the element can not be found.
+Returns C<undef> if the element can not be found.
+
+Returns C<undef> if the element can be found but does not contain
+anything (eg E<lt>targetName/E<gt>).
 
 =cut
 
 sub _get_pcdata {
   my $self = shift;
   my ($el, $tag ) = @_;
-  my @tauband = $el->getElementsByTagName( $tag );
+  my @matches = $el->getElementsByTagName( $tag );
   my $pcdata;
-  $pcdata = $tauband[-1]->firstChild->toString
-    if @tauband;
+  if (@matches) {
+    my $child = $matches[-1]->firstChild;
+    # Return undef if the element contains no text children
+    return undef unless defined $child;
+    $pcdata = $child->toString;
+  }
+
   return $pcdata;
 }
 
@@ -1219,6 +1230,7 @@ sub SpTelescopeObsComp {
   throw OMP::Error::FatalError("No base target position specified in SpTelescopeObsComp\n") unless $base;
 
   $summary{target} = $self->_get_pcdata($base, "targetName");
+  $summary{target} = "NONE SUPPLIED" unless defined $summary{target};
 
   # Now we need to look for the coordinates. If we have hmsdegSystem
   # or degdegSystem (for Galactic) we translate those to a nice easy
