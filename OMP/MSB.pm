@@ -355,7 +355,7 @@ sub remaining {
     }
 
     # Set the new value
-    $self->_tree->setAttribute("remaining", $arg);
+    $self->_tree->setAttribute("remaining", $new);
   }
 
   return $self->_tree->getAttribute("remaining");
