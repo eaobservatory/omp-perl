@@ -37,7 +37,7 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSB;
-use OMP::Error qw/ :try /;
+use OMP::Error;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done :fb /;
@@ -53,6 +53,7 @@ use Time::Piece qw/ :override /;
 
 use Astro::Telescope;
 use Astro::Coords;
+use Data::Dumper;
 
 # Use this for the reliable file opening
 use File::Spec;
@@ -1862,7 +1863,6 @@ sub _run_query {
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-#  use Data::Dumper;
 #  print Dumper($ref);
   # No point hanging around if nothing retrieved
   return () unless @$ref;
@@ -2077,6 +2077,11 @@ sub _run_query {
 
 	  # and create the object
 	  $obs->{coords} = new Astro::Coords(%coords);
+
+	  # throw if we have a problem
+	  throw OMP::Error::FatalError("Major problem generating coordinate object from ". Dumper($msb,\%coords)) unless defined $obs->{coords};
+
+
 	}
 
 	# Get the coordinate object.
