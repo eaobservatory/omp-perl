@@ -38,7 +38,8 @@ use Carp;
 use vars qw/ $VERSION $UseArchiveTar /;
 $VERSION = '0.02';
 
-# Do we want to ues the slower Archive::Tar
+# Do we want to ues the slower Archive::Tar (but which does not have
+# taint issues)
 $UseArchiveTar = 0;
 
 use File::Spec;
@@ -731,7 +732,6 @@ sub _copy_data {
 
     }
 
-
   }
 
   print "Copied $count files out of ".scalar(@{$grp->obs}) ."\n"
@@ -782,6 +782,9 @@ sub _mktarfile {
   my @files = map { File::Spec->catfile($tardir,$_) } 
       grep { $_ !~ /^\./ } readdir $dh;
 
+  # And untaint them all
+  @files = _untaint_data_files( @files );
+
   # Close the directory handle
   closedir $dh or croak "Error closing dir handle for $utdir: $!";
 
@@ -794,10 +797,13 @@ sub _mktarfile {
   my $upperlimit = OMP::Config->getData('tarfilelimit') * 1024 * 1024;
 
   my $size = 0;
+  my $total = 0;
   my $tmp = [];
   for my $file (@files) {
     # Store the file in the current array and add its size to the current total
-    $size += -s $file;
+    my $filesize = -s $file;
+    $size += $filesize;
+    $total += $filesize;
     push(@$tmp, $file);
 
     # check if we have exceeded the current limit
@@ -821,6 +827,9 @@ sub _mktarfile {
   my $counter = 1; # People expect us to start at 1
 
   # loop over all the file groups
+  print STDOUT "Total amount of data to be retrieved: ".
+     _format_bytes( $total )."\n"
+    if $self->verbose;
   for my $grp (@infiles) {
 
     # Create the output file name for this group. Special case suffix if there is only one
@@ -1042,6 +1051,34 @@ sub _untaint_YYYYMMDD {
 
 }
 
+sub _untaint_data_files {
+  my @files = @_;
+
+  # these files were read from the file system. Simply make sure
+  # that they only have alphabetical, _ and . in the name
+  # They will have a directory prefix
+  my @untaint;
+  for my $f (@files) {
+    if ($f =~ /^(\d+\/[A-Za-z0-9_.]+)$/) {
+      push(@untaint, $1);
+    } else {
+      croak "File [$f] does not pass untaint test";
+    }
+  }
+  return @untaint;
+}
+
+sub _format_bytes {
+  my $nbytes = shift;
+  return "0B" unless defined $nbytes;
+  my @prefix = ( "K", "M", "G", "T", "P", "E" );
+  my $pre = "";
+  while ($nbytes > 1024) {
+    $nbytes /= 1024;
+    $pre = shift(@prefix);
+  }
+  return sprintf("%.1f%sB",$nbytes,$pre);
+}
 
 =back
 
