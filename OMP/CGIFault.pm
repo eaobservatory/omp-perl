@@ -1106,11 +1106,17 @@ sub file_fault_form {
       # We don't want this checkbox group if this form is being used for editing a fault
       my %projects;
       for (@$aref) {
-	$projects{$_->projectid} = $_->projectid;
+	# Make sure to only include projects associated with the current
+	# telescope category
+	my $category = $cookie->{category};
+	my $tel = OMP::Config->inferTelescope('instruments',$_->instrument);
+	$projects{$_->projectid} = $_->projectid
+	  unless ($tel !~ /$category/i);
+	
       }
       print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
       print $q->checkbox_group(-name=>'assoc',
-			       -values=>[keys %projects]
+			       -values=>[keys %projects],
 			       -default=>$defaults{assoc},);
       print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
     } else {
