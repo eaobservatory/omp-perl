@@ -169,7 +169,7 @@ sub _post_process_hash {
 
   # These entries are in more than one table so we have to 
   # explicitly choose the project table
-  for (qw/ projectid /) {
+  for (qw/ projectid telescope /) {
     if (exists $href->{$_}) {
       my $key = "P.$_";
       $href->{$key} = $href->{$_};
@@ -191,13 +191,8 @@ sub _post_process_hash {
     delete $href->{support};
   }
 
-
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
-
-  # For now, telescope is not actually in the table
-  delete $href->{telescope};
-
 }
 
 
