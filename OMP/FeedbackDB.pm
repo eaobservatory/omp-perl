@@ -294,9 +294,14 @@ sub _mail_comment {
   my $self = shift;
   my $comment = shift;
   my $addrlist = shift;
- # Mail message
-  my $msg = "\nAuthor: $comment->{author}\n" .
-            "$comment->{text}\n";
+
+  # If there is HTML in the message we'll use "<br>" instead of "\n"
+  # to start a new line when adding any text to the message
+  my $newline = ($comment =~ m!</!m ? "<br>" : "\n");
+
+  # Mail message
+  my $msg = "Author: $comment->{author}$newline" .
+            "$comment->{text}";
 
   my $projectid = $self->projectid;
 
@@ -309,8 +314,10 @@ sub _mail_comment {
 			   message => $msg,
 			   to => $addrlist,
 			   from => "omp-feedback-system",
-			   subject => "$subject\n\n",
-			   headers => ["Reply-To: flex\@jach.hawaii.edu","Content-type: text/html"],
+			   subject => $subject,
+			   headers => {
+				       'Reply-To' => "flex\@jach.hawaii.edu" 
+				      },
 			  );
 
 }
