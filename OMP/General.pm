@@ -33,6 +33,7 @@ use Net::hostent qw/ gethost /;
 use File::Spec;
 use Fcntl qw/ :flock /;
 use OMP::Error;
+use Time::Seconds qw/ ONE_DAY /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -144,6 +145,24 @@ Return the UT date for today in C<YYYY-MM-DD> format.
 sub today {
   my $class = shift;
   my $time = gmtime();
+
+  return $time->strftime("%Y-%m-%d");
+
+}
+
+=item B<yesterday>
+
+Return the UT date for yesterday in C<YYYY-MM-DD> format.
+
+  $y = OMP::General->yesterday();
+
+=cut
+
+sub yesterday {
+  my $class = shift;
+  my $time = gmtime();
+
+  $time -= ONE_DAY;
 
   return $time->strftime("%Y-%m-%d");
 
