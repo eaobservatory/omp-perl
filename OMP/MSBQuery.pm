@@ -329,6 +329,11 @@ calculate source availability).
 Also converts abbreviated form of project name to the full form
 recognised by the database.
 
+The current semester is used for all queries unless a semester
+is explicitly specified in the query.
+
+Tau must be positive. If it is not positive it will be ignored.
+
 =cut
 
 sub _post_process_hash {
@@ -341,6 +346,13 @@ sub _post_process_hash {
   # Need a telescope
   throw OMP::Error::MSBMalformedQuery( "Please supply a telescope")
     unless exists $href->{telescope};
+
+  # If tau has been specified and is negative remove it from
+  # the query
+  if (exists $href->{tau}) {
+    delete $href->{tau}
+      if $href->{tau}->[0] <= 0;
+  }
 
   # We always need a reference date
   if (exists $href->{date}) {
@@ -460,6 +472,12 @@ sub _post_process_hash {
     my $key = "C.userid";
     $href->{$key} = $href->{coi};
     delete $href->{coi};
+  }
+
+  # Add a semester if we have not got one
+  # Since we always want to default to current semester
+  if (!exists $href->{semester}) {
+    $href->{semester} = [ OMP::General->determine_semester ];
   }
 
 
