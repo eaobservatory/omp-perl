@@ -46,3 +46,10 @@ which allocation the time should be subtracted.
 - possibly add extra meta-data to the ompuser table and OMP::User object to
 allow us to distinguish STAFF users (eg TIMJ), from SCIENCE users (eg
 JENNESST), from SOFTWARE users (eg JCMT, UKIRT)
+
+
+- possibly add metadata to ompcoiuser table to indicate whether the person 
+wishes to receive important project emails.
+
+- 'issue password email' should include project id in brackets in case 
+they reply to it.
