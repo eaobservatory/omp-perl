@@ -1108,8 +1108,13 @@ sub SpObs {
   # targets then we should fill in the targetname now with
   # CAL
   # This test needs to be expanded for SCUBA
-  if (grep /^Observe$/, @{$summary{obstype}} and !exists $summary{coords}) {
-    throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
+  if ( grep /^Observe$/, @{$summary{obstype}} ) {
+    if (!exists $summary{coords}) {
+      throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
+    } 
+    # We have a normal observe - just use it and the associated target
+    # information
+
   } else {
     # We have a calibration observation
     $summary{coords} = Astro::Coords::Calibration->new;
@@ -1143,7 +1148,8 @@ sub SpIterFolder {
     next unless defined $name;
     # Remove the SpIter string
     next unless $name =~ /SpIter/;
-    $name =~ s/SpIter//;
+    $name =~ s/^SpIter//;
+    $name =~ s/Obs$//;
     push(@types, $name);
   }
 
