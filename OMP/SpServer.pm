@@ -123,7 +123,8 @@ Retrieve a science program from the database.
   $xml = OMP::SpServer->fetchProgram( $project, $password );
 
 The return argument is an XML representation of the science
-program (encoded in base64 for speed over SOAP).
+program (encoded in base64 for speed over SOAP if we are using
+SOAP).
 
 =cut
 
@@ -161,7 +162,8 @@ sub fetchProgram {
   $class->throwException( $E ) if defined $E;
 
   # Return the stringified form
-  return SOAP::Data->type(base64 => "$sp");
+  return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => "$sp")
+	  : "$sp" );
 }
 
 =item B<programDetails>

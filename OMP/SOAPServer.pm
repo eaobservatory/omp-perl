@@ -40,6 +40,9 @@ our $VERSION = (qw$Revision$)[1];
 =item B<throwException>
 
 Throw a SOAP exception using an C<OMP::Error> object.
+If we are not running in SOAP environment (determined by
+looking at HTTP_SOAPACTION encironment variable) we throw
+the exception as is.
 
 The faultcode is determined by looking at the class of the
 exception. The class is split into its constituent parts and
@@ -67,6 +70,9 @@ Have not figured out yet what people want in that.
 sub throwException {
   my $class = shift;
   my $E = shift;
+
+  $E->throw
+    unless (exists $ENV{HTTP_SOAPACTION});
 
   # Get the fault class
   my $Eclass = ref($E);

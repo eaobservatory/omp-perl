@@ -134,21 +134,32 @@ sub msb_sum_hidden {
   my %cookie = @_;
 
   my $sp;
-  eval {
+  try {
     $sp = OMP::SpServer->programDetails($cookie{projectid},
 					$cookie{password},
 					'data' );
+
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+    $sp = [];
+
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+    $sp = [];
+
   };
 
-  if ($@) {
-    print "Error obtaining science program details<$@>";
-    $sp = [];
-  }
 
-  print $q->h2("Current MSB status"),
-        scalar(@$sp). " MSBs currently stored in database.";
-  print " Click <a href='fbmsb.pl'>here</a> to list them all."
-    unless (@$sp == 0);
+  print $q->h2("Current MSB status");
+  if (@$sp == 1) {
+    print "1 MSB currently stored in the database.";
+    print " Click <a href='fbmsb.pl'>here</a> to list its contents.";
+  } else {
+    print scalar(@$sp) . " MSBs currently stored in the database.";
+    print " Click <a href='fbmsb.pl'>here</a> to list them all."
+      unless @$sp == 0;
+  }
   print $q->hr;
 
 }
@@ -399,17 +410,21 @@ sub fb_msb_active {
   my $projectid = shift;
 
   my $active;
-  eval {
+  try {
     $active = OMP::SpServer->programDetails($projectid,
 					    '***REMOVED***',
 					    'data');
+    msb_table($q, $active);
+
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+
   };
 
-  if ($@) {
-    print "Error obtaining science program details for project $projectid <$@>";
-  } else {
-    msb_table($q, $active);
-  }
 }
 
 =item B<msb_table>
