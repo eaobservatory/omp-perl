@@ -79,11 +79,14 @@ sub fileFault {
   # Now write it to the database
   $self->_store_new_fault( $fault );
 
-  # Mail out the fault
-
   # End transaction
   $self->_dbunlock;
   $self->_db_commit_trans;
+
+  # Mail out the fault
+  # We do this outside of our transaction since the SMTP server
+  # has been known to fail and we don't want the fault lost
+  $self->_mail_fault($fault);
 
   # Return the id
   return $id;
@@ -111,12 +114,15 @@ sub respondFault {
   # File the response
   $self->_add_new_response( $id, $response);
 
-  # Mail out the response to the correct mailing list
-
   # End transaction
   $self->_dbunlock;
   $self->_db_commit_trans;
 
+  # Mail out the response to the correct mailing list
+  # We do this outside of our transaction since the SMTP server
+  # has been known to fail and we don't want the fault lost
+  my $fault = $self->getFault($id);
+  $self->_mail_fault($fault);
 }
 
 =item B<closeFault>
@@ -480,6 +486,135 @@ sub _query_faultdb {
   # Now return the values in the hash
   # as a hash slice
   return @faults{@faults};
+}
+
+=item B<_mail_fault>
+
+Mail a fault and its responses to the fault email list and anyone who has previously
+responded to the fault, but not to the author of the latest response.
+
+  $db->_mail_response( $fault );
+
+=cut
+
+sub _mail_fault {
+  my $self = shift;
+  my $fault = shift;
+
+  my $faultid = $fault->id;
+
+  # Get the fault response(s)
+  my @responses = $fault->responses;
+
+  # The email subject
+  my $subject = "[$faultid] " . $fault->subject;
+
+  # Store fault meta info to strings
+  my $system = $fault->systemText;
+  my $type = $fault->typeText;
+  my $loss = $fault->timelost;
+  my $category = $fault->category;
+
+  # Only show the status if this isn't the initial filing
+  my $status = "<b>Status:</b> " . ($fault->isOpen ? "Open" : "Closed")
+    if $responses[1];
+
+  my $faultdatetext = "hrs at ". $fault->faultdate . " UT"
+    if $fault->faultdate;
+
+  my $faultauthor = $fault->author->html;
+
+  # Create the fault meta info portion of our message
+  my $meta =
+"<pre>".
+sprintf("%-58s %s","<b>System:</b> $system","<b>Fault type:</b> $type<br>").
+sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
+"</pre><br>";
+
+  my @msg;
+  my @addr;
+
+  # Use the address of the user that filed the latest response for the 'From:'
+  my $from = $responses[-1]->author->email;
+
+  # Create the message
+  # We format the message using HTML since the _mail_information method will
+  # provide a plain text version on it's own
+  if (@responses[1]) {
+    my %authors;
+
+    # Make it noticeable if this fault is urgent
+    push(@msg, "<div align=center><b>* * * * * URGENT * * * * *</b></div>")
+      if $fault->isUrgent;
+
+    # This is a response to a fault so arrange the responses in reverse order
+    # followed by the meta info
+    for (reverse @responses) {
+      my $user = $_->author;
+
+      my $author = $user->html; # This is an html mailto
+      my $date = $_->date->ymd . " " . $_->date->hms;
+      my $text = $_->text;
+
+      # Store the author's email address
+      $authors{$user->userid} = $_->author->email;
+
+      # Once we get to the bottom (the initial report) add in the fault meta info
+      if ($_->isfault) {
+	 push(@msg, "$category fault filed by $author on $date<br><br>$text<br><br>");
+	 push(@msg, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$meta");
+       } else {
+
+	 push(@msg, "Response filed by $author on $date<br><br>$text<br><br>");
+	 push(@msg, "--------------------------------------------------------------------------------<br>");
+       }
+    }
+
+    # Add the addresses of the response authors to our address list
+    # so we can mail them this response, provided they aren't the author
+    # of this response.
+    @addr = map {$authors{$_}} 
+      grep {$authors{$_} ne $responses[-1]->author->email} keys %authors;
+
+  } else {
+
+    # This is an initial filing so arrange the message with the meta info first
+    # followed by the initial report
+    my $author = $responses[0]->author->html; # This is an html mailto
+    my $date = $responses[0]->date->ymd . " " . $responses[0]->date->hms;
+    my $text = $responses[0]->text;
+
+    push(@msg, "$category fault filed by $author on $date<br><br>");
+
+    # Make it noticeable if this fault is urgent
+    push(@msg, "<div align=center><b>* * * * * URGENT * * * * *</b></div>")
+      if $fault->isUrgent;
+    push(@msg, "$meta~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$text<br><br>");
+  }
+
+  # Set link to response page
+  my $responselink = "<a href='http://mauiola.ukirt.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid'>here</a>";
+
+  # Add the response link to the bottom of our message
+  push(@msg, "--------------------------------<br>To respond to this fault go $responselink");
+
+  # Our address list will start with the fault category's mailing list
+  # COMMENTED OUT DURING TESTING
+  # unshift(@addr, $fault->mail_list);
+
+#  if (! $addr[0]) {
+#    # There's no one to send this thing to so let's just return
+#    return;
+#  }
+
+  push(@addr, $from);
+
+  # Mail it off
+  $self->_mail_information(message => join('',@msg),
+			   to => join(", ",@addr),
+			   from => $from,
+			   subject => $subject);
+
 }
 
 =back
