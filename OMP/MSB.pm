@@ -1662,7 +1662,7 @@ sub SpTelescopeObsComp {
   # and changes hmsdeg and degdeg to spherSystem
 
   # First try the new method
-  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"]/target');
+  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"|@TYPE="SCIENCE"]/target');
 
   # Try again if at first we dont succeed
   # Get the base target element
