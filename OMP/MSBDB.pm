@@ -782,7 +782,12 @@ If the MSB has not yet been observed this command will fail.
 =cut
 
 sub addMSBcomment {
+  my $self = shift;
+  my $checksum = shift;
+  my $comment = shift;
 
+  $self->_store_msb_done_comment( $checksum, $self->projectid, undef,
+				$comment );
 
 }
 
@@ -1716,7 +1721,7 @@ update the MSB done table to contain this information.
 
 If the MSB object is defined the table information will be retrieved
 from the object. If it is not defined the information will be
-retrieved from the done table (we can't read it from the MSB table
+retrieved from the done table (we cannot read it from the MSB table
 because that would involve reading the msb and obs table in order to
 reconstruct the target and instrument info). An exception is triggered
 if the information for the table is not available (this is the reason
