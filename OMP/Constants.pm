@@ -28,7 +28,17 @@ require Exporter;
 @ISA = qw/Exporter/;
 
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
-my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE OMP__FB_SUPPORT/;
+my @fb = qw/ OMP__FB_INFO OMP__FB_IMPORTANT
+	     OMP__FB_HIDDEN OMP__FB_DELETE
+	     OMP__FB_SUPPORT OMP__FB_MSG_SP_SUBMITTED
+	     OMP__FB_MSG_SP_RETRIEVED OMP__FB_MSG_COMMENT
+	     OMP__FB_MSG_DATA_OBTAINED OMP__FB_MSG_DATA_REQUESTED
+	     OMP__FB_MSG_MSB_OBSERVED OMP__FB_MSG_MSB_SUMMARY
+	     OMP__FB_MSG_PASSWD_ISSUED OMP__FB_MSG_TIME_ADJUST_CONFIRM
+	     OMP__FB_MSG_TIME_NONE_SPENT OMP__FB_MSG_SP_DELETED
+	     OMP__FB_MSG_MSB_UNOBSERVED OMP__FB_MSG_MSB_ALL_OBSERVED
+	     OMP__FB_MSG_MSB_SUSPENDED OMP__FB_MSG_PROJECT_DISABLED
+	     /;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
@@ -144,6 +154,141 @@ This constant contatins the definition of a support feedback status.
 =cut
 
 use constant OMP__FB_SUPPORT => 3;
+
+=item B<OMP__FB_MSG_COMMENT>
+
+This constant contatins the definition of a feedback comment submitted by a real person.
+
+=cut
+
+use constant OMP__FB_MSG_COMMENT => 63;
+
+=item B<OMP__FB_MSG_DATA_OBTAINED>
+
+This constant contatins the definition of a feedback comment letting users know data
+was obtained for a project.
+
+=cut
+
+use constant OMP__FB_MSG_DATA_OBTAINED => 64;
+
+=item B<OMP__FB_MSG_DATA_REQUESTED>
+
+This constant contains the definition of a feedback comment letting users know data
+was requested by a user.
+
+=cut
+
+use constant OMP__FB_MSG_DATA_REQUESTED => 65;
+
+
+=item B<OMP__FB_MSG_MSB_ALL_OBSERVED>
+
+This constant contains the definition of a feedback comment informing users that an
+MSB has been marked as 'alldone'.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_ALL_OBSERVED => 75;
+
+=item B<OMP__FB_MSG_MSB_OBSERVED>
+
+This constant contains the definition of a feedback comment letting users know an
+MSB was observed.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_OBSERVED => 66;
+
+=item B<OMP__FB_MSG_MSB_SUMMARY>
+
+This constant contains the definition of a feedback comment containing an MSB
+summary.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_SUMMARY => 67;
+
+=item B<OMP__FB_MSG_MSB_SUSPENDED>
+
+This constant contains the definition of a feedback comment informing users that an MSB
+has been put in a 'suspended' state.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_SUSPENDED => 76;
+
+=item B<OMP__FB_MSG_MSB_UNOBSERVED>
+
+This constant contains the definition of a feedback comment informing users that an
+MSB was marked 'undone', incrementing its remaining counter.
+
+=cut
+
+use constant OMP__FB_MSG_MSB_UNOBSERVED => 74;
+
+=item B<OMP__FB_MSG_PASSWD_ISSUED>
+
+This constant contains the definition of a feedback comment informing users that
+a new password was issued.
+
+=cut
+
+use constant OMP__FB_MSG_PASSWD_ISSUED => 68;
+
+=item B<OMP__FB_MSG_PROJECT_DISABLED>
+
+This constant contains the definition of a feedback comment informing users that a project
+has been disabled.
+
+=cut
+
+use constant OMP__FB_MSG_PROJECT_DISABLED => 77;
+
+=item B<OMP__FB_MSG_SP_DELETED>
+
+This constant contains the definition of a feedback comment informing users that
+the science program was deleted.
+
+=cut
+
+use constant OMP__FB_MSG_SP_DELETED => 73;
+
+=item B<OMP__FB_MSG_SP_RETRIEVED>
+
+This constant contains the definition of a feedback comment informing users that
+the science program was retrieved.
+
+=cut
+
+use constant OMP__FB_MSG_SP_RETRIEVED => 69;
+
+=item B<OMP__FB_MSG_SP_SUBMITTED>
+
+This constant contatins the definition of a science program submission feedback comment.
+
+=cut
+
+use constant OMP__FB_MSG_SP_SUBMITTED => 70;
+
+=item B<OMP__FB_MSG_TIME_ADJUST_CONFIRM>
+
+This constant contains the definition of a feedback comment informing users that
+a time adjustment is awaiting confirmation.
+
+=cut
+
+use constant OMP__FB_MSG_TIME_ADJUST_CONFIRM => 71;
+
+
+=item B<OMP__FB_MSG_TIME_NONE_SPENT>
+
+This constant contains the definition of a feedback comment informing users that
+no time was spent on a project.
+
+=cut
+
+use constant OMP__FB_MSG_TIME_NONE_SPENT => 72;
 
 =back
 
