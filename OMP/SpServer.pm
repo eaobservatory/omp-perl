@@ -81,6 +81,9 @@ sub storeProgram {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
     $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
 
   };
   # This has to be outside the catch block else we get
@@ -122,6 +125,10 @@ sub fetchProgram {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
     $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
 
   };
   # This has to be outside the catch block else we get

@@ -76,6 +76,10 @@ sub fetchMSB {
     # Server infrastructure should catch everything else
     $E = shift;
 
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
   };
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
@@ -177,6 +181,10 @@ sub queryMSB {
     # Server infrastructure should catch everything else
     $E = shift;
 
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
   };
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
@@ -223,6 +231,10 @@ sub doneMSB {
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
     $E = shift;
 
   };
