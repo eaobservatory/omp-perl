@@ -1,52 +1,87 @@
 #!/local/perl-5.6/bin/perl
 
 # UnDump the contents of the Database
-# [currently only the science programs are restored]
 # from disk
-
-# Note: Only looks for science programs
-# Assumes projects are okay
-# Note: Does not undump project information yet
-
-# The input directory is obtained from $OMP_DUMP_DIR
 
 use 5.006;
 use strict;
 use warnings;
-use OMP::SpServer;
-use OMP::ProjServer;
-use OMP::Error qw/ :try /;
+
 use Data::Dumper;
 
-# Abort if $OMP_DUMP_DIR is not set
-die "Must specify input data directory via \$OMP_DUMP_DIR"
-  unless exists $ENV{OMP_DUMP_DIR};
+# Pick up the OMP database
+use FindBin;
+use lib "$FindBin::RealBin/..";
+use Storable qw(retrieve);
 
-chdir $ENV{OMP_DUMP_DIR}
-  or die "Error changing to directory $ENV{OMP_DUMP_DIR}: $!\n";
+use OMP::DBbackend;
+use OMP::BaseDB;
+
+my $db = new OMP::BaseDB( DB => new OMP::DBbackend );
+
+my $dumpdir = "/DSS/omp-cache/tables";
+
+chdir $dumpdir
+  or die "Error changing to directory $dumpdir: $!\n";
+
+# Define the name and position of any TEXT columns (array index)
+my %text_column = (
+		   ompmsbdone => {comment => 8},
+		   ompfeedback => {text => 9},
+		   ompfaultbody => {text => 5},
+		   ompshiftlog => {text => 3},
+		   ompobslog => {commenttext => 8},
+		  );
+
+# Define the position of an identity column so we can ignore
+# it and let sybase generate a new ID for the row
+my %identity_column = (
+		       ompfeedback => 0,
+		       ompfaultbody => 0,
+		       ompmsbdone => 0,
+		       ompshiftlog => 0,
+		       ompobslog => 0,
+		       ompfaultassoc => 0,
+		      );
 
 
-# Read the directory
-opendir my $dh, "."
-  or die "Could not read directory: $!\n";
-my @files = readdir($dh);
-closedir $dh
-  or die "Could not stop reading directory: $!\n";
+my @tab;
+(@ARGV) and @tab = @ARGV or
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser/;
 
-# slurp mode
-$/ = undef;
+for my $tab (@tab) {
+  my $restore = retrieve($tab);
+#  print Dumper($restore);
 
-# Go through the files looking for xml
-for (@files) {
-  next unless /\.xml$/;
-  print "$_\n";
+  # Need to lock the database since we are writing
+  $db->_db_begin_trans;
+  $db->_dblock;
 
-  # Read the file
-  open my $fh, $_ or die "Could not open file $_: $!\n";
-  my $xml = <$fh>;
-  close($fh) or die "Error closing file: $!\n";
+  for my $row (@$restore) {
 
-  # Force overwrite
-  OMP::SpServer->storeProgram( $xml, "***REMOVED***",1);
+    # Prepare the fields for insertion
+    my @data = @$row;
+
+    if (exists $text_column{$tab}) {
+      for my $column (keys %{$text_column{$tab}}) {
+	my $column_pos = $text_column{$tab}->{$column};
+	my $text = $data[$column_pos];
+	$data[$column_pos] = {TEXT => $text, COLUMN => $column};
+      }
+    }
+
+    # shift off the first column if it's an IDENTITY field
+    shift @data if exists $identity_column{$tab};
+
+    # Do the insert
+    $db->_db_insert_data($tab, @data);
+
+  }
+
+  # End transaction
+  $db->_dbunlock;
+  $db->_db_commit_trans;
 
 }
+
+
