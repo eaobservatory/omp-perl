@@ -556,14 +556,8 @@ sub fb_msb_observed {
   my $q = shift;
   my $projectid = shift;
 
-  # Set up our xml query
-  my $xml = "<MSBDoneQuery>" .
-    "<status>". OMP__DONE_DONE ."</status>" .
-      "<projectid>$projectid</projectid>".
-	    "</MSBDoneQuery>";
-
-  # Now get back the observed MSBs
-  my $observed = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
+  # Get observed MSBs
+  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid});
 
   # Generate the HTML table
   (@$observed) and msb_table($q, $observed);
@@ -742,7 +736,9 @@ sub observed_output {
 
     my $dbconnection = new OMP::DBbackend;
 
-    my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
+    my $commentref = OMP::MSBServer->observedMSBs({date => $utdate,
+						  returnall => 0,
+						  format => 'data'});
 
     # Now keep only the comments that are for the telescope we want
     # to see observed msbs for
@@ -1142,7 +1138,9 @@ sub msb_hist_content {
     # show observed
     my $xml = "<MSBDoneQuery><projectid>$cookie{projectid}</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
 
-    $commentref = OMP::MSBServer->queryMSBdone($xml, 1, 'data');
+    $commentref = OMP::MSBServer->observedMSBs({projectid => $cookie{projectid},
+					       returnall => 1,
+					       format => 'data'});
   } else {
     # show current
     $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
@@ -1281,19 +1279,28 @@ sub msb_comments {
     print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
     print "<tr><td colspan=5><b>Title: $msbtitle</b></td>";
 
+
+    # Colors associated with statuses
+    my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
+		  &OMP__DONE_DONE => '#c6bee0',
+		  &OMP__DONE_ALLDONE => '#8075a5',
+		  &OMP__DONE_COMMENT => '#9f93c9',
+		  &OMP__DONE_UNDONE => '#ffd8a3',
+		  &OMP__DONE_ABORTED => '#9573a0',
+		  &OMP__DONE_REJECTED => '#bc5a74',
+		  &OMP__DONE_SUSPENDED => '#ffb959',);
+
     foreach my $comment ($msb->comments) {
       my $status = $comment->status;
-      ($status == OMP__DONE_FETCH)   and $bgcolor = '#c9d5ea';
-      ($status == OMP__DONE_DONE)    and $bgcolor = '#c6bee0';
-      ($status == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
-      ($status == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
-      ($status == OMP__DONE_UNDONE) and $bgcolor = '#ffd8a3';
-      print "<tr><td colspan=5 bgcolor=$bgcolor><b>Date (UT):</b> " .
+
+      # Set the background color for the cell
+      $bgcolor = $colors{$comment->status};
+      print "<tr><td colspan=5 bgcolor=$bgcolor><div class='black'><b>Date (UT):</b> " .
 	$comment->date ."<br>";
 
       # Show comment author if there is one
       if ($comment->author) {
-	print "<b>Author: </b>" . $comment->author->html . "<br>";
+	print "<b>Author: </b>" . $comment->author->html . "<br></div>";
       }
 
       print $comment->text ."</td>";
@@ -1524,8 +1531,6 @@ sub project_home {
 
     print "<h3>Observations were acquired on the following dates:</h3>";
 
-    # URL for 'retrieve data' script
-    OMP::Config->cfgdir('/jac_sw/omp/msbserver/cfg');
     my $pkg_url = OMP::Config->getData('pkgdata-url');
 
     for (@$nights) {
@@ -1633,7 +1638,7 @@ sub report_output {
 	  "<status>". OMP__DONE_DONE ."</status>".
 	    "</MSBDoneQuery>";
 
-  my $commentref = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
+  my $commentref = OMP::MSBServer->observedMSBs({});
   msb_comments_by_project($q, $commentref);
 
   # Get the relative faults
@@ -1678,9 +1683,6 @@ Return the URL where public cgi scripts can be found.
 =cut
 
 sub public_url {
-  # Location of the config file
-  OMP::Config->cfgdir( "/jac_sw/omp_dev/msbserver/cfg" );
-
   # Get the base URL
   my $url = OMP::Config->getData( 'omp-url' );
 
@@ -1699,9 +1701,6 @@ Return the URL where private cgi scripts can be found.
 =cut
 
 sub private_url {
-  # Location of the config file
-  OMP::Config->cfgdir( "/jac_sw/omp_dev/msbserver/cfg" );
-
   # Get the base URL
   my $url = OMP::Config->getData( 'omp-private' );
 
