@@ -90,9 +90,22 @@ sub new {
     }
   }
 
+  if( !defined( $worf->obs->inst_dhs ) || length( $worf->obs->inst_dhs . '' ) == 0 ) {
+    # We don't have a fully-formed Info::Obs object, so try to
+    # form one.
+    my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+    my $telescope = ( defined( $worf->obs->telescope ) ?
+                      uc( $worf->obs->telescope ) :
+                      uc( OMP::Config->inferTelescope('instruments', $worf->obs->instrument) ) );
+    my $ut = $worf->obs->startobs->ymd;
+    my $runnr = $worf->obs->runnr;
+    my $newobs = $adb->getObs( $telescope, $ut, $runnr );
+    $worf->obs( $newobs );
+  }
+
   # Re-bless the object with the right class, which will
-  # be OMP::WORF::$instrument
-  my $newclass = "OMP::WORF::" . uc( $worf->obs->instrument );
+  # be OMP::WORF::$inst_dhs
+  my $newclass = "OMP::WORF::" . uc( $worf->obs->inst_dhs );
   bless $worf, $newclass;
 
   eval "require $newclass";
@@ -902,12 +915,12 @@ Returns a string.
 sub worf_determine_class {
   my $obs = shift;
 
-  my $instrument = uc( $obs->instrument );
+  my $inst_dhs = uc( $obs->inst_dhs );
 
   my $class;
 
-  if( defined( $instrument ) ) {
-    $class = "OMP::WORF::$instrument";
+  if( defined( $inst_dhs ) ) {
+    $class = "OMP::WORF::$inst_dhs";
   } else {
     $class = "OMP::WORF";
   }
