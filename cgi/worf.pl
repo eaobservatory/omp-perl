@@ -616,7 +616,7 @@ sub print_summary {
 	foreach my $file (@files) {
 		my $tfile;
 		if($instrument eq "cgs4") {
-			($tfile = $file) =~ s/\.sdf$/\.i1/;
+			($tfile = $file) =~ s/\.sdf$/\.header/;
 		} elsif ($instrument eq "ufti") {
 			($tfile = $file) =~ s/\.sdf$/\.header/;
 		} else {
@@ -776,7 +776,12 @@ sub print_observations {
 		@files = grep(!/^\./, readdir(FILES));
 		closedir(FILES);
 		@files = grep(/sdf$/, @files);
-		@files = sort @files;
+		@files = grep(/^[a-zA-Z]{2}\d{8}/, @files);
+
+# Sort the files according to observation number
+
+		@files = sort obsnumsort @files;
+
 		print "<hr>\n";
 		print "<strong>Reduced group observations for $instrument on $ut</strong><br>\n";
 		foreach my $file (@files) {
@@ -903,5 +908,17 @@ sub file_matches_project {
 	$Frm->readhdr;
 
 	my $project = $Frm->hdr($headers{$instrument}{'project'});
-	return (uc($project) eq uc($projectid));
+	return (uc($project) eq uc($projectid)) ? 1 : 0;
+}
+
+sub obsnumsort {
+
+# Sorting routine to sort files by observation number, numerically instead of alphabetically
+# (so that 19 comes before 143)
+
+        $a =~ /[a-zA-Z]{2}\d{8}_(\d+)/;
+        my $a_obsnum = $1;
+        $b =~ /[a-zA-Z]{2}\d{8}_(\d+)/;
+        my $b_obsnum = $1;
+        $a_obsnum <=> $b_obsnum;
 }
