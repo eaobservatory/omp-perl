@@ -1278,7 +1278,9 @@ sub _db_store_sciprog {
   if (length($xml) ne length("$sp")) {
     my $orilen = length("$sp");
     my $newlen = length($xml);
-    throw OMP::Error::SpStoreFail("Science program was truncated during store (now $newlen rather than $orilen)\n");
+    my $retrvtxt = "";
+    $retrvtxt = "['$xml']" if $newlen < 30;
+    throw OMP::Error::SpStoreFail("Science program was truncated during store (now $newlen $retrvtxt rather than $orilen)\n");
   }
 
   return 1;
@@ -1442,9 +1444,10 @@ sub _db_fetch_sciprog {
   # the science program itself. I would like to do this by setting
   # it to the length of the current science program but frossie
   # insists that I just pick a large number and be done with it
-  # (until the JCMT board is over)
-  my $sql = "SET TEXTSIZE 330000000 
-            (SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')";
+  # (until the JCMT board is over) - that is a funny comment given the 
+  # timescales
+  my $sql = ($self->db->has_textsize ? "SET TEXTSIZE 330000000" : "" ) .
+    "(SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')";
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
@@ -1931,6 +1934,12 @@ sub _run_query {
 
     # delete the spurious "nobs" key that is created by the join
     delete $row->{nobs};
+
+    # and move the newpriority column over the priority since
+    # I have not yet worked out how to force PostGres to order by
+    # a new column that matches a previous column
+    $row->{priority} = $row->{newpriority} if exists $row->{newpriority};
+    delete $row->{newpriority};
 
   }
 
