@@ -18,7 +18,7 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGIShiftlog;
+use OMP::CGI::ShiftlogPage;
 use OMP::CGI;
 use OMP::Config;
 use OMP::General;
