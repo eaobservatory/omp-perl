@@ -34,6 +34,17 @@ use Carp;
 use OMP::Config;
 use OMP::Error qw/ :try /;
 
+use PGPLOT;
+
+use PDL::Lite;
+use PDL::Core;
+use PDL::IO::GSD;
+use PDL::Graphics::PGPLOT;
+use PDL::Primitive;
+use PDL::Ufunc;
+
+use JCMT::DAS qw/ das_merge /;
+
 use base qw/ OMP::WORF /;
 
 our $VERSION = (qw$Revision$ )[1];
@@ -77,7 +88,7 @@ sub suffices {
   if( $group ) {
     @suffices = qw/  /;
   } else {
-    @suffices = qw/  /;
+    @suffices = qw/ _das_ /;
   }
 
   if( wantarray ) { return @suffices; } else { return \@suffices; }
@@ -170,37 +181,24 @@ sub plot {
   my $ut;
   ( $ut = $self->obs->startobs->ymd ) =~ s/-//g;
 
-  my $file = $self->get_filename( $options{group} );
+#  my $file = $self->get_filename( $options{group} );
+  my $file;
+  if( defined( $options{input_file} ) && length( $options{input_file} . '' ) > 0 ) {
+    $file = $options{input_file};
+  } else {
+    $file = $self->get_filename( $options{group} );
+  }
 
   my %parsed = $self->parse_display_options( \%options );
 
-  if( exists( $parsed{type} ) &&
-      defined( $parsed{type} ) &&
-      $parsed{type} =~ /spectrum/i ) {
+  $self->_plot_spectrum( input_file => $file,
+                         output_file => $parsed{output_file},
+                         xstart => $parsed{xstart},
+                         xend => $parsed{xend},
+                         zmin => $parsed{zmin},
+                         zmax => $parsed{zmax},
+                       );
 
-    $self->_plot_spectrum( input_file => $file,
-                           xstart => $parsed{xstart},
-                           xend => $parsed{xend},
-                           zmin => $parsed{zmin},
-                           zmax => $parsed{zmax},
-                           cut => $parsed{cut},
-                           ystart => $parsed{ystart},
-                           yend => $parsed{yend},
-                         );
-
-  } else {
-
-    $self->_plot_image( input_file => $file,
-                        xstart => $parsed{xstart},
-                        xend => $parsed{xend},
-                        ystart => $parsed{ystart},
-                        yend => $parsed{yend},
-                        autocut => $parsed{autocut},
-                        lut => $parsed{lut},
-                        size => $parsed{size},
-                      );
-
-  }
 }
 
 =item B<get_filename>
@@ -221,7 +219,34 @@ sub get_filename {
   my $self = shift;
   my $group = shift;
 
-  return "";
+  # No such thing as a group file for DAS observations.
+  if( defined( $group ) && $group ) { return undef; }
+
+  my $runnr = sprintf("%04d",$self->obs->runnr);
+
+  my $ut;
+  ( $ut = $self->obs->startobs->ymd ) =~ s/-//g;
+
+  my $instrument = "heterodyne";
+  my $telescope = "JCMT";
+  my $directory = OMP::Config->getData( "rawdatadir",
+                                        telescope => $telescope,
+                                        instrument => $instrument,
+                                        utdate => $ut,
+                                      );
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# Because we cannot get instrument-specific directories from the configuration
+# system (yet), we need to remove "/dem" from the directory retrieved for SCUBA
+# observations.
+################################################################################
+
+        $directory =~ s/\/dem$//;
+
+  my $filename = $directory . "/obs" . $self->suffix . $runnr . ".dat";
+
+  return $filename;
 
 }
 
@@ -253,6 +278,135 @@ sub findgroup {
   }
 
   return $grp;
+
+}
+
+=back
+
+=head2 Private Methods
+
+These methods are private to this module.
+
+=over 4
+
+=item B<_plot_spectrum>
+
+Plots a spectrum for DAS observations.
+
+  $worf->_plot_spectrum( input_file => $file,
+                         %args );
+
+The argument is a hash optionally containing the following key-value
+pairs:
+
+=over 4
+
+=item output_file - location of output graphic. If undefined, this method
+will output the graphic to STDOUT.
+
+=item xstart - Start pixel in x-dimension. If undefined, the default will
+be the first pixel in the array.
+
+=item xend - End pixel in x-dimension. If undefined, the default will be
+the last pixel in the array.
+
+=item zmin - Start value in z-dimension (data). If undefined, the default will
+be the lowest data in the array.
+
+=item zmax - End pixel in z-dimension (data). If undefined, the default will be
+the lowest data in the array.
+
+=cut
+
+sub _plot_spectrum {
+  my $self = shift;
+  my %args = @_;
+
+  my $file;
+  if( defined( $args{input_file} ) ) {
+    $file = $args{input_file};
+  } else {
+    $file = $self->obs->filename;
+  }
+  if( $file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _plot_image must include full path");
+  }
+
+  $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+  $ENV{'PGPLOT_GIF_HEIGHT'} = 320;
+  $ENV{'PGPLOT_BACKGROUND'} = 'black';
+  $ENV{'PGPLOT_FOREGROUND'} = 'white';
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $outfile = $args{output_file};
+    dev "$outfile/GIF", 1, 1;
+  } else {
+    dev "-/GIF";
+  }
+
+  my $pdl = rgsd( $file );
+
+  # Just grab the first spectrum for now...
+  my $spectrum = $pdl->slice(":,(0),0");
+
+  # Get the header information.
+  my $hdr = $pdl->gethdr;
+
+  # Grab the centre frequencies and frequency increments from the header.
+  my $centfrqs = $hdr->{C12CF};
+  my $frqincs = $hdr->{C12FR};
+
+  # Form arrays from the piddles to pass to das_merge.
+  my @spectrum = list $spectrum;
+  my @f_cen = list $centfrqs;
+  my @f_inc = list $frqincs;
+
+  # Merge.
+  my ( $out, $frq, $vel ) = das_merge( \@spectrum,
+                                       \@f_cen,
+                                       \@f_inc,
+                                       merge => 1 );
+
+  # Form piddles from the array references.
+  my $outpdl = pdl $out;
+  my $velpdl = pdl $vel;
+
+  my ( $npts ) = dims $velpdl;
+
+  # Add the relative velocity.
+  $velpdl += $hdr->{C7VR};
+
+  # Set up the display boundaries.
+  my ( $xstart, $xend, $zstart, $zend );
+  if( exists( $args{xstart} ) && defined( $args{xstart} ) ) {
+    $xstart = $args{xstart};
+  } else {
+    $xstart = min $velpdl;
+  }
+  if( exists( $args{xend} ) && defined( $args{xend} ) ) {
+    $xend = $args{xend};
+  } else {
+    $xend = max $velpdl;
+  }
+  if( exists( $args{zmin} ) && defined( $args{zmin} ) ) {
+    $zstart = $args{zmin};
+  } else {
+    $zstart = ( min $outpdl ) - 0.05 * ( ( max $outpdl ) - ( min $outpdl ) );
+  }
+  if( exists( $args{zmax} ) && defined( $args{zmax} ) ) {
+    $zend = $args{zmax};
+  } else {
+    $zend = ( max $outpdl ) + 0.05 * ( ( max $outpdl ) - ( min $outpdl ) );
+  }
+
+  # Display.
+
+#print STDERR "$xstart $xend $zstart $zend\n";
+  env( $xstart, $xend, $zstart, $zend );
+  label_axes( "Velocity / km s\\u-1", "Spectrum (K)", $file );
+  pgsci(3);
+  line $velpdl, $outpdl;
+  dev "/null";
 
 }
 
