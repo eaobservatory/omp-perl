@@ -329,7 +329,11 @@ sub _query_files {
         foreach my $file ( @files ) {
           # Open up the header
           my $fullfile = $directory . "/" . $file;
-          $fullfile =~ s/\.sdf$/\.header/;
+          if($inst =~ /scuba/i) {
+            $fullfile =~ s/\.sdf$//;
+          } else {
+            $fullfile =~ s/\.sdf$/\.header/;
+          }
 
           my $FITS_header = new Astro::FITS::Header::NDF( File => $fullfile );
           tie my %header, ref($FITS_header), $FITS_header;
