@@ -43,6 +43,11 @@ use constant SYSTEMOTHER => -1;
 use constant HUMAN => 0;
 use constant OPEN => 0;
 use constant CLOSED => 1;
+use constant WORKS_FOR_ME => 2;
+use constant NOT_A_FAULT => 3;
+use constant WON_T_BE_FIXED => 4;
+use constant DUPLICATE => 5;
+use constant WILL_BE_FIXED => 6;
 use constant SUN_SOLARIS => 1000;
 use constant ALPHA_OSF => 1001;
 use constant PC_WINDOWS => 1002;
@@ -225,22 +230,27 @@ my %URGENCY = (
 	       Info   => 2,
 	      );
 
-# Status
-my %STATUS = (
-	      Open             => OPEN,
-	      Closed           => CLOSED,
-	      "Works for me"   => 2,
-	      "Not a fault"    => 3,
-	      "Won't be fixed" => 4,
-	      Duplicate        => 5,
-	     );
+my %STATUS_OPEN = (
+		   Open                   => OPEN,
+		   "Open - Will be fixed" => WILL_BE_FIXED,
+		  );
 
+my %STATUS_CLOSED = (
+		     Closed           => CLOSED,
+		     "Works for me"   => WORKS_FOR_ME,
+		     "Not a fault"    => NOT_A_FAULT,
+		     "Won't be fixed" => WON_T_BE_FIXED,
+		     Duplicate        => DUPLICATE,
+		    );
+
+my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
 
 # Now invert %DATA and %URGENCY
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
   $INVERSE_URGENCY{ $URGENCY{$_} } = $_;
 }
+
 
 my %INVERSE_STATUS;
 for (keys %STATUS) {
@@ -364,6 +374,32 @@ with a fault.
 sub faultStatus {
   my $class = shift;
   return %STATUS;
+}
+
+=item B<faultStatusOpen>
+
+Return a hash containing the statuses that can represent an open fault.
+
+  %status = OMP::Fault->faultStatusOpen();
+
+=cut
+
+sub faultStatusOpen {
+  my $class = shift;
+  return %STATUS_OPEN;
+}
+
+=item B<faultStatusClosed>
+
+Return a hash containing the statuses that can represent a closed fault.
+
+  %status = OMP::Fault->faultStatusClosed();
+
+=cut
+
+sub faultStatusClosed {
+  my $class = shift;
+  return %STATUS_CLOSED;
 }
 
 =back
@@ -602,14 +638,14 @@ sub isUrgent {
 
 =item B<isOpen>
 
-Is the fault open (1) or closed (0)?
+Is the fault open or closed?
 
 =cut
 
 sub isOpen {
   my $self = shift;
   my $status = $self->status;
-  return ( $status == OPEN ? 1 : 0 );
+  return ( $status == OPEN or $status == WILL_BE_FIXED ? 1 : 0 );
 }
 
 =item B<isNew>
