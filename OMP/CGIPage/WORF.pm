@@ -216,7 +216,7 @@ sub display_page {
   print "\">Download NDF file</a> (right-click and Save As)<br>\n";
 
 # Print a link to load the image using Aladin.
-  print "<a href=\"http://vizier.hia.nrc.ca/viz-bin/nph-aladin.pl?frame=launching&script=get+Local%28http:%2f%2fomp-dev.jach.hawaii.edu%2fcgi-bin%2fworf_fits.pl%3f";
+  print "<a href=\"http://vizier.hia.nrc.ca/viz-bin/nph-aladin.pl?frame=launching&script=get+Local%28http:%2f%2fomp.jach.hawaii.edu%2fcgi-bin%2fworf_fits.pl%3f";
   print "runnr%3d$runnr";
   print "%26ut%3d$utdatetime";
   print "%26inst%3d$inst";
