@@ -36,3 +36,5 @@ To Do list for the OMP SOAP Servers
 
 - Make sure the calculation for default minel is clever enough to
   deal with sources that never rise above the min elevation 
+
+- multi-wavelength filters are not supported at all
