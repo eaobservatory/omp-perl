@@ -90,6 +90,8 @@ sub new {
 	   CGI => undef,
 	   Cookie => undef,
 	   Title => 'OMP Feedback System',
+	   PublicURL => 'http://omp.jach.hawaii.edu/cgi-bin',
+	   PrivateURL => 'http://omp-private.jach.hawaii.edu/cgi-bin',
 	  };
 
   # create the object (else we cant use accessor methods)
@@ -192,6 +194,36 @@ sub html_title {
   my $self = shift;
   if (@_) { $self->{Title} = shift; }
   return $self->{Title};
+}
+
+=item B<public_url>
+
+Return the URL of the public CGI directory.
+
+  $url = $c->public_url;
+  $c->public_url( $url );
+
+=cut
+
+sub public_url {
+  my $self = shift;
+  if (@_) { $self->{PublicURL} = shift; }
+  return $self->{PublicURL};
+}
+
+=item B<private_url>
+
+Return the URL of the public CGI directory.
+
+  $url = $c->private_url;
+  $c->private_url( $url );
+
+=cut
+
+sub private_url {
+  my $self = shift;
+  if (@_) { $self->{PrivateURL} = shift; }
+  return $self->{PrivateURL};
 }
 
 =back
