@@ -70,6 +70,25 @@ sub isfile {
   return $self->{IsFILE};
 }
 
+=item B<returncomment>
+
+Are we returning a comment with this query?
+
+  $returncomment = $q->returncomment;
+
+Defaults to false;
+
+=cut
+
+sub returncomment {
+  my $self = shift;
+  if (defined $self->{returncomment}) {
+    return $self->{returncomment};
+  } else {
+    return 0;
+  }
+}
+
 =item B<telescope>
 
 Telescope to use for this query. This governs the query since the
@@ -320,6 +339,11 @@ sub _post_process_hash {
 
 
   } else {
+
+# If we're doing a file lookup, don't bother doing any of these translations
+    if ($self->isfile) {
+      return;
+    }
     # No instrument specified so we must select the tables
     my $tel = $href->{telescope}->[0];
     if ($tel eq 'UKIRT') {
