@@ -807,11 +807,14 @@ sub _get_projects {
     my $proj = new OMP::Project( %$projhash );
     next unless $proj;
 
-    # Now create the PI user
-    $proj->pi( $udb->getUser( $piuserid ) );
-
     # Project ID
     my $projectid = $proj->projectid;
+
+    # Now create the PI user
+    my $pi = $udb->getUser( $piuserid );
+    throw OMP::Error::FatalError( "The PI user ID ($piuserid) is not recognized by the OMP system. Please fix project $projectid\n");
+
+    $proj->pi( $pi );
 
     # Now the Co-I via another query
     my $utable = $OMP::UserDB::USERTABLE;
