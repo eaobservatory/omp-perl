@@ -64,8 +64,6 @@ sub timealloc_output {
   my $q = shift;
   my %cookie = @_;
 
-  titlebar($q, ["Time Allocation"], %cookie);
-
   submit_allocations( $q );
 
   display_form( $q );
