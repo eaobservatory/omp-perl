@@ -128,6 +128,7 @@ sub display_form {
   # the telescope given.
   my $ut = $params->{'ut'};
   my $telescope = $params->{'telescope'};
+  $telescope = uc($telescope);
 
   my $dbconnection = new OMP::DBbackend;
   my $db = new OMP::TimeAcctDB( DB => $dbconnection );
@@ -146,7 +147,7 @@ sub display_form {
 # SCUBA information. If we're at UKIRT, just go through fine,
 # but if we're at JCMT, restrict to SCUBA.
   my $obsgroup;
-  if( $telescope =~ /jcmt/i ) {
+  if( $telescope eq 'JCMT' ) {
     try {
       $obsgroup = new OMP::Info::ObsGroup( instrument => 'scuba',
                                            date => $ut,
@@ -182,7 +183,7 @@ sub display_form {
 
   # Retrieve the TimeAcct objects for the group
   if( defined( $obsgroup ) ) {
-    @obstime = $obsgroup->projectStats;
+    my ($warnings,@obstime) = $obsgroup->projectStats;
 
     # Convert the TimeAcct array into a hash for easier project
     # searching.
@@ -224,14 +225,25 @@ sub display_form {
       $i++;
     }
     print "</table>";
+
+    # Any warnings?
+    if (@$warnings) {
+      print "Warnings from the time accounting:<p><pre>\n";
+      for my $line (@$warnings ) {
+	print $line;
+      }
+      print "</pre><p>\n";
+    }
+
   }
+
   # Display miscellaneous time form (faults, weather, other).
   print "Time lost to faults: ";
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( exists( $dbtime{'FAULT'} ) ?
-                                         $dbtime{'FAULT'}->timespent->hours :
+                           -default => ( exists( $dbtime{$telescope.'FAULT'} ) ?
+                                         $dbtime{$telescope.'FAULT'}->timespent->hours :
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
@@ -248,8 +260,8 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( exists( $dbtime{'WEATHER'} ) ?
-                                         $dbtime{'WEATHER'}->timespent->hours :
+                           -default => ( exists( $dbtime{$telescope.'WEATHER'} ) ?
+                                         $dbtime{$telescope.'WEATHER'}->timespent->hours :
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
@@ -262,8 +274,8 @@ sub display_form {
   print $query->textfield( -name => 'hour' . $i,
                            -size => '8',
                            -maxlength => '16',
-                           -default => ( exists( $dbtime{'OTHER'} ) ?
-                                         $dbtime{'OTHER'}->timespent->hours :
+                           -default => ( exists( $dbtime{$telescope."EXTENDED"} ) ?
+                                         $dbtime{$telescope."EXTENDED"}->timespent->hours :
                                          '0' ),
                          );
   print $query->hidden( -name => 'project' . $i,
