@@ -961,8 +961,8 @@ sub _run_query {
   throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
     unless defined $ref;
 
-  # Now for each MSB we need to retrieve all of the Observation information
-  # and store it in the results hash
+  # Now for each MSB we need to retrieve all of the Observation
+  # information and store it in the results hash
   # Convention dictates that this information ...???
   # For speed, do the query in one go and then sort out the result
   my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
@@ -1001,6 +1001,10 @@ sub _run_query {
   for my $row (@$ref) {
     my $msb = $row->{msbid};
     $row->{obs} = $msbs{$msb};
+
+    # delete the spurious "nobs" key that is created by the join
+    delete $row->{nobs};
+
   }
 
   # Now to limit the number of matches to return
@@ -1096,10 +1100,8 @@ sub _run_query {
 	# Set the time
 	$coords->datetime( $date );
 
-	print "\n". $coords->status ."\n";
-
 	# -w fix
-	$obs->{minel} = 0 unless defined $obs->{minel};
+	$obs->{minel} = -1 unless defined $obs->{minel};
 
 	# Now see if we are observable (dropping out the loop if not
 	# since there is no point checking further)
