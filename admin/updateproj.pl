@@ -124,6 +124,15 @@ for my $proj (keys %alloc) {
       $project->pending(0);
 
       print "to $newtotal seconds\n";
+    } elsif ($mod eq 'band') {
+      # A tau band
+      my @bands = split( /,/, $alloc{$proj}->{band});
+      my $taurange = OMP::General->get_band_range($project->telescope, @bands);
+      die "Error determining tau range from band ".$alloc{proj}->{band}." !"
+	unless defined $taurange;
+      print "Chaning tau range from ". $project->taurange ." to $taurange\n";
+      $project->taurange( $taurange );
+
     } else {
       warn "Unrecognized key in project $proj: $mod\n";
     }
