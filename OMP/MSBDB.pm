@@ -856,7 +856,22 @@ sub suspendMSB {
     $msg = "MSB suspended at observation $label.";
   } else {
     $msg = "Attempted to suspend MSB at observation $label but the MSB is no longer in the science program.",
+
   }
+
+  # Might want to send a message to the feedback system at this
+  # point
+  # do this early in case the MSBDone message fails!
+  $self->_notify_feedback_system(
+				 author => "OM",
+				 program => "OMP::MSBDB",
+				 subject => "MSB suspended",
+				 text => "$msg : checksum is $checksum",
+				);
+
+  # if the MSB never existed in the system this will generate an error
+  # message and throw an exception. In practice this is not a problem
+  # since it was clearly never retrieved from the system!
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
 			   $msg, OMP__DONE_SUSPENDED );
 
@@ -872,16 +887,6 @@ sub suspendMSB {
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
-
-  # Might want to send a message to the feedback system at this
-  # point
-  $self->_notify_feedback_system(
-				 author => "OM",
-				 program => "OMP::MSBDB",
-				 subject => "MSB suspended",
-				 text => "Suspended MSB with checksum"
-				 . " $checksum at observation $label.",
-				);
 
   # Disconnect
   $self->_dbunlock;
