@@ -520,13 +520,8 @@ sub _mkutdir {
   my $ut = $self->utdate;
 
   my $yyyymmdd = $ut->strftime("%Y%m%d");
-  # untaint
-  if ($yyyymmdd =~ /^(\d\d\d\d\d\d\d\d)$/) {
-    $yyyymmdd = $1;
-  } else {
-    throw OMP::Error::FatalError("Date in weird format. Not YYYYMMDD but $yyyymmdd");
-  }
-
+  # untaint [strftime should untaint]
+  $yyyymmdd = _untaint_YYYYMMDD( $yyyymmdd );
 
   my $tmpdir = $self->tmpdir;
   my $utdir = File::Spec->catdir($tmpdir, $yyyymmdd);
@@ -656,6 +651,8 @@ sub _mktarfile {
   my $utdate = $self->utdate;
   my $utstr = $utdate->strftime( "%Y%m%d" );
 
+  $utstr = _untaint_YYYYMMDD( $utstr );
+
   # Generate the tar file name
   my $outfile = File::Spec->catfile( $ftpdir,
 				     "ompdata_$utstr" . "_$$".".tar.gz"
@@ -666,8 +663,9 @@ sub _mktarfile {
 
   # Create the tar file
   # First need to cd to the temp directory (remembering where we started
-  # from)
+  # from). Returns tainted dir
   my $cwd = getcwd;
+  $cwd = _untaint_dir( $cwd );
 
   my $root = File::Spec->catdir($utdir, File::Spec->updir);
   chdir $root || croak "Error changing to tar directory $root: $!";
@@ -722,6 +720,17 @@ sub _untaint_dir {
     croak("Directory [$dir] does not exist so we can not be sure we are allowed to untaint it!");
   }
 
+}
+
+sub _untaint_YYYYMMDD {
+  my $utstr = shift;
+  Carp::confess "Can not untaint an undefined date!" unless defined $utstr;
+  if ($utstr =~ /^(\d\d\d\d\d\d\d\d)$/) {
+    # untaint
+    $utstr = $1;
+  } else {
+    croak("UT string [$utstr] does not match the expect format so we are not allowed to untaint it!");
+  }
 
 
 }
