@@ -13,7 +13,7 @@ use HTML::WWWTheme;
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
 
-use lib "/jac_sw/omp/test/omp/msbserver";
+use lib "/jac_sw/omp/msbserver";
 use OMP::UserServer;
 use Error qw/ :try /;
 
@@ -26,8 +26,17 @@ my $q = new CGI;
 print $q->header;
 
 # Use the OMP theme and make some changes to it.
-my $root = "/JACpublic/JAC/software/omp/LookAndFeelConfig";
-my $file = ( -e $root ? $root : "/WWW$root");
+
+my $root = "/WWW/omp-private/LookAndFeelConfig";
+my $file;
+for  ( $root, "/WWW$root") {
+  if (-e $_) {
+    $file = $_;
+    last;
+  }
+}
+
+die "Can not find theme file" unless $file;
 
 my $theme = new HTML::WWWTheme("$file");
 
