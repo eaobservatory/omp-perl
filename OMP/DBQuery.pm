@@ -322,8 +322,9 @@ sub _create_sql_recurse {
       $cmp = "like";
     }
 
-    # use an OR join [must surround it with parentheses]
-    $sql = "(".join(" OR ",
+    # use an OR join [must surround it with parentheses], but use
+    # an AND if we have multiple text strings
+    $sql = "(".join( "OR" ,
 		    map { $self->_querify($colname, $_, $cmp); }
 		    @{ $entry }
 		   ) . ")";
@@ -708,15 +709,20 @@ sub _querify {
     unless exists $cmptable{$cmp};
 
   # add pattern matches if we have like
-  $value = '%' . $value . '%' if $cmp eq 'like';
+  my $quote;
+  if ($cmp eq 'like') {
+    $quote "'";
 
-  # Do we need to quote it
-  my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
+    # Alter our search string for case-insensitivity
+    $value =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
+    $value = '%' . $value . '%';
+  } else {
+    $quote ='';
+  }
 
   # We do not want to quote if we have a SQL function
   # dateadd is special
   $quote = '' if $value =~ /^dateadd/;
-
 
   # If we have "name" then we need to create a query on both
   # pi and coi together. This is of course not portable and should
