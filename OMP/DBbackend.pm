@@ -554,19 +554,24 @@ sub connect {
 
   # Work out arguments for "generic" DBI layer. Shame they can not all
   # be the same
+  my $info = ''; # informational message in error
   my $dboptions = "";
   if ($DBIdriver eq "Sybase") {
     $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=120";
+    $info = "$DBserver Sybenv=$ENV{SYBASE}";
   } elsif ($DBIdriver eq 'Pg') {
     $DBserver = "<IRRELEVANT>";
     $dboptions = ":dbname=${DBdatabase}";
+    $info = "Postgres";
   } elsif ($DBIdriver eq 'mSQL') {
     $DBserver = "<IRRELEVANT>";
     $dboptions = ":database=$DBdatabase";
+    $info = "mSQL";
   } else {
     $DBserver = "<IRRELEVANT>";
     warn "DBI driver $DBIdriver not tested with OMP system. Leap of faith";
     $dboptions = ":database=$DBdatabase";
+    $info = "???";
   }
 
   print "DBI DRIVER: $DBIdriver; SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
@@ -576,7 +581,7 @@ sub connect {
 
   # We are using sybase
   my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, { PrintError => 0 })
-    or throw OMP::Error::DBConnection("Cannot connect to database: $DBI::errstr");
+    or throw OMP::Error::DBConnection("Cannot connect to database '$info' : $DBI::errstr");
 
   # Indicate that we have connected
   $self->_connected(1);
