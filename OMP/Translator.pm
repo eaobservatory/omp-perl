@@ -1124,6 +1124,19 @@ sub getTarget {
     $target{DEC2} = $c->dec_app( format => 's');
     $target{MJD2} = $c->datetime->mjd;
 
+  } elsif ($info{coordstype} eq 'FIXED') {
+
+    # Get the coordinate object
+    my $c = $info{coords};
+
+    # initialise for current time
+    my $time = new Time::Piece;
+    $c->datetime( $time );
+
+    $target{AZ} = $c->az(format => 's');
+    $target{EL} = $c->az(format => 's');
+    $target{CENTRE_COORDS} = "AZ";
+    $target{SOURCE_NAME} = $info{target};
 
   } else {
     throw OMP::Error::TranslateFail("This observing mode requires a target rather than coordinates of type $info{coordstype}");
