@@ -212,7 +212,8 @@ sub addComment {
   ($comment->{status} == OMP__FB_INFO) and
     $self->_mail_comment_info( $self->projectid, $comment );
 
-  #  $self->_mail_comment( $comment );
+  ($comment->{status} == OMP__FB_SUPPORT) and
+    $self->_mail_comment_support( $self->projectid, $comment );
 
   return;
 }
@@ -362,6 +363,28 @@ sub _mail_comment_important {
   my @email = ($proj->contacts);
   my @cc = ($comment->{author}->email);
   $self->_mail_comment( $comment, \@email, \@cc );
+}
+
+=item B<_mail_comment_support>
+
+Send the email to support only.
+
+  $db->_mail_comment_support( $projectid, $comment );
+
+=cut
+
+sub _mail_comment_support {
+  my $self = shift;
+  my $projectid = shift;
+  my $comment = shift;
+
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+			        DB => $self->db,);
+
+  my $project = $projdb->_get_project_row;
+
+  my @email = $project->supportemail;
+  $self->_mail_comment( $comment, \@email );
 }
 
 =item B<_mail_comment_info>
