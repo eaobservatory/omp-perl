@@ -47,10 +47,13 @@ my %tables = (
 			 datemax => "DATETIME",
 			 telescope => "VARCHAR(16)",
 			 minel => "REAL NULL",
+			 maxel => "REAL NULL",
+			 approach => "INTEGER NULL",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    obscount taumin taumax seeingmin seeingmax
 				    priority telescope moon cloud
-				    timeest title datemin datemax minel
+				    timeest title datemin datemax minel maxel
+				    approach
 				    /],
 		       },
 	      # Associates individual Co-Is with associated projects
