@@ -122,12 +122,12 @@ my %tables = (
 	      ompfeedback => {
 			      commid => "numeric(5,0) IDENTITY",
 			      entrynum => "numeric(4,0) not null",
-			      projectid => "char(32) not null",
-			      author => "char(50) not null",
+			      projectid => "varchar(32) not null",
+			      author => "varchar(50) not null",
 			      date => "datetime not null",
-			      subject => "char(128) null",
-			      program => "char(50) not null",
-			      sourceinfo => "char(60) not null",
+			      subject => "varchar(128) null",
+			      program => "varchar(50) not null",
+			      sourceinfo => "varchar(60) not null",
 			      status => "integer null",
 			      text => "text not null",
 			      _ORDER => [qw/
@@ -163,6 +163,12 @@ my %tables = (
 					  text
 					  /],
 			      },
+	      ompfaultassoc => {
+				associd => "numeric (5,0) IDENTITY",
+				faultid => "DOUBLE PRECISION",
+				projectid => "varchar(32) NULL",
+				_ORDER => [qw/ associd faultid projectid /],
+			       },
 	      ompuser => {
 			  userid => "VARCHAR(32)",
 			  name => "VARCHAR(255)",
@@ -181,6 +187,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompmsbdone';
   next if $table eq 'ompfault';
   next if $table eq 'ompfaultbody';
+  next if $table eq 'ompfaultassoc';
   next if $table eq 'ompuser';
   next if $table eq 'ompsupuser';
   next if $table eq 'ompcoiuser';
