@@ -489,15 +489,13 @@ direct summaries of MSBs. It is assumed that the table contains
 all the necessary information from the MSB itself so that there is
 no need to open each science program to obtain more information.
 
-We may want to allow for control of the return format.
-
 =cut
 
 sub queryMSB {
   my $self = shift;
   my $query = shift;
   my $format = shift;
-  $format ||= 'xml';
+  $format ||= 'xmlshort';
 
   # Run the query and obtain an array of hashes in order up to
   # the maximum number
