@@ -510,11 +510,11 @@ sub nightlog {
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Bolometers" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT time   Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers";
-    $return{'_STRING'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
+    $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers";
+    $return{'_STRING'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
 
-    $return{'_STRING_HEADER_LONG'} = "Run  UT start  Obsmode    Project ID  Object      Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
-    $return{'_STRING_LONG'} = sprintf("%-3u  %8s  %-10.10s %-11s %-11.11s %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
+    $return{'_STRING_HEADER_LONG'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
+    $return{'_STRING_LONG'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
 
   } elsif( $instrument =~ /^(rx|mpi)/i ) {
 
@@ -523,7 +523,7 @@ sub nightlog {
     $return{'Run'} = $self->runnr;
     my $utdate = $self->startobs->ymd;
     $utdate =~ s/-//g;
-    $return{'UT'} = $utdate . " " . $self->startobs->hms;
+    $return{'UT'} = $self->startobs->hms;
     $return{'Mode'} = uc($self->mode);
     $return{'Source'} = $self->target;
     $return{'Cycle Length'} = $self->cycle_length;
@@ -534,11 +534,12 @@ sub nightlog {
     $return{'Velsys'} = $self->velsys;
     $return{'Project ID'} = $self->projectid;
 
-    $return{'_ORDER'} = [ "Run", "Project ID", "UT", "Mode", "Source", "Cycle Length", "Number of Cycles",
+    $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project ID", "Source", "Cycle Length", "Number of Cycles",
                           "Receiver", "Frequency", "Velocity", "Velsys" ];
 
-    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
-    $return{'_STRING'} = sprintf("%4s %8s  %17s %10s %10s %3d/%3d %5s  %3d %5d/%6s", $return{'Run'}, $return{'Project ID'}, $return{'UT'}, $return{'Mode'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Receiver'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'});
+    $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source  Sec/Cyc   Rec Freq   Vel/Velsys";
+#    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
+    $return{'_STRING'} = sprintf("%3s  %8s  %10.10s %11s %15s  %3d/%3d %5s  %3d %5d/%6s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Receiver'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'});
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
