@@ -538,13 +538,10 @@ sub _populate {
   $query{projectid} = $self->projectid
     unless $self->inccal;
 
-  # KLUGE for SCUBA. ArchiveDB can not currently query mutltiple JCMT instruments
-  #$query{instrument} = 'scuba' if $tel =~ /jcmt/i;
-
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
   # to be done in ObsGroup.
-  print STDOUT "Querying database for relevant data files..."
+  print STDOUT "Querying database for relevant data files...\n"
     if $self->verbose;
 
   my $grp = new OMP::Info::ObsGroup( %query );
@@ -563,16 +560,33 @@ sub _populate {
   # Go through looking for project informaton
   # Do this so we can warn if we do not get any data for this night
   my (@proj,@cal);
+
+  # Also keep track of instrumentation used so that we do not ship
+  # calibrations for instruments that the project was not interested
+  my %instruments;
+
   for my $obs ($grp->obs) {
+    my $obsmode = $obs->mode || $obs->type;
     if (uc($obs->projectid) eq $self->projectid && $obs->isScience) {
-      print "SCIENCE:     " .$obs->mode ." [".$obs->target ."]\n" 
+      $instruments{uc($obs->instrument)}++; # Keep track of instrument
+      print "SCIENCE:     " .$obs->instrument ."/".$obsmode ." [".$obs->target ."]\n" 
 	if $self->verbose;
       push(@proj, $obs);
     } elsif ( ! $obs->isScience && $self->inccal) {
-      print "CALIBRATION: ". $obs->mode . " [".$obs->target."]\n" 
-	if $self->verbose;
       push(@cal, $obs);
     }
+  }
+
+  # Now prune calibrations to remove uninteresting instruments
+  my $match = join("|",keys %instruments);
+  @cal = grep { $_->instrument =~ /^$match$/i } @cal;
+
+  # And print out calibration matches
+  # since we do not want to list a whole load of pointless calibrations
+  for my $obs (@cal) {
+    my $obsmode = $obs->mode || $obs->type;
+    print "CALIBRATION: ". $obs->instrument ."/".$obsmode . " [".$obs->target."]\n" 
+      if $self->verbose;
   }
 
   # warn if we have cals but no science
@@ -702,8 +716,11 @@ sub _copy_data {
 
     # Untaint the filename
     my $file;
-    if ($obs->filename =~ m!(.*\.(sdf|gsd)$)!) {
+    if ($obs->filename =~ m/(.*\.(sdf|gsd))$/ ) {
       $file = $1;
+    } else {
+      print "Error untainting filename. Must skip\n";
+      next;
     }
 
     #    my $file = $obs->filename;
@@ -721,7 +738,13 @@ sub _copy_data {
     }
 
     # Get the actual filename without path
-    my $base = basename( $file );
+    my $base = $obs->simple_filename;
+    if ($base =~ /(.*\.(sdf|gsd|dat))$/) {
+      $base = $1;
+    } else {
+      print "Error untainting base file. Must skip\n";
+      next;
+    }
     my $outfile = File::Spec->catfile( $outdir, $base );
 
     print STDOUT "Copying file $base to temporary location..."
