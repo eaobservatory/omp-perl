@@ -677,9 +677,15 @@ sub view_fault_content {
   my $q = shift;
   my %cookie = @_;
 
-  # First try and get the fault ID from the URL param list, then try the normal param list.
-  my $faultid = $q->url_param('id');
-  (!$faultid) and $faultid = $q->param('id');
+  # First try and get the fault ID fro mthe sidebar form param, then 
+  # try and get it from the URL or from the regular form param
+  my $faultid;
+  if ($q->param('goto_fault')) {
+    $faultid = $q->param('goto_fault');
+  } else {
+    $faultid = $q->url_param('id');
+    (!$faultid) and $faultid = $q->param('id');
+  }
 
   # If we still havent gotten the fault ID, put up a form and ask for it
   if (!$faultid) {

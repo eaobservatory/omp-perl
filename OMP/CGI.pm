@@ -292,15 +292,28 @@ sub _sidebar_fault {
   my $self = shift;
   my $cat = shift;
   my $theme = $self->theme;
+  my $q = $self->cgi;
 
   my $title = (defined $cat ? "$cat Faults" : "Select a fault system");
   $theme->SetMoreLinksTitle($title);
+
+  # Construct our HTML for the sidebar fault form
+  my $sidebarform = $q->start_form .
+    "<br>Fault ID:<br>".
+      $q->textfield(-name=>'goto_fault',
+		    -size=>14,
+		    -maxlength=>20,) .
+		      "<br><br>" .
+			$q->submit("View Fault") .
+			  $q->end_form ;
 
   my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
 		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
 		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
 		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
-		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a></font>",);
+		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a>",
+		      "$sidebarform</font>",);
+
   if (defined $cat) {
     unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
 	                    "<a href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
@@ -714,12 +727,12 @@ sub write_page {
 =item B<write_page_proposals>
 
 Write a page with the ability to server proposal files in whatever format they
-are in.  Yes, this task is so special it gets its own subroutine.  Prompts
+are in.  This subroutine is special because it allows you to specify the header attributes so you can do things other than "text/html."  Prompts
 for project password if not run locally.  If the output subroutine is being
 called the header is not written and must be written instead by the output
 subroutine.
 
-  $cgi->write_page_proposals( \&form_content, \&form_output );
+  $cgi->write_page_proposals( \&form_content, \&form_output);
 
 =cut
 
@@ -1033,12 +1046,18 @@ sub write_page_fault {
   # If there is a fault ID in the URL get the fault and set the 
   # cookie category to whatever category the fault is
   my $fault;
+  my $faultid;
   if ($q->url_param('id')) {
+    $faultid = $q->url_param('id');
+  } elsif ($q->param('goto_fault')) {
+    $faultid = $q->param('goto_fault');
+  }
+
+  if ($faultid) {
     # Display an error if we're unable to retrieve the fault.
     # We do this here since this class sets up the fault viewing
     # environment and nothing higher up will work anyway if we
     # can't retrieve the fault
-    my $faultid = $q->url_param('id');
     my $E;
     try {
       $fault = OMP::FaultServer->getFault($faultid);
@@ -1080,11 +1099,15 @@ sub write_page_fault {
   }
 
   if ($q->param) {
-    if ($q->param('show_output')) {
-      $form_output->($q, %cookie);
+    if ($q->param('goto_fault')) {
+      OMP::CGIFault::view_fault_content($q, %cookie);
     } else {
-      $form_content->($q, %cookie);
-   }
+      if ($q->param('show_output')) {
+	$form_output->($q, %cookie);
+      } else {
+	$form_content->($q, %cookie);
+      }
+    }
   } else {
     $form_content->($q, %cookie);
   }
