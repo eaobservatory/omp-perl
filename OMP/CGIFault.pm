@@ -423,7 +423,12 @@ sub query_fault_output {
 
     if ($q->param('author')) {
       my $author = uc($q->param('author'));
-      push (@xml, "<author>$author</author>");
+
+      # Get the user object (this will automatically
+      # map the an alias to a user ID)
+      my $user = OMP::UserServer->getUser($author);
+
+      push (@xml, "<author>".$user->userid."</author>");
     }
 
     # Generate the date portion of our query
