@@ -906,17 +906,22 @@ sub cgi_to_obs {
   # Form the Time::Piece object
   my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
 
+  # Get the telescope.
+  my $telescope = uc(OMP::Config->inferTelescope('instruments', $inst));
+
   # Form the Info::Obs object.
   my $obs;
   if( $timegap ) {
     $obs = new OMP::Info::Obs::TimeGap( runnr => $runnr,
                                         startobs => $startobs,
                                         instrument => $inst,
+                                        telescope => $telescope,
                                       );
   } else {
     $obs = new OMP::Info::Obs( runnr => $runnr,
                                startobs => $startobs,
                                instrument => $inst,
+                               telescope => $telescope,
                              );
   }
 
