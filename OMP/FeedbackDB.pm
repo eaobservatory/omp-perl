@@ -314,8 +314,9 @@ sub _mail_comment {
   # to start a new line when adding any text to the message
   my $newline = ($comment->{text} =~ m!</!m ? "<br>" : "\n");
 
-  # Mail message
-  my $msg = "$comment->{text}";
+  # Mail message (Format with HTML since the mail method will convert to
+  # plaintext)
+  my $msg = "Author: $comment->{author}<br><br>$comment->{text}";
 
   my $projectid = $self->projectid;
 
