@@ -42,7 +42,7 @@ foreach my $tab (@tab) {
   # the new dump.
   @new_dump = stat($tab);
   @old_dump = stat($tab . "_2");
-  if (@old_dump[7] > @new_dump[7]) {
+  if ($old_dump[7] > $new_dump[7]) {
     $date = localtime;
     copy($tab . "_2", $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"));
 
@@ -53,7 +53,7 @@ foreach my $tab (@tab) {
 				From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
 				To => "kynan\@jach.hawaii.edu",
 				Subject => "Warning: table $tab has shrunken significantly",
-				Data => "New size is @new_dump[7].  Was previously @old_dump[7].  This could mean an accidental deletion has occurred.",
+				Data => "New size is $new_dump[7].  Was previously $old_dump[7].  This could mean an accidental deletion has occurred.",
 			       );
 
       MIME::Lite->send("smtp", "mailhost", Timeout => 30);
