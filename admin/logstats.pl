@@ -3,10 +3,15 @@ use strict;
 use warnings;
 use Time::Piece qw/ :override /;
 use List::Util qw/ min max /;
+use OMP::Config;
+use File::Spec;
 
 # Analyze log files
-
-my $log = "/tmp/omplog/log.20030528";
+my $logdir;
+eval { $logdir = OMP::Config->getData( "logdir" ); };
+warn "Error obtaining logdir. Falling back: $@\n" if $@;
+$logdir = "/tmp/ompLogs" unless defined $logdir;
+my $log = File::Spec->catfile($logdir, "log.20030529");
 
 # probably want to analyze a directory of log files...
 
