@@ -2700,6 +2700,9 @@ sub SpIterFolder {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
 
+      # For SCUBA
+      my $widePhotom = $self->_get_pcdata( $child, 'widePhotometry' );
+
       # For Het
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
@@ -2715,6 +2718,7 @@ sub SpIterFolder {
 
       my %stare;
       $stare{nintegrations} = $nint;
+      $stare{widePhotom}    = $widePhotom if defined $widePhotom;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;

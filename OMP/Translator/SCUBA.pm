@@ -422,6 +422,12 @@ sub SpIterStareObs {
 	     # Target
 	    );
 
+  # Wide photometry mode uses a different pattern
+  if ($info{widePhotom}) {
+    $odf{JIGGLE_NAME} = 'OBSERVE:[SCUBA]wide_12_1_7p0.jig';
+    $odf{JIGGLE_P_SWITCH} = 12;
+  }
+
   # Populate bits that vary
   for (qw/ General Bols Filter Gain Offsets Ints Target Chop Pol/ ) {
     my $method = "get$_";
