@@ -189,11 +189,11 @@ sub addComment {
   }
 
   # Mail the comment to interested parties
-  ($comment{status} == OMP__FB_IMPORTANT) and
+  ($comment->{status} == OMP__FB_IMPORTANT) and
     $self->_mail_comment_important( $self->projectid, $comment );
 
-  ($comment{status} == OMP__FB_INFO) and
-    $self->_mail_comment_info( $self->projectid, $comment )
+  ($comment->{status} == OMP__FB_INFO) and
+    $self->_mail_comment_info( $self->projectid, $comment );
 
   #  $self->_mail_comment( $comment );
 
@@ -267,7 +267,6 @@ sub _mail_comment {
   my $comment = shift;
   my @addrlist = @_;
 
-
   # Set up the mail
   my $smtp = new Net::SMTP('mailhost', Timeout => 30);
 
@@ -283,15 +282,15 @@ sub _mail_comment {
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
-  $smtp->datasend("Subject: New feedback comment for project $comment{projectid}\n")
+  $smtp->datasend("Subject: New feedback comment for project $comment->{projectid}\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
   $smtp->datasend("\n")
     or throw OMP::Error::FatalError("Error constructing mail message\n");
 
   # Mail message
-  my $msg = "\nAuthor: $comment{author}\n" .
-            "Subject: $comment{subject}\n\n" .
-	    "$comment{text}\n";
+  my $msg = "\nAuthor: $comment->{author}\n" .
+            "Subject: $comment->{subject}\n\n" .
+	    "$comment->{text}\n";
 
   $smtp->datasend($msg)
     or throw OMP::Error::FatalError("Error constructing mail message\n");
@@ -305,7 +304,7 @@ sub _mail_comment {
 
 =item B<_mail_comment_important>
 
-Will send the email to PI, COIs and support scientists.
+Will send the email to PI, COI and support emails.
 
 $db->_mail_comment_important( $projectid, $comment );
 
@@ -316,14 +315,15 @@ sub _mail_comment_important {
   my $projectid = shift;
   my $comment = shift;
 
-  my $proj = new OMP::Project( ProjectID => $projectid );
+  my $proj = new OMP::Project( ProjectID => $projectid);
+
   my @email = $proj->contacts;
   $self->_mail_comment( $comment, \@email );
 }
 
 =item B<_mail_comment_info>
 
-Will send the message to support scientists
+Will send the message to support emails
 
 $db->_mail_comment_info( $projectid, $comment );
 
@@ -335,7 +335,9 @@ sub _mail_comment_info {
   my $comment = shift;
 
   my $proj = new OMP::Project( ProjectID => $projectid );
-  my @email = $proj->pieamil;
+
+  my @email = $proj->piemail;
+
   $self->_mail_comment( $comment, \@email );
 }
 
