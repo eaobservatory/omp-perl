@@ -266,7 +266,7 @@ sub storeSciProg {
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
-  if (exists $args{NoNewTrans} && !$args{NoNewTrans}) {
+  if (!exists $args{NoNewTrans} || !$args{NoNewTrans}) {
     $self->_db_begin_trans;
     $self->_dblock;
   }
@@ -813,6 +813,7 @@ sub _db_rollback_trans {
 
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   if ($self->_intrans) {
     $self->_intrans(0);
     $dbh->rollback;
