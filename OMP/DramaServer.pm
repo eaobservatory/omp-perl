@@ -68,12 +68,22 @@ sub getParams {
 
   my @params = ( ref $param ? @$param : $param );
 
-  my $errmsg = '';
-  my $sds = pgetw( $task, @params,{ -error => sub {
-				      $errmsg = $_[1];
-				    } } );
-  throw OMP::Error::FatalError("DRAMA Error: $errmsg")
-    unless defined $sds;
+  my $E;
+  my $sds;
+  try {
+    my $errmsg = '';
+    $sds = pgetw( $task, @params,{ -error => sub {
+				     $errmsg = $_[1];
+				   } } );
+    throw OMP::Error::FatalError("DRAMA Error: $errmsg")
+      unless defined $sds;
+  } catch OMP::Error with {
+    $E = shift;
+  } otherwise {
+    $E = shift;
+  };
+
+  $class->throwException( $E ) if defined $E;
 
   my %param;
   tie %param, "Sds::Tie",$sds;
@@ -113,12 +123,24 @@ sub getEnviroParam {
   my $task = 'ENVIRO@jaux';
   my $param = "STATE.$in";
 
-  my $errmsg = '';
-  my $sds = pgetw( $task, $param,{ -error => sub {
-				     $errmsg = $_[1];
-				   } } );
-  throw OMP::Error::FatalError("DRAMA Error: $errmsg")
-    unless defined $sds;
+  # Need to catch exceptions and rethrow using SOAP infrastructure
+  my $E;
+  my $sds;
+  try {
+    my $errmsg = '';
+    $sds = pgetw( $task, $param,{ -error => sub {
+				    $errmsg = $_[1];
+				  } } );
+
+    throw OMP::Error::FatalError("DRAMA Error: $errmsg")
+      unless defined $sds;
+  } catch OMP::Error with {
+    $E = shift;
+  } otherwise {
+    $E = shift;
+  };
+
+  $class->throwException( $E ) if defined $E;
 
   my %param;
   tie %param, "Sds::Tie",$sds;
