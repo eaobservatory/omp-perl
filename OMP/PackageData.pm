@@ -539,7 +539,7 @@ sub _populate {
     unless $self->inccal;
 
   # KLUGE for SCUBA. ArchiveDB can not currently query mutltiple JCMT instruments
-  $query{instrument} = 'scuba' if $tel =~ /jcmt/i;
+  #$query{instrument} = 'scuba' if $tel =~ /jcmt/i;
 
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
@@ -702,7 +702,7 @@ sub _copy_data {
 
     # Untaint the filename
     my $file;
-    if ($obs->filename =~ m!(.*\.sdf$)!) {
+    if ($obs->filename =~ m!(.*\.(sdf|gsd)$)!) {
       $file = $1;
     }
 
