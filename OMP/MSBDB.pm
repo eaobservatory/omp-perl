@@ -12,8 +12,8 @@ OMP::MSBDB - A database of MSBs
 
   $status = $db->storeSciProg( SciProg => $sp );
 
-  $msb = $db->fetchMSB( DBID => $id,
-                        CheckSum => $checksum );
+  $msb = $db->fetchMSB( id => $id,
+                        checksum => $checksum );
   $sp  = $db->fetchSciProg();
 
   @match = $db->queryMSB( $query_object );
@@ -39,7 +39,6 @@ use OMP::Error;
 
 # External dependencies
 use File::Spec;
-use DBI;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -68,10 +67,16 @@ our $DEBUG = 0;
 Create a new instance of an C<OMP::MSBDB> object.
 
   $db = new OMP::MSBDB( ProjectID => $project,
-			Password  => $passwd );
+			Password  => $passwd
+			DB => $connection,
+		      );
 
 The arguments are required for Science Program access.
 Some MSB-based methods are not instance methods.
+
+If supplied, the database connection object must be of type
+C<OMP::DBbackend>.  It is not accepted if that is not the case.
+(but no error is raised - this is probably a bug).
 
 =cut
 
@@ -88,7 +93,7 @@ sub new {
 	    Locked => 0,
 	    Password => undef,
 	    ProjectID => undef,
-	    DBH => undef,
+	    DB => undef,
 	   };
 
   # Populate the hash
@@ -97,8 +102,12 @@ sub new {
   }
 
   # and create the object
-  bless $db, $class;
+  my $object = bless $db, $class;
 
+  # Check the DB handle
+  $object->_dbhandle( $args{DB} ) if exists $args{DB};
+
+  return $object;
 }
 
 =back
@@ -112,6 +121,7 @@ sub new {
 The project ID associated with this object.
 
   $pid = $db->projectid;
+  $db->projectid( "M01BU53" );
 
 =cut
 
@@ -126,6 +136,7 @@ sub projectid {
 The password associated with this object.
 
  $passwd = $db->password;
+ $db->password( $passwd );
 
 =cut
 
@@ -208,22 +219,36 @@ sub _intrans {
 
 =item B<_dbhandle>
 
-Database handle associated with this object.
-The C<_dbconnect> method is invoked automatically if no handle
-is present (this may not be a good thing).
+Returns database handle associated with this object (the thing used by
+C<DBI>).  Returns C<undef> if no connection object is present.
+
+  $dbh = $db->_dbhandle();
+
+Takes a database connection object (C<OMP::DBbackend> as argument in
+order to set the state.
+
+  $db->_dbhandle( new OMP::DBbackend );
+
+If the argument is C<undef> the database handle is cleared.
 
 =cut
 
 sub _dbhandle {
   my $self = shift;
   if (@_) { 
-    $self->{DBH} = shift; 
-  } else {
-    unless (defined $self->{DBH}) {
-      $self->_dbconnect()
+    my $db = shift;
+    if (UNIVERSAL::isa($db, "OMP::DBbackend")) {
+      $self->{DB} = $db;
+    } else {
+      $self->{DB} = undef;
     }
   }
-  return $self->{DBH};
+  my $db = $self->{DB};
+  if (defined $db) {
+    return $db->handle;
+  } else {
+    return undef;
+  }
 }
 
 =back
@@ -687,32 +712,6 @@ only routines that need to be modified.
 
 =over 4
 
-=item B<_dbconnect>
-
-Initiate a connection to the database and store the result in the
-object.
-
-=cut
-
-sub _dbconnect {
-  my $self = shift;
-
-  # Forget about authentication for now when applied to
-  # the individual projects (still need authentication to
-  # the table)
-  my $DBserver = "SYB_UKIRT";
-  my $DBuser = "omp";
-  my $DBpwd  = "***REMOVED***";
-  my $DBdatabase = "archive";
-
-  my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0})
-    or throw OMP::Error::DBConnection("Cannot connect: ". $DBI::errstr);
-
-  # Store the handle
-  $self->_dbhandle( $dbh );
-
-}
-
 =item B<_db_begin_trans>
 
 Begin a database transaction. This is defined as something that has
@@ -805,18 +804,6 @@ sub _dbunlock {
   if ($self->_locked()) {
     $self->_locked(0);
   }
-}
-
-=item B<_dbdisconnect>
-
-Disconnect from the database.
-
-=cut
-
-sub _dbdisconnect {
-  my $self = shift;
-  $self->_dbhandle->disconnect;
-  $self->_dbhandle( undef );
 }
 
 =item B<_insert_row>
@@ -1000,17 +987,15 @@ sub _run_query {
 
 =item B<DESTROY>
 
-Automatic destructor. Guarantees that we will try to disconnect
-even if an exception has been thrown.
+We rollback any transactions that have failed (this only works
+if the exceptions thrown by this module are caught in such a way
+that the object will go out of scope).
 
 =cut
 
 sub DESTROY {
   my $self = shift;
-  my $dbh = $self->_dbhandle;
-  if (defined $dbh) {
-    $self->_dbdisconnect;
-  }
+  $self->_db_rollback_trans;
 }
 
 =back
