@@ -290,8 +290,6 @@ sub _sidebar_fault {
   $theme->SetMoreLinksTitle($title);
 
   my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
-		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
-		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
 		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
 		      "<br><a href='http://omp.jach.hawaii.edu/'>OMP home</a></font>",);
   if (defined $cat) {
