@@ -393,6 +393,17 @@ marked as bad should be charged to the general overhead.
 Also does not charge for time gaps even if they have been flagged
 as WEATHER.
 
+If an observation has a calibration type that matches the project ID
+then we assume that the data are self-calibrating rather than
+complaining that there is no calibration.
+
+If a time gap associated with an observation is smaller than a certain
+threshold (say 5 minutes) then that time is charged to the following
+project rather than to OTHER. This will allow us to compensate for
+small gaps between data files associated with slewing and tuning.
+If a small gap is between calibration observations it is charged
+to $telCAL project.
+
 =cut
 
 sub projectStats {
@@ -402,12 +413,32 @@ sub projectStats {
   # If we do not have any observations we return empty
   return (["No observations for statistics"]) unless @obs;
 
+  # This is the threshold for unspecified gaps
+  # Below this threshold we attempt to associate them with the
+  # relevant project. Above this threshold we simply charge them
+  # to OTHER. This unit is in seconds
+  # If this is set to 0, all unallocated gaps will be charged to OTHER
+  my $GAP_THRESHOLD = 5 * 60;
+
   my @warnings;
   my %projbycal;
   my %cals;
   my %other; # Extended time, weather time and OTHER gaps by telescope
   my %instlut; # Lookup table to map instruments to telescope when sharing
                # Generic calibrations
+
+  # These are the generic key names for certain cal projects
+  my $WEATHER_GAP = "WEATHER";
+  my $OTHER_GAP   = "OTHER";
+  my $CAL_NAME    = "CAL";
+  my $EXTENDED_KEY= "EXTENDED";
+
+  # This is a hash indexed by UT and tel (since we cannot mix them yet)
+  # pointing to an array.  This array contains the projects as we
+  # encounter them. We use it to make sure we assign small gaps to
+  # projects properly. We try to make sure we do not push a project on
+  # that is already at the end of the array
+  my %gapproj;
 
   # Go through all the observations, determining the time spent on 
   # each project and the calibration requirements for each observation
@@ -431,11 +462,11 @@ sub projectStats {
 
       if ($status == OMP__TIMEGAP_INSTRUMENT) {
 	# Charge this to CAL
-	$projectid = "CAL";
+	$projectid = $CAL_NAME;
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
-	$projectid = "WEATHER";
+	$projectid = $WEATHER_GAP;
       } else {
-	$projectid = "OTHER";
+	$projectid = $OTHER_GAP;
       }
     }
 
@@ -456,6 +487,24 @@ sub projectStats {
     my $timespent;
     my $duration = $obs->duration;
 
+    # Store the project ID for gap processing
+    # In general should make sure we dont get projects that are all calibrations
+    if (!exists $gapproj{$ymd}{$tel}) {
+      $gapproj{$ymd}{$tel} = [];
+    }
+
+    # This is the project to store in the gap analysis
+    my $gapprojid = $projectid;
+
+    # But we want to make sure that gaps solely between calibration
+    # observations are not charged to OTHER when JCMTCAL would be a better
+    # bet. But note that these are not apportioned to other projects
+    $gapprojid = $CAL_NAME if (!$isgap && ! $obs->isScience);
+
+    push(@{$gapproj{$ymd}{$tel}}, $gapprojid)
+      if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || $gapproj{$ymd}->{$tel}->[-1] ne $gapprojid);
+
+
     # We can calculate extended time so long as we have 2 of startobs, endobs and duration
     if( (defined $startobs && defined $endobs ) ||
         (defined $startobs && defined $duration) ||
@@ -472,7 +521,7 @@ sub projectStats {
 
       # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
       # "nothing" to extended observing!]
-      $other{$ymd}{$tel}{EXTENDED} += $extended->seconds 
+      $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds 
 	if defined $extended && $extended->seconds > 0 && !$isgap;
 
     } else {
@@ -488,7 +537,17 @@ sub projectStats {
     my $cal = $obs->calType;
     if ($isgap) {
       # Just need to add into the %other hash
-      $other{$ymd}{$tel}{$projectid} += $timespent->seconds;
+      # UNLESS this is an OTHER gap that is smaller than the required threshold
+      if ($projectid eq $OTHER_GAP && $timespent->seconds < $GAP_THRESHOLD 
+	 && $timespent->seconds > 0) {
+	# Replace the project entry with a hash pointing to the gap
+	# Use a hash ref just to make it easy to spot rather than matching
+	# to a digit
+	$gapproj{$ymd}->{$tel}->[-1] = { OTHER => $timespent->seconds };
+      } else {
+	# Just charge to OTHER
+	$other{$ymd}{$tel}{$projectid} += $timespent->seconds;
+      }
 
     } elsif ($obs->isScience) {
       $projbycal{$ymd}{$projectid}{$inst}{$cal} += $timespent->seconds;
@@ -497,14 +556,17 @@ sub projectStats {
 	# General calibrations are deemed to be instrument
 	# specific (if you do a skydip for scuba you should
 	# not be charged for it if you use RxA)
-	$cals{$ymd}{$inst}{"CAL"} += $timespent->seconds;
+	$cals{$ymd}{$inst}{$CAL_NAME} += $timespent->seconds;
       } else {
 	$cals{$ymd}{$inst}{$cal} += $timespent->seconds;
       }
     }
   }
 
-  print Dumper( \%projbycal, \%cals, \%other) if $DEBUG;
+
+
+
+  print Dumper( \%projbycal, \%cals, \%other,\%gapproj) if $DEBUG;
 
   # Now go through the science observations to find the total
   # of each required calibration regardless of project
@@ -548,7 +610,9 @@ sub projectStats {
 
 	  } else {
 	    # oops, no relevant calibrations...
-	    push(@warnings, "No calibration data of type $cal for project $proj on $ymd\n");
+	    # unless we are self-calibrating
+	    push(@warnings, "No calibration data of type $cal for project $proj on $ymd\n")
+	      if ($cal ne $proj);
 
 	  }
 
@@ -574,14 +638,14 @@ sub projectStats {
     # Add on the general calibrations (for each instrument)
     for my $proj (keys %{$proj{$ymd}}) {
       for my $inst (keys %{$proj{$ymd}{$proj}}) {
-	$proj{$ymd}{$proj}{$inst} += int( $cals{$ymd}{$inst}{CAL} * 
+	$proj{$ymd}{$proj}{$inst} += int( $cals{$ymd}{$inst}{$CAL_NAME} * 
 					  $proj{$ymd}{$proj}{$inst} / 
 					  $total{$inst});
       }
     }
   }
 
-  print "Proj after adding CAL: ".Dumper(\%proj) if $DEBUG;
+  print "Proj after adding $CAL_NAME: ".Dumper(\%proj) if $DEBUG;
 
   # Now go through and create a CAL entry for calibrations
   # that were not used by anyone. Technically the General data
@@ -591,12 +655,12 @@ sub projectStats {
     for my $inst (keys %{ $cals{$ymd} }) {
       for my $cal (keys %{ $cals{$ymd}{$inst} } ) {
 	# Skip general calibrations
-	next if $cal =~  /CAL$/;
+	next if $cal =~  /$CAL_NAME$/;
 
 	# Check specific calibrations
 	if (!exists $cal_totals{$ymd}{$inst}{$cal}) {
 	  push(@warnings,"Calibration $cal is not used by any science observations on $ymd\n");
-	  $proj{$ymd}{CAL}{$inst} += $cals{$ymd}{$inst}{$cal};
+	  $proj{$ymd}{$CAL_NAME}{$inst} += $cals{$ymd}{$inst}{$cal};
 	}
       }
     }
@@ -617,8 +681,8 @@ sub projectStats {
       }
       if (!$nocal) {
 	# Need to add this to cal
-	print "Adding on CAL data for $inst on $ymd of $cals{$ymd}{$inst}{CAL}\n" if $DEBUG;
-	$proj{$ymd}{CAL}{$inst} += $cals{$ymd}{$inst}{CAL};
+	print "Adding on CAL data for $inst on $ymd of $cals{$ymd}{$inst}{$CAL_NAME}\n" if $DEBUG;
+	$proj{$ymd}{$CAL_NAME}{$inst} += $cals{$ymd}{$inst}{$CAL_NAME};
       }
     }
   }
@@ -636,14 +700,79 @@ sub projectStats {
 	# If we have some shared calibrations that are not associated
 	# with a project we need to associate them with a telescope
 	# so that UKIRTCAL and JCMTCAL do not clash in the system
-	if ($proj eq 'CAL') {
-	  $projkey = $instlut{$ymd}{$inst} . "CAL";
+	if ($proj eq $CAL_NAME) {
+	  $projkey = $instlut{$ymd}{$inst} . $CAL_NAME;
 	}
 
 	$proj_totals{$ymd}{$projkey} += $proj{$ymd}{$proj}{$inst};
       }
     }
   }
+
+  # And any small forgotten leftover time gaps
+  print "Processing gaps:\n" if $DEBUG;
+  for my $ymd (keys %gapproj) {
+    for my $tel (keys %{ $gapproj{$ymd} }) {
+      # Now step through the data charging time gaps 50% each to the projects
+      # on either side IF an entry exists in the %proj_totals hash
+      # If an entry is not there, charge it to OTHER (since it may just have
+      # done cals all night)
+      my @projects = @{ $gapproj{$ymd}{$tel}};
+      # If we only have 1 or 2 entries here then the number of gaps to apportion
+      # is tiny and we only have one side. Charge to OTHER
+      if (@projects > 2) {
+	for my $i (1..$#projects) {
+	  # Can not be a gap in the very first entry so start at 1
+	  # and can not be one at the end
+	  if (ref($projects[$i])) {
+	    # We have a gap. This should be charged to the following
+	    # project
+	    my $gap = $projects[$i]->{OTHER};
+
+	    # but make sure we do not extend the array indefinitely
+	    # This code is more complicated in case we want to apportion
+	    # the gap to projects on either side
+	    my @either;
+	    push(@either, $projects[$i+1]) if $#projects != $i;
+
+	    # if we do not have a project following this 
+	    # charge to OTHER
+	    if (@either) {
+	      for my $proj (@either) {
+		next unless defined $proj;
+		next unless not ref($proj);
+		
+		$proj = $tel . $proj if $proj =~ /$CAL_NAME$/ && $proj !~ /^$tel/i;
+		if (exists $proj_totals{$ymd}{$proj} || $proj =~ /$CAL_NAME$/) {
+		  $proj_totals{$ymd}{$proj} += $gap;
+
+		} else {
+		  # We should charge this to $tel OTHER
+		  # regardless of the project name
+		  my $key = $tel . $OTHER_GAP;
+		  $proj_totals{$ymd}{$key} += $gap;
+		}
+	      }
+	    } else {
+	      # We should charge this to $tel OTHER
+	      # regardless of the project name
+	      my $key = $tel . $OTHER_GAP;
+	      $proj_totals{$ymd}{$key} += $gap;
+	    }
+	  }
+	}
+      } else {
+	# We should charge this to $tel OTHER
+	# regardless of the project name
+	for my $entry (@projects) {
+	  next unless ref($entry);
+	  my $key = $tel . $OTHER_GAP;
+	  $proj_totals{$ymd}{$key} += $entry->{OTHER};
+	}
+      }
+    }
+  }
+  print "GAPS done\n" if $DEBUG;
 
   # Add in the extended/weather and other time
   for my $ymd (keys %other) {
