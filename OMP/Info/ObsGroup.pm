@@ -480,7 +480,7 @@ sub projectStats {
       my $status = $obs->status;
       next if $status == OMP__TIMEGAP_FAULT;
 
-      if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_PROJECT) {
+      if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_NEXT_PROJECT) {
 	# INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
 	# gaps are shared by instrument, PROJECT gaps are given to the following
 	# project. In both cases we handle it properly in the next section.
@@ -488,7 +488,7 @@ sub projectStats {
 	# in a little while.
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
 	$projectid = $WEATHER_GAP;
-      } elsif ($status == OMP__TIMEGAP_PROJECT) {
+      } elsif ($status == OMP__TIMEGAP_NEXT_PROJECT) {
 	# This is time that should be charged to the project
 	# following this gap. For now we do not need to do anything
 	# at all since we process these gap types explicitly later on
@@ -607,7 +607,7 @@ sub projectStats {
 	# Use a hash ref just to make it easy to spot rather than matching
 	# to a digit
 	push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
-      } elsif ($obs->status == OMP__TIMEGAP_PROJECT) {
+      } elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
 	# Always charge PROJECT gaps to the following project (this
 	# is the same logic as for short gaps). Keep this separate
 	# in case we had different types of accounting (especially
