@@ -33,6 +33,7 @@ use OMP::ObslogDB;
 use OMP::BaseDB;
 use OMP::ArchiveDB;
 use OMP::DBbackend::Archive;
+use OMP::WORF;
 use OMP::Error qw/ :try /;
 
 use Data::Dumper;
@@ -326,14 +327,14 @@ sub obs_table {
     }
   }
 
-  my $ncols = scalar(@{$nightlog{_ORDER}}) + 1;
+  my $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
   print "<table class=\"sum_table\" border=\"0\">\n";
   print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
   # Print the column headings.
   print "<tr class=\"sum_other\"><td>";
   print join ( "</td><td>", @{$nightlog{_ORDER}} );
-  print "</td><td>Comments</td></tr>\n";
+  print "</td><td>Comments</td><td>WORF</td></tr>\n";
 
   my $rowclass = "row_b";
 
@@ -380,7 +381,40 @@ sub obs_table {
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
       print "&timegap=1";
     }
-    print "\">edit/view</a></td></tr>\n";
+    print "\">edit/view</a></td>";
+
+    # Display WORF box if we do not have a TimeGap.
+    if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+
+      # Form an OMP::WORF object for the obs
+      my $worf = new OMP::WORF( obs => $obs );
+
+      # Get a list of suffices
+      my @ind_suffices = $worf->suffices;
+      my @grp_suffices = $worf->suffices( 1 );
+
+      print "<td><a class=\"link_dark_small\" href=\"worf.pl?ut=";
+      print $obsut;
+      print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+      print "\">raw</a> / ";
+      foreach my $suffix ( @ind_suffices ) {
+        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+        print $obsut;
+        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+        print "&suffix=$suffix\">$suffix</a> ";
+      }
+      print "/ ";
+      foreach my $suffix ( @grp_suffices ) {
+        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+        print $obsut;
+        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+        print "&suffix=$suffix&group=1\">$suffix</a> ";
+      }
+      print "</td>";
+    } else {
+      print "<td>&nbsp;</td>";
+    }
+    print "</tr>\n";
 
     # Print the comments underneath, if there are any, and if the
     # 'showcomments' parameter is not '0', and if we're not looking at a timegap
@@ -390,7 +424,7 @@ sub obs_table {
         $showcomments &&
         ! UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
 
-      print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 1) . "\">";
+      print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
       my @printstrings;
       foreach my $comment (@$comments) {
         my $string = "<font color=\"";
