@@ -315,7 +315,7 @@ sub compare {
       $keyb = $objb->$_;
     }
 
-    next if (! $keya and ! $keyb);
+    next if (! defined $keya and ! defined $keyb);
 
     if (! defined $keya and defined $keyb) {
       push @diff, $_;
