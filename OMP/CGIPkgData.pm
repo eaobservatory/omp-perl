@@ -136,8 +136,8 @@ sub _package_data {
   my @urls = $pkg->ftpurl;
   if (@urls) {
     my $plural = (scalar(@urls) > 1 ? "s" : "");
-    print "Retrieve your data from the following url$plural :<br>";
-    print join("\n", map { "<A href=\"$_\">$_</a><br>" } @urls;
+    print "Retrieve your data from the following url$plural :<br>\n";
+    print join("\n", map { "<A href=\"$_\">$_</a><br>" } @urls);
   } else {
     print "There must have been an untrapped error. Could not obtain a url";
   }
