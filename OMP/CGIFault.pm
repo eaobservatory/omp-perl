@@ -1488,7 +1488,7 @@ sub update_resp_output {
   titlebar($q, \@title, %cookie);
 
   # Redisplay fault
-  my $fault = OMP::FaultServer->getFault($faultid);
+  $fault = OMP::FaultServer->getFault($faultid);
 
   fault_table($q, $fault);
 }
