@@ -6,9 +6,9 @@ OMP::BaseDB - Base class for OMP database manipulation
 
 =head1 SYNOPSIS
 
-  $db->_begin_trans;
+  $db->_db_begin_trans;
 
-  $db->_commit_trans;
+  $db->_db_commit_trans;
 
 
 =head1 DESCRIPTION
