@@ -187,21 +187,20 @@ sub storeSciProg {
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
-  # We need to remove the existing rows associated with this
-  # project id
-  $self->_clear_old_rows;
-
-  # And store the science program MSB summary into the database
-  for my $msb ($args{SciProg}->msb) {
-    my %summary = $msb->summary;
+  # Get the summaries for each msb
+  my @rows = map {
+    my $summary = { $_->summary };
 
     throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")
-      unless (exists $summary{tauband} or exists $summary{seeing});
+      unless (exists $summary->{tauband} or exists $summary->{seeing});
 
-    # Add the contents to the database
-    $self->_insert_row( %summary );
+    # Return the reference to the array
+    $summary;
 
-  }
+  } $args{SciProg}->msb;
+
+  # Insert the summaries into rows of the database
+  $self->_insert_rows( @rows );
 
   # Now disconnect from the database and free the lock
   unless ($nonewtrans) {
@@ -598,6 +597,7 @@ sub _db_store_sciprog {
 	  $proj, $sp->timestamp) or
 	    throw OMP::Error::SpStoreFail("Error inserting timestamp and project ID into science program database: ". $dbh->errstr);
 
+
   # Now insert the text field using writetext
   # Do it this way because a TEXT field will only (seemingly) take
   # a science program of size 65536 bytes using an INSERT before it starts
@@ -699,6 +699,50 @@ only routines that need to be modified.
 
 =over 4
 
+=item B<_insert_rows>
+
+Insert all the rows into the database using the information
+provided in the array of hashes:
+
+  $db->_insert_rows( @summaries );
+
+where @summaries contains elements of hash references for
+each MSB summary.
+
+=cut
+
+sub _insert_rows {
+
+  my $self = shift;
+  my @summaries = @_;
+
+  # We need to remove the existing rows associated with this
+  # project id
+  $self->_clear_old_rows;
+
+  # Get the next index to use for the MSB table
+  my $index = $self->_get_next_index();
+
+  # Get the DB handle
+  my $dbh = $self->_dbhandle or
+    throw OMP::Error::DBError("Database handle not valid");
+
+  # Now loop over each summary inserting the information 
+  for my $summary (@summaries) {
+
+    # Add the contents to the database
+    $self->_insert_row( %{$summary},
+			_dbh  => $dbh,
+			_index=> $index,
+		      );
+
+    # increment the index for next pass
+    $index++;
+
+  }
+
+}
+
 
 =item B<_insert_row>
 
@@ -712,6 +756,21 @@ and its C<summary()> method.
 This method inserts MSB data into the MSB table and the observation
 summaries into the observation table.
 
+Usually called from C<_insert_rows>. Expects the hash to include
+special keys:
+
+  _index  - index to use for next MSB row
+  _dbh    - the database handle
+  _msbq   - cached SQL handle for MSB insert
+
+that are used to share state between row inserts. This provides
+quite a large optimization over obtaining the index from the database
+each time. Note that DBI can not support multiple statement
+handles and rollbacks simultaneously. Therefore we can not prepare
+the MSB insert in advance whilst also supporting an MSBOBS statement
+handle. Since there will be more MSBOBS inserts than MSB inserts
+(in general) we only use a statement handle for the MSBOBS table.
+
 =cut
 
 sub _insert_row {
@@ -719,12 +778,12 @@ sub _insert_row {
   my %data = @_;
   print "Entering _insert_row\n" if $DEBUG;
 
-  # Get the next index (we do this ourselves)
-  my $index = $self->_get_next_index();
+  # Get the next index
+  my $index = $data{_index};
 
-  # Get the DB handle
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  # Get the database handle from the hash
+  my $dbh = $data{_dbh} or
+    throw OMP::Error::DBError("Database handle not valid in _insert_row");
 
   # Throw an exception if we are missing tauband or seeing
   throw OMP::Error::SpBadStructure("There seems to be no site quality information. Unable to schedule MSB.\n")
@@ -737,15 +796,21 @@ sub _insert_row {
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
 
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", undef,
+  # Simply use "do" since there is only a single insert if we
+  # can not have multiple statement handles
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
 	   $data{tauband}, $data{seeing}, $data{priority}, 
 	   $data{telescope}, $data{moon},
 	   $data{timeest}, $data{title}, 
 	   $data{earliest}, $data{latest}) 
-    or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
+    or throw OMP::Error::DBError("Error inserting new MSB rows: $DBI::errstr");
 
   # Now the observations
+  # Get the observation query handle
+  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
+
   my $count;
   for my $obs (@{ $data{obs} }) {
 
@@ -774,14 +839,13 @@ sub _insert_row {
 
     print "Inserting row: ",Dumper($obs) if $DEBUG;
 
-    $dbh->do("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-	     , undef,
+    $obsst->execute(
 	     $obsid, $index, $proj, $obs->{instrument}, 
 	     $obs->{type}, $obs->{pol}, $obs->{wavelength},
 	     $obs->{coordstype}, $obs->{target},
 	     @coords[1..10], $obs->{timeest}
 	    )
-      or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
+      or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
 
   }
 
