@@ -226,7 +226,7 @@ sub msb_comments {
     @output = @$commentref;
   }
 
-  print "<table border=0 cellspacing=1 cellpadding=2 bgcolor=#5b5b7c width=100%>";
+  print "<table class='infobox' width=100%>";
 
   my $i = 0;
   my $bgcolor;
