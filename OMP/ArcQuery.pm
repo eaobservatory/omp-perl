@@ -378,6 +378,9 @@ sub _post_process_hash {
   # Check we only have one instrument
   if (exists $href->{telescope}) {
     throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query") if scalar(@{$href->{telescope}}) > 1;
+
+    # Telescope should be upper case
+    $self->_process_elements($href, sub { uc(shift) }, [qw/telescope/]);
   }
 
   # Loop over instruments if specified
