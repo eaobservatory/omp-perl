@@ -1227,6 +1227,49 @@ sub rescheduleMSB {
 
 }
 
+=item B<getObserverNote>
+
+Locate the notes in the MSB that are meant to be read by the observer.
+Inheritance is respected.
+
+  ($title, $note) = $msb->getObserverNote( );
+
+Returns empty list if no note can be found with observeInstruction
+set to "true".
+
+=cut
+
+sub getObserverNote {
+  my $self = shift;
+
+  # First attempt to get the SpNote and refs
+  # (if present)
+  my @comp;
+  push(@comp, $self->_tree->findnodes(".//SpNoteRef"),
+        $self->_tree->findnodes(".//SpNote"));
+
+  # Find the last component that refers to an observer note
+  my $el;
+  for my $c (reverse @comp) {
+    my $resolved = $self->_resolve_ref( $c );
+    if ($resolved->getAttribute("observeInstruction") eq 'true') {
+      $el = $resolved;
+      last;
+    }
+  }
+
+  # No matches
+  return () unless defined $el;
+
+  # Extract
+  my $title = $self->_get_pcdata( $el, "title" );
+  my $note  = $self->_get_pcdata( $el, "note" );
+
+  return ($title, $note);
+
+}
+
+
 =item B<hasBlankTargets>
 
 Returns true if the MSB includes an undefined target component
@@ -1921,6 +1964,7 @@ sub _get_sched_constraints {
   return %summary;
 
 }
+
 
 =item B<_resolve_ref>
 
@@ -3115,7 +3159,7 @@ sub SpInstHeterodyne {
 			  restFrequency => $rfreq,
 			  velocity => $self->_get_pcdata($el, "velocity"),
 			  velocityDefinition => $self->_get_pcdata($el,
-								   "veloctiyDefinition"),
+								   "velocityDefinition"),
 			  bandWidth => $self->_get_pcdata($el,"bandWidth"),
 			  sideBand => $self->_get_pcdata($el,"band"),
 			  mixers => $self->_get_pcdata($el,"mixers"),
