@@ -18,4 +18,4 @@ my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
 $cgi->html_title("OMP Fault System: Query");
-$cgi->write_page_noauth( \&query_fault, \&query_fault_output);
+$cgi->write_page_fault( \&query_fault_content, \&query_fault_output);
