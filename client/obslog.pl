@@ -227,9 +227,9 @@ sub create_main_window {
                                       );
 
 # $buttonHelp is the button that brings up a help dialogue.
-  my $buttonHelp = $buttonbarFrame->Button( -text => 'Help',
-                                            -command => \&help
-                                          );
+#  my $buttonHelp = $buttonbarFrame->Button( -text => 'Help',
+#                                            -command => \&help
+#                                          );
 
 # $notebook holds the pages for content
   my $nbFrame = $mainFrame->Frame( );
@@ -261,7 +261,7 @@ sub create_main_window {
   $buttonRescan->pack( -side => 'left' );
   $buttonDumpText->pack( -side => 'left' );
   $buttonOptions->pack( -side => 'left' );
-  $buttonHelp->pack( -side => 'right' );
+#  $buttonHelp->pack( -side => 'right' );
   $labelUT->pack( -side => 'right' );
   $buttonVerbose->pack( -side => 'right' );
 
@@ -455,6 +455,10 @@ sub rescan {
     my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
                                        date => $ut,
                                      );
+
+    if(!$grp->numobs) {
+      throw OMP::Error("There are no observations available for this night.");
+    }
 
     $grp->locate_timegaps( $GAPLENGTH );
 
