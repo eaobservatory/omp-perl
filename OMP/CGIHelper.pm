@@ -631,7 +631,6 @@ sub msb_table {
       if (defined $msb->remaining);
     print "<td>" . $msb->nrepeats . "</td>"
       if (defined $msb->nrepeats);
-
   }
 
   print "</table>\n";
@@ -2382,17 +2381,20 @@ sub wvm_graph_code {
   $wvmstart = OMP::General->parse_date($wvmstart);
   $wvmend = OMP::General->parse_date($wvmend);
 
+  my $string;
+
   if (! $wvmstart) {
-    print "Error: No start date for WVM graph provided.";
+    $string .= "Error: No start date for WVM graph provided.";
   } else {
     ($wvmend) or $wvmend = $wvmstart;
-    my $wvmformat = "%d/%m/%y"; # Date format for wvm graph URL
-    print "<a name='wvm'></a>";
-    print "<br>";
-    print "<strong class='small_title'>WVM graph</strong><p>";
-    print "<div align=left>";
-    print "<img src='http://www.ukirt.jach.hawaii.edu/JCMT/cgi-bin/wvm_graph.pl?datestart=". $wvmstart->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
+    my $wvmformat = "%Y-%m-%d"; # Date format for wvm graph URL
+    $string .= "<a name='wvm'></a>";
+    $string .= "<br>";
+    $string .= "<strong class='small_title'>WVM graph</strong><p>";
+    $string .= "<div align=left>";
+    $string .= "<img src='http://www.jach.hawaii.edu/JACpublic/JCMT/software/bin/wvm/wvm_graph.pl?datestart=". $wvmstart->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
   }
+  return $string;
 }
 
 =item B<public_url>
