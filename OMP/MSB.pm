@@ -36,6 +36,9 @@ use Astro::WaveBand;
 
 use Astro::SLA qw(); # elements
 
+use Time::Piece ':override';
+use Time::Seconds;
+
 our $VERSION = (qw$Revision$)[1];
 
 our $DEBUG = 0;
@@ -281,7 +284,8 @@ sub weather {
 
 Return the scheduling constraints. This is usually
 the earliest and latest observation dates as well
-as, possibly, a minimum elevation to be used for observing.
+as, possibly, a minimum elevation to be used for observing
+and an indication of whether the MSB is periodic.
 
   %schedconst = $msb->sched_contraints;
 
@@ -291,6 +295,9 @@ the query).
 
 The earliest and latest dates are returned in keys "datemin" and
 "datemax" so that they match the style used for other ranges.
+
+Minimum elevation is stored in key "minel", the monitoring period is
+stored in key "period" (unit of days).
 
 =cut
 
@@ -311,6 +318,72 @@ sub sched_constraints {
   return %{$self->{SchedConst}};
 }
 
+=item B<isPeriodic>
+
+Determine whether this MSB should be rescheduled periodically.
+Returns a boolean.
+
+ $monitor = $msb->isPeriodic;
+
+=cut
+
+sub isPeriodic {
+  my $self = shift;
+  my %const = $self->sched_constraints;
+  my $period = $const{period};
+
+  # Is periodic if the period is a defined value
+  # (it is periodic even if the period is 0 days)
+  return (defined $period ? 1 : 0 );
+}
+
+=item B<setDateMin>
+
+Set the earliest date on which the MSB will be scheduled. Usually
+used by monitoring programs.
+
+ $msb->setDateMin( $time );
+
+Time must be a C<Time::Piece> object.
+
+The value is ignored if no scheduling constraints element exists
+in the MSB.
+
+=cut
+
+sub setDateMin {
+  my $self = shift;
+  my $time = shift;
+
+  # Get the element [this is repeat of code in _get_sched_constraints!!]
+  # KLUGE
+  # First attempt to get the SpSchedConstObsComp and refs
+  # (if present)
+  my @comp;
+  push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
+        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+
+  # and use the last one in the list (hopefully we are only allowed
+  # to specify a single value). We get the last one because we want
+  # inheritance to work and the refs from outside the MSB are put in
+  # before the actual MSB contents
+  return () unless @comp;
+
+  my $el = $self->_resolve_ref($comp[-1]);
+
+  # Now find the <earliest> element
+  my ($early) = $el->findnodes(".//earliest");
+
+  throw OMP::Error::FatalError("Unable to find <earliest> element in MSB despite having found a SpSchedConstObsComp") unless $early;
+
+  # Get the text node
+  my $child = $early->firstChild;
+
+  # set it
+  $child->setData( $time->datetime );
+
+  return;
+}
 
 =item B<remaining>
 
@@ -630,6 +703,11 @@ Indicate that this MSB has been observed. This involves decrementing
 the C<remaining()> counter by 1 and, if this is part of an SpOR block
 and the parent tree is accessible, adjusting the logic.
 
+If this MSB is meant to be observed periodically, the earliest
+observing date ("datemin") is modified so that it will not be
+scheduled for the required number of days (the earliest date is set to
+be current date + period).
+
 It is usually combined with an update of the database contents to reflect
 the modified state.
 
@@ -658,6 +736,10 @@ sub hasBeenObserved {
 
   # This is the easy bit
   $self->remaining( -1 );
+
+  # Deal with any periodicity issues
+  $self->rescheduleMSB()
+    if $self->isPeriodic;
 
   # Now for the hard part... SpOr/SpAND
 
@@ -716,6 +798,35 @@ sub hasBeenObserved {
 
 }
 
+=item B<undoObserve>
+
+Attempt to reverse the effects of C<hasBeenObserved>.
+
+Currently, does not attempt to reverse any reorganizations
+of the science program caused by the MSB being part of an OR/AND
+block.
+
+Simply increments the remaining counter by 1.
+
+If this MSB is meant to be observed periodically, the earliest
+observing date ("datemin") is reset to the current day (ie the
+observation is scheduled to be observed again).
+
+It is usually combined with an update of the database contents to
+reflect the modified state.
+
+=cut
+
+sub undoObserve {
+  my $self = shift;
+  $self->remaining_inc( 1 );
+
+  # Reset datemin if we are a monitoring MSB
+  $self->scheduleMSBnow()
+    if $self->isPeriodic;
+
+}
+
 =item B<hasBeenCompletelyObserved>
 
 Indicate that this MSB has been completely observed. This involves
@@ -731,6 +842,10 @@ the modified state.
 
 Essentially a thin layer around C<remaining>.
 
+If this MSB is meant to be observed periodically, the earliest
+observing date ("datemin") is reset to the current day (ie the
+observation is scheduled to be observed again).
+
 =cut
 
 sub hasBeenCompletelyObserved {
@@ -738,6 +853,10 @@ sub hasBeenCompletelyObserved {
 
   # This is the easy bit
   $self->remaining( OMP__MSB_REMOVED() );
+
+  # Reset datemin if we are a monitoring MSB
+  $self->scheduleMSBnow()
+    if $self->isPeriodic;
 
 }
 
@@ -903,6 +1022,76 @@ sub verifyMSB {
   }
 
   return ($status, $string);
+}
+
+
+=item B<scheduleMSBnow>
+
+Set the earliest date for scheduling to the current time.
+
+  $msb->scheduleMSBnow();
+
+The internal XML values are updated.
+
+Any previous value of the date is discarded. Usually invoked to
+reverse the effect of observing a periodic MSB.
+
+=cut
+
+sub scheduleMSBnow {
+  my $self = shift;
+  my $now = gmtime();
+  $self->setDateMin($now);
+}
+
+=item B<rescheduleMSB>
+
+Set the earliest date for scheduling to be the current time
+plus the requested rescheduling period (see C<sched_constraints>).
+
+  $msb->rescheduleMSB();
+
+The internal XML values are updated.
+
+Any previous value for the date is discarded. Usually invoked when
+an MSB has been observed.
+
+If the MSB is not periodic, the earliest date for observation will
+be reset to the current time. If this is not acceptable use C<isPeriodic>
+before calling this method.
+
+=cut
+
+sub rescheduleMSB {
+  my $self = shift;
+
+  # First get the period
+  my %const = $self->sched_constraints;
+  my $period = $const{period};
+
+  # if we do not have a period assume 0
+  $period = 0 unless defined $period;
+
+  # Get the current date
+  my $now = gmtime();
+
+  # Add on the number of days
+  $now += ( $period * ONE_DAY );
+
+  # Usually people mean integer day but this could be dangerous
+  # for places where UT is middle of the night. Doesnt really matter
+  # since start of the day means we are rescheduling a few hours earlier
+  # than we really cared about but hopefully that is not important
+
+  # First get the date as a string
+  my $date = sprintf("%d-%02d-%02d",$now->year, $now->mon, $now->mday);
+
+  # Then convert it back into an object
+  $now = Time::Piece->strptime($date, "%Y-%m-%d");
+
+  # Then update the start time
+  $self->setDateMin( $now );
+
 }
 
 
@@ -1161,7 +1350,7 @@ sub _get_weather_data {
 =item B<_get_sched_constraints>
 
 Return the contents of the SchedConstObsComp component as a hash.
-Usually used internally by the C<sche_constraints> method.
+Usually used internally by the C<sched_constraints> method.
 
 Only returns keys that are actually present.
 
@@ -1204,6 +1393,9 @@ sub _get_sched_constraints {
   # care. This allows the scheduling system to decide what a
   # useful minel should be.
   $summary{minel} = $self->_get_pcdata( $el, "minEl");
+
+  # See whether we have any period specified
+  $summary{period} = $self->_get_pcdata( $el, "period" );
 
   return %summary;
 
