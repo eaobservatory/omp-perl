@@ -1086,6 +1086,7 @@ sub file_fault_form {
 
     %defaults = (user=> $fault->responses->[0]->author->userid,
 		 system => $fault->system,
+		 status => $fault->status,
 		 type => $fault->type,
 		 loss => $fault->timelost,
 		 time => $faultdate,
@@ -1117,10 +1118,11 @@ sub file_fault_form {
   print $q->hidden(-name=>'show_output',
 		   -default=>'true');
 
-  # Embed the fault ID if we are editing a fault
-  print $q->hidden(-name=>'faultid', -default=>$fault->id)
-    unless (! $fault);
-
+  # Embed the fault ID and status if we are editing a fault
+  if ($fault) {
+    print $q->hidden(-name=>'faultid', -default=>$fault->id);
+    print $q->hidden(-name=>'status', -default=>$defaults{status});
+  }
 
   print "<td align=right><b>User:</b></td><td>";
 
@@ -1456,7 +1458,6 @@ sub update_fault_output {
     try {
 
       if ($details_changed[0]) {
-
 	# Apply changes to fault
 	for (@details_changed) {
 	  $fault->$_($newdetails{$_});
