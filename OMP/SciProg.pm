@@ -642,10 +642,14 @@ sub locate_msbs {
   # Create new OMP::MSB objects
   my $refhash = $self->refs;
   my $projectid = $self->projectID;
+  # returns empty list if fails and so this can not be put directly
+  # in the hash constructor without protecting the missing entry
+  my $otvers = $self->ot_version;
   my @objs = map { new OMP::MSB( TREE => $_, 
 				 REFS => $refhash,
-				 OTVERSION => $self->ot_version,
-				 PROJECTID => $projectid ) } @spmsb;
+				 PROJECTID => $projectid,
+				 OTVERSION => $otvers,
+                               ) } @spmsb;
 
   # Remove duplicates
   # Build up a hash keyed by checksum
