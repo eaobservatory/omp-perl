@@ -355,7 +355,7 @@ sub obs_table {
       # Print the column headings.
       print "<tr class=\"sum_other\"><td>";
       print join ( "</td><td>", @{$nightlog{_ORDER}} );
-      print "</td><td>Comments</td></tr>\n";
+      print "</td><td>Comments</td><td>WORF</td></tr>\n";
     }
 
     my $comments = $obs->comments;
@@ -386,42 +386,52 @@ sub obs_table {
     # Display WORF box if we do not have a TimeGap.
     if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
 
-      # Form an OMP::WORF object for the obs
-      my $worf = new OMP::WORF( obs => $obs );
+      my $worf;
+      try {
+        # Form an OMP::WORF object for the obs
+        $worf = new OMP::WORF( obs => $obs );
 
-      # Get a list of suffices
-      my @ind_suffices = $worf->suffices;
-      my @grp_suffices = $worf->suffices( 1 );
+        # Get a list of suffices
+        my @ind_suffices = $worf->suffices;
+        my @grp_suffices = $worf->suffices( 1 );
 
-      print "<td>";
-      if( $worf->file_exists( suffix => '', group => 0 ) ) {
-        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-        print $obsut;
-        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-        print "\">raw</a> ";
+        print "<td>";
+        if( $worf->file_exists( suffix => '', group => 0 ) ) {
+          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+          print $obsut;
+          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+          print "\">raw</a> ";
+        }
+        foreach my $suffix ( @ind_suffices ) {
+          next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+          print $obsut;
+          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+          print "&suffix=$suffix\">$suffix</a> ";
+        }
+        print "/ ";
+        if( $worf->file_exists( suffix => '', group => 1 ) ) {
+          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+          print $obsut;
+          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+          print "&group=1\">group</a> ";
+        }
+        foreach my $suffix ( @grp_suffices ) {
+          next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+          print $obsut;
+          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+          print "&suffix=$suffix&group=1\">$suffix</a> ";
+        }
+        print "</td>";
       }
-      foreach my $suffix ( @ind_suffices ) {
-        next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-        print $obsut;
-        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-        print "&suffix=$suffix\">$suffix</a> ";
+      catch OMP::Error with {
+#        next;
       }
-      print "/ ";
-      if( $worf->file_exists( suffix => '', group => 1 ) ) {
-        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-        print $obsut;
-        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-        print "&group=1\">group</a> ";
-      }
-      foreach my $suffix ( @grp_suffices ) {
-        next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-        print $obsut;
-        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-        print "&suffix=$suffix&group=1\">$suffix</a> ";
-      }
-      print "</td>";
+      otherwise {
+        print "<td>b</td>";
+#        next;
+      };
     } else {
       print "<td>&nbsp;</td>";
     }
