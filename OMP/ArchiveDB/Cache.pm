@@ -91,6 +91,13 @@ sub store_archive {
   # Get the filename.
   my $filename = _filename_from_query( $query );
 
+  # Do a fairly blind untaint
+  if ($filename =~ /^([A-Za-z\-:0-9\/]+)$/) {
+    $filename = $1;
+  } else {
+    throw OMP::Error::FatalError("Error untaininting the filename $filename");
+  }
+
   # Store the ObsGroup to disk.
   try {
     sysopen( DF, $filename, O_RDWR|O_CREAT, 0666);
