@@ -79,6 +79,7 @@ date ranges) are not supported.
 sub store_archive {
   my $query = shift;
   my $obsgrp = shift;
+  my $retainhdr = shift;
 
   if( ! defined( $query ) ) {
     throw OMP::Error::BadArgs( "Must supply a query to store information in cache" );
@@ -87,7 +88,7 @@ sub store_archive {
     throw OMP::Error::BadArgs( "Must supply an ObsGroup object to store information in cache" );
   }
 
-
+  $retainhdr = ( defined( $retainhdr ) ? $retainhdr : 0 );
 
   # Check to make sure the cache directory exists. If it doesn't, create it.
   if( ! -d $TEMPDIR ) {
@@ -104,6 +105,14 @@ sub store_archive {
     $filename = $1;
   } else {
     throw OMP::Error::FatalError("Error untaininting the filename $filename");
+  }
+
+  # Should probably strip all comments to save space (since in general
+  # we can not trust the comments when we re-read the cacche at a later date)
+  # Should we make sure we work on copies here?
+  # It seems that comments are already gone by this point
+  for my $obs ($obsgrp->obs) {
+    @{$obs->comments} = ();
   }
 
   # If the query is for the current day we should remove the last
@@ -133,16 +142,9 @@ sub store_archive {
     $obsgrp->obs( @all_obs );
   }
 
-  # Should probably strip all comments to save space (since in general
-  # we can not trust the comments when we re-read the cacche at a later date)
-  # Should we make sure we work on copies here?
-  # It seems that comments are already gone by this point
-  for my $obs ($obsgrp->obs) {
-    @{$obs->comments} = ();
-  }
-
   # Store in memory cache (using a new copy) [if we have some observations]
-  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ))
+  $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ),
+                                                  retainhdr => $retainhdr )
     if scalar(@{$obsgrp->obs}) > 0;
 
   # Store the ObsGroup to disk.
@@ -194,12 +196,15 @@ of C<OMP::Info::ObsGroup> to add the comments.
 sub retrieve_archive {
   my $query = shift;
   my $return_if_suspect = shift;
+  my $retainhdr = shift;
 
   if( ! defined( $query ) ) {
     throw OMP::Error::BadArgs( "Must supply a query to retrieve information from cache" );
   }
 
   $return_if_suspect = ( defined( $return_if_suspect ) ? $return_if_suspect : 1 );
+
+  $retainhdr = ( defined( $retainhdr ) ? $retainhdr : 0 );
 
   my $obsgrp;
 
@@ -253,7 +258,8 @@ sub retrieve_archive {
     if(!defined($obsgrp)) { return; }
 
     # Store in memory cache for next time around
-    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ) )
+    $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ),
+                                                    retainhdr => $retainhdr )
       if scalar(@{$obsgrp->obs}) > 0;
   }
 
@@ -353,7 +359,6 @@ sub unstored_files {
                                           );
 
       $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
-
       next unless -d $directory;
 
       opendir( my $dh, $directory )
