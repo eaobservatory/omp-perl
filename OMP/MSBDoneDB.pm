@@ -499,7 +499,9 @@ sub _store_msb_done_comment {
     # will call this class to register the fetch! Just do it
     # in two calls without the associated feedback messages
     # This will have a bit of an overhead.
-    my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project );
+    # problem with authentication.
+    my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,
+				Password => '***REMOVED***');
     my $sp = $msbdb->fetchSciProg(1);
     $msbinfo = $sp->fetchMSB( $checksum )
   }
