@@ -254,9 +254,15 @@ sub thumbnails_page {
         $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
       }
       catch OMP::Error with {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print STDERR "Unable to read file to form Obs object: $errortext\n";
         next FILELOOP;
       }
       otherwise {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print STDERR "Unable to read file to form Obs object: $errortext\n";
         next FILELOOP;
       };
 
@@ -301,7 +307,14 @@ sub thumbnails_page {
       # for that observation.
       if( $file =~ /\d\.sdf$/ ) {
         if( defined( $curgrp ) ) {
-          if( defined( $obs->runnr ) && $obs->runnr != $curgrp ) {
+          my $runnr;
+          if( !defined( $obs->runnr ) ) {
+            $file =~ /_(\d{4})_/;
+            $runnr = int( $1 );
+          } else {
+            $runnr = $obs->runnr;
+          }
+          if( $runnr != $curgrp ) {
             $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
             print "</tr><tr class=\"$rowclass\">";
             $curgrp = $obs->runnr;
@@ -346,7 +359,14 @@ sub thumbnails_page {
           if( ( ( uc($telescope) eq 'UKIRT') && ($file =~ /$suffix\./ ) ) ||
               ( ( uc($telescope) eq 'JCMT')  && ($file =~ /$suffix/   ) ) ) {
             if( defined( $curgrp ) ) {
-              if( defined( $obs->runnr ) && $obs->runnr != $curgrp ) {
+              my $runnr;
+              if( !defined( $obs->runnr ) ) {
+                $file =~ /_(\d{4})_/;
+                $runnr = int( $1 );
+              } else {
+                $runnr = $obs->runnr;
+              }
+              if( $runnr != $curgrp ) {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
                 print "</tr>\n<tr class=\"$rowclass\">";
                 $curgrp = $obs->runnr;
