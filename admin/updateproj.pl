@@ -104,7 +104,21 @@ for my $proj (keys %alloc) {
   # Then need to go through the hash values and update
   # being careful to deal with incalloc
   for my $mod (keys %{ $alloc{$proj} }) {
-    if ($project->can($mod)) {
+
+    # Verify that SUPPORT info is correct
+    if ($mod eq 'support') {
+      my @support = split(/,/,$alloc{$proj}->{$mod});
+      for my $s (@support) {
+	die "Unable to locate user $s in database [mode = $mod]\n"
+	  unless OMP::UserServer->verifyUser( $s );
+	$s = OMP::UserServer->getUser( $s );
+      }
+      my @old = $project->support;
+      print "Changing $mod from ".join(" and ", @old) . " to ".
+	join( " and ", @support)."\n";
+      $project->support(@support);
+
+    } elsif ($project->can($mod)) {
       print "Changing $mod from ".$project->$mod ." ";
       $project->$mod( $alloc{$proj}->{$mod} );
       print " to " .$alloc{$proj}->{$mod} ."\n";
@@ -159,6 +173,7 @@ accessor method names in an C<OMP::Project> object.
  tagpriority=1
  semester=03A
  incalloc=40.0
+ support=GMS,TKERR
 
 The exception to this rule is C<incalloc>. This key is taken to imply
 that the specified time (in hours) should be added to the allocation
