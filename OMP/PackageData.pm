@@ -671,6 +671,20 @@ sub _mktarfile {
 
 }
 
+=item B<_purge_old_ftp_files>
+
+Remove files that are older than 4 days from the FTP directory.
+
+NOT YET IMPLEMENTED
+
+=cut
+
+sub _purge_old_ftp_files {
+  my $class = shift;
+
+}
+
+
 =back
 
 =head1 AUTHORS
