@@ -767,6 +767,11 @@ This method takes an optional hash argument with the following keys:
 worfstyle - Write WORF links to the staff WORF page. Can be either 'staff'
 or 'project', and will default to 'project'.
 
+=item *
+
+commentstyle - Write observation comment links to the staff-only page. Can
+be either 'staff' or 'project', and will default to 'project'.
+
 =back
 
 =cut
@@ -782,6 +787,14 @@ sub ashtml {
     $worfstyle = 'staff';
   } else {
     $worfstyle = 'project';
+  }
+
+  my $commentstyle;
+  if( exists( $options{commentstyle} ) && ( defined( $options{commentstyle} ) ) &&
+      lc( $options{commentstyle} ) eq 'staff' ) {
+    $commentstyle = 'staff';
+  } else {
+    $commentstyle = 'project';
   }
 
   # Need to load CGI specified classes
@@ -1029,26 +1042,27 @@ sub ashtml {
       #$OMP::ArchiveDB::FallbackToFiles = 0;
       my $grp;
       try {
-	$grp = $self->obs;
-	$grp->locate_timegaps( OMP::Config->getData("timegap") );
+        $grp = $self->obs;
+        $grp->locate_timegaps( OMP::Config->getData("timegap") );
       } catch OMP::Error::FatalError with {
-	my $E = shift;
-	print "<pre>An error has been encountered:<p> $E</pre><p>";
+        my $E = shift;
+        print "<pre>An error has been encountered:<p> $E</pre><p>";
       } otherwise {
-	my $E = shift;
-	print "<pre>An error has been encountered:<p> $E</pre><p>";
+        my $E = shift;
+        print "<pre>An error has been encountered:<p> $E</pre><p>";
       };
 
       print "<a name=obslog></a>";
-      
+
       if ($grp and $grp->numobs > 1) {
-	OMP::CGIHelper::obs_table($grp,
-                            sort => 'chronological',
-                            worfstyle => $worfstyle,
-                           );
+        OMP::CGIHelper::obs_table($grp,
+                                  sort => 'chronological',
+                                  worfstyle => $worfstyle,
+                                  commentstyle => $commentstyle,
+                                 );
       } else {
-	# Don't display the table if no observations are available
-	print "No observations available for this night";
+        # Don't display the table if no observations are available
+        print "No observations available for this night";
       }
     }
   }
