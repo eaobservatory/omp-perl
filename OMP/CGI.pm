@@ -321,7 +321,7 @@ sub _write_login {
 
 =item B<write_page>
 
-Create the page with the login form if the projectid and password are
+Create the page with the login form if the project ID and password are
 needed.  If the projectid and password have already been provided create
 the form and its output using the code references provided to this method.
 
@@ -455,7 +455,7 @@ sub write_page {
 =item B<write_page_noauth>
 
 Creates the page but doesnt do a login.  This is for cgi scripts that call functions
-which dont require a password.
+which dont require a password and/or project ID.
 
   $cgi->write_page_noauth( \&form_content, \&form_output );
 
