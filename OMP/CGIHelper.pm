@@ -99,7 +99,7 @@ sub msb_sum {
   my %cookie = @_;
 
   my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
-					     $cookie{password}, 
+					     $cookie{password},
 					     'ascii');
 
   print $q->h2("MSB summary"),
@@ -133,8 +133,10 @@ sub msb_sum_hidden {
   }
 
   print $q->h2("Current MSB status"),
-        scalar(@$sp). " MSBs currently stored in database. Click <a href='fbmsb.pl'>here</a> to list them all.",
-	$q->hr;
+        scalar(@$sp). " MSBs currently stored in database.";
+  print " Click <a href='fbmsb.pl'>here</a> to list them all."
+    unless (@$sp == 0);
+  print $q->hr;
 
 }
 
@@ -160,13 +162,15 @@ sub fb_entries {
 	$q->p;
 
   my $i = 1;
+
   foreach my $row (@$comments) {
     # make the date more readable here
     # make the author a mailto link here
 
     print "<font size=+1>Entry $i (on $row->{'date'} by $row->{'author'})</b></font><br>",
           "$row->{'text'}",
-	  "<p><p>";
+	  "<p>";
+
     $i++;
   }
 
