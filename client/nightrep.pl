@@ -258,6 +258,11 @@ sub project_window {
 			       $nr->mail_report;
 			     }
 	     )->pack(-side =>'right');
+  $bf->Button(-text => "ADD PROJECT",
+	      -command => sub {
+		&request_extra_project( $f, \%final, $sums);
+	      }
+	     )->pack(-side =>'right');
 
   # Something to view the faults, the shift log?
 
@@ -447,6 +452,62 @@ sub redraw_main_window {
   # TBD
 
 }
+
+# Sometimes some project was observed that did not result in
+# data files. Must be able to add extras
+sub request_extra_project {
+  my ($w, $finalRef, $sums ) = @_;
+
+  # First request it
+  require Tk::DialogBox;
+
+  my $d = $w->DialogBox( -title => "New Project",
+			 -buttons => ["Accept","Cancel"]);
+  my $proj;
+  $d->add("Entry", -width => 10, -textvariable => \$proj)->pack(-side=>'top');
+
+  # Wait for action
+  my $but = $d->Show;
+
+  # Cancel if we have changed our mind
+  return if $but ne "Accept";
+
+  # Now need to verify the project
+  if (OMP::ProjServer->verifyProject($proj)) {
+    # Yay
+    # Popup information on the project
+    my $p = OMP::ProjServer->projectDetails($proj,"***REMOVED***","object");
+    my $dialog = $w->DialogBox(-title => "Project: $proj",
+			       -buttons => ["Accept","Cancel"]);
+
+    # All information
+    $dialog->add("Label", -text => "Title: ". $p->title
+	   )->pack(-side=>'top');
+    $dialog->add("Label", -text => "PI: ". $p->pi
+	   )->pack(-side=>'top');
+
+    $but = $dialog->Show;
+    # Cancel if we have changed our mind
+    return if $but ne "Accept";
+
+    # Add information to the table
+    $finalRef->{$proj} += 0;
+    add_project($w, 1, $proj, {}, \$finalRef->{$proj}, $sums);
+
+  } else {
+    # Not yay
+    require Tk::Dialog;
+    my $dialog = $w->Dialog( -text => "This project does not exist.",
+			     -title => "Error verifying project",
+			     -buttons => ["OK"],
+			     -bitmap => 'error',
+			   );
+
+    $dialog->Show;
+  }
+
+}
+
 
 =head1 AUTHOR
 
