@@ -963,7 +963,7 @@ sub getResultColumns {
     # Generic order
     @order = qw/ projectid priority instrument waveband title target
       ra dec coordstype ha airmass pol type
-	timeest remaing obscount checksum msbid /;
+	timeest remaining obscount checksum msbid /;
   }
 
   return @order;
@@ -1012,7 +1012,7 @@ sub getTypeColumns {
   $tel = '' unless $tel;
   $tel = uc($tel);
 
-  my @order = $class->getResultColumns;
+  my @order = $class->getResultColumns($tel);
 
   my @types;
   for my $col (@order) {
