@@ -70,7 +70,6 @@ sub new {
   }
 
   return $object;
-
 }
 
 =back
@@ -113,7 +112,29 @@ sub cgi {
       if UNIVERSAL::isa( $cgi, "CGI");
     $self->{CGI} = $cgi;
   }
-  return $self->{cgi};
+  return $self->{CGI};
+}
+
+=item B<cookie>
+
+The cookie object.
+
+  $cookie = $c->cookie;
+  $c->cookie( $cookie );
+
+=cut
+
+sub cookie {
+  my $self = shift;
+  if (@_) {
+    my $cookie = shift;
+
+    croak "Incorrect type. Must be a CGI object"
+      if UNIVERSAL::isa( $cookie, "CGI::Cookie");
+
+    $self->{Cookie} = $cookie;
+  }
+  return $self->{Cookie};
 }
 
 =back
@@ -128,17 +149,30 @@ sub cgi {
 
 sub setCookie {
   my $self = shift;
+  my $exptime = shift;
   my %contents = @_;
 
   # Get the CGI object
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
+  # create the cookie
+  my $cookie = $cgi->cookie(-name=>$self->name,
+			    -value=>\%contents,
+			    -expires=>'+' . $exptime . 'm',);
 
-
-
+  $self->cookie($cookie);
+  return;
 }
 
+=item B<getCookie>
+
+=cut
+
+sub getCookie {
+  my $self = shift;
+  return $cgi->cookie($self->cookie);
+}
 
 =back
 
