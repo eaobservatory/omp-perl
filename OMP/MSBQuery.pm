@@ -303,17 +303,11 @@ sub sql {
                AND $msbtable.remaining > 0
                 $subsql
               GROUP BY $msbtable.msbid)
-                (SELECT msbid INTO $tempmsb FROM $tempcount
-                 WHERE nobs = obscount)
+               (SELECT * FROM $msbtable,$tempcount
+                 WHERE $msbtable.msbid = $tempcount.msbid
+                   AND $msbtable.obscount = $tempcount.nobs)
 
-                DROP TABLE $tempcount
-
-               (SELECT * FROM $msbtable,$tempmsb
-                 WHERE $msbtable.msbid = $tempmsb.msbid
-                 )
-
-               DROP TABLE $tempmsb
-";
+                DROP TABLE $tempcount";
 
 #  print "SQL: $sql\n";
 
@@ -363,7 +357,7 @@ sub _convert_to_perl {
 
   # Get the root element
   my @msbquery = $tree->findnodes('MSBQuery');
-  throw OMP::Error::MSBMalformedQuery("Could not find MSBQuery element")
+  throw OMP::Error::MSBMalformedQuery("Could not find <MSBQuery> element")
     unless @msbquery == 1;
   my $msbquery = $msbquery[0];
 
