@@ -136,6 +136,27 @@ sub projectID {
   return $self->{ProjectID};
 }
 
+=item B<ot_version>
+
+The version of the OT that was used to generate this science programme.
+
+Read-only. Returns C<undef> if no version is available.
+
+=cut
+
+sub ot_version {
+  my $self = shift;
+  my @nodes = $self->_tree->findnodes('.//ot_version');
+  if (defined $nodes[-1]) {
+    my $ver = $nodes[-1]->getFirstChild->toString;
+    # Clean it.
+    $ver =~ s/-//g;
+
+    return $ver;
+  }
+  return;
+}
+
 =item B<msb>
 
 Return the C<OMP::MSB> objects associated with this science program.
