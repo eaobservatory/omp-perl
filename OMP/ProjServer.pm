@@ -56,7 +56,7 @@ sub issuePassword {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $project,
+			     ProjectID => $projectid,
 			     DB => $class->dbConnection,
 			    );
 
@@ -98,7 +98,7 @@ sub summary {
   try {
 
     my $db = new OMP::ProjDB(
-			     ProjectID => $project,
+			     ProjectID => $projectid,
 			     DB => $class->dbConnection,
 			    );
 
