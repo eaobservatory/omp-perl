@@ -129,7 +129,7 @@ sub new {
 =head2 Accessor Methods
 
 Instance accessor methods. Methods beginning with an underscore
-are deemed to be private and do not form part of the publi interface.
+are deemed to be private and do not form part of the public interface.
 
 =over 4
 
