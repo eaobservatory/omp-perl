@@ -1553,7 +1553,7 @@ Convert the MSB object into XML.
 
 This method is also invoked via a stringification overload.
 
-  print "$sp";
+  print "$msb";
 
 By default the XML is fully expanded in the sense that references (IDREFs)
 are resolved and included.
@@ -1561,28 +1561,184 @@ are resolved and included.
   $resolved = $msb->stringify;
   $resolved = "$msb";
 
+Additionally, an override targets is inserted if defined, with priority,
+remaining and observed attributes being inserted from the override.
+
 =cut
 
 sub stringify {
   my $self = shift;
 
-  # Getting the children is easy.
-  my $resolved = $self->_get_qualified_children_as_string;
+  # Because we have to resolve references and inset overrides, we 
+  # need to build the string up from its elements
 
   my $tree = $self->_tree; # for efficiency;
 
-  # We now need the wrapper element and it's attributes
-  my @attr = $tree->getAttributes;
+  # Do we have an override
+  my %override;
+  my $oride = $self->override_target();
+  if (defined $oride && keys %$oride) {
+    # override active
+    %override = %$oride;
+  }
+
+  # This is the name of the wrapper element which we have to reconstruct
+  # Can be SpObs or SpMSB
   my $name = $tree->getName;
 
-  # Build up the wrapper
-  return "<$name ".
-    join(" ",
-	 map { $_->getName . '="'. $_->getValue .'"' } @attr)
-      .">\n"
-	. $resolved
-	  . "\n</$name>";
+  # Need to get the attributs of the top level element so we can stringify
+  # it properly.
+  # Convert them to a hash so that overriding local information
+  # is simplified
+  my %attrs;
+  for my $a ($tree->getAttributes) {
+    $attrs{$a->getName} = $a->getValue;
+  }
 
+  # Override attributes should supercede local versions
+  # XML nodes take priority over simple hash version
+  if (exists $override{targetNode}) {
+    for my $a ($override{targetNode}->getAttributes) {
+      # priority is an element not an attribute
+      next if $a->getName eq 'priority';
+      $attrs{$a->getName} = $a->getValue;
+    }
+  } else {
+    # local hash override info
+    for my $a (qw/ remaining observed / ) {
+      $attrs{$a} = $override{$a} if exists $override{$a};
+    }
+  }
+
+  # priority [read from hash and if not set, read from xml]
+  my $override_priority;
+  $override_priority = $override{priority}
+    if exists $override{priority};
+  $override_priority = $override{targetNode}->getAttribute('priority')
+    if (!$override_priority && exists $override{targetNode});
+
+  # We may be overriding the SpTelescopeObsComp
+  my $override_tel = $override{telNode}->toString
+    if exists $override{telNode};
+
+  # Keep track of whether we have removed a tel component
+  my $inserttel;
+
+  # We need to build the string up from its resolved references
+  # so that overrides can be inserted and child survey containers
+  # expanded
+  my @children = $self->_get_qualified_children;
+
+  # String buffer, prefill with the top level element and attributes
+  my $string = "<$name ". join(" ", 
+			       map { $_ . '="' . $attrs{$_} .'"' }
+			         keys %attrs) .">\n";
+
+  # go through children, replacing priority with override priority
+  # and any SpTelescopeObsComp with override.
+  # Also need to remove Survey Containers and unroll them
+  for my $child (@children) {
+    my $name = $child->getName;
+    if ($name eq 'priority' && defined $override_priority) {
+      print "INSERTING PRIORITY OVERRIDE\n" if $DEBUG;
+      $string .= "<priority>$override_priority</priority>\n";
+      next;
+    } elsif ($name eq 'SpTelescopeObsComp' && defined $override_tel) {
+      # insert the overide XML if we have not already done so
+      # else do not even insert the XML since we only need one target
+      # component at this level
+      if (!$inserttel) {
+	print "INSERTING TEL OVERRIDE\n" if $DEBUG;
+	$string .= $override_tel ."\n";
+	$inserttel = 1;
+      }
+      next;
+    } elsif ($name eq 'SpSurveyContainer') {
+      print "SURVEY CONTAINER IN CHILD\n" if $DEBUG;
+
+      # First get the TargetList and parse it (this will duplicate
+      # the global SpObs parser logic and the msb acceptance)
+      my ($tl) = $self->_get_children_by_name( $child, 'TargetList' );
+      throw OMP::Error::SpBadStructure( 'Missing targetlist when trying to expand survey container')
+	unless defined $tl;
+
+      my %summary = $self->TargetList( $tl );
+      my @targets = @{ $summary{targets} };
+
+      # Need to read all the children
+      # No references to be resolved since they are all in the MSB parent
+      my @childnodes = $child->childNodes;
+
+      my @obs; # SpObs nodes
+      for my $schild (@childnodes) {
+	my $name = $schild->getName;
+	next if $name eq 'TargetList';
+	next if $name eq 'choose';
+	if ($name eq 'SpObs') {
+	  # store it
+	  push(@obs, $schild);
+	} else {
+	  # stringify the componet
+	  $string .= $schild->toString ."\n";
+	}
+      }
+
+      # Now the SpObs nodes have to be duplicated in a for loop for
+      # each Target and for each remaining field and the target inserted
+      # if it is not present. This logic is also duplicated in the SpSurvey
+      # Container parse. Maybe we should fully stringify the xml and then
+      # reparse so this only happens once?
+      for my $t (@targets) {
+	# loop blindly for the required number of times
+	for (1.. $t->{remaining}) {
+
+	  # Now loop over each SpObs
+	  for my $obs (@obs) {
+	    print "Processing SpObs in survey container\n" if $DEBUG;
+	    # Now we either stringify this directly and loop
+	    # or we insert a SpTelescopeObsComp directly after the SpObs
+	    # node. Need to duplicate autoTarget logic!!!
+	    my ($child_tel) = $obs->findnodes('.//SpTelescopeObsComp');
+	    my ($child_standard) = $obs->findnodes('.//standard');
+	    my $isstd;
+	    if (defined $child_standard) {
+	      my $str = $child_standard->firstChild->toString;
+	      $isstd = $self->_str_to_bool( $str );
+	    }
+
+	    # if we have a target component defined or we are a standard
+	    # we just stringify
+	    if (defined $child_tel || $isstd) {
+	      # We probably need to look to see if we are inheriting
+	      # another SpTelescopeObsComp for UKIRT where autoTarget
+	      # does not work
+	      $string .= $obs->toString;
+	    } else {
+	      # Stringify the SpObs whilst inserting an extra Tel component
+	      print "SURVEY TARGET INSERT REQUIRED\n" if $DEBUG;
+	      $string .= "<".$obs->getName . " ".
+		join(" ",map { $_->getName . '="' . $_->getValue .'"'}
+		     $obs->getAttributes) . ">\n";
+
+	      $string .= $t->{telNode}->toString ."\n";
+	      for my $c ($obs->childNodes) {
+		$string .= $c->toString ."\n";
+	      }
+	      $string .= "</". $obs->getName .">\n";
+	    }
+	  }
+	}
+      }
+
+      next;
+    }
+    # default is to append
+    $string .= $child->toString ."\n";
+  }
+	
+  # Close XML
+  $string .= "\n</$name>";
+  return $string;
 
 }
 
@@ -1591,6 +1747,8 @@ sub stringify {
 Convert the parse tree to XML string without resolving any
 internal references. This returns the XML equivalent to that
 found in the original science program.
+
+Survey Containers remain intact and target overrides are not inserted.
 
 =cut
 
@@ -1766,7 +1924,7 @@ sub getObserverNote {
   my @el;
   for my $c (@comp) {
     my $resolved = $self->_resolve_ref( $c );
-    if ($resolved->getAttribute("observeInstruction") eq 'true') {
+    if ( $self->_str_to_bool($resolved->getAttribute("observeInstruction")) ) {
       push(@el, $resolved);
     }
   }
@@ -2041,18 +2199,18 @@ sub _fixup_msb {
 
       # Get the msb attribute
       my $ismsb = $self->_get_attribute( $obs, 'msb');
-      $ismsb = ( $ismsb eq 'true' ? 1 : 0);
+      $ismsb = $self->_str_to_bool( $ismsb );
 
       # if we are an msb we cant be optional anyway
       next if $ismsb;
 
       # Get the optional attribute
       my $opt = $self->_get_attribute( $obs, 'optional');
-      $opt = ( $opt eq 'true' ? 1 : 0);
+      $opt = $self->_str_to_bool( $opt );
 
       # are we a standard
       my $isstd =  $self->_get_pcdata($obs, "standard" );
-      $isstd = ( $isstd eq 'true' ? 1 : 0);
+      $isstd = $self->_str_to_bool( $isstd );
 
       # Fixup the XML if required. Hopefully this should be fixed in the OT
       # No point changing anything if it is correct already
@@ -2626,6 +2784,25 @@ sub _get_pcdata {
   return $pcdata;
 }
 
+=item B<_str_to_bool>
+
+Convert 'true' or 'false' string from TOML XML to perl boolean.
+
+ $bool = $msb->_str_to_bool ( 'true' );
+
+=cut
+
+sub _str_to_bool {
+  my $self = shift;
+  my $str = shift;
+  return 0 unless defined $str;
+  if ($str eq 'true' || $str eq '1') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 =item B<_get_attribute>
 
 Get the required attribute value from an element. Returns
@@ -3063,7 +3240,7 @@ sub SpObs {
 
   # Determine whether we have a standard or not
   $summary{standard} = $self->_get_pcdata($el, "standard" );
-  $summary{standard} = ( $summary{standard} eq 'true' ? 1 : 0 );
+  $summary{standard} = $self->_str_to_bool( $summary{standard} );
 
   # Reset polarimeter bit since the presence of an SpIterPOL
   # can indicate that the polarimeter is to be used but there
@@ -3498,13 +3675,8 @@ sub SpIterFolder {
 
       my %stare;
       $stare{nintegrations} = $nint;
-      if (defined $widePhotom) {
-	if ($widePhotom eq 'true' || $widePhotom == 1) {
-	  $stare{widePhotom} = 1;
-	} else {
-	  $stare{widePhotom} = 0;
-	}
-      }
+      $stare{widePhotom} = $self->_str_to_bool( $widePhotom )
+	if defined $widePhotom;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
@@ -3531,7 +3703,7 @@ sub SpIterFolder {
       my $nint =  $self->_get_pcdata( $child, 'integrations');
       my $pix = $self->_get_pcdata( $child, 'pointingPixel');
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
-      my $auto = ( $autoTarget eq 'true' ? 1 : 0);
+      my $auto = $self->_str_to_bool( $autoTarget );
 
       # Focus and pointing dont need explicit targets
       # Can only set the global autoTarget switch to true
@@ -3559,7 +3731,7 @@ sub SpIterFolder {
       my $axis = $self->_get_pcdata( $child, 'axis');
       my $steps = $self->_get_pcdata( $child, 'steps');
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
-      my $auto = ( $autoTarget eq 'true' ? 1 : 0);
+      my $auto = $self->_str_to_bool( $autoTarget );
 
       # Focus and pointing dont need explicit targets
       # Can only set the global autoTarget switch to true
