@@ -30,7 +30,7 @@ require Exporter;
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
-  OMP__DONE_COMMENT /;
+  OMP__DONE_COMMENT OMP__DONE_UNDONE/;
 my @msb = qw/ OMP__MSB_REMOVED /;
 
 @EXPORT_OK = (@status, @fb, @done, @msb);
@@ -151,6 +151,15 @@ Entry is associated with an observation trigger.
 =cut
 
 use constant OMP__DONE_DONE => 1;
+
+=item OMP__DONE_UNDONE
+
+Entry is associated with a reversal of the observation done
+status.
+
+=cut
+
+use constant OMP__DONE_UNDONE => 4;
 
 =item OMP__DONE_ALLDONE
 

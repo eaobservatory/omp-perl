@@ -374,6 +374,38 @@ sub remaining {
   return $self->_tree->getAttribute("remaining");
 }
 
+=item B<remaining_inc>
+
+Increment the remaining counter of the MSB by the specified amount.
+
+  $msb->remaining_inc( 5 );
+
+A separate method for now since the C<remaining> method can not distinguish
+a new value from a request to increment the current value.
+
+Do not be surprised if this method disappears at some point.
+
+=cut
+
+sub remaining_inc {
+  my $self = shift;
+  my $inc = shift;
+
+  # Get the current value
+  my $current = $self->remaining;
+
+  # Tricky bit is the support for REMOVED
+  # Assume that we are adding to 0
+  $current = 0 if $current == OMP__MSB_REMOVED;
+
+  # Get new value
+  $current += $inc;
+
+  # Store it
+  $self->remaining( $current );
+
+}
+
 =item B<msbtitle>
 
 Return the MSB title.

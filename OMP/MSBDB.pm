@@ -600,6 +600,89 @@ sub doneMSB {
 
 }
 
+=item B<undoMSB>
+
+Inrement the remaining counter of the MSB by one.
+
+  $db->undoMSB( $checksum );
+
+The MSB is located using the Project identifier (stored in the object)
+and the checksum. If an MSB can not be located it is likely that the
+science program has been reorganized.
+
+This method locks the database since we are modifying the database
+tables. We do not want to retrieve a science program, modify it and
+store it again if someone has modified the science program between us
+retrieving and storing it.
+
+The time remaining on the project is not adjusted.  In most cases this
+is simply the reverse of C<doneMSB> except when AND/OR logic is
+involved. Note that C<doneMSB> reorganizes the MSBs to account for
+logic but this can not be reversed without having knowledge of what
+has changed and whether subsequent observations have occurred (the
+science program is only reorganized the first time an MSB in an OR
+block is observed).
+
+=cut
+
+sub undoMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  # Administrator password so that we can fetch and store
+  # science programs without resorting to knowing the
+  # actual password or to disabling password authentication
+  $self->password("***REMOVED***");
+
+  # Connect to the DB (and lock it out)
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # We could use the MSBDB::fetchMSB method if we didn't need the science
+  # program object. Unfortunately, since we intend to modify the
+  # science program we need to get access to the object here
+  # Retrieve the relevant science program
+  my $sp = $self->fetchSciProg(1);
+
+  # Get the MSB
+  my $msb = $sp->fetchMSB( $checksum );
+
+  # Update the msb done table (need to do this even if the MSB
+  # no longer exists in the science program
+  $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
+                           "MSB done status reversed.",
+                           OMP__DONE_UNDONE );
+
+  # Give up if we dont have a match
+  return unless defined $msb;
+
+  # Mark it as not observed
+  $msb->remaining_inc( 1 );
+
+  # Now need to store the MSB back to disk again
+  # since this has the advantage of updating the database table
+  # and making sure reorganized Science Program is stored.
+  # This will require a back door password and the ability to
+  # indicate that the timestamp is not to be modified
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+
+  # Might want to send a message to the feedback system at this
+  # point
+  $self->_notify_feedback_system(
+#				 author => "OM",
+				 program => "OMP::MSBDB",
+				 subject => "MSB Observed",
+				 text => "Incremented by 1 the number of remaining ".
+                                          "observations for MSB with checksum" .
+				          " $checksum",
+				);
+
+  # Disconnect
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
 =item B<alldoneMSB>
 
 Mark the specified MSB as having been completely observed. The number

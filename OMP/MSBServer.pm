@@ -274,6 +274,56 @@ sub doneMSB {
 
 }
 
+=item B<undoMSB>
+
+Mark the specified MSB (identified by project ID and MSB checksum)
+as not having been observed.
+
+This will have the effect of incrementing by one the overall observing
+counter for that MSB. This method can not reverse OR logic
+reorganization triggered by an earlier C<doneMSB> call.
+
+  OMP::MSBServer->undoMSB( $project, $checksum );
+
+Nothing happens if the MSB can no longer be located since this
+simply indicates that the science program has been reorganized
+or the MSB modified.
+
+=cut
+
+sub undoMSB {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+
+  OMP::General->log_message("undoMSB: $project $checksum\n");
+
+  my $E;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project,
+			    DB => $class->dbConnection
+			   );
+
+    $db->undoMSB( $checksum );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+
+}
+
 =item B<alldoneMSB>
 
 Mark the specified MSB (identified by project ID and MSB checksum) as
