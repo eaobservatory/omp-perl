@@ -71,7 +71,7 @@ sub fileFault {
   $self->_dblock;
 
   # Get the next fault id based on the file date
-  my $id = $self->_get_next_faultid( $fault->date );
+  my $id = $self->_get_next_faultid( $fault->filedate );
 
   # Store the id in the fault object
   $fault->id( $id );
