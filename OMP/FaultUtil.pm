@@ -280,7 +280,7 @@ sub compare {
   if (UNIVERSAL::isa($obja, "OMP::Fault") and UNIVERSAL::isa($objb, "OMP::Fault")) {
 
     # Comparing OMP::Fault objects
-    @comparekeys = qw/subject system type timelost faultdate urgency projects/;
+    @comparekeys = qw/subject system type timelost faultdate urgency projects status/;
 
   } elsif (UNIVERSAL::isa($obja, "OMP::Fault::Response") and UNIVERSAL::isa($objb, "OMP::Fault::Response")) {
 
