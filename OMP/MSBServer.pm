@@ -233,6 +233,21 @@ sub doneMSB {
 
 }
 
+=item B<testServer>
+
+Test the server is actually handling requests.
+
+Run with no arguments. Returns 1 if working.
+
+=cut
+
+sub testServer {
+  my $class = shift;
+  return 1;
+}
+
+
+
 =back
 
 =head1 SEE ALSO
