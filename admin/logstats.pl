@@ -43,8 +43,11 @@ while (defined (my $line = <$fh>)) {
     push(@{ $results{$pid}->{DATES} }, $tobj );
   }
 }
+close($fh);
 
-# Now analyze
+# Now analyze (and generate histogram data)
+my @hist;
+my $binsize = 5;
 
 for my $pid (sort keys %results) {
   # Calculate the elapsed time
@@ -53,6 +56,16 @@ for my $pid (sort keys %results) {
   my $max = max( @epochs );
   my $duration = $max - $min;
 
-  print "PID: $pid USER: " . $results{$pid}->{USER}. " Duration: $duration\n";
+  print "PID: $pid USER: " . $results{$pid}->{USER}. " Duration: $duration\n"
+    if $duration >= 15;
 
+  my $bin = int($duration / $binsize );
+  $hist[$bin]++;
 }
+
+for my $i (0..$#hist) {
+  my $axis = $i * $binsize;
+  $hist[$i] = 0 if not defined $hist[$i];
+  print "$axis: " . sprintf("%04d",$hist[$i])." ".( "*" x $hist[$i])."\n";
+}
+
