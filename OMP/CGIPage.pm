@@ -1054,7 +1054,7 @@ Set the URL of the style-sheet
 
 {
   my $EXPTIME = 40;
-  my $STYLE = "/" . OMP::Config->getData('www-css');
+  my $STYLE = OMP::Config->getData('omp-url') . OMP::Config->getData('www-css');
 
   sub _get_exp_time {
     return $EXPTIME;
@@ -1206,30 +1206,32 @@ sub _write_header {
     unless (! exists $rssinfo{title});
 
   # Add omp icon and javascript
-  $start_string .= "<link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/><script type='text/javascript' src='/omp.js'></script>";
+  my $jscript_url = OMP::Config->getData('omp-url') . OMP::Config->getData('www-js');
+  my $favicon_url = OMP::Config->getData('omp-url') . OMP::Config->getData('www-favicon');
+  $start_string .= "<link rel='icon' href='${favicon_url}'/><script type='text/javascript' src='${jscript_url}'></script>";
 
   # Close start string
   $start_string .= "</head>";
 
   $theme->SetHTMLStartString($start_string);
 
-  $theme->SetSideBarTop("<a class='sidemain' href='http://devel.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+  $theme->SetSideBarTop("<a class='sidemain' href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a class='sidemain' HREF='http://devel.jach.hawaii.edu'>JAC Home</a>",
-	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/JCMT/'>JCMT</a>",
-	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/UKIRT/'>UKIRT</a>",
-	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/divisions.html'>JAC Divisions</a>",
+  my @links = ("<a class='sidemain' HREF='http://www.jach.hawaii.edu'>JAC Home</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JCMT/'>JCMT</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/UKIRT/'>UKIRT</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/divisions.html'>JAC Divisions</a>",
 	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/staff_wiki'>Staff Wiki</a>",
 	       "<a class='sidemain' HREF='http://outreach.jach.hawaii.edu/'>Outreach</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/~jkemp/wx/'>Weather</a>",
-	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/Seminars/seminars.html'>JAC Seminars</a>",
-	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/admin/contact.html'>Contact info</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/weather/'>Weather</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/Seminars/seminars.html'>JAC Seminars</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/admin/contact.html'>Contact info</a>",
 
 );
 
   # Get the location of blank.gif
-  my $blankgif = OMP::Config->getData('blankgif');
+  my $blankgif = OMP::Config->getData('omp-url') . OMP::Config->getData('blankgif');
   $theme->SetSideBarMenuLinks(\@links);
   $theme->SetBlankGif($blankgif);
 
