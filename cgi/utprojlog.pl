@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ObslogPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project log");
-$cgi->write_page( \&projlog_content, \&projlog_content );
+$cgi->write_page( \&OMP::CGI::ObslogPage::projlog_content,
+		  \&OMP::CGI::ObslogPage::projlog_content );
