@@ -40,5 +40,5 @@ $| = 1;  # make output unbuffered
 
 my $query = new CGI;
 
-aladin( $query );
+fits( $query );
 
