@@ -468,7 +468,7 @@ sub _add_new_response {
   # Verify user id is valid
   # Create UserDB object for user determination
   my $udb = new OMP::UserDB( DB => $self->db );
-  my $userid = $udb->verifyUser($author->userid)
+  my $userid = $udb->verifyUser($author->userid);
   
     (! $userid) and throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]");
 
