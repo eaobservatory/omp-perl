@@ -24,6 +24,7 @@ use Carp;
 
 # External modules
 use XML::LibXML; # Our standard parser
+use OMP::Error;
 
 # Package globals
 
@@ -49,7 +50,7 @@ returns the object.
 
   $query = new OMP::MSBQuery( XML => $xml, MaxCount => $max );
 
-Returns undef if the XML is not valid.
+Throws MSBMalformedQuery exception if the XML is not valid.
 
 =cut
 
@@ -67,7 +68,8 @@ sub new {
     XML::LibXML->validation(1);
     $parser = new XML::LibXML;
     $tree = eval { $parser->parse_string( $args{XML} ) };
-    return undef if $@;
+    throw OMP::Error::MSBMalformedQuery("Error parsing XML query")
+      if $@;
   } else {
     # Nothing of use
     return undef;

@@ -131,6 +131,7 @@ sub _get_faultcode {
 	     SpBadStructure => 'Client.SpBadStructure',
 	     SpEmpty => 'Client.SpEmpty',
 	     DBLocked => 'Server.DBLocked',
+	     DBError => 'Server.DBError',
 	     FatalError => 'Server.UnknownError',
 	    );
 
@@ -161,6 +162,22 @@ All Rights Reserved.
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =cut
+
+# Allow for a SOAP::Fault to be stringified so that it does
+# the right thing even when we are not running this as a fault server
+
+package SOAP::Fault;
+
+use overload '""' => "stringify";
+
+sub stringify {
+  my $self = shift;
+  my $errstr = $self->faultcode . ': ' . $self->faultstring;
+  chomp($errstr);
+  return $errstr ."\n";
+}
+
+
 
 1;
 

@@ -25,6 +25,7 @@ use Carp;
 # External modules
 use XML::LibXML; # Our standard parser
 use Digest::MD5 qw/ md5_hex /;
+use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -67,7 +68,7 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  croak 'Usage : OMP::MSB->new(XML => $xml, TREE => $tree)' unless @_;
+  throw OMP::Error::BadArgs('Usage : OMP::MSB->new(XML => $xml, TREE => $tree)') unless @_;
 
   my %args = @_;
 

@@ -24,6 +24,7 @@ use Carp;
 # External modules
 use XML::LibXML; # Our standard parser
 use OMP::MSB;    # Standard MSB organization
+use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -51,8 +52,8 @@ an XML file. If neither is supplied no object will be
 instantiated. If both C<XML> and C<FILE> keys exist, the
 C<XML> key takes priority.
 
-The science program is checked for well formedness and 
-its validity against the DTD. Returns undef if the science
+The science program is checked for well formedness and its validity
+against the DTD. Throws an SpBadStructure exception if the science
 program is neither valid nor well-formed.
 
 =cut
@@ -61,7 +62,7 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  croak 'Usage : OMP::SciProg->new(XML => $xml, FILE => $file)' unless @_;
+  throw OMP::Error::BadArgs('Usage : OMP::SciProg->new(XML => $xml, FILE => $file)') unless @_;
 
   my %args = @_;
 
@@ -82,7 +83,9 @@ sub new {
   XML::LibXML->validation(1);
   my $parser = new XML::LibXML;
   my $tree = eval { $parser->parse_string( $xml ) };
-  return undef if $@;
+  if ($@) {
+    throw OMP::Error::SpBadStrucuture("Error whilst parsing science program\n");
+  }
 
   # Now create our Science Program hash
   my $sp = {
@@ -329,7 +332,7 @@ sub find_projectid {
   if (defined $element) {
     $self->projectID( $element->getFirstChild->toString );
   } else {
-    carp "Project ID is not defined\n";
+    throw OMP::Error::UnknownProject("The Science Program does not contain a project identifier");
   }
 
 }

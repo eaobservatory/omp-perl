@@ -27,6 +27,10 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSBDB;
+use OMP::Error qw/ :try /;
+
+# Inherit server specific class
+use base qw/OMP::SOAPServer/;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -56,18 +60,30 @@ sub storeProgram {
   my $xml = shift;
   my $password = shift;
 
-  # Create a science program object
-  my $sp = new OMP::SciProg( XML => $xml );
+  my $string;
+  my $E;
+  try {
+    # Create a science program object
+    my $sp = new OMP::SciProg( XML => $xml );
 
-  # Create a new DB object
-  my $db = new OMP::MSBDB( Password => $password,
+    # Create a new DB object
+    my $db = new OMP::MSBDB( Password => $password,
 			   ProjectID => $sp->projectID );
 
-  # Store the science program
-  $db->storeSciProg( SciProg => $sp );
+    # Store the science program
+    $db->storeSciProg( SciProg => $sp );
 
-  # Create a summary of the science program
-  my $string = join("\n",$sp->summary) . "\n";
+    # Create a summary of the science program
+    $string = join("\n",$sp->summary) . "\n";
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
 
   return $string;
 }
@@ -84,16 +100,30 @@ program.
 =cut
 
 sub fetchProgram {
-  my $self = shift;
+  my $class = shift;
   my $projectid = shift;
   my $password = shift;
 
-  # Create new DB object
-  my $db = new OMP::MSBDB( Password => $password,
-			   ProjectID => $projectid );
+  my $sp;
+  my $E;
+  try {
 
-  # Retrieve the Science Program object
-  my $sp = $db->fetchSciProg;
+    # Create new DB object
+    my $db = new OMP::MSBDB( Password => $password,
+			     ProjectID => $projectid );
+
+    # Retrieve the Science Program object
+    $sp = $db->fetchSciProg;
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
 
   # Return the stringified form
   return "$sp";

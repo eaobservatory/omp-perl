@@ -66,7 +66,7 @@ sub fetchMSB {
     $msb = $db->fetchMSB( id => $key );
 
   } catch OMP::Error with {
-    # Just rethrow OMP::Errors
+    # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
     $E = shift;
 
@@ -83,13 +83,10 @@ sub fetchMSB {
 =item B<queryMSB>
 
 Send a query to the MSB server (encoded as an XML document) and
-retrieve results as an array of mini XML documents.
+retrieve results as an XML document consisting of summaries
+for each of the matching MSBs.
 
-  Results array = OMP::MSBServer->queryMSB( $xml, $max );
-
-The results are returned as an array reference. SOAP does the right
-thing here. If the elements are returned as a list SOAP will treat
-them as independent output parameters.
+  XML document = OMP::MSBServer->queryMSB( $xml, $max );
 
 The query string is described in OMP/SN/003 but looks something like:
 
@@ -117,10 +114,17 @@ is zero then the default number are returned (usually 100).
 
 The format of the resulting document is:
 
+  <QueryResult>
    <SpMSBSummary id="unique">
      <something>XXX</something>
      ...
    </SpMSBSummary>
+   <SpMSBSummary id="unique">
+     <something>XXX</something>
+     ...
+   </SpMSBSummary>
+   ...
+  </QueryResult>
 
 The elements inside C<SpMSBSummary> may or may not relate to
 tables in the database.
@@ -134,22 +138,39 @@ sub queryMSB {
   my $xmlquery = shift;
   my $maxCount = shift;
 
-  # Convert the Query to an object
-  my $query = new OMP::MSBQuery( XML => $xmlquery,
-				 MaxCount => $maxCount,
-			       );
+  my @results;
+  my $E;
+  try {
+    # Convert the Query to an object
+    # Triggers an exception on fatal errors
+    my $query = new OMP::MSBQuery( XML => $xmlquery,
+				   MaxCount => $maxCount,
+				 );
 
-  return () unless defined $query; # exception
+    # Not really needed if exceptions work
+    return '' unless defined $query;
 
-  # Create a new object but we dont know any setup values
-  my $db = new OMP::MSBDB();
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB();
 
-  # Pass the max count into here since it is clearly more efficient
-  # to select the required number as soon as possible rather than
-  # creating many XML summaries only to throw away 90%
-  my @results = $db->queryMSB( $query );
+    # Do the query
+    @results = $db->queryMSB( $query );
 
-  return \@results;
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  # Convert results to an XML document
+  my $tag = "QueryResult";
+  my $result = "<$tag>\n". join("\n",@results). "\n</$tag>\n";
+
+  return $result;
 }
 
 =item B<doneMSB>
@@ -169,14 +190,27 @@ simply indicates that the science program has been reorganized.
 =cut
 
 sub doneMSB {
-  my $self = shift;
+  my $class = shift;
   my $project = shift;
   my $checksum = shift;
 
-  # Create a new object but we dont know any setup values
-  my $db = new OMP::MSBDB(ProjectID => $project );
+  my $E;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project );
 
-  $db->doneMSB( $checksum );
+    $db->doneMSB( $checksum );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
 
 }
 

@@ -21,7 +21,7 @@ OMP::Error - Exception handling in an object orientated manner.
     sub do_stuff {
         record OMP::Error::FatalError( $message, OMP__FATAL);
     }
- 
+
     # try and catch blocks
     try {
        stuff();
@@ -204,6 +204,10 @@ in the constant C<OMP__AUTHFAIL>
 
 Unable to make a connection to the database backend.
 
+=item B<OMP::Error::DBError>
+
+Generic error with the backend database.
+
 =item B<OMP::Error::MSBMalformedQuery>
 
 The query XML could not be understood.
@@ -302,6 +306,9 @@ package OMP::Error::SpEmpty;
 use base qw/ OMP::Error /;
 
 package OMP::Error::DBLocked;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DBError;
 use base qw/ OMP::Error /;
 
 package OMP::Error::BadArgs;

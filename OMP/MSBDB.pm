@@ -35,6 +35,7 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSB;
+use OMP::Error;
 
 # External dependencies
 use File::Spec;
@@ -52,7 +53,7 @@ our $TABLE = "ompmsb";
 our $DEFAULT_RESULT_COUNT = 10;
 
 # Debug messages
-our $DEBUG = 1;
+our $DEBUG = 0;
 
 =head1 METHODS
 
@@ -156,7 +157,9 @@ sub _sciprog_filename {
   $opt = "FULL" unless defined $opt;
 
   # Get simple filename
-  my $file = $self->projectid . ".sp";
+  my $pid = $self->projectid;
+  return '' unless defined $pid;
+  my $file = $pid . ".sp";
 
   if ($opt eq "FILE") {
     return $file;
@@ -301,10 +304,17 @@ sub fetchSciProg {
   # Science Program is not retrieved from the database itself
   $self->_dbconnect;
 
+  # Test to see if the file exists first so that we can
+  # raise a special UnknownProject exception.
+  my $pid = $self->projectid;
+  $pid = '' unless defined $pid;
+  throw OMP::Error::UnknownProject("Project \"$pid\" unknown")
+    unless -e $self->_sciprog_filename();
+
   # Instantiate a new Science Program object
   # The file name is derived automatically
   my $sp = new OMP::SciProg( FILE => $self->_sciprog_filename())
-    or return undef;
+    or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
 
   # Now disconnect from the database and free the lock
   $self->_dbdisconnect;
@@ -359,6 +369,10 @@ Use the checksum and the project id (available from the object):
 
 It is an error for multiple MSBs to match the supplied criteria.
 
+An exception is raised (C<MSBMissing>) if the MSB can not be located.
+This may indicate that the science program has been resubmitted or
+the checksum was invalid [there is no distinction].
+
 =cut
 
 sub fetchMSB {
@@ -369,7 +383,7 @@ sub fetchMSB {
   my $checksum;
 
   # If we are querying the database by MSB ID...
-  if (exists $args{id}) {
+  if (exists $args{id} && defined $args{id}) {
 
     # Connect to the DB
     $self->_dbconnect;
@@ -381,8 +395,9 @@ sub fetchMSB {
 
     $self->_dbdisconnect;
 
-    # Return undef if no match
-    return undef unless %details;
+    # We could not find anything
+    throw OMP::Error::MSBMissing("Could not locate requested MSB in database") unless %details;
+
 
     # Get the checksum
     $checksum = $details{checksum};
@@ -393,11 +408,8 @@ sub fetchMSB {
   } elsif (exists $args{checksum}) {
     $checksum = $args{checksum};
   } else {
-    croak "No checksum or MSBid provided";
+    throw OMP::Error::BadArgs("No checksum or MSBid provided. Unable to retrieve MSB.");
   }
-
-  print "Checksum: $checksum\n";
-  print "ProjectID: " . $self->projectid,"\n";
 
   # Retrieve the relevant science program
   my $sp = $self->fetchSciProg();
@@ -535,7 +547,7 @@ name to prevent a clash with an externally modified program.
 
 sub _write_sci_prog {
   my $self = shift;
-  croak 'Usage: $db->_write_sci_prog( $sp )' unless @_;
+  throw OMP::Error::BadArgs('Usage: $db->_write_sci_prog( $sp )') unless @_;
   my $sp = shift;
 
   my $freeze = shift;
@@ -553,7 +565,7 @@ sub _write_sci_prog {
       my $tstamp = $self->_get_old_sciprog_timestamp;
       my $spstamp = $sp->timestamp;
       if (defined $spstamp) {
-	croak "Science Program has changed on disk" 
+	throw OMP::Error::SpStoreFail("Science Program has changed on disk\n")
 	  unless $tstamp == $spstamp;
       }
     }
@@ -562,7 +574,7 @@ sub _write_sci_prog {
     my $key = ($freeze ? "BACKUPi" : "BACKUP");
     my $backup = $self->_sciprog_filename("BACKUP");
     rename $fullpath, $backup 
-      or croak "error renaming $fullpath to $backup: $!";
+      or throw OMP::Error::SpStoreFail("error renaming $fullpath to $backup: $!\n");
   }
 
   # Put a new timestamp into the science program prior to writing
@@ -570,12 +582,12 @@ sub _write_sci_prog {
 
   # open a new file
   open( my $fh, ">$fullpath") 
-    or croak "Error writing SciProg to $fullpath: $!";
+    or throw OMP::Error::SpStoreFail("Error writing SciProg to $fullpath: $!\n");
 
   # write the Science Program to disk
   print $fh "$sp";
 
-  close($fh) or croak "Error closing new sci prog file: $!";
+  close($fh) or throw OMP::Error::SpStoreFail("Error closing new sci prog file: $!\n");
 }
 
 
@@ -618,7 +630,7 @@ sub _get_next_index {
   my $highest;
   if (-e $indexfile) {
     open(my $fh, "<$indexfile") 
-      or croak "Could not read indexfile $indexfile: $!";
+      or throw OMP::Error::FatalError("Could not read indexfile $indexfile: $!\n");
     $highest = <$fh>;
   }
 
@@ -627,7 +639,7 @@ sub _get_next_index {
 
   # Now update the file
   open(my $fh, ">$indexfile") 
-    or croak "Could not open indexfile $indexfile: $!";
+    or throw OMP::Error::FatalError("Could not open indexfile $indexfile: $!\n");
   print $fh "$highest";
 
   return $highest;
@@ -659,9 +671,10 @@ sub _dbconnect {
   # Forget about authentication for now
 
   # We are going to use a CSV DB
+  # KLUGE  - no authentication error
   my $filename = File::Spec->catdir($XMLDIR, "csv");
   my $dbh = DBI->connect("DBI:CSV:f_dir=$filename")
-    or croak "Cannot connect: ". $DBI::errstr;
+    or throw OMP::Error::DBConnection("Cannot connect: ". $DBI::errstr);
 
   # Store the handle
   $self->_dbhandle( $dbh );
@@ -677,6 +690,7 @@ Disconnect from the database.
 sub _dbdisconnect {
   my $self = shift;
   $self->_dbhandle->disconnect;
+  $self->_dbhandle( undef );
 }
 
 =item B<_insert_row>
@@ -705,7 +719,8 @@ sub _insert_row {
   print "Inserting row as index $index\n";
   $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?, ?)", undef,
 	   $index, $data{checksum}, $self->projectid, $data{remaining},
-	   $self->_sciprog_filename);
+	   $self->_sciprog_filename) 
+    or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
 
 }
 
@@ -729,7 +744,8 @@ sub _clear_old_rows {
 
   # Store the data
   print "Clearing old rows for project ID $proj\n" if $DEBUG;
-  $dbh->do("DELETE FROM $TABLE WHERE projectid = '$proj'");
+  $dbh->do("DELETE FROM $TABLE WHERE projectid = '$proj'")
+    or throw OMP::Error::DBError("Error removing old rows: ".$DBI::errstr);
 
 }
 
@@ -769,6 +785,9 @@ sub _fetch_row {
   my $dbh = $self->_dbhandle;
   my $ref = $dbh->selectall_hashref( $statement );
 
+  throw OMP::Error::DBError("Error fetching specified row:".$DBI::errstr)
+    unless defined $ref;
+
   # The result is now the first entry in @$ref
   my %result;
   %result = %{ $ref->[0] } if @$ref;
@@ -799,6 +818,8 @@ sub _run_query {
   # prepare and execute
   my $dbh = $self->_dbhandle;
   my $ref = $dbh->selectall_hashref( $sql );
+  throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
+    unless defined $ref;
 
   # Return the results (as a slice if necessary
   my $max = $query->maxCount;
@@ -811,6 +832,22 @@ sub _run_query {
   }
 
   return @$ref[0..$max];
+}
+
+
+=item B<DESTROY>
+
+Automatic destructor. Guarantees that we will try to disconnect
+even if an exception has been thrown.
+
+=cut
+
+sub DESTROY {
+  my $self = shift;
+  my $dbh = $self->_dbhandle;
+  if (defined $dbh) {
+    $self->_dbdisconnect;
+  }
 }
 
 =back
