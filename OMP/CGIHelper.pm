@@ -1900,7 +1900,7 @@ sub night_report {
       print $q->endform;
 
       # Link to multi night report
-      print "</td><tr><td colspan=2><a href='$url?tel=$tel&delta=8'>Click here to view a report for multiple nights</a>";
+      print "</td><tr><td colspan=2><a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>";
       print "</td></table>";
     } else {
       print "</td><tr><td colspan=2>";
