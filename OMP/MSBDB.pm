@@ -582,6 +582,8 @@ sub doneMSB {
   my $self = shift;
   my $checksum = shift;
 
+  OMP::General->log_message("Attempting to mark MSB for project ". $self->projectid . " as done [$checksum]");
+
   # Administrator password so that we can fetch and store
   # science programs without resorting to knowing the
   # actual password or to disabling password authentication
@@ -600,11 +602,19 @@ sub doneMSB {
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
 
+  if ($msb) {
+     OMP::General->log_message("MSB Retrieved successfully");
+  } else {
+     OMP::General->log_message("Unable to retrieve corresponding MSB");
+  }
+
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
                            "MSB marked as done",
                            OMP__DONE_DONE );
+
+  OMP::General->log_message("Marked MSB as done in the done table");
 
   # Give up if we dont have a match
   unless (defined $msb) {
@@ -619,12 +629,16 @@ sub doneMSB {
   # Mark it as observed
   $msb->hasBeenObserved();
 
+  OMP::General->log_message("MSB marked as done in science program object");
+
   # Now need to store the MSB back to disk again
   # since this has the advantage of updating the database table
   # and making sure reorganized Science Program is stored.
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
+
+  OMP::General->log_message("Science program stored back to database");
 
   # Now decrement the time for the project
   my $acctdb = new OMP::TimeAcctDB(
@@ -641,6 +655,7 @@ sub doneMSB {
 				       );
 
   $acctdb->incPending( $acct );
+  OMP::General->log_message("Incremented time on project");
 
   # Might want to send a message to the feedback system at this
   # point
@@ -650,6 +665,8 @@ sub doneMSB {
 				 text => "Marked MSB with checksum"
 				 . " $checksum as done",
 				);
+
+  OMP::General->log_message("Send feedback message and complete transaction");
 
   # Disconnect
   $self->_dbunlock;
