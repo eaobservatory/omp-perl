@@ -84,11 +84,10 @@ sub getShiftLog {
   my $class = shift;
   my $utdate = shift;
   my $telescope = shift;
-
   my @result;
   my $E;
   try {
-    $utdate =~ /(\d{4})(\d\d)(\d\d)/;
+    $utdate =~ /(\d{4})\-?(\d\d)\-?(\d\d)/;
     my $xml = "<ShiftQuery><date delta=\"1\">$1-$2-$3</date>";
     if(defined($telescope)) {
       $xml .= "<telescope>";
