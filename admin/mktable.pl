@@ -243,13 +243,13 @@ my %tables = (
            instrument => "VARCHAR(32)",
            telescope => "VARCHAR(32)",
            utstart => "DATETIME",
-           obstatus => "INTEGER",
+           obsactive => "INTEGER",
            commentdate => "DATETIME",
            commentauthor => USERID,
-           commenttext => "TEXT",
+           commenttext => "TEXT NULL",
            commentstatus => "INTEGER"
            _ORDER => [qw/ obslogid runnr instrument telescope
-                      utstart obstatus commentdate commentauthor
+                      utstart obsactive commentdate commentauthor
                       commenttext commentstatus /],
         },
 	     );
