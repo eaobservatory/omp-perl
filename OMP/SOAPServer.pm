@@ -121,6 +121,7 @@ sub _get_faultcode {
   # Translation table
   my %lut = (
 	     BadArgs => 'Client.BadArgs',
+	     ChangedOnDisk => 'Server.ChangedOnDisk',
 	     Authentication => 'Client.Authentication',
 	     DBConnectionFail => 'Server.DBConnection',
 	     MSBMalformedQuery => 'Client.MSBMalformedQuery',

@@ -7,7 +7,7 @@ OMP::SpServer - Science Program Server class
 =head1 SYNOPSIS
 
   $xml = OMP::SpServer->fetchProgram($project, $password);
-  $summary = OMP::SpServer->storeProgram($xml, $password);
+  $summary = OMP::SpServer->storeProgram($xml, $password, 0);
 
 =head1 DESCRIPTION
 
@@ -51,8 +51,17 @@ plain text) that can be used to provide feedback to the user as well
 as the timestamp attached to the file in the database (for consistency
 checking).
 
-There may need to be a force flag to force a store even though the
-science program has been modified by a previous session.
+An optional third parameter can be used to control the behaviour
+if the timestamps do not match. If false an exception will be raised
+(of type C<SpChangedOnDisk>) and the store will fail if the timestamp
+of the program being stored does not match that already in the database.
+If true the timestamp test will be ignored and the program will be
+stored. This allows people to force the storing of a science program
+and should be used with care.
+
+  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog, 
+                                                       $password, $force);
+
 
 =cut
 
@@ -61,6 +70,7 @@ sub storeProgram {
 
   my $xml = shift;
   my $password = shift;
+  my $force = shift;
 
   my ($string, $timestamp);
   my $E;
@@ -75,7 +85,7 @@ sub storeProgram {
 			   );
 
     # Store the science program
-    $db->storeSciProg( SciProg => $sp );
+    $db->storeSciProg( SciProg => $sp, Force => $force );
 
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";

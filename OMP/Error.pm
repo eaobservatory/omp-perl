@@ -315,6 +315,9 @@ use base qw/ OMP::Error /;
 package OMP::Error::SpEmpty;
 use base qw/ OMP::Error /;
 
+package OMP::Error::SpChangedOnDisk;
+use base qw/ OMP::Error /;
+
 package OMP::Error::DBLocked;
 use base qw/ OMP::Error /;
 

@@ -147,6 +147,10 @@ because one has been started higher up). We do this since the
 begin transaction method might well decide to rollback a previous
 transaction if it is asked to start a new one.
 
+The C<Force> key can be used for force the saving of the program
+to the database even if the timestamps do not match. This option
+should be used with care. Default is false (no force).
+
 The scheduling fields (eg tauband and seeing) must be populated.
 
 Returns true on success and C<undef> on error (this may be
@@ -188,7 +192,8 @@ sub storeSciProg {
   }
 
   # Write the Science Program to disk
-  $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
+  $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp},
+			  $args{Force} )
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
   # Get the summaries for each msb
@@ -614,7 +619,7 @@ sub alldoneMSB {
 
 Store the science program to the "database"
 
-  $db->_store_sci_prog( $sp );
+  $db->_store_sci_prog( $sp, $freeze, $force );
 
 The XML is stored in the database. Transaction management deals with the
 case where the upload fails part way through.
@@ -625,16 +630,22 @@ and compared with the current version of the science program.
 differ the new file is not stored (the new science program should
 have the timestamp of the old science program).
 
-A timestamp is added to the science program automatically just
-before it is written to the database. The overhead in fetching the timestamp
-from the database is minimal compared with having to read the old science
-program and instantiate a science program object in order to read the
-timestamp.
+A timestamp is added to the science program automatically just before
+it is written to the database. The overhead in fetching the timestamp
+from the database is minimal compared with having to read the old
+science program and instantiate a science program object in order to
+read the timestamp.
 
 If the optional second argument is present and true, timestamp
 checking is disabled and the timestamp is not modified. This is to
 allow internal reorganizations to use this routine without affecting
 external checking (for example, when marking the MSB as done).
+
+A third (optional) argument [presence of which requires the second
+argument to be supplied] can be used to disable time stamp checking
+completely whilst still generating a new timestamp. This option should
+be used with care and should not be used without explicit request
+of the owner of the science program. Default is false.
 
 =cut
 
@@ -644,6 +655,7 @@ sub _store_sci_prog {
   my $sp = shift;
 
   my $freeze = shift;
+  my $force = shift;
 
   # Check to see if sci prog exists already (if it does it returns
   # the timestamp else undef)
@@ -654,15 +666,16 @@ sub _store_sci_prog {
   if (defined $tstamp) {
 
     # Disable timestamp checks if freeze is set
-    unless ($freeze) {
+    # or we are forcing the store
+    unless ($freeze or $force) {
       # Get the timestamp from the current file (we have the old one
       # already)
       my $spstamp = $sp->timestamp;
       if (defined $spstamp) {
-	throw OMP::Error::SpStoreFail("Science Program has changed on disk\n")
+	throw OMP::Error::SpChangedOnDisk("Science Program has changed on disk\n")
 	  unless $tstamp == $spstamp;
       } else {
-	throw OMP::Error::SpStoreFail("A science program is already in the database with a timestamp but this science program does not include a timestamp at all.\n")
+	throw OMP::Error::SpChangedOnDisk("A science program is already in the database with a timestamp but this science program does not include a timestamp at all.\n")
 
       }
     }
