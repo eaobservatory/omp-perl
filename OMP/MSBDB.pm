@@ -1818,11 +1818,11 @@ sub _insert_row {
 			  $index, $proj, $data{remaining}, $data{checksum},
 			  $data{obscount}, $data{tau}->min, $taumax, 
 			  $data{seeing}->min, $seeingmax, $data{priority},
-			  $data{telescope}, $moonmax, $cloudmax,
+			  $data{telescope}, int($moonmax), int($cloudmax),
 			  $data{timeest}, $data{title},
 			  "$data{datemin}", "$data{datemax}", $minel,
-			  $maxel, $data{approach}, $moonmin,
-			  $cloudmin, $skymin, $skymax);
+			  $maxel, $data{approach}, int($moonmin),
+			  int($cloudmin), $skymin, $skymax);
 
   # Now the observations
   # We dont use the generic interface here since we want to
@@ -1985,6 +1985,8 @@ sub _run_query {
   my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE,
 			 $OMP::ProjDB::PROJQUEUETABLE,
 			 $OMP::ProjDB::PROJUSERTABLE );
+
+  print "SQL: $sql\n";
 
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
