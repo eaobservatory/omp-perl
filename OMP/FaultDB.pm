@@ -627,6 +627,16 @@ sub _update_fault_row {
 			    $faultdate, $fault->type, $fault->system,
 			    $fault->status, $fault->urgency,
 			    $fault->timelost, $fault->entity );
+
+    # Insert the project association data
+    # In this case we dont need an entry if there are no projects
+    # associated with the fault since we never do a join requiring
+    # a fault id to exist.
+    my @entries = map { [ $fault->id, $_ ]  } $fault->projects;
+    for my $assoc (@entries) {
+      $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
+    }
+
   } else {
     throw OMP::Error::BadArgs("Argument to _update_fault_row must be of type OMP::Fault\n");
   }
