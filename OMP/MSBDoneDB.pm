@@ -493,7 +493,7 @@ sub _add_msb_done_info {
 			  {
 			   TEXT => $comment->text,
 			   COLUMN => 'comment',
-			  }, $msbinfo->title, "NULL",
+			  }, $msbinfo->title, undef,
 			);
 
 }
