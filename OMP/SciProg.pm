@@ -233,8 +233,13 @@ sub telescope {
   my $self = shift;
   my @nodes = $self->_tree->findnodes('.//telescope');
   if (defined $nodes[-1]) {
-    my $ver = $nodes[-1]->getFirstChild->toString;
-    return $ver;
+    # loop until we get a child
+    for my $n (@nodes) {
+      my $child = $n->getFirstChild;
+      next unless defined $child;
+      my $tel = uc($child->toString);
+      return $tel;
+    }
   }
   # return explicit undef rather than empty list
   return undef;
