@@ -1,7 +1,11 @@
 #!/local/perl/bin/perl -XT
 
+BEGIN { $ENV{LANG} = "C" }
+
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"
 	  if $^O eq "solaris"; }
+
+BEGIN { $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"; }
 
 use strict;
 use lib "/jac_sw/omp/msbserver";
