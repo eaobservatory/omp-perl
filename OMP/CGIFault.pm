@@ -159,7 +159,6 @@ sub file_fault_output {
 			     urgency=>$faultdetails{urgency},
 			     fault=>$resp);
 
-
   # The following are not always present
   ($faultdetails{projects}) and $fault->projects($faultdetails{projects});
 
@@ -1946,7 +1945,6 @@ sub parse_file_fault_form {
   my $q = shift;
 
   my %parsed = (subject => $q->param('subject'),
-	        timelost => $q->param('loss'),
 	        system => $q->param('system'),
 	        type => $q->param('type'),
 	        status => $q->param('status'));
@@ -1958,6 +1956,9 @@ sub parse_file_fault_form {
   } else {
     $parsed{urgency} = $urgency{Normal};
   }
+
+  # Store time lost if defined.
+  (length($q->param('loss')) >= 0) and $parsed{timelost} = $q->param('loss');
 
   # Get the associated projects
   if ($q->param('assoc') or $q->param('assoc2')) {
