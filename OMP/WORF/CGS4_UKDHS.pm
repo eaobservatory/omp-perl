@@ -1,14 +1,15 @@
-package OMP::WORF::CGS4;
+package OMP::WORF::CGS4_UKDHS;
 
 =head1 NAME
 
-OMP::WORF::CGS4 - CGS4-specific functions for WORF
+OMP::WORF::CGS4_UKDHS - CGS4_UKDHS (CGS4 with ORAC DHS) specific
+functions for WORF
 
 =head1 
 
 SYNOPSIS
 
-use OMP::WORF::CGS4;
+use OMP::WORF::CGS4_UKDHS;
 
   my $worf = new OMP::WORF::CGS4( obs => $obs, suffix => $suffix );
 
@@ -20,7 +21,8 @@ use OMP::WORF::CGS4;
 
 This subclass of C<OMP::WORF> supplies CGS4-specific functions
 for WORF. In particular, it allows for plotting of images and retrieving
-a list of valid suffices for CGS4 data.
+a list of valid suffices for CGS4 data. This subclass is meant for
+CGS4 data taken with the ORAC data handling system.
 
 =cut
 
