@@ -3526,7 +3526,7 @@ sub SpObs {
   }
 
   # Check that we have an observe iterator of some kind.
-  throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator\n")
+  throw OMP::Error::MSBMissingObserve("SpObs is missing an observe iterator for MSB '".$self->msbtitle."'\n")
     unless exists $summary{obstype};
 
   # If we are a standard but have no target we are really an autoTarget
@@ -3549,7 +3549,7 @@ sub SpObs {
       $summary{target} = "TBD";
 
     } elsif (!exists $summary{coords} && !exists $summary{targets}) {
-      throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
+      throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified in MSB '".$self->msbtitle."'\n");
     }
     # We have a normal observe - just use it and the associated target
     # information
