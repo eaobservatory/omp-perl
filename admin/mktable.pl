@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl5.6.1
+~~#!/local/perl-5.6/bin/perl5.6.1
 
 # quick program to create a "database" table for testing the OMP
 
@@ -241,7 +241,7 @@ my %tables = (
            obslogid => NUMID,
            runnr => "INT",
            instrument => "VARCHAR(32)",
-           telescope => "VARCHAR(32)",
+           telescope => "VARCHAR(32) NULL",
            date => "DATETIME",
            obsactive => "INTEGER",
            commentdate => "DATETIME",
