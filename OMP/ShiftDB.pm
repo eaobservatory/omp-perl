@@ -121,6 +121,10 @@ sub enterShiftLog {
   $self->_dbunlock;
   $self->_db_commit_trans;
 
+  # Add the writing of the comment to the logs
+  my $logmessage = sprintf("ShiftDB: %s %.50s", $author->userid, $comment->text);
+  OMP::General->log_message( $logmessage );
+
 }
 
 =item B<getShiftLogs>
