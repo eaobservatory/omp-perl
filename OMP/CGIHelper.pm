@@ -35,7 +35,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -315,6 +315,22 @@ sub add_comment_output {
   proj_status_table($q, %cookie);
   fb_entries_hidden($q, %cookie);
 }
+
+=item B<fb_logout>
+
+Gives the user a cookie with an expiration date in the past, effectively deleting the cookie.
+
+  fb_logout($cgi);
+
+=cut
+
+sub fb_logout {
+  my $q = shift;
+
+  print $q->h2("You are now logged out of the feedback system.");
+  print "You may see feedback for a project by clicking <a href='feedback.pl'>here</a>.";
+}
+
 
 =back
 
