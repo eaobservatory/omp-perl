@@ -195,6 +195,51 @@ sub list_observations {
 
 }
 
+=item B<list_observations_txt>
+
+Create a page containing only a text-based listing of observations.
+
+=cut
+
+sub list_observations_txt {
+  my $query = shift;
+  my $qv = $query->Vars;
+
+  print $query->header( -type => 'text/plain' );
+
+  try {
+    $obsgroup = cgi_to_obsgroup( $query );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext\n";
+  }
+  otherwise {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext\n";
+  };
+
+  $options{'showcomments'} = 1;
+  $options{'ascending'} = 0;
+  $options{'text'} = 1;
+  try {
+    obs_table( $obsgroup, %options );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  }
+  otherwise {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print "Error: $errortext<br>\n";
+  };
+
+}
+
 =item B<obs_table>
 
 Prints an HTML table containing a summary of information about a
@@ -228,6 +273,11 @@ set to 'instrument', then one table will be displayed for each
 instrument in the C<Info::ObsGroup> object, regardless of the order
 in which observations for those instruments were taken. Defaults
 to 'instrument'.
+
+=item *
+
+text - Produce a text table rather than an HTML table. Defaults
+to 0 (false).
 
 =back
 
@@ -272,6 +322,13 @@ sub obs_table {
     $instrument = '';
   }
 
+  my $text;
+  if( exists( $options{text} ) ) {
+    $text = $options{text};
+  } else {
+    $text = 0;
+  }
+
 # Verify the ObsGroup object.
   if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
@@ -302,15 +359,24 @@ sub obs_table {
 
   my $currentinst = (length( $instrument . '' ) == 0 ) ? $allobs[0]->instrument : $instrument;
 
-  print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
-  print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
-  print "<tr class=\"sum_other\"><td>";
-  print "Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font></td></tr>\n";
-  print "</table>";
+  if( $text ) {
+
+  } else {
+    print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
+    print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
+    print "<tr class=\"sum_other\"><td>";
+    print "Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font></td></tr>\n";
+    print "</table>";
+  }
 
   if(!defined($currentinst)) {
-    print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n";
-    print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
+
+    if( $text ) {
+
+    } else {
+      print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n";
+      print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
+    }
     return;
   }
 
@@ -327,14 +393,19 @@ sub obs_table {
     }
   }
 
-  my $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
-  print "<table class=\"sum_table\" border=\"0\">\n";
-  print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
+  if( $text ) {
+    print "\nObservations for " . uc( $currentinst ) . "\n";
+    print $nightlog{_STRING_HEADER}, "\n";
+  } else {
+    my $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
+    print "<table class=\"sum_table\" border=\"0\">\n";
+    print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
-  # Print the column headings.
-  print "<tr class=\"sum_other\"><td>";
-  print join ( "</td><td>", @{$nightlog{_ORDER}} );
-  print "</td><td>Comments</td><td>WORF</td></tr>\n";
+    # Print the column headings.
+    print "<tr class=\"sum_other\"><td>";
+    print join ( "</td><td>", @{$nightlog{_ORDER}} );
+    print "</td><td>Comments</td><td>WORF</td></tr>\n";
+  }
 
   my $rowclass = "row_b";
 
@@ -347,15 +418,20 @@ sub obs_table {
     # First, check to see if the instrument has changed. If it has, close the old table
     # and start a new one.
     if( uc($obs->instrument) ne uc($currentinst) && !UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap") ) {
-      print "</table>\n";
-      $currentinst = $obs->instrument;
-      print "<table class=\"sum_table\" border=\"0\">\n";
-      print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
+      if( $text ) {
+        print "\nObservations for " . uc( $currentinst ) . "\n";
+        print $nightlog{_STRING_HEADER}, "\n";
+      } else {
+        print "</table>\n";
+        $currentinst = $obs->instrument;
+        print "<table class=\"sum_table\" border=\"0\">\n";
+        print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
-      # Print the column headings.
-      print "<tr class=\"sum_other\"><td>";
-      print join ( "</td><td>", @{$nightlog{_ORDER}} );
-      print "</td><td>Comments</td><td>WORF</td></tr>\n";
+        # Print the column headings.
+        print "<tr class=\"sum_other\"><td>";
+        print join ( "</td><td>", @{$nightlog{_ORDER}} );
+        print "</td><td>Comments</td><td>WORF</td></tr>\n";
+      }
     }
 
     my $comments = $obs->comments;
@@ -364,79 +440,97 @@ sub obs_table {
     my $colour = defined( $status ) ? $colour[$status] : $colour[0];
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
-      print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 2 ) . "\"><font color=\"BLACK\">";
-      $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
-      print $nightlog{'_STRING'};
-    } else {
-      print "<tr class=\"$rowclass\"><td><font color=\"$colour\">";
-      print join("</font></td><td><font color=\"$colour\">" , map {
-        ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
-      } @{$nightlog{_ORDER}} );
-      $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
-    }
-    print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
-    my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
-    $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
-    print $obsut;
-    print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-    if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-      print "&timegap=1";
-    }
-    print "\">edit/view</a></td>";
-
-    # Display WORF box if we do not have a TimeGap.
-    if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-
-      my $worf;
-      try {
-        # Form an OMP::WORF object for the obs
-        $worf = new OMP::WORF( obs => $obs );
-
-        # Get a list of suffices
-        my @ind_suffices = $worf->suffices;
-        my @grp_suffices = $worf->suffices( 1 );
-
-        print "<td>";
-        if( $worf->file_exists( suffix => '', group => 0 ) ) {
-          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-          print $obsut;
-          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-          print "\">raw</a> ";
-        }
-        foreach my $suffix ( @ind_suffices ) {
-          next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-          print $obsut;
-          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-          print "&suffix=$suffix\">$suffix</a> ";
-        }
-        print "/ ";
-        if( $worf->file_exists( suffix => '', group => 1 ) ) {
-          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-          print $obsut;
-          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-          print "&group=1\">group</a> ";
-        }
-        foreach my $suffix ( @grp_suffices ) {
-          next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-          print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
-          print $obsut;
-          print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-          print "&suffix=$suffix&group=1\">$suffix</a> ";
-        }
-        print "</td>";
+      if( $text ) {
+        print $nightlog{'_STRING'}, "\n";
+      } else {
+        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 2 ) . "\"><font color=\"BLACK\">";
+        $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
+        print $nightlog{'_STRING'};
       }
-      catch OMP::Error with {
-#        next;
-      }
-      otherwise {
-        print "<td>b</td>";
-#        next;
-      };
     } else {
-      print "<td>&nbsp;</td>";
+      if( $text ) {
+        print $nightlog{'_STRING'}, "\n";
+      } else {
+        print "<tr class=\"$rowclass\"><td><font color=\"$colour\">";
+        print join("</font></td><td><font color=\"$colour\">" , map {
+          ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
+        } @{$nightlog{_ORDER}} );
+        $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
+      }
     }
-    print "</tr>\n";
+
+    if( $text ) {
+
+    } else {
+      print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
+      my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+      $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+      print $obsut;
+      print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+        print "&timegap=1";
+      }
+      print "\">edit/view</a></td>";
+    }
+
+    if( $text ) {
+
+    } else {
+
+      # Display WORF box if we do not have a TimeGap.
+      if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+
+        my $worf;
+        try {
+          # Form an OMP::WORF object for the obs
+          $worf = new OMP::WORF( obs => $obs );
+
+          # Get a list of suffices
+          my @ind_suffices = $worf->suffices;
+          my @grp_suffices = $worf->suffices( 1 );
+
+          print "<td>";
+          if( $worf->file_exists( suffix => '', group => 0 ) ) {
+            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print $obsut;
+            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+            print "\">raw</a> ";
+          }
+          foreach my $suffix ( @ind_suffices ) {
+            next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print $obsut;
+            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+            print "&suffix=$suffix\">$suffix</a> ";
+          }
+          print "/ ";
+          if( $worf->file_exists( suffix => '', group => 1 ) ) {
+            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print $obsut;
+            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+            print "&group=1\">group</a> ";
+          }
+          foreach my $suffix ( @grp_suffices ) {
+            next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print $obsut;
+            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+            print "&suffix=$suffix&group=1\">$suffix</a> ";
+          }
+          print "</td>";
+        }
+        catch OMP::Error with {
+#        next;
+        }
+        otherwise {
+          print "<td>b</td>";
+#        next;
+        };
+      } else {
+        print "<td>&nbsp;</td>";
+      }
+      print "</tr>\n";
+    }
 
     # Print the comments underneath, if there are any, and if the
     # 'showcomments' parameter is not '0', and if we're not looking at a timegap
@@ -446,29 +540,39 @@ sub obs_table {
         $showcomments &&
         ! UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
 
-      print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
-      my @printstrings;
-      foreach my $comment (@$comments) {
-        my $string = "<font color=\"";
-        $string .= $colour[$comment->status];
-        $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-        $string .= " " . $comment->text;
-        $string .= "</font>";
-        $string =~ s/\n/\<br\>/g;
-        push @printstrings, $string;
+      if( $text ) {
+        print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+        print $comment->text . "\n";
+      } else {
+        print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
+        my @printstrings;
+        foreach my $comment (@$comments) {
+          my $string = "<font color=\"";
+          $string .= $colour[$comment->status];
+          $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+          $string .= " " . $comment->text;
+          $string .= "</font>";
+          $string =~ s/\n/\<br\>/g;
+          push @printstrings, $string;
+        }
+        if($#printstrings > -1) {
+          print join "<br>", @printstrings;
+        };
+        print "</td></tr>\n";
       }
-      if($#printstrings > -1) {
-        print join "<br>", @printstrings;
-      };
-      print "</td></tr>\n";
     }
 
     $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
 
   }
 
-  # And finish the table.
-  print "</table>\n";
+  if( $text ) {
+
+  } else {
+
+    # And finish the table.
+    print "</table>\n";
+  }
 
 }
 
