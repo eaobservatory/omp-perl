@@ -4,21 +4,16 @@
 
 use strict;
 use warnings;
-use DBI;
 use File::Spec;
 
-my $server = "SYB_TMP";
-my $dbuser = "sa";
-my $dbpwd  = "";
-my $database = "omp";
+# Pick up the OMP database
+use FindBin;
+use lib "$FindBin::RealBin/..";
+use OMP::DBbackend;
 
-
-#$server = "SYB_OMP";
-#$database = "omp";
-
-my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd,{RaiseError => 0, PrintError => 0})
-  or die "Cannot connect: ". $DBI::errstr;
-
+# Connect
+my $db = new OMP::DBbackend;
+my $dbh = $db->handle;
 
 my %tables = (
 	      ompmsb => {
@@ -182,7 +177,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompsciprog';
   next if $table eq 'ompmsb';
   next if $table eq 'ompobs';
-  #next if $table eq 'ompfeedback';
+  next if $table eq 'ompfeedback';
   next if $table eq 'ompmsbdone';
   next if $table eq 'ompfault';
   next if $table eq 'ompfaultbody';

@@ -5,19 +5,19 @@
 use warnings;
 use strict;
 
-use DBI;
 use Data::Dumper;
 
-my $DBserver = "SYB_UKIRT";
-my $DBuser = "omp";
-my $DBpwd  = "***REMOVED***";
-my $DBdatabase = "archive";
+# Pick up the OMP database
+use FindBin;
+use lib "$FindBin::RealBin/..";
+use OMP::DBbackend;
 
 # Maximum length of text displayed from a column
 use constant LONGEST => 32;
 
-my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd)
-  or die "Cannot connect: ". $DBI::errstr;
+# Connect
+my $db = new OMP::DBbackend;
+my $dbh = $db->handle;
 
 my @tab;
 (@ARGV) and @tab = @ARGV or
