@@ -172,10 +172,11 @@ sub display_form {
                                            sprintf( "%.1f", $obstime{$projectid}->timespent->hours ) ),
                            );
     print "</td><td>";
-    print ( ( defined( $dbtime{$projectid} ) && $dbtime{$projectid}->confirmed ) ?
-            "Confirmed" :
-            "Estimated"
-          );
+    if( defined( $dbtime{$projectid} ) ) {
+      print "Confirmed";
+    } else {
+      print "Estimated";
+    }
     print $query->hidden( -name => 'project' . $i,
                           -default => $projectid,
                         );
