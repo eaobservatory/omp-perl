@@ -177,6 +177,10 @@ Retrieves or sets the name of the project this MSB is associated with.
 
   my $pid = $msb->projectID;
 
+On modification, does not affect the DOM tree of the associated
+science program (use a method in the corresponding C<OMP::SciProg>
+parent for that).
+
 =cut
 
 sub projectID {
