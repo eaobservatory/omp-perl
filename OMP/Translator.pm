@@ -424,7 +424,7 @@ sub SpIterSkydipObs {
   # Template
   my %odf = (
 	     OBSERVING_MODE => 'SKYDIP', # This is a skydip
-	     ACCEPT => 'YES',            # Always accept
+	     ACCEPT => 'NO',             # Never accept
 	     CHOP_FREQ => 2.0,
 	     MAX_EL => 80.0,
 	     MIN_EL => 15.0,

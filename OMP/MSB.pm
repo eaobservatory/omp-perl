@@ -631,10 +631,22 @@ so that we can make some attempt to protect against MSBs being
 consolidated when one MSB is in some logic and another is outside some
 logic.
 
+If the MSB has an MSBID element in it (not the attribute that we set)
+then the assumption is that that MSBID should be used for the checksum
+rather than calculating it. This is because when the MSB is sent for
+translation it is likely that parts will be removed (deferred calibrations)
+in which case the calculated checksum will be incorrect. Since we know
+that the MSBID element will only appear in MSBs retrieved from the
+database (and not sent to the OT) then this is allowed.
+
 =cut
 
 sub find_checksum {
   my $self = shift;
+
+  # First we need to look for an explicit MSBID
+  # my (@msbids) = $self->_tree->findnodes('msbid');
+
 
   # Get all the children (this is "safer" than stringifying
   # the XML and stripping off the tags and allows me to expand references).
