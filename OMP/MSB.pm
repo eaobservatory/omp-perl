@@ -1359,45 +1359,116 @@ sub _compress_array {
   return @unique;
 }
 
-=item B<_unroll_obs>
+=item B<unroll_obs>
 
 Convert the information stored in C<obssum>, which is just
 an entry per C<SpObs>, to an array of actual observation.
 This unrolls all iterators.
 
+  @details = $msb->unroll_obs;
+
 =cut
 
-sub _unroll_obs {
+sub unroll_obs {
   my $self = shift;
   my @obs = $self->obssum;
 
+  # Loop over each observation in the MSB
+  my @longobs;
   for my $obs (@obs) {
 
     # First get a copy of everything except the
     # iterators
-    my %config;
-    for my $key (keys %$obs) {
-      next if $key eq 'SpIter';
-      next if $key eq 'obstype';
-      $config{$key} = $obs->{$key};
-    }
+    my %config = %$obs;
+    delete $config{SpIter};
+    delete $config{obstype};
 
     # Now loop over iterators
-    for my $iter (@{ $obs->{SpIter}->{order} }) {
-      
+    $self->_unroll_obs_recurse(\@longobs, $obs->{SpIter}, %config);
 
+    use Data::Dumper;
+    print Dumper( \@longobs);
+
+  }
+
+  return @longobs;
+
+}
+
+sub _unroll_obs_recurse {
+  my $self = shift;
+  my $obsarr = shift;
+  my $iterator = shift;
+  my %config = @_;
+
+#  use Data::Dumper;
+#  print "DUMP: ",Dumper($iterator);
+
+  throw OMP::Error::FatalError "Recursing on non-HASH not supported"
+    unless ref($iterator) eq 'HASH';
+
+  for my $iter ( @{$iterator->{CHILDREN}} ) {
+
+    # Iterators always are hashes with two keys:
+    #   ATTR - iterator attributes
+    #   CHILDREN - array of child iterators
+    # this is effectively a simplified XML tree structure
+
+    # Each child is stored as an array of hashes
+    # The hash key (there is only one) must be the
+    # name of the iterator
+
+    # Attributes are stored as array of hashes. Each element
+    # of the array will contain information for a single 
+    # observation (effectively we will recurse for each element
+    # and append that information to the hash sent)
+
+    # Each iterator must ultimately be an ancestor
+    # of an observe to have an effect.
+    # Observes are just hashes
+
+    # This allows decendants to be children which allows
+    # easy recursion for iterators that trigger multiple observations
+
+    # eg:
+    # <INSERT EXAMPLE HERE>
+
+
+    # Get the key - there can only be one
+    my @keys = keys %$iter;
+    throw OMP::Error::FatalError "More than one hash key in iterator"
+      unless scalar(@keys) == 1;
+
+    my $key = $keys[0];
+
+    if ($key =~ /Obs$/) {
+      # An observation - dump observation details
+#      print "Dump observation details $key\n";
+      push(@$obsarr, {%config, MODE => $key, %{$iter->{$key}}});
+
+
+    } elsif ($key =~ /^SpIter/) {
+      # If the key is an Iter we have to recurse.
+      # First need to get the ATTRibutes to decide
+      # whether to recurse multiple times (once for
+      # each observation)
+      my @ATTR = @{$iter->{$key}->{ATTR}};
+
+      # The next layer down ignores the ATTR array
+
+#      print "Recursing for $key\n";
+      for my $extra (@ATTR) {
+	$self->_unroll_obs_recurse( $obsarr, $iter->{$key}, %config, %$extra );
+      }
 
     }
 
 
-
-    use Data::Dumper;
-    print Dumper( \%config);
   }
 
 
-
 }
+
 
 
 # Methods associated with individual elements
@@ -1506,8 +1577,11 @@ observe iterator of some kind is present.
 
 Sometimes an SpIterFolder contains other folders such as SpIterRepeat
 and SpIterOffset. These may contain SpIterObserve and so must be
-examined a special cases of SpIterFolder. All iterators (except Repeat
-and Offset) are pushed onto the obstype array regardless of depth.
+examined a special cases of SpIterFolder. All Obs iterators (for
+example not including Repeat, Offset and POL) are pushed onto the
+obstype array regardless of depth.
+
+The SpIter key includes the sequence hierarchy as an array of hashes.
 
 =cut
 
@@ -1518,8 +1592,12 @@ sub SpIterFolder {
   my @types;
   my @iterators;
 
-  # Init the hash ref
-  $summary{SpIter} = {};
+  # Determine the parent iterator
+  my $parent;
+  $parent = ( exists $summary{PARENT} ? $summary{PARENT} : "SpIter");
+
+  # Init the arrayref and attributes hash
+  $summary{$parent} = { CHILDREN => [], ATTR => [] };
 
   for my $child ( $el->getChildnodes ) {
     my $name = $child->getName;
@@ -1534,14 +1612,15 @@ sub SpIterFolder {
 	my $name = $chops->getName;
 	next unless $name eq 'CHOP';
 	my %details;
-	$details{SYSTEM} = $self->_get_attribute( $chops, 'SYSTEM');
-	$details{THROW}  = $self->_get_pcdata($chops, 'THROW');
-	$details{PA}  = $self->_get_pcdata($chops, 'PA');
+	$details{CHOP_SYSTEM} = $self->_get_attribute( $chops, 'SYSTEM');
+	$details{CHOP_THROW}  = $self->_get_pcdata($chops, 'THROW');
+	$details{CHOP_PA}  = $self->_get_pcdata($chops, 'PA');
 	push(@chops, \%details);
       }
 
       # Store the chop details
-      $summary{SpIter}->{SpIterChop} = \@chops;
+      $summary{$parent}{ATTR} = \@chops;
+#      push(@{$summary{$parent}}, {$name => \@chops});
     } elsif ($name eq 'POLIter') {
       # SpIterPOL iterator for waveplates
 
@@ -1557,10 +1636,14 @@ sub SpIterFolder {
       my @waveplate = map { $_->firstChild->toString } @value;
 
       # Store the waveplate angles
-      $summary{SpIter}->{SpIterPOL} = \@waveplate;
+#      push(@{$summary{$parent}}, {$name => \@waveplate});
+      $summary{$parent}{ATTR}  = [{waveplate => \@waveplate }];
     } elsif ($name eq 'repeatCount') {
       # SpIterRepeat
-      $summary{SpIter}->{SpIterRepeat} = $child->firstChild->toString;
+#      push(@{$summary{$parent}}, {$name => $child->firstChild->toString});
+      my $repeat = $child->firstChild->toString;
+      $summary{$parent}{ATTR} = [ map { { repeat => undef } } 1..$repeat ];
+
     } elsif ($name eq 'obsArea') {
       # SpIterOffset
       # This code is very like the SECONDARY chop code
@@ -1571,12 +1654,13 @@ sub SpIterFolder {
 	my $name = $off->getName;
 	next unless $name eq 'OFFSET';
 	my %details;
-	$details{PA} = $pa;
-	$details{dx}  = $self->_get_pcdata($off, 'DC1');
-	$details{dy}  = $self->_get_pcdata($off, 'DC2');
+	$details{OFFSET_PA} = $pa;
+	$details{OFFSET_dx}  = $self->_get_pcdata($off, 'DC1');
+	$details{OFFSET_dy}  = $self->_get_pcdata($off, 'DC2');
 	push(@offsets, \%details);
       }
-      $summary{SpIter}->{SpIterOffset} = \@offsets;
+#      push(@{$summary{$parent}}, {$name => \@offsets});
+      $summary{$parent}{ATTR} = \@offsets;
     }
 
     # Only interested in iterators
@@ -1590,7 +1674,7 @@ sub SpIterFolder {
     # or other iterators
     # we need to go down a level
     if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop)/) {
-      my %dummy = $self->SpIterFolder($child);
+      my %dummy = $self->SpIterFolder($child, PARENT => $name);
 
       # obstype is a special key
       if (exists $dummy{obstype}) {
@@ -1598,17 +1682,14 @@ sub SpIterFolder {
 	delete $dummy{obstype};
       }
 
-      # As is SpIter
-      if (exists $dummy{SpIter}) {
-	if (exists $dummy{SpIter}->{order}) {
-	  push(@iterators, @{ $dummy{SpIter}->{order}});
-	  delete $dummy{SpIter}->{order};
-	}
-	%{$summary{SpIter}} = ( %{$summary{SpIter}}, %{$dummy{SpIter}});
-	delete $dummy{SpIter};
+      # As is the current structure key
+      if (exists $dummy{$name}) {
+	push(@{$summary{$parent}{CHILDREN}}, {$name => $dummy{$name}});
+	delete $dummy{$name};
       }
 
       # Merge information with child iterators
+      # [probably redundant except for the "pol" flag
       %summary = (%summary, %dummy);
 
       # SpIterPOL and SpIterIRPOL signifies something significant
@@ -1618,34 +1699,56 @@ sub SpIterFolder {
 
     } elsif ($name eq 'SpIterStareObs') {
 
-      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+
+      my $nint =  $self->_get_pcdata( $child, 'integrations');
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
 
     } elsif ($name eq 'SpIterJiggleObs') {
 
       my %jiggle;
       $jiggle{jigglePattern} = $self->_get_pcdata($child,
 						  'jigglePattern');
+      $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
 
-      $summary{SpIter}->{SpIterJiggleObs} = \%jiggle;
-      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+      push(@{$summary{$parent}{CHILDREN}}, { SpIterJiggleObs => \%jiggle});
 
     } elsif ($name eq 'SpIterPointingObs') {
 
-      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+      my $nint =  $self->_get_pcdata( $child, 'integrations');
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
+
+    } elsif ($name eq 'SpIterSkydipObs') {
+
+      my $nint =  $self->_get_pcdata( $child, 'integrations');
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
 
     } elsif ($name eq 'SpIterRasterObs') {
 
       my %scan;
-      # Martins xml is broken at the moment
-      $scan{system} = "FPLANE";
-      $scan{width}  = "UNKNOWN";
-      $scan{height} = "UNKNOWN";
-      $scan{velocity} = 24.0;
-      $scan{dy}     = 60.0;
+      $scan{nintegrations} =  $self->_get_pcdata( $child, 'integrations');
 
-      $summary{SpIter}->{SpIterRasterObs} = \%scan;
+
+      # scan information is in <obsArea>
+      # PA
+      my ($node) = $child->findnodes(".//obsArea/PA");
+      $scan{pa} = $node->firstChild->toString;
+
+      ($node) = $child->findnodes(".//obsArea/SCAN_AREA/AREA");
+      $scan{height} = $self->_get_attribute($node, 'HEIGHT');
+      $scan{width} = $self->_get_attribute($node, 'WIDTH');
+
+      ($node) = $child->findnodes(".//obsArea/SCAN_AREA/SCAN");
+      $scan{dy} = $self->_get_attribute($node, 'DY');
+      $scan{system} = $self->_get_attribute($node, 'SYSTEM');
+      $scan{velocity} = $self->_get_attribute($node, 'VELOCITY');
+
+      my (@scanpa) = $node->findnodes(".//PA");
+      $scan{scanpa} = [ map { $_->firstChild->toString } @scanpa ];
+
+      push(@{$summary{$parent}{CHILDREN}}, { SpIterRasterObs => \%scan});
 
     }
+
 
     # Remove the SpIter string
     $name =~ s/^SpIter//;
@@ -1659,7 +1762,9 @@ sub SpIterFolder {
 
   # Store results
   $summary{obstype} = \@types if @types;
-  $summary{SpIter}->{order} = \@iterators if @iterators;
+#  $summary{SpIter}->{order} = \@iterators if @iterators;
+
+  delete $summary{PARENT};
 
   return %summary;
 
