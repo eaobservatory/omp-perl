@@ -5,7 +5,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 
 BEGIN { $ENV{PATH} = "/usr/bin"; $ENV{SYBASE} = "/local/progs/sybase"; }
 
-use lib qw(/jac_sw/omp_dev/msbserver);
+use lib qw(/jac_sw/omp/msbserver);
 
 use OMP::CGI;
 use OMP::CGIFault;
