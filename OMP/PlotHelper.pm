@@ -56,11 +56,11 @@ Arguments should be provided in hash form.  The arguments are:
              there are no more bins left, otherwise values are binned
              until there are no more values left.
   method   - Method to use when binning.  A string that is either
-             'sum' or 'average'.
+             'sum', 'average', or 'max'.
   values   - An array reference whose elements are coordinates where the
              first element (the x value) is a value to bin by, and
              the second element (the y value) is a value to be binned.
-  startnum - Number to start binning by.  Defaults to the lowest x
+  startnum - Number to start binning at.  Defaults to the lowest x
              value in the 'values' array.
 
 Except for 'startnum', all arguments are required. Returns an array
@@ -81,8 +81,8 @@ sub bin_up {
     unless (looks_like_number $size or ref($size) eq 'ARRAY');
 
   # Check that method argument is either 'sum' or 'average'
-  throw OMP::Error::BadArgs("Argument 'method' must be either 'sum' or 'average'")
-    unless ($method eq 'sum' or $method eq 'average');
+  throw OMP::Error::BadArgs("Argument 'method' must be either 'sum', 'average', or 'max'")
+    unless ($method eq 'sum' or $method eq 'average' or $method eq 'max');
 
   # Check that a value array was provided
   throw OMP::Error::BadArgs("Argument 'values' must provide an array of arrays")
@@ -133,9 +133,9 @@ sub bin_up {
       $bin_size = $self->_get_bin_size($size, ++$bin_num); # Increase bin number
 
       if (defined $bin_size) {
-	$bin_mid += $bin_size / 2;
 	$low_val += $bin_size;
 	$high_val += $bin_size;
+	$bin_mid = $low_val + ($bin_size / 2);
       } else {
 	# $bin_size was undefined - we're out of bins, so stop.
 	last;
@@ -149,9 +149,16 @@ sub bin_up {
 
       # Found a bin that the value belongs in
       # Add the y value to the bin
-      $result[$bin_num]->[1] += $val->[1];
-      $count[$bin_num]++;
 
+      # If method is 'max' store the value to the bin
+      # only if it is greater than the bin's current value.
+      if ($method eq 'max') {
+	$result[$bin_num]->[1] = $val->[1]
+	  unless ($result[$bin_num]->[1] > $val->[1]);
+      } else {
+	$result[$bin_num]->[1] += $val->[1];
+	$count[$bin_num]++;
+      }
     } else {
       # Stop if we're out of bins
       last;
