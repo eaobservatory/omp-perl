@@ -52,11 +52,15 @@ my $file = shift(@ARGV);
 my %alloc;
 tie %alloc, 'Config::IniFiles', ( -file => $file );
 
-# Get the defaults
-my %defaults = %{ $alloc{info} };
+# Get the defaults (if specified)
+my %defaults;
+%defaults = %{ $alloc{info} }
+  if $alloc{info};
 
 # Get the support information
-my %support = %{ $alloc{support} };
+my %support;
+%support = %{ $alloc{support} }
+  if $alloc{support};
 
 # Loop over each project and add it in
 for my $proj (keys %alloc) {
