@@ -38,7 +38,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
