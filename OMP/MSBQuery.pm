@@ -278,38 +278,38 @@ sub sql {
 
   # Now need to put this SQL into the template query
   my $sql = "(SELECT
-          $msbtable.msbid, $msbtable.obscount, COUNT(*) AS nobs
+          M.msbid, M.obscount, COUNT(*) AS nobs
            INTO $tempcount
-           FROM $msbtable,$obstable, $projtable
-            WHERE $msbtable.msbid = $obstable.msbid
-              AND $projtable.projectid = $msbtable.projectid
-               AND $msbtable.remaining > 0
-                AND ($projtable.remaining - $projtable.pending) >= $msbtable.timeest
+           FROM $msbtable M,$obstable O, $projtable P
+            WHERE M.msbid = O.msbid
+              AND P.projectid = M.projectid
+               AND M.remaining > 0
+                AND (P.remaining - P.pending) >= M.timeest
                 $subsql
-              GROUP BY $msbtable.msbid)
-                (SELECT msbid INTO $tempmsb FROM $tempcount
-                 WHERE nobs = obscount)
-               (SELECT * FROM $msbtable,$tempmsb
-                 WHERE $msbtable.msbid = $tempmsb.msbid
-                 )";
-
-  # Same as above but without worrying about elapsed time
-  $sql = "(SELECT
-          $msbtable.msbid, $msbtable.obscount, COUNT(*) AS nobs
-           INTO $tempcount
-           FROM $msbtable,$obstable, $projtable
-            WHERE $msbtable.msbid = $obstable.msbid
-              AND $projtable.projectid = $msbtable.projectid
-               AND $msbtable.remaining > 0
-                $subsql
-              GROUP BY $msbtable.msbid)
-               (SELECT * FROM $msbtable,$tempcount
-                 WHERE $msbtable.msbid = $tempcount.msbid
-                   AND $msbtable.obscount = $tempcount.nobs)
+              GROUP BY M.msbid)
+               (SELECT * FROM $msbtable M2, $tempcount T
+                 WHERE M2.msbid = T.msbid
+                   AND M2.obscount = T.nobs)
 
                 DROP TABLE $tempcount";
 
-#  print "SQL: $sql\n";
+  # Same as above but without worrying about elapsed time
+  $sql = "(SELECT
+          M.msbid, M.obscount, COUNT(*) AS nobs
+           INTO $tempcount
+           FROM $msbtable M,$obstable O, $projtable P
+            WHERE M.msbid = O.msbid
+              AND P.projectid = M.projectid
+               AND M.remaining > 0
+                $subsql
+              GROUP BY M.msbid)
+               (SELECT * FROM $msbtable M2, $tempcount T
+                 WHERE M2.msbid = T.msbid
+                   AND M2.obscount = T.nobs)
+
+                DROP TABLE $tempcount";
+
+  print "SQL: $sql\n";
 
 
   return "$sql\n";
@@ -472,6 +472,9 @@ to an SQL sub-query.
 
 Determines whether we have a number or string for quoting rules.
 
+Some keys are duplicated in different tables. In those cases (project ID
+is the main one) the table prefix is automatically added.
+
 =cut
 
 sub _querify {
@@ -494,6 +497,10 @@ sub _querify {
 
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z]/ ? "'" : '' );
+
+  # If the name is projectid we need to make sure it comes from the
+  # MSB table
+  $name = "M." . $name if $name eq 'projectid';
 
   # Form query
   return "$name $cmptable{$cmp} $quote$value$quote";
@@ -535,6 +542,7 @@ Why dont we just use attributes?
 
   <priority max="2" /> ?
 
+Using explicit elements is probably easier to generate.
 
 =item B<Multiple matches>
 
