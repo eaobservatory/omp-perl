@@ -197,6 +197,11 @@ in the constant C<OMP__AUTHFAIL>
 
 Method was called with incorrect arguments.
 
+=item B<OMP::Error::BadCfgKey>
+
+Attempt was made to extract a configuration option from the config
+system using a key that does not exist in the config file.
+
 =item B<OMP::Error::CacheFailure>
 
 Problem occurred with Archive caching.
@@ -329,6 +334,9 @@ package OMP::Error::Authentication;
 use base qw/ OMP::Error /;
 
 package OMP::Error::BadArgs;
+use base qw/ OMP::Error /;
+
+package OMP::Error::BadCfgKey;
 use base qw/ OMP::Error /;
 
 package OMP::Error::CacheFailure;
