@@ -975,7 +975,29 @@ the query would become
 
 Constraints on the observability of the target are not calculated in
 SQL. These must be done post-query. Methods are provided to make the
-target constraints available.
+target constraints available (essentially the minimum elevation).
+
+=item B<constraints>
+
+Additionally there are a number of constraints that are
+always applied to the query simply because they make
+sense for the OMP. These are:
+
+ observability  - is the source up
+ remaining      - is the MSB still to be observed
+ allocation     - has the full project allocation been used
+
+These constraints can be disabled individually by using
+XML for example,
+
+ <disableconstraint>observability</disableconstraint>
+
+Any number of these elements can be included.
+
+Alternatively all scheduling constraints can be disabled
+using "all".
+
+ <disableconstraint>all</disableconstraint>
 
 =back
 
