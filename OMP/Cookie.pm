@@ -62,8 +62,9 @@ sub new {
   %args = @_ if @_;
 
   my $c = {
-	   Name => "OMPFBLOGIN",
+	   Name => $class->default_name,
 	   CGI => undef,
+	   Cookie => undef,
 	  };
 
   # create the object (else we cant use accessor methods)
@@ -83,21 +84,6 @@ sub new {
 =head2 Accessor Methods
 
 =over 4
-
-=item B<name>
-
-The name of the cookie. Defaults to "OMPFBLOGIN" if none supplied.
-
-  $name = $c->name;
-  $c->name( "COOKIE" );
-
-=cut
-
-sub name {
-  my $self = shift;
-  if (@_) { $self->{Name} = shift; }
-  return $self->{Name};
-}
 
 =item B<cgi>
 
@@ -144,54 +130,48 @@ sub cookie {
   return $self->{Cookie};
 }
 
+=item B<default_name>
+
+Return the default cookie name.
+
+  $name = $c->default_name;
+  $c->default_name($name);
+
+=cut
+
+{
+  my $DEFAULT_NAME = 'OMPLOGIN';
+  sub default_name {
+    my $self = shift;
+    if (@_) {
+      throw OMP::Error::BadArgs("Value can't be a reference")
+	unless (not ref($_[0]));
+      $DEFAULT_NAME = $_[0];
+    }
+    return $DEFAULT_NAME;
+  }
+}
+
+=item B<name>
+
+The name of the cookie. Defaults to "OMPFBLOGIN" if none supplied.
+
+  $name = $c->name;
+  $c->name( "COOKIE" );
+
+=cut
+
+sub name {
+  my $self = shift;
+  if (@_) { $self->{Name} = shift; }
+  return $self->{Name};
+}
+
 =back
 
 =head2 General Methods
 
 =over 4
-
-=item B<setCookie>
-
-Creates the CGI cookie object. Name=value pairs should be in the form of a
-hash. The expiry time can be specified as either a plain number (in which 
-case the expire time is set to N minutes in the future) or more explicitly
-as a string such as "+4h" which would set the expiry time to four hours in
-the future.
-
-  $c->setCookie(2, %contents);
-
-=cut
-
-sub setCookie {
-  my $self = shift;
-  my $exptime = shift;
-  my %contents = @_;
-
-  # If expire time is just a number default to minutes in the future
-  $exptime =~ /^\d+$/ and $exptime = '+' . $exptime . 'm';
-
-  # Get the domain
-  my $domain = OMP::Config->getData('cookie-domain');
-
-  # Get the CGI object
-  my $cgi = $self->cgi
-    or throw OMP::Error::FatalError("No CGI object present\n");
-
-  # Strip white space
-  for (keys %contents) {
-    $contents{$_} =~ s/^\s+//;
-    $contents{$_} =~ s/\s+$//;
-  }
-
-  # create the cookie
-  my $cookie = $cgi->cookie(-name=>$self->name,
-			    -value=>\%contents,
-			    -domain=>$domain,
-			    -expires=>$exptime);
-
-  $self->cookie($cookie);
-  return;
-}
 
 =item B<flushCookie>
 
@@ -237,15 +217,69 @@ sub getCookie {
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
-  # Strip white space
-  my %contents = $cgi->cookie(-name=>$self->name);
+  my %contents;
+  my $cookie = $self->cookie;
+  if (defined $cookie) {
+    # First try to obtain the cookie stored in this object
+    # since it's values might be more current than the cookie
+    # contained by the browser
+    %contents = $cookie->value;
+  } else {
+    # No cookie was stored to this object, take the
+    # cookie from the browser instead
+    %contents = $cgi->cookie(-name=>$self->name);
+  }
 
+  # Strip white space
   for (keys %contents) {
     $contents{$_} =~ s/^\s+//;
     $contents{$_} =~ s/\s+$//;
   }
 
   return %contents;
+}
+
+=item B<setCookie>
+
+Creates the CGI cookie object. Name=value pairs should be in the form of a
+hash. The expiry time can be specified as either a plain number (in which
+case the expire time is set to N minutes in the future) or more explicitly
+as a string such as "+4h" which would set the expiry time to four hours in
+the future.
+
+  $c->setCookie(2, %contents);
+
+=cut
+
+sub setCookie {
+  my $self = shift;
+  my $exptime = shift;
+  my %contents = @_;
+
+  # If expire time is just a number default to minutes in the future
+  $exptime =~ /^\d+$/ and $exptime = '+' . $exptime . 'm';
+
+  # Get the domain
+  my $domain = OMP::Config->getData('cookie-domain');
+
+  # Get the CGI object
+  my $cgi = $self->cgi
+    or throw OMP::Error::FatalError("No CGI object present\n");
+
+  # Strip white space
+  for (keys %contents) {
+    $contents{$_} =~ s/^\s+//;
+    $contents{$_} =~ s/\s+$//;
+  }
+
+  # create the cookie
+  my $cookie = $cgi->cookie(-name=>$self->name,
+			    -value=>\%contents,
+			    -domain=>$domain,
+			    -expires=>$exptime);
+
+  $self->cookie($cookie);
+  return;
 }
 
 =back
