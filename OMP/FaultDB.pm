@@ -206,7 +206,7 @@ sub getFault {
 
 =item B<getFaultsByDate>
 
-Retrieve faults from the specified UT date. Date must be in the format
+Retrieve faults filed on the specified UT date. Date must be in the format
 'YYYY-MM-DD'.
 
   @faults = $db->getFaultsByDate( $ut );
@@ -230,7 +230,8 @@ sub getFaultsByDate {
   # If this date is not 'date', then it'll have to be changed (confused?)
   my $xml = "<FaultQuery><date delta=\"1\">$date</date>".
     ( defined $cat ? "<category>$cat</category>" : "")
-      ."</FaultQuery>";
+      ."<isfault>1</isfault>"
+	."</FaultQuery>";
   my $query = new OMP::FaultQuery( XML => $xml );
 
   my @result = $self->queryFaults( $query );
