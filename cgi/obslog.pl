@@ -16,8 +16,8 @@ use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use PDL::Graphics::LUT;
 
-#use lib qw(/jac_sw/omp/msbserver);
-use lib qw( /home/bradc/development/omp/msbserver);
+use lib qw(/jac_sw/omp/msbserver);
+#use lib qw( /home/bradc/development/omp/msbserver);
 use OMP::CGI;
 use OMP::Info::Obs;
 use OMP::ArchiveDB;
