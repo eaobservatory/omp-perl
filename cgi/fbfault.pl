@@ -14,15 +14,16 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::FaultPage;
+use OMP::CGIPage;
+use OMP::CGIPage::Project;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: View Faults");
-$cgi->write_page( \&OMP::CGI::FaultPage::fb_fault_content,
-		  \&OMP::CGI::FaultPage::fb_fault_content );
+$cgi->write_page( \&OMP::CGIPage::Project::fb_fault_content,
+		  \&OMP::CGIPage::Project::fb_fault_content, );
