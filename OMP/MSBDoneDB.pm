@@ -67,13 +67,16 @@ Retrieve the observation history for the specified MSB (identified
 by checksum and project ID) or project.
 
   $msbinfo = $db->historyMSB( $checksum );
-  $arrref  = $db->historyMSB();
+  @info  = $db->historyMSB();
 
 The information is retrieved as an C<OMP::Info::MSB> object
 (with a checksum supplied) or an array of those objects.
 
 If the checksum is not supplied a full project observation history is
 returned (this is simply an array of MSB information objects).
+
+If no checksum is supplied, returns a list when called in an array
+context and a reference to an array when called in a scalar context.
 
 =cut
 
@@ -93,8 +96,18 @@ sub historyMSB {
 
   # Assume we have already got all the information
   # so we do not need to do a subsequent query
-  return $self->queryMSBdone( $query );
+  my @responses = $self->queryMSBdone( $query );
 
+  if ($checksum) {
+    throw OMP::Error::FatalError("More than one match for checksum $checksum [".scalar(@responses)." matches]")
+      if scalar(@responses) > 1;
+    return $responses[0];
+  } elsif (wantarray) {
+    return @responses
+  } else {
+    # Scalar context and no checksum
+    return \@responses;
+  }
 }
 
 =item B<addMSBcomment>
@@ -103,36 +116,111 @@ Add a comment to the specified MSB.
 
  $db->addMSBcomment( $checksum, $comment );
 
-If the MSB has not yet been observed this command will fail.
+The comment is supplied as an C<OMP::Info::Comment> object (and will
+therefore include a status and a date).
 
-Optionally, an object of class C<OMP::MSB> can be supplied as the
-third argument. This can be used to extract summary information if the
-MSB is not currently in the table. The supplied checksum must match
-that of the C<OMP::MSB> object (unless the checksum is not defined).
+If the MSB has not yet been observed this command will fail
+since there is no way to determine the MSB parameters.
 
-Additionally, a fourth argument can be supplied specifying the status
-of the comment. Default is to treat it as OMP__DONE_COMMENT. See 
-C<OMP::Constants> for more information on the different comment
-status.
+Optionally, an object of class C<OMP::Info::MSB> can be supplied
+instead of the checksum.
 
- $db->addMSBcomment( $checksum, $comment, undef, OMP__DONE_FETCH );
+  $db->addMSBComment( $msbinfo, $comment );
+
+This can be used to extract summary information if the MSB is not
+currently in the table. [No attempt is made to query the MSB table
+for this information if it is unavailable.]
+
+If a number is supplied instead of a comment object, it is assumed
+to be an index into the comments contained in the C<OMP::Info::MSB>
+object.
+
+  $db->addMSBComment( $msbinfo, $index );
+
+It is also possible to supply the comment as a string (anything that
+is not an integer or a reference will be treated as a string). The
+default status of such an object would be OMP__DONE_COMMENT.
+
+  $db->addMSBComment( $msbinfo, $comment_string);
+
+If no comment is supplied at all, the last comment will be extracted
+from the C<OMP::Info::Comment> object (if supplied) and stored.
+
+  $db->addMSBComment( $msbinfo );
+
+If the comment does not specify a status default behaviour is to treat
+the comment as OMP__DONE_COMMENT. See C<OMP::Constants> for more
+information on the different comment status.
 
 =cut
 
 sub addMSBcomment {
   my $self = shift;
-  my $checksum = shift;
+
+  # Simple arguments
+  my $msbinfo = shift;
   my $comment = shift;
-  my $msb = shift;
-  my $status = shift;
-  my $skiptrans = shift;
+
+  # Normalise the arguments to simplify the internal calling
+  # scheme. Includes sanity checks
+
+  # If msbinfo is not a ref hope that it is a checksum
+  # Also check that we have a projectid and set the object version
+  # if we dont have it there
+  if (UNIVERSAL::isa($msbinfo, "OMP::Info::MSB")) {
+    my $projectid = $self->projectid;
+    my $msbproj   = $msbinfo->projectid;
+    if (defined $projectid and !defined $msbproj) {
+      $msbproj->projectid( $projectid );
+    } elsif (!defined $projectid and !defined $msbproj) {
+      throw OMP::Error::FatalError("Unable to determine projectid");
+    } elsif (defined $msbproj and !defined $projectid) {
+      $self->projectid( $msbproj );
+    }
+
+  } else {
+    my $projectid = $self->projectid;
+    throw OMP::Error::FatalError("checksum supplied without project ID")
+      unless $projectid;
+    $msbinfo = new OMP::Info::MSB( checksum => $msbinfo,
+				   projectid => $projectid,
+				 );
+  }
+
+  # Do we have a comment or an index (or no comment at all)
+  if ($comment) {
+    # See if we are a blessed reference
+    if (ref($comment)) {
+      # fall over if we arent a comment object
+      throw OMP::Error::BadArgs("Wrong class for comment object: ". ref($comment))
+	unless UNIVERSAL::isa($comment, "OMP::Info::Comment");
+
+    } elsif ($comment =~ /^\d+$/) {
+      # An integer index
+      $comment = ($msbinfo->comments)[$comment];
+    } else {
+      # Some random text
+      # Dont bother to add a status yet
+      $comment = new OMP::Info::Comment( text => $comment );
+    }
+  } else {
+    # Assume last index
+    $comment = ($msbinfo->comments)[-1];
+  }
+
+  # Make sure we have a defined comment
+  throw OMP::Error::BadArgs("Unable to determine comment object")
+    unless defined $comment;
+
+  # Make sure we have a checksum of some kind
+  throw OMP::Error::BadArgs("Unable to determine MSB checksum")
+    unless defined $msbinfo->checksum;
 
   # Lock the database (since we are writing)
   $self->_db_begin_trans;
   $self->_dblock;
 
-  $self->_store_msb_done_comment( $checksum, $self->projectid, $msb,
-				$comment, $status );
+  $self->_store_msb_done_comment($msbinfo, $comment);
 
   # End transaction
   $self->_dbunlock;
@@ -147,6 +235,7 @@ date. If a project ID has been set only those MSBs observed on the
 date for the specified project will be returned.
 
   $output = $db->observedMSBs( $date, $allcomments );
+  @output = $db->observedMSBs( $date, $allcomments );
 
 The C<allcomments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
@@ -175,7 +264,8 @@ sub observedMSBs {
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  return $self->queryMSBdone( $query, $allcomment );
+  my @results = $self->queryMSBdone( $query, $allcomment );
+  return (wantarray ? @results : \@results );
 }
 
 
@@ -191,7 +281,8 @@ associated with the observed MSBs are returned (regardless of when
 they were added) or only those matching the specific query. If the
 value is false only the comments matched by the query are returned.
 
-The output format matches that returned by C<historyMSB>.
+Returns an array of results in list context, or a reference to an
+array of results in scalar context.
 
 =cut
 
@@ -221,11 +312,11 @@ sub queryMSBdone {
     }
   }
 
-  # Now reformat the data structure to the required output
-  # format. Pass in the query object so that this routine
-  # can determine whether we are only asking for a checksum.
-  return $self->_format_output_info( $msbs, $query, $style);
+  # Create an array from the hash. Sort by projectid
+  my @all = map { $msbs->{$_} }
+    sort { $msbs->{$a}{projectid} cmp $msbs->{$b}{projectid} } keys %$msbs;
 
+  return (wantarray ? @all : \@all);
 }
 
 
@@ -241,16 +332,15 @@ Retrieve the information from the MSB done table using the supplied
 query.  Can retrieve the most recent information or all information
 associated with the MSB.
 
-  @allmsbinfo = $db->_fetch_msb_done_info( $query );
-
 In scalar context returns the first match via a reference to a hash.
 
   $msbinfo = $db->_fetch_msb_done_info( $query );
 
+In list context returns all matches as a list of hash references:
+
+  @allmsbinfo = $db->_fetch_msb_done_info( $query );
 
 =cut
-
-# This should probably be done using a DBQuery class
 
 sub _fetch_msb_done_info {
   my $self = shift;
@@ -262,24 +352,14 @@ sub _fetch_msb_done_info {
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-#  use Data::Dumper;
-#  print Dumper( $ref );
-#  print "\nFrom $sql\n";
-#  exit;
-
   # If they want all the info just return the ref
   # else return the first entry
-  if ($ref) {
-    if (wantarray) {
-      return @$ref;
-    } else {
-      my $hashref = (defined $ref->[0] ? $ref->[0] : {});
-      return %{ $hashref };
-    }
+  if (wantarray) {
+    return @$ref;
   } else {
-    return (wantarray ? () : {} );
+    my $hashref = (defined $ref->[0] ? $ref->[0] : {});
+    return $hashref;
   }
-
 }
 
 =item B<_add_msb_done_info>
@@ -287,16 +367,10 @@ sub _fetch_msb_done_info {
 Add the supplied information to the MSB done table and mark all previous
 entries as old (status = false).
 
- $db->_add_msb_done_info( %msbinfo );
+ $db->_add_msb_done_info( $msbinfo, $comment );
 
-where the relevant keys in C<%msbinfo> are:
-
-  checksum - the MSB checksum
-  projectid - the project associated with the MSB
-  comment   - a comment associated with this action
-  instrument,target,waveband - msb summary information
-
-The datestamp is added automatically.
+The first argument is an C<OMP::Info::MSB> object. The second argument is
+an C<OMP::Info::Comment> object. 
 
 All entries with status OMP__DONE_FETCH and the same
 checksum are removed prior to uploading this information. This
@@ -308,39 +382,38 @@ the main purpose of the table.
 
 sub _add_msb_done_info {
   my $self = shift;
-  my %msbinfo = @_;
+  my $msbinfo = shift;
+  my $comment = shift;
 
-  # Get the projectid
-  $msbinfo{projectid} = $self->projectid
-    if (!exists $msbinfo{projectid} and defined $msbinfo{projectid});
-
-  throw OMP::Error::BadArgs("No projectid supplied for add_msb_done_info")
-    unless exists $msbinfo{projectid};
+  # Get the projectid from the MSB object
+  # (we know it is defined)
+  my $projectid = $msbinfo->projectid;
+  my $checksum = $msbinfo->checksum;
 
   # Must force upcase of project ID for now
-  $msbinfo{projectid} = uc( $msbinfo{projectid} );
+  $projectid = uc( $projectid );
 
   # First remove any placeholder observations
   $self->_db_delete_data( $MSBDONETABLE,
-			  " checksum = '$msbinfo{checksum}' AND " .
-			  " projectid = '$msbinfo{projectid}' AND " .
+			  " checksum = '$checksum' AND " .
+			  " projectid = '$projectid' AND " .
 			  " status = " . OMP__DONE_FETCH
 			);
 
   # Now insert the information into the table
 
-  # First get the timestamp
-  my $t = gmtime;
+  # First get the timestamp and format it
+  my $t = $comment->date;
   my $date = $t->strftime("%b %e %Y %T");
 
   # insert rows into table
   $self->_db_insert_data( $MSBDONETABLE,
-			  $msbinfo{checksum}, $msbinfo{status}, 
-			  $msbinfo{projectid}, "$date", # Force stringify
-			  $msbinfo{target}, $msbinfo{instrument}, 
-			  $msbinfo{waveband},
+			  $checksum, $comment->status,
+			  $projectid, $date,
+			  $msbinfo->target, $msbinfo->instrument,
+			  $msbinfo->waveband,
 			  {
-			   TEXT => $msbinfo{comment},
+			   TEXT => $comment->text,
 			   COLUMN => 'comment',
 			  }
 			);
@@ -349,88 +422,82 @@ sub _add_msb_done_info {
 
 =item B<_store_msb_done_comment>
 
-Given a checksum, project ID, (optional) MSB object and a comment,
-update the MSB done table to contain this information.
+Given an MSB info object and comment update the MSB done table to
+contain this information.
 
-If the MSB object is defined the table information will be retrieved
-from the object. If it is not defined the information will be
+If the MSB object contains sufficient information to fill the table 
+(eg target, waveband, instruments) the information from the info object
+will be used. If it is not defined the information will be
 retrieved from the done table (we cannot read it from the MSB table
 because that would involve reading the msb and obs table in order to
 reconstruct the target and instrument info). An exception is triggered
 if the information for the table is not available (this is the reason
-why the checksum and project ID are supplied even though, in
+why the checksum and project ID are required even though, in
 principal, this information could be obtained from the MSB object).
 
-  $db->_store_msb_done_comment( $checksum, $proj, $msb, $text );
+  $db->_store_msb_done_comment( $msbinfo, $comment );
 
-An optional fifth argument can be used to specify the status of the
-message. Default is for the message to be treated as a comment.
-This allows you to specify that the comment is associated with
-an MSB fetch or a "msb done" action. The OMP__DONE_FETCH is
-treated as a special case. If that status is used a row is added
-to the table only if no previous information exists for that MSB.
-(this prevents lots of entries associated with repeat fetches
-but no action).
+If the comment does not contain a status default is for the message to
+be treated as a comment.  This allows you to specify that the comment
+is associated with an MSB fetch or a "msb done" action. The
+OMP__DONE_FETCH is treated as a special case. If that status is used a
+row is added to the table only if no previous information exists for
+that MSB.  (this prevents lots of entries associated with repeat
+fetches but no action).
 
 =cut
 
 sub _store_msb_done_comment {
   my $self = shift;
-  my ($checksum, $project, $msb, $comment, $status ) = @_;
+  my ($msbinfo, $comment ) = @_;
 
-  # default to a normal comment
-  $status = ( defined $status ? $status : OMP__DONE_COMMENT );
-
-  # check first before writing if required
-  # I realise this leads to the possibility of two fetches from
-  # the database....
-  # If status is OMP__DONE_FETCH then we only want one entry
-  # ever so only write it if nothing previously exists
-  return if $status == OMP__DONE_FETCH and $self->_fetch_msb_done_info(
-								       checksum => $checksum,
-								       projectid => $project,
-								      );
-
-  # If the MSB is defined we do not need to read from the database
-  my %msbinfo;
-  if (defined $msb) {
-
-    %msbinfo = $msb->summary;
-    $msbinfo{target} = $msbinfo{_obssum}{target};
-    $msbinfo{instrument} = $msbinfo{_obssum}{instrument};
-    $msbinfo{waveband} = $msbinfo{_obssum}{waveband};
-
-    $checksum = $msb->checksum unless defined $checksum;
-
-    # Compare checksums
-    throw OMP::Error::FatalError("Checksum mismatch!")
-      if $checksum ne $msb->checksum;
-
+  # default to a normal comment status
+  my $status;
+  if (defined $comment->status) {
+    $status = $comment->status;
   } else {
-    %msbinfo = $self->_fetch_msb_done_info(
-					   checksum => $checksum,
-					   projectid => $project,
-					  );
+    $status = OMP__DONE_COMMENT;
+    $comment->status( $status );
+  }
+
+  # We do not need to write anything if this is a FETCH comment
+  # and we already have a comment for this checksum in the database
+  # First check status
+  if ($status == OMP__DONE_FETCH) {
+
+    # Get checksum and projectid
+    my $checksum = $msbinfo->checksum;
+
+    # A very inefficient check on the DB
+    # If we get anything here return
+    return if $self->historyMSB( $msbinfo->checksum );
 
   }
 
-  # throw an exception if we dont have anything yet
-  throw OMP::Error::MSBMissing("Unable to associate any information with the checksum $checksum in project $project") 
-    unless %msbinfo;
+  # Need to look for the target, instrument and waveband information
+  # If they are not there we need to query the database to configure
+  # the object
+  my $checksum = $msbinfo->checksum;
+  my $project = $msbinfo->projectid;
+  for (qw/ target instrument waveband /) {
+    unless ($msbinfo->$_()) {
+      # Oops. Not here so we have to query
+      $msbinfo = $self->historyMSB( $checksum );
+      last;
+    }
+  }
 
-  # provide a status
-  $msbinfo{status} = $status;
-
-  # Add the comment into the mix
-  $msbinfo{comment} = ( defined $comment ? $comment : '' );
+  # throw an exception if we dont have anything
+  throw OMP::Error::MSBMissing("Unable to associate any information with the checksum '$checksum' in project $project") 
+    unless $msbinfo;
 
   # Add this information to the table
-  $self->_add_msb_done_info( %msbinfo );
+  $self->_add_msb_done_info( $msbinfo, $comment );
 
 
 }
 
-=item B<_organize_msb_done>
+=item B<_reorganize_msb_done>
 
 Given the results from the query (returned as a row per comment)
 convert this output to a hash containing one entry per MSB.
@@ -438,19 +505,8 @@ convert this output to a hash containing one entry per MSB.
   $hashref = $db->_reorganize_msb_done( $query_output );
 
 The resultant data structure is a hash (keyed by checksum)
-each pointing to a hash with keys:
-
-  checksum - the MSB checksum (a repeat of the key)
-  projectid - the MSB project id
-  target
-  waveband
-  instrument
-  comment
-
-C<comment> is a reference to an array containing a reference to a hash
-for each comment associated with the MSB. The hash contains the
-comment itself (C<text>), the C<date> and the C<status> associated
-with that comment.
+each pointing to an C<OMP::Info::MSB> object containing the MSB information
+and related comments.
 
 =cut
 
@@ -464,33 +520,34 @@ sub _reorganize_msb_done {
   my %msbs;
   for my $row (@$rows) {
 
+    # Convert the date to a date object
+    $row->{date} =  OMP::General->parse_date( $row->{date} );
+
     # see if we've met this msb already
     if (exists $msbs{ $row->{checksum} } ) {
 
       # Add the new comment
-      push(@{ $msbs{ $row->{checksum} }->{comment} }, {
-						       text => $row->{comment},
-						       date => $row->{date},
-						       status => $row->{status},
-						      });
+      $msbs{ $row->{checksum} }->addComment( new OMP::Info::Comment(
+								    text => $row->{comment},
+								    date => $row->{date},
+								    status => $row->{status},));
 
 
     } else {
       # populate a new entry
-      $msbs{ $row->{checksum} } = {
+      $msbs{ $row->{checksum} } = new OMP::Info::MSB(
 				   checksum => $row->{checksum},
 				   target => $row->{target},
 				   waveband => $row->{waveband},
 				   instrument => $row->{instrument},
 				   projectid => $row->{projectid},
-				   comment => [
-					       {
-						text => $row->{comment},
-						date => $row->{date},
-						status => $row->{status},
-					       }
+				   comments => [
+					       new OMP::Info::Comment(
+								      text => $row->{comment},
+								      date => $row->{date},
+								      status => $row->{status})
 					      ],
-				  };
+				  );
     }
 
 
@@ -498,91 +555,6 @@ sub _reorganize_msb_done {
 
   return \%msbs;
 
-}
-
-
-=item B<_format_output_info>
-
-Format the data structure generated by C<_reorganize_msb_done>
-to the format required by the particular user. Options are
-"data" (return the data structure with minimal modification) and
-"xml" (return an XML string representing the data structure).
-
-  $output = $db->_format_output_info( $hashref, $checksum, $style);
-
-The checksum is provided in case a subset of the data structure
-is required. The style governs the output format.
-
-=cut
-
-sub _format_output_info {
-  my $self = shift;
-  my %msbs = %{ shift() };
-  my $query = shift;
-  my $style = shift;
-
-  my $checksum = ( scalar($query->checksums()) ? ($query->checksums)[0] : undef );
-
-  # Now form the XML if required
-  if ( defined $style && $style eq 'xml' ) {
-
-    # Wrapper element
-    my $xml = "<msbHistories>\n";
-
-    # loop through each MSB
-    for my $msb (keys %msbs) {
-
-      # If an explicit msb has been mentioned we only want to
-      # include that MSB
-      if ($checksum) {
-	next unless $msb eq $checksum;
-      }
-
-      # Start writing the wrapper element
-      $xml .= " <msbHistory checksum=\"$msb\" projectid=\"" . $msbs{$msb}->{projectid} 
-	. "\">\n";
-
-      # normal keys
-      foreach my $key (qw/ instrument waveband target /) {
-	$xml .= "  <$key>" . $msbs{$msb}->{$key} . "</$key>\n";
-      }
-
-      # Comments
-      for my $comment ( @{ $msbs{$msb}->{comment} } ) {
-	$xml .= "  <comment>\n";
-	for my $key ( qw/ text date status / ) {
-	  $xml .= "    <$key>" . $comment->{$key} . "</$key>\n";
-	}
-	$xml .= "  </comment>\n";
-      }
-
-      $xml .= " </msbHistory>\n";
-
-    }
-
-    $xml .= "</msbHistories>\n";
-
-    return $xml;
-
-  } else {
-    # The data structure returned is actually an array  when checksum
-    # was not defined or a hash ref if it was
-
-    if ($checksum) {
-
-      return $msbs{$checksum};
-
-    } else {
-
-      my @all = map { $msbs{$_} }
-	sort { $msbs{$a}{projectid} cmp $msbs{$b}{projectid} } keys %msbs;
-
-      return \@all;
-
-
-    }
-
-  }
 }
 
 =back

@@ -859,7 +859,7 @@ sub msb_comments_by_project {
   my %sorted;
 
   foreach my $msb (@$comments) {
-    my $projectid = $msb->{projectid};
+    my $projectid = $msb->projectid;
     $sorted{$projectid} = [] unless exists $sorted{projectid};
     push(@{ $sorted{$projectid} }, $msb);
   }
@@ -877,7 +877,7 @@ Creates an HTML table of MSB comments.
 
   msb_comments($cgi, $msbcomments);
 
-Takes a reference to a data structure containing MSBs and their comments
+Takes a reference to an array of C<OMP::Info::MSB> objects.
 
 =cut
 
@@ -892,17 +892,19 @@ sub msb_comments {
   foreach my $msb (@$commentref) {
     $i++;
     print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
-    print "<td><b>Target:</b> $msb->{target}</td>";
-    print "<td><b>Waveband:</b> $msb->{waveband}</td>";
-    print "<td><b>Instrument:</b> $msb->{instrument}</td>";
+    print "<td><b>Target:</b> ".$msb->target ."</td>";
+    print "<td><b>Waveband:</b>". $msb->waveband ."</td>";
+    print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
 
-    foreach my $comment (@{$msb->{comment}}) {
-      ($comment->{status} == OMP__DONE_FETCH) and $bgcolor = '#c9d5ea';
-      ($comment->{status} == OMP__DONE_DONE) and $bgcolor = '#c6bee0';
-      ($comment->{status} == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
-      ($comment->{status} == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
-      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date:</b> $comment->{date}<br>";
-      print "$comment->{text}</td>";
+    foreach my $comment ($msb->comments) {
+      my $status = $comment->status;
+      ($status == OMP__DONE_FETCH)   and $bgcolor = '#c9d5ea';
+      ($status == OMP__DONE_DONE)    and $bgcolor = '#c6bee0';
+      ($status == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
+      ($status == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
+      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date:</b> " .
+	$comment->date ."<br>";
+      print $comment->text ."</td>";
     }
 
     print "<tr><td align=right colspan=4>";
@@ -912,9 +914,9 @@ sub msb_comments {
     ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
 					       -default=>$q->param('utdate'));
     print $q->hidden(-name=>'checksum',
-		     -default=>$msb->{checksum});
+		     -default=>$msb->checksum);
     print $q->hidden(-name=>'projectid',
-		     -default=>$msb->{projectid});
+		     -default=>$msb->projectid);
     print $q->submit("Add Comment");
     print " ";
     print $q->submit("Mark as Done");
