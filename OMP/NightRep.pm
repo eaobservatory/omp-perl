@@ -616,6 +616,24 @@ sub ecTime {
   return $dbacct->ec_time;
 }
 
+=item B<shutdownTime>
+
+Return the time spent on planned shutdowns during this reporting period for
+this telescope.
+
+  my $time = $nr->shutdownTime();
+
+Returns a C<Time::Seconds> object.
+
+=cut
+
+sub shutdownTime {
+  my $self = shift;
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->shutdown_time;
+}
+
 =item B<obs>
 
 Return the observation details relevant to this night and UT date.
@@ -1071,8 +1089,17 @@ sub ashtml {
     print "<p>";
   }
 
-
   # T i m e  A c c o u n t i n g
+
+  # Get planned shutdown time
+  my $shuttime = $self->shutdownTime;
+
+  # Convert shutdown time to hours, we won't ever want to see seconds.
+  $shuttime = $shuttime->hours;
+
+  # Add shutdown time to total
+  $total += $shuttime;
+
   # Get project accounting
   my %acct = $self->accounting_db(1);
 
@@ -1081,6 +1108,14 @@ sub ashtml {
   print "<table class='sum_table' cellspacing='0' width='600'>";
   print "<tr class='sum_table_head'>";
   print "<td colspan='3'><strong class='small_title'>Project Time Summary</strong></td>";
+
+  # Planned shutdown time
+  if ($shuttime) {
+    print "<tr class='sum_other'>";
+    print "<td>Planned shutdown</td>";
+    print "<td colspan='2'>". sprintf($format, $shuttime) . "</td>";
+    print "</tr>";
+  }
 
   # Time lost to faults
   my $faultloss = $self->timelost->hours;
