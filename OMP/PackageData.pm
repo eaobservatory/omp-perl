@@ -1,3 +1,5 @@
+package OMP::PackageData;
+
 =head1 NAME
 
 OMP::PackageData - Package up data for retrieval by PI
@@ -29,15 +31,22 @@ files.
 use 5.006;
 use strict;
 use warnings;
+use Carp;
 
 use vars qw/ $VERSION /;
 $VERSION = '0.01';
 
 use File::Spec;
+use File::Copy;
+use File::Basename;
+use Cwd;
 use OMP::General;
 use OMP::Error;
+use OMP::ProjServer;
 use OMP::Info::ObsGroup;
 use File::Temp qw/ tempdir /;
+use OMP::Config;
+use Archive::Tar;
 
 =head1 METHODS
 
@@ -50,6 +59,7 @@ use File::Temp qw/ tempdir /;
 Object constructor. Requires a project and a ut date.
 
   $pkg = new OMP::PackageData( projectid => 'blah',
+			       password => $pass,
 			       utdate => '2002-09-17');
 
 UT date can either be a Time::Piece object or a string in the
@@ -64,19 +74,23 @@ sub new {
   my $pkg = bless {
 		   ProjectID => undef,
 		   UTDate => undef,
-		   RootTmpDir => File::Spec->tmpdir,
+		   RootTmpDir => OMP::Config->getData('tmpdir'),
 		   TmpDir => undef,
-		   FtpRootDir => undef,
+		   FtpRootDir => OMP::Config->getData('ftpdir'),
 		   Verbose => 1,
 		   ObsGroup => undef,
 		   TarFile => undef,
 		   Password => undef,
+		   UTDir => undef,
+		   FTPDir => undef,
+		   Key => undef,
 		  };
 
   if (@_) {
     $pkg->_populate( @_ );
   }
 
+  return $pkg;
 }
 
 =back
@@ -139,12 +153,12 @@ sub utdate {
       if (not ref $ut) {
 	# A scalar, try to parse
 	my $parsed = OMP::General->parse_date($ut);
-	throw OMP::Error::BadArgs("Unable to parse string '$ut' as a date. Must be YYYY-MM-DD");
+	throw OMP::Error::BadArgs("Unable to parse string '$ut' as a date. Must be YYYY-MM-DD") unless $parsed;
 	
 	# overwrite $ut
 	$ut = $parsed;
 
-      } elsif (!UNIVERSAL::isa($ut, "Time::Piece") {
+      } elsif (!UNIVERSAL::isa($ut, "Time::Piece")) {
 	throw OMP::Error::BadArgs("The object supplied to utdate method must be a Time::Piece");
       }
     }
@@ -192,6 +206,31 @@ sub verbose {
   return $self->{Verbose};
 }
 
+=item B<key>
+
+Return the "unique" key associated with this transaction. This
+allows multiple FTP transactions to be running at the same time
+with out clashing directories.
+
+ $key = $pkg->key;
+
+A key is automatically generated if one does not exist. Use the
+C<keygen> method to force a new key to be generated.
+
+=cut
+
+sub key {
+  my $self = shift;
+  if (@_) {
+    $self->{Key} = shift;
+  }
+  if (!defined $self->{Key}) {
+    # Hopefully we will not get into an infinite loop
+    $self->keygen;
+  }
+  return $self->{Key};
+}
+
 =item B<tarfile>
 
 Name of the final packaged tar file.
@@ -213,7 +252,8 @@ sub tarfile {
 Location where any temporary directories and files are to be
 written during the archive file creation. This is not necessarily
 the same as the FTP directory in which the tar file will
-appear (see C<ftp_tmpdir>).
+appear (see C<ftp_rootdir>). Defaults to the "tmpdir" setting in
+the C<OMP::Config> system.
 
 Temporary files created in here will be removed when the process
 completes.
@@ -231,7 +271,7 @@ sub root_tmpdir {
 =item B<ftp_rootdir>
 
 Location where any temporary directories and files are to be written
-to on the FTP server. Defaults to C<root_tmpdir> if undefined.
+to on the FTP server. Defaults to OMP::Config entry "ftpdir".
 
 Directories in this directory older than 1 day will be removed
 automatically when new directories are created.
@@ -243,9 +283,7 @@ sub ftp_rootdir {
   if (@_) {
     $self->{FtpRootDir} = shift;
   }
-  # Default to RootTmpDir if not defined
-  my $dir = $self->{FtpRootDir};
-  return (defined $dir ? $dir : $self->root_tmpdir);
+  return $self->{FtpRootDir};
 }
 
 =item B<tmpdir>
@@ -266,6 +304,42 @@ sub tmpdir {
   return $self->{TmpDir};
 }
 
+=item B<ftpdir>
+
+Location in which the ftp tar file will be stored.
+
+  $pkg->ftpdir( $ftpdir );
+  $dir = $pkg->ftpdir;
+
+=cut
+
+sub ftpdir {
+  my $self = shift;
+  if (@_) {
+    $self->{FTPDir} = shift;
+  }
+  return $self->{FTPDir};
+}
+
+=item B<utdir>
+
+Name of date-stamped directory in which the temporary files
+are placed prior to creating the tar file. This allows the
+directory to be untarred with the correct structure.
+
+  $pkg->utdir( $utdir );
+  $utdir = $pkg->utdir;
+
+=cut
+
+sub utdir {
+  my $self = shift;
+  if (@_) {
+    $self->{UTDir} = shift;
+  }
+  return $self->{UTDir};
+}
+
 
 =back
 
@@ -283,6 +357,10 @@ create tar file and place tar file in FTP directory.
 Once packaged, the tar file name can be retrieved using the
 tarfile() method.
 
+We could build the tar file in memory but this may take up
+too much memory for large transactions (but we would not
+need to have a temporary directory)
+
 =cut
 
 sub pkgdata {
@@ -292,15 +370,38 @@ sub pkgdata {
   OMP::ProjServer->verifyPassword($self->projectid, $self->password)
       or throw OMP::Error::Authentication("Unable to verify project password");
 
-  # Create the temp directory
+  # Force a new key to make sure we can be called multiple times
+  $self->keygen;
+
+  # Create the temp directories
+  $self->_mktmpdir;
+  $self->_mkutdir;
 
   # Copy the data into it
+  $self->_copy_data();
+
+  # Create directory in FTP server to hold the tar file
+  $self->_mkftpdir();
 
   # Create the tar file from the temp direcotry to
   # the FTP directory
+  $self->_mktarfile();
 
-  # store the tar file name
+}
 
+=item B<keygen>
+
+Force a new key to be generated. If this is done during data 
+packaging there is a very good chance that things will get confused.
+
+  $pkg->keygen;
+
+=cut
+
+sub keygen {
+  my $self = shift;
+  my $rand = int( rand( 9999999999 ) );
+  $self->key( $rand );
 }
 
 =back
@@ -344,7 +445,7 @@ sub _populate {
 
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
-  my $proj = OMP::ProjServer->($self->projectid, $self->password, 'object');
+  my $proj = OMP::ProjServer->projectDetails($self->projectid, $self->password, 'object');
 
   my $tel = $proj->telescope;
 
@@ -356,11 +457,13 @@ sub _populate {
 				     utdate => $self->utdate,
 				   );
 
-  # Now go through and get the bits me need
-  my @match
+  # Now go through and get the bits we need
+  # Anything associated with the project or anything from the
+  # night that is not a science observation
+  my @match;
   for my $obs ($grp->obs) {
     if ($obs->projectid eq $self->projectid ||
-       $obs->iscal) {
+       ! $obs->isScience) {
       push(@match, $obs);
     }
   }
@@ -386,14 +489,187 @@ sub _mktmpdir {
   throw OMP::Error::FatalError("Attempt to create temporary directory failed because we have no root dir")
     unless $root;
 
-  # create the directory. We will cleanup ourselves in the destructor
-  my $dir = tempdir( DIR => $root );
+  # create the directory. For now force cleanup at end. Need to
+  # decide whether object destructor is okay to use since that implies
+  # only one packaging per usage.
+  my $dir = tempdir( DIR => $root, CLEANUP => 1 );
 
   # store it
   $self->tmpdir( $dir );
 
 }
 
+
+=item B<_mkutdir>
+
+Make the UT date-stamped directory in which we will create the
+tar files.
+
+=cut
+
+sub _mkutdir {
+  my $self = shift;
+  my $ut = $self->utdate;
+
+  my $yyyymmdd = $ut->strftime("%Y%m%d");
+
+  my $tmpdir = $self->tmpdir;
+  my $utdir = File::Spec->catdir($tmpdir, $yyyymmdd);
+
+  mkdir $utdir
+    or croak "Error creating directory for UT files: $utdir - $!";
+
+  $self->utdir( $utdir );
+
+}
+
+=item B<_mkftpdir>
+
+Create the ftp directory that will contain the tar file. This directory
+is given a random name based on a large random integer. Could just
+as easily use Crypt::PassGen.
+
+=cut
+
+sub _mkftpdir {
+  my $self = shift;
+  my $ftproot = $self->ftp_rootdir;
+
+  my $key = $self->key;
+
+  my $ftpdir = File::Spec->catdir($ftproot, $key);
+
+  mkdir $ftpdir
+    or croak "Error creating directory for FTP files: $ftpdir - $!";
+
+  $self->ftpdir( $ftpdir );
+
+}
+
+
+
+=item B<_copy_data>
+
+Copy the files from the data directory to our temporary directory
+ready for copying.
+
+  $pkg->_copy_data();
+
+=cut
+
+sub _copy_data {
+  my $self = shift;
+  my $grp = $self->obsGrp;
+
+  my $outdir = $self->utdir();
+  throw OMP::Error::FatalError("Output directory not defined for copy")
+    unless defined $outdir;
+
+  # Loop over each file
+  my $count = 0;
+  for my $obs ($grp->obs) {
+    my $file = $obs->filename;
+
+    # what if we can not find it
+    if ( !-e $file ) {
+      print "Unable to locate file $file. Not copying\n";
+      $obs->filename('');
+      next;
+    }
+
+    # Get the actual filename without path
+    my $base = basename( $file );
+    my $outfile = File::Spec->catfile( $outdir, $base );
+
+    print STDOUT "Copying file $base to temporary location..."
+      if $self->verbose;
+
+    my $status = copy( $file, $outfile);
+
+    if ($status) {
+      print "Complete\n" if $self->verbose;
+      $count++;
+
+      # change the filename in the object
+      $obs->filename( $outfile );
+
+    } else {
+      print "Encountered error ($!). Skipping file\n" if $self->verbose;
+
+      # effectively disable it
+      $obs->filename( '' );
+
+    }
+
+
+  }
+
+  print "Copied $count files out of ".scalar(@{$grp->obs}) ."\n"
+    if $self->verbose;
+
+  throw OMP::Error::FatalError("Unable to copy any files. Aborting.")
+    if $count == 0;
+
+}
+
+=item B<_mktarfile>
+
+Create a tar file from the copied data files.
+
+  $pkg->_mktarfile();
+
+=cut
+
+sub _mktarfile {
+  my $self = shift;
+
+  # We need to know the directory to be tarred and the output directory
+  my $utdir = $self->utdir;
+  my $ftpdir = $self->ftpdir;
+  my $utdate = $self->utdate;
+  my $utstr = $utdate->strftime( "%Y%m%d" );
+
+  # Generate the tar file name
+  my $outfile = File::Spec->catfile( $ftpdir,
+				     "ompdata_$utstr" . "_$$".".tar.gz"
+				   );
+
+  print STDOUT "Creating tar file ". basename($outfile) ."..."
+    if $self->verbose;
+
+  # Create the tar file
+  # First need to cd to the temp directory (remembering where we started
+  # from)
+  my $cwd = getcwd;
+
+  my $root = File::Spec->catdir($utdir, File::Spec->updir);
+  chdir $root || croak "Error changing to tar directory $root: $!";
+
+  # The directory we want to tar up is the last directory in $tardir
+  my @dirs = File::Spec->splitdir( $utdir );
+  my $tardir = $dirs[-1];
+
+  # we also need to explicitly read that directory
+  opendir my $dh, $utdir
+    or croak "Error reading dir $utdir to get tar files: $!";
+  my @files = map { File::Spec->catfile($tardir,$_) } 
+    grep { $_ !~ /^\./ } readdir $dh;
+  closedir $dh or croak "Error closing dir handle for $utdir: $!";
+
+  # Finally create the tar file
+  Archive::Tar->create_archive($outfile, 9, $tardir,@files )
+      or croak "Error creating tar file in $outfile: ".&Tar::error;
+
+  # change back again
+  chdir $cwd || croak "Error changing back to directory $cwd: $!";
+
+  print STDOUT "Done\n"
+    if $self->verbose;
+
+  # Store the tar file name
+  $self->tarfile ( $outfile );
+
+}
 
 =back
 
