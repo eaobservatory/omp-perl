@@ -72,6 +72,7 @@ sub new {
 		    Encrypted => undef,
 		    Password => undef,
 		    ProjectID => undef,
+		    TauRange => undef,
 		    CoI => [],
 		    TagPriority => 999,
 		    PI => undef,
@@ -110,6 +111,11 @@ The time allocated for the project (in seconds).
   $time = $proj->allocated;
   $proj->allocated( $time );
 
+Note that for semesters 02B (SCUBA) no projects were allocated time at
+non-contiguous weather bands. In the future this will not be the case
+so whilst this method will always return the total allocated time the
+internals of the module may be much more complicated.
+
 =cut
 
 sub allocated {
@@ -117,6 +123,33 @@ sub allocated {
   if (@_) { $self->{Allocated} = shift; }
   return $self->{Allocated};
 }
+
+=item B<taurange>
+
+Range of CSO tau in which the observations can be performed (the allocation
+is set for this tau range). No observations can be performed when the CSO
+tau is not within this range.
+
+  $range = $proj->taurange();
+
+Returns an C<OMP::Range> object.
+
+This interface will change when non-contiguous tau ranges are supported.
+(The method may even disappear).
+
+=cut
+
+sub taurange {
+  my $self = shift;
+  if (@_) {
+    my $range = shift;
+    croak "Tau range must be specified as an OMP::Range object"
+      unless UNIVERSAL::isa($range, "OMP::Range");
+    $self->{TauRange} = $range;
+  }
+  return $self->{TauRange};
+}
+
 
 =item B<telescope>
 

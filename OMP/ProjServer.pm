@@ -272,15 +272,18 @@ Add details of a project to the database.
 			      $coi, $support,
 			     $title, $tagpriority, $country,
 			     $semester, $proj_password, $allocated
-                             $telescope);
+                             $telescope, $taumin, $taumax);
 
 The first password is used to verify that you are allowed to modify
 the project table. The second password is for the project itself.
 Both should be supplied as plain text.
 
+taumin and taumax are optional (assume minimum of zero and
+no upper limit).
+
 We may not want to have this as a public method on a SOAP Server!
 
-People are supplied as OMP User IDs. CoI and Support can be colon
+People are supplied as OMP User IDs. CoI and Support can be colon or comma
 separated.
 
 =cut
@@ -294,19 +297,25 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) == 11;
+    throw OMP::Error::BadArgs("Should be at least 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 11;
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
     # Split CoI and Support on colon
     my @coi;
     if ($project[2]) {
-      @coi = map { $userdb->getUser($_) }split /:/, $project[2];
+      @coi = map { $userdb->getUser($_) 
+		     or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
+        split /[:,]/, $project[2];
     }
     my @support;
     if ($project[3]) {
-      @support = map { $userdb->getUser($_) }split /:/, $project[3];
+      @support = map { $userdb->getUser($_) or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]") } split /[:,]/, $project[3];
     }
+
+    # Create range object for tau (defaulting to lower bound of zero
+    $project[12] = 0 unless defined $project[12];
+    my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
 
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
@@ -321,6 +330,7 @@ sub addProject {
 				password => $project[8],
 				allocated => $project[9],
 				telescope => $project[10],
+				taurange => $taurange,
 			       );
 
     my $db = new OMP::ProjDB(
@@ -328,7 +338,6 @@ sub addProject {
 			     DB => $class->dbConnection,
 			     ProjectID => $proj->projectid,
 			    );
-
 
     $db->addProject( $proj );
 

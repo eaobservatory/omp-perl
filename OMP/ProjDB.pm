@@ -712,14 +712,19 @@ sub _insert_project_row {
   my $self = shift;
   my $proj = shift;
 
-  # Insert the generic data into table
+  # Get some extra information
   my $pi = $proj->pi->userid;
+  my $taurange = $proj->taurange;
+  # NULL is a valid upper limit. 0 is always valid lower limit
+  my ($taumin, $taumax) = ( $taurange ? $taurange->minmax : (0,undef));
+
+  # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
 			  $proj->projectid, $pi,
 			  $proj->title, $proj->tagpriority,
 			  $proj->country, $proj->semester, $proj->encrypted,
 			  $proj->allocated, $proj->remaining, $proj->pending,
-			  $proj->telescope
+			  $proj->telescope,$taumin,$taumax
 			);
 
   # Now insert the user data
@@ -788,6 +793,15 @@ sub _get_projects {
     # Remove the user id from PI field
     my $piuserid = $projhash->{pi};
     delete $projhash->{pi};
+
+    # Convert the taumin, taumax to a OMP::Range object
+    # old entries may have NULL for min when we really mean ZERO
+    $projhash->{taumin} = 0 unless defined $projhash->{taumin};
+    $projhash->taurange( new OMP::Range(Min => $projhash->{taumin},
+					Max => $projhash->{taumax},
+				       ));
+    delete $projhash->{taumin};
+    delete $projhash->{taumax};
 
     # Create a new OMP::Project object
     my $proj = new OMP::Project( %$projhash );
