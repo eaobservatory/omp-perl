@@ -600,7 +600,12 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
   # Our address list will start with the fault category's mailing list
   # COMMENTED OUT DURING TESTING
-  # unshift(@addr, $fault->mail_list);
+  # In order to get this partially working I have deleted the mailing lists
+  # in OMP::Fault except for the OMP mailing list - TJ
+  # add test here for undef mail_list
+  my $fault_list = $fault->mail_list;
+  unshift(@addr, $fault_list)
+    if defined $fault_list;
 
 #  if (! $addr[0]) {
 #    # There's no one to send this thing to so let's just return
