@@ -42,3 +42,7 @@ To Do list for the OMP SOAP Servers
 - When we can support multiple allocations for a single project (keyed by tau
 range) "doneMSB" will require a tau value since we will need to know from
 which allocation the time should be subtracted.
+
+- possibly add extra meta-data to the ompuser table and OMP::User object to
+allow us to distinguish STAFF users (eg TIMJ), from SCIENCE users (eg
+JENNESST), from SOFTWARE users (eg JCMT, UKIRT)
