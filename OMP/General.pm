@@ -19,7 +19,7 @@ For example, date parsing is required in the MSB class and in the query class.
 
 =cut
 
-use Time::Piece;
+use Time::Piece ':override';
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -70,15 +70,21 @@ sub parse_date {
   # the object in a state that can be used for sybase queries
   # This won't work if we use standard overridden gmtime.
   # Note also that this time is treated as "local" rather than "gm"
-  my $time = eval { Time::Piece::Sybase->strptime( $date, $format ); };
+  my $time = eval { Time::Piece->strptime( $date, $format ); };
   if ($@) {
     return undef;
   } else {
-    # Convert to gmtime by adding on tzoffset
-    # This is always a Time::Piece (another bug).
-    $time -= $time->tzoffset;
+    # Note that the above constructor actually assumes the date
+    # to be parsed is a local time not UTC. To switch to UTC
+    # simply get the epoch seconds and the timezone offset
+    # and run gmtime
+    my $tzoffset = $time->tzoffset;
+    my $epoch = $time->epoch;
+    my $time = gmtime( $epoch + $tzoffset );
 
+    # Now need to bless into class Time::Piece::Sybase
     return bless $time, "Time::Piece::Sybase";
+
   }
 
 }
