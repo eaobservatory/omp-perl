@@ -107,6 +107,9 @@ $ut = "2002-08-29";
   # Print a header.
   print "For UT $ut the following projects were observed:<br>\n";
   print $q->startform;
+  print $q->hidden( -name => 'ut',
+                    -default => $ut,
+                  );
   print "<table>";
   print "<tr><th>Project</th><th>Hours</th><th>Status</th></tr>\n";
   # For each TimeAcct object, print a form entry.
@@ -158,7 +161,8 @@ $ut = "2002-08-29";
 }
 
 sub submit_allocations {
-  my $q = shift;
+  my $query = shift;
+  my $q = $query->Vars;
 
   # Grab the UT date from the query object. If it does not exist,
   # default to the current UT date.
@@ -186,6 +190,7 @@ sub submit_allocations {
     my $t = new OMP::Project::TimeAcct( projectid => $projectid,
                                         date => OMP::General->parse_date($ut),
                                         timespent => new Time::Seconds( $timealloc{$projectid} * 3600 ),
+                                        confirmed => 1,
                                       );
     push @acct, $t;
   }
