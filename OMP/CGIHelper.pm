@@ -367,6 +367,22 @@ sub fb_msb_output {
 
   proj_status_table($q, %cookie);
   fb_entries_hidden($q, %cookie);
+
+  ($q->param("Add Comment")) and msb_comment_form($q);
+
+  if ($q->param("Submit")) {
+    try {
+      OMP::MSBServer->addMSBcomment( $q->param('projectid'), $q->param('msbid'), $q->param('comment'));
+      print $q->h2("MSB comment successfully submitted");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to submit the comment: $Error";
+    };
+
+  }
+
   msb_sum($q, %cookie);
 }
 
