@@ -347,7 +347,7 @@ sub sql {
 
                 DROP TABLE $tempcount";
 
-#  print "SQL: $sql\n";
+  #print "SQL: $sql\n";
 
 
   return "$sql\n";
@@ -409,7 +409,13 @@ sub _convert_to_perl {
 
       if ($grand->isa("XML::LibXML::Text")) {
 
-	$self->_add_text_to_hash( \%query, $name, $grand->toString );
+	# This is just PCDATA
+
+	# Make sure this is not simply white space
+	my $string = $grand->toString;
+	next unless $string =~ /\w/;
+
+	$self->_add_text_to_hash( \%query, $name, $string );
 
       } else {
 
@@ -481,6 +487,12 @@ sub _add_text_to_hash {
 
   # primary key is the secondkey if we are not special
   $key = $secondkey unless $special or length($secondkey) eq 0;
+
+  # Clean up the value since SQL does not like new lines
+  # in the middle of a clause
+  $value =~ s/^\s+//;
+  $value =~ s/\s+\Z//;
+
 
   if (exists $hash->{$key}) {
 
