@@ -500,8 +500,13 @@ sub obs_table {
 
     } else {
       print "</font></td><td><a class=\"link_dark_small\" href=\"$commentlink?ut=";
-      $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
-      $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+        $obsut = $obs->endobs->ymd . "-" . $obs->endobs->hour;
+        $obsut .= "-" . $obs->endobs->minute . "-" . $obs->startobs->second;
+      } else {
+        $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+        $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+      }
       print $obsut;
       print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
       if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
