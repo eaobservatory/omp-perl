@@ -350,15 +350,27 @@ sub _read_configs {
 
   print Dumper(\%read) if $DEBUG;
 
+  # if we have a siteconfig override environment variable, read that
+  my %envsite;
+  if (exists $ENV{OMP_SITE_CONFIG}) {
+    if (-e $ENV{OMP_SITE_CONFIG}) {
+      my ($slab, $site) = $class->_read_cfg_file( $ENV{OMP_SITE_CONFIG} );
+      %envsite = %$site;
+    } else {
+      warnings::warnif("Site config specified as '$ENV{OMP_SITE_CONFIG}' in \$OMP_SITE_CONFIG but could not be found");
+    }
+  }
+
   # Now need to merge information with the omp defaults
   # and the telescope values so that we do not have to
-  # look in two places for each lookup
-  $CONFIG{omp} = $read{omp};
+  # look in two places for each lookup.
+  # We also override the contents from the environment variable site config
+  # which overrides everything
+  $CONFIG{omp} = { %{$read{omp}}, %envsite };
   delete $read{omp};
 
   for my $cfg (keys %read) {
-    my %copy = (%{$CONFIG{omp}}, %{$read{$cfg}});
-    $CONFIG{$cfg} = \%copy;
+    $CONFIG{$cfg} = { %{$CONFIG{omp}}, %{$read{$cfg}} };
   }
 
   # done
@@ -488,18 +500,6 @@ sub _read_cfg_file {
       %cfg = ( %cfg, %$site );
     } else {
       warnings::warnif("Site config specified in '$file' as '$cfg{siteconfig}' but could not be found");
-    }
-  }
-
-  # if we have a siteconfig override environment variable, read that
-  if (exists $ENV{OMP_SITE_CONFIG}) {
-    if (-e $ENV{OMP_SITE_CONFIG}) {
-      my ($slab, $site) = $class->_read_cfg_file( $ENV{OMP_SITE_CONFIG} );
-
-      # Site overrides local
-      %cfg = ( %cfg, %$site );
-    } else {
-      warnings::warnif("Site config specified as '$file' in \$OMP_SITE_CONFIG but could not be found");
     }
   }
 
