@@ -441,7 +441,12 @@ sub SpIterSkydipObs {
   }
 
   # Override project ID for all calibrations?
-  $odf{PROJECT_ID} = 'SCUBA';
+  # we do not want to voerride projectids since we need to
+  # know what the project really was in order to doneMSB even
+  # if we dont charge. This is because the queue only has access
+  # the ODFs and currently only looks in the last entry - if you
+  # end at a skydip you wont get a doneMSB.
+  #$odf{PROJECT_ID} = 'SCUBA';
 
   return %odf;
 }
