@@ -160,7 +160,7 @@ sub fault_table {
     or "<b><font color=#a00c0c>Closed</font></b>";
 
   # First show the fault info
-  print "<table bgcolor=#ffffff cellspacing=3 width=620>";
+  print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=620>";
   print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Urgency: </b>" . $fault->urgency . "</td>";
@@ -168,10 +168,11 @@ sub fault_table {
   print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>" . $fault->subject . "</td>";
 
   # Then loop through and display each response
-#  my @responses = $fault->responses;
-#  for my $resp (@responses) {
-#    print
-#  }
+  my @responses = $fault->responses;
+  for my $resp (@responses) {
+    print "<tr bgcolor=#bcbce2><td><b>Author: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
+    print "<tr bgcolor=#bcbce2><td colspan=2><blockquote>" . $resp->text . "</blockquote></td>";
+  }
   print "</table>";
 }
 
