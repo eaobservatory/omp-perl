@@ -29,6 +29,7 @@ use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error;
 use OMP::Fault;
+use OMP::FaultDB;
 use OMP::CGIFault;
 use HTML::WWWTheme;
 
@@ -210,8 +211,16 @@ sub _sidebar_logout {
   my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
 		      "<a href='fbmsb.pl'>Program details</a>",
 		      "<a href='fbcomment.pl'>Add comment</a>",
-		      "<a href='msbhist.pl'>MSB History</a>",
-		      "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
+		      "<a href='msbhist.pl'>MSB History</a>",);
+
+  # If there are any faults associated with this project put a link up to the
+  # fault system and display the number of faults.
+  my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
+  my @faults = $faultdb->getAssociations($cookie{projectid},1);
+  push (@sidebarlinks, "<a href=fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
+    if ($faults[0]);
+
+  push (@sidebarlinks, "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
@@ -471,7 +480,6 @@ sub write_page {
 
     } elsif (! exists $cookie{password} and !$q->url_param('urlprojid')) {
       # Else no password at all (even in the cookie) so put up log in form
-      # Just put up the password form
 
       $self->_write_login;
 
@@ -515,10 +523,11 @@ sub write_page {
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
 
-    if ($q->param('login_form') or $q->param('show_content')) {
+    if ($q->param('login_form') or $q->param('show_content') or $q->url_param('id')) {
       # If there's a 'login_form' param then we know we just came from
       # the login form.  Also, if there is a 'show_content' param, call
-      # the content code ref.
+      # the content code ref.  If an 'id' url parameter exists then show content (for
+      # viewing faults by specifying their id in the url).
 
       $form_content->( $q, %cookie);
     } else {
