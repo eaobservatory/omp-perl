@@ -1485,7 +1485,7 @@ sub _get_sched_constraints {
   # create an OMP::Range object regardless
   my $minel = $self->_get_pcdata( $el, "minEl");
   my $maxel = $self->_get_pcdata( $el, "maxEl");
-  $summary{minel} = new OMP::Range( Min => $minel, Max => $maxel);
+  $summary{elevation} = new OMP::Range( Min => $minel, Max => $maxel);
 
   # See whether we have any period specified
   $summary{period} = $self->_get_pcdata( $el, "period" );
