@@ -28,10 +28,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use lib qw( /jac_sw/omp/msbserver );
-#use lib qw( /home/bradc/development/omp/msbserver );
 use lib qw( /jcmt_sw/oracdr/lib/perl5 );
-#use lib qw( /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib );
 
 use OMP::ArcQuery;
 use OMP::General;
