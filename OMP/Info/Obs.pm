@@ -42,6 +42,7 @@ use Astro::FITS::Header::NDF;
 use Astro::FITS::Header::GSD;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
+use Astro::Telescope;
 use Astro::Coords;
 use Time::Piece;
 use Text::Wrap qw/ $columns &wrap /;
