@@ -1713,7 +1713,7 @@ sub projlog_content {
 
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
 					       date => $utdate,
-					       returnall => 1,
+					       returnall => 0,
 					       format => 'data',});
   print $q->h2("MSB history for $utdate");
   msb_comments($q, $observed, $sp);
