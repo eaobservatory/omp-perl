@@ -285,7 +285,11 @@ sub display_form {
 
 =item B<submit_allocations>
 
-NONE
+Submit time allocations into the database.
+
+  submit_allocations( $qhash );
+
+The only argument is a reference hash of query variables from a C<CGI> object.
 
 =cut
 
@@ -331,6 +335,17 @@ sub submit_allocations {
   $db->setTimeSpent( @acct );
 }
 
+=item B<display_ut_form>
+
+Display a form that allows the user to change the UT date.
+
+  display_ut_form( $cgi, $qhash );
+
+The first argument is the C<CGI> object, and the second argument
+is a reference to a hash containing C<CGI> query variables.
+
+=cut
+
 sub display_ut_form {
   my $query = shift;
   my $q = shift;
@@ -352,7 +367,12 @@ sub display_ut_form {
 
 =item B<verify_query>
 
-NONE
+Verify C<CGI> query variables.
+
+  $verified = verify_query( $qhash );
+
+The only argument is a reference to a hash containing C<CGI>
+query variables. A hash reference is returned.
 
 =cut
 
