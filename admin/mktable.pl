@@ -40,8 +40,8 @@ my %tables = (
 			  projectid => "VARCHAR(32)",
 			  pi => "VARCHAR(255)",
 			  piemail => "VARCHAR(64)",
-			  coi => "VARCHAR(255)",
-			  coiemail => "VARCHAR(64)",
+			  coi => "VARCHAR(255) NULL",
+			  coiemail => "VARCHAR(64) NULL",
 			  remaining => "REAL",
 			  pending => "REAL",
 			  allocated => "REAL",
@@ -81,6 +81,8 @@ my %tables = (
 	     );
 
 for my $table (sort keys %tables) {
+  #next unless $table eq 'ompproj';
+
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
