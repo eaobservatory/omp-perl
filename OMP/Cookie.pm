@@ -11,7 +11,11 @@ OMP::Cookie - Cookie management
 
   $c = new OMP::Cookie( CGI => $q, Name => $name );
 
-  $c->setCookie( password => $pass, projectid => $projid );
+  $c->setCookie( $exptime, {
+			    password => $pass,
+			    projectid => $projid 
+			   } );
+
   %contents = $c->getCookie;
 
   $c->flushCookie;
@@ -171,6 +175,9 @@ sub setCookie {
 
 sub getCookie {
   my $self = shift;
+  my $cgi = $self->cgi
+    or throw OMP::Error::FatalError("No CGI object present\n");
+
   return $cgi->cookie($self->cookie);
 }
 
