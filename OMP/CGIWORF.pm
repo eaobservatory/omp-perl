@@ -249,7 +249,6 @@ sub thumbnails_page {
     FILELOOP: foreach my $file ( @matchfiles ) {
 
       if( $file =~ /_0_/ ) { next FILELOOP; }
-
       my $obs;
       try {
         $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
@@ -274,9 +273,15 @@ sub thumbnails_page {
         $worf = new OMP::WORF( obs => $obs );
       }
       catch OMP::Error with {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print STDERR "Unable to form WORF object: $errortext\n";
         next FILELOOP;
       }
       otherwise {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print STDERR "Unable to form WORF object: $errortext\n";
         next FILELOOP;
       };
 
