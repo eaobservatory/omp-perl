@@ -92,7 +92,7 @@ sub new {
 
   # Check that we have author and text
   croak "Must supply a fault author"
-    unless $resp->author;
+    unless ref($resp->author);
   croak "Must supply a fault response (text)"
     unless $resp->text;
 
