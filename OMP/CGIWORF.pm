@@ -54,9 +54,25 @@ All routines are exported by default.
 
 sub display_page {
   my $cgi = shift;
+  my %cookie = @_;
   my $qv = $cgi->Vars;
 
-#  print_worf_header();
+  my $projectid;
+  my $password;
+
+  if( exists( $cookie{projectid} ) && defined( $cookie{projectid} ) ) {
+    $projectid = $cookie{projectid};
+    $password = $cookie{password};
+  } else {
+    $projectid = 'staff';
+  }
+
+  my $project;
+  if( $projectid ne 'staff' ) {
+    $project = OMP::ProjServer->projectDetails( $projectid,
+                                                $password,
+                                                'object' );
+  }
 
   $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
   my $ut = $1;
@@ -65,6 +81,13 @@ sub display_page {
   my $obs = $adb->getObs( instrument => $qv->{'inst'},
                           ut => $1,
                           runnr => $qv->{'runnr'} );
+
+  if( $projectid ne 'staff' && lc( $obs->projectid ) ne lc( $projectid ) &&
+      $obs->isScience ) {
+    print "Observation does not match project $projectid.\n";
+    return;
+  }
+
   my @obs;
   push @obs, $obs;
   my $group = new OMP::Info::ObsGroup( obs => \@obs );
@@ -99,20 +122,53 @@ sub display_page {
 
 sub thumbnails_page {
   my $cgi = shift;
+  my %cookie = @_;
   my $qv = $cgi->Vars;
+
+  my $projectid;
+  my $password;
+
+  if( exists( $cookie{projectid} ) && defined( $cookie{projectid} ) ) {
+    $projectid = $cookie{projectid};
+    $password = $cookie{password};
+  } else {
+    $projectid = 'staff';
+  }
+
+  my $project;
+  my $worflink;
+  if( $projectid ne 'staff' ) {
+    $project = OMP::ProjServer->projectDetails( $projectid,
+                                                $password,
+                                                'object' );
+    $worflink = "fbworf.pl";
+  } else {
+    $worflink = "staffworf.pl";
+  }
 
   # Figure out which telescope we're doing.
   my $telescope;
   if( exists($qv->{'telescope'}) && defined( $qv->{'telescope'} ) ) {
     $telescope = $qv->{'telescope'};
   } else {
-    my $hostname = hostfqdn;
-    if($hostname =~ /ulili/i) {
-      $telescope = "JCMT";
-    } elsif ($hostname =~ /mauiola/i) {
-      $telescope = "UKIRT";
-    } else {
-      throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
+
+    # Try to determine the telescope from the project details.
+    if( defined( $project ) ) {
+      $telescope = $project->telescope;
+    }
+
+    if( !defined( $telescope ) ) {
+
+      # Use the hostname of the computer we're running on.
+      my $hostname = hostfqdn;
+      if($hostname =~ /ulili/i) {
+        $telescope = "JCMT";
+      } elsif ($hostname =~ /mauiola/i) {
+        $telescope = "UKIRT";
+      } else {
+
+        throw OMP::Error::BadArgs("Must include telescope when attempting to view thumbnail page.\n");
+      }
     }
   }
 
@@ -205,9 +261,10 @@ sub thumbnails_page {
       otherwise {
         next FILELOOP;
       };
+
       # If necessary, let's filter them for project ID.
-      if( exists( $qv->{'projid'} ) && defined( $qv->{'projid'} ) &&
-          uc( $obs->projectid ) ne uc( $qv->{'projid'} ) ) {
+      if( $projectid ne 'staff' &&
+          uc( $obs->projectid ) ne uc( $projectid ) ) {
         next FILELOOP;
       }
 
@@ -260,7 +317,7 @@ sub thumbnails_page {
         my $key = $instrument . $curgrp;
         if( $displayed{$key} ) { next FILELOOP; }
         print "<td>";
-        print "<a href=\"worf.pl?ut=$obsut&runnr=";
+        print "<a href=\"$worflink?ut=$obsut&runnr=";
         print $curgrp . "&inst=" . $obs->instrument;
         if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
         print "\">";
@@ -273,6 +330,7 @@ sub thumbnails_page {
         print "</td><td>";
         print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
         print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
+        print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
         print "Suffix:&nbsp;none\n</td>";
         $displayed{$key}++;
         next FILELOOP;
@@ -301,7 +359,7 @@ sub thumbnails_page {
             my $key = $instrument . $curgrp . $suffix;
             if( $displayed{$key} ) { next FILELOOP; }
             print "<td>";
-            print "<a href=\"worf.pl?ut=$obsut&runnr=";
+            print "<a href=\"$worflink?ut=$obsut&runnr=";
             print $curgrp . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
             if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
@@ -316,7 +374,8 @@ sub thumbnails_page {
             print "</td><td>";
             print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
             print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
-            print "Suffix:&nbsp;" . $suffix . "\n</td>";
+            print "Target:&nbsp;" . ( defined( $obs->target ) ? $obs->target : '' ) . "<br>\n";
+           print "Suffix:&nbsp;" . $suffix . "\n</td>";
             $displayed{$key}++;
             next FILELOOP;
           }
@@ -326,7 +385,6 @@ sub thumbnails_page {
 
     # End the table.
     print "</table>\n";
-
 
   }
 
