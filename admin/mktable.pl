@@ -28,7 +28,7 @@ my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
 
 my %loginhash = $db->loginhash;
-print "$loginhash{server}\n";
+print "User: $loginhash{user}\nServer: $loginhash{server}\n";
 
 # Some constants to ensure that the table columns are the same
 # type/size when containing identical types of information
@@ -376,9 +376,10 @@ for my $table (sort keys %tables) {
   $sth->execute() or die "Cannot execute: " . $sth->errstr();
   $sth->finish();
 
+  # No need to do the following, since omp database is owned by login 'omp'
   # We can grant permission on this table as well
-#  $dbh->do("GRANT ALL ON $table TO omp")
-#    or die "Error1: $DBI::errstr";
+  #  $dbh->do("GRANT ALL ON $table TO omp")
+  #    or die "Error1: $DBI::errstr";
 
 }
 
