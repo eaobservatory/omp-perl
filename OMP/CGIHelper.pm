@@ -44,7 +44,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -118,7 +118,7 @@ sub fb_fault_content {
   my %cookie = @_;
 
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations($cookie{projectid},0);
+  my @faults = $faultdb->getAssociations(lc($cookie{projectid}),0);
 
   print $q->h2("Feedback: Project $cookie{projectid}: View Faults");
 
@@ -155,7 +155,7 @@ Parse the fault response form, submit the fault and redisplay the faults.
 
 sub fb_fault_output {
   my $q = shift;
-  my %cookie = @_   ;
+  my %cookie = @_;
   my $title;
 
   my $faultid = $q->param('faultid');
@@ -183,7 +183,7 @@ sub fb_fault_output {
   print "<font size=+1><b>Faults</b></font><br>";
 
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations($cookie{projectid},0);
+  my @faults = $faultdb->getAssociations(lc($cookie{projectid}),0);
 
   my %faults = map {$_->faultid, $_} @faults;
   my $showfault = $faults{$faultid};
@@ -346,7 +346,8 @@ sub fb_entries_hidden {
   my %cookie = @_;
 
   my $comments = OMP::FBServer->getComments($cookie{projectid},
-					    $cookie{password});
+					    $cookie{password},
+					    [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],);
   print $q->h2("Feedback entries");
     if (scalar(@$comments) == 1) {
       print "There is 1 comment";
@@ -942,12 +943,11 @@ sub msb_hist_output {
 
   my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
 
+  proj_status_table($q, %cookie);
+
   # If they clicked the "Add Comment" button bring up a comment form
   if ($q->param("Add Comment")) {
-
     print $q->h2("Add a comment to MSB");
-
-    proj_status_table($q, %cookie);
     msb_comment_form($q);
   }
 
@@ -989,8 +989,7 @@ sub msb_hist_output {
 
   }
 
-  # Redisplay MSB comments and stuff
-  proj_status_table($q, %cookie);
+  # Redisplay MSB comments
   my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
   msb_comments($q, $commentref, $sp);
 
@@ -1216,6 +1215,41 @@ sub fb_logout {
 
   print $q->h2("You are now logged out of the feedback system.");
   print "You may see feedback for a project by clicking <a href='feedback.pl'>here</a>.";
+}
+
+=item B<issuepwd>
+
+Create a page with a form for requesting a password.
+
+  issuepwd($cgi);
+
+=cut
+
+sub issuepwd {
+  my $q = shift;
+
+  print "<H1>OMP Password Request Page</h1>";
+  print "You can use this page to request an updated password for your project.";
+  print "The password will be mailed to your registered email address.";
+
+  print $q->startform;
+  print "Project ID: ",$q->textfield('projectid','',8,20);
+  print "<P>", $q->submit( '  Request password  ');
+  print $q->endform;
+
+  if ($q->param) {
+    my $projectid = $q->param("projectid");
+    try {
+      OMP::ProjServer->issuePassword( $projectid );
+      print "<P>Password has been mailed to your registered address</p>\n";
+    } catch OMP::Error::UnknownProject with {
+      print "<P>Unable to process your request because this project ID does not exist in our database<p>\n";
+    } otherwise {
+      my $E = shift;
+      print "<p>Unfortunately an error occurred whilst processing your request<p>\n";
+      print "$E\n";
+    }
+  }
 }
 
 =back
