@@ -79,7 +79,7 @@ sub proj_status_table {
 		   "<b>Science Case</b>" );
 
   my %summary;
-  foreach (qw/pi piemail title projectid coi coiemail allocated remaining country/) {
+  foreach (qw/pi piemail title projectid coi coiemail allocated allRemaining country/) {
     $summary{$_} = $project->$_;
   }
 
