@@ -27,6 +27,7 @@ use Text::Wrap;
 
 use OMP::CGI;
 use OMP::CGIHelper;
+use OMP::Config;
 use OMP::General;
 use OMP::Fault;
 use OMP::FaultServer;
@@ -280,6 +281,9 @@ sub file_fault_output {
     $text = preify_text($text);
   }
 
+  # Strip out ^M
+  $text =~ s/\015//g;
+
   my $resp = new OMP::Fault::Response(author=>$user,
 				      text=>$text,);
 
@@ -337,11 +341,6 @@ sub fault_table {
   my $q = shift;
   my $fault = shift;
 
-  # Get the Private and Public cgi-bin URLs
-  my $cgi = new OMP::CGI;
-  my $public_url = $cgi->public_url;
-  my $private_url = $cgi->private_url;
-
   my $subject;
   ($fault->subject) and $subject = $fault->subject
     or $subject = "none";
@@ -386,7 +385,7 @@ sub fault_table {
   my @projects = $fault->projects;
 
   if ($projects[0]) {
-    my @html = map {"<a href='$public_url/projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
+    my @html = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
     print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
     print join(', ',@html);
     print "</td>";
@@ -417,7 +416,7 @@ sub fault_table {
     }
 
     # Now turn fault IDs into links
-    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
+    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?id=$1'>$1</a>!g;
 
     print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $text . "</td></table><br></td>";
 
@@ -528,7 +527,15 @@ sub query_fault_output {
 
     if ($q->param('status') !~ /any/) {
       my $status = $q->param('status');
-      push (@xml, "<status>$status</status>");
+
+      # If status is "Closed" do our query on all closed statuses
+      my %status = OMP::Fault->faultStatus($cookie{category});
+      if ($status eq $status{Closed}) {
+	delete $status{Open};
+	push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
+      } else {
+	push (@xml, "<status>$status</status>");
+      }
     }
 
     if ($q->param('author')) {
@@ -571,6 +578,8 @@ sub query_fault_output {
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
     }
   }
+
+  print
 
   my $faults;
   try {
@@ -808,6 +817,29 @@ sub view_fault_output {
     croak "Key is invalid [perhaps you already submitted this form?]"
       unless ($verifykey);
 
+    # Make sure all the necessary params were provided
+    my %params = (User => "user",
+		  Response => "text",);
+    my @error;
+    for (keys %params) {
+      if (! $q->param($params{$_})) {
+	push @error, $_;
+      }
+    }
+
+    # Put the form back up if params are missing
+    if ($error[0]) {
+      push @title, "The following fields were not filled in:";
+      titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
+      print "<ul>";
+      print map {"<li>$_"} @error;
+      print "</ul>";
+      response_form($q, $fault);
+      fault_table($q, $fault);
+      return;
+    }
+
+
     # Response author
     my $user = new OMP::User(userid => $q->param('user'));
 
@@ -845,6 +877,10 @@ sub view_fault_output {
       $text = preify_text($text);
     }
 
+    # Strip out ^M
+    $text =~ s/\015//g;
+
+    my $E;
     try {
       my $resp = new OMP::Fault::Response(author => $user,
 					  text => $text);
@@ -852,9 +888,18 @@ sub view_fault_output {
 
       push @title, "Fault response successfully submitted";
     } otherwise {
-      my $E = shift;
+      $E = shift;
       push @title, "An error has prevented your response from being filed: $E";
+
     };
+
+    # Encountered an error, redisplay form
+    if ($E) {
+      titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
+      response_form($q, $fault);
+      fault_table($q, $fault);
+      return;
+    }
 
     # Remove key
     OMP::KeyServer->removeKey($formkey);
@@ -984,6 +1029,16 @@ sub response_form {
   my %status = OMP::Fault->faultStatus();
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
+  # Set defaults.  Use cookie values if param values aren't available.
+  my %defaults = (user => $cookie{$_},
+		  text => undef,
+		  status => $fault->status,);
+  for (keys %defaults) {
+    if ($q->param($_)) {
+      $defaults{$_} = $q->param($_);
+    }
+  }
+
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print $q->startform;
   # Embed the key
@@ -994,16 +1049,17 @@ sub response_form {
   print $q->textfield(-name=>'user',
 		      -size=>'25',
 		      -maxlength=>'75',
-		      -default=>$cookie{user},);
+		      -default=>$defaults{user},);
   print "</td><tr><td><b>Status: </b></td><td>";
   print $q->popup_menu(-name=>'status',
-		       -default=>$fault->status,
+		       -default=>$defaults{status},
 		       -values=>[values %status],
 		       -labels=>\%labels,);
   print "</td><tr><td></td><td>";
   print $q->textarea(-name=>'text',
 		     -rows=>20,
-		     -columns=>72);
+		     -columns=>72
+		     -default=>$defaults{text});
   print "</td></tr><td colspan=2 align=right>";
   print $q->submit(-name=>'respond',
 		   -label=>'Submit Response');
