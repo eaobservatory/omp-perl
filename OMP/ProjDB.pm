@@ -27,10 +27,12 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::Project;
 
 use Crypt::PassGen qw/passgen/;
+use Net::SMTP;
+use Net::Domain qw/ hostfqdn /;
 
 use base qw/ OMP::BaseDB /;
 
@@ -147,21 +149,55 @@ sub verifyPassword {
 
 }
 
+=item B<verifyProject>
+
+Verify that the current project is valid (i.e. it has active entries
+in the database tables).
+
+  $
+
+Returns true if the project exists or false if it does not.
+
+=cut
+
+sub verifyProject {
+  my $self = shift;
+
+  # Use a try block since we know that _get_project_row raises
+  # an exception
+  my $there;
+  try {
+    $self->_get_project_row();
+    $there = 1;
+  } catch OMP::Error::UnknownProject with {
+    $there = 0;
+  };
+
+  return $there
+}
+
 =item B<issuePassword>
 
 Generate a new password for the current project and email it to
 the Principal Investigator. The password in the project database
 is updated.
 
-  $db->issuePassword();
+  $db->issuePassword( $addr );
 
-Note that there are no arguments and no return values. It either
-succeeds or fails.
+The argument can be used to specify the internet address (and if known
+the uesr name in email address format) of the remote system requesting
+the password. Designed specifically for use by CGI scripts. If the
+value is not defined it will be assumed that we are running this
+routine from the host computer (using the REMOTE_ADDR environment
+variable if it is set).
+
+Note that there are no return values. It either succeeds or fails.
 
 =cut
 
 sub issuePassword {
   my $self = shift;
+  my $ip = shift;
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -190,7 +226,7 @@ sub issuePassword {
   $self->_update_project_row( $project );
 
   # Mail the password to the right people
-  $self->_mail_password( $project );
+  $self->_mail_password( $project, $ip );
 
   # End transaction
   $self->_dbunlock;
@@ -282,8 +318,10 @@ sub _get_project_row {
 
 
   # Go and do the database thing
-  my $statement = "SELECT * FROM $PROJTABLE WHERE projectid = $projectid ";
-  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} });
+  my $statement = "SELECT * FROM $PROJTABLE WHERE projectid = '$projectid' ";
+  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} })
+    or throw OMP::Error::DBError("Error retrieving project $projectid:".
+				$dbh->errstr);
 
   throw OMP::Error::UnknownProject( "Unable to retrieve details for project $projectid" )
     unless @$ref;
@@ -374,16 +412,11 @@ sub _insert_project_row {
   my $self = shift;
   my $proj = shift;
 
-  print "Inserting\n";
-
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   # Insert the contents into the table. The project ID is the
   # unique ID for the row.
-  use Data::Dumper;
-  print Dumper( $proj );
-
   $dbh->do("INSERT INTO $PROJTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", undef,
 	   $proj->projectid, $proj->pi, $proj->piemail, scalar($proj->coi),
 	   scalar($proj->coiemail), $proj->title, $proj->tagpriority, 
@@ -415,6 +448,113 @@ sub _verify_administrator_password {
 
   return;
 }
+
+=item B<_mail_password>
+
+Mail the password associated with the supplied project to the
+principal investigator of the project.
+
+  $db->_mail_password( $project, $addr );
+
+The first argument should be of type C<OMP::Project>. The second
+(optional) argument can be used to specify the internet address of the
+computer (and if available the user) requesting the password.  If it
+is not supplied the routine will assume the current user and host, or
+use the REMOTE_ADDR and REMOTE_USER environment variables if they are
+set (they are usually only set when running in a web environment).
+
+=cut
+
+sub _mail_password {
+  my $self = shift;
+  my $proj = shift;
+
+  if (UNIVERSAL::isa( $proj, "OMP::Project")) {
+
+    # Get projectid
+    my $projectid = $proj->projectid;
+
+    throw OMP::Error::BadArgs("Unable to obtain project id to mail\n")
+      unless defined $projectid;
+
+    # Get the plain text password
+    my $password = $proj->password;
+
+    throw OMP::Error::BadArgs("Unable to obtain plain text password to mail\n")
+      unless defined $password;
+
+    # Get the email address
+    my $piemail = $proj->piemail;
+
+    throw OMP::Error::BadArgs("No email address defined for sending password\n") unless defined $piemail;
+
+    # Try and work out who is making the request
+    my $addr;
+    if (exists $ENV{REMOTE_ADDR}) {
+      # We are being called from a CGI context
+      $addr = $ENV{REMOTE_ADDR};
+
+      # User name (only set if they have logged in)
+      $addr = $ENV{REMOTE_USER} . "@" . $addr
+	if exists $ENV{REMOTE_USER};
+
+    } else {
+      # localhost
+      $addr = hostfqdn;
+
+      $addr = $ENV{USER} . "@" . $addr
+	if exists $ENV{USER};
+
+    }
+
+    # First thing to do is to register this action with
+    # the feedback system
+
+
+    # Now set up the mail
+    my $smtp = new Net::SMTP('mailhost', Timeout => 30);
+
+    $smtp->mail("omp-auto-reply")
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->to($piemail)
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->data()
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+    # Mail Headers
+    $smtp->datasend("To: $piemail\n")
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->datasend("Subject: OMP reissue of password for $projectid\n")
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->datasend("\n")
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+    # Mail message content
+    my $msg = "\nNew password for project $projectid: $password\n\n" .
+      "This password was generated automatically at the request\nof $addr.\n".
+	  "\nPlease do not reply to this email message directly.\n";
+
+    $smtp->datasend($msg)
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+    # Send message
+    $smtp->dataend()
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+    $smtp->quit
+      or throw OMP::Error::FatalError("Error constructing mail message\n");
+
+
+  } else {
+
+        throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
+
+
+  }
+
+}
+
 
 =back
 
