@@ -718,8 +718,8 @@ sub _populate {
   $self->filename( $generic_header{FILENAME} );
 
   # Build the Astro::WaveBand object
-  if ( length( $generic_header{WAVELENGTH} . "" ) != 0 ) {
-    $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{WAVELENGTH},
+  if ( length( $generic_header{GRATING_WAVELENGTH} . "" ) != 0 ) {
+    $self->waveband( new Astro::WaveBand( Wavelength => $generic_header{GRATING_WAVELENGTH},
                                            Instrument => $generic_header{INSTRUMENT} ) );
   } elsif ( length( $generic_header{FILTER} . "" ) != 0 ) {
     $self->waveband( new Astro::WaveBand( Filter     => $generic_header{FILTER},
