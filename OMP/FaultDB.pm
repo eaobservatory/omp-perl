@@ -27,6 +27,7 @@ and one for the text associated with the fault report.
 use 5.006;
 use warnings;
 use strict;
+use OMP::CGI;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::FaultQuery;
@@ -571,6 +572,11 @@ sub _mail_fault {
 
   my $faultid = $fault->id;
 
+  # Get the Private and Public cgi-bin URLs
+  my $cgi = new OMP::CGI;
+  my $public_url = $cgi->public_url;
+  my $private_url = $cgi->private_url;
+
   # Get the fault response(s)
   my @responses = $fault->responses;
 
@@ -628,7 +634,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       $text = wrap('', '', $text);
 
       # Now turn fault IDs into links
-      $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
+      $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
 
       # Store the author's email address
       $authors{$user->userid} = $_->author->email;
@@ -662,7 +668,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     $text = wrap('', '', $text);
 
     # Now turn fault IDs into links
-    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
+    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
 
     push(@msg, "$category fault filed by $author on $date<br><br>");
 
@@ -675,7 +681,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   # Set link to response page
   my $url = ($category eq "BUG" ?
 	     "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
-	     "http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid");
+	     "http://$public_url/viewfault.pl?id=$faultid");
 
   my $responselink = "<a href='$url'>here</a>";
 

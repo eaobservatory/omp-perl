@@ -25,6 +25,7 @@ use Time::Piece;
 use Date::Manip;
 use Text::Wrap;
 
+use OMP::CGI;
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
@@ -314,6 +315,11 @@ sub fault_table {
   my $q = shift;
   my $fault = shift;
 
+  # Get the Private and Public cgi-bin URLs
+  my $cgi = new OMP::CGI;
+  my $public_url = $cgi->public_url;
+  my $private_url = $cgi->private_url;
+
   my $subject;
   ($fault->subject) and $subject = $fault->subject
     or $subject = "none";
@@ -343,7 +349,7 @@ sub fault_table {
   my @projects = $fault->projects;
 
   if ($projects[0]) {
-    my @html = map {"<a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
+    my @html = map {"<a href='$public_url/projecthome.pl?urlprojid=$_'>$_</a>"} @projects;
     print "<tr bgcolor=#ffffff><td colspan=2><b>Projects associated with this fault: </b>";
     print join(', ',@html);
     print "</td>";
@@ -374,7 +380,7 @@ sub fault_table {
     }
 
     # Now turn fault IDs into links
-    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
+    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
 
     print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $text . "</td></table><br></td>";
 
