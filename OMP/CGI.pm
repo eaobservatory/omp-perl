@@ -892,7 +892,17 @@ sub write_page_fault {
   $self->_write_header($STYLE);
 
   if (!$cookie{category} and !$q->param) {
-    print "Please select a category from the left";
+
+    my $publicurl = $self->public_url;
+    my $privateurl = $self->private_url;
+
+    # Create a page body with some links to fault categories
+    print $q->h2("You may search for and file faults in the following categories:");
+    print "<ul>";
+    print "<h3><li><a href='$publicurl/queryfault.pl?cat=CSG'>CSG Faults</a> for faults relating to JAC computer services</h3>";
+    print "<h3><li><a href='$publicurl/queryfault.pl?cat=OMP'>OMP Faults</a> for faults relating to the Observation Management Project</h3>";
+    print "</ul>";
+    
     $self->_write_footer();
     return;
   }
