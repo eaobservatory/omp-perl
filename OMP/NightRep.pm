@@ -606,7 +606,7 @@ Project Time Summary
 	       CAL      => "Unallocated calibrations:",
 	     );
 
-  for my $proj (qw/ WEATHER OTHER EXTENDED /) {
+  for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
     my $time = 0.0;
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->timespent->hours;
@@ -774,7 +774,14 @@ sub ashtml {
     # No determine_country method exists, so we'll get project
     # details instead
     my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
-     $acct_by_country{$details->country}{$proj} = $acct{$proj};
+
+     # Sort by semester and country for SERV projects
+     if ($details->semester =~ /^SERV$/ and $details->country !~ /^SERV$/) {
+       $acct_by_country{$details->country . $details->semester}{$proj} = $acct{$proj};
+     } else {
+       $acct_by_country{$details->country}{$proj} = $acct{$proj};
+     }
+
 #    push(@{$acct_by_country{$details->country}}, {$acct{$proj});
   }
 
