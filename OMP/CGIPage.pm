@@ -1213,14 +1213,20 @@ sub _write_header {
 
   $theme->SetHTMLStartString($start_string);
 
-  $theme->SetSideBarTop("<a class='sidemain' href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+  $theme->SetSideBarTop("<a class='sidemain' href='http://devel.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JCMT'>JCMT</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/UKIRT'>UKIRT</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JACpublic/JAC/cs'>Computing Services</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
+  my @links = ("<a class='sidemain' HREF='http://devel.jach.hawaii.edu'>JAC Home</a>",
+	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/JCMT/'>JCMT</a>",
+	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/UKIRT/'>UKIRT</a>",
+	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/divisions.html'>JAC Divisions</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/staff_wiki'>Staff Wiki</a>",
+	       "<a class='sidemain' HREF='http://outreach.jach.hawaii.edu/'>Outreach</a>",
+	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/~jkemp/wx/'>Weather</a>",
+	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/Seminars/seminars.html'>JAC Seminars</a>",
+	       "<a class='sidemain' HREF='http://devel.jach.hawaii.edu/admin/contact.html'>Contact info</a>",
+
+);
 
   # Get the location of blank.gif
   my $blankgif = OMP::Config->getData('blankgif');
