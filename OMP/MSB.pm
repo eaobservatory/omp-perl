@@ -2641,6 +2641,7 @@ sub SpTelescopeObsComp {
     # should probably put this in Astro::Coords::Elements
     # and default to knowledge of units if, for example,
     # supplied as 'inclination' rather than 'orbinc'
+    # XML should have epoch in MJD without modification
     my %lut = (EPOCH  => 'epoch',
 	       ORBINC => 'inclination',
 	       ANODE  => 'anode',
@@ -2665,10 +2666,8 @@ sub SpTelescopeObsComp {
       # Get the value from XML
       my $value = $self->_get_pcdata( $system, $lut{$el});
 
-      # Convert from epoch year to MJD
-      if ($el eq 'EPOCH') {
-	$value = Astro::SLA::slaEpj2d( $value );
-      } elsif ($el =~ /ORBINC|ANODE|PERIH|AORL|DM/) {
+      # Convert to raidnas
+      if ($el =~ /ORBINC|ANODE|PERIH|AORL|DM/) {
 	# Convert to radians
 	$value *= Astro::SLA::DD2R;
       }
