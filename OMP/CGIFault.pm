@@ -137,7 +137,6 @@ sub file_fault_output {
   if ($faultid) {
     my $f = OMP::FaultServer->getFault($faultid);
     print $q->h2("Fault $faultid was successfully filed");
-    print $f;
     fault_table($q, $f);
   }
 }
