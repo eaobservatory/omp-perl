@@ -524,13 +524,19 @@ number with a letter prefix it is assumed to be the JCMT style (ie u03
 project and expanded to "u/serv/01" (for "s1"). If the supplied ID is
 ambiguous (most likely from a UH ID since both JCMT and UKIRT would
 use a shortened id of "h01") the telescope must be supplied or else
-the routine will croak.
+the routine will croak. JCMT service programs can be abbreviated with
+the letter "s" and the country code ("su03" maps to s02bu03, valid
+prefixes are "su", "si", and "sc". Dutch service programmes can not
+be abbreviated). In general JCMT service programs do not really benefit
+from abbreviations since in most cases the current semester is not
+appropriate.
 
 The semester is determined from a "semester" key directly or from a date.
 The current date is used if no date or semester is supplied.
 The supplied date must be a C<Time::Piece> object.
 
-Finally, if the number is prefixed by more than one letter it is
+Finally, if the number is prefixed by more than one letter 
+(with the exception of s[uic] reserved for JCMT service) it is
 assumed to indicate a special ID (usually reserved for support
 scientists) that is not telescope specific (although be aware that
 the Observing Tool can not mix telescopes in a single science
@@ -553,19 +559,13 @@ sub infer_projectid {
     unless defined $projid;
 
   # Make sure its not complete already
-  return $projid if $projid =~ /^u\/\d\d[ab]/ # UKIRT
-    or $projid =~ /^m\d\d[ab]/                # JCMT
-      or $projid =~ /^u\/serv\//i             # UKIRT serv
-	or $projid =~ /^cnsrv/i               # Canadian service
-	  or $projid =~ /^nls/i               # Dutch service
-	    or $projid =~ /^uksrv/i           # UK service
-	      or $projid =~ /^SX_/i           # MEGA proposal
-	        or $projid =~ /^LX_/i           # MEGA proposal
-		  or $projid =~ /^[A-Za-z]+$/;
+  return $projid if defined $self->extract_projectid( $projid );
 
   # If it's a special reserved ID (two characters + digit)
+  # and *not* an abbreviated JCMT service programme
   # return it - padding the number)
-  if ($projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
+  if ($projid !~ /^s[uic]\d\d/ && 
+      $projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
     return $1 . sprintf("%02d", $2);
   }
 
@@ -592,7 +592,7 @@ sub infer_projectid {
     # Guess
     if ($projid =~ /^s?\d+$/) {
       $tel = "UKIRT";
-    } elsif ($projid =~ /^[unci]\d+$/) {
+    } elsif ($projid =~ /^s?[unci]\d+$/) {
       $tel = "JCMT";
     } else {
       croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
@@ -628,13 +628,58 @@ sub infer_projectid {
     $fullid = "u/$sem/$projid";
 
   } elsif ($tel eq "JCMT") {
-    $fullid = "m$sem$projid";
+
+    # Service mode changes the prefix
+    my $prefix = ( $projid =~ /^s/  ? 's' : 'm' );
+
+    # remove the s signifier
+    $projid =~ s/^s//;
+
+    $fullid = "$prefix$sem$projid";
 
   } else {
     croak "$tel is not a recognized telescope";
   }
 
   return $fullid;
+
+}
+
+=item B<extract_projectid>
+
+Given a string (for example a full project id or possibly a subject
+line of a mail message) attempt to extract a string that looks like
+a OMP project ID.
+
+  $projectid = OMP::General->extract_projectid( $string );
+
+Returns undef if nothing looking like a project ID could be located.
+The match is done on word boundaries.
+
+No attempt is made to verify that this project ID is actually
+in the OMP system.
+
+=cut
+
+sub extract_projectid {
+  my $class = shift;
+  my $string = shift;
+
+  my $projid;
+
+  if ($string =~ /\b(u\/\d\d[ab]\/h?\d+)\b/i        # UKIRT
+      or $string =~ /\b([ms]\d\d[ab][unchi]\d+)\b/i # JCMT [inc service]
+      or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
+      or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service
+      or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
+      or $string =~ /\b([A-Za-z]+CAL)\b/i           # Things like JCMTCAL
+      or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
+	  && $string !~ /\bs[uinc]\d+\b/ ) # but not JCMT service abbrev
+     ) {
+    $projid = $1;
+  }
+
+  return $projid;
 
 }
 

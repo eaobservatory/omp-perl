@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 66;
+use Test::More tests => 92;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -160,18 +160,40 @@ my @input = (
 	      projectid => "LX_30EW_LO",
 	      result => "LX_30EW_LO",
 	     },
+	     # JCMT service
 	     {
-	      projectid => "cnsrv01b03",
-	      result => "cnsrv01b03",
+	      projectid => "s01bc03",
+	      result => "s01bc03",
 	     },
 	     {
 	      projectid => 'nls0003',
 	      result    => 'nls0003',
 	     },
 	     {
-	      projectid => "uksrv02a03",
-	      result => "uksrv02a03",
+	      projectid => "s02au03",
+	      result => "s02au03",
 	     },
+	     {
+	      projectid => "s02ai03",
+	      result => "s02ai03",
+	     },
+	     {
+	      projectid => "si03",
+	      semester => '02a',
+	      result => "s02ai03",
+	     },
+	     {
+	      projectid => "sc22",
+	      semester => '00b',
+	      result => "s00bc22",
+	     },
+	     {
+	      projectid => "su15",
+	      semester => '02b',
+	      result => "s02bu15",
+	     },
+
+	     # JCMT calibrations
 	     {
 	      projectid => "MEGACAL",
 	      result => "MEGACAL",
@@ -185,7 +207,8 @@ my @input = (
 
 for my $input (@input) {
   is( OMP::General->infer_projectid(%$input), $input->{result},
-    "Verify projectid is " . $input->{result});
+    "Verify projectid is " . $input->{result} . " from ".
+    $input->{projectid});
 }
 
 # Test the failure when we cant decide which telescope
@@ -242,3 +265,38 @@ like($@, qr/without TAU/,"Without TAU");
 # Band ranges
 my $range = OMP::General->get_band_range('JCMT', 2);
 isa_ok($range, "OMP::Range");
+
+
+# Projectid extraction
+my %extract = (
+	       'u/SERV/192' => 'project u/SERV/192 is complete',
+	       'u/02a/55'   => '[u/02a/55]',
+	       'u/02b/h55'  => 'MAIL: [u/02b/h55] is complete',
+	       's02ac03'    => '[s02ac03]',
+	       's02au03'    => '[s02au03]',
+	       's02ai03'    => '[s02ai03]',
+	       'm02au52'    => '[m02au52]',
+	       'm02an52'    => '[m02an52]',
+	       'm02ac52'    => '[m02ac52]',
+	       'm02ai52'    => '[m02ai52]',
+	       'm00bh52'    => '[m00bh52]',
+	       'nls0010'    => '[nls0010]',
+	       'LX_68EW_HI' => '[LX_68EW_HI]',
+	       'SX_44EW_MD' => '[SX_44EW_MD] blah',
+	       'MEGACAL'    => '[MEGACAL]',
+	       'JCMTCAL'    => '[JCMTCAL]',
+	       'ukirtcal'   => '[ukirtcal] blah di blah',
+	       'tj03'       => 'hello tj03',
+	       'thk125'     => 'this is [thk125]',
+	      );
+
+for my $proj (keys %extract) {
+  my $output = OMP::General->extract_projectid($extract{$proj});
+  is($output, $proj, "Extract $proj from string");
+}
+
+# some failures
+my @fail = (qw/ [su03] [sc04] [s06] /);
+for my $string (@fail) {
+  is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
+}

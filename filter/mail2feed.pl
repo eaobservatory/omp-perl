@@ -78,13 +78,8 @@ sub projectid {
   my $subject = $self->get("subject");
 
   # Attempt to match
-  if ($subject =~ /(u\/\d\d[ab]\/h?\d+)/i         # UKIRT
-      or $subject =~ /(m\d\d[ab][uncih]\d+)/i     # JCMT
-      or $subject =~ /\b(m\d\d[ab][A-Za-z]+)\b/i  # m01btj
-      or $subject =~ /(u\/SERV\/\d+)/i            # UKIRT SERVice
-      or $subject =~ /\b([A-Za-z]+\d{2,})\b/        # STAFF tj01, thk02
-     ) {
-    my $pid = $1;
+  my $pid = OMP::General->extract_projectid( $subject );
+  if (defined $pid) {
     $self->put_header("projectid", $pid);
     Mail::Audit::_log(1, "Project from subject: $pid");
     return 1;
