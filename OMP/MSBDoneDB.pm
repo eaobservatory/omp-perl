@@ -413,6 +413,8 @@ sub _add_msb_done_info {
   my $date = $t->strftime("%b %e %Y %T");
 
   # insert rows into table
+  # Note that "title" was added at a later date - hence its position
+  # at the end of the insert
   $self->_db_insert_data( $MSBDONETABLE,
 			  $checksum, $comment->status,
 			  $projectid, $date,
@@ -421,7 +423,7 @@ sub _add_msb_done_info {
 			  {
 			   TEXT => $comment->text,
 			   COLUMN => 'comment',
-			  }
+			  }, $msbinfo->title
 			);
 
 }
@@ -485,7 +487,7 @@ sub _store_msb_done_comment {
   # the object
   my $checksum = $msbinfo->checksum;
   my $project = $msbinfo->projectid;
-  for (qw/ target instrument waveband /) {
+  for (qw/ target instrument waveband title/) {
     unless ($msbinfo->$_()) {
       # Oops. Not here so we have to query
       $msbinfo = $self->historyMSB( $checksum );
@@ -565,6 +567,7 @@ sub _reorganize_msb_done {
     } else {
       # populate a new entry
       $msbs{ $row->{checksum} } = new OMP::Info::MSB(
+				   title => $row->{title},
 				   checksum => $row->{checksum},
 				   target => $row->{target},
 				   waveband => $row->{waveband},
