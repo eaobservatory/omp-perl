@@ -787,27 +787,29 @@ sub _mail_fault_update {
 
   # Map property names to their accessor method names
   my %property = (
-		  "Status" => "statusText",
-		  "System" => "systemText",
-		  "Type" => "typeText",
-		  "Time lost" => "timelost",
-		  "Time of fault" => "faultdate",
-		  "Subject" => "subject",
-		  "Category" => "category",
-		  "Urgency" => "urgencyText",
+		  systemText => "System",
+		  typeText => "Type",
+		  timelost => "Time lost",
+		  faultdate => "Time of fault",
+		  subject => "Subject",
+		  category => "Category",
+		  urgency => "Urgency",
+		  projects => "Projects",
 		 );
 
+  # Compare the fault details
+  my @details_changed = OMP::FaultUtil->compare($fault, $oldfault);
+
   # Build up a message
-  for (keys %property) {
-    my $method = $property{$_};
-    my $oldfault_prop = $oldfault->$method;
-    my $newfault_prop = $fault->$method;
-    if ($oldfault_prop ne $newfault_prop) {
-      $msg .= "$_ updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
-    }
+  for (@details_changed) {
+    my $property = $property{$_};
+    my $oldfault_prop = $oldfault->$_;
+    my $newfault_prop = $fault->$_;
+
+    $msg .= "$property updated from <b>$oldfault_prop</b> to <b>$newfault_prop</b><br>";
   }
 
-  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir'); 
+  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
   $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
 
