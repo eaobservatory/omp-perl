@@ -245,6 +245,7 @@ Returned SQL segment does not include "WHERE".
 sub _qhash_tosql {
   my $self = shift;
   my $skip = shift;
+  $skip = [] unless defined $skip;
 
   # Retrieve the perl version of the query
   my $query = $self->query_hash;
@@ -493,24 +494,12 @@ sub _post_process_hash {
     next if $key =~ /^_/;
 
     if ($key =~ /date/) {
-
       # If we are in a hash convert all hash members
-      my $ref = ref($href->{$key});
-      if ($ref eq "HASH") {
-	my %hash = %{$href->{$key}};
-	for my $hkey (keys %hash) {
-	  $hash{$hkey} = OMP::General->parse_date( $hash{$hkey} )
-	}
-	$href->{$key} = \%hash;
-      } elsif ($ref eq "ARRAY") {
-	$href->{$key} = [ map { OMP::General->parse_date($_)} @{$href->{$key}} ];
-      } else {
-	# Cant be anything else
-	throw OMP::Error::DBMalformedQuery("Error in query hash - $ref is not hash or array for key $key");
-      }
+      $self->_process_elements($href, 
+			       sub { OMP::General->parse_date(shift)},
+			       [ $key ] );
     }
   }
-
 
   # Loop over each key looking for ranges
   for my $key (keys %$href ) {
@@ -600,6 +589,72 @@ sub _querify {
 
   # Form query
   return $sql
+
+}
+
+=item B<_process_elements>
+
+Process all the array elements or hash members associated with the
+supplied keys in the query hash.
+
+  $q->_process_elements( \%qhash, $cb, \@keys );
+
+Where the first argument is the reference to the query hash, the
+second argument is a callback (CODREF) to be executed for each
+array element or hash member and the last argument is an array
+of keys in the query hash to process.
+
+As well as hashes and arrays it recognizes C<OMP::Range> objects.
+
+This method allows you to process all elements in a simple way without
+caring about the specific organization in the query hash.
+
+=cut
+
+sub _process_elements {
+  my $self = shift;
+  my $href = shift;
+  my $cb = shift;
+  my $keys = shift;
+
+  throw OMP::Error::BadArgs("Third argument to _process_elements must be array ref") unless ref($keys) eq "ARRAY";
+  throw OMP::Error::BadArgs("Second argument to _process_elements must be code ref") unless ref($cb) eq "CODE";
+
+  for my $key ( @$keys ) {
+
+    # Check it exists
+    if (exists $href->{$key}) {
+
+      my $ref = ref($href->{$key}); # The reference type
+      my $val = $href->{$key}; # The value
+
+      if (not $ref) {
+	# Simple scalar
+	$href->{$key} = $cb->( $val );
+
+      } elsif ($ref eq "ARRAY" ) {
+	# An array
+	$href->{$key} = [ map { $cb->($_); } @{ $val } ];
+
+      } elsif ($ref eq "HASH") {
+	# Simple hash
+	my %hash = %$val;
+	for my $hkey (keys %hash) {
+	  $hash{$hkey} = $cb->( $hash{$hkey} );
+	}
+	$href->{$key} = \%hash;
+
+      } elsif ($val->isa("OMP::RANGE")) {
+
+	$val->min( $cb->($val->min) ) if defined $val->min;
+	$val->max( $cb->($val->max) ) if defined $val->max;
+
+      } else {
+	throw OMP::Error::DBMalformedQuery("Unable to process class of type '$ref'");
+      }
+
+    }
+  }
 
 }
 
