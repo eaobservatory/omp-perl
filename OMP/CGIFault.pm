@@ -1560,6 +1560,8 @@ sub show_faults {
   my $descending = $args{descending};
   my $url = $args{url};
 
+  (! $url) and $url = "viewfault.pl";
+
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
   my $stats = new OMP::FaultStats( faults => $faults );
