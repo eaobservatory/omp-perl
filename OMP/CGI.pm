@@ -372,17 +372,26 @@ sub _make_theme {
 
 =item B<_write_header>
 
-Create the document header (and provide the cookie).  Cookie is optional.
+Create the document header (and provide the cookie).
 
-  $cgi->_write_header([$style]);
+  $cgi->_write_header([style => $cssUrl, RSS=> {title=>$title, href=>$rssUrl}]);
 
-Optional argument is a URL for the location of a stylesheet to be used.
+Optional arguments are to be provided in hash form.  Those arguments are:
+
+  style - URL of the OMP cascading style sheet document
+  RSS   - A hash reference containing the keys 'title' (title of RSS feed),
+          and 'href' (URL of RSS feed)
 
 =cut
 
 sub _write_header {
   my $self = shift;
-  my $style = shift;
+  my %args = @_;
+
+  my $style = $args{style};
+  my $rss_title = $args{RSS}{title};
+  my $rss_href = $args{RSS}{href};
+
   my $q = $self->cgi;
   my $cookie = $self->cookie;
   my $theme = $self->theme;
@@ -405,7 +414,24 @@ sub _write_header {
 
   my $title = $self->html_title;
 
-  $theme->SetHTMLStartString("<html><head><title>$title</title><link rel='stylesheet' type='text/css' href='$style' title='ompstyle'><link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/><script type='text/javascript' src='/omp.js'></script></head>");
+  # HTML start string
+  my $start_string = "<html><head><title>$title</title>";
+
+  # Link to style sheet
+  $start_string .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$style\" title=\"ompstyle\">"
+    unless (! $style);
+
+  # Link to RSS feed
+  $start_string .= "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"$rss_title\" href=\"$rss_href\" />"
+    unless (! $rss_title or ! $rss_href);
+
+  # Add omp icon and javascript
+  $start_string .= "<link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/><script type='text/javascript' src='/omp.js'></script>";
+
+  # Close start string
+  $start_string .= "</head>";
+
+  $theme->SetHTMLStartString($start_string);
 
   $theme->SetSideBarTop("<a href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
@@ -465,7 +491,7 @@ sub _write_login {
   my $q = $self->cgi;
   my $c = $self->cookie;
 
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
   print $q->h1('Login');
@@ -520,7 +546,7 @@ sub _write_login_fault {
   my %args = @_;
   my $q = $self->cgi;
 
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   print $q->h1('Fault System Login');
   # If the password was incorrect tell them so
@@ -562,7 +588,7 @@ sub _write_staff_login {
 
   my $q = $self->cgi;
 
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   print "These pages are restricted to JAC staff only.  Please provide your user ID and the staff password.<br>";
 
@@ -604,7 +630,7 @@ sub _write_admin_login {
 
   my $q = $self->cgi;
 
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   print "Please provide your user ID and the administrator password.<br>";
 
@@ -730,7 +756,7 @@ sub write_page {
   $self->_sidebar_logout(%cookie);
 
   # Print HTML header (including sidebar)
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   # Now everything is ready for our output. Just call the
   # code ref with the cookie contents
@@ -821,7 +847,7 @@ sub write_page_proposals {
     $c->setCookie( $EXPTIME, %cookie );
 
     # Print HTML header
-    $self->_write_header($STYLE);
+    $self->_write_header(style=>$STYLE);
 
     $form_content->($q, %cookie);
 
@@ -849,7 +875,7 @@ sub write_page_noauth {
     if ($q->url_param('urlprojid'));
 
   $self->_make_theme;
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   if ($q->param) {
     $form_output->($q, %cookie);
@@ -912,7 +938,7 @@ sub write_page_staff {
     # The user ID and password have been verified.  Continue as normal.
     $c->setCookie( $EXPTIME, %cookie );
 
-    $self->_write_header($STYLE);
+    $self->_write_header(style=>$STYLE);
 
     if ($q->param('show_output') or $q->url_param('output')) {
       $form_output->($q, %cookie);
@@ -996,7 +1022,7 @@ sub write_page_admin {
     # The user ID and password have been verified.  Continue as normal.
     $c->setCookie( $EXPTIME, %cookie );
 
-    $self->_write_header($STYLE);
+    $self->_write_header(style=>$STYLE);
 
     if ($q->param('show_output')) {
       $form_output->($q, %cookie);
@@ -1049,7 +1075,7 @@ sub write_page_logout {
   $c->flushCookie();
 
   $self->_make_theme;
-  $self->_write_header($STYLE);
+  $self->_write_header(style=>$STYLE);
 
   $content->($q);
 
@@ -1138,7 +1164,7 @@ sub write_page_fault {
 
   # Write the header out unless we have generated a redirection header
   # in order to go striaght to a fault
-  $self->_write_header($STYLE) unless ($q->param('goto_fault'));
+  $self->_write_header(style=>$STYLE, RSS=>{title=>'OMP Fault System (last 24 hours)', href=>'faultrss.pl',}) unless ($q->param('goto_fault'));
 
   if (!$cookie{category}) {
 
