@@ -49,6 +49,7 @@ use warnings;
 use strict;
 
 use Getopt::Long;
+use Pod::Usage;
 use SrcCatalog::JCMT;
 use OMP::SciProg;
 
