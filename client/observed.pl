@@ -72,7 +72,9 @@ use lib "$FindBin::RealBin/..";
 # Load the servers (but use them locally without SOAP)
 use OMP::MSBServer;
 use OMP::FBServer;
+use OMP::ProjServer;
 use OMP::General;
+use OMP::Constants qw(:fb);
 
 # Options
 my ($help, $man, $debug, $yesterday);
@@ -141,15 +143,21 @@ for my $proj (keys %sorted) {
 
   }
 
+  ### TEMPORARILY, if this is a UKIRT project make the comment hidden
+  my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
+  my $status = ($details->telescope eq "UKIRT" ? OMP__FB_HIDDEN : OMP__FB_IMPORTANT);
+
   # If we are in debug mode just send to stdout. Else
   # contact feedback system
   if ($debug) {
     print $msg;
+    print "\nStatus: $status\n";
   } else {
     my ($user, $host, $email) = OMP::General->determine_host;
 
     my $fixed_text = "<p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p>\n\n";
 
+    
     OMP::FBServer->addComment(
 			      $proj,
 			      {
@@ -157,6 +165,7 @@ for my $proj (keys %sorted) {
 			       subject => "MSB summary for $utdate",
 			       program => "observed.pl",
 			       sourceinfo => $host,
+			       status => $status,
 			       text => "$fixed_text<pre>\n$msg\n</pre>\n",
 			      }
 			     );
