@@ -212,6 +212,40 @@ sub queryFaults {
 
 }
 
+=item B<getAssociations>
+
+Retrieve the fault IDs (or optionally fault objects) associated
+with the specified project ID.
+
+  @faults = $db->getAssociations( 'm01bu52' );
+  @faultids = $db->getAssociations( 'm01bu52', 1);
+
+If the optional second argument is true only the fault IDs
+are retrieved.
+
+Can return an empty list if there is no relevant association.
+
+=cut
+
+sub getAssociations {
+  my $self = shift;
+  my $projectid = shift;
+  my $idonly = shift;
+
+  # Cant use standard interface for ASSOCTABLE query since
+  # OMP::FaultQuery does not yet know how to query the ASSOCTABLE
+  my $ref = $self->_db_retrieve_data_ashash( "SELECT faultid FROM $ASSOCTABLE WHERE projectid = '$projectid'" );
+  my @ids = map { $_->{faultid} } @$ref;
+
+  # Now we have all the fault IDs
+  # Do we want to convert to fault object
+  @ids = map { $self->getFault( $_ ) } @ids
+    unless $idonly;
+
+  return @ids;
+}
+
+
 =back
 
 =head2 Internal Methods
@@ -325,7 +359,7 @@ sub _add_new_response {
   # Create UserDB object for user determination
   my $udb = new OMP::UserDB( DB => $self->db );
   $udb->verifyUser($author->userid)
-    or throw OMP::Error::Authentication("Must supply a valid user id for the fault system [".$author->userid." invalid]");
+    or throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]");
 
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
