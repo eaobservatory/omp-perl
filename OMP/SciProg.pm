@@ -965,6 +965,37 @@ sub dupMSB {
   return;
 }
 
+=item B<removeMSB>
+
+Remove the supplied MSB (as a C<OMP::MSB> object, previously returned
+by the C<msb()> method) from the current science program. The MSBs
+within the science program are recalculated.
+
+  $sp->removeMSB( $msb );
+
+Any previously cached MSB objects should be retrieved again from the
+science program after executing this command.
+
+May not work correctly for MSBs that have been cloned by a survey
+container.
+
+=cut
+
+sub removeMSB {
+  my $self = shift;
+  my $msb = shift;
+
+  if (UNIVERSAL::isa( $msb, "OMP::MSB")) {
+    # remove it
+    my $tree = $msb->_tree;
+    return 0 unless defined $tree;
+    $tree->unbindNode;
+    $self->locate_msbs;
+    return 1;
+  }
+  return 0;
+}
+
 =item B<cloneMSBs>
 
 Go through the science program and for each MSB containing a blank
