@@ -523,7 +523,7 @@ sub write_page {
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
 
-    if ($q->param('login_form') or $q->param('show_content') or $q->url_param('id')) {
+    if ($q->param('login_form') or $q->param('show_content') or $q->url_param('id') and !$q->param('show_output')) {
       # If there's a 'login_form' param then we know we just came from
       # the login form.  Also, if there is a 'show_content' param, call
       # the content code ref.  If an 'id' url parameter exists then show content (for
