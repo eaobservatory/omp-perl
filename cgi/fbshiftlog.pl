@@ -18,12 +18,11 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI::ShiftlogPage;
-use OMP::CGI;
-use OMP::Config;
+use OMP::CGIPage::Shiftlog;
+use OMP::CGIPage;
 
 my $cquery = new CGI;
-my $cgi = new OMP::CGI( CGI => $cquery );
+my $cgi = new OMP::CGIPage( CGI => $cquery );
 $cgi->html_title( "OMP Shiftlog" );
 
 # We need authentication.
