@@ -84,13 +84,19 @@ sub store_archive {
   # Check to make sure the cache directory exists. If it doesn't, create it.
   if( ! -d $TEMPDIR ) {
     mkdir $TEMPDIR;
+    chmod 0777, $TEMPDIR;
   }
 
   # Get the filename.
   my $filename = _filename_from_query( $query );
 
   # Store the ObsGroup to disk.
-  nstore $obsgrp, $filename or throw OMP::Error::CacheFailure( $! );
+  try {
+    nstore $obsgrp, $filename;
+  }
+  catch Error with {
+    throw OMP::Error::CacheFailure( $! );
+  };
 
   # Chmod the file so others can read and write it.
   chmod 0666, $filename;
