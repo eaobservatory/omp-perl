@@ -49,9 +49,11 @@ use OMP::ArcQuery;
 use OMP::ObslogDB;
 use OMP::Info::Obs;
 use OMP::Error qw/ :try /;
+use Data::Dumper;
 
-use vars qw/ $VERSION /;
-$VERSION = 0.01;
+use vars qw/ $VERSION $DEBUG/;
+$VERSION = 0.02;
+$DEBUG = 0;
 
 =head1 METHODS
 
@@ -344,13 +346,38 @@ sub commentScan {
 =item B<projectStats>
 
 Return an array of C<Project::TimeAcct> objects for the given
-C<ObsGroup> object.
+C<ObsGroup> object and associated warnings.
 
-  @timeacct = $obsgroup->projectStats;
+  my ($warnings, @timeacct) = $obsgroup->projectStats;
 
 This method will determine all the projects in the given
 C<ObsGroup> object, then use time allocations in that object
 to populate the C<Project::TimeAcct> objects.
+
+The first argument returned is an array of warning messages generated
+by the time accounting tool. Usually these will indicate calibrations
+that are not required by any science observations, or science 
+observations that have no corresponding calibration.
+
+Calibrations are shared amongst those projects that required
+them. General calibrations are shared amongst all projects
+in proportion to the amount of time used by the project.
+Science calibrations that are not required by any project
+are stored in the "$telCAL" project (eg UKIRTCAL or JCMTCAL).
+These owner-less calibrations do not get allocated their share
+of general calibrations. This may be a bug.
+
+Observations taken outside the normal observing periods
+are not charged to any particular project but are charged
+to project $tel"EXTENDED". This definition of extended time
+is telescope dependent. 
+
+Does not yet take the observation status (questionable, bad, good)
+into account when calculating the statistics. In principal observations
+marked as bad should be charged to the general overhead.
+
+Also does not charge for time gaps even if they have been flagged
+as WEATHER.
 
 =cut
 
@@ -358,46 +385,249 @@ sub projectStats {
   my $self = shift;
   my @obs = $self->obs;
 
-  my %hash;
-  my @return;
+  my @warnings;
+  my %projbycal;
+  my %cals;
+  my %extended; # Extended time by telescope
+  my %instlut; # Lookup table to map instruments to telescope when sharing
+               # Generic calibrations
 
-  foreach my $obs ( @obs ) {
+  # Go through all the observations, determining the time spent on 
+  # each project and the calibration requirements for each observation
+  # Note that calibrations are not spread over instruments
+  my %night_totals;
+  for my $obs (@obs) {
     my $projectid = $obs->projectid;
+    my $inst = $obs->instrument;
     my $startobs = $obs->startobs;
+    my $tel = uc($obs->telescope);
     my $endobs = $obs->endobs;
+    my $ymd = $obs->startobs->ymd;
     my $timespent;
-    if( defined( $startobs ) &&
-        defined( $endobs ) ) {
-      $timespent = $endobs - $startobs;
+    my $duration = $obs->duration;
+
+    # We can calculate extended time so long as we have 2 of startobs, endobs and duration
+    if( (defined $startobs && defined $endobs ) ||
+        (defined $startobs && defined $duration) ||
+	(defined $endobs   && defined $duration)
+      ) {
+
+      # Get the extended time
+      ($timespent, my $extended) = OMP::General->determine_extended(
+								    duration => $duration,
+								    start=> $startobs,
+								    end=> $endobs,
+								    tel => $tel,
+								   );
+
+      # And sort out the EXTENDED time
+      $extended{$ymd}{$tel} += $extended->seconds if defined $extended && $extended->seconds > 0;
+
+
     } else {
+      # We cannot tell whether this was done in extended time or not
+      # so assume not.
       $timespent = Time::Seconds->new( $obs->duration );
     }
-    my $date = OMP::General->parse_date( $obs->startobs->ymd );
+    $night_totals{$ymd} += $timespent->seconds;
 
-    # Check to see if this project on this date has time already.
-    if(defined($hash{$obs->startobs->ymd}{$projectid})) {
+    # Create instrument telescope lookup
+    $instlut{$ymd}{$inst} = $tel unless exists $instlut{$ymd}{$inst};
 
-      # Add the time in the current observation to the TimeAcct
-      # object that is already there.
-      $hash{$obs->startobs->ymd}{$projectid}->incTime( $timespent );
+    my $cal = $obs->calType;
+    if ($obs->isScience) {
+      $projbycal{$ymd}{$projectid}{$inst}{$cal} += $timespent->seconds;
     } else {
-
-      # Create a new TimeAcct object.
-      $hash{$obs->startobs->ymd}{$projectid} = new OMP::Project::TimeAcct(
-                                                 projectid => $projectid,
-                                                 date => $date,
-                                                 timespent => $timespent );
+      if ($obs->isGenCal) {
+	# General calibrations are deemed to be instrument
+	# specific (if you do a skydip for scuba you should
+	# not be charged for it if you use RxA)
+	$cals{$ymd}{$inst}{"CAL"} += $timespent->seconds;
+      } else {
+	$cals{$ymd}{$inst}{$cal} += $timespent->seconds;
+      }
     }
   }
 
-  # And create the array out of the hash.
-  foreach my $ymd (keys %hash) {
-    foreach my $projectid (keys %{$hash{$ymd}}) {
-      push @return, $hash{$ymd}{$projectid};
+  print Dumper( \%projbycal, \%cals, \%extended) if $DEBUG;
+
+  # Now go through the science observations to find the total
+  # of each required calibration regardless of project
+  my %cal_totals;
+  for my $ymd (keys %projbycal) {
+    for my $proj (keys %{$projbycal{$ymd}}) {
+      for my $inst (keys %{$projbycal{$ymd}{$proj}}) {
+	for my $cal (keys %{$projbycal{$ymd}{$proj}{$inst}}) {
+	  $cal_totals{$ymd}{$inst}{$cal} += $projbycal{$ymd}{$proj}{$inst}{$cal};
+	}
+      }
     }
   }
 
-  return @return;
+  print "Science calibration totals:".Dumper(\%cal_totals) if $DEBUG;
+
+  # Now we need to calculate project totals by apporitoning the
+  # actual calibration data in proportion to the total amount
+  # of time each project spent requiring these observations
+  # This is still done on a per-instrument basis
+  my %proj;
+  for my $ymd (keys %projbycal) {
+    for my $proj (keys %{$projbycal{$ymd}}) {
+      for my $inst (keys %{$projbycal{$ymd}{$proj}}) {
+	for my $cal (keys %{$projbycal{$ymd}{$proj}{$inst}}) {
+	  # This project should be charged for calibrations
+	  # as a fraction of the total time spent time on data
+	  # that uses the calibration and instrument
+	  if (exists $cals{$ymd}{$inst}{$cal}) {
+	    # We have a calibration
+	    my $caltime = $projbycal{$ymd}{$proj}{$inst}{$cal} / 
+	      $cal_totals{$ymd}{$inst}{$cal} *
+	      $cals{$ymd}{$inst}{$cal};
+
+	    # Add on the actual observations
+	    $proj{$ymd}{$proj}{$inst} += int($projbycal{$ymd}{$proj}{$inst}{$cal});
+
+	    # And the calibrations
+	    $proj{$ymd}{$proj}{$inst} += int($caltime);
+
+	  } else {
+	    # oops, no relevant calibrations...
+	    push(@warnings, "No calibration data of type $cal for project $proj on $ymd\n");
+	  }
+
+	}
+      }
+    }
+  }
+
+  print "Proj after science calibrations:".Dumper( \%proj) if $DEBUG;
+
+  # Now need to apportion the generic calibrations amongst
+  # all the projects by instrument
+  for my $ymd (keys %proj) {
+    # Calculate the total project time for this instrument
+    # including calibrations
+    my %total;
+    for my $proj (keys %{$proj{$ymd}}) {
+      for my $inst (keys %{$proj{$ymd}{$proj}}) {
+	$total{$inst} += $proj{$ymd}{$proj}{$inst};
+      }
+    }
+
+    # Add on the general calibrations (for each instrument)
+    for my $proj (keys %{$proj{$ymd}}) {
+      for my $inst (keys %{$proj{$ymd}{$proj}}) {
+	$proj{$ymd}{$proj}{$inst} += int( $cals{$ymd}{$inst}{CAL} * 
+					  $proj{$ymd}{$proj}{$inst} / 
+					  $total{$inst});
+      }
+    }
+  }
+
+  print "Proj after adding CAL: ".Dumper(\%proj) if $DEBUG;
+
+  # Now go through and create a CAL entry for calibrations
+  # that were not used by anyone. Technically the General data
+  # should be shared onto CAL as well...For now, CAL is just treated
+  # as non-science data that is not useful for anyone else
+  for my $ymd (keys %cals) {
+    for my $inst (keys %{ $cals{$ymd} }) {
+      for my $cal (keys %{ $cals{$ymd}{$inst} } ) {
+	# Skip general calibrations
+	next if $cal =~  /CAL$/;
+
+	# Check specific calibrations
+	if (!exists $cal_totals{$ymd}{$inst}{$cal}) {
+	  push(@warnings,"Calibration $cal is not used by any science observations on $ymd\n");
+	  $proj{$ymd}{CAL}{$inst} += $cals{$ymd}{$inst}{$cal};
+	}
+      }
+    }
+  }
+
+  # If we have some nights without any science calibrations we need
+  # to charge it to CAL
+  for my $ymd (keys %cals) {
+    for my $inst (keys %{$cals{$ymd}}) {
+      # Now need to look for this instrument usage on this date
+      my $nocal;
+      for my $proj (keys %{$projbycal{$ymd}}) {
+	if (exists $projbycal{$ymd}{$proj}{$inst}) {
+	  # Science data found for this instrument
+	  $nocal = 1;
+	  last;
+	}
+      }
+      if (!$nocal) {
+	# Need to add this to cal
+	print "Adding on CAL data for $inst on $ymd of $cals{$ymd}{$inst}{CAL}\n" if $DEBUG;
+	$proj{$ymd}{CAL}{$inst} += $cals{$ymd}{$inst}{CAL};
+      }
+    }
+  }
+
+
+  print "Proj after leftovers: " . Dumper(\%proj) if $DEBUG;
+
+  # Now we need to add up all the projects by UT date
+  my %proj_totals;
+  for my $ymd (keys %proj) {
+    for my $proj (keys %{$proj{$ymd}}) {
+      for my $inst (keys %{$proj{$ymd}{$proj}}) {
+	my $projkey = $proj;
+
+	# If we have some shared calibrations that are not associated
+	# with a project we need to associate them with a telescope
+	# so that UKIRTCAL and JCMTCAL do not clash in the system
+	if ($proj eq 'CAL') {
+	  $projkey = $instlut{$ymd}{$inst} . "CAL";
+	}
+
+	$proj_totals{$ymd}{$projkey} += $proj{$ymd}{$proj}{$inst};
+      }
+    }
+  }
+
+  # Add in the extended time
+  for my $ymd (keys %extended) {
+    for my $tel (keys %{ $extended{$ymd} }) {
+      my $key = $tel . "EXTENDED";
+      $proj_totals{$ymd}{$key} += $extended{$ymd}{$tel};
+    }
+  }
+
+
+  print "Final totals: ".Dumper(\%proj_totals) if $DEBUG;
+
+  # Work out the night total
+  if ($DEBUG) {
+    for my $ymd (keys %proj_totals) {
+      my $total = 0;
+      for my $proj (keys %{$proj_totals{$ymd}}) {
+	$total += $proj_totals{$ymd}{$proj};
+      }
+      $total /= 3600;
+      printf "$ymd: %.1f hrs\n",$total;
+      printf "From files: %.1f hrs\n", $night_totals{$ymd}/3600;
+    }
+  }
+
+  # Now create the time accounting objects and store them in an
+  # array
+  my @timeacct;
+  for my $ymd (keys %proj_totals) {
+    my $date = OMP::General->parse_date( $ymd );
+    print "Date: $ymd\n" if $DEBUG;
+    for my $proj (keys %{$proj_totals{$ymd}}) {
+      printf "Project $proj : %.1f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG; 
+      push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
+						 date => $date,
+						 timespent => new Time::Seconds($proj_totals{$ymd}{$proj})
+						);
+    }
+  }
+
+  return (\@warnings,@timeacct);
 
 }
 
