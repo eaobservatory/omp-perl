@@ -75,8 +75,6 @@ BEGIN {
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
 
-  use lib qw( /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib );
-
   use OMP::Constants;
   use OMP::General;
   use OMP::Config;
