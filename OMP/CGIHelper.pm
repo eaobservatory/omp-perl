@@ -995,10 +995,17 @@ sub fb_logout {
   print "You may see feedback for a project by clicking <a href='feedback.pl'>here</a>.";
 }
 
+=back
+
 =head1 AUTHORS
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
 
 =cut
 
