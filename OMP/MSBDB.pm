@@ -47,6 +47,7 @@ use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
+use OMP::MSBDoneDB;
 
 use Time::Piece qw/ :override /;
 
@@ -582,11 +583,34 @@ time taken to observe the MSB (via OMP::TimeAcctDB).
 
 Invokes the C<hasBeenObserved> method on the MSB object.
 
+Configuration arguments can be supplied via a reference to a hash
+as the last argument.
+
+The only configuration option is
+
+  adjusttime => 1/0
+
+Default is to adjust the time accounting when accepting an MSB. If this
+argument is false the time pending will not be incremented.
+
+  $db->doneMSB( $checksum, { adjusttime => 0 });
+  $db->doneMSB( $checksum, $comment, { adjusttime => 0 });
+
 =cut
 
 sub doneMSB {
   my $self = shift;
   my $checksum = shift;
+
+  # If last arg is a hash read it off
+  my %optargs = ( adjusttime => 1 );
+  if (ref($_[-1]) eq 'HASH') {
+    # Remove last element from @_
+    my $newopt = pop(@_);
+    %optargs = (%optargs, %$newopt);
+  }
+
+  # Now read the comment assuming any args remain
   my $comment = shift;
 
   OMP::General->log_message("Attempting to mark MSB for project ". $self->projectid . " as done [$checksum]");
@@ -615,20 +639,32 @@ sub doneMSB {
      OMP::General->log_message("Unable to retrieve corresponding MSB");
   }
 
+  # We are going to force the comment object through if we have one
+  # This allows us to preserve date information.
+
   # Work out the reason and user
   my $author;
   my $reason = "MSB marked as done";
   if (defined $comment) {
-    $author = $comment->author;
-    $reason .= ": ". $comment->text
-      if defined $comment->text && $comment->text =~ /\w/;
+    $author = $comment->author; # for logging
+    my $text = $comment->text;
+    if (defined $text && $text =~ /\w/) {
+      # prepend a descriptive comment to current text
+      $reason .= ": ".$text;
+    }
+    $comment->text( $reason );
+  } else {
+    $comment = new OMP::Info::Comment( text => $reason );
   }
 
+  # Force status
+  $comment->status( OMP__DONE_DONE );
+
   # Update the msb done table (need to do this even if the MSB
-  # no longer exists in the science program
+  # no longer exists in the science program). Note that this implies
+  # the science program exists....Probably should be using self->projectid
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-                           $reason,
-                           OMP__DONE_DONE, $author );
+			   $comment );
 
   OMP::General->log_message("Marked MSB as done in the done table");
 
@@ -656,22 +692,24 @@ sub doneMSB {
 
   OMP::General->log_message("Science program stored back to database");
 
-  # Now decrement the time for the project
-  my $acctdb = new OMP::TimeAcctDB(
-				   ProjectID => $sp->projectID,
-				   DB => $self->db,
-				  );
+  # Now decrement the time for the project if required
+  if ($optargs{adjusttime}) {
+    my $acctdb = new OMP::TimeAcctDB(
+				     ProjectID => $sp->projectID,
+				     DB => $self->db,
+				    );
 
-  # need TimeAcct object
-  my $acct = new OMP::Project::TimeAcct(
-					projectid => $sp->projectID,
-					confirmed => 0,
-					date => scalar(gmtime()),
-					timespent => $msb->estimated_time,
-				       );
+    # need TimeAcct object
+    my $acct = new OMP::Project::TimeAcct(
+					  projectid => $sp->projectID,
+					  confirmed => 0,
+					  date => scalar(gmtime()),
+					  timespent => $msb->estimated_time,
+					 );
 
-  $acctdb->incPending( $acct );
-  OMP::General->log_message("Incremented time on project");
+    $acctdb->incPending( $acct );
+    OMP::General->log_message("Incremented time on project");
+  }
 
   # Might want to send a message to the feedback system at this
   # point
@@ -2171,6 +2209,17 @@ The arguments are:
 
 This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
+Alternatively, the comment information can be supplied in the form
+of an OMP::Info::Comment object. The arguments would then be:
+
+  checksum
+  projectid
+  msb  (can be undef)
+  comment object
+
+The caller is responsible for configuring the comment object so that it
+includes a valid status.
+
 =cut
 
 sub _notify_msb_done {
@@ -2189,12 +2238,20 @@ sub _notify_msb_done {
   # else just have the checksum
   my $info = ( $msb ? $msb->info() : $checksum);
 
-  # Create a comment object
-  my $comment = new OMP::Info::Comment( text => $text,
-					status => $status);
+  # if the 'text' argument is already a comment object we do not
+  # need to make a comment object
+  my $comment;
+  if (defined $text && UNIVERSAL::isa($text,"OMP::Info::Comment")) {
+    $comment = $text;
 
-  # Add the author if supplied
-  $comment->author( $user ) if defined $user;
+  } else {
+    # Create a comment object
+    $comment = new OMP::Info::Comment( text => $text,
+				       status => $status);
+
+    # Add the author if supplied
+    $comment->author( $user ) if defined $user;
+  }
 
   # Add the comment
   $done->addMSBcomment( $info, $comment );
@@ -2203,9 +2260,9 @@ sub _notify_msb_done {
 
 =item B<_get_submitted>
 
-Query database for projects where science program was submitted within the given
-date range.  First and second arguments are the min and max of the date range as
-epoch dates.  Returns an array of project IDs.
+Query database for projects where science program was submitted within
+the given date range.  First and second arguments are the min and max
+of the date range as epoch dates.  Returns an array of project IDs.
 
   @projectids = $db->_get_submitted($lo, $hi);
 
