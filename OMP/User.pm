@@ -32,7 +32,7 @@ use overload '""' => "stringify";
 
 =head1 METHODS
 
-=head2 Constructor
+=head2 Constructors
 
 =over 4
 
@@ -76,6 +76,134 @@ sub new {
   }
 
   return $user;
+}
+
+=item B<extract_user_from_email>
+
+Attempt to extract a OMP::User object from an email
+From line. Assumes the email information is of the
+form 
+
+   Name Label <x@a.b.c>
+
+If there is no "comment" attached to the email address itself the text
+before the @ will be treated as a full name if it contains a dot. If
+no name comment is available and the email address itself does not
+look like a I.Surname then this method returns undef (the alternative
+is to return simply an object with an email address but that does not
+seem to be useful). Also returns undef if a valid user ID can not be
+inferred from the name.
+
+  $user = OMP::User->extract_user_from_email( $email_string );
+
+Even though this method is technically a constructor it is not called
+directly from the normal constructor because it is forced to guess the
+user ID.
+
+=cut
+
+sub extract_user_from_email {
+  my $class = shift;
+
+  my $string = shift;
+
+  # Look for  "Name <addr>"
+  # [^>] matches any character that is not a ">"
+  # This allows us to get all the characters in an email
+  # address without having to list every single acceptable
+  # character. The presence of a closing ">" is all that matters.
+  my ($name, $email);
+  if ($string =~ /^\s*([^<]+)\s*<([^>]+)>/) {
+    $name = $1;
+    $email = $2;
+
+    # Remove trailing spaces and compress spaces
+    $name = _clean_string( $name );
+    $email = _clean_string( $email );
+
+  } elsif ($string =~ /^\s*<?([^>]+)>?/) {
+    $email = $1;
+
+    # Get the to from the email address
+    my ($to, $domain) = split(/@/,$email);
+
+    # Treat it as a name if it includes a dot (e.g. t.jenness@jach)
+    $name = $to if $to =~ /\./;
+  }
+
+  # do not continue if we have no name
+  return undef unless defined $name;
+
+  # Attempt to get user id
+  my $userid = $class->infer_userid( $name );
+
+  return undef unless defined $userid;
+
+  # Form a valid object
+  return $class->new( name => $name,
+		      userid => $userid,
+		      email => $email);
+
+}
+
+=item B<extract_user_from_href>
+
+Similar to C<extract_user_from_email> except that this method
+looks for names and emails in an HTML format hyperlink:
+
+  <a href="mailto:email">Name</a>
+
+If "Name" above happens to also be "email" the non-domain
+part of the email address is used to construct the name if
+it contains a dot. If it does not contain a dot this method
+returns undef. If the "Name" includes an "@" but is not the
+same as the mailto email address, also returns undef since
+the email addresses must be the same.
+
+  $user = OMP::User->extract_user_from_href( $text );
+
+=cut
+
+sub extract_user_from_href {
+  my $class = shift;
+  my $string = shift;
+
+  # Try to get the mail to and the name
+  my ($email, $name);
+  if ($string =~ /mailto:([^\"]+)\"\s*>([^<]+)/) {
+    $email = $1;
+    $name = $2;
+
+    # clean the string
+    $name = _clean_string( $name );
+    $email = _clean_string( $email );
+  } else {
+    return undef;
+  }
+
+  # Is the email the same as the name?
+  if ($email eq $name) {
+    my ($id,$domain) = split(/@/, $name);
+    $name = $id if $id =~ /\./;
+
+  } elsif ($name =~ /@/) {
+    # we have an email address in the name field
+    # but it does not match the actual email address
+    $name = undef;
+  }
+
+  return undef unless defined $name;
+
+  # Attempt to get user id
+  my $userid = $class->infer_userid( $name );
+
+  return undef unless defined $userid;
+
+  # Form a valid object
+  return $class->new( name => $name,
+		      userid => $userid,
+		      email => $email);
+
 }
 
 =back
@@ -345,6 +473,31 @@ sub infer_userid {
 }
 
 =back
+
+=begin __PRIVATE__
+
+=head2 Internal functions
+
+=over 4
+
+=item B<_clean_string>
+
+Remove trailing and leading space and convert multiple spaces
+into single spaces.
+
+ $new = _clean_string( $old );
+
+=cut
+
+sub _clean_string {
+  my $in = shift;
+  $in =~ s/\s*$//;
+  $in =~ s/^\s*//;
+  $in =~ s/\s+/ /g;
+  return $in;
+}
+
+=end __PRIVATE__
 
 =head1 AUTHOR
 
