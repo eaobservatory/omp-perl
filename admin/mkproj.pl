@@ -129,8 +129,8 @@ for my $proj (keys %alloc) {
     # Get the tau range from the weather bands if it exists
     my @bands = split( /,/, $details{band});
     my $taurange = OMP::General->get_band_range($details{telescope}, @bands);
-    die "Error determining tau range from band $details{band}"
-      unless $taurange;
+    die "Error determining tau range from band $details{band} !"
+      unless defined $taurange;
 
     ($taumin, $taumax) = $taurange->minmax;
 
@@ -165,6 +165,7 @@ for my $proj (keys %alloc) {
 				$taumin, $taumax,
 				$seemin,$seemax, $details{cloud},
 			       );
+
   } catch OMP::Error::ProjectExists with {
     print " - but the project already exists. Skipping.";
 
