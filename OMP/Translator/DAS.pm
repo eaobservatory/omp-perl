@@ -30,6 +30,8 @@ use Astro::SLA ();
 use File::Spec;
 use SrcCatalog::JCMT;
 use Data::Dumper;
+use Time::Seconds qw/ ONE_HOUR /;
+use Time::Piece qw/ :override /;
 
 # Unix directory for writing ODFs
 our $TRANS_DIR = "/observe/ompodf";
@@ -754,6 +756,51 @@ sub targetConfig {
 
     $html .= "<H3>Target Information: <em>".$summary{target}."</em></H3>\n";
     $html.= "<PRE>". $c->status ."</PRE>\n";
+
+    # if we have orbital elements we need a bit more
+    if ($c->type eq 'ELEMENTS') {
+      $html .= "<h4>This is a moving target</h4>";
+
+      # Calculate all the MJD1,2 and RA1,RA2
+      # This code is duplicated in the SCUBA translator!
+      # Astro::Coords should be doing this really.
+
+      # Initialise for current time
+      my $time = gmtime;
+      $c->datetime( $time );
+
+      my $ra1 = $c->ra_app( format => 's');
+      my $dec1 = $c->dec_app( format => 's');
+      my $mjd1 = $c->datetime->mjd;
+
+      # four hours in the future since this MSB shouldn't really
+      # be longer than that.
+      $time += (4 * ONE_HOUR);
+
+      $c->datetime( $time );
+      my $ra2 = $c->ra_app( format => 's');
+      my $dec2 = $c->dec_app( format => 's');
+      my $mjd2 = $c->datetime->mjd;
+
+      $html .= "At MJD $mjd1 the apparent RA/Dec of the target is:\n";
+      $html .= "<table>";
+      $html .= "<tr><td><b>RA:</b></td><td>".
+	$ra1."</td></tr>";
+      $html .= "<tr><td><b>Dec:</b></td><td>".
+	$dec1."</td></tr>";
+      $html .= "</table>\n";
+
+      $html .= "At MJD $mjd2 the apparent RA/Dec of the target will be:\n";
+      $html .= "<table>";
+      $html .= "<tr><td><b>RA:</b></td><td>".
+	$ra2."</td></tr>";
+      $html .= "<tr><td><b>Dec:</b></td><td>".
+	$dec2."</td></tr>";
+      $html .= "</table>\n";
+
+    }
+
+
   }
 
   return $html;
