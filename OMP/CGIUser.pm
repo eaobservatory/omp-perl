@@ -26,6 +26,8 @@ use OMP::Config;
 use OMP::DBbackend;
 use OMP::Display;
 use OMP::Error qw(:try);
+use OMP::FaultQuery;
+use OMP::FaultServer;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -161,6 +163,31 @@ sub details {
     }
   }
 
+  print "<h4>User associated faults for the past 2 weeks</h4>";
+  # Query for faults user is associated with
+  my $today = OMP::General->today . "T23:59";
+  my $xml = "<FaultQuery>".
+    "<author>".$user->userid."</author>".
+      "<date delta=\"-14\">$today</date>".
+	"</FaultQuery>";
+  my $faultquery = new OMP::FaultQuery(XML => $xml);
+
+  my $faults = OMP::FaultServer->queryFaults($faultquery,
+					     "object");
+
+  # Sort by category
+  my %faults;
+  map {push @{$faults{$_->category}}, $_} @$faults;
+
+  print "<table>";
+  print "<td>Category</td><td align=center>Subject</td>";
+  for my $category (sort keys %faults) {
+    for (@{$faults{$category}}) {
+      print "<tr><td>" . $_->category ."</td>";
+      print "<td><a href=\"viewfault.pl?id=".$_->faultid."\">".$_->subject."</a></td></tr>";
+    }
+  }
+  print "</table><br>";
 }
 
 =item B<list_users>
