@@ -2443,6 +2443,60 @@ sub SpInstMichelle {
   return %summary;
 }
 
+=item B<SpInstUIST>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstUIST( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstUIST {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{telescope} = "UKIRT";
+  $summary{instrument} = "UIST";
+
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+
+  # If we are IMAGING we need to pick up the filter name
+  # If we are SPECTROSCOPY we need to pick up the central
+  # wavelength
+  my $type = $self->_get_pcdata( $el, "camera" );
+
+  if ($type eq 'imaging') {
+    my $filter = $self->_get_pcdata( $el, "filter" );
+    $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					      Instrument => 'MICHELLE');
+
+    $summary{disperser} = undef;
+  } else {
+    my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
+    $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
+					      Instrument => 'MICHELLE');
+
+    $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
+  }
+
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode
+  $summary{type} = ( $type eq "imaging" ? "i" : "s" );
+
+  # Polarimeter
+  #my $pol = $self->_get_pcdata( $el, "polarimetry" );
+  #$summary{pol} = ( $pol eq "no" ? 0 : 1 );
+
+  return %summary;
+}
+
 =item B<SpInstIRCAM3>
 
 Examine the structure of this name and add information to the
