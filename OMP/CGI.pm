@@ -2,15 +2,20 @@ package OMP::CGI;
 
 =head1 NAME
 
-OMP::CGI - Functions for the OMP Feedback pages
+OMP::CGI - Content for the OMP Feedback system CGI scripts
 
 =head1 SYNOPSIS
 
-use OMP::CGI(qw/:feedback/);
+use OMP::CGI;
+
+$cgi = new OMP::CGI( CGI => $q );
+
+$cgi->write_page(\&form_content, \&form_ouptut);
 
 =head1 DESCRIPTION
 
-This class provides functions for use with the OMP Feedback CGI scripts.
+This class provides the functions and content that are common to all of the
+OMP feedback system CGI scripts, such as cookie management and look and feel.
 
 =cut
 
@@ -19,7 +24,9 @@ use strict;
 use warnings;
 use Carp;
 
+use lib qw(/jac_sw/omp/msbserver);
 use OMP::Cookie;
+use OMP::Error;
 use HTML::WWWTheme;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
@@ -37,7 +44,7 @@ our $EXPTIME = 2;
 
 Create a new instance of an C<OMP::CGI> object.
 
-  $c = new OMP::CGI( CGI => $q );
+  $cgi = new OMP::CGI( CGI => $q );
 
 =cut
 
@@ -146,42 +153,15 @@ sub cookie {
 
 =over 4
 
-=item B<sideBar>
+=item B<_write_header>
 
-  sideBar();
+Create the document header (and provide the cookie).  Cookie is optional.
 
-=cut
-
-sub sideBar {
-  my $self = shift;
-  my $cgi = shift;
-
-  print "This is a sidebar.\n";
-  return;
-}
-
-=item B<ompHeader>
-
-  ompHeader();
+  $cgi->_write_header;
 
 =cut
 
-sub ompHeader {
-  my $self = shift;
-  my $cgi = shift;
-  # throw an error here if it isn't a cgi object.
-
-  $cgi->header();
-  return;
-}
-
-=item B<write_header>
-
-Cookie is optional.
-
-=cut
-
-sub write_header {
+sub _write_header {
   my $self = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
@@ -207,37 +187,45 @@ sub write_header {
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   print $theme->StartHTML(),
-    $theme->MakeHeader(),
-      $theme->MakeTopBottomBar();
+        $theme->MakeHeader(),
+	$theme->MakeTopBottomBar();
 
 }
 
 =item B<write_footer>
 
+Create the footer of the HTML document.
+
+  $cgi->_write_footer;
+
 =cut
 
-sub write_footer {
+sub _write_footer {
   my $self = shift;
   my $q = $self->cgi;
   my $theme = $self->theme;
 
 
   print $theme->MakeTopBottomBar(),
-    $theme->MakeFooter(),
-      $theme->EndHTML();
+        $theme->MakeFooter(),
+	$theme->EndHTML();
 
 }
 
-=item B<write_login>
+=item B<_write_login>
+
+Create the login form.
+
+$cgi->_write_login;
 
 =cut
 
-sub write_login {
+sub _write_login {
   my $self = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
 
-  $self->write_header();
+  $self->_write_header();
 
   print $q->h1('Login'),
     "Please enter enter the project ID and password. These are required for access to the feedback system.";
@@ -245,26 +233,34 @@ sub write_login {
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
         $q->br,
-	  "Project ID: </td><td colspan='2'>",
-	    $q->textfield(-name=>'projectid',
-			  -size=>10,
-			  -maxlength=>15),
-			    $q->br,
-			      "</td><tr><td>Password: </td><td>",
-				$q->password_field(-name=>'password',
-						   -size=>10,
-						   -maxlength=>15),
-						     "</td><td>",
-						       $q->submit("Submit"),
-							 $q->endform;
+	"Project ID: </td><td colspan='2'>",
+	$q->textfield(-name=>'projectid',
+		      -size=>10,
+		      -maxlength=>15),
+	$q->br,
+	"</td><tr><td>Password: </td><td>",
+	$q->password_field(-name=>'password',
+			   -size=>10,
+			   -maxlength=>15),
+	"</td><td>",
+	$q->submit("Submit"),
+	$q->endform;
   print "</td></table>";
 
-  $self->write_footer();
+  $self->_write_footer();
 }
 
 =item B<write_page>
 
+Create the page with the login form if the projectid and password are
+needed.  If the projectid and password have already been provided create
+the form and its output using the code references provided to this method.
+
   $cgi->write_page( \&form_content, \&form_output );
+
+Currently if the page does not contain a form the &form_content code
+reference should be given twice, and the &form_output should not be given
+at all.
 
 =cut
 
@@ -273,9 +269,21 @@ sub write_page {
   my ( $form_content, $form_output ) = @_;
 
   my $q = $self->cgi;
-
   # Check to see that they are defined...
-  # KYNAN Does this. Check that they are code refs
+#  throw OMP::Error::BadArgs("Code reference not given")
+#    unless defined($form_content);
+#  throw OMP::Error::BadArgs("Code reference not given")
+#    unless defined($form_output);
+
+  # Check that they are code refs
+  foreach ($form_content, $form_output) {
+    throw OMP::Error::BadArgs("Code reference not given")
+      unless defined($_);
+
+    my $type = ref($_);
+    croak "Must be a code reference."
+      unless $type eq 'CODE';
+  }
 
   # First thing to do is read the cookie and store the object
   my $c = new OMP::Cookie( CGI => $q );
@@ -298,7 +306,7 @@ sub write_page {
       # Else no password at all (even in the cookie) so put up log in form
       # Just put up the password form
 
-      $self->write_login;
+      $self->_write_login;
 
       # Dont want to do any more so return immediately
       return;
@@ -311,34 +319,40 @@ sub write_page {
     $c->setCookie( $EXPTIME, %cookie );
 
     # Print HTML header (including sidebar)
-    $self->write_header();
+    $self->_write_header();
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
-    $form_output->( $q, %cookie );
+    $form_output->( %cookie );
 
     # Write the footer
-    $self->write_footer();
+    $self->_write_footer();
 
   } else {
-    # We are creating forms, not reading them
+    # We are creating forms, not reading them.  Or we might just be
+    # creating output.
 
-    # If the cookie contains a password field just put up the 
+    # If the cookie contains a password field just put up the
     # HTML content
     if (exists $cookie{password}) {
 
+      # Set the cookie with a new expiry time (this occurs even if we
+      # already have one. This allows for automatic expiry if noone
+      # reloads the page
+      $c->setCookie( $EXPTIME, %cookie );
+
       # Write the header
-      $self->write_header();
+      $self->_write_header();
 
       # Run the callback
-      $form_content->( $q, %cookie );
+      $form_content->( %cookie );
 
       # Write the footer
-      $self->write_footer();
+      $self->_write_footer();
 
     } else {
       # Pop up a login box instead
-      $self->write_login();
+      $self->_write_login();
 
     }
 
@@ -348,6 +362,16 @@ sub write_page {
 
 
 =back
+
+=head1 AUTHORS
+
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
 
 =cut
 
