@@ -33,6 +33,7 @@ use OMP::Error qw(:try);
 use OMP::General;
 use OMP::PlotHelper;
 use OMP::ProjDB;
+use OMP::ProjQuery;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctQuery;
 
@@ -838,18 +839,33 @@ sub _get_accts {
   return
     unless (defined $acct[0]);
 
-  # Get project objects
-  my $db = new OMP::ProjDB(DB => $self->db,
-			  );
-  my %projids = map {$_->projectid, undef} @acct;
-  my %projects = $db->getProjectsQueue(keys %projids);
+  # Get project objects, using a different query depending on whether
+  # we are returning science or engineering accounts
+  my $db = new OMP::ProjDB(DB => $self->db,);
+  my $tel_xml = "<telescope>". $self->_get_telescope ."</telescope>";
+  my $query_xml;
+  if ($arg eq 'sci') {
+    # Get all the projects in the semesters that we have time
+    # accounts for.
+    my $sem_xml = join ("", map {"<semester>$_</semester>"} $self->_get_semesters());
+    $query_xml = "<ProjQuery>${sem_xml}${tel_xml}</ProjQuery>";
+  } else {
+    # Get projects in the EC queue
+    $query_xml = "<ProjQuery><country>EC</country><isprimary>1</isprimary>${tel_xml}</ProjQuery>";
+  }
+
+  my $query = new OMP::ProjQuery(XML=>$query_xml);
+  my @projects = $db->listProjects($query);
+  my %projects = map {$_->projectid, $_} @projects;
 
   if ($arg eq 'sci') {
     # Only keep non-EC projects
-    @acct = grep {$projects{$_->projectid}->isScience} @acct;
+    @acct = grep {
+      exists $projects{$_->projectid} and $projects{$_->projectid}->isScience
+    } @acct;
   } else {
     # Only keep EC projects
-    @acct = grep {! $projects{$_->projectid}->isScience} @acct;
+    @acct = grep { exists $projects{$_->projectid} } @acct;
   }
 
   if (wantarray) {
@@ -910,7 +926,7 @@ Returns a list, or reference to a list.
 
 sub _get_semesters {
   my $self = shift;
-  my @accts = $self->_get_accts('sci');
+  my @accts = $self->_get_non_special_accts;
   my $tel = $self->_get_telescope;
   my %sem = map {
     OMP::General->determine_semester(date => $_->date, tel => $tel), undef
@@ -933,7 +949,7 @@ Retrieve the telescope name associated with the first time account object.
 
 sub _get_telescope {
   my $self = shift;
-  my @accts = $self->_get_accts('sci');
+  my @accts = $self->_get_non_special_accts;
   my $db = new OMP::ProjDB(DB=>$self->db,
 			   ProjectID=>$accts[0]->projectid,
 			  );
