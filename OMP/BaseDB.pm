@@ -500,6 +500,12 @@ sub _db_insert_data {
     my $dummy = $textdata->{DUMMY};
     my $col = $textdata->{COLUMN};
 
+
+    # Need to double up quotes to escape them in SQL
+    # Since we are quoting $text with a single quote
+    # we need to double up single quotes
+    $text =~ s/\'/\'\'/g;
+
     # Now replace the dummy text using writetext
     $dbh->do("declare \@val varbinary(16)
 select \@val = textptr($col) from $table where $col like \"$dummy\"
