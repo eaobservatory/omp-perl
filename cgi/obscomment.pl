@@ -1,10 +1,16 @@
 #!/local/bin/perl -X
 
+BEGIN {
+  use constant OMPLIB => "/jac_sw/omp/msbserver";
+  use File::Spec;
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{'OMP_CFG_DIR'};
+}
+
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use lib qw(/jac_sw/omp/msbserver);
-#use lib qw(/home/bradc/development/omp/msbserver);
+use lib OMPLIB;
 
 use OMP::CGI;
 use OMP::CGIObslog;
