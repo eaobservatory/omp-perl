@@ -509,6 +509,10 @@ The resultant data structure is a hash (keyed by checksum)
 each pointing to an C<OMP::Info::MSB> object containing the MSB information
 and related comments.
 
+Whenever a OMP__DONE_DONE comment is found, the "nrepeat" count of
+the info object is incremented by 1 to indicate the number of times
+this MSB has been observed.
+
 =cut
 
 sub _reorganize_msb_done {
@@ -542,6 +546,7 @@ sub _reorganize_msb_done {
 				   waveband => $row->{waveband},
 				   instrument => $row->{instrument},
 				   projectid => $row->{projectid},
+				   nrepeats => 0, # initial value
 				   comments => [
 					       new OMP::Info::Comment(
 								      text => $row->{comment},
@@ -549,6 +554,12 @@ sub _reorganize_msb_done {
 								      status => $row->{status})
 					      ],
 				  );
+    }
+
+    # If we have an OMP__DONE_DONE increment the repeat count
+    if ($row->{status} == OMP__DONE_DONE) {
+      my $rep = $msbs{ $row->{checksum} }->nrepeats;
+      $msbs{ $row->{checksum} }->nrepeats( $rep + 1 );
     }
 
 
