@@ -442,7 +442,8 @@ sub _mail_information {
     unless @addr and defined $addr[0];
 
   # Set up the mail
-  my $smtp = new Net::SMTP('mailhost', Timeout => 30);
+  my $smtp = new Net::SMTP('mailhost', Timeout => 30)
+    or throw OMP::Error::FatalError("Unable to connect to the SMTP server at this time");
 
   $smtp->mail( $details{from} )
     or throw OMP::Error::FatalError("Error sending 'from' information\n");
