@@ -1200,6 +1200,9 @@ sub _get_sched_constraints {
   }
 
   # Now read the minimum elevation. Can be undefined.
+  # We use undef to indicate that the science program did not
+  # care. This allows the scheduling system to decide what a
+  # useful minel should be.
   $summary{minel} = $self->_get_pcdata( $el, "minEl");
 
   return %summary;

@@ -1309,8 +1309,9 @@ sub _insert_row {
   my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
   my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
 
-  # If no minimum elevation is supplied use 0 degrees!
-  $data{minel} = 0.0 unless defined $data{minel};
+  # If a minimum elevation has not been supplied we do not care.
+  # A NULL can be stored in the table. We will calculate a suitable
+  # minimum elevation when we fetch the entries from the database.
 
   # cloud and moon are implicit ranges
 
@@ -1586,8 +1587,17 @@ sub _run_query {
       # of the MSB and not the Observation itself. The hope is that most
       # people will be happy with defaults and that most MSBs contain
       # a single science target anyway.
+      # For now default the min elevation to 0 degrees if it has not
+      # been stored in the table.  In the final version we should default
+      # to some value corresponding the minimum of 30 degrees and the
+      # the elevation required for the source to be available at least 50
+      # per cent of the time it is above the horizon. This will require
+      # we run through all the observations to determine this. Hope that
+      # overhead is not too great given that this quantity could be
+      # calculated as a static value at submission time.
+      # [and we may well do that eventually]
       my $minel = $msb->{minel};
-      $minel = 0 unless defined $minel;
+      $minel = 30 unless defined $minel;
 
       # Loop over each observation.
       # We have to keep track of the reference time
