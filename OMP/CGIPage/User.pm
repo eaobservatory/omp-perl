@@ -207,16 +207,21 @@ sub list_users {
 
   my $users = OMP::UserServer->queryUsers( "<UserQuery></UserQuery>" );
 
+  my $rowclass = 'row_shaded';
+
   if (@$users) {
     my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
-    print "<TABLE border='1' width=$TABLEWIDTH>\n";
+    print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
     for (@$users) {
-      print "<tr bgcolor='#7979aa'>";
+      print "<tr class='${rowclass}'>";
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
       print "<TD><a href=\"update_user.pl?user=".$_->userid."\">Update</a></TD>";
+
+      # Alternate row style
+      $rowclass = ($rowclass eq 'row_shaded' ? 'row_clear' : 'row_shaded');
     }
     print "</TABLE>\n";
   } else {
