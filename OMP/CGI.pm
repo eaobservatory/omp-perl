@@ -399,7 +399,7 @@ sub _write_header {
 
   my $title = $self->html_title;
 
-  $theme->SetHTMLStartString("<html><head><title>$title</title><link rel='stylesheet' type='text/css' href='$style' title='ompstyle'><link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/></head>");
+  $theme->SetHTMLStartString("<html><head><title>$title</title><link rel='stylesheet' type='text/css' href='$style' title='ompstyle'><link rel='icon' href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/favicon.ico'/><script type='text/javascript' src='/omp.js'></script></head>");
 
   $theme->SetSideBarTop("<a href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
