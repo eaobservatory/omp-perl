@@ -736,7 +736,6 @@ sub locate_msbs {
 				  OVERRIDE => $targ,
 				)
 	    );
-	print "Priority ". $targ->{priority}."\n";
       }
 
     } else {
@@ -758,9 +757,13 @@ sub locate_msbs {
       $unique{$checksum}->remaining($newtotal);
 
       # Remove the current msb object from the science program tree
-      $msb->_tree->unbindNode();
-      $unbound = 1;
-
+      # unless this MSB is derived from a target override survey
+      # container (we can not delete the MSB xml without removing all
+      # the related MSBs)
+      if (!$msb->_tree->findnodes('ancestor-or-self:SpSurveyContainer')) {
+	$msb->_tree->unbindNode();
+	$unbound = 1;
+      }
     } else {
       $unique{$checksum} = $msb;
 
