@@ -32,6 +32,8 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+# CGI classes are only loaded on demand for web applications
+# in the ashtml method. Do not use 'use'
 use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
@@ -48,8 +50,6 @@ use OMP::FaultDB;
 use OMP::FaultQuery;
 use OMP::FaultStats;
 use OMP::CommentServer;
-use OMP::CGIObslog;
-use OMP::CGIShiftlog;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
 use Time::Piece qw/ :override /;
@@ -762,6 +762,11 @@ Generate a summary of the night formatted using HTML.
 
 sub ashtml {
   my $self = shift;
+
+  # Need to load CGI specified classes
+  require OMP::CGIObslog;
+  require OMP::CGIShiftlog;
+
 
   my $tel  = $self->telescope;
   my $date = $self->date->ymd;
