@@ -2782,7 +2782,7 @@ sub SpTelescopeObsComp {
       my $value = $self->_get_pcdata( $system, $lut{$el});
 
       # Convert to raidnas
-      if ($el =~ /ORBINC|ANODE|PERIH|AORL|DM/) {
+      if ($el =~ /^(ORBINC|ANODE|PERIH|AORL|DM)$/) {
 	# Convert to radians
 	$value *= Astro::SLA::DD2R;
       }
@@ -2792,7 +2792,8 @@ sub SpTelescopeObsComp {
 
     }
 
-    $summary{coords} = Astro::Coords->new( elements => \%elements );
+    $summary{coords} = Astro::Coords->new( elements => \%elements,
+					   name => $summary{target});
 
   } elsif ($sysname eq "namedSystem") {
 
