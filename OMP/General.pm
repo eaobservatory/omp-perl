@@ -56,22 +56,35 @@ object (usually a C<Time::Piece> object).
  $time = $msb->_parse_date( $date );
 
 Returns C<undef> if the time could not be parsed.
-Returns the object unchanged if the argument is already a C<Time::Piece>.
+If the argument is already a C<Time::Piece> object it is returned
+unchanged if the time is a UT time, else a new object is returned
+using a UT representation (this does not change the epoch).
 
 It will also recognize a Sybase style date: 'Mar 15 2002  7:04AM'
 and a simple YYYYMMDD.
 
-The date is assumed to be in UT.
+The date is assumed to be in UT. If the optional second argument is true,
+the date will be treated as a local time and converted to UT on return.
+
+  $ut = OMP::General->parse_date( $localdate, 1);
 
 =cut
 
 sub parse_date {
   my $self = shift;
   my $date = shift;
+  my $islocal = shift;
 
   # If we already have a Time::Piece return
-  return bless $date, "Time::Piece::Sybase"
-    if UNIVERSAL::isa( $date, "Time::Piece");
+  # We should convert to a UT date representation
+  if (UNIVERSAL::isa( $date, "Time::Piece")) {
+    if ($date->[Time::Piece::c_islocal]) {
+      # Convert it to UT
+      my $epoch = $date->epoch;
+      $date = gmtime( $epoch );
+    }
+    return bless $date, "Time::Piece::Sybase"
+  }
 
   # We can use Time::Piece->strptime but it requires an exact
   # format rather than working it out from context (and we don't
@@ -121,11 +134,29 @@ sub parse_date {
     # Sometime around v1.07 of Time::Piece the behaviour changed
     # to return UTC rather than localtime from strptime!
     # The joys of backwards compatibility.
-    if ($time->[Time::Piece::c_islocal]) {
-      my $tzoffset = $time->tzoffset;
-      my $epoch = $time->epoch;
-      $time = gmtime( $epoch + $tzoffset->seconds );
+    # If we have been supplied a localtime we just need to change the
+    # representation rather than the epoch if we have a localtime
+    # if we get a UT back but had a local time to start with we 
+    # need to correct
+    my $epoch = $time->epoch;
+    my $tzoffset = $time->tzoffset;
+    if ($islocal ) {
+      # We are supposed to have a local time, if we have a UT
+      # We need to subtract the timezone and then convert the
+      # time to a localtime
+      if (! $time->[Time::Piece::c_islocal]) {
+	$epoch -= $tzoffset->seconds;
+      }
+
+    } else {
+      # We are supposed to have a UT, if we do not, add on the timezone
+      if ($time->[Time::Piece::c_islocal]) {
+	$epoch += $tzoffset->seconds;
+      }
     }
+
+    # Convert back to a gmtime using the reference epoch
+    $time = gmtime( $epoch );
 
     # Now need to bless into class Time::Piece::Sybase
     return bless $time, "Time::Piece::Sybase";

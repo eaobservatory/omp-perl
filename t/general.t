@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 109;
+use Test::More tests => 124;
 
 use Time::Piece qw/ :override /;
 
@@ -57,6 +57,38 @@ for my $in (@dateinput) {
   # Check that the object is UTC by using undocumented internal hack
   ok( ! $date->[Time::Piece::c_islocal], "Check we have utc date");
 }
+
+# Check that we get a UT date from a localtime object
+print "# Parse a Time::Piece object that is a local time\n";
+my $local = localtime( $date->epoch );
+my $newdate = OMP::General->parse_date( $local );
+# Compare
+is( $newdate->year, $year, "Check year");
+is( $newdate->mon, $mon, "Check month");
+is( $newdate->mday, $day, "Check day");
+is( $newdate->hour, $hh, "Check hour");
+is( $newdate->min, $mm, "Check minute");
+is( $newdate->sec, $sec, "Check second");
+
+# Check that the object is UTC by using undocumented internal hack
+ok( ! $newdate->[Time::Piece::c_islocal], "Check we have utc date");
+
+# Generate a local time and verify we get back the correct UT
+print "# Parse a local time\n";
+my $localiso = $local->datetime;
+ok( $local->[Time::Piece::c_islocal], "Check we have local date");
+$newdate = OMP::General->parse_date( $localiso, 1);
+# Compare
+is( $newdate->year, $year, "Check year");
+is( $newdate->mon, $mon, "Check month");
+is( $newdate->mday, $day, "Check day");
+is( $newdate->hour, $hh, "Check hour");
+is( $newdate->min, $mm, "Check minute");
+is( $newdate->sec, $sec, "Check second");
+
+# Check that the object is UTC by using undocumented internal hack
+ok( ! $newdate->[Time::Piece::c_islocal], "Check we have utc date");
+
 
 print "# today()\n";
 
