@@ -1423,6 +1423,9 @@ sub project_home {
   print "<table width=100%><tr><td>";
   print "<h2>$cookie{projectid}: $title</h2>";
 
+  # Is this project a TOO?
+  ($project->istoo) and print "<i>This project is a target of opportunity</i><br>";
+  
   # Make it obvious if this project is disabled
   (! $project->state) and print "<h2>This project is disabled</h2>";
 
@@ -1733,8 +1736,8 @@ sub projlog_content {
 
   # Display observation log
   try {
-    # Don't want to go to files on disk
-    $OMP::ArchiveDB::FallbackToFiles = 0;
+    # Want to go to files on disk
+    $OMP::ArchiveDB::FallbackToFiles = 1;
 
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
 				      date => $utdate,
