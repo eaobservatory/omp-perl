@@ -42,7 +42,7 @@ use Time::Piece;
 use Time::Seconds;
 use SCUBA::ODF;
 
-use vars qw/ $VERSION $FallbackToFiles /;
+use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup /;
 
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
@@ -51,6 +51,9 @@ our $VERSION = (qw$Revision$)[1];
 
 # Do we want to fall back to files?
 $FallbackToFiles = 1;
+
+# Do we want to skip the database lookup?
+$SkipDBLookup = 0;
 
 =head1 METHODS
 
@@ -145,6 +148,14 @@ sub queryArc {
     @results = $grp->obs;
   } else {
 
+    # Check to see if the global flags $FallbackToFiles and
+    # $SkipDBLookup are set such that neither DB nor file
+    # lookup can happen. If that's the case, then throw an
+    # exception.
+    if( !$FallbackToFiles && $SkipDBLookup ) {
+      throw OMP::Error("FallbackToFiles and SkipDBLookup are both set to return no information.");
+    }
+
     my $date = $query->daterange->min;
     my $currentdate = gmtime;
 
@@ -160,7 +171,7 @@ sub queryArc {
 
     # First go to the database if we have a handle
     # and if we are not querying the current date
-    if (defined $self->db && !$istoday) {
+    if (defined $self->db && !$istoday && !$SkipDBLookup) {
 
       # Trap errors with connection. If we have fatal error
       # talking to DB we should fallback to files (if allowed)
