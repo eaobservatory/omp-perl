@@ -11,7 +11,8 @@ OMP::FeedbackDB - Manipulate the feedback database
 			     DB => $dbconnection );
 
   $db->addComment( $comment );
-  $db->getComments( );
+  $db->getComments( $projectid, $password );
+  $db->alterStatus( $projectid, $commentid, $adminpass, $status );
 
 
 =head1 DESCRIPTION
@@ -90,6 +91,13 @@ sub getComments {
 
   # Get the comments
   my $comment = $self->_fetch_comments( $amount, $showhidden );
+
+  # Strip out the milliseconds
+  for (@$comment) {
+    $_->{date} =~ s/:000/ /g;
+  }
+
+  return $comment;
 }
 
 =item B<addComment>
@@ -192,6 +200,33 @@ sub addComment {
   return;
 }
 
+=item B<alterStatus>
+
+Alters the status of a comment.
+
+  $db->alterStatus( $projectid, $commentid, $adminpass, $status);
+
+Last argument should be a feedback constant as defined in C<OMP::Constants>.
+
+=cut
+
+sub alterStatus {
+  my $self = shift;
+  my $projectid = shift;
+  my $commentid = shift;
+  my $adminpass = shift;
+  my $status = shift;
+
+  # Verify admin password.
+
+  # Begin trans
+
+  # Alter comment's status
+  $self->_alter_status( $commentid, $status );
+
+  # End trans
+
+}
 
 =back
 
@@ -258,11 +293,7 @@ sub _mail_comment {
   my $self = shift;
   my $comment = shift;
   my $addrlist = shift;
-
-  throw OMP::Error::FatalError("No address in array\n")
-    unless @$addrlist and defined $addrlist->[0];
-
-  # Mail message
+ # Mail message
   my $msg = "\nAuthor: $comment->{author}\n" .
             "Subject: $comment->{subject}\n\n" .
 	    "$comment->{text}\n";
@@ -329,8 +360,6 @@ sub _mail_comment_info {
   $self->_mail_comment( $comment, \@email );
 }
 
-=cut
-
 =item B<_fetch_comments>
 
 Internal method to retrive the comments from the database.  Returns either
@@ -360,6 +389,29 @@ sub _fetch_comments {
   } else {
     return $ref;
   }
+}
+
+=item B<_alter_status>
+
+Update the status field of an entry.
+
+  _alter_status( $commentid, $status );
+
+=cut
+
+sub _alter_status {
+  my $self = shift;
+  my $commid = shift;
+  my $status = shift;
+
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $sql = "UPDATE $FBTABLE" .
+            "SET status = $status" .
+	    "WHERE commid = $commid";
+
+  $dbh->do($sql);
 }
 
 =back
