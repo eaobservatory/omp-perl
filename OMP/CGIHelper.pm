@@ -1144,6 +1144,10 @@ sub msb_comments {
       }
     }
 
+    # Get the MSB title
+    my $msbtitle = $msb->title;
+    (!$msbtitle) and $msbtitle = "[NONE]";
+
     print "<tr valign=top><td><b>MSB $i</b></td>";
     print "<td>";
     print "<b>$remstatus</b>"
@@ -1152,6 +1156,7 @@ sub msb_comments {
     print "<td><b>Target:</b> ".$msb->target ."</td>";
     print "<td><b>Waveband:</b>". $msb->waveband ."</td>";
     print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
+    print "<tr><td colspan=5><b>Title: $msbtitle</b></td>";
 
     foreach my $comment ($msb->comments) {
       my $status = $comment->status;
