@@ -79,7 +79,7 @@ sub sql {
   $subsql = " WHERE " . $subsql if $subsql;
 
   # Now need to put this SQL into the template query
-  my $sql = " SELECT * FROM $usertable U $subsql ";
+  my $sql = " SELECT * FROM $usertable U $subsql ORDER BY userid";
 
   return "$sql\n";
 
