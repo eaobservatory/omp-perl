@@ -228,6 +228,10 @@ reason. It's constructor takes two arguments. The first is a text
 value, the second is a numeric value, C<OMP__FATAL>. These values are
 what will be returned by the overload methods.
 
+=item B<OMP::Error::InvalidUser>
+
+The user supplied to the routine is not a valid OMP user.
+
 =item B<OMP::Error::MSBMalformedQuery>
 
 The MSB query XML could not be understood.
@@ -334,6 +338,9 @@ package OMP::Error::DirectoryNotFound;
 use base qw/ OMP::Error /;
 
 package OMP::Error::FatalError;
+use base qw/ OMP::Error /;
+
+package OMP::Error::InvalidUser;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMalformedQuery;
