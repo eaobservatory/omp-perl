@@ -662,24 +662,30 @@ to an SQL sub-query.
   $sql = $q->_querify( "instrument", "SCUBA" );
 
 Determines whether we have a number or string for quoting rules.
+The string is not quoted if it matches the string "dateadd" since that
+is treated as an SQL function.
 
 Some keys are duplicated in different tables. In those cases (project
 ID is the main one) the table prefix is automatically added.
-
-"coi" and "pi" queries are always done using LIKE rather than equals.
 
 A "name" element is converted to a query in both the "pi" and
 "coi" fields (ie you are interested in whether the named person
 is associated with the project at all). ie for each query on "name"
 a query for both "pi" and "coi" is returned with a logical OR.
 
-
+If a LIKE match is requested the string is automatically surrounded
+by "%" (SQL equivalent to ".*"). For now the assumption is that
+a LIKE query implies a request to match a sub-string. The substring
+probably should not have a "%" included since the code does not
+contain a means of escaping the per cent.
 
 =cut
 
 sub _querify {
   my $self = shift;
   my ($name, $value, $cmp) = @_;
+
+  $cmp = lc($cmp);
 
   # Default comparator is "equal"
   $cmp = "equal" unless defined $cmp;
@@ -695,6 +701,9 @@ sub _querify {
   # Convert the string form to SQL form
   throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
     unless exists $cmptable{$cmp};
+
+  # add pattern matches if we have like
+  $value = '%' . $value . '%' if $cmp eq 'like';
 
   # Do we need to quote it
   my $quote = ( $value =~ /[A-Za-z:]/ ? "'" : '' );
