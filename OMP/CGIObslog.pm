@@ -140,12 +140,14 @@ sub list_observations {
 
   ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
 
+  my $telescope = OMP::Config->inferTelescope( 'instruments', $inst );
+
   if( defined( $inst ) &&
       defined( $ut ) ) {
     # We need to get an Info::ObsGroup object for this query object.
     my $obsgroup;
     try {
-      $obsgroup = cgi_to_obsgroup( $q, $ut, $inst );
+      $obsgroup = cgi_to_obsgroup( $q, ut => $ut, telescope => $telescope );
 #      print "<h2>Observations for $inst on $ut</h2><br>\n";
     }
     catch OMP::Error with {
@@ -163,6 +165,7 @@ sub list_observations {
     my %options;
     $options{'showcomments'} = 1;
     $options{'ascending'} = 0;
+    $options{'instrument'} = $inst;
     try {
       obs_table( $obsgroup, \%options );
     }
@@ -256,6 +259,13 @@ sub obs_table {
     $ascending = 1;
   }
 
+  my $instrument;
+  if( exists( $options{telescope} ) ) {
+    $telescope = $options{telescope};
+  } else {
+    $telescope = '';
+  }
+
 # Verify the ObsGroup object.
   if( ! UNIVERSAL::isa($obsgroup, "OMP::Info::ObsGroup") ) {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
@@ -312,6 +322,9 @@ sub obs_table {
   my $rowclass = "row_b";
 
   foreach my $obs (@allobs) {
+
+    next if( ( length( $instrument . '' ) > 0 ) &&
+             ( uc( $instrument ) ne uc( $obs->instrument ) ) )
 
     my %nightlog = $obs->nightlog;
     # First, check to see if the instrument has changed. If it has, close the old table
@@ -784,7 +797,7 @@ sub cgi_to_obs {
 
 Given a C<CGI> object, return an C<Info::ObsGroup> object.
 
-  $obsgroup = cgi_to_obsgroup( $cgi, $ut, $inst, $projid );
+  $obsgroup = cgi_to_obsgroup( $cgi, ut => $ut, inst => $inst );
 
 In order for this method to work properly, the C<CGI> object
 should have the following variables:
@@ -808,21 +821,38 @@ projid - The project ID for which observations will be returned.
 The C<inst> and C<projid> variables are optional, but either one or the
 other (or both) must be defined.
 
-The last three parameters are optional and will override any values found
-in the C<CGI> object passed as the first parameter.
+The parameters following the C<CGI> object are optional and can include:
+
+=over 4
+
+=item * ut - The UT date in the form YYYY-MM-DD.
+
+=item * inst - The instrument that the observation was taken with.
+
+=item * projid - The project ID for which observations will be returned.
+
+=item * telescope - The telescope that the observations were taken with.
+
+=back
+
+These parameters will override any values contained in the C<CGI> object.
 
 =cut
 
 sub cgi_to_obsgroup {
   my $q = shift;
-  my $ut = shift;
-  my $inst = uc( shift );
-  my $projid = shift;
+  my %args = shift;
+
+  my $ut = defined( $args{'ut'} ) ? $args{'ut'} : undef;
+  my $inst = defined( $args{'inst'} ) ? uc( $args{'inst'} ) : undef;
+  my $projid = defined( $args{'projid'} ) ? $args{'projid'} : undef;
+  my $telescope = defined( $args{'telescope'} ) ? uc( $args{'telescope'} ) : undef;
 
   my $qv = $q->Vars;
   $ut = ( defined( $ut ) ? $ut : $qv->{'ut'} );
   $inst = ( defined( $inst ) ? $inst : uc( $qv->{'inst'} ) );
   $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
+  $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
 
   if( !defined( $ut ) ) {
     throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
@@ -830,23 +860,30 @@ sub cgi_to_obsgroup {
 
   my $grp;
 
-  if( defined( $projid ) ) {
-    if( defined( $inst ) ) {
-      $grp = new OMP::Info::ObsGroup( date => $ut,
-                                      instrument => $inst,
-                                      projectid => $projid,
-                                      timegap => OMP::Config->getData('timegap') );
-    } else {
-      $grp = new OMP::Info::ObsGroup( date => $ut,
-                                      projectid => $projid,
-                                      timegap => OMP::Config->getData('timegap') );
-    }
-  } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
+  if( defined( $telescope ) ) {
     $grp = new OMP::Info::ObsGroup( date => $ut,
-                                    instrument => $inst,
+                                    telescope => $telescope,
                                     timegap => OMP::Config->getData('timegap') );
   } else {
-    throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
+
+    if( defined( $projid ) ) {
+      if( defined( $inst ) ) {
+        $grp = new OMP::Info::ObsGroup( date => $ut,
+                                        instrument => $inst,
+                                        projectid => $projid,
+                                        timegap => OMP::Config->getData('timegap') );
+      } else {
+        $grp = new OMP::Info::ObsGroup( date => $ut,
+                                        projectid => $projid,
+                                        timegap => OMP::Config->getData('timegap') );
+      }
+    } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
+      $grp = new OMP::Info::ObsGroup( date => $ut,
+                                      instrument => $inst,
+                                      timegap => OMP::Config->getData('timegap') );
+    } else {
+      throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
+    }
   }
 
   return $grp;
