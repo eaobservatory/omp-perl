@@ -14,6 +14,7 @@ my $database = "archive";
 
 #$server = "SYB_OMP";
 #$database = "omp";
+#$server = "SYB_TMP";
 
 my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd,{RaiseError => 0, PrintError => 0})
   or die "Cannot connect: ". $DBI::errstr;
@@ -44,12 +45,19 @@ my %tables = (
 				    timeest title datemin datemax
 				    /],
 		       },
+	      ompcoiuser => {
+			     userid => "VARCHAR(20)",
+			     projectid => "VARCHAR(32)",
+			     _ORDER => [ qw/ projectid userid /],
+			    },
+	      ompsupuser => {
+			     userid => "VARCHAR(20)",
+			     projectid => "VARCHAR(32)",
+			     _ORDER => [ qw/ projectid userid /],
+			    },
 	      ompproj => {
 			  projectid => "VARCHAR(32)",
-			  pi => "VARCHAR(255)",
-			  piemail => "VARCHAR(64)",
-			  coi => "VARCHAR(255) NULL",
-			  coiemail => "VARCHAR(64) NULL",
+			  pi => "VARCHAR(20)",
 			  remaining => "REAL",
 			  pending => "REAL",
 			  allocated => "REAL",
@@ -58,10 +66,7 @@ my %tables = (
 			  semester => "VARCHAR(5)",
 			  encrypted => "VARCHAR(20)",
 			  title => "VARCHAR(132)",
-			  support => "VARCHAR(255) NULL",
-			  supportemail => "VARCHAR(64) NULL",
-			  _ORDER => [qw/projectid pi piemail
-				     coi coiemail support supportemail
+			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
 				     remaining pending
@@ -181,6 +186,9 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompfault';
   next if $table eq 'ompfaultbody';
   next if $table eq 'ompuser';
+  next if $table eq 'ompsupuser';
+  next if $table eq 'ompcouser';
+
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
