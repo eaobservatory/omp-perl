@@ -542,6 +542,7 @@ sub locate_msbs {
   # Remove duplicates
   # Build up a hash keyed by checksum
   my %unique;
+  my @unique; # to preserve order
   my $unbound = 0;
   for my $msb (@objs) {
     my $checksum = $msb->checksum;
@@ -556,6 +557,11 @@ sub locate_msbs {
 
     } else {
       $unique{$checksum} = $msb;
+
+      # A hash will not preserve MSB order. To preserve it
+      # we store the first occurrence of each MSB in an array
+      push(@unique, $msb);
+
     }
   }
 
@@ -568,11 +574,11 @@ sub locate_msbs {
   # if we dont do this we are bound to get a core dump at some point
   # it is quicker to use a variable to indicate that we had
   # duplicates rather than compare the contents of @objs with the
-  # contents of "values %unique"
+  # contents of @unique
   $self->locate_refs if $unbound;
 
-  # The hash now contains all the unique objects
-  @objs = values %unique;
+  # Copy the list of unique objects, preserving the order
+  @objs = @unique;
 
   # And store them (if we found anything - otherwise
   # we hit infinite recursion)
