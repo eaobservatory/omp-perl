@@ -382,7 +382,7 @@ sub new_instrument {
                                    );
 
   my $nbContent = $nbPageFrame->Scrolled('Text',
-                                         -wrap => 'none',
+                                         -wrap => 'word',
                                          -scrollbars => 'oe',
                                         );
 
