@@ -243,50 +243,14 @@ my %tables = (
            instrument => "VARCHAR(32)",
            telescope => "VARCHAR(32)",
            utstart => "DATETIME",
-           utend => "DATETIME",
-           projectid => PROJECTID,
-           object => "VARCHAR(32)",
-           obstype => "VARCHAR(32)",
-           exptime => "REAL",
-           nexp => "INT",
-           mode => "VARCHAR(32)",
-           speed => "VARCHAR(32)",
-           filter => "VARCHAR(32)",
-           airmass => "REAL",
-           rows => "INT",
-           columns => "INT",
-           rabase => "REAL",
-           decbase => "REAL",
-           equinox => "VARCHAR(32)",
-           raoff => "REAL",
-           decoff => "REAL",
-           drrecipe => "VARCHAR(32)",
-           group => "INT",
-           standard => "INT",
-           slitname => "VARCHAR(32)",
-           slitangle => "REAL",
-           grating => "VARCHAR(32)",
-           order => "INT",
-           wavelength => "REAL",
-           pol => "INT",
-           frequency => "REAL",
-           tau => "REAL",
-           seeing => "REAL",
-           bolometers => "VARCHAR(32)",
-           velocity => "REAL",
-           systemvelocity => "REAL",
+           obstatus => "INTEGER",
            commentdate => "DATETIME",
            commentauthor => USERID,
            commenttext => "TEXT",
+           commentstatus => "INTEGER"
            _ORDER => [qw/ obslogid runnr instrument telescope
-                      utstart utend projectid object obstype
-                      exptime nexp mode speed filter airmass
-                      rows columns rabase decbase equinox
-                      raoff decoff drrecipe group standard
-                      slitname slitangle grating order
-                      wavelength pol frequency tau seeing
-                      bolometers velocity systemvelocity
-                      commentdate commentauthor commenttext /],
+                      utstart obstatus commentdate commentauthor
+                      commenttext commentstatus /],
         },
 	     );
 
