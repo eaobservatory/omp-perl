@@ -55,6 +55,8 @@ sub issuePassword {
   my $class = shift;
   my $projectid = shift;
 
+  OMP::General->log_message("issuePassword: $projectid\n");
+
   my $E;
   try {
 
@@ -96,6 +98,8 @@ all the active/closed/semester projects.
 sub summary {
   my $class = shift;
   my $projectid = shift;
+
+  OMP::General->log_message("ProjServer::summary: $projectid\n");
 
   my $E;
   try {
@@ -148,6 +152,8 @@ sub projectDetails {
   my $mode = lc(shift);
   $mode ||= 'xml';
 
+  OMP::General->log_message("ProjServer::projectDetails: $projectid\n");
+
   my $E;
   my $summary;
   try {
@@ -193,6 +199,7 @@ sub verifyProject {
   my $class = shift;
 
   my $projectid = shift;
+  OMP::General->log_message("ProjServer::verifyProject: $projectid\n");
 
   my $there;
   my $E;
@@ -245,6 +252,7 @@ sub addProject {
   my $class = shift;
   my $password = shift;
   my @project = @_;
+  OMP::General->log_message("ProjServer::addProject: $project[0]\n");
 
   my $E;
   try {
@@ -308,6 +316,7 @@ sub verifyPassword {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
+  OMP::General->log_message("ProjServer::verifyPassword: $projectid\n");
 
   my $ok;
   my $E;

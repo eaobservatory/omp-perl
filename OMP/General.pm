@@ -25,6 +25,8 @@ use Carp;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
+use File::Spec;
+use Fcntl qw/ :flock /;
 use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
@@ -388,6 +390,73 @@ sub verify_administrator_password {
     }
   }
   return $status;
+}
+
+=back
+
+=head2 Logging
+
+=over 4
+
+=item B<log_message>
+
+Log general information (usually debug) to a file. The file is opened
+for append (with a lock), the message is written and the file is
+closed. The message is augmented with details of the hostname, the
+process ID and the date.
+
+  OMP::General->log_message( $message );
+
+Fails silently if the file can not be opened (rather than cause the whole
+system to stop because it is not being written).
+
+A new file is created for each UT day in directory C</tmp/omplog>.
+The directory is created if it does not exist.
+
+Returns immediately if the environment variable C<$OMP_NOLOG> is set.
+
+=cut
+
+sub log_message {
+  my $class = shift;
+  my $message = shift;
+
+  return if exists $ENV{OMP_NOLOG};
+
+  # "Constants"
+  my $logdir = File::Spec->catdir( File::Spec->tmpdir, "omplog");
+  my $datestamp = gmtime;
+  my $filename = "log." . $datestamp->strftime("%Y%m%d");
+  my $path = File::Spec->catfile( $logdir, $filename);
+
+  # Create the message
+  my ($user, $host, $email) = OMP::General->determine_host;
+
+  my $logmsg = "$datestamp PID: $$  User: $email\nMsg: $message\n";
+
+  # First check the directory and create it if it isnt here
+  unless (-d $logdir) {
+    umask 0;
+    mkdir $logdir, 0777
+      or return;
+  }
+
+  # Open the file for append
+  # Creating the file if it is not there already
+  open my $fh, ">> $path"
+    or return;
+
+  # Get an exclusive lock (this blocks)
+  flock $fh, LOCK_EX;
+
+  # write out the message
+  print $fh $logmsg;
+
+  # Explicitly close the file (dont check return value since
+  # we will just return anyway)
+  close $fh;
+
+  return;
 }
 
 =back

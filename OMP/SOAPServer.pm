@@ -28,7 +28,7 @@ use warnings;
 # External dependencies
 use SOAP::Lite;
 use OMP::Constants qw/ :status /;
-
+use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -84,6 +84,8 @@ sub throwException {
   # Get the error number - defaulting to OMP__ERROR if required
   my $Enum = $E->value;
   $Enum = OMP__ERROR unless defined $Enum;
+
+  OMP::General->log_message("Rethrowing SOAP exception: $Estring\n");
 
   # Throw the SOAP exception
   die SOAP::Fault->faultcode("$Ecode")

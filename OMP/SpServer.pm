@@ -27,6 +27,7 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSBDB;
+use OMP::General;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
@@ -72,11 +73,16 @@ sub storeProgram {
   my $password = shift;
   my $force = shift;
 
+  OMP::General->log_message( "storeProgram: Force = " .
+			   ( defined $force ? $force : 0 ). "\n");
+
   my ($string, $timestamp);
   my $E;
   try {
     # Create a science program object
     my $sp = new OMP::SciProg( XML => $xml );
+    OMP::General->log_message( "storeProgram: Project ",
+			     $sp->projectID, "\n");
 
     # Create a new DB object
     my $db = new OMP::MSBDB( Password => $password,
@@ -106,6 +112,7 @@ sub storeProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+  OMP::General->log_message( "storeProgram: Stored with timestamp $timestamp\n");
   return [$string, $timestamp];
 }
 
@@ -124,6 +131,8 @@ sub fetchProgram {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
+
+  OMP::General->log_message( "fetchProgram: project $projectid\n");
 
   my $sp;
   my $E;
@@ -177,6 +186,8 @@ sub programDetails {
   my $password = shift;
   my $mode = lc(shift);
   $mode ||= 'ascii';
+
+  OMP::General->log_message( "programDetails: $projectid and $mode\n");
 
   my $E;
   my $summary;

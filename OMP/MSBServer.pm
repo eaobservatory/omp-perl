@@ -61,6 +61,8 @@ sub fetchMSB {
   my $class = shift;
   my $key = shift;
 
+  OMP::General->log_message( "fetchMSB: key $key\n");
+
   my $msb;
   my $E;
   try {
@@ -160,6 +162,8 @@ sub queryMSB {
   my $xmlquery = shift;
   my $maxCount = shift;
 
+  OMP::General->log_message("queryMSB:\n$xmlquery\n");
+
   my @results;
   my $E;
   try {
@@ -224,6 +228,8 @@ sub doneMSB {
   my $project = shift;
   my $checksum = shift;
 
+  OMP::General->log_message("doneMSB: $project $checksum\n");
+
   my $E;
   try {
     # Create a new object but we dont know any setup values
@@ -275,6 +281,8 @@ sub alldoneMSB {
   my $class = shift;
   my $project = shift;
   my $checksum = shift;
+
+  OMP::General->log_message("alldoneMSB: $project $checksum\n");
 
   my $E;
   try {
@@ -370,6 +378,8 @@ sub historyMSB {
   my $checksum = shift;
   my $type = shift;
 
+  OMP::General->log_message("historyMSB: $project $checksum\n");
+
   my $E;
   my $result;
   try {
@@ -422,6 +432,8 @@ sub observedMSBs {
   my $allcomments = shift;
   my $type = shift;
 
+  OMP::General->log_message("observedMSBs: date $date\n");
+
   my $E;
   my $result;
   try {
@@ -462,6 +474,8 @@ sub addMSBcomment {
   my $project = shift;
   my $checksum = shift;
   my $comment = shift;
+
+  OMP::General->log_message("addMSBComment: $project $checksum $comment\n");
 
   my $E;
   my $result;
