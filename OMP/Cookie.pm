@@ -178,6 +178,12 @@ sub setCookie {
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
+  # Strip white space
+  for (keys %contents) {
+    $contents{$_} =~ s/^\s+//;
+    $contents{$_} =~ s/\s+$//;
+  }
+
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
 			    -value=>\%contents,
