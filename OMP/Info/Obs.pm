@@ -69,7 +69,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               type => '$',
                               fits => '%',
                               comments => '@OMP::Info::Comment',
+			      telescope => '$',
                              );
+#'
 
 =end __PRIVATE__
 
@@ -171,7 +173,7 @@ sub summary {
   # Build up the hash
   my %summary;
   for (qw/ waveband instrument disperser coords target pol timeest
-       type /) {
+       type telescope/) {
     $summary{$_} = $self->$_();
   }
 

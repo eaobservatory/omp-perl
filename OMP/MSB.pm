@@ -585,7 +585,8 @@ sub info {
   my $info = new OMP::Info::MSB( %summary );
 
   # Populate with observations
-  my @obs = map { new OMP::Info::Obs( %{$_} ) } $self->obssum;
+  my @obs = map { new OMP::Info::Obs( %{$_}, 
+				      telescope => $summary{telescope} ) } $self->obssum;
   $info->observations(@obs);
 
   return $info;
