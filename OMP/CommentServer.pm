@@ -6,8 +6,8 @@ OMP::CommentServer - Shiftlog comment information Server class
 
 =head1 SYNOPSIS
 
-  OMP::CommentServer->addShiftLog( $comment );
-  @comments = OMP::CommentServer->getShiftLog( $utdate );
+  OMP::CommentServer->addShiftLog( $comment, $telescope );
+  @comments = OMP::CommentServer->getShiftLog( $utdate, $telescope );
 
 =head1 DESCRIPTION
 
@@ -38,21 +38,24 @@ our $VERSION = (qw$REVISION: $)[1];
 
 Add a shiftlog comment to the shiftlog database.
 
-OMP::CommentServer->addShiftLog( $comment );
+OMP::CommentServer->addShiftLog( $comment, $telescope );
 
-The passed parameter must be an C<OMP::Info::Obs> object.
+The first passed parameter must be an C<OMP::Info::Obs> object,
+and the second may be either an C<Astro::Telescope> object or
+a string.
 
 =cut
 
 sub addShiftLog {
   my $class = shift;
   my $comment = shift;
+  my $telescope = shift;
 
   my $E;
 
   try {
     my $sdb = new OMP::ShiftDB( DB => $class->dbConnection );
-    $sdb->enterShiftLog( $comment );
+    $sdb->enterShiftLog( $comment, $telescope );
   } catch OMP::Error with {
     $E = shift;
   } otherwise {
@@ -68,22 +71,35 @@ sub addShiftLog {
 
 Returns all comments for a given UT date.
 
-  @comments = OMP::CommentServer->getShiftLog( $utdate );
+  @comments = OMP::CommentServer->getShiftLog( $utdate, $telescope );
 
-The UT date is a string of the form 'yyyymmdd'. The function returns
-an array of C<OMP::Info::Comment> objects.
+The first argument is a string of the form 'yyyymmdd'. The second
+argument is optional and can be either an C<Astro::Telescope> object
+or a string. The function returns an array of C<OMP::Info::Comment>
+objects.
 
 =cut
 
 sub getShiftLog {
   my $class = shift;
   my $utdate = shift;
+  my $telescope = shift;
 
   my @result;
   my $E;
   try {
     $utdate =~ /(\d{4})(\d\d)(\d\d)/;
-    my $xml = "<ShiftQuery><date delta=\"1\">$1-$2-$3</date></ShiftQuery>";
+    my $xml = "<ShiftQuery><date delta=\"1\">$1-$2-$3</date>";
+    if(defined($telescope)) {
+      $xml .= "<telescope>";
+      if(UNIVERSAL::isa($telescope, "Astro::Telescope")) {
+        $xml .= uc($telescope->name);
+      } else {
+        $xml .= uc($telescope);
+      }
+      $xml .= "</telescope>";
+    }
+    $xml .= "</ShiftQuery>";
     my $query = new OMP::ShiftQuery( XML => $xml );
     my $sdb = new OMP::ShiftDB( DB => $class->dbConnection );
     @result = $sdb->getShiftLogs( $query );

@@ -9,7 +9,7 @@ OMP::ShiftDB - Shift log database manipulation
   use OMP::ShiftDB;
   $db = new OMP::ShiftDB( DB => new OMP::DBbackend );
 
-  $db->enterShiftLog( $comment );
+  $db->enterShiftLog( $comment, $telescope );
   $comment = $db->getShiftLogs( $query );
 
 =head1 DESCRIPTION
@@ -26,6 +26,7 @@ use OMP::Error;
 use OMP::UserDB;
 use OMP::ShiftQuery;
 use OMP::General;
+use Astro::Telescope;
 
 use Data::Dumper;
 
@@ -49,22 +50,31 @@ Add a comment to the shift log database. A comment is uniquely
 identified in the shift log database using a combination of
 author and date of entry.
 
-  $db->enterShiftLog( $comment );
+  $db->enterShiftLog( $comment, $telescope );
 
-The argument passed to the method is an C<Info::Comment> object.
+The $comment argument passed to the method is an C<Info::Comment> object,
+and the $telescope argument can be either an C<Astro::Telescope> object
+or a string.
 
 =cut
 
 sub enterShiftLog {
   my $self = shift;
   my $comment = shift;
+  my $telescope = shift;
 
   # Retrieve any comment that has the same combination of
-  # author and date as the current one.
+  # author, date and telescope as the current one.
 
   # Form a query
   my $xml = "<ShiftQuery><author>" . $comment->{Author}->userid . "</author><date>" .
-            $comment->{Date}->strftime("%Y-%m-%dT%H:%M:%S") . "</date></ShiftQuery>";
+            $comment->{Date}->strftime("%Y-%m-%dT%H:%M:%S") . "</date><telescope>";
+  if(UNIVERSAL::isa($telescope, "Astro::Telescope")) {
+   $xml .= uc($telescope->name);
+  } else {
+   $xml .= uc($telescope);
+  }
+  $xml .= "</telescope></ShiftQuery>";
   my $query = new OMP::ShiftQuery( XML => $xml );
 
   my @result = $self->_fetch_shiftlog_info( $query );
@@ -82,7 +92,7 @@ sub enterShiftLog {
   } else {
 
     # We're inserting.
-    $self->_insert_shiftlog( $comment );
+    $self->_insert_shiftlog( $comment, uc($telescope) );
   }
 
   # End transaction
@@ -108,8 +118,10 @@ sub getShiftLogs {
 
   my $query_hash = $query->query_hash;
 
-  if(!defined($query_hash->{date}) && !defined($query_hash->{author})) {
-    OMP::Error::FatalError("Must supply one of userid or date");
+  if(! defined( $query_hash->{date} ) &&
+     ! defined( $query_hash->{author} ) &&
+     ! defined( $query_hash->{telescope} ) ) {
+    OMP::Error::FatalError("Must supply one of userid, date, or telescope.");
   }
 
   my @results = $self->_fetch_shiftlog_info( $query );
@@ -200,17 +212,31 @@ sub _reorganize_shiftlog {
 Store the given C<Info::Comment> object in the shift log
 database.
 
-  $db->_insert_shiftlog( $comment );
+  $db->_insert_shiftlog( $comment, $telescope );
+
+The second parameter can be either a C<Astro::Telescope> object or a string.
 
 =cut
 
 sub _insert_shiftlog {
   my $self = shift;
   my $comment = shift;
+  my $telescope = shift;
 
   if( !defined($comment->{Date}) ||
       !defined($comment->{Author}) ) {
     throw OMP::Error::BadArgs("Must supply date and author properties to store a comment in the shiftlog database.");
+  }
+
+  if( ! defined( $telescope ) ) {
+    throw OMP::Error::BadArgs("Must supply a telescope to store a comment in the shiftlog database.");
+  }
+
+  my $telstring;
+  if(UNIVERSAL::isa($telescope, "Astro::Telescope")) {
+    $telstring = uc($telescope->name);
+  } else {
+    $telstring = uc($telescope);
   }
 
   my $t = $comment->{Date};
@@ -222,6 +248,7 @@ sub _insert_shiftlog {
   $self->_db_insert_data( $SHIFTLOGTABLE,
                           $date,
                           $comment->{Author}->userid,
+                          $telstring,
                           \%text
                         );
 }
