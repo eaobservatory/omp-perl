@@ -70,7 +70,7 @@ while (<>) {
 		 "JAC",
 		 "JAC",
 		 "omptest",  # Password should be supplied by user
-		 10000,
+		 10000,"UKIRT"
 		);
 
   print join("--",@details),"\n";
@@ -81,7 +81,7 @@ while (<>) {
     $details[0] = $file[0] . sprintf("%02d", $i);
 
     # Upload
-    OMP::ProjServer->addProject("***REMOVED***", @details[0..9] );
+    OMP::ProjServer->addProject("***REMOVED***", @details[0..10] );
   }
 
 }
