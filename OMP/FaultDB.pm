@@ -29,6 +29,8 @@ use warnings;
 use strict;
 use OMP::Fault;
 
+our $VERSION = (qw$Revision$)[1];
+
 our $FAULTTABLE = "ompfault";
 our $FAULTBODYTABLE = "ompfaultbody";
 
