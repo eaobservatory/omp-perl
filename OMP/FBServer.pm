@@ -53,18 +53,23 @@ to be added to the feedback database.
 =item Hash reference should contain the following key/value pairs:
 
 =item B<author>
+
 The name of the author of the comment.
 
 =item B<subject>
+
 The subject of the comment.
 
 =item B<program>
+
 The program used to submit the comment.
 
 =item B<sourceinfo>
+
 The IP address of the machine comment is being submitted from.
 
 =item B<text>
+
 The text of the comment (HTML tags are encouraged).
 
 =back
@@ -108,7 +113,7 @@ sub addComment {
 Return comments associated with the specified project.  With just the
 project ID and password given this method will default to returning all
 comments.  If the third argument specifying a number of comments to be
-shown (anything less than 0 will return all comments) is given, then the
+shown (anything less than 1 will return all comments) is given, then the
 fourth argument must be included as well.  Fourth argument should be
 'true' or 'false' depending on whether or not you want comments with a
 status of 0 (effectively hidden) to be returned.

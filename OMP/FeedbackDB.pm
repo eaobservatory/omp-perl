@@ -30,6 +30,7 @@ use Carp;
 use Time::Piece;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::ProjDB;
 use OMP::Error;
 
 use base qw/ OMP::BaseDB /;
@@ -84,8 +85,15 @@ sub getComments {
   my $amount = shift;
   my $showhidden = shift;
 
+  # Verify the password
+  my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
+			        DB => $self->db );
+
+  throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
+    unless $projdb->verifyPassword( $self->password );
+
   # Get the comments
-  my $commentref = $self->_fetch_comments( $amount, $showhidden );
+  my $comment = $self->_fetch_comments( $amount, $showhidden );
 }
 
 =item B<addComment>
@@ -100,18 +108,23 @@ $db->addComment( $comment );
 =item Hash reference should contain the following key/value pairs:
 
 =item B<author>
+
 The name of the author of the comment.
 
 =item B<subject>
+
 The subject of the comment.
 
 =item B<program>
+
 The program used to submit the comment.
 
 =item B<sourceinfo>
+
 The IP address of the machine comment is being submitted from.
 
 =item B<text>
+
 The text of the comment (HTML tags are encouraged).
 
 =back
@@ -125,6 +138,29 @@ sub addComment {
 
   throw OMP::Error::BadArgs( "Comment was not a hash reference" )
     unless UNIVERSAL::isa($comment, "HASH");
+
+  my $t = gmtime;
+  my %defaults = ( subject => 'none',
+		   date => $t->strftime("%b %e %Y %T"),
+		   program => 'unspecified',
+		   sourceinfo => 'unspecified',
+		   status => 1, );
+
+  # Override defaults
+  $comment = {%defaults, %$comment};
+
+  # Check for required fields
+  for (qw/ author text /) {
+    throw OMP::Error::BadArgs("$_ was not specified")
+      unless $comment->{$_};
+  }
+
+  # Check that the project actually exists
+  my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
+                                DB => $self->db, );
+
+  $projdb->verifyProject()
+    or throw OMP::Error::UnknownProject("Project " .$self->projectid. " not known.");
 
   # We need to think carefully about transaction management
 
@@ -160,35 +196,21 @@ Stores a comment in the database.
 
 sub _store_comment {
   my $self = shift;
-  my $ref = shift;
+  my $comment = shift;
 
-  my $t = gmtime;
-  my %defaults = ( subject => 'none',
-		   date => $t->strftime("%b %e %Y %T"),
-		   program => 'unspecified',
-		   sourceinfo => 'unspecified',
-		   status => 1, );
-
-  # Override defaults
-  $ref = {%defaults, %$ref};
-
-  # Check for required fields
-  for (qw/ author text /) {
-    throw OMP::Error::BadArgs("$_ was not specified")
-      unless $ref->{$_};
-  }
-
-  my $projectid = $self->projectid;
-  my @values = @$ref{ 'author',
-		      'date',
-		      'subject',
-		      'program',
-		      'sourceinfo',
-		      'status',
-		      'text', };
 
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $projectid = $self->projectid;
+
+  my @values = @$comment{ 'author',
+			  'date',
+			  'subject',
+			  'program',
+			  'sourceinfo',
+			  'status',
+			  'text', };
 
   # Store the data
   # Since a text field will [oddly] only store 65536 bytes we will use
@@ -237,13 +259,11 @@ sub _fetch_comments {
   my $projectid = $self->projectid;
 
   # Fetch the data
+  # Use convert() in select statement to get seconds back with the date field.
   my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\"";
 
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} }) or
     throw OMP::Error::DBError("Select Failed: " .$dbh->errstr);
-
-  throw OMP::Error::UnknownProject( "Unable to retrieve comments for project $projectid" )
-    unless scalar (@$ref);
 
   if (wantarray) {
     return @$ref;
