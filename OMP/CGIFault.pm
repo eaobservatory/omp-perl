@@ -76,6 +76,11 @@ sub file_fault {
   print $q->h2("File Fault");
   print "<table border=0 cellspacing=4><tr>";
   print $q->startform;
+
+  # Need the show_output param in order for the output code ref to be called next
+  print $q->hidden(-name=>'show_output',
+		   -default=>'true');
+
   print "<td align=right><b>User:</b></td><td>";
   print $q->textfield(-name=>'user',
 		      -size=>'16',
@@ -254,9 +259,12 @@ sub query_fault_output {
   my $q = shift;
 
   # Which XML query are we going to use?
+  # and which title are we displaying?
   my $xml;
+  my $title;
   if ($q->param('list') =~ /all/) {
     $xml = "<FaultQuery></FaultQuery>";
+    $title = "Listing all faults";
   } else {
     my $t = gmtime;
 
@@ -265,7 +273,10 @@ sub query_fault_output {
     my $twodaysago = $t->ymd;
 
     $xml = "<FaultQuery><date><min>$twodaysago</min></date></FaultQuery>";
+    $title = "Listing recent faults";
   }
+
+  print $q->h2($title);
 
   my $faults;
   try {
@@ -288,14 +299,32 @@ Show a fault
 
 sub view_fault_content {
   my $q = shift;
-  my $faultid = $q->url_param('id');
 
-  my $fault = OMP::FaultServer->getFault($faultid);
-  print $q->h2("Fault ID: $faultid");
-  fault_table($q, $fault);
-  print "<p><b><font size=+1>Respond to this fault</font></b>";
-  response_form($q, $fault->id);
-#  print "<b><a href='respondfault.pl?id=$faultid'>Respond to this fault</a></b>";
+  # First try and get the fault ID from the URL param list, then try the normal param list.
+  my $faultid = $q->url_param('id');
+  (!$faultid) and $faultid = $q->param('id');
+
+  # If we still havent gotten the fault ID, put up a form and ask for it
+  if (!$faultid) {
+    print $q->h2("View a fault");
+    print "<table border=0><tr><td>";
+    print $q->startform;
+    print "<b>Enter a fault ID: </b></td><td>";
+    print $q->textfield(-name=>'id',
+		        -size=>15,
+		        -maxlength=>32);
+    print "</td><tr><td colspan=2 align=right>";
+    print $q->submit(-name=>'Submit');
+    print $q->endform;
+    print "</td></table>";
+  } else {
+    # Got the fault ID, so display the fault
+    my $fault = OMP::FaultServer->getFault($faultid);
+    print $q->h2("Fault ID: $faultid");
+    fault_table($q, $fault);
+    print "<p><b><font size=+1>Respond to this fault</font></b>";
+    response_form($q, $fault->id);
+  }
 }
 
 =item B<view_fault_output>
@@ -385,16 +414,27 @@ sub show_faults {
   my $q = shift;
   my $faults = shift;
 
-  print "<table width=620>";
+  print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>Fault ID</b></td><td><b>User</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Subject</b></td>";
+  my $colorcount;
   for my $fault (@$faults) {
+    my $bgcolor;
+
+    $colorcount++;
+    if ($colorcount == 1) {
+      $bgcolor = '#6161aa'; # darker
+    } else {
+      $bgcolor = '#8080cc'; # lighter
+      $colorcount = 0;
+    }
+
     my $faultid = $fault->id;
     my $user = $fault->author;
     my $system = $fault->systemText;
     my $type = $fault->typeText;
     my $subject = $fault->subject;
 
-    print "<tr><td><b><a href='viewfault.pl?id=$faultid'>$faultid</b></td>";
+    print "<tr bgcolor=$bgcolor><td><b><a href='viewfault.pl?id=$faultid'>$faultid</b></td>";
     print "<td>$user</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
