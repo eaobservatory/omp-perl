@@ -25,8 +25,6 @@ use strict;
 use warnings;
 use Carp;
 
-use lib qw(/jac_sw/omp/msbserver);
-
 use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error;
@@ -291,7 +289,7 @@ sub _write_login {
 
   print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
   print $q->h1('Login'),
-    "Please enter the project ID and password. These are required for access to the feedback system.";
+    "Please enter the project ID and password. These are required for access to project information and data.";
 
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
