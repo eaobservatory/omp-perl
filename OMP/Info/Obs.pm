@@ -1051,7 +1051,7 @@ sub _populate {
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
-      } elsif ($self->mode() eq 'SAMPLE'  && $self->target =~ /^(w3\(oh\)|l1551-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
+      } elsif ($self->mode =~ /sample/i && $self->target =~ /^(w3\(oh\)|l1551\-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293\-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
         $self->isSciCal( 1 );
         $self->isScience( 0 );
       }
