@@ -70,11 +70,8 @@ while (<>) {
 
 
   # Derive user id
-  unless (defined $user{userid}) {
-    # Split the name on space
-    my @parts = split /\s+/, $user{name};
-    $user{userid} = $parts[-1] . uc(substr($parts[0],0,1) );
-  }
+  $user{userid} = OMP::User->infer_userid( $user{name} )
+    unless defined $user{userid};
 
   # Create new object
   my $ompuser = new OMP::User( %user );
