@@ -261,7 +261,9 @@ sub decrementTimeRemaining {
   my $time = shift;
 
   throw OMP::Error::BadArgs("Time must be supplied and must be positive")
-    unless defined $time and $time > 0;
+    unless defined $time and $time >= 0;
+
+  return if $time == 0;
 
   # First thing to do is to retrieve the table row
   # for this project
