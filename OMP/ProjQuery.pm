@@ -93,7 +93,7 @@ sub sql {
 
   # The final query
   my $sql = "SELECT * FROM $projtable P $s_table $c_table
-              $where";
+              $where ORDER BY P.projectid";
 
   #print "SQL: $sql\n";
   return "$sql\n";
