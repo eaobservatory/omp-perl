@@ -142,13 +142,13 @@ sub addComment {
   $self->_dblock;
 
   # Set old observations in the archive to "inactive".
-  $self->_set_inactive( $obs );
+  $self->_set_inactive( $obs, $comment->author->userid );
 
   # Add the new comment to the current observation.
-  $obs->comments->[0] = $comment;
+#  $obs->comments->[scalar($obs->comments)] = $comment;
 
   # Write the observation to database.
-  $self->_store_comment( $obs );
+  $self->_store_comment( $obs, $comment );
 
   # End transaction.
   $self->_dbunlock;
@@ -157,12 +157,17 @@ sub addComment {
 
 =item B<getComment>
 
-Retrieve the most recent open comment for a given observation.
+Retrieve the most recent open comments for a given observation.
 Observation must be supplied as an C<OMP::Info::Obs> object.
+
+  @comment = $db->getComment( $obs );
+
+In this case the method returns an array of C<Info::Comment> objects.
 
   $comment = $db->getComment( $obs );
 
-In this case the method returns an C<Info::Comment> object.
+In this case the method returns a reference to an array of
+C<Info::Comment> objects.
 
 An additional optional argument may be supplied to indicate that
 all comments for the observation are to be returned.
@@ -216,11 +221,11 @@ sub getComment {
   my @results = $self->queryComments( $query );
 
   # Return based on context and arguments.
-  if( $allcomments ) {
+#  if( $allcomments ) {
     return (wantarray ? @results : \@results);
-  } else {
-    return $results[0];
-  }
+#  } else {
+#    return $results[0];
+#  }
 }
 
 =item B<queryComments>
@@ -296,8 +301,8 @@ sub updateObsComment {
 
   foreach my $obs ( @$obs_arrayref ) {
 #    print Dumper $obs;
-    my $comment = $self->getComment( $obs );
-    $obs->comments->[0] = $comment;
+    my @comments = $self->getComment( $obs );
+    $obs->comments = @comments;
   }
 
 }
@@ -381,10 +386,10 @@ sub _reorganize_comments {
 
 =item B<_store_comment>
 
-Store the given C<Info::Obs> object in the observation log
-database.
+Store the given C<Info::Comment> object corresponding to the
+given C<Info::Obs> object in the observation log database.
 
-  $db->_store_comment( $obs );
+  $db->_store_comment( $obs, $comment );
 
 This method will store the comment as being active, i.e. the
 "obsactive" flag in the table will be set to 1.
@@ -394,6 +399,7 @@ This method will store the comment as being active, i.e. the
 sub _store_comment {
   my $self = shift;
   my $obs = shift;
+  my $comment = shift;
 
   if( !defined($obs->instrument) ||
       !defined($obs->startobs) ||
@@ -401,10 +407,14 @@ sub _store_comment {
     throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
   }
 
+  if( !defined($comment) ) {
+    throw OMP::Error::BadArgs("Must supply comment to store a comment in the database");
+  }
+
   # Check the comment status. Default it to OMP__OBS_GOOD.
   my $status;
-  if(defined($obs->comments->[0]->status)) {
-    $status = $obs->comments->[0]->status;
+  if(defined($comment->status)) {
+    $status = $comment->status;
   } else {
     $status = OMP__OBS_GOOD;
   }
@@ -412,10 +422,10 @@ sub _store_comment {
   my $t = $obs->startobs;
   my $date = $t->strftime("%b %e %Y %T");
 
-  my $ct = $obs->comments->[0]->date;
+  my $ct = $comment->date;
   my $cdate = $ct->strftime("%b %e %Y %T");
 
-  my %text = ( "TEXT" => $obs->comments->[0]->text,
+  my %text = ( "TEXT" => $comment->text,
                "COLUMN" => "commenttext" );
 
   $self->_db_insert_data( $OBSLOGTABLE,
@@ -425,7 +435,7 @@ sub _store_comment {
                           $date,
                           "1",
                           $cdate,
-                          $obs->comments->[0]->author->userid,
+                          $comment->author->userid,
                           \%text,
                           $status
                         );
@@ -436,11 +446,11 @@ sub _store_comment {
 
 Set all observations to inactive, using the given observation as a template.
 
-  $db->_set_inactive( $obs );
+  $db->_set_inactive( $obs, $userid );
 
 Passed argument is an C<Info::Obs> object. This method will set all
 archived observations in the database with the same run number, instrument,
-and time of observation as the given observation as being inactive.
+time of observation, and user ID as the given observation as being inactive.
 It will do this by toggling the "obsactive" flag in the database from 1
 to 0.
 
@@ -449,6 +459,7 @@ to 0.
 sub _set_inactive {
   my $self = shift;
   my $obs = shift;
+  my $userid = shift;
 
   # Rudimentary input checking.
   throw OMP::Error::BadArgs("Must supply an Info::Obs object")
@@ -461,6 +472,8 @@ sub _set_inactive {
             defined $obs->startobs &&
             defined $obs->runnr
            );
+  throw OMP::Error::BadArgs("Must supply a user id")
+    unless defined $userid;
 
   my $instrument = $obs->instrument;
   my $runnr = $obs->runnr;
@@ -469,7 +482,7 @@ sub _set_inactive {
   my $date = $startobs->strftime("%Y%m%d %T");
 
   # Form the WHERE clause.
-  my $where = "date = '$date' AND instrument = '$instrument' AND runnr = $runnr";
+  my $where = "date = '$date' AND instrument = '$instrument' AND runnr = $runnr AND commentauthor = '$userid'";
 
   # Set up the %new hash (hash of things to be updated)
   my %new = ( obsactive => 0 );
