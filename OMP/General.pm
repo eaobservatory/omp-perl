@@ -815,7 +815,7 @@ sub determine_semester {
     $date = gmtime();
   }
 
-  my $tel = $args{tel};
+  my $tel = uc($args{tel});
   $tel = 'PPARC' unless defined $tel;
 
   # First we can automatically run through any special semesters
