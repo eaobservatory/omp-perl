@@ -285,7 +285,7 @@ Routine called to translate each key of the query hash into SQL.
 Separated from C<_qhash_tosql> in order to allow recursion.
 Returns a chunk of SQL
 
-  $sql = $self->_create_sql( $column, $entry );
+  $sql = $self->_create_sql_recurse( $column, $entry );
 
 where C<$column> is the database column name and 
 C<$entry> can be 
@@ -299,6 +299,9 @@ C<$entry> can be
 KLUGE: If the key begins with TEXTFIELD__ a "like" match
 will be performed rather than a "=". This is so that text fields
 can be queried.
+
+Note that the hashref option does not use the column name at all
+in the final SQL.
 
 Column names beginning with an _ are ignored.
 
