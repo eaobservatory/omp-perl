@@ -37,6 +37,7 @@ package Mail::Audit;
 use base qw/ Mail::Audit/;
 use OMP::User;
 use OMP::FBServer;
+use OMP::General;
 
 # Accept a message and send it to the feedback system
 sub accept_feedback {
@@ -48,14 +49,15 @@ sub accept_feedback {
   my $from = $self->get("from");
   my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
   my $subject = $self->get("subject");
-  my $text = "<PRE>\n" . join('',@{ $self->body }) . "\n</PRE>";
+  my $text = OMP::Genera->preify_text( join('',@{ $self->body }) );
   my $project = $self->get("projectid");
   chomp($project); # header includes newline
 
   # Try to guess the author
   my $author = OMP::User->extract_user_from_email( $from );
   if ($author) {
-    Mail::Audit::_log(1,"Determined OMP user: $author");
+    Mail::Audit::_log(1,"Determined OMP user: $author [ID=".
+		      $author->userid."]");
   } else {
     Mail::Audit::_log(1,"Unable to determine OMP user from From address");
   }
