@@ -463,6 +463,14 @@ in the object.
 Automatically invoked by the C<projectID()> method the first time
 that method is invoked.
 
+If C<projectID> can not be found this method looks for an
+element called "project" since that is placed in observations
+by the OMP system. This usually occurs when an observation has
+been extracted from a full science program.
+
+If no project can be extracted, "UNKNOWN" is chosen rather
+than throwing an exception.
+
 =cut
 
 sub find_projectid {
@@ -474,9 +482,17 @@ sub find_projectid {
   if (defined $element) {
     $self->projectID( $element->getFirstChild->toString );
   } else {
-#    throw OMP::Error::UnknownProject("The Science Program does not contain a 
-#project identifier");
-     $self->projectID( "UNKNOWN" );
+    # Could not find projectID so look for a "project" element
+    # which has been added automatically by the OMP
+    my ($element2) = $self->_tree->findnodes('.//project[1]');
+
+    if (defined $element2) {
+      $self->projectID( $element2->getFirstChild->toString );
+    } else {
+      #    throw OMP::Error::UnknownProject("The Science Program does not contain a 
+      #project identifier");
+      $self->projectID( "UNKNOWN" );
+    }
   }
 
 }
@@ -639,7 +655,7 @@ sub locate_refs {
   for my $el (@refs) {
     my $key = $el->getValue();
     # and store the parent
-    $refs{$key} = $el->getOwnerElement;
+    $refs{$key} = $el->ownerElement;
   }
 
   # Just to make sure we have something in the hash we make something
