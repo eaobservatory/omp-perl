@@ -339,11 +339,11 @@ sub _mail_comment {
 
   $self->_mail_information(%details);
 
-  if ($cclist) {
-    # Mail another copy since CC'ing doesn't work at all for some reason
-    $details{to} = join(',',@$cclist);
-    $self->_mail_information(%details);
-  }
+#  if ($cclist) {
+#    # Mail another copy since CC'ing doesn't work at all for some reason
+#    $details{to} = join(',',@$cclist);
+#    $self->_mail_information(%details);
+#  }
 
 }
 
