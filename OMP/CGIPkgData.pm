@@ -45,11 +45,12 @@ sub request_data {
   my $utdate = $q->url_param('utdate');
   $utdate = $q->param('utdate') unless $utdate;
 
-  my $inccal = $q->url_param('inccal');
-  $inccal = $q->param('inccal') unless $utdate;
-
   # if we have a date, package up the data
   if ($utdate) {
+
+    my $inccal = $q->url_param('inccal');
+    $inccal = $q->param('inccal') unless $inccal;
+
     &_package_data($q, $utdate, $inccal, \%cookie);
 
   } else {
@@ -112,6 +113,11 @@ sub _package_data {
 
   print $q->h2("Retrieving data for project ". $cookie->{projectid} .
     " and UT date $utdate");
+  if ($inccal) {
+    print "[including calibrations]";
+  } else {
+    print "[without calibrations]";
+  }
 
   # we use verbose messages
   print "<PRE>\n";
