@@ -415,13 +415,27 @@ retained so that the reference date can be obtained in order to
 calculate source availability).
 
 Also converts abbreviated form of project name to the full form
-recognised by the database.
+recognised by the database, but see below for ways of stopping this.
 
 The current semester is used for all queries unless a semester
 or a projectid is explicitly specified in the query.
 
 Tau and seeing must be positive. If they are not positive they will be
 ignored.
+
+"timeest" fields are allowed a "units" attribute to indicate whether
+the length is specified in minutes or seconds.
+
+The "projectid" field is allowed an attribute of "full" to indicate
+whether the project ID is known to be complete (1) or whether it is
+abbreviated (0). In the absence of this attribute a telescope I<must>
+be supplied since this is required to determine what form a particular
+project ID must take. Note that you should be consistent with your
+attributes in this case. The assumption will be that if "full" is true
+for any project ID then it is true for all project IDs (but that may
+depend on the order of the XML and should not be relied upon).
+
+A telescope is required unless a fully expanded project ID is specified.
 
 =cut
 
@@ -432,9 +446,11 @@ sub _post_process_hash {
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
 
-  # Need a telescope
-  throw OMP::Error::MSBMalformedQuery( "Please supply a telescope")
-    unless exists $href->{telescope};
+  # Need a telescope UNLESS we have a fully specified project ID
+  # (ie no inferred projectid)
+  throw OMP::Error::MSBMalformedQuery( "Please supply a telescope or explicit unabbreviated project ID")
+    if (! exists $href->{telescope} &&
+	! $href->{_attr}->{projectid}->{full});
 
   # If tau has been specified and is negative remove it from
   # the query
@@ -531,7 +547,10 @@ sub _post_process_hash {
       # And remove the old key (unless it is the reference date)
       delete $href->{$key} unless $key eq "date";
 
-    } elsif ($key eq 'projectid') {
+    } elsif ($key eq 'projectid' && ! $href->{_attr}->{projectid}->{full}
+	    ) {
+      # Expand project IDs unless we know that the project ID is
+      # already fully expanded.
 
       # Get the telescope and date if we know it
       my %options;
