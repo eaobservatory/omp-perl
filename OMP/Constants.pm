@@ -30,7 +30,7 @@ require Exporter;
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
 
-@EXPORT_OK = qw/@status, @fb/;
+@EXPORT_OK = qw/@status @fb/;
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
