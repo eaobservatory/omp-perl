@@ -64,7 +64,7 @@ L<OMP::DBbackend>, L<OMP::MSBServer>, L<OMP::SpServer>.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =head1 AUTHOR
