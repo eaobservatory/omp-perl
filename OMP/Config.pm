@@ -124,6 +124,13 @@ The recognised modifiers are:
    utdate     - YYYY-MM-DD string or Time::Piece object
    instrument - instrument name
 
+In scalar context, this method can return a single value
+or a reference to an array (depending on the entry), when
+called in list context will always return a list (the
+array reference is expanded to a list). This simplifies the
+case where a single config entry is a single value in one
+file and multiple values in another.
+
 =cut
 
 sub getData {
@@ -161,8 +168,22 @@ sub getData {
   }
 
   # Now need to either replace the placeholders or convert to array
-  return $class->_format_output( $value, %args );
+  my $retval = $class->_format_output( $value, %args );
+  if (wantarray) {
+    my $ref = ref($retval);
+    if (not $ref) {
+      return $retval;
+    } elsif ($ref eq 'ARRAY') {
+      return @$retval;
+    } elsif ($ref eq 'HASH') {
+      return %$retval;
+    } else {
+      throw OMP::Error::FatalError("getData called in list context but unable to determine the type of data that we are dealing with!");
+    }
 
+  } else {
+    return $retval;
+  }
 }
 
 =item B<getTelescopes>
