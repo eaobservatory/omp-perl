@@ -31,6 +31,14 @@ use Carp;
 use OMP::Config;
 use OMP::Error qw/ :try /;
 
+use PGPLOT;
+
+use PDL::Lite;
+use PDL::IO::NDF;
+use PDL::Primitive;
+use PDL::Graphics::PGPLOT;
+use PDL::Graphics::LUT;
+
 use base qw/ OMP::WORF /;
 
 our $VERSION = (qw$Revision$ )[1];
@@ -72,9 +80,9 @@ sub suffices {
   my @suffices;
 
   if( $group ) {
-    @suffices = qw/  /;
+    @suffices = qw/ _pht_ _reb_ /;
   } else {
-    @suffices = qw/  /;
+    @suffices = qw/ _reb _noise /;
   }
 
   if( wantarray ) { return @suffices; } else { return \@suffices; }
@@ -162,42 +170,30 @@ sub plot {
     throw OMP::Error("Cannot determine instrument to display image in WORF.");
   }
 
-  my ( $dir, $fileregexp );
-
   my $ut;
   ( $ut = $self->obs->startobs->ymd ) =~ s/-//g;
 
-  my $file = $self->get_filename( $options{group} );
+  my @files = $self->get_filename( $options{group} );
 
   my %parsed = $self->parse_display_options( \%options );
 
-  if( exists( $parsed{type} ) &&
-      defined( $parsed{type} ) &&
-      $parsed{type} =~ /spectrum/i ) {
+  if( $self->suffix =~ /reb/i ) {
 
-    $self->_plot_spectrum( input_file => $file,
-                           xstart => $parsed{xstart},
-                           xend => $parsed{xend},
-                           zmin => $parsed{zmin},
-                           zmax => $parsed{zmax},
-                           cut => $parsed{cut},
-                           ystart => $parsed{ystart},
-                           yend => $parsed{yend},
-                         );
+    $self->_plot_images( input_file => \@files,
+                         autocut => $parsed{autocut},
+                         lut => $parsed{lut},
+                       );
+  } elsif ( $self->suffix =~ /pht/i ) {
 
-  } else {
+    $self->_plot_photometry( input_file => \@files,
+                           );
 
-    $self->_plot_image( input_file => $file,
-                        xstart => $parsed{xstart},
-                        xend => $parsed{xend},
-                        ystart => $parsed{ystart},
-                        yend => $parsed{yend},
-                        autocut => $parsed{autocut},
-                        lut => $parsed{lut},
-                        size => $parsed{size},
+  } elsif ( $self->suffix =~ /noise/i ) {
+
+    $self->_plot_noise( input_file => \@files,
                       );
-
   }
+
 }
 
 =item B<get_filename>
@@ -218,7 +214,47 @@ sub get_filename {
   my $self = shift;
   my $group = shift;
 
-  return "";
+  if( !defined( $group ) ) { $group = 0; }
+
+  my $instrument = uc( $self->obs->instrument );
+  if( !defined( $instrument ) ) {
+    throw OMP::Error( "Cannot determine instrument to display image in WORF." );
+  }
+  my $telescope = OMP::Config->inferTelescope('instruments', $instrument);
+  if( !defined( $telescope ) ) {
+    throw OMP::Error("Cannot determine telescope to display image in WORF.");
+  }
+
+  my ( $directory, @filenames );
+
+  my $ut;
+  ( $ut = $self->obs->startobs->ymd ) =~ s/-//g;
+#print STDERR "ut: $ut ";
+  my $suffix = ( defined( $self->suffix ) && ( length( $self->suffix . '' ) > 0 ) ?
+                 $self->suffix :
+                 'NOSUFFIX' );
+#print STDERR "suffix: $suffix\n";
+  if( $group ) {
+    $directory = OMP::Config->getData( "reducedgroupdir",
+                                       telescope => $telescope,
+                                       instrument => $instrument,
+                                       utdate => $ut,
+                                     );
+    my $groupnr = sprintf("%04d",$self->obs->runnr);
+    @filenames = ( $directory . "/" . $ut . "_grp_" . $groupnr . $suffix . "short.sdf" ,
+                   $directory . "/" . $ut . "_grp_" . $groupnr . $suffix . "long.sdf" );
+  } else {
+    $directory = OMP::Config->getData( "reduceddatadir",
+                                       telescope => $telescope,
+                                       instrument => $instrument,
+                                       utdate => $ut,
+                                     );
+    my $runnr = sprintf("%04d", $self->obs->runnr );
+    @filenames = ( $directory . "/" . $ut . "_" . $runnr . "_sho" . $suffix . ".sdf" ,
+                   $directory . "/" . $ut . "_" . $runnr . "_lon" . $suffix . ".sdf" );
+  }
+
+  return ( wantarray ? @filenames : $filenames[0] );
 
 }
 
@@ -235,7 +271,7 @@ Returns an integer if a group can be determined, undef otherwise.
 sub findgroup {
   my $self = shift;
 
-  my $grp = $self->obs->group;
+  my $grp = $self->obs->runnr;
 
   if( ! defined( $grp ) ) {
 
@@ -245,11 +281,180 @@ sub findgroup {
     my $rawfile = $newworf->get_filename( 0 );
     my $obs = readfile OMP::Info::Obs( $rawfile );
 
-    $grp = $obs->group;
+    $grp = $obs->runnr;
 
   }
 
   return $grp;
+
+}
+
+=back
+
+=head2 Private Methods
+
+These methods are private to this module.
+
+=over 4
+
+=item B<_plot_images>
+
+Plots a pair of images for SCUBA.
+
+  $worf->_plot_images( input_file => \@files,
+                       autocut => '95',
+                       lut => 'color' );
+
+=cut
+
+sub _plot_images {
+  my $self = shift;
+  my %args = @_;
+
+  my $lut = ( exists( $args{lut} ) && defined( $args{lut} ) ? $args{lut} : 'real' );
+
+  my @files = @{$args{input_file}};
+
+  $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+  $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * ( $#files + 1 );
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF", 1, ( $#files + 1 );
+  } else {
+    dev "-/GIF", 1, ( $#files + 1 );
+  }
+
+  foreach my $input_file ( @files ) {
+
+    my $image = rndf( $input_file, 1 );
+
+    if( exists( $args{autocut} ) && defined( $args{autocut} ) && $args{autocut} != 100 ) {
+      my ($mean, $rms, $median, $min, $max) = stats($image);
+
+      if($args{autocut} == 99) {
+        $image = $image->clip(($median - 2.6467 * $rms), ($median + 2.6467 * $rms));
+      } elsif($args{autocut} == 98) {
+        $image = $image->clip(($median - 2.2976 * $rms), ($median + 2.2976 * $rms));
+      } elsif($args{autocut} == 95) {
+        $image = $image->clip(($median - 1.8318 * $rms), ($median + 1.8318 * $rms));
+      } elsif($args{autocut} == 90) {
+        $image = $image->clip(($median - 1.4722 * $rms), ($median + 1.4722 * $rms));
+      } elsif($args{autocut} == 80) {
+        $image = $image->clip(($median - 1.0986 * $rms), ($median + 1.0986 * $rms));
+      } elsif($args{autocut} == 70) {
+        $image = $image->clip(($median - 0.8673 * $rms), ($median + 0.8673 * $rms));
+      } elsif($args{autocut} == 50) {
+        $image = $image->clip(($median - 0.5493 * $rms), ($median + 0.5493 * $rms));
+      }
+    } else {
+
+      # default to 99% cut
+      my ($mean, $rms, $median, $min, $max) = stats($image);
+      $image = $image->clip(($median - 2.6467 * $rms), ($median + 2.6467 * $rms));
+
+    }
+
+    my ( $xdim, $ydim ) = dims $image;
+    my $xstart = 0;
+    my $ystart = 0;
+    my $xend = $xdim - 1;
+    my $yend = $ydim - 1;
+
+    my $title = $input_file;
+
+    env( $xstart, $xend, $ystart, $yend, {JUSTIFY => 1} );
+    label_axes( undef, undef, $title );
+    ctab( lut_data( $lut ) );
+    imag $image, {JUSTIFY=>1};
+
+  }
+
+  dev "/null";
+
+}
+
+=item B<_plot_photometry>
+
+Plots photometry data taken with SCUBA, as per qdraw.
+
+  $worf->_plot_photometry( input_file => \@files );
+
+This method plots photometry data and information as follows. It
+first finds the unclipped mean and standard deviation of the data.
+Then it finds the 3-sigma clipped mean and standard deviation. These
+numbers are presented on the display. When displaying it draws the
+data as points, with minimum and maximum bounds set as unclipped
+5-sigma from the unclipped mean, and also draws the unclipped mean
+and unclipped 3-sigma bounds as dashed red lines. It performs these
+steps for all files passed in the input_file parameter.
+
+=cut
+
+sub _plot_photometry {
+  my $self = shift;
+  my %args = @_;
+
+  my @files = @{$args{input_file}};
+
+  $ENV{'PGPLOT_GIF_WIDTH'} = 480;
+  $ENV{'PGPLOT_GIF_HEIGHT'} = 320 * ( $#files + 1 );
+
+  if(exists($args{output_file}) && defined( $args{output_file} ) ) {
+    my $file = $args{output_file};
+    dev "$file/GIF", 1, ( $#files + 1 );
+  } else {
+    dev "-/GIF", 1, ( $#files + 1 );
+  }
+
+  foreach my $input_file ( @files ) {
+
+    my $image = rndf( $input_file, 1 );
+
+    my @dims = dims $image;
+    my $xdim = $dims[0];
+
+    my ( $mean, $stddev, $median, $min, $max ) = $image->stats;
+
+    my $clipped;
+    {
+      my $temp = $image->setbadif( $image > ( $mean + 3 * $stddev ) );
+      $clipped = $temp->setbadif( $image < ( $mean - 3 * $stddev ) );
+    }
+
+    # Find out how many points were unclipped.
+    my $unclipped = $clipped / $clipped;
+    my $nclipped = sumover $unclipped;
+
+    my @clippedstats = $clipped->stats;
+
+    # Set the environment so the data min/max are +/- 5-sigma.
+    # Set the titles and display "results" as well.
+    pgsls(1);
+    pgscf(1);
+    pgsch(1.5);
+    my $hdr = $image->gethdr;
+    my $title = $hdr->{Title};
+    my $clippedmean = sprintf("%.2f", $clippedstats[0] );
+    my $clippedrms = sprintf("%.2f", ( $clippedstats[1] * sqrt( $nclipped / ($nclipped - 1) ) ) );
+    my $results = "Results: $clippedmean +/- $clippedrms (S/N = " . sprintf("%.2f", $clippedmean / $clippedrms ) . ")";
+    env( 0, $xdim, ( $mean - 5 * $stddev ), ( $mean + 5 * $stddev ),
+         { Title => $title,
+           XTitle => $results,
+         } );
+
+    # Draw the points in white.
+    pgsci(1);
+    points $image;
+
+    # Draw the mean and +/- 3-sigma lines in dashed red.
+    pgsci(2);
+    pgsls(2);
+    pgline( 2, [0, $xdim], [$mean, $mean] );
+    pgline( 2, [0, $xdim], [($mean - 3 * $stddev), ($mean - 3 * $stddev)] );
+    pgline( 2, [0, $xdim], [($mean + 3 * $stddev), ($mean + 3 * $stddev)] );
+
+  }
 
 }
 
