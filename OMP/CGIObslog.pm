@@ -306,6 +306,8 @@ sub obs_table {
   my $obsgroup = shift;
   my %options = @_;
 
+  my %dir_exists;
+
   # Check the arguments.
   my $commentlink;
   if( exists( $options{commentstyle} ) && defined( $options{commentstyle} ) &&
@@ -538,33 +540,95 @@ sub obs_table {
           my @ind_suffices = $worf->suffices;
           my @grp_suffices = $worf->suffices( 1 );
           print "<td>";
-          if( $worf->file_exists( suffix => '', group => 0 ) ) {
-            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-            print $obsut;
-            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-            print "\">raw</a> ";
+
+          # Check to see if the raw data directory exists.
+          my $rawdatadir = OMP::Config->getdata( 'rawdatadir',
+                                                 telescope => $obs->telescope,
+                                                 instrument => $obs->instrument,
+                                                 utdate => $obs->startobs->ymd,
+                                               );
+          if( defined( $dir_exists{$rawdatadir} ) ) {
+            if( $dir_exists{$rawdatadir} ) {
+              if( $worf->file_exists( suffix => '', group => 0 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "\">raw</a> ";
+              }
+              foreach my $suffix ( @ind_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix\">$suffix</a> ";
+              }
+            }
+          } else {
+            if( -d $rawdatadir ) {
+              $dir_exists{$rawdatadir}++;
+              if( $worf->file_exists( suffix => '', group => 0 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "\">raw</a> ";
+              }
+              foreach my $suffix ( @ind_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix\">$suffix</a> ";
+              }
+            } else {
+              $dir_exists{$rawdatadir} = 0;
+            }
           }
-          foreach my $suffix ( @ind_suffices ) {
-            next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-            print $obsut;
-            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-            print "&suffix=$suffix\">$suffix</a> ";
-          }
+
           print "/ ";
-          if( $worf->file_exists( suffix => '', group => 1 ) ) {
-            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-            print $obsut;
-            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-            print "&group=1\">group</a> ";
+
+          # Check to see if the reduced data directory exists.
+          my $reduceddatadir = OMP::Config->getdata( 'reduceddatadir',
+                                                     telescope => $obs->telescope,
+                                                     instrument => $obs->instrument,
+                                                     utdate => $obs->startobs->ymd,
+                                                   );
+          if( defined( $dir_exists{$reduceddatadir} ) ) {
+            if( $dir_exists{$reduceddatadir} ) {
+              if( $worf->file_exists( suffix => '', group => 1 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&group=1\">group</a> ";
+              }
+              foreach my $suffix ( @grp_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix&group=1\">$suffix</a> ";
+              }
+            }
+          } else {
+            if( -d $reduceddatadir ) {
+              $dir_exists{$reduceddatadir}++;
+              if( $worf->file_exists( suffix => '', group => 1 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&group=1\">group</a> ";
+              }
+              foreach my $suffix ( @grp_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix&group=1\">$suffix</a> ";
+              }
+            } else {
+              $dir_exists{$reduceddatadir} = 0;
+            }
           }
-          foreach my $suffix ( @grp_suffices ) {
-            next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-            print $obsut;
-            print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-            print "&suffix=$suffix&group=1\">$suffix</a> ";
-          }
+
           print "</td>";
         }
         catch OMP::Error with {
