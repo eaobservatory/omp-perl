@@ -343,6 +343,34 @@ sub _plot_spectrum {
   $ENV{'PGPLOT_BACKGROUND'} = 'black';
   $ENV{'PGPLOT_FOREGROUND'} = 'white';
 
+  # Do caching for thumbnails.
+  my $cachefile;
+  if( $args{size} eq 'thumb' ) {
+
+    if( ! -d "/tmp/worfthumbs" ) {
+      mkdir "/tmp/worfthumbs";
+    }
+
+    my $suffix = ( defined( $self->suffix ) ? $self->suffix : '' );
+
+    $cachefile = "/tmp/worfthumbs/" . $self->obs->startobs->ymd . $self->obs->instrument . $self->obs->runnr . $suffix . ".gif";
+
+    # If the cachefile exists, display that. Otherwise, just continue on.
+    if( -e $cachefile ) {
+
+      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( CACHE );
+      binmode( STDOUT );
+
+      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+
+      close( CACHE );
+print STDERR "Reading $cachefile from thumbnail.\n";
+      return;
+    }
+
+  }
+
   if(exists($args{output_file}) && defined( $args{output_file} ) ) {
     my $outfile = $args{output_file};
     dev "$outfile/GIF", 1, 1;
@@ -421,6 +449,15 @@ sub _plot_spectrum {
   line $velpdl, $outpdl;
   dev "/null";
 
+  # Also write the cache file if necessary.
+  if( defined( $cachefile ) ) {
+    dev "$cachefile/GIF";
+    env( $xstart, $xend, $zstart, $zend );
+    label_axes( "Velocity / km s\\u-1", "Spectrum (K)", $file );
+    pgsci(3);
+    line $velpdl, $outpdl;
+    dev "/null";
+  }
 }
 
 =back
