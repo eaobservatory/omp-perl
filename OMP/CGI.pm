@@ -216,7 +216,7 @@ sub _sidebar_logout {
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations($cookie{projectid},1);
+  my @faults = $faultdb->getAssociations($projectid,1);
   push (@sidebarlinks, "<a href=fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
