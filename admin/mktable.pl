@@ -171,7 +171,7 @@ my %tables = (
               # we explicitly log when an MSB is observed (done)
               # See OMP::MSBDoneDB
               ompmsbdone => {
-                             commid => "numeric(5,0) IDENTITY",
+                             commid => NUMID,
                              checksum => "VARCHAR(64)",
                              projectid => PROJECTID,
                              date => $DATE,
