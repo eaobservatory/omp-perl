@@ -283,6 +283,11 @@ my %URGENCY = (
 	       Info   => 2,
 	      );
 
+my %CONDITION = (
+		 Chronic => 0,
+		 Normal  => 1,
+		);
+
 my %STATUS_OPEN = (
 		   Open                   => OPEN,
 		   "Open - Will be fixed" => WILL_BE_FIXED,
@@ -298,12 +303,16 @@ my %STATUS_CLOSED = (
 
 my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
 
-# Now invert %DATA and %URGENCY
+# Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
   $INVERSE_URGENCY{ $URGENCY{$_} } = $_;
 }
 
+my %INVERSE_CONDITION;
+for (keys %CONDITION) {
+  $INVERSE_CONDITION{ $CONDITION{$_} } = $_;
+}
 
 my %INVERSE_STATUS;
 for (keys %STATUS) {
@@ -413,6 +422,20 @@ be associated with fixing a particular fault.
 sub faultUrgency {
   my $class = shift;
   return %URGENCY;
+}
+
+=item B<faultCondition>
+
+Return a hash containing the different types of condition that can
+be associated with a particular fault.
+
+  %condition = OMP::Fault->faultCondition();
+
+=cut
+
+sub faultCondition {
+  my $class = shift;
+  return %CONDITION;
 }
 
 =item B<faultStatus>
@@ -579,6 +602,7 @@ sub new {
 		     TimeLost => 0,
 		     FaultDate => undef,
 		     Urgency => $URGENCY{Normal},
+		     Condition => $CONDITION{Normal},
 		     Entity => undef,
 		     Category => undef,
 		     Responses => [],
@@ -733,6 +757,15 @@ sub urgencyText {
   return $INVERSE_URGENCY{$self->urgency};
 }
 
+=item B<conditionText>
+
+=cut
+
+sub conditionText {
+  my $self = shift;
+  return $INVERSE_CONDITION{$self->condition};
+}
+
 =item B<isUrgent>
 
 True if the fault is urgent.
@@ -747,6 +780,20 @@ sub isUrgent {
   return ( $urgcode == $URGENCY{Urgent} ? 1 : 0);
 }
 
+
+=item B<isChronic>
+
+True if the fault is chronic
+
+  $ischronic = $fault->isChronic();
+
+=cut
+
+sub isChronic {
+  my $self = shift;
+  my $concode = $self->condition;
+  return ( $concode == $CONDITION{Chronic} ? 1 : 0);
+}
 
 =item B<isOpen>
 
@@ -890,6 +937,23 @@ sub urgency {
   my $self = shift;
   if (@_) { $self->{Urgency} = shift; }
   return $self->{Urgency};
+}
+
+=item B<condition>
+
+Condition associated with the fault. Options are "chronic" and "normal".
+See C<faultConditions> for the associated integer codes that must
+be supplied.
+
+  $condition = $fault->condition();
+  $fault->condition( $condition  );
+
+=cut
+
+sub condition {
+  my $self = shift;
+  if (@_) { $self->{Condition} = shift; }
+  return $self->{Condition};
 }
 
 =item B<projects>
