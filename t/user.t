@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 53;
+use Test::More tests => 63;
 use strict;
 require_ok("OMP::User");
 
@@ -20,11 +20,21 @@ is( $user->addressee, "frossie", "Check email addressee");
 
 # see if we can guess some user ids
 my %guessed = (
+	       VANDERHUCHTK => "Karel van der Hucht",
 	       JENNESST => " Tim Jenness ",
 	       ECONOMOUF => "Frossie Economou",
 	       MORIARTYSCHIEVENG => "Gerald Moriarty-Schieven",
 	       PERSONA => "A. Person Jr",
 	       PERSONB => "Person Sr, B",
+	       PERSONC => "Person Sr., C",
+	       FULLERG => "Dr. G. Fuller",
+	       STEVENSJ=> "Dr J. A. Stevens",
+	       PERSOND => "Prof. D. Person",
+	       PERSONE => "Mrs E. Person",
+	       PERSONF => "Mr. F Person",
+	       PERSONG => "Mrs. G. Person",
+	       PERSONH => "Person, Ms. H",
+	       PERSONI => "Person, Prof I",
 	       ADAMSONA => "Adamson, Andy",
 	       BARNUMP => 'P. T. Barnum',
 	       VANBEETHOVENL => "Ludwig van Beethoven",
@@ -37,6 +47,7 @@ my %guessed = (
 	      );
 
 for my $userid (keys %guessed) {
+  print "# $guessed{$userid}\n";
   is(OMP::User->infer_userid( $guessed{$userid} ), $userid, "Infer userid" );
 }
 

@@ -481,7 +481,8 @@ name. The userid in the object is not updated via this method.
 
 The guess work assumes that the name is "forname surname" (although
 "F.Surname" is also okay) or alternatively "surname, forname". A
-simplistic attempt is made to catch "Jr" and "Sr". Also, "van", "le"
+simplistic attempt is made to catch "Jr" and "Sr" as well as common
+prefixes such as "Mr", "Prof" and "Dr". Also, "van", "van der", "le"
 and "de" are treated as part of the surname (e.g. "U le Guin" would be
 "LEGUINU").
 
@@ -505,7 +506,12 @@ sub infer_userid {
   return undef unless $name =~ /\w/;
 
   # Remove some common suffixes
-  $name =~ s/\b[JS]r\.?\b//g;
+  $name =~ s/\b[JS]r\.?//g;
+
+  # and prefixes: Dr Mr Mrs Ms Prof
+  $name =~ s/\b[MD]rs\.?\W//;
+  $name =~ s/\b[MD][rs]\.?\W//;
+  $name =~ s/\bProf\.?\W//;
 
   # Clean
   $name =~ s/^\s+//;
@@ -531,13 +537,18 @@ sub infer_userid {
     $surname = $parts[-1];
 
     # Note that "le Guin" is surname LEGUIN
+    # van der Blah is VANDERBLAH
     if (scalar(@parts) > 2) {
-      if ($parts[-2] =~ /(LE)/i ||
-	  $parts[-2] =~ /DE/i ||
-	  $parts[-2] =~ /van/i
+      if ($parts[-2] =~ /^(LE)$/i ||
+	  $parts[-2] =~ /^DE$/i ||
+	  $parts[-2] =~ /^van$/i
 	 ) {
 	$surname = $parts[-2] . $surname;
+      } elsif (scalar(@parts) > 3 && 
+	       $parts[-3] =~ /^van$/i && $parts[-2] =~ /^der$/) {
+	$surname = $parts[-3] . $parts[-2] . $surname;
       }
+
     }
 
   }
