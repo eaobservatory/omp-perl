@@ -254,12 +254,12 @@ sub remaining {
       $current += $arg;
 
       # Now Force to zero if necessary
-      $arg = 0 if $arg < 0;
+      $current = 0 if $current < 0;
 
     }
 
     # Set the new value
-    $self->_tree->setAttribute("remaining", $arg);
+    $self->_tree->setAttribute("remaining", $current);
   }
 
   return $self->_tree->getAttribute("remaining");
@@ -409,11 +409,28 @@ sub summary {
 
 Indicate that this MSB has been observed. This involves decrementing
 the C<remaining()> counter by 1 and, if this is part of an SpOR block
-and the parent tree is accessible, removing siblings from contention
-by marking them with the magic REMOVED value.
+and the parent tree is accessible, adjusting the logic.
 
 It is usually combined with an update of the database contents to reflect
 the modified state.
+
+If the MSB is within an SpOR the following occurs in addition to
+decrementing the remaining counter:
+
+ - Move the MSB (and enclosing SpAND) out of the SpOR into the
+   main tree
+
+ - Decrement the counter on the SpOR.
+
+ - Since MSBs are currently located in a science programby name
+   without checking for SpOR counter, if the SpOR counter hits zero all
+   remaining MSBs are marked with the magic value for remaining() to
+   indicate they have been removed by the OMP rather than by
+   observation.
+
+This all requires that there are no non-MSB elements in an SpOR
+since inheritance breaks if we move just the MSB (that is only
+true if the OT ignores IDREF attributes).
 
 =cut
 
@@ -426,16 +443,57 @@ sub hasBeenObserved {
   # Now for the hard part... SpOr/SpAND
 
   # First have to find out if I have a parent that is an SpOR
-  #my $ancestor = 
-  if ($self->_tree->findnodes('ancestor-or-self::SpOR')) {
+  my ($SpOR) = $self->_tree->findnodes('ancestor-or-self::SpOR');
+
+  if ($SpOR) {
 
     # Okay - we are in a logic nightmare
-    
 
+    # First see if we are in an SpAND
+    my ($SpAND) = $self->_tree->findnodes('ancestor-or-self::SpAND');
 
+    # Now we need to move the MSB or the enclosing SpAND to
+    # just after the SpOR
+
+    # Decide what we are moving
+    my $node = ( $SpAND ? $SpAND : $self->_tree );
+
+    # Now find the parent of the SpOR since we have to insert in
+    # the parent relative to the SpOR
+    my $ORparent = $SpOR->parentNode;
+
+    # Unbind the node we are moving from its parent
+    $node->unbindNode;
+
+    # Move it
+    $ORparent->insertAfter($node, $SpOR );
+
+    # Now decrement the counter on the SpOR
+    my $n = $SpOR->getAttribute("numberOfItems");
+    $n--;
+    $n = 0 if $n < 0;
+    $SpOR->setAttribute("numberOfItems", $n);
+
+    # If the number of remaining items is 0 we need to go
+    # and find all the MSBs that are left and fix up their
+    # "remaining" attributes so that they will no longer be accepted
+    # This code is identical to that in OMP::SciProg so we should
+    # be doing this in a cleverer way.
+    # For now KLUGE KLUGE KLUGE
+    if ($n == 0) {
+      print "Attempting to REMOVE remaining MSBs\n";
+      my @msbs = $SpOR->findnodes(".//SpMSB");
+      print "Located SpMSB...\n";
+      push(@msbs, $SpOR->findnodes('.//SpObs[@msb="true"]'));
+      print "Located SpObs...\n";
+
+      for (@msbs) {
+	# Eek this should be happening on little OMP::MSB objects
+	$_->setAttribute("remaining",REMOVED());
+      }
+    }
 
   }
-
 
 }
 

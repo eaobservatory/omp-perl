@@ -51,6 +51,9 @@ our $TABLE = "ompmsb";
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 10;
 
+# Debug messages
+our $DEBUG = 1;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -159,6 +162,8 @@ sub _sciprog_filename {
     return $file;
   } elsif ($opt eq "BACKUP") {
     return File::Spec->catfile($XMLDIR, "bck_$file");
+  } elsif ($opt eq "BACKUPi") {
+    return File::Spec->catfile($XMLDIR, "bcki_$file");
   } else {
     return File::Spec->catfile($XMLDIR, $file);
   }
@@ -220,9 +225,16 @@ sub _transaction {
 
 Store a science program object into the database.
 
-  $status = OMP::MSBDB->store( SciProg => $sp );
+  $status = $db->storeSciProg( SciProg => $sp );
 
-Requires a password and project identifier.
+Requires a password and project identifier. If the FreezeTimeStamp
+key is present and set to true timestamp checking is disabled and
+the timestamp is not updated when writing XML to disk. This is to
+allows the science program to be modified internally without affecting
+the external checking (e.g. marking an MSB as being observed).
+
+  $status = $db->storeSciProg( SciProg => $sp,
+                               FreezeTimeStamp => 1);
 
 Returns true on success and C<undef> on error (this may be
 modified to raise an exception).
@@ -247,7 +259,8 @@ sub storeSciProg {
   $self->_dbconnect;
 
   # Write the Science Program to disk
-  $self->_write_sci_prog( $args{SciProg} ) or return undef;
+  $self->_write_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
+    or return undef;
 
   # We need to remove the existing rows associated with this
   # project id
@@ -322,15 +335,15 @@ If the project ID is not available from the object then queries
 using just the checksum can not be guaranteed (although statistics
 are in your favour).
 
-The OMP will probably always use the index and checksum approach. Since,
-assuming an MSB has a unique index, this allows for us to determine
-when a science program has been resubmitted since we obtained the
-information. This is important since we want to make sure that our
-query is still valid.
+The OMP will probably always use the index and checksum approach for
+remote retrieval since, assuming an MSB has a unique index, this
+allows for us to determine when a science program has been resubmitted
+since we obtained the information. This is important since we want to
+make sure that our query is still valid.
 
 The checksum approach allows us to always retrieve the same MSB
 regardless of whether the science program has been resubmitted since
-we last looked.
+we last looked (this is used when marking an MSB as done).
 
 Just use the index:
 
@@ -438,6 +451,53 @@ sub queryMSB {
   return @xml;
 }
 
+=item B<doneMSB>
+
+Mark the specified MSB as having been observed.
+
+  $db->doneMSB( $checksum );
+
+The MSB is located using the Project identifier (stored in the object)
+and the checksum.  If an MSB can not be located it is likely that the
+science program has been reorganized.
+
+=cut
+
+sub doneMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  # Connect to the DB (and lock it out)
+  $self->_dbconnect;
+
+
+  # We could use the MSBDB::fetchMSB method if we didn't need the science
+  # program object. Unfortauntely, since we intend to modify the
+  # science program we need to get access to the object here
+  # Retrieve the relevant science program
+  my $sp = $self->fetchSciProg();
+
+  # Get the MSB
+  my $msb = $sp->fetchMSB( $checksum );
+
+  # Give up if we dont have a match
+  return unless defined $msb;
+
+  $msb->hasBeenObserved();
+
+  # Now need to store the MSB back to disk again
+  # since this has the advantage of updating the database table
+  # and making sure reorganized Science Program is stored.
+  # This will require a back door password and the ability to
+  # indicate that the timestamp is not to be modified
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1 );
+
+  # Disconnect
+  $self->_dbdisconnect;
+
+}
+
+
 =back
 
 =head2 Internal Methods
@@ -465,6 +525,12 @@ with the old timestamp a file must be opened) but this is better
 since it allows us to modify the "remaining" attributes without
 worrying about a file system timestamp.
 
+If the optional second argument is present and true, timestamp checking
+is disabled and the timestamp is not modified. This is to allow internal
+reorganizations to use this routine without affecting external checking.
+If this option is selected the backup file is written with a different
+name to prevent a clash with an externally modified program.
+
 =cut
 
 sub _write_sci_prog {
@@ -472,28 +538,35 @@ sub _write_sci_prog {
   croak 'Usage: $db->_write_sci_prog( $sp )' unless @_;
   my $sp = shift;
 
+  my $freeze = shift;
+
   # Get the filename
   my $fullpath = $self->_sciprog_filename();
 
   # If we already have a file of that name we have to
   # check the timestamp and rename it.
   if (-e $fullpath) {
-    # Get the timestamps
-    my $tstamp = $self->_get_old_sciprog_timestamp;
-    my $spstamp = $sp->timestamp;
-    if (defined $spstamp) {
-      croak "Science Program has changed on disk" 
-	unless $tstamp == $spstamp;
+
+    # Disable timestamp checks if freeze is set
+    unless ($freeze) {
+      # Get the timestamps
+      my $tstamp = $self->_get_old_sciprog_timestamp;
+      my $spstamp = $sp->timestamp;
+      if (defined $spstamp) {
+	croak "Science Program has changed on disk" 
+	  unless $tstamp == $spstamp;
+      }
     }
 
     # Move the old version of the file to back up
+    my $key = ($freeze ? "BACKUPi" : "BACKUP");
     my $backup = $self->_sciprog_filename("BACKUP");
     rename $fullpath, $backup 
       or croak "error renaming $fullpath to $backup: $!";
   }
 
   # Put a new timestamp into the science program prior to writing
-  $sp->timestamp( time() );
+  $sp->timestamp( time() ) unless $freeze;
 
   # open a new file
   open( my $fh, ">$fullpath") 
@@ -629,6 +702,7 @@ sub _insert_row {
 
   # Store the data
   my $proj = $self->projectid;
+  print "Inserting row as index $index\n";
   $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?, ?)", undef,
 	   $index, $data{checksum}, $self->projectid, $data{remaining},
 	   $self->_sciprog_filename);
@@ -654,7 +728,8 @@ sub _clear_old_rows {
   my $proj = $self->projectid;
 
   # Store the data
-  $dbh->do("DELETE FROM $TABLE WHERE projectid = \"$proj\"");
+  print "Clearing old rows for project ID $proj\n" if $DEBUG;
+  $dbh->do("DELETE FROM $TABLE WHERE projectid = '$proj'");
 
 }
 

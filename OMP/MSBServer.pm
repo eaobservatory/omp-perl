@@ -127,6 +127,35 @@ sub queryMSB {
   return @results;
 }
 
+=item B<doneMSB>
+
+Mark the specified MSB (identified by project ID and MSB checksum)
+as having been observed.
+
+This will have the effect of decrementing the overall observing
+counter for that MSB. If the MSB happens to be part of some OR logic
+it is possible that the Science program will be reorganized.
+
+  OMP::MSBServer->doneMSB( $project, $checksum );
+
+Nothing happens if the MSB can no longer be located since this
+simply indicates that the science program has been reorganized.
+
+=cut
+
+sub doneMSB {
+  my $self = shift;
+  my $project = shift;
+  my $checksum = shift;
+
+  # Create a new object but we dont know any setup values
+  my $db = new OMP::MSBDB(ProjectID => $project );
+
+  $db->doneMSB( $checksum );
+
+}
+
+
 =back
 
 =head1 SEE ALSO
