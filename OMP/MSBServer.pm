@@ -95,6 +95,9 @@ sub fetchMSB {
 };
   my $spprogend = "\n</SpProg>\n";
 
+  # Also add in the projectID
+  $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
+
   return "$spprog$msb$spprogend" if defined $msb;
 }
 
