@@ -45,6 +45,7 @@ use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::Project::TimeAcct;
+use OMP::TimeAcctDB;
 
 use Time::Piece qw/ :override /;
 
