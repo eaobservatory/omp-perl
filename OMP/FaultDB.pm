@@ -723,7 +723,7 @@ sub _mail_fault {
 
   # Make it obvious in the subject if fault is urgent
   if ($fault->isUrgent) {
-    $subject = "URGENT $subject";
+    $subject = "*** URGENT *** $subject";
   }
 
   # Create a list of users to Cc (but not if they authored the latest response)
