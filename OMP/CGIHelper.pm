@@ -53,7 +53,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1631,6 +1631,33 @@ sub report_output {
   # Get the relative faults
 
   # Figure out the time lost to faults
+}
+
+=item B<preify_text>
+
+Replace HTML characters (such as <, > and &) with their associated escape
+sequences and place text inside a <PRE> block.
+
+  $escaped = preify_text($text);
+
+=cut
+
+sub preify_text {
+  my $string = shift;
+
+  # Escape sequence lookup table
+  my %lut = (">" => "&gt;",
+	     "<" => "&lt;",
+	     "&" => "&amp;",);
+
+  # Do the search and replace
+  # Make sure we replace ampersands first, otherwise we'll end
+  # up replacing the ampersands in the escape sequences
+  for ("&", ">", "<") {
+    $string =~ s/$_/$lut{$_}/g;
+  }
+
+  return "<pre>$string</pre>";
 }
 
 =back
