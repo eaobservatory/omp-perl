@@ -748,7 +748,7 @@ sub write_page_fault {
 
   $self->_write_header($STYLE);
 
-  if (!$cookie{category}) {
+  if (!$cookie{category} and !$q->param) {
     print "Please select a category from the left";
     return;
   }
