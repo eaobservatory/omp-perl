@@ -23,6 +23,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use Time::Piece;
 use Date::Manip;
+use Text::Wrap;
 
 use OMP::Fault;
 use OMP::FaultServer;
@@ -50,6 +51,9 @@ Exporter::export_tags(qw/ all /);
 
 # Width for HTML tables
 our $TABLEWIDTH = 620;
+
+# Text wrap column size
+$Text::Wrap::columns = 80;
 
 =head1 Routines
 
@@ -362,7 +366,17 @@ sub fault_table {
     }
 
     # Show the response
-    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $resp->text . "</td></table><br></td>";
+
+    # Word wrap the text if it is in a pre block
+    my $text = $resp->text;
+    if ($text =~ m!^<pre>.*?</pre>$!is) {
+      $text = wrap('', '', $text);
+    }
+
+    # Now turn fault IDs into links
+    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
+
+    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $text . "</td></table><br></td>";
 
   }
   print "</table>";

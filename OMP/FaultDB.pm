@@ -32,6 +32,8 @@ use OMP::Fault::Response;
 use OMP::FaultQuery;
 use OMP::Error;
 use OMP::UserDB;
+use Text::Wrap;
+$Text::Wrap::columns = 80;
 
 use base qw/ OMP::BaseDB /;
 
@@ -622,6 +624,12 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       my $date = $_->date->ymd . " " . $_->date->hms;
       my $text = $_->text;
 
+      # Wrap the message text
+      $text = wrap('', '', $text);
+
+      # Now turn fault IDs into links
+      $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
+
       # Store the author's email address
       $authors{$user->userid} = $_->author->email;
 
@@ -649,6 +657,12 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     my $author = $responses[0]->author->html; # This is an html mailto
     my $date = $responses[0]->date->ymd . " " . $responses[0]->date->hms;
     my $text = $responses[0]->text;
+
+    # Wrap the message text
+    $text = wrap('', '', $text);
+
+    # Now turn fault IDs into links
+    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$1'>$1</a>!g;
 
     push(@msg, "$category fault filed by $author on $date<br><br>");
 
