@@ -2129,7 +2129,21 @@ sub flex_page {
   my $q = shift;
   my %cookie = @_;
 
-  my $flexpage = "/WWW/JAClocal/UKIRT/omp/03a/Flex_programme_descriptions.html";
+  my $sem;
+  my $tainted = $q->url_param('sem');
+  if ($tainted =~ m!^(\d{2}\w)$!) {
+    $sem = $1;
+  }
+
+  # Default to current semester if we couldn't untaint the semester url
+  # param (or if it just wasn't provided)
+  if (! $sem) {
+    my $today = OMP::General->today(1);
+    $sem = OMP::General->determine_semester( $today );
+  }
+
+  $sem = lc($sem);
+  my $flexpage = "/WWW/JAClocal/UKIRT/omp/$sem/Flex_programme_descriptions.html";
 
   # Read in flex page
   open(FLEX, $flexpage) or die "Unable to open flex page [$flexpage]: $!";
