@@ -1302,13 +1302,14 @@ sub _store_sciprog_todisk {
   # If we turn off the readdir we will need to make sure this number
   # matches the number of digits supported in INDEX.
   my $MAX_TRIES = 20;
+  my $fmt = '%s_%03d';
   my ($fh, $file);
   my $end = $MAX_TRIES + $start;
   for (my $i = $start; $i < $end; $i++) {
 
     # Create the file name
     my $file = File::Spec->catfile($cachedir,
-				  $projectid . '_'. sprintf("%03d",$i));
+				   sprintf($fmt,$projectid,$i));
 
     my $open_success = sysopen($fh, $file,
                                O_CREAT|O_RDWR|O_EXCL,0600);
@@ -1349,6 +1350,17 @@ sub _store_sciprog_todisk {
   # Now write the science program and return
   print $fh "$sp";
   close $fh;
+
+  # And remove old numbers
+  if (@numbers > 3) {
+    my $last = $#numbers - 3;
+    for my $n (@numbers[0..$last]) {
+      my $file = File::Spec->catdir($cachedir,
+				    sprintf($fmt,$projectid,$n));
+      # do not test return value
+      unlink($file);
+    }
+  }
 
   return;
 }
