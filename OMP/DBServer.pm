@@ -62,9 +62,25 @@ Returns a connection object of type C<OMP::DBbackend>.
 
 L<OMP::DBbackend>, L<OMP::MSBServer>, L<OMP::SpServer>.
 
+=head1 NOTES
+
+This is probably a design flaw but as the system has evolved the 
+caching of the database connection has worked for the generic
+server interfaces but all the DB classes can be independently 
+instantiated with their own DB connection object which subverts
+the caching since OMP::DBbackend is called directly. This is partly
+my fault because I did not publicise the
+
+   OMP::DBServer->dbConnection()
+
+interface enough and everyone used the DBbackend connection. Too
+late to change this now so OMP::DBbackend now also does connection
+caching. If someone is feeling really keen they could remove 
+all the DBbackend references from the code....
+
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =head1 AUTHOR

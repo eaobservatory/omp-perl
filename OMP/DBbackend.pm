@@ -110,15 +110,32 @@ sub loginhash {
 
 Instantiate a new object.
 
-  $db = new OMP::DBbackend;
+  $db = new OMP::DBbackend();
+  $db = new OMP::DBbackend(1);
 
 The connection to the database backend is made immediately.
 
+By default the connection object is cached. A true argument forces a
+brand new connection. The cache can be cleared using the <clear_cache>
+class method. The class should not guarantee to return the same
+database connection each time although it probably will. This is so
+that connection pooling and automated expiry can be implemented at a
+later date.
+
+Caching of subclasses will work so long as the sub class constructor
+calls the base class constructor.
+
 =cut
 
+my %CACHE;
 sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
+  my $nocache = shift;
+
+  if (!$nocache && defined $CACHE{$class}) {
+    return $CACHE{$class};
+  }
 
   my $db = bless {
 		  TransCount => 0,
@@ -126,6 +143,9 @@ sub new {
 		 }, $class;
 
   $db->connect;
+
+  # Store in the cache
+  $CACHE{$class} = $db;
 
   return $db;
 }
@@ -419,7 +439,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
