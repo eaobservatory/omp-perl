@@ -4,18 +4,6 @@ package OMP::Info::ObsBase;
 # Cheat and use automatic accessors. Very lazy
 use Class::Struct;
 struct(
-       projectid => '$',
-       checksum => '$',
-       waveband => 'Astro::WaveBand',
-       instrument => '$',
-       disperser => '$',
-       coords => 'Astro::Coords',
-       target => '$',
-       pol => '$',
-       timeest => '$',
-       type => '$',
-       fits => '%',
-       comments => '@',
       );
 
 
@@ -55,7 +43,7 @@ use warnings;
 use Carp;
 use OMP::Range;
 
-use base qw/ OMP::Info::ObsBase /;
+use base qw/ OMP::Info::Base /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -70,6 +58,30 @@ use overload '""' => "stringify";
 =item B<new>
 
 =back
+
+=begin __PRIVATE__
+
+=head2 Create Accessor Methods
+
+Create the accessor methods from a signature of their contents.
+
+=cut
+
+__PACKAGE__->CreateAccessors( projectid => '$',
+                              checksum => '$',
+                              waveband => 'Astro::WaveBand',
+                              instrument => '$',
+                              disperser => '$',
+                              coords => 'Astro::Coords',
+                              target => '$',
+                              pol => '$',
+                              timeest => '$',
+                              type => '$',
+                              fits => '%',
+                              comments => '@OMP::Info::Comments',
+                             );
+
+=end __PRIVATE__
 
 =head2 Accessor Methods
 
@@ -130,6 +142,74 @@ Array Accessors
 =head2 General Methods
 
 =over 4
+
+=item B<summary>
+
+Summarize the object in a variety of formats.
+
+  $summary = $obs->summary( 'xml' );
+
+If called in a list context default result is 'hash'. In scalar
+context default result if 'xml'.
+
+Allowed formats are:
+
+  'xml' - XML summary of the main observation parameters
+  'hash' - hash representation of main obs. params.
+  'html'
+  'text'
+
+XML is returned looking something like:
+
+  <SpObsSummary>
+    <instrument>CGS4</instrument>
+    <waveband>2.2</waveband>
+    ...
+  </SpObsSummary>
+
+=cut
+
+sub summary {
+  my $self = shift;
+
+  # Calculate default formatting
+  my $format = (wantarray() ? 'hash' : 'xml');
+
+  # Read the actual value
+  $format = lc(shift);
+
+  # Build up the hash
+  my %summary;
+  for (qw/ waveband instrument disperser coords target pol timeest
+       type /) {
+    $summary{$_} = $self->$_();
+  }
+
+  if ($format eq 'hash') {
+    if (wantarray) {
+      return %summary;
+    } else {
+      return \%summary;
+    }
+  } elsif ($format eq 'xml') {
+
+    my $xml = "<SpObsSummary>\n";
+
+    for my $key ( keys %summary ) {
+      next if $key =~ /^_/;
+      next unless defined $summary{$key};
+
+      # Create XML segment
+      $xml .= "<$key>$summary{$key}</$key>\n";
+
+    }
+    $xml .= "</SpObsSummary>\n";
+    return $xml;
+
+  }
+
+
+}
 
 =item B<stringify>
 
