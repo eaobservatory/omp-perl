@@ -1406,10 +1406,14 @@ sub split_string {
 
 =item B<preify_text>
 
-Replace HTML characters (such as <, > and &) with their associated escape
-sequences and place text inside a <PRE> block.
+This method is used to prepare text for storage to the database so that
+when it is retrieved it can be displayed properly in HTML format.
+If the text is not HTML formatted then it goes inside PRE tags and HTML characters (such as <, > and &) are replaced with their associated entities.  Also
+strips out windows ^M characters.
 
   $escaped = preify_text($text);
+
+Text is considered to be HTML formatted if it begins with the string "<html>" (case-insensitive).  This string is stripped off if found.
 
 =cut
 
@@ -1417,20 +1421,30 @@ sub preify_text {
   my $self = shift;
   my $string = shift;
 
-  # Escape sequence lookup table
-  my %lut = (">" => "&gt;",
-	     "<" => "&lt;",
-	     "&" => "&amp;",
-	     '"' => "&quot;",);
+  if ($string !~ /^<html>/i) {
 
-  # Do the search and replace
-  # Make sure we replace ampersands first, otherwise we'll end
-  # up replacing the ampersands in the escape sequences
-  for ("&", ">", "<", '"') {
-    $string =~ s/$_/$lut{$_}/g;
+    # Escape sequence lookup table
+    my %lut = (">" => "&gt;",
+	       "<" => "&lt;",
+	       "&" => "&amp;",
+	       '"' => "&quot;",);
+
+    # Do the search and replace
+    # Make sure we replace ampersands first, otherwise we'll end
+    # up replacing the ampersands in the escape sequences
+    for ("&", ">", "<", '"') {
+      $string =~ s/$_/$lut{$_}/g;
+    }
+
+    $string = "<pre>$string</pre>";
+  } else {
+    $string =~ s/<html>//i;
   }
 
-  return "<pre>$string</pre>";
+  # Strip ^M
+  $string =~ s/\015//g;
+
+  return $string;
 }
 
 =item B<replace_entity>
