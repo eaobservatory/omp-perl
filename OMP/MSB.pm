@@ -645,7 +645,7 @@ sub summary {
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 10 10 3 3 3 3 3 3 20 20 20 6 5 /;
+  my @width = qw/ 10 10 3 3 8 8 3 3 20 20 20 6 5 /;
   throw OMP::Error::FatalError("Bizarre problem in MSB::summary ")
     unless @width == @keys;
 
@@ -1093,7 +1093,7 @@ sub _get_weather_data {
 
   # Need to get "seeing" and "tau". These are ranges
   # so store the upper and lower limits in an OMP::Range object
-  $summary{tau} = $self->_get_range( $el, "tau" );
+  $summary{tau} = $self->_get_range( $el, "csoTau" );
   $summary{seeing} = $self->_get_range( $el, "seeing" );
 
   # and (if defined) cloud information
