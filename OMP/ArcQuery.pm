@@ -45,6 +45,31 @@ our $VERSION = (qw$Revision$ )[1];
 
 =over 4
 
+
+=item B<isfile>
+
+Are we querying a database or files on disk?
+
+  $q->isfile(1);
+  $dbquery = $q->isfile;
+
+Defaults to false.
+
+=cut
+
+sub isfile {
+  my $self = shift;
+  if (@_) {
+    my $new = shift;
+    $self->{IsFILE} = $new;
+
+    # Now we need to clear the query_hash so that it is regenerated
+    # with the new state
+    $self->query_hash( {} );
+  }
+  return $self->{IsFILE};
+}
+
 =item B<telescope>
 
 Telescope to use for this query. This governs the query since the
