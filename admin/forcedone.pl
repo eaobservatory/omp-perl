@@ -6,8 +6,21 @@ forcedone - Fixup MSB done after the fact.
 
 =head1 DESCRIPTION
 
-Reads the information from the DATA handle. This is clearly not
-very extensible.
+This routine allows for 'manual' upload of MSB acceptance after the
+observing. Science programmes are adjusted but time accounting is not
+affected since in general this routine is run after the night report
+has been verified.
+
+Accepts information from standard input. Each line must have the
+following format (comma separated):
+
+  YYYY-MM-DDTHH:MM:SS,PROJECTID,CHECKSUM,ACCEPT,USERID,COMMENT
+
+where the ACCEPT is a 1 or 0. 1 indicates the MSB was accepted
+and 0 indicates that it is to be rejected. A hash mark indicates
+a comment line.
+
+This routine does not try to clear previous entries.
 
 =cut
 
@@ -20,34 +33,35 @@ use OMP::DBbackend;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::UserServer;
+use OMP::Constants ':done';
 
 # Connect to database
 my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
 
 # Loop over info for modification
-for my $line (<DATA>) {
+for my $line (<>) {
   next if $line !~ /\w/;
+  next if $line =~ /^\s*\#/;
 
-  my ($date,$proj,$checksum,$user,$comment) = split /,/, $line;
+  my ($date,$proj,$checksum,$accept,$user,$comment) = split /,/, $line;
 
   $date = OMP::General->parse_date( $date );
   $user = OMP::UserServer->getUser( $user );
 
+  my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
+
   my $c = new OMP::Info::Comment( text => $comment,
 				  author => $user,
 				  date=> $date,
+				  status => $status,
 				);
 
   # Force project ID
   $msbdb->projectid( $proj );
 
+  print $date->datetime, ": $proj : $checksum : $user - $status\n";
+
   # Mark it as done
   $msbdb->doneMSB( $checksum, $c, { adjusttime => 0 });
 
 }
-
-
-__DATA__
-2003-03-31T09:55,M03AN04,fb9cb2ff6b1b500b741a85cc80ff98ea,LUNDIN,
-2003-03-31T08:00,M03AN04,8a3d436e01b8bb2afa095281148943bd,LUNDIN,
-2003-03-31T15:45,M03AN12,00d593556c778ce124000fd04dffeeef,LUNDIN,
