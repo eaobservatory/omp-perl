@@ -23,7 +23,6 @@ use warnings;
 use Carp;
 
 # External modules
-use XML::LibXML; # Our standard parser
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
@@ -35,13 +34,6 @@ use base qw/ OMP::DBQuery /;
 # Package globals
 
 our $VERSION = (qw$Revision$ )[1];
-
-# Default number of results to return from a query
-our $DEFAULT_RESULT_COUNT = 50;
-
-
-# Overloading
-use overload '""' => "stringify";
 
 =head1 METHODS
 
@@ -425,12 +417,9 @@ sub _post_process_hash {
   # If we are dealing with a these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
-  for my $key (qw/ projectid telescope/) {
-    if (exists $href->{$key}) {
-      # Process all elements in array
-      $href->{$key} = [ map { uc($_); } @{ $href->{$key} } ];
-    }
-  }
+  $self->_process_elements($href, sub { uc(shift) }, 
+			   [qw/projectid telescope semester country/]);
+
 
   # These entries are in more than one table so we have to 
   # explicitly choose the MSB table
@@ -442,7 +431,7 @@ sub _post_process_hash {
     }
   }
 
-  # Remove attribute since we dont need them anymore
+  # Remove attributes since we dont need them anymore
   delete $href->{_attr};
 
 }
