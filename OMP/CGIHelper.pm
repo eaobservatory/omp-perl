@@ -25,6 +25,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::ProjServer;
 use OMP::SpServer;
+use OMP::MSB;
 use OMP::MSBServer;
 use OMP::FBServer;
 use OMP::General;
@@ -423,17 +424,25 @@ Second argument should be an array of hash references containing MSB information
 
 sub msb_table {
   my $q = shift;
-  my $msbs = shift;
+  my $program = shift;
 
   print "<table width=100%>";
+  print "<tr bgcolor=#7979aa><td><b>MSB</b></td>";
+  print "<td><b>Target:</b></td>";
+  print "<td><b>Waveband:</b></td>";
+  print "<td><b>Instrument:</b></td>";
 
   my $i;
-  foreach my $msb (@$msbs) {
+  foreach my $msb (@$program) {
+
+    # Create a summary of the observation details and display
+    # this in the table cells
+    my %msb = OMP::MSB->summary($msb);
     $i++;
-    print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
-    print "<td><b>Target:</b> $msb->{target}</td>";
-    print "<td><b>Waveband:</b> $msb->{waveband}</td>";
-    print "<td><b>Instrument:</b> $msb->{instrument}</td>";
+    print "<tr><td>$i</td>";
+    print "<td>" . $msb{_obssum}{target} . "</td>";
+    print "<td>" . $msb{_obssum}{waveband} . "</td>";
+    print "<td>" . $msb{_obssum}{instrument} . "</td>";
   }
 
   print "</table>\n";
@@ -643,7 +652,7 @@ sub list_projects_form {
 			-labels=>{active=>'Active',
 				  inactive=>'Inactive',
 				  all=>'All',},
-		        -default=>'all',);
+		        -default=>'active',);
   print "</td><td>&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
   print $q->endform();
@@ -913,9 +922,6 @@ sub fb_logout {
   print $q->h2("You are now logged out of the feedback system.");
   print "You may see feedback for a project by clicking <a href='feedback.pl'>here</a>.";
 }
-
-
-=back
 
 =head1 AUTHORS
 
