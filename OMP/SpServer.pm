@@ -200,8 +200,8 @@ sub programDetails {
       for my $msb (@{$summary}) {
 	delete $msb->{_obssum};
 	delete $msb->{summary};
-	$msb->{latest} = ''.$msb->{latest}; # unbless
-	$msb->{earliest} = ''.$msb->{earliest}; # unbless
+	$msb->{datemax} = ''.$msb->{datemax}; # unbless
+	$msb->{datemin} = ''.$msb->{datemin}; # unbless
 	for my $obs (@{$msb->{obs}}) {
 	  $obs->{waveband} = ''.$obs->{waveband}; # unbless
 	  $obs->{coords} = [$obs->{coords}->array];

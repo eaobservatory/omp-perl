@@ -284,6 +284,9 @@ If an earliest or latest value can not be found, default values
 in the past and in the far future are chosen (so as not to constrain
 the query).
 
+The earliest and latest dates are returned in keys "datemin" and
+"datemax" so that they match the style used for other ranges.
+
 =cut
 
 sub sched_constraints {
@@ -294,10 +297,10 @@ sub sched_constraints {
     %{$self->{SchedConst}} = $self->_get_sched_constraints;
 
     # Fill in blanks
-    $self->{SchedConst}->{earliest} = $MINTIME
-      unless exists $self->{SchedConst}->{earliest};
-    $self->{SchedConst}->{latest} = $MAXTIME
-      unless exists $self->{SchedConst}->{latest};
+    $self->{SchedConst}->{datemin} = $MINTIME
+      unless exists $self->{SchedConst}->{datemin};
+    $self->{SchedConst}->{datemax} = $MAXTIME
+      unless exists $self->{SchedConst}->{datemax};
 
   }
   return %{$self->{SchedConst}};
@@ -1154,11 +1157,14 @@ sub _get_sched_constraints {
 
   # Need to get earliest and latest
   # Convert them to Time::Piece objects
+  my %columns = ( # Since XML key is different to db column
+		 earliest => "datemin",
+		 latest => "datemax");
   for my $key ( qw/ earliest latest / ) {
     my $val = $self->_get_pcdata( $el, $key );
     if (defined $val) {
       my $date = OMP::General->parse_date($val);
-      $summary{$key} = $date if defined $date;
+      $summary{$columns{$key}} = $date if defined $date;
     }
   }
 

@@ -134,12 +134,17 @@ sub maxCount {
 
 =item B<refDate>
 
-Return the date object associated with the query. If no date has
-been specified explicitly in the query the current date is returned.
+Return the date object associated with the query. If no date has been
+specified explicitly in the query the current date is returned.
+[although technically the "current" date is actually the date when the
+query was parsed rather than the date the exact time this method was
+called]
 
   $date = $query->refDate;
 
-The time can not be specified.
+The time can not be specified. 
+
+This allows the target availability to be calculated.
 
 =cut
 
@@ -152,7 +157,7 @@ sub refDate {
   # Check for "date" key
   my $date;
   if ( exists $href->{date} ) {
-    $date = $href->{date};
+    $date = $href->{date}->[0];
   } else {
     # Need to get a gmtime object that stringifies as a Sybase date
     $date = gmtime;
@@ -315,12 +320,6 @@ sub sql {
     }
   }
 
-  # The date stuff has to be done independently since the date
-  # key is not compared directly - earliest and latest are used
-  # instead
-  my $date = $self->refDate;
-  push(@sql, " earliest < '$date' AND latest > '$date' " );
-
   # Now join it all together with an AND
   my $subsql = join(" AND ", @sql);
 
@@ -328,6 +327,8 @@ sub sql {
   # an AND so that it fits in with the rest of the SQL. This allows
   # an empty query to work without having a naked "AND".
   $subsql = " AND " . $subsql if $subsql;
+
+  print "RefDate is ", $self->refDate, "\n";
 
   #print "SQL: $subsql\n";
 
@@ -384,8 +385,8 @@ sub sql {
 
                 DROP TABLE $tempcount";
 
-  #print "SQL: $sql\n";
-
+  print "SQL: $sql\n";
+  exit;
 
   return "$sql\n";
 
@@ -510,9 +511,6 @@ Note that single values are always stored in arrays in case
 a second value turns up. Note also that special cases become
 hashes rather than arrays.
 
-If the second key is C<date> the date string is converted to
-a date object.
-
 =cut
 
 sub _add_text_to_hash {
@@ -564,8 +562,15 @@ treated as lower limits rather than exact matches.
 
   $query->_post_process_hash( \%hash );
 
-"tau" and "seeing" queries are each converted to two separate
-queries (one on "max" and one on "min").
+"date" strings are converted to a date object.
+
+"date", "tau" and "seeing" queries are each converted to two separate
+queries (one on "max" and one on "min") [but the "date" key is retained
+so that the reference date can be obtained in order to calculate
+source availability).
+
+Also converts abbreviated form of project name to the full form
+recognised by the database.
 
 =cut
 
@@ -573,6 +578,24 @@ sub _post_process_hash {
   my $self = shift;
   my $href = shift;
 
+  # Do date conversion as a special case since
+  # the semester calculation relies on this having been done
+  # Need to keep it in an array for consistency of interface
+  # Insert current date if none present
+  my $date;
+  if (exists $href->{date}) {
+    # Convert to object
+    $date = OMP::General->parse_date( $href->{date}->[0]);
+  } else {
+    # Need to get a gmtime object that stringifies as a Sybase date
+    $date = gmtime;
+
+    # Rebless
+    bless $date, "Time::Piece::Sybase";
+  }
+  $href->{date} = [ $date ];
+
+  # Loop over each key
   for my $key (keys %$href ) {
 
     if (UNIVERSAL::isa($href->{$key}, "HASH")) {
@@ -585,7 +608,7 @@ sub _post_process_hash {
       # convert to range with the supplied value as the min
       $href->{$key} = new OMP::Range( Min => $href->{$key}->[0] );
 
-    } elsif ($key eq "seeing" or $key eq "tau") {
+    } elsif ($key eq "seeing" or $key eq "tau" or $key eq "date") {
       # Convert to two independent ranges
 
       # Note that taumin indicates a MAX for the supplied value
@@ -598,12 +621,29 @@ sub _post_process_hash {
 					       $href->{$key}->[0]);
       }
 
-      # And remove the old key
-      delete $href->{$key};
+      # And remove the old key (unless it is the reference date)
+      delete $href->{$key} unless $key eq "date";
+
+    } elsif ($key eq 'projectid') {
+
+      # Get the telescope and date if we know it
+      my %options;
+      $options{telescope} = $href->{telescope}->[0] 
+	if exists $href->{telescope};
+      $options{date} = $href->{date}->[0]
+	if exists $href->{date}->[0];
+
+      # Translate project IDs
+      for my $pid (@{ $href->{$key}}) {
+	$pid = OMP::General->infer_projectid(%options,
+					     projectid => $pid);
+      }
+
 
     }
 
   }
+
 
 }
 

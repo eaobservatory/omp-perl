@@ -34,14 +34,14 @@ my %tables = (
 			 timeest => "REAL",
 			 title => "VARCHAR(255)",
 			 obscount => "INTEGER",
-			 earliest => "DATETIME",
+			 datemin => "DATETIME",
 			 cloud => "INTEGER",
-			 latest => "DATETIME",
+			 datemax => "DATETIME",
 			 telescope => "VARCHAR(16)",
 			 _ORDER => [qw/ msbid projectid remaining checksum
 				    obscount taumin taumax seeingmin seeingmax
 				    priority telescope moon cloud
-				    timeest title earliest latest
+				    timeest title datemin datemax
 				    /],
 		       },
 	      ompproj => {

@@ -1033,7 +1033,7 @@ sub _insert_row {
 	   $seeingmax, $data{priority},
 	   $data{telescope}, $data{moon}, $data{cloud},
 	   $data{timeest}, $data{title},
-	   $data{earliest}, $data{latest})
+	   $data{datemin}, $data{datemax})
     or throw OMP::Error::DBError("Error inserting new MSB rows: $DBI::errstr");
 
   # Now the observations
@@ -1201,9 +1201,14 @@ sub _run_query {
   my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
   $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
   my $obsref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
+
+  # Its possible to get an error after some data has been
+  # retrieved...
   throw OMP::Error::DBError("Error retrieving matching observations:".
-			    $dbh->errstr)
-    unless defined $obsref;
+				 $dbh->errstr)
+    if $dbh->err;
+
+
 
   # Now loop over the results and store the observations in the
   # correct place. First need to create the obs arrays by msbid
