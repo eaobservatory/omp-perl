@@ -506,7 +506,10 @@ sub summary {
   }
 
   # Convert to Time::Seconds and pretty print
-  $summary{timeest} = new Time::Seconds( $summary{timeest} )->pretty_print;
+  # unless we are asking for hashlong
+  unless ($format eq 'hashlong') {
+    $summary{timeest} = new Time::Seconds( $summary{timeest} )->pretty_print;
+  }
 
   # obscount
   $summary{obscount} = $self->obscount;
