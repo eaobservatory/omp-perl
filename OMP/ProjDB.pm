@@ -937,7 +937,7 @@ sub _mail_password {
     # aren't working...
     $self->_mail_information(
 			     message => $msg,
-			     to => "[frossie\@jach.hawaii.edu]",
+			     to => ["frossie\@jach.hawaii.edu"],
 			     from => "omp-auto-reply",
 			     subject => "[$projectid] OMP reissue of password for $projectid",
 			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
