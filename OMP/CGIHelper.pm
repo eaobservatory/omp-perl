@@ -23,7 +23,7 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
-use OMP::CGI;
+use OMP::Config;
 use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::SpServer;
@@ -53,7 +53,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -873,9 +873,8 @@ sub list_projects_output {
   my %cookie = @_;
 
   # Get the Private and Public cgi-bin URLs
-  my $cgi = new OMP::CGI;
-  my $public_url = $cgi->public_url;
-  my $private_url = $cgi->private_url;
+  my $public_url = public_url();
+  my $private_url = private_url();
 
   my $semester = $q->param('semester');
   my $status = $q->param('status');
@@ -1205,9 +1204,8 @@ sub msb_comments_by_project {
   my %sorted;
 
   # Get the Private and Public cgi-bin URLs
-  my $cgi = new OMP::CGI;
-  my $public_url = $cgi->public_url;
-  my $private_url = $cgi->private_url;
+  my $public_url = public_url();
+  my $private_url = private_url();
 
   foreach my $msb (@$comments) {
     my $projectid = $msb->projectid;
@@ -1525,16 +1523,26 @@ sub project_home {
     }
 
     print "<h3>Observations were acquired on the following dates:</h3>";
+
+    # URL for 'retrieve data' script
+    OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+    my $pkg_url = OMP::Config->getData('pkgdata-url');
+
     for (@$nights) {
 
       # Link date to obslog
-      print "<a href='http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl?ut=" . $_->ymd . "'>" . $_->ymd . "</a>";
+      #print "<a href='http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl?ut=" . $_->ymd . "'>" . $_->ymd . "</a>";
+
+      # Print a line that looks like YYYYMMDD (H hours) Retrieve data
+      my $utdate = $_->strftime("%Y%m%d");
+      print "$utdate ";
 
       if ($accounts{$_->epoch}) {
 	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
-	print " ($h hours)";
+	print "($h hours) ";
       }
 
+      print "<a href='$pkg_url?utdate=$utdate'>Retrieve data</a>";
       print "<br>";
 
     }
@@ -1659,6 +1667,48 @@ sub preify_text {
   }
 
   return "<pre>$string</pre>";
+}
+
+=item B<public_url>
+
+Return the URL where public cgi scripts can be found.
+
+  $url = OMP::CGIHelper->public_url();
+
+=cut
+
+sub public_url {
+  # Location of the config file
+  OMP::Config->cfgdir( "/jac_sw/omp_dev/cfg" );
+
+  # Get the base URL
+  my $url = OMP::Config->getdata( 'omp-url' );
+
+  # Now the CGI dir
+  my $cgidir = OMP::Config->getdata( 'cgidir' );
+
+  return "$url/$cgidir";
+}
+
+=item B<private_url>
+
+Return the URL where private cgi scripts can be found.
+
+  $url = OMP::CGIHelper->private_url();
+
+=cut
+
+sub private_url {
+  # Location of the config file
+  OMP::Config->cfgdir( "/jac_sw/omp_dev/cfg" );
+
+  # Get the base URL
+  my $url = OMP::Config->getdata( 'omp-private' );
+
+  # Now the CGI dir
+  my $cgidir = OMP::Config->getdata( 'cgidir' );
+
+  return "$url/$cgidir";
 }
 
 =back
