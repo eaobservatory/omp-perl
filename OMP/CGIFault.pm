@@ -947,11 +947,13 @@ sub file_fault_form {
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
   # Add some empty values to our menus (this is part of making sure that a 
-  # meaningful value is selected by the user)
-  push @system_values, undef;
-  push @type_values, undef;
-  $type_labels{''} = "Select a type";
-  $system_labels{''} = "Select a system";
+  # meaningful value is selected by the user) if a new fault is being filed
+  unless ($fault) {
+    push @system_values, undef;
+    push @type_values, undef;
+    $type_labels{''} = "Select a type";
+    $system_labels{''} = "Select a system";
+  }
 
   # Set defaults.  There's probably a better way of doing what I'm about
   # to do...
