@@ -782,11 +782,14 @@ sub ashtml {
 
   # Check the options.
   my $worfstyle;
+  my $worflink;
   if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
       lc( $options{worfstyle} ) eq 'staff' ) {
     $worfstyle = 'staff';
+    $worflink = 'staffworfthumb.pl';
   } else {
     $worfstyle = 'project';
+    $worflink = 'fbworfthumb.pl';
   }
 
   my $commentstyle;
@@ -810,12 +813,15 @@ sub ashtml {
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
+  print "<a href='$worflink?ut=$date&telescope=$tel'>WORF thumbnails</a><br>";
   if ($self->delta_day < 14) {
     print "<a href='#faultsum'>Fault Summary</a><br>";
     print "<a href='#shiftcom'>Shift Log Comments</a><br>";
     print "<a href='#obslog'>Observation Log</a><br>";
     print "<p>";
   }
+
+
 
   # T i m e  A c c o u n t i n g
   # Get project accounting
