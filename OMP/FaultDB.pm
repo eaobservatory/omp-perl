@@ -593,7 +593,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   }
 
   # Set link to response page
-  my $responselink = "<a href='http://mauiola.ukirt.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid'>here</a>";
+  my $responselink = "<a href='http://www.ukirt.jach.hawaii.edu/cgi-bin/viewfault.pl?id=$faultid'>here</a>";
 
   # Add the response link to the bottom of our message
   push(@msg, "--------------------------------<br>To respond to this fault go $responselink");
