@@ -1635,9 +1635,18 @@ sub projlog_content {
   print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
 
   # Make links for retrieving data
-  my $pkgdataurl = OMP::Config->getData('pkgdata-url');
-  print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
-  print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+  # To keep people from following the links before the data are available
+  # for download gray out the links if the current UT date is the same as the
+  # UT date of the observations
+  my $today = OMP::General->today(1);
+  if ($today->ymd =~ $utdate) {
+    $today += ONE_DAY;
+    print "Retrieve data [This link will become active on " . $today->strftime("%Y-%m-%d %H:%M") . " GMT]";
+  } else {
+    my $pkgdataurl = OMP::Config->getData('pkgdata-url');
+    print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
+    print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+  }
 
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a><p>";
