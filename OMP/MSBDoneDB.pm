@@ -51,6 +51,7 @@ use OMP::Constants qw/ :done /;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
 use OMP::MSBDoneQuery;
+use OMP::General;
 use Time::Piece;
 
 use base qw/ OMP::BaseDB /;
@@ -90,7 +91,7 @@ sub historyMSB {
   # Construct the query
   my $projectid = $self->projectid;
 
-  my $xml = "<MSBDoneQuery>" .
+  my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
     ( $checksum ? "<checksum>$checksum</checksum>" : "" ) .
       ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
 	  "</MSBDoneQuery>";
@@ -457,6 +458,14 @@ sub _add_msb_done_info {
   my $projectid = $msbinfo->projectid;
   my $checksum = $msbinfo->checksum;
 
+  # In the past we have had some spurious null on here. Fix it
+  # just in case (should probably mail myself in case I can spot
+  # a pattern. At the very least log it
+  if (substr($checksum,0,1) eq "\0") {
+    $checksum =~ s/^.//;
+    OMP::General->log_message("**** Detected leading NUL on checksum $checksum *****");
+  }
+
   # Must force upcase of project ID for now
   $projectid = uc( $projectid );
 
@@ -615,6 +624,10 @@ sub _reorganize_msb_done {
     # Convert the date to a date object
     $row->{date} =  OMP::General->parse_date( $row->{date} );
 
+    # nasty hack since for some reason we have leading null
+    # characters on our MSB checksums
+    $row->{checksum} =~ s/^.// if substr($row->{checksum},0,1) eq "\0";
+
     # see if we've met this msb already
     if (exists $msbs{ $row->{checksum} } ) {
 
@@ -645,6 +658,8 @@ sub _reorganize_msb_done {
     }
 
     # If we have an OMP__DONE_DONE increment the repeat count
+    # it might be more efficient to move this out of the loop
+    # so that we only update nrepeats when we know the final answer
     if ($row->{status} == OMP__DONE_DONE) {
       my $rep = $msbs{ $row->{checksum} }->nrepeats;
       $msbs{ $row->{checksum} }->nrepeats( $rep + 1 );
