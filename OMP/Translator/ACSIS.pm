@@ -825,6 +825,43 @@ sub spw_list {
   # Force bandwidth calculations
   $self->bandwidth_mode( %info );
 
+  # Default baseline fitting mode will probably depend on observing mode
+  my $defaultPoly = 1;
+
+  # Get the DR information
+  my %dr;
+  %dr = %{ $info{data_reduction} } if exists $info{data_reduction};
+  if (!keys %dr) {
+    %dr = ( window_type => 'hanning',
+	    fit_polynomial_order => $defaultPoly,
+	  ); # defaults
+  } else {
+    $dr{window_type} ||= 'hanning';
+    $dr{fit_polynomial_order} ||= $defaultPoly;
+
+    # default to number if DEFAULT.
+    $dr{fit_polynomial_order} = $defaultPoly unless $dr{fit_polynomial_order} =~ /\d/;
+  }
+
+  # Figure out the baseline fitting. We either have no baseline,
+  # fractional baseline or manual baseline
+  # Baselines are an array of interval objects
+  # empty array is fine
+  my $frac; # fraction of bandwidth to use for baseline (depends on subsystem)
+  my @baselines;
+  if (exists $dr{baseline} && defined $dr{baseline}) {
+    if (ref($dr{baseline})) {
+      # array of OMP::Range objects
+      @baselines = map { new JAC::OCS::Config::Interval( Min => $_->min,
+							 Max => $_->max,
+							 Units => $_->units); 
+		       } @{$dr{baseline}};
+    } else {
+      # scalar fraction implies two baseline regions
+      $frac = $dr{baseline};
+    }
+  }
+
   # Spectral window objects
   my %spws;
   my $spwcount = 1;
@@ -832,8 +869,9 @@ sub spw_list {
     my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow;
     $spw->rest_freq_ref( $ss->{rest_freq_ref});
     $spw->fe_sideband( $fe_sign );
-    $spw->window( 'truncate' );
-    $spw->align_shift(0);
+    $spw->baseline_fit( function => "polynomial",
+			degree => $dr{fit_polynomial_order}
+		      ) if exists $dr{fit_polynomial_order};
 
     # Create an array of IF objects suitable for use in the spectral
     # window object(s)
@@ -843,10 +881,26 @@ sub spw_list {
 						     ref_channel => $_
 						   ) } @{ $ss->{if_ref_channel} };
 
+    # We only calculate baselines for the hybridised spectral windows
+    if (defined $frac) {
+      # Baseline depends on number of hybridised channels
+      my $nchan_full = $ss->{channels};
+      my $nchan_bl = int($nchan_full * $frac / 2 );
+      @baselines = (
+	   new JAC::OCS::Config::Interval( Units => 'channels',
+					   Min => 0, Max => $nchan_bl),
+	   new JAC::OCS::Config::Interval( Units => 'channels',
+					   Min => ($nchan_full - $nchan_bl),
+					   Max => $nchan_full),
+	  );
+    }
+    $spw->baseline_region( @baselines ) if @baselines;
 
     # hybrid or not?
     if ($ss->{nsubbands} == 1) {
       # no hybrid. Just store it
+      $spw->window( 'truncate' );
+      $spw->align_shift(0);
       $spw->bandwidth_mode( $ss->{bwmode});
       $spw->if_coordinate( $ifcoords[0] );
 
@@ -858,9 +912,9 @@ sub spw_list {
 	$sp->bandwidth_mode( $ss->{bwmode} );
 	$sp->if_coordinate( $if );
 	$sp->fe_sideband( $fe_sign );
-	$sp->window( 'truncate' );
 	$sp->align_shift(0);
 	$sp->rest_freq_ref( $ss->{rest_freq_ref});
+	$sp->window( $dr{window_type} );
 	$hybrid{"SPW". $spwcount . "." . $sbcount} = $sp;
 	$sbcount++;
       }
@@ -1275,7 +1329,7 @@ sub bandwidth_mode {
     $s->{nchan_per_sub} = $nchan_per_sub;
 
     # calculate the bandwidth of each subband
-    my $bw_per_sub = $mhz / 2;
+    my $bw_per_sub = $mhz / $nsubband;
 
     # subband bandwidth label
     $s->{sbbwlabel} = ( $bw_per_sub < 1000 ? int($bw_per_sub). "MHz" :
