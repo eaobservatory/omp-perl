@@ -37,6 +37,17 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 # Expiry time for cookies
 our $EXPTIME = 10;
 
+# Stylesheet
+our $STYLE = "<style><!--
+               body{font-family:arial,sans-serif}
+               div.black a:link, div.black a:visited {
+                 color: #000;
+                 font-style: italic;
+                 text-decoration: underline;
+	       }
+               //--></style>";
+
+
 =head1 METHODS
 
 =head2 Constructor
@@ -357,13 +368,13 @@ sub _write_login {
   my $q = $self->cgi;
   my $c = $self->cookie;
 
-  $self->_write_header();
+  $self->_write_header($STYLE);
 
   print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
   print $q->h1('Login');
   
   if ($projectid) {
-    print "Please enter the password.";
+    print "Please enter the password required for access to project information and data.";
   } else {
     print "Please enter the project ID and password. These are required for access to project information and data.";
   }
@@ -499,7 +510,7 @@ sub write_page {
     $self->_sidebar_logout;
 
     # Print HTML header (including sidebar)
-    $self->_write_header();
+    $self->_write_header($STYLE);
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
@@ -534,7 +545,7 @@ sub write_page {
       $self->_sidebar_logout;
 
       # Write the header
-      $self->_write_header();
+      $self->_write_header($STYLE);
 
       # Run the callback
       $form_content->( $q, %cookie );
@@ -569,7 +580,7 @@ sub write_page_noauth {
   my $q = $self->cgi;
 
   $self->_make_theme;
-  $self->_write_header();
+  $self->_write_header($STYLE);
 
   if ($q->param) {
     $form_output->($q, %cookie);
@@ -601,7 +612,7 @@ sub write_page_logout {
   $c->flushCookie();
 
   $self->_make_theme;
-  $self->_write_header();
+  $self->_write_header($STYLE);
 
   $content->($q);
 
@@ -651,27 +662,16 @@ sub write_page_fault {
 
   $c->setCookie( $EXPTIME, %cookie);
 
-  my $style = "<style><!--
-               body{font-family:arial,sans-serif}
-               //--></style>";
+  $self->_write_header($STYLE);
 
-  $self->_write_header($style);
-
-  if (defined $cookie{category}) {
-
-    if ($q->param) {
-      if ($q->param('show_output')) {
-	$form_output->($q, %cookie);
-      } else {
-	$form_content->($q, %cookie);
-      }
+  if ($q->param) {
+    if ($q->param('show_output')) {
+      $form_output->($q, %cookie);
     } else {
       $form_content->($q, %cookie);
     }
-
   } else {
-    # Fault category is not defined anywhere
-    print "Please select a category.";
+    $form_content->($q, %cookie);
   }
 
   $self->_write_footer();
