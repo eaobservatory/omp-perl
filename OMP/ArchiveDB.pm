@@ -56,6 +56,9 @@ $FallbackToFiles = 1;
 # Do we want to skip the database lookup?
 $SkipDBLookup = 0;
 
+# Cache a hash of files that we've already warned about.
+our %WARNED;
+
 =head1 METHODS
 
 =over 4
@@ -485,14 +488,22 @@ sub _query_files {
       $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
     }
     catch OMP::Error with {
-      # Just log it and go on to the next observation.
-      $Error = shift;
-      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      # Just log it and go on to the next observation, but only if
+      # we haven't warned about this observation yet.
+      if( ! $WARNED{$file} ) {
+        $Error = shift;
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      }
+      $WARNED{$file}++;
     }
     otherwise {
-      # Just log it and go on to the next observation.
-      $Error = shift;
-      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      # Just log it and go on to the next observation, but only if
+      # we haven't warned about this observation yet.
+      if( ! $WARNED{$file} ) {
+        $Error = shift;
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      }
+      $WARNED{$file}++;
     };
     next if( defined( $Error ) );
 
