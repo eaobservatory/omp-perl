@@ -1134,7 +1134,7 @@ sub verify_staff_password {
 
   # The encrypted staff password
   # At some point we'll pick this up from somewhere else.
-  my $admin = "bf4xPHRr.bUxE";
+  my $admin = "4xePdcDbTo9.I";
 
   # Encrypt the supplied password using the staff password as salt
   # unless the supplied password is undefined
@@ -1470,7 +1470,7 @@ sub preify_text {
 
     $string = "<pre>$string</pre>";
   } else {
-    $string =~ s/<html>//i;
+    $string =~ s!</*html>!!ig;
   }
 
   # Strip ^M
