@@ -57,6 +57,7 @@ if (@$users) {
     print "<tr bgcolor='#7979aa'>";
     print "<TD>" . $_->userid ."</TD>";
     print "<TD>" . $_->html ."</TD>";
+    print "<TD>" . $_->email . "</TD>";
     print "<TD><a href=\"update_user.pl?".$_->userid."\">Update</a></TD>";
   }
   print "</TABLE>\n";
