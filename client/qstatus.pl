@@ -328,6 +328,8 @@ for my $p ( sort { $projects{$a}{info}->tagpriority <=>
     if (defined $max && defined $min && $min == $max) {
       # make sure that x-x is really an interval of 'x'
       $text = $max;
+    } elsif (!defined $max && !defined $min) {
+      $text = 'all';
     } else {
       my $intervl = new OMP::Range( Min => $min, Max => $max);
       $text = "$intervl";
