@@ -333,7 +333,12 @@ sub query_fault_output {
     my $printer = $q->param('printer');
     my @fprint = split(',',$q->param('faults'));
 
-    OMP::FaultUtil->print_faults($printer, @fprint);
+    my $separate = 0;  # Argument governs whether faults are printed combined
+    if ($q->param('print_method') eq "separate") {
+      $separate = 1;
+    }
+
+    OMP::FaultUtil->print_faults($printer, $separate, @fprint);
 
     titlebar($q, ["View Faults", "Sent faults to printer $printer"], %cookie);
     return;
@@ -670,7 +675,7 @@ sub view_fault_content {
       my $printer = $q->param('printer');
       my @fprint = split(',',$q->param('faults'));
 
-      OMP::FaultUtil->print_faults($printer, @fprint);
+      OMP::FaultUtil->print_faults($printer, 0, @fprint);
       titlebar($q, ["View Fault: $faultid", "Fault sent to printer $printer"], %cookie);
       return;
     }
@@ -1614,8 +1619,7 @@ sub show_faults {
 =item B<print_form>
 
 Create a simple form for sending faults to a printer.  If the second argument
-is true then the form will use a hidden param to specify that the output page subroutine
-should be called.  Last argument is an array containing the fault IDs of the faults
+is true then advanced options will be displayed.  Last argument is an array containing the fault IDs of the faults
 to be printed.
 
   print_form($q, 1, @faultids);
@@ -1624,7 +1628,7 @@ to be printed.
 
 sub print_form {
   my $q = shift;
-  my $showoutput = shift;
+  my $advanced = shift;
   my @faultids = @_;
 
   # Get printers
@@ -1632,7 +1636,7 @@ sub print_form {
 
   print $q->startform;
 
-  ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
+  # ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
 
   print $q->hidden(-name=>'faults',
 		   -default=>join(',',@faultids));
@@ -1640,7 +1644,14 @@ sub print_form {
 		   -label=>'Send to printer');
   print $q->radio_group(-name=>'printer',
 			-values=>\@printers,);
-  print $q->endform;
+  if ($advanced) {
+    print "<br>Using method ";
+    print $q->popup_menu(-name=>'print_method',
+			 -values=>["separate","combined"],
+			 -labels=>{separate => "One fault per page",
+				   combined => "Combined",},);
+    print $q->endform;
+  }
 }
 
 =item B<titlebar>
