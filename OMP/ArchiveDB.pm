@@ -554,8 +554,7 @@ sub _reorganize_archive {
       $instrument = "SCUBA";
     }
 
-    if(exists($newrow->{FRONTEND}) || exists($newrow->{C1RCV}) ) {
-      $newrow->{INSTRUME} = 'HETERODYNE';
+    if(exists($newrow->{BACKEND}) || exists($newrow->{C1BKE}) ) {
       $instrument = (defined($newrow->{FRONTEND}) ? uc($newrow->{FRONTEND}) : uc($newrow->{C1RCV}) );
     }
 
