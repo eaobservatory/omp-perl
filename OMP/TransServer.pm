@@ -64,7 +64,7 @@ configured via SOAP for security reasons.
 =cut
 
 sub translate {
-  my $self = shift;
+  my $class = shift;
   my $xml = shift;
 
   my $E;
