@@ -365,7 +365,7 @@ sub _plot_spectrum {
       while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
 
       close( CACHE );
-print STDERR "Reading $cachefile from thumbnail.\n";
+
       return;
     }
 
