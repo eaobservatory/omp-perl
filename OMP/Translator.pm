@@ -495,6 +495,149 @@ sub PruneMSBs {
   return @out;
 }
 
+=item B<correct_offsets>
+
+For some observing modes, the offset iterator should not generate a set
+of standalone observations, but should generate a single observation
+that itself iterates over the offsets.
+
+This routine can be used to correct the structure of the MSB such that
+when it is unrolled, the named observing modes will see a set of offsets
+rather than a single offset.
+
+The name of the affected observing modes can be specified (the "obstype"
+setting, ie drop the SpIter and trailing Obs).
+
+  OMP::Translator->correct_offsets( $msb, "Stare", "Jiggle" );
+
+The MSB is modified inplace.
+
+Problems can be encountered by this routine if there is more than one
+observing type below each Offset iterator. Since this is unusual in
+practice and extremely difficult to get correct (since you have to
+account for all structures below the iterator) we should croak in this
+situation. Currently we let it go.
+
+=cut
+
+
+sub correct_offsets {
+  my $self = shift;
+  my $msb = shift;
+  my @obstypes = @_;
+
+  # Note that this returns references to each observation summary.
+  # We can modify this hash in place without putting the structure
+  # back into the object. This will trigger a nice bug if the obssum
+  # method is changed to return a copy.
+  my @obs = $msb->obssum;
+
+  # Pattern match
+  my $patt = "SpIter(" . join( "|", @obstypes) . ")Obs";
+
+  # loop over each observation
+  for my $obs (@obs) {
+
+    my %modes = map { $_ => undef } @{$obs->{obstype}};
+
+    # skip to next observation unless we have a specified obs type
+    my $hastype;
+    for my $type (@obstypes) {
+      $hastype = 1 if exists $modes{$type};
+    }
+    next unless $hastype;
+
+    # Now need to recurse through the data structure changing
+    # offset iterator to a single array rather than an array
+    # separate positions.
+
+    # Note that this will not do the right thing if you have
+    # a Raster and Stare as child of offset iterator because the
+    # raster will not unroll correctly
+    for my $child (@{ $obs->{SpIter}->{CHILDREN} }) {
+      $self->_fix_offset_recurse( $child, $patt );
+    }
+
+  }
+
+}
+
+# When we hit SpIterOffset we correct the ATTR array
+# This modifies it in-place. No need to re-register.
+
+sub _fix_offset_recurse {
+  my $self = shift;
+  my $this = shift;
+  my $types = shift;
+
+  # Loop over keys in children [the iterators]
+  for my $key (keys %$this) {
+
+    if ($key eq 'SpIterOffset') {
+
+      # Need to determine whether this Offset iterator has a child
+      # that is a StareObs
+      my @children;
+      push(@children,$self->_list_children( $this ));
+
+      # Look for Stare
+      my $isstare;
+      for my $c (@children) {
+	if ($c =~ /$types/) {
+	  $isstare = 1;
+	  last;
+	}
+      }
+
+      if ($isstare) {
+	# FIX UP - it does not make any sense to have another
+	# offset iterator below this level but we do support it
+	my @offsets = @{ $this->{$key}->{ATTR}};
+
+	# and store it back
+	$this->{$key}->{ATTR} = [ { offsets => \@offsets } ];
+      }
+    }
+
+    # Now need to go deeper if need be
+    # We also need to worry about sanity checks
+    # with the possibility of encountering a Raster
+    if (UNIVERSAL::isa($this->{$key},"HASH") &&
+	exists $this->{$key}->{CHILDREN}) {
+      # This means we have some children to analyze
+
+      for my $child (@{ $this->{$key}->{CHILDREN} }) {
+	$self->_fix_offset_recurse( $child, $types );
+      }
+
+    }
+
+  }
+
+}
+
+# Returns list of children
+sub _list_children {
+  my $self = shift;
+  my $this = shift;
+
+  my @children;
+  for my $key (keys %$this) {
+
+    # Store all children
+    push(@children,$key);
+
+    if (UNIVERSAL::isa($this->{$key},"HASH") &&
+	exists $this->{$key}->{CHILDREN}) {
+      # This means we have some children to analyze
+      for my $child (@{ $this->{$key}->{CHILDREN} }) {
+	push(@children,$self->_list_children( $child ));
+      }
+    }
+  }
+  return @children;
+}
+
 =back
 
 =head1 COPYRIGHT
