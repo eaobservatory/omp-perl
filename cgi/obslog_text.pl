@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIObslog;
+use OMP::CGI::ObslogPage;
 
 my $query = new CGI;
 

@@ -1,30 +1,46 @@
-#!/local/perl/bin/perl -XT
-use strict;
+#!/local/bin/perl -X
 
-# Standard initialisation (not much shorter than the previous
-# code but no longer has the module path hard-coded)
 BEGIN {
-  my $retval = do "./omp-cgi-init.pl";
-  unless ($retval) {
-    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
-    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
-    warn "couldn't run omp-cgi-init.pl"       unless $retval;
-    exit;
-  }
+  use constant OMPLIB => "/jac_sw/omp/msbserver";
+  use File::Spec;
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{'OMP_CFG_DIR'};
 }
 
-# Load OMP modules
-use OMP::CGI;
-use OMP::CGIObslog;
-use OMP::General;
 
+use CGI;
+use CGI::Carp qw/fatalsToBrowser/;
+
+use lib OMPLIB;
+
+use OMP::CGI;
+use OMP::CGI::ObslogPage;
+
+use Net::Domain qw/ hostfqdn /;
+
+use strict;
+
+$| = 1; # make output unbuffered
 my $cquery = new CGI;
 my $cgi = new OMP::CGI( CGI => $cquery );
 $cgi->html_title( "OMP Observation Log" );
 
+# Check to see if we're at one of the telescopes or not. Do this
+# by a hostname lookup, then checking if we're on ulili (JCMT)
+# or mauiola (UKIRT).
+my $location;
+my $hostname = hostfqdn;
+if($hostname =~ /ulili/i) {
+  $location = "jcmt";
+} elsif ($hostname =~ /mauiola/i) {
+  $location = "ukirt";
+} else {
+  $location = "nottelescope";
+}
+
 # Write the page, using the proper authentication on whether or
 # not we're at one of the telescopes
-if(OMP::General->is_host_local) {
+if(($location eq "jcmt") || ($location eq "ukirt")) {
   $cgi->write_page_noauth( \&list_observations, \&list_observations );
 } else {
   $cgi->write_page( \&list_observations, \&list_observations );
