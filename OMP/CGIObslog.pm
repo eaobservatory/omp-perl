@@ -329,7 +329,8 @@ sub obs_table {
     }
 
     my $comments = $obs->comments;
-    my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
+#    my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
+    my $status = $obs->status;
     my $colour = defined( $status ) ? $colour[$status] : $colour[0];
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
