@@ -19,7 +19,7 @@ my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};tim
 
 for my $tab (qw/ompproj ompmsb ompobs/) {
 
-  my $ref = $dbh->selectall_hashref("SELECT * FROM $tab")
+  my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab",{ Columns=>{} })
     or die "Cannot select on ompmsb: ". $DBI::errstr;
 
   print "\nTABLE: $tab\n";
