@@ -78,10 +78,30 @@ sub sql {
   # subclass
   my $subsql = $self->_qhash_tosql();
 
-  # If the resulting query contained anything we should prepend
-  # an AND so that it fits in with the rest of the SQL. This allows
-  # an empty query to work without having a naked "AND".
-  $subsql = " AND " . $subsql if $subsql;
+  # In principal we do not need to join the response table
+  # in the initial query if we are only looking for general
+  # information such as fault id or fault category.
+  # Since it is difficult to spot whether a response join
+  # is required we explicitly prefix "R." on all response
+  # fields to make it obvious.
+
+  # Reasonable join queries could be for "author", "isfault" or
+  # "date". A query on "text" would required LIKE pattern matching but
+  # should be possible. [isfault can be used to search for all faults
+  # responded to by person X or all faults filed by person X]
+  my $r_table = '';
+  my $r_sql = '';
+  if ($subsql =~ /\bR\.\w/) { # Look for R. field
+    $r_table = ", $resptable R";
+    $r_sql = " R.faultid = F.faultid ";
+  }
+
+  # Construct the the where clause. Depends on which
+  # additional queries are defined
+  my @where = grep { $_ } ($r_sql, $subsql);
+  my $where = '';
+  $where = " WHERE " . join( " AND ", @where)
+    if @where;
 
   # Now need to put this SQL into the template query
   # This returns a row per response
@@ -89,9 +109,8 @@ sub sql {
   my $temp = "#ompfaultid";
   my $sql = "(SELECT F.faultid 
                INTO $temp
-                FROM $faulttable F, $resptable R 
-                 WHERE R.faultid = F.faultid 
-                  $subsql GROUP BY F.faultid)
+                FROM $faulttable F $r_table
+                 $where GROUP BY F.faultid)
              (SELECT * FROM $temp T, $faulttable F, $resptable R
                 WHERE T.faultid = F.faultid AND F.faultid = R.faultid)
 
@@ -142,7 +161,13 @@ sub _post_process_hash {
     # Skip private keys
     next if $key =~ /^_/;
 
-    # Nothing yet
+    # Protect against rounding errors
+    if ($key eq 'faultid') {
+      my $id = $href->{$key}->[0];
+      $href->{$key} = new OMP::Range(Min => ($id - 0.0005),
+				     Max => ($id + 0.0005));
+
+    }
 
   }
 
@@ -151,6 +176,15 @@ sub _post_process_hash {
   for (qw/ faultid /) {
     if (exists $href->{$_}) {
       my $key = "F.$_";
+      $href->{$key} = $href->{$_};
+      delete $href->{$_};
+    }
+  }
+
+  # These entries must be forced to come from Response table
+  for (qw/ author date isfault text /) {
+    if (exists $href->{$_}) {
+      my $key = "R.$_";
       $href->{$key} = $href->{$_};
       delete $href->{$_};
     }
