@@ -537,6 +537,12 @@ sub projectStats {
       $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds 
 	if defined $extended && $extended->seconds > 0 && !$isgap;
 
+      # If the duration is negative set it to zero rather than kludging
+      # by adding ONE_DAY
+      if ($timespent->seconds < 0 ) {
+	$timespent = new Time::Seconds(0);
+      }
+
     } else {
       # We cannot tell whether this was done in extended time or not
       # so assume not.
@@ -612,7 +618,9 @@ sub projectStats {
 	  # This project should be charged for calibrations
 	  # as a fraction of the total time spent time on data
 	  # that uses the calibration and instrument
-	  if (exists $cals{$ymd}{$inst}{$cal} && $cals{$ymd}{$inst}{$cal}>0) {
+	  if (exists $cals{$ymd}{$inst}{$cal} && $cals{$ymd}{$inst}{$cal}>0
+	     && exists $cal_totals{$ymd}{$inst}{$cal} 
+	     && $cal_totals{$ymd}{$inst}{$cal} > 0) {
 	    # We have a calibration
 	    my $caltime = $projbycal{$ymd}{$proj}{$inst}{$cal} / 
 	      $cal_totals{$ymd}{$inst}{$cal} *
