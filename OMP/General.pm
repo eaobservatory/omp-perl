@@ -18,8 +18,10 @@ class but that are useful in more than one class.
 
 For example, date parsing is required in the MSB class and in the query class.
 
+
 =cut
 
+use Carp;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -159,7 +161,154 @@ sub determine_host {
   return ($user, $addr, $email);
 }
 
+=item B<infer_projectid>
 
+Given a subset of a project ID attempt to determine the actual
+project ID.
+
+  $proj = OMP::General->infer_projectid( projectid => $input,
+					 telescope => 'ukirt',
+				       );
+
+  $proj = OMP::General->infer_projectid( projectid => $input,
+					 telescope => 'ukirt',
+					 semester => $sem,
+				       );
+
+  $proj = OMP::General->infer_projectid( projectid => $input,
+					 telescope => 'ukirt',
+					 date => $date,
+				       );
+
+If telescope is not supplied it is guessed.  If the project ID is just
+a number it is assumed to be part of a UKIRT style project. If it is a
+number with a letter prefix it is assumed to be the JCMT style (ie u03
+-> m01bu03). If the supplied ID is ambiguous (most likely from a UH
+ID) the telescope must be supplied or else the routine will croak.
+
+The semester is determined from a "semester" key directly or from a date.
+The current date is used if no date or semester is supplied.
+The supplied date must be a C<Time::Piece> object.
+
+=cut
+
+sub infer_projectid {
+  my $self = shift;
+  my %args = @_;
+
+  # The supplied ID
+  my $projid = $args{projectid};
+  croak "Must supply a project ID"
+    unless defined $projid;
+
+  # Make sure its not complete already
+  return $projid if $projid =~ /^u\/\d\d[ab]/ # UKIRT
+    or $projid =~ /^m\d\d[ab]/;               # JCMT
+;
+
+  # First the semester
+  my $sem;
+  if (exists $args{semester}) {
+    $sem = $args{semester};
+  } elsif (exists $args{date}) {
+    $sem = $self->determine_semester( $args{date} );
+  } else {
+    $sem = $self->determine_semester();
+  }
+
+  # Now determine the telescope
+  # In most cases the supplied ID will be able to distinguish
+  # JCMT from UKIRT (for example JCMT has a letter prefix
+  # such as "u03" whereas UKIRT mainly has a number "03" or "3")
+  # The exception is for UH where both telescopes have 
+  # an "h" prefix.
+  my $tel;
+  if (exists $args{telescope}) {
+    $tel = uc($args{telescope});
+  } else {
+    # Guess
+    if ($projid =~ /^\d+$/) {
+      $tel = "UKIRT";
+    } elsif ($projid =~ /^[unci]\d+$/) {
+      $tel = "JCMT";
+    } else {
+      croak "Unable to determine telescope from supplied project ID: $projid is ambiguous";
+    }
+  }
+
+  # Now guess the actual projectid
+  my $fullid;
+  if ($tel eq "UKIRT") {
+    # Need to manipulate it a little if we have a single digit
+    # number
+    if ($projid =~ /^\d$/) {
+      # pad it
+      $projid = "0$projid";
+    } elsif ($projid =~ /^(h)(\d)$/i) {
+      # pad the UH number 
+      $projid = $1 . "0" . $2;
+    }
+
+    $fullid = "u/$sem/$projid";
+
+  } elsif ($tel eq "JCMT") {
+    $fullid = "m$sem$projid";
+
+  } else {
+    croak "$tel is not a recognized telescope";
+  }
+
+}
+
+
+=item B<determine_semester>
+
+Given a date determine the current semester.
+
+  $semester = OMP::General->determine_semester( $date );
+
+Date should be of class C<Time::Piece>. The current date is used
+if none is supplied.
+
+=cut
+
+sub determine_semester {
+  my $self = shift;
+  my $date = shift;
+
+  if (defined $date) {
+    croak "determine_semester: Date should be of class Time::Piece"
+      unless UNIVERSAL::isa($date, "Time::Piece");
+  } else {
+    $date = gmtime();
+  }
+
+  # 4 digit year
+  my $yyyy = $date->year;
+
+  # Month plus two digit day
+  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
+
+  # Calculate previous year
+  my $prev_yyyy = $yyyy - 1;
+
+  # Two digit years
+  my $yy = substr( $yyyy, 2, 2);
+  my $prevyy = substr( $prev_yyyy, 2, 2);
+
+  # Need to put the month in the correct
+  # semester. Note that 199?0201 is in the
+  # previous semester, same for 199?0801
+  if ($mmdd > 201 && $mmdd < 802) {
+    $sem = "${yy}a";
+  } elsif ($mmdd < 202) {
+    $sem = "${prevyy}b";
+  } else {
+    $sem = "${yy}b";
+  }
+
+  return $sem;
+}
 
 =back
 
