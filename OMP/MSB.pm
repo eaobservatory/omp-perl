@@ -915,14 +915,14 @@ sub _summarize_obs {
 
   my %summary;
 
-  foreach my $key (qw/ instrument waveband target coordstype pol type/) {
+  foreach my $key (qw/ instrument waveband target coordstype pol type ha airmass disperser/) {
 
     # Now go through each observation looking for the specific
     # key. Store the value in a hash keyed by itself so that we
     # can automatically mask out duplicated entries
 
     my %options = map { $_, undef } 
-      map { defined $_->{$key} ? $_->{$key} : "MISSING" } @obs;
+      map { defined $_->{$key} ? $_->{$key} : "NONE" } @obs;
 
     # Unfortunately this does not retain the order so
     # columns are in different orders depending on where
