@@ -3,7 +3,11 @@
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-BEGIN { $ENV{PATH} = "/usr/bin"; $ENV{SYBASE} = "/local/progs/sybase"; }
+BEGIN { $ENV{PATH} = "/usr/bin";
+	$ENV{SYBASE} = "/local/progs/sybase";
+	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+	  unless exists $ENV{OMP_CFG_DIR};
+      }
 
 use lib qw(/jac_sw/omp/msbserver);
 
