@@ -198,13 +198,14 @@ sub fault_table {
 
   # Get file date as local time
   my $filedate = localtime($fault->filedate->epoch);
-  $filedate = $filedate->strftime("%Y%m%d %T");
+  $filedate = OMP::General->display_date($filedate);
 
   my $faultdate = $fault->faultdate;
   if ($faultdate) {
     # Convert fault date to local time
     my $epoch = $faultdate->epoch;
-    my $faultdate = localtime($epoch);
+    $faultdate = localtime($epoch);
+    $faultdate = OMP::General->display_date($faultdate);
   } else {
     $faultdate = "unknown";
   }
@@ -263,7 +264,7 @@ sub fault_table {
     my $respdate = $resp->date;
     my $epoch = $respdate->epoch;
     $respdate = localtime($epoch);
-    $respdate = $respdate->strftime("%Y%m%d %T");
+    $respdate = OMP::General->display_date($respdate);
 
     # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
     # response is the original fault
