@@ -94,12 +94,12 @@ sub new {
     # We don't have a fully-formed Info::Obs object, so try to
     # form one.
     my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
-    my $telescope = ( defined( $worf->obs->telescope ) ?
-                      uc( $worf->obs->telescope ) :
-                      uc( OMP::Config->inferTelescope('instruments', $worf->obs->instrument) ) );
+    my $instrument = $worf->obs->instrument;
     my $ut = $worf->obs->startobs->ymd;
     my $runnr = $worf->obs->runnr;
-    my $newobs = $adb->getObs( $telescope, $ut, $runnr );
+    my $newobs = $adb->getObs( instrument => $instrument,
+                               ut => $ut,
+                               runnr => $runnr );
     $worf->obs( $newobs );
   }
 
