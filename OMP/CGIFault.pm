@@ -196,9 +196,18 @@ sub fault_table {
   ($fault->subject) and $subject = $fault->subject
     or $subject = "none";
 
-  my $faultdate;
-  ($fault->faultdate) and $faultdate = $fault->faultdate
-    or $faultdate = "unknown";
+  # Get file date as local time
+  my $filedate = localtime($fault->filedate->epoch);
+  $filedate = $filedate->strftime("%Y%m%d %T");
+
+  my $faultdate = $fault->faultdate;
+  if ($faultdate) {
+    # Convert fault date to local time
+    my $epoch = $faultdate->epoch;
+    my $faultdate = localtime($epoch);
+  } else {
+    $faultdate = "unknown";
+  }
 
   my $urgencyhtml;
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
@@ -213,7 +222,7 @@ sub fault_table {
   print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . $fault->author->html . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
-  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->filedate . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate"  . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>";
 
@@ -250,6 +259,11 @@ sub fault_table {
   # Then loop through and display each response
   my @responses = $fault->responses;
   for my $resp (@responses) {
+    # Convert response date to local time
+    my $respdate = $resp->date;
+    my $epoch = $respdate->epoch;
+    $respdate = localtime($epoch);
+    $respdate = $respdate->strftime("%Y%m%d %T");
 
     # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
     # response is the original fault
@@ -258,7 +272,7 @@ sub fault_table {
       $bgcolor = '#bcbce2';
     } else {
       $bgcolor = '#dcdcf2';
-      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $resp->date;;
+      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $respdate;
 
       # Link to respons editing page
       print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
@@ -966,7 +980,7 @@ sub file_fault_form {
 		 type => '',
 		 loss => undef,
 		 time => undef,
-		 tz => 'UT',
+		 tz => 'HST',
 		 subject => undef,
 		 message => undef,
 		 assoc => undef,
@@ -979,9 +993,14 @@ sub file_fault_form {
     # We have a fault object so use it's details as our defaults
 
     # Get the fault date (if any)
-    my $faultdate;
-    $faultdate = $fault->faultdate->strftime("%Y%m%d %T")
-      unless (! $fault->faultdate);
+    my $faultdate = $fault->faultdate;
+
+    # Convert faultdate to local time
+    if ($faultdate) {
+      my $epoch = $faultdate->epoch;
+      $faultdate = localtime($epoch);
+      $faultdate = $faultdate->strftime("%Y-%m-%dT%T")
+    }
 
     # Is this fault marked urgent?
     my $urgent = ($fault->urgencyText =~ /urgent/i ? "urgent" : undef);
@@ -1004,7 +1023,7 @@ sub file_fault_form {
 		 type => $fault->type,
 		 loss => $fault->timelost,
 		 time => $faultdate,
-		 tz => 'UT',
+		 tz => 'HST',
 		 subject => $fault->subject,
 		 message => $message,
 		 assoc2 => join(',',@assoc),
@@ -1064,12 +1083,12 @@ sub file_fault_form {
   # If we're using the bug report system don't
   # provide fields for taking "time lost" and "time of fault"
   if ($cookie->{category} !~ /bug/i) {
-    print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
+    print "</td><tr><td align=right><b>Time lost <small>(hours)</small>:</b></td><td>";
     print $q->textfield(-name=>'loss',
 			-default=>$defaults{loss},
 			-size=>'4',
 			-maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault:</td><td>";
+    print "</td><tr><td align=right valign=top><b>Time of fault <small>(hh:mm)</small>:</td><td>";
     print $q->textfield(-name=>'time',
 			-default=>$defaults{time},
 			-size=>20,
@@ -1680,47 +1699,38 @@ sub parse_file_fault_form {
   # do nothing
   if ($q->param('time')) {
     my $t;
-    my $format = "%Y-%m-%dT%H:%M";
     my $time = $q->param('time');
+
+    # Define whether or not we have a local time
+    my $islocal = ($q->param('tz') =~ /HST/ ? 1 : 0);
+    my $utdate;
 
     if ($time =~ /^(\d\d*?)\W*(\d{2})$/) {
       # Just the time (something like HH:MM)
       my $hh = $1;
       my $mm = $2;
-      if ($q->param('tz') =~ /HST/) {
+      if ($islocal) {
 	# Time is local
-	my $date = localtime;
-	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
-
-	# Convert to UT
-	$t -= $t->tzoffset;
+	# Using Time::Piece localtime() method until OMP::General today()
+        # method supports local time
+	my $today = localtime;
+	$utdate = OMP::General->parse_date($today->ymd . "T$hh:$mm", 1);
       } else {
-
-	# Time is already UT
-	my $date = gmtime;
-	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
+	my $today = OMP::General->today;
+	$utdate = OMP::General->parse_date("$today" . "T$hh:$mm");
       }
-
     } else {
-      # It is the entire date (or maybe not a date at all)
-      my $date = UnixDate($time,$format);
-
-      # Get our time piece object if we have an actual date
-      if ($date) {
-	$t = Time::Piece->strptime($date,$format);
-
-	# Convert time to UT if it was given as HST
-	($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
-      }
+      $utdate = OMP::General->parse_date($time, $islocal);
     }
 
-    # Store a faultdate if we have one
-    if ($t) {
-      # Subtract a day if date is in the future.
-      my $gmtime = gmtime;
-      ($gmtime < $t) and $t -= 86400;
+    # Store the faultdate
+    if ($utdate) {
+      my $gmtime = gmtime();
 
-      $parsed{faultdate} = $t;
+      # Subtract a day if date is in the future.
+      ($gmtime->epoch < $utdate->epoch) and $utdate -= 86400;
+
+      $parsed{faultdate} = $utdate;
     }
   }
 
