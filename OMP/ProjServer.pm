@@ -269,15 +269,18 @@ sub verifyProject {
 Add details of a project to the database.
 
   OMP::ProjServer->addProject($password, $projectid, $pi,
-			     $piemail, $coi, $coiemail,
+			      $coi, $support,
 			     $title, $tagpriority, $country,
 			     $semester, $proj_password, $allocated);
 
-The first password is used to verify that you are allowed to
-modify the project table. The second password is for the project itself.
+The first password is used to verify that you are allowed to modify
+the project table. The second password is for the project itself.
 Both should be supplied as plain text.
 
 We may not want to have this as a public method on a SOAP Server!
+
+People are supplied as OMP User IDs. CoI and Support can be colon
+separated.
 
 =cut
 
@@ -294,12 +297,22 @@ sub addProject {
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
+    # Split CoI and Support on colon
+    my @coi;
+    if ($project[2]) {
+      @coi = map { $userdb->getUser($_) }split /:/, $project[2];
+    }
+    my @support;
+    if ($project[3]) {
+      @support = map { $userdb->getUser($_) }split /:/, $project[3];
+    }
+
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
 				projectid => $project[0],
     				pi => $userdb->getUser($project[1]),
-				coi => $userdb->getUser($project[2]),
-				support => $userdb->getUser($project[3]),
+				coi => \@coi,
+				support => \@support,
 				title => $project[4],
 				tagpriority => $project[5],
 				country => $project[6],
