@@ -101,7 +101,7 @@ if ($mindate) {
 
 # Instantiate a new MSBDB object
 my $db = new OMP::MSBDB( DB => new OMP::DBbackend,
-		         Password => 'kalapana', );
+		         Password => 'pohoiki', );
 
 # Get the projects
 my @projects = $db->getSubmitted($mindate->epoch, $maxdate->epoch);
