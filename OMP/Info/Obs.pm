@@ -1088,7 +1088,7 @@ sub _populate {
                            "" ) );
   $self->bolometers( $generic_header{BOLOMETERS} );
   $self->velocity( $generic_header{VELOCITY} );
-  $self->velsys( $generic_header{VELSYS} );
+  $self->velsys( $generic_header{SYSTEM_VELOCITY} );
   $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
   $self->chopthrow( $generic_header{CHOP_THROW} );
   $self->chopangle( $generic_header{CHOP_ANGLE} );
