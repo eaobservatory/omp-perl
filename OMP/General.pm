@@ -214,32 +214,49 @@ The user name is not always available (especially if running from
 CGI).  The email address is simply determined as C<$user@$host> and is
 identical to the host name if no user name is determined.
 
-If the environment variable C<$OMP_NOGETHOST> is set
-this method will return a hostname of "localhost". This is used
-when no network connection is available and you do not wish to
-wait for a timeout from C<gethostbyname>.
+An optional argument can be used to disable remote host checking
+for CGI. If true, this method will return the host on which
+the program is running rather than the remote host information.
+
+  ($user, $localhost, $email) = OMP::General->determine_host(1);
+
+If the environment variable C<$OMP_NOGETHOST> is set this method will
+return a hostname of "localhost" if we are not running in a CGI
+context, or the straight IP address if we are. This is used when no
+network connection is available and you do not wish to wait for a
+timeout from C<gethostbyname>.
 
 =cut
 
 sub determine_host {
   my $class = shift;
+  my $noremote = shift;
 
   # Try and work out who is making the request
   my ($user, $addr);
 
-  if (exists $ENV{OMP_NOGETHOST}) {
-    $addr = "localhost";
-    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
-  } elsif (exists $ENV{REMOTE_ADDR}) {
+  if (!$noremote && exists $ENV{REMOTE_ADDR}) {
     # We are being called from a CGI context
     my $ip = $ENV{REMOTE_ADDR};
 
-    # Try to translate number to name
-    $addr = gethost( $ip );
-    $addr = (defined $addr and ref $addr ? $addr->name : '' );
+    # Try to translate number to name if we have network
+    if (!exists $ENV{REMOTE_ADDR}) {
+      $addr = gethost( $ip );
+
+      # if we have nothing just use the IP
+      $addr = (defined $addr and ref $addr ? $addr->name : $ip );
+    } else {
+      # else default to the IP address
+      $addr = $ip;
+    }
 
     # User name (only set if they have logged in)
     $user = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} : '' );
+
+  } elsif (exists $ENV{OMP_NOGETHOST}) {
+    # Do not do network lookup
+    $addr = "localhost.localdomain";
+    $user = (exists $ENV{USER} ? $ENV{USER} : '' );
 
   } else {
     # localhost
