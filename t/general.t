@@ -8,35 +8,53 @@ use OMP::General;
 
 my $year = 1999;
 my $mon  = 1;
+my $mon_str = "Jan";
 my $day  = 5;
 my $hh   = 5;
 my $mm   = 15;
 my $sec  = 0.0;
 
-my $input =  sprintf("%04d-%02d-%02dT%02d:%02d",
-		     $year, $mon, $day, $hh, $mm);
+# Create two input dates. One in ISO format, the other in
+# Sybase style
+my @input;
+
+# ISO
+push(@input,  sprintf("%04d-%02d-%02dT%02d:%02d",
+		     $year, $mon, $day, $hh, $mm));
+
+# Sybase
+push(@input,  sprintf("$mon_str %02d %04d  %d:%02dAM",
+		      $day, $year, $hh, $mm));
 
 print "# parse_date\n";
 
-print "# Input date: $input\n";
+print "# Input date: $input[0]\n";
 
-my $date = OMP::General->parse_date( $input );
+for my $in (@input) {
 
-ok( $date );
+  $date = OMP::General->parse_date( $in );
 
-print "# Output date: $date\n";
+  ok( $date );
 
-# Compare
-ok( $date->year, $year);
-ok( $date->mon, $mon);
-ok( $date->mday, $day);
-ok( $date->hour, $hh);
-ok( $date->min, $mm);
-ok( $date->sec, $sec);
+  unless (defined $date) {
+    print "# Skipping tests since we returned undef\n";
+    for (1..7) { ok(0) };
+    next;
+  }
 
-# Check that the object is UTC by using undocumented internal hack
-ok( ! $date->[Time::Piece::c_islocal]);
+  print "# Output date: $date\n";
 
+  # Compare
+  ok( $date->year, $year);
+  ok( $date->mon, $mon);
+  ok( $date->mday, $day);
+  ok( $date->hour, $hh);
+  ok( $date->min, $mm);
+  ok( $date->sec, $sec);
+
+  # Check that the object is UTC by using undocumented internal hack
+  ok( ! $date->[Time::Piece::c_islocal]);
+}
 
 print "# today()\n";
 
@@ -51,7 +69,8 @@ ok( ! OMP::General->verify_administrator_password( "blah", 1 ) );
 
 print "# Semester\n";
 
-my $sem = OMP::General->determine_semester( $date );
+my $refdate = OMP::General->parse_date($input[0]);
+my $sem = OMP::General->determine_semester( $refdate );
 ok($sem, "98b");
 
 $date = gmtime(1014756003); # 2002-02-26

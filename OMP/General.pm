@@ -51,6 +51,8 @@ object (usually a C<Time::Piece> object).
 Returns C<undef> if the time could not be parsed.
 Returns the object unchanged if the argument is already a C<Time::Piece>.
 
+It will also recognize a Sybase style date: 'Mar 15 2002  7:04AM'
+
 The date is assumed to be in UT.
 
 =cut
@@ -69,15 +71,27 @@ sub parse_date {
   # since Time::Piece is exactly what we want for Astro::Coords)
   # Need to fudge a little
 
-  # All arguments should have a day, month and year
-  my $format = "%Y-%m-%d";
+  my $format;
 
-  # Now check for time
-  if ($date =~ /T/) {
-    # Date and time
-    # Now format depends on the number of colons
-    my $n = ( $date =~ tr/:/:/ );
-    $format .= "T" . ($n == 2 ? "%T" : "%R");
+  # Need to disambiguate ISO date from Sybase date
+  if ($date =~ /\d\d\d\d-\d\d-\d\d/) {
+    # ISO
+
+    # All arguments should have a day, month and year
+    $format = "%Y-%m-%d";
+
+    # Now check for time
+    if ($date =~ /T/) {
+      # Date and time
+      # Now format depends on the number of colons
+      my $n = ( $date =~ tr/:/:/ );
+      $format .= "T" . ($n == 2 ? "%T" : "%R");
+    }
+  } else {
+    # Assume Sybase date
+    # Mar 15 2002  7:04AM
+    $format = "%b%t%d%t%Y%t%I:%M%p";
+
   }
 
   # Now parse
