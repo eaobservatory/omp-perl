@@ -4,12 +4,11 @@
 
 use warnings;
 use strict;
-use Test;
+use Test::More tests => 23;
+use Data::Dumper;
 
-BEGIN { plan tests => 21 }
-
-use OMP::Project;
-use OMP::User;
+require_ok( 'OMP::Project' );
+require_ok( 'OMP::User' );
 
 # email address
 my @coiemail = ( qw/email1@a email2@b email3@c / );
@@ -29,17 +28,18 @@ my %project = (
 # Instantiate a Project object
 my $proj = new OMP::Project( %project );
 
-ok($proj);
+ok($proj, "Instantiate a project object");
+isa_ok( $proj, "OMP::Project");
 
-use Data::Dumper;
-print Dumper($proj);
+# sned useful class summary
+print map { "#$_\n" } split "\n", Dumper($proj);
 
-# Projet id should be case insensitive
-ok( $proj->projectid, uc($project{projectid}));
+# Project id should be case insensitive
+is( $proj->projectid, uc($project{projectid}),"Check projectid");
 
 # Check the password
-ok( $proj->password, $project{password} );
-ok( $proj->verify_password );
+is( $proj->password, $project{password}, "Check password" );
+ok( $proj->verify_password ,"verify password");
 print "# Password: ", $proj->password, " Encrypted form: ", 
   $proj->encrypted, "\n";
 
@@ -53,37 +53,43 @@ for my $i (0..$#coi) {
 
 
 # should be 3 names either : delimited or in an array
-ok( $proj->coi, uc($project{coi}) );
-ok( scalar(@coi), 3);
-ok( join("$OMP::Project::DELIM", map { lc($_->userid) } @coi), $project{coi});
+is( $proj->coi, uc($project{coi}), "Check coi scalar" );
+is( scalar(@coi), 3, "Count number of cois");
+is( join("$OMP::Project::DELIM", map { lc($_->userid) } @coi), $project{coi},
+  "Join the cois using the delimiter");
 
 my @email = $proj->coiemail;
 
 for my $i (0.. $#coiemail) {
-  ok( $email[$i], $coiemail[$i]);
+  is( $email[$i], $coiemail[$i],"Verify coi email addresses");
 }
 
-ok( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail));
+is( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail),
+  "Join coi email addresses using delimiter");
 
 # and investigators
-ok( $proj->investigators, join("$OMP::Project::DELIM", $project{piemail},
-			       @coiemail));
+is( $proj->investigators, join("$OMP::Project::DELIM", $project{piemail},
+			       @coiemail),
+  "Join investigator emails using delimiter");
 
 # Check the time allocation
 print "# Time allocation\n";
-ok( $proj->allocated, $project{allocated});
-ok( $proj->remaining, $proj->allocated );
-ok( $proj->used, 0.0 );
+is( $proj->allocated, $project{allocated},"Check allocated time");
+is( $proj->remaining, $proj->allocated, "Check time remaining" );
+is( $proj->used, 0.0 , "Check time used");
 
 # Set some time pending
 my $used = 360;
 $proj->incPending( $used );
-ok( $proj->pending, $used );
-ok( $proj->used, $used );
+is( $proj->pending, $used, "Check pending time" );
+is( $proj->used, $used, "Check time used" );
 
-ok( $proj->allRemaining, ($project{allocated} - $used));
+is( $proj->allRemaining, ($project{allocated} - $used),
+  "Check time remaining");
 
 $proj->consolidateTimeRemaining;
-ok( $proj->used, $used );
-ok( $proj->remaining, ($project{allocated} - $used));
-ok( $proj->pending, 0.0);
+is( $proj->used, $used, "Check time used" );
+is( $proj->remaining, ($project{allocated} - $used), "Check time remaining");
+is( $proj->pending, 0.0, "Check time pending");
+
+isa_ok( $proj->remaining, "Time::Seconds");

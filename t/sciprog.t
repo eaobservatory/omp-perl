@@ -5,13 +5,10 @@
 
 use warnings;
 use strict;
-use Test;
+use Test::More tests => 273;
 use Data::Dumper;
 
-
-BEGIN { plan tests => 260 }
-
-use OMP::SciProg;
+require_ok( 'OMP::SciProg' );
 
 # The MSB summary is indexed by checksum
 # This information needs to change if the Science program
@@ -32,26 +29,32 @@ my $file = "test.xml";
 
 my $obj = new OMP::SciProg( FILE => $file );
 
-ok($obj);
+ok($obj,"We got an object");
+isa_ok( $obj, "OMP::SciProg");
 
 # Check the project ID
-ok($obj->projectID, "TJ01");
+is($obj->projectID, "TJ01","Verify projectid");
 
 # Now count the number of MSBs
 # Should be 11
 my @msbs = $obj->msb;
-ok(scalar(@msbs), 11);
+is(scalar(@msbs), 11, "Count number of MSBs");
+
+# check each msb
+for (@msbs) {
+  isa_ok($_, "OMP::MSB");
+}
 
 # Check that an MSB exists
-ok( $obj->existsMSB( $msbs[10]->checksum));
+ok( $obj->existsMSB( $msbs[10]->checksum),"verify MSB existence");
 # or not
-ok( ! $obj->existsMSB( "blahblah" ));
+ok( ! $obj->existsMSB( "blahblah" ), "Check nonexistence");
 
 
 # Go through the MSBs to see what we can find out about them
 for my $msb ($obj->msb) {
   if (exists $results{$msb->checksum}) {
-    ok(1);
+    ok(1, "MSB exists");
 
     my %cmp = %{ $results{ $msb->checksum} };
     my $info = $msb->info;
@@ -93,16 +96,14 @@ for my $msb ($obj->msb) {
 	    next if ref($cmpobs{$obskey});
 	    next if ref($obs{$obskey});
 
-	    print "# Comparing obs: $obskey\n";
-	    ok($obs{$obskey}, $cmpobs{$obskey});
+	    is($obs{$obskey}, $cmpobs{$obskey}, "Comparing obs: $obskey");
 	  }
 	}
 
       } else {
 
 	next if ref( $cmp{$key});
-	print "# Comparing $key\n";
-	ok( $msbsum{$key}, $cmp{$key});
+	is( $msbsum{$key}, $cmp{$key}, "Comparing $key");
 	
       }
 
@@ -121,7 +122,7 @@ my @summary = $obj->summary;
 
 # make sure the number of summaries matches the number of msbs
 # + header
-ok( scalar(@summary), 1+scalar(@msbs));
+is( scalar(@summary), 1+scalar(@msbs), "Count MSBs");
 
 # For information print them all out
 # Need to include the "#"
@@ -301,7 +302,7 @@ $VAR1 = {
                                                                                                    'filter' => 'Blank'
                                                                                                  }
                                                                                     }, 'Astro::WaveBand' ),
-                                                               'wavelength' => undef,
+                                                               'wavelength' => -2.222,
                                                                'target' => 'Dark',
                                                                'coordstype' => 'CAL',
                                                                'obstype' => [
@@ -326,7 +327,7 @@ $VAR1 = {
                                                                                                    'filter' => 'Blank'
                                                                                                  }
                                                                                     }, 'Astro::WaveBand' ),
-                                                               'wavelength' => undef,
+                                                               'wavelength' => -2.222,
                                                                'target' => 'Dark',
                                                                'coordstype' => 'CAL',
                                                                'obstype' => [
