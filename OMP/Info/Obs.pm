@@ -33,6 +33,7 @@ use warnings;
 use Carp;
 use OMP::Range;
 use OMP::General;
+use OMP::Constants qw/ :obs /;
 use OMP::Error qw/ :try /;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
@@ -285,6 +286,30 @@ sub hdrhash {
     }
   }
   return $hdr;
+}
+
+sub status {
+  my $self = shift;
+  if( @_ ) {
+    $self->{status} = shift;
+    my @comments = $self->comments;
+    if(defined($comments[0])) {
+      $comments[0]->status( $self->{status} );
+      $self->comments( \@comments );
+    }
+  }
+  if( !exists( $self->{status} ) ) {
+    # Fallback in case the accessor hasn't been used.
+    # Grab the status from the comments. If no comments
+    # exist, then set the status as being good.
+    my @comments = $self->comments;
+    if( defined( $comments[0] ) ) {
+      $self->{status} = $comments[0]->status;
+    } else {
+      $self->{status} = OMP__OBS_GOOD;
+    }
+  }
+  return $self->{status};
 }
 
 =head2 General Methods
