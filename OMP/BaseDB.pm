@@ -843,7 +843,8 @@ sub _mail_information {
 
   # Form To and Cc address lists
   for my $hdr (qw/ To Cc /) {
-    if (defined %{$users{lc($hdr)}}) {
+    # If $users{$hdr} is defined it may just be an empty list...
+    if (defined $users{lc($hdr)} && %{$users{lc($hdr)}}) {
       $details{$hdr} = join(',', map {$users{lc($hdr)}{$_}->as_email_hdr} keys %{$users{lc($hdr)}});
     }
   }
