@@ -1111,7 +1111,7 @@ sub SpObs {
   if ( grep /^Observe$/, @{$summary{obstype}} ) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
-    } 
+    }
     # We have a normal observe - just use it and the associated target
     # information
 
