@@ -88,7 +88,7 @@ sub new {
 
 Creates an C<OMP::Info::Obs> object from a given filename.
 
-  $o = readfile OMP::Info::Obs( $filename, $instrument );
+  $o = readfile OMP::Info::Obs( $filename );
 
 If the constructor is unable to read the file, undef will be returned.
 
@@ -98,16 +98,17 @@ sub readfile {
   my $proto = shift;
   my $class = ref($proto) || $proto;
   my $filename = shift;
-  my $instrument = shift;
 
-  my $FITS_header;
   my $obs;
 
   try {
-    if( $filename =~ /sdf$/ ) {
+    my $FITS_header;
+    if( $filename =~ /\.sdf$/ ) {
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
-    } elsif( $filename =~ /(gsd|dat)$/ ) {
+    } elsif( $filename =~ /\.(gsd|dat)$/ ) {
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
+    } else {
+      throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
     }
     $obs = $class->new( fits => $FITS_header );
     $obs->filename( $filename );
@@ -406,7 +407,15 @@ sub summary {
     return $xml;
 
   } elsif( $format eq '72col' ) {
-    my $obssum = sprintf("%4.4s %8.8s %11.11s %8.8s %-20.20s %-16.16s\n",$self->runnr, $self->startobs->hms, $self->projectid, $self->instrument, $self->target, $self->mode);
+
+    # Protect against undef [easy since the sprintf expects strings]
+    # Silently fix things.
+    my @strings = map { defined $_ ? $_ : '' } $self->runnr, 
+      $self->startobs->hms, $self->projectid, $self->instrument, 
+	$self->target, $self->mode;
+
+    my $obssum = sprintf("%4.4s %8.8s %11.11s %8.8s %-20.20s %-16.16s\n",
+			@strings);
     my $commentsum;
     foreach my $comment ( $self->comments ) {
       if(defined($comment)) {
@@ -417,6 +426,7 @@ sub summary {
     if (wantarray) {
       return ($obssum, $commentsum);
     } else {
+      $commentsum = '' unless defined $commentsum;
       return $obssum . $commentsum;
     }
   } else {
