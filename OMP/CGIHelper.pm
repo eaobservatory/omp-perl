@@ -70,6 +70,13 @@ sub proj_status_table {
 						 $cookie{password},
 						 'object' );
 
+  # Get URL for the science case. If it is not defined we
+  # write nothing
+  my $case_url = $project->science_case_url;
+  my $case_href = (defined $case_url ?
+		   "<a href=\"$case_url\">Science Case</a>" :
+		   "<b>Science Case</b>" );
+
   my %summary;
   foreach (qw/pi piemail title projectid coi coiemail allocated remaining country/) {
     $summary{$_} = $project->$_;
@@ -79,7 +86,7 @@ sub proj_status_table {
         "<table border='1' width='100%'><tr bgcolor='#7979aa'>",
 	"<td><b>PI:</b> <a href='mailto:$summary{piemail}'>$summary{pi}</a></td>",
 	"<td colspan=2><b>Title:</b> $summary{title}</td>",
-	"<td><b>Science Case:</b> </td>",
+	"<td> $case_href </td>",
 	"<tr bgcolor='#7979aa'><td><b>CoI: </b> <a href='mailto:$summary{coiemail}'>$summary{coi}</a></td>",
         "<td><b>Time allocated:</b> $summary{allocated}</td>",
 	"<td><b>Time Remaining:</b> $summary{remaining}",

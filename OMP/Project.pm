@@ -722,6 +722,46 @@ sub summary {
 
 }
 
+=item B<science_case_url>
+
+Return a URL pointing to the science case. This could be a simple
+URL pointing to a text file or a URL pointing to a CGI script.
+
+Currently the URL is determined using a heuristic rather than be
+supplied via the constructor or stored in a database directly.
+
+Since the project class does not yet know the associated telescope
+we have to guess the telescope from the project ID.
+
+Returns C<undef> if the location can not be determined from the project ID.
+
+  $url = $proj->science_case_url;
+
+=cut
+
+sub science_case_url {
+  my $self = shift;
+  my $projid = $self->projectid;
+
+  # Guess telescope
+  if ($projid =~ /^m/i) {
+    # JCMT
+    return undef;
+  } elsif ($projid =~ /^u/i) {
+    # UKIRT
+    # Service programs are in a different location
+    if ($projid =~ /serv\/(\d+)$/i) {
+      # Get the number
+      my $num = $1;
+      return "http://www.jach.hawaii.edu/JAClocal/UKIRT/ukirtserv/forms/$num.txt";
+    }
+
+    return undef;
+  } else {
+    return undef;
+  }
+}
+
 =item B<incPending>
 
 Increment the value of the C<pending> field by the specified amount.
