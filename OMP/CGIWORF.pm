@@ -29,7 +29,7 @@ use OMP::CGI;
 use OMP::General;
 use OMP::Info::Obs;
 use OMP::WORF;
-use OMP::CGIObslog qw/ cgi_to_obs /;
+use OMP::CGIObslog qw/ cgi_to_obs obs_table /;
 use OMP::Error qw/ :try /;
 
 our $VERSION = (qw$Revision$ )[1];
@@ -58,6 +58,20 @@ sub display_page {
 
 #  print_worf_header();
 
+  $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
+  my $ut = $1;
+
+  my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+  my $obs = $adb->getObs( instrument => $qv->{'inst'},
+                          ut => $1,
+                          runnr => $qv->{'runnr'} );
+  my @obs;
+  push @obs, $obs;
+  my $group = new OMP::Info::ObsGroup( obs => \@obs );
+  $group->commentScan;
+  obs_table( $group );
+
+  print "<br>\n";
   print "<img src=\"worf_image.pl?";
   print "runnr=" . $qv->{'runnr'};
   print "&ut=" . $qv->{'ut'};
