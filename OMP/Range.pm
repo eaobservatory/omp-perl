@@ -29,8 +29,6 @@ use warnings;
 use Number::Interval;
 use base qw/ Number::Interval /;
 
-=back
-
 =head1 NOTES
 
 A small wrapper class around the C<Number::Interval> module.
