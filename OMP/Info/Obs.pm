@@ -40,6 +40,10 @@ use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;
+use Text::Wrap qw/ $columns &wrap /;
+
+# Text wrap column size.
+$Text::Wrap::columns = 72;
 
 use base qw/ OMP::Info::Base /;
 
@@ -331,6 +335,7 @@ Allowed formats are:
   'hash' - hash representation of main obs. params.
   'html'
   'text'
+  '72col' - 72-column summary, with comments.
 
 XML is returned looking something like:
 
@@ -383,6 +388,20 @@ sub summary {
     $xml .= "</SpObsSummary>\n";
     return $xml;
 
+  } elsif( $format eq '72col' ) {
+    my $obssum = sprintf("%4.4s %8.8s %-20.20s %-36.36s\n",$self->runnr, $self->startobs->hms, $self->target, $self->mode);
+    my $commentsum;
+    foreach my $comment ( $self->comments ) {
+      if(defined($comment)) {
+        my $tc = sprintf("%19s UT / %s: %s\n", $comment->date->ymd . " " . $comment->date->hms, $comment->author->name, $comment->text);
+        $commentsum .= wrap(' ',' ',$tc)
+      }
+    }
+    if (wantarray) {
+      return ($obssum, $commentsum);
+    } else {
+      return $obssum . $commentsum;
+    }
   } else {
     throw OMP::Error::BadArgs("Format $format not yet implemented");
   }
