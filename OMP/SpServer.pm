@@ -145,13 +145,17 @@ sub fetchProgram {
   return "$sp";
 }
 
-
 =item B<programDetails>
 
-Return a detailed summary of the science program. The summary is returned
-as pre-formatted text.
+Return a detailed summary of the science program. The summary is
+returned as either pre-formatted text or as a data structure (array of
+hashes for each MSB with each hash containing an array of hashes for
+each observation).
 
-  $text = OMP::SpServer->programDetails( $project );
+  $text = OMP::SpServer->programDetails( $project, 'ascii' );
+  $array = OMP::SpServer->programDetails( $project, 'data' );
+
+Note that this may cause problems for a strongly typed language.
 
 No password is required. This may change in the future.
 
@@ -160,6 +164,8 @@ No password is required. This may change in the future.
 sub programDetails {
   my $class = shift;
   my $projectid = shift;
+  my $mode = lc(shift);
+  $mode ||= 'ascii';
 
   my $E;
   my $summary;
@@ -174,8 +180,21 @@ sub programDetails {
     my $sp = $db->fetchSciProg;
 
     # Create a summary of the science program
-    $summary = $sp->summary('ascii');
+    $summary = $sp->summary($mode);
 
+    # Clean the data structure if we are in 'data'
+    if ($mode eq 'data') {
+      for my $msb (@{$summary}) {
+	delete $msb->{_obssum};
+	delete $msb->{summary};
+	$msb->{latest} = ''.$msb->{latest}; # unbless
+	$msb->{earliest} = ''.$msb->{earliest}; # unbless
+	for my $obs (@{$msb->{obs}}) {
+	  $obs->{waveband} = ''.$obs->{waveband}; # unbless
+	  $obs->{coords} = [$obs->{coords}->array];
+	}
+      }
+    }
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -194,6 +213,27 @@ sub programDetails {
   # Return the stringified form
   return $summary;
 }
+
+
+sub returnStruct {
+  my $self = shift;
+
+  return {  summary => "hello", timestamp => 52 };
+
+}
+
+sub returnArray {
+  my $self = shift;
+
+  return [ "hello", 52 ];
+
+}
+
+sub returnList {
+  my $self = shift;
+  return ("hello", 52);
+}
+
 
 =back
 
