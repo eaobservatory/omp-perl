@@ -2200,19 +2200,20 @@ sub _run_query {
 	    %coords = ( planet => $obs->{target});
 	  } elsif ($coordstype eq 'ELEMENTS') {
 
+	    # Use the array constructor since the columns
+	    # were populated using array() method and we do not
+	    # want to repeat the logic
 	    %coords = (
-		       # For up-ness tests we do not need
-		       # the epoch of perihelion
-		       elements => {
-				    EPOCH => $obs->{el1},
-				    ORBINC => $obs->{el2},
-				    ANODE => $obs->{el3},
-				    PERIH => $obs->{el4},
-				    AORQ => $obs->{el5},
-				    E => $obs->{el6},
-				    AORL => $obs->{el7},
-				    DM => $obs->{el8},
-				   },
+		       elements => [ 'ELEMENTS', undef, undef,
+				     $obs->{el1},
+				     $obs->{el2},
+				     $obs->{el3},
+				     $obs->{el4},
+				     $obs->{el5},
+				     $obs->{el6},
+				     $obs->{el7},
+				     $obs->{el8},
+				   ],
 		      );
 	  } elsif ($coordstype eq 'FIXED') {
 	    %coords = ( az => $obs->{ra2000},
