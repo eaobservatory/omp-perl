@@ -183,15 +183,17 @@ sub file_fault_output {
 
 Put a fault into a an HTML table
 
-  fault_table($cgi, $fault);
+  fault_table($cgi, $fault, 1);
 
-Takes an C<OMP::Fault> object as the last argument.
+Takes an C<OMP::Fault> object as the second argument.  If the optional
+last argument is true the edit links are not displayed.
 
 =cut
 
 sub fault_table {
   my $q = shift;
   my $fault = shift;
+  my $noedit = shift;
 
   my $subject;
   ($fault->subject) and $subject = $fault->subject
@@ -256,7 +258,9 @@ sub fault_table {
   print "<tr bgcolor=#ffffff><td>$urgencyhtml</td><td></td>";
 
   # Link to fault editing page
-  print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
+  if (! $noedit) {
+    print "<tr bgcolor=#ffffff><td> </td><td><span class='editlink'><a href='updatefault.pl?id=". $fault->id ."'>Click here to update or edit this fault</a></span></td>";
+  }
 
   # Then loop through and display each response
   my @responses = $fault->responses;
@@ -277,7 +281,9 @@ sub fault_table {
       print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $respdate;
 
       # Link to respons editing page
-      print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
+      if (! $noedit) {
+	print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
+      }
     }
 
     # Show the response
@@ -496,9 +502,9 @@ sub query_fault_output {
 
   if ($faults->[0]) {
     if ($q->param('sort_order') eq "descending" or $cookie{sort_order} eq "descending") {
-      show_faults($q, $faults, 1);
+      show_faults(CGI => $q, faults => $faults, descending => 1);
     } else {
-      show_faults($q, $faults);
+      show_faults(CGI => $q, faults => $faults,);
     }
 
     # Faults to print
@@ -1531,22 +1537,32 @@ sub update_resp_output {
 
 Show a list of faults
 
-  show_faults($cgi, $faults, 1);
+  show_faults(CGI => $cgi, 
+	      faults => $faults,
+	      descending => 1,
+	      URL => "fbfault.pl");
 
-Takes a reference to an array of fault objects as the second argument. If the third argument is true the faults are listed in descending order.
+Takes the following key/value pairs as arguments:
+
+CGI: A C<CGI> query object
+faults: A reference to an array of C<OMP::Fault> objects
+descending: If true faults are listed in descending order
+URL: The absolute or relative path to the script to be used for the view/respond link
+
+The B<URL> and B<descending> keys are optional.
 
 =cut
 
 sub show_faults {
-  my $q = shift;
-  my $faults = shift;
-  my $descending = shift;
+  my %args = @_;
+  my $q = $args{CGI};
+  my $faults = $args{faults};
+  my $descending = $args{descending};
+  my $url = $args{url};
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
   my $stats = new OMP::FaultStats( faults => $faults );
-  # Set URL for links
-  my $url = "viewfault.pl";
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td>";
