@@ -11,7 +11,7 @@ OMP::FeedbackDB - Manipulate the feedback database
 			     DB => $dbconnection );
 
   $db->addComment( $comment );
-  $db->getComments( $projectid, $password );
+  $db->getComments( \@status );
   $db->alterStatus( $projectid, $commentid, $adminpass, $status );
 
 
@@ -71,16 +71,19 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =item B<getComments>
 
-Returns an array reference containing comments for the project.
+Returns an array of hashes containing comments for the project.  Last argument should be an array
+reference containing the desired status types of comments to be returned.  Status types are
+defined in C<OMP::Constants>.  Defaults to returning all comments that dont have a status of
+B<OMP__FB_DELETE>.
 
-  $db->getComments( $password, $amount, $showHidden );
+  @status = ( qw/OMP__FB_IMPORTANT OMP__FB_INFO/ );
+  $db->getComments( \@status );
 
 =cut
 
 sub getComments {
   my $self = shift;
-  my $amount = shift;
-  my $showhidden = shift;
+  my $status = shift;
 
   # Verify the password
   my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
@@ -90,8 +93,10 @@ sub getComments {
     unless $projdb->verifyPassword( $self->password );
 
   # Get the comments
-  my $comment = $self->_fetch_comments( $amount, $showhidden );
+  my $comment = $self->_fetch_comments( $amount, $status );
 
+
+  # Throw out comments that with a status that isn't wanted
   # Strip out the milliseconds
   for (@$comment) {
     $_->{date} =~ s/:000/ /g;
@@ -362,15 +367,17 @@ sub _mail_comment_info {
 
 =item B<_fetch_comments>
 
-Internal method to retrive the comments from the database.  Returns either
-a reference or a list depending on what is wanted.
+Internal method to retrive the comments from the database.  Only argument is an
+array reference containing the desired statuses of the comments to be returned.
+Returns either a reference or a list depending on what is wanted.
+
+  $db->_fetch_comments( $status );
 
 =cut
 
 sub _fetch_comments {
   my $self = shift;
-  my $amount = shift;
-  my $showhidden = shift;
+  my $status = shift;
 
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
@@ -379,7 +386,8 @@ sub _fetch_comments {
 
   # Fetch the data
   # Use convert() in select statement to get seconds back with the date field.
-  my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\"";
+  my $sql = "select author, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\"" .
+            "AND status in (" . join(',',@$status) . ")";
 
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} }) or
     throw OMP::Error::DBError("Select Failed: " .$dbh->errstr);
@@ -411,7 +419,8 @@ sub _alter_status {
             "SET status = $status" .
 	    "WHERE commid = $commid";
 
-  $dbh->do($sql);
+  $dbh->do($sql)
+;
 }
 
 =back
