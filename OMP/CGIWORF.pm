@@ -337,7 +337,7 @@ sub thumbnails_page {
         next FILELOOP;
       } else {
         foreach my $suffix ( @suffices ) {
-          if( $file =~ /$suffix/ ) {
+          if( $file =~ /$suffix\./ ) {
             if( defined( $curgrp ) ) {
               if( $obs->runnr != $curgrp ) {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
