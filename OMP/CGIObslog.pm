@@ -364,7 +364,7 @@ sub obs_table {
     my $colour = defined( $status ) ? $colour[$status] : $colour[0];
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
-      print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 1 ) . "\"><font color=\"BLACK\">";
+      print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 2 ) . "\"><font color=\"BLACK\">";
       $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
       print $nightlog{'_STRING'};
     } else {
@@ -393,10 +393,13 @@ sub obs_table {
       my @ind_suffices = $worf->suffices;
       my @grp_suffices = $worf->suffices( 1 );
 
-      print "<td><a class=\"link_dark_small\" href=\"worf.pl?ut=";
-      print $obsut;
-      print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-      print "\">raw</a> ";
+      print "<td>";
+      if( $worf->file_exists( suffix => '', group => 0 ) ) {
+        print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+        print $obsut;
+        print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+        print "\">raw</a> ";
+      }
       foreach my $suffix ( @ind_suffices ) {
         next if ! $worf->file_exists( suffix => $suffix, group => 0 );
         print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
