@@ -453,8 +453,12 @@ sub _populate {
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
   # to be done in ObsGroup.
+  print STDOUT "Querying database for relevant data files..."
+    if $self->verbose;
   my $grp = new OMP::Info::ObsGroup( telescope => $tel,
 				     date => $self->utdate,
+				     # kluge until we sort out archivedb
+				     ( $tel =~  /jcmt/i ? (instrument => 'scuba') : ())
 				   );
 
   # Now go through and get the bits we need
@@ -467,6 +471,7 @@ sub _populate {
       push(@match, $obs);
     }
   }
+  print STDOUT "Done\n" if $self->verbose;
 
   $grp->obs(\@match);
   $self->obsGrp($grp);
@@ -494,6 +499,15 @@ sub _mktmpdir {
   # only one packaging per usage.
   my $dir = tempdir( DIR => $root, CLEANUP => 1 );
 
+  # If we are running in taint mode we should clean this string
+  # Should be okay if the directory exists
+  if (-d $dir) {
+    # untaint
+    $dir =~ /^(.*)$/ && ($dir = $1);
+  } else {
+    throw OMP::Error::FatalError("Temp directory [$dir] does not exist!");
+  }
+
   # store it
   $self->tmpdir( $dir );
 
@@ -512,10 +526,18 @@ sub _mkutdir {
   my $ut = $self->utdate;
 
   my $yyyymmdd = $ut->strftime("%Y%m%d");
+  # untaint
+  if ($yyyymmdd =~ /^(\d\d\d\d\d\d\d\d)$/) {
+    $yyyymmdd = $1;
+  } else {
+    throw OMP::Error::FatalError("Date in weird format. Not YYYYMMDD but $yyyymmdd");
+  }
+
 
   my $tmpdir = $self->tmpdir;
   my $utdir = File::Spec->catdir($tmpdir, $yyyymmdd);
 
+  # make the directory
   mkdir $utdir
     or croak "Error creating directory for UT files: $utdir - $!";
 
@@ -534,6 +556,13 @@ as easily use Crypt::PassGen.
 sub _mkftpdir {
   my $self = shift;
   my $ftproot = $self->ftp_rootdir;
+
+  # untaint ftp root just in case
+  if (-d $ftproot) {
+    $ftproot =~ /^(.*)$/ && ($ftproot = $1);
+  } else {
+    throw OMP::Error::FatalError("Ftp root directory [$ftproot] does not exist!")
+  }
 
   my $key = $self->key;
 
@@ -575,6 +604,9 @@ sub _copy_data {
       print "Unable to locate file $file. Not copying\n";
       $obs->filename('');
       next;
+    } else {
+      # untaint it since it seems to exist
+      $file =~ /^(.*)$/ && ($file = $1);
     }
 
     # Get the actual filename without path
