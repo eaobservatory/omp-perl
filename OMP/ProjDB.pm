@@ -230,6 +230,8 @@ sub getTelescope {
   try {
     my $p = $self->_get_project_row();
     $tel = uc($p->telescope);
+  } catch OMP::Error::UnknownProject with {
+    $tel = undef;
   };
 
   return $tel;
@@ -247,7 +249,8 @@ matches without querying the database.
 
  $telmatches = $db->verifyTelescope( $tel );
 
-Essentially a small wrapper around C<getTelescope>.
+Essentially a small wrapper around C<getTelescope>. Returns false
+if the project does not exist.
 
 =cut
 
@@ -257,11 +260,16 @@ sub verifyTelescope {
 
   my $projectid = $self->projectid;
 
-  if ($projectid =~ /^$tel/ || $tel eq $self->getTelescope() ) {
-    # True if the project id starts with the telescope string
-    # Or the telescope in the database actually matches
+  if ($projectid =~ /^$tel/) {
+    # Project ID starts with the supplied telescope string
     return 1;
   } else {
+    # -w protection
+    my $projtel = $self->getTelescope;
+    if (defined $projtel && $tel eq $projtel) {
+      # Have a real telescope and it matches
+      return 1;
+    }
     return 0;
   }
 }
