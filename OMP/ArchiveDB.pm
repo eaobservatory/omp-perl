@@ -280,7 +280,7 @@ sub _query_files {
 
       # Get a file list.
       if( -d $directory ) {
-        opendir( FILES, $directory );
+        opendir( FILES, $directory ) or throw OMP::Error( "Unable to open data directory $directory: $!" );
         my @files = grep(!/^\./, readdir(FILES));
         closedir(FILES);
 
@@ -376,6 +376,8 @@ sub _query_files {
             push @returnarray, $obs;
           }
         }
+      } else {
+        throw OMP::Error( "Data directory $directory unavailable.\n" );
       }
     }
 
