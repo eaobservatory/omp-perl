@@ -11,7 +11,7 @@ OMP::ObslogDB - Manipulate observation log table.
   $db = new OMP::ObslogDB( ProjectID => 'm01bu05',
                            DB => new OMP::DBbackend );
 
-  $db->addObslog( $comment, $instrument, $date, $runnr );
+  $db->addComment( $comment, $instrument, $date, $runnr );
 
   @output = $db->queryObslog( $query );
 
@@ -271,6 +271,34 @@ sub queryComments {
 
 # And return either the array or a reference to the array.
   return ( wantarray ? @comments : \@comments );
+
+}
+
+=item B<updateObsComment>
+
+Update an C<OMP::Info::Obs> object by adding its associated comment.
+
+  $db->updateObsComment( \@obs_array );
+
+This method takes one argument, a reference to an array of C<OMP::Info::Obs>
+objects. This method will update each C<OMP::Info::Obs> object by
+adding its associated comment, if one exists.
+
+This method returns nothing.
+
+=cut
+
+sub updateObsComment {
+
+  my $self = shift;
+
+  my $obs_arrayref = shift;
+
+  foreach my $obs ( @$obs_arrayref ) {
+#    print Dumper $obs;
+    my $comment = $self->getComment( $obs );
+    $obs->comments->[0] = $comment;
+  }
 
 }
 
