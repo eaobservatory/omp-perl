@@ -107,13 +107,19 @@ Text content forming the comment. Should be in plain text.
   $text = $comm->text;
   $comm->text( $text );
 
-Returns empty string if text has not been set.
+Returns empty string if text has not been set. Strips whitespace
+from beginning and end of text when used as a constructor.
 
 =cut
 
 sub text {
   my $self = shift;
-  if (@_) { $self->{Text} = shift; }
+  if (@_) {
+    my $text = shift;
+    $text =~ s/^\s+//s;
+    $text =~ s/\s+$//s;
+    $self->{Text} = $text;
+  }
   return ( defined $self->{Text} ? $self->{Text} : '' );
 }
 
