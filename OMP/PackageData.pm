@@ -578,8 +578,18 @@ sub _populate {
   }
 
   # Now prune calibrations to remove uninteresting instruments
-  my $match = join("|",keys %instruments);
-  @cal = grep { $_->instrument =~ /^$match$/i } @cal;
+  # Note: cal array will be empty if we didn't find any science observations;
+  # for this reason we store the number of cals before we filter so that we
+  # can compare against the number later
+  my $ncal = scalar(@cal);
+  if (scalar(keys %instruments) == 0) {
+
+    # Don't waste time filtering if we know we aren't going to match anything
+    @cal = ();
+  } else {
+    my $match = join("|",keys %instruments);
+    @cal = grep { $_->instrument =~ /^$match$/i } @cal;
+  }
 
   # And print out calibration matches
   # since we do not want to list a whole load of pointless calibrations
@@ -590,7 +600,7 @@ sub _populate {
   }
 
   # warn if we have cals but no science
-  if (scalar(@proj) == 0  && scalar(@cal) > 0) {
+  if (scalar(@proj) == 0 && $ncal > 0) {
     print STDOUT "\nThis request matched calibrations but no science observations\n..."
       if $self->verbose;
   }
