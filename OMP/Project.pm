@@ -1289,6 +1289,62 @@ sub science_case_url {
   }
 }
 
+=item B<project_number>
+
+Return a string containing only the number portion of the project ID.  Useful for
+sorting projects numerically. May return undef.
+
+=cut
+
+sub project_number {
+  my $self = shift;
+
+  my $string = $self->projectid;
+
+  my $number;
+
+  if ($string =~ m!^u/\d{2}[ab]/[jhd]?(\d+).*$!i     # UKIRT
+      or $string =~ m!^u/[a-z]+/(\d+)$!i             # UKIRT serv
+      or $string =~ /^[ms]\d{2}[ab][a-z]+(\d+).*$/i  # JCMT
+      or $string =~ /^nls(\d+)$/i                    # JCMT Dutch service
+      or $string =~ /^[LS]X_(\d{2}).*$/i             # SHADES proposal
+      or $string =~ /^[a-z]{2,}(\d{2})$/i            # Staff projects (TJ02)
+     ) {
+    $number = $1;
+  }
+
+  return $number;
+
+}
+
+=item B<semester_ori>
+
+Return a string containing the original semester for a project.  The original
+semester is obtained from the project ID. If this method is unable to obtain
+the semester this way, it will return the current semester associated with the
+project.
+
+=cut
+
+sub semester_ori {
+  my $self = shift;
+  my $string = $self->projectid;
+
+  my $sem;
+
+  if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!i       # UKIRT
+	or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/i  # JCMT
+     ) {
+    $sem = $1;
+  }
+
+  if ($sem) {
+    return $sem
+  } else {
+    return $self->semester;
+  }
+}
+
 =item B<incPending>
 
 Increment the value of the C<pending> field by the specified amount.
