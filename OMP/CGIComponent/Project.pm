@@ -199,7 +199,8 @@ sub proj_sum_table {
   print "<td>Completed</td>";
   print "<td>Tau range</td>";
   print "<td>Seeing range</td>";
-  print "<td>Sky</td>";
+  print "<td>Cloud</td>";
+  print "<td>Sky Brightness</td>";
   print "<td>Title</td>";
 
   my %bgcolor = (dark => "#6161aa",
@@ -261,6 +262,7 @@ sub proj_sum_table {
     print "<td align=center>$seerange</td>";
     print "<td align=center>$skyrange</td>";
     print "<td align=center>". $project->cloudtxt ."</td>";
+    print "<td align=center>$skyrange</td>";
     print "<td>". $project->title ."</td>";
 
     # Alternate row class style
