@@ -32,21 +32,7 @@ use OMP::Fault;
 use OMP::FaultDB;
 use Time::Seconds;
 
-use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
-
-require Exporter;
-
 $| = 1;
-
-@ISA = qw/Exporter/;
-
-@EXPORT_OK = (qw/new summary/);
-
-%EXPORT_TAGS = (
-                'all' => [ @EXPORT_OK ],
-               );
-
-Exporter::export_tags(qw/ all /);
 
 =head1 METHODS
 
