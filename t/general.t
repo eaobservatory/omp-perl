@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 99;
+use Test::More tests => 101;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -87,8 +87,8 @@ print "# Project ID\n";
 my @input = (
 	     {
 	      semester => "01b",
-	      projectid => "3",
-	      result => "u/01b/03",
+	      projectid => "03",
+	      result => "u/01b/3",
 	     },
 	     {
 	      projectid => "u04",
@@ -105,13 +105,13 @@ my @input = (
 	      projectid => "h01",
 	      semester => "02a",
 	      telescope => "ukirt",
-	      result => "u/02a/h01",
+	      result => "u/02a/h1",
 	     },
 	     {
 	      projectid => "H1",
 	      semester => "02a",
 	      telescope => "ukirt",
-	      result => "u/02a/H01",
+	      result => "u/02a/H1",
 	     },
 	     {
 	      projectid => "j28",
@@ -123,7 +123,13 @@ my @input = (
 	      projectid => "j4",
 	      semester => "02a",
 	      telescope => "ukirt",
-	      result => "u/02a/j04",
+	      result => "u/02a/j4",
+	     },
+	     {
+	      projectid => "j04",
+	      semester => "03b",
+	      telescope => "ukirt",
+	      result => "u/03b/j4",
 	     },
 	     {
 	      projectid => "22",
@@ -144,7 +150,11 @@ my @input = (
 	     },
 	     {
 	      projectid => "s1",
-	      result => "u/serv/01",
+	      result => "u/serv/1",
+	     },
+	     {
+	      projectid => "s04",
+	      result => "u/serv/4",
 	     },
 	     {
 	      projectid => "s4565",

@@ -611,8 +611,8 @@ sub infer_projectid {
       my $prefix = $1;
       my $digits = $2;
 
-      # Need to pad numbers to at least 2 digits
-      $digits = sprintf "%02d", $digits;
+      # Need to remove leading zeroes
+      $digits =~ s/^0+//;
 
       # For service the semester is always "serv" and
       # the prefix is blank
