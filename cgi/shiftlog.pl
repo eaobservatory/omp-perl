@@ -28,18 +28,12 @@ my $cquery = new CGI;
 my $cgi = new OMP::CGI( CGI => $cquery );
 $cgi->html_title( "OMP Shiftlog" );
 
-# Find our location. If we get back a single telescope, that means we're
-# being run on one of the telescopes. Otherwise we're not, and we need
-# authentication.
-my $tel = OMP::Config->getData('defaulttel');
-if(ref($tel) eq "ARRAY") {
+my @domain = OMP::General->determine_host;
 
-  # We need authentication.
-  $cgi->write_page( \&shiftlog_page, \&shiftlog_page );
+# write the page
 
+if( $domain[1] and $domain[1] !~ /\./) {
+  $cgi->write_page_staff( \&shiftlog_page, \&shiftlog_page );
 } else {
-
-  # We don't need authentication.
   $cgi->write_page_noauth( \&shiftlog_page, \&shiftlog_page );
-
 }
