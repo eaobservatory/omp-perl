@@ -584,7 +584,7 @@ sub obs_comment_form {
                         12 => 'Fault',
                         13 => 'Unknown',
                         14 => 'Next Project',
-                        15 => 'Previous Project',
+                        15 => 'Last Project',
                       );
   my @timegap_value = qw/ 10 11 12 15 14 13 /;
 
