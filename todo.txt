@@ -113,3 +113,8 @@ ProjServer
 - Rationalize the MSB summary output code so that we can
   do HTML, HTML_long, ascii, ascii_long in that class rather than
   kludging it on SciProg or the CGI code.
+
+- Queries of the form <date delta="-1" /> should default to 
+  a range of "now" and "now -1". Currently this does not work.
+
+- Waveband code does not seem to handle significant figures properly.
