@@ -1057,9 +1057,9 @@ sub SpIterStareObs {
     # Map centre (offset and PA)
     # if we had used an offset iterator
     my @offsets = @{ $data{OFFSETS}->[0] };
-    if ($offsets[0] != 0.0 && $offsets[1] != 0.0) {
-      $html .= "This observation is offset from the tracking centre:\n";
-
+    if ($offsets[0] == 0.0 && $offsets[1] == 0.0) {
+      $html .= "This observation is centred on the tracking centre.<BR>\n";
+    } else {
       $html .= "<table>";
       $html .= "<tr><td><b>X offset:</b></td><td>".
 	$offsets[0] . " arcsec</td></tr>";
@@ -1070,8 +1070,6 @@ sub SpIterStareObs {
       $html .= "<tr><td><b>Cell:</b></td><td>".
 	" $cellx x $celly arcsec at $cellpa deg PA</td></tr>";
       $html .= "</table>\n";
-    } else {
-      $html .= "This observation is centred on the tracking centre.<BR>\n";
     }
 
   }
