@@ -466,7 +466,8 @@ sub addressee {
 
 =item B<as_email_hdr>
 
-Return the user name and email address in the format suitable for use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
+Return the user name and email address in the format suitable for 
+use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
 
   $email_hdr = $u->as_email_hdr;
 
@@ -474,7 +475,32 @@ Return the user name and email address in the format suitable for use in an emai
 
 sub as_email_hdr {
   my $self = shift;
-  return $self->name . " <" . $self->email . ">";
+
+  # Done this way to get rid of multiple "Use of uninitialized value in 
+  # concatenation (.) or string at msbserver/OMP/User.pm line 477" errors
+  # which are annoying me like crazy. Preserves the original functionality
+  # of the as_email_hdr() function, which was simply...
+  #
+  # sub as_email_hdr {
+  #     my $self = shift;
+  #     return $self->name . " <" . $self->email . ">";
+  # }
+  #
+  # Modified by Alasdair Allan  (20-JUL-2003)
+  # Extensive docs due to fact I probably shouldn't be playing with this...
+  
+  my $name = $self->name;
+  my $email = $self->email;
+ 
+  if ( defined $name && defined $email ) {
+     return $name . " <" . $email . ">";
+  } elsif ( defined $name ) {
+     return "$name";
+  } elsif ( defined $email ) {
+     return "$email";
+  } else {
+     return "No contact information";         
+  }
 }
 
 =item B<infer_userid>
