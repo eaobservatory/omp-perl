@@ -25,6 +25,20 @@ to an instrument specific subclass. For now just deals with SCUBA.
 
 =cut
 
+# Difficulties:
+#  1. Target translation will need some work, especially
+#     for elements. Effectively use RJ for all equatorial
+#     coordinates and generate comet positions for now and
+#     +1 hour
+#  2. autoTarget will require knowledge on subsequent or prior
+#     observations. Within a single translation this should be
+#     fine. There is no scope for providing external information
+#     on the current telescope position to the translator.
+#  3. autoTarget also needs the ability to choose a reasonable
+#     source on the basis of the known flux.
+
+
+
 use 5.006;
 use strict;
 use warnings;
@@ -34,10 +48,15 @@ use OMP::Error;
 
 use File::Temp qw/tempfile/;
 use File::Basename qw/basename/;
+use Time::Piece ':override';
+use Time::Seconds qw/ ONE_HOUR /;
 
 our $VERSION = (qw$Revision$)[1];
 
+# Unix directory for writing ODFs
 our $TRANS_DIR = "/tmp/omplog";
+# Equivalent path on vax
+our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
 use constant PI => 3.141592654;
 
@@ -200,11 +219,28 @@ sub write_odf {
     or throw OMP::Error::FatalError("Error creating ODF");
 
   foreach my $key (keys %$odf) {
-    if (ref($odf->{$key})) {
-      # A reference
+    my $ref = ref($odf->{$key});
+    if (not $ref) {
+      print $fh "$key      " . $odf->{$key} . "\n";
+    } elsif ($ref eq 'ARRAY') {
+      # An array indicates another file is to be created
+      # containing the array contents
+      my ($subfh, $subfile) = tempfile( lc($key) ."_XXXXXX",
+					SUFFIX => "." . lc($key),
+					DIR => $TRANS_DIR,
+				      )
+	or throw OMP::Error::FatalError("Error writing config file for ODF key $key");
+
+      print $subfh join("\n", @{$odf->{$key}}),"\n";
+      close $subfh
+	or throw OMP::Error::FatalError("Error closing config file ($subfile) for ODF key $key");
+
+      # Now write the filename to the ODF
+      # This will probably need a full VAX path
+      print $fh "$key      $TRANS_DIR_VAX" . basename($subfile) . "\n";
 
     } else {
-      print $fh "$key      " . $odf->{$key} . "\n";
+      throw OMP::Error::FatalError("Unable to write an ODF that contains reference to $ref when key is $key");
     }
 
   }
@@ -725,6 +761,8 @@ sub getOffsets {
 
 Get the number of integrations for the observation.
 
+  %ints = $trans->getInts( %info );
+
 =cut
 
 sub getInts {
@@ -737,6 +775,10 @@ sub getInts {
 }
 
 =item B<getChop>
+
+Get the chop details
+
+ %chop = $trans->getChop( %info );
 
 =cut
 
@@ -756,6 +798,11 @@ sub getChop {
 
 =item B<getTarget>
 
+Generate target specification. This is probably the most
+complicated step since it should handle orbital elements
+and the ability to choose a suitable target.
+
+  %scan = $trans->getScan( %info );
 
 =cut
 
@@ -763,11 +810,79 @@ sub getTarget {
   my $self = shift;
   my %info = @_;
 
-  return ();
+  # First see if we need to choose a target
+  if ($info{autoTarget}) {
+    # Get a new target
+
+    throw OMP::Error::FatalError("autoTarget not yet supported by translator");
+
+  }
+
+  # Switch on coords type
+  my %target;
+  if ($info{coordstype} eq 'RADEC') {
+    # Ask for J2000
+    $target{CENTRE_COORDS} = "RJ";
+
+    # Get the coordinate object
+    my $c = $info{coords};
+
+    # RA and DEC in J2000
+    $target{RA} = $c->ra( format => 's');
+    $target{DEC} = $c->dec( format => 's');
+
+  } elsif ($info{coordstype} eq 'PLANET') {
+
+    # For named targets just use SOURCE_NAME
+    # Note that the OT does not support named targets
+    # in general. Just planets in particular.
+    $target{SOURCE_NAME} = $info{coords}->planet;
+
+
+  } elsif ($info{coordstype} eq 'ELEMENTS') {
+
+    # moving target
+    $target{CENTRE_COORDS} = "PLANET";
+
+    # Get the coordinate object
+    my $c = $info{coords};
+
+    # initialise for current time
+    my $time = new Time::Piece;
+    $c->datetime( $time );
+
+    $target{RA} = $c->ra_app( format => 's');
+    $target{DEC} = $c->dec_app( format => 's');
+    $target{MJD1} = $c->datetime->mjd;
+
+    # An hour in the future
+    print "XXX Old time: $time\n";
+    print "XXX Old MJD: " . $time->mjd . "\n";
+    $time += Time::Seconds::ONE_DAY + (12 * ONE_HOUR);
+    print "XXX New time: $time\n";
+    print "XXX Ref: " . ref($time) . "\n";
+    print "XXX New MJD: " . $time->mjd . "\n";
+    $c->datetime( $time );
+    $target{RA2} = $c->ra_app( format => 's');
+    $target{DEC2} = $c->dec_app( format => 's');
+    $target{MJD2} = $c->datetime->mjd;
+
+
+  } else {
+    throw OMP::Error::SpTranslateFail("This observing mode requires a target rather than coordinates of type $info{coordstype}");
+  }
+
+
+  return %target;
 }
 
 =item B<getScan>
 
+Return SCAN details. In future this should also be used to generate
+the "best" scan angle for SCUBA. Currently always uses 15 degrees
+or the first angle specified from the OT.
+
+  %scan = $trans->getScan( %info );
 
 =cut
 
@@ -798,15 +913,16 @@ sub getScan {
   if (@scanpas) {
     # Some have been specified
     # We should really work out which is best and then use that
+    # For now take the first
+    $scan{SAMPLE_PA} = $scanpas[0];
 
   } else {
     # Nothing specified
     # We have to make a stab
+    # For now - Ha!
+    $scan{SAMPLE_PA} = 14.5;
 
   }
-
-  # For now - Ha!
-  $scan{SAMPLE_PA} = 14.5;
 
   return %scan;
 }
