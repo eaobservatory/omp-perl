@@ -33,6 +33,7 @@ use Time::Seconds;
 # TABLES
 our $SCUTAB = 'archive..SCU S';
 our $GSDTAB = 'jcmt..SCA G';
+our $SUBTAB = 'jcmt..SUB H';
 our $UKIRTTAB = 'ukirt..COMMON U';
 our %insttable = ( CGS4 => [ $UKIRTTAB ],
                    UFTI => [ $UKIRTTAB ],
@@ -42,6 +43,35 @@ our %insttable = ( CGS4 => [ $UKIRTTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB ],
                  );
+
+#our %jointable = ( $GSDTAB => ( $SUBTAB => '(G.sca# == H.sca#)' ),
+#                 );
+
+# Lookup table
+my %lut = (
+	   # XML tag -> database table -> column name
+	   instrument => {
+			  $SCUTAB => undef, # implied
+			  $GSDTAB => 'G.frontend',
+			  $UKIRTTAB => 'U.INSTRUME',
+			 },
+	   date => {
+		    $SCUTAB => 'S.ut',
+		    $GSDTAB => 'G.ut',
+		    $UKIRTTAB => 'U.UT_DATE',
+		   },
+	   obsnum => {
+		    $SCUTAB => 'S.run',
+		    $GSDTAB => 'G.scan',
+		    $UKIRTTAB => 'U.OBSNUM',
+		   },
+	   projectid => {
+		    $SCUTAB => 'S.proj_id',
+		    $GSDTAB => 'G.projid',
+		    $UKIRTTAB => 'U.PROJECT',
+		   },
+
+	  );
 
 # Inheritance
 use base qw/ OMP::DBQuery /;
@@ -284,7 +314,7 @@ sub sql {
 
       # SCUBA only for now [note that we explicitly
       # select the database and table
-      $sql = "SELECT * FROM $tables $where";
+      $sql = "SELECT *, CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdate' FROM $tables $where";
 
     } elsif ($tel eq 'UKIRT') {
 
@@ -360,32 +390,6 @@ This method will throw an exception if a query is requested for
 an instrument/telescope combination that can not work.
 
 =cut
-
-# Lookup table
-my %lut = (
-	   # XML tag -> database table -> column name
-	   instrument => {
-			  $SCUTAB => undef, # implied
-			  $GSDTAB => 'G.frontend',
-			  $UKIRTTAB => 'U.INSTRUME',
-			 },
-	   date => {
-		    $SCUTAB => 'S.ut',
-		    $GSDTAB => 'G.ut',
-		    $UKIRTTAB => 'U.UT_DATE',
-		   },
-	   obsnum => {
-		    $SCUTAB => 'S.run',
-		    $GSDTAB => 'G.scan',
-		    $UKIRTTAB => 'U.OBSNUM',
-		   },
-	   projectid => {
-		    $SCUTAB => 'S.proj_id',
-		    $GSDTAB => 'G.projid',
-		    $UKIRTTAB => 'U.PROJECT',
-		   },
-
-	  );
 
 
 sub _post_process_hash {
