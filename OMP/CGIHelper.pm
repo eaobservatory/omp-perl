@@ -1683,6 +1683,8 @@ sub projlog_content {
 
   print "<p><a href='#wvm'>View WVM graph</a>";
 
+  print "<p><a href=\"obslog_text.pl?ut=" . $utdate . "&projid=" . $projectid . "\">View text-based observation log</a>\n";
+
   # Make a form for submitting MSB comments if an 'Add Comment'
   # button was clicked
   if ($q->param("Add Comment")) {
