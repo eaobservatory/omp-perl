@@ -793,11 +793,10 @@ sub SpIterNoiseObs {
 	     # Bolometers
 	     # General
 	     CENTRE_COORDS => 'AZ', # Always in same place
-	     EL => '80:00:00',
-	     CHOP_COORDS => 'AZ',
 	     CHOP_FUN => 'scubawave',
-	     CHOP_PA => 90,
-	     CHOP_THROW => 60.0,
+	     #CHOP_COORDS => 'AZ',
+	     #CHOP_PA => 90,
+	     #CHOP_THROW => 60.0,
 	     # Filter
 	     # GAIN
 	     N_MEASUREMENTS => '1',
@@ -805,10 +804,11 @@ sub SpIterNoiseObs {
 	     OBSERVING_MODE => 'noise',
 	     SAMPLE_COORDS => 'NA',
 	     SPIKE_REMOVAL => 'yes',
+	     EL => '80:00:00.0', # Might remove this soon KLUGE
 	    );
 
   # Populate bits that vary
-  for (qw/ General Filter Gain Ints / ) {
+  for (qw/ General Filter Gain Ints ChopDefault / ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
@@ -1051,6 +1051,27 @@ sub getCalChop {
 	   CHOP_PA    =>  90,
 	 );
 
+}
+
+=item B<getChopDefault>
+
+Return I<either> the specified chop (if there is one) or return
+the standard calibration chop.
+
+  %chop = $trans->getChopDefault( %info );
+
+=cut
+
+sub getChopDefault {
+  my $self = shift;
+  my %info = @_;
+
+  # see if we have a chop
+  if (exists $info{CHOP_THROW} && defined $info{CHOP_THROW}) {
+    return $self->getChop(%info);
+  } else {
+    return $self->getCalChop(%info);
+  }
 }
 
 =item B<getTarget>
