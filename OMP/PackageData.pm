@@ -9,7 +9,9 @@ OMP::PackageData - Package up data for retrieval by PI
   use OMP::PackageData;
 
   my $pkg = new OMP::PackageData( projectid => 'M02BU127',
-                                  utdate => '2002-09-15');
+                                  utdate => '2002-09-15',
+				  inccal => 1,
+				);
 
   $pkg->root_tmpdir("/tmp/ompdata");
 
@@ -84,6 +86,7 @@ sub new {
 		   UTDir => undef,
 		   FTPDir => undef,
 		   Key => undef,
+		   IncCal => 1,
 		  };
 
   if (@_) {
@@ -194,7 +197,7 @@ Controls whether messages are sent to standard output during
 the packaging of the data. Default is true.
 
   $pkg->verbose(0);
-  $v = $pkg->verbose(1);
+  $v = $pkg->verbose();
 
 =cut
 
@@ -204,6 +207,24 @@ sub verbose {
     $self->{Verbose} = shift;
   }
   return $self->{Verbose};
+}
+
+=item B<inccal>
+
+Controls whether calibration observations are included in the packaged data.
+Default is to include calibrations.
+
+  $pkg->inccal(0);
+  $inc = $pkg->inccal();
+
+=cut
+
+sub inccal {
+  my $self = shift;
+  if (@_) {
+    $self->{IncCal} = shift;
+  }
+  return $self->{IncCal};
 }
 
 =item B<key>
@@ -466,6 +487,9 @@ sub _populate {
   $self->utdate( $args{utdate} );
   $self->password( $args{password} );
 
+  # indicate whether we are including calibrations
+  $self->inccal( $args{inccal}) if exists $args{inccal};
+
   # Need to get the telescope associated with this project
   # Should ObsGroup do this???
   my $proj = OMP::ProjServer->projectDetails($self->projectid, $self->password, 'object');
@@ -473,30 +497,62 @@ sub _populate {
   my $tel = $proj->telescope;
 
   # Now need to do a query on the archive
+  # We do not always need to include the calibrations.
+  # It might make sense for ObsGroup to have a calibration switch
+  # but for now we vary our query to include the project ID and utdate
+  # only if calibrations are not required
+  my %query = ( telescope => $tel,
+		date => $self->utdate,
+	      );
+
+  # Decide whether to optimize for project ID
+  $query{projectid} = $self->projectid
+    unless $self->inccal;
+
+  # KLUGE for SCUBA. ArchiveDB can not currently query mutltiple JCMT instruments
+  $query{instrument} = 'scuba' if $tel =~ /jcmt/i;
+
   # Since we need the calibrations we do a full ut query and
   # then select the calibrations and project info. This needs
   # to be done in ObsGroup.
   print STDOUT "Querying database for relevant data files..."
     if $self->verbose;
-  my $grp = new OMP::Info::ObsGroup( telescope => $tel,
-				     date => $self->utdate,
-				     # kluge until we sort out archivedb
-				     ( $tel =~  /jcmt/i ? (instrument => 'scuba') : ())
-				   );
 
+  my $grp = new OMP::Info::ObsGroup( %query );
+
+  # If we asked for everything we now have to go through and select
+  # out project observations and the calibrations
   # Now go through and get the bits we need
   # Anything associated with the project or anything from the
   # night that is not a science observation
-  my @match;
-  for my $obs ($grp->obs) {
-    if (uc($obs->projectid) eq $self->projectid  ||
-       ! $obs->isScience) {
-      push(@match, $obs);
-    }
-  }
-  print STDOUT "Done [".scalar(@match)." files match]\n" if $self->verbose;
+  if ($self->inccal) {
 
-  $grp->obs(\@match);
+    # Go through looking for project informaton
+    # Do this so we can warn if we do not get any data for this night
+    my (@proj,@cal);
+    for my $obs ($grp->obs) {
+      if (uc($obs->projectid) eq $self->projectid ) {
+	push(@proj, $obs);
+      } elsif ( ! $obs->isScience ) {
+	push(@cal, $obs);
+      }
+    }
+
+    # warn if we have cals but no science
+    if (scalar(@proj) == 0  && scalar(@cal) > 0) {
+      print STDOUT "\nThis request matched calibrations but no science observations\n..."
+	if $self->verbose;
+    }
+
+    # Store the new observations
+    $grp->obs([@proj,@cal]);
+
+  }
+
+  my @obs = $grp->obs;
+  print STDOUT "Done [".scalar(@obs)." files match]\n" if $self->verbose;
+
+  # Store the result
   $self->obsGrp($grp);
 
 }
