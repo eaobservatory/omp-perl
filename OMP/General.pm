@@ -635,8 +635,10 @@ sub determine_band {
 	$band = 3;
       } elsif ($cso > 0.12 && $cso <= 0.2) {
 	$band = 4;
-      } elsif ($cso > 0.2) {
+      } elsif ($cso > 0.2 && $cso <= 0.32) {
 	$band = 5;
+      } elsif ($cso > 0.32) {
+	$band = 6;
       } else {
 	throw OMP::Error::FatalError("CSO tau out of range: $cso\n");
       }
@@ -682,7 +684,8 @@ Returns undef if the band is not known.
 	       2   => new OMP::Range( Min => 0.05, Max => 0.08),
 	       3   => new OMP::Range( Min => 0.08, Max => 0.12),
 	       4   => new OMP::Range( Min => 0.12, Max => 0.20),
-	       5   => new OMP::Range( Min => 0.20 ),
+	       5   => new OMP::Range( Min => 0.20, Max => 0.32),
+	       6   => new OMP::Range( Min => 0.32 ),
 	       '2*' => new OMP::Range( Min => 0.05, Max => 0.10),
 	       '3*' => new OMP::Range( Min => 0.10, Max => 0.12),
 	      );
