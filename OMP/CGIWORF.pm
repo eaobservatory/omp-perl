@@ -242,24 +242,34 @@ sub thumbnails_page {
             $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
             print "</tr><tr class=\"$rowclass\">";
             $curgrp = $obs->runnr;
+            if( ! defined( $obs->runnr ) ) {
+              # SCUBA rebinned image hack
+              $file =~ /_(\d{4})_/;
+              $curgrp = int( $1 );
+            }
           }
         } else {
           $curgrp = $obs->runnr;
+          if( ! defined( $obs->runnr ) ) {
+            # SCUBA rebinned image hack
+            $file =~ /_(\d{4})_/;
+            $curgrp = int( $1 );
+          }
         }
         print "<td>";
         print "<a href=\"worf.pl?ut=$obsut&runnr=";
-        print $obs->runnr . "&inst=" . $obs->instrument;
+        print $curgrp . "&inst=" . $obs->instrument;
         if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
         print "\">";
         print "<img src=\"worf_image.pl?";
-        print "runnr=" . $obs->runnr;
+        print "runnr=" . $curgrp;
         print "&ut=" . $obsut;
         print "&inst=" . $obs->instrument;
         if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
         print "&size=thumb\"></a>";
         print "</td><td>";
         print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
-        print "Group&nbsp;number:&nbsp;" . $obs->runnr . "<br>\n";
+        print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
         print "Suffix:&nbsp;none\n</td>";
         next FILELOOP;
       } else {
@@ -270,18 +280,28 @@ sub thumbnails_page {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
                 print "</tr>\n<tr class=\"$rowclass\">";
                 $curgrp = $obs->runnr;
+                if( ! defined( $obs->runnr ) ) {
+                  # SCUBA rebinned image hack
+                  $file =~ /_(\d{4})_/;
+                  $curgrp = int( $1 );
+                }
               }
             } else {
               $curgrp = $obs->runnr;
+              if( !defined( $obs->runnr ) ) {
+                # SCUBA rebinned image hack
+                $file =~ /_(\d{4})_/;
+                $curgrp = int( $1 );
+              }
             }
             print "<td>";
             print "<a href=\"worf.pl?ut=$obsut&runnr=";
-            print $obs->runnr . "&inst=" . $obs->instrument;
+            print $curgrp . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
             if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
             print "\">";
             print "<img src=\"worf_image.pl?";
-            print "runnr=" . $obs->runnr;
+            print "runnr=" . $curgrp;
             print "&ut=" . $obsut;
             print "&inst=" . $obs->instrument;
             if( $instrument !~ /heterodyne/ ) { print "&group=1"; }
@@ -289,7 +309,7 @@ sub thumbnails_page {
             print "&suffix=$suffix\"></a>";
             print "</td><td>";
             print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
-            print "Group&nbsp;number:&nbsp;" . $obs->runnr . "<br>\n";
+            print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
             print "Suffix:&nbsp;" . $suffix . "\n</td>";
             next FILELOOP;
           }
