@@ -89,6 +89,13 @@ sub loginhash {
 		 password => "***REMOVED***",
 		);
 
+#  my %details = (
+#		 driver   => "Pg",
+#		 database => "omp2",
+#		 user     => "timj",
+#		 password => "test",
+#		);
+
   # possible override for sybase users
   if ($details{driver} eq 'Sybase') {
     $details{server} = $ENV{OMP_DBSERVER}
@@ -103,7 +110,251 @@ sub loginhash {
   return %details;
 }
 
-=back
+=item B<dbdriver>
+
+Returns the DBD:: class name used for the backend connection. Databases
+have different functionality and SQL dialects so this method should
+be used to determine which database backend is being used by the software.
+This is assumed to be fixed during the lifetime of the program (but
+will support subclassing if the correct class is used).
+
+ $driver = OMP::DBbackend->dbdriver();
+
+Will return "Sybase" for Sybase or "Pg" for PostgreSQL.
+
+=cut
+
+sub dbdriver {
+  my $class = shift;
+  my %loginhash = $class->loginhash;
+  my $driv = $loginhash{driver};
+  $driv = "UNKNOWN" if !defined $driv;
+  return $driv;
+}
+
+=item B<has_writetext>
+
+Indicates whether the database supports the WRITETEXT SQL function.
+Returns true if it does, false if it does not.
+
+=cut
+
+sub has_writetext {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+=item B<has_textsize>
+
+Indicates whether the database supports the "SET TEXTSIZE" construct.
+Returns true if it does, false if it does not.
+
+=cut
+
+sub has_textsize {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+=item B<has_automatic_serial_on_insert>
+
+Returns true if a SERIAL/IDENTITY column is incremented automatically
+during ordered insert. Returns false if SERIAL/IDENTITY columns have
+to be dealt with explicitly in order insert (or alternatively, only
+support named insert).
+
+=cut
+
+sub has_automatic_serial_on_insert {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+=item B<get_serial_type>
+
+Indicates what type should be used to declare columns that should
+be treated as unique sequential identifier columns.
+For Sybase returns "IDENTITY", for PostgreSQL returns "SERIAL".
+
+ $type = OMP::DBbackend->get_ident_type();
+
+=cut
+
+sub get_serial_type {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "numeric(9,0) IDENTITY";
+  } else {
+    return "SERIAL";
+  }
+}
+
+
+=item B<get_datetime_type>
+
+Returns the column type that should be used to represent a date and
+time (at least 1 second precision). Returns the type.
+
+=cut
+
+sub get_datetime_type {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "DATETIME";
+  } else {
+    return "TIMESTAMP";
+  }
+}
+
+=item B<get_boolean_type>
+
+Return the column type suitable for use as a boolean.
+
+=cut
+
+sub get_boolean_type {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "BIT";
+  } else {
+    return "BOOLEAN";
+  }
+}
+
+=item B<get_boolean_true>
+
+Return the definition of "true" for a boolean type (as returned
+by the C<get_boolean_type> method) suitable for use in a SELECT statement.
+
+=cut
+
+sub get_boolean_true {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "1";
+  } else {
+    return "true";
+  }
+}
+
+=item B<get_boolean_false>
+
+Return the definition of "false" for a boolean type (as returned
+by the C<get_boolean_type> method) suitable for use in a SELECT statement.
+
+=cut
+
+sub get_boolean_false {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "0";
+  } else {
+    return "false";
+  }
+}
+
+
+=cut
+
+=item B<get_temptable_constructor>
+
+String that should precede a temporary table constructor in a "SELECT INTO"
+construct. For Sybase returns an empty string. For Postgres returns the
+string "TEMPORARY". In conjunction with C<get_temptable_prefix> can
+be used to construct a query:
+
+  SELECT * INTO TEMPORARY temp
+
+or
+
+  SELECT * INTO #temp
+
+=cut
+
+sub get_temptable_constructor {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "";
+  } else {
+    return "TEMPORARY";
+  }
+}
+
+
+
+=item B<get_temptable_prefix>
+
+Retrieve any prefix that should be attached to a temporary table
+name before it can be used in a query. For Sybase returns a "#"
+for all other databases returns an empty string
+
+  DROP TABLE #temp
+
+or
+  DROP TABLE temp
+
+=cut
+
+sub get_temptable_prefix {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "#";
+  } else {
+    return "";
+  }
+}
+
+=item B<get_sql_typecast>
+
+Given a SQL variable/column name and a variable type, returns the SQL
+code necessary to convert the variable into the new type.
+
+  $sql = OMP::DBbackend->get_sql_typecast( "float", "M.obscount" );
+
+For Sybase:
+
+  convert(float,M.obscount)
+
+for PostgreSQL:
+
+  CAST(M.obscount AS FLOAT)
+
+=cut
+
+sub get_sql_typecast {
+  my $class = shift;
+  my $newtype = shift;
+  my $oldvar = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "convert($newtype,$oldvar)";
+  } else {
+    # postgres
+    return "CAST($oldvar AS $newtype)";
+  }
+}
 
 =head2 Constructor
 
@@ -143,7 +394,7 @@ sub new {
   my $db = bless {
 		  TransCount => 0,
 		  Handle => undef,
-      IsConnected => 0,
+                  IsConnected => 0,
 		 }, $class;
 
   # Store object in the cache
@@ -270,7 +521,7 @@ sub connect {
     $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=120";
   } elsif ($DBIdriver eq 'Pg') {
     $DBserver = "<IRRELEVANT>";
-    $dboptions = ":dbname=${DBserver}";
+    $dboptions = ":dbname=${DBdatabase}";
   } elsif ($DBIdriver eq 'mSQL') {
     $DBserver = "<IRRELEVANT>";
     $dboptions = ":database=$DBdatabase";
