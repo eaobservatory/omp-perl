@@ -1033,6 +1033,7 @@ sub _populate {
 # Set up a planet coordinate system.
       my $coords = new Astro::Coords( planet => $self->target );
       $coords->datetime( $self->startobs );
+      $coords->telescope( new Astro::Telescope( $self->telescope ) );
       $self->coords( $coords );
     } elsif ( $self->type !~ /ARC|DARK|BIAS/ && defined ( $generic_header{COORDINATE_TYPE} ) ) {
 
