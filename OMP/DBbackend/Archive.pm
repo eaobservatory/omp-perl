@@ -27,6 +27,8 @@ use 5.006;
 use strict;
 use warnings;
 
+use OMP::Error qw/ :try /;
+
 use base qw/ OMP::DBbackend /;
 
 
