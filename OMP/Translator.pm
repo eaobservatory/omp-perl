@@ -1197,9 +1197,25 @@ sub getBols {
   my @bols = @{$info{bolometers}};
 
   # primary bolometer must come first in list
-  my $primary = $info{primaryBolometer};
+  my $primary = uc($info{primaryBolometer});
 
-  my $bols = join(",", $primary, grep { $_ ne $primary} @bols);
+  # KLUGE - SCUBA does not allow two bolometers to be specified
+  # if they occupy the same position on the sky (eg C14 and H7)
+  # This is a problem because the OT allows it (and pretty much
+  # encourages it). Real solution is to determine this from the
+  # the flatfield file. Kluge solution - for now recognize
+  # C14 and H7
+  # Create a hash (including the primary bolometer
+  my %bols_used = map { uc($_), undef } @bols, $primary;
+
+  # see if we have c14 and h7
+  delete $bols_used{C14} 
+    if exists $bols_used{C14} && exists $bols_used{H7};
+
+  # and remove the primary again
+  delete $bols_used{$primary};
+
+  my $bols = join(",", $primary, keys %bols_used);
 
   return (BOLOMETERS => $bols);
 }
@@ -1390,6 +1406,7 @@ sub getSubInst {
     throw OMP::Error::TranslateFail("Bolometer $bol not present in any SCUBA sub-instrument")
       unless defined $sub;
   }
+  print "Associated sub instrument: $sub\n";
   return $sub;
 }
 
