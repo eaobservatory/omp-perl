@@ -587,7 +587,6 @@ sub mail_report {
   my $mailaddr = OMP::Config->getData( 'nightrepemail', 
 				       telescope => $self->telescope);
 
-  $mailaddr = 'timj@jach.hawaii.edu';
   # Should probably CC observers
 
   # Get the text
