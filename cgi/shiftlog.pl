@@ -118,8 +118,19 @@ sub list_comments {
     return;
   }
 
-  my $ut = $verified->{'ut'};
+  my $date = $verified->{'date'};
   my $telescope = $verified->{'telescope'};
+
+  # If the date given is in HST, we need to convert it to UT so the query knows
+  # how to deal with it.
+  my $ut;
+  if( $verified->{'zone'} =~ /HST/i ) {
+    my $hstdate = Time::Piece->strptime( $date, "%Y-%m-%d");
+    my $utdate = $hstdate + 10 * ONE_HOUR;
+    $ut = $utdate->datetime;
+  } else {
+    $ut = $date;
+  }
 
   # Form the XML.
   my $xml = "<ShiftQuery><date delta=\"1\">$ut</date><telescope>$telescope</telescope></ShiftQuery>";
@@ -133,7 +144,8 @@ sub list_comments {
 
   # At this point we have an array of relevant Info::Comment
   # objects, so we can display them now.
-  print "<h2>Shift comments for ${ut}UT for $telescope</h2>\n";
+  my $zone = $verified->{'zone'};
+  print "<h2>Shift comments for $date $zone for $telescope</h2>\n";
   print "<table border=\"1\">\n";
   print "<tr><td><strong>HST time<br>User ID</strong></td><td><strong>comment</strong></td></tr>\n";
   foreach my $comment (@result) {
@@ -160,13 +172,15 @@ sub display_form {
   print ( defined( $params->{'user'} ) ? $params->{'user'} : "");
   print "\"></td></tr>\n";
   print "<tr><td>Time: (HHMM or HH:MM format, will default to current time if blank)</td><td><input type=\"text\" name=\"time\" value=\"";
-  print "\">  <input type=\"radio\" name=\"tz\" value=\"HST\" checked> HST ";
-  print "<input type=\"radio\" name=\"tz\" value=\"UT\"> UT</td></tr>\n";
+  print "\"></td></tr>\n";
   print "<tr><td>Comment:</td><td><textarea name=\"text\" rows=\"16\" cols=\"50\">";
   print "</textarea></td></tr>\n";
   print "</table>\n";
-  print "<input type=\"hidden\" name=\"ut\" value=\"";
-  print ( defined($params->{'ut'}) ? $params->{'ut'} : "" );
+  print "<input type=\"hidden\" name=\"date\" value=\"";
+  print ( defined($params->{'date'}) ? $params->{'date'} : "" );
+  print "\">\n";
+  print "<input type=\"hidden\" name=\"zone\" value=\"";
+  print ( defined( $params->{'zone'}) ? $params->{'zone'} : "" );
   print "\">\n";
   print "<input type=\"submit\" value=\"submit comment\"> <input type=\"reset\">\n";
   print "</form>\n";
@@ -176,10 +190,11 @@ sub edit_comment {
   my $params = shift;
 
   # In order to edit a comment, we need at the bare minimum a date/time,
-  # an author, and a telescope.
-  if( ! defined( $params->{'ut'} ) ||
+  # an author, some text, and a telescope.
+  if( ! defined( $params->{'date'} ) ||
       ! defined( $params->{'time'} ) ||
       ! defined( $params->{'user'} ) ||
+      ! defined( $params->{'text'} ) ||
       ! defined( $params->{'telescope'} ) ) {
     # Return silently.
     return;
@@ -187,20 +202,17 @@ sub edit_comment {
 
   my ($uthour, $utminute, $utday);
   # Form the date.
-  if($params->{'tz'} =~ /HST/i) {
-    # Convert HST time into UT time.
-    $params->{'time'} =~ /(\d\d)(\d\d)/;
-    my ($hour, $minute) = ($1, $2);
-    $uthour = ($hour + 10) % 24;
-    $utminute = $minute;
-    $utday = $params->{'ut'};
-  } else {
-    $params->{'time'} =~ /(\d\d)(\d\d)/;
-    ($uthour, $utminute) = ($1, $2);
-    $utday = $params->{'ut'};
-  }
-  my $datestring = "$utday $uthour:$utminute:00";
+
+  $params->{'time'} =~ /(\d\d)(\d\d)/;
+  my ($hour, $minute) = ($1, $2);
+
+  my $datestring = $params->{'date'} . " $hour:$minute:00";
   my $datetime = Time::Piece->strptime( $datestring, "%Y-%m-%d %H:%M:%S" );
+
+  # Convert the time zone to UT, if necessary.
+  if( $params->{'zone'} =~ /HST/i) {
+    $datetime += 10 * ONE_HOUR;
+  }
 
   # Get the user.
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
@@ -220,64 +232,64 @@ sub verify_query {
   my $q = shift;
   my $v = shift;
 
-  # The 'ut' parameter is of the form yyyy-mm-dd
-  if(defined($q->{ut})) {
-    if($q->{ut} =~ /^\d{4}-\d\d-\d\d$/) {
-      $v->{ut} = $q->{ut};
+  # The 'year' parameter is of the form yyyy-mm-dd
+  if(defined($q->{'date'})) {
+    if($q->{'date'} =~ /^\d{4}-\d\d-\d\d$/) {
+      $v->{'date'} = $q->{'date'};
     } else {
       my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
-      $v->{ut} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
+      $v->{'date'} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
     }
   } else {
     # Default this to the current UT date.
     my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
-    $v->{ut} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
+    $v->{'date'} = ($year + 1900) . "-" . pad($month + 1, "0", 2) . "-" . pad($day, "0", 2);
   }
 
   # The 'user' parameter is made of only alphabetical characters
-  if(defined($q->{user})) {
-    $v->{user} = $q->{user};
-    $v->{user} =~ s/[^a-zA-Z]//g;
+  if(defined($q->{'user'})) {
+    $v->{'user'} = $q->{'user'};
+    $v->{'user'} =~ s/[^a-zA-Z]//g;
   }
 
   # The 'text' parameter can be anything
-  if(defined($q->{text})) {
-    $v->{text} = $q->{text};
-    $v->{text} =~ s/\015//g; # get rid of ^M
+  if(defined($q->{'text'})) {
+    $v->{'text'} = $q->{'text'};
+    $v->{'text'} =~ s/\015//g; # get rid of ^M
   }
 
-  # The 'time' parameter is four digits
-  if(defined($q->{time})) {
-    if($q->{time} =~ /^\d{4}$/) {
-      $v->{time} = $q->{time};
-    } elsif($q->{time} =~ /^(\d\d):(\d\d)$/) {
-      $v->{time} = $1 . $2;
+  # The 'time' parameter is four digits or hh:mm
+  if(defined($q->{'time'})) {
+    if($q->{'time'} =~ /^\d{4}$/) {
+      $v->{'time'} = $q->{'time'};
+    } elsif($q->{'time'} =~ /^(\d\d):(\d\d)$/) {
+      $v->{'time'} = $1 . $2;
     }
   } else {
     my $time = localtime;
-    $v->{time} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
+    $v->{'time'} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
   }
 
-  # The 'tz' parameter is either HST or UT (default to HST)
-  if(defined($q->{tz})) {
-    if($q->{tz} =~ /UT/i) {
-      $v->{tz} = 'UT';
+  # The 'zone' parameter is either HST or UT (default to UT)
+  if(defined($q->{'zone'})) {
+    if($q->{'zone'} =~ /HST/i) {
+      $v->{'zone'} = 'HST';
     } else {
-      $v->{tz} = 'HST';
+      $v->{'zone'} = 'UT';
     }
   } else {
-    $v->{tz} = 'HST';
+    $v->{'zone'} = 'UT';
   }
 
   # The 'telescope' parameter is either JCMT or UKIRT (default to JCMT)
-  if(defined($q->{telescope})) {
-    if($q->{telescope} =~ /UKIRT/i) {
-      $v->{telescope} = 'UKIRT';
+  if(defined($q->{'telescope'})) {
+    if($q->{'telescope'} =~ /UKIRT/i) {
+      $v->{'telescope'} = 'UKIRT';
     } else {
-      $v->{telescope} = 'JCMT';
+      $v->{'telescope'} = 'JCMT';
     }
   } else {
-    $v->{telescope} = 'JCMT';
+    $v->{'telescope'} = 'JCMT';
   }
 
 }
@@ -294,7 +306,7 @@ There are no arguments.
 
 sub print_header {
   print <<END;
-Welcome to shiftlog. <a href="#changeut">Change the UT date</a>
+Welcome to shiftlog. <a href="#changeut">Change the date</a>
 <a href="#changetelescope">Change the telescope</a><br>
 <hr>
 END
@@ -314,8 +326,17 @@ sub print_footer {
   my $params = shift;
 
   print "<p><form action=\"shiftlog.pl\" method=\"post\"><br>";
-  print "<a name=\"changeut\">New</a> UT date (yyyy-mm-dd format, please): ";
-  print "<input type=\"text\" name=\"ut\" value=\"\"><br>\n";
+  print "<a name=\"changeut\">New</a> date (yyyy-mm-dd format, please): ";
+  print "<input type=\"text\" name=\"date\" value=\"\"> &nbsp;&nbsp;UT";
+  print "<input type=\"radio\" name=\"zone\" value=\"ut\"";
+  if(lc($params->{'zone'}) ne 'hst') {
+    print " checked";
+  }
+  print "> HST <input type=\"radio\" name=\"zone\" value=\"hst\"";
+  if(lc($params->{'zone'}) eq 'hst') {
+    print " checked";
+  }
+  print "><br>\n";
   print "<input type=\"submit\" value=\"submit\"> <input type=\"reset\">\n";
   print "<input type=\"hidden\" name=\"telescope=\" value=\"";
   print $params->{'telescope'};
@@ -331,10 +352,7 @@ sub print_footer {
   if($params->{'telescope'} eq 'UKIRT') {
     print " checked";
   }
-  print ">";
-  print "<input type=\"hidden\" name=\"ut\" value=\"";
-  print $params->{'ut'};
-  print "\"><br>\n";
+  print "><br>";
   print "<input type=\"submit\" value=\"submit\"> <input type=\"reset\"></form>\n";
   print "<p>\n<hr>\n";
   print "<address>Last Modification Author: bradc<br>Brad Cavanagh ";
