@@ -1296,8 +1296,10 @@ sub _fetch_row {
 					    map { $query{$_} } sort keys %query
 					   );
 
-  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
-    unless @$ref;
+  # Dont throw an error here. It is up to the caller to decide whether
+  # to do or not.
+#  throw OMP::Error::DBError("Error fetching specified row - no matches for [$sql]")
+#    unless @$ref;
 
   # The result is now the first entry in @$ref
   my %result;
