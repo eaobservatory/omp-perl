@@ -877,7 +877,7 @@ sub SpIterFocusObs {
   $info{bolometers} = [ $info{primaryBolometer} ];
 
   # Populate bits that vary
-  for (qw/ General Bols Filter Gain Ints CalChop / ) {
+  for (qw/ General Bols Filter Gain Ints CalChop Target/ ) {
     my $method = "get$_";
     %odf = ( %odf, $self->$method( %info ) );
   }
