@@ -26,6 +26,7 @@ use OMP::ProjServer;
 use OMP::Error qw/ :try /;
 use Data::Dumper;
 use Time::Piece;
+use File::Spec;
 
 # Abort if $OMP_DUMP_DIR is not set
 $ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
@@ -34,7 +35,7 @@ $ENV{OMP_DUMP_DIR} = "/DSS/omp-cache/sciprogs"
 chdir $ENV{OMP_DUMP_DIR}
   or die "Error changing to directory $ENV{OMP_DUMP_DIR}: $!\n";
 
-my $dumplog = $ENV{OMP_DUMP_DIR} . "/dumpsciprog.log";
+my $dumplog = File::Spec->catfile($ENV{OMP_DUMP_DIR}, "dumpsciprog.log");
 
 # Get the date of the last dump
 my $date;
@@ -50,16 +51,11 @@ my $db = new OMP::MSBDB( DB => new OMP::DBbackend );
 
 # Query the database for all projects whose programs have been modified
 # since the last dump
-my @projects;
-if ($date) {
-  @projects = map { OMP::ProjServer->projectDetails( $_, "***REMOVED***", "object" ) }
-    $db->listModified($date);
-} else {
-  my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>", "object");
-  @projects = @$projects;
-}
 
-exit unless ($projects[0]);
+my @projects = map { OMP::ProjServer->projectDetails( $_, "***REMOVED***", "object" ) }
+  $db->listModifiedPrograms($date);
+
+exit unless (@projects);
 
 # Now for each of these projects attempt to read a science program
 for my $proj (@projects) {
