@@ -40,6 +40,7 @@ if ($] >= 5.006 || $] < 5.008) {
   eval "use utf8;";
 }
 use Carp;
+use OMP::Constants qw/ :logging /;
 use OMP::Range;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
@@ -1378,14 +1379,148 @@ sub am_i_local {
 
 =over 4
 
+=item B<log_level>
+
+Control which log messages are written to the log file.
+
+  $current = OMP::General->log_level();
+  OMP::General->log_level( &OMP__LOG_DEBUG );
+  OMP::General->log_level( "DEBUG" );
+
+The constants are defined in OMP::Constants. Currently supported
+logging levels are:
+
+  IMPORTANT   (only important messages)
+  INFO        (informational and important messages)
+  DEBUG       (debugging, info and important messages)
+
+The level can be set using the above strings as well as the actual
+constants, but constants will be returned if the level is requested.
+If the new level is not recognized, the existing level will be retained.
+
+Note that WARNING and ERROR log messages are always written to the log
+and can not be disabled individually.
+
+The default log level is INFO (ie no DEBUG messages) but can be over-ridden
+by defining the environment OMP_LOG_LEVEL to one of "IMPORTANT", "INFO" or
+"DEBUG"
+
+=cut
+
+{
+  # Hide access to this variable
+  my $LEVEL;
+
+  # private routine to translate string to constant value
+  # and then sort out the bit mask
+  # return undef if not recognized
+  # Note that the only system that calculates level from bits is this
+  # internal function
+  sub _str_or_const_to_level {
+    my $arg = shift;
+    my $bits = 0;
+
+    # define some groups
+    my $important = OMP__LOG_IMPORTANT;
+    my $info      = $important | OMP__LOG_INFO;
+    my $debug     = $info | OMP__LOG_DEBUG;
+    my $err       = OMP__LOG_ERROR | OMP__LOG_WARNING;
+
+    if ($arg eq 'IMPORTANT' || $arg eq OMP__LOG_IMPORTANT) {
+      $bits = $important;
+    } elsif ($arg eq 'INFO' || $arg eq OMP__LOG_INFO) {
+      $bits = $info;
+    } elsif($arg eq 'DEBUG' || $arg eq OMP__LOG_DEBUG) {
+      $bits = $debug;
+    }
+
+    # Now set LEVEL to this value if we have $bits != 0
+    # else no change to $LEVEL
+    # if we allow 0 then nothing will be logged ever. We currently
+    # do not have a OMP__LOG_NONE option
+    if ($bits != 0) {
+      # Include WARNING and ERROR in bitmask
+      $bits |= $err;
+      $LEVEL = $bits;
+    }
+
+    return;
+  }
+
+  # Accessor method
+  sub log_level {
+    my $class = shift;
+    if (@_) {
+      _str_or_const_to_level( shift );
+    }
+    # force default if required. This will only be called once
+    if (!defined $LEVEL) {
+      _str_or_const_to_level( $ENV{OMP_LOG_LEVEL} )
+        if exists $ENV{OMP_LOG_LEVEL};
+      _str_or_const_to_level( OMP__LOG_INFO ) 
+        unless defined $LEVEL;
+    }
+    return $LEVEL;
+  }
+
+  # Returns true if the supplied message severity is consistent with
+  # the current logging level.
+  # undef indicates INFO
+  # Keep this private for now
+  sub _log_logok {
+    my $class = shift;
+    my $sev = shift;
+    $sev = OMP__LOG_INFO unless defined $sev;
+    return ( $class->log_level & $sev );
+  }
+
+  # Translate supplied constant back to a descriptive string
+  # we assume that multiple logging levels are not specified
+  # keep internal for the moment since we only need it for the
+  # log output
+  sub _log_level_string {
+    my $class = shift;
+    my $sev = shift;
+    $sev = OMP__LOG_INFO unless defined $sev;
+    return "ERROR:    " if $sev & OMP__LOG_ERROR;
+    return "WARNING:  " if $sev & OMP__LOG_WARNING;
+    return "IMPORTANT:" if $sev & OMP__LOG_IMPORTANT;
+    return "INFO:     " if $sev & OMP__LOG_INFO;
+    return "DEBUG:    " if $sev & OMP__LOG_DEBUG;
+  }
+
+}
+
 =item B<log_message>
 
-Log general information (usually debug) to a file. The file is opened
-for append (with a lock), the message is written and the file is
-closed. The message is augmented with details of the hostname, the
-process ID and the date.
+Log general information to a file. Each message can be associated with
+a particular importance or severity such that a particular log message
+will only be written to the log file if that particular level of
+logging is enabled (which can be set via the C<log_level>
+method). WARNING and ERROR log messages will always be written.
+
+By default, all messages are treated as "INFO" messages if no log
+level is specified.
 
   OMP::General->log_message( $message );
+
+If a second argument is provided, it specifies the log
+severity/importance level. Constants are available from
+C<OMP::Constants>.
+
+  OMP::General->log_message( $message, OMP__LOG_DEBUG );
+
+The currently defined set are:
+
+  ERROR     - an error message
+  WARNING   - a warning message
+  IMPORTANT - important log message (always written)
+  INFO      - general information
+  DEBUG     - verbose logging
+
+The log file is opened for append (with a lock), the message is written
+and the file is closed. The message is augmented with details of the
+hostname, the process ID and the date.
 
 Fails silently if the file can not be opened (rather than cause the whole
 system to stop because it is not being written).
@@ -1395,15 +1530,21 @@ directory but will fall back to C</tmp/ompLogs> if the required
 directory can not be written to. A new file is created for each UT day.
 The directory is created if it does not exist.
 
-Returns immediately if the environment variable C<$OMP_NOLOG> is set.
+Returns immediately if the environment variable C<$OMP_NOLOG> is set,
+even if the message has been tagged ERROR [maybe it should always send
+error messages to STDERR if the process is attached to a terminal?].
 
 =cut
 
 sub log_message {
   my $class = shift;
   my $message = shift;
+  my $severity = shift;
 
   return if exists $ENV{OMP_NOLOG};
+
+  # Check the logging level.
+  return unless $class->_log_logok( $severity );
 
   # "Constants"
   my $logdir;
@@ -1422,7 +1563,14 @@ sub log_message {
   # Create the message
   my ($user, $host, $email) = OMP::General->determine_host;
 
+  my $sevstr = $class->_log_level_string( $severity );
+
+  # Create the log message without a prefix
   my $logmsg = "$datestamp PID: $$  User: $email\nMsg: $message\n";
+
+  # Split on newline, attached prefix, and then join on new line
+  my @lines = split(/\n/, $logmsg);
+  $logmsg = join("\n", map { $sevstr .$_ } @lines) . "\n";
 
   # Get current umask
   my $umask = umask;

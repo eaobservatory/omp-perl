@@ -49,8 +49,10 @@ my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
                   OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
                   OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
                   OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS /;
+my @logging = qw/ OMP__LOG_ERROR OMP__LOG_WARNING OMP__LOG_IMPORTANT
+		  OMP__LOG_INFO OMP__LOG_DEBUG /;
 
-@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap);
+@EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap, @logging);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -58,8 +60,9 @@ my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
 		'fb' =>\@fb,
 		'msb' => \@msb,
 		'done'=> \@done,
-    'obs' => \@obs,
-    'timegap' => \@timegap,
+		'logging' => \@logging,
+		'obs' => \@obs,
+		'timegap' => \@timegap,
 	       );
 
 Exporter::export_tags( keys %EXPORT_TAGS);
@@ -507,6 +510,55 @@ use constant OMP__TIMEGAP_UNKNOWN => 13;
 
 =back
 
+=head2 Logging
+
+=over 4
+
+=item OMP__LOG_ERROR
+
+Logging status associated with an error message.
+
+=cut
+
+# We specify bit masks rather than using inequalities
+# LOG masks must be equivalent to single bits
+
+use constant OMP__LOG_ERROR => 1;
+
+=item OMP__LOG_WARNING
+
+Logging status associated with a warning message.
+
+=cut
+
+use constant OMP__LOG_WARNING => 2;
+
+=item OMP__LOG_IMPORTANT
+
+Logging status associated with an important message.
+
+=cut
+
+use constant OMP__LOG_IMPORTANT => 4;
+
+=item OMP__LOG_INFO
+
+Logging status associated with an informationl message.
+
+=cut
+
+use constant OMP__LOG_INFO => 8;
+
+=item OMP__LOG_DEBUG
+
+Logging status associated with a debugging message.
+
+=cut
+
+use constant OMP__LOG_DEBUG => 16;
+
+=back
+
 =head1 TAGS
 
 Individual sets of constants can be imported by 
@@ -543,6 +595,18 @@ Constants associated with MSBs.
 =item :obs
 
 Constants associated with observation statuses.
+
+=item :timegap
+
+Constants associated with time gaps.
+
+=item :logging
+
+Constants associated the logging system.
+
+=item :obs
+
+Observation status.
 
 =back
 
