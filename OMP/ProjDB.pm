@@ -143,7 +143,8 @@ using the object constructor.
 
   $verified = 1 if $db->verifyPassword( );
 
-Returns true if the passwords match.
+Returns true if the passwords match.  Returns false if the project does
+not exist.
 
 =cut
 
@@ -166,10 +167,20 @@ sub verifyPassword {
     if $self->projectid =~ /^staff$/i;
 
   # Retrieve the contents of the table
-  my $project = $self->_get_project_row();
+  my $verify;
+  try {
+    my $project = $self->_get_project_row();
 
-  # Now verify the passwords
-  return $project->verify_password( $password );
+    # Now verify the passwords
+    $verify = $project->verify_password( $password );
+  } catch OMP::Error::UnknownProject with {
+    my $E = shift;
+  } otherwise {
+    my $E = shift;
+    croak "An error has occurred: $E";
+  };
+
+  return $verify;
 
 }
 
