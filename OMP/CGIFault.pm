@@ -626,6 +626,9 @@ sub query_fault_form {
   $statuslabels{all_open} = 'All open';
   $statuslabels{all_closed} = 'All closed';
 
+  # Get the date so we can figure out our local timezone
+  my $today = localtime;
+
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
   print $q->hidden(-name=>'faultsearch', -default=>['true']);
@@ -650,6 +653,10 @@ sub query_fault_form {
   print $q->textfield(-name=>'maxdate',
 		      -size=>18,
 		      -maxlength=>32);
+
+  # Display the local timezone since date searches are localtime
+  print " ". $today->strftime("%Z");
+
   print "</b></td><td></td><tr><td><b>";
   print "System </b>";
   print $q->popup_menu(-name=>'system',
@@ -1185,7 +1192,7 @@ sub file_fault_form {
 			-default=>$defaults{loss},
 			-size=>'4',
 			-maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault <small>(hh:mm)</small>:</td><td>";
+    print "</td><tr><td align=right valign=top><b>Time of fault <font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font>:</td><td>";
     print $q->textfield(-name=>'time',
 			-default=>$defaults{time},
 			-size=>20,
@@ -1194,7 +1201,6 @@ sub file_fault_form {
     print $q->popup_menu(-name=>'tz',
 			 -values=>['UT','HST'],
 			 -default=>$defaults{tz},);
-    # print "</b><br><font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font><b>";
   }
 
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
