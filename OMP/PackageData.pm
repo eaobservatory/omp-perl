@@ -801,7 +801,7 @@ sub _mktarfile {
       croak "Unable to determine tar command for OS $^O";
     }
     system("$tarcmd $outfile $tardir") && 
-      croak "Error building the tar file";
+      croak "Error building the tar file: $!";
 
 
   }
