@@ -555,16 +555,19 @@ sub summary {
       $xml .= "<$key>$summary{$key}</$key>\n";
     }
 
-    # Now add in the observations
-    for (@obs) {
-      $xml .= $_->summary("xml");
+    # Now add in the observations if we are doing the long version
+    if ($format !~ /short/) {
+      for (@obs) {
+	$xml .= $_->summary("xml");
+      }
     }
 
     # And the comments
-    for ($self->comments) {
-      $xml .= $_->summary('xml');
+    if ($format !~ /short/) {
+      for ($self->comments) {
+	$xml .= $_->summary('xml');
+      }
     }
-
 
     $xml .= "</SpMSBSummary>\n";
 
