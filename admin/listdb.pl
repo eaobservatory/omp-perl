@@ -17,7 +17,7 @@ my $DBdatabase = "archive";
 my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd)
   or die "Cannot connect: ". $DBI::errstr;
 
-for my $tab (qw/ompproj ompmsb ompobs/) {
+for my $tab (qw/ompproj ompmsb ompobs ompsciprog/) {
 
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab",{ Columns=>{} })
     or die "Cannot select on ompmsb: ". $DBI::errstr;

@@ -82,7 +82,7 @@ my %tables = (
 			     projectid => "VARCHAR(32)",
 			     timestamp => "INTEGER",
 			     sciprog   => "TEXT",
-			     _ORDER => [/
+			     _ORDER => [qw/
 					projectid timestamp sciprog
 					/],
 			     },
@@ -94,7 +94,8 @@ for my $table (sort keys %tables) {
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
   } @{ $tables{$table}{_ORDER}} );
-  print "$table: $str\n";
+  print "\n$table: $str\n";
+  print "SQL: CREATE TABLE $table ($str)\n";
   my $sth = $dbh->prepare("CREATE TABLE $table ($str)")
     or die "Cannot prepare table $table: ". $dbh->errstr();
 
