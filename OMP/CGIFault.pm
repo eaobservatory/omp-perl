@@ -288,18 +288,28 @@ sub query_fault_output {
   # The 'Submit' submit button was clicked
   if ($q->param('Submit')) {
     $delta = $q->param('days');
-    my $xmlpiece;
+    my @xml;
+
+    if ($q->param('system') !~ /any/) {
+      my $system = $q->param('system');
+      push (@xml, "<system>$system</system>");
+    }
+
+    if ($q->param('type') !~ /any/) {
+      my $type = $q->param('type');
+      push (@xml, "<type>$type</type>");
+    }
 
     if ($q->param('search') =~ /response/) {
-      $xmlpiece = "<isfault>0</isfault>";
+      push (@xml, "<isfault>0</isfault>");
       $title = "Displaying faults responded to in the last $delta days";
     } elsif ($q->param('search') =~ /file/) {
-      $xmlpiece = "<isfault>1</isfault>";
+      push (@xml, "<isfault>1</isfault>");
       $title = "Displaying faults filed in the last $delta days";
     } else {
       $title = "Displaying faults with any activity in the last $delta days";
     }
-    $xml = "<FaultQuery><date delta='-$delta'>" . $t->datetime . "</date>$xmlpiece</FaultQuery>";
+    $xml = "<FaultQuery><date delta='-$delta'>" . $t->datetime . "</date>" . join('',@xml) . "</FaultQuery>";
 
   } else {
     # One of the other submit buttons was clicked
@@ -386,13 +396,36 @@ Create a form for querying faults
 sub query_fault_form {
   my $q = shift;
 
+  my $systems = OMP::Fault->faultSystems("OMP");
+  my @systems = values %$systems;
+  unshift( @systems, "any" );
+  my %syslabels = map {$systems->{$_}, $_} %$systems;
+  $syslabels{any} = 'Any';
+
+  my $types = OMP::Fault->faultTypes("OMP");
+  my @types = values %$types;
+  unshift( @types, "any");
+  my %typelabels = map {$types->{$_}, $_} %$types;
+  $typelabels{any} = 'Any';
+
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform;
   print "<b>Display faults for the last ";
   print $q->textfield(-name=>'days',
 		      -size=>3,
 		      -maxlength=>5);
-  print " days</b></td><tr><td><b>";
+  print " days</b></td><td></td><tr><td><b>";
+  print "System </b>";
+  print $q->popup_menu(-name=>'system',
+		       -values=>\@systems,
+		       -labels=>\%syslabels,
+		       -default=>'any',);
+  print "<b>Type </b>";
+  print $q->popup_menu(-name=>'type',
+		       -values=>\@types,
+		       -labels=>\%typelabels,
+		       -default=>'any',);
+  print "</td><tr><td><b>";
   print $q->radio_group(-name=>'search',
 		        -values=>['response','file','activity'],
 		        -default=>'activity',
@@ -546,12 +579,12 @@ sub show_faults {
     my $bgcolor;
 
     # Alternate background color for the rows and make the background color
-    # a shade of red if the fault is urgent.
+    # red if the fault is urgent.
     $colorcount++;
     if ($colorcount == 1) {
       $bgcolor = ($fault->isUrgent ? '#c44646' : '#6161aa'); # darker
     } else {
-      $bgcolor = ($fault->isUrgent ? '#e87474' : '#8080cc'); # lighter
+      $bgcolor = ($fault->isUrgent ? '#c44646' : '#8080cc'); # lighter
       $colorcount = 0;
     }
 
