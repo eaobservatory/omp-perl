@@ -8,7 +8,9 @@ OMP::CGI - Content and functions for the OMP Feedback system CGI scripts
 
 use OMP::CGI;
 
-$cgi = new OMP::CGI( CGI => $q );
+$query = new CGI;
+
+$cgi = new OMP::CGI( CGI => $query );
 
 $cgi->write_page(\&form_content, \&form_ouptut);
 
@@ -646,6 +648,19 @@ should be dumped to a hash as they contain the cookie contents:
     ...
   }
 
+In order for the output subroutine to be called, the form that submits
+parameters should also contain a CGI query parameter called B<show_output>:
+
+  $query->start_form;
+
+  $query->textfield(name=>'name', value=>'Bob');
+
+  $query->hidden(name=>'show_output', value=>'true');
+
+  $query->submit;
+
+  $query->end_form;
+
 =cut
 
 sub write_page {
@@ -848,6 +863,19 @@ Creates the page and does a staff login if necessary.  Also checks the username 
 
   $cgi->write_page_staff( \&form_content, \&form_output );
 
+In order for the output subroutine to be called, the form that submits
+parameters should also contain a CGI query parameter called B<show_output>:
+
+  $query->start_form;
+
+  $query->textfield(name=>'name', value=>'Bob');
+
+  $query->hidden(name=>'show_output', value=>'true');
+
+  $query->submit;
+
+  $query->end_form;
+
 =cut
 
 sub write_page_staff {
@@ -918,6 +946,19 @@ sub write_page_staff {
 Like write_page_staff but takes the admin password instead.
 
   $cgi->write_page_admin( \&form_content, \&form_output );
+
+In order for the output subroutine to be called, the form that submits
+parameters should also contain a CGI query parameter called B<show_output>:
+
+  $query->start_form;
+
+  $query->textfield(name=>'name', value=>'Bob');
+
+  $query->hidden(name=>'show_output', value=>'true');
+
+  $query->submit;
+
+  $query->end_form;
 
 =cut
 
@@ -1019,7 +1060,7 @@ from outside the JAC network.  This  function is becoming more and more like wri
 
   $cgi->write_page_fault( \&content, \&output );
 
-In order for params to be passed in the URL a hidden field called B<show_output> must be embedded in the cgi form being submitted for the B<&output> code reference to be called.
+In order for params to be passed in the URL a hidden field called B<show_outputmust be embedded in the cgi form being submitted for the B<&output> code reference to be called.
 
 =cut
 
