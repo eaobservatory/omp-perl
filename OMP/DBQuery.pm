@@ -325,7 +325,7 @@ sub _create_sql_recurse {
     # Link all of the search queries together with an OR [must be inside
     # parentheses] but AND them if we have spaces in the string and
     # are a TEXT query
-    if ($colname =~ /^TEXTFIELD__/) {
+    if ($column =~ /^TEXTFIELD__/) {
       $sql = "(".join( " OR ",
 		       # Join all of the search strings with an AND
 		       # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
@@ -363,13 +363,10 @@ sub _create_sql_recurse {
     $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
 
   } else {
-    # use Data::Dumper;
-    # print Dumper($entry);
 
     throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range non-HASH for $column: $entry\n");
   }
 
-  # print "SQL: $column: $sql\n";
   return $sql;
 }
 
