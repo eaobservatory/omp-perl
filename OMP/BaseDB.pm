@@ -501,16 +501,20 @@ sub _db_insert_data {
   # Construct the SQL
   my $sql = "INSERT INTO $table VALUES ($placeholder)";
 
-  OMP::General->log_message( "Inserting DB data: $sql" ) if VERBOSE;
+  OMP::General->log_message( "Inserting DB data and retrieving handle" )
+      if VERBOSE;
 
   # Get the database handle
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
+  OMP::General->log_message( "Inserting DB data: $sql" ) if VERBOSE;
+
   # Insert the easy data
   $dbh->do($sql,undef,@toinsert)
     or throw OMP::Error::DBError("Error inserting data into table $table [$sql]: $DBI::errstr");
 
+  OMP::General->log_message( "Inserted easy data." ) if VERBOSE;
 
   # Now the text data
   for my $textdata ( @textfields ) {
@@ -518,6 +522,8 @@ sub _db_insert_data {
     my $dummy = $textdata->{DUMMY};
     my $col = $textdata->{COLUMN};
 
+    OMP::General->log_message( "Inserting DB text data column: $col" )
+	if VERBOSE;
 
     # Need to double up quotes to escape them in SQL
     # Since we are quoting $text with a single quote
@@ -529,6 +535,8 @@ sub _db_insert_data {
 select \@val = textptr($col) from $table where $col like \"$dummy\"
 writetext $table.$col \@val '$text'")
     or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
+
+    OMP::General->log_message( "Text data inserted." ) if VERBOSE;
 
   }
 
