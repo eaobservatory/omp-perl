@@ -429,15 +429,15 @@ sub query_fault_output {
 
   } else {
     # One of the other submit buttons was clicked
-    if ($q->param('Major faults')) {
+    if ($q->param('Major faults') or $q->param('Major reports')) {
       # Faults within the last 14 days with 2 or more hours lost
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
       $title = "Displaying major faults";
-    } elsif ($q->param('Recent faults')) {
+    } elsif ($q->param('Recent faults') or $q->param('Recent reports')) {
       # Faults filed in the last 36 hours
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
       $title = "Displaying recent faults";
-    } elsif ($q->param('Current faults')) {
+    } elsif ($q->param('Current faults') or $q->param('Current reports')) {
       # Faults within the last 14 days that are 'OPEN'
       my %status = OMP::Fault->faultStatus;
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
@@ -513,6 +513,12 @@ sub query_fault_form {
   my $q = shift;
   my %cookie = @_;
 
+  # If this is a report problems script use the word reports instead of faults
+  my $word;
+  my $script = $q->url(-relative=>1);
+  ($script =~ /report/) and $word = "reports"
+    or $word = "faults";
+
   # User drop-down menu values and labels
   my $userquery = "<UserQuery></UserQuery>";
   my $users = OMP::UserServer->queryUsers($userquery, "object");
@@ -536,7 +542,7 @@ sub query_fault_form {
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
-  print "<b>Display faults for the last ";
+  print "<b>Display $word for the last ";
   print $q->textfield(-name=>'days',
 		      -size=>3,
 		      -maxlength=>5);
@@ -575,9 +581,9 @@ sub query_fault_form {
   print $q->hidden(-name=>'cat', -default=>$cookie{category});
   print $q->submit(-name=>"Submit");
   print "</td><tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
-  print $q->submit(-name=>"Major faults");
-  print $q->submit(-name=>"Recent faults");
-  print $q->submit(-name=>"Current faults");
+  print $q->submit(-name=>"Major $word");
+  print $q->submit(-name=>"Recent $word");
+  print $q->submit(-name=>"Current $word");
   print $q->endform;
   print "</td></table>";
 }
@@ -810,6 +816,10 @@ Create a title heading that identifies the current page
   titlebar($q, \@title, %cookie);
 
 Second argument should be an array reference containing the titlebar elements.
+Note:  The title displayed in the titlebar depends on the name of the cgi
+script.  If the cgi script has the word "report" in it then it is assumed
+that the "Report Problems" system is being used and the title is set accordingly.
+Also, any occurance of the string "fault" is replaced with "report."
 
 =cut
 
@@ -818,7 +828,21 @@ sub titlebar {
   my $title = shift;
   my %cookie = @_;
 
-  print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$cookie{category} Faults:&nbsp;&nbsp;@$title->[0]</font></td>";
+  # We'll check the URL to determine if we're in the report problem or the
+  # fault system and set the titlebar accordingly
+  my $script = $q->url(-relative=>1);
+
+  my $toptitle;
+  if ($script =~ /report/) {
+    $toptitle = "Report Problems";
+
+    # Replace the word "fault" with "report"
+    $title->[0] =~ s/fault/report/ig;
+  } else {
+    $toptitle = "$cookie{category} Faults";
+  }
+
+  print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;@$title->[0]</font></td>";
   print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
     if (@$title->[1]);
   print "</table><br>";
