@@ -1295,6 +1295,28 @@ sub determine_user {
   return $user;
 }
 
+=item B<am_i_local>
+
+Returns true if the user is local to the network.  Merely a wrapper around
+the B<determine_host> method.
+
+  $islocal = OMP::General->am_i_local();
+
+Takes no arguments.
+
+=cut
+
+sub am_i_local {
+  my $self = shift;
+
+  my @domain = $self->determine_host;
+
+  # Simple way of seeing if the address is local
+  if ($domain[1] and $domain[1] !~ /\./) {
+    return 1;
+  }
+}
+
 =back
 
 =head2 Logging
