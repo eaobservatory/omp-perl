@@ -124,12 +124,38 @@ Returns the project ID associated with this science program.
 
   $projectid = $sp->projectID;
 
+Modifying the project ID, modifies the underlying DOM tree
+but only the 'projectID' tag in the document root. If no
+'projectID' node is found in the root, one is added.
+
 =cut
 
 sub projectID {
   my $self = shift;
   if (@_) { 
-    $self->{ProjectID} = uc(shift); 
+    $self->{ProjectID} = uc(shift);
+
+    # Fix the DOM tree.
+    # Need to rationalise this so that we have a method for getting
+    # an element from the node tree and a method for setting a value
+    # and retrieving a value. Too much repeated code otherwise
+    # This code is shared with find_projectid
+    my ($el) = $self->_tree->findnodes( './/projectID[1]');
+
+    # Note that we do not look for 'project' in an SpMSB.
+    # If we have no element, need to make one
+    if (! defined $el) {
+      # Look up the root and create a new element
+      my ($root) = $self->_tree->findnodes('.//SpProg');
+      $el = new XML::LibXML::Element( 'projectID' );
+      $root->appendChild( $el );
+      $el->appendText( $self->{ProjectID});
+    } else {
+      # Now set the value of the node
+      my $child = $el->firstChild();
+      $child->setData( $self->{ProjectID} );
+    }
+
   } else {
     $self->find_projectid unless defined $self->{ProjectID};
   }
@@ -492,6 +518,10 @@ been extracted from a full science program.
 If no project can be extracted, "UNKNOWN" is chosen rather
 than throwing an exception.
 
+This method forces an upper-cased version of the project ID
+to be written to the DOM tree itself in the correct place
+(even if that project was read from an MSB child).
+
 =cut
 
 sub find_projectid {
@@ -501,6 +531,8 @@ sub find_projectid {
 
   # projectID element contains PCData that is the actual project ID
   if (defined $element) {
+    # This forces the dom tree to be modified to include an
+    # uppercased version
     $self->projectID( $element->getFirstChild->toString );
   } else {
     # Could not find projectID so look for a "project" element
