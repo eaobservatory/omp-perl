@@ -1137,8 +1137,12 @@ sub getTarget {
     my $c = $info{coords};
 
     # initialise for current time
-    my $time = new Time::Piece;
+    my $time = gmtime;
     $c->datetime( $time );
+
+
+    $c->telescope(new Astro::Telescope('JCMT'));
+    #print $c->status;
 
     $target{RA} = $c->ra_app( format => 's');
     $target{DEC} = $c->dec_app( format => 's');
