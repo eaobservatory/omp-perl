@@ -40,10 +40,10 @@ foreach my $tab (@tab) {
 
   # Take a permanent copy of the old dump if it is larger than
   # the new dump.
-  @new_dump = stat($tab);
-  @old_dump = stat($tab . "_2");
+  my @new_dump = stat($tab);
+  my @old_dump = stat($tab . "_2");
   if ($old_dump[7] > $new_dump[7]) {
-    $date = localtime;
+    my $date = localtime;
     copy($tab . "_2", $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"));
 
     # If new dump is less than 75 percent of old dump size 
