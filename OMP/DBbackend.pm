@@ -37,6 +37,9 @@ use warnings;
 use Carp;
 
 # OMP
+
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase" unless exists $ENV{SYBASE} }
+
 use OMP::Error;
 use DBI;
 use DBD::Sybase; # This triggers immediate failure if $SYBASE not right
