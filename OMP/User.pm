@@ -24,6 +24,7 @@ of an user of the OMP system.
 use 5.006;
 use strict;
 use warnings;
+use Carp;
 use OMP::UserServer;
 
 # Overloading
@@ -255,6 +256,80 @@ Returns true or false.
 sub verify {
   my $self = shift;
   return OMP::UserServer->verifyUser( $self->userid );
+}
+
+=item B<infer_userid>
+
+Try to guess the user ID from the name. The name can either
+be supplied as an argument or from within the object.
+
+This method can be called either as a class or instance method.
+
+  $guess = OMP::User->infer_userid( 'T Jenness' );
+  $guess = $user->infer_userid;
+
+Although the latter is only interesting if used to raise
+warnings about inconsistent IDs (which is generally not enforced)
+or after creating an object and making an inspired guess from the
+name. The userid in the object is not updated.
+
+The guess work assumes that the name is "forname surname" or
+alternatively "surname, forname". A simplistic attempt is made
+to catch "Jr" and "Sr".
+
+Returns undef if a user ID could not be guessed.
+
+=cut
+
+sub infer_userid {
+  my $self = shift;
+
+  my $name;
+  if (@_) {
+    $name = shift;
+  } elsif (UNIVERSAL::can($self,"name")) {
+    $name = $self->name
+  } else {
+    croak "This method must be called with an argument or via a valid user object";
+  }
+
+  return undef unless defined $name;
+  return undef unless $name =~ /\w/;
+
+  # Remove some common suffixes
+  $name =~ s/\b[JS]r\.?\b//g;
+
+  # Clean
+  $name =~ s/^\s+//;
+
+  # Get the first name and surname
+  my ($forname, $surname);
+  if ($name =~ /,/) {
+    # surname, initial (no need to worry about middle initials here
+    ($surname, $forname) = split(/\s*,\s*/,$name,2);
+  } else {
+    # We want the last word for surname and the first for forname
+    # since we do allow middle names
+    my @parts = split(/\s+/,$name);
+    return undef if scalar(@parts) < 2;
+    $forname = $parts[0];
+    $surname = $parts[-1];
+
+    # Note that "le Guin" is surname LEGUIN
+    if (scalar(@parts) > 2) {
+      if ($parts[-2] =~ /(LE)/i) {
+	$surname = $parts[-2] . $surname;
+      }
+    }
+
+  }
+
+  my $id = $surname . substr($forname,0,1);
+
+  # Remove characters that are not  letter (eg hyphens)
+  $id =~ s/\W//g;
+
+  return uc($id);
 }
 
 =back
