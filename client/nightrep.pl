@@ -206,6 +206,7 @@ sub project_window {
     next if $proj eq $tel . "EXTENDED";
     next if $proj eq $tel . "WEATHER";
     next if $proj eq $tel . "UNKNOWN";
+    next if $proj eq $tel . "OTHER";
     next if $proj eq $tel . "FAULT";
     add_project( $f, 1, $proj, $times{$proj}, \$final{$proj}, $sums);
   }
