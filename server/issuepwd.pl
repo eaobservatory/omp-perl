@@ -7,19 +7,38 @@ use 5.006;
 use warnings;
 use strict;
 
+use CGI;
+use CGI::Carp qw/ fatalsToBrowser /;
+use HTML::WWWTheme;
+
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
 
 use lib "/jac_sw/omp/msbserver";
 use OMP::ProjServer;
 use Error qw/ :try /;
 
-use CGI;
+
 
 $!=1; # Make unbuffered
 
+
 my $q = new CGI;
 print $q->header;
-print $q->start_html("OMP Password request page");
+
+# Use the OMP theme and make some changes to it.
+my $theme = new HTML::WWWTheme("/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+
+$theme->SetHTMLStartString("<html><head><title>OMP Password request page</title></head>");
+$theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+
+print $theme->StartHTML(),
+      $theme->MakeHeader(),
+      $theme->MakeTopBottomBar();
+
+print "<H1>OMP Password Request Page</h1>";
+print "You can use this page to request an updated password for your project.";
+print "The password will be mailed to your registered email address.";
+
 
 print $q->startform;
 print "Project ID: ",$q->textfield('projectid','',8,20);
@@ -41,4 +60,8 @@ if ($q->param) {
 
 }
 
-print $q->end_html;
+
+# End the document
+print $theme->MakeTopBottomBar(),
+      $theme->MakeFooter(),
+      $theme->EndHTML();
