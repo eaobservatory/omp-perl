@@ -770,22 +770,25 @@ Given a date determine the current semester.
 
   $semester = OMP::General->determine_semester( date => $date, tel => 'JCMT' );
 
-Date should be of class C<Time::Piece> and should be in UT. The current date is used
-if none is supplied.
+Date should be of class C<Time::Piece> and should be in UT. The
+current date is used if none is supplied.
 
-A telescope option is supported since semester boundaries are a function of telescope.
-If no telescope is provided, a telescope of "PPARC" will be assumed. This is a special
-class of semester selection where the year is split into two parts (labelled "A" and
-"B") beginning in February and ending in August. The year is prefixed to the A/B
-label as a two digit year. eg 99B or 05A.
+A telescope option is supported since semester boundaries are a
+function of telescope.  If no telescope is provided, a telescope of
+"PPARC" will be assumed. This is a special class of semester selection
+where the year is split into two parts (labelled "A" and "B")
+beginning in February and ending in August. The year is prefixed to
+the A/B label as a two digit year. eg 99B or 05A.
 
-Other supported telescopes are JCMT (an alias for PPARC) and UKIRT (some special
-boundaries in some semesters due to instrument deliveries).
+Other supported telescopes are JCMT (an alias for PPARC) and UKIRT
+(some special boundaries in some semesters due to instrument
+deliveries).
 
-Note that currently the PPARC calculation is probably incorrect for telescopes
-other than Hawaii. This is because the semester technically starts in local time
-not UT. For example, 1st Feb HST is the start of the JCMT semester A but this
-is treated as 2nd Feb UT for this calculation.
+Note that currently the PPARC calculation is probably incorrect for
+telescopes other than Hawaii. This is because the semester technically
+starts in local time not UT. For example, 1st Feb HST is the start of
+the JCMT semester A but this is treated as 2nd Feb UT for this
+calculation.
 
 =cut
 
@@ -802,7 +805,7 @@ my %SEM_BOUND = (
 			   '04A' => [ 20040117, 20041001 ],
 			   '04B' => [ 20041002, 20041101 ],
 			   '05A' => [ 20041102, 20050822 ],
-			   '05B' => [ 20050823, 20060101 ],
+			   '05B' => [ 20050823, 20060201 ],
 			  },
 		);
 
@@ -821,20 +824,24 @@ sub determine_semester {
   my $tel = uc($args{tel});
   $tel = 'PPARC' unless $tel;
 
+  print "Tel is $tel\n";
+
   # First we can automatically run through any special semesters
   # in a generic search. This will have minimal impact on a telescope
   # that has never had a special semester boundary (apart from the
   # requirement to convert date to YYYYMMDD only once)
   my $ymd = $date->strftime("%Y%m%d");
-  for my $ltel (keys %SEM_BOUND) {
-    for my $lsem (keys %{ $SEM_BOUND{$ltel} } ) {
-      if ($ymd >= $SEM_BOUND{$ltel}{$lsem}[0] &&
-	  $ymd <= $SEM_BOUND{$ltel}{$lsem}[1] ) {
+  if (exists $SEM_BOUND{$tel}) {
+    for my $lsem (keys %{ $SEM_BOUND{$tel} } ) {
+      if ($ymd >= $SEM_BOUND{$tel}{$lsem}[0] &&
+	  $ymd <= $SEM_BOUND{$tel}{$lsem}[1] ) {
 	# we have a hit
 	return $lsem;
       }
     }
   }
+
+  print "Got through special case\n";
 
   # This is the standard PPARC calculation
   if ($tel eq 'PPARC' || $tel eq 'JCMT' || $tel eq 'UKIRT') {

@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 188;
+use Test::More tests => 191;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -166,6 +166,11 @@ $date = gmtime(1095892304); # 2004-09-22
 is( OMP::General->determine_semester(date => $date, tel => 'UKIRT'),
     "04A","Check UKIRT semesters 04A lateness");
 
+$date = gmtime(1099947233); # 2004-11-08
+is( OMP::General->determine_semester(date => $date, tel => 'JCMT'),
+    "04B","Check JCMT semesters 04B");
+
+
 # Run semester determination in reverse
 # These are time piece objects
 
@@ -173,6 +178,10 @@ my (@bound) = OMP::General->semester_boundary( tel => 'JCMT', semester => '04A')
 
 is($bound[0]->ymd, '2004-02-02', "JCMT 04A start");
 is($bound[1]->ymd, '2004-08-01', "JCMT 04A end");
+
+@bound = OMP::General->semester_boundary( tel => 'JCMT', semester => '04B');
+is($bound[0]->ymd, '2004-08-02', "JCMT 04B start");
+is($bound[1]->ymd, '2005-02-01', "JCMT 04B end");
 
 @bound = OMP::General->semester_boundary( tel => 'JCMT', semester => '03B');
 is($bound[0]->ymd, '2003-08-02', "JCMT 03B start");
