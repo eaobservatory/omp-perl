@@ -886,8 +886,22 @@ sub switchConfig {
       ($offx, $offy) = map { sprintf("%.1f",$_ * Astro::SLA::DR2AS) } @offsets;
     }
 
-    $html .= "Position Switch offset: <b>$offx</b>, <b>$offy</b> arcsec<br>\n";
-    $html .= "Frame of offset: <b>RJ</b> [PA=0.0]<br>\n";
+
+    # These offsets need to be in the rotated CELL frame (but in arcsec
+    # not cell units]
+
+    # Need to get the Cell PA unambiguosly
+    my ($cellx, $celly, $cellpa) = _calculate_cell( %summary );
+
+    # Calculate the rotation assuming current offsets at PA=0
+    # and current cell is 1x1 arcsec
+    my ($celloffx, $celloffy) = _convert_to_cell(1,1,$cellpa,
+						 $offx, $offy, 0
+						);
+
+    $html .= "Position Switch offset: <b>$celloffx</b>, <b>$celloffy</b> arcsec<br>\n";
+    $html .= "Frame of offset: <b>RJ</b> [Cell PA=$cellpa]<br>\n";
+
 
   } elsif ($summary{switchingMode} =~ /Frequency/) {
 
@@ -978,6 +992,9 @@ sub SpIterStareObs {
   # Now we need to do is get the mode
   my %data = offsets_to_grid( @{ $summary{offsets} } );
 
+  # Get the cell definition
+  my ($cellx, $celly, $cellpa) = _calculate_cell(%summary);
+
   # Offsets [only for SAMPLE since a GRID must use CELL
   # and a PATTERN never needds offset centre.
   if ($data{TYPE} eq 'SAMPLE') {
@@ -996,7 +1013,7 @@ sub SpIterStareObs {
       $html .= "<tr><td><b>Position Angle:</b></td><td>".
 	$data{PA} . " deg</td></tr>";
       $html .= "<tr><td><b>Cell:</b></td><td>".
-	" 1 x 1 arcsec at $data{PA} deg PA</td></tr>";
+	" $cellx x $celly arcsec at $cellpa deg PA</td></tr>";
       $html .= "</table>\n";
     } else {
       $html .= "This observation is centred on the tracking centre.<BR>\n";
@@ -1008,9 +1025,10 @@ sub SpIterStareObs {
   if ($data{TYPE} eq 'GRID') {
     $html .= "GRID parameters:<br>\n";
 
-    $html .= _map_html( $data{GRID_DX}, $data{GRID_DY}, $data{PA},
+    $html .= _map_html( $cellx, $celly, $cellpa,
 			$data{GRID_NX}, $data{GRID_NY},
-			$data{OFFSETS}->[0]->[0], $data{OFFSETS}->[0]->[1],$data{PA}
+			$data{OFFSETS}->[0]->[0], $data{OFFSETS}->[0]->[1],
+			$cellpa
 		      );
 
   } elsif ($data{TYPE} eq 'PATTERN') {
@@ -1026,11 +1044,11 @@ sub SpIterStareObs {
 
     $html .= "This is a PATTERN observation containing ".(scalar(@lines)-1)." offset positions. The coordinates are stored in file <b>$VAX_TRANS_DIR"."$pattfile</b>\n<br>";
 
-    $html .= "Note that the Position Angle of these offsets is non-zero so cell must be set accordingly. The PA is $data{PA} deg.<br>\n" if $data{PA} != 0.0;
+    $html .= "Note that the Position Angle of these offsets is non-zero so cell must be set accordingly. The PA is $cellpa deg.<br>\n" if $cellpa != 0.0;
 
-    $html .= _cell_html(1,1,$data{PA});
+    $html .= _cell_html($cellx,$celly,$cellpa);
 
-    $html .= "For information the offsets are (in arcsec):\n";
+    $html .= "For information the offsets are (in cell):\n";
     $html .= "<table>\n";
     $html .= "<tr><td><b>dX</b></td><td><b>dY</b></td></tr>\n";
     for (@{$data{OFFSETS}}) {
@@ -1068,15 +1086,15 @@ sub SpIterRasterObs {
 
   $html .= "<H3>Rastering details</H3>\n";
 
-  # Need the Delta X (spacing in the raster direction)
-  my $dx = $summary{SCAN_VELOCITY} * $summary{sampleTime};
+  # Get the cell definition
+  my ($cellx, $celly, $cellpa) = _calculate_cell( %summary );
 
   # Calculate the number of samples
   # Make sure the number of positions encompasses the full size
-  my $nx = int(($summary{MAP_WIDTH} / $dx) + 0.99);
-  my $ny = int(($summary{MAP_HEIGHT} / $summary{SCAN_DY}) +0.99);
+  my $nx = int(($summary{MAP_WIDTH} / $cellx) + 0.99);
+  my $ny = int(($summary{MAP_HEIGHT} / $celly) +0.99);
 
-  $html .= _map_html( $dx, $summary{SCAN_DY}, $summary{MAP_PA},
+  $html .= _map_html( $cellx, $celly, $cellpa,
 		      $nx, $ny,
 		      $summary{OFFSET_DX}, $summary{OFFSET_DY},
 		      $summary{OFFSET_PA}
@@ -1130,6 +1148,55 @@ sub _HztoMHz {
   $hz /= 1E6;
   return $hz;
 }
+
+# Return the CELL definition suitable for this observation
+# This routine is separated from the map routines even though
+# the code would be shorter if each obsmode routine defined its
+# own cell. The reason for this is that we need to guarantee that
+# the REFERENCE position is defined in CELL PA and we do not want
+# to be in a situation where two separate pieces of the translator
+# calculate the CELL pa. For SpIterStareObs this becomes inefficent
+# since offsets_to_grid is called twice.
+#
+# (cellx, celly, cellPA) = _calculate_cell( %summary );
+#
+# Argument: obs summary as given to SpIterRasterObs
+# Returns: Cell in arcsec and degrees PA
+# Returns: 1,1,0 if the observation is not explicit about CELL
+
+sub _calculate_cell {
+  my %summary = @_;
+
+  my ($cellx, $celly, $cellPA) = (1,1,0);
+  if ($summary{MODE} eq 'SpIterRasterObs') {
+    # Cell is the MAP_PA, the scan spacing and the sample spacing
+    $cellx = $summary{SCAN_VELOCITY} * $summary{sampleTime};
+    $celly = $summary{SCAN_DY};
+    $cellPA= $summary{MAP_PA};
+  } elsif ($summary{MODE} eq 'SpIterStareObs') {
+
+    # Now we need to do is get the mode
+    my %data = offsets_to_grid( @{ $summary{offsets} } );
+
+    if ($data{TYPE} eq 'SAMPLE') {
+      $cellx = 1;
+      $celly = 1;
+      $cellPA = $data{PA};
+    } elsif ($data{TYPE} eq 'GRID') {
+      $cellx = $data{GRID_DX};
+      $celly = $data{GRID_DY};
+      $cellPA = $data{PA};
+    } elsif ($data{TYPE} eq 'PATTERN') {
+      $cellx = 1;
+      $celly = 1;
+      $cellPA = $data{PA};
+    }
+
+  }
+
+  return ($cellx, $celly, $cellPA);
+}
+
 
 # Return HTML describing a generic map (GRID or RASTER)
 # Args: dx,dy,mappa,nx,ny,offx,offy,offpa
