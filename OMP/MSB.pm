@@ -36,6 +36,9 @@ use Astro::WaveBand;
 
 use Astro::SLA qw(); # elements
 
+# Generic TCS configuration parsing
+use JAC::OCS::Config::TCS;
+
 use Data::Dumper;
 use Time::Piece ':override';
 use Time::Seconds;
@@ -4334,267 +4337,55 @@ Target information.
 
   %summary = $msb->SpTelescopeObsComp( $el, %summary );
 
+The following keys are added to the summary hash:
+
+  coords   - Astro::Coords object of base position
+  coordstype - RADEC, ELEMENTS etc (see Astro::Coords->type)
+  target     - name of target
+  coordtags  - Hash with keys associated with tag names (REFERENCE, SKY)
+               Hash include coords, coordstype and target.
+
 =cut
 
 sub SpTelescopeObsComp {
   my $self = shift;
   my $el = shift;
   my %summary = @_;
-  #print "In target\n";
 
-  # Need to support two versions of the TCS XML.
-  # Old version has
-  # <base>
-  #  <target type="SCIENCE">
-  #       ...
-  # New version has:
-  # <BASE TYPE="Base">
-  #   <target>
-  #        ....
-  # and changes hmsdeg and degdeg to spherSystem
+  # Use the generic TCS_CONFIG parsing code since the SpTelescopeObsComp
+  # is meant to be valid TCS_CONFIG format (for base and tag positions)
+  my $cfg = new JAC::OCS::Config::TCS( validation => 0,
+				       DOM => $el );
 
+  # Now pluck out the bits of interest
+  $summary{coords} = $cfg->getTarget();
+  $summary{coordstype} = $summary{coords}->type;
+  $summary{target} = $summary{coords}->name;
 
-  # We need to parse each of the BASE positions specified
-  # Usually SCIENCE, REFERENCE or BASE and SKY
-  # We should find all the BASE entries and parse them in turn.
-  # Supporting the old style is a pain
+  # normalise missing target
+  $summary{target} = NO_TARGET unless $summary{target};
 
-  # Look for BASE
-  my @base = $el->findnodes( './/BASE');
-
-  # if we have not got any we look for "base"
-  @base = $el->findnodes( './/base') unless @base;
-
-  # Could be an error (it is for now) but we may be specifying 
-  # "best guess" as an option for the translator for pointing and
-  # standards
-  throw OMP::Error::SpBadStructure("No base target position specified in SpTelescopeObsComp\n") unless @base;
-
-
-  # For each of these nodes we need to extract the target information
-  # and the tag
+  # Now repeat for cal tags
   my %tags;
-  for my $b (@base) {
-    # The tag is either an attribute of BASE
-    # or an attribute of target
-    my $tag = $b->getAttribute( 'TYPE' );
+  for my $t ($cfg->getNonSciTags) {
+    my %tag;
+    $tag{coords} = $cfg->getCoords( $t );
+    $tag{coordstype} = $tag{coords}->type;
+    $tag{target} = $tag{coords}->name;
 
-    # Now need to find the target
-    my ($target) = $b->findnodes( './/target' );
-
-    throw OMP::Error::SpBadStructure("Unable to find target inside BASE SpTelescopeObsComp\n") unless $target;
-
-    # If we have not got a tag we should look for it in target
-    $tag = $target->getAttribute( 'type' ) unless defined $tag;
-
-    # Error if we do not have a tag
-    throw OMP::Error::SpBadStructure("Unable to find tag associated with this base position") unless defined $tag;
-
-    # Now extract the coordinate information
-    $tags{$tag} =  { $self->_extract_coord_info( $target ) };
-
-    # There may be an offset for REFERENCE or SKY
-    if ($tag eq 'REFERENCE' || $tag eq 'SKY') {
-      # Look for an offset
-      my ($offset) = $b->findnodes('.//OFFSET');
-
-      if (defined $offset) {
-	# Parse the offset information
-	$tags{$tag}->{OFFSET_DX} = $self->_get_pcdata($offset, 'DC1');
-	$tags{$tag}->{OFFSET_DY} = $self->_get_pcdata($offset, 'DC2');
-      }
-
+    # offsets
+    my $offset = $cfg->getOffset( $t );
+    if (defined $t) {
+      # Should just store the offset in the coordinate object
+      # or at least retain it as an offset object
+      my ($dx, $dy) = $offset->offsets;
+      $tag{OFFSET_DX} = $dx->arcsec;
+      $tag{OFFSET_DY} = $dy->arcsec;
     }
-
+    $tags{$t} = \%tag;
   }
 
-  # SCIENCE or Base tags get copied into the main %summary hash
-  # REFERENCE, SKY and GUIDE are copied directly
-  if (exists $tags{SCIENCE} && exists $tags{Base}) {
-    throw OMP::Error::SpBadStructure("You are not allowed to specify both a SCIENCE position and a Base position");
-  } elsif (!exists $tags{SCIENCE} && !exists $tags{Base} ) {
-    throw OMP::Error::SpBadStructure("You must specify either a SCIENCE position or a Base position");
-  }
-
-  for my $t (qw/ SCIENCE Base/) {
-    next unless exists $tags{$t};
-    %summary = (%summary, %{$tags{$t}});
-    delete $tags{$t};
-  }
-
-  # Copy all the others
   $summary{coordtags} = \%tags;
-
-  return %summary;
-}
-
-=item B<_extract_coord_info>
-
-This routine will parse a TCS XML "target" element and return
-the relevant information. Does not know about the TYPE
-
- %results = $self->_extract_coord_info( $element );
-
-=cut
-
-sub _extract_coord_info {
-  my $self = shift;
-  my $target = shift;
-
-  # Somewhere to store the information
-  my %summary;
-  $summary{target} = $self->_get_pcdata($target, "targetName");
-  $summary{target} = NO_TARGET unless defined $summary{target};
-
-  # Now we need to look for the coordinates. If we have hmsdegSystem
-  # or degdegSystem (for Galactic) we translate those to a nice easy
-  # J2000. If we have conicSystem or namedSystem then we have a moving
-  # source on our hands and we have to work out it's azel dynamically
-  # If we have a degdegSystem with altaz we can always schedule it.
-  # spherSystem now replaces hmsdegsystem and degdegsystem
-
-  # Search for the element matching (this will be targetName 90% of the time)
-  # We know there is only one system element per target
-  my ($system) = $self->_get_child_elements($target, qr/System$/);
-
-  # Get the coordinate system name
-  my $sysname = $system->getName;
-
-  # Get the coordinate frame. This is either "type" or "SYSTEM"
-
-  # Frossie says: The OT was using the type attribute when in fact
-  # type is a reserved java keyword. Therefore Shaun changed it to
-  # upper case TYPE. To avoid breaking existing programs I am changing
-  # this to look for either case. The need for this will evaporate
-  # after about a semester.
-
-  # Code being replaced:
-
-
-  #  my $type = ($sysname eq 'spherSystem' ? 
-  #  $system->getAttribute("SYSTEM") : $system->getAttribute("type"));
-
-  # New code:
-
-  my $type;
-
-  if ($sysname eq 'spherSystem') {
-
-    $type = $system->getAttribute("SYSTEM");
-
-  } elsif (defined $system->getAttribute("type")) {
-
-    $type = $system->getAttribute("type");
-
-  } else {
-
-    $type = $system->getAttribute("TYPE");
-
-    }
-
-
-
-
-  if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem"
-     or $sysname eq 'spherSystem') {
-
-    # Get the "long" and "lat"
-    my $c1 = $self->_get_pcdata( $system, "c1");
-    my $c2 = $self->_get_pcdata( $system, "c2");
-
-    # degdeg uses different keys to hmsdeg
-    #print "System: $sysname\n";
-    my ($long ,$lat);
-    my %coords;
-    if ($type eq "J2000" or $type eq "B1950") {
-      %coords = ( ra => $c1, dec => $c2, type => $type);
-    } elsif ($type =~ /gal/i) {
-      %coords = ( long => $c1, lat => $c2, type => 'galactic', units=>'deg' );
-    } elsif ($type eq 'Az/El' || $type eq 'AZEL' ) {
-      %coords = ( az => $c1, el => $c2 );
-    }
-
-    # Create a new coordinate object
-    $summary{coords} = new Astro::Coords( %coords,
-					   name => $summary{target});
-
-    throw OMP::Error::FatalError("Error reading coordinates from XML for target $summary{target}. Tried ".
-				 Dumper(\%coords))
-      unless defined $summary{coords};
-
-    $summary{coordstype} = $summary{coords}->type;
-
-  } elsif ($sysname eq "conicSystem") {
-
-    # Orbital elements. We need to get the (up to) 8 numbers
-    # and store them in an Astro::Coords.
-    $summary{coordstype} = "ELEMENTS";
-
-    # Lookup table for XML to SLALIB
-    # should probably put this in Astro::Coords::Elements
-    # and default to knowledge of units if, for example,
-    # supplied as 'inclination' rather than 'orbinc'
-    # XML should have epoch in MJD without modification
-    my %lut = (EPOCH  => 'epoch',
-	       ORBINC => 'inclination',
-	       ANODE  => 'anode',
-	       PERIH  => 'perihelion',
-	       AORQ   => 'aorq',
-	       E      => 'e',
-	       AORL   => 'LorM',
-	       DM     => 'n',
-	       EPOCHPERIH => 'epochPerih',
-	      );
-
-    # Create an elements hash
-    my %elements;
-    for my $el (keys %lut) {
-
-      # Skip if we are dealing with "comet" or minor planet
-      # and are at DM
-      next if ($el eq 'DM' && ($type =~ /Comet/i || $type =~ /Minor/i));
-
-      # AORL is not relevant for comet
-      next if ($el eq 'AORL' && $type =~ /Comet/i);
-
-      # Get the value from XML
-      my $value = $self->_get_pcdata( $system, $lut{$el});
-
-      # Convert to raidnas
-      if ($el =~ /^(ORBINC|ANODE|PERIH|AORL|DM)$/) {
-	# Convert to radians
-	$value *= Astro::SLA::DD2R;
-      }
-
-      # Store the value
-      $elements{$el} = $value;
-
-    }
-
-    $summary{coords} = Astro::Coords->new( elements => \%elements,
-					   name => $summary{target});
-
-    throw OMP::Error::FatalError("Error reading coordinates from XML for target $summary{target}. Tried elements".
-				 Dumper(\%elements))
-      unless defined $summary{coords};
-
-
-  } elsif ($sysname eq "namedSystem") {
-
-    # A planet that the TCS already knows about
-
-    $summary{coordstype} = "PLANET";
-    $summary{coords} = Astro::Coords->new( planet => $summary{target});
-
-    throw OMP::Error::FatalError("Unable to process planet $summary{target}\n")
-      unless defined $summary{coords};
-
-  } else {
-
-    throw OMP::Error::FatalError("Target system ($sysname) not recognized\n");
-
-  }
-
 
   return %summary;
 }
