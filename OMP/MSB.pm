@@ -3015,8 +3015,8 @@ sub _get_range {
     my $min = $self->_get_pcdata( $matches[-1], "min");
     my $max = $self->_get_pcdata( $matches[-1], "max");
 
-    $result = new OMP::Range(Min => $min, Max => $max, Units => $units);
-      if defined $min and defined $max;
+    $result = new OMP::Range(Min => $min, Max => $max, Units => $units)
+      if (defined $min or defined $max);
 
   }
 
@@ -4358,6 +4358,7 @@ sub SpDRRecipe {
   $dr{window_type} = $self->_get_pcdata($el, 'window_type');
   $dr{spectral_binning} = $self->_get_pcdata($el, 'channelBinning');
   $dr{spectral_truncation} = $self->_get_pcdata($el, 'truncationChannels');
+  $dr{fit_polynomial_order} = $self->_get_pcdata($el, 'polynomialOrder');
 
   # Baselines can be specified in 3 ways:
   #   - None : baselines is "undef"
