@@ -812,7 +812,8 @@ sub _get_projects {
 
     # Now create the PI user
     my $pi = $udb->getUser( $piuserid );
-    throw OMP::Error::FatalError( "The PI user ID ($piuserid) is not recognized by the OMP system. Please fix project $projectid\n");
+    throw OMP::Error::FatalError( "The PI user ID ($piuserid) is not recognized by the OMP system. Please fix project $projectid\n")
+      unless defined $pi;
 
     $proj->pi( $pi );
 
