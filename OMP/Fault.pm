@@ -109,7 +109,7 @@ my %DATA = (
 			},
 	     "OMP"   => {
 			 SYSTEM => {
-				    Feedback => 1,
+				    "Feedback/Web" => 1,
 				    DBServer => 2,
 				    ObservingTool => 3,
 				    QueryTool => 4,
@@ -123,7 +123,7 @@ my %DATA = (
 				  Exception => 2,
 				  Scheduling => 3,
 				  Bug => 4,
-				  Feature => 5,
+				  "Feature Request"=> 5,
 				  Other => TYPEOTHER,
 				  Human => HUMAN,
 				 },
