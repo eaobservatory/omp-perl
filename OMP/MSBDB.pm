@@ -32,6 +32,9 @@ use strict;
 use warnings;
 use Carp;
 
+# OMP dependencies
+use OMP::SciProg;
+
 # External dependencies
 use File::Spec;
 use DBI;
@@ -74,6 +77,7 @@ sub new {
 	    Password => undef,
 	    ProjectID => undef,
 	    DBH => undef,
+	    Transaction => undef,
 	   };
 
   # Populate the hash
@@ -176,6 +180,32 @@ sub _dbhandle {
   return $self->{DBH};
 }
 
+=item B<_transaction>
+
+Contains the current database transaction. We use this to guarantee
+that all SQL statements are executed at the same time (when the
+database connection is closed) rather than discovering an error
+halfway through the transaction and not being able to revert.
+
+This contains the pending SQL statements. Each time this method
+is called with an argument the values are appended to the string.
+When the argument is C<undef> the string is emptied.
+
+=cut
+
+sub _transaction {
+  my $self = shift;
+  if (@_) {
+    my $arg = shift;
+    if (defined $arg) {
+      $self->{Transaction} .= $arg;
+    } else {
+      $self->{Transaction} = undef;
+    }
+  }
+  return $self->{Transaction};
+}
+
 =back
 
 =head2 General Methods
@@ -269,9 +299,24 @@ sub fetchSciProg {
 
 Retrieve an MSB (in the form of an OMP::MSB object) from the database.
 The MSB can be identified either explicitly by specifying the index
-from the table, by specifying the index with a verification checksum
-or by specifying a project ID and corresponding checksum. This allows
+(msbid) from the table, by specifying the index (msbid) with a
+verification checksum or by specifying just the checksum.  If a
+checksum and msbid are provided the a check is made on the database
+table before even attempting to load the science program.  This allows
 some flexibility in retrieving the MSB.
+
+In all cases the project ID is verified (as stored in the object) as a
+sanity check if it is present. Once the checksum is determined (either
+from the table or supplied by the user) the Science Program is scanned
+until the relevant MSB can be located.
+
+Note that the checksum is guaranteed to be unique (partly because
+it is used to determine MSBs that are identical when the Science
+Program is stored in the DB) so long as the project ID is available.
+
+If the project ID is not available from the object then queries
+using just the checksum can not be guaranteed (although statistics
+are in your favour).
 
 The OMP will probably always use the index and checksum approach. Since,
 assuming an MSB has a unique index, this allows for us to determine
@@ -279,24 +324,23 @@ when a science program has been resubmitted since we obtained the
 information. This is important since we want to make sure that our
 query is still valid.
 
-The "byindex" approach will work in much the same way but lacks the
-verification step.
-
-The project and checksum approach allows us to always retrieve the
-same MSB regardless of whether the science program has been resubmitted
-since we last looked.
+The checksum approach allows us to always retrieve the same MSB
+regardless of whether the science program has been resubmitted since
+we last looked.
 
 Just use the index:
 
-   $msb = $db->fetchMSB( Index => $index );
+   $msb = $db->fetchMSB( id => $index );
 
-Use the index and checksum:
+Use the index and checksum (both are used for the DB query):
 
-   $msb = $db->fetchMSB( Index => $index, CheckSum => $checksum );
+   $msb = $db->fetchMSB( id => $index, checksum => $checksum );
 
 Use the checksum and the project id (available from the object):
 
-   $msb = $db->fetchMSB( CheckSum => $checksum );
+   $msb = $db->fetchMSB( checksum => $checksum );
+
+It is an error for multiple MSBs to match the supplied criteria.
 
 =cut
 
@@ -304,10 +348,47 @@ sub fetchMSB {
   my $self = shift;
   my %args = @_;
 
-  # Call method to do search on database. This assumes that we
-  # can map ProjectID, CheckSum and Index to valid column names
-  
+  # The important result is the checksum
+  my $checksum;
 
+  # If we are querying the database by MSB ID...
+  if (exists $args{id}) {
+
+    # Connect to the DB
+    $self->_dbconnect;
+
+    # Call method to do search on database. This assumes that we
+    # can map projectid, checksum and id to valid column names
+    # Returns a hash with the row entries
+    my %details = $self->_fetch_row(%args);
+
+    $self->_dbdisconnect;
+
+    # Return undef if no match
+    return undef unless %details;
+
+    # Get the checksum
+    $checksum = $details{checksum};
+
+    # And the project ID
+    $self->projectid( $details{projectid} );
+
+  } elsif (exists $args{checksum}) {
+    $checksum = $args{checksum};
+  } else {
+    croak "No checksum or MSBid provided";
+  }
+
+  print "Checksum: $checksum\n";
+  print "ProjectID: " . $self->projectid,"\n";
+
+  # Retrieve the relevant science program
+  my $sp = $self->fetchSciProg();
+
+  # Get the MSB
+  my $msb = $sp->fetchMSB( $checksum );
+
+  return $msb;
 }
 
 =back
@@ -378,7 +459,7 @@ sub _write_sci_prog {
 }
 
 
-=item B<_get_sciprog_timestamp>
+=item B<_get_old_sciprog_timestamp>
 
 This retrieves the timestamp of a science program as stored on
 disk in the database.
@@ -397,6 +478,41 @@ sub _get_old_sciprog_timestamp {
   my $tstamp = $sp->timestamp;
   return $tstamp;
 }
+
+=item B<_get_next_index>
+
+Return the primary index to use for each row in the database. This
+number is determined to be unique for all entries ever made.
+
+The current index is obtained by reading it from a text file
+and then incrementing it. This is more robust than simply making
+sure that it is the next highest in the database (since it would
+then not guarantee that we would choose a unique value).
+
+=cut
+
+sub _get_next_index {
+  my $self = shift;
+
+  my $indexfile = File::Spec->catfile($XMLDIR,"index.dat");
+  my $highest;
+  if (-e $indexfile) {
+    open(my $fh, "<$indexfile") 
+      or croak "Could not read indexfile $indexfile: $!";
+    $highest = <$fh>;
+  }
+
+  # increment to get the next one
+  $highest++;
+
+  # Now update the file
+  open(my $fh, ">$indexfile") 
+    or croak "Could not open indexfile $indexfile: $!";
+  print $fh "$highest";
+
+  return $highest;
+}
+
 
 =back
 
@@ -465,60 +581,21 @@ sub _insert_row {
   my $dbh = $self->_dbhandle;
 
   # Store the data
-  $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?)", undef,
-	   $index, $data{checksum}, $self->projectid, 
+  my $proj = $self->projectid;
+  $dbh->do("INSERT INTO $TABLE VALUES (?, ?, ?, ?, ?)", undef,
+	   $index, $data{checksum}, $self->projectid, $data{remaining},
 	   $self->_sciprog_filename);
 
 }
 
-=item B<_get_next_index>
-
-Return the primary index to use for each row in the database. This
-number is determined to be unique for all entries ever made.
-
-The current index is obtained by reading it from a text file
-and then incrementing it. This is more robust than simply making
-sure that it is the next highest in the database (since it would
-then not guarantee that we would choose a unique value).
-
-=cut
-
-sub _get_next_index {
-  my $self = shift;
-  #my $dbh = $self->_dbhandle;
-
-  # probably want: SELECT MAX id FROM TABLE 
-  # but this doesn't work
-  #my $sth = $dbh->prepare("SELECT id FROM $TABLE ORDER BY id DESC")
-  #  or croak "unable to prepare: ". $DBI::errstr;
-  #$sth->execute();
-  #my $highest;
-  #my $row = $sth->fetchrow_hashref;
-  #$highest = $row->{id} if defined $row;
-  #$sth->finish;
-
-  my $indexfile = File::Spec->catfile($XMLDIR,"index.dat");
-  my $highest;
-  if (-e $indexfile) {
-    open(my $fh, "<$indexfile") 
-      or croak "Could not read indexfile $indexfile: $!";
-    $highest = <$fh>;
-  }
-
-  # increment to get the next one
-  $highest++;
-
-  # Now update the file
-  open(my $fh, ">$indexfile") 
-    or croak "Could not open indexfile $indexfile: $!";
-  print $fh "$highest";
-
-  return $highest;
-}
 
 =item B<_clear_old_rows>
 
 Remove all rows associated with the current project ID.
+
+This should probably be combined with the insert step
+to prevent the case where we remove the old rows and fail to insert the
+new ones.
 
 =cut
 
@@ -532,6 +609,49 @@ sub _clear_old_rows {
   # Store the data
   $dbh->do("DELETE FROM $TABLE WHERE projectid = \"$proj\"");
 
+}
+
+=item B<_fetch_row>
+
+Retrieve a row of information from the database table.
+
+  %result = $db->_fetch_row( id => $key );
+
+The information is returned as a hash with keys identical to
+the database column names.
+
+The query will be formed by using any or all of C<checksum>,
+C<id> and C<projectid> depending on whether they are set in the
+argument hash or in the object.
+
+Returns empty list if no match can be found.
+
+=cut
+
+sub _fetch_row {
+  my $self = shift;
+  my %query = @_;
+
+  # Get the project id if it is here
+  $query{projectid} = $self->projectid
+    if defined $self->projectid;
+
+  # Assume that query keys match column names
+  my @substrings = map { " $_ = $query{$_} " } keys %query;
+
+  # and construct the SQL command
+  my $statement = "SELECT * FROM $TABLE WHERE" .
+    join("AND", @substrings);
+
+  # prepare and execute
+  my $dbh = $self->_dbhandle;
+  my $ref = $dbh->selectall_hashref( $statement );
+
+  # The result is now the first entry in @$ref
+  my %result;
+  %result = %{ $ref->[0] } if @$ref;
+
+  return %result;
 }
 
 =back

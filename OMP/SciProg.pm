@@ -12,7 +12,7 @@ OMP::SciProg - Class representing an OMP Science Program
 
 =head1 DESCRIPTION
 
-
+This class manipulates OMP Science Programs.
 
 =cut
 
@@ -332,6 +332,31 @@ sub find_projectid {
     carp "Project ID is not defined\n";
   }
 
+}
+
+=item B<fetchMSB>
+
+Given a checksum, search through the science program for a matching
+MSB.
+
+  $msb = $sp->fetchMSB( $checksum );
+
+The MSB is returned as an OMP::MSB object. Returns C<undef> on error.
+
+=cut
+
+sub fetchMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  my $found;
+  for my $msb ($self->msb) {
+    if ($checksum eq $msb->checksum) {
+      $found = $msb;
+      last;
+    }
+  }
+  return $found;
 }
 
 =item B<locate_msbs>
