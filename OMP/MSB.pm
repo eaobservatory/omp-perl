@@ -36,6 +36,7 @@ use Astro::WaveBand;
 
 use Astro::SLA qw(); # elements
 
+use Data::Dumper;
 use Time::Piece ':override';
 use Time::Seconds;
 
@@ -1692,7 +1693,6 @@ sub _summarize_obs {
 
   }
 
-  #use Data::Dumper;
   #print Dumper(\%summary);
 
   return %summary;
@@ -1763,7 +1763,6 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  #use Data::Dumper;
   #print Dumper(\@obs);
 
   return @obs;
@@ -1954,7 +1953,6 @@ sub _get_weather_data {
     unless defined $summary{seeing};
 
 
-#  use Data::Dumper;
 #  print Dumper(\%summary);
 
   return %summary;
@@ -2437,7 +2435,6 @@ sub unroll_obs {
   my $self = shift;
   my @obs = $self->obssum;
 
-  #use Data::Dumper;
   #print "INPUT ",Dumper( \@obs);
   #print "Number of observations to process: ",scalar(@obs),"\n";
 
@@ -2465,7 +2462,6 @@ sub unroll_obs {
 
   }
 
-  #use Data::Dumper;
   #print Dumper( \@longobs);
 
   return @longobs;
@@ -2481,7 +2477,6 @@ sub _unroll_obs_recurse {
   my $iterator = shift;
   my %config = @_;
 
-#  use Data::Dumper;
 #  print "DUMP: ",Dumper($iterator);
 
   throw OMP::Error::FatalError "Recursing on non-HASH not supported"
@@ -3542,7 +3537,9 @@ sub _extract_coord_info {
     $summary{coords} = new Astro::Coords( %coords,
 					   name => $summary{target});
 
-    throw OMP::Error::FatalError( "Coordinate frame $type not yet supported by the OMP\n") unless defined $summary{coords};
+    throw OMP::Error::FatalError("Error reading coordinates from XML for target $summary{target}. Tried ".
+				 Dumper(\%coords))
+      unless defined $summary{coords};
 
     $summary{coordstype} = $summary{coords}->type;
 
@@ -3596,6 +3593,11 @@ sub _extract_coord_info {
     $summary{coords} = Astro::Coords->new( elements => \%elements,
 					   name => $summary{target});
 
+    throw OMP::Error::FatalError("Error reading coordinates from XML for target $summary{target}. Tried elements".
+				 Dumper(\%elements))
+      unless defined $summary{coords};
+
+
   } elsif ($sysname eq "namedSystem") {
 
     # A planet that the TCS already knows about
@@ -3624,7 +3626,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
