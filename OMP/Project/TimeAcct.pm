@@ -45,7 +45,7 @@ use warnings;
 use Carp;
 use OMP::General;
 
-
+use overload "==" => "isEqual";
 
 =head1 METHODS
 
@@ -227,6 +227,32 @@ sub incTime {
   #print "INCTIME: Inc is $inc and CUR is now $cur and time is $time\n";
   $self->timespent( $cur );
   return;
+}
+
+=item B<isEqual>
+
+Compare two C<OMP::Project::TimeAcct> objects for equality.
+
+  $t->isEqual($acct1, $acct2);
+
+This method is invoked by a comparison overload.  Returns
+true if the objects are determined to be equal.
+
+=cut
+
+sub isEqual {
+  my $acct_a = shift;
+  my $acct_b = shift;
+
+  if ($acct_a->projectid ne $acct_b->projectid) {
+    return 0;
+  } elsif ($acct_a->date->epoch != $acct_b->date->epoch) {
+    return 0;
+  } elsif ($acct_a->timespent->seconds != $acct_b->timespent->seconds) {
+    return 0;
+  } else {
+    return 1;
+  }
 }
 
 =back
