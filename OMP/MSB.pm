@@ -3021,13 +3021,13 @@ sub SpInstUIST {
   if ($type eq 'imaging') {
     my $filter = $self->_get_pcdata( $el, "filter" );
     $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					      Instrument => 'MICHELLE');
+					      Instrument => 'UIST');
 
     $summary{disperser} = undef;
   } else {
     my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
     $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
-					      Instrument => 'MICHELLE');
+					      Instrument => 'UIST');
 
     $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
   }
