@@ -29,20 +29,25 @@ require Exporter;
 
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
+my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
+  OMP__DONE_COMMENT /;
 
-@EXPORT_OK = (@status, @fb);
+@EXPORT_OK = (@status, @fb, @done);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
 		'status'=>\@status,
 		'fb' =>\@fb,
+		'done'=> \@done,
 	       );
 
-Exporter::export_tags(qw/ status all fb /);
+Exporter::export_tags( keys %EXPORT_TAGS);
 
 =head1 CONSTANTS
 
 The following constants are available from this module:
+
+=head2 General status
 
 =over 4
 
@@ -83,6 +88,12 @@ use constant OMP__SPBADXML => -10;
 use constant OMP__SPEMPTY => -11;
 
 
+=back
+
+=head2 Feedback system
+
+=over 4
+
 =item B<OMP__FB_INFO>
 
 This constant contains the definition of info feedback status.
@@ -117,6 +128,47 @@ use constant OMP__FB_DELETE => -1;
 
 =back
 
+=head2 MSB Done constants
+
+=over 4
+
+=item OMP__DONE_FETCH
+
+Entry was associated with a retrieval from the database. This is
+used to prepopulate the table in case the MSB later disappears from
+the science program.
+
+=cut
+
+use constant OMP__DONE_FETCH => 0;
+
+=item OMP__DONE_DONE
+
+Entry is associated with an observation trigger.
+
+=cut
+
+use constant OMP__DONE_DONE => 1;
+
+=item OMP__DONE_ALLDONE
+
+Entry is associated with an action setting all the remaining
+MSB counts to zero.
+
+=cut
+
+use constant OMP__DONE_ALLDONE => 2;
+
+=item OMP__DONE_COMMENT
+
+Entry is associated with a simple comment.
+
+=cut
+
+use constant OMP__DONE_COMMENT => 3;
+
+=back
+
 =head1 TAGS
 
 Individual sets of constants can be imported by 
@@ -130,9 +182,21 @@ The available tags are:
 
 =over 4
 
+=item :all
+
+Import all constants.
+
 =item :status
 
 Constants associated with OMP status checking: OMP__OK and OMP__ERROR.
+
+=item :fb
+
+Constants associated with the feedback system.
+
+=item :done
+
+Constants associated with the MSB done table.
 
 =back
 
@@ -159,8 +223,10 @@ $Id$
 
 =head1 AUTHOR
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt> and
-Frossie Economou E<lt>frossie@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+Frossie Economou E<lt>frossie@jach.hawaii.eduE<gt> and
+Kynan Delorey E<lt>kynan@jach.hawaii.eduE<gt>.
+
 
 =head1 REQUIREMENTS
 

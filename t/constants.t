@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 8 }
+BEGIN { plan tests => 12 }
 
 use OMP::Constants qw/ :all /;
 
@@ -19,6 +19,12 @@ ok( defined OMP__FB_INFO );
 ok( defined OMP__FB_IMPORTANT );
 ok( defined OMP__FB_HIDDEN );
 ok( defined OMP__FB_DELETE );
+
+# MSB Done
+ok( defined OMP__DONE_FETCH );
+ok( defined OMP__DONE_DONE );
+ok( defined OMP__DONE_ALLDONE );
+ok( defined OMP__DONE_COMMENT );
 
 # And a fake one
 eval "defined OMP__BLAH";

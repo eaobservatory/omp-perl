@@ -39,6 +39,7 @@ use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::ProjDB;
+use OMP::Constants qw/ :done /;
 
 use Time::Piece;
 
@@ -396,7 +397,7 @@ sub fetchMSB {
   $self->_db_begin_trans;
   $self->_dblock;
   $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
-				  "MSB retrieved from DB", 1 );
+				  "MSB retrieved from DB", OMP__DONE_FETCH );
   $self->_dbunlock;
   $self->_db_commit_trans;
 
@@ -485,8 +486,8 @@ sub doneMSB {
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
-				  "MSB marked as done" );
-
+				  "MSB marked as done",
+				  OMP__DONE_DONE );
 
   # Give up if we dont have a match
   return unless defined $msb;
@@ -572,7 +573,8 @@ sub alldoneMSB {
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
-				  "MSB removed from consideration" );
+				  "MSB removed from consideration", 
+				  OMP__DONE_ALLDONE );
 
   # Give up if we dont have a match
   return unless defined $msb;
@@ -1662,11 +1664,19 @@ where the relevant keys in C<%msbinfo> are:
 
 The datestamp is added automatically.
 
+All entries with status OMP__DONE_FETCH and the same
+checksum are removed prior to uploading this information. This
+is because the FETCH information is really just a placeholder
+to guarantee that the information is available and is not
+the main purpose of the table.
+
 =cut
 
 sub _add_msb_done_info {
   my $self = shift;
   my %msbinfo = @_;
+
+  print "Status is $msbinfo{status}\n";
 
   # Get the DB handle
   my $dbh = $self->_dbhandle or
@@ -1679,10 +1689,9 @@ sub _add_msb_done_info {
   throw OMP::Error::BadArgs("No projectid supplied for add_msb_done_info")
     unless exists $msbinfo{projectid};
 
-  # First set the status to 0 for all MSBs in the table matching
-  # the checksum and projectid
-  $dbh->do("UPDATE $MSBDONETABLE SET status = 0 WHERE checksum = '$msbinfo{checksum}' AND projectid = '$msbinfo{projectid}'")
-    or throw OMP::Error::DBError("Error updating MSB done status: $DBI::errstr");
+  # First remove any placeholder observations
+  $dbh->do("DELETE FROM $MSBDONETABLE WHERE checksum = '$msbinfo{checksum}' AND projectid = '$msbinfo{projectid}' AND status = " . OMP__DONE_FETCH)
+    or throw OMP::Error::DBError("Error removing placeholder from MSB done table: $DBI::errstr");
 
   # Now insert the information into the table
 
@@ -1690,16 +1699,13 @@ sub _add_msb_done_info {
   my $t = gmtime;
   my $date = $t->strftime("%b %e %Y %T");
 
-  # and initial status is good
-  my $status = 1;
-
   # Dummy text for the TEXT field
   my $dummy = "pwned!2";
 
   # Simply use "do" since there is only a single insert
   # (without the text field)
   $dbh->do("INSERT INTO $MSBDONETABLE VALUES (?,?,?,?,?,?,?,'$dummy')",undef,
-	   $msbinfo{checksum}, $status, $msbinfo{projectid},
+	   $msbinfo{checksum}, $msbinfo{status}, $msbinfo{projectid},
 	   $date, $msbinfo{target}, $msbinfo{instrument}, $msbinfo{waveband})
     or throw OMP::Error::DBError("Error inserting new MSB done rows: $DBI::errstr");
 
@@ -1730,27 +1736,33 @@ principal, this information could be obtained from the MSB object).
 
   $db->_store_msb_done_comment( $checksum, $proj, $msb, $text );
 
-An optional fifth argument can be used to specify that you do
-not wish to add anything to the table if some information about
-this MSB already exists (essentially used to prevent us adding
-a row to indicate that we have retrieved the MSB when the main
-purpose is simply to place the information there rather than
-logging all retrievals). If true this argument will only write
-to the table if the information is new.
+An optional fifth argument can be used to specify the status of the
+message. Default is for the message to be treated as a comment.
+This allows you to specify that the comment is associated with
+an MSB fetch or a "msb done" action. The OMP__DONE_FETCH is
+treated as a special case. If that status is used a row is added
+to the table only if no previous information exists for that MSB.
+(this prevents lots of entries associated with repeat fetches
+but no action).
 
 =cut
 
 sub _store_msb_done_comment {
   my $self = shift;
-  my ($checksum, $project, $msb, $comment, $check ) = @_;
+  my ($checksum, $project, $msb, $comment, $status ) = @_;
+
+  # default to a normal comment
+  $status = ( defined $status ? $status : OMP__DONE_COMMENT );
 
   # check first before writing if required
   # I realise this leads to the possibility of two fetches from
   # the database....
-  return if $check and $self->_fetch_msb_done_info(
-					   checksum => $checksum,
-					   projectid => $project,
-					  );
+  # If status is OMP__DONE_FETCH then we only want one entry
+  # ever so only write it if nothing previously exists
+  return if $status == OMP__DONE_FETCH and $self->_fetch_msb_done_info(
+								       checksum => $checksum,
+								       projectid => $project,
+								      );
 
   # If the MSB is defined we do not need to read from the database
   my %msbinfo;
@@ -1770,8 +1782,11 @@ sub _store_msb_done_comment {
   }
 
   # throw an exception if we dont have anything yet
-  throw OMP::Error::FatalError("Unable to associate any information with the checksum $checksum in project $project") 
+  throw OMP::Error::MSBMissing("Unable to associate any information with the checksum $checksum in project $project") 
     unless %msbinfo;
+
+  # provide a status
+  $msbinfo{status} = $status;
 
   # Add the comment into the mix
   $msbinfo{comment} = ( defined $comment ? $comment : '' );
