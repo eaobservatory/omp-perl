@@ -297,7 +297,7 @@ sub _mail_comment {
 
   # If there is HTML in the message we'll use "<br>" instead of "\n"
   # to start a new line when adding any text to the message
-  my $newline = ($comment =~ m!</!m ? "<br>" : "\n");
+  my $newline = ($comment->{text} =~ m!</!m ? "<br>" : "\n");
 
   # Mail message
   my $msg = "Author: $comment->{author}$newline" .
