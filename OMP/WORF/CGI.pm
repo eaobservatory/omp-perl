@@ -125,6 +125,8 @@ formed when the form printed by B<print_display_properties> is submitted.
 The query argument must be a hash reference optionally containing observation
 information as follows (listed are valid keys that will be verified):
 
+=over 8
+
 =item * 'view' - list all observations for a given instrument? ( yes | no )
 
 =item * 'file' - filename of observation, not including path.
@@ -171,6 +173,8 @@ information as follows (listed are valid keys that will be verified):
 tables in PDL::Graphics::LUT;
 
 =item * 'size' - size of output graphic ( 128 | 640 | 960 | 1280 )
+
+=back
 
 The verified argument will contain verified values for use by routines
 in OMP::WORF.
@@ -513,9 +517,16 @@ sub verify_query {
   }
 }
 
+=back
+
 =head1 AUTHOR
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
 
 =cut
 

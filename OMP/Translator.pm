@@ -1148,11 +1148,11 @@ sub getPol {
   return %pol;
 }
 
-
-
 =back
 
 =head2 General SCUBA oddities
+
+=over
 
 =item B<getCentCoordSystem>
 

@@ -416,3 +416,24 @@ sub _delete_obslog {
   # And delete the data from the database.
   $self->_db_delete_data( $OBSLOGTABLE, $where );
 }
+
+=back
+
+=head1 SEE ALSO
+
+This class inherits from C<OMP::BaseDB>.
+
+For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
+
+=head1 AUTHORS
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
+
+1;

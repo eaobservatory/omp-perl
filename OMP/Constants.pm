@@ -199,6 +199,8 @@ use constant OMP__MSB_REMOVED => -999;
 
 =head2 Observation status
 
+=over 4
+
 =item OMP__OBS_GOOD
 
 Flags an observation as good.
@@ -222,6 +224,8 @@ Flags an observation as bad.
 =cut
 
 use constant OMP__OBS_BAD => 2;
+
+=back
 
 =head1 TAGS
 

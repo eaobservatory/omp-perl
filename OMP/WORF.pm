@@ -46,7 +46,7 @@ our %EXPORT_TAGS = (
                     );
 #Exporter::export_tags(qw/ all variables routines /);
 
-=item B<Variables>
+=head1 B<Variables>
 
 The following variables may be exported, but are not by default.
 
@@ -306,6 +306,8 @@ Create HTML that will display a graphic for a given observation.
 
 Argument must be a hash reference containing observation information as follows:
 
+=over 8
+
 =item * 'file' - filename of observation, not including path.
 
 =item * 'instrument' - instrument name
@@ -352,6 +354,8 @@ tables in PDL::Graphics::LUT;
 =item * 'width' - width in pixels of graphic
 
 =item * 'height' - height in pixels of graphic
+
+=back
 
 =cut
 
@@ -799,9 +803,16 @@ sub _get_reduced_directory {
   return $ENV{"ORAC_DATA_OUT"};
 }
 
+=back
+
 =head1 AUTHOR
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
 
 =cut
 
