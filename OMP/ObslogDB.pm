@@ -336,7 +336,6 @@ sub updateObsComment {
   my $self = shift;
 
   my $obs_arrayref = shift;
-
 # Check to see if we actually have observations before doing this.
 # If we don't, just return the array.
   return @$obs_arrayref if scalar( @$obs_arrayref ) < 1;
@@ -349,8 +348,18 @@ sub updateObsComment {
 
   my @obsarray = sort { $a->startobs->epoch <=> $b->startobs->epoch } @$obs_arrayref;
 
-  my $start = $obsarray[0]->startobs;
-  my $end = $obsarray[-1]->startobs;
+  my $start;
+  my $end;
+  if( UNIVERSAL::isa( $obsarray[0], "OMP::Info::Obs::TimeGap" ) ) {
+    $start = $obsarray[0]->endobs - 1;
+  } else {
+    $start = $obsarray[0]->startobs;
+  }
+  if( UNIVERSAL::isa( $obsarray[-1], "OMP::Info::Obs::TimeGap" ) ) {
+    $end = $obsarray[-1]->endobs - 1;
+  } else {
+    $end = $obsarray[-1]->startobs;
+  }
 
   my $xml = "<ObsQuery>" .
     "<date><min>" . $start->ymd . "T" . $start->hms . "</min>" .
