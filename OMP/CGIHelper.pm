@@ -1697,13 +1697,21 @@ sub projlog_content {
 
   try {
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
-				      date => $utdate,);
-    print "<h3>Observation log</h3>";
-    # Don't want to go to files on disk
-    $OMP::ArchiveDB::FallbackToFiles = 0;
-    obs_table($grp);
+				      date => $utdate
+				      inccal => 1,);
+
+    if ($grp->numobs > 1) {
+      print "<h3>Observation log</h3>";
+
+      # Don't want to go to files on disk
+      $OMP::ArchiveDB::FallbackToFiles = 0;
+      obs_table($grp);
+    } else {
+      # Don't display the table if no observations are available
+      print "<h2>No observations available for this night</h2>";
+    }
   } otherwise {
-    print "<h2>No observation log for this night</h2>";
+    print "<h2>No observations available for this night</h2>";
   };
 
 }
