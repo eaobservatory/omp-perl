@@ -35,37 +35,27 @@ our $SCUTAB = 'archive..SCU S';
 our $GSDTAB = 'jcmt..SCA G';
 our $SUBTAB = 'jcmt..SUB H';
 our $SPHTAB = 'jcmt..SPH I';
-our $TELTAB = 'jcmt..TEL T';
-our $WEATAB = 'jcmt..WEA W';
 our $UKIRTTAB = 'ukirt..COMMON U';
 our $UFTITAB = 'ukirt..UFTI F';
 our $CGS4TAB = 'ukirt..CGS4 C';
 our $UISTTAB = 'ukirt..UIST I';
 our $IRCAMTAB = 'ukirt..IRCAM3 I';
-our $MICHELLETAB = 'ukirt..MICHELLE M';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
                    UIST => [ $UKIRTTAB, $UISTTAB ],
-                   MICHELLE => [ $UKIRTTAB, $MICHELLETAB ],
+                   MICHELLE => [ $UKIRTTAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
-                   HETERODYNE => [ $GSDTAB, $SUBTAB, $TELTAB, $WEATAB ],
+                   HETERODYNE => [ $GSDTAB, $SUBTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
-                                $TELTAB => '(T.tel# = G.tel#)',
-                                $WEATAB => '(W.wea# = G.wea#)',
-                              },
-                   $TELTAB => { $GSDTAB => '(T.tel# = G.tel#)',
-                              },
-                   $WEATAB => { $GSDTAB => '(W.wea# = G.wea#)',
                               },
                    $UKIRTTAB => { $UFTITAB => '(U.idkey = F.idkey)',
                                   $CGS4TAB => '(U.idkey = C.idkey)',
                                   $UISTTAB => '(U.idkey = I.idkey)',
                                   $IRCAMTAB => '(U.idkey = I.idkey)',
-                                  $MICHELLETAB => '(U.idkey = M.idkey)',
                                 },
                  );
 
