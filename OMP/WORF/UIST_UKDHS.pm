@@ -110,8 +110,8 @@ either 'image' or 'spectrum'. Defaults to 'image'.
 =item lut - Colour lookup table to use to display the image. Must be one
 of the lookup tables used by C<PDL::Graphics::LUT>. Defaults to 'standard'.
 
-=item size - Size of image to display. Must be one of 128, 640, 960, or
-1280. Defaults to 640.
+=item size - Size of image to display. Must be one of 'regular' or 'thumb'.
+Defaults to 'regular'.
 
 =item xstart - Start pixel in x-dimension to display. If undefined, greater
 than xend, or greater than the largest extent of the array, will default
