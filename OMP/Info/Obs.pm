@@ -477,15 +477,19 @@ sub stringify {
 Returns a hash representation of data contained in an C<Info::Obs>
 object that can be used for summary purposes.
 
-  %nightlog = $obs->nightlog;
+  %nightlog = $obs->nightlog( %options );
 
-An optional parameter may be supplied. This parameter is a string
-whose values are either 'short' or 'long', which will cause the
-method to return either a small amount of information (i.e. for a
-brief summary) or the full information contained in the object. The
-default is 'short'.
+An optional parameter may be supplied containing a hash of options. These are:
 
-'long' information is not currently implemented.
+=over 4
+
+=item comments - add comments to the nightlog string, a boolean. Defaults
+to false (0).
+
+=item display - type of display to show, a string either being 'long' or
+'short'. Defaults to 'short'. 'long' information is not currently implemented.
+
+=back
 
 The returned hash is of the form {header_name => value}, with an additional
 {_ORDER => @ORDER_ARRAY} key-value pair to indicate the order in
@@ -501,7 +505,21 @@ multiple-line summaries of the observations.
 
 sub nightlog {
   my $self = shift;
-  my $display = shift || 'short';
+  my %options = @_;
+
+  my $comments;
+  if( exists( $options{comments} ) && defined( $options{comments} ) ) {
+    $comments = $options{comments};
+  } else {
+    $comments = 0;
+  }
+
+  my $display;
+  if( exists( $options{display} ) && defined( $options{display} ) ) {
+    $display = $options{display};
+  } else {
+    $display = 'short';
+  }
 
   my %return;
 
@@ -680,7 +698,7 @@ sub nightlog {
 
   }
 
-  if( $display eq 'long' ) {
+  if( $comments ) {
     foreach my $comment ($self->comments) {
       if(defined($comment)) {
         if( exists( $return{'_STRING'} ) ) {
