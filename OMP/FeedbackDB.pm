@@ -296,17 +296,21 @@ sub _mail_comment {
   my $addrlist = shift;
  # Mail message
   my $msg = "\nAuthor: $comment->{author}\n" .
-            "Subject: [" . $self->projectid . "] $comment->{subject}\n\n" .
-	    "$comment->{text}\n";
+            "$comment->{text}\n";
 
   my $projectid = $self->projectid;
+
+  # Put projectid in subject header if it isn't already there
+  my $subject;
+  ($comment->{subject} !~ /^\[.+\]/) and $subject = "[$projectid] $comment->{subject}"
+    or $subject = "$comment->{subject}";
 
   $self->_mail_information(
 			   message => $msg,
 			   to => $addrlist,
 			   from => "omp-feedback-system",
-			   subject => "[$projectid] $comment->{subject}\n\n",
-			   headers => ["Reply-To: flex\@jach.hawaii.edu","Content-type: text/html"  ],
+			   subject => "$subject\n\n",
+			   headers => ["Reply-To: flex\@jach.hawaii.edu","Content-type: text/html"],
 			  );
 
 }
