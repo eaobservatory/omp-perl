@@ -337,7 +337,8 @@ sub populate {
     my $match = join("|",keys %instruments);
 
     my @newobs = grep { uc($_->projectid) eq uc($args{projectid}) 
-			  || (! $_->isScience && $_->instrument =~ /^$match$/i) } $self->obs;
+			  || (! $_->isScience && $_->instrument =~ /^$match$/i)
+			} $self->obs;
 
     # store it [comments will already be attached]
     $self->obs(\@newobs);
