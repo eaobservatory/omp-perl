@@ -158,11 +158,11 @@ sub translate {
 	} else {
 	  # Do *not* skip if this is a calibration observation
 	  # calibration observation is defined by either an unknown
-	  # target or one of Focus, Pointing, Noise, Skydip
+	  # target, a standrd or one of Focus, Pointing, Noise, Skydip
 	  print "MODE: ". $obsinfo->{MODE} ."\n";
 	  print "AUTO: ". $obsinfo->{autoTarget}."\n";
 	  if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
-	     !$obsinfo->{autoTarget}) {
+	     !$obsinfo->{autoTarget} && !$obsinfo->{standard}) {
 	    next;
 	  }
 	}
@@ -871,7 +871,7 @@ sub getGeneral {
     # calibration observation is defined by either an unknown
     # target or one of Focus, Pointing, Noise, Skydip
     if ($info{MODE} =~ /(Focus|Pointing|Noise|Skydip)/i ||
-	$info{autoTarget}) {
+	$info{autoTarget} || $info{standard}) {
       $projid = 'SCUBA';
     }
   }
@@ -1044,7 +1044,8 @@ sub getTarget {
   my %info = @_;
 
   # First see if we need to choose a target
-  if ($info{autoTarget}) {
+  # If we are a standard that always means autoTarget too
+  if ($info{autoTarget} || $info{standard}) {
     # Do nothing, this is a function of the queue
     return ();
 
