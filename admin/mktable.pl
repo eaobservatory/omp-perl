@@ -5,11 +5,24 @@
 use strict;
 use warnings;
 use File::Spec;
+use Term::ReadLine;
 
 # Pick up the OMP database
 use FindBin;
 use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
+use OMP::General;
+
+# First thing we do is ask for a password
+my $term = new Term::ReadLine 'Make OMP database tables';
+
+# Needs Term::ReadLine::Gnu
+my $attribs = $term->Attribs;
+$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+my $password = $term->readline( "Please enter administrator password: ");
+$attribs->{redisplay_function} = $attribs->{rl_redisplay};
+
+OMP::General->verify_administrator_password( $password );
 
 # Connect
 my $db = new OMP::DBbackend;
