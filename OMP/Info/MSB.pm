@@ -466,7 +466,7 @@ sub summary {
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 11 10 3 3 8 8 3 3 20 20 20 6 5 /;
+  my @width = qw/ 11 10 3 3 9 8 3 3 20 20 20 6 5 /;
   throw OMP::Error::FatalError("Bizarre problem in OMP::Info::MSB::summary ")
     unless @width == @keys;
   my $textformat = join(" ",map { "%-$_"."s" } @width);
