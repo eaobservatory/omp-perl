@@ -136,6 +136,12 @@ for my $proj (keys %alloc) {
 
   }
 
+  # And seeing
+  my ($seemin, $seemax) = (0,undef);
+  if (exists $details{seeing}) {
+    ($seemin, $seemax) = split(/,/, $details{seeing});
+  }
+
   # Now convert the allocation to seconds instead of hours
   die "[project $proj] Allocation is mandatory!" unless $details{allocation};
   $details{allocation} *= 3600;
@@ -157,6 +163,7 @@ for my $proj (keys %alloc) {
 				$details{allocation},
 				$details{telescope},
 				$taumin, $taumax,
+				$seemin,$seemax, $details{cloud},
 			       );
   } catch OMP::Error::ProjectExists with {
     print " - but the project already exists. Skipping.";

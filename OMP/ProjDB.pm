@@ -47,8 +47,10 @@ our $PROJTABLE = "ompproj";
 our $COITABLE  = "ompcoiuser";
 our $SUPTABLE  = "ompsupuser";
 
-# inifinite tau
+# inifinite tau [this should match the number in OMP::MSBDB]
 my $TAU_INF = 101;
+my $SEE_INF = 5000;
+my $CLD_INF = 101;  # This matches CLOUD_DONT_CARE in OMP::MSB
 
 =head1 METHODS
 
@@ -697,12 +699,25 @@ sub _insert_project_row {
   # Get some extra information
   my $pi = $proj->pi->userid;
   my $taurange = $proj->taurange;
+  my $seerange = $proj->seerange;
+  my $cloud = $proj->cloud;
+
   # TAU_INF is a valid upper limit. 0 is always valid lower limit
   my ($taumin, $taumax) = ( $taurange ? $taurange->minmax : (0,$TAU_INF));
 
   # do not allow any undefs for tau
   $taumin = 0 unless defined $taumin;
   $taumax = $TAU_INF unless defined $taumax;
+
+  # Same for seeing
+  my ($seemin, $seemax) = ($seerange ? $seerange->minmax : (0,$SEE_INF));
+
+  # do not allow any undefs for seeing
+  $seemin = 0 unless defined $seemin;
+  $seemax = $SEE_INF unless defined $seemax;
+
+  # Cloud can not be undef
+  $cloud = $CLD_INF unless defined $cloud;
 
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
@@ -711,7 +726,8 @@ sub _insert_project_row {
 			  $proj->country, $proj->semester, $proj->encrypted,
 			  $proj->allocated->seconds,
 			  $proj->remaining->seconds, $proj->pending->seconds,
-			  $proj->telescope,$taumin,$taumax
+			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
+			  $cloud
 			);
 
   # Now insert the user data
@@ -803,6 +819,34 @@ sub _get_projects {
 					  );
     delete $projhash->{taumin};
     delete $projhash->{taumax};
+
+    # Same for seeing
+    # Convert the seeingmin, seeingmax to a OMP::Range object
+    # old entries may have NULL for min when we really mean ZERO
+    $projhash->{seeingmin} = 0 unless defined $projhash->{seeingmin};
+
+    # SEE_INF should be converted to undef
+    if (defined $projhash->{seeingmax}) {
+      # want to overcome precision errors
+      my $seeint = int($projhash->{seeingmax} + 0.5);
+      $projhash->{seeingmax} = undef
+	if $seeint == $SEE_INF;
+    }
+
+    # KLUGE: Use 2 decimal places for now until we switch to DOUBLES
+    for (qw/ seeingmin seeingmax/ ) {
+      $projhash->{$_} = sprintf("%.2f", $projhash->{$_})
+	if $projhash->{$_}
+    }
+    $projhash->{seerange} = new OMP::Range(Min => $projhash->{seeingmin},
+					   Max => $projhash->{seeingmax},
+					  );
+    delete $projhash->{seeingmin};
+    delete $projhash->{seeingmax};
+
+
+    # Now read the cloud information
+    $projhash->{cloud} = undef if $projhash->{cloud} == $CLD_INF;
 
     # Create a new OMP::Project object
     my $proj = new OMP::Project( %$projhash );

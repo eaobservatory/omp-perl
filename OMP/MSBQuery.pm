@@ -412,7 +412,8 @@ recognised by the database.
 The current semester is used for all queries unless a semester
 or a projectid is explicitly specified in the query.
 
-Tau must be positive. If it is not positive it will be ignored.
+Tau and seeing must be positive. If they are not positive they will be
+ignored.
 
 =cut
 
@@ -432,6 +433,13 @@ sub _post_process_hash {
   if (exists $href->{tau}) {
     delete $href->{tau}
       if $href->{tau}->[0] <= 0;
+  }
+
+  # If seeing has been specified and is negative remove it from
+  # the query
+  if (exists $href->{seeing}) {
+    delete $href->{seeing}
+      if $href->{seeing}->[0] <= 0;
   }
 
   # We always need a reference date
@@ -571,6 +579,26 @@ sub _post_process_hash {
       }
       delete $href->{$key};
     }
+  }
+
+  # A taumin/taumax query should occur on both the project
+  # and the msb table
+  if (exists $href->{seeingmin}) {
+    for my $key (qw/ seeingmin seeingmax/) {
+      for my $tab (qw/ M. P./) {
+	$href->{"$tab$key"} = $href->{$key};
+      }
+      delete $href->{$key};
+    }
+  }
+
+  # A cloud query should occur on both the project and MSB table
+  if (exists $href->{cloud}) {
+    my $key = "cloud";
+    for my $tab (qw/ M. P./) {
+      $href->{"$tab$key"} = $href->{$key};
+    }
+    delete $href->{$key};
   }
 
   # A coi query is really a query on C.userid

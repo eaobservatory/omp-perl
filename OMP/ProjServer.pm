@@ -270,9 +270,10 @@ Add details of a project to the database.
 
   OMP::ProjServer->addProject($password, $force, $projectid, $pi,
 			      $coi, $support,
-			     $title, $tagpriority, $country,
-			     $semester, $proj_password, $allocated
-                             $telescope, $taumin, $taumax);
+			      $title, $tagpriority, $country,
+			      $semester, $proj_password, $allocated
+                              $telescope, $taumin, $taumax, 
+			      $seemin, $seemax, $cloud);
 
 The first password is used to verify that you are allowed to modify
 the project table. The second password is for the project itself.
@@ -282,7 +283,8 @@ will be thrown if this value is false and the project in question
 already exists.
 
 taumin and taumax are optional (assume minimum of zero and
-no upper limit).
+no upper limit). As are seemax, seemin and cloud. Note that in
+order to specify a seeing range the tau range must be specified!
 
 We may not want to have this as a public method on a SOAP Server!
 
@@ -317,9 +319,13 @@ sub addProject {
       @support = map { $userdb->getUser($_) or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]") } split /[:,]/, $project[3];
     }
 
-    # Create range object for tau (defaulting to lower bound of zero
+    # Create range object for tau (defaulting to lower bound of zero)
     $project[11] = 0 unless defined $project[11];
     my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
+
+    # And seeing
+    $project[13] = 0 unless defined $project[13];
+    my $seerange = new OMP::Range(Min=>$project[13], Max=>$project[14]);
 
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
@@ -335,6 +341,8 @@ sub addProject {
 				allocated => $project[9],
 				telescope => $project[10],
 				taurange => $taurange,
+				seerange => $seerange,
+				cloud => $project[15],
 			       );
 
     my $db = new OMP::ProjDB(

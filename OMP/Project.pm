@@ -74,6 +74,8 @@ sub new {
 		    Password => undef,
 		    ProjectID => undef,
 		    TauRange => undef,
+		    SeeingRange => undef,
+		    Cloud => undef,
 		    CoI => [],
 		    TagPriority => 999,
 		    PI => undef,
@@ -160,6 +162,44 @@ sub taurange {
   return $self->{TauRange};
 }
 
+=item B<seerange>
+
+Range of seeing conditions (in arcseconds)  in which the observations can be performed. No observations can be performed when the seeing
+is not within this range.
+
+  $range = $proj->seerange();
+
+Returns an C<OMP::Range> object (or undef).
+
+=cut
+
+sub seerange {
+  my $self = shift;
+  if (@_) {
+    my $range = shift;
+    croak "Tau range must be specified as an OMP::Range object"
+      unless UNIVERSAL::isa($range, "OMP::Range");
+    $self->{SeeingRange} = $range;
+  }
+  return $self->{SeeingRange};
+}
+
+=item B<cloud>
+
+Any cloud condition constraints. C<undef> indicates no constraints,
+1 indicates "photometric" and 2 indicates "cirrus".
+
+  $cloud = $proj->cloud( 1 );
+
+=cut
+
+sub cloud {
+  my $self = shift;
+  if (@_) {
+    $self->{Cloud} = shift;
+  }
+  return $self->{Cloud};
+}
 
 =item B<telescope>
 
@@ -776,6 +816,35 @@ sub verify_password {
     # two letters. Therefore we encrypt the plain text password
     # using the encrypted password as salt
     return ( crypt($plain, $encrypted) eq $encrypted );
+  }
+
+}
+
+=item B<cloudtxt>
+
+The textual description of the cloud constraints. One of:
+
+  any
+  cirrus or photometric
+  photometric
+
+ my $text = $proj->cloudtxt;
+
+=cut
+
+sub cloudtxt {
+  my $self = shift;
+  my $cloud = $self->cloud;
+  return "any" unless defined $cloud;
+
+  my %lut = (1 => "photometric",
+	     2 => "cirrus or photometric",
+	    );
+
+  if (exists $lut{$cloud}) {
+    return $lut{$cloud};
+  } else {
+    return "????";
   }
 
 }

@@ -100,11 +100,14 @@ my %tables = (
 			  telescope => "VARCHAR(16)",
 			  taumin => "REAL",
 			  taumax => "REAL",
+			  seeingmin => "REAL",
+			  seeingmax => "REAL",
+			  cloud => "INTEGER",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
 				     remaining pending telescope taumin
-				     taumax
+				     taumax seeingmin seeingmax cloud
 				     /],
 			 },
 	      # Time accounting for projects

@@ -1429,6 +1429,8 @@ sub project_home {
     my $remaining = $project->allRemaining->pretty_print;
   my $pi = $project->pi->html;
   my $taurange = $project->taurange;
+  my $seerange = $project->seerange;
+  my $cloud = $project->cloud;
 
   # Store coi and support html emails
   my $coi = join(", ",map{$_->html} $project->coi);
@@ -1465,6 +1467,13 @@ sub project_home {
   # If range is from 0 to infinity dont bother displaying it
   print "in tau range $taurange"
     unless ($taurange->min == 0 and ! defined $taurange->max);
+
+  print " in seeing range $seerange"
+    unless ($seerange->min ==0 and ! defined $seerange->max);
+
+  print " with sky " . $project->cloudtxt
+    if defined $cloud;
+
   print "</td>";
 
   if ($remaining) {
