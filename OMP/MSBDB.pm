@@ -1326,6 +1326,10 @@ sub _run_query {
     # know hour angle and things
     my %qconstraints = $query->constraints;
 
+    # Get the elevation/airmass and hour angle constraints
+    my $amrange = $query->airmass;
+    my $harange = $query->ha;
+
     # Loop over each MSB in order
     for my $msb ( @$ref ) {
 
@@ -1343,7 +1347,7 @@ sub _run_query {
 
       # Loop over each observation.
       # We have to keep track of the reference time
-      for my $obs ( @{ $msb->{observations} } ) {
+      OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
 
 	# Create the coordinate object in order to calculate
 	# observability. Special case calibrations since they
@@ -1374,56 +1378,54 @@ sub _run_query {
 	# Set the teelscope
 	$coords->telescope( $telescope );
 
-	# Set the time
-	$coords->datetime( $date );
-
 	# -w fix
 	$obs->{minel} = -1 unless defined $obs->{minel};
 
-	# Now see if we are observable (dropping out the loop if not
-	# since there is no point checking further) This knows about
-	# different telescopes automatically Also check that we are
-	# above the minimum elevation (which is not related to the
-	# queries but is a scheduling constraint)
-	# In some cases we dont even want to test for observability
-	if ($qconstraints{observability}) {
-	  if  ( ! $coords->isObservable or
-		$coords->el < $obs->{minel}) {
-	    $isObservable = 0;
-	    last;
+	# Loop over two times. The current time and the current
+	# time incremented by the observation time estimate
+	# Note that we do not test for the case where the source
+	# is not observable between the two reference times
+	# For example at JCMT where the source may transit above
+	# 87 degrees
+	for my $delta (0, $obs->timeest) {
+
+	  # increment the date
+	  $date += $delta;
+
+	  # Set the time in the coordinates object
+	  $coords->datetime( $date );
+
+	  # Now see if we are observable (dropping out the loop if not
+	  # since there is no point checking further) This knows about
+	  # different telescopes automatically Also check that we are
+	  # above the minimum elevation (which is not related to the
+	  # queries but is a scheduling constraint)
+	  # In some cases we dont even want to test for observability
+	  if ($qconstraints{observability}) {
+	    if  ( ! $coords->isObservable or
+		  $coords->el < $obs->{minel}) {
+	      $isObservable = 0;
+	      last OBSLOOP;
+	    }
 	  }
-	}
 
-	# Add the estimated time of the observation to the reference
-	# time for the next time round the loop and to see if this 
-	# observation has set since we started it
-	$date += $obs->{timeest}; # check that this is in seconds
-
-	# Now change the date and check again
-	$coords->datetime( $date );
-
-	# Repeat the check for observability. Note that this will not
-	# deal with the case at JCMT where we transit above 87 degrees
-	if ($qconstraints{observability}) {
-	  if  ( ! $coords->isObservable or
-		$coords->el < $obs->{minel}) {
-	    $isObservable = 0;
-	    last;
+	  # Now check for hour angle and elevation constraints
+	  # imposed from the query.
+	  if ($harange) {
+	    if ($harange->contains($coords->ha(format => 'h'))) {
+	      $isObservable = 0;
+	      last OBSLOOP;
+	    }
 	  }
-	}
+	  if ($amrange) {
+	    if ($amrange->contains($coords->airmass)) {
+	      $isObservable = 0;
+	      last OBSLOOP;
+	    }
+	  }
 
-	# Store the details in the Obs array that we will
-	# need for summarizing in the XML output
-# 	if ($coords->type ne "CAL") {
-# 	  $obs->{ha} = sprintf("%.1f",$coords->ha( format => "h", 
-# 						   normalize => 1));
-# 	  $obs->{airmass} = sprintf("%.3f",$coords->airmass);
-# 	  $obs->{ra} = sprintf("%.1f", $coords->ra_app(format => "h"));
-# 	} else {
-# 	  $obs->{ha} = "CAL";
-# 	  $obs->{airmass} = "CAL";
-# 	  $obs->{ra} = "CAL";
-# 	}
+
+	}
 
       }
 
