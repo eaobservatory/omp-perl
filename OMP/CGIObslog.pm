@@ -416,13 +416,13 @@ sub obs_inst_summary {
   }
 
   # Now that we know where we are (or not), form the instrument array.
-  my @instarray = OMP::Config->getData( 'instruments',
+  my $instarray = OMP::Config->getData( 'instruments',
                                         telescope => $telescope );
 
   # Alright. Now, for each instrument in the array, form an
   # Info::ObsGroup object.
   my %results;
-  foreach my $inst ( @instarray ) {
+  foreach my $inst ( @$instarray ) {
     my $grp;
     try {
       $grp = new OMP::Info::ObsGroup( instrument => uc( $inst ),
@@ -439,6 +439,7 @@ sub obs_inst_summary {
 #      my $errortext = $Error->{'-text'};
 #      print "Error: $errortext<br>\n";
     };
+
     if( defined( $grp ) ) {
       $results{$inst} = $grp;
     }
