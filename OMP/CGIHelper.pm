@@ -153,7 +153,7 @@ sub fb_entries {
   my $status = [OMP__FB_IMPORTANT, OMP__FB_INFO];
   my $comments = OMP::FBServer->getComments( $cookie{projectid},
 					     $cookie{password},
-					     $status,);
+					     $status, 'ascending');
 
   print $q->h2("Feedback entries"),
         "<a href='fbcomment.pl'>Add a comment</a>",
