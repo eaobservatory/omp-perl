@@ -128,9 +128,10 @@ sub queryArc {
 
   my @results;
 
-  # First check if the cached information is suspect.
-  if( ! suspect_cache( $query ) && simple_query( $query ) ) {
-    @results = retrieve_archive( $query )->obs;
+  my $grp = retrieve_archive( $query );
+
+  if(defined($grp)) {
+    @results = $grp->obs;
   } else {
 
     my $date = $query->daterange->min;
