@@ -973,12 +973,23 @@ Get the chop details
 
  %chop = $trans->getChop( %info );
 
+If we are doing two bolometer photometry then we do not return
+any chop information.
+
 =cut
 
 sub getChop {
   my $self = shift;
   my %info = @_;
 
+  # First see if we are stare mode with two bol chop
+  # Two Bol chopping will have at least one comma in the bolometer list.
+  if ($info{MODE} =~ /Stare/) {
+    my %bols = $self->getBols(%info);
+    return () if $bols{BOLOMETERS} =~ /,/;
+  }
+
+  # Not two bol photom so must work it out from context
   my %chop;
   $chop{CHOP_THROW} = $info{CHOP_THROW};
   $chop{CHOP_PA} = $info{CHOP_PA};
