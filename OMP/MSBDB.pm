@@ -40,6 +40,8 @@ use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::ProjDB;
 
+use Time::Piece;
+
 use Astro::Telescope;
 use Astro::Coords;
 
@@ -52,6 +54,7 @@ our $MSBTABLE = "ompmsb";
 our $PROJTABLE = $OMP::ProjDB::PROJTABLE;
 our $OBSTABLE = "ompobs";
 our $SCITABLE = "ompsciprog";
+our $MSBDONETABLE = "ompmsbdone";
 
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 10;
@@ -343,6 +346,12 @@ sub fetchMSB {
   my $self = shift;
   my %args = @_;
 
+  # Administrator password so that we can fetch and store
+  # science programs without resorting to knowing the
+  # actual password or to disabling password authentication
+  $self->password("***REMOVED***");
+
+
   # The important result is the checksum
   my $checksum;
 
@@ -375,6 +384,21 @@ sub fetchMSB {
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
+
+
+
+  # Update the msb done table to indicate that we have retrieved an
+  # MSB.  This is needed so that the done table includes all MSBs that
+  # have been retrieved such that the information can be associated
+  # with done flags and comments even if the MSB is removed from the
+  # science program during the observation. This requires a transaction.
+  # Connect to the DB (and lock it out)
+  $self->_db_begin_trans;
+  $self->_dblock;
+  $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
+				  "MSB retrieved from DB", 1 );
+  $self->_dbunlock;
+  $self->_db_commit_trans;
 
   return $msb;
 }
@@ -458,6 +482,12 @@ sub doneMSB {
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
 
+  # Update the msb done table (need to do this even if the MSB
+  # no longer exists in the science program
+  $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
+				  "MSB marked as done" );
+
+
   # Give up if we dont have a match
   return unless defined $msb;
 
@@ -538,6 +568,11 @@ sub alldoneMSB {
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
+
+  # Update the msb done table (need to do this even if the MSB
+  # no longer exists in the science program
+  $self->_store_msb_done_comment( $checksum, $sp->projectID, $msb,
+				  "MSB removed from consideration" );
 
   # Give up if we dont have a match
   return unless defined $msb;
@@ -1331,6 +1366,230 @@ that the object will go out of scope).
 sub DESTROY {
   my $self = shift;
   $self->_db_rollback_trans;
+}
+
+=back
+
+=head2 MSB Done table
+
+The MSB "done" table exists to allow us to associate user supplied
+comments with MSBs that have been observed. It does this by having a
+simple logging table where a new row is added each time an MSB is
+observed or commented upon.
+
+The existence of this table allows comments for an MSB to be
+associated directly with data stored in the data archive (where the
+MSB checksum will be stored in the FITS headers). There is no direct
+link with the OMP MSB table. This can be thought of as a specialised
+MSB Feedback table.
+
+As each MSB comment comes in it is simply added to the table and a
+status flag of previous entries is updated (set to false). One wrinkle
+is that there is no guarantee that an MSB will still be in the MSB
+table (science program) when the trigger to mark the MSB as done is
+received (a new science program may have been submitted in the
+interim). To overcome this problem a row is added to the table each
+time an MSB is retrieved from the system using C<fetchMSB>- this
+guarantees that the MSB summary information is available to us since
+we simply read the table prior to submitting a new row.
+
+=over 4
+
+=item B<_fetch_msb_done_info>
+
+Retrieve the information from the MSB done table. Can retrieve the
+most recent information of all information associated with the MSB.
+
+  %msbinfo = $db->_fetch_msb_done_info( checksum => $sum,
+                                         projectid => $proj);
+
+  @allmsbinfo = $db->_fetch_msb_done_info( checksum => $sum,
+                                           projectid => $proj,
+                                           allinfo => 1);
+
+Project ID is retrieved from the object if none is supplied.
+Returns empty list if no rows can be found.
+
+=cut
+
+sub _fetch_msb_done_info {
+  my $self = shift;
+  my %args = @_;
+
+  # Decide whether to retrieve all information or just the last
+  my $allinfo = ( exists $args{allinfo} ? $args{allinfo} : 0 );
+  delete $args{allinfo} if exists $args{allinfo};
+
+  # Get the project id if it is here
+  $args{projectid} = $self->projectid
+    if !exists $args{projectid} and defined $self->projectid;
+
+  throw OMP::Error::BadArgs("No checksum supplied for fetch_msb_done_info")
+    unless exists $args{checksum};
+
+  # Assume that query keys match column names
+  my @substrings = map { " $_ = ? " } sort keys %args;
+
+  # and construct the SQL command using bind variables so that 
+  # we dont have to worry about quoting
+  my $statement = "SELECT * FROM $MSBDONETABLE WHERE" .
+    join("AND", @substrings);
+
+  # prepare and execute
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} },
+				      map { $args{$_} } sort keys %args
+				    );
+
+  # If they want all the info just return the ref
+  # else return the first entry
+  if ($ref) {
+    if ($allinfo) {
+      return @$ref;
+    } else {
+      my $hashref = (defined $ref->[0] ? $ref->[0] : {});
+      return %{ $hashref };
+    }
+  } else {
+    return ();
+  }
+
+}
+
+=item B<_add_msb_done_info>
+
+Add the supplied information to the MSB done table and mark all previous
+entries as old (status = false).
+
+ $db->_add_msb_done_info( %msbinfo );
+
+where the relevant keys in C<%msbinfo> are:
+
+  checksum - the MSB checksum
+  projectid - the project associated with the MSB
+  comment   - a comment associated with this action
+  instrument,target,waveband - msb summary information
+
+The datestamp is added automatically.
+
+=cut
+
+sub _add_msb_done_info {
+  my $self = shift;
+  my %msbinfo = @_;
+
+  # Get the DB handle
+  my $dbh = $self->_dbhandle or
+    throw OMP::Error::DBError("Database handle not valid");
+
+  # Get the projectid
+  $msbinfo{projectid} = $self->projectid
+    if (!exists $msbinfo{projectid} and defined $msbinfo{projectid});
+
+  throw OMP::Error::BadArgs("No projectid supplied for add_msb_done_info")
+    unless exists $msbinfo{projectid};
+
+  # First set the status to 0 for all MSBs in the table matching
+  # the checksum and projectid
+  $dbh->do("UPDATE $MSBDONETABLE SET status = 0 WHERE checksum = '$msbinfo{checksum}' AND projectid = '$msbinfo{projectid}'")
+    or throw OMP::Error::DBError("Error updating MSB done status: $DBI::errstr");
+
+  # Now insert the information into the table
+
+  # First get the timestamp
+  my $t = gmtime;
+  my $date = $t->strftime("%b %e %Y %T");
+
+  # and initial status is good
+  my $status = 1;
+
+  # Dummy text for the TEXT field
+  my $dummy = "pwned!2";
+
+  # Simply use "do" since there is only a single insert
+  # (without the text field)
+  $dbh->do("INSERT INTO $MSBDONETABLE VALUES (?,?,?,?,?,?,?,'$dummy')",undef,
+	   $msbinfo{checksum}, $status, $msbinfo{projectid},
+	   $date, $msbinfo{target}, $msbinfo{instrument}, $msbinfo{waveband})
+    or throw OMP::Error::DBError("Error inserting new MSB done rows: $DBI::errstr");
+
+  # Now the text field
+  # Now replace the text using writetext
+  $dbh->do("declare \@val varbinary(16)
+select \@val = textptr(comment) from $MSBDONETABLE where comment like \"$dummy\"
+writetext $MSBDONETABLE.comment \@val '$msbinfo{comment}'")
+    or throw OMP::Error::DBError("Error inserting comment into database: ". $dbh->errstr);
+
+
+
+}
+
+=item B<_store_msb_done_comment>
+
+Given a checksum, project ID, (optional) MSB object and a comment,
+update the MSB done table to contain this information.
+
+If the MSB object is defined the table information will be retrieved
+from the object. If it is not defined the information will be
+retrieved from the done table. An exception is triggered if the
+information for the table is not available (this is the reason why the
+checksum and project ID are supplied even though, in principal, this
+information could be obtained from the MSB object.
+
+  $db->_store_msb_done_comment( $checksum, $proj, $msb, $text );
+
+An optional fifth argument can be used to specify that you do
+not wish to add anything to the table if some information about
+this MSB already exists (essentially used to prevent us adding
+a row to indicate that we have retrieved the MSB when the main
+purpose is simply to place the information there rather than
+logging all retrievals). If true this argument will only write
+to the table if the information is new.
+
+=cut
+
+sub _store_msb_done_comment {
+  my $self = shift;
+  my ($checksum, $project, $msb, $comment, $check ) = @_;
+
+  # check first before writing if required
+  # I realise this leads to the possibility of two fetches from
+  # the database....
+  return if $check and $self->_fetch_msb_done_info(
+					   checksum => $checksum,
+					   projectid => $project,
+					  );
+
+  # If the MSB is defined we do not need to read from the database
+  my %msbinfo;
+  if (defined $msb) {
+
+    %msbinfo = $msb->summary;
+    $msbinfo{target} = $msbinfo{_obssum}{target};
+    $msbinfo{instrument} = $msbinfo{_obssum}{instrument};
+    $msbinfo{waveband} = $msbinfo{_obssum}{waveband};
+
+  } else {
+    %msbinfo = $self->_fetch_msb_done_info(
+					   checksum => $checksum,
+					   projectid => $project,
+					  );
+
+  }
+
+  # throw an exception if we dont have anything yet
+  throw OMP::Error::FatalError("Unable to associate any information with the checksum $checksum in project $project") 
+    unless %msbinfo;
+
+  # Add the comment into the mix
+  $msbinfo{comment} = ( defined $comment ? $comment : '' );
+
+  # Add this information to the table
+  $self->_add_msb_done_info( %msbinfo );
+
+
 }
 
 =back
