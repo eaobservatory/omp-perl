@@ -12,7 +12,6 @@ use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
 
 # Connect
-$ENV{OMP_DBSERVER} = "SYB_OMP2";
 my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
 
@@ -276,7 +275,7 @@ for my $table (sort keys %tables) {
   # Comment out as required
   next if $table eq 'ompproj';
   next if $table eq 'ompsciprog';
- # next if $table eq 'ompmsb';
+  next if $table eq 'ompmsb';
   next if $table eq 'ompobs';
   next if $table eq 'ompfeedback';
   next if $table eq 'ompmsbdone';
