@@ -1924,6 +1924,7 @@ sub proj_sum_page {
 
     } else {
       # Form for adding feedback comment
+      print "<strong>Add a feedback comment</strong><br>";
       comment_form($q, %cookie);
     }
 
