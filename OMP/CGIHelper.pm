@@ -414,11 +414,11 @@ sub fb_msb_active {
   try {
     $active = OMP::SpServer->programDetails($projectid,
 					    '***REMOVED***',
-					    'data');
+					    'objects');
 
     # First go through the array quickly to make sure we have
     # some valid entries
-    my @remaining = grep { $_->{remaining} > 0 } @$active;
+    my @remaining = grep { $_->remaining > 0 } @$active;
     my $total = @$active;
     my $left = @remaining;
     my $done = $total - $left;
@@ -463,7 +463,8 @@ Create a table containing information about given MSBs
 
   msb_table($cgi, $msbs);
 
-Second argument should be an array of hash references containing MSB information
+Second argument should be an array of 
+C<OMP::Info::MSB> objects.
 
 =cut
 
@@ -480,38 +481,30 @@ sub msb_table {
   # Only bother with a remaining column if we have remaining
   # information
   print "<td><b>Remaining:</b></td>"
-    if @$program && exists $program->[0]->{remaining};
+    if (@$program && defined $program->[0]->remaining);
 
   # Note that this doesnt really work as code shared for MSB and
   # MSB Done summaries
   my $i;
   foreach my $msb (@$program) {
     # skip if we have a remaining field and it is 0 or less
-    next if (exists $msb->{remaining} and $msb->{remaining} <= 0);
+    # dont skip if the remaining field is simply undefined
+    # since that may be a valid case
+    next if defined $msb->remaining && $msb->remaining <= 0;
 
     # Skip if this is only a fetch comment
-    next if (exists $msb->{comment} && 
-	     $msb->{comment}[0]{status} == &OMP__DONE_FETCH);
+    next if (scalar @{$msb->comments} && 
+	     $msb->comments->[0]->status == &OMP__DONE_FETCH);
 
-    # Create a summary of the observation details and display
-    # this in the table cells
-    my %msb = OMP::MSB->summary($msb);
+    # Create a summary table
     $i++;
     print "<tr><td>$i</td>";
 
-    # This is a kluge - we cant really share the code hear until
-    # an OMP::DoneInfo object can be treated the same as a
-    # OMP::MSBInfo object
-    if (exists $msb{_obssum}) {
-      print "<td>" . $msb{_obssum}{target} . "</td>";
-      print "<td>" . $msb{_obssum}{waveband} . "</td>";
-      print "<td>" . $msb{_obssum}{instrument} . "</td>";
-      print "<td>" . $msb->{remaining} . "</td>";
-    } else {
-      print "<td>" . $msb->{target} . "</td>";
-      print "<td>" . $msb->{waveband} . "</td>";
-      print "<td>" . $msb->{instrument} . "</td>";
-    }
+    print "<td>" . $msb->target . "</td>";
+    print "<td>" . $msb->waveband . "</td>";
+    print "<td>" . $msb->instrument . "</td>";
+    print "<td>" . $msb->remaining . "</td>"
+      if defined $msb->remaining;
 
   }
 
