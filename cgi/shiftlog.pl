@@ -132,7 +132,7 @@ sub list_comments {
 
   # At this point we have an array of relevant Info::Comment
   # objects, so we can display them now.
-  print "<h2>Shift comments for $ut for $telescope</h2>\n";
+  print "<h2>Shift comments for ${ut}UT for $telescope</h2>\n";
   print "<table border=\"1\">\n";
   print "<tr><td><strong>HST time<br>User ID</strong></td><td><strong>comment</strong></td></tr>\n";
   foreach my $comment (@result) {
@@ -154,24 +154,14 @@ sub display_form {
   my $params = shift;
 
   print "<form action=\"shiftlog.pl\" method=\"post\"><br>\n";
-  print "<table border=\"0\" width=\"100%\"><tr><td>";
+  print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
   print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
   print ( defined( $params->{'user'} ) ? $params->{'user'} : "");
   print "\"></td></tr>\n";
-  print "<tr><td>Time:<br>(HHMM or HH:MM format)</td><td><input type=\"text\" name=\"time\" value=\"";
+  print "<tr><td>Time: (HHMM or HH:MM format)</td><td><input type=\"text\" name=\"time\" value=\"";
   print "\">  <input type=\"radio\" name=\"tz\" value=\"HST\" checked> HST ";
   print "<input type=\"radio\" name=\"tz\" value=\"UT\"> UT</td></tr>\n";
-  print "<tr><td>Telescope:</td><td>";
-  print "JCMT <input type=\"radio\" name=\"telescope\" value=\"JCMT\"";
-  if( $params->{'telescope'} ne 'UKIRT') {
-    print " checked";
-  }
-  print "> UKIRT <input type=\"radio\" name=\"telescope\" value=\"UKIRT\"";
-  if( $params->{'telescope'} eq 'UKIRT') {
-    print " checked";
-  }
-  print "></td></tr>\n";
-  print "<tr><td>Comment:</td><td><textarea name=\"text\">";
+  print "<tr><td>Comment:</td><td><textarea name=\"text\" rows=\"16\" cols=\"50\">";
   print "</textarea></td></tr>\n";
   print "</table>\n";
   print "<input type=\"hidden\" name=\"ut\" value=\"";
