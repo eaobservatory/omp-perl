@@ -1371,7 +1371,7 @@ sub SpObs {
   # CAL
   # This test needs to be expanded for SCUBA
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle|Stare/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle|Stare|Raster/, @{$summary{obstype}}) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
