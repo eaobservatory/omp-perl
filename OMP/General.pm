@@ -680,7 +680,8 @@ Returns undef if the band is not known.
 	if (exists $bands{$band}) {
 	  my ($bmin, $bmax) = $bands{$band}->minmax;
 	  $min = $bmin if $bmin < $min;
-	  $max = $bmax if $bmax > $max;
+	  # Take into account unbounded upper limit
+	  $max = $bmax if (!defined $bmax || $bmax > $max);
 	} else {
 	  return undef;
 	}

@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 153;
+use Test::More tests => 158;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -364,8 +364,15 @@ ok($@,"Got error okay");
 like($@, qr/without TAU/,"Without TAU");
 
 # Band ranges
-my $range = OMP::General->get_band_range('JCMT', 2);
-isa_ok($range, "OMP::Range");
+my $range = OMP::General->get_band_range('JCMT', 2,3);
+isa_ok($range, "OMP::Range","Make sure we get Range object");
+is($range->max,0.12);
+is($range->min,0.05);
+
+$range = OMP::General->get_band_range( 'JCMT', 4,5);
+isa_ok($range, "OMP::Range","Make sure we get range object");
+is($range->max,undef);
+is($range->min,0.12);
 
 # Projectid extraction
 my %extract = (
