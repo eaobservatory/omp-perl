@@ -84,5 +84,18 @@ sub sql {
 
 }
 
+=begin __PRIVATE__METHODS__
+
+=item B<_root_element>
+
+Class method that returns the name of the XML root element to be
+located in the query XML. Returns "ShiftQuery" by default.
+
+=cut
+
+sub _root_element {
+  return "ShiftQuery";
+}
+
 
 1;
