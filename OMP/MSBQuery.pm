@@ -34,7 +34,7 @@ use Time::Piece ':override'; # for gmtime
 our $VERSION = (qw$Revision$ )[1];
 
 # Default number of results to return from a query
-our $DEFAULT_RESULT_COUNT = 10;
+our $DEFAULT_RESULT_COUNT = 50;
 
 
 # Overloading
@@ -568,9 +568,9 @@ treated as lower limits rather than exact matches.
 "date" strings are converted to a date object.
 
 "date", "tau" and "seeing" queries are each converted to two separate
-queries (one on "max" and one on "min") [but the "date" key is retained
-so that the reference date can be obtained in order to calculate
-source availability).
+queries (one on "max" and one on "min") [but the "date" key is
+retained so that the reference date can be obtained in order to
+calculate source availability).
 
 Also converts abbreviated form of project name to the full form
 recognised by the database.
@@ -642,7 +642,6 @@ sub _post_process_hash {
 					     projectid => $pid);
       }
 
-
     }
 
   }
@@ -663,6 +662,15 @@ Determines whether we have a number or string for quoting rules.
 Some keys are duplicated in different tables. In those cases (project
 ID is the main one) the table prefix is automatically added.
 
+"coi" and "pi" queries are always done using LIKE rather than equals.
+
+A "name" element is converted to a query in both the "pi" and
+"coi" fields (ie you are interested in whether the named person
+is associated with the project at all). ie for each query on "name"
+a query for both "pi" and "coi" is returned with a logical OR.
+
+
+
 =cut
 
 sub _querify {
@@ -677,6 +685,7 @@ sub _querify {
 		  equal => "=",
 		  min   => ">=",
 		  max   => "<=",
+		  like  => "like",
 		 );
 
   # Convert the string form to SQL form
@@ -698,8 +707,32 @@ sub _querify {
   # comes from the MSB table
   $name = "M." . $name if $name eq 'projectid';
 
+  # Substring comparators fields
+  if ($name eq "name" or $name eq "coi" or $name eq "pi") {
+    $cmp = "like";
+  }
+
+  # If we have "name" then we need to create a query on both
+  # pi and coi together
+  my @list;
+  if ($name eq "name") {
+    # two columns
+    @list = (qw/ coi pi /);
+
+    # case insensitive [the SQL way]
+    $value =~ s/([a-zA-Z])/[\U$1\L$1]/g;
+
+  } else {
+    @list = ( $name );
+  }
+
+  # Loop over all keys in list
+  my $sql = join( " OR ",
+		  map { "$_ $cmptable{$cmp} $quote$value$quote"  } @list);
+
+
   # Form query
-  return "$name $cmptable{$cmp} $quote$value$quote";
+  return $sql
 
 }
 
