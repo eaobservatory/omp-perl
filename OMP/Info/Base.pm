@@ -224,7 +224,8 @@ sub CreateAccessors {
   my $CLASS_CHECK = q{
 #line 1 OMP::Info::Base::class_check
 		      unless (UNIVERSAL::isa($argument, 'CLASS')) {
-			croak "Argument for 'METHOD' must be of class CLASS and not class '". (ref($argument) ? ref($argument) : $argument) ."'";
+			croak "Argument for 'METHOD' must be of class CLASS and not class '". 
+			  (defined $ref ? (ref($argument) ? ref($argument) : $argument) : '<undef>') ."'";
 		      }
 		     };
 
