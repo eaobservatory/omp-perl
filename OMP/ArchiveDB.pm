@@ -140,10 +140,7 @@ sub queryArc {
     my $tdiff = $currentdate - $date;
 
     # Determine whether we are "today"
-    # cannot rely on seconds here, all that matters is the day
-    my $currstr = $currentdate->strftime("%Y-%m-%d");
-    my $qstr    = $date->strftime("%Y-%m-%d");
-    my $istoday = ( $currstr eq $qstr ? 1 : 0 );
+    my $istoday = $query->istoday;
 
     # Control whether we have queried the DB or not
     # True means we have done a successful query.

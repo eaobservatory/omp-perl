@@ -301,6 +301,32 @@ sub _tables {
 
 =over 4
 
+=item B<istoday>
+
+Returns true if the query starts on the current date,
+false otherwise.
+
+Should probably return true if the query spans the current
+date. This is useful for determining whether a query should
+use caching or be allowed to go to the database.
+
+=cut
+
+sub istoday {
+  my $self = shift;
+
+  my $date = $self->daterange->min;
+  my $currentdate = gmtime;
+
+  # Determine whether we are "today"
+  # cannot rely on seconds here, all that matters is the day
+  my $currstr = $currentdate->strftime("%Y-%m-%d");
+  my $qstr    = $date->strftime("%Y-%m-%d");
+  my $istoday = ( $currstr eq $qstr ? 1 : 0 );
+
+  return $istoday;
+}
+
 =item B<sql>
 
 Returns an SQL representation of the database Archive header XML Query.
