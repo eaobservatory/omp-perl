@@ -43,11 +43,9 @@ use overload '""' => "stringify";
 our $MAXTIME = OMP::General->parse_date("2035-01-01T01:00");
 our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
 
-# Upper limits for ranges
-use constant CLOUD_INF  => 101;
-use constant MOON_INF   => 101;
-use constant SEEING_INF => 101;
-use constant TAU_INF    => 101;
+# Default values for "DONT CARE"
+use constant CLOUD_DONT_CARE  => 101;
+use constant MOON_DONT_CARE   => 101;
 
 =head1 METHODS
 
@@ -1091,7 +1089,7 @@ sub _get_weather_data {
   my %summary;
 
   # Need to get "seeing" and "tau". These are ranges
-  # so store the upper and lower limits in an array
+  # so store the upper and lower limits in an OMP::Range object
   $summary{tau} = $self->_get_range( $el, "tau" );
   $summary{seeing} = $self->_get_range( $el, "seeing" );
 
@@ -1099,7 +1097,7 @@ sub _get_weather_data {
   # This is an implict range (bounded by 0)
   # so the default value should be some high number
   $summary{cloud} = $self->_get_pcdata( $el, "cloud");
-  $summary{cloud} = CLOUD_INF unless defined $summary{cloud};
+  $summary{cloud} = CLOUD_DONT_CARE unless defined $summary{cloud};
 
   # Moon
   # This is an implict range (essentially the fraction of
@@ -1107,15 +1105,15 @@ sub _get_weather_data {
   # never complain if your observation comes up with no moon
   # present]
   $summary{moon} = $self->_get_pcdata( $el, "moon");
-  $summary{moon} = MOON_INF unless defined $summary{moon};
+  $summary{moon} = MOON_DONT_CARE unless defined $summary{moon};
 
 
   # Big kluge - if the site quality is there but we
   # dont have any values defined (due to a bug in the OT)
   # then make something up
-  $summary{tau} = new OMP::Range( Min => 0, Max => TAU_INF)
+  $summary{tau} = new OMP::Range( Min => 0 )
     unless defined $summary{tau};
-  $summary{seeing} = new OMP::Range( Min => 0, Max => SEEING_INF)
+  $summary{seeing} = new OMP::Range( Min => 0 )
     unless defined $summary{seeing};
 
 

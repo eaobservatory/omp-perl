@@ -63,6 +63,12 @@ our $DEFAULT_RESULT_COUNT = 10;
 # Debug messages
 our $DEBUG = 0;
 
+# Artificial "INFINITIES" for unbounded ranges
+my %INF = (
+	   tau => 101,
+	   seeing => 5000,
+	  );
+
 =head1 METHODS
 
 =head2 Constructor
@@ -1014,12 +1020,17 @@ sub _insert_row {
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
 
+  # If the upper limits for range variables are undefined we
+  # need to specify an infinity ourselves for the database
+  my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
+  my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
+
   # Simply use "do" since there is only a single insert if we
   # can not have multiple statement handles
   $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
-	   $data{tau}->min, $data{tau}->max, $data{seeing}->min,
-	   $data{seeing}->max, $data{priority},
+	   $data{tau}->min, $taumax, $data{seeing}->min,
+	   $seeingmax, $data{priority},
 	   $data{telescope}, $data{moon}, $data{cloud},
 	   $data{timeest}, $data{title},
 	   $data{earliest}, $data{latest})
@@ -1386,6 +1397,11 @@ sub _run_query {
       # Determine the key names
       my $maxkey = $key . "max";
       my $minkey = $key . "min";
+
+      # If we have an open ended range we need to
+      # specify undef for the limit rather than the magic
+      # value (since OMP::Range understands lower limits)
+      $msb->{$maxkey} = undef if $msb-{$maxkey} == $INF{$key};
 
       # Set up the array
       $msb->{$key} = new OMP::Range( Min => $msb->{$minkey},
