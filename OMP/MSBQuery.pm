@@ -339,7 +339,7 @@ sub sql {
               AND P.projectid = M.projectid $c_sql";
 
   # The end of the query is generic
-  # make sure we include tagprioty here since it is faster
+  # make sure we include tagpriority here since it is faster
   # than doing an explicit project query later on (although
   # there may be a saving in the fact that the number of MSBs
   # returned is far greater than the number of projects required
@@ -349,11 +349,11 @@ sub sql {
   # AND NOT THE INTERSECTION OF PROJECT ALLOCATION AND USER REQUEST
   # Note that internal priority field is redefined as a combined tagpriority
   # and internal priority field to aid searching and sorting in the QT and to
-  # retuce the number of fields.
+  # retuce the number of fields. Internal priority is 1 to 99.
   my $bottom_sql = "
               GROUP BY M.msbid)
                SELECT M2.*, P2.taumin, P2.taumax,
-                (convert(float,P2.tagpriority) + convert(float,M2.priority)/10) AS priority
+                (convert(float,P2.tagpriority) + convert(float,M2.priority)/100) AS priority
                 FROM $msbtable M2, $tempcount T, $projtable P2
                  WHERE (M2.msbid = T.msbid
                    AND M2.obscount = T.nobs 

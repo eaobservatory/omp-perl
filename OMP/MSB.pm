@@ -525,15 +525,17 @@ Return the MSB internal priority.
 
  $title = $msb->internal_priority;
 
-Internal priority is converted from a string (in the XML) to a
-number:
+Internal priority can be specified as either a string or an
+integer. If it is a string the mapping is:
 
-  0  Target of Opportunity [none of those listed below]
-  1  High
-  2  Medium
-  3  Low
+  01  High
+  50  Medium
+  99  Low
 
-Return 1 if the priority is not present.
+Returns 1 if the priority is not present. Returns 99 if the
+priority is greater than 99, 1 if the priority is less than 1.
+Always returns an integer. If priority is defined but can
+not be parsed, the priority is returned as 1.
 
 =cut
 
@@ -542,14 +544,22 @@ sub internal_priority {
   my $pri = $self->_get_pcdata( $self->_tree, "priority");
 
   if (defined $pri) {
-    if ($pri =~ /high/i) {
+    if ($pri =~ /\d/) {
+      $pri = int($pri);
+      if ($pri < 1) {
+	$pri = 1;
+      } elsif ($pri > 99) {
+	$pri = 99;
+      }
+
+    } elsif ($pri =~ /high/i) {
       $pri = 1;
     } elsif ($pri =~ /medium/i) {
-      $pri = 2;
+      $pri = 50;
     } elsif ($pri =~ /low/i) {
-      $pri = 3;
+      $pri = 99;
     } else {
-      $pri = 0;
+      $pri = 1;
     }
 
   } else {
