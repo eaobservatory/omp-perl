@@ -206,7 +206,7 @@ sub print_summary {
     $projectgroupfiles[$i] =~ /\d{8}_(\d+)_/ && ($foo[$i] = $1);
   }
 
-  @group = sort {$a <=> $b} @foo;
+  @group = sort obsnumsort @foo;
 
 # And, the latest reduced group file is...
 
@@ -460,7 +460,11 @@ sub list_reduced_observations {
               } else {
                 $first = 0;
               }
-              print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+              print "<strong>Project:</strong> ";
+              print $fileproject || "";
+              print " <strong>MSBID:</strong> ";
+              print $msbid || "";
+              print "<br>\n";
               print "<table border=\"1\">\n";
               print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
               $currentproject = $fileproject;
@@ -472,12 +476,32 @@ sub list_reduced_observations {
               } else {
                 $first = 0;
               }
-              print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+              print "<strong>Project:</strong> ";
+              print $fileproject || "";
+              print " <strong>MSBID:</strong> ";
+              print $msbid || "";
+              print "<br>\n";
               print "<table border=\"1\">\n";
               print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
               $currentmsbid = $msbid;
             }
-            print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=reduced\">download</a></td></tr>\n";
+          print "<tr><td>";
+          print $obsnum || "";
+          print "</td><td>";
+          print $objname || "";
+          print "</td><td>";
+          print $utstart || "";
+          print "</td><td>";
+          print $exptime || "";
+          print "</td><td>";
+          print $filter || "";
+          print "</td><td>";
+          print $grating || "";
+          print "</td><td>";
+          print $wavelength || "";
+          print "</td><td>";
+          print $airmass || "";
+          print "</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=reduced\">download</a></td></tr>\n";
           }
         }
       }
@@ -565,7 +589,11 @@ sub list_raw_observations {
             } else {
               $first = 0;
             }
-            print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+            print "<strong>Project:</strong> ";
+            print $fileproject || "";
+            print " <strong>MSBID:</strong> ";
+            print $msbid || "";
+            print "<br>\n";
             print "<table border=\"1\">\n";
             print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>view data</th><th>download file</th></tr>\n";
             $currentproject = $fileproject;
@@ -576,12 +604,32 @@ sub list_raw_observations {
             } else {
               $first = 0;
             }
-            print "<strong>Project:</strong> $fileproject <strong>MSBID:</strong> $msbid<br>\n";
+            print "<strong>Project:</strong> ";
+            print $fileproject || "";
+            print " <strong>MSBID:</strong> ";
+            print $msbid || "";
+            print "<br>\n";
             print "<table border=\"1\">\n";
             print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>view data</th><th>download file</th></tr>\n";
             $currentmsbid = $msbid;
           }
-          print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=raw\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=raw\">download</a></td></tr>\n";
+          print "<tr><td>";
+          print $obsnum || "";
+          print "</td><td>";
+          print $objname || "";
+          print "</td><td>";
+          print $utstart || "";
+          print "</td><td>";
+          print $exptime || "";
+          print "</td><td>";
+          print $filter || "";
+          print "</td><td>";
+          print $grating || "";
+          print "</td><td>";
+          print $wavelength || "";
+          print "</td><td>";
+          print $airmass || "";
+          print "</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=raw\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file&type=raw\">download</a></td></tr>\n";
         }
       }
     }
@@ -637,9 +685,9 @@ A sorting routine that sorts by observation number. Used for the 'sort' function
 
 sub obsnumsort {
   $a =~ /[a-zA-Z]{1,2}\d{8}_(\d+)/;
-  my $a_obsnum = $1;
+  my $a_obsnum = int($1);
   $b =~ /[a-zA-Z]{1,2}\d{8}_(\d+)/;
-  my $b_obsnum = $1;
+  my $b_obsnum = int($1);
   $a_obsnum <=> $b_obsnum;
 }
 
