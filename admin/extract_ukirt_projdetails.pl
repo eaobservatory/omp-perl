@@ -42,8 +42,8 @@ my %seeing = (
 	     );
 
 my %cloud = (
-	     thin => 2,
-	     photo => 1,
+	     thin => 1,
+	     photo => 0,
 	    );
 
 # Pipe in from standard input

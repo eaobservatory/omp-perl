@@ -853,8 +853,8 @@ sub cloudtxt {
   my $cloud = $self->cloud;
   return "any" unless defined $cloud;
 
-  my %lut = (1 => "photometric",
-	     2 => "cirrus or photometric",
+  my %lut = (0 => "photometric",
+	     1 => "cirrus or photometric",
 	    );
 
   if (exists $lut{$cloud}) {
