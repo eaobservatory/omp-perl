@@ -322,12 +322,16 @@ sub _create_sql_recurse {
       $cmp = "like";
     }
 
-    # use an OR join [must surround it with parentheses], but use
-    # an AND if we have multiple text strings
+    # Link all of the search queries together with an OR [must be inside
+    # parentheses]
     $sql = "(".join( " OR ",
-		    map { $self->_querify($colname, $_, $cmp); }
-		    @{ $entry }
-		   ) . ")";
+		     # Join all of the search strings with an AND
+		     # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
+		     map { join( " AND ",
+				 map {
+				   $self->_querify($colname, $_, $cmp);
+				 } OMP::General->split_string($_) )
+			 } @{ $entry } ) . ")";
 
   } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
     # A Range object
@@ -503,6 +507,8 @@ sub _add_text_to_hash {
   $value =~ s/^\s+//;
   $value =~ s/\s+\Z//;
 
+  # Convert &quot; &amp; etc... to " &
+  $value = OMP::General->replace_entity($value);
 
   if (exists $hash->{$key}) {
 
