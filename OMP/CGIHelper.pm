@@ -415,7 +415,34 @@ sub fb_msb_active {
     $active = OMP::SpServer->programDetails($projectid,
 					    '***REMOVED***',
 					    'data');
-    msb_table($q, $active);
+
+    # First go through the array quickly to make sure we have
+    # some valid entries
+    my @remaining = grep { $_->{remaining} > 0 } @$active;
+    my $total = @$active;
+    my $left = @remaining;
+    my $done = $total - $left;
+    if ($left == 0) {
+      if ($total == 1) {
+	print "The MSB present in the science program has been observed.<br>\n";
+      } else {
+	print "All $total MSBs in the science program have been observed.<br>\n";
+      } 
+
+      # Nice little message letting us no of msbs present in the table
+      # that have not been observed.
+      if ($done > 0) {
+	if ($done == 1) {
+	  print "$done out of $total MSBs present in the science program has been observed.<br>\n"; 
+	} else {
+	  print "$done out of $total MSBs present in the science program have been observed.<br>\n"; 
+	}
+      }
+
+      # Now print the table if we have content
+      msb_table($q, $active);
+
+    }
 
   } catch OMP::Error::UnknownProject with {
     print "Science program for $projectid not present in database";
@@ -447,20 +474,44 @@ sub msb_table {
   print "<td><b>Target:</b></td>";
   print "<td><b>Waveband:</b></td>";
   print "<td><b>Instrument:</b></td>";
-  print "<td><b>Remaining:</b></td>";
+
+  # Only bother with a remaining column if we have remaining
+  # information
+  print "<td><b>Remaining:</b></td>"
+    if @$program && exists $program->{remaining};
 
   my $i;
   foreach my $msb (@$program) {
-    next if $msb->{remaining} <= 0;
+    # skip if we have a remaining field and it is 0 or less
+    next if (exists $msb->{remaining} and $msb->{remaining} <= 0);
+
+    # Skip if this is only a fetch comment
+    next if (exists $msb->{comment} && 
+	     $msb->{status}->{comment}->[0] == &OMP__DONE_FETCH);
+
     # Create a summary of the observation details and display
     # this in the table cells
     my %msb = OMP::MSB->summary($msb);
     $i++;
     print "<tr><td>$i</td>";
-    print "<td>" . $msb{_obssum}{target} . "</td>";
-    print "<td>" . $msb{_obssum}{waveband} . "</td>";
-    print "<td>" . $msb{_obssum}{instrument} . "</td>";
-    print "<td>" . $msb->{remaining} . "</td>";
+
+    # This is a kluge - we cant really share the code hear until
+    # an OMP::DoneInfo object can be treated the same as a
+    # OMP::MSBInfo object
+    if (exists $msb->{_obssum}) {
+      print "<td>" . $msb{_obssum}{target} . "</td>";
+      print "<td>" . $msb{_obssum}{waveband} . "</td>";
+      print "<td>" . $msb{_obssum}{instrument} . "</td>";
+      print "<td>" . $msb->{remaining} . "</td>";
+    } else {
+      print "<td>" . $msb->{target} . "</td>";
+      print "<td>" . $msb->{waveband} . "</td>";
+      print "<td>" . $msb->{instrument} . "</td>";
+      use Data::Dumper;
+      print Dumper($msb);
+    }
+
+
   }
 
   print "</table>\n";
