@@ -450,7 +450,8 @@ sub nightlog {
     $return{'RA Offset'} = $self->raoff;
     $return{'Dec Offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Obstype",
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Obstype",
                           "UT start", "Exposure time", "Number of exposures",
                           "Filter", "Airmass", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe" ];
@@ -472,7 +473,8 @@ sub nightlog {
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Standard",
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Standard",
                           "Observation type", "Slit", "Position Angle",
                           "RA offset", "Dec offset", "UT time", "Airmass",
                           "Exposure time", "Grating",
@@ -503,7 +505,8 @@ sub nightlog {
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
-    $return{'_ORDER'} = [ "Observation", "Group", "Object", "Observation type",
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Observation type",
                           "UT start", "Exposure time",
                           "Filter", "Airmass", "RA", "DEC", "Equinox", "RA offset", "Dec Offset", 
                           "Slit", "Position Angle", "Grating",
@@ -528,7 +531,8 @@ sub nightlog {
     $return{'RA Offset'} = $self->raoff;
     $return{'Dec Offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = [ "Observation", "Group", "Object",
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object",
                           "Observation type", "UT start", "Exposure time",
                           "Filter", "Airmass", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe" ];
@@ -547,7 +551,8 @@ sub nightlog {
     $return{'RA Offset'} = $self->raoff;
     $return{'Dec Offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
-    $return{'_ORDER'} = [ "Observation", "Group", "Object",
+    $return{'Project ID'} = $self->projectid;
+    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object",
                           "Observation type", "UT start", "Exposure time",
                           "Airmass", "Filter", "RA", "DEC", "Equinox",
                           "RA Offset", "Dec Offset", "DR Recipe", ];
