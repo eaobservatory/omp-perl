@@ -329,7 +329,7 @@ sub _update_user {
   $self->_db_update_data( $USERTABLE,
 			  {
 			   email => $user->email,
-			   name => $user->name,
+			   uname => $user->name,
 			   alias => $user->alias,
 			  },
 			  " userid = '".$user->userid ."' ");
