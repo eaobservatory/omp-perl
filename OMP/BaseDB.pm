@@ -548,6 +548,10 @@ sub _db_update_data {
   # Loop over each key
   for my $col (keys %$change) {
 
+    # check for text and quote if needed
+    $change->{$col} = "'" . $change->{$col} . "'"
+      if $change->{$col} =~ /[A-Za-z:]/;
+
     # Construct the SQL
     my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
 
