@@ -45,7 +45,8 @@ require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw( obs_table obs_summary obs_comment_form
                   file_comment file_comment_output list_observations
-                  obs_add_comment cgi_to_obs cgi_to_obsgroup );
+                  obs_add_comment cgi_to_obs cgi_to_obsgroup
+                  list_observations_txt );
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
                     );
@@ -207,6 +208,7 @@ sub list_observations_txt {
 
   print $query->header( -type => 'text/plain' );
 
+  my $obsgroup;
   try {
     $obsgroup = cgi_to_obsgroup( $query );
   }
@@ -221,9 +223,11 @@ sub list_observations_txt {
     print "Error: $errortext\n";
   };
 
+  my %options;
   $options{'showcomments'} = 1;
-  $options{'ascending'} = 0;
+  $options{'ascending'} = 1;
   $options{'text'} = 1;
+  $options{'sort'} = 'chronological';
   try {
     obs_table( $obsgroup, %options );
   }
@@ -393,11 +397,12 @@ sub obs_table {
     }
   }
 
+  my $ncols;
   if( $text ) {
     print "\nObservations for " . uc( $currentinst ) . "\n";
     print $nightlog{_STRING_HEADER}, "\n";
   } else {
-    my $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
+    $ncols = scalar(@{$nightlog{_ORDER}}) + 2;
     print "<table class=\"sum_table\" border=\"0\">\n";
     print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
@@ -418,12 +423,12 @@ sub obs_table {
     # First, check to see if the instrument has changed. If it has, close the old table
     # and start a new one.
     if( uc($obs->instrument) ne uc($currentinst) && !UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap") ) {
+      $currentinst = $obs->instrument;
       if( $text ) {
         print "\nObservations for " . uc( $currentinst ) . "\n";
         print $nightlog{_STRING_HEADER}, "\n";
       } else {
         print "</table>\n";
-        $currentinst = $obs->instrument;
         print "<table class=\"sum_table\" border=\"0\">\n";
         print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
 
@@ -459,11 +464,12 @@ sub obs_table {
       }
     }
 
+    my $obsut;
     if( $text ) {
 
     } else {
       print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
-      my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+      $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
       $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
       print $obsut;
       print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
@@ -537,12 +543,14 @@ sub obs_table {
     # (since timegap comments show up in the nightlog string)
     if( defined( $comments ) &&
         defined( $comments->[0] ) &&
-        $showcomments &&
+        ( $showcomments != 0 ) &&
         ! UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
 
       if( $text ) {
-        print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-        print $comment->text . "\n";
+        foreach my $comment ( @$comments ) {
+          print "    " . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+          print $comment->text . "\n";
+        }
       } else {
         print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
         my @printstrings;
@@ -1030,6 +1038,16 @@ sub cgi_to_obsgroup {
   $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
   $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
 
+  if( ! defined( $telescope ) || length( $telescope . '' ) == 0 ) {
+    my $hostname = hostfqdn;
+    if( $hostname =~ /ulili/i ) {
+      $telescope = "JCMT";
+    } elsif( $hostname =~ /mauiola/i ) {
+      $telescope = "UKIRT";
+    }
+  }
+
+
   if( !defined( $ut ) ) {
     throw OMP::Error::BadArgs("Must supply a UT date in order to get an Info::ObsGroup object");
   }
@@ -1037,9 +1055,10 @@ sub cgi_to_obsgroup {
   my $grp;
 
   if( defined( $telescope ) ) {
-
     $grp = new OMP::Info::ObsGroup( date => $ut,
                                     telescope => $telescope,
+                                    projectid => $projid,
+                                    instrument => $inst,
                                     timegap => OMP::Config->getData('timegap') );
   } else {
 
@@ -1101,6 +1120,20 @@ sub print_obslog_header {
 
   print $q->submit( -name => 'Submit New UT' );
   print $q->endform;
+
+  print "<a href=\"obslog_text.pl?ut=" . ( defined( $qv->{'ut'} ) ?
+                                           $qv->{'ut'} :
+                                           $currentut );
+  if( defined( $qv->{'inst'} ) ) {
+    print "&inst=" . $qv->{'inst'};
+  }
+  if( defined( $qv->{'telescope'} ) ) {
+    print "&telescope=" . $qv->{'telescope'};
+  }
+  if( defined( $qv->{'projid'} ) ) {
+    print "&projid=" . $qv->{'projid'};
+  }
+  print "\">text listing</a><br>\n";
 
   print "<hr>\n";
 
