@@ -497,7 +497,7 @@ sub worf_output {
 
 sub print_JAC_header {
   print <<END;
-Welcome to WORF. <a href="/JACpublic/JAC/UKIRT/software/worf/help.html">Need help?</a><br>
+Welcome to WORF. <a href="/JACpublic/UKIRT/software/worf/help.html">Need help?</a><br>
 <hr>
 END
 };
