@@ -483,18 +483,21 @@ sub _fetch_comments {
 
   # Construct the SQL
   # Use convert() in select statement to get seconds back with the date field.
-  my $sql = "select author, entrynum, commid, convert(char(32), date, 109) as 'date', program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
+  my $sql = "select author, entrynum, commid, date, program, projectid, sourceinfo, status, subject, text from $FBTABLE where projectid = \"$projectid\" " .
             "AND status in (" . join(',',@{$args{status}}) . ") " .
 	    "ORDER BY commid $order";
 
   # Fetch the data
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-  # Replace comment user IDs with OMP::User objects
-  # If user is undef leave it alone
+  # Replace comment user IDs with OMP::User objects and
+  # dates with Time::Piece objects
   for (@$ref) {
     my $user = $_->{author};
     ($user) and $_->{author} = OMP::UserServer->getUser($user);
+
+    my $date = OMP::General->parse_date($_->{date});
+    $_->{date} = $date;
   }
 
   if (wantarray) {
