@@ -1645,8 +1645,11 @@ sub _run_query {
       # overhead is not too great given that this quantity could be
       # calculated as a static value at submission time.
       # [and we may well do that eventually]
+      # THIS MUST BE IN DEGREES
       my $minel = $msb->{minel};
       $minel = 30 unless defined $minel;
+
+      $minel *= Astro::SLA::DD2R;
 
       # Loop over each observation.
       # We have to keep track of the reference time
@@ -1707,7 +1710,7 @@ sub _run_query {
 	  # In some cases we dont even want to test for observability
 	  if ($qconstraints{observability}) {
 	    if  ( ! $coords->isObservable or
-		  $coords->el < $minel) {
+		  $coords->el <= $minel) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }
