@@ -98,7 +98,7 @@ my %tables = (
 			     },
 	      ompfeedback => {
 			      commid => "numeric(5,0) IDENTITY",
-			      projid => "char(9) not null",
+			      projectid => "char(9) not null",
 			      author => "char(50) not null",
 			      date => "datetime not null",
 			      subject => "char(128) null",
@@ -107,7 +107,7 @@ my %tables = (
 			      status => "bit not null",
 			      text => "text not null",
 			      _ORDER => [qw/
-					 commid projid author date subject
+					 commid projectid author date subject
 					 program sourceinfo status text
 					/],
 			     },
