@@ -116,7 +116,7 @@ sub today {
 
 }
 
-=item B<_determine_host>
+=item B<determine_host>
 
 Determine the host and user name of the person either running this
 task. This is either determined by using the CGI environment variables
