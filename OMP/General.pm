@@ -474,6 +474,13 @@ sub verify_staff_password {
   my $password = shift;
   my $retval = shift;
 
+  # First try admin password
+  my $status = OMP::General->verify_administrator_password( $password,1);
+
+  # Return immediately if all is well
+  # Else try against the staff password
+  return $status if $status;
+
   # The encrypted staff password
   # At some point we'll pick this up from somewhere else.
   my $admin = "bf4xPHRr.bUxE";
@@ -483,7 +490,6 @@ sub verify_staff_password {
   my $encrypted = ( defined $password ? crypt($password, $admin) : "fail" );
 
   # A bit simplistic at the present time
-  my $status;
   if ($encrypted eq $admin) {
     $status = 1;
   } else {
