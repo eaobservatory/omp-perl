@@ -368,8 +368,12 @@ sub summary {
     # It would be nice to work out how many we have yet to observe
     # even though this really should happen as part of our loop through
     # the msbs themselves. Either I splice in the result later or
-    # do it now. .... Do it now with grep
-    my $active = grep $_->remaining, @msbs;
+    # do it now. .... Do it now - cant use grep because -999 is
+    # a magic value to indicate "removed"
+    my $active = 0;
+    for (@msbs) {
+      $active++ if $_->remaining > 0;
+    }
     push(@text,"Active MSBs:\t$active");
 
 
@@ -382,6 +386,8 @@ sub summary {
       my $status;
       if ($data{remaining} == 0) {
 	$status = "COMPLETE";
+      } elsif ($data{remaining} == OMP::MSB::REMOVED) {
+	$status = "REMOVED from consideration";
       } else {
 	$status = "$data{remaining} remaining to be observed";
       }

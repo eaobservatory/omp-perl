@@ -633,10 +633,13 @@ sub summary {
   my @keys = qw/projectid title remaining obscount tauband seeing
     pol type instrument waveband target coordstype timeest/;
 
+  # Fix up the magic value
+  $local{remaining} = "REM" if $local{remaining} == OMP::MSB::REMOVED();
+
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
   my @width = qw/ 10 10 3 3 3 3 3 3 20 20 20 6 5 /;
-  throw OMP::Error("Bizarre problem in MSB::summary ")
+  throw OMP::Error::FatalError("Bizarre problem in MSB::summary ")
     unless @width == @keys;
 
   my @format = map { "%-$_"."s" } @width;
