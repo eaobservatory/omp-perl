@@ -19,7 +19,7 @@ use Error qw/ :try /;
 
 
 
-$!=1; # Make unbuffered
+$|=1; # Make unbuffered
 
 
 my $q = new CGI;
