@@ -688,11 +688,15 @@ sub summary {
     for my $key ( keys %local ) {
       # Special case the summary and ID keys
       next if $key eq "summary";
-      next if $key eq "msbid";
       next if $key =~ /^_/;
       next unless defined $local{$key};
       next if ref($local{$key});
 
+      # Currently Matt needs the msbid to be included
+      # in the XML elements as well as an attribute
+      # next if $key eq "msbid";
+
+      # Create XML segment
       $xml .= "<$key>$local{$key}</$key>\n"
 
     }
