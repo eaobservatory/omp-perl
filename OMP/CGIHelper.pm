@@ -25,6 +25,9 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use OMP::ProjServer;
 use OMP::SpServer;
+use OMP::DBServer;
+use OMP::FaultDB;
+use OMP::CGIFault;
 use OMP::MSB;
 use OMP::MSBServer;
 use OMP::FBServer;
@@ -40,7 +43,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -86,8 +89,9 @@ sub proj_status_table {
   my $coiemail = join(", ",map{$_->html} $project->coi);
   my $supportemail = join(", ",map{$_->html} $project->support);
 
-  print $q->h2("Current project status"),
-        "<table border='1' width='100%'><tr bgcolor='#7979aa'>",
+  print "<table border='0' cellspacing=1 cellpadding=2 width='100%' bgcolor='bcbee3'><tr>",
+	"<td><font size=+2><b>Current project status</b></font></td>",
+	"<tr bgcolor=#7979aa>",
 	"<td><b>PI:</b>" . $project->pi->html . "</a></td>",
 	"<td><b>Title:</b> " . $project->title . "</td>",
 	"<td> $case_href </td>",
@@ -97,6 +101,47 @@ sub proj_status_table {
 	"<td><b>Time Remaining:</b> " . int($project->allRemaining/60) . " min </td>",
 	"<td><b>Country:</b>" . $project->country . "</td>",
         "</table><p>";
+}
+
+=item B<fb_fault_content>
+
+Display a fault along with a list of faults associated with the project.  Also provide
+a form for responding to a fault.
+
+  fb_fault_content($cgi, %cookie);
+
+=cut
+
+sub fb_fault_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
+  my @faults = $faultdb->getAssociations($cookie{projectid},0);
+
+  print $q->h2("Feedback: Project $cookie{projectid}: View Faults");
+
+  proj_status_table($q, %cookie);
+
+  print "<font size=+1><b>Faults</b></font><br>";
+  # Display the first fault if a faultid isnt specified in the URL
+  my $showfault;
+  if ($q->url_param('id')) {
+    my %faults = map {$_->faultid, $_} @faults;
+    my $faultid = $q->url_param('id');
+    $showfault = $faults{$faultid};
+  } else {
+    $showfault = $faults[0];
+  }
+
+  &show_faults($q, \@faults);
+  print "<hr>";
+  print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
+  print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
+  &fault_table($q, $showfault);
+  print "<br><font size=+1><b>Respond to this fault</b></font><br>";
+  &response_form($q, $showfault->faultid, %cookie);
+
 }
 
 =item B<msb_sum>
@@ -229,6 +274,7 @@ sub fb_entries {
     # make the author a mailto link here
 
     print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</b></font><br>",
+          "<b>Subject: $row->{'subject'}</b><br>",
           "$row->{'text'}",
 	  "<p>";
   }
@@ -999,13 +1045,13 @@ sub msb_comments {
     @output = @$commentref;
   }
 
-  print "<table border=1 width=100%>";
+  print "<table border=0 cellspacing=1 cellpadding=2 bgcolor=#5b5b7c width=100%>";
 
   my $i = 0;
   my $bgcolor;
   foreach my $msb (@output) {
     $i++;
-    print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
+    print "<tr><td><b>MSB $i</b></td>";
     print "<td><b>Target:</b> ".$msb->target ."</td>";
     print "<td><b>Waveband:</b>". $msb->waveband ."</td>";
     print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
@@ -1022,7 +1068,7 @@ sub msb_comments {
       print $comment->text ."</td>";
     }
 
-    print "<tr><td align=right colspan=4>";
+    print "<tr bgcolor='#d3d3dd'><td align=right colspan=4>";
     print $q->startform;
 
     # Some hidden params to pass
