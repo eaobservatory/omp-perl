@@ -527,6 +527,73 @@ sub observedMSBs {
   return $result;
 }
 
+=item B<queryMSBdone>
+
+Return all the MSBs that match the specified XML query 
+
+  $output = OMP::MSBServer->queryMSBdone( $xml, $allcomments, 'xml' );
+
+The C<allcomments> parameter governs whether all the comments
+associated with the matching MSBs are returned (regardless of when
+they were added) or only those added for the specific query. If the
+value is false only the comments for the query are returned.
+
+The output format matches that returned by C<historyMSB>.
+
+The XML query must match that described in C<OMP::MSBDoneQuery>.
+
+=cut
+
+sub queryMSBDone {
+  my $class = shift;
+  my $xml = shift;
+  my $allcomments = shift;
+  my $type = lc(shift);
+  $type ||= 'xml';
+
+  OMP::General->log_message("queryMSBdone: xml $xml\n");
+
+  my $E;
+  my $result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDoneDB(
+				DB => $class->dbConnection
+			       );
+
+    my $q = new OMP::MSBDoneQuery( XML => $xml );
+
+    $result = $db->queryMSBdone( $q, $allcomments );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  if ($type eq 'xml') {
+    # Generate the XML
+    my $xml = "<SpMSBSummaries>\n";
+    my @msbs = ( ref($result) eq 'ARRAY' ? @$result : $result );
+    for my $msb (@msbs) {
+      $xml .= $msb->summary('xml') . "\n";
+    }
+    $xml .= "</SpMSBSummaries>\n";
+    $result = $xml;
+  }
+
+
+  return $result;
+}
+
 =item B<addMSBcomment>
 
 Associate a comment with a previously observed MSB.
