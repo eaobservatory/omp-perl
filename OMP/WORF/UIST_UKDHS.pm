@@ -1,16 +1,17 @@
-package OMP::WORF::UIST;
+package OMP::WORF::UIST_UKDHS;
 
 =head1 NAME
 
-OMP::WORF::UIST - UIST-specific functions for WORF
+OMP::WORF::UIST_UKDHS - UIST_UKDHS (UIST with ORAC DHS) specific
+functions for WORF
 
 =head1 
 
 SYNOPSIS
 
-use OMP::WORF::UIST;
+use OMP::WORF::UIST_UKDHS;
 
-  my $worf = new OMP::WORF::UIST( obs => $obs, suffix => $suffix );
+  my $worf = new OMP::WORF::UIST_UKDHS( obs => $obs, suffix => $suffix );
 
   $worf->plot( group => 1 );
 
@@ -20,7 +21,8 @@ use OMP::WORF::UIST;
 
 This subclass of C<OMP::WORF> supplies UIST-specific functions
 for WORF. In particular, it allows for plotting of images and retrieving
-a list of valid suffices for UIST data.
+a list of valid suffices for UIST data. This subclass is meant for
+UIST data taken with the ORAC data handling system.
 
 =cut
 

@@ -1,16 +1,17 @@
-package OMP::WORF::UFTI;
+package OMP::WORF::UFTI_UKDHS;
 
 =head1 NAME
 
-OMP::WORF::UFTI - UFTI-specific functions for WORF
+OMP::WORF::UFTI_DHS - UFTI_DHS (UFTI data taken with the ORAC DHS)
+specific functions for WORF
 
 =head1 
 
 SYNOPSIS
 
-use OMP::WORF::UFTI;
+use OMP::WORF::UFTI_UKDHS;
 
-  my $worf = new OMP::WORF::UFTI( obs => $obs, suffix => $suffix );
+  my $worf = new OMP::WORF::UFTI_UKDHS( obs => $obs, suffix => $suffix );
 
   $worf->plot( group => 1 );
 
@@ -20,7 +21,8 @@ use OMP::WORF::UFTI;
 
 This subclass of C<OMP::WORF> supplies UFTI-specific functions
 for WORF. In particular, it allows for plotting of images and retrieving
-a list of valid suffices for UFTI data.
+a list of valid suffices for UFTI data. This subclass is meant for
+UFTI data taken with the ORAC data handling system.
 
 =cut
 

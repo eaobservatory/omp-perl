@@ -1,16 +1,16 @@
-package OMP::WORF::SCUBA;
+package OMP::WORF::SCUBA_SCUBA;
 
 =head1 NAME
 
-OMP::WORF::SCUBA - SCUBA-specific functions for WORF
+OMP::WORF::SCUBA_SCUBA - SCUBA-specific functions for WORF
 
 =head1 
 
 SYNOPSIS
 
-use OMP::WORF::SCUBA;
+use OMP::WORF::SCUBA_SCUBA;
 
-  my $worf = new OMP::WORF::SCUBA( obs => $obs, suffix => $suffix );
+  my $worf = new OMP::WORF::SCUBA_SCUBA( obs => $obs, suffix => $suffix );
 
   $worf->plot( group => 1 );
 
