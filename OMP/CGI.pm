@@ -154,6 +154,41 @@ sub cookie {
 
 =over 4
 
+=item B<_sidebar_logout>
+
+Put a logout a link in the sidebar.
+
+  $cgi->_sidebar_logout;
+
+=cut
+
+sub _sidebar_logout {
+  my $self = shift;
+  my $theme = $self->theme;
+
+  my @sidebarlinks = ("<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
+  $theme->SetInfoLinks(\@sidebarlinks);
+}
+
+=item B<_make_theme>
+
+Create the theme object.
+
+  $cgi->_make_theme;
+
+=cut
+
+sub _make_theme {
+  my $self = shift;
+  my $theme = $self->theme;
+  unless (defined $theme) {
+    # Use the OMP theme and make some changes to it.
+    $theme = new HTML::WWWTheme("/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
+    croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
+    $self->theme($theme);
+  }
+}
+
 =item B<_write_header>
 
 Create the document header (and provide the cookie).  Cookie is optional.
@@ -166,25 +201,17 @@ sub _write_header {
   my $self = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
+  my $theme = $self->theme;
 
   # Print the header info
   if (defined $c) {
-    print $q->header( -cookie => $c->cookie)
+    print $q->header( -cookie => $c->cookie);
   } else {
-    print $q->header();
-  }
-
-
-  # Retrieve the theme or create a new one
-  my $theme = $self->theme;
-  unless (defined $theme) {
-    # Use the OMP theme and make some changes to it.
-    $theme = new HTML::WWWTheme("/WWW/JACpublic/JAC/software/omp/LookAndFeelConfig");
-    croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
-    $self->theme($theme);
+    print $q->header;
   }
 
   $theme->SetHTMLStartString("<html><head><title>OMP Feedback Tool</title></head>");
+
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
   print $theme->StartHTML(),
@@ -299,6 +326,9 @@ sub write_page {
 
   my %cookie = $c->getCookie;
 
+  # Retrieve the theme or create a new one
+  $self->_make_theme;
+
   # See if we are reading a form or not
   if ($q->param) {
     # Does this form include a password field?
@@ -325,6 +355,11 @@ sub write_page {
     # reloads the page
     $c->setCookie( $EXPTIME, %cookie );
 
+
+
+    # Put a logout link on the sidebar
+    $self->_sidebar_logout;
+
     # Print HTML header (including sidebar)
     $self->_write_header();
 
@@ -333,6 +368,7 @@ sub write_page {
     if ($q->param('login_form')) {
       # If there's a 'login_form' param then we know we just came from
       # the login form.
+
       $form_content->( $q, %cookie);
     } else {
       $form_output->( $q, %cookie);
@@ -354,6 +390,9 @@ sub write_page {
       # reloads the page
       $c->setCookie( $EXPTIME, %cookie );
 
+      # Put a logout link on the sidebar
+      $self->_sidebar_logout;
+
       # Write the header
       $self->_write_header();
 
@@ -373,6 +412,61 @@ sub write_page {
 
 }
 
+=item B<write_page_noauth>
+
+Creates the page but doesnt do a login.  This is for cgi scripts that call functions
+which dont require a password.
+
+  $cgi->write_page_noauth( \&form_content, \&form_output );
+
+=cut
+
+sub write_page_noauth {
+  my $self = shift;
+  my ($form_content, $form_output) = @_;
+
+  my %cookie = $self->cookie;
+  my $q = $self->cgi;
+
+  $self->_make_theme;
+  $self->_write_header();
+
+  if ($q->param) {
+    $form_output->($q, %cookie);
+  } else {
+    $form_content->($q, %cookie);
+  }
+
+  $self->_write_footer();
+}
+
+=item B<write_page_logout>
+
+Creates a logout page and gives a cookie that has already expired.  A code reference
+should be the only argument.
+
+  $cgi->write_page_logout( \&content );
+
+=cut
+
+sub write_page_logout {
+  my $self = shift;
+  my $content = shift;
+
+  my $q = $self->cgi;
+
+  my $c = new OMP::Cookie( CGI => $q );
+  $self->cookie( $c );
+
+  $c->flushCookie();
+
+  $self->_make_theme;
+  $self->_write_header();
+
+  $content->($q);
+
+  $self->_write_footer();
+}
 
 =back
 
