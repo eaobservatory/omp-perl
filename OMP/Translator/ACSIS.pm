@@ -21,20 +21,24 @@ use strict;
 use warnings;
 use Carp;
 
+use File::Spec;
 use Astro::Coords::Offset;
 
-# Need to find the OCS Config
+# Need to find the OCS Config (temporary kluge)
 use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
 
 use JAC::OCS::Config;
 
+use OMP::Config;
 use OMP::Error;
 
 use base qw/ OMP::Translator /;
 
-# Unix directory for writing configs
-# Should be in config system
-our $TRANS_DIR = "/jcmtdata/orac_data/configs";
+# Default directory for writing configs
+our $TRANS_DIR = OMP::Config->getData( 'acsis_translator.transdir');
+
+# Location of wiring xml
+our $WIRE_DIR = OMP::Config->getData( 'acsis_translator.wiredir' );
 
 # Debugging messages
 our $DEBUG = 0;
@@ -75,14 +79,27 @@ sub translate {
     # First, configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs );
 
+    # Instrument config
+    $self->instrument_config( $cfg, %$obs );
+
     # FRONTEND_CONFIG
-    
+    $self->fe_config( $cfg, %$obs );
+
     # ACSIS_CONFIG
 
     # HEADER_CONFIG
+    $self->header_config( $cfg, %$obs );
+
+    # RTS
+    $self->rts_config( $cfg, %$obs );
+
+    # JOS Config
+    $self->jos_config( $cfg, %$obs );
 
     # Slew and rotator need to wait until we can estimate
     # the duration of the configuration
+    $self->slew_config( $cfg, %$obs );
+    $self->rotator_config( $cfg, %$obs );
 
     # Store the completed config
     push(@configs, $cfg);
@@ -114,7 +131,7 @@ sub debug {
 
 =item B<transdir>
 
-Override the translation directory.
+Override the default translation directory.
 
   OMP::Translator::DAS->transdir( $dir );
 
@@ -133,7 +150,7 @@ sub transdir {
 
 =head1 CONFIG GENERATORS
 
-These routines generate the XML for individual config sections of the global configure.
+These routines configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
@@ -259,6 +276,7 @@ sub observing_area {
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
 	       DY => $info{SCAN_DY},
+	       SYSTEM => $info{SCAN_SYSTEM},
 	     );
 
   } else {
@@ -269,12 +287,287 @@ sub observing_area {
   $tcs->_setObsArea( $oa );
 }
 
+=item B<fe_config>
+
+Create the frontend configuration.
+
+ $trans->fe_config( $cfg, %info );
+
+=cut
+
+sub fe_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my $fe = new JAC::OCS::Config::Frontend();
+
+  # Get the basic frontend setup from the freqconfig key
+  my %fc = %{ $info{freqconfig} };
+
+  # Easy setup
+  $fe->rest_frequency( $fc{restFrequency} );
+  $fe->sb_mode( $fc{sideBandMode} );
+
+  # How to handle 'best'?
+  $fe->sideband( $fc{sideBand} );
+
+  # doppler mode
+  $fe->doppler( ELEC_TUNING => 'GROUP', MECH_TUNING => 'ONCE' );
+
+  # Frequency offset
+  $fe->freq_off_scale( 0 );
+
+  # Mask selection depends on observing mode but for now we can just
+  # make sure that all available pixels are enabled
+  my $inst = $cfg->instrument_setup();
+  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+
+  my %receptors = $inst->receptors;
+
+  my %mask;
+  for my $id ( keys %receptors ) {
+    my $status = $receptors{$id}{health};
+    $mask{$id} = ($status eq 'UNSTABLE' ? 'ON' : $status);
+  }
+  $fe->mask( %mask );
+
+  $cfg->frontend( $fe );
+}
+
+=item B<instrument_config>
+
+Specify the instrument configuration.
+
+ $trans->instrument_config( $cfg, %info );
+
+=cut
+
+sub instrument_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # The instrument config is fixed for a specific instrument
+  # and is therefore a "wiring file"
+  my $inst = lc($info{instrument});
+  throw OMP::Error::FatalError('No instrument defined so cannot configure!')
+    unless defined $inst;
+
+  # wiring file name
+  my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
+				  "instrument_$inst.ent");
+  throw OMP::Error::FatalError("$inst instrument configuration XML not found in $file !")
+    unless -e $file;
+
+  # Read it
+  my $inst = new JAC::OCS::Config::Instrument( File => $file,
+					       validation => 0,
+					     );
+
+  # tweak the wavelength
+  $inst->wavelength( $info{wavelength} );
+
+  $cfg->instrument_setup( $inst );
+
+}
+
+=item B<slew_config>
+
+Configure the slew parameter. Requires the Config object to be mainly
+complete such that the duration can be requested.
+
+ $trans->slew_config( $cfg, %info );
+
+Should be called after C<tcs_config>.
+
+=cut
+
+sub slew_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the tcs
+  my $tcs = $cfg->tcs();
+  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+  # Get the duration
+  my $dur = $cfg->duration();
+
+  # always use track time
+  $tcs->slew( TRACK_TIME => $dur );
+}
+
+=item B<rotator_config>
+
+Configure the rotator parameter. Requires the Config object to at least have a TCS and Instrument configuration defined.
+
+ $trans->rotator_config( $cfg, %info );
+
+Only relevant for instruments that are on the Nasmyth platform.
+
+=cut
+
+sub rotator_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # Get the instrument configuration
+  my $inst = $cfg->instrument_setup();
+  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+
+  return if (defined $inst->focal_station && 
+	     $inst->focal_station !~ /NASMYTH/);
+
+  # get the tcs
+  my $tcs = $cfg->tcs();
+  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+
+  # do not know enough about ROTATOR behaviour yet
+  $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
+		 SYSTEM => 'TRACKING'
+	       );
+}
+
+=item B<header_config>
+
+Add header items to configuration object. Reads a template header xml
+file. Will replace TRANSLATOR header items with dynamic values.
+
+ $trans->header_config( $cfg, %info );
+
+=cut
+
+sub header_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my $file = File::Spec->catfile( $WIRE_DIR, 'header','headers.ent' );
+  my $hdr = new JAC::OCS::Config::Header( validation => 0,
+					  File => $file );
+
+  # Get all the items that we are to be processed by the translator
+  my @items = $hdr->item( sub { 
+			    defined $_[0]->source
+			     &&  $_[0]->source eq 'DERIVED'
+			       && defined $_[0]->task
+				 && $_[0]->task eq 'TRANSLATOR'
+				} );
+
+  # Now invoke the methods to configure the headers
+  my $pkg = "OMP::Translator::ACSIS::Header";
+  for my $i (@items) {
+    my $method = $i->method;
+    if ($pkg->can( $method ) ) {
+      my $val = $pkg->$method( %info );
+      if (defined $val) {
+	$i->value( $val );
+	$i->source( undef ); # clear derived status
+      } else {
+	throw OMP::Error::FatalError( "Method $method for keyword ". $i->keyword ." resulted in an undefined value");
+      }
+    } else {
+      throw OMP::Error::FatalError( "Method $method can not be invoked in package $pkg for header item ". $i->keyword);
+    }
+  }
+
+#  $cfg->header( $hdr );
+
+}
+
+=item B<rts_config>
+
+Configure the RTS
+
+ $trans->rts_config( $cfg, %info );
+
+=cut
+
+sub rts_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # the RTS information is read from a wiring file
+  # indexed by observing mode
+  my $mode = $self->observing_mode( %info );
+
+  my $file = File::Spec->catfile( $WIRE_DIR, 'rts',
+				  $mode .".xml");
+  throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
+    unless -e $file;
+
+  my $rts = new JAC::OCS::Config::RTS( File => $file,
+				       validation => 0);
+
+  $cfg->rts( $rts );
+
+}
+
+=item B<jos_config>
+
+Configure the JOS.
+
+  $trans->jos_config( $cfg, %info );
+
+=cut
+
+sub jos_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my $jos = new JAC::OCS::Config::JOS();
+
+  # need to determine recipe name
+  $jos->recipe( 'tbd' );
+
+  # Now parameters depends on that recipe name
+
+  # Raster
+
+  if (exists $info{rowsPerRef}) {
+    # need at least one row
+    $info{rowsPerRef} = 1 if $info{rowsPerRef} < 1;
+    $jos->rows_per_ref( $info{rowsPerRef} );
+  }
+
+  # we have rows per cal but the JOS needs refs_per_cal
+  if (exists $info{rowsPerRef} && exists $info{rowsPerCal}) {
+    # rows per ref should be > 0
+    $jos->refs_per_cal( $info{rowsPerCal} / $info{rowsPerRef} );
+  }
+
+  # Tasks can be worked out by seeing which objects are
+  # present in the config object. It is hard for the JOS object
+  # to work it out itself without having a reference to the parent
+  # object
+  my %tasks;
+
+
+  # store it
+  $cfg->jos( $jos );
+
+}
+
 =item B<observing_mode>
 
-Retrieves the OT observing mode from the OT observation summary
+Retrieves the ACSIS observing mode from the OT observation summary
 (not from the OCS configuration).
 
  $obsmode = $trans->observing_mode( %info );
+
+The standard modes are:
+
+  focus
+  pointing
+  jiggle_fsw
+  jiggle_chop
+  raster_pssw
 
 =cut
 
@@ -285,10 +578,60 @@ sub observing_mode {
   use Data::Dumper;
   print Dumper( \%info );
 
-  return 'UNKNOWN';
+
+  my $mode = $info{MODE};
+
+  if ($mode eq 'SpIterRasterObs') {
+    return 'raster_pssw';
+  } elsif ($mode eq 'SpIterPointingObs') {
+    return 'pointing';
+  } elsif ($mode eq 'SpIterFocusObs' ) {
+    return 'focus';
+  } elsif ($mode eq 'SpIterJiggleObs' ) {
+    # depends on switch mode
+    return 'jiggle_chop';
+  } else {
+    throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
+  }
+
 }
 
 =back
+
+=head2 Header Configuration
+
+Some header values are determined through the invocation of methods
+specified in the header template XML. These methods are flagged by
+using the DERIVED specifier with a task name of TRANSLATOR.
+
+The following methods are in the OMP::Translator::ACSIS::Header
+namespace. They are all given the observation summary hash
+as argument and they return the value that should be used in the
+header.
+
+  $value = OMP::Translator::ACSIS::Header->getProject( %info );
+
+=cut
+
+package OMP::Translator::ACSIS::Header;
+
+sub getProject {
+  my $class = shift;
+  my %info = @_;
+  return $info{PROJECTID};
+}
+
+sub getMSBID {
+  my $class = shift;
+  my %info = @_;
+  return $info{MSBID};
+}
+
+sub getStandard {
+  my $class = shift;
+  my %info = @_;
+  return $info{standard};
+}
 
 =head1 NOTES
 
