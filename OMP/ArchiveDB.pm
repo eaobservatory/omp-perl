@@ -511,7 +511,7 @@ sub _reorganize_archive {
 
     if(exists($newrow->{FRONTEND}) || exists($newrow->{C1RCV}) ) {
       $newrow->{INSTRUME} = 'HETERODYNE';
-      $instrument = (defined($newrow->{FRONTEND}) ? $newrow->{FRONTEND} : $newrow->{C1RCV} );
+      $instrument = (defined($newrow->{FRONTEND}) ? uc($newrow->{FRONTEND}) : uc($newrow->{C1RCV}) );
     }
 
     # Create an Info::Obs object.
