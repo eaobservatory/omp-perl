@@ -854,23 +854,32 @@ sub list_projects_output {
 
     print $q->hr;
 
-    foreach my $project (@$projects) {
-      print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
-      print $q->h2('Project ' . $project->projectid);
-      print "</a>";
-      my %details = (projectid=>$project->projectid, password=>$cookie{password});
-      proj_status_table($q, %details);
+    if ($q->param('table_format')) {
 
-      print $q->h3('MSBs observed');
-      fb_msb_observed($q, $project->projectid);
+      proj_sum_table($projects);
 
-      print $q->h3('MSBs to be observed');
-      fb_msb_active($q,$project->projectid);
+     } else {
+      foreach my $project (@$projects) {
+	print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
+	print $q->h2('Project ' . $project->projectid);
+	print "</a>";
+	my %details = (projectid=>$project->projectid, password=>$cookie{password});
+	proj_status_table($q, %details);
+	
+	print $q->h3('MSBs observed');
+	fb_msb_observed($q, $project->projectid);
+	
+	print $q->h3('MSBs to be observed');
+	fb_msb_active($q,$project->projectid);
+	
+      }
 
-      print $q->hr;
     }
 
+    print $q->hr;
+
     list_projects_form($q);
+
   } else {
     # Otherwise just put the form back up
     print $q->h2("No projects for semester $semester");
@@ -946,8 +955,11 @@ sub list_projects_form {
   print $q->popup_menu(-name=>'country',
 		       -values=>\@countries,
 		       -default=>'Any',);
-  print "</td><td>&nbsp;&nbsp;&nbsp;";
-
+  print "</td><tr><td colspan=2>";
+  print $q->checkbox(-name=>'table_format',
+		     -value=>1,
+		     -label=>'Display using tabular format');
+  print "&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
   print $q->endform();
   print "</td></table>";
@@ -2091,6 +2103,47 @@ sub msb_action {
       print "An error occurred while attempting to remove the MSB Done mark:<p>$Error";
     };
   }
+}
+
+=item B<proj_sum_table>
+
+Display details for multiple projects in a tabular format.
+
+  proj_sum_table($projects);
+
+=cut
+
+sub proj_sum_table {
+  my $projects = shift;
+
+  print "<table cellspacing=0>";
+  print "<tr align=center><td>Project ID</td>";
+  print "<td>PI</td>";
+  print "<td>Priority</td>";
+  print "<td>Allocated</td>";
+  print "<td>Completed</td>";
+  print "<td>Title</td>";
+
+  my %bgcolor = (dark => "#6161aa",
+		 light => "#8080cc",);
+  my $bgcolor = $bgcolor{dark};
+
+  foreach my $project (@$projects) {
+    print "<tr bgcolor=$bgcolor>";
+    print "<td><a href='projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
+    print "<td>". $project->pi->html ."</td>";
+    print "<td align=center>". $project->tagpriority ."</td>";
+    print "<td align=center>". $project->allocated->pretty_print ."</td>";
+    print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
+    print "<td>". $project->title ."</td>";
+
+    # Alternate background color
+    ($bgcolor eq $bgcolor{dark}) and $bgcolor = $bgcolor{light}
+      or $bgcolor = $bgcolor{dark};
+  }
+
+  print "</table>";
+
 }
 
 =item B<preify_text>
