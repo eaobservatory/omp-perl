@@ -73,7 +73,7 @@ sub new {
     $parser = new XML::LibXML;
     $parser->validation(1);
     $tree = eval { $parser->parse_string( $args{XML} ) };
-    throw OMP::Error::DBMalformedQuery("Error parsing XML query [$args{XML}]")
+    throw OMP::Error::DBMalformedQuery("Error parsing XML query [$args{XML}] from: $@")
       if $@;
   } else {
     # Nothing of use
