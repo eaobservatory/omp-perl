@@ -979,6 +979,7 @@ sub stringify {
 
   # Get email address
   my $email = $self->mail_list;
+  $email = "UNKNOWN" unless $email;
 
   # Entity has a special meaning if the system is Instrument
   # or we have CSG. Ignore that for now
