@@ -1565,10 +1565,6 @@ sub project_home {
 	print "($h hours) ";
       }
 
-      #### DISABLE LINK FOR UKIRT PROJECTS TEMPORARILY ####
-      print "<a href='$pkg_url?utdate=$utdate'>Retrieve data</a>"
-	unless ($project->telescope =~ /^ukirt$/i);
-
       print "<br>";
 
     }
