@@ -953,6 +953,8 @@ it should be 1. For everything else it should be 10.
 
 =cut
 
+# This code is repeated in SCUBA::ODF
+
 sub getGain {
   my $self = shift;
   my %info = @_;
