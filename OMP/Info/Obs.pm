@@ -157,6 +157,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               grating => '$',
                               group => '$',
                               instrument => '$',
+                              inst_dhs => '$',
                               mode => '$',
                               nexp => '$',
                               number_of_cycles => '$',
@@ -846,7 +847,7 @@ sub _populate {
   $generic_header{TELESCOPE} =~ /^(\w+)/;
   $self->telescope( uc($1) );
   $self->filename( $generic_header{FILENAME} );
-
+  $self->inst_dhs( $generic_header{INST_DHS} );
 
   # Build the Astro::WaveBand object
   if ( length( $generic_header{GRATING_WAVELENGTH} . "" ) != 0 ) {
@@ -990,7 +991,11 @@ sub _populate {
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
   $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
-  $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
+  if( defined( $generic_header{AIRMASS_END} ) ) {
+    $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
+  } else {
+    $self->airmass( $generic_header{AIRMASS_START} );
+  }
   $self->airmass_start( $generic_header{AIRMASS_START} );
   $self->airmass_end( $generic_header{AIRMASS_END} );
   $self->rows( $generic_header{Y_DIM} );
