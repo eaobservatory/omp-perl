@@ -258,18 +258,6 @@ sub verify_query {
     $v->{'text'} =~ s/\015//g; # get rid of ^M
   }
 
-  # The 'time' parameter is four digits or hh:mm
-  if(defined($q->{'time'})) {
-    if($q->{'time'} =~ /^\d{4}$/) {
-      $v->{'time'} = $q->{'time'};
-    } elsif($q->{'time'} =~ /^(\d\d):(\d\d)$/) {
-      $v->{'time'} = $1 . $2;
-    }
-  } else {
-    my $time = localtime;
-    $v->{'time'} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
-  }
-
   # The 'zone' parameter is either HST or UT (default to UT)
   if(defined($q->{'zone'})) {
     if($q->{'zone'} =~ /HST/i) {
@@ -280,6 +268,33 @@ sub verify_query {
   } else {
     $v->{'zone'} = 'UT';
   }
+
+  # The 'time' parameter is four digits or hh:mm
+  if(defined($q->{'time'})) {
+    if($q->{'time'} =~ /^\d{4}$/) {
+      $v->{'time'} = $q->{'time'};
+    } elsif($q->{'time'} =~ /^(\d\d):(\d\d)$/) {
+      $v->{'time'} = $1 . $2;
+    } else {
+      my $time;
+      if($v->{'zone'} eq 'HST') {
+        $time = localtime;
+      } else {
+        $time = gmtime;
+      }
+      $v->{'time'} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
+    }
+  } else {
+    my $time;
+    if($v->{'zone'} eq 'HST') {
+      $time = localtime;
+    } else {
+      $time = gmtime;
+    }
+    $v->{'time'} = pad($time->hour, '0', 2) . pad($time->min, '0', 2);
+  }
+
+
 
   # The 'telescope' parameter is either JCMT or UKIRT (default to JCMT)
   if(defined($q->{'telescope'})) {
