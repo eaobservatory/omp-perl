@@ -116,8 +116,10 @@ sub text {
   my $self = shift;
   if (@_) {
     my $text = shift;
-    $text =~ s/^\s+//s;
-    $text =~ s/\s+$//s;
+    if (defined $text) {
+      $text =~ s/^\s+//s;
+      $text =~ s/\s+$//s;
+    }
     $self->{Text} = $text;
   }
   return ( defined $self->{Text} ? $self->{Text} : '' );
