@@ -214,7 +214,7 @@ sub file_fault_output {
   }
 
   my $author = $q->param('user');
-  my $user = new OMP::User(userid => $author);
+  my $user = OMP::UserServer->getUser($author);
 
   my $resp = new OMP::Fault::Response(author=>$user,
 				      text=>$q->param('message'),);
