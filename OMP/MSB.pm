@@ -27,6 +27,7 @@ use XML::LibXML; # Our standard parser
 use Digest::MD5 qw/ md5_hex /;
 use OMP::Error;
 use Astro::Coords;
+use Astro::WaveBand;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -523,16 +524,16 @@ sub summary {
   my %local = %summary;
   %local = (%summary, %{$summary{_obssum}}) if exists $summary{_obssum};
 
-  #use Data::Dumper;
-  #print Dumper(\%local);
+#  use Data::Dumper;
+#  print Dumper(\%local);
 
   # Summary string and format for each
   my @keys = qw/projectid title remaining obscount tauband seeing
-    instrument wavelength target coordstype checksum/;
+    pol camera instrument wavelength target coordstype checksum/;
 
   # Field widths %s does not substr a string - real pain
   # Therefore need to substr ourselves
-  my @width = qw/ 10 10 3 3 3 3 20 20 20 6 40/;
+  my @width = qw/ 10 10 3 3 3 3 3 3 20 20 20 6 40/;
   throw OMP::Error("Bizarre problem in MSB::summary ")
     unless @width == @keys;
 
@@ -783,7 +784,7 @@ sub _summarize_obs {
 
   my %summary;
 
-  foreach my $key (qw/ instrument wavelength target coordstype/) {
+  foreach my $key (qw/ instrument wavelength target coordstype pol camera/) {
     # Now go through each observation looking for the specific
     # key. Store the value in a hash keyed by itself so that we
     # can automatically mask out duplicated
@@ -1209,7 +1210,18 @@ sub SpInstCGS4 {
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
-  $summary{wavelength} = $self->_get_pcdata( $el, "centralWavelength" );
+  my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
+  $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
+					    Instrument => 'CGS4');
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode
+  $summary{camera} = "spectroscopy";
+
+  # Polarimeter
+  my $pol = $self->_get_pcdata( $el, "polariser" );
+  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
+
 
   return %summary;
 }
@@ -1232,8 +1244,17 @@ sub SpInstUFTI {
   my %summary = @_;
 
   $summary{instrument} = "UFTI";
-  $summary{wavelength} = "unknown";
-  $summary{filter} = $self->_get_pcdata( $el, "filter" );
+  my $filter  = $self->_get_pcdata( $el, "filter" );
+  $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					    Instrument => 'UFTI');
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode
+  $summary{camera} = "imaging";
+
+  # Polarimeter
+  my $pol = $self->_get_pcdata( $el, "polariser" );
+  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
 
   return %summary;
 }
@@ -1259,7 +1280,32 @@ sub SpInstMichelle {
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
-  $summary{wavelength} = $self->_get_pcdata( $el, "centralWavelength" );
+
+  # If we are IMAGING we need to pick up the filter name
+  # If we are SPECTROSCOPY we need to pick up the central
+  # wavelength
+  my $camera = $self->_get_pcdata( $el, "camera" );
+
+  if ($camera eq 'imaging') {
+    my $filter = $self->_get_pcdata( $el, "filterOT" );
+    $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					      Instrument => 'MICHELLE');
+
+  } else {
+    my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
+    $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
+					      Instrument => 'MICHELLE');
+
+  }
+
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode
+  $summary{camera} = ( $camera eq "imaging" ? "imaging" : "spectroscopy" );
+
+  # Polarimeter
+  my $pol = $self->_get_pcdata( $el, "polarimetry" );
+  $summary{pol} = ( $pol eq "no" ? 0 : 1 );
 
   return %summary;
 }
@@ -1285,7 +1331,18 @@ sub SpInstIRCAM3 {
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
-  $summary{wavelength} = "unknown";
+  my $filter  = $self->_get_pcdata( $el, "filter" );
+  $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					    Instrument => 'IRCAM');
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Camera mode
+  $summary{camera} = "imaging";
+
+  # Polarimeter
+  my $pol = $self->_get_pcdata( $el, "polariser" );
+  $summary{pol} = ( $pol eq "none" ? 0 : 1 );
+
 
   return %summary;
 }
@@ -1312,6 +1369,13 @@ sub SpInstSCUBA {
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
   $summary{wavelength} = "unknown";
+
+  # Camera mode
+  $summary{camera} = "imaging";
+
+  # Polarimeter
+  my $pol = $self->_get_pcdata( $el, "polarimeter" );
+  $summary{pol} = ( $pol eq "no" ? 0 : 1 );
 
   return %summary;
 }
