@@ -557,8 +557,8 @@ sub nightlog {
                           "Observation type", "Exposure time", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
 
-    $return{'_STRING_HEADER'} = " Obs  Grp Project ID  UT Start         Object     Type   ExpT  RAoff DecOff    AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %10s  %8s %14.14s %8.8s  %6.2f  %5.1f  %5.1f  %4.2f  %16s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID  UT Start         Object     Type   ExpT RAoff DecOff   AM Recipe";
+    $return{'_STRING'} = sprintf("%4d %4d %11.11s  %8.8s %14.14s %8.8s %6.2f %5.1f  %5.1f %4.2f %-25.25s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
   } elsif($instrument =~ /michelle/i) {
 
