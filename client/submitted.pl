@@ -134,7 +134,7 @@ if ($debug) {
       $text = "A science program has been submitted for project " . @{$proj_by_support{$support}}->[0]->projectid . ".\n";
     }
 
-    my $msg = MIME::Lite->new( From => 'kynan@jach.hawaii.edu',
+    my $msg = MIME::Lite->new( From => 'flex@jach.hawaii.edu',
 			       To => $support,
 			       Subject => 'Science program submissions',
 			       Data => $text, );
