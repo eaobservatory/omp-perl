@@ -951,8 +951,8 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  #use Data::Dumper;
-  #print Dumper(\@obs);
+  use Data::Dumper;
+  print Dumper(\@obs);
 
   return @obs;
 }
@@ -1442,6 +1442,9 @@ sub unroll_obs {
   my $self = shift;
   my @obs = $self->obssum;
 
+  use Data::Dumper;
+  print "INPUT ",Dumper( \@obs);
+
   # Loop over each observation in the MSB
   my @longobs;
   for my $obs (@obs) {
@@ -1459,10 +1462,10 @@ sub unroll_obs {
     # Now loop over iterators
     $self->_unroll_obs_recurse(\@longobs, $obs->{SpIter}, %config);
 
-    use Data::Dumper;
-    print Dumper( \@longobs);
-
   }
+
+  use Data::Dumper;
+  print Dumper( \@longobs);
 
   return @longobs;
 
@@ -1529,6 +1532,9 @@ sub _unroll_obs_recurse {
       # each observation)
       my @ATTR = @{$iter->{$key}->{ATTR}};
 
+      throw OMP::Error::SpBadStructure("Empty sequence iterator found: $key")
+	unless @ATTR;
+
       # The next layer down ignores the ATTR array
 
 #      print "Recursing for $key\n";
@@ -1593,6 +1599,9 @@ sub SpObs {
   # instrument components (from which we can inherit)
   $summary{pol} = 0;
 
+  # Assume we need to supply a target for most things
+  $summary{autoTarget} = 0;
+
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
   # This is almost the same as the summarize() method but I can not
@@ -1617,10 +1626,19 @@ sub SpObs {
   # If there were calibration observations that do not need
   # targets then we should fill in the targetname now with
   # CAL
-  # This test needs to be expanded for SCUBA
   if ( grep /^Observe$/, @{$summary{obstype}} or
        grep /Pointing|Photom|Jiggle|Stare|Raster|Focus/, @{$summary{obstype}}) {
-    if (!exists $summary{coords}) {
+
+    # Raise an exception unless we have been configured with autoTarget
+    if ($summary{autoTarget}) {
+      # Need to have a dummy CAL observation here
+      # since the translator will need to determine the 
+      # target at "run time". This can always be scheduled.
+      $summary{coords} = Astro::Coords::Calibration->new;
+      $summary{coordstype} = $summary{coords}->type;
+      $summary{target} = "TBD";
+
+    } elsif (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
     # We have a normal observe - just use it and the associated target
@@ -1766,7 +1784,6 @@ sub SpIterFolder {
 
     } elsif ($name eq 'SpIterStareObs') {
 
-
       my $nint =  $self->_get_pcdata( $child, 'integrations');
       push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
 
@@ -1786,6 +1803,9 @@ sub SpIterFolder {
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
       my $auto = ( $autoTarget eq 'true' ? 1 : 0);
 
+      # Focus and pointing dont need explicit targets
+      $summary{autoTarget} = $auto;
+
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
 						       nintegrations => $nint,
 						       autoTarget => $auto,
@@ -1801,6 +1821,9 @@ sub SpIterFolder {
       my $steps = $self->_get_pcdata( $child, 'steps');
       my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
       my $auto = ( $autoTarget eq 'true' ? 1 : 0);
+
+      # Focus and pointing dont need explicit targets
+      $summary{autoTarget} = $auto;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
 						       nintegrations => $nint,
