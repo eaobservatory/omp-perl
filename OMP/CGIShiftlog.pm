@@ -325,8 +325,8 @@ sub display_comment_form {
 
   print "<tr><td>Comment:</td><td>";
   print $cgi->textarea( -name => 'text',
-                        -rows => 20,
-                        -columns => 78,
+                        -rows => 15,
+                        -columns => 50,
                         -default => '',
                         -override => 1,
                       );
