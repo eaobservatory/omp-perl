@@ -395,13 +395,16 @@ sub filter {
   throw OMP::Error::BadArgs("Must supply a projectid or set inccal to false to filter_cals")
     if (! exists $args{projectid} && $args{inccal});
 
+  # Upper case now rather than inside loop
+  $args{projectid} = uc($args{projectid});
+
   # if inccal is false, we just need to go through the observations
   # removing non-Science observations. Easy enough
   if (!$args{inccal}) {
     # if a projectid has been set, include that in the grep
     my @newobs;
     if (exists $args{projectid}) {
-      @newobs = grep { uc($_->projectid) eq uc($args{projectid}) &&
+      @newobs = grep { uc($_->projectid) eq $args{projectid} &&
 		       $_->isScience } $self->obs;
     } else {
       @newobs = grep { $_->isScience } $self->obs;
@@ -430,12 +433,14 @@ sub filter {
     my @cal;    # Calibration observations
 
     my %instruments;  # List of all science instruments
+    my %obsmodes;     # List of all observing modes
     my %calinst;      # List of all calibration instruments
 
     for my $obs ($self->obs) {
       my $obsmode = $obs->mode || $obs->type;
-      if ((uc($obs->projectid) eq uc($args{projectid})) && $obs->isScience) {
+      if ((uc($obs->projectid) eq $args{projectid}) && $obs->isScience) {
 	$instruments{uc($obs->instrument)}++; # Keep track of instrument
+	$obsmodes{$obsmode}++; # Keep track of obsmode
 	print "SCIENCE:     " .$obs->instrument ."/".$obsmode
            . " [".$obs->target ."]\n"
 	     if $args{verbose};
@@ -456,17 +461,30 @@ sub filter {
       # Don't waste time filtering if we know we aren't going to match anything
       @cal = ();
     } else {
+      # First we want to make sure that we select out only the instruments we need
       my $match = join("|",keys %instruments);
       @cal = grep { $_->instrument =~ /^$match$/i } @cal;
+
+      # Now we want to make sure that we only keep calibrations that are vaguely of
+      # interest to us either because
+      #   - They have a matching project ID regardless of mode
+      #   - They are a generic calibration
+      #   - They are a SciCal that uses the same observing mode as us
+      $match = join("|", keys %obsmodes);
+      @cal = grep { my $obsmode = $_->mode || $_->type; 
+		    uc($_->projectid) eq $args{projectid} || 
+		    $_->isGenCal || $obsmode =~ /^$match/i } @cal;
+
     }
 
     # And print out calibration matches
     # since we do not want to list a whole load of pointless calibrations
-    for my $obs (@cal) {
-      my $obsmode = $obs->mode || $obs->type;
-      print "CALIBRATION: ". $obs->instrument ."/".$obsmode
-        . " [".$obs->target."]\n" 
-          if $args{verbose};
+    if ($args{verbose}) {
+      for my $obs (@cal) {
+	my $obsmode = $obs->mode || $obs->type;
+	print "CALIBRATION: ". $obs->instrument ."/".$obsmode
+          . " [".$obs->target."]\n";
+      }
     }
 
     # warn if we have cals but no science
