@@ -36,7 +36,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault query_fault_output view_fault_content view_fault_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -225,26 +225,20 @@ Create a page for querying faults
 
 =cut
 
-sub query_fault {
+sub query_fault_content {
   my $q = shift;
 
-  print $q->h2("Query Faults");
-  print "<table cellspacing=3 border=0><tr><td><b>";
-  print $q->startform;
-  print $q->radio_group(-name=>'list',
-		        -values=>['all','recent'],
-		        -default=>'all',
-		        -linebreak=>'true',
-		        -labels=>{all=>"List all faults",
-				  recent=>"List all recent faults"});
-  print "</b></td><td valign=bottom>";
+  print $q->h2("Listing recent faults");
 
-  # Need the show_output hidden field in order for the form to be processed
-  print $q->hidden(-name=>'show_output', -default=>['true']);
+  query_fault_form($q);
+  print "<p>";
 
-  print $q->submit(-name=>"Submit");
-  print $q->endform;
-  print "</td></table>";
+  # Faults since twod days ago
+  my $faults = query_faults(2);
+  show_faults($q, $faults);
+  print "<p>";
+
+  query_fault_form($q);
 }
 
 =item B<query_fault_output>
@@ -262,31 +256,87 @@ sub query_fault_output {
   # and which title are we displaying?
   my $xml;
   my $title;
+  my $faults;
+
   if ($q->param('list') =~ /all/) {
-    $xml = "<FaultQuery></FaultQuery>";
+    $faults = query_faults();
     $title = "Listing all faults";
   } else {
-    my $t = gmtime;
-
-    # Two days ago
-    $t -= 86400*2;
-    my $twodaysago = $t->ymd;
-
-    $xml = "<FaultQuery><date><min>$twodaysago</min></date></FaultQuery>";
+    # Faults since two days ago
+    $faults = query_faults(2);
     $title = "Listing recent faults";
   }
 
   print $q->h2($title);
 
+  query_fault_form($q);
+  print "<p>";
+
+  show_faults($q, $faults);
+  print "<P>";
+
+  query_fault_form($q);
+}
+
+=item B<query_faults>
+
+Do a fault query and return a reference to an array of fault objects
+
+  query_faults([$days]);
+
+Optional argument is the number of days ago to return faults for.
+
+=cut
+
+sub query_faults {
+  my $days = shift;
+  my $xml;
+
+  if ($days) {
+    my $t = gmtime;
+    $t -= 86400*$days;
+    $xml = "<FaultQuery><date><min>" . $t->ymd . "</min></date></FaultQuery>";
+  } else {
+    $xml = "<FaultQuery></FaultQuery>";
+  }
+
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
+    return $faults;
   } otherwise {
     my $E = shift;
     print "$E";
   };
+}
 
-  show_faults($q, $faults);
+=item B<query_fault_form>
+
+Create a form for querying faults
+
+  query_fault_form($cgi);
+
+=cut
+
+sub query_fault_form {
+  my $q = shift;
+
+  print "<table cellspacing=3 border=0><tr><td><b>";
+  print $q->startform;
+  print $q->radio_group(-name=>'list',
+		        -values=>['all','recent'],
+		        -default=>'all',
+		        -linebreak=>'true',
+		        -labels=>{all=>"List all faults",
+				  recent=>"List all recent faults"});
+  print "</b></td><td valign=bottom>";
+
+  # Need the show_output hidden field in order for the form to be processed
+  print $q->hidden(-name=>'show_output', -default=>['true']);
+
+  print $q->submit(-name=>"Submit");
+  print $q->endform;
+  print "</td></table>";
 }
 
 =item B<view_fault_content>
