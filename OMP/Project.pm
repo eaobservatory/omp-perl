@@ -614,7 +614,7 @@ Time remaining on the project including any time pending. This
 is simply that stored in the C<remaining> field minus that stored
 in the C<pending> field.
 
- $left = $proj->allRemaining;
+  $left = $proj->allRemaining;
 
 Always returns a number greater than or equal to zero.
 
@@ -625,6 +625,22 @@ sub allRemaining {
   my $all_left = $self->remaining - $self->pending;
   $all_left = new Time::Seconds(0) if $all_left < 0.0;
   return $all_left;
+}
+
+=item B<percentComplete>
+
+The amount of time spent on this project as a percentage of the amount
+allocated.
+
+  $completed = $proj->percentComplete;
+
+Result is multiplied by 100 before being returned.
+
+=cut
+
+sub percentComplete {
+  my $self = shift;
+  return $self->used / $self->allocated * 100;
 }
 
 =item B<used>
