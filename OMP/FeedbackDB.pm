@@ -312,11 +312,15 @@ sub _mail_comment {
   ($comment->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $comment->{subject}"
     or $subject = "$comment->{subject}";
 
+  # include a BCC to the OMP person
   $self->_mail_information(
 			   message => $msg,
 			   to => $addrlist,
 			   from => "flex\@jach.hawaii.edu",
 			   subject => $subject,
+			   headers => {
+				       bcc => OMP_CONTACT_PERSON,
+				      },
 			  );
 
 }
@@ -340,7 +344,7 @@ sub _mail_comment_important {
 
   my $proj = $projdb->_get_project_row;
 
-  my @email = ($proj->contacts, OMP_CONTACT_PERSON);
+  my @email = ($proj->contacts);
   $self->_mail_comment( $comment, \@email );
 }
 
@@ -368,7 +372,7 @@ sub _mail_comment_info {
   # we specfy the administrator password here]
   my $proj = $projdb->_get_project_row;
 
-  my @email = ($proj->piemail, OMP_CONTACT_PERSON);
+  my @email = ($proj->piemail);
 
   $self->_mail_comment( $comment, \@email );
 }
