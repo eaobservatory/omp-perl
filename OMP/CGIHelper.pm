@@ -2517,8 +2517,7 @@ Returns HTML code for displaying a tau plot.
 
   $html = tau_plot_code($utdate);
 
-Takes a UT date string as the only argument.  Returns undef if no tau plot
-exists for the given date.
+Takes a UT date string as the only argument.  Returns undef if no tau plot exists for the given date.
 
 =cut
 
@@ -2531,6 +2530,7 @@ sub tau_plot_code {
   my $calibpage = "http://www.jach.hawaii.edu/JACpublic/JCMT/Continuum_observing/SCUBA/astronomy/calibration/calib.html";
   my $gifdate = $utdate;
   $gifdate =~ s/-//g;
+  $gifdate = substr($gifdate,0,8);
 
   my $gif = $gifdate . "new.gif";
 
