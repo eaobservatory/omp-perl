@@ -595,21 +595,23 @@ sub msbHeader {
   # title
   my $title   = $msb->msbtitle;
 
-  # Observer note if any
-  my ($ntitle, $note) = $msb->getObserverNote;
+  # Observer notes if any
+  my (@notes) = $msb->getObserverNote(1);
 
   $html .= "<H1>MSB: $title</H1>\n";
   $html .= '<!-- MSBID: '. $msb->checksum . " -->\n";
 
-  if (defined $note) {
-    # Notes have to be in PRE blocks to preserve formatting
-    # but we should word wrap them just to make sure (since
-    # many PIs keep on typing without pressing return - this
-    # is fine if we were expecting them to write the notes
-    # in HTML...
-    $note = wrap("","", $note);
-    $ntitle = '' unless defined $ntitle;
-    $html .= "<h2>Note: $ntitle</h2>\n<PRE>\n$note\n</PRE>\n";
+  if (@notes) {
+    for my $n (@notes) {
+      # Notes have to be in PRE blocks to preserve formatting
+      # but we should word wrap them just to make sure (since
+      # many PIs keep on typing without pressing return - this
+      # is fine if we were expecting them to write the notes
+      # in HTML...
+      my $note = wrap("","", $n->[1]);
+      my $ntitle = (defined $n->[0] ? $n->[0] : '');
+      $html .= "<h2>Note: $ntitle</h2>\n<PRE>\n$note\n</PRE>\n";
+    }
   } else {
     $html .= "<h2>No note supplied</h2>";
   }
