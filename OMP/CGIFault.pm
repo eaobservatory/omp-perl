@@ -560,7 +560,7 @@ sub query_fault_output {
 		     -label=>'Print faults using');
 
     print $q->radio_group(-name=>'printer',
-			  -values=>@printers,);
+			  -values=>\@printers,);
     print $q->endform;
 
     # Put up the query form again if there are lots of faults displayed
@@ -757,7 +757,7 @@ sub view_fault_content {
 		     -label=>'Print fault using');
 
     print $q->radio_group(-name=>'printer',
-			  -values=>@printers,);
+			  -values=>\@printers,);
     print $q->endform;
 
     # Response form
