@@ -113,13 +113,13 @@ sub addComment {
 
 Return comments associated with the specified project.  With just the
 project ID and password given this method will default to returning all
-comments.  If the third argument specifying a number of comments to be
-shown (anything less than 1 will return all comments) is given, then the
-fourth argument must be included as well.  Fourth argument should be
-'true' or 'false' depending on whether or not you want comments with a
-status of 0 (effectively hidden) to be returned.
+comments.  The third argument should be an array reference containing the
+desired status types of the comments to be returned.  Status types are
+defined in C<OMP::Constants>.  Final argument is optional and should be
+either 'ascending' or 'descending' depending on the order in which you
+want the comments to come back.
 
-    OMP::FBServer->getComments( $project, $password, \@status);
+    OMP::FBServer->getComments( $project, $password, \@status, [$order]);
 
 =cut
 
@@ -128,6 +128,12 @@ sub getComments {
   my $projectid = shift;
   my $password = shift;
   my $status = shift;
+  my $order = shift;
+
+  my %args;
+  $args{status} = $status;
+  $args{order} = $order
+    if (defined $order);
 
   my $commentref;
 
@@ -138,7 +144,7 @@ sub getComments {
 				  Password => $password,
                                   DB => $class->dbConnection, );
 
-    $commentref = $db->getComments( $status );
+    $commentref = $db->getComments( %args );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
