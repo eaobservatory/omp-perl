@@ -3,13 +3,17 @@
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use lib qw(/jac_sw/omp/msbserver);
+#use lib qw(/jac_sw/omp/msbserver);
+use lib qw(/home/bradc/development/omp/msbserver);
 use OMP::CGI;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::ArchiveDB;
 use OMP::ObslogDB;
 use OMP::Constants;
+
+use Data::Dumper;
+
 use strict;
 
 my @instruments = qw/cgs4 ircam michelle ufti uist scuba/;
@@ -59,6 +63,10 @@ sub obscomment_output {
 # Display the form so people can edit things.
   displayForm( \%vparams );
 
+# Put a link to get back to obslog
+  $vparams{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
+  print "<a href=\"obslog.pl?ut=$1&inst=" . $vparams{'inst'} . "\">back to obslog</a>\n";
+
 # And that's it!
 
 }
@@ -67,10 +75,12 @@ sub verifyParams {
   my $qparams = shift;
   my $vparams = {};
 
-  # The 'ut' parameter is of the form yyyy-mm-dd-hh-mm-ss.
+  # The 'ut' parameter is of the form yyyy-mm-dd-hh-mm-ss,
+  # but the hours, minutes, and seconds will not have leading
+  # zeros, so they can be either one or two digits long.
   if(defined($qparams->{'ut'})) {
     my $ut = $qparams->{'ut'};
-    if($ut =~ /^\d{4}-\d\d-\d\d-\d\d-\d\d-\d\d$/) {
+    if($ut =~ /^\d{4}-\d\d-\d\d-\d{1,2}-\d{1,2}-\d{1,2}$/) {
       $vparams->{'ut'} = $ut;
     }
   }
@@ -82,11 +92,12 @@ sub verifyParams {
     $vparams->{'runnr'} = $runnr;
   }
 
-  # The 'inst' parameter is a string made of alphanumerics
+  # The 'inst' parameter is a string made of alphanumerics,
+  # and is to be in upper-case.
   if(defined($qparams->{'inst'})) {
     my $inst = $qparams->{'inst'};
     $inst =~ s/[^0-9a-zA-Z]//g;
-    $vparams->{'inst'} = $inst;
+    $vparams->{'inst'} = uc($inst);
   }
 
   # The 'author' parameter is a string made of alphanumerics
@@ -117,7 +128,6 @@ sub updateComment {
 
   if( ! defined( $params->{'author'} ) ||
       ! defined( $params->{'status'} ) ) {
-    print "Unable to store comment with no valid author or status<br>\n";
     return;
   }
 
@@ -128,11 +138,11 @@ sub updateComment {
     return;
   }
 
-  my $startobs = Time::Piece->strptime( $params->{'ut'}, '%y-%m-%d-%H-%M-%S' );
+  my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
 
   my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
                                  startobs => $startobs,
-                                 instrument => $params->{'inst'} );
+                                 instrument => uc($params->{'inst'}) );
 
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
   my $user = $udb->getUser( $params->{'author'} );
@@ -159,58 +169,87 @@ sub displayComment {
   }
 
   # Form the Time::Piece object.
-  my $startobs = Time::Piece->strptime( $params->{'ut'}, '%y-%m-%d-%H-%M-%s' );
+
+  my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
 
   # Form the Info::Obs object.
   my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
                                  startobs => $startobs,
-                                 instrument => $params->{'inst'} );
+                                 instrument => uc($params->{'inst'}) );
 
   # Grab the most recent active comment.
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
   my $comment = $odb->getComment( $obs );
 
   # Print it out.
-  print "<table border=\"1\">\n";
-  print "<tr><td><strong>Instrument</strong></td><td>";
-  print $comment->{instrument};
-  print "</td></tr>\n";
-  print "<tr><td><strong>Observation date</strong></td><td>";
-  print $obs->{startobs};
-  print "</td></tr>\n";
-  print "<tr><td><strong>Run number</strong></td><td>";
-  print $obs->{runnr};
-  print "</td></tr>\n";
-  print "<tr><td><strong>Status</strong></td><td>";
-  if($comment->{Status} == OMP__OBS_GOOD) {
-    print "Good";
-  } elsif ($comment->{Status} == OMP__OBS_QUESTIONABLE) {
-    print "Questionable";
-  } elsif ($comment->{Status} == OMP__OBS_BAD) {
-    print "Bad";
-  } else {
-    print "unknown";
+  if(defined($comment)) {
+    print "<table border=\"1\">\n";
+    print "<tr><td><strong>Instrument</strong></td><td>";
+    print $obs->{instrument};
+    print "</td></tr>\n";
+    print "<tr><td><strong>Observation date</strong></td><td>";
+    print $obs->{startobs};
+    print "</td></tr>\n";
+    print "<tr><td><strong>Run number</strong></td><td>";
+    print $obs->{runnr};
+    print "</td></tr>\n";
+    print "<tr><td><strong>Status</strong></td><td>";
+    if($comment->status == OMP__OBS_GOOD) {
+      print "Good";
+    } elsif ($comment->status == OMP__OBS_QUESTIONABLE) {
+      print "Questionable";
+    } elsif ($comment->status == OMP__OBS_BAD) {
+      print "Bad";
+    } else {
+      print "unknown";
+    }
+    print "</td></tr>\n<tr><td><strong>Author</strong></td><td>";
+    print $comment->author->userid, " - ", $comment->author->name;
+    print "</td></tr>\n<tr><td><strong>Comment Date</strong></td><td>";
+    print $comment->date;
+    print "</td></tr>\n<tr><td><strong>Comment</strong></td><td>";
+    print $comment->text;
+    print "</td></tr>\n";
+    print "</table>\n";
   }
-  print "</td></tr>\n<tr><td><strong>Author</strong></td><td>";
-  print $comment->{Author}->userid, " - ", $comment->{Author}->name;
-  print "</td></tr>\n<tr><td><strong>Comment Date</strong></td><td>";
-  print $comment->{Date};
-  print "</td></tr>\n<tr><td><strong>Comment</strong></td><td>";
-  print $comment->{Text};
-  print "</td></tr>\n";
-  print "</table>\n";
 }
 
 sub displayForm {
   my $params = shift;
 
+  # First try to find out if there's a comment associated with this
+  # observation.
+  if( defined( $params->{'ut'} ) &&
+      defined( $params->{'runnr'} ) &&
+      defined( $params->{'inst'} ) ) {
+
+    # Form the Time::Piece object.
+
+    my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
+
+    # Form the Info::Obs object.
+    my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
+                                   startobs => $startobs,
+                                   instrument => uc($params->{'inst'}) );
+
+    # Grab the most recent active comment.
+    my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+    my $comment = $odb->getComment( $obs );
+
+    if(defined($comment)) {
+      $params->{author} = $comment->author->userid;
+      $params->{status} = $comment->status;
+      $params->{text} = $comment->text;
+    }
+  }
   print "<form action=\"obscomment.pl\" method=\"post\"><br>\n";
-  print "Author: <input type=\"text\" name=\"author\" value=\"";
-  print defined($params->{author}) ? $params->{author} : "";
-  print "\"><br>\n";
-  print "Status: <select name=\"status\">\n";
+  print "<table border=\"0\" width=\"40%\"><tr><td>";
+  print "Author:</td><td><input type=\"text\" name=\"author\" value=\"";
+  print ( defined($params->{author}) ? $params->{author} : "" );
+  print "\"></td></tr>\n";
+  print "<tr><td>Status:</td><td><select name=\"status\">\n";
   print "<option value=\"" . OMP__OBS_GOOD . "\"";
-  if (!defined($params->{status}) || 
+  if (!defined($params->{status}) ||
       ($params->{status} == OMP__OBS_GOOD)) { print " selected>"; }
   else { print ">"; }
   print "Good</option>\n";
@@ -222,11 +261,11 @@ sub displayForm {
   if ($params->{status} == OMP__OBS_BAD) { print " selected>"; }
   else { print ">"; }
   print "Bad</option>\n";
-  print "</select>\n";
-  print "<textarea name=\"text\" rows=\"20\" columns=\"80\">";
+  print "</select></td></tr>\n";
+  print "<tr><td colspan=\"2\"><textarea name=\"text\">";
   print defined($params->{text}) ? $params->{text} : "";
-  print "</textarea>\n";
-  print "<input type=\"hidden\" name=\"ut\" value=\"";
+  print "</textarea></td></tr>\n";
+  print "<tr><td><input type=\"hidden\" name=\"ut\" value=\"";
   print defined($params->{ut}) ? $params->{ut} : "";
   print "\">\n";
   print "<input type=\"hidden\" name=\"runnr\" value=\"";
@@ -234,8 +273,8 @@ sub displayForm {
   print "\">\n";
   print "<input type=\"hidden\" name=\"inst\" value=\"";
   print defined($params->{inst}) ? $params->{inst} : "";
-  print "\">\n";
+  print "\"></td></tr>\n";
 
-  print "<input type=\"submit\"> <input type=\"reset\"><br>\n";
+  print "<tr><td colspan=\"2\"><input type=\"submit\" value=\"submit\"> <input type=\"reset\"></td></tr></table>\n";
 
 }
