@@ -27,6 +27,7 @@ use lib qw(/jac_sw/omp/msbserver);
 use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::FBServer;
+use OMP::Constants;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -34,7 +35,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -51,7 +52,7 @@ Exporter::export_tags(qw/ all /);
 Creates an HTML table containing information relevant to the status of
 a project.
 
-proj_status_table( $cgi, %cookie);
+  proj_status_table( $cgi, %cookie);
 
 First argument should be the C<CGI> object.  The second argument
 should be a hash containing the contents of the C<OMP::Cookie> cookie
@@ -89,7 +90,7 @@ sub proj_status_table {
 
 Displays the project details (lists all MSBs)
 
-msb_sum($cgi, %cookie);
+  msb_sum($cgi, %cookie);
 
 =cut
 
@@ -111,7 +112,7 @@ sub msb_sum {
 Creates text showing current number of msbs, but not actually display the
 program details.
 
-msb_sum_hidden($cgi, %cookie);
+  msb_sum_hidden($cgi, %cookie);
 
 =cut
 
@@ -132,7 +133,7 @@ sub msb_sum_hidden {
   }
 
   print $q->h2("Current MSB status"),
-        scalar(@$sp). " MSBs currently stored in database. Click <a href='feedback.pl?msb=1'>here</a> to list them all.",
+        scalar(@$sp). " MSBs currently stored in database. Click <a href='fbmsb.pl'>here</a> to list them all.",
 	$q->hr;
 
 }
@@ -153,7 +154,7 @@ sub fb_entries {
 					     $cookie{password} );
 
   print $q->h2("Feedback entries"),
-        "<a href='feedback.pl?comment=1'>Add a comment</a>",
+        "<a href='fbcomment.pl'>Add a comment</a>",
 	$q->p;
 
   my $i = 1;
@@ -171,7 +172,7 @@ sub fb_entries {
 
 Generate text showing number of comments, but not actually displaying them.
 
-fb_entries_hidden($cgi, %cookie);
+  fb_entries_hidden($cgi, %cookie);
 
 =cut
 
@@ -186,11 +187,45 @@ sub fb_entries_hidden {
 	$q->hr;
 }
 
+=item B<comment_form>
+
+Create a comment submission form.
+
+  comment_form($cgi, %cookie);
+
+=cut
+
+sub comment_form {
+  my $q = shift;
+  my %cookie = @_;
+
+  print "<table><tr valign='bottom'><td>";
+  print $q->startform,
+        $q->br,
+	"Email Address: </td><td>",
+	$q->textfield(-name=>'author',
+		      -size=>30,
+		      -maxlength=>60),
+        "</td><tr><td align='right'>Subject: </td><td>",
+	$q->textfield(-name=>'subject',
+		      -size=>50,
+		      -maxlength=>70),
+	"</td><tr><td></td><td>",
+	$q->textarea(-name=>'text',
+		     -rows=>10,
+		     -columns=>50),
+	"</td><tr><td></td><td align='right'>",
+	$q->submit("Submit"),
+	$q->endform;
+  print "</td></table>";
+
+}
+
 =item B<fb_output>
 
 Creates the page showing feedback entries.
 
-fb_output($cgi, %cookie);
+  fb_output($cgi, %cookie);
 
 =cut
 
@@ -210,7 +245,7 @@ sub fb_output {
 Creates the page showing the project summary (lists MSBs).
 Hides feedback entries.
 
-fb_msb_output($cgi, %cookie);
+  fb_msb_output($cgi, %cookie);
 
 =cut
 
@@ -223,6 +258,52 @@ sub fb_msb_output {
   proj_status_table($q, %cookie);
   fb_entries_hidden($q, %cookie);
   msb_sum($q, %cookie);
+}
+
+=item B<add_comment_content>
+
+Creates a page with a comment form.
+
+  add_comment_content($cgi, %cookie);
+
+=cut
+
+sub add_comment_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  print $q->h2("Add feedback comment to project $cookie{projectid}");
+
+  proj_status_table($q, %cookie);
+  fb_entries_hidden($q, %cookie);
+  comment_form($q, %cookie);
+}
+
+=item B<add_comment_output>
+
+Submits comment and creates a page saying it has done so.
+
+  add_comment_output($cgi, %cookie);
+
+=cut
+
+sub add_comment_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $comment = { author => $q->param('author'),
+		  subject => $q->param('subject'),
+		  text => $q->param('text'),
+		  program => $q->param('program'), 
+		  status => OMP__FB_IMPORTANT, };
+
+  OMP::FBServer->addComment( $cookie{projectid}, $comment )
+      or throw OMP::Error::FatalError("An error occured while attempting to add this comment");
+
+  print $q->h2("Your comment has been submitted");
+
+  proj_status_table($q, %cookie);
+  fb_entries_hidden($q, %cookie);
 }
 
 =back
