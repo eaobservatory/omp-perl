@@ -26,24 +26,17 @@ BEGIN {
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
-use NDF;
-use PDL;
-use PDL::IO::NDF;
-use PDL::Graphics::PGPLOT;
+#use NDF;
 use PDL::Graphics::LUT;
 
 # we need to point to a different directory to see ORAC and OMP modules
 
 use lib qw(/ukirt_sw/oracdr/lib/perl5);
-use ORAC::Frame;
 use ORAC::Frame::NDF;
-use ORAC::Group;
 use ORAC::Inst::Defn qw(orac_configure_for_instrument);
 
 use lib qw(/jac_sw/omp/test/omp/msbserver);
 use OMP::CGI;
-use OMP::ProjServer;
-use OMP::General;
 
 use strict;
 
@@ -56,13 +49,11 @@ my ($q_view, $q_file, $q_instrument, $q_obstype, $q_all, $q_rstart, $q_rend,
 
 $| = 1;  # make output unbuffered
 
-my $gifdir = "/WWW/JAClocal/tmp/worfplots/";
-my $worfdir = "/WWW/JAClocal/cgi-bin/worf/";
 my @ctabs = lut_names();
 my @instruments = ("cgs4", "ircam", "michelle", "ufti");
 my $query = new CGI;
 my $cgi = new OMP::CGI( CGI => $query );
-$cgi->html_title("WORF");
+$cgi->html_title("WORF: UKIRT WWW Observing Remotely Facility");
 
 # Header translation hashes
 my %headers = ("ufti", {"objname", "OBJECT",
@@ -112,7 +103,9 @@ my $ut;
 	{
 		my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
 		$ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
-		$ut = "20020310";
+
+# for demo purposes
+#		$ut = "20020310";
 	}
 
 # write the page
@@ -458,7 +451,7 @@ sub worf_output {
 		my $t_size = $query->param('size');
 		$t_size =~ s/[^0-9]//;
 		$ENV{'PGPLOT_GIF_WIDTH'} = $t_size;
-		$ENV{'PGPLOT_GIF_HEIGHT'} = $t_size;
+		$ENV{'PGPLOT_GIF_HEIGHT'} = $t_size * 3 / 4;
 	} else {
 		$ENV{'PGPLOT_GIF_WIDTH'} = 640;
 		$ENV{'PGPLOT_GIF_HEIGHT'} = 480;
@@ -716,279 +709,7 @@ sub display_observation {
 
 	print "<hr>Worf says:<br><ul>\n";
 
-	if($obstype eq 'raw') {
-		# for the raw file, we need to look at the .i1 NDF (just giving the filename
-		# will only get us the HDS container and not the NDF)
-		$file =~ s/\.sdf$/\.i1/;
-		$file = get_raw_directory($instrument, $ut) . "/" . $file;
-	} else {
-		$file = get_reduced_directory($instrument, $ut) . "/" . $file;
-	}
-	print "<li>Displaying $file as $type.<br>\n";
-	my $image = rndf($file);
-	my ($xdim, $ydim) = dims $image;
-	if(!defined($ydim) && ($type eq "image")) {
-		print "<li>Input file is 1D. Plotting spectrum instead of image.<br>\n";
-		$type = "spectrum";
-	}
-	undef $image;
-	undef $xdim;
-	undef $ydim;
-	($type eq "spectrum") ? plot_spectrum($file, $cut, $rstart, $rend, $xscale, $xstart, $xend, $yscale, $ystart, $yend) : plot_image($file, $autocut, $xcrop, $xcropstart, $xcropend, $ycrop, $ycropstart, $ycropend, $lut);
-
-	print "</ul>\n";
-
-}
-
-sub plot_image {
-
-# This subroutine plots an image
-#
-# IN: $file: full filename to be displayed.
-#     $autocut: scale data by cutting percentages
-#     $xcrop: whether the x-dimension is cropped or set (full or crop)
-#     $xcropstart: starting position for x-dimension
-#     $xcropend: ending position for x-dimension
-#     $ycrop: whether the y-dimension is cropped or set (full or crop)
-#     $ycropstart: starting position for y-dimension
-#     $ycropend: ending position for y-dimension
-#     $lut: lookup table for colour table
-#
-# OUT: none
-
-	my ($file, $autocut, $xcrop, $xcropstart, $xcropend, $ycrop, $ycropstart, $ycropend, $lut) = @_;
-	my ($xdim, $ydim);
-	my $gif = "$gifdir" . "tmp$$.gif";
-	my $image = rndf($file, 1);
-
-	my $opt = {AXIS => 1,
-						 JUSTIFY => 1,
-						 LINEWIDTH => 1};
-
-	($xdim, $ydim) = dims $image;
-	print "<li>Data size: " . join (" x ", $image->dims) . ".<br>\n";
-
-	if(!defined($ydim)) {
-
-# This should actually never happen, since this check is also done just before the
-# call to plot_spectrum(), but it never hurts to make sure, since this subroutine
-# will fail if a 1D image is sent to it.
-
-		print "<li>Input file is 1D. Plotting spectrum instead of image.<br>\n";
-		plot_spectrum($file, "horizontal", 1, $xdim--, "autoscaled", undef, undef, "autoscaled", undef, undef);
-		return;
-	}
-
-	my $hdr = $image->gethdr;
-	my $title = $$hdr{Title};
-
-	$xdim--;
-	$ydim--;
-
-	if($autocut != 100) {
-		my ($mean, $rms, $median, $min, $max) = stats($image);
-		if($autocut == 99) {
-			$image = $image->clip(($mean - 2.6467 * $rms), ($mean + 2.6467 * $rms));
-		} elsif($autocut == 98) {
-			$image = $image->clip(($mean - 2.2976 * $rms), ($mean + 2.2976 * $rms));
-		} elsif($autocut == 95) {
-			$image = $image->clip(($mean - 1.8318 * $rms), ($mean + 1.8318 * $rms));
-		} elsif($autocut == 90) {
-			$image = $image->clip(($mean - 1.4722 * $rms), ($mean + 1.4722 * $rms));
-		} elsif($autocut == 80) {
-			$image = $image->clip(($mean - 1.0986 * $rms), ($mean + 1.0986 * $rms));
-		} elsif($autocut == 70) {
-			$image = $image->clip(($mean - 0.8673 * $rms), ($mean + 0.8673 * $rms));
-		} elsif($autocut == 50) {
-			$image = $image->clip(($mean - 0.5493 * $rms), ($mean + 0.5493 * $rms));
-		}
-	}
-
-	if($xcrop eq 'crop') {
-		if((($xcropstart == 0) && ($xcropend == 0)) || ($xcropstart >= $xcropend)) {
-			$xcropstart = 0;
-			$xcropend = $xdim;
-			print "<li>X-dimension scale incorrect. Plotting over full x-dimension.<br>\n";
-		} else {
-			print "<li>Plotting x-dimension from $xcropstart to $xcropend.<br>\n";
-		}
-	} else {
-		$xcropstart = 0;
-		$xcropend = $xdim;
-	}
-
-	if($ycrop eq 'crop') {
-		if((($ycropstart == 0) && ($ycropend == 0)) || ($ycropstart >= $ycropend)) {
-			$ycropstart = 0;
-			$ycropend = $ydim;
-			print "<li>Y-dimension scale incorrect. Plotting over full y-dimension.<br>\n";
-		} else {
-			print "<li>Plotting y-dimension from $ycropstart to $ycropend.<br>\n";
-		}
-	} else {
-		$ycropstart = 0;
-		$ycropend = $ydim;
-	}
-	
-	print "<li>Displaying with $lut colour table.<br>\n";
-
-	dev "$gif/GIF";
-	env($xcropstart, $xcropend, $ycropstart, $ycropend, $opt);
-	label_axes(undef, undef, $title);
-	ctab(lut_data($lut));
-	imag $image;
-	dev "/null";
-
-# strip the leading /WWW off $gif
-
-	$gif =~ s/^\/WWW//;
-
-  print "<img src=\"$gif\">\n";
-}
-
-sub plot_spectrum {
-
-# This subroutine plots a spectrum.
-#
-# IN: $file: full pathname to be displayed.
-#     $cut: direction of cut (horizontal || vertical)
-#     $rstart: start row of cut
-#     $rend: end row of cut
-#     $xscale: type of scaling in x-direction (autoscaled || set)
-#     $xstart: lower bound of units in x-direction
-#     $xend: upper bound of units in x-direction
-#     $yscale: type of scaling in y-direction (autoscaled || set)
-#     $ystart: lower bound of units in y-durection
-#     $yend: upper bound of units in y-direction
-#
-# OUT: none
-
-	my ($file, $cut, $rstart, $rend, $xscale, $xstart, $xend, $yscale, $ystart, $yend) = @_;
-	my $line;
-	my $templine;
-	my $xdim;
-	my $ydim;
-  my $image = rndf($file);
-  my $gif = "$gifdir" . "tmp$$.gif";
-
-	my $opt = {LINEWIDTH => 1};
-
-	print "<li>Data size: ", join (" x ", $image->dims), ".<br>\n";
-	($xdim, $ydim) = dims $image;
-
-# We have to check if the input data is 1D or 2D
-	if(!defined($ydim)) {
-
-# It's 1D
-
-		print "<li>Plotting 1D spectrum.<br>\n";
-		dev "$gif/GIF";
-
-# Grab the axis information
-
-		my $hdr = $image->gethdr;
-		my $title = $$hdr{Title};
-		my $axis = ${$$hdr{Axis}}[0];
-	  my $axishdr = $axis->gethdr;
-    my $units = $$axishdr{Units};
-	  my $label = $$axishdr{Label};
-
-	  if($xscale eq 'set') {
-			if((($xstart == 0) && ($xend == 0)) || ($xstart >= $xend)) {
-				print "<li>X-dimension scale incorrect. Plotting over full x-dimension.<br>\n";
-				$xstart = min($axis);
-				$xend = max($axis);
-			} else {
-				print "<li>Plotting x-dimension from $xstart to $xend.<br>\n";
-			}
-		} else {
-			$xstart = min($axis);
-			$xend = max($axis);
-		}
-	
-  	if($yscale eq 'set') {
-			if((($ystart == 0) && ($yend == 0)) || ($ystart >= $yend)) {
-				print "<li>Y-dimension scale incorrect. Plotting over full Y-dimension.<br>\n";
-				$ystart = min($image);
-				$yend = max($image);
-			} else {
-				print "<li>Plotting y-dimension from $ystart to $yend.<br>\n";
-			}
-		} else {
-			$ystart = min($image);
-			$yend = max($image);
-		}
-	
-	  env($xstart, $xend, $ystart, $yend);
-	  label_axes( "$label ($units)", undef, $title);
-	  line $axis, $image, $opt;
-	  dev "/null";
-
-	} else {
-
-# It's 2D
-
-		$xdim--;
-		$ydim--;
-		
-		my $hdr = $image->gethdr;
-		my $title = $$hdr{Title};
-		label_axes(undef, undef, $title);
-
-		if ($cut eq "vertical") {
-			print "<li>Plotting average of columns $rstart to $rend.<br>\n";
-			for(my $i = $rstart; $i <= $rend; $i++) {
-				$templine = $image->slice("$i,")->copy;
-				$line += $templine;
-			}
-			$line = $line / ($rend - $rstart + 1);
-		} else {
-			print "<li>Plotting average of rows $rstart to $rend<br>.\n";
-			for(my $i = $rstart; $i <= $rend; $i++) {
-				$templine = $image->slice(",$i")->copy;
-				$line += $templine;
-			}
-			$line = $line / ($rend - $rstart + 1);
-		};
-		
-		if($xscale eq 'set') {
-			if((($xstart == 0) && ($xend == 0)) || ($xstart >= $xend)) {
-				$xstart = 0;
-				$xend = $xdim;
-				print "<li>X-dimension scale incorrect. Plotting over full x-dimension.<br>\n";
-			} else {
-				print "<li>Plotting x-dimension from $xstart to $xend.<br>\n";
-			}
-		} else {
-			$xstart = 0;
-			$xend = $xdim;
-		}
-		
-		if($yscale eq 'set') {
-			if((($ystart == 0) && ($yend == 0)) || ($ystart >= $yend)) {
-				$ystart = min($line);
-				$yend = max($line);
-				print "<li>Y-dimension scale incorrect. Plotting over full y-dimension.<br>\n";
-			} else {
-				print "<li>Plotting y-dimension from $ystart to $yend.<br>\n";
-			}
-		} else {
-			$ystart = min($line);
-			$yend = max($line);
-		}
-		
-		dev "$gif/GIF";
-		env ($xstart, $xend, $ystart, $yend);
-		line $line, $opt;
-		dev "/null";
-		
-	}
-
-# strip out the leading /WWW from $gif
-
-	$gif =~ s/^\/WWW//;
-
-	print "<img src=\"$gif\">\n";
+	print "<img src=\"worf_graphic.pl?file=$file&cut=$cut&rstart=$rstart&rend=$rend&xscale=$xscale&xstart=$xstart&xend=$xend&yscale=$yscale&ystart=$ystart&yend=$yend&instrument=$instrument&type=$type&obstype=$obstype&autocut=$autocut&xcrop=$xcrop&xcropstart=$xcropstart&xcropend=$xcropend&ycrop=$ycrop&ycropstart=$ycropstart&ycropend=$ycropend&lut=$lut\" width=\"$ENV{'PGPLOT_GIF_WIDTH'}\" height=\"$ENV{'PGPLOT_GIF_HEIGHT'}\">\n";
 
 }
 
@@ -1153,7 +874,7 @@ sub get_raw_directory {
 	my %options;
   $options{'ut'} = $ut;
 	orac_configure_for_instrument( uc( $instrument ), \%options );
-return "/WWW/JAClocal/cgi-bin/worf/datademo/raw/" . $instrument . "/" . $ut;
+
 	return $ENV{"ORAC_DATA_IN"};
 }
 
@@ -1167,7 +888,7 @@ sub get_reduced_directory {
 	my %options;
 	$options{'ut'} = $ut;
 	orac_configure_for_instrument( uc( $instrument ), \%options );
-return "/WWW/JAClocal/cgi-bin/worf/datademo/reduced/" . $instrument . "/" . $ut;
+
 	return $ENV{"ORAC_DATA_OUT"};
 }
 

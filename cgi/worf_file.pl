@@ -18,7 +18,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 
 # Bring in OMP modules for user verification.
 
-use lib qw( /jac_sw/omp/test/omp/msbserver );
+#use lib qw( /jac_sw/omp/test/omp/msbserver );
 #use OMP::CGI;
 #use OMP::ProjServer;
 #use OMP::General;
@@ -34,12 +34,14 @@ use ORAC::Inst::Defn qw/orac_configure_for_instrument/;
 $| = 1; # Make output unbuffered.
 my @instruments = ( "cgs4", "ircam", "michelle", "ufti", "scuba" );
 my $query = new CGI;
-#my $cgi = new OMP::CGI( CGI => $query );
+
 my $ut;
 	{
 		my ($sec, $min, $hour, $day, $month, $year, $wday, $yday, $isdist) = gmtime(time);
 		$ut = ($year + 1900) . pad($month + 1, "0", 2) . pad($day, "0", 2);
-		$ut = "20020217";
+
+# for demo purposes only
+#		$ut = "20020310";
 	}
 
 # Set up and verify $query variables. We will only have filename and
@@ -107,7 +109,6 @@ if( ( length( $q_file . '' ) != 0 ) &&
 	orac_configure_for_instrument( uc( $q_instrument ), \%options );
 
 	my $filepath = $ENV{"ORAC_DATA_OUT"};
-	$filepath = "/WWW/JAClocal/cgi-bin/worf/datademo/reduced/" . $q_instrument . "/" . $ut;
 
 	open(FILE, $filepath . "/" . $q_file) or die "Could not open file $filepath" . "/" . "$q_file: $!";
 	{
