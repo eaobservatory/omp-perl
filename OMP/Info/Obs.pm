@@ -521,11 +521,11 @@ sub _populate {
 
   # Build the Time::Piece startobs and endobs objects
   if(length($generic_header{UTSTART} . "") != 0) {
-    my $startobs = Time::Piece->strptime($generic_header{UTSTART}, '%Y-%m-%dT%T');
+    my $startobs = OMP::General->parse_date($generic_header{UTSTART});
     $self->startobs( $startobs );
   }
   if(length($generic_header{UTEND} . "") != 0) {
-    my $endobs = Time::Piece->strptime($generic_header{UTEND}, '%Y-%m-%dT%T');
+    my $endobs = OMP::General->parse_date($generic_header{UTEND});
     $self->endobs( $endobs );
   }
 
