@@ -1660,6 +1660,17 @@ sub projlog_content {
 
   print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
 
+  # Get a project object for this project
+  my $proj;
+  try {
+    $proj = OMP::ProjServer->projectDetails($projectid, $cookie{password}, "object");
+  } otherwise {
+    my $E = shift;
+    croak "Unable to retrieve the details of this project:\n$E";
+  };
+
+  my $telescope = $proj->telescope;
+
   # Make links for retrieving data
   # To keep people from following the links before the data are available
   # for download gray out the links if the current UT date is the same as the
@@ -1673,6 +1684,9 @@ sub projlog_content {
     print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
     print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
   }
+
+  # Link to WORF thumbnails
+  print "<p><a href=\"fbworfthumb.pl?ut=$utdate&telescope=$telescope\">View WORF thumbnails</a>\n";
 
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a><p>";
@@ -1719,6 +1733,9 @@ sub projlog_content {
 
   # Display observation log
   try {
+    # Don't want to go to files on disk
+    $OMP::ArchiveDB::FallbackToFiles = 0;
+
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
 				      date => $utdate,
 				      inccal => 1,);
@@ -1726,8 +1743,6 @@ sub projlog_content {
     if ($grp->numobs > 1) {
       print "<h2>Observation log</h2>";
 
-      # Don't want to go to files on disk
-      $OMP::ArchiveDB::FallbackToFiles = 0;
       obs_table($grp);
     } else {
       # Don't display the table if no observations are available
@@ -1737,19 +1752,10 @@ sub projlog_content {
     print "<h2>No observations available for this night</h2>";
   };
 
-  # Get a project object for this project
-  my $proj;
-  try {
-    $proj = OMP::ProjServer->projectDetails($projectid, $cookie{password}, "object");
-  } otherwise {
-    my $E = shift;
-    croak "Unable to retrieve the details of this project:\n$E";
-  };
-
   # Display shift log
   my %shift_args = (date => $utdate,
-		    telescope => $proj->telescope,
-		    zone => "UT");
+                    telescope => $telescope,
+                    zone => "UT");
 
   print "<a name='shiftcom'></a>";
   display_shift_comments(\%shift_args, \%cookie);
