@@ -88,11 +88,13 @@ if(defined($opt{tel})) {
     my $but = $dbox->Show;
 
     if( $but eq 'Accept' && $newtel ne '') {
-      $telescope = $newtel;
+      $telescope = uc($newtel);
     } else {
       exit; # Hrm.
     }
     $w->destroy;
+  } else {
+    $telescope = uc($tel);
   }
 }
 
