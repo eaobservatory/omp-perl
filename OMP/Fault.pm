@@ -60,7 +60,7 @@ my %DATA = (
 				  "PC/Windows"  => 3,
 				  "VAX/VMS"     => 4,
 				  "PC/Linux"    => 5,
-				  "Other/Unkown"=> SYSTEMOTHER,
+				  "Other/Unknown"=> SYSTEMOTHER,
 				 },
 		       TYPE => {
 				Other    => TYPEOTHER,
@@ -937,7 +937,7 @@ sub stringify {
 
   # Actual time of fault as string
   my $actfaultdate;
-  if (defined $actfaultdate) {
+  if (defined $faultdate) {
     $actfaultdate = $faultdate->strftime("%H:%M") . "UT";
   } else {
     $actfaultdate = "UNKNOWN";
