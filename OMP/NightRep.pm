@@ -601,6 +601,14 @@ sub shiftComments {
 
   my @result = $sdb->getShiftLogs( $query );
 
+  # TEMPORARY FIX FOR GARBLED NIGHTREP
+  # Strip HTML from comments
+  for my $comment (@result) {
+    my $text = $comment->text;
+    $text =~ s/<.*?>//sg;
+    $comment->text($text);
+  }
+
   return @result;
 }
 
