@@ -600,6 +600,8 @@ sub ashtml {
   my $tel  = $self->telescope;
   my $date = $self->date->ymd;
 
+  my $total = 0.0;
+
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
   print "<a href='#faultsum'>Fault Summary</a><br>";
@@ -626,11 +628,13 @@ sub ashtml {
   my %text = (
 	      WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
 	      EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
+	      OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
 	     );
-  for my $proj (qw/WEATHER EXTENDED/) {
+  for my $proj (qw/WEATHER OTHER EXTENDED/) {
     my $time = 0.0;
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->timespent->hours;
+      $total += $time unless $proj eq 'EXTENDED';
     }
     print "$text{$proj}<td>" . sprintf($format, $time) . "</td>";
   }
@@ -640,6 +644,8 @@ sub ashtml {
   for my $proj (keys %acct) {
     next if $proj =~ /^$tel/;
 
+    $total += $acct{$proj}->timespent->hours;
+
     print "<tr class='row_$bgcolor'>";
     print "<td><a href='$ompurl/projecthome.pl?urlprojid=$proj' class='link_light'>$proj</a></td><td>";
     printf($format, $acct{$proj}->timespent->hours);
@@ -648,6 +654,9 @@ sub ashtml {
     # Alternate background color
     ($bgcolor eq "a") and $bgcolor = "b" or $bgcolor = "a";
   }
+
+  print "<tr class='row_$bgcolor'>";
+  print "<td class='sum_other'>Total</td><td class='sum_other'>$total hrs</td>";
 
   print "</table>";
   print "<p>";
@@ -736,7 +745,15 @@ sub ashtml {
 
   # O b s e r v a t i o n  L o g
   my $grp;
-#  my $grp = $self->obs;  # Commented out for testing
+  try {
+    $grp = $self->obs;
+  } catch OMP::Error::FatalError with {
+    my $E = shift;
+    print "<pre>An error has been encountered:<p> $E</pre><p>";
+  } otherwise {
+    my $E = shift;
+    print "<pre>An error has been encountered:<p> $E</pre><p>";
+  };
 
   print "<a name=obslog></a>";
   print "<strong class='small_title'>Observation log</strong><p>";
