@@ -53,7 +53,7 @@ my @domain = OMP::General->determine_host;
 # write the page
 
 if( $domain[1] and $domain[1] !~ /\./) {
-  $cgi->write_page_noauth( \&thumbnails_page, \&thumbnails_page );
+  $cgi->write_page_noauth( \&display_page, \&display_page );
 } else {
-  $cgi->write_page_staff( \&thumbnails_page, \&thumbnails_page );
+  $cgi->write_page_staff( \&display_page, \&display_page );
 }
