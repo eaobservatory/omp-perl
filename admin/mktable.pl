@@ -215,9 +215,11 @@ my %tables = (
                               sourceinfo => "varchar(60) not null",
                               status => "integer null",
                               text => "text not null",
+			      msgtype => "integer null",
                               _ORDER => [qw/
                                          commid entrynum projectid author date
-                                         subject program sourceinfo status text
+					 subject program sourceinfo status text
+					 msgtype
                                         /],
                              },
               # Bug/Fault meta-data
