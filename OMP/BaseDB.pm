@@ -797,6 +797,10 @@ sub _mail_information {
 		    Type=>$type,
 		    Encoding=>'8bit');
 
+  if ($details{cc}) {
+    $msgdetails{cc} = $details{cc};
+  }
+
   # No HTML in message so we won't be attaching anything.  Just include the
   # message content
   ($type eq "text/plain") and $msgdetails{Data} = $details{message};
@@ -810,7 +814,7 @@ sub _mail_information {
       $msg->attr($hdr => $details{headers}->{$hdr});
     }
   }
-
+  
   # Convert the HTML to plain text and attach it to the message if we're
   # sending a multipart/alternative message
   if ($type eq "multipart/alternative" ) {
