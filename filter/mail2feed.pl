@@ -57,7 +57,7 @@ sub accept_feedback {
   if ($author) {
     Mail::Audit::_log(1,"Determined OMP user: $author");
   } else {
-    Mail::Audir::_log(1,"Unable to determine OMP user from From address");
+    Mail::Audit::_log(1,"Unable to determine OMP user from From address");
   }
 
   # Need to translate the from address to a valid OMP user id
