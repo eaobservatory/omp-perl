@@ -776,7 +776,7 @@ sub alldoneMSB {
 
 Store the science program to the "database"
 
-  $db->_store_sci_prog( $sp, $freeze, $force );
+  $status = $db->_store_sci_prog( $sp, $freeze, $force );
 
 The XML is stored in the database. Transaction management deals with the
 case where the upload fails part way through.
@@ -803,6 +803,8 @@ argument to be supplied] can be used to disable time stamp checking
 completely whilst still generating a new timestamp. This option should
 be used with care and should not be used without explicit request
 of the owner of the science program. Default is false.
+
+Returns good status or throws exception on error (!!).
 
 =cut
 
@@ -846,11 +848,13 @@ sub _store_sci_prog {
   $sp->timestamp( time() ) unless $freeze;
 
   # and store it
-  $self->_db_store_sciprog( $sp );
+  my $exstat = $self->_db_store_sciprog( $sp );
 
   # For initial safety purposes, store a text version on disk
+  # dont care about exit status
   $self->_store_sciprog_todisk( $sp );
 
+  return $exstat;
 }
 
 
