@@ -1818,10 +1818,11 @@ sub _insert_row {
 			  $index, $proj, $data{remaining}, $data{checksum},
 			  $data{obscount}, $data{tau}->min, $taumax, 
 			  $data{seeing}->min, $seeingmax, $data{priority},
-			  $data{telescope}, $data{moon}, $data{cloud},
+			  $data{telescope}, $moonmax, $cloudmax,
 			  $data{timeest}, $data{title},
 			  "$data{datemin}", "$data{datemax}", $minel,
-			  $maxel, $data{approach});
+			  $maxel, $data{approach}, $moonmin,
+			  $cloudmin, $skymin, $skymax);
 
   # Now the observations
   # We dont use the generic interface here since we want to
