@@ -1134,7 +1134,7 @@ sub getTarget {
     $c->datetime( $time );
 
     $target{AZ} = $c->az(format => 's');
-    $target{EL} = $c->az(format => 's');
+    $target{EL} = $c->el(format => 's');
     $target{CENTRE_COORDS} = "AZ";
     $target{SOURCE_NAME} = $info{target};
 
