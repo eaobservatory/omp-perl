@@ -970,6 +970,7 @@ sub list_projects_output {
   my $support = $q->param('support');
   my $country = $q->param('country');
   my $telescope = $q->param('telescope');
+  my $order = $q->param('order');
 
   ($support eq 'dontcare') and $support = undef;
   ($country =~ /any/i) and $country = undef;
@@ -977,14 +978,16 @@ sub list_projects_output {
 
   my $xmlquery = "<ProjQuery><state>$state</state><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
 
-
   OMP::General->log_message("Projects list retrieved by user $cookie{userid}");
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
   if (@$projects) {
-    # First group the projects by country and telescope, then sort
-    # by TAG priority
+    # Group by either project ID or TAG priority
+    # If grouping by project ID, group by telescope, semester, and
+    # country, then sort by project number.
+    # Otherwise, group the projects by country and telescope, then
+    # sort by TAG priority
     #
     # NOTE: This may be too slow.  We will probably want to let the
     # database do the sorting and grouping for us in the future,
@@ -992,18 +995,50 @@ sub list_projects_output {
     # <orderby> and <groupby> tags
     my @sorted;
 
-    if ($telescope and $country) {
-      @sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
-    } else {
+    if ($order eq 'projectid') {
+      
       my %group;
       for (@$projects) {
-	push @{$group{$_->telescope}{$_->country}}, $_;
+
+	# Try to get the semester from the project ID since that is
+	# more useful for sorting than the actual semester which will
+	# be the same for all projects
+	my $sem = $_->semester_ori;
+	(! $sem) and $sem = $_->semester;
+
+	# Fudge with semesters like 99A so that they are sorted
+	# before and not after later semesters like 00B and 04A
+	($sem =~ /^(9\d)([ab])$/i) and $sem = $1 - 100 . $2;
+
+	push @{$group{$_->telescope}{$sem}{$_->country}}, $_;
       }
 
+      # Grouping is finished. Now sort.
       for my $telescope (sort keys %group) {
-	for my $country (sort keys %{$group{$telescope}}) {
-	  my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
-	  push @sorted, @sortedcountry;
+	for my $semester (sort {$a <=> $b} keys %{$group{$telescope}}) {
+	  for my $country (sort keys %{$group{$telescope}{$semester}}) {
+
+	    my @tmpsort = sort {$a->project_number <=> $b->project_number}
+	      @{$group{$telescope}{$semester}{$country}};
+
+	    push @sorted, @tmpsort;
+	  }
+	}
+      }
+    } else {
+      if ($telescope and $country) {
+	@sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
+      } else {
+	my %group;
+	for (@$projects) {
+	  push @{$group{$_->telescope}{$_->country}}, $_;
+	}
+
+	for my $telescope (sort keys %group) {
+	  for my $country (sort keys %{$group{$telescope}}) {
+	    my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
+	    push @sorted, @sortedcountry;
+	  }
 	}
       }
     }
@@ -1017,7 +1052,13 @@ sub list_projects_output {
 
     if ($q->param('table_format')) {
 
-      proj_sum_table(\@sorted, $q);
+      if ($order eq 'priority') {
+	proj_sum_table(\@sorted, $q);
+      } else {
+	# Display table with semester and country headings
+	# since we sorted by project ID
+	proj_sum_table(\@sorted, $q, 1);
+      }
 
     } else {
       foreach my $project (@sorted) {
@@ -1122,10 +1163,17 @@ sub list_projects_form {
   print $q->popup_menu(-name=>'country',
 		       -values=>\@countries,
 		       -default=>'Any',);
+  print "</td><tr><td align='right'>Order by:</td><td colspan=2>";
+  print $q->radio_group(-name=>'order',
+			-values=>['priority', 'projectid'],
+		        -labels=>{priority => 'Priority',
+				  projectid => 'Project ID',},
+		        -default=>'priority',);
   print "</td><tr><td colspan=2>";
   print $q->checkbox(-name=>'table_format',
 		     -value=>1,
-		     -label=>'Display using tabular format');
+		     -label=>'Display using tabular format',
+		     -checked=>'true',);
   print "&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
   print $q->endform();
@@ -2464,13 +2512,17 @@ sub msb_action {
 
 Display details for multiple projects in a tabular format.
 
-  proj_sum_table($projects, $cgi);
+  proj_sum_table($projects, $cgi, $headings);
+
+If the third argument is true, table headings for semester and
+country will appear.
 
 =cut
 
 sub proj_sum_table {
   my $projects = shift;
   my $q = shift;
+  my $headings = shift;
 
   my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
@@ -2489,10 +2541,27 @@ sub proj_sum_table {
 
   my %bgcolor = (dark => "#6161aa",
 		 light => "#8080cc",
-                 disabled => "#e26868");
+                 disabled => "#e26868",
+		 heading => "#c2c5ef",);
+
   my $bgcolor = $bgcolor{dark};
 
+  my $hsem;
+  my $hcountry;
+
   foreach my $project (@$projects) {
+
+    if ($headings) {
+      # If the country or semester for this project are different
+      # than the previous project row, create a new heading
+
+      if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
+	$hsem = $project->semester_ori;
+	$hcountry = $project->country;
+	print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td>";
+      }
+    }
+
     # Get the MSBs for this project so we can count them
     my $msbs;
     try {
