@@ -85,10 +85,7 @@ sub flex_page {
 
   close(FLEX);
 
-  $output =~ s/<body/<body BGCOLOR=\"\#BBBBEE\"/;
-
   # Display the page
-  print "Content-Type: text/html\n\n";
   print $output;
 }
 
