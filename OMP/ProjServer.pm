@@ -291,6 +291,52 @@ sub addProject {
   return 1;
 }
 
+=item B<verifyPassword>
+
+Verify the project ID and password combination. Returns true (1) if
+the password is valid and false (0) otherwise.
+
+  $status = OMP::ProjServer->verifyPassword($projectid, $password);
+
+Password is plain text. Project ID is case insensitive.
+
+=cut
+
+sub verifyPassword {
+  my $project = shift;
+  my $password = shift;
+
+  my $ok;
+  my $E;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			     Password => $password,
+			    );
+
+    $ok = $db->verifyPassword();
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $ok;
+
+}
+
 =back
 
 =head1 SEE ALSO
