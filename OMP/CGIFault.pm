@@ -366,15 +366,24 @@ sub query_fault_output {
       push (@xml, "<type>$type</type>");
     }
 
-    if ($q->param('status') !~ /any/) {
-      my $status = $q->param('status');
 
-      # If status is "Closed" do our query on all closed statuses
-      my %status = OMP::Fault->faultStatus($cookie{category});
-      if ($status eq $status{Closed}) {
-	delete $status{Open};
+    if ($q->param('status') ne "any") {
+
+      my $status = $q->param('status');
+      if ($status eq "all_closed") {
+
+	# Do query on all closed statuses
+	my %status = OMP::Fault->faultStatusClosed;
+	push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
+      } elsif ($status eq "all_open") {
+
+	# Do a query on all open statuses
+	my %status = OMP::Fault->faultStatusOpen;
 	push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
       } else {
+
+	# Do a query on just a single status
+	my %status = OMP::Fault->faultStatus;
 	push (@xml, "<status>$status</status>");
       }
     }
@@ -581,9 +590,11 @@ sub query_fault_form {
 
   my %status = OMP::Fault->faultStatus($cookie{category});
   my @status = map {$status{$_}} sort keys %status;
-  unshift( @status, "any");
+  unshift( @status, "any", "all_open", "all_closed");
   my %statuslabels = map {$status{$_}, $_} %status;
   $statuslabels{any} = 'Any';
+  $statuslabels{all_open} = 'All open';
+  $statuslabels{all_closed} = 'All closed';
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
