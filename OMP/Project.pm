@@ -84,6 +84,7 @@ sub new {
 
 		    # Country and tag priority now
 		    # can have more than one value
+		    PrimaryQueue => undef,
 		    Queue => {},
 
 		    PI => undef,
@@ -362,36 +363,86 @@ of the contents of the country and priority.
   $proj->country( @countries );
   $proj->country( \@countries );
 
-In scalar context returns all the countries associated with this
-project, separated by a '/'. In list context returns all the
-countries separately. The country order is sorted alphabetically.
+In scalar context returns simply the primary queue (for backwards
+compatibility reasons) unless that is not defined (unlikely) in which
+case all the countries are returned as a "/"-separated string. In list
+context returns all the countries separately. The country order is
+sorted alphabetically.
 
 If this is the first country to be stored and a TAG priority
 has been set previously, then that TAG priority is applied to
-all the new countries.
+all the new countries, and the first country is configured as
+the primary queue (unless the primary queue is already defined).
+
+Storing a country that has already been stored does not
+clear the TAG priority.
 
 =cut
 
 sub country {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     # trap array ref
     my @c = ( ref($_[0]) ? @{$_[0]} : @_);
 
     # are we meant to apply a cached tag priority?
     # Yes, if there are no previous countries
     my $tagpri;
-    $tagpri = $self->{$TAGPRI_KEY}
-      unless (keys %{$self->queue});
+    my %queue = $self->queue;
 
-    # Store the queue without a tag priority
+    if (keys %queue) {
+      # go through the existing entries, and remove
+      # any from the list that already exist. We do not
+      # want to clear old tag priorities
+      @c = grep { !exists $queue{uc($_)}  } @c;
+    } else {
+      $tagpri = $self->{$TAGPRI_KEY};
+    }
+
+    # configure primary queue since we know the order
+    if (! keys %queue && ! defined $self->primaryqueue) {
+      $self->primaryqueue( $c[0] );
+    }
+
+    # Store new keys with default or no tag priority
     $self->queue( map { uc($_) => $tagpri } @c );
+
   }
   if (wantarray) {
     return sort keys %{ $self->queue };
   } else {
-    return join( "/", sort keys %{ $self->queue } );
+    # Return the primary country
+    my $country = $self->primaryqueue;
+    return (defined $country ? $country : 
+	    join( "/", sort keys %{ $self->queue } ) );
   }
+}
+
+=item B<primaryqueue>
+
+Return or set the primary observing queue associated with this
+project. This is the queue/country that will be used to associate
+the project progress with a particular country.
+
+Will be set automatically as the first country supplied to the
+C<country()> or C<queue()> method [the latter may give a random result
+if a hash is supplied].
+
+On set, this queue is automatically added to the C<queue> details.
+
+See C<country> in scalar context for an alternative method of obtaining
+this value.
+
+=cut
+
+sub primaryqueue {
+  my $self = shift;
+  if (@_) {
+    my $c = uc(shift);
+    $self->{PrimaryQueue} = $c;
+    $self->country( $c );
+  }
+  return $self->{PrimaryQueue};
 }
 
 =item B<password>
@@ -976,6 +1027,9 @@ or
 
 Other country information is retained. The queue can be cleared with
 the C<clearqueue> command.
+
+The primary queue can not be configured automatically using this
+method since the hash does not have a guaranteed order.
 
 =cut
 

@@ -110,12 +110,13 @@ my %tables = (
 	      # Queue details for each project
 	      ompprojqueue => {
 			       projectid => PROJECTID,
+			       isprimary => "BIT",
 			       uniqid => NUMID,
 			       country => 'VARCHAR(32) NOT NULL',
 			       tagpriority => 'INTEGER',
 			       _ORDER => [qw/
 					  uniqid projectid country
-					  tagpriority
+					  tagpriority isprimary
 					 /],
 			      },
 	      # Time accounting for projects

@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 27;
+use Test::More tests => 35;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -43,7 +43,7 @@ ok($proj, "Instantiate a project object");
 isa_ok( $proj, "OMP::Project");
 
 # and check we can actually specify a country after a tag priority
-my @countries = qw/ UK CA/;
+my @countries = sort qw/ UK CA/;
 $proj->country(\@countries);
 
 # send useful class summary
@@ -56,11 +56,17 @@ is( $proj->projectid, uc($project{projectid}),"Check projectid");
 is($proj->tagpriority('UK'), $project{tagpriority}, "Check UK priority");
 my @pri = $proj->tagpriority;
 is(@pri, @countries, "Check number of priorities matches number of countries");
+is($proj->primaryqueue, $countries[0], "Check primary queue");
 
-is($proj->country, join("/",sort @countries), 
-   "Country list in scalar context");
+
+is($proj->country, $countries[0], "Country list in scalar context");
 is($proj->tagpriority, join(",", map { $project{tagpriority} } @countries),
   "check that we have the right number of priorities in scalar context");
+
+my @outcountries = $proj->country;
+for my $i (0..$#countries) {
+  is( $outcountries[$i], $countries[$i], "Check country $i");
+}
 
 $proj->tagpriority(UK => 4);
 is($proj->tagpriority('UK'), 4, "Check new UK priority");

@@ -728,11 +728,16 @@ sub _insert_project_row {
 			);
 
   # Now insert the queue information
+  # pick a random queue as primary if we do not have one
   my %queue = $proj->queue;
+  my $primary = $proj->primaryqueue;
+  $primary = (values %queue)[0] unless defined $primary;
   for my $c (keys %queue) {
+    my $prim = ($primary eq uc($c) ? 1 : 0);
     $self->_db_insert_data( $PROJQUEUETABLE,
 			    $proj->projectid,
-			    uc($c), $queue{$c}
+			    uc($c), $queue{$c},
+			    $prim
 			  );
   }
 
@@ -901,12 +906,15 @@ sub _get_projects {
     my $qref = $self->_db_retrieve_data_ashash( $sql );
 
     my %queue;
+    my $primary;
     for my $row (@$qref) {
       $queue{uc($row->{country})} = $row->{tagpriority};
+      $primary = uc($row->{country}) if $row->{isprimary};
     }
     # Store new info, but make sure we have cleared the hash first
     $proj->clearqueue;
     $proj->queue(\%queue);
+    $proj->primaryqueue( $primary );
 
     # And store it
     push(@projects, $proj);
