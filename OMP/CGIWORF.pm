@@ -131,6 +131,7 @@ sub thumbnails_page {
 
     # Get the directory.
     my $directory = OMP::Config->getData('reducedgroupdir',
+                                         telescope => $telescope,
                                          instrument => $instrument,
                                          utdate => $ut,
                                         );
@@ -150,7 +151,7 @@ sub thumbnails_page {
                                         telescope => $telescope
                                        );
     my $groupregex = join ',', @grpregex;
-    @grpregex = split '|||', $groupregex;
+    @grpregex = split /\|\|\|/, $groupregex;
     my @matchfiles;
     foreach my $regex ( @grpregex ) {
       my @tmp = grep /$regex/, @files;
@@ -166,8 +167,18 @@ sub thumbnails_page {
     # Create Info::Obs objects for each file.
     FILELOOP: foreach my $file ( @matchfiles ) {
 
-      my $obs = readfile OMP::Info::Obs( $file );
+      if( $file =~ /_0_/ ) { next FILELOOP; }
 
+      my $obs;
+      try {
+        $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
+      }
+      catch OMP::Error with {
+        next FILELOOP;
+      }
+      otherwise {
+        next FILELOOP;
+      };
       # If necessary, let's filter them for project ID.
       if( exists( $qv->{'projid'} ) && defined( $qv->{'projid'} ) &&
           uc( $obs->projectid ) ne uc( $qv->{'projid'} ) ) {
@@ -180,39 +191,43 @@ sub thumbnails_page {
       # Get a list of suffices.
       my @grp_suffices = $worf->suffices( 1 );
 
-      # Write the HTML that will display the thumbnail image along with
-      # a link to the fullsized WORF page for that image.
-      if( $worf->file_exists( suffix => '', group => 1 ) ) {
-        print "<a href=\"worf.pl?ut=$ut&runnr=";
+      # Format the observation start time so WORF can understand it.
+      my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+      $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+
+      # If this file's suffix is either blank or matches one of the
+      # suffices in @grp_suffices, write the HTML that will display
+      # the thumbnail along with a link to the fullsized WORF page
+      # for that observation.
+      if( $file =~ /\d\.sdf$/ ) {
+        print "<a href=\"worf.pl?ut=$obsut&runnr=";
         print $obs->runnr . "&inst=" . $obs->instrument;
         print "&group=1\">";
         print "<img src=\"worf_image.pl?";
         print "runnr=" . $obs->runnr;
-        print "&ut=" . $ut;
+        print "&ut=" . $obsut;
         print "&inst=" . $obs->instrument;
         print "&group=1";
         print "&size=thumb\"></a> ";
         next FILELOOP;
-      }
-
-      foreach my $suffix ( @grp_suffices ) {
-
-        if( $worf->file_exists( suffix => $suffix, group => 1 ) ) {
-          print "<a href=\"worf.pl?ut=$ut&runnr=";
-          print $obs->runnr . "&inst=" . $obs->instrument;
-          print "&suffix=$suffix";
-          print "&group=1\">";
-          print "<img src=\"worf_image.pl?";
-          print "runnr=" . $obs->runnr;
-          print "&ut=" . $ut;
-          print "&inst=" . $obs->instrument;
-          print "&group=1";
-          print "&size=thumb";
-          print "&suffix=$suffix\"></a> ";
-          next FILELOOP;
+      } else {
+        foreach my $suffix ( @grp_suffices ) {
+          if( $file =~ /$suffix\.sdf$/ ) {
+            print "<a href=\"worf.pl?ut=$obsut&runnr=";
+            print $obs->runnr . "&inst=" . $obs->instrument;
+            print "&suffix=$suffix";
+            print "&group=1\">";
+            print "<img src=\"worf_image.pl?";
+            print "runnr=" . $obs->runnr;
+            print "&ut=" . $obsut;
+            print "&inst=" . $obs->instrument;
+            print "&group=1";
+            print "&size=thumb";
+            print "&suffix=$suffix\"></a> ";
+            next FILELOOP;
+          }
         }
       }
-
     }
 
   }
