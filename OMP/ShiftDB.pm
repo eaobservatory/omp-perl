@@ -24,6 +24,10 @@ use strict;
 use OMP::Info::Comment;
 use OMP::Error;
 use OMP::UserDB;
+use OMP::ShiftQuery;
+use OMP::General;
+
+use Data::Dumper;
 
 use base qw/ OMP::BaseDB /;
 
@@ -59,12 +63,12 @@ sub enterShiftLog {
   # author and date as the current one.
 
   # Form a query
-  my $xml = "<ShiftQuery><userid>" . $comment->{author}->userid . "</userid><date>" .
-            $comment->{date} . "</date></ShiftQuery>";
+  my $xml = "<ShiftQuery><author>" . $comment->{Author}->userid . "</author><date>" .
+            $comment->{Date}->strftime("%Y-%m-%dT%H:%M:%S") . "</date></ShiftQuery>";
   my $query = new OMP::ShiftQuery( XML => $xml );
 
   my @result = $self->_fetch_shiftlog_info( $query );
-  my $id = $result->[0]->{shiftid};
+  my $id = $result[0]->{shiftid};
 
   # Lock the database and wrap all this in a transaction
   $self->_db_begin_trans;
@@ -104,7 +108,7 @@ sub getShiftLogs {
 
   my $query_hash = $query->query_hash;
 
-  if(!defined($query_hash->{date}) && !defined($query_hash->{userid})) {
+  if(!defined($query_hash->{date}) && !defined($query_hash->{author})) {
     OMP::Error::FatalError("Must supply one of userid or date");
   }
 
@@ -137,10 +141,10 @@ sub _fetch_shiftlog_info {
   my $query = shift;
 
   # Generate the SQL statement.
-  my $sql = $self->sql( $SHIFTLOGTABLE );
+  my $sql = $query->sql( $SHIFTLOGTABLE );
 
   # Run the query.
-  my $ref = $self->_retrieve_data_ashash( $sql );
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # If they want all the info just return the ref.
   # Otherwise, return the first entry.
@@ -169,23 +173,25 @@ sub _reorganize_shiftlog {
 
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
-  for my $row (%$rows) {
+  for my $row (@$rows) {
 
     # Get the User information as an OMP::User object from the author id
     my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-    $user = $udb->getUser( $row->{author} );
+    my $user = $udb->getUser( $row->{author} );
 
     my $obs = new OMP::Info::Comment(
-                     text => $row->{comment},
-                     date => $row->{date},
-                     status => $row->{status},
+                     text => $row->{text},
+                     date => OMP::General->parse_date( $row->{date} ),
                      author => $user
       );
 
     push @return, $obs;
   }
 
-  return @return;
+  # Sort them by date.
+  my @returnarray = sort {$a->{Date}->epoch <=> $b->{Date}->epoch} @return;
+
+  return @returnarray;
 
 }
 
@@ -202,20 +208,22 @@ sub _insert_shiftlog {
   my $self = shift;
   my $comment = shift;
 
-  if( !defined($comment->{date}) ||
-      !defined($comment->{author}) ) {
+  if( !defined($comment->{Date}) ||
+      !defined($comment->{Author}) ) {
     throw OMP::Error::BadArgs("Must supply date and author properties to store a comment in the shiftlog database.");
   }
 
-  my $t = $comment->{date};
+  my $t = $comment->{Date};
   my $date = $t->strftime("%b %e %Y %T");
+
+  my %text = ( "TEXT" => $comment->{Text},
+               "COLUMN" => "text" );
 
   $self->_db_insert_data( $SHIFTLOGTABLE,
                           $date,
-                          $comment->{author}->userid,
-                          $comment->{text},
+                          $comment->{Author}->userid,
+                          \%text
                         );
-
 }
 
 =item B<_update_shiftlog>
@@ -237,11 +245,11 @@ sub _update_shiftlog {
   }
 
   my %new;
-  $new{'text'} = $comment->{text};
+  $new{'text'} = $comment->{Text};
 
   $self->_db_update_data( $SHIFTLOGTABLE,
                           \%new,
-                          "id = $id"
+                          "shiftid = $id"
                         );
 }
 
