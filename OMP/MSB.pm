@@ -3874,7 +3874,7 @@ sub SpIterFolder {
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # or other iterators
     # we need to go down a level
-    if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|UFTI|FP|Nod|WFCAM)/) {
+    if ($name =~ /^SpIter(Repeat|Offset|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|UFTI|FP|Nod|WFCAM)$/) {
       my %dummy = $self->SpIterFolder($child, PARENT => $name);
 
       # obstype is a special key
