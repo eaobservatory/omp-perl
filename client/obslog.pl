@@ -384,6 +384,8 @@ sub rescan {
 
   my $ut = $utref;
 
+  # This should be calling OMP::Info::ObsGroup directly
+
   # Form the XML.
   my $xml = "<ArcQuery><instrument>$inst</instrument><date delta=\"1\">$ut</date></ArcQuery>";
 
