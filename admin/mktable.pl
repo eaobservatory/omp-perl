@@ -104,7 +104,7 @@ my %tables = (
 			      subject => "char(128) null",
 			      program => "char(50) not null",
 			      sourceinfo => "char(60) not null",
-			      status => "bit not null",
+			      status => "integer null",
 			      text => "text not null",
 			      _ORDER => [qw/
 					 commid projectid author date subject
