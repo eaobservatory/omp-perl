@@ -373,11 +373,14 @@ not supplied since it is not known, from the date of the first
 response (ie the filing)) and that after the decimal point is a 3
 digit number referring to the number of faults filed on that date.
 
+The fault ID is converted to a string and padded with a trailing zero
+if warranted (since the fault id 20020105.01 will not have the right amount of padding.
+
 =cut
 
 sub id {
   my $self = shift;
-  if (@_) { $self->{FaultID} = shift; }
+  if (@_) { $self->{FaultID} = sprintf("%12.3f", shift); }
   return $self->{FaultID};
 }
 
