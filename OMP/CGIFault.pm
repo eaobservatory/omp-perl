@@ -112,7 +112,7 @@ sub file_fault {
 			-default=>'0',
 			-size=>'4',
 			-maxlength=>'10',);
-    print "</td><tr><td align=right><b>Time of fault:</td><td>";
+    print "</td><tr><td align=right valign=top><b>Time of fault:</td><td>";
     print $q->textfield(-name=>'time',
 			-size=>20,
 			-maxlength=>128,);
@@ -120,6 +120,7 @@ sub file_fault {
     print $q->radio_group(-name=>'tz',
 			  -values=>['UT','HST'],
 			  -default=>'UT',);
+    # print "</b><br><font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font><b>";
   }
 
   print "</b>";
@@ -204,15 +205,38 @@ sub file_fault_output {
   }
 
   # If the time of fault was provided use it otherwise
-  # default to the current time
+  # do nothing
   my $t;
   if ($q->param('time')) {
-    my $format = "%Y-%m-%dT%T";
-    my $faultdate = UnixDate($q->param("time"),$format);
-    $t = Time::Piece->strptime($faultdate,$format);
+    my $format = "%Y-%m-%dT%H:%M";
+    my $time = $q->param('time');
 
-    # Convert time to UT if it was given as HST
-    ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+    if ($time =~ /^(\d\d*?)\W*(\d{2})$/) {
+      # Just the time (something like HH:MM)
+      my $hh = $1;
+      my $mm = $2;
+      if ($q->param('tz') =~ /HST/) {
+	# Time is local
+	my $date = localtime;
+	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
+
+	# Convert to UT
+	$t -= $t->tzoffset;
+      } else {
+
+	# Time is already UT
+	my $date = gmtime;
+	$t = Time::Piece->strptime($date->ymd . "T$hh:$mm", $format);
+      }
+
+    } else {
+      # It is the entire date
+      my $date = UnixDate($time,$format);
+      $t = Time::Piece->strptime($date,$format);
+
+      # Convert time to UT if it was given as HST
+      ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+    }
 
     # Subtract a day if date is in the future.
     my $gmtime = gmtime;
@@ -286,16 +310,17 @@ sub fault_table {
   my $urgencyhtml;
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
+  my $status = $fault->statusText;
   my $statushtml = ($fault->isOpen ?
-		    "<b><font color=#008b24>Open</font></b>" :
-		    "<b><font color=#a00c0c>Closed</font></b>");
+		    "<b><font color=#a00c0c>$status</font></b>" :
+		    "<b><font color=#008b24>$status</font></b>");
 
   # First show the fault info
   print "<div class='black'>";
   print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b>Report by: </b>" . $fault->author->html . "</td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
-  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->filedate . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>$statushtml</td>";
 
@@ -425,8 +450,8 @@ sub query_fault_output {
       push (@xml, "<type>$type</type>");
     }
 
-    if ($q->param('author') !~ /any/) {
-      my $author = $q->param('author');
+    if ($q->param('author')) {
+      my $author = uc($q->param('author'));
       push (@xml, "<author>$author</author>");
     }
 
@@ -547,15 +572,6 @@ sub query_fault_form {
   ($script =~ /report/) and $word = "reports"
     or $word = "faults";
 
-  # User drop-down menu values and labels
-  my $userquery = "<UserQuery></UserQuery>";
-  my $users = OMP::UserServer->queryUsers($userquery, "object");
-  my @users = map {$_->userid} @$users;
-  my @uvalues = sort(@users);
-  unshift(@uvalues, "any");
-  my %ulabels = map {$_->userid, $_->name} @$users;
-  $ulabels{any} = 'Any';
-
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = values %$systems;
   unshift( @systems, "any" );
@@ -585,11 +601,10 @@ sub query_fault_form {
 		       -values=>\@types,
 		       -labels=>\%typelabels,
 		       -default=>'any',);
-  print "</td><tr><td><b>User </b>";
-  print $q->popup_menu(-name=>'author',
-		       -values=>\@uvalues,
-		       -labels=>\%ulabels,
-		       -default=>'any');
+  print "</td><tr><td><b>User ID </b>";
+  print $q->textfield(-name=>'author',
+		      -size=>22,
+		      -maxlength=>50,);
   print "</td><tr><td><b>";
   print $q->radio_group(-name=>'search',
 		        -values=>['response','file','activity'],
@@ -659,8 +674,7 @@ sub view_fault_content {
 
     titlebar($q, ["View Fault: $faultid", $fault->subject], %cookie);
     fault_table($q, $fault);
-    close_fault_form($q, $faultid)
-      if ($fault->isOpen);
+    change_status_form($q, $faultid);
 
     print "<p><b><font size=+1>Respond to this fault</font></b>";
     response_form($q, $fault->id, %cookie);
@@ -699,13 +713,22 @@ sub view_fault_output {
       my $E = shift;
       $title = "An error has prevented your response from being filed: $E";
     };
-  } elsif ($q->param('close')) {
+  } elsif ($q->param('change_status')) {
     try {
-      OMP::FaultServer->closeFault($faultid);
-      $title = "Fault $faultid has been closed";
+      # Right now we'll just do an update by resubmitting the fault
+      # with the new status parameter.  But in principal we should
+      # have a method for doing an explicit status update.
+
+      # Change the status parameter
+      $fault->status($q->param('status'));
+
+      # Resubmit the fault
+      OMP::FaultServer->updateFault($fault);
+
+      $title = "Status for fault $faultid has been updated.";
     } otherwise {
       my $E = shift;
-      $title = "An error has prevented the fault from being closed: $E";
+      $title = "An error has prevented the fault status from being updated: $E";
     };
   }
 
@@ -714,8 +737,7 @@ sub view_fault_output {
   titlebar($q, ["View Fault ID: $faultid", $title], %cookie);
 
   fault_table($q, $fault);
-  close_fault_form($q, $faultid)
-    if ($fault->isOpen);
+  change_status_form($q, $faultid);
 }
 
 =item B<close_fault_form>
@@ -739,6 +761,38 @@ sub close_fault_form {
 		   -label=>'Close Fault',);
   print $q->endform;
   print "</td></table>";
+}
+
+=item B<change_status_form>
+
+Provide a form for changing the status of a fault.
+
+  change_status_form($cgi, $faultid);
+
+=cut
+
+sub change_status_form {
+  my $q = shift;
+  my $faultid = shift;
+
+  # Get available statuses
+  my %status = OMP::Fault->faultStatus();
+  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
+
+  print "<table border=0 width=$TABLEWIDTH bgcolor=#6161aa>";
+  print "<tr><td align=right>";
+  print $q->startform;
+  print $q->hidden(-name=>'show_output', -default=>'true');
+  print $q->hidden(-name=>'faultid', -default=>$faultid);
+  print $q->popup_menu(-name=>'status',
+		       -values=>[values %status],
+		       -labels=>\%labels,);
+  print " ";
+  print $q->submit(-name=>'change_status',
+		   -label=>'Change status',);
+  print $q->endform;
+  print "</td></table>";
+  
 }
 
 =item B<response_form>
@@ -786,20 +840,39 @@ sub update_fault_content {
   my $faultid = $q->url_param('id');
   my %cookie = @_;
 
-  # Get the fault
-  my $fault = OMP::FaultServer->getFault($faultid);
+  # Try to get the fault ID from the URL first.
+  # If we didn't get it, try and get it from our form
+  (! $faultid) and $faultid = $q->param('id');
 
-  # Form for taking new details.  Displays current values.
-  print $q->h2("Update fault details: $faultid");
-  print "<table><tr><td><b>Time lost (". $fault->timelost ."):</b> </td><td>";
-  print $q->startform;
-  print $q->hidden(-name=>'show_output', -default=>['true']);
-  print $q->hidden(-name=>'faultid', -default=>$faultid);
-  print $q->textfield(-name=>'timelost',
-		      -size=>4,
-		      -maxlength=>8);
-  print $q->endform;
-  print "</td></table>";
+  # Still didn't get the fault ID so put this form up
+  if (!$faultid) {
+    print $q->h2("Update a fault");
+    print "<table border=0><tr><td>";
+    print $q->startform;
+    print "<b>Enter a fault ID: </b></td><td>";
+    print $q->textfield(-name=>'id',
+		        -size=>15,
+		        -maxlength=>32);
+    print "</td><tr><td colspan=2 align=right>";
+    print $q->submit(-name=>'Submit');
+    print $q->endform;
+    print "</td></table>";
+  } else {
+    # Get the fault
+    my $fault = OMP::FaultServer->getFault($faultid);
+
+    # Form for taking new details.  Displays current values.
+    print $q->h2("Update fault details: $faultid");
+    print "<table><tr><td><b>Time lost (". $fault->timelost ."):</b> </td><td>";
+    print $q->startform;
+    print $q->hidden(-name=>'show_output', -default=>['true']);
+    print $q->hidden(-name=>'faultid', -default=>$faultid);
+    print $q->textfield(-name=>'timelost',
+			-size=>4,
+			-maxlength=>8);
+    print $q->endform;
+    print "</td></table>";
+  }
 }
 
 =item B<update_fault_output>
@@ -881,8 +954,8 @@ sub show_faults {
     my $subject = $fault->subject;
     (!$subject) and $subject = "[no subject]";
 
-    my $status = ($fault->isOpen ? "Open" : "Closed");
-    ($fault->isNew and $status eq "Open") and $status = "New";
+    my $status = $fault->statusText;
+    ($fault->isNew and $fault->isOpen) and $status = "New";
 
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
     print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b></td>";
