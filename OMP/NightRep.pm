@@ -775,12 +775,7 @@ sub ashtml {
     # details instead
     my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
 
-     # Sort by semester and country for SERV projects
-     if ($details->semester =~ /^SERV$/ and $details->country !~ /^SERV$/) {
-       $acct_by_country{$details->country . $details->semester}{$proj} = $acct{$proj};
-     } else {
-       $acct_by_country{$details->country}{$proj} = $acct{$proj};
-     }
+     $acct_by_country{$details->country}{$proj} = $acct{$proj};
 
 #    push(@{$acct_by_country{$details->country}}, {$acct{$proj});
   }
