@@ -82,8 +82,8 @@ for my $proj (keys %alloc) {
   my ($taumin, $taumax) = (0,undef);
   if (exists $details{taurange}) {
     ($taumin, $taumax) = split(/,/, $details{taurange});
-  } else {
-    # Get the tau range from the weather bands
+  } elsif (exists $details{band}) {
+    # Get the tau range from the weather bands if it exists
     my @bands = split( /,/, $details{band});
     my $taurange = OMP::General->get_band_range($details{telescope}, @bands);
     die "Error determining tau range from band $details{band}"
