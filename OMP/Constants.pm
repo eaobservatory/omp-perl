@@ -31,13 +31,15 @@ my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT /;
+my @msb = qw/ OMP__MSB_REMOVED /;
 
-@EXPORT_OK = (@status, @fb, @done);
+@EXPORT_OK = (@status, @fb, @done, @msb);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
 		'status'=>\@status,
 		'fb' =>\@fb,
+		'msb' => \@msb,
 		'done'=> \@done,
 	       );
 
@@ -169,6 +171,20 @@ use constant OMP__DONE_COMMENT => 3;
 
 =back
 
+=head2 MSBs
+
+=over 4
+
+=item OMP__MSB_REMOVED
+
+The MSB has been removed from consideration.
+
+=cut
+
+use constant OMP__MSB_REMOVED => -999;
+
+=back
+
 =head1 TAGS
 
 Individual sets of constants can be imported by 
@@ -197,6 +213,10 @@ Constants associated with the feedback system.
 =item :done
 
 Constants associated with the MSB done table.
+
+=item :msb
+
+Constants associated with MSBs.
 
 =back
 
