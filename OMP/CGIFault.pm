@@ -546,19 +546,19 @@ sub query_fault_form {
     or $word = "faults";
 
   my $systems = OMP::Fault->faultSystems($cookie{category});
-  my @systems = values %$systems;
+  my @systems = map {$systems->{$_}} sort keys %$systems;
   unshift( @systems, "any" );
   my %syslabels = map {$systems->{$_}, $_} %$systems;
   $syslabels{any} = 'Any';
 
   my $types = OMP::Fault->faultTypes($cookie{category});
-  my @types = values %$types;
+  my @types = map {$types->{$_}} sort keys %$types;
   unshift( @types, "any");
   my %typelabels = map {$types->{$_}, $_} %$types;
   $typelabels{any} = 'Any';
 
   my %status = OMP::Fault->faultStatus($cookie{category});
-  my @status = values %status;
+  my @status = map {$status{$_}} sort keys %status;
   unshift( @status, "any");
   my %statuslabels = map {$status{$_}, $_} %status;
   $statuslabels{any} = 'Any';
