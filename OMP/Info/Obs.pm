@@ -137,7 +137,9 @@ sub readfile {
     open(STDOUT, ">&SAVEOUT");
 
     my $Error = shift;
-    throw Error($Error);
+
+    OMP::General->log_message( "OMP::Error in OMP::Info::Obs::readfile:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+
   };
   return $obs;
 }
