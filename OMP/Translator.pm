@@ -931,7 +931,7 @@ sub getGain {
 
   my $target = $info{target};
   my $gain;
-  if (defined $target && $target =~ /^(MARS|SATURN|JUPITER|MOON)$/i) {
+  if (defined $target && $target =~ /^(MARS|SATURN|JUPITER|MOON|VENUS)$/i) {
     $gain = 1;
   } else {
     $gain = 10;
