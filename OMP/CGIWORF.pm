@@ -249,6 +249,7 @@ sub thumbnails_page {
     FILELOOP: foreach my $file ( @matchfiles ) {
 
       if( $file =~ /_0_/ ) { next FILELOOP; }
+
       my $obs;
       try {
         $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
@@ -256,13 +257,13 @@ sub thumbnails_page {
       catch OMP::Error with {
         my $Error = shift;
         my $errortext = $Error->{'-text'};
-        print STDERR "Unable to read file to form Obs object: $errortext\n";
+        OMP::General->log_message("Unable to read file to form Obs object: $errortext\n");
         next FILELOOP;
       }
       otherwise {
         my $Error = shift;
         my $errortext = $Error->{'-text'};
-        print STDERR "Unable to read file to form Obs object: $errortext\n";
+        OMP::General->log_message("Unable to read file to form Obs object: $errortext\n");
         next FILELOOP;
       };
 
@@ -272,6 +273,8 @@ sub thumbnails_page {
           ! $obs->isScience ) {
         next FILELOOP;
       }
+
+      next FILELOOP if ! defined $obs;
 
       # Create a WORF object.
       my $worf;
