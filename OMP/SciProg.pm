@@ -370,18 +370,20 @@ sub summary {
     my @lines;
 
     push(@lines,"<TABLE border='0'>");
-    push(@lines, "<tr><td>Project ID</td><td><b>$proj</b></td></tr>");
+    push(@lines, "<tr><td>Project ID:</td><td><b>".uc($proj)."</b></td></tr>");
 
     # Submission time
-    push(@lines, "<tr><td>Time Submitted</td><td><b>$utc</b></td></tr>");
+    push(@lines, "<tr><td>Time Submitted:</td><td><b>$utc</b></td></tr>");
 
     # MSB Count
-    push(@lines, "<tr><td>Number of MSBs</td><td><b>".scalar(@msbs)."<b></td></tr>");
-    push(@lines, "<tr><td>Active MSBs</td><td><b>$active</b></td></tr>");
+    push(@lines, "<tr><td>Number of MSBs:</td><td><b>".scalar(@msbs)."<b></td></tr>");
+    push(@lines, "<tr><td>Active MSBs:</td><td><b>$active</b></td></tr>");
     push(@lines, "</TABLE>");
 
     # Now process each MSB - This is a clone of "ascii"
     # Must be a better way
+    # Must also be a method of OMP::MSB rather than being
+    # used directly
     my $count;
     for my $msb (@msbs) {
       $count++;
@@ -394,14 +396,14 @@ sub summary {
       } else {
 	$status = "$data{remaining} remaining to be observed";
       }
-      push(@lines, "<br>MSB $count: <b>$status</b><br>");
+      push(@lines, "<h3>MSB $count: $data{title} (<em>$status</em>)</h3>");
 
       push(@lines, "<TABLE border='0'>");
-      push(@lines, "<tr><td>Title</td><td>$data{title}</td></tr>");
-      push(@lines, "<tr><td>Duration</td><td>$data{timeest} sec</td></tr>");
-      push(@lines, "<tr><td>Priority</td><td>$data{priority}</td></tr>");
-      push(@lines, "<tr><td>Seeing</td><td>$data{seeing}</td></tr>");
-      push(@lines, "<tr><td>Tau</td><td>$data{tau}</td></tr>");
+      push(@lines, "<tr><td>Duration:</td><td><b>$data{timeest} sec</b></td>");
+      push(@lines, "<td>Priority:</td><td><b>$data{priority}</b></td></tr>");
+      push(@lines, "<tr><td>Seeing:</td><td><b>$data{seeing}</b></td>");
+      push(@lines, "<td>Tau:</td><td><b>$data{tau}</b></td></tr>");
+      push(@lines, "</TABLE>");
 
       push(@lines,"<TABLE  border='1'>");
       push(@lines,"<TR bgcolor='#7979aa'>");
@@ -418,9 +420,18 @@ sub summary {
 	     } qw/ instrument target coords waveband/);
       }
 
+      push(@lines, "</TABLE>");
 
 
     }
+
+    # Return a list or a string
+    if (wantarray) {
+      return @lines;
+    } else {
+      return join("\n", @lines) . "\n";
+    }
+
 
 
   } elsif ($mode eq 'ascii') {
@@ -441,6 +452,8 @@ sub summary {
 
     # Now process each MSB
     # We probably should put this in the OMP::MSB::summary method
+    # but there is no obvious way of passing options to that
+    # method.
     my $count;
     for my $msb (@msbs) {
       $count++;
