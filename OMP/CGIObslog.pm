@@ -540,6 +540,9 @@ sub obs_comment_form {
   print $q->textarea( -name => 'text',
                       -rows => 20,
                       -columns => 78,
+                      -default => ( defined( $comments ) && defined( $comments->[0] ) ?
+                                    $comments->[0]->text :
+                                    "" ),
                     );
 
   my $ut = $obs->startobs->ymd;
