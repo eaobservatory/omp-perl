@@ -644,8 +644,18 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   my @msg;
   my @addr;
 
+  # Our address list will start with the fault category's mailing list
+  # COMMENTED OUT DURING TESTING
+  # In order to get this partially working I have deleted the mailing lists
+  # in OMP::Fault except for the OMP mailing list - TJ
+  # add test here for undef mail_list
+  my $fault_list = $fault->mail_list;
+  unshift(@addr, $fault_list)
+    if defined $fault_list;
+
   # Use the address of the user that filed the latest response for the 'From:'
-  my $from = $responses[-1]->author->email;
+  my $from = $responses[-1]->author->email
+    unless (! $responses[-1]->author->email);
 
   # Create the message
   # We format the message using HTML since the _mail_information method will
@@ -672,8 +682,9 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       # Now turn fault IDs into links
       $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$public_url/viewfault.pl?id=$1'>$1</a>!g;
 
-      # Store the author's email address
-      $authors{$user->userid} = $_->author->email;
+      # Store the author's email address (if not undef)
+      $authors{$user->userid} = $_->author->email
+	unless (! $_->author->email);
 
       # Once we get to the bottom (the initial report) add in the fault meta info
       if ($_->isfault) {
@@ -686,10 +697,10 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
        }
     }
 
-    # Add the addresses of the response authors to our address list
+    # Add the addresses of the response authors (if not undef) to our address list
     # so we can mail them this response, provided they aren't the author
-    # of this response.
-    @addr = map {$authors{$_}} 
+    # of the latest response.
+    @addr = map {$authors{$_}}
       grep {$authors{$_} ne $responses[-1]->author->email} keys %authors;
 
   } else {
@@ -724,21 +735,13 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   # Add the response link to the bottom of our message
   push(@msg, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
 
-  # Our address list will start with the fault category's mailing list
-  # COMMENTED OUT DURING TESTING
-  # In order to get this partially working I have deleted the mailing lists
-  # in OMP::Fault except for the OMP mailing list - TJ
-  # add test here for undef mail_list
-  my $fault_list = $fault->mail_list;
-  unshift(@addr, $fault_list)
-    if defined $fault_list;
-
-#  if (! $addr[0]) {
-#    # There's no one to send this thing to so let's just return
-#    return;
-#  }
-
-  push(@addr, $from);
+  # Make the message from the mail list if the author has no email address
+  # Also add the latest response author to the 'To:' list
+  if ($from) {
+    push(@addr, $from);
+  } else {
+    $from = $fault_list;
+  }
 
   # Mail it off
   $self->_mail_information(message => join('',@msg),
