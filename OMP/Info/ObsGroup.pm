@@ -268,12 +268,7 @@ sub populate {
   # If we have a project ID but no telescope we must determine
   # the telescope from the database
   if (exists $args{projectid} && !exists $args{telescope}) {
-    # KLUGE need to know the password for this. Should we really
-    # ask or can we assume it is okay?????
-    my $proj = OMP::ProjServer->projectDetails($args{projectid},
-					       '***REMOVED***',
-					       'object');
-    $args{telescope} = $proj->telescope;
+    $args{telescope} = OMP::ProjServer->getTelescope( $args{projectid});
   }
 
   # KLUGE JCMT and SCUBA
