@@ -470,7 +470,7 @@ sub _add_new_response {
   my $udb = new OMP::UserDB( DB => $self->db );
   my $userid = $udb->verifyUser($author->userid);
   
-    (! $userid) and throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]");
+  throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]") unless ($userid);
 
   
   # Format the date in a way that sybase understands
