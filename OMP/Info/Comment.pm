@@ -32,7 +32,7 @@ use strict;
 use Carp;
 
 use OMP::Error;
-use Time::Piece;
+use Time::Piece qw/ :override /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -148,7 +148,8 @@ sub date {
   }
 
   if( ! defined( $self->_date ) ) {
-    $self->_date( gmtime() );
+    my $new = gmtime();
+    $self->_date( $new );
   }
 
   return $self->_date;
