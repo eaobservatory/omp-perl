@@ -36,7 +36,9 @@ my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
 my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
                   OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
-                  OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT /;
+                  OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
+                  OMP__TIMEGAP_NOT_DRIVER OMP__TIMEGAP_SCHEDULED
+                  OMP__TIMEGAP_QUEUE_OVERHEAD OMP__TIMEGAP_LOGISTICS /;
 
 @EXPORT_OK = (@status, @fb, @done, @msb, @obs, @timegap);
 
@@ -315,6 +317,40 @@ belongs.
 =cut
 
 use constant OMP__TIMEGAP_PREV_PROJECT => 15;
+
+=item OMP__TIMEGAP_NOT_DRIVER
+
+Flags a timegap as being caused by the observer not being
+able to drive.
+
+=cut
+
+use constant OMP__TIMEGAP_NOT_DRIVER => 16;
+
+=item OMP__TIMEGAP_SCHEDULED
+
+Flags a timegap as being for scheduled downtime.
+
+=cut
+
+use constant OMP__TIMEGAP_SCHEDULED => 17;
+
+=item OMP__TIMEGAP_QUEUE_OVERHEAD
+
+Flags a timegap as being caused by queue overhead.
+
+=cut
+
+use constant OMP__TIMEGAP_QUEUE_OVERHEAD => 18;
+
+=item OMP__TIMEGAP_LOGISTICS
+
+Flags a timegap as being caused by telescope logistics (car shuffling,
+TSS movement, etc.)
+
+=cut
+
+use constant OMP__TIMEGAP_LOGISTICS => 19;
 
 =item OMP__TIMEGAP_UNKNOWN
 
