@@ -113,11 +113,16 @@ for my $proj (keys %alloc) {
   # Copy the data from the file and merge with the defaults
   my %details = ( %defaults, %{ $alloc{$proj} });
 
+  # Upper case country for lookup table
+  $details{country} = uc($details{country});
+
   # Deal with support issues
   # but do not overrride one if it is already set
   if (!defined $details{support}) {
     if (exists $support{$details{country}}) {
       $details{support} = $support{$details{country}};
+    } else {
+      die "Can not find support for country $details{country}\n";
     }
   }
 
