@@ -96,6 +96,7 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               velocity => '$',
                               systemvelocity => '$',
                               nexp => '$',
+                              filename => '$',
                             );
 #'
 
@@ -120,6 +121,8 @@ Scalar accessors:
 =item B<disperser>
 
 =item B<type>
+
+=item B<filename>
 
 [Imaging or Spectroscopy]
 
