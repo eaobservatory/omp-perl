@@ -847,7 +847,7 @@ sub msb_hist_content {
 	"Show: ",
 	$q->popup_menu(-name=>'show',
 		       -values=>[qw/all observed current/],
-		       -default=>'current',
+		       -default=>'all',
 		       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
         $q->submit("Refresh"),
@@ -902,9 +902,9 @@ sub msb_comments {
   my $sp = shift;
 
   my @output;
-  if ($q->query_param('show') =~ /observed/) {
+  if ($q->param('show') =~ /observed/) {
     @output = grep {$_->comments->[0]->status != OMP__DONE_FETCH} @$commentref;
-  } elsif ($q->query_param('show') =~ /current/) {
+  } elsif ($q->param('show') =~ /current/) {
     @output = grep {$sp->existsMSB($_->checksum)} @$commentref;
   } else {
     @output = @$commentref;
