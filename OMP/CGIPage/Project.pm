@@ -298,10 +298,10 @@ sub list_projects_output {
 	OMP::CGIComponent::Project::proj_status_table($q, %details);
 	
 	print $q->h3('MSBs observed');
-	OMP::CGIComponent::Feedback::fb_msb_observed($q, $project->projectid);
+	OMP::CGIComponent::MSB::fb_msb_observed($q, $project->projectid);
 	
 	print $q->h3('MSBs to be observed');
-	OMP::CGIComponent::Feedback::fb_msb_active($q,$project->projectid);	
+	OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid);	
       }
 
     }
