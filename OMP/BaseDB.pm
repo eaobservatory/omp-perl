@@ -189,7 +189,7 @@ sub _dbhandle {
     } elsif (!defined $db) {
       $self->{DB} = undef;
     } else {
-      throw OMP::Error::FatalError("Attempt to set database handle in OMP::MSBDB using incorrect class");
+      throw OMP::Error::FatalError("Attempt to set database handle in OMP::*DB using incorrect class");
     }
   }
   my $db = $self->{DB};
@@ -198,6 +198,23 @@ sub _dbhandle {
   } else {
     return undef;
   }
+}
+
+
+=item B<db>
+
+Retrieve the database connection (as an C<OMP::DBbackend> object)
+associated with this object.
+
+  $dbobj = $db->db();
+  $db->db( new OMP::DBbackend );
+
+=cut
+
+sub db {
+  my $self = shift;
+  if (@_) { $self->_dbhandle( shift ); }
+  return $self->{DB};
 }
 
 =back
