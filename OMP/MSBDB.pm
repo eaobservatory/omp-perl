@@ -1065,23 +1065,27 @@ sub _run_query {
       for my $obs ( @{ $msb->{obs} } ) {
 
 	# Create the coordinate object in order to calculate
-	# observability
-	# Let Astro::Coords work out what we mean by all this :-)
-	$obs->{coords} = new Astro::Coords(ra => $obs->{ra2000},
-					   dec => $obs->{dec2000},
-					   type => 'J2000',
-					   planet => $obs->{target},
-					   elements => {
-							EPOCH => $obs->{el1},
-							ORBINC => $obs->{el2},
-							ANODE => $obs->{el3},
-							PERIH => $obs->{el4},
-							AORQ => $obs->{el5},
-							E => $obs->{el6},
-							AORL => $obs->{el7},
-							DM => $obs->{el8},
-						       },
-					  );
+	# observability. Special case calibrations since they
+	# are difficuly to spot from looking at the standard args
+	if ($obs->{coordstype} eq 'CAL') {
+	  $obs->{coords} = new Astro::Coords();
+	} else {
+	  $obs->{coords} = new Astro::Coords(ra => $obs->{ra2000},
+					     dec => $obs->{dec2000},
+					     type => 'J2000',
+					     planet => $obs->{target},
+					     elements => {
+							  EPOCH => $obs->{el1},
+							  ORBINC => $obs->{el2},
+							  ANODE => $obs->{el3},
+							  PERIH => $obs->{el4},
+							  AORQ => $obs->{el5},
+							  E => $obs->{el6},
+							  AORL => $obs->{el7},
+							  DM => $obs->{el8},
+							 },
+					    );
+	}
 
 	# Get the coordinate object.
 	my $coords = $obs->{coords};
@@ -1092,13 +1096,18 @@ sub _run_query {
 	# Set the time
 	$coords->datetime( $date );
 
+	print "\n". $coords->status ."\n";
+
+	# -w fix
+	$obs->{minel} = 0 unless defined $obs->{minel};
+
 	# Now see if we are observable (dropping out the loop if not
 	# since there is no point checking further)
 	# This knows about different telescopes automatically
 	# Also check that we are above the minimum elevation
 	# (which is not related to the queries but is a scheduling constraint)
 	if  ( ! $coords->isObservable or
-	      $coords->elevation < $obs->{minel}) {
+	      $coords->el < $obs->{minel}) {
 	  $isObservable = 0;
 	  last;
 	}
@@ -1107,14 +1116,14 @@ sub _run_query {
 	# time for the next time round the loop and to see if this 
 	# observation has set since we started it
 	$date += $obs->{timeest}; # check that this is in seconds
-	
+
 	# Now change the date and check again
 	$coords->datetime( $date );
 
 	# Repeat the check for observability. Note that this will not
 	# deal with the case at JCMT where we transit above 87 degrees
 	if  ( ! $coords->isObservable or
-	      $coords->elevation < $obs->{minel}) {
+	      $coords->el < $obs->{minel}) {
 	  $isObservable = 0;
 	  last;
 	}
