@@ -187,6 +187,35 @@ sub confirmed {
 
 =back
 
+=head2 General Methods
+
+=over 4
+
+=item B<incTime>
+
+Increment the time spent by the specified amount.
+
+  $t->incTime( 55.0 );
+
+Units are in seconds. The time can be specified as either
+a straight number or as a Time::Seconds object.
+
+=cut
+
+sub incTime {
+  my $self = shift;
+  my $inc = shift;
+  my $cur = $self->time_spent;
+  $cur = 0 unless defined $cur;
+  $cur += $inc;
+  $self->time_spent( $cur );
+  return;
+}
+
+
+
+=back
+
 =head1 COPYRIGHT
 
 Copyright (C) 2002 Particle Physics and Astronomy Research
