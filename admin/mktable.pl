@@ -12,9 +12,9 @@ my $dbuser = "sa";
 my $dbpwd  = "";
 my $database = "archive";
 
+
 #$server = "SYB_OMP";
 #$database = "omp";
-#$server = "SYB_TMP";
 
 my $dbh = DBI->connect("dbi:Sybase:server=${server};database=${database};timeout=120", $dbuser, $dbpwd,{RaiseError => 0, PrintError => 0})
   or die "Cannot connect: ". $DBI::errstr;
@@ -46,12 +46,12 @@ my %tables = (
 				    /],
 		       },
 	      ompcoiuser => {
-			     userid => "VARCHAR(20)",
+			     userid => "VARCHAR(20) NULL",
 			     projectid => "VARCHAR(32)",
 			     _ORDER => [ qw/ projectid userid /],
 			    },
 	      ompsupuser => {
-			     userid => "VARCHAR(20)",
+			     userid => "VARCHAR(20) NULL",
 			     projectid => "VARCHAR(32)",
 			     _ORDER => [ qw/ projectid userid /],
 			    },
@@ -187,7 +187,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompfaultbody';
   next if $table eq 'ompuser';
   next if $table eq 'ompsupuser';
-  next if $table eq 'ompcouser';
+  next if $table eq 'ompcoiuser';
 
 
   my $str = join(", ", map {
