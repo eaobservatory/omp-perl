@@ -151,6 +151,52 @@ sub today {
 
 =back
 
+=head2 Strings
+
+=over 4
+
+=item B<prepare_for_insert>
+
+Convert a text string into one that is ready to be stored in
+the database.
+
+  $insertstring = OMP::General->prepare_for_insert( $string );
+
+This method converts the string as follows:
+
+=over 4
+
+=item *
+
+Converts a single quote into the HTML entity &apos;
+
+=item *
+
+Converts a carriage return into <lt>br<gt>.
+
+=item *
+
+Strips all ^M characters.
+
+=back
+
+The returned string is then ready to be inserted into the database.
+
+=cut
+
+sub prepare_for_insert {
+  my $class = shift;
+  my $string = shift;
+
+  $string =~ s/\'/\&apos;/g;
+  $string =~ s/\015//g;
+  $string =~ s/\n/<br>/g;
+
+  return $string;
+}
+
+=back
+
 =head2 Hosts
 
 =over 4
