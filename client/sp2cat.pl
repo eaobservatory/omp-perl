@@ -34,6 +34,10 @@ The following options are supported:
 
 =over 4
 
+=item B<-version>
+
+Report the version number.
+
 =item B<-help>
 
 A help message.
@@ -59,13 +63,21 @@ use lib "$FindBin::RealBin/..";
 use OMP::SciProg;
 
 # Options
-my ($help, $man);
+my ($help, $man, $version);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
+			"version" => \$version,
                        );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+if ($version) {
+  my $id = '$Id$ ';
+  print "sp2cat - science program source extractor\n";
+  print " CVS revision: $id\n";
+  exit;
+}
 
 # Get the filename [should probably also check stdin]
 my $filename = shift(@ARGV);
@@ -94,6 +106,15 @@ my $cat = new SrcCatalog::JCMT( \@coords );
 $cat->writeCatalog( \*STDOUT );
 
 =back
+
+=head1 DEPENDENCIES
+
+Requires the availability of the OMP infrastructure modules
+(specifically L<OMP::SciProg|OMP::SciProg> which depends on the CPAN
+module L<XML::LibXML|XML::LibXML> which requires a modern version of
+the C<libxml2> library from C<www.xmlsoft.org>) as well as the
+C<SrcCatalog::JCMT> module (which depends on the CPAN modules
+L<Astro::SLA|Astro::SLA> and L<Astro::Coords|Astro::Coords>).
 
 =head1 AUTHOR
 
