@@ -31,6 +31,7 @@ use Carp;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :obs /;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Info::Comment;
 use OMP::ObsQuery;
 use Time::Piece;
@@ -108,10 +109,17 @@ sub addComment {
   # Make sure we can uniquely identify the observation. This is done by
   # looking for an instrument, a run number, and a UT date in the Obs
   # object.
-  throw OMP::Error::BadArgs("Unable to uniquely identify observation")
-    unless ( defined $obs->instrument and
-             defined $obs->runnr and
-             defined $obs->startobs );
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    throw OMP::Error::BadArgs("Unable to uniquely identify observation")
+      unless ( defined $obs->instrument and
+               defined $obs->runnr and
+               defined $obs->endobs );
+  } else {
+    throw OMP::Error::BadArgs("Unable to uniquely identify observation")
+      unless ( defined $obs->instrument and
+               defined $obs->runnr and
+               defined $obs->startobs );
+  }
 
   # Grab or verify the user id if it's given.
   my $userobj;
@@ -143,9 +151,6 @@ sub addComment {
 
   # Set old observations in the archive to "inactive".
   $self->_set_inactive( $obs, $comment->author->userid );
-
-  # Add the new comment to the current observation.
-#  $obs->comments->[scalar($obs->comments)] = $comment;
 
   # Write the observation to database.
   $self->_store_comment( $obs, $comment );
@@ -191,13 +196,23 @@ sub getComment {
   my $obs = shift;
   my $allcomments = shift;
 
-  if( !defined($obs->instrument) ||
-      !defined($obs->runnr) ||
-      !defined($obs->startobs) ) {
-    throw OMP::Error::BadArgs("Must supply an Info::Obs object with defined instrument, run number, and date");
-  }
+  my $t;
 
-  my $startobs = $obs->startobs;
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    if( !defined($obs->instrument) ||
+        !defined($obs->runnr) ||
+        !defined($obs->endobs) ) {
+      throw OMP::Error::BadArgs("Must supply an Info::Obs::TimeGap object with defined instrument, run number, and date");
+    }
+    $t = $obs->endobs - 1;
+  } else {
+    if( !defined($obs->instrument) ||
+        !defined($obs->runnr) ||
+        !defined($obs->startobs) ) {
+      throw OMP::Error::BadArgs("Must supply an Info::Obs object with defined instrument, run number, and date");
+    }
+    $t = $obs->startobs;
+  }
 
   # If $allcomments is true, then we don't want to limit
   # the query. Otherwise, we want to retrive comments
@@ -213,7 +228,7 @@ sub getComment {
   my $xml = "<ObsQuery>" .
     "<instrument>" . $obs->instrument . "</instrument>" .
     "<runnr>" . $obs->runnr . "</runnr>" .
-    "<date>" . $startobs->ymd . "T" . $startobs->hms . "</date>" .
+    "<date>" . $t->ymd . "T" . $t->hms . "</date>" .
     $obsactivestring .
     "</ObsQuery>";
 
@@ -221,11 +236,7 @@ sub getComment {
   my @results = $self->queryComments( $query );
 
   # Return based on context and arguments.
-#  if( $allcomments ) {
     return (wantarray ? @results : \@results);
-#  } else {
-#    return $results[0];
-#  }
 }
 
 =item B<removeComment>
@@ -347,11 +358,11 @@ the supplied query.
 In scalar context returns the first match via a reference to
 a hash.
 
-  $results = $db->_fetch_obslog_info( $query );
+  $results = $db->_fetch_comment_info( $query );
 
 In list context returns all matches as a list of hash references.
 
-  @results = $db->_fetch_obslog_info( $query );
+  @results = $db->_fetch_comment_info( $query );
 
 =cut
 
@@ -361,7 +372,7 @@ sub _fetch_comment_info {
 
   # Generate the SQL statement.
   my $sql = $query->sql( $OBSLOGTABLE );
-#print $sql;
+
   # Run the query.
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
@@ -429,10 +440,22 @@ sub _store_comment {
   my $obs = shift;
   my $comment = shift;
 
-  if( !defined($obs->instrument) ||
-      !defined($obs->startobs) ||
-      !defined($obs->runnr) ) {
-    throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
+  my $t;
+
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    if( !defined($obs->instrument) ||
+        !defined($obs->endobs) ||
+        !defined($obs->runnr) ) {
+      throw OMP::Error::BadArgs("Must supply instrument, endobs, and runnr properties to store a comment in the database");
+    }
+    $t = $obs->endobs - 1;
+  } else {
+    if( !defined($obs->instrument) ||
+        !defined($obs->startobs) ||
+        !defined($obs->runnr) ) {
+      throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
+    }
+    $t = $obs->startobs;
   }
 
   if( !defined($comment) ) {
@@ -447,7 +470,6 @@ sub _store_comment {
     $status = OMP__OBS_GOOD;
   }
 
-  my $t = $obs->startobs;
   my $date = $t->strftime("%b %e %Y %T");
 
   my $ct = $comment->date;
@@ -489,25 +511,38 @@ sub _set_inactive {
   my $obs = shift;
   my $userid = shift;
 
+  my $t;
+
   # Rudimentary input checking.
   throw OMP::Error::BadArgs("Must supply an Info::Obs object")
     unless ( defined $obs );
   throw OMP::Error::BadArgs("Must supply an Info::Obs object")
     unless UNIVERSAL::isa($obs, 'OMP::Info::Obs');
-  throw OMP::Error::BadArgs("Must supply instrument, date, and run number")
-    unless (
-            defined $obs->instrument &&
-            defined $obs->startobs &&
-            defined $obs->runnr
-           );
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    throw OMP::Error::BadArgs("Must supply instrument, date, and run number")
+      unless (
+              defined $obs->instrument &&
+              defined $obs->endobs &&
+              defined $obs->runnr
+             );
+    $t = $obs->endobs - 1;
+  } else {
+    throw OMP::Error::BadArgs("Must supply instrument, date, and run number")
+      unless (
+              defined $obs->instrument &&
+              defined $obs->startobs &&
+              defined $obs->runnr
+             );
+    $t = $obs->startobs;
+  }
+
   throw OMP::Error::BadArgs("Must supply a user id")
     unless defined $userid;
 
   my $instrument = $obs->instrument;
   my $runnr = $obs->runnr;
-  my $startobs = $obs->startobs;
 
-  my $date = $startobs->strftime("%Y%m%d %T");
+  my $date = $t->strftime("%Y%m%d %T");
 
   # Form the WHERE clause.
   my $where = "date = '$date' AND instrument = '$instrument' AND runnr = $runnr AND commentauthor = '$userid'";
