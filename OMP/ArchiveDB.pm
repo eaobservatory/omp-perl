@@ -467,20 +467,8 @@ sub _reorganize_archive {
       $instrument = "SCUBA";
     }
 
-    # Create an Astro::FITS::Header object out of this hash.
-    # First create an array of Astro::FITS::Header::Item objects.
-    my @items;
-    foreach my $key (keys %{$newrow}) {
-      my $item = new Astro::FITS::Header::Item( Keyword => $key,
-                                                Value => $newrow->{$key},
-                                              );
-      push @items, $item;
-    }
-    # Create the Header object.
-    my $header = new Astro::FITS::Header( Cards => \@items );
-
     # Create an Info::Obs object.
-    my $obs = new OMP::Info::Obs( fits => $header );
+    my $obs = new OMP::Info::Obs( hdrhash => $newrow );
 
     # And push it onto the @return array.
     push @return, $obs;
