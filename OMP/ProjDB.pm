@@ -844,7 +844,7 @@ sub _insert_project_row {
 			  $proj->remaining->seconds, $proj->pending->seconds,
 			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
 			  int($cloudmax), $proj->state, int($cloudmin),
-			  $skymin, $skymax
+			  $skymin, $skymax,
 			);
 
   # Now insert the queue information
@@ -853,11 +853,13 @@ sub _insert_project_row {
   my $primary = $proj->primaryqueue;
   $primary = (values %queue)[0] unless defined $primary;
   for my $c (keys %queue) {
+    # The TAG priority is the queue value - the adjustment
+    my $adj = $proj->tagadjustment( $c );
     my $prim = ($primary eq uc($c) ? 1 : 0);
     $self->_db_insert_data( $PROJQUEUETABLE,
 			    $proj->projectid,
-			    uc($c), $queue{$c},
-			    $prim
+			    uc($c), ($queue{$c} - $adj),
+			    $prim, $adj,
 			  );
   }
 
@@ -921,6 +923,7 @@ sub _get_projects {
   my %projroles;
   my %projcontactable;
   my %projqueue;
+  my %projadj;
   my %projpri_queue;
   my $start_index = 0;
   while ($start_index <= $#$ref) {
@@ -960,7 +963,12 @@ sub _get_projects {
     # Loop over results and store for later assignment to project objects
     for my $row (@$queueref) {
       my $projectid = $row->{projectid};
-      $projqueue{$projectid}{uc($row->{country})} = $row->{tagpriority};
+      $projadj{$projectid}{uc($row->{country})} =
+         (defined $row->{tagadj} ? $row->{tagadj} : 0);
+      # Queue stores TAG priority + TAG adjustments
+      $projqueue{$projectid}{uc($row->{country})} = $row->{tagpriority}
+         + $projadj{$projectid}{uc($row->{country})};
+
       $projpri_queue{$projectid} = uc($row->{country}) if $row->{isprimary};
     }
 
@@ -1043,6 +1051,7 @@ sub _get_projects {
     $proj->clearqueue;
     $proj->queue($projqueue{$projectid});
     $proj->primaryqueue($projpri_queue{$projectid});
+    $proj->tagadjustment( $projadj{$projectid} );
 
     # And store it
     push(@projects, $proj);

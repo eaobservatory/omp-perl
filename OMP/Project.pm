@@ -92,6 +92,7 @@ sub new {
 		    # can have more than one value
 		    PrimaryQueue => undef,
 		    Queue => {},
+		    TAGAdjustment => {},
 
 		    PI => undef,
 		    CoI => [],
@@ -470,7 +471,7 @@ sub country {
     }
 
     # Store new keys with default or no tag priority
-    $self->queue( map { uc($_) => $tagpri } @c );
+    $self->queue( map { uc($_) => ($tagpri + $self->tagadjustment($_)) } @c );
 
   }
   if (wantarray) {
@@ -919,6 +920,11 @@ object then, for backwards compatibility reasons, the TAG priority
 is cached and applied if a country is set explicitly with the
 C<country> method (and only the first time that is used).
 
+Note that this is the TAG priority and any TAG adjustments will not be
+included and should not be specified. Note that setting a tagpriority
+using this method relies on the tag adjustment being correct at the
+time.
+
 =cut
 
 sub tagpriority {
@@ -932,17 +938,17 @@ sub tagpriority {
 	my @c = $self->country;
 	if (@c) {
 	  for my $c (@c) {
-	    $self->queue( $c => $_[0]);
+	    $self->queue( $c => ($_[0] + $self->tagadjustment($c)));
 	  }
 	} else {
-	  # Store it for later
+	  # Store it for later [uncorrected for Adj]
 	  $self->{$TAGPRI_KEY} = $_[0];
 	}
       } else {
 	# A country has been requested or more than one
 	my @c = ( ref($_[0]) ? @{$_[0]} : @_);
 	my %queue = $self->queue;
-	my @pris = map { $queue{uc($_)} } @c;
+	my @pris = map { $queue{uc($_)} - $self->tagadjustment($_) } @c;
 	return (wantarray ? @pris : join($delim,@pris));
       }
     } else {
@@ -954,22 +960,23 @@ sub tagpriority {
 	# check that the country is supported
 	croak "Country $c not recognized"
 	  unless exists $queue{$uc};
-	$self->queue( $c => $args{$c});
+	$self->queue( $c => ($args{$c} + $self->tagadjustment($c)));
       }
     }
   }
 
   # Return everything as a list or a single string
-  my @countries = sort values %{ $self->queue };
+  my %queue = $self->queue;
+  my @countries = sort map { $queue{$_} - $self->tagadjustment($_) } keys %queue;
+
   if (wantarray) {
     return @countries;
   } else {
-    my %queue = $self->queue;
     my $primary = $self->primaryqueue;
     if (!defined $primary || !exists $queue{$primary}) {
       return join($delim,@countries);
     } else {
-      return $queue{$primary};
+      return ($queue{$primary} - $self->tagadjustment($primary));
     }
   }
 }
@@ -1083,9 +1090,12 @@ sub contactable {
 
 =item B<queue>
 
-Queue entries and corresponding TAG priorities (see also C<country>
-and C<tagpriority> methods for alternative views). Returns a hash
-with keys of "country" and values of TAG priority.
+Queue entries and corresponding priorities (see also C<country> and
+C<tagpriority> methods for alternative views). Returns a hash with
+keys of "country" and values of priority. Note that the priority here
+is the combination of the TAG allocated priority and any TAG
+adjustment provided in the queue. See the C<tagpriority> and
+C<tagadjustment> methods to obtain the individual parts.
 
   %queue = $proj->queue;
 
@@ -1101,6 +1111,11 @@ or
 
   $proj->queue( \%queue );
 
+or as a special case, the current adjusted priority can be returned
+for a single country:
+
+  $pri = $proj->queue( 'CA' );
+
 Other country information is retained. The queue can be cleared with
 the C<clearqueue> command.
 
@@ -1112,10 +1127,20 @@ method since the hash does not have a guaranteed order.
 sub queue {
   my $self = shift;
   if (@_) {
-    # either a hash ref as first arg or a list
-    my %args = ( ref($_[0]) ? %{$_[0]} : @_);
-    for my $c (keys %args) {
-      $self->{Queue}->{uc($c)} = $args{$c};
+    # if only a single arg it may be a ref or a queue name
+    if (@_ == 1 && not ref( $_[0] )) {
+      my $arg = uc(shift);
+      if (exists $self->{Queue}->{$arg}) {
+	return $self->{Queue}->{$arg};
+      } else {
+	return undef;
+      }
+    } else {
+      # either a hash ref as first arg or a list
+      my %args = ( ref($_[0]) ? %{$_[0]} : @_);
+      for my $c (keys %args) {
+	$self->{Queue}->{uc($c)} = $args{$c};
+      }
     }
   }
   if (wantarray) {
@@ -1125,9 +1150,62 @@ sub queue {
   }
 }
 
+=item B<tagadjustment>
+
+Queue entries and corresponding TAG priority adjustments.  (see also
+the C<queue> and C<tagpriority> methods).  Returns a hash with keys of
+"country" and values of priority.
+
+  %adj = $proj->tagadjustment;
+
+Returns a hash reference in scalar context:
+
+  $ref = $proj->tagadjustment();
+
+Can be used to set adjustments within particular queues: (no check is
+made that a particular queue exists in the C<queue>)
+
+  $proj->tagadjustment( CA => -2, UK => +2 );
+
+or
+
+  $proj->tagadjustment( \%queue );
+
+If a single non reference is provided as argument it will be assumed to
+be the queue name and the corresponding value will be returned. A 0
+will be returned if the queue is not recognized.
+
+=cut
+
+sub tagadjustment {
+  my $self = shift;
+  if (@_) {
+    # if only a single arg it may be a ref or a queue name
+    if (@_ == 1 && not ref( $_[0] )) {
+      my $arg = uc(shift);
+      if (exists $self->{TAGAdjustment}->{$arg}) {
+	return $self->{TAGAdjustment}->{$arg};
+      } else {
+	return 0;
+      }
+    } else {
+      # either a hash ref as first arg or a list
+      my %args = ( ref($_[0]) ? %{$_[0]} : @_);
+      for my $c (keys %args) {
+	$self->{TAGAdjustment}->{uc($c)} = $args{$c};
+      }
+    }
+  }
+  if (wantarray) {
+    return %{ $self->{TAGAdjustment} };
+  } else {
+    return $self->{TAGAdjustment};
+  }
+}
+
 =item B<clearqueue>
 
-Clear all queue information (country and TAG priority).
+Clear all queue information (country and priority).
 
  $proj->clearqueue();
 

@@ -4,7 +4,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 40;
+use Test::More tests => 45;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -74,6 +74,11 @@ for my $i (0..$#countries) {
 
 $proj->tagpriority(UK => 4);
 is($proj->tagpriority('UK'), 4, "Check new UK priority");
+
+# Now fiddle with a TAG adjustment
+$proj->tagadjustment( UK => -2 );
+is( $proj->queue( 'UK' ), 4, 'combined priority unchanged');
+is( $proj->tagpriority('UK'), 6, 'check adjusted UK priority');
 
 # Check the password
 is( $proj->password, $project{password}, "Check password" );
@@ -147,3 +152,15 @@ is( $proj->remaining, ($project{allocated} - $used), "Check time remaining");
 is( $proj->pending, 0.0, "Check time pending");
 
 isa_ok( $proj->remaining, "Time::Seconds");
+
+
+# site quality constraints
+
+$proj->cloudrange( new OMP::Range( Min => 0, Max => 100 ));
+is( $proj->cloudtxt, "any", "Cloud text representation for 0 - 100 %");
+
+$proj->cloudrange( new OMP::Range( Min => 30, Max => 100 ));
+is( $proj->cloudtxt, "thick", "Cloud text representation for 30 - 100 %");
+
+$proj->cloudrange( new OMP::Range( Min => 0, Max => 20 ));
+is( $proj->cloudtxt, "cirrus or photometric", "Cloud text representation for 0 - 20 %");
