@@ -843,7 +843,7 @@ sub _insert_project_row {
 			  $proj->allocated->seconds,
 			  $proj->remaining->seconds, $proj->pending->seconds,
 			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
-			  $cloudmax, $proj->state, $cloudmin,
+			  int($cloudmax), $proj->state, int($cloudmin),
 			  $skymin, $skymax
 			);
 
