@@ -14,14 +14,13 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::FaultPage;
+use OMP::CGIPage::Fault;
 use OMP::General;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage::Fault( CGI => $q );
 
 # Set our theme
 my $theme = new HTML::WWWTheme("/WWW/omp/LookAndFeelConfig");
@@ -32,9 +31,9 @@ $cgi->html_title("OMP Fault System: Update response");
 # If the user is outside the JAC network write the page with
 # authentication
 if (OMP::General->is_host_local) {
-  $cgi->write_page_fault( \&OMP::CGI::FaultPage::update_resp_content,
-			  \&OMP::CGI::FaultPage::update_resp_output);
+  $cgi->write_page('update_resp_content',
+			 'update_resp_output');
 } else {
-  $cgi->write_page_fault_auth( \&OMP::CGI::FaultPage::update_resp_content,
-			       \&OMP::CGI::FaultPage::update_resp_output);
+  $cgi->write_page_staff('update_resp_content',
+			 'update_resp_output');
 }
