@@ -38,7 +38,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/details project_users project_users_output/);
+@EXPORT_OK = (qw/details project_users project_users_output list_users/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -87,6 +87,7 @@ sub details {
 
   # Get projects user belongs to
   my @projects;
+  my @support;
   try {
     my $db = new OMP::ProjDB(ProjectID => $cookie{projectid},
 			     Password => "***REMOVED***",
@@ -100,6 +101,15 @@ sub details {
 
     @projects = $db->listProjects($query);
 
+    # Get projects the user supports
+    $xml = "<ProjQuery>".
+      "<support>".$user->userid."</support>".
+	"</ProjQuery>";
+
+    $query = new OMP::ProjQuery( XML => $xml );
+
+    @support = $db->listProjects($query);
+
   } otherwise {
     my $E = shift;
     print "Unable to retrieve projects for user:<br>$E";
@@ -108,6 +118,9 @@ sub details {
 
   # Sort out user's capacity for each project
   my %capacities;
+  $capacities{Support} = \@support
+    if (@support);
+
   for my $project (@projects) {
     if ($project->pi->userid eq $user->userid) {
       push @{$capacities{"Principal Investigator"}}, $project;
@@ -128,7 +141,7 @@ sub details {
   for (keys %capacities) {
     if ($capacities{$_}) {
       print "<h3>$_ on</h3>";
-      print "<table><tr><td></td><td>Receive email</td>";
+      print "<table><tr><td></td><td>Receives email</td>";
 
       for (@{$capacities{$_}}) {
 	print "<tr><td><a href=$url/projecthome.pl?urlprojid=".$_->projectid.">".
@@ -145,6 +158,32 @@ sub details {
     }
   }
 
+}
+
+=item B<list_users>
+
+=cut
+
+sub list_users {
+  print "<h2>OMP users</h2>";
+
+  my $users = OMP::UserServer->queryUsers( "<UserQuery></UserQuery>" );
+
+  if (@$users) {
+    my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
+
+    print "<TABLE border='1' width=$TABLEWIDTH>\n";
+    for (@$users) {
+      print "<tr bgcolor='#7979aa'>";
+      print "<TD>" . $_->userid ."</TD>";
+      print "<TD><a href=$ompurl/userdetails.pl?user=" . $_->userid .">$_</a></TD>";
+      print "<TD>" . $_->email . "</TD>";
+      print "<TD><a href=\"update_user.pl?".$_->userid."\">Update</a></TD>";
+    }
+    print "</TABLE>\n";
+  } else {
+    print "No OMP users found!<br>\n";
+  }
 }
 
 =item B<project_users>
@@ -228,9 +267,17 @@ sub project_users_output {
     my %new_contactable;
 
     # Go through each of the contacts and store their new contactable values
+    my $count;
     for (@contacts) {
       my $userid = $_->userid;
       $new_contactable{$userid} = ($q->param($userid) ? 1 : 0);
+      $count += $new_contactable{$userid};
+    }
+
+    # Make sure atleast 1 person is getting emails
+    if ($count == 0) {
+      print "<h3>The system requires atleast 1 person to receive project emails.  Update aborted.</h3>";
+      return;
     }
 
     $project->contactable(%new_contactable);
