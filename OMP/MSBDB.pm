@@ -288,6 +288,17 @@ sub fetchSciProg {
 
   # And file with feedback system.
   unless ($internal) {
+
+    # remove any obs labels here since the OT does not use them
+    # and it is best that they are regenerated on submission
+    # [They are retained only when an MSB is retrieved]
+    # Note that we do not strip them when we are doing an internal
+    # fetch of the science program since fetchMSB has to fetch
+    # a science program in order to obtain the labels
+    for my $msb ($sp->msb) {
+      $msb->_clear_obs_counter;
+    }
+
     # Add a little note if we used the admin password
     my $note = $self->_password_text_info();
 
@@ -850,7 +861,7 @@ sub suspendMSB {
   $self->_notify_feedback_system(
 				 author => "OM",
 				 program => "OMP::MSBDB",
-				 subject => "MSB Observed",
+				 subject => "MSB suspended",
 				 text => "Suspended MSB with checksum"
 				 . " $checksum at observation $label.",
 				);
