@@ -849,7 +849,7 @@ sub msb_hist_content {
 	# we want to show this page again, not the output page, so
 	# we'll include this hidden param
 	$q->hidden(-name=>'show_content',
-		   -default=>'show_content');
+		   -default=>'show_content'),
 
 	$q->popup_menu(-name=>'show',
 		       -values=>[qw/all observed current/],
