@@ -313,12 +313,12 @@ sub airmass {
 
 =item B<ra>
 
-Construct a summary of the right ascension for each of the observation
+Construct a summary of the apparent right ascension for each of the observation
 targets. This simply uses the C<Astro::Coords> object in each
 observation object. If no observations are present returns
 an empty string.
 
-  $ha = $msb->ra;
+  $ra = $msb->ra;
 
 Takes no arguments.
 
@@ -334,6 +334,30 @@ sub ra {
 							       normalize => 1));
 				   });
   return join("/",@ra);
+}
+
+=item B<dec>
+
+Construct a summary of the apparent declination for each of the observation
+targets. This simply uses the C<Astro::Coords> object in each
+observation object. If no observations are present returns
+an empty string.
+
+  $dec = $msb->dec;
+
+Takes no arguments.
+
+=cut
+
+sub dec {
+  my $self = shift;
+  # Ask the observations
+  my @dec = $self->_process_coords( sub {
+				     my $c = shift;
+				     return sprintf("%.1f",
+						    $c->dec_app( format => "d")),
+				   });
+  return join("/",@dec);
 }
 
 
@@ -501,7 +525,7 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title minel
-       datemin datemax telescope cloud remaining msbid ra airmass ha/) {
+       datemin datemax telescope cloud remaining msbid ra airmass ha dec/) {
     $summary{$_} = $self->$_();
   }
 
@@ -671,7 +695,7 @@ sub summary {
     # summaries such as waveband and target]
 
     # Add ha, airmass and ra
-    for my $method (qw/ ha airmass ra/) {
+    for my $method (qw/ ha airmass ra dec/) {
       $summary{$method} = $self->$method();
     }
 
