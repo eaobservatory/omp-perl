@@ -8,13 +8,19 @@ MSBServer + SpServer
  - Treat tauband and seeing as single bits of an integer
    to allow scheduling on "band 1+2"
 
- - Query parsing (OMP::MSBQuery)
+MSBServer
+---------
 
- - password authentication
+ - Query parsing (OMP::MSBQuery)
 
  - increment "pending" allocation when MSB marked as done
 
  - Stored procedures for calculaing target elevation
+
+SpServer
+--------
+
+ - password authentication
 
  - "fix" the MSBID generation code so that it caches the value
     before deleting old rows rather than querying the database
