@@ -104,9 +104,27 @@ sub readfile {
   try {
     my $FITS_header;
     if( $filename =~ /\.sdf$/ ) {
+      # Redirect STDOUT in case this fails (if reading in the NDF fails,
+      # AFHN directs the error messages to STDOUT, which is not really what
+      # we want, since it's ugly).
+      open(SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
+      open(STDOUT, ">/dev/null") or throw OMP::Error::FatalError("Can't open STDOUT to /dev/null.");
+
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+
+      close(STDOUT);
+      open(STDOUT, ">&SAVEOUT");	
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
+
+      # Redirect STDOUT in case this fails.
+      open(SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
+      open(STDOUT, ">/dev/null") or throw OMP::Error::FatalError("Can't open STDOUT to /dev/null.");
+
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
+
+      close(STDOUT);
+      open(STDOUT, ">&SAVEOUT");	
+
     } else {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
     }
@@ -114,8 +132,12 @@ sub readfile {
     $obs->filename( $filename );
   }
   catch Error with {
+
+    close(STDOUT);
+    open(STDOUT, ">&SAVEOUT");
+
     my $Error = shift;
-    print "Error in Info::Obs::readfile: $Error\n";
+    throw Error($Error);
   };
   return $obs;
 }
