@@ -258,25 +258,26 @@ sub _sidebar_logout {
   ($projectid) or $projectid = $cookie{projectid};
 
   my $ompurl = $self->public_url;
+  my $cgidir = OMP::Config->getData('cgidir');
 
   $theme->SetMoreLinksTitle("Project: $projectid");
 
-  my @sidebarlinks = ("<a href='$ompurl/projecthome.pl'>$cookie{projectid} Project home</a>",
-		      "<a href='$ompurl/feedback.pl'>Feedback entries</a>",
-		      "<a href='$ompurl/fbmsb.pl'>Program details</a>",
-		      "<a href='$ompurl/fbcomment.pl'>Add comment</a>",
-		      "<a href='$ompurl/msbhist.pl'>MSB History</a>",
-		      "<a href='$ompurl/projusers.pl'>Contacts</a>",
-		      "<a href='$ompurl/'>OMP home</a>",);
+  my @sidebarlinks = ("<a href='$ompurl$cgidir/projecthome.pl'>$cookie{projectid} Project home</a>",
+		      "<a href='$ompurl$cgidir/feedback.pl'>Feedback entries</a>",
+		      "<a href='$ompurl$cgidir/fbmsb.pl'>Program details</a>",
+		      "<a href='$ompurl$cgidir/fbcomment.pl'>Add comment</a>",
+		      "<a href='$ompurl$cgidir/msbhist.pl'>MSB History</a>",
+		      "<a href='$ompurl$cgidir/projusers.pl'>Contacts</a>",
+		      "<a href='$ompurl$cgidir/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
-  push (@sidebarlinks, "<a href=$ompurl/fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
+  push (@sidebarlinks, "<a href=$ompurl$cgidir/fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
-  push (@sidebarlinks, "<br><font size=+1><a href='$ompurl/fblogout.pl'>Logout</a></font>");
+  push (@sidebarlinks, "<br><font size=+1><a href='$ompurl$cgidir/fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
