@@ -1015,17 +1015,17 @@ sub _insert_row {
 
   # Simply use "do" since there is only a single insert if we
   # can not have multiple statement handles
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
-	   $data{tauband}, $data{seeing}, $data{priority}, 
-	   $data{telescope}, $data{moon},
+	   $data{tauband}, $data{seeing}, $data{priority},
+	   $data{telescope}, $data{moon}, $data{photometric},
 	   $data{timeest}, $data{title}, 
 	   $data{earliest}, $data{latest}) 
     or throw OMP::Error::DBError("Error inserting new MSB rows: $DBI::errstr");
 
   # Now the observations
   # Get the observation query handle
-  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   my $count;
@@ -1057,11 +1057,12 @@ sub _insert_row {
     print "Inserting row: ",Dumper($obs) if $DEBUG;
 
     $obsst->execute(
-	     $obsid, $index, $proj, $obs->{instrument}, 
-	     $obs->{type}, $obs->{pol}, $obs->{wavelength},
-	     $obs->{coordstype}, $obs->{target},
-	     @coords[1..10], $obs->{timeest}
-	    )
+		    $obsid, $index, $proj, $obs->{instrument}, 
+		    $obs->{type}, $obs->{pol}, $obs->{wavelength},
+		    $obs->{disperser},
+		    $obs->{coordstype}, $obs->{target},
+		    @coords[1..10], $obs->{timeest}
+		   )
       or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
 
   }

@@ -1088,6 +1088,15 @@ sub _get_weather_data {
   $summary{tauband} = $self->_get_pcdata( $el, "tauBand" );
   $summary{seeing} = $self->_get_pcdata( $el, "seeing" );
 
+  # and (if defined) photometric flag
+  $summary{photometric} = $self->_get_pcdata( $el, "photometric");
+  $summary{photometric} = 0 unless defined $summary{photometric};
+
+  # Moon (default to 0 if it isnt there)
+  $summary{moon} = $self->_get_pcdata( $el, "moon");
+  $summary{moon} = 0 unless defined $summary{moon};
+
+
   # Big kluge - if the site quality is there but we
   # dont have any values defined (due to a bug in the OT)
   # then make something up
@@ -1405,6 +1414,7 @@ sub SpInstCGS4 {
   $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
 					    Instrument => 'CGS4');
   $summary{wavelength} = $summary{waveband}->wavelength;
+  $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
 
   # Camera mode
   $summary{type} = "s";
@@ -1440,6 +1450,7 @@ sub SpInstUFTI {
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
 					    Instrument => 'UFTI');
   $summary{wavelength} = $summary{waveband}->wavelength;
+  $summary{disperser} = undef;
 
   # Camera mode
   $summary{type} = "i";
@@ -1484,11 +1495,13 @@ sub SpInstMichelle {
     $summary{waveband} = new Astro::WaveBand( Filter => $filter,
 					      Instrument => 'MICHELLE');
 
+    $summary{disperser} = undef;
   } else {
     my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
     $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
 					      Instrument => 'MICHELLE');
 
+    $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
   }
 
   $summary{wavelength} = $summary{waveband}->wavelength;
@@ -1522,6 +1535,7 @@ sub SpInstIRCAM3 {
 
   $summary{telescope} = "UKIRT";
   $summary{instrument} = "IRCAM3";
+  $summary{disperser} = undef;
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
