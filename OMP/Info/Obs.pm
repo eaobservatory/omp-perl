@@ -1022,35 +1022,37 @@ sub _populate {
 # Set the target name.
     $self->target( $generic_header{OBJECT} );
 
-    if ( $self->type =~ /OBJECT|SKY|FLAT/ &&
-         $self->target =~ /MERCURY|VENUS|MARS|JUPITER|SATURN|URANUS|NEPTUNE|PLUTO/ ) {
+# Arcs, darks and biases don't get coordinates associated with them, since they're
+# not really on-sky observations.
+    if( ! defined( $self->type ) || ( defined( $self->type ) && $self->type !~ /ARC|DARK|BIAS/ ) ) {
+
+      if( $self->target =~ /MERCURY|VENUS|MARS|JUPITER|SATURN|URANUS|NEPTUNE|PLUTO/ ) {
 
 # Set up a planet coordinate system.
-      my $coords = new Astro::Coords( planet => $self->target );
-      $coords->datetime( $self->startobs );
-      $coords->telescope( new Astro::Telescope( $self->telescope ) );
-      $self->coords( $coords );
-    } elsif ( $self->type !~ /ARC|DARK|BIAS/ && defined ( $generic_header{COORDINATE_TYPE} ) ) {
+        my $coords = new Astro::Coords( planet => $self->target );
+        $coords->datetime( $self->startobs );
+        $coords->telescope( new Astro::Telescope( $self->telescope ) );
+        $self->coords( $coords );
+      } elsif ( defined ( $generic_header{COORDINATE_TYPE} ) ) {
 
-# If we're an ARC, DARK, or BIAS, don't set up the coords accessor.
-      if ( $generic_header{COORDINATE_TYPE} eq 'galactic' ) {
-        $self->coords( new Astro::Coords( lat   => $generic_header{Y_BASE},
-                                           long  => $generic_header{X_BASE},
-                                           type  => $generic_header{COORDINATE_TYPE},
-                                           units => $generic_header{COORDINATE_UNITS}
-                                         ) );
-      } elsif ( ( $generic_header{COORDINATE_TYPE} eq 'J2000' ) ||
-                ( $generic_header{COORDINATE_TYPE} eq 'B1950' ) ) {
-
-        $self->coords( new Astro::Coords( ra    => $generic_header{RA_BASE},
-                                           dec   => $generic_header{DEC_BASE},
-                                           type  => $generic_header{COORDINATE_TYPE},
-                                           units => $generic_header{COORDINATE_UNITS}
-                                         ) );
+        if ( $generic_header{COORDINATE_TYPE} eq 'galactic' ) {
+          $self->coords( new Astro::Coords( lat   => $generic_header{Y_BASE},
+                                            long  => $generic_header{X_BASE},
+                                            type  => $generic_header{COORDINATE_TYPE},
+                                            units => $generic_header{COORDINATE_UNITS}
+                                          ) );
+        } elsif ( ( $generic_header{COORDINATE_TYPE} eq 'J2000' ) ||
+                  ( $generic_header{COORDINATE_TYPE} eq 'B1950' ) ) {
+          $self->coords( new Astro::Coords( ra    => $generic_header{RA_BASE},
+                                            dec   => $generic_header{DEC_BASE},
+                                            type  => $generic_header{COORDINATE_TYPE},
+                                            units => $generic_header{COORDINATE_UNITS}
+                                          ) );
+        }
       }
     }
 
-    # Set science/scical/gencal.
+    # Set science/scical/gencal defaults.
     $self->isScience( 1 );
     $self->isSciCal( 0 );
     $self->isGenCal( 0 );
@@ -1068,11 +1070,11 @@ sub _populate {
       # DARKs are generic calibrations if they have an ARRAY_TESTS-like DR recipe
       # DARK and FLAT and ARC are science calibrations
       my $drrecipe = (exists $generic_header{DR_RECIPE} && defined $generic_header{DR_RECIPE}
-		      ? $generic_header{DR_RECIPE} : '');
+                      ? $generic_header{DR_RECIPE} : '');
       if ($self->projectid =~ /CAL$/ ||
           length($self->projectid) == 0 ||
           $self->type =~ /BIAS/ ||
-	  $drrecipe =~ /ARRAY_TESTS|MEASURE_READNOISE|DARK_AND_BPM/
+          $drrecipe =~ /ARRAY_TESTS|MEASURE_READNOISE|DARK_AND_BPM/
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
