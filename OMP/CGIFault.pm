@@ -26,6 +26,8 @@ use Time::Piece;
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
+use OMP::MSBServer;
+use OMP::User;
 use OMP::Error qw(:try);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -36,7 +38,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary /);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -74,7 +76,8 @@ sub file_fault {
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
-  print $q->h2("File Fault");
+  titlebar($q, ["File Fault"], %cookie);
+
   print "<table border=0 cellspacing=4><tr>";
   print $q->startform;
 
@@ -85,7 +88,9 @@ sub file_fault {
   print "<td align=right><b>User:</b></td><td>";
   print $q->textfield(-name=>'user',
 		      -size=>'16',
-		      -maxlength=>'90',);
+		      -maxlength=>'90',
+		      -default=>$cookie{user},);
+
   print "</td><tr><td align=right><b>System:</b></td><td>";
   print $q->popup_menu(-name=>'system',
 		       -values=>\@system_values,
@@ -105,6 +110,26 @@ sub file_fault {
   print $q->textfield(-name=>'subject',
 		      -size=>'60',
 		      -maxlength=>'256',);
+
+  # If were in the ukirt or jcmt fault categories create a checkbox group
+  # for specifying an association with projects.
+
+  if ($cookie{category} =~ /(jcmt|ukirt)/i) {
+    # Values for checkbox group will be tonights projects
+    my $today = OMP::General->today;
+    my $aref = OMP::MSBServer->observedMSBs($today, 0, 'data');
+    if (defined $aref) {
+      # my %projects = map {$_->projectid, $->projectid} @$aref;
+      my %projects;
+      for (@$aref) {
+	$projects{$_->projectid} = $_->projectid;
+      }
+      print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
+      print $q->checkbox_group(-name=>'assoc',
+			       -values=>[keys %projects] );
+    }
+  }
+
   print "</td><tr><td colspan=2>";
   print $q->textarea(-name=>'message',
 		     -rows=>20,
@@ -141,7 +166,12 @@ sub file_fault_output {
     $urgency = $urgency{Normal};
   }
 
-  my $resp = new OMP::Fault::Response(author=>$q->param('user'),
+  my @projects = $q->param('projects');
+
+  my $author = $q->param('user');
+  my $user = new OMP::User(userid => $author);
+
+  my $resp = new OMP::Fault::Response(author=>$user,
 				      text=>$q->param('message'),);
 
   # Create the fault object
@@ -151,6 +181,7 @@ sub file_fault_output {
 			     type=>$q->param('type'),
 			     timelost=>$q->param('loss'),
 			     urgency=>$urgency,
+			     projects=>\@projects,
 			     fault=>$resp);
 
   # Submit the fault the the database
@@ -166,7 +197,8 @@ sub file_fault_output {
   # Show the fault if it was successfully filed
   if ($faultid) {
     my $f = OMP::FaultServer->getFault($faultid);
-    print $q->h2("Fault $faultid was successfully filed");
+    titlebar($q, ["File Fault", "Fault $faultid has been filed"], %cookie);
+
     fault_table($q, $f);
   }
 }
@@ -202,7 +234,7 @@ sub fault_table {
 
   # First show the fault info
   print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=$TABLEWIDTH>";
-  print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author->html . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Status: </b>$statushtml</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td>$urgencyhtml</td>";
@@ -219,7 +251,7 @@ sub fault_table {
       $bgcolor = '#bcbce2';
     } else {
       $bgcolor = '#dcdcf2';
-      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
+      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author->html . "</td><td><b>Date: </b>" . $resp->date . "</td>";
     }
 
     # Show the response
@@ -241,7 +273,7 @@ sub query_fault_content {
   my $q = shift;
   my %cookie = @_;
 
-  print $q->h2("$cookie{category} Fault Home");
+  titlebar($q, ["View Faults"], %cookie);
 
   query_fault_form($q, %cookie);
   print "<p>";
@@ -315,22 +347,22 @@ sub query_fault_output {
     } else {
       $title = "Displaying faults with any activity in the last $delta days";
     }
-    $xml = "<FaultQuery><date delta='-$delta'>" . $t->datetime . "</date>" . join('',@xml) . "</FaultQuery>";
+    $xml = "<FaultQuery><date delta='-$delta'><category>$cookie{category}</category>" . $t->datetime . "</date>" . join('',@xml) . "</FaultQuery>";
 
   } else {
     # One of the other submit buttons was clicked
     if ($q->param('Major faults')) {
       # Faults within the last 14 days with 2 or more hours lost
-      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
       $title = "Displaying major faults";
     } elsif ($q->param('Recent faults')) {
       # Faults filed in the last 36 hours
-      $xml = "<FaultQuery><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
       $title = "Displaying recent faults";
     } elsif ($q->param('Current faults')) {
       # Faults within the last 14 days that are 'OPEN'
       my %status = OMP::Fault->faultStatus;
-      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
+      $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
       $title = "Displaying current faults";
     }
   }
@@ -344,7 +376,7 @@ sub query_fault_output {
     print "$E";
   };
 
-  print $q->h2($title);
+  titlebar($q, ["View Faults", $title], %cookie);
 
   query_fault_form($q, %cookie);
   print "<p>";
@@ -464,6 +496,7 @@ Show a fault
 
 sub view_fault_content {
   my $q = shift;
+  my %cookie = @_;
 
   # First try and get the fault ID from the URL param list, then try the normal param list.
   my $faultid = $q->url_param('id');
@@ -485,10 +518,12 @@ sub view_fault_content {
   } else {
     # Got the fault ID, so display the fault
     my $fault = OMP::FaultServer->getFault($faultid);
-    print $q->h2("Fault ID: $faultid");
+
+    titlebar($q, ["View Fault ID: $faultid", $fault->subject], %cookie);
+
     fault_table($q, $fault);
     print "<p><b><font size=+1>Respond to this fault</font></b>";
-    response_form($q, $fault->id);
+    response_form($q, $fault->id, %cookie);
   }
 }
 
@@ -502,23 +537,32 @@ Parse any forms of the view_fault_content forms
 
 sub view_fault_output {
   my $q = shift;
+  my %cookie = @_;
+
+  my $title;
+
   my $faultid = $q->param('faultid');
   my $author = $q->param('user');
   my $text = $q->param('text');
 
   my $fault = OMP::FaultServer->getFault($faultid);
 
+  my $user = new OMP::User(userid => $author,);
+
   try {
-    my $resp = new OMP::Fault::Response(author => $author,
+    my $resp = new OMP::Fault::Response(author => $user,
 				        text => $text);
     OMP::FaultServer->respondFault($fault->id, $resp);
-    print $q->h2("Fault response successfully submitted");
+    $title = "Fault response successfully submitted";
   } otherwise {
     my $E = shift;
-    print "An error had prevented your response from being filed: $E";
+    $title = "An error has prevented your response from being filed: $E";
   };
 
   $fault = OMP::FaultServer->getFault($faultid);
+
+  titlebar($q, ["View Fault ID: $faultid", $title], %cookie);
+
   fault_table($q, $fault);
 }
 
@@ -526,13 +570,14 @@ sub view_fault_output {
 
 Create a form for submitting a response
 
-  response_form($cgi, $faultid);
+  response_form($cgi, $faultid, %cookie);
 
 =cut
 
 sub response_form {
   my $q = shift;
   my $faultid = shift;
+  my %cookie = @_;
 
   print "<table border=0><tr><td align=right><b>User: </b></td><td>";
   print $q->startform;
@@ -540,7 +585,8 @@ sub response_form {
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->textfield(-name=>'user',
 		      -size=>'25',
-		      -maxlength=>'75');
+		      -maxlength=>'75',
+		      -default=>$cookie{user},);
   print "</td><tr><td></td><td>";
   print $q->textarea(-name=>'text',
 		     -rows=>20,
@@ -607,7 +653,7 @@ sub show_faults {
 
     print "<tr bgcolor=$bgcolor><td>$faultid</td>";
     print "<td><b><a href='viewfault.pl?id=$faultid'>$subject &nbsp;</a></b></td>";
-    print "<td>$user</td>";
+    print "<td>" . $user->html . "</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
     print "<td>$status</td>";
@@ -615,6 +661,41 @@ sub show_faults {
   }
 
   print "</table>";
+}
+
+=item B<titlebar>
+
+Create a title heading that identifies the current page
+
+  titlebar($q, \@title, %cookie);
+
+Second argument should be an array reference containing the titlebar elements.
+
+=cut
+
+sub titlebar {
+  my $q = shift;
+  my $title = shift;
+  my %cookie = @_;
+
+  print "<table width=$TABLEWIDTH><tr bgcolor=#babadd><td><font size=+1><b>$cookie{category} Faults:&nbsp;&nbsp;@$title->[0]</font></td>";
+  print "<tr><td><font size=+2><b>@$title->[1]</b></font></td>"
+    if (@$title->[1]);
+  print "</table><br>";
+}
+
+=item B<sidebar_summary>
+
+A summary of the fault system formatted for display in the sidebar
+
+  sidebar_summary($cgi);
+
+=cut
+
+sub sidebar_summary {
+  my $q = shift;
+
+  return "faults: ";
 }
 
 =back
