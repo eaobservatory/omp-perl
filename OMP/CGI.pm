@@ -1015,6 +1015,7 @@ sub write_page_fault {
     print "<h3><li><a href='$publicurl/queryfault.pl?cat=CSG'>CSG Faults</a> for faults relating to JAC computer services</h3>";
     print "<h3><li><a href='$publicurl/queryfault.pl?cat=OMP'>OMP Faults</a> for faults relating to the Observation Management Project</h3>";
     print "<h3><li><a href='$publicurl/queryfault.pl?cat=UKIRT'>UKIRT Faults</a> for faults relating to UKIRT</h3>";
+    print "<h3><li><a href='$publicurl/queryfault.pl?cat=JCMT'>JCMT Faults</a> for faults relating to JCMT</h3>";
     print "</ul>";
     
     $self->_write_footer();
