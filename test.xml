@@ -180,40 +180,35 @@
           <SpIterOffset>
             <ItemData name="new" package="gemini.sp.iter"
               subtype="offset" type="ic"/>
-            <Offset1>
-              <value>11.0</value>
-              <value>10.0</value>
-            </Offset1>
             <MetaData>
               <gui>
                 <selectedOffsetPos>Offset8</selectedOffsetPos>
                 <collapsed>false</collapsed>
               </gui>
             </MetaData>
-            <offsetPositions>
-              <value>Offset8</value>
-              <value>Offset3</value>
-              <value>Offset5</value>
-              <value>Offset7</value>
-              <value>Offset1</value>
-            </offsetPositions>
             <title>jitter_5_10as</title>
-            <Offset8>
-              <value>0.0</value>
-              <value>0.0</value>
-            </Offset8>
-            <Offset7>
-              <value>11.0</value>
-              <value>-11.0</value>
-            </Offset7>
-            <Offset5>
-              <value>-12.0</value>
-              <value>-10.0</value>
-            </Offset5>
-            <Offset3>
-              <value>-10.0</value>
-              <value>11.0</value>
-            </Offset3>
+	    <obsArea>
+	      <offset id="offset8">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>-10.0</dc1>
+                <dc2>11.0</dc2>
+              </offset>
+	      <offset id="offset5">
+                <dc1>-12.0</dc1>
+                <dc2>-10.0</dc2>
+              </offset>
+	      <offset id="offset7">
+                <dc1>11.0</dc1>
+                <dc2>-11.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>11.0</dc1>
+                <dc2>10.0</dc2>
+              </offset>
+	    </obsArea>
             <SpIterObserve>
               <ItemData name="new" package="gemini.sp.iter"
                 subtype="observe" type="ic"/>
@@ -234,10 +229,12 @@
               <collapsed>false</collapsed>
             </gui>
           </MetaData>
-          <Offset0>
-            <value>0.0</value>
-            <value>0.0</value>
-          </Offset0>
+	   <obsArea>
+	     <offset id="offset0">
+               <dc1>0.0</dc1>
+               <dc2>0.0</dc2>
+             </offset>
+           </obsArea>
           <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
@@ -374,30 +371,29 @@
                 <collapsed>false</collapsed>
               </gui>
             </MetaData>
-            <offsetPositions>
-              <value>Offset8</value>
-              <value>Offset3</value>
-              <value>Offset5</value>
-              <value>Offset7</value>
-              <value>Offset1</value>
-            </offsetPositions>
+	    <obsArea>
+	      <offset id="offset8">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>-10.0</dc1>
+                <dc2>11.0</dc2>
+              </offset>
+	      <offset id="offset5">
+                <dc1>-12.0</dc1>
+                <dc2>-10.0</dc2>
+              </offset>
+	      <offset id="offset7">
+                <dc1>11.0</dc1>
+                <dc2>-11.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>11.0</dc1>
+                <dc2>10.0</dc2>
+              </offset>
+	    </obsArea>
             <title>jitter_5_10as</title>
-            <Offset8>
-              <value>0.0</value>
-              <value>0.0</value>
-            </Offset8>
-            <Offset7>
-              <value>11.0</value>
-              <value>-11.0</value>
-            </Offset7>
-            <Offset5>
-              <value>-12.0</value>
-              <value>-10.0</value>
-            </Offset5>
-            <Offset3>
-              <value>-10.0</value>
-              <value>11.0</value>
-            </Offset3>
             <SpIterObserve>
               <ItemData name="new" package="gemini.sp.iter"
                 subtype="observe" type="ic"/>
@@ -418,10 +414,12 @@
               <collapsed>false</collapsed>
             </gui>
           </MetaData>
-          <Offset0>
-            <value>0.0</value>
-            <value>0.0</value>
-          </Offset0>
+            <obsArea>
+	      <offset id="offset0">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	    </obsArea>
           <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
@@ -1041,40 +1039,35 @@
           <SpIterOffset>
             <ItemData name="new" package="gemini.sp.iter"
               subtype="offset" type="ic"/>
-            <Offset1>
-              <value>11.0</value>
-              <value>10.0</value>
-            </Offset1>
             <MetaData>
               <gui>
                 <selectedOffsetPos>Offset8</selectedOffsetPos>
                 <collapsed>false</collapsed>
               </gui>
             </MetaData>
-            <offsetPositions>
-              <value>Offset8</value>
-              <value>Offset3</value>
-              <value>Offset5</value>
-              <value>Offset7</value>
-              <value>Offset1</value>
-            </offsetPositions>
             <title>jitter_5_10as</title>
-            <Offset8>
-              <value>0.0</value>
-              <value>0.0</value>
-            </Offset8>
-            <Offset7>
-              <value>11.0</value>
-              <value>-11.0</value>
-            </Offset7>
-            <Offset5>
-              <value>-12.0</value>
-              <value>-10.0</value>
-            </Offset5>
-            <Offset3>
-              <value>-10.0</value>
-              <value>11.0</value>
-            </Offset3>
+	    <obsArea>
+	      <offset id="offset8">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>-10.0</dc1>
+                <dc2>11.0</dc2>
+              </offset>
+	      <offset id="offset5">
+                <dc1>-12.0</dc1>
+                <dc2>-10.0</dc2>
+              </offset>
+	      <offset id="offset7">
+                <dc1>11.0</dc1>
+                <dc2>-11.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>11.0</dc1>
+                <dc2>10.0</dc2>
+              </offset>
+	    </obsArea>
             <SpIterObserve>
               <ItemData name="new" package="gemini.sp.iter"
                 subtype="observe" type="ic"/>
@@ -1095,10 +1088,12 @@
               <collapsed>false</collapsed>
             </gui>
           </MetaData>
-          <Offset0>
-            <value>0.0</value>
-            <value>0.0</value>
-          </Offset0>
+          <obsArea>
+              <offset id="offset0">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+          </obsArea>
           <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
@@ -1229,40 +1224,35 @@
           <SpIterOffset>
             <ItemData name="new" package="gemini.sp.iter"
               subtype="offset" type="ic"/>
-            <Offset1>
-              <value>11.0</value>
-              <value>10.0</value>
-            </Offset1>
             <MetaData>
               <gui>
                 <selectedOffsetPos>Offset8</selectedOffsetPos>
                 <collapsed>false</collapsed>
               </gui>
             </MetaData>
-            <offsetPositions>
-              <value>Offset8</value>
-              <value>Offset3</value>
-              <value>Offset5</value>
-              <value>Offset7</value>
-              <value>Offset1</value>
-            </offsetPositions>
             <title>jitter_5_10as</title>
-            <Offset8>
-              <value>0.0</value>
-              <value>0.0</value>
-            </Offset8>
-            <Offset7>
-              <value>11.0</value>
-              <value>-11.0</value>
-            </Offset7>
-            <Offset5>
-              <value>-12.0</value>
-              <value>-10.0</value>
-            </Offset5>
-            <Offset3>
-              <value>-10.0</value>
-              <value>11.0</value>
-            </Offset3>
+	    <obsArea>
+	      <offset id="offset8">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>-10.0</dc1>
+                <dc2>11.0</dc2>
+              </offset>
+	      <offset id="offset5">
+                <dc1>-12.0</dc1>
+                <dc2>-10.0</dc2>
+              </offset>
+	      <offset id="offset7">
+                <dc1>11.0</dc1>
+                <dc2>-11.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>11.0</dc1>
+                <dc2>10.0</dc2>
+              </offset>
+	    </obsArea>
             <SpIterObserve>
               <ItemData name="new" package="gemini.sp.iter"
                 subtype="observe" type="ic"/>
@@ -1283,10 +1273,12 @@
               <collapsed>false</collapsed>
             </gui>
           </MetaData>
-          <Offset0>
-            <value>0.0</value>
-            <value>0.0</value>
-          </Offset0>
+            <obsArea>
+	      <offset id="offset0">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	    </obsArea>
           <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
@@ -1639,28 +1631,24 @@
                   <collapsed>false</collapsed>
                 </gui>
               </MetaData>
-              <Offset3>
-                <value>0.0</value>
-                <value>0.0</value>
-              </Offset3>
-              <Offset2>
-                <value>0.0</value>
-                <value>11.74</value>
-              </Offset2>
-              <Offset1>
-                <value>0.0</value>
-                <value>11.74</value>
-              </Offset1>
-              <Offset0>
-                <value>0.0</value>
-                <value>0.0</value>
-              </Offset0>
-              <offsetPositions>
-                <value>Offset0</value>
-                <value>Offset1</value>
-                <value>Offset2</value>
-                <value>Offset3</value>
-              </offsetPositions>
+              <obsArea>
+	      <offset id="offset0">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>0.0</dc1>
+                <dc2>11.74</dc2>
+              </offset>
+	      <offset id="offset2">
+                <dc1>0.0</dc1>
+                <dc2>11.74</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+              </obsArea>
               <SpIterObserve>
                 <ItemData name="new" package="gemini.sp.iter"
                   subtype="observe" type="ic"/>
@@ -1910,28 +1898,24 @@
                   <collapsed>false</collapsed>
                 </gui>
               </MetaData>
-              <Offset3>
-                <value>0.0</value>
-                <value>0.0</value>
-              </Offset3>
-              <Offset2>
-                <value>0.0</value>
-                <value>11.74</value>
-              </Offset2>
-              <Offset1>
-                <value>0.0</value>
-                <value>11.74</value>
-              </Offset1>
-              <Offset0>
-                <value>0.0</value>
-                <value>0.0</value>
-              </Offset0>
-              <offsetPositions>
-                <value>Offset0</value>
-                <value>Offset1</value>
-                <value>Offset2</value>
-                <value>Offset3</value>
-              </offsetPositions>
+              <obsArea>
+	      <offset id="offset0">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+	      <offset id="offset1">
+                <dc1>0.0</dc1>
+                <dc2>11.74</dc2>
+              </offset>
+	      <offset id="offset2">
+                <dc1>0.0</dc1>
+                <dc2>11.74</dc2>
+              </offset>
+	      <offset id="offset3">
+                <dc1>0.0</dc1>
+                <dc2>0.0</dc2>
+              </offset>
+              </obsArea>
               <SpIterObserve>
                 <ItemData name="new" package="gemini.sp.iter"
                   subtype="observe" type="ic"/>
