@@ -274,6 +274,7 @@ different forms of summaries. Allowed values are:
                 One for each MSB. Additionally, observation information
                 is in another array of hashes within each MSB hash.
                 Respects calling context returning a ref in scalar context.
+  'objects'     Returns MSBs as array of OMP::Info::MSB objects
   'ascii'       Plain text summary of the Science Program.
                 Returns a list of lines in list context. A block of text
                 in scalar context.
@@ -335,11 +336,11 @@ sub summary {
     # Plain text
     my @strings;
     for my $msb ($self->msb) {
-      my %summary = $msb->summary;
+      my %summary = $msb->info->summary('hashlong');
       # The title
-      push(@strings, $summary{summary}{header} ) unless @strings;
+      push(@strings, $msb->info->summary('textshorthdr') ) unless @strings;
       # The contents
-      push(@strings,  $summary{summary}{string} );
+      push(@strings,  $msb->info->summary('textshort') );
     }
 
     return @strings;
@@ -349,7 +350,7 @@ sub summary {
     my $xml = "<SpProgSummary timestamp=\"$time\" projectid=\"$proj\">\n";
 
     for my $msb (@msbs) {
-      $xml .= $msb->summary;
+      $xml .= $msb->info->summary('xmlshort');
     }
     $xml .= "</SpProgSummary>\n";
 
@@ -358,13 +359,24 @@ sub summary {
   } elsif ($mode eq 'data') {
     # Return an array of hashes (as array ref)
     # Loop over each msb in the science program
-    @msbs = map { {$_->summary } } @msbs;
+    @msbs = map { {$_->info->summary('hashlong') } } @msbs;
 
     if (wantarray) {
       return @msbs;
     } else {
       return \@msbs;
     }
+
+  } elsif ($mode eq 'objects') {
+    # Return the MSB info object
+    @msbs = map { $_->info } @msbs;
+
+    if (wantarray) {
+      return @msbs;
+    } else {
+      return \@msbs;
+    }
+
 
   } elsif ($mode eq 'html') {
     my @lines;
@@ -387,42 +399,8 @@ sub summary {
     my $count;
     for my $msb (@msbs) {
       $count++;
-      my %data = $msb->summary;
-      my $status;
-      if ($data{remaining} == 0) {
-	$status = "COMPLETE";
-      } elsif ($data{remaining} == OMP::MSB::REMOVED) {
-	$status = "REMOVED from consideration";
-      } else {
-	$status = "$data{remaining} remaining to be observed";
-      }
-      push(@lines, "<h3>MSB $count: $data{title} (<em>$status</em>)</h3>");
-
-      push(@lines, "<TABLE border='0'>");
-      push(@lines, "<tr><td>Duration:</td><td><b>$data{timeest} sec</b></td>");
-      push(@lines, "<td>Priority:</td><td><b>$data{priority}</b></td></tr>");
-      push(@lines, "<tr><td>Seeing:</td><td><b>$data{seeing}</b></td>");
-      push(@lines, "<td>Tau:</td><td><b>$data{tau}</b></td></tr>");
-      push(@lines, "</TABLE>");
-
-      push(@lines,"<TABLE  border='1'>");
-      push(@lines,"<TR bgcolor='#7979aa'>");
-      push(@lines,"<td>#</td><TD>Instrument</td><td>Target</td><td>Coords</td><td>Waveband</td></tr>");
-
-      # Now go through the observations
-      my $obscount = 0;
-      for my $obs (@{$data{obs}}) {
-	$obscount++;
-	push(@lines,"<TR bgcolor='#7979aa'>",
-	     "<td>$obscount</td>",
-	     map { 
-	       "<td>" . $obs->{$_} . "</td>"  
-	     } qw/ instrument target coords waveband/);
-      }
-
-      push(@lines, "</TABLE>");
-
-
+      my $info = $msb->info;
+      push(@lines, $info->summary('textlong'));
     }
 
     # Return a list or a string
@@ -436,18 +414,18 @@ sub summary {
 
   } elsif ($mode eq 'ascii') {
     # Plain text
-    my @text;
+    my @lines;
 
     # First the project stuff
-    push(@text, "Project ID:\t$proj");
+    push(@lines, "Project ID:\t$proj");
 
     # Convert the timestamp back into a real time (assuming it is
     # possible). The time stamp is in UTC.
-    push(@text, "Time submitted:\t$utc");
+    push(@lines, "Time submitted:\t$utc");
 
     # Number of MSBs (total and active)
-    push(@text, "Number of MSBs:\t" . scalar(@msbs));
-    push(@text,"Active MSBs:\t$active");
+    push(@lines, "Number of MSBs:\t" . scalar(@msbs));
+    push(@lines,"Active MSBs:\t$active");
 
 
     # Now process each MSB
@@ -457,43 +435,16 @@ sub summary {
     my $count;
     for my $msb (@msbs) {
       $count++;
-      my %data = $msb->summary;
-      my $status;
-      if ($data{remaining} == 0) {
-	$status = "COMPLETE";
-      } elsif ($data{remaining} == OMP::MSB::REMOVED) {
-	$status = "REMOVED from consideration";
-      } else {
-	$status = "$data{remaining} remaining to be observed";
-      }
-      push(@text, " MSB $count: $status");
-      push(@text, "\tTitle:    $data{title}");
-      push(@text, "\tDuration: $data{timeest} sec");
-      push(@text, "\tPriority: $data{priority}\tSeeing: $data{seeing}\tTau: $data{tau}");
-
-      push(@text, "\tObservations:");
-      # Now go through the observations
-      my $obscount = 0;
-      for my $obs (@{$data{obs}}) {
-	$obscount++;
-	push(@text,"\t $obscount - Inst:".$obs->{instrument}
-	     . "\tTarget: ".$obs->{target}
-	     . "\tCoords: ".$obs->{coords}
-	     . "\tWaveband: ". $obs->{waveband}
-
-	    );
-
-      }
-
+      my $info = $msb->info;
+      push(@lines, $info->summary('textlong'));
     }
-
 
     # Return a list or a string
     if (wantarray) {
-      return @text;
+      return @lines;
     } else {
-      return join("\n", @text) . "\n";
-    }
+      return join("\n", @lines) . "\n";
+     }
   } else {
     # Unknown mode
     throw OMP::Error::BadArgs("Unknown mode ($mode) specified for SciProg summary");

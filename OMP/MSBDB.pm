@@ -41,6 +41,9 @@ use OMP::Error qw/ :try /;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done /;
 use OMP::Range;
+use OMP::Info::MSB;
+use OMP::Info::Obs;
+use OMP::Info::Comment;
 
 use Time::Piece;
 
@@ -148,12 +151,6 @@ the external checking (e.g. marking an MSB as being observed).
   $status = $db->storeSciProg( SciProg => $sp,
                                FreezeTimeStamp => 1);
 
-Additionally, the C<NoNewTrans> key can be used to indicate that
-we do not wish to initiate a new database transaction (usually
-because one has been started higher up). We do this since the
-begin transaction method might well decide to rollback a previous
-transaction if it is asked to start a new one.
-
 The C<Force> key can be used for force the saving of the program
 to the database even if the timestamps do not match. This option
 should be used with care. Default is false (no force).
@@ -192,16 +189,17 @@ sub storeSciProg {
 			  $args{Force} )
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
-  # Get the summaries for each msb
+  # Get the summaries for each msb as a hash containing observations
+  # as arrays of hashes
   my @rows = map {
-    my $summary = { $_->summary };
+    my $info = $_->info;
 
     # Check that tau and seeing are there
     throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")
-      if (!exists $summary->{tau} or !exists $summary->{seeing});
+      if (!$info->tau() or !$info->seeing());
 
     # Return the reference to the array
-    $summary;
+    $info;
 
   } $args{SciProg}->msb;
 
@@ -476,18 +474,30 @@ Query the database for the MSBs that match the supplied query.
 
   @results = $db->queryMSB( $query );
 
-The query is represented by an C<OMP::MSBQuery> object. 
+The query is represented by an C<OMP::MSBQuery> object.  By default
+the result is returned as an array of XML strings. Alternative formats
+are those supported by C<OMP::Info::MSB::summary> with the caveat that
+the results are returned in an array where each msb summary is
+executed in scalar context. A special option of 'object' will cause
+the results to be returned directly as an array of C<OMP::Info::MSB>
+objects.
+
+  @results = $db->queryMSB( $query, $format );
 
 The results are actually summaries of the table entries rather than
 direct summaries of MSBs. It is assumed that the table contains
 all the necessary information from the MSB itself so that there is
 no need to open each science program to obtain more information.
 
+We may want to allow for control of the return format.
+
 =cut
 
 sub queryMSB {
   my $self = shift;
   my $query = shift;
+  my $format = shift;
+  $format ||= 'xml';
 
   # Run the query and obtain an array of hashes in order up to
   # the maximum number
@@ -502,7 +512,7 @@ sub queryMSB {
   # Use the OMP::MSB code to generate an MSBSummary
   # (since that is the code used to generate the table entry)
 
-  my @xml = map { scalar(OMP::MSB->summary($_))  } @results;
+  my @xml = map { scalar($_->summary($format))  } @results;
 
   return @xml;
 }
@@ -552,12 +562,13 @@ sub doneMSB {
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   "MSB marked as done",
-			   OMP__DONE_DONE );
+                           "MSB marked as done",
+                           OMP__DONE_DONE );
 
   # Give up if we dont have a match
   return unless defined $msb;
 
+  # Mark it as observed
   $msb->hasBeenObserved();
 
   # Now need to store the MSB back to disk again
@@ -963,13 +974,12 @@ only routines that need to be modified.
 
 =item B<_insert_rows>
 
-Insert all the rows into the database using the information
+Insert all the rows into the MSB and Obs database using the information
 provided in the array of hashes:
 
   $db->_insert_rows( @summaries );
 
-where @summaries contains elements of hash references for
-each MSB summary.
+where @summaries contains elements of class C<OMP::Info::MSB>.
 
 =cut
 
@@ -992,9 +1002,9 @@ sub _insert_rows {
   for my $summary (@summaries) {
 
     # Add the contents to the database
-    $self->_insert_row( %{$summary},
-			_dbh  => $dbh,
-			_index=> $index,
+    $self->_insert_row( $summary,
+			dbh  => $dbh,
+			index=> $index,
 		      );
 
     # increment the index for next pass
@@ -1007,22 +1017,22 @@ sub _insert_rows {
 
 =item B<_insert_row>
 
-Insert a row into the database using the information provided in the hash.
+Insert a row into the database using the information provided in the
+C<OMP::Info::MSB> object.
 
-  $db->_insert_row( %data );
+  $db->_insert_row( $info, %config );
 
-The contents of the hash are usually defined by the C<OMP::MSB> class
-and its C<summary()> method.
+The contents of the hash are usually obtained by calling the
+C<summary> method of the C<OMP::MSB> class.
 
 This method inserts MSB data into the MSB table and the observation
 summaries into the observation table.
 
-Usually called from C<_insert_rows>. Expects the hash to include
+Usually called from C<_insert_rows>. Expects the config hash to include
 special keys:
 
-  _index  - index to use for next MSB row
-  _dbh    - the database handle
-  _msbq   - cached SQL handle for MSB insert
+  index  - index to use for next MSB row
+  dbh    - the database handle
 
 that are used to share state between row inserts. This provides
 quite a large optimization over obtaining the index from the database
@@ -1036,15 +1046,21 @@ handle. Since there will be more MSBOBS inserts than MSB inserts
 
 sub _insert_row {
   my $self = shift;
-  my %data = @_;
+  my $msbinfo = shift;
+  my %config = @_;
+
   print "Entering _insert_row\n" if $DEBUG;
 
   # Get the next index
-  my $index = $data{_index};
+  my $index = $config{index};
 
   # Get the database handle from the hash
-  my $dbh = $data{_dbh} or
+  my $dbh = $config{dbh} or
     throw OMP::Error::DBError("Database handle not valid in _insert_row");
+
+  # Get the MSB summary
+  my %data = $msbinfo->summary('hashlong');
+  $data{obscount} = $msbinfo->obscount;
 
   # Throw an exception if we are missing tau or seeing
   throw OMP::Error::SpBadStructure("There seems to be no site quality information. Unable to schedule MSB.\n")
@@ -1063,6 +1079,7 @@ sub _insert_row {
   my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
   my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
 
+  # cloud and moon are implicit ranges
 
   # Insert the MSB data
   $self->_db_insert_data( $MSBTABLE,
@@ -1081,7 +1098,7 @@ sub _insert_row {
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   my $count;
-  for my $obs (@{ $data{obs} }) {
+  for my $obs (@{ $data{observations} }) {
 
     $count++;
 
@@ -1103,6 +1120,7 @@ sub _insert_row {
     }
 
     # Wavelength must be a number (just check for presence of any number)
+    $obs->{wavelength} = $obs->{waveband}->wavelength if $obs->{waveband};
     $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and 
                                      $obs->{wavelength} =~ /\d/);
 
@@ -1110,7 +1128,7 @@ sub _insert_row {
 		    $obsid, $index, $proj, $obs->{instrument}, 
 		    $obs->{type}, $obs->{pol}, $obs->{wavelength},
 		    $obs->{disperser},
-		    $obs->{coordstype}, $obs->{target},
+		    $obs->{coords}->type, $obs->{target},
 		    @coords[1..10], $obs->{timeest}
 		   )
       or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
@@ -1254,7 +1272,7 @@ sub _run_query {
   # if a dummy science program is uploaded)
   for my $row (@$ref) {
     my $msb = $row->{msbid};
-    $row->{obs} = $msbs{$msb};
+    $row->{observations} = $msbs{$msb};
 
     # delete the spurious "nobs" key that is created by the join
     delete $row->{nobs};
@@ -1327,11 +1345,11 @@ sub _run_query {
 
       # Loop over each observation.
       # We have to keep track of the reference time
-      for my $obs ( @{ $msb->{obs} } ) {
+      for my $obs ( @{ $msb->{observations} } ) {
 
 	# Create the coordinate object in order to calculate
 	# observability. Special case calibrations since they
-	# are difficuly to spot from looking at the standard args
+	# are difficult to spot from looking at the standard args
 	if ($obs->{coordstype} eq 'CAL') {
 	  $obs->{coords} = new Astro::Coords();
 	} else {
@@ -1426,7 +1444,7 @@ sub _run_query {
   }
 
   # Now fix up the seeing and tau entries so that they
-  # are array ranges rather than max and min
+  # are OMP::Range objects rather than max and min
   for my $msb (@observable) {
     for my $key (qw/ tau seeing /) {
 
@@ -1448,6 +1466,15 @@ sub _run_query {
       delete $msb->{$minkey};
 
     }
+  }
+
+  # Now convert the hashes to OMP::Info objects
+  for my $msb (@observable) {
+    # Observations
+    for my $obs (@{$msb->{observations}}) {
+      $obs = new OMP::Info::Obs( %$obs );
+    }
+    $msb = new OMP::Info::MSB( %$msb );
   }
 
   return @observable;
@@ -1481,7 +1508,7 @@ This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
 sub _notify_msb_done {
   my $self = shift;
-  my ($checksum, $projectid, $msb, $comment, $status) = @_;
+  my ($checksum, $projectid, $msb, $text, $status) = @_;
 
   $projectid = $self->projectid
     unless defined $projectid;
@@ -1491,10 +1518,16 @@ sub _notify_msb_done {
 			        DB => $self->db,
 			       );
 
-  # Turn off transaction management in $done. There must be
-  # a cleverer way than this since we *know* we are in a transaction
-  # per database handle.
-  $done->addMSBcomment( $checksum, $comment, $msb, $status );
+  # If we have an msb object, get the info object
+  # else just have the checksum
+  my $info = ( $msb ? $msb->info() : $checksum);
+
+  # Create a comment object
+  my $comment = new OMP::Info::Comment( text => $text,
+					status => $status);
+
+  # Add the comment
+  $done->addMSBcomment( $info, $comment );
 
 }
 

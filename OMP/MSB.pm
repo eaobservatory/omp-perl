@@ -28,6 +28,8 @@ use Digest::MD5 qw/ md5_hex /;
 use OMP::Error;
 use OMP::General;
 use OMP::Range;
+use OMP::Info::MSB;
+use OMP::Info::Obs;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -544,168 +546,45 @@ sub find_checksum {
 
 }
 
-=item B<summary>
+=item B<info>
 
-Summarize the MSB.  This is useful for providing entries in the
-feedback system and summaries for the query tool.
+Return an C<OMP::Info::MSB> object summarizing the MSBs and observations
+contained in the XML.
 
-In list context, returns the summary as a hash:
-
-  %summary = $msb->summary();
-
-All keys are lower-cased. The hash includes a special key.
-C<summary> contains a hash with the following keys:
-
-  string => Plain text representation suitable for a log file.
-  header => Header text suitable for first line of log file.
-  keys   => Array of keys, in order, used to create the text summary.
-
-In scalar context the summary is returned in XML format:
-
-  $string = $msb->summary();
-
-The XML format will be something like the following:
-
- <SpMSBSummary id="string">
-    <checksum>de252f2aeb3f8eeed59f0a2f717d39f9</checksum>
-    <remaining>2</remaining>
-     ...
-  </SpMSBSummary>
-
-where the elements match the key names in the hash. An C<msbid> key
-is treated specially. When present this id is used in the SpMSBSummary
-element directly.
-
-If an optional argument is supplied this method will act like
-a class method that uses the supplied hash to form a summary rather
-than the object itself.
-
-  $summary = OMP::MSB->summary( \%hash );
-
-Additionally, a hash key of C<obs> can be used to specify an array
-of observation details.
-
-Warnings will be issued if fundamental keys such as "remaining",
-"checksum" and "projectid" are missing.
+  $info = $msb->summary();
 
 =cut
 
-sub summary {
+sub info {
   my $self = shift;
 
+  # Create a hash summary of *this* class
   my %summary;
-  if (@_) {
-    my $summary_ref = shift;
-    %summary = %$summary_ref;
 
-    # Summarize the observations if required
-    $summary{_obssum} = { $self->_summarize_obs($summary{obs})}
-      if (exists $summary{obs} && defined $summary{obs});
+  # Populate the hash from the object
+  $summary{checksum} = $self->checksum;
+  $summary{remaining} = $self->remaining;
+  $summary{projectid} = $self->projectID;
+  $summary{telescope} = $self->telescope;
+  %summary = (%summary, $self->weather);
+  %summary = (%summary, $self->sched_constraints);
 
-  } else {
+  # MSB internal priority and estimated time
+  $summary{priority} = $self->internal_priority;
+  $summary{timeest} = $self->estimated_time;
 
-    # Populate the hash from the object if no arg
-    $summary{checksum} = $self->checksum;
-    $summary{remaining} = $self->remaining;
-    $summary{projectid} = $self->projectID;
-    $summary{telescope} = $self->telescope;
-    %summary = (%summary, $self->weather);
-    %summary = (%summary, $self->sched_constraints);
-    $summary{obs} = [ $self->obssum ];
+  # Title and observation count
+  $summary{title} = $self->msbtitle;
+  $summary{title} = "unknown" unless defined $summary{title};
 
-    $summary{_obssum} = { $self->_summarize_obs() };
+  # Create the object
+  my $info = new OMP::Info::MSB( %summary );
 
-    # MSB internal priority and estimated time
-    $summary{priority} = $self->internal_priority;
-    $summary{timeest} = $self->estimated_time;
+  # Populate with observations
+  my @obs = map { new OMP::Info::Obs( %{$_} ) } $self->obssum;
+  $info->observations(@obs);
 
-    # Title and observation count
-    $summary{title} = $self->msbtitle;
-    $summary{title} = "unknown" unless defined $summary{title};
-    $summary{obscount} = scalar(@{$summary{obs}});
-
-
-  }
-
-  # Get merged copy which may have observation summaries in
-  # it (we don't want to contaminate the summary that has
-  # obs details as a separate entity)
-  my %local = %summary;
-  %local = (%summary, %{$summary{_obssum}}) if exists $summary{_obssum};
-
-#  use Data::Dumper;
-#  print Dumper(\%local);
-
-  # Summary string and format for each
-  my @keys = qw/projectid title remaining obscount tau seeing
-    pol type instrument waveband target coordstype timeest/;
-
-  # Fix up the magic value
-  $local{remaining} = "REM" if $local{remaining} == OMP::MSB::REMOVED();
-
-  # Field widths %s does not substr a string - real pain
-  # Therefore need to substr ourselves
-  my @width = qw/ 10 10 3 3 8 8 3 3 20 20 20 6 5 /;
-  throw OMP::Error::FatalError("Bizarre problem in MSB::summary ")
-    unless @width == @keys;
-
-  my @format = map { "%-$_"."s" } @width;
-
-  # Substr each string using the supplied widths.
-  my @sub = map { 
-    substr($local{$keys[$_]},0,$width[$_])
-  } grep { exists $local{$keys[$_]} && defined $local{$keys[$_]}} 0..$#width;
-
-  # ...and the header
-  my @head = map {
-    substr(ucfirst($keys[$_]),0,$width[$_])
-  } 0..$#width;
-
-  # Create the new format
-  my $format = join(" ", @format);
-
-  # Form the string and the header
-  my $string = sprintf $format, @sub; # hash slice
-  my $head   = sprintf $format, @head;
-
-  $summary{summary} = {
-		       keys   => \@keys,
-		       string => $string,
-		       header => $head,
-		      };
-
-
-  if (wantarray()) {
-    # Hash required
-    return %summary;
-
-  } else {
-    # XML version
-    my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{msbid}\"" if exists $summary{msbid};
-    $xml .= ">\n";
-
-    for my $key ( keys %local ) {
-      # Special case the summary and ID keys
-      next if $key eq "summary";
-      next if $key =~ /^_/;
-      next unless defined $local{$key};
-      next if ref($local{$key});
-
-      # Currently Matt needs the msbid to be included
-      # in the XML elements as well as an attribute
-      # next if $key eq "msbid";
-
-      # Create XML segment
-      $xml .= "<$key>$local{$key}</$key>\n"
-
-    }
-    $xml .= "</SpMSBSummary>\n";
-
-    return $xml;
-
-  }
-
+  return $info;
 }
 
 =item B<hasBeenObserved>
