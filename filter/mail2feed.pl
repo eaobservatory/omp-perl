@@ -77,8 +77,9 @@ sub projectid {
   # Attempt to match
   if ($subject =~ /(u\/\d\d[ab]\/h?\d+)/i         # UKIRT
       or $subject =~ /(m\d\d[ab][uncih]\d+)/i     # JCMT
-      or $subject =~ /\b(m\d\d[ab]\w+)\b/i        # m01btj 
+      or $subject =~ /\b(m\d\d[ab][A-Za-z]+)\b/i  # m01btj
       or $subject =~ /(u\/SERV\/\d+)/i            # UKIRT SERVice
+      or $subject =~ /\b([A-Za-z]+\d{2,})\b/        # STAFF tj01, thk02
      ) {
     my $pid = $1;
     $self->put_header("projectid", $pid);
