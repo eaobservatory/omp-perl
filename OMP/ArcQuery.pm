@@ -23,7 +23,7 @@ use Carp;
 
 # External modules
 use OMP::Config;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Range;
 
@@ -34,7 +34,14 @@ use Time::Seconds;
 our $SCUTAB = 'archive..SCU S';
 our $GSDTAB = 'jcmt..SCA G';
 our $UKIRTTAB = 'ukirt..COMMON U';
-
+our %insttable = ( CGS4 => [ $UKIRTTAB ],
+                   UFTI => [ $UKIRTTAB ],
+                   UIST => [ $UKIRTTAB ],
+                   MICHELLE => [ $UKIRTTAB ],
+                   IRCAM => [ $UKIRTTAB ],
+                   SCUBA => [ $SCUTAB ],
+                   HETERODYNE => [ $GSDTAB ],
+                 );
 
 # Inheritance
 use base qw/ OMP::DBQuery /;
@@ -166,8 +173,24 @@ sub telescope {
   if ( exists $href->{telescope} ) {
     $telescope = $href->{telescope}->[0];
   } elsif ( defined $self->instrument ) {
-    $telescope = OMP::Config->inferTelescope('instruments', $self->instrument);
+    $telescope = uc(OMP::Config->inferTelescope('instruments', $self->instrument));
   }
+
+  for my $t (keys %$href) {
+    try{
+      $telescope = uc(OMP::Config->inferTelescope('instruments', $t));
+    }
+    catch OMP::Error with {
+    }
+    otherwise {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error in ArcQuery::telescope: $errortext\n";
+    };
+
+    last if defined $telescope;
+  }
+
   if( ! defined( $telescope ) ) {
     throw OMP::Error::DBMalformedQuery( "No telescope supplied!");
   }
@@ -239,41 +262,43 @@ sub sql {
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
     unless scalar(@_) == 0;
 
-  # Generate the WHERE clause from the query hash
-  my $subsql = $self->_qhash_tosql( [qw/ telescope /]);
+  my @sql;
+  my $href = $self->query_hash;
 
-  # Construct the the where clause. Depends on which
-  # additional queries are defined
-  my @where = grep { $_ } ( $subsql );
-  my $where = '';
-  $where = " WHERE " . join( " AND ", @where)
-    if @where;
+  foreach my $t ( keys %$href ) {
+    # Construct the the where clauses. Depends on which
+    # additional queries are defined
+    next if $t eq 'telescope';
+    my $subsql = $self->_qhash_tosql( [qw/ telescope /], $t );
+    my @where = grep { $_ } ( $subsql );
+    my $where = '';
+    $where = " WHERE " . join( " AND ", @where)
+      if @where;
 
-  # Now need to put this SQL into the template query
-  # Need to switch on telescope
-  my $tel = $self->telescope;
-  my $tabsql = join(", ", $self->_tables);
-  throw OMP::Error::DBMalformedQuery("No tables specified!")
-    unless $self->_tables;
-  my $sql;
-  if ($tel eq 'JCMT') {
+    # Now need to put this SQL into the template query
+    # Need to switch on telescope
+    my $tables = join (" ,", @{$insttable{$t}});
+    my $tel = $self->telescope;
+    my $sql;
+    if ($tel eq 'JCMT') {
 
-    # SCUBA only for now [note that we explicitly
-    # select the database and table
-    $sql = "SELECT * FROM $tabsql $where";
+      # SCUBA only for now [note that we explicitly
+      # select the database and table
+      $sql = "SELECT * FROM $tables $where";
 
-  } elsif ($tel eq 'UKIRT') {
+    } elsif ($tel eq 'UKIRT') {
 
-    # UKIRT - query common table first
-    $sql = "SELECT * FROM $tabsql $where ORDER BY UT_DATE";
+      # UKIRT - query common table first
+      $sql = "SELECT * FROM $tables $where ORDER BY UT_DATE";
 
-  } else {
-    throw OMP::Error::DBMalformedQuery("Unknown telescope: $tel\n");
+    } else {
+      throw OMP::Error::DBMalformedQuery("Unknown telescope in ArcQuery::sql: $tel\n");
+    }
+
+    push @sql, $sql;
   }
 
-  #print "SQL: $sql\n";
-  return "$sql\n";
-
+  if(wantarray) { return @sql; } else { return $sql[0]; }
 }
 
 =begin __PRIVATE__METHODS__
@@ -387,45 +412,27 @@ sub _post_process_hash {
   # This is required for a sanity check to make sure incorrect combos are
   # trapped
   my %tables;
+  my %insts;
   if (exists $href->{instrument}) {
     my %tels;
     for (@{ $href->{instrument} }) {
       my $inst = uc($_);
       if ($inst eq "SCUBA") {
-	$tables{$SCUTAB}++;
-	$tels{JCMT}++;
-      } elsif ($inst =~ /^(RX|UKT)/i) {
-	$tables{$GSDTAB}++;
-	$tels{JCMT}++;
+        $tables{$SCUTAB}++;
+        $tels{JCMT}++;
+        $insts{SCUBA}++;
+      } elsif ($inst =~ /^(RX|UKT|HETERODYNE)/i) {
+        $tables{$GSDTAB}++;
+        $tels{JCMT}++;
+        $insts{HETERODYNE}++;
       } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST)/) {
-	$tables{$UKIRTTAB}++;
-	$tels{UKIRT}++;
+        $tables{$UKIRTTAB}++;
+        $tels{UKIRT}++;
+        $insts{$inst}++;
       } else {
-	throw OMP::Error::DBMalformedQuery("Unknown instrument: $inst");
+        throw OMP::Error::DBMalformedQuery("Unknown instrument: $inst");
       }
     }
-
-    # Prevent ukirt and jcmt together
-    throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query [inferred from instrument choice]") if scalar(keys %tels) > 1;
-
-    if (exists $href->{telescope} && !exists $tels{$href->{telescope}->[0]}) {
-
-      throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query [implied telescope differs from specified telescope]");
-
-
-    } else {
-      # Store the telescope
-      $href->{telescope} = [ keys %tels ];
-
-    }
-
-    # Finally - make sure that we are not mixing tables at JCMT
-    if ($href->{telescope}->[0] eq 'JCMT') {
-      if (exists $tables{$GSDTAB} && exists $tables{$SCUTAB}) {
-	throw OMP::Error::DBMalformedQuery("Unfortunately can not mix a SCUBA and heterodyne query.");
-      }
-    }
-
 
   } else {
 
@@ -433,9 +440,16 @@ sub _post_process_hash {
     my $tel = $href->{telescope}->[0];
     if ($tel eq 'UKIRT') {
       $tables{$UKIRTTAB}++;
+      $insts{CGS4}++;
+      $insts{IRCAM}++;
+      $insts{UFTI}++;
+      $insts{MICHELLE}++;
+      $insts{UIST}++;
     } elsif ($tel eq 'JCMT') {
-      # Just use GSDTAB by default
+      $tables{$SCUTAB}++;
       $tables{$GSDTAB}++;
+      $insts{SCUBA}++;
+      $insts{HETERODYNE}++;
     } else {
       throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " . $tel);
     }
@@ -444,61 +458,135 @@ sub _post_process_hash {
   # Now store the selected tables
   $self->_tables( keys %tables );
 
-  # Translate the query to be table specific
+  # Translate the query to be keyed by instrument.
   # Note that this ruins the hash to a certain extent.
-  for my $xmlkey (keys %lut) {
-    if (exists $href->{$xmlkey}) {
+  for my $inst (keys %insts) {
+    for my $xmlkey (keys %lut) {
+      if (exists $href->{$xmlkey}) {
 
-      # Save the entry and create a new subhash
-      my $entry = $href->{$xmlkey};
-      $href->{$xmlkey} = {};
+        # Save the entry and create a new subhash
+        my $entry = $href->{$xmlkey};
 
-      # Now loop over the relevant tables
-      # The real trick here is that the table queries
-      # should be ORed together rather than ANDed
-      # since we want to find all observations which
-      # are within a date range in each table rather than
-      # in *BOTH* tables. The trick is indicating to the
-      # SQL builder that we mean to do this
-      # Indicate it by an array/range within another hash
-      # date => { U.UT_DATE => [], S.ut => [] }
-      for my $table (keys %tables) {
-	# Find the column name for this table
-	my $column = $lut{$xmlkey}->{$table};
+        # Now loop over the relevant tables
+        # The real trick here is that the table queries
+        # should be ORed together rather than ANDed
+        # since we want to find all observations which
+        # are within a date range in each table rather than
+        # in *BOTH* tables. The trick is indicating to the
+        # SQL builder that we mean to do this
+        # Indicate it by an array/range within another hash
+        # date => { U.UT_DATE => [], S.ut => [] }
+        for my $table ( @{$insttable{$inst}} ) {
+          # Find the column name for this table
+          my $column = $lut{$xmlkey}->{$table};
 
-	# Skip it if the key is not defined
-	next unless defined $column;
+          # Skip it if the key is not defined
+          next unless defined $column;
 
-	# Copy the entry to the new hash
-	$href->{$xmlkey}->{$column} = $entry;
+          # Copy the entry to the new hash
+          $href->{$inst}->{$xmlkey}->{$column} = $entry;
+        }
+
+        # Delete the key if we didnt put anything in it
+        # This will break if someone does a search for
+        # SCUBA or heterodyne since there will not be a
+        # corresponding clause for SCUBA
+        if( ! scalar( keys %{$href->{$inst}->{$xmlkey}} ) ) {
+          delete $href->{$inst}->{$xmlkey};
+        }
       }
+    }
 
-      # Delete the key if we didnt put anything in it
-      # This will break if someone does a search for
-      # SCUBA or heterodyne since there will not be a
-      # corresponding clause for SCUBA
-      delete $href->{$xmlkey} unless scalar(keys %{$href->{$xmlkey}});
+    if (exists $href->{$inst}->{instrument}) {
+      $self->_process_elements($href->{$inst}->{instrument}, sub { lc(shift) },
+                               [ $lut{instrument}{$GSDTAB} ] );
+      $self->_process_elements($href->{$inst}->{instrument}, sub { uc(shift);},
+                               [ $lut{instrument}{$UKIRTTAB}]);
+    } else {
+      if ($inst =~ /^(RX|UKT)/i) {
+        $href->{$inst}->{instrument}->{ $lut{instrument}{$GSDTAB} } = [ qw/ HETERODYNE / ];
+        $self->_process_elements($href->{$inst}->{instrument}, sub { lc(shift) },
+                                 [ $lut{instrument}{$GSDTAB} ] );
+      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST)/) {
+        $href->{$inst}->{instrument}->{ $lut{instrument}{$UKIRTTAB} } =  [ "$inst" ] ;
+        $self->_process_elements($href->{$inst}->{instrument}, sub { uc(shift);},
+                                 [ $lut{instrument}{$UKIRTTAB}]);
+      }
+    }
 
+    if (exists $href->{$inst}->{projectid}) {
+      $self->_process_elements($href->{$inst}->{projectid}, sub { lc(shift);  },
+                               [ $lut{projectid}{$GSDTAB},
+                                 $lut{projectid}{$SCUTAB}]);
+      $self->_process_elements($href->{$inst}->{projectid}, sub { uc(shift) },
+                               [ $lut{projectid}{$UKIRTTAB} ] );
     }
   }
-
+  for my $xmlkey (keys %lut) {
+    delete $href->{$xmlkey};
+  }
   # These things should be lower/upper cased [note that we dont use href directly]
-  if (exists $href->{instrument}) {
-    $self->_process_elements($href->{instrument}, sub { lc(shift) }, 
-			     [ $lut{instrument}{$GSDTAB} ] );
-    $self->_process_elements($href->{instrument}, sub { uc(shift);}, 
-			     [ $lut{instrument}{$UKIRTTAB}]);
-  }
-  if (exists $href->{projectid}) {
-    $self->_process_elements($href->{projectid}, sub { lc(shift);  }, 
-			     [ $lut{projectid}{$GSDTAB},
-			       $lut{projectid}{$SCUTAB}]);
-    $self->_process_elements($href->{projectid}, sub { uc(shift) }, 
-			     [ $lut{projectid}{$UKIRTTAB} ] );
-  }
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
+
+}
+
+=item B<_qhash_tosql>
+
+Convert a query hash to a SQL WHERE clause. Called by sub-classes
+in order prior to inserting the clause into the main SQL query.
+
+  $where = $q->_qhash_tosql( \@skip );
+
+First argument is a reference to an array that contains the names of
+keys in the query hash that should be skipped when constructing the
+SQL.
+
+Returned SQL segment does not include "WHERE".
+
+=cut
+
+sub _qhash_tosql {
+  my $self = shift;
+  my $skip = shift;
+  my $inst = shift;
+
+  $skip = [] unless defined $skip;
+
+  # Retrieve the perl version of the query
+  my $href = $self->query_hash;
+  my $query;
+  if(defined($inst)) {
+    $query = $href->{$inst};
+  } else {
+    $query = $href;
+  }
+
+  # Remove the elements that are not "useful"
+  # ie those that start with _ and those that
+  # are in the skip array
+  # [tried it with a grep but it didnt work first
+  # time out - may come back to this later]
+
+  my @keys;
+  for my $entry (keys %$query) {
+    next if $entry =~ /^_/;
+    next if grep /^$entry$/, @$skip;
+    push(@keys, $entry);
+  }
+
+  # Walk through the hash generating the core SQL
+  # a chunk at a time - skipping if required
+  my @sql = grep { defined $_ } map {
+    $self->_create_sql_recurse( $_, $query->{$_} )
+  } @keys;
+
+  # Now join it all together with an AND
+  my $clause = join(" AND ", @sql);
+
+  # Return the clause
+  return $clause;
 
 }
 
@@ -579,13 +667,10 @@ sub _create_sql_recurse {
     # Call myself but join with an OR
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
 		      } keys %$entry;
-
     # Need to bracket each of the sub entries
     $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
 
   } else {
-    # use Data::Dumper;
-    # print Dumper($entry);
 
     throw OMP::Error::DBMalformedQuery("Query hash contained a non-ARRAY non-OMP::Range non-HASH for $column: $entry\n");
   }
