@@ -851,10 +851,10 @@ ignore the plural element (rather than trying to determine that
 dropping of plurals such that multiple occurrence of the same element
 in the query represent variants directly.
 
-  <tauband>1</tauband>
-  <tauband>3</tauband>
+  <name>Tim</name>
+  <name>Kynan</name>
 
-would suggest that taubands 1 or 3 are valid. This also means
+would suggest that names Tim or Kynan are valid. This also means
 
   <instrument>SCUBA</instrument>
   <instruments>

@@ -394,7 +394,7 @@ sub summary {
       push(@text, " MSB $count: $status");
       push(@text, "\tTitle:    $data{title}");
       push(@text, "\tDuration: $data{timeest} sec");
-      push(@text, "\tPriority: $data{priority}\tSeeing: $data{seeing}\tTau: $data{tauband}");
+      push(@text, "\tPriority: $data{priority}\tSeeing: $data{seeing}\tTau: $data{tau}");
 
       push(@text, "\tObservations:");
       # Now go through the observations
