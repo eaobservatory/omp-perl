@@ -1278,7 +1278,13 @@ anything (eg E<lt>targetName/E<gt>).
 sub _get_pcdata {
   my $self = shift;
   my ($el, $tag ) = @_;
-  my @matches = $el->getChildrenByTagName( $tag );
+
+  my @matches;
+  if ($XML::LibXML::VERSION < 1.4) {
+    @matches = $el->getElementsByTagName( $tag );
+  } else {
+    @matches = $el->getChildrenByTagName( $tag );
+  }
   my $pcdata;
   if (@matches) {
     my $child = $matches[-1]->firstChild;
