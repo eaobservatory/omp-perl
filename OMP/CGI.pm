@@ -31,6 +31,9 @@ use OMP::Error;
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::CGIFault;
+use OMP::General;
+use OMP::UserServer;
+
 use HTML::WWWTheme;
 
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
@@ -415,6 +418,48 @@ sub _write_login {
   $self->_write_footer();
 }
 
+=item B<_write_staff_login>
+
+Create a login page that takes an OMP user id and staff password.
+
+  $self->_write_staff_login();
+
+=cut
+
+sub _write_staff_login {
+  my $self = shift;
+
+  my $q = $self->cgi;
+
+  $self->_write_header($STYLE);
+
+  print "These pages are restricted to JAC staff only.  Please provide your user ID and the staff password.<br>";
+
+  print "<table><tr valign=bottom><td align=right>";
+  print $q->startform;
+
+  print $q->hidden(-name=>'login_form',
+		   -default=>1,);
+  print $q->hidden(-name=>'show_content',
+		   -default=>1);
+  print $q->br;
+  print "Username: </td><td>";
+  print $q->textfield(-name=>'userid',
+		      -size=>17,
+		      -maxlength=>30);
+  print $q->br;
+  print "</td><tr><td>Staff Password: </td><td>";
+  print $q->password_field(-name=>'password',
+			   -size=>17,
+			   -maxlength=>30);
+  print "</td><td>";
+  print $q->submit("Submit");
+  print $q->endform;
+  print "</td></table>";
+
+  $self->_write_footer();
+}
+
 =item B<write_page>
 
 Create the page with the login form if the project ID and password are
@@ -481,7 +526,7 @@ sub write_page {
   if (exists $cookie{projectid} and exists $cookie{password}) {
     $verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
   } else {
-    $self->_write_login;
+    $self->_write_login($q->url_param('urlprojid'));
     return;
   }
 
@@ -546,6 +591,78 @@ sub write_page_noauth {
   $self->_write_footer();
 }
 
+=item B<write_page_staff>
+
+Creates the page and does a staff login if necessary.  Also checks the username and password
+for authenticity each time a page is displayed.
+
+  $cgi->write_page_staff( \&form_content, \&form_output );
+
+=cut
+
+sub write_page_staff {
+  my $self = shift;
+  my ($form_content, $form_output) = @_;
+
+  my $q = $self->cgi;
+
+  my $c = new OMP::Cookie( CGI => $q, );
+  $self->cookie( $c );
+
+  my %cookie = $c->getCookie;
+
+  # If we just came from the login form override the cookie contents with
+  # the query parameters.
+  if ($q->param('login_form')) {
+    $cookie{userid} = $q->param('userid');
+    $cookie{password} = $q->param('password');
+  }
+
+  my $verifyuser;
+  my $verifypass;
+  if ($cookie{userid} and $cookie{password}) {
+    $verifyuser = OMP::UserServer->verifyUser($cookie{userid});
+    $verifypass = OMP::General->verify_staff_password($cookie{password});
+  }
+
+  $self->_make_theme;
+
+  if ($verifyuser and $verifypass) {
+    # The user ID and password have been verified.  Continue as normal.
+    $c->setCookie( $EXPTIME, %cookie );
+
+    $self->_write_header($STYLE);
+
+    if ($q->param('show_output')) {
+      $form_output->($q, %cookie);
+    } else {
+      $form_content->($q, %cookie);
+    }
+
+      $self->_write_footer();
+
+  } else {
+    # The user ID and password were not verified.  This could be because
+    # we haven't attempted to log in yet, or because the password or user ID
+    # provided on the login page were incorrect.
+
+    if ($q->param('login_form')) {
+      # The login form was filled out, but atleast some of the information provided
+      # was incorrect
+
+      if (! $verifyuser or ! $verifypass) {
+	$self->_write_staff_login();
+      }
+
+    } else {
+
+      # We haven't been to the login page yet so let's go there
+      $self->_write_staff_login;
+    }
+  }
+
+}
+
 =item B<write_page_logout>
 
 Creates a logout page and gives a cookie that has already expired.  A code reference
@@ -561,7 +678,7 @@ sub write_page_logout {
 
   my $q = $self->cgi;
 
-  my $c = new OMP::Cookie( CGI => $q );
+  my $c = new OMP::Cookie( CGI => $q,);
   $self->cookie( $c );
 
   $c->flushCookie();
