@@ -1505,6 +1505,11 @@ sub project_home {
       $accounts{$_->date->ymd} = $_->timespent;
     }
 
+    # Link to obslog for current day
+    my $today = OMP::General->today();
+    print "<br><a href=\"utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$today\">".
+      "Click here to remote eavesdrop</a><br>";
+
     print "<h3>Observations were acquired on the following dates:</h3>";
 
     my $pkg_url = OMP::Config->getData('pkgdata-url');
