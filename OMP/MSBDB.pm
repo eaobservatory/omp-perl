@@ -16,7 +16,7 @@ OMP::MSBDB - A database of MSBs
                         CheckSum => $checksum );
   $sp  = $db->fetchSciProg();
 
-  @match = $db->query( Query => $xml );
+  @match = $db->queryMSB( $query_object );
 
 
 =head1 DESCRIPTION
