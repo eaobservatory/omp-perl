@@ -180,21 +180,28 @@ sub fb_entries {
 					     $cookie{password},
 					     $status, $order);
 
+  print "<SCRIPT LANGUAGE='javascript'> ";
+  print "function mysubmit() ";
+  print "{document.sortform.submit()}";
+  print "</SCRIPT>";
+
 
   print $q->h2("Feedback entries"),
-	$q->startform,
+	$q->startform(-name=>'sortform'),
         "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
 	"Order: ",
 	$q->popup_menu(-name=>'order',
 		       -values=>[qw/ascending descending/],
-		       -default=>'ascending'),
+		       -default=>'ascending'
+		       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
 	"Show: ",
 
 	$q->popup_menu(-name=>'show',
 		       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],
 		       -default=>OMP__FB_IMPORTANT,
-		       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"}),
+		       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"},
+		       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;",
         $q->submit("Refresh"),
         $q->endform,
