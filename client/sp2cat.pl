@@ -91,12 +91,20 @@ die "Supplied file [$filename] does not exist"
 # Create new SP object
 my $sp = new OMP::SciProg( FILE => $filename );
 
+# Get the project ID
+my $projectid = $sp->projectID;
+
 # Extract all the coordinate objects
 my @coords;
 for my $msb ( $sp->msb ) {
   for my $obs ( $msb->obssum ) {
     push( @coords, $obs->{coords} );
   }
+}
+
+# Set the comment field to the projectid
+for (@coords) {
+  $_->comment($projectid);
 }
 
 # Create a catalog object
