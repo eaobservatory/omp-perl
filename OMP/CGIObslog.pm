@@ -437,6 +437,30 @@ sub obs_table {
     }
   }
 
+# Check to see if we should be doing WORF raw or reduced links. We do
+# this by checking for the raw and reduced data directories to see if
+# they exist.
+  my $rawdir = OMP::Config->getData( 'rawdatadir',
+                                     telescope => $allobs[0]->telescope,
+                                     instrument => lc( $currentinst ),
+                                     utdate => $allobs[0]->startobs->ymd );
+  my $reduceddir = OMP::Config->getData( 'reduceddatadir',
+                                         telescope => $allobs[0]->telescope,
+                                         instrument => lc( $currentinst ),
+                                         utdate => $allobs[0]->startobs->ymd );
+  my %worfraw;
+  my %worfreduced;
+  if( -d $rawdir ) {
+    $worfraw{$currentinst} = 1;
+  } else {
+    $worfraw{$currentinst} = 0;
+  }
+  if( -d $reduceddir ) {
+    $worfreduced{$currentinst} = 1;
+  } else {
+    $worfreduced{$currentinst} = 0;
+  }
+
   my $ncols;
   if( $text ) {
     print "\nObservations for " . uc( $currentinst ) . " on $ut\n";
@@ -460,10 +484,32 @@ sub obs_table {
              ( uc( $instrument ) ne uc( $obs->instrument ) ) );
 
     my %nightlog = $obs->nightlog;
+
     # First, check to see if the instrument has changed. If it has, close the old table
     # and start a new one.
     if( uc($obs->instrument) ne uc($currentinst) && !UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap") ) {
       $currentinst = $obs->instrument;
+
+      if( ! defined( $worfraw{$currentinst} ) ) {
+
+        my $rawdir = OMP::Config->getData( 'rawdatadir',
+                                           telescope => $allobs[0]->telescope,
+                                           instrument => lc( $currentinst ),
+                                           utdate => $allobs[0]->startobs->ymd );
+        my $reduceddir = OMP::Config->getData( 'reduceddatadir',
+                                               telescope => $allobs[0]->telescope,
+                                               instrument => lc( $currentinst ),
+                                               utdate => $allobs[0]->startobs->ymd );
+        $worfraw{$currentinst} = 0;
+        $worfreduced{$currentinst} = 0;
+        if( -d $rawdir ) {
+          $worfraw{$currentinst} = 1;
+        }
+        if( -d $reduceddir ) {
+          $worfreduced{$currentinst} = 1;
+        }
+      }
+
       if( $text ) {
         print "\nObservations for " . uc( $currentinst ) . "\n";
         print $nightlog{_STRING_HEADER}, "\n";
@@ -480,7 +526,6 @@ sub obs_table {
     }
 
     my $comments = $obs->comments;
-#    my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
     my $status = $obs->status;
     my $colour = defined( $status ) ? $colour[$status] : $colour[0];
     my $instrument = $obs->instrument;
@@ -533,99 +578,59 @@ sub obs_table {
 
         my $worf;
         try {
-          # Form an OMP::WORF object for the obs
-          $worf = new OMP::WORF( obs => $obs );
 
-          # Get a list of suffices
-          my @ind_suffices = $worf->suffices;
-          my @grp_suffices = $worf->suffices( 1 );
           print "<td>";
 
-          # Check to see if the raw data directory exists.
-          my $rawdatadir = OMP::Config->getdata( 'rawdatadir',
-                                                 telescope => $obs->telescope,
-                                                 instrument => $obs->instrument,
-                                                 utdate => $obs->startobs->ymd,
-                                               );
-          if( defined( $dir_exists{$rawdatadir} ) ) {
-            if( $dir_exists{$rawdatadir} ) {
-              if( $worf->file_exists( suffix => '', group => 0 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "\">raw</a> ";
-              }
-              foreach my $suffix ( @ind_suffices ) {
-                next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&suffix=$suffix\">$suffix</a> ";
-              }
+          # First the raw.
+          if( $worfraw{$currentinst} ) {
+            # Form an OMP::WORF object for the obs
+            if( ! defined( $worf ) ) {
+              $worf = new OMP::WORF( obs => $obs );
             }
-          } else {
-            if( -d $rawdatadir ) {
-              $dir_exists{$rawdatadir}++;
-              if( $worf->file_exists( suffix => '', group => 0 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "\">raw</a> ";
-              }
-              foreach my $suffix ( @ind_suffices ) {
-                next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&suffix=$suffix\">$suffix</a> ";
-              }
-            } else {
-              $dir_exists{$rawdatadir} = 0;
+            if( $worf->file_exists( suffix => '', group => 0 ) ) {
+              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+              print $obsut;
+              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+              print "\">raw</a> ";
+            }
+          }
+
+          # Then the individual reduced.
+          if( $worfreduced{$currentinst} ) {
+            if( ! defined( $worf ) ) {
+              $worf = new OMP::WORF( obs => $obs );
+            }
+            my @ind_suffices = $worf->suffices;
+            foreach my $suffix ( @ind_suffices ) {
+              next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+              print $obsut;
+              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+              print "&suffix=$suffix\">$suffix</a> ";
             }
           }
 
           print "/ ";
 
-          # Check to see if the reduced data directory exists.
-          my $reduceddatadir = OMP::Config->getdata( 'reduceddatadir',
-                                                     telescope => $obs->telescope,
-                                                     instrument => $obs->instrument,
-                                                     utdate => $obs->startobs->ymd,
-                                                   );
-          if( defined( $dir_exists{$reduceddatadir} ) ) {
-            if( $dir_exists{$reduceddatadir} ) {
-              if( $worf->file_exists( suffix => '', group => 1 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&group=1\">group</a> ";
-              }
-              foreach my $suffix ( @grp_suffices ) {
-                next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&suffix=$suffix&group=1\">$suffix</a> ";
-              }
+          # And the group reduced.
+          if( $worfreduced{$currentinst} ) {
+            if( ! defined( $worf ) ) {
+              $worf = new OMP::WORF( obs => $obs );
             }
-          } else {
-            if( -d $reduceddatadir ) {
-              $dir_exists{$reduceddatadir}++;
-              if( $worf->file_exists( suffix => '', group => 1 ) ) {
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&group=1\">group</a> ";
-              }
-              foreach my $suffix ( @grp_suffices ) {
-                next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-                print $obsut;
-                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-                print "&suffix=$suffix&group=1\">$suffix</a> ";
-              }
-            } else {
-              $dir_exists{$reduceddatadir} = 0;
+            # Get a list of suffices
+            my @grp_suffices = $worf->suffices( 1 );
+            if( $worf->file_exists( suffix => '', group => 1 ) ) {
+              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+              print $obsut;
+              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+              print "&group=1\">group</a> ";
+            }
+            foreach my $suffix ( @grp_suffices ) {
+              next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+              print $obsut;
+              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+              print "&suffix=$suffix&group=1\">$suffix</a> ";
             }
           }
 
@@ -633,14 +638,14 @@ sub obs_table {
         }
         catch OMP::Error with {
           my $Error = shift;
-          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
-          print "<td>&nbsp;</td>";
+#          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+          print "<td>Error 1</td>";
 #        next;
         }
         otherwise {
           my $Error = shift;
-          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
-          print "<td>&nbsp;</td>";
+#          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+          print "<td>" . $Error->{'-text'} . "</td>";
 #        next;
         };
       } else {
