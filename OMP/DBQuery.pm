@@ -30,6 +30,7 @@ use OMP::Error;
 use OMP::General;
 use OMP::Range;
 use Time::Piece ':override'; # for gmtime
+use Time::Seconds;
 
 # Package globals
 
@@ -577,7 +578,7 @@ sub _post_process_hash {
 	  if (scalar( @{$href->{$key}} ) == 1) {
 
 	    # Now convert to a range
-	    my $date = $href->{$key}->[0] . ''; # stringify
+      my $date = $href->{$key}->[0];
 	    my $delta = $href->{_attr}->{$key}->{delta};
 
 	    # Get the units
@@ -587,15 +588,14 @@ sub _post_process_hash {
 
 	    # Derive sql units
 	    my %sqlunits =(
-			   'days' => 'dd',
-			   'seconds' => 'ss',
-			   'minutes' => 'mi',
-			   'hours' => 'hh',
-			   'years' => 'yy',
+			   'days' => ONE_DAY,
+			   'seconds' => 1,
+			   'minutes' => ONE_MINUTE,
+			   'hours' => ONE_HOUR,
+			   'years' => ONE_YEAR,
 			  );
 
-	    # Form the sql function
-	    my $sqldelta = "dateadd($sqlunits{$units},$delta,'$date')";
+      my $enddate = $date + $sqlunits{$units} * $delta;
 
 	    my ($min, $max) = ( 'Min', 'Max');
 	    if ($delta < 0) {
@@ -605,7 +605,7 @@ sub _post_process_hash {
 	    }
 
 	    $href->{$key} = new OMP::Range( $min => $date,
-					    $max => $sqldelta);
+					    $max => $enddate);
 
 
 	  }
