@@ -19,4 +19,4 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: View Faults");
-$cgi->write_page( \&fb_fault_content, sub { } );
+$cgi->write_page( \&fb_fault_content, \&fb_fault_output );
