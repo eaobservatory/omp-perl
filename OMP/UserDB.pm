@@ -195,6 +195,69 @@ sub deleteUser {
 
 }
 
+=item B<inferValidUser>
+
+Given a string (either from an email "From:" header or from
+an HTML snippet), extract user information (name, user ID and
+email address) and match it to a valid OMP user present in the
+system.
+
+If a valid user exists in the system with the same user ID
+as the extracted user, the email address is compared to confirm
+the match. If the email addresses have the same domain but differ
+in the details of the user-specific part it is still treated
+as a match (consider "t.jenness" and "timj") since the chances of
+having a valid user ID from the same domain are slim (hopefully).
+Also, if we do not have a valid user ID but we have an exact email
+match we treat that as a match (we may simply have encountered
+a non-standard user ID).
+
+  $user = $db->inferValidUser( $string );
+
+Returns undef if a valid user can not be extracted from the string,
+if the derived user ID is not present in the system, if the
+extracted email address domain does not match or if an exact
+match on email address is not possible for the entire database.
+
+Note that this method cannot easily deal with the case where we
+have a non-standard user ID linked to an email address that has
+been rewritten by a mail server since it is not attempting
+to compare names.
+
+=cut
+
+sub inferValidUser {
+  my $self = shift;
+  my $string = shift;
+
+  # First guess who we are dealing with
+  my $guess = OMP::User->extract_user( $string );
+  return unless defined $guess;
+
+  # Now see if we have a user with that ID in the system
+  my $valid = $self->getUser( $guess->userid );
+
+
+  # If we have a valid user for comparison, compare email domains
+  if (defined $valid && $valid->domain eq $guess->domain) {
+    return $valid;
+  }
+
+  # Could not find a match, look for an exact match on email
+  my $xml = "<UserQuery><email>".$guess->email."</email></UserQuery>";
+  my $query = new OMP::UserQuery( XML => $xml );
+
+  my @result = $self->queryUsers( $query );
+
+  # hopefully we have only 1 match
+  if (@result) {
+    return $result[0];
+  } else {
+    return;
+  }
+
+}
+
 =back
 
 =head2 Internal Methods
