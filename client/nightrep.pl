@@ -74,11 +74,7 @@ use lib "$FindBin::RealBin/..";
 # OMP Classes
 use OMP::Error qw/ :try /;
 use OMP::General;
-use OMP::TimeAcctDB;
-use OMP::Info::ObsGroup;
-use OMP::ProjServer;
-use OMP::FaultDB;
-use OMP::FaultStats;
+use OMP::NightRep;
 
 use vars qw/ $DEBUG /;
 $DEBUG = 0;
@@ -118,6 +114,11 @@ if(defined($tel)) {
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
+# Night report
+my $NR = new OMP::NightRep( date => $ut, telescope => $telescope);
+
+print "Date is $ut and Telescope is $telescope\n";
+
 # Now we can start
 my $MW = new MainWindow();
 
@@ -128,7 +129,7 @@ top_button_bar( $TopButtons );
 # Now scan the project database and put up the project
 # entries
 my $Projects = $MW->Frame()->pack(-side => 'top');
-project_window( $Projects, $telescope, $ut );
+project_window( $Projects, $NR );
 
 # And time for the event loop
 MainLoop();
@@ -147,11 +148,13 @@ sub top_button_bar {
 # Project window: Needs a frame and a telescope and a ut
 sub project_window {
   my $w = shift;
-  my $tel = shift;
-  my $ut = shift;
+  my $nr = shift;
+
+  # Get the telescope for efficiency
+  my $tel = $nr->telescope;
 
   # Get the project statistics
-  my ($warnings,%times) = generate_project_info($tel, $ut);
+  my ($warnings,%times) = generate_project_info($nr);
 
   # If we have warnings insert them
   # Create lots of messages
@@ -221,10 +224,7 @@ sub project_window {
   add_project($f, 0, "Time lost to Faults", {}, \$final{$tel."FAULTS"});
 
   # Calculate the time lost
-  my $fdb = new OMP::FaultDB( DB => new OMP::DBbackend );
-  my @results = $fdb->getFaultsByDate($ut, $tel);
-  my $faultstats = new OMP::FaultStats( faults => \@results );
-  $final{$tel."FAULTS"} = sprintf("%.1f",$faultstats->timelost->hours);
+  $final{$tel."FAULTS"} = sprintf("%.1f",$nr->timelost->hours);
 
   # And finally extended time if we determined that we had extended
   # time (difficult to imagine extended time if we have no data 
@@ -244,13 +244,13 @@ sub project_window {
   # Presumably there has to be a button for "CONFIRM" and "CONFIRM AND MAIL"
   my $bf = $w->Frame()->pack(-side => 'top');
   $bf->Button(-text => "CONFIRM",
-	      -command => sub { &confirm_totals(%final);
+	      -command => sub { &confirm_totals($nr,%final);
 				&confirm_popup($w);
 				&redraw_main_window($w);
 			      }
 	     )->pack(-side =>'right');
   $bf->Button(-text => "CONFIRM and MAIL",
-	      -command => sub {&confirm_totals(%final);
+	      -command => sub {&confirm_totals($nr,%final);
 			       &confirm_popup($w);
 			       &redraw_main_window($w);
 			     }
@@ -350,10 +350,9 @@ sub project_window {
 # are confirmed values??
 
 sub generate_project_info {
-  my $tel = shift;
-  my $ut = shift;
+  my $nr = shift;
 
-  # Kluge
+  # Kluge for testing outside the DB system
   if ($DEBUG) {
     return (['some calibrations are useless'],
 	    m02bu53 => { DB => new OMP::Project::TimeAcct(projectid =>'m02bu53',
@@ -367,62 +366,19 @@ sub generate_project_info {
 	   );
   }
 
-  # Database connection
-  my $db = new OMP::TimeAcctDB( DB => new OMP::DBbackend);
+  # Ask for accounting information
+  my %accounting = $nr->accounting;
 
-  # Get the time accounting statistics from
-  # the TimeAcctDB table
-  # We need to also select by telescope here
-  my @dbacct = $db->getTimeSpent( utdate => $ut );
-
-  # Select by telescope
-  @dbacct = grep { istel($tel, $_->projectid) } @dbacct;
-
-  # Get the time accounting statistics from the data headers
-  # Need to catch directory not found
-  my ($warnings, @hdacct);
-  try {
-    my $grp = new OMP::Info::ObsGroup( telescope => $tel,
-				     date => $ut,);
-    ($warnings, @hdacct) = $grp->projectStats();
-  };
-
-  # Form a hash
-  my %results;
-
-  # Starting with DB
-  for my $acct (@dbacct) {
-    $results{$acct->projectid}->{DB} = $acct;
-  }
-
-  # Then with headers
-  for my $acct (@hdacct) {
-    $results{$acct->projectid}->{DATA} = $acct;
-  }
-
-  return ($warnings, %results);
-}
-
-# Check that we have the right telescope
-sub istel {
-  my $tel = uc(shift);
-  my $projectid = shift;
-
-  if ($projectid =~ /^$tel/i) {
-    # True if the project id starts with the telescope string
-    return 1;
-  } elsif ($tel eq 'JCMT' && ($projectid eq 'WEATHER' || 
-			      $projectid eq 'FAULT' || 
-			      $projectid eq 'OTHER' || $projectid eq 'SCUBA')) {
-    # Kluge for historical data until the tables are changed
-    return 1;
-
+  my $warnings;
+  if (exists $accounting{ $OMP::NightRep::WARNKEY} ) {
+    $warnings = $accounting{ $OMP::NightRep::WARNKEY };
+    delete $accounting{ $OMP::NightRep::WARNKEY };
   } else {
-    # Must query the project database [eek]
-    # Requires password
-    return 1 if $tel eq OMP::ProjServer->getTelescope( $projectid );
+    $warnings = [];
   }
-  return 0;
+
+  return ($warnings, %accounting);
+
 }
 
 # Popup indicating success
@@ -438,10 +394,11 @@ sub confirm_popup {
 
 # Submit the totals to the database
 sub confirm_totals {
+  my $nr = shift;
   my %totals = @_;
 
   # Create a date object
-  my $date = OMP::General->parse_date( $ut );
+  my $date = $nr->date;
 
   # Contact the accounting database
   my $db = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
