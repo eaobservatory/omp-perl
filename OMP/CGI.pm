@@ -262,12 +262,16 @@ sub _make_theme {
 
 Create the document header (and provide the cookie).  Cookie is optional.
 
-  $cgi->_write_header;
+  $cgi->_write_header([$style]);
+
+
+Optional argument is style sheet tags to be embedded in the HTML header
 
 =cut
 
 sub _write_header {
   my $self = shift;
+  my $style = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
   my $theme = $self->theme;
@@ -281,7 +285,8 @@ sub _write_header {
   }
 
   my $title = $self->html_title;
-  $theme->SetHTMLStartString("<html><head><title>$title</title></head>");
+
+  $theme->SetHTMLStartString("<html><head><title>$title</title>$style</head>");
 
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
@@ -577,7 +582,11 @@ sub write_page_fault {
 
   $self->_sidebar_fault;
 
-  $self->_write_header();
+  my $style = "<style><!--
+  body{font-family:arial,sans-serif}
+  //--></style>";
+
+  $self->_write_header($style);
 
   if ($q->param) {
     if ($q->param('show_output')) {
