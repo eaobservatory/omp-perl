@@ -26,6 +26,9 @@ use OMP::Error;
 use OMP::General;
 use OMP::Range;
 
+use Time::Piece;
+use Time::Seconds;
+
 # TABLES
 our $SCUTAB = 'archive..SCU S';
 our $GSDTAB = 'jcmt..SCA G';
@@ -68,6 +71,61 @@ sub isfile {
     $self->query_hash( {} );
   }
   return $self->{IsFILE};
+}
+
+=item B<mindate>
+
+Date range for the given query.
+
+  $daterange = $q->daterange;
+
+Only used as an accessor, cannot be set. Returns an C<OMP::Range>
+object.
+
+=cut
+
+sub daterange {
+  my $self = shift;
+
+  my $isfile = $self->isfile;
+  $self->isfile(1);
+
+  my $query_hash = $self->query_hash;
+
+  my $daterange;
+
+  if( ref( $query_hash->{date} ) eq 'ARRAY' ) {
+    if (scalar( @{$query_hash->{date}} ) == 1) {
+      my $timepiece = new Time::Piece;
+      $timepiece = $query_hash->{date}->[0];
+      my $maxdate;
+      if( ($timepiece->hour == 0) && ($timepiece->minute == 0) && ($timepiece->second == 0) ) {
+        # We're looking at an entire day, so set up an OMP::Range object with Min equal to this
+        # date and Max equal to this date plus one day.
+        $maxdate = $timepiece + ONE_DAY - 1; # constant from Time::Seconds
+      } else {
+        # We're looking at a specific time, so set up an OMP::Range object with Min equal to
+        # this date minus one second and Max equal to this date plus one second. These plus/minus
+        # seconds are necessary because OMP::Range does an exclusive check instead of inclusive.
+        $maxdate = $timepiece + 1;
+        $timepiece = $timepiece - 1;
+      }
+      $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
+    }
+  } elsif( UNIVERSAL::isa( $query_hash->{date}, "OMP::Range" ) ) {
+    $daterange = $query_hash->{date};
+    # Subtract one second from the range, because the max date is not inclusive.
+    my $max = $daterange->max;
+    $max = $max - 1;
+    $daterange->max($max);
+  } else {
+    throw OMP::Error( "Unable to get date range from query" );
+  }
+
+  $self->isfile($isfile);
+
+  return $daterange;
+
 }
 
 =item B<returncomment>
