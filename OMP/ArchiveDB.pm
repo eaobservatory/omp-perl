@@ -37,9 +37,12 @@ use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
+use SCUBA::ODF;
+
+use lib qw( /jcmt_sw/oracdr/lib/perl5 );
+
 use ORAC::Inst::Defn qw/ orac_configure_for_instrument /;
 use ORAC::Frame;
-use SCUBA::ODF;
 
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
