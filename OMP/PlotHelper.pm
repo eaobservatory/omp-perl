@@ -24,7 +24,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
-use Scalar::Util qw(looks_like_number);
+use Scalar::Util 1.13 qw(looks_like_number);
 
 =head1 METHODS
 
@@ -189,7 +189,7 @@ Arguments should be provided in hash form.  The arguments are:
 
   days      - Number of days to bin up by.
   method    - Method to use when binning.  A string that is either
-              'sum' or 'average'.
+              'sum', 'average', or max.
   values    - An array reference whose elements are arrays where the
               first element (the x value) is an object of class
               C<Time::Piece> to bin up by, and the second element
