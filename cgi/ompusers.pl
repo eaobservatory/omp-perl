@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIUser;
+use OMP::CGI::UserPage;
 
 my $arg = shift @ARGV;
 
@@ -25,4 +25,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: OMP Users");
-$cgi->write_page_noauth( \&OMP::CGIUser::list_users, \&OMP::CGI::list_users );
+$cgi->write_page_noauth( \&OMP::CGI::UserPage::list_users,
+			 \&OMP::CGI::UserPage::list_users );

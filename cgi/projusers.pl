@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIUser;
+use OMP::CGI::UserPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project Contacts");
-$cgi->write_page( \&OMP::CGIUser::project_users, \&OMP::CGIUser::project_users_output );
+$cgi->write_page( \&OMP::CGI::UserPage::project_users,
+		  \&OMP::CGI::UserPage::project_users_output );
