@@ -210,7 +210,8 @@ it is possible that the Science program will be reorganized.
   OMP::MSBServer->doneMSB( $project, $checksum );
 
 Nothing happens if the MSB can no longer be located since this
-simply indicates that the science program has been reorganized.
+simply indicates that the science program has been reorganized
+or the MSB modified.
 
 =cut
 
@@ -227,6 +228,58 @@ sub doneMSB {
 			   );
 
     $db->doneMSB( $checksum );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+
+}
+
+=item B<alldoneMSB>
+
+Mark the specified MSB (identified by project ID and MSB checksum) as
+being completely done. This simply involves setting the remaining
+counter for the MSB to zero regardless of how many were thought to be
+remaining. This is useful for removing an MSB when the required noise
+limit has been reached but the PI of the project is not available to
+update their science program. The MSB is still present in the science
+program.
+
+If the MSB happens to be part of some OR logic
+it is possible that the Science program will be reorganized.
+
+  OMP::MSBServer->alldoneMSB( $project, $checksum );
+
+Nothing happens if the MSB can no longer be located since this
+simply indicates that the science program has been reorganized
+or the MSB modified.
+
+=cut
+
+sub alldoneMSB {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+
+  my $E;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project,
+			    DB => $class->dbConnection
+			   );
+
+    $db->alldoneMSB( $checksum );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

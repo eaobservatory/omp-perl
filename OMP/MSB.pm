@@ -322,8 +322,8 @@ The number remaining can not go below zero.
 
 If the argument is the constant C<MSB::REMOVED>
 this indicates that the MSB has not been observed but
-it has been removed from consideration (generally because
-another MSB has been observed in an SpOR folder).
+it has been removed from consideration. (e.g. from a OR block
+reogranisation or via C<hadBeenCompletelyObserved>).
 
 =cut
 
@@ -711,10 +711,10 @@ decrementing the remaining counter:
 
  - Decrement the counter on the SpOR.
 
- - Since MSBs are currently located in a science programby name
-   without checking for SpOR counter, if the SpOR counter hits zero all
-   remaining MSBs are marked with the magic value for remaining() to
-   indicate they have been removed by the OMP rather than by
+ - Since MSBs are currently located in a science program by name
+   without checking for SpOR counter, if the SpOR counter hits zero
+   all remaining MSBs are marked with the magic value for remaining()
+   to indicate they have been removed by the OMP rather than by
    observation.
 
 This all requires that there are no non-MSB elements in an SpOR
@@ -783,6 +783,30 @@ sub hasBeenObserved {
     }
 
   }
+
+}
+
+=item B<hasBeenCompletelyObserved>
+
+Indicate that this MSB has been completely observed. This involves
+decrementing the C<remaining()> counter to the value C<REMOVED>. Since
+this is not associated with an actual observation no rearranging of OR
+blocks is required (see C<hasBeenObserved>).
+
+  $msb->hasBeenCompletelyObserved();
+
+It is usually combined with an update of the database contents to reflect
+the modified state.
+
+Essentially a thin layer around C<remaining>.
+
+=cut
+
+sub hasBeenCompletelyObserved {
+  my $self = shift;
+
+  # This is the easy bit
+  $self->remaining( REMOVED() );
 
 }
 

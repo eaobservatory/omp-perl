@@ -426,10 +426,13 @@ The MSB is located using the Project identifier (stored in the object)
 and the checksum.  If an MSB can not be located it is likely that the
 science program has been reorganized.
 
-This method locks the database since we are modifying the file on disk
-and the database tables. We do not want to retrieve a science program,
-modify it and store it again if someone has modified the science program
-between us retrieving and storing it.
+This method locks the database since we are modifying the database
+tables. We do not want to retrieve a science program, modify it and
+store it again if someone has modified the science program between us
+retrieving and storing it.
+
+The time remaining on the project is decremented by the estimated
+time taken to observe the MSB.
 
 =cut
 
@@ -466,7 +469,7 @@ sub doneMSB {
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
-		     NoNewTrans => 1);
+		       NoNewTrans => 1);
 
   # Now decrement the time for the project
   my $projdb = new OMP::ProjDB( 
@@ -484,6 +487,79 @@ sub doneMSB {
 				 subject => "MSB Observed",
 				 text => "Marked MSB with checksum"
 				 . " $checksum as done",
+				);
+
+  # Disconnect
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+=item B<alldoneMSB>
+
+Mark the specified MSB as having been completely observed. The number
+of repeats remaining is set to the magic value indicating it has
+been removed (see C<OMP::MSB::REMOVED>).
+
+  $db->doneMSB( $checksum );
+
+The MSB is located using the Project identifier (stored in the object)
+and the checksum.  If an MSB can not be located it is likely that the
+science program has been reorganized.
+
+This method locks the database since we are modifying the database
+tables. We do not want to retrieve a science program, modify it and
+store it again if someone has modified the science program between us
+retrieving and storing it.
+
+No time is removed from the project since this action is not associated
+with observing.
+
+=cut
+
+sub alldoneMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  # Administrator password so that we can fetch and store
+  # science programs without resorting to knowing the
+  # actual password or to disabling password authentication
+  $self->password("***REMOVED***");
+
+  # Connect to the DB (and lock it out)
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # We could use the MSBDB::fetchMSB method if we didn't need the
+  # science program object. Unfortunately, since we intend to modify
+  # the science program we need to get access to the object here
+  # Retrieve the relevant science program
+  my $sp = $self->fetchSciProg(1);
+
+  # Get the MSB
+  my $msb = $sp->fetchMSB( $checksum );
+
+  # Give up if we dont have a match
+  return unless defined $msb;
+
+  $msb->hasBeenCompletelyObserved();
+
+  # Now need to store the MSB back to disk again
+  # since this has the advantage of updating the database table
+  # and making sure reorganized Science Program is stored.
+  # This will require a back door password and the ability to
+  # indicate that the timestamp is not to be modified
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
+		       NoNewTrans => 1);
+
+  # Might want to send a message to the feedback system at this
+  # point
+  $self->_notify_feedback_system(
+				 author => "unknown",
+				 program => "OMP::MSBDB",
+				 subject => "MSB All Observed",
+				 text => "Marked MSB with checksum"
+				 . " $checksum as completely done",
 				);
 
   # Disconnect
