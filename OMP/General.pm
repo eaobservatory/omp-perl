@@ -277,7 +277,7 @@ sub determine_semester {
   my $date = shift;
 
   if (defined $date) {
-    croak "determine_semester: Date should be of class Time::Piece"
+    croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
       unless UNIVERSAL::isa($date, "Time::Piece");
   } else {
     $date = gmtime();
