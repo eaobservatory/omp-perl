@@ -437,7 +437,105 @@ sub SpIterRasterObs {
 
 }
 
+=item B<SpIterNoiseObs>
 
+Given a high level specification for a noise observation,
+generate a SCUBA ODF:
+
+ %odf = $trans->SpIterNoiseObs( %info );
+
+=cut
+
+sub SpIterNoiseObs {
+  my $self = shift;
+  my %info = @_;
+
+  # Template
+  my %odf = (
+	     # Bolometers
+	     # General
+	     CENTRE_COORDS => 'AZ', # Always in same place
+	     EL => '80:00:00',
+	     CHOP_COORDS => 'AZ',
+	     CHOP_FUN => 'scubawave',
+	     CHOP_PA => 90,
+	     CHOP_THROW => 60.0,
+	     # Filter
+	     # GAIN
+	     N_MEASUREMENTS => '1',
+	     # Ints
+	     OBSERVING_MODE => 'noise',
+	     SAMPLE_COORDS => 'NA',
+	     SPIKE_REMOVAL => 'yes',
+	    );
+
+  # Populate bits that vary
+  for (qw/ General Bols Filter Gain Ints / ) {
+    my $method = "get$_";
+    %odf = ( %odf, $self->$method( %info ) );
+  }
+
+  # Source type is the only noise-specific thing that changes
+  my $source = $info{noiseSource};
+  if ($source eq 'SKY') {
+    $source = "SPACE1";
+  } elsif ($source eq "ZENITH") {
+    $source = "SPACE1";
+    $odf{EL} = "90:00:00";
+  } elsif ($source eq 'MATT' or $source eq 'REFLECTOR') {
+    # do nothing - these are okay
+  } else {
+    throw OMP::Error::SpTranslateFail("Unknown noise source: $source");
+  }
+
+  $odf{SOURCE_TYPE} = $source;
+
+  return %odf;
+}
+
+=item B<SpIterFocusObs>
+
+Given a high level specification for a focus/align observation,
+generate a SCUBA ODF:
+
+ %odf = $trans->SpIterFocusObs( %info );
+
+=cut
+
+sub SpIterFocusObs {
+  my $self = shift;
+  my %info = @_;
+
+  # Template
+  my %odf = (
+	     # General
+	     ACCEPT => 'PROMPT',
+	     # Bols
+	     CHOP_COORDS => 'AZ', # Chop params are fixed for focus
+	     CHOP_FUN => 'SCUBAWAVE',
+	     CHOP_PA => 90,
+	     CHOP_THROW => 60.0,
+	     # Filter
+
+	     FOCUS_SHIFT => $info{focusStep},
+	     # Gain
+	     JIGGLE_P_SWITCH => '8',
+	     # Nints
+	     N_MEASUREMENTS => $info{focusPoints},
+	     OBSERVING_MODE => 'FOCUS',
+	     SAMPLE_COORDS => 'NA',
+	     SPIKE_REMOVAL => 'YES',
+	     SWITCH_MODE => 'BMSW',
+	    );
+
+  # Populate bits that vary
+  for (qw/ General Bols Filter Gain Ints / ) {
+    my $method = "get$_";
+    %odf = ( %odf, $self->$method( %info ) );
+  }
+
+  return %odf;
+}
 
 =back
 
