@@ -359,6 +359,15 @@ sub unstored_files {
                                           );
 
       $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
+
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# WFCAM data goes in a "wfcam1" directory. We need to bodge on the "1" to the
+# directory so we can actually get WFCAM data.
+################################################################################
+      $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
+
       next unless -d $directory;
 
       opendir( my $dh, $directory )

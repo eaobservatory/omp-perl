@@ -405,6 +405,14 @@ sub _query_files {
 #          $directory .= "/dem";
 #        }
 
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# WFCAM data goes in a "wfcam1" directory. We need to bodge on the "1" to the
+# directory so we can actually get WFCAM data.
+################################################################################
+        $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
+
         # Get a file list.
         if( -d $directory ) {
           opendir( FILES, $directory );#throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
