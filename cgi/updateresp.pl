@@ -22,10 +22,6 @@ my $arg = shift @ARGV;
 my $q = new CGI;
 my $cgi = new OMP::CGIPage::Fault( CGI => $q );
 
-# Set our theme
-my $theme = new HTML::WWWTheme("/WWW/omp/LookAndFeelConfig");
-$cgi->theme($theme);
-
 $cgi->html_title("OMP Fault System: Update response");
 
 # If the user is outside the JAC network write the page with

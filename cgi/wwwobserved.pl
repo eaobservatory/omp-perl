@@ -23,11 +23,6 @@ my $arg = shift @ARGV;
 my $q = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $q );
 
-# Set our theme
-my $theme = new HTML::WWWTheme("/WWW/omp-private/LookAndFeelConfig");
-$cgi->theme($theme);
-
-
 # If the user is outside the JAC network write the page with
 # authentication
 if (OMP::General->is_host_local) {
