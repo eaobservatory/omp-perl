@@ -1451,36 +1451,40 @@ sub project_home {
   # Get nights for which data was taken
   my $nights = OMP::MSBServer->observedDates($project->projectid, 1);
 
-  # Display nights where data was taken
-  if (@$nights) {
+  # Since time may have been charged to the project even though no MSBs
+  # were observed, check with the accounting DB as well
+  my $adb = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
+  my @accounts = $adb->getTimeSpent( projectid => $project->projectid );
 
-    # Get the time spent on each night
-    my $acctdb = new OMP::TimeAcctDB( DB => new OMP::DBbackend );
-    my @accounts = $acctdb->getTimeSpent( projectid => $project->projectid );
+  # Merge our results
+  my %nights = map {$_->date->ymd, undef} @accounts;
+  for (@$nights) {
+    $nights{$_->ymd} = undef;
+  }
+
+
+  # Display nights where data was taken
+  if (%nights) {
 
     # Sort time spent by night
     my %accounts;
     for (@accounts) {
-      $accounts{$_->date->epoch} = $_->timespent;
+      $accounts{$_->date->ymd} = $_->timespent;
     }
 
     print "<h3>Observations were acquired on the following dates:</h3>";
 
     my $pkg_url = OMP::Config->getData('pkgdata-url');
 
-    for (@$nights) {
-
-      # Link date to obslog
-      #print "<a href='http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl?ut=" . $_->ymd . "'>" . $_->ymd . "</a>";
+    for (%nights) {
 
       # Make a link to the obslog page
-      my $utdate = $_->strftime("%Y%m%d");
-      my $ymd = $_->ymd;
+      my $ymd = $_;
 
-      print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
+      print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$ymd</a> ";
 
-      if ($accounts{$_->epoch}) {
-	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
+      if ($accounts{$ymd}) {
+	my $h = sprintf("%.1f", $accounts{$ymd}->hours);
 	print "($h hours) ";
       }
 
