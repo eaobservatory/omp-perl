@@ -261,10 +261,11 @@ sub translate {
     my $suffix = $time->strftime("%Y%m%d_%H%M%S") ."_".substr($mus,0,3);
 
     # The public easy to recognize name of the html file
-    my $htmlfile = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
+    my $htmlroot = File::Spec->catfile( $TRANS_DIR, "hettrans" );
+    my $htmlfile = $htmlroot . ".html";
 
     # The internal name
-    my $file = $htmlfile . "_" . $suffix;
+    my $file = $htmlroot . "_" . $suffix . ".html";
     open my $fh, ">$file" or 
       throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
 
