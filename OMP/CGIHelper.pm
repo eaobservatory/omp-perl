@@ -431,10 +431,11 @@ sub msb_table {
   print "<td><b>Target:</b></td>";
   print "<td><b>Waveband:</b></td>";
   print "<td><b>Instrument:</b></td>";
+  print "<td><b>Remaining:</b></td>";
 
   my $i;
   foreach my $msb (@$program) {
-
+    next if $msb->{remaining} <= 0;
     # Create a summary of the observation details and display
     # this in the table cells
     my %msb = OMP::MSB->summary($msb);
@@ -443,6 +444,7 @@ sub msb_table {
     print "<td>" . $msb{_obssum}{target} . "</td>";
     print "<td>" . $msb{_obssum}{waveband} . "</td>";
     print "<td>" . $msb{_obssum}{instrument} . "</td>";
+    print "<td>" . $msb->{remaining} . "</td>";
   }
 
   print "</table>\n";
