@@ -7,7 +7,7 @@ my ($MW, $VERSION, $BAR, $STATUS);
 # Add to @INC for OMP and ORAC libraries.
 use FindBin;
 use lib "$FindBin::RealBin/..";
-
+#use lib qw( /home/bradc/development/omp/msbserver/ );
 BEGIN {
 
 # set up the intial Tk "status loading" window and load in the Tk modules
@@ -18,8 +18,16 @@ BEGIN {
 
   use OMP::Constants;
   use OMP::General;
+  use OMP::Error qw/ :try /;
 
   use Time::Piece qw/ :override /;
+
+  # Check to see if we're at JCMT. If we are, set the environment
+  # variable ORAC_DATA_ROOT.
+  use Net::Domain;
+  if( Net::Domain->domainname =~ "jcmt" ) {
+    $ENV{'ORAC_DATA_ROOT'} = "/jcmtdata/raw/scuba";
+  }
 
 }
 
@@ -397,7 +405,22 @@ sub rescan {
     no warnings;
     # Grab the results.
     my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
-    @result = $adb->queryArc( $arcquery );
+    try {
+      @result = $adb->queryArc( $arcquery );
+    }
+    catch OMP::Error with {
+      my $Error = shift;
+      require Tk::DialogBox;
+      my $dbox = $MainWindow->DialogBox( -title => "Error",
+                                         -buttons => ["OK"],
+                                       );
+
+      my $label = $dbox->add( 'Label',
+                              -text => "Error: " . $Error->{-text} )->pack;
+      my $but = $dbox->Show;
+    }
+    otherwise {
+    };
 
     # Add the comments.
     my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
