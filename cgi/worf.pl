@@ -470,7 +470,7 @@ sub worf_output {
 	print "<hr>List all reduced group observations for ";
 	my @string;
 	foreach my $instrument (@instruments) {
-		push @string, (sprintf "<a href=\"?all=yes&instrument=%s\">%s</a>", $instrument, $instrument);
+		push @string, (sprintf "<a href=\"worf.pl?all=yes&instrument=%s\">%s</a>", $instrument, $instrument);
 	}
 	print join ", ", @string;
 	print " for $ut.<br>\n";
@@ -645,13 +645,13 @@ sub print_summary {
 		print "<tr><th>UT date</th><th>Latest raw observation</th><th>Latest reduced group observation</th></tr>\n";
 		print "<tr><td>$ut</td><td>";
 		if($latestraw) {
-			print "$latestraw (<a href=\"?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
+			print "$latestraw (<a href=\"worf.pl?view=yes&file=$latestraw&instrument=$instrument&obstype=raw\">view</a>)";
 		} else {
 			print "&nbsp;";
 		}
 		print "</td><td>";
 		if ($latestgroup) {
-			print "$latestgroup (<a href=\"?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
+			print "$latestgroup (<a href=\"worf.pl?view=yes&file=$latestgroup&instrument=$instrument&obstype=reduced\">view</a>)";
 		} else {
 			print "&nbsp;";
 		}
@@ -855,7 +855,7 @@ sub print_observations {
 							print "<tr><th>observation number</th><th>object name</th><th>UT start</th><th>exposure time</th><th>filter</th><th>grating</th><th>central wavelength</th><th>airmass</th><th>file suffix</th><th>view data</th><th>download file</th></tr>\n";
 							$currentmsbid = $msbid;
 						}
-						print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file\">download</a></td></tr>\n";
+						print "<tr><td>$obsnum</td><td>$objname</td><td>$utstart</td><td>$exptime</td><td>$filter</td><td>$grating</td><td>$wavelength</td><td>$airmass</td><td>$suffix</td><td><a href=\"worf.pl?view=yes&instrument=$instrument&file=$file&obstype=reduced\">view</a></td><td><a href=\"worf_file.pl?instrument=$instrument&file=$file\">download</a></td></tr>\n";
 					}
 				}
 			}
