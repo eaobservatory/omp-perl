@@ -40,6 +40,8 @@ use OMP::Project::TimeAcct;
 
 use Crypt::PassGen qw/passgen/;
 
+use Time::Seconds;
+
 use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
@@ -556,6 +558,23 @@ sub listCountries {
   return map { $_->{country} } @$cref;
 }
 
+=item B<getTotalAlloc>
+
+Return the total TAG allocation for all projects in a given semester.
+
+  $total = $projdb->getTotalAlloc( $semester );
+
+Returned as a C<Time::Seconds> object.
+
+=cut
+
+sub getTotalAlloc {
+  my $self = shift;
+  my $semester = shift;
+
+  return Time::Seconds->new( $self->_get_total_alloc(uc($semester)) );
+}
+
 =back
 
 =head2 Internal Methods
@@ -578,6 +597,36 @@ sub _generate_password {
   return $password;
 
 }
+
+=item B<_get_total_alloc>
+
+Retrieve the total TAG allocation for all projects in a given semester.
+
+  $total = $projdb->_get_total_alloc( $semester );
+
+=cut
+
+sub _get_total_alloc {
+  my $self = shift;
+  my $semester = shift;
+
+  # The SQL query
+  my $sql = "SELECT sum(allocated) FROM $PROJTABLE WHERE semester = \"$semester\"";
+
+  # Now run the query
+  my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
+  my $sth = $dbh->prepare( $sql )
+    or throw OMP::Error::DBError("Error preparing sum allocated SQL statment");
+
+  $sth->execute
+    or throw OMP::Error::DBError("DB Error executing sum allocated SQL: $DBI::errstr");
+
+  my $sum = ($sth->fetchrow_array)[0];
+  return  ( defined $sum ? $sum : 0 );
+}
+
 
 =item B<_get_project_row>
 
