@@ -29,6 +29,7 @@ use warnings;
 
 use OMP::ArcQuery;
 use OMP::ArchiveDB::Cache;
+use OMP::Constants qw/ :logging /;
 use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Info::Obs;
@@ -268,7 +269,7 @@ sub _query_arcdb {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
       print STDERR "Warning when storing archive: $errortext. Continuing.\n";
-      OMP::General->log_message( $errortext );
+      OMP::General->log_message( $errortext, OMP__LOG_WARNING );
     };
 
   }
@@ -479,21 +480,21 @@ sub _query_files {
 
     # Create the Obs object.
     my $obs;
+    my $Error;
     try {
       $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
     }
     catch OMP::Error with {
       # Just log it and go on to the next observation.
-      my $Error = shift;
-      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
-      next;
+      $Error = shift;
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
     }
     otherwise {
       # Just log it and go on to the next observation.
-      my $Error = shift;
-      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
-      next;
+      $Error = shift;
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
     };
+    next if( defined( $Error ) );
 
     if( !defined( $obs ) ) { next; }
 
@@ -562,7 +563,7 @@ sub _query_files {
     my $Error = shift;
     my $errortext = $Error->{'-text'};
     print STDERR "Warning: $errortext\n";
-   OMP::General->log_message( $errortext );
+   OMP::General->log_message( $errortext, OMP__LOG_WARNING );
   };
 
   return @returnarray;
