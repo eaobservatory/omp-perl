@@ -317,12 +317,24 @@ the monitoring period is stored in key "period" (unit of days)
 and any preference as to whether the sources are rising or setting
 is in "approach".
 
+If a single argument of 'undef' is supplied, the cache is cleared
+and re-read.
+
+  $msb->sched_constraints( undef );
+
 =cut
 
 sub sched_constraints {
   my $self = shift;
+
+  if (@_ && not defined $_[0]) {
+    # clear the cache if we have a single undefined argument.
+    %{$self->{SchedConst}} = ();
+  }
+
   # if our cache is empty we need to fill it
   unless (%{$self->{SchedConst}}) {
+
     # Fill
     %{$self->{SchedConst}} = $self->_get_sched_constraints;
 
@@ -367,40 +379,42 @@ Time must be a C<Time::Piece> object.
 The value is ignored if no scheduling constraints element exists
 in the MSB.
 
+Returns true if the date was changed and false if there is no
+scheduling constraint component.
+
 =cut
 
 sub setDateMin {
   my $self = shift;
   my $time = shift;
 
-  # Get the element [this is repeat of code in _get_sched_constraints!!]
-  # KLUGE
-  # First attempt to get the SpSchedConstObsComp and refs
-  # (if present)
-  my @comp;
-  push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
-        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+  # Set the 'earliest' tag
+  return $self->_set_sched_constraints( 'earliest', $time );
+}
 
-  # and use the last one in the list (hopefully we are only allowed
-  # to specify a single value). We get the last one because we want
-  # inheritance to work and the refs from outside the MSB are put in
-  # before the actual MSB contents
-  return () unless @comp;
+=item B<setDateMax>
 
-  my $el = $self->_resolve_ref($comp[-1]);
+Set the latest date on which the MSB will be scheduled. Usually
+used to set an expiry date with automated agents.
 
-  # Now find the <earliest> element
-  my ($early) = $el->findnodes(".//earliest");
+ $msb->setDateMax( $time );
 
-  throw OMP::Error::FatalError("Unable to find <earliest> element in MSB despite having found a SpSchedConstObsComp") unless $early;
+Time must be a C<Time::Piece> object.
 
-  # Get the text node
-  my $child = $early->firstChild;
+The value is ignored if no scheduling constraints element exists
+in the MSB.
 
-  # set it
-  $child->setData( $time->datetime );
+Returns true if the date was changed and false if there is no
+scheduling constraint component.
 
-  return;
+=cut
+
+sub setDateMax {
+  my $self = shift;
+  my $time = shift;
+
+  # Set the 'latest' tag
+  return $self->_set_sched_constraints( 'latest', $time );
 }
 
 =item B<remaining>
@@ -1980,6 +1994,73 @@ sub _get_sched_constraints {
 
   return %summary;
 
+}
+
+=item B<_set_sched_constraints>
+
+Set a single scheduling constraint time.
+
+  $msb->_set_sched_constraints( $tag => $time );
+
+Tag can be one of "earliest" or "latest". Currently other
+constraints can not be specified and only one tag can be
+specified at a single time.
+
+Returns false if there is no scheduling constraint component
+to edit. Returns true otherwise. The C<sched_constraints> cache
+is invalidated.
+
+=cut
+
+sub _set_sched_constraints {
+  my $self = shift;
+  my $tag = shift;
+
+  # Currently we assume value must be a Time::Piece without checking
+  # that the Tag is reasonable
+  my $value = shift;
+
+  # Verify arguments
+  throw OMP::Error::BadArgs("Tag must be one of 'earliest' or 'latest' not $tag")
+    unless ($tag eq 'earliest' || $tag eq 'latest' );
+
+  throw OMP::Error::BadArgs("Value must be Time::Piece object not '".
+			   ref($value) ."'")
+    unless UNIVERSAL::isa($value, 'Time::Piece');
+
+
+  # Get the element [this is repeat of code in _get_sched_constraints!!]
+  # KLUGE
+  # First attempt to get the SpSchedConstObsComp and refs
+  # (if present)
+  my @comp;
+  push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
+        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+
+  # and use the last one in the list (hopefully we are only allowed
+  # to specify a single value). We get the last one because we want
+  # inheritance to work and the refs from outside the MSB are put in
+  # before the actual MSB contents
+  # return false if we do not have anything to edit
+  return () unless @comp;
+
+  my $el = $self->_resolve_ref($comp[-1]);
+
+  # Now find the <earliest> element
+  my ($early) = $el->findnodes(".//$tag");
+
+  throw OMP::Error::FatalError("Unable to find <$tag> element in MSB despite having found a SpSchedConstObsComp") unless $early;
+
+  # Get the text node
+  my $child = $early->firstChild;
+
+  # set it
+  $child->setData( $value->datetime );
+
+  # Need to clear the cache
+  $self->sched_constraints( undef );
+
+  return 1;
 }
 
 
