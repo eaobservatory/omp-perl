@@ -157,6 +157,9 @@ sub storeSciProg {
   # Get the arguments
   my %args = @_;
 
+  # Verify the password as soon as possible
+  $self->_verify_project_password();
+
   # Check them
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
@@ -234,14 +237,13 @@ sub fetchSciProg {
 
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
-  # There is no race condition with -e. If the XML isn't there
-  # the caller can try again later or store it. If the XML does exist
-  # then it will not disappear again since the database transaction is
-  # locked when a science program is removed.
   my $pid = $self->projectid;
   $pid = '' unless defined $pid;
-  throw OMP::Error::UnknownProject("Project \"$pid\" unknown")
+  throw OMP::Error::UnknownProject("No science program available for \"$pid\"")
     unless $self->_get_old_sciprog_timestamp;
+
+  # Verify the password
+  $self->_verify_project_password();
 
   # Instantiate a new Science Program object
   # The file name is derived automatically
@@ -685,6 +687,37 @@ sub _get_next_index {
   return $highest;
 }
 
+=item B<_verify_project_password>
+
+Verify that the supplied plain text password matches the encrypted
+password in the project database. This is just a thin wrapper around
+C<OMP::ProjDB::verifyPassword>.
+
+  $db->_verify_project_password();
+
+The project ID, database connection and password are obtained from the
+object.
+
+Throws C<OMP::Error::Authentication> exception if the password does
+not match.
+
+=cut
+
+sub _verify_project_password {
+  my $self = shift;
+
+  my $proj = new OMP::ProjDB(
+			     ProjectID => $self->projectid,
+			     DB => $self->db,
+			     Password => $self->password,
+			    );
+
+  $proj->verifyPassword()
+    or throw OMP::Error::Authentication("Incorrect password for project ID ".
+				       $self->projectid ."\n");
+
+  return;
+}
 
 =back
 
