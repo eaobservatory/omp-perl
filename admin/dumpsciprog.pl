@@ -11,6 +11,9 @@
 use 5.006;
 use strict;
 use warnings;
+
+use lib qw(/jac_sw/omp/msbserver);
+
 use OMP::SpServer;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;
