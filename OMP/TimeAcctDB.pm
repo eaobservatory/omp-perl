@@ -86,9 +86,10 @@ sub getTimeSpent {
   }
 
   # Construct the XML for the query
+  # Note that we do not want to go exactly one day forward here
   my $xml = "<TimeAcctQuery>" .
     (exists $args{projectid} ? "<projectid>$args{projectid}</projectid>" : '').
-      ($date ? "<date delta=\"1\">$date</date>" : '').
+      ($date ? "<date delta=\"0.99999\">$date</date>" : '').
 	"</TimeAcctQuery>";
 
   # Create the query object
