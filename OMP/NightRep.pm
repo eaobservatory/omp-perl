@@ -991,7 +991,8 @@ sub ashtml {
       if ($grp and $grp->numobs > 1) {
 	# Don't want to go to files on disk
 	$OMP::ArchiveDB::FallbackToFiles = 0;
-	obs_table($grp);
+	obs_table($grp,
+                  sort => 'chronological',);
       } else {
 	# Don't display the table if no observations are available
 	print "No observations available for this night";
