@@ -1,5 +1,4 @@
 #!/local/perl-5.6/bin/perl5.6.1
-
 # quick program to create a "database" table for testing the OMP
 
 use strict;
@@ -27,6 +26,9 @@ OMP::General->verify_administrator_password( $password );
 # Connect
 my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
+
+my %loginhash = $db->loginhash;
+print "$loginhash{server}\n";
 
 # Some constants to ensure that the table columns are the same
 # type/size when containing identical types of information
@@ -224,14 +226,14 @@ my %tables = (
                            faultid => FAULTID,
                            entity => "varchar(64) null",
                            type   => "integer",
-                           system => "integer",
+                           fsystem => "integer",
                            category => "VARCHAR(32)",
                            timelost => "REAL",
                            faultdate => "$DATE null",
                            status => "INTEGER",
                            subject => "VARCHAR(128) null",
                            urgency => "INTEGER",
-			   condition => "INTEGER",
+			   condition => "INTEGER null",
                            _ORDER => [qw/
                                       faultid category subject faultdate type
                                       system status urgency timelost entity
@@ -266,7 +268,7 @@ my %tables = (
               # See OMP::UserDB
               ompuser => {
                           userid => USERID,
-                          name => "VARCHAR(255)",
+                          uname => "VARCHAR(255)",
                           email => "VARCHAR(64) NULL",
                           alias => USERID . " NULL",
                           _ORDER => [qw/ userid name email alias /],
