@@ -38,7 +38,7 @@ use OMP::Config;
 Format a fault in such a way that it is readable in a mail viewer.  This
 method retains the HTML in fault responses and uses HTML for formatting.
 
-  $text = OMP::Fault::Util->format_fault($fault, $bottompost);
+  $text = OMP::FaultUtil->format_fault($fault, $bottompost);
 
 The first argument should be an C<OMP::Fault> object.  If the second argument
 is true then responses are displayed in ascending order (newer responses appear
@@ -69,8 +69,14 @@ sub format_fault {
   my $status = "<b>Status:</b> " . $fault->statusText
     unless (!$responses[1] and $fault->statusText eq /open/i);
 
-  my $faultdatetext = "hrs at ". $fault->faultdate . " UT"
-    if $fault->faultdate;
+  my $faultdatetext;
+  if ($fault->faultdate) {
+    # Convert date to local time
+    my $faultdate = localtime($fault->faultdate->epoch);
+
+    # Now convert date to string for appending to time lost
+    $faultdatetext = "hrs at ". OMP::General->display_date($faultdate);
+  }
 
   my $faultauthor = $fault->author->html;
 
@@ -100,7 +106,9 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     for (@order) {
       my $user = $_->author;
       my $author = $user->html; # This is an html mailto
-      my $date = $_->date->ymd . " " . $_->date->hms;
+      my $date = localtime($_->date->epoch);  # convert date to localtime
+      $date = OMP::General->display_date($date);
+
       my $text = $_->text;
 
       # Wrap the message text
@@ -131,7 +139,13 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     # This is an initial filing so arrange the message with the meta info first
     # followed by the initial report
     my $author = $responses[0]->author->html; # This is an html mailto
-    my $date = $responses[0]->date->ymd . " " . $responses[0]->date->hms;
+
+    # Convert date to local time
+    my $date = localtime($responses[0]->date->epoch);
+
+    # now convert date to a string for display
+    $date = OMP::General->display_date($date);
+
     my $text = $responses[0]->text;
 
     # Wrap the message text
