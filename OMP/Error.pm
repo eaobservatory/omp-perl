@@ -209,6 +209,10 @@ Generic error with the backend database.
 
 The database is currently locked out. Please try again later.
 
+=item B<OMP::Error::DBMalformedQuery>
+
+The DB query XML could not be understood.
+
 =item B<OMP::Error::FatalError>
 
 Used when we have no choice but to abort but using a non-standard
@@ -218,7 +222,7 @@ what will be returned by the overload methods.
 
 =item B<OMP::Error::MSBMalformedQuery>
 
-The query XML could not be understood.
+The MSB query XML could not be understood.
 
 =item B<OMP::Error::MSBMissing>
 
@@ -306,6 +310,9 @@ package OMP::Error::DBError;
 use base qw/ OMP::Error /;
 
 package OMP::Error::DBLocked;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DBMalformedQuery;
 use base qw/ OMP::Error /;
 
 package OMP::Error::FatalError;

@@ -127,6 +127,7 @@ sub _get_faultcode {
 	     DBConnection => 'Server.DBConnection',
 	     DBError => 'Server.DBError',
 	     DBLocked => 'Server.DBLocked',
+	     DBMalformedQuery => 'Client.DBMalformedQuery',
 	     FatalError => 'Server.UnknownError',
 	     MSBMalformedQuery => 'Client.MSBMalformedQuery',
 	     MSBMissing => 'Client.MSBMissing',
