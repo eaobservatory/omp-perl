@@ -35,7 +35,7 @@ use HTML::WWWTheme;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 # Expiry time for cookies
-our $EXPTIME = 2;
+our $EXPTIME = 10;
 
 =head1 METHODS
 
