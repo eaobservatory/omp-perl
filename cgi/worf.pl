@@ -34,13 +34,17 @@ use lib qw(/ukirt_sw/oracdr/lib/perl5);
 use ORAC::Frame::NDF;
 use ORAC::Inst::Defn qw(orac_configure_for_instrument);
 
-use lib qw(/jac_sw/omp/test/omp/msbserver);
+use lib qw(/jac_sw/omp/msbserver);
 use OMP::CGI;
 #use lib qw(/home/bradc/development/omp/msbserver);
 use OMP::WORF;
 use OMP::WORF::CGI;
 
 use strict;
+
+# Turn off warning of redefining orac_warn
+no warnings qw/ redefine /;
+sub ORAC::Print::orac_warn {};
 
 # Set up global variables, system variables, etc.
 
