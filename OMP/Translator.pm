@@ -34,9 +34,6 @@ use warnings;
 use OMP::SciProg;
 use OMP::Error;
 
-use OMP::Translator::SCUBA;
-use OMP::Translator::DAS;
-
 our $VERSION = (qw$Revision$)[1];
 
 our $DEBUG = 0;
@@ -119,9 +116,14 @@ sub translate {
     if ! defined $class;
 
   # Create the full class name
-
   $class = $thisclass . '::' . $class;
   print "Class is : $class\n" if $DEBUG;
+
+  # And load it on demand
+  eval "require $class;";
+  if ($@) {
+    throw OMP::Error::FatalError("Error loading class '$class': $@\n");
+  }
 
   # Now translate (but being careful to propogate calling context)
   if (wantarray) {
