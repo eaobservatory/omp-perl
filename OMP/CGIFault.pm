@@ -661,7 +661,7 @@ sub show_faults {
   my $q = shift;
   my $faults = shift;
 
-  my $url = $query->url(-relative=>1);
+  my $url = $q->url(-relative=>1);
 
   print "<table width=$TABLEWIDTH cellspacing=0>";
   print "<tr><td><b>ID</b></td><td><b>Subject</b></td><td><b>Filed by</b></td><td><b>System</b></td><td><b>Type</b></td><td><b>Status</b></td><td></td>";
