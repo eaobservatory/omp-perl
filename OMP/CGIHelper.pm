@@ -791,6 +791,8 @@ Create a page with a project listing for given semester and a form.
 
 sub list_projects_output {
   my $q = shift;
+  my %cookie = @_;
+
   my $semester = $q->param('semester');
   my $status = $q->param('status');
   my $support = $q->param('support');
@@ -804,6 +806,8 @@ sub list_projects_output {
   } else {
     $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country></ProjQuery>";
   }
+
+  OMP::General->log_message("Projects list retrieved by user $cookie{userid}");
 
   my $projects = OMP::ProjServer->listProjects($xmlquery, 'object');
 
@@ -819,7 +823,7 @@ sub list_projects_output {
       print "<a href='feedback.pl?urlprojid=" . $project->projectid . "'>";
       print $q->h2('Project ' . $project->projectid);
       print "</a>";
-      my %details = (projectid=>$project->projectid, password=>'***REMOVED***');
+      my %details = (projectid=>$project->projectid, password=>$cookie{password});
       proj_status_table($q, %details);
 
       print $q->h3('MSBs observed');
@@ -876,7 +880,7 @@ sub list_projects_form {
   my @countries = grep {$_ !~ /^serv$|^jac$/i} @c;
   unshift @countries, 'Any';
 
-  print "<table border=0><tr><td>Semester: </td><td>";
+  print "<table border=0><tr><td align=right>Semester: </td><td>";
   print $q->startform;
   print $q->hidden(-name=>'show_output',
 		   -default=>1,);
@@ -1017,7 +1021,19 @@ sub msb_hist_content {
   my $q = shift;
   my %cookie = @_;
 
-  my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+  my $commentref;
+  if (! $q->param('show')) {
+    # show all
+    $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+  } elsif ($q->param('show') =~ /observed/) {
+    # show observed
+    my $xml = "<MSBDoneQuery><projectid>$cookie{projectid}</projectid><status>" . OMP__DONE_DONE . "</status></MSBDoneQuery>";
+
+    $commentref = OMP::MSBServer->queryMSBdone($xml, 1, 'data');
+  } else {
+    # show current
+    $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+  }
 
   my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
 
@@ -1042,7 +1058,7 @@ sub msb_hist_content {
 		   -default=>'show_content'),
 
 	$q->popup_menu(-name=>'show',
-		       -values=>[qw/all observed current/],
+		       -values=>[qw/all observed/],
 		       -default=>'all',
 		       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
@@ -1124,7 +1140,7 @@ sub msb_comments {
       ($status == OMP__DONE_ALLDONE) and $bgcolor = '#8075a5';
       ($status == OMP__DONE_COMMENT) and $bgcolor = '#9f93c9';
       ($status == OMP__DONE_UNDONE) and $bgcolor = '#ffd8a3';
-      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date:</b> " .
+      print "<tr><td colspan=4 bgcolor=$bgcolor><b>Date (UT):</b> " .
 	$comment->date ."<br>";
       print $comment->text ."</td>";
     }
