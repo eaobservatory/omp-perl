@@ -824,8 +824,6 @@ sub determine_semester {
   my $tel = uc($args{tel});
   $tel = 'PPARC' unless $tel;
 
-  print "Tel is $tel\n";
-
   # First we can automatically run through any special semesters
   # in a generic search. This will have minimal impact on a telescope
   # that has never had a special semester boundary (apart from the
@@ -840,8 +838,6 @@ sub determine_semester {
       }
     }
   }
-
-  print "Got through special case\n";
 
   # This is the standard PPARC calculation
   if ($tel eq 'PPARC' || $tel eq 'JCMT' || $tel eq 'UKIRT') {
