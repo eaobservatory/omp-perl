@@ -259,15 +259,27 @@ sub timestamp {
 
 =item B<summary>
 
-Summarize the science program. This can either be in the form
-of an XML string containing summaries of all the MSBs, or as an
-array of text where each line is an ASCII summary of each
-MSB (the first line of which is the column names).
+Summarize the science program. This can be in many forms. For example,
+in the form of an XML string containing summaries of all the MSBs, or
+as an array of text where each line is an ASCII summary of each MSB
+(the first line of which is the column names).
+
+An optional argument can be used to switch modes explicitly and to access
+different forms of summaries. Allowed values are:
+
+  'xml'         XML summary (equivalent to default scalar context)
+  'asciiarray'  Array of MSB summaries in plain text (default in list context)
+  'data'        Perl data structure containing an array of hashes.
+                One for each MSB. Additionally, observation information
+                is in another array of hashes within each MSB hash.
+                Respects calling context returning a ref in scalar context.
+  'ascii'       Plain text summary of the Science Program.
+                Returns a list of lines in list context. A block of text
+                in scalar context.
 
 The XML summary is of the form
 
-  <SpProgSummary>
-
+  <SpProgSummary timestamp="9999999" projectid="M01BXXX">
     <SpMSBSummary>
       ...
     </SpMSBSummary>
@@ -284,7 +296,26 @@ where the SpMSBSummary element is defined in L<OMP::MSB>.
 sub summary {
   my $self = shift;
 
-  if (wantarray()) {
+  # Determine the mode of summary
+  my $mode;
+  if (@_ && defined $_[0]) {
+    $mode = lc(shift);
+  } elsif (wantarray()) {
+    # Guess
+    $mode = 'asciiarray';
+  } else {
+    # Guess again
+    $mode = 'xml';
+  }
+
+  # General sci prog infomation
+  my $time = $self->timestamp;
+  $time ||= '';
+  my $proj = $self->projectID;
+
+
+  # Now switch on mode
+  if ($mode eq 'asciiarray') {
     # Plain text
     my @strings;
     for my $msb ($self->msb) {
@@ -297,9 +328,9 @@ sub summary {
 
     return @strings;
 
-  } else {
+  } elsif ($mode eq 'xml') {
     # XML version
-    my $xml = "<SpProgSummary>\n";
+    my $xml = "<SpProgSummary timestamp=\"$time\" projectid=\"$proj\">\n";
 
     for my $msb ($self->msb) {
       $xml .= $msb->summary;
@@ -308,6 +339,65 @@ sub summary {
 
     return $xml;
 
+  } elsif ($mode eq 'data') {
+    # Return an array of hashes (as array ref)
+    # Loop over each msb in the science program
+    my @msbs = map { {$_->summary } } $self->msb;
+
+    if (wantarray) {
+      return @msbs;
+    } else {
+      return \@msbs;
+    }
+
+  } elsif ($mode eq 'ascii') {
+    # Plain text
+    my @text;
+
+    # First the project stuff
+    push(@text, "Project ID:\t$proj");
+
+    # Convert the timestamp back into a real time (assuming it is
+    # possible). The time stamp is in UTC.
+    push(@text, "Time submitted:\t" . gmtime($time) . " UTC");
+
+    # Number of MSBs
+    my @msbs = $self->msb;
+    push(@text, "Number of MSBs:\t" . scalar(@msbs));
+
+    # It would be nice to work out how many we have yet to observe
+    # even though this really should happen as part of our loop through
+    # the msbs themselves. Either I splice in the result later or
+    # do it now. .... Do it now with grep
+    my $active = grep $_->remaining, @msbs;
+    push(@text,"Active MSBs:\t$active");
+
+
+    # Now process each MSB
+    my $count;
+    for my $msb (@msbs) {
+      $count++;
+      my %data = $msb->summary;
+      push(@text, " MSB $count:");
+
+      # Now go through the observations
+      for my $obs (@{$data{obs}}) {
+	push(@text,"\t\t".$obs->{instrument});
+
+      }
+
+    }
+
+
+    # Return a list or a string
+    if (wantarray) {
+      return @text;
+    } else {
+      return join("\n", @text) . "\n";
+    }
+  } else {
+    # Unknown mode
+    throw OMP::Error::BadArgs("Unknown mode ($mode) specified for SciProg summary");
   }
 
 
