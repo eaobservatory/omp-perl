@@ -142,6 +142,9 @@ sub verifyPassword {
     $password = $self->password;
   }
 
+  # Obviate the need for a db query
+  return 1 if OMP::General->verify_administrator_password( $password, 1 );
+
   # Retrieve the contents of the table
   my $project = $self->_get_project_row();
 
