@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl -XT
+#!/local/perl/bin/perl -XT
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase"
 	  if $^O eq "solaris"; }
