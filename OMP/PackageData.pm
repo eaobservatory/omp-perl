@@ -932,6 +932,10 @@ sub _add_comment {
   # go through [else data retrieval does not work]
   $host = (length($host) > 0 ? $host : '<undefined>');
 
+  # Get project PI name for inclusion in feedback message
+  my $project = OMP::ProjServer->projectDetails( $projectid, $self->password, "object" );
+  my $pi = $project->pi;
+
   OMP::FBServer->addComment(
 			    $projectid,
 			    {
@@ -940,7 +944,7 @@ sub _add_comment {
 			     program => $0,
 			     sourceinfo => $host,
 			     status => OMP__FB_SUPPORT,
-			     text => "Data has been requested by $email for project $projectid from UT $utstr",
+			     text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi",
 			     msgtype => OMP__FB_MSG_DATA_REQUESTED,
 			    }
 			   )
