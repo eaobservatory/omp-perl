@@ -976,6 +976,8 @@ sub ashtml {
     # O b s e r v a t i o n  L o g
     # Display only if we are summarizing a single night
     if ($self->delta_day == 1) {
+      # Don't want to go to files on disk
+      $OMP::ArchiveDB::FallbackToFiles = 0;
       my $grp;
       try {
 	$grp = $self->obs;
@@ -990,8 +992,6 @@ sub ashtml {
       print "<a name=obslog></a>";
       
       if ($grp and $grp->numobs > 1) {
-	# Don't want to go to files on disk
-	$OMP::ArchiveDB::FallbackToFiles = 0;
 	obs_table($grp,
                   sort => 'chronological',);
       } else {
