@@ -2879,7 +2879,7 @@ sub SpIterFolder {
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # or other iterators
     # we need to go down a level
-    if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop|UISTImaging|UISTSpecIFU|Nod)/) {
+    if ($name =~ /SpIter(Repeat|Offset|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|Nod|WFCAM)/) {
       my %dummy = $self->SpIterFolder($child, PARENT => $name);
 
       # obstype is a special key
@@ -3164,6 +3164,37 @@ sub SpInstUFTI {
   # Polarimeter
   #my $pol = $self->_get_pcdata( $el, "polariser" );
   #$summary{pol} = ( $pol eq "none" ? 0 : 1 );
+
+  return %summary;
+}
+
+=item B<SpInstWFCAM>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstWFCAM( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstWFCAM {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{telescope} = "UKIRT";
+  $summary{instrument} = "WFCAM";
+  my $filter  = $self->_get_pcdata( $el, "filter" );
+  $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					    Instrument => 'WFCAM');
+  $summary{wavelength} = $summary{waveband}->wavelength;
+  $summary{disperser} = undef;
+
+  # Camera mode
+  $summary{type} = "i";
 
   return %summary;
 }
