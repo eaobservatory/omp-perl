@@ -45,9 +45,12 @@ sub request_data {
   my $utdate = $q->url_param('utdate');
   $utdate = $q->param('utdate') unless $utdate;
 
+  my $inccal = $q->url_param('inccal');
+  $inccal = $q->param('inccal') unless $utdate;
+
   # if we have a date, package up the data
   if ($utdate) {
-    &_package_data($q, $utdate, \%cookie);
+    &_package_data($q, $utdate, $inccal, \%cookie);
 
   } else {
     &_write_form($q, \%cookie);
@@ -80,7 +83,13 @@ sub _write_form {
   print $q->textfield(-name=>'utdate',
 		      -size=>15,
 		      -maxlength=>32);
+  print "</td><tr><td>";
+  print "Include calibrations:</td><td>";
+  print $q->radio_group(-name=>'inccal',
+			-values=>['Yes','No'],
+			-default=>'Yes');
   print "</td><tr><td colspan=2 align=right>";
+
   print $q->submit(-name=>'Submit');
   print $q->endform;
   print "</td></table>";
@@ -91,13 +100,14 @@ sub _write_form {
 
 Write output HTML and package up the data.
 
-  _package_data( $q, $utdate_string, \%cookie );
+  _package_data( $q, $utdate_string, $inccal, \%cookie );
 
 =cut
 
 sub _package_data {
   my $q = shift;
   my $utdate = shift;
+  my $inccal = shift;
   my $cookie = shift;
 
   print $q->h2("Retrieving data for project ". $cookie->{projectid} .
