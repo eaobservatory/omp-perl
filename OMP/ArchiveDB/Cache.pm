@@ -92,6 +92,9 @@ sub store_archive {
   # Store the ObsGroup to disk.
   nstore $obsgrp, $filename or throw OMP::Error::CacheFailure( $! );
 
+  # Chmod the file so others can read and write it.
+  chmod 0666, $filename;
+
 }
 
 =item B<retrieve_archive>
