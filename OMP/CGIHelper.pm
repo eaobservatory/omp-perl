@@ -109,8 +109,8 @@ sub proj_status_table {
 
 =item B<fb_fault_content>
 
-Display a fault along with a list of faults associated with the project.  Also provide
-a form for responding to a fault.
+Display a fault along with a list of faults associated with the project.  Also
+provide a link to the feedback comment addition page for responding to the fault.
 
   fb_fault_content($cgi, %cookie);
 
@@ -143,6 +143,7 @@ sub fb_fault_content {
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
   print "<font size=+1><b>Subject: " . $showfault->subject . "</b></font><br>";
   &fault_table($q, $showfault);
+  print "<br>You may comment on this fault by clicking <a href='fbcomment.pl?subject=Fault%20ID:%20". $showfault->faultid ."'>here</a>";
 }
 
 =item B<fb_fault_output>
