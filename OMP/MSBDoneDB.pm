@@ -50,6 +50,7 @@ use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :done /;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
+use OMP::UserServer;
 use OMP::MSBDoneQuery;
 use OMP::General;
 use Time::Piece;
@@ -493,9 +494,10 @@ sub _add_msb_done_info {
 			  {
 			   TEXT => $comment->text,
 			   COLUMN => 'comment',
-			  }, $msbinfo->title, undef,
+			  }, $msbinfo->title,
+			  ($comment->status == OMP__DONE_COMMENT ? $comment->author->userid : undef),
 			);
-
+  
 }
 
 =item B<_store_msb_done_comment>
@@ -631,15 +633,28 @@ sub _reorganize_msb_done {
     # see if we've met this msb already
     if (exists $msbs{ $row->{checksum} } ) {
 
-      # Add the new comment
-      $msbs{ $row->{checksum} }->addComment( new OMP::Info::Comment(
-								    text => $row->{comment},
-								    date => $row->{date},
-								    status => $row->{status},));
+      # Prepare comment details
+      my %details = (text => $row->{comment},
+		     date => $row->{date},
+		     status => $row->{status},);
 
+      # Specify comment author if there is one
+      ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
+
+      # Add the new comment
+      $msbs{ $row->{checksum} }->addComment( new OMP::Info::Comment(%details));
 
     } else {
       # populate a new entry
+
+      # Prepare comment details
+      my %details = (text => $row->{comment},
+		     date => $row->{date},
+		     status => $row->{status},);
+
+      # Specify comment author if there is one
+      ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
+
       $msbs{ $row->{checksum} } = new OMP::Info::MSB(
 				   title => $row->{title},
 				   checksum => $row->{checksum},
@@ -649,10 +664,7 @@ sub _reorganize_msb_done {
 				   projectid => $row->{projectid},
 				   nrepeats => 0, # initial value
 				   comments => [
-					       new OMP::Info::Comment(
-								      text => $row->{comment},
-								      date => $row->{date},
-								      status => $row->{status})
+					       new OMP::Info::Comment(%details)
 					      ],
 				  );
     }
