@@ -129,7 +129,7 @@ sub addComment {
         throw OMP::Error::BadArgs("User id $user is not in database");
       }
     }
-    $comment->{Author} = $userobj;
+    $comment->author = $userobj;
   } elsif (UNIVERSAL::isa( $comment, 'OMP::Info::Comment' ) ) {
     my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
     if(!$udb->verifyUser($comment->author->userid)) {
@@ -375,7 +375,7 @@ sub _reorganize_comments {
     # property.
     my $db = new OMP::UserDB( DB => new OMP::DBbackend );
     my $author = $db->getUser( $row->{commentauthor} );
-    $comment->{Author} =  $author;
+    $comment->author =  $author;
     push @return, $comment;
   }
 
