@@ -19,6 +19,7 @@ handled in OMP::WORF::CGI.
 use strict;
 use warnings;
 use Carp;
+use File::Temp qw/ tempfile tempdir /;
 
 use OMP::Info::Obs;
 use OMP::Config;
@@ -31,17 +32,24 @@ use PDL::ImageND;
 use PDL::Ufunc;
 use PDL::IO::NDF;
 use PDL::Graphics::PGPLOT;
-#use PDL::Graphics::PGPLOT::Window;
 use PDL::Graphics::LUT;
 
+# Bring in Starlink modules so we can convert from NDF to FITS.
+use Starlink::AMS::Init;
+use Starlink::AMS::Task;
+use Starlink::EMS qw/ :sai get_facility_error /;
+
 our $VERSION = (qw$Revision$ )[1];
+
+# Cache the Starlink task for ndf2fits.
+our $TASK;
 
 require Exporter;
 
 our @ISA = qw/Exporter/;
 our @EXPORTER = qw( );
 our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options
-                  file_exists /;
+                  file_exists fits ndf /;
 our %EXPORT_TAGS = (
                     'all' => [ qw( @EXPORT ) ],
                     );
@@ -392,6 +400,77 @@ sub parse_display_options {
 
   return %parsed;
 
+}
+
+=item B<fits>
+
+Outputs a FITS file to STDOUT.
+
+  $worf->fits( %args );
+
+The argument is a hash optionally containing the following key-value
+pairs:
+
+=over 4
+
+=item group - Whether or not to return a FITS file for the
+group. If undefined, the default will be to return the individual
+frame.
+
+=back
+
+=cut
+
+sub fits {
+  my $self = shift;
+  my %args = @_;
+
+  my $group;
+  if( exists( $args{'group'} ) && defined( $args{'group'} ) ) {
+    $args{'group'} =~ /^([01])$/;
+    $group = $1;
+  } else {
+    $group = 0;
+  }
+
+  my $file = $self->get_filename( $group );
+
+  $self->_return_fits( input_file => $file );
+}
+
+=item B<ndf>
+
+Outputs an NDF file to STDOUT.
+
+  $worf->ndf( %args );
+
+The argument is an optional hash containing the following key-value
+pairs:
+
+=over 4
+
+=item group - Whether or not to return an NDF file for the
+group. If undefined, the default will be to return the individual
+frame.
+
+=back
+
+=cut
+
+sub ndf {
+  my $self = shift;
+  my %args = @_;
+
+  my $group;
+  if( exists( $args{'group'} ) && defined( $args{'group'} ) ) {
+    $args{'group'} =~ /^([01])$/;
+    $group = $1;
+  } else {
+    $group = 0;
+  }
+
+  my $file = $self->get_filename( $group );
+  $self->_return_ndf( input_file => $file );
 }
 
 =back
@@ -1005,6 +1084,137 @@ sub _plot_cube {
 
   dev "/null";
 
+}
+
+=item B<_return_fits>
+
+Returns a FITS file via STDOUT.
+
+  $worf->_return_fits( input_file => $file );
+
+The only argument is mandatory and is the location of the data file. If
+undefined, this method will use the file returned from the C<filename>
+method of the Obs object used in the constructor of the WORF object.
+If defined, this argument must include the full path.
+
+=cut
+
+sub _return_fits {
+  my $self = shift;
+  my %args = @_;
+
+  my $input_file;
+  if( !defined( $args{input_file} ) ) {
+    $input_file = $self->obs->filename;
+  } else {
+    $input_file = $args{input_file};
+  }
+
+  if( !defined( $input_file ) ) {
+    throw OMP::Error("Filename must be passed to _return_fits");
+  }
+  if( $input_file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _return_fits ($input_file) must include full path");
+  }
+  if( $input_file !~ /\.sdf$/ ) {
+    throw OMP::Error("Filename passed to _return_fits ($input_file) must be an NDF and end with .sdf");
+  }
+
+  # Remove the .sdf from the end.
+  $input_file =~ s/\.sdf$//;
+
+  # Set the FITS file name.
+  ( undef, my $fits_file ) = tempfile( );
+  $fits_file .= ".fits";
+
+  # We need to convert the file to FITS. Find the CONVERT binary.
+  my $convert_bin;
+  if( defined( $ENV{'CONVERT_DIR'} ) &&
+      -d $ENV{'CONVERT_DIR'} &&
+      -e File::Spec->catfile( $ENV{'CONVERT_DIR'}, "convert_mon" ) ) {
+    $convert_bin = File::Spec->catfile( $ENV{'CONVERT_DIR'}, "convert_mon" );
+  } elsif( -d "/star/bin/convert" &&
+           -e "/star/bin/convert/convert_mon" ) {
+    $convert_bin = "/star/bin/convert/convert_mon";
+  } else {
+    throw OMP::Error("Could not find CONVERT binary");
+  }
+
+  # Do the conversion, but have a locally-scoped path so we can
+  # find the MessageRelay.pl script that ADAM relies on.
+  {
+    local $ENV{'PATH'} = "/star/bin:/usr/bin:/bin";
+    local $ENV{'ADAM_USER'} = "/tmp";
+    $convert_bin = "/star/bin/convert/convert_mon";
+    my $ams = new Starlink::AMS::Init(1);
+    $ams->messages(0);
+    if( ! defined( $TASK ) ) {
+      $TASK = new Starlink::AMS::Task( "convert", $convert_bin );
+    }
+    my $STATUS = $TASK->contactw;
+    if( ! $STATUS ) {
+      throw OMP::Error("Could not contact CONVERT_MON monolith to do NDF2FITS conversion");
+    }
+    $STATUS = $TASK->obeyw( "ndf2fits", "in=$input_file out=$fits_file" );
+    if( $STATUS != SAI__OK && $STATUS != &Starlink::ADAM::DTASK__ACTCOMPLETE ) {
+      ( my $facility, my $ident, my $text ) = get_facility_error( $STATUS );
+      throw OMP::Error("Error in running NDF2FITS: $text");
+    }
+  }
+
+  # FITS is a fairly straight-forward format, we can just read in the
+  # file and pipe it directly to STDOUT, in binary mode.
+  open( my $fits_fh, "< $fits_file" ) or throw OMP::Error("Cannot open FITS file $fits_file: $!");
+  binmode( $fits_fh );
+  binmode( STDOUT );
+  while( read( $fits_fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+  close $fits_fh;
+
+  # And unlink the temporary FITS file.
+  unlink( $fits_file );
+
+}
+
+=item B<_return_ndf>
+
+Returns an NDF file via STDOUT.
+
+  $worf->_return_ndf( input_file => $file );
+
+The only argument is mandatory and is the location of the data file. If
+undefined, this method will use the file returned from the C<filename>
+method of the Obs object used in the constructor of the WORF object.
+If defined, this argument must include the full path.
+
+=cut
+
+sub _return_ndf {
+  my $self = shift;
+  my %args = @_;
+
+  my $input_file;
+  if( !defined( $args{input_file} ) ) {
+    $input_file = $self->obs->filename;
+  } else {
+    $input_file = $args{input_file};
+  }
+
+  if( !defined( $input_file ) ) {
+    throw OMP::Error("Filename must be passed to _return_ndf");
+  }
+  if( $input_file !~ /^\// ) {
+    throw OMP::Error("Filename passed to _return_ndf ($input_file) must include full path");
+  }
+  if( $input_file !~ /\.sdf$/ ) {
+    throw OMP::Error("Filename passed to _return_ndf ($input_file) must be an NDF and end with .sdf");
+  }
+
+  # Just read in file and pipe it directly to STDOUT, in binary mode.
+  open( my $ndf_fh, "< $input_file" ) or throw OMP::Error("Cannot open NDF file $input_file: $!");
+  binmode( $ndf_fh );
+  binmode( STDOUT );
+  while( read( $ndf_fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+  close $ndf_fh;
 }
 
 =back
