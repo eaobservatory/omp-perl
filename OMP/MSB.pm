@@ -619,6 +619,8 @@ Calculates the MD5 checksum associated with the MSB and stores
 it in the object. Usually this method is invoked automatically
 the first time the C<checksum> method is invoked.
 
+  $self->find_checksum;
+
 The checksum is calculated from the string form of the MSB
 with the outer layer removed (ie the SpMSB or SpObs tags
 are not present for the calculation). This is so that the transient
@@ -645,8 +647,16 @@ sub find_checksum {
   my $self = shift;
 
   # First we need to look for an explicit MSBID
-  # my (@msbids) = $self->_tree->findnodes('msbid');
-
+  my (@msbids) = $self->_tree->findnodes('.//msbid');
+  # and if we get one we assume that is the checksum
+  if (@msbids) {
+    # quickest to just find the parent again and ask get_pcdata
+    my $msbid = $self->_get_pcdata($msbids[0]->parentNode,"msbid");
+    if ($msbid) {
+      $self->checksum($msbid);
+      return;
+    }
+  }
 
   # Get all the children (this is "safer" than stringifying
   # the XML and stripping off the tags and allows me to expand references).
