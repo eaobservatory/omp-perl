@@ -1465,6 +1465,7 @@ sub project_home {
   my %cookie = @_;
 
   # Get the project details
+
   my $project = OMP::ProjServer->projectDetails( $cookie{projectid},
 						 $cookie{password},
 						 'object' );
@@ -1699,7 +1700,7 @@ sub projlog_content {
   # Make links for retrieving data
   my $pkgdataurl = OMP::Config->getData('pkgdata-url');
   print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
-  print "<a href='$pkgdataurl?utdate=$utdate'>Retrieve data excluding calibrations</a>";
+  print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
 
   # Link to shift comments
   print "<p><a href='#shiftcom'>View shift comments</a>";
