@@ -53,7 +53,7 @@ Exporter::export_tags(qw/ all /);
 
 # Colours for displaying observation status. First is 'good', second
 # is 'questionable', third is 'bad'.
-our @colour = ( "BLACK", "#660000", "#FFCCCC" );
+our @colour = ( "BLACK", "#BB3333", "#FF3300" );
 
 =head1 Routines
 
@@ -146,7 +146,7 @@ sub list_observations {
     my $obsgroup;
     try {
       $obsgroup = cgi_to_obsgroup( $q, $ut, $inst );
-      print "<h2>Observations for $inst on $ut</h2><br>\n";
+#      print "<h2>Observations for $inst on $ut</h2><br>\n";
     }
     catch OMP::Error with {
       my $Error = shift;
@@ -177,7 +177,9 @@ sub list_observations {
       print "Error: $errortext<br>\n";
     };
   } else {
-    print "<h3>No observations available</h3><br>\n";
+      print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
+      print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
+      print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
   }
 
   print_obslog_footer( $q );
@@ -229,70 +231,111 @@ sub obs_table {
     throw OMP::Error::BadArgs("Must supply an Info::ObsGroup object")
   }
 
-  print "&nbsp;Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font><br>\n";
-  print "<table border=\"1\">\n<tr><td>";
+#  print "&nbsp;Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font><br>\n";
 
-  # Print the headers.
-  my @obsarray = $obsgroup->obs;
-  my $obs = $obsarray[0];
-  if( defined( $obs ) ) {
-    my %nightlog = $obs->nightlog;
-    print join("</td><td>", @{$nightlog{_ORDER}} );
-    print "</td><td>Comments</td></tr>\n";
-  } else {
-    print "No observations available";
+  my %grouped = $obsgroup->groupby('instrument');
+  my @sortedinst = sort keys %grouped;
+  my $firstinst = $sortedinst[0];
+
+  print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
+  print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
+  print "<tr class=\"sum_other\"><td>";
+  print "Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font></td></tr>\n";
+  print "</table>";
+
+  if(!defined($firstinst)) {
+    print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n";
+    print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
+    return;
   }
 
-  # Sort the array according to the observation time.
-  if( exists( $options->{ascending} ) &&
-      $options->{ascending} == 0 ) {
-    @obsarray = sort { $b->startobs->epoch <=> $a->startobs->epoch } @obsarray;
-  } else {
-    @obsarray = sort { $a->startobs->epoch <=> $a->startobs->epoch } @obsarray;
-  }
+  foreach my $inst (@sortedinst) {
 
-  # Print each observation.
-  foreach $obs ( @obsarray ) {
-
-    my %nightlog = $obs->nightlog;
-    my $comments = $obs->comments;
-    my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
-    my $colour = defined( $status ) ? $colour[$status] : $colour[0];
-    my $instrument = $obs->instrument;
-    print "<tr><td><font color=\"$colour\">";
-    print join("</font></td><td><font color=\"$colour\">" , map {
-      ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
-    } @{$nightlog{_ORDER}} );
-    print "</font></td><td><a href=\"obscomment.pl?ut=";
-    my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
-    $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
-    print $obsut;
-    print "&runnr=" . $obs->runnr . "&inst=" . $instrument . "\">edit/view</a></td></tr>\n";
-
-    # Print the comments underneath, if there are any, and if the
-    # 'showcomments' parameter is not '0'.
-    if( defined( $comments ) &&
-        defined( $comments->[0] ) &&
-        $showcomments ) {
-
-      print "<tr><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 1) . "\">";
-      my @printstrings;
-      foreach my $comment (@$comments) {
-        my $string = "<font color=\"";
-        $string .= $colour[$comment->status];
-        $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->userid . ":";
-        $string .= "</strong> " . $comment->text;
-        $string .= "</font>";
-        push @printstrings, $string;
+    my @obsarray;
+    # First, sort the array according to observation time.
+      if( exists( $options->{ascending} ) &&
+          $options->{ascending} == 0 ) {
+        @obsarray = sort { $b->startobs->epoch <=> $a->startobs->epoch } $grouped{$inst}->obs;
+      } else {
+        @obsarray = sort { $a->startobs->epoch <=> $a->startobs->epoch } $grouped{$inst}->obs;
       }
-      if($#printstrings > -1) {
-        print join "<br>", @printstrings;
-      };
-      print "</td></tr>\n";
+
+    # Get the nightlog for the first observation so we can display the header.
+    my %nightlog = $obsarray[0]->nightlog;
+    my $ncols = ( scalar( @{$nightlog{'_ORDER'}} ) + 1 );
+
+    # Start the table and print a header.
+    print "<table class=\"sum_table\" border=\"0\">\n";
+    print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($inst) . "</div></td></tr>\n";
+
+    # Print the column headings.
+    print "<tr class=\"sum_other\"><td>";
+    print join ( "</td><td>", @{$nightlog{_ORDER}} );
+    print "</td><td>Comments</td></tr>\n";
+
+    my $rowclass = "row_b";
+
+    # Print each observation.
+    foreach my $obs ( @obsarray ) {
+
+      my %nightlog = $obs->nightlog;
+      my $comments = $obs->comments;
+      my $status = ( defined( $comments->[0] ) ? $comments->[0]->status : 0 );
+      my $colour = defined( $status ) ? $colour[$status] : $colour[0];
+      my $instrument = $obs->instrument;
+      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
+        print "<tr class=\"$rowclass\"><td colspan=\"" . ( $ncols - 1 ) . "\"><font color=\"BLACK\">";
+        $nightlog{'_STRING'} =~ s/\n/\<br\>/g;
+        print $nightlog{'_STRING'};
+      } else {
+        print "<tr class=\"$rowclass\"><td><font color=\"$colour\">";
+        print join("</font></td><td><font color=\"$colour\">" , map {
+          ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
+        } @{$nightlog{_ORDER}} );
+      }
+      print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
+      my $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
+      $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
+      print $obsut;
+      print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+        print "&timegap=1";
+      }
+      print "\">edit/view</a></td></tr>\n";
+
+      # Print the comments underneath, if there are any, and if the
+      # 'showcomments' parameter is not '0', and if we're not looking at a timegap
+      if( defined( $comments ) &&
+          defined( $comments->[0] ) &&
+          $showcomments &&
+          ! UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+
+        print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 1) . "\">";
+        my @printstrings;
+        foreach my $comment (@$comments) {
+          my $string = "<font color=\"";
+          $string .= $colour[$comment->status];
+          $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+          $string .= "</strong> " . $comment->text;
+          $string .= "</font>";
+          $string =~ s/\n/\<br\>/g;
+          push @printstrings, $string;
+        }
+        if($#printstrings > -1) {
+          print join "<br>", @printstrings;
+        };
+        print "</td></tr>\n";
+      }
+
+      $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
+
     }
+
+    # And finish the table.
+    print "</table>\n";
+
   }
 
-  print "</td></tr></table>";
 }
 
 =item B<obs_summary>
@@ -317,33 +360,37 @@ sub obs_summary {
 
   my @comments = $obs->comments;
 
-  print "<table border=\"1\">\n";
-  print "<tr><td><strong>Instrument</strong></td><td><strong>Observation date</strong></td><td><strong>Run number</strong></td></tr>\n";
-  print "<tr><td>";
+  print "<table width=\"600\" border=\"0\" class=\"sum_table\">\n";
+  print "<tr class=\"sum_table_head\"><td><strong class=\"small_title\">";
+  print "Comment for ";
   print $obs->instrument;
-  print "</td><td>";
-  print $obs->startobs;
-  print "</td><td>";
-  print $obs->runnr;
-  print "</td></tr></table>\n";
+
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    print " timegap between observations ";
+    print ( $obs->runnr - 1 );
+    print " and ";
+    print $obs->runnr;
+  } else {
+    print " observation ";
+    print $obs->runnr;
+  }
+  print " on " . $obs->startobs->ymd;
+  print "</strong></td></tr></table>\n";
 
   if( defined( $comments[0] ) ) {
-    print "<table border=\"1\" width=\"100%\">";
-    foreach my $comment ( @comments ) {
-      print "<tr><td width=\"20%\">";
-      print $comment->author->userid, "<br>", $comment->date->cdate, "<br>";
-      if($comment->status == OMP__OBS_GOOD) {
-        print "GOOD";
-      } elsif($comment->status == OMP__OBS_QUESTIONABLE) {
-        print "QUESTIONABLE";
-      } elsif($comment->status == OMP__OBS_BAD) {
-        print "BAD";
-      } else {
-        print "unknown";
-      }
-      print "</td><td valign=\"top\">";
-      print $comment->text;
-      print "</td></tr>\n";
+    print "<table border=\"0\" class=\"sum_table\" width=\"600\">";
+
+    my $rowclass = 'row_a';
+    foreach my $comment (@comments) {
+      print "<tr class=\"$rowclass\"><td>";
+      my $string = "<font color=\"";
+      $string .= ( defined( $colour[$comment->status] ) ) ? $colour[$comment->status] : "BLACK";
+      $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+      $string .= "</strong> " . $comment->text;
+      $string .= "</font>";
+      $string =~ s/\n/\<br\>/g;
+      print $string . "</td></tr>";
+      $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
     }
     print "</table>\n";
   }
@@ -416,59 +463,41 @@ sub obs_inst_summary {
 
 # DEBUGGING ONLY
 #$telescope = "JCMT";
+$telescope = "UKIRT";
 
   if( ! defined( $telescope ) ) {
     throw OMP::Error( "Unable to determine telescope" );
   }
 
-  # Now that we know where we are (or not), form the instrument array.
-  my $instruments = OMP::Config->getData( 'instruments',
-                                          telescope => $telescope );
-
-  my @instarray;
-  if( ref( $instruments ) eq 'ARRAY' ) {
-    push @instarray, @$instruments;
-  } else {
-    push @instarray, $instruments;
-  }
-
-  # Alright. Now, for each instrument in the array, form an
-  # Info::ObsGroup object.
+  # Form an ObsGroup object for the telescope.
   my %results;
-  foreach my $inst ( @instarray ) {
-    my $grp;
-    try {
-      $grp = new OMP::Info::ObsGroup( instrument => uc( $inst ),
-                                      date => $ut,
-                                    );
-    }
-    catch OMP::Error with {
-#      my $Error = shift;
-#      my $errortext = $Error->{'-text'};
-#      print "Error: $errortext<br>\n";
-    }
-    otherwise {
-#      my $Error = shift;
-#      my $errortext = $Error->{'-text'};
-#      print "Error: $errortext<br>\n";
-    };
+  try {
+    my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
+                                       date => $ut,
+                                     );
 
-    if( defined( $grp ) ) {
-      $results{$inst} = $grp;
-    }
+    %results = $grp->groupby('instrument');
   }
+  catch OMP::Error with {
+    my $Error = shift;
+    print "Error in CGIObslog::obs_inst_summary: " . $Error->{'-text'} . "\n";
+  }
+  otherwise {
+    my $Error = shift;
+    print "Error in CGIObslog::obs_inst_summary: " . $Error->{'-text'} . "\n";
+  };
 
   my @printarray;
   if( scalar keys %results ) {
-    print "<table border=\"1\"><tr><td><strong>";
+    print "<table border=\"0\" class=\"sum_table\"><tr class=\"sum_table_head\"><td><strong class=\"small_title\">";
     foreach my $inst ( sort keys %results ) {
-      my $header = "<a href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
+      my $header = "<a style=\"color: #05054f;\" href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
       push @printarray, $header;
       if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
         $firstinst = $inst;
       }
     }
-    print join "</strong></td><td><strong>", @printarray;
+    print join "</strong></td><td><strong class=\"small_title\">", @printarray;
     print "</strong></td></tr></table><br>\n";
 
     return ( $firstinst, $ut );
@@ -496,10 +525,17 @@ sub obs_comment_form {
   my $obs = shift;
   my $cookie = shift;
 
-  my %status_label = ( '0' => 'Good',
-                       '1' => 'Questionable',
-                       '2' => 'Bad' ) ;
+  my %status_label = ( 0 => 'Good',
+                       1 => 'Questionable',
+                       2 => 'Bad' ) ;
   my @status_value = qw/ 0 1 2 /;
+
+  my %timegap_label = ( 10 => 'Instrument',
+                        11 => 'Weather',
+                        12 => 'Fault',
+                        13 => 'Unknown',
+                      );
+  my @timegap_value = qw/ 10 11 12 13 /;
 
   # Verify we have an Info::Obs object.
   if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
@@ -521,18 +557,33 @@ sub obs_comment_form {
 
   my $status;
   my $comments = $obs->comments;
-  if( defined( $comments ) &&
-      defined( $comments->[0] ) ) {
-    $status = $comments->[0]->status;
-  } else {
-    $status = OMP__OBS_GOOD;
-  }
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    if( defined( $comments ) &&
+        defined( $comments->[0] ) ) {
+      $status = $comments->[0]->status;
+    } else {
+      $status = OMP__TIMEGAP_UNKNOWN;
+    }
 
-  print $q->popup_menu( -name => 'status',
-                        -values => \@status_value,
-                        -labels => \%status_label,
-                        -default => $status,
+    print $q->popup_menu( -name => 'status',
+                          -values => \@timegap_value,
+                          -labels => \%timegap_label,
+                          -default => $status,
                         );
+  } else {
+    if( defined( $comments ) &&
+        defined( $comments->[0] ) ) {
+      $status = $comments->[0]->status;
+    } else {
+      $status = OMP__OBS_GOOD;
+    }
+
+    print $q->popup_menu( -name => 'status',
+                          -values => \@status_value,
+                          -labels => \%status_label,
+                          -default => $status,
+                        );
+  }
 
   print "</td></tr>\n";
   print "<tr><td colspan=\"2\">";
@@ -656,15 +707,24 @@ sub cgi_to_obs {
   my $ut = $qv->{'ut'};
   my $runnr = $qv->{'runnr'};
   my $inst = uc( $qv->{'inst'} );
+  my $timegap = $qv->{'timegap'};
 
   # Form the Time::Piece object
   my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
 
   # Form the Info::Obs object.
-  my $obs = new OMP::Info::Obs( runnr => $runnr,
-                                startobs => $startobs,
-                                instrument => $inst,
-                              );
+  my $obs;
+  if( $timegap ) {
+    $obs = new OMP::Info::Obs::TimeGap( runnr => $runnr,
+                                        startobs => $startobs,
+                                        instrument => $inst,
+                                      );
+  } else {
+    $obs = new OMP::Info::Obs( runnr => $runnr,
+                               startobs => $startobs,
+                               instrument => $inst,
+                             );
+  }
 
   # Comment-ise the Info::Obs object.
   my @obs;
@@ -732,14 +792,17 @@ sub cgi_to_obsgroup {
     if( defined( $inst ) ) {
       $grp = new OMP::Info::ObsGroup( date => $ut,
                                       instrument => $inst,
-                                      projectid => $projid );
+                                      projectid => $projid,
+                                      timegap => OMP::Config->getData('timegap') );
     } else {
       $grp = new OMP::Info::ObsGroup( date => $ut,
-                                      projectid => $projid );
+                                      projectid => $projid,
+                                      timegap => OMP::Config->getData('timegap') );
     }
   } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
     $grp = new OMP::Info::ObsGroup( date => $ut,
-                                    instrument => $inst );
+                                    instrument => $inst,
+                                    timegap => OMP::Config->getData('timegap') );
   } else {
     throw OMP::Error::BadArgs("Must supply either an instrument name or a project ID to get an Info::ObsGroup object");
   }
