@@ -6,12 +6,9 @@
 #
 # CSV file containing:
 #  Project name
-#  Principal Investigator
-#  PI email
-#  Co-investigator
-#  Co-I email
-#  Support
-#  Support email
+#  Principal Investigator [as userid]
+#  Co-investigator  [colon separated]
+#  Support           [colon separated]
 #  Title
 #  Tag priority
 #  country 
@@ -23,6 +20,8 @@
 
 # Uses the infrastructure classes so each project is inserted
 # independently rather than as a single transaction
+
+# Comments are skipped
 
 use warnings;
 use strict;
@@ -36,11 +35,15 @@ while (<>) {
   chomp;
   my $line = $_;
 
+  # Comments
+  $line =~ s/\#.*//;
+  next unless length($line) > 0;
+
   # We have to guess the order
   my @details  = split(/,/,$line);
   print join("--",@details),"\n";
 
   # Password should be supplied by user
-  OMP::ProjServer->addProject("***REMOVED***", @details[0..12] );
+  OMP::ProjServer->addProject("***REMOVED***", @details[0..9] );
 
 }
