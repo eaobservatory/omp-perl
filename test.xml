@@ -241,7 +241,6 @@
                <dc2>0.0</dc2>
              </offset>
            </obsArea>
-          <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
     </SpObs>
@@ -422,7 +421,6 @@
                 <dc2>0.0</dc2>
               </offset>
 	    </obsArea>
-          <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
     </SpObs>
@@ -1099,7 +1097,6 @@
                 <dc2>0.0</dc2>
               </offset>
           </obsArea>
-          <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
     </SpObs>
@@ -1284,7 +1281,6 @@
                 <dc2>0.0</dc2>
               </offset>
 	    </obsArea>
-          <offsetPositions>Offset0</offsetPositions>
         </SpIterOffset>
       </SpIterFolder>
     </SpObs>
