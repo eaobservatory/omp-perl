@@ -117,13 +117,13 @@ sub addComment {
   my $userobj;
   if( $user ) {
     if(UNIVERSAL::isa( $user, 'OMP::User' ) ) {
-      my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+      my $udb = new OMP::UserDB( DB => $self->db );
       if(!$udb->verifyUser($user->userid)) {
         throw OMP::Error::BadArgs("Must supply a valid user");
       };
       $userobj = $user;
     } else {
-      my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+      my $udb = new OMP::UserDB( DB => $self->db );
       $userobj = $udb->getUser( $user );
       if(!defined($userobj)) {
         throw OMP::Error::BadArgs("User id $user is not in database");
@@ -131,7 +131,7 @@ sub addComment {
     }
     $comment->author($userobj);
   } elsif (UNIVERSAL::isa( $comment, 'OMP::Info::Comment' ) ) {
-    my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+    my $udb = new OMP::UserDB( DB => $self->db );
     if(!$udb->verifyUser($comment->author->userid)) {
       throw OMP::Error::BadArgs("Must supply a valid user with the comment");
     }
@@ -363,6 +363,9 @@ sub _reorganize_comments {
 
   my @return;
 
+  # Connect to the user database
+  my $db = new OMP::UserDB( DB => $self->db );
+
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
@@ -373,7 +376,6 @@ sub _reorganize_comments {
               );
     # Retrieve the user information so we can create the author
     # property.
-    my $db = new OMP::UserDB( DB => new OMP::DBbackend );
     my $author = $db->getUser( $row->{commentauthor} );
     $comment->author($author);
     push @return, $comment;

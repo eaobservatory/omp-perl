@@ -65,7 +65,7 @@ sub enterShiftLog {
 
   # Ensure that a valid user is supplied with the comment.
   my $author = $comment->author;
-  my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
+  my $udb = new OMP::UserDB( DB => $self->db );
   if( !defined( $author ) ) {
     throw OMP::Error::BadArgs( "Must supply author with comment" );
   }
@@ -207,12 +207,14 @@ sub _reorganize_shiftlog {
 
   my @return;
 
+  # Connect to the user database
+  my $udb = new OMP::UserDB( DB => $self->db );
+
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
 
     # Get the User information as an OMP::User object from the author id
-    my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
     my $user = $udb->getUser( $row->{author} );
 
     my $obs = new OMP::Info::Comment(
