@@ -2773,7 +2773,8 @@ sub _resolve_ref {
     # using the implicit aliasing of the loop variable
     $el = $self->_xmlrefs->{$idref};
   } else {
-    throw OMP::Error::FatalError("There is a reference to an element that does not exist (idref=$idref)\n");
+    my $name = $ref->getName;
+    throw OMP::Error::FatalError("There is a reference to an element that does not exist (node=$name idref=$idref)\n");
   }
   return $el;
 }
@@ -4378,7 +4379,7 @@ sub SpTelescopeObsComp {
 
     # offsets
     my $offset = $cfg->getOffset( $t );
-    if (defined $t) {
+    if (defined $offset) {
       # Should just store the offset in the coordinate object
       # or at least retain it as an offset object
       my ($dx, $dy) = $offset->offsets;
