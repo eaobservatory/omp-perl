@@ -1060,7 +1060,9 @@ from outside the JAC network.  This  function is becoming more and more like wri
 
   $cgi->write_page_fault( \&content, \&output );
 
-In order for params to be passed in the URL a hidden field called B<show_outputmust be embedded in the cgi form being submitted for the B<&output> code reference to be called.
+In order for params to be passed in the URL a hidden field called
+B<show_output> must be embedded in the cgi form being submitted for the
+B<&output> code reference to be called.
 
 =cut
 
