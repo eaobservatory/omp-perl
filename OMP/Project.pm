@@ -327,7 +327,7 @@ Country from which project is allocated.
 
 sub country {
   my $self = shift;
-  if (@_) { $self->{Country} = shift; }
+  if (@_) { $self->{Country} = uc(shift); }
   return $self->{Country};
 }
 
