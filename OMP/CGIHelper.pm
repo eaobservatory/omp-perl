@@ -28,6 +28,7 @@ use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::DBServer;
+use OMP::Display;
 use OMP::Info::ObsGroup;
 use OMP::CGIObslog;
 use OMP::CGIShiftlog;
@@ -102,13 +103,15 @@ sub proj_status_table {
   my $case_href = "<a href='props.pl?urlprojid=$projectid'>Science Case</a>";
 
   # Get the CoI email(s)
-  my $coiemail = join(", ",map{$_->html} $project->coi);
-  my $supportemail = join(", ",map{$_->html} $project->support);
+  my $coiemail = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid) } $project->coi);
+
+  # Get the support
+  my $supportemail = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
   print "<table border='0' cellspacing=1 cellpadding=2 width='100%' bgcolor='#bcbee3'><tr>",
 	"<td colspan=3><font size=+2><b>Current project status</b></font></td>",
 	"<tr bgcolor=#7979aa>",
-	"<td><b>PI:</b>" . $project->pi->html . "</a></td>",
+	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid)."</td>",
 	"<td><b>Title:</b> " . $project->title . "</td>",
 	"<td> $case_href </td>",
 	"<tr bgcolor='#7979aa'><td colspan='2'><b>CoI:</b> $coiemail</td>",
@@ -1405,14 +1408,15 @@ sub project_home {
   my $allocated = $project->allocated->pretty_print;
   ($project->allRemaining->seconds > 0) and
     my $remaining = $project->allRemaining->pretty_print;
-  my $pi = "<a href=userdetails.pl?user=".$project->pi->userid.">".$project->pi."</a>";
+  my $pi = OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid);
   my $taurange = $project->taurange;
   my $seerange = $project->seerange;
   my $cloud = $project->cloud;
 
   # Store coi and support html emails
-  my $coi = join(", ",map{"<a href=userdetails.pl?user=".$_->userid.">$_</a>"} $project->coi);
-  my $support = join(", ",map{"<a href=userdetails.pl?user=".$_->userid.">$_</a>"} $project->support);
+  my $coi = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid)} $project->coi);
+
+  my $support = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
   # Make a big header for the page with the project ID and title
   print "<table width=100%><tr><td>";
