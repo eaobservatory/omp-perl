@@ -91,16 +91,33 @@ sub fetchMSB {
   # Return stringified form of object
   # Note that we have to make these actual Science Programs
   # so that the OM and Java Sp class know what to do.
-  my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>
+  # One complication is that the format of the XML changed
+  # mid stream. We need to put a different heading for each.
+  my $spprog = q{<?xml version="1.0" encoding="ISO-8859-1"?>  };
+  my $msbxml = "$msb";
+
+  # Switch on meta_gui
+  if ($msbxml =~ /meta_gui/) {
+    $spprog .= q{
+<SpProg type="pr" subtype="none">
+  <meta_gui_filename>ompdummy.xml</meta_gui_filename>
+  <meta_gui_hasBeenSaved>true</meta_gui_hasBeenSaved>
+  <meta_gui_dir>/tmp</meta_gui_dir>
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+};
+  } else {
+    $spprog .= q{
 <SpProg>
   <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
 };
+  }
+
   my $spprogend = "\n</SpProg>\n";
 
   # Also add in the projectID
   $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
 
-  return "$spprog$msb$spprogend" if defined $msb;
+  return "$spprog$msbxml$spprogend" if defined $msb;
 }
 
 =item B<queryMSB>
