@@ -185,6 +185,44 @@ sub has_automatic_serial_on_insert {
   }
 }
 
+=item B<get_stmt_start>
+
+Return character to be used at start of SQL statement that can
+bracket it from subsequent statements in the same block. For Sybase
+we can bracket statemetns with ( and ). For Postgres just need
+semi-colon at the end.
+
+=cut
+
+sub get_stmt_start {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return "(";
+  } else {
+    return "";
+  }
+}
+
+=item B<get_stmt_end>
+
+Return character to be used at end of SQL statement that can
+bracket it from subsequent statements in the same block. For Sybase
+we can bracket statements with ( and ). For Postgres just need
+semi-colon at the end.
+
+=cut
+
+sub get_stmt_end {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return ")";
+  } else {
+    return ";";
+  }
+}
+
 =item B<get_serial_type>
 
 Indicates what type should be used to declare columns that should

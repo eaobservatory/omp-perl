@@ -303,6 +303,11 @@ sub sql {
   # creating a temporary table
   my $tempnew = OMP::DBbackend->get_temptable_constructor();
 
+  # Sybase allows us to bracket a select statement so that
+  # it does not interfere with a second SELECT in the block.
+  # Postgres does not like that and prefers a ;
+  my $stmt_start = OMP::DBbackend->get_stmt_start();
+  my $stmt_end = OMP::DBbackend->get_stmt_end();
 
   # Additionally there are a number of constraints that are
   # always applied to the query simply because they make
@@ -361,7 +366,7 @@ sub sql {
   # go crazy and we get millions of rows when trying to group
   # by msbid and by country. Have not really worked out why
   # we need DISTINCT here....
-  my $top_sql = "(SELECT
+  my $top_sql = $stmt_start . "SELECT
          DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
            INTO $tempnew $tempcount
             FROM $msbtable M,$obstable O, $projtable P " .
@@ -382,7 +387,7 @@ sub sql {
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
   # We always need to join the QUEUE table since that includes the priority.
-  my $bottom_sql = "GROUP BY M.msbid, Q.country );
+  my $bottom_sql = "GROUP BY M.msbid, Q.country $stmt_end
               SELECT M2.*, P2.taumin, P2.taumax,
                 (".
  		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority")
