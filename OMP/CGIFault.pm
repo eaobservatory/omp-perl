@@ -483,6 +483,9 @@ sub query_fault_output {
 	$year -= 1;
       }
 
+      # Zero pad the month number
+      $month = sprintf("%02d", $month);
+
       my $tempdate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
       $mindate = gmtime($tempdate->epoch);
       my $tempdate2 = Time::Piece->strptime($year . $month . $tempdate->month_last_day . "T23:59:59", "%Y%m%dT%H:%M:%S");
