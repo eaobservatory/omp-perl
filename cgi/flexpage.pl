@@ -16,6 +16,7 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIComponent::Helper;
+use OMP::General;
 
 my $arg = shift @ARGV;
 
@@ -24,5 +25,8 @@ my $ompcgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Flex programme descriptions");
-$ompcgi->write_page_proposals( \&OMP::CGIComponent::Helper::flex_page,
-			       \&OMP::CGIComponent::Helper::flex_page );
+if (OMP::General->is_host_local) {
+  $ompcgi->write_page_noauth( \&flex_page, \&flex_page, );
+} else {
+  $ompcgi->write_page_staff( \&flex_page, \&flex_page, 'no_auth');
+}
