@@ -1,4 +1,4 @@
-gpackage OMP::CGIFault;
+package OMP::CGIFault;
 
 =head1 NAME
 
@@ -201,7 +201,7 @@ sub file_fault_output {
 			     urgency=>$urgency,
 			     fault=>$resp);
 
-  if (defined %projects) {
+  if (%projects) {
     $fault->projects([keys %projects]);
   }
 
