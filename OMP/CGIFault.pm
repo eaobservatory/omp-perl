@@ -703,26 +703,23 @@ sub view_fault_content {
   if ($q->param('goto_fault')) {
     $faultid = $q->param('goto_fault');
   } else {
-    $faultid = $q->url_param('id');
-    (!$faultid) and $faultid = $q->param('id');
+    $faultid = $q->param('id');
+    (! $faultid) and $faultid = $q->url_param('id');
   }
 
   # If we still havent gotten the fault ID, put up a form and ask for it
   if (!$faultid) {
-    print $q->h2("View a fault");
-    print "<table border=0><tr><td>";
-    print $q->startform;
-    print "<b>Enter a fault ID: </b></td><td>";
-    print $q->textfield(-name=>'id',
-		        -size=>15,
-		        -maxlength=>32);
-    print "</td><tr><td colspan=2 align=right>";
-    print $q->submit(-name=>'Submit');
-    print $q->endform;
-    print "</td></table>";
+    view_fault_form($q);
   } else {
     # Got the fault ID, so display the fault
     my $fault = OMP::FaultServer->getFault($faultid);
+
+    # Don't go any further if we got undef back instead of a fault
+    if (! $fault) {
+      print "No fault with ID of [$faultid] exists.";
+      view_fault_form($q);
+      return;
+    }
 
     # Send the fault to a printer if print button was clicked
     if ($q->param('print')) {
@@ -927,6 +924,30 @@ sub view_fault_output {
   # Form for printing
   my @faults = ($fault->id);
   print_form($q, 0, @faults);
+}
+
+=item B<view_fault_form>
+
+Create a form for submitting a fault ID for a fault to be viewed.
+
+  view_fault_form($cgi);
+
+=cut
+
+sub view_fault_form {
+  my $q = shift;
+
+  print $q->h2("View a fault");
+  print "<table border=0><tr><td>";
+  print $q->startform;
+  print "<b>Enter a fault ID: </b></td><td>";
+  print $q->textfield(-name=>'id',
+		      -size=>15,
+		      -maxlength=>32);
+  print "</td><tr><td colspan=2 align=right>";
+  print $q->submit(-name=>'Submit');
+  print $q->endform;
+  print "</td></table>";
 }
 
 =item B<close_fault_form>
