@@ -402,7 +402,8 @@ threshold (say 5 minutes) then that time is charged to the following
 project rather than to OTHER. This will allow us to compensate for
 small gaps between data files associated with slewing and tuning.
 If a small gap is between calibration observations it is charged
-to $telCAL project.
+to $telCAL project [they should probably be charged to the project
+in proportion to instrument usage but that requires more work].
 
 =cut
 
@@ -794,9 +795,9 @@ sub projectStats {
       for my $proj (keys %{$proj_totals{$ymd}}) {
 	$total += $proj_totals{$ymd}{$proj};
       }
-      $total /= 3600;
-      printf "$ymd: %.1f hrs\n",$total;
-      printf "From files: %.1f hrs\n", $night_totals{$ymd}/3600;
+      $total /= 3600.0;
+      printf "$ymd: %.2f hrs\n",$total;
+      printf "From files: %.2f hrs\n", $night_totals{$ymd}/3600.0;
     }
   }
 
@@ -807,7 +808,7 @@ sub projectStats {
     my $date = OMP::General->parse_date( $ymd );
     print "Date: $ymd\n" if $DEBUG;
     for my $proj (keys %{$proj_totals{$ymd}}) {
-      printf "Project $proj : %.1f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG; 
+      printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG; 
       push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
 						 date => $date,
 						 timespent => new Time::Seconds($proj_totals{$ymd}{$proj})
