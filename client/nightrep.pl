@@ -287,7 +287,7 @@ sub project_window {
     $Row++;
 
     # Format for displaying the hours
-    my $hfmt = "%.1f";
+    my $hfmt = "%.2f";
 
     # Label
     $w->Label( -text => $proj.":" )->grid(-row=>$Row, -col=>0,
@@ -297,11 +297,14 @@ sub project_window {
     # Choose DATA over DB unless DB is confirmed.
     if (exists $times->{DB} && $times->{DB}->confirmed) {
       # Confirmed overrides data headers
-      $$varref = sprintf($hfmt,$times->{DB}->timespent->hours);
+      $$varref = sprintf($hfmt,
+			 _round_to_ohfive($times->{DB}->timespent->hours));
     } elsif (exists $times->{DATA}) {
-      $$varref = sprintf($hfmt,$times->{DATA}->timespent->hours);
+      $$varref = sprintf($hfmt,
+			 _round_to_ohfive($times->{DATA}->timespent->hours));
     } elsif (exists $times->{DB}) {
-      $$varref = sprintf($hfmt,$times->{DB}->timespent->hours);
+      $$varref = sprintf($hfmt,
+			 _round_to_ohfive($times->{DB}->timespent->hours));
     } else {
       # Empty
       $$varref = '';
@@ -334,7 +337,8 @@ sub project_window {
       # Now also add the MSB estimate if it is an estimate
       # Note that we put it after the DATA estimate
       if (!$times->{DB}->confirmed) {
-      	my $hrs = sprintf($hfmt, $times->{DB}->timespent->hours);
+      	my $hrs = sprintf($hfmt, 
+			  _round_to_ohfive($times->{DB}->timespent->hours));
 	$w->Label(-text => "$hrs hrs from MSB acceptance")->grid(-row=>$Row,
 								 -col=>4);
       }
@@ -344,12 +348,28 @@ sub project_window {
     }
 
     if (exists $times->{DATA}) {
-      my $hrs = sprintf($hfmt, $times->{DATA}->timespent->hours);
+      my $hrs = sprintf($hfmt, 
+			_round_to_ohfive($times->{DATA}->timespent->hours));
       $w->Label(-text => "$hrs hrs from data headers")->grid(-row=>$Row,
 							     -col=>3);
     }
 
   }
+}
+
+# Round to nearest 0.05
+# Accepts number, returns 
+
+sub _round_to_ohfive {
+  my $num = shift;
+
+  my $frac = 100 * ($num - int($num));
+  my $byfive = $frac / 5;
+
+  $frac = 5 * int( $byfive + 0.5 );
+
+  return int($num) + ($frac / 100);
+
 }
 
 # Retrieve project statistics as a hash
