@@ -135,20 +135,24 @@ sub display_form {
       $obsgroup = new OMP::Info::ObsGroup( instrument => 'scuba',
                                            date => $ut,
                                          );
-    } catch OMP::Error with {
-
+    } catch OMP::Error::DirectoryNotFound with {
+      # Just let it slide through.
     } otherwise {
-
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext\n";
     };
   } else {
     try {
       $obsgroup = new OMP::Info::ObsGroup( telescope => $telescope,
                                            date => $ut,
                                          );
-    } catch OMP::Error with {
-
+    } catch OMP::Error::DirectoryNotFound with {
+      # Just let it slide through.
     } otherwise {
-
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print "Error: $errortext\n";
     };
   }
 
