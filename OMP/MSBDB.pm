@@ -200,6 +200,11 @@ sub storeSciProg {
   # Get the arguments
   my %args = @_;
 
+  # Make sure the project actually exists
+  # (in some cases the password will be verified even if the project
+  # does not exist)
+  $self->_verify_project_exists;
+
   # Verify the password as soon as possible
   $self->_verify_project_password();
 
@@ -1530,6 +1535,31 @@ sub _get_next_index {
   $max++;
 
   return $max;
+}
+
+=item B<_verify_project_exists>
+
+Looks in the project database to determine whether the project ID
+defined in this object really does exist.
+
+Throws OMP::Error::UnknownProject exception.
+
+=cut
+
+sub _verify_project_exists {
+  my $self = shift;
+
+  # Ask the project DB class
+  my $proj = new OMP::ProjDB(
+			     ProjectID => $self->projectid,
+			     DB => $self->db,
+			     Password => $self->password,
+			    );
+  my $there = $proj->verifyProject();
+
+  throw OMP::Error::UnknownProject("Project ".$self->projectid .
+				   " does not exist. Please try another project id" ) unless $there;
+  return 1;
 }
 
 =item B<_verify_project_password>
