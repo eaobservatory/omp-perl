@@ -83,7 +83,7 @@ sub loginhash {
   my $class = shift;
   my %details = (
 		 driver   => "Sybase",
-		 server   => "SYB_TMP",
+		 server   => "SYB_OMP1",
 		 database => "omp",
 		 user     => "omp",
 		 password => "***REMOVED***",
