@@ -219,8 +219,9 @@ sub populate {
   my $self = shift;
   my %args = @_;
 
-  throw OMP::Error::BadArgs("Must supply a telescope or instrument")
-    unless exists $args{telescope} || exists $args{instrument};
+  throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
+    unless exists $args{telescope} || exists $args{instrument}
+      || exists $args{projectid};
 
   # if we have a date it could be either object or string
   # also need special XML code
@@ -231,6 +232,18 @@ sub populate {
     }
     $xmlbit = "<date delta=\"1\">$args{date}</date>";
   }
+
+  # If we have a project ID but no telescope we must determine
+  # the telescope from the database
+  if (exists $args{projectid} && !exists $args{telescope}) {
+    # KLUGE need to know the password for this. Should we really
+    # ask or can we assume it is okay?????
+    my $proj = OMP::ProjServer->projectDetails($self->projectid,
+					       '***REMOVED***',
+					       'object');
+    $args{telescope} = $proj->telescope;
+  }
+
 
   # Form the XML.[restrict the keys
   for my $key (qw/ instrument telescope projectid/ ) {
