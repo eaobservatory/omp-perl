@@ -337,6 +337,102 @@ sub fb_msb_output {
   msb_sum($q, %cookie);
 }
 
+=item B<fb_proj_summary>
+
+Show project status, MSB done summary (no comments), and active MSB summary
+
+  fb_proj_summary($cgi, %cookie);
+
+%cookie should contain a projectid and password key.
+
+=cut
+
+sub fb_proj_summary {
+  my $q = shift;
+  my %cookie = @_;
+
+  print $q->h2("Project $cookie{projectid}");
+
+  # Project status table
+  proj_status_table($q, %cookie);
+  print $q->hr;
+  print $q->h2("MSBs observed");
+
+  # Observed MSB table
+  fb_msb_observed($q, $cookie{projectid});
+
+  print $q->hr;
+  print $q->h2("MSBs to be observed");
+
+  # MSBs to be observed table
+  fb_msb_active($q, $cookie{projectid});
+
+  print $q->hr;
+}
+
+=item B<fb_msb_observed>
+
+Create a table of observed MSBs for a given project
+
+  fb_msb_observed($cgi, $projectid);
+
+=cut
+
+sub fb_msb_observed {
+  my $q = shift;
+  my $projectid = shift;
+
+  my $history = OMP::MSBServer->historyMSB($projectid, '', 'data');
+  msb_table($q, $history);
+}
+
+=item B<fb_msb_active>
+
+Create a table of active MSBs for a given project
+
+  fb_msb_active($cgi, $projectid);
+
+=cut
+
+sub fb_msb_active {
+  my $q = shift;
+  my $projectid = shift;
+
+  my $xmlquery = "<MSBQuery><projectid>$projectid</projectid><disableconstraint>observability</disableconstraint><disableconstraint>allocation</disableconstraint></MSBQuery>";
+
+  my $active = OMP::MSBServer->queryMSB($xmlquery);
+
+  msb_table($q, $active);
+}
+
+=item B<msb_table>
+
+Create a table containing information about given MSBs
+
+  msb_table($cgi, $msbs);
+
+Second argument should be an array of hash references containing MSB information
+
+=cut
+
+sub msb_table {
+  my $q = shift;
+  my $msbs = shift;
+
+  print "<table width=100%>";
+
+  my $i;
+  foreach my $msb (@$msbs) {
+    $i++;
+    print "<tr bgcolor=#7979aa><td><b>MSB $i</b></td>";
+    print "<td><b>Target:</b> $msb->{target}</td>";
+    print "<td><b>Waveband:</b> $msb->{waveband}</td>";
+    print "<td><b>Instrument:</b> $msb->{instrument}</td>";
+  }
+
+  print "</table>";
+}
+
 =item B<observed>
 
 Create a page with a list of all the MSBs observed for a given UT sorted by project
@@ -350,9 +446,7 @@ sub observed {
 
   my $utdate = OMP::General->today;
 
-  my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
-
-  my $commentref = $msbdb->observedMSBs($utdate, 0, 'data');
+  my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
 
   (@$commentref) and print $q->h2("MSBs observed on $utdate")
     or print $q->h2("No MSBs observed on $utdate");
@@ -417,8 +511,7 @@ sub observed_output {
   }
 
   if (!$q->param("Add Comment")) {
-    my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
-    my $commentref = $msbdb->observedMSBs($q->param('utdate'), 1, 'data');
+    my $commentref = OMP::MSBServer->observedMSBs($q->param('utdate'), 1, 'data');
 
     observed_form($q);
     print $q->hr;
