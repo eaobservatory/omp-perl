@@ -404,6 +404,29 @@ sub keygen {
   $self->key( $rand );
 }
 
+=item B<ftpurl>
+
+Retrieve the URL required to retrieve the completed tar file.
+
+Returns undef if a tarfile has not been created.
+
+=cut
+
+sub ftpurl {
+  my $self = shift;
+
+  my $tarfile = $self->tarfile;
+  return undef unless $tarfile;
+  $tarfile = basename( $tarfile );
+
+  my $key = $self->key;
+  return undef unless defined $key;
+
+  my $baseurl = OMP::Config->getData('ftpurl');
+  return $baseurl . "/$key/$tarfile";
+
+}
+
 =back
 
 =head2 Private Methods
@@ -466,7 +489,7 @@ sub _populate {
   # night that is not a science observation
   my @match;
   for my $obs ($grp->obs) {
-    if ($obs->projectid eq $self->projectid ||
+    if (uc($obs->projectid) eq $self->projectid  ||
        ! $obs->isScience) {
       push(@match, $obs);
     }
