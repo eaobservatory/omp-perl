@@ -95,15 +95,20 @@ sub file_fault {
 		       -values=>\@type_values,
 		       -default=>\$type_values[0],
 		       -labels=>\%type_labels,);
+  print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
+  print $q->textfield(-name=>'loss',
+		      -default=>'0',
+		      -size=>'4',
+		      -maxlength=>'10',);
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
-		      -size=>'65',
+		      -size=>'60',
 		      -maxlength=>'256',);
   print "</td><tr><td colspan=2>";
   print $q->textarea(-name=>'message',
 		     -rows=>20,
-		     -columns=>72,);
-  print "</td><tr><td colspan=2><b>";
+		     -columns=>78,);
+  print "</td><tr><td colspan=4><b>";
   print $q->checkbox(-name=>'urgency',
 		     -value=>'urgent',
 		     -label=>"This fault is urgent");
@@ -142,6 +147,7 @@ sub file_fault_output {
 			     subject=>$q->param('subject'),
 			     system=>$q->param('system'),
 			     type=>$q->param('type'),
+			     timelost=>$q->param('loss'),
 			     urgency=>$urgency,
 			     fault=>$resp);
 
@@ -237,7 +243,18 @@ sub query_fault_content {
   query_fault_form($q);
   print "<p>";
 
-  my $faults = query_faults(-2);
+  # Display recent faults
+  my $t = gmtime;
+  my $xml = "<FaultQuery><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+
+  my $faults;
+  try {
+    $faults = OMP::FaultServer->queryFaults($xml, "object");
+    return $faults;
+  } otherwise {
+    my $E = shift;
+    print "$E";
+  };
 
   if ($faults->[0]) {
     show_faults($q, $faults);
@@ -292,7 +309,7 @@ sub query_fault_output {
       $title = "Displaying major faults";
     } elsif ($q->param('Recent faults')) {
       # Faults filed in the last 36 hours
-      $xml = "<FaultQuery><date delta='36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+      $xml = "<FaultQuery><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
       $title = "Displaying recent faults";
     } elsif ($q->param('Current faults')) {
       # Faults within the last 14 days
