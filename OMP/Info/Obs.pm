@@ -164,8 +164,9 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               isScience => '$',
                               isSciCal => '$',
                               isGenCal => '$',
+                              calType  => '$',
                             );
-#'
+
 
 =end __PRIVATE__
 
@@ -200,6 +201,13 @@ Scalar accessors:
 [Imaging or Spectroscopy]
 
 =item B<pol>
+
+=item B<calType>
+
+A string identifying the calibration type required by this
+observation. In general this string is not useful since it
+it aimed at tools rather than for the user. It is used mainly
+to determine time accounting.
 
 =back
 
@@ -703,6 +711,13 @@ sub _populate {
     $self->endobs( $endobs );
   }
 
+  # The default calibration is simply the project ID. This will
+  # ensure that all calibrations associated with a project
+  # are allocated to the project rather than shared. This is
+  # not true for SCUBA. For UKIRT we will have to set things up
+  # so that calibrations are not shared amongst projects at all
+  $self->calType($self->projectid);
+
   # Build the Astro::Coords object
 
   # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
@@ -728,6 +743,13 @@ sub _populate {
 
     # Set the observation mode.
     $self->mode( $odfobject->mode_summary );
+
+    # Set the string that specifies the calibration type
+    $self->calType( $odfobject->calType );
+
+    # We should really be including the polarimeter state
+    # at this point but I am not sure whether the POL_CONN
+    # keyword is stored in the database
 
   } else {
 
