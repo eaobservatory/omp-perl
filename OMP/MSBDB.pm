@@ -637,7 +637,6 @@ sub doneMSB {
   # Might want to send a message to the feedback system at this
   # point
   $self->_notify_feedback_system(
-				 author => "OM",
 				 program => "OMP::MSBDB",
 				 subject => "MSB Observed",
 				 text => "Marked MSB with checksum"
@@ -719,7 +718,6 @@ sub undoMSB {
   # Might want to send a message to the feedback system at this
   # point
   $self->_notify_feedback_system(
-#				 author => "OM",
 				 program => "OMP::MSBDB",
 				 subject => "MSB Observed",
 				 text => "Incremented by 1 the number of remaining ".
@@ -801,7 +799,6 @@ sub alldoneMSB {
   # Might want to send a message to the feedback system at this
   # point
   $self->_notify_feedback_system(
-				 author => "unknown",
 				 program => "OMP::MSBDB",
 				 subject => "MSB All Observed",
 				 text => "Marked MSB with checksum"
@@ -873,7 +870,6 @@ sub suspendMSB {
   # point
   # do this early in case the MSBDone message fails!
   $self->_notify_feedback_system(
-				 author => "OM",
 				 program => "OMP::MSBDB",
 				 subject => "MSB suspended",
 				 text => "$msg : checksum is $checksum",

@@ -722,7 +722,7 @@ sub _notify_feedback_system {
   # If the author, program or sourceinfo fields are empty supply them
   # ourselves.
   my ($user, $addr, $email) = OMP::General->determine_host;
-  $comment{author} = $email unless exists $comment{author};
+  $comment{author} = undef unless exists $comment{author};
   $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
   $comment{program} = $0 unless exists $comment{program};
   $comment{status} = OMP__FB_HIDDEN unless exists $comment{status};
