@@ -922,9 +922,17 @@ sub SpIterStareObs {
     # Determine a filename
     my $pattfile = "pattern" . sprintf("%03d",_get_next_file_number()) .".dat";
 
-    $html .= "This is a PATTERN observation containing ".scalar(@lines)." offset positions. The coordinates are stored in file <b>$VAX_TRANS_DIR"."$pattfile</b>\n<br>";
+    $html .= "This is a PATTERN observation containing ".(scalar(@lines)-1)." offset positions. The coordinates are stored in file <b>$VAX_TRANS_DIR"."$pattfile</b>\n<br>";
 
     $html .= "Note that the Position Angle of these offsets is non-zero so cell must be set accordingly. The PA is $data{PA} deg.<br>\n" if $data{PA} != 0.0;
+
+    $html .= "The offsets are (in arcsec):\n";
+    $html .= "<table>\n";
+    $html .= "<tr><td><b>dX</b></td><td><b>dY</b></td></tr>\n";
+    for (@{$data{OFFSETS}}) {
+      $html .= "<tr><td>".$_->[0]."</td><td>".$_->[1]."</td></tr>\n";
+    }
+    $html .="</table>\n";
 
     # Now create the real file name (full path)
     $pattfile = File::Spec->catfile($TRANS_DIR,$pattfile);
