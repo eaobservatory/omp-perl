@@ -99,6 +99,25 @@ sub configure {
 
 =over 4
 
+=item B<uniqueid>
+
+Returns a unique ID for the object.
+
+  $id = $object->uniqueid;
+
+=cut
+
+sub uniqueid {
+  my $self = shift;
+
+  return if ( ! defined( $self->runnr ) ||
+              ! defined( $self->instrument ) ||
+              ! defined( $self->telescope ) ||
+              ! defined( $self->startobs ) );
+
+  return $self->runnr . $self->instrument . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
+}
+
 =item B<Defaults>
 
 Default initialiser for the object. Should be subclassed if
