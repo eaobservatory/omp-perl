@@ -14,7 +14,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use lib OMPLIB;
 
 use OMP::CGI;
-use OMP::CGI::ObslogPage;
+use OMP::CGIObslog;
 
 use Net::Domain qw/ hostfqdn /;
 

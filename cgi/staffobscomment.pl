@@ -14,18 +14,18 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::ObslogPage;
+use OMP::CGIPage;
+use OMP::CGIPage::Obslog;
 use OMP::General;
 
 my $cquery = new CGI;
-my $cgi = new OMP::CGI( CGI => $cquery );
+my $cgi = new OMP::CGIPage( CGI => $cquery );
 $cgi->html_title( "OMP Observation Log" );
 
 # write the page
 if (OMP::General->is_host_local) {
   $cgi->write_page_noauth( \&file_comment, \&file_comment_output );
 } else {
-  $cgi->write_page_staff( \&file_comment, \&file_comment_output );
+  $cgi->write_page_staff( \&file_comment, \&file_comment_output, "noauth" );
 }
 
