@@ -69,6 +69,9 @@ All Rights Reserved.
 =head1 CHANGES
 
  $Log$
+ Revision 1.2  2002/02/08 19:09:58  timj
+ - remove debugging print
+
  Revision 1.1  2002/02/08 02:18:41  timj
  First version
 
@@ -219,9 +222,6 @@ sub add {
   unless ($found) {
 
     push(@list, $el);
-
-    use Data::Dumper;
-    print Dumper(\@list);
 
     # Store the array
     $self->store_array( \@list, $status);
