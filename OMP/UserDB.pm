@@ -67,6 +67,12 @@ sub addUser {
 				      $user->userid .
 				      "] already exists. Use updateUser to modify the information");
 
+  # Make sure user's alias is not already in use
+  if ($user->alias) {
+    $self->verifyUser( $user->alias )
+      and throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use.  Use updateUser to modify the information" );
+  }
+
   # Add the user
   $self->_add_user( $user );
 
@@ -96,6 +102,12 @@ sub updateUser {
   $self->_db_begin_trans;
   $self->_dblock;
 
+  # Make sure user's alias is not already in use
+  if ($user->alias) {
+    $self->verifyUser( $user->alias )
+      and throw OMP::Error::FatalError( "The alias [". $user->alias ."] is already in use." );
+  }
+
   # Modify
   $self->_update_user( $user );
 
@@ -118,14 +130,15 @@ sub verifyUser {
   my $self = shift;
   my $userid = shift;
   my $user = $self->getUser( $userid );
-  return ($user ? 1 : 0 );
+  return ($user ? $user->userid : undef );
 }
 
 =item B<getUser>
 
-Retrieve information on the specified user name.
+Retrieve information on the specified user name, where the user name is
+either a user ID or an alias.
 
-  $user = $db->getUser( $userid );
+  $user = $db->getUser( $username );
 
 Returned as an C<OMP::User> object. Returns C<undef> if the
 user can not be found.
@@ -134,18 +147,25 @@ user can not be found.
 
 sub getUser {
   my $self = shift;
-  my $userid = shift;
+  my $username = shift;
 
-  return undef unless $userid;
+  return undef unless $username;
 
   # Create a query string
-  my $xml = "<UserQuery><userid>$userid</userid></UserQuery>";
+  my $xml = "<UserQuery><userid>$username</userid></UserQuery>";
   my $query = new OMP::UserQuery( XML => $xml );
 
   my @result = $self->queryUsers( $query );
 
+  # If our query didn't match any user IDs try matching to an alias
+  if (! @result) {
+    $xml = "<UserQuery><alias>$username</alias></UserQuery>";
+    $query = new OMP::UserQuery( XML => $xml );
+    @result = $self->queryUsers( $query );
+  }
+
   if (scalar(@result) > 1) {
-    throw OMP::Error::FatalError( "Multiple users match the supplied id [$userid] - this is not possible [bizarre] }");
+    throw OMP::Error::FatalError( "Multiple users match the supplied id [$username] - this is not possible [bizarre] }");
   }
 
   # Guaranteed to be only one match
@@ -283,7 +303,8 @@ sub _add_user {
   $self->_db_insert_data( $USERTABLE,
 			  $user->userid,
 			  $user->name,
-			  $email);
+			  $email,
+			  $user->alias,);
 
 }
 
@@ -307,6 +328,7 @@ sub _update_user {
 			  {
 			   email => $user->email,
 			   name => $user->name,
+			   alias => $user->alias,
 			  },
 			  " userid = '".$user->userid ."' ");
 
