@@ -176,6 +176,12 @@ sub _post_process_hash {
   }
 
 
+  # Need to upper case these
+  $self->_process_elements($href, sub { uc(shift) },
+                           [qw/projectid/]);
+
+
+
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
 
