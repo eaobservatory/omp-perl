@@ -1069,24 +1069,24 @@ sub getSubmitted {
   return @projects;
 }
 
-=item B<listModified>
+=item B<listModifiedPrograms>
 
 Return an array of project IDs for projects whose programs have been modified
 since the given date.
 
-  @projects = $db->listModified($time);
+  @projects = $db->listModifiedPrograms($time);
 
-Only argument is a C<Time::Piece> object.  Returns undef if no projects have
-been modified.
+Only argument is a C<Time::Piece> object.  If called without arguments all
+programs will be returned.  Returns undef if no projects have been modified.
 
 =cut
 
-sub listModified {
+sub listModifiedPrograms {
   my $self = shift;
   my $date = shift;
 
   # No XML query interface to science programs, so we'll have to do an SQL query
-  my $sql = "SELECT projectid FROM $SCITABLE WHERE timestamp > " . $date->epoch;
+  my $sql = "SELECT projectid FROM $SCITABLE WHERE timestamp > " . ($date ? $date->epoch : 0);
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   my @results = map { $_->{projectid} } @$ref;
