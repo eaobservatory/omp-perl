@@ -30,6 +30,7 @@ use warnings;
 use OMP::ArcQuery;
 use OMP::General;
 use OMP::Info::Obs;
+use OMP::Config;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
@@ -37,11 +38,6 @@ use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
 use SCUBA::ODF;
-
-use lib qw( /jcmt_sw/oracdr/lib/perl5 );
-
-use ORAC::Inst::Defn qw/ orac_configure_for_instrument /;
-use ORAC::Frame;
 
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
@@ -307,10 +303,11 @@ sub _query_files {
   for(my $day = $startday; $day <= $endday; $day++) {
 
     foreach my $inst ( @instarray ) {
-      my %options;
-      $options{'ut'} = $day;
-      orac_configure_for_instrument( uc( $inst ), \%options );
-      my $directory = $ENV{"ORAC_DATA_IN"};
+      my $telescope = OMP::Config->inferTelescope('instruments', $inst);
+      my $directory = OMP::Config->getData( 'rawdatadir',
+                                            telescope => $telescope,
+                                            utdate => $day,
+                                            instrument => $inst );
 
       # Get a file list.
       if( -d $directory ) {
@@ -370,29 +367,43 @@ sub _query_files {
 
           # If the observation's time falls within the range, we'll create the object.
           my $match_date = 0;
+
           if( $daterange->contains($obs->startobs) ) {
             $match_date = 1;
           } elsif( $daterange->{Max} < $obs->startobs ) {
             last;
           }
 
-#          # Filter by keywords given in the query string. Look at filters other than DATE,
-#          # RUNNR, and _ATTR.
-#          my $match_filter = 0;
-#          foreach my $filter (keys %$query_hash) {
-#            if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
-#              next;
-#            }
-#            foreach my $filterarray ($query_hash->{$filter}) {
-#              my $matcher = uc($generic_header{uc($filter)});
-#              foreach my $filter2 (@$filterarray) {
-#                if($matcher =~ /$filter2/i) {
-#                  $match_filter = 1;
-#                }
-#              }
-#            }
-#          }
+          # Filter by keywords given in the query string. Look at filters other than DATE,
+          # RUNNR, and _ATTR.
+          # Assume a match, and if we find something that doesn't match, remove it (since
+          # we'll probably always match on telescope at the very least).
+
+          # We're only going to filter if:
+          # - the thing in the query object is an OMP::Range or a scalar, and
+          # - the thing in the Obs object is a scalar
           my $match_filter = 1;
+          foreach my $filter (keys %$query_hash) {
+            if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+              next;
+            }
+            foreach my $filterarray ($query_hash->{$filter}) {
+              if( OMP::Info::Obs->can(lc($filter)) ) {
+                my $value = $obs->$filter;
+                my $matcher = uc($obs->$filter);
+                if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
+                  $match_filter = $filterarray->contains( $matcher );
+                } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
+                  foreach my $filter2 (@$filterarray) {
+                    if($matcher !~ /$filter2/i) {
+                      $match_filter = 0;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           if( $match_date && $match_filter ) {
             push @returnarray, $obs;
           }
