@@ -1024,14 +1024,19 @@ sub _populate {
 
   } else {
 
-    # Default the equinox to J2000, but if it's 1950 change to B1950.
-    # Anything else will be converted to J2000.
-    my $type = "J2000";
-    if ( defined( $generic_header{EQUINOX} ) &&
-         $generic_header{EQUINOX} =~ /1950/ ) {
-      $type = "B1950";
-    }
-    if ( defined ( $generic_header{COORDINATE_TYPE} ) ) {
+# Set the target name.
+    $self->target( $generic_header{OBJECT} );
+
+    if ( $self->type =~ /OBJECT|SKY|FLAT/ &&
+         $self->target =~ /MERCURY|VENUS|MARS|JUPITER|SATURN|URANUS|NEPTUNE|PLUTO/ ) {
+
+# Set up a planet coordinate system.
+      my $coords = new Astro::Coords( planet => $self->target );
+      $coords->datetime( $self->startobs );
+      $self->coords( $coords );
+    } elsif ( $self->type !~ /ARC|DARK|BIAS/ && defined ( $generic_header{COORDINATE_TYPE} ) ) {
+
+# If we're an ARC, DARK, or BIAS, don't set up the coords accessor.
       if ( $generic_header{COORDINATE_TYPE} eq 'galactic' ) {
         $self->coords( new Astro::Coords( lat   => $generic_header{Y_BASE},
                                            long  => $generic_header{X_BASE},
@@ -1048,9 +1053,6 @@ sub _populate {
                                          ) );
       }
     }
-
-    # Set the target name.
-    $self->target( $generic_header{OBJECT} );
 
     # Set science/scical/gencal.
     $self->isScience( 1 );
