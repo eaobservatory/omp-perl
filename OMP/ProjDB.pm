@@ -275,7 +275,6 @@ sub decrementTimeRemaining {
   $self->_notify_feedback_system(
 				 subject => "Decrement time remaining",
 				 text => "$time seconds has been provisionally decremented from project <b>$projectid</b>",
-				 status => OMP__FB_INFO,
 				);
 
   # Transaction end
