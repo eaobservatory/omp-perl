@@ -180,6 +180,13 @@ sub create_main_window {
                                                },
                                              );
 
+# $buttonDumpText is the button that dumps the current listing to disk.
+  my $buttonDumpText = $buttonbarFrame->Button( -text => 'Dump Text',
+                                                -command => sub {
+                                                  dump_to_disk();
+                                                },
+                                              );
+
 # $buttonHelp is the button that brings up a help dialogue.
   my $buttonHelp = $buttonbarFrame->Button( -text => 'Help',
                                             -command => \&help
@@ -213,6 +220,7 @@ sub create_main_window {
                        );
   $buttonExit->pack( -side => 'left' );
   $buttonRescan->pack( -side => 'left' );
+  $buttonDumpText->pack( -side => 'left' );
   $buttonOptions->pack( -side => 'left' );
   $buttonHelp->pack( -side => 'right' );
 
@@ -452,6 +460,20 @@ sub full_rescan {
   push @{$hashref->{$inst}}, @result;
 
   redraw($inst, $hashref);
+}
+
+sub dump_to_disk {
+
+  my $text = $contentBody->get('0.0', 'end');
+  open( FILE, ">" . $ut . ".log" ) or return; # just a quickie, need a better way to handle this
+  print FILE $text;
+  close FILE;
+  my $dbox = $MainWindow->DialogBox( -title => "File Saved",
+                                     -buttons => ["OK"],
+                                   );
+  my $label = $dbox->add( 'Label',
+                          -text => "Data has been saved in " . $ut . ".log" )->pack;
+  my $but = $dbox->Show;
 }
 
 # Display the comment window and allow for editing, etc, etc, etc.
