@@ -159,7 +159,7 @@ sub CreateAccessors {
   my $footer = "\n}";
 
   my $SCALAR = q{
-		 #line 1 SCALAR
+#line 1 OMP::Info::Base::SCALAR
 		 sub METHOD {
 		   my $self = shift;
 		   if (@_) { 
@@ -172,7 +172,7 @@ sub CreateAccessors {
 	       };
 
   my $ARRAY = q{
-		#line 1 ARRAY
+#line 1 OMP::Info::Base::ARRAY
 		sub METHOD {
 		  my $self = shift;
 		  $self->{METHOD} = [] unless $self->{METHOD};
@@ -195,7 +195,7 @@ sub CreateAccessors {
 	      };
 
   my $HASH = q{
-	       #line 1 HASH
+#line 1 OMP::Info::Base::HASH
 	       sub METHOD {
 		 my $self = shift;
 		 $self->{METHOD} = {} unless $self->{METHOD};
@@ -218,21 +218,21 @@ sub CreateAccessors {
 	     };
 
   my $CLASS_CHECK = q{
-		      #line 1 class_check
+#line 1 OMP::Info::Base::class_check
 		      unless (UNIVERSAL::isa($argument, 'CLASS')) {
 			croak "Argument for 'METHOD' must be of class CLASS and not class '". (ref($argument) ? ref($argument) : $argument) ."'";
 		      }
 		     };
 
   my $ARRAY_CLASS_CHECK = q{
-			    #line 1 array_class_check
+#line 1 OMP::Info::Base::array_class_check
 			    for my $argument (@new) {
 			      CLASS_CHECK;
 			    }
 			   };
 
   my $HASH_CLASS_CHECK = q{
-			   #line 1 hash_class_check
+#line 1 OMP::Info::Base::hash_class_check
 			   for my $key (keys %new) {
 			     my $argument = $new{$key};
 			     CLASS_CHECK;
