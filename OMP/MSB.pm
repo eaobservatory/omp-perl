@@ -951,8 +951,8 @@ sub _get_obs {
   # Now we have all the hashes we can store them in the object
   $self->obssum( @obs ) if @obs;
 
-  use Data::Dumper;
-  print Dumper(\@obs);
+  #use Data::Dumper;
+  #print Dumper(\@obs);
 
   return @obs;
 }
@@ -1212,6 +1212,35 @@ sub _get_attribute {
   return $value;
 }
 
+=item B<_get_attribute_child>
+
+Retrieve the requested attribute from the named child
+element.
+
+  $value = $msb->_get_attribute_child( $el, $tag, $attrname );
+
+Similar to C<_get_pcdata> except for attributes.
+
+=cut
+
+sub _get_attribute_child {
+  my $self = shift;
+  my ($el, $tag, $attr ) = @_;
+
+  my @matches;
+  if ($XML::LibXML::VERSION < 1.4) {
+    @matches = $el->getElementsByTagName( $tag );
+  } else {
+    @matches = $el->getChildrenByTagName( $tag );
+  }
+  my $value;
+  if (@matches) {
+    my $child = $matches[-1];
+    $value = $self->_get_attribute( $child, $attr);
+  }
+
+  return $value;
+}
 
 =item B<_get_range>
 
@@ -1330,6 +1359,47 @@ sub _compress_array {
   return @unique;
 }
 
+=item B<_unroll_obs>
+
+Convert the information stored in C<obssum>, which is just
+an entry per C<SpObs>, to an array of actual observation.
+This unrolls all iterators.
+
+=cut
+
+sub _unroll_obs {
+  my $self = shift;
+  my @obs = $self->obssum;
+
+  for my $obs (@obs) {
+
+    # First get a copy of everything except the
+    # iterators
+    my %config;
+    for my $key (keys %$obs) {
+      next if $key eq 'SpIter';
+      next if $key eq 'obstype';
+      $config{$key} = $obs->{$key};
+    }
+
+    # Now loop over iterators
+    for my $iter (@{ $obs->{SpIter}->{order} }) {
+      
+
+
+    }
+
+
+
+    use Data::Dumper;
+    print Dumper( \%config);
+  }
+
+
+
+}
+
+
 # Methods associated with individual elements
 
 =item B<SpObs>
@@ -1376,9 +1446,6 @@ sub SpObs {
   # if we are not reading polarimeter information from
   # instrument components (from which we can inherit)
   $summary{pol} = 0;
-
-  # Also reset iterators
-  $summary{SpIter} = { order => [] };
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
@@ -1449,11 +1516,14 @@ sub SpIterFolder {
   my $el = shift;
   my %summary = @_;
   my @types;
+  my @iterators;
+
+  # Init the hash ref
+  $summary{SpIter} = {};
 
   for my $child ( $el->getChildnodes ) {
     my $name = $child->getName;
     next unless defined $name;
-
     # Special components found within iterators that 
     # we can identify and need to open
     if ($name eq 'SECONDARY') {
@@ -1472,7 +1542,6 @@ sub SpIterFolder {
 
       # Store the chop details
       $summary{SpIter}->{SpIterChop} = \@chops;
-
     } elsif ($name eq 'POLIter') {
       # SpIterPOL iterator for waveplates
 
@@ -1489,11 +1558,9 @@ sub SpIterFolder {
 
       # Store the waveplate angles
       $summary{SpIter}->{SpIterPOL} = \@waveplate;
-
     } elsif ($name eq 'repeatCount') {
       # SpIterRepeat
       $summary{SpIter}->{SpIterRepeat} = $child->firstChild->toString;
-
     } elsif ($name eq 'obsArea') {
       # SpIterOffset
       # This code is very like the SECONDARY chop code
@@ -1510,14 +1577,14 @@ sub SpIterFolder {
 	push(@offsets, \%details);
       }
       $summary{SpIter}->{SpIterOffset} = \@offsets;
-
     }
 
     # Only interested in iterators
     next unless $name =~ /SpIter/;
 
-    # Cache it
-    #push(@{ $summary{SpIter}->{order}}, $name);
+    # Cache the iterator order. This must come before the
+    # recursion to retain ordering
+    push(@iterators, $name);
 
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # or other iterators
@@ -1533,6 +1600,10 @@ sub SpIterFolder {
 
       # As is SpIter
       if (exists $dummy{SpIter}) {
+	if (exists $dummy{SpIter}->{order}) {
+	  push(@iterators, @{ $dummy{SpIter}->{order}});
+	  delete $dummy{SpIter}->{order};
+	}
 	%{$summary{SpIter}} = ( %{$summary{SpIter}}, %{$dummy{SpIter}});
 	delete $dummy{SpIter};
       }
@@ -1544,18 +1615,51 @@ sub SpIterFolder {
       $summary{pol} = 1 if $name =~ /POL$/;
 
       next;
+
+    } elsif ($name eq 'SpIterStareObs') {
+
+      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+
+    } elsif ($name eq 'SpIterJiggleObs') {
+
+      my %jiggle;
+      $jiggle{jigglePattern} = $self->_get_pcdata($child,
+						  'jigglePattern');
+
+      $summary{SpIter}->{SpIterJiggleObs} = \%jiggle;
+      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+
+    } elsif ($name eq 'SpIterPointingObs') {
+
+      $summary{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+
+    } elsif ($name eq 'SpIterRasterObs') {
+
+      my %scan;
+      # Martins xml is broken at the moment
+      $scan{system} = "FPLANE";
+      $scan{width}  = "UNKNOWN";
+      $scan{height} = "UNKNOWN";
+      $scan{velocity} = 24.0;
+      $scan{dy}     = 60.0;
+
+      $summary{SpIter}->{SpIterRasterObs} = \%scan;
+
     }
 
     # Remove the SpIter string
     $name =~ s/^SpIter//;
     $name =~ s/Obs$//;
 
+    # and the list of observes
     push(@types, $name);
 
 
   }
 
+  # Store results
   $summary{obstype} = \@types if @types;
+  $summary{SpIter}->{order} = \@iterators if @iterators;
 
   return %summary;
 
