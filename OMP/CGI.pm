@@ -354,6 +354,7 @@ sub _make_theme {
 
     $theme = new HTML::WWWTheme($themefile);
     croak "Unable to instantiate HTML::WWWTheme object" unless $theme;
+
     $self->theme($theme);
 
   }
@@ -430,10 +431,11 @@ sub _write_footer {
   my $theme = $self->theme;
 
 
-  print $theme->MakeTopBottomBar(),
-        $theme->MakeFooter(),
-        "<div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>",
-	$theme->EndHTML();
+  print $theme->MakeTopBottomBar();
+  print "</td></table></td></tr></table>";
+  print "<div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>";
+  print "<div ALIGN='right'><h6><a HREF='#top'>return to top...</a></h6></div></body>";
+  print $theme->EndHTML();
 
 }
 
