@@ -36,6 +36,10 @@ use constant FAULTID => "DOUBLE PRECISION"; # Need this precision
 use constant NUMID => "numeric(5,0) IDENTITY";
 use constant TITLE => "VARCHAR(255) null";
 
+# Sybase stores dates in 'datetime', Postgres in 'timestamp'
+my $DATE;
+$DATE = "DATETIME";
+
 # Actual table descriptions
 my %tables = (
 	      # Fundamental scheduling table. Deals with information
@@ -55,9 +59,9 @@ my %tables = (
 			 timeest => "REAL",
 			 title => TITLE,
 			 obscount => "INTEGER",
-			 datemin => "DATETIME",
+			 datemin => $DATE,
 			 cloud => "INTEGER",
-			 datemax => "DATETIME",
+			 datemax => $DATE,
 			 telescope => "VARCHAR(16)",
 			 minel => "REAL NULL",
 			 maxel => "REAL NULL",
@@ -123,7 +127,7 @@ my %tables = (
 	      # See OMP::ProjDB
 	      omptimeacct => {
 			      projectid => PROJECTID,
-			      date => 'DATETIME',
+			      date => $DATE,
 			      confirmed => 'BIT',
 			      timespent => 'INTEGER',
 			      _ORDER => [qw/ date projectid timespent
@@ -170,7 +174,7 @@ my %tables = (
 			     commid => "numeric(5,0) IDENTITY",
 			     checksum => "VARCHAR(64)",
 			     projectid => PROJECTID,
-			     date => "DATETIME",
+			     date => $DATE,
 			     comment => "TEXT",
 			     instrument => "VARCHAR(64)",
 			     waveband => "VARCHAR(64)",
@@ -202,7 +206,7 @@ my %tables = (
 			      entrynum => "numeric(4,0) not null",
 			      projectid => PROJECTID,
 			      author => USERID ." not null",
-			      date => "datetime not null",
+			      date => "$DATE not null",
 			      subject => "varchar(128) null",
 			      program => "varchar(50) not null",
 			      sourceinfo => "varchar(60) not null",
@@ -222,7 +226,7 @@ my %tables = (
 			   system => "integer",
 			   category => "VARCHAR(32)",
 			   timelost => "REAL",
-			   faultdate => "datetime null",
+			   faultdate => "$DATE null",
 			   status => "INTEGER",
 			   subject => "VARCHAR(128) null",
 			   urgency => "INTEGER",
@@ -237,7 +241,7 @@ my %tables = (
 	      ompfaultbody => {
 			       respid => NUMID,
 			       faultid => FAULTID,
-			       date => "datetime",
+			       date => $DATE,
 			       isfault => "integer",
 			       text => "text",
 			       author => USERID,
@@ -261,7 +265,7 @@ my %tables = (
 			  userid => USERID,
 			  name => "VARCHAR(255)",
 			  email => "VARCHAR(64) NULL",
-			  alias => "VARCHAR(255) NULL",
+			  alias => USERID . " NULL",
 			  _ORDER => [qw/ userid name email alias /],
 			 },
 	      # Comments associated with the observing shift.
@@ -269,9 +273,9 @@ my %tables = (
 	      # See OMP::ShiftDB
 	      ompshiftlog => {
 			      shiftid => NUMID,
-			      date => "DATETIME",
+			      date => $DATE,
 			      author => USERID,
-            telescope => "VARCHAR(32)",
+                              telescope => "VARCHAR(32)",
 			      text => "TEXT",
 			      _ORDER => [qw/ shiftid date author telescope text /],
 			     },
@@ -284,9 +288,9 @@ my %tables = (
            runnr => "INT",
            instrument => "VARCHAR(32)",
            telescope => "VARCHAR(32) NULL",
-           date => "DATETIME",
+           date => $DATE,
            obsactive => "INTEGER",
-           commentdate => "DATETIME",
+           commentdate => $DATE,
            commentauthor => USERID,
            commenttext => "TEXT NULL",
            commentstatus => "INTEGER",
