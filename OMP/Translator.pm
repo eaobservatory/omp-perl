@@ -25,18 +25,15 @@ to an instrument specific subclass. For now just deals with SCUBA.
 
 =cut
 
-# Difficulties:
-#  1. Target translation will need some work, especially
-#     for elements. Effectively use RJ for all equatorial
-#     coordinates and generate comet positions for now and
-#     +1 hour
-#  2. autoTarget will require knowledge on subsequent or prior
+# TODO:
+#  *. autoTarget will require knowledge on subsequent or prior
 #     observations. Within a single translation this should be
 #     fine. There is no scope for providing external information
 #     on the current telescope position to the translator.
-#  3. autoTarget also needs the ability to choose a reasonable
+#  *. autoTarget also needs the ability to choose a reasonable
 #     source on the basis of the known flux.
-
+#  *. Need to consider how to trigger manual intervention of autoTarget
+#  *. Still need to add the SAMPLE_PA calculation
 
 
 use 5.006;
@@ -47,6 +44,8 @@ use OMP::SciProg;
 use OMP::Error;
 
 use File::Temp qw/tempfile/;
+use Fcntl;
+use File::Spec;
 use File::Basename qw/basename/;
 use Time::Piece ':override';
 use Time::Seconds qw/ ONE_HOUR /;
@@ -93,6 +92,7 @@ sub translate {
 
   # See how many MSBs we have
   my @msbs = $sp->msb;
+  print "Number of MSBS to translate: ". scalar(@msbs) ."\n";
 
 #  throw OMP::Error::TranslateFail("Only one MSB can be translated at a time")
 #    if scalar(@msbs) != 1;
@@ -115,14 +115,18 @@ sub translate {
     if ($self->can( $mode )) {
       my %translated = $self->$mode( %$obsinfo );
       push(@odfs, \%translated);
-      use Data::Dumper;
-      print Dumper(\%translated);
+#      use Data::Dumper;
+#      print Dumper(\%translated);
     } else {
       throw OMP::Error::TranslateFail("Unknown observing mode: $mode");
     }
 
   }
   }
+
+  use Data::Dumper;
+  print Dumper(\@odfs);
+
   # Return data or write to disk
   if ($asdata) {
     if (wantarray) {
@@ -166,10 +170,10 @@ sub write_odfs {
   return basename($files[0]) if @files == 1;
 
   # Now write out the macro
-  my ($fh, $filename) = tempfile( "macro_XXXXXX",
-				  SUFFIX => ".m",
-				  DIR => $TRANS_DIR,
-				)
+  my ($fh, $filename) = open_odf_file( PREFIX => "macro",
+				       SUFFIX => ".m",
+				       DIR => $TRANS_DIR,
+				     )
     or throw OMP::Error::FatalError("Error creating macro file");
 
   print $fh "MACRO\n";
@@ -212,9 +216,9 @@ sub write_odf {
   # Open the file
   # File::Temp is no good here since it will return filenames
   # that will not work on the case-insensitive vax when using NFS.
-  my ($fh, $filename) = tempfile( "scuba_XXXXXX",
-				  SUFFIX => ".odf",
-				  DIR => $TRANS_DIR,
+  my ($fh, $filename) = open_odf_file( PREFIX => "scuba",
+				       SUFFIX => ".odf",
+				       DIR => $TRANS_DIR,
 				)
     or throw OMP::Error::FatalError("Error creating ODF");
 
@@ -225,10 +229,10 @@ sub write_odf {
     } elsif ($ref eq 'ARRAY') {
       # An array indicates another file is to be created
       # containing the array contents
-      my ($subfh, $subfile) = tempfile( lc($key) ."_XXXXXX",
-					SUFFIX => "." . lc($key),
-					DIR => $TRANS_DIR,
-				      )
+      my ($subfh, $subfile) = open_odf_file( PREFIX => lc($key),
+					     SUFFIX => "." . lc($key),
+					     DIR => $TRANS_DIR,
+					   )
 	or throw OMP::Error::FatalError("Error writing config file for ODF key $key");
 
       print $subfh join("\n", @{$odf->{$key}}),"\n";
@@ -237,6 +241,7 @@ sub write_odf {
 
       # Now write the filename to the ODF
       # This will probably need a full VAX path
+      print "WRITING ARRAY $key to $subfile\n";
       print $fh "$key      $TRANS_DIR_VAX" . basename($subfile) . "\n";
 
     } else {
@@ -252,6 +257,117 @@ sub write_odf {
   return $filename;
 
 }
+
+=item B<open_odf_file>
+
+Create and open a date stamped ODf file. File names are constructed as
+
+   DIR/PREFIX_TIME_INDEXSUFFIX
+
+where TIME is the unix time (seconds resolution), INDEX is a 3 digit
+zero padded number starting at 001 and incrementing until a new file
+can be created. PREFIX and SUFFIX are supplied by the caller. PREFIX
+must not include directory paths.
+
+   ($fh, $filename) = open_odf_file( PREFIX => 'scuba',
+                                     SUFFIX => '.odf',
+                                     DIR    => $directory);
+
+If directory is not specified File::Spec->tmpdir will be used.
+PREFIX must be supplied but SUFFIX is optional.
+
+The file is guaranteed not to clobber an existing file.
+
+Returns the file handle and the filename. It is not automatically
+deleted.
+
+File::Temp is not used since that currently does not have an option
+to generate these types of files (and probably never will). It also
+generates case sensitive files which is not good when mounting a unix
+disk from a VAX.
+
+=cut
+
+sub open_odf_file {
+  my %defaults = (
+		  DIR => File::Spec->tmpdir,
+		  SUFFIX => '',
+		 );
+
+  # Read argument list
+  my %args = (%defaults, @_);
+
+  # Error if no PREFIX
+  throw OMP::Error::FatalError("PREFIX must be supplied to open_odf_file")
+    unless exists $args{PREFIX};
+
+  # Current time
+  my $time = time;
+
+  # Rather than attempting to open up to 1000 files before
+  # finding a new one (since three digits allows for that)
+  # do a quick readdir first to look for something plausible
+  # via a pattern match. Of course, if the directory is filled
+  # with junk the overhead of reading the directory may be 
+  # much higher than the possibility of being able to open
+  # 1000 files in less than a second!
+  # Might skip this code completely
+  my $guess = $args{PREFIX} . '_' . $time . '_(\d\d\d)' . $args{SUFFIX};
+
+  opendir my $DIRH, "$args{DIR}"
+    or throw OMP::Error::FatalError("Error reading directory $args{DIR}: $!");
+  my @numbers = sort { $a <=> $b }
+    map { /$guess/ && $1 }  grep /$guess$/, readdir($DIRH);
+  closedir($DIRH);
+
+  # First index to try
+  my $start = 1 + (@numbers ? $numbers[-1] : 0 );
+
+  # Get current umask and set to known umask
+  my $umask = umask;
+  umask(066);
+
+  # Now try to open the file up to 100 times
+  # The looping is not really required if combined with the
+  # readdir.
+  # If we turn off the readdir we will need to make sure this number
+  # matches the number of digts supported in INDEX.
+  my $MAX_TRIES = 100;
+  my $end = $MAX_TRIES + $start;
+  for (my $i = $start; $i < $end; $i++) {
+
+    # Create the file name
+    my $file = File::Spec->catfile($args{DIR},
+				   $args{PREFIX} ."_$time". '_'.
+				   sprintf("%03d", $i) . $args{SUFFIX});
+
+    my $open_success = sysopen(my $fh, $file,
+			       O_CREAT|O_RDWR|O_EXCL,0600);
+
+    if ($open_success) {
+      # Reset umask
+      umask($umask);
+
+      # Opened successfully
+      return( $fh, $file );
+
+    } else {
+      # Abort with error if there was some error other than
+      # EEXIST
+      unless ($!{EEXIST}) {
+	umask($umask);
+	throw OMP::Error::FatalError("Could not create temp file $file: $!");
+      }
+    }
+
+    # Loop for another try
+  }
+
+  # Oh well no write
+  umask($umask);
+  return ();
+}
+
 
 =back
 
@@ -855,13 +971,14 @@ sub getTarget {
     $target{DEC} = $c->dec_app( format => 's');
     $target{MJD1} = $c->datetime->mjd;
 
-    # An hour in the future
-    print "XXX Old time: $time\n";
-    print "XXX Old MJD: " . $time->mjd . "\n";
-    $time += Time::Seconds::ONE_DAY + (12 * ONE_HOUR);
-    print "XXX New time: $time\n";
-    print "XXX Ref: " . ref($time) . "\n";
-    print "XXX New MJD: " . $time->mjd . "\n";
+    # four hours in the future since this MSB shouldn't really
+    # be longer than that.
+    #print "XXX Old time: $time\n";
+    #print "XXX Old MJD: " . $time->mjd . "\n";
+    $time += (4 * ONE_HOUR);
+    #print "XXX New time: $time\n";
+    #print "XXX Ref: " . ref($time) . "\n";
+    #print "XXX New MJD: " . $time->mjd . "\n";
     $c->datetime( $time );
     $target{RA2} = $c->ra_app( format => 's');
     $target{DEC2} = $c->dec_app( format => 's');
@@ -910,17 +1027,44 @@ sub getScan {
   # Need to calculate this if it hasn't been specified.
   # Get the allowed values
   my @scanpas = @{ $info{SCAN_PA}};
-  if (@scanpas) {
-    # Some have been specified
-    # We should really work out which is best and then use that
-    # For now take the first
+
+  # If nothing specified use the SCUBA symmetry
+  @scanpas = (14.5,74.5,-45.5);
+
+  # If only one, run with it
+  if (scalar(@scanpas) == 1) {
     $scan{SAMPLE_PA} = $scanpas[0];
 
   } else {
-    # Nothing specified
-    # We have to make a stab
-    # For now - Ha!
-    $scan{SAMPLE_PA} = 14.5;
+    # We have to choose the best one
+    # Relies on the sample coords as well
+    # If we are in NA scanning with the array we have
+    # to calculate the best angle. Else it doesnt really
+    # matter since we cant be fully-sampled
+
+    # Need to get bolometer information
+    my %bols = $self->getBols( %info );
+
+    if ($scan{SAMPLE_COORDS} eq 'NA'
+       && $bols{BOLOMETERS} =~ /LONG|SHORT/) {
+      # Calculate the angle between the map and nasmyth Y
+      # This is a combination of the MAP_PA, the parallactic angle
+      # and the elevation. Need to check exactly which way round
+      # to combine.
+      # This requires the coordinate object
+      my $c       = $info{coords};
+      my $par_ang = $c->pa(format => 'd');
+      my $el      = $c->el(format => 'd');
+      my $map_pa  = $info{MAP_PA};
+
+      # Not going to do this yet so just return the first
+      # one
+      $scan{SAMPLE_PA} = $scanpas[0];
+
+    } else {
+      # Just return the first one
+      $scan{SAMPLE_PA} = $scanpas[0];
+    }
 
   }
 
