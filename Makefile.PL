@@ -3,6 +3,11 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'      => 'OMP',
     'VERSION'   => '0.01',
+    'PREREQ_PM' => {
+		    Digest::MD5 => '2.20',
+		    Astro::SLA  => '0.95',
+		    Astro::Coords => '0.03',
+		   },
     dist          => { COMPRESS => "gzip -9f" },
    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
      (ABSTRACT => 'Classes related to the observation management project',
