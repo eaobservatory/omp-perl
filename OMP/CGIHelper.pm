@@ -844,7 +844,13 @@ sub msb_hist_content {
 
 
   print $q->startform(-name=>'sortform'),
-	"Show: ",
+        "<b>Show </b>",
+
+	# we want to show this page again, not the output page, so
+	# we'll include this hidden param
+	$q->hidden(-name=>'show_content',
+		   -default=>'show_content');
+
 	$q->popup_menu(-name=>'show',
 		       -values=>[qw/all observed current/],
 		       -default=>'all',
