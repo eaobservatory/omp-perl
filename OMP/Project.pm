@@ -82,6 +82,7 @@ sub new {
 		    Remaining => undef, # so that it defaults to allocated
 		    Pending => Time::Seconds->new(0),
 		    Support => [],
+		    State => 1,
 		   }, $class;
 
   # Deal with arguments
@@ -106,6 +107,25 @@ sub new {
 =head2 Accessor Methods
 
 =over 4
+
+=item B<state>
+
+The state of the project. Truth indicates that the project is enabled,
+false means that the project is currently disabled. If the project is
+disabled you will not be able to do queries on it by default.
+
+=cut
+
+sub state {
+  my $self = shift;
+  if (@_) { 
+    my $state = shift;
+    # force binary
+    $state = ($state ? 1 : 0 );
+    $self->{State} = $state
+  };
+  return $self->{State};
+}
 
 =item B<allocated>
 
@@ -616,14 +636,13 @@ in the C<pending> field.
 
   $left = $proj->allRemaining;
 
-Always returns a number greater than or equal to zero.
+Can be negative.
 
 =cut
 
 sub allRemaining {
   my $self = shift;
   my $all_left = $self->remaining - $self->pending;
-  $all_left = new Time::Seconds(0) if $all_left < 0.0;
   return $all_left;
 }
 
@@ -652,8 +671,7 @@ be included in this calculation).
 
   $time = $proj->used;
 
-This value can never exceed the total amount of time allocated to the
-project.
+This value can exceed the allocated amount.
 
 =cut
 

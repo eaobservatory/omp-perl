@@ -337,13 +337,10 @@ sub issuePassword {
 
 =item B<disableProject>
 
-Remove the project from future queries by setting the time
-remaining to 0.0.
+Remove the project from future queries by setting the project
+state to 0 (disabled).
 
   $db->disableProject();
-
-In the future project objects may be modified to support a true
-"disable"/"enable".
 
 Requires the administrator password.
 
@@ -364,7 +361,7 @@ sub disableProject {
   $self->_dblock;
 
   # Modify the project
-  $project->noneRemaining();
+  $project->state( 0 );
 
   # Update the contents in the table
   $self->_update_project_row( $project );
@@ -727,7 +724,7 @@ sub _insert_project_row {
 			  $proj->allocated->seconds,
 			  $proj->remaining->seconds, $proj->pending->seconds,
 			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
-			  $cloud
+			  $cloud, $proj->state,
 			);
 
   # Now insert the user data
