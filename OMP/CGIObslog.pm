@@ -36,8 +36,6 @@ use OMP::DBbackend::Archive;
 use OMP::WORF;
 use OMP::Error qw/ :try /;
 
-use Data::Dumper;
-
 our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
@@ -154,22 +152,32 @@ sub list_observations {
     # We need to get an Info::ObsGroup object for this query object.
     my $obsgroup;
     try {
-      $obsgroup = cgi_to_obsgroup( $q, ut => $ut, telescope => $telescope );
+      $obsgroup = cgi_to_obsgroup( $q, \%cookie, ut => $ut, telescope => $telescope, inccal => 1 );
 #      print "<h2>Observations for $inst on $ut</h2><br>\n";
     }
     catch OMP::Error with {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
-      print "Error: $errortext<br>\n";
+      print "Error in CGIObslog::list_observations: $errortext<br>\n";
     }
     otherwise {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
-      print "Error: $errortext<br>\n";
+      print "Error in CGIObslog::list_observations: $errortext<br>\n";
     };
 
-    # And display the table.
     my %options;
+    # Check if we're staff login or not (so we can tell obs_table
+    # how to draw the WORF links).
+    if( defined( $cookie{'projectid'} ) && exists( $cookie{'projectid'} ) &&
+        defined( $cookie{'password'} ) && exists( $cookie{'password'} ) &&
+        OMP::ProjServer->verifyPassword( $cookie{'projectid'}, $cookie{'password'} ) ) {
+      $options{'worfstyle'} = 'project';
+    } else {
+      $options{'worfstyle'} = 'staff';
+    }
+
+    # And display the table.
     $options{'showcomments'} = 1;
     $options{'ascending'} = 0;
     $options{'instrument'} = $inst;
@@ -252,7 +260,7 @@ group of observations.
   obs_table( $obsgroup, $options );
 
 The first argument is the C<OMP::Info::ObsGroup>
-object, and the second optional argument tells the function how to
+object, and the third optional argument tells the function how to
 display things. It is a hash reference optionally containing the
 following keys:
 
@@ -283,6 +291,11 @@ to 'instrument'.
 text - Produce a text table rather than an HTML table. Defaults
 to 0 (false).
 
+=item *
+
+worfstyle - Write WORF links to the staff WORF page. Can be either 'staff'
+or 'project', and if the parameter is not 'staff', will default to 'project'.
+
 =back
 
 This function will print a colour legend before the table.
@@ -294,6 +307,22 @@ sub obs_table {
   my %options = @_;
 
   # Check the arguments.
+  my $commentlink;
+  if( exists( $options{commentstyle} ) && defined( $options{commentstyle} ) &&
+      lc( $options{commentstyle} ) eq 'staff' ) {
+    $commentlink = 'staffobscomment.pl';
+  } else {
+    $commentlink = 'fbobscomment.pl';
+  }
+
+  my $worflink;
+  if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+      lc( $options{worfstyle} ) eq 'staff' ) {
+    $worflink = 'staffworf.pl';
+  } else {
+    $worflink = 'fbworf.pl';
+  }
+
   my $showcomments;
   if( exists( $options{showcomments} ) ) {
     $showcomments = $options{showcomments};
@@ -470,7 +499,7 @@ sub obs_table {
     if( $text ) {
 
     } else {
-      print "</font></td><td><a class=\"link_dark_small\" href=\"obscomment.pl?ut=";
+      print "</font></td><td><a class=\"link_dark_small\" href=\"$commentlink?ut=";
       $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
       $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
       print $obsut;
@@ -496,31 +525,30 @@ sub obs_table {
           # Get a list of suffices
           my @ind_suffices = $worf->suffices;
           my @grp_suffices = $worf->suffices( 1 );
-
           print "<td>";
           if( $worf->file_exists( suffix => '', group => 0 ) ) {
-            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
             print $obsut;
             print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
             print "\">raw</a> ";
           }
           foreach my $suffix ( @ind_suffices ) {
             next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
             print $obsut;
             print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
             print "&suffix=$suffix\">$suffix</a> ";
           }
           print "/ ";
           if( $worf->file_exists( suffix => '', group => 1 ) ) {
-            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
             print $obsut;
             print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
             print "&group=1\">group</a> ";
           }
           foreach my $suffix ( @grp_suffices ) {
             next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-            print "<a class=\"link_dark_small\" href=\"worf.pl?ut=";
+            print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
             print $obsut;
             print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
             print "&suffix=$suffix&group=1\">$suffix</a> ";
@@ -590,20 +618,26 @@ sub obs_table {
 
 Prints a table containing a summary about a given observation
 
-  obs_summary( $cgi, $obs );
+  obs_summary( $cgi, $obs, $cookie );
 
-The first argument is a C<CGI> object, and the second is an
-C<Info::Obs> object.
+The first argument is a C<CGI> object, the second is an
+C<Info::Obs> object, and the third is an C<OMP::Cookie> object.
 
 =cut
 
 sub obs_summary {
   my $cgi = shift;
   my $obs = shift;
+  my $cookie = shift;
 
   # Verify that we do have an Info::Obs object.
   if( ! UNIVERSAL::isa( $obs, "OMP::Info::Obs" ) ) {
     throw OMP::Error::BadArgs("Must supply an Info::Obs object");
+  }
+
+  if( exists( $cookie->{'projectid'} ) && defined( $cookie->{'projectid'} ) &&
+      $obs->isScience && (lc( $obs->projectid ) ne lc( $cookie->{'projectid'} ) ) ) {
+    throw OMP::Error( "Observation does not match project " . $cookie->{'projectid'} );
   }
 
   my @comments = $obs->comments;
@@ -687,12 +721,20 @@ sub obs_inst_summary {
   #
   # First, check the 'projectid' in the cookie.
   my $projectid = $cookie->{'projectid'};
+  my $password = $cookie->{'password'};
+  my $obsloglink;
   if( defined( $projectid ) && ! OMP::General->am_i_staff( $projectid ) ) {
-    my $proj = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => new OMP::DBbackend );
+    my $proj = OMP::ProjServer->projectDetails( $projectid,
+                                                $password,
+                                                'object' );
     if( defined( $proj ) ) {
       $telescope = uc( $proj->telescope );
     }
+
+    $obsloglink = "fbobslog.pl";
+
+  } else {
+    $obsloglink = "staffobslog.pl";
   }
 
   if( ! defined( $telescope ) ) {
@@ -722,6 +764,8 @@ sub obs_inst_summary {
   try {
     my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
                                        date => $ut,
+                                       projectid => $projectid,
+                                       inccal => 1,
                                      );
 
     %results = $grp->groupby('instrument');
@@ -739,7 +783,7 @@ sub obs_inst_summary {
   if( scalar keys %results ) {
     print "<table border=\"0\" class=\"sum_table\"><tr class=\"sum_table_head\"><td><strong class=\"small_title\">";
     foreach my $inst ( sort keys %results ) {
-      my $header = "<a style=\"color: #05054f;\" href=\"obslog.pl?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
+      my $header = "<a style=\"color: #05054f;\" href=\"$obsloglink?inst=$inst&ut=$ut\">$inst (" . scalar(@{$results{$inst}->obs}) . ")</a>";
       push @printarray, $header;
       if( ! defined( $firstinst ) && scalar(@{$results{$inst}->obs}) > 0 ) {
         $firstinst = $inst;
@@ -790,6 +834,11 @@ sub obs_comment_form {
   # Verify we have an Info::Obs object.
   if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
     throw OMP::Error::BadArgs("Must supply Info::Obs object");
+  }
+
+  if( exists( $cookie->{'projectid'} ) && defined( $cookie->{'projectid'} ) &&
+      $obs->isScience && lc( $cookie->{'projectid'} ) ne lc( $obs->projectid ) ) {
+    throw OMP::Error("The projectid for the observation (" . $obs->projectid . ") does not match the project you are logged in as (" . $cookie->{'projectid'} . ")");
   }
 
   print $q->startform;
@@ -1027,6 +1076,7 @@ These parameters will override any values contained in the C<CGI> object.
 
 sub cgi_to_obsgroup {
   my $q = shift;
+  my $cookie = shift;
   my %args = @_;
 
   my $ut = defined( $args{'ut'} ) ? $args{'ut'} : undef;
@@ -1045,6 +1095,8 @@ sub cgi_to_obsgroup {
   $inst = ( defined( $inst ) ? $inst : uc( $qv->{'inst'} ) );
   $projid = ( defined( $projid ) ? $projid : $qv->{'projid'} );
   $telescope = ( defined( $telescope ) ? $telescope : uc( $qv->{'telescope'} ) );
+
+  $projid = ( defined( $projid ) ? $projid : $cookie->{'projectid'} );
 
   if( !defined( $telescope ) || length( $telescope . '' ) == 0 ) {
     if( defined( $inst ) && length( $inst . '' ) != 0) {
@@ -1169,22 +1221,18 @@ sub print_obslog_footer {
 
 =item B<print_obscomment_footer>
 
-Prints a footer that gives a link back to obslog.
+Prints a footer.
 
   print_obscomment_footer( $cgi );
 
 The only argument is the C<CGI> object.
 
+Currently a no-op.
+
 =cut
 
 sub print_obscomment_footer {
-  my $q = shift;
-  my $qv = $q->Vars;
 
-  $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d)/;
-
-  print "<br>\n";
-  print "<a href=\"obslog.pl?ut=$1&inst=" . $qv->{'inst'} . "\">back to obslog</a>\n";
 }
 
 =back
