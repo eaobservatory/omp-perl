@@ -36,6 +36,9 @@ use OMP::Error;
 use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 
+require HTML::TreeBuilder;
+require HTML::FormatText;
+
 # Note we have to require this module rather than use it because
 # there is a circular dependency with OMP::General such that determine_host
 # must be defined before OMP::Config BEGIN block can trigger
@@ -1401,6 +1404,35 @@ sub split_string {
   return @substrings;
 }
 
+=item B<preify_text>
+
+Replace HTML characters (such as <, > and &) with their associated escape
+sequences and place text inside a <PRE> block.
+
+  $escaped = preify_text($text);
+
+=cut
+
+sub preify_text {
+  my $self = shift;
+  my $string = shift;
+
+  # Escape sequence lookup table
+  my %lut = (">" => "&gt;",
+	     "<" => "&lt;",
+	     "&" => "&amp;",
+	     '"' => "&quot;",);
+
+  # Do the search and replace
+  # Make sure we replace ampersands first, otherwise we'll end
+  # up replacing the ampersands in the escape sequences
+  for ("&", ">", "<", '"') {
+    $string =~ s/$_/$lut{$_}/g;
+  }
+
+  return "<pre>$string</pre>";
+}
+
 =item B<replace_entity>
 
 Replace some HTML entity references with their associated characters.
@@ -1425,6 +1457,34 @@ sub replace_entity {
   }
 
   return $string;
+}
+
+=item B<html_to_plain>
+
+Convert HTML formatted text to plaintext.  Also expands hyperlinks
+so that their URL can be seen.
+
+  $plaintext = html_to_plain($html);
+
+=cut
+
+sub html_to_plain {
+  my $self = shift;
+  my $text = shift;
+
+  # Expand HTML links for our plaintext message
+  $text =~ s!<a\s+href=\W*(\w+://.*?/*)\W*?\s*\W*?>(.*?)</a>!$2 \[$1\]!gis;
+
+  # Create the HTML tree and parse it
+  my $tree = HTML::TreeBuilder->new;
+  $tree->parse($text);
+  $tree->eof;
+
+  # Convert the HTML to text and store it
+  my $formatter = HTML::FormatText->new(leftmargin => 0);
+  my $plaintext = $formatter->format($tree);
+
+  return $plaintext;
 }
 
 =back
