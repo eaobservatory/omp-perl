@@ -576,28 +576,40 @@ Project Time Summary
 
 Mail a text version of the report to the relevant mailing list.
 
-  $nr->mail_report;
+  $nr->mail_report();
+
+An optional argument can be used to specify the details of the person
+filing the report. Supplied as an OMP::User object. Defaults to
+an email adress of "flex@maildomain" if no argument is specified,
+where "maildomain" is stored in the config system.
 
 =cut
 
 sub mail_report {
   my $self = shift;
+  my $user = shift;
 
   # Get the mailing list
-  my $mailaddr = OMP::Config->getData( 'nightrepemail', 
+  my @mailaddr = OMP::Config->getData( 'nightrepemail', 
 				       telescope => $self->telescope);
+
 
   # Should probably CC observers
 
   # Get the text
   my $report = $self->astext;
 
-  # Who are we
-  my ($user, $host, $from) = OMP::General->determine_host();
+  # Who is filing this report (need the email address)
+  my $from;
+  if (defined $user) {
+    $from = $user->email;
+  } else {
+    $from = 'flex@' . OMP::Config->getData('maildomain');
+  }
 
   # and mail it
   OMP::BaseDB->_mail_information(
-				 to => [ $mailaddr ],
+				 to => [ @mailaddr ],
 				 from => $from,
 				 subject => 'OBS REPORT: '.$self->date->ymd .
 				 ' at the ' . $self->telescope,
