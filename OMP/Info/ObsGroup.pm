@@ -555,8 +555,12 @@ sub projectStats {
 
       # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
       # "nothing" to extended observing!]
+      # unless the gap is small (less than the threshold)
+      # since most people define extended as time from when we really
+      # start to when we really end the observing.
       $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds 
-	if defined $extended && $extended->seconds > 0 && !$isgap;
+	if defined $extended && $extended->seconds > 0 
+	  && (!$isgap || ($isgap && $extended->seconds < $GAP_THRESHOLD));
 
       # If the duration is negative set it to zero rather than kludging
       # by adding ONE_DAY
@@ -584,8 +588,8 @@ sub projectStats {
 	# Use a hash ref just to make it easy to spot rather than matching
 	# to a digit
 	$gapproj{$ymd}->{$tel}->[-1] = { OTHER => $timespent->seconds };
-      } else {
-	# Just charge to OTHER
+      } elsif ($timespent->seconds > 0) {
+	# Just charge to OTHER [unless we have negative time gap]
 	print "CHARGING ".$timespent->seconds." TO $projectid\n"
 	  if $DEBUG;
 	$other{$ymd}{$tel}{$projectid} += $timespent->seconds;
