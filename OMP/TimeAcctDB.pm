@@ -187,6 +187,14 @@ sub setTimeSpent {
   # now need to recalculate the time spent for each project
   for my $proj (keys %projects) {
 
+    # update the ProjDB object with the current project id
+    $projdb->projectid( $proj );
+
+    # Some of the projects are not real (eg WEATHER, SCUBA)
+    # so in those cases we just skip
+    # Rather than doing an opt-in simply look for project validity
+    next unless $projdb->verify();
+
     # get the new totals
     my @all = $self->getTimeSpent( projectid => $proj );
 
@@ -194,9 +202,6 @@ sub setTimeSpent {
     my %results = OMP::Project::TimeAcct->summarizeTimeAcct( 'all', @all );
     my $pending = $results{pending};
     my $used    = $results{confirmed};
-
-    # update the ProjDB object with the current project id
-    $projdb->projectid( $proj );
 
     # get the project object
     my $project = $projdb->_get_project_row;
