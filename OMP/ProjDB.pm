@@ -385,7 +385,7 @@ sub disableProject {
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
 				 subject => "[$projectid] Project disabled",
-				 text => "project <b>$projectid</b> disabled",
+				 text => "<html>project <b>$projectid</b> disabled",
 				 msgtype => OMP__FB_MSG_PROJECT_DISABLED,
 				);
 
@@ -430,7 +430,7 @@ sub enableProject {
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
 				 subject => "[$projectid] Project enabled",
-				 text => "project <b>$projectid</b> enabled",
+				 text => "<html>project <b>$projectid</b> enabled",
 				 msgtype => OMP__FB_MSG_PROJECT_ENABLED,
 				);
 
