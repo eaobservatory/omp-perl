@@ -15,6 +15,8 @@ This program collates data for each active program in the specified
 semester and presents a histogram of RA coverage for all the MSBs
 present in the science programmes.
 
+Only projects that have time remaining are included.
+
 =head1 OPTIONS
 
 The following options are supported:
@@ -161,6 +163,11 @@ printf "RA: ".("%02d "x scalar(@rahist))."\n", (0..$#rahist);
 my $i = 0;
 for my $proj (@$projects) {
   print $proj->projectid ."\n";
+  if ($proj->percentComplete > 99.9) {
+    print "No time remaining on project. Skipping\n";
+    next;
+  }
+
   my $sp;
   try {
     $sp = OMP::SpServer->fetchProgram($proj->projectid, $password, 1);
@@ -270,5 +277,18 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 Copyright (C) 2004 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
