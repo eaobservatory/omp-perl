@@ -87,7 +87,15 @@ use constant INSTRUMENT_WFCAM => 1040;
 use constant INSTRUMENT_WFS => 1041;
 use constant INSTRUMENT_VISITOR => 1042;
 use constant INSTRUMENT_OTHER_UNKNOWN => 1043;
-
+use constant BACK_END_DAS => 1044;
+use constant BACK_END_ACSIS => 1045;
+use constant BACK_END_CBE => 1046;
+use constant BACK_END_IFD => 1047;
+use constant FRONT_END_RXA => 1048;
+use constant FRONT_END_RXB => 1049;
+use constant FRONT_END_RXW => 1050;
+use constant SCUBA => 1051;
+use constant WATER_VAPOR_RAD => 1052;
 
 # Mailing list
 my %MAILLIST = (
@@ -118,8 +126,18 @@ my %DATA = (
 		      },
 	     "JCMT" => {
 			SYSTEM => {
-				   Antenna => ANTENNA,
-				   Instrument => INSTRUMENT,
+				   Telescope => TELESCOPE,
+				   "Back End - DAS" => BACK_END_DAS,
+				   "Back End - ACSIS" => BACK_END_ACSIS,
+				   "Back End - CBE" => BACK_END_CBE,
+				   "Back End - IFD" => BACK_END_IFD,
+				   "Front End - RxA" => FRONT_END_RXA,
+				   "Front End - RxB" => FRONT_END_RXB,
+				   "Front End - RxW" => FRONT_END_RXW,
+				   SCUBA => SCUBA,
+				   "Water Vapor Rad." => WATER_VAPOR_RAD,
+				   "Visitor Instruments" => INSTRUMENT_VISITOR,
+				   Instrument => INSTRUMENT_OTHER_UNKNOWN,
 				   Computer => COMPUTER,
 				   Carousel => CAROUSEL,
 				   "Other/Unknown" => SYSTEMOTHER,
@@ -129,7 +147,7 @@ my %DATA = (
 				 Electronic => ELECTRONIC,
 				 Software => SOFTWARE,
 				 Cryogenic => CRYOGENIC,
-				 Other => TYPEOTHER,
+				 "Other/Unknown" => TYPEOTHER,
 				 Human => HUMAN,
 				},
 
