@@ -36,6 +36,7 @@ use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
 use OMP::DBbackend;
+use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::Info::ObsGroup;
@@ -415,7 +416,7 @@ Returns undef if no observations could be located.
 sub obs {
   my $self = shift;
 
-  my $db = new OMP::ArchiveDB( DB => $self->db );
+  my $db = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
 
   # XML query to get all observations
   my $xml = "<ArcQuery>".
