@@ -28,7 +28,7 @@ use OMP::Error;
 
 # Package globals
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = (qw$Revision$ )[1];
 
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 10;
@@ -217,6 +217,13 @@ sub sql {
   # a chunk at a time
   my @sql;
   for my $entry ( keys %$query) {
+
+    # Some queries can not be processed yet because they require
+    # extra information or stored procedures
+    next if $entry eq "elevation";
+    next if $entry eq "date";
+
+    # Look at the entry and convert to SQL
     if (ref($query->{$entry}) eq 'ARRAY') {
       # use an OR join [must surround it with parentheses]
       push(@sql, "(".join(" or ", 
@@ -239,6 +246,11 @@ sub sql {
   # Now join it all together with an AND
   my $subsql = join(" AND ", @sql);
 
+  # If the resulting query contained anything we should prepend
+  # an AND so that it fits in with the rest of the SQL. This allows
+  # an empty query to work without having a naked "AND".
+  $subsql = " AND " . $subsql if $subsql;
+
   # Some explanation is probably in order.
   # We do three queries
   # 1. Do a query on MSB and OBS tables looking for relevant
@@ -248,47 +260,60 @@ sub sql {
   # 2. Query the temporary table to determine all the MSB's that had
   #    all their observations match
   # 3. Use that list of MSBs to fetch the corresponding contents
- 
+
   # It is assumed that the observation information will be retrieved
   # in a subsequent query if required.
 
+  # Get the names of the temporary tables
+  # Sybase limit if 13 characters for uniqueness
+  my $tempcount = "#ompcnt";
+  my $tempmsb = "#ompmsb";
+
   # Now need to put this SQL into the template query
   my $sql = "(SELECT
-          ompmsb.msbid, ompmsb.obscount, COUNT(*) AS nobs
-           INTO #omptemp
-           FROM ompmsb,ompobs, ompproj
-            WHERE ompmsb.msbid = ompobs.msbid
-              AND ompproj.projectid = ompmsb.projectid
-               AND ompmsb.remaining > 0
-                AND (ompproj.remaining - ompproj.pending) >= ompmsb.timeest
-                AND $subsql
-              GROUP BY ompmsb.msbid)
-                (SELECT msbid INTO #ompmsbtemp FROM #omptemp
+          $msbtable.msbid, $msbtable.obscount, COUNT(*) AS nobs
+           INTO $tempcount
+           FROM $msbtable,$obstable, $projtable
+            WHERE $msbtable.msbid = $obstable.msbid
+              AND $projtable.projectid = $msbtable.projectid
+               AND $msbtable.remaining > 0
+                AND ($projtable.remaining - $projtable.pending) >= $msbtable.timeest
+                $subsql
+              GROUP BY $msbtable.msbid)
+                (SELECT msbid INTO $tempmsb FROM $tempcount
                  WHERE nobs = obscount)
-               (SELECT * FROM ompmsb,#ompmsbtemp
-                 WHERE ompmsb.msbid = #ompmsbtemp.msbid
+               (SELECT * FROM $msbtable,$tempmsb
+                 WHERE $msbtable.msbid = $tempmsb.msbid
                  )";
 
   # Same as above but without worrying about elapsed time
   $sql = "(SELECT
-          ompmsb.msbid, ompmsb.obscount, COUNT(*) AS nobs
-           INTO #omptemp
-           FROM ompmsb,ompobs, ompproj
-            WHERE ompmsb.msbid = ompobs.msbid
-              AND ompproj.projectid = ompmsb.projectid
-               AND ompmsb.remaining > 0
-                AND $subsql
-              GROUP BY ompmsb.msbid)
-                (SELECT msbid INTO #ompmsbtemp FROM #omptemp
+          $msbtable.msbid, $msbtable.obscount, COUNT(*) AS nobs
+           INTO $tempcount
+           FROM $msbtable,$obstable, $projtable
+            WHERE $msbtable.msbid = $obstable.msbid
+              AND $projtable.projectid = $msbtable.projectid
+               AND $msbtable.remaining > 0
+                $subsql
+              GROUP BY $msbtable.msbid)
+                (SELECT msbid INTO $tempmsb FROM $tempcount
                  WHERE nobs = obscount)
-               (SELECT * FROM ompmsb,#ompmsbtemp
-                 WHERE ompmsb.msbid = #ompmsbtemp.msbid
-                 )";
 
-  print "SQL: $sql\n";
+                DROP TABLE $tempcount
+
+               (SELECT * FROM $msbtable,$tempmsb
+                 WHERE $msbtable.msbid = $tempmsb.msbid
+                 )
+
+               DROP TABLE $tempmsb
+";
+
+#  print "SQL: $sql\n";
 
 
   return "$sql\n";
+
+  # To subvert query
   return "SELECT * FROM $msbtable WHERE remaining > 0";
 }
 
@@ -338,7 +363,7 @@ sub _convert_to_perl {
   # Loop over children
   for my $child ($msbquery->childNodes) {
     my $name = $child->getName;
-    print "Name: $name\n";
+    #print "Name: $name\n";
 
     # Now need to look inside to see what the children are
     for my $grand ( $child->childNodes ) {
@@ -366,8 +391,8 @@ sub _convert_to_perl {
   # Store the hash
   $self->query_hash(\%query);
 
-  use Data::Dumper;
-  print Dumper(\%query);
+#  use Data::Dumper;
+#  print Dumper(\%query);
 
 }
 
