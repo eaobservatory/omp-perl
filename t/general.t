@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 164;
+use Test::More tests => 165;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -513,7 +513,7 @@ is($extend->seconds, 600, "Check extended time");
 is($projtime->seconds, 1200, "Check project time");
 is($extend->seconds, 600, "Check extended time");
 
-print "# HTML character escaping\n";
+print "# Convert text to HTML format\n";
 my $pstring = "<foo bar=\"baz\"><&>";
 is(OMP::General->preify_text($pstring),'<pre>&lt;foo bar=&quot;baz&quot;&gt;&lt;&amp;&gt;</pre>', 'Escape HTML in string');
 
@@ -521,6 +521,9 @@ my @compare_pre = ('<pre>&lt;','&gt;','&amp;</pre>');
 is_deeply([split(/\s+/,OMP::General->preify_text("< > &"))],
 	  \@compare_pre,
 	  "Make sure that ampersands in escape sequences aren't escaped");
+
+$pstring = "<htMl>html formatted string";
+is(OMP::General->preify_text($pstring),'html formatted string','Strip out beginning <html> string');
 
 print "# HTML to plaintext\n";
 my $html = "<strong>Hello<br>there</strong>";
