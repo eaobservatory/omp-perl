@@ -399,6 +399,11 @@ sub query_fault_output {
       push (@xml, "<type>$type</type>");
     }
 
+    # Return chronic faults only?
+    if ($q->param('chronic')) {
+      my %condition = OMP::Fault->faultCondition;
+      push (@xml, "<condition>$condition{Chronic}</condition>");
+    }
 
     if ($q->param('status') ne "any") {
 
@@ -438,6 +443,19 @@ sub query_fault_output {
       # Get our min and max dates
       my $mindatestr = $q->param('mindate');
       my $maxdatestr = $q->param('maxdate');
+
+      # Check that we will understand the dates` formats
+      # Maybe OMP::General parse_date method should be
+      # catching these...
+      for ($mindatestr, $maxdatestr) {
+	unless ($_ =~ /^\d{8}$/ or
+		$_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
+		$_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
+		$_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+
+	  croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
+	}
+      }
 
       # Convert dates to UT
       $mindate = OMP::General->parse_date($mindatestr, 1);
@@ -780,6 +798,13 @@ sub query_fault_form {
 		       -label=>'Show affected projects',
 		       -checked=>0,);
   }
+
+  # Return chronic faults checkbox
+  print "<br>";
+  print $q->checkbox(-name=>'chronic',
+		     -value=>'true',
+		     -label=>'Return chronic faults only',
+		     -checked=>0,);
 
   print "<br>";
   print $q->checkbox(-name=>'summary',
@@ -1192,7 +1217,8 @@ sub file_fault_form {
 		 message => undef,
 		 assoc => undef,
 		 assoc2 => undef,
-		 urgency => undef,);
+		 urgency => undef,
+		 condition => undef,);
 
     # Set the text for our submit button
     $submittext = "Submit fault";
@@ -1211,6 +1237,9 @@ sub file_fault_form {
 
     # Is this fault marked urgent?
     my $urgent = ($fault->urgencyText =~ /urgent/i ? "urgent" : undef);
+
+    # Is this fault marked chronic?
+    my $chronic = ($fault->conditionText =~ /chronic/i ? "chronic" : undef);
 
     # Projects associated with this fault
     my @assoc = $fault->projects;
@@ -1235,7 +1264,8 @@ sub file_fault_form {
 		 subject => $fault->subject,
 		 message => $message,
 		 assoc2 => join(',',@assoc),
-		 urgency => $urgent,);
+		 urgency => $urgent,
+		 condition => $chronic,);
 
     # Set the text for our submit button
     $submittext = "Submit changes";
@@ -1380,15 +1410,28 @@ sub file_fault_form {
 		        -default=>$defaults{assoc2},);
   }
 
-  print "</td><tr><td><b>";
+  print "</td><tr><td colspan='2'><b>";
+
+  # Setup condition checkbox group.  If the fault already exists,
+  # allow user to indicate whether or not the fault is chronic
+  my @convalues = ('urgent');
+  my %conlabels = (urgent => "Urgent");
+  my @condefaults = ($defaults{urgency});
+  if ($fault->id) {
+    push @convalues, "chronic";
+    $conlabels{chronic} = "Chronic";
+    push @condefaults, $defaults{condition};
+  }
 
   # Even though there is only a single option for urgency I'm using a checkbox group
   # since it's easier to set a default this way
-  print $q->checkbox_group(-name=>'urgency',
-			   -values=>['urgent'],
-			   -labels=>{urgent => "This fault is urgent"},
-			   -default=>$defaults{urgency},);
-  print "</b></td><td align=right>";
+  print "This fault is ";
+  print $q->checkbox_group(-name=>'condition',
+			   -values=>\@convalues,
+			   -labels=>\%conlabels,
+			   -defaults=>\@condefaults,);
+
+  print "</b></td><tr><td colspan='2' align=right>";
   print $q->submit(-name=>'submit',
 		   -label=>$submittext,);
   print $q->endform;
@@ -1966,12 +2009,16 @@ sub parse_file_fault_form {
 	        type => $q->param('type'),
 	        status => $q->param('status'));
 
-  # Determine the urgency
+  # Determine urgency and condition
+  my @checked = $q->param('condition');
   my %urgency = OMP::Fault->faultUrgency;
-  if ($q->param('urgency') =~ /urgent/) {
-    $parsed{urgency} = $urgency{Urgent};
-  } else {
-    $parsed{urgency} = $urgency{Normal};
+  my %condition = OMP::Fault->faultCondition;
+  $parsed{urgency} = $urgency{Normal};
+  $parsed{condition} = $condition{Normal};
+
+  for (@checked) {
+    ($_ =~ /urgent/i) and $parsed{urgency} = $urgency{Urgent};
+    ($_ =~ /chronic/i) and $parsed{condition} = $condition{Chronic};
   }
 
   # Store time lost if defined.
