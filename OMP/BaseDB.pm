@@ -10,7 +10,6 @@ OMP::BaseDB - Base class for OMP database manipulation
 
   $db->_db_commit_trans;
 
-
 =head1 DESCRIPTION
 
 This class has all the generic methods required by the OMP to
@@ -33,8 +32,6 @@ use OMP::General;
 use OMP::FeedbackDB;
 
 use MIME::Lite;
-require HTML::TreeBuilder;
-require HTML::FormatText;
 
 =head1 METHODS
 
@@ -819,18 +816,9 @@ sub _mail_information {
   # sending a multipart/alternative message
   if ($type eq "multipart/alternative" ) {
 
-    # Expand HTML links for our plaintext message
-    my $text = $details{message};
-    $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
-
-    # Create the HTML tree and parse it
-    my $tree = HTML::TreeBuilder->new;
-    $tree->parse($text);
-    $tree->eof;
-
     # Convert the HTML to text and store it
-    my $formatter = HTML::FormatText->new(leftmargin => 0);
-    my $plaintext = $formatter->format($tree);
+    my $text = $details{message};
+    my $plaintext = html_to_plain($text);
 
     # Attach the plain text message
     $msg->attach(Type=>"text/plain",
