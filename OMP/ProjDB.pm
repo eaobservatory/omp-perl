@@ -496,6 +496,63 @@ sub listProjects {
 
 }
 
+=item B<listSupport>
+
+Retrieve all the support scientists (as a list of C<OMP::User> objects)
+associated with projects in the specified semesters and for the specified
+telescope.
+
+  @support = $projdb->listSupport( telescope => $tel, 
+                                   semester => \@semesters );
+
+Neither C<telescope> nor C<semesters> are mandatory keys.
+
+CURRENTLY THE HASH ARGUMENTS ARE IGNORED. THIS METHOD IS FOR TESTING
+ONLY.
+
+=cut
+
+sub listSupport {
+  my $self = shift;
+  my %args = @_;
+
+  # User table
+  my $utable = $OMP::UserDB::USERTABLE;
+
+  # Kluge. We should not be doing SQL at this level
+  # Note that current project table does not know which telescope
+  # it belongs to!
+  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, name FROM $SUPTABLE S, $utable U WHERE S.userid = U.userid" );
+  map { new OMP::User( %$_ ) } @$supref
+
+}
+
+=item B<listCountries>
+
+Retrieve all the countries associated with projects in the specified
+semesters and for the specified telescope.
+
+  @countries = $projdb->listSupport( telescope => $tel, 
+                                     semester => \@semesters );
+
+Neither C<telescope> nor C<semesters> are mandatory keys.
+
+CURRENTLY THE HASH ARGUMENTS ARE IGNORED. THIS METHOD IS FOR TESTING
+ONLY.
+
+=cut
+
+sub listCountries {
+  my $self = shift;
+  my %args = @_;
+
+  # Kluge. We should not be doing SQL at this level
+  # Note that current project table does not know which telescope
+  # it belongs to!
+  my $cref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT country FROM $PROJTABLE" );
+  return map { $_->{country} } @$cref;
+}
+
 =back
 
 =head2 Internal Methods
