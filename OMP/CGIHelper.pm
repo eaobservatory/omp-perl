@@ -209,17 +209,13 @@ sub fb_entries {
         $q->endform,
 	$q->p;
 
-  my $i = 1;
-
   foreach my $row (@$comments) {
     # make the date more readable here
     # make the author a mailto link here
 
-    print "<font size=+1>Entry $i (on $row->{'date'} by $row->{'author'})</b></font><br>",
+    print "<font size=+1>$row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</b></font><br>",
           "$row->{'text'}",
 	  "<p>";
-
-    $i++;
   }
 
 }
