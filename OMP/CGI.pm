@@ -344,8 +344,13 @@ sub _write_login {
   $self->_write_header();
 
   print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
-  print $q->h1('Login'),
-    "Please enter the project ID and password. These are required for access to project information and data.";
+  print $q->h1('Login');
+  
+  if ($projectid) {
+    print "Please enter the password.";
+  } else {
+    print "Please enter the project ID and password. These are required for access to project information and data.";
+  }
 
   print "<table><tr valign='bottom'><td>";
   print $q->startform,
@@ -455,13 +460,17 @@ sub write_page {
 
 
       if ($q->url_param('urlprojid') ne $cookie{projectid}) {
-	my $verify;
-	$verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $cookie{password});
 
-	# If they're cookie already has the right password store the new
+	my $verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $cookie{password});
+
+	# If their cookie already has the right password store the new
 	# projectid to the cookie, otherwise popup a login page
-	($verify) and %cookie = (projectid=>$q->url_param('urlprojid'), password=>$cookie{password}) or
+	if ($verify) {
+	  %cookie = (projectid=>$q->url_param('urlprojid'), password=>$cookie{password});
+	} else {
 	  $self->_write_login($q->url_param('urlprojid'));
+	  return;
+	}
       }
     }
 
@@ -478,14 +487,13 @@ sub write_page {
 
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
+
     if ($q->param('login_form') or $q->param('show_content')) {
       # If there's a 'login_form' param then we know we just came from
       # the login form.  Also, if there is a 'show_content' param, call
       # the content code ref.
 
       $form_content->( $q, %cookie);
-
-
     } else {
       $form_output->( $q, %cookie);
     }
