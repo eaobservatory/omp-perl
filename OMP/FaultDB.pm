@@ -127,12 +127,8 @@ sub respondFault {
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
   my $fault = $self->getFault($id);
-<<<<<<< FaultDB.pm
-#  $self->_mail_fault($fault);
-=======
 
   $self->_mail_fault($fault);
->>>>>>> 1.47
 }
 
 =item B<closeFault>
