@@ -44,9 +44,6 @@ use File::Spec;
 
 our $VERSION = (qw$Revision$)[1];
 
-# Directory in which to store our XML files
-our $XMLDIR = "/jac_sw/omp/dbxml";
-
 # Name of the table containing the MSB data
 our $MSBTABLE = "ompmsb";
 our $PROJTABLE = "ompproj";
@@ -149,46 +146,6 @@ sub password {
   return $self->{Password};
 }
 
-=item B<_sciprog_filename>
-
-Retrieve the filename to use for storing the Science Program XML.
-
-The string argument is used to control its behaviour:
-
-  "FULL" (or none) return the full path to the file
-
-  "BACKUP" - return the full path to the backup file
-
-  "FILE" - just return the filename without the path
-
- $file = $db->_sciprog_filename( "FULL" );
-
-If an option is not recognized the full path is returned.
-
-=cut
-
-sub _sciprog_filename {
-  my $self = shift;
-  my $opt;
-  $opt = shift if @_;
-  $opt = "FULL" unless defined $opt;
-
-  # Get simple filename
-  my $pid = $self->projectid;
-  return '' unless defined $pid;
-  my $file = $pid . ".sp";
-
-  if ($opt eq "FILE") {
-    return $file;
-  } elsif ($opt eq "BACKUP") {
-    return File::Spec->catfile($XMLDIR, "bck_$file");
-  } elsif ($opt eq "BACKUPi") {
-    return File::Spec->catfile($XMLDIR, "bcki_$file");
-  } else {
-    return File::Spec->catfile($XMLDIR, $file);
-  }
-}
-
 =item B<_locked>
 
 Indicate whether the system is currently locked.
@@ -280,6 +237,12 @@ the external checking (e.g. marking an MSB as being observed).
   $status = $db->storeSciProg( SciProg => $sp,
                                FreezeTimeStamp => 1);
 
+Additionally, the C<NoNewTrans> key can be used to indicate that
+we do not wish to initiate a new database transaction (usually
+because one has been started higher up). We do this since the
+begin transaction method might well decide to rollback a previous
+transaction if it is asked to start a new one.
+
 Returns true on success and C<undef> on error (this may be
 modified to raise an exception).
 
@@ -301,11 +264,13 @@ sub storeSciProg {
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
-  $self->_db_begin_trans;
-  $self->_dblock;
+  if (exists $args{NoNewTrans} && !$args{NoNewTrans}) {
+    $self->_db_begin_trans;
+    $self->_dblock;
+  }
 
   # Write the Science Program to disk
-  $self->_write_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
+  $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp} ) 
     or return undef;
 
   # We need to remove the existing rows associated with this
@@ -322,8 +287,10 @@ sub storeSciProg {
   }
 
   # Now disconnect from the database and free the lock
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+  if (exists $args{NoNewTrans} && !$args{NoNewTrans}) {
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+  }
 
   return 1;
 }
@@ -353,18 +320,18 @@ sub fetchSciProg {
 
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
-  # There is no race condition with -e. If the file doesnt exist
-  # the caller can try again later or store it. If the file does exist
-  # then it will not disappear again since there is no method to delete
-  # a science program.
+  # There is no race condition with -e. If the XML isn't there
+  # the caller can try again later or store it. If the XML does exist
+  # then it will not disappear again since the database transaction is
+  # locked when a science program is removed.
   my $pid = $self->projectid;
   $pid = '' unless defined $pid;
   throw OMP::Error::UnknownProject("Project \"$pid\" unknown")
-    unless -e $self->_sciprog_filename();
+    unless $self->_get_old_sciprog_timestamp;
 
   # Instantiate a new Science Program object
   # The file name is derived automatically
-  my $sp = new OMP::SciProg( FILE => $self->_sciprog_filename())
+  my $sp = new OMP::SciProg( XML => $self->_db_fetch_sciprog())
     or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
 
   return $sp;
@@ -519,7 +486,9 @@ and the checksum.  If an MSB can not be located it is likely that the
 science program has been reorganized.
 
 This method locks the database since we are modifying the file on disk
-and the database tables.
+and the database tables. We do not want to retrieve a science program,
+modify it and store it again if someone has modified the science program
+between us retrieving and storing it.
 
 =cut
 
@@ -532,7 +501,7 @@ sub doneMSB {
   $self->_dblock;
 
   # We could use the MSBDB::fetchMSB method if we didn't need the science
-  # program object. Unfortauntely, since we intend to modify the
+  # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
   my $sp = $self->fetchSciProg();
@@ -550,7 +519,8 @@ sub doneMSB {
   # and making sure reorganized Science Program is stored.
   # This will require a back door password and the ability to
   # indicate that the timestamp is not to be modified
-  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1 );
+  $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1,
+		     NoNewTrans => 1);
 
   # Disconnect
   $self->_dbunlock;
@@ -565,53 +535,53 @@ sub doneMSB {
 
 =over 4
 
-=item B<_write_sci_prog>
+=item B<_store_sci_prog>
 
-Write the science program to disk.
+Store the science program to the "database"
 
-  $db->_write_sci_prog( $sp );
+  $db->_store_sci_prog( $sp );
 
-If the science program already exists on disk it is moved to
-a backup file before saving the new version. Additionally,
-the timestamp on the old file is compared to that stored in the
-science program (the C<timestamp> attribute of the SpProg) and if they
-differ the new file is not written (the new science program should
-have the timestamp of the old file).
+The XML is stored in the database. Transaction management deals with the
+case where the upload fails part way through.
+
+If a entry already exists in the database the timestamp is retrieved
+and compared with the current version of the science program.
+(using the C<timestamp> attribute of the SpProg). If they
+differ the new file is not stored (the new science program should
+have the timestamp of the old science program).
 
 A timestamp is added to the science program automatically just
-before it is written to disk.
+before it is written to the database. The overhead in fetching the timestamp
+from the database is minimal compared with having to read the old science
+program and instantiate a science program object in order to read the
+timestamp.
 
-There is possibly an overhead associated with this (since on comparing
-with the old timestamp a file must be opened) but this is better
-since it allows us to modify the "remaining" attributes without
-worrying about a file system timestamp.
-
-If the optional second argument is present and true, timestamp checking
-is disabled and the timestamp is not modified. This is to allow internal
-reorganizations to use this routine without affecting external checking.
-If this option is selected the backup file is written with a different
-name to prevent a clash with an externally modified program.
+If the optional second argument is present and true, timestamp
+checking is disabled and the timestamp is not modified. This is to
+allow internal reorganizations to use this routine without affecting
+external checking (for example, when marking the MSB as done).
 
 =cut
 
-sub _write_sci_prog {
+sub _store_sci_prog {
   my $self = shift;
   throw OMP::Error::BadArgs('Usage: $db->_write_sci_prog( $sp )') unless @_;
   my $sp = shift;
 
   my $freeze = shift;
 
-  # Get the filename
-  my $fullpath = $self->_sciprog_filename();
+  # Check to see if sci prog exists already (if it does it returns
+  # the timestamp else undef)
+  my $tstamp = $self->_get_old_sciprog_timestamp;
 
   # If we already have a file of that name we have to
-  # check the timestamp and rename it.
-  if (-e $fullpath) {
+  # check the timestamp and remove it
+  if (defined $tstamp) {
 
     # Disable timestamp checks if freeze is set
     unless ($freeze) {
-      # Get the timestamps
-      my $tstamp = $self->_get_old_sciprog_timestamp;
+      # Get the timestamp from the current file (we have the old one
+      # already)
       my $spstamp = $sp->timestamp;
       if (defined $spstamp) {
 	throw OMP::Error::SpStoreFail("Science Program has changed on disk\n")
@@ -619,77 +589,141 @@ sub _write_sci_prog {
       }
     }
 
-    # Move the old version of the file to back up
-    my $key = ($freeze ? "BACKUPi" : "BACKUP");
-    my $backup = $self->_sciprog_filename("BACKUP");
-    rename $fullpath, $backup 
-      or throw OMP::Error::SpStoreFail("error renaming $fullpath to $backup: $!\n");
+    # Clear the old science program
+    $self->_remove_old_sciprog;
+
   }
 
   # Put a new timestamp into the science program prior to writing
   $sp->timestamp( time() ) unless $freeze;
 
-  # open a new file
-  open( my $fh, ">$fullpath") 
-    or throw OMP::Error::SpStoreFail("Error writing SciProg to $fullpath: $!\n");
+  # and store it
+  $self->_db_store_sciprog( $sp );
 
-  # write the Science Program to disk
-  print $fh "$sp";
-
-  close($fh) or throw OMP::Error::SpStoreFail("Error closing new sci prog file: $!\n");
 }
 
 
+=item B<_remove_old_sciprog>
+
+Remove an existing science program XML from the database.
+
+  $db->_remove_old_sciprog;
+
+Raises SpStoreFail exception on failure.
+
+=cut
+
+sub _remove_old_sciprog {
+  my $self = shift;
+  my $proj = $self->projectid;
+  my $dbh = $self->_dbhandle;
+
+  $dbh->do("DELETE FROM $SCITABLE WHERE projectid = '$proj'")
+    or throw OMP::Error::SpStoreFail("Error removing old science program: ".$dbh->errstr);
+
+}
+
 =item B<_get_old_sciprog_timestamp>
 
-This retrieves the timestamp of a science program as stored on
-disk in the database.
+This retrieves the timestamp of a science program as stored 
+in the "database". If no such science program exists returns
+undef.
 
-Currently, the timestamp is determined by opening the old science
-program and reading the timestamp from it. If this is too slow
-we may simply write the timestamp to a separate file.
+This can be used to check existence.
+
+Currently we retrieve the timestamp from a database table.
 
 =cut
 
 sub _get_old_sciprog_timestamp {
   my $self = shift;
 
-  my $fullpath = $self->_sciprog_filename();
-  my $sp = new OMP::SciProg( FILE => $fullpath );
-  my $tstamp = $sp->timestamp;
+  my $proj = $self->projectid;
+  my $dbh = $self->_dbhandle;
+  my $ref = $dbh->selectall_arrayref("SELECT timestamp FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
+
+  # Assume that no $ref means no entry in db
+  return undef unless defined $ref;
+
+  my $tstamp = $ref->[0]->{timestamp};
   return $tstamp;
 }
 
-=item B<_get_next_index>
+=item B<_db_store_sciprog>
 
-Return the primary index to use for each row in the database. This
+Store a science program in the database. Assumes the database is ready
+to accept an insert.
+
+ $self->_db_store_sciprog( $sp );
+
+=cut
+
+sub _db_store_sciprog {
+  my $self = shift;
+  my $sp = shift;
+  my $proj = $self->projectid;
+  my $dbh = $self->_dbhandle;
+
+  $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'$sp')", undef,
+	  $proj, $sp->timestamp) or
+	    throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
+
+}
+
+=item B<_db_fetch_sciprog>
+
+Retrieve the XML from the database and return it.
+
+  $xml = $db->_db_fetch_sciprog();
+
+Note this does not return a science program object (although I cant
+think of a good reason why).
+
+=cut
+
+sub _db_fetch_sciprog {
+  my $self = shift;
+  my $sp = shift;
+  my $proj = $self->projectid;
+  my $dbh = $self->_dbhandle;
+  my $ref = $dbh->selectall_arrayref("SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
+
+  throw OMP::Error::SpRetrieveFail("Error retrieving science program XML from database: ". $dbh->errstr) unless defined $ref;
+
+  return $ref->[0]->{sciprog};
+}
+
+=item B<_get_next_msb_index>
+
+Return the primary index to use for each row in the MSB database. This
 number is determined to be unique for all entries ever made.
 
-The current index is obtained by reading it from a text file
-and then incrementing it. This is more robust than simply making
-sure that it is the next highest in the database (since it would
-then not guarantee that we would choose a unique value).
+The current index is obtained by reading the highest value from the 
+database. For efficiency we only want to do this once per transaction.
+
+In order to guarantee uniqueness it should be obtained before the old
+rows are removed. This does not happen currently.
 
 =cut
 
 sub _get_next_index {
   my $self = shift;
 
-  my $indexfile = File::Spec->catfile($XMLDIR,"index.dat");
-  my $highest;
-  if (-e $indexfile) {
-    open(my $fh, "<$indexfile") 
-      or throw OMP::Error::FatalError("Could not read indexfile $indexfile: $!\n");
-    $highest = <$fh>;
-  }
+  # Return the current index by doing a sort in descending order
+  my $dbh = $self->_dbhandle;
+  my $sth = $dbh->prepare("SELECT msbid FROM $MSBTABLE ORDER BY msbid DESC")
+    or throw OMP::Error::DBError("Can not prepare statement for index retrieval: ". $dbh->errstr);
 
-  # increment to get the next one
+  $sth->execute() or
+    throw OMP::Error::DBError("Can not execute SELECT: ". $sth->errstr());
+
+  my $ref = $sth->fetch;
+
+  $sth->finish;
+
+  # Get the next highest
+  my $highest = $ref->[0]; 
   $highest++;
-
-  # Now update the file
-  open(my $fh, ">$indexfile") 
-    or throw OMP::Error::FatalError("Could not open indexfile $indexfile: $!\n");
-  print $fh "$highest";
 
   return $highest;
 }
@@ -826,10 +860,10 @@ sub _insert_row {
   # Store the data
   my $proj = $self->projectid;
   print "Inserting row as index $index\n" if $DEBUG;
-  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", undef,
+  $dbh->do("INSERT INTO $MSBTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?)", undef,
 	   $index, $proj, $data{remaining}, $data{checksum}, $data{obscount},
 	   $data{tauband}, $data{seeing}, $data{priority}, $data{moon},
-	   $data{timeest}, $self->_sciprog_filename, $data{title}) 
+	   $data{timeest}, $data{title}) 
     or throw OMP::Error::DBError("Error inserting new rows: ".$DBI::errstr);
 
   # Now the observations
@@ -917,15 +951,19 @@ sub _fetch_row {
     if defined $self->projectid;
 
   # Assume that query keys match column names
-  my @substrings = map { " $_ = '$query{$_}' " } keys %query;
+  my @substrings = map { " $_ = ? " } sort keys %query;
 
-  # and construct the SQL command
+  # and construct the SQL command using bind variables so that 
+  # we dont have to worry about quoting
   my $statement = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
+  print "STATEMENT: $statement\n" if $DEBUG;
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
-  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} } );
+  my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} },
+				      map { $query{$_} } sort keys %query
+				    );
 
   throw OMP::Error::DBError("Error fetching specified row:".$DBI::errstr)
     unless defined $ref;
@@ -972,8 +1010,40 @@ sub _run_query {
   } else {
     $max = $#$ref;
   }
+  @$ref = @$ref[0..$max];
 
-  return @$ref[0..$max];
+  # Now for each MSB we need to retrieve all of the Observation information
+  # and store it in the results hash
+  # Convention dictates that this information 
+  # For speed, do the query in one go and then sort out the result
+  my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
+  $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
+  my $obsref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
+  throw OMP::Error::DBError("Error retrieving matching observations:".
+			    $dbh->errstr)
+    unless defined $obsref;
+
+  # Now loop over the results and store the observations in the correct
+  # place. First need to create the obs arrays by msbid (using msbid as
+  # key)
+  my %msbs;
+  for my $row (@$obsref) {
+    my $msb = $row->{msbid};
+    if (exists $msbs{$msb}) {
+      push(@{$msbs{$msb}}, $row);
+    } else {
+      $msbs{$msb} = [ $row ];
+    }
+    delete $row->{msbid}; # not needed
+  }
+
+  # And now attach it to the relevant MSB
+  for my $row (@$ref) {
+    my $msb = $row->{msbid};
+    $row->{obs} = $msbs{$msb};
+  }
+
+  return @$ref;
 }
 
 

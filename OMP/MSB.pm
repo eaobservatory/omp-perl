@@ -469,8 +469,11 @@ than the object itself.
 
   $summary = OMP::MSB->summary( \%hash );
 
+Additionally, a hash key of C<obs> can be used to specify an array
+of observation details.
+
 Warnings will be issued if fundamental keys such as "remaining",
-"checksumn" and "projectid" are missing.
+"checksum" and "projectid" are missing.
 
 =cut
 
@@ -481,6 +484,11 @@ sub summary {
   if (@_) {
     my $summary_ref = shift;
     %summary = %$summary_ref;
+
+    # Summarize the observations if required
+    $summary{_obssum} = { $self->_summarize_obs($summary{obs})}
+      if exists $summary{obs};
+
   } else {
 
     # Populate the hash from the object if no arg
@@ -745,11 +753,23 @@ Returns keys:
 If the values are different between observations the options are
 separated with a "/".
 
+If an array references is supplied as an argument it is assumed
+to contain the observation summaries rather than retrieving it
+from the object.
+
+  %hash = OMP::MSB->_summarize_obs( \@obs );
+
 =cut
 
 sub _summarize_obs {
   my $self = shift;
-  my @obs = $self->obssum;
+  my @obs;
+  if (@_) {
+    @obs = @{$_[0]};
+  } else {
+    @obs = $self->obssum;
+  }
+
 
   my %summary;
 
