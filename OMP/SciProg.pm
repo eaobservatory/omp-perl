@@ -548,8 +548,10 @@ sub locate_msbs {
   # The hash now contains all the unique objects
   @objs = values %unique;
 
-  # And store them
-  $self->msb(@objs);
+  # And store them (if we found anything - otherwise
+  # we hit infinite recursion)
+  $self->msb(@objs)
+    if @objs;
 
 }
 
