@@ -448,12 +448,14 @@ sub query_fault_output {
       # Maybe OMP::General parse_date method should be
       # catching these...
       for ($mindatestr, $maxdatestr) {
-	unless ($_ =~ /^\d{8}$/ or
-		$_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
-		$_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
-		$_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+	if ($_) {
+	  unless ($_ =~ /^\d{8}$/ or
+		  $_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
+		  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
+		  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
 
-	  croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
+	    croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
+	  }
 	}
       }
 
@@ -461,22 +463,21 @@ sub query_fault_output {
       $mindate = OMP::General->parse_date($mindatestr, 1);
       $maxdate = OMP::General->parse_date($maxdatestr, 1);
 
-      if ($mindate and $maxdate) {
-	# Imply end of day (23:59) for max date if no time was specified
-	($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
+      # Imply end of day (23:59) for max date if no time was specified
+      ($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
 
-	# Do a min/max date query
-	if ($mindate or $maxdate) {
-	  push (@xml, "<date>");
-	  ($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
-	  ($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
-	  push (@xml, "</date>");
-	}
-
-	# Convert dates back to localtime
-	$mindate = localtime($mindate->epoch);
-	$maxdate = localtime($maxdate->epoch);
+      # Do a min/max date query
+      if ($mindate or $maxdate) {
+	push (@xml, "<date>");
+	($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
+	($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
+	push (@xml, "</date>");
       }
+
+      # Convert dates back to localtime
+      ($mindate) and $mindate = localtime($mindate->epoch);
+      ($maxdate) and $maxdate = localtime($maxdate->epoch);
+
     } elsif ($q->param('period') eq 'days') {
       my $days = $q->param('days');
       (! $days) and $days = 14;
