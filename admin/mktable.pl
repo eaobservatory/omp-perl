@@ -88,6 +88,22 @@ my %tables = (
 				    el3 el4 el5 el6 el7 el8 timeest
 				    /],
 			},
+	      ompmsbdone => {
+			     commid => "numeric(5,0) IDENTITY",
+			     checksum => "VARCHAR(64)",
+			     projectid => "VARCHAR(32)",
+			     date => "DATETIME",
+			     comment => "TEXT",
+			     instrument => "VARCHAR(64)",
+			     waveband => "VARCHAR(64)",
+			     target => "VARCHAR(64)",
+			     status => "INTEGER",
+			     _ORDER => [qw/
+					commid checksum status projectid date
+					target instrument waveband
+					comment
+					/],
+			    },
 	      ompsciprog => {
 			     projectid => "VARCHAR(32)",
 			     timestamp => "INTEGER",
@@ -120,6 +136,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompmsb';
   next if $table eq 'ompobs';
   next if $table eq 'ompfeedback';
+  next if $table eq 'ompmsbdone';
 
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
