@@ -799,9 +799,17 @@ sub view_fault_output {
       return;
     }
 
-
     # Response author
     my $user = new OMP::User(userid => $q->param('user'));
+
+    # Make sure user is valid
+    my $validuser = OMP::UserServer->getUser($q->param('user'));
+    if (! $validuser) {
+      push @title, "The user ID you entered does not exist.  Please enter another and submit again";
+      titlebar($q ,["File Fault", join('<br>',@title)], %cookie);
+      file_fault_form(cgi => $q,
+		      cookie => \%cookie,);
+    }
 
     # Get the status (possibly changed)
     my $status = $q->param('status');
