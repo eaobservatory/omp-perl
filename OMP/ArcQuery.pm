@@ -179,7 +179,7 @@ sub sql {
 
     # SCUBA only for now [note that we explicitly
     # select the database and table
-    $sql = "SELECT * FROM $tabsql $where";
+    $sql = "SELECT * FROM $tabsql $where ORDER BY UTDATE";
 
   } elsif ($tel eq 'UKIRT') {
 
