@@ -378,6 +378,9 @@ sub display_date_form {
   print $cgi->hidden( -name => 'zone',
                       -value => 'UT',
                     );
+  print $cgi->hidden( -name => 'user',
+                      -value => $v->{'user'},
+                    );
   print $cgi->submit( -name => 'Submit New Date' );
   print $cgi->endform;
 
@@ -416,6 +419,9 @@ sub display_telescope_form {
                     );
   print $cgi->hidden( -name => 'zone',
                       -value => $v->{'zone'},
+                    );
+  print $cgi->hidden( -name => 'user',
+                      -value => $v->{'user'},
                     );
   print $cgi->submit( -name => 'Submit New Telescope' );
   print $cgi->endform;
