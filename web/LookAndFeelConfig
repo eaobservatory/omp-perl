@@ -3,11 +3,11 @@
 @NOSIDEBAR=0;
 @NAVBAR=0;
 @INFO=
-<A HREF="http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl">
+<A HREF="/cgi-bin/projecthome.pl">
 	OMP Feedback system</a>,
-<A HREF="http://omp.jach.hawaii.edu/cgi-bin/queryfault.pl">
+<A HREF="/cgi-bin/queryfault.pl">
 	Fault System</a>,
-<A HREF="http://omp.jach.hawaii.edu">
+<A HREF="/">
         OMP home</a>;
 
 @SIDEBARCOLOR=#8080CC;
