@@ -371,6 +371,7 @@ sub disableProject {
   $self->_notify_feedback_system(
 				 subject => "[$projectid] Project disabled",
 				 text => "project <b>$projectid</b> disabled",
+				 msgtype => OMP__FB_MSG_PROJECT_DISABLED,
 				);
 
   # Transaction end
@@ -979,6 +980,7 @@ sub _mail_password {
 				   subject => "Password change for $projectid",
 				   text => $fbmsg,
 				   status => OMP__FB_INFO,
+				   msgtype => OMP__FB_MSG_PASSWD_ISSUED,
 				   );
 
     # Now set up the mail

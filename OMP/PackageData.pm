@@ -940,6 +940,7 @@ sub _add_comment {
 			     sourceinfo => $host,
 			     status => OMP__FB_SUPPORT,
 			     text => "Data has been requested by $email for project $projectid from UT $utstr",
+			     msgtype => OMP__FB_MSG_DATA_REQUESTED,
 			    }
 			   )
 

@@ -252,6 +252,7 @@ sub storeSciProg {
 				   text => "Science program submitted for project <b>".
 				            $self->projectid ."</b> $note\n",
 				   status => OMP__FB_HIDDEN,
+				   msgtype => OMP__FB_MSG_SP_SUBMITTED,
 				  );
   }
 
@@ -324,6 +325,7 @@ sub fetchSciProg {
 				   subject => "Science program retrieved",
 				   text => "Science program retrieved for project <b>".
 				   $self->projectid ."</b> $note\n",
+				   msgtype => OMP__FB_MSG_SP_RETRIEVED,
 				  );
   }
 
@@ -369,6 +371,7 @@ sub removeSciProg {
 				 subject => "Science program deleted",
 				 text => "Science program for project <b>".
 				 $self->projectid ."</b> deleted $note\n",
+				 msgtype => OMP__FB_MSG_SP_DELETED,
 				);
 
   OMP::General->log_message( "Science program deleted for project " .
@@ -739,6 +742,7 @@ sub doneMSB {
 				 text => "Marked MSB with checksum"
 				 . " $checksum as done $reason",
 				 author => $author,
+				 msgtype => OMP__FB_MSG_MSB_OBSERVED,
 				);
 
   OMP::General->log_message("Send feedback message and complete transaction");
@@ -828,10 +832,11 @@ sub undoMSB {
   # point
   $self->_notify_feedback_system(
 				 program => "OMP::MSBDB",
-				 subject => "MSB Observed",
+				 subject => "MSB Observe Undone",
 				 text => "Incremented by 1 the number of remaining ".
                                           "observations for MSB with checksum" .
 				          " $checksum",
+				 msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
 				);
 
   # Disconnect
@@ -920,6 +925,7 @@ sub alldoneMSB {
 				 subject => "MSB All Observed",
 				 text => "Marked MSB with checksum"
 				 . " $checksum as completely done",
+				 msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
 				);
 
   # Disconnect
@@ -1006,6 +1012,7 @@ sub suspendMSB {
 				 subject => "MSB suspended",
 				 text => "$msg : checksum is $checksum",
 				 author => $author,
+				 msgtype => OMP__FB_MSG_MSB_SUSPENDED,
 				);
 
   # if the MSB never existed in the system this will generate an error

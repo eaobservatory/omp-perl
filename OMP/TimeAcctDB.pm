@@ -254,7 +254,8 @@ sub setTimeSpent {
 
       $self->_notify_feedback_system(
 				     subject => $subject,
-				     text => $text
+				     text => $text,
+				     msgtype => OMP__FB_MSG_TIME_ADJUST_CONFIRM,
 				    );
     }
 
