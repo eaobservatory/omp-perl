@@ -42,12 +42,14 @@ statistical information and summary from groups of observations.
 use 5.006;
 use strict;
 use warnings;
+use OMP::Constants qw/ :timegap /;
 use OMP::ProjServer;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::ObslogDB;
 use OMP::Info::Obs;
+use OMP::Info::Obs::TimeGap;
 use OMP::Error qw/ :try /;
 use Data::Dumper;
 
@@ -673,11 +675,90 @@ sub groupby {
 
 }
 
+=item B<locate_timegaps>
+
+Inserts C<OMP::Info::Obs::TimeGap> objects in appropriate locations
+and sorts the C<ObsGroup> object by time.
+
+  $obsgrp->locate_timegaps( $gap_length );
+
+A timegap is inserted if there are more than C<gap_length> seconds between
+the completion of one observation (taken to be the value of the C<end_obs>
+accessor) and the start of the next (taken to be the value of the
+C<start_obs> accessor). If the second observation is done with a different
+instrument than the first, then the timegap will be an B<INSTRUMENT> type.
+Otherwise, the timegap will be an B<UNKNOWN> type.
+
+=cut
+
+sub locate_timegaps {
+  my $self = shift;
+  my $length = shift;
+
+  # Make sure the array of Obs objects is sorted in time.
+  my @obs = sort {
+    $a->startobs <=> $b->startobs
+  } $self->obs;
+
+  my @newobs;
+  for( my $i = 0; $i < $#obs; $i++ ) {
+
+    my $curobs = $obs[$i];
+    my $nextobs = $obs[$i+1];
+    push @newobs, $curobs;
+
+    if ( abs( $nextobs->startobs - $curobs->endobs ) > $length ) {
+
+      my $timegap = new OMP::Info::Obs::TimeGap;
+      # Aha, we have a timegap! We need to figure out what kind it is.
+
+      # Set the necessary accessors in the timegap object.
+      $timegap->instrument( $nextobs->instrument );
+      $timegap->runnr( $nextobs->runnr );
+      $timegap->startobs( $curobs->endobs );
+      $timegap->endobs( $nextobs->startobs );
+      $timegap->telescope( $curobs->telescope );
+
+      # Grab any comments for the timegap object.
+      my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+      my $comments = $odb->getComment( $timegap );
+      $timegap->comments( $comments );
+
+      if( !defined( $timegap->status ) ) {
+        if( uc( $curobs->instrument ) eq uc( $nextobs->instrument ) ) {
+
+          # It's either weather or a fault, so set the timegap's status
+          # to UNKNOWN.
+          $timegap->status( OMP__TIMEGAP_UNKNOWN );
+        } else {
+          $timegap->status( OMP__TIMEGAP_INSTRUMENT );
+        }
+      }
+
+      # Push the timegap object onto the array.
+      push @newobs, $timegap;
+
+    }
+  } # end for loop
+
+  # We need to push the last observation on the array, since
+  # it got skipped in the amazing loop structure.
+  push @newobs, $obs[$#obs];
+
+  # And now, set $self to use the new observations.
+  $self->obs( \@newobs );
+
+  return;
+
+}
+
 =back
 
 =head1 SEE ALSO
 
 For related classes see C<OMP::ArchiveDB> and C<OMP::ObslogDB>.
+
+For information on time gaps see C<OMP::Info::Obs::TimeGap>.
 
 =head1 AUTHORS
 
