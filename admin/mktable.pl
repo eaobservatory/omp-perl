@@ -12,6 +12,7 @@ use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
 
 # Connect
+$ENV{OMP_DBSERVER} = "SYB_OMP2";
 my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
 
@@ -86,7 +87,7 @@ my %tables = (
 			  title => TITLE,
 			  telescope => "VARCHAR(16)",
 			  taumin => "REAL",
-			  taumax => "REAL NULL",
+			  taumax => "REAL",
 			  _ORDER => [qw/projectid pi
 				     title tagpriority
 				     country semester encrypted allocated
@@ -152,6 +153,7 @@ my %tables = (
 			     target => "VARCHAR(64)",
 			     status => "INTEGER",
 			     title => TITLE,
+			     userid => USERID . " NULL",
 			     _ORDER => [qw/
 					commid checksum status projectid date
 					target instrument waveband
@@ -274,7 +276,7 @@ for my $table (sort keys %tables) {
   # Comment out as required
   next if $table eq 'ompproj';
   next if $table eq 'ompsciprog';
-  next if $table eq 'ompmsb';
+ # next if $table eq 'ompmsb';
   next if $table eq 'ompobs';
   next if $table eq 'ompfeedback';
   next if $table eq 'ompmsbdone';
@@ -311,10 +313,11 @@ for my $table (sort keys %tables) {
   $sth->finish();
 
   # We can grant permission on this table as well
-  $dbh->do("GRANT ALL ON $table TO omp")
-    or die "Error1: $DBI::errstr";
+#  $dbh->do("GRANT ALL ON $table TO omp")
+#    or die "Error1: $DBI::errstr";
 
 }
 
 # Close connection
 $dbh->disconnect();
+
