@@ -147,7 +147,7 @@ sub queryArc {
 
   my @results;
 
-  my $grp = retrieve_archive( $query, $retainhdr );
+  my $grp = retrieve_archive( $query, 1, $retainhdr );
 
   if(defined($grp)) {
     @results = $grp->obs;
