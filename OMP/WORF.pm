@@ -336,12 +336,12 @@ sub parse_display_options {
   }
   if( exists( $options->{zmin} ) &&
       defined( $options->{zmin} ) &&
-      $options->{zmin} =~ /^-?\d+$/ ) {
+      $options->{zmin} =~ /^-?[0-9e\-]+$/ ) {
     $parsed{zmin} = $options->{zmin};
   }
   if( exists( $options->{zmax} ) &&
       defined( $options->{zmax} ) &&
-      $options->{zmax} =~ /^-?\d+$/ ) {
+      $options->{zmax} =~ /^-?[0-9e\-]+$/ ) {
     $parsed{zmax} = $options->{zmax};
   }
   if( exists( $options->{cut} ) &&
@@ -461,8 +461,8 @@ sub _plot_image {
   my $title = $file;
 
   # Fudge to set bad pixels to zero.
-#  my $bad = -1e-10;
-#  $image *= ( $image > $bad );
+  my $bad = -1e-10;
+  $image *= ( $image > $bad );
 
   if( exists( $args{zmin} ) && defined( $args{zmin} ) &&
       exists( $args{zmax} ) && defined( $args{zmax} ) &&
