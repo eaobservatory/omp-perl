@@ -654,7 +654,7 @@ sub msb_table {
 
   # And let's have an N Repeats column if that's available
   print "<td><b>N Repeats:</b></td>"
-    if ($program->[0]->nrepeats);
+    if (defined $program->[0]->nrepeats);
 
   # Note that this doesnt really work as code shared for MSB and
   # MSB Done summaries
