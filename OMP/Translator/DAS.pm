@@ -1042,6 +1042,10 @@ sub SpIterRasterObs {
     $summary{MAP_PA}." deg</td></tr>";
   $html .= "</table>\n";
 
+  if ($summary{nintegrations} > 1) {
+    $html .= "Please <em>REPEAT</em> this raster <b>$summary{nintegrations}</b> times.<br>\n";
+  }
+
   return ($html);
 }
 
