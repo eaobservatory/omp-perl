@@ -789,6 +789,7 @@ sub _mail_fault_update {
   my %property = (
 		  systemText => "System",
 		  typeText => "Type",
+		  statusText => "Status",
 		  timelost => "Time lost",
 		  faultdate => "Time of fault",
 		  subject => "Subject",
@@ -806,6 +807,8 @@ sub _mail_fault_update {
       $_ = "systemText";
     } elsif ($_ =~ /type/) {
       $_ = "typeText";
+    } elsif ($_ =~ /status/) {
+      $_ = "statusText";
     }
 
     my $property = $property{$_};
