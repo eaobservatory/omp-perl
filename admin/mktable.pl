@@ -103,10 +103,11 @@ my %tables = (
 			      subject => "char(128) null",
 			      program => "char(50) not null",
 			      sourceinfo => "char(60) not null",
-			      status => "bit null",
+			      status => "bit not null",
 			      text => "text not null",
 			      _ORDER => [qw/
-					 commid projid author date status text
+					 commid projid author date subject
+					 program sourceinfo status text
 					/],
 			     },
 	     );
@@ -123,12 +124,12 @@ for my $table (sort keys %tables) {
   } @{ $tables{$table}{_ORDER}} );
 
    my $sth;
-  print "Drop table $table\n";
-  $sth = $dbh->prepare("DROP TABLE $table")
+   print "Drop table $table\n";
+   $sth = $dbh->prepare("DROP TABLE $table")
     or die "Cannot drop table $table: ". $dbh->errstr();
 
-  $sth->execute() or die "Cannot execute: " . $sth->errstr();
-  $sth->finish();
+   $sth->execute() or die "Cannot execute: " . $sth->errstr();
+   $sth->finish();
 
   print "\n$table: $str\n";
   print "SQL: CREATE TABLE $table ($str)\n";
