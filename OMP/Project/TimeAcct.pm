@@ -11,7 +11,7 @@ OMP::Project::TimeAcct - Time spent observing a project for a given UT date
   $t = new OMP::Project::TimeAcct(
                          projectid => 'm02bu104',
                          date    => OMP::General->parse_date('2002-08-15'),
-			 time_spent => new Time::Seconds(3600),
+			 timespent => new Time::Seconds(3600),
                          confirmed => 1);
 
 =head1 DESCRIPTION
@@ -124,17 +124,17 @@ sub date {
   return $self->{Date};
 }
 
-=item B<time_spent>
+=item B<timespent>
 
 Time spent observing this project on the specified UT date.
 The time is represented by a a Time::Seconds object.
 
- $time = $t->time_spent;
- $t->time_spent( new Time::Seconds(7200));
+ $time = $t->timespent;
+ $t->timespent( new Time::Seconds(7200));
 
 =cut
 
-sub time_spent {
+sub timespent {
   my $self = shift;
   if (@_) {
     # if we have a Time::Seconds object just store it. Else create one.
@@ -159,7 +159,7 @@ sub projectid {
   my $self = shift;
   if (@_) {
     # no verification yet
-    $self->{ProjectID} = shift;
+    $self->{ProjectID} = uc(shift);
   }
   return $self->{ProjectID};
 }
@@ -198,21 +198,134 @@ Increment the time spent by the specified amount.
   $t->incTime( 55.0 );
 
 Units are in seconds. The time can be specified as either
-a straight number or as a Time::Seconds object.
+a straight number, a Time::Seconds object I<or> a
+C<OMP::Project::TimeAcct> object.
 
 =cut
 
 sub incTime {
   my $self = shift;
   my $inc = shift;
-  my $cur = $self->time_spent;
+
+  # try to work out what we have as input
+  my $time;
+  if (not ref($inc)) {
+    $time = $inc;
+  } elsif (UNIVERSAL::isa($inc,"Time::Seconds")) {
+    $time = $inc->seconds;
+  } elsif (UNIVERSAL::isa($inc,"OMP::Project::TimeAcct")) {
+    $time = $inc->timespent;
+  } else {
+    # hope that it numifies
+    $time = $inc + 0;
+  }
+
+  my $cur = $self->timespent;
   $cur = 0 unless defined $cur;
-  $cur += $inc;
-  $self->time_spent( $cur );
+  #print "************************CUR IS $cur\n";
+  $cur += $time;
+  #print "INCTIME: Inc is $inc and CUR is now $cur and time is $time\n";
+  $self->timespent( $cur );
   return;
 }
 
+=back
 
+=head2 Class Methods
+
+=over 4
+
+=item B<summarizeTimeAcct>
+
+Given an array of C<OMP::Project::TimeAcct> objects, summarize their
+contents.
+
+  %summary = OMP::Project::TimeAcct->summarizeTimeAcct( $format, @acct );
+
+where C<$format> controls the contents of the hash returned
+to the user. Valid formats are:
+
+  'all' - return a hash with keys "total", "confirmed", "pending"
+          regardless of the mix of projects or dates
+
+  'bydate' - hash includes primary keys of UT date (YYYY-MM-DD)
+             where each sub-hash contains keys as for "all"
+
+  'byproject' - hash includes primary keys of project ID where
+                where each sub-hash contains keys as for "all"
+
+  'bydateproj' - hash includes primary keys of project and each
+                 project hash contains keys of UT date. The corresponding
+                 sub-hash contains keys as for "all".
+
+The UT hash key is of the form "YYYY-MM-DD". Project ID is upper cased.
+
+=cut
+
+sub summarizeTimeAcct {
+  my $class = shift;
+  my $format = lc(shift);
+  my @acct = @_;
+
+  use Data::Dumper;
+  print Dumper(\@acct);
+
+  # loop over each object populating a results hash
+  my %results;
+  for my $acct (@acct) {
+
+    # extract the information
+    my $p = $acct->projectid;
+    my $t = $acct->timespent;
+    my $ut= $acct->date->strftime('%Y-%m-%d');
+    my $c = $acct->confirmed;
+
+    # big switch statement
+    my $ref;
+    if ($format eq 'all') {
+      # top level hash
+      $ref = \%results;
+    } elsif ($format eq 'bydate') {
+      # store using UT date
+      if (! exists $results{$ut}) {
+	$results{$ut} = {};
+      }
+      $ref = $results{$ut};
+    } elsif ($format eq 'byproject') {
+      # store using project ID
+      if (! exists $results{$p}) {
+	$results{$p} = {};
+      }
+      $ref = $results{$p};
+    } elsif ($format eq 'byprojdate') {
+      # store using project ID AND ut date
+      if (! exists $results{$p}{$ut}) {
+	$results{$p}{$ut} = {};
+      }
+      $ref = $results{$p}{$ut};
+    } else {
+      throw OMP::Error::FatalError("Unknown format for TimeAcct summarizing: $format");
+    }
+
+    # overcome -w problem with Time::Seconds->add
+    # when an undef is encountered
+    $ref->{pending} += 0 unless defined $ref->{pending};
+    $ref->{confirmed} += 0 unless defined $ref->{confirmed};
+    $ref->{total} += 0 unless defined $ref->{total};
+
+    # now store/increment the time
+    if ($c) {
+      $ref->{confirmed} += $t;
+    } else {
+      $ref->{pending} += $t;
+    }
+    $ref->{total} += $t;
+
+  }
+
+  return %results;
+
+}
 
 =back
 

@@ -44,8 +44,9 @@ use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
+use OMP::Project::TimeAcct;
 
-use Time::Piece;
+use Time::Piece qw/ :override /;
 
 use Astro::Telescope;
 use Astro::Coords;
@@ -569,7 +570,7 @@ store it again if someone has modified the science program between us
 retrieving and storing it.
 
 The time remaining on the project is decremented by the estimated
-time taken to observe the MSB.
+time taken to observe the MSB (via OMP::TimeAcctDB).
 
 Invokes the C<hasBeenObserved> method on the MSB object.
 
@@ -617,12 +618,20 @@ sub doneMSB {
   $self->storeSciProg( SciProg => $sp, FreezeTimeStamp => 1);
 
   # Now decrement the time for the project
-  my $projdb = new OMP::ProjDB( 
-			       ProjectID => $sp->projectID,
-			       DB => $self->db,
-			      );
+  my $acctdb = new OMP::TimeAcctDB(
+				   ProjectID => $sp->projectID,
+				   DB => $self->db,
+				  );
 
-  $projdb->decrementTimeRemaining( $msb->estimated_time );
+  # need TimeAcct object
+  my $acct = new OMP::Project::TimeAcct(
+					projectid => $sp->projectID,
+					confirmed => 0,
+					date => scalar(gmtime()),
+					timespent => $msb->estimated_time,
+				       );
+
+  $acctdb->incPending( $acct );
 
   # Might want to send a message to the feedback system at this
   # point

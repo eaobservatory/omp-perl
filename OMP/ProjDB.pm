@@ -36,6 +36,7 @@ use OMP::ProjQuery;
 use OMP::Constants qw/ :fb /;
 use OMP::User;
 use OMP::UserDB;
+use OMP::Project::TimeAcct;
 
 use Crypt::PassGen qw/passgen/;
 
@@ -245,134 +246,6 @@ sub issuePassword {
   $self->_db_commit_trans;
 
   return;
-}
-
-=item B<decrementTimeRemaining>
-
-Provisionally decrement the time remaining for the project. 
-This simply adds the supplied value to the pending column in the
-table. The confirm this value use C<confirmTimeRemaining>
-
-  $db->decrementTimeRemaining( $time );
-
-Units are in seconds.
-
-=cut
-
-sub decrementTimeRemaining {
-  my $self = shift;
-  my $time = shift;
-
-  throw OMP::Error::BadArgs("Time must be supplied and must be positive")
-    unless defined $time and $time >= 0;
-
-  return if $time == 0;
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
-
-  # Modify the project
-  $project->incPending( $time );
-
-  # Update the contents in the table
-  $self->_update_project_row( $project );
-
-  # Notify the feedback system
-  my $projectid = $self->projectid;
-  $self->_notify_feedback_system(
-				 subject => "[$projectid] Decrement time remaining",
-				 text => "$time seconds has been provisionally decremented from project <b>$projectid</b>",
-				);
-
-  # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
-}
-
-=item B<confirmTimeRemaining>
-
-Confirm that the time remaining in the project is correct. This
-is achieved by transferring any pending values to the remaining
-column.
-
-  $db->confirmTimeRemaining;
-
-=cut
-
-sub confirmTimeRemaining {
-  my $self = shift;
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
-
-  # Modify the project
-  $project->consolidateTimeRemaining();
-
-  # Update the contents in the table
-  $self->_update_project_row( $project );
-
-  # Notify the feedback system
-  my $projectid = $self->projectid;
-  $self->_notify_feedback_system(
-				 subject => "[$projectid] Consolidate time remaining",
-				 text => "Pending time has been subtracted from the time remaining for project <b>$projectid</b>",
-				 status => OMP__FB_IMPORTANT,
-				);
-
-  # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
-}
-
-=item B<rescindTimePending}>
-
-Back out of any observing time specified as pending. This will
-set the value of pending in the table to 0.
-
-  $db->rescindTimePending;
-
-=cut
-
-sub rescindTimePending {
-  my $self = shift;
-
-  # First thing to do is to retrieve the table row
-  # for this project
-  my $project = $self->_get_project_row;
-
-  # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
-
-  # Modify the project to reset pending to zero
-  $project->pending( 0 );
-
-  # Update the contents in the table
-  $self->_update_project_row( $project );
-
-  # Notify the feedback system
-  my $projectid = $self->projectid;
-  $self->_notify_feedback_system(
-				 subject => "[$projectid] Reset pending time",
-				 text => "Pending time has been reset without decrementing time remaining for project <b>$projectid</b>",
-				);
-
-  # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
 }
 
 =item B<disableProject>
