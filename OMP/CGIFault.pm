@@ -1,4 +1,4 @@
-package OMP::CGIFault;
+gpackage OMP::CGIFault;
 
 =head1 NAME
 
@@ -183,7 +183,7 @@ sub file_fault_output {
     $assoc2 =~ s/,/ /g;
     my @assoc2 = split(/\s+/,$assoc2);
 
-    %projects = map {$_, undef} @assoc, @assoc2;
+    %projects = map {lc($_), undef} @assoc, @assoc2;
   }
 
   my $author = $q->param('user');
