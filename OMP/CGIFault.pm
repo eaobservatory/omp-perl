@@ -326,13 +326,12 @@ sub query_fault_output {
   my %daterange;
   my $xml;
 
-  # XML query to return faults filed in the last 14 days
+  # XML query to return faults from the last 14 days
   my %faultstatus = OMP::Fault->faultStatus;
   my $currentxml = "<FaultQuery>".
     "<category>$cookie{category}</category>".
       "<date delta='-14'>" . $t->datetime . "</date>".
-	"<status>$faultstatus{Open}</status>".
-	  "</FaultQuery>";
+	"</FaultQuery>";
 
   # Print faults if print button was clicked
   if ($q->param('print')) {
@@ -434,16 +433,16 @@ sub query_fault_output {
     # Faults within the last 14 days with 2 or more hours lost
     $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
   } elsif ($q->param('recent')) {
-    # Faults filed in the last 36 hours
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+    # Faults active in the last 36 hours
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date></FaultQuery>";
   } elsif ($q->param('current')) {
     # Faults within the last 14 days
     $xml = $currentxml;
-    $title = "Displaying faults filed in the last 14 days";
+    $title = "Displaying faults with any activity in the last 14 days";
   } else {
-    # Initial display of query page.  Do the 'recent' query.
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
-    $title = "Displaying faults with any activity in the last 2 days";
+    # Initial display of query page
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-7'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+    $title = "Displaying faults with any activity in the last 7 days";
   }
 
   my $faults;
@@ -452,14 +451,10 @@ sub query_fault_output {
 
     # If this is the initial display of faults and no recent faults were
     # returned, display faults for the last 14 days.
-    if (! $q->param and ! $faults->[0]) {
-      my $xml = "<FaultQuery>".
-	"<category>$cookie{category}</category>".
-	  "<date delta='-14'>" . $t->datetime . "</date>".
-	    "</FaultQuery>";
-      $title = "No faults filed in the last 2 days, displaying faults for the last 14 days";
+    if (! $q->param('faultsearch') and ! $faults->[0]) {
+      $title = "No active faults in the last 7 days, displaying faults for the last 14 days";
 
-      $faults = OMP::FaultServer->queryFaults($xml, "object");
+      $faults = OMP::FaultServer->queryFaults($currentxml, "object");
     }
 
     return $faults;
@@ -470,12 +465,14 @@ sub query_fault_output {
   };
 
   # Generate a title based on the results returned
-  if ($faults->[1]) {
-    $title = scalar(@$faults) . " faults returned matching your query";
-  } elsif ($faults->[0]) {
-    $title = "1 fault returned matching your query";
-  } else {
-    $title = "No faults found matching your query";
+  if ($q->param('faultsearch')) {
+    if ($faults->[1]) {
+      $title = scalar(@$faults) . " faults returned matching your query";
+    } elsif ($faults->[0]) {
+      $title = "1 fault returned matching your query";
+    } else {
+      $title = "No faults found matching your query";
+    }
   }
 
   titlebar($q, ["View Faults", $title], %cookie);
@@ -598,6 +595,8 @@ sub query_fault_form {
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
+  print $q->hidden(-name=>'faultsearch', -default=>['true']);
+
   print "<b>Find faults ";
   print $q->radio_group(-name=>'action',
 		        -values=>['response','file','activity'],
