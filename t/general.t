@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 96;
+use Test::More tests => 97;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -276,6 +276,7 @@ my %extract = (
 	       'u/SERV/192' => 'project u/SERV/192 is complete',
 	       'u/02a/55'   => '[u/02a/55]',
 	       'u/02b/h55'  => 'MAIL: [u/02b/h55] is complete',
+	       'U/03A/J4'   => 'a Japanese ukirt project U/03A/J4',
 	       's02ac03'    => '[s02ac03]',
 	       's02au03'    => '[s02au03]',
 	       's02ai03'    => '[s02ai03]',

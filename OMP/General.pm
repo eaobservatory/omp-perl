@@ -659,6 +659,9 @@ The match is done on word boundaries.
 No attempt is made to verify that this project ID is actually
 in the OMP system.
 
+Note that this method has the side effect of untainting the
+supplied variable.
+
 =cut
 
 sub extract_projectid {
@@ -667,7 +670,7 @@ sub extract_projectid {
 
   my $projid;
 
-  if ($string =~ /\b(u\/\d\d[ab]\/h?\d+)\b/i        # UKIRT
+  if ($string =~ /\b(u\/\d\d[ab]\/[jh]?\d+)\b/i        # UKIRT
       or $string =~ /\b([ms]\d\d[ab][unchi]\d+)\b/i # JCMT [inc service]
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
