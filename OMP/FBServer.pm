@@ -25,6 +25,7 @@ use warnings;
 use Carp;
 
 # OMP dependencies
+use OMP::FeedbackDB;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
