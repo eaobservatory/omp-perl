@@ -265,7 +265,7 @@ sub doneMSB {
   try {
 
     # Create a comment object for doneMSB
-        # We are allowed to specify a user regardless of whether there
+    # We are allowed to specify a user regardless of whether there
     # is a reason
     my $user;
     if ($userid) {
@@ -381,6 +381,14 @@ Nothing happens if the MSB can no longer be located since this
 simply indicates that the science program has been reorganized
 or the MSB modified.
 
+Optionally, a user ID and reason for the suspension can be supplied
+(similar to the C<doneMSB> method).
+
+  OMP::MSBServer->suspendMSB( $project, $checksum, $label, $userid,
+                              $reason);
+
+Reason is optional. User id is mandatory if a reason is supplied.
+
 =cut
 
 sub suspendMSB {
@@ -388,17 +396,47 @@ sub suspendMSB {
   my $project = shift;
   my $checksum = shift;
   my $label = shift;
+  my $userid = shift;
+  my $reason = shift;
 
-  OMP::General->log_message("suspendMSB: $project $checksum $label\n");
+  my $reastr = (defined $reason ? $reason : "<None supplied>");
+  my $ustr = (defined $userid ? $userid : "<No User>");
+  OMP::General->log_message("suspendMSB: $project $checksum $label\n".
+			   "User: $ustr Reason: $reastr\n");
 
   my $E;
   try {
+
+    # Create a comment object for suspendMSB
+    # We are allowed to specify a user regardless of whether there
+    # is a reason
+    my $user;
+    if ($userid) {
+      $user = new OMP::User( userid => $userid );
+      if (!$user->verify) {
+	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+      }
+    }
+
+
+    # We must have a valid user if there is an explicit reason
+    if ($reason && ! defined $user) {
+      throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
+    }
+
+    # Form the comment object
+    my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
+					  text => $reason,
+					  author => $user,
+					);
+
+
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
 			    DB => $class->dbConnection
 			   );
 
-    $db->suspendMSB( $checksum, $label );
+    $db->suspendMSB( $checksum, $label, $comment );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

@@ -566,6 +566,8 @@ Mark the specified MSB as having been observed.
 Optionally takes a second argument, a C<OMP::Info::Comment> object
 containing an override comment and associated user.
 
+  $db->doneMSB( $checksum, $comment );
+
 The MSB is located using the Project identifier (stored in the object)
 and the checksum.  If an MSB can not be located it is likely that the
 science program has been reorganized.
@@ -673,11 +675,18 @@ sub doneMSB {
 
   # Might want to send a message to the feedback system at this
   # point
+  $reason = '';
+  if (defined $comment) {
+    $reason = ": ".$comment->text
+      if defined $comment->text && $comment->text =~ /\w/;
+  }
+
   $self->_notify_feedback_system(
 				 program => "OMP::MSBDB",
 				 subject => "MSB Observed",
 				 text => "Marked MSB with checksum"
-				 . " $checksum as done",
+				 . " $checksum as done $reason",
+				 author => $author,
 				);
 
   OMP::General->log_message("Send feedback message and complete transaction");
@@ -883,12 +892,18 @@ Nothing happens if the MSB can no longer be located since this
 simply indicates that the science program has been reorganized
 or the MSB modified.
 
+An optional comment object can be supplied to associate the
+action with a particular reason and observer.
+
+  $db->suspendMSB( $checksum, $label, $comment);
+
 =cut
 
 sub suspendMSB {
   my $self = shift;
   my $checksum = shift;
   my $label = shift;
+  my $comment = shift;
 
   # Administrator password so that we can fetch and store
   # science programs without resorting to knowing the
@@ -919,6 +934,15 @@ sub suspendMSB {
 
   }
 
+  # Work out the reason and user
+  my $author;
+  if (defined $comment) {
+    $author = $comment->author;
+    $msg .= ": ". $comment->text
+      if defined $comment->text && $comment->text =~ /\w/;
+  }
+
+
   # Might want to send a message to the feedback system at this
   # point
   # do this early in case the MSBDone message fails!
@@ -926,13 +950,14 @@ sub suspendMSB {
 				 program => "OMP::MSBDB",
 				 subject => "MSB suspended",
 				 text => "$msg : checksum is $checksum",
+				 author => $author,
 				);
 
   # if the MSB never existed in the system this will generate an error
   # message and throw an exception. In practice this is not a problem
   # since it was clearly never retrieved from the system!
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   $msg, OMP__DONE_SUSPENDED );
+			   $msg, OMP__DONE_SUSPENDED, $author );
 
   # Give up if we dont have a match
   unless (defined $msb) {
