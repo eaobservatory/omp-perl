@@ -74,8 +74,13 @@ $OMP::Translator::DEBUG = 1 if $debug;
 
 # Now for the action
 # Read from standard input
-local $/ = undef;
-my $xml = <>;
+my $xml;
+{
+  # Can not let this localization propoagate to the OMP classes
+  # since this affects the srccatalog parsing
+  local $/ = undef;
+  $xml = <>;
+}
 
 my $filename = OMP::TransServer->translate( $xml );
 
