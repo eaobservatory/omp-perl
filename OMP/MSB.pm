@@ -2689,12 +2689,22 @@ sub SpIterFolder {
       my $crev  = $self->_get_pcdata( $child, 'cycleReversal');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
 
+      # Frequency switch parameters [inc backwards compatibility]
+      my $freqRate = $self->_get_pcdata( $child, 'frequencyRate');
+      $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate')
+	unless defined $freqRate;
+      my $freqOffset = $self->_get_pcdata( $child, 'frequencyThrow');
+      $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw')
+	unless defined $freqOffset;
+
       my %stare;
       $stare{nintegrations} = $nint;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
       $stare{cycleReversal} = $crev if defined $crev;
+      $stare{frequencyRate} = $freqRate if defined $freqRate;
+      $stare{frequencyOffset} = $freqOffset if defined $freqOffset;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;
