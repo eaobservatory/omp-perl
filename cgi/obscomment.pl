@@ -50,6 +50,8 @@ sub obscomment_output {
   my %params = $query->Vars;
   my $projectid = $cookie{'projectid'};
   my $password = $cookie{'password'};
+  my $cookieuser = $cookie{'user'};
+
   if(length($projectid . "") == 0) {
     $projectid = 'staff';
     $password = 'kalapana';
@@ -69,12 +71,19 @@ sub obscomment_output {
 
 # Verify the comment author is in the database.
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-  if( defined( $vparams{'author'} ) ) {
-    my $userVerified = $udb->verifyUser( $vparams{'author'} );
+  if( defined( $vparams{'user'} ) ) {
+    my $userVerified = $udb->verifyUser( $vparams{'user'} );
     if( ! $userVerified ) {
-      print "<br>Could not verify author " . $vparams{'author'} . " is in database.<br>\n";
+      print "<br>Could not verify user ID " . $vparams{'user'} . " in database.<br>\n";
       return;
     }
+  } elsif( defined( $cookieuser ) ) {
+    my $userVerified = $udb->verifyUser( $cookieuser ) ;
+    if( ! $userVerified ) {
+      print "<br>Could not verify user ID " . $cookieuser . " in database.<br>\n";
+      return;
+    }
+    $vparams{'user'} = $cookieuser;
   }
 
 # Update the comment, if necessary (the check will be done
@@ -124,11 +133,11 @@ sub verifyParams {
     $vparams->{'inst'} = uc($inst);
   }
 
-  # The 'author' parameter is a string made of alphanumerics
-  if(defined($qparams->{'author'})) {
-    my $author = $qparams->{'author'};
-    $author =~ s/[^0-9a-zA-Z]//g;
-    $vparams->{'author'} = $author;
+  # The 'user' parameter is a string made of alphanumerics
+  if(defined($qparams->{'user'})) {
+    my $user = $qparams->{'user'};
+    $user =~ s/[^0-9a-zA-Z]//g;
+    $vparams->{'user'} = $user;
   }
 
   # The 'status' parameter is an integer
@@ -150,7 +159,7 @@ sub verifyParams {
 sub updateComment {
   my $params = shift;
 
-  if( ! defined( $params->{'author'} ) ||
+  if( ! defined( $params->{'user'} ) ||
       ! defined( $params->{'status'} ) ) {
     return;
   }
@@ -161,7 +170,7 @@ sub updateComment {
     print "Unable to store comment with no associated observation<br>\n";
     return;
   }
-
+print "Updating comment.<br>\n";
   my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
 
   my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
@@ -169,7 +178,7 @@ sub updateComment {
                                  instrument => uc($params->{'inst'}) );
 
   my $udb = new OMP::UserDB( DB => new OMP::DBbackend );
-  my $user = $udb->getUser( $params->{'author'} );
+  my $user = $udb->getUser( $params->{'user'} );
 
   my $comment = new OMP::Info::Comment( author => $user,
                                         text => $params->{'text'},
@@ -261,15 +270,15 @@ sub displayForm {
     my $comment = $odb->getComment( $obs );
 
     if(defined($comment)) {
-      $params->{author} = $comment->author->userid;
+      $params->{user} = $comment->author->userid;
       $params->{status} = $comment->status;
       $params->{text} = $comment->text;
     }
   }
   print "<form action=\"obscomment.pl\" method=\"post\"><br>\n";
   print "<table border=\"0\" width=\"40%\"><tr><td>";
-  print "Author:</td><td><input type=\"text\" name=\"author\" value=\"";
-  print ( defined($params->{author}) ? $params->{author} : "" );
+  print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
+  print ( defined($params->{user}) ? $params->{user} : "" );
   print "\"></td></tr>\n";
   print "<tr><td>Status:</td><td><select name=\"status\">\n";
   print "<option value=\"" . OMP__OBS_GOOD . "\"";
