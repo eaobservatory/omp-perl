@@ -359,7 +359,7 @@ sub fault_table {
 
   # First show the fault info
   print "<div class='black'>";
-  print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b>Report by: </b>" . $fault->author->html . "</td>";
+  print "<table width=$TABLEWIDTH bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . $fault->author->html . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->filedate . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
@@ -532,13 +532,13 @@ sub query_fault_output {
 
     if ($q->param('action') =~ /response/) {
       push (@xml, "<isfault>0</isfault>");
-      $title = "Displaying faults responded to in the last $delta days";
+
     } elsif ($q->param('action') =~ /file/) {
       push (@xml, "<isfault>1</isfault>");
-      $title = "Displaying faults filed in the last $delta days";
-    } else {
-      $title = "Displaying faults with any activity in the last $delta days";
+
     }
+
+    # Our query XML
     $xml = "<FaultQuery><category>$cookie{category}</category>" . join('',@xml) . "</FaultQuery>";
 
   } else {
@@ -546,16 +546,13 @@ sub query_fault_output {
     if ($q->param('Major faults') or $q->param('Major reports')) {
       # Faults within the last 14 days with 2 or more hours lost
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
-      $title = "Displaying major faults";
     } elsif ($q->param('recent')) {
       # Faults filed in the last 36 hours
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
-      $title = "Displaying recent faults";
     } elsif ($q->param('current')) {
       # Faults within the last 14 days that are 'OPEN'
       my %status = OMP::Fault->faultStatus;
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date><status>$status{Open}</status></FaultQuery>";
-      $title = "Displaying current faults";
     }
   }
 
@@ -568,6 +565,15 @@ sub query_fault_output {
     print "$E";
   };
 
+  # Generate a title based on the results returned
+  if ($faults->[1]) {
+    $title = scalar(@$faults) . " faults returned matching your query";
+  } elsif ($faults->[0]) {
+    $title = "1 fault returned matching your query";
+  } else {
+    $title = "No faults found matching your query";
+  }
+
   titlebar($q, ["View Faults", $title], %cookie);
 
   query_fault_form($q, %cookie);
@@ -576,6 +582,7 @@ sub query_fault_output {
   if ($faults->[0]) {
     # Make the link to the report viewing script if we're using
     # the report system
+
     if ($cookie{category} =~ /bug/i) {
       show_faults($q, $faults, "viewreport.pl");
     } else {
