@@ -275,7 +275,7 @@ sub obs_table {
         defined( $comments->[0] ) &&
         $showcomments ) {
 
-      print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\">";
+      print "<tr><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 1) . "\">";
       my @printstrings;
       foreach my $comment (@$comments) {
         my $string = "<font color=\"";
