@@ -182,15 +182,18 @@ sub plot {
     $self->_plot_images( input_file => \@files,
                          autocut => $parsed{autocut},
                          lut => $parsed{lut},
+                         size => $parsed{size},
                        );
   } elsif ( $self->suffix =~ /pht/i ) {
 
     $self->_plot_photometry( input_file => \@files,
+                             size => $parsed{size},
                            );
 
   } elsif ( $self->suffix =~ /noise/i ) {
 
     $self->_plot_noise( input_file => \@files,
+                        size => $parsed{size},
                       );
   }
 
