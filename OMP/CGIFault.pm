@@ -154,7 +154,17 @@ sub fault_table {
   my $q = shift;
   my $fault = shift;
 
-  # Color code the status
+  my $subject;
+  ($fault->subject) and $subject = $fault->subject
+    or $subject = "none";
+
+  my $faultdate;
+  ($fault->faultdate) and $faultdate = $fault->faultdate
+    or $faultdate = "unknown";
+
+  my $urgencyhtml;
+  ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
+
   my $statushtml;
   $fault->isOpen and $statushtml = "<b><font color=#008b24>Open</font></b>"
     or "<b><font color=#a00c0c>Closed</font></b>";
@@ -163,15 +173,23 @@ sub fault_table {
   print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=620>";
   print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Urgency: </b>" . $fault->urgency . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>" . $fault->faultdate . "</td><td><b>Status: </b>$statushtml</td>";
-  print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>" . $fault->subject . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Status: </b>$statushtml</td>";
+  print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td>$urgencyhtml</td>";
+  print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>$subject</td>";
 
   # Then loop through and display each response
   my @responses = $fault->responses;
   for my $resp (@responses) {
-    print "<tr bgcolor=#bcbce2><td><b>Author: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
-    print "<tr bgcolor=#bcbce2><td colspan=2><blockquote>" . $resp->text . "</blockquote></td>";
+
+    # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
+    # response is the original fault
+    if ($resp->isfault) {
+      print "<tr bgcolor=#ffffff><td colpsan=2><br>" . $resp->text . "<br><br></td>";
+    } else {
+      print "<tr bgcolor=#dcdcf2><td><b>Response by: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
+      print "<tr bgcolor=#dcdcf2><td colspan=2>" . $resp->text . "<br><br></td>";
+    }
+
   }
   print "</table>";
 }
