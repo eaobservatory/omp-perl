@@ -38,6 +38,7 @@ use Carp;
 use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
+use OMP::General;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done :fb /;
 use OMP::Range;
@@ -944,6 +945,52 @@ sub suspendMSB {
   $self->_dbunlock;
   $self->_db_commit_trans;
 
+}
+
+=item B<getSubmitted>
+
+Return projects for which a science program has been submitted within a given
+range of time.  First argument should be an epoch time representing the minimum date of
+the date range.  The optional second argument should be an epoch time representing the
+maximum date.  Default for maximum date is current time.  Returns an array of C<OMP::Project>
+objects.
+
+  @projects = $db->getSubmitted($lo, $hi);
+
+=cut
+
+sub getSubmitted {
+  my $self = shift;
+  my $lodate = shift;
+  my $hidate = shift;
+
+  # Default to now
+  if (!$hidate) {
+    my $now = OMP::General->today();
+    $hidate = $now->epoch;
+  }
+
+  # Lock the db
+  $self->_dblock;
+
+  # Query the database
+  my @projectids = $self->_get_submitted($lodate, $hidate);
+
+  # Unlock the db
+  $self->_dbunlock;
+
+  # Get the project objects
+  my @projects;
+  for my $projectid (@projectids) {
+    my $projdb = new OMP::ProjDB( DB => $self->db,
+				  ProjectID => $projectid,
+				  Password => $self->password, );
+
+    my $obj  = $projdb->projectDetails('object');
+    push @projects, $obj;
+  }
+
+  return @projects;
 }
 
 =back
@@ -2097,7 +2144,31 @@ sub _notify_msb_done {
 
 }
 
+=item B<_get_submitted>
 
+Query database for projects where science program was submitted within the given
+date range.  First and second arguments are the min and max of the date range as
+epoch dates.  Returns an array of project IDs.
+
+  @projectids = $db->_get_submitted($lo, $hi);
+
+=cut
+
+sub _get_submitted {
+  my $self = shift;
+  my $lodate = shift;
+  my $hidate = shift;
+
+  # Construct and run the query
+  my $sql = "SELECT projectid FROM $SCITABLE WHERE timestamp between $lodate and $hidate";
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  # Place the project IDs in an array
+  my @projectids = map {$_->{projectid}} @$ref;
+
+  # Return the array
+  return @projectids;
+}
 
 =back
 
