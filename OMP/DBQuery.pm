@@ -296,6 +296,10 @@ C<$entry> can be
     using the rules for OMP::Range and array refs
     [hence recursion]
 
+KLUGE: If the key begins with __TEXTFIELD__ a "like" match
+will be performed rather than a "=". This is so that text fields
+can be queried.
+
 Column names beginning with an _ are ignored.
 
 =cut
@@ -310,9 +314,17 @@ sub _create_sql_recurse {
   my $sql;
   if (ref($entry) eq 'ARRAY') {
 
+    # default to actual column name and simple equality
+    my $colname = $column;
+    my $cmp = "equal";
+    if ($colname =~ /^__TEXTFIELD__/) {
+      $colname =~ s/^__TEXTFIELD__//;
+      $cmp = "like";
+    }
+
     # use an OR join [must surround it with parentheses]
     $sql = "(".join(" OR ",
-		    map { $self->_querify($column, $_); }
+		    map { $self->_querify($colname, $_, $cmp); }
 		    @{ $entry }
 		   ) . ")";
 
