@@ -35,6 +35,8 @@ use OMP::FaultDB;
 use OMP::FaultServer;
 use OMP::CGIFault;
 use OMP::MSB;
+use OMP::MSBDB;
+use OMP::MSBQuery;
 use OMP::MSBServer;
 use OMP::MSBDoneQuery;
 use OMP::NightRep;
@@ -194,32 +196,40 @@ sub msb_sum_hidden {
   my %cookie = @_;
 
   my $sp;
+  my @msbs;
   my $projectid = $cookie{projectid};
   try {
-    $sp = OMP::SpServer->programDetails($projectid,
-					$cookie{password},
-					'data' );
+    my $db = OMP::MSBDB->new(DB=>new OMP::DBbackend,
+			     ProjectID => $projectid,
+			     Password => $cookie{password},);
+
+    # Our XML query for retrieving all MSBs
+    my $xml = "<MSBQuery>"
+      ."<projectid>$projectid</projectid>"
+	."<disableconstraint>all</disableconstraint>"
+	  ."</MSBQuery>";
+
+    my $query = new OMP::MSBQuery( XML => $xml );
+
+    # Run the query
+    @msbs = $db->queryMSB($query, "object");
 
   } catch OMP::Error::UnknownProject with {
     print "Science program for $projectid not present in database";
-    $sp = [];
-
   } otherwise {
     my $E = shift;
     print "Error obtaining science program details for project $projectid [$E]";
-    $sp = [];
-
   };
 
 
   print $q->h2("Current MSB status");
-  if (@$sp == 1) {
+  if (scalar(@msbs) == 1) {
     print "1 MSB currently stored in the database.";
     print " Click <a href='fbmsb.pl'>here</a> to list its contents.";
   } else {
-    print scalar(@$sp) . " MSBs currently stored in the database.";
+    print scalar(@msbs) . " MSBs currently stored in the database.";
     print " Click <a href='fbmsb.pl'>here</a> to list them all."
-      unless @$sp == 0;
+      unless (! @msbs);
   }
   print $q->hr;
 
@@ -293,9 +303,11 @@ sub fb_entries {
     # Wrap the message text
     my $text = wrap('', '' ,$row->{'text'});
 
-    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by ",
+    my $date = OMP::General->display_date($row->{date});
 
-      # If author is not defined display sourceinfo as the author
+    print "<font size=+1>Entry $row->{entrynum} (on $date by ",
+
+	  # If author is not defined display sourceinfo as the author
           ($row->{author} ? $row->{author}->html : $row->{sourceinfo}) . " )</font><br>",
 	  "<b>Subject: $row->{'subject'}</b><br>",
           "$text",
