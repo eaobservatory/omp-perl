@@ -215,7 +215,6 @@ sub inferTelescope {
       } elsif (ref($val) eq 'ARRAY') {
 	my @vals = map { lc($_); } @$val;
 	my @mm = grep { $_ eq $refval } @vals;
-	print Dumper(\@vals, \@mm);
 	if (scalar(@mm) > 0) {
 	  push(@matches, $tel);
 	}
