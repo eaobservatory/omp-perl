@@ -26,7 +26,7 @@ use File::Spec;
 use Astro::Coords::Offset;
 
 # Need to find the OCS Config (temporary kluge)
-use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
+#use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
 
 use JAC::OCS::Config;
 
@@ -46,6 +46,14 @@ our $DEBUG = 0;
 
 # Version number
 our $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
+
+# Mapping from OMP to OCS frontend names
+our %FE_MAP = (
+	       RXA3 => 'RXA',
+	       RXWC => 'RXW',
+	       RXWD => 'RXW',
+	       RXB3 => 'RXB',
+	      );
 
 =head1 METHODS
 
@@ -364,7 +372,7 @@ sub instrument_config {
 
   # The instrument config is fixed for a specific instrument
   # and is therefore a "wiring file"
-  my $inst = lc($info{instrument});
+  my $inst = lc($self->ocs_frontend($info{instrument}));
   throw OMP::Error::FatalError('No instrument defined so cannot configure!')
     unless defined $inst;
 
@@ -401,7 +409,16 @@ sub acsis_config {
 
   my $acsis = new JAC::OCS::Config::ACSIS();
 
+  # Store it in the object
   $cfg->acsis( $acsis );
+
+  # The easy bits
+  $self->line_list( $cfg, %info );
+  $self->spw_list( $cfg, %info );
+#  $self->acsis_machine_table( $cfg, %info );
+
+
+
 }
 
 =item B<slew_config>
@@ -507,7 +524,7 @@ sub header_config {
     }
   }
 
-#  $cfg->header( $hdr );
+  #$cfg->header( $hdr );
 
 }
 
@@ -603,6 +620,191 @@ sub jos_config {
 
 }
 
+=item B<acsis_machine_table>
+
+Read and configure the ACSIS machine table.
+
+=cut
+
+sub acsis_machine_table {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Create the new machine table
+  my $machtable = File::Spec->catfile( $WIRE_DIR, 'acsis', 'machine_table.xml');
+
+  
+
+
+}
+
+=item B<line_list>
+
+Configure the line list information.
+
+  $trans->line_list( $cfg, %info );
+
+=cut
+
+sub line_list {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Get the frequency information
+  my $freq = $info{freqconfig}->{subsystems};
+  my %lines;
+  my $counter = 1; # used when a duplicate label is in use
+  for my $s ( @$freq ) {
+    my $key = JAC::OCS::Config::ACSIS::LineList->moltrans2key( $s->{species},
+							       $s->{transition}
+							     );
+    my $freq = $s->{rest_freq};
+
+    # store the reference key in the hash
+    $s->{rest_freq_ref} = $key;
+
+    # have we used this before?
+    if (exists $lines{$key}) {
+      # if the frequency is the same just skip
+      next if $lines{$key} == $freq;
+
+      # Tweak the key
+      $key .= "_$counter";
+      $counter++;
+    }
+
+    # store the new value
+    $lines{$key} = $freq;
+  }
+
+  # Create the line list object
+  my $ll = new JAC::OCS::Config::ACSIS::LineList();
+  $ll->lines( %lines );
+  $acsis->line_list( $ll );
+
+}
+
+=item B<spw_list>
+
+Add the spectral window information to the configuration.
+
+ $trans->spw_list( $cfg, %info );
+
+=cut
+
+sub spw_list {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Get the frontend object for the sideband
+  # Hopefully we will not need to do this if ACSIS can be tweaked to get it from
+  # frontend XML itself
+  my $fe = $cfg->frontend;
+  throw OMP::Error::FatalError('for some reason frontend configuration is not available during spectral window processing. This can not happen') unless defined $fe;
+
+  # Get the sideband and convert it to a sign -1 == LSB +1 == USB
+  my $sb = $fe->sideband;
+  my $fe_sign;
+  if ($sb eq 'LSB') {
+    $fe_sign = -1;
+  } elsif ($sb eq 'USB') {
+    $fe_sign = 1;
+  } elsif ($sb eq 'BEST') {
+    $fe_sign = 1;
+  } else {
+    throw OMP::Error::TranslateFail("Sideband is not recognised ($sb)");
+  }
+
+  # Get the frequency information for each subsystem
+  my $freq = $info{freqconfig}->{subsystems};
+
+  # Force bandwidth calculations
+  $self->bandwidth_mode( %info );
+
+  # Spectral window objects
+  my %spws;
+  my $spwcount = 1;
+  for my $ss (@$freq) {
+    my $spw = new JAC::OCS::Config::ACSIS::SpectralWindow;
+    $spw->rest_freq_ref( $ss->{rest_freq_ref});
+    $spw->fe_sideband( $fe_sign );
+    $spw->window( 'truncate' );
+    $spw->align_shift(0);
+
+    # Create an array of IF objects suitable for use in the spectral
+    # window object(s)
+    my @ifcoords = map {  new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if},
+						     nchannels => $ss->{nchan_per_sub},
+						     channel_width => $ss->{channwidth},
+						     ref_channel => $_
+						   ) } @{ $ss->{if_ref_channel} };
+
+
+    # hybrid or not?
+    if ($ss->{nsubbands} == 1) {
+      # no hybrid. Just store it
+      $spw->bandwidth_mode( $ss->{bwmode});
+      $spw->if_coordinate( $ifcoords[0] );
+
+    } elsif ($ss->{nsubbands} == 2) {
+      my %hybrid;
+      my $sbcount = 1;
+      for my $if (@ifcoords) {
+	my $sp = new JAC::OCS::Config::ACSIS::SpectralWindow;
+	$sp->bandwidth_mode( $ss->{bwmode} );
+	$sp->if_coordinate( $if );
+	$sp->fe_sideband( $fe_sign );
+	$sp->window( 'truncate' );
+	$sp->align_shift(0);
+	$sp->rest_freq_ref( $ss->{rest_freq_ref});
+	$hybrid{"SPW". $spwcount . "." . $sbcount} = $sp;
+	$sbcount++;
+      }
+
+      # Store the subbands
+      $spw->subbands( %hybrid );
+
+      # Create global IF coordinate object for the hybrid. For some reason
+      # this does not take overlap into account
+      my $if = new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if},
+						     nchannels => $ss->{nchannels_full},
+						     channel_width => $ss->{channwidth},
+						     ref_channel => ($ss->{nchannels_full}/2));
+      $spw->if_coordinate( $if );
+
+    } else {
+      throw OMP::Error::FatalError("Do not know how to process more than 2 subbands");
+    }
+
+    $spws{ "SPW" . $spwcount} = $spw;
+
+    $spwcount++;
+  }
+
+  # Create the SPWList
+  my $spwlist = new JAC::OCS::Config::ACSIS::SPWList;
+  $spwlist->spectral_windows( %spws );
+
+  # Store it
+  $acsis->spw_list( $spwlist );
+
+}
+
 =item B<observing_mode>
 
 Retrieves the ACSIS observing mode from the OT observation summary
@@ -643,6 +845,153 @@ sub observing_mode {
     return 'jiggle_chop';
   } else {
     throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
+  }
+
+}
+
+=item B<ocs_frontend>
+
+The name of the frontend from the viewpoint of the OCS. In general,
+the number is dropped from the end of the instrument name such that
+RXA3 becomes RXA.
+
+  $fe = $trans->ocs_frontend( $ompfe );
+
+Takes the OMP instrument name as argument. Returned string is upper cased.
+Returns undef if the frontend is not recognized.
+
+=cut
+
+sub ocs_frontend {
+  my $self = shift;
+  my $ompfe = uc( shift );
+
+  return $FE_MAP{$ompfe} if exists $FE_MAP{$ompfe};
+  return;
+}
+
+=item B<bandwidth_mode>
+
+Determine the standard correlator mode for this observation
+and store the result in the %info hash within each subsystem.
+
+ $trans->bandwidth_mode( %info );
+
+There are 2 mode designations. The spectral window bandwidth mode
+(call "bwmode") is a combination of bandwidth and channel count for a
+subband. If the spectral region is a hybrid mode, "bwmode" will refer
+to a bandwidth mode for each subband but since this mode is identical
+for each subband it is only stored as a scalar value. This method will
+add a new header "nsubbands" to indicate whether the mode is
+hybridised or not.  This mode is of the form BWxNCHAN. e.g. 1GHzx1024,
+250MHzx8192.
+
+The second mode designation, here known as the configuration name or
+"configname" is a single string describing the entire spectral region
+(hybridised or not) and is of the form BW_NSBxNCHAN, where BW is the
+full bandwidth of the subsystem, NSB is the number of subbands in the
+subsystem and NCHAN is the total number of channels in the subsystem
+(but not the final number of channels in the hybridised spectrum). e.g.
+500MHZ_2x4096
+
+For example, configuration 500MHz_2x4096 consists of two spectral
+windows each using bandwidth mode 250MHzx4096.
+
+=cut
+
+sub bandwidth_mode {
+  my $self = shift;
+  my %info = @_;
+
+  # Get the subsystem array
+  my @subs = @{ $info{freqconfig}->{subsystems} };
+
+  # loop over each subsystem
+  for my $s (@subs) {
+    # These are the hybridised subsystem parameters
+    my $hbw = $s->{bw};
+    my $olap = $s->{overlap};
+    my $hchan = $s->{channels};
+
+    # Calculate the channel width and store it
+    my $chanwid = $hbw / $hchan;
+    $s->{channwidth} = $chanwid;
+
+    # Currently, we determine whether we are hybridised from the
+    # presence of non-zero overlap
+    my $nsubband;
+    if ($olap > 0) {
+      # assumes only ever have 2 subbands per subsystem
+      $nsubband = 2;
+    } else {
+      $nsubband = 1;
+    }
+
+    # Number of overlaps in the hybrisisation
+    my $noverlap = $nsubband - 1;
+
+    # calculate the full bandwidth non-hybridised
+    # For each overlap region we need to add on twice the overlap
+    my $bw = $hbw + ( $noverlap * 2 * $olap );
+
+    # Convert this to nearest 10 MHz to remove rounding errors
+    my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
+
+    # store the bandwidth in Hz for reference
+    $s->{bandwidth} = $mhz * 1E6;
+
+    # Store the bandwidth label
+    my $ghz = $mhz / 1000;
+    $s->{bwlabel} = ( $mhz < 1000 ? int($mhz) ."MHz" : int($ghz) . "GHz" );
+
+    # Original number of channels before hybridisation
+    my $nchan = int( ($bw / $chanwid) + 0.5 );
+    $s->{nchannels_full} = $nchan;
+
+    # number of channels per subband
+    my $nchan_per_sub = $nchan / $nsubband;
+    $s->{nchan_per_sub} = $nchan_per_sub;
+
+    # calculate the bandwidth of each subband
+    my $bw_per_sub = $mhz / 2;
+
+    # subband bandwidth label
+    $s->{sbbwlabel} = ( $bw_per_sub < 1000 ? int($bw_per_sub). "MHz" :
+			int($bw_per_sub/1000) . "GHz"
+		      );
+
+    # Store the number of subbands
+    $s->{nsubbands} = $nsubband;
+
+    # bandwidth mode
+    $s->{bwmode} = $s->{sbbwlabel} . "x" . $nchan_per_sub;
+
+    # configuration name
+    $s->{configname} = $s->{bwlabel} . '_' . $nsubband . 'x' . $nchan_per_sub;
+
+    # Now we need to calculate the reference channels for each subband
+    # (middle channel if 1 subband)
+    my @refchan;
+    if ($nsubband == 1) {
+      $refchan[0] = int( $nchan / 2 );
+    } elsif ($nsubband == 2) {
+      # calculate the overlap in channels
+      my $nchan_olap = int($olap / $chanwid);
+
+      # the channel offset into the array is half the total
+      my $noff = int( $nchan_olap / 2 );
+
+      # First offset is from the end, second is from the start
+      push( @refchan, $nchan_per_sub - $noff, $noff );
+
+    } else {
+      # This all assumes two subbands
+      throw OMP::Error::FatalError("Can only calculate IF ref channel for a 2 subband system not $nsubband");
+
+    }
+
+    $s->{if_ref_channel} = \@refchan;
+
   }
 
 }
@@ -697,7 +1046,7 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright 2003-2004 Particle Physics and Astronomy Research Council.
+Copyright 2003-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
