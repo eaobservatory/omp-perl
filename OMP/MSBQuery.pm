@@ -648,6 +648,9 @@ sub _querify {
   # query that ignores case)
   $value = uc($value) if $name eq 'projectid';
 
+  # same for telescope
+  $value = uc($value) if $name eq 'telescope';
+
   # Additionally, If the name is projectid we need to make sure it
   # comes from the MSB table
   $name = "M." . $name if $name eq 'projectid';
