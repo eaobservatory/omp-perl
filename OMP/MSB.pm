@@ -587,7 +587,7 @@ sub find_checksum {
 Return an C<OMP::Info::MSB> object summarizing the MSBs and observations
 contained in the XML.
 
-  $info = $msb->summary();
+  $info = $msb->info();
 
 =cut
 
@@ -1198,6 +1198,9 @@ sub _get_sched_constraints {
       $summary{$columns{$key}} = $date if defined $date;
     }
   }
+
+  # Now read the minimum elevation. Can be undefined.
+  $summary{minel} = $self->_get_pcdata( $el, "minEl");
 
   return %summary;
 

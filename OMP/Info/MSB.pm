@@ -83,6 +83,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
  	                      instruments => '$',
 			      coordstypes => '$',
 			      nrepeats => '$',
+			      minel => '$',
                               remaining => '$',
                               comments => '@OMP::Info::Comment'
                              );
@@ -107,6 +108,10 @@ Scalar accessors:
 =item B<title>
 
 =item B<remaining>
+
+=item B<minel>
+
+The minimum usable elevation for the targets within this MSB.
 
 =item B<msbid>
 

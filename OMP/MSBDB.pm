@@ -1253,7 +1253,7 @@ C<OMP::Info::MSB> object.
   $db->_insert_row( $info, %config );
 
 The contents of the hash are usually obtained by calling the
-C<summary> method of the C<OMP::MSB> class.
+C<info> method of the C<OMP::MSB> class.
 
 This method inserts MSB data into the MSB table and the observation
 summaries into the observation table.
@@ -1309,6 +1309,9 @@ sub _insert_row {
   my $seeingmax = ( $data{seeing}->max ? $data{seeing}->max : $INF{seeing});
   my $taumax = ( $data{tau}->max ? $data{tau}->max : $INF{tau});
 
+  # If no minimum elevation is supplied use 0 degrees!
+  $data{minel} = 0.0 unless defined $data{minel};
+
   # cloud and moon are implicit ranges
 
   # Insert the MSB data
@@ -1318,7 +1321,7 @@ sub _insert_row {
 			  $data{seeing}->min, $seeingmax, $data{priority},
 			  $data{telescope}, $data{moon}, $data{cloud},
 			  $data{timeest}, $data{title},
-			  "$data{datemin}", "$data{datemax}");
+			  "$data{datemin}", "$data{datemax}", $data{minel});
 
   # Now the observations
   # We dont use the generic interface here since we want to
@@ -1579,6 +1582,13 @@ sub _run_query {
       # loop and unset it on failure
       my $isObservable = 1;
 
+      # in the current design minimum elevation constraints are a function
+      # of the MSB and not the Observation itself. The hope is that most
+      # people will be happy with defaults and that most MSBs contain
+      # a single science target anyway.
+      my $minel = $msb->{minel};
+      $minel = 0 unless defined $minel;
+
       # Loop over each observation.
       # We have to keep track of the reference time
       OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
@@ -1612,9 +1622,6 @@ sub _run_query {
 	# Set the teelscope
 	$coords->telescope( $telescope );
 
-	# -w fix
-	$obs->{minel} = -1 unless defined $obs->{minel};
-
 	# Loop over two times. The current time and the current
 	# time incremented by the observation time estimate
 	# Note that we do not test for the case where the source
@@ -1641,7 +1648,7 @@ sub _run_query {
 	  # In some cases we dont even want to test for observability
 	  if ($qconstraints{observability}) {
 	    if  ( ! $coords->isObservable or
-		  $coords->el < $obs->{minel}) {
+		  $coords->el < $minel) {
 	      $isObservable = 0;
 	      last OBSLOOP;
 	    }
