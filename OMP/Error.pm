@@ -37,12 +37,12 @@ OMP::Error - Exception handling in an object orientated manner.
        # this block catches croaks and other dies
        my $Error = shift;
        orac_exit_normally($Error);
-       
+
     }; # Dont forget the trailing semi-colon to close the catch block
 
 =head1 DESCRIPTION
 
-C<OMP::Error> is inherits from the L<Error:Error> class and more
+C<OMP::Error> is inherits from the L<Error|Error> class and more
 documentation about the (many) features present in the module but
 currently unused by the OMP can be found in the documentation for that
 module.

@@ -41,8 +41,6 @@ use Net::hostent qw/ gethost /;
 
 =item B<new>
 
-=item B<new>
-
 Base class for constructing a new instance of a OMP DB connectivity
 class.
 
@@ -484,6 +482,11 @@ sub _determine_host {
 
 
 =back
+
+=head1 SEE ALSO
+
+For related classes see C<OMP::MSBDB>, C<OMP::ProjDB> and
+C<OMP::FeedbackDB>.
 
 =head1 AUTHORS
 

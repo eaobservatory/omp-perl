@@ -59,17 +59,11 @@ If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
 (but no error is raised - this is probably a bug).
 
+Inherits from C<OMP::BaseDB>.
+
 =cut
 
 # Use base class constructor
-
-=back
-
-=head2 Accessor Methods
-
-=over 4
-
-
 
 =back
 
@@ -696,6 +690,12 @@ sub _mail_password {
 
 
 =back
+
+=head1 SEE ALSO
+
+This class inherits from C<OMP::BaseDB>.
+
+For related classes see C<OMP::MSBDB> and C<OMP::FeedbackDB>.
 
 =head1 COPYRIGHT
 

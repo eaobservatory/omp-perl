@@ -1259,6 +1259,12 @@ sub DESTROY {
 
 =back
 
+=head1 SEE ALSO
+
+This class inherits from C<OMP::BaseDB>.
+
+For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>

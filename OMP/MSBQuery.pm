@@ -577,7 +577,7 @@ The Query XML is specified as follows:
 
 =item B<MSBQuery>
 
-The top-level container element is E<lt>MSBQueryE</gt>.
+The top-level container element is E<lt>MSBQueryE<gt>.
 
 =item B<Equality>
 

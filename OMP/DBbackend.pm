@@ -2,7 +2,7 @@ package OMP::DBbackend;
 
 =head1 NAME
 
-  OMP::DBbackend - Connect and disconnect from specific database backend
+OMP::DBbackend - Connect and disconnect from specific database backend
 
 =head1 SYNOPSIS
 

@@ -66,12 +66,6 @@ C<OMP::DBbackend>.  It is not accepted if that is not the case.
 
 =back
 
-=head2 Accessor Methods
-
-=over 4
-
-=back
-
 =head2 General Methods
 
 =over 4
@@ -375,6 +369,12 @@ sub _fetch_comments {
 }
 
 =back
+
+=head1 SEE ALSO
+
+This class inherits from C<OMP::BaseDB>.
+
+For related classes see C<OMP::MSBDB> and C<OMP::ProjDB>.
 
 =head1 COPYRIGHT
 
