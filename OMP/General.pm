@@ -49,6 +49,7 @@ object (usually a C<Time::Piece> object).
  $time = $msb->_parse_date( $date );
 
 Returns C<undef> if the time could not be parsed.
+Returns the object unchanged if the argument is already a C<Time::Piece>.
 
 The date is assumed to be in UT.
 
@@ -57,6 +58,10 @@ The date is assumed to be in UT.
 sub parse_date {
   my $self = shift;
   my $date = shift;
+
+  # If we already have a Time::Piece return
+  return bless $date, "Time::Piece::Sybase"
+    if UNIVERSAL::isa( $date, "Time::Piece");
 
   # We can use Time::Piece->strptime but it requires an exact
   # format rather than working it out from context (and we don't
