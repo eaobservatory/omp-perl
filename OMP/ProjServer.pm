@@ -90,16 +90,17 @@ sub issuePassword {
 Return all the projects in the database table
 that match supplied criteria.
 
-  $projects = OMP::ProjServer->listProjects( \@semesters,
-                                             \@countries,
-                                             $status, $format );
+  $projects = OMP::ProjServer->listProjects( $xmlquery,
+                                             $format);
 
-Where both semester and country names are supplied in arrays and the
-status can be used to indicate whether "active" (time is remaining on
-the project), "inactive" (no time remains) or any project (does not
-matter how much time remains) can be returned. Empty arrays for
-semester and country indicates no preference. Only statuses of
-"active" or "inactive" will cause specific queries on time reamining.
+The database query must be supplied in XML form. See C<OMP::ProjQuery>
+for more details on the format of an XML query. A typical query could
+be:
+
+ <ProjQuery>
+  <status>active</status>
+  <semester>SERV</semester>
+ </ProjQuery>
 
 The format of the returned data is controlled by the last argument.
 This can either be "object" (a reference to an array containing
@@ -112,26 +113,28 @@ C<E<lt>OMPProjectsE<gt>> surrounds the core data.
 
 sub listProjects {
   my $class = shift;
-  my $sem = shift;
-  my $country = shift;
-  my $status = shift;
+  my $xmlquery = shift;
   my $mode = lc( shift );
   $mode = "xml" unless $mode;
 
-  OMP::General->log_message("ProjServer::listProjects: \n"
-			    . "Sem: [" . join(",", @$sem) . "]\n"
-			    . "Country: [". join(",", @$country)  ."]\n"
-			    . "Status: $status\n");
+  OMP::General->log_message("ProjServer::listProjects: \n".
+			    "Query: $xmlquery\n" .
+			    "Output format: $mode\n");
+
 
   my @projects;
   my $E;
   try {
 
+    # Triggers an exception on fatal errors
+    my $query = new OMP::ProjQuery( XML => $xmlquery,
+                                 );
+
     my $db = new OMP::ProjDB(
 			     DB => $class->dbConnection,
 			    );
 
-    @projects = $db->listProjects( $sem, $country, $status );
+    @projects = $db->listProjects( $query );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

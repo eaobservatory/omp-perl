@@ -32,6 +32,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Error qw/ :try /;
 use OMP::Project;
 use OMP::FeedbackDB;
+use OMP::ProjQuery;
 use OMP::Constants qw/ :fb /;
 
 use Crypt::PassGen qw/passgen/;
@@ -423,17 +424,11 @@ sub projectDetails {
 
 =item B<listProjects>
 
-Return all the projects for the given semesters and countries.
+Return all the projects for the given query.
 
-  @projects = $db->listProjects( [ $sem1, $sem2 ], 
-                                 [ $country ], $status );
+  @projects = $db->listProjects( $query );
 
-The semesters and countries are specified in arrays. If the arrays are
-empty all semesters or countries are queried. Status should be one of
-
- active   - projects with time remaining
- inactive - projects with no time remaining
- all      - all projects
+The query is specified as a C<OMP::ProjQuery> object.
 
 Returned as a list of C<OMP::Project> objects.
 
@@ -605,10 +600,9 @@ sub _insert_project_row {
 
 =item B<_get_projects>
 
-Retrieve list of projects that are either active or inactive (or both)
-in the specified semester(s) and specified countries.
+Retrieve list of projects that match the supplied query (supplied as a C<OMP::ProjQuery> object).
 
-  @projects = $db->_get_projects( \@semesters, \@country, $status);
+  @projects = $db->_get_projects( $query );
 
 Returned as an array of C<OMP::Project> objects.
 
@@ -616,36 +610,9 @@ Returned as an array of C<OMP::Project> objects.
 
 sub _get_projects {
   my $self = shift;
-  my $sem = shift;
-  my $countries = shift;
-  my $status = uc(shift);
+  my $query = shift;
 
-  # Build up the sql
-  my $sql = "SELECT * FROM $PROJTABLE ";
-
-  # Somewhere to build up the clause
-  my @where;
-
-  # semesters
-  push(@where, join(" OR ", map { " semester = '$_' " } map { uc($_) } @$sem))
-    if @$sem;
-
-  # Countries
-  push(@where, join(" OR ", map { " country = '$_' " } map { uc($_) } @$countries))
-    if @$countries;
-
-  # status
-  my $statql;
-  if ($status eq "ACTIVE") {
-    $statql = " (remaining - pending) > 0 ";
-  } elsif ($status eq "INACTIVE") {
-    $statql = " (remaining - pending) = 0 ";
-  }
-  push(@where, $statql) if $statql;
-
-  # Put the query together
-  my $where = " WHERE " if @where;
-  $sql .= $where . join( " AND ", @where);
+  my $sql = $query->sql( $PROJTABLE );
 
   # Database 
   my $dbh = $self->_dbhandle;
