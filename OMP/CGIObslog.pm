@@ -980,12 +980,6 @@ sub print_obslog_header {
   print "Welcome to obslog.<hr>\n";
   print $q->startform;
 
-  if(defined($qv->{'inst'})) {
-    print $q->hidden( -name => 'inst',
-                      -value => $qv->{'inst'},
-                    );
-  }
-
   my $time = localtime;
   my $currentut = $time->ymd;
 
