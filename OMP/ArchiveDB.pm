@@ -8,8 +8,7 @@ OMP::ArchiveDB - Query the data archive
 
   use OMP::ArchiveDB;
 
-  $db = new OMP::ArchiveDB(DB => new OMP::DBbackend::JCMTArchive);
-
+  $db = new OMP::ArchiveDB(DB => new OMP::DBbackend::Archive);
 
 =head1 DESCRIPTION
 
