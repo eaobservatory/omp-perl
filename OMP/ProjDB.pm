@@ -249,11 +249,15 @@ table. The confirm this value use C<confirmTimeRemaining>
 
 Units are in seconds.
 
+The optional second argument can be used to disable the transaction
+handling (if we are already in one).
+
 =cut
 
 sub decrementTimeRemaining {
   my $self = shift;
   my $time = shift;
+  my $notrans = shift;
 
   throw OMP::Error::BadArgs("Time must be supplied and must be positive")
     unless defined $time and $time > 0;
@@ -263,8 +267,10 @@ sub decrementTimeRemaining {
   my $project = $self->_get_project_row;
 
   # Transaction start
-  $self->_db_begin_trans;
-  $self->_dblock;
+  unless ($notrans) {
+    $self->_db_begin_trans;
+    $self->_dblock;
+  }
 
   # Modify the project
   $project->incPending( $time );
@@ -283,8 +289,10 @@ sub decrementTimeRemaining {
 				);
 
   # Transaction end
-  $self->_dbunlock;
-  $self->_db_commit_trans;
+  unless ($notrans) {
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+  }
 
 }
 
@@ -591,62 +599,6 @@ sub _insert_project_row {
 	   $proj->allocated, $proj->remaining, $proj->pending
 	  ) or throw OMP::Error::SpStoreFail("Error inserting project:".
 					     $dbh->errstr ."\n");
-
-}
-
-=item B<_verify_administrator_password>
-
-Compare the password stored in the object (obtainiable using the
-C<password> method) with the administrator password. Throw an
-exception if the two do not match. This safeguard is used to prevent
-people from modifying the contents of the project database without
-having permission.
-
-=cut
-
-sub _verify_administrator_password {
-  my $self = shift;
-  my $password = $self->password;
-
-  # A bit simplistic at the present time
-  throw OMP::Error::Authentication("Failed to match administrator password\n")
-    unless ($password eq "***REMOVED***");
-
-  return;
-}
-
-=item B<_notify_feedback_system>
-
-Notify the feedback system using the supplied message.
-
-  $db->_notify_feedback_system( %comment );
-
-Where the comment hash includes the keys supported by the
-feedback system (see C<OMP::FeedbackDB>) and usually
-consist of:
-
-  author      - the name of the system/person submitting comment
-  program     - the program implementing the change (usually this class)
-  sourceinfo  - IP address of computer submitting comment
-  subject     - subject of comment
-  text        - the comment itself (HTML)
-
-=cut
-
-sub _notify_feedback_system {
-  my $self = shift;
-  my %comment = @_;
-
-  # We have to share the database connection because we have
-  # locked out the project table making it impossible for
-  # the feedback system to verify the project
-  my $fbdb = new OMP::FeedbackDB( ProjectID => $self->projectid,
-				  DB => $self->db,
-				);
-
-  # Disable transactions since we can only have a single
-  # transaction at any given time with a single handle
-  $fbdb->addComment( { %comment },1);
 
 }
 
