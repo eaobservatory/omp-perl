@@ -1328,19 +1328,26 @@ sub _get_old_sciprog_timestamp {
 Store a science program in the database. Assumes the database is ready
 to accept an insert.
 
- $self->_db_store_sciprog( $sp );
+ $self->_db_store_sciprog( $sp, $timestamp );
 
-Return true on success or throws an exception on failure.
+The optional second argument is a timestamp to store in the database.
+If no timestamp is provided, the science program's timestamp will be
+used. Return true on success or throws an exception on failure.
 
 =cut
 
 sub _db_store_sciprog {
   my $self = shift;
   my $sp = shift;
+  my $timestamp = shift;
   my $proj = $self->projectid;
 
+  if (! defined $timestamp) {
+    $timestamp = $sp->timestamp;
+  }
+
   print "Entering _db_store_sciprog\n" if $DEBUG;
-  print "Timestamp: ", $sp->timestamp,"\n" if $DEBUG;
+  print "Timestamp: ", $timestamp,"\n" if $DEBUG;
   print "Project:   ", $proj,"\n" if $DEBUG;
 
   # Escape characters
@@ -1356,7 +1363,7 @@ sub _db_store_sciprog {
 
   # Insert the data into the science program
   $self->_db_insert_data($SCITABLE,
-			 $proj, $sp->timestamp,
+			 $proj, $timestamp,
 			 {
 			  TEXT => $spxml,
 			  COLUMN => 'sciprog',
@@ -1364,11 +1371,17 @@ sub _db_store_sciprog {
 			);
 
 
-  # Now fetch it back to check for truncation issues
-  # This adds quite a bit of overhead. XXXX remove before release
-  my $xml = $self->_db_fetch_sciprog();
-  $xml =~ s/\&apos;/\'/g; # level the playing field
-  if (length($xml) ne length("$sp")) {
+  # Now check for truncation issues
+  my $dbh = $self->_dbhandle;
+  my $chk_statement = 'SELECT projectid FROM '. $SCITABLE .' '.
+    'WHERE projectid = "'. $proj .'" '.
+      'AND sciprog LIKE "%SpProg>"';
+  my @chk_row = $dbh->selectrow_array($chk_statement);
+
+  # Fetch the whole program back if it was truncated
+  if (! defined $chk_row[0]) {
+    my $xml = $self->_db_fetch_sciprog();
+    $xml =~ s/\&apos;/\'/g; # level the playing field
     my $orilen = length("$sp");
     my $newlen = length($xml);
     my $retrvtxt = "";
