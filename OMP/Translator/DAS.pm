@@ -259,7 +259,6 @@ sub translate {
     my ($epoch, $mus) = gettimeofday;
     my $time = gmtime();
     my $suffix = $time->strftime("%Y%m%d_%H%M%S") ."_".substr($mus,0,3);
-    print "New suffix : $suffix\n";
 
     # The public easy to recognize name of the html file
     my $htmlfile = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
