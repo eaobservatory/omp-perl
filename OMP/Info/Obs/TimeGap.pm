@@ -29,8 +29,12 @@ use strict;
 use Carp;
 
 use OMP::Constants;
+use Text::Wrap;
 
 use base qw/ OMP::Info::Obs /;
+
+# Text wrap column size.
+$Text::Wrap::columns = 72;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -151,6 +155,56 @@ sub nightlog {
 
   return %return;
 
+}
+
+=item B<summary>
+
+Summarize the object in a variety of formats.
+
+  $summary = $timegap->summary( '80col' );
+
+Allowed formats are:
+
+  '72col' - 72-column summary, with comments.
+
+=cut
+
+sub summary {
+  my $self = shift;
+
+  my $format = lc(shift);
+
+  if( $format eq '72col' ) {
+    my $obssum = "Time gap: ";
+
+    if( $self->status == OMP__TIMEGAP_INSTRUMENT ) {
+      $obssum .= "INSTRUMENT";
+    } elsif( $self->status == OMP__TIMEGAP_WEATHER ) {
+      $obssum .= "WEATHER";
+    } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
+      $obssum .= "FAULT";
+    } else {
+      $obssum .= "UNKNOWN";
+    }
+
+    my $length = $self->endobs - $self->startobs;
+    $obssum .= sprintf("  Length: %s\n", $length->pretty_print);
+
+    my $commentsum;
+    foreach my $comment ( $self->comments ) {
+      if(defined($comment)) {
+        my $tc = sprintf("%19s UT / %s: %s\n", $comment->date->ymd . " " . $comment->date->hms, $comment->author->name, $comment->text);
+        $commentsum .= wrap(' ',' ',$tc)
+      }
+    }
+    if (wantarray) {
+      return ($obssum, $commentsum);
+    } else {
+      return $obssum . $commentsum;
+    }
+  } else {
+    throw OMP::Error::BadArgs("Format $format not yet implemented for Info::Obs::TimeGap objects");
+  }
 }
 
 =back
