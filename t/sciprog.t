@@ -38,7 +38,7 @@ ok($obj);
 ok($obj->projectID, "TJ01");
 
 # Now count the number of MSBs
-# Should be 9
+# Should be 11
 my @msbs = $obj->msb;
 ok(scalar(@msbs), 11);
 
@@ -62,12 +62,32 @@ for my $msb ($obj->msb) {
 	  my %obs = %{$msbsum{$key}[$i]};
 	  my %cmpobs = %{$cmp{$key}[$i]};
 
+	  # If we have waveband, generate a wavelength
+	  if (!exists $obs{wavelength}) {
+	    $obs{wavelength} = $obs{waveband}->wavelength
+	      if $obs{waveband};
+	  }
+	  if (!exists $cmpobs{wavelength}) {
+	    $cmpobs{wavelength} = $cmpobs{waveband}->wavelength
+	      if $cmpobs{waveband};
+	  }
+
+	  # Coords type
+	  if (!exists $obs{coordstype}) {
+	    $obs{coordstype} = $obs{coords}->type
+	      if $obs{coords};
+	  }
+	  if (!exists $cmpobs{coordstype}) {
+	    $cmpobs{coordstype} = $cmpobs{coords}->type
+	      if $cmpobs{coords};
+	  }
+
 	  foreach my $obskey (keys %cmpobs) {
 	    # Skipping refs prevents comparison of coordinates
 	    next if ref($cmpobs{$obskey});
 	    next if ref($obs{$obskey});
 
-	    print "# Comparing: $obskey\n";
+	    print "# Comparing obs: $obskey\n";
 	    ok($obs{$obskey}, $cmpobs{$obskey});
 	  }
 	}
@@ -107,7 +127,7 @@ exit;
 if (1) {
   my %summary;
   for my $msb ($obj->msb) {
-    my %msbsum = $msb->summary;
+    my %msbsum = $msb->info->summary('hashlong');
 
     # Remove stuff we aren't interested in
     delete $msbsum{checksum};
@@ -138,7 +158,7 @@ $VAR1 = {
                                                    'cloud' => 101,
                                                    'remaining' => '1',
                                                    'obscount' => 1,
-                                                   'obs' => [
+                                                   'observations' => [
                                                               {
                                                                 'waveband' => bless( {
                                                                                        'Instrument' => 'IRCAM',
@@ -185,7 +205,7 @@ $VAR1 = {
                                                    'cloud' => 101,
                                                    'remaining' => '2',
                                                    'obscount' => 1,
-                                                   'obs' => [
+                                                   'observations' => [
                                                               {
                                                                 'telescope' => 'UKIRT',
                                                                 'waveband' => bless( {
@@ -232,7 +252,7 @@ $VAR1 = {
                                                   'cloud' => 101,
                                                   'remaining' => '1',
                                                   'obscount' => 3,
-                                                  'obs' => [
+                                                  'observations' => [
                                                              {
                                                                'telescope' => 'UKIRT',
                                                                'waveband' => bless( {
@@ -334,7 +354,7 @@ $VAR1 = {
                                                   'cloud' => 101,
                                                   'remaining' => '1',
                                                   'obscount' => 1,
-                                                  'obs' => [
+                                                  'observations' => [
                                                              {
                                                                'telescope' => 'UKIRT',
                                                                'waveband' => bless( {
@@ -380,7 +400,7 @@ $VAR1 = {
                                                     'cloud' => 101,
                                                     'remaining' => '1',
                                                     'obscount' => 1,
-                                                    'obs' => [
+                                                    'observations' => [
                                                                {
                                                                  'telescope' => 'UKIRT',
                                                                  'waveband' => bless( {
@@ -425,7 +445,7 @@ $VAR1 = {
                                                    'cloud' => 101,
                                                    'remaining' => '6',
                                                    'obscount' => 3,
-                                                   'obs' => [
+                                                   'observations' => [
                                                               {
                                                                 'telescope' => 'UKIRT',
                                                                 'waveband' => bless( {
@@ -493,7 +513,7 @@ $VAR1 = {
                                                                 'obstype' => [
                                                                                'Observe'
                                                                              ],
-                                                                'coords' => $VAR1->{'15a547e0edb2cb0c81f0af34c1242b06A'}{'obs'}[1]{'coords'},
+                                                                'coords' => $VAR1->{'15a547e0edb2cb0c81f0af34c1242b06A'}{'observations'}[1]{'coords'},
                                                                 'type' => 'i'
                                                               }
                                                             ],
@@ -516,7 +536,7 @@ $VAR1 = {
                                                    'cloud' => 101,
                                                    'remaining' => '1',
                                                    'obscount' => 1,
-                                                   'obs' => [
+                                                   'observations' => [
                                                               {
                                                                 'telescope' => 'UKIRT',
                                                                 'waveband' => bless( {
@@ -563,7 +583,7 @@ $VAR1 = {
                                                   'cloud' => 101,
                                                   'remaining' => '1',
                                                   'obscount' => 1,
-                                                  'obs' => [
+                                                  'observations' => [
                                                              {
                                                                'telescope' => 'UKIRT',
                                                                'waveband' => bless( {
@@ -609,7 +629,7 @@ $VAR1 = {
                                                     'cloud' => 101,
                                                     'remaining' => '1',
                                                     'obscount' => 1,
-                                                    'obs' => [
+                                                    'observations' => [
                                                                {
                                                                  'telescope' => 'UKIRT',
                                                                  'waveband' => bless( {
@@ -654,7 +674,7 @@ $VAR1 = {
                                                   'cloud' => 101,
                                                   'remaining' => '2',
                                                   'obscount' => 2,
-                                                  'obs' => [
+                                                  'observations' => [
                                                              {
                                                                'telescope' => 'UKIRT',
                                                                'waveband' => bless( {
@@ -727,7 +747,7 @@ $VAR1 = {
                                                    'cloud' => 101,
                                                    'remaining' => '1',
                                                    'obscount' => 1,
-                                                   'obs' => [
+                                                   'observations' => [
                                                               {
                                                                 'telescope' => 'UKIRT',
                                                                 'waveband' => bless( {

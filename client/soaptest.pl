@@ -10,8 +10,11 @@ use OMP::MSBServer;
 
 # Strings
 # Read the data handle
-#local $/ = undef;
-#my $xml = <DATA>;
+local $/ = undef;
+my $file = "/home/timj/my.xml";
+open my $fh, "<$file" or die "Oops: $!";
+my $xml = <$fh>;
+close($fh);
 
 #print SOAP::Lite
 #  -> uri('http://www.jach.hawaii.edu/OMP::SpServer')
@@ -33,7 +36,7 @@ my $sp = new SOAP::Lite(
 #			  proxy =>'http://www-private.jach.hawaii.edu:81/cgi-bin/spsrv.pl',
 			 );
 
-$sp = "OMP::SpServer";
+#$sp = "OMP::SpServer";
 $msb = "OMP::MSBServer";
 
 #print $sp->fetchProgram("M01BTIM2", "junk");
@@ -43,19 +46,37 @@ $msb = "OMP::MSBServer";
 #my $answer = $msb->queryMSB("<MSBQuery><instrument>UFTI</instrument><wavelength><max>1.0</max></wavelength><projectid>M01BTJ</projectid></MSBQuery>",0);
 #my $answer = $msb->queryMSB("<MSBQuery><projectid>M01BTJ</projectid></MSBQuery>",0);
 
-my $answer = $sp->programDetails("M01BTJ");
+#my $answer = $msb->queryMSB("<MSBQuery></MSBQuery>",5);
+
+
+my $qxml = <<END;
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<MSBQuery>
+ <MOON/>
+ <instruments> 
+ <instrument>
+   UFTI
+</instrument>
+</instruments>
+</MSBQuery>
+END
+
+#print "XML: $qxml\n";
+
+#my $answer = $msb->queryMSB($qxml,5);
+
+#my $answer = $sp->programDetails("M01BTJ");
 
 #my $answer = $msb->testServer;
 
 # Get the science program
-my $sciprog = new OMP::SciProg( FILE => "test.xml" );
-my $xml = "$sciprog";
+#my $sciprog = new OMP::SciProg( FILE => "test.xml" );
+#my $xml = "$sciprog";
 
-#my $answer = $sp->storeProgram($xml, "junk");
-#my $answer = $sp->fetchProgram("M01BTIM2", "junk");
+my $answer = $sp->storeProgram($xml, "stryboso");
+#my $answer = $sp->fetchProgram("M01BTJ", "crionsda");
 
 #my $answer = $msb->fetchMSB(8);
-
 if (ref($answer)) {
   if (ref($answer) eq 'ARRAY') {
     print $answer->[0];
