@@ -611,7 +611,10 @@ sub _post_process_hash {
   # Since we always want to default to current semester
   # in the general case.
   if (!exists $href->{semester} && !exists $href->{projectid}) {
-    $href->{semester} = [ OMP::General->determine_semester ];
+    # Need the telescope in this case
+    throw OMP::Error::MSBMalformedQuery("Automatic semester determination requires a telescope in the query")
+      unless exists $href->{telescope};
+    $href->{semester} = [ OMP::General->determine_semester(tel => $href->{telescope}->[0])];
   }
 
 

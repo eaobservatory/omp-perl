@@ -1123,6 +1123,9 @@ sub list_projects_form {
 
   my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
 
+  # get the current semester for the default telescope case
+  # so it can be defaulted in addition to the list of all semesters
+  # in the database
   my $sem = OMP::General->determine_semester;
   my @sem = $db->listSemesters;
 
@@ -2402,10 +2405,9 @@ sub flex_page {
   }
 
   # Default to current semester if we couldn't untaint the semester url
-  # param (or if it just wasn't provided)
+  # param (or it just wasn't provided)
   if (! $sem) {
-    my $today = OMP::General->today(1);
-    $sem = OMP::General->determine_semester( $today );
+    $sem = OMP::General->determine_semester( tel => 'UKIRT' );
   }
 
   $sem = lc($sem);
@@ -2426,7 +2428,7 @@ sub flex_page {
   print $output;
 }
 
-=item B<sumbit_fb_comment>
+=item B<submit_fb_comment>
 
 Submit a feedback comment
 

@@ -666,10 +666,19 @@ sub _format_output {
   }
   if (exists $args{utdate}) {
     my $ut = OMP::General->parse_date( $args{utdate} );
+    my %tel;
+    $tel{tel} = $args{telescope} if (exists $args{telescope} && defined $args{telescope});
     if ($ut) {
       $places{UTDATE} = $ut->strftime("%Y%m%d");
-      $places{SEMESTER} = uc(OMP::General->determine_semester($ut));
+      $places{SEMESTER} = uc(OMP::General->determine_semester(date => $ut, %tel));
       $places{semester} = lc($places{SEMESTER});
+
+      # Warn if the string includes SEMESTER without us being given a telescope
+      if (!exists $tel{tel}) {
+	my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
+	warnings::warnif("Warning. Telescope not supplied despite request for semester")
+	  if $all =~ /_\+semester\+_/i;
+      }
     }
   }
 
