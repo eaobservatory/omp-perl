@@ -411,10 +411,15 @@ sub _convert_to_perl {
 	# We have an element. Get its name and add the contents
 	# to the hash (we assume only one text node)
 	my $childname = $grand->getName;
-	$self->_add_text_to_hash(\%query, 
-				 $name, $grand->firstChild->toString,
-				 $childname, \%attr );
 
+	# it is possible for the xml to be <max/> (sent by the QT
+	# so we must trap that
+	my $firstchild = $grand->firstChild;
+	if ($firstchild) {
+	  $self->_add_text_to_hash(\%query, 
+				   $name, $firstchild->toString,
+				   $childname, \%attr );
+	}
       }
 
     }
@@ -720,6 +725,7 @@ sub _querify {
   if ($name eq "name") {
     # two columns
     @list = (qw/ pi C.userid /);
+    #@list = (qw/ pi /);
   } else {
     @list = ( $name );
   }
