@@ -1166,12 +1166,8 @@ sub _get_pcdata {
   my $self = shift;
   my ($el, $tag ) = @_;
 
-  my @matches;
-  if ($XML::LibXML::VERSION < 1.4) {
-    @matches = $el->getElementsByTagName( $tag );
-  } else {
-    @matches = $el->getChildrenByTagName( $tag );
-  }
+  my @matches = $self->_get_children_by_name( $el, $tag);
+
   my $pcdata;
   if (@matches) {
     my $child = $matches[-1]->firstChild;
@@ -1227,12 +1223,8 @@ sub _get_attribute_child {
   my $self = shift;
   my ($el, $tag, $attr ) = @_;
 
-  my @matches;
-  if ($XML::LibXML::VERSION < 1.4) {
-    @matches = $el->getElementsByTagName( $tag );
-  } else {
-    @matches = $el->getChildrenByTagName( $tag );
-  }
+  my @matches = $self->_get_children_by_name( $el, $tag);
+
   my $value;
   if (@matches) {
     my $child = $matches[-1];
@@ -1240,6 +1232,77 @@ sub _get_attribute_child {
   }
 
   return $value;
+}
+
+=item B<_get_children_by_name>
+
+Wrapper for C<getChildrenByTagName>. Need this because
+the interface in XML::LibXML changed and we are still supporting
+an older version.
+
+  @nodes = $msb->_get_children_by_name( $parent, $tag );
+
+Returns node objects.
+
+=cut
+
+sub _get_children_by_name {
+  my $self = shift;
+  my $el = shift;
+  my $tag = shift;
+
+  my @matches;
+  if ($XML::LibXML::VERSION < 1.4) {
+    @matches = $el->getElementsByTagName( $tag );
+  } else {
+    @matches = $el->getChildrenByTagName( $tag );
+  }
+  return @matches;
+}
+
+=item B<_get_pcvalues>
+
+Some of the XML elements represent arrays as:
+
+  <tag>
+    <value>a</value>
+    <value>b</value>
+    ...
+  </tag>
+
+This is essentially the "array" form of C<_get_pcdata>.
+
+  @values = $msb->_get_pcvalues( $node, $tag );
+
+Only uses the first tag that matches. Returns empty list if no
+matches or if there are no values.
+
+If the tag name is not provided the assumption is made that the the
+node supplied as a first argument will be the node containing the
+"value" elements rather than the parent (ie it is not necesary to
+search for a matching element just the values).
+
+  @matches = $msb->_get_pcvalues( $node );
+
+=cut
+
+sub _get_pcvalues {
+  my $self = shift;
+  my $el = shift;
+  my $tag = shift;
+
+  my $node;
+  if ($tag) {
+    # look for tag
+    ($node) = $el->findnodes( $tag );
+  } else {
+    # assume we already have it
+    $node = $el;
+  }
+  my @valuenodes = $self->_get_children_by_name( $node, 'value');
+  my @values = map { $_->firstChild->toString } @valuenodes;
+
+  return @values;
 }
 
 =item B<_get_range>
@@ -1367,6 +1430,12 @@ This unrolls all iterators.
 
   @details = $msb->unroll_obs;
 
+Data is returned as an array of hashes (I<not> an array of
+C<OMP::Info::Obs> objects). This is because the information in the
+hashes is simply a reflection of the information in the iterator
+XML. Some translation will probably be required to convert this to
+information suitable for a true observation specification.
+
 =cut
 
 sub unroll_obs {
@@ -1383,6 +1452,10 @@ sub unroll_obs {
     delete $config{SpIter};
     delete $config{obstype};
 
+    # Add MSB information that should propogate to header
+    $config{MSBID} = $self->checksum;
+    $config{PROJECTID} = $self->projectID;
+
     # Now loop over iterators
     $self->_unroll_obs_recurse(\@longobs, $obs->{SpIter}, %config);
 
@@ -1394,6 +1467,8 @@ sub unroll_obs {
   return @longobs;
 
 }
+
+# Recursive method for use by unroll_obs()
 
 sub _unroll_obs_recurse {
   my $self = shift;
@@ -1544,7 +1619,7 @@ sub SpObs {
   # CAL
   # This test needs to be expanded for SCUBA
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle|Stare|Raster/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle|Stare|Raster|Focus/, @{$summary{obstype}}) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
@@ -1625,15 +1700,7 @@ sub SpIterFolder {
       # SpIterPOL iterator for waveplates
 
       # Get the value tags
-      my @value;
-      if ($XML::LibXML::VERSION < 1.4) {
-	@value = $child->getElementsByTagName( 'value' );
-      } else {
-	@value = $child->getChildrenByTagName( 'value' );
-      }
-
-      # Get the numbers
-      my @waveplate = map { $_->firstChild->toString } @value;
+      my @waveplate = $self->_get_pcvalues( $child );
 
       # Store the waveplate angles
 #      push(@{$summary{$parent}}, {$name => \@waveplate});
@@ -1655,8 +1722,8 @@ sub SpIterFolder {
 	next unless $name eq 'OFFSET';
 	my %details;
 	$details{OFFSET_PA} = $pa;
-	$details{OFFSET_dx}  = $self->_get_pcdata($off, 'DC1');
-	$details{OFFSET_dy}  = $self->_get_pcdata($off, 'DC2');
+	$details{OFFSET_DX}  = $self->_get_pcdata($off, 'DC1');
+	$details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
 	push(@offsets, \%details);
       }
 #      push(@{$summary{$parent}}, {$name => \@offsets});
@@ -1715,7 +1782,44 @@ sub SpIterFolder {
     } elsif ($name eq 'SpIterPointingObs') {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
+      my $pix = $self->_get_pcdata( $child, 'pointingPixel');
+      my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
+      my $auto = ( $autoTarget eq 'true' ? 1 : 0);
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { 
+						       nintegrations => $nint,
+						       autoTarget => $auto,
+						       #pointingPixel => $pix,
+						      }});
+
+
+    } elsif ($name eq 'SpIterFocusObs') {
+
+      my $nint =  $self->_get_pcdata( $child, 'integrations');
+      my $npoints = $self->_get_pcdata( $child, 'focusPoints');
+      my $axis = $self->_get_pcdata( $child, 'axis');
+      my $steps = $self->_get_pcdata( $child, 'steps');
+      my $autoTarget = $self->_get_pcdata( $child, 'autoTarget' );
+      my $auto = ( $autoTarget eq 'true' ? 1 : 0);
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { 
+						       nintegrations => $nint,
+						       autoTarget => $auto,
+						       focusPoints => $npoints,
+						       focusAxis => $axis,
+						       focusStep => $steps,
+						      }});
+
+
+    } elsif ($name eq 'SpIterNoiseObs') {
+
+      my $nint =  $self->_get_pcdata( $child, 'integrations');
+      my $source = $self->_get_pcdata( $child, 'noiseSource');
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
+						       nintegrations => $nint,
+						       noiseSource => $source,
+						       }});
 
     } elsif ($name eq 'SpIterSkydipObs') {
 
@@ -1731,19 +1835,20 @@ sub SpIterFolder {
       # scan information is in <obsArea>
       # PA
       my ($node) = $child->findnodes(".//obsArea/PA");
-      $scan{pa} = $node->firstChild->toString;
+      $scan{MAP_PA} = $node->firstChild->toString;
 
       ($node) = $child->findnodes(".//obsArea/SCAN_AREA/AREA");
-      $scan{height} = $self->_get_attribute($node, 'HEIGHT');
-      $scan{width} = $self->_get_attribute($node, 'WIDTH');
+      $scan{MAP_HEIGHT} = $self->_get_attribute($node, 'HEIGHT');
+      $scan{MAP_WIDTH} = $self->_get_attribute($node, 'WIDTH');
 
       ($node) = $child->findnodes(".//obsArea/SCAN_AREA/SCAN");
-      $scan{dy} = $self->_get_attribute($node, 'DY');
-      $scan{system} = $self->_get_attribute($node, 'SYSTEM');
-      $scan{velocity} = $self->_get_attribute($node, 'VELOCITY');
+      $scan{SCAN_DY} = $self->_get_attribute($node, 'DY');
+      $scan{SCAN_SYSTEM} = $self->_get_attribute($node, 'SYSTEM');
+      $scan{SCAN_VELOCITY} = $self->_get_attribute($node, 'VELOCITY');
 
+      # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");
-      $scan{scanpa} = [ map { $_->firstChild->toString } @scanpa ];
+      $scan{SCAN_PA} = [ map { $_->firstChild->toString } @scanpa ];
 
       push(@{$summary{$parent}{CHILDREN}}, { SpIterRasterObs => \%scan});
 
@@ -1963,6 +2068,18 @@ sub SpInstSCUBA {
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
 					    Instrument => 'SCUBA');
   $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # Get some info required for translator
+  $summary{primaryBolometer} = $self->_get_pcdata($el, 'primaryBolometer');
+
+  # Bolometers are either singular (pcdata) or array
+  # This is indeed annoying
+  # First try it as an array
+  $summary{bolometers} = [ $self->_get_pcvalues( $el, 'bolometers') ];
+
+  # If we get nothing useful try it as a single value
+  $summary{bolometers} = [$self->_get_pcdata( $el, 'bolometers')]
+    unless @{$summary{bolometers}};
 
   # Camera mode
   $summary{type} = "i";
