@@ -15,11 +15,12 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ProjectPage;
 
 my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Password request page");
-$cgi->write_page_noauth( \&issuepwd, \&issuepwd );
+$cgi->write_page_noauth( \&OMP::CGI::ProjectPage::issuepwd,
+			 \&OMP::CGI::ProjectPage::issuepwd );

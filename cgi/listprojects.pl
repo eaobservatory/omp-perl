@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ProjectPage;
 
 use HTML::WWWTheme;
 
@@ -30,4 +30,5 @@ $cgi->theme($theme);
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: List Projects");
-$cgi->write_page_staff( \&list_projects, \&list_projects_output );
+$cgi->write_page_staff( \&OMP::CGI::ProjectPage::list_projects,
+			\&OMP::CGI::ProjectPage::list_projects_output );
