@@ -834,7 +834,8 @@ sub _mail_information {
   }
 
   # Send message (via Net::SMTP)
-  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+  my $mailhost = OMP::Config->getData("mailhost");
+  MIME::Lite->send("smtp", $mailhost, Timeout => 30);
   $msg->send
     or throw OMP::Error::FatalError("Error sending message\n");
 
