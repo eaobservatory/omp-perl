@@ -186,6 +186,10 @@ sub summary {
     } else {
       return \%summary;
     }
+  } elsif ($format eq 'text') {
+    # Simple  - needs more work
+    return join "\n", map { "$_: $summary{$_}" } 
+      grep { defined $_ and defined $summary{$_} } keys %summary;
   } elsif ($format eq 'xml') {
 
     my $xml = "<SpObsSummary>\n";

@@ -76,7 +76,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               datemin => 'Time::Piece',
                               datemax => 'Time::Piece',
                               telescope => '$',
-                              cloud => '$',
+                              cloud => '$__ANY__',
                               observations => '@OMP::Info::Obs',
  	                      wavebands => '$',
  	                      targets => '$',
@@ -581,11 +581,12 @@ sub summary {
     my $obscount = 0;
     for my $obs (@obs) {
       $obscount++;
-      push(@text, "\t $obscount - Inst:".$obs->instrument
-	   . "\tTarget: ".$obs->target
-	   . "\tCoords: ".$obs->coords
-	   . "\tWaveband: ". $obs->waveband
-	  );
+      my $string = "\t $obscount - ";
+      $string .= "Inst:".$obs->instrument if $obs->instrument;
+      $string .= "Target:".$obs->target if $obs->target;
+      $string .= "Coords:".$obs->coords if $obs->coords;
+      $string .= "Waveband:".$obs->waveband if $obs->waveband;
+      push(@text, $string );
     }
 
     # Return a list or a string

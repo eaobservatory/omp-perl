@@ -124,7 +124,7 @@ initializer.
 An accessor method will be created for each key supplied in the
 hash. The value determines the type of accessor method.
 
-  $ - standard scalar accessor
+  $ - standard scalar accessor (non reference)
   % - hash (ref) accessor
   @ - array (ref) accessor
   'string' - class name (supplied object must be of specified class)
@@ -132,13 +132,17 @@ hash. The value determines the type of accessor method.
   %string  - hash containing specific class
   $__UC__ - upper case all arguments (scalar only)
   $__LC__ - lower case all arguments (scalar only)
+  $__ANY__ - any scalar (including references)
 
-Scalar accessor accept scalars to modify the contents and return the
-scalar.  Hash/Array accessors accept either lists or a reference. They
-return a list in list context and a reference in scalar context. If an
-@ or % is followed by a string this indicates that the array/hash can
-only accept arguments of that class (all arguments or array elements
-are tested).
+Scalar accessor accept scalars (but not references) to modify the
+contents and return the scalar.  With UC/LC modifiers the scalar
+arguments are upcased or down cased. With the ANY modifier scalars can
+include references of any type (this is also implied by UC and LC).
+Hash/Array accessors accept either lists or a reference (and do not
+check contents). They return a list in list context and a reference in
+scalar context. If an @ or % is followed by a string this indicates
+that the array/hash can only accept arguments of that class (all
+arguments or array elements are tested).
 
 Class accessors are the same as scalar accessors except their
 arguments are tested to make sure they are of the right class.
@@ -239,8 +243,11 @@ sub CreateAccessors {
 			   }
 			  };
 
-  my $UPCASE = q{ $argument = uc($argument); };
-  my $DOWNCASE = q{ $argument = lc($argument); };
+  my $REFCHECK = q{ croak "Argument for method 'METHOD' can not be a reference"
+		      if ref($argument);
+		  };
+  my $UPCASE = $REFCHECK . q{ $argument = uc($argument); };
+  my $DOWNCASE = $REFCHECK . q{ $argument = lc($argument); };
 
   # Loop over the supplied keys
   my $class = '';
@@ -262,8 +269,11 @@ sub CreateAccessors {
       } elsif ($TYPE =~ /__LC__/) {
 	# lower case
 	$code =~ s/CLASS_CHECK/$DOWNCASE/;
+      } elsif ($TYPE =~ /__ANY__/) {
+	$code =~ s/CLASS_CHECK//;
       } else {
-	$code =~ s/CLASS_CHECK//;	
+	# Check references
+	$code =~ s/CLASS_CHECK/$REFCHECK/;
       }
 
     } elsif ($TYPE =~ /^\@/) {
@@ -317,6 +327,10 @@ sub CreateAccessors {
 
 =back
 
+=head1 TODO
+
+Add code references.
+
 =head1 SEE ALSO
 
 L<Class::Struct>
@@ -331,5 +345,25 @@ Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
+
+# Dummy class used for test script
+package OMP::Info::Test;
+
+use warnings;
+use strict;
+use vars qw/ @ISA /;
+@ISA = qw/ OMP::Info::Base /;
+
+__PACKAGE__->CreateAccessors( scalar => '$',
+                              anyscalar => '$__ANY__',
+                              downcase => '$__LC__',
+                              upcase   => '$__UC__',
+                              array => '@',
+                              hash  => '%',
+                              arrayobj => '@Blah',
+                              singleobj => 'Blah2',
+                              hashobj   => '%Blah3',
+                             );
+
 
 1;
