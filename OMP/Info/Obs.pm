@@ -32,6 +32,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::General;
 use OMP::Error qw/ :try /;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
@@ -99,7 +100,8 @@ sub readfile {
     $obs->filename( $filename );
   }
   catch Error with {
-
+    my $Error = shift;
+    print "Error in Info::Obs::readfile: " . $Error->{'-text'} . "\n";
   };
   return $obs;
 }
@@ -434,22 +436,24 @@ sub nightlog {
     $return{'Object'} = $self->target;
     $return{'Obstype'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = $self->duration;
+    $return{'Exposure time'} = sprintf( "%.1f", $self->duration );
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
-    $return{'Airmass'} = $self->airmass;
+    $return{'Airmass'} = sprintf( "%.2f", $self->airmass );
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
+    $return{'RA Offset'} = $self->raoff;
+    $return{'Dec Offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Obstype",
                           "UT start", "Exposure time", "Number of exposures",
-                          "Mode", "Speed", "Filter", "Airmass", "Columns",
-                          "Rows", "RA", "DEC", "Equinox", "DR Recipe" ];
+                          "Filter", "Airmass", "RA", "DEC", "Equinox",
+                          "RA Offset", "Dec Offset", "DR Recipe" ];
   } elsif($instrument =~ /cgs4/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
@@ -458,11 +462,11 @@ sub nightlog {
     $return{'Observation type'} = $self->type;
     $return{'Slit'} = $self->slitname;
     $return{'Position Angle'} = $self->slitangle;
-    $return{'RA offset'} = $self->raoff;
-    $return{'Dec offset'} = $self->decoff;
+    $return{'RA offset'} = sprintf( "%.3f", $self->raoff);
+    $return{'Dec offset'} = sprintf( "%.3f", $self->decoff);
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Airmass'} = $self->airmass;
-    $return{'Exposure time'} = $self->duration;
+    $return{'Airmass'} = sprintf( "%.2f", $self->airmass);
+    $return{'Exposure time'} = sprintf( "%.1f",$self->duration );
     $return{'Number of exposures'} = $self->nexp;
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
@@ -471,7 +475,7 @@ sub nightlog {
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Standard",
                           "Observation type", "Slit", "Position Angle",
                           "RA offset", "Dec offset", "UT time", "Airmass",
-                          "Exposure time", "Number of exposures", "Grating",
+                          "Exposure time", "Grating",
                           "Order", "Wavelength", "DR Recipe" ];
   } elsif($instrument =~ /michelle/i) {
     $return{'Observation'} = $self->runnr;
@@ -479,31 +483,30 @@ sub nightlog {
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = $self->duration;
+    $return{'Exposure time'} = sprintf("%.1f",$self->duration);
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
-    $return{'Airmass'} = $self->airmass;
+    $return{'Airmass'} = sprintf("%.2f",$self->airmass);
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
+    $return{'RA offset'} = $self->raoff;
+    $return{'Dec offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'Standard'} = $self->standard;
     $return{'Slit'} = $self->slitname;
     $return{'Position Angle'} = $self->slitangle;
-    $return{'RA offset'} = $self->raoff;
-    $return{'Dec offset'} = $self->decoff;
     $return{'Grating'} = $self->grating;
     $return{'Order'} = $self->order;
     $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
     $return{'_ORDER'} = [ "Observation", "Group", "Object", "Observation type",
-                          "UT start", "Exposure time", "Number of exposures",
-                          "Mode", "Speed", "Filter", "Airmass", "Columns",
-                          "Rows", "RA", "DEC", "Equinox", "Slit", "Position Angle",
-                          "RA offset", "Dec offset", "Grating", "Order",
+                          "UT start", "Exposure time",
+                          "Filter", "Airmass", "RA", "DEC", "Equinox", "RA offset", "Dec Offset", 
+                          "Slit", "Position Angle", "Grating",
                           "Wavelength", "DR Recipe" ];
   } elsif($instrument =~ /ufti/i) {
     $return{'Observation'} = $self->runnr;
@@ -511,34 +514,35 @@ sub nightlog {
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = $self->duration;
+    $return{'Exposure time'} = sprintf("%.1f",$self->duration);
     $return{'Number of exposures'} = $self->nexp;
     $return{'Mode'} = $self->mode;
     $return{'Speed'} = $self->speed;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
-    $return{'Airmass'} = $self->airmass;
+    $return{'Airmass'} = sprintf("%.2f",$self->airmass);
     $return{'Columns'} = $self->columns;
     $return{'Rows'} = $self->rows;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
+    $return{'RA Offset'} = $self->raoff;
+    $return{'Dec Offset'} = $self->decoff;
     $return{'DR Recipe'} = $self->drrecipe;
     $return{'_ORDER'} = [ "Observation", "Group", "Object",
                           "Observation type", "UT start", "Exposure time",
-                          "Number of exposures", "Mode", "Speed", "Filter",
-                          "Airmass", "Columns", "Rows", "RA", "DEC",
-                          "Equinox", "DR Recipe" ];
+                          "Filter", "Airmass", "RA", "DEC", "Equinox",
+                          "RA Offset", "Dec Offset", "DR Recipe" ];
   } elsif( $instrument =~ /uist/i ) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
     $return{'Object'} = $self->target;
     $return{'Observation type'} = $self->type;
     $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = $self->duration;
+    $return{'Exposure time'} = sprintf("%.1f", $self->duration );
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Airmass'} = $self->airmass;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec : '';
+    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
+    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
     $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
     $return{'RA Offset'} = $self->raoff;
     $return{'Dec Offset'} = $self->decoff;
@@ -689,6 +693,7 @@ sub _populate {
   $self->bolometers( $generic_header{BOLOMETERS} );
   $self->velocity( $generic_header{VELOCITY} );
   $self->systemvelocity( $generic_header{SYSTEM_VELOCITY} );
+  $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
 
 }
 
