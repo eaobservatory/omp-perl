@@ -128,6 +128,22 @@ my %DATA = (
 				  Human => HUMAN,
 				 },
 			},
+	    "BUG"    => {
+			 SYSTEM => {
+				    "JCMT-OT" => 1,
+				    "UKIRT-OT" => 2,
+				    "OMP Feedback system" => 3,
+				    "ORAC-DR" => 4,
+				    miscellaneous => SYSTEMOTHER,
+				   },
+			 TYPE => {
+				  GUI => 1,
+				  Exception => 2,
+				  Scheduling => 3,
+				  Other => TYPEOTHER,
+				  Human => HUMAN,
+				 },
+			},
 	    );
 
 # Urgency
@@ -139,8 +155,12 @@ my %URGENCY = (
 
 # Status
 my %STATUS = (
-	      Open => OPEN,
-	      Closed => CLOSED,
+	      Open             => OPEN,
+	      Closed           => CLOSED,
+	      "Works for me"   => 2,
+	      "Not a fault"    => 3,
+	      "Won't be fixed" => 4,
+	      Duplicate        => 5,
 	     );
 
 
