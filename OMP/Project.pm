@@ -470,8 +470,9 @@ sub country {
       $self->primaryqueue( $c[0] );
     }
 
-    # Store new keys with default or no tag priority
-    $self->queue( map { uc($_) => ($tagpri + $self->tagadjustment($_)) } @c );
+    # we can store without a TAG priority initially. We have to assume this value will be
+    # reinforced later
+    $self->queue( map { uc($_) => (defined $tagpri ? ($tagpri + $self->tagadjustment($_)) : undef ) } @c );
 
   }
   if (wantarray) {
@@ -1175,6 +1176,8 @@ If a single non reference is provided as argument it will be assumed to
 be the queue name and the corresponding value will be returned. A 0
 will be returned if the queue is not recognized.
 
+  $adj = $proj->tagadjustment( 'CA' );
+
 =cut
 
 sub tagadjustment {
@@ -1192,13 +1195,16 @@ sub tagadjustment {
       # either a hash ref as first arg or a list
       my %args = ( ref($_[0]) ? %{$_[0]} : @_);
       for my $c (keys %args) {
+	$args{$c} = 0 if ( !defined $args{$c} || ref($args{$c}));
 	$self->{TAGAdjustment}->{uc($c)} = $args{$c};
       }
     }
   }
   if (wantarray) {
+    # list
     return %{ $self->{TAGAdjustment} };
   } else {
+    # hash ref
     return $self->{TAGAdjustment};
   }
 }
