@@ -63,10 +63,10 @@ sub new {
   # Go through the input args invoking relevant methods
   for my $key (keys %args) {
     my $method = lc($key);
-    if ($fault->can($method)) {
+    if ($user->can($method)) {
       # Return immediately if an accessor methods
       # returns undef
-      return undef unless $fault->$method( $args{$key});
+      return undef unless $user->$method( $args{$key});
     }
   }
 
@@ -85,11 +85,13 @@ The user name. This must be unique.
   $id = $u->userid;
   $u->userid( $id );
 
+The user id is upper cased.
+
 =cut
 
 sub userid {
   my $self = shift;
-  if (@_) { $self->{UserID} = shift; }
+  if (@_) { $self->{UserID} = uc(shift); }
   return $self->{UserID};
 }
 

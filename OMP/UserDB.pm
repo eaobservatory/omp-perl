@@ -27,6 +27,7 @@ use warnings;
 use strict;
 use OMP::User;
 use OMP::Error;
+use OMP::UserQuery;
 
 use base qw/ OMP::BaseDB /;
 
@@ -97,6 +98,68 @@ sub updateUser {
 
 }
 
+=item B<verifyUser>
+
+Verify that the user exists in the database. This is a thin wrapper
+around B<getUser>. Returns true if the user exists, else returns false.
+
+  $isthere = $db->verifyUser( $userid );
+
+=cut
+
+sub verifyUser {
+  my $self = shift;
+  my $userid = shift;
+  my $user = $self->getUser( $userid );
+  return ($user ? 1 : 0 );
+}
+
+=item B<getUser>
+
+Retrieve information on the specified user name.
+
+  $user = $db->getUser( $userid );
+
+Returned as an C<OMP::User> object. Returns C<undef> if the
+user can not be found.
+
+=cut
+
+sub getUser {
+  my $self = shift;
+  my $userid = shift;
+
+  # Create a query string
+  my $xml = "<UserQuery><userid>$userid</userid></UserQuery>";
+  my $query = new OMP::UserQuery( XML => $xml );
+
+  my @result = $self->queryUsers( $query );
+
+  if (scalar(@result) > 1) {
+    throw OMP::Error::FatalError( "Multiple faults match the supplied id [$userid] - this is not possible [bizarre] }");
+  }
+
+  # Guaranteed to be only one match
+  return $result[0];
+
+}
+
+=item B<queryUsers>
+
+Query the user database table and retrieve the matching user objects.
+Queries must be supplied as C<OMP::UserQuery> objects.
+
+  @users = $db->queryUsers( $query );
+
+=cut
+
+sub queryUsers {
+  my $self = shift;
+  my $query = shift;
+
+  return $self->_query_userdb( $query );
+}
+
 =back
 
 =head2 Internal Methods
@@ -146,6 +209,30 @@ sub _update_user {
 
 
 }
+
+=item B<_query_userdb>
+
+Query the user database table.
+
+  @results = $db->_query_userdb( $query );
+
+Query must be an C<OMP::UserQuery> object.
+
+=cut
+
+sub _query_userdb {
+  my $self = shift;
+  my $query = shift;
+
+  my $sql = $query->sql;
+
+  # Fetch
+  my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  # Return the object equivalents
+  return [ map { new OMP::User( %$_ ) } @$ref ];
+}
+
 
 =back
 
