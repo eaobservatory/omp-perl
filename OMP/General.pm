@@ -577,6 +577,43 @@ sub determine_host {
   return ($user, $addr, $email);
 }
 
+=item B<is_host_local>
+
+Returns true if the host accessing this page is local, false
+if not. The definition of "local" means that either there are
+no dots in the domainname (eg "lapaki" or "ulu") or the domain
+includes one of the endings specified in the "localdomain" config
+setting.
+
+  print "local" if OMP::General->is_host_local
+
+Usually only relevant for CGI scripts where REMOTE_ADDR is
+used.
+
+=cut
+
+sub is_host_local {
+  my $class = shift;
+
+  my @domain = $class->determine_host();
+
+  # if no domain, assume we are really local (since only a host name)
+  return 1 unless $domain[1];
+
+  # Also return true if the domain does not include a "."
+  return 1 if $domain[1] !~ /\./;
+
+  # Now get the local definition of allowed remote hosts
+  my @local = OMP::Config->getData('localdomain');
+
+  # See whether anything in @local matches $domain[1]
+  if (grep { $domain[1] =~ /$_$/i } @local) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 =back
 
 =head2 Time Allocation Bands
