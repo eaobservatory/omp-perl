@@ -852,11 +852,14 @@ sub _mail_information {
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
 
+  OMP::General->log_message("Connecting to mailhost: $mailhost");
   eval {
     $top->smtpsend(Host => $mailhost,
 		   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
   };
   ($@) and throw OMP::Error::MailError("$@\n");
+  OMP::General->log_message("Mail message sent");
+  return;
 }
 
 =item B<DESTROY>
