@@ -8,8 +8,11 @@ OMP::Fault::Response - a fault response
 
   use OMP::Fault::Response;
 
-  $resp = new OMP::Fault::Response( $user, $text, $date );
-  $resp = new OMP::Fault::Response( $user, $text );
+  $resp = new OMP::Fault::Response( user => $user,
+                                    text => $text,
+                                    date => $date );
+  $resp = new OMP::Fault::Response( user => $user, 
+                                    text => $text );
 
   $body = $resp->text;
   $user = $resp->user;
@@ -46,14 +49,16 @@ use overload '""' => "stringify";
 
 Create a new fault response object. The name of the person submitting
 the response and the response itself must be supplied to the
-constructor.
+constructor. The response date and an indication of whether the
+response is a true response or the actual fault (via "primary") are
+optional.
 
-  $resp = new OMP::Fault::Response( $user, $text );
+  $resp = new OMP::Fault::Response( user => $user, 
+                                    text => $text,
+                                    primary => 1 );
 
-An optional third argument can be supplied specifying the date
-of the response. If it is not specified the current date will be
-used. The date must be supplied as a C<Time::Piece> object and is assumed
-to be UT.
+If it is not specified the current date will be used. The date must be
+supplied as a C<Time::Piece> object and is assumed to be UT.
 
 =cut
 
@@ -61,15 +66,13 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  croak "Response constructor must have two arguments: user and fault text"
-    unless scalar(@_) == 2;
-
-  my ($user, $text, $date) = @_;
+  # Arguments
+  my %args = @_;
 
   # initialize the hash
   my $resp = {
-	      User => $user,
-	      Text => $text,
+	      User => undef,
+	      Text => undef,
 	      Date => undef,
 	      Primary => 0,
 	     };
@@ -77,11 +80,23 @@ sub new {
   bless $resp, $class;
 
   # if a date has not been supplied get current
-  $date = gmtime() unless defined $date;
+  $args{date} = gmtime() unless (exists $args{date} or exists $args{Date});
 
-  # Store the date
-  $resp->date( $date );
+  # Invoke accessors to configure object
+  for my $key (keys %args) {
+    my $method = lc($key);
+    if ($resp->can($method)) {
+      $resp->$method( $args{$key});
+    }
+  }
 
+  # Check that we have user and text
+  croak "Must supply a fault user"
+    unless $resp->user;
+  croak "Must supply a fault response (text)"
+    unless $resp->text;
+
+  # Return the object
   return $resp;
 }
 
