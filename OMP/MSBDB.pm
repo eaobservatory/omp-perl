@@ -935,7 +935,7 @@ sub _get_next_index {
   # Get the next highest
   $max++;
 
-  return $highest;
+  return $max;
 }
 
 =item B<_verify_project_password>
