@@ -229,9 +229,20 @@ sub fb_entries_hidden {
 
   my $comments = OMP::FBServer->getComments($cookie{projectid},
 					    $cookie{password});
-  print $q->h2("Feedback entries"),
-        "There are " .scalar(@$comments). " comments for this project. Click <a href='feedback.pl'>here</a> to view the comments marked 'important'.",
-	$q->hr;
+  print $q->h2("Feedback entries");
+    if (scalar(@$comments) == 1) {
+      print "There is 1 comment";
+    } else {
+      print "There are " . scalar(@$comments) . " comments";
+    }
+
+  print " for this project.";
+
+  if (scalar(@$comments) > 0) {
+    print "  Click <a href='feedback.pl'>here</a> to view the comments marked 'important'.";
+  }
+
+  print  $q->hr;
 }
 
 =item B<comment_form>
@@ -478,6 +489,11 @@ sub add_comment_output {
 		  text => $q->param('text'),
 		  program => $q->url(-relative=>1), # the name of the cgi script
 		  status => OMP__FB_IMPORTANT, };
+
+  # Strip out ^M
+  foreach (keys %$comment) {
+    $comment->{$_} =~ s/\015//g;
+  }
 
   OMP::FBServer->addComment( $cookie{projectid}, $comment )
       or throw OMP::Error::FatalError("An error occured while attempting to add this comment");
