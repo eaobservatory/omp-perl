@@ -445,6 +445,9 @@ sub _convert_to_perl {
     my $name = $child->getName;
     #print "Name: $name\n";
 
+    # Get the attributes
+    my %attr = map {  $_->getName, $_->getValue} $child->getAttributes;
+
     # Now need to look inside to see what the children are
     for my $grand ( $child->childNodes ) {
 
@@ -456,7 +459,7 @@ sub _convert_to_perl {
 	my $string = $grand->toString;
 	next unless $string =~ /\w/;
 
-	$self->_add_text_to_hash( \%query, $name, $string );
+	$self->_add_text_to_hash( \%query, $name, $string, \%attr );
 
       } else {
 
@@ -465,7 +468,7 @@ sub _convert_to_perl {
 	my $childname = $grand->getName;
 	$self->_add_text_to_hash(\%query, 
 				 $name, $grand->firstChild->toString,
-				 $childname );
+				 $childname, \%attr );
 
       }
 
@@ -514,6 +517,12 @@ Note that single values are always stored in arrays in case
 a second value turns up. Note also that special cases become
 hashes rather than arrays.
 
+Attributes associated with the elements can be supplied as a final argument
+(always the last) identified by it being a reference to a hash. These
+attributes are copied into the query hash as key C<_attr> - pointing
+to a hash with the attributes. Attributes are overwritten if new
+values are provided later.
+
 =cut
 
 sub _add_text_to_hash {
@@ -521,6 +530,14 @@ sub _add_text_to_hash {
   my $hash = shift;
   my $key = shift;
   my $value = shift;
+
+  # Last arg can be a hash ref in special case
+  my $attr;
+  if (ref($_[-1]) eq 'HASH' ) {
+    $attr = pop(@_);
+  }
+
+  # Read any remaining args
   my $secondkey = shift;
 
   # Check to see if we have a special key
@@ -554,6 +571,10 @@ sub _add_text_to_hash {
       $hash->{$key} = [ $value ];
     }
   }
+
+  # Store attributes if they are supplied
+  $hash->{_attr} = {} unless exists $hash->{_attr};
+  $hash->{_attr}->{$key} = $attr if defined $attr;
 
 }
 
@@ -598,8 +619,42 @@ sub _post_process_hash {
   }
   $href->{date} = [ $date ];
 
+  # Also do timeest as a special case since that becomes
+  # a hash (and so wont be modified in the loop once converted
+  # to a range)
+  if (exists $href->{timeest}) {
+
+    my $key = "timeest";
+
+    # Need the estimated time to be in seconds
+    # Look at the attributes
+    if (exists $href->{_attr}->{$key}->{units}) {
+      my $units = $href->{_attr}->{$key}->{units};
+
+      my $factor = 1; # multiplication factor
+      if ($units =~ /^h/) {
+	$factor = 3600;
+      } elsif ($units =~ /^m/) {
+	$factor = 60;
+      }
+
+      # Now scale all values by this factor
+      if (ref($href->{timeest}) eq 'HASH') {
+	for (keys %{ $href->{timeest} }) {
+	  $href->{timeest}->{$_} *= $factor;
+	}
+      } elsif (ref($href->{timeest}) eq 'ARRAY') {
+	for (@{ $href->{timeest}}) {
+	  $_ *= $factor;
+	}
+      }
+    }
+  }
+
   # Loop over each key
   for my $key (keys %$href ) {
+    # Skip private keys
+    next if $key =~ /^_/;
 
     if (UNIVERSAL::isa($href->{$key}, "HASH")) {
       # Convert to OMP::Range object
@@ -646,6 +701,8 @@ sub _post_process_hash {
 
   }
 
+  # Remove attribute since we dont need them anymore
+  delete $href->{_attr};
 
 }
 
@@ -706,6 +763,9 @@ sub _querify {
   # Additionally, If the name is projectid we need to make sure it
   # comes from the MSB table
   $name = "M." . $name if $name eq 'projectid';
+
+  # Same with timeest
+  $name = "M." . $name if $name eq 'timeest';
 
   # Substring comparators fields
   if ($name eq "name" or $name eq "coi" or $name eq "pi") {
