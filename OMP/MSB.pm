@@ -316,6 +316,81 @@ sub weather {
   return %{$self->{Weather}};
 }
 
+=item B<remote_trigger>
+
+Returns information on weather this MSB has been initiated via
+a remote observation trigger or not. 
+
+  %info = $msb->remote_trigger();
+  $msb->remote_trigger( %info );
+
+Returns a list (hash) with the
+following keys:
+
+  src => The source of the remote trigger (e.g. "ESTAR")
+  id  => The remote ID issued by the triggering agent
+
+The values can be C<undef> if no information is available.
+
+Can be used to set new values for the triggers. Only "src" and "id"
+keys will be recognized. The underlying XML will be modified. Note
+that if "src" and "id" exist but the values are C<undef>, the XML will
+still be modfied and assume an '' empty string (not a null
+element). Nothing will be done if neither "src" nor "id" exist in the
+hash.
+
+=cut
+
+sub remote_trigger {
+  my $self = shift;
+
+  # Node names
+  my $root     = "remote_trigger_";
+  my $src_name = $root . "src";
+  my $id_name  = $root . "id";
+
+  if (@_) {
+    # read the arguments
+    my %info = @_;
+
+    # convert case
+    %info = map { lc($_), $info{$_} } keys %info;
+
+    # Make sure we have both src and id
+    return if (!exists $info{src} || !exists $info{id});
+
+    # convert undef to empty string
+    $info{src} = '' unless defined $info{src};
+    $info{id}  = '' unless defined $info{id};
+
+    # Look for the nodes
+    my %node;
+    ($node{src}) = $self->_get_children_by_name( $self->_tree, $src_name);
+    ($node{id}) = $self->_get_children_by_name( $self->_tree, $id_name);
+
+    # set values if we have them
+    for my $type (qw/ src id /) {
+      if (defined $node{$type}) {
+	my $child = $node{$type}->firstChild;
+	$child->setData( $info{$type} );
+      } else {
+	# need to make the node
+	my $name = $root . $type;
+	my $el = new XML::LibXML::Element( $name );
+	$self->_tree->appendChild( $el );
+	$el->appendText( $info{$type} );
+      }
+    }
+
+  } else {
+    # Get the data
+    my $src = $self->_get_pcdata( $self->_tree, $src_name);
+    my $id  = $self->_get_pcdata( $self->_tree, $id_name);
+
+    return (src => $src, id => $id);
+  }
+}
+
 =item B<sched_constraints>
 
 Return the scheduling constraints. This is usually
