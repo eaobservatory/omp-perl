@@ -2208,8 +2208,7 @@ sub fault_summary_content {
   }
 
   # Totals
-  print "<table bgcolor=#43438c cellspacing=1><td>";
-  print "<table bgcolor=#ffffff border=0><td>";
+  print "<table cellspacing=1><td>";
 
   print "<strong>Faults returned by query: </strong>".scalar(@$faults);
   if ($mindate and $maxdate) {
@@ -2219,11 +2218,11 @@ sub fault_summary_content {
 
   print "<br><strong>Total time lost:</strong> $timelost hours";
   print "<br><strong>Open faults:</strong> $totals{open}";
-  print "</td></table></td></table><br><br>";
+  print "</td></table><br>";
 
   # First show all open, then all major closed
-  print "<table><td>";
-  print "<table width=100% cellspacing=0 cellpadding=2 border=0><td colspan=7 bgcolor=#ffffff><font size=+1><strong>";
+  print "<table bgcolor=#afafe0 cellspacing=1><td>";
+  print "<table width=100% cellspacing=0 cellpadding=2 border=0><td colspan=7><font size=+1><strong>";
 
   print "All faults";
 
@@ -2271,8 +2270,8 @@ sub fault_summary_content {
 
       # Use different background colors for different statuses
       my $bgcolor;
-      ($status eq 'open') and $bgcolor = '#ffffff'
-	or $bgcolor = '#e0e0e0';
+      ($status eq 'open') and $bgcolor = '#8080cc'
+	or $bgcolor = '#6767af';
 
       # Make a button for toggling view of closed faults
       if ($status eq 'closed') {
@@ -2353,11 +2352,11 @@ sub fault_summary_content {
       }
     }
     # Total time lost for system
-    print "<tr bgcolor=#ffffff><td colspan=4 align=right>Total time lost</td><td align=right><span class='fault_total'>$systemTimeLost</span></td><td colspan=2></td>";
+    print "<tr bgcolor=#afafe0><td colspan=4 align=right>Total time lost</td><td align=right><span class='fault_total'>$systemTimeLost</span></td><td colspan=2></td>";
 
   }
-  print "</table><tr><td><br>";
-  print "</td></table>";
+  print "</table>";
+  print "</table>";
 }
 
 =back
