@@ -445,7 +445,7 @@ sub query_fault_output {
       # Faults filed in the last 36 hours
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
     } elsif ($q->param('current')) {
-      # Faults within the last 14 days that are 'OPEN'
+      # Faults within the last 14 days
       $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
     }
   }
@@ -992,7 +992,7 @@ sub file_fault_form {
     # an opening <html> tag.
     my $message = $fault->responses->[0]->text;
     if ($message =~ m!^<pre>(.*?)</pre>$!is) {
-      $message = $1;
+      $message = unescape_text($1);
     } else {
       $message = "<html>" . $message;
     }
@@ -1180,7 +1180,7 @@ sub response_form {
 
     # Prepare text for editing
     if ($text =~ m!^<pre>(.*?)</pre>$!is) {
-      $text = $1;
+      $text = unescape_text($1);
     } else {
       $text = "<html>" . $text;
     }
