@@ -169,7 +169,7 @@ sub _query_arcdb {
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
   # Convert the data from a hash into an array of Info::Obs objects.
-  my @return = $self->_reorganize_archive( \@ref );
+  my @return = $self->_reorganize_archive( $ref );
 
   return @return;
 }

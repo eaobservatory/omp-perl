@@ -103,9 +103,9 @@ sub addObslog {
     my $obsproj = $obsinfo->projectid;
     if( defined $projectid and !defined $obsproj ) {
       $obsproj->projectid( $projectid );
-    } elsif( !defined $projectid and !defined $objproj ) {
+    } elsif( !defined $projectid and !defined $obsproj ) {
       throw OMP::Error::FatalError( "Unable to determine projectid" );
-    } elseif( defined $obsproj and !defined $projectid ) {
+    } elsif( defined $obsproj and !defined $projectid ) {
       $self->projectid( $obsproj );
     }
   } else {
