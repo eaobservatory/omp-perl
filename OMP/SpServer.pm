@@ -29,7 +29,15 @@ use OMP::SciProg;
 use OMP::MSBDB;
 use OMP::General;
 use OMP::Error qw/ :try /;
+
 use Astro::Catalog;
+use Compress::Zlib;
+
+# Different Science program return types
+use constant OMP__SCIPROG_XML => 0;
+use constant OMP__SCIPROG_OBJ => 1;
+use constant OMP__SCIPROG_GZIP => 2;
+
 
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
@@ -80,6 +88,14 @@ sub storeProgram {
   my ($string, $timestamp);
   my $E;
   try {
+
+    # Attempt to gunzip it (assume not gzipped if this fails)
+#    my $unzip = CompressZlib::memGunzip( $xml );
+#    if (defined $unzip) {
+#      $xml = $unzip;
+#      undef $unzip;
+#    }
+
     # Create a science program object
     my $sp = new OMP::SciProg( XML => $xml );
     OMP::General->log_message( "storeProgram: Project " .
@@ -148,11 +164,26 @@ The return argument is an XML representation of the science
 program (encoded in base64 for speed over SOAP if we are using
 SOAP).
 
-If an optional third argument is set to true, this method will
-return the C<OMP::SciProg> object rather than the XML representation.
-[only useful if used outside of SOAP]
+A third argument controls whether the request should be gzip compressed
+prior to Base64 encoding.
 
-  $sp = OMP::SpServer->fetchProgram($project, $password, 1);
+A third argument controls what form the returned science program should
+take.
+
+  $gzip = OMP::SpServer->fetchProgram( $project, $password,
+                                       OMP__SCIPROG_GZIP);
+
+The following values can be used to specify different return
+types:
+
+  "XML"    OMP__SCIPROG_XML   (default)  Plain text XML
+  "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
+  "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
+
+These are not exported and are defined in the OMP::SpServer namespace.
+
+Note that for cases XML and GZIP, these will be Base64 encoded if returned
+via a SOAP request.
 
 =cut
 
@@ -160,9 +191,16 @@ sub fetchProgram {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
-  my $retobj = shift;
+  my $rettype = uc(shift);
 
-  OMP::General->log_message( "fetchProgram: project $projectid\n");
+  $rettype = OMP__SCIPROG_XML unless defined $rettype;
+
+  # Translate input strings to constants
+  $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
+  $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
+  $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+
+  OMP::General->log_message( "fetchProgram: project $projectid (format = $rettype)\n");
 
   my $sp;
   my $E;
@@ -191,13 +229,25 @@ sub fetchProgram {
   $class->throwException( $E ) if defined $E;
 
 
-  if ($retobj) {
+  if ($rettype == OMP__SCIPROG_OBJ) {
     # return the object
     return $sp;
   } else {
-    # Return the stringified form
-    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => "$sp")
-	    : "$sp" );
+
+    # Return the stringified form, compressed or not
+    my $string;
+    if ($rettype == OMP__SCIPROG_GZIP) {
+      $string = Compress::Zlib::memGzip( "$sp" );
+
+      throw OMP::Error::FatalError("Unable to gzip compress science program")
+	unless defined $string;
+
+    } else {
+      $string = "$sp";
+    };
+
+    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
+	    : $string );
   }
 
 }
