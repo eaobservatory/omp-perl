@@ -2618,8 +2618,8 @@ sub SpTelescopeObsComp {
     my %coords;
     if ($type eq "J2000" or $type eq "B1950") {
       %coords = ( ra => $c1, dec => $c2, type => $type);
-    } elsif ($type eq "GAL") {
-      %coords = ( long => $c1, lat => $c2, type => 'galactic' );
+    } elsif ($type =~ /gal/i) {
+      %coords = ( long => $c1, lat => $c2, type => 'galactic', units=>'deg' );
     } elsif ($type eq 'Az/El') {
       %coords = ( az => $c1, el => $c2 );
     }
