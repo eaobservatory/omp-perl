@@ -48,7 +48,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output sidebar_summary fault_table response_form show_faults update_fault_content update_fault_output sql_match_string/);
+@EXPORT_OK = (qw/file_fault file_fault_output query_fault_content query_fault_output view_fault_content view_fault_output fault_table response_form show_faults update_fault_content update_fault_output sql_match_string/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -81,7 +81,8 @@ sub file_fault {
   my %cookie = @_;
 
   titlebar($q, ["File Fault"], %cookie);
-  file_fault_form($q, %cookie);
+  file_fault_form(cgi => $q,
+		  cookie => \%cookie,);
 }
 
 =item B<file_fault_output>
@@ -123,7 +124,8 @@ sub file_fault_output {
     print "<ul>";
     print map {"<li>$_"} @error;
     print "</ul>";
-    file_fault_form($q, %cookie);
+    file_fault_form(cgi => $q,
+		    cookie => \%cookie,);
     return;
   }
 
@@ -544,24 +546,10 @@ sub query_fault_output {
       show_faults($q, $faults, "viewfault.pl");
     }
 
-    # Printing options
-    # Get printers
-    my @printers = OMP::Config->getData('printers');
-
     # Faults to print
     my @faultids = map{$_->id} @$faults;
 
-    print $q->startform;
-    # Want to show output
-    print $q->hidden(-name=>'show_output', -default=>'true');
-    print $q->hidden(-name=>'faults',
-		     -default=>join(',',@faultids),);
-    print $q->submit(-name=>'print',
-		     -label=>'Print faults using');
-
-    print $q->radio_group(-name=>'printer',
-			  -values=>\@printers,);
-    print $q->endform;
+    print_form($q, 1, @faultids);
 
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
@@ -744,21 +732,12 @@ sub view_fault_content {
 
     titlebar($q, ["View Fault: $faultid", $fault->subject], %cookie);
     fault_table($q, $fault);
- 
-    # Printing options
-    # Get printers
-    my @printers = OMP::Config->getData('printers');
 
     print "<br>";
-    print $q->startform;
-    print $q->hidden(-name=>'faults',
-		     -default=>$fault->id,);
-    print $q->submit(-name=>'print',
-		     -label=>'Print fault using');
 
-    print $q->radio_group(-name=>'printer',
-			  -values=>\@printers,);
-    print $q->endform;
+    # Show form for printing this fault
+    my @faults = ($fault->id);
+    print_form($q, 0, @faults);
 
     # Response form
     print "<p><b><font size=+1>Respond to this fault</font></b>";
@@ -925,21 +904,11 @@ sub view_fault_output {
   titlebar($q, ["View Fault ID: $faultid", join('<br>',@title)], %cookie);
 
   fault_table($q, $fault);
-
-  # Printing options
-  # Get printers
-  my @printers = OMP::Config->getData('printers');
-
   print "<br>";
-  print $q->startform;
-  print $q->hidden(-name=>'faults',
-		   -default=>$fault->id);
-  print $q->submit(-name=>'print',
-		   -label=>'Print fault using');
 
-  print $q->radio_group(-name=>'printer',
-			-values=>@printers,);
-  print $q->endform;
+  # Form for printing
+  my @faults = ($fault->id);
+  print_form($q, 0, @faults);
 }
 
 =item B<close_fault_form>
@@ -998,43 +967,95 @@ sub change_status_form {
 
 =item B<file_fault_form>
 
-Create a form for filing a fault.  First argument is a C<CGI> query object.  Second
-argument is a hash containing the key 'category' whose value is a valid C<OMP::Fault>
-category.
+Create a form for submitting fault details.  This subroutine takes its arguments in
+the form of a hash containing the following keys:
 
-  file_fault_form($cgi, %cookie);
+  cgi    - the CGI query object
+  cookie - a hash REFERENCE containing the usual cookie details
+  fault  - an OMP::Fault object
+
+The fault key is optional.  If present, the details of the fault object will be used
+to provide defaults for all of the fields This allows this form to be used for editing 
+fault details.
+
+  file_fault_form(cgi => $cgi,
+		  cookie => \%cookie,
+		  fault => $fault_object);
 
 =cut
 
 sub file_fault_form {
-  my $q = shift;
-  my %cookie = @_;
+  my %args = @_;
+  my $q = $args{cgi};
+  my $cookie = $args{cookie};
+  my $fault = $args{fault};
 
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
 
   # Create values and labels for the popup_menus
-  my $systems = OMP::Fault->faultSystems($cookie{category});
+  my $systems = OMP::Fault->faultSystems($cookie->{category});
   my @system_values = map {$systems->{$_}} sort keys %$systems;
   my %system_labels = map {$systems->{$_}, $_} keys %$systems;
 
-  my $types = OMP::Fault->faultTypes($cookie{category});
+  my $types = OMP::Fault->faultTypes($cookie->{category});
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
-  # Set defaults.  Use cookie values if param values aren't available.
-  my %defaults = (user => $cookie{user},
-		  system => $system_values[0],
-		  type => $type_values[0],
-		  loss => undef,
-		  time => undef,
-		  tz => 'UT',
-		  subject => undef,
-		  message => undef,
-		  assoc => undef,
-		  assoc2 => undef,
-		  urgency => undef,);
+  # Set defaults.  There's probably a better way of doing what I'm about
+  # to do...
+  my %defaults;
+  my $submittext;
 
+  if (!$fault) {
+    %defaults = (user => $cookie->{user},
+		 system => $system_values[0],
+		 type => $type_values[0],
+		 loss => undef,
+		 time => undef,
+		 tz => 'UT',
+		 subject => undef,
+		 message => undef,
+		 assoc => undef,
+		 assoc2 => undef,
+		 urgency => undef,);
+
+    # Set the text for our submit button
+    $submittext = "Submit fault";
+  } else {
+    # We have a fault object so use it's details as our defaults
+
+    # Get the fault date (if any)
+    my $faultdate;
+    $faultdate = $fault->faultdate->strftime("%Y%m%d %T")
+      unless (! $fault->faultdate);
+
+    # Is this fault marked urgent?
+    my $urgent = ($fault->urgencyText =~ /urgent/i ? "urgent" : undef);
+
+    # Projects associated with this fault
+    my @assoc = $fault->projects;
+
+    # The fault text.  Strip out <PRE> tags.  If there aren't any <PRE> tags
+    # we'll assume this fault used explicit HTML formatting so we'll add in
+    # an opening <html> tag.
+
+    %defaults = (user=> $fault->responses->[0]->author->userid,
+		 system => $fault->system,
+		 type => $fault->type,
+		 loss => $fault->timelost,
+		 time => $faultdate,
+		 tz => 'UT',
+		 subject => $fault->subject,
+		 message => $fault->responses->[0]->text,
+		 assoc2 => join(',',@assoc),
+		 urgency => $urgent,);
+
+    # Set the text for our submit button
+    $submittext = "Submit changes";
+  }
+
+  # Fields in the query param stack will override normal defaults
   for (keys %defaults) {
     if ($q->param($_)) {
       $defaults{$_} = $q->param($_);
@@ -1071,7 +1092,7 @@ sub file_fault_form {
 
   # If we're using the bug report system don't
   # provide fields for taking "time lost" and "time of fault"
-  if ($cookie{category} !~ /bug/i) {
+  if ($cookie->{category} !~ /bug/i) {
     print "</td><tr><td align=right><b>Time lost (hours):</b></td><td>";
     print $q->textfield(-name=>'loss',
 			-default=>$defaults{loss},
@@ -1082,35 +1103,45 @@ sub file_fault_form {
 			-default=>$defaults{time},
 			-size=>20,
 			-maxlength=>128,);
-    print "<b>";
-    print $q->radio_group(-name=>'tz',
-			  -values=>['UT','HST'],
-			  -default=>$defaults{tz},);
+    print "&nbsp;";
+    print $q->popup_menu(-name=>'tz',
+			 -values=>['UT','HST'],
+			 -default=>$defaults{tz},);
     # print "</b><br><font size=-1>(YYYY-MM-DDTHH:MM or HH:MM)</font><b>";
   }
 
-  print "</b>";
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
 		      -size=>'60',
 		      -maxlength=>'256',
 		      -default=>$defaults{subject},);
   print "</td><tr><td colspan=2>";
-  print $q->textarea(-name=>'message',
-		     -rows=>20,
-		     -columns=>78,
-		     -default=>$defaults{message},);
 
+  # Make a disabled textarea if we're editing a fault TEMPORARILY until
+  # we come up with a way of editing responses
+  if (! $fault) {
+    print $q->textarea(-name=>'message',
+		       -rows=>20,
+		       -columns=>78,
+		       -default=>$defaults{message},);
+  } else {
+    print $q->textarea(-name=>'message',
+		       -rows=>20,
+		       -columns=>78,
+		       -disabled=>undef,
+		       -default=>"EDITING OF FAULT TEXT IS NOT YET SUPPORTED\n\n" . $defaults{message},);
+  }
   # If were in the ukirt or jcmt fault categories create a checkbox group
   # for specifying an association with projects.
 
-  if ($cookie{category} =~ /(jcmt|ukirt)/i) {
+  if ($cookie->{category} =~ /(jcmt|ukirt)/i) {
     # Values for checkbox group will be tonights projects
     my $aref = OMP::MSBServer->observedMSBs({
 					     usenow => 1,
 					     format => 'data',
 					     returnall => 0,});
-    if (@$aref[0]) {
+    if (@$aref[0] and ! $fault) {
+      # We don't want this checkbox group if this form is being used for editing a fault
       my %projects;
       for (@$aref) {
 	$projects{$_->projectid} = $_->projectid;
@@ -1140,7 +1171,8 @@ sub file_fault_form {
 			   -labels=>{urgent => "This fault is urgent"},
 			   -default=>$defaults{urgency},);
   print "</b></td><td align=right>";
-  print $q->submit(-name=>'Submit Fault');
+  print $q->submit(-name=>'submit',
+		   -label=>$submittext,);
   print $q->endform;
   print "</td></table>";
 
@@ -1242,16 +1274,9 @@ sub update_fault_content {
     my $fault = OMP::FaultServer->getFault($faultid);
 
     # Form for taking new details.  Displays current values.
-    print $q->h2("Update fault details: $faultid");
-    print "<table><tr><td><b>Time lost (". $fault->timelost ."):</b> </td><td>";
-    print $q->startform;
-    print $q->hidden(-name=>'show_output', -default=>['true']);
-    print $q->hidden(-name=>'faultid', -default=>$faultid);
-    print $q->textfield(-name=>'timelost',
-			-size=>4,
-			-maxlength=>8);
-    print $q->endform;
-    print "</td></table>";
+    file_fault_form(cgi => $q,
+		    cookie => \%cookie,
+		    fault => $fault);
   }
 }
 
@@ -1349,6 +1374,38 @@ sub show_faults {
   print "</table>";
 }
 
+=item B<print_form>
+
+Create a simple form for sending faults to a printer.  If the second argument
+is true then the form will use a hidden param to specify that the output page subroutine
+should be called.  Last argument is an array containing the fault IDs of the faults
+to be printed.
+
+  print_form($q, 1, @faultids);
+
+=cut
+
+sub print_form {
+  my $q = shift;
+  my $showoutput = shift;
+  my @faultids = @_;
+
+  # Get printers
+  my @printers = OMP::Config->getData('printers');
+
+  print $q->startform;
+
+  ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
+
+  print $q->hidden(-name=>'faults',
+		   -default=>join(',',@faultids));
+  print $q->submit(-name=>'print',
+		   -label=>'Send to printer');
+  print $q->radio_group(-name=>'printer',
+			-values=>\@printers,);
+  print $q->endform;
+}
+
 =item B<titlebar>
 
 Create a title heading that identifies the current page
@@ -1405,20 +1462,6 @@ sub sql_match_string {
   $string =~ s/([A-Za-z])/\[\U$1\E\L$1\]/g;
 
   return $string;
-}
-
-=item B<sidebar_summary>
-
-A summary of the fault system formatted for display in the sidebar
-
-  sidebar_summary($cgi);
-
-=cut
-
-sub sidebar_summary {
-  my $q = shift;
-
-  return "faults: ";
 }
 
 =back
