@@ -270,10 +270,12 @@ Add details of a project to the database.
 
   OMP::ProjServer->addProject($password, $force, $projectid, $pi,
 			      $coi, $support,
-			      $title, $tagpriority, $country,
+			      $title, $tagpriority, $country, $tagadj,
 			      $semester, $proj_password, $allocated
                               $telescope, $taumin, $taumax, 
-			      $seemin, $seemax, $cloud);
+			      $seemin, $seemax, $cloudmin, $cloudmax,
+                              $skymin, $skymax
+                             );
 
 The first password is used to verify that you are allowed to modify
 the project table. The second password is for the project itself.
@@ -282,16 +284,18 @@ whether it is desirable to overwrite an existing project. An exception
 will be thrown if this value is false and the project in question
 already exists.
 
-taumin and taumax are optional (assume minimum of zero and
-no upper limit). As are seemax, seemin and cloud. Note that in
-order to specify a seeing range the tau range must be specified!
+taumin and taumax are optional (assume minimum of zero and no upper
+limit). As are seemax, seemin, cloudmin, cloudmax and skymin and
+skymax. Note that in order to specify a seeing range the tau range
+must be specified!
 
 We may not want to have this as a public method on a SOAP Server!
 
-TAG priority and country can be references to an array. The number
-of priorities must match the number of countries unless the number
-of priorities is one (in which case that priority is used for all).
-Also, the first country is always set as the primary country.
+TAG priority, tag adjust and country can be references to an
+array. The number of priorities must match the number of countries
+unless the number of priorities is one (in which case that priority is
+used for all).  Also, the first country is always set as the primary
+country.
 
 People are supplied as OMP User IDs. CoI and Support can be colon or comma
 separated.
@@ -308,7 +312,7 @@ sub addProject {
   my $E;
   try {
 
-    throw OMP::Error::BadArgs("Should be at least 11 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 11;
+    throw OMP::Error::BadArgs("Should be at least 12 elements in project array. Found ".scalar(@project)) unless scalar(@project) >= 12;
 
     my $userdb = new OMP::UserDB( DB => $class->dbConnection );
 
@@ -325,25 +329,44 @@ sub addProject {
     }
 
     # Create range object for tau (defaulting to lower bound of zero)
-    $project[11] = 0 unless defined $project[11];
-    my $taurange = new OMP::Range(Min => $project[11], Max => $project[12]);
+    $project[12] = 0 unless defined $project[12];
+    my $taurange = new OMP::Range(Min => $project[12], Max => $project[13]);
 
     # And seeing
-    $project[13] = 0 unless defined $project[13];
-    my $seerange = new OMP::Range(Min=>$project[13], Max=>$project[14]);
+    $project[14] = 0 unless defined $project[14];
+    my $seerange = new OMP::Range(Min=>$project[14], Max=>$project[15]);
+
+    # and cloud
+    $project[16] = 0 unless defined $project[16];
+    my $cloudrange = new OMP::Range(Min=>$project[16], Max=>$project[17]);
+
+    # and sky brightness
+    # reverse min and max for magnitudes (but how do we know?)
+    my $skyrange = new OMP::Range(Min=>$project[19], Max=>$project[18]);
 
     # Set up queue information
     # Convert tag to array ref if required
     my $tag = ( ref($project[5]) ? $project[5] : [ $project[5] ] );
+    my $tagadjs = ( ref($project[7]) ? $project[7] : [ $project[7] ] );
 
     throw OMP::Error::FatalError( "TAG priority/country mismatch" )
       unless ($#$tag == 0 || $#$tag == $#{ $project[6] });
 
     # set up queue for each country in turn
     my %queue;
+    my %tagadj;
     for my $i (0..$#{$project[6]}) {
+      # read out priority (this is the TAG priority)
       my $pri = ( $#$tag > 0 ? $tag->[$i] : $tag->[0] );
-      $queue{ uc($project[6]->[$i]) } = $pri;
+
+      # find the TAG adjustment (default to 0 if we run out)
+      my $adj = ( $#$tagadjs > 0 ? $tagadjs->[$i] : $tagadjs->[0] );
+      $adj = 0 if !defined $adj;
+
+      # must correct the TAG priority
+      $tagadj{ uc($project[6]->[$i]) } = $adj;
+      $queue{ uc($project[6]->[$i]) } = $pri + $adj;
+
     }
     my $primary = uc($project[6]->[0]);
 
@@ -355,6 +378,9 @@ sub addProject {
     throw OMP::Error::FatalError("PI [$project[1]] not recognized by the OMP")
       unless defined $pi;
 
+    throw OMP::Error::FatalError( "Semester is mandatory." )
+      if !defined $project[8];
+
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
 				projectid => $project[0],
@@ -364,13 +390,15 @@ sub addProject {
 				title => $project[4],
 				primaryqueue => $primary,
 				queue => \%queue,
-				semester => $project[7],
-				password => $project[8],
-				allocated => $project[9],
-				telescope => $project[10],
+				tagadjustment => \%tagadj,
+				semester => $project[8],
+				password => $project[9],
+				allocated => $project[10],
+				telescope => $project[11],
 				taurange => $taurange,
-				seerange => $seerange,
-				cloud => $project[15],
+				seeingrange => $seerange,
+				cloudrange => $cloudrange,
+				skyrange => $skyrange,
 			       );
 
     my $db = new OMP::ProjDB(
@@ -543,14 +571,27 @@ sub verifyTelescope {
 
 OMP document OMP/SN/005.
 
-=head1 COPYRIGHT
-
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
-All Rights Reserved.
-
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 

@@ -68,6 +68,7 @@ use strict;
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use OMP::ProjServer;
+use OMP::SiteQuality;
 use OMP::General;
 use Pod::Usage;
 use Getopt::Long;
@@ -125,6 +126,11 @@ for my $proj (keys %alloc) {
 
   $details{tagpriority} = \@tag if scalar(@tag) > 1;
 
+  # TAG adjustment
+  my @tagadj = split /,/, $details{tagadjustment};
+  $details{tagadjustment} = \@tagadj if scalar(@tagadj) > 1;
+
+
   # Deal with support issues
   # but do not overrride one if it is already set
   if (!defined $details{support}) {
@@ -159,6 +165,24 @@ for my $proj (keys %alloc) {
     ($seemin, $seemax) = split(/,/, $details{seeing});
   }
 
+  # cloud
+  my ($cloudmin, $cloudmax) = (0,100);
+  if (exists $details{cloud}) {
+    # if we have no comma, assume this is a cloudmax and "upgrade" it
+    if ($details{cloud} !~ /,/) {
+      my $r = OMP::SiteQuality::upgrade_cloud( $details{cloud} );
+      ($cloudmin, $cloudmax) = $r->minmax;
+    } else {
+      ($cloudmin, $cloudmax) = split(/,/, $details{cloud});
+    }
+  }
+
+  # And sky brightness
+  my ($skymin, $skymax) = (undef,undef);
+  if (exists $details{sky}) {
+    ($skymin, $skymax) = split(/,/, $details{sky});
+  }
+
   # Now convert the allocation to seconds instead of hours
   die "[project $proj] Allocation is mandatory!" unless $details{allocation};
   $details{allocation} *= 3600;
@@ -175,12 +199,15 @@ for my $proj (keys %alloc) {
 				$details{title},
 				$details{tagpriority},
 				$details{country},
+				$details{tagadj},
 				$details{semester},
 				"xxxxxx", # default password
 				$details{allocation},
 				$details{telescope},
 				$taumin, $taumax,
-				$seemin,$seemax, $details{cloud},
+				$seemin,$seemax,
+				$cloudmin, $cloudmax,
+				$skymin, $skymax,
 			       );
 
   } catch OMP::Error::ProjectExists with {
@@ -247,8 +274,21 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 
