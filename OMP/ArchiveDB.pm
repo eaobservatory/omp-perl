@@ -185,6 +185,7 @@ sub _query_arcdb {
   my @sql = $query->sql();
 
   foreach my $sql (@sql) {
+
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash( $sql );
 
@@ -530,7 +531,14 @@ sub _reorganize_archive {
     push @return, $obs;
   }
 
-  return @return;
+  # Strip out duplicates
+  my %seen = ();
+  my @uniq;
+  foreach my $obs (@return) {
+    push( @uniq, $obs ) unless $seen{$obs->instrument . $obs->runnr . $obs->startobs}++;
+  }
+
+  return @uniq;
 
 }
 
