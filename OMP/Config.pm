@@ -17,6 +17,10 @@ OMP::Config - parse and supply information from OMP configuration files
                                    instrument => 'SCUBA',
 				   utdate => 'YYYY-MM-DD');
 
+  $tel = OMP::Config->inferTelescope('instruments', 'SCUBA');
+
+  @telescopes = OMP::Config->telescopes;
+
 =head1 DESCRIPTION
 
 This class can read and return the information contained in
@@ -120,7 +124,7 @@ The recognised modifiers are:
 
 sub getData {
   my $class = shift;
-  my $key = shift;
+  my $key = lc(shift);
   my %args = @_;
 
   # Make sure we have read some files (ie specified a cfgdir)
@@ -131,7 +135,7 @@ sub getData {
   }
 
   # Need to find the relevant config table. Only choices are "omp"
-  # and a valid a telescope
+  # and a valid telescope
   my $table = "omp";
 
   # Do we have a telescope?
@@ -159,6 +163,80 @@ sub getData {
   # Now need to either replace the placeholders or convert to array
   return $class->_format_output( $value, %args );
 
+}
+
+=item B<getTelescopes>
+
+Return a list of telescopes for which a config file exists.
+
+  @telescopes = OMP::Config->getTelescopes();
+
+=cut
+
+sub telescopes {
+  my $class = shift;
+
+  return grep { $_ ne 'omp' }  keys %CONFIG;
+}
+
+=item B<inferTelescope>
+
+Try to infer the relevant telescope by looking for a key in the
+config system that has a specific value. This can be used, for example,
+to determine the telescope associated with a specific instrument:
+
+  $tel = OMP::Config->inferTelescope('instruments', 'SCUBA');
+
+The test is case-insensitive. There is no check for placeholders.  If
+the key refers to an array a match occurs if an element in that array
+matches. If more than one telescope matches or no telescope matches
+then an exception is thrown. Returns the empty string if the only
+match is the default OMP configuration.
+
+Always does a string comparison.
+
+=cut
+
+sub inferTelescope {
+  my $class = shift;
+  my $refkey = lc(shift);
+  my $refval = lc(shift);
+
+  my @matches;
+  for my $tel (keys %CONFIG) {
+    if (exists $CONFIG{$tel}->{$refkey}) {
+      my $val = $CONFIG{$tel}->{$refkey};
+      if (not ref $val) {
+	# compare directly
+	$val = lc($val);
+	if ($val eq $refval) {
+	  push(@matches, $tel);
+	}
+      } elsif (ref($val) eq 'ARRAY') {
+	my @vals = map { lc($_); } @$val;
+	my @mm = grep { $_ eq $refval } @vals;
+	print Dumper(\@vals, \@mm);
+	if (scalar(@mm) > 0) {
+	  push(@matches, $tel);
+	}
+
+      } else {
+	throw OMP::Error::FatalError("Key value is unexpected reference type!");
+      }
+    }
+  }
+
+  if (scalar(@matches) == 0) {
+    throw OMP::Error::FatalError("No matches in config system for value $refval using key $refkey");
+  } elsif (scalar(@matches) > 1) {
+    throw OMP::Error::FatalError("Multiple matches in config system for value $refval using key $refkey. Telescopes: " . join(",",@matches));
+  }
+
+  # correct for 'omp' telescope
+  my $tel = $matches[0];
+  $tel = '' if $tel eq 'omp';
+
+  return $tel;
 }
 
 =back
@@ -204,8 +282,7 @@ sub _read_configs {
   # Do we have a 'omp' entry? Is this fatal?
   $read{omp} = {} unless exists $read{omp};
 
-  use Data::Dumper;
-  print Dumper(\%read);
+  print Dumper(\%read) if $DEBUG;
 
   # Now need to merge information with the omp defaults
   # and the telescope values so that we do not have to
@@ -228,6 +305,8 @@ Read the specified file, choose which bits of the file we need to
 use and return a label and the contents.
 
   ($label, $hashref) = OMP::Config->_read_cfg_file( $file );
+
+Comma-separated values are converted to arrays.
 
 =cut
 
@@ -255,8 +334,19 @@ sub _read_cfg_file {
   for my $key ( @keys ) {
     print "Trying key $key\n" if $DEBUG;
     if (exists $data{$key} && defined $data{$key}) {
+      # Want to lower case all the keys and process arrays
+      my %new;
+      for my $oldkey (keys %{$data{$key}}) {
+	my $newkey = lc($oldkey);
+	my $newval = $data{$key}->{$oldkey};
+	if ($newval =~ /,/) {
+	  $newval = [ split(/,/,$newval)];
+	}
+	$new{$newkey} = $newval;
+      }
+
       # this involves increasing overhead as more keys are added
-      %cfg = (%cfg, %{ $data{$key} });
+      %cfg = (%cfg, %new);
     }
   }
 
@@ -343,9 +433,9 @@ sub _determine_default_cfgdir {
 
 =item B<_format_output>
 
-Converts a string read from a config file into something suitable
-for use in a program. This involves replacing placeholder strings
-and converting comma-separated lists into arrays.
+Converts a string read from a config file into something suitable for
+use in a program. This generally involves replacing placeholder
+strings.
 
   $formatted = OMP::Config->_format_output($value, %extra );
 
@@ -402,6 +492,12 @@ sub _format_output {
     }
   }
 
+  # For now it is easiest to convert arrays back to strings
+  # and then back to arrays. Sorry.
+  if (ref($input) eq 'ARRAY') {
+    $input = join(",",@$input);
+  }
+
   # Now go through each placeholder (assuming we have any)
   for my $p (keys %places) {
     # do not do it in one big replace becuase we want to
@@ -413,7 +509,6 @@ sub _format_output {
   if ($input =~ /_\+(\w+)\+_/) {
     throw OMP::Error::FatalError("Failed to replace all placeholders in output string: Missing $1");
   }
-
 
   # Now convert to array if we have commas
   if ($input =~ /,/) {
@@ -444,7 +539,8 @@ program) and if a telescope is specified information in the telescope
 specific files overrides that found in the basic defaults.
 
 If we really wanted we could put telescope specific stuff and general
-stuff into a single file. For now, they are separate.
+stuff into a single file. For now, they are separate. Keys are
+all case-insenstive.
 
 In some cases we want the information to change depending on the domain
 name or even the hostname of the computer running the program. Rather
