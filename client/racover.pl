@@ -60,6 +60,13 @@ This manual page.
 
 =cut
 
+BEGIN {
+  # command line tools probably do not want full logging enabled
+  # unless they are asking for it
+  $ENV{OMP_LOG_LEVEL} = 'IMPORTANT'
+    unless exists $ENV{OMP_LOG_LEVEL};
+}
+
 use 5.006;
 use strict;
 use warnings;
