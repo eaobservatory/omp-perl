@@ -131,6 +131,14 @@ sub nightlog {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "NEXT PROJECT";
   } elsif( $self->status == OMP__TIMEGAP_PREV_PROJECT ) {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "LAST PROJECT";
+  } elsif( $self->status == OMP__TIMEGAP_NOT_DRIVER ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "OBSERVER NOT A DRIVER";
+  } elsif( $self->status == OMP__TIMEGAP_SCHEDULED ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "SCHEDULED DOWNTIME";
+  } elsif( $self->status == OMP__TIMEGAP_QUEUE_OVERHEAD ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "QUEUE OVERHEAD";
+  } elsif( $self->status == OMP__TIMEGAP_LOGISTICS ) {
+    $return{'_STRING'} = $return{'_STRING_LONG'} .= "LOGISTICS";
   } else {
     $return{'_STRING'} = $return{'_STRING_LONG'} .= "UNKNOWN";
   }
