@@ -486,7 +486,7 @@ sub query_fault_output {
   my $xml;
 
   # The 'Submit' submit button was clicked
-  if ($q->param('Submit')) {
+  if ($q->param('Search')) {
     my @xml;
 
 
