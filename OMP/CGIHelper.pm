@@ -1852,10 +1852,16 @@ sub night_report {
   }
 
   my $tel;
-  if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
-    $tel = uc($1);
+  if ($telstr) {
+    if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
+      $tel = uc($1);
+    } else {
+      croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
+    }
   } else {
-    croak("Telescope string [$telstr] does not match the expect format so we are not allowed to untaint it!");
+    print "Please select a telescope to view observing reports for<br>";
+    print "<a href='nightrep.pl?tel=jcmt'>JCMT</a> | <a href='nightrep.pl?tel=ukirt'>UKIRT</a>";
+    return;
   }
 
   # Get the night report
