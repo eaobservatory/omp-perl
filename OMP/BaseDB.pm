@@ -810,9 +810,13 @@ sub _mail_information {
   # sending a multipart/alternative message
   if ($type eq "multipart/alternative" ) {
 
+    # Expand HTML links for our plaintext message
+    my $text = $details{message};
+    $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gi;
+
     # Create the HTML tree and parse it
     my $tree = HTML::TreeBuilder->new;
-    $tree->parse($details{message});
+    $tree->parse($text);
     $tree->eof;
 
     # Convert the HTML to text and store it
