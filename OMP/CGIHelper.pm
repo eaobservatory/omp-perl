@@ -57,7 +57,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content nightlog_content night_report proj_sum_page/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content nightlog_content night_report proj_sum_page proposals/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -94,13 +94,10 @@ sub proj_status_table {
 						 $cookie{password},
 						 'object' );
 
-  # Get URL for the science case. If it is not defined we
-  # write nothing
-  my $case_url = $project->science_case_url;
-  my $case_href = (defined $case_url ?
-		   "<a href=\"$case_url\">Science Case</a>" :
-		   "<b>Science Case</b>" );
+  my $projectid = $cookie{projectid};
 
+  # Link to the science case
+  my $case_href = "<a href='props.pl?urlprojid=$projectid'>Science Case</a>";
 
   # Get the CoI email(s)
   my $coiemail = join(", ",map{$_->html} $project->coi);
@@ -735,6 +732,9 @@ sub observed_output {
     print $q->hr;
 
     my $utdate = $q->param('utdate');
+
+    print $utdate;
+
     my $telescope = $q->param('telescope');
 
     my $dbconnection = new OMP::DBbackend;
@@ -759,7 +759,7 @@ sub observed_output {
     (@msbs) and print $q->h2("MSBs observed on $utdate")
       or print $q->h2("No MSBs observed on $utdate");
 
-     msb_comments_by_project($q, \@msbs);
+    msb_comments_by_project($q, \@msbs);
 
     # If they've just submitted a comment show some comforting output
     # or catch an error
@@ -1429,8 +1429,6 @@ sub project_home {
     my $remaining = $project->allRemaining->pretty_print;
   my $pi = $project->pi->html;
   my $taurange = $project->taurange;
-  my $seerange = $project->seerange;
-  my $cloud = $project->cloud;
 
   # Store coi and support html emails
   my $coi = join(", ",map{$_->html} $project->coi);
@@ -1457,6 +1455,7 @@ sub project_home {
   print "<tr><td><b>Support:</b></td><td>$support</td>";
   print "<tr><td><b>Country:</b></td><td>$country</td>";
   print "<tr><td><b>Semester:</b></td><td>$semester</td>";
+  print "<tr><td colspan=2><a href='props.pl?urlprojid=$cookie{projectid}'>Click here to view the science case for this project</a></td>";
   print "</table>";
 
   # Time allocated/remaining along with tau range
@@ -1467,13 +1466,6 @@ sub project_home {
   # If range is from 0 to infinity dont bother displaying it
   print "in tau range $taurange"
     unless ($taurange->min == 0 and ! defined $taurange->max);
-
-  print " in seeing range $seerange"
-    unless ($seerange->min ==0 and ! defined $seerange->max);
-
-  print " with sky " . $project->cloudtxt
-    if defined $cloud;
-
   print "</td>";
 
   if ($remaining) {
@@ -1941,11 +1933,78 @@ sub proj_sum_page {
     print $q->startform;
     print "Project ID: ";
     print $q->textfield(-name=>"projectid",
-			-size=>12,
+			1-size=>12,
 		        -maxlength=>32,);
     print "&nbsp;";
     print $q->submit(-name=>"projectid_submit",
 		     -label=>"Submit",);
+  }
+
+}
+
+=item B<proposals>
+
+View proposals for specific projects.
+
+  proposals($q, %cookie);
+
+=cut
+
+sub proposals {
+  my $q = shift;
+
+  my $projectid;
+
+  if ($q->param) {
+    my $projstring = $q->url_param('urlprojid');
+    (! $projstring) and $projstring = $q->param('projectid');
+
+    # Got the project ID, untaint it
+    $projectid = OMP::General->extract_projectid($projstring);
+
+    # Proposals directory
+    my $propdir = OMP::Config->getData('propdir');
+
+    my $propfilebase = $projectid;
+
+    $propfilebase =~ s/\W//g;
+    $propfilebase = lc($propfilebase);
+
+    my %extensions = (ps => "application/postscript",
+		      pdf => "application/pdf",
+		      "ps.gz" => "application/postscript",);
+
+    my $propfile;
+    my $type;
+    for my $ext (qw/ps pdf ps.gz/) {
+      if (-e "$propdir/$propfilebase.$ext") {
+	$propfile = "$propdir/$propfilebase.$ext";
+	$type = $extensions{$ext};
+	last;
+      }
+    }
+
+    if ($propfile) {
+
+      # Read in proposal file
+      open(PROP, $propfile);
+      my @file = <PROP>;   # Slurrrp!
+
+      close(PROP);
+
+      # Serve proposal
+      print $q->header(-type=>$type);
+      print join("",@file);
+
+    } else {
+      # Proposal file not found
+
+      print $q->header;
+      print "<h2>Proposal file not found</h2>";
+    }
+
+  } else {
+    # Didn't get project ID, put up form?
   }
 
 }
