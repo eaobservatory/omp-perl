@@ -456,7 +456,7 @@ sub query_fault_output {
     $title = "Displaying faults with any activity in the last 14 days";
   } else {
     # Initial display of query page
-    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-7'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+    $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
     $title = "Displaying faults with any activity in the last 7 days";
   }
 
