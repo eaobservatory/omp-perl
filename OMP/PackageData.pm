@@ -904,7 +904,7 @@ sub _add_comment {
   # In some cases with weird firewalls the host is not actually available
   # Have not tracked down the reason yet so for now we allow it to
   # go through [else data retrieval does not work]
-  $host = (defined $host ? $host : '<undefined>');
+  $host = (length($host) > 0 ? $host : '<undefined>');
 
   OMP::FBServer->addComment(
 			    $projectid,
