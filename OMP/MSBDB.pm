@@ -1659,7 +1659,9 @@ sub _run_query {
   my $MAX_ID = 250;
   my @observations;
   my $start_index = 0;
-  while ($start_index < $#$ref) {
+  # make sure we use <= in case we have, say, 1 MSB matching
+  # so that 0 (index) <= 0 ($#$ref)
+  while ($start_index <= $#$ref) {
     my $end_index = ( $start_index + $MAX_ID < $#$ref ?
 		    $start_index + $MAX_ID : $#$ref);
     my @clauses = map { " msbid = ".$_->{msbid}. ' ' }
