@@ -1,6 +1,7 @@
 #!perl
 
 # Test the OMP::SciProg class
+# and the related MSB classes. Does not interact with the database.
 
 use warnings;
 use strict;
@@ -9,176 +10,58 @@ use Test;
 BEGIN { plan tests => 96 }
 
 use OMP::SciProg;
-use OMP::MSBDB;
 
-# Filename
+# The MSB summary is indexed by checksum
+# This information needs to change if the Science program
+# is modified
+my %results = (
+	       '38dc5ccd06862f24bca0c18257d3b13aA'  => 1,
+	       '9d96e30de1b6cb6a2e06f793fa85da49'   => 2 ,
+	       'c0add034d39c866fe01f92203d8a470d'   => 2,
+	       'dfe282baeba181e3a6e5433711fd7286'   => 1,
+	       '09a49ff69bc1facf1741f40690eb9fddOA' => 1,
+	       '86fcce791167f6001afbba2c4758a67bOA' => 1,
+	       '0ff472509ce854839965add501651718O'  => 1,
+	       '210b74070afcc4b6f5e704edcebb033bO'  => 2,
+	       'daaf4147b757592f3ebc07b40b48565dO'  => 1,
+	      );
+
+# Filename - use the test XML that covers all the bases
 my $file = "test.xml";
 
 my $obj = new OMP::SciProg( FILE => $file );
 
 ok($obj);
 
+# Check the project ID
+ok($obj->projectID, "M01BTJ");
 
-# Strings
-# Read the data handle
-local $/ = undef;
-my $xml = <DATA>;
-
-my $sp = new OMP::SciProg( XML => $xml );
-ok($sp);
-
-print "# Project ID: ", $sp->projectID, "\n";
-
-# Test stringify by comparing the original with
-# the stringified form
-my @stringified = split /\n/, "$sp";
-my @lines = split /\n/,$xml;
-
-#for my $i (0..$#stringified) {
-#  ok($stringified[$i], $lines[$i]);
-#}
-
-
-# See how many MSBs we have
-my @msbs = $sp->msb;
-print "# Number of MSBs: ",scalar(@msbs), "\n";
-ok(scalar(@msbs), 2);
-
+# Now count the number of MSBs
+# Should be 9
+my @msbs = $obj->msb;
+ok(scalar(@msbs), 9);
 
 # Go through the MSBs to see what we can find out about them
-for my $msb (@msbs) {
-  print "# Remaining to observe: ", $msb->remaining,"\n";
-  $msb->remaining(-4);
-  print "# Remaining to observe: ", $msb->remaining,"\n";
-
-  print "# Checksum: ",$msb->checksum,"\n";
+for my $msb ($obj->msb) {
+  if (exists $results{$msb->checksum}) {
+    ok(1);
+    ok( $msb->remaining, $results{$msb->checksum});
+  } else {
+    ok(0);
+    # skip the next few tests
+    skip("Pointless testing MSB when checksum does not match",1);
+  }
 }
 
-print scalar($sp->summary);
+# Generate a summary
+my @summary = $obj->summary;
 
-# Store it
-my $db = new OMP::MSBDB( Password => "junk", ProjectID => $sp->projectID );
-$db->storeSciProg( SciProg => $sp );
+# make sure the number of summaries matches the number of msbs
+# + header
+ok( scalar(@summary), 1+scalar(@msbs));
 
-# and fetch it
-my $newsp = $db->fetchSciProg;
+# For information print them all out
+# Need to include the "#"
+print map { "#$_\n" } @summary;
 
-print "# Compare science programs\n";
-ok("$sp", "$newsp");
-
-
-# Some XML
-__DATA__
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<SpProg>
-  <projectID>M01BU53</projectID>
-  <SpTelescopeObsComp id="0">
-    <ItemData name="new" package="gemini.sp.obsComp" subtype="targetList" type="oc"/>
-    <MetaData>
-      <unique>true</unique>
-      <gui>
-        <collapsed>false</collapsed>
-      </gui>
-    </MetaData>
-    <base>
-      <target type="science">
-        <targetName></targetName>
-        <hmsdegSystem type="J2000">
-          <c1>0:00:00</c1>
-          <c2>0:00:00</c2>
-        </hmsdegSystem>
-      </target>
-    </base>
-  </SpTelescopeObsComp>
-  <SpMSB remaining="1">
-    <SpTelescopeObsCompRef idref="0"/>
-    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
-    <MetaData>
-      <gui>
-        <collapsed>false</collapsed>
-      </gui>
-    </MetaData>
-    <SpSiteQualityObsComp>
-      <ItemData name="new" package="gemini.sp.obsComp" subtype="schedInfo" type="oc"/>
-      <seeing>1</seeing>
-      <MetaData>
-        <unique>true</unique>
-        <gui>
-          <collapsed>false</collapsed>
-        </gui>
-      </MetaData>
-      <tauBand>1</tauBand>
-    </SpSiteQualityObsComp>
-    <SpTelescopeObsComp>
-      <ItemData name="new" package="gemini.sp.obsComp" subtype="targetList" type="oc"/>
-      <MetaData>
-        <unique>true</unique>
-        <gui>
-          <collapsed>false</collapsed>
-          <selectedTelescopePos>Base</selectedTelescopePos>
-        </gui>
-      </MetaData>
-      <base>
-        <target type="science">
-          <targetName>NGC Test</targetName>
-          <hmsdegSystem type="J2000">
-            <c1>00:00:00</c1>
-            <c2>+00:00:00</c2>
-          </hmsdegSystem>
-        </target>
-      </base>
-    </SpTelescopeObsComp>
-    <SpObs done="0" remaining="1" msb="false">
-      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
-      <MetaData>
-        <gui>
-          <collapsed>false</collapsed>
-        </gui>
-      </MetaData>
-      <standard>false</standard>
-      <SpIterFolder>
-        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
-        <MetaData>
-          <gui>
-            <collapsed>false</collapsed>
-          </gui>
-        </MetaData>
-        <SpIterObserve>
-          <ItemData name="new" package="gemini.sp.iter" subtype="observe" type="ic"/>
-          <repeatCount>1</repeatCount>
-          <MetaData>
-            <gui>
-              <collapsed>false</collapsed>
-            </gui>
-          </MetaData>
-        </SpIterObserve>
-      </SpIterFolder>
-    </SpObs>
-  </SpMSB>
-    <SpObs done="0" remaining="22" msb="true">
-      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
-      <MetaData>
-        <gui>
-          <collapsed>false</collapsed>
-        </gui>
-      </MetaData>
-      <standard>false</standard>
-      <SpIterFolder>
-        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
-        <MetaData>
-          <gui>
-            <collapsed>false</collapsed>
-          </gui>
-        </MetaData>
-        <SpIterObserve>
-          <ItemData name="new" package="gemini.sp.iter" subtype="observe" type="ic"/>
-          <repeatCount>1</repeatCount>
-          <MetaData>
-            <gui>
-              <collapsed>false</collapsed>
-            </gui>
-          </MetaData>
-        </SpIterObserve>
-      </SpIterFolder>
-    </SpObs>
-</SpProg>
+exit;
