@@ -26,6 +26,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::ProjServer;
+use OMP::ProjDB;
 use OMP::SpServer;
 use OMP::DBServer;
 use OMP::Display;
@@ -60,7 +61,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output public_url private_url projlog_content nightlog_content night_report proj_sum_page proposals flex_page/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output public_url private_url projlog_content nightlog_content night_report proj_sum_page proposals flex_page support/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -649,6 +650,115 @@ sub msb_table {
   }
 
   print "</table>\n";
+}
+
+=item B<support>
+
+Create a page listing staff contacts for a project and which also provides a form for defining which is the primary staff contact.
+
+  support($cgi);
+
+=cut
+
+sub support {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Try and get a project ID
+  my $projectid = OMP::General->extract_projectid($q->param('projectid'));
+  (! $projectid) and $projectid = OMP::General->extract_projectid($q->url_param('urlprojid'));
+
+  # A form for providing a project ID
+  print $q->start_form;
+  print "<strong>Project ID: </strong>";
+  print $q->textfield(-name=>'projectid',
+		      -size=>12,
+		      -maxlength=>32,);
+  print " " . $q->submit(-name=>'get_projectid', -value=>'Submit');
+  print $q->end_form;
+  print "<hr>";
+
+  return if (! $projectid);
+
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+				Password => "***REMOVED***",
+				DB => new OMP::DBbackend, );
+
+  # Verify that project exists
+  my $verify = $projdb->verifyProject;
+  if (! $verify) {
+    print "<h3>No project with ID of [$projectid] exists</h3>";
+    return;
+  }
+
+  # Get project details (as object)
+  my $project = $projdb->projectDetails("object");
+
+  # Make contact changes, if any
+  if ($q->param('change_primary')) {
+
+    # Create a new contactability hash
+    my %contactable = map {
+      $_->userid, ($q->param('primary') eq $_->userid ? 1 : 0)
+    } $project->support;
+
+    $project->contactable(%contactable);
+
+    # Store changes to DB
+    my $E;
+    try {
+      $projdb->addProject( $project, 1 );
+    } otherwise {
+      $E = shift;
+      print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
+    };
+    return if ($E);
+
+    print "<h3>Primary support contact has been changed</h3>";
+  }
+
+  # Get support contacts
+  my @support = $project->support;
+
+  # Store primary
+  my @primary = grep {$project->contactable($_->userid)} @support;
+
+  # Store secondary
+  my @secondary = grep {! $project->contactable($_->userid)} @support;
+
+  print "<h3>Editing support contacts for $projectid</h3>";
+
+  # List primary
+  print "<strong>Support contact</strong>: ";
+  print join(", ", map {OMP::Display->userhtml($_, $q)} @primary);
+
+  # List secondary
+  if (@secondary) {
+    print "<br>";
+    print "<strong>Secondary Support contact</strong>: ";
+    print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
+  }
+
+  
+
+  # Generate labels and values for primary support form
+  my %labels = map {$_->userid, $_->name} @support;
+  my @userids = sort map {$_->userid} @support;
+
+  # Form for defining primary support
+  print "<h3>Define primary support contact</h3>";
+  print $q->start_form(-name=>'define_primary');
+  print $q->radio_group(-name=>'primary',
+		        -values=>\@userids,
+		        -default=>$primary[0]->userid,
+		        -linebreak=>'true',
+		        -labels=>\%labels,);
+
+  # Hide project ID in form
+  print $q->hidden(-name=>'projectid', -default=>$projectid);
+  print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
+  print $q->end_form;
+  print "<br><small>Note: Only the primary contact will recieve project email.</small>";
 }
 
 =item B<observed>
