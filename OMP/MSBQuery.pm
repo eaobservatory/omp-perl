@@ -124,7 +124,7 @@ sub maxCount {
     }
   }
   my $current = $self->{MaxCount};
-  if (defined $current && $current == 0) {
+  if (!defined $current || $current == 0) {
     return $DEFAULT_RESULT_COUNT;
   } else {
     return $current;
