@@ -135,7 +135,7 @@ sub _post_process_hash {
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
   $self->_process_elements($href, sub { uc(shift) }, 
-                           [qw/ userid /]);
+                           [qw/ userid alias /]);
 
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
