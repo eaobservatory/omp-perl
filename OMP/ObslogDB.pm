@@ -198,10 +198,10 @@ sub getComment {
   # the query. Otherwise, we want to retrive comments
   # only for which obsactive = 1.
   my $obsactivestring;
-  if($allcomments) {
-    $obsactivestring = "<obsactive>1</obsactive>";
-  } else {
+  if(defined($allcomments)) {
     $obsactivestring = "";
+  } else {
+    $obsactivestring = "<obsactive>1</obsactive>";
   }
 
   # Form a query to retrieve the observation comments.
@@ -302,7 +302,7 @@ sub _fetch_comment_info {
 
   # Generate the SQL statement.
   my $sql = $query->sql( $OBSLOGTABLE );
-
+#print $sql;
   # Run the query.
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
