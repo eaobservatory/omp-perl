@@ -1514,7 +1514,11 @@ sub _notify_msb_done {
 			        DB => $self->db,
 			       );
 
-  $done->addMSBcomment( $checksum, $comment, $msb, $status);
+  # Turn off transaction management in $done. There must be
+  # a cleverer way than this since we *know* we are in a transaction
+  # per database handle.
+  my $skiptrans = ( $self->_intrans ? 1 : 0 );
+  $done->addMSBcomment( $checksum, $comment, $msb, $status, $skiptrans);
 
 }
 

@@ -167,6 +167,12 @@ status.
 
  $db->addMSBcomment( $checksum, $comment, undef, OMP__DONE_FETCH );
 
+An optional 5 argument can be supplied to disable transaction
+management (the assumption being we are already in a transaction
+and we are sharing the database handle). This is not ideal since
+the handle transaction management code should be able to tell
+we are in a transaction without us worrying about it.
+
 =cut
 
 sub addMSBcomment {
@@ -175,19 +181,23 @@ sub addMSBcomment {
   my $comment = shift;
   my $msb = shift;
   my $status = shift;
+  my $skiptrans = shift;
 
   # Lock the database (since we are writing)
-  $self->_db_begin_trans;
-  $self->_dblock;
+  unless ($skiptrans) {
+    $self->_db_begin_trans;
+    $self->_dblock;
+  }
 
   $self->_store_msb_done_comment( $checksum, $self->projectid, $msb,
 				$comment, $status );
 
 
   # End transaction
-  $self->_dbunlock;
-  $self->_db_commit_trans;
-
+  unless ($skiptrans) {
+    $self->_dbunlock;
+    $self->_db_commit_trans;
+  }
 }
 
 =item B<observedMSBs>
