@@ -689,7 +689,7 @@ Returns undef if the band is not known.
     my $tel = shift;
     my @bands = @_;
 
-    if ($tel eq 'JCMT') {
+    if (defined $tel && $tel eq 'JCMT') {
 
       my ($min, $max) = (50,-50);
       for my $band (@bands) {
