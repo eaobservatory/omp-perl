@@ -721,6 +721,11 @@ sub _mail_fault {
   # The email subject
   my $subject = "[$faultid] $system/$type - " . $fault->subject;
 
+  # Make it obvious in the subject if fault is urgent
+  if ($fault->isUrgent) {
+    $subject = "URGENT $subject";
+  }
+
   # Create a list of users to Cc (but not if they authored the latest response)
   my %cc = map {$_->author->userid, $_->author}
     grep {$_->author->userid ne $responses[-1]->author->userid} @responses;
