@@ -23,6 +23,7 @@ ICL commands manually.
 use 5.006;
 use strict;
 use warnings;
+use warnings::register;
 
 use OMP::Error;
 use Astro::Telescope;
@@ -309,8 +310,15 @@ sub translate {
     }
 
     # Now the catalogue file
-    my $cat = new Astro::Catalog(Format => 'JCMT',
+    my $cat;
+    eval {
+       $cat = new Astro::Catalog(Format => 'JCMT',
 				 File => '/local/progs/etc/poi.dat');
+    };
+    unless (defined $cat) {
+      warnings::warnif("Unable to read local pointing catalogue.");
+      $cat = new Astro::Catalog() unless defined $cat;
+    }
     $cat->origin("JCMT DAS Translator");
 
     # For each of the targets add the projectid
@@ -911,11 +919,11 @@ sub switchConfig {
 
     $html .= "<table>";
     $html .= "<tr><td><b>Chop System:</b></td><td>".
-      $summary{CHOP_SYSTEM}." </td></tr>";
+      (defined $summary{CHOP_SYSTEM} ? $summary{CHOP_SYSTEM} : 'unspecified')." </td></tr>";
     $html .= "<tr><td><b>Chop Throw:</b></td><td>".
-      $summary{CHOP_THROW}." arcsec</td></tr>";
+      (defined $summary{CHOP_THROW} ? ($summary{CHOP_THROW}." arcsec") : 'unspecified')."</td></tr>";
     $html .= "<tr><td><b>Chop PA:</b></td><td>".
-      $summary{CHOP_PA}." deg</td></tr>";
+      (defined $summary{CHOP_PA} ? ($summary{CHOP_PA}." deg") : 'unspecified')."</td></tr>";
 
 
     $html .= "</table>\n";
