@@ -28,6 +28,8 @@ use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::DBServer;
+use OMP::Info::ObsGroup;
+use OMP::CGIObslog;
 use OMP::FaultDB;
 use OMP::FaultServer;
 use OMP::CGIFault;
@@ -53,7 +55,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url obslog_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1546,9 +1548,11 @@ sub project_home {
       # Link date to obslog
       #print "<a href='http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl?ut=" . $_->ymd . "'>" . $_->ymd . "</a>";
 
-      # Print a line that looks like YYYYMMDD (H hours) Retrieve data
+      # Make a link to the obslog page
       my $utdate = $_->strftime("%Y%m%d");
-      print "$utdate ";
+      my $ymd = $_->ymd;
+
+      print "<a href='fbobslog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
 
       if ($accounts{$_->epoch}) {
 	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
@@ -1652,6 +1656,43 @@ sub report_output {
   # Get the relative faults
 
   # Figure out the time lost to faults
+}
+
+=item B<obslog_content>
+
+Display information about observations for a project on a particular
+night.
+
+  obslog_content($cgi, %cookie);
+
+=cut
+
+sub obslog_content {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $utdatestr = $q->url_param('utdate');
+
+  my $utdate;
+  my $projectid;
+
+  # Untaint the date string
+  if ($utdatestr =~ /^(\d\d\d\d-\d\d-\d\d)$/) {
+    $utdate = $1;
+  } else {
+    croak("UT date string [$utdate] does not match the expect format so we are not allowed to untaint it!");
+  }
+
+  # Now untaint the projectid
+  $projectid = OMP::General->extract_projectid( $cookie{projectid} );
+
+  (! $projectid) and croak("Project ID string [$cookie{projectid}] does not match the expect format so we are not allowed to untaint it!");
+
+  my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
+				    date => $utdate,);
+
+  print "<h2>Observation log for " . uc($projectid) . " on $utdate</h2>";
+  obs_table($grp);
 }
 
 =item B<preify_text>
