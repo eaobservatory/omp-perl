@@ -710,7 +710,15 @@ sub addMSBcomment {
   my $checksum = shift;
   my $comment = shift;
 
-  OMP::General->log_message("addMSBComment: $project $checksum $comment\n");
+  # Store the comment text for the log message
+  my $text;
+  if (UNIVERSAL::isa($comment, "OMP::Info::Comment")) {
+    $text = $comment->text;
+  } else {
+    $text = $comment;
+  }
+
+  OMP::General->log_message("addMSBComment: $project $checksum $text\n");
 
   my $E;
   my $result;
