@@ -656,7 +656,7 @@ sub ashtml {
   }
 
   print "<tr class='row_$bgcolor'>";
-  print "<td class='sum_other'>Total</td><td class='sum_other'>$total hrs</td>";
+  print "<td class='sum_other'>Total</td><td class='sum_other'>". sprintf($format,$total) ." hrs</td>";
 
   print "</table>";
   print "<p>";
