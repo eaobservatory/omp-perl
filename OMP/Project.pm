@@ -1325,7 +1325,7 @@ sub conditionstxt {
   $cloud = substr($cloud,0,4) if $cloud;
 
   # Seeing. Need to fix lower end for prettification
-  my $seeing = $self->seerange();
+  my $seeing = $self->seeingrange();
   my $seetxt = '';
   if ($seeing) {
     OMP::SiteQuality::undef_to_default( 'SEEING', $seeing );
