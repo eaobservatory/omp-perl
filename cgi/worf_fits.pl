@@ -31,7 +31,7 @@ BEGIN {
 }
 
 # OMP Modules
-use OMP::CGIPage::WORF;
+use OMP::CGIComponent::WORF;
 
 use strict;
 
@@ -39,5 +39,5 @@ use strict;
 
 my $query = new CGI;
 
-fits( $query );
+return_fits( $query );
 
