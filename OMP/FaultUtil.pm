@@ -298,8 +298,8 @@ sub compare {
       $keya = $obja->author->userid;
       $keyb = $objb->author->userid;
     } elsif ($_ =~ /projects/) {
-      $keya = @{$obja->projects};
-      $keyb = @{$objb->projects};
+      $keya = join(",",@{$obja->projects});
+      $keyb = join(",",@{$objb->projects});
     } elsif ($_ =~ /faultdate/) {
       if ($obja->faultdate and $objb->faultdate) {
 	$keya = $obja->faultdate->strftime("%Y%m%d%T");
