@@ -135,28 +135,54 @@ sub queryArc {
 
     my $date = $query->daterange->min;
     my $currentdate = gmtime;
-    my $db_status = 1;
 
-    # First the database
-    if( !defined( $self->db ) ) { $db_status = 0; }
-    try {
-      if( $db_status && $self->db && ( ( $currentdate - $date ) > ONE_DAY ) ) {
-        @results = $self->_query_arcdb( $query );
-      }
+    # Determine time difference in seconds
+    my $tdiff = $currentdate - $date;
+
+    # Determine whether we are "today"
+    # cannot rely on seconds here, all that matters is the day
+    my $currstr = $currentdate->strftime("%Y-%m-%d");
+    my $qstr    = $date->strftime("%Y-%m-%d");
+    my $istoday = ( $currstr eq $qstr ? 1 : 0 );
+
+    # Control whether we have queried the DB or not
+    # True means we have done a successful query.
+    my $dbqueryok = 0;
+
+    # First go to the database if we have a handle
+    # and if we are not querying the current date
+    if (defined $self->db && !$istoday) {
+
+      # Trap errors with connection. If we have fatal error
+      # talking to DB we should fallback to files (if allowed)
+      try {
+	@results = $self->_query_arcdb( $query );
+	$dbqueryok = 1;
+      } otherwise {
+	# just need to drop through and catch any exceptions
+      };
     }
-    catch OMP::Error with {
-      $db_status = 0;
-    };
-    if( ( ( ( $currentdate - $date ) < ONE_WEEK ) &&
-          ( $FallbackToFiles ) ) ||
-        ( $db_status == 0 ) ) {
-      if( ( $currentdate - $date ) < ONE_DAY ) {
-        @results = $self->_query_files( $query );
-      } else {
+
+    # if we do not yet have results we should query the file system
+    # unless forbidden to do so for some reason (this was originally
+    # because we threw an exception if the directories did not exist).
+    if ($FallbackToFiles) {
+      # We fallback to files if the query failed in some way
+      # (no connection, or error from the query)
+      # OR if the query succeded but we can not be sure the data are
+      # in the DB yet (ie less than a week)
+      if ( !$dbqueryok ||                  # Always look to files if query failed
+	  ($tdiff < ONE_WEEK && !@results) # look to files if we got no 
+	                                   # results and younger than a week
+	 ) {
+
+	# then go to files
         @results = $self->_query_files( $query )
-          unless @results;
+	
       }
+
     }
+
   }
 
   # Return what we have
