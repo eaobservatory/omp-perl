@@ -114,7 +114,13 @@ sub _package_data {
   $pkg->pkgdata;
   print "</PRE>\n";
 
-  print "Retrieve your data from url: " . $pkg->tarfile;
+  my $url = $pkg->ftpurl;
+  if (defined $url) {
+    print "Retrieve your data from url: <A href=\"$url\">$url</a>";
+  } else {
+    print "There must have been an untrapped error. Could not obtain a url";
+  }
+
 
 }
 
