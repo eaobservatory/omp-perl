@@ -57,6 +57,8 @@ use Cwd;
 use OMP::General;
 use OMP::Error;
 use OMP::ProjServer;
+use OMP::Constants qw/ :fb /;
+use OMP::FBServer;
 use OMP::Info::ObsGroup;
 use File::Temp qw/ tempdir /;
 use OMP::Config;
@@ -409,6 +411,9 @@ sub pkgdata {
   OMP::ProjServer->verifyPassword($self->projectid, $self->password)
       or throw OMP::Error::Authentication("Unable to verify project password");
 
+  # Add a comment to the log
+  $self->_log_request();
+
   # Purge files older than the limit
   $self->_purge_old_ftp_files();
 
@@ -428,6 +433,9 @@ sub pkgdata {
   # Create the tar file from the temp direcotry to
   # the FTP directory
   $self->_mktarfile();
+
+  # Send a message to the feedback system
+  $self->_add_comment();
 
 }
 
@@ -824,6 +832,56 @@ sub _mktarfile {
 
   # Store the tar file name
   $self->tarfile ( $outfile );
+
+}
+
+=item B<_log_request>
+
+Write a message in the OMP log describing the request for data.
+
+=cut
+
+sub _log_request {
+  my $self = shift;
+  my $projectid = $self->projectid();
+  my $utdate = $self->utdate();
+
+  # String representations
+  my $pstr = (defined $projectid ? $projectid : '<undefined>' );
+  my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
+
+  OMP::General->log_message("Request received to archive data for project $pstr for UT date $utstr");
+
+}
+
+=item B<_add_comment>
+
+Send a message to the feedback system indicating that the data
+have been packaged.
+
+  $pkg->_add_comment();
+
+=cut
+
+sub _add_comment {
+  my $self = shift;
+
+  my $projectid = $self->projectid();
+  my $utdate = $self->utdate();
+  my ($user, $host, $email) = OMP::General->determine_host;
+  my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
+
+  OMP::FBServer->addComment(
+			    $projectid,
+			    {
+			     subject => "Data requested",
+			     author => undef,
+			     program => $0,
+			     sourceinfo => $host,
+			     status => OMP__FB_SUPPORT,
+			     text => "Data has been requested by $email for project $projectid from UT $utstr",
+			    }
+			   )
 
 }
 
