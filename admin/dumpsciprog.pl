@@ -45,7 +45,7 @@ for my $proj (@$projects) {
 			     ProjectID => $projid,
 			     DB => new OMP::DBbackend);
 
-    my $xml = $db->fetchSciProg;
+    my $xml = $db->fetchSciProg(1);
 
     print "Retrieved science program for project $projid\n";
 
