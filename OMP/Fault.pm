@@ -546,7 +546,10 @@ Time lost to the fault in hours.
 
 sub timelost {
   my $self = shift;
-  if (@_) { $self->{TimeLost} = shift; }
+  if (@_) { 
+    my $tl = shift;
+    # Dont need more than 2 decimal places
+    $self->{TimeLost} = sprintf("%.2f", $tl); }
   return $self->{TimeLost};
 }
 
