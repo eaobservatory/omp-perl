@@ -1472,19 +1472,6 @@ sub _run_query {
   return @observable;
 }
 
-=item B<DESTROY>
-
-We rollback any transactions that have failed (this only works
-if the exceptions thrown by this module are caught in such a way
-that the object will go out of scope).
-
-=cut
-
-sub DESTROY {
-  my $self = shift;
-  $self->_db_rollback_trans;
-}
-
 =back
 
 =head2 Done table
