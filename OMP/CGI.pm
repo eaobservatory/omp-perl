@@ -27,7 +27,6 @@ use Carp;
 
 use lib qw(/jac_sw/omp/msbserver);
 use OMP::Cookie;
-use OMP::CGIHelper;
 use OMP::Error;
 use HTML::WWWTheme;
 
@@ -327,8 +326,7 @@ sub write_page {
     # Now everything is ready for our output. Just call the
     # code ref with the cookie contents
     if ($q->param('password')) {
-      proj_status_table( $q, %cookie);
-      $form->content( $q, %cookie);
+      $form_content->( $q, %cookie);
     } else {
       $form_output->( $q, %cookie);
     }
@@ -373,8 +371,8 @@ sub write_page {
 
 =head1 AUTHORS
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
-Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
