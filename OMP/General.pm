@@ -25,6 +25,7 @@ use Carp;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
+use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -386,8 +387,7 @@ sub verify_administrator_password {
       throw OMP::Error::Authentication("Failed to match administrator password\n");
     }
   }
-
-  return $retval;
+  return $status;
 }
 
 =back

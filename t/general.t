@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 23 }
+BEGIN { plan tests => 24 }
 
 use OMP::General;
 
@@ -42,6 +42,12 @@ print "# today()\n";
 
 my $today = OMP::General->today;
 ok( $today =~ /^\d\d\d\d-\d\d-\d\d$/ );
+
+print "# Verification\n";
+
+# At least test that we fail to match the admin password
+# (after always matching for some time!)
+ok( ! OMP::General->verify_administrator_password( "blah", 1 ) );
 
 print "# Semester\n";
 
