@@ -32,6 +32,10 @@ use OMP::General;
 use File::Spec;
 use File::Basename;
 use Config::IniFiles;
+use Data::Dumper;
+
+use vars qw/ $DEBUG /;
+$DEBUG = 0;
 
 # just in case we need to know where we are
 use FindBin;
@@ -175,7 +179,7 @@ sub _read_configs {
 
   # First step is to read all the .cfg files from the config directory
   my $dir = $class->cfgdir;
-  print "Dir is $dir\n";
+  print "Config Dir is $dir\n" if $DEBUG;
 
   opendir my $dh, $dir
     or throw OMP::Error::FatalError("Error reading config directory [$dir]: $!");
@@ -192,8 +196,7 @@ sub _read_configs {
 
   # Need to read all the INI files, copy the information and deal
   # with host and domain lookups
-  use Data::Dumper;
-  print Dumper(\@files);
+  print Dumper(\@files) if $DEBUG;
 
   # Read each of the files and store the results
   my %read = map { $class->_read_cfg_file($_) } @files;
@@ -238,6 +241,8 @@ sub _read_cfg_file {
   # Read the file
   my %data;
   tie %data, 'Config::IniFiles', (-file => $file);
+  print "File $file: ".Dumper \%data
+    if $DEBUG;
 
   # determine the key order. host overrides, domain overrides
   # default
@@ -248,7 +253,8 @@ sub _read_cfg_file {
   #   default, host: and domain:
   my %cfg;
   for my $key ( @keys ) {
-    if (exists $data{$key}) {
+    print "Trying key $key\n" if $DEBUG;
+    if (exists $data{$key} && defined $data{$key}) {
       # this involves increasing overhead as more keys are added
       %cfg = (%cfg, %{ $data{$key} });
     }
@@ -284,13 +290,14 @@ sub _determine_constants {
   } else {
     # Get the fully qualified domain name
     # being careful to disable checks for REMOTE_HOST
-    my ($user, $host, $email) = OMP::General->determine_host( 1 );
+    (my $user, $host, my $email) = OMP::General->determine_host( 1 );
 
     # split the host name on dots
     ($host, $domain) = split(/\./,$host,2);
   }
 
   # Store them
+  print "Host: $host  Domain: $domain\n" if $DEBUG;
   $CONST{host} = $host;
   $CONST{domain} = $domain;
 }
