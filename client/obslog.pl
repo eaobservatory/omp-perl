@@ -412,7 +412,7 @@ sub new_instrument {
   my $counter = 0;
 
   foreach my $obs( $obsgrp->obs ) {
-    my %nightlog = $obs->nightlog;
+    my %nightlog = $obs->nightlog('long');
     my @comments = $obs->comments;
     my $status = 0;
     if ( defined($comments[($#comments)]) ) {
@@ -805,7 +805,7 @@ sub RaiseComment {
                                                 );
 
   # Get the observation information.
-  my %nightlog = $obs->nightlog;
+  my %nightlog = $obs->nightlog('long');
 
   # Insert the header information.
   $contentHeader->configure( -state => 'normal' );
