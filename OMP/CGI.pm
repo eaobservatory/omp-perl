@@ -26,6 +26,8 @@ use warnings;
 use Carp;
 
 use lib qw(/jac_sw/omp/msbserver);
+
+use OMP::ProjServer;
 use OMP::Cookie;
 use OMP::Error;
 use HTML::WWWTheme;
@@ -156,7 +158,8 @@ sub cookie {
 
 =item B<_sidebar_logout>
 
-Put a logout link in the sidebar.
+Put a logout link in the sidebar, and some other feedback links under
+the title "Feedback Links"
 
   $cgi->_sidebar_logout;
 
@@ -165,8 +168,15 @@ Put a logout link in the sidebar.
 sub _sidebar_logout {
   my $self = shift;
   my $theme = $self->theme;
+  my $c = $self->cookie;
+  my $q = $self->cgi;
 
-  $theme->SetMoreLinksTitle("Feedback links");
+  my %cookie = $c->getCookie;
+
+  my $projectid = $cookie{projectid};
+  ($projectid) or $projectid = $q->param('projectid');
+
+  $theme->SetMoreLinksTitle("Project: $projectid");
 
   my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
 		      "<a href='fbmsb.pl'>Program details</a>",
@@ -215,7 +225,7 @@ sub _write_header {
     print $q->header;
   }
 
-  $theme->SetHTMLStartString("<html><head><title>OMP Feedback Tool</title></head>");
+  $theme->SetHTMLStartString("<html><head><title>OMP Feedback System</title></head>");
 
   $theme->SetSideBarTop("<a href='http://jach.hawaii.edu/'>Joint Astronomy Centre</a>");
 
@@ -225,11 +235,6 @@ sub _write_header {
 	       "<a HREF='/JACpublic/JAC/ets'>Engineering & Technical Services</a>",
 	       "<a HREF='/JACpublic/JAC/cs'>Computing Services</a>",
 	       "<a HREF='http://www.jach.hawaii.edu/JAClocal/admin'>Administration</a>",);
-
-
-
-
-
 
   $theme->SetSideBarMenuLinks(\@links);
 
@@ -274,6 +279,7 @@ sub _write_login {
 
   $self->_write_header();
 
+  print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'><p><p>";
   print $q->h1('Login'),
     "Please enter the project ID and password. These are required for access to the feedback system.";
 
@@ -298,8 +304,7 @@ sub _write_login {
 	"</td><td>",
 	$q->submit("Submit"),
 	$q->endform;
-  print "</td></table><p>";
-  print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/banner.gif'>";
+  print "</td></table>";
 
   $self->_write_footer();
 }
@@ -316,11 +321,11 @@ The subroutines passed to this method should shift off the first
 element of @_ as that is the C<CGI> query object.  The rest of the elements
 should be dumped to a hash as they contain the cookie contents:
 
-sub form_output {
-  my $query = shift;
-  my %cookie = @_;
-  ...
-}
+  sub form_output {
+    my $query = shift;
+    my %cookie = @_;
+    ...
+  }
 
 =cut
 
@@ -355,9 +360,16 @@ sub write_page {
     if ($q->param('password')) {
       # Okay need to get user name and password and
       # set the cookie
+
       my $projectid = $q->param('projectid');
       my $password = $q->param('password');
-      %cookie = (projectid=>$projectid, password=>$password);
+
+      # Verifying the password here to decide whether or not we want to set the
+      # cookie with it.
+      my $verify = OMP::ProjServer->verifyPassword($projectid, $password);
+
+      ($verify) and %cookie = (projectid=>$projectid, password=>$password) or
+	throw OMP::Error::Authentication("Password or project ID are incorrect");
 
     } elsif (! exists $cookie{password}) {
       # Else no password at all (even in the cookie) so put up log in form
@@ -374,8 +386,6 @@ sub write_page {
     # already have one. This allows for automatic expiry if noone
     # reloads the page
     $c->setCookie( $EXPTIME, %cookie );
-
-
 
     # Put a logout link on the sidebar
     $self->_sidebar_logout;
