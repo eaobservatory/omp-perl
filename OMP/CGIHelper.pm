@@ -57,7 +57,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content nightlog_content night_report/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content nightlog_content night_report proj_sum_page/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -405,8 +405,6 @@ sub comment_form {
 
     	$q->hidden(-name=>'show_output',
 		   -default=>1),
-	$q->hidden(-name=>'password',
-		   -default=>$cookie{password}),
         $q->hidden(-name=>'projectid',
 		   -default=>$cookie{projectid}),
         $q->br,
@@ -1345,32 +1343,10 @@ sub add_comment_output {
   my $q = shift;
   my %cookie = @_;
 
-  # Get the address of the machine remotely running this cgi script to be given
-  # to the addComment method as the sourceinfo param
-  my @host = OMP::General->determine_host;
-
-  # Get the OMP::User object
-  my $user = OMP::UserServer->getUser($q->param('author')) or
-    throw OMP::Error::BadArgs("Must supply a valid OMP User ID");
-
-  my $comment = { author => $user,
-		  subject => $q->param('subject'),
-		  sourceinfo => $host[1],
-		  text => $q->param('text'),
-		  program => $q->url(-relative=>1), # the name of the cgi script
-		  status => OMP__FB_IMPORTANT, };
-
-  # Strip out ^M
-  foreach (keys %$comment) {
-    $comment->{$_} =~ s/\015//g;
-  }
-
-  OMP::FBServer->addComment( $cookie{projectid}, $comment )
-      or throw OMP::Error::FatalError("An error occured while attempting to add this comment");
-
-  print $q->h2("Your comment has been submitted");
-
   proj_status_table($q, %cookie);
+
+  submit_fb_comment($q, $cookie{projectid});
+
   fb_entries_hidden($q, %cookie);
 }
 
@@ -1835,8 +1811,9 @@ sub night_report {
     # Try and get the date from the URL
     $utdatestr = $q->url_param('utdate');
   } else {
-    # No date, so use today.
-    $utdate = OMP::General->today;
+    # No date, so use local date.
+    my $local = localtime;
+    $utdate = $local->ymd;
   }
 
   # Get the telescope from the URL
@@ -1913,6 +1890,96 @@ sub night_report {
 
     $nr->ashtml;
   }
+}
+
+=item B<proj_sum_page>
+
+Generate a page showing details for a project and allowing for the
+submission of feedback comments
+
+  proj_sum_page($q, %cookie);
+
+=cut
+
+sub proj_sum_page {
+  my $q = shift;
+
+  my %cookie;
+
+  # Get project ID from form or display form
+  if ($q->param('projectid')) {
+    $cookie{projectid} = $q->param('projectid');
+    $cookie{password} = '***REMOVED***';
+
+    # Display project details
+    proj_status_table($q, %cookie);
+
+    # Submit feedback comment or display form
+    if ($q->param('Submit')) {
+      submit_fb_comment($q, $cookie{projectid});
+      print "<P>";
+
+      # Link back to start page
+      print "<a href='". $q ->url(-relative=>1) ."'>View details for another project</a>";
+
+    } else {
+      # Form for adding feedback comment
+      comment_form($q, %cookie);
+    }
+
+  } else {
+    print $q->startform;
+    print "Project ID: ";
+    print $q->textfield(-name=>"projectid",
+			-size=>12,
+		        -maxlength=>32,);
+    print "&nbsp;";
+    print $q->submit(-name=>"projectid_submit",
+		     -label=>"Submit",);
+  }
+
+}
+
+=item B<sumbit_fb_comment>
+
+Submit a feedback comment
+
+  submit_fb_comment($q, $projectid);
+
+=cut
+
+sub submit_fb_comment {
+  my $q = shift;
+  my $projectid = shift;
+
+  # Get the address of the machine remotely running this cgi script to be given
+  # to the addComment method as the sourceinfo param
+  my @host = OMP::General->determine_host;
+
+  # Get the OMP::User object
+  my $user = OMP::UserServer->getUser($q->param('author')) or
+    throw OMP::Error::BadArgs("Must supply a valid OMP User ID");
+
+  my $comment = { author => $user,
+		  subject => $q->param('subject'),
+		  sourceinfo => $host[1],
+		  text => $q->param('text'),
+		  program => $q->url(-relative=>1), # the name of the cgi script
+		  status => OMP__FB_IMPORTANT, };
+
+  # Strip out ^M
+  foreach (keys %$comment) {
+    $comment->{$_} =~ s/\015//g;
+  }
+
+  try {
+    OMP::FBServer->addComment( $projectid, $comment );
+    print "<h2>Your comment has been submitted.</h2>";
+  } otherwise {
+    my $E = shift;
+    print "<h2>An error has prevented your comment from being submitted</h2>";
+    print "<pre>$E</pre>";
+  };
 }
 
 =item B<msb_action>
