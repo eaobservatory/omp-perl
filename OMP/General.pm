@@ -116,6 +116,12 @@ sub today {
 
 }
 
+=back
+
+=head2 Hosts
+
+=over 4
+
 =item B<determine_host>
 
 Determine the host and user name of the person either running this
@@ -165,6 +171,12 @@ sub determine_host {
 
   return ($user, $addr, $email);
 }
+
+=back
+
+=head2 Semesters
+
+=over 4
 
 =item B<determine_semester>
 
@@ -244,13 +256,22 @@ If telescope is not supplied it is guessed.  If the project ID is just
 a number it is assumed to be part of a UKIRT style project. If it is a
 number with a letter prefix it is assumed to be the JCMT style (ie u03
 -> m01bu03) although a prefix of "s" is treated as a UKIRT service
-project and expanded to "u/server/01" (for "s1"). If the supplied ID
-is ambiguous (most likely from a UH ID) the telescope must be supplied
-or else the routine will croak.
+project and expanded to "u/serv/01" (for "s1"). If the supplied ID is
+ambiguous (most likely from a UH ID since both JCMT and UKIRT would
+use a shortened id of "h01") the telescope must be supplied or else
+the routine will croak.
 
 The semester is determined from a "semester" key directly or from a date.
 The current date is used if no date or semester is supplied.
 The supplied date must be a C<Time::Piece> object.
+
+Finally, if the number is prefixed by more than one letter it is
+assumed to indicate a special ID (usually reserved for support
+scientists) that is not telescope specific (although be aware that
+the Observing Tool can not mix telescopes in a single science
+program even though the rest of the OMP could do it). The only
+translation occuring in these cases is to pad the digit to two
+characters.
 
 =cut
 
@@ -265,8 +286,14 @@ sub infer_projectid {
 
   # Make sure its not complete already
   return $projid if $projid =~ /^u\/\d\d[ab]/ # UKIRT
-    or $projid =~ /^m\d\d[ab]/;               # JCMT
-;
+    or $projid =~ /^m\d\d[ab]/                # JCMT
+      or $projid =~ /^u\/serv\//i;            # UKIRT serv
+
+  # If it's a special reserved ID (two characters + digit)
+  # return it - padding the number)
+  if ($projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
+    return $1 . sprintf("%02d", $2);
+  }
 
   # First the semester
   my $sem;

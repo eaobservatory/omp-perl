@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 24 }
+BEGIN { plan tests => 27 }
 
 use OMP::General;
 
@@ -63,7 +63,7 @@ ok( OMP::General->determine_semester($date), "02b");
 print "# Project ID\n";
 
 my @input = (
-	     { 
+	     {
 	      semester => "01b",
 	      projectid => "3",
 	      result => "u/01b/03",
@@ -105,13 +105,27 @@ my @input = (
 	      result => "u/01b/52",
 	     },
 	     {
+	      projectid => "u/serv/52",
+	      result => "u/serv/52",
+	     },
+	     {
 	      projectid => "s1",
 	      result => "u/serv/01",
 	     },
 	     {
 	      projectid => "s4565",
 	      result => "u/serv/4565",
+	     },
+	     {
+	      projectid => "thk1",
+	      result => "thk01",
+	     },
+	     {
+	      projectid => "tj125",
+	      result => "tj125",
 	     }
+
+
 
 	    );
 
