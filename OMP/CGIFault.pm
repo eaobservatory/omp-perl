@@ -1417,10 +1417,12 @@ sub file_fault_form {
   my @convalues = ('urgent');
   my %conlabels = (urgent => "Urgent");
   my @condefaults = ($defaults{urgency});
-  if ($fault->id) {
-    push @convalues, "chronic";
-    $conlabels{chronic} = "Chronic";
-    push @condefaults, $defaults{condition};
+  if ($fault) {
+    if ($fault->id) {
+      push @convalues, "chronic";
+      $conlabels{chronic} = "Chronic";
+      push @condefaults, $defaults{condition};
+    }
   }
 
   # Even though there is only a single option for urgency I'm using a checkbox group
