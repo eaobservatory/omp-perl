@@ -143,6 +143,43 @@ sub email {
 
 =over 4
 
+=item B<html>
+
+Generate an HTML representation of the user information.
+
+  $html = $u->html;
+
+Returns a HTML string looking like:
+
+  <a href="mailto:$email">$name</a>
+
+if the email address is defined.
+
+=cut
+
+sub html {
+  my $self = shift;
+  my $email = $self->email;
+  my $name = $self->name;
+
+  my $html;
+  if ($email) {
+    # We have an email address
+
+    # if no name so use email
+    $name = $email unless $name;
+
+    $html = "<A HREF=\"mailto:$email\">$name</A>";
+
+  } else {
+    # Just a name
+    $html = "<B>$name</B>";
+
+  }
+
+  return $html;
+}
+
 =item B<stringify>
 
 Stringify overload. Returns the name of the user.
