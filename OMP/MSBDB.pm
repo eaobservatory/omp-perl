@@ -1056,6 +1056,8 @@ sub _run_query {
   }
 
   # And now attach it to the relevant MSB
+  # If there are no observations this will store undef (will happen
+  # if a dummy science program is uploaded)
   for my $row (@$ref) {
     my $msb = $row->{msbid};
     $row->{obs} = $msbs{$msb};
