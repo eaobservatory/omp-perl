@@ -459,7 +459,7 @@ The XML format will be something like the following:
      ...
   </SpMSBSummary>
 
-where the elements match the key names in the hash. An C<id> key
+where the elements match the key names in the hash. An C<msbid> key
 is treated specially. When present this id is used in the SpMSBSummary
 element directly.
 
@@ -525,7 +525,7 @@ sub summary {
   # Substr each string using the supplied widths.
   my @sub = map { 
     substr($local{$keys[$_]},0,$width[$_])
-  } 0..$#width;
+  } grep { exists $local{$keys[$_]} } 0..$#width;
 
   # ...and the header
   my @head = map {
@@ -553,17 +553,18 @@ sub summary {
   } else {
     # XML version
     my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{id}\"" if exists $summary{id};
+    $xml .= "id=\"$summary{msbid}\"" if exists $summary{msbid};
     $xml .= ">\n";
 
     for my $key ( keys %local ) {
       # Special case the summary and ID keys
       next if $key eq "summary";
-      next if $key eq "id";
+      next if $key eq "msbid";
       next if $key =~ /^_/;
+      next unless defined $local{$key};
       next if ref($local{$key});
 
-      $xml .= "<$key>$local{$key}</$key>\n";
+      $xml .= "<$key>$local{$key}</$key>\n"
 
     }
     $xml .= "</SpMSBSummary>\n";

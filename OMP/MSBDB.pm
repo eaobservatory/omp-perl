@@ -8,11 +8,13 @@ OMP::MSBDB - A database of MSBs
 
   $sp = new OMP::SciProg( XML => $xml );
   $db = new OMP::MSBDB( Password => $passwd, 
-                        ProjectID => $sp->projectID );
+                        ProjectID => $sp->projectID,
+			DB => $connection,
+		      );
 
   $status = $db->storeSciProg( SciProg => $sp );
 
-  $msb = $db->fetchMSB( id => $id,
+  $msb = $db->fetchMSB( msbid => $id,
                         checksum => $checksum );
   $sp  = $db->fetchSciProg();
 
@@ -293,7 +295,6 @@ sub storeSciProg {
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
-  $self->_dbconnect;
   $self->_db_begin_trans;
   $self->_dblock;
 
@@ -317,7 +318,6 @@ sub storeSciProg {
   # Now disconnect from the database and free the lock
   $self->_dbunlock;
   $self->_db_commit_trans;
-  $self->_dbdisconnect;
 
   return 1;
 }
@@ -399,11 +399,11 @@ we last looked (this is used when marking an MSB as done).
 
 Just use the index:
 
-   $msb = $db->fetchMSB( id => $index );
+   $msb = $db->fetchMSB( msbid => $index );
 
 Use the index and checksum (both are used for the DB query):
 
-   $msb = $db->fetchMSB( id => $index, checksum => $checksum );
+   $msb = $db->fetchMSB( msbid => $index, checksum => $checksum );
 
 Use the checksum and the project id (available from the object):
 
@@ -433,17 +433,12 @@ sub fetchMSB {
   my $checksum;
 
   # If we are querying the database by MSB ID...
-  if (exists $args{id} && defined $args{id}) {
-
-    # Connect to the DB
-    $self->_dbconnect;
+  if (exists $args{msbid} && defined $args{msbid}) {
 
     # Call method to do search on database. This assumes that we
     # can map projectid, checksum and id to valid column names
     # Returns a hash with the row entries
     my %details = $self->_fetch_row(%args);
-
-    $self->_dbdisconnect;
 
     # We could not find anything
     throw OMP::Error::MSBMissing("Could not locate requested MSB in database")
@@ -489,15 +484,9 @@ sub queryMSB {
   my $self = shift;
   my $query = shift;
 
-  # Connect to the DB
-  $self->_dbconnect;
-
   # Run the query and obtain an array of hashes in order up to
   # the maximum number
   my @results = $self->_run_query($query);
-
-  # Disconnect
-  $self->_dbdisconnect;
 
   # Now go through the hash and translate it to an XML string
   # This assumes that the database table contains everything
@@ -533,7 +522,6 @@ sub doneMSB {
   my $checksum = shift;
 
   # Connect to the DB (and lock it out)
-  $self->_dbconnect;
   $self->_db_begin_trans;
   $self->_dblock;
 
@@ -561,7 +549,6 @@ sub doneMSB {
   # Disconnect
   $self->_dbunlock;
   $self->_db_commit_trans;
-  $self->_dbdisconnect;
 
 }
 
@@ -903,7 +890,7 @@ sub _clear_old_rows {
 
 Retrieve a row of information from the database table.
 
-  %result = $db->_fetch_row( id => $key );
+  %result = $db->_fetch_row( msbid => $key );
 
 The information is returned as a hash with keys identical to
 the database column names.
@@ -925,11 +912,12 @@ sub _fetch_row {
     if defined $self->projectid;
 
   # Assume that query keys match column names
-  my @substrings = map { " $_ = $query{$_} " } keys %query;
+  my @substrings = map { " $_ = '$query{$_}' " } keys %query;
 
   # and construct the SQL command
   my $statement = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
+  print "Executing statement: $statement\n";
 
   # prepare and execute
   my $dbh = $self->_dbhandle;

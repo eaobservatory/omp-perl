@@ -30,7 +30,7 @@ use OMP::MSBDB;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
-use base qw/OMP::SOAPServer/;
+use base qw/OMP::SOAPServer OMP::DBServer/;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -68,7 +68,9 @@ sub storeProgram {
 
     # Create a new DB object
     my $db = new OMP::MSBDB( Password => $password,
-			   ProjectID => $sp->projectID );
+			     ProjectID => $sp->projectID,
+			     DB => $class->dbConnection,
+			   );
 
     # Store the science program
     $db->storeSciProg( SciProg => $sp );
@@ -110,7 +112,8 @@ sub fetchProgram {
 
     # Create new DB object
     my $db = new OMP::MSBDB( Password => $password,
-			     ProjectID => $projectid );
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
     $sp = $db->fetchSciProg;

@@ -31,7 +31,7 @@ use OMP::MSBQuery;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
-use base qw/OMP::SOAPServer/;
+use base qw/OMP::SOAPServer OMP::DBServer/;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -65,9 +65,11 @@ sub fetchMSB {
   try {
 
     # Create a new object but we dont know any setup values
-    my $db = new OMP::MSBDB();
+    my $db = new OMP::MSBDB(
+			    DB => $class->dbConnection
+			   );
 
-    $msb = $db->fetchMSB( id => $key );
+    $msb = $db->fetchMSB( msbid => $key );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -163,7 +165,9 @@ sub queryMSB {
     return '' unless defined $query;
 
     # Create a new object but we dont know any setup values
-    my $db = new OMP::MSBDB();
+    my $db = new OMP::MSBDB(
+			    DB => $class->dbConnection
+			   );
 
     # Do the query
     @results = $db->queryMSB( $query );
@@ -210,7 +214,9 @@ sub doneMSB {
   my $E;
   try {
     # Create a new object but we dont know any setup values
-    my $db = new OMP::MSBDB(ProjectID => $project );
+    my $db = new OMP::MSBDB(ProjectID => $project,
+			    DB => $class->dbConnection
+			   );
 
     $db->doneMSB( $checksum );
 
@@ -226,7 +232,6 @@ sub doneMSB {
 
 
 }
-
 
 =back
 
