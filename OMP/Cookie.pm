@@ -171,7 +171,7 @@ sub setCookie {
   $exptime =~ /^\d+$/ and $exptime = '+' . $exptime . 'm';
 
   # Get the domain
-  OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+  OMP::Config->cfgdir('/jac_sw/omp/msbserver/cfg');
   my $domain = OMP::Config->getData('cookie-domain');
 
   # Get the CGI object
@@ -200,7 +200,7 @@ sub flushCookie {
   my $self = shift;
 
   # Get the domain
-  OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+  OMP::Config->cfgdir('/jac_sw/omp/msbserver/cfg');
   my $domain = OMP::Config->getData('cookie-domain');
 
   # Get the CGI object

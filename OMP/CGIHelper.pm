@@ -1525,7 +1525,7 @@ sub project_home {
     print "<h3>Observations were acquired on the following dates:</h3>";
 
     # URL for 'retrieve data' script
-    OMP::Config->cfgdir('/jac_sw/omp_dev/msbserver/cfg');
+    OMP::Config->cfgdir('/jac_sw/omp/msbserver/cfg');
     my $pkg_url = OMP::Config->getData('pkgdata-url');
 
     for (@$nights) {
