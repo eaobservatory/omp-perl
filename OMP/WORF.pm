@@ -369,6 +369,10 @@ sub parse_display_options {
       defined( $options->{group} ) ) {
     $parsed{group} = $options->{group};
   }
+  if( exists( $options->{output_file} ) &&
+      defined( $options->{output_file} ) ) {
+    $parsed{output_file} = $options->{output_file};
+  }
 
   return %parsed;
 
