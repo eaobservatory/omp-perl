@@ -818,7 +818,7 @@ sub _mail_information {
 
     # Convert the HTML to text and store it
     my $text = $details{message};
-    my $plaintext = html_to_plain($text);
+    my $plaintext = OMP::General->html_to_plain($text);
 
     # Attach the plain text message
     $msg->attach(Type=>"text/plain",
