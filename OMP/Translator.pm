@@ -159,8 +159,8 @@ sub translate {
 	  # Do *not* skip if this is a calibration observation
 	  # calibration observation is defined by either an unknown
 	  # target, a standrd or one of Focus, Pointing, Noise, Skydip
-	  print "MODE: ". $obsinfo->{MODE} ."\n";
-	  print "AUTO: ". $obsinfo->{autoTarget}."\n";
+	  print "MODE: ". $obsinfo->{MODE} ."\n" if $DEBUG;
+	  print "AUTO: ". $obsinfo->{autoTarget}."\n" if $DEBUG;
 	  if ($obsinfo->{MODE} !~ /(Focus|Pointing|Noise|Skydip)/i &&
 	     !$obsinfo->{autoTarget} && !$obsinfo->{standard}) {
 	    next;
