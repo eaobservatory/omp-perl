@@ -259,6 +259,65 @@ sub commentScan {
 
 }
 
+=item B<projectStats>
+
+Return an array of C<Project::TimeAcct> objects for the given
+C<ObsGroup> object.
+
+  @timeacct = $obsgroup->projectStats;
+
+This method will determine all the projects in the given
+C<ObsGroup> object, then use time allocations in that object
+to populate the C<Project::TimeAcct> objects.
+
+=cut
+
+sub projectStats {
+  my $self = shift;
+  my @obs = $self->obs;
+
+  my %hash;
+  my @return;
+
+  foreach my $obs ( @obs ) {
+    my $projectid = $obs->projectid;
+    my $startobs = $obs->startobs;
+    my $endobs = $obs->endobs;
+    my $timespent;
+    if( defined( $startobs ) &&
+        defined( $endobs ) ) {
+      $timespent = $endobs - $startobs;
+    } else {
+      $timespent = Time::Seconds->new( $obs->duration );
+    }
+    my $date = OMP::General->parse_date( $obs->startobs->ymd );
+
+    # Check to see if this project on this date has time already.
+    if(defined($hash{$obs->startobs->ymd}{$projectid})) {
+
+      # Add the time in the current observation to the TimeAcct
+      # object that is already there.
+      $hash{$obs->startobs->ymd}{$projectid}->incTime( $timespent );
+    } else {
+
+      # Create a new TimeAcct object.
+      $hash{$obs->startobs->ymd}{$projectid} = new OMP::Project::TimeAcct(
+                                                 projectid => $projectid,
+                                                 date => $date,
+                                                 timespent => $timespent );
+    }
+  }
+
+  # And create the array out of the hash.
+  foreach my $ymd (keys %hash) {
+    foreach my $projectid (keys %{$hash{$ymd}}) {
+      push @return, $hash{$ymd}{$projectid};
+    }
+  }
+
+  return @return;
+
+}
 
 =back
 
