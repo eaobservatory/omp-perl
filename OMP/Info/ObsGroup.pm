@@ -234,12 +234,11 @@ the query will not be constrained).
 Usually called from the constructor.
 
 If a UT date and projectID are supplied then an additional parameter,
-"inccal", can be supplied to indicate whether calibrations should
-be included along with the project information. Defaults to false.
-Note that if "inccal" is true it is likely that observations will
-match even if no data was taken for the project. [As an aside maybe
-we should have an extra flag that can be used to control that behaviour?
-Returning no matches if no project data were found?]
+"inccal", can be supplied to indicate whether calibrations should be
+included along with the project information. Defaults to false.  Only
+calibrations from instruments used for the project are returned.  This
+means that no observations are returned if no science observations are
+taken regardless of the number of calibrations available in the night.
 
 If "timegap" is true then gaps will be included in the observation group.
 Default is to not include them. The size of the gaps is specfied as
@@ -322,10 +321,23 @@ sub populate {
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
+  # and instruments that are not important to the project
   if ($inccal && exists $args{projectid}) {
 
+    # First generate a list of instruments that are important
+    # even if they are not science observations.
+    # KLUGE: This duplicates some code in OMP::PackageData so we need to think
+    # more about this
+    my %instruments;
+    for ($self->obs) {
+      $instruments{uc($_->instrument)}++ 
+	if (uc($_->projectid) eq uc($args{projectid}));
+    }
+    # Generate an instrument pattern match
+    my $match = join("|",keys %instruments);
+
     my @newobs = grep { uc($_->projectid) eq uc($args{projectid}) 
-			  || ! $_->isScience  } $self->obs;
+			  || (! $_->isScience && $_->instrument =~ /^$match$/i) } $self->obs;
 
     # store it [comments will already be attached]
     $self->obs(\@newobs);
