@@ -296,7 +296,7 @@ sub _mail_comment {
   my $addrlist = shift;
  # Mail message
   my $msg = "\nAuthor: $comment->{author}\n" .
-            "Subject: [" . $self->project . "] $comment->{subject}\n\n" .
+            "Subject: [" . $self->projectid . "] $comment->{subject}\n\n" .
 	    "$comment->{text}\n";
 
   $self->_mail_information(
