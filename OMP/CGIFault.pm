@@ -312,10 +312,9 @@ sub query_fault_output {
       $xml = "<FaultQuery><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
       $title = "Displaying recent faults";
     } elsif ($q->param('Current faults')) {
-      # Faults within the last 14 days
-      # We'll weed out the closed faults later on since we cant exclude them in our
-      # xml query
-      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
+      # Faults within the last 14 days that are 'OPEN'
+      my %status = OMP::Fault->faultStatus;
+      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date><status>$status{OPEN}</status></FaultQuery>";
       $title = "Displaying current faults";
     }
   }
@@ -323,17 +322,6 @@ sub query_fault_output {
   my $faults;
   try {
     $faults = OMP::FaultServer->queryFaults($xml, "object");
-
-    # If they want current faults only, make sure the fault status is 'OPEN'
-    if ($q->param('Current faults')) {
-
-      my @openfaults;
-      for (@$faults) {
-	($_->isOpen) and push @openfaults, $_;
-      }
-      $faults = \@openfaults;
-    }
-
     return $faults;
   } otherwise {
     my $E = shift;
