@@ -284,15 +284,25 @@ database rather than from the data archive itself. It is arguably
 more efficient to do it this way since there are far fewer MSBs
 observed than actual data files.
 
+The optional first argument controls whether the dates are
+returned as an array of C<Time::Piece> objects or an array
+of date strings (YYYYMMDD format).
+
+  @objects = $db->observedDates( 1 );
+
 Throws an exception if the project ID can not be determined from the
 class (since there is no reason why you would want to ask for 
 all the nights that any data was observed).
+
+The definition of "observed" includes MSBs that were completed,
+rejected, suspended or aborted.
 
 =cut
 
 sub observedDates {
   my $self = shift;
   my $projectid = $self->projectid;
+  my $useobj = shift;
 
   throw OMP::Error::FatalError("observedDates method must have access to a project ID") unless $projectid;
 
@@ -333,8 +343,13 @@ sub observedDates {
   }
 
   # Now return the keys in sorted order
-  return sort keys %days;
+  # converting to objects if needed
+  my @dates = sort keys %days;
 
+  @dates = map { OMP::General->parse_date($_); } @dates
+    if $useobj;
+
+  return @dates;
 }
 
 =item B<queryMSBdone>

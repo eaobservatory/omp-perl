@@ -592,13 +592,18 @@ which data for the specified project has been taken.
 
   $ref = OMP::MSBServer->observedDates( $projectid );
 
-A project ID must be supplied.
+A project ID must be supplied. An optional boolean second argument can
+be used to specify that the dates should be returned as C<Time::Piece>
+objects (usually only relevant outside of a SOAP environment)
+
+  $ref = OMP::MSBServer->observedDates( $projectid, 1 );
 
 =cut
 
 sub observedDates {
   my $class = shift;
   my $projectid = shift;
+  my $useobj = shift;
 
   my $E;
   my @result;
@@ -609,7 +614,7 @@ sub observedDates {
 				DB => $class->dbConnection
 			       );
 
-    @result = $db->observedDates();
+    @result = $db->observedDates($useobj);
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
