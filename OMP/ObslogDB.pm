@@ -337,11 +337,43 @@ sub updateObsComment {
 
   my $obs_arrayref = shift;
 
-  foreach my $obs ( @$obs_arrayref ) {
-    my @comments = $self->getComment( $obs );
-    $obs->comments(@comments);
+# What we're going to do is sort the array by time, then
+# get the start and end dates of the whole shmozzle, then
+# form a query that spans that range. Then when we get
+# all the comments back we can stick them onto the
+# appropriate Obs objects.
+
+  my @obsarray = sort { $a->startobs->epoch <=> $b->startobs->epoch } @$obs_arrayref;
+  my $start = $obsarray[0]->startobs;
+  my $end = $obsarray[-1]->startobs;
+
+  my $xml = "<ObsQuery>" .
+    "<date><min>" . $start->ymd . "T" . $start->hms . "</min>" .
+    "<max>" . $end->ymd . "T" . $end->hms . "</max></date>" .
+    "<obsactive>1</obsactive></ObsQuery>";
+
+  my $query = new OMP::ObsQuery( XML => $xml );
+  my @commentresults = $self->queryComments( $query );
+
+  my %commhash;
+
+  foreach my $comment ( @commentresults ) {
+    if( ! exists( $commhash{$comment->uniqueid} ) ) {
+      $commhash{$comment->uniqueid} = [];
+    }
+    push @{$commhash{$comment->uniqueid}}, $comment;
   }
 
+  my @finalobs;
+
+  foreach my $obs ( @$obs_arrayref ) {
+    if( exists( $commhash{$obs->uniqueid} ) ) {
+      $obs->comments( $commhash{$obs->uniqueid} );
+    }
+    push @finalobs, $obs;
+  }
+
+  return @finalobs;
 }
 
 =back
@@ -409,9 +441,16 @@ sub _reorganize_comments {
   for my $row (@$rows) {
     my $comment = new OMP::Info::Comment(
                 text => $row->{commenttext},
-                date => OMP::General->parse_date( $row->{commentdate} ),
+                date => Time::Piece->strptime( $row->{longcommentdate},
+                                               "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ),
                 status => $row->{commentstatus},
+                runnr => $row->{runnr},
+                instrument => $row->{instrument},
+                telescope => $row->{telescope},
+                startobs => Time::Piece->strptime( $row->{longdate},
+                                                   "%b%t%d%t%Y%t%I:%M:%S:000%p%n" ),
               );
+
     # Retrieve the user information so we can create the author
     # property.
     my $author = $db->getUser( $row->{commentauthor} );
