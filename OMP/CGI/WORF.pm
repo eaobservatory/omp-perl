@@ -1,12 +1,12 @@
-package OMP::CGI::WORF;
+package OMP::CGIComponent::WORF;
 
 =head1 NAME
 
-OMP::CGIKKWORF - CGI functions for WORF, the WWW Observing Remotely Facility.
+OMP::CGIComponent::WORF - CGI functions for WORF, the WWW Observing Remotely Facility.
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::WORF;
+  use OMP::CGIComponent::WORF;
 
   display_observation( $obs, $cgi );
 
@@ -24,10 +24,10 @@ use Carp;
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
 
+use OMP::CGIComponent::Obslog qw/ cgi_to_obs /;
+use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
 use OMP::WORF;
-use OMP::CGI::Obslog qw/ cgi_to_obs /;
-use OMP::Error qw/ :try /;
 
 our $VERSION = (qw$Revision$ )[1];
 
@@ -109,7 +109,7 @@ sub display_graphic {
 
   }
 
-  my $obs = cgi_to_obs( $cgi );
+  my $obs = OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
 
   display_observation( $cgi, $obs, $suffix );
 
@@ -299,7 +299,7 @@ sub obsnumsort {
 
 =head1 SEE ALSO
 
-C<OMP::CGI::WORFPage>
+C<OMP::CGIComponent::WORFPage>
 
 =head1 AUTHOR
 

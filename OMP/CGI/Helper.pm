@@ -1,4 +1,4 @@
-package OMP::CGI::Helper;
+package OMP::CGIComponent::Helper;
 
 =head1 NAME
 
@@ -6,8 +6,8 @@ OMP::CGIHelper - Helper for the OMP feedback system CGI scripts
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::Helper;
-  use OMP::CGI::Helper qw/flex_page/;
+  use OMP::CGIComponent::Helper;
+  use OMP::CGIComponent::Helper qw/flex_page/;
 
 =head1 DESCRIPTION
 
@@ -96,7 +96,7 @@ sub flex_page {
 
 Return the URL where public cgi scripts can be found.
 
-  $url = OMP::CGI::Helper->public_url();
+  $url = OMP::CGIComponent::Helper->public_url();
 
 =cut
 
@@ -114,7 +114,7 @@ sub public_url {
 
 Return the URL where private cgi scripts can be found.
 
-  $url = OMP::CGI::Helper->private_url();
+  $url = OMP::CGIComponent::Helper->private_url();
 
 =cut
 

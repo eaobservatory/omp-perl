@@ -1,15 +1,15 @@
-package OMP::CGI::Weather;
+package OMP::CGIComponent::Weather;
 
 =head1 NAME
 
-OMP::CGI::Weather - Web display of weather information
+OMP::CGIComponent::Weather - Web display of weather information
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::Weather;
+  use OMP::CGIComponent::Weather;
 
-  $html = OMP::CGI::Weather::wvm_graph_code;
-  $html = OMP::CGI::Weather::tau_plot_code;
+  $html = OMP::CGIComponent::Weather::wvm_graph_code;
+  $html = OMP::CGIComponent::Weather::tau_plot_code;
 
 =head1 DESCRIPTION
 

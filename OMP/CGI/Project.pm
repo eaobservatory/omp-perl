@@ -1,12 +1,12 @@
-package OMP::CGI::Project;
+package OMP::CGIComponent::Project;
 
 =head1 NAME
 
-OMP::CGI::Project - Web display of project information
+OMP::CGIComponent::Project - Web display of project information
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::Project;
+  use OMP::CGIComponent::Project;
 
 =head1 DESCRIPTION
 

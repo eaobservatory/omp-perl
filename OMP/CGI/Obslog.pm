@@ -1,12 +1,12 @@
-package OMP::CGI::Obslog;
+package OMP::CGIComponent::Obslog;
 
 =head1 NAME
 
-OMP::CGI::Obslog - CGI functions for the observation log tool.
+OMP::CGIComponent::Obslog - CGI functions for the observation log tool.
 
 =head1 SYNOPSIS
 
-use OMP::CGI::Obslog;
+use OMP::CGIComponent::Obslog;
 
 =head1 DESCRIPTION
 
@@ -33,17 +33,21 @@ use OMP::ProjServer;
 use OMP::WORF;
 use OMP::Error qw/ :try /;
 
+use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
+
 our $VERSION = (qw$Revision$ )[1];
 
 require Exporter;
 
-our @ISA = qw/Exporter/;
-our @EXPORT = qw( obs_table obs_summary obs_comment_form
-                  obs_add_comment cgi_to_obs cgi_to_obsgroup );
+@ISA = qw/Exporter/;
+@EXPORT_OK = qw( obs_table obs_summary obs_comment_form
+		 obs_add_comment cgi_to_obs cgi_to_obsgroup
+		 print_obslog_header print_obslog_footer
+		 print_obscomment_footer );
 
-our %EXPORT_TAGS = (
-                    'all' => [ @EXPORT ]
-		   );
+%EXPORT_TAGS = (
+		'all' => [ @EXPORT_OK ]
+	       );
 
 Exporter::export_tags(qw/ all /);
 
@@ -1139,7 +1143,7 @@ sub print_obscomment_footer {
 
 =head1 SEE ALSO
 
-C<OMP::CGI::ObslogPage>
+C<OMP::CGIPage::Obslog>
 
 =head1 AUTHOR
 

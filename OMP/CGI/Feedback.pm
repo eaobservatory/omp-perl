@@ -1,14 +1,14 @@
-package OMP::CGI::Feedback;
+package OMP::CGIComponent::Feedback;
 
 =head1 NAME
 
-OMP::CGI::Feedback - Web display of feedback system comments
+OMP::CGIComponent::Feedback - Web display of feedback system comments
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::Feedback;
+  use OMP::CGIComponent::Feedback;
 
-  $content_html = OMP::CGI::Feedback::fb_entries;
+  $content_html = OMP::CGIComponent::Feedback::fb_entries;
 
 =head1 DESCRIPTION
 
@@ -189,21 +189,6 @@ sub comment_form {
 	$q->endform;
   print "</td></table>";
 
-}
-
-=item B<fb_logout>
-
-Gives the user a cookie with an expiration date in the past, effectively deleting the cookie.
-
-  fb_logout($cgi);
-
-=cut
-
-sub fb_logout {
-  my $q = shift;
-
-  print $q->h2("You are now logged out of the feedback system.");
-  print "You may see feedback for a project by clicking <a href='projecthome.pl'>here</a>.";
 }
 
 =item B<submit_fb_comment>

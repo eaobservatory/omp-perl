@@ -1,12 +1,12 @@
-package OMP::CGI::Shiftlog;
+package OMP::CGIComponent::Shiftlog;
 
 =head1 NAME
 
-OMP::CGI::Shiftlog - CGI functions for the shiftlog tool.
+OMP::CGIComponent::Shiftlog - CGI functions for the shiftlog tool.
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::Shiftlog;
+  use OMP::CGIComponent::Shiftlog;
 
   my $verified = parse_query( $cgi );
 
@@ -532,7 +532,7 @@ END
 
 =head1 SEE ALSO
 
-C<OMP::CGI::ShiftlogPage>
+C<OMP::CGIPage::Shiftlog>
 
 =head1 AUTHOR
 

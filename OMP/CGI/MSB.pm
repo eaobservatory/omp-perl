@@ -1,12 +1,12 @@
-package OMP::CGI::MSB;
+package OMP::CGIComponent::MSB;
 
 =head1 NAME
 
-OMP::CGI::MSB - Web display of MSB information
+OMP::CGIComponent::MSB - Web display of MSB information
 
 =head1 SYNOPSIS
 
-  use OMP::CGI::MSB;
+  use OMP::CGIComponent::MSB;
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ use Carp;
 
 use Time::Seconds qw(ONE_HOUR);
 
-use OMP::CGI::Helper;
+use OMP::CGIComponent::Helper;
 use OMP::Constants qw(:done);
 use OMP::DBServer;
 use OMP::Error qw(:try);
