@@ -128,7 +128,7 @@ sub minmax {
   my $self = shift;
   if (@_) {
     $self->min( $_[0] );
-    $self->min( $_[1] );
+    $self->max( $_[1] );
   }
   my @minmax = ( $self->min, $self->max );
   return (wantarray ? @minmax : \@minmax);
@@ -366,7 +366,7 @@ sub intersection {
 
     if ($inverted) {
       # Any inverted: II or BI or IB or UI or IU
-      print "*********** INVERTED *********\n";
+      #print "*********** INVERTED *********\n";
 
       if ($inverted1 && $inverted2) {
 	# II
@@ -470,7 +470,7 @@ sub intersection {
 
     } else {
       # BB, BU or UB
-      print "*********** BOUND NON INVERTED ************\n";
+      #print "*********** BOUND NON INVERTED ************\n";
       if ($bound1 and $bound2) {
 	# BB
 	#print "---------- BB -----------\n";
@@ -495,7 +495,6 @@ sub intersection {
 	# unbound is now guaranteed to be (2)
 	# Check that unbound max is in range
 	if (defined $max2) {
-	  print "MAX2: $max2\n";
 	  if ($max2 < $max1 && $max2 > $min1) {
 	    # inside range
 	    $outmax = $max2;
@@ -511,7 +510,6 @@ sub intersection {
 	  }
 
 	} elsif (defined $min2) {
-	  print "MIN2: $min2\n";
 	  if ($min2 < $max1 && $min2 > $min1) {
 	    # inside range
 	    $outmax = $max1;

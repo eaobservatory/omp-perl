@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 92 }
+BEGIN { plan tests => 98 }
 
 use OMP::Range;
 
@@ -12,6 +12,17 @@ ok($r->min, 5);
 ok($r->max, 20);
 ok("$r","5-20");
 ok(!$r->isinverted);
+
+# Test an accessor
+my @range = $r->minmax;
+ok($range[0], 5);
+ok($range[1], 20);
+$r->minmax(10,30);
+ok($r->min, 10);
+ok($r->max, 30);
+$r->minmax(@range);
+ok($range[0], 5);
+ok($range[1], 20);
 
 # Specify some test particles
 my @inside = (6,19.5,10);
