@@ -8,18 +8,31 @@ MSBServer + SpServer
  - Treat tauband and seeing as single bits of an integer        [1.0]
    to allow scheduling on "band 1+2"
 
+    [not required since the query is now built up as
+      "band 1 or band 2"]
+
  - decide on whether project ID should be case sensitive
    and implement that decision.
+
+    [implemented as case insensitive - everything is now upper cased]
 
 MSBServer
 ---------
 
  - Query parsing (OMP::MSBQuery)                                [4.0]
 
+    [done first pass]
+
+
  - increment "pending" allocation when MSB marked as done       [1.0]
     [needs interaction with OMP::ProjDB class]
 
  - Stored procedures for calculating target elevation           [5.0??10??]
+
+    [this will be done in perl as a first test implementation.
+     Should not be too onerous because we only have to test
+     the first N rather than all the matches]
+
 
 SpServer
 --------
@@ -31,6 +44,10 @@ SpServer
     before deleting old rows rather than querying the database
     each time an MSB is added to the DB.
 
+      [This has now been optimised so that the ID is cached
+       during a store]
+
+
 ProjServer
 ----------
 
@@ -39,6 +56,9 @@ ProjServer
  - implement project summary                        [1.0]
      - as XML
      - as plain text
+
+  [Done]
+
 
  - implement queue summary                          [3.0]
     (all projects, projects with time remaining)
