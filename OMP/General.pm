@@ -655,6 +655,25 @@ sub verify_staff_password {
   return $status;
 }
 
+=item B<am_i_staff>
+
+Compare the supplied project ID with the internal staff project ID.
+
+  OMP::General->am_i_staff( $projectid );
+
+Returns true if the supplied project ID matches, false otherwise. This 
+method does a case-insensitive match, and does not do password or database 
+verification.
+
+=cut
+
+sub am_i_staff {
+  my $self = shift;
+  my $projectid = shift;
+
+  return $projectid =~ /^staff$/i;
+}
+
 =back
 
 =head2 Logging
