@@ -52,14 +52,12 @@ my $db = new OMP::MSBDB( DB => new OMP::DBbackend );
 # Query the database for all projects whose programs have been modified
 # since the last dump
 
-my @projects = map { OMP::ProjServer->projectDetails( $_, "***REMOVED***", "object" ) }
-  $db->listModifiedPrograms($date);
+my @projects = $db->listModifiedPrograms($date);
 
 exit unless (@projects);
 
 # Now for each of these projects attempt to read a science program
-for my $proj (@projects) {
-  my $projid = $proj->projectid;
+for my $projid (@projects) {
   try {
 
     # Create new DB object using backdoor password
@@ -84,12 +82,6 @@ for my $proj (@projects) {
   };
 
 }
-
-# Now dump the project info
-my $outfile = "projects.dump";
-open my $fh, ">$outfile" or die "Error opening file $outfile: $!";
-print $fh Dumper(@projects);
-close $fh;
 
 # Write date of this dump to the log
 my $today = gmtime;
