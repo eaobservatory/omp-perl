@@ -617,6 +617,7 @@ sub _remove_old_sciprog {
   my $self = shift;
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   $dbh->do("DELETE FROM $SCITABLE WHERE projectid = '$proj'")
     or throw OMP::Error::SpStoreFail("Error removing old science program: ".$dbh->errstr);
@@ -640,6 +641,8 @@ sub _get_old_sciprog_timestamp {
 
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   my $ref = $dbh->selectall_arrayref("SELECT timestamp FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
 
   # Assume that no $ref means no entry in db
@@ -663,6 +666,7 @@ sub _db_store_sciprog {
   my $sp = shift;
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'$sp')", undef,
 	  $proj, $sp->timestamp) or
@@ -686,6 +690,8 @@ sub _db_fetch_sciprog {
   my $sp = shift;
   my $proj = $self->projectid;
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   my $ref = $dbh->selectall_arrayref("SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj'", { Columns => {}});
 
   throw OMP::Error::SpRetrieveFail("Error retrieving science program XML from database: ". $dbh->errstr) unless defined $ref;
@@ -711,6 +717,8 @@ sub _get_next_index {
 
   # Return the current index by doing a sort in descending order
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   my $sth = $dbh->prepare("SELECT msbid FROM $MSBTABLE ORDER BY msbid DESC")
     or throw OMP::Error::DBError("Can not prepare statement for index retrieval: ". $dbh->errstr);
 
@@ -754,6 +762,8 @@ sub _db_begin_trans {
   return if $self->_intrans;
 
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   $dbh->do("BEGIN TRANSACTION")
     or throw OMP::Error::DBError("Error beginning transaction: $DBI::errstr");
   $self->_intrans(1);
@@ -769,6 +779,7 @@ is okay and that the actions should be finalised.
 sub _db_commit_trans {
   my $self = shift;
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   if ($self->_intrans) {
     $self->_intrans(0);
@@ -791,6 +802,7 @@ sub _db_rollback_trans {
   my $self = shift;
 
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
   if ($self->_intrans) {
     $self->_intrans(0);
     $dbh->do("ROLLBACK TRANSACTION")
@@ -856,6 +868,7 @@ sub _insert_row {
 
   # Get the DB handle
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
   # Store the data
   my $proj = $self->projectid;
@@ -912,6 +925,7 @@ sub _clear_old_rows {
 
   # Get the DB handle
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
   my $proj = $self->projectid;
 
   # Remove the old data
@@ -961,6 +975,8 @@ sub _fetch_row {
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   my $ref = $dbh->selectall_arrayref( $statement, { Columns=>{} },
 				      map { $query{$_} } sort keys %query
 				    );
@@ -997,6 +1013,8 @@ sub _run_query {
 
   # prepare and execute
   my $dbh = $self->_dbhandle;
+  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+
   my $ref = $dbh->selectall_arrayref( $sql, { Columns=>{} } );
   throw OMP::Error::DBError("Error executing query:".$DBI::errstr)
     unless defined $ref;
