@@ -1763,13 +1763,29 @@ sub SpTelescopeObsComp {
   my %summary = @_;
   #print "In target\n";
 
+  # Need to support two versions of the TCS XML.
+  # Old version has
+  # <base>
+  #  <target type="science">
+  #       ...
+  # New version has:
+  # <BASE TYPE="Base">
+  #   <target>
+  #        ....
+  # and changes hmsdeg and degdeg to spherSystem
+
+  # First try the new method
+  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"]/target');
+
+  # Try again if at first we dont succeed
   # Get the base target element
-  my ($base) = $el->findnodes(".//base/target");
+  ($base) = $el->findnodes(".//base/target")
+    unless $base;
 
   # Could be an error (it is for now) but we may be specifying 
   # "best guess" as an option for the translator for pointing and
   # standards
-  throw OMP::Error::FatalError("No base target position specified in SpTelescopeObsComp\n") unless $base;
+  throw OMP::Error::SpBadStructure("No base target position specified in SpTelescopeObsComp\n") unless $base;
 
   $summary{target} = $self->_get_pcdata($base, "targetName");
   $summary{target} = "NONE SUPPLIED" unless defined $summary{target};
@@ -1779,30 +1795,37 @@ sub SpTelescopeObsComp {
   # J2000. If we have conicSystem or namedSystem then we have a moving
   # source on our hands and we have to work out it's azel dynamically
   # If we have a degdegSystem with altaz we can always schedule it.
+  # spherSystem now replaces hmsdegsystem and degdegsystem
 
   # Search for the element matching (this will be targetName 90% of the time)
   # We know there is only one system element per target
   my ($system) = $self->_get_child_elements($base, qr/System$/);
 
   my $sysname = $system->getName;
-  if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem") {
+  if ($sysname eq "hmsdegSystem" or $sysname eq "degdegsystem"
+     or $sysname eq 'spherSystem') {
 
     # Get the "long" and "lat"
     my $c1 = $self->_get_pcdata( $system, "c1");
     my $c2 = $self->_get_pcdata( $system, "c2");
 
-    # Get the coordinate frame
-    my $type = $system->getAttribute("type");
+    # Get the coordinate frame. This is either "type" or "SYSTEM"
+    my $type = ($sysname eq 'spherSystem'  ? $system->getAttribute("SYSTEM")
+		: $system->getAttribute("type"));
 
     # degdeg uses different keys to hmsdeg
     #print "System: $sysname\n";
     my ($long ,$lat);
-    if ($sysname eq "hmsdegSystem") {
+    if ($type eq "J2000" or $type eq "B1950") {
       $long = "ra";
       $lat = "dec";
-    } else {
+    } elsif ($type eq "GAL") {
+      $type = "galactic"; # So that Astro::Coords understands
       $long = "long";
       $lat = "lat";
+    } else {
+      $long = "UNKNOWN";
+      $lat = "UNKNOWN";
     }
 
     # Create a new coordinate object
