@@ -22,12 +22,14 @@ use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
 use Time::Piece;
+use Date::Manip;
 
 use OMP::Fault;
 use OMP::FaultServer;
 use OMP::Fault::Response;
 use OMP::MSBServer;
 use OMP::User;
+use OMP::UserServer;
 use OMP::Error qw(:try);
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
@@ -106,6 +108,15 @@ sub file_fault {
 		      -default=>'0',
 		      -size=>'4',
 		      -maxlength=>'10',);
+  print "</td><tr><td align=right><b>Time of fault:</td><td>";
+  print $q->textfield(-name=>'time',
+		      -size=>20,
+		      -maxlength=>128,);
+  print "<b>";
+  print $q->radio_group(-name=>'tz',
+		        -values=>['UT','HST'],
+		        -default=>'UT',);
+  print "</b>";
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
 		      -size=>'60',
@@ -186,6 +197,22 @@ sub file_fault_output {
     %projects = map {lc($_), undef} @assoc, @assoc2;
   }
 
+  # If the time of fault was provided use it otherwise
+  # default to the current time
+  my $t;
+  if ($q->param('time')) {
+    my $format = "%Y-%m-%dT%T";
+    my $faultdate = UnixDate($q->param("time"),$format);
+    $t = Time::Piece->strptime($faultdate,$format);
+
+    # Convert time to UT if it was given as HST
+    ($q->param('tz') =~ /HST/) and $t -= $t->tzoffset;
+
+    # Subtract a day if date is in the future.
+    my $gmtime = gmtime;
+    ($gmtime < $t) and $t -= 86400;
+  }
+
   my $author = $q->param('user');
   my $user = new OMP::User(userid => $author);
 
@@ -204,6 +231,8 @@ sub file_fault_output {
   if (%projects) {
     $fault->projects([keys %projects]);
   }
+
+  ($t) and $fault->faultdate($t);
 
   # Submit the fault the the database
   my $faultid;
@@ -359,10 +388,10 @@ sub query_fault_output {
 
   # The 'Submit' submit button was clicked
   if ($q->param('Submit')) {
-    $delta = $q->param('days');
     my @xml;
 
-    push (@xml, "<category>$cookie{category}</category>");
+    my $category = $q->param('cat');
+    push (@xml, "<category>$category</category>");
 
     if ($q->param('system') !~ /any/) {
       my $system = $q->param('system');
@@ -374,6 +403,19 @@ sub query_fault_output {
       push (@xml, "<type>$type</type>");
     }
 
+    if ($q->param('author') !~ /any/) {
+      my $author = $q->param('author');
+      push (@xml, "<author>$author</author>");
+    }
+
+    $delta = $q->param('days');
+    push (@xml, "<date delta='-$delta'>" . $t->datetime . "</date>")
+      if ($delta);
+
+    my $text = $q->param('text');
+    push (@xml, "<text>$text</text>")
+      if ($text);
+
     if ($q->param('search') =~ /response/) {
       push (@xml, "<isfault>0</isfault>");
       $title = "Displaying faults responded to in the last $delta days";
@@ -383,7 +425,7 @@ sub query_fault_output {
     } else {
       $title = "Displaying faults with any activity in the last $delta days";
     }
-    $xml = "<FaultQuery><date delta='-$delta'><category>$cookie{category}</category>" . $t->datetime . "</date>" . join('',@xml) . "</FaultQuery>";
+    $xml = "<FaultQuery><category>$cookie{category}</category>" . join('',@xml) . "</FaultQuery>";
 
   } else {
     # One of the other submit buttons was clicked
@@ -471,6 +513,15 @@ sub query_fault_form {
   my $q = shift;
   my %cookie = @_;
 
+  # User drop-down menu values and labels
+  my $userquery = "<UserQuery></UserQuery>";
+  my $users = OMP::UserServer->queryUsers($userquery, "object");
+  my @users = map {$_->userid} @$users;
+  my @uvalues = sort(@users);
+  unshift(@uvalues, "any");
+  my %ulabels = map {$_->userid, $_->name} @$users;
+  $ulabels{any} = 'Any';
+
   my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = values %$systems;
   unshift( @systems, "any" );
@@ -484,7 +535,7 @@ sub query_fault_form {
   $typelabels{any} = 'Any';
 
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
-  print $q->startform;
+  print $q->startform(-method=>'GET');
   print "<b>Display faults for the last ";
   print $q->textfield(-name=>'days',
 		      -size=>3,
@@ -500,6 +551,11 @@ sub query_fault_form {
 		       -values=>\@types,
 		       -labels=>\%typelabels,
 		       -default=>'any',);
+  print "</td><tr><td><b>User </b>";
+  print $q->popup_menu(-name=>'author',
+		       -values=>\@uvalues,
+		       -labels=>\%ulabels,
+		       -default=>'any');
   print "</td><tr><td><b>";
   print $q->radio_group(-name=>'search',
 		        -values=>['response','file','activity'],
@@ -508,11 +564,15 @@ sub query_fault_form {
 				  file=>"Filed",
 				  activity=>"With any activity"});
 
-  print "</b></td><td valign=bottom>";
+  print "</b></td><tr><td>";
+  print $q->textfield(-name=>'text',
+		      -size=>44,
+		      -maxlength=>256,);
+  print "</b></td><td valign=bottom align=left>";
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
-
+  print $q->hidden(-name=>'cat', -default=>$cookie{category});
   print $q->submit(-name=>"Submit");
   print "</td><tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
   print $q->submit(-name=>"Major faults");
