@@ -644,6 +644,7 @@ sub locate_msbs {
   my $projectid = $self->projectID;
   my @objs = map { new OMP::MSB( TREE => $_, 
 				 REFS => $refhash,
+				 OTVERSION => $self->ot_version,
 				 PROJECTID => $projectid ) } @spmsb;
 
   # Remove duplicates

@@ -121,12 +121,16 @@ sub new {
   my $projid;
   $projid = $args{PROJECTID} if exists $args{PROJECTID};
 
+  my $ot_version;
+  $ot_version = $args{OTVERSION} if exists $args{OTVERSION};
+
   # Now create our Science Program hash
   my $msb = {
 	    ProjectID => $projid,
 	    Parser => $parser,
 	    XMLRefs => $refs,
 	    Tree => $tree,
+	    OT_Version => $ot_version,
 	    CheckSum => undef,
 	    ObsSum => [],
 	    Weather => {},
@@ -215,6 +219,17 @@ sub checksum {
   return $self->{CheckSum};
 }
 
+=item B<ot_version>
+
+Returns the version of the XML used to generate this MSB.
+Can be undefined.
+
+=cut
+
+sub ot_version {
+  my $self = shift;
+  return $self->{OT_Version};
+}
 
 =item B<_tree>
 
@@ -857,9 +872,22 @@ sub hasBeenObserved {
 
     # Now decrement the counter on the SpOR
     my $n = $SpOR->getAttribute("numberOfItems");
+    print "Current number of items: $n\n" if $DEBUG;
     $n--;
+
+    # Do we need to subtract an additional value?
+    # due to a bug in the OT
+    print "OT Version: ". $self->ot_version ."\n" if $DEBUG;
+    if (defined $self->ot_version && $self->ot_version > 20030701 && 
+	$self->ot_version < 20030818) {
+      print "Fudging numberOfItems due to OT bug\n";
+      $n--;
+    }
+
     $n = 0 if $n < 0;
     $SpOR->setAttribute("numberOfItems", $n);
+
+    print "Number of Items after decrement : $n\n" if $DEBUG;
 
     # If the number of remaining items is 0 we need to go
     # and find all the MSBs that are left and fix up their
@@ -870,9 +898,10 @@ sub hasBeenObserved {
     if ($n == 0) {
       print "Attempting to REMOVE remaining MSBs\n" if $DEBUG;
       my @msbs = $SpOR->findnodes(".//SpMSB");
-      print "Located SpMSB...\n" if $DEBUG;
+      print "Located ".@msbs." SpMSB...\n" if $DEBUG;
+      my $count = @msbs;
       push(@msbs, $SpOR->findnodes('.//SpObs[@msb="true"]'));
-      print "Located SpObs...\n" if $DEBUG;
+      print "Located ". (@msbs - $count). " SpObs...\n" if $DEBUG;
 
       for (@msbs) {
 	# Eek this should be happening on little OMP::MSB objects
