@@ -3618,7 +3618,7 @@ sub _extract_coord_info {
       %coords = ( ra => $c1, dec => $c2, type => $type);
     } elsif ($type =~ /gal/i) {
       %coords = ( long => $c1, lat => $c2, type => 'galactic', units=>'deg' );
-    } elsif ($type eq 'Az/El') {
+    } elsif ($type eq 'Az/El' || $type eq 'AZEL' ) {
       %coords = ( az => $c1, el => $c2 );
     }
 
