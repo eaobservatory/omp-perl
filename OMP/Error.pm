@@ -381,5 +381,8 @@ use base qw/ OMP::Error /;
 package OMP::Error::UnknownProject;
 use base qw/ OMP::Error /;
 
+package OMP::Error::MailError;
+use base qw/ OMP::Error /;
+
 1;
 
