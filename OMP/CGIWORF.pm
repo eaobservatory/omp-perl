@@ -188,6 +188,7 @@ sub thumbnails_page {
     my $rowclass="row_b";
     print "<tr class=\"$rowclass\">";
 
+    my %displayed;
     my $curgrp;
     # Create Info::Obs objects for each file.
     FILELOOP: foreach my $file ( @matchfiles ) {
@@ -256,6 +257,8 @@ sub thumbnails_page {
             $curgrp = int( $1 );
           }
         }
+        my $key = $instrument . $curgrp;
+        if( $displayed{$key} ) { next FILELOOP; }
         print "<td>";
         print "<a href=\"worf.pl?ut=$obsut&runnr=";
         print $curgrp . "&inst=" . $obs->instrument;
@@ -271,6 +274,7 @@ sub thumbnails_page {
         print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
         print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
         print "Suffix:&nbsp;none\n</td>";
+        $displayed{$key}++;
         next FILELOOP;
       } else {
         foreach my $suffix ( @suffices ) {
@@ -294,6 +298,8 @@ sub thumbnails_page {
                 $curgrp = int( $1 );
               }
             }
+            my $key = $instrument . $curgrp . $suffix;
+            if( $displayed{$key} ) { next FILELOOP; }
             print "<td>";
             print "<a href=\"worf.pl?ut=$obsut&runnr=";
             print $curgrp . "&inst=" . $obs->instrument;
@@ -311,6 +317,7 @@ sub thumbnails_page {
             print "Instrument:&nbsp;" . $obs->instrument . "<br>\n";
             print "Group&nbsp;number:&nbsp;" . $curgrp . "<br>\n";
             print "Suffix:&nbsp;" . $suffix . "\n</td>";
+            $displayed{$key}++;
             next FILELOOP;
           }
         }
