@@ -140,11 +140,10 @@ sub new {
   my $db = bless {
 		  TransCount => 0,
 		  Handle => undef,
+      IsConnected => 0,
 		 }, $class;
 
-  $db->connect;
-
-  # Store in the cache
+  # Store object in the cache
   $CACHE{$class} = $db;
 
   return $db;
@@ -155,6 +154,25 @@ sub new {
 =head2 Accessor Methods
 
 =over 4
+
+=item B<_connected>
+
+Set or retrieve the connection status of the database object.
+
+  $db->_connected( 1 );
+  $connected = $db->_connected;
+
+When setting the status, this method takes one boolean parameter. It
+returns a boolean when called in scalar context, and returns false
+by default.
+
+=cut
+
+sub _connected {
+  my $self = shift;
+  if (@_) { $self->{IsConnected} = shift; }
+  return $self->{IsConnected};
+}
 
 =item B<handle>
 
@@ -172,7 +190,16 @@ object.
 
 sub handle {
   my $self = shift;
-  if (@_) { $self->{Handle} = shift; }
+  if (@_) {
+    $self->{Handle} = shift;
+  } elsif (!defined $self->{Handle} && !$self->_connected) {
+
+    # Only do the connect when we're asked what the handle is. We
+    # only do this here so that we don't run into an infinite loop
+    # if we are supplied with a handle.
+    $self->connect;
+
+  }
   return $self->{Handle};
 }
 
@@ -241,6 +268,9 @@ sub connect {
   my $dbh = DBI->connect("dbi:Sybase:server=${DBserver};database=${DBdatabase};timeout=120", $DBuser, $DBpwd, { PrintError => 0 })
     or throw OMP::Error::DBConnection("Cannot connect to database: $DBI::errstr");
 
+  # Indicate that we have connected
+  $self->_connected(1);
+
   # Store the handle
   $self->handle( $dbh );
 
@@ -248,7 +278,8 @@ sub connect {
 
 =item B<disconnect>
 
-Disconnect from the database.
+Disconnect from the database. This method undefines the C<handle> object and
+sets the C<_connected> status to disconnected.
 
 =cut
 
@@ -256,6 +287,7 @@ sub disconnect {
   my $self = shift;
   $self->handle->disconnect;
   $self->handle( undef );
+  $self->_connected( 0 );
 }
 
 =item B<begin_trans>
@@ -394,10 +426,12 @@ are in a transaction.
 
 sub DESTROY {
   my $self = shift;
-  my $dbh = $self->handle;
-  if (defined $dbh) {
-    $self->rollback_trans;
-    $self->disconnect;
+  if ($self->_connected) {
+    my $dbh = $self->handle();
+    if (defined $dbh) {
+      $self->rollback_trans;
+      $self->disconnect;
+    }
   }
 }
 
