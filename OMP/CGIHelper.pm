@@ -36,6 +36,10 @@ use OMP::General;
 use OMP::Error qw(:try);
 use OMP::Constants qw(:fb :done :msb);
 
+use Data::Dumper;
+
+use Time::Piece;
+
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
 require Exporter;
@@ -44,7 +48,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -712,6 +716,7 @@ sub observed_output {
   }
 
   if (!$q->param("Add Comment")) {
+    observed_form($q);
     my $utdate = $q->param('utdate');
     my $commentref = OMP::MSBServer->observedMSBs($utdate, 1, 'data');
     msb_comments_by_project($q, $commentref);
@@ -747,7 +752,6 @@ sub observed_output {
       };
     }
 
-    observed_form($q);
     print $q->hr;
 
     (@$commentref) and print observed_form($q);
@@ -812,14 +816,16 @@ sub list_projects_output {
   my $status = $q->param('status');
   my $support = $q->param('support');
   my $country = $q->param('country');
+  my $telescope = $q->param('telescope');
 
   ($support eq 'dontcare') and $support = undef;
   ($country =~ /any/i) and $country = undef;
+  ($telescope =~ /any/i) and $telescope = undef;
   my $xmlquery;
   if ($status eq 'all') {
-    $xmlquery = "<ProjQuery><semester>$semester</semester><support>$support</support><country>$country</country></ProjQuery>";
+    $xmlquery = "<ProjQuery><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
   } else {
-    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country></ProjQuery>";
+    $xmlquery = "<ProjQuery><status>$status</status><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
   }
 
   OMP::General->log_message("Projects list retrieved by user $cookie{userid}");
@@ -835,7 +841,7 @@ sub list_projects_output {
     print $q->hr;
 
     foreach my $project (@$projects) {
-      print "<a href='projecthome.pl?urlprojid=" . $project->projectid . "'>";
+      print "<a href='http://omp.jach.hawaii.edu/projecthome.pl?urlprojid=" . $project->projectid . "'>";
       print $q->h2('Project ' . $project->projectid);
       print "</a>";
       my %details = (projectid=>$project->projectid, password=>$cookie{password});
@@ -1101,12 +1107,16 @@ sub msb_comments_by_project {
 
   foreach my $msb (@$comments) {
     my $projectid = $msb->projectid;
-    $sorted{$projectid} = [] unless exists $sorted{projectid};
+    $sorted{$projectid} = [] unless exists $sorted{$projectid};
     push(@{ $sorted{$projectid} }, $msb);
   }
 
+  print "<pre>sorted";
+  print Dumper(%sorted);
+  print "</pre>";
+
   foreach my $projectid (keys %sorted) {
-    print $q->h2("Project: $projectid");
+    print $q->h2("Project: <a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$projectid'>$projectid</a>");
     msb_comments($q, \@{$sorted{$projectid}});
     print $q->hr;
   }
@@ -1411,7 +1421,7 @@ sub project_home {
   }
 
   # Link to the MSB history page
-  print "Click <a href='/msbhist.pl'>here</a> for more details on the observing history of each MSB.";
+  print "Click <a href='msbhist.pl'>here</a> for more details on the observing history of each MSB.";
   
   # Display remaining MSBs
   print "<h3>Observations remaining to be observed:</h3>";
@@ -1440,6 +1450,56 @@ sub project_home {
   }
 
   # The "end of run" report goes somewhere in here
+}
+
+=item B<report_output>
+
+Create a page displaying an observer report.
+
+  report_output($cgi, %cookie);
+
+=cut
+
+sub report_output {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Get the date, telescope and shift from the URL
+  my $date = $q->url_param('date');
+  my $shift = $q->url_param('sh')
+    unless ($q->url_param('sh') !~ /1|2/);
+  my $telescope = $q->url_param('tel');
+
+  my $t = Time::Piece->strptime($date,"%Y%m%d");
+#  ($shift eq "1") and $t += 91800          # Set date to end of first shift
+#    or $t += 120600;                       # Set date to end of second shift
+
+  # Now get the date in UT
+  $t -= $t->tzoffset;
+
+  print "<pre>";
+  print Dumper($obs);
+  print "</pre>";
+
+  print "<h2>Report for $date, $shift shift</h2>";
+  print "<h2>Projects Observed</h2>";
+
+  # Get the MSBs observed during this shift sorted by project
+  my $xml = "<MSBDoneQuery>".
+      "<date delta='-8' units='hours'>". $t->datetime ."</date>".
+	# Right now we're specifying the telescope's instruments
+	# in the query instead of the telescope since we can't query
+	# on telescope yet
+	"".
+	  "<status>". OMP__DONE_DONE ."</status>".
+	    "</MSBDoneQuery>";
+
+  my $commentref = OMP::MSBServer->queryMSBdone($xml, 0, 'data');
+  msb_comments_by_project($q, $commentref);
+
+  # Get the relative faults
+
+  # Figure out the time lost to faults
 }
 
 =back
