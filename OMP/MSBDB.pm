@@ -1401,7 +1401,7 @@ sub _run_query {
       # If we have an open ended range we need to
       # specify undef for the limit rather than the magic
       # value (since OMP::Range understands lower limits)
-      $msb->{$maxkey} = undef if $msb-{$maxkey} == $INF{$key};
+      $msb->{$maxkey} = undef if $msb->{$maxkey} == $INF{$key};
 
       # Set up the array
       $msb->{$key} = new OMP::Range( Min => $msb->{$minkey},
