@@ -3008,11 +3008,14 @@ sub _get_range {
   my @matches = $el->getElementsByTagName( $tag );
   if (@matches) {
 
+    # Get an optional units attribute
+    my $units = $matches[-1]->getAttribute("units");
+
     # Now just look for max and min elements
     my $min = $self->_get_pcdata( $matches[-1], "min");
     my $max = $self->_get_pcdata( $matches[-1], "max");
 
-    $result = new OMP::Range(Min => $min, Max => $max)
+    $result = new OMP::Range(Min => $min, Max => $max, Units => $units);
       if defined $min and defined $max;
 
   }
@@ -4333,6 +4336,52 @@ sub SpInstHeterodyne {
 
   return %summary;
 
+}
+
+=item B<SpDRRecipe>
+
+Data reduction recipe component.
+
+ %summary = $msb->SpDRRecipe( $el, %summary );
+
+=cut
+
+sub SpDRRecipe {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  # store all the parameters in a DR component in the hash
+  my %dr;
+
+  # These will be ACSIS specific but non-fatal if missing
+  $dr{window_type} = $self->_get_pcdata($el, 'window_type');
+  $dr{spectral_binning} = $self->_get_pcdata($el, 'channelBinning');
+  $dr{spectral_truncation} = $self->_get_pcdata($el, 'truncationChannels');
+
+  # Baselines can be specified in 3 ways:
+  #   - None : baselines is "undef"
+  #   - Auto : baselines is a scalar indicating the fraction
+  #              of the spectral width to use for baselining
+  #   - Manual : baselines is an array ref of OMP::Range objects
+  # Baselines are stored as an array of OMP::Range objects if
+  # present. 
+  my ($baseline) = $el->findnodes(".//baseline");
+  if ($baseline) {
+    my $method = $self->_get_pcdata( $baseline, "baseliningMethod" );
+    if ($method eq 'Manual') {
+      my @regel = $baseline->findnodes(".//fit_region");
+      my @blines = map { $self->_get_range( $_, "range" ) } @regel;
+      $dr{baseline} = \@blines;
+    } elsif ($method eq 'Automatic') {
+      $dr{baseline} = $self->_get_pcdata( $baseline, "baselineFraction");
+    }
+  }
+
+  # Store it
+  $summary{data_reduction} = \%dr;
+
+  return %summary;
 }
 
 =item B<SpTelescopeObsComp>
