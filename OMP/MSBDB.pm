@@ -1527,6 +1527,8 @@ sub _run_query {
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+#  use Data::Dumper;
+#  print Dumper($ref);
   # No point hanging around if nothing retrieved
   return () unless @$ref;
 
@@ -1535,15 +1537,36 @@ sub _run_query {
   # Now for each MSB we need to retrieve all of the Observation
   # information and store it in the results hash
   # Convention dictates that this information ...???
-  my @clauses = map { " msbid = ".$_->{msbid}. ' ' } @$ref;
-  $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
-  my $obsref = $self->_db_retrieve_data_ashash( $sql );
+  # We can not simply extract all the MSBIDs in one go since we
+  # will overflow the query buffer. Need to split the list into
+  # chunks and query each in turn. Abort the loop once we hit
+  # the requisite number of matches.
+
+  # For now kluge it so that we do the fetch for all the MSBIDs
+  # even if we know that we only need the first few from the first
+  # query (assuming they match the observability constraints). When
+  # we have time we should either think of a better way of doing this
+  # in the SQL or at least expand the loop to include the observability
+  # tests, jumping out when we have enough matches.
+  my $MAX_ID = 250;
+  my @observations;
+  my $start_index = 0;
+  while ($start_index < $#$ref) {
+    my $end_index = ( $start_index + $MAX_ID < $#$ref ?
+		    $start_index + $MAX_ID : $#$ref);
+    my @clauses = map { " msbid = ".$_->{msbid}. ' ' }
+      @$ref[$start_index..$end_index];
+    $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
+    my $obsref = $self->_db_retrieve_data_ashash( $sql );
+    push(@observations, @$obsref);
+    $start_index = $end_index + 1;
+  }
 
   # Now loop over the results and store the observations in the
   # correct place. First need to create the obs arrays by msbid
   # (using msbid as key)
   my %msbs;
-  for my $row (@$obsref) {
+  for my $row (@observations) {
     my $msb = $row->{msbid};
     if (exists $msbs{$msb}) {
       push(@{$msbs{$msb}}, $row);
