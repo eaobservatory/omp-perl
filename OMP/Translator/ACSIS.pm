@@ -20,13 +20,16 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use Time::HiRes qw/ gettimeofday /;
+use Time::Piece qw/ :override /;
 
 use OMP::Error;
 
 use base qw/ OMP::Translator /;
 
 # Unix directory for writing configs
-our $TRANS_DIR = "/observe/ompodf";
+# Should be in config system
+our $TRANS_DIR = "/jcmtdata/orac_data/configs";
 
 # Debugging messages
 our $DEBUG = 0;
@@ -59,19 +62,20 @@ sub translate {
   my $sp = shift;
   my $asdata = shift;
 
+  # See how many MSBs we have (after pruning)
+  my @msbs = $self->PruneMSBs($sp->msb);
+
   # Project
   my $projectid = $sp->projectID;
 
-  croak "Not yet\n";
-
-  # Need to loop over each observation in the MSB and each
-  # observe eye
+  # Now unroll the MSB into constituent observations details
   my @configs;
 
   # Need to put DTD in here
   my $xml = "<OCS_CONFIG>\n";
 
   # First, write the TCS_CONFIG
+  $xml .= $self->tcs_config();
 
   # BASE and REFERENCE positions
 
@@ -86,14 +90,64 @@ sub translate {
   # End
   $xml .= "</OCS_CONFIG>\n";
 
-  push(@configs, $xml);
+  # Store the completed config
+  push(@configs, $xml,$xml);
 
   # Return or write
-  if (!$asdata) {
+  if ($asdata) {
     # Return XML as a string
     return @configs;
   } else {
     # Write the XML configs to disk
+
+    # The interface currently suggests that I write one copy into TRANS_DIR
+    # itself and another copy of the XML file into each of the directories
+    # found in TRANS_DIR
+    opendir my $dh, $TRANS_DIR || 
+      throw OMP::Error::FatalError("Error opening translation output directory $TRANS_DIR: $!");
+
+    # Get all the dirs (making sure current dir is first in the list)
+    # except hidden dirs [assume unix hidden definition XXX]
+    my @dirs = (File::Spec->curdir, 
+		grep { -d File::Spec->catdir($TRANS_DIR,$_) && $_ !~ /^\./ } readdir($dh));
+
+    # Format is acsis_YYYYMMDD_HHMMSSmmm
+    #  where mmm is milliseconds
+    my @filenames;
+    for (@configs) {
+      my ($sec, $mic_sec) = gettimeofday();
+      my $ut = gmtime( $sec );
+
+      # Rather than worry that the computer is so fast in looping that we might
+      # reuse milli-seconds (and therefore have to check that we are not opening
+      # a file that has previously been created) micro-seconds in the filename
+      my $cname = "acsis_". $ut->strftime("%Y%m%d_%H%M%S") .
+	"_".sprintf("%06d",$mic_sec) .
+	  ".xml";
+
+      my $storename;
+      for my $dir (@dirs) {
+
+	my $fullname = File::Spec->catdir( $TRANS_DIR, $dir, $cname );
+	print "Writing config to $fullname\n";
+
+	# First time round, store the filename for later return
+	$storename = $fullname unless defined $storename;
+
+	# Open it [without checking to see if we are clobbering a pre-existing file]
+	open my $fh, "> $fullname" || 
+	  throw OMP::Error::FatalError("Error opening config output file $fullname: $!");
+	print $fh $xml;
+	close ($fh) ||
+	  throw OMP::Error::FatalError("Error closing config output file $fullname: $!");
+
+      }
+
+      # Note that we currently store full path to the file in TRANS_DIR and not
+      # the files in subdirs
+      push(@filenames, $storename);
+    }
+    return @filenames;
   }
 
 }
@@ -119,18 +173,41 @@ Override the translation directory.
 
   OMP::Translator::DAS->transdir( $dir );
 
-Note that this does not override the VAX name used for processing
-inside files since that can not be determined directly from
-this directory name.
-
 =cut
 
 sub transdir {
   my $class = shift;
-  my $dir = shift;
-
-  $TRANS_DIR = $dir;
+  if (@_) {
+    my $dir = shift;
+    $TRANS_DIR = $dir;
+  }
+  return $TRANS_DIR;
 }
+
+=back
+
+=head1 CONFIG GENERATORS
+
+These routines generate the XML for individual config sections of the global configure.
+
+=over 4
+
+=item B<tcs_config>
+
+TCS configuration XML.
+
+  $tcsxml = $TRANS->tcs_config( %info );
+
+=cut
+
+sub tcs_config {
+  my $class = shift;
+  my %info = @_;
+
+  return "<TCS_CONFIG></TCS_CONFIG>\n";
+
+}
+
 
 
 =back
@@ -184,6 +261,9 @@ TCS_CONFIG
    object itself but that seems a bit odd since the API would then
    have to include a method for fetching offsets by tag name.
 
+     + The OT does not allow offsets in BASE positions.
+       but it does allow offsets in REFERENCE positions.
+
    Velocity is the great unknown here since the implication is that
    we need an Astro::RadialVelocity object that represents a radial
    velocity to be associated with our Astro::Coords object. Does the
@@ -200,7 +280,7 @@ TCS_CONFIG
                                          #  redshift => 3.4,
                                          );
 
-    - Support EPOCH, PARALLAX, PM1,PM2  in Astro::Coords
+    - Support EPOCH, PARALLAX, PM1,PM2  in Astro::Coords   [DONE]
 
     - Include offsets somewhere (at least in TOML::TCS but that has
       API bloat consequences)
@@ -215,9 +295,11 @@ TCS_CONFIG
 
 FE_CONFIG
 
-    - 
+    - This all comes from SpInstHeterodyne
 
 ACSIS_CONFIG
+
+    - This will need to create the spectral window
 
 =cut
 
