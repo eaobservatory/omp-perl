@@ -113,7 +113,7 @@ sub sql {
                  $where GROUP BY F.faultid)
              (SELECT * FROM $temp T, $faulttable F, $resptable R
                 WHERE T.faultid = F.faultid AND F.faultid = R.faultid
-                 ORDER BY F.faultid)
+                 ORDER BY faultid)
 
              DROP TABLE $temp";
 
