@@ -568,10 +568,12 @@ sub timelost {
   my $arg = shift;
   my @faults = $self->faults;
   my $faultstats = new OMP::FaultStats( faults => \@faults );
-  if ($arg eq "technical") {
-    return $faultstats->timelostTechnical;
-  } elsif ($arg eq "non-technical") {
-    return $faultstats->timelostNonTechnical;
+  if ($arg) {
+    if ($arg eq "technical") {
+      return $faultstats->timelostTechnical;
+    } elsif ($arg eq "non-technical") {
+      return $faultstats->timelostNonTechnical;
+    }
   } else {
     return $faultstats->timelost;
   }
