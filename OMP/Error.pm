@@ -247,6 +247,13 @@ the query was made. In general this is non-fatal.
 An MSB was submitted that never resulted in an observation.
 SpIterObserve was missing.
 
+=item B<OMP::Error::ObsRead>
+
+An error occurred during the reading of a file to create an
+C<OMP::Info::Obs> object. This is typically due to a misformed
+NDF or an NDF without a header (which could happen because of
+negative countdowns at UKIRT).
+
 =item B<OMP::Error::ProjectExists>
 
 An attempt was made to add a project that already exists in the
@@ -355,6 +362,9 @@ package OMP::Error::MSBMissing;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMissingObserve;
+use base qw/ OMP::Error /;
+
+package OMP::Error::ObsRead;
 use base qw/ OMP::Error /;
 
 package OMP::Error::ProjectExists;
