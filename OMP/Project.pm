@@ -550,6 +550,59 @@ sub summary {
 
 }
 
+=item B<incPending>
+
+Increment the value of the C<pending> field by the specified amount.
+Units are in seconds.
+
+  $proj->incPending( 10 );
+
+Returns without action if the supplied value is less than or equal to
+0.
+
+=cut
+
+sub incPending {
+  my $self = shift;
+  my $inc = shift;
+  return unless defined $inc and $inc > 0;
+
+  my $current = $self->pending;
+  $self->pending( $current + $inc );
+}
+
+=item B<consolidateTimeRemaining>
+
+Transfer the value stored in C<pending> to the time C<remaining> field
+and reset the value of C<pending>
+
+  $proj->consolidateTimeRemaining;
+
+If the time pending is greater than the time remaining the remaining
+time is set to zero.
+
+=cut
+
+sub consolidateTimeRemaining {
+  my $self = shift;
+
+  # Get the current value for pending
+  my $pending = $self->pending;
+
+  # Reset pending
+  $self->pending( 0 );
+
+  # Get the current value remaining.
+  my $remaining = $self->remaining;
+  my $new = $remaining - $pending;
+  $new = 0 if $new < 0;
+
+  # store it
+  $self->remaining( $new );
+
+}
+
+
 =back
 
 =head1 COPYRIGHT

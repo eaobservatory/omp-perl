@@ -239,6 +239,141 @@ sub issuePassword {
   return;
 }
 
+=item B<decrementTimeRemaining>
+
+Provisionally decrement the time remaining for the project. 
+This simply adds the supplied value to the pending column in the
+table. The confirm this value use C<confirmTimeRemaining>
+
+  $db->decrementTimeRemaining( $time );
+
+Units are in seconds.
+
+=cut
+
+sub decrementTimeRemaining {
+  my $self = shift;
+  my $time = shift;
+
+  throw OMP::Error::BadArgs("Time must be supplied and must be positive")
+    unless defined $time and $time > 0;
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  # Transaction start
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Modify the project
+  $project->incPending( $time );
+
+  # Update the contents in the table
+  $self->_update_project_row( $project );
+
+  # Notify the feedback system
+  my $projectid = $self->projectid;
+  $self->_notify_feedback_system(
+				 author =>  'unknown',
+				 program => 'OMP::ProjDB',
+				 sourceinfo => 'unknown',
+				 subject => "Decrement time remaining",
+				 text => "$time seconds has been decremented from project <b>$projectid</b>",
+				);
+
+  # Transaction end
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+=item B<confirmTimeRemaining>
+
+Confirm that the time remaining in the project is correct. This
+is achieved by transferring any pending values to the remaining
+column.
+
+  $db->confirmTimeRemaining;
+
+=cut
+
+sub confirmTimeRemaining {
+  my $self = shift;
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  # Transaction start
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Modify the project
+  $project->consolidateTimeRemaining();
+
+  # Update the contents in the table
+  $self->_update_project_row( $project );
+
+  # Notify the feedback system
+  my $projectid = $self->projectid;
+  $self->_notify_feedback_system(
+				 author =>  'unknown',
+				 program => 'OMP::ProjDB',
+				 sourceinfo => 'unknown',
+				 subject => "Consolidate time remaining",
+				 text => "Pending time has been subtracted from the time remaining for project <b>$projectid</b>",
+				);
+
+  # Transaction end
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+=item B<rescindTimePending}>
+
+Back out of any observing time specified as pending. This will
+set the value of pending in the table to 0.
+
+  $db->rescindTimePending;
+
+=cut
+
+sub rescindTimePending {
+  my $self = shift;
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  # Transaction start
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Modify the project to reset pending to zero
+  $project->pending( 0 );
+
+  # Update the contents in the table
+  $self->_update_project_row( $project );
+
+  # Notify the feedback system
+  my $projectid = $self->projectid;
+  $self->_notify_feedback_system(
+				 author =>  'unknown',
+				 program => 'OMP::ProjDB',
+				 sourceinfo => 'unknown',
+				 subject => "Reset pending time",
+				 text => "Pending time has been reset without decrementing time remaining for project <b>$projectid</b>",
+				);
+
+  # Transaction end
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+}
+
+
 =item B<projectDetails>
 
 Retrieve a summary of the current project. This is returned in either
@@ -480,6 +615,41 @@ sub _verify_administrator_password {
   return;
 }
 
+=item B<_notify_feedback_system>
+
+Notify the feedback system using the supplied message.
+
+  $db->_notify_feedback_system( %comment );
+
+Where the comment hash includes the keys supported by the
+feedback system (see C<OMP::FeedbackDB>) and usually
+consist of:
+
+  author      - the name of the system/person submitting comment
+  program     - the program implementing the change (usually this class)
+  sourceinfo  - IP address of computer submitting comment
+  subject     - subject of comment
+  text        - the comment itself (HTML)
+
+=cut
+
+sub _notify_feedback_system {
+  my $self = shift;
+  my %comment = @_;
+
+  # We have to share the database connection because we have
+  # locked out the project table making it impossible for
+  # the feedback system to verify the project
+  my $fbdb = new OMP::FeedbackDB( ProjectID => $self->projectid,
+				  DB => $self->db,
+				);
+
+  # Disable transactions since we can only have a single
+  # transaction at any given time with a single handle
+  $fbdb->addComment( { %comment },1);
+
+}
+
 =item B<_mail_password>
 
 Mail the password associated with the supplied project to the
@@ -545,40 +715,36 @@ sub _mail_password {
 
     }
 
+    # List of recipients of mail
+    my @addr = ($proj->piemail, $proj->coiemail);
+
     # First thing to do is to register this action with
     # the feedback system
-    my $fbmsg = "New password issued for project $projectid at the request of $addr\n";
-
-    # We have to share the database connection because we have
-    # locked out the project table making it impossible for
-    # the feedback system to verify the project
-    my $fbdb = new OMP::FeedbackDB( ProjectID => $projectid,
-				    DB => $self->db,
-				  );
+    my $fbmsg = "New password issued for project <b>$projectid</b> at the request of $addr and mailed to: ".
+      join(",", map {"<a href=\"mailto:$_\">$_</a>"} @addr)."\n";
 
     # Disable transactions since we can only have a single
     # transaction at any given time with a single handle
-    $fbdb->addComment({
-		      author =>  $addr,
-		      program => 'OMP::ProjDB',
-		      sourceinfo => $ip,
-		      subject => "Password change for $projectid",
-		      text => $fbmsg,
-		      },1);
-
+    $self->_notify_feedback_system(
+				   author =>  $addr,
+				   program => 'OMP::ProjDB',
+				   sourceinfo => $ip,
+				   subject => "Password change for $projectid",
+				   text => $fbmsg,
+				   );
 
     # Now set up the mail
     my $smtp = new Net::SMTP('mailhost', Timeout => 30);
 
     $smtp->mail("omp-auto-reply")
       or throw OMP::Error::FatalError("Error constructing mail message\n");
-    $smtp->to($piemail)
+    $smtp->to(@addr)
       or throw OMP::Error::FatalError("Error constructing mail message\n");
     $smtp->data()
       or throw OMP::Error::FatalError("Error constructing mail message\n");
 
     # Mail Headers
-    $smtp->datasend("To: $piemail\n")
+    $smtp->datasend("To: " .join(",",@addr)."\n")
       or throw OMP::Error::FatalError("Error constructing mail message\n");
     $smtp->datasend("Reply-To: omp_group\@jach.hawaii.edu\n")
       or throw OMP::Error::FatalError("Error constructing mail message\n");
@@ -604,7 +770,7 @@ sub _mail_password {
 
   } else {
 
-        throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
+    throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
 
 
   }
