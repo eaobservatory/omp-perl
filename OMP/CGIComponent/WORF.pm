@@ -35,7 +35,7 @@ require Exporter;
 
 our @ISA = qw/Exporter/;
 our @EXPORT = qw( display_graphic display_observation
-                  options_form obsnumsort );
+                  options_form obsnumsort return_fits return_ndf );
 
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
@@ -109,7 +109,7 @@ sub display_graphic {
 
   }
 
-  my $obs = OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
 
   display_observation( $cgi, $obs, $suffix );
 
@@ -135,6 +135,123 @@ sub display_observation {
 
   print $cgi->header( -type => 'image/gif' );
   $worf->plot( %parsed );
+}
+
+=item B<return_fits>
+
+Returns a FITS file via STDOUT.
+
+  return_fits( $cgi );
+
+The only parameter is the C<CGI> object, and is mandatory.
+
+=cut
+
+sub return_fits {
+  my $cgi = shift;
+  my $qv = $cgi->Vars;
+
+  my $ut;
+  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
+    $ut = $1;
+  }
+
+  my $suffix;
+  if( exists( $qv->{'suffix'} ) && defined( $qv->{'suffix'} ) ) {
+    $qv->{'suffix'} =~ /^(\w+)$/;
+    $suffix = $1;
+  } else {
+    $suffix = '';
+  }
+
+  my $runnr;
+  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
+    $qv->{'runnr'} =~ /^(\d+)$/;
+    $runnr = $1;
+  }
+
+  my $inst;
+  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
+    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $inst = $1;
+  }
+
+  my $group;
+  if( exists( $qv->{'group'} ) && defined( $qv->{'group'} ) ) {
+    $qv->{'group'} =~ /^([01])$/;
+    $group = $1;
+  } else {
+    $group = 1;
+  }
+
+  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+
+  my $worf = new OMP::WORF( obs => $obs,
+                            suffix => $suffix,
+                          );
+  print $cgi->header( -type => 'image/fits' );
+
+  $worf->fits( group => $group );
+
+}
+
+=item B<return_ndf>
+
+Returns an NDF file via STDOUT.
+
+  return_ndf( $cgi );
+
+The only parameter is the C<CGI> object, and is mandatory.
+
+=cut
+
+sub return_ndf {
+  my $cgi = shift;
+  my $qv = $cgi->Vars;
+
+  my $ut;
+  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
+    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
+    $ut = $1;
+  }
+
+  my $suffix;
+  if( exists( $qv->{'suffix'} ) && defined( $qv->{'suffix'} ) ) {
+    $qv->{'suffix'} =~ /^(\w+)$/;
+    $suffix = $1;
+  } else {
+    $suffix = '';
+  }
+
+  my $runnr;
+  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
+    $qv->{'runnr'} =~ /^(\d+)$/;
+    $runnr = $1;
+  }
+
+  my $inst;
+  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
+    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $inst = $1;
+  }
+
+  my $group;
+  if( exists( $qv->{'group'} ) && defined( $qv->{'group'} ) ) {
+    $qv->{'group'} =~ /^([01])$/;
+    $group = $1;
+  } else {
+    $group = 1;
+  }
+
+  my $obs = &OMP::CGIComponent::Obslog::cgi_to_obs( $cgi );
+
+  my $worf = new OMP::WORF( obs => $obs,
+                            suffix => $suffix,
+                          );
+  print $cgi->header( -type => 'image/x-ndf' );
+  $worf->ndf( group => $group );
+
 }
 
 =item B<options_form>
