@@ -169,10 +169,19 @@ sub file_fault_output {
 
   # Submit the fault the the database
   my $faultid;
+  my $E;
   try {
     $faultid = OMP::FaultServer->fileFault($fault);
+  } catch OMP::Error::MailError with {
+    $E = shift;
+    print $q->h2("Fault has been filed, but an error has prevented it from being mailed:");
+    print "$E";
+  } catch OMP::Error::FatalError with {
+    $E = shift;
+    print $q->h2("An error has prevented the fault from being filed:");
+    print "$E";
   } otherwise {
-    my $E = shift;
+    $E = shift;
     print $q->h2("An error has occurred");
     print "$E";
   };
