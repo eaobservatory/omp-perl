@@ -46,6 +46,7 @@ use OMP::Error qw(:try);
 use OMP::Constants qw(:fb :done :msb);
 
 use Time::Piece;
+use Time::Seconds;
 
 use vars qw/@ISA %EXPORT_TAGS @EXPORT_OK/;
 
@@ -1772,40 +1773,63 @@ sub night_report {
   my $q = shift;
   my %cookie = @_;
 
-  # Get the UT date
-  my $utdatestr;
+  my $date_format = "%Y-%m-%d";
+
+  my $delta;
   my $utdate;
-  if ($q->param('utdate_form')) {
-    $utdatestr = $q->param('utdate_form');
-  } elsif ($q->url_param('utdate')) {
-    # Try and get the date from the URL
-    $utdatestr = $q->url_param('utdate');
+  my $utdate_end;
+
+  # Get delta and start UT date from multi night form
+  if ($q->param('utdate_end')) {
+    $utdate = OMP::General->parse_date($q->param('utdate_form'));
+    $utdate_end = OMP::General->parse_date($q->param('utdate_end'));
+
+    # Derive delta from start and end UT dates
+    $delta = $utdate_end - $utdate;
+    $delta = $delta->days + 1;  # Need to add 1 to our delta
+                                # to include last day
+  } elsif ($q->param('utdate_form')) {
+    # Get UT date from single night form
+    $utdate = OMP::General->parse_date($q->param('utdate_form'));
   } else {
-    # No date, so use local date.
-    my $local = localtime;
-    $utdate = $local->ymd;
+    # No form params.  Get params from URL
+
+    # Get delta from URL
+    if ($q->url_param('delta')) {
+      my $deltastr = $q->param('delta');
+      if ($deltastr =~ /^(\d+)$/) {
+	$delta = $1;
+      } else {
+	croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
+      }
+    }
+
+    # Get start date from URL
+    if ($q->url_param('utdate')) {
+      $utdate = OMP::General->parse_date($q->url_param('utdate'));
+
+    } else {
+      # No UT date in URL.  Use current date.
+      $utdate = OMP::General->today(1);
+
+      # Subtract delta (days) from date if we have a delta
+      if ($delta) {
+	$utdate -= $delta * ONE_DAY;
+      }
+    }
+
+    # We need an end date for display purposes
+    if ($delta) {
+      $utdate_end = $utdate + $delta * ONE_DAY;
+      $utdate_end -= ONE_DAY;  # Our delta does not include
+                               # the last day
+    }
   }
 
   # Get the telescope from the URL
   my $telstr = $q->url_param('tel');
 
-  # Untaint the date and telescope strings
-  if ($utdatestr and $utdatestr =~ /^(\d{4}-\d{2}-\d{2})$/) {
-    $utdate = $1;
-  }
-
-  if (! $utdate) {
-    croak("UT date string [$utdatestr] does not match the expect format so we are not allowed to untaint it!");
-  }
-
-  # Are we summarizing multiple nights?
-  my $utdate_end;
-  my $multiple;
-  if ($q->url_param('multiple')) {
-    
-
-  }
-
+  # Untaint the telescope string
   my $tel;
   if ($telstr) {
     if ($telstr =~ /^(UKIRT|JCMT)$/i ) {
@@ -1819,9 +1843,13 @@ sub night_report {
     return;
   }
 
+  # Setup our arguments for retrieving night report
+  my %args = (date => $utdate->ymd,
+	      telescope => $tel,);
+  ($delta) and $args{delta_day} = $delta;
+
   # Get the night report
-  my $nr = new OMP::NightRep(date => $utdate,
-			     telescope => $tel,);
+  my $nr = new OMP::NightRep(%args);
 
   if (! $nr) {
     print "<h2>No observing report available for $utdate at $tel</h2>";
@@ -1829,47 +1857,92 @@ sub night_report {
 
     print "<table border=0><td colspan=2>";
 
-    print "<h2 class='title'>Observing Report for $utdate at $tel</h2>";
+    if ($delta) {
+      print "<h2 class='title'>Observing Report for ". $utdate->ymd ." to ". $utdate_end->ymd ." at $tel</h2>";
+    } else {
+      print "<h2 class='title'>Observing Report for ". $utdate->ymd ." at $tel</h2>";
+    }
 
-    # Get the next and previous UT dates
-    my $t = Time::Piece->strptime($utdate, "%Y-%m-%d");
-    my $prevdate = gmtime($t->epoch - 84000);
-    my $nextdate = gmtime($t->epoch + 84000);
+    # Get our current URL
+#    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
+    my $url = $q->url(-path_info=>1);
 
-    # Link to previous and next date reports
-    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
+    # Display a different form and different links if we are displaying
+    # for multiple nights
+    if (! $delta) {
+      # Get the next and previous UT dates
+      my $prevdate = gmtime($utdate->epoch - ONE_DAY);
+      my $nextdate = gmtime($utdate->epoch + ONE_DAY);
 
-    print "</td><tr><td>";
+      # Link to previous and next date reports
+      print "</td><tr><td>";
 
-    print "<a href='$url?utdate=".$prevdate->ymd."&tel=$tel'>Go to previous</a>";
-    print " | ";
-    print "<a href='$url?utdate=".$nextdate->ymd."&tel=$tel'>Go to next</a>";
+      print "<a href='$url?utdate=".$prevdate->ymd."&tel=$tel'>Go to previous</a>";
+      print " | ";
+      print "<a href='$url?utdate=".$nextdate->ymd."&tel=$tel'>Go to next</a>";
 
-    print "</td><td align='right'>";
+      print "</td><td align='right'>";
 
-    # Form for viewing another report
-    print $q->startform;
-    print "View report for ";
-    print $q->textfield(-name=>"utdate_form",
-		        -size=>10,
-		        -default=>substr($utdate, 0, 8),);
-    print "</td><tr><td colspan=2 align=right>";
+      # Form for viewing another report
+      print $q->startform;
+      print "View report for ";
+      print $q->textfield(-name=>"utdate_form",
+			  -size=>10,
+			  -default=>substr($utdate->ymd, 0, 8),);
+      print "</td><tr><td colspan=2 align=right>";
 
-    print $q->submit(-name=>"view_report",
-		     -label=>"Submit",);
-    print $q->endform;
+      print $q->submit(-name=>"view_report",
+		       -label=>"Submit",);
+      print $q->endform;
 
-    print "</td></table>";
+      # Link to multi night report
+      print "</td><tr><td colspan=2><a href='$url?tel=$tel&delta=8'>Click here to view a report for multiple nights</a>";
+      print "</td></table>";
+    } else {
+      print "</td><tr><td colspan=2>";
+     print $q->startform;
+      print "View report starting on ";
+      print $q->textfield(-name=>"utdate_form",
+			  -size=>10,
+			  -default=>$utdate->ymd,);
+      print " and ending on ";
+      print $q->textfield(-name=>"utdate_end",
+			  -size=>10,);
+      print " UT ";
+      print $q->submit(-name=>"view_report",
+		       -label=>"Submit",);
+      print $q->endform;
+
+      # Link to single night report
+      print "</td><tr><td colspan=2><a href='$url?tel=$tel'>Click here to view a single night report</a>";
+      print "</td></table>";
+    }
 
     print "<p>";
 
+
+    # Link to CSO fits tau plot
     my $plot_html = tau_plot_code($utdate);
     ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
+
+    # Link to WVM graph
+    print "<a href='#wvm'>View WVM graph</a><br>";
 
     $nr->ashtml;
 
     # Display tau plot
     ($plot_html) and print "<p>$plot_html</p>";
+
+    # Display WVM graph
+    my $wvmend;
+   ($utdate_end) and $wvmend = $utdate_end or $wvmend = $utdate;
+    my $wvmformat = "%d/%m/%y"; # Date format for wvm graph URL
+    print "<a name='wvm'></a>";
+    print "<br>";
+    print "<strong class='small_title'>WVM graph</strong><p>";
+    print "<div align=left>";
+    print "<img src='http://www.ukirt.jach.hawaii.edu/JCMT/cgi-bin/wvm_graph.pl?datestart=". $utdate->strftime($wvmformat) ."&timestart=00:00:00&dateend=". $wvmend->strftime($wvmformat) ."&timeend=23:59:59'><br><br></div>";
+
   }
 }
 
