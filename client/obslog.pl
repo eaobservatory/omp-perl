@@ -73,6 +73,7 @@ BEGIN {
 
   use FindBin;
   use constant OMPLIB => "$FindBin::RealBin/..";
+#use constant OMPLIB => "/home/bradc/development/omp/msbserver/";
   use lib OMPLIB;
 #use lib qw[ /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib/ ];
   use OMP::Constants;
@@ -149,7 +150,6 @@ my $BACKGROUND2 = '#DDDDDD';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
-my $GAPLENGTH = 300; # Length of time between timegaps, in seconds.
 
 $VERSION = sprintf "%d %03d", q$Revision$ =~ /(\d+)\.(\d+)/;
 
@@ -164,7 +164,7 @@ $user = &get_userid();
 MainLoop();
 
 sub display_loading_status {
-	$MW = MainWindow->new;
+	$MW = new MainWindow();
 	$MW->positionfrom('user');
 	$MW->geometry('+40+40');
 	$MW->title('Observation Log Utility');
@@ -547,7 +547,8 @@ sub rescan {
     if(!$grp->numobs) {
       throw OMP::Error("There are no observations available for this night.");
     }
-    $grp->locate_timegaps( $GAPLENGTH );
+    my $gaplength = OMP::Config->getData( 'timegap' );
+    $grp->locate_timegaps( $gaplength );
 
     %obs = $grp->groupby('instrument');
 
