@@ -31,7 +31,7 @@ use Carp;
 use OMP::Config;
 use OMP::Error qw/ :try /;
 
-use PDL;
+use PDL::Lite;
 use PDL::IO::NDF;
 
 use base qw/ OMP::WORF /;
