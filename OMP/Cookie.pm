@@ -239,7 +239,15 @@ sub getCookie {
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
 
-  return $cgi->cookie(-name=>$self->name);
+  # Strip white space
+  my %contents = $cgi->cookie(-name=>$self->name);
+
+  for (keys %contents) {
+    $contents{$_} =~ s/^\s+//;
+    $contents{$_} =~ s/\s+$//;
+  }
+
+  return %contents;
 }
 
 =back
