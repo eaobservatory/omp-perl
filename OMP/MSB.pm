@@ -128,6 +128,7 @@ sub new {
     $parser->validation(0);
     $tree = eval { $parser->parse_string( $args{XML} ) };
     return undef if $@;
+    $tree = $tree->documentElement;
   } elsif (exists $args{TREE}) {
     $tree = $args{TREE};
     # Now get the references
@@ -1523,15 +1524,6 @@ sub addFITStoObs {
   # than the children
   my @nodes = $self->_get_SpObs();
 
-  # Some XML elements that we can insert
-  # problems with XML::LibXML mean that we need to create
-  # some XML as text, parse it and then insert the nodes.
-  # If I try to creat the Elements from constructors
-  # I have trouble populating them. I also get core dumps
-  # with insertBefore...
-  my $xml = "<root><project>" . $self->projectID . "</project>\n" .
-    "<msbid>" . $self->checksum . "</msbid>\n</root>\n";
-
   # Create hash with information we wish to insert
   my %data = (
 	      msbid => $self->checksum,
@@ -2256,6 +2248,11 @@ sub _fixup_msb {
 Return all the SpObs nodes associated with the MSB.
 
   @spobs = $self->_get_SpObs;
+
+Should not be used if target information is to be extracted from
+this node unless care is taken to handle parent Survey Container
+nodes (which are effectively SpObs iterators but are not taken
+into account here since this method simply returns nodes).
 
 =cut
 
