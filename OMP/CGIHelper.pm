@@ -23,6 +23,8 @@ use warnings;
 use Carp;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::CGI;
+use OMP::DBbackend;
 use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::DBServer;
@@ -332,7 +334,7 @@ sub fb_entries {
     # make the date more readable here
     # make the author a mailto link here
 
-    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</b></font><br>",
+    print "<font size=+1>Entry $row->{'entrynum'} (on $row->{'date'} by $row->{'author'})</font><br>",
           "<b>Subject: $row->{'subject'}</b><br>",
           "$row->{'text'}",
 	  "<p>";
@@ -812,6 +814,11 @@ sub list_projects_output {
   my $q = shift;
   my %cookie = @_;
 
+  # Get the Private and Public cgi-bin URLs
+  my $cgi = new OMP::CGI;
+  my $public_url = $cgi->public_url;
+  my $private_url = $cgi->private_url;
+
   my $semester = $q->param('semester');
   my $status = $q->param('status');
   my $support = $q->param('support');
@@ -821,6 +828,7 @@ sub list_projects_output {
   ($support eq 'dontcare') and $support = undef;
   ($country =~ /any/i) and $country = undef;
   ($telescope =~ /any/i) and $telescope = undef;
+
   my $xmlquery;
   if ($status eq 'all') {
     $xmlquery = "<ProjQuery><semester>$semester</semester><support>$support</support><country>$country</country><telescope>$telescope</telescope></ProjQuery>";
@@ -841,7 +849,7 @@ sub list_projects_output {
     print $q->hr;
 
     foreach my $project (@$projects) {
-      print "<a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=" . $project->projectid . "'>";
+      print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
       print $q->h2('Project ' . $project->projectid);
       print "</a>";
       my %details = (projectid=>$project->projectid, password=>$cookie{password});
@@ -984,7 +992,13 @@ sub msb_hist_output {
   my $q = shift;
   my %cookie = @_;
 
-  my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
+  # Use the lower-level method to fetch the science program so we
+  # can disable the feedback comment associated with this action
+  my $db = new OMP::MSBDB( Password => $cookie{password},
+			   ProjectID => $cookie{projectid},
+			   DB => new OMP::DBbackend, );
+
+  my $sp = $db->fetchSciProg(1);
 
   proj_status_table($q, %cookie);
 
@@ -1064,8 +1078,14 @@ sub msb_hist_content {
     $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
   }
 
-  my $sp = OMP::SpServer->fetchProgram($cookie{projectid}, $cookie{password}, 1);
+  # Use the lower-level method to fetch the science program so we
+  # can disable the feedback comment associated with this action
+  my $db = new OMP::MSBDB( Password => $cookie{password},
+			   ProjectID => $cookie{projectid},
+			   DB => new OMP::DBbackend, );
 
+  my $sp = $db->fetchSciProg(1);
+  
   print $q->h2("MSB History for project $cookie{projectid}");
 
   ### put code for not displaying non-existant msbs here? ###
@@ -1113,6 +1133,11 @@ sub msb_comments_by_project {
   my $comments = shift;
   my %sorted;
 
+  # Get the Private and Public cgi-bin URLs
+  my $cgi = new OMP::CGI;
+  my $public_url = $cgi->public_url;
+  my $private_url = $cgi->private_url;
+
   foreach my $msb (@$comments) {
     my $projectid = $msb->projectid;
     $sorted{$projectid} = [] unless exists $sorted{$projectid};
@@ -1124,7 +1149,7 @@ sub msb_comments_by_project {
   print "</pre>";
 
   foreach my $projectid (keys %sorted) {
-    print $q->h2("Project: <a href='http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl?urlprojid=$projectid'>$projectid</a>");
+    print $q->h2("Project: <a href='$public_url/projecthome.pl?urlprojid=$projectid'>$projectid</a>");
     msb_comments($q, \@{$sorted{$projectid}});
     print $q->hr;
   }
