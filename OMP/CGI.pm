@@ -223,7 +223,8 @@ sub _sidebar_logout {
   my @sidebarlinks = ("<a href='feedback.pl'>Feedback entries</a>",
 		      "<a href='fbmsb.pl'>Program details</a>",
 		      "<a href='fbcomment.pl'>Add comment</a>",
-		      "<a href='msbhist.pl'>MSB History</a>",);
+		      "<a href='msbhist.pl'>MSB History</a>",
+		      "<a href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
@@ -258,15 +259,12 @@ sub _sidebar_fault {
   my @sidebarlinks = ("<a href='queryfault.pl?cat=csg'>CSG Faults</a>",
 		      "<a href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
 		      "<a href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
-		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a></font>",);
+		      "<a href='queryfault.pl?cat=omp'>OMP Faults</a>",
+		      "<br><a href='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp'>OMP home</a></font>",);
   if (defined $cat) {
     unshift (@sidebarlinks, "<a href='filefault.pl?cat=$cat'>File a fault</a>",
 	                    "<a href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
   }
-
-  unshift(@sidebarlinks, "<font size=+1>");
-  push(@sidebarlinks,"</font>");
-  push(@sidebarlinks,&sidebar_summary);
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }
