@@ -55,7 +55,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url obslog_content/);
+@EXPORT_OK = (qw/fb_output fb_msb_content fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed observed_output fb_proj_summary list_projects list_projects_output fb_fault_content fb_fault_output issuepwd project_home report_output preify_text public_url private_url projlog_content/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -1489,7 +1489,7 @@ sub project_home {
 
   # We'll display a flag icon representing the country if we have
   # one for it
-  if ($country =~ /(UK|INT|CA|NL|UH|JAC)/) {
+  if ($country =~ /(UK|INT|CA|NL|UH|JAC|JP)/) {
     my $country = lc($country);
     print "<img src='http://www.jach.hawaii.edu/JACpublic/JAC/software/omp/flag_$country.gif'>";
   }
@@ -1552,7 +1552,7 @@ sub project_home {
       my $utdate = $_->strftime("%Y%m%d");
       my $ymd = $_->ymd;
 
-      print "<a href='fbobslog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
+      print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$utdate</a> ";
 
       if ($accounts{$_->epoch}) {
 	my $h = sprintf("%.1f", $accounts{$_->epoch}->hours);
@@ -1658,16 +1658,16 @@ sub report_output {
   # Figure out the time lost to faults
 }
 
-=item B<obslog_content>
+=item B<projlog_content>
 
 Display information about observations for a project on a particular
 night.
 
-  obslog_content($cgi, %cookie);
+  projlog_content($cgi, %cookie);
 
 =cut
 
-sub obslog_content {
+sub projlog_content {
   my $q = shift;
   my %cookie = @_;
 
@@ -1691,7 +1691,11 @@ sub obslog_content {
   my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
 				    date => $utdate,);
 
-  print "<h2>Observation log for " . uc($projectid) . " on $utdate</h2>";
+  # Don't want to go to files on disk
+  $OMP::ArchiveDB::FallbackToFiles = 0;
+
+  print "<h2>Project log for " . uc($projectid) . " on $utdate</h2>";
+  print "<h3>Observation log</h3>";
   obs_table($grp);
 }
 
