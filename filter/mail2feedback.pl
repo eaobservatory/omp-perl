@@ -1,10 +1,14 @@
-#!/local/perl-5.6/bin/perl -T
+#!/local/perl-5.6/bin/perl -XT
 
 use strict;
+use lib "/jac_sw/omp/msbserver";
 use OMP::FBServer;
 use Mail::Audit;
 
-my $mail = new Mail::Audit::OMP(loglevel => 4);
+my $mail = new Mail::Audit::OMP(
+#				loglevel => 4,
+#				log => "/tmp/omp-mailaudit.log",
+			       );
 
 # Look for project ID
 $mail->reject("Sorry. Could not discern project ID from the subject line.")
@@ -37,7 +41,7 @@ sub accept {
   my $from = $self->get("from");
   my $srcip = (  $from =~ /@(.*)$/ ? $1 : $from );
   my $subject = $self->get("subject");
-  my $text = "<PRE>\n" . @{ $self->body } . "</PRE>";
+  my $text = "<PRE>\n" . join('',@{ $self->body }) . "\n</PRE>";
   my $project = $self->get("projectid");
   chomp($project); # header includes newline
 
@@ -70,8 +74,10 @@ sub projectid {
   my $subject = $self->get("subject");
 
   # Attempt to match
-  if ($subject =~ /(u\/\d\d[ab]\/h?\d+)/i
-     or $subject =~ /(m\d\d[ab][uncih]\d+)/i ) {
+  if ($subject =~ /(u\/\d\d[ab]\/h?\d+)/i         # UKIRT
+      or $subject =~ /(m\d\d[ab][uncih]\d+)/i     # JCMT
+      or $subject =~ /\b(m\d\d[ab]\w+)\b/i        # m01btj 
+     ) {
     my $pid = $1;
     $self->put_header("projectid", $pid);
     Mail::Audit::_log(1, "Project from subject: $pid");
