@@ -968,7 +968,6 @@ sub print_obslog_header {
   my $qv = $q->Vars;
 
   print "Welcome to obslog.<hr>\n";
-  print "<br>\n";
   print $q->startform;
 
   if(defined($qv->{'inst'})) {
@@ -994,6 +993,7 @@ sub print_obslog_header {
   print $q->submit( -name => 'Submit New UT' );
   print $q->endform;
 
+  print "<hr>\n";
 
 };
 
