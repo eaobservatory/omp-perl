@@ -1,0 +1,46 @@
+/*
+ * add standard devices to the DB (must be done by sa)
+ *
+ */
+use master
+go
+sp_helpdevice
+go
+/*
+** Add 1 Gb (size~2008*512) device for LOG files
+*/
+disk init
+  name = "logdev1",
+  physname = "/dev/hda10",
+  vdevno = 2,
+  size = 1G
+go
+/*
+** Add 8.5 Gb (size~17006*512) data device for omp
+*/
+disk init
+  name = "ompdev1",
+  physname = "/dev/hda11",
+  vdevno = 3,
+  size = 2G
+go
+sp_helpdevice
+go
+
+/*
+**Disk /dev/hda: 255 heads, 63 sectors, 9729 cylinders
+**Units = cylind8707198ers of 16065 * 512 bytes
+**
+**   Device Boot    Start       End    Blocks   Id  System
+**/dev/hda1   *         1       446   3582463+  83  Linux
+**/dev/hda2           447       828   3068415   83  Linux
+**/dev/hda3           829      1089   2096482+  82  Linux swap
+**/dev/hda4          1090      9729  69400800    f  Win95 Ext'd (LBA)
+**/dev/hda5          1090      1280   1534176   83  Linux
+**/dev/hda6          1281      1407   1020096   83  Linux
+**/dev/hda7          1408      1535   1028128+  83  Linux
+**/dev/hda8          1536      1567    257008+  60  Unknown
+**/dev/hda9          1568      1599    257008+  60  Unknown
+**/dev/hda10         1600      1727   1028128+  60  Unknown
+**/dev/hda11         1728      2811   8707198+  60  Unknown
+*/

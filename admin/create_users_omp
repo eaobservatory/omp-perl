@@ -1,0 +1,8 @@
+/*
+ * add users to omp db
+ *
+ */
+use omp
+go
+sp_adduser omp
+go

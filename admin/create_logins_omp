@@ -1,0 +1,6 @@
+/*
+ * Create omp logins
+ */
+
+sp_addlogin omp, "***REMOVED***", omp, null, "OMP DB Manager"
+go

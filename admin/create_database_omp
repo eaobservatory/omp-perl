@@ -1,0 +1,26 @@
+/*
+ *
+ * create omp database
+ *
+ */
+
+use master
+go
+
+/*
+** drop database omp
+** go
+*/
+
+create database omp
+on ompdev1 = 2000
+log on logdev1 = 1000
+go
+sp_dboption omp,"select into/bulkcopy",true
+go
+sp_dboption omp,"trunc. log on chkpt.",true
+go
+use omp
+go
+checkpoint
+go
