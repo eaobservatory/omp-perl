@@ -709,7 +709,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   # Set link to response page
   my $url = ($category eq "BUG" ?
 	     "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
-	     "http://$public_url/viewfault.pl?id=$faultid");
+	     "$public_url/viewfault.pl?id=$faultid");
 
   my $responselink = "<a href='$url'>here</a>";
 
