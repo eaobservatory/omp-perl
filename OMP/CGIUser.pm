@@ -41,7 +41,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/details project_users project_users_output list_users/);
+@EXPORT_OK = (qw/details project_users project_users_output list_users edit_details/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -216,7 +216,7 @@ sub list_users {
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
-      print "<TD><a href=\"update_user.pl?".$_->userid."\">Update</a></TD>";
+      print "<TD><a href=\"update_user.pl?user=".$_->userid."\">Update</a></TD>";
     }
     print "</TABLE>\n";
   } else {
@@ -346,6 +346,82 @@ sub project_users_output {
       print "<a href=userdetails.pl?user=$userid>". $_->name ."</a><br>";
     }
   }
+}
+
+=item B<edit_details>
+
+Edit a user\'s details.  Takes an C<OMP::Query> object as the only argument.
+A URL paramater called B<user> should be used for passing the OMP user ID.
+
+  edit_details($q);
+
+=cut
+
+sub edit_details {
+  my $q = shift;
+
+  my $userid = $q->url_param("user");
+
+  my $user = OMP::UserServer->getUser($userid);
+
+  if (!defined $user) {
+    print "User [$userid] does not exist in the database.<br>";
+    return;
+  }
+
+  if ($q->param("edit")) {
+    my $name;
+    my $email;
+
+    if ($q->param("name") =~ /^([\w\s\.\-\(\)]+)$/) {
+      $name = $1;
+    }
+
+    if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
+      $email = $1;
+    }
+
+    if (!$name || !$email) {
+      print "The name you provided [".$q->param("name")."] is invalid.<br>"
+	if (!$name);
+
+      print "The email address you provided [".$q->param("email")."] is invalid.<br>"
+	if (!$email);
+
+      print "User details were not updated.";
+    } else {
+      $user->name($name);
+      $user->email($email);
+
+      # Store changes
+      try {
+	OMP::UserServer->updateUser( $user );
+	print "User details for ".$user->userid." have been updated.<br>";
+      } otherwise {
+	my $E = shift;
+	print "An error has occurred: $E<br>";
+	print "User details were not updated.";
+      };
+    }
+  }
+
+  print "<table><td align=right>User ID:</td><td>".$user->userid."</td>";
+  print $q->startform;
+  print "<tr><td>Name:</td><td colspan=2>";
+  print $q->textfield(-name=>"name",
+		      -default=>$user->name,
+		      -size=>24,
+		      -maxlength=>255,);
+  print "</td><tr><td>Email:</td><td>";
+  print $q->textfield(-name=>"email",
+		      -default=>$user->email,
+		      -size=>32,
+		      -maxlength=>64,);
+  print "</td><td>";
+  print $q->submit(-name=>"edit", -label=>"Change Details");
+  print $q->endform;
+  print "</td></table>";
+
 }
 
 =back
