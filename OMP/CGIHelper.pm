@@ -1972,11 +1972,12 @@ sub proposals {
 
     my %extensions = (ps => "application/postscript",
 		      pdf => "application/pdf",
-		      "ps.gz" => "application/postscript",);
+		      "ps.gz" => "application/postscript",
+		      "txt" => "text/plain",);
 
     my $propfile;
     my $type;
-    for my $ext (qw/ps pdf ps.gz/) {
+    for my $ext (qw/ps pdf ps.gz txt/) {
       if (-e "$propdir/$propfilebase.$ext") {
 	$propfile = "$propdir/$propfilebase.$ext";
 	$type = $extensions{$ext};
