@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl -X
+#!/local/perl-5.6/bin/perl -XT
 
 # Simple CGI script to allow people to request password
 # updates for their OMP project
