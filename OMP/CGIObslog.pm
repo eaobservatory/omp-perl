@@ -440,7 +440,7 @@ sub obs_table {
     # Print the column headings.
     print "<tr class=\"sum_other\"><td>";
     print join ( "</td><td>", @{$nightlog{_ORDER}} );
-    print "</td><td>Comments</td><td>WORF</td></tr>\n";
+    print "</td><td>Comments</td><td>WORF</td><td>Observation</td></tr>\n";
   }
 
   my $rowclass = "row_b";
@@ -466,7 +466,7 @@ sub obs_table {
         # Print the column headings.
         print "<tr class=\"sum_other\"><td>";
         print join ( "</td><td>", @{$nightlog{_ORDER}} );
-        print "</td><td>Comments</td><td>WORF</td></tr>\n";
+        print "</td><td>Comments</td><td>WORF</td><td>Observation</td></tr>\n";
       }
     }
 
@@ -575,6 +575,7 @@ sub obs_table {
       } else {
         print "<td>&nbsp;</td>";
       }
+      print "<td>" . $obs->runnr . "</td>";
       print "</tr>\n";
     }
 
