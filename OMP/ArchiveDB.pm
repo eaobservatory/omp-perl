@@ -172,6 +172,8 @@ sub _query_arcdb {
   my $self = shift;
   my $query = shift;
 
+  my @return;
+
   # Get the SQL
   # It doesnt make sense to specify the table names from this
   # class since ArcQuery is the only class that cares and it
@@ -180,13 +182,17 @@ sub _query_arcdb {
   # subclasses for JCMT and UKIRT and put the knowledge in there.
   # since we may have to have a subclass for getObs since we
   # need to know a telescope
-  my $sql = $query->sql();
+  my @sql = $query->sql();
 
-  # Fetch the data
-  my $ref = $self->_db_retrieve_data_ashash( $sql );
+  foreach my $sql (@sql) {
+    # Fetch the data
+    my $ref = $self->_db_retrieve_data_ashash( $sql );
 
-  # Convert the data from a hash into an array of Info::Obs objects.
-  my @return = $self->_reorganize_archive( $ref );
+    # Convert the data from a hash into an array of Info::Obs objects.
+    my @reorg = $self->_reorganize_archive( $ref );
+
+    push @return, @reorg;
+  }
 
   if( scalar( @return ) > 0 ) {
     # Push the stuff in the cache, but only if we have results.
@@ -196,7 +202,7 @@ sub _query_arcdb {
     catch OMP::Error::CacheFailure with {
       my $Error = shift;
       my $errortext = $Error->{'-text'};
-      print "Warning: $errortext. Continuing.\n";
+      print "Warning when storing archive: $errortext. Continuing.\n";
       OMP::General->log_message( $errortext );
     };
 
@@ -228,7 +234,7 @@ sub _query_files {
   my $self = shift;
   my $query = shift;
 
-  my ( $telescope, $daterange, $instrument, $runnr );
+  my ( $telescope, $daterange, $instrument, $runnr, $filterinst );
   my @returnarray;
 
   $query->isfile(1);
@@ -248,6 +254,10 @@ sub _query_files {
   my @instarray;
 
   if( defined( $instrument ) && length($instrument . "") != 0) {
+    if($instrument =~ /^rx/i) { 
+      $filterinst = $instrument;
+      $instrument = "heterodyne";
+    }
     push @instarray, $instrument;
   } elsif( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
     push @instarray, OMP::Config->getData('instruments',
@@ -280,11 +290,33 @@ sub _query_files {
     for(my $day = $startday; $day <= $endday; $day = $day + ONE_DAY) {
 
       foreach my $inst ( @instarray ) {
+
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# We need to have all the different heterodyne instruments in the config system
+# so that inferTelescope() will work. Unfortunately, we just want 'heterodyne',
+# so we'll just go on to the next one if the instrument name starts with 'rx'.
+################################################################################
+        next if( $inst =~ /^rx/i );
+
         my $telescope = OMP::Config->inferTelescope('instruments', $inst);
         my $directory = OMP::Config->getData( 'rawdatadir',
                                               telescope => $telescope,
                                               utdate => $day,
                                               instrument => $inst );
+
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# Because we cannot get instrument-specific directories from the configuration
+# system (yet), we need to append "/pre" onto the directory retrieved for SCUBA
+# observations.
+################################################################################
+
+        if( uc($inst) eq 'SCUBA' ) {
+          $directory .= "/dem";
+        }
 
         # Get a file list.
         if( -d $directory ) {
@@ -295,18 +327,18 @@ sub _query_files {
 # INSTRUMENT SPECIFIC CODE
 #
 # The following line assumes that valid data files end in an observation number
-# and have a ".sdf" suffix. If this is not the case, then this line will have
-# to be modified accordingly.
+# and have a ".sdf", a ".dat", or a ".gsd" suffix. If this is not the case,
+# then this line will have to be modified accordingly.
 
-          @files = grep(/_\d+\.sdf$/, @files);
+          @files = grep(/_\d+\.(sdf|gsd|dat)$/, @files);
           @files = sort {
 
 # INSTRUMENT SPECIFIC CODE
 #
 # The following sorting routine assumes that valid data files end in an
-# observation number and have a ".sdf" suffix. If this is not the case, then
-# this will have to be modified accordingly. It is possible to use ORAC::Frame
-# to do this, but dependencies on ORAC classes are to be minimised.
+# observation number and have a ".sdf", ".dat", or ".gsd" suffix. If this is not
+# the case, then this will have to be modified accordingly. It is possible to use
+# ORAC::Frame to do this, but dependencies on ORAC classes are to be minimised.
 
 # The following is ORAC::Frame code which can do the same thing. Slower,
 # and more dependant on ORAC classes, but not instrument/telescope specific.
@@ -315,9 +347,9 @@ sub _query_files {
 #          my $b_Frm = new ORAC::Frame($directory . "/" . $b);
 #          my $b_obsnum = $b_Frm->number;;
 
-            $a =~ /_(\d+)\.sdf$/;
+            $a =~ /_(\d+)\.(sdf|gsd|dat)$/;
             my $a_obsnum = int($1);
-            $b =~ /_(\d+)\.sdf$/;
+            $b =~ /_(\d+)\.(sdf|gsd|dat)$/;
             my $b_obsnum = int($1);
 
             $a_obsnum <=> $b_obsnum; } @files;
@@ -446,7 +478,6 @@ sub _reorganize_archive {
       my $uckey = uc($key);
       $newrow->{$uckey} = $row->{$key};
     }
-
     # Find out which telescope we're dealing with. If it's UKIRT,
     # then we have to run the UKIRTDB translation. If it's JCMT,
     # we can just use the instrument-specific translation.
@@ -463,6 +494,11 @@ sub _reorganize_archive {
     if(defined($newrow->{BOLOMS})) {
       $newrow->{INSTRUME} = 'SCUBA';
       $instrument = "SCUBA";
+    }
+
+    if(exists($newrow->{FRONTEND}) || exists($newrow->{C1RCV}) ) {
+      $newrow->{INSTRUME} = 'HETERODYNE';
+      $instrument = (defined($newrow->{FRONTEND}) ? $newrow->{FRONTEND} : $newrow->{C1RCV} );
     }
 
     # Create an Info::Obs object.
