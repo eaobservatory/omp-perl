@@ -2915,6 +2915,12 @@ ie it is unrolled as if it was a for loop, with blank targets
 being replaced by the loop variable. The interface is designed to
 match that of SpObs method.
 
+Any target information supplied in the defaults hash is removed
+by this routine (since survey container targets should take precedence).
+This includes the "coordtags", "coords", "target".
+
+Any SpTelescopeObsComp found inside the SpSurveyContainer is ignored.
+
 =cut
 
 sub SpSurveyContainer {
@@ -2923,6 +2929,15 @@ sub SpSurveyContainer {
   my %summary = @_;
   my @obs; # any observations stored in the survey container
 
+  # Clear out inherited targets
+  delete $summary{coords};
+  delete $summary{target};
+  delete $summary{coordtags};
+  delete $summary{OFFSET_DX};
+  delete $summary{OFFSET_DY};
+
+
+  # get all the children for our search
   my @searchnodes = $el->getChildnodes;
 
   # this is a standard scan routine. It is very similar to the
@@ -2930,6 +2945,10 @@ sub SpSurveyContainer {
   for (@searchnodes) {
     my $node = $self->_resolve_ref( $_ );
     my $name = $node->getName;
+
+    # skip telescope components at this level since it does not make
+    # any sense for a single target to override a survey container
+    next if $name eq 'SpTelescopeObsComp';
 
     #print "Name is $name \n";
     if ($self->can($name)) {
@@ -2981,14 +3000,28 @@ returns a hash.
 
 This class adds a "targets" key to the input hash and returns
 the complete hash. The "targets" value is a reference to an array
-containing 3 keys:
+containing the following keys:
 
-  tags     - Coordinate object
-  priority - relative priority of target [only used for MSB]
-  repeats  - number of repeats of target position
+  coords     - Coordinate information
+  priority   - relative priority of target [only used for MSB]
+  remaining  - number of repeats of target position
+  targetNode - Target node associated with this target
+  telNode    - TelescopeObsComp node associated with this target
 
-Where C<tags> is an object pointing to all the specified target
-tags, with their positions and offsets.
+Where C<coords> is the information normally returned by the
+SpTelescopeObsComp method (see that method for details). The
+"targetNode" and "telNode" entties allow the target information to be
+adjusted or searched without searching through the tree again.
+
+Duplicate targets will be combined (the repeats will be combined),
+the position of the first target in the list will be retained.
+In this case duplicate means the SpTelescopeObsComp representing
+the target is identical such that other tags are also included in
+the comparison. ie you can have to identical SCIENCE positions that
+have differing SKY positions or GUIDE stars. The priority of the merged
+target will be that of the first occurrence. If a duplicate is found
+but the remaining counter is removed the repeats are not added (only
+the positive values are used).
 
 =cut
 
@@ -3000,6 +3033,7 @@ sub TargetList {
   # Now process each target
   my @targets = $el->findnodes( './/Target');
 
+  my %collisions;
   my @targs;
   my $i;
   for my $targ (@targets) {
@@ -3012,7 +3046,38 @@ sub TargetList {
     throw OMP::Error::SpBadStructure("Unable to find SpTelescopeObsComp in Target $i of SurveyContainer") unless defined $obscomp;
 
     my %tel = $self->SpTelescopeObsComp( $obscomp );
-    push(@targs, { priority => $pri, remaining => $rem, coords => \%tel });
+
+    # convert the telescope XML to a checksum
+    my $telstr = $obscomp->toString;
+    my $checksum = md5_hex( $telstr );
+
+    # Have we seen this position before?
+    if (exists $collisions{ $checksum }) {
+      # increment the remaining count if it is positive
+      # if the remaining counter is positive we need to either
+      # add it to the existing count or replace a negative value
+      # (indicating REMOVED) with the current value
+      if ($rem > 0) {
+	if ($collisions{$checksum}->{remaining} > 0 ) {
+	  $collisions{$checksum}->{remaining} += $rem;
+	} else {
+	  $collisions{$checksum}->{remaining} = $rem;
+	}
+      }
+
+    } else {
+      # new target, so create a hash containing the new target data
+      my %targdata = ( priority => $pri, remaining => $rem, 
+		       coords => \%tel, targetNode => $targ,
+		       telNode => $obscomp,
+		     );
+
+      # and push it onto the target list
+      push(@targs, \%targdata );
+
+      # and store another reference in the collision hash
+      $collisions{ $checksum } = \%targdata;
+    }
   }
   $summary{targets} = \@targs;
 
