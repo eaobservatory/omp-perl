@@ -32,6 +32,9 @@ use warnings;
 use OMP::SciProg;
 use OMP::Error;
 
+use File::Temp qw/tempfile/;
+use File::Basename qw/basename/;
+
 our $VERSION = (qw$Revision$)[1];
 
 our $TRANS_DIR = "/tmp/omplog";
@@ -110,7 +113,7 @@ sub translate {
     }
   } else {
     # Write
-
+    return $self->write_odfs( @odfs );
   }
 
 }
@@ -118,6 +121,103 @@ sub translate {
 =back
 
 =head1 INTERNAL METHODS
+
+=head2 I/O
+
+=over 4
+
+=item B<write_odfs>
+
+Write the supplied ODFs to disk and return the name of a macro
+file. Argument is a list of ODF hashes.
+
+  $macro = $trans->write_odfs( @odfs );
+
+=cut
+
+sub write_odfs {
+  my $self = shift;
+  my @odfs = @_;
+
+  # Write out the odfs one at a time
+  my @files = map { $self->write_odf( $_ ); } @odfs;
+
+  # If we only have one ODF return that rather than use
+  # a macro
+  return basename($files[0]) if @files == 1;
+
+  # Now write out the macro
+  my ($fh, $filename) = tempfile( "macro_XXXXXX",
+				  SUFFIX => ".m",
+				  DIR => $TRANS_DIR,
+				)
+    or throw OMP::Error::FatalError("Error creating macro file");
+
+  print $fh "MACRO\n";
+  for (@files) {
+    # Main problem here is that the files have unix paths
+    # in them. These really need to be stripped of directory
+    # information since SCUBA will be setup with the correct
+    # search path.
+    print $fh basename($_)."\n";
+  }
+  close $fh
+    or throw OMP::Error::FatalError("Error closing macro file: $filename");
+
+  # return the macro filename
+  return $filename;
+}
+
+=item B<write_odf>
+
+Write a single ODF to disk and return the name of that file.
+
+  $file = $self->write_odf( \%odf );
+
+The ODF is represented as a hash.
+
+If a parameter holds a reference to an array it is assumed that the
+contents of the array are written to disk and the parameter will
+be the corresponding file name.
+
+There is a chance that in the future this may become a method of the
+ODF rather than a method of the translator. This is because a SCUBA
+ODF will write differently to an ACSIS one.
+
+=cut
+
+sub write_odf {
+  my $self = shift;
+  my $odf = shift;
+
+  # Open the file
+  # File::Temp is no good here since it will return filenames
+  # that will not work on the case-insensitive vax when using NFS.
+  my ($fh, $filename) = tempfile( "scuba_XXXXXX",
+				  SUFFIX => ".odf",
+				  DIR => $TRANS_DIR,
+				)
+    or throw OMP::Error::FatalError("Error creating ODF");
+
+  foreach my $key (keys %$odf) {
+    if (ref($odf->{$key})) {
+      # A reference
+
+    } else {
+      print $fh "$key      " . $odf->{$key} . "\n";
+    }
+
+  }
+
+  close $fh
+    or throw OMP::Error::FatalError("Error closing ODF: $filename");
+
+  # return the macro filename
+  return $filename;
+
+}
+
+=back
 
 =head2 Observing  Modes
 
