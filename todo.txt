@@ -134,3 +134,11 @@ ProjServer
 
 - return order sorted in tagpriority order
    - allow it to be weighted by completion rate?
+
+- When an observation has a negative wavelength (eg a dark) it should
+  not be stored in the obs table unless the MSB consists solely
+  of observations with negative wavelengths. This prevents a dark
+  from causing a search on wavelength to fail. Will also need
+  a tweak of obscount value stored in msb table. Need to write something
+  to the obs table so still have to write entries if they are the only
+  entries.
