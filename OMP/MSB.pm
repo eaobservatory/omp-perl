@@ -531,7 +531,7 @@ sub find_checksum {
   my $string = $self->_get_qualified_children_as_string;
 
   # and generate a checksum
-  my $checksum = md5_hex( $string );
+  my $checksum = md5_hex( "$string" );
 
   # In order to ditinguish MSBs associated with logic we prefixx
   # an OR and/or AND if the MSB is in such a construct. Otherwise
@@ -1359,7 +1359,7 @@ sub SpObs {
   # CAL
   # This test needs to be expanded for SCUBA
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle/, @{$summary{obstype}}) {
     if (!exists $summary{coords}) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified\n");
     }
@@ -1409,12 +1409,13 @@ sub SpIterFolder {
 
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # we need to go down a level
-    if ($name =~ /Repeat|Offset|IRPOL/) {
+    if ($name =~ /Repeat|Offset|IRPOL|POL/) {
       my %dummy = $self->SpIterFolder($child);
       push(@types, @{$dummy{obstype}}) if exists $dummy{obstype};
 
       # SpIterIRPOL signifies something significant
-      $summary{pol} = 1 if $name =~ /IRPOL/;
+      $summary{pol} = 1 if $name =~ /IRPOL$/;
+      $summary{pol} = 1 if $name =~ /POL$/;
 
       next;
     }
@@ -1624,14 +1625,13 @@ sub SpInstSCUBA {
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through
-  $summary{wavelength} = "unknown";
+  my $filter  = $self->_get_pcdata( $el, "filter" );
+  $summary{waveband} = new Astro::WaveBand( Filter => $filter,
+					    Instrument => 'SCUBA');
+  $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
   $summary{type} = "i";
-
-  # Polarimeter
-  my $pol = $self->_get_pcdata( $el, "polarimeter" );
-  $summary{pol} = ( $pol eq "no" ? 0 : 1 );
 
   return %summary;
 }
@@ -1662,7 +1662,13 @@ sub SpTelescopeObsComp {
   # and changes hmsdeg and degdeg to spherSystem
 
   # First try the new method
-  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"|@TYPE="SCIENCE"]/target');
+  # XML::LibXML does not seem to support an | for attributes so do it
+  # in two passes (ie './/BASE[@TYPE="Base"|@TYPE="SCIENCE"]/target'
+  # gives failures and type warnings from xpath.c line 9492/8695
+  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"]/target');
+
+  ($base) = $el->findnodes( './/BASE[@TYPE="SCIENCE"]/target')
+    unless $base;
 
   # Try again if at first we dont succeed
   # Get the base target element
