@@ -386,7 +386,7 @@ sub comment_form {
 	"</td><tr><td></td><td>",
 	$q->textarea(-name=>'text',
 		     -rows=>10,
-		     -columns=>50),
+		     -columns=>80),
 	"</td><tr><td></td><td align='right'>",
 	$q->submit("Submit"),
 	$q->endform;
