@@ -1964,6 +1964,26 @@ sub html_to_plain {
   return $plaintext;
 }
 
+=item B<nint>
+
+Return the nearest integer to a supplied floating point
+value. 0.5 is rounded up.
+
+  $nint = OMP::General::nint( $in );
+
+=cut
+
+sub nint {
+    my $value = shift;
+
+    if ($value >= 0) {
+        return (int($value + 0.5));
+    } else {
+        return (int($value - 0.5));
+    }
+};
+
+
 =back
 
 =head1 AUTHORS
