@@ -20,8 +20,13 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
-use Time::HiRes qw/ gettimeofday /;
-use Time::Piece qw/ :override /;
+
+use Astro::Coords::Offset;
+
+# Need to find the OCS Config
+use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
+
+use JAC::OCS::Config;
 
 use OMP::Error;
 
@@ -40,116 +45,56 @@ our $DEBUG = 0;
 
 =item B<translate>
 
-Convert the science program object (C<OMP::SciProg>) into
-a observing sequence understood by the instrument data acquisition
-system (Configure XML).
+Converts a single MSB object to one or many ACSIS Configs.
+It is assumed that this MSB will refer to an ACSIS observation
+(and has been prefiltered by the caller, usually C<OMP::Translator>).
+Always returns the configs as an array of C<JAC::OCS::Config> objects.
 
-  $xml = OMP::Translate->translate( $sp );
-  $data = OMP::Translate->translate( $sp, 1);
-  @data = OMP::Translate->translate( $sp, 1);
+  @configs = OMP::Translate->translate( $sp );
 
-By default returns the name of a XML file. If the optional second
-argument is true, returns the contents of the XML as a single string.
-
-Backup files are also written that are timestamped to prevent
-overwriting.  An accuracy of 1 milli second is used in forming the
-unique names.
+It is the responsibility of the caller to write these objects.
 
 =cut
 
 sub translate {
   my $self = shift;
-  my $sp = shift;
+  my $msb = shift;
   my $asdata = shift;
 
-  # See how many MSBs we have (after pruning)
-  my @msbs = $self->PruneMSBs($sp->msb);
-
   # Project
-  my $projectid = $sp->projectID;
+  my $projectid = $msb->projectID;
 
   # Now unroll the MSB into constituent observations details
   my @configs;
 
-  # Need to put DTD in here
-  my $xml = "<OCS_CONFIG>\n";
+  for my $obs ($msb->unroll_obs) {
 
-  # First, write the TCS_CONFIG
-  $xml .= $self->tcs_config();
+    # Create blank configuration
+    my $cfg = new JAC::OCS::Config;
 
-  # BASE and REFERENCE positions
+    # First, configure the basic TCS parameters
+    $self->tcs_config( $cfg, %$obs );
 
-  # Then obsArea
+    # FRONTEND_CONFIG
+    
+    # ACSIS_CONFIG
 
-  # FRONTEND_CONFIG
+    # HEADER_CONFIG
 
-  # ACSIS_CONFIG
+    # Slew and rotator need to wait until we can estimate
+    # the duration of the configuration
 
-  # HEADER_CONFIG
+    # Store the completed config
+    push(@configs, $cfg);
 
-  # End
-  $xml .= "</OCS_CONFIG>\n";
+    print $cfg;
 
-  # Store the completed config
-  push(@configs, $xml,$xml);
-
-  # Return or write
-  if ($asdata) {
-    # Return XML as a string
-    return @configs;
-  } else {
-    # Write the XML configs to disk
-
-    # The interface currently suggests that I write one copy into TRANS_DIR
-    # itself and another copy of the XML file into each of the directories
-    # found in TRANS_DIR
-    opendir my $dh, $TRANS_DIR || 
-      throw OMP::Error::FatalError("Error opening translation output directory $TRANS_DIR: $!");
-
-    # Get all the dirs (making sure current dir is first in the list)
-    # except hidden dirs [assume unix hidden definition XXX]
-    my @dirs = (File::Spec->curdir, 
-		grep { -d File::Spec->catdir($TRANS_DIR,$_) && $_ !~ /^\./ } readdir($dh));
-
-    # Format is acsis_YYYYMMDD_HHMMSSmmm
-    #  where mmm is milliseconds
-    my @filenames;
-    for (@configs) {
-      my ($sec, $mic_sec) = gettimeofday();
-      my $ut = gmtime( $sec );
-
-      # Rather than worry that the computer is so fast in looping that we might
-      # reuse milli-seconds (and therefore have to check that we are not opening
-      # a file that has previously been created) micro-seconds in the filename
-      my $cname = "acsis_". $ut->strftime("%Y%m%d_%H%M%S") .
-	"_".sprintf("%06d",$mic_sec) .
-	  ".xml";
-
-      my $storename;
-      for my $dir (@dirs) {
-
-	my $fullname = File::Spec->catdir( $TRANS_DIR, $dir, $cname );
-	print "Writing config to $fullname\n";
-
-	# First time round, store the filename for later return
-	$storename = $fullname unless defined $storename;
-
-	# Open it [without checking to see if we are clobbering a pre-existing file]
-	open my $fh, "> $fullname" || 
-	  throw OMP::Error::FatalError("Error opening config output file $fullname: $!");
-	print $fh $xml;
-	close ($fh) ||
-	  throw OMP::Error::FatalError("Error closing config output file $fullname: $!");
-
-      }
-
-      # Note that we currently store full path to the file in TRANS_DIR and not
-      # the files in subdirs
-      push(@filenames, $storename);
-    }
-    return @filenames;
+    last;
   }
 
+
+  # return the config objects
+  return @configs;
 }
 
 =item B<debug>
@@ -194,21 +139,154 @@ These routines generate the XML for individual config sections of the global con
 
 =item B<tcs_config>
 
-TCS configuration XML.
+TCS configuration.
 
-  $tcsxml = $TRANS->tcs_config( %info );
+  $tcsxml = $TRANS->tcs_config( $cfg, %info );
+
+where $cfg is the main C<JAC::OCS::Config> object.
 
 =cut
 
 sub tcs_config {
-  my $class = shift;
+  my $self = shift;
+  my $cfg = shift;
   my %info = @_;
 
-  return "<TCS_CONFIG></TCS_CONFIG>\n";
+  # Create the template
+  my $tcs = new JAC::OCS::Config::TCS;
 
+  # Telescope is known
+  $tcs->telescope( 'JCMT' );
+
+  # First the base position
+  $self->tcs_base( $tcs, %info );
+
+  # observing area
+  $self->observing_area( $tcs, %info );
+
+  # Then secondary mirror
+
+  # Slew and rotator require the duration to be known which can
+  # only be calculated when the configuration is complete
+
+  # Store it
+  $cfg->tcs( $tcs );
+}
+
+=item B<tcs_base>
+
+Calculate the position information (SCIENCE and REFERENCE)
+and store in the TCS object.
+
+  $trans->tcs_base( $tcs, %info );
+
+where $tcs is a C<JAC::OCS::Config::TCS> object.
+
+=cut
+
+sub tcs_base {
+  my $self = shift;
+  my $tcs = shift;
+  my %info = @_;
+
+  # First get all the coordinate tags
+  my %tags = %{ $info{coordtags} };
+
+  # and augment with the SCIENCE tag
+  # we only needs the Astro::Coords object in this case
+  $tags{SCIENCE} = { coords => $info{coords} };
+
+  # Create some BASE objects
+  my %base;
+  for my $t ( keys %tags ) {
+    my $b = new JAC::OCS::Config::TCS::BASE();
+    $b->tag( $t );
+    $b->coords( $tags{$t}->{coords} );
+
+    if (exists $tags{$t}->{OFFSET_DX} ||
+	exists $tags{$t}->{OFFSET_DY} ) {
+      my $off = new Astro::Coords::Offset( ($tags{$t}->{OFFSET_DX} || 0),
+					   ($tags{$t}->{OFFSET_DY} || 0));
+      $b->offset( $off );
+    }
+
+    # The OT can only specify tracking as the TRACKING system
+    $b->tracking_system ( 'TRACKING' );
+
+    $base{$t} = $b;
+  }
+
+  $tcs->tags( %base );
 }
 
 
+=item B<observing_area>
+
+Calculate the observing area parameters. Critically depends on
+observing mode.
+
+  $trans->observing_area( $tcs, %info );
+
+First argument is C<JAC::OCS::Config::TCS> object.
+
+=cut
+
+sub observing_area {
+  my $self = shift;
+  my $tcs = shift;
+  my %info = @_;
+
+  $self->observing_mode(%info);
+  my $obsmode = $info{MODE};
+
+  my $oa = new JAC::OCS::Config::TCS::obsArea();
+
+  # Offset [needs work in unroll_obs to fix this for jiggle so that
+  # we get a single configuration]
+
+  # There is only one position angle in an observing Area so the
+  # offsets have to be in the same frame as the map if we are
+  # defining a map area
+
+
+  if ($obsmode eq 'SpIterRasterObs') {
+
+    # Map specification
+    $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
+    $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
+		  WIDTH => $info{MAP_WIDTH});
+
+    # Scan specification
+    $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
+	       DY => $info{SCAN_DY},
+	     );
+
+  } else {
+    
+  }
+
+  # need to decide on public vs private
+  $tcs->_setObsArea( $oa );
+}
+
+=item B<observing_mode>
+
+Retrieves the OT observing mode from the OT observation summary
+(not from the OCS configuration).
+
+ $obsmode = $trans->observing_mode( %info );
+
+=cut
+
+sub observing_mode {
+  my $self = shift;
+  my %info = @_;
+
+  use Data::Dumper;
+  print Dumper( \%info );
+
+  return 'UNKNOWN';
+}
 
 =back
 
@@ -240,66 +318,6 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
-
-=head1 TODO
-
-The following infrastructure needs to be written for the ACSIS translator:
-
-TCS_CONFIG
-
- - Need to be able to write TOML::TCS data as well as read it.
-   Essentially should become a way of stringifying a Astro::Coords
-   object rather than attempting to fudge the pre-existing XML.
-   TOML::TCS will consist of hash of Astro::Coords indexed by
-   the TAG name. The XML will no longer be retained but will
-   be generated on demand.
-
-   This therefore requires that an Astro::Coords object can represent
-   the contents of the <BASE> element. This means offsets and also
-   things like parallax, epoch, proper motion. For the offsets in
-   particular, we could compromise and store them in the TOML::TCS
-   object itself but that seems a bit odd since the API would then
-   have to include a method for fetching offsets by tag name.
-
-     + The OT does not allow offsets in BASE positions.
-       but it does allow offsets in REFERENCE positions.
-
-   Velocity is the great unknown here since the implication is that
-   we need an Astro::RadialVelocity object that represents a radial
-   velocity to be associated with our Astro::Coords object. Does the
-   Astro::RadialVelocity object also need a Astro::Telescope object or
-   can it get away with using the one associated with Astro::Coords?
-
-   Step 1:
-
-    - Write simple Astro::RadialVelocity
-
-           $v = new Astro::RadialVelocity( frame => 'LSR',
-                                           vdefn => 'radio',
-                                           velocity => 55, # km/s
-                                         #  redshift => 3.4,
-                                         );
-
-    - Support EPOCH, PARALLAX, PM1,PM2  in Astro::Coords   [DONE]
-
-    - Include offsets somewhere (at least in TOML::TCS but that has
-      API bloat consequences)
-
-   Step 2:
-
-    Need to construct the obsArea section. This should be fairly
-    straightforward and will have to be constructed using a combination
-    of SpIterRasterObs (etc) and SpIterOffset. Will probably need
-    to have a lookup table of position angles that are valid for
-    each instrument when scanning.
-
-FE_CONFIG
-
-    - This all comes from SpInstHeterodyne
-
-ACSIS_CONFIG
-
-    - This will need to create the spectral window
 
 =cut
 
