@@ -2638,7 +2638,21 @@ sub SpIterFolder {
     } elsif ($name eq 'SpIterStareObs') {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
+
+      # For Het
+      my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
+      my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
+      my $crev  = $self->_get_pcdata( $child, 'cycleReversal');
+      my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
+
+      my %stare;
+      $stare{nintegrations} = $nint;
+      $stare{secsPerCycle}  = $sPerC if defined $sPerC;
+      $stare{switchingMode} = $switchMode if defined $switchMode;
+      $stare{continuousCal} = $ccal if defined $ccal;
+      $stare{cycleReversal} = $crev if defined $crev;
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
 
@@ -2722,7 +2736,12 @@ sub SpIterFolder {
     } elsif ($name eq 'SpIterSkydipObs') {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint }});
+      my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
+      $currAz = ($currAz =~ /^false$/i ? 0 : 1);
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint,
+							currentAz => $currAz,
+						      }});
 
     } elsif ($name eq 'SpIterRasterObs') {
 
@@ -2732,6 +2751,13 @@ sub SpIterFolder {
       my %scan;
       $scan{nintegrations} =  $self->_get_pcdata( $child, 'integrations');
 
+      # Heterodyne includes some information specific to that mode
+      # For scuba sampleTime is a constant: 0.125sec
+      my $samptime = $self->_get_pcdata($child, "sampleTime");
+      $scan{sampleTime} = $samptime if defined $samptime;
+
+      my $rowsPerCal = $self->_get_pcdata($child, "rowsPerCal");
+      $scan{rowsPerCal} = $rowsPerCal if defined $rowsPerCal;
 
       # scan information is in <obsArea>
       # PA
@@ -3077,6 +3103,21 @@ sub SpInstHeterodyne {
 					  );
   $summary{wavelength} = $summary{waveband}->wavelength;
 
+  # Translator specific stuff [really need to tweak Astro::Waveband
+  # so that it handles velocity properly
+  $summary{freqconfig} = {
+			  restFrequency => $rfreq,
+			  velocity => $self->_get_pcdata($el, "velocity"),
+			  velocityDefinition => $self->_get_pcdata($el,
+								   "veloctiyDefinition"),
+			  bandWidth => $self->_get_pcdata($el,"bandWidth"),
+			  sideBand => $self->_get_pcdata($el,"band"),
+			  mixers => $self->_get_pcdata($el,"mixers"),
+			  sideBandMode => $self->_get_pcdata($el,"mode"),
+			  transition => $self->_get_pcdata($el,"transition"),
+			  molecule => $self->_get_pcdata($el,"molecule"),
+			 };
+
   # Camera mode is really a function of front end and observing
   # mode. "s" for spectroscopy does not really say enough
   # For JCMT we probably should have "imaging" and "sample"
@@ -3112,7 +3153,7 @@ sub SpTelescopeObsComp {
   # Need to support two versions of the TCS XML.
   # Old version has
   # <base>
-  #  <target type="science">
+  #  <target type="SCIENCE">
   #       ...
   # New version has:
   # <BASE TYPE="Base">
@@ -3120,26 +3161,84 @@ sub SpTelescopeObsComp {
   #        ....
   # and changes hmsdeg and degdeg to spherSystem
 
-  # First try the new method
-  # XML::LibXML does not seem to support an | for attributes so do it
-  # in two passes (ie './/BASE[@TYPE="Base"|@TYPE="SCIENCE"]/target'
-  # gives failures and type warnings from xpath.c line 9492/8695
-  my ($base) = $el->findnodes( './/BASE[@TYPE="Base"]/target');
 
-  ($base) = $el->findnodes( './/BASE[@TYPE="SCIENCE"]/target')
-    unless $base;
+  # We need to parse each of the BASE positions specified
+  # Usually SCIENCE, REFERENCE or BASE and SKY
+  # We should find all the BASE entries and parse them in turn.
+  # Supporting the old style is a pain
 
-  # Try again if at first we dont succeed
-  # Get the base target element
-  ($base) = $el->findnodes(".//base/target")
-    unless $base;
+  # Look for BASE
+  my @base = $el->findnodes( './/BASE');
+
+  # if we have not got any we look for "base"
+  @base = $el->findnodes( './/base') unless @base;
 
   # Could be an error (it is for now) but we may be specifying 
   # "best guess" as an option for the translator for pointing and
   # standards
-  throw OMP::Error::SpBadStructure("No base target position specified in SpTelescopeObsComp\n") unless $base;
+  throw OMP::Error::SpBadStructure("No base target position specified in SpTelescopeObsComp\n") unless @base;
 
-  $summary{target} = $self->_get_pcdata($base, "targetName");
+
+  # For each of these nodes we need to extract the target information
+  # and the tag
+  my %tags;
+  for my $b (@base) {
+    # The tag is either an attribute of BASE
+    # or an attribute of target
+    my $tag = $b->getAttribute( 'TYPE' );
+
+    # Now need to find the target
+    my ($target) = $b->findnodes( './/target' );
+
+    throw OMP::Error::SpBadStructure("Unable to find target inside BASE SpTelescopeObsComp\n") unless $target;
+
+    # If we have not got a tag we should look for it in target
+    $tag = $target->getAttribute( 'type' ) unless defined $tag;
+
+    # Error if we do not have a tag
+    throw OMP::Error::SpBadStructure("Unable to find tag associated with this base position") unless defined $tag;
+
+    # Now extract the coordinate information
+    $tags{$tag} =  { $self->_extract_coord_info( $target ) };
+
+  }
+
+  # SCIENCE or Base tags get copied into the main %summary hash
+  # REFERENCE, SKY and GUIDE are copied directly
+  if (exists $tags{SCIENCE} && exists $tags{Base}) {
+    throw OMP::Error::SpBadStructure("You are not allowed to specify both a SCIENCE position and a Base position");
+  } elsif (!exists $tags{SCIENCE} && !exists $tags{Base} ) {
+    throw OMP::Error::SpBadStructure("You must specify either a SCIENCE position or a Base position");
+  }
+
+  for my $t (qw/ SCIENCE Base/) {
+    next unless exists $tags{$t};
+    %summary = (%summary, %{$tags{$t}});
+    delete $tags{$t};
+  }
+
+  # Copy all the others
+  $summary{coordtags} = \%tags;
+
+  return %summary;
+}
+
+=item B<_extract_coord_info>
+
+This routine will parse a TCS XML "target" element and return
+the relevant information. Does not know about the TYPE
+
+ %results = $self->_extract_coord_info( $element );
+
+=cut
+
+sub _extract_coord_info {
+  my $self = shift;
+  my $target = shift;
+
+  # Somewhere to store the information
+  my %summary;
+  $summary{target} = $self->_get_pcdata($target, "targetName");
   $summary{target} = NO_TARGET unless defined $summary{target};
 
   # Now we need to look for the coordinates. If we have hmsdegSystem
@@ -3151,7 +3250,7 @@ sub SpTelescopeObsComp {
 
   # Search for the element matching (this will be targetName 90% of the time)
   # We know there is only one system element per target
-  my ($system) = $self->_get_child_elements($base, qr/System$/);
+  my ($system) = $self->_get_child_elements($target, qr/System$/);
 
   # Get the coordinate system name
   my $sysname = $system->getName;
