@@ -242,7 +242,9 @@ sub db_accounts {
 						   )} @acct;
 
     # Store result
-    my $acctgrp = new OMP::TimeAcctGroup(accounts=>\@acct);
+    my $acctgrp = new OMP::TimeAcctGroup(accounts=>\@acct,
+					 telescope=>$self->telescope,);
+
     $self->{DBAccounts} = $acctgrp;
   }
   return $self->{DBAccounts};
