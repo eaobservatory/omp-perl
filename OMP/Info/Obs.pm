@@ -134,6 +134,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               airmass_end => '$',
                               backend => '$',
                               bolometers => '@',
+                              camera => '$',
                               checksum => '$',
                               chopangle => '$',
                               chopsystem => '$',
@@ -148,6 +149,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               duration => '$',
                               endobs => 'Time::Piece',
                               filename => '$',
+                              filter => '$',
                               grating => '$',
                               group => '$',
                               instrument => '$',
@@ -546,6 +548,7 @@ sub nightlog {
     $return{'Group'} = defined($self->group) ? $self->group : 0;
     $return{'Object'} = defined($self->target) ? $self->target : '';
     $return{'Observation type'} = defined($self->type) ? $self->type : '';
+    $return{'Waveband'} = defined($self->waveband->filter) ? $self->waveband->filter : ( defined( $self->waveband->wavelength ) ? sprintf("%.2f", $self->waveband->wavelength) : '' );
     $return{'RA offset'} = defined($self->raoff) ? sprintf( "%.3f", $self->raoff) : 0;
     $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
@@ -554,133 +557,88 @@ sub nightlog {
     $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
     $return{'Project ID'} = $self->projectid;
     $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "UT time", "Object",
-                          "Observation type", "Exposure time", "RA offset", "Dec offset",
+                          "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
 
-    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID  UT Start         Object     Type   ExpT RAoff DecOff   AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %11.11s  %8.8s %14.14s %8.8s %6.2f %5.1f  %5.1f %4.2f %-25.25s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID UT Start      Object     Type   ExpT Wvbnd     Offsets    AM Recipe";
+    $return{'_STRING'} = sprintf("%4d %4d %11.11s %8.8s %11.11s %8.8s %6.2f %5.5s %5.1f/%5.1f  %4.2f %-22.22s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
-  } elsif($instrument =~ /michelle/i) {
+# And now for the specifics.
 
-# *** MICHELLE
+    if( $instrument =~ /cgs4/i ) {
 
-    $return{'Observation'} = $self->runnr;
-    $return{'Group'} = $self->group;
-    $return{'Object'} = $self->target;
-    $return{'Observation type'} = $self->type;
-    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = sprintf("%.1f",$self->duration);
-    $return{'Number of Exposures'} = $self->nexp;
-    $return{'Mode'} = $self->mode;
-    $return{'Speed'} = $self->speed;
-    $return{'Filter'} = (defined($self->waveband) && defined($self->waveband->filter) )
-                        ? $self->waveband->filter
-                        : '';
-    $return{'Wavelength'} = (defined($self->waveband) && defined($self->waveband->wavelength))
-                            ? $self->waveband->wavelength
-                            : '';
-    $return{'Airmass'} = sprintf("%.2f",$self->airmass);
-    $return{'Columns'} = $self->columns;
-    $return{'Rows'} = $self->rows;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
-    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
-    $return{'RA offset'} = defined($self->raoff) ? $self->raoff : 0.0;
-    $return{'Dec offset'} = defined($self->decoff) ? $self->decoff : 0.0;
-    $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
-    $return{'Standard'} = $self->standard;
+      $return{'Wavelength'} = $self->waveband->wavelength;
+      $return{'Slit Name'} = $self->slitname;
+      $return{'PA'} = $self->slitangle;
+      if(defined($self->coords)) {
+        $return{'RA'} = $self->coords->ra( format => "s" );
+        $return{'Dec'} = $self->coords->dec( format => "s" );
+      } else {
+        $return{'RA'} = "--:--:--";
+        $return{'Dec'} = "--:--:--";
+      }
+      $return{'Grating'} = $self->grating;
+      $return{'Order'} = $self->order;
+      $return{'Nexp'} = $self->nexp;
 
+      push @{$return{'_ORDER'}}, [ "Slit Name", "PA", "Grating", "Order", "Wavelength", "RA", "Dec", "Nexp" ];
+      $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Slit Name      PA    Grating  Order            RA          Dec  Nexp";
+      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %4d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
 
-    $return{'Position Angle'} = $self->slitangle;
-    $return{'Grating'} = defined($self->grating) ? $self->grating : '';
-    $return{'Order'} = $self->order;
-    $return{'Wavelength'} = defined($self->waveband) ? $self->waveband->wavelength : '';
-    $return{'Project ID'} = $self->projectid;
-    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object", "Observation type",
-                          "UT start", "Exposure time",
-                          "Filter", "Airmass", "RA", "DEC", "Equinox", "RA offset", "Dec Offset",
-                          "Slit", "Position Angle", "Grating",
-                          "Wavelength", "DR Recipe" ];
+    } elsif( $instrument =~ /ircam/i ) {
 
-    $return{'_STRING_HEADER'} = " Obs  Grp           Object  UT start   ExpT Nexp    Filter Grating Wvlnth     Type   AM  RAoff DecOff Recipe";
-    $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+    } elsif( $instrument =~ /ufti/i ) {
 
-  } elsif($instrument =~ /ufti/i) {
+      $return{'Filter'} = $self->filter;
+      $return{'Readout Area'} = $self->columns . "x" . $self->rows;
+      $return{'Speed'} = $self->speed;
+      if(defined($self->coords)) {
+        $return{'RA'} = $self->coords->ra( format => "s" );
+        $return{'Dec'} = $self->coords->dec( format => "s" );
+      } else {
+        $return{'RA'} = "--:--:--";
+        $return{'Dec'} = "--:--:--";
+      }
+      $return{'Nexp'} = $self->nexp;
+      push @{$return{'_ORDER'}}, [ "Filter", "Readout Area", "Speed", "RA", "Dec" ];
+      $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Filter  Readout Area      Speed            RA          Dec  Nexp";
+      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %6.6s     %9.9s %10s  %12.12s %12.12s  %4d", $return{'Filter'}, $return{'Readout Area'}, $return{'Speed'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
 
-# *** UFTI
+    } elsif( $instrument =~ /uist/i ) {
 
-    $return{'Observation'} = $self->runnr;
-    $return{'Group'} = defined($self->group) ? $self->group : 0;
-    $return{'Object'} = $self->target;
-    $return{'Observation type'} = $self->type;
-    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = sprintf("%.1f",$self->duration);
-    $return{'Number of exposures'} = $self->nexp;
-    $return{'Mode'} = defined($self->mode) ? $self->mode : '';
-    $return{'Speed'} = $self->speed;
-    $return{'Filter'} = ( defined($self->waveband) && defined($self->waveband->filter) )
-                        ? $self->waveband->filter
-                        : '';
-    $return{'Airmass'} = sprintf("%.2f",$self->airmass);
-    $return{'Columns'} = defined($self->columns) ? $self->columns : 0;
-    $return{'Rows'} = defined($self->rows) ? $self->rows : 0;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
-    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
-    $return{'RA Offset'} = $self->raoff;
-    $return{'Dec Offset'} = $self->decoff;
-    $return{'DR Recipe'} = defined($self->drrecipe) ? $self->drrecipe : '';
-    $return{'Project ID'} = $self->projectid;
-    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object",
-                          "Observation type", "UT start", "Exposure time",
-                          "Filter", "Airmass", "RA", "DEC", "Equinox",
-                          "RA Offset", "Dec Offset", "DR Recipe" ];
-    $return{'_STRING_HEADER'} = "  Obs   UT Start           Object    Filter   ExpT  Coadds    AM  Array Size  Recipe";
-#    $return{'_STRING_HEADER'} = " Obs  Grp           Object UT start   ExpT    Filter    Type    AM  RAoff DecOff Recipe";
-    $return{'_STRING'} = sprintf("%5u   %-8.8s %16.16s %9.9s %6.2f    %4d  %4.2f   %9.9s %-26s",$return{'Observation'}, $return{'UT start'}, $return{'Object'}, $return{'Filter'}, $return{'Exposure time'}, $return{'Number of coadds'}, $return{'Airmass'}, $return{'Columns'} . 'x' . $return{'Rows'}, $return{'DR Recipe'});
-#    $return{'_STRING'} = sprintf("%4u %4u %16.16s %-8.8s %6.2f %9.9s %7.7s  %4.2f %6.1f %6.1f %-26.26s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Filter'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
+      $return{'Mode'} = $self->mode;
+      if(defined($self->slitname)) {
+        if( $self->mode =~ /(spectroscopy|ifu)/i ) {
+          $return{'Slit Angle'} = $self->slitangle;
+          if(lc($self->slitname) eq "0m") { $return{'Slit'} = "1pix"; }
+          elsif(lc($self->slitname) eq "0w") { $return{'Slit'} = "2pix"; }
+          elsif(lc($self->slitname) eq "0ew") { $return{'Slit'} = "4pix"; }
+          elsif(lc($self->slitname) eq "36.9w") { $return{'Slit'} = "2p-e"; }
+          elsif(lc($self->slitname) eq "36.9m") { $return{'Slit'} = "1p-e"; }
+          else { $return{'Slit'} = $self->slitname; }
+          $return{'Wavelength'} = $self->waveband->wavelength;
+          $return{'Grism'} = $self->grating;
+          $return{'Speed'} = "-";
+        } else {
+          $return{'Grism'} = "-";
+          $return{'Wavelength'} = "0";
+          $return{'Slit'} = "-";
+          $return{'Slit Angle'} = "0";
+          $return{'Speed'} = $self->speed;
+        }
+      }
+      $return{'Filter'} = $self->filter;
+      $return{'Readout Area'} = $self->columns . "x" . $self->rows;
+      $return{'Camera'} = $self->camera;
+      $return{'Nexp'} = $self->nexp;
 
-  } elsif( $instrument =~ /uist/i ) {
+      push @{$return{'_ORDER'}}, [ "Mode", "Slit", "Slit Angle", "Grism", "Wavelength", "Filter", "Readout Area", "Camera", "Nexp", "Speed" ];
+      $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n          Mode Slit     PA      Grism Wvlnth Filter  Readout Area  Camera Nexp   Speed";
+      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n  %12.12s %4.4s %6.2f %10.10s %6.3f %6.6s     %9.9s  %6.6s %4d %7.7s", $return{'Mode'}, $return{'Slit'}, $return{'Slit Angle'}, $return{'Grism'}, $return{'Wavelength'}, $return{'Filter'}, $return{'Readout Area'}, $return{'Camera'}, $return{'Nexp'}, $return{'Speed'});
 
-# *** UIST
+    } elsif( $instrument =~ /michelle/i ) {
 
-    $return{'Observation'} = $self->runnr;
-    $return{'Group'} = $self->group;
-    $return{'Object'} = $self->target;
-    $return{'Observation type'} = $self->type;
-    $return{'UT start'} = defined($self->startobs) ? $self->startobs->hms : '';
-    $return{'Exposure time'} = sprintf("%.1f", $self->duration );
-    $return{'Filter'} = (defined($self->waveband) && defined($self->waveband->filter))
-                        ? $self->waveband->filter : '';
-    $return{'Wavelength'} = (defined($self->waveband) && defined($self->waveband->wavelength))
-                            ? $self->waveband->wavelength :
-                            '';
-
-    if(defined($self->slitname)) {
-      $return{'Slit Name'} = "1pix" if ( $self->slitname eq "0m" );
-      $return{'Slit Name'} = "2pix" if ( $self->slitname eq "0w" );
-      $return{'Slit Name'} = "4pix" if ( $self->slitname eq "0ew" );
-      $return{'Slit Name'} = "2p-e" if ( $self->slitname eq "36.9w" );
-      $return{'Slit Name'} = "1p-e" if ( $self->slitname eq "36.9m" );
     }
-
-    $return{'Slit Angle'} = defined($self->slitangle) ? $self->slitangle : '';
-    $return{'Number of Exposures'} = defined($self->nexp) ? $self->nexp : 0;
-    $return{'Grating'} = defined($self->grating) ? $self->grating : '';
-    $return{'Airmass'} = $self->airmass;
-    $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
-    $return{'DEC'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
-    $return{'Equinox'} = defined($self->coords) ? $self->coords->type : '';
-    $return{'RA Offset'} = $self->raoff;
-    $return{'Dec Offset'} = $self->decoff;
-    $return{'DR Recipe'} = $self->drrecipe;
-    $return{'Project ID'} = $self->projectid;
-    $return{'_ORDER'} = [ "Observation", "Group", "Project ID", "Object",
-                          "Observation type", "UT start", "Exposure time",
-                          "Airmass", "Filter", "RA", "DEC", "Equinox",
-                          "RA Offset", "Dec Offset", "DR Recipe", ];
-    $return{'_STRING_HEADER'} = " Obs  Grp           Object  UT start   ExpT Nexp    Filter Grating Wvlnth     Type   AM  RAoff DecOff Recipe";
-    $return{'_STRING'} = sprintf("%4u %4u %16.16s  %-8.8s %6.2f %4f  %8.8s %7.7s %6.3f %8.8s %4.2f%6.1f %6.1f %20.20s", $return{'Observation'}, $return{'Group'}, $return{'Object'}, $return{'UT start'}, $return{'Exposure time'}, $return{'Number of Exposures'}, $return{'Filter'}, $return{'Grating'}, $return{'Wavelength'}, $return{'Observation type'}, $return{'Airmass'}, $return{'RA Offset'}, $return{'Dec Offset'}, $return{'DR Recipe'});
 
   }
 
@@ -792,6 +750,7 @@ sub _populate {
   my $self = shift;
 
   my $header = $self->hdrhash;
+
   my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header);
 
   $self->projectid( $generic_header{PROJECT} );
@@ -803,6 +762,7 @@ sub _populate {
   $generic_header{TELESCOPE} =~ /^(\w+)/;
   $self->telescope( $1 );
   $self->filename( $generic_header{FILENAME} );
+
 
   # Build the Astro::WaveBand object
   if ( length( $generic_header{GRATING_WAVELENGTH} . "" ) != 0 ) {
@@ -880,6 +840,7 @@ sub _populate {
                                          ) );
       } elsif ( ( $generic_header{COORDINATE_TYPE} eq 'J2000' ) ||
                 ( $generic_header{COORDINATE_TYPE} eq 'B1950' ) ) {
+
         $self->coords( new Astro::Coords( ra    => $generic_header{RA_BASE},
                                            dec   => $generic_header{DEC_BASE},
                                            type  => $generic_header{COORDINATE_TYPE},
@@ -932,6 +893,8 @@ sub _populate {
   $self->cycle_length( $generic_header{CYCLE_LENGTH} );
   $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
   $self->backend( $generic_header{BACKEND} );
+  $self->filter( $generic_header{FILTER} );
+  $self->camera( $generic_header{CAMERA} );
 
   # Set the filename if it's not set.
 #  if( !defined($self->filename) ) {
