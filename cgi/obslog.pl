@@ -16,8 +16,8 @@ use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 use PDL::Graphics::LUT;
 
-use lib qw(/jac_sw/omp/msbserver);
-#use lib qw( /home/bradc/development/omp/msbserver);
+#use lib qw(/jac_sw/omp/msbserver);
+use lib qw( /home/bradc/development/omp/msbserver);
 use OMP::CGI;
 use OMP::Info::Obs;
 use OMP::ArchiveDB;
@@ -218,12 +218,12 @@ sub list_observations {
   # Print each observation.
   foreach my $obs (@{$results{$firstinst}}) {
 
-    # Grab the comment (if there is one) so we know what colour to
+    # Grab the comments (if there are any) so we know what colour to
     # make the observation.
-    my $comment = $odb->getComment( $obs );
+    my $comments = $odb->getComment( $obs );
     my $colour;
-    if(defined($comment)) {
-      my $status = $comment->status . "";
+    if(defined($comments) && defined($comments->[0])) {
+      my $status = $comments->[($#{$comments})]->status . "";
       $colour = $colour[$status];
     } else {
       $colour = $colour[0];
@@ -240,13 +240,25 @@ sub list_observations {
     print "&runnr=" . $obs->runnr . "&inst=" . $firstinst . "\">edit/view</a></td></tr>\n";
     # "Print each observation," he says. As easy as that, eh?
 
-    # Print the comment underneath, if there is one, and if the 'collapse'
+    # Print the comments underneath, if there are any, and if the 'collapse'
     # query parameter is 'f'.
-    if(defined($comment) && $verified->{'collapse'} eq 'f') {
-      print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\"><font color=\"$colour\">";
-      print "<strong>" . $comment->date->cdate . " UT / " . $comment->author->userid . ":";
-      print "</strong> " . $comment->text;
-      print "</font></td></tr>\n";
+    if(defined($comments) &&
+       defined($comments->[0]) &&
+       $verified->{'collapse'} eq 'f') {
+      print "<tr><td></td><td colspan=\"" . (scalar(@{$nightlog{_ORDER}})) . "\">";
+      my @printstrings;
+      foreach my $comment (@$comments) {
+        my $string = "<font color=\"";
+        $string .= $colour[$comment->status];
+        $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->userid . ":";
+        $string .= "</strong> " . $comment->text;
+        $string .= "</font>";
+        push @printstrings, $string;
+      }
+      if($#printstrings > -1) {
+        print join "<br>", @printstrings;
+      };
+      print "</td></tr>\n";
     }
   }
 
