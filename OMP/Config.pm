@@ -88,13 +88,16 @@ is changed, old configs are cleared.
   my $cfgdir;
   sub cfgdir {
     my $class = shift;
+    print "In cfgdir method\n" if $DEBUG;
     if (@_) {
       my $dir = shift;
+      print "dir: $dir\n" if $DEBUG;
       if (-d $dir) {
-	$cfgdir = $dir;
-	%CONFIG = (); # reset configs
+        $cfgdir = $dir;
+        print "cfgdir: $cfgdir\n" if $DEBUG;
+        %CONFIG = (); # reset configs
       } else {
-	throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
+        throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
       }
     }
     return $cfgdir;
@@ -282,7 +285,14 @@ sub _read_configs {
 
   # First step is to read all the .cfg files from the config directory
   my $dir = $class->cfgdir;
-  print "Config Dir is $dir\n" if $DEBUG;
+
+  if ($DEBUG) {
+    my $text = (defined $dir ? $dir : "<undef>");
+    print "Config Dir is $text\n";
+  }
+
+  throw OMP::Error::FatalError("Config dir has not been defined - Aborting")
+      unless defined $dir;
 
   opendir my $dh, $dir
     or throw OMP::Error::FatalError("Error reading config directory [$dir]: $!");
@@ -448,6 +458,8 @@ sub _determine_default_cfgdir {
 				  File::Spec->updir,
 				  "cfg");
   }
+
+  print "Guessing CFGDIR as $cfgdir\n" if $DEBUG;
 
   # set it if it is accessible
   $class->cfgdir($cfgdir)
