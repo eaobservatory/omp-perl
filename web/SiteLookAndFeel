@@ -1,0 +1,27 @@
+
+
+@NAVBAR=0;
+@ALLOWBODYMOD=1;
+@ALLOWNOSIDEBAR=1;
+@NOSIDEBAR=0;
+@BGCOLOR=#FFFFFF;
+
+@BLANKGIF=/JACpublic/JAC/images/blank.gif;
+
+@ALLOWSIDEBARMOD=1;
+@SIDEBARTOP=<a href=http://www.jach.hawaii.edu/>Joint Astronomy
+Centre</A>;
+@SIDEBARMENUTITLE=JAC Divisions;
+@SIDEBARMENULINKS=<A HREF="/JACpublic/JCMT">JCMT</A>,
+                  <A HREF="/JACpublic/UKIRT">UKIRT</A>,
+                  <A HREF="/JACpublic/JAC/ets">Engineering & Technical Services</A>,
+                  <A HREF="/JACpublic/JAC/software">Software</A>,
+                  <A HREF="/JACpublic/JAC/cs">Computing Services</A>,
+                  <A HREF="http://www.jach.hawaii.edu/JAClocal/admin">Administration</a>,
+                  <a href="http://outreach.jach.hawaii.edu/">Public information</a>;
+@SIDEBARSEARCHBOX=1;
+@SIDEBARCOLOR=#CCCCFF;
+
+# Here, set up the form for the search engine to use
+@SEARCHTEMPLATE = <B>Search JAC Public Server</B><BR><HR><DIV ALIGN="center"><form method="POST" action="http://www.jach.hawaii.edu/cgi-bin/htsearch"><input type=hidden name=config value=htdig><input type=hidden name=exclude value="www-private"><input type=hidden name=format value=builtin-long><input type=text size=15 name=words value=""></form></div><h6><a href="http://www.jach.hawaii.edu/JAClocal/htdig/">More searching...</a></h6>;
+

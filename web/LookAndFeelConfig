@@ -1,0 +1,16 @@
+@ALLOWSIDEBARMOD=1;
+@SIDEBARMENUTITLE=JAC Divisions;
+@NOSIDEBAR=0;
+@NAVBAR=0;
+@INFO=
+<A HREF="http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl">
+	OMP Feedback system</a>,
+<A HREF="http://omp.jach.hawaii.edu/cgi-bin/queryfault.pl">
+	Fault System</a>,
+<A HREF="http://omp.jach.hawaii.edu">
+        OMP home</a>;
+
+@SIDEBARCOLOR=#8080CC;
+@BGCOLOR=#8080CC;
+@LINK=#ffd700;
+@VLINK=#87cefff;
