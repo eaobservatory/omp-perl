@@ -847,8 +847,6 @@ sub addFITStoObs {
     push(@nodes, $self->_tree->findnodes('.//SpObs'));
   }
 
-  print "Found ", scalar(@nodes), " SpObs\n";
-
   # Some XML elements that we can insert
   # problems with XML::LibXML mean that we need to create
   # some XML as text, parse it and then insert the nodes.
