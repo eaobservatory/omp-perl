@@ -1314,7 +1314,9 @@ process ID and the date.
 Fails silently if the file can not be opened (rather than cause the whole
 system to stop because it is not being written).
 
-A new file is created for each UT day in directory C</tmp/omplog>.
+Uses the config C<logdir> entry to determine the required logging
+directory but will fall back to C</tmp/ompLogs> if the required
+directory can not be written to. A new file is created for each UT day.
 The directory is created if it does not exist.
 
 Returns immediately if the environment variable C<$OMP_NOLOG> is set.
@@ -1328,10 +1330,13 @@ sub log_message {
   return if exists $ENV{OMP_NOLOG};
 
   # "Constants"
-  my $logdir = File::Spec->catdir( File::Spec->tmpdir, "omplog");
+  my $logdir;
+  eval {
+    $logdir = OMP::Config->getData( "logdir" );
+  };
+  my $fallback_logdir = File::Spec->catdir( File::Spec->tmpdir, "ompLogs");
   my $datestamp = gmtime;
   my $filename = "log." . $datestamp->strftime("%Y%m%d");
-  my $path = File::Spec->catfile( $logdir, $filename);
 
   # Create the message
   my ($user, $host, $email) = OMP::General->determine_host;
@@ -1344,29 +1349,41 @@ sub log_message {
   # Set umask to 0 so that we can remove all protections
   umask 0;
 
-  # First check the directory and create it if it isnt here
-  unless (-d $logdir) {
-    mkdir $logdir, 0777
-      or do { umask $umask; return};
-  }
+  # Try both the logdir and the back up
+  for my $thisdir ($logdir, $fallback_logdir) {
+    next unless defined $thisdir;
 
-  # Open the file for append
-  # Creating the file if it is not there already
-  open my $fh, ">> $path"
-    or do { umask $umask; return };
+    my $path = File::Spec->catfile( $thisdir, $filename);
+
+    # First check the directory and create it if it isnt here
+    # Loop around if we can not open it
+    unless (-d $thisdir) {
+      mkdir $thisdir, 0777
+	or next;
+    }
+
+    # Open the file for append
+    # Creating the file if it is not there already
+    open my $fh, ">> $path"
+      or next;
+
+    # Get an exclusive lock (this blocks)
+    flock $fh, LOCK_EX;
+
+    # write out the message
+    print $fh $logmsg;
+
+    # Explicitly close the file (dont check return value since
+    # we will just return anyway)
+    close $fh;
+
+    # If we got to the end we jump out the loop
+    last;
+
+  }
 
   # Reset umask
   umask $umask;
-
-  # Get an exclusive lock (this blocks)
-  flock $fh, LOCK_EX;
-
-  # write out the message
-  print $fh $logmsg;
-
-  # Explicitly close the file (dont check return value since
-  # we will just return anyway)
-  close $fh;
 
   return;
 }
