@@ -62,8 +62,8 @@ sub telescope {
 
   # check for telescope
   my $telescope;
-  if ( exists $href->{_telescope} ) {
-    $telescope = $href->{_telescope}->[0];
+  if ( exists $href->{telescope} ) {
+    $telescope = $href->{telescope}->[0];
   } else {
     throw OMP::Error::DBMalformedQuery( "No telescope supplied!");
   }
@@ -115,7 +115,7 @@ sub sql {
     unless scalar(@_) == 0;
 
   # Generate the WHERE clause from the query hash
-  my $subsql = $self->_qhash_tosql();
+  my $subsql = $self->_qhash_tosql( [qw/ telescope /]);
 
   # Construct the the where clause. Depends on which
   # additional queries are defined
@@ -146,7 +146,7 @@ sub sql {
     throw OMP::Error::DBMalformedQuery("Unknown telescope: $tel\n");
   }
 
-  # print "SQL: $sql\n";
+  #print "SQL: $sql\n";
   return "$sql\n";
 
 }
@@ -184,10 +184,27 @@ following are supported:
  <projectid> : "proj_id" SCUBA, "projid" GSD, none on UKIRT
  <obsnum>    : "run" on SCUBA, "scan" on GSD, "OBSNUM" on UKIRT
 
-Note that this translation requires that we can determine the
-instrument (at least) or telescope from the query. A query on the JCMT
-tables must involve two tables and many OR clauses. No attempt is
-made to combine queries to separate telescopes.
+Due to the layout of the database tables only a single database can
+be used for any given query. This means that you can not query on
+UKIRT and JCMT together but also means that for JCMT queries we must
+be able to distinguish between a query of the heterodyne table
+(this includes UKT14) and a query on the SCUBA table.
+
+This means that each query must include either a C<telescope> tag
+or be able to determine the telescope from the C<instrument> 
+requirements. If no instrument is supplied there must be a telescope.
+If the telescope is supplied and no instrument is supplied then
+I<the GSD table is implied>.
+
+ASIDE: The alternative is to raise an error in the implicit case
+and require explicit use of an additional tag to specify the
+database table.
+
+This means that if you want to query both JCMT tables you must
+do the query twice. Once with SCUBA and once without SCUBA.
+
+ASIDE: Not sure if it is possible to infer a query on both tables
+and run them separately automatically.
 
 This method will throw an exception if a query is requested for
 an instrument/telescope combination that can not work.
@@ -228,25 +245,23 @@ sub _post_process_hash {
   # Do the generic pre-processing
   $self->SUPER::_post_process_hash( $href );
 
-  # Telescope is renamed _telescope so that it skips the
-  # SQL creation [can also only have one telescope]
+  # Check we only have one instrument
   if (exists $href->{telescope}) {
     throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query") if scalar(@{$href->{telescope}}) > 1;
-    $href->{_telescope} = $href->{telescope};
-    delete $href->{telescope};
   }
 
   # Loop over instruments if specified
-  # This is required for a sanity check
+  # This is required for a sanity check to make sure incorrect combos are
+  # trapped
   my %tables;
   if (exists $href->{instrument}) {
     my %tels;
-    for my $inst (@{ $href->{instrument} }) {
-      $inst = uc($inst);
+    for (@{ $href->{instrument} }) {
+      my $inst = uc($_);
       if ($inst eq "SCUBA") {
 	$tables{$SCUTAB}++;
 	$tels{JCMT}++;
-      } elsif ($inst =~ /^RX/) {
+      } elsif ($inst =~ /^(RX|UKT)/i) {
 	$tables{$GSDTAB}++;
 	$tels{JCMT}++;
       } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST)/) {
@@ -260,26 +275,33 @@ sub _post_process_hash {
     # Prevent ukirt and jcmt together
     throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query [inferred from instrument choice]") if scalar(keys %tels) > 1;
 
-    if (exists $href->{_telescope} && !exists $tels{$href->{_telescope}->[0]}) {
+    if (exists $href->{telescope} && !exists $tels{$href->{telescope}->[0]}) {
 
       throw OMP::Error::DBMalformedQuery("Can not mix multiple telescopes in a single query [implied telescope differs from specified telescope]");
 
 
     } else {
       # Store the telescope
-      $href->{_telescope} = [ keys %tels ];
+      $href->{telescope} = [ keys %tels ];
 
     }
-	
+
+    # Finally - make sure that we are not mixing tables at JCMT
+    if ($href->{telescope}->[0] eq 'JCMT') {
+      if (exists $tables{$GSDTAB} && exists $tables{$SCUTAB}) {
+	throw OMP::Error::DBMalformedQuery("Unfortunately can not mix a SCUBA and heterodyne query.");
+      }
+    }
+
+
   } else {
     # No instrument specified so we must select the tables
-    my $tel = $href->{_telescope}->[0];
+    my $tel = $href->{telescope}->[0];
     if ($tel eq 'UKIRT') {
       $tables{$UKIRTTAB}++;
     } elsif ($tel eq 'JCMT') {
-      for ($SCUTAB, $GSDTAB) {
-	$tables{$_}++;
-      }
+      # Just use GSDTAB by default
+      $tables{$GSDTAB}++;
     } else {
       throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " . $tel);
     }
@@ -288,28 +310,8 @@ sub _post_process_hash {
   # Now store the selected tables
   $self->_tables( keys %tables );
 
-
-  # Loop over each key
-  for my $key (keys %$href ) {
-    # Skip private keys
-    next if $key =~ /^_/;
-
-    # Protect against rounding errors
-    # Not sure we need this so leave it out for now
-    #if ($key eq 'faultid') {
-    # Need to loop over each fault
-    #  $href->{$key} = [
-    #		       map {
-    #			 new OMP::Range(Min => ($_ - 0.0005),
-    #					Max => ($_ + 0.0005))
-    #		       } @{ $href->{$key} } ];
-
-    #    }
-
-  }
-
-
   # Translate the query to be table specific
+  # Note that this ruins the hash to a certain extent.
   for my $xmlkey (keys %lut) {
     if (exists $href->{$xmlkey}) {
 
@@ -344,6 +346,21 @@ sub _post_process_hash {
       delete $href->{$xmlkey} unless scalar(keys %{$href->{$xmlkey}});
 
     }
+  }
+
+  # These things should be lower/upper cased [note that we dont use href directly]
+  if (exists $href->{instrument}) {
+    $self->_process_elements($href->{instrument}, sub { lc(shift) }, 
+			     [ $lut{instrument}{$GSDTAB} ] );
+    $self->_process_elements($href->{instrument}, sub { uc(shift);}, 
+			     [ $lut{instrument}{$UKIRTTAB}]);
+  }
+  if (exists $href->{projectid}) {
+    $self->_process_elements($href->{projectid}, sub { lc(shift);  }, 
+			     [ $lut{projectid}{$GSDTAB},
+			       $lut{projectid}{$SCUTAB}]);
+    $self->_process_elements($href->{projectid}, sub { uc(shift) }, 
+			     [ $lut{projectid}{$UKIRTTAB} ] );
   }
 
   # Remove attributes since we dont need them anymore
