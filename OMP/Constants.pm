@@ -296,7 +296,7 @@ Flags a timegap as being caused by a fault.
 
 use constant OMP__TIMEGAP_FAULT => 12;
 
-=item OMP__TIMEGAP_PROJECT
+=item OMP__TIMEGAP_NEXT_PROJECT
 
 Flags a timegap so that the time lost will be charged to
 the project to which the observation following the timegap
