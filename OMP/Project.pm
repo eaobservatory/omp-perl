@@ -801,11 +801,13 @@ The semester for which the project was allocated time.
 
   $semester = $proj->semester;
 
+Semester is upper-cased.
+
 =cut
 
 sub semester {
   my $self = shift;
-  if (@_) { $self->{Semester} = shift; }
+  if (@_) { $self->{Semester} = uc(shift); }
   return $self->{Semester};
 }
 
