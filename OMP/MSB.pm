@@ -30,6 +30,7 @@ use OMP::General;
 use OMP::Range;
 use OMP::Info::MSB;
 use OMP::Info::Obs;
+use OMP::Constants qw/ :msb /;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -329,10 +330,10 @@ value is subtracted from the current count.
 
 The number remaining can not go below zero.
 
-If the argument is the constant C<MSB::REMOVED>
+If the argument is the constant C<OMP::Constants::OMP__MSB_REMOVED>
 this indicates that the MSB has not been observed but
 it has been removed from consideration. (e.g. from a OR block
-reogranisation or via C<hadBeenCompletelyObserved>).
+reorganisation or via C<hasBeenCompletelyObserved>).
 
 =cut
 
@@ -1751,24 +1752,6 @@ sub SpTelescopeObsComp {
 
   return %summary;
 }
-
-=back
-
-=head1 CONSTANTS
-
-The following constants are available from this class:
-
-=over 4
-
-=item B<MSB::REMOVED>
-
-The magic value indicating to C<remaining()> that the MSB
-should be removed from further consideration even though it
-has not been observed.
-
-=cut
-
-use constant REMOVED => -999;
 
 =back
 
