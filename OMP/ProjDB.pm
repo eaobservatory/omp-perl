@@ -930,16 +930,18 @@ sub _mail_password {
 			     from => "omp-auto-reply",
 			     subject => "[$projectid] OMP reissue of password for $projectid",
 			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
-},
+					},
 			    );
 
     # Mail a copy to frossie.  For some reason the Bcc and Cc headers
     # aren't working...
     $self->_mail_information(
 			     message => $msg,
-			     to => "frossie\@jach.hawaii.edu",
+			     to => "[frossie\@jach.hawaii.edu]",
 			     from => "omp-auto-reply",
 			     subject => "[$projectid] OMP reissue of password for $projectid",
+			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
+					},
 			    );
 
 
