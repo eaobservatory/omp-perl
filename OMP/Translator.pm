@@ -720,7 +720,6 @@ sub SpIterNoiseObs {
 	     OBSERVING_MODE => 'noise',
 	     SAMPLE_COORDS => 'NA',
 	     SPIKE_REMOVAL => 'yes',
-	     EL => '80:00:00.0', # Might remove this soon KLUGE
 	    );
 
   # Populate bits that vary
@@ -741,13 +740,17 @@ sub SpIterNoiseObs {
   my $source = $info{noiseSource};
   if ($source eq 'SKY') {
     $source = "SPACE1";
+    delete $odf{EL};
   } elsif ($source eq "ZENITH") {
     $source = "SPACE1";
     $odf{EL} = "80:00:00";
   } elsif ($source eq 'ECCOSORB') {
     $source = "MATT";
+    delete $odf{EL};
   } elsif ($source eq 'REFLECTOR') {
     # do nothing - this is okay
+    # execept we want this to happen at the current position
+    delete $odf{EL};
   } else {
     throw OMP::Error::TranslateFail("Unknown noise source: $source");
   }
