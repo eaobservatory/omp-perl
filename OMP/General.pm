@@ -370,6 +370,9 @@ program even though the rest of the OMP could do it). The only
 translation occuring in these cases is to pad the digit to two
 characters.
 
+If a project id consists entirely of alphabetic characters it
+will be returned without modification.
+
 =cut
 
 sub infer_projectid {
@@ -384,7 +387,8 @@ sub infer_projectid {
   # Make sure its not complete already
   return $projid if $projid =~ /^u\/\d\d[ab]/ # UKIRT
     or $projid =~ /^m\d\d[ab]/                # JCMT
-      or $projid =~ /^u\/serv\//i;            # UKIRT serv
+      or $projid =~ /^u\/serv\//i             # UKIRT serv
+	or $projid =~ /^\w+$/;
 
   # If it's a special reserved ID (two characters + digit)
   # return it - padding the number)
