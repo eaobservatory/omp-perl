@@ -32,8 +32,10 @@ use Time::Piece ':override'; # for gmtime
 use base qw/ OMP::DBQuery /;
 
 # Package globals
-
 our $VERSION = (qw$Revision$ )[1];
+
+# Constants
+use constant D2R => 4 * atan2(1,1) / 180.0; # Degrees to radians
 
 =head1 METHODS
 
@@ -83,6 +85,9 @@ sub refDate {
 =item B<airmass>
 
 Return the requested airmass range as an C<OMP::Range> object.
+The range can be specified as either an elevation or an airmass.
+If both are specified then the smallest range that satisfies both
+will be returned.
 
   $range = $query->airmass;
 
@@ -99,7 +104,56 @@ sub airmass {
   # Check for "airmass" key
   my $airmass;
   $airmass = $href->{airmass} if exists $href->{airmass};
+
+  # Check for elevation and convert to airmass
+  my $airmass_el;
+  if (exists $href->{elevation}) {
+    my $elevation = $href->{elevation};
+    $airmass_el = new OMP::Range;
+
+    # Use simple calculation to convert to airmass
+    # Dont worry about refraction effects (no reason
+    # to add a SLALIB dependency here)
+    for my $method (qw/max min/) {
+      my $value = $elevation->$method;
+      next unless defined $value;
+      $value = 1.0/cos($value * D2R);
+      $airmass_el->$method( $value );
+    }
+
+  }
+
+  # Now determine the final range based on both
+  # airmass and elevation.
+  if (defined $arimass_el) {
+    $airmass->intersection( $airmass_el )
+      or throw OMP::Error::FatalError("The supplied airmass and elevation ranges do not intersect");
+  }
+
   return $airmass;
+}
+
+=item B<ha>
+
+Return the requested hour angle range as an C<OMP::Range> object.
+
+  $range = $query->ha;
+
+Returns C<undef> if the range has not been specified.
+Units are assumed to be hours.
+
+=cut
+
+sub ha {
+  my $self = shift;
+
+  # Get the hash form of the query
+  my $href = $self->query_hash;
+
+  # Check for "airmass" key
+  my $ha;
+  $ha = $href->{ha} if exists $href->{ha};
+  return $ha;
 }
 
 =item B<constraints>
@@ -203,7 +257,7 @@ sub sql {
   # Disabling constraints on queries should be left to this
   # subclass
   my $subsql = $self->_qhash_tosql( [qw/ elevation airmass date
-				     disableconstraint /]);
+				     disableconstraint ha /]);
 
   # If the resulting query contained anything we should prepend
   # an AND so that it fits in with the rest of the SQL. This allows
