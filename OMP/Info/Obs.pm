@@ -32,6 +32,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::Error qw/ :try /;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
@@ -79,6 +80,8 @@ Creates an C<OMP::Info::Obs> object from a given filename.
 
   $o = readfile OMP::Info::Obs( $filename, $instrument );
 
+If the constructor is unable to read the file, undef will be returned.
+
 =cut
 
 sub readfile {
@@ -87,9 +90,17 @@ sub readfile {
   my $filename = shift;
   my $instrument = shift;
 
-  my $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
-  my $obs = $class->new( fits => $FITS_header );
-  $obs->filename( $filename );
+  my $FITS_header;
+  my $obs;
+
+  try {
+    $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+    $obs = $class->new( fits => $FITS_header );
+    $obs->filename( $filename );
+  }
+  catch with {
+
+  };
   return $obs;
 }
 
