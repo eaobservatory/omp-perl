@@ -821,6 +821,60 @@ sub hasBeenCompletelyObserved {
 }
 
 
+=item B<addFITStoObs>
+
+Add additional FITS headers (as XML elements) to each SpObs such
+that each SpObs can be translated standalone without having 
+to retain context.
+
+Used to add the checksum and project ID as elements
+"msbid" and "project". These are required for the data files.
+
+  $msb->addFITStoObs;
+
+=cut
+
+sub addFITStoObs {
+  my $self = shift;
+
+  # If we are a lone SpObs we want to use ourself rather
+  # than the children
+  my @nodes;
+  if ($self->_tree->getName eq 'SpObs') {
+    @nodes = $self->_tree;
+  } else {
+    # Get the SpObs elements
+    push(@nodes, $self->_tree->findnodes('.//SpObs'));
+  }
+
+  print "Found ", scalar(@nodes), " SpObs\n";
+
+  # Some XML elements that we can insert
+  # problems with XML::LibXML mean that we need to create
+  # some XML as text, parse it and then insert the nodes.
+  # If I try to creat the Elements from constructors
+  # I have trouble populating them. I also get core dumps
+  # with insertBefore...
+  my $xml = "<root><project>" . $self->projectID . "</project>\n" .
+    "<msbid>" . $self->checksum . "</msbid>\n</root>\n";
+
+  # Create hash with information we wish to insert
+  my %data = (
+	      msbid => $self->checksum,
+	      project => $self->projectID,
+	     );
+
+
+  # For each SpObs insert these elements.
+  # problems with insertBefore so I have to insert at end
+  for my $obs (@nodes) {
+    for my $el (keys %data) {
+      $obs->appendTextChild($el, $data{$el});
+    }
+  }
+
+}
+
 =item B<stringify>
 
 Convert the MSB object into XML.
@@ -974,7 +1028,7 @@ sub _get_obs {
   my %status; # for storing current parameters
   my @obs; # for storing results
 
-  # If we are a long SpObs we want to use ourself rather
+  # If we are a lone SpObs we want to use ourself rather
   # than the children
   my @searchnodes;
   if ($self->_tree->getName eq 'SpObs') {

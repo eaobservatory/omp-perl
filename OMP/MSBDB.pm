@@ -409,6 +409,12 @@ sub fetchMSB {
   my $msb = $sp->fetchMSB( $checksum );
 
 
+  # To aid with the translation to a sequence we now
+  # have to add checksum and projectid as explicit elements
+  # in each SpObs in the MSB (since each SpObs is translated
+  # independently). We use "msbid" and "project" as tag names
+  # since they match the FITS headers.
+  $msb->addFITStoObs;
 
   # Update the msb done table to indicate that we have retrieved an
   # MSB.  This is needed so that the done table includes all MSBs that
