@@ -116,9 +116,6 @@ sub sql {
              ORDER BY R.isfault desc, R.date
              DROP TABLE $temp";
 
-  # Log the sql for testing
-  OMP::General->log_message( "SQL query used for fault search:\n $sql" );
-
   return "$sql\n";
 
 }
