@@ -271,8 +271,8 @@ sub _store_comment {
 
   my $projectid = $self->projectid;
 
-  # Create the comment entry number
-  my $clause = "projectid = \"$projectid\"";
+  # Create the comment entry number [SQL prefers single quotes]
+  my $clause = "projectid = '$projectid'";
   my $entrynum = $self->_db_findmax( $FBTABLE, "entrynum", $clause);
   (defined $entrynum) and $entrynum++
     or $entrynum = 1;
