@@ -65,7 +65,7 @@ sub new {
   # translate the fits header to generic
   my %args = @_;
   # count keys
-  if (exists $args{fits} && scalar( keys %args ) < 2) {
+  if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 2) {
     $obs->_populate();
   }
 
@@ -116,7 +116,8 @@ __PACKAGE__->CreateAccessors( projectid => '$',
                               startobs => 'Time::Piece',
                               endobs => 'Time::Piece',
                               type => '$',
-                              fits => 'Astro::FITS::Header',
+                              _fits => 'Astro::FITS::Header',
+                              _hdrhash => '%',
                               comments => '@OMP::Info::Comment',
                               telescope => '$',
                               runnr => '$',
@@ -214,6 +215,53 @@ Array Accessors
 =item B<comments>
 
 =back
+
+=cut
+
+sub fits {
+  my $self = shift;
+  if( @_ ) {
+    $self->_fits( @_ );
+  }
+
+  my $fits = $self->_fits;
+  if( ! defined( $fits ) ) {
+    my $hdrhash = $self->hdrhash;
+    if( defined( $hdrhash ) ) {
+
+      my @items = map { new Astro::FITS::Header::Item( Keyword => $_,
+                                                       Value => $hdrhash->{$_}
+                                                     ) } keys (%{$hdrhash});
+
+      # Create the Header object.
+      $fits = new Astro::FITS::Header( Cards => \@items );
+
+      $self->_fits( $fits );
+
+    }
+  }
+  return $fits;
+}
+
+sub hdrhash {
+  my $self = shift;
+  if( @_ ) {
+    $self->_hdrhash( @_ );
+  }
+
+  my $hdr = $self->_hdrhash;
+  if( ! defined( $hdr ) ) {
+    my $fits = $self->fits;
+    if( defined( $fits ) ) {
+      my $FITS_header = $self->fits;
+
+      tie my %header, ref($FITS_header), $FITS_header;
+
+      $self->_hdrhash( \%header );
+    }
+  }
+  return $hdr;
+}
 
 =head2 General Methods
 
@@ -496,10 +544,9 @@ be overwritten.
 
 sub _populate {
   my $self = shift;
-  my $FITS_header = $self->fits;
 
-  tie my %header, ref($FITS_header), $FITS_header;
-  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS(\%header);
+  my $header = $self->hdrhash;
+  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header);
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
@@ -536,7 +583,7 @@ sub _populate {
 
   if( $generic_header{'INSTRUMENT'} =~ /scuba/i ) {
     require SCUBA::ODF;
-    my $odfobject = new SCUBA::ODF( HdrHash => \%header );
+    my $odfobject = new SCUBA::ODF( HdrHash => $header );
 
     if(defined($odfobject->getTarget)) {
       $self->coords( $odfobject->getTarget );
