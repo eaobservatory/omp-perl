@@ -360,6 +360,30 @@ sub dec {
   return join("/",@dec);
 }
 
+=item B<az>
+
+Construct a summary of the azimuth for each of the observation
+targets. This simply uses the C<Astro::Coords> object in each
+observation object. If no observations are present returns
+an empty string.
+
+  $az = $msb->az;
+
+Takes no arguments.
+
+=cut
+
+sub az {
+  my $self = shift;
+  # Ask the observations
+  my @az = $self->_process_coords( sub {
+				     my $c = shift;
+				     return sprintf("%.0f",
+						    $c->az( format => "d")),
+				   });
+  return join("/",@az);
+}
+
 
 =item B<coordstype>
 
@@ -525,7 +549,7 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title minel
-       datemin datemax telescope cloud remaining msbid ra airmass ha dec/) {
+       datemin datemax telescope cloud remaining msbid ra airmass ha dec az/) {
     $summary{$_} = $self->$_();
   }
 
@@ -695,7 +719,7 @@ sub summary {
     # summaries such as waveband and target]
 
     # Add ha, airmass and ra
-    for my $method (qw/ ha airmass ra dec/) {
+    for my $method (qw/ ha airmass ra dec az /) {
       $summary{$method} = $self->$method();
     }
 
@@ -922,22 +946,23 @@ sub getResultColumns {
   my $class = shift;
   my $tel = shift;
   $tel = '' unless $tel;
+  $tel = uc($tel);
 
   # The order must be forced
   my @order;
   if ($tel eq 'JCMT') {
     @order = qw/ projectid priority instrument waveband title target
-      ra ha dec airmass pol type coordstype
-	timeest obscount checksum msbid /;
+      ra dec coordstype ha az airmass pol type
+	timeest remaining obscount checksum msbid /;
   } elsif ($tel eq 'UKIRT') {
     @order = qw/ projectid priority instrument waveband title target
-      ra ha dec airmass pol type coordstype
-	timeest obscount moon cloud disperser checksum msbid /;
+      ra dec coordstype ha airmass pol type
+	timeest remaining obscount moon cloud disperser checksum msbid /;
   } else {
     # Generic order
     @order = qw/ projectid priority instrument waveband title target
-      ra ha dec airmass pol type coordstype
-	timeest obscount checksum msbid /;
+      ra dec coordstype ha airmass pol type
+	timeest remaing obscount checksum msbid /;
   }
 
   return @order;
@@ -957,6 +982,7 @@ Uses a telescope name to control the column information.
 
 # best to use a single data structure for this
 my %coltypes = (
+		remaining => 'Integer',
 		projectid => 'String',
 		priority => 'Float',
 		instrument => 'String',
@@ -983,6 +1009,7 @@ sub getTypeColumns {
   my $class = shift;
   my $tel = shift;
   $tel = '' unless $tel;
+  $tel = uc($tel);
 
   my @order = $class->getResultColumns;
 
