@@ -88,12 +88,12 @@ sub file_fault {
   print "</td><tr><td align=right><b>System:</b></td><td>";
   print $q->popup_menu(-name=>'system',
 		       -values=>\@system_values,
-		       -default=>\@system_values[0],
+		       -default=>\$system_values[0],
 		       -labels=>\%system_labels,);
   print "</td><tr><td align=right><b>Type:</b></td><td>";
   print $q->popup_menu(-name=>'type',
 		       -values=>\@type_values,
-		       -default=>\@type_values[0],
+		       -default=>\$type_values[0],
 		       -labels=>\%type_labels,);
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
@@ -206,12 +206,16 @@ sub fault_table {
 
     # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
     # response is the original fault
+    my $bgcolor;
     if ($resp->isfault) {
-      print "<tr bgcolor=#bcbce2><td colspan=2><br>" . $resp->text . "<br><br></td>";
+      $bgcolor = '#bcbce2';
     } else {
-      print "<tr bgcolor=#dcdcf2><td><b>Response by: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
-      print "<tr bgcolor=#dcdcf2><td colspan=2>" . $resp->text . "<br><br></td>";
+      $bgcolor = '#dcdcf2';
+      print "<tr bgcolor=$bgcolor><td><b>Response by: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
     }
+
+    # Show the response
+    print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>" . $resp->text . "</td></table><br></td>";
 
   }
   print "</table>";
