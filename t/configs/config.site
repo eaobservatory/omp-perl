@@ -1,0 +1,8 @@
+
+[default]
+over=fromsite
+
+[database]
+server=SYB
+type=hello
+
