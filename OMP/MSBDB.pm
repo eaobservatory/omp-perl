@@ -1414,16 +1414,16 @@ sub _run_query {
 
 	# Store the details in the Obs array that we will
 	# need for summarizing in the XML output
-	if ($coords->type ne "CAL") {
-	  $obs->{ha} = sprintf("%.1f",$coords->ha( format => "h", 
-						   normalize => 1));
-	  $obs->{airmass} = sprintf("%.3f",$coords->airmass);
-	  $obs->{ra} = sprintf("%.1f", $coords->ra_app(format => "h"));
-	} else {
-	  $obs->{ha} = "CAL";
-	  $obs->{airmass} = "CAL";
-	  $obs->{ra} = "CAL";
-	}
+# 	if ($coords->type ne "CAL") {
+# 	  $obs->{ha} = sprintf("%.1f",$coords->ha( format => "h", 
+# 						   normalize => 1));
+# 	  $obs->{airmass} = sprintf("%.3f",$coords->airmass);
+# 	  $obs->{ra} = sprintf("%.1f", $coords->ra_app(format => "h"));
+# 	} else {
+# 	  $obs->{ha} = "CAL";
+# 	  $obs->{airmass} = "CAL";
+# 	  $obs->{ra} = "CAL";
+# 	}
 
       }
 
