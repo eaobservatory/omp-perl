@@ -438,7 +438,7 @@ sub show_faults {
     print "<td>$user</td>";
     print "<td>$system</td>";
     print "<td>$type</td>";
-    print "<td>$subject</td>";
+    print "<td>$subject &nbsp;</td>";
   }
 
   print "</table>";
