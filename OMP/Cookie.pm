@@ -70,7 +70,7 @@ sub new {
   # Populate object
   for my $key (keys %args) {
     my $method = lc($key);
-    $object->$method( $args{$_});
+    $object->$method( $args{$key});
   }
 
   return $object;
