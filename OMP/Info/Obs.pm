@@ -644,11 +644,11 @@ sub nightlog {
       }
       $return{'Grating'} = $self->grating;
       $return{'Order'} = $self->order;
-      $return{'Nexp'} = $self->nexp;
+      $return{'Coadds'} = $self->nexp;
 
       push @{$return{'_ORDER'}}, ( "Slit Name", "PA", "Grating", "Order", "Wavelength", "RA", "Dec", "Nexp" );
-      $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Slit Name      PA    Grating  Order            RA          Dec  Nexp";
-      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %4d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
+      $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Slit Name      PA    Grating  Order            RA          Dec  Coadds";
+      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %6d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Coadds'});
 
     } elsif( $instrument =~ /ircam/i ) {
 
