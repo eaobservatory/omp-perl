@@ -1,5 +1,62 @@
 #!/local/bin/perl -X
 
+=head1 NAME
+
+obslog - Review and comment on observations and timegaps for observing runs.
+
+
+=head1 SYNOPSIS
+
+  obslog
+  obslog -ut 2002-12-10
+  obslog -tel jcmt
+  obslog -ut 2002-10-05 -tel ukirt
+  obslog --help
+
+=head1 DESCRIPTION
+
+This program allows you to review and comment on observations and timegaps
+for a night of observing. It allows for changing the status of an observation
+(good, questionable, or bad) or the underlying reason for a timegap (unknown,
+weather, or fault). It also supports multiple instruments via a tabbed window
+interface.
+
+=head1 OPTIONS
+
+The following options are supported:
+
+=over 4
+
+=item B<-ut>
+
+Override the UT date used for the report. By default the current date
+is used.
+
+=item B<-tel>
+
+Specify the telescope to use for the report. If the telescope can
+be determined from the domain name it will be used automatically.
+If the telescope can not be determined from the domain and this
+option has not been specified a popup window will request the
+telescope from the supplied list (assume the list contains more
+than one telescope).
+
+=item B<-version>
+
+Report the version number.
+
+=item B<-help>
+
+A help message.
+
+=item B<-man>
+
+This manual page.
+
+=back
+
+=cut
+
 use strict;
 
 my ($MW, $VERSION, $BAR, $STATUS);
@@ -25,6 +82,7 @@ BEGIN {
   use OMP::CommentServer;
 
   use Time::Piece qw/ :override /;
+  use Pod::Usage;
 
   use File::Spec;
   $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
@@ -45,10 +103,23 @@ my $current_instrument; # The instrument currently displayed.
 my $verbose; # Long or short output
 my $id;
 
-my ( %opt );
+my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
+                        "help" => \$help,
+                        "man" => \$man,
+                        "version" => \$version,
                        );
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+if( $version ) {
+    my $id = '$Id$ ';
+  print "obslog - Observation reporting tool\n";
+  print " CVS revision: $id\n";
+  exit;
+}
 
 my $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
 my $currentut = OMP::General->today;
@@ -346,7 +417,7 @@ sub new_instrument {
     }
 
     # Draw the header, if necessary.
-    if( !$header_printed ) {
+    if( !$header_printed && exists($nightlog{'_STRING_HEADER'})) {
       $nbHeader->configure( -state => 'normal' );
       $nbHeader->delete('0.0','end');
 
@@ -455,11 +526,9 @@ sub rescan {
     my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
                                        date => $ut,
                                      );
-
     if(!$grp->numobs) {
       throw OMP::Error("There are no observations available for this night.");
     }
-
     $grp->locate_timegaps( $GAPLENGTH );
 
     %obs = $grp->groupby('instrument');
@@ -483,6 +552,15 @@ sub rescan {
     undef %obs;
   }
   otherwise {
+    my $Error = shift;
+    require Tk::DialogBox;
+    my $dbox = $MainWindow->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
+
+    my $label = $dbox->add( 'Label',
+                            -text => "Error: " . $Error->{-text} )->pack;
+    my $but = $dbox->Show;
   };
 
   $id->cancel unless !defined($id);
@@ -1037,3 +1115,14 @@ sub view_shift_comments {
   }
 
 }
+
+=head1 AUTHOR
+
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+All Rights Reserved.
+
+=cut
