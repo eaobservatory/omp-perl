@@ -47,6 +47,10 @@ our $VERSION = (qw$Revision$)[1];
 
 =head2 Connections Details
 
+=over 4
+
+=item B<loginhash>
+
 This class method returns the information required to connect to a
 database. The details are returned in a hash with the following
 keys:
@@ -83,8 +87,15 @@ sub loginhash {
   $details{server} = $ENV{OMP_DBSERVER}
     if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
 
+  # If we are now switching to SYB_UKIRT we have to change
+  # the database field [this is only for development]
+  $details{database} = 'archive'
+    if $details{server} eq 'SYB_UKIRT';
+
   return %details;
 }
+
+=back
 
 =head2 Constructor
 
