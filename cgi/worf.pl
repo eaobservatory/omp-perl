@@ -301,20 +301,22 @@ sub worf_output {
 	
 	if($query->param('ystart')) {
 
-# The 'ystart' parameter must be digits.
+# The 'ystart' parameter must be a number. This can include
+# exponents (like 1.0e-12)
 
 		$q_ystart = $query->param('ystart');
-		$q_ystart =~ s/[^0-9\.]//g;
+		$q_ystart =~ s/[^0-9\.e\-]//g;
 	} else {
 		$q_ystart = 0;
 	}
 
 	if($query->param('yend')) {
 
-# The 'yend' parameter must be digits.
+# The 'yend' parameter must be a number. This can include
+# exponents (like 1.0e-12)
 
 		$q_yend = $query->param('yend');
-		$q_yend =~ s/[^0-9\.]//g;
+		$q_yend =~ s/[^0-9\.e\-]//g;
 	} else {
 		$q_yend = 0;
 	}

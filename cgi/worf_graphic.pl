@@ -220,7 +220,7 @@ my ( $q_file, $q_instrument, $q_obstype, $q_rstart, $q_rend, $q_cut,
 # The 'ystart' parameter must be digits.
 
 		$q_ystart = $query->param('ystart');
-		$q_ystart =~ s/[^0-9\.]//g;
+		$q_ystart =~ s/[^0-9\.e\-]//g;
 	} else {
 		$q_ystart = 0;
 	}
@@ -230,7 +230,7 @@ my ( $q_file, $q_instrument, $q_obstype, $q_rstart, $q_rend, $q_cut,
 # The 'yend' parameter must be digits.
 
 		$q_yend = $query->param('yend');
-		$q_yend =~ s/[^0-9\.]//g;
+		$q_yend =~ s/[^0-9\.e\-]//g;
 	} else {
 		$q_yend = 0;
 	}
