@@ -365,15 +365,13 @@ sub thumbnails_page {
         $obs = readfile OMP::Info::Obs( $directory . "/" . $file );
       }
       catch OMP::Error with {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-        OMP::General->log_message("Unable to read file to form Obs object: $errortext\n");
+        # Errors are already logged in OMP::Info::Obs::readfile, so just
+        # skip to the next file.
         next FILELOOP;
       }
       otherwise {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-        OMP::General->log_message("Unable to read file to form Obs object: $errortext\n");
+        # Errors are already logged in OMP::Info::Obs::readfile, so just
+        # skip to the next file.
         next FILELOOP;
       };
 
