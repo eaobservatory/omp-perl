@@ -28,8 +28,8 @@ use 5.006;
 use strict;
 use warnings;
 
-use lib '/home/bradc/development/perlmods/';
 use lib '/home/bradc/development/oracdr/lib/perl5/';
+use lib '/home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib/';
 
 use OMP::ArcQuery;
 use OMP::General;
@@ -159,7 +159,7 @@ sub _query_arcdb {
   # It doesnt make sense to specify the table names from this
   # class since ArcQuery is the only class that cares and it
   # has to decide what to do on the basis of the telescope
-  # part of the query. It may be possible to supply 
+  # part of the query. It may be possible to supply
   # subclasses for JCMT and UKIRT and put the knowledge in there.
   # since we may have to have a subclass for getObs since we
   # need to know a telescope
@@ -204,18 +204,9 @@ sub _query_files {
 
   my $query_hash = $query->query_hash;
 
-  if( defined( $query_hash->{telescope}->[0] ) ) {
-    if( $query_hash->{telescope}->[0] !~ /ukirt|jcmt/i ) {
-      throw OMP::Error::FatalError("Telescope parameter must be either UKIRT or JCMT");
-    } else {
-      $telescope = $query_hash->{telescope}->[0];
-      }
-    } else {
-    throw OMP::Error::FatalError("Telescope parameter not defined in query object");
-  }
-
 # If we have an array of dates (there should be only one), then we use that as the date.
 # Otherwise, we should have an OMP::Range object.
+
   if( ref( $query_hash->{date} ) eq 'ARRAY' ) {
     if (scalar( @{$query_hash->{date}} ) == 1) {
       my $timepiece = new Time::Piece;
@@ -236,7 +227,6 @@ sub _query_files {
     }
   } elsif( $query_hash->{date}->isa('OMP::Range') ) {
     $daterange = $query_hash->{date};
-print "Offset: " . $daterange->{Max}->tzoffset . "\n";
   }
 
   my ( $instrument, $runnr );
@@ -257,11 +247,7 @@ print "Offset: " . $daterange->{Max}->tzoffset . "\n";
   if(length($instrument . "") != 0) {
     push @instarray, $instrument;
   } else {
-    if( uc( $telescope ) eq 'UKIRT' ) {
-      push @instarray, 'cgs4', 'ufti', 'ircam', 'michelle', 'uist';
-    } else {
-      push @instarray, 'scuba';
-    }
+    push @instarray, 'cgs4', 'ufti', 'ircam', 'michelle', 'uist'; #, 'scuba';
   }
 
 # We need to loop over every UT day in the date range. Get the start day and the end
@@ -327,7 +313,7 @@ print "Offset: " . $daterange->{Max}->tzoffset . "\n";
 # are to be minimised.
 
           # find the file with this run number
-          $runnr = '0' x (5 - length($runnr)) . $runnr;
+          $runnr = '0' x (4 - length($runnr)) . $runnr;
           @files = grep(/$runnr\.sdf$/, @files);
         }
 
@@ -340,7 +326,6 @@ print "Offset: " . $daterange->{Max}->tzoffset . "\n";
           my $FITS_header = new Astro::FITS::Header::NDF( File => $fullfile );
           tie my %header, ref($FITS_header), $FITS_header;
           my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS(\%header);
-
           # If the observation's time falls within the range, we'll create the object.
           my $match_date = 0;
           my $startobs = OMP::General->parse_date($generic_header{UTSTART});
@@ -359,7 +344,11 @@ print "Offset: " . $daterange->{Max}->tzoffset . "\n";
             }
             foreach my $filterarray ($query_hash->{$filter}) {
               my $matcher = uc($generic_header{uc($filter)});
-              $match_filter = grep /$matcher/i, @$filterarray;
+              foreach my $filter2 (@$filterarray) {
+                if($matcher =~ /$filter2/i) {
+                  $match_filter = 1;
+                }
+              }
             }
           }
 
@@ -367,63 +356,9 @@ print "Offset: " . $daterange->{Max}->tzoffset . "\n";
 
             # get the header information, form an Info::Obs object, and push that onto the array
 
-            # For Info::Obs objects, we need to get the projectid, instrument, exposure time,
-            # the target name, the disperser, the type of observation
-            # (imaging or spectroscopy), polarimetry, the waveband (as an Astro::WaveBand object),
-            # the coordinates (as an Astro::Coords object), the FITS headers (as a hash), and an
-            # array of Info::Comment comment objects.
-            my %args;
-            $args{projectid} = $generic_header{PROJECT};
-            $args{checksum} = $generic_header{MSBID};
-            $args{instrument} = $generic_header{INSTRUMENT};
-            $args{duration} = $generic_header{EXPOSURE_TIME};
-            $args{target} = $generic_header{OBJECT};
-            $args{disperser} = $generic_header{GRATING_NAME};
-            $args{type} = $generic_header{OBSERVATION_TYPE};
-            $args{telescope} = $generic_header{TELESCOPE};
+            my $obs = _create_Obs_object( \%generic_header, $FITS_header );
 
-            # Build the Astro::WaveBand object
-
-            if ( length( $generic_header{WAVELENGTH} . "" ) != 0 ) {
-              $args{waveband} = new Astro::WaveBand( Wavelength => $generic_header{WAVELENGTH},
-                                                     Instrument => $inst );
-            } elsif ( length( $generic_header{FILTER} . "" ) != 0 ) {
-              $args{waveband} = new Astro::WaveBand( Filter     => $generic_header{FILTER},
-                                                     Instrument => $inst );
-            }
-
-            # Build the Time::Piece startobs and endobs objects
-            if(length($generic_header{UTSTART} . "") != 0) {
-              my $startobs = Time::Piece->strptime($generic_header{UTSTART}, '%Y-%m-%dT%T');
-              $args{startobs} = $startobs;
-            }
-            if(length($generic_header{UTEND} . "") != 0) {
-              my $endobs = Time::Piece->strptime($generic_header{UTEND}, '%Y-%m-%dT%T');
-              $args{endobs} = $endobs;
-            }
-
-            # Build the Astro::Coords object
-
-            # Default the equinox to J2000, but if it's 1950 change to B1950. Anything else will be
-            # converted to J2000.
-            my $type = "J2000";
-            if ( $generic_header{EQUINOX} =~ /1950/ ) {
-              $type = "B1950";
-            }
-            $args{coords} = new Astro::Coords( ra   => $generic_header{RA_BASE},
-                                               dec  => $generic_header{DEC_BASE},
-                                               type => $type );
-
-            # Build the Astro::FITS::Header object
-
-            $args{fits} = $FITS_header;
-
-            # Build the array of Info::Comment objects
-
-            # Create the Info::Obs object and push it onto the return array
-
-            my $object = new OMP::Info::Obs( %args );
-            push @returnarray, $object;
+            push @returnarray, $obs;
           }
         }
       }
@@ -456,30 +391,148 @@ sub _reorganize_archive {
 
 # For each row returned by the query, create an Info::Obs object
 # out of the information contained within.
-  for my $row (%$rows) {
-    my $obs = new OMP::Info::Obs(
-      instrument => $row->{instrument},
-      startobs => OMP::General->parse_date( $row->{startobs} ),
-      runnr => $row->{runnr},
-      msbid => $row->{msbid},
-      projectid => $row->{projectid},
-      disperser => $row->{disperser},
-      target => $row->{target},
-      timeest => $row->{timeest},
-      type => $row->{type},
-      pol => $row->{pol},
-      comments => [
-                   new OMP::Info::Comment(
-                     text => $row->{comment},
-                     date => $row->{date},
-                     status => $row->{status} )
-                   ],
-      );
+  for my $row (@$rows) {
+
+    # Convert all the keys into upper-case.
+    my $newrow;
+    for my $key (keys %$row) {
+      my $uckey = uc($key);
+      $newrow->{$uckey} = $row->{$key};
+    }
+    # Find out which telescope we're dealing with. If it's UKIRT,
+    # then we have to run the UKIRTDB translation. If it's JCMT,
+    # we can just use the instrument-specific translation.
+    my $telescope = $newrow->{TELESCOP};
+    my $instrument = $newrow->{INSTRUME};
+    if(uc($telescope) eq 'UKIRT') {
+
+      # We need to temporarily set the instrument header to
+      # 'UKIRTDB' so the correct translation can be used.
+      $newrow->{INSTRUME} = 'UKIRTDB';
+    }
+
+    # Hack to get SCUBA to be recognized.
+    if(defined($newrow->{SEEING})) {
+      $newrow->{INSTRUME} = 'SCUBA';
+    }
+
+    # Now do the translation.
+    my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($newrow);
+
+    # Replace the INSTRUMENT generic header.
+    $generic_header{INSTRUMENT} = $instrument;
+
+    # Create an Info::Obs object.
+    my $obs = _create_Obs_object( \%generic_header, undef );
+
+    # And push it onto the @return array.
     push @return, $obs;
   }
 
   return @return;
 
+}
+
+=item B<_create_Obs_object>
+
+Given a set of generic headers and FITS headers, create an
+C<OMP::Info::Obs> object.
+
+  $obs = _create_Obs_object( \%generic_header, $FITS_header );
+
+The second argument, an C<Astro::FITS::Header> object, is
+optional.
+
+=cut
+
+sub _create_Obs_object {
+  my $generic_header = shift;
+  my $FITS_header = shift;
+  my %args;
+  $args{projectid} = $generic_header->{PROJECT};
+  $args{checksum} = $generic_header->{MSBID};
+  $args{instrument} = $generic_header->{INSTRUMENT};
+  $args{duration} = $generic_header->{EXPOSURE_TIME};
+  $args{target} = $generic_header->{OBJECT};
+  $args{disperser} = $generic_header->{GRATING_NAME};
+  $args{type} = $generic_header->{OBSERVATION_TYPE};
+  $args{telescope} = $generic_header->{TELESCOPE};
+
+  # Build the Astro::WaveBand object
+  if ( length( $generic_header->{WAVELENGTH} . "" ) != 0 ) {
+    $args{waveband} = new Astro::WaveBand( Wavelength => $generic_header->{WAVELENGTH},
+                                           Instrument => $generic_header->{INSTRUMENT} );
+  } elsif ( length( $generic_header->{FILTER} . "" ) != 0 ) {
+    $args{waveband} = new Astro::WaveBand( Filter     => $generic_header->{FILTER},
+                                           Instrument => $generic_header->{INSTRUMENT} );
+  }
+
+  # Build the Time::Piece startobs and endobs objects
+  if(length($generic_header->{UTSTART} . "") != 0) {
+    my $startobs = Time::Piece->strptime($generic_header->{UTSTART}, '%Y-%m-%dT%T');
+    $args{startobs} = $startobs;
+  }
+  if(length($generic_header->{UTEND} . "") != 0) {
+    my $endobs = Time::Piece->strptime($generic_header->{UTEND}, '%Y-%m-%dT%T');
+    $args{endobs} = $endobs;
+  }
+
+  # Build the Astro::Coords object
+
+  # Default the equinox to J2000, but if it's 1950 change to B1950. Anything else will be
+  # converted to J2000.
+  my $type = "J2000";
+  if ( $generic_header->{EQUINOX} =~ /1950/ ) {
+    $type = "B1950";
+  }
+  if ( defined ( $generic_header->{COORDINATE_TYPE} ) ) {
+    if ( $generic_header->{COORDINATE_TYPE} eq 'galactic' ) {
+      $args{coords} = new Astro::Coords( lat   => $generic_header->{Y_BASE},
+                                         long  => $generic_header->{X_BASE},
+                                         type  => $generic_header->{COORDINATE_TYPE},
+                                         units => $generic_header->{COORDINATE_UNITS}
+                                       );
+    } elsif ( ( $generic_header->{COORDINATE_TYPE} eq 'J2000' ) ||
+              ( $generic_header->{COORDINATE_TYPE} eq 'B1950' ) ) {
+      $args{coords} = new Astro::Coords( ra    => $generic_header->{X_BASE},
+                                         dec   => $generic_header->{Y_BASE},
+                                         type  => $generic_header->{COORDINATE_TYPE},
+                                         units => $generic_header->{COORDINATE_UNITS}
+                                       );
+    }
+  }
+
+  $args{runnr} = $generic_header->{OBSERVATION_NUMBER};
+  $args{utdate} = $generic_header->{UTDATE};
+  $args{mode} = $generic_header->{OBSERVATION_MODE};
+  $args{speed} = $generic_header->{SPEED_GAIN};
+  $args{airmasss} = $generic_header->{AIRMASS_START};
+  $args{rows} = $generic_header->{Y_DIM};
+  $args{columns} = $generic_header->{X_DIM};
+  $args{drrecipe} = $generic_header->{DR_RECIPE};
+  $args{group} = $generic_header->{DR_GROUP};
+  $args{standard} = $generic_header->{STANDARD};
+  $args{slitname} = $generic_header->{SLIT_NAME};
+  $args{slitangle} = $generic_header->{SLIT_ANGLE};
+  $args{raoff} = $generic_header->{X_OFFSET};
+  $args{decoff} = $generic_header->{Y_OFFSET};
+  $args{grating} = $generic_header->{GRATING_NAME};
+  $args{order} = $generic_header->{GRATING_ORDER};
+  $args{tau} = $generic_header->{TAU};
+  $args{seeing} = $generic_header->{SEEING};
+  $args{bolometers} = $generic_header->{BOLOMETERS};
+  $args{velocity} = $generic_header->{VELOCITY};
+  $args{systemvelocity} = $generic_header->{SYSTEM_VELOCITY};
+
+  # Build the Astro::FITS::Header object
+  if(defined($FITS_header)) {
+    $args{fits} = $FITS_header;
+  }
+
+  # Create the Info::Obs object and push it onto the return array
+  my $obj = new OMP::Info::Obs( %args );
+
+  return $obj;
 }
 
 =back
