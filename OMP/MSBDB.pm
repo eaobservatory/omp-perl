@@ -207,8 +207,9 @@ sub storeSciProg {
   my @rows = map {
     my $summary = { $_->summary };
 
+    # Check that tau and seeing are there
     throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")
-      unless (exists $summary->{tau} or exists $summary->{seeing});
+      if (!exists $summary->{tau} or !exists $summary->{seeing});
 
     # Return the reference to the array
     $summary;
@@ -848,6 +849,16 @@ sub _db_store_sciprog {
 	  $proj, $sp->timestamp) or
 	    throw OMP::Error::SpStoreFail("Error inserting timestamp and project ID into science program database: ". $dbh->errstr);
 
+  # Escape characters
+  # For some reason the DB upload does not allow single quotes
+  # even when they are escaped. We get around this by replacing
+  # a single quote with literal &apos;. Ironically this is what is
+  # in the XML saved by the OT - for some reason the XML::LibXML parser
+  # manages to translate the &apos; to a single quote for me
+  # "automagically". This is a KLUGE until I can work out how to deal
+  # with single quotes properly.
+  my $spxml = "$sp";
+  $spxml =~ s/\'/\&apos;/g;
 
   # Now insert the text field using writetext
   # Do it this way because a TEXT field will only (seemingly) take
@@ -855,13 +866,14 @@ sub _db_store_sciprog {
   # giving really strange syntax error warnings.
   $dbh->do("declare \@val varbinary(16) 
 select \@val = textptr(sciprog) from ompsciprog where projectid = \"$proj\" 
-writetext ompsciprog.sciprog \@val '$sp'")
+writetext ompsciprog.sciprog \@val '$spxml'")
     or throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
 
 
   # Now fetch it back to check for truncation issues
   # This adds quite a bit of overhead. XXXX remove before release
   my $xml = $self->_db_fetch_sciprog();
+  $xml =~ s/\&apos;/\'/g; # level the playing field
   if (length($xml) ne length("$sp")) {
     my $orilen = length("$sp");
     my $newlen = length($xml);
