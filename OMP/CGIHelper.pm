@@ -395,17 +395,24 @@ sub observed_output {
       print "MSB not found in database";
     } otherwise {
       my $Error = shift;
-      print "An error occured while attempting to submit the comment: $Error";
+      print "An error occurred while attempting to submit the comment: $Error";
     };
 
   }
 
   # If they click the "Mark as Done" button mark it as done
+
   if ($q->param("Mark as Done")) {
 
-    OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-
-    print $q->h2("MSB marked as Done");
+    try {
+      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
+      print $q->h2("MSB marked as Done");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to mark the MSB as Done: $Error";
+    };
 
   }
 
@@ -504,7 +511,7 @@ sub msb_hist_output {
       print "MSB not found in database";
     } otherwise {
       my $Error = shift;
-      print "An error occured while attempting to submit the comment: $Error";
+      print "An error occurred while attempting to submit the comment: $Error";
     };
 
   }
@@ -515,10 +522,15 @@ sub msb_hist_output {
 
   # If they click the "Mark as Done" button mark it as done
   if ($q->param("Mark as Done")) {
-    
-    OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
-
-    print $q->h2("MSB marked as Done");
+    try {
+      OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum'));
+      print $q->h2("MSB marked as Done");
+    } catch OMP::Error::MSBMissing with {
+      print "MSB not found in database";
+    } otherwise {
+      my $Error = shift;
+      print "An error occurred while attempting to mark the MSB as Done: $Error";
+    };
 
     proj_status_table($q, %cookie);
 
