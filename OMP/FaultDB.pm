@@ -679,8 +679,8 @@ sub _mail_fault {
 
   # Get the Private and Public cgi-bin URLs
   my $cgi = new OMP::CGI;
-  my $public_url = OMP::Config->getData('omp-url');
-  my $private_url = OMP::Config->getData('omp-private');
+  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
+  my $private_url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
   # Get the fault response(s)
   my @responses = $fault->responses;
@@ -831,7 +831,8 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
   # Mail it off
   $self->_mail_information(message => join('',@msg),
-			   to => join(", ",@addr),
+			   #to => join(", ",@addr),
+			   to => "kynan\@jach.hawaii.edu",
 			   from => $from,
 			   subject => $subject);
 
@@ -885,7 +886,7 @@ sub _mail_fault_update {
     }
   }
 
-  my $public_url = OMP::Config->getData('omp-url');;
+  my $public_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir'); 
 
   $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
 
