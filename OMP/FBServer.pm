@@ -26,6 +26,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::FeedbackDB;
+use OMP::Constants;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
@@ -118,7 +119,7 @@ fourth argument must be included as well.  Fourth argument should be
 'true' or 'false' depending on whether or not you want comments with a
 status of 0 (effectively hidden) to be returned.
 
-    OMP::FBServer->getComments( $project, $password, $howMany, $showHidden );
+    OMP::FBServer->getComments( $project, $password, \@status);
 
 =cut
 
@@ -126,8 +127,7 @@ sub getComments {
   my $class = shift;
   my $projectid = shift;
   my $password = shift;
-  my $amount = shift;
-  my $showhidden = shift;
+  my $status = shift;
 
   my $commentref;
 
@@ -138,7 +138,7 @@ sub getComments {
 				  Password => $password,
                                   DB => $class->dbConnection, );
 
-    $commentref = $db->getComments( $amount, $showhidden );
+    $commentref = $db->getComments( $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -158,23 +158,23 @@ sub getComments {
   return $commentref;
 }
 
-=item B<deleteComment>
+=item B<alterStatus>
 
 Alter the status of a comment, rendering it either hidden or visible.
-Requires an admin password. Fifth argument should be 'true' or 'false'.
+Requires an admin password. Fifth argument should be a feedback constant
+as defined in C<OMP::Constants>.
 
 Does not return anything, but will throw an error if it fails to alter
 the status.
 
-    OMP::FBServer->deleteComment( $project, $commentid, $password, $adminpass, $status );
+    OMP::FBServer->alterStatus( $project, $commentid, $adminpass, $status );
 
 =cut
 
-sub deleteComment {
+sub alterStatus {
   my $class = shift;
   my $projectid = shift;
-  my $comment = shift;
-  my $password = shift;
+  my $commentid = shift;
   my $adminpass = shift;
   my $status = shift;
 
@@ -182,10 +182,10 @@ sub deleteComment {
   try {
 
     my $db = new OMP::FeedbackDB( ProjectID => $projectid,
-				  Password => $password,
+				  Password => $adminpass,
                                   DB => $class->dbConnection, );
 
-    $db->deleteComment( $comment, $adminpass, $status );
+    $db->alterStatus( $projectid, $commentid, $adminpass, $status );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
