@@ -910,7 +910,8 @@ sub _mail_password {
 			     to => \@addr,
 			     from => "omp-auto-reply",
 			     subject => "[$projectid] OMP reissue of password for $projectid",
-			     headers => {"Reply-To" => "flex\@jach.hawaii.edu" },
+			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
+                                         "bcc" => 'frossie"jach.hawaii.edu' },
 			    );
 
 
