@@ -218,7 +218,7 @@ sub fb_msb_output {
   my $q = shift;
   my %cookie = @_;
 
-  print $q-.h1("Feedback for project $cookie{projectid}");
+  print $q->h1("Feedback for project $cookie{projectid}");
 
   proj_status_table($q, %cookie);
   fb_entries_hidden($q, %cookie);
