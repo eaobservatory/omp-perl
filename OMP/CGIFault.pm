@@ -63,13 +63,14 @@ Only argument should be the C<CGI> object.
 
 sub file_fault {
   my $q = shift;
+  my %cookie = @_;
 
   # Create values and labels for the popup_menus
-  my $systems = OMP::Fault->faultSystems("OMP");
+  my $systems = OMP::Fault->faultSystems($cookie{category});
   my @system_values = map {$systems->{$_}} sort keys %$systems;
   my %system_labels = map {$systems->{$_}, $_} keys %$systems;
 
-  my $types = OMP::Fault->faultTypes("OMP");
+  my $types = OMP::Fault->faultTypes($cookie{category});
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
@@ -128,6 +129,7 @@ Submit a fault and create a page that shows the status of the submission.
 
 sub file_fault_output {
   my $q = shift;
+  my %cookie = @_;
 
   my %status = OMP::Fault->faultStatus;
 
@@ -143,7 +145,7 @@ sub file_fault_output {
 				      text=>$q->param('message'),);
 
   # Create the fault object
-  my $fault = new OMP::Fault(category=>"OMP",
+  my $fault = new OMP::Fault(category=>$cookie{category},
 			     subject=>$q->param('subject'),
 			     system=>$q->param('system'),
 			     type=>$q->param('type'),
@@ -237,15 +239,16 @@ Create a page for querying faults
 
 sub query_fault_content {
   my $q = shift;
+  my %cookie = @_;
 
-  print $q->h2("Fault Search");
+  print $q->h2("$cookie{category} Fault Home");
 
-  query_fault_form($q);
+  query_fault_form($q, %cookie);
   print "<p>";
 
   # Display recent faults
   my $t = gmtime;
-  my $xml = "<FaultQuery><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+  my $xml = "<FaultQuery><category>$cookie{category}</category><date delta='-36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
 
   my $faults;
   try {
@@ -262,7 +265,7 @@ sub query_fault_content {
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
       print "<P>";
-      query_fault_form($q);
+      query_fault_form($q, %cookie);
     }
   }
 }
@@ -277,6 +280,7 @@ Display output of fault query
 
 sub query_fault_output {
   my $q = shift;
+  my %cookie = @_;
 
   # Which XML query are we going to use?
   # and which title are we displaying?
@@ -289,6 +293,8 @@ sub query_fault_output {
   if ($q->param('Submit')) {
     $delta = $q->param('days');
     my @xml;
+
+    push (@xml, "<category>$cookie{category}</category>");
 
     if ($q->param('system') !~ /any/) {
       my $system = $q->param('system');
@@ -340,7 +346,7 @@ sub query_fault_output {
 
   print $q->h2($title);
 
-  query_fault_form($q);
+  query_fault_form($q, %cookie);
   print "<p>";
 
   if ($faults->[0]) {
@@ -349,7 +355,7 @@ sub query_fault_output {
     # Put up the query form again if there are lots of faults displayed
     if ($faults->[15]) {
       print "<P>";
-      query_fault_form($q);
+      query_fault_form($q, %cookie);
     }
   }
 }
@@ -395,14 +401,15 @@ Create a form for querying faults
 
 sub query_fault_form {
   my $q = shift;
+  my %cookie = @_;
 
-  my $systems = OMP::Fault->faultSystems("OMP");
+  my $systems = OMP::Fault->faultSystems($cookie{category});
   my @systems = values %$systems;
   unshift( @systems, "any" );
   my %syslabels = map {$systems->{$_}, $_} %$systems;
   $syslabels{any} = 'Any';
 
-  my $types = OMP::Fault->faultTypes("OMP");
+  my $types = OMP::Fault->faultTypes($cookie{category});
   my @types = values %$types;
   unshift( @types, "any");
   my %typelabels = map {$types->{$_}, $_} %$types;
