@@ -30,6 +30,8 @@ use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::MSBQuery;
 use OMP::Info::MSB;
+use OMP::Info::Comment;
+use OMP::Constants qw/ :done /;
 use OMP::Error qw/ :try /;
 
 # Inherit server specific class
@@ -240,23 +242,56 @@ Nothing happens if the MSB can no longer be located since this
 simply indicates that the science program has been reorganized
 or the MSB modified.
 
+Optionally, a userid and/or reason for the marking as complete
+can be supplied:
+
+  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason );
+
 =cut
 
 sub doneMSB {
   my $class = shift;
   my $project = shift;
   my $checksum = shift;
+  my $userid = shift;
+  my $reason = shift;
 
-  OMP::General->log_message("doneMSB: $project $checksum\n");
+  my $reastr = (defined $reason ? $reason : "<None supplied>");
+  my $ustr = (defined $userid ? $userid : "<No User>");
+  OMP::General->log_message("doneMSB: $project $checksum User: $ustr Reason: $reastr");
 
   my $E;
   try {
+
+    # Create a comment object for doneMSB
+        # We are allowed to specify a user regardless of whether there
+    # is a reason
+    my $user;
+    if ($userid) {
+      $user = new OMP::User( userid => $userid );
+      if (!$user->verify) {
+	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+      }
+    }
+
+
+    # We must have a valid user if there is an explicit reason
+    if ($reason && ! $user) {
+      throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
+    }
+
+    # Form the comment object
+    my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
+					  text => $reason,
+					  author => $user,
+					);
+
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
 			    DB => $class->dbConnection
 			   );
 
-    $db->doneMSB( $checksum );
+    $db->doneMSB( $checksum, $comment );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
@@ -434,6 +469,83 @@ sub alldoneMSB {
   $class->throwException( $E ) if defined $E;
 
 
+}
+
+=item B<rejectMSB>
+
+Indicate that the MSB has been partially observed but has been
+rejected by the observer rather than being marked as complete
+using C<doneMSB>.
+
+  OMP::MSBServer->rejectMSB( $project, $checksum, $userid, $reason );
+
+This method simply places an entry in the MSB history - it is a
+wrapper around addMSBComment method. The optional reason string can be
+used to specify a particular reason for the rejection. The userid
+is optional unless a reason is supplied (in which case it must be defined
+and must match a valid user ID).
+
+=cut
+
+sub rejectMSB {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+  my $userid = shift;
+  my $reason = shift;
+
+  my $reastr = (defined $reason ? $reason : "<None supplied>");
+  my $ustr = (defined $userid ? $userid : "<No User>");
+  OMP::General->log_message("rejectMSB: $project $checksum User: $ustr Reason: $reastr");
+
+  my $E;
+  try {
+
+    # We are allowed to specify a user regardless of whether there
+    # is a reason
+    my $user;
+    if ($userid) {
+      $user = new OMP::User( userid => $userid );
+      if (!$user->verify) {
+	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+      }
+    }
+
+
+    # We must have a valid user if there is an explicit reason
+    if ($reason && ! $user) {
+      throw OMP::Error::BadArgs( "A user ID must be supplied if a reason for the rejection is given");
+    }
+
+
+    # Default comment
+    $reason = "This MSB was observed but was not accepted by the observer/TSS. No reason was given"
+      unless defined $reason;
+
+    # Form the comment object
+    my $comment = new OMP::Info::Comment( status => OMP__DONE_REJECTED,
+					  text => $reason,
+					  author => $user,
+					);
+
+    # Add the comment
+    OMP::MSBServer->addMSBcomment($project, $checksum, $comment);
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return;
 }
 
 =item B<historyMSB>
