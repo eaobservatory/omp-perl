@@ -747,6 +747,7 @@ sub write_page_proposals {
     # Do authentication if we're not running on the private web server
     if ($q->url !~ /^$private/) {
       $notlocal = 1;
+      $cookie{notlocal} = 1;
     }
 
     if ($notlocal) {
