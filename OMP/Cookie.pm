@@ -152,7 +152,10 @@ sub cookie {
 =item B<setCookie>
 
 Creates the CGI cookie object. Name=value pairs should be in the form of a
-hash. The expiry time should be specified as a number of minutes.
+hash. The expiry time can be specified as either a plain number (in which 
+case the expire time is set to N minutes in the future) or more explicitly
+as a string such as "+4h" which would set the expiry time to four hours in
+the future.
 
   $c->setCookie(2, %contents);
 
@@ -163,6 +166,9 @@ sub setCookie {
   my $exptime = shift;
   my %contents = @_;
 
+  # If expire time is just a number default to minutes in the future
+  $exptime =~ /^\d+$/ and $exptime = '+' . $exptime . 'm';
+
   # Get the CGI object
   my $cgi = $self->cgi
     or throw OMP::Error::FatalError("No CGI object present\n");
@@ -170,7 +176,7 @@ sub setCookie {
   # create the cookie
   my $cookie = $cgi->cookie(-name=>$self->name,
 			    -value=>\%contents,
-			    -expires=>'+' . $exptime . 'm',);
+			    -expires=>$exptime);
 
   $self->cookie($cookie);
   return;
