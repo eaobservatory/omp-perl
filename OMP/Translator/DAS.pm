@@ -132,8 +132,8 @@ sub translate {
       # Store the target
       push(@targets, $obsinfo->{coords}) if defined $obsinfo->{coords};
 
-      use Data::Dumper;
-      print STDERR Dumper($obsinfo);
+      #use Data::Dumper;
+      #print STDERR Dumper($obsinfo);
 
       # Start new observation
       $html .= "<h2>Observation #$obscount</h2>\n";
@@ -155,7 +155,8 @@ sub translate {
 
   $html .= $self->fixedFooter();
 
-  print $html;
+  # For debugging
+  #print $html;
 
   if ($asdata) {
     # How do I return the catalogue????
@@ -163,7 +164,15 @@ sub translate {
   } else {
     # Write this file to disk and all the target information
     # to a catalogue
+    my $file = File::Spec->catfile( $TRANS_DIR, "hettrans.html");
+    open my $fh, ">$file" or 
+      throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
 
+    print $fh $html;
+
+    close($fh) 
+      or throw OMP::Error::FatalError("Error closing translation [$file]: $!\n");
+    return $file;
   }
 }
 
