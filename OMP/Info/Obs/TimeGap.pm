@@ -185,6 +185,8 @@ sub summary {
       $obssum .= "WEATHER";
     } elsif( $self->status == OMP__TIMEGAP_FAULT ) {
       $obssum .= "FAULT";
+    } elsif( $self->status == OMP__TIMEGAP_PROJECT ) {
+      $obssum .= "PROJECT";
     } else {
       $obssum .= "UNKNOWN";
     }
