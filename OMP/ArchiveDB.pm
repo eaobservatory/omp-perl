@@ -403,12 +403,13 @@ sub _reorganize_archive {
       my $uckey = uc($key);
       $newrow->{$uckey} = $row->{$key};
     }
+
     # Find out which telescope we're dealing with. If it's UKIRT,
     # then we have to run the UKIRTDB translation. If it's JCMT,
     # we can just use the instrument-specific translation.
     my $telescope = $newrow->{TELESCOP};
     my $instrument = $newrow->{INSTRUME};
-    if(uc($telescope) eq 'UKIRT') {
+    if($telescope =~ /UKIRT/i) {
 
       # We need to temporarily set the instrument header to
       # 'UKIRTDB' so the correct translation can be used.
@@ -510,7 +511,7 @@ sub _create_Obs_object {
   $args{utdate} = $generic_header->{UTDATE};
   $args{mode} = $generic_header->{OBSERVATION_MODE};
   $args{speed} = $generic_header->{SPEED_GAIN};
-  $args{airmasss} = $generic_header->{AIRMASS_START};
+  $args{airmass} = $generic_header->{AIRMASS_START};
   $args{rows} = $generic_header->{Y_DIM};
   $args{columns} = $generic_header->{X_DIM};
   $args{drrecipe} = $generic_header->{DR_RECIPE};
