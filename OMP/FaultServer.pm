@@ -202,6 +202,48 @@ sub updateFault {
   return;
 
 }
+=item B<updateResponse>
+
+Update details for a fault.  If a second argument (either an C<OMP::User>
+object or a string identifying the user who made the update) is included
+an email will be sent to the fault owner notifying them of the update.
+
+  OMP::FaultServer->updateResponse($faultid, $response);
+
+Argument should be supplied as an C<OMP::Fault> object.
+
+=cut
+
+sub updateResponse {
+  my $class = shift;
+  my $faultid = shift;
+  my $response = shift;
+
+  my $E;
+  try {
+
+    my $db = new OMP::FaultDB( DB => $class->dbConnection, );
+
+    # Let the lower level method check the argument
+    $db->updateResponse($faultid, $response);
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return;
+
+}
 
 
 =item B<getFault>
