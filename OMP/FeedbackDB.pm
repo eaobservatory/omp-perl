@@ -384,7 +384,10 @@ sub _mail_comment_support {
   my $project = $projdb->_get_project_row;
 
   my @email = $project->supportemail;
-  $self->_mail_comment( $comment, \@email );
+
+  # Only mail if there is a support address
+  $self->_mail_comment( $comment, \@email )
+    if (@email);
 }
 
 =item B<_mail_comment_info>
