@@ -767,7 +767,7 @@ sub investigators {
 
   # Get all the User objects
   my @users = ( $self->pi, $self->coi);
-  @users = ($self->pi);
+#  @users = ($self->pi);
 
   return @users;
 }
@@ -786,7 +786,7 @@ sub contacts {
   my $self = shift;
 
   # Get all the User objects
-  my @users = ( $self->investigators, $self->support );
+  my @users = grep {$self->contactable($_->userid) and $_->email} ( $self->investigators, $self->support );
 
   return @users;
 }
