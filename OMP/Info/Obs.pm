@@ -118,14 +118,7 @@ sub readfile {
 
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
 
-      # Redirect STDOUT in case this fails.
-      open($SAVEOUT, ">&STDOUT") or throw OMP::Error::FatalError("Can't save STDOUT.\n");
-      open(STDOUT, ">/dev/null") or throw OMP::Error::FatalError("Can't open STDOUT to /dev/null.");
-
       $FITS_header = new Astro::FITS::Header::GSD( File => $filename );
-
-      close(STDOUT);
-      open(STDOUT, ">&$SAVEOUT");	
 
     } else {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
@@ -134,11 +127,6 @@ sub readfile {
     $obs->filename( $filename );
   }
   catch Error with {
-
-    if( $filename =~ /\.(gsd|dat)$/ ) {
-      close(STDOUT);
-      open(STDOUT, ">&$SAVEOUT");
-    }
 
     my $Error = shift;
 
