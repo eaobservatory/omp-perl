@@ -164,6 +164,9 @@ sub thumbnails_page {
     # Now we have a list of all the group files for the telescope
     # that match the group format.
 
+    # Start the table.
+    print "<table border=\"0\" cellpadding=\"5\">\n";
+
     # Create Info::Obs objects for each file.
     FILELOOP: foreach my $file ( @matchfiles ) {
 
@@ -209,6 +212,7 @@ sub thumbnails_page {
       # the thumbnail along with a link to the fullsized WORF page
       # for that observation.
       if( $file =~ /\d\.sdf$/ ) {
+        print "<tr><td>";
         print "<a href=\"worf.pl?ut=$obsut&runnr=";
         print $obs->runnr . "&inst=" . $obs->instrument;
         print "&group=1\">";
@@ -217,11 +221,16 @@ sub thumbnails_page {
         print "&ut=" . $obsut;
         print "&inst=" . $obs->instrument;
         print "&group=1";
-        print "&size=thumb\"></a> ";
+        print "&size=thumb\"></a>";
+        print "</td><td>";
+        print "Instrument: " . $obs->instrument . "<br>\n";
+        print "Group number: " . $obs->runnr . "<br>\n";
+        print "Suffix: none\n</td></tr>";
         next FILELOOP;
       } else {
         foreach my $suffix ( @grp_suffices ) {
           if( $file =~ /$suffix\.sdf$/ ) {
+            print "<tr><td>";
             print "<a href=\"worf.pl?ut=$obsut&runnr=";
             print $obs->runnr . "&inst=" . $obs->instrument;
             print "&suffix=$suffix";
@@ -232,12 +241,20 @@ sub thumbnails_page {
             print "&inst=" . $obs->instrument;
             print "&group=1";
             print "&size=thumb";
-            print "&suffix=$suffix\"></a> ";
+            print "&suffix=$suffix\"></a>";
+            print "</td><td>";
+            print "Instrument: " . $obs->instrument . "<br>\n";
+            print "Group number: " . $obs->runnr . "<br>\n";
+            print "Suffix: " . $suffix . "\n</td></tr>";
             next FILELOOP;
           }
         }
       }
     }
+
+    # End the table.
+    print "</table>\n";
+
 
   }
 
