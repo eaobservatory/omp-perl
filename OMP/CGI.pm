@@ -2,7 +2,7 @@ package OMP::CGI;
 
 =head1 NAME
 
-OMP::CGI - Content and functions for the MOP Feedback system CGI scripts
+OMP::CGI - Content and functions for the OMP Feedback system CGI scripts
 
 =head1 SYNOPSIS
 
@@ -1049,8 +1049,13 @@ sub write_page_fault {
   my $faultid;
   if ($q->url_param('id')) {
     $faultid = $q->url_param('id');
-  } elsif ($q->param('goto_fault')) {
-    $faultid = $q->param('goto_fault');
+  }
+
+  if ($q->param('goto_fault')) {
+    my $gfaultid = $q->param('goto_fault');
+
+    # Create redirect header
+    print $q->redirect($q->url(-base=>1) . "/cgi-bin/viewfault.pl?id=$gfaultid");
   }
 
   if ($faultid) {
@@ -1078,7 +1083,9 @@ sub write_page_fault {
 
   $c->setCookie( $EXPTIME, %cookie);
 
-  $self->_write_header($STYLE);
+  # Write the header out unless we have generated a redirection header
+  # in order to go striaght to a fault
+  $self->_write_header($STYLE) unless ($q->param('goto_fault'));
 
   if (!$cookie{category}) {
 
@@ -1100,7 +1107,7 @@ sub write_page_fault {
 
   if ($q->param) {
     if ($q->param('goto_fault')) {
-      OMP::CGIFault::view_fault_content($q, %cookie);
+      print "Redirecting";
     } else {
       if ($q->param('show_output')) {
 	$form_output->($q, %cookie);
