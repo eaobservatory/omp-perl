@@ -625,16 +625,13 @@ sub _mail_password {
     throw OMP::Error::BadArgs("Unable to obtain plain text password to mail\n")
       unless defined $password;
 
-    # Get the email address
-    my $piemail = $proj->piemail;
-
-    throw OMP::Error::BadArgs("No email address defined for sending password\n") unless defined $piemail;
-
     # Try and work out who is making the request
     my ($user, $ip, $addr) = $self->_determine_host;
 
     # List of recipients of mail
-    my @addr = ($proj->piemail, $proj->coiemail);
+    my @addr = $proj->investigators;
+
+    throw OMP::Error::BadArgs("No email address defined for sending password\n") unless @addr;
 
 
     # First thing to do is to register this action with
