@@ -37,6 +37,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::Error;
 use OMP::Constants qw/ :msb /;
 
 use base qw/ OMP::Info::Base /;
@@ -245,6 +246,81 @@ sub target {
 
 }
 
+=item B<ha>
+
+Construct a summary of the hour angle for each of the observation
+targets. This simply uses the C<Astro::Coords> object in each
+observation object. If no observations are present returns
+an empty string.
+
+  $ha = $msb->ha;
+
+Takes no arguments.
+
+=cut
+
+sub ha {
+  my $self = shift;
+  # Ask the observations
+  my @ha = $self->_process_coords( sub {
+				     my $c = shift;
+				     return sprintf("%.1f",
+						    $c->ha( format => "h",
+							   normalize => 1));
+				   });
+  return join("/",@ha);
+}
+
+=item B<airmass>
+
+Construct a summary of the airmass for each of the observation
+targets. This simply uses the C<Astro::Coords> object in each
+observation object. If no observations are present returns
+an empty string.
+
+  $ha = $msb->airmass;
+
+Takes no arguments.
+
+=cut
+
+sub airmass {
+  my $self = shift;
+  # Ask the observations
+  my @am = $self->_process_coords( sub {
+				     my $c = shift;
+				     return sprintf("%.3f",
+						    $c->airmass);
+				   });
+  return join("/",@am);
+}
+
+=item B<ra>
+
+Construct a summary of the right ascension for each of the observation
+targets. This simply uses the C<Astro::Coords> object in each
+observation object. If no observations are present returns
+an empty string.
+
+  $ha = $msb->ra;
+
+Takes no arguments.
+
+=cut
+
+sub ra {
+  my $self = shift;
+  # Ask the observations
+  my @ra = $self->_process_coords( sub {
+				     my $c = shift;
+				     return sprintf("%.1f",
+						    $c->ra_app( format => "h",
+							       normalize => 1));
+				   });
+  return join("/",@ra);
+}
+
+
 =item B<coordstype>
 
 Construct a coordinate type summary of the MSB. This retrieves the
@@ -367,6 +443,10 @@ The long XML format includes explicit observations.
     </SpObsSummary>
   </SpMSBSummary>
 
+The XML representation includes the hour angle, elevation
+and airmass (using the C<Astro::Coords> objects stored in the
+observations if present).
+
 =cut
 
 sub summary {
@@ -454,6 +534,12 @@ sub summary {
     }
   }
 
+  # Fill in some unknowns
+  for (qw/ timeest priority title seeing tau/) {
+    $summary{$_} ||= "??";
+  }
+
+
   # Text summary
   if ($format eq 'textshort' ) {
 
@@ -500,6 +586,18 @@ sub summary {
 
   } elsif ($format eq 'html') {
 
+    # Fix up HTML escapes
+    for (qw/ title tau seeing /) {
+      my $string = $summary{$_};
+      # Should use real HTML escape class from CPAN
+      $string =~ s/</\&lt\;/g;
+      $string =~ s/>/\&gt\;/g;
+      $string =~ s/\"/\&quot\;/g;
+
+      $summary{$_} = $string;
+    }
+
+
     my @text;
     push(@text, "<h3>$summary{title} (<em>$remstatus</em>)</h3>");
 
@@ -538,6 +636,11 @@ sub summary {
     # First the MSB things that are not dependent on
     # observations [this may include some information
     # summaries such as waveband and target]
+
+    # Add ha, airmass and ra
+    for my $method (qw/ ha airmass ra/) {
+      $summary{$method} = $self->$method();
+    }
 
     # XML version
     my $xml = "<SpMSBSummary ";
@@ -581,6 +684,8 @@ sub summary {
 
 
 
+  } else {
+    throw OMP::Error::BadArgs("Unknown output format: $format\n");
   }
 
 
@@ -590,11 +695,15 @@ sub summary {
 
 =item B<stringify>
 
+Convert the object to a string. Equivalent to calling the
+C<summary()> method with a value of "textlong".
+
 =cut
 
 sub stringify {
   my $self = shift;
-  return "NOT YET IMPLEMENTED";
+  my $string = $self->summary("textlong") ."\n";
+  return $string;
 }
 
 =back
@@ -686,6 +795,38 @@ sub _compress_array {
   }
 
   return @unique;
+}
+
+=item B<_process_coords>
+
+For each observation, retrieve the coordinate object if present.  If
+the observation is not a calibration frame, run the callback and store
+the result in an array. If it is a calibration store "CAL" in the
+array.  Return the array when complete
+
+The callback is passed the calibration object.
+
+  @ha = $msb->_process_coords( sub { my $c = shift; return $c->ha} );
+
+=cut
+
+sub _process_coords {
+  my $self = shift;
+  my $cb = shift;
+  my @results;
+  for my $obs ($self->observations ) {
+    my $coords = $obs->coords;
+    next unless $coords;
+    my $type = $coords->type;
+    if ($type ne "CAL") {
+      push(@results, $cb->($coords));
+    } else {
+      push(@results, "CAL");
+    }
+
+  }
+  @results = $self->_compress_array( @results );
+  return @results;
 }
 
 =back
