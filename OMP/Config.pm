@@ -383,20 +383,59 @@ sub _read_cfg_file {
   print "File $file: ".Dumper \%data
     if $DEBUG;
 
-  # determine the key order. host overrides, domain overrides
-  # default
-  my @keys = ('default',map { $_.":".$CONST{$_} } qw/ domain host /);
+  # determine the key order. host overrides, domain overrides. default
 
-  # loop through the keys
-  # It would be easy if we only looked for set keys
-  #   default, host: and domain:
+  # The first thing to do is to look for host and domain aliases
+  # since we allow config files to contain aliases and internal
+  # overrides we deal with this by fiddling with the order of keys
+  # to be searched
+  #
+  #  [host:xxx]
+  #  hostalias=yyy
+  #  blah=2
+  #  blurgh=3
+  #
+  #  [host:yyy]
+  #  blah=5
+  #  arg=22
+  #
+  # would result in blah=2 blurgh=3 arg=22 on host xxx
+  # Note also that yyy could be an alias for another host
+
+  # We have to fill @keys starting with the most general and becoming
+  # more specific. host trumps domain
+  my @keys = ( 'default' );
+
+  # Look for domain and host aliases
+  foreach my $type (qw/ domain host /) {
+    # This is the start key
+    my $key = $type . ":" . $CONST{$type};
+
+    # do nothing if the start key is not present
+    if (exists $data{$key}) {
+      # Now look in that key for an alias. Use recursion
+      # pass the current key into this
+      my @nkeys =  _locate_aliases( $key, $type, \%data, $key);
+
+      # The keys from _locate_aliases are in the wrong order
+      # so reverse them before pushing onto the stack
+      push(@keys, reverse @nkeys);
+
+    }
+
+  }
+
+  # loop through the keys (including aliases)
   my %cfg;
   for my $key ( @keys ) {
     print "Trying key $key\n" if $DEBUG;
     if (exists $data{$key} && defined $data{$key}) {
+
       # Want to lower case all the keys and process arrays
+      # We also want to filter out domainalias and hostalias keys
       my %new;
       for my $oldkey (keys %{$data{$key}}) {
+	next if ($oldkey eq 'domainalias' || $oldkey eq 'hostalias');
 	my $newkey = lc($oldkey);
 	my $newval = $data{$key}->{$oldkey};
 	if ($newval =~ /,/) {
@@ -410,8 +449,35 @@ sub _read_cfg_file {
     }
   }
 
+  use Data::Dumper;
+  print Dumper( \%cfg);
+
   # return the answer
   return ($label, \%cfg);
+}
+
+# Recursion helper routine for config reader
+
+sub _locate_aliases {
+  my ($key, $type, $dataref, @keys ) = @_;
+
+  my $alias = $type . "alias";
+
+  if (exists $dataref->{$key}->{$alias}) {
+
+    # we have an alias so expand it
+    my $nkey = $type . ":" . $dataref->{$key}->{$alias};
+
+    # and store all the keys returned from lower levels
+    if (exists $dataref->{$nkey}) {
+      push( @keys, _locate_aliases($nkey, $type, $dataref, $nkey ) );
+    } else {
+      throw OMP::Error::FatalError("$type alias of '$nkey' defined in entry '$key' " .
+				   "but that $type is not specified in config file");
+
+    }
+  }
+  return @keys,
 }
 
 =item B<_determine_constants>
@@ -627,6 +693,22 @@ information that will not vary during the execution of the
 program. The list of allowed keys is restricted to "default" for
 generic information, "host:..." for host based switching and
 "domain:..." for doman-based switching:
+
+  [domain:JAC.hilo]
+  datadir=/scuba
+  ftpdir=/local/ftp
+
+  [domain:jach.hawaii.edu]
+  domainalias=JAC.hilo
+  ftpdir=/local/jcmt/ftp
+
+In some cases multiple hosts/domains need to share the same configuration.
+In this case domain and host aliases can be configured to refer to
+other domain/host entries in the config file. In the above example, if the
+domainname is jach.hawaii.edu the configuration will read ftpdir definition
+from "domain:jach.hawaii.edu" but datadir will be read from the alias.
+Similarly hostalias can be defined for host entries.
+
 
   [default]
   omp-url=http://omp.jach.hawaii.edu
