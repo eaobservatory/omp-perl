@@ -37,6 +37,8 @@ use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
 
+use Text::Wrap;
+
 use base qw/ OMP::BaseDB /;
 
 # This is picked up by OMP::MSBDB
@@ -317,6 +319,9 @@ sub _mail_comment {
   # Mail message (Format with HTML since the mail method will convert to
   # plaintext)
   my $msg = "Author: $comment->{author}<br><br>$comment->{text}";
+
+  # Word wrap the message
+  $msg = wrap('', '', $msg);
 
   my $projectid = $self->projectid;
 
