@@ -589,8 +589,13 @@ sub _db_update_data {
   for my $col (keys %$change) {
 
     # check for text and quote if needed
-    $change->{$col} = "'" . $change->{$col} . "'"
-      if $change->{$col} =~ /[A-Za-z:]/;
+    # If "undef" we need to use NULL
+    if (defined $change->{$col}) {
+      $change->{$col} = "'" . $change->{$col} . "'"
+	if $change->{$col} =~ /[A-Za-z:]/;
+    } else {
+      $change->{$col} = "NULL";
+    }
 
     # Construct the SQL
     my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
