@@ -246,6 +246,17 @@ sub file_fault_output {
   my $author = $q->param('user');
   my $user = OMP::UserServer->getUser($author);
 
+  # The text.  Put it in <pre> tags if there isn't an <html>
+  # tag present
+  my $text = $q->param('message');
+  if ($text =~ /<html>/i) {
+
+    # Strip out the <html> and </html> tags
+    $text =~ s!</*html>!!ig;
+  } else {
+    $text = "<pre>$text</pre>";
+  }
+
   my $resp = new OMP::Fault::Response(author=>$user,
 				      text=>$q->param('message'),);
 
@@ -450,6 +461,11 @@ sub query_fault_output {
       push (@xml, "<type>$type</type>");
     }
 
+    if ($q->param('status') !~ /any/) {
+      my $status = $q->param('status');
+      push (@xml, "<status>$status</status>");
+    }
+
     if ($q->param('author')) {
       my $author = uc($q->param('author'));
       push (@xml, "<author>$author</author>");
@@ -584,6 +600,12 @@ sub query_fault_form {
   my %typelabels = map {$types->{$_}, $_} %$types;
   $typelabels{any} = 'Any';
 
+  my %status = OMP::Fault->faultStatus($cookie{category});
+  my @status = values %status;
+  unshift( @status, "any");
+  my %statuslabels = map {$status{$_}, $_} %status;
+  $statuslabels{any} = 'Any';
+
   print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform(-method=>'GET');
   print "<b>Display $word for the last ";
@@ -600,6 +622,11 @@ sub query_fault_form {
   print $q->popup_menu(-name=>'type',
 		       -values=>\@types,
 		       -labels=>\%typelabels,
+		       -default=>'any',);
+  print "</td><tr><td><b>Status </b>";
+  print $q->popup_menu(-name=>'status',
+		       -values=>\@status,
+		       -labels=>\%statuslabels,
 		       -default=>'any',);
   print "</td><tr><td><b>User ID </b>";
   print $q->textfield(-name=>'author',
@@ -700,7 +727,17 @@ sub view_fault_output {
 
   if ($q->param('respond')) {
     my $author = $q->param('user');
+
+    # The text.  Put it in <pre> tags if there isn't an <html>
+    # tag present
     my $text = $q->param('text');
+    if ($text =~ /<html>/i) {
+
+      # Strip out the <html> and </html> tags
+      $text =~ s!</*html>!!ig;
+    } else {
+      $text = "<pre>$text</pre>";
+    }
 
     my $user = new OMP::User(userid => $author,);
 
