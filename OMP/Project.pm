@@ -73,7 +73,7 @@ sub new {
 		    TagPriority => 999,
 		    CoIEmail => [],
 		    PI => undef,
-		    Remaining => 0,
+		    Remaining => undef, # so that it defaults to allocated
 		    Pending => 0,
 		   }, $class;
 
