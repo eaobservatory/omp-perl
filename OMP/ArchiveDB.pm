@@ -29,7 +29,9 @@ use strict;
 use warnings;
 
 use lib qw( /jac_sw/omp/msbserver );
+#use lib qw( /home/bradc/development/omp/msbserver );
 use lib qw( /jcmt_sw/oracdr/lib/perl5 );
+#use lib qw( /home/bradc/development/perlmods/Astro/FITS/HdrTrans/lib );
 
 use OMP::ArcQuery;
 use OMP::General;
@@ -553,7 +555,9 @@ sub _create_Obs_object {
   $args{grating} = $generic_header->{GRATING_NAME};
   $args{order} = $generic_header->{GRATING_ORDER};
   $args{tau} = $generic_header->{TAU};
-  $args{seeing} = sprintf("%.1f",$generic_header->{SEEING});
+  $args{seeing} = defined( $generic_header->{SEEING} ?
+                           sprintf("%.1f",$generic_header->{SEEING}) :
+                           "" );
   $args{bolometers} = $generic_header->{BOLOMETERS};
   $args{velocity} = $generic_header->{VELOCITY};
   $args{systemvelocity} = $generic_header->{SYSTEM_VELOCITY};
