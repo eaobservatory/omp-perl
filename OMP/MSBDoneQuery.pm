@@ -35,6 +35,33 @@ our $VERSION = (qw$Revision$ )[1];
 
 =head1 METHODS
 
+=head2 Accessor Methods
+
+=over 4
+
+=item B<checksums>
+
+Returns any checksums specified in the query.
+
+ @checksums = $q->checksums;
+
+=cut
+
+sub checksums {
+  my $self = shift;
+  my $qhash = $self->query_hash();
+
+  if (exists $qhash->{checksum}) {
+    return @{ $qhash->{checksum} };
+  } else {
+    return ();
+  }
+}
+
+
+
+=back
+
 =head2 General Methods
 
 =over 4
