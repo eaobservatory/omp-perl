@@ -257,15 +257,17 @@ sub _sidebar_logout {
   my $projectid = $q->url_param('urlprojid');
   ($projectid) or $projectid = $cookie{projectid};
 
+  my $ompurl = $self->public_url;
+
   $theme->SetMoreLinksTitle("Project: $projectid");
 
-  my @sidebarlinks = ("<a href='projecthome.pl'>$cookie{projectid} Project home</a>",
-		      "<a href='feedback.pl'>Feedback entries</a>",
-		      "<a href='fbmsb.pl'>Program details</a>",
-		      "<a href='fbcomment.pl'>Add comment</a>",
-		      "<a href='msbhist.pl'>MSB History</a>",
-		      "<a href='projusers.pl'>Contacts</a>",
-		      "<a href='http://omp.jach.hawaii.edu/'>OMP home</a>",);
+  my @sidebarlinks = ("<a href='$ompurl/projecthome.pl'>$cookie{projectid} Project home</a>",
+		      "<a href='$ompurl/feedback.pl'>Feedback entries</a>",
+		      "<a href='$ompurl/fbmsb.pl'>Program details</a>",
+		      "<a href='$ompurl/fbcomment.pl'>Add comment</a>",
+		      "<a href='$ompurl/msbhist.pl'>MSB History</a>",
+		      "<a href='$ompurl/projusers.pl'>Contacts</a>",
+		      "<a href='$ompurl/'>OMP home</a>",);
 
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
