@@ -260,13 +260,22 @@ sub storeSciProg {
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
+  # If we are already running a transaction and do not want to
+  # start a new one (or just dont want to start one) then we need
+  # to find out now
+  my $nonewtrans = 0;
+  if (exists $args{NoNewTrans} && $args{NoNewTrans}) {
+    # Do it hear to prevent problems with exists and unless
+    $nonewtrans = 1;
+  }
+
   # Before we do anything else we connect to the database
   # begin a transaction and lock out the tables.
   # This has the side effect of locking out the tables until
   # we have finished with them (else it will block waiting for
   # access). This allows us to use the DB lock to control when we
   # can write a science program to disk)
-  if (!exists $args{NoNewTrans} || !$args{NoNewTrans}) {
+  unless ($nonewtrans) {
     $self->_db_begin_trans;
     $self->_dblock;
   }
@@ -292,7 +301,7 @@ sub storeSciProg {
   }
 
   # Now disconnect from the database and free the lock
-  if (exists $args{NoNewTrans} && !$args{NoNewTrans}) {
+  unless ($nonewtrans) {
     $self->_dbunlock;
     $self->_db_commit_trans;
   }
@@ -676,7 +685,6 @@ sub _db_store_sciprog {
   $dbh->do("INSERT INTO $SCITABLE VALUES (?,?,'$sp')", undef,
 	  $proj, $sp->timestamp) or
 	    throw OMP::Error::SpStoreFail("Error inserting science program XML into database: ". $dbh->errstr);
-
 }
 
 =item B<_db_fetch_sciprog>
