@@ -114,15 +114,25 @@ for my $proj (keys %alloc) {
   my %details = ( %defaults, %{ $alloc{$proj} });
 
   # Upper case country for lookup table
-  $details{country} = uc($details{country});
+  # and split on comma in case we have more than one
+  $details{country} = [split /,/,uc($details{country}) ];
+
+  # TAG priority
+  my @tag = split /,/, $details{tagpriority};
+
+  die "Number of TAG priorities is neither 1 nor number of countries"
+    unless ($#tag == 0 || $#tag == $#{$details{country}});
+
+  $details{tagpriority} = \@tag if scalar(@tag) > 1;
 
   # Deal with support issues
   # but do not overrride one if it is already set
   if (!defined $details{support}) {
-    if (exists $support{$details{country}}) {
-      $details{support} = $support{$details{country}};
+    if (exists $support{$details{country}->[0]}) {
+      $details{support} = $support{$details{country}->[0]};
     } else {
-      die "Can not find support for country $details{country}\n";
+      die "Can not find support for country ".
+	$details{country}->[0]."\n";
     }
   }
 
@@ -223,6 +233,11 @@ by project ID. C<pi>, C<coi> and C<support> must be valid OMP User IDs
 
 Allocations are in hours and "band" is the weather band. C<taurange>
 can be used directly (as a comma delimited range) if it is known.
+
+Multiple countries can be specified (comma-separated). If there is
+more than one TAG priority (comma-separated) then there must
+be one priority for every country. SUPPORT lookups only used the
+first country. The first country is the primary key.
 
 =head1 AUTHOR
 

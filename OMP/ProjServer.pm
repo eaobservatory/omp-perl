@@ -288,6 +288,11 @@ order to specify a seeing range the tau range must be specified!
 
 We may not want to have this as a public method on a SOAP Server!
 
+TAG priority and country can be references to an array. The number
+of priorities must match the number of countries unless the number
+of priorities is one (in which case that priority is used for all).
+Also, the first country is always set as the primary country.
+
 People are supplied as OMP User IDs. CoI and Support can be colon or comma
 separated.
 
@@ -327,6 +332,21 @@ sub addProject {
     $project[13] = 0 unless defined $project[13];
     my $seerange = new OMP::Range(Min=>$project[13], Max=>$project[14]);
 
+    # Set up queue information
+    # Convert tag to array ref if required
+    my $tag = ( ref($project[5]) ? $project[5] : [ $project[5] ] );
+
+    throw OMP::Error::FatalError( "TAG priority/country mismatch" )
+      unless ($#$tag == 0 || $#$tag == $#{ $project[6] });
+
+    # set up queue for each country in turn
+    my %queue;
+    for my $i (0..$#{$project[6]}) {
+      my $pri = ( $#$tag > 0 ? $tag->[$i] : $tag->[0] );
+      $queue{ uc($project[6]->[$i]) } = $pri;
+    }
+    my $primary = uc($project[6]->[0]);
+
     # Instantiate OMP::Project object
     my $proj = new OMP::Project(
 				projectid => $project[0],
@@ -334,8 +354,8 @@ sub addProject {
 				coi => \@coi,
 				support => \@support,
 				title => $project[4],
-				tagpriority => $project[5],
-				country => $project[6],
+				primaryqueue => $primary,
+				queue => \%queue,
 				semester => $project[7],
 				password => $project[8],
 				allocated => $project[9],
