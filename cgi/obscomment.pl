@@ -9,7 +9,7 @@ use OMP::Info::Obs;
 use OMP::Info::Comment;
 use OMP::ArchiveDB;
 use OMP::ObslogDB;
-use OMP::Constants.pm;
+use OMP::Constants;
 use strict;
 
 my @instruments = qw/cgs4 ircam michelle ufti uist scuba/;
