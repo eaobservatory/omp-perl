@@ -1,7 +1,7 @@
 
 # Test OMP::General
 
-use Test::More tests => 95;
+use Test::More tests => 96;
 use Time::Piece qw/ :override /;
 
 require_ok('OMP::General');
@@ -294,6 +294,7 @@ my %extract = (
 	       'thk125'     => 'this is [thk125]',
 	       'm02bh37b1'  => 'this is uh project m02bh37b1',
 	       'M02BH07A3'  => 'this is uh project M02BH07A3',
+	       'M00AH06A'  => 'this is uh project M00AH06A',
 	      );
 
 for my $proj (keys %extract) {
