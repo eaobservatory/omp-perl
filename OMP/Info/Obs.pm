@@ -865,7 +865,7 @@ sub remove_comment {
   my @obs;
   push @obs, $self;
 
-  $db->updateObsComment( \@obs );
+  @obs = $db->updateObsComment( \@obs );
 
 }
 

@@ -184,6 +184,7 @@ sub runQuery {
   catch OMP::Error::DBConnection with {
     # let it pass through
   };
+
   my @result = $adb->queryArc( $q, $retainhdr );
 
   # Store the results
@@ -356,7 +357,6 @@ sub populate {
   } elsif ($args{sort}) {
     $self->sort_by_time();
   }
-
 }
 
 =item B<filter>
@@ -547,8 +547,8 @@ sub commentScan {
 
   # Add the comments.
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-  $odb->updateObsComment( $obs );
-
+  my @newobs = $odb->updateObsComment( $obs );
+  $self->obs( \@newobs );
 }
 
 =item B<projectStats>
