@@ -64,7 +64,7 @@ use Data::Dumper;
 our $VERSION = (qw$Revision$)[1];
 
 # Unix directory for writing ODFs
-our $TRANS_DIR = "/tmp/omplog";
+our $TRANS_DIR = "/observe/ompodf";
 # Equivalent path on vax
 our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
@@ -843,7 +843,6 @@ sub SpIterFocusObs {
 	     CHOP_FUN => 'SCUBAWAVE',
 	     # Filter
 
-	     FOCUS_SHIFT => $info{focusStep},
 	     # Gain
 	     JIGGLE_P_SWITCH => '8',
 	     # Nints
@@ -854,6 +853,12 @@ sub SpIterFocusObs {
 	     SWITCH_MODE => 'BMSW',
 	     ($isFocus ? () : (ALIGN_AXIS => $info{focusAxis} ) ),
 	    );
+
+  if ($isFocus) {
+    $odf{FOCUS_SHIFT} = $info{focusStep};
+  } else {
+    $odf{ALIGN_SHIFT} = $info{focusStep};
+  }
 
   # override primary bolometer
   $info{primaryBolometer} = "H7" if ((!defined $info{primaryBolometer})  ||
@@ -898,6 +903,7 @@ sub getGeneral {
 	   PROJECT_ID => $info{PROJECTID},
 	   INSTRUMENT => 'SCUBA',
 	   DATA_KEPT => 'DEMOD',
+	   ENG_MODE  => 'FALSE',
 	 );
 }
 
