@@ -53,6 +53,8 @@ use OMP::ProjServer;
 use OMP::User;
 use OMP::UserServer;
 
+my $force = 0;
+
 while (<>) {
   chomp;
   my $line = $_;
@@ -92,7 +94,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject("***REMOVED***", @details[0..10] );
+    OMP::ProjServer->addProject("***REMOVED***", $force, @details[0..10] );
   }
 
 }
