@@ -84,8 +84,9 @@ sub new {
   my $parser = new XML::LibXML;
   my $tree = eval { $parser->parse_string( $xml ) };
   if ($@) {
-    throw OMP::Error::SpBadStrucuture("Error whilst parsing science program\n");
+    throw OMP::Error::SpBadStructure("Error whilst parsing science program: $@\n");
   }
+
 
   # Now create our Science Program hash
   my $sp = {
