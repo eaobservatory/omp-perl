@@ -46,6 +46,7 @@ use warnings;
 use strict;
 
 use Carp;
+use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :done /;
 use OMP::Info::MSB;
 use OMP::Info::Comment;
@@ -499,12 +500,16 @@ sub _store_msb_done_comment {
     # will call this class to register the fetch! Just do it
     # in two calls without the associated feedback messages
     # This will have a bit of an overhead.
-    # problem with authentication.
-    my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,
-				Password => '***REMOVED***');
-    my $sp = $msbdb->fetchSciProg(1);
-    my $msb = $sp->fetchMSB( $checksum );
-    $msbinfo = $msb->info() if $msb;
+    # problem with authentication - KLUGE for now
+    # Catch any exceptions - we are only interested in whether
+    # we can get some information.
+    try {
+      my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,
+				  Password => '***REMOVED***');
+      my $sp = $msbdb->fetchSciProg(1);
+      my $msb = $sp->fetchMSB( $checksum );
+      $msbinfo = $msb->info() if $msb;
+    };
   }
 
   # throw an exception if we dont have anything
