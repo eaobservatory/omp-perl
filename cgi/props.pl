@@ -15,11 +15,12 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ProjectPage;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
 my $cgi = new OMP::CGI( CGI => $q );
 
-$cgi->write_page_proposals( \&proposals, \&proposals );
+$cgi->write_page_proposals( \&OMP::CGI::ProjectPage::proposals,
+			    \&OMP::CGI::ProjectPage::proposals);

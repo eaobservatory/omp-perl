@@ -13,9 +13,8 @@ BEGIN {
   }
 }
 
-# Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ProjectPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +23,5 @@ my $ompcgi = new OMP::CGI( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Project Details");
-$ompcgi->write_page_noauth( \&proj_sum_page, \&proj_sum_page );
+$ompcgi->write_page_noauth( \&OMP::CGI::ProjectPage::proj_sum_page,
+			    \&OMP::CGI::ProjectPage::proj_sum_page );

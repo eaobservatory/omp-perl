@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGI;
-use OMP::CGIHelper;
+use OMP::CGI::ProjectPage;
 
 my $arg = shift @ARGV;
 
@@ -24,4 +24,5 @@ my $cgi = new OMP::CGI( CGI => $q );
 
 my $title = $cgi->html_title;
 $cgi->html_title("$title: Project home");
-$cgi->write_page( \&project_home, \&project_home );
+$cgi->write_page( \&OMP::CGI::ProjectPage::project_home,
+		  \&OMP::CGI::ProjectPage::project_home );
