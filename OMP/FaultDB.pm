@@ -91,7 +91,7 @@ sub fileFault {
   # Mail out the fault
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
-  $self->_mail_fault($fault);
+#  $self->_mail_fault($fault);
 
   # Return the id
   return $id;
@@ -127,8 +127,12 @@ sub respondFault {
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
   my $fault = $self->getFault($id);
+<<<<<<< FaultDB.pm
+#  $self->_mail_fault($fault);
+=======
 
   $self->_mail_fault($fault);
+>>>>>>> 1.47
 }
 
 =item B<closeFault>
@@ -327,7 +331,7 @@ sub updateFault {
   $self->_db_commit_trans;
 
   # Mail notice to fault "owner"
-  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+#  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
 }
 
 =item B<updateResponse>
@@ -468,14 +472,16 @@ sub _add_new_response {
   # Verify user id is valid
   # Create UserDB object for user determination
   my $udb = new OMP::UserDB( DB => $self->db );
-  $udb->verifyUser($author->userid)
-    or throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]");
+  my $userid = $udb->verifyUser($author->userid)
+  
+    (! $userid) and throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]");
 
+  
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
 
   $self->_db_insert_data( $FAULTBODYTABLE,
-			  $id, $date, $author->userid, $resp->isfault,
+			  $id, $date, $userid, $resp->isfault,
 			  {
 			   TEXT => $text,
 			   COLUMN => 'text',
