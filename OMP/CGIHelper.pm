@@ -973,7 +973,7 @@ sub list_projects_form {
 		   -default=>1,);
   print $q->popup_menu(-name=>'semester',
 		       -values=>\@sem,
-		       -default=>$sem,);
+		       -default=>uc($sem),);
   print "</td><tr><td align='right'>Telescope: </td><td>";
   print $q->popup_menu(-name=>'telescope',
 		       -values=>\@tel,
