@@ -264,7 +264,7 @@ sub get_filename {
                                        instrument => $instrument,
                                        utdate => $ut,
                                      );
-    $filename = "f" . $ut . "_" . sprintf("%05d", $runnr);
+    $filename = "f" . $ut . "_" . sprintf("%05d", $runnr) . ".i1";
 
   }
 

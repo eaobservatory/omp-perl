@@ -169,6 +169,8 @@ sub plot {
   my $ut;
   ( $ut = $self->obs->startobs->ymd ) =~ s/-//g;
 
+  if( !defined( $options{group} ) ) { $options{group} = 0 };
+
   my $file = $self->get_filename( $options{group} );
 
   my %parsed = $self->parse_display_options( \%options );
@@ -259,7 +261,7 @@ sub get_filename {
                                        instrument => $instrument,
                                        utdate => $ut,
                                      );
-    $filename = "u" . $ut . "_" . sprintf("%05d", $runnr);
+    $filename = "u" . $ut . "_" . sprintf("%05d", $runnr) . ".i1";
 
   }
 
