@@ -357,7 +357,7 @@ state to 0 (disabled).
 
   $db->disableProject();
 
-Requires the administrator password.
+Requires the staff password.
 
 =cut
 
@@ -365,7 +365,7 @@ sub disableProject {
   my $self = shift;
 
   # Verify that we can update the database
-  OMP::General->verify_administrator_password( $self->password );
+  OMP::General->verify_staff_password( $self->password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -402,7 +402,7 @@ setting the project state to 1 (enabled).
 
   $db->enableProject();
 
-Requires the administrator password.
+Requires the staff password.
 
 =cut
 
@@ -410,7 +410,7 @@ sub enableProject {
   my $self = shift;
 
   # Verify that we can update the database
-  OMP::General->verify_administrator_password( $self->password );
+  OMP::General->verify_staff_password( $self->password );
 
   # First thing to do is to retrieve the table row
   # for this project
