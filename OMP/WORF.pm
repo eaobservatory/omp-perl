@@ -24,8 +24,6 @@ use OMP::Info::Obs;
 use OMP::Config;
 use OMP::Error qw/ :try /;
 
-use OMP::CGI;
-
 # Bring in PDL modules so we can display the graphic.
 use PDL::Lite;
 use PDL::Primitive;
