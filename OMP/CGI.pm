@@ -102,8 +102,8 @@ sub new {
 	   CGI => undef,
 	   Cookie => undef,
 	   Title => 'OMP Feedback System',
-	   PublicURL => 'http://omp.jach.hawaii.edu/cgi-bin',
-	   PrivateURL => 'http://omp-private.jach.hawaii.edu/cgi-bin',
+	   PublicURL => OMP::Config->getData('omp-url'),
+	   PrivateURL => OMP::Config->getData('omp-private'),
 	  };
 
   # create the object (else we cant use accessor methods)

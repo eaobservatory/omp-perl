@@ -27,13 +27,13 @@ and one for the text associated with the fault report.
 use 5.006;
 use warnings;
 use strict;
-use OMP::CGI;
 use OMP::Fault;
 use OMP::Fault::Response;
 use OMP::FaultQuery;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::General;
+use OMP::Config;
 use Text::Wrap;
 $Text::Wrap::columns = 80;
 
@@ -679,8 +679,8 @@ sub _mail_fault {
 
   # Get the Private and Public cgi-bin URLs
   my $cgi = new OMP::CGI;
-  my $public_url = $cgi->public_url;
-  my $private_url = $cgi->private_url;
+  my $public_url = OMP::Config->getData('omp-url');
+  my $private_url = OMP::Config->getData('omp-private');
 
   # Get the fault response(s)
   my @responses = $fault->responses;
@@ -885,8 +885,7 @@ sub _mail_fault_update {
     }
   }
 
-  my $cgi = new OMP::CGI;
-  my $public_url = $cgi->public_url;
+  my $public_url = OMP::Config->getData('omp-url');;
 
   $msg .= "<br>You can view the fault <a href='$public_url/viewfault.pl?id=" . $fault->id ."'>here</a>";
 
