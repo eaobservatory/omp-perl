@@ -1029,18 +1029,17 @@ sub show_faults {
     @faults = @$faults;
   }
 
-  my $colorcount;
+  my $alt_class; # Keep track of alternating class style
   for my $fault (@faults) {
-    my $bgcolor;
+    my $classid;
 
-    # Alternate background color for the rows and make the background color
-    # red if the fault is urgent.
-    $colorcount++;
-    if ($colorcount == 1) {
-      $bgcolor = ($fault->isUrgent ? '#c44646' : '#6161aa'); # darker
+    # Alternate row class style
+    $alt_class++;
+    if ($alt_class == 1) {
+      $classid = 'row_shaded';
     } else {
-      $bgcolor = ($fault->isUrgent ? '#c44646' : '#8080cc'); # lighter
-      $colorcount = 0;
+      $classid = 'row_clear';
+      $alt_class = 0;
     }
 
     my $faultid = $fault->id;
@@ -1056,13 +1055,15 @@ sub show_faults {
 
     my $replies = $#{$fault->responses};  # The number of actual replies
 
-    print "<tr bgcolor=$bgcolor>";
+    print "<tr class=\"${classid}\">";
 
     # Show category column?
     print "<td>". $fault->category ."</td>"
       unless (! $showcat);
 
-    print "<td>$faultid</td>";
+    # Make the fault ID cell stand out if the fault is urgent
+    print ($fault->isUrgent ? "<td class=\"cell_standout\">" : "<td>");
+    print "$faultid</td>";
     print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b>";
 
     # Show affected projects?
