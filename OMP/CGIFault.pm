@@ -194,9 +194,9 @@ sub fault_table {
   my $urgencyhtml;
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
-  my $statushtml;
-  $fault->isOpen and $statushtml = "<b><font color=#008b24>Open</font></b>"
-    or "<b><font color=#a00c0c>Closed</font></b>";
+  my $statushtml = ($fault->isOpen ?
+		    "<b><font color=#008b24>Open</font></b>" :
+		    "<b><font color=#a00c0c>Closed</font></b>");
 
   # First show the fault info
   print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=$TABLEWIDTH>";
