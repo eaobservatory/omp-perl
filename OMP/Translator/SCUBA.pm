@@ -475,6 +475,7 @@ sub SpIterPointingObs {
 	     SPIKE_REMOVAL => 'YES',
 	     SWITCH_MODE => 'BMSW',
 	     # Target
+	     AZ_RANGE => 'SHORTEST',
 	    );
 
 
@@ -821,6 +822,8 @@ sub SpIterFocusObs {
 	     SPIKE_REMOVAL => 'YES',
 	     SWITCH_MODE => 'BMSW',
 	     ($isFocus ? () : (ALIGN_AXIS => $info{focusAxis} ) ),
+	     # Target
+	     AZ_RANGE => 'SHORTEST',
 	    );
 
 
