@@ -907,11 +907,19 @@ sub cloneMSBs {
 	throw OMP::Error::FatalError( "Internal error: The number of blank telescope components encountered exceeds the expected number!!!\n")
 	  if $c >= $blanks;
 
+	# Find the SCIENCE or BASE position
+	my ($sci) = $tel->findnodes('.//BASE[@TYPE="SCIENCE"]');
+	($sci) = $tel->findnodes('.//BASE[@TYPE="BASE"]') if !defined $sci;
+
+	throw OMP::Error::SpBadStructure("Unable to find SCIENCE/BASE position in target component")
+	  unless defined $sci;
+
+
 	# Now need to get the nodes corresponding to the name
 	# RA and Dec. We know they are blank already.
-	my ($targetnode) = $tel->findnodes(".//targetName");
-	my ($ranode) = $tel->findnodes(".//c1");
-	my ($decnode) = $tel->findnodes(".//c2");
+	my ($targetnode) = $sci->findnodes(".//targetName");
+	my ($ranode) = $sci->findnodes(".//c1");
+	my ($decnode) = $sci->findnodes(".//c2");
 	
 	# Get the text nodes
 	my $ra = $ranode->firstChild;
@@ -920,7 +928,7 @@ sub cloneMSBs {
 
 	# If we have fallen off the end of the array we
 	# have made a mistake
-	throw OMP::Error::FatalError("Internal error whilst stepping through spource arrays for MSB cloning")
+	throw OMP::Error::FatalError("Internal error whilst stepping through source arrays for MSB cloning")
 	  if (($i+$c) > $max);
 
 	# Select the correct target object
