@@ -111,10 +111,13 @@ sub sql {
   $where = " WHERE " . join( " AND ", @where)
     if @where;
 
+  my $select = "SELECT *, CONVERT(CHAR, commentdate, 109) AS 'longcommentdate', ";
+  $select .= "CONVERT(CHAR, date, 109) AS 'longdate'";
+
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "(SELECT * FROM $donetable $where)";
+  my $sql = "($select FROM $donetable $where)";
 
   return "$sql\n";
 
