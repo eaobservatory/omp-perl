@@ -16,6 +16,7 @@ BEGIN {
 }
 
 use CGI;
+use Time::Piece;
 use XML::RSS;
 
 use OMP::Config;
@@ -26,8 +27,8 @@ use OMP::General;
 my $base_url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
 # Retrieve faults for the last 24 hours
-my $today = OMP::General->today;
-my $xml = "<FaultQuery><date delta='-1'>$today</date><isfault>1</isfault></FaultQuery>";
+my $today = gmtime;
+my $xml = "<FaultQuery><date delta='-1'>". $today->datetime ."</date><isfault>1</isfault></FaultQuery>";
 my $faults = OMP::FaultServer->queryFaults($xml, 'object');
 
 # Create the RSS channel
