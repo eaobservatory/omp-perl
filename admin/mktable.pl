@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/local/perl-5.6/bin/perl5.6.1
 
 # quick program to create a "database" table for testing the OMP
 
@@ -7,10 +7,10 @@ use warnings;
 use DBI;
 use File::Spec;
 
-my $server = "SYB_UKIRT";
+my $server = "SYB_TMP";
 my $dbuser = "sa";
 my $dbpwd  = "";
-my $database = "archive";
+my $database = "omp";
 
 
 #$server = "SYB_OMP";
@@ -126,6 +126,7 @@ my %tables = (
 			     },
 	      ompfeedback => {
 			      commid => "numeric(5,0) IDENTITY",
+			      entrynum => "numeric(4,0) not null",
 			      projectid => "char(32) not null",
 			      author => "char(50) not null",
 			      date => "datetime not null",
@@ -135,7 +136,7 @@ my %tables = (
 			      status => "integer null",
 			      text => "text not null",
 			      _ORDER => [qw/
-					 commid projectid author date subject
+					 commid entrynum projectid author date subject
 					 program sourceinfo status text
 					/],
 			     },
@@ -181,7 +182,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'ompsciprog';
   next if $table eq 'ompmsb';
   next if $table eq 'ompobs';
-  next if $table eq 'ompfeedback';
+  #next if $table eq 'ompfeedback';
   next if $table eq 'ompmsbdone';
   next if $table eq 'ompfault';
   next if $table eq 'ompfaultbody';
