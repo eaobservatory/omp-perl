@@ -448,6 +448,7 @@ sub _query_files {
   foreach my $file ( @uniq ) {
     # Create the Obs object.
     my $obs = readfile OMP::Info::Obs( $file );
+
     if( !defined( $obs ) ) { next; }
 
     # If the observation's time falls within the range, we'll create the object.
@@ -556,7 +557,11 @@ sub _reorganize_archive {
 
       # We need to temporarily set the instrument header to
       # 'UKIRTDB' so the correct translation can be used.
+      # Also set another temporary header that will never be
+      # set from the database (i.e. key name longer than 8 characters)
+      # so the translation code knows what instrument we have.
       $newrow->{INSTRUME} = 'UKIRTDB';
+      $newrow->{TEMP_INST} = uc($instrument);
     }
 
     # Hack to get SCUBA to be recognized.
