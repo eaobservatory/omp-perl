@@ -851,7 +851,7 @@ sub _store_sci_prog {
   # For initial safety purposes, store a text version on disk
   # dont care about exit status - do not call this if we are
   # using a FreezeTimeStamp
-  if ($freeze) {
+  unless ($freeze) {
     $self->_store_sciprog_todisk( $sp );
   }
 
