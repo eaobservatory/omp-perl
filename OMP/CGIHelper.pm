@@ -37,7 +37,7 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output/);
+@EXPORT_OK = (qw/fb_output fb_msb_output add_comment_content add_comment_output fb_logout msb_hist_content msb_hist_output observed/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -336,6 +336,43 @@ sub fb_msb_output {
   msb_sum($q, %cookie);
 }
 
+=item B<observed>
+
+Create a page with a list of all the MSBs observed for a given UT sorted by project
+
+  observed($cgi, %cookie);
+
+=cut
+
+sub observed {
+  my $q = shift;
+  my %cookie = @_;
+
+  my $utdate = OMP::General->today;
+
+  my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
+
+  my $commentref = $msbdb->observedMSBs($utdate, 0, 'data');
+
+  print $q->h1("MSBs observed on $utdate");
+
+  # Sort the comments by project ID
+
+  my %sorted;
+  foreach my $msb (@$commentref) {
+    my $projectid = $msb->{projectid};
+    $sorted{$projectid} = [] unless exists $sorted{projectid};
+    push(@{ $sorted{$projectid} }, $msb);
+  }
+
+  # Create the MSB comment tables
+  foreach my $projectid (keys %sorted) {
+    print $q->h2("Project: $projectid");
+    msb_comments($q, \$projectid);
+    print $q->hr;
+  }
+}
+
 =item B<msb_hist_output>
 
 Create a page with a comment submission form or a message saying the comment was submitted.
@@ -390,7 +427,10 @@ sub msb_hist_output {
     print $q->h2("MSB marked as Done");
 
     proj_status_table($q, %cookie);
-    msb_comments($q, %cookie);
+
+    my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+    msb_comments($q, $commentref);
+
   }
 
 }
@@ -407,27 +447,29 @@ sub msb_hist_content {
   my $q = shift;
   my %cookie = @_;
 
+  my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
+
   print $q->h2("MSB History for project $cookie{projectid}");
 
   proj_status_table($q, %cookie);
-  msb_comments($q, %cookie);
+  print $q->hr;
+  msb_comments($q, $commentref);
 }
 
 =item B<msb_comments>
 
-A list of MSBS and their comments
+Creates an HTML table of MSB comments.
 
-  msb_comments($cgi, %cookie);
+  msb_comments($cgi, $msbcomments);
+
+Takes a reference to a data structure containing MSBs and their comments
 
 =cut
 
 sub msb_comments {
   my $q = shift;
-  my %cookie = @_;
+  my $commentref = shift;
 
-  my $commentref = OMP::MSBServer->historyMSB($cookie{projectid}, '', 'data');
-
-  print $q->hr;
   print "<table border=1>";
 
   my $i = 0;
