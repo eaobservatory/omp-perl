@@ -93,6 +93,20 @@ The OTVERSION key can be used to set the ot_version method.
 
 The TELESCOPE key can be used to set the MSB telescope from the parent.
 
+The OVERRIDE key can be used to set default override target
+information for this MSB. The value of this key should match the form
+returned by the TargetList method corresponding to an individual
+element in the "targets" summary hash (ie a reference to a hash with
+at least keys "coords", "priority" and "remaining"). This target
+information will be used for any observations that do not themselves
+contain explicit target information. ie. A SpTelescopeObsComp inside
+the MSB will be overridden by this target but an SpTelescopeObsComp
+inside an SpObs will not be overridden. The XML from this override
+will be used to calculate the MSB checksum and the remaining counter
+and internal priority will be read from this node. The remaining
+counter will be used when an MSB is accepted in preference to any
+remaining counter attached to the MSB XML.
+
 If parsed, the MSB is checked for well formedness. The XML form of the
 MSB is assumed to be self-contained (no external references).
 
@@ -129,6 +143,9 @@ sub new {
   my $ot_version;
   $ot_version = $args{OTVERSION} if exists $args{OTVERSION};
 
+  my $otarg = {};
+  $otarg = $args{OVERRIDE} if exists $args{OVERRIDE};
+
   # Now create our Science Program hash
   my $msb = {
 	    ProjectID => $projid,
@@ -140,6 +157,7 @@ sub new {
 	    ObsSum => [],
 	    Weather => {},
 	    SchedConst => {},
+	    OverrideTarget => $otarg,
 	   };
 
   # and create the object
@@ -274,6 +292,23 @@ sub _xmlrefs {
   } else {
     return $self->{XMLRefs};
   }
+}
+
+=item B<override_target>
+
+Reference to a hash containing override information. The contents of
+this hash should match the hash elements returned by the TargetList
+method for a single target. Generally indicates that a survey container
+has been used to define this MSB.
+
+=cut
+
+sub override_target {
+  my $self = shift;
+  if (@_) {
+    $self->{OverrideTarget} = shift;
+  }
+  return $self->{OverrideTarget};
 }
 
 =item B<obssum>
@@ -556,11 +591,47 @@ be reversed. Removing an already removed MSB has no effect.
 
 sub remaining {
   my $self = shift;
+
+  # check for override
+  my $oride = $self->override_target;
+
+  # Node containing the attribute to modify
+  # this can come either from the SpMSB or from the override XML
+  # in rare cases we can get it from the override hash but this will
+  # not track if the state of the XML is changed externally during an
+  # MSB acceptance
+  my $node;  # XML node
+  my $ref;   # Reference to scalar containing the perl value
+
+  # do we have an override?
+  if (defined $oride && keys %$oride) {
+    if (exists $oride->{targetNode}) {
+      $node = $oride->{targetNode};
+    } elsif (exists $oride->{remaining}) {
+      $ref = \$oride->{remaining};
+    } else {
+      throw OMP::Error::FatalError("Override selected but no remaining or targetNode found in hash\n");
+    }
+  } else {
+    # use the default location
+    $node = $self->_tree;
+  }
+
+
   if (@_) {
     my $arg = shift;
 
-    # Get the current value
-    my $current = $self->_tree->getAttribute("remaining");
+    # Get the current value either from the MSB xml or the override
+    # Prefer to get it directly from the targetNode if available
+    # so that the object stays in sync with the XML
+    my $current;
+    if ($node) {
+      $current = $node->getAttribute( "remaining" );
+    } elsif (defined $ref) {
+      $current = $$ref;
+    } else {
+      throw OMP::Error::FatalError("Unforseen logic problem obtaining current remaining counter");
+    }
 
     # Decrement the counter if the argument is negative
     # unless either the current value or the new value are the 
@@ -572,6 +643,7 @@ sub remaining {
     my $new;
     if ($arg == OMP__MSB_REMOVED) {
       # Remove the MSB if it is not already in that state
+      # If already removed we do not set a new value
       if (!$self->isRemoved) {
 	$new = -1 * $current;
       }
@@ -582,6 +654,17 @@ sub remaining {
       # Now Force to zero if necessary
       $new = 0 if $new < 0;
 
+    } elsif ($self->isRemoved && $arg < 0) {
+      # The MSB has been observed despite being removed already
+      # We now either have a current value that is MSB_REMOVED (in which
+      # case do nothing to the counter) or the remaining counter is a negative
+      # version of the original counter.
+      if ($current != OMP__MSB_REMOVED) {
+	# In this case we can increment the remaining counter by 1 so that
+	# if the removal is reversed the counvt will be correct as if it
+	# had been observed normally
+	$new = $current - $arg; # two negatives
+      }
     } else {
       # we have a new value that is positive and not corresponding to a REMOVED
       # state so we simply use it
@@ -589,10 +672,16 @@ sub remaining {
     }
 
     # Set the new value if one has been defined
-    $self->_tree->setAttribute("remaining", $new) if defined $new;
+    if (defined $new) {
+      $node->setAttribute( 'remaining', $new ) if defined $node;
+      $$ref = $new if defined $ref;
+    }
   }
 
-  return $self->_tree->getAttribute("remaining");
+  # return either the XML node value or the override value
+  # preference given to override reference value if defined
+  return $$ref if defined $ref;
+  return $node->getAttribute('remaining');
 }
 
 =item B<remaining_inc>
@@ -625,6 +714,63 @@ sub remaining_inc {
   # Store it
   $self->remaining( $current );
 
+}
+
+=item B<observed>
+
+The number of times this MSB has been observed. Returns 0 if no attribute
+is available. Correctly handles override targets from survey containers.
+
+  $observed = $msb->observed();
+  $msb->observed( 2 );
+
+Note that this is not an additive argument, regardless of sign.
+
+Use C<observed_inc> to increment this counter.
+
+=cut
+
+sub observed {
+  my $self = shift;
+
+  # Node containing the attribute
+  my $node;
+
+  # do we have an override?
+  my $oride = $self->override_target();
+  if (defined $oride && exists $oride->{targetNode}) {
+    $node = $oride->{targetNode};
+  } else {
+    # use the default location
+    $node = $self->_tree;
+  }
+
+  if (@_) {
+    my $newval = shift;
+    $node->setAttribute( 'observed', $newval );
+  }
+  # read the current value directly from the XML
+  my $current = $node->getAttribute( 'observed' );
+  $current = 0 unless defined $current;
+  return $current;
+}
+
+=item B<observed_inc>
+
+Increment the observed counter by the supplied number (or by 1 if no argument).
+
+  $msb->observed_inc( 2 );
+
+Must be positive.
+
+=cut
+
+sub observed_inc {
+  my $self = shift;
+  my $count = shift;
+  $count = 1 unless defined $count;
+  my $current = $self->observed;
+  $self->observed( $current + $count );
 }
 
 =item B<msbtitle>
@@ -673,7 +819,14 @@ not be parsed, the priority is returned as 1.
 
 sub internal_priority {
   my $self = shift;
-  my $pri = $self->_get_pcdata( $self->_tree, "priority");
+  # check override before looking at the local XML
+  my $oride = $self->override_target();
+  my $pri;
+  if (exists $oride->{priority}) {
+    $pri = $oride->{priority};
+  } else {
+    $pri = $self->_get_pcdata( $self->_tree, "priority");
+  }
 
   if (defined $pri) {
     if ($pri =~ /\d/) {
@@ -865,6 +1018,14 @@ in which case the calculated checksum will be incorrect. Since we know
 that the MSBID element will only appear in MSBs retrieved from the
 database (and not sent to the OT) then this is allowed.
 
+If an Override Target is active and contains a telNode, that XML
+is included in the checksum calculation. An "S" suffix is appended
+to the resulting suffix. This can be used to quickly determine whether
+an MSB is derived from an override or not and can be important when deciding
+whether (or how) to remove a duplicated MSB (since the MSB XML can not
+be removed from the node tree when a survey container parent is active
+without removing all the related MSBs).
+
 =cut
 
 sub find_checksum {
@@ -887,6 +1048,12 @@ sub find_checksum {
   # I want to do this without having to know anything about XML.
 
   my $string = $self->_get_qualified_children_as_string;
+
+  # If we have an override target XML, append it
+  my $oride = $self->override_target();
+  if (exists $oride->{telNode}) {
+    $string .= $oride->{telNode}->toString;
+  }
 
   # make sure that we generate the same checksum regardless of whether
   # an obsnunm attribute is present in an SpObs. This is because we need
@@ -916,6 +1083,7 @@ sub find_checksum {
   # other logic then this fix wont be good enough.
   $checksum .= "O" if $self->_tree->findnodes('ancestor-or-self::SpOR');
   $checksum .= "A" if $self->_tree->findnodes('ancestor-or-self::SpAND');
+  $checksum .= "S" if exists $oride->{coords};
 
   # And store it
   $self->checksum($checksum);
@@ -973,7 +1141,10 @@ and the parent tree is accessible, adjusting the logic.
 If this MSB is meant to be observed periodically, the earliest
 observing date ("datemin") is modified so that it will not be
 scheduled for the required number of days (the earliest date is set to
-be current date + period).
+be current date + period). Note that if the scheduling constraints
+component is outside the current MSB or if this MSB is within a Survey
+Container, all MSBs that inherit this scheduling constraint will be
+rescheduled!
 
 It is usually combined with an update of the database contents to reflect
 the modified state.
@@ -981,8 +1152,8 @@ the modified state.
 If the MSB is within an SpOR the following occurs in addition to
 decrementing the remaining counter:
 
- - Move the MSB (and enclosing SpAND) out of the SpOR into the
-   main tree
+ - Move the MSB (and enclosing SpAND or SpSurveyContainer) 
+   out of the SpOR into the main tree
 
  - Decrement the counter on the SpOR.
 
@@ -995,6 +1166,11 @@ decrementing the remaining counter:
  - If the structure of the MSB has been modified (either by
    rescheduling it or by moving it out of an OR folder) the
    checksum is recalculated.
+
+If the MSB is within a Survey Container, the remaining counter will be
+adjusted in the Survey Container, not the MSB itself. Additionally, if this
+is the first time this target has been observed the "choose" attribute of the survey container will be decremented by 1. The "obscount" of the Target will
+be incremented.
 
 This all requires that there are no non-MSB elements in an SpOR
 since inheritance breaks if we move just the MSB (that is only
@@ -1017,7 +1193,68 @@ sub hasBeenObserved {
   # unsuspend
   $self->clearSuspended;
 
-  # Now for the hard part... SpOr/SpAND
+  # increment the current observation count
+  $self->observed_inc();
+
+  # If this is an MSB inside a Survey Container we need to decrement
+  # the choose counter if this is the first time we have observed the field
+  if ($self->observed == 1) {
+    # Get the parent Survey container if we have it
+    my ($sc) = $self->_tree->findnodes('ancestor-or-self::SpSurveyContainer');
+
+    if ($sc) {
+      # Get the "choose" node
+      my ($cnode) = $self->_get_children_by_name( $sc, 'choose' );
+
+      if ($cnode) {
+	# get the current value
+	my $pcnode = $cnode->firstChild;
+	my $curval = $pcnode->toString;
+
+	# do nothing if the current value is already zero
+	# only modify counts if we have not already done so
+	if ($curval > 0) {
+
+	  # update the value by decrementing
+	  my $newval = $curval - 1;
+
+	  # and update the XML
+	  $pcnode->setData( $newval );
+
+	  # if the current value is 0 we need to disable all the 
+	  # remaining fields by setting to REMOVED all survey positions
+	  # that do not have an "observed" count > 0.
+	  if ($newval == 0) {
+
+	    # get TargetList
+	    my ($tl) = $self->_get_children_by_name( $sc, 'TargetList' );
+	    throw OMP::Error::SpBadStructure( 'Missing targetlist when trying to disable survey fields')
+	      unless defined $tl;
+
+	    # Get all the Target nodes and examine their attributes
+	    # The current MSB will have adjusted its observed and remaining
+	    # attributes already
+	    my @targets = $tl->findnodes( './/Target' );
+	    for my $t (@targets) {
+	      my $remaining = $t->getAttribute( 'remaining' );
+	      my $observed = $t->getAttribute( 'observed' );
+	      $observed = 0 unless defined $observed; # default to 0
+
+	      if ($remaining > 0 && $observed == 0) {
+		# disable
+		# this feels klugey since we should really be defining
+		# "removed-ness" in a single place
+		$t->setAttribute( 'remaining', (-1 * $remaining));
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  # Now for the hardest part... SpOr/SpAND
+  # since this may involve reorganization of the program
 
   # First have to find out if I have a parent that is an SpOR
   my ($SpOR) = $self->_tree->findnodes('ancestor-or-self::SpOR');
@@ -1026,14 +1263,27 @@ sub hasBeenObserved {
 
     # Okay - we are in a logic nightmare
 
-    # First see if we are in an SpAND
+    # First see if we are in an SpAND or Survey
+    # Need to check whether this could hit an SpAND that encloses an SpOR...
     my ($SpAND) = $self->_tree->findnodes('ancestor-or-self::SpAND');
+    my ($SpSC)  = $self->_tree->findnodes('ancestor-or-self::SpSurveyContainer');
+    my ($SpSCAnd);
+    $SpSCAnd = $SpSC->findnodes('ancestor-or-self::SpAND')
+      if $SpSCAnd;
 
-    # Now we need to move the MSB or the enclosing SpAND to
+    # Now we need to move the MSB or the enclosing SpAND/Survey to
     # just after the SpOR
 
     # Decide what we are moving
-    my $node = ( $SpAND ? $SpAND : $self->_tree );
+    my $node = $self->_tree;
+
+    if ($SpSCAnd) {
+      $node = $SpSCAnd;
+    } elsif ($SpSC) {
+      $node = $SpSC;
+    } elsif ($SpAND) {
+      $node = $SpAND;
+    }
 
     # Now find the parent of the SpOR since we have to insert in
     # the parent relative to the SpOR
@@ -1182,11 +1432,18 @@ a suspended state so that it can be completed at a later date.
 The label must match a valid observation label within this
 MSB.
 
+Currently, if the MSB is a child of a Survey Container the MSB
+for this target can not be suspended. If this is problematic extra
+information could be attached to the Target XML to track suspend labels.
+
 =cut
 
 sub hasBeenSuspended {
   my $self = shift;
   my $label = shift;
+
+  # Silently abort if we are in a survey
+  return if $self->_tree->findnodes('ancestor-or-self::SpSurveyContainer');
 
   # In order to suspend an MSB we need to do the following:
   #  - get a list of observation labels eg obs1_5, obs2_2
@@ -1933,6 +2190,10 @@ sub _get_obs {
     @searchnodes = $self->_tree->getChildnodes;
   }
 
+  # Override target information
+  my $oride = $self->override_target();
+  my $toverride;
+  $toverride = $oride->{coords} if exists $oride->{coords};
 
   # Get all the children and loop over them
   for ( @searchnodes ) {
@@ -1946,6 +2207,12 @@ sub _get_obs {
 
     if ($self->can($name)) {
       if ($name eq 'SpObs' || $name eq 'SpSurveyContainer' ) {
+	# For each SpObs if we have an override target we need to force
+	# this target into the status hash at this point so that we 
+	# can override an explict Target component at this level but not
+	# override Target component that may be in the child SpObs
+	%status = (%status, %$toverride) if defined $toverride;
+
 	# Special case. When it is an observation we want to
 	# return the final hash for the observation rather than
 	# an augmented hash used for inheritance.
@@ -2541,7 +2808,7 @@ Retrieves child elements of the specified name or matching the
 specified regexp. The regexp must be supplied using qr (it is
 assumed to be a regexp if the argument is a reference).
 
-  @el = $msb->_get_child_element( $parent, qr/System$/ );
+  @el = $msb->_get_child_elements( $parent, qr/System$/ );
 
   @el = $msb->_get_child_elements( $parent, "hmsdegSystem" );
 
@@ -2955,7 +3222,7 @@ sub SpSurveyContainer {
       if ($name eq 'SpObs') {
 	# special case. Returns reference and does not augment the
 	# current hash
-	push(@obs, $self->SpObs( $node, %summary));
+	push(@obs, $self->$name( $node, %summary));
       } else {
 	# parse any components at this level of the hierarchy
 	# including specifically the TargetList node
@@ -3000,7 +3267,7 @@ returns a hash.
 
 This class adds a "targets" key to the input hash and returns
 the complete hash. The "targets" value is a reference to an array
-containing the following keys:
+of hashes containing the following keys:
 
   coords     - Coordinate information
   priority   - relative priority of target [only used for MSB]
