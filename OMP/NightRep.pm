@@ -1050,8 +1050,8 @@ sub ashtml {
   }
 
   # Need to load CGI specified classes
-  require OMP::CGI::Obslog;
-  require OMP::CGI::Shiftlog;
+  require OMP::CGIComponent::Obslog;
+  require OMP::CGIComponent::Shiftlog;
 
 
   my $tel  = $self->telescope;
@@ -1286,7 +1286,7 @@ sub ashtml {
     print "<a name=shiftcom></a>";
 
     if ($comments[0]) {
-      OMP::CGI::Shiftlog::display_shift_table( \@comments );
+      OMP::CGIComponent::Shiftlog::display_shift_table( \@comments );
     } else {
       print "<strong>No Shift comments available</strong>";
     }
@@ -1314,7 +1314,7 @@ sub ashtml {
       print "<a name=obslog></a>";
 
       if ($grp and $grp->numobs > 1) {
-        OMP::CGI::Obslog::obs_table($grp,
+        OMP::CGIComponent::Obslog::obs_table($grp,
 				    sort => 'chronological',
 				    worfstyle => $worfstyle,
 				    commentstyle => $commentstyle,
