@@ -34,6 +34,7 @@ use Time::Seconds;
 our $SCUTAB = 'archive..SCU S';
 our $GSDTAB = 'jcmt..SCA G';
 our $SUBTAB = 'jcmt..SUB H';
+our $SPHTAB = 'jcmt..SPH I';
 our $UKIRTTAB = 'ukirt..COMMON U';
 our %insttable = ( CGS4 => [ $UKIRTTAB ],
                    UFTI => [ $UKIRTTAB ],
@@ -41,11 +42,12 @@ our %insttable = ( CGS4 => [ $UKIRTTAB ],
                    MICHELLE => [ $UKIRTTAB ],
                    IRCAM => [ $UKIRTTAB ],
                    SCUBA => [ $SCUTAB ],
-                   HETERODYNE => [ $GSDTAB ],
+                   HETERODYNE => [ $GSDTAB, $SUBTAB ],
                  );
 
-#our %jointable = ( $GSDTAB => ( $SUBTAB => '(G.sca# == H.sca#)' ),
-#                 );
+our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
+                              },
+                 );
 
 # Lookup table
 my %lut = (
@@ -300,7 +302,17 @@ sub sql {
     # additional queries are defined
     next if $t eq 'telescope';
     my $subsql = $self->_qhash_tosql( [qw/ telescope /], $t );
-    my @where = grep { $_ } ( $subsql );
+
+    # Form the join.
+    my @join;
+    if( $#{$insttable{$t}} > 0 ) {
+      for(my $i = 1; $i <= $#{$insttable{$t}}; $i++ ) {
+        my $join = $jointable{$insttable{$t}[0]}{$insttable{$t}[$i]};
+        push @join, $join;
+      }
+    }
+
+    my @where = grep { $_ } ( $subsql, @join );
     my $where = '';
     $where = " WHERE " . join( " AND ", @where)
       if @where;
