@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg>
+  <ItemData name="new" package="gemini.sp" subtype="none" type="pr"/>
+  <projectID>mtest</projectID>
+  <MetaData>
+    <gui>
+      <collapsed>false</collapsed>
+      <filename>test.xml</filename>
+    </gui>
+  </MetaData>
+  <SpObs done="0" remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <standard>false</standard>
+    <SpIterFolder>
+      <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+    </SpIterFolder>
+  </SpObs>
+  <SpMSB done="0" remaining="1">
+    <ItemData name="new" package="gemini.sp" subtype="msb" type="og"/>
+    <MetaData>
+      <gui>
+        <collapsed>false</collapsed>
+      </gui>
+    </MetaData>
+    <SpSiteQualityObsComp>
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="schedInfo" type="oc"/>
+      <seeing>1</seeing>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <tauBand>1</tauBand>
+    </SpSiteQualityObsComp>
+    <SpTelescopeObsComp>
+      <ItemData name="new" package="gemini.sp.obsComp"
+        subtype="targetList" type="oc"/>
+      <MetaData>
+        <unique>true</unique>
+        <gui>
+          <collapsed>false</collapsed>
+          <selectedTelescopePos>Base</selectedTelescopePos>
+        </gui>
+      </MetaData>
+      <base>
+        <target type="science">
+          <targetName></targetName>
+          <hmsdegSystem type="J2000">
+            <c1>00:00:00</c1>
+            <c2>+00:00:00</c2>
+          </hmsdegSystem>
+        </target>
+      </base>
+    </SpTelescopeObsComp>
+    <SpObs done="0" remaining="1">
+      <ItemData name="new" package="gemini.sp" subtype="none" type="ob"/>
+      <MetaData>
+        <gui>
+          <collapsed>false</collapsed>
+        </gui>
+      </MetaData>
+      <standard>false</standard>
+      <SpIterFolder>
+        <ItemData name="new" package="gemini.sp.iter" subtype="none" type="if"/>
+        <MetaData>
+          <gui>
+            <collapsed>false</collapsed>
+          </gui>
+        </MetaData>
+        <SpIterObserve>
+          <ItemData name="new" package="gemini.sp.iter"
+            subtype="observe" type="ic"/>
+          <repeatCount>1</repeatCount>
+          <MetaData>
+            <gui>
+              <collapsed>false</collapsed>
+            </gui>
+          </MetaData>
+        </SpIterObserve>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
