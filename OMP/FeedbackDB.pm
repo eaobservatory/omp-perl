@@ -302,7 +302,7 @@ sub _mail_comment {
 
   # Put projectid in subject header if it isn't already there
   my $subject;
-  ($comment->{subject} !~ /^\[.+\]/) and $subject = "[$projectid] $comment->{subject}"
+  ($comment->{subject} !~ /\[$projectid\]/i) and $subject = "[$projectid] $comment->{subject}"
     or $subject = "$comment->{subject}";
 
   $self->_mail_information(
