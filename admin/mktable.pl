@@ -236,7 +236,7 @@ my %tables = (
 			   condition => "INTEGER null",
                            _ORDER => [qw/
                                       faultid category subject faultdate type
-                                      system status urgency timelost entity
+                                      fsystem status urgency timelost entity
 				      condition
                                       /],
                           },
@@ -271,7 +271,7 @@ my %tables = (
                           uname => "VARCHAR(255)",
                           email => "VARCHAR(64) NULL",
                           alias => USERID . " NULL",
-                          _ORDER => [qw/ userid name email alias /],
+                          _ORDER => [qw/ userid uname email alias /],
                          },
               # Comments associated with the observing shift.
               # basically a narrative timestamped log
