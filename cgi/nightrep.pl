@@ -32,7 +32,8 @@ if (OMP::General->is_host_local) {
 			   \&OMP::CGIPage::ObsReport::night_report );
 } else {
   $cgi->write_page_staff( \&OMP::CGIPage::ObsReport::night_report,
-			  \&OMP::CGIPage::ObsReport::night_report );
+			  \&OMP::CGIPage::ObsReport::night_report,
+			  "noauth",);
 }
 
 
