@@ -283,25 +283,33 @@ my %tables = (
                               _ORDER => [qw/ shiftid date author 
                                              telescope text /],
                              },
-        # Observation log table, used to store basic
-        # information about observations, along with
-        # comments associated with those observations.
-        # See OMP::ArchiveDB
-        ompobslog => {
-           obslogid => $NUMID,
-           runnr => "INT",
-           instrument => "VARCHAR(32)",
-           telescope => "VARCHAR(32) NULL",
-           date => $DATE,
-           obsactive => "INTEGER",
-           commentdate => $DATE,
-           commentauthor => USERID,
-           commenttext => "TEXT NULL",
-           commentstatus => "INTEGER",
-           _ORDER => [qw/ obslogid runnr instrument telescope
-                      date obsactive commentdate commentauthor
-                      commenttext commentstatus /],
-        },
+	      # Observation log table, used to store basic
+	      # information about observations, along with
+	      # comments associated with those observations.
+	      # See OMP::ArchiveDB
+	      ompobslog => {
+			    obslogid => $NUMID,
+			    runnr => "INT",
+			    instrument => "VARCHAR(32)",
+			    telescope => "VARCHAR(32) NULL",
+			    date => $DATE,
+			    obsactive => "INTEGER",
+			    commentdate => $DATE,
+			    commentauthor => USERID,
+			    commenttext => "TEXT NULL",
+			    commentstatus => "INTEGER",
+			    _ORDER => [qw/ obslogid runnr instrument telescope
+					   date obsactive commentdate commentauthor
+					   commenttext commentstatus /],
+			   },
+	      # OMP key table, used to store authentication
+	      # keys which are generated to prevent duplicate form
+	      # submissions.
+	      ompkey => {
+			 keystring => "VARCHAR(64)",
+			 expiry => $DATE,
+			 _ORDER => [qw/ keystring expiry /],
+			},
              );
 
 for my $table (sort keys %tables) {
@@ -322,6 +330,7 @@ for my $table (sort keys %tables) {
   next if $table eq 'omptimeacct';
   next if $table eq 'ompprojuser';
   next if $table eq 'ompprojqueue';
+  next if $table eq 'ompkey';
 
   # Create the SQL for the columns.
   # Note that we currently ignore SERIAL/IDENTITY columns on databases
