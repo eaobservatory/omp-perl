@@ -265,7 +265,10 @@ default is 'short'.
 
 The returned hash is of the form {header_name => value}, with an additional
 {_ORDER => @ORDER_ARRAY} key-value pair to indicate the order in
-which the values should be displayed.
+which the values should be displayed, a {_STRING => string} key-value pair
+which gives a one-line summary of the observation, and a
+{_STRING_HEADER => string} key-value pair which gives the header
+for the corresponding _STRING value.
 
 =cut
 
@@ -302,6 +305,11 @@ sub nightlog {
     $return{'Bolometers'} = $self->bolometers;
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Bolometers" ];
+    $return{'_STRING_HEADER'} = "Run  UT time   Obsmode   Project ID  Object   Tau225  Seeing  Filter     Bolometers";
+    $return{'_STRING'} = sprintf("%-3u  %8s  %-9s %-11s %-8s %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
+    if(defined($self->comments->[0])) {
+      $return{'_STRING'} .= sprintf("\n %19s UT / %-.12s: %-50s",$self->comments->[0]->{Date}->ymd . ' ' . $self->comments->[0]->{Date}->hms, $self->comments->[0]->{Author}->userid, $self->comments->[0]->{Text});
+    }
   } elsif($instrument =~ /ircam/i) {
     $return{'Observation'} = $self->runnr;
     $return{'Group'} = $self->group;
