@@ -477,21 +477,28 @@ Project Time Summary
 };
 
   #   T I M E   A C C O U N T I N G
+  # Total time
+  my $total = 0.0;
+
   # Time lost to faults
   my $format = "  %-25s %5.2f hrs\n";
-  $str .= sprintf("$format", "Time lost to faults:", $self->timelost->hours );
+  my $faultloss = $self->timelost->hours;
+  $str .= sprintf("$format", "Time lost to faults:", $faultloss );
+  $total += $faultloss;
 
   # Just do project accounting
   my %acct = $self->accounting_db();
 
   # Weather and Extended and UNKNOWN and OTHER
   my %text = ( WEATHER => "Time lost to weather:",
+	       OTHER   =>  "Other time:",
 	       EXTENDED => "Extended Time:",
 	     );
-  for my $proj (qw/ WEATHER EXTENDED /) {
+  for my $proj (qw/ WEATHER OTHER EXTENDED /) {
     my $time = 0.0;
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->timespent->hours;
+      $total += $time unless $proj eq 'EXTENDED';
     }
     $str .= sprintf("$format", $text{$proj}, $time);
   }
@@ -499,8 +506,11 @@ Project Time Summary
   for my $proj (keys %acct) {
     next if $proj =~ /^$tel/;
     $str .= sprintf("$format", $proj.':', $acct{$proj}->timespent->hours);
+    $total += $acct{$proj}->timespent->hours;
   }
 
+  $str .= "\n";
+  $str .= sprintf($format, "Total time:", $total);
   $str .= "\n";
 
   # M S B   S U M M A R Y 
