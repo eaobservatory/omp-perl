@@ -37,7 +37,7 @@ use Carp;
 # OMP dependencies
 use OMP::SciProg;
 use OMP::MSB;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done :fb /;
@@ -1216,8 +1216,6 @@ sub _store_sci_prog {
     $nocache = $freeze;
   }
 
-
-
   # Check to see if sci prog exists already (if it does it returns
   # the timestamp else undef)
   my $tstamp = $self->_get_old_sciprog_timestamp;
@@ -1256,7 +1254,23 @@ sub _store_sci_prog {
   # dont care about exit status - do not call this if we are
   # not caching
   unless ($nocache) {
-    $self->_store_sciprog_todisk( $sp );
+    try {
+      $self->_store_sciprog_todisk( $sp );
+    } catch OMP::Error::CacheFailure with {
+      my $E = shift;
+      # Trigger email
+
+      # Construct a simple error message
+      my ($user, $addr, $email) = OMP::General->determine_host;
+      my $projectid = uc($sp->projectID);
+
+      my $err = "Error writing science program ($projectid) to disk\n" .
+                "Request from $email\nReason:\n\n" . $E->text;
+      my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
+		     from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
+		     subject => 'failed to write sci prog to disk');
+      $self->_mail_information(%deferr, message => $err);
+    };
   }
 
   return $exstat;
@@ -1390,42 +1404,35 @@ sub _store_sciprog_todisk {
   my $self = shift;
   my $sp = shift;
 
-  # Directory for writing. Currently hard-wired into a location
-  # on mauiola
-  my $cachedir = File::Spec->catdir(File::Spec->rootdir,"omp-cache");
+  # Directory for writing
+  my $cachedir;
+  try {
+    $cachedir = OMP::Config->getData("sciprog_cachedir");
+  } catch OMP::Error::BadCfgKey with {
+    # no problem. This is an optional key
+  };
+  # allowed to not specify one
+  return if !$cachedir;
 
-  # Construct a simple error message
-  my ($user, $addr, $email) = OMP::General->determine_host;
+  # Get the project ID and replace '/' with '_'
   my $projectid = uc($sp->projectID);
-  $projectid =~ s/\//_/g; # replace slashes with underscores
-  my $err = "Error writing science program ($projectid) to disk\n" .
-    "Request from $email\nReason:\n\n";
-  my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
-		 from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
-		 subject => 'failed to write sci prog to disk');
+  $projectid =~ s/\//_/g;
 
   # Check we have a directory
-  unless (-d $cachedir) {
-    $self->_mail_information(%deferr,
-			     message => "$err directory $cachedir not present"
-			    );
-    return;
-  }
+  throw OMP::Error::CacheFailure( "Cache directory $cachedir not present")
+    unless (-d $cachedir);
 
   # Open a unique output file named "projectid_NNN.xml"
   # Code stolen from SCUBA::ODF
   # First read the disk to get the number
   my $guess = $projectid . '_(\d\d\d)';
   opendir my $DIRH,$cachedir
-    || do {
-      $self->_mail_information(%deferr,
-			       message => "$err Error reading directory $cachedir"
-			      );
-      return;
-    };
+    or throw OMP::Error::CacheFailure( "Error reading directory $cachedir");
+
   my @numbers = sort { $a <=> $b }
     map { /$guess/ && $1 }  grep /$guess$/, readdir($DIRH);
-  closedir($DIRH);
+  closedir($DIRH)
+    or throw OMP::Error::CacheFailure( "Error closing directory $cachedir");
 
   # First index to try
   my $start = 1 + (@numbers ? $numbers[-1] : 0 );
@@ -1461,11 +1468,7 @@ sub _store_sciprog_todisk {
       # EEXIST
       unless ($!{EEXIST}) {
         umask($umask);
-	$self->_mail_information(%deferr,
-				 message => "$err Could not create temp file $file: $!"
-			      );
-	return;
-
+        throw OMP::Error::CacheFailure("Could not create temp file $file: $!");
       }
       # clear the file handle so that we can know on exit of the loop
       # whether we did a good open.
@@ -1480,10 +1483,7 @@ sub _store_sciprog_todisk {
 
   # if we do not have a filehandle we need to abort
   if (!$fh) {
-    $self->_mail_information(%deferr,
-			     message => "$err Could not create temp file after $MAX_TRIES attempts!!!"
-			    );
-    return;
+    throw OMP::Error::CacheFailure( "Could not create temp file after $MAX_TRIES attempts!!!");
   }
 
   # Now write the science program and return
