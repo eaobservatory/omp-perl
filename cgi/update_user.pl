@@ -14,15 +14,15 @@ BEGIN {
 }
 
 # Load OMP modules
-use OMP::CGI;
-use OMP::CGI::UserPage;
+use OMP::CGIPage;
+use OMP::CGIPage::User;
 use OMP::UserServer;
 use OMP::Error qw(:try);
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $cgi = new OMP::CGI( CGI => $q );
+my $cgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $cgi->html_title;
 
@@ -36,5 +36,5 @@ try {
 (! $user) and $user = "Unknown User";
 
 $cgi->html_title("$title: Edit User Details for $user");
-$cgi->write_page_noauth( \&OMP::CGI::UserPage::edit_details,
-			 \&OMP::CGI::UserPage::edit_details );
+$cgi->write_page_noauth( \&OMP::CGIPage::User::edit_details,
+			 \&OMP::CGIPage::User::edit_details );
