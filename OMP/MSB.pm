@@ -116,7 +116,7 @@ sub new {
   $projid = $args{PROJECTID} if exists $args{PROJECTID};
 
   # Now create our Science Program hash
-  my $sp = {
+  my $msb = {
 	    ProjectID => $projid,
 	    Parser => $parser,
 	    XMLRefs => $refs,
@@ -128,12 +128,18 @@ sub new {
 	   };
 
   # and create the object
-  bless $sp, $class;
+  bless $msb, $class;
+
+  # Force the setting of an obscounter in each
+  # SpObs so that we can use it to label our observations
+  # Do this early since it never hurts and we want to ensure
+  # that it is available - does not trigger a large overhead
+  $msb->_set_obs_counter();
 
   # fix up any problems
-  $sp->_fixup_msb;
+  $msb->_fixup_msb;
 
-  return $sp;
+  return $msb;
 }
 
 =back
@@ -888,6 +894,44 @@ sub hasBeenCompletelyObserved {
 
 }
 
+=item B<hasBeenSuspended>
+
+Modify the object to indicate that the MSB has been put into
+a suspended state so that it can be completed at a later date.
+
+  $msb->hasBeenSuspended( $label );
+
+The label must match a valid observation label within this
+MSB.
+
+=cut
+
+sub hasBeenSuspended {
+  my $self = shift;
+  my $label = shift;
+
+  # In order to suspend an MSB we need to do the following:
+  #  - get a list of observation labels eg obs1_5, obs2_2
+  #    where the obs count is the SpObs number and the _I
+  #    is the unrolled observation within that SpObs
+  #  - Compare the supplied label with the list
+  #    and throw an exception if the supplied label is not present
+  #  - Add this label as an attribute to the SpMSB
+  #    suspend="obs1_5"
+
+  # get the labels
+  my @labels = $self->_get_obs_labels;
+
+  # look for the label
+  my $isvalid = grep /$label/, @labels;
+
+  throw OMP::Error::FatalError("Supplied observation label [$label] can not be found in MSB") unless $isvalid;
+
+  # Set the suspend attribute in the MSB
+  $self->_tree->setAttribute("suspend", $label);
+
+}
+
 
 =item B<addFITStoObs>
 
@@ -907,13 +951,7 @@ sub addFITStoObs {
 
   # If we are a lone SpObs we want to use ourself rather
   # than the children
-  my @nodes;
-  if ($self->_tree->getName eq 'SpObs') {
-    @nodes = $self->_tree;
-  } else {
-    # Get the SpObs elements
-    push(@nodes, $self->_tree->findnodes('.//SpObs'));
-  }
+  my @nodes = $self->_get_SpObs();
 
   # Some XML elements that we can insert
   # problems with XML::LibXML mean that we need to create
@@ -1148,13 +1186,7 @@ sub _fixup_msb {
   if ($tel eq 'JCMT') {
 
     # Get all the observations (same as code in addFITStoObs)
-    my @observations;
-    if ($self->_tree->getName eq 'SpObs') {
-      @observations = $self->_tree;
-    } else {
-      # Get the SpObs elements
-      push(@observations, $self->_tree->findnodes('.//SpObs'));
-    }
+    my @observations = $self->_get_SpObs();
 
     # go through the Observations
     for my $obs (@observations) {
@@ -1185,6 +1217,25 @@ sub _fixup_msb {
 
 }
 
+=item B<_get_SpObs>
+
+Return all the SpObs nodes associated with the MSB.
+
+  @spobs = $self->_get_SpObs;
+
+=cut
+
+sub _get_SpObs {
+  my $self = shift;
+  my @observations;
+  if ($self->_tree->getName eq 'SpObs') {
+    @observations = $self->_tree;
+  } else {
+    # Get the SpObs elements
+    push(@observations, $self->_tree->findnodes('.//SpObs'));
+  }
+  return @observations;
+}
 
 =item B<_summarize_obs>
 
@@ -1275,7 +1326,6 @@ is returned by this method on completion.
 sub _get_obs {
   my $self = shift;
 
-
   # Get an element
   # If a processing method exists simply call it with
   # a hash containing the current state.
@@ -1325,6 +1375,87 @@ sub _get_obs {
 
   return @obs;
 }
+
+=item B<_set_obs_counter>
+
+Set the "obsnum" attribute in each of the SpObs elements
+in the MSB. Counting starts at zero.
+
+  $msb->_set_obs_counter();
+
+If an SpObs already has a counter it is not changed. This is important
+because sometimes when an MSB object is instantiated the calibration
+observations have been removed which should not affect the observation
+count (this is required for reliably suspending an MSB)
+
+=cut
+
+sub _set_obs_counter {
+  my $self = shift;
+
+  # get all the SpObs nodes
+  my @obs = $self->_get_SpObs();
+
+  my $counter = -1;
+  for my $obs (@obs) {
+    $counter++;
+    # look for a "obsnum" attribute
+    my $attr = $self->_get_attribute( $obs, "obsnum" );
+
+    if (defined $attr) {
+      # someone has already set obsnum
+      # in this case we just tweak the counter to that value
+      $counter = $attr;
+    } else {
+      # no value was present so we set one
+      $obs->setAttribute("obsnum", $counter);
+    }
+  }
+}
+
+=item B<_clear_obs_counter>
+
+Clear the "obsnum" attribute in each of the SpObs elements
+in the MSB. This is usually called prior to serving the science
+program back to the observing tool (so that we are forced to
+recalculate the counters after resubmission which is the desired
+behaviour since the OT will not touch the counter attributes).
+
+  $msb->_clear_obs_counter();
+
+=cut
+
+sub _clear_obs_counter {
+  my $self = shift;
+
+  # get all the SpObs nodes
+  my @obs = $self->_get_SpObs();
+
+  my $counter = -1;
+  for my $obs (@obs) {
+    $obs->removeAttribute( "obsnum" );
+  }
+}
+
+=item B<_get_obs_labels>
+
+Retrieve a list of all the observation labels defined in this
+MSB. Useful when determining whether a suspension label
+is valid.
+
+  @labels = $msb->_get_obs_labels();
+
+=cut
+
+sub _get_obs_labels {
+  my $self = shift;
+
+  my @details = $self->unroll_obs();
+
+  return map { $_->{obslabel} } @details;
+
+}
+
 
 =item B<_get_qualified_children>
 
@@ -1837,6 +1968,7 @@ sub unroll_obs {
 
   #use Data::Dumper;
   #print "INPUT ",Dumper( \@obs);
+  #print "Number of observations to process: ",scalar(@obs),"\n";
 
   # Loop over each observation in the MSB
   my @longobs;
@@ -1852,8 +1984,12 @@ sub unroll_obs {
     $config{MSBID} = $self->checksum;
     $config{PROJECTID} = $self->projectID;
 
+    # this counts the number of "observes" in an SpObs
+    # the "minor" counter
+    my $counter = 0;
+
     # Now loop over iterators
-    $self->_unroll_obs_recurse(\@longobs, $obs->{SpIter}, %config);
+    $self->_unroll_obs_recurse(\@longobs, $counter, $obs->{SpIter}, %config);
 
   }
 
@@ -1863,8 +1999,10 @@ sub unroll_obs {
   # the recursive unrolling very easily because of the case
   # where a single pol iterator contains both a scan map
   # and jiggle map pol observe
+  # This should probably be done in the translator prior
+  # to translation rather than fudged in a telescope specific
+  # manner here.
   $self->_fudge_unroll_obs(\@longobs);
-
 
   #use Data::Dumper;
   #print Dumper( \@longobs);
@@ -1878,6 +2016,7 @@ sub unroll_obs {
 sub _unroll_obs_recurse {
   my $self = shift;
   my $obsarr = shift;
+  my $obscounter = shift;
   my $iterator = shift;
   my %config = @_;
 
@@ -1922,7 +2061,12 @@ sub _unroll_obs_recurse {
     my $key = $keys[0];
 
     if ($key =~ /Obs$/) {
-      # An observation - dump observation details
+      # An observation
+      # Calculate the label
+      $obscounter++;
+      $config{obslabel} = "obs" . $config{msb_obsnum} . "_" . $obscounter;
+
+      # dump observation details
 #      print "Dump observation details $key\n";
       push(@$obsarr, {%config, MODE => $key, %{$iter->{$key}}});
 
@@ -1941,7 +2085,8 @@ sub _unroll_obs_recurse {
 
 #      print "Recursing for $key\n";
       for my $extra (@ATTR) {
-	$self->_unroll_obs_recurse( $obsarr, $iter->{$key}, %config, %$extra );
+	$self->_unroll_obs_recurse( $obsarr, $obscounter, $iter->{$key}, 
+				    %config, %$extra );
       }
 
     }
@@ -2050,6 +2195,9 @@ sub SpObs {
   # science observe that does not have an autoTarget). Must default
   # to false
   $summary{scitarget} = 0;
+
+  # Retrieve the observation number in this MSB
+  $summary{msb_obsnum} = $self->_get_attribute( $el, "obsnum" );
 
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
