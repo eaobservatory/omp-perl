@@ -232,17 +232,22 @@ Create a page for querying faults
 sub query_fault_content {
   my $q = shift;
 
-  print $q->h2("Listing recent faults");
+  print $q->h2("Fault Search");
 
   query_fault_form($q);
   print "<p>";
 
-  # Faults since twod days ago
-  my $faults = query_faults(2);
-  show_faults($q, $faults);
-  print "<p>";
+  my $faults = query_faults(-2);
 
-  query_fault_form($q);
+  if ($faults->[0]) {
+    show_faults($q, $faults);
+
+    # Put up the query form again if there are lots of faults displayed
+    if ($faults->[15]) {
+      print "<P>";
+      query_fault_form($q);
+    }
+  }
 }
 
 =item B<query_fault_output>
@@ -258,28 +263,79 @@ sub query_fault_output {
 
   # Which XML query are we going to use?
   # and which title are we displaying?
-  my $xml;
   my $title;
-  my $faults;
+  my $t = gmtime;
+  my $delta;
+  my $xml;
 
-  if ($q->param('list') =~ /all/) {
-    $faults = query_faults();
-    $title = "Listing all faults";
+  # The 'Submit' submit button was clicked
+  if ($q->param('Submit')) {
+    $delta = $q->param('days');
+    my $xmlpiece;
+
+    if ($q->param('search') =~ /response/) {
+      $xmlpiece = "<isfault>0</isfault>";
+      $title = "Displaying faults responded to in the last $delta days";
+    } elsif ($q->param('search') =~ /file/) {
+      $xmlpiece = "<isfault>1</isfault>";
+      $title = "Displaying faults filed in the last $delta days";
+    } else {
+      $title = "Displaying faults with any activity in the last $delta days";
+    }
+    $xml = "<FaultQuery><date delta='-$delta'>" . $t->datetime . "</date>$xmlpiece</FaultQuery>";
+
   } else {
-    # Faults since two days ago
-    $faults = query_faults(2);
-    $title = "Listing recent faults";
+    # One of the other submit buttons was clicked
+    if ($q->param('Major faults')) {
+      # Faults within the last 14 days with 2 or more hours lost
+      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
+      $title = "Displaying major faults";
+    } elsif ($q->param('Recent faults')) {
+      # Faults filed in the last 36 hours
+      $xml = "<FaultQuery><date delta='36' units='hours'>" . $t->datetime . "</date><isfault>1</isfault></FaultQuery>";
+      $title = "Displaying recent faults";
+    } elsif ($q->param('Current faults')) {
+      # Faults within the last 14 days
+      # We'll weed out the closed faults later on since we cant exclude them in our
+      # xml query
+      $xml = "<FaultQuery><date delta='-14'>" . $t->datetime . "</date></FaultQuery>";
+    }
   }
+
+  my $faults;
+  try {
+    $faults = OMP::FaultServer->queryFaults($xml, "object");
+
+    # If they want current faults only, make sure the fault status is 'OPEN'
+    if ($q->param('Current faults')) {
+
+      my @openfaults;
+      for (@$faults) {
+	($_->isOpen) and push @openfaults, $_;
+      }
+      $faults = \@openfaults;
+    }
+
+    return $faults;
+  } otherwise {
+    my $E = shift;
+    print "$E";
+  };
 
   print $q->h2($title);
 
   query_fault_form($q);
   print "<p>";
 
-  show_faults($q, $faults);
-  print "<P>";
+  if ($faults->[0]) {
+    show_faults($q, $faults);
 
-  query_fault_form($q);
+    # Put up the query form again if there are lots of faults displayed
+    if ($faults->[15]) {
+      print "<P>";
+      query_fault_form($q);
+    }
+  }
 }
 
 =item B<query_faults>
@@ -288,7 +344,7 @@ Do a fault query and return a reference to an array of fault objects
 
   query_faults([$days]);
 
-Optional argument is the number of days ago to return faults for.
+Optional argument is the number of days delta to return faults for.
 
 =cut
 
@@ -298,8 +354,7 @@ sub query_faults {
 
   if ($days) {
     my $t = gmtime;
-    $t -= 86400*$days;
-    $xml = "<FaultQuery><date><min>" . $t->ymd . "</min></date></FaultQuery>";
+    $xml = "<FaultQuery><date delta='$days'>" . $t->ymd . "</date></FaultQuery>";
   } else {
     $xml = "<FaultQuery></FaultQuery>";
   }
@@ -325,20 +380,30 @@ Create a form for querying faults
 sub query_fault_form {
   my $q = shift;
 
-  print "<table cellspacing=3 border=0><tr><td><b>";
+  print "<table cellspacing=0 cellpadding=3 border=0 bgcolor=#dcdcf2><tr><td>";
   print $q->startform;
-  print $q->radio_group(-name=>'list',
-		        -values=>['all','recent'],
-		        -default=>'all',
-		        -linebreak=>'true',
-		        -labels=>{all=>"List all faults",
-				  recent=>"List all recent faults"});
+  print "<b>Display faults for the last ";
+  print $q->textfield(-name=>'days',
+		      -size=>3,
+		      -maxlength=>5);
+  print " days</b></td><tr><td><b>";
+  print $q->radio_group(-name=>'search',
+		        -values=>['response','file','activity'],
+		        -default=>'activity',
+		        -labels=>{response=>"Responded to",
+				  file=>"Filed",
+				  activity=>"With any activity"});
+
   print "</b></td><td valign=bottom>";
 
   # Need the show_output hidden field in order for the form to be processed
   print $q->hidden(-name=>'show_output', -default=>['true']);
 
   print $q->submit(-name=>"Submit");
+  print "</td><tr><td colspan=2 bgcolor=#babadd><p><p><b>Or display </b>";
+  print $q->submit(-name=>"Major faults");
+  print $q->submit(-name=>"Recent faults");
+  print $q->submit(-name=>"Current faults");
   print $q->endform;
   print "</td></table>";
 }
