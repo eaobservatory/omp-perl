@@ -334,13 +334,11 @@ sub _close_fault {
   my %status = OMP::Fault->faultStatus;
   my $close = $status{Closed}; # Dont like bare string
 
-  # Get the database handle from the hash
-  my $dbh = $self->_dbhandle or
-    throw OMP::Error::DBError("Database handle not valid in _insert_row");
-
   # Update the status field
-  $dbh->do("UPDATE $FAULTTABLE SET status = $close WHERE faultid = $id")
-    or throw OMP::Error::DBError("Error closing fault $id: $DBI::errstr");
+  $self->_db_update_data( $FAULTTABLE, 
+			  { status => $close },
+			  " faultid = $id");
+
 }
 
 =item B<_query_faultdb>

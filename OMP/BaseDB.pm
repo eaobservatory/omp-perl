@@ -476,6 +476,119 @@ writetext $table.$col \@val '$text'")
 
 }
 
+=item B<_db_update_data>
+
+Update the values of specified columns in the table given the
+supplied clause.
+
+  $db->_db_update_data( $table, \%new, $clause);
+
+The table name must be supplied. The second argument contains a hash
+where the keywords should match the columns to be changed and the
+values should be the new values to insert.  The WHERE clause should be
+supplied as SQL (no attempt is made to automatically generate this
+information from a hash [yet) and should not include the "WHERE". The
+WHERE clause can be undefined if you want the update to apply to all
+columns.
+
+=cut
+
+sub _db_update_data {
+  my $self = shift;
+
+  my $table = shift;
+  my $change = shift;
+  my $clause = shift;
+
+  # Add WHERE
+  $clause = "WHERE ". $clause if $clause;
+
+  # Get the handle
+  my $dbh = $self->_dbhandle
+    or throw OMP::Error::DBError("Database handle not valid");
+
+  # Loop over each key
+  for my $col (keys %$change) {
+
+    # Construct the SQL
+    my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
+
+    # Execute the SQL
+    $dbh->do($sql)
+      or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
+
+  }
+
+}
+
+=item B<_db_delete_data>
+
+Delete the rows in the table given the
+supplied clause.
+
+  $db->_db_delete_data( $table, $clause);
+
+The table name must be supplied. The WHERE clause should be
+supplied as SQL (no attempt is made to automatically generate this
+information from a hash [yet) and should not include the "WHERE". The WHERE
+clause is not optional.
+
+=cut
+
+sub _db_delete_data {
+  my $self = shift;
+
+  my $table = shift;
+  my $clause = shift;
+  throw OMP::Error::BadArgs("db_delete_data: Must supply a WHERE clause")
+    unless $clause;
+
+  # Add WHERE
+  $clause = "WHERE ". $clause;
+
+  # Get the handle
+  my $dbh = $self->_dbhandle
+    or throw OMP::Error::DBError("Database handle not valid");
+
+  # Construct the SQL
+  my $sql = "DELETE FROM $table $clause";
+
+  # Execute the SQL
+  $dbh->do($sql)
+    or throw OMP::Error::DBError("Error deleting [$sql]: " .$dbh->errstr);
+
+}
+
+=item B<_db_delete_project_data>
+
+Delete all rows associated with the current project
+from the specified tables.
+
+  $db->_db_delete_project_data( @TABLES );
+
+It is assumed that the current project is stored in table column
+"projectid".  This is a thin wrapper for C<_db_delete_data> but
+without having to specify the SQL.
+
+Returns immediately if no project id is defined.
+
+=cut
+
+sub _db_delete_project_data {
+  my $self = shift;
+
+  # Get the project id
+  my $proj = $self->projectid;
+  return unless defined $proj;
+
+  # Loop over each table
+  for (@_) {
+    $self->_db_delete_data( $_, "projectid = '$proj'");
+  }
+
+}
+
+
 =back
 
 =head2 Feedback system

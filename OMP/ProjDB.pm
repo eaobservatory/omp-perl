@@ -557,12 +557,7 @@ sub _delete_project_row {
   my $self = shift;
   my $projectid = shift;
 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
-
-
-  $dbh->do("DELETE FROM $PROJTABLE WHERE projectid = '$projectid'")
-    or throw OMP::Error::SpStoreFail("Error removing project $projectid: ".$dbh->errstr);
+  $self->_db_delete_project_data( $PROJTABLE );
 
 }
 

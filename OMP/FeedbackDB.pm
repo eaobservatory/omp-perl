@@ -413,15 +413,10 @@ sub _alter_status {
   my $commid = shift;
   my $status = shift;
 
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
+  $self->_db_update_data( $FBTABLE,
+			  { status => $status },
+			  " commid = $commid ");
 
-  my $sql = "UPDATE $FBTABLE " .
-            "SET status = $status " .
-	    "WHERE commid = $commid";
-
-  $dbh->do($sql)
-    or throw OMP::Error::DBError("Statement Failed: " .$dbh->errstr);
 }
 
 =back

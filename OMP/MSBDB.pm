@@ -787,11 +787,8 @@ Raises SpStoreFail exception on failure.
 sub _remove_old_sciprog {
   my $self = shift;
   my $proj = $self->projectid;
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  $dbh->do("DELETE FROM $SCITABLE WHERE projectid = '$proj'")
-    or throw OMP::Error::SpStoreFail("Error removing old science program: ".$dbh->errstr);
+  $self->_db_delete_data( $SCITABLE, "projectid = '$proj' ");
 
 }
 
@@ -1156,18 +1153,11 @@ sub _clear_old_rows {
   my $self = shift;
 
   # Get the DB handle
-  my $dbh = $self->_dbhandle;
-  throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
   my $proj = $self->projectid;
 
   # Remove the old data
-  print "Clearing old msb rows for project ID $proj\n" if $DEBUG;
- $dbh->do("DELETE FROM $MSBTABLE WHERE projectid = '$proj'")
-    or throw OMP::Error::DBError("Error removing old msb rows: ".$DBI::errstr);
-
-  print "Clearing old obs rows for project ID $proj\n" if $DEBUG;
-  $dbh->do("DELETE FROM $OBSTABLE WHERE projectid = '$proj'")
-    or throw OMP::Error::DBError("Error removing old obs rows: ".$DBI::errstr);
+  print "Clearing old msb and obs rows for project ID $proj\n" if $DEBUG;
+  $self->_db_delete_project_data( $MSBTABLE, $OBSTABLE );
 
 }
 

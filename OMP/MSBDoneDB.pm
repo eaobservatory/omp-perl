@@ -383,8 +383,11 @@ sub _add_msb_done_info {
     unless exists $msbinfo{projectid};
 
   # First remove any placeholder observations
-  $dbh->do("DELETE FROM $MSBDONETABLE WHERE checksum = '$msbinfo{checksum}' AND projectid = '$msbinfo{projectid}' AND status = " . OMP__DONE_FETCH)
-    or throw OMP::Error::DBError("Error removing placeholder from MSB done table: $DBI::errstr");
+  $self->_db_delete_data( $MSBDONETABLE,
+			  " checksum = '$msbinfo{checksum}' AND " .
+			  " projectid = '$msbinfo{projectid}' AND " .
+			  " status = " . OMP__DONE_FETCH
+			);
 
   # Now insert the information into the table
 
