@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl-5.6/bin/perl -X
 
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;

@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl-5.6/bin/perl -X
 #
 # WWW Observing Remotely Facility (WORF)
 #
