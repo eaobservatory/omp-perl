@@ -556,15 +556,25 @@ sub faults {
 =item B<timelost>
 
 Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.
+The time is returned as a Time::Seconds object.  Timelost to
+technical or non-technical faults can be returned by calling with
+an argument of either "technical" or "non-technical."  Returns total
+timelost when called without arguments.
 
 =cut
 
 sub timelost {
   my $self = shift;
+  my $arg = shift;
   my @faults = $self->faults;
   my $faultstats = new OMP::FaultStats( faults => \@faults );
-  return $faultstats->timelost;
+  if ($arg eq "technical") {
+    return $faultstats->timelostTechnical;
+  } elsif ($arg eq "non-technical") {
+    return $faultstats->timelostNonTechnical;
+  } else {
+    return $faultstats->timelost;
+  }
 }
 
 =item B<shiftComments>
@@ -780,9 +790,16 @@ sub ashtml {
 
   # Time lost to faults
   my $faultloss = $self->timelost->hours;
+  my $technicalloss = $self->timelost('technical')->hours;
 
   print "<tr class='sum_other'>";
-  print "<td>Time lost to faults</td>";
+  print "<td>Time lost to technical faults</td>";
+  print "<td colspan=2>" . sprintf($format, $technicalloss) . "</td>";
+  print "<tr class='sum_other'>";
+  print "<td>Time lost to non-technical faults</td>";
+  print "<td colspan=2>" . sprintf($format, $self->timelost('non-technical')->hours) . "</td>";
+  print "<tr class='sum_other'>";
+  print "<td>Total time lost to faults</td>";
   print "<td>" . sprintf($format, $faultloss) . " </td><td><a href='#faultsum' class='link_dark'>Go to fault summary</a></td>";
 
   $total += $faultloss;
@@ -888,6 +905,8 @@ sub ashtml {
   if ($cleartime > 0) {
     print "<tr class='proj_time_sum_weather_row'>";
     print "<td class='sum_other'>Clear time lost to faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $faultloss / $cleartime * 100) ." </td>";
+    print "<tr class='proj_time_sum_other_row'>";
+    print "<td class='sum_other'>Clear time lost to technical faults</td><td colspan=2 class='sum_other'>". sprintf("%5.2f%%", $technicalloss / $cleartime * 100) ." </td>";
   }
 
   print "</table>";
