@@ -28,7 +28,8 @@ use OMP::Error;
 use Astro::Telescope;
 use Astro::SLA ();
 use File::Spec;
-use SrcCatalog::JCMT 0.12; # For MAX_SRC_LENGTH
+use Astro::Catalog;
+use Astro::Catalog::IO::JCMT; # For clean_target_name
 use Data::Dumper;
 use Time::Seconds qw/ ONE_HOUR /;
 use Time::Piece qw/ :override /;
@@ -134,7 +135,7 @@ sub translate {
     # we write the pattern file to disk.
 
     # Catalogue files will need to include the velocity information
-    # This has ramifications for the SrcCatalog class (and also
+    # This has ramifications for the Astro::Catalog class (and also
     # for Astro::Coords).
 
     # Astro::Coords may have to include offset information as well
@@ -308,7 +309,9 @@ sub translate {
     }
 
     # Now the catalogue file
-    my $cat = new SrcCatalog::JCMT('/local/progs/etc/poi.dat');
+    my $cat = new Astro::Catalog(Format => 'JCMT',
+				 File => '/local/progs/etc/poi.dat');
+    $cat->origin("JCMT DAS Translator");
 
     # For each of the targets add the projectid
     for (@targets) {
@@ -316,12 +319,12 @@ sub translate {
     }
 
     # Insert the new sources at the start
-    unshift(@{$cat->sources}, @targets);
-    $cat->reset;
+    unshift(@{$cat->allstars},
+	    map {new Astro::Catalog::Star(Coords=>$_)} @targets);
 
     # And write it out
     my $outfile = File::Spec->catfile( $TRANS_DIR, $CATALOGUE);
-    $cat->writeCatalog($outfile);
+    $cat->write_catalog( File => $outfile, Format => 'JCMT' );
 
     # And make sure it is readable regardless of umask
     chmod 0666, $outfile;
@@ -820,10 +823,7 @@ sub targetConfig {
 
     # and limit it in length to match the spec that will be written
     # to the source catalogue
-    my $maxlen = &SrcCatalog::JCMT::MAX_SRC_LENGTH;
-    if (length($name) > $maxlen) {
-      $name = substr($name,0,$maxlen);
-    }
+    $name = Astro::Catalog::IO::JCMT->clean_target_name( $name );
 
     # now store it back
     $c->name($name);
