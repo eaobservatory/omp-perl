@@ -273,10 +273,10 @@ sub _sidebar_logout {
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
   my @faults = $faultdb->getAssociations(lc($projectid), 1);
-  push (@sidebarlinks, "<a href=fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
+  push (@sidebarlinks, "<a href=$ompurl/fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
-  push (@sidebarlinks, "<br><font size=+1><a href='fblogout.pl'>Logout</a></font>");
+  push (@sidebarlinks, "<br><font size=+1><a href='$ompurl/fblogout.pl'>Logout</a></font>");
   $theme->SetInfoLinks(\@sidebarlinks);
 }
 
