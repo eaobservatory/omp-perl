@@ -31,6 +31,7 @@ use warnings;
 use strict;
 use Carp;
 
+use OMP::Error;
 use Time::Piece;
 
 our $VERSION = (qw$Revision$)[1];
@@ -183,6 +184,46 @@ Just returns the comment text.
 sub stringify {
   my $self = shift;
   return $self->text;
+}
+
+=item B<summary>
+
+Summary of the object in different formats.
+
+  $xml = $comm->summary( 'xml' );
+
+=cut
+
+sub summary {
+  my $self = shift;
+  my $format = lc(shift);
+
+  $format = 'xml' unless $format;
+
+  # Create hash
+  my %summary;
+  for (qw/ text author status date /) {
+    $summary{$_} = $self->$_();
+  }
+
+
+
+  if ($format eq 'hash') {
+    return (wantarray ? %summary : \%summary );
+  } elsif ($format eq 'xml') {
+    my $xml = "<SpComment>\n";
+    for my $key (keys %summary) {
+      next if $key =~ /^_/;
+      next unless defined $summary{$key};
+      $xml .= "<$key>$summary{$key}</$key>\n";
+    }
+    $xml .= "</SpComment>\n";
+    return $xml;
+
+  } else {
+    throw OMP::Error::FatalError("Unknown format: $format");
+  }
+
 }
 
 =back
