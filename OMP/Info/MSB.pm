@@ -68,19 +68,22 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               checksum => '$',
                               seeing => 'OMP::Range',
                               priority => '$',
-                              moon =>  'OMP::Range',
+                              moon =>  '$',
                               timeest => '$',
                               title => '$',
-                              dates => 'OMP::Range',
+                              datemin => 'Time::Piece',
+                              datemax => 'Time::Piece',
                               telescope => '$',
-                              cloud => 'OMP::Range',
+                              cloud => '$',
                               observations => '@OMP::Info::Obs',
  	                      wavebands => '$',
  	                      targets => '$',
  	                      instruments => '$',
+			      coordstypes => '$',
                               remaining => '$',
                               comments => '@OMP::Info::Comment'
                              );
+#' for the emacs color coding 
 
 =end __PRIVATE__
 
@@ -114,7 +117,15 @@ Accessors requiring/returning C<OMP::Range> objects:
 
 =item B<cloud>
 
-=item B<dates>
+=back
+
+Accessors requiring/returning C<Time::Piece> objects
+
+=over 4
+
+=item B<datemin>
+
+=item B<datemax>
 
 =back
 
@@ -228,6 +239,55 @@ sub target {
 
 }
 
+=item B<coordstype>
+
+Construct a coordinate type summary of the MSB. This retrieves the
+type from each observation and returns a single string. Duplicate
+types are ignored.
+
+  $types = $msb->coordstype();
+
+If a type string has been stored in C<coordstypes()> that value
+will be used in preference to looking for constituent observations.
+
+If a value is supplied it is passed onto the C<coordstypes> method.
+
+=cut
+
+sub coordstype {
+  my $self = shift;
+  if (@_) {
+    my $t = shift;
+    return $self->coordstypes( $t );
+  } else {
+    my $cache = $self->coordstypes;
+    if ($cache) {
+      return $cache;
+    } else {
+      # Ask the observations
+      my @types = map { $_->coords->type } 
+	grep { defined $_->coords } 
+	  $self->observations;
+      @types = $self->_compress_array( @types );
+      return join("/", @types);
+    }
+  }
+
+}
+
+=item B<obscount>
+
+Returns the number of observations stored in the MSB.
+
+  $nobs = $msb->obscount;
+
+=cut
+
+sub obscount {
+  my $self = shift;
+  return scalar(@{ $self->observations });
+}
+
 =item B<addComment>
 
 Push a comment onto the stack.
@@ -338,7 +398,7 @@ sub summary {
 
   # These are the scalar/objects
   for (qw/ projectid checksum tau seeing priority moon timeest title
-       dates telescope cloud remaining /) {
+       datemin datemax telescope cloud remaining /) {
     $summary{$_} = $self->$_();
   }
 
@@ -375,7 +435,7 @@ sub summary {
 
   # The other modes may require text representation of
   # the observations so generate those
-  for (qw/ waveband instrument target disperser coords pol type /) {
+  for (qw/ waveband instrument target disperser coordstype pol type /) {
     # If we have the method in this class call it
     if ($self->can($_)) {
       $summary{$_} = $self->$_;
@@ -384,8 +444,6 @@ sub summary {
       $summary{$_} = $self->_process_obs( $_, 1 );
     }
   }
-
-
 
   # Text summary
   if ($format eq 'textshort' ) {
