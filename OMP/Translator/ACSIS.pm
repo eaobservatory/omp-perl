@@ -90,6 +90,9 @@ sub translate {
 
   # Correct Stare and Jiggle observations such that multiple offsets are
   # combined
+  # Note that there may be a requirement to convert non-regular offset
+  # patterns into individual observations rather than having a very sparse
+  # but large grid
   $self->correct_offsets( $msb, "Stare", "Jiggle" );
 
   # Now unroll the MSB into constituent observations details
@@ -201,6 +204,9 @@ sub tcs_config {
 
   # Create the template
   my $tcs = new JAC::OCS::Config::TCS;
+
+  # Pointing, focus and autoTarget observations need to force
+  # state rather than using the inherited state
 
   # Telescope is known
   $tcs->telescope( 'JCMT' );
@@ -333,17 +339,20 @@ sub observing_area {
     }
 
     my $refpa = ($offsets[0]->{OFFSET_PA} || 0);
-    my @out;
-    for my $o (@offsets) {
-      # Rotate to reference
-      my ($x, $y) = ($o->{OFFSET_DX}, $o->{OFFSET_DY});
-      if ($o->{OFFSET_PA} != $refpa) {
-	# this should never happen with the OT formalism
-	($x, $y) = $self->PosAngRot( $x, $y, ( $refpa - $o->{OFFSET_PA}));
-      }
-      push(@out, new Astro::Coords::Offset( $x, $y, projection => 'TAN',
-					    system => 'TRACKING'));
-    }
+
+    # Rotate them all to the reference frame (this should be a no-op with
+    # the current enforcement by the OT)
+    @offsets = $self->align_offsets( $refpa, @offsets);
+
+    # Now convert them to Astro::Coords::Offset objects
+    my @out = map { new Astro::Coords::Offset( $_->{OFFSET_DX},
+					       $_->{OFFSET_DY},
+					       projection => 'TAN',
+					       system => 'TRACKING'
+					     )
+		  } @offsets;
+
+    # store them in the observing area
     $oa->offsets( @out );
   }
 
@@ -458,11 +467,10 @@ sub acsis_config {
   $self->line_list( $cfg, %info );
   $self->spw_list( $cfg, %info );
   $self->correlator( $cfg, %info );
-#  $self->acsisdr_recipe( $cfg, %info );
+  $self->acsisdr_recipe( $cfg, %info );
   $self->cubes( $cfg, %info );
-#  $self->acsis_machine_table( $cfg, %info );
-
-
+  $self->interface_list( $cfg, %info );
+  $self->acsis_layout( $cfg, %info );
 
 }
 
@@ -662,29 +670,6 @@ sub jos_config {
 
   # store it
   $cfg->jos( $jos );
-
-}
-
-=item B<acsis_machine_table>
-
-Read and configure the ACSIS machine table.
-
-=cut
-
-sub acsis_machine_table {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # get the acsis configuration
-  my $acsis = $cfg->acsis;
-  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
-
-  # Create the new machine table
-  my $machtable = File::Spec->catfile( $WIRE_DIR, 'acsis', 'machine_table.xml');
-
-  
-
 
 }
 
@@ -947,6 +932,13 @@ sub spw_list {
   my $spwlist = new JAC::OCS::Config::ACSIS::SPWList;
   $spwlist->spectral_windows( %spws );
 
+  # Store the data fiels. Just assume these are okay but probably need a template 
+  # file
+  $spwlist->data_fields( spw_id => "SPEC_WINDOW_ID",
+			 doppler => 'FE.STATE.DOPPLER',
+			 fe_lo => 'FE.STATE.LO_FREQUENCY'
+		       );
+
   # Store it
   $acsis->spw_list( $spwlist );
 
@@ -1095,12 +1087,15 @@ sub cubes {
       #  - the extent of the jiggle pattern
       #  - the footprint of the array
       # GRID + single pixel is easy since it is just the offset pattern
-      
-
-      # Need to find the extent of the jiggle pattern and the middle of it
-      $xsiz = 1; $ysiz = 1; $nx = 20; $ny = 20;
+      my @offsets = @{$info{offsets}};
+      ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
+									 @offsets );
 
     } else {
+      # pointing is going to be a map based on the jiggle offset
+      # and will be different for HARP
+      # focus will probably be a single spectrum in continuum mode
+
       throw OMP::Error::TranslateFail("Do not yet know how to size a cube for mode $obsmode");
     }
 
@@ -1169,6 +1164,90 @@ sub cubes {
   $acsis->cube_list( $cl );
 
 }
+
+=item B<interface_list>
+
+Configure the interface XML.
+
+  $trans->interface_list( $cfg, %info );
+
+=cut
+
+sub interface_list {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', 'interface_list.ent');
+
+  # Read the entity
+  my $il = new JAC::OCS::Config::ACSIS::InterfaceList( EntityFile => $filename,
+						       validation => 0);
+  $acsis->interface_list( $il );
+}
+
+=item B<acsis_layout>
+
+Read and configure the ACSIS process layout, process links, machine table
+and monitor layout.
+
+=cut
+
+sub acsis_layout {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # This code is a bit more involved because in general the process layout
+  # template file includes entity references that must be replaced with
+  # more template XML prior to parsing.
+
+  # The first thing we need to do is read the machine table and monitor
+  # layout files
+
+  # Read the new machine table
+  my $machtable_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'machine_table_xml.ent');
+  my $machtable = _read_file( $machtable_file );
+
+  # Read the monitor layout
+  my $monlay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'monitor_layout.ent');
+  my $monlay = _read_file( $monlay_file );
+
+  # Read the template process_layout file
+  my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'layout.ent');
+  my $layout = _read_file( $lay_file );
+
+  # Now we need to replace the entities.
+  $layout =~ s/\&machine_table\;/$machtable/g;
+  $layout =~ s/\&monitor_layout\;/$monlay/g;
+
+  throw OMP::Error::TranslateFail( "Process layout XML does not seem to include any monitor_process elements!")
+    unless $layout =~ /monitor_process/;
+
+  throw OMP::Error::TranslateFail( "Process layout XML does not seem to include any machine_table elements!")
+    unless $layout =~ /machine_table/;
+
+  # make sure we have a wrapper element
+  $layout = "<abcd>$layout</abcd>\n";
+
+  # Create the process layout object
+  my $pl = new JAC::OCS::Config::ACSIS::ProcessLayout( XML => $layout, validation => 0);
+  $acsis->process_layout( $pl );
+
+  # and links
+  my $pl = new JAC::OCS::Config::ACSIS::ProcessLinks( XML => $layout, validation => 0);
+  $acsis->process_links( $pl );
+
+}
+
 
 =item B<observing_mode>
 
@@ -1392,6 +1471,195 @@ sub nyquist {
   my $ny = $wav / ( 2 * DIAM );
   return new Astro::Coords::Angle( $ny, units => 'rad' );
 }
+
+=item B<align_offsets>
+
+Given an set of offset hashes with OFFSET_DX, OFFSET_DY and OFFSET_PA
+keys and a reference angle. Return a new hash with the offsets all in the
+reference angle coordinate frame.
+
+  @new = $trans->align_offsets( $refpa, @input );
+
+=cut
+
+sub align_offsets {
+  my $self = shift;
+  my $refpa = shift;
+  my @input = @_;
+
+  # A Map would work but a for is more redable
+  my @out;
+  for my $o (@input) {
+    my ($x, $y) = $self->PosAngRot( $o->{OFFSET_DX}, $o->{OFFSET_DY},
+				    ( $refpa - $o->{OFFSET_PA})
+				  );
+    push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa });
+  }
+  return @out;
+}
+
+=item B<calc_grid>
+
+Calculate a grid capable of representing the supplied offsets.
+Returns the size and spacing of the grid, along with a rotation angle
+and centre offset. Offsets are assumed to be regular in this projection
+such that distance from tangent plane is not taken into account.
+
+ ($nx, $ny, $xsize, $ysize, $gridpa, $offx, $offy) = $self->calc_grid( $ny, @offsets );
+
+The offsets are provided as an array of hashes with keys OFFSET_DX,
+OFFSET_DY and OFFSET_PA. All are in arcsec and position angles are in
+degrees.
+
+The first argument is the Nyquist value for this wavelength in arcsec
+(assuming the offsets are in arcsec). This will be used to calculate
+the allowed tolerance when fitting irregular offsets into a regular
+grid and also for calculating a default pixel size if only a single
+pixel is required in a particular axis.
+
+=cut
+
+sub calc_grid {
+  my $self = shift;
+  my $nyquist = shift;
+  my @offsets = @_;
+  return () unless @offsets;
+
+  # Rotate to fixed coordinate frame
+  my $refpa = $offsets[0]->{OFFSET_PA};
+  @offsets = $self->align_offsets( $refpa, @offsets);
+
+  # Get the array of x coordinates
+  my @x = map { $_->{OFFSET_DX} } @offsets;
+  my @y = map { $_->{OFFSET_DY} } @offsets;
+
+  # Calculate stats
+  my ($xmin, $xmax, $xcen, $xspan, $nx, $dx) = _calc_offset_stats( $nyquist, @x);
+  my ($ymin, $ymax, $ycen, $yspan, $ny, $dy) = _calc_offset_stats( $nyquist, @y);
+
+  return ($nx, $ny, $dx, $dy, $refpa, $xcen, $ycen);
+}
+
+# Routine to calculate stats from a sequence relevant for grid making
+# Requires Nyquist value in arcsec plus an array of X or Y offset positions
+# Returns the min, max, centre, span, number of pixels, pixel width
+# Function, not method
+sub _calc_offset_stats {
+  my $nyquist = shift;
+  my @off = @_;
+
+  # Now remove duplicates. Order is irrelevant
+  my %dummy = map { $_ => undef } @off;
+
+  # and sort
+  my @sort = sort { $a <=> $b } keys %dummy;
+
+  # if we only have one position we can return early here
+  print "Got to here\n";
+  return ($sort[0], $sort[0], $sort[0], 0, 1, $nyquist) if @sort == 1;
+
+  # Then find the extent of the map
+  my $max = $sort[-1];
+  my $min = $sort[0];
+  my $span = $max - $min;
+  my $cen = ( $max + $min ) / 2;
+
+  # if we only have two positions, return early
+  return ($min, $max, $cen, $span, 2, $span) if @sort == 2;
+
+  # Tolerance is fraction of Nyquist
+  my $tol = 0.2 * $nyquist;
+
+  # Now calculate the gaps between each position
+  my @gap = map { $sort[$_] - $sort[$_-1] } (1..$#sort);
+
+  # Now we have to work out a pixel scale that will allow these
+  # offsets to fall on the same grid within the tolerance
+  # start by sorting the gap and picking a value greater than tol
+  my @sortgap = sort { $a <=> $b } @gap;
+  my $trial;
+  for my $g (@sortgap) {
+    if ($g > $tol) {
+      $trial = $g;
+      last;
+    }
+  }
+
+  # if none of the gaps are greater than the tolerance we actually have a single
+  # pixel
+  return ($min, $max, $cen, $span, 1, $nyquist) unless defined $trial;
+
+  # Starting position is interesting since we could end up with a 
+  # starting offset that is slightly off the "real" grid and with a slight push
+  # end up with a regular grid if we had started from some other position.
+  # To try to mitigate this we move the reference pixel to the nearest integer
+  # pixel if the tolerance allows it
+
+  # Reference "pixel"
+  my $refpix = $sort[0];
+
+  # Move to the nearest int if the nearest int is less than the tol
+  # away
+  my $adj = ( $refpix > 0 ? 0.5 : -0.5 );
+  my $nearint = int( $refpix + $adj );
+  if (($refpix - $nearint) < $tol) {
+    $refpix = $nearint;
+  }
+
+  # Store the reference and try to adjust it until we find a match
+  # or until the trial is smaller than the tolerance
+  my $reftrial = $trial;
+  my $mod = 2; # trial modifier
+  OUTER: while ($trial > $tol) {
+
+    # see whether the sequence fits with this trial
+    for my $t (@sort) {
+      my $pixpos = ( $t - $refpix ) / $trial;
+      my $pixerr = $t - (int($pixpos) * $trial) + $refpix;
+      if ($pixerr > $tol) {
+	# This trial did not work. Calculate a new one by dividing
+	# original by an increasing factor (which will stop when we hit
+	# the tolerance)
+	$trial = $reftrial / $mod;
+	$mod++;
+	next OUTER;
+      }
+    }
+
+    # if we get to this point, we must have verified all positions
+    last;
+  }
+
+  # whatever happens we get a pixel value. Either a valid one or one that
+  # is smaller than the tolerance (and so guaranteed to be okay).
+  my $npix = int( ($span / $trial) + 0.5);
+  return ($min, $max, $cen, $span, $trial, $npix );
+
+}
+
+=item B<_read_file>
+
+Read a file and return the contents as a single string.
+
+ $string = _read_file( $filename );
+
+Not a method. Could probably use the slurp function.
+
+=cut
+
+sub _read_file {
+  my $file = shift;
+  open my $fh, "< $file" || 
+    throw OMP::Error::FatalError( "Unable to open file $file: $!");
+
+  local $/ = undef;
+  my $str = <$fh>;
+
+  close($fh) or 
+    throw OMP::Error::FatalError( "Unable to close file $file: $!");
+  return $str;
+}
+
 
 =back
 
