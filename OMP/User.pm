@@ -464,6 +464,19 @@ sub addressee {
 
 }
 
+=item B<as_email_hdr>
+
+Return the user name and email address in the format suitable for use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
+
+  $email_hdr = $u->as_email_hdr;
+
+=cut
+
+sub as_email_hdr {
+  my $self = shift;
+  return $self->name . " <" . $self->email . ">";
+}
+
 =item B<infer_userid>
 
 Try to guess the user ID from the name. The name can either
