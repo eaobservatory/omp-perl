@@ -41,7 +41,6 @@ if ($] >= 5.006 || $] < 5.008) {
 }
 use Carp;
 use OMP::Range;
-use OMP::UserServer;
 use Time::Piece ':override';
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
@@ -58,6 +57,7 @@ require HTML::FormatText;
 # there is a circular dependency with OMP::General such that determine_host
 # must be defined before OMP::Config BEGIN block can trigger
 require OMP::Config;
+require OMP::UserServer;
 
 
 our $VERSION = (qw$Revision$)[1];
