@@ -268,6 +268,7 @@ An optional argument can be used to switch modes explicitly and to access
 different forms of summaries. Allowed values are:
 
   'xml'         XML summary (equivalent to default scalar context)
+  'html'        HTML summary of program
   'asciiarray'  Array of MSB summaries in plain text (default in list context)
   'data'        Perl data structure containing an array of hashes.
                 One for each MSB. Additionally, observation information
@@ -311,7 +312,22 @@ sub summary {
   # General sci prog infomation
   my $time = $self->timestamp;
   $time ||= '';
+  my $utc = ( $time ? gmtime($time) ." UTC" : "UNKNOWN");
+
   my $proj = $self->projectID;
+
+  # Retrieve the msbs
+  my @msbs = $self->msb;
+
+  # It would be nice to work out how many we have yet to observe
+  # even though this really should happen as part of our loop through
+  # the msbs themselves. Either I splice in the result later or
+  # do it now. .... Do it now - cant use grep because -999 is
+  # a magic value to indicate "removed"
+  my $active = 0;
+  for (@msbs) {
+    $active++ if $_->remaining > 0;
+  }
 
 
   # Now switch on mode
@@ -332,7 +348,7 @@ sub summary {
     # XML version
     my $xml = "<SpProgSummary timestamp=\"$time\" projectid=\"$proj\">\n";
 
-    for my $msb ($self->msb) {
+    for my $msb (@msbs) {
       $xml .= $msb->summary;
     }
     $xml .= "</SpProgSummary>\n";
@@ -342,13 +358,70 @@ sub summary {
   } elsif ($mode eq 'data') {
     # Return an array of hashes (as array ref)
     # Loop over each msb in the science program
-    my @msbs = map { {$_->summary } } $self->msb;
+    @msbs = map { {$_->summary } } @msbs;
 
     if (wantarray) {
       return @msbs;
     } else {
       return \@msbs;
     }
+
+  } elsif ($mode eq 'html') {
+    my @lines;
+
+    push(@lines,"<TABLE border='0'>");
+    push(@lines, "<tr><td>Project ID</td><td><b>$proj</b></td></tr>");
+
+    # Submission time
+    push(@lines, "<tr><td>Time Submitted</td><td><b>$utc</b></td></tr>");
+
+    # MSB Count
+    push(@lines, "<tr><td>Number of MSBs</td><td><b>".scalar(@msbs)."<b></td></tr>");
+    push(@lines, "<tr><td>Active MSBs</td><td><b>$active</b></td></tr>");
+    push(@lines, "</TABLE>");
+
+    # Now process each MSB - This is a clone of "ascii"
+    # Must be a better way
+    my $count;
+    for my $msb (@msbs) {
+      $count++;
+      my %data = $msb->summary;
+      my $status;
+      if ($data{remaining} == 0) {
+	$status = "COMPLETE";
+      } elsif ($data{remaining} == OMP::MSB::REMOVED) {
+	$status = "REMOVED from consideration";
+      } else {
+	$status = "$data{remaining} remaining to be observed";
+      }
+      push(@lines, "<br>MSB $count: <b>$status</b><br>");
+
+      push(@lines, "<TABLE border='0'>");
+      push(@lines, "<tr><td>Title</td><td>$data{title}</td></tr>");
+      push(@lines, "<tr><td>Duration</td><td>$data{timeest} sec</td></tr>");
+      push(@lines, "<tr><td>Priority</td><td>$data{priority}</td></tr>");
+      push(@lines, "<tr><td>Seeing</td><td>$data{seeing}</td></tr>");
+      push(@lines, "<tr><td>Tau</td><td>$data{tau}</td></tr>");
+
+      push(@lines,"<TABLE  border='1'>");
+      push(@lines,"<TR bgcolor='#7979aa'>");
+      push(@lines,"<td>#</td><TD>Instrument</td><td>Target</td><td>Coords</td><td>Waveband</td></tr>");
+
+      # Now go through the observations
+      my $obscount = 0;
+      for my $obs (@{$data{obs}}) {
+	$obscount++;
+	push(@lines,"<TR bgcolor='#7979aa'>",
+	     "<td>$obscount</td>",
+	     map { 
+	       "<td>" . $obs->{$_} . "</td>"  
+	     } qw/ instrument target coords waveband/);
+      }
+
+
+
+    }
+
 
   } elsif ($mode eq 'ascii') {
     # Plain text
@@ -359,21 +432,10 @@ sub summary {
 
     # Convert the timestamp back into a real time (assuming it is
     # possible). The time stamp is in UTC.
-    push(@text, "Time submitted:\t" . gmtime($time) . " UTC");
+    push(@text, "Time submitted:\t$utc");
 
-    # Number of MSBs
-    my @msbs = $self->msb;
+    # Number of MSBs (total and active)
     push(@text, "Number of MSBs:\t" . scalar(@msbs));
-
-    # It would be nice to work out how many we have yet to observe
-    # even though this really should happen as part of our loop through
-    # the msbs themselves. Either I splice in the result later or
-    # do it now. .... Do it now - cant use grep because -999 is
-    # a magic value to indicate "removed"
-    my $active = 0;
-    for (@msbs) {
-      $active++ if $_->remaining > 0;
-    }
     push(@text,"Active MSBs:\t$active");
 
 
@@ -525,7 +587,7 @@ sub locate_msbs {
       $unique{$checksum}->remaining($newtotal);
 
       # Remove the current msb object from the science program tree
-      $msb->_tree->unbindNode;
+      $msb->_tree->unbindNode();
       $unbound = 1;
 
     } else {
