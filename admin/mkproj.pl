@@ -17,7 +17,7 @@
 #  country 
 #  semester  (YYYYA/B)
 #  password                [plain text]
-#  Allocated time (hours)
+#  Allocated time (seconds)
 
 # cat proj.details | perl mkproj.pl
 
@@ -41,6 +41,6 @@ while (<>) {
   print join("--",@details),"\n";
 
   # Password should be supplied by user
-  OMP::ProjServer->addProject("***REMOVED***", @details );
+  OMP::ProjServer->addProject("***REMOVED***", @details[0..12] );
 
 }
