@@ -798,6 +798,12 @@ sub _get_projects {
     # Convert the taumin, taumax to a OMP::Range object
     # old entries may have NULL for min when we really mean ZERO
     $projhash->{taumin} = 0 unless defined $projhash->{taumin};
+
+    # KLUGE: Use 2 decimal places for now until we switch to DOUBLES
+    for (qw/ taumin taumax/ ) {
+      $projhash->{$_} = sprintf("%.2f", $projhash->{$_})
+	if $projhash->{$_}
+    }
     $projhash->{taurange} = new OMP::Range(Min => $projhash->{taumin},
 					   Max => $projhash->{taumax},
 					  );
