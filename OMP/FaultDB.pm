@@ -89,7 +89,7 @@ sub fileFault {
   # Mail out the fault
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
-  $self->_mail_fault($fault);
+#  $self->_mail_fault($fault);
 
   # Return the id
   return $id;
@@ -125,7 +125,7 @@ sub respondFault {
   # We do this outside of our transaction since the SMTP server
   # has been known to fail and we don't want the fault lost
   my $fault = $self->getFault($id);
-  $self->_mail_fault($fault);
+#  $self->_mail_fault($fault);
 }
 
 =item B<closeFault>
@@ -317,7 +317,7 @@ sub updateFault {
   $self->_db_commit_trans;
 
   # Mail notice to fault "owner"
-  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
+#  ($user) and $self->_mail_fault_update($fault, $oldfault, $user);
 }
 
 =item B<updateResponse>
@@ -881,6 +881,10 @@ sub _mail_fault_update {
 
 }
 
+=item B<_mail_response_update>
+
+Send an email to a fault owner 
+
 =back
 
 =head1 SEE ALSO
@@ -891,7 +895,7 @@ For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
 
 =head1 AUTHORS
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt> 
 
 =head1 COPYRIGHT
 
