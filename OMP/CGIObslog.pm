@@ -140,7 +140,12 @@ sub list_observations {
 
   ( $inst, $ut ) = obs_inst_summary( $q, \%cookie );
 
-  my $telescope = OMP::Config->inferTelescope( 'instruments', $inst );
+  my $tempinst;
+  if( $inst =~ /rxa/i ) { $tempinst = "rxa3"; }
+  elsif( $inst =~ /rxb/i ) { $tempinst = "rxb3"; }
+  else { $tempinst = $inst; }
+
+  my $telescope = OMP::Config->inferTelescope( 'instruments', $tempinst );
 
   if( defined( $inst ) &&
       defined( $ut ) ) {
@@ -294,7 +299,7 @@ sub obs_table {
     }
   }
 
-  my $currentinst = $allobs[0]->instrument;
+  my $currentinst = (length( $instrument . '' ) == 0 ) ? $allobs[0]->instrument : $instrument;
 
   print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
   print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
@@ -309,7 +314,18 @@ sub obs_table {
   }
 
   # Start off the table.
-  my %nightlog = $allobs[0]->nightlog;
+
+  # Get the headings from the first observation. Note that we have to test
+  # if it's a timegap or not, because if it is it'll throw an Xbox-sized spanner
+  # into the whole mess.
+  my %nightlog;
+  foreach my $obshdr (@allobs) {
+    if(!UNIVERSAL::isa($obshdr, "OMP::Info::Obs::TimeGap") && uc($obshdr->instrument) eq uc($currentinst)) {
+      %nightlog = $obshdr->nightlog;
+      last;
+    }
+  }
+
   my $ncols = scalar(@{$nightlog{_ORDER}}) + 1;
   print "<table class=\"sum_table\" border=\"0\">\n";
   print "<tr class=\"sum_other\"><td colspan=\"$ncols\"><div class=\"small_title\">Observations for " . uc($currentinst) . "</div></td></tr>\n";
