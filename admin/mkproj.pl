@@ -136,6 +136,8 @@ for my $proj (keys %alloc) {
     }
   }
 
+  die "Must supply a telescope!!!" unless exists $details{telescope};
+
   # Now weather bands
   my ($taumin, $taumax) = (0,undef);
   if (exists $details{taurange}) {
@@ -167,9 +169,9 @@ for my $proj (keys %alloc) {
   try {
     OMP::ProjServer->addProject('***REMOVED***', $force,
 				$proj,  # project id
-				$details{pi},
-				$details{coi},
-				$details{support},
+				uc($details{pi}),
+				uc($details{coi}),
+				uc($details{support}),
 				$details{title},
 				$details{tagpriority},
 				$details{country},
