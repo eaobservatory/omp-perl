@@ -437,7 +437,12 @@ Returns 0 if the value can not be determined.
 
 sub estimated_time {
   my $self = shift;
-  my $est = $self->_get_pcdata( $self->_tree, "elapsedTime");
+
+  # First try for estimatedDuration and then
+  # for the older elapsedTime
+  my $est = $self->_get_pcdata( $self->_tree, "estimatedDuration");
+  $est = $self->_get_pcdata( $self->_tree, "elapsedTime")
+    unless defined $est;
 
   $est = 0 unless defined $est;
 
