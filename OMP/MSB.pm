@@ -34,14 +34,13 @@ use OMP::Constants qw/ :msb /;
 use Astro::Coords;
 use Astro::WaveBand;
 
-use Astro::SLA qw(); # elements
-
 # Generic TCS configuration parsing
 use JAC::OCS::Config::TCS;
 
 use Data::Dumper;
 use Time::Piece ':override';
 use Time::Seconds;
+use Scalar::Util qw/ blessed /;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -134,6 +133,7 @@ sub new {
     $tree = $tree->documentElement;
   } elsif (exists $args{TREE}) {
     $tree = $args{TREE};
+    $parser = $args{PARSER} if exists $args{PARSER};
     # Now get the references
     $refs = $args{REFS} if exists $args{REFS};
   } else {
@@ -150,7 +150,7 @@ sub new {
   my $otarg = {};
   $otarg = $args{OVERRIDE} if exists $args{OVERRIDE};
 
-  # Now create our Science Program hash
+  # Now create our MSB hash
   my $msb = {
 	    ProjectID => $projid,
 	    Parser => $parser,
@@ -181,6 +181,52 @@ sub new {
   $msb->_fixup_msb;
 
   return $msb;
+}
+
+=item B<clone>
+
+Clone the current MSB object by deep copying the associated DOM tree.
+Additional parameters are not deep copied (copies are made of the
+first level of non-blessed structures)
+
+  $clone = $msb->clone();
+
+This MSB will refer to an unbound node and may need to be inserted into
+a science program before it can be used properly.
+
+Will return undef if no node tree is associated with this MSB.
+
+=cut
+
+sub clone {
+  my $self = shift;
+
+  # get the DOM and deep copy it
+  my $rootnode = $self->_tree;
+  return unless defined $rootnode;
+  my $newdom = $rootnode->cloneNode( 1 );
+
+  # We now need to copy all the attributes. Do this the by copying all
+  # the internals and then changing the dom
+  my %copy;
+  for my $key ( keys %$self ) {
+    if (ref($self->{$key}) && !blessed($self->{$key})) {
+      # copy first level of non-blessed structures
+      if (ref($self->{$key}) eq 'HASH') {
+	$copy{$key} = { %{ $self->{$key} } };
+	next;
+      } elsif (ref($self->{$key}) eq 'ARRAY') {
+	$copy{$key} = [ @{ $self->{$key} } ];
+	next;
+      }
+    }
+    # Default is to simple copy. This will include objects.
+    $copy{$key} = $self->{$key};
+  }
+
+  my $newobj = bless \%copy, ref($self);
+  $newobj->_tree( $newdom );
+  return $newobj;
 }
 
 =back
@@ -792,10 +838,20 @@ of the same name).
 
 Title is set to "-" if none is present.
 
+ $msb->msbtitle( $newtitle );
+
+Note that if the title is changed, the checksum is recalculated.
+
 =cut
 
 sub msbtitle {
   my $self = shift;
+  if (@_) {
+    # Set the title
+    my $new = shift;
+    $self->_set_pcdata( $self->_tree, "title", $new );
+    $self->find_checksum();
+  }
   my $title = $self->_get_pcdata( $self->_tree, "title");
   $title = "-" unless defined $title;
   return $title;
@@ -2034,6 +2090,119 @@ sub hasBlankTargets {
   return $nblank;
 }
 
+=item B<fill_template>
+
+Fill in a template MSB with new parameters.
+
+  $msb->fill_template( coords => $c );
+  $msb->fill_template( coords => \@c );
+
+Supported hash keys are:
+
+  coords => An Astro::Coords object to fill in all blank targets components
+            If more than one coordinate is supplied, (reference to an array) 
+            the blank targets are replaced in turn, cycling if necessary
+
+A template is defined as an MSB that has at least one blank target component
+as specified by C<hasBlankTargets>.
+
+The current MSB will be modified.
+
+Returns the number of replace operations that were completed.
+If only coordinates are specified, this will be the number of blank
+targets replaced by new coordinates.
+
+The checksum is recalculated.
+
+=cut
+
+sub fill_template {
+  my $self = shift;
+  my %args = @_;
+
+  return 0 unless exists $args{coords};
+
+  # Read the coordinates into a simple array
+  my @sources;
+  @sources = (ref $args{coords} eq 'ARRAY' ? @{ $args{coords} } :
+	       $args{coords} );
+
+  # Coordinate replacement
+  # Count the number of useful blank target components
+  # Ignoring inheritance
+  my $blanks = $self->hasBlankTargets(0);
+  my $c = 0;
+  if ($blanks > 0) {
+
+    # do not check whether all the supplied sources will be used
+
+    # Now loop over all the blank telescope components
+    # Get all the components
+    my @tels = $self->_get_tel_comps( tree => $self->_tree );
+
+    # And only look at blanks
+    @tels = grep { $self->_is_blank_target($_); } @tels;
+
+    # Make sure we are replacing the correct number
+      throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
+	unless scalar(@tels) == $blanks;
+
+
+    # Now loop over the telescope components
+    my $i = 0; # Current source index
+    for my $tel (@tels) {
+
+      # There is no way this can happen
+      throw OMP::Error::FatalError( "Internal error: The number of blank telescope components encountered exceeds the expected number!!!\n")
+	if $c >= $blanks;
+
+      # Find the SCIENCE or BASE position, and retrieve it as a DOM
+      my $tcs = new JAC::OCS::Config::TCS( DOM => $tel );
+      my $sci = $tcs->getSciTag()->_tree;
+
+      throw OMP::Error::SpBadStructure("Unable to find SCIENCE/BASE position in target component")
+	unless defined $sci;
+
+      # Select the correct target object
+      my $coords = $sources[$i];
+
+      # Now replace this node, with a JAC::OCS::Config::TCS::BASE
+      # object
+      my $base = JAC::OCS::Config::TCS::BASE->new();
+      $base->tag( $sci->getAttribute( 'TYPE' ) );
+      $base->coords( $coords );
+
+      # Now create a mini DOM from the stringified base position
+      # (there is no dom() method yet that will automatically create
+      # a dom on demand)
+      my $parser = $self->_parser;
+      $parser = new XML::LibXML unless defined $parser;
+      my $dom = $parser->parse_balanced_chunk( $base->stringify );
+
+      # and insert it after the current base position
+      $sci->parentNode->insertAfter($dom, $sci);
+
+      # and remove the old node
+      $sci->unbindNode;
+
+      # increment the replace counter
+      $c++;
+
+      # increment the source counter
+      $i++;
+
+      # but reset it if it is too large
+      $i = 0 if $i > $#sources;
+
+    }
+
+  } else {
+    return 0;
+  }
+  $self->find_checksum();
+  return $c;
+}
+
 =item B<_is_blank_target>
 
 Returns true if the supplied target node contains a blank
@@ -2811,6 +2980,38 @@ sub _get_pcdata {
   }
 
   return $pcdata;
+}
+
+=item B<_set_pcdata>
+
+Given a reference node and child tag name, update the PCDATA contents
+of the first child by that name.
+
+  $msb->_set_pcdata( $el, $tag, $text );
+
+=cut
+
+sub _set_pcdata {
+  my $self = shift;
+  my $el = shift;
+  my $tag = shift;
+  my $pcdata = shift;
+
+  my @matches = $self->_get_children_by_name( $el, $tag);
+
+  if (@matches) {
+    my $root = $matches[-1];
+    my $child = $root->firstChild;
+
+    # Change the values in the node [making sure we allow for
+    # the possibility that there is a blank coordinate]
+    if (defined $child) {
+      $child->setData( $pcdata );
+    } else {
+      my $text = new XML::LibXML::Text( $pcdata );
+      $root->appendChild( $text );
+    }
+  }
 }
 
 =item B<_str_to_bool>
