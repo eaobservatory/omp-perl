@@ -12,10 +12,10 @@ OMP::NightRep - Generalized routines to details from a given night
                            telescope => 'jcmt');
 
   $obs = $nr->obs;
-  @faults = $nr->faults;
-  $timelost = $nr->faultloss;
+  $faultgroup = $nr->faults;
+  $timelost = $nr->timelost;
   @acct = $nr->accounting;
-  $weather = $nr->weatherloss;
+  $weather = $nr->weatherLoss;
 
 
 =head1 DESCRIPTION
@@ -43,12 +43,13 @@ use OMP::ArchiveDB;
 use OMP::ArcQuery;
 use OMP::Info::ObsGroup;
 use OMP::TimeAcctDB;
+use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
 use OMP::FaultDB;
 use OMP::FaultQuery;
-use OMP::FaultStats;
+use OMP::FaultGroup;
 use OMP::CommentServer;
 use OMP::MSBDoneDB;
 use OMP::MSBDoneQuery;
@@ -87,8 +88,13 @@ sub new {
   my %args = @_;
 
   my $nr = bless {
+		  DBAccounts => undef,
+		  HdrAccounts => undef,
+		  Faults => undef,
+		  Warnings => [],
 		  Telescope => undef,
 		  UTDate => undef,
+		  UTDateEnd => undef,
 		  DeltaDay => 1,
 		  DB => undef,
 		 };
@@ -109,7 +115,6 @@ sub new {
 
   }
   return $nr;
-
 }
 
 =back
@@ -159,9 +164,95 @@ sub date {
   }
 }
 
+=item B<date_end>
+
+Return the end date associated with this object. Returns a Time::Piece
+object (in UT format).  If the end date is defined, it, rather than
+the B<delta_day> value, will be used when generating the night report.
+
+  $date = $nr->date();
+  $nr->date( $date );
+  $nr->date( '2002-12-10' );
+
+Accepts a string or a Time::Piece object. The Hours, minutes and seconds
+are stripped. The date is assumed to be UT if supplied as a string.
+If supplied as an object the local vs UT time can be inferred.
+
+If no date has been specified, the undef value will be returned.
+
+If the supplied date can not be parsed as a date, the method will
+throw an exception.
+
+=cut
+
+sub date_end {
+  my $self = shift;
+  if (@_) {
+    # parse_date can handle local time
+    my $arg = shift;
+    my $date = OMP::General->parse_date( $arg );
+    throw OMP::Error::BadArgs("Unable to parse $arg as a date")
+      unless defined $date;
+    $self->{UTDateEND} = $date;
+  }
+
+  return $self->{UTDateEND};
+}
+
+=item B<db_accounts>
+
+Return time accounts from the time accounting database. Time accounts
+are represented by an C<OMP::TimeAcctGroup> object.
+
+  $acct = $nr->db_accounts();
+  $nr->db_accounts( $acct );
+
+Accepts a C<OMP::TimeAcctGroup> object.  Returns undef if no accounts
+were retrieved from the time accounting database.
+
+=cut
+
+sub db_accounts {
+  my $self = shift;
+  if (@_) {
+    my $acctgrp = $_[0];
+    throw OMP::Error::BadArgs("Accounts must be provided as an OMP::TimeAcctGroup object")
+      unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+    $self->{DBAccounts} = $acctgrp;
+  } elsif (! defined $self->{DBAccounts}) {
+    # No accounts cached.  Retrieve some
+    # Database connection
+    my $db = new OMP::TimeAcctDB( DB => $self->db );
+
+    # XML query
+    my $xml = "<TimeAcctQuery>".
+      $self->_get_date_xml .
+	"</TimeAcctQuery>";
+
+    # Get our sql query
+    my $query = new OMP::TimeAcctQuery( XML => $xml );
+
+    # Get the time accounting statistics from
+    # the TimeAcctDB table
+    my @acct = $db->queryTimeSpent( $query );
+
+    # Keep only the results for the telescope we are querying for
+    @acct = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
+						     $self->telescope
+						   )} @acct;
+
+    # Store result
+    my $acctgrp = new OMP::TimeAcctGroup(accounts=>\@acct);
+    $self->{DBAccounts} = $acctgrp;
+  }
+  return $self->{DBAccounts};
+}
+
 =item B<delta_day>
 
 Return the delta in days (24 hour periods, really) associated with this object.
+If B<date_end> is defined, this delta will not be used when generating the night
+report.
 
   $delta = $nr->delta_day();
   $nr->delta_day( 8 );
@@ -181,6 +272,118 @@ sub delta_day {
   }
 
   return $self->{DeltaDay};
+}
+
+=item B<faults>
+
+The faults relevant to this telescope and reporting period.  The faults
+are represented by an C<OMP::FaultGroup> object.
+
+  $fault_group = $nr->faults;
+  $nr->faults($fault_group);
+
+Accepts and returns an C<OMP::FaultGroup> object.
+
+=cut
+
+sub faults {
+  my $self = shift;
+  if (@_) {
+    my $fgroup = $_[0];
+    throw OMP::Error::BadArgs("Must provide faults as an OMP::FaultGroup object")
+      unless UNIVERSAL::isa($fgroup, 'OMP::FaultGroup');
+    $self->{faults} = $fgroup;
+  } elsif (! $self->{faults}) {
+    # Retrieve faults from the fault database
+    my $fdb = new OMP::FaultDB( DB => $self->db );
+
+    my %xml;
+    # We have to do two separate queries in order to get back faults that
+    # were filed on and occurred on the reporting dates
+
+    # XML query to get faults filed on the dates we are reaporting for
+    $xml{filed} = "<FaultQuery>".
+      $self->_get_date_xml() .
+	"<category>". $self->telescope ."</category>".
+	  "<isfault>1</isfault>".
+	    "</FaultQuery>";
+
+    # XML query to get faults that occurred on the dates we are reporting for
+    $xml{actual} = "<FaultQuery>".
+      $self->_get_date_xml('faultdate') .
+	"<category>". $self->telescope ."</category>".
+	  "</FaultQuery>";
+
+    # Do both queries and merge the results
+    my %results;
+    for my $xmlquery (keys %xml) {
+      my $query = new OMP::FaultQuery( XML => $xml{$xmlquery} );
+      my @results = $fdb->queryFaults( $query );
+
+      for (@results) {
+	# Use fault date epoch followed by ID for key so that we can
+	# sort properly and maintain uniqueness
+	if ($xmlquery =~ /filed/) {
+	  # Don't keep results that have an actual date if they were
+	  # returned by our "filed on" query
+	  if (! $_->faultdate) {
+	    $results{$_->date->epoch . $_->id} = $_;
+	  }
+	} else {
+	  $results{$_->date->epoch . $_->id} = $_;
+	}
+      }
+    }
+    # Convert result hash to array, then to fault group object
+    my @results = map {$results{$_}} sort keys %results;
+    my $fgroup = new OMP::FaultGroup(faults=>\@results);
+    $self->{faults} = $fgroup;
+  }
+  return $self->{faults};
+}
+
+=item B<hdr_accounts>
+
+Return time accounts derived from the data headers.  Time accounts are
+represented by an C<OMP::TimeAcctGroup> object.
+
+  $acctgrp = $nr->hdr_accounts();
+  $nr->hdr_accounts( $acctgrp );
+
+Accepts an C<OMP::TimeAcctGroup> object.  Returns undef list if no time
+accounts could be obtained from the data headers.
+
+=cut
+
+sub hdr_accounts {
+  my $self = shift;
+  if (@_) {
+    my $acctgrp = $_[0];
+    throw OMP::Error::BadArgs("Accounts must be provided as an OMP::TimeAcctGroup object")
+      unless UNIVERSAL::isa($acctgrp, 'OMP::TimeAcctGroup');
+    $self->{HdrAccounts} = $acctgrp;
+  } elsif (! defined $self->{HdrAccounts}) {
+    # No accounts cached, retrieve some.
+    # Get the time accounting statistics from the data headers
+    # Need to catch directory not found
+    my $obsgrp = $self->obs;
+    my ($warnings, @acct);
+    if ($obsgrp) {
+      # locate time gaps > 1 second when calculating statistics
+      $obsgrp->locate_timegaps( 1 );
+
+      ($warnings, @acct) = $obsgrp->projectStats();
+    } else {
+      $warnings = [];
+    }
+    # Store the result
+    my $acctgrp = new OMP::TimeAcctGroup(accounts => \@acct);
+    $self->{HdrAccounts} = $acctgrp;
+
+    # Store warnings
+    $self->warnings($warnings);
+  }
+  return $self->{HdrAccounts};
 }
 
 =item B<telescope>
@@ -227,6 +430,29 @@ sub db {
     $self->{DB} = new OMP::DBbackend;
   }
   return $self->{DB};
+}
+
+=item B<warnings>
+
+Any warnings that were generated as a result of querying the data
+headers for time accounting information.
+
+  $warnings = $nr->warnings;
+  $nr->warnings(\@warnings);
+
+Accepts an array reference. Returns an array reference.
+
+=cut
+
+sub warnings {
+  my $self = shift;
+  if (@_) {
+    my $warnings = $_[0];
+    throw OMP::Error::BadArgs("Warnings must be provided as an array reference")
+      unless ref($warnings) eq 'ARRAY';
+    $self->{Warnings} = $warnings;
+  }
+  return $self->{Warnings};
 }
 
 =back
@@ -312,30 +538,8 @@ sub accounting_db {
   my $self = shift;
   my $return_data = shift;
 
-  # Database connection
-  my $db = new OMP::TimeAcctDB( DB => $self->db );
-
-  # Subtract 1 day from the delta since the time accouting table
-  # stores dates with times as 00:00:00 and we'll end up getting
-  # more back than we expected.
-  my $delta = $self->delta_day - 1;
-
-  # XML query
-  my $xml = "<TimeAcctQuery>".
-    "<date delta=\"". $delta ."\">". $self->date->ymd ."</date>".
-      "</TimeAcctQuery>";
-
-  # Get our sql query
-  my $query = new OMP::TimeAcctQuery( XML => $xml );
-
-  # Get the time accounting statistics from
-  # the TimeAcctDB table
-  my @dbacct = $db->queryTimeSpent( $query );
-
-  # Keep only the results for the telescope we are querying for
-  @dbacct = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
-						     $self->telescope
-						   )} @dbacct;
+  my $acctgrp = $self->db_accounts;
+  my @dbacct = $acctgrp->accounts;
 
   my %projects;
   if ($return_data) {
@@ -378,18 +582,9 @@ method.
 sub accounting_hdr {
   my $self = shift;
 
-  # Get the time accounting statistics from the data headers
-  # Need to catch directory not found
-  my $obsgrp = $self->obs;
-  my ($warnings, @hdacct);
-  if ($obsgrp) {
-    # locate time gaps > 1 second when calculating statistics
-    $obsgrp->locate_timegaps( 1 );
-
-    ($warnings, @hdacct) = $obsgrp->projectStats();
-  } else {
-    $warnings = [];
-  }
+  my $acctgrp = $self->hdr_accounts;
+  my @hdacct = $acctgrp->accounts;
+  my $warnings = $self->warnings;
 
   # Form a hash
   my %projects;
@@ -400,7 +595,25 @@ sub accounting_hdr {
   $projects{$WARNKEY} = $warnings;
 
   return %projects;
+}
 
+=item B<ecTime>
+
+Return the time spent on E&C projects during this reporting period for
+this telescope.  That's time spent observing projects associated with
+the E&C queue and during non-extended time.
+
+  my $time = $nr->ecTime();
+
+Returns a C<Time::Seconds> object.
+
+=cut
+
+sub ecTime {
+  my $self = shift;
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->ec_time;
 }
 
 =item B<obs>
@@ -494,90 +707,25 @@ sub msbs {
   return %index;
 }
 
-=item B<faults>
+=item B<scienceTime>
 
-Return the fault objects relevant to this telescope and UT date.
+Return the time spent on science during this reporting period for
+this telescope.  That's time spent observing projects not
+associated with the E&C queue and during non-extended time.
 
-  @faults = $nr->faults;
+  my $time = $nr->scienceTime();
 
-Returns a list of C<OMP::Fault> objects.
-
-=cut
-
-sub faults {
-  my $self = shift;
-
-  my $fdb = new OMP::FaultDB( DB => $self->db );
-
-  my %xml;
-  # We have to do two separate queries in order to get back faults that
-  # were filed on and occurred on the reporting dates
-
-  # XML query to get faults filed on the dates we are reaporting for
-  $xml{filed} = "<FaultQuery>".
-    "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
-      "<category>". $self->telescope ."</category>".
-	"<isfault>1</isfault>".
-	  "</FaultQuery>";
-
-  # XML query to get faults that occurred on the dates we are reporting for
-  $xml{actual} = "<FaultQuery>".
-    "<faultdate delta=\"". $self->delta_day ."\">". $self->date->ymd . "</faultdate>".
-      "<category>". $self->telescope ."</category>".
-	"</FaultQuery>";
-
-  # Do both queries and merge the results
-  my %results;
-  for my $xmlquery (keys %xml) {
-    my $query = new OMP::FaultQuery( XML => $xml{$xmlquery} );
-    my @results = $fdb->queryFaults( $query );
-
-    for (@results) {
-      # Use fault date epoch followed by ID for key so that we can
-      # sort properly and maintain uniqueness
-      if ($xmlquery =~ /filed/) {
-	# Don't keep results that have an actual date if they were
-	# returned by our "filed on" query
-	if (! $_->faultdate) {
-	  $results{$_->date->epoch . $_->id} = $_;
-	}
-      } else {
-	$results{$_->date->epoch . $_->id} = $_;
-      }
-    }
-    
-  }
-
-  # Convert result hash to array
-  my @results = map {$results{$_}} sort keys %results;
-  return @results;
-}
-
-=item B<timelost>
-
-Returns the time lost to faults on this night and telescope.
-The time is returned as a Time::Seconds object.  Timelost to
-technical or non-technical faults can be returned by calling with
-an argument of either "technical" or "non-technical."  Returns total
-timelost when called without arguments.
+Returns a C<Time::Seconds> object.
 
 =cut
 
-sub timelost {
+sub scienceTime {
   my $self = shift;
-  my $arg = shift;
-  my @faults = $self->faults;
-  my $faultstats = new OMP::FaultStats( faults => \@faults );
-  if ($arg) {
-    if ($arg eq "technical") {
-      return $faultstats->timelostTechnical;
-    } elsif ($arg eq "non-technical") {
-      return $faultstats->timelostNonTechnical;
-    }
-  } else {
-    return $faultstats->timelost;
-  }
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->science_time;
 }
+
 
 =item B<shiftComments>
 
@@ -612,6 +760,88 @@ sub shiftComments {
   }
 
   return @result;
+}
+
+=item B<timelost>
+
+Returns the time lost to faults on this night and telescope.
+The time is returned as a Time::Seconds object.  Timelost to
+technical or non-technical faults can be returned by calling with
+an argument of either "technical" or "non-technical."  Returns total
+timelost when called without arguments.
+
+=cut
+
+sub timelost {
+  my $self = shift;
+  my $arg = shift;
+  my $faults = $self->faults;
+  return undef
+    unless defined $faults;
+  if ($arg) {
+    if ($arg eq "technical") {
+      return $faults->timelostTechnical;
+    } elsif ($arg eq "non-technical") {
+      return $faults->timelostNonTechnical;
+    }
+  } else {
+    return $faults->timelost;
+  }
+}
+
+=item B<timeObserved>
+
+Return the time spent observing on this night.  That's everything
+but time lost to weather and faults, and time spent doing "other"
+things.
+
+  my $time = $nr->timeObserved();
+
+
+Returns a C<Time::Seconds> object.
+
+=cut
+
+sub timeObserved {
+  my $self = shift;
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->observed_time
+}
+
+=item B<totalTime>
+
+Return total for all time accounting information.
+
+  my $time = $nr->totalTime();
+
+Returns a C<Time::Seconds> object.
+
+=cut
+
+sub totalTime {
+  my $self = shift;
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->totaltime;
+}
+
+=item B<weatherLoss>
+
+Return the time lost to weather during this reporting period for
+this telescope.
+
+  my $time = $nr->weatherLoss();
+
+Returns a C<Time::Seconds> object.
+
+=cut
+
+sub weatherLoss {
+  my $self = shift;
+  my $dbacct = $self->db_accounts;
+
+  return $dbacct->weather_loss;
 }
 
 =back
@@ -651,7 +881,8 @@ Project Time Summary
   #   T I M E   A C C O U N T I N G
   # Total time
   my $total = 0.0;
-  my $totalobserved; # Total time spent observing
+  my $totalobserved = 0.0; # Total time spent observing
+  my $totalproj = 0.0;
 
   # Time lost to faults
   my $format = "  %-25s %5.2f hrs\n";
@@ -684,8 +915,11 @@ Project Time Summary
     $str .= sprintf("$format", $proj.':', $acct{$proj}->timespent->hours);
     $total += $acct{$proj}->timespent->hours;
     $totalobserved += $acct{$proj}->timespent->hours;
+    $totalproj += $acct{$proj}->timespent->hours;
   }
 
+  $str .= "\n";
+  $str .= sprintf($format, "Project time", $totalproj);
   $str .= "\n";
   $str .= sprintf($format, "Total time observed:", $totalobserved);
   $str .= "\n";
@@ -708,7 +942,7 @@ Project Time Summary
   $str .= "\n";
 
   # Fault summary
-  my @faults = $self->faults;
+  my @faults = $self->faults->faults;
 
   $str .= "Fault Summary\n\n";
 
@@ -825,6 +1059,7 @@ sub ashtml {
 
   my $total = 0.0;
   my $total_pending = 0.0;
+  my $total_proj = 0.0; # Time spent on projects only
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
@@ -835,7 +1070,6 @@ sub ashtml {
     print "<a href='#obslog'>Observation Log</a><br>";
     print "<p>";
   }
-
 
 
   # T i m e  A c c o u n t i n g
@@ -894,13 +1128,11 @@ sub ashtml {
   for my $proj (keys %acct) {
      next if $proj =~ /^$tel/;
 
-    # No determine_country method exists, so we'll get project
-    # details instead
-    my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
+     # No determine_country method exists, so we'll get project
+     # details instead
+     my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
 
      $acct_by_country{$details->country}{$proj} = $acct{$proj};
-
-#    push(@{$acct_by_country{$details->country}}, {$acct{$proj});
   }
 
   # Project Accounting
@@ -914,13 +1146,13 @@ sub ashtml {
     }
 
     my $rowcount = 0;
-    #my $totalrows = scalar(%{$acct_by_country{$country}});
 
     for my $proj (sort keys %{$acct_by_country{$country}}) {
       $rowcount++;
 
       my $account = $acct_by_country{$country}{$proj};
       $total += $account->{total}->hours;
+      $total_proj += $account->{total}->hours;
 
       my $pending;
       if  ($account->{pending}) {
@@ -956,6 +1188,12 @@ sub ashtml {
     if ($total_pending > 0);
 
   print "</td>";
+
+  # Print total time spent on projects alone
+  print "<tr class='row_$bgcolor'>";
+  print "<td class='sum_other'>Total time spent on projects</td><td colspan=2 class='sum_other'>".
+    sprintf($format, $total_proj).
+      "</td>";
 
   # Get clear time
   my $cleartime = $total;
@@ -999,7 +1237,7 @@ sub ashtml {
 
     # F a u l t  S u m m a r y
     # Get faults
-    my @faults = $self->faults;
+    my @faults = $self->faults->faults;
 
     # Sort faults by local date
     my %faults;
@@ -1132,6 +1370,38 @@ sub mail_report {
 				 ' at the ' . $self->telescope,
 				 message => $report,
 				);
+}
+
+=back
+
+=head2 Internal Methods
+
+=item B<_get_date_xml>
+
+Return the date portion of an XML query.
+
+  $xmlpart = $self->_get_date_xml($tagname);
+
+The name of the date tag defaults to 'date', but this can be overridden
+by providing the name as an argument to this method.
+
+=cut
+
+sub _get_date_xml {
+  my $self = shift;
+  my $tag = shift;
+  (! defined $tag) and $tag = "date";
+
+  if ($self->date_end) {
+    return "<$tag><min>".$self->date->ymd."</min><max>".$self->date_end->ymd."</max></$tag>";
+  } else {
+    # Use the delta
+    # Subtract 1 day from the delta since the time accouting table
+    # stores dates with times as 00:00:00 and we'll end up getting
+    # more back than we expected.
+    my $delta = $self->delta_day - 1;
+    return "<$tag delta=\"$delta\">". $self->date->ymd ."</$tag>";
+  }
 }
 
 =back
