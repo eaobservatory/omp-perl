@@ -541,9 +541,12 @@ value is subtracted from the current count.
 The number remaining can not go below zero.
 
 If the argument is the constant C<OMP::Constants::OMP__MSB_REMOVED>
-this indicates that the MSB has not been observed but
-it has been removed from consideration. (e.g. from a OR block
-reorganisation or via C<hasBeenCompletelyObserved>).
+this indicates that the MSB has not been observed but it has been
+removed from consideration. (e.g. using the C<msbRemove> method from a
+OR block reorganisation or via C<hasBeenCompletelyObserved>). The
+actual value stored in the remaining counter will be a negative
+version of the current MSB remaining count. This allows the removal to
+be reversed. Removing an already removed MSB has no effect.
 
 =cut
 
@@ -563,20 +566,30 @@ sub remaining {
     # unless either the current value or the new value are the 
     # MAGIC value
 
+    # if the input arg is OMP__MSB_REMOVED we need to negate
+    # the current value.
+
     my $new;
-    if ($arg != OMP__MSB_REMOVED() and 
-	$current != OMP__MSB_REMOVED() and $arg < 0){
+    if ($arg == OMP__MSB_REMOVED) {
+      # Remove the MSB if it is not already in that state
+      if (!$self->isRemoved) {
+	$new = -1 * $current;
+      }
+    } elsif (!$self->isRemoved && $arg < 0) {
+      # The msb has not been removed and we need to decrement the counter
       $new = $current + $arg;
 
       # Now Force to zero if necessary
       $new = 0 if $new < 0;
 
     } else {
+      # we have a new value that is positive and not corresponding to a REMOVED
+      # state so we simply use it
       $new = $arg;
     }
 
-    # Set the new value
-    $self->_tree->setAttribute("remaining", $new);
+    # Set the new value if one has been defined
+    $self->_tree->setAttribute("remaining", $new) if defined $new;
   }
 
   return $self->_tree->getAttribute("remaining");
@@ -604,7 +617,7 @@ sub remaining_inc {
 
   # Tricky bit is the support for REMOVED
   # Assume that we are adding to 0
-  $current = 0 if $current == OMP__MSB_REMOVED;
+  $current = 0 if $self->isRemoved;
 
   # Get new value
   $current += $inc;
@@ -769,6 +782,60 @@ sub telescope {
 =head2 General Methods
 
 =over 4
+
+=item B<isRemoved>
+
+Return true if the MSB has been removed from consideration, false if it
+can still be actively selected.
+
+=cut
+
+sub isRemoved {
+  my $self = shift;
+  my $rem = $self->remaining;
+  return ($self->remaining < 0 ? 1 : 0 );
+}
+
+=item B<unRemove>
+
+Reverse a MSB removal. This method restores the MSB to its original
+count unless it has the magic value of OMP__MSB_REMOVED, in which case
+the repeat count is set to 1.
+
+ $msb->unRemove;
+
+No effect if the MSB remaining count is positive.
+
+Returns true if the MSB was reinstated, false otherwise.
+
+=cut
+
+sub unRemove {
+  my $self = shift;
+  return 0 unless $self->isRemoved;
+  my $rem= $self->remaining;
+  if ($rem == OMP__MSB_REMOVED) {
+    $rem = 1;
+  } else {
+    $rem *= -1;
+  }
+  $self->remaining( $rem );
+  return 1;
+}
+
+=item B<msbRemove>
+
+Remove the MSB from consideration. A thin wrapper around the C<remaining> method.
+Can be reversed using the C<unRemove> method. Returns true if the remove was successful,
+false if it has already been removed.
+
+=cut
+
+sub msbRemove {
+  my $self = shift;
+  return 0 if $self->isRemoved;
+  $self->remaining ( OMP__MSB_REMOVED );
+}
 
 =item B<find_checksum>
 
@@ -1015,7 +1082,8 @@ sub hasBeenObserved {
 
       for (@msbs) {
 	# Eek this should be happening on little OMP::MSB objects
-	$_->setAttribute("remaining",OMP__MSB_REMOVED());
+	my $rem = $_->getAttribute( "remaining" );
+	$_->setAttribute("remaining",($rem*-1)) if $rem > 0;
       }
     }
 
@@ -1047,28 +1115,36 @@ reflect the modified state.
 
 Any suspend flags are cleared.
 
+If the MSB has been removed, this method will have the effect of re-enabling
+it with the original number of repeats. No other change will be made, since the
+assumption is that the removal is being reversed rather than an MSB acceptance.
+
 =cut
 
 sub undoObserve {
   my $self = shift;
-  $self->remaining_inc( 1 );
 
-  # Reset datemin if we are a monitoring MSB
-  $self->scheduleMSBnow()
-    if $self->isPeriodic;
+  if ($self->isRemoved) {
+    $self->unRemove;
+  } else {
 
-  # unsuspend
-  $self->clearSuspended;
+    $self->remaining_inc( 1 );
 
+    # Reset datemin if we are a monitoring MSB
+    $self->scheduleMSBnow()
+      if $self->isPeriodic;
+
+    # unsuspend
+    $self->clearSuspended;
+  }
 }
 
 =item B<hasBeenCompletelyObserved>
 
-Indicate that this MSB has been completely observed. This involves
-decrementing the C<remaining()> counter to the value
-C<OMP__MSB_REMOVED>. Since this is not associated with an actual
-observation no rearranging of OR blocks is required (see
-C<hasBeenObserved>).
+Indicate that this MSB has been completely observed and should be
+removed from consideration. This involves setting the remaining count
+to negative.  Since this is not associated with an actual observation
+no rearranging of OR blocks is required (see C<hasBeenObserved>).
 
   $msb->hasBeenCompletelyObserved();
 
@@ -1088,7 +1164,7 @@ sub hasBeenCompletelyObserved {
   my $self = shift;
 
   # This is the easy bit
-  $self->remaining( OMP__MSB_REMOVED() );
+  $self->msbRemove();
 
   # Reset datemin if we are a monitoring MSB
   $self->scheduleMSBnow()

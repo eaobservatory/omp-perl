@@ -1406,10 +1406,16 @@ sub msb_comments {
     # If the MSB exists in the science program we'll provide a "Remove" button and we'll
     # be able to display the number of remaining observations.
     my $exists = ($sp and $sp->existsMSB($msb->checksum) ? 1 : 0 );
+
+    # this will be the actual science program MSB if it exists
+    # We need this so that we can provide the correct button types
+    my $spmsb;
+
     my $remstatus;
     if ($exists) {
-      my $remaining = $sp->fetchMSB($msb->checksum)->remaining;
-      if ($remaining == OMP__MSB_REMOVED) {
+      $spmsb = $sp->fetchMSB( $msb->checksum );
+      my $remaining = $spmsb->remaining;
+      if ($spmsb->isRemoved) {
 	$remstatus = "REMOVED";
       } elsif ($remaining == 0) {
 	$remstatus = "COMPLETE";
@@ -1476,9 +1482,14 @@ sub msb_comments {
     # Make "Remove" and "undo" buttons if the MSB exists in the 
     # science program
     if ($exists) {
-      print $q->submit("Remove");
-      print " ";
-      print $q->submit("Undo");
+      if ($spmsb->isRemoved) {
+	# If it has been removed, the only relevant action is to unremove it
+	print $q->submit("unRemove");
+      } else {
+	print $q->submit("Remove");
+	print " ";
+	print $q->submit("Undo");
+      }
       print " ";
     }
 
@@ -2483,7 +2494,7 @@ sub msb_action {
     };
 
   } elsif ($q->param("Remove")) {
-    # Mark msb as 'done'
+    # Mark msb as 'all done'
     try {
       OMP::MSBServer->alldoneMSB( $q->param('projectid'), $q->param('checksum') );
       print $q->h2("MSB removed from consideration");
@@ -2495,11 +2506,16 @@ sub msb_action {
       print "An error occurred while attempting to mark the MSB as Done:<p>$Error";
     };
 
-  } elsif ($q->param("Undo")) {
-    # Unmark msb as 'done'
+  } elsif ($q->param("Undo") || $q->param("unRemove")) {
+    # Unmark msb as 'done' or unremove a removed MSB
     try {
       OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum') );
-      print $q->h2("MSB done mark removed");
+      if ($q->param("Undo")) {
+	print $q->h2("MSB done mark removed");
+      } else {
+	print $q->h2("MSB no longer removed from consideration");
+      }
+
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
       print "MSB not found in database:<p>$Error";
