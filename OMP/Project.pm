@@ -66,7 +66,7 @@ sub new {
   my $proj = bless {
 		    Country => undef,
 		    Semester => undef,
-		    Allocated => 0,
+		    Allocated => Time::Seconds->new(0),
 		    Title => '',
 		    Telescope => undef,
 		    Encrypted => undef,
@@ -77,7 +77,7 @@ sub new {
 		    TagPriority => 999,
 		    PI => undef,
 		    Remaining => undef, # so that it defaults to allocated
-		    Pending => 0,
+		    Pending => Time::Seconds->new(0),
 		    Support => [],
 		   }, $class;
 
