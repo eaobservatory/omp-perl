@@ -1470,6 +1470,12 @@ sub _run_query {
 
   # Now convert the hashes to OMP::Info objects
   for my $msb (@observable) {
+
+    # Fix up date objects - should be OMP::Range
+    for (qw/ datemax datemin /) {
+      $msb->{$_} = OMP::General->parse_date( $msb->{$_});
+    }
+
     # Observations
     for my $obs (@{$msb->{observations}}) {
       $obs = new OMP::Info::Obs( %$obs );
