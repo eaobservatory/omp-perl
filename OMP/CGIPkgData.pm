@@ -100,8 +100,8 @@ sub _package_data {
   my $utdate = shift;
   my $cookie = shift;
 
-  print "<h2>Retrieving data for project ". $cookie->{projectid} .
-    " and UT date $utdate</h2>\n";
+  print $q->h2("Retrieving data for project ". $cookie->{projectid} .
+    " and UT date $utdate\n)";
 
   my $pkg = new OMP::PackageData( utdate => $utdate,
 				  projectid => $cookie->{projectid},
