@@ -2,7 +2,7 @@
 # Test OMP::General
 
 use Test;
-BEGIN { plan tests => 20 }
+BEGIN { plan tests => 23 }
 
 use OMP::General;
 
@@ -98,9 +98,23 @@ my @input = (
 	      projectid => "u/01b/52",
 	      result => "u/01b/52",
 	     },
+	     {
+	      projectid => "s1",
+	      result => "u/serv/01",
+	     },
+	     {
+	      projectid => "s4565",
+	      result => "u/serv/4565",
+	     }
 
 	    );
 
 for my $input (@input) {
   ok( OMP::General->infer_projectid(%$input), $input->{result});
 }
+
+# Test the failure when we cant decide which telescope
+eval {
+  OMP::General->infer_projectid( projectid => "h01"  );
+};
+ok( $@ =~ /Unable to determine telescope from supplied project ID/ );

@@ -240,8 +240,10 @@ project ID.
 If telescope is not supplied it is guessed.  If the project ID is just
 a number it is assumed to be part of a UKIRT style project. If it is a
 number with a letter prefix it is assumed to be the JCMT style (ie u03
--> m01bu03). If the supplied ID is ambiguous (most likely from a UH
-ID) the telescope must be supplied or else the routine will croak.
+-> m01bu03) although a prefix of "s" is treated as a UKIRT service
+project and expanded to "u/server/01" (for "s1"). If the supplied ID
+is ambiguous (most likely from a UH ID) the telescope must be supplied
+or else the routine will croak.
 
 The semester is determined from a "semester" key directly or from a date.
 The current date is used if no date or semester is supplied.
@@ -278,13 +280,13 @@ sub infer_projectid {
   # JCMT from UKIRT (for example JCMT has a letter prefix
   # such as "u03" whereas UKIRT mainly has a number "03" or "3")
   # The exception is for UH where both telescopes have 
-  # an "h" prefix.
+  # an "h" prefix. Additinally "s" prefix is UKIRT service.
   my $tel;
   if (exists $args{telescope}) {
     $tel = uc($args{telescope});
   } else {
     # Guess
-    if ($projid =~ /^\d+$/) {
+    if ($projid =~ /^s?\d+$/) {
       $tel = "UKIRT";
     } elsif ($projid =~ /^[unci]\d+$/) {
       $tel = "JCMT";
@@ -296,16 +298,29 @@ sub infer_projectid {
   # Now guess the actual projectid
   my $fullid;
   if ($tel eq "UKIRT") {
-    # Need to manipulate it a little if we have a single digit
-    # number
-    if ($projid =~ /^\d$/) {
-      # pad it
-      $projid = "0$projid";
-    } elsif ($projid =~ /^(h)(\d)$/i) {
-      # pad the UH number 
-      $projid = $1 . "0" . $2;
+
+    # Get the prefix and numbers if supplied project id is in 
+    # that form
+
+    if ($projid =~ /^([hsHS]?)(\d+)$/ ) {
+      my $prefix = $1;
+      my $digits = $2;
+
+      # Need to pad numbers to at least 2 digits
+      $digits = sprintf "%02d", $digits;
+
+      # For service the semester is always "serv" and
+      # the prefix is blank
+      if ($prefix =~ /[sS]/) {
+	$sem = "serv";
+	$prefix = '';
+      }
+
+      # Recreate the root project id
+      $projid = $prefix . $digits;
     }
 
+    # Now construct the full ID
     $fullid = "u/$sem/$projid";
 
   } elsif ($tel eq "JCMT") {
@@ -314,6 +329,8 @@ sub infer_projectid {
   } else {
     croak "$tel is not a recognized telescope";
   }
+
+  return $fullid;
 
 }
 
