@@ -217,7 +217,6 @@ sub thumbnails_page {
 
     # Get a directory listing.
     my $dir_h;
-#print "directory: $directory<br>\n";
     next if ( ! -d $directory );
     opendir( $dir_h, $directory ) or
       throw OMP::Error( "Could not open directory $directory for WORF thumbnail display: $!\n" );
@@ -337,7 +336,8 @@ sub thumbnails_page {
         next FILELOOP;
       } else {
         foreach my $suffix ( @suffices ) {
-          if( $file =~ /$suffix\./ ) {
+          if( ( ( uc($telescope) eq 'UKIRT') && ($file =~ /$suffix\./ ) ) ||
+              ( ( uc($telescope) eq 'JCMT')  && ($file =~ /$suffix/   ) ) ) {
             if( defined( $curgrp ) ) {
               if( $obs->runnr != $curgrp ) {
                 $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
@@ -445,7 +445,7 @@ sub display_graphic {
       while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
 
       close( CACHE );
-print STDERR "Displaying $cachefile from CGIWORF.\n";
+
       return;
     }
 
