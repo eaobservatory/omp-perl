@@ -1367,7 +1367,7 @@ sub issuepwd {
 
 =item B<project_home>
 
-Create a page which has a simple simmary of the project and links to the rest of the system that are easy to follow.
+Create a page which has a simple summary of the project and links to the rest of the system that are easy to follow.
 
   project_home($cgi, %cookie);
 
@@ -1425,6 +1425,9 @@ sub project_home {
   print "<tr><td><b>Country:</b></td><td>$country</td>";
   print "<tr><td><b>Semester:</b></td><td>$semester</td>";
   print "<tr><td colspan=2><a href='props.pl?urlprojid=$cookie{projectid}'>Click here to view the science case for this project</a></td>";
+
+  # Display a flex page link for UKIRT.  Temporary, of course.
+  ($project->telescope =~ /ukirt/i) and print "<tr><td><a href='http://www.jach.hawaii.edu/JAClocal/cgi-bin/omp/flexpage.pl?output=1'>View the Flex programme descriptions page</a></td>";
   print "</table>";
 
   # Time allocated/remaining along with tau range
@@ -2102,13 +2105,16 @@ sub flex_page {
   # Read in flex page
   open(FLEX, $flexpage) or die "Unable to open flex page [$flexpage]: $!";
 
-  my @output = <FLEX>;  # Slurp!
+  local $/ = undef;
+  my $output = <FLEX>;  # Slurp!
 
   close(FLEX);
 
+  $output =~ s/<body/<body BGCOLOR=\"\#BBBBEE\"/;
+
   # Display the page
   print "Content-Type: text/html\n\n";
-  print join("",@output);
+  print $output;
 }
 
 =item B<sumbit_fb_comment>
@@ -2255,7 +2261,8 @@ sub proj_sum_table {
   print "<td>Title</td>";
 
   my %bgcolor = (dark => "#6161aa",
-		 light => "#8080cc",);
+		 light => "#8080cc",
+                 disabled => "#e26868");
   my $bgcolor = $bgcolor{dark};
 
   foreach my $project (@$projects) {
@@ -2292,6 +2299,9 @@ sub proj_sum_table {
     }
 
     my $support = join(", ", map {$_->userid} $project->support);
+
+    # Make it noticeable if the project is disabled
+    (! $project->state) and $bgcolor = $bgcolor{disabled};
 
     print "<tr bgcolor=$bgcolor valign=top>";
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
