@@ -1,58 +1,42 @@
-#!/local/perl-5.6/bin/perl
+#!/local/bin/perl
 
-# Dump the contents of the Database
-# [currently only the science programs and the project info]
-# to disk
+# Dump the contents of the omp tables to disk
+# [excluding the sciprog, user, obs and msb tables]
 
-# Note: Faults, Feedback and MSBDone info is not dumped!!!!
-
-# The output directory is obtained from $OMP_DUMP_DIR
-
-use 5.006;
-use strict;
 use warnings;
-use OMP::SpServer;
-use OMP::ProjServer;
-use OMP::Error qw/ :try /;
-use Data::Dumper;
+use strict;
 
-# Abort if $OMP_DUMP_DIR is not set
-die "Must specify output data directory via \$OMP_DUMP_DIR"
-  unless exists $ENV{OMP_DUMP_DIR};
+# Pick up the OMP database
+use FindBin;
+use lib "$FindBin::RealBin/..";
+use OMP::DBbackend;
+use Storable qw(nstore);
 
-chdir $ENV{OMP_DUMP_DIR}
-  or die "Error changing to directory $ENV{OMP_DUMP_DIR}: $!\n";
+my $dumpdir = "/DSS/omp-cache/tables";
 
+chdir $dumpdir
+  or die "Error changing to directory $dumpdir: $!\n";
 
-# Now query the database for all projects
-my $projects = OMP::ProjServer->listProjects("<ProjQuery></ProjQuery>",
-					     "object");
+# Connect
+my $db = new OMP::DBbackend;
+my $dbh = $db->handle;
 
+my @tab;
+(@ARGV) and @tab = @ARGV or
+  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompsupuser ompcoiuser/;
 
-# Now for each of these projects attempt to read a science program
-for my $proj (@$projects) {
-  my $projid = $proj->projectid;
-  try {
-    # Use back door password
-    my $xml = OMP::SpServer->fetchProgram($projid, "***REMOVED***");
-    print "Retrieved science program for project $projid\n";
+foreach my $tab (@tab) {
+  my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab")
+    or die "Cannot select on $tab: ". $DBI::errstr;
 
-    # Write it out
-    my $outfile = $projid . ".xml";
-    $outfile =~ s/\//_/g;
-    open my $fh, "> $outfile" or die "Error opening outfile\n";
-    print $fh $xml;
-    close $fh;
-
-  } otherwise {
-    print "No science program available for $projid\n";
-
-  };
+  # rename the previous dump
+  if (-e $tab) {
+    rename($tab, $tab . "_2")
+      or die "Cannot rename previous dump file: $!\n";
+  }
+  nstore($ref, "$tab");
 
 }
 
-# Now dump the project info
-my $outfile = "projects.dump";
-open my $fh, ">$outfile" or die "Error opening file $outfile: $!";
-print $fh Dumper($projects);
-close $fh;
+$dbh->disconnect;
+
