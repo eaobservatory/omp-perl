@@ -235,8 +235,8 @@ sub storeSciProg {
     $self->_notify_feedback_system(
 				   subject => "Science program submitted",
 				   text => "Science program submitted for project <b>".
+				            $self->projectid ."</b> $note\n",
 				   status => OMP__FB_SUPPORT,
-				   $self->projectid ."</b> $note\n",
 				  );
   }
 
