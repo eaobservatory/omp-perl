@@ -33,7 +33,7 @@ my @domain = OMP::General->determine_host;
 # If the user is outside the JAC network write the page with
 # authentication
 if ($domain[1] and $domain[1] !~ /\./) {
-  $cgi->write_page_fault( \&query_fault_content, \&query_fault_output);
+  $cgi->write_page_fault( \&query_fault_output, \&query_fault_output);
 } else {
-  $cgi->write_page_fault_auth( \&query_fault_content, \&query_fault_output);
+  $cgi->write_page_fault_auth( \&query_fault_output, \&query_fault_output);
 }
