@@ -603,6 +603,188 @@ sub alldoneMSB {
 
 }
 
+=item B<historyMSB>
+
+Retrieve the observation history for the specified MSB (identified
+by checksum and project ID).
+
+  $xml = OMP::MSBServer->historyMSB( $checksum, 'xml');
+  $hashref = OMP::MSBServer->historyMSB( $checksum, 'data');
+  $arrref  = OMP::MSBServer->historyMSB( '', 'data');
+
+If the checksum is not supplied a full project observation history
+is returned. Note that the information retrieved consists of:
+
+ - Target name, waveband and instruments
+ - Date of observation or comment
+ - Comment associated with action
+
+The XML is retrieved in the following style:
+
+ <msbHistories>
+   <msbHistory checksum="yyy" projectid="M01BU53">
+     <instrument>UFTI</instrument>
+     <waveband>J/H</waveband>
+     <target>FS21</target>
+     <comment>
+       <text>MSB retrieved</text>
+       <date>2002-04-02T05:52</date>
+     </comment>
+     <comment>
+       <text>MSB marked as done</text>
+       <date>2002-04-02T06:52</date>
+     </comment>
+   </msbHistory>
+   <msbHistory checksum="xxx" projectid="M01BU53">
+     ...
+   </msbHistory>
+ <msbHistories>
+
+When checksum is defined the data structure is of the form:
+
+  $data = {
+	   checksum => "xxx",
+           projectid => "M01BU53",
+           instrument => "UFTI",
+           waveband => "J/H",
+           target => "FS21",
+           comment => [
+                       { 
+                        text => "MSB retrieved",
+                        date => "2002-04-02T05:52"
+                       },
+                       { 
+                        text => "MSB marked as done",
+                        date => "2002-04-02T06:52"
+                       },
+                      ],
+  };
+
+When checksum is not defined an array is returned (as a reference in perl)
+containing a hash as defined above for each MSB in the project.
+
+=cut
+
+sub historyMSB {
+  my $self = shift;
+  my $checksum = shift;
+  my $style = shift;
+
+  # Form hash
+  my %query;
+  $query{checksum} = $checksum if $checksum;
+  $query{projectid} = $self->projectid if $self->projectid;
+  $query{allinfo} = 1; # want all the information
+
+  # First read the rows from the database table
+  # and get the array ref
+  my @rows = $self->_fetch_msb_done_info( %query );
+
+  # Now need to go through all the rows forming the
+  # data structure (need to organize the data structure
+  # before forming the (optional) xml output)
+  my %msbs;
+  for my $row (@rows) {
+
+    # see if we've met this msb already
+    if (exists $msbs{ $row->{checksum} } ) {
+
+      # Add the new comment
+      push(@{ $msbs{ $row->{checksum} }->{comment} }, {
+						       text => $row->{comment},
+						       date => $row->{date},
+						      });
+
+
+    } else {
+      # populate a new entry
+      $msbs{ $row->{checksum} } = {
+				   checksum => $row->{checksum},
+				   target => $row->{target},
+				   waveband => $row->{waveband},
+				   instrument => $row->{instrument},
+				   projectid => $row->{projectid},
+				   comment => [
+					       {
+						text => $row->{comment},
+						date => $row->{date},
+					       }
+					      ],
+				  };
+    }
+
+
+  }
+
+  # Now form the XML if required
+  if ( defined $style && $style eq 'xml' ) {
+
+    # Assumes a single project ID
+    my $xml = "<msbHistories>\n";
+
+    for my $msb (keys %msbs) {
+
+      $xml .= "<msbHistory checksum=\"$msb\" projectid=\"" . $msbs{$msb}->{projectid} 
+	. "\">\n";
+
+      # normal keys
+      foreach my $key (qw/ instrument waveband target /) {
+	$xml .= "<$key>" . $msbs{$msb}->{$key} . "</$key>\n";
+      }
+
+      # Comments
+      for my $comment ( @{ $msbs{$msb}->{comment} } ) {
+	$xml .= "<comment>\n";
+	for my $key ( qw/ text date / ) {
+	  $xml .= "<$key>" . $comment->{$key} . "</$key>\n";
+	}
+	$xml .= "</comment>\n";
+      }
+
+    }
+
+    $xml .= "</msbHistories>\n";
+
+
+    return $xml;
+
+  } else {
+    # The data structure returned is actually an array  when checksum
+    # was not defined or a hash ref if it was
+
+    if ($checksum) {
+
+      return $msbs{$checksum};
+
+    } else {
+
+      my @all = map { $msbs{$_} }
+	sort { $msbs{$a}{projectid} cmp $msbs{$b}{projectid} } keys %msbs;
+
+      return \@all;
+
+
+    }
+
+  }
+
+
+}
+
+=item B<addMSBcomment>
+
+Add a comment to the specified MSB.
+
+ $db->addMSBcomment( $checksum, $comment );
+
+If the MSB has not yet been observed this command will fail.
+
+=cut
+
+sub addMSBcomment {
+
+
+}
 
 =back
 
@@ -1410,6 +1592,10 @@ most recent information of all information associated with the MSB.
 Project ID is retrieved from the object if none is supplied.
 Returns empty list if no rows can be found.
 
+If no checksum is supplied information for all MSBs associated with the
+project is retrieved (if C<allinfo> is true, else just the last one is
+retrieved). If no checksum and no project ID then all will be retrieved.
+
 =cut
 
 sub _fetch_msb_done_info {
@@ -1423,9 +1609,6 @@ sub _fetch_msb_done_info {
   # Get the project id if it is here
   $args{projectid} = $self->projectid
     if !exists $args{projectid} and defined $self->projectid;
-
-  throw OMP::Error::BadArgs("No checksum supplied for fetch_msb_done_info")
-    unless exists $args{checksum};
 
   # Assume that query keys match column names
   my @substrings = map { " $_ = ? " } sort keys %args;
@@ -1533,10 +1716,12 @@ update the MSB done table to contain this information.
 
 If the MSB object is defined the table information will be retrieved
 from the object. If it is not defined the information will be
-retrieved from the done table. An exception is triggered if the
-information for the table is not available (this is the reason why the
-checksum and project ID are supplied even though, in principal, this
-information could be obtained from the MSB object.
+retrieved from the done table (we can't read it from the MSB table
+because that would involve reading the msb and obs table in order to
+reconstruct the target and instrument info). An exception is triggered
+if the information for the table is not available (this is the reason
+why the checksum and project ID are supplied even though, in
+principal, this information could be obtained from the MSB object).
 
   $db->_store_msb_done_comment( $checksum, $proj, $msb, $text );
 

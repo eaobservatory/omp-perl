@@ -298,6 +298,142 @@ sub alldoneMSB {
 
 }
 
+=item B<historyMSB>
+
+Retrieve the observation history for the specified MSB (identified
+by checksum and project ID).
+
+  $xml = OMP::MSBServer->historyMSB( $project, $checksum, 'xml');
+  $hashref = OMP::MSBServer->historyMSB( $project, $checksum, 'data');
+  $arrref  = OMP::MSBServer->historyMSB( $project, '', 'data');
+
+If the checksum is not supplied a full project observation history
+is returned. Note that the information retrieved consists of:
+
+ - Target name, waveband and instruments
+ - Date of observation or comment
+ - Comment associated with action
+
+The XML is retrieved in the following style:
+
+ <msbHistories projectid="M01BU53" projectid="M01BU53">
+   <msbHistory checksum="yyy">
+     <instrument>UFTI</instrument>
+     <waveband>J/H</waveband>
+     <target>FS21</target>
+     <comment>
+       <text>MSB retrieved</text>
+       <date>2002-04-02T05:52</date>
+     </comment>
+     <comment>
+       <text>MSB marked as done</text>
+       <date>2002-04-02T06:52</date>
+     </comment>
+   </msbHistory>
+   <msbHistory checksum="xxx" projectid="M01BU53">
+     ...
+   </msbHistory>
+ <msbHistories>
+
+When checksum is defined the data structure is of the form:
+
+  $data = {
+           projectid => "M01BU53",
+           checksum => 'xxx',
+           instrument => "UFTI",
+           waveband => "J/H",
+           target => "FS21",
+           comment => [
+                       { 
+                        text => "MSB retrieved",
+                        date => "2002-04-02T05:52"
+                       },
+                       { 
+                        text => "MSB marked as done",
+                        date => "2002-04-02T06:52"
+                       },
+                      ],
+  };
+
+When checksum is not defined an array is returned (as a reference in perl)
+containing a hash as defined above for each MSB in the project.
+
+=cut
+
+sub historyMSB {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+  my $type = shift;
+
+  my $E;
+  my $result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project,
+			    DB => $class->dbConnection
+			   );
+
+    $result = $db->historyMSB( $checksum, $type );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $result;
+}
+
+=item B<addMSBcomment>
+
+Associate a comment with a previously observed MSB.
+
+  OMP::MSBServer->addMSBComment( $project, $checksum, $comment );
+
+=cut
+
+sub addMSBcomment {
+  my $class = shift;
+  my $project = shift;
+  my $checksum = shift;
+  my $comment = shift;
+
+  my $E;
+  my $result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDB(ProjectID => $project,
+			    DB => $class->dbConnection
+			   );
+
+    $result = $db->addMSBcomment( $checksum, $comment );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+}
+
+
 =item B<testServer>
 
 Test the server is actually handling requests.
