@@ -93,7 +93,11 @@ sub file_fault {
   print $q->textarea(-name=>'message',
 		     -rows=>20,
 		     -columns=>72,);
-  print "</td><tr><td colspan=2 align=right>";
+  print "</td><tr><td colspan=2><b>";
+  print $q->checkbox(-name=>'urgency',
+		     -value=>'urgent',
+		     -label=>"This fault is urgent");
+  print "</b></td><tr><td colspan=2 align=right>";
   print $q->submit(-name=>'Submit Fault');
   print $q->endform;
   print "</td></table>";
@@ -110,16 +114,25 @@ Submit a fault and create a page that shows the status of the submission.
 sub file_fault_output {
   my $q = shift;
 
-  # Create the fault object;
   my %status = OMP::Fault->faultStatus;
+
+  my $urgency;
+  my %urgency = OMP::Fault->faultUrgency;
+  if ($q->param('urgency') =~ /urgent/) {
+    $urgency = $urgency{Urgent};
+  } else {
+    $urgency = $urgency{Normal};
+  }
 
   my $resp = new OMP::Fault::Response(author=>$q->param('user'),
 				      text=>$q->param('message'),);
 
+  # Create the fault object
   my $fault = new OMP::Fault(category=>"OMP",
 			     subject=>$q->param('subject'),
 			     system=>$q->param('system'),
 			     type=>$q->param('type'),
+			     urgency=>$urgency,
 			     fault=>$resp);
 
   # Submit the fault the the database
@@ -173,7 +186,7 @@ sub fault_table {
   print "<table bgcolor=#ffffff cellpadding=3 cellspacing=0 border=0 width=620>";
   print "<tr bgcolor=#ffffff><td><b>Report by: </b>" . $fault->author . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>" . $fault->date . "</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
-  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . "</td><td><b>Status: </b>$statushtml</td>";
+  print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Status: </b>$statushtml</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td>$urgencyhtml</td>";
   print "<tr bgcolor=#ffffff><td colspan=2><b>Subject: </b>$subject</td>";
 
@@ -184,7 +197,7 @@ sub fault_table {
     # Make the cell bgcolor darker and dont show "Response by:" and "Date:" if the
     # response is the original fault
     if ($resp->isfault) {
-      print "<tr bgcolor=#ffffff><td colpsan=2><br>" . $resp->text . "<br><br></td>";
+      print "<tr bgcolor=#bcbce2><td colspan=2><br>" . $resp->text . "<br><br></td>";
     } else {
       print "<tr bgcolor=#dcdcf2><td><b>Response by: </b>" . $resp->author . "</td><td><b>Date: </b>" . $resp->date . "</td>";
       print "<tr bgcolor=#dcdcf2><td colspan=2>" . $resp->text . "<br><br></td>";
