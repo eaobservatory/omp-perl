@@ -573,9 +573,18 @@ sub locate_msbs {
   my @spmsb = $self->_tree->findnodes("//SpMSB");
 
   # Find all the SpObs elements that are not in SpMSB
-  # Don't worry about this yet - need to think about the XPath
-  # syntax
-  push( @spmsb, $self->_tree->findnodes('//SpObs[@msb="true"]'));
+  # We believe the MSB attribute
+  my @spobs = $self->_tree->findnodes('//SpObs[@msb="true"]');
+
+  # occassionally we get some spurious hits here (have not found
+  # out why) so go through and remove spobs that have an SpMSB
+  # parent [this is the safest way if we do not trust the msb attribute
+  # - it may be that we should never trust the attribute and always
+  # get every SpObs and then remove spurious ones.
+  for (@spobs) {
+    my ($parent) = $_->findnodes('ancestor-or-self::SpMSB');
+    push(@spmsb, $_) unless $parent;
+  }
 
   # Create new OMP::MSB objects
   my $refhash = $self->refs;
