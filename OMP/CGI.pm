@@ -191,20 +191,18 @@ sub html_title {
 Put a logout link in the sidebar, and some other feedback links under
 the title "Feedback Links"
 
-  $cgi->_sidebar_logout;
+  $cgi->_sidebar_logout(%cookie);
 
 =cut
 
 sub _sidebar_logout {
   my $self = shift;
   my $theme = $self->theme;
-  my $c = $self->cookie;
+  my %cookie = @_;
   my $q = $self->cgi;
 
-  my %cookie = $c->getCookie;
-
-  my $projectid = $cookie{projectid};
-  ($projectid) or $projectid = $q->param('projectid');
+  my $projectid = $q->url_param('urlprojid');
+  ($projectid) or $projectid = $cookie{projectid};
 
   $theme->SetMoreLinksTitle("Project: $projectid");
 
@@ -216,7 +214,7 @@ sub _sidebar_logout {
   # If there are any faults associated with this project put a link up to the
   # fault system and display the number of faults.
   my $faultdb = new OMP::FaultDB( DB => OMP::DBServer->dbConnection, );
-  my @faults = $faultdb->getAssociations($projectid,1);
+  my @faults = $faultdb->getAssociations(lc($projectid), 1);
   push (@sidebarlinks, "<a href=fbfault.pl>Faults</a>&nbsp;&nbsp;(" . scalar(@faults) . ")")
     if ($faults[0]);
 
@@ -396,6 +394,8 @@ sub _write_login {
     # form_output.
         $q->hidden(-name=>'login_form',
 		   -default=>1,),
+	$q->hidden(-name=>'show_content',
+		   -default=>1),
         $q->br,
 	"Project ID: </td><td colspan='2'>",
 	$q->textfield(-name=>'projectid',
@@ -465,115 +465,56 @@ sub write_page {
   # Retrieve the theme or create a new one
   $self->_make_theme;
 
-  # See if we are reading a form or not
-
-  if ($q->param) {
-    # Does this form include a password field?
-    if ($q->param('password')) {
-      # Okay need to get user name and password and
-      # set the cookie
-
-      my $projectid = $q->param('projectid');
-      my $password = $q->param('password');
-
-      # Verifying the password here to decide whether or not we want to set the
-      # cookie with it.
-      my $verify = OMP::ProjServer->verifyPassword($projectid, $password);
-
-      ($verify) and %cookie = (projectid=>$projectid, password=>$password) or
-	throw OMP::Error::Authentication("Password or project ID are incorrect");
-
-    } elsif (! exists $cookie{password} and !$q->url_param('urlprojid')) {
-      # Else no password at all (even in the cookie) so put up log in form
-
-      $self->_write_login;
-
-      # Dont want to do any more so return immediately
-      return;
-
-    } elsif ($q->url_param('urlprojid')) {
-
-      # The project ID is in the URL.  If the URL project ID doesn't
-      # match the project ID in the cookie (or there is no cookie) set
-      # the cookie with the URL project ID since the user just clicked
-      # a link to get here.
-
-
-      if ($q->url_param('urlprojid') ne $cookie{projectid}) {
-
-	my $verify = OMP::ProjServer->verifyPassword($q->url_param('urlprojid'), $cookie{password});
-
-	# If their cookie already has the right password store the new
-	# projectid to the cookie, otherwise popup a login page
-	if ($verify) {
-	  %cookie = (projectid=>$q->url_param('urlprojid'), password=>$cookie{password});
-	} else {
-	  $self->_write_login($q->url_param('urlprojid'));
-	  return;
-	}
-      }
-    }
-
-    # Set the cookie with a new expiry time (this occurs even if we
-    # already have one. This allows for automatic expiry if noone
-    # reloads the page
-    $c->setCookie( $EXPTIME, %cookie );
-
-    # Put a logout link on the sidebar
-    $self->_sidebar_logout;
-
-    # Print HTML header (including sidebar)
-    $self->_write_header($STYLE);
-
-    # Now everything is ready for our output. Just call the
-    # code ref with the cookie contents
-
-    if ($q->param('login_form') or $q->param('show_content') or $q->url_param('id') and !$q->param('show_output')) {
-      # If there's a 'login_form' param then we know we just came from
-      # the login form.  Also, if there is a 'show_content' param, call
-      # the content code ref.  If an 'id' url parameter exists then show content (for
-      # viewing faults by specifying their id in the url).
-
-      $form_content->( $q, %cookie);
-    } else {
-      $form_output->( $q, %cookie);
-    }
-
-    # Write the footer
-    $self->_write_footer();
-
-  } else {
-    # We are creating forms, not reading them.  Or we might just be
-    # creating output.
-
-    # If the cookie contains a password field just put up the
-    # HTML content
-    if (exists $cookie{password}) {
-
-      # Set the cookie with a new expiry time (this occurs even if we
-      # already have one. This allows for automatic expiry if noone
-      # reloads the page
-      $c->setCookie( $EXPTIME, %cookie );
-
-      # Put a logout link on the sidebar
-      $self->_sidebar_logout;
-
-      # Write the header
-      $self->_write_header($STYLE);
-
-      # Run the callback
-      $form_content->( $q, %cookie );
-
-      # Write the footer
-      $self->_write_footer();
-
-    } else {
-      # Pop up a login box instead
-      $self->_write_login();
-
-    }
-
+  # Store the password and project id for verification
+  if ($q->param('login_form')) {
+    $cookie{projectid} = $q->param('projectid');
+    $cookie{password} = $q->param('password');
   }
+
+  $cookie{projectid} = $q->url_param('urlprojid')
+    if ($q->url_param('urlprojid'));
+
+  # Check to see if any login information has been provided. If not then
+  # put up a login page.  If there is login information verify it and put
+  # up a login page if it is incorrect.
+  my $verify;
+  if (exists $cookie{projectid} and exists $cookie{password}) {
+    $verify = OMP::ProjServer->verifyPassword($cookie{projectid}, $cookie{password});
+  } else {
+    $self->_write_login;
+    return;
+  }
+
+  if (! $verify) {
+    $self->_write_login($q->url_param('urlprojid'));
+    return;
+  }
+
+  # Set the cookie with a new expiry time (this occurs even if we
+  # already have one. This allows for automatic expiry if noone
+  # reloads the page
+  $c->setCookie( $EXPTIME, %cookie );
+
+  # Put a logout link on the sidebar
+  $self->_sidebar_logout(%cookie);
+
+  # Print HTML header (including sidebar)
+  $self->_write_header($STYLE);
+
+  # Now everything is ready for our output. Just call the
+  # code ref with the cookie contents
+
+  # See if we should show content (display forms)
+  if ($q->param('show_content') or $q->url_param('content')) {
+    $form_content->($q, %cookie);
+  } elsif ($q->param('show_output') or $q->url_param('output')) {
+    $form_output->($q, %cookie);
+  } else {
+    $form_content->($q, %cookie);
+  }
+
+  # Write the footer
+  $self->_write_footer();
 
 }
 
