@@ -27,7 +27,7 @@ use Carp;
 
 use OMP::ProjServer;
 use OMP::Cookie;
-use OMP::Error;
+use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::FaultServer;
@@ -122,8 +122,8 @@ sub new {
 
 The C<HTML::WWWTheme> associated with this class.
 
-  $theme = $c->theme;
-  $c->theme( $theme);
+  $theme = $cgi->theme;
+  $cgi->theme( $theme);
 
 This is used and generated internally.
 
@@ -143,10 +143,10 @@ sub theme {
 
 =item B<cgi>
 
-Return the CGI object associated with the cookies.
+Return the CGI object of class C<CGI>.
 
-  $cgi = $c->cgi;
-  $c->cgi( $q );
+  $q = $cgi->cgi;
+  $cgi->cgi( $q );
 
 The argument must be in class C<CGI>.
 
@@ -165,10 +165,12 @@ sub cgi {
 
 =item B<cookie>
 
-Return the cookie object.  This is of class C<OMP::Cookie>.
+Returns an array reference containing objects of class C<OMP::Cookie>.  If called with a cookie object as an argument the object is stored with the rest
+of the cookies.  When called with an array reference all cookies are
+replaced.
 
-  $cookie = $c->cookie;
-  $c->cookie( $cookie );
+  $cookie = $cgi->cookie;
+  $cgi->cookie( $cookie );
 
 =cut
 
@@ -176,13 +178,35 @@ sub cookie {
   my $self = shift;
   if (@_) {
     my $cookie = shift;
+    my @cookies;
 
-    croak "Incorrect type. Must be a OMP::Cookie object"
-      unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
+    if (ref($cookie) eq 'ARRAY') {
+      # Multiple cookies.  Replace existing cookies with these ones
+      for (@$cookie) {
+	croak "Incorrect type. Must be a OMP::Cookie object"
+	  unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
+      }
 
-    $self->{Cookie} = $cookie;
+      @cookies = @$cookie;
+
+    } else {
+      # Single cookie.  Place it in our cookie array.
+      croak "Incorrect type. Must be a OMP::Cookie object"
+	unless UNIVERSAL::isa( $cookie, "OMP::Cookie");
+
+      ($self->{Cookie}) and @cookies = @{$self->{Cookie}};
+      push(@cookies, $cookie);
+    }
+
+    # Get rid of duplicate cookies
+    my %no_dupes = map {$_->name, $_} @cookies;
+    @cookies = map {$_} values %no_dupes;
+    $self->{Cookie} = \@cookies;
+
   }
+
   return $self->{Cookie};
+
 }
 
 =item B<html_title>
@@ -358,12 +382,20 @@ sub _write_header {
   my $self = shift;
   my $style = shift;
   my $q = $self->cgi;
-  my $c = $self->cookie;
+  my $cookie = $self->cookie;
   my $theme = $self->theme;
 
+  # Convert the OMP::Cookie objects to CGI::Cookie objects
+  for my $c (@$cookie) {
+    $c = $c->cookie;
+  }
+
   # Print the header info
-  if (defined $c) {
-    print $q->header( -cookie => $c->cookie,
+  # Make sure there is atleast one cookie if we're going to provide
+  # them in the header
+
+  if (@$cookie[0]) {
+    print $q->header( -cookie => $cookie,
 		      -expires => '-1d' );
   } else {
     print $q->header( -expires => '-1d' );
@@ -466,6 +498,50 @@ sub _write_login {
 
   $self->_write_footer();
 }
+
+=item B<_write_login_fault>
+
+Create the login form.
+
+$cgi->_write_login_fault(%args);
+
+Optional paramter is a hash whos values indicate which fields (represtented by the keys) were incorrect.  Valid keys are B<password>.  A true value indicates that the field was incorrect.
+
+=cut
+
+sub _write_login_fault {
+  my $self = shift;
+  my %args = @_;
+  my $q = $self->cgi;
+
+  $self->_write_header($STYLE);
+
+  print $q->h1('Fault System Login');
+  # If the password was incorrect tell them so
+  ($args{password}) and print "<b>The password you provided was incorrect.</b><br>";
+
+  print "If you are accessing the fault system from outside the JAC network you must provide the staff password in order to gain access.";
+
+  print "<table><tr valign='bottom'>";
+  print $q->startform,
+
+    $q->hidden(-name=>'login_form',
+	       -default=>1,),
+	$q->hidden(-name=>'show_content',
+		   -default=>1),
+        $q->br,
+	"<td>Password: </td><td>",
+	$q->password_field(-name=>'login_password',
+			   -size=>17,
+			   -maxlength=>30),
+	"</td><tr><td colspan=2 align=right>",
+	$q->submit("Submit"),
+	$q->endform;
+  print "</td></table>";
+
+  $self->_write_footer();
+}
+
 
 =item B<_write_staff_login>
 
@@ -889,10 +965,24 @@ sub write_page_fault {
 
   # If there is a fault ID in the URL get the fault and set the 
   # cookie category to whatever category the fault is
+  my $fault;
   if ($q->url_param('id')) {
-    my $fault = OMP::FaultServer->getFault($q->url_param('id'));
-    $cookie{category} = $fault->category;
+    # Display an error if we're unable to retrieve the fault.
+    # We do this here since this class sets up the fault viewing
+    # environment and nothing higher up will work anyway if we
+    # can't retrieve the fault
+    my $faultid = $q->url_param('id');
+    my $E;
+    try {
+      $fault = OMP::FaultServer->getFault($faultid);
+    } otherwise {
+      $E = shift;
+      print "Unable to retrieve fault $faultid [$E]";
+    };
   }
+
+  $cookie{category} = $fault->category
+    if ($fault);
 
   if (defined $cookie{category}) {
     $self->_sidebar_fault($cookie{category});
@@ -904,7 +994,7 @@ sub write_page_fault {
 
   $self->_write_header($STYLE);
 
-  if (!$cookie{category} and !$q->param) {
+  if (!$cookie{category}) {
 
     my $publicurl = $self->public_url;
     my $privateurl = $self->private_url;
@@ -933,63 +1023,55 @@ sub write_page_fault {
   $self->_write_footer();
 }
 
-=item B<write_page_report>
+=item B<write_page_fault_auth>
 
-Create pages in similar fashion to B<write_page_fault>, but handle cookies
-differently (i.e: do not get the category from the CGI cookie).  This function is
-used to provide a version of the fault system to users outside the JAC.  Does
-not authenticate.  It should be noted that the fault category is passed to the
-code reference along with the cookie contents even though it is never written
-to the cookie.
+Same as write_page_fault described elsewhere in this document, but
+with authentication.
 
-  $cgi->write_page_report( $category, \&content, \&output );
-
-Unlike the other write_page functions, this function takes an additional
-argument that is not a code reference.  The first argument should be the
-fault category to use.
+  $cgi->write_page_fault_auth( \&content, \&output );
 
 =cut
 
-sub write_page_report {
+sub write_page_fault_auth {
   my $self = shift;
-  my $category = shift;
   my ($form_content, $form_output) = @_;
 
   my $q = $self->cgi;
 
-  my $c = new OMP::Cookie( CGI => $q, Name => "OMPREPORT" );
-  $self->cookie( $c );
+  # Attempt to get the password cookie
+  my $p = new OMP::Cookie( CGI => $q, Name => "OMPFAULTAUTH" );
+  my %auth = $p->getCookie;
 
-  my %cookie = $c->getCookie;
 
-  $self->_make_theme;
+  # Didn't get it from the cookie, try getting it from the login form
+  (! $auth{password}) and $auth{password} = $q->param('login_password');
 
-  # Store the user name to the cookie
-  if ($q->param('user')) {
-    $cookie{user} = $q->param('user');
-  }
+  # Verify the password
+  if ($auth{password}) {
+    my $verify = OMP::General->verify_staff_password($auth{password}, 1);
 
-  $c->setCookie( $EXPTIME, %cookie);
-
-  
-
-  $self->_write_header($STYLE);
-
-  # We want to store the fault category in the cookie hash, but
-  # not write it to the actual cookie.
-  $cookie{category} = $category;
-
-  if ($q->param) {
-    if ($q->param('show_output')) {
-      $form_output->($q, %cookie);
-    } else {
-      $form_content->($q, %cookie);
+    # Password fails, put up login form explaining that password
+    # was incorrect
+    if (! $verify) {
+      $self->_write_login_fault(password => 1);
+      return;
     }
   } else {
-    $form_content->($q, %cookie);
+
+    # Still wasn't able to get the password; put up the login form
+    $self->_write_login_fault;
+    return;
   }
 
-  $self->_write_footer();
+  # Password authenticates so store the password to the auth cookie and
+  # write the fault page
+  $p->setCookie('+24h', %auth);
+
+  # Add the auth cookie to our cookies
+  $self->cookie($p);
+
+
+  $self->write_page_fault($form_content, $form_output);
 }
 
 =back
