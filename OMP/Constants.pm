@@ -30,7 +30,8 @@ require Exporter;
 my @status = qw/OMP__OK OMP__ERROR OMP__FATAL/;
 my @fb = qw/OMP__FB_INFO OMP__FB_IMPORTANT OMP__FB_HIDDEN OMP__FB_DELETE/;
 my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
-  OMP__DONE_COMMENT OMP__DONE_UNDONE/;
+  OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
+  OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
 my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
 
@@ -179,6 +180,34 @@ Entry is associated with a simple comment.
 =cut
 
 use constant OMP__DONE_COMMENT => 3;
+
+=item OMP__DONE_ABORTED
+
+The MSB was started but was aborted part way through.
+
+=cut
+
+use constant OMP__DONE_ABORTED => 4;
+
+=item OMP__DONE_REJECTED
+
+All the observations in an MSB were completed but the observer
+decided that it was not suitable.
+
+=cut
+
+use constant OMP__DONE_REJECTED => 5;
+
+=item OMP__DONE_SUSPENDED
+
+The MSB was started but it was unable to be completed. The observer
+determined that useful data was obtained and that the MSB could safely
+be completed another day without repeating the initial observations.
+
+=cut
+
+use constant OMP__DONE_SUSPENDED => 6;
+
 
 =back
 
