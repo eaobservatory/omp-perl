@@ -468,7 +468,16 @@ sub projectStats {
 
       if ($status == OMP__TIMEGAP_INSTRUMENT) {
 	# Charge this to CAL
-	$projectid = $CAL_NAME;
+	# Need to decide how to process INSTRUMENT gaps.
+	# We really need finer control. At the very least they
+	# should be charged to generic calibrations associated
+	# with the instrument in question. Also, we need to know whether
+	# this means instrument following this gap or instrument preceeding
+	# the gap (for example taking polarimeter on and off) and also
+	# whether we should be charging just the project preceeding or
+	# following this gap. For now kluge it and charge to OTHER anyway.
+	# since that is probably close for now than charging CAL
+	$projectid = $OTHER_GAP;
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
 	$projectid = $WEATHER_GAP;
       } else {
@@ -510,12 +519,24 @@ sub projectStats {
     my $gapprojid = $projectid;
 
     # But we want to make sure that gaps solely between calibration
-    # observations are not charged to OTHER when JCMTCAL would be a better
-    # bet. But note that these are not apportioned to other projects
+    # observations are not charged to OTHER when it would be better
+    # if they were attached to generic calibration overheadds for the
+    # instrument (and apportioned to real data).
+    # We therefore must store the instrument as well
     $gapprojid = $CAL_NAME if (!$isgap && ! $obs->isScience);
 
-    push(@{$gapproj{$ymd}{$tel}}, $gapprojid)
-      if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || $gapproj{$ymd}->{$tel}->[-1] ne $gapprojid);
+    # Store the array ref with projectid and instrument
+    # but only this is the first entry or if we are not repeating
+    # the same projectID
+
+    # Always push if we are the first element
+    # Also push a projectid on the array if previous isnot an array (ie a gap)
+    # OR if the previous project is not the same as the current project
+    push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
+      if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || 
+	  (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
+	  (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
+	  $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
 
 
     # We can calculate extended time so long as we have 2 of startobs, endobs and duration
@@ -565,6 +586,8 @@ sub projectStats {
 	$gapproj{$ymd}->{$tel}->[-1] = { OTHER => $timespent->seconds };
       } else {
 	# Just charge to OTHER
+	print "CHARGING ".$timespent->seconds." TO $projectid\n"
+	  if $DEBUG;
 	$other{$ymd}{$tel}{$projectid} += $timespent->seconds;
       }
 
@@ -643,6 +666,81 @@ sub projectStats {
   }
 
   print "Proj after science calibrations:".Dumper( \%proj) if $DEBUG;
+
+  # And any small forgotten leftover time gaps
+  # Including charging gaps between calibrations to generic calibrations
+  print "Processing gaps:\n" if $DEBUG;
+  for my $ymd (keys %gapproj) {
+    for my $tel (keys %{ $gapproj{$ymd} }) {
+      # Now step through the data charging time gaps 50% each to the projects
+      # on either side IF an entry exists in the %proj_totals hash
+      # If an entry is not there, charge it to OTHER (since it may just have
+      # done cals all night)
+      my @projects = @{ $gapproj{$ymd}{$tel}};
+      # If we only have 1 or 2 entries here then the number of gaps to apportion
+      # is tiny and we only have one side. Charge to OTHER
+      if (@projects > 2) {
+	for my $i (1..$#projects) {
+	  # Can not be a gap in the very first entry so start at 1
+	  # and can not be one at the end
+	  if (ref($projects[$i]) eq 'HASH') {
+	    # We have a gap. This should be charged to the following
+	    # project
+	    my $gap = $projects[$i]->{OTHER};
+
+	    # but make sure we do not extend the array indefinitely
+	    # This code is more complicated in case we want to apportion
+	    # the gap to projects on either side
+	    my @either;
+	    push(@either, $projects[$i+1]) if $#projects != $i;
+
+	    # if we do not have a project following this 
+	    # charge to OTHER
+	    if (@either) {
+	      for my $projdata (@either) {
+		next unless defined $projdata;
+		next unless ref($projdata) eq 'ARRAY';
+
+		my $proj = $projdata->[0];
+		my $inst = $projdata->[1];
+
+		#$proj = $tel . $proj if $proj =~ /$CAL_NAME$/ && $proj !~ /^$tel/i;
+
+		# Only charge to the gap if we have already charged to it
+		# CAL should be charged to shared calibrations
+		if (exists $proj{$ymd}{$proj}{$inst} &&
+		    $proj !~ /$CAL_NAME$/) {
+		  $proj{$ymd}{$proj}{$inst} += $gap;
+		  print "Adding $gap to $proj with $inst\n" if $DEBUG;
+		} else {
+		  # We should charge this to the instrument gen cals
+		  # regardless of the project name
+		  $cals{$ymd}{$inst}{$CAL_NAME} += $gap;
+		  print "Adding $gap to CALibration $inst\n" if $DEBUG;
+		}
+	      }
+	    } else {
+	      # We should charge this to $tel OTHER
+	      # regardless of the project name
+	      print "Adding $gap to OTHER\n" if $DEBUG;
+              $other{$ymd}{$tel}{$OTHER_GAP} += $gap;
+	    }
+	  }
+	}
+      } else {
+	# We should charge this to $tel OTHER
+	# regardless of the project name
+	for my $entry (@projects) {
+	  next unless ref($entry) eq 'HASH';
+	  $other{$ymd}{$tel}{$OTHER_GAP} += $entry->{OTHER};
+	  print "Adding ". $entry->{OTHER} ." to OTHER[2]\n" if $DEBUG;
+	}
+      }
+    }
+  }
+
+  print Dumper(\%proj,\%cals,\%other) if $DEBUG;
+  print "GAPS done\n" if $DEBUG;
 
   # Now need to apportion the generic calibrations amongst
   # all the projects by instrument
@@ -732,72 +830,6 @@ sub projectStats {
       }
     }
   }
-
-  # And any small forgotten leftover time gaps
-  print "Processing gaps:\n" if $DEBUG;
-  for my $ymd (keys %gapproj) {
-    for my $tel (keys %{ $gapproj{$ymd} }) {
-      # Now step through the data charging time gaps 50% each to the projects
-      # on either side IF an entry exists in the %proj_totals hash
-      # If an entry is not there, charge it to OTHER (since it may just have
-      # done cals all night)
-      my @projects = @{ $gapproj{$ymd}{$tel}};
-      # If we only have 1 or 2 entries here then the number of gaps to apportion
-      # is tiny and we only have one side. Charge to OTHER
-      if (@projects > 2) {
-	for my $i (1..$#projects) {
-	  # Can not be a gap in the very first entry so start at 1
-	  # and can not be one at the end
-	  if (ref($projects[$i])) {
-	    # We have a gap. This should be charged to the following
-	    # project
-	    my $gap = $projects[$i]->{OTHER};
-
-	    # but make sure we do not extend the array indefinitely
-	    # This code is more complicated in case we want to apportion
-	    # the gap to projects on either side
-	    my @either;
-	    push(@either, $projects[$i+1]) if $#projects != $i;
-
-	    # if we do not have a project following this 
-	    # charge to OTHER
-	    if (@either) {
-	      for my $proj (@either) {
-		next unless defined $proj;
-		next unless not ref($proj);
-
-		$proj = $tel . $proj if $proj =~ /$CAL_NAME$/ && $proj !~ /^$tel/i;
-
-		if (exists $proj_totals{$ymd}{$proj} || $proj =~ /$CAL_NAME$/) {
-		  $proj_totals{$ymd}{$proj} += $gap;
-
-		} else {
-		  # We should charge this to $tel OTHER
-		  # regardless of the project name
-		  my $key = $tel . $OTHER_GAP;
-		  $proj_totals{$ymd}{$key} += $gap;
-		}
-	      }
-	    } else {
-	      # We should charge this to $tel OTHER
-	      # regardless of the project name
-	      my $key = $tel . $OTHER_GAP;
-	      $proj_totals{$ymd}{$key} += $gap;
-	    }
-	  }
-	}
-      } else {
-	# We should charge this to $tel OTHER
-	# regardless of the project name
-	for my $entry (@projects) {
-	  next unless ref($entry);
-	  my $key = $tel . $OTHER_GAP;
-	  $proj_totals{$ymd}{$key} += $entry->{OTHER};
-	}
-      }
-    }
-  }
-  print "GAPS done\n" if $DEBUG;
 
   # Add in the extended/weather and other time
   for my $ymd (keys %other) {
