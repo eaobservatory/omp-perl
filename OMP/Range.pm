@@ -138,8 +138,9 @@ range as an hash.
 
 Returns reference to an hash in a scalar context.
 
-C<min> or C<max> can be ommitted. The returned hash always
-includes C<min> and C<max>.
+C<min> or C<max> can be ommitted. The returned hash
+contains C<min> and C<max> keys but only if they
+have defined values.
 
 =cut
 
@@ -150,7 +151,12 @@ sub minmax_hash {
     $self->min( $args{min} ) if exists $args{min};
     $self->max( $args{max} ) if exists $args{max};
   }
-  my %minmax = ( min => $self->min, max => $self->max );
+
+  # Populate the output hash
+  my %minmax;
+  $minmax{min} = $self->min if defined $self->min;
+  $minmax{max} = $self->max if defined $self->max;
+
   return (wantarray ? %minmax : \%minmax);
 }
 
