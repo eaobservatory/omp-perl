@@ -140,7 +140,8 @@ sub coi {
     my @names;
     if (ref($_[0]) eq 'ARRAY') {
       @names = @{ $_[0] };
-    } else {
+    } elsif (defined $_[0]) {
+      # If the first name isnt valid assume none are
       @names = @_;
     }
 
@@ -186,7 +187,8 @@ sub coiemail {
     my @names;
     if (ref($_[0]) eq 'ARRAY') {
       @names = @{ $_[0] };
-    } else {
+    } elsif (defined $_[0]) {
+      # If first isnt valid assume none are
       @names = @_;
     }
 
