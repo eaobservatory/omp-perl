@@ -3,8 +3,8 @@
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
-use lib qw(/jac_sw/omp/msbserver);
-#use lib qw(/home/bradc/development/omp/msbserver);
+#use lib qw(/jac_sw/omp/msbserver);
+use lib qw(/home/bradc/development/omp/msbserver);
 use OMP::CGI;
 use OMP::Info::Obs;
 use OMP::Info::Comment;
@@ -212,10 +212,10 @@ sub displayComment {
 
   # Grab the most recent active comment.
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-  my $comment = $odb->getComment( $obs );
+  my @comments = $odb->getComment( $obs );
 
   # Print it out.
-  if(defined($comment)) {
+  foreach my $comment (@comments) {
     print "<table border=\"1\">\n";
     print "<tr><td><strong>Instrument</strong></td><td>";
     print $obs->{instrument};
@@ -252,29 +252,29 @@ sub displayForm {
 
   # First try to find out if there's a comment associated with this
   # observation.
-  if( defined( $params->{'ut'} ) &&
-      defined( $params->{'runnr'} ) &&
-      defined( $params->{'inst'} ) ) {
+#  if( defined( $params->{'ut'} ) &&
+#      defined( $params->{'runnr'} ) &&
+#      defined( $params->{'inst'} ) ) {
 
     # Form the Time::Piece object.
 
-    my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
+#    my $startobs = Time::Piece->strptime( $params->{'ut'}, '%Y-%m-%d-%H-%M-%S' );
 
     # Form the Info::Obs object.
-    my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
-                                   startobs => $startobs,
-                                   instrument => uc($params->{'inst'}) );
+#    my $obs = new OMP::Info::Obs ( runnr => $params->{'runnr'},
+#                                   startobs => $startobs,
+#                                   instrument => uc($params->{'inst'}) );
 
     # Grab the most recent active comment.
-    my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-    my $comment = $odb->getComment( $obs );
+#    my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+#    my @comments = $odb->getComment( $obs );
 
-    if(defined($comment)) {
-      $params->{user} = $comment->author->userid;
-      $params->{status} = $comment->status;
-      $params->{text} = $comment->text;
-    }
-  }
+#    if(defined($comment)) {
+#      $params->{user} = $comment->author->userid;
+#      $params->{status} = $comment->status;
+#      $params->{text} = $comment->text;
+#    }
+#  }
   print "<form action=\"obscomment.pl\" method=\"post\"><br>\n";
   print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
   print "Author:</td><td><input type=\"text\" name=\"user\" value=\"";
