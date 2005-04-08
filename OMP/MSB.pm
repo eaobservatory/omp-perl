@@ -1671,7 +1671,8 @@ sub stringify {
     if (!$override_priority && exists $override{targetNode});
 
   # We may be overriding the SpTelescopeObsComp
-  my $override_tel = $override{telNode}->toString
+  my $override_tel;
+  $override_tel = $override{telNode}->toString
     if exists $override{telNode};
 
   # Keep track of whether we have removed a tel component
@@ -1686,6 +1687,26 @@ sub stringify {
   my $string = "<$name ". join(" ", 
 			       map { $_ . '="' . $attrs{$_} .'"' }
 			         keys %attrs) .">\n";
+
+  # if there is no SpTelescopeObsComp in the children list we need
+  # to insert one explicitly if we have an override
+  if (defined $override_tel && ! grep { $_->getName eq 'SpTelescopeObsComp' }
+                                    @children) {
+
+    # it is easier simply to $string.=override_tel here but we get
+    # neater output XML if we insert it just in front of the first
+    # SpObs
+    print "INSERTING OVERRIDE TEL NODE INTO CHILD LIST\n" if $DEBUG;
+    my $inserted;
+    @children = map { 
+      if ( $_->getName eq 'SpObs' && !$inserted ) {
+	$inserted = 1;
+	( $override{telNode}, $_);
+      } else {
+	$_;
+      }
+    } @children;
+  }
 
   # go through children, replacing priority with override priority
   # and any SpTelescopeObsComp with override.
@@ -1765,6 +1786,9 @@ sub stringify {
 	      # We probably need to look to see if we are inheriting
 	      # another SpTelescopeObsComp for UKIRT where autoTarget
 	      # does not work
+	      print "NO TARGET INSERT:" . ($child_tel ? " FOUND TEL " : '') .
+	        ($isstd ? " IS STANDARD " : '') . "\n"
+	        if $DEBUG;
 	      $string .= $obs->toString;
 	    } else {
 	      # Stringify the SpObs whilst inserting an extra Tel component
