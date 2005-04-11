@@ -274,6 +274,7 @@ sub projlog_content {
   my %cookie = @_;
 
   my $utdatestr = $q->url_param('utdate');
+  my $no_retrieve = $q->url_param('noretrv');
 
   my $utdate;
   my $projectid;
@@ -313,8 +314,11 @@ sub projlog_content {
     print "Retrieve data [This link will become active on " . $today->strftime("%Y-%m-%d %H:%M") . " GMT]";
   } else {
     my $pkgdataurl = OMP::Config->getData('pkgdata-url');
-    print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
-    print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+
+    unless ($no_retrieve) {
+      print "<a href='$pkgdataurl?utdate=$utdate&inccal=1'>Retrieve data with calibrations</a><br>";
+      print "<a href='$pkgdataurl?utdate=$utdate&inccal=0'>Retrieve data excluding calibrations</a>";
+    }
   }
 
   # Link to WORF thumbnails
