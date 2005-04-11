@@ -131,6 +131,12 @@ for my $proj (keys %sorted) {
   my $msg = sprintf "$hfmt\n", "Project", "Target", "Instrument",
     "Waveband", "Checksum";
 
+  # UKIRT KLUGE: Find out if project is a WFCAM project
+  my $wfcam_proj;
+  if ($sorted{$proj}->[0]->instrument eq 'WFCAM') {
+    $wfcam_proj = 1;
+  }
+
   for my $msbid ( @{ $sorted{$proj} } ) {
 
     # Note that %s does not truncate strings so we have to do that
@@ -152,10 +158,18 @@ for my $proj (keys %sorted) {
   if ($debug) {
     print $msg;
     print "\nStatus: $status\n";
+
   } else {
     my ($user, $host, $email) = OMP::General->determine_host;
 
     my $fixed_text = "<html><p>Data was obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
+
+    # UKIRT KLUGE: Provide a different message for WFCAM users
+    my $wfcam_text = "<html><p>Data was obtained for your project on date $utdate.\nFor more details log in to the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
+
+    if ($wfcam_proj) {
+      $fixed_text = $wfcam_text;
+    }
 
     OMP::FBServer->addComment(
 			      $proj,
