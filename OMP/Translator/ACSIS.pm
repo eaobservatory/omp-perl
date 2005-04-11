@@ -434,14 +434,14 @@ sub instrument_config {
     unless -e $file;
 
   # Read it
-  my $inst = new JAC::OCS::Config::Instrument( File => $file,
-					       validation => 0,
-					     );
+  my $inst_cfg = new JAC::OCS::Config::Instrument( File => $file,
+						   validation => 0,
+						 );
 
   # tweak the wavelength
-  $inst->wavelength( $info{wavelength} );
+  $inst_cfg->wavelength( $info{wavelength} );
 
-  $cfg->instrument_setup( $inst );
+  $cfg->instrument_setup( $inst_cfg );
 
 }
 
@@ -1087,7 +1087,8 @@ sub cubes {
       #  - the extent of the jiggle pattern
       #  - the footprint of the array
       # GRID + single pixel is easy since it is just the offset pattern
-      my @offsets = @{$info{offsets}};
+      my @offsets;
+      @offsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
 									 @offsets );
 
@@ -1239,12 +1240,14 @@ sub acsis_layout {
   $layout = "<abcd>$layout</abcd>\n";
 
   # Create the process layout object
-  my $pl = new JAC::OCS::Config::ACSIS::ProcessLayout( XML => $layout, validation => 0);
-  $acsis->process_layout( $pl );
+  my $playout = new JAC::OCS::Config::ACSIS::ProcessLayout( XML => $layout,
+							    validation => 0);
+  $acsis->process_layout( $playout );
 
   # and links
-  my $pl = new JAC::OCS::Config::ACSIS::ProcessLinks( XML => $layout, validation => 0);
-  $acsis->process_links( $pl );
+  my $plinks = new JAC::OCS::Config::ACSIS::ProcessLinks( XML => $layout,
+							  validation => 0);
+  $acsis->process_links( $plinks );
 
 }
 
@@ -1509,7 +1512,8 @@ such that distance from tangent plane is not taken into account.
 
 The offsets are provided as an array of hashes with keys OFFSET_DX,
 OFFSET_DY and OFFSET_PA. All are in arcsec and position angles are in
-degrees.
+degrees. If no offsets are supplied, the grid is assumed to be a single
+position at the coordinate origin.
 
 The first argument is the Nyquist value for this wavelength in arcsec
 (assuming the offsets are in arcsec). This will be used to calculate
@@ -1523,7 +1527,12 @@ sub calc_grid {
   my $self = shift;
   my $nyquist = shift;
   my @offsets = @_;
-  return () unless @offsets;
+
+  # default to single position at the origin
+  @offsets = ( { OFFSET_PA => 0,
+		 OFFSET_DX => 0,
+		 OFFSET_DY => 0,
+	       }) unless @offsets;
 
   # Rotate to fixed coordinate frame
   my $refpa = $offsets[0]->{OFFSET_PA};
