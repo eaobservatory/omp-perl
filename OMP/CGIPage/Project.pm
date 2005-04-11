@@ -453,6 +453,15 @@ sub project_home {
       $accounts{$_->date->ymd} = $_;
     }
 
+    # UKIRT KLUGE: Find out if project is a WFCAM project
+    my $msbs = OMP::SpServer->programDetails($cookie{projectid},
+					     $cookie{password},
+					     'objects');
+    my $wfcam_proj;
+    if ($msbs->[0]->instrument eq 'WFCAM') {
+      $wfcam_proj = 1;
+    }
+
     print "<h3>Observations were acquired on the following dates:</h3>";
 
     my $pkg_url = OMP::Config->getData('pkgdata-url');
@@ -460,7 +469,13 @@ sub project_home {
     for my $ymd (sort keys %nights) {
 
       # Make a link to the obslog page
-      print "<a href='utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd'>$ymd</a> ";
+      my $obslog_url = "utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd";
+
+      # UKIRT KLUGE: If project is a WFCAM project, link to project log with
+      # 'noretrv' paramater so that no data retrieval links will appear
+      $obslog_url .= "&noretrv=1" if ($wfcam_proj);
+
+      print "<a href='$obslog_url'>$ymd</a> ";
 
       if (exists $accounts{$ymd}) {
 	my $timespent = $accounts{$ymd}->timespent;
@@ -470,7 +485,16 @@ sub project_home {
 	  # If the time spent is unconfirmed, say so
 	  print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
 
-	  print "($h hours) click on date to retrieve data";
+	  print "($h hours) ";
+
+	  # UKIRT KLUGE: Present link differently if project is a
+	  # WFCAM project
+	  if ($wfcam_proj) {
+	    print "click on date to view project log";
+	  } else {
+	    print "click on date to retrieve data";
+	  }
+
         } else {
 	  print "(no science data taken) ";
         }
