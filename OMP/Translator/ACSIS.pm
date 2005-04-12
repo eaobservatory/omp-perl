@@ -218,6 +218,7 @@ sub tcs_config {
   $self->observing_area( $tcs, %info );
 
   # Then secondary mirror
+  $self->secondary_mirror( $tcs, %info );
 
   # Slew and rotator require the duration to be known which can
   # only be calculated when the configuration is complete
@@ -289,7 +290,6 @@ sub observing_area {
   my $tcs = shift;
   my %info = @_;
 
-  $self->observing_mode(%info);
   my $obsmode = $info{MODE};
 
   my $oa = new JAC::OCS::Config::TCS::obsArea();
@@ -358,6 +358,36 @@ sub observing_area {
 
   # need to decide on public vs private
   $tcs->_setObsArea( $oa );
+}
+
+=item B<secondary_mirror>
+
+Calculate the secondary mirror parameters. Critically depends on
+switching mode.
+
+  $trans->secondary_mirror( $tcs, %info );
+
+First argument is C<JAC::OCS::Config::TCS> object.
+
+=cut
+
+sub secondary_mirror {
+  my $self = shift;
+  my $tcs = shift;
+  my %info = @_;
+
+  my $smu = new JAC::OCS::Config::TCS::Secondary();
+
+  my $obsmode = $info{MODE};
+  my $sw_mode = $info{switchingMode};
+
+  if ($sw_mode eq 'Nod') {
+    # No chopping
+    $smu->motion( "CONTINUOUS" );
+
+  }
+
+  $tcs->_setSecondary( $smu );
 }
 
 =item B<fe_config>
