@@ -536,7 +536,11 @@ sub fe_config {
   $fe->doppler( ELEC_TUNING => 'GROUP', MECH_TUNING => 'ONCE' );
 
   # Frequency offset
-  $fe->freq_off_scale( 0 );
+  my $freq_off = 0.0;
+  if ($info{switchingMode} =~ /Frequency/ && defined $info{frequencyOffset}) {
+    $freq_off = $info{frequencyOffset};
+  }
+  $fe->freq_off_scale( $freq_off );
 
   # Mask selection depends on observing mode but for now we can just
   # make sure that all available pixels are enabled
@@ -791,6 +795,12 @@ sub jos_config {
     throw OMP::Error::TranslateFail( "Unable to determine jos recipe from observing mode '$mode'");
   }
 
+  # The number of cycles is simply the number of requested integrations
+  $jos->num_cycles( defined $info{nintegrations}  ? $info{nintegrations} :  1);
+
+  # The step time is always present
+  $jos->step_time( $self->step_time( %info ) );
+
   # Now parameters depends on that recipe name
 
   # Raster
@@ -808,10 +818,8 @@ sub jos_config {
   }
 
   # Tasks can be worked out by seeing which objects are
-  # present in the config object. It is hard for the JOS object
-  # to work it out itself without having a reference to the parent
-  # object
-  my %tasks;
+  # This is done automatically on stringication of the config object
+  # so we do not need to do it here
 
 
   # store it
