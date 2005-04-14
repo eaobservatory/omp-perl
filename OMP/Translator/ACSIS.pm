@@ -415,7 +415,7 @@ sub secondary_mirror {
   $smu->motion( "CONTINUOUS" );
 
   # Configure the chop parameters
-  if ($sw_mode eq 'Chop') {
+  if ($sw_mode eq 'Chop' || $sw_mode eq 'Beam') {
     throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
       unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
 	      defined $info{CHOP_SYSTEM} );
@@ -1444,9 +1444,9 @@ sub observing_mode {
 
   if ($mode eq 'SpIterRasterObs') {
     $summary{mapping_mode} = 'raster';
-    if ($swmode eq 'Nod') {
+    if ($swmode eq 'Position') {
       $summary{switching_mode} = 'pssw';
-    } elsif ($swmode eq 'Chop') {
+    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
       throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
       $summary{switching_mode} = 'chop';
     } else {
@@ -1462,10 +1462,10 @@ sub observing_mode {
     $summary{obs_type} = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
     # check switch mode
-    if ($swmode eq 'Nod') {
+    if ($swmode eq 'Position') {
       $summary{mapping_mode} = 'grid';
       $summary{switching_mode} = 'pssw';
-    } elsif ($swmode eq 'Chop') {
+    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
       $summary{mapping_mode} = 'jiggle';
       $summary{switching_mode} = 'chop';
     } else {
@@ -1474,11 +1474,11 @@ sub observing_mode {
   } elsif ($mode eq 'SpIterJiggleObs' ) {
     # depends on switch mode
     $summary{mapping_mode} = 'jiggle';
-    if ($swmode eq 'Chop') {
+    if ($swmode eq 'Chop' || $swmode eq 'Beam') {
       $summary{switching_mode} = 'chop';
     } elsif ($swmode =~ /^Frequency-/) {
       $summary{switching_mode} = 'freqsw';
-    } elsif ($swmode eq 'Nod') {
+    } elsif ($swmode eq 'Position') {
       throw OMP::Error::TranslateFail("jiggle_pssw mode not supported\n");
     } else {
       throw OMP::Error::TranslateFail("Jiggle with switch mode $swmode not supported\n");
