@@ -107,7 +107,10 @@ sub translate {
 		   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
 		   "using Translator version $VERSION on an MSB created by the OT version $otver\n");
 
-    # First, configure the basic TCS parameters
+    # Observation summary
+    $self->obs_summary( $cfg, %$obs );
+
+    # configure the basic TCS parameters
     $self->tcs_config( $cfg, %$obs );
 
     # Instrument config
@@ -187,11 +190,38 @@ These routines configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
+=item B<obs_summary>
+
+Observation summary.
+
+ $trans->obs_summary( $cfg, %info );
+
+where $cfg is the main C<JAC::OCS::Config> object. Stores a
+C<JAC::OCS::Config::ObsSummary> object into the supplied
+configuration.
+
+=cut
+
+sub obs_summary {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  my $obs = new JAC::OCS::Config::ObsSummary;
+  my %summary = $self->observing_mode( %info );
+
+  $obs->mapping_mode( $summary{mapping_mode} );
+  $obs->switching_mode( defined $summary{switching_mode} ? $summary{switching_mode} : 'none' );
+  $obs->type( $summary{obs_type} );
+
+  $cfg->obs_summary( $obs );
+}
+
 =item B<tcs_config>
 
 TCS configuration.
 
-  $tcsxml = $TRANS->tcs_config( $cfg, %info );
+  $trans->tcs_config( $cfg, %info );
 
 where $cfg is the main C<JAC::OCS::Config> object.
 
@@ -381,10 +411,97 @@ sub secondary_mirror {
   my $obsmode = $info{MODE};
   my $sw_mode = $info{switchingMode};
 
-  if ($sw_mode eq 'Nod') {
-    # No chopping
-    $smu->motion( "CONTINUOUS" );
+  # Default to CONTINUOUS mode
+  $smu->motion( "CONTINUOUS" );
 
+  # Configure the chop parameters
+  if ($sw_mode eq 'Chop') {
+    throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
+      unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
+	      defined $info{CHOP_SYSTEM} );
+
+    $smu->chop( THROW => $info{CHOP_THROW},
+		PA => new Astro::Coords::Angle( $info{CHOP_PA}, units => 'deg' ),
+		SYSTEM => $info{CHOP_SYSTEM},
+	      );
+  }
+
+  # Jiggling
+
+  # Jiggle pattern name and number of points in the pattern
+  my %jig_patterns = (
+		      '3x3' => { name => 'smu_3x3.dat',
+				 npts => 9 },
+		      '5x5' => { name => 'smu_5x5.dat',
+				 npts => 25 },
+		      '7x7' => { name => 'smu_7x7.dat',
+				 npts => 49 },
+		      '9x9' => { name => 'smu_9x9.dat',
+				 npts => 81 },
+		     );
+
+  if ($obsmode eq 'SpIterJiggleObs') {
+
+
+    if (!exists $jig_patterns{ $info{jigglePattern} }) {
+      throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern $info{jigglePattern}\n");
+    }
+
+    $smu->jiggle( SYSTEM => $info{jiggleSystem},
+		  SCALE => $info{scaleFactor},
+		  NAME => $jig_patterns{ $info{jigglePattern} }->{name},
+		  PA => new Astro::Coords::Angle( $info{jigglePA}, units => 'deg'),
+		);
+
+  }
+
+  # Relative timing required if we are jiggling and chopping
+  if ($smu->smu_mode() eq 'jiggle_chop') {
+    # First get the canonical RTS step time. This controls the time spent on each
+    # jiggle position.
+    my $rts = $self->step_time( %info );
+
+    # total number of points in pattern
+    my $npts = $jig_patterns{$info{jigglePattern}}->{npts};
+
+    # Now the number of jiggles per chop position is dependent on the
+    # maximum amount of time we want to spend per chop position and the constraint
+    # that n_jigs_on must be divisible into the total number of jiggle positions.
+
+    # Let's say this is maximum time between chops in seconds
+    my $tmax_per_chop = 1.0;
+
+    # Now calculate the number of steps in that time period
+    my $maxsteps = int( $tmax_per_chop / $rts );
+
+    if ($maxsteps == 0) {
+      throw OMP::Error::TranslateFail("Maximum chop duration is shorter than RTS step time!\n");
+    } elsif ($maxsteps == 1) {
+      # we can only do one step per chop
+      $smu->timing( CHOPS_PER_JIG => 1 );
+
+    } else {
+      # we can fit in multiple jiggle positions per chop
+
+      # now work out how many evenly spaced jiggles we can fit into this period
+      my $njigs;
+      if ($npts < $maxsteps) {
+	$njigs = $npts;
+      } else {
+	# start at the maximum allowed and decrement until we get something that
+	# divides exactly into the total number of points. Not a very elegant
+	# approach
+	$njigs = $maxsteps;
+
+	$njigs-- while ($npts % $njigs != 0);
+      }
+
+      # the number of steps in the "off" position depends on the number
+      # of steps we have just completed in the "on".
+      $smu->timing( N_JIGS_ON => $njigs,
+		    N_CYC_OFF => int( sqrt($njigs) + 0.5 ),
+		  );
+   }
   }
 
   $tcs->_setSecondary( $smu );
@@ -663,8 +780,7 @@ sub jos_config {
   my %JOSREC = (
 		focus       => 'focus',
 		pointing    => 'pointing',
-		jiggle_fast_fsw =>  'fast_jiggle_fsw',
-		jiggle_slow_fsw => 'slow_jiggle_fsw',
+		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
 		jiggle_chop => 'jiggle_chop',
 		grid_pssw   => 'raster_or_grid_pssw',
 		raster_pssw => 'raster_or_grid_pssw',
@@ -1293,11 +1409,20 @@ The standard modes are:
 
   focus
   pointing
-  jiggle_fast_fsw
-  jiggle_slow_fsw
+  jiggle_freqsw
   jiggle_chop
   grid_pssw
   raster_pssw
+
+Note that there is no explicit slow vs fast jiggle switch mode
+returned from this routine since more subsystems ignore the difference
+than care about the difference.
+
+In list context the information is returned in a hash with keys
+"mapping_mode", "switching_mode" and "obs_type" (see also the
+C<obs_summary> method).
+
+ %details = $trans->observing_mode( %info );
 
 =cut
 
@@ -1309,24 +1434,81 @@ sub observing_mode {
   print Dumper( \%info );
 
 
+  my %summary;
+
+  # assume science
+  $summary{obs_type} = 'science';
+
   my $mode = $info{MODE};
+  my $swmode = $info{switchingMode};
 
   if ($mode eq 'SpIterRasterObs') {
-    return 'raster_pssw';
+    $summary{mapping_mode} = 'raster';
+    if ($swmode eq 'Nod') {
+      $summary{switching_mode} = 'pssw';
+    } elsif ($swmode eq 'Chop') {
+      throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
+      $summary{switching_mode} = 'chop';
+    } else {
+      throw OMP::Error::TranslateFail("Raster with switch mode $swmode not supported\n");
+    }
   } elsif ($mode eq 'SpIterPointingObs') {
-    return 'pointing';
+    $summary{mapping_mode} = 'jiggle';
+    $summary{switching_mode} = 'chop';
+    $summary{obs_type} = 'pointing';
   } elsif ($mode eq 'SpIterFocusObs' ) {
-    return 'focus';
+    $summary{mapping_mode} = 'jiggle';
+    $summary{switching_mode} = 'chop';
+    $summary{obs_type} = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
-    # should check switch mode
-    return 'grid_pssw';
+    # check switch mode
+    if ($swmode eq 'Nod') {
+      $summary{mapping_mode} = 'grid';
+      $summary{switching_mode} = 'pssw';
+    } elsif ($swmode eq 'Chop') {
+      $summary{mapping_mode} = 'jiggle';
+      $summary{switching_mode} = 'chop';
+    } else {
+      throw OMP::Error::TranslateFail("Sample with switch mode $swmode not supported\n");
+    }
   } elsif ($mode eq 'SpIterJiggleObs' ) {
     # depends on switch mode
-    return 'jiggle_chop';
+    $summary{mapping_mode} = 'jiggle';
+    if ($swmode eq 'Chop') {
+      $summary{switching_mode} = 'chop';
+    } elsif ($swmode =~ /^Frequency-/) {
+      $summary{switching_mode} = 'freqsw';
+    } elsif ($swmode eq 'Nod') {
+      throw OMP::Error::TranslateFail("jiggle_pssw mode not supported\n");
+    } else {
+      throw OMP::Error::TranslateFail("Jiggle with switch mode $swmode not supported\n");
+    }
   } else {
     throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
   }
 
+  if (wantarray) {
+    return %summary;
+  } else {
+    my $mode = $summary{mapping_mode} . '_' . $summary{switching_mode};
+    return $mode;
+  }
+
+}
+
+=item B<is_fast_freqsw>
+
+Returns true if the observation if fast frequency switch. Should only be relied
+upon if it is known that the observation is frequency switch.
+
+  $isfast = $tran->is_fast_freqsw( %info );
+
+=cut
+
+sub is_fast_freqsw {
+  my $self = shift;
+  my %info = @_;
+  return ( $info{switchingMode} eq 'Frequency-Fast');
 }
 
 =item B<ocs_frontend>
@@ -1485,6 +1667,26 @@ sub bandwidth_mode {
 
   }
 
+}
+
+=item B<step_time>
+
+Returns the recommended RTS step time for this observing mode. Time is
+returned in seconds.
+
+ $rts = $trans->step_time( %info );
+
+=cut
+
+sub step_time {
+  my $self = shift;
+  my %info = @_;
+
+  # eventually this should be from a translator configuration file
+  my $mode = $self->observing_mode( %info );
+
+  # quick hack. raster=100ms, all else is 50ms.
+  return ( $mode =~ /raster/ ? 0.1 : 0.05 );
 }
 
 =item B<nyquist>
