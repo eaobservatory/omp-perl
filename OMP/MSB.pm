@@ -3987,10 +3987,39 @@ sub SpIterFolder {
 
     } elsif ($name eq 'SpIterJiggleObs') {
 
+      # For Het
+      my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
+      my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
+      my $jigSystem = $self->_get_pcdata( $child, 'jiggleSystem' );
+      my $jigPA = $self->_get_pcdata( $child, 'jigglePa' );
+      my $scaleFactor = $self->_get_pcdata( $child, 'scaleFactor' );
+      my $contmode = $self->_get_pcdata( $child, "continuumMode" );
+
+      # Frequency switch parameters [inc backwards compatibility]
+      my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
+      $freqRate = $self->_get_pcdata( $child, 'frequencyOffsetRate')
+	unless defined $freqRate;
+      my $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw');
+      $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow')
+	unless defined $freqOffset;
+
       my %jiggle;
       $jiggle{jigglePattern} = $self->_get_pcdata($child,
 						  'jigglePattern');
       $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
+
+      $jiggle{secsPerCycle}  = $sPerC if defined $sPerC;
+      $jiggle{jiggleSystem} = $jigSystem if defined $jigSystem;
+      $jiggle{jigglePA} = $jigPA if defined $jigPA;
+      $jiggle{scaleFactor} = $scaleFactor if defined $scaleFactor;
+
+      $jiggle{switchingMode} = $switchMode if defined $switchMode;
+      $jiggle{frequencyRate} = $freqRate if defined $freqRate;
+      $jiggle{frequencyOffset} = $freqOffset if defined $freqOffset;
+
+      $jiggle{continuumMode} = $self->_str_to_bool( $contmode )
+	if defined $contmode;
+
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
 
