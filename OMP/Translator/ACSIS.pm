@@ -609,6 +609,7 @@ sub acsis_config {
   $self->cubes( $cfg, %info );
   $self->interface_list( $cfg, %info );
   $self->acsis_layout( $cfg, %info );
+  $self->rtd_config( $cfg, %info );
 
 }
 
@@ -715,7 +716,7 @@ sub header_config {
     }
   }
 
-  #$cfg->header( $hdr );
+  $cfg->header( $hdr );
 
 }
 
@@ -1318,6 +1319,40 @@ sub cubes {
   print "DONE\n";
 
   $acsis->cube_list( $cl );
+
+}
+
+=item B<rtd_config>
+
+Configure the Real Time Display.
+
+  $trans->rtd_config( $cfg, %info );
+
+Currently this method is dumb, mainly because there is a lot of junk in the
+rtd_config element that is machine depenedent rather than translation dependent.
+The only information that should be provided by the translator is:
+
+  o  The spectral window of interest
+  o  Possibly the coordinate range of the spectral axis
+
+=cut
+
+sub rtd_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+    unless defined $acsis;
+
+  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', 'rtd.ent');
+
+  # Read the entity
+  my $il = new JAC::OCS::Config::ACSIS::RTDConfig( EntityFile => $filename,
+						   validation => 0);
+  $acsis->rtd_config( $il );
 
 }
 
