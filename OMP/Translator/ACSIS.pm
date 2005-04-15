@@ -428,28 +428,15 @@ sub secondary_mirror {
 
   # Jiggling
 
-  # Jiggle pattern name and number of points in the pattern
-  my %jig_patterns = (
-		      '3x3' => { name => 'smu_3x3.dat',
-				 npts => 9 },
-		      '5x5' => { name => 'smu_5x5.dat',
-				 npts => 25 },
-		      '7x7' => { name => 'smu_7x7.dat',
-				 npts => 49 },
-		      '9x9' => { name => 'smu_9x9.dat',
-				 npts => 81 },
-		     );
+  my %jig_params;
 
   if ($obsmode eq 'SpIterJiggleObs') {
 
-
-    if (!exists $jig_patterns{ $info{jigglePattern} }) {
-      throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern $info{jigglePattern}\n");
-    }
+    %jig_params = $self->jig_info( %info );
 
     $smu->jiggle( SYSTEM => $info{jiggleSystem},
 		  SCALE => $info{scaleFactor},
-		  NAME => $jig_patterns{ $info{jigglePattern} }->{name},
+		  NAME => $jig_params{name},
 		  PA => new Astro::Coords::Angle( $info{jigglePA}, units => 'deg'),
 		);
 
@@ -462,7 +449,7 @@ sub secondary_mirror {
     my $rts = $self->step_time( %info );
 
     # total number of points in pattern
-    my $npts = $jig_patterns{$info{jigglePattern}}->{npts};
+    my $npts = $jig_params{npts};
 
     # Now the number of jiggles per chop position is dependent on the
     # maximum amount of time we want to spend per chop position and the constraint
@@ -805,19 +792,33 @@ sub jos_config {
 
   # Raster
 
-  if (exists $info{rowsPerRef}) {
+  if ($mode =~ /raster/) {
+
     # need at least one row
-    $info{rowsPerRef} = 1 if $info{rowsPerRef} < 1;
+    $info{rowsPerRef} = 1 if (!defined $info{rowsPerRef} || $info{rowsPerRef} < 1);
     $jos->rows_per_ref( $info{rowsPerRef} );
+
+    # we have rows per cal but the JOS needs refs_per_cal
+    my $rperc = 1;
+    if (exists $info{rowsPerRef} && exists $info{rowsPerCal}) {
+      # rows per ref should be > 0
+      $rperc = $info{rowsPerCal} / $info{rowsPerRef};
+    }
+    $jos->refs_per_cal( $rperc );
+
+  } elsif ($mode =~ /jiggle/) {
+
+    # Jiggle
+
+    # JOS_MULT is the time for the integration divided by the time per jiggle
+    my $s_per_cyc = ($info{secsPerCycle} || 1);
+
+    
+
   }
 
-  # we have rows per cal but the JOS needs refs_per_cal
-  if (exists $info{rowsPerRef} && exists $info{rowsPerCal}) {
-    # rows per ref should be > 0
-    $jos->refs_per_cal( $info{rowsPerCal} / $info{rowsPerRef} );
-  }
 
-  # Tasks can be worked out by seeing which objects are
+  # Tasks can be worked out by seeing which objects are configured.
   # This is done automatically on stringication of the config object
   # so we do not need to do it here
 
@@ -1458,7 +1459,7 @@ sub observing_mode {
       throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
       $summary{switching_mode} = 'chop';
     } else {
-      throw OMP::Error::TranslateFail("Raster with switch mode $swmode not supported\n");
+      throw OMP::Error::TranslateFail("Raster with switch mode '$swmode' not supported\n");
     }
   } elsif ($mode eq 'SpIterPointingObs') {
     $summary{mapping_mode} = 'jiggle';
@@ -1477,7 +1478,7 @@ sub observing_mode {
       $summary{mapping_mode} = 'jiggle';
       $summary{switching_mode} = 'chop';
     } else {
-      throw OMP::Error::TranslateFail("Sample with switch mode $swmode not supported\n");
+      throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
     }
   } elsif ($mode eq 'SpIterJiggleObs' ) {
     # depends on switch mode
@@ -1489,7 +1490,7 @@ sub observing_mode {
     } elsif ($swmode eq 'Position') {
       throw OMP::Error::TranslateFail("jiggle_pssw mode not supported\n");
     } else {
-      throw OMP::Error::TranslateFail("Jiggle with switch mode $swmode not supported\n");
+      throw OMP::Error::TranslateFail("Jiggle with switch mode '$swmode' not supported\n");
     }
   } else {
     throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
@@ -1695,6 +1696,60 @@ sub step_time {
 
   # quick hack. raster=100ms, all else is 50ms.
   return ( $mode =~ /raster/ ? 0.1 : 0.05 );
+}
+
+=item B<jig_info>
+
+Return information relating to the selected jiggle pattern.
+
+  %details = $trans->jig_info( %info );
+
+Throws an exception if Jiggle mode is defined but the pattern is missing
+or if this method is called without jiggle mode selected.
+
+Returns a hash with keys of
+
+=over 8
+
+=item name
+
+Name of the jiggle pattern file.
+
+=item npts
+
+Number of points in that jiggle file.
+
+=back
+
+=cut
+
+sub jig_info {
+  my $self = shift;
+  my %info = @_;
+
+  throw OMP::Error::TranslateFail("Jiggle pattern requested but no jiggle mode selected")
+    unless $self->observing_mode( %info ) =~ /jiggle/;
+
+  throw OMP::Error::TranslateFail( "No jiggle pattern specified!" )
+    unless exists $info{jigglePattern};
+
+  # Jiggle pattern name and number of points in the pattern
+  my %jig_patterns = (
+		      '3x3' => { name => 'smu_3x3.dat',
+				 npts => 9 },
+		      '5x5' => { name => 'smu_5x5.dat',
+				 npts => 25 },
+		      '7x7' => { name => 'smu_7x7.dat',
+				 npts => 49 },
+		      '9x9' => { name => 'smu_9x9.dat',
+				 npts => 81 },
+		     );
+
+  if (!exists $jig_patterns{ $info{jigglePattern} }) {
+    throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern $info{jigglePattern}\n");
+  }
+
+  return %{ $jig_patterns{ $info{jigglePattern} } };
 }
 
 =item B<nyquist>
