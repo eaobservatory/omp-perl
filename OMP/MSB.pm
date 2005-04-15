@@ -4126,6 +4126,8 @@ sub SpIterFolder {
       my $rowsPerRef = $self->_get_pcdata($child, "rowsPerRef");
       $scan{rowsPerRef} = $rowsPerRef if defined $rowsPerRef;
 
+      my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
+
       # scan information is in <obsArea>
       # PA
       my ($node) = $child->findnodes(".//obsArea/PA");
@@ -4139,6 +4141,8 @@ sub SpIterFolder {
       $scan{SCAN_DY} = $self->_get_attribute($node, 'DY');
       $scan{SCAN_SYSTEM} = $self->_get_attribute($node, 'SYSTEM');
       $scan{SCAN_VELOCITY} = $self->_get_attribute($node, 'VELOCITY');
+
+      $scan{switchingMode} = $switchMode if defined $switchMode;
 
       # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");
