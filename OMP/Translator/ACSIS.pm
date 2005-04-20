@@ -534,6 +534,9 @@ sub fe_config {
   my $inst = $cfg->instrument_setup();
   throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
 
+  # store the frontend name in the Frontend config so that we can get the task name
+  $fe->frontend( $inst->name );
+
   my %receptors = $inst->receptors;
 
   my %mask;
@@ -2035,6 +2038,101 @@ sub getStandard {
   my $class = shift;
   my %info = @_;
   return $info{standard};
+}
+
+sub getDRRecipe {
+  my $class = shift;
+  my %info = @_;
+
+  # This is where we insert an OT override once that override is possible
+  # it will need to know which parameters to override
+
+  if ($info{MODE} =~ /Pointing/) {
+    return 'REDUCE_POINTING';
+  } elsif ($info{MODE} =~ /Focus/) {
+    return 'REDUCE_FOCUS';
+  } else {
+    return 'REDUCE_CUBE';
+  }
+
+}
+
+sub getDRGroup {
+  my $class = shift;
+
+  # Not quite sure how to handle this in the translator since there are no
+  # hints from the OT and the DR is probably better at doing this.
+  return 'UNKNOWN';
+}
+
+# Need to get survey information from the TOML
+
+sub getSurveyName {
+  my $class = shift;
+  my %info = @_;
+  return 'NONE';
+}
+
+sub getSurveyID {
+  return 'NONE';
+}
+
+sub getNumIntegrations {
+  my $class = shift;
+  my %info = @_;
+  return $info{nintegrations};
+}
+
+sub getNumMeasurements {
+  my $class = shift;
+  my %info = @_;
+
+  # do not know what this really means. It may mean the scuba definition
+  # Assume this means the number of discrete hardware moves
+  if ($info{MODE} =~ /Focus/) {
+    return $info{focusStep};
+  } else {
+    return 1;
+  }
+}
+
+# For jiggle: This is the number of nod sets required to build up the pattern
+#             ie  Total number of points / N_JIG_ON
+
+# For grid: returns the number of points in the grid
+
+# For scan: Estimate at the number of scans
+
+sub getNumExposures {
+  my $class = shift;
+
+  warn "Do not calculate Number of exposures correctly\n";
+  return 1;
+}
+
+# Reduce process recipe requires access to the file name used to read the recipe
+
+sub getRPRecipe {
+  warn "Do not set RPRECIPE correctly\n";
+  return "UNKNOWN";
+
+}
+
+
+sub getOCSCFG {
+
+  warn "OCS Configuration name is not known until it is written\n";
+  return "UNKNOWN";
+}
+
+sub getBinning {
+  warn "How am I supposed to calculate binning?\n";
+  return 1;
+}
+
+sub getNumMixers {
+  warn "Need to get N_MIX from frontend configuration object\n";
+  return 1;
 }
 
 =head1 NOTES
