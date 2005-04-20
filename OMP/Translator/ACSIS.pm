@@ -29,6 +29,7 @@ use List::Util qw/ min max /;
 # Need to find the OCS Config (temporary kluge)
 #use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
 
+use JCMT::ACSIS::HWMap;
 use JAC::OCS::Config;
 
 use OMP::Config;
@@ -872,6 +873,8 @@ sub correlator {
   # file and that our naming convention for spectral windows matches that used
   # in the template file
   my $map = new JAC::OCS::Config::ACSIS::ACSIS_MAP( EntityFile => $templ, validation => 0 );
+  # Hardware map
+  $map->hw_map( $self->hardware_map );
   $acsis->acsis_map( $map );
 
 }
@@ -1735,6 +1738,23 @@ sub step_time {
   # quick hack. raster=100ms, all else is 50ms.
   return ( $mode =~ /raster/ ? 0.1 : 0.05 );
 }
+
+=item B<hardware_map>
+
+Read the ACSIS hardware map into an object.
+
+  $hwmap = $trans->hardware_map();
+
+=cut
+
+sub hardware_map {
+  my $self = shift;
+
+  my $path = File::Spec->catfile( $WIRE_DIR, 'acsis', 'cm_wire_file.txt');
+
+  return new JCMT::ACSIS::HWMap( File => $path );
+}
+
 
 =item B<jig_info>
 
