@@ -71,16 +71,22 @@ It is assumed that this MSB will refer to an ACSIS observation
 (and has been prefiltered by the caller, usually C<OMP::Translator>).
 Always returns the configs as an array of C<JAC::OCS::Config> objects.
 
-  @configs = OMP::Translate->translate( $sp );
+  @configs = OMP::Translate->translate( $msb );
+  @configs = OMP::Translate->translate( $msb, -sim => 1 );
 
 It is the responsibility of the caller to write these objects.
+
+Optional hash arguments can control the specific translation.
+Supported arguments are:
+
+  -sim  Include simulation configuration. Default is false.
 
 =cut
 
 sub translate {
   my $self = shift;
   my $msb = shift;
-  my $asdata = shift;
+  my %opts = ( -sim => 0, @_ );
 
   # Project
   my $projectid = $msb->projectID;
@@ -137,6 +143,9 @@ sub translate {
     # the duration of the configuration
     $self->slew_config( $cfg, %$obs );
     $self->rotator_config( $cfg, %$obs );
+
+    # Simulator
+    $self->simulator_config( $cfg, %$obs );# if $opts{-sim};
 
     # Store the completed config
     push(@configs, $cfg);
@@ -853,7 +862,7 @@ sub correlator {
 
   # get the spectral window information
   my $spwlist = $acsis->spw_list();
-  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $acsis;
+  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
 
   # get the hardware map
   my $hw_map = $self->hardware_map;
@@ -1297,7 +1306,8 @@ sub cubes {
     $cube->spw_interval( $int );
 
     # Tangent point (aka group centre) is the base position without offsets
-    $cube->group_centre( $info{coords} );
+    # Not used if we are in a moving (eg PLANET) frame
+    $cube->group_centre( $info{coords} ) if $info{coords}->type eq 'RADEC';
 
     # Calculate Nyquist value for this map
     my $nyq = $self->nyquist( %info );
@@ -1457,6 +1467,85 @@ sub rtd_config {
 						   validation => 0);
   $acsis->rtd_config( $il );
 
+}
+
+=item B<simulator_config>
+
+Configure the simulator XML. For ACSIS this actually goes into the
+ACSIS xml and there is not a distinct task for simulation (the
+simulated CORRTASKs read this simulator data).
+
+=cut
+
+sub simulator_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # We may want to get basic values from an entity file on disk and then configure
+  # the observation specific elements
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
+    unless defined $acsis;
+
+  # Get the cube definition
+  my $cl = $acsis->cube_list;
+    throw OMP::Error::FatalError('for some reason the ACSIS Cube List is not defined. This can not happen')
+    unless defined $cl;
+
+  # Get the spectral window definitions
+  my $spwlist = $acsis->spw_list();
+  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $spwlist;
+
+  # We create a cloud per cube definition
+  my %cubes = $cl->cubes;
+
+  # loop over all the cubes
+  my @clouds;
+  for my $cube (values %cubes) {
+    my %thiscloud = (
+		     position_angle => 0,
+		     pos_z_width => 200,
+		     neg_z_width => 200,
+		     amplitude => 20,
+		    );
+
+    # Spectral window is required so that we can choose a channel somewhere
+    # in the middle
+    my $spwint = $cube->spw_interval;
+    throw OMP::Error::FatalError( "Simulation requires channel units but it seems this spectral window was configured differently. Needs fixing.\n") if $spwint->units ne 'channel';
+    $thiscloud{z_location} = ($spwint->min + $spwint->max) / 2;
+
+    # offset centre
+    my @offset = $cube->offset;
+    $thiscloud{x_location} = $offset[0];
+    $thiscloud{y_location} = $offset[1];
+
+    # Width of fake source. Is this in pixels or arcsec?
+    my @npix = $cube->npix;
+    $thiscloud{major_width} = 0.2 * $npix[0];
+    $thiscloud{minor_width} = 0.2 * $npix[1];
+
+    push(@clouds, \%thiscloud);
+  }
+
+  # create the simulation
+  my $sim = new JAC::OCS::Config::ACSIS::Simulation();
+
+  # write cloud information
+  $sim->clouds( @clouds );
+
+  # Now write the non cloud information
+  $sim->noise( 1 );
+  $sim->refsky_temp( 135 );
+  $sim->load2_temp( 250 );
+  $sim->ambient_temp( 300 );
+  $sim->band_start_pos( 120 );
+
+  # attach simulation to acsis
+  $acsis->simulation( $sim );
 }
 
 =item B<interface_list>
