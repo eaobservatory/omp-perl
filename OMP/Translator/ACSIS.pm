@@ -975,7 +975,8 @@ sub correlator {
   $corr->bw_modes( @cm_bwmodes );
 
   # Set the LO3 to a fixed value (all the test files do this)
-  $if->lo3freq( 2000.0 );
+  # A string since this is meant to be hard-coded to be exactly this by the DTD
+  $if->lo3freq( "2000.0" );
 
   # store in the ACSIS object
   $acsis->acsis_corr( $corr );
@@ -1596,13 +1597,18 @@ sub acsis_layout {
   # The first thing we need to do is read the machine table and monitor
   # layout files
 
-  # Read the new machine table
-  my $machtable_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'machine_table_xml.ent');
+  # Read the new machine table (no longer in the acsis directory)
+  my $machtable_file = File::Spec->catfile( $WIRE_DIR, 'machine_table.xml');
   my $machtable = _read_file( $machtable_file );
 
   # Read the monitor layout
   my $monlay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'monitor_layout.ent');
   my $monlay = _read_file( $monlay_file );
+
+  # make sure we have enclosing tags
+  if ($monlay !~ /monitor_layout/) {
+    $monlay = "<monitor_layout>\n$monlay\n</monitor_layout>\n";
+  }
 
   # Read the template process_layout file
   my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'layout.ent');
