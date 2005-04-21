@@ -308,6 +308,9 @@ Default output directory for writing the HTML and associated files.
   $out = OMP::Translator::DASHTML->outputdir();
   OMP::Translator::DASHTML->outputdir( $newdir );
 
+This is not to be confused with the translator default writing directory
+defined in C<OMP::Translator::DAS>.
+
 =cut
 
   {
@@ -343,7 +346,7 @@ used by the DAS translator (C<OMP::Translator::DAS>).
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
