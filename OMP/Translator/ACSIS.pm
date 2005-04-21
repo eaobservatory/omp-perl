@@ -1141,9 +1141,9 @@ sub spw_list {
       my $nchan_full = $ss->{channels};
       my $nchan_bl = int($nchan_full * $frac / 2 );
       @baselines = (
-	   new JAC::OCS::Config::Interval( Units => 'channels',
+	   new JAC::OCS::Config::Interval( Units => 'channel',
 					   Min => 0, Max => $nchan_bl),
-	   new JAC::OCS::Config::Interval( Units => 'channels',
+	   new JAC::OCS::Config::Interval( Units => 'channel',
 					   Min => ($nchan_full - $nchan_bl),
 					   Max => $nchan_full),
 	  );
@@ -1461,7 +1461,11 @@ sub rtd_config {
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
     unless defined $acsis;
 
-  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', 'rtd.ent');
+  # The filename is DR receipe dependent
+  my $mode = $self->observing_mode( %info );
+  my $root = $mode . '_rtd.ent';
+
+  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::RTDConfig( EntityFile => $filename,
