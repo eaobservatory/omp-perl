@@ -57,24 +57,30 @@ a observing sequence understood by the instrument data acquisition
 system.
 
   $xmlfile = OMP::Translate->translate( $sp );
-  $data = OMP::Translate->translate( $sp, 1);
-  @data = OMP::Translate->translate( $sp, 1);
+  $data = OMP::Translate->translate( $sp, asdata => 1 );
+  @data = OMP::Translate->translate( $sp, asdata => 1,
+                                          simulate => 1);
 
 The actual translation is implemented by the relevant subclass.
 Currently JCMT Heterodyne and SCUBA data can be translated.
 
 By default, this method returns the name of an XML file that specifies
 the location of each translated configuration using the dialect
-understood by the standard JAC observing queue interface. 
+understood by the standard JAC observing queue interface.
 
-If the optional argument is true, this method will return either a
-list of translated configuration objects (the type of which depends on
-the instrument) or a reference to an array of such objects. The expected
-object classes will be:
+Optional arguments can be specified using hash technique. Allowed keys
+are:
+
+  simulate : Generate a translation suitable for simulate mode (if supported)
+
+  asdata : If true, method will return either a list of translated 
+            configuration objects (the type of which depends on
+            the instrument) or a reference to an array of such objects
+            (depending on context).  The expected object classes will be:
 
   SCUBA -   SCUBA::ODF
   ACSIS -   JAC::OCS::Config
-  DAS   -   Reference to hash
+  DAS   -   OMP::Translator::DASHTML
 
 If there is more than one MSB to translate, REMOVED MSBs will be ignored.
 
@@ -84,7 +90,8 @@ sub translate {
   my $self = shift;
   my $thisclass = ref($self) || $self;
   my $sp = shift;
-  my $asdata = shift;
+
+  my %opts = ( asdata => 0, simulate => 0, @_);
 
   print join("\n",$sp->summary('asciiarray'))."\n" if $DEBUG;
 
@@ -242,8 +249,15 @@ sub translate {
       $class->debug( $DEBUG );
 
       # And forward to the correct translator
-      # We always ask for the DATA version.
-      push(@configs, $class->translate( $tmpmsb ) );
+      # We always get objects, sometimes multiple objects
+      my @new = $class->translate( $tmpmsb, simulate => $opts{simulate} );
+
+      # Now force translator directory into config
+      # All of the objects returned by translate() support the outputdir() method
+      $_->outputdir( $class->transdir ) for @new;
+
+      # Store them in the main config array
+      push(@configs, @new);
 
     }
 
@@ -262,7 +276,7 @@ sub translate {
   # for writing to disk. OMP::Translator::DASHTML also matches.
 
   # If they want the data we do not write anything
-  if ($asdata) {
+  if ($opts{asdata}) {
     if (wantarray) {
       return @configs;
     } else {
@@ -278,15 +292,19 @@ sub translate {
 =item B<outputdir>
 
 Set (or retrieve) the default output directory for writing config information.
-Initially set to current working directory.
+Initially unset.
 
   $dir = OMP::Translator->outputdir();
   OMP::Translator->outputdir();
 
+If no output directory has been specified explicitly, the output directory
+will depend on the default specified for each translator (which may be
+class specific).
+
 =cut
 
 {
-  my $OUTPUT_DIR = File::Spec->curdir;
+  my $OUTPUT_DIR;
   sub outputdir {
     my $self = shift;
     if (@_) {
@@ -338,9 +356,10 @@ as the following methods are supported:
 An exception is thrown if the telescope is not the same for each
 config.
 
-By default the configs are written to the directory specified by the
-C<outputdir> class method. Optional hash argument of "transdir" can
-be used to specify a different location.
+By default the configs are written to the directory suitable for each type of
+translation (ie whatever is in each object), unless either an explcit
+global C<outputdir> is defined or an explicit directory is provided to this
+method through the C<transdir> option.
 
  $qxml = OMP::Translator->write_configs( \@configs, transdir => $dir);
 
@@ -352,9 +371,12 @@ sub write_configs {
   my %opts = @_;
 
   # Specified outputdir overrides default
-  my $outdir = (defined $opts{transdir} ? $opts{transdir} : 
-		$class->outputdir );
-
+  my $outdir;
+  if (defined $opts{transdir}) {
+    $outdir = $opts{transdir};
+  } elsif (defined $class->outputdir) {
+    $outdir = $class->outputdir;
+  }
 
   if ( $class->backwards_compatibility_mode) {
 
@@ -376,15 +398,19 @@ sub write_configs {
     $container->push_config( @$configs[1..$#$configs] );
 
     # Now write the container
-    return $container->write_file( $outdir, { chmod => 0666 });
+    return $container->write_file( (defined $outdir ? $outdir : () ),
+				   { chmod => 0666 });
 
   } else {
 
+    # Arguments
+    my %args = ( fprefix => 'translated',
+		 chmod => 0666,
+	       );
+    $args{outputdir} = $outdir if defined $outdir;
+
     # Delegate the writing to the XMLIO class
-    return Queue::EntryXMLIO::writeXML({outputdir => $outdir,
-					fprefix => "translated",
-					chmod => 0666,
-				       },
+    return Queue::EntryXMLIO::writeXML(\%args,
 				       @$configs );
   }
 
