@@ -72,21 +72,21 @@ It is assumed that this MSB will refer to an ACSIS observation
 Always returns the configs as an array of C<JAC::OCS::Config> objects.
 
   @configs = OMP::Translate->translate( $msb );
-  @configs = OMP::Translate->translate( $msb, -sim => 1 );
+  @configs = OMP::Translate->translate( $msb, simulate => 1 );
 
 It is the responsibility of the caller to write these objects.
 
 Optional hash arguments can control the specific translation.
 Supported arguments are:
 
-  -sim  Include simulation configuration. Default is false.
+  simulate :  Include simulation configuration. Default is false.
 
 =cut
 
 sub translate {
   my $self = shift;
   my $msb = shift;
-  my %opts = ( -sim => 0, @_ );
+  my %opts = ( simulate => 0, @_ );
 
   # Project
   my $projectid = $msb->projectID;
@@ -145,7 +145,7 @@ sub translate {
     $self->rotator_config( $cfg, %$obs );
 
     # Simulator
-    $self->simulator_config( $cfg, %$obs );# if $opts{-sim};
+    $self->simulator_config( $cfg, %$obs ) if $opts{simulate};
 
     # Store the completed config
     push(@configs, $cfg);
