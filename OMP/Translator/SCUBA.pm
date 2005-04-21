@@ -70,7 +70,6 @@ MSBs will be pre-filtered by the caller, assumed to be C<OMP::Translator>.
 sub translate {
   my $self = shift;
   my $msb = shift;
-  my $asdata = shift;
 
   print "MSB " . $msb->checksum . "\n"
     if $DEBUG;
@@ -177,9 +176,10 @@ this directory name.
 
 sub transdir {
   my $class = shift;
-  my $dir = shift;
-
-  $TRANS_DIR = $dir;
+  if (@_) {
+    $TRANS_DIR = shift;
+  }
+  return $TRANS_DIR;
 }
 
 =back
