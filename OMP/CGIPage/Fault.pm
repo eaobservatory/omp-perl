@@ -1264,7 +1264,7 @@ sub fault_summary_content {
 	($status eq 'closed') and print "<tr id=\"$rowID\" class=\"$class\">"
 	  or print "<tr>";
 
-	print "<td bgcolor=$bgcolor colspan=7><font color=$bgcolor>----</font><strong>$type</strong></td>";
+	print "<td bgcolor=$bgcolor colspan=7><font color=$bgcolor>----</font><strong><span class=\"fault_summary_misc\">$type</span></strong></td>";
 
 	my $count = 0;
 
@@ -1312,8 +1312,8 @@ sub fault_summary_content {
 	  }
 
 	  print "</td>";
-	  print "<td align=right class='userid'>". $fault->responses->[0]->author->html . "</td>";
-	  print "<td align=right class='userid'>";
+	  print "<td align=right class='fault_summary_userid'>". $fault->responses->[0]->author->html . "</td>";
+	  print "<td align=right class='fault_summary_userid'>";
 	  ($respAuthor) and print $respAuthor
 	    or print "n/a";
 	  print "</td>";
