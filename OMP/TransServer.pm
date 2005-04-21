@@ -37,36 +37,32 @@ our $VERSION = (qw$Revision$)[1];
 
 =item B<translate>
 
-Translate the specified Science Program subset (which must contain a
-single SpObs) into a sequence/odf understandable by the observing
-system.
+Translate the specified Science Program into a form understandable by
+the observing system.
 
-  $translation = OMP::TransServer->translate( $xml );
+  $translation = OMP::TransServer->translate( $xml, \%options );
 
-Currently SCUBA specific for demo purposes.
+Returns a filename suitable for passing to the queue or the Query Tool,
+not the translated configurations themselves.
 
-The ODFs (observation definition files) are written to a directory
-accessible to the observing system. After translation the full path to
-the ODF is returned. This can be used directly by the acquisition
-system.  If an SpObs contains more than a single observation (eg from
-the use of iterators) the multiple SCUBA ODFs are written but a single
-MACRO file is returned.
-
-ASIDE: There is no reason why the translated sequence could not be
-returned complete as an array of strings rather than a file name. The
-main limitation on this is the OM/QT. The reason it is written to disk
-is that the current UKIRT sequencers can only be configured by reading
-from disk and not via DRAMA parameters (this has the advantage of
-providing debugging facilities).
+Only works for JCMT translations. The UKIRT translator is written 
+in Java and part of the OT software package.
 
 The location of the directory used to write these files can not be
 configured via SOAP for security reasons.
+
+Supported options are:
+
+  simulate : Run the translator for simulated configurations
+
+Note that a reference to a hash is used to simplify the SOAP interface.
 
 =cut
 
 sub translate {
   my $class = shift;
   my $xml = shift;
+  my $opts = shift;
 
   # in some cases the msb attribute of SpObs is incorrect from the QT
   # so we need to fudge it here if we have no SpMSB
@@ -79,9 +75,13 @@ sub translate {
   my $E;
   my $result;
   try {
+    # expand options
+    my %options;
+    %options = %$opts if (defined $opts && ref($opts) eq 'HASH');
+
     # Convert to science program
     my $sp = new OMP::SciProg( XML => $xml );
-    $result = OMP::Translator->translate( $sp );
+    $result = OMP::Translator->translate( $sp, %options );
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions
     # Server infrastructure should catch everything else
@@ -103,7 +103,7 @@ sub translate {
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
