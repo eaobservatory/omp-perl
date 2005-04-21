@@ -41,6 +41,10 @@ use OMP::Translator::DASHTML;
 
 use base qw/ OMP::Translator /;
 
+# Default translation directory. This will not be where the queue would write
+# it necessarily.
+our $TRANS_DIR = '/observe/ompodf';
+
 # VAX equivalent
 # this is hard-wired regardless of the output translation directory
 # since there is no easy way to decide how a unix path maps to
@@ -74,7 +78,6 @@ MSBs will be pre-filtered by the caller, assumed to be C<OMP::Translator>.
 sub translate {
   my $self = shift;
   my $msb = shift;
-  my $asdata = shift;
 
   print "MSB " . $msb->checksum . "\n"
     if $DEBUG;
@@ -251,6 +254,26 @@ sub debug {
   my $state = shift;
 
   $DEBUG = ($state ? 1 : 0 );
+}
+
+=item B<transdir>
+
+Override the translation directory.
+
+  OMP::Translator::DAS->transdir( $dir );
+
+Note that this does not override the VAX name used for processing
+inside files since that can not be determined directly from
+this directory name.
+
+=cut
+
+sub transdir {
+  my $class = shift;
+  if (@_) {
+    $TRANS_DIR = shift;
+  }
+  return $TRANS_DIR;
 }
 
 =back
