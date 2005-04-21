@@ -134,7 +134,7 @@ License:
   font-size: x-small;
   font-family: Arial, sans-serif;
   font-weight: bold;
-  color: #000;
+  color: #ffffff;
 }
 .proj_time_sum_weather_row {
   background-color: #dbdbff;
@@ -413,6 +413,7 @@ A {
   border-bottom: 1px solid #383877;
   font-size: small;
   text-align: right;
+  color: #ffffff;
 }
 
 .row_closed_title {
@@ -421,10 +422,12 @@ A {
   font-size: medium;
   font-weight: bold;
   text-align: left;
+  color: #ffffff;
 }
 
 .fault_numbers {
   font-size: small;
+  color: #ffffff;
 }
 
 .fault_total {
@@ -440,14 +443,23 @@ A {
   font-family: Arial, sans-serif;
   font-size: small;
   font-weight: normal;
-  color: #000000;
+  color: #ffffff;
+}
+
+.fault_summary_misc { 
+  color: #ffffff;
+}
+
+.fault_summary_userid, .fault_summary_userid a:link, .fault_summary_userid a:visited {
+  font-size: xx-small;
+  color: #ffffff;
 }
 
 .link_fault_id {
   font-family: Arial, sans-serif;
   font-size: x-small;
   font-weight: normal;
-  color: #000000;
+  color: #ffffff;
 }
 
 a.sidemain:link{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none;}
