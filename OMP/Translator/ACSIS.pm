@@ -835,7 +835,8 @@ sub jos_config {
 
 =item B<correlator>
 
-Read the relevant correlator information from template files.
+Calculate the hardware correlator mapping from the receptor to the spectral
+window.
 
   $trans->correlator( $cfg, %info );
 
@@ -850,33 +851,129 @@ sub correlator {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
-  # Get the channel mode
-  # Note that only the first subsystem is currently recognized
-  my $subsys = $info{freqconfig}->{subsystems}->[0];
+  # get the spectral window information
+  my $spwlist = $acsis->spw_list();
+  throw OMP::Error::FatalError('for some reason Spectral Window configuration is not available. This can not happen') unless defined $acsis;
 
-  # Create the new machine table
-  my $root = $self->ocs_frontend( $info{instrument}, 1 ) . '_correlator_' . 
-                                  $subsys->{chanmode} . '.ent';
-  my $templ = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
+  # get the hardware map
+  my $hw_map = $self->hardware_map;
 
-  # This entity xml file has both ACSIS_corr and ACSIS_IF.
-  # We could read this directly into an ACSIS config object and then extract out
-  # the bits we need but we would first need to make the ACSIS object less picky
-  # when it finds there are missing XML chunks. For now do it in 2 reads.
-  my $corr = new JAC::OCS::Config::ACSIS::ACSIS_CORR( EntityFile => $templ, validation => 0 );
-  my $if = new JAC::OCS::Config::ACSIS::ACSIS_IF( EntityFile => $templ, validation => 0 );
+  # Now get the receptors of interest for this observation
+  my $frontend = $cfg->frontend;
+  throw OMP::Error::FatalError('for some reason Frontend setup is not available. This can not happen') unless defined $frontend;
 
+  # and only worry about the pixels that are switched on
+  my %receptors = $frontend->mask;
+  my @rec = grep { $_ ne 'OFF' } keys %receptors;
+
+  # All of the subbands that need to be allocated
+  my %subbands = $spwlist->subbands;
+
+  # CM and DCM bandwidth modes
+  my @cm_bwmodes;
+  my @dcm_bwmodes;
+  my @cm_map;
+  my @sbmodes;
+
+  # lookup from lo2 id to spectral window
+  my @lo2spw;
+
+  # for each receptor, we need to assign all the subbands to the correct
+  # hardware
+
+  for my $r (@rec) {
+
+    # Get the number of subbands to allocate for this receptor
+    my @spwids = sort keys %subbands;
+
+    # Get the CM mapping for this receptor
+    my @hwmap = $hw_map->receptor( $r );
+    throw OMP::Error::FatalError("Receptor '$r' is not available in the ACSIS hardware map! This is not supposed to happen") unless @hwmap;
+
+    if (@spwids > @hwmap) {
+      throw OMP::Error::TranslateFail("The observation specified " . @spwids . " subbands but there are only ". @hwmap . " slots available for receptor '$r'");
+    }
+
+    # now loop over subbands
+    for my $i (0..$#spwids) {
+      my $hw = $hwmap[$i];
+      my $spwid = $spwids[$i];
+      my $sb = $subbands{$spwid};
+
+      my $cmid = $hw->{CM_ID};
+      my $dcmid = $hw->{DCM_ID};
+      my $quadnum = $hw->{QUADRANT};
+      my $sbmode = $hw->{SB_MODES}->[0];
+      my $lo2id = $hw->{LO2};
+
+      my $bwmode = $sb->bandwidth_mode;
+
+      # Correlator uses the standard bandwidth mode
+      $cm_bwmodes[$cmid] = $bwmode;
+
+      # DCM just wants the bandwidth without the channel count
+      my $dcmbw = $bwmode;
+      $dcmbw =~ s/x.*$//;
+      $dcmbw = uc($dcmbw);
+      $dcm_bwmodes[$dcmid] = $dcmbw;
+
+      # hardware mapping to spectral window ID
+      my %map = (
+		 CM_ID => $cmid,
+		 DCM_ID => $dcmid,
+		 RECEPTOR => $r,
+		 SPW_ID => $spwid,
+		);
+
+      $cm_map[$cmid] = \%map;
+
+      # Quadrant mapping to subband mode is fixed by the hardware map
+      if (defined $sbmodes[$quadnum]) {
+	if ($sbmodes[$quadnum] != $sbmode) {
+	  throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
+	}
+      } else {
+	$sbmodes[$quadnum] = $sbmode;
+      }
+
+      if (defined $lo2spw[$lo2id]) {
+	if ($lo2spw[$lo2id] ne $spwid) {
+	  throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+	}
+      } else {
+	$lo2spw[$lo2id] = $spwid;
+      }
+
+    }
+
+  }
+
+  # Calculate LO2 settings for the spectral windows
+
+
+  # Now store the mappings in the corresponding objects
+  my $corr = new JAC::OCS::Config::ACSIS::ACSIS_CORR();
+  my $if   = new JAC::OCS::Config::ACSIS::ACSIS_IF();
+  my $map  = new JAC::OCS::Config::ACSIS::ACSIS_MAP();
+
+  # to decide on CORRTASK mapping
+  $map->hw_map( $hw_map );
+
+  # Store the relevant arrays
+  $map->cm_map( @cm_map );
+  $if->bw_modes( @dcm_bwmodes );
+  $if->sb_modes( @sbmodes );
+  $corr->bw_modes( @cm_bwmodes );
+
+  # Set the LO3 to a fixed value (all the test files do this)
+  $if->lo3freq( 2000.0 );
+
+  # store in the ACSIS object
   $acsis->acsis_corr( $corr );
   $acsis->acsis_if( $if );
-
-  # For now, assume that the ACSIS_map xml can also be read from the template
-  # file and that our naming convention for spectral windows matches that used
-  # in the template file
-  my $map = new JAC::OCS::Config::ACSIS::ACSIS_MAP( EntityFile => $templ, validation => 0 );
-  # Hardware map
-  $map->hw_map( $self->hardware_map );
   $acsis->acsis_map( $map );
 
+  return;
 }
 
 =item B<line_list>
