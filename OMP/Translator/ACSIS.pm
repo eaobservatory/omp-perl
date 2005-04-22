@@ -21,6 +21,8 @@ use strict;
 use warnings;
 use Carp;
 
+use Data::Dumper;
+
 use Net::Domain;
 use File::Spec;
 use Astro::Coords::Offset;
@@ -93,7 +95,7 @@ sub translate {
 
   # OT version
   my $otver = $msb->ot_version;
-  print "OTVERS: $otver \n";
+  print "OTVERS: $otver \n" if $DEBUG;
 
   # Correct Stare and Jiggle observations such that multiple offsets are
   # combined
@@ -150,7 +152,7 @@ sub translate {
     # Store the completed config
     push(@configs, $cfg);
 
-    print $cfg;
+    print $cfg if $DEBUG;
 
     last;
   }
@@ -1428,10 +1430,6 @@ sub cubes {
   # Store it
   $cl->cubes( %cubes );
 
-  print "Start to stringify...\n";
-  print $cl->stringify;
-  print "DONE\n";
-
   $acsis->cube_list( $cl );
 
 }
@@ -1676,8 +1674,7 @@ sub observing_mode {
   my $self = shift;
   my %info = @_;
 
-  use Data::Dumper;
-  print Dumper( \%info );
+  print Dumper( \%info ) if $DEBUG;
 
 
   my %summary;
@@ -2113,7 +2110,6 @@ sub _calc_offset_stats {
   my @sort = sort { $a <=> $b } keys %dummy;
 
   # if we only have one position we can return early here
-  print "Got to here\n";
   return ($sort[0], $sort[0], $sort[0], 0, 1, $nyquist) if @sort == 1;
 
   # Then find the extent of the map
