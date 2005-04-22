@@ -13,15 +13,15 @@ BEGIN {
   }
 }
 
-use OMP::CGI;
-use OMP::CGI::ProjectPage;
+use OMP::CGIPage;
+use OMP::CGIPage::Project;
 
 my $arg = shift @ARGV;
 
 my $q = new CGI;
-my $ompcgi = new OMP::CGI( CGI => $q );
+my $ompcgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Project Details");
-$ompcgi->write_page_noauth( \&OMP::CGI::ProjectPage::proj_sum_page,
-			    \&OMP::CGI::ProjectPage::proj_sum_page );
+$ompcgi->write_page_noauth( \&OMP::CGIPage::Project::proj_sum_page,
+			    \&OMP::CGIPage::Project::proj_sum_page );
