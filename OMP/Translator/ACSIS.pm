@@ -36,6 +36,7 @@ use JAC::OCS::Config;
 
 use OMP::Config;
 use OMP::Error;
+use OMP::General;
 
 use base qw/ OMP::Translator /;
 
@@ -58,6 +59,29 @@ our %FE_MAP = (
 	       RXWD => 'RXW',
 	       RXB3 => 'RXB',
 	      );
+
+# Lookup table to calculate the LO2 frequencies.
+# Indexed simply by subband bandwidth
+our %BWMAP = (
+	      '250MHz' => {
+			   # Parking frequency, upper end (Hz)
+			   f_park => 2750E6,
+			   # useful Lo and high frequencies (MHz)
+			   f_lo => 25,
+			   f_hi => 225,
+		       },
+	      '1GHz' => {
+			 # Parking frequency, upper end (to Hz)
+			 f_park => 3000E6,
+			 # useful Lo and high frequencies in MHz
+			 f_lo => 40,
+			 f_hi => 960,
+			},
+	     );
+
+# LO2 synthesizer step, hard-wired
+our $LO2_INCR = 0.2E6;
+
 
 # Telescope diameter in metres
 use constant DIAM => 15;
@@ -947,6 +971,9 @@ sub correlator {
 	$sbmodes[$quadnum] = $sbmode;
       }
 
+      # Convert lo2id to an array index
+      $lo2id--;
+
       if (defined $lo2spw[$lo2id]) {
 	if ($lo2spw[$lo2id] ne $spwid) {
 	  throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
@@ -958,9 +985,6 @@ sub correlator {
     }
 
   }
-
-  # Calculate LO2 settings for the spectral windows
-
 
   # Now store the mappings in the corresponding objects
   my $corr = new JAC::OCS::Config::ACSIS::ACSIS_CORR();
@@ -975,6 +999,25 @@ sub correlator {
   $if->bw_modes( @dcm_bwmodes );
   $if->sb_modes( @sbmodes );
   $corr->bw_modes( @cm_bwmodes );
+
+  # Set the LO2. First we need to check that values are available that were
+  # calculated previously
+  throw OMP::Error::FatalError("Somehow the LO2 settings were never calculated")
+    unless exists $info{freqconfig}->{LO2};
+
+  my @lo2;
+  for my $i (0..$#lo2spw) {
+    my $spwid = $lo2spw[$i];
+    next unless defined $spwid;
+
+    # sanity check never hurts
+    throw OMP::Error::FatalError("Spectral window $spwid does not seem to exist in LO2 array")
+      unless exists $info{freqconfig}->{LO2}->{$spwid};
+
+    # store it
+    $lo2[$i] = $info{freqconfig}->{LO2}->{$spwid};
+  }
+  $if->lo2freqs( @lo2 );
 
   # Set the LO3 to a fixed value (all the test files do this)
   # A string since this is meant to be hard-coded to be exactly this by the DTD
@@ -1118,6 +1161,11 @@ sub spw_list {
     }
   }
 
+  # The LO2 settings indexed by spectral window. We should consider simply adding
+  # this to the SpectralWindow object as an accessor or in conjunction with f_park
+  # derive it on demand.
+  my %lo2spw;
+
   # Spectral window objects
   my %spws;
   my $spwcount = 1;
@@ -1130,12 +1178,14 @@ sub spw_list {
 		      ) if exists $dr{fit_polynomial_order};
 
     # Create an array of IF objects suitable for use in the spectral
-    # window object(s)
-    my @ifcoords = map {  new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if},
-						     nchannels => $ss->{nchan_per_sub},
-						     channel_width => $ss->{channwidth},
-						     ref_channel => $_
-						   ) } @{ $ss->{if_ref_channel} };
+    # window object(s). The ref channel and the if freq are per-sideband
+    my @ifcoords = map { 
+      new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if_per_subband}->[$_],
+					    nchannels => $ss->{nchan_per_sub},
+					    channel_width => $ss->{channwidth},
+					    ref_channel => $ss->{if_ref_channel}->[$_],
+					  )
+    } (0..($ss->{nsubbands}-1));
 
     # We only calculate baselines for the hybridised spectral windows
     if (defined $frac) {
@@ -1156,22 +1206,24 @@ sub spw_list {
     if ($ss->{nsubbands} == 1) {
       # no hybrid. Just store it
       $spw->window( 'truncate' );
-      $spw->align_shift(0);
+      $spw->align_shift( $ss->{align_shift}->[0] );
       $spw->bandwidth_mode( $ss->{bwmode});
       $spw->if_coordinate( $ifcoords[0] );
 
     } elsif ($ss->{nsubbands} == 2) {
       my %hybrid;
       my $sbcount = 1;
-      for my $if (@ifcoords) {
+      for my $i (0..$#ifcoords) {
 	my $sp = new JAC::OCS::Config::ACSIS::SpectralWindow;
 	$sp->bandwidth_mode( $ss->{bwmode} );
-	$sp->if_coordinate( $if );
+	$sp->if_coordinate( $ifcoords[$i] );
 	$sp->fe_sideband( $fe_sign );
-	$sp->align_shift(0);
+	$sp->align_shift( $ss->{align_shift}->[$i] );
 	$sp->rest_freq_ref( $ss->{rest_freq_ref});
 	$sp->window( $dr{window_type} );
-	$hybrid{"SPW". $spwcount . "." . $sbcount} = $sp;
+	my $id = "SPW". $spwcount . "." . $sbcount;
+	$hybrid{$id} = $sp;
+	$lo2spw{$id} = $ss->{lo2}->[$i];
 	$sbcount++;
       }
 
@@ -1179,8 +1231,9 @@ sub spw_list {
       $spw->subbands( %hybrid );
 
       # Create global IF coordinate object for the hybrid. For some reason
-      # this does not take overlap into account
-      my $if = new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if},
+      # this does not take overlap into account but does take the if of the first subband
+      # rather than the centre IF
+      my $if = new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if_per_subband}->[0],
 						     nchannels => $ss->{nchannels_full},
 						     channel_width => $ss->{channwidth},
 						     ref_channel => ($ss->{nchannels_full}/2));
@@ -1196,8 +1249,15 @@ sub spw_list {
     $spws{$splab} = $spw;
     $ss->{spw} = $splab;
 
+    # store the LO2 for this only if it is not a hybrid
+    # Cannot do this earlier since we need the splabel
+    $lo2spw{$splab} = $ss->{lo2}->[0] if $ss->{nsubbands} == 1;
+
     $spwcount++;
   }
+
+  # Store the LO2
+  $info{freqconfig}->{LO2} = \%lo2spw;
 
   # Create the SPWList
   my $spwlist = new JAC::OCS::Config::ACSIS::SPWList;
@@ -1884,6 +1944,49 @@ sub bandwidth_mode {
 
     # channel mode
     $s->{chanmode} = $nsubband . 'x' . $nchan_per_sub;
+
+    # Get the bandwidth mode fixed info
+    throw OMP::Error::FatalError("Bandwidth mode [".$s->{sbbwlabel}.
+				 "] not in lookup")
+      unless exists $BWMAP{$s->{sbbwlabel}};
+    my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
+
+    throw OMP::Error::FatalError( "The high frequency [$bwmap{f_lo}] is greater than the full bandwidth of $bw_per_sub of this subband\n")
+      if $bwmap{f_lo} > $bw_per_sub;
+
+    # calculate number of useful channels per subband
+    my $nch_lo = OMP::General::nint( $nchan_per_sub * $bwmap{f_lo} /
+				     $bw_per_sub);
+    my $nch_hi = OMP::General::nint( $nchan_per_sub * $bwmap{f_hi} /
+				     $bw_per_sub);
+
+
+    my $d_nch = $nch_hi - $nch_lo + 1;
+
+    # Now calculate the IF setting for each subband
+    # so that the IF refers to the centre of the useful part of each
+    # subband. This is the exact value.
+    my @sbif = map { 
+      $s->{if} -
+        ($nch_hi + ($d_nch * (($nsubband/2)-$_))) * $chanwid;
+    } (1..$nsubband);
+
+    # Now calculate the exact LO2 for each IF
+    my @lo2exact = map { $_ - $bwmap{f_park} } @sbif;
+    $s->{lo2exact} = \@lo2exact;
+
+    # LO2 is quantized into multiples of LO2_INCR
+    my @lo2true = map { int( $_ / $LO2_INCR) * $LO2_INCR } @lo2exact;
+    $s->{lo2} = \@lo2true;
+
+    # Now calculate the error and store this for later correction
+    # of the subbands in the spectral window
+    my @align_shift = map { $lo2exact[$_] - $lo2true[$_] } (0..$#lo2exact);
+    $s->{align_shift} = \@align_shift;
+
+    # Now the exact IF
+    my @ifexact = map { $sbif[$_] + $align_shift[$_] } (0..$#align_shift);
+    $s->{if_per_subband} = \@ifexact;
 
     # Now we need to calculate the reference channels for each subband
     # (middle channel if 1 subband)
