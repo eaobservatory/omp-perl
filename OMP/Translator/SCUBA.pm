@@ -24,6 +24,7 @@ use strict;
 use warnings;
 
 use OMP::Error;
+use OMP::Config;
 
 use Fcntl;
 use File::Spec;
@@ -41,7 +42,8 @@ use base qw/ OMP::Translator /;
 our $VERSION = (qw$Revision$)[1];
 
 # Unix directory for writing ODFs
-our $TRANS_DIR = "/observe/ompodf";
+our $TRANS_DIR = OMP::Config->getData( "scuba_translator.transdir" );
+
 # Equivalent path on vax
 our $TRANS_DIR_VAX = "OBSERVE:[OMPODF]";
 
