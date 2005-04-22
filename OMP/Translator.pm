@@ -409,6 +409,21 @@ sub write_configs {
 	       );
     $args{outputdir} = $outdir if defined $outdir;
 
+    # XML location is required for the queue. This is not instrument
+    # dependent but if $outdir is defined we must use it. Else
+    # we use the config system
+    if (defined $outdir) {
+      $args{xmldir} = $outdir;
+    } else {
+      # specify our default location
+      my $qdir;
+      eval {
+	$qdir = OMP::Config->getData( "translator.queuedir" );
+      };
+      $qdir = File::Spec->curdir() if !defined $qdir;
+      $args{xmldir} = $qdir;
+    }
+
     # Delegate the writing to the XMLIO class
     return Queue::EntryXMLIO::writeXML(\%args,
 				       @$configs );
