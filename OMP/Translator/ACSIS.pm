@@ -492,7 +492,7 @@ sub secondary_mirror {
     # that n_jigs_on must be divisible into the total number of jiggle positions.
 
     # Let's say this is maximum time between chops in seconds
-    my $tmax_per_chop = 1.0;
+    my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops');
 
     # Now calculate the number of steps in that time period
     my $maxsteps = int( $tmax_per_chop / $rts );
@@ -828,6 +828,15 @@ sub jos_config {
   # The step time is always present
   $jos->step_time( $self->step_time( %info ) );
 
+  # N_CALSAMPLES depends entirely on the step time and the time from
+  # the config file. Number of cal samples. This is hard-wired in
+  # seconds but in units of STEP_TIME
+  my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
+
+  # if caltime is less than step time (eg raster) we still need to do at
+  # least 1 cal
+  $jos->n_calsamples( min(1, int(0.5 + $caltime / $jos->step_time)) );
+
   # Now parameters depends on that recipe name
 
   # Raster
@@ -846,14 +855,24 @@ sub jos_config {
     }
     $jos->refs_per_cal( $rperc );
 
+    # Number of ref samples is the sqrt of the longest row
+    # for the first off only. All subsequent refs are calcualted by
+    # the JOS dynamically
+
+    # JOS_MIN ??
+
   } elsif ($mode =~ /jiggle/) {
 
     # Jiggle
 
     # JOS_MULT is the time for the integration divided by the time per jiggle
+    # pattern
     my $s_per_cyc = ($info{secsPerCycle} || 1);
 
-    
+
+  } elsif ($mode =~ /focus/ ) {
+    $jos->focus_steps( $info{focusPoints} );
+    $jos->focus_step( $info{focusStep} );
 
   }
 
@@ -2019,8 +2038,18 @@ sub step_time {
   # eventually this should be from a translator configuration file
   my $mode = $self->observing_mode( %info );
 
-  # quick hack. raster=100ms, all else is 50ms.
-  return ( $mode =~ /raster/ ? 0.1 : 0.05 );
+  # In raster_pssw the step time is defined to be the time per 
+  # output pixel. Everything else reads from config file
+  my $step;
+  if ($mode =~ /raster_pssw/ ) {
+    $step = $info{sampleTime};
+  } else {
+    $step = OMP::Config->getData( 'acsis_translator.step_time' );
+  }
+
+  throw OMP::Error::TranslateFail( "Calculated step time not a positive number [was $step]\n") unless $step > 0;
+
+  return $step;
 }
 
 =item B<hardware_map>
@@ -2076,6 +2105,8 @@ sub jig_info {
     unless exists $info{jigglePattern};
 
   # Jiggle pattern name and number of points in the pattern
+  # The number of points should be read from the jiggle file itself
+  # This is also required for calculating the optimal output grid
   my %jig_patterns = (
 		      '3x3' => { name => 'smu_3x3.dat',
 				 npts => 9 },
