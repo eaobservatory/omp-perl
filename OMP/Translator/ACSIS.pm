@@ -176,6 +176,12 @@ sub translate {
     # Store the completed config
     push(@configs, $cfg);
 
+    # For debugging we need to see the unrolled information
+    # do it late so that we get to see the acsis backend information
+    # as calculated by the translator
+    print Dumper( $obs ) if $DEBUG;
+
+    # and also the translated config itself
     print $cfg if $DEBUG;
 
     last;
@@ -889,7 +895,7 @@ sub jos_config {
     my $rtime = $rlen / $info{SCAN_VELOCITY};
 
     # Now convert to steps
-    my $nrefs = min( 1, int( 0.5 + $rtime / $jos->step_time ));
+    my $nrefs = min( 1, int( 0.5 + sqrt( $rtime / $jos->step_time ) ));
 
     $self->n_refsamples( $nrefs );
 
@@ -1794,9 +1800,6 @@ C<obs_summary> method).
 sub observing_mode {
   my $self = shift;
   my %info = @_;
-
-  print Dumper( \%info ) if $DEBUG;
-
 
   my %summary;
 
