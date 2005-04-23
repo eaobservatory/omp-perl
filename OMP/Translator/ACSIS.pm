@@ -27,6 +27,7 @@ use Net::Domain;
 use File::Spec;
 use Astro::Coords::Offset;
 use List::Util qw/ min max /;
+use POSIX qw/ ceil /;
 
 # Need to find the OCS Config (temporary kluge)
 #use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
@@ -841,7 +842,7 @@ sub jos_config {
 
   # if caltime is less than step time (eg raster) we still need to do at
   # least 1 cal
-  $jos->n_calsamples( min(1, int(0.5 + $caltime / $jos->step_time)) );
+  $jos->n_calsamples( min(1, OMP::General::nint( $caltime / $jos->step_time) ) );
 
   # Now parameters depends on that recipe name
 
@@ -902,21 +903,94 @@ sub jos_config {
     # JOS_MIN ??
     $self->jos_min(1);
 
-  } elsif ($mode =~ /jiggle/) {
+  } elsif ($mode =~ /jiggle_chop/) {
 
     # Jiggle
 
-    # JOS_MULT is the time for the integration divided by the time per jiggle
-    # pattern
-    my $s_per_cyc = ($info{secsPerCycle} || 1);
+    # We need to calculate the number of full patterns per nod and the number
+    # of nod sets. A nod set is a full A B B A combination so there are at
+    # least 4 nods.
 
+    # first get the Secondary object, via the TCS
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+    # ... and secondary
+    my $secondary = $tcs->getSecondary();
+    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+    # N_JIGS_ON etc
+    my %timing = $secondary->timing;
+
+    # Get the full jigle parameters. These are not available from the secondary object because
+    # the XML does not require that information. It probably makes sense to extend the object
+    # itself to be able to store the actual jiggle pattern. For now it is necessary to "recalculate"
+    # the jiggle pattern to get the total number of points.
+    my %jig_params = $self->jig_info( %info );
+
+
+    # Now calculate the total time for 1 full coverage of the jiggle pattern
+    # We need the N_JIGS_ON and N_CYC_OFF here because the more we chop the more inefficient
+    # we are (the sqrt scaling means that a single pattern is more efficient than breaking it
+    # up into smaller chunks
+
+    # Number of chunks
+    my $njig_chunks = $jig_params{npts} / $timing{N_JIGS_ON};
+
+    # Calculate number of steps in a jiggle pattern
+    # The factor of 2 is because the chop pattern does N_CYC_OFF either side of the ON
+    my $nsteps = $njig_chunks * ( $timing{N_JIGS_ON} + ( 2 * $timing{N_CYC_OFF} ) );
+
+    # Time per full jig pattern
+    my $timePerJig = $nsteps * $jos->step_time;
+
+    # The number of times we need to go round the jiggle (per cycle) is the total
+    # requested time divided by the step time
+    my $nrepeats = ceil( $info{secsPerJiggle} / $jos->step_time );
+
+    # These repeats have to spread evenly over 4 nod cycles (a single nod set)
+    # This would be JOS_MULT if NUM_NOD_SETS was 1 and time between nods could go
+    # very high
+    my $total_jos_mult = ceil( $nrepeats / 4 );
+
+    # now get the max time between nods
+    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
+
+    # and convert that to the max number of jiggle repeats per nod
+    my $max_jos_mult = int( $max_t_nod / $timePerJig );
+
+    # The actual JOS_MULT and NUM_NOD_SETS can now be calculated
+    # If we need less than required we just use that
+    my $num_nod_sets;
+    my $jos_mult;
+    if ($total_jos_mult <  $max_jos_mult) {
+      # we can do it all in one go
+      $num_nod_sets = 1;
+      $jos_mult = $total_jos_mult;
+    } else {
+      # we need to split the total into equal chunks smaller than max_jos_mult
+      $num_nod_sets = int($total_jos_mult / $max_jos_mult);
+      $jos_mult = $max_jos_mult;
+    }
+
+    $jos->jos_mult( $jos_mult );
+    $jos->num_nod_sets( $num_nod_sets );
+
+    if ($DEBUG) {
+      print "Jiggle JOS parameters:\n";
+      print "\ttimePerJig : $timePerJig\n";
+      print "\tRequested integration time per pixel: $info{secsPerJiggle}\n";
+      print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
+      print "\tRequired total JOS_MULT: $total_jos_mult\n";
+      print "\tMax allowed JOS_MULT : $max_jos_mult\n";
+      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats\n";
+    }
 
   } elsif ($mode =~ /focus/ ) {
     $jos->focus_steps( $info{focusPoints} );
     $jos->focus_step( $info{focusStep} );
 
   }
-
 
   # Tasks can be worked out by seeing which objects are configured.
   # This is done automatically on stringication of the config object
