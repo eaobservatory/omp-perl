@@ -520,9 +520,9 @@ sub secondary_mirror {
       }
 
       # the number of steps in the "off" position depends on the number
-      # of steps we have just completed in the "on".
+      # of steps we have just completed in the "on" (but half each side).
       $smu->timing( N_JIGS_ON => $njigs,
-		    N_CYC_OFF => int( sqrt($njigs) + 0.5 ),
+		    N_CYC_OFF => int( (sqrt($njigs)/2) + 0.5 ),
 		  );
    }
   }
