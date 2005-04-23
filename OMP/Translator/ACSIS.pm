@@ -2306,7 +2306,7 @@ Not a method. Could probably use the slurp function.
 
 sub _read_file {
   my $file = shift;
-  open my $fh, "< $file" || 
+  open (my $fh, "< $file") or 
     throw OMP::Error::FatalError( "Unable to open file $file: $!");
 
   local $/ = undef;
