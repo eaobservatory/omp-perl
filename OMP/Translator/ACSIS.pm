@@ -1481,6 +1481,12 @@ sub cubes {
       # Truncation radius is half the pixel size for TopHat
       # For Gausian we use 3 HWHM (that's what SCUBA used)
       $cube->truncation_radius( $fwhm * 1.5 );
+    } else {
+      # The gridder needs a non-zero truncation radius even if the gridding
+      # technique does not use it! We have two choices. Either set a default
+      # value here in the translator or make sure that the Config class
+      # always fills in a blank. For now kluge in the translator.
+      $cube->truncation_radius( ($xsiz+$ysiz)/2 );
     }
 
     $cubes{$cubid} = $cube;
