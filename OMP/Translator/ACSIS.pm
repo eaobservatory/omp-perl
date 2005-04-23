@@ -859,7 +859,42 @@ sub jos_config {
     # for the first off only. All subsequent refs are calcualted by
     # the JOS dynamically
 
+    # we need the cube dimensions
+    # get the acsis configuration
+    my $acsis = $cfg->acsis;
+    throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+    # get the spectral window information
+    my $cubelist = $acsis->cube_list();
+    throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
+
+    my %cubes = $cubelist->cubes;
+
+    # need the longest row from all the cubes.
+    # For the moment, I don't expect the cubes to be different sizes...
+    # Be conservative and choose a diagonal
+    my $rlen = 0;
+    for my $c (keys %cubes) {
+      # number of pixels
+      my ($nx, $ny) = $cubes{$c}->npix;
+
+      # size per pixel
+      my ($dx,$dy) = map { $_->arcsec } $cubes{$c}->pixsize;
+
+      # length of row in arcsec
+      $rlen = max( $rlen, sqrt( ($nx*$dx)**2 + ($ny*$dy)**2 ) );
+    }
+
+    # Now convert that to a time
+    my $rtime = $rlen / $info{SCAN_VELOCITY};
+
+    # Now convert to steps
+    my $nrefs = min( 1, int( 0.5 + $rtime / $jos->step_time ));
+
+    $self->n_refsamples( $nrefs );
+
     # JOS_MIN ??
+    $self->jos_min(1);
 
   } elsif ($mode =~ /jiggle/) {
 
@@ -1412,8 +1447,9 @@ sub cubes {
       # between scan rows
       $ysiz = $info{SCAN_DY};
 
-      # The X spacing should be half Nyquist or the Y spacing (whichever is smallest)
-      $xsiz = min ($ysiz, $nyq->arcsec / 2 );
+      # The X spacing depends on the requested sample time per map point
+      # and the scan velocity
+      $xsiz = $info{SCAN_VELOCITY} * $info{sampleTime};
 
       # read the map position angle
       $mappa = $info{MAP_PA}; # degrees
