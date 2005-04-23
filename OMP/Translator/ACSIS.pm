@@ -1988,27 +1988,9 @@ sub bandwidth_mode {
     my @ifexact = map { $sbif[$_] + $align_shift[$_] } (0..$#align_shift);
     $s->{if_per_subband} = \@ifexact;
 
-    # Now we need to calculate the reference channels for each subband
-    # (middle channel if 1 subband)
-    my @refchan;
-    if ($nsubband == 1) {
-      $refchan[0] = int( $nchan / 2 );
-    } elsif ($nsubband == 2) {
-      # calculate the overlap in channels
-      my $nchan_olap = int($olap / $chanwid);
-
-      # the channel offset into the array is half the total
-      my $noff = int( $nchan_olap / 2 );
-
-      # First offset is from the end, second is from the start
-      push( @refchan, $nchan_per_sub - $noff, $noff );
-
-    } else {
-      # This all assumes two subbands
-      throw OMP::Error::FatalError("Can only calculate IF ref channel for a 2 subband system not $nsubband");
-
-    }
-
+    # for the above calculation, we are assuming that the reference
+    # channel in each subband is always channel 1.
+    my @refchan = map { 1 } (1..$nsubband);
     $s->{if_ref_channel} = \@refchan;
 
   }
