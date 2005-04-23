@@ -3989,11 +3989,17 @@ sub SpIterFolder {
 
       # For Het
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
-      my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
       my $jigSystem = $self->_get_pcdata( $child, 'jiggleSystem' );
       my $jigPA = $self->_get_pcdata( $child, 'jigglePa' );
       my $scaleFactor = $self->_get_pcdata( $child, 'scaleFactor' );
       my $contmode = $self->_get_pcdata( $child, "continuumMode" );
+
+      # seconds per cycle is deprecated in favor of seconds per jiggle point
+      # we assume that secsPerCycle *means* secsPerJiggle in modern usage
+      # until the OT is fixed
+      my $sPerJ = $self->_get_pcdata( $child, 'secsPerJiggle' );
+      my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
+      $sPerJ = $sPerC if !defined $sPerJ;
 
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
@@ -4008,7 +4014,7 @@ sub SpIterFolder {
 						  'jigglePattern');
       $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
 
-      $jiggle{secsPerCycle}  = $sPerC if defined $sPerC;
+      $jiggle{secsPerJiggle}  = $sPerJ if defined $sPerJ;
       $jiggle{jiggleSystem} = $jigSystem if defined $jigSystem;
       $jiggle{jigglePA} = $jigPA if defined $jigPA;
       $jiggle{scaleFactor} = $scaleFactor if defined $scaleFactor;
