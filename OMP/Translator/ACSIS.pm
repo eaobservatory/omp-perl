@@ -123,7 +123,7 @@ sub translate {
   my $otver = $msb->ot_version;
   print "OTVERS: $otver \n" if $DEBUG;
 
-  # Correct Stare and Jiggle observations such that multiple offsets are
+  # Correct Stare observations such that multiple offsets are
   # combined
   # Note that there may be a requirement to convert non-regular offset
   # patterns into individual observations rather than having a very sparse
@@ -1549,16 +1549,40 @@ sub cubes {
 	($offx, $offy) = $self->PosAngRot( $offx, $offy, $info{OFFSET_PA});
       }
 
-    } elsif ($obsmode =~ /grid|jiggle/i) {
-      # Need to know:
-      #  - the extent of the offset grid
-      #  - the extent of the jiggle pattern
-      #  - the footprint of the array
+    } elsif ($obsmode =~ /grid/i) {
+      # Need to know the footprint of the array. Assume single pixel.
       # GRID + single pixel is easy since it is just the offset pattern
       my @offsets;
       @offsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
 									 @offsets );
+
+    } elsif ($obsmode =~ /jiggle/i) {
+      # Need to know:
+      #  - the extent of the jiggle pattern
+      #  - the footprint of the array. Assume single pixel
+
+      # first get the Secondary object, via the TCS
+      my $tcs = $cfg->tcs;
+      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+      # ... and secondary
+      my $secondary = $tcs->getSecondary();
+      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+      # Get the information
+      my $jig = $secondary->jiggle;
+      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+
+      # and the angle
+      my $pa = $jig->posang->degrees;
+
+      # calculate the pattern without a global offset
+      ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
+									 map { { OFFSET_DX => $_->[0],
+										 OFFSET_DY => $_->[1],
+										 OFFSET_PA => $pa,
+									       } } $jig->spattern);
 
     } else {
       # pointing is going to be a map based on the jiggle offset
