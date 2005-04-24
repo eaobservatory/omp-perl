@@ -128,7 +128,7 @@ sub translate {
   # Note that there may be a requirement to convert non-regular offset
   # patterns into individual observations rather than having a very sparse
   # but large grid
-  $self->correct_offsets( $msb, "Stare", "Jiggle" );
+  $self->correct_offsets( $msb, "Stare" );
 
   # Now unroll the MSB into constituent observations details
   my @configs;
@@ -374,8 +374,8 @@ sub observing_area {
 
   my $oa = new JAC::OCS::Config::TCS::obsArea();
 
-  # Offset [needs work in unroll_obs to fix this for jiggle so that
-  # we get a single configuration]
+  # Offset [needs work in unroll_obs to fix this for stare so that
+  # we get a single configuration]. Jiggle needs multiple configurations.
 
   # There is only one position angle in an observing Area so the
   # offsets have to be in the same frame as the map if we are
@@ -1583,6 +1583,19 @@ sub cubes {
 										 OFFSET_DY => $_->[1],
 										 OFFSET_PA => $pa,
 									       } } $jig->spattern);
+
+      # get the global offset for this observation
+      my $global_offx = ($info{OFFSET_DX} || 0);
+      my $global_offy = ($info{OFFSET_DY} || 0);
+
+      # rotate those offsets to the mappa
+      if ($info{OFFSET_PA} != $mappa) {
+	($global_offx, $global_offy) = $self->PosAngRot( $global_offx, $global_offy, ($info{OFFSET_PA}-$mappa));
+      }
+
+      # add any offset from he unrolled offset iterator
+      $offx += $global_offx;
+      $offy += $global_offy;
 
     } else {
       # pointing is going to be a map based on the jiggle offset
