@@ -319,6 +319,12 @@ sub tcs_base {
   # First get all the coordinate tags
   my %tags = %{ $info{coordtags} };
 
+  # check for reference position
+  my $obsmode = $self->observing_mode( %info );
+  throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
+    if (!exists $tags{REFERENCE} && $obsmode =~ /pssw/);
+
+
   # and augment with the SCIENCE tag
   # we only needs the Astro::Coords object in this case
   $tags{SCIENCE} = { coords => $info{coords} };
