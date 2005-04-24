@@ -33,6 +33,7 @@ use POSIX qw/ ceil /;
 #use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
 
 use JCMT::ACSIS::HWMap;
+use JCMT::SMU::Jiggle;
 use JAC::OCS::Config;
 
 use OMP::Config;
@@ -478,17 +479,14 @@ sub secondary_mirror {
 
   # Jiggling
 
-  my %jig_params;
+  my $jig;
 
   if ($obsmode eq 'SpIterJiggleObs') {
 
-    %jig_params = $self->jig_info( %info );
+    $jig = $self->jig_info( %info );
 
-    $smu->jiggle( SYSTEM => $info{jiggleSystem},
-		  SCALE => $info{scaleFactor},
-		  NAME => $jig_params{name},
-		  PA => new Astro::Coords::Angle( $info{jigglePA}, units => 'deg'),
-		);
+    # store the object
+    $smu->jiggle( $jig );
 
   }
 
@@ -499,7 +497,7 @@ sub secondary_mirror {
     my $rts = $self->step_time( %info );
 
     # total number of points in pattern
-    my $npts = $jig_params{npts};
+    my $npts = $jig->npts;
 
     # Now the number of jiggles per chop position is dependent on the
     # maximum amount of time we want to spend per chop position and the constraint
@@ -929,12 +927,8 @@ sub jos_config {
     # N_JIGS_ON etc
     my %timing = $secondary->timing;
 
-    # Get the full jigle parameters. These are not available from the secondary object because
-    # the XML does not require that information. It probably makes sense to extend the object
-    # itself to be able to store the actual jiggle pattern. For now it is necessary to "recalculate"
-    # the jiggle pattern to get the total number of points.
-    my %jig_params = $self->jig_info( %info );
-
+    # Get the full jigle parameters from the secondary object
+    my $jig = $secondary->jiggle;
 
     # Now calculate the total time for 1 full coverage of the jiggle pattern
     # We need the N_JIGS_ON and N_CYC_OFF here because the more we chop the more inefficient
@@ -942,7 +936,7 @@ sub jos_config {
     # up into smaller chunks
 
     # Number of chunks
-    my $njig_chunks = $jig_params{npts} / $timing{N_JIGS_ON};
+    my $njig_chunks = $jig->npts / $timing{N_JIGS_ON};
 
     # Calculate number of steps in a jiggle pattern
     # The factor of 2 is because the chop pattern does N_CYC_OFF either side of the ON
@@ -2188,26 +2182,13 @@ sub hardware_map {
 
 =item B<jig_info>
 
-Return information relating to the selected jiggle pattern.
+Return information relating to the selected jiggle pattern as a 
+C<JCMT::SMU::Jiggle> object.
 
-  %details = $trans->jig_info( %info );
+  $jig = $trans->jig_info( %info );
 
 Throws an exception if Jiggle mode is defined but the pattern is missing
 or if this method is called without jiggle mode selected.
-
-Returns a hash with keys of
-
-=over 8
-
-=item name
-
-Name of the jiggle pattern file.
-
-=item npts
-
-Number of points in that jiggle file.
-
-=back
 
 =cut
 
@@ -2221,25 +2202,31 @@ sub jig_info {
   throw OMP::Error::TranslateFail( "No jiggle pattern specified!" )
     unless exists $info{jigglePattern};
 
-  # Jiggle pattern name and number of points in the pattern
-  # The number of points should be read from the jiggle file itself
-  # This is also required for calculating the optimal output grid
-  my %jig_patterns = (
-		      '3x3' => { name => 'smu_3x3.dat',
-				 npts => 9 },
-		      '5x5' => { name => 'smu_5x5.dat',
-				 npts => 25 },
-		      '7x7' => { name => 'smu_7x7.dat',
-				 npts => 49 },
-		      '9x9' => { name => 'smu_9x9.dat',
-				 npts => 81 },
-		     );
+  # Look up table for patterns
+  my %jigfiles = (
+		  '3x3' => 'smu_3x3.dat',
+		  '5x5' => 'smu_5x5.dat',
+		  '7x7' => 'smu_7x7.dat',
+		  '9x9' => 'smu_9x9.dat',
+		 );
 
-  if (!exists $jig_patterns{ $info{jigglePattern} }) {
+  if (!exists $jigfiles{ $info{jigglePattern} }) {
     throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern $info{jigglePattern}\n");
   }
 
-  return %{ $jig_patterns{ $info{jigglePattern} } };
+
+  # obtin path to actual file
+  my $file = File::Spec->catfile( $WIRE_DIR,'smu',$jigfiles{$info{jigglePattern}});
+
+  # Need to read the pattern 
+  my $jig = new JCMT::SMU::Jiggle( File => $file );
+
+  # set the scale and other parameters
+  $jig->scale( $info{scaleFactor} );
+  $jig->posang( new Astro::Coords::Angle( $info{jigglePA}, units => 'deg') );
+  $jig->system( $info{jiggleSystem} );
+
+  return $jig;
 }
 
 =item B<nyquist>
