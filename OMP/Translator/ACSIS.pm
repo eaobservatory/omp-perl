@@ -418,6 +418,7 @@ sub observing_area {
     }
 
     my $refpa = ($offsets[0]->{OFFSET_PA} || 0);
+    $oa->posang( new Astro::Coords::Angle( $refpa, units => 'deg' ) );
 
     # Rotate them all to the reference frame (this should be a no-op with
     # the current enforcement by the OT)
@@ -1574,12 +1575,6 @@ sub cubes {
     }
 
 
-    # the gridder can not handle a rotated coordinate frame so we now
-    # need to rotate the map dimensions to unrotated frame
-    if ($mappa != 0) {
-      throw OMP::Error::TranslateFail("Do not yet handle rotated output cubes");
-    }
-
     throw OMP::Error::TranslateFail( "Unable to determine X pixel size")
       unless defined $xsiz;
     throw OMP::Error::TranslateFail( "Unable to determine Y pixel size")
@@ -1589,6 +1584,9 @@ sub cubes {
     $cube->pixsize( new Astro::Coords::Angle($xsiz, units => 'arcsec'),
 		    new Astro::Coords::Angle($ysiz, units => 'arcsec'));
     $cube->npix( $nx, $ny );
+
+    $cube->posang( new Astro::Coords::Angle( $mappa, units => 'deg'))
+      if defined $mappa;
 
     # offset in pixels
     $cube->offset( $offx / $xsiz, $offy / $ysiz);
