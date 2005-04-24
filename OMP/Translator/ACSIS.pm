@@ -2341,7 +2341,7 @@ sub _calc_offset_stats {
   # Now remove duplicates. Order is irrelevant
   my %dummy = map { $_ => undef } @off;
 
-  # and sort
+  # and sort into order
   my @sort = sort { $a <=> $b } keys %dummy;
 
   # if we only have one position we can return early here
@@ -2360,7 +2360,7 @@ sub _calc_offset_stats {
   my $tol = 0.2 * $nyquist;
 
   # Now calculate the gaps between each position
-  my @gap = map { $sort[$_] - $sort[$_-1] } (1..$#sort);
+  my @gap = map { abs($sort[$_] - $sort[$_-1]) } (1..$#sort);
 
   # Now we have to work out a pixel scale that will allow these
   # offsets to fall on the same grid within the tolerance
@@ -2384,14 +2384,14 @@ sub _calc_offset_stats {
   # To try to mitigate this we move the reference pixel to the nearest integer
   # pixel if the tolerance allows it
 
-  # Reference "pixel"
+  # Choose a reference pixel in the middle of the sorted range
+  # Reference "pixel" is simply the smallest value in the sequence
   my $refpix = $sort[0];
 
   # Move to the nearest int if the nearest int is less than the tol
   # away
-  my $adj = ( $refpix > 0 ? 0.5 : -0.5 );
-  my $nearint = int( $refpix + $adj );
-  if (($refpix - $nearint) < $tol) {
+  my $nearint = OMP::General::nint( $refpix );
+  if (abs($refpix - $nearint) < $tol) {
     $refpix = $nearint;
   }
 
@@ -2401,10 +2401,22 @@ sub _calc_offset_stats {
   my $mod = 2; # trial modifier
   OUTER: while ($trial > $tol) {
 
+    # Calculate the tolerance in units of trial pixels
+    my $tolpix = $tol / $trial;
+
     # see whether the sequence fits with this trial
     for my $t (@sort) {
+
+      # first calculate the distance between this and the reference
+      # in units of $trial pixels. This will always be positive
+      # because we always start from the sorted list.
       my $pixpos = ( $t - $refpix ) / $trial;
-      my $pixerr = $t - (int($pixpos) * $trial) + $refpix;
+
+      # Now in an ideal world we have an integer match. Found the
+      # pixel error
+      my $pixerr = abs( $pixpos - int($pixpos) );
+
+      # Now compare this with the tolerance in units of pixels
       if ($pixerr > $tol) {
 	# This trial did not work. Calculate a new one by dividing
 	# original by an increasing factor (which will stop when we hit
@@ -2421,8 +2433,9 @@ sub _calc_offset_stats {
 
   # whatever happens we get a pixel value. Either a valid one or one that
   # is smaller than the tolerance (and so guaranteed to be okay).
-  my $npix = int( ($span / $trial) + 0.5);
-  return ($min, $max, $cen, $span, $trial, $npix );
+  # we add one because we are counting fence posts not gaps between fence posts
+  my $npix = ceil( $span / $trial ) + 1;
+  return ($min, $max, $cen, $span, $npix, $trial );
 
 }
 
