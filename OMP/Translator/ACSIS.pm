@@ -903,10 +903,10 @@ sub jos_config {
     # Now convert to steps
     my $nrefs = min( 1, int( 0.5 + sqrt( $rtime / $jos->step_time ) ));
 
-    $self->n_refsamples( $nrefs );
+    $jos->n_refsamples( $nrefs );
 
     # JOS_MIN ??
-    $self->jos_min(1);
+    $jos->jos_min(1);
 
   } elsif ($mode =~ /jiggle_chop/) {
 
