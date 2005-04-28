@@ -60,6 +60,7 @@ our %FE_MAP = (
 	       RXWC => 'RXW',
 	       RXWD => 'RXW',
 	       RXB3 => 'RXB',
+               'RXHARP-B' => 'HARPB'               
 	      );
 
 # Lookup table to calculate the LO2 frequencies.
@@ -615,7 +616,7 @@ sub instrument_config {
   my $inst = lc($self->ocs_frontend($info{instrument}));
   throw OMP::Error::FatalError('No instrument defined so cannot configure!')
     unless defined $inst;
-
+ 
   # wiring file name
   my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
 				  "instrument_$inst.ent");
@@ -1328,9 +1329,9 @@ sub spw_list {
       my $nchan_full = $ss->{channels};
       my $nchan_bl = int($nchan_full * $frac / 2 );
       @baselines = (
-	   new JAC::OCS::Config::Interval( Units => 'channel',
+	   new JAC::OCS::Config::Interval( Units => 'pixel',
 					   Min => 0, Max => $nchan_bl),
-	   new JAC::OCS::Config::Interval( Units => 'channel',
+	   new JAC::OCS::Config::Interval( Units => 'pixel',
 					   Min => ($nchan_full - $nchan_bl),
 					   Max => $nchan_full),
 	  );
@@ -1848,8 +1849,22 @@ sub acsis_layout {
     $monlay = "<monitor_layout>\n$monlay\n</monitor_layout>\n";
   }
 
+  # Get the instrument we are using
+  my $inst = lc($self->ocs_frontend($info{instrument}));
+  throw OMP::Error::FatalError('No instrument defined - needed to select correct layout file !')
+    unless defined $inst;
+  
+  # Now select the appropriate layout depending on the instrument found
+  my $appropriate_layout;
+  if($inst eq 'rxa') {$appropriate_layout="s1r1g1_layout.ent";}
+  if($inst eq 'rxb') {$appropriate_layout="s2r2g2_layout.ent";}
+  if($inst eq 'rxw') {$appropriate_layout="s2r2g2_layout.ent";}
+  if($inst eq 'harpb') {$appropriate_layout="s8r16g8_layout.ent";}
+  throw OMP::Error::FatalError("Could not find an appropriate layout file for $inst !")
+    unless defined $appropriate_layout;
+
   # Read the template process_layout file
-  my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'layout.ent');
+  my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
   my $layout = _read_file( $lay_file );
 
   # Now we need to replace the entities.
