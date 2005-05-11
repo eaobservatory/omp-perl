@@ -371,10 +371,6 @@ sub observing_area {
   my $tcs = shift;
   my %info = @_;
 
-  use Data::Dumper;
-
-  print Dumper %info;
-
   my $obsmode = $info{MODE};
 
   my $oa = new JAC::OCS::Config::TCS::obsArea();
@@ -1772,7 +1768,7 @@ sub simulator_config {
     my @offset = $cube->offset;
     $thiscloud{x_location} = $offset[0];
     $thiscloud{y_location} = $offset[1];
-
+ 
     # Width of fake source. Is this in pixels or arcsec?
     my @npix = $cube->npix;
     $thiscloud{major_width} = 0.2 * $npix[0];
