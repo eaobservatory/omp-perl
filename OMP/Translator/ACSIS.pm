@@ -371,6 +371,10 @@ sub observing_area {
   my $tcs = shift;
   my %info = @_;
 
+  use Data::Dumper;
+
+  print Dumper %info;
+
   my $obsmode = $info{MODE};
 
   my $oa = new JAC::OCS::Config::TCS::obsArea();
@@ -393,8 +397,14 @@ sub observing_area {
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
 	       DY => $info{SCAN_DY},
-	       SYSTEM => $info{SCAN_SYSTEM},
+	       SYSTEM => $info{SCAN_SYSTEM}        
 	     );
+    
+    # N.B. The PTCS has now been modified to default to the
+    # scan values below as per the DTD spec. so there is no need
+    # to hardwire these directly into the translator.
+    # REVERSAL => "YES",
+    # TYPE => "TAN" 
 
     # Offset
     my $offx = ($info{OFFSET_DX} || 0);
