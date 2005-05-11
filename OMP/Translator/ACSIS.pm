@@ -568,7 +568,8 @@ sub fe_config {
   my %fc = %{ $info{freqconfig} };
 
   # Easy setup
-  $fe->rest_frequency( $fc{restFrequency} );
+  # FE XML expects rest frequency in GHz
+  $fe->rest_frequency( $fc{restFrequency}/1e9 );
   $fe->sb_mode( $fc{sideBandMode} );
 
   # How to handle 'best'?
@@ -1753,8 +1754,8 @@ sub simulator_config {
   for my $cube (values %cubes) {
     my %thiscloud = (
 		     position_angle => 0,
-		     pos_z_width => 200,
-		     neg_z_width => 200,
+		     pos_z_width => 300,
+		     neg_z_width => 300,
 		     amplitude => 20,
 		    );
 
@@ -1762,17 +1763,19 @@ sub simulator_config {
     # in the middle
     my $spwint = $cube->spw_interval;
     throw OMP::Error::FatalError( "Simulation requires channel units but it seems this spectral window was configured differently. Needs fixing.\n") if $spwint->units ne 'channel';
-    $thiscloud{z_location} = ($spwint->min + $spwint->max) / 2;
+    $thiscloud{z_location} = int (($spwint->min + $spwint->max) / 2);
 
     # offset centre
     my @offset = $cube->offset;
-    $thiscloud{x_location} = $offset[0];
-    $thiscloud{y_location} = $offset[1];
- 
+    # No. of pixels, x and y
+    my @npix=$cube->npix;
+    # Put cloud in centre to nearest integer
+    $thiscloud{x_location} = int($offset[0]+$npix[0]/2);
+    $thiscloud{y_location} = int($offset[1]+$npix[1]/2);
+    
     # Width of fake source. Is this in pixels or arcsec?
-    my @npix = $cube->npix;
-    $thiscloud{major_width} = 0.2 * $npix[0];
-    $thiscloud{minor_width} = 0.2 * $npix[1];
+    $thiscloud{major_width} = int(0.6 * $npix[0]);
+    $thiscloud{minor_width} = int(0.6 * $npix[1]);
 
     push(@clouds, \%thiscloud);
   }
@@ -1785,9 +1788,9 @@ sub simulator_config {
 
   # Now write the non cloud information
   $sim->noise( 1 );
-  $sim->refsky_temp( 135 );
-  $sim->load2_temp( 250 );
-  $sim->ambient_temp( 300 );
+  $sim->refsky_temp( 135.0 );
+  $sim->load2_temp( 250.0 );
+  $sim->ambient_temp( 300.0 );
   $sim->band_start_pos( 120 );
 
   # attach simulation to acsis
