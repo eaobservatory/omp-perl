@@ -833,7 +833,7 @@ sub jos_config {
 		pointing    => 'pointing',
 		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
 		jiggle_chop => 'jiggle_chop',
-		grid_pssw   => 'raster_or_grid_pssw',
+		grid_pssw   => 'grid_pssw',
 		raster_pssw => 'raster_or_grid_pssw',
 	       );
   if (exists $JOSREC{$mode}) {
@@ -998,8 +998,49 @@ sub jos_config {
   } elsif ($mode =~ /focus/ ) {
     $jos->focus_steps( $info{focusPoints} );
     $jos->focus_step( $info{focusStep} );
+  } elsif ($mode =~ /grid/) {
 
-  }
+    # N.B. The NUM_CYCLES has already been set to
+    # the number of requested integrations
+    # above.
+    my $nrefs; #N_REFSAMPLES
+    my $num_nod_sets;
+    my $jos_min;
+    my $points_per_ref;
+
+    # First JOS_MIN
+    # This is the number of samples on each grid position
+    # so = secsPerCycle / STEP_TIME
+    $jos_min= $info{secsPerCycle} / $self->step_time( %info );
+    $jos->jos_min($jos_min); 
+
+    # N_REFSAMPLES should be equal
+    # to the number of samples on each grid position
+    # i.e. $jos_min
+    $nrefs=$jos_min;    
+    $jos->n_refsamples( $nrefs );
+    
+    # NUM_NOD_SETS - set to 1
+    $num_nod_sets=1; 
+    $jos->num_nod_sets( $num_nod_sets );
+    
+    # presumably always want to 
+    # do 1 point of the grid then do 
+    # an integration at reference,
+    # so POINTS_PER_REF=1
+    $points_per_ref=1;
+    $jos->points_per_ref($points_per_ref);
+
+    if ($DEBUG) {
+    print "Grid JOS parameters:\n";
+    print "N_REFSAMPLES = $nrefs\n";
+    print "JOS_MIN = $jos_min\n";
+    print "POINTS_PER_REF =  $points_per_ref \n";
+    print "NUM_NOD_SETS =  $num_nod_sets \n";
+   } 
+
+}
+
 
   # Tasks can be worked out by seeing which objects are configured.
   # This is done automatically on stringication of the config object
