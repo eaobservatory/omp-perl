@@ -1473,16 +1473,47 @@ sub determine_user {
     if ($w) {
       require Tk::DialogBox;
       require Tk::LabEntry;
-      my $dbox = $w->DialogBox( -title => "Request OMP user ID",
-				-buttons => ["Accept","Don't Know"],
-			      );
-      my $ent = $dbox->add('LabEntry',
-		 -label => "Enter your OMP User ID:",
-		 -width => 15)->pack;
-      my $but = $dbox->Show;
-      if ($but eq 'Accept') {
-	my $id = $ent->get;
-	$user = OMP::UserServer->getUser($id);
+
+      while( ! defined $user ) {
+
+        my $dbox = $w->DialogBox( -title => "Request OMP user ID",
+                                  -buttons => ["Accept","Don't Know"],
+                                );
+        my $ent = $dbox->add('LabEntry',
+                             -label => "Enter your OMP User ID:",
+                             -width => 15)->pack;
+        my $but = $dbox->Show;
+        if ($but eq 'Accept') {
+          my $id = $ent->get;
+
+          # Catch any errors that might pop up.
+          try {
+            $user = OMP::UserServer->getUser($id);
+          } catch OMP::Error with {
+            my $Error = shift;
+
+            my $dbox2 = $w->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
+            my $label = $dbox2->add( 'Label',
+                                     -text => "Error: " . $Error->{-text} )->pack;
+            my $but2 = $dbox2->Show;
+          } otherwise {
+            my $Error = shift;
+
+            my $dbox2 = $w->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
+            my $label = $dbox2->add( 'Label',
+                                     -text => "Error: " . $Error->{-text} )->pack;
+            my $but2 = $dbox2->Show;
+          };
+          if( defined( $user ) ) {
+            last;
+          }
+        } else {
+          last;
+        }
       }
 
     }
