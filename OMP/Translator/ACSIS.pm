@@ -1853,8 +1853,9 @@ sub simulator_config {
     $thiscloud{y_location} = int($offset[1]+$npix[1]/2);
     
     # Width of fake source. Is this in pixels or arcsec?
-    $thiscloud{major_width} = int(0.6 * $npix[0]);
-    $thiscloud{minor_width} = int(0.6 * $npix[1]);
+    # +1 to ensure that it always has non-zero width
+    $thiscloud{major_width} = int(0.6 * $npix[0])+1;
+    $thiscloud{minor_width} = int(0.6 * $npix[1])+1;
 
     push(@clouds, \%thiscloud);
   }
