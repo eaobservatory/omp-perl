@@ -876,7 +876,7 @@ sub jos_config {
     $jos->refs_per_cal( $rperc );
 
     # Number of ref samples is the sqrt of the longest row
-    # for the first off only. All subsequent refs are calcualted by
+    # for the first off only. All subsequent refs are calculated by
     # the JOS dynamically
 
     # we need the cube dimensions
@@ -1037,9 +1037,47 @@ sub jos_config {
     print "JOS_MIN = $jos_min\n";
     print "POINTS_PER_REF =  $points_per_ref \n";
     print "NUM_NOD_SETS =  $num_nod_sets \n";
-   } 
+   }} elsif ($mode =~ /freqsw/)
+   {
+      
+   # Parameters to calculate 
+   # NUM_CYCLES       =>  Number of complete iterations
+   # JOS_MULT         => Number of complete jiggle maps per sequence
+   # STEP_TIME        => RTS step time during an RTS sequence
+   # N_CALSAMPLES     => Number of load samples per cal
+   
 
-}
+   # NUM_CYCLES has already been set above.    
+   # N_CALSAMPLES has already been set too.
+   # STEP_TIME ditto   
+   
+   # Just need to set JOS_MULT 
+   my $jos_mult;
+
+   # first get the Secondary object, via the TCS
+   my $tcs = $cfg->tcs;
+   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+   # ... and secondary
+   my $secondary = $tcs->getSecondary();
+   throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+   # N_JIGS_ON etc
+   my %timing = $secondary->timing;
+   # Get the full jigle parameters from the secondary object
+   my $jig = $secondary->jiggle;
+
+   # Now calculate JOS_MULT        
+   # +1 to make sure we get 
+   # at least the requested integration time 
+   $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
+   
+   $jos->jos_mult($jos_mult); 
+   if ($DEBUG) {
+   print "JOS_MULT = $jos_mult\n";
+   }
+   }
+
 
 
   # Tasks can be worked out by seeing which objects are configured.
