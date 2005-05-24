@@ -581,6 +581,11 @@ sub summary {
   # in the summary that require astrometry to be performed
   my $noast;
   if ($format =~ /_noast$/) {
+
+    # Get rid of the _noast portion
+    $format =~ s/_noast$//;
+
+    # Set the 'noast' option to true
     $noast = 1;
   }
 
