@@ -389,6 +389,9 @@ different forms of summaries. Allowed values are:
                 Returns a list of lines in list context. A block of text
                 in scalar context.
 
+The 'asciiarray' mode, which is the default, will not return any
+information that requires astrometry to be performed.
+
 The XML summary is of the form
 
   <SpProgSummary timestamp="9999999" projectid="M01BXXX">
@@ -446,11 +449,11 @@ sub summary {
     # Plain text
     my @strings;
     for my $msb ($self->msb) {
-      my %summary = $msb->info->summary('hashlong');
+      my %summary = $msb->info->summary('hashlong_noast');
       # The title
-      push(@strings, $msb->info->summary('textshorthdr') ) unless @strings;
+      push(@strings, $msb->info->summary('textshorthdr_noast') ) unless @strings;
       # The contents
-      push(@strings,  $msb->info->summary('textshort') );
+      push(@strings,  $msb->info->summary('textshort_noast') );
     }
 
     return @strings;
