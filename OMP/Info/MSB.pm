@@ -527,6 +527,12 @@ Allowed formats are:
                are retained as objects
  'hashlong'  - hash rep. of MSB where Observations are array of hashes
 
+If the string '_noast' is appended to any format (resulting in,
+for example, 'textlong_noast'), no information that requires
+astrometry to be performed (such as RA and DEC) will be included in
+the summary.  This can greatly reduce the amount of time it takes
+to generate a summary.
+
 The XML short format will be something like the following:
 
  <SpMSBSummary id="string">
@@ -571,6 +577,13 @@ sub summary {
   # Read the actual value
   $format = lc(shift);
 
+  # If 'noast' is appended to format value, do not include elements
+  # in the summary that require astrometry to be performed
+  my $noast;
+  if ($format =~ /_noast$/) {
+    $noast = 1;
+  }
+
   # Field widths for short text summary. Do this early
   # so that we can process textshorthdr without querying
   # the object
@@ -596,9 +609,15 @@ sub summary {
   my %summary;
 
   # These are the scalar/objects
-  for (qw/ projectid checksum tau seeing priority moon timeest title elevation
-	   datemin datemax telescope cloud sky remaining msbid ra airmass
-	   ha dec az approach schedpri completion /) {
+  my @elements = qw/ projectid checksum tau seeing priority moon timeest title
+		     elevation datemin datemax telescope cloud sky remaining
+                     msbid approach schedpri completion /;
+
+  # Include astrometry elements unless 'noast' option is being used
+  push @elements, qw/ ra airmass ha dec az /
+    unless ($noast);
+
+  for (@elements) {
     $summary{$_} = $self->$_();
   }
 
