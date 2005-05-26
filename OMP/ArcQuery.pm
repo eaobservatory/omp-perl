@@ -40,11 +40,13 @@ our $UFTITAB = 'ukirt..UFTI F';
 our $CGS4TAB = 'ukirt..CGS4 C';
 our $UISTTAB = 'ukirt..UIST I';
 our $IRCAMTAB = 'ukirt..IRCAM3 I';
+our $WFCAMTAB = 'ukirt..WFCAM W';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
                    UIST => [ $UKIRTTAB, $UISTTAB ],
                    MICHELLE => [ $UKIRTTAB ],
+                   WFCAM => [ $UKIRTTAB, $WFCAMTAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
@@ -56,6 +58,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                   $CGS4TAB => '(U.idkey = C.idkey)',
                                   $UISTTAB => '(U.idkey = I.idkey)',
                                   $IRCAMTAB => '(U.idkey = I.idkey)',
+                                  $WFCAMTAB => '(U.idkey = W.idkey)',
                                 },
                  );
 
@@ -478,7 +481,7 @@ sub _post_process_hash {
         $tables{$GSDTAB}++;
         $tels{JCMT}++;
         $insts{HETERODYNE}++;
-      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST)/) {
+      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST|WFCAM)/) {
         $tables{$UKIRTTAB}++;
         $tels{UKIRT}++;
         $insts{$inst}++;
@@ -498,6 +501,7 @@ sub _post_process_hash {
       $insts{UFTI}++;
       $insts{MICHELLE}++;
       $insts{UIST}++;
+      $insts{WFCAM}++;
     } elsif ($tel eq 'JCMT') {
       $tables{$SCUTAB}++;
       $tables{$GSDTAB}++;
@@ -560,7 +564,7 @@ sub _post_process_hash {
         $href->{$inst}->{instrument}->{ $lut{instrument}{$GSDTAB} } = [ qw/ HETERODYNE / ];
         $self->_process_elements($href->{$inst}->{instrument}, sub { lc(shift) },
                                  [ $lut{instrument}{$GSDTAB} ] );
-      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST)/) {
+      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST|WFCAM)/) {
         $href->{$inst}->{instrument}->{ $lut{instrument}{$UKIRTTAB} } =  [ "$inst" ] ;
         $self->_process_elements($href->{$inst}->{instrument}, sub { uc(shift);},
                                  [ $lut{instrument}{$UKIRTTAB}]);
