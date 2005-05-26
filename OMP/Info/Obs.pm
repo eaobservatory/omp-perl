@@ -159,6 +159,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               backend => '$',
                               bolometers => '@',
                               camera => '$',
+                              camera_number => '$',
                               checksum => '$',
                               chopangle => '$',
                               chopfreq => '$',
@@ -791,7 +792,7 @@ sub file_from_bits {
   throw OMP::Error("file_from_bits: Unable to determine instrument to create filename.")
     unless defined $instrument;
 
-  if( $instrument =~ /(ufti|ircam|cgs4|michelle|uist)/i ) {
+  if( $instrument =~ /(ufti|ircam|cgs4|michelle|uist|wfcam)/i ) {
 
     my $utdate;
     ( $utdate = $self->startobs->ymd ) =~ s/-//g;
@@ -812,6 +813,13 @@ sub file_from_bits {
       $filename .= "/c" . $utdate . "_" . $runnr . ".sdf";
     } elsif( $instrument =~ /michelle/i ) {
       $filename .= "/m" . $utdate . "_" . $runnr . ".sdf";
+    } elsif( $instrument =~ /wfcam/i ) {
+      my %prefix = ( 1 => 'w',
+                     2 => 'x',
+                     3 => 'y',
+                     4 => 'z',
+                   );
+      $filename .= "/" . $prefix{ $self->camera_number } . $utdate . "_" . $runnr . ".sdf";
     }
   } elsif( $instrument =~ /^(rx|het|fts)/i ) {
     my $project = $self->projectid;
@@ -1149,6 +1157,7 @@ sub _populate {
   $self->backend( $generic_header{BACKEND} );
   $self->filter( $generic_header{FILTER} );
   $self->camera( $generic_header{CAMERA} );
+  $self->camera_number( $generic_header{CAMERA_NUMBER} );
   $self->pol( $generic_header{POLARIMETRY} );
   if( defined( $generic_header{POLARIMETER} ) ) {
     $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
