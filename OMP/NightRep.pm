@@ -1364,11 +1364,21 @@ sub ashtml {
       print "<a name=obslog></a>";
 
       if ($grp and $grp->numobs > 1) {
-        OMP::CGIComponent::Obslog::obs_table($grp,
-				    sort => 'chronological',
-				    worfstyle => $worfstyle,
-				    commentstyle => $commentstyle,
-				   );
+
+	# Display log as plain text if there are a huge amount of observations
+	my $plaintext = ($grp->numobs > 800 ? 1 : 0);
+
+	print "<pre>" if ($plaintext);
+
+	OMP::CGIComponent::Obslog::obs_table($grp,
+					     sort => 'chronological',
+					     worfstyle => $worfstyle,
+					     commentstyle => $commentstyle,
+					     text => $plaintext,
+					    );
+
+	print "</pre>" if ($plaintext);
+
       } else {
         # Don't display the table if no observations are available
         print "No observations available for this night";
