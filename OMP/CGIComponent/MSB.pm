@@ -414,7 +414,7 @@ sub msb_comment_form {
 
   print $q->textarea(-name=>'comment',
 		     -rows=>5,
-		     -columns=>50,
+		     -columns=>80,
 		     -default=>$defaults{comment},);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit("Submit");
