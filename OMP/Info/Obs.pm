@@ -641,8 +641,8 @@ sub nightlog {
     $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
-    $return{'_STRING_HEADER'} = " Obs  Grp Tile  Project ID UT Start      Object     Type  ExpT  Filt     Offsets    AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %4d %11.11s %8.8s %11.11s %8.8s %5.2f %5.5s %5.1f/%5.1f  %4.2f %-18.18s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Filter'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID UT Start      Object     Type  ExpT  Filt     Offsets   AM Recipe";
+    $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %11.11s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-16.16s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Filter'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
   } elsif($instrument =~ /(cgs4|ircam|ufti|uist|michelle)/i) {
 
