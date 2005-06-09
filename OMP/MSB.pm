@@ -2144,6 +2144,9 @@ sub fill_template {
 
   return 0 unless exists $args{coords};
 
+  # get the telescope name
+  my $telName = $self->telescope;
+
   # Read the coordinates into a simple array
   my @sources;
   @sources = (ref $args{coords} eq 'ARRAY' ? @{ $args{coords} } :
@@ -2179,7 +2182,7 @@ sub fill_template {
 	if $c >= $blanks;
 
       # Find the SCIENCE or BASE position, and retrieve it as a DOM
-      my $tcs = new JAC::OCS::Config::TCS( DOM => $tel );
+      my $tcs = new JAC::OCS::Config::TCS( DOM => $tel, telescope => $telName);
       my $sci = $tcs->getSciTag()->_tree;
 
       throw OMP::Error::SpBadStructure("Unable to find SCIENCE/BASE position in target component")
@@ -4702,7 +4705,8 @@ sub SpTelescopeObsComp {
   # Use the generic TCS_CONFIG parsing code since the SpTelescopeObsComp
   # is meant to be valid TCS_CONFIG format (for base and tag positions)
   my $cfg = new JAC::OCS::Config::TCS( validation => 0,
-				       DOM => $el );
+				       DOM => $el,
+				       telescope => $self->telescope);
 
   # Now pluck out the bits of interest
   $summary{coords} = $cfg->getTarget();
