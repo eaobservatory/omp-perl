@@ -484,3 +484,8 @@ a.sidemain:hover{color:#ffffff; font-size:11px; font-weight:bold; text-decoratio
 .row_shaded { 
   background-color: #dddddd;
 }
+
+.row_disabled {
+  background-color: #cbcbcd;
+  color: #949494;
+}
