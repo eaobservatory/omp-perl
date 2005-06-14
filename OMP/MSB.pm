@@ -4702,11 +4702,18 @@ sub SpTelescopeObsComp {
   my $el = shift;
   my %summary = @_;
 
+  my $telName;
+  if (blessed($self)) {
+#     Causes deep recursion
+#    $telName = $self->telescope;
+    $telName = 'JCMT';
+  }
+
   # Use the generic TCS_CONFIG parsing code since the SpTelescopeObsComp
   # is meant to be valid TCS_CONFIG format (for base and tag positions)
   my $cfg = new JAC::OCS::Config::TCS( validation => 0,
 				       DOM => $el,
-				       telescope => $self->telescope);
+				       telescope => $telName );
 
   # Now pluck out the bits of interest
   $summary{coords} = $cfg->getTarget();
