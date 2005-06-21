@@ -2162,7 +2162,7 @@ sub bandwidth_mode {
     my $hbw = $s->{bw};
     my $olap = $s->{overlap};
     my $hchan = $s->{channels};
-
+  
     # Calculate the channel width and store it
     my $chanwid = $hbw / $hchan;
     $s->{channwidth} = $chanwid;
@@ -2249,7 +2249,7 @@ sub bandwidth_mode {
     } (1..$nsubband);
 
     # Now calculate the exact LO2 for each IF
-    my @lo2exact = map { $_ - $bwmap{f_park} } @sbif;
+    my @lo2exact = map { $_ + $bwmap{f_park} } @sbif;
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
