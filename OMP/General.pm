@@ -283,6 +283,24 @@ sub display_date {
   return "$string $tz";
 }
 
+=item B<mail_date>
+
+Return the local date and time in the format specified in RFC822, for use
+in an email Date header.
+
+  $datestring = OMP::General->mail_date();
+
+=cut
+
+sub mail_date {
+  my $class = shift;
+
+  my $date = localtime;
+  my $string = $date->strftime("%a, %d %b %Y %H:%M:%S %z");
+
+  return $string;
+}
+
 =item B<determine_extended>
 
 Given a start and end time, or a start time and duration, return
