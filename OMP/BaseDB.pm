@@ -882,11 +882,12 @@ sub _mail_information {
   # Create the message
   my $top = MIME::Entity->build(%details);
 
+  # Create a Date header since the mail server might not create one
+  $args{headers}->{date} = OMP::General->mail_date;
+
   # Add any additional headers
-  if ($args{headers}) {
-    for my $hdr (keys %{ $args{headers} }) {
-      $top->add($hdr => $args{headers}->{$hdr});
-    }
+  for my $hdr (keys %{ $args{headers} }) {
+    $top->add($hdr => $args{headers}->{$hdr});
   }
 
   # Convert the HTML to plain text and attach it to the message if we're
