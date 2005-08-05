@@ -21,6 +21,7 @@ use 5.006;
 use strict;
 use warnings;
 
+use File::Spec;
 use OMP::Config;
 
 our $VERSION = (qw$Revision$)[1];
@@ -51,10 +52,21 @@ sub play {
   my $audio_file = shift;
 
   my $audio_subdir = OMP::Config->getData( 'audiodir' );
-  my $file = File::Spec->catfile( $ENV{'OMP_DIR'},
+
+  # Either look in OMP_DIR or one up from Config directory
+  my $rootdir;
+  if (exists $ENV{OMP_DIR}) {
+    $rootdir = $ENV{OMP_DIR};
+  } else {
+    $rootdir = File::Spec->catdir(OMP::Config->cfgdir, File::Spec->updir);
+  }
+
+  # make a stab at the file name
+  my $file = File::Spec->catfile( $rootdir,
                                   $audio_subdir,
                                   $audio_file );
 
+  print "Looking for File $file\n" if $DEBUG;
   return if ! -e $file;
 
   # Do some rudimentary taint checking on the path. Only allow
@@ -62,13 +74,35 @@ sub play {
   $file =~ /^([a-zA-Z0-9\/\._]*)$/;
   $file = $1;
 
-  print "running /usr/bin/esdplay $file\n" if $DEBUG;
-
   {
     local $ENV{'PATH'} = "/bin:/usr/bin";
 
-    # Do the system call to esdplay.
-    system( "/usr/bin/esdplay", "$file" );
+    my $cmd;
+
+    # Commands and arguments
+    my %cmds = ( esdplay => {
+			     path => '/usr/bin/esdplay',
+			     },
+		 qtplay => {
+			    # OS X
+			    path => '/usr/local/bin/qtplay',
+			    args => '-q',
+			   });
+
+    for my $c (keys %cmds) {
+      print "Checking for command  '$c'..." if $DEBUG;
+      if (-e $cmds{$c}->{path}) {
+	$cmd = $c;
+	print "Found.\n" if $DEBUG;
+	last;
+      }
+      print "\n" if $DEBUG;
+    }
+
+    print "running '$cmd $file'\n" if $DEBUG;
+
+    # Do the system call to the wav player
+    system( $cmds{$cmd}{path}, $cmds{$cmd}{args},$file );
   }
 }
 
@@ -76,7 +110,8 @@ sub play {
 
 =head1 AUTHORS
 
-Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>,
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
