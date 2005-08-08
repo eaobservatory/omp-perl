@@ -135,6 +135,10 @@ sub translate {
   my @configs;
   for my $obs ($msb->unroll_obs) {
 
+    # We need to patch up POINTING and FOCUS observations so that they have
+    # the correct jiggle parameters
+    $self->handle_special_modes();
+
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
 
@@ -225,6 +229,23 @@ sub transdir {
     $TRANS_DIR = $dir;
   }
   return $TRANS_DIR;
+}
+
+=item B<handle_special_modes>
+
+Special modes such as POINTING or FOCUS are normal observations that are modified
+to do something in addition to normal behaviour. For a pointing this simply means
+fitting an offset.
+
+Since the Observing Tool is setup such that pointing and focus
+observations do not necessarily inherit observing parameters from the
+enclosing observation and they definitely do not include a
+specification on chopping scheme.
+
+=cut
+
+sub handle_special_modes {
+
 }
 
 =back
@@ -985,6 +1006,10 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
+    # KLUGE
+    $jos->n_skyrefsamples( $jos->n_calsamples );
+
+
     if ($DEBUG) {
       print "Jiggle JOS parameters:\n";
       print "\ttimePerJig : $timePerJig\n";
@@ -1171,7 +1196,6 @@ sub correlator {
       # DCM just wants the bandwidth without the channel count
       my $dcmbw = $bwmode;
       $dcmbw =~ s/x.*$//;
-      $dcmbw = uc($dcmbw);
       $dcm_bwmodes[$dcmid] = $dcmbw;
 
       # hardware mapping to spectral window ID
