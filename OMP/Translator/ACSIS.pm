@@ -60,7 +60,7 @@ our %FE_MAP = (
 	       RXWC => 'RXW',
 	       RXWD => 'RXW',
 	       RXB3 => 'RXB',
-               'RXHARP-B' => 'HARPB'               
+               'RXHARP-B' => 'HARPB'
 	      );
 
 # Lookup table to calculate the LO2 frequencies.
@@ -81,6 +81,14 @@ our %BWMAP = (
 			 f_hi => 960,
 			},
 	     );
+
+# This is the gridder/reducer layout selection
+my %ACSIS_Layouts = (
+		    RXA => 's1r1g1',
+		    RXB => 's2r2g2',
+		    RXW => 's2r2g2',
+		    HARPB => 's8r16g8'
+		   );
 
 # LO2 synthesizer step, hard-wired
 our $LO2_INCR = 0.2E6;
@@ -137,7 +145,7 @@ sub translate {
 
     # We need to patch up POINTING and FOCUS observations so that they have
     # the correct jiggle parameters
-    $self->handle_special_modes();
+    $self->handle_special_modes( $obs );
 
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
@@ -233,9 +241,11 @@ sub transdir {
 
 =item B<handle_special_modes>
 
-Special modes such as POINTING or FOCUS are normal observations that are modified
-to do something in addition to normal behaviour. For a pointing this simply means
-fitting an offset.
+Special modes such as POINTING or FOCUS are normal observations that
+are modified to do something in addition to normal behaviour. For a
+pointing this simply means fitting an offset.
+
+  $cfg->handle_special_modes( \%obs );
 
 Since the Observing Tool is setup such that pointing and focus
 observations do not necessarily inherit observing parameters from the
@@ -245,6 +255,10 @@ specification on chopping scheme.
 =cut
 
 sub handle_special_modes {
+  my $self = shift;
+  my $info = shift;
+
+  # The trick is to fill in the blanks
 
 }
 
@@ -1042,13 +1056,13 @@ sub jos_config {
     # N_REFSAMPLES should be equal
     # to the number of samples on each grid position
     # i.e. $jos_min
-    $nrefs=$jos_min;    
+    $nrefs=$jos_min;
     $jos->n_refsamples( $nrefs );
-    
+
     # NUM_NOD_SETS - set to 1
     $num_nod_sets=1; 
     $jos->num_nod_sets( $num_nod_sets );
-    
+
     # presumably always want to 
     # do 1 point of the grid then do 
     # an integration at reference,
@@ -1057,25 +1071,25 @@ sub jos_config {
     $jos->points_per_ref($points_per_ref);
 
     if ($DEBUG) {
-    print "Grid JOS parameters:\n";
-    print "N_REFSAMPLES = $nrefs\n";
-    print "JOS_MIN = $jos_min\n";
-    print "POINTS_PER_REF =  $points_per_ref \n";
-    print "NUM_NOD_SETS =  $num_nod_sets \n";
-   }} elsif ($mode =~ /freqsw/)
-   {
-      
+      print "Grid JOS parameters:\n";
+      print "N_REFSAMPLES = $nrefs\n";
+      print "JOS_MIN = $jos_min\n";
+      print "POINTS_PER_REF =  $points_per_ref \n";
+      print "NUM_NOD_SETS =  $num_nod_sets \n";
+    }
+
+  } elsif ($mode =~ /freqsw/) {
+
    # Parameters to calculate 
    # NUM_CYCLES       =>  Number of complete iterations
    # JOS_MULT         => Number of complete jiggle maps per sequence
    # STEP_TIME        => RTS step time during an RTS sequence
    # N_CALSAMPLES     => Number of load samples per cal
-   
 
-   # NUM_CYCLES has already been set above.    
+   # NUM_CYCLES has already been set above.
    # N_CALSAMPLES has already been set too.
-   # STEP_TIME ditto   
-   
+   # STEP_TIME ditto
+
    # Just need to set JOS_MULT 
    my $jos_mult;
 
@@ -1096,17 +1110,17 @@ sub jos_config {
    # +1 to make sure we get 
    # at least the requested integration time 
    $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
-   
+
    $jos->jos_mult($jos_mult); 
    if ($DEBUG) {
-   print "JOS_MULT = $jos_mult\n";
+     print "JOS_MULT = $jos_mult\n";
    }
-   }
+ }
 
 
 
   # Tasks can be worked out by seeing which objects are configured.
-  # This is done automatically on stringication of the config object
+  # This is done automatically on stringification of the config object
   # so we do not need to do it here
 
 
@@ -1963,22 +1977,23 @@ sub acsis_layout {
   }
 
   # Get the instrument we are using
-  my $inst = lc($self->ocs_frontend($info{instrument}));
+  my $inst = $self->ocs_frontend($info{instrument});
   throw OMP::Error::FatalError('No instrument defined - needed to select correct layout file !')
     unless defined $inst;
-  
+
   # Now select the appropriate layout depending on the instrument found
   my $appropriate_layout;
-  if($inst eq 'rxa') {$appropriate_layout="s1r1g1_layout.ent";}
-  if($inst eq 'rxb') {$appropriate_layout="s2r2g2_layout.ent";}
-  if($inst eq 'rxw') {$appropriate_layout="s2r2g2_layout.ent";}
-  if($inst eq 'harpb') {$appropriate_layout="s8r16g8_layout.ent";}
-  throw OMP::Error::FatalError("Could not find an appropriate layout file for $inst !")
-    unless defined $appropriate_layout;
+  if (exists $ACSIS_Layouts{$inst}) {
+    $appropriate_layout = $ACSIS_Layouts{$inst} . '_layout.ent';
+  } else {
+    throw OMP::Error::FatalError("Could not find an appropriate layout file for instrument $inst !");
+  }
 
   # Read the template process_layout file
   my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
   my $layout = _read_file( $lay_file );
+
+  print "Read ACSIS layout $lay_file\n" if $DEBUG;
 
   # Now we need to replace the entities.
   $layout =~ s/\&machine_table\;/$machtable/g;
