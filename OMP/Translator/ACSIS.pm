@@ -611,7 +611,7 @@ sub fe_config {
   $fe->sideband( $fc{sideBand} );
 
   # doppler mode
-  $fe->doppler( ELEC_TUNING => 'GROUP', MECH_TUNING => 'ONCE' );
+  $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
 
   # Frequency offset
   my $freq_off = 0.0;
@@ -890,7 +890,7 @@ sub jos_config {
 
   # if caltime is less than step time (eg raster) we still need to do at
   # least 1 cal
-  $jos->n_calsamples( min(1, OMP::General::nint( $caltime / $jos->step_time) ) );
+  $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
 
   # Now parameters depends on that recipe name
 
@@ -1020,8 +1020,8 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
-    # KLUGE
-    $jos->n_skyrefsamples( $jos->n_calsamples );
+    # The jiggle recipe still needs a REFERENCE
+    $jos->n_refsamples( $jos->n_calsamples );
 
 
     if ($DEBUG) {
@@ -2334,6 +2334,8 @@ sub step_time {
   my $step;
   if ($mode =~ /raster_pssw/ ) {
     $step = $info{sampleTime};
+  } elsif ($mode =~ /grid_pssw/) {
+    $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw')
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
