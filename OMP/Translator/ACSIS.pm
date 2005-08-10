@@ -425,12 +425,26 @@ sub observing_area {
     $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
 		  WIDTH => $info{MAP_WIDTH});
 
+    # The scan position angle is either supplied or automatic
+    # if it is not supplied we currently have to give the TCS a hint
+    my @scanpas;
+    if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
+      @scanpas = @{ $info{SCAN_PA} };
+    } else {
+      # For single pixel just align with the map
+      @scanpas = ( $info{MAP_PA}, ($info{MAP_PA}+90));
+    }
+    # convert from deg to object
+    @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg' ) } @scanpas;
+
+
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
 	       DY => $info{SCAN_DY},
-	       SYSTEM => $info{SCAN_SYSTEM}        
+	       SYSTEM => $info{SCAN_SYSTEM},
+	       PA => \@scanpas,
 	     );
-    
+
     # N.B. The PTCS has now been modified to default to the
     # scan values below as per the DTD spec. so there is no need
     # to hardwire these directly into the translator.
@@ -944,7 +958,7 @@ sub jos_config {
     my $rtime = $rlen / $info{SCAN_VELOCITY};
 
     # Now convert to steps
-    my $nrefs = min( 1, int( 0.5 + sqrt( $rtime / $jos->step_time ) ));
+    my $nrefs = max( 1, int( 0.5 + sqrt( $rtime / $jos->step_time ) ));
 
     $jos->n_refsamples( $nrefs );
 
@@ -1106,7 +1120,7 @@ sub jos_config {
    # Get the full jigle parameters from the secondary object
    my $jig = $secondary->jiggle;
 
-   # Now calculate JOS_MULT        
+   # Now calculate JOS_MULT
    # +1 to make sure we get 
    # at least the requested integration time 
    $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
