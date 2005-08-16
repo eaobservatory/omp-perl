@@ -34,8 +34,7 @@ use warnings;
 use File::Spec;
 use Scalar::Util qw/ blessed /;
 
-use lib qw| /home/timj/dev/ocsq/lib |;
-use lib qw| /jac_sw/hlsroot/ocsq/lib |;
+# Path must include the queue classes
 use Queue::EntryXMLIO qw/ writeXML /;
 
 use OMP::Constants qw/ :msb /;
