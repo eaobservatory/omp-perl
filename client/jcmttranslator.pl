@@ -77,6 +77,8 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../";
 
+# We also need the Queue classes for XML I/O
+use lib qw| /jac_sw/hlsroot/ocsq/lib |;
 
 
 # Load the servers (but use them locally without SOAP)
