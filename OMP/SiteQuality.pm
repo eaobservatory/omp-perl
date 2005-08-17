@@ -70,7 +70,7 @@ table instead of NULL.
 
 =cut
 
-use constant OMP__SKYBRIGHT_INF => 1E37;
+use constant OMP__SKYBRIGHT_INF => 1E9;
 
 =item B<OMP__TAU_INF>
 
