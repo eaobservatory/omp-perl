@@ -24,6 +24,7 @@ observation, a source catalogue and a set of pattern files. This class provides 
 use 5.006;
 use strict;
 use warnings;
+use warnings::register;
 
 use OMP::Error qw/ :try /;
 use Astro::Catalog;
