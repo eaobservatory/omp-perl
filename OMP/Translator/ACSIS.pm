@@ -67,18 +67,12 @@ our %FE_MAP = (
 # Indexed simply by subband bandwidth
 our %BWMAP = (
 	      '250MHz' => {
-			   # Parking frequency, upper end (Hz)
-			   f_park => 2750E6,
-			   # useful Lo and high frequencies (MHz)
-			   f_lo => 25,
-			   f_hi => 225,
+			   # Parking frequency, channel 1 (Hz)
+			   f_park => 2.5E9,
 		       },
 	      '1GHz' => {
-			 # Parking frequency, upper end (to Hz)
-			 f_park => 3000E6,
-			 # useful Lo and high frequencies in MHz
-			 f_lo => 40,
-			 f_hi => 960,
+			 # Parking frequency, channel 1 (to Hz)
+			 f_park => 2.0E9,
 			},
 	     );
 
@@ -2215,10 +2209,9 @@ sub bandwidth_mode {
     my $hbw = $s->{bw};
     my $olap = $s->{overlap};
     my $hchan = $s->{channels};
-  
+
     # Calculate the channel width and store it
     my $chanwid = $hbw / $hchan;
-    $s->{channwidth} = $chanwid;
 
     # Currently, we determine whether we are hybridised from the
     # presence of non-zero overlap
@@ -2240,6 +2233,8 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
+    print "Bandwidth (MHz): $mhz\n";
+
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
 
@@ -2248,14 +2243,25 @@ sub bandwidth_mode {
     $s->{bwlabel} = ( $mhz < 1000 ? int($mhz) ."MHz" : int($ghz) . "GHz" );
 
     # Original number of channels before hybridisation
-    my $nchan = int( ($bw / $chanwid) + 0.5 );
+    # Because the OT also rounds, we need to take this to the nearest
+    # even number
+    my $nchan_frac = $bw / $chanwid;
+    my $nchan      = OMP::General::nint( $nchan_frac / 2 ) * 2;
     $s->{nchannels_full} = $nchan;
+
+    # and recalculate the channel width (rather than use the OT approximation
+    $chanwid = $bw / $nchan;
+    $s->{channwidth} = $chanwid;
+
+    print "Chanwid : $chanwid\n";
+
+    print "Number of channels: $nchan\n";
 
     # number of channels per subband
     my $nchan_per_sub = $nchan / $nsubband;
     $s->{nchan_per_sub} = $nchan_per_sub;
 
-    # calculate the bandwidth of each subband
+    # calculate the bandwidth of each subband in MHz
     my $bw_per_sub = $mhz / $nsubband;
 
     # subband bandwidth label
@@ -2281,28 +2287,54 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    throw OMP::Error::FatalError( "The high frequency [$bwmap{f_lo}] is greater than the full bandwidth of $bw_per_sub of this subband\n")
-      if $bwmap{f_lo} > $bw_per_sub;
+    print "BW per sub: $bw_per_sub  with overlap : $olap\n";
 
-    # calculate number of useful channels per subband
-    my $nch_lo = OMP::General::nint( $nchan_per_sub * $bwmap{f_lo} /
-				     $bw_per_sub);
-    my $nch_hi = OMP::General::nint( $nchan_per_sub * $bwmap{f_hi} /
-				     $bw_per_sub);
+    # The usable channels are defined by the overlap
+    # Simply using the channel width to calculate the offset
+    # Note that the reference channel is half the overlap if we want the
+    # reference channel to be aligned with the centre of the hybrid spectrum
+    my $olap_in_chan = OMP::General::nint( $olap / ( 2 * $chanwid ) );
 
+    # Note that channel numbers start at 0
+    my $nch_lo = $olap_in_chan;
+    my $nch_hi = $nchan_per_sub - $olap_in_chan - 1;
+
+    print "Usable channel range: $nch_lo to $nch_hi\n";
 
     my $d_nch = $nch_hi - $nch_lo + 1;
 
     # Now calculate the IF setting for each subband
-    # so that the IF refers to the centre of the useful part of each
-    # subband. This is the exact value.
-    my @sbif = map { 
-      $s->{if} -
-        ($nch_hi + ($d_nch * (($nsubband/2)-$_))) * $chanwid;
-    } (1..$nsubband);
+    # For 1 subband just choose the middle channel.
+    # For 2 subbands make sure that the reference channel in each subband
+    # is the centre of the overlap region and is the same for each.
+    my @refchan; # Reference channel for each subband
+    my @sbif;    # IF setting for each of the subbands
+
+    if ($nsubband == 1) {
+      # middle usable channel
+      my $nch_ref = $nch_lo + OMP::General::nint($d_nch / 2);
+      push(@refchan, $nch_ref);
+
+    } elsif ($nsubband == 2) {
+      # Subband 1 is referenced to LO channel and subband 2 to HI
+      push(@refchan, $nch_lo, $nch_hi );
+
+    } else {
+      # THIS ONLY WORKS FOR 2 SUBBANDS
+      croak "Only 2 subbands supported not $nsubband!";
+    }
+
+    # This is the exact value of the IF and is forced to be the same for all channels
+    # ( in one or 2 subband versions).
+    my @sbif = map { $s->{if} } (1..$nsubband);
+    $s->{if_per_subband} = \@sbif;
+
+    # For the LO2 settings we need to offset the IF by the number of channels
+    # from the beginning of the band
+    my @chan_offset = map { $sbif[$_] + ($refchan[$_] * $chanwid) } (0..$#sbif);
 
     # Now calculate the exact LO2 for each IF
-    my @lo2exact = map { $_ + $bwmap{f_park} } @sbif;
+    my @lo2exact = map { $_ + $bwmap{f_park} } @chan_offset;
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
@@ -2314,13 +2346,7 @@ sub bandwidth_mode {
     my @align_shift = map { $lo2exact[$_] - $lo2true[$_] } (0..$#lo2exact);
     $s->{align_shift} = \@align_shift;
 
-    # Now the exact IF
-    my @ifexact = map { $sbif[$_] + $align_shift[$_] } (0..$#align_shift);
-    $s->{if_per_subband} = \@ifexact;
-
-    # for the above calculation, we are assuming that the reference
-    # channel in each subband is always channel 1.
-    my @refchan = map { 1 } (1..$nsubband);
+    # Store the reference channel for each subband
     $s->{if_ref_channel} = \@refchan;
 
   }
