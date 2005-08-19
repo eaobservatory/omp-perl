@@ -29,9 +29,6 @@ use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use POSIX qw/ ceil /;
 
-# Need to find the OCS Config (temporary kluge)
-#use blib '/home/timj/dev/perlmods/JAC/OCS/Config/blib';
-
 use JCMT::ACSIS::HWMap;
 use JCMT::SMU::Jiggle;
 use JAC::OCS::Config;
@@ -323,6 +320,40 @@ sub tcs_config {
 
   # Then secondary mirror
   $self->secondary_mirror( $tcs, %info );
+
+  # Fix up the REFERENCE position for Jiggle/Chop if we have not been given
+  # one explicitly. We need to do this until the JOS recipe can be fixed to
+  # go to the chop position for its CAL automatically
+  my %tags = $tcs->getAllTargetInfo;
+  if (!exists $tags{REFERENCE} && $self->observing_mode( %info ) =~ /chop/) {
+    # The REFERENCE should be the chop off position for now
+    my $ref = new JAC::OCS::Config::TCS::BASE;
+    $ref->tag( "REFERENCE" );
+    $ref->coords( $tags{SCIENCE}->coords );
+    $ref->tracking_system( $tags{SCIENCE}->tracking_system );
+
+    # Chop info
+    my $sec = $tcs->getSecondary;
+    my %chop = $sec->chop();
+
+    # convert this polar coordinate to cartesian
+    my $chop_x = $chop{THROW} * sin( $chop{PA}->radians );
+    my $chop_y = $chop{THROW} * cos( $chop{PA}->radians );
+
+    # prettyify
+    $chop_x = sprintf( "%.2f", $chop_x );
+    $chop_y = sprintf( "%.2f", $chop_y );
+
+    # offset
+    my $offset = new Astro::Coords::Offset( $chop_x, $chop_y,
+					    system => $chop{SYSTEM} );
+
+    $ref->offset( $offset );
+
+    $tcs->setCoords( "REFERENCE", $ref );
+
+  }
+
 
   # Slew and rotator require the duration to be known which can
   # only be calculated when the configuration is complete
@@ -806,7 +837,7 @@ sub header_config {
   for my $i (@items) {
     my $method = $i->method;
     if ($pkg->can( $method ) ) {
-      my $val = $pkg->$method( %info );
+      my $val = $pkg->$method( $cfg, %info );
       if (defined $val) {
 	$i->value( $val );
 	$i->source( undef ); # clear derived status
@@ -2205,6 +2236,8 @@ sub bandwidth_mode {
 
   # loop over each subsystem
   for my $s (@subs) {
+    print "Processing subsystem...\n" if $DEBUG;
+
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
     my $olap = $s->{overlap};
@@ -2233,7 +2266,7 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
-    print "Bandwidth (MHz): $mhz\n";
+    print "\tBandwidth (MHz): $mhz\n" if $DEBUG;
 
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
@@ -2253,9 +2286,9 @@ sub bandwidth_mode {
     $chanwid = $bw / $nchan;
     $s->{channwidth} = $chanwid;
 
-    print "Chanwid : $chanwid\n";
+    print "\tChanwid : $chanwid\n" if $DEBUG;
 
-    print "Number of channels: $nchan\n";
+    print "\tNumber of channels: $nchan\n" if $DEBUG;
 
     # number of channels per subband
     my $nchan_per_sub = $nchan / $nsubband;
@@ -2287,7 +2320,7 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    print "BW per sub: $bw_per_sub  with overlap : $olap\n";
+    print "\tBW per sub: $bw_per_sub  with overlap : $olap\n" if $DEBUG;
 
     # The usable channels are defined by the overlap
     # Simply using the channel width to calculate the offset
@@ -2299,7 +2332,7 @@ sub bandwidth_mode {
     my $nch_lo = $olap_in_chan;
     my $nch_hi = $nchan_per_sub - $olap_in_chan - 1;
 
-    print "Usable channel range: $nch_lo to $nch_hi\n";
+    print "\tUsable channel range: $nch_lo to $nch_hi\n" if $DEBUG;
 
     my $d_nch = $nch_hi - $nch_lo + 1;
 
@@ -2685,11 +2718,11 @@ specified in the header template XML. These methods are flagged by
 using the DERIVED specifier with a task name of TRANSLATOR.
 
 The following methods are in the OMP::Translator::ACSIS::Header
-namespace. They are all given the observation summary hash
-as argument and they return the value that should be used in the
-header.
+namespace. They are all given the observation summary hash as argument
+and the current Config object, and they return the value that should
+be used in the header.
 
-  $value = OMP::Translator::ACSIS::Header->getProject( %info );
+  $value = OMP::Translator::ACSIS::Header->getProject( $cfg, %info );
 
 =cut
 
@@ -2697,24 +2730,28 @@ package OMP::Translator::ACSIS::Header;
 
 sub getProject {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
   return $info{PROJECTID};
 }
 
 sub getMSBID {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
   return $info{MSBID};
 }
 
 sub getStandard {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
   return $info{standard};
 }
 
 sub getDRRecipe {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
 
   # This is where we insert an OT override once that override is possible
@@ -2732,6 +2769,7 @@ sub getDRRecipe {
 
 sub getDRGroup {
   my $class = shift;
+  my $cfg = shift;
 
   # Not quite sure how to handle this in the translator since there are no
   # hints from the OT and the DR is probably better at doing this.
@@ -2742,6 +2780,7 @@ sub getDRGroup {
 
 sub getSurveyName {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
   return 'NONE';
 }
@@ -2752,12 +2791,14 @@ sub getSurveyID {
 
 sub getNumIntegrations {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
   return $info{nintegrations};
 }
 
 sub getNumMeasurements {
   my $class = shift;
+  my $cfg = shift;
   my %info = @_;
 
   # do not know what this really means. It may mean the scuba definition
@@ -2769,6 +2810,65 @@ sub getNumMeasurements {
   }
 }
 
+# Reference position as sexagesimal string or offset
+sub getReferenceRA {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the TCS
+  my $tcs = $cfg->tcs;
+
+  my %allpos = $tcs->getAllTargetInfo;
+
+  # check if SCIENCE == REFERENCE
+  if (exists $allpos{REFERENCE}) {
+
+    # Assume that for now since the OT enforces either an absolute position
+    # or one relative to BASE as an offset that if we have an offset people
+    # are offsetting and if we have just coords that we are using that explicitly
+    my $refpos = $allpos{REFERENCE}->coords;
+    my $offset = $allpos{REFERENCE}->offset;
+
+    if (defined $offset) {
+      my @off = $offset->offsets;
+      return "[OFFSET] ". $off[0]->arcsec . " [".$offset->system."]";
+    } else {
+      return "". $refpos->ra2000;
+    }
+  }
+  return "UNDEFINED";
+}
+
+# Reference position as sexagesimal string or offset
+sub getReferenceDec {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the TCS
+  my $tcs = $cfg->tcs;
+
+  my %allpos = $tcs->getAllTargetInfo;
+
+  # check if SCIENCE == REFERENCE
+  if (exists $allpos{REFERENCE}) {
+
+    # Assume that for now since the OT enforces either an absolute position
+    # or one relative to BASE as an offset that if we have an offset people
+    # are offsetting and if we have just coords that we are using that explicitly
+    my $refpos = $allpos{REFERENCE}->coords;
+    my $offset = $allpos{REFERENCE}->offset;
+
+    if (defined $offset) {
+      my @off = $offset->offsets;
+      return "[OFFSET] ". $off[1]->arcsec . " [".$offset->system."]";
+    } else {
+      return "". $refpos->dec2000;
+    }
+  }
+  return "UNDEFINED";
+}
+
+
 # For jiggle: This is the number of nod sets required to build up the pattern
 #             ie  Total number of points / N_JIG_ON
 
@@ -2778,14 +2878,18 @@ sub getNumMeasurements {
 
 sub getNumExposures {
   my $class = shift;
+  my $cfg = shift;
 
   warn "Do not calculate Number of exposures correctly\n";
   return 1;
 }
 
 # Reduce process recipe requires access to the file name used to read the recipe
+# This should be stored in the Cfg object
 
 sub getRPRecipe {
+  my $class = shift;
+  my $cfg = shift;
   warn "Do not set RPRECIPE correctly\n";
   return "UNKNOWN";
 
@@ -2793,19 +2897,33 @@ sub getRPRecipe {
 
 
 sub getOCSCFG {
-
+  # Should use this to set the HEADER name so that we know which one to set
+  # at runtime
   warn "OCS Configuration name is not known until it is written\n";
   return "UNKNOWN";
 }
 
 sub getBinning {
+  my $class = shift;
+  my $cfg = shift;
   warn "How am I supposed to calculate binning?\n";
   return 1;
 }
 
 sub getNumMixers {
-  warn "Need to get N_MIX from frontend configuration object\n";
-  return 1;
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the frontend
+  my $fe = $cfg->frontend;
+  throw OMP::Error::TranslateFail("Asked to determine number of mixers but no Frontend has been specified\n") unless defined $fe;
+
+  my %mask = $fe->mask;
+  my $count;
+  for my $state (values %mask) {
+    $count++ if ($state eq 'ON' || $state eq 'NEED');
+  }
+  return $count;
 }
 
 =head1 NOTES
