@@ -908,7 +908,7 @@ sub jos_config {
 		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
 		jiggle_chop => 'jiggle_chop',
 		grid_pssw   => 'grid_pssw',
-		raster_pssw => 'raster_or_grid_pssw',
+		raster_pssw => 'raster_pssw',
 	       );
   if (exists $JOSREC{$mode}) {
     $jos->recipe( $JOSREC{$mode} );
@@ -940,6 +940,9 @@ sub jos_config {
     # need at least one row
     $info{rowsPerRef} = 1 if (!defined $info{rowsPerRef} || $info{rowsPerRef} < 1);
     $jos->rows_per_ref( $info{rowsPerRef} );
+
+    # Start at row 1 by default
+    $jos->start_row( 1 );
 
     # we have rows per cal but the JOS needs refs_per_cal
     my $rperc = 1;
@@ -1059,10 +1062,6 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
-    # The jiggle recipe still needs a REFERENCE
-    $jos->n_refsamples( $jos->n_calsamples );
-
-
     if ($DEBUG) {
       print "Jiggle JOS parameters:\n";
       print "\ttimePerJig : $timePerJig\n";
@@ -1074,7 +1073,7 @@ sub jos_config {
     }
 
   } elsif ($mode =~ /focus/ ) {
-    $jos->focus_steps( $info{focusPoints} );
+    $jos->num_focus_steps( $info{focusPoints} );
     $jos->focus_step( $info{focusStep} );
   } elsif ($mode =~ /grid/) {
 
@@ -2341,7 +2340,6 @@ sub bandwidth_mode {
     # For 2 subbands make sure that the reference channel in each subband
     # is the centre of the overlap region and is the same for each.
     my @refchan; # Reference channel for each subband
-    my @sbif;    # IF setting for each of the subbands
 
     if ($nsubband == 1) {
       # middle usable channel
@@ -2357,8 +2355,8 @@ sub bandwidth_mode {
       croak "Only 2 subbands supported not $nsubband!";
     }
 
-    # This is the exact value of the IF and is forced to be the same for all channels
-    # ( in one or 2 subband versions).
+    # This is the exact value of the IF and is forced to be the same
+    # for all channels ( in one or 2 subband versions).
     my @sbif = map { $s->{if} } (1..$nsubband);
     $s->{if_per_subband} = \@sbif;
 
