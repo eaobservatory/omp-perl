@@ -393,8 +393,12 @@ sub write_configs {
     eval "require $cclass;";
     throw OMP::Error::FatalError("Unable to load container class $cclass: $@")
       if $@;
+
+    # And create it blank
     my $container = $cclass->new();
-    $container->push_config( @$configs[1..$#$configs] );
+
+    # Store the configs inside
+    $container->push_config( @$configs );
 
     # Now write the container
     return $container->write_file( (defined $outdir ? $outdir : () ),
