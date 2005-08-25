@@ -134,6 +134,10 @@ sub translate {
   my @configs;
   for my $obs ($msb->unroll_obs) {
 
+    # We need to patch up DAS observations if we are attempting to translate
+    # them as ACSIS observations
+    $self->upgrade_das_specification( $obs );
+
     # We need to patch up POINTING and FOCUS observations so that they have
     # the correct jiggle parameters
     $self->handle_special_modes( $obs );
@@ -228,6 +232,99 @@ sub transdir {
     $TRANS_DIR = $dir;
   }
   return $TRANS_DIR;
+}
+
+=item B<upgrade_das_specification>
+
+In order for DAS observations to be translated as ACSIS observations we
+need to fill in missing information and translate DAS bandwidth settings
+to ACSIS equivalents.
+
+  $cfg->upgrade_das_specification( \%obs );
+
+=cut
+
+sub upgrade_das_specification {
+  my $self = shift;
+  my $info = shift;
+
+  return if $info->{freqconfig}->{beName} eq 'acsis';
+
+  # Band width mode must translate to ACSIS equivalent
+  my %bwmode = (
+		# always map 125MHz to 250MHz
+		125 => {
+			bw => 2.5E8,
+			overlap => 0.0,
+			channels => 8192,
+		       },
+		250 => {
+			bw => 2.5E8,
+			overlap => 0.0,
+			channels => 8192,
+		       },
+		500 => {
+			bw => 4.8E8,
+			overlap => 1.0E7,
+			channels => 7864,
+		       },
+		760 => {
+			bw => 9.5E8,
+			overlap => 5.0E7,
+			channels => 1945,
+		       },
+		920 => {
+			bw => 9.5E8,
+			overlap => 5.0E7,
+			channels => 1945,
+		       },
+		1840 => {
+			 bw => 1.9E9,
+			 overlap => 5.0E7,
+			 channels => 1945,
+			},
+		);
+
+  # need to add the following
+  # freqconfig => overlap
+  #               IF
+
+  my $freq = $info->{freqconfig};
+
+  # should only be one subsystem but non-fatal
+  for my $ss (@{ $freq->{subsystems} }) {
+    # force 4GHz
+    $ss->{if} = 4.0E9;
+
+    # calculate the corresponding bw key
+    my $bwkey = $ss->{bw} / 1.0E6;
+
+    throw OMP::Error::TranslateFail( "DAS Bandwidth mode not supported by ACSIS translator" ) unless exists $bwmode{$bwkey};
+
+    for my $k (qw/ bw overlap channels / ) {
+      $ss->{$k} = $bwmode{$bwkey}->{$k};
+    }
+
+  }
+
+  # need to trap DAS special modes
+  throw OMP::Error::TranslateFail("DAS special modes not supported by ACSIS translator" ) if defined $freq->{configuration};
+
+
+  # Need to shift the velocity from freqconfig to coordtags
+  my $vfr = $freq->{velocityFrame};
+  my $vdef = $freq->{velocityDefinition};
+  my $vel = $freq->{velocity};
+
+  $info->{coords}->set_vel_pars( $vel, $vdef, $vfr )
+    if $info->{coords}->can( "set_vel_pars" );
+
+  for my $t (keys %{ $info->{coordtags} } ) {
+    $info->{coordtags}->{$t}->{coords}->set_vel_pars( $vel, $vdef, $vfr )
+      if $info->{coordtags}->{$t}->{coords}->can("set_vel_pars");
+  }
+
+  return;
 }
 
 =item B<handle_special_modes>
