@@ -1572,26 +1572,79 @@ Used to add the checksum and project ID as elements
 
   $msb->addFITStoObs;
 
+Also adds the weather constraints for each obs (moon, cloud,
+sky brightness, tau and seeing).
+
+Takes an optional C<OMP::Project> object that can be queried for
+allocation constraints.
+
+  $msb->addFITStoObs( $project );
+
 =cut
 
 sub addFITStoObs {
   my $self = shift;
+  my $proj = shift;
 
   # If we are a lone SpObs we want to use ourself rather
   # than the children
   my @nodes = $self->_get_SpObs();
 
+  # Get summary of MSB
+  my $info = $self->info();
+  my $cl = $info->cloud;
+  my $sb = $info->sky;
+  my $moon = $info->moon;
+  my $tau = $info->tau;
+  my $see = $info->seeing;
+
+  # Ngah. Different method names for Project and MSB constraints make this painful!
+  # Calculate the intersection of project with msb constraints
+  if (defined $proj) {
+      my $pcl = $info->cloud;
+      my $psb = $info->sky;
+      my $pmoon = $info->moon;
+      my $ptau = $info->tau;
+      my $psee = $info->seeing;
+
+      # Note that we modify the project objects because we want those
+      # to be the default if the MSB constraints do not intersect
+      $pcl->intersection( $cl ) if defined $pcl;
+      $psb->intersection( $sb ) if defined $psb;
+      $pmoon->intersection( $moon ) if defined $pmoon;
+      $ptau->intersection( $tau ) if defined $ptau;
+      $psee->intersection( $see ) if defined $psee;
+
+      $cl = $pcl if defined $pcl;
+      $sb = $psb if defined $psb;
+      $moon = $pmoon if defined $pmoon;
+      $tau = $ptau if defined $ptau;
+      $see = $psee if defined $psee;
+  }
+
+
   # Create hash with information we wish to insert
   my %data = (
 	      msbid => $self->checksum,
 	      project => $self->projectID,
+	      rq_minsb => (defined $sb   ? $sb->min   : undef ),
+	      rq_maxsb => (defined $sb   ? $sb->max   : undef ),
+	      rq_mnsee => (defined $see  ? $see->min  : undef ),
+	      rq_mxsee => (defined $see  ? $see->max  : undef ),
+	      rq_mincl => (defined $cl   ? $cl->min   : undef ),
+	      rq_maxcl => (defined $cl   ? $cl->max   : undef ),
+	      rq_mntau => (defined $tau  ? $tau->min  : undef ),
+	      rq_mxtau => (defined $tau  ? $tau->max  : undef ),
+	      rq_minmn => (defined $moon ? $moon->min : undef ),
+	      rq_maxmn => (defined $moon ? $moon->max : undef ),
 	     );
 
 
   # For each SpObs insert these elements.
   # problems with insertBefore so I have to insert at end
   for my $obs (@nodes) {
-    for my $el (keys %data) {
+    for my $el (sort keys %data) {
+      next unless defined $data{$el};
       $obs->appendTextChild($el, $data{$el});
     }
   }
