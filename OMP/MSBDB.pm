@@ -518,7 +518,16 @@ sub fetchMSB {
   # in each SpObs in the MSB (since each SpObs is translated
   # independently). We use "msbid" and "project" as tag names
   # since they match the FITS headers.
-  $msb->addFITStoObs;
+
+  # We also need to obtain the project constraints
+  my %pconst;
+  my $projdb = new OMP::ProjDB( DB => $self->db, 
+				ProjectID => $sp->projectID,
+				Password => '***REMOVED***',
+			      );
+  my $pobj = $projdb->projectDetails( 'object' );
+
+  $msb->addFITStoObs( $pobj );
 
   # Update the msb done table to indicate that we have retrieved an
   # MSB.  This is needed so that the done table includes all MSBs that
