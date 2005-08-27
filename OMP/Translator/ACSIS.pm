@@ -2466,11 +2466,12 @@ sub bandwidth_mode {
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
-    my @lo2true = map { int( $_ / $LO2_INCR) * $LO2_INCR } @lo2exact;
+    my @lo2true = map {  OMP::General::nint( $_ / $LO2_INCR) * $LO2_INCR } @lo2exact;
     $s->{lo2} = \@lo2true;
 
     # Now calculate the error and store this for later correction
-    # of the subbands in the spectral window
+    # of the subbands in the spectral window  
+
     my @align_shift = map { $lo2exact[$_] - $lo2true[$_] } (0..$#lo2exact);
     $s->{align_shift} = \@align_shift;
 
