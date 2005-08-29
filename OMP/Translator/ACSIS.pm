@@ -134,6 +134,9 @@ sub translate {
   my @configs;
   for my $obs ($msb->unroll_obs) {
 
+    # Translate observing mode information to internal form
+    $self->observing_mode( $obs );
+
     # We need to patch up DAS observations if we are attempting to translate
     # them as ACSIS observations
     $self->upgrade_das_specification( $obs );
@@ -345,9 +348,27 @@ specification on chopping scheme.
 sub handle_special_modes {
   my $self = shift;
   my $info = shift;
+  return;
+
+  print Dumper($info);
 
   # The trick is to fill in the blanks
 
+  # A pointing should translate to
+  #  - Jiggle chop
+  #  - 5 point or 9x9 jiggle pattern
+  #  - 60 arcsec AZ chop
+
+  # Pointing will have been translated into chop already by the
+  # observing_mode() method.
+
+  if ($info->{obs_type} eq 'pointing') {
+
+  } elsif ($info->{obs_type} eq 'focus') {
+
+  }
+
+  return;
 }
 
 =back
@@ -376,11 +397,11 @@ sub obs_summary {
   my %info = @_;
 
   my $obs = new JAC::OCS::Config::ObsSummary;
-  my %summary = $self->observing_mode( %info );
 
-  $obs->mapping_mode( $summary{mapping_mode} );
-  $obs->switching_mode( defined $summary{switching_mode} ? $summary{switching_mode} : 'none' );
-  $obs->type( $summary{obs_type} );
+  $obs->mapping_mode( $info{mapping_mode} );
+  $obs->switching_mode( defined $info{switching_mode} 
+			? $info{switching_mode} : 'none' );
+  $obs->type( $info{obs_type} );
 
   $cfg->obs_summary( $obs );
 }
@@ -422,7 +443,7 @@ sub tcs_config {
   # one explicitly. We need to do this until the JOS recipe can be fixed to
   # go to the chop position for its CAL automatically
   my %tags = $tcs->getAllTargetInfo;
-  if (!exists $tags{REFERENCE} && $self->observing_mode( %info ) =~ /chop/) {
+  if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/) {
     # The REFERENCE should be the chop off position for now
     my $ref = new JAC::OCS::Config::TCS::BASE;
     $ref->tag( "REFERENCE" );
@@ -479,9 +500,8 @@ sub tcs_base {
   my %tags = %{ $info{coordtags} };
 
   # check for reference position
-  my $obsmode = $self->observing_mode( %info );
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
-    if (!exists $tags{REFERENCE} && $obsmode =~ /pssw/);
+    if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
 
 
   # and augment with the SCIENCE tag
@@ -965,10 +985,8 @@ sub rts_config {
 
   # the RTS information is read from a wiring file
   # indexed by observing mode
-  my $mode = $self->observing_mode( %info );
-
   my $file = File::Spec->catfile( $WIRE_DIR, 'rts',
-				  $mode .".xml");
+				  $info{observing_mode} .".xml");
   throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
     unless -e $file;
 
@@ -994,9 +1012,6 @@ sub jos_config {
 
   my $jos = new JAC::OCS::Config::JOS();
 
-  # Get the observing mode
-  my $mode = $self->observing_mode( %info );
-
   # need to determine recipe name
   # use hash indexed by observing mode
   my %JOSREC = (
@@ -1007,10 +1022,10 @@ sub jos_config {
 		grid_pssw   => 'grid_pssw',
 		raster_pssw => 'raster_pssw',
 	       );
-  if (exists $JOSREC{$mode}) {
-    $jos->recipe( $JOSREC{$mode} );
+  if (exists $JOSREC{$info{observing_mode}}) {
+    $jos->recipe( $JOSREC{$info{observing_mode}} );
   } else {
-    throw OMP::Error::TranslateFail( "Unable to determine jos recipe from observing mode '$mode'");
+    throw OMP::Error::TranslateFail( "Unable to determine jos recipe from observing mode '$info{observing_mode}'");
   }
 
   # The number of cycles is simply the number of requested integrations
@@ -1032,7 +1047,7 @@ sub jos_config {
 
   # Raster
 
-  if ($mode =~ /raster/) {
+  if ($info{observing_mode} =~ /raster/) {
 
     # need at least one row
     $info{rowsPerRef} = 1 if (!defined $info{rowsPerRef} || $info{rowsPerRef} < 1);
@@ -1090,7 +1105,7 @@ sub jos_config {
     # JOS_MIN ??
     $jos->jos_min(1);
 
-  } elsif ($mode =~ /jiggle_chop/) {
+  } elsif ($info{observing_mode} =~ /jiggle_chop/) {
 
     # Jiggle
 
@@ -1169,10 +1184,7 @@ sub jos_config {
       print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats\n";
     }
 
-  } elsif ($mode =~ /focus/ ) {
-    $jos->num_focus_steps( $info{focusPoints} );
-    $jos->focus_step( $info{focusStep} );
-  } elsif ($mode =~ /grid/) {
+  } elsif ($info{observing_mode} =~ /grid/) {
 
     # N.B. The NUM_CYCLES has already been set to
     # the number of requested integrations
@@ -1213,46 +1225,52 @@ sub jos_config {
       print "NUM_NOD_SETS =  $num_nod_sets \n";
     }
 
-  } elsif ($mode =~ /freqsw/) {
+  } elsif ($info{observing_mode} =~ /freqsw/) {
 
-   # Parameters to calculate 
-   # NUM_CYCLES       =>  Number of complete iterations
-   # JOS_MULT         => Number of complete jiggle maps per sequence
-   # STEP_TIME        => RTS step time during an RTS sequence
-   # N_CALSAMPLES     => Number of load samples per cal
+    # Parameters to calculate 
+    # NUM_CYCLES       =>  Number of complete iterations
+    # JOS_MULT         => Number of complete jiggle maps per sequence
+    # STEP_TIME        => RTS step time during an RTS sequence
+    # N_CALSAMPLES     => Number of load samples per cal
 
-   # NUM_CYCLES has already been set above.
-   # N_CALSAMPLES has already been set too.
-   # STEP_TIME ditto
+    # NUM_CYCLES has already been set above.
+    # N_CALSAMPLES has already been set too.
+    # STEP_TIME ditto
 
-   # Just need to set JOS_MULT 
-   my $jos_mult;
+    # Just need to set JOS_MULT 
+    my $jos_mult;
 
-   # first get the Secondary object, via the TCS
-   my $tcs = $cfg->tcs;
-   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    # first get the Secondary object, via the TCS
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
 
-   # ... and secondary
-   my $secondary = $tcs->getSecondary();
-   throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+    # ... and secondary
+    my $secondary = $tcs->getSecondary();
+    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
 
-   # N_JIGS_ON etc
-   my %timing = $secondary->timing;
-   # Get the full jigle parameters from the secondary object
-   my $jig = $secondary->jiggle;
+    # N_JIGS_ON etc
+    my %timing = $secondary->timing;
+    # Get the full jigle parameters from the secondary object
+    my $jig = $secondary->jiggle;
 
-   # Now calculate JOS_MULT
-   # +1 to make sure we get 
-   # at least the requested integration time 
-   $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
+    # Now calculate JOS_MULT
+    # +1 to make sure we get 
+    # at least the requested integration time 
+    $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
 
-   $jos->jos_mult($jos_mult); 
-   if ($DEBUG) {
-     print "JOS_MULT = $jos_mult\n";
-   }
- }
+    $jos->jos_mult($jos_mult); 
+    if ($DEBUG) {
+      print "JOS_MULT = $jos_mult\n";
+    }
+  } else {
+    throw OMP::Error::TranslateFail("Unrecognized observing mode for JOS configuration '$info{observing_mode}'");
+  }
 
-
+  # Non science observing types
+  if ($info{obs_type} =~ /focus/ ) {
+    $jos->num_focus_steps( $info{focusPoints} );
+    $jos->focus_step( $info{focusStep} );
+  }
 
   # Tasks can be worked out by seeing which objects are configured.
   # This is done automatically on stringification of the config object
@@ -1688,8 +1706,7 @@ sub acsisdr_recipe {
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
   # Get the observing mode
-  my $mode = $self->observing_mode( %info );
-  my $root = $mode . '_dr_recipe.ent';
+  my $root = $info{observing_mode} . '_dr_recipe.ent';
   my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root );
 
   # Read the recipe itself
@@ -1709,8 +1726,9 @@ sub acsisdr_recipe {
   $acsis->gridder_config( $g );
 
   # Write the observing mode to the recipe
-  $mode =~ s/_/\//g;
-  $acsis->red_obs_mode( $mode );
+  my $rmode = $info{observing_mode};
+  $rmode =~ s/_/\//g;
+  $acsis->red_obs_mode( $rmode );
   $acsis->red_recipe_id( "incorrect. Should be read from file");
 
 }
@@ -1731,9 +1749,6 @@ sub cubes {
   # get the acsis configuration
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
-
-  # get the observing mode
-  my $obsmode = $self->observing_mode( %info );
 
   # Create the cube list
   my $cl = new JAC::OCS::Config::ACSIS::CubeList();
@@ -1774,13 +1789,13 @@ sub cubes {
     # HARP without image rotator will require Gaussian.
     # This will need support for rotated coordinate frames in the gridder
     my $grid_func = "TopHat";
-    $grid_func = "Gaussian" if $obsmode =~ /raster/;
+    $grid_func = "Gaussian" if $info{mapping_mode} =~ /raster/;
     $cube->grid_function( $grid_func );
 
     # The size and number of pixels depends on the observing mode.
     # For raster, we have a regular grid but the 
     my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
-    if ($obsmode =~ /raster/) {
+    if ($info{mapping_mode} =~ /raster/) {
       # This will be more complicated for HARP since DY will possibly
       # be larger and we will need to take the receptor spacing into account
 
@@ -1809,7 +1824,7 @@ sub cubes {
 	($offx, $offy) = $self->PosAngRot( $offx, $offy, $info{OFFSET_PA});
       }
 
-    } elsif ($obsmode =~ /grid/i) {
+    } elsif ($info{mapping_mode} =~ /grid/i) {
       # Need to know the footprint of the array. Assume single pixel.
       # GRID + single pixel is easy since it is just the offset pattern
       my @offsets;
@@ -1817,7 +1832,7 @@ sub cubes {
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
 									 @offsets );
 
-    } elsif ($obsmode =~ /jiggle/i) {
+    } elsif ($info{mapping_mode} =~ /jiggle/i) {
       # Need to know:
       #  - the extent of the jiggle pattern
       #  - the footprint of the array. Assume single pixel
@@ -1862,7 +1877,7 @@ sub cubes {
       # and will be different for HARP
       # focus will probably be a single spectrum in continuum mode
 
-      throw OMP::Error::TranslateFail("Do not yet know how to size a cube for mode $obsmode");
+      throw OMP::Error::TranslateFail("Do not yet know how to size a cube for mode $info{observing_mode}");
     }
 
 
@@ -1884,7 +1899,7 @@ sub cubes {
 
     # Decide whether the grid is regridding in sky coordinates or in AZEL
     # Focus and Pointing are AZEL
-    if ($obsmode =~ /point|focus/) {
+    if ($info{obs_type} =~ /point|focus/i) {
       $cube->tcs_coord( 'AZEL' );
     } else {
       $cube->tcs_coord( 'TRACKING' );
@@ -1956,8 +1971,7 @@ sub rtd_config {
     unless defined $acsis;
 
   # The filename is DR receipe dependent
-  my $mode = $self->observing_mode( %info );
-  my $root = $mode . '_rtd.ent';
+  my $root = $info{observing_mode} . '_rtd.ent';
 
   my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
 
@@ -2159,79 +2173,91 @@ sub acsis_layout {
 =item B<observing_mode>
 
 Retrieves the ACSIS observing mode from the OT observation summary
-(not from the OCS configuration).
+(not from the OCS configuration) and updates the supplied observation
+summary.
 
- $obsmode = $trans->observing_mode( %info );
+ $trans->observing_mode( \%info );
 
-The standard modes are:
+The following keys are filled in:
 
-  focus
-  pointing
-  jiggle_freqsw
-  jiggle_chop
-  grid_pssw
-  raster_pssw
+=over 8
+
+=item observing_mode
+
+A single string describing the observing mode. One of
+jiggle_freqsw, jiggle_chop, grid_pssw, raster_pssw.
 
 Note that there is no explicit slow vs fast jiggle switch mode
-returned from this routine since more subsystems ignore the difference
+set from this routine since more subsystems ignore the difference
 than care about the difference.
 
-In list context the information is returned in a hash with keys
-"mapping_mode", "switching_mode" and "obs_type" (see also the
-C<obs_summary> method).
+Note also that POINTING or FOCUS are not observing modes in this science.
 
- %details = $trans->observing_mode( %info );
+=item mapping_mode
+
+The underlying mapping mode. One of "jiggle", "raster" and "grid".
+
+=item switching_mode
+
+The switching scheme. One of "freqsw", "chop" and "pssw". This is 
+a translated form of the input "switchingMode" parameter.
+
+=item obs_type
+
+The type of observation. One of "science", "pointing", "focus".
+
+=back
 
 =cut
 
 sub observing_mode {
   my $self = shift;
-  my %info = @_;
+  my $info = shift;
 
-  my %summary;
+  my $mode = $info->{MODE};
+  my $swmode = $info->{switchingMode};
+
+  my ($mapping_mode, $switching_mode, $obs_type);
 
   # assume science
-  $summary{obs_type} = 'science';
-
-  my $mode = $info{MODE};
-  my $swmode = $info{switchingMode};
+  $obs_type = 'science';
 
   if ($mode eq 'SpIterRasterObs') {
-    $summary{mapping_mode} = 'raster';
+    $mapping_mode = 'raster';
     if ($swmode eq 'Position') {
-      $summary{switching_mode} = 'pssw';
+      $switching_mode = 'pssw';
     } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
       throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
-      $summary{switching_mode} = 'chop';
+      $switching_mode = 'chop';
     } else {
       throw OMP::Error::TranslateFail("Raster with switch mode '$swmode' not supported\n");
     }
   } elsif ($mode eq 'SpIterPointingObs') {
-    $summary{mapping_mode} = 'jiggle';
-    $summary{switching_mode} = 'chop';
-    $summary{obs_type} = 'pointing';
+    $mapping_mode = 'jiggle';
+    $switching_mode = 'chop';
+    $obs_type = 'pointing';
   } elsif ($mode eq 'SpIterFocusObs' ) {
-    $summary{mapping_mode} = 'jiggle';
-    $summary{switching_mode} = 'chop';
-    $summary{obs_type} = 'focus';
+    $mapping_mode = 'jiggle';
+    $switching_mode = 'chop';
+    $obs_type = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
     # check switch mode
     if ($swmode eq 'Position') {
-      $summary{mapping_mode} = 'grid';
-      $summary{switching_mode} = 'pssw';
+      $mapping_mode = 'grid';
+      $switching_mode = 'pssw';
     } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $summary{mapping_mode} = 'jiggle';
-      $summary{switching_mode} = 'chop';
+      $mapping_mode = 'jiggle';
+      $switching_mode = 'chop';
     } else {
       throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
     }
   } elsif ($mode eq 'SpIterJiggleObs' ) {
     # depends on switch mode
-    $summary{mapping_mode} = 'jiggle';
+    $mapping_mode = 'jiggle';
     if ($swmode eq 'Chop' || $swmode eq 'Beam') {
-      $summary{switching_mode} = 'chop';
+      $switching_mode = 'chop';
     } elsif ($swmode =~ /^Frequency-/) {
-      $summary{switching_mode} = 'freqsw';
+      $switching_mode = 'freqsw';
     } elsif ($swmode eq 'Position') {
       throw OMP::Error::TranslateFail("jiggle_pssw mode not supported\n");
     } else {
@@ -2241,13 +2267,12 @@ sub observing_mode {
     throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
   }
 
-  if (wantarray) {
-    return %summary;
-  } else {
-    my $mode = $summary{mapping_mode} . '_' . $summary{switching_mode};
-    return $mode;
-  }
+  $info->{obs_type}       = $obs_type;
+  $info->{switching_mode} = $switching_mode;
+  $info->{mapping_mode}   = $mapping_mode;
+  $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
 
+  return;
 }
 
 =item B<is_fast_freqsw>
@@ -2495,15 +2520,12 @@ sub step_time {
   my $self = shift;
   my %info = @_;
 
-  # eventually this should be from a translator configuration file
-  my $mode = $self->observing_mode( %info );
-
   # In raster_pssw the step time is defined to be the time per 
   # output pixel. Everything else reads from config file
   my $step;
-  if ($mode =~ /raster_pssw/ ) {
+  if ($info{observing_mode} =~ /raster_pssw/ ) {
     $step = $info{sampleTime};
-  } elsif ($mode =~ /grid_pssw/) {
+  } elsif ($info{observing_mode} =~ /grid_pssw/) {
     $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw')
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
@@ -2548,7 +2570,7 @@ sub jig_info {
   my %info = @_;
 
   throw OMP::Error::TranslateFail("Jiggle pattern requested but no jiggle mode selected")
-    unless $self->observing_mode( %info ) =~ /jiggle/;
+    unless $info{mapping_mode} =~ /jiggle/;
 
   throw OMP::Error::TranslateFail( "No jiggle pattern specified!" )
     unless exists $info{jigglePattern};
