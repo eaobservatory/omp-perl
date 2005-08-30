@@ -1036,7 +1036,9 @@ sub jos_config {
 		grid_pssw   => 'grid_pssw',
 		raster_pssw => 'raster_pssw',
 	       );
-  if (exists $JOSREC{$info{observing_mode}}) {
+  if (exists $JOSREC{$info{obs_type}}) {
+    $jos->recipe( $JOSREC{$info{obs_type}} );
+  } elsif (exists $JOSREC{$info{observing_mode}}) {
     $jos->recipe( $JOSREC{$info{observing_mode}} );
   } else {
     throw OMP::Error::TranslateFail( "Unable to determine jos recipe from observing mode '$info{observing_mode}'");
