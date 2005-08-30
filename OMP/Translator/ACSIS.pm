@@ -224,7 +224,7 @@ sub debug {
 
 Override the default translation directory.
 
-  OMP::Translator::DAS->transdir( $dir );
+  OMP::Translator::ACSIS->transdir( $dir );
 
 =cut
 
@@ -348,7 +348,6 @@ specification on chopping scheme.
 sub handle_special_modes {
   my $self = shift;
   my $info = shift;
-  return;
 
   print Dumper($info);
 
@@ -363,9 +362,17 @@ sub handle_special_modes {
   # observing_mode() method.
 
   if ($info->{obs_type} eq 'pointing') {
-
+    $info->{CHOP_PA} = 90;
+    $info->{CHOP_THROW} = 60;
+    $info->{CHOP_SYSTEM} = 'AZEL';
+    $info->{jigglePattern} = '5pt';
+    $info->{jiggleSystem} = 'AZEL';
+    $info->{scaleFactor} = $self->nyquist( %$info )->arcsec / 2;
   } elsif ($info->{obs_type} eq 'focus') {
-
+    $info->{CHOP_PA} = 90;
+    $info->{CHOP_THROW} = 60;
+    $info->{CHOP_SYSTEM} = 'AZEL';
+    $info->{jigglePattern} = '1x1';
   }
 
   return;
@@ -442,8 +449,10 @@ sub tcs_config {
   # Fix up the REFERENCE position for Jiggle/Chop if we have not been given
   # one explicitly. We need to do this until the JOS recipe can be fixed to
   # go to the chop position for its CAL automatically
+  # Only do this if we have a target.
   my %tags = $tcs->getAllTargetInfo;
-  if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/) {
+  if (exists $tags{SCIENCE} && 
+      !exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/) {
     # The REFERENCE should be the chop off position for now
     my $ref = new JAC::OCS::Config::TCS::BASE;
     $ref->tag( "REFERENCE" );
@@ -453,6 +462,8 @@ sub tcs_config {
     # Chop info
     my $sec = $tcs->getSecondary;
     my %chop = $sec->chop();
+
+    throw OMP::Error::TranslateFail("Chopped mode specified but no chop position angle defined\n") unless exists $chop{PA} && defined $chop{PA};
 
     # convert this polar coordinate to cartesian
     my $chop_x = $chop{THROW} * sin( $chop{PA}->radians );
@@ -489,12 +500,15 @@ and store in the TCS object.
 
 where $tcs is a C<JAC::OCS::Config::TCS> object.
 
+Does nothing if autoTarget is true.
+
 =cut
 
 sub tcs_base {
   my $self = shift;
   my $tcs = shift;
   my %info = @_;
+  return if $info{autoTarget};
 
   # First get all the coordinate tags
   my %tags = %{ $info{coordtags} };
@@ -548,7 +562,7 @@ sub observing_area {
   my $tcs = shift;
   my %info = @_;
 
-  my $obsmode = $info{MODE};
+  my $obsmode = $info{mapping_mode};
 
   my $oa = new JAC::OCS::Config::TCS::obsArea();
 
@@ -560,7 +574,7 @@ sub observing_area {
   # defining a map area
 
 
-  if ($obsmode eq 'SpIterRasterObs') {
+  if ($obsmode eq 'raster') {
 
     # Map specification
     $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
@@ -657,14 +671,14 @@ sub secondary_mirror {
 
   my $smu = new JAC::OCS::Config::TCS::Secondary();
 
-  my $obsmode = $info{MODE};
-  my $sw_mode = $info{switchingMode};
+  my $obsmode = $info{mapping_mode};
+  my $sw_mode = $info{switching_mode};
 
   # Default to CONTINUOUS mode
   $smu->motion( "CONTINUOUS" );
 
   # Configure the chop parameters
-  if ($sw_mode eq 'Chop' || $sw_mode eq 'Beam') {
+  if ($sw_mode eq 'chop') {
     throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
       unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
 	      defined $info{CHOP_SYSTEM} );
@@ -679,7 +693,7 @@ sub secondary_mirror {
 
   my $jig;
 
-  if ($obsmode eq 'SpIterJiggleObs') {
+  if ($obsmode eq 'jiggle') {
 
     $jig = $self->jig_info( %info );
 
@@ -771,7 +785,7 @@ sub fe_config {
 
   # Frequency offset
   my $freq_off = 0.0;
-  if ($info{switchingMode} =~ /Frequency/ && defined $info{frequencyOffset}) {
+  if ($info{switching_mode} =~ /freqsw/ && defined $info{frequencyOffset}) {
     $freq_off = $info{frequencyOffset};
   }
   $fe->freq_off_scale( $freq_off );
@@ -1237,7 +1251,7 @@ sub jos_config {
     # N_CALSAMPLES has already been set too.
     # STEP_TIME ditto
 
-    # Just need to set JOS_MULT 
+    # Just need to set JOS_MULT
     my $jos_mult;
 
     # first get the Secondary object, via the TCS
@@ -1252,13 +1266,14 @@ sub jos_config {
     my %timing = $secondary->timing;
     # Get the full jigle parameters from the secondary object
     my $jig = $secondary->jiggle;
+    throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
 
     # Now calculate JOS_MULT
     # +1 to make sure we get 
-    # at least the requested integration time 
+    # at least the requested integration time
     $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
 
-    $jos->jos_mult($jos_mult); 
+    $jos->jos_mult($jos_mult);
     if ($DEBUG) {
       print "JOS_MULT = $jos_mult\n";
     }
@@ -1270,6 +1285,7 @@ sub jos_config {
   if ($info{obs_type} =~ /focus/ ) {
     $jos->num_focus_steps( $info{focusPoints} );
     $jos->focus_step( $info{focusStep} );
+    $jos->focus_axis( $info{focusAxis} );
   }
 
   # Tasks can be worked out by seeing which objects are configured.
@@ -2577,10 +2593,12 @@ sub jig_info {
 
   # Look up table for patterns
   my %jigfiles = (
+		  '1x1' => 'smu_1x1.dat',
 		  '3x3' => 'smu_3x3.dat',
 		  '5x5' => 'smu_5x5.dat',
 		  '7x7' => 'smu_7x7.dat',
 		  '9x9' => 'smu_9x9.dat',
+		  '5pt' => 'smu_5point.dat',
 		 );
 
   if (!exists $jigfiles{ $info{jigglePattern} }) {
@@ -2595,9 +2613,13 @@ sub jig_info {
   my $jig = new JCMT::SMU::Jiggle( File => $file );
 
   # set the scale and other parameters
-  $jig->scale( $info{scaleFactor} );
-  $jig->posang( new Astro::Coords::Angle( $info{jigglePA}, units => 'deg') );
-  $jig->system( $info{jiggleSystem} );
+  my $jscal = (defined $info{scaleFactor} ? $info{scaleFactor} : 1);
+  $jig->scale( $jscal );
+  my $jpa = $info{jigglePA} || 0;
+  $jig->posang( new Astro::Coords::Angle( $jpa, units => 'deg') );
+
+  my $jsys = $info{jiggleSystem} || 'TRACKING';
+  $jig->system( $jsys );
 
   return $jig;
 }
