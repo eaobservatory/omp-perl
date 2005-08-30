@@ -31,6 +31,7 @@ use OMP::Info::Comment;
 use OMP::MSBDB;
 use OMP::MSBServer;
 use OMP::ProjDB;
+use OMP::ProjServer;
 use OMP::SpServer;
 use OMP::UserServer;
 
@@ -51,6 +52,11 @@ Create a table of active MSBs for a given project
 sub fb_msb_active {
   my $q = shift;
   my $projectid = shift;
+
+  # Get project's associated telescope
+  my $proj = OMP::ProjServer->projectDetails( $projectid,
+					      "***REMOVED***",
+					      , "object");
 
   my $active;
   try {
@@ -84,7 +90,7 @@ sub fb_msb_active {
       }
 
       # Now print the table (with an est. time column) if we have content
-      msb_table($q, $active, 1);
+      msb_table(cgi=>$q, msbs=>$active, est_column=>1, telescope=>$proj->telescope,);
 
     }
 
@@ -115,8 +121,13 @@ sub fb_msb_observed {
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
 					       format => 'data'});
 
+  # Get project's associated telescope
+  my $proj = OMP::ProjServer->projectDetails( $projectid,
+					      "***REMOVED***",
+					      , "object");
+
   # Generate the HTML table
-  (@$observed) and msb_table($q, $observed);
+  (@$observed) and msb_table(cgi=>$q, msbs=>$observed, telescope=> $proj->telescope);
 }
 
 =item B<msb_action>
@@ -500,23 +511,45 @@ sub msb_sum_hidden {
 
 Create a table containing information about given MSBs
 
-  msb_table($cgi, $msbs, $show_estimated);
+  msb_table(cgi=>$cgi,
+            msbs=>$msbs,
+            est_column=>$show_estimated,
+            telescope=>$telescope,);
 
-Second argument should be an array reference containing 
-C<OMP::Info::MSB> objects.  If the optional third argument
-is true, a column name "Est. time" will appear for presenting
-estimated time in seconds.
+
+Arguments should be provided in hash form, with the following
+keys:
+
+  cgi        - A C<CGI> query object (required).
+  msbs       - An array reference containing C<OMP::Info::MSB> objects (required).
+  est_column - True if an "Est. time" column, for presenting the estimated
+               time in seconds, should be presented.
+  telescope  - A telescope name.
 
 =cut
 
 sub msb_table {
-  my $q = shift;
-  my $program = shift;
-  my $est_column = shift;
+  my %args = @_;
+
+  # Check for required arguments
+  for my $key (qw/cgi msbs telescope/) {
+    throw OMP::Error::BadArgs('The argument [$key] is required.')
+      unless (defined $args{$key});
+  }
+
+  my $q = $args{cgi};
+  my $program = $args{msbs};
+  my $est_column = $args{est_column};
+  my $telescope = $args{telescope};
+
+  # Decide whether to show MSB targets or MSB name
+  my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
+					       telescope => $telescope,);
+  my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
   print "<table width=100%>";
   print "<tr bgcolor=#bcbee3><td><b>MSB</b></td>";
-  print "<td><b>Target</b></td>";
+  print "<td><b>$alt_msb_column</b></td>";
   print "<td><b>Waveband</b></td>";
   print "<td><b>Instrument</b></td>";
 
@@ -550,7 +583,7 @@ sub msb_table {
     $i++;
     print "<tr><td>$i</td>";
 
-    print "<td>" . $msb->target . "</td>";
+    print "<td>" . ($display_msb_name ? $msb->title : $msb->target) . "</td>";
     print "<td>" . $msb->waveband . "</td>";
     print "<td>" . $msb->instrument . "</td>";
 
