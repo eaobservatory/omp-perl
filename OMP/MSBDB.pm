@@ -2401,6 +2401,26 @@ sub _run_query {
   # work out the observability constraints for all matching
   # MSBs and then filter.
 
+  # Get the sort type based on the first telescope name
+  if (@observable) {
+    my $sortby;
+    try {
+      $sortby = OMP::Config->getData( 'sortby',
+				      telescope => $observable[0]->{telescope});
+    } catch OMP::Error with {
+      # Default behaviour
+      $sortby = 'priority';
+    };
+
+    if ($sortby eq 'priority') {
+      # already done
+    } elsif ($sortby eq 'schedpri') {
+      @observable = sort { $a->{schedpri} <=> $b->{schedpri} } @observable;
+    } else {
+      throw OMP::Error::FatalError("Unknown sorting scheme: $sortby");
+    }
+  }
+
   # Convert the rows to MSB info objects
   return $self->_msb_row_to_msb_object( @observable );
 
