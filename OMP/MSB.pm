@@ -1598,30 +1598,28 @@ sub addFITStoObs {
   my $tau = $info->tau;
   my $see = $info->seeing;
 
-  # Ngah. Different method names for Project and MSB constraints make this painful!
-  # Calculate the intersection of project with msb constraints
+  # Ngah. Different method names for Project and MSB constraints make
+  # this painful!  Calculate the intersection of project with msb
+  # constraints
   if (defined $proj) {
-      my $pcl = $info->cloud;
-      my $psb = $info->sky;
-      my $pmoon = $info->moon;
-      my $ptau = $info->tau;
-      my $psee = $info->seeing;
+    # No moon
+    my $pcl = $proj->cloudrange;
+    my $psb = $proj->skyrange;
+    my $ptau = $proj->taurange;
+    my $psee = $proj->seeingrange;
 
-      # Note that we modify the project objects because we want those
-      # to be the default if the MSB constraints do not intersect
-      $pcl->intersection( $cl ) if defined $pcl;
-      $psb->intersection( $sb ) if defined $psb;
-      $pmoon->intersection( $moon ) if defined $pmoon;
-      $ptau->intersection( $tau ) if defined $ptau;
-      $psee->intersection( $see ) if defined $psee;
+    # Note that we modify the project objects because we want those
+    # to be the default if the MSB constraints do not intersect
+    $pcl->intersection( $cl ) if defined $pcl;
+    $psb->intersection( $sb ) if defined $psb;
+    $ptau->intersection( $tau ) if defined $ptau;
+    $psee->intersection( $see ) if defined $psee;
 
-      $cl = $pcl if defined $pcl;
-      $sb = $psb if defined $psb;
-      $moon = $pmoon if defined $pmoon;
-      $tau = $ptau if defined $ptau;
-      $see = $psee if defined $psee;
+    $cl = $pcl if defined $pcl;
+    $sb = $psb if defined $psb;
+    $tau = $ptau if defined $ptau;
+    $see = $psee if defined $psee;
   }
-
 
   # Create hash with information we wish to insert
   my %data = (
@@ -1638,7 +1636,6 @@ sub addFITStoObs {
 	      rq_minmn => (defined $moon ? $moon->min : undef ),
 	      rq_maxmn => (defined $moon ? $moon->max : undef ),
 	     );
-
 
   # For each SpObs insert these elements.
   # problems with insertBefore so I have to insert at end
