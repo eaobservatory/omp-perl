@@ -368,11 +368,13 @@ sub handle_special_modes {
     $info->{jigglePattern} = '3x3';
     $info->{jiggleSystem} = 'AZEL';
     $info->{scaleFactor} = $self->nyquist( %$info )->arcsec / 2;
+    $info->{secsPerJiggle} = 5;
   } elsif ($info->{obs_type} eq 'focus') {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{jigglePattern} = '1x1';
+    $info->{secsPerJiggle} = 5;
   }
 
   return;
