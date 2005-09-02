@@ -365,7 +365,7 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{jigglePattern} = '5pt';
+    $info->{jigglePattern} = '3x3';
     $info->{jiggleSystem} = 'AZEL';
     $info->{scaleFactor} = $self->nyquist( %$info )->arcsec / 2;
   } elsif ($info->{obs_type} eq 'focus') {
@@ -1996,7 +1996,12 @@ sub rtd_config {
     unless defined $acsis;
 
   # The filename is DR receipe dependent
-  my $root = $info{observing_mode} . '_rtd.ent';
+  my $root;
+  if ($info{observing_mode} eq 'science') {
+    $root = $info{observing_mode} . '_rtd.ent';
+  } else {
+    $root = $info{obs_type} . '_rtd.ent';
+  }
 
   my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
 
