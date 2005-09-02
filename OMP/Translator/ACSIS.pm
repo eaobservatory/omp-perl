@@ -1723,8 +1723,15 @@ sub acsisdr_recipe {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
-  # Get the observing mode
-  my $root = $info{observing_mode} . '_dr_recipe.ent';
+  # Get the observing mode or observation type for the DR recipe
+  my $root;
+  if ($info{obs_type} eq 'science') {
+    # keyed on observing mode
+    $root = $info{observing_mode} . '_dr_recipe.ent';
+  } else {
+    # keyed on observation type
+    $root = $info{obs_type} . '_dr_recipe.ent';
+  }
   my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root );
 
   # Read the recipe itself
