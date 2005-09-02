@@ -1997,9 +1997,11 @@ sub rtd_config {
 
   # The filename is DR receipe dependent
   my $root;
-  if ($info{observing_mode} eq 'science') {
+  if ($info{obs_type} eq 'science') {
+    # keyed on observing mode
     $root = $info{observing_mode} . '_rtd.ent';
   } else {
+    # keyed on observing type
     $root = $info{obs_type} . '_rtd.ent';
   }
 
