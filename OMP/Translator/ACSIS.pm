@@ -367,8 +367,19 @@ sub handle_special_modes {
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{jigglePattern} = '3x3';
     $info->{jiggleSystem} = 'AZEL';
-    $info->{scaleFactor} = $self->nyquist( %$info )->arcsec / 2;
     $info->{secsPerJiggle} = 5;
+
+    # The scale factor should be the larger of half beam or planet limb
+    my $half_beam = $self->nyquist( %$info )->arcsec;
+    my $plan_rad = 0;
+    if ($info->{coords}->type eq 'PLANET') {
+      # Currently need to force an apparent ra/dec calculation to get the diameter
+      my @discard = $info->{coords}->apparent();
+      $plan_rad = $info->{coords}->diam->arcsec / 2;
+    }
+
+    $info->{scaleFactor} = max( $half_beam, $plan_rad );
+
   } elsif ($info->{obs_type} eq 'focus') {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
