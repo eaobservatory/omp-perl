@@ -1635,6 +1635,15 @@ sub spw_list {
     }
     $spw->baseline_region( @baselines ) if @baselines;
 
+    # Line region for pointing and focus
+    # This will be ignored in subbands
+    if ($info{obs_type} ne 'science') {
+      $spw->line_region( new JAC::OCS::Config::Interval( Units => 'pixel',
+							 Min => 0,
+							 Max => ($ss->{nchannels_full}-1 ) ));
+    }
+
+
     # hybrid or not?
     if ($ss->{nsubbands} == 1) {
       # no hybrid. Just store it
