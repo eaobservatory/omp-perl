@@ -349,8 +349,6 @@ sub handle_special_modes {
   my $self = shift;
   my $info = shift;
 
-  print Dumper($info);
-
   # The trick is to fill in the blanks
 
   # A pointing should translate to
@@ -3058,7 +3056,7 @@ sub getNumExposures {
   my $class = shift;
   my $cfg = shift;
 
-  warn "Do not calculate Number of exposures correctly\n";
+  warn "Do not calculate Number of exposures correctly\n" if $^W;
   return 1;
 }
 
@@ -3068,7 +3066,7 @@ sub getNumExposures {
 sub getRPRecipe {
   my $class = shift;
   my $cfg = shift;
-  warn "Do not set RPRECIPE correctly\n";
+  warn "Do not set RPRECIPE correctly\n" if $^W;
   return "UNKNOWN";
 
 }
@@ -3077,14 +3075,14 @@ sub getRPRecipe {
 sub getOCSCFG {
   # Should use this to set the HEADER name so that we know which one to set
   # at runtime
-  warn "OCS Configuration name is not known until it is written\n";
+  warn "OCS Configuration name is not known until it is written\n" if $^W;
   return "UNKNOWN";
 }
 
 sub getBinning {
   my $class = shift;
   my $cfg = shift;
-  warn "How am I supposed to calculate binning?\n";
+  warn "How am I supposed to calculate binning?\n" if $^W;
   return 1;
 }
 
