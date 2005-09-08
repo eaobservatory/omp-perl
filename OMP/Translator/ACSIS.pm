@@ -365,7 +365,7 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{jigglePattern} = '3x3';
+    $info->{jigglePattern} = '5x5';
     $info->{jiggleSystem} = 'AZEL';
     $info->{secsPerJiggle} = 5;
 
