@@ -685,8 +685,8 @@ sub secondary_mirror {
   my $obsmode = $info{mapping_mode};
   my $sw_mode = $info{switching_mode};
 
-  # Default to CONTINUOUS mode
-  $smu->motion( "CONTINUOUS" );
+  # Default to GROUP mode
+  $smu->motion( "GROUP" );
 
   # Configure the chop parameters
   if ($sw_mode eq 'chop') {
@@ -789,7 +789,8 @@ sub fe_config {
   $fe->sb_mode( $fc{sideBandMode} );
 
   # How to handle 'best'?
-  $fe->sideband( $fc{sideBand} );
+  my $sb = ( $fc{sideBand} =~  /BEST/i ? 'USB' : $fc{sideBand} );
+  $fe->sideband( $sb );
 
   # doppler mode
   $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
@@ -1837,6 +1838,9 @@ sub cubes {
     $grid_func = "Gaussian" if $info{mapping_mode} =~ /raster/;
     $cube->grid_function( $grid_func );
 
+    # Variable to indicate map coord override
+    my $grid_coord;
+
     # The size and number of pixels depends on the observing mode.
     # For raster, we have a regular grid but the 
     my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
@@ -1894,6 +1898,9 @@ sub cubes {
       my $jig = $secondary->jiggle;
       throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
 
+      # Store the grid coordinate frame
+      $grid_coord = $jig->system;
+
       # and the angle
       my $pa = $jig->posang->degrees;
 
@@ -1944,7 +1951,8 @@ sub cubes {
 
     # Decide whether the grid is regridding in sky coordinates or in AZEL
     # Focus and Pointing are AZEL
-    if ($info{obs_type} =~ /point|focus/i) {
+    # Assume also that AZEL jiggles want AZEL maps
+    if ($info{obs_type} =~ /point|focus/i || (defined $grid_coord && $grid_coord eq 'AZEL') ) {
       $cube->tcs_coord( 'AZEL' );
     } else {
       $cube->tcs_coord( 'TRACKING' );
