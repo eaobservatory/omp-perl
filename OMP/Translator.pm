@@ -44,6 +44,7 @@ use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
+our $VERBOSE = 0;
 
 =head1 METHODS
 
@@ -246,6 +247,9 @@ sub translate {
 
       # Set DEBUGGING in the class depending on the debugging state here
       $class->debug( $DEBUG );
+
+      # Set verbosity in the class depending on this verbose setting
+      $class->verbose( $VERBOSE ) if $class->can("verbose");
 
       # And forward to the correct translator
       # We always get objects, sometimes multiple objects

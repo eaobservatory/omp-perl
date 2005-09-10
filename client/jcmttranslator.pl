@@ -63,6 +63,10 @@ C<-transdir> supercedes C<-cwd> if both are specified.
 
 Turn on debugging messages.
 
+=item B<-verbose>
+
+Turn on verbose messaging.
+
 =back
 
 =cut
@@ -77,16 +81,18 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/../";
 
-# We also need the Queue classes for XML I/O
-use lib qw| /jac_sw/hlsroot/ocsq/lib |;
-
+# We need to set the search path for the Queue classes
+# and the OCS Config classes. Assume for now that they exist
+# in a parallel tree
+use lib "$FindBin::RealBin/../../OCScfg/lib";
+use lib "$FindBin::RealBin/../../ocsq/lib";
 
 # Load the servers (but use them locally without SOAP)
 use OMP::TransServer;
 use File::Spec;
 
 # Options
-my ($help, $man, $debug, $cwd, $old, $sim, $transdir);
+my ($help, $man, $debug, $cwd, $old, $sim, $transdir, $verbose);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
@@ -94,6 +100,7 @@ my $status = GetOptions("help" => \$help,
 			"sim" => \$sim,
 			"old" => \$old,
 			"transdir=s" => \$transdir,
+			"verbose" => \$verbose,
 		       );
 
 pod2usage(1) if !$status;
@@ -102,7 +109,10 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 # debugging
-$OMP::Translator::DEBUG = 1 if $debug;
+$OMP::Translator::DEBUG = $debug;
+
+# verbose
+$OMP::Translator::VERBOSE = $verbose;;
 
 # Translation directory override
 if ($transdir) {

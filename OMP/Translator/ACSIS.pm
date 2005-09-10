@@ -148,6 +148,10 @@ sub translate {
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
 
+    # Set verbosity and debug level
+    $cfg->verbose( $self->verbose );
+    $cfg->debug( $self->debug );
+
     # Add comment
     $cfg->comment( "Translated on ". gmtime() ."UT on host ".
 		   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
@@ -192,10 +196,10 @@ sub translate {
     # For debugging we need to see the unrolled information
     # do it late so that we get to see the acsis backend information
     # as calculated by the translator
-    print Dumper( $obs ) if $DEBUG;
+    print Dumper( $obs ) if $self->debug;
 
     # and also the translated config itself
-    print $cfg if $DEBUG;
+    print $cfg if $self->debug;
 
     last;
   }
@@ -209,16 +213,42 @@ sub translate {
 
 Method to enable and disable global debugging state.
 
-  OMP::Translator::DAS->debug( 1 );
+  OMP::Translator::ACSIS->debug( 1 );
 
 =cut
 
-sub debug {
-  my $class = shift;
-  my $state = shift;
-
-  $DEBUG = ($state ? 1 : 0 );
+{
+  my $dbg;
+  sub debug {
+    my $class = shift;
+    if (@_) {
+      my $state = shift;
+      $dbg = ($state ? 1 : 0 );
+    }
+    return $dbg;
+  }
 }
+
+=item B<verbose>
+
+Method to enable and disable global verbosity state.
+
+  OMP::Translator::ACSIS->verbose( 1 );
+
+=cut
+
+{
+  my $verb;
+  sub verbose {
+    my $class = shift;
+    if (@_) {
+      my $state = shift;
+      $verb = ($state ? 1 : 0 );
+    }
+    return $verb;
+  }
+}
+
 
 =item B<transdir>
 
@@ -1202,7 +1232,7 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
-    if ($DEBUG) {
+    if ($self->verbose) {
       print "Jiggle JOS parameters:\n";
       print "\ttimePerJig : $timePerJig\n";
       print "\tRequested integration time per pixel: $info{secsPerJiggle}\n";
@@ -1245,7 +1275,7 @@ sub jos_config {
     $points_per_ref=1;
     $jos->points_per_ref($points_per_ref);
 
-    if ($DEBUG) {
+    if ($self->verbose) {
       print "Grid JOS parameters:\n";
       print "N_REFSAMPLES = $nrefs\n";
       print "JOS_MIN = $jos_min\n";
@@ -1288,7 +1318,7 @@ sub jos_config {
     $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
 
     $jos->jos_mult($jos_mult);
-    if ($DEBUG) {
+    if ($self->verbose) {
       print "JOS_MULT = $jos_mult\n";
     }
   } else {
@@ -2202,7 +2232,7 @@ sub acsis_layout {
   my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
   my $layout = _read_file( $lay_file );
 
-  print "Read ACSIS layout $lay_file\n" if $DEBUG;
+  print "Read ACSIS layout $lay_file\n" if $self->verbose;
 
   # Now we need to replace the entities.
   $layout =~ s/\&machine_table\;/$machtable/g;
@@ -2417,7 +2447,7 @@ sub bandwidth_mode {
 
   # loop over each subsystem
   for my $s (@subs) {
-    print "Processing subsystem...\n" if $DEBUG;
+    print "Processing subsystem...\n" if $self->verbose;
 
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
@@ -2447,7 +2477,7 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
-    print "\tBandwidth (MHz): $mhz\n" if $DEBUG;
+    print "\tBandwidth (MHz): $mhz\n" if $self->verbose;
 
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
@@ -2467,9 +2497,9 @@ sub bandwidth_mode {
     $chanwid = $bw / $nchan;
     $s->{channwidth} = $chanwid;
 
-    print "\tChanwid : $chanwid\n" if $DEBUG;
+    print "\tChanwid : $chanwid\n" if $self->verbose;
 
-    print "\tNumber of channels: $nchan\n" if $DEBUG;
+    print "\tNumber of channels: $nchan\n" if $self->verbose;
 
     # number of channels per subband
     my $nchan_per_sub = $nchan / $nsubband;
@@ -2501,7 +2531,7 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    print "\tBW per sub: $bw_per_sub  with overlap : $olap\n" if $DEBUG;
+    print "\tBW per sub: $bw_per_sub  with overlap : $olap\n" if $self->verbose;
 
     # The usable channels are defined by the overlap
     # Simply using the channel width to calculate the offset
@@ -2513,7 +2543,7 @@ sub bandwidth_mode {
     my $nch_lo = $olap_in_chan;
     my $nch_hi = $nchan_per_sub - $olap_in_chan - 1;
 
-    print "\tUsable channel range: $nch_lo to $nch_hi\n" if $DEBUG;
+    print "\tUsable channel range: $nch_lo to $nch_hi\n" if $self->verbose;
 
     my $d_nch = $nch_hi - $nch_lo + 1;
 
