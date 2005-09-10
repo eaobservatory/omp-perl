@@ -3098,29 +3098,44 @@ sub getNumExposures {
   return 1;
 }
 
-# Reduce process recipe requires access to the file name used to read the recipe
-# This should be stored in the Cfg object
+# Reduce process recipe requires access to the file name used to read
+# the recipe This should be stored in the Cfg object
 
 sub getRPRecipe {
   my $class = shift;
   my $cfg = shift;
-  warn "Do not set RPRECIPE correctly\n" if $^W;
-  return "UNKNOWN";
 
+  # Get the acsis config
+  my $acsis = $cfg->acsis;
+  if (defined $acsis) {
+    my $red = $acsis->red_config_list;
+    if (defined $red) {
+      my $file = $red->filename;
+      if (defined $file) {
+	return $file;
+      }
+    }
+  }
+  return '';
 }
 
 
 sub getOCSCFG {
-  # Should use this to set the HEADER name so that we know which one to set
-  # at runtime
-  warn "OCS Configuration name is not known until it is written\n" if $^W;
-  return "UNKNOWN";
+  # this gets written automatically by the OCS Config classes
+  return '';
 }
 
 sub getBinning {
   my $class = shift;
   my $cfg = shift;
-  warn "How am I supposed to calculate binning?\n" if $^W;
+  my %info = @_;
+
+  my $dr = $info{data_reduction};
+  if (defined $dr) {
+    if (exists $dr->{spectral_binning}) {
+      return $dr->{spectral_binning};
+    }
+  }
   return 1;
 }
 
