@@ -386,6 +386,13 @@ sub handle_special_modes {
   #  - 5 point or 9x9 jiggle pattern
   #  - 60 arcsec AZ chop
 
+  # Kill baseline removal
+  if (exists $info->{data_reduction}) {
+    my %dr = %{ $info->{data_reduction} };
+    delete $dr{baseline};
+    $info->{data_reduction} = \%dr;
+  }
+
   # Pointing will have been translated into chop already by the
   # observing_mode() method.
 
@@ -1660,17 +1667,38 @@ sub spw_list {
 					  )
     } (0..($ss->{nsubbands}-1));
 
-    # We only calculate baselines for the hybridised spectral windows
+    # Counting for hybridized spectra still assumes the original number
+    # of channels in the units. We assume that the fraction specified
+    # is a fraction of the hybrid baseline but we need to correct
+    # for the overlap when calculating the actual position of the baseline
     if (defined $frac) {
-      # Baseline depends on number of hybridised channels
-      my $nchan_full = $ss->{channels};
-      my $nchan_bl = int($nchan_full * $frac / 2 );
+
+      # get the full number of channels
+      my $nchan_full = $ss->{nchannels_full};
+
+      # Get the hybridized number of channels
+      my $nchan_hyb = $ss->{channels};
+      my $nchan_bl = int($nchan_hyb * $frac / 2 );
+
+      # number of channels chopped from each end
+      my $nchop = int(($nchan_full - $nchan_hyb) / 2);
+
+      # Include a small offset from the very end channel of the spectrum
+      # and convert to channels
+      my $edge_frac = 0.01;
+      my $nedge = int( $nchan_hyb * $edge_frac);
+
+      # Calculate total offset
+      my $offset = $nchop + $nedge;
+
       @baselines = (
 	   new JAC::OCS::Config::Interval( Units => 'pixel',
-					   Min => 0, Max => $nchan_bl),
+					   Min => $offset, 
+					   Max => ($nchan_bl+$offset)),
 	   new JAC::OCS::Config::Interval( Units => 'pixel',
-					   Min => ($nchan_full - $nchan_bl),
-					   Max => $nchan_full),
+					   Min => ($nchan_full 
+						   - $offset - $nchan_bl),
+					   Max => ($nchan_full-$offset)),
 	  );
     }
     $spw->baseline_region( @baselines ) if @baselines;
@@ -3094,7 +3122,8 @@ sub getNumExposures {
   my $class = shift;
   my $cfg = shift;
 
-  warn "Do not calculate Number of exposures correctly\n" if $^W;
+  warn "******** Do not calculate Number of exposures correctly\n"
+    if OMP::Translator::ACSIS->verbose;;
   return 1;
 }
 
