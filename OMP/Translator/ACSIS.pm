@@ -386,13 +386,6 @@ sub handle_special_modes {
   #  - 5 point or 9x9 jiggle pattern
   #  - 60 arcsec AZ chop
 
-  # Kill baseline removal
-  if (exists $info->{data_reduction}) {
-    my %dr = %{ $info->{data_reduction} };
-    delete $dr{baseline};
-    $info->{data_reduction} = \%dr;
-  }
-
   # Pointing will have been translated into chop already by the
   # observing_mode() method.
 
@@ -415,12 +408,27 @@ sub handle_special_modes {
 
     $info->{scaleFactor} = max( $half_beam, $plan_rad );
 
+    # Kill baseline removal
+    if (exists $info->{data_reduction}) {
+      my %dr = %{ $info->{data_reduction} };
+      delete $dr{baseline};
+      $info->{data_reduction} = \%dr;
+    }
+
   } elsif ($info->{obs_type} eq 'focus') {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{jigglePattern} = '1x1';
     $info->{secsPerJiggle} = 5;
+
+    # Kill baseline removal
+    if (exists $info->{data_reduction}) {
+      my %dr = %{ $info->{data_reduction} };
+      delete $dr{baseline};
+      $info->{data_reduction} = \%dr;
+    }
+
   }
 
   return;
