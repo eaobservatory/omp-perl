@@ -25,6 +25,7 @@ use Data::Dumper;
 
 use Net::Domain;
 use File::Spec;
+use File::Basename;
 use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use POSIX qw/ ceil /;
@@ -3149,7 +3150,8 @@ sub getRPRecipe {
     if (defined $red) {
       my $file = $red->filename;
       if (defined $file) {
-	return $file;
+        # just give file name, not path
+	return File::Basename::basename($file);
       }
     }
   }
