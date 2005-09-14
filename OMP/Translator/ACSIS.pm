@@ -1336,7 +1336,13 @@ sub jos_config {
     $jos->jos_mult($jos_mult);
     if ($self->verbose) {
       print "JOS_MULT = $jos_mult\n";
-    }
+  }
+      my $iter_per_cal=8;
+      $jos->iter_per_cal($iter_per_cal);
+    if ($self->verbose) {
+      print "ITER_PER_CAL = $iter_per_cal\n";
+  }
+
   } else {
     throw OMP::Error::TranslateFail("Unrecognized observing mode for JOS configuration '$info{observing_mode}'");
   }
