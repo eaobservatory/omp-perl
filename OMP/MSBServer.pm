@@ -235,6 +235,8 @@ sub queryMSB {
   my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
   my $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
+  OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs\n");
+
   return $result;
 }
 
