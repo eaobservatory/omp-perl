@@ -145,19 +145,29 @@ sub addComment {
     }
   }
 
+  OMP::General->log_message( "ObslogDB: Preparing for observation comment insert.\n" );
+
   # Lock the database (since we are writing).
   $self->_db_begin_trans;
   $self->_dblock;
 
+  OMP::General->log_message( "ObslogDB: Database locked. Setting old observation comments to inactive.\n" );
+
   # Set old observations in the archive to "inactive".
   $self->_set_inactive( $obs, $comment->author->userid );
+
+  OMP::General->log_message( "ObslogDB: Old observation comments set to inactive. Inserting comment.\n" );
 
   # Write the observation to database.
   $self->_store_comment( $obs, $comment );
 
+  OMP::General->log_message( "ObslogDB: Comment inserted. Unlocking database.\n" );
+
   # End transaction.
   $self->_dbunlock;
   $self->_db_commit_trans;
+
+  OMP::General->log_message( "ObslogDB: Database unlocked.\n" );
 }
 
 =item B<getComment>
@@ -346,7 +356,9 @@ sub updateObsComment {
 # all the comments back we can stick them onto the
 # appropriate Obs objects.
 
-  my @obsarray = sort { $a->startobs->epoch <=> $b->startobs->epoch } @$obs_arrayref;
+  my @obsarray = map { $_->[0] }
+                 sort { $a->[1] <=> $b->[1] }
+                 map { [ $_, $_->startobs->epoch ] } @$obs_arrayref;
 
   my $start;
   my $end;
@@ -366,8 +378,13 @@ sub updateObsComment {
     "<max>" . $end->ymd . "T" . $end->hms . "</max></date>" .
     "<obsactive>1</obsactive></ObsQuery>";
 
+  # Print a message in the log.
+  OMP::General->log_message( "ObslogDB: Querying database for observation comments.\n" );
+
   my $query = new OMP::ObsQuery( XML => $xml );
   my @commentresults = $self->queryComments( $query );
+
+  OMP::General->log_message( "ObslogDB: Finished query for observation comments.\n" );
 
   my %commhash;
 
