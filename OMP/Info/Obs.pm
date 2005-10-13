@@ -462,7 +462,7 @@ sub summary {
       $start, $self->projectid, $self->instrument, 
 	$self->target, $self->mode;
 
-    my $obssum = sprintf("%4.4s %8.8s %11.11s %8.8s %-20.20s %-16.16s\n",
+    my $obssum = sprintf("%4.4s %8.8s %15.15s %8.8s %-18.18s %-14.14s\n",
 			@strings);
     my $commentsum;
     foreach my $comment ( $self->comments ) {
