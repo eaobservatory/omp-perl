@@ -35,6 +35,8 @@ use OMP::Info::Comment;
 use OMP::Constants qw/ :done /;
 use OMP::Error qw/ :try /;
 
+use Time::HiRes qw/ tv_interval gettimeofday /;
+
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
 
@@ -193,6 +195,7 @@ sub queryMSB {
   my $xmlquery = shift;
   my $maxCount = shift;
 
+  my $t0 = [gettimeofday];
   my $m = ( defined $maxCount ? $maxCount : '[undefined]' );
   OMP::General->log_message("queryMSB:\n$xmlquery\nMaxcount=$m\n");
 
@@ -235,7 +238,8 @@ sub queryMSB {
   my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
   my $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
-  OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs\n");
+  OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
+			    tv_interval($t0)." seconds\n");
 
   return $result;
 }
