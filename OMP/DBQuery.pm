@@ -37,7 +37,7 @@ use Time::Seconds;
 our $VERSION = (qw$Revision$ )[1];
 
 # Default number of results to return from a query
-our $DEFAULT_RESULT_COUNT = 200;
+our $DEFAULT_RESULT_COUNT = 500;
 
 
 # Overloading
