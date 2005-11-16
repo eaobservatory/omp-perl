@@ -417,11 +417,11 @@ sub handle_special_modes {
     }
 
   } elsif ($info->{obs_type} eq 'focus') {
+    # Focus is a 60 arcsec AZ chop observation
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{jigglePattern} = '1x1';
-    $info->{secsPerJiggle} = 5;
+    $info->{secsPerCycle} = 5;
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -1055,10 +1055,17 @@ sub rts_config {
   my $cfg = shift;
   my %info = @_;
 
+  # Need observing mode
+  my $obsmode = $info{observing_mode};
+
+  # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
+  # is actually a jiggle_chop
+  $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
+
   # the RTS information is read from a wiring file
   # indexed by observing mode
   my $file = File::Spec->catfile( $WIRE_DIR, 'rts',
-				  $info{observing_mode} .".xml");
+				  $obsmode .".xml");
   throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
     unless -e $file;
 
@@ -1091,6 +1098,7 @@ sub jos_config {
 		pointing    => 'pointing',
 		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
 		jiggle_chop => 'jiggle_chop',
+		grid_chop   => 'jiggle_chop',
 		grid_pssw   => 'grid_pssw',
 		raster_pssw => 'raster_pssw',
 	       );
@@ -1117,26 +1125,22 @@ sub jos_config {
   # least 1 cal
   $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
 
+  # Now specify the maximum time between cals in steps
+  my $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
+  $jos->steps_per_cal( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
+
+  # Now calculate the maximum time between refs in steps
+  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref' );
+  $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
+
   # Now parameters depends on that recipe name
 
   # Raster
 
   if ($info{observing_mode} =~ /raster/) {
 
-    # need at least one row
-    $info{rowsPerRef} = 1 if (!defined $info{rowsPerRef} || $info{rowsPerRef} < 1);
-    $jos->rows_per_ref( $info{rowsPerRef} );
-
     # Start at row 1 by default
     $jos->start_row( 1 );
-
-    # we have rows per cal but the JOS needs refs_per_cal
-    my $rperc = 1;
-    if (exists $info{rowsPerRef} && exists $info{rowsPerCal}) {
-      # rows per ref should be > 0
-      $rperc = $info{rowsPerCal} / $info{rowsPerRef};
-    }
-    $jos->refs_per_cal( $rperc );
 
     # Number of ref samples is the sqrt of the longest row
     # for the first off only. All subsequent refs are calculated by
@@ -1258,44 +1262,77 @@ sub jos_config {
       print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats\n";
     }
 
+  } elsif ($info{observing_mode} =~ /grid_chop/) {
+
+    # Similar to a jiggle_chop recipe (in fact they are the same) but
+    # we are not jiggling (ie a single jiggle point at the origin)
+
+    # Have to do ABBA sequence so JOS_MULT is the secsPerCycle / 4
+    # with the max nod time constraint
+
+    # Required Integration time per cycle in STEPS
+    my $stepsPerCycle = ceil( $info{secsPerCycle} / $jos->step_time );
+
+    # Total number of steps required per nod
+    my $total_jos_mult = ceil( $stepsPerCycle / 4 );
+
+    # Max time between nods
+    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
+
+    # converted to steps
+    my $max_steps_nod = ceil( $max_t_nod / $jos->step_time );
+
+    my $num_nod_sets;
+    my $jos_mult;
+    if ( $max_steps_nod > $total_jos_mult ) {
+      # can complete the required integration in a single nod set
+      $jos_mult = $total_jos_mult;
+      $num_nod_sets = 1;
+    } else {
+      # Need to spread it out
+      $num_nod_sets = int( $total_jos_mult / $max_steps_nod );
+      $jos_mult = $max_steps_nod;
+    }
+
+    $jos->jos_mult( $jos_mult );
+    $jos->num_nod_sets( $num_nod_sets );
+
+    if ($self->verbose) {
+      print "Chop JOS parameters:\n";
+      print "\tRequested integration time per cycle: $info{secsPerCycle} sec\n";
+      print "\tStep time for chop: ". $jos->step_time . " sec\n";
+      print "\tRequired total JOS_MULT: $total_jos_mult\n";
+      print "\tMax allowed JOS_MULT : $max_steps_nod\n";
+      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod\n";
+      print "\tActual integraton time per cycle: ".($num_nod_sets * $jos_mult * 4)." sec\n";
+    }
+
   } elsif ($info{observing_mode} =~ /grid/) {
 
     # N.B. The NUM_CYCLES has already been set to
     # the number of requested integrations
     # above.
-    my $nrefs; #N_REFSAMPLES
-    my $num_nod_sets;
-    my $jos_min;
-    my $points_per_ref;
 
     # First JOS_MIN
     # This is the number of samples on each grid position
     # so = secsPerCycle / STEP_TIME
-    $jos_min= $info{secsPerCycle} / $self->step_time( %info );
-    $jos->jos_min($jos_min); 
+    my $jos_min = ceil($info{secsPerCycle} / $self->step_time( %info ));
+    $jos->jos_min($jos_min);
 
     # N_REFSAMPLES should be equal
     # to the number of samples on each grid position
     # i.e. $jos_min
-    $nrefs=$jos_min;
+    my $nrefs = $jos_min;
     $jos->n_refsamples( $nrefs );
 
     # NUM_NOD_SETS - set to 1
-    $num_nod_sets=1; 
+    my $num_nod_sets = 1;
     $jos->num_nod_sets( $num_nod_sets );
-
-    # presumably always want to 
-    # do 1 point of the grid then do 
-    # an integration at reference,
-    # so POINTS_PER_REF=1
-    $points_per_ref=1;
-    $jos->points_per_ref($points_per_ref);
 
     if ($self->verbose) {
       print "Grid JOS parameters:\n";
       print "N_REFSAMPLES = $nrefs\n";
       print "JOS_MIN = $jos_min\n";
-      print "POINTS_PER_REF =  $points_per_ref \n";
       print "NUM_NOD_SETS =  $num_nod_sets \n";
     }
 
@@ -1821,7 +1858,9 @@ sub acsisdr_recipe {
   my $root;
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
-    $root = $info{observing_mode} . '_dr_recipe.ent';
+    my $obsmode = $info{observing_mode};
+    $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
+    $root = $obsmode . '_dr_recipe.ent';
   } else {
     # keyed on observation type
     $root = $info{obs_type} . '_dr_recipe.ent';
@@ -2100,7 +2139,9 @@ sub rtd_config {
   my $root;
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
-    $root = $info{observing_mode} . '_rtd.ent';
+    my $obsmode = $info{observing_mode};
+    $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
+    $root = $obsmode . '_rtd.ent';
   } else {
     # keyed on observing type
     $root = $info{obs_type} . '_rtd.ent';
@@ -2370,7 +2411,7 @@ sub observing_mode {
     $switching_mode = 'chop';
     $obs_type = 'pointing';
   } elsif ($mode eq 'SpIterFocusObs' ) {
-    $mapping_mode = 'jiggle';
+    $mapping_mode = 'grid'; # Just chopping at 0,0
     $switching_mode = 'chop';
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
@@ -2379,7 +2420,7 @@ sub observing_mode {
       $mapping_mode = 'grid';
       $switching_mode = 'pssw';
     } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $mapping_mode = 'jiggle';
+      $mapping_mode = 'grid'; # No jiggling
       $switching_mode = 'chop';
     } else {
       throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
@@ -2659,7 +2700,9 @@ sub step_time {
   if ($info{observing_mode} =~ /raster_pssw/ ) {
     $step = $info{sampleTime};
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
-    $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw')
+    $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
+  } elsif ($info{observing_mode} =~ /grid_chop/) {
+    $step = OMP::Config->getData( 'acsis_translator.max_time_between_chops');
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
