@@ -538,10 +538,17 @@ sub _add_msb_done_info {
   throw OMP::Error::BadArgs("An OMP user ID is required for making a comment but none was supplied")
     if ($comment->status == OMP__DONE_COMMENT and ! $userid);
 
+  # Truncate the target name. This is done to get around a bizarre
+  # Sybase error if the string's too long.
+  my $maxlen = 128;
+  my $target = ( length($msbinfo->target) > $maxlen ?
+                 substr($msbinfo->target, 0, $maxlen ) . "..." :
+                 $msbinfo->target );
+
   $self->_db_insert_data( $MSBDONETABLE,
 			  $checksum, $comment->status,
 			  $projectid, $date,
-			  $msbinfo->target, $msbinfo->instrument,
+			  $target, $msbinfo->instrument,
 			  $msbinfo->waveband,
 			  {
 			   TEXT => $comment->text,
