@@ -218,6 +218,59 @@ sub projectDetails {
   return $summary;
 }
 
+=item B<projectDetailsNoAuth>
+
+Return the details of a single project, without performing project
+password verification. The summary is returned as a data structure
+(a reference to a hash), as an C<OMP::Project> object or as XML.
+
+  $href = OMP::ProjServer->projectDetails( $project, $password, "data" );
+  $xml = OMP::ProjServer->projectDetails( $project,$password, "xml" );
+  $obj = OMP::ProjServer->projectDetails( $project,$password, "object" );
+
+Note that this may cause problems for a strongly typed language.
+
+The default is to return XML since that is a simple string.
+
+=cut
+
+sub projectDetailsNoAuth {
+  my $class = shift;
+  my $projectid = shift;
+  my $mode = lc(shift);
+  $mode ||= 'xml';
+
+  OMP::General->log_message("ProjServer::projectDetailsNoAuth: $projectid\n");
+
+  my $E;
+  my $summary;
+  try {
+
+    my $db = new OMP::ProjDB(
+			     ProjectID => $projectid,
+			     DB => $class->dbConnection,
+			    );
+
+    $summary = $db->projectDetailsNoAuth( $mode );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $summary;
+}
+
 =item B<verifyProject>
 
 Verify that the specified project is active and present in the

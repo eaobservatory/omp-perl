@@ -67,7 +67,8 @@ sub fetchMSB {
   my $class = shift;
   my $key = shift;
 
-  OMP::General->log_message( "fetchMSB: key $key\n");
+  my $t0 = [gettimeofday];
+  OMP::General->log_message( "fetchMSB: Begin.\nKey=$key\n");
 
   my $msb;
   my $E;
@@ -129,9 +130,7 @@ sub fetchMSB {
   # Also add in the projectID
   $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
 
-  OMP::General->log_message( "fetchMSB: Success: Projectid: " . 
-			     $msb->projectID . " and checksum: ".
-			     $msb->checksum ."\n");
+  OMP::General->log_message("fetchMSB: Complete. Project=".$msb->projectid."\nChecksum=".$msb->checksum."\n ".tv_interval($t0)." seconds\n");
 
   return "$spprog$msbxml$spprogend" if defined $msb;
 }
@@ -275,7 +274,9 @@ sub doneMSB {
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
-  OMP::General->log_message("doneMSB: $project $checksum User: $ustr Reason: $reastr");
+
+  my $t0 = [gettimeofday];
+  OMP::General->log_message("doneMSB: Begin.\nProject=$project\nChecksum=$checksum\nUser=$ustr\nReason=$reastr\n");
 
   my $E;
   try {
@@ -324,7 +325,7 @@ sub doneMSB {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-
+  OMP::General->log_message("doneMSB: Complete. ".tv_interval($t0)." seconds\n");
 }
 
 =item B<undoMSB>
@@ -738,8 +739,9 @@ sub observedMSBs {
   my $dstr = (exists $args->{date} ? $args->{date} : "<undef>");
   my $pstr = (exists $args->{projectid} ? $args->{projectid} : "<undef>");
   my $ustr = (exists $args->{usenow} ? $args->{usenow} : "<undef>");
-  OMP::General->log_message("observedMSBs: date: $dstr project: $pstr  UseNow: $ustr\n");
 
+  my $t0 = [gettimeofday];
+  OMP::General->log_message("observedMSBs: Begin.\nDate=$dstr\nProject=$pstr\nUseNow=$ustr\n");
 
   my $E;
   my $result;
@@ -771,10 +773,11 @@ sub observedMSBs {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+  my @msbs;
   if ($type eq 'xml') {
     # Generate the XML
     my $xml = "<SpMSBSummaries>\n";
-    my @msbs = ( ref($result) eq 'ARRAY' ? @$result : $result );
+    @msbs = ( ref($result) eq 'ARRAY' ? @$result : $result );
     for my $msb (@msbs) {
       $xml .= $msb->summary('xml') . "\n";
     }
@@ -782,6 +785,7 @@ sub observedMSBs {
     $result = $xml;
   }
 
+  OMP::General->log_message("observedMSBs: Complete. Retrieved ". @msbs ." MSBS in ".tv_interval($t0)." seconds\n");
 
   return $result;
 }
