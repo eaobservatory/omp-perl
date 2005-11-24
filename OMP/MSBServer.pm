@@ -130,7 +130,7 @@ sub fetchMSB {
   # Also add in the projectID
   $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
 
-  OMP::General->log_message("fetchMSB: Complete. Project=".$msb->projectid."\nChecksum=".$msb->checksum."\n ".tv_interval($t0)." seconds\n");
+  OMP::General->log_message("fetchMSB: Complete. Project=".$msb->projectID."\nChecksum=".$msb->checksum."\n ".tv_interval($t0)." seconds\n");
 
   return "$spprog$msbxml$spprogend" if defined $msb;
 }
