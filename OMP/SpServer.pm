@@ -32,6 +32,7 @@ use OMP::Error qw/ :try /;
 
 use Astro::Catalog;
 use Compress::Zlib;
+use Time::HiRes qw/ tv_interval gettimeofday /;
 
 # Different Science program return types
 use constant OMP__SCIPROG_XML => 0;
@@ -87,7 +88,8 @@ sub storeProgram {
   my $password = shift;
   my $force = shift;
 
-  OMP::General->log_message( "storeProgram: Force = " .
+  my $t0 = [gettimeofday];
+  OMP::General->log_message( "storeProgram: Begin.\nForce=" .
 			   ( defined $force ? $force : 0 ). "\n");
 
   my ($string, $timestamp);
@@ -156,7 +158,7 @@ sub storeProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  OMP::General->log_message( "storeProgram: Stored with timestamp $timestamp\n");
+  OMP::General->log_message( "storeProgram: Complete. Stored with timestamp $timestamp\n".tv_interval($t0)." seconds\n");
   return [$string, $timestamp];
 }
 
@@ -210,7 +212,8 @@ sub fetchProgram {
     $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
   }
 
-  OMP::General->log_message( "fetchProgram: project $projectid (format = $rettype)\n");
+  my $t0 = [gettimeofday];
+  OMP::General->log_message( "fetchProgram: Begin.\nProject=$projectid\nFormat=$rettype\n");
 
   my $sp;
   my $E;
@@ -262,6 +265,8 @@ sub fetchProgram {
     } else {
       $string = "$sp";
     };
+
+    OMP::General->log_message("fetchProgram: Complete. ".tv_interval($t0)." seconds\n");
 
     return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
 	    : $string );
