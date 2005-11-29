@@ -80,8 +80,8 @@ sub play {
     my $cmd;
 
     # Commands and arguments
-    my %cmds = ( esdplay => {
-			     path => '/usr/bin/esdplay',
+    my %cmds = ( play => {
+			     path => '/usr/bin/play',
 			     },
 		 qtplay => {
 			    # OS X
