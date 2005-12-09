@@ -28,6 +28,7 @@ use File::Spec;
 use File::Basename;
 use Astro::Coords::Offset;
 use List::Util qw/ min max /;
+use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
 
 use JCMT::ACSIS::HWMap;
@@ -161,11 +162,11 @@ sub translate {
     # Observation summary
     $self->obs_summary( $cfg, %$obs );
 
-    # configure the basic TCS parameters
-    $self->tcs_config( $cfg, %$obs );
-
     # Instrument config
     $self->instrument_config( $cfg, %$obs );
+
+    # configure the basic TCS parameters
+    $self->tcs_config( $cfg, %$obs );
 
     # FRONTEND_CONFIG
     $self->fe_config( $cfg, %$obs );
@@ -495,7 +496,7 @@ sub tcs_config {
   $tcs->telescope( 'JCMT' );
 
   # First the base position
-  $self->tcs_base( $tcs, %info );
+  $self->tcs_base( $cfg, $tcs, %info );
 
   # observing area
   $self->observing_area( $tcs, %info );
@@ -553,7 +554,7 @@ sub tcs_config {
 Calculate the position information (SCIENCE and REFERENCE)
 and store in the TCS object.
 
-  $trans->tcs_base( $tcs, %info );
+  $trans->tcs_base( $cfg, $tcs, %info );
 
 where $tcs is a C<JAC::OCS::Config::TCS> object.
 
@@ -563,6 +564,7 @@ Does nothing if autoTarget is true.
 
 sub tcs_base {
   my $self = shift;
+  my $cfg = shift;
   my $tcs = shift;
   my %info = @_;
   return if $info{autoTarget};
@@ -574,9 +576,31 @@ sub tcs_base {
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
 
+  # Find out if we have to offset to a particular receptor
+  my $refpix = $self->tracking_receptor( $cfg, %info );
+
+  # Create the offset
+  my $recoffset;
+  if (defined $refpix) {
+    # need instrument information
+    my $inst = $cfg->instrument_setup;
+    throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+      unless defined $inst;
+
+    # Get the coordinates FPLANE
+    my %recinfo = $inst->receptor( $refpix );
+    throw OMP::Error::TranslateFail( "Expected reference pixel ($refpix) is not present in this instrument!")
+      unless keys %recinfo;
+
+    my @xy = @{$recinfo{xypos}};
+    $recoffset = new Astro::Coords::Offset( @xy, system => "FPLANE",
+					    projection => "DIRECT");
+  }
 
   # and augment with the SCIENCE tag
   # we only needs the Astro::Coords object in this case
+  # unless we have an offset pixel
+  # Note that OFFSETS are only propogated for non-SCIENCE positions
   $tags{SCIENCE} = { coords => $info{coords} };
 
   # Create some BASE objects
@@ -599,9 +623,42 @@ sub tcs_base {
     $base{$t} = $b;
   }
 
+  # Add the receptor offset to SCIENCE
+  $base{SCIENCE}->offset( $recoffset ) if defined $recoffset;
+
   $tcs->tags( %base );
 }
 
+=item B<tracking_offset>
+
+Returns, if defined, an offset to BASE that has been defined for this
+configuration. This is normally needed to correct the gridder so that
+it can define the tangent point correctly (the gridder can not understand
+offsets in any system other than pixel coordinates).
+
+ $offset = $trans->tracking_offset( $cfg, %info );
+
+Returns an C<Astro::Coords::Offset> object.
+
+=cut
+
+sub tracking_offset {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # Get the tcs_config
+  my $tcs = $cfg->tcs;
+  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen') 
+    unless defined $tcs;
+
+  # and BASE offset
+  my $base_off = $tcs->getTargetOffset;
+
+  # Need to clone it but no method
+  return $base_off->clone;
+
+}
 
 =item B<observing_area>
 
@@ -1908,6 +1965,42 @@ sub cubes {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
+  # Get the instrument footprint
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+    unless defined $inst;
+  my @footprint = $inst->receptor_offsets;
+
+  # Need to correct for any offset that we may be applying to BASE
+  my $apoff = $self->tracking_offset( $cfg, %info );
+
+  # And also make it available as "internal hash format"
+  my @footprint_h = $self->_to_offhash( @footprint );
+
+  # shift instrument if FPLANE offset
+  if (defined $apoff) {
+    if ($apoff->system eq 'FPLANE') {
+      throw OMP::Error::TranslateFail("Non-zero position angle for focal plane offset is unexpected\n")
+	if $apoff->posang->radians != 0.0;
+
+      for my $pos (@footprint_h) {
+	$pos->{OFFSET_DX} -= $apoff->xoffset->arcsec;
+	$pos->{OFFSET_DY} -= $apoff->yoffset->arcsec;
+      }
+    } else {
+      throw OMP::Error::TranslateFail("Trap for unwritten code when offset is not FPLANE");
+    }
+  }
+
+  # Can we match position angles of the receiver with the rotated map or not? Use the focal station to decide
+  my $matchpa;
+  if ( $inst->focal_station eq 'DIRECT' ) {
+    $matchpa = 0;
+  } else {
+    # Assumes image rotator if on the Nasmyth
+    $matchpa = 1;
+  }
+
   # Create the cube list
   my $cl = new JAC::OCS::Config::ACSIS::CubeList();
 
@@ -1986,12 +2079,23 @@ sub cubes {
       }
 
     } elsif ($info{mapping_mode} =~ /grid/i) {
-      # Need to know the footprint of the array. Assume single pixel.
-      # GRID + single pixel is easy since it is just the offset pattern
+      # Get the required offsets. These will always be in tracking coordinates TAN.
       my @offsets;
       @offsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
+
+      # Should fix up earlier code to add SYSTEM
+      for (@offsets) {
+	$_->{SYSTEM} = "TRACKING";
+      }
+
+      # Now convolve these offsets with the instrument footprint
+      my @convolved = $self->convolve_footprint( $matchpa, \@footprint_h, \@offsets );
+
+      # Now calculate the final grid
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
-									 @offsets );
+									 @convolved );
+
+      print "POSITION ANGLE: $mappa\n";
 
     } elsif ($info{mapping_mode} =~ /jiggle/i) {
       # Need to know:
@@ -2016,12 +2120,18 @@ sub cubes {
       # and the angle
       my $pa = $jig->posang->degrees;
 
+      # Get the map offsets
+      my @offsets = map { { OFFSET_DX => $_->[0],
+			    OFFSET_DY => $_->[1],
+			    OFFSET_PA => $pa,
+		        } } $jig->spattern;
+
+      # Convolve them with the instrument footprint
+      my @convolved = $self->convolve_footprint( $matchpa, \@footprint_h, \@offsets );
+
       # calculate the pattern without a global offset
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
-									 map { { OFFSET_DX => $_->[0],
-										 OFFSET_DY => $_->[1],
-										 OFFSET_PA => $pa,
-									       } } $jig->spattern);
+									 @convolved);
 
       # get the global offset for this observation
       my $global_offx = ($info{OFFSET_DX} || 0);
@@ -2097,6 +2207,15 @@ sub cubes {
       # value here in the translator or make sure that the Config class
       # always fills in a blank. For now kluge in the translator.
       $cube->truncation_radius( ($xsiz+$ysiz)/2 );
+    }
+
+    if ($self->verbose) {
+      print "Cube parameters [$cubid]:\n";
+      print "\tDimensions: $nx x $ny\n";
+      print "\tPixel Size: $xsiz x $ysiz arcsec\n";
+      print "\tMap Offset: $offx, $offy arcsec\n";
+      print "\tMap PA: $mappa deg\n";
+      print "\tGrid Function: $grid_func\n";
     }
 
     $cubes{$cubid} = $cube;
@@ -2828,6 +2947,54 @@ sub align_offsets {
   return @out;
 }
 
+=item B<tracking_receptor>
+
+Returns the receptor ID that should be aligned with the supplied telescope
+centre. Returns undef if no special receptor should be aligned with
+the tracking centre.
+
+  $recid = $trans->tracking_receptor( $cfg, %info );
+
+This knowledge is especially important for single pixel pointing observations
+and stare observartions with HARP where there is no central pixel.
+
+=cut
+
+sub tracking_receptor {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # First decide whether we should be aligning with a specific
+  # receptor?
+
+  # Focus:   Yes
+  # Stare:   Yes
+  # Grid_chop: Yes
+  # Jiggle   : No
+  # Pointing : Yes
+  # Raster   : No
+
+  return if ($info{observing_mode} =~ /raster/);
+
+  # Get the config file options
+  my @configs = OMP::Config->getData( "acsis_translator.tracking_receptors" );
+
+  # Get the actual receptors in use for this observation
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+    unless defined $inst;
+
+  # Go through the preferred receptors looking for a match
+  for my $test (@configs) {
+    return $test if $inst->contains_id( $test );
+  }
+
+  # Still here? Assume the reference receptor (which must exist)
+  return scalar $inst->reference_receptor;
+
+}
+
 =item B<calc_grid>
 
 Calculate a grid capable of representing the supplied offsets.
@@ -2983,6 +3150,139 @@ sub _calc_offset_stats {
   my $npix = ceil( $span / $trial ) + 1;
   return ($min, $max, $cen, $span, $npix, $trial );
 
+}
+
+=item B<_to_acoff>
+
+Convert an array of references to hashes containing keys of OFFSET_DX, OFFSET_DY
+and OFFSET_PA to an array of Astro::Coords::Offset objects.
+
+   @offsets = $self->_to_acoff( @input );
+
+If the first argument is already an Astro::Coords::Offset object all
+inputs are returned as outputs unchanged.
+
+=cut
+
+sub _to_acoff {
+  my $self = shift;
+
+  if (UNIVERSAL::isa($_[0], "Astro::Coords::Offset" )) {
+    return @_;
+  }
+
+  return map { new Astro::Coords::Offset( $_->{OFFSET_DX},
+					  $_->{OFFSET_DY},
+					  posang => $_->{OFFSET_PA},
+					  system => $_->{SYSTEM},
+					) } @_;
+}
+
+=item B<_to_offhash>
+
+Convert an array of C<Astro::Coords::Offset> objects to an array of
+hash references containing keys OFFSET_DX, OFFSET_DY and OFFSET_PA
+(all pointing to scalar non-objects in arcsec and degrees).
+
+   @offsets = $self->_to_offhash( @input );
+
+If the first element looks like an unblessed hash ref all args
+will be returned unmodified.
+
+=cut
+
+sub _to_offhash {
+  my $self = shift;
+
+  if (!blessed( $_[0] ) && exists $_[0]->{OFFSET_DX} ) {
+    return @_;
+  }
+
+  return map {
+    {
+      OFFSET_DX => ($_->offsets)[0]->arcsec,
+	OFFSET_DY => ($_->offsets)[1]->arcsec,
+	  OFFSET_PA => $_->posang->degrees,
+	    SYSTEM => $_->system,
+	  }
+  } @_;
+}
+
+=item B<convolve_footprint>
+
+Return the convolution of the receiver footprint with the supplied
+map coordinates to be observed. The receiver footprint is in the
+form of a reference to an array of receptor positions.
+
+  @convolved = $trans->convolve_footprint( $matchpa, \@receptors, \@map );
+
+Will not work if the coordinate system of the receiver is different
+from the coordinate system of the offsets but the routine assumes that
+FPLANE == TRACKING for the purposes of this calculation. This will be
+correct for everything except HARP with a broken image rotator. If the
+image rotator is broken then this will calculate the positions as
+if it was working.
+
+The 'matchpa' parameter controls whether the position angle stored in
+the receptor array should be used when calculating the new grid or
+whether it is assumed that the instrument PA can be rotated to match
+the map PA. If true (eg HARP with image rotator) then the PA of the
+first map point will be the chosen PA for all the convolved points.
+
+All positions will be corrected to the position angle of the first
+position in the map array.
+
+Offsets can be supplied as an array of references to hashes with
+keys OFFSET_X, OFFSET_Y, SYSTEM and OFFSET_PA
+
+=cut
+
+sub convolve_footprint {
+  my $self = shift;
+
+  my ($matchpa, $rec, $map) = @_;
+
+  return @$rec if !@$map;
+
+  # Get the reference pa
+  my $refpa = $map->[0]->{OFFSET_PA};
+  my $refsys = $map->[0]->{SYSTEM};
+  $refsys = "TRACKING" if !defined $refsys;
+
+  # Rotate all map coordinates to this position angle
+  my @maprot = $self->align_offsets( $refpa, @$map);
+
+  # If we are able to match the coordinate rotation of the
+  # map with the receiver we do not have to normalize coordinates
+  # to the map frame since that is already done
+  my @recrot;
+  if ($matchpa) {
+    @recrot = @$rec;
+  } else {
+    @recrot = $self->align_offsets( $refpa, @$rec );
+  }
+
+  # Now for each receptor we need to go through each map pixel
+  # and add the receptor offset
+  my @conv;
+
+  for my $recpixel (@recrot) {
+    my $rx = $recpixel->{OFFSET_DX};
+    my $ry = $recpixel->{OFFSET_DY};
+
+    for my $mappixel (@maprot) {
+      my $mx = $mappixel->{OFFSET_DX};
+      my $my = $mappixel->{OFFSET_DY};
+
+      push(@conv, { OFFSET_DX => ( $rx+$mx ),
+		    OFFSET_DY => ( $ry+$my ),
+		    OFFSET_PA => $refpa,
+		    SYSTEM    => $refsys,
+		  } );
+    }
+  }
+
+  return @conv;
 }
 
 =item B<_read_file>
