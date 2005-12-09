@@ -1045,10 +1045,15 @@ sub rotator_config {
   my $tcs = $cfg->tcs();
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
 
+  # Need to get the map position angle
+  my $oa = $tcs->getObsArea();
+  my $pa = $oa->posang;
+  $pa = new Astro::Coords::Angle( 0, units => 'radians' ) unless defined $pa;
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
-		 SYSTEM => 'TRACKING'
+		 SYSTEM => 'TRACKING',
+		 PA => [ $pa->clone ],
 	       );
 }
 
