@@ -656,8 +656,7 @@ sub tracking_offset {
   my $base_off = $tcs->getTargetOffset;
 
   # Need to clone it but no method
-  return $base_off->clone;
-
+  return (defined $base_off ? $base_off->clone : undef );
 }
 
 =item B<observing_area>
