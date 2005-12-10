@@ -2995,9 +2995,9 @@ sub tracking_receptor {
     return $test if $inst->contains_id( $test );
   }
 
-  # Still here? Assume the reference receptor (which must exist)
-  return scalar $inst->reference_receptor;
-
+  # Still here? We have the choice of returning undef or choosing the
+  # reference receptor. For now the consensus is to return undef.
+  return;
 }
 
 =item B<calc_grid>
