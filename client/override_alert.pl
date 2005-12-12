@@ -77,6 +77,12 @@ BEGIN {
 
 }
 
+END {
+  OMP::General->log_message( "Closing override_alert program." );
+}
+
+OMP::General->log_message( "Starting up override_alert program..." );
+
 $| = 1;
 my $MainWindow = new MainWindow;;
 my %seen_msbs;
