@@ -101,6 +101,9 @@ sub play {
 
     print "running '$cmd $file'\n" if $DEBUG;
 
+    # Log this play to the log file.
+    OMP::General->log_message( "Playing $file audio file..." );
+
     # Do the system call to the wav player
     system( $cmds{$cmd}{path}, $cmds{$cmd}{args},$file );
   }
