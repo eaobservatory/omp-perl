@@ -174,8 +174,28 @@ sub create_main_window {
 
 sub scan_for_msbs {
   my $class = "OMP::MSBServer";
-#  my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority><disableconstraint>observability</disableconstraint></MSBQuery>";
-  my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority></MSBQuery>";
+
+  # Get the semesters to use from the config system.
+  my $semesters = OMP::Config->getData( "override_semester",
+                                        telescope => $telescope );
+
+  # Transform the comma-separated list into a proper Perl list.
+  my @semesters = split ',', $semesters;
+
+  # Get the current semester from OMP::General.
+  my $current_semester = OMP::General->determine_semester( tel => $telescope );
+$current_semester = 'UKIDSS';
+  # Push the current semester onto the list of semesters.
+  push @semesters, $current_semester;
+
+  # Generate the semester XML.
+  my $sem_xml = "<semesters>";
+  foreach my $semester ( @semesters ) {
+    $sem_xml .= "<semester>$semester</semester>";
+  }
+  $sem_xml .= "</semesters>";
+
+  my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
   my $E;
   my @results;
   try {
