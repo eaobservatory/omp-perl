@@ -3435,6 +3435,25 @@ sub getNumMeasurements {
   }
 }
 
+# Receptor aligned with tracking centre
+sub getTrkRecep {
+  my $class = shift;
+  my $cfg = shift;
+
+  return "UNKNOWN";
+}
+
+# Reference receptor
+sub getRefRecep {
+  my $class = shift;
+  my $cfg = shift;
+
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+    unless defined $inst;
+  return scalar $inst->reference_receptor;
+}
+
 # Reference position as sexagesimal string or offset
 sub getReferenceRA {
   my $class = shift;
