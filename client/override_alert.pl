@@ -184,7 +184,7 @@ sub scan_for_msbs {
 
   # Get the current semester from OMP::General.
   my $current_semester = OMP::General->determine_semester( tel => $telescope );
-$current_semester = 'UKIDSS';
+
   # Push the current semester onto the list of semesters.
   push @semesters, $current_semester;
 
