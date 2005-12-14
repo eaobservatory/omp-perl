@@ -104,8 +104,14 @@ sub play {
     # Log this play to the log file.
     OMP::General->log_message( "Playing $file audio file..." );
 
+    my @system_args = ( $cmds{$cmd}{path} );
+    if( defined( $cmds{$cmd}{args} ) ) {
+      push @system_args, $cmds{$cmd}{args};
+    }
+    push @system_args, $file;
+
     # Do the system call to the wav player
-    system( $cmds{$cmd}{path}, $cmds{$cmd}{args},$file );
+    system( @system_args );
   }
 }
 
