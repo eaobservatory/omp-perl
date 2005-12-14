@@ -3051,9 +3051,15 @@ sub calc_grid {
 # Requires Nyquist value in arcsec plus an array of X or Y offset positions
 # Returns the min, max, centre, span, number of pixels, pixel width
 # Function, not method
+
+# Attempt is made never to use fractional arcsec in results.
+
 sub _calc_offset_stats {
   my $nyquist = shift;
   my @off = @_;
+
+  # Tolerance is fraction of Nyquist
+  my $tol = 0.2 * $nyquist;
 
   # Now remove duplicates. Order is irrelevant
   my %dummy = map { $_ => undef } @off;
@@ -3067,17 +3073,28 @@ sub _calc_offset_stats {
   # Then find the extent of the map
   my $max = $sort[-1];
   my $min = $sort[0];
+
+  # allow the min/max to be nearest arcsec
+  if ($tol > 1 ) {
+    $max = OMP::General::nint( $max );
+    $min = OMP::General::nint( $min );
+  }
+
+  # Extent of the map
   my $span = $max - $min;
   my $cen = ( $max + $min ) / 2;
 
   # if we only have two positions, return early
   return ($min, $max, $cen, $span, 2, $span) if @sort == 2;
 
-  # Tolerance is fraction of Nyquist
-  my $tol = 0.2 * $nyquist;
-
   # Now calculate the gaps between each position
   my @gap = map { abs($sort[$_] - $sort[$_-1]) } (1..$#sort);
+
+  # If the tolerance is greater than 1 arcsec, truncate the gaps
+  # since noone really cares for 0.1 arcsec
+  if ( $tol > 1 ) {
+    @gap = map { int( $_ ) } @gap;
+  }
 
   # Now we have to work out a pixel scale that will allow these
   # offsets to fall on the same grid within the tolerance
@@ -3152,6 +3169,10 @@ sub _calc_offset_stats {
   # is smaller than the tolerance (and so guaranteed to be okay).
   # we add one because we are counting fence posts not gaps between fence posts
   my $npix = ceil( $span / $trial ) + 1;
+  #print "Span: $span\n";
+  #print "Spacing: $trial\n";
+  #print "Npix : $npix\n";
+
   return ($min, $max, $cen, $span, $npix, $trial );
 
 }
