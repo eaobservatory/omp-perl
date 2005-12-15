@@ -42,7 +42,7 @@ use strict;
 use File::Copy;
 use File::Spec;
 
-my $source = "/jac_sw/omp/msbserver";
+my $source = "/home/kynan/omp/msbserver";
 
 my $privdest = "/WWW/omp-private";
 
@@ -54,7 +54,6 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
 		   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
 		   fbworfthumb.pl feedback.pl filefault.pl index.html issuepwd.pl
 		   listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
-		   omp-cgi-init.pl
 		   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
 		   spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
 		   updatefault.pl updateresp.pl userdetails.pl utprojlog.pl
@@ -90,9 +89,8 @@ for my $subdir (@srcdirs) {
     for my $path (@paths) {
       push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
       $dest = File::Spec->catfile(@$path, $file);
-#      copy($srcfile, $dest);
-
       print "Copying $srcfile to $dest\n";
+      copy($srcfile, $dest);
     }
   }
 }
