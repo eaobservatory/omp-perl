@@ -158,7 +158,8 @@ sub storeProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  OMP::General->log_message( "storeProgram: Complete. Stored with timestamp $timestamp\n".tv_interval($t0)." seconds\n");
+  OMP::General->log_message( "storeProgram: Complete in ".
+			     tv_interval($t0)."seconds. Stored with timestamp $timestamp\n");
   return [$string, $timestamp];
 }
 
@@ -266,7 +267,7 @@ sub fetchProgram {
       $string = "$sp";
     };
 
-    OMP::General->log_message("fetchProgram: Complete. ".tv_interval($t0)." seconds\n");
+    OMP::General->log_message("fetchProgram: Complete in ".tv_interval($t0)." seconds\n");
 
     return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
 	    : $string );
