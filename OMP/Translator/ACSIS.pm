@@ -3423,12 +3423,36 @@ sub getNumMeasurements {
   }
 }
 
+# Retrieve the molecule associated with the first spectral window
+sub getMolecule {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+  my $freq = $info{freqconfig}->{subsystems};
+  my $s = $freq->[0];
+  return $s->{species};
+}
+
+# Retrieve the transition associated with the first spectral window
+sub getTransition {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+  my $freq = $info{freqconfig}->{subsystems};
+  my $s = $freq->[0];
+  return $s->{transition};
+}
+
 # Receptor aligned with tracking centre
 sub getTrkRecep {
   my $class = shift;
   my $cfg = shift;
 
-  return "UNKNOWN";
+  my $tcs = $cfg->tcs_config;
+  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
+    unless defined $tcs;
+  my $ap = $tcs->aperture_name;
+  return ( defined $ap ? $ap : "" );
 }
 
 # Reference receptor
