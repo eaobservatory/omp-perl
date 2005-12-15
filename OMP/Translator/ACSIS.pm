@@ -579,23 +579,8 @@ sub tcs_base {
   # Find out if we have to offset to a particular receptor
   my $refpix = $self->tracking_receptor( $cfg, %info );
 
-  # Create the offset
-  my $recoffset;
-  if (defined $refpix) {
-    # need instrument information
-    my $inst = $cfg->instrument_setup;
-    throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
-      unless defined $inst;
-
-    # Get the coordinates FPLANE
-    my %recinfo = $inst->receptor( $refpix );
-    throw OMP::Error::TranslateFail( "Expected reference pixel ($refpix) is not present in this instrument!")
-      unless keys %recinfo;
-
-    my @xy = @{$recinfo{xypos}};
-    $recoffset = new Astro::Coords::Offset( @xy, system => "FPLANE",
-					    projection => "DIRECT");
-  }
+  # Store the pixel
+  $tcs->aperture_name( $refpix ) if defined $refpix;
 
   # and augment with the SCIENCE tag
   # we only needs the Astro::Coords object in this case
@@ -623,9 +608,6 @@ sub tcs_base {
     $base{$t} = $b;
   }
 
-  # Add the receptor offset to SCIENCE
-  $base{SCIENCE}->offset( $recoffset ) if defined $recoffset;
-
   $tcs->tags( %base );
 }
 
@@ -649,14 +631,20 @@ sub tracking_offset {
 
   # Get the tcs_config
   my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen') 
+  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
     unless defined $tcs;
 
-  # and BASE offset
-  my $base_off = $tcs->getTargetOffset;
+  # Get the name of the aperture name
+  my $apname = $tcs->aperture_name;
+  return undef unless defined $apname;
 
-  # Need to clone it but no method
-  return (defined $base_off ? $base_off->clone : undef );
+  # Get the instrument config
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
+    unless defined $inst;
+
+  # Convert this to an offset
+  return $inst->receptor_offset( $apname );
 }
 
 =item B<observing_area>
