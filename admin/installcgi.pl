@@ -42,7 +42,7 @@ use strict;
 use File::Copy;
 use File::Spec;
 
-my $source = $ARGV[0];
+my $source = "/jac_sw/omp/msbserver";
 
 my $privdest = "/WWW/omp-private";
 
@@ -52,7 +52,7 @@ my @srcdirs = qw/ cgi server web /;
 
 my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
 		   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
-		   fbworfthumb.pl feedback.pl filefault.pl issuepwd.pl
+		   fbworfthumb.pl feedback.pl filefault.pl index.html issuepwd.pl
 		   listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
 		   omp-cgi-init.pl
 		   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
@@ -70,19 +70,29 @@ my %shared = map {$_, undef} @sharedfiles;
 for my $subdir (@srcdirs) {
   my $dir = File::Spec->catdir($source, $subdir);
   opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
-  my @files = grep {/(\.js|\.css|Feel|Config|\.pl)$/} readdir(DIR);
+  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl)$/} readdir(DIR);
   closedir(DIR);
 
   for my $file (@files) {
     my $srcfile = File::Spec->catfile($dir, $file);
     my $dest;
-    my @dirs = ($pubdest);
-    push(@dirs, 'cgi-bin') if ($file =~ /.pl$/);
+    my @paths;
     if (exists $pub{$file}) {
-      $dest = File::Spec->catfile(@dirs, $file);
+      push @paths, [$pubdest];
+    } elsif (exists $shared{$file}) {
+      push @paths, [$pubdest];
+      push @paths, [$privdest];
+
     } else {
-      $dest = File::Spec->catfile(@dirs, $file);
+      push @paths, [$privdest];
     }
-    copy($srcfile, $dest);
+
+    for my $path (@paths) {
+      push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
+      $dest = File::Spec->catfile(@$path, $file);
+#      copy($srcfile, $dest);
+
+      print "Copying $srcfile to $dest\n";
+    }
   }
 }
