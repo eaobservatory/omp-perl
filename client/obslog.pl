@@ -846,6 +846,28 @@ sub RaiseComment {
                                                   -anchor => 'n',
                                                 );
 
+  if( uc( $telescope ) eq 'UKIRT' ) {
+    my $buttonGuiding = $buttonFrame->Button( -text => 'Lost Guiding',
+                                              -command => sub {
+                                                my $t = "Lost guiding, repeating observation.";
+                                                my $status = OMP__OBS_BAD;
+                                                SaveComment( $status,
+                                                             $t,
+                                                             $user,
+                                                             $obs,
+                                                             $index );
+                                                redraw( undef, uc( $obs->instrument ), $verbose );
+                                                if( defined( $id ) ) { $id->cancel; }
+                                                if( $currentut eq $ut ) {
+                                                  $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
+                                                };
+                                                CloseWindow( $CommentWindow );
+                                              },
+                                            )->pack( -side => 'right',
+                                                     -anchor => 'n',
+                                                   );
+  }
+
   # Get the observation information.
   my %nightlog = $obs->nightlog(display => 'long',
                                 comments => 1, );
