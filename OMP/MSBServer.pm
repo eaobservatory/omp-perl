@@ -130,7 +130,7 @@ sub fetchMSB {
   # Also add in the projectID
   $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
 
-  OMP::General->log_message("fetchMSB: Complete. Project=".$msb->projectID."\nChecksum=".$msb->checksum."\n ".tv_interval($t0)." seconds\n");
+  OMP::General->log_message("fetchMSB: Complete in ".tv_interval($t0)."seconds. Project=".$msb->projectID."\nChecksum=".$msb->checksum."\n");
 
   return "$spprog$msbxml$spprogend" if defined $msb;
 }
@@ -233,13 +233,21 @@ sub queryMSB {
   $class->throwException( $E ) if defined $E;
 
   # Convert results to an XML document
-  my $tag = "QueryResult";
-  my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
-  my $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
+  my $result;
 
-  OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
-			    tv_interval($t0)." seconds\n");
+  try {
+    my $tag = "QueryResult";
+    my $xmlhead = '<?xml version="1.0" encoding="ISO-8859-1"?>';
+    $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
+    OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
+			      tv_interval($t0)." seconds\n");
+  } catch OMP::Error with {
+    $E = shift;
+  } otherwise {
+    $E = shift;
+  };
+  $class->throwException( $E ) if defined $E;
   return $result;
 }
 
@@ -325,7 +333,7 @@ sub doneMSB {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  OMP::General->log_message("doneMSB: Complete. ".tv_interval($t0)." seconds\n");
+  OMP::General->log_message("doneMSB: $project Complete. ".tv_interval($t0)." seconds\n");
 }
 
 =item B<undoMSB>
