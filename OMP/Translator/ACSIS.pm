@@ -1481,7 +1481,7 @@ sub correlator {
 
   # and only worry about the pixels that are switched on
   my %receptors = $frontend->mask;
-  my @rec = grep { $_ ne 'OFF' } keys %receptors;
+  my @rec = grep { $receptors{$_} ne 'OFF' } keys %receptors;
 
   # All of the subbands that need to be allocated
   my %subbands = $spwlist->subbands;
