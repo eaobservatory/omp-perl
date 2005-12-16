@@ -388,6 +388,11 @@ sub handle_special_modes {
   #  - 5 point or 9x9 jiggle pattern
   #  - 60 arcsec AZ chop
 
+  # Some things depend on the frontend
+  my $frontend = $self->ocs_frontend($info->{instrument});
+  throw OMP::Error::FatalError("Unable to determine appropriate frontend!")
+    unless defined $frontend;
+
   # Pointing will have been translated into chop already by the
   # observing_mode() method.
 
@@ -397,14 +402,9 @@ sub handle_special_modes {
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{secsPerJiggle} = 5;
 
-    # Depends on instrument
-    my $frontend = $self->ocs_frontend($info->{instrument});
-    throw OMP::Error::FatalError("Unable to determine appropriate frontend for pointing")
-      unless defined $frontend;
-
     if ($frontend eq 'HARPB') {
-      $info->{jigglePattern} = '4x4';
-      $info->{scaleFactor} = 15.0; # No need to be clever
+      $info->{jigglePattern} = 'HARP';
+      $info->{scaleFactor} = 1; # HARP jiggle pattern uses arcsec
       $info->{jiggleSystem} = 'FPLANE';
     } else {
       $info->{jigglePattern} = '5x5';
@@ -451,6 +451,12 @@ sub handle_special_modes {
       $info->{data_reduction} = \%dr;
     }
 
+  } elsif ($info->{mapping_mode} eq 'jiggle' && $frontend eq 'HARPB') {
+    # If HARP is the jiggle pattern then we need to set scaleFactor to 1
+    if ($info->{jigglePattern} eq 'HARP') {
+      $info->{scaleFactor} = 1; # HARP pattern is fully sampled
+      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
+    }
   }
 
   return;
@@ -2908,6 +2914,7 @@ sub jig_info {
 		  '1x1' => 'smu_1x1.dat',
 		  '3x3' => 'smu_3x3.dat',
 		  '4x4' => 'smu_4x4.dat',
+		  'HARP'=> 'smu_harp.dat',
 		  '5x5' => 'smu_5x5.dat',
 		  '7x7' => 'smu_7x7.dat',
 		  '9x9' => 'smu_9x9.dat',
@@ -3215,6 +3222,7 @@ sub _calc_offset_stats {
   # is smaller than the tolerance (and so guaranteed to be okay).
   # we add one because we are counting fence posts not gaps between fence posts
   my $npix = ceil( $span / $trial ) + 1;
+  #print Dumper(\@off);
   #print "Span: $span\n";
   #print "Spacing: $trial\n";
   #print "Npix : $npix\n";
