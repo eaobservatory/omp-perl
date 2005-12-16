@@ -395,20 +395,40 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{jigglePattern} = '5x5';
-    $info->{jiggleSystem} = 'AZEL';
     $info->{secsPerJiggle} = 5;
 
-    # The scale factor should be the larger of half beam or planet limb
-    my $half_beam = $self->nyquist( %$info )->arcsec;
-    my $plan_rad = 0;
-    if ($info->{coords}->type eq 'PLANET') {
-      # Currently need to force an apparent ra/dec calculation to get the diameter
-      my @discard = $info->{coords}->apparent();
-      $plan_rad = $info->{coords}->diam->arcsec / 2;
+    # Depends on instrument
+    my $frontend = $self->ocs_frontend($info->{instrument});
+    throw OMP::Error::FatalError("Unable to determine appropriate frontend for pointing")
+      unless defined $frontend;
+
+    if ($frontend eq 'HARPB') {
+      $info->{jigglePattern} = '4x4';
+      $info->{scaleFactor} = 15.0; # No need to be clever
+      $info->{jiggleSystem} = 'FPLANE';
+    } else {
+      $info->{jigglePattern} = '5x5';
+      $info->{jiggleSystem} = 'AZEL';
+
+      # The scale factor should be the larger of half beam or planet limb
+      my $half_beam = $self->nyquist( %$info )->arcsec;
+      my $plan_rad = 0;
+      if ($info->{coords}->type eq 'PLANET') {
+	# Currently need to force an apparent ra/dec calculation to get the diameter
+	my @discard = $info->{coords}->apparent();
+	$plan_rad = $info->{coords}->diam->arcsec / 2;
+      }
+
+      $info->{scaleFactor} = max( $half_beam, $plan_rad );
     }
 
-    $info->{scaleFactor} = max( $half_beam, $plan_rad );
+    if ($self->verbose) {
+      print "Determining POINTING parameters...\n";
+      print "\tJiggle Pattern: $info->{jigglePattern} ($info->{jiggleSystem})\n";
+      print "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
+      print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
+      print "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
+    }
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -567,6 +587,18 @@ sub tcs_base {
   my $cfg = shift;
   my $tcs = shift;
   my %info = @_;
+
+  # Find out if we have to offset to a particular receptor
+  my $refpix = $self->tracking_receptor( $cfg, %info );
+
+  if ($self->verbose) {
+    print "Tracking Receptor: ".(defined $refpix ? $refpix : "<ORIGIN>")."\n";
+  }
+
+  # Store the pixel
+  $tcs->aperture_name( $refpix ) if defined $refpix;
+
+  # if we do not know the position return
   return if $info{autoTarget};
 
   # First get all the coordinate tags
@@ -575,12 +607,6 @@ sub tcs_base {
   # check for reference position
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
-
-  # Find out if we have to offset to a particular receptor
-  my $refpix = $self->tracking_receptor( $cfg, %info );
-
-  # Store the pixel
-  $tcs->aperture_name( $refpix ) if defined $refpix;
 
   # and augment with the SCIENCE tag
   # we only needs the Astro::Coords object in this case
@@ -900,6 +926,7 @@ sub fe_config {
   # store the frontend name in the Frontend config so that we can get the task name
   $fe->frontend( $inst->name );
 
+  # Set up a default MASK based on the Instrument XML
   my %receptors = $inst->receptors;
 
   my %mask;
@@ -907,8 +934,15 @@ sub fe_config {
     my $status = $receptors{$id}{health};
     $mask{$id} = ($status eq 'UNSTABLE' ? 'ON' : $status);
   }
+
+  # If we have a specific tracking receptor in mind, make sure it is working
+  my $trackrec = $self->tracking_receptor($cfg, %info );
+  $mask{$trackrec} = "NEED" if defined $trackrec;
+
+  # Store the mask
   $fe->mask( %mask );
 
+  # store the configuration
   $cfg->frontend( $fe );
 }
 
@@ -1480,8 +1514,7 @@ sub correlator {
   throw OMP::Error::FatalError('for some reason Frontend setup is not available. This can not happen') unless defined $frontend;
 
   # and only worry about the pixels that are switched on
-  my %receptors = $frontend->mask;
-  my @rec = grep { $receptors{$_} ne 'OFF' } keys %receptors;
+  my @rec = $frontend->active_receptors;
 
   # All of the subbands that need to be allocated
   my %subbands = $spwlist->subbands;
@@ -2557,6 +2590,14 @@ sub observing_mode {
   $info->{mapping_mode}   = $mapping_mode;
   $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
 
+  if ($self->verbose) {
+    print "Observing Mode Overview:\n";
+    print "\tObserving Mode: $info->{observing_mode}\n";
+    print "\tObservation Type: $info->{obs_type}\n";
+    print "\tMapping Mode: $info->{mapping_mode}\n";
+    print "\tSwitching Mode: $info->{switching_mode}\n";
+  }
+
   return;
 }
 
@@ -2866,6 +2907,7 @@ sub jig_info {
   my %jigfiles = (
 		  '1x1' => 'smu_1x1.dat',
 		  '3x3' => 'smu_3x3.dat',
+		  '4x4' => 'smu_4x4.dat',
 		  '5x5' => 'smu_5x5.dat',
 		  '7x7' => 'smu_7x7.dat',
 		  '9x9' => 'smu_9x9.dat',
@@ -2963,11 +3005,21 @@ sub tracking_receptor {
   # Focus:   Yes
   # Stare:   Yes
   # Grid_chop: Yes
-  # Jiggle   : No
-  # Pointing : Yes
+  # Jiggle   : Yes (if the jiggle pattern has a 0,0)
+  # Pointing : Yes (if 5point)
   # Raster   : No
 
   return if ($info{observing_mode} =~ /raster/);
+
+  # Get the jiggle pattern
+  if ($info{mapping_mode} eq 'jiggle') {
+    # Could also ask the configuration for Secondary information
+    my $jig = $self->jig_info( %info );
+
+    # if we have an origin in the pattern we are probably expecting to be
+    # centred on a receptor;
+    return unless $jig->has_origin;
+  }
 
   # Get the config file options
   my @configs = OMP::Config->getData( "acsis_translator.tracking_receptors" );
@@ -2980,6 +3032,12 @@ sub tracking_receptor {
   # Go through the preferred receptors looking for a match
   for my $test (@configs) {
     return $test if $inst->contains_id( $test );
+  }
+
+  # If this is a 5pt pointing or a focus observation we need to choose the reference pixel
+  # We have the choice of simply throwing an exception
+  if (($info{obs_type} eq 'pointing') || $info{obs_type} eq 'focus') {
+    return scalar($inst->reference_receptor);
   }
 
   # Still here? We have the choice of returning undef or choosing the
