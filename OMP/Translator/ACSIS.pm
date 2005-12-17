@@ -938,7 +938,14 @@ sub fe_config {
   my %mask;
   for my $id ( keys %receptors ) {
     my $status = $receptors{$id}{health};
-    $mask{$id} = ($status eq 'UNSTABLE' ? 'ON' : $status);
+    # Convert UNSTABLE to ON and OFF to ANY
+    if ($status eq 'UNSTABLE') {
+      $mask{$id} = 'ON';
+    } elsif ($stats eq 'OFF') {
+      $mask{$id} = 'ANY';
+    } else {
+      $mask{$id} = $status;
+    }
   }
 
   # If we have a specific tracking receptor in mind, make sure it is working
