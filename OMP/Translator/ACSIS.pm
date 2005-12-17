@@ -2726,7 +2726,7 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
-    print "\tBandwidth (MHz): $mhz\n" if $self->verbose;
+    print "\tBandwidth: $mhz MHz\n" if $self->verbose;
 
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
@@ -2746,7 +2746,7 @@ sub bandwidth_mode {
     $chanwid = $bw / $nchan;
     $s->{channwidth} = $chanwid;
 
-    print "\tChanwid : $chanwid\n" if $self->verbose;
+    print "\tChanwid : $chanwid Hz\n" if $self->verbose;
 
     print "\tNumber of channels: $nchan\n" if $self->verbose;
 
@@ -2780,7 +2780,7 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    print "\tBW per sub: $bw_per_sub  with overlap : $olap\n" if $self->verbose;
+    print "\tBW per sub: $bw_per_sub MHz with overlap : $olap Hz\n" if $self->verbose;
 
     # The usable channels are defined by the overlap
     # Simply using the channel width to calculate the offset
@@ -3030,6 +3030,10 @@ sub tracking_receptor {
     # Could also ask the configuration for Secondary information
     my $jig = $self->jig_info( %info );
 
+    # If we are using the HARP jiggle pattern we will be wanting
+    # a fully sampled map so do not offset
+    return if $info{jigglePattern} eq 'HARP';
+
     # if we have an origin in the pattern we are probably expecting to be
     # centred on a receptor;
     return unless $jig->has_origin;
@@ -3134,27 +3138,16 @@ sub _calc_offset_stats {
   my $max = $sort[-1];
   my $min = $sort[0];
 
-  # allow the min/max to be nearest arcsec
-  if ($tol > 1 ) {
-    $max = OMP::General::nint( $max );
-    $min = OMP::General::nint( $min );
-  }
-
   # Extent of the map
   my $span = $max - $min;
   my $cen = ( $max + $min ) / 2;
+  print "Input offset parameters: Span = $span ($min .. $max) Centre = $cen\n" if $DEBUG;
 
   # if we only have two positions, return early
   return ($min, $max, $cen, $span, 2, $span) if @sort == 2;
 
   # Now calculate the gaps between each position
   my @gap = map { abs($sort[$_] - $sort[$_-1]) } (1..$#sort);
-
-  # If the tolerance is greater than 1 arcsec, truncate the gaps
-  # since noone really cares for 0.1 arcsec
-  if ( $tol > 1 ) {
-    @gap = map { int( $_ ) } @gap;
-  }
 
   # Now we have to work out a pixel scale that will allow these
   # offsets to fall on the same grid within the tolerance
@@ -3228,14 +3221,138 @@ sub _calc_offset_stats {
   # whatever happens we get a pixel value. Either a valid one or one that
   # is smaller than the tolerance (and so guaranteed to be okay).
   # we add one because we are counting fence posts not gaps between fence posts
-  my $npix = ceil( $span / $trial ) + 1;
-  #print Dumper(\@off);
-  #print "Span: $span\n";
-  #print "Spacing: $trial\n";
-  #print "Npix : $npix\n";
+  my $npix = int( $span / $trial ) + 1;
+
+  # Sometimes the fractional arcsecs pixel sizes can be slightly wrong so 
+  # now we are in the ballpark we step through the pixel grid and work out the
+  # minimum error for each input pixel whilst adjusting the pixel size in increments
+  # of 1 arcsec. This does not use tolerance.
+
+  # Results hash
+  my %best;
+
+  # Work out the array of grid points
+  my $spacing = $trial;
+
+  # Lowest RMS so far
+  my $lowest_rms;
+
+  # Start the grid from the lower end (the only point we know about)
+  my $range = 1.0; # arcsec
+
+  # amount to adjust pixel size
+  my $pixrange = 1.0; # arcsec
+
+  for (my $pixtweak = -$pixrange; $pixtweak <= $pixrange; $pixtweak += 0.05 ) {
+
+    # restrict to 3 decimal places
+    $spacing = sprintf( "%.3f", $trial + $pixtweak);
+
+    for (my $refoffset = -$range; $refoffset <= $range; $refoffset += 0.05) {
+      my $trialref = $min + $refoffset;;
+
+      my @grid = map { $trialref + ($_*$spacing) }  (0 .. ($npix-1) );
+
+#      print "Grid: ".join(",",@grid)."\n";
+
+      # Calculate the residual from that grid by comparing with @sort
+      # use the fact that we are sorted
+#      my $residual = 0.0;
+      my $halfpix = $spacing / 2;
+      my $i = 0; # grid index (also sorted)
+      my @errors;
+
+    CMP: for my $cmp (@sort) {
+
+	# search through the grid until we find a pixel containing this value
+	while ( $i <= $#grid ) {
+	  my $startpix = $grid[$i] - $halfpix;
+	  my $endpix = $grid[$i] + $halfpix;
+	  if ($cmp >= $startpix && $cmp <= $endpix ) {
+	    # found the pixel abort from loop
+	    push(@errors, ( $grid[$i] - $cmp ) );
+	    next CMP;
+	  } elsif ( $cmp < $startpix ) {
+	    if ($i == 0) {
+	      #print "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
+	      push(@errors, 1E5); # make it highly unlikely
+	    } else {
+	      # Probably a rounding error
+	      if (abs($cmp-$startpix) < 1.0E-10) {
+		push(@errors, ( $grid[$i] - $cmp ) );
+	      } else {
+		croak "Somehow we missed pixel $startpix <= $cmp <= $endpix (grid[$i] = $grid[$i])\n";
+	      }
+	    }
+	    next CMP;
+	  }
+	
+	  # try next grid position
+	  $i++;
+	}
+
+	if ($i > $#grid) {
+	  my $endpix = $grid[$#grid] + $halfpix;
+	  #print "Position $cmp lies above pixel $#grid ( > $endpix)\n";
+	  push(@errors, 1E5); # Make it highly unlikely
+	}
+
+      }
+
+      my $rms = _find_rms( @errors );
+
+      if (!defined $lowest_rms || abs($rms) < $lowest_rms) {
+	$lowest_rms = $rms;
+
+	# Recalculate the centre location based on this grid
+	# Assume that the reference pixel for "0 1 2 3"   is "2" (acsis assumes we align with "2")
+	# Assume that the reference pixel for "0 1 2 3 4" is "2" (middle pixel)
+	my $midpoint = int ( (scalar(@grid)+2) / 2 ) - 1;
+
+	%best = (
+		 rms => $lowest_rms,
+		 spacing => $spacing,
+		 centre => $grid[$midpoint],
+		 span => ( $grid[$#grid] - $grid[0] ),
+		 min  => $grid[0],
+		 max  => $grid[$#grid],
+		);
+      }
+    }
+  }
+
+
+  # Select the best value from the minimization
+  $span = $best{span};
+  $min  = $best{min};
+  $max  = $best{max};
+  $trial = $best{spacing};
+  $cen  = $best{centre};
+
+#  print Dumper(\@off);
+  print "Output grid parameters : Span = $span ($min .. $max) Centre = $cen Npix = $npix RMS = $best{rms}\n"
+    if $DEBUG;
 
   return ($min, $max, $cen, $span, $npix, $trial );
 
+}
+
+# Find the rms of the supplied numbers 
+sub _find_rms {
+  my @num = @_;
+  return 0 unless @num;
+
+  # Find the sum of the squares
+  my $sumsq = 0;
+  for my $n (@num) {
+    $sumsq += ($n * $n );
+  }
+
+  # Mean of the squares
+  my $mean = $sumsq / scalar(@num);
+
+  # square root to get rms
+  return sqrt($mean);
 }
 
 =item B<_to_acoff>
