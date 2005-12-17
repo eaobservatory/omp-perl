@@ -42,7 +42,7 @@ use strict;
 use File::Copy;
 use File::Spec;
 
-my $source = "/home/kynan/omp/msbserver";
+my $source = "/jac_sw/omp/msbserver";
 
 my $privdest = "/WWW/omp-private";
 
@@ -58,7 +58,7 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
 		   spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
 		   updatefault.pl updateresp.pl userdetails.pl utprojlog.pl
 		   viewfault.pl worf.pl worf_file.pl worf_fits.pl worf_graphic.pl
-		   worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
+		   Worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
 my @sharedfiles = qw/ omp-cgi-init.pl omp.css omp.js LookAndFeelConfig /;
@@ -90,7 +90,8 @@ for my $subdir (@srcdirs) {
       push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
       $dest = File::Spec->catfile(@$path, $file);
       print "Copying $srcfile to $dest\n";
-      copy($srcfile, $dest);
+      copy($srcfile, $dest) or
+	warn "Error copying file $srcfile to $dest: $!";
     }
   }
 }
