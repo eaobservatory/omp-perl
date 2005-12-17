@@ -941,7 +941,7 @@ sub fe_config {
     # Convert UNSTABLE to ON and OFF to ANY
     if ($status eq 'UNSTABLE') {
       $mask{$id} = 'ON';
-    } elsif ($stats eq 'OFF') {
+    } elsif ($status eq 'OFF') {
       $mask{$id} = 'ANY';
     } else {
       $mask{$id} = $status;
