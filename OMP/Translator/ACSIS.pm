@@ -3521,7 +3521,7 @@ sub getTrkRecep {
   my $class = shift;
   my $cfg = shift;
 
-  my $tcs = $cfg->tcs_config;
+  my $tcs = $cfg->tcs;
   throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
     unless defined $tcs;
   my $ap = $tcs->aperture_name;
