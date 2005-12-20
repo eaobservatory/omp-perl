@@ -123,9 +123,12 @@ sub accounts {
     }
 
     # Make sure these are OMP::Project::TimeAcct objects
+    # with a defined epoch
     for (@accounts) {
       throw OMP::Error::BadArgs("Account must be an object of class OMP::Project::TimeAcct")
 	unless UNIVERSAL::isa($_, "OMP::Project::TimeAcct");
+      throw OMP::Error::BadArgs("Account must have a valid date, not undef")
+        unless defined $_->date;
     }
 
     # Store accounts, sorted
