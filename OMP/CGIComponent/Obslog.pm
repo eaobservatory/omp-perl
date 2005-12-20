@@ -484,7 +484,7 @@ sub obs_table {
           my $string = "<font color=\"";
           $string .= $colour[$comment->status];
           $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-          $string .= " " . OMP::General->escape_entity( $comment->text );
+          $string .= " " . OMP::General::escape_entity( $comment->text );
           $string .= "</font>";
           $string =~ s/\n/\<br\>/g;
           push @printstrings, $string;
