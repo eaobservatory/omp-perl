@@ -135,14 +135,22 @@ sub parse_date {
       my $n = ( $date =~ tr/:/:/ );
       $format .= "T" . ($n == 2 ? "%T" : "%R");
     }
+    print "$date = ISO date with format $format\n" if $DEBUG;
+
   } elsif ($date =~ /^\d\d\d\d\d\d\d\d\b/) {
     # YYYYMMDD format
     $format = "%Y%m%d";
+    print "$date = YYYYMMDD with format $format\n" if $DEBUG;
   } else {
     # Assume Sybase date
     # Mar 15 2002  7:04AM
-    $format = "%b%t%d%t%Y%t%I:%M%p";
 
+    # On OSX %t seems to mean a real tab but on linux %t seems to be interpreted
+    # as "any number of spaces". Replace all spaces with underscores before doing
+    # the match.
+    $date =~ s/\s+/_/g;
+    $format = "%b_%d_%Y_%R%p";
+    print "$date = Sybase with Format $format\n" if $DEBUG;
   }
 
   # Now parse
@@ -152,6 +160,7 @@ sub parse_date {
   # Note also that this time is treated as "local" rather than "gm"
   my $time = eval { Time::Piece->strptime( $date, $format ); };
   if ($@) {
+    print "Could not parse\n" if $DEBUG;
     return undef;
   } else {
     # Note that the above constructor actually assumes the date
@@ -184,6 +193,8 @@ sub parse_date {
 
     # Convert back to a gmtime using the reference epoch
     $time = gmtime( $epoch );
+
+    print "Got result: " . $time->datetime ."\n" if $DEBUG;
 
     # Now need to bless into class Time::Piece::Sybase
     return bless $time, "Time::Piece::Sybase";
