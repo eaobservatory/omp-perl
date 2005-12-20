@@ -772,7 +772,8 @@ sub shiftComments {
   my @result = $sdb->getShiftLogs( $query );
 
   # TEMPORARY FIX FOR GARBLED NIGHTREP
-  # Strip HTML from comments
+  # Strip HTML from comments. We can not strip entitites since we need
+  # to send these to a HTML table
   for my $comment (@result) {
     my $text = $comment->text;
     $text =~ s!</*\w+\s*.*?>!!sg;
@@ -1009,7 +1010,7 @@ Project Time Summary
     my $text = $c->text;
 
     # Really need to convert HTML to text using general method
-    $text =~ s/\&apos\;/\'/g;
+    $text = OMP::General::replace_entity( $text );
     $text =~ s/<BR>/\n/gi;
 
     # Word wrap
@@ -1338,7 +1339,7 @@ sub ashtml {
     # S h i f t  L o g  C o m m e n t s
     my @comments = $self->shiftComments;
 
-    print "<a name=shiftcom></a>";
+    print "<a name=\"shiftcom\"></a>";
 
     if ($comments[0]) {
       OMP::CGIComponent::Shiftlog::display_shift_table( \@comments );
@@ -1366,7 +1367,7 @@ sub ashtml {
         print "<pre>An error has been encountered:<p> $E</pre><p>";
       };
 
-      print "<a name=obslog></a>";
+      print "<a name=\"obslog\"></a>";
 
       if ($grp and $grp->numobs > 1) {
 
