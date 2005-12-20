@@ -336,10 +336,17 @@ sub _run_timeacct_query {
   # run it
   my $ref = $self->_db_retrieve_data_ashash( $sql );
 
+  # First parse the date field and convert it to a date object
+  for my $row (@$ref) {
+    my $date = OMP::General->parse_date( $row->{date} );
+    throw OMP::Error::FatalError("Unable to parse Sybase date '".$row->{date}. 
+				 "' from time accounting table")
+      unless defined $date;
+    $row->{date} = $date;
+  }
+
   # now convert these table entries to objects
-  # must convert the sybase date to Time::Piece
-  my @acct = map { $_->{date} = OMP::General->parse_date($_->{date});
-		   new OMP::Project::TimeAcct( %$_ ) } @$ref;
+  my @acct = map { new OMP::Project::TimeAcct( %$_ ) } @$ref;
 
   return @acct;
 }
