@@ -1864,7 +1864,7 @@ when it is retrieved it can be displayed properly in HTML format.
 If the text is not HTML formatted then it goes inside PRE tags and HTML characters (such as <, > and &) are replaced with their associated entities.  Also
 strips out windows ^M characters.
 
-  $escaped = preify_text($text);
+  $escaped = $self->preify_text($text);
 
 Text is considered to be HTML formatted if it begins with the string "<html>" (case-insensitive).  This string is stripped off if found.
 
@@ -1918,13 +1918,16 @@ sub escape_entity {
 
 Replace some HTML entity references with their associated characters.
 
-  $text = replace_entity($text);
+  $text = OMP::General->replace_entity($text);
+
+Returns an empty string if $text is undefined.
 
 =cut
 
 sub replace_entity {
   my $self = shift;
   my $string = shift;
+  return '' unless defined $string;
 
   # Escape sequence lookup table
   my %lut = ("&gt;" => ">",
@@ -1945,7 +1948,7 @@ sub replace_entity {
 Convert HTML formatted text to plaintext.  Also expands hyperlinks
 so that their URL can be seen.
 
-  $plaintext = html_to_plain($html);
+  $plaintext = OMP::General->html_to_plain($html);
 
 =cut
 
