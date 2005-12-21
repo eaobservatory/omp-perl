@@ -769,16 +769,8 @@ sub shiftComments {
 
   my $query = new OMP::ShiftQuery( XML => $xml );
 
+  # These will have HTML comments
   my @result = $sdb->getShiftLogs( $query );
-
-  # TEMPORARY FIX FOR GARBLED NIGHTREP
-  # Strip HTML from comments. We can not strip entitites since we need
-  # to send these to a HTML table
-  for my $comment (@result) {
-    my $text = $comment->text;
-    $text =~ s!</*\w+\s*.*?>!!sg;
-    $comment->text($text);
-  }
 
   return @result;
 }
@@ -1006,21 +998,18 @@ Project Time Summary
     my $local = localtime( $date->epoch );
     my $author = $c->author->name;
 
-    # Get the text and format it
+    # Get the text and format it as plain text from HTML
     my $text = $c->text;
+    $text =~ s/\t/ /g;
+    $text = OMP::General->html_to_plain( $text );
 
-    # Really need to convert HTML to text using general method
-    $text = OMP::General::replace_entity( $text );
-    $text =~ s/<BR>/\n/gi;
-
-    # Word wrap
+    # Word wrap (but do not "fill")
     $text = wrap("    ","    ",$text);
 
-    # Now print the comment
+    # Now print the timestamped comment
     $str .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
     $str .= $text ."\n\n";
   }
-
 
   # Observation log
   $str .= "Observation Log\n\n";
