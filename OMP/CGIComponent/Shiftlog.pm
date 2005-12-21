@@ -268,13 +268,14 @@ sub display_shift_table {
       # These always look bad and have long lines so we can either
       # cross our fingers and hope that it looks okay without the PRE
       # or word wrap to 72 columns and retain the PRE. For now, remove the PRE
-      $text =~ s/^\s*<PRE>//;
-      $text =~ s/<\/PRE>\s*$//;
+      $text =~ s/^\s*<PRE>//i;
+      $text =~ s|</PRE>\s*$||i;
 
       # Now print the comment
-      print "<tr class=row_$bgcolor valign=top>";
-      print "<td class=time_a>$author</td>";
-      print "<td class=" . $timecellclass . "_$bgcolor>".$local->strftime("%H:%M %Z") ."</td>";
+      print "<tr class=\"row_$bgcolor\" valign=top>";
+      print "<td class=\"time_a\">$author</td>";
+      print "<td class=\"" . $timecellclass . "_$bgcolor\">".
+	$local->strftime("%H:%M %Z") ."</td>";
       print "<td class=subject>$text</td>";
 
       # Alternate bg color
