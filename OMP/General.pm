@@ -149,7 +149,7 @@ sub parse_date {
     # as "any number of spaces". Replace all spaces with underscores before doing
     # the match.
     $date =~ s/\s+/_/g;
-    $format = "%b_%d_%Y_%R%p";
+    $format = "%b_%d_%Y_%I:%M%p";
     print "$date = Sybase with Format $format\n" if $DEBUG;
   }
 
