@@ -264,6 +264,13 @@ sub display_shift_table {
       # Get the text
       my $text = $c->text;
 
+      # All Shift Comments tend to be HTML with a <PRE> tag
+      # These always look bad and have long lines so we can either
+      # cross our fingers and hope that it looks okay without the PRE
+      # or word wrap to 72 columns and retain the PRE. For now, remove the PRE
+      $text =~ s/^\s*<PRE>//;
+      $text =~ s/<\/PRE>\s*$//;
+
       # Now print the comment
       print "<tr class=row_$bgcolor valign=top>";
       print "<td class=time_a>$author</td>";
