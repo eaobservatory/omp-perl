@@ -113,6 +113,11 @@ sub parse_date {
     return bless $date, "Time::Piece::Sybase"
   }
 
+  # Clean trailing and leading spaces from the string and remove new lines
+  chomp($date);
+  $date =~ s/^\s+//;
+  $date =~ s/\s+$//;
+
   # We can use Time::Piece->strptime but it requires an exact
   # format rather than working it out from context (and we don't
   # want an additional requirement on Date::Manip or something
@@ -139,18 +144,33 @@ sub parse_date {
 
   } elsif ($date =~ /^\d\d\d\d\d\d\d\d\b/) {
     # YYYYMMDD format
+
     $format = "%Y%m%d";
     print "$date = YYYYMMDD with format $format\n" if $DEBUG;
-  } else {
-    # Assume Sybase date
+  } elsif ($date =~ /^\w+\s+\d+\s+\d+\s+\d+:\d+[ap]m/i) {
+    # Sybase date
     # Mar 15 2002  7:04AM
 
     # On OSX %t seems to mean a real tab but on linux %t seems to be interpreted
     # as "any number of spaces". Replace all spaces with underscores before doing
     # the match.
     $date =~ s/\s+/_/g;
+
     $format = "%b_%d_%Y_%I:%M%p";
+
     print "$date = Sybase with Format $format\n" if $DEBUG;
+  } elsif ($date =~ /^\w+\s+\d+\s+\d+\s+\d+:\d+:\d+:\d+[ap]m/i) {
+    # Sybase Long Date from ObsLog
+    # Mar 14 2002 7:04:50:000AM
+
+    # Help %t definition
+    $date =~ s/\s+/_/g;
+
+    $format = "%b_%d_%Y_%I:%M:%S:000%p";
+    print "$date = Sybase Long date with Format $format\n" if $DEBUG;
+  } else {
+    print ">>>>>>>>>>>>>>> $date Was Not recognized\n" if $DEBUG;
+    return undef;
   }
 
   # Now parse
@@ -1224,7 +1244,8 @@ sub determine_tel {
       } else {
 	return $tel;
       }
-    } elsif (UNIVERSAL::isa($w, "Term::ReadLine")) {
+    } elsif (UNIVERSAL::isa($w, "Term::ReadLine") ||
+	     UNIVERSAL::isa($w, "Term::ReadLine::Perl")) {
       # Prompt for it
       my $res = $w->readline("Which telescope [".join(",",@$tel)."] : ");
       $res = uc($res);
