@@ -272,6 +272,12 @@ sub observedMSBs {
   } elsif (exists $args{date}) {
     # Use the supplied date if we have one
     $date = $args{date};
+
+    # if the date is an object ask for "datetime"
+    if (UNIVERSAL::can($date, "datetime")) {
+      $date = $date->datetime;
+    }
+
   }
 
   # Construct the query
