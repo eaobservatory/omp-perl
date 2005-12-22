@@ -80,7 +80,7 @@ my %ACSIS_Layouts = (
 		    RXA => 's1r1g1',
 		    RXB => 's2r2g1',
 		    RXW => 's2r2g2',
-		    HARPB => 's8r16g8'
+		    HARPB => 's8r8g1'
 		   );
 
 # LO2 synthesizer step, hard-wired
