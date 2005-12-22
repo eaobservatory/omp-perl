@@ -102,14 +102,12 @@ if (defined $opt{ut}) {
   print "Defaulting to today (".$ut->ymd.")\n";
 }
 
-# Create a readline object in case we need it
-my $term = new Term::ReadLine 'Gather arguments';
-
 
 my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
 } else {
+  my $term = new Term::ReadLine 'Gather arguments';
   $telescope = OMP::General->determine_tel( $term );
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
   die "Unable to determine telescope [too many choices]. Exiting.\n"
