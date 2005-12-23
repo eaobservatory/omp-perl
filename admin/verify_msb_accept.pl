@@ -71,6 +71,7 @@ BEGIN {
 
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
+use OMP::UserServer;
 use OMP::ProjServer;
 use OMP::Constants qw/ :done /;
 
@@ -103,11 +104,12 @@ if (defined $opt{ut}) {
 }
 
 
+my $term = new Term::ReadLine 'Gather arguments';
+
 my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
 } else {
-  my $term = new Term::ReadLine 'Gather arguments';
   $telescope = OMP::General->determine_tel( $term );
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
   die "Unable to determine telescope [too many choices]. Exiting.\n"
@@ -231,6 +233,9 @@ for my $msb ( @sorted_msbhdr ) {
   }
 }
 
+my @missing;
+my %users;
+
 for my $i ( 0..$#sorted_msbhdr ) {
   my $msb = $sorted_msbhdr[$i];
   my $id = $msb->{msbid};
@@ -256,12 +261,14 @@ for my $i ( 0..$#sorted_msbhdr ) {
       my $com = $db->comments->[0];
       my $text = _status_to_text( $com->status );
       my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
+      $users{$author}++ if defined $com->author;
       print "\t$text by $author at ". $com->date->datetime ."\n";
       my $gap = $com->date - $msb->{date};
       print "\t\tTime between accept and end of MSB: $gap seconds\n";
     }
 
   } else {
+    push(@missing, $msb);
     print "\t------>>>>> Has no corresponding ACCEPT/REJECT in the database <<<<<\n";
   }
 }
@@ -275,6 +282,76 @@ if (keys %DB) {
     }
   }
 }
+
+print "\n\n";
+
+if (@missing) {
+  my $ok = $term->readline("Some MSBs were not accepted. Do you wish to accept them now? [Yy|Nn] ");
+  if ($ok =~ /^y/i) {
+    my @users = keys %users;
+    my $default;
+    if ( @users == 1) {
+      $default = $users[0];
+    } else {
+      $default = '';
+    }
+    my $uid = $term->readline("Please enter user id to associated with this acceptance [$default] ");
+    $uid = $default if !$uid;
+
+    # Validate the user id
+    my $validated = OMP::UserServer->getUser( $uid );
+    die "User '$uid' does not validate. Aborting.\n" unless defined $validated;
+
+    print "\tAssociating activity with user: $validated\n";
+    print "\tAssuming that date of acceptance is the last observation in the MSB\n";
+    print "\tDisabling per-MSB comments\n";
+    print "\n";
+
+    # Connect to database
+    my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
+    my $msbdone = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
+
+    # Loop over all missing MSBs
+    for my $msb (@missing) {
+      my $id = $msb->{msbid};
+      my $projectid = $msb->{projectid};
+      my $date = $msb->{date};
+      print "Processing MSB $id for project $projectid\n";
+      my $continue = $term->readline("\tAccept [Aa] / Reject [Rr] / Skip [] ");
+      my $accept;
+      if ($continue =~ /^A/i) {
+	$accept = 1;
+      } elsif ($continue =~ /^R/i) {
+	$accept = 0;
+      }
+      next unless defined $accept;
+      my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
+
+      my $c = new OMP::Info::Comment( author => $validated,
+				      date => $date,
+				      status => $status );
+
+      if ($accept) {
+	print "\tAccepting MSB. Please wait.\n";
+	$msbdb->projectid( $projectid );
+	$msbdb->doneMSB( $id, $c, { adjusttime => 0 } );
+      } else {
+	$c->text("This MSB was observed but was not accepted by the observer/TSS. No reason was given.");
+	$msbdone->projectid( $projectid );
+	$msbdone->addMSBcomment( $id, $c );
+      }
+
+    }
+    print "\nAll MSBs processed.\n\n";
+
+  } else {
+    print "Okay. Not accepting outstanding MSBs\n\n";
+  }
+
+} else {
+  print "\tAll MSBS for this night were either accepted or rejected\n\n";
+}
+
 
 exit;
 
