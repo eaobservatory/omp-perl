@@ -595,7 +595,9 @@ sub determine_host {
       $addr = gethost( $ip );
 
       # if we have nothing just use the IP
-      $addr = (defined $addr and ref $addr ? $addr->name : $ip );
+      $addr = ( (defined $addr && ref $addr) ? $addr->name : $ip );
+      $addr = $ip if !$addr;
+
     } else {
       # else default to the IP address
       $addr = $ip;
@@ -628,7 +630,7 @@ sub determine_host {
 
   $email = "UNKNOWN" unless $email;
 
-  # Replce space with _
+  # Replace space with _
   $email =~ s/\s+/_/g;
 
   return ($user, $addr, $email);
