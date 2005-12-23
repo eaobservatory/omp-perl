@@ -175,6 +175,8 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
 
   # ignore calibration projects
   next if $project =~ /CAL$/;
+  next unless defined $msbid;
+  next if $msbid eq '999999';  # Special code for broken UKIRT headers
 
   if ($previd ne $msbid) {
     # New MSB, dump the previous one

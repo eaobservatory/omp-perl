@@ -52,7 +52,7 @@ for my $line (<>) {
 
   my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );
 
-  my $c = new OMP::Info::Comment( text => $comment,
+  my $c = new OMP::Info::Comment( text => ($comment ? $comment : undef),
 				  author => $user,
 				  date=> $date,
 				  status => $status,
