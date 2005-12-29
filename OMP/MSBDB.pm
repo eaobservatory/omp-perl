@@ -40,7 +40,7 @@ use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::ProjDB;
-use OMP::Constants qw/ :done :fb /;
+use OMP::Constants qw/ :done :fb :logging /;
 use OMP::SiteQuality;
 use OMP::Range;
 use OMP::Info::MSB;
@@ -51,6 +51,7 @@ use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
 
 use Time::Piece qw/ :override /;
+use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
@@ -584,8 +585,10 @@ sub queryMSB {
   # QT will probably be relying on it for display
   # Use the OMP::MSB code to generate an MSBSummary
   # (since that is the code used to generate the table entry)
-
+  my $t0 = [gettimeofday];
   my @xml = map { scalar($_->summary($format))  } @results;
+  OMP::General->log_message("Reformatting to XML: ". tv_interval($t0) . " seconds\n",
+			    OMP__LOG_DEBUG );
 
   return @xml;
 }
@@ -2006,13 +2009,21 @@ sub _run_query {
   my $self = shift;
   my $query = shift;
 
+  my $t0 = [gettimeofday];
+
   # Get the sql
   my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE,
 			 $OMP::ProjDB::PROJQUEUETABLE,
 			 $OMP::ProjDB::PROJUSERTABLE );
 
+  print "SQL: $sql\n" if $DEBUG;
+
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+  my $t1 = [gettimeofday];
+  OMP::General->log_message( "Query complete: ".@$ref." MSBs in ". tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG );
+  $t0 = $t1;
 
 #  print Dumper($ref);
   # No point hanging around if nothing retrieved
@@ -2050,6 +2061,11 @@ sub _run_query {
     $start_index = $end_index + 1;
   }
 
+  $t1 = [gettimeofday];
+  OMP::General->log_message("Obs retrieval: ".@observations." obs in  " . 
+    tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG);
+  $t0 = $t1;
+
   # Now loop over the results and store the observations in the
   # correct place. First need to create the obs arrays by msbid
   # (using msbid as key)
@@ -2073,6 +2089,11 @@ sub _run_query {
 
   }
 
+  $t1 = [gettimeofday];
+  OMP::General->log_message( "Create obs hash indexed by MSB ID " .
+			     tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG );
+  $t0 = $t1;
+
   # And now attach it to the relevant MSB
   # If there are no observations this will store undef (will happen
   # if a dummy science program is uploaded)
@@ -2090,6 +2111,11 @@ sub _run_query {
     delete $row->{newpriority};
 
   }
+
+  $t1 = [gettimeofday];
+  OMP::General->log_message( "Attach obs to MSB: " . tv_interval( $t0, $t1 ) . " seconds\n",
+			     OMP__LOG_DEBUG );
+  $t0 = $t1;
 
   # Now to limit the number of matches to return
   # Determine how many MSBs we have been asked to return
@@ -2148,8 +2174,14 @@ sub _run_query {
     my $amrange = $query->airmass;
     my $harange = $query->ha;
 
+    # Count how many we actual checked
+    my $msb_count;
+    my $obs_count;
+
     # Loop over each MSB in order
     for my $msb ( @$ref ) {
+
+      $msb_count++;
 
       # Reset the reference time for this msb
       my $date = $refdate;
@@ -2204,6 +2236,8 @@ sub _run_query {
       # We have to keep track of the reference time
       OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
 
+	$obs_count++;
+
 	# Create the coordinate object in order to calculate
 	# observability. Special case calibrations since they
 	# are difficult to spot from looking at the standard args
@@ -2221,6 +2255,8 @@ sub _run_query {
 	  } elsif ($coordstype eq 'PLANET') {
 	    %coords = ( planet => $obs->{target});
 	  } elsif ($coordstype eq 'ELEMENTS') {
+
+	    print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
 
 	    # Use the array constructor since the columns
 	    # were populated using array() method and we do not
@@ -2348,6 +2384,10 @@ sub _run_query {
 
     }
 
+  $t1 = [gettimeofday];
+  OMP::General->log_message("Observability filtered: checked $msb_count MSBs and $obs_count obs in " . tv_interval( $t0, $t1 ) . " seconds and got ".@observable. " matching MSBs\n", OMP__LOG_DEBUG);
+  $t0 = $t1;
+
   }
 
   # calculate the priority scale factor
@@ -2393,6 +2433,11 @@ sub _run_query {
     $msb->{schedpri} = $hapart + $comppart + $pripart;
   }
 
+  $t1 = [gettimeofday];
+  OMP::General->log_message("Scheduling priority: " . tv_interval( $t0, $t1 ) . " seconds\n",
+			   OMP__LOG_DEBUG);
+  $t0 = $t1;
+
   # At this point we need to resort by schedpri
   # Note that because we ORDER BY PRIORITY and jump out the
   # loop when we have enough matches, it's possible that some
@@ -2421,6 +2466,10 @@ sub _run_query {
     }
   }
 
+  $t1 = [gettimeofday];
+  OMP::General->log_message( "Sorted: " . tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG);
+  $t0 = $t1;
+
   # Convert the rows to MSB info objects
   return $self->_msb_row_to_msb_object( @observable );
 
@@ -2443,6 +2492,8 @@ OMP::Info::Obs objects.
 sub _msb_row_to_msb_object {
   my $self = shift;
   my @observable = @_;
+
+  my $t0 = [gettimeofday];
 
   # Now fix up the site quality entries so that they
   # are OMP::Range objects rather than max and min
@@ -2503,6 +2554,11 @@ sub _msb_row_to_msb_object {
     # Now convert the hashes to OMP::Info objects
     $msb = new OMP::Info::MSB( %$msb );
   }
+
+  my $t1 = [gettimeofday];
+  OMP::General->log_message( "Row converted to objects: " . tv_interval( $t0, $t1 ) . " seconds\n",
+			     OMP__LOG_DEBUG );
+  $t0 = $t1;
 
   return @observable;
 }
