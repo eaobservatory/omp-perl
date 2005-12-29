@@ -445,9 +445,10 @@ Displays the project details (lists all MSBs)
 sub msb_sum {
   my $q = shift;
   my %cookie = @_;
+  my $projectid = $cookie{projectid};
 
   try {
-    my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
+    my $msbsum = OMP::SpServer->programDetails($projectid,
 					       $cookie{password},
 					       'htmlcgi');
     print $q->h2("MSB summary"), $msbsum;
