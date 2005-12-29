@@ -446,12 +446,19 @@ sub msb_sum {
   my $q = shift;
   my %cookie = @_;
 
-  my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
-					     $cookie{password},
-					     'htmlcgi');
-
-  print $q->h2("MSB summary"), $msbsum;
-#        $q->pre("$msbsum");
+  try {
+    my $msbsum = OMP::SpServer->programDetails($cookie{projectid},
+					       $cookie{password},
+					       'htmlcgi');
+    print $q->h2("MSB summary"), $msbsum;
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+  } catch OMP::Error::SpTruncated with {
+    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+  };
 
 }
 
