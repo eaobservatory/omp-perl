@@ -286,6 +286,10 @@ Unable to retrieve the Science Program from the database.
 
 Unable to store the Science Program in the database.
 
+=item B<OMP::Error::SpTruncated>
+
+The Science Program has been truncated somehow.
+
 =item B<OMP::Error::TranslateFail>
 
 Error occurred during translation.
@@ -407,6 +411,9 @@ package OMP::Error::SpRetrieveFail;
 use base qw/ OMP::Error /;
 
 package OMP::Error::SpStoreFail;
+use base qw/ OMP::Error /;
+
+package OMP::Error::SpTruncated;
 use base qw/ OMP::Error /;
 
 package OMP::Error::TranslateFail;
