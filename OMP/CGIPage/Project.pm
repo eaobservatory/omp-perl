@@ -454,13 +454,18 @@ sub project_home {
     }
 
     # UKIRT KLUGE: Find out if project is a WFCAM project
-    my $msbs = OMP::SpServer->programDetails($cookie{projectid},
-					     $cookie{password},
-					     'objects');
+    # Assume not-wfcam if we can not get program details cleanly
     my $wfcam_proj;
-    if ($msbs->[0]->instrument eq 'WFCAM') {
-      $wfcam_proj = 1;
-    }
+    try {
+      my $msbs = OMP::SpServer->programDetails($cookie{projectid},
+					       $cookie{password},
+					       'objects');
+
+      if ($msbs->[0]->instrument eq 'WFCAM') {
+	$wfcam_proj = 1;
+      }
+    } otherwise {
+    };
 
     print "<h3>Observations were acquired on the following dates:</h3>";
 
