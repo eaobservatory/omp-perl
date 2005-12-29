@@ -306,10 +306,19 @@ sub fetchSciProg {
   # Verify the password [staff access is allowed]
   $self->_verify_project_password(1);
 
+  # Get the science program XML
+  my $xml = $self->_db_fetch_sciprog()
+    or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
+
+  # Verify for truncation
+  if ($xml !~ /SpProg>$/) {
+    throw OMP::Error::SpTruncated("Science program for $pid is present in the database but is truncated!!! This should not happen");
+  }
+
   # Instantiate a new Science Program object
   # The file name is derived automatically
-  my $sp = new OMP::SciProg( XML => $self->_db_fetch_sciprog())
-    or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
+  my $sp = new OMP::SciProg( XML => $xml )
+    or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
 
   # And file with feedback system.
   unless ($internal) {
@@ -1398,7 +1407,7 @@ sub _db_store_sciprog {
     my $newlen = length($xml);
     my $retrvtxt = "";
     $retrvtxt = "['$xml']" if $newlen < 30;
-    throw OMP::Error::SpStoreFail("Science program was truncated during store (now $newlen $retrvtxt rather than $orilen)\n");
+    throw OMP::Error::SpTruncated("Science program was truncated during store (now $newlen $retrvtxt rather than $orilen)\n");
   }
 
   return 1;
@@ -1533,8 +1542,11 @@ Retrieve the XML from the database and return it.
 
   $xml = $db->_db_fetch_sciprog();
 
-Note this does not return a science program object (although I cant
-think of a good reason why).
+Note this does not return a science program object since it is used to verify
+that the stored program has not been truncated (and the verification routines
+like to report the expected size vs the actual size).
+
+This routine does not check for program truncation.
 
 =cut
 
