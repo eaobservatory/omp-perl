@@ -233,7 +233,7 @@ sub msb_comments {
   if ($q->param('show') =~ /observed/) {
     @output = grep {$_->comments->[0]->status != OMP__DONE_FETCH} @$commentref;
   } elsif ($q->param('show') =~ /current/) {
-    @output = grep {$sp->existsMSB($_->checksum)} @$commentref;
+    @output = grep {$sp->existsMSB($_->checksum)} @$commentref if defined $sp;
   } else {
     @output = @$commentref;
   }

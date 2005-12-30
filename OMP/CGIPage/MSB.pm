@@ -122,13 +122,25 @@ sub msb_hist_output {
   # Perform any actions on the msb?
   OMP::CGIComponent::MSB::msb_action($q);
 
+  my $projectid = uc($cookie{projectid});
+
   # Use the lower-level method to fetch the science program so we
   # can disable the feedback comment associated with this action
   my $db = new OMP::MSBDB( Password => $cookie{password},
-			   ProjectID => $cookie{projectid},
+			   ProjectID => $projectid,
 			   DB => new OMP::DBbackend, );
 
-  my $sp = $db->fetchSciProg(1);
+  my $sp;
+  try {
+    $sp = $db->fetchSciProg(1);
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+  } catch OMP::Error::SpTruncated with {
+    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+  };
 
   # Redisplay MSB comments
   my $commentref = OMP::MSBServer->historyMSB($q->param('projectid'), '', 'data');
@@ -171,8 +183,18 @@ sub msb_hist_content {
 			   ProjectID => $projectid,
 			   DB => new OMP::DBbackend, );
 
-  my $sp = $db->fetchSciProg(1);
-  
+  my $sp;
+  try {
+    $sp = $db->fetchSciProg(1);
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+  } catch OMP::Error::SpTruncated with {
+    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+  };
+
   print $q->h2("MSB History for project $projectid");
 
   ### put code for not displaying non-existant msbs here? ###

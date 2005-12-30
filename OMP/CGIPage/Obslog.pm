@@ -355,10 +355,20 @@ sub projlog_content {
   # Use the lower-level method to fetch the science program so we
   # can disable the feedback comment associated with this action
   my $db = new OMP::MSBDB( Password => $cookie{password},
-			   ProjectID => $cookie{projectid},
+			   ProjectID => $projectid,
 			   DB => new OMP::DBbackend, );
 
-  my $sp = $db->fetchSciProg(1);
+  my $sp;
+  try {
+    $sp = $db->fetchSciProg(1);
+  } catch OMP::Error::UnknownProject with {
+    print "Science program for $projectid not present in database";
+  } catch OMP::Error::SpTruncated with {
+    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
+  } otherwise {
+    my $E = shift;
+    print "Error obtaining science program details for project $projectid [$E]";
+  };
 
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
 					       date => $utdate,
