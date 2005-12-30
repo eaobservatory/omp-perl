@@ -453,16 +453,22 @@ sub project_home {
       $accounts{$_->date->ymd} = $_;
     }
 
-    # UKIRT KLUGE: Find out if project is a WFCAM project
-    # Assume not-wfcam if we can not get program details cleanly
-    my $wfcam_proj;
+    # Some instruments do not allow data retrieval. For now, assume that
+    # we can not retrieve if any of the instruments in the project are marked as such.
+    # For surveys this will usually be the case
+    my $cannot_retrieve;
     try {
-      my $msbs = OMP::SpServer->programDetails($cookie{projectid},
-					       $cookie{password},
-					       'objects');
+      my @noretrieve = OMP::Config->getData( "unretrievable", telescope => $project->telescope );
+      my $projinst = OMP::SpServer->programInstruments($cookie{projectid});
 
-      if ($msbs->[0]->instrument eq 'WFCAM') {
-	$wfcam_proj = 1;
+      # See if the instrument in the project are listed in noretrieve
+      my %inproj = map { (uc($_), undef ) } @$projinst;
+
+      for my $nr (@noretrieve) {
+	if (exists $inproj{uc($nr)}) {
+	  $cannot_retrieve = 1;
+	  last;
+	}
       }
     } otherwise {
     };
@@ -476,9 +482,9 @@ sub project_home {
       # Make a link to the obslog page
       my $obslog_url = "utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$ymd";
 
-      # UKIRT KLUGE: If project is a WFCAM project, link to project log with
+      # If project is an unretrievable project, link to project log with
       # 'noretrv' paramater so that no data retrieval links will appear
-      $obslog_url .= "&noretrv=1" if ($wfcam_proj);
+      $obslog_url .= "&noretrv=1" if ($cannot_retrieve);
 
       print "<a href='$obslog_url'>$ymd</a> ";
 
@@ -492,9 +498,7 @@ sub project_home {
 
 	  print "($h hours) ";
 
-	  # UKIRT KLUGE: Present link differently if project is a
-	  # WFCAM project
-	  if ($wfcam_proj) {
+	  if ($cannot_retrieve) {
 	    print "click on date to view project log";
 	  } else {
 	    print "click on date to retrieve data";
