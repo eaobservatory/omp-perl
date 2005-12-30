@@ -349,6 +349,52 @@ sub programDetails {
   return $summary;
 }
 
+=item B<programInstruments>
+
+Return a reference to an array of all the instruments associated with
+the specified science program.
+
+  $array = OMP::SpServer->programInstruments( $project );
+
+No password required.
+
+=cut
+
+sub programInstruments {
+  my $class = shift;
+  my $projectid = shift;
+
+  OMP::General->log_message( "programInstruments: $projectid\n");
+
+  my $E;
+  my @inst;
+  try {
+
+    # Create new DB object
+    my $db = new OMP::MSBDB( 
+			    ProjectID => $projectid,
+			    DB => $class->dbConnection, );
+
+    @inst = $db->getInstruments();
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  # Return the stringified form
+  return \@inst;
+}
+
 =item B<SpInsertCat>
 
 Given a science program and a JCMT-format source catalogue, clone
