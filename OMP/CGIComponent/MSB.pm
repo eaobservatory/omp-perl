@@ -23,6 +23,7 @@ use Carp;
 use Time::Seconds qw(ONE_HOUR);
 
 use OMP::CGIComponent::Helper;
+use OMP::CGIDBHelper;
 use OMP::Constants qw(:done);
 use OMP::DBServer;
 use OMP::Error qw(:try);
@@ -58,11 +59,9 @@ sub fb_msb_active {
 					      "***REMOVED***",
 					      , "object");
 
-  my $active;
-  try {
-    $active = OMP::SpServer->programDetails($projectid,
-					    '***REMOVED***',
-					    'objects');
+  my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, '***REMOVED***', 'objects' );
+
+  if (defined $active) {
 
     # First go through the array quickly to make sure we have
     # some valid entries
@@ -93,17 +92,7 @@ sub fb_msb_active {
       msb_table(cgi=>$q, msbs=>$active, est_column=>1, telescope=>$proj->telescope,);
 
     }
-
-  } catch OMP::Error::UnknownProject with {
-    print "Science program for $projectid not present in database";
-  } catch OMP::Error::SpTruncated with {
-    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
-  } otherwise {
-    my $E = shift;
-    print "Error obtaining science program details for project $projectid [$E]";
-
-  };
-
+  }
 }
 
 =item B<fb_msb_observed>
@@ -445,21 +434,12 @@ Displays the project details (lists all MSBs)
 sub msb_sum {
   my $q = shift;
   my %cookie = @_;
-  my $projectid = $cookie{projectid};
 
-  try {
-    my $msbsum = OMP::SpServer->programDetails($projectid,
-					       $cookie{password},
-					       'htmlcgi');
-    print $q->h2("MSB summary"), $msbsum;
-  } catch OMP::Error::UnknownProject with {
-    print "Science program for $projectid not present in database";
-  } catch OMP::Error::SpTruncated with {
-    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
-  } otherwise {
-    my $E = shift;
-    print "Error obtaining science program details for project $projectid [$E]";
-  };
+  print $q->h2("MSB summary");
+  my $msbsum = OMP::CGIDBHelper::safeProgramDetails( $cookie{projectid},
+						     $cookie{password},
+						     'htmlcgi' );
+  print $msbsum if defined $msbsum;
 
 }
 

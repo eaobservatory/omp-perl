@@ -29,13 +29,13 @@ use OMP::CGIComponent::Obslog;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Shiftlog;
 use OMP::CGIComponent::Weather;
+use OMP::CGIDBHelper;
 use OMP::Config;
 use OMP::Constants;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
-use OMP::MSBDB;
 use OMP::MSBServer;
 use OMP::ObslogDB;
 use OMP::ProjServer;
@@ -352,29 +352,13 @@ sub projlog_content {
 
   # Display MSBs observed on this date
 
-  # Use the lower-level method to fetch the science program so we
-  # can disable the feedback comment associated with this action
-  my $db = new OMP::MSBDB( Password => $cookie{password},
-			   ProjectID => $projectid,
-			   DB => new OMP::DBbackend, );
-
-  my $sp;
-  try {
-    $sp = $db->fetchSciProg(1);
-  } catch OMP::Error::UnknownProject with {
-    print "Science program for $projectid not present in database";
-  } catch OMP::Error::SpTruncated with {
-    print "Science program for $projectid is in the database but has been truncated. Please report this problem.";
-  } otherwise {
-    my $E = shift;
-    print "Error obtaining science program details for project $projectid [$E]";
-  };
-
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
 					       date => $utdate,
 					       returnall => 0,
 					       format => 'data',});
   print $q->h2("MSB history for $utdate");
+
+  my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid, $cookie{password} );
   OMP::CGIComponent::MSB::msb_comments($q, $observed, $sp);
 
   # Display observation log
