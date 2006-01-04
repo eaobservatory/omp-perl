@@ -70,11 +70,21 @@ use FindBin;
 use lib "$FindBin::RealBin/..";
 
 # Load the servers (but use them locally without SOAP)
-use OMP::MSBServer;
-use OMP::FBServer;
-use OMP::ProjServer;
-use OMP::General;
+use OMP::BaseDB;
+use OMP::Config;
 use OMP::Constants qw(:fb);
+use OMP::DBbackend;
+use OMP::FBServer;
+use OMP::General;
+use OMP::Info::ObsGroup;
+use OMP::MSBServer;
+use OMP::ProjServer;
+use OMP::ShiftDB;
+use OMP::ShiftQuery;
+use OMP::User;
+
+use Text::Wrap;
+use Time::Piece;
 
 # Options
 my ($help, $man, $debug, $yesterday);
@@ -96,15 +106,15 @@ die "Can not specify both a date [$utdate] and the -yesterday flag\n"
 # Default the date
 if (!$utdate) {
   if ($yesterday) {
-    $utdate = OMP::General->yesterday;
+    $utdate = OMP::General->yesterday(1);
   } else {
-    $utdate = OMP::General->today;
+    $utdate = OMP::General->today(1);
   }
 }
 
 # Get the list of MSBs
-my $done = OMP::MSBServer->observedMSBs( {date => $utdate, 
-					  returnall => 0, 
+my $done = OMP::MSBServer->observedMSBs( {date => $utdate,
+					  returnall => 0,
 					  format => 'data'} );
 
 # Now sort by project ID
@@ -121,15 +131,39 @@ for my $msbid (@$done) {
   push(@{ $sorted{$projectid} }, $msbid);
 }
 
+# Store each telescope's shiftlog
+my %shiftlog;
+
 # Now create the comment and send it to feedback system
-my $fmt = "%-14s %03d %-20s %-20s %-10s %-35s";
-my $hfmt= "%-14s Rpt %-20s %-20s %-10s %-35s";
+my $fmt = "%-14s %03d %-20s %-20s %-10s";
+my $hfmt= "%-14s Rpt %-20s %-20s %-10s";
 for my $proj (keys %sorted) {
 
   # Each project info is sent independently to the
   # feedback system so we need to construct a message string
-  my $msg = sprintf "$hfmt\n", "Project", "Target", "Instrument",
-    "Waveband", "Checksum";
+  my $msg;
+
+  # Get project object
+  my $proj_details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
+
+  # Include project completion stats
+  $msg .= "Your project [". uc($proj) ."] is now ";
+  $msg .= sprintf("%.0f%%",$proj_details->percentComplete);
+  $msg .= " complete.\n\n";
+  $msg .= "Time allocated: ". $proj_details->allocated->pretty_print . "\n";
+  $msg .= "Time remaining: ".
+    ($proj_details->allRemaining->seconds > 0 ? $proj_details->allRemaining->pretty_print : "0") ."\n\n";
+
+  # MSB Summary
+
+  # Decide whether to show MSB targets or MSB name
+  my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
+					       telescope => $proj_details->telescope,);
+  my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
+
+  $msg .= "MSB Summary\n-----------\n\n";
+  $msg .= sprintf "$hfmt\n", "Project", $alt_msb_column, "Instrument",
+    "Waveband";
 
   # UKIRT KLUGE: Find out if project is a WFCAM project
   my $wfcam_proj;
@@ -138,16 +172,71 @@ for my $proj (keys %sorted) {
   }
 
   for my $msbid ( @{ $sorted{$proj} } ) {
-
     # Note that %s does not truncate strings so we have to do that
     # This will be problematic if the format is modified
     $msg .= sprintf "$fmt\n",
-      $proj,$msbid->nrepeats,substr($msbid->target,0,20),
-	substr($msbid->instrument,0,20),
-	  substr($msbid->waveband,0,10),
-	    $msbid->checksum;
-
+      $proj,$msbid->nrepeats,
+	substr(($display_msb_name ? $msbid->title : $msbid->target),0,20),
+	  substr($msbid->instrument,0,20),
+	    substr($msbid->waveband,0,10);
   }
+
+  # Attach shift log
+  # Query for the telescope's shiftlog if we haven't retrieved it yet
+  unless (exists $shiftlog{$proj_details->telescope}) {
+    my $sdb = new OMP::ShiftDB( DB => new OMP::DBbackend );
+
+    my $squery_xml = "<ShiftQuery>".
+      "<date delta=\"1\">". $utdate ."</date>".
+	"<telescope>". $proj_details->telescope ."</telescope>".
+	  "</ShiftQuery>";
+
+    my $query = new OMP::ShiftQuery( XML => $squery_xml );
+
+    @{$shiftlog{$proj_details->telescope}} = $sdb->getShiftLogs( $query );
+
+    # TEMPORARY FIX FOR GARBLED NIGHTREP
+    # Strip HTML from comments
+    for my $comment (@{$shiftlog{$proj_details->telescope}}) {
+      my $text = $comment->text;
+      $text =~ s!</*\w+\s*.*?>!!sg;
+      $comment->text($text);
+    }
+  }
+
+  $msg .= "\nShift Comments\n--------------\n\n";
+
+  $Text::Wrap::columns = 72;
+  for my $comment (@{$shiftlog{$proj_details->telescope}}) {
+    # Use local time
+    my $date = $comment->date;
+    my $local = localtime( $date->epoch );
+    my $author = $comment->author->name;
+
+    # Get the text and format it
+    my $text = $comment->text;
+
+    # Really need to convert HTML to text using general method
+    $text =~ s/\&apos\;/\'/g;
+    $text =~ s/<BR>/\n/gi;
+
+    # Word wrap
+    $text = wrap("    ","    ",$text);
+
+    # Now print the comment
+    $msg .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
+    $msg .= $text ."\n\n";
+  }
+
+  # Attach observation log
+  my $grp = new OMP::Info::ObsGroup(projectid => $proj,
+				    date => $utdate,
+				    inccal => 0,);
+
+  $grp->locate_timegaps( OMP::Config->getData("timegap") );
+
+  $msg .= "\nObservation Log\n---------------\n\n";
+  $msg .= $grp->summary('72col');
 
   ### TEMPORARILY, if this is a UKIRT project make the comment hidden
   #my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
@@ -171,18 +260,36 @@ for my $proj (keys %sorted) {
       $fixed_text = $wfcam_text;
     }
 
+    # Provide a feedback comment informing project users that data has been obtained
     OMP::FBServer->addComment(
 			      $proj,
 			      {
 			       author => undef, # this is done by cron
-			       subject => "MSB summary for $utdate",
+			       subject => "Data obtained for project on ". $utdate->ymd,
 			       program => "observed.pl",
 			       sourceinfo => $host,
 			       status => $status,
-			       text => "$fixed_text<pre>\n$msg\n</pre>\n",
+#			       text => "$fixed_text<pre>\n$msg\n</pre>\n",
+			       text => "$fixed_text\n",
 			      }
 			     );
-  }
+
+    # Email the detailed log to the project users
+
+    # Get project contacts
+    my @contacts = $proj_details->contacts;
+
+    my $basedb = new OMP::BaseDB(DB => new OMP::DBbackend,);
+
+    my $flexuser = OMP::User->new(email=>'flex\@jach.hawaii.edu');
+
+    $basedb->_mail_information( to => \@contacts,
+				from => $flexuser,
+				subject => "[$proj] Project log for $utdate",
+				message => "$msg\n",
+			      );
+
+ }
 
 }
 
