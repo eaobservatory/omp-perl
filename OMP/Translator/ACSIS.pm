@@ -80,7 +80,8 @@ my %ACSIS_Layouts = (
 		    RXA => 's1r1g1',
 		    RXB => 's2r2g1',
 		    RXW => 's2r2g2',
-		    HARPB => 's8r8g1'
+		    HARPB => 's8r8g1',
+		    HARPB_raster_pssw => 's8r8g8',
 		   );
 
 # LO2 synthesizer step, hard-wired
@@ -1080,13 +1081,18 @@ sub rotator_config {
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
 
   # Need to get the map position angle
-  my $oa = $tcs->getObsArea();
-  my $pa = $oa->posang;
+
+  # Need to find out the coordinate frame of the map
+  # This will either be AZEL or TRACKING - choose the result from any cube
+  my %cubes = $self->getCubeInfo( $cfg );
+  my @cubs = values( %cubes );
+
+  my $pa = $cubs[0]->posang;
   $pa = new Astro::Coords::Angle( 0, units => 'radians' ) unless defined $pa;
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
-		 SYSTEM => 'TRACKING',
+		 SYSTEM => $cubs[0]->tcs_coord,
 		 PA => [ $pa->clone ],
 	       );
 }
@@ -1243,15 +1249,7 @@ sub jos_config {
     # the JOS dynamically
 
     # we need the cube dimensions
-    # get the acsis configuration
-    my $acsis = $cfg->acsis;
-    throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
-
-    # get the spectral window information
-    my $cubelist = $acsis->cube_list();
-    throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
-
-    my %cubes = $cubelist->cubes;
+    my %cubes = $self->getCubeInfo( $cfg );
 
     # need the longest row from all the cubes.
     # For the moment, I don't expect the cubes to be different sizes...
@@ -2133,8 +2131,6 @@ sub cubes {
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
 									 @convolved );
 
-      print "POSITION ANGLE: $mappa\n";
-
     } elsif ($info{mapping_mode} =~ /jiggle/i) {
       # Need to know:
       #  - the extent of the jiggle pattern
@@ -2461,9 +2457,11 @@ sub acsis_layout {
   throw OMP::Error::FatalError('No instrument defined - needed to select correct layout file !')
     unless defined $inst;
 
-  # Now select the appropriate layout depending on the instrument found
+  # Now select the appropriate layout depending on the instrument found (and possibly mode)
   my $appropriate_layout;
-  if (exists $ACSIS_Layouts{$inst}) {
+  if (exists $ACSIS_Layouts{$inst . "_$info{observing_mode}"}) {
+    $appropriate_layout = $ACSIS_Layouts{$inst."_$info{observing_mode}"} . '_layout.ent';
+  } elsif (exists $ACSIS_Layouts{$inst}) {
     $appropriate_layout = $ACSIS_Layouts{$inst} . '_layout.ent';
   } else {
     throw OMP::Error::FatalError("Could not find an appropriate layout file for instrument $inst !");
@@ -3128,8 +3126,8 @@ sub _calc_offset_stats {
   # Now remove duplicates. Order is irrelevant
   my %dummy = map { $_ => undef } @off;
 
-  # and sort into order
-  my @sort = sort { $a <=> $b } keys %dummy;
+  # and sort into order (making sure we format)
+  my @sort = sort { $a <=> $b } map { sprintf("%.3f", $_ ) } keys %dummy;
 
   # if we only have one position we can return early here
   return ($sort[0], $sort[0], $sort[0], 0, 1, $nyquist) if @sort == 1;
@@ -3300,6 +3298,12 @@ sub _calc_offset_stats {
       }
 
       my $rms = _find_rms( @errors );
+
+      if ($rms < 0.1) {
+#	print "Grid: ".join(",",@grid)."\n";
+#	print "Sort: ". join(",",@sort). "\n";
+#	print "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
+      }
 
       if (!defined $lowest_rms || abs($rms) < $lowest_rms) {
 	$lowest_rms = $rms;
@@ -3486,6 +3490,30 @@ sub convolve_footprint {
   }
 
   return @conv;
+}
+
+=item B<getCubeInfo>
+
+Retrieve the hash of cube information from the ACSIS config. Takes a full JAC::Config
+object.
+
+ %cubes = $trans->getCubeInfo( $cfg );
+
+=cut
+
+sub getCubeInfo {
+  my $self = shift;
+  my $cfg = shift;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # get the spectral window information
+  my $cubelist = $acsis->cube_list();
+  throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
+
+    return $cubelist->cubes;
 }
 
 =item B<_read_file>
