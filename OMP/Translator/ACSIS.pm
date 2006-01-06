@@ -30,6 +30,7 @@ use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
+use Math::Trig / rad2deg /;
 
 use JCMT::ACSIS::HWMap;
 use JCMT::SMU::Jiggle;
@@ -710,6 +711,11 @@ sub observing_area {
 
   if ($obsmode eq 'raster') {
 
+    # Need to know the frontend
+    my $frontend = $self->ocs_frontend($info{instrument});
+    throw OMP::Error::FatalError("Unable to determine appropriate frontend!")
+      unless defined $frontend;
+
     # Map specification
     $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
     $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
@@ -721,8 +727,12 @@ sub observing_area {
     if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
       @scanpas = @{ $info{SCAN_PA} };
     } else {
-      # For single pixel just align with the map
-      @scanpas = ( $info{MAP_PA}, ($info{MAP_PA}+90));
+      # For single pixel just align with the map - else need arctan(0.25)
+      my $adjpa = 0.0;
+      if ($frontend eq 'HARPB') {
+	$adjpa = rad2deg(atan2(1,4));
+      }
+      @scanpas = map { $info{MAP_PA} + $adjpa + ($_*90) } (0..3);
     }
     # convert from deg to object
     @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg' ) } @scanpas;
@@ -1080,20 +1090,23 @@ sub rotator_config {
   my $tcs = $cfg->tcs();
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
 
-  # Need to get the map position angle
-
   # Need to find out the coordinate frame of the map
   # This will either be AZEL or TRACKING - choose the result from any cube
   my %cubes = $self->getCubeInfo( $cfg );
   my @cubs = values( %cubes );
 
+  # Need to get the map position angle
   my $pa = $cubs[0]->posang;
   $pa = new Astro::Coords::Angle( 0, units => 'radians' ) unless defined $pa;
+
+  # but we do have 90 deg symmetry in all our maps
+  my @pas = map { new Astro::Coords::Angle( $pa->degrees + ($_ * 90), units => 'degrees') } (0..3);
+
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
 		 SYSTEM => $cubs[0]->tcs_coord,
-		 PA => [ $pa->clone ],
+		 PA => \@pas,
 	       );
 }
 
@@ -1276,6 +1289,14 @@ sub jos_config {
 
     # JOS_MIN ??
     $jos->jos_min(1);
+
+    if ($self->verbose) {
+      print "Raster JOS parameters:\n";
+      print "\tLongest row time (diagonal): $rtime sec\n";
+      print "\tNumber of ref samples for first off (estimated): $nrefs\n";
+      print "\tStep time for sample: ". $jos->step_time . " sec\n";
+    }
+
 
   } elsif ($info{observing_mode} =~ /jiggle_chop/) {
 
