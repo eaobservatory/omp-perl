@@ -2110,13 +2110,18 @@ sub cubes {
       # This will be more complicated for HARP since DY will possibly
       # be larger and we will need to take the receptor spacing into account
 
-      # For single pixel instrument define the Y pixel as the spacing
-      # between scan rows
-      $ysiz = $info{SCAN_DY};
-
       # The X spacing depends on the requested sample time per map point
       # and the scan velocity
       $xsiz = $info{SCAN_VELOCITY} * $info{sampleTime};
+
+      # For single pixel instrument define the Y pixel as the spacing
+      # between scan rows. For HARP we probably want to be clever but for
+      # now choose the pixel size to be the x pixel size.
+      if ($inst->name =~ /HARP/) {
+	$ysiz = $xsiz;
+      } else {
+	$ysiz = $info{SCAN_DY};
+      }
 
       # read the map position angle
       $mappa = $info{MAP_PA}; # degrees
@@ -2197,7 +2202,7 @@ sub cubes {
 	($global_offx, $global_offy) = $self->PosAngRot( $global_offx, $global_offy, ($info{OFFSET_PA}-$mappa));
       }
 
-      # add any offset from he unrolled offset iterator
+      # add any offset from the unrolled offset iterator
       $offx += $global_offx;
       $offy += $global_offy;
 
@@ -2243,14 +2248,15 @@ sub cubes {
 
       # For an oversampled map, the SCUBA regridder has been analysed empirically 
       # to determine an optimum smoothing gaussian HWHM of lambda / 5d ( 0.4 of Nyquist).
-      # This compromises smoothness vs beam size. For ACSIS, we are really limited
-      # by the pixel size so our FWHM should be related to the larger value
-      # of  lambda/2.5D, Ypix or Xpix
+      # This compromises smoothness vs beam size. If the pixels are very large (larger than
+      # the beam) we just assume that the user does not want to really smear across
+      # pixels that large so we still use the beam. The gaussian convolution will probably
+      # not work if you have 80 arcsec pixels and 10 arcsec gaussian
 
       # Use the SCUBA optimum ratios derived by Claire Chandler of
       # HWHM = lambda / 5D (ie 0.4 of Nyquist) or FWHM = lambda / 2.5D
-      # (or 0.8 Nyquist)
-      my $fwhm = max ( $nyq->arcsec * 0.8, $xsiz, $ysiz );
+      # (or 0.8 Nyquist).
+      my $fwhm = $nyq->arcsec * 0.8;
       $cube->fwhm( $fwhm );
 
       # Truncation radius is half the pixel size for TopHat
@@ -2260,8 +2266,9 @@ sub cubes {
       # The gridder needs a non-zero truncation radius even if the gridding
       # technique does not use it! We have two choices. Either set a default
       # value here in the translator or make sure that the Config class
-      # always fills in a blank. For now kluge in the translator.
-      $cube->truncation_radius( ($xsiz+$ysiz)/2 );
+      # always fills in a blank. For now kluge in the translator to make sure
+      # we do not exceed the smallest pixel.
+      $cube->truncation_radius( min($xsiz,$ysiz)/2 );
     }
 
     if ($self->verbose) {
@@ -2271,6 +2278,10 @@ sub cubes {
       print "\tMap Offset: $offx, $offy arcsec\n";
       print "\tMap PA: $mappa deg\n";
       print "\tGrid Function: $grid_func\n";
+      if ( $grid_func eq 'Gaussian') {
+	print "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
+      }
+      print "\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n";
     }
 
     $cubes{$cubid} = $cube;
