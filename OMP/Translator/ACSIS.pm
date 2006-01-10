@@ -633,6 +633,9 @@ sub tcs_base {
 	exists $tags{$t}->{OFFSET_DY} ) {
       my $off = new Astro::Coords::Offset( ($tags{$t}->{OFFSET_DX} || 0),
 					   ($tags{$t}->{OFFSET_DY} || 0));
+      if (exists $tags{$t}->{OFFSET_SYSTEM}) {
+	$off->system( $tags{$t}->{OFFSET_SYSTEM} );
+      }
       $b->offset( $off );
     }
 
@@ -3862,7 +3865,7 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright 2003-2005 Particle Physics and Astronomy Research Council.
+Copyright 2003-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
