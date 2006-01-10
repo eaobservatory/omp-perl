@@ -3730,7 +3730,7 @@ sub SpSurveyContainer {
   delete $summary{coordtags};
   delete $summary{OFFSET_DX};
   delete $summary{OFFSET_DY};
-
+  delete $summary{OFFSET_SYSTEM};
 
   # get all the children for our search
   my @searchnodes = $el->getChildnodes;
@@ -3965,6 +3965,13 @@ sub SpIterFolder {
 	$details{OFFSET_PA} = $pa;
 	$details{OFFSET_DX}  = $self->_get_pcdata($off, 'DC1');
 	$details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
+
+	# OFFSET system should always be TRACKING for the OT usage at the moment
+	# We read this for interest but do not yet use the answer in the Translator
+	# until we clarify what the OT is allowed to specify
+	$details{OFFSET_SYSTEM} = $off->getAttribute("SYSTEM");
+	$details{OFFSET_SYSTEM} = 'AZEL' if $details{OFFSET_SYSTEM} eq 'Az/El';
+
 	push(@offsets, \%details);
       }
       $summary{$parent}{ATTR} = \@offsets;
@@ -4806,6 +4813,7 @@ sub SpTelescopeObsComp {
       my ($dx, $dy) = $offset->offsets;
       $tag{OFFSET_DX} = $dx->arcsec;
       $tag{OFFSET_DY} = $dy->arcsec;
+      $tag{OFFSET_SYSTEM} = $offset->system;
     }
     $tags{$t} = \%tag;
   }
