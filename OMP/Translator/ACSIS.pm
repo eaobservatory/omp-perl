@@ -2231,9 +2231,6 @@ sub cubes {
     $cube->posang( new Astro::Coords::Angle( $mappa, units => 'deg'))
       if defined $mappa;
 
-    # offset in pixels
-    $cube->offset( $offx / $xsiz, $offy / $ysiz);
-
     # Decide whether the grid is regridding in sky coordinates or in AZEL
     # Focus and Pointing are AZEL
     # Assume also that AZEL jiggles want AZEL maps
@@ -2242,6 +2239,16 @@ sub cubes {
     } else {
       $cube->tcs_coord( 'TRACKING' );
     }
+
+    # offset in pixels (note that for RA maps positive offset is
+    # in opposite direction to grid)
+    my $offy_pix = sprintf("%.4f", $offy / $ysiz) * 1.0;
+    my $offx_pix = sprintf("%.4f", $offx / $xsiz) * 1.0;
+    if ($cube->tcs_coord eq 'TRACKING') {
+      $offx_pix *= -1.0;
+    }
+
+    $cube->offset( $offx_pix, $offy_pix );
 
     # Currently always use TAN projection since that is what SCUBA uses
     $cube->projection( "TAN" );
@@ -2278,8 +2285,9 @@ sub cubes {
       print "Cube parameters [$cubid]:\n";
       print "\tDimensions: $nx x $ny\n";
       print "\tPixel Size: $xsiz x $ysiz arcsec\n";
-      print "\tMap Offset: $offx, $offy arcsec\n";
-      print "\tMap PA: $mappa deg\n";
+      print "\tMap frame:  ". $cube->tcs_coord ."\n";
+      print "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
+      print "\tMap PA:     $mappa deg\n";
       print "\tGrid Function: $grid_func\n";
       if ( $grid_func eq 'Gaussian') {
 	print "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
