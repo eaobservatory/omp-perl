@@ -3354,7 +3354,9 @@ sub _calc_offset_stats {
 	# Recalculate the centre location based on this grid
 	# Assume that the reference pixel for "0 1 2 3"   is "2" (acsis assumes we align with "2")
 	# Assume that the reference pixel for "0 1 2 3 4" is "2" (middle pixel)
-	my $midpoint = int ( (scalar(@grid)+2) / 2 ) - 1;
+	# ACSIS *always* assumes that the "ref pix" is  int(N/2)+1 so
+	# for 0 1 2 3 4 -> "2" and for "0 1 2 3" is "2"
+	my $midpoint = int( scalar(@grid) / 2 ) + 1;
 
 	%best = (
 		 rms => $lowest_rms,
