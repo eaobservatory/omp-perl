@@ -3355,8 +3355,8 @@ sub _calc_offset_stats {
 	# Assume that the reference pixel for "0 1 2 3"   is "2" (acsis assumes we align with "2")
 	# Assume that the reference pixel for "0 1 2 3 4" is "2" (middle pixel)
 	# ACSIS *always* assumes that the "ref pix" is  int(N/2)+1
-	# but we start counting at 0, not 1 so add on an extra 1
-	my $midpoint = int( scalar(@grid) / 2 ) + 1 + 1;
+	# but we start counting at 0, not 1 so subtract an extra 1
+	my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
 
 	%best = (
 		 rms => $lowest_rms,
