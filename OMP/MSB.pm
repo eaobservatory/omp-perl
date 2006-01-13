@@ -3970,7 +3970,8 @@ sub SpIterFolder {
 	# We read this for interest but do not yet use the answer in the Translator
 	# until we clarify what the OT is allowed to specify
 	$details{OFFSET_SYSTEM} = $off->getAttribute("SYSTEM");
-	$details{OFFSET_SYSTEM} = 'AZEL' if $details{OFFSET_SYSTEM} eq 'Az/El';
+	$details{OFFSET_SYSTEM} = 'AZEL' if ( defined( $details{OFFSET_SYSTEM} ) &&
+                                        $details{OFFSET_SYSTEM} eq 'Az/El' );
 
 	push(@offsets, \%details);
       }
