@@ -3358,10 +3358,23 @@ sub _calc_offset_stats {
 	# but we start counting at 0, not 1 so subtract an extra 1
 	my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
 
+        my $temp_centre; 
+        if( scalar(@grid)%2)
+         {#print "Odd\n";
+          $temp_centre = $grid[$midpoint];
+          } 
+          else 
+          {#print "Even\n";
+           #$temp_centre = $grid[$midpoint];
+	   $temp_centre=  $grid[$midpoint] - ($grid[$midpoint]-$grid[$midpoint-1])/2.0;
+          }
+
+	#print "Temp centre --> $temp_centre \n";
+        
 	%best = (
 		 rms => $lowest_rms,
 		 spacing => $spacing,
-		 centre => $grid[$midpoint],
+		 centre => $temp_centre,
 		 span => ( $grid[$#grid] - $grid[0] ),
 		 min  => $grid[0],
 		 max  => $grid[$#grid],
@@ -3378,7 +3391,7 @@ sub _calc_offset_stats {
   $trial = $best{spacing};
   $cen  = $best{centre};
 
-#  print Dumper(\@off);
+  print Dumper(\@off);
   print "Output grid parameters : Span = $span ($min .. $max) Centre = $cen Npix = $npix RMS = $best{rms}\n"
     if $DEBUG;
 
