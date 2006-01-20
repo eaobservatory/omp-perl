@@ -3391,7 +3391,6 @@ sub _calc_offset_stats {
   $trial = $best{spacing};
   $cen  = $best{centre};
 
-  print Dumper(\@off);
   print "Output grid parameters : Span = $span ($min .. $max) Centre = $cen Npix = $npix RMS = $best{rms}\n"
     if $DEBUG;
 
