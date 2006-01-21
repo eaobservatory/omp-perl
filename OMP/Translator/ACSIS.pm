@@ -404,24 +404,46 @@ sub handle_special_modes {
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{secsPerJiggle} = 5;
 
+    my $scaleMode;
     if ($frontend eq 'HARPB') {
-      $info->{jigglePattern} = 'HARP';
-      $info->{scaleFactor} = 1; # HARP jiggle pattern uses arcsec
-      $info->{jiggleSystem} = 'FPLANE';
-    } else {
-      $info->{jigglePattern} = '5x5';
+      $info->{disableNonTracking} = 1; # Only use 1 receptor if true
+      $info->{jigglePattern} = '5x5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
 
+      # For HARP jiggle pattern use "unity" here
+      # For other patterns, be careful. If you are disabling non tracking
+      # pixels you must make sure that you have a big enough pattern for the
+      # planet. a 3x3 or 5point should always use "planet".
+      $scaleMode = "planet"; # Also: unity, planet, nyquist
+    } else {
+      $info->{disableNonTracking} = 1; # Only use 1 receptor
+      $info->{jigglePattern} = '5x5'; # or 5pt
+      $info->{jiggleSystem} = 'AZEL';
+      $scaleMode = "planet"; # Allowed: unity, planet, nyquist
+    }
+
+    # Now we need to determine the scaleFactor for the jiggle. This has been
+    # specified above. Options are:
+    #   unity  : scale factor is 1. Only used for HARP jiggle patterns
+    #   nyquist: use nyquist sampling
+    #   planet : use nyquist sampling or if planet use the planet radius, whichever is larger
+    #
+    if ($info->{jigglePattern} eq 'HARP' || $scaleMode eq 'unity') {
+      # HARP jiggle pattern is predefined
+      $info->{scaleFactor} = 1;
+    } elsif ($scaleMode eq 'planet' || $scaleMode eq 'nyquist') {
       # The scale factor should be the larger of half beam or planet limb
       my $half_beam = $self->nyquist( %$info )->arcsec;
       my $plan_rad = 0;
-      if ($info->{coords}->type eq 'PLANET') {
+      if ($scaleMode eq 'planet' && $info->{coords}->type eq 'PLANET') {
 	# Currently need to force an apparent ra/dec calculation to get the diameter
 	my @discard = $info->{coords}->apparent();
 	$plan_rad = $info->{coords}->diam->arcsec / 2;
       }
 
       $info->{scaleFactor} = max( $half_beam, $plan_rad );
+    } else {
+      throw OMP::Error::FatalError( "Unable to understand scale factor request for pointing" );
     }
 
     if ($self->verbose) {
@@ -445,6 +467,7 @@ sub handle_special_modes {
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{secsPerCycle} = 5;
+    $info->{disableNonTracking} = 1; # Only use 1 receptor
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -965,6 +988,15 @@ sub fe_config {
   # If we have a specific tracking receptor in mind, make sure it is working
   my $trackrec = $self->tracking_receptor($cfg, %info );
   $mask{$trackrec} = "NEED" if defined $trackrec;
+
+  # if we are ONLY meant to use this tracking receptor then we turn everything
+  # else to OFF
+  if (defined $trackrec && $info{disableNonTracking}) {
+    for my $id ( keys %receptors ) {
+      next if $id eq $trackrec;
+      $mask{$id} = "OFF";
+    }
+  }
 
   # Store the mask
   $fe->mask( %mask );
@@ -2025,11 +2057,15 @@ sub cubes {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
+  # Get the frontend configuration
+  my $fe = $cfg->frontend;
+  throw OMP::Error::FatalError('for some reason Frontend configuration is not available. This can not happen') unless defined $fe;
+
   # Get the instrument footprint
   my $inst = $cfg->instrument_setup;
   throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
     unless defined $inst;
-  my @footprint = $inst->receptor_offsets;
+  my @footprint = $inst->receptor_offsets( $fe->active_receptors );
 
   # Need to correct for any offset that we may be applying to BASE
   my $apoff = $self->tracking_offset( $cfg, %info );
