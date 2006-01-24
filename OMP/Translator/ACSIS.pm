@@ -480,7 +480,7 @@ sub handle_special_modes {
     # If HARP is the jiggle pattern then we need to set scaleFactor to 1
     if ($info->{jigglePattern} eq 'HARP') {
       $info->{scaleFactor} = 1; # HARP pattern is fully sampled
-      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
+#      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
     }
   }
 
