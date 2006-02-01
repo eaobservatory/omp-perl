@@ -206,6 +206,10 @@ system using a key that does not exist in the config file.
 
 Problem occurred with Archive caching.
 
+=item B<OMP::Error::DataRead>
+
+Unable to read data file off disk.
+
 =item B<OMP::Error::DBConnection>
 
 Unable to make a connection to the database backend.
@@ -360,6 +364,9 @@ package OMP::Error::BadCfgKey;
 use base qw/ OMP::Error /;
 
 package OMP::Error::CacheFailure;
+use base qw/ OMP::Error /;
+
+package OMP::Error::DataRead;
 use base qw/ OMP::Error /;
 
 package OMP::Error::DBConnection;
