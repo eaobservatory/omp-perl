@@ -1283,6 +1283,14 @@ sub jos_config {
   my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref' );
   $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
 
+  if ($self->verbose) {
+    print "Generic JOS parameters:\n";
+    print "\tStep Time: ". $jos->step_time ." sec\n";
+    print "\tSteps per ref: ". $jos->steps_per_ref ."\n";
+    print "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
+    print "\tSteps per Cal: ". $jos->steps_per_cal ."\n";
+  }
+
   # Now parameters depends on that recipe name
 
   # Raster
@@ -1504,15 +1512,16 @@ sub jos_config {
 
     if ($self->verbose) {
       print "Grid JOS parameters:\n";
-      print "N_REFSAMPLES = $nrefs\n";
-      print "JOS_MIN = $jos_min\n";
-      print "NUM_NOD_SETS =  $num_nod_sets \n";
+      print "\tIntegration time per grid possition: $info{secsPerCycle} secs\n";
+      print "\tNumber of steps per on: $jos_min\n";
+      print "\tNumber of steps per off: $nrefs\n";
+      print "\tNumber of nod sets: $num_nod_sets\n";
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
 
     # Parameters to calculate 
-    # NUM_CYCLES       =>  Number of complete iterations
+    # NUM_CYCLES       => Number of complete iterations
     # JOS_MULT         => Number of complete jiggle maps per sequence
     # STEP_TIME        => RTS step time during an RTS sequence
     # N_CALSAMPLES     => Number of load samples per cal
