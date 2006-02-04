@@ -1286,9 +1286,9 @@ sub jos_config {
   if ($self->verbose) {
     print "Generic JOS parameters:\n";
     print "\tStep Time: ". $jos->step_time ." sec\n";
-    print "\tSteps per ref: ". $jos->steps_per_ref ."\n";
+    print "\tSteps between ref: ". $jos->steps_per_ref ."\n";
     print "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
-    print "\tSteps per Cal: ". $jos->steps_per_cal ."\n";
+    print "\tSteps between Cal: ". $jos->steps_per_cal ."\n";
   }
 
   # Now parameters depends on that recipe name
