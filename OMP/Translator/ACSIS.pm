@@ -1356,16 +1356,34 @@ sub jos_config {
     my $jig = $secondary->jiggle;
 
     # Now calculate the total time for 1 full coverage of the jiggle pattern
-    # We need the N_JIGS_ON and N_CYC_OFF here because the more we chop the more inefficient
-    # we are (the sqrt scaling means that a single pattern is more efficient than breaking it
-    # up into smaller chunks
+    # We can either jiggle+chop or chop+jiggle. Unfortunately chop_jiggle is not a mode.
 
-    # Number of chunks
-    my $njig_chunks = $jig->npts / $timing{N_JIGS_ON};
+    my $njig_chunks = 1; # Number of chunks to break pattern into
+    my $nsteps = 0; # Number of steps in ON + OFF
+    if (defined $timing{N_JIGS_ON}) {
 
-    # Calculate number of steps in a jiggle pattern
-    # The factor of 2 is because the chop pattern does N_CYC_OFF either side of the ON
-    my $nsteps = $njig_chunks * ( $timing{N_JIGS_ON} + ( 2 * $timing{N_CYC_OFF} ) );
+      # We need the N_JIGS_ON and N_CYC_OFF here because the more we chop the more inefficient
+      # we are (the sqrt scaling means that a single pattern is more efficient than breaking it
+      # up into smaller chunks
+
+      # Number of chunks
+      $njig_chunks = $jig->npts / $timing{N_JIGS_ON};
+
+      # Calculate number of steps in a jiggle pattern
+      # The factor of 2 is because the chop pattern does N_CYC_OFF either side of the ON
+      $nsteps = $njig_chunks * ( $timing{N_JIGS_ON} + ( 2 * $timing{N_CYC_OFF} ) );
+
+    } elsif (defined $timing{CHOPS_PER_JIG}) {
+
+      # always have one chunk
+      $njig_chunks = 1;
+
+      # time on = time off
+      $nsteps = $jig->npts * 2;
+
+    } else {
+      throw OMP::Error::FatalError("Bizarre error whereby jiggle_chop neither defines CHOPS_PER_JIG nor N_JIGS_ON");
+    }
 
     # Time per full jig pattern
     my $timePerJig = $nsteps * $jos->step_time;
@@ -1383,7 +1401,7 @@ sub jos_config {
     my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
 
     # and convert that to the max number of jiggle repeats per nod
-    my $max_jos_mult = int( $max_t_nod / $timePerJig );
+    my $max_jos_mult = max(1, int( $max_t_nod / $timePerJig ));
 
     # The actual JOS_MULT and NUM_NOD_SETS can now be calculated
     # If we need less than required we just use that
@@ -1404,8 +1422,13 @@ sub jos_config {
 
     if ($self->verbose) {
       print "Jiggle JOS parameters:\n";
-      print "\ttimePerJig : $timePerJig\n";
-      print "\tRequested integration time per pixel: $info{secsPerJiggle}\n";
+      if (defined $timing{CHOPS_PER_JIG}) {
+	print "\tChopping then Jiggling\n";
+      } else {
+	print "\tJiggling then Chopping\n";
+      }
+      print "\tDuration of single jiggle pattern: $timePerJig sec\n";
+      print "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
       print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
       print "\tMax allowed JOS_MULT : $max_jos_mult\n";
