@@ -2188,9 +2188,15 @@ sub cubes {
       # read the map position angle
       $mappa = $info{MAP_PA}; # degrees
 
-      # and the map area in pixels
-      $nx = int( ( $info{MAP_WIDTH} / $xsiz ) + 0.5 ) ;
-      $ny = int( ( $info{MAP_HEIGHT} / $ysiz ) + 0.5 );
+      # Requested map area must include room for overscan from the instrument
+      # footprint. Be pessimistic since we can not know how the telescope will
+      # overscan. (but we could be cleverer if we assumed a functioning rotator).
+      # When we adjust the scanning in the TCS we will probably want to allow
+      # a whole array footprint on each end)
+      my $rad = $inst->footprint_radius->arcsec;
+
+      $nx = int( ( ( $info{MAP_WIDTH} + ( 2 * $rad ) ) / $xsiz ) + 0.5 ) ;
+      $ny = int( ( ( $info{MAP_HEIGHT} + ( 2 * $rad ) ) / $ysiz ) + 0.5 );
 
       $offx = ($info{OFFSET_DX} || 0);
       $offy = ($info{OFFSET_DY} || 0);
