@@ -406,7 +406,7 @@ sub handle_special_modes {
 
     my $scaleMode;
     if ($frontend eq 'HARPB') {
-      $info->{disableNonTracking} = 1; # Only use 1 receptor if true
+      $info->{disableNonTracking} = 0; # Only use 1 receptor if true
       $info->{jigglePattern} = '5x5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
 
@@ -416,7 +416,7 @@ sub handle_special_modes {
       # planet. a 3x3 or 5point should always use "planet".
       $scaleMode = "planet"; # Also: unity, planet, nyquist
     } else {
-      $info->{disableNonTracking} = 1; # Only use 1 receptor
+      $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
       $info->{jigglePattern} = '5x5'; # or 5pt
       $info->{jiggleSystem} = 'AZEL';
       $scaleMode = "planet"; # Allowed: unity, planet, nyquist
@@ -467,7 +467,7 @@ sub handle_special_modes {
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{secsPerCycle} = 5;
-    $info->{disableNonTracking} = 1; # Only use 1 receptor
+    $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
