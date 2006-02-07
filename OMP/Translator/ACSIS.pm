@@ -2500,8 +2500,19 @@ sub simulator_config {
   # Now write the non cloud information
   $sim->noise( 1 );
   $sim->refsky_temp( 135.0 );
-  $sim->load2_temp( 250.0 );
-  $sim->ambient_temp( 300.0 );
+
+  # Depends on Receiver
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available for simulation configuration. This can not happen')
+    unless defined $inst;
+
+  if ($inst->name =~ /HARP/) {
+    $sim->load2_temp( 300.0 );
+    $sim->ambient_temp( 250.0 );
+  } else {
+    $sim->load2_temp( 250.0 );
+    $sim->ambient_temp( 300.0 );
+  }
   $sim->band_start_pos( 120 );
 
   # attach simulation to acsis
