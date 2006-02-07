@@ -3849,7 +3849,11 @@ sub getReferenceRA {
       my @off = $offset->offsets;
       return "[OFFSET] ". $off[0]->arcsec . " [".$offset->system."]";
     } else {
-      return "". $refpos->ra2000;
+      if ($refpos->can("ra2000")) {
+	return "". $refpos->ra2000;
+      } elsif ($refpos->type eq "AZEL") {
+	return $refpos->az . " (AZ)";
+      }
     }
   }
   return "UNDEFINED";
@@ -3878,7 +3882,11 @@ sub getReferenceDec {
       my @off = $offset->offsets;
       return "[OFFSET] ". $off[1]->arcsec . " [".$offset->system."]";
     } else {
-      return "". $refpos->dec2000;
+      if ($refpos->can("dec2000")) {
+	return "". $refpos->dec2000;
+      } elsif ($refpos->type eq "AZEL") {
+	return $refpos->el ." (EL)";
+      }
     }
   }
   return "UNDEFINED";
