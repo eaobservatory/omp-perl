@@ -1171,7 +1171,6 @@ sub _populate {
   $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
   $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
   $self->rest_frequency( $generic_header{REST_FREQUENCY} );
-print "rest frequency is " . $self->rest_frequency . "\n";
   $self->cycle_length( $generic_header{CYCLE_LENGTH} );
   $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
   $self->backend( $generic_header{BACKEND} );
