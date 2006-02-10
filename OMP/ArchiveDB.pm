@@ -413,11 +413,69 @@ sub _query_files {
 ################################################################################
         $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
 
-        # Get a file list.
-        if( -d $directory ) {
-          opendir( FILES, $directory );#throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
-          @files = grep(!/^\./, readdir(FILES));
-          closedir(FILES);
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# ACSIS data is arranged such that .ok files live in "acsis00" and have the
+# location of the actual data directory in the first line. We need to read in
+# the first line of each file we find in the "acsis00" directory in order to
+# get the proper directory.
+################################################################################
+
+        if( $directory =~ /acsis/i ) {
+
+          # Replace 'acsis' with 'acsis00'.
+          $directory =~ s/acsis/acsis00/;
+
+          print "Looking in ACSIS directory $directory...\n";
+
+          if( -d $directory ) {
+            my @ok_files;
+            opendir( FILES, $directory );
+            @ok_files = grep( /\.ok$/, readdir( FILES ) );
+
+            # ACSIS files as listed in the .ok file don't have the
+            # base directory prepended, so retrieve it from the config
+            # system. We'll prepend it later on.
+            my $basedir = OMP::Config->getData( 'basedatadir',
+                                                telescope => 'JCMT' );
+
+            # Go through each .ok file, get the first line, and push
+            # that onto the list of files to read.
+            foreach my $ok_file ( @ok_files ) {
+              open( my $ok_file_handle, "<", $ok_file ) or throw OMP::Error::DataRead( "Could not open ACSIS .ok file: $!" );
+              my $first = <$ok_file_handle>;
+              if( defined( $first ) ) {
+                push @files, File::Spec->catfile( $basedir, $first );
+              }
+
+              close $ok_file_handle;
+            }
+
+            # Sort the list of files.
+            @files = sort {
+              $a =~ /_(\d+)_\d\d_\d\d\.sdf$/;
+              my $a_obsnum = int( $1 );
+              $b =~ /_(\d+)_\d\d_\d\d\.sdf$/;
+              my $b_obsnum = int( $1 );
+
+              $a_obsnum <=> $b_obsnum; } @files;
+
+            # Trim by requested run number, if necessary.
+            if( $runnr != 0 ) {
+              $runnr = '0' x ( 5 - length( $runnr ) ) . $runnr;
+              @files = grep( /${runnr}_\d\d_\d\d\.sdf$/, @files );
+            }
+
+          }
+
+        } else {
+
+          # Get a file list.
+          if( -d $directory ) {
+            opendir( FILES, $directory );#throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
+            @files = grep(!/^\./, readdir(FILES));
+            closedir(FILES);
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -425,8 +483,8 @@ sub _query_files {
 # and have a ".sdf", a ".dat", or a ".gsd" suffix. If this is not the case,
 # then this line will have to be modified accordingly.
 
-          @files = grep(/_\d+\.(sdf|gsd|dat)$/, @files);
-          @files = sort {
+            @files = grep(/_\d+\.(sdf|gsd|dat)$/, @files);
+            @files = sort {
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -449,7 +507,7 @@ sub _query_files {
 
             $a_obsnum <=> $b_obsnum; } @files;
 
-          if( $runnr != 0 ) {
+            if( $runnr != 0 ) {
 
 # INSTRUMENT SPECIFIC CODE
 #
@@ -459,17 +517,17 @@ sub _query_files {
 # retrieve the observation number of a file, but dependencies on ORAC classes
 # are to be minimised.
 
-          # find the file with this run number
-            $runnr = '0' x (4 - length($runnr)) . $runnr;
-            @files = grep(/$runnr\.(sdf|gsd|dat)$/, @files);
-          } # if( $runnr != 0 )
+              # find the file with this run number
+              $runnr = '0' x (4 - length($runnr)) . $runnr;
+              @files = grep(/$runnr\.(sdf|gsd|dat)$/, @files);
+            } # if( $runnr != 0 )
 
-          @files = map { $directory . '/' . $_ } @files;
+            @files = map { $directory . '/' . $_ } @files;
 
-        } # if ( -d $directory )
-        else {
-#          throw OMP::Error::DirectoryNotFound( "Data directory $directory unavailable.\n" );
-	  next; # No data disks means no data
+          } # if ( -d $directory )
+          else {
+            next; # No data disks means no data
+          }
         }
       } # foreach my $inst ( @instarray )
     } # for( my $day... )

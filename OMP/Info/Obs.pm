@@ -157,6 +157,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               airmass_end => '$',
                               ambient_temp => '$',
                               backend => '$',
+                              bandwidth_mode => '$',
                               bolometers => '@',
                               camera => '$',
                               camera_number => '$',
@@ -176,6 +177,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               endobs => 'Time::Piece',
                               filename => '$',
                               filter => '$',
+                              frontend => '$',
                               grating => '$',
                               group => '$',
                               humidity => '$',
@@ -594,7 +596,7 @@ sub nightlog {
     $return{'_STRING_HEADER_LONG'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
     $return{'_STRING_LONG'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
 
-  } elsif( $instrument =~ /^(rx|mpi|fts)/i ) {
+  } elsif( $instrument =~ /^(rx|mpi|fts|fe_harp)/i ) {
 
 # *** Heterodyne instruments
 
@@ -604,20 +606,34 @@ sub nightlog {
     $return{'UT'} = $self->startobs->hms;
     $return{'Mode'} = uc($self->mode);
     $return{'Source'} = $self->target;
-    $return{'Cycle Length'} = $self->cycle_length;
+    $return{'Cycle Length'} = ( defined( $self->cycle_length ) ?
+                                $self->cycle_length :
+                                '-' );
     $return{'Number of Cycles'} = $self->number_of_cycles;
-    $return{'Receiver'} = uc($self->instrument);
     $return{'Frequency'} = $self->rest_frequency;
+
+    # Convert the rest frequency into GHz for display purposes.
+    $return{'Frequency'} /= 1000000000;
+
     $return{'Velocity'} = $self->velocity;
+
+    # Prettify the velocity.
+    if( $return{'Velocity'} < 1000 ) {
+      $return{'Velocity'} = sprintf( "%5.1f", $return{'Velocity'} );
+    } else {
+      $return{'Velocity'} = sprintf( "%5d", $return{'Velocity'} );
+    }
+
     $return{'Velsys'} = $self->velsys;
     $return{'Project ID'} = $self->projectid;
+    $return{'Bandwidth Mode'} = $self->bandwidth_mode;
 
     $return{'_ORDER'} = [ "Run", "UT", "Mode", "Project ID", "Source", "Cycle Length", "Number of Cycles",
-                          "Receiver", "Frequency", "Velocity", "Velsys" ];
+                          "Frequency", "Velocity", "Velsys", "Bandwidth Mode" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source  Sec/Cyc   Rec Freq   Vel/Velsys";
+    $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode";
 #    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
-    $return{'_STRING'} = sprintf("%3s  %8s  %10.10s %11s %15s  %3d/%3d %5s  %3d %5d/%6s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Receiver'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'});
+    $return{'_STRING'} = sprintf("%3s  %8s  %16.16s %11s %15s  %3d/%3d    %7.3f %5s/%6s %11s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'}, $return{'Bandwidth Mode'});
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
@@ -1105,11 +1121,14 @@ sub _populate {
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
       if (( defined( $self->projectid ) && $self->projectid =~ /JCMT/  ) ||
-          ( defined( $self->mode ) && $self->mode =~ /fivepoint|focus/i )
+          ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
          ) {
         $self->isGenCal( 1 );
         $self->isScience( 0 );
       } elsif ($self->mode =~ /sample/i && $self->target =~ /^(w3\(oh\)|l1551\-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293\-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
+        $self->isSciCal( 1 );
+        $self->isScience( 0 );
+      } elsif( $self->standard ) {
         $self->isSciCal( 1 );
         $self->isScience( 0 );
       }
@@ -1152,9 +1171,11 @@ sub _populate {
   $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
   $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
   $self->rest_frequency( $generic_header{REST_FREQUENCY} );
+print "rest frequency is " . $self->rest_frequency . "\n";
   $self->cycle_length( $generic_header{CYCLE_LENGTH} );
   $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
   $self->backend( $generic_header{BACKEND} );
+  $self->bandwidth_mode( $generic_header{BANDWIDTH_MODE} );
   $self->filter( $generic_header{FILTER} );
   $self->camera( $generic_header{CAMERA} );
   $self->camera_number( $generic_header{CAMERA_NUMBER} );
