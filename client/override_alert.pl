@@ -195,7 +195,7 @@ sub scan_for_msbs {
   }
   $sem_xml .= "</semesters>";
 
-  my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>10</max></priority>$sem_xml</MSBQuery>";
+  my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
   my $E;
   my @results;
   try {
