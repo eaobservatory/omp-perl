@@ -2,16 +2,17 @@ package OMP::SiteQuality;
 
 =head1 NAME
 
-OMP::SiteQual - Site quality helper functions
+OMP::SiteQuality - Site quality helper functions
 
 =head1 SYNOPSIS
 
-  use OMP::SiteQual;
+  use OMP::SiteQuality;
 
   ($dbmin, $dbmax) = to_db( 'TAU', $skyrange );
   $range = from_db( 'SEEING', $dbskymin, $dbskymax );
   $range = default_range( 'SKY' );
   print "default" if is_default( 'TAU', $range );
+
   check_posdef( 'TAU', $range );
   undef_to_default( 'TAU', $range );
 
@@ -36,7 +37,7 @@ use Carp;
 use OMP::Error;
 use OMP::Range;
 
-use vars qw/ $VERSION %DBRANGES %OMPRANGES /;
+use vars qw/ $VERSION %DBRANGES %OMPRANGES %CLOUDTERMS/;
 $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 
@@ -116,6 +117,13 @@ use constant OMP__SEEING_INF => 5000;
 	      CLOUD => [ 0, 100],
 	      MOON => [ 0, 100 ],
 	     );
+
+# These are the textual descriptions of the common cloud ranges
+%CLOUDTERMS = (
+	       Photometric => [0, 0],
+	       Cirrus => [1, OMP__CLOUD_CIRRUS_MAX],
+	       Thick => [OMP__CLOUD_CIRRUS_MAX+1, 100],
+	      );
 
 =head1 FUNCTIONS
 
@@ -528,6 +536,23 @@ Returns undef if the band is not known.
 
   }
 }
+
+=item B<get_cloud_text>
+
+Return the textual descriptions associated with the common cloud ranges.
+The ranges are represented by C<OMP::Range> objects.
+
+  %cloudtxt = cloud_text();
+
+=cut
+
+sub get_cloud_text {
+  my %cloudtxt = map {$_, new OMP::Range( Min => $CLOUDTERMS{$_}->[0],
+					  Max => $CLOUDTERMS{$_}->[1])} keys %CLOUDTERMS;
+  return %cloudtxt;
+}
+
+
 
 =back
 
