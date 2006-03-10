@@ -19,6 +19,7 @@ use 5.006;
 use strict;
 use warnings;
 use CGI::Carp qw/fatalsToBrowser/;
+use Time::Seconds;
 
 use OMP::CGIComponent::Fault;
 use OMP::CGIComponent::Feedback;
@@ -30,11 +31,13 @@ use OMP::Config;
 use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FBServer;
+use OMP::UserServer;
 use OMP::General;
 use OMP::MSBServer;
 use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::TimeAcctDB;
+use OMP::SiteQuality;
 
 $| = 1;
 
@@ -787,8 +790,6 @@ sub support {
     print join(", ", map {OMP::Display->userhtml($_, $q)} @secondary);
   }
 
-  
-
   # Generate labels and values for primary support form
   my %labels = map {$_->userid, $_->name} @support;
   my @userids = sort map {$_->userid} @support;
@@ -808,6 +809,214 @@ sub support {
   print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
   print $q->end_form;
   print "<br><small>Note: Only primary support contacts will recieve project email.</small>";
+}
+
+=item B<alter_proj>
+
+Create a page for adjusting a project's properties.
+
+  alter_proj($cgi_object, %cookie);
+
+=cut
+
+sub alter_proj {
+  my $q = shift;
+  my %cookie = @_;
+
+  # Obtain project ID
+  my $projectid = OMP::CGIComponent::Project::obtain_projectid( $q );
+
+  my $userid = $cookie{userid};
+
+  if ($projectid) {
+    print $q->h3("Alter project details for ". uc($projectid));
+
+    # Connect to the database
+    my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
+
+    # Set the project ID in the DB object
+    $projdb->projectid( $projectid );
+
+    # Retrieve the project object
+    my $project = $projdb->_get_project_row();
+
+    if ($q->param('alter_submit')) {
+      my $changed;
+      my @msg; # Build up output message
+
+      # The alteration form has been submitted, so apply changes
+
+      # Check whether allocation has changed
+      my $new_alloc_h = $q->param('alloc_h') * 3600;
+      my $new_alloc_m = $q->param('alloc_m') * 60;
+      my $new_alloc_s = $q->param('alloc_s');
+      my $new_alloc = Time::Seconds->new($new_alloc_h + $new_alloc_m + $new_alloc_s);
+      my $old_alloc = $project->allocated;
+
+      if ($new_alloc != $old_alloc) {
+	$changed++;
+
+	# Allocation was changed
+	$project->fixAlloc($new_alloc->hours);
+
+        push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
+      }
+
+      # Check whether semester has changed
+      my $new_sem = $q->param('semester');
+      my $old_sem = $project->semester;
+
+      if ($new_sem ne $old_sem) {
+	$changed++;
+
+	# Semester waschanged
+	$project->semester($new_sem);
+
+	push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
+      }
+
+      # Check whether cloud constraint has changed
+      my $new_cloud_max = $q->param('cloud');
+      my $new_cloud = OMP::SiteQuality::default_range('CLOUD');
+      $new_cloud->max($new_cloud_max);
+      my $old_cloud = $project->cloudrange;
+
+      if ($new_cloud->max() != $old_cloud->max()) {
+	$changed++;
+	
+	# Cloud constraint was changed
+	$project->cloudrange($new_cloud);
+
+	push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
+      }
+
+      # Check whether TAG adjustment has changed
+      my %oldadj = $project->tagadjustment;
+      my %newadj;
+      for my $queue (keys %oldadj) {
+	$newadj{$queue} = $q->param('tag_'. $queue);
+
+	# Taint checking
+
+
+	if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
+	  $changed++;
+
+	  $project->tagadjustment({$queue, $newadj{$queue}});
+
+	  push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
+	}
+      }
+
+      # Generate feedback message
+
+      # Get OMP user object
+      my $user_obj = OMP::UserServer->getUser($userid);
+      OMP::FBServer->addComment($project->projectid,
+				{author => $user_obj,
+				 subject => 'Project details altered',
+				 text => "The following changes have been made to this project:\n\n".
+				 join("\n", @msg)},
+			       );
+
+      # Now store the changes
+      # $projdb->_update_project_row( $project );
+
+      if ($msg[0]) {
+	print join("<br>", @msg);
+
+	if (scalar(@msg) == 1) {
+	  print "<br><br>This change has been committed.<br>";
+	} else {
+	  print "<br><br>These changes have been committed.<br>";
+	}
+      } else {
+	print "<br>No changes were submitted.</br>";
+      }
+
+      return;
+    }
+
+    # Display form for updating project details
+    print $q->start_form(-name=>'alter_project');
+
+    print $q->hidden(-name=>'projectid',
+		     -default=>$project->projectid,);
+
+    print $q->hidden(-name=>'userid',
+		     -default=>$userid,);
+
+    print "<table>";
+
+    # Allocation
+    print "<tr><td align='right'>Allocation</td>";
+    my $allocated = $project->allocated;
+    my $remaining = $project->remaining;
+    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
+    print "<td>";
+    print $q->textfield('alloc_h',$alloc_h,3,5);
+    print " hours ";
+    print $q->textfield('alloc_m',$alloc_m,2,2);
+    print " minutes ";
+    print $q->textfield('alloc_s',$alloc_s,2,2);
+    print " seconds";
+    print "</td></tr><tr><td align='right'>Remaining</td><td>". $remaining->pretty_print;
+    print "</td></tr>";
+
+    # Semester
+    print "<tr><td align='right'>Semester</td>";
+    my $semester = $project->semester;
+
+    # Get semester options
+    my @semesters = $projdb->listSemesters();
+
+    print "<td>";
+    print $q->popup_menu(-name=>'semester',
+			 -default=>$semester,
+			 -values=>[@semesters]);
+    print "</td></tr>";
+
+    # Cloud
+    print "<tr><td align='right'>Cloud</td>";
+    my $cloud = $project->cloudrange;
+
+    # Get cloud options
+    my %cloud_lut = OMP::SiteQuality::get_cloud_text();
+    my %cloud_labels = map {$cloud_lut{$_}->max(), $_} keys %cloud_lut;
+
+    print "<td>";
+    print $q->popup_menu(-name=>'cloud',
+			 -default=>int($cloud->max()),
+			 -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
+			 -labels=>\%cloud_labels,);
+    print "</td></tr>";
+
+    # Tag adjustment
+    print "<tr><td align='right'>TAG adj.</td>";
+    my %tagpriority = $project->queue;
+    my %tagadj = $project->tagadjustment;
+
+    my $keycount;
+    for my $queue (keys %tagpriority) {
+      $keycount++;
+      print "<tr><td></td>"
+	if ($keycount > 1);
+      print "<td>";
+      print $q->textfield("tag_${queue}",
+			  ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+			  4,32);
+      print " ($queue $tagpriority{$queue})";
+      print "</td></tr>";
+    }
+
+    print "</table>";
+    print "<br>";
+
+    print $q->submit(-name=>"alter_submit",
+		     -label=>"Submit",);
+
+    print $q->end_form();
+  }
 }
 
 =back
