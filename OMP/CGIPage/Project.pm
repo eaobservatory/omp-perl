@@ -920,7 +920,7 @@ sub alter_proj {
 			       );
 
       # Now store the changes
-      # $projdb->_update_project_row( $project );
+      $projdb->_update_project_row( $project );
 
       if ($msg[0]) {
 	print join("<br>", @msg);
