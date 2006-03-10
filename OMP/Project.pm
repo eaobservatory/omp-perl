@@ -1563,6 +1563,32 @@ sub semester_ori {
   }
 }
 
+=item B<fixAlloc>
+
+Force a specific allocation on the project (not an increment), and
+correct the remaining time on the project.  Takes number of hours
+as an argument.
+
+  $proj->fixAlloc( 10 );
+
+=cut
+
+sub fixAlloc {
+  my $self = shift;
+  my $new = shift;
+
+  $new *= 3600;
+
+  # Get the old allocation and time remaining
+  my $old = $self->allocated;
+  my $rem = $self->remaining;
+  my $inc = $new - $old;
+
+  # Fix up the time remaining
+  $self->remaining( $rem + $inc );
+  $self->allocated( $new );
+}
+
 =item B<incPending>
 
 Increment the value of the C<pending> field by the specified amount.
