@@ -2064,6 +2064,12 @@ sub acsisdr_recipe {
 						    );
   $acsis->gridder_config( $g );
 
+  # and the basic gridder and spectrum writer configuration
+  my $sw = new JAC::OCS::Config::ACSIS::SWriterConfig( EntityFile => $filename,
+						      validation => 0,
+						    );
+  $acsis->swriter_config( $sw ) if defined $sw;
+
   # Write the observing mode to the recipe
   my $rmode = $info{observing_mode};
   $rmode =~ s/_/\//g;
