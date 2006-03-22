@@ -219,6 +219,10 @@ sub night_report {
       print "<a href='#wvm'>View WVM graph</a><br>";
     }
 
+    # Link to seeing plot.
+    my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
+    ($seeing_html) and print "<a href='#seeing'>View seeing graph</a><br>";
+
     $nr->ashtml( worfstyle => 'staff',
                  commentstyle => 'staff', );
 
@@ -232,6 +236,10 @@ sub night_report {
       $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate->ymd);
       print $wvm_html;
     }
+
+    # Display seeing plot.
+    ( $seeing_html ) and print "<p>$seeing_html</p>";
+
   }
 }
 
