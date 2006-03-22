@@ -33,6 +33,36 @@ $| = 1;
 
 =over 4
 
+=item B<seeing_plot_code>
+
+Return HTML snippet for displaying a seeing plot.
+
+  $html = seeing_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub seeing_plot_code {
+  my $utdate = shift;
+
+  my $seeing_plot_dir = OMP::Config->getData( 'seeing-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+
+  my $URL = "$seeing_plot_dir/$gifdate.png";
+
+  my $string = "<a name='seeing'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>K-band seeing graph</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
 =item B<tau_plot_code>
 
 Return HTML snippet for displaying a tau plot.
