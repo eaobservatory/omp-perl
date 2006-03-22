@@ -56,7 +56,7 @@ sub seeing_plot_code {
 
   my $string = "<a name='seeing'></a>\n";
   $string .= "<br>";
-  $string .= "<strong class='small_title'>K-band seeing graph</strong><p>";
+  $string .= "<strong class='small_title'>K-band seeing corrected to zenith</strong><p>";
   $string .= "<div align=left>";
   $string .= "<img src='$URL'><br><br></p>";
 
