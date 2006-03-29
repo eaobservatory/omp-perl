@@ -35,6 +35,7 @@ use Math::Trig / rad2deg /;
 use JCMT::ACSIS::HWMap;
 use JCMT::SMU::Jiggle;
 use JAC::OCS::Config;
+use JAC::OCS::Config::Error qw/ :try /;
 
 use OMP::Config;
 use OMP::Error;
@@ -2064,11 +2065,15 @@ sub acsisdr_recipe {
 						    );
   $acsis->gridder_config( $g );
 
-  # and the basic gridder and spectrum writer configuration
-  my $sw = new JAC::OCS::Config::ACSIS::SWriterConfig( EntityFile => $filename,
-						      validation => 0,
-						    );
-  $acsis->swriter_config( $sw ) if defined $sw;
+  # and the basic gridder and spectrum writer configuration (optional)
+  try {
+    my $sw = new JAC::OCS::Config::ACSIS::SWriterConfig( EntityFile => $filename,
+							 validation => 0,
+						       );
+    $acsis->swriter_config( $sw ) if defined $sw;
+  } catch JAC::OCS::Config::Error::XMLConfigMissing with {
+    # can be ignored
+  };
 
   # Write the observing mode to the recipe
   my $rmode = $info{observing_mode};
