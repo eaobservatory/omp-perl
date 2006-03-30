@@ -829,7 +829,7 @@ sub alter_proj {
   my $userid = $cookie{userid};
 
   if ($projectid) {
-    print $q->h3("Alter project details for ". uc($projectid));
+    print "<h3>Alter project details for ". uc($projectid) ."</h3>";
 
     # Connect to the database
     my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
@@ -839,6 +839,8 @@ sub alter_proj {
 
     # Retrieve the project object
     my $project = $projdb->_get_project_row();
+
+    print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
 
     if ($q->param('alter_submit')) {
       my $changed;
@@ -906,6 +908,40 @@ sub alter_proj {
 
 	  push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
 	}
+      }
+
+      # Check whether TAU range has changed
+      my $old_taurange = $project->taurange;
+      my %tau_params;
+      $tau_params{Min} = $q->param('taumin');
+      $tau_params{Max} = $q->param('taumax')
+	unless (! $q->param('taumax'));
+      my $new_taurange = new OMP::Range(%tau_params);
+
+      if ($old_taurange->min() != $new_taurange->min()
+	  or $old_taurange->max() != $new_taurange->max()) {
+	$changed++;
+
+	$project->taurange($new_taurange);
+	
+	push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
+      }
+
+      # Check whether Seeing range has changed
+      my $old_seeingrange = $project->seeingrange;
+      my %seeing_params;
+      $seeing_params{Min} = $q->param('seeingmin');
+      $seeing_params{Max} = $q->param('seeingmax')
+	unless (! $q->param('seeingmax'));
+      my $new_seeingrange = new OMP::Range(%seeing_params);
+
+      if ($old_seeingrange->min() != $new_seeingrange->min()
+	  or $old_seeingrange->max() != $new_seeingrange->max()) {
+	$changed++;
+
+	$project->seeingrange($new_seeingrange);
+	
+	push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
       }
 
       # Generate feedback message
@@ -992,7 +1028,7 @@ sub alter_proj {
     print "</td></tr>";
 
     # Tag adjustment
-    print "<tr><td align='right'>TAG adj.</td>";
+    print "<tr><td align='right' valign='top'>TAG adj.</td>";
     my %tagpriority = $project->queue;
     my %tagadj = $project->tagadjustment;
 
@@ -1001,15 +1037,43 @@ sub alter_proj {
       $keycount++;
       print "<tr><td></td>"
 	if ($keycount > 1);
-      print "<td>";
+
+      print "<td valign='top'>";
+      print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
+	unless ($keycount > 1);
+
       print $q->textfield("tag_${queue}",
 			  ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
 			  4,32);
-      print " ($queue $tagpriority{$queue})";
+      print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
+
       print "</td></tr>";
     }
 
+    # TAU Range
+    print "<tr><td align='right' valign='top'>TAU range</td>";
+    my $taurange = $project->taurange;
+    my $taumin = $taurange->min();
+    my $taumax = $taurange->max();
+    print "<td>";
+    print $q->textfield("taumin", $taumin, 3, 4);
+    print " - ";
+    print $q->textfield("taumax", $taumax, 3, 4);
+    print "</td></tr>";
+
+    # Seeing Range
+    print "<tr><td align='right' valign='top'>Seeing range</td>";
+    my $seeingrange = $project->seeingrange;
+    my $seeingmin = $seeingrange->min();
+    my $seeingmax = $seeingrange->max();
+    print "<td>";
+    print $q->textfield("seeingmin", $seeingmin, 3, 4);
+    print " - ";
+    print $q->textfield("seeingmax", $seeingmax, 3, 4);
+    print "</td></tr>";
+
     print "</table>";
+
     print "<br>";
 
     print $q->submit(-name=>"alter_submit",
