@@ -2052,8 +2052,8 @@ sub _run_query {
 
   # Get the sql
   my $sql = $query->sql( $MSBTABLE, $OBSTABLE, $PROJTABLE,
-			 $OMP::ProjDB::PROJQUEUETABLE,
-			 $OMP::ProjDB::PROJUSERTABLE );
+                         $OMP::ProjDB::PROJQUEUETABLE,
+                         $OMP::ProjDB::PROJUSERTABLE );
 
   print "SQL: $sql\n" if $DEBUG;
 
@@ -2091,7 +2091,7 @@ sub _run_query {
   # so that 0 (index) <= 0 ($#$ref)
   while ($start_index <= $#$ref) {
     my $end_index = ( $start_index + $MAX_ID < $#$ref ?
-		    $start_index + $MAX_ID : $#$ref);
+                      $start_index + $MAX_ID : $#$ref);
     my @clauses = map { " msbid = ".$_->{msbid}. ' ' }
       @$ref[$start_index..$end_index];
     $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
@@ -2101,8 +2101,8 @@ sub _run_query {
   }
 
   $t1 = [gettimeofday];
-  OMP::General->log_message("Obs retrieval: ".@observations." obs in  " . 
-    tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG);
+  OMP::General->log_message("Obs retrieval: ".@observations." obs in  " .
+                            tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG);
   $t0 = $t1;
 
   # Now loop over the results and store the observations in the
@@ -2124,13 +2124,13 @@ sub _run_query {
     # row since there could be thousands of observations even though
     # we only need the first 10
     $row->{waveband} = new Astro::WaveBand(Instrument => $row->{instrument},
-					   Wavelength => $row->{wavelength});
+                                           Wavelength => $row->{wavelength});
 
   }
 
   $t1 = [gettimeofday];
   OMP::General->log_message( "Create obs hash indexed by MSB ID " .
-			     tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG );
+                             tv_interval( $t0, $t1 ) . " seconds\n", OMP__LOG_DEBUG );
   $t0 = $t1;
 
   # And now attach it to the relevant MSB
@@ -2153,7 +2153,7 @@ sub _run_query {
 
   $t1 = [gettimeofday];
   OMP::General->log_message( "Attach obs to MSB: " . tv_interval( $t0, $t1 ) . " seconds\n",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
   $t0 = $t1;
 
   # Now to limit the number of matches to return
@@ -2273,159 +2273,157 @@ sub _run_query {
 
       # Loop over each observation.
       # We have to keep track of the reference time
-      OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
+    OBSLOOP: for my $obs ( @{ $msb->{observations} } ) {
 
-	$obs_count++;
+        $obs_count++;
 
-	# Create the coordinate object in order to calculate
-	# observability. Special case calibrations since they
-	# are difficult to spot from looking at the standard args
-	if ($obs->{coordstype} eq 'CAL') {
-	  $obs->{coords} = new Astro::Coords();
-	} else {
-	  my %coords;
-	  my $coordstype = $obs->{coordstype};
-	  if ($coordstype eq 'RADEC') {
-	    %coords = (
-		       ra => $obs->{ra2000},
-		       dec => $obs->{dec2000},
-		       type => 'J2000',
-		      );
-	  } elsif ($coordstype eq 'PLANET') {
-	    %coords = ( planet => $obs->{target});
-	  } elsif ($coordstype eq 'ELEMENTS') {
+        # Create the coordinate object in order to calculate
+        # observability. Special case calibrations since they are
+        # difficult to spot from looking at the standard args
+        if ($obs->{coordstype} eq 'CAL') {
+          $obs->{coords} = new Astro::Coords();
+        } else {
+          my %coords;
+          my $coordstype = $obs->{coordstype};
+          if ($coordstype eq 'RADEC') {
+            %coords = (
+                       ra => $obs->{ra2000},
+                       dec => $obs->{dec2000},
+                       type => 'J2000',
+                      );
+          } elsif ($coordstype eq 'PLANET') {
+            %coords = ( planet => $obs->{target});
+          } elsif ($coordstype eq 'ELEMENTS') {
 
-	    print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
+            print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
 
-	    # Use the array constructor since the columns
-	    # were populated using array() method and we do not
-	    # want to repeat the logic
-	    %coords = (
-		       elements => [ 'ELEMENTS', undef, undef,
-				     $obs->{el1},
-				     $obs->{el2},
-				     $obs->{el3},
-				     $obs->{el4},
-				     $obs->{el5},
-				     $obs->{el6},
-				     $obs->{el7},
-				     $obs->{el8},
-				   ],
-		      );
-	  } elsif ($coordstype eq 'FIXED') {
-	    %coords = ( az => $obs->{ra2000},
-			el => $obs->{dec2000});
-	  }
-	  $coords{name} = $obs->{target};
+            # Use the array constructor since the columns were
+            # populated using array() method and we do not want to
+            # repeat the logic
+            %coords = (
+                       elements => [ 'ELEMENTS', undef, undef,
+                                     $obs->{el1},
+                                     $obs->{el2},
+                                     $obs->{el3},
+                                     $obs->{el4},
+                                     $obs->{el5},
+                                     $obs->{el6},
+                                     $obs->{el7},
+                                     $obs->{el8},
+                                   ],
+                      );
+          } elsif ($coordstype eq 'FIXED') {
+            %coords = ( az => $obs->{ra2000},
+                        el => $obs->{dec2000});
+          }
+          $coords{name} = $obs->{target};
 
-	  # and create the object
-	  $obs->{coords} = new Astro::Coords(%coords);
+          # and create the object
+          $obs->{coords} = new Astro::Coords(%coords);
 
-	  # throw if we have a problem
-	  throw OMP::Error::FatalError("Major problem generating coordinate object from ". Dumper($msb,\%coords)) unless defined $obs->{coords};
+          # throw if we have a problem
+          throw OMP::Error::FatalError("Major problem generating coordinate object from ". Dumper($msb,\%coords)) unless defined $obs->{coords};
 
+        }
 
-	}
+        # Get the coordinate object.
+        my $coords = $obs->{coords};
 
-	# Get the coordinate object.
-	my $coords = $obs->{coords};
+        # throw if we have a problem
+        throw OMP::Error::FatalError("Major problem generating coordinate object") unless defined $coords;
 
-	# throw if we have a problem
-	throw OMP::Error::FatalError("Major problem generating coordinate object") unless defined $coords;
+        # Set the teelscope
+        $coords->telescope( $telescope );
 
-	# Set the teelscope
-	$coords->telescope( $telescope );
+        # Loop over two times. The current time and the current time
+        # incremented by the observation time estimate Note that we do
+        # not test for the case where the source is not observable
+        # between the two reference times For example at JCMT where
+        # the source may transit above 87 degrees
+        for my $delta (0, $obs->{timeest}) {
 
-	# Loop over two times. The current time and the current
-	# time incremented by the observation time estimate
-	# Note that we do not test for the case where the source
-	# is not observable between the two reference times
-	# For example at JCMT where the source may transit above
-	# 87 degrees
-	for my $delta (0, $obs->{timeest}) {
+          # increment the date
+          $date += $delta;
 
-	  # increment the date
-	  $date += $delta;
+          # Set the time in the coordinates object
+          $coords->datetime( $date );
 
-	  # Set the time in the coordinates object
-	  $coords->datetime( $date );
+          # If we are a CAL observation just skip
+          # make sure to add the time estimate though!
+          next if $obs->{coordstype} eq 'CAL';
 
-	  # If we are a CAL observation just skip
-	  # make sure to add the time estimate though!
-	  next if $obs->{coordstype} eq 'CAL';
+          # Now see if we are observable (dropping out the loop if not
+          # since there is no point checking further) This knows about
+          # different telescopes automatically Also check that we are
+          # above the minimum elevation (which is not related to the
+          # queries but is a scheduling constraint) In some cases we
+          # dont even want to test for observability
+          if ($qconstraints{observability}) {
+            if  ( ! $coords->isObservable or
+                  ! $elconstraint->contains( $coords->el ) or
+                  ! ($coords->ha(normalize=>1)*$approach >= 0)
+                ) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+          }
 
-	  # Now see if we are observable (dropping out the loop if not
-	  # since there is no point checking further) This knows about
-	  # different telescopes automatically Also check that we are
-	  # above the minimum elevation (which is not related to the
-	  # queries but is a scheduling constraint)
-	  # In some cases we dont even want to test for observability
-	  if ($qconstraints{observability}) {
-	    if  ( ! $coords->isObservable or
-		  ! $elconstraint->contains( $coords->el ) or
-		  ! ($coords->ha(normalize=>1)*$approach >= 0)
-		) {
-	      $isObservable = 0;
-	      last OBSLOOP;
-	    }
-	  }
+          # Now check for hour angle and elevation constraints
+          # imposed from the query.
+          if ($harange) {
+            unless ($harange->contains($coords->ha(format => 'h',normalize=>1))) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+          }
+          if ($amrange) {
+            unless ($amrange->contains($coords->airmass)) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+          }
 
-	  # Now check for hour angle and elevation constraints
-	  # imposed from the query.
-	  if ($harange) {
-	    unless ($harange->contains($coords->ha(format => 'h',normalize=>1))) {
-	      $isObservable = 0;
-	      last OBSLOOP;
-	    }
-	  }
-	  if ($amrange) {
-	    unless ($amrange->contains($coords->airmass)) {
-	      $isObservable = 0;
-	      last OBSLOOP;
-	    }
-	  }
+          # Include the HA for the start and end of the observation
+          $nh++;
+          $hasum += abs($coords->ha( format => 'radians' ));
 
-	  # Include the HA for the start and end of the observation
-	  $nh++;
-	  $hasum += abs($coords->ha( format => 'radians' ));
-
-	}
+        }
 
       }
 
       # If the MSB is observable store it in the output array
       if ($isObservable) {
-	push(@observable, $msb);
+        push(@observable, $msb);
 
-	# check priority [TAG range]
-	my $pri = int($msb->{priority});
-	if ($pri > $primax) {
-	  $primax = $pri;
-	} elsif ($pri < $primin) {
-	  $primin = $pri;
-	}
+        # check priority [TAG range]
+        my $pri = int($msb->{priority});
+        if ($pri > $primax) {
+          $primax = $pri;
+        } elsif ($pri < $primin) {
+          $primin = $pri;
+        }
 
-	# calculate mean hour angle
-	my $hamean = 0;
-	$hamean = $hasum / $nh if $hasum > 0;
+        # calculate mean hour angle
+        my $hamean = 0;
+        $hamean = $hasum / $nh if $hasum > 0;
 
-	# and convert to hours
-	$hamean *= Astro::SLA::DR2H;
+        # and convert to hours
+        $hamean *= Astro::SLA::DR2H;
 
-	# Store the mean hour angle for later
-	$msb->{hamean} = $hamean;
+        # Store the mean hour angle for later
+        $msb->{hamean} = $hamean;
 
-	# Jump out the loop if we have enough matches
-	# A negative $max will never match
-	last if scalar(@observable) == $max;
+        # Jump out the loop if we have enough matches
+        # A negative $max will never match
+        last if scalar(@observable) == $max;
 
       }
 
     }
 
-  $t1 = [gettimeofday];
-  OMP::General->log_message("Observability filtered: checked $msb_count MSBs and $obs_count obs in " . tv_interval( $t0, $t1 ) . " seconds and got ".@observable. " matching MSBs\n", OMP__LOG_DEBUG);
-  $t0 = $t1;
+    $t1 = [gettimeofday];
+    OMP::General->log_message("Observability filtered: checked $msb_count MSBs and $obs_count obs in " . tv_interval( $t0, $t1 ) . " seconds and got ".@observable. " matching MSBs\n", OMP__LOG_DEBUG);
+    $t0 = $t1;
 
   }
 
@@ -2474,7 +2472,7 @@ sub _run_query {
 
   $t1 = [gettimeofday];
   OMP::General->log_message("Scheduling priority: " . tv_interval( $t0, $t1 ) . " seconds\n",
-			   OMP__LOG_DEBUG);
+                            OMP__LOG_DEBUG);
   $t0 = $t1;
 
   # At this point we need to resort by schedpri
@@ -2490,7 +2488,7 @@ sub _run_query {
     my $sortby;
     try {
       $sortby = OMP::Config->getData( 'sortby',
-				      telescope => $observable[0]->{telescope});
+                                      telescope => $observable[0]->{telescope});
     } catch OMP::Error with {
       # Default behaviour
       $sortby = 'priority';
