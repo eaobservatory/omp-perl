@@ -46,10 +46,10 @@ Base class for constructing a new instance of a OMP DB connectivity
 class.
 
 
-  $db = new OMP::BasDB( ProjectID => $project,
-			Password  => $passwd
-			DB => $connection,
-		      );
+  $db = new OMP::BaseDB( ProjectID => $project,
+			 Password  => $passwd
+			 DB => $connection,
+		       );
 
 See C<OMP::ProjDB> and C<OMP::MSBDB> for more details on the
 use of these arguments and for further keys.
@@ -458,7 +458,7 @@ sub _db_insert_data {
   # Some dummy text field that we can replace later
   # Have something that ends in a number so that ++ will
   # work for us in a logical way
-  my $dummytext = 'pwned!1';
+  my $dummytext = 'dummytext_'. int(rand(999999999));
 
   # The insert place holder SQL
   my $placeholder = '';
