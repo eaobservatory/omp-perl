@@ -2486,6 +2486,9 @@ sub simulator_config {
     throw OMP::Error::FatalError( "Simulation requires channel units but it seems this spectral window was configured differently. Needs fixing.\n") if $spwint->units ne 'channel';
     $thiscloud{z_location} = int (($spwint->min + $spwint->max) / 2);
 
+    # Store the spectral window ID
+    $thiscloud{spw_id} = $cube->spw_id;
+
     # offset centre
     my @offset = $cube->offset;
     # No. of pixels, x and y
@@ -2493,7 +2496,7 @@ sub simulator_config {
     # Put cloud in centre to nearest integer
     $thiscloud{x_location} = int($offset[0]+$npix[0]/2);
     $thiscloud{y_location} = int($offset[1]+$npix[1]/2);
-    
+
     # Width of fake source. Is this in pixels or arcsec?
     # +1 to ensure that it always has non-zero width
     $thiscloud{major_width} = int(0.6 * $npix[0])+1;
