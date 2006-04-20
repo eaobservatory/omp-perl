@@ -2602,12 +2602,32 @@ sub acsis_layout {
   # Now select the appropriate layout depending on the instrument found (and possibly mode)
   my $appropriate_layout;
   if (exists $ACSIS_Layouts{$inst . "_$info{observing_mode}"}) {
-    $appropriate_layout = $ACSIS_Layouts{$inst."_$info{observing_mode}"} . '_layout.ent';
+    $appropriate_layout = $ACSIS_Layouts{$inst."_$info{observing_mode}"};
   } elsif (exists $ACSIS_Layouts{$inst}) {
-    $appropriate_layout = $ACSIS_Layouts{$inst} . '_layout.ent';
+    $appropriate_layout = $ACSIS_Layouts{$inst};
   } else {
     throw OMP::Error::FatalError("Could not find an appropriate layout file for instrument $inst !");
   }
+
+  # We now need to fudge the gridder number by correcting for multi-subsystem, multi-receptor
+  # and multi-waveplate gridding
+  if ( $appropriate_layout =~ /g(\d+)$/) {
+    my $gnum = $1;
+
+    my $spwlist = $acsis->spw_list;
+    if (!defined $spwlist) {
+      throw OMP::Error::FatalError("Could not find spectral window configuration. Should not happen!");
+    }
+
+    my %spw = $spwlist->spectral_windows;
+    $gnum *= scalar keys %spw;
+
+    # replace the number
+    $appropriate_layout =~ s/g\d+$/g$gnum/;
+  }
+
+  # append the standard file extension
+  $appropriate_layout .= '_layout.ent';
 
   # Read the template process_layout file
   my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
