@@ -27,7 +27,10 @@ The following options are supported:
 
 =item B<science programme>
 
-The main argument is the file containing the science program.
+The main argument is the file containing the science program. If the file does not
+exist and the string does not a file extension (.xml) it is assumed to refer to
+an actual project ID. In that case the project password is requested and an attempt
+is made to retrieve the science programme for target extraction.
 
 =item B<-version>
 
@@ -54,9 +57,14 @@ use Getopt::Long;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
-# OMP classes
+# External modules
 use DateTime;
+use Term::ReadLine;
+
+# OMP classes
 use OMP::SciProg;
+use OMP::ProjServer;
+use OMP::SpServer;
 
 # Options
 my ($help, $man, $version);
@@ -70,13 +78,36 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
   my $id = '$Id$ ';
-  print "cat2sp - catalogue to science program importer\n";
+  print "omplisttargs - List targets found in science programme\n";
   print " CVS revision: $id\n";
   exit;
 }
 
 # Read the science program in
-my $sp = new OMP::SciProg( FILE => shift(@ARGV));
+my $file = shift(@ARGV);
+
+my $sp;
+if (-e $file) {
+  # looks to be a filename
+  $sp = new OMP::SciProg( FILE => shift(@ARGV));
+} elsif ( OMP::ProjServer->verifyProject( $file ) ) {
+  # we have a project ID - we need to get permission
+
+  my $term = new Term::ReadLine 'Retrieve Science Programme';
+
+  # Needs Term::ReadLine::Gnu
+  my $attribs = $term->Attribs;
+  $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+  my $password = $term->readline( "Please enter project or staff password: ");
+  $attribs->{redisplay_function} = $attribs->{rl_redisplay};
+
+  print "Retrieving science programme $file\n";
+  $sp = OMP::SpServer->fetchProgram( $file, $password, "OBJECT" );
+
+} else {
+  die "Supplied argument ($file) is neither a file nor a project ID\n";
+}
+
 
 # Reference time
 my $dt = DateTime->now;
