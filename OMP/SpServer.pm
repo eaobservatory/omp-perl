@@ -110,7 +110,7 @@ sub storeProgram {
 			     $sp->projectID . "\n");
 
     # Check the version number and abort if it is too old
-    my $minver = '20031223';
+    my $minver = '20060401';
     my $otver = $sp->ot_version;
     if (!defined $otver || $otver < $minver) {
       $otver = "0" unless defined $otver;
