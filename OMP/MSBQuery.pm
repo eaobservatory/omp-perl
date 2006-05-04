@@ -179,6 +179,7 @@ Supported constraints are:
   remaining      - is the MSB still to be observed
   allocation     - has the full project allocation been used
   state          - is the project enabled
+  zoa            - is the source within the zone-of-avoidance?
 
 Each of these will have a true (constraint is active) or false
 (constraint is disabled) value.
@@ -209,6 +210,7 @@ sub constraints {
 		     remaining => 1,
 		     allocation => 1,
 		     state => 1,
+                     zoa => 1,
 		    );
 
   # Go through the disableconstraint array making a hash

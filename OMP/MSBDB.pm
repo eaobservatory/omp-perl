@@ -51,6 +51,7 @@ use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
 
 use Time::Piece qw/ :override /;
+use Time::Seconds;
 use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
@@ -2202,7 +2203,6 @@ sub _run_query {
     # be the current time or a time that was specified in the query.
     my $refdate = $query->refDate;
 
-
     # Determine whether we are interested in checking for
     # observability. We cant jump out the for loop because
     # the person receiving the query will still want to 
@@ -2212,10 +2212,27 @@ sub _run_query {
     # Get the elevation/airmass and hour angle constraints
     my $amrange = $query->airmass;
     my $harange = $query->ha;
+    my $qhash = $query->query_hash;
+    my $qphase = 0;
+    if( exists( $qhash->{'moonmax'} ) &&
+        defined( $qhash->{'moonmax'} ) ) {
+      $qphase = $qhash->{'moonmax'}->min;
+    }
 
     # Count how many we actual checked
     my $msb_count;
     my $obs_count;
+my $totalelapsed = 0;
+
+    # Set up zone-of-avoidance variables
+    my $zoa_coords;
+    my $zoa_phase;
+    my $zoa_target;
+    my $zoa_radius;
+
+    my $zoa_targetrise;
+    my $zoa_targetset;
+    my $zoa_targetup = 0;
 
     # Loop over each MSB in order
     for my $msb ( @$ref ) {
@@ -2227,6 +2244,50 @@ sub _run_query {
 
       # Get the telescope name from the MSB and create a telescope object
       my $telescope = new Astro::Telescope( $msb->{telescope} );
+
+      my $zoa = $qconstraints{zoa};
+
+      # Do not do ZOA calculations if the current phase is smaller
+      # than the requested phase, but only if the current phase is not
+      # zero (the QT sends a phase of zero if the moon is set at the
+      # current time, but the moon could rise during an observation,
+      # so we want to check the moon's position anyhow).
+      if( $zoa &&
+          $zoa_target eq 'MOON' &&
+          $zoa_phase > $qphase &&
+          $qphase != 0 ) {
+        $zoa = 0;
+      }
+
+      # Retrieve zone-of-avoidance information from the config system
+      # for this telescope if we don't already have it.
+      if( $zoa ) {
+        if( ! defined( $zoa_phase ) ) {
+          $zoa_phase = OMP::Config->getData( 'zoa_phase',
+                                             telescope => $msb->{telescope} );
+        }
+        if( ! defined( $zoa_target ) ) {
+          $zoa_target = OMP::Config->getData( 'zoa_target',
+                                              telescope => $msb->{telescope} );
+        }
+        if( ! defined( $zoa_radius ) ) {
+          $zoa_radius = OMP::Config->getData( 'zoa_radius',
+                                              telescope => $msb->{telescope} );
+        }
+        if( ! defined( $zoa_coords ) ) {
+          $zoa_coords = new Astro::Coords( planet => $zoa_target );
+          $zoa_coords->datetime( $refdate );
+          if( $zoa_coords->el > 0 ) {
+            $zoa_targetup = 1;
+          }
+          $zoa_targetrise = $zoa_coords->rise_time;
+          $zoa_targetset = $zoa_coords->set_time;
+          if( ! defined( $zoa_targetrise ) ) {
+            $zoa_coords->datetime( $refdate + 12 * ONE_HOUR );
+            $zoa_targetrise = $zoa_coords->rise_time;
+          }
+        }
+      }
 
       # Use a flag variable to indicate whether all
       # the observations are observable
@@ -2378,6 +2439,26 @@ sub _run_query {
           }
           if ($amrange) {
             unless ($amrange->contains($coords->airmass)) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+          }
+
+          # Do zone-of-avoidance filtering. Need to use Modified
+          # Julian Day for comparison so we can compare Time::Piece
+          # with DateTime objects.
+          if( ( $zoa ) &&
+              ( (   $zoa_targetup && $date->mjd < $zoa_targetset->mjd ) ||
+                ( ! $zoa_targetup && $date->mjd > $zoa_targetrise->mjd ) ) ) {
+
+            # Calculate the position of the zone-of-avoidance target.
+            $zoa_coords->datetime( $date );
+
+            # Find the distance between our observation and the zoa
+            # target. If it's less than the radius (which is in
+            # degrees) then the observation is not observable.
+            my $distance = $coords->distance( $zoa_coords );
+            if( $distance->degrees < $zoa_radius ) {
               $isObservable = 0;
               last OBSLOOP;
             }
