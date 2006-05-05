@@ -477,6 +477,9 @@ sub _add_new_response {
   $date = $date->strftime("%Y%m%d %T");
 
   $self->_db_insert_data( $FAULTBODYTABLE,
+			  { COLUMN => 'faultid',
+			    QUOTE => 0,
+			    POSN => 0 },
 			  $id, $date, $userid, $resp->isfault,
 			  {
 			   TEXT => $text,

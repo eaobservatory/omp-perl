@@ -555,6 +555,9 @@ sub _store_comment {
                "COLUMN" => "commenttext" );
 
   $self->_db_insert_data( $OBSLOGTABLE,
+			  { COLUMN => 'commentauthor',
+			    QUOTE => 1,
+			    POSN => 6 },
                           $obs->runnr,
                           $obs->instrument,
                           $obs->telescope,

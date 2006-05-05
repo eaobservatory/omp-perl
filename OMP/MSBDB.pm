@@ -1412,6 +1412,10 @@ sub _db_store_sciprog {
 
   # Insert the data into the science program
   $self->_db_insert_data($SCITABLE,
+			 { COLUMN => 'projectid',
+			   QUOTE => 1,
+			   POSN => 0,
+			 },
 			 $proj, $timestamp,
 			 {
 			  TEXT => $spxml,
