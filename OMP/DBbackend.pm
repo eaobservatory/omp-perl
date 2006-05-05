@@ -142,6 +142,25 @@ sub has_writetext {
   }
 }
 
+=item B<has_textinsert_placeholders>
+
+Indicates whether the database supports the INSERT of TEXT fields
+using placeholders. Else text must be embedded in SQL itself.
+
+Returns true if it does, false if it does not.
+
+=cut
+
+sub has_textinsert_placeholders {
+  my $class = shift;
+  my $driver = $class->dbdriver;
+  if ($driver eq 'Sybase') {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 =item B<has_textsize>
 
 Indicates whether the database supports the "SET TEXTSIZE" construct.
