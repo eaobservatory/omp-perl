@@ -613,7 +613,9 @@ select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
     # any hint? This should help to make the select faster since the TEXT field
     # will not be an indexed field
     if (defined $UNIQVAL && defined $UNIQCOL) {
-      $sql .= " AND $UNIQCOL = $UNIQVAL"
+      $sql .= " AND $UNIQCOL = $UNIQVAL";
+
+      OMP::General->log_message("Using writetext with a hint of $UNIQCOL = $UNIQVAL", OMP__LOG_DEBUG); 
     }
     # final chunk
     $sql .= "\nwritetext $table.$col \@val '$text'";
