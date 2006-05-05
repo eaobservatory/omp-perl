@@ -440,12 +440,47 @@ to normal fields) and must have the following keys:
   TEXT => the text to be inserted
   COLUMN  => the name of the column
 
+Alternatively, if the second argument is a hash ref containing keys:
+
+  COLUMN => the name of a reference almost uniqe column name
+  POSN   => Position (0 base) into @data for that column
+  QUOTE  => True if the value should be quoted.
+
+  $db->_db_insert_data( $table, { COLUMN => 'projectid,
+                                  POSN => 2 }, @data );
+
+this will be used to optimize large text inserts only. They
+are not mandatory.
+
 =cut
 
 sub _db_insert_data {
   my $self = shift;
   my $table = shift;
+
+  # look for hint
+  my $hints;
+  if (ref($_[0]) eq 'HASH' && exists $_[0]->{COLUMN} && exists $_[0]->{POSN}) {
+    $hints = shift;
+  }
+
+  # read the columns
   my @data = @_;
+
+  # read the hint
+  my $UNIQCOL;
+  my $UNIQVAL;
+  if (defined $hints) {
+    $UNIQCOL = $hints->{COLUMN};
+    if (defined $hints->{POSN} && 
+	($hints->{POSN} >= 0 || $hints->{POSN} <= $#data)) {
+      $UNIQVAL = $data[$hints->{POSN}];
+      $UNIQVAL = "'$UNIQVAL'" if $hints->{QUOTE};
+    } else {
+      throw OMP::Error::BadArgs("Database hint out of range (0<".
+				(defined $hints->{POSN} ? $hints->{POSN} : "undef")."<$#data");
+    }
+  }
 
   # Now go through the data array building up the placeholder sql
   # deciding which fields can be stored immediately and which must be
@@ -454,6 +489,13 @@ sub _db_insert_data {
   # Sybase has a special routine for storing large text fields
   # Otherwise try to use the actual INSERT command
   my $has_write_text = $self->db->has_writetext;
+
+  # even if we have writetext we do not necessarily need to use it
+  # if the content is very small. In that case it is more efficient
+  # to simply insert the text in the main INSERT
+
+  # THRESHOLD (in bytes) to use for proper TEXT inserts using WRITETEXT
+  my $TEXT_THRESHOLD = 32 * 1024;
 
   # Some dummy text field that we can replace later
   # Have something that ends in a number so that ++ will
@@ -487,8 +529,14 @@ sub _db_insert_data {
 	     && exists $column->{TEXT}
 	     && exists $column->{COLUMN}) {
 
-      if ($has_write_text) {
+      my $textlen = length($column->{TEXT});
+
+      if ($has_write_text && $textlen > $TEXT_THRESHOLD) {
 	# Use the optimized non-truncating writetext function
+	OMP::General->log_message( "Inserting $textlen bytes of TEXT using WRITETEXT into colummn ".
+				   $column->{COLUMN} .
+				   " in $table",
+				   OMP__LOG_DEBUG );
 
 	# Add the dummy text to the hash
 	$column->{DUMMY} = $dummytext;
@@ -504,9 +552,20 @@ sub _db_insert_data {
 	$dummytext++;
 
       } else {
-	# Put this in the INSERT directly
-	push(@toinsert, $column->{TEXT});
-	$placeholder .= "?";
+	unless ($textlen > $TEXT_THRESHOLD) {
+	  OMP::General->log_message("Inserting $textlen bytes of TEXT using normal INSERT into column ".
+				    $column->{COLUMN} . " in $table",
+				    OMP__LOG_DEBUG);
+	}
+	# on some systems we can use placeholders for TEXT inserts.
+	if ($self->db->has_textinsert_placeholders) {
+	  push(@toinsert, $column->{TEXT});
+	  $placeholder .= "?";
+	} else {
+	  # escape quotes
+	  my $text = $self->_quote_text_insert( $column->{TEXT} );
+	  $placeholder.= "'$text'";
+	}
       }
 
     } else {
@@ -544,22 +603,43 @@ sub _db_insert_data {
     OMP::General->log_message( "Inserting DB text data column: $col",
 			       OMP__LOG_DEBUG );
 
-    # Need to double up quotes to escape them in SQL
-    # Since we are quoting $text with a single quote
-    # we need to double up single quotes
-    $text =~ s/\'/\'\'/g;
+    # escape quotes
+    $text = $self->_quote_text_insert( $text );
 
     # Now replace the dummy text using writetext
-    $dbh->do("declare \@val varbinary(16)
-select \@val = textptr($col) from $table where $col like \"$dummy\"
-writetext $table.$col \@val '$text'")
-    or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
+    my $sql = "declare \@val varbinary(16)
+select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
 
-    OMP::General->log_message( "Text data inserted.", OMP__LOG_DEBUG );
+    # any hint? This should help to make the select faster since the TEXT field
+    # will not be an indexed field
+    if (defined $UNIQVAL && defined $UNIQCOL) {
+      $sql .= " AND $UNIQCOL = $UNIQVAL"
+    }
+    # final chunk
+    $sql .= "\nwritetext $table.$col \@val '$text'";
+
+    # run it
+    $dbh->do( $sql )
+      or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
+
+    OMP::General->log_message( "Text data inserted using WRITETEXT.", OMP__LOG_DEBUG );
 
   }
 
   OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
+}
+
+# internal method to quote text ready for insert
+sub _quote_text_insert {
+  my $self = shift;
+  my $text = shift;
+
+  # Need to double up quotes to escape them in SQL
+  # Since we are quoting $text with a single quote
+  # we need to double up single quotes
+  $text =~ s/\'/\'\'/g;
+
+  return $text;
 }
 
 =item B<_db_retrieve_data_ashash>
