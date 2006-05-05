@@ -348,7 +348,10 @@ sub _store_comment {
     or $entrynum = 1;
 
   # Store the data
-  $self->_db_insert_data( $FBTABLE,
+  $self->_db_insert_data( $FBTABLE, 
+			  { COLUMN => 'projectid',
+			    QUOTE => 1,
+			    POSN => 1 },
 			  $entrynum,
 			  $projectid,
 			  (defined $comment->{author} ? 
