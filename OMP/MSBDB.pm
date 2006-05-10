@@ -2226,7 +2226,6 @@ sub _run_query {
     # Count how many we actual checked
     my $msb_count;
     my $obs_count;
-my $totalelapsed = 0;
 
     # Set up zone-of-avoidance variables
     my $zoa_coords;
@@ -2251,18 +2250,6 @@ my $totalelapsed = 0;
 
       my $zoa = $qconstraints{zoa};
 
-      # Do not do ZOA calculations if the current phase is smaller
-      # than the requested phase, but only if the current phase is not
-      # zero (the QT sends a phase of zero if the moon is set at the
-      # current time, but the moon could rise during an observation,
-      # so we want to check the moon's position anyhow).
-      if( $zoa &&
-          $zoa_target eq 'MOON' &&
-          $zoa_phase > $qphase &&
-          $qphase != 0 ) {
-        $zoa = 0;
-      }
-
       # Retrieve zone-of-avoidance information from the config system
       # for this telescope if we don't already have it.
       if( $zoa ) {
@@ -2280,6 +2267,7 @@ my $totalelapsed = 0;
         }
         if( ! defined( $zoa_coords ) ) {
           $zoa_coords = new Astro::Coords( planet => $zoa_target );
+          $zoa_coords->telescope( new Astro::Telescope( $msb->{telescope} ) );
           $zoa_coords->datetime( $refdate );
           if( $zoa_coords->el > 0 ) {
             $zoa_targetup = 1;
@@ -2289,8 +2277,21 @@ my $totalelapsed = 0;
           if( ! defined( $zoa_targetrise ) ) {
             $zoa_coords->datetime( $refdate + 12 * ONE_HOUR );
             $zoa_targetrise = $zoa_coords->rise_time;
+            $zoa_coords->datetime( $refdate );
           }
         }
+      }
+
+      # Do not do ZOA calculations if the current phase is smaller
+      # than the requested phase, but only if the current phase is not
+      # zero (the QT sends a phase of zero if the moon is set at the
+      # current time, but the moon could rise during an observation,
+      # so we want to check the moon's position anyhow).
+      if( $zoa &&
+          $zoa_target eq 'MOON' &&
+          $zoa_phase > $qphase &&
+          $qphase != 0 ) {
+        $zoa = 0;
       }
 
       # Use a flag variable to indicate whether all
