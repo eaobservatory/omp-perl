@@ -2463,7 +2463,7 @@ sub _run_query {
             # target. If it's less than the radius (which is in
             # degrees) then the observation is not observable.
             my $distance = $coords->distance( $zoa_coords );
-            if( $distance->degrees < $zoa_radius ) {
+            if( defined $distance && $distance->degrees < $zoa_radius ) {
               $isObservable = 0;
               last OBSLOOP;
             }
