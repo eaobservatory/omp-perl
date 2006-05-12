@@ -96,9 +96,11 @@ $| = 1;
 my $MainWindow; # The Toplevel frame for obslog itself
 my $obslog;  # refers to the object that holds the obslog information
 my %obs; # keys are instruments, values are ObsGroup objects
+my @shiftcomments; # Shiftlog comments.
 my %notebook_contents; # All the notebook content windows
 my %notebook_headers; # All the notebook header windows
 my $notebook; # The widget that holds the tabbed windows.
+my $shiftcommentText; # The widget that holds shiftlog comments.
 my $lastinst; # The instrument of the most recent observation.
 my $current_instrument; # The instrument currently displayed.
 my $verbose; # Long or short output
@@ -546,6 +548,9 @@ sub redraw {
   } elsif( defined( $lastinst ) && exists( $notebook_contents{$lastinst}) ) {
     $notebook->raise( $lastinst );
   }
+
+  &populate_shiftlog_widget();
+
 }
 
 sub rescan {
@@ -569,6 +574,7 @@ sub rescan {
     } $grp->obs;
 
     $lastinst = $sorted_obs[0]->instrument;
+
   }
   catch OMP::Error with {
     my $Error = shift;
@@ -603,6 +609,8 @@ sub rescan {
     OMP::General->log_message( "General error in obslog.pl/rescan:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
 
   };
+
+  &update_shiftlog_comments;
 
   $id->cancel unless !defined($id);
   if( $ut eq $currentut ) {
@@ -866,6 +874,26 @@ sub RaiseComment {
                                             )->pack( -side => 'right',
                                                      -anchor => 'n',
                                                    );
+    my $buttonZeroCountdown = $buttonFrame->Button( -text => 'Zero Countdown',
+                                                    -command => sub {
+                                                      my $t = "Zero countdown problem, repeating group.";
+                                                      my $status = OMP__OBS_BAD;
+                                                      SaveComment( $status,
+                                                                   $t,
+                                                                   $user,
+                                                                   $obs,
+                                                                   $index );
+                                                      redraw( undef, uc( $obs->instrument ), $verbose );
+                                                      if( defined( $id ) ) { $id->cancel; }
+                                                      if( $currentut eq $ut ) {
+                                                        $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
+                                                      };
+                                                      CloseWindow( $CommentWindow );
+                                                    },
+                                                  )->pack( -side => 'right',
+                                                           -anchor => 'n',
+                                                         );
+
   }
 
   # Get the observation information.
@@ -966,108 +994,174 @@ sub create_shiftlog_widget {
   my $w = shift;
 
   # Create a holder frame
-  my $shiftlog = $w->Frame()->pack(-side => 'top', -expand => 1, -fill => 'x');
+  my $shiftlog = $w->Frame()->pack( -side => 'top',
+                                    -expand => 1,
+                                    -fill => 'x' );
 
-  my $topbar = $shiftlog->Frame->pack(-side => 'top',-expand => 1, 
-				      -fill => 'x');
+  my $topbar = $shiftlog->Frame->pack( -side => 'top',
+                                       -expand => 1,
+                                       -fill => 'x' );
 
   # Create the text widget so that we can store the reference
-  my $text = $shiftlog->Text(-height => 4)->pack(-side=>'bottom',-expand=> 1,
-						-fill => 'x');
+  $shiftcommentText = $shiftlog->Scrolled( 'Text',
+                                           -height => 6,
+                                           -scrollbars => 'oe',
+                                         )->pack( -side => 'bottom',
+                                                  -expand => 1,
+                                                  -fill => 'x');
 
   # This variable controls whether we are in Local time or UT
   # Options are "LocalTime" and "UT"
   my $TZ = "LocalTime";
 
-  # Now create the topbar
-  # First a label
-  $topbar->Label(-text => "Time Stamp:")->pack(-side=>'left');
+  # A label.
+  $topbar->Label( -text => "Shift Comments for $ut:" )->pack( -side => 'left' );
 
-  # Now the entry widget with the current time
-  my $RefTime;
-  $topbar->Entry(-textvariable => \$RefTime,
-		   -width => 20)->pack(-side=>'left');
+  # Button to add a new comment.
+  $topbar->Button( -text => 'Add New Shift Comment',
+                   -command => sub { raise_shift_comment() },
+                 )->pack( -side => 'right' );
 
+  &BindMouseWheel( $shiftcommentText );
 
-  # Radio button allows siwtching between UT and local time
-  $topbar->Radiobutton(-variable => \$TZ,
-		       -text => "Local Time",
-		       -value => 'LocalTime',
-		      )->pack(-side=>'left');
-  $topbar->Radiobutton(-variable => \$TZ,
-		       -text => "UT",
-		       -value => "UT",
-		      )->pack(-side=>'left');
-
-  # Popup all the comments for the night
-  $topbar->Button(-text => 'Submit Shift Comment',
-		  -command => sub {submit_shift_comment($text, $user,
-			       \$RefTime, $TZ, $telescope)},
-		 )->pack(-side => 'right');
-
-  # Submit this comment
-  # We use a closure so that we can capture the lexicals
-  # without having to pass in references
-  $topbar->Button(-text => 'View all shift Comments',
-		  -command => sub { view_shift_comments($w,$ut, $telescope) },
-		 )->pack(-side => 'right');
-
-  # Need to populate the time field
-  # We use closures rather than array ref for passing arguments
-  # so that we do not need to pass in references for all arguments
-  &update_shift_comment_time($TZ, \$RefTime);
-  $w->repeat(1000, sub { update_shift_comment_time($TZ,\$RefTime) } );
+  $shiftcommentText->configure( -state => 'disable' );
 
 }
 
-# Need to lexicals to allow us to track previous values
-my $PrevTime;
-my $PrevTZ;
+sub update_shiftlog_comments {
 
-# Pass in reference to reftime since we need to change it in the gui
-sub update_shift_comment_time {
-  my $TZ = shift;
-  my $RefTimeRef = shift;
-  my $RefTime = $$RefTimeRef;
+  try {
+    @shiftcomments = OMP::CommentServer->getShiftLog( $ut, $telescope );
+  }
+  catch OMP::Error with {
+    my $Error = shift;
+    require Tk::DialogBox;
+    my $dbox = $MainWindow->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
+    my $label = $dbox->add( 'Label',
+                            -text => "Error: " . $Error->{-text} )->pack;
+    my $but = $dbox->Show;
 
-  # If we have switched time zones, we should also synch prevtime with
-  # reftime
-  $PrevTime = $RefTime if (defined $PrevTZ && $TZ ne $PrevTZ);
+    # Add logging.
+    OMP::General->log_message( "General error in obslog.pl/rescan:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
 
-  # Need to do a check to make sure we do not override a time
-  # that has been edited
-  return unless (!defined $PrevTime || 
-		 (defined $PrevTime && $RefTime eq $PrevTime));
+    undef @shiftcomments;
 
-  # Get the current time
-  my $time;
-  if ($TZ eq 'UT') {
-    $time = gmtime;
-  } else {
-    $time = localtime;
+  }
+  otherwise {
+    my $Error = shift;
+    require Tk::DialogBox;
+
+    my $dbox = $MainWindow->DialogBox( -title => "Error",
+                                       -buttons => ["OK"],
+                                     );
+
+    my $label = $dbox->add( 'Label',
+                            -text => "Error: " . $Error->{-text} )->pack;
+    my $but = $dbox->Show;
+
+    # Add logging.
+    OMP::General->log_message( "General error in obslog.pl/rescan:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'});
+
+  };
+
+}
+
+sub populate_shiftlog_widget {
+
+  # Update list of comments.
+  &update_shiftlog_comments;
+
+  # Clear and enable the widget.
+  $shiftcommentText->configure( -state => 'normal' );
+  $shiftcommentText->delete( "1.0", 'end' );
+  my $tagnames = $shiftcommentText->tagNames();
+  foreach my $tagname ( @$tagnames ) {
+    next if $tagname eq 'sel';
+    $shiftcommentText->tagDelete( $tagname );
   }
 
-  # Store the new values for later reference
-  $PrevTZ = $TZ;
-  $$RefTimeRef = $time->datetime;
-  $PrevTime = $$RefTimeRef;
+  # Set up a counter for tag names.
+  my $counter = 0;
+
+  # Loop over comments
+  for my $c (@shiftcomments) {
+
+    # Take a local copy of the index for callbacks.
+    my $index = $counter;
+
+    # Generate the tag name based on the index.
+    my $ctag = "c" . $index;
+
+    #Get the reference position.
+    my $start = $shiftcommentText->index('insert');
+
+    my $date = $c->date;
+    my $username = $c->author->name;
+    my $text = OMP::General->html_to_plain( $c->text );
+
+    my $insertstring = $date->datetime . "UT by $username\n$text\n";
+
+    # Insert the string.
+    $shiftcommentText->insert('end', $insertstring );
+
+    # Remove all tags at this position.
+    foreach my $tag ( $shiftcommentText->tag('names', $start ) ) {
+      $shiftcommentText->tag('delete', $tag, $start, 'insert' );
+    }
+
+    # Create a new tag.
+    $shiftcommentText->tag( 'add', $ctag, $start, 'insert' );
+
+    # Configure the new tag.
+    my $bgcolour;
+    if( $counter % 2 ) {
+      $bgcolour = $BACKGROUND1;
+    } else {
+      $bgcolour = $BACKGROUND2;
+    }
+    $shiftcommentText->tag( 'configure', $ctag,
+                 -background => $bgcolour,
+               );
+
+    if( uc( $user->userid ) eq uc( $c->author->userid ) ) {
+
+      # Bind the tag to double-left-click.
+      $shiftcommentText->tag( 'bind', $ctag,
+                              '<Double-Button-1>' => [\&raise_shift_comment, $c, $index] );
+
+      # Do some funky mouse-over colour changing.
+      $shiftcommentText->tag('bind', $ctag, '<Any-Enter>' =>
+                             sub { shift->tag('configure', $ctag,
+                                              -background => $HIGHLIGHTBACKGROUND,
+                                              -foreground => $CONTENTCOLOUR[0],
+                                              qw/ -relief raised
+                                                  -borderwidth 1 /); } );
+
+      $shiftcommentText->tag('bind', $ctag, '<Any-Leave>' =>
+                             sub { shift->tag('configure', $ctag,
+                                              -background => $bgcolour,
+                                              -foreground => $CONTENTCOLOUR[0],
+                                              qw/ -relief flat /); } );
+
+    }
+
+    # Increment the counter.
+    $counter++;
+  }
+
+  $shiftcommentText->configure( -state => 'disable' );
+
 }
 
-sub submit_shift_comment {
-  my $textw = shift;
-  my $user = shift;
-  my $RefTimeRef = shift;
+sub save_shift_comment {
+  my $w = shift;
+  my $commenttext = shift;
   my $TZ = shift;
-  my $tel = shift;
+  my $time = shift;
 
-  # Dereferenece
-  my $time = $$RefTimeRef;
-
-  # Need to read the contents of the Text widget
-  my $content = $textw->get('0.0','end');
-
-  # Abort if no content
-  return unless $content =~ /\w/;
+  return unless $commenttext =~ /\w/;
 
   # Use current date if the field is blank
   my $date;
@@ -1081,7 +1175,7 @@ sub submit_shift_comment {
     if (!defined $date) {
       # popup the error and return
       require Tk::Dialog;
-      my $dialog = $textw->Dialog( -text => "Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS",
+      my $dialog = $w->Dialog( -text => "Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS",
 			       -title => "Error parsing time",
 			       -buttons => ["Abort"],
 			       -bitmap => 'error',
@@ -1096,57 +1190,144 @@ sub submit_shift_comment {
 
   # Now create the comment
   my $comment = new OMP::Info::Comment( author => $user,
-					date => $date,
-					text => $content );
+                                        date => $date,
+                                        text => $commenttext );
 
   # And add it to the system
-  OMP::CommentServer->addShiftLog( $comment, $tel );
-
-  # And clear the text widget
-  $textw->delete('0.0','end');
-
-  # And set previous time so that the update will begin again
-  $PrevTime = $time;
+  OMP::CommentServer->addShiftLog( $comment, $telescope );
 
 }
 
-# Retrieve all the comments and display them
-sub view_shift_comments {
-  my $w = shift;
-  my $ut = shift;
-  my $telescope = shift;
-  my @comments = OMP::CommentServer->getShiftLog( $ut, $telescope );
+sub raise_shift_comment {
+  my $widget = shift;
+  my $comment = shift;
+  my $index = shift;
 
-  my $T = $w->Toplevel;
+  my $TZ = "LocalTime";
+  my $RefTime;
 
-  my $Frame = $T->Frame->pack( -fill => 'both',
-                               -expand => 1,
-                             );
+  my $ShiftCommentWindow = MainWindow->new;
+  $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
+  $ShiftCommentWindow->geometry('760x190');
 
-  my $textw = $Frame->Scrolled('Text',
-			       -width =>80, -wrap => 'word', -height => 15,
-			       -scrollbars => 'e',
-			 )->pack(-side=>'top',
-               -fill => 'both',
-               -expand => 1,
-              );
+  my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
+                                                       -fill => 'both',
+                                                       -expand => 1,
+                                                     );
 
-  my $button = $Frame->Button( -text => "Close", -command => sub {$T->destroy}
-			     )->pack(-side=>'right');
+  my $contentFrame = $commentFrame->Frame->pack( -side => 'top',
+                                                 -fill => 'x',
+                                               );
 
-  # Loop over comments
-  for my $c (@comments) {
-    my $date = $c->date;
-    my $user = $c->author->name;
-    my $text = OMP::General->html_to_plain( $c->text );
+  my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
+                                                                      -fill => 'x',
+                                                                    );
 
-    $textw->insert('end', $date->datetime . "UT by $user\n");
-    $textw->insert('end', "$text\n\n");
+  my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
+                                                -fill => 'x',
+                                              );
 
+  my $scrolledComment = $entryFrame->Scrolled( 'Text',
+                                               -wrap => 'word',
+                                               -height => 10,
+                                               -scrollbars => 'oe',
+                                               -takefocus => 1,
+                                             )->pack( -side => 'bottom',
+                                                      -expand => 1,
+                                                      -fill => 'x',
+                                                    );
+
+  my $infoText = $entryFrame->Label( -text => "Comment from " . $user->name . ":" )->pack( -side => 'left' );
+
+  my $buttonSave = $buttonFrame->Button( -text => 'Save',
+                                         -command => sub {
+                                           my $t = $scrolledComment->get('0.0',
+                                                                         'end',
+                                                                        );
+                                           save_shift_comment( $entryFrame, $t, $TZ, $RefTime );
+                                           &populate_shiftlog_widget();
+                                           CloseWindow( $ShiftCommentWindow );
+                                         },
+                                       )->pack( -side => 'left',
+                                                -anchor => 'n',
+                                              );
+
+  my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
+                                           -command => sub {
+                                             CloseWindow( $ShiftCommentWindow );
+                                           },
+                                         )->pack( -side => 'left',
+                                                  -anchor => 'n',
+                                                );
+
+  # Time section
+  my $buttonTZLocal = $buttonFrame->Radiobutton( -variable => \$TZ,
+                                                 -text => "Local Time",
+                                                 -value => 'LocalTime',
+                                               )->pack( -side => 'right' );
+  my $buttonTZUT = $buttonFrame->Radiobutton( -variable => \$TZ,
+                                              -text => "UT",
+                                              -value => 'UT',
+                                            )->pack( -side => 'right' );
+  my $timeText = $buttonFrame->Entry( -textvariable => \$RefTime,
+                                      -width => 20 )->pack( -side => 'right' );
+  $buttonFrame->Label( -text => "Comment time: " )->pack( -side => 'right' );
+
+  # Need to populate the time field
+  # We use closures rather than array ref for passing arguments
+  # so that we do not need to pass in references for all arguments
+  &update_shift_comment_time($TZ, \$RefTime);
+  my $repeatid = $ShiftCommentWindow->repeat(1000, sub { update_shift_comment_time($TZ,\$RefTime) } );
+
+  if( defined( $comment ) ) {
+
+    # Insert the comment text into the box.
+    $scrolledComment->insert( 'end', OMP::General->html_to_plain( $comment->text ) );
+
+    # And the comment time (which is always UT) into the box. Disable
+    # the update and don't let the user update the time either.
+    $TZ = "UT";
+    $RefTime = $comment->date->ymd . "T" . $comment->date->hms;
+    $repeatid->cancel;
+    $buttonTZLocal->configure( -state => 'disable' );
+    $buttonTZUT->configure( -state => 'disable' );
+    $timeText->configure( -state => 'disable' );
   }
 
-  &BindMouseWheel( $textw );
+  $scrolledComment->focus();
 
+}
+
+# Need two lexicals to allow us to track previous values
+my $PrevTime;
+my $PrevTZ;
+
+sub update_shift_comment_time {
+  my $TZ = shift;
+  my $RefTimeRef = shift;
+  my $RefTime = $$RefTimeRef;
+
+  # If we have switched time zones, we should also synch prevtime with
+  # reftime
+  $PrevTime = $RefTime if (defined $PrevTZ && $TZ ne $PrevTZ);
+
+  # Need to do a check to make sure we do not override a time
+  # that has been edited
+  return unless (!defined $PrevTime ||
+		 (defined $PrevTime && $RefTime eq $PrevTime));
+
+  # Get the current time
+  my $time;
+  if ($TZ eq 'UT') {
+    $time = gmtime;
+  } else {
+    $time = localtime;
+  }
+
+  # Store the new values for later reference
+  $PrevTZ = $TZ;
+  $$RefTimeRef = $time->datetime;
+  $PrevTime = $$RefTimeRef;
 }
 
 ######################### O P T I O N S #######################
@@ -1182,7 +1363,9 @@ sub create_options_widget {
 
   $topline->Button( -text => 'Set User',
                     -command => sub { set_user( \$RefUser, $w );
-                                      $RefUser = $user->userid; },
+                                      $RefUser = $user->userid;
+                                      populate_shiftlog_widget();
+ },
                     -width => 10,
                   )->pack( -side => 'left' );
 
