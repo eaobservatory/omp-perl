@@ -118,13 +118,13 @@ sub parse_query {
     $return{'date'} = $dateobj->ymd;
   }
 
-# Time. This is in hh:mm format. If it is not set, it will
-# default to the current local time.
-  if( exists( $q->{'time'} ) && $q->{'time'} =~ /(\d\d):?(\d\d)/ ) {
-    $return{'time'} = "$1:$2";
+# Time. This is in hh:mm:ss or hhmmss format. If it is not set, it
+# will default to the current local time.
+  if( exists( $q->{'time'} ) && $q->{'time'} =~ /(\d\d):?(\d\d):?(\d\d)/ ) {
+    $return{'time'} = "$1:$2:$3";
   } else {
     my $dateobj = localtime;
-    ( $return{'time'} = $dateobj->hms ) =~ s/:\d\d$//;
+    $return{'time'} = $dateobj->hms;
   }
 
 # Text. Anything goes, but leading/trailing whitespace is stripped.
@@ -275,7 +275,7 @@ sub display_shift_table {
       print "<tr class=\"row_$bgcolor\" valign=top>";
       print "<td class=\"time_a\">$author</td>";
       print "<td class=\"" . $timecellclass . "_$bgcolor\">".
-	$local->strftime("%H:%M %Z") ."</td>";
+	$local->strftime("%H:%M:%S %Z") ."</td>";
       print "<td class=subject>$text</td>";
 
       # Alternate bg color
@@ -313,10 +313,10 @@ sub display_comment_form {
 
   print "</td></tr>\n";
 
-  print "<tr><td>Time: (HHMM or HH:MM, 24hr format)</td><td>";
+  print "<tr><td>Time: (HHMMSS or HH:MM:SS, 24hr format)</td><td>";
   print $cgi->textfield( -name => 'time',
                          -size => '16',
-                         -maxlength => '5',
+                         -maxlength => '8',
                          -default => '',
                          -override => 1,
                        );
@@ -475,8 +475,8 @@ sub submit_comment {
   };
 
 # Form the date.
-  $time =~ /(\d\d):(\d\d)/;
-  my ($hour, $minute) = ($1, $2);
+  $time =~ /(\d\d):(\d\d):(\d\d)/;
+  my ($hour, $minute, $second) = ($1, $2, $3);
 
   # Convert the time zone to UT, if necessary.
   if( ($entryzone =~ /hst/i) && ($zone =~ /ut/i)) {
@@ -484,7 +484,7 @@ sub submit_comment {
     $hour %= 24;
   }
 
-  my $datestring = "$date $hour:$minute:00";
+  my $datestring = "$date $hour:$minute:$second";
   my $datetime = Time::Piece->strptime( $datestring, "%Y-%m-%d %H:%M:%S" );
 
 # Create an OMP::Info::Comment object.

@@ -1007,7 +1007,7 @@ Project Time Summary
     $text = wrap("    ","    ",$text);
 
     # Now print the timestamped comment
-    $str .= "  ".$local->strftime("%H:%M %Z") . ": $author\n";
+    $str .= "  ".$local->strftime("%H:%M:%S %Z") . ": $author\n";
     $str .= $text ."\n\n";
   }
 

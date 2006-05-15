@@ -79,7 +79,7 @@ sub enterShiftLog {
     throw OMP::Error::BadArgs( "Date not supplied with comment" );
   }
 
-  $date -= $date->sec;
+#  $date -= $date->sec;
 
   # Ensure that a telescope is supplied.
   if( ( !defined( $telescope ) ) ||
@@ -229,7 +229,7 @@ sub _reorganize_shiftlog {
 
     my $obs = new OMP::Info::Comment(
                      text => $row->{text},
-                     date => OMP::General->parse_date( $row->{date} ),
+                     date => OMP::General->parse_date( $row->{longdate} ),
                      author => $user
       );
 
@@ -277,7 +277,7 @@ sub _insert_shiftlog {
     $telstring = uc($telescope);
   }
 
-  my $t = $comment->date - $comment->date->sec;
+  my $t = $comment->date; # - $comment->date->sec;
   my $date = $t->strftime("%b %e %Y %T");
 
   my %text = ( "TEXT" => OMP::General->preify_text( $comment->text ),
