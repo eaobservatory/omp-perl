@@ -23,7 +23,7 @@ use warnings;
 use Carp;
 
 # External modules
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Range;
 use OMP::SiteQuality;
@@ -168,6 +168,31 @@ sub ha {
   return $ha;
 }
 
+=item B<seeing>
+
+Return the requested seeing as an C<OMP::Range> object.
+
+  $seeing = $query->seeing;
+
+Returns C<undef> if the seeing has not been specified. Units are
+assumed to be in arcseconds.
+
+=cut
+
+sub seeing {
+  my $self = shift;
+
+  # Get the hash form of the query.
+  my $href = $self->query_hash;
+
+  # Check for 'P.seeingmax' key.
+  my $seeing;
+  if( exists( $href->{'P.seeingmax'} ) ) {
+    $seeing = $href->{'P.seeingmax'}->min;
+  }
+  return $seeing;
+}
+
 =item B<constraints>
 
 Returns a hash containing the general project constraints that 
@@ -272,15 +297,39 @@ sub sql {
   # time [they are used to calculate source availability]
   # Disabling constraints on queries should be left to this
   # subclass
-  my $subsql = $self->_qhash_tosql( [qw/ elevation airmass date
-				     disableconstraint ha /]);
+
+  # Ignore seeing if we have a telescope that has a variable seeing
+  # calculation in the config system. To do this, we need to get the
+  # telescope from the query, and if that doesn't exist, use the
+  # instrument to determine the telescope, and if that doesn't exist,
+  # just assume that we'll use the SQL to filter out seeing.
+  my $qhash = $self->query_hash;
+  my @ignore;
+  if( defined( $qhash->{'M.telescope'} ) ) {
+
+    # Look up the seeing_eq value from the config system. Wrap in a
+    # try block because if the value doesn't exist in the config
+    # system then we should handle that gracefully.
+    try {
+      my $seeing_eq = OMP::Config->getData( 'seeing_eq',
+                                            telescope => $qhash->{'M.telescope'}->[0] );
+      push @ignore, qw/ M.seeingmin M.seeingmax P.seeingmin P.seeingmax /;
+    }
+    catch OMP::Error::BadCfgKey with {
+      # No-op.
+    }
+    otherwise {
+      # No-op.
+    };
+  }
+  push @ignore, qw/ elevation airmass date disableconstraint ha /;
+
+  my $subsql = $self->_qhash_tosql( \@ignore );
 
   # If the resulting query contained anything we should prepend
   # an AND so that it fits in with the rest of the SQL. This allows
   # an empty query to work without having a naked "AND".
   $subsql = " AND " . $subsql if $subsql;
-
-  #print "SQL: $subsql\n";
 
   # Some explanation is probably in order.
   # We do three queries
@@ -871,10 +920,11 @@ OMP/SN/004, C<OMP::DBQuery>
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
