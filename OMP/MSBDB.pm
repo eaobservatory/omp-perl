@@ -2216,6 +2216,7 @@ sub _run_query {
     # Get the elevation/airmass and hour angle constraints
     my $amrange = $query->airmass;
     my $harange = $query->ha;
+    my $seeing = $query->seeing;
     my $qhash = $query->query_hash;
     my $qphase = 0;
     if( exists( $qhash->{'moonmax'} ) &&
@@ -2226,6 +2227,12 @@ sub _run_query {
     # Count how many we actual checked
     my $msb_count;
     my $obs_count;
+
+    # Set up seeing variables.
+    my $seeing_coderef;
+    my $perform_seeing_calc = 1;
+    my $obs_wavelength;
+    my $obs_airmass;
 
     # Set up zone-of-avoidance variables
     my $zoa_coords;
@@ -2247,6 +2254,10 @@ sub _run_query {
 
       # Get the telescope name from the MSB and create a telescope object
       my $telescope = new Astro::Telescope( $msb->{telescope} );
+
+      # Get the seeing limits for this MSB and set up a range.
+      my $msb_seeingrange = new OMP::Range( Min => $msb->{seeingmin},
+                                            Max => $msb->{seeingmax} );
 
       my $zoa = $qconstraints{zoa};
 
@@ -2280,6 +2291,34 @@ sub _run_query {
             $zoa_coords->datetime( $refdate );
           }
         }
+      }
+
+      # Retrieve seeing calculation information from the config system
+      # for this telescope if we don't already have it and if it's
+      # possible to do it.
+      if( $perform_seeing_calc && ! defined( $seeing_coderef ) ) {
+        try {
+          my $seeingeq_str = OMP::Config->getData( 'seeing_eq',
+                                                   telescope => $msb->{telescope} );
+
+          # Replace any placeholders with the variables we've set
+          # up. +_SEEING_+ will be replaced with $seeing,
+          # +_WAVELENGTH_+ will be replaced with $obs_wavelength, and
+          # +_AIRMASS_+ will be replaced with $obs_airmass.
+          $seeingeq_str =~ s/\+_SEEING_\+/\$seeing/g;
+          $seeingeq_str =~ s/\+_WAVELENGTH_\+/\$obs_wavelength/g;
+          $seeingeq_str =~ s/\+_AIRMASS_\+/\$obs_airmass/g;
+
+          # Generate an anonymous coderef.
+          my $anon_sub = "sub { $seeingeq_str };";
+          $seeing_coderef = eval "$anon_sub";
+        }
+        catch OMP::Error::BadCfgKey with {
+          $perform_seeing_calc = 0;
+        }
+        otherwise {
+          $perform_seeing_calc = 0;
+        };
       }
 
       # Do not do ZOA calculations if the current phase is smaller
@@ -2449,6 +2488,20 @@ sub _run_query {
             }
           }
 
+          if( $perform_seeing_calc ) {
+
+            # Get the wavelength and airmass.
+            $obs_wavelength = $obs->{waveband}->wavelength;
+            $obs_airmass = $coords->airmass;
+
+            # Calculate the new seeing.
+            my $new_seeing = &$seeing_coderef;
+
+            if( ! $msb_seeingrange->contains( $new_seeing ) ) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+          }
           # Do zone-of-avoidance filtering. Need to use Modified
           # Julian Day for comparison so we can compare Time::Piece
           # with DateTime objects.
@@ -2510,7 +2563,6 @@ sub _run_query {
     $t1 = [gettimeofday];
     OMP::General->log_message("Observability filtered: checked $msb_count MSBs and $obs_count obs in " . tv_interval( $t0, $t1 ) . " seconds and got ".@observable. " matching MSBs\n", OMP__LOG_DEBUG);
     $t0 = $t1;
-
   }
 
   # calculate the priority scale factor
@@ -2839,10 +2891,11 @@ For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
