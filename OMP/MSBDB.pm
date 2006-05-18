@@ -2230,7 +2230,7 @@ sub _run_query {
 
     # Set up seeing variables.
     my $seeing_coderef;
-    my $perform_seeing_calc = 1;
+    my $perform_seeing_calc = defined( $seeing );
     my $obs_wavelength;
     my $obs_airmass;
 
