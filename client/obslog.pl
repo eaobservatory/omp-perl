@@ -104,6 +104,8 @@ my $shiftcommentText; # The widget that holds shiftlog comments.
 my $lastinst; # The instrument of the most recent observation.
 my $current_instrument; # The instrument currently displayed.
 my $verbose; # Long or short output
+my %msbtitles; # md5 to title
+$msbtitles{'CAL'} = "Calibration";
 my $id;
 
 my ( %opt, $help, $man, $version );
@@ -155,6 +157,7 @@ my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
+my $BACKGROUNDMSB = '#CCFFCC';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
@@ -204,7 +207,14 @@ sub display_loading_status {
   eval 'use OMP::ObsQuery';
   die "Error loading OMP::ObsQuery: $@" if $@;
 
-  update_status 'Loading Archive modules', 25, $w, $STATUS, $BAR;
+  update_status 'Loading MSB modules', 20, $w, $STATUS, $BAR;
+
+  eval 'use OMP::MSB';
+  die "Error loading OMP::MSB: $@" if $@;
+  eval 'use OMP::MSBServer';
+  die "Error loading OMP::MSBServer: $@" if $@;
+
+  update_status 'Loading Archive modules', 35, $w, $STATUS, $BAR;
 
   eval 'use OMP::ArchiveDB';
   die "Error loading OMP::ArchiveDB: $@" if $@;
@@ -420,6 +430,10 @@ sub new_instrument {
   $nbContent->delete('0.0','end');
 
   my $counter = 0;
+  my $currentmsb = '';
+
+  # Set up a connection to the MSBDB.
+  my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
 
   if( defined( $obsgrp ) ) {
     foreach my $obs( $obsgrp->obs ) {
@@ -445,6 +459,35 @@ sub new_instrument {
         # Clean up.
         $nbHeader->configure( -state => 'disabled' );
         $header_printed = 1;
+      }
+
+      # If the current MSB differs from the MSB to which this
+      # observation belongs, we need to insert text denoting the start
+      # of the MSB. Ignore blank checksums.
+      if( ( $obs->checksum ne '' ) && ( $obs->checksum ne $currentmsb ) ) {
+
+        # Retrieve the MSB title.
+        if( ! exists( $msbtitles{$obs->checksum} ) ) {
+          $msbdb->projectid( $obs->projectid );
+          my $msb = $msbdb->fetchMSB( checksum => $obs->checksum );
+          $msbtitles{$obs->checksum} = $msb->msbtitle;
+        }
+        $currentmsb = $obs->checksum;
+
+        my $index = $counter;
+        my $otag = "o" . $index;
+        my $start = $nbContent->index('insert');
+        $nbContent->insert( 'end', "Beginning of MSB titled: " . $msbtitles{$obs->checksum} . "\n" );
+
+        foreach my $tag ( $nbContent->tag( 'names', $start ) ) {
+          $nbContent->tag('remove', $tag, $start, 'insert');
+        }
+        $nbContent->tag( 'add', $otag, $start, 'insert' );
+        $nbContent->tag( 'configure', $otag,
+                         -background => $BACKGROUNDMSB,
+                       );
+
+        $counter++;
       }
 
       # Take a local copy of the index for callbacks
