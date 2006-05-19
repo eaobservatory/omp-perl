@@ -469,8 +469,23 @@ sub new_instrument {
         # Retrieve the MSB title.
         if( ! exists( $msbtitles{$obs->checksum} ) ) {
           $msbdb->projectid( $obs->projectid );
-          my $msb = $msbdb->fetchMSB( checksum => $obs->checksum );
-          $msbtitles{$obs->checksum} = $msb->msbtitle;
+          my $msb;
+          try {
+            $msb = $msbdb->fetchMSB( checksum => $obs->checksum );
+          }
+          catch OMP::Error with {
+            my $E = shift;
+            OMP::General->log_message( "Error fetching MSB with checksum " . $obs->checksum . ": " . $E->{'-text'}, OMP__LOG_ERROR );
+            $msbtitles{$obs->checksum} = "Unknown MSB";
+          }
+          otherwise {
+            my $E = shift;
+            OMP::General->log_message( "Error fetching MSB with checksum " . $obs->checksum . ": " . $E->{'-text'}, OMP__LOG_ERROR );
+            $msbtitles{$obs->checksum} = "Unknown MSB";
+          };
+          if( defined( $msb ) ) {
+            $msbtitles{$obs->checksum} = $msb->msbtitle;
+          }
         }
         $currentmsb = $obs->checksum;
 
