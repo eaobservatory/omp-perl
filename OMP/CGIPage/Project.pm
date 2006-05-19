@@ -904,7 +904,17 @@ sub alter_proj {
 	if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
 	  $changed++;
 
+	  # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
+	  # tagpriority to change, which is okay when reading a project
+	  # object, but not okay when storing the object back to the database.
+	  # In order to reset the tagpriority, the tagpriority method is
+	  # called with its original value.
+
+	  my $oldpriority = $project->tagpriority($queue);
+
 	  $project->tagadjustment({$queue, $newadj{$queue}});
+
+	  $project->tagpriority($queue => $oldpriority);
 
 	  push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
 	}
