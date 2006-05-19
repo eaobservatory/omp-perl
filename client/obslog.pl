@@ -211,8 +211,8 @@ sub display_loading_status {
 
   eval 'use OMP::MSB';
   die "Error loading OMP::MSB: $@" if $@;
-  eval 'use OMP::MSBServer';
-  die "Error loading OMP::MSBServer: $@" if $@;
+  eval 'use OMP::MSBDoneDB';
+  die "Error loading OMP::MSBDoneDB: $@" if $@;
 
   update_status 'Loading Archive modules', 35, $w, $STATUS, $BAR;
 
@@ -433,7 +433,7 @@ sub new_instrument {
   my $currentmsb = '';
 
   # Set up a connection to the MSBDB.
-  my $msbdb = new OMP::MSBDB( DB => new OMP::DBbackend );
+  my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
   if( defined( $obsgrp ) ) {
     foreach my $obs( $obsgrp->obs ) {
@@ -471,7 +471,10 @@ sub new_instrument {
           $msbdb->projectid( $obs->projectid );
           my $msb;
           try {
-            $msb = $msbdb->fetchMSB( checksum => $obs->checksum );
+            my $xml = "<MSBDoneQuery><checksum>" . $obs->checksum . "</checksum></MSBDoneQuery>";
+            my $query = new OMP::MSBDoneQuery( XML => $xml );
+            my @msbs = $msbdb->queryMSBdone( $query, 0 );
+            $msb = $msbs[0];
           }
           catch OMP::Error with {
             my $E = shift;
@@ -484,7 +487,7 @@ sub new_instrument {
             $msbtitles{$obs->checksum} = "Unknown MSB";
           };
           if( defined( $msb ) ) {
-            $msbtitles{$obs->checksum} = $msb->msbtitle;
+            $msbtitles{$obs->checksum} = $msb->title;
           }
         }
         $currentmsb = $obs->checksum;
