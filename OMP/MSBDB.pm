@@ -2492,16 +2492,19 @@ sub _run_query {
 
             # Get the wavelength and airmass.
             $obs_wavelength = $obs->{waveband}->wavelength;
-            $obs_airmass = $coords->airmass;
+            if( $obs_wavelength != 0 ) {
+              $obs_airmass = $coords->airmass;
 
-            # Calculate the new seeing.
-            my $new_seeing = &$seeing_coderef;
+              # Calculate the new seeing.
+              my $new_seeing = &$seeing_coderef;
 
-            if( ! $msb_seeingrange->contains( $new_seeing ) ) {
-              $isObservable = 0;
-              last OBSLOOP;
+              if( ! $msb_seeingrange->contains( $new_seeing ) ) {
+                $isObservable = 0;
+                last OBSLOOP;
+              }
             }
           }
+
           # Do zone-of-avoidance filtering. Need to use Modified
           # Julian Day for comparison so we can compare Time::Piece
           # with DateTime objects.
@@ -2544,6 +2547,7 @@ sub _run_query {
 
         # calculate mean hour angle
         my $hamean = 0;
+
         $hamean = $hasum / $nh if $hasum > 0;
 
         # and convert to hours
