@@ -54,6 +54,7 @@ This manual page.
 use strict;
 use warnings;
 
+use Pod::Usage;
 use Getopt::Long;
 use FindBin;
 use File::Spec;
