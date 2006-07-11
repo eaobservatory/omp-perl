@@ -3731,6 +3731,9 @@ be used in the header.
 
   $value = OMP::Translator::ACSIS::Header->getProject( $cfg, %info );
 
+An empty string will be recognized as a true UNDEF header value. Returning
+undef is an error.
+
 =cut
 
 package OMP::Translator::ACSIS::Header;
@@ -3739,7 +3742,7 @@ sub getProject {
   my $class = shift;
   my $cfg = shift;
   my %info = @_;
-  return $info{PROJECTID};
+  return ( $info{PROJECTID} ne 'UNKNOWN' ? $info{PROJECTID} : "" );
 }
 
 sub getMSBID {
@@ -3747,6 +3750,47 @@ sub getMSBID {
   my $cfg = shift;
   my %info = @_;
   return $info{MSBID};
+}
+
+# Needs to be fixed
+sub getRemoteAgent {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  if (exists $info{REMOTE_TRIGGER} && ref($info{REMOTE_TRIGGER}) eq 'HASH') {
+    my $src = $info{REMOTE_TRIGGER}->{src};
+    return (defined $src ? $src : "" );
+  }
+  return "";
+}
+
+# Needs to be fixed
+sub getAgentID {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  if (exists $info{REMOTE_TRIGGER} && ref($info{REMOTE_TRIGGER}) eq 'HASH') {
+    my $id = $info{REMOTE_TRIGGER}->{id};
+    return (defined $id ? $id : "" );
+  }
+  return "";
+}
+
+sub getScanPattern {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the TCS config
+  my $tcs = $cfg->tcs;
+
+  # and the observing area
+  my $oa = $tcs->getObsArea;
+
+  my $name = $oa->scan_pattern;
+  return (defined $name ? $name : "" );
 }
 
 sub getStandard {
@@ -3780,7 +3824,8 @@ sub getDRGroup {
 
   # Not quite sure how to handle this in the translator since there are no
   # hints from the OT and the DR is probably better at doing this.
-  return 'UNKNOWN';
+  # by default return an empty string indicating undef
+  return '';
 }
 
 # Need to get survey information from the TOML
@@ -3789,11 +3834,11 @@ sub getSurveyName {
   my $class = shift;
   my $cfg = shift;
   my %info = @_;
-  return 'NONE';
+  return '';
 }
 
 sub getSurveyID {
-  return 'NONE';
+  return '';
 }
 
 sub getNumIntegrations {
