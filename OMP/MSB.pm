@@ -3444,6 +3444,7 @@ sub unroll_obs {
     $config{MSBID} = $self->checksum;
     $config{PROJECTID} = $self->projectID;
     $config{SUSPENDED} = $self->isSuspended;
+    $config{REMOTE_TRIGGER} = { $self->remote_trigger };
 
     # this counts the number of "observes" in an SpObs
     # the "minor" counter
