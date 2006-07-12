@@ -3768,7 +3768,6 @@ sub getMSBID {
   return $info{MSBID};
 }
 
-# Needs to be fixed
 sub getRemoteAgent {
   my $class = shift;
   my $cfg = shift;
@@ -3781,7 +3780,6 @@ sub getRemoteAgent {
   return "";
 }
 
-# Needs to be fixed
 sub getAgentID {
   my $class = shift;
   my $cfg = shift;
