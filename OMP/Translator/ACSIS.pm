@@ -1172,6 +1172,9 @@ sub header_config {
 				 && $_[0]->task eq 'TRANSLATOR'
 				} );
 
+  # Set verbosity level
+  $OMP::Translator::ACSIS::Header::VERBOSE = $self->verbose;
+
   # Now invoke the methods to configure the headers
   my $pkg = "OMP::Translator::ACSIS::Header";
   for my $i (@items) {
@@ -3738,11 +3741,24 @@ undef is an error.
 
 package OMP::Translator::ACSIS::Header;
 
+our $VERBOSE = 0;
+
 sub getProject {
   my $class = shift;
   my $cfg = shift;
   my %info = @_;
-  return ( $info{PROJECTID} ne 'UNKNOWN' ? $info{PROJECTID} : "" );
+
+  # if the project ID is not known, we need to use a ACSIS project
+  if ( defined $info{PROJECTID} && $info{PROJECTID} ne 'UNKNOWN' ) {
+    return $info{PROJECTID};
+  } else {
+    my $sem = OMP::General->determine_semester( tel => 'JCMT' );
+    my $pid = "M$sem". "EC19";
+    if ($VERBOSE) {
+      print "!!! No Project ID assigned. Inserting ACSIS E&C code: $pid !!!\n";
+    }
+    return 
+  }
 }
 
 sub getMSBID {
