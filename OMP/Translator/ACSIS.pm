@@ -3757,8 +3757,10 @@ sub getProject {
     if ($VERBOSE) {
       print "!!! No Project ID assigned. Inserting ACSIS E&C code: $pid !!!\n";
     }
-    return 
+    return $pid;
   }
+  # should not get here
+  return undef;
 }
 
 sub getMSBID {
