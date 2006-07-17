@@ -108,7 +108,7 @@ $r1 = new OMP::Range( Max => 4 );
 $r2 = new OMP::Range( Max => 6 );
 
 ok($r1->intersection($r2));
-is($r1->max, 6);
+is($r1->max, 4);
 is($r1->min, undef);
 
 $r1 = new OMP::Range( Min => 1 );
