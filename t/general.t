@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 191;
+use Test::More tests => 192;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -485,6 +485,7 @@ my %extract = (
 	       'u/ec/1'    => 'A UKIRT E&C project u/ec/1',
                'm03ad07a'  => 'A JCMT DDT project m03ad07a',
 	       'm03bu135d' => 'A fallback project m03bu135d of a different type',
+	       'u/ukidss/las15' => '[u/ukidss/las15] Survey time',
 	      );
 
 for my $proj (keys %extract) {

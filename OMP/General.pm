@@ -1191,7 +1191,7 @@ sub extract_projectid {
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
       or $string =~ /\b(u\/ec\/\d+)\b/i           # UKIRT E&C
-      or $string =~ /\b(u\/ukidss\/[a-z]{3}(\d[a-z]?|_sv)?)\b/i # UKIRT UKIDSS program
+      or $string =~ /\b(u\/ukidss\/[a-z]{3}(\d+[a-z]?|_sv)?)\b/i # UKIRT UKIDSS program
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
       or $string =~ /\b([A-Za-z]+CAL)\b/i           # Things like JCMTCAL
