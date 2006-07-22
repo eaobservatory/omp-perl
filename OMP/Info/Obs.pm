@@ -187,6 +187,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               nexp => '$',
                               number_of_cycles => '$',
                               object => '$',
+			      obsid => '$',
                               order => '$',
                               pol => '$',
                               pol_in => '$',
@@ -967,6 +968,9 @@ sub _populate {
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
   $self->instrument( uc( $generic_header{INSTRUMENT} ) );
+
+  
+
   $self->duration( $generic_header{EXPOSURE_TIME} );
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
@@ -1190,6 +1194,17 @@ sub _populate {
   $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
   $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
   $self->tile( $generic_header{TILE_NUMBER} );
+
+  if ($generic_header{OBSID}) {
+    $self->obsid( $generic_header{OBSID} );
+  } else {
+    my $date_str = $self->startobs->strftime("%Y%m%dT%H%M%S");
+    my $instrument = lc(( $generic_header{INSTRUMENT} ne 'UKIRTDB'
+			  ? $generic_header{INSTRUMENT} : $header->{TEMP_INST} ));
+
+    my $obsid = $instrument . '_' . $self->runnr . '_' . $date_str;
+    $self->obsid( $obsid );
+  }
 
   if( ! $self->retainhdr ) {
     $self->fits( undef );

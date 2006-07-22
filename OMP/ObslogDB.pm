@@ -206,23 +206,7 @@ sub getComment {
   my $obs = shift;
   my $allcomments = shift;
 
-  my $t;
-
-  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-    if( !defined($obs->instrument) ||
-        !defined($obs->runnr) ||
-        !defined($obs->endobs) ) {
-      throw OMP::Error::BadArgs("Must supply an Info::Obs::TimeGap object with defined instrument, run number, and date");
-    }
-    $t = $obs->endobs - 1;
-  } else {
-    if( !defined($obs->instrument) ||
-        !defined($obs->runnr) ||
-        !defined($obs->startobs) ) {
-      throw OMP::Error::BadArgs("Must supply an Info::Obs object with defined instrument, run number, and date");
-    }
-    $t = $obs->startobs;
-  }
+  my $xml;
 
   # If $allcomments is true, then we don't want to limit
   # the query. Otherwise, we want to retrive comments
@@ -234,13 +218,33 @@ sub getComment {
     $obsactivestring = "<obsactive>1</obsactive>";
   }
 
-  # Form a query to retrieve the observation comments.
-  my $xml = "<ObsQuery>" .
+  if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+    if( !defined($obs->instrument) ||
+        !defined($obs->runnr) ||
+        !defined($obs->endobs) ) {
+      throw OMP::Error::BadArgs("Must supply an Info::Obs::TimeGap object with defined instrument, run number, and date");
+    }
+    my $t = $obs->endobs - 1;
+
+    # Query the old way for timegap comments
+    $xml = "<ObsQuery>" .
     "<instrument>" . $obs->instrument . "</instrument>" .
     "<runnr>" . $obs->runnr . "</runnr>" .
     "<date>" . $t->ymd . "T" . $t->hms . "</date>" .
     $obsactivestring .
     "</ObsQuery>";
+
+
+  } else {
+    if ( !defined($obs->obsid)) {
+      throw OMP::Error::BadArgs("Must supply an Info::Obs object with defined observation ID (obsid)");
+    }
+
+    # Query only on obsid for normal comments
+    $xml = "<ObsQuery>" .
+    "<obsid>". $obs->obsid ."</obsid>".
+    "</ObsQuery>";
+  }
 
   my $query = new OMP::ObsQuery( XML => $xml );
   my @results = $self->queryComments( $query );
@@ -517,6 +521,11 @@ sub _store_comment {
   my $comment = shift;
 
   my $t;
+  my $obsid;
+
+  # For now, store comments the usual way, but include the obsid
+  # in the insert (NULL obsid if it's a timegap comment).  Eventually,
+  # the instrument and run number will be excluded from the insert.
 
   if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
     if( !defined($obs->instrument) ||
@@ -532,6 +541,7 @@ sub _store_comment {
       throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
     }
     $t = $obs->startobs;
+    $obsid = $obs->obsid;
   }
 
   if( !defined($comment) ) {
@@ -566,7 +576,8 @@ sub _store_comment {
                           $cdate,
                           $comment->author->userid,
                           \%text,
-                          $status
+                          $status,
+			  $obsid,
                         );
 
 }
