@@ -3910,6 +3910,37 @@ sub getTrkRecep {
   return ( defined $ap ? $ap : "" );
 }
 
+# Get the X and Y aperture offsets
+sub _getInstapXY {
+  my $class = shift;
+  my $cfg = shift;
+  my $ap = $class->getTrkRecep( $cfg );
+  if ($ap) {
+    my $inst = $cfg->instrument_setup;
+    throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+      unless defined $inst;
+
+    my %rec = $inst->receptor( $ap );
+    throw OMP::Error::FatalError("Thought there was an instrument aperture ($ap) but it is unknown to the instrument")
+      if (!keys %rec);
+
+    return @{$rec{xypos}};
+  }
+  return (0.0,0.0);
+}
+
+sub getInstapX {
+  my $class = shift;
+  my $cfg = shift;
+  return ($class->_getInstapXY( $cfg ) )[0];
+}
+
+sub getInstapY {
+  my $class = shift;
+  my $cfg = shift;
+  return ($class->_getInstapXY( $cfg ) )[1];
+}
+
 # Reference receptor
 sub getRefRecep {
   my $class = shift;
