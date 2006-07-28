@@ -647,7 +647,7 @@ sub nightlog {
     $return{'Tile'} = defined( $self->tile ) ? $self->tile : 0;
     $return{'Object'} = defined( $self->target ) ? $self->target : '';
     $return{'Observation type'} = defined( $self->type ) ? $self->type : '';
-    $return{'Filter'} = defined( $self->filter ) ? $self->filter : '';
+    $return{'Waveband'} = defined( $self->filter ) ? $self->filter : '';
     $return{'RA offset'} = defined( $self->raoff ) ? sprintf( "%.3f", $self->raoff ) : 0;
     $return{'Dec offset'} = defined( $self->decoff ) ? sprintf( "%.3f", $self->decoff ) : 0;
     $return{'UT time'} = defined( $self->startobs ) ? $self->startobs->hms : '';
@@ -659,7 +659,7 @@ sub nightlog {
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
     $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Filter'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+    $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
   } elsif($instrument =~ /(cgs4|ircam|ufti|uist|michelle)/i) {
 
