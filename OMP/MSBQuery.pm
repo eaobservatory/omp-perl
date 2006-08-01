@@ -706,7 +706,11 @@ sub _post_process_hash {
     # Need the telescope in this case
     throw OMP::Error::MSBMalformedQuery("Automatic semester determination requires a telescope in the query")
       unless exists $href->{telescope};
-    $href->{semester} = [ OMP::General->determine_semester(tel => $href->{telescope}->[0])];
+    # need the date
+    my %options;
+    $options{date} = $href->{date}->[0]
+      if exists $href->{date}->[0]; 
+    $href->{semester} = [ OMP::General->determine_semester(tel => $href->{telescope}->[0], %options)];
   }
 
 
