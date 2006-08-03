@@ -2265,18 +2265,37 @@ sub _run_query {
       # for this telescope if we don't already have it.
       if( $zoa ) {
         if( ! defined( $zoa_phase ) ) {
-          $zoa_phase = OMP::Config->getData( 'zoa_phase',
-                                             telescope => $msb->{telescope} );
+	  # missing key is allowed
+	  try {
+	    $zoa_phase = OMP::Config->getData( 'zoa_phase',
+					       telescope => $msb->{telescope} );
+	  } catch OMP::Error with {
+	    # ignore
+	  };
         }
         if( ! defined( $zoa_target ) ) {
-          $zoa_target = OMP::Config->getData( 'zoa_target',
-                                              telescope => $msb->{telescope} );
+	  try {
+	    $zoa_target = OMP::Config->getData( 'zoa_target',
+						telescope => $msb->{telescope} );
+	  } catch OMP::Error with {
+	    # ignore
+	  };
         }
         if( ! defined( $zoa_radius ) ) {
-          $zoa_radius = OMP::Config->getData( 'zoa_radius',
-                                              telescope => $msb->{telescope} );
+	  try {
+	    $zoa_radius = OMP::Config->getData( 'zoa_radius',
+						telescope => $msb->{telescope} );
+	  } catch OMP::Error with {
+	    # ignore
+	    $zoa_radius = 0;
+	  };
         }
-        if( ! defined( $zoa_coords ) ) {
+	# The config file could specify a blank target if there is nothing to avoid
+	if (!$zoa_target) {
+	  $zoa = 0;
+	}
+
+        if( $zoa && ! defined( $zoa_coords ) ) {
           $zoa_coords = new Astro::Coords( planet => $zoa_target );
           $zoa_coords->telescope( new Astro::Telescope( $msb->{telescope} ) );
           $zoa_coords->datetime( $refdate );
