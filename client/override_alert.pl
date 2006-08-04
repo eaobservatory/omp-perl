@@ -175,12 +175,21 @@ sub create_main_window {
 sub scan_for_msbs {
   my $class = "OMP::MSBServer";
 
-  # Get the semesters to use from the config system.
-  my $semesters = OMP::Config->getData( "override_semester",
-                                        telescope => $telescope );
+  # Get the optional semesters to use from the config system.
+  my $E;
+  my @semesters;
+  try {
+    my $semesters = OMP::Config->getData( "override_semester",
+					  telescope => $telescope );
 
-  # Transform the comma-separated list into a proper Perl list.
-  my @semesters = split ',', $semesters;
+    # Transform the comma-separated list into a proper Perl list.
+    @semesters = split ',', $semesters;
+  } catch OMP::Error with {
+    # don't care
+  } otherwise {
+    $E = shift;
+  };
+  $class->throwException( $E ) if defined $E;
 
   # Get the current semester from OMP::General.
   my $current_semester = OMP::General->determine_semester( tel => $telescope );
@@ -196,7 +205,6 @@ sub scan_for_msbs {
   $sem_xml .= "</semesters>";
 
   my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
-  my $E;
   my @results;
   try {
     my $query = new OMP::MSBQuery( XML => $xml,
@@ -294,10 +302,11 @@ sub scan_for_msbs {
 =head1 AUTHORS
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2005 Particle Physics and Astronomy Research Council.
+Copyright (C) 2005-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
