@@ -2869,6 +2869,10 @@ sub bandwidth_mode {
     # Calculate the channel width and store it
     my $chanwid = $hbw / $hchan;
 
+    if ($chanwid == 0.0) {
+      throw OMP::Error::TranslateFail("Channel width 0 Hz from hybridised bandwidth of $hbw and $hchan hybridised channels");
+    }
+
     # Currently, we determine whether we are hybridised from the
     # presence of non-zero overlap
     my $nsubband;
