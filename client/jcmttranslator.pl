@@ -12,14 +12,15 @@ jcmttranslator - translate science program XML to ODFs
 
 =head1 DESCRIPTION
 
-Reads science program xml either from standard input or by filename and writes the
-translated configuration to disk. The name of the file that should be loaded into
-the queue is written to standard output.
+Reads science program xml either from standard input or by filename
+and writes the translated configuration to disk. The name of the file
+that should be loaded into the queue is written to standard output.
 
 =head1 ARGUMENTS
 
-The input science program can either be supplied as a filename argument or by
-piping the XML from standard input. A supplied filename supercedes standard input.
+The input science program can either be supplied as a filename
+argument or by piping the XML from standard input. A supplied filename
+supercedes standard input.
 
 =head1 OPTIONS
 
@@ -51,13 +52,20 @@ Enables simulation mode for translators that support this.
 =item B<-transdir>
 
 Specify an explicit directory to receive the translated output files.
-Supercedes the C<-cwd> option if both are specified.
+Supercedes the C<-cwd> and C<-tempdir> options if specified in conjunction
+with other directory options.
 
 =item B<-cwd>
 
 Write the translated files to the current working directory
 rather than to the standard translation directory location.
-C<-transdir> supercedes C<-cwd> if both are specified.
+C<-transdir> supercedes C<-cwd> if both are specified. It is an
+error to set both C<-cwd> and C<-transdir>.
+
+=item B<-tempdir>
+
+Writes the translated files to the configured temporary translation
+directory. It is an error to set both C<-cwd> and C<-transdir>
 
 =item B<-debug>
 
@@ -74,12 +82,18 @@ Turn on verbose messaging.
 use warnings;
 use strict;
 
+use File::Spec;
 use Pod::Usage;
 use Getopt::Long;
 
-# run relative to the client directory
+# run relative to the client directory. Also set config directory.
 use FindBin;
-use lib "$FindBin::RealBin/../";
+use constant OMPLIB => File::Spec->catdir("$FindBin::RealBin",
+					  File::Spec->updir );
+use lib OMPLIB;
+$ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+  unless exists $ENV{'OMP_CFG_DIR'};
+
 
 # We need to set the search path for the Queue classes
 # and the OCS Config classes. Assume for now that they exist
@@ -89,16 +103,20 @@ use lib "$FindBin::RealBin/../../ocsq/lib";
 
 # Load the servers (but use them locally without SOAP)
 use OMP::TransServer;
-use File::Spec;
+
+# Need config system
+use OMP::Config;
+use OMP::Error qw/ :try /;
 
 # Options
-my ($help, $man, $debug, $cwd, $old, $sim, $transdir, $verbose);
+my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
 			"cwd" => \$cwd,
 			"sim" => \$sim,
 			"old" => \$old,
+			"tempdir" => \$tempdir,
 			"transdir=s" => \$transdir,
 			"verbose" => \$verbose,
 		       );
@@ -116,9 +134,25 @@ $OMP::Translator::VERBOSE = $verbose;;
 
 # Translation directory override
 if ($transdir) {
+  print "Overriding output directory. Using '$transdir'\n" if $verbose;
   OMP::Translator->outputdir($transdir);
-} elsif ($cwd) {
-  OMP::Translator->outputdir(".");
+} elsif ($cwd || $tempdir) {
+  if ($cwd && $tempdir) {
+    die "The -cwd and -tempdir options can not be used together.\n";
+  }
+  if ($cwd) {
+    print "Overriding output directory. Using current directory\n" if $verbose;
+    OMP::Translator->outputdir(File::Spec->curdir);
+  } elsif ($tempdir) {
+    # this should fail if no temp dir is defined
+    my $tmp = OMP::Config->getData( "acsis_translator.temptransdir" );
+    if ($tmp) {
+      print "Overriding output directory. Using '$tmp'\n" if $verbose;
+      OMP::Translator->outputdir( $tmp );
+    } else {
+      die "No temporary translator directly defined.";
+    }
+  }
 }
 
 
@@ -164,7 +198,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
