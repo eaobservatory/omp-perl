@@ -2256,8 +2256,19 @@ sub _run_query {
       my $telescope = new Astro::Telescope( $msb->{telescope} );
 
       # Get the seeing limits for this MSB and set up a range.
-      my $msb_seeingrange = new OMP::Range( Min => $msb->{seeingmin},
-                                            Max => $msb->{seeingmax} );
+      my $msb_seeingrange = OMP::SiteQuality::from_db( "seeing",
+						       $msb->{seeingmin},
+						       $msb->{seeingmax} );
+      OMP::SiteQuality::undef_to_default( "seeing", $msb_seeingrange);
+      if ($msb_seeingrange->isinverted) {
+	# seeing values are null set so if we are checking seeing no
+	# MSB can match
+	$msb_seeingrange = undef;
+	OMP::General->log_message("Unable to match MSB ".$msb->{checksum}.
+				  " of project " . $msb->{projectid} .
+				  " because the seeing bounds do not intersect",
+				  OMP__LOG_ERROR);
+      }
 
       my $zoa = $qconstraints{zoa};
 
@@ -2338,6 +2349,11 @@ sub _run_query {
         otherwise {
           $perform_seeing_calc = 0;
         };
+	if (!$perform_seeing_calc) {
+	  # put an error message in the log
+	  OMP::General->log_message( "Error decoding adjusted seeing formula",
+				   OMP__LOG_ERROR);
+	}
       }
 
       # Do not do ZOA calculations if the current phase is smaller
@@ -2509,6 +2525,11 @@ sub _run_query {
 
           if( $perform_seeing_calc ) {
 
+	    if (!$msb_seeingrange) {
+	      $isObservable = 0;
+	      last OBSLOOP;
+	    }
+
             # Get the wavelength and airmass.
             $obs_wavelength = $obs->{waveband}->wavelength;
             if( $obs_wavelength != 0 ) {
@@ -2516,7 +2537,7 @@ sub _run_query {
 
               # Calculate the new seeing.
               my $new_seeing = &$seeing_coderef;
-
+	      OMP::General->log_message("Testing Seeing of $new_seeing against ". $msb_seeingrange, OMP__LOG_DEBUG);
               if( ! $msb_seeingrange->contains( $new_seeing ) ) {
                 $isObservable = 0;
                 last OBSLOOP;
@@ -2734,6 +2755,9 @@ sub _msb_row_to_msb_object {
       # Remove old entries from hash
       delete $msb->{$maxkey};
       delete $msb->{$minkey};
+
+      # inverted range is bad news
+      $msb->{$key} = undef if $msb->{$key}->isinverted;
 
     }
 
