@@ -137,6 +137,7 @@ sub _get_faultcode {
 	     DBMalformedQuery => 'Client.DBMalformedQuery',
 	     FatalError => 'Server.UnknownError',
 	     InvalidUser => 'Client.InvalidUser',
+	     MSBBadConstraint => 'Client.MSBBadConstraint',
 	     MSBMalformedQuery => 'Client.MSBMalformedQuery',
 	     MSBMissing => 'Client.MSBMissing',
 	     MSBMissingObserve => 'Client.MSBMissingObserve',

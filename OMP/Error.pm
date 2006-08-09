@@ -241,6 +241,12 @@ what will be returned by the overload methods.
 
 The user supplied to the routine is not a valid OMP user.
 
+=item B<OMP::Error:MSBBadConstraint>
+
+A site quality or scheduling constraints supplied in the science
+programme is either inconsistent with the project constraint or
+is inverted such that an MSB could never be scheduled.
+
 =item B<OMP::Error::MSBMalformedQuery>
 
 The MSB query XML could not be understood.
@@ -388,6 +394,9 @@ package OMP::Error::FatalError;
 use base qw/ OMP::Error /;
 
 package OMP::Error::InvalidUser;
+use base qw/ OMP::Error /;
+
+package OMP::Error::MSBBadConstraint;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMalformedQuery;
