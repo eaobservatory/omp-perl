@@ -126,10 +126,13 @@ sub storeProgram {
 			   );
 
     # Store the science program
-    $db->storeSciProg( SciProg => $sp, Force => $force );
+    my @warnings = $db->storeSciProg( SciProg => $sp, Force => $force );
 
     # Create a summary of the science program
     $string = join("\n",$sp->summary) . "\n";
+
+    # Add warnings from the store
+    $string = join("\n", @warnings) ."\n" . $string if @warnings;
 
     # Verify the science program and attach that to the string
     # we are not expecting any fatal errors here
