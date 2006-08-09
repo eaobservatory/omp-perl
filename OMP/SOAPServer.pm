@@ -87,6 +87,9 @@ sub throwException {
   my $Estring = "$E";
   chomp($Estring);
 
+  # it seems that we may need to sanitize the message
+  $Estring = OMP::General::escape_entity( $Estring );
+
   # Get the error number - defaulting to OMP__ERROR if required
   # Make sure we can invoke the value method.
   my $Enum = OMP__ERROR;
