@@ -192,7 +192,10 @@ Suspend flags are not touched since now the Observing Tool
 has the ability to un-suspend.
 
 Returns true on success and C<undef> on error (this may be
-modified to raise an exception).
+modified to raise an exception). In list context returns
+any warning messages associated with sanity checks.
+
+ @warnings = $db->storeSciProg( SciProg => $sp );
 
 =cut
 
@@ -213,6 +216,10 @@ sub storeSciProg {
   # Check them
   return undef unless exists $args{SciProg};
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
+
+  # Verify constraints since it is much better to tell people on submission
+  # than to spend hours debugging query problems.
+  my @cons_warnings = $self->_verify_project_constraints($args{SciProg});
 
   # Implied states
   $args{NoCache} = 1 if (!exists $args{NoCache} && $args{FreezeTimeStamp});
@@ -267,7 +274,7 @@ sub storeSciProg {
   $self->_dbunlock;
   $self->_db_commit_trans;
 
-  return 1;
+  return (wantarray() ? @cons_warnings : 1 );
 }
 
 =item B<fetchSciProg>
@@ -1708,6 +1715,106 @@ sub _verify_project_password {
 					$self->projectid );
 
   return;
+}
+
+=item B<_verify_project_constraints>
+
+Given the supplied science program object, obtain the corresponding
+project object and compare site quality constraints to make sure they
+intersect. Also verifies that scheduling contraints are the correct way
+round.
+
+ @warnings = $msbdb->_verify_project_constraints;
+
+Throws an exception of OMP::Error::MSBBadConstraint if there is a constraint
+problem. Returns an array of warning strings that can be used to provide
+non-fatal feedback to the person submitting the program.
+
+See also the C<verifyMSBs()> method in the C<OMP::SciProg> class for general
+MSB warnings.
+
+=cut
+
+sub _verify_project_constraints {
+  my $self = shift;
+  my $sciprog = shift;
+
+  my @warnings;
+
+  if (!defined $sciprog) {
+    throw OMP::Error::FatalError("Attempting to verify contraints but no science program supplied");
+  }
+
+  # Ask the project DB class for project object
+  my $projdb = new OMP::ProjDB(
+			     ProjectID => $self->projectid,
+			     DB => $self->db,
+			     Password => $self->password,
+			    );
+  my $proj = $projdb->_get_project_row();
+  if (!defined $proj) {
+    throw OMP::Error::FatalError("Attempting to verify contraints but project '".
+				 $self->projectid."' is not available");
+  }
+
+  # this will take some time if there are lots of MSBs...
+  for my $msb ( $sciprog->msb ) {
+
+    # get the summary of the MSB
+    my %weather = $msb->weather;
+
+    # note that moon is MSB only
+    for my $attr ( qw/ seeing tau cloud sky / ) {
+
+      # method for project object
+      my $pmethod = $attr . "range";
+      my $prange = $proj->$pmethod();
+      $prange = $prange->copy; # need to make sure we modify a copy 
+
+      # does it intersect? Inverted intervals will be caught here since they
+      # may well result in two intervals (hence the eval to catch this).
+      my $istat;
+      eval {
+	$istat = $prange->intersection( $weather{$attr} );
+      };
+      if (!$istat) {
+	# failure to intersect
+	my $inv = ( $weather{$attr}->isinverted ? "($attr constraint is inverted)" : "");
+	throw OMP::Error::MSBBadConstraint("Specified $attr constraint of '".
+					   $weather{$attr} .
+					   "' for MSB titled '".$msb->msbtitle.
+					   "' is not consistent with TAG constraint of '".
+					  $prange . "' $inv");
+      }
+
+      # need to warn for case where the intersection is an equality
+      # note that $prange will have been modified above
+      if (($attr eq 'seeing' || $attr eq 'tau') && 
+	  defined $prange->min && defined $prange->max && $prange->min == $prange->max) {
+	push(@warnings,
+	     "WARNING: $attr constraint is only matched for a single exact value of ".
+	     $prange->min . " for MSB titled '".$msb->msbtitle."'");
+      }
+
+      # it is possible for an inverted range to not be fatal so issue a warning
+      if ($weather{$attr}->isinverted) {
+	push(@warnings,
+	     "WARNING: $attr constraint for MSB titled '".$msb->msbtitle."' is inverted");
+      }
+
+    }
+
+    # check that the allowed date range is not inverted
+    my %schedcon = $msb->sched_constraints;
+    if ($schedcon{datemin}->epoch > $schedcon{datemax}->epoch) {
+      throw OMP::Error::MSBBadConstraint("Scheduling constraint for MSB titled '".
+					 $msb->msbtitle ."' is such that this MSB can ".
+					 "never be scheduled (earliest > latest)");
+    }
+
+  }
+
+  return @warnings;
 }
 
 =item B<_password_text_info>
