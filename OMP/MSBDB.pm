@@ -1766,6 +1766,10 @@ sub _verify_project_constraints {
     # note that moon is MSB only
     for my $attr ( qw/ seeing tau cloud sky / ) {
 
+      # if we do not have an MSB attribute defined we can ignore
+      # it since we will be using the project info
+      next if !defined $weather{$attr};
+
       # method for project object
       my $pmethod = $attr . "range";
       my $prange = $proj->$pmethod();
