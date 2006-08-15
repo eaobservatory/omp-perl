@@ -36,6 +36,10 @@ A help message.
 
 This manual page.
 
+=item B<-version>
+
+Display version information.
+
 =item B<-old>
 
 By default the file name written to stdout, is in a format suitable
@@ -109,7 +113,8 @@ use OMP::Config;
 use OMP::Error qw/ :try /;
 
 # Options
-my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose);
+my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose,
+   $version);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
@@ -119,12 +124,21 @@ my $status = GetOptions("help" => \$help,
 			"tempdir" => \$tempdir,
 			"transdir=s" => \$transdir,
 			"verbose" => \$verbose,
+			"version" => \$version,
 		       );
 
 pod2usage(1) if !$status;
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+if ($version) {
+  my $id = '$Id$ ';
+  print "jcmttranslator - Translate Science Program MSBs to OCS configs\n";
+  print " CVS revision: $id\n";
+  exit;
+}
+
 
 # debugging
 $OMP::Translator::DEBUG = $debug;
