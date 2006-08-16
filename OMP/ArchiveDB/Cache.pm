@@ -357,7 +357,7 @@ sub unstored_files {
                                             instrument => $inst,
                                             utdate => $day,
                                           );
-
+print "directory: $directory\n";
       $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
 
 ################################################################################
@@ -379,9 +379,8 @@ sub unstored_files {
 
         # Remove the '/dem' from the end. Put '/spectra' between
         # 'acsis' and the UT date (which is an eight-digit number).
-
         $directory =~ s[/dem][];
-        $directory =~ s[/(acsis)/(\d{8})/][/\1/spectra/\2/];
+        $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
 
         # Read the directory. Subdirectories are of the form \d{5}.
         opendir( OBSNUM_DIRS, $directory );
@@ -391,11 +390,14 @@ sub unstored_files {
         # For each directory we find, make sure it's a directory,
         # and if so, open it up and get the first file in there.
         foreach my $obsnum_dir ( @obsnum_dirs ) {
+          $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
           next if( ! -d $obsnum_dir );
 
           opendir( FILES, $obsnum_dir );
           my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
-          push @files, $obs_files[0];
+          if( defined( $obs_files[0] ) ) {
+            push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
+          }
           closedir( FILES );
         }
 

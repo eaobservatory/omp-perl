@@ -54,7 +54,7 @@ our $VERSION = (qw$Revision$)[1];
 $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
-$SkipDBLookup = 0;
+$SkipDBLookup = 1;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -422,7 +422,7 @@ sub _query_files {
           # 'acsis' and the UT date (which is an eight-digit number).
 
           $directory =~ s[/dem][];
-          $directory =~ s[/(acsis)/(\d{8})/][/\1/spectra/\2/];
+          $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
 
           # Read the directory. Subdirectories are of the form \d{5}.
           opendir( OBSNUM_DIRS, $directory );
@@ -432,11 +432,14 @@ sub _query_files {
           # For each directory we find, make sure it's a directory,
           # and if so, open it up and get the first file in there.
           foreach my $obsnum_dir ( @obsnum_dirs ) {
+            $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
             next if( ! -d $obsnum_dir );
 
             opendir( FILES, $obsnum_dir );
             my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
-            push @files, $obs_files[0];
+            if( defined( $obs_files[0] ) ) {
+              push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
+            }
             closedir( FILES );
           }
 
@@ -663,7 +666,11 @@ sub _reorganize_archive {
     }
 
     if(exists($newrow->{BACKEND}) || exists($newrow->{C1BKE}) ) {
-      $instrument = (defined($newrow->{FRONTEND}) ? uc($newrow->{FRONTEND}) : uc($newrow->{C1RCV}) );
+      if( uc($newrow->{BACKEND}) eq 'ACSIS' ) {
+        $instrument = 'ACSIS';
+      } else {
+        $instrument = (defined($newrow->{FRONTEND}) ? uc($newrow->{FRONTEND}) : uc($newrow->{C1RCV}) );
+      }
     }
 
     # Create an Info::Obs object.
