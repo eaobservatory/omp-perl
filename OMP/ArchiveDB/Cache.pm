@@ -368,50 +368,36 @@ sub unstored_files {
 ################################################################################
       $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
 
+################################################################################
+# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+################################################################################
+# ACSIS data goes in an "acsis/spectra/<utdate>/<obsnum>"
+# directory. We need to look in each <obsnum> directory and use the
+# first file located within.
+################################################################################
       if( $directory =~ /acsis/i ) {
 
-        # ACSIS directories are of the form
-        # /jcmtdata/raw/acsis/acsis00/YYYYMMDD.
-        $directory =~ s/acsis/acsis\/acsis00/;
+        # Remove the '/dem' from the end. Put '/spectra' between
+        # 'acsis' and the UT date (which is an eight-digit number).
 
-        if( -d $directory ) {
-          my @ok_files;
-          opendir( FILES, $directory );
-          @ok_files = grep( /\.ok$/, readdir( FILES ) );
+        $directory =~ s[/dem][];
+        $directory =~ s[/(acsis)/(\d{8})/][/\1/spectra/\2/];
 
-          @ok_files = map { File::Spec->catfile( $directory, $_ ) } @ok_files;
+        # Read the directory. Subdirectories are of the form \d{5}.
+        opendir( OBSNUM_DIRS, $directory );
+        my @obsnum_dirs = grep( /\d{5}/, readdir( OBSNUM_DIRS ) );
+        closedir( OBSNUM_DIRS );
 
-          # ACSIS files as listed in the .ok file don't have the
-          # base directory prepended, so retrieve it from the config
-          # system. We'll prepend it later on.
-          my $basedir = OMP::Config->getData( 'basedatadir',
-                                              telescope => 'JCMT',
-                                              instrument => 'acsis' );
+        # For each directory we find, make sure it's a directory,
+        # and if so, open it up and get the first file in there.
+        foreach my $obsnum_dir ( @obsnum_dirs ) {
+          next if( ! -d $obsnum_dir );
 
-          # Go through each .ok file, get the first line, and push
-          # that onto the list of files to read.
-          foreach my $ok_file ( @ok_files ) {
-            open( my $ok_file_handle, "<", $ok_file ) or throw OMP::Error::DataRead( "Could not open ACSIS .ok file $ok_file: $!" );
-            my $first = <$ok_file_handle>;
-
-            if( defined( $first ) ) {
-              push @ifiles, File::Spec->catfile( $basedir, $first );
-            }
-
-            close $ok_file_handle;
-          }
-
-          # Sort the list of files.
-          @ifiles = sort {
-            $a =~ /_(\d+)_\d\d_\d\d\.sdf$/;
-            my $a_obsnum = int( $1 );
-            $b =~ /_(\d+)_\d\d_\d\d\.sdf$/;
-            my $b_obsnum = int( $1 );
-
-            $a_obsnum <=> $b_obsnum; } @ifiles;
+          opendir( FILES, $obsnum_dir );
+          my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
+          push @files, $obs_files[0];
+          closedir( FILES );
         }
-
-        push @files, @ifiles;
 
       } else {
 
