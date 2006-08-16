@@ -39,9 +39,10 @@ package Mail::Audit;
 
 # Process OMP feedback mail messages
 use base qw/ Mail::Audit/;
-use OMP::User;
 use OMP::FBServer;
 use OMP::General;
+use OMP::User;
+use OMP::UserServer;
 
 # Accept a message and send it to the feedback system
 sub accept_feedback {
@@ -58,7 +59,30 @@ sub accept_feedback {
   chomp($project); # header includes newline
 
   # Try to guess the author
-  my $author = OMP::User->extract_user_from_email( $from );
+  my $author_guess = OMP::User->extract_user_from_email( $from );
+
+  my $author;
+  if ($author_guess) {
+    my $userid = $author_guess->userid;
+    my $email = $author_guess->email;
+
+    # Attempt to retrive user object from the user DB.
+    # Try the inferred user ID first, then the email address.
+
+    $author = OMP::UserServer->getUser($userid);
+
+    if (! $author) {
+      my $query = "<UserQuery><email>$email</email></UserQuery>";
+      my $users = OMP::UserServer->queryUsers($query, 'object');
+
+      if ($users->[0]) {
+	$author = $users->[0];
+	Mail::Audit::_log(1,"Determined OMP user by email address: [EMAIL=".
+			  $author->email."]");
+      }
+    }
+  }
+
   if ($author) {
     Mail::Audit::_log(1,"Determined OMP user: $author [ID=".
 		      $author->userid."]");
