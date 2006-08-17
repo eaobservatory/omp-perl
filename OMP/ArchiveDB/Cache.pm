@@ -357,7 +357,7 @@ sub unstored_files {
                                             instrument => $inst,
                                             utdate => $day,
                                           );
-print "directory: $directory\n";
+
       $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
 
 ################################################################################
