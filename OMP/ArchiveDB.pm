@@ -418,30 +418,47 @@ sub _query_files {
 ################################################################################
         if( $directory =~ /acsis/i ) {
 
-          # Remove the '/dem' from the end. Put '/spectra' between
-          # 'acsis' and the UT date (which is an eight-digit number).
+#          # Remove the '/dem' from the end. Put '/spectra' between
+#          # 'acsis' and the UT date (which is an eight-digit number).
+#
+#          $directory =~ s[/dem][];
+#          $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
+#
+#          # Read the directory. Subdirectories are of the form \d{5}.
+#          opendir( OBSNUM_DIRS, $directory );
+#          my @obsnum_dirs = grep( /\d{5}/, readdir( OBSNUM_DIRS ) );
+#          closedir( OBSNUM_DIRS );
+#
+#          # For each directory we find, make sure it's a directory,
+#          # and if so, open it up and get the first file in there.
+#          foreach my $obsnum_dir ( @obsnum_dirs ) {
+#            $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
+#            next if( ! -d $obsnum_dir );
+#
+#            opendir( FILES, $obsnum_dir );
+#            my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
+#            if( defined( $obs_files[0] ) ) {
+#              push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
+#            }
+#            closedir( FILES );
+#          }
 
+# TEMPORARY MEASURE UNTIL FITS HEADERS GET FIXED.
           $directory =~ s[/dem][];
-          $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
+          $directory =~ s[/(acsis)/(\d{8})][/\1/acsis01/gridder01/\2/cubes];
 
-          # Read the directory. Subdirectories are of the form \d{5}.
-          opendir( OBSNUM_DIRS, $directory );
-          my @obsnum_dirs = grep( /\d{5}/, readdir( OBSNUM_DIRS ) );
-          closedir( OBSNUM_DIRS );
-
-          # For each directory we find, make sure it's a directory,
-          # and if so, open it up and get the first file in there.
-          foreach my $obsnum_dir ( @obsnum_dirs ) {
-            $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
-            next if( ! -d $obsnum_dir );
-
-            opendir( FILES, $obsnum_dir );
-            my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
-            if( defined( $obs_files[0] ) ) {
-              push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
-            }
-            closedir( FILES );
-          }
+          # Retrieve all of the .sdf files.
+          opendir( FILES, $directory );
+          @files = grep( /\d\d_\d\d\.sdf$/, readdir( FILES ) );
+          @files = map { File::Spec->catfile( $directory, $_ ) } @files;
+          @files = sort {
+            $a =~ /_(\d+)_\d\d_\d\d\.sdf$/;
+            my $a_obsnum = int( $1 );
+            $b =~ /_(\d+)_\d\d_\d\d\.sdf$/;
+            my $b_obsnum = int( $1 );
+            $a_obsnum <=> $b_obsnum } @files;
+          close( FILES );
+# END TEMPORARY MEASURE.
 
         } else {
 
