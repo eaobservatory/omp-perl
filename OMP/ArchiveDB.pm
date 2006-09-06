@@ -196,6 +196,7 @@ sub queryArc {
     # unless forbidden to do so for some reason (this was originally
     # because we threw an exception if the directories did not exist).
     if ($FallbackToFiles) {
+
       # We fallback to files if the query failed in some way
       # (no connection, or error from the query)
       # OR if the query succeded but we can not be sure the data are
@@ -583,6 +584,7 @@ sub _query_files {
       if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
         next;
       }
+
       foreach my $filterarray ($query_hash->{$filter}) {
         if( OMP::Info::Obs->can(lc($filter)) ) {
           my $value = $obs->$filter;
@@ -591,6 +593,14 @@ sub _query_files {
             $match_filter = $filterarray->contains( $matcher );
           } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
             foreach my $filter2 (@$filterarray) {
+
+	      ################################################################
+	      # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT          #
+	      # Match against BACKEND header if instrument filter is 'acsis' #
+	      ################################################################
+	      if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
+		$matcher = uc($obs->backend);
+	      }
               if($matcher !~ /$filter2/i) {
                 $match_filter = 0;
               }
