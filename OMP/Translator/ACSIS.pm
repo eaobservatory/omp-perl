@@ -206,7 +206,6 @@ sub translate {
     # and also the translated config itself
     print $cfg if $self->debug;
 
-    last;
   }
 
 
