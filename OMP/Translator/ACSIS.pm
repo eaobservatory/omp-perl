@@ -2217,8 +2217,11 @@ sub cubes {
       # a whole array footprint on each end)
       my $rad = $inst->footprint_radius->arcsec;
 
-      $nx = int( ( ( $info{MAP_WIDTH} + ( 2 * $rad ) ) / $xsiz ) + 0.5 ) ;
-      $ny = int( ( ( $info{MAP_HEIGHT} + ( 2 * $rad ) ) / $ysiz ) + 0.5 );
+      # Increase the cube area for raster maps by one pixel in order
+      # to use the same convention as the TCS: through the centers of
+      # the outer pixels rather than around them.
+      $nx = int( ( ( $info{MAP_WIDTH} + ( 2 * $rad ) ) / $xsiz ) + 1.5 ) ;
+      $ny = int( ( ( $info{MAP_HEIGHT} + ( 2 * $rad ) ) / $ysiz ) + 1.5 );
 
       $offx = ($info{OFFSET_DX} || 0);
       $offy = ($info{OFFSET_DY} || 0);
