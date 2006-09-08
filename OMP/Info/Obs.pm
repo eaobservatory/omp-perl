@@ -940,6 +940,28 @@ sub simple_filename {
 
 }
 
+=item B<uniqueid>
+
+Returns a unique ID for the object.
+
+  $id = $object->uniqueid;
+
+=cut
+
+sub uniqueid {
+  my $self = shift;
+
+  return if ( ! defined( $self->runnr ) ||
+              ! defined( $self->instrument ) ||
+              ! defined( $self->telescope ) ||
+              ! defined( $self->startobs ) );
+
+  if( uc( $self->backend ) eq 'ACSIS' ) {
+    return $self->runnr . $self->backend . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
+  }
+  return $self->runnr . $self->instrument . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
+}
+
 =back
 
 =head2 Private Methods
