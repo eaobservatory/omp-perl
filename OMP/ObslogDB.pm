@@ -393,17 +393,17 @@ sub updateObsComment {
   my %commhash;
 
   foreach my $comment ( @commentresults ) {
-    if( ! exists( $commhash{$comment->uniqueid} ) ) {
-      $commhash{$comment->uniqueid} = [];
+    if( ! exists( $commhash{$comment->obsid} ) ) {
+      $commhash{$comment->obsid} = [];
     }
-    push @{$commhash{$comment->uniqueid}}, $comment;
+    push @{$commhash{$comment->obsid}}, $comment;
   }
 
   my @finalobs;
 
   foreach my $obs ( @$obs_arrayref ) {
-    if( exists( $commhash{$obs->uniqueid} ) ) {
-      $obs->comments( $commhash{$obs->uniqueid} );
+    if( exists( $commhash{$obs->obsid} ) ) {
+      $obs->comments( $commhash{$obs->obsid} );
     }
     push @finalobs, $obs;
   }
@@ -482,6 +482,22 @@ sub _reorganize_comments {
     throw OMP::Error("Unable to parse observation start date (".$row->{longdate} .")")
       unless defined $startobs;
 
+    my $obsid;
+    if( ! defined( $row->{obsid} ) ) {
+      $obsid = lc( $row->{instrument} ) . "_"
+             . $row->{runnr} . "_"
+             . $startobs->strftime("%Y%m%dT%H%M%S");
+             ;
+    } else {
+      $obsid = $row->{obsid};
+      $obsid =~ /^(\w+)_(\w+)_(\w+)$/;
+      ( my $ymd, my $hms ) = split 'T', $3;
+      my $inst = $1;
+      if( $inst =~ /^rx/i && $ymd >= 20060901 ) {
+        $obsid =~ s/^(\w+?)_/acsis_/;
+      }
+    }
+
     my $comment = new OMP::Info::Comment(
                 text => $row->{commenttext},
                 date => $date,
@@ -490,6 +506,7 @@ sub _reorganize_comments {
                 instrument => $row->{instrument},
                 telescope => $row->{telescope},
                 startobs => $startobs,
+                obsid => $obsid,
               );
 
     # Retrieve the user information so we can create the author

@@ -1217,12 +1217,16 @@ sub _populate {
   $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
   $self->tile( $generic_header{TILE_NUMBER} );
 
-  if ($generic_header{OBSID}) {
-    $self->obsid( $generic_header{OBSID} );
+  if ($generic_header{OBSERVATION_ID}) {
+    $self->obsid( $generic_header{OBSERVATION_ID} );
   } else {
     my $date_str = $self->startobs->strftime("%Y%m%dT%H%M%S");
-    my $instrument = lc(( $generic_header{INSTRUMENT} ne 'UKIRTDB'
-			  ? $generic_header{INSTRUMENT} : $header->{TEMP_INST} ));
+    my $instrument = $generic_header{INSTRUMENT} eq 'UKIRTDB' ? $header->{TEMP_INST}
+                   : $generic_header{BACKEND} eq 'ACSIS'      ? 'ACSIS'
+                   :                                            $generic_header{INSTRUMENT}
+                   ;
+
+    $instrument = lc( $instrument );
 
     my $obsid = $instrument . '_' . $self->runnr . '_' . $date_str;
     $self->obsid( $obsid );
