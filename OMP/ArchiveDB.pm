@@ -178,9 +178,13 @@ sub queryArc {
     # True means we have done a successful query.
     my $dbqueryok = 0;
 
-    # First go to the database if we have a handle
-    # and if we are not querying the current date
-    if (defined $self->db && !$istoday && !$SkipDBLookup) {
+    # First go to the database if we're looking for things that are older than three days and we've been told not to skip the DB lookup.
+    if ($tdiff >= ( 3 * ONE_DAY ) && !$SkipDBLookup) {
+
+      # Check for a connection. If we have one, good, but otherwise set one up.
+      if( ! defined( $self->db ) ) {
+        $self->db( new OMP::DBbackend::Archive );
+      }
 
       # Trap errors with connection. If we have fatal error
       # talking to DB we should fallback to files (if allowed)
