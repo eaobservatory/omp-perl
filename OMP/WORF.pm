@@ -99,7 +99,7 @@ sub new {
   if( !defined( $worf->obs->inst_dhs ) || length( $worf->obs->inst_dhs . '' ) == 0 ) {
     # We don't have a fully-formed Info::Obs object, so try to
     # form one.
-    my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+    my $adb = new OMP::ArchiveDB( );
     my $instrument = $worf->obs->instrument;
     my $ut = $worf->obs->startobs->ymd;
     my $runnr = $worf->obs->runnr;

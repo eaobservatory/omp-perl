@@ -177,14 +177,6 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
-  try {
-    my $db = new OMP::DBbackend::Archive;
-    $adb->db( $db );
-  }
-  catch OMP::Error::DBConnection with {
-    # let it pass through
-  };
-
   my @result = $adb->queryArc( $q, $retainhdr );
 
   # Store the results

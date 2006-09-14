@@ -159,7 +159,7 @@ sub display_page {
                                                 'object' );
   }
 
-  my $adb = new OMP::ArchiveDB( DB => new OMP::DBbackend::Archive );
+  my $adb = new OMP::ArchiveDB( );
   my $obs = $adb->getObs( instrument => $inst,
                           ut => $ut,
                           runnr => $runnr, );
