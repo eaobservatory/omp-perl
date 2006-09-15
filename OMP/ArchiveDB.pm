@@ -197,7 +197,7 @@ sub queryArc {
       } otherwise {
         my $Error = shift;
         my $errortext = $Error->{'-text'};
-        OMP::General->log_message( "Header DB query problem: $errortext, OMP__LOG_WARNING );
+        OMP::General->log_message( "Header DB query problem: $errortext", OMP__LOG_WARNING );
         # just need to drop through and catch any exceptions
       };
     }
