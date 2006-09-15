@@ -51,7 +51,7 @@ use base qw/ OMP::BaseDB /;
 our $VERSION = (qw$Revision$)[1];
 
 # Do we want to fall back to files?
-$FallbackToFiles = 1;
+$FallbackToFiles = 0;
 
 # Do we want to skip the database lookup?
 $SkipDBLookup = 0;
@@ -178,10 +178,13 @@ sub queryArc {
     # True means we have done a successful query.
     my $dbqueryok = 0;
 
-    # First go to the database if we're looking for things that are older than three days and we've been told not to skip the DB lookup.
+    # First go to the database if we're looking for things that are
+    # older than three days and we've been told not to skip the DB
+    # lookup.
     if ($tdiff >= ( 3 * ONE_DAY ) && !$SkipDBLookup) {
 
-      # Check for a connection. If we have one, good, but otherwise set one up.
+      # Check for a connection. If we have one, good, but otherwise
+      # set one up.
       if( ! defined( $self->db ) ) {
         $self->db( new OMP::DBbackend::Archive );
       }
@@ -192,6 +195,9 @@ sub queryArc {
         @results = $self->_query_arcdb( $query, $retainhdr );
         $dbqueryok = 1;
       } otherwise {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        OMP::General->log_message( "Header DB query problem: $errortext, OMP__LOG_WARNING );
         # just need to drop through and catch any exceptions
       };
     }
@@ -690,9 +696,9 @@ sub _reorganize_archive {
     # Create an Info::Obs object.
     my $obs = new OMP::Info::Obs( hdrhash => $newrow, retainhdr => $retainhdr );
 
-    # If the instrument wasn't heterodyne (RxA3, RxB3 or RxW) then set
-    # the instrument back to what it was before.
-    if( $instrument !~ /^rx/i ) {
+    # If the instrument wasn't heterodyne (RxA3, RxB3 or RxW) or ACSIS
+    # then set the instrument back to what it was before.
+    if( $instrument !~ /^rx/i && $instrument ne 'ACSIS' ) {
       $obs->instrument( $instrument );
     }
 
