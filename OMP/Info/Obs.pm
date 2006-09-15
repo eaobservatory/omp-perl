@@ -838,7 +838,8 @@ sub file_from_bits {
                    );
       $filename .= "/" . $prefix{ $self->camera_number } . $utdate . "_" . $runnr . ".sdf";
     }
-  } elsif( $instrument =~ /^(rx|het|fts)/i ) {
+  } elsif( $instrument =~ /^(rx|het|fts)/i &&
+           uc( $self->backend ) ne 'ACSIS' ) {
     my $project = $self->projectid;
     my $ut = $self->startobs;
     my $timestring = sprintf("%02u%02u%02u_%02u%02u%02u",
@@ -864,6 +865,22 @@ sub file_from_bits {
                                       instrument => 'SCUBA',
                                       utdate => $self->startobs->ymd );
     $filename .= $utdate . "_dem_" . $runnr . ".sdf";
+  } elsif( $self->backend =~ /acsis/i ) {
+    my $utdate;
+    ( $utdate = $self->startobs->ymd ) =~ s/-//g;
+    my $runnr = sprintf( "%05u", $self->runnr );
+    $filename = OMP::Config->getData( 'rawdatadir',
+                                      telescope => 'JCMT',
+                                      instrument => 'ACSIS',
+                                      utdate => $self->startobs->ymd );
+    $filename =~ s/dem//;
+    ( my $pre, my $post ) = split /acsis/, $filename;
+    $filename = File::Spec->catfile( $pre, 'acsis', 'spectra', $post );
+
+    $filename = File::Spec->catfile( $filename,
+                                     $runnr,
+                                     "a" . $utdate . "_" . $runnr . "_00_0001.sdf" );
+
   } else {
     throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
   }
@@ -990,8 +1007,6 @@ sub _populate {
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
   $self->instrument( uc( $generic_header{INSTRUMENT} ) );
-
-  
 
   $self->duration( $generic_header{EXPOSURE_TIME} );
   $self->disperser( $generic_header{GRATING_NAME} );
