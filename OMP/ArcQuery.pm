@@ -41,6 +41,8 @@ our $CGS4TAB = 'ukirt..CGS4 C';
 our $UISTTAB = 'ukirt..UIST I';
 our $IRCAMTAB = 'ukirt..IRCAM3 I';
 our $WFCAMTAB = 'ukirt..WFCAM W';
+our $JCMTTAB = 'archive..COMMON J';
+our $ACSISTAB = 'archive..ACSIS A';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
@@ -50,6 +52,7 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
+                   ACSIS => [ $JCMTTAB, $ACSISTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
@@ -60,6 +63,8 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                   $IRCAMTAB => '(U.idkey = I.idkey)',
                                   $WFCAMTAB => '(U.idkey = W.idkey)',
                                 },
+                   $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid)',
+                               },
                  );
 
 # Lookup table
@@ -69,21 +74,31 @@ my %lut = (
 			  $SCUTAB => undef, # implied
 			  $GSDTAB => 'G.frontend',
 			  $UKIRTTAB => 'U.INSTRUME',
+        $JCMTTAB => 'J.instrument',
 			 },
 	   date => {
 		    $SCUTAB => 'S.ut',
 		    $GSDTAB => 'G.ut',
 		    $UKIRTTAB => 'U.UT_DATE',
+        $JCMTTAB => 'J.date_obs',
 		   },
+     dateend => {
+        $SCUTAB => undef,
+        $GSDTAB => undef,
+        $UKIRTTAB => undef,
+        $JCMTTAB => 'J.date_end',
+       },
 	   runnr => {
 		    $SCUTAB => 'S.run',
 		    $GSDTAB => 'G.scan',
 		    $UKIRTTAB => 'U.OBSNUM',
+        $JCMTTAB => 'J.obsnum',
 		   },
 	   projectid => {
 		    $SCUTAB => 'S.proj_id',
 		    $GSDTAB => 'G.projid',
 		    $UKIRTTAB => 'U.PROJECT',
+        $JCMTTAB => 'J.project',
 		   },
 
 	  );
@@ -338,9 +353,11 @@ sub sql {
   my $href = $self->query_hash;
 
   foreach my $t ( keys %$href ) {
+
     # Construct the the where clauses. Depends on which
     # additional queries are defined
     next if $t eq 'telescope';
+
     my $subsql = $self->_qhash_tosql( [qw/ telescope /], $t );
 
     # Form the join.
@@ -364,9 +381,13 @@ sub sql {
     my $sql;
     if ($tel eq 'JCMT') {
 
-      # SCUBA only for now [note that we explicitly
-      # select the database and table
-      $sql = "SELECT *, CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdate' FROM $tables $where";
+      $sql  = "SELECT *, ";
+      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdate', ";
+      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdateobs' ";
+      if( defined( $lut{dateend}->{$insttable{$t}->[0]} ) ) {
+        $sql .= ", CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdateend' ";
+      }
+      $sql .= "FROM $tables $where";
 
     } elsif ($tel eq 'UKIRT') {
 
@@ -505,8 +526,11 @@ sub _post_process_hash {
     } elsif ($tel eq 'JCMT') {
       $tables{$SCUTAB}++;
       $tables{$GSDTAB}++;
+      $tables{$JCMTTAB}++;
+      $tables{$ACSISTAB}++;
       $insts{SCUBA}++;
       $insts{HETERODYNE}++;
+      $insts{ACSIS}++;
     } else {
       throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " . $tel);
     }
