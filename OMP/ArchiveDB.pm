@@ -51,7 +51,7 @@ use base qw/ OMP::BaseDB /;
 our $VERSION = (qw$Revision$)[1];
 
 # Do we want to fall back to files?
-$FallbackToFiles = 0;
+$FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
 $SkipDBLookup = 0;
