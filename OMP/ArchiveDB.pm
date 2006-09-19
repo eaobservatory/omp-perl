@@ -555,6 +555,12 @@ sub _query_files {
     # If the observation's time falls within the range, we'll create the object.
     my $match_date = 0;
 
+    if( ! defined( $obs->startobs ) ) {
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
+      $WARNED{$file}++;
+      next;
+    }
+
     if( $daterange->contains($obs->startobs) ) {
       $match_date = 1;
     } elsif( $daterange->max < $obs->startobs ) {
