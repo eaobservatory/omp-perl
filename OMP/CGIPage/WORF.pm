@@ -96,12 +96,12 @@ sub display_page {
   }
   my $zmin;
   if( exists( $qv->{'zmin'} ) && defined( $qv->{'zmin'} ) ) {
-    $qv->{'zmin'} =~ /([\d\.\-e]+)/;
+    $qv->{'zmin'} =~ /([\d\.\-eE]+)/;
     $zmin = $1;
   }
   my $zmax;
   if( exists( $qv->{'zmax'} ) && defined( $qv->{'zmax'} ) ) {
-    $qv->{'zmax'} =~ /([\d\.\-e]+)/;
+    $qv->{'zmax'} =~ /([\d\.\-eE]+)/;
     $zmax = $1;
   }
   my $autocut;
