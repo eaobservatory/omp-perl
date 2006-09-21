@@ -101,7 +101,7 @@ sub store_archive {
   my $filename = _filename_from_query( $query );
 
   # Do a fairly blind untaint
-  if ($filename =~ /^([A-Za-z\-:0-9\/]+)$/) {
+  if ($filename =~ /^([A-Za-z\-:0-9\/_]+)$/) {
     $filename = $1;
   } else {
     throw OMP::Error::FatalError("Error untaininting the filename $filename");
