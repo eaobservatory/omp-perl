@@ -535,7 +535,7 @@ sub _query_files {
       # we haven't warned about this observation yet.
       if( ! $WARNED{$file} ) {
         $Error = shift;
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
       }
       $WARNED{$file}++;
     }
@@ -544,7 +544,7 @@ sub _query_files {
       # we haven't warned about this observation yet.
       if( ! $WARNED{$file} ) {
         $Error = shift;
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\n text: " . $Error->{'-text'} . "\n file: " . $Error->{'-file'} . "\n line: " . $Error->{'-line'}, OMP__LOG_ERROR);
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
       }
       $WARNED{$file}++;
     };
