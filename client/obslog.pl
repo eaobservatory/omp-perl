@@ -1374,8 +1374,9 @@ sub update_shift_comment_time {
 
   # Need to do a check to make sure we do not override a time
   # that has been edited
-  return unless (!defined $PrevTime ||
-		 (defined $PrevTime && $RefTime eq $PrevTime));
+  if( defined( $RefTime ) && $RefTime ne $PrevTime ) {
+    return;
+  }
 
   # Get the current time
   my $time;
