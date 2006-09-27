@@ -2020,14 +2020,120 @@ sub nint {
 
 =back
 
+=head2 Files
+
+=over 4
+
+=item B<files_on_disk>
+
+For a given instrument and UT date, this method returns a list of
+observation files.
+
+  my @files = OMP::General->files_on_disk( 'CGS4', '20060215' );
+  my $files = OMP::General->files_on_disk( 'CGS4', '20060215' );
+
+If called in list context, returns a list of array references. Each
+array reference points to a list of observation files for a single
+observation. If called in scalar context, returns a reference to an
+array of array references.
+
+=cut
+
+sub files_on_disk {
+  my $class = shift;
+  my $instrument = shift;
+  my $utdate = shift;
+
+  my @return;
+
+  # Retrieve information from the configuration system.
+  my $tel = OMP::Config->inferTelescope( 'instruments', $instrument );
+  my $directory = OMP::Config->getData( 'rawdatadir',
+                                        telescope => $tel,
+                                        instrument => $instrument,
+                                        utdate => $utdate,
+                                      );
+  my $flagfileregexp = OMP::Config->getData( 'flagfileregexp',
+                                             telescope => $tel,
+                                           );
+
+  # Remove the /dem from non-SCUBA directories.
+  if( uc( $instrument ) ne 'SCUBA' ) {
+    $directory =~ s/\/dem$//;
+  }
+
+  # Change wfcam to wfcam1 if the instrument is WFCAM.
+  if( uc( $instrument ) eq 'WFCAM' ) {
+    $directory =~ s/wfcam/wfcam1/;
+  }
+
+  # ACSIS directory is actually acsis/acsis00/utdate.
+  if( uc( $instrument ) eq 'ACSIS' ) {
+    $directory =~ s[(acsis)/(\d{8})][$1/spectra/$2];
+  }
+
+  # Open the directory.
+  opendir( OMP_DIR, $directory );
+
+  # Get the list of files that match the flag file regexp.
+  my @flag_files = map { File::Spec->catfile( $directory, $_ ) } sort grep ( /$flagfileregexp/, readdir( OMP_DIR ) );
+
+  # Close the directory.
+  close( OMP_DIR );
+
+  # Go through each flag file, open it, and retrieve the list of files
+  # within it. If the flag file size is 0 bytes, then we assume that
+  # the observation file associated with that flag file is of the same
+  # naming convention, removing the dot from the front and replacing
+  # the .ok on the end with .sdf.
+  foreach my $flag_file ( @flag_files ) {
+
+    # Zero-byte filesize.
+    if ( -z $flag_file ) {
+
+      $flag_file =~ /(.+)\.(\w+)\.ok$/;
+      my $data_file = $1 . $2 . ".sdf";
+
+      my @array;
+      push @array, $data_file;
+      push @return, \@array;
+
+    } else {
+
+      open my $flag_fh, "<", $flag_file;
+
+      my @array;
+      while (<$flag_fh>) {
+        chomp;
+        push @array, File::Spec->catfile( $directory, $_ );
+      }
+      push @return, \@array;
+
+      close $flag_fh;
+
+    }
+
+  }
+
+  if( wantarray ) {
+    return @return;
+  } else {
+    return \@return;
+  }
+
+}
+
+=back
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
-Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
