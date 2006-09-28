@@ -400,7 +400,10 @@ sub _query_files {
 ################################################################################
         next if( $inst =~ /^rx/i );
 
-        @files = OMP::FileUtils->files_on_disk( $inst, $day );
+        my @tfiles = OMP::FileUtils->files_on_disk( $inst, $day );
+        foreach my $arr_ref( @tfiles ) {
+          push @files, $arr_ref;
+        }
 
       } # foreach my $inst ( @instarray )
     } # for( my $day... )

@@ -346,6 +346,7 @@ sub unstored_files {
 
   }
 
+  my @ifiles;
   for(my $day = $query->daterange->min; $day <= $query->daterange->max; $day = $day + ONE_DAY) {
 
     foreach my $inst ( @insts ) {
@@ -354,12 +355,15 @@ sub unstored_files {
 
       @files = OMP::FileUtils->files_on_disk( $inst, $day );
 
+      foreach my $arr_ref( @files ) {
+        push @ifiles, $arr_ref;
+      }
     }
   }
 
   # At this point we have two arrays, one (@ofiles) containing
   # a list of files that have already been cached, and the
-  # other (@files) containing a list of all files applicable
+  # other (@ifiles) containing a list of all files applicable
   # to this query. We need to find all the files that exist
   # in the second array but not the first.
 
@@ -367,7 +371,7 @@ sub unstored_files {
   @seen{@ofiles} = ();
 
   my @return;
-  foreach my $arr_ref (@files) {
+  foreach my $arr_ref (@ifiles) {
     my @difffiles;
     foreach my $item ( @$arr_ref ) {
       push( @difffiles, $item ) unless exists $seen{$item};
