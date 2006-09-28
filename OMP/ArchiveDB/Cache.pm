@@ -32,6 +32,7 @@ use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Range;
+use OMP::FileUtils;
 
 use Carp;
 
@@ -297,7 +298,6 @@ sub unstored_files {
     throw OMP::Error::BadArgs( "Must supply a query to retrieve list of files not existing in cache" );
   }
 
-  my @difffiles;
   my @files;
   my @ofiles;
 
@@ -346,85 +346,14 @@ sub unstored_files {
 
   }
 
-  my @ifiles;
   for(my $day = $query->daterange->min; $day <= $query->daterange->max; $day = $day + ONE_DAY) {
 
     foreach my $inst ( @insts ) {
 
-      my $tel = OMP::Config->inferTelescope( 'instruments', $inst );
-      my $directory = OMP::Config->getData( 'rawdatadir',
-                                            telescope => $tel,
-                                            instrument => $inst,
-                                            utdate => $day,
-                                          );
+      next if( $inst =~ /^rx/i );
 
-      $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
+      @files = OMP::FileUtils->files_on_disk( $instrument, $day );
 
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# WFCAM data goes in a "wfcam1" directory. We need to bodge on the "1" to the
-# directory so we can actually get WFCAM data.
-################################################################################
-      $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
-
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# ACSIS data goes in an "acsis/spectra/<utdate>/<obsnum>"
-# directory. We need to look in each <obsnum> directory and use the
-# first file located within.
-################################################################################
-      if( $directory =~ /acsis/i ) {
-
-        # Remove the '/dem' from the end. Put '/spectra' between
-        # 'acsis' and the UT date (which is an eight-digit number).
-        $directory =~ s[/dem][];
-        $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
-
-        # Read the directory. Subdirectories are of the form \d{5}.
-        opendir( OBSNUM_DIRS, $directory );
-        my @obsnum_dirs = grep( /\d{5}/, readdir( OBSNUM_DIRS ) );
-        closedir( OBSNUM_DIRS );
-
-        # For each directory we find, make sure it's a directory,
-        # and if so, open it up and get the first file in there.
-        foreach my $obsnum_dir ( @obsnum_dirs ) {
-          $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
-          next if( ! -d $obsnum_dir );
-
-          opendir( FILES, $obsnum_dir );
-          my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
-          if( defined( $obs_files[0] ) ) {
-            push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
-          }
-          closedir( FILES );
-        }
-
-      } else {
-
-        next unless -d $directory;
-
-        opendir( my $dh, $directory )
-          or throw OMP::Error( "Unable to open data directory $directory: $!" );
-        @ifiles = grep(!/^\./, readdir($dh));
-
-        closedir($dh);
-
-        my $regexp = OMP::Config->getData( 'filenameregexp',
-                                           telescope => $tel,
-                                         );
-        @ifiles = grep /$regexp/, @ifiles;
-        @ifiles = sort {
-          $a =~ /_(\d+)\.(sdf|dat)$/;
-          my $a_obsnum = int($1);
-          $b =~ /_(\d+)\.(sdf|dat)$/;
-          my $b_obsnum = int($1);
-          $a_obsnum <=> $b_obsnum; } @ifiles;
-        @ifiles = map { $directory . '/' . $_ } @ifiles;
-
-        push @files, @ifiles;
-      }
     }
   }
 
@@ -437,10 +366,16 @@ sub unstored_files {
   my %seen;
   @seen{@ofiles} = ();
 
-  foreach my $item (@files) {
-    push( @difffiles, $item ) unless exists $seen{$item};
+  my @return;
+  foreach my $arr_ref (@files) {
+    my @difffiles;
+    foreach my $item ( @$arr_ref ) {
+      push( @difffiles, $item ) unless exists $seen{$item};
+    }
+    push @return, \@difffiles;
   }
-  return ( $obsgrp, @difffiles );
+
+  return ( $obsgrp, @return );
 }
 
 =item B<cached_on>

@@ -35,6 +35,7 @@ use OMP::General;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
 use OMP::Config;
+use OMP::FileUtils;
 use Astro::FITS::Header::NDF;
 use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
@@ -54,7 +55,7 @@ our $VERSION = (qw$Revision$)[1];
 $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
-$SkipDBLookup = 0;
+$SkipDBLookup = 1;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -384,7 +385,9 @@ sub _query_files {
     my $endday = $daterange->max->ymd;
     $endday =~ s/-//g;
 
-    for(my $day = $startday; $day <= $endday; $day = $day + ONE_DAY) {
+    for( my $day = $daterange->min;
+         $day <= $query->daterange->max;
+         $day = $day + ONE_DAY ) {
 
       foreach my $inst ( @instarray ) {
 
@@ -397,220 +400,104 @@ sub _query_files {
 ################################################################################
         next if( $inst =~ /^rx/i );
 
-        my $telescope = OMP::Config->inferTelescope('instruments', $inst);
-        my $directory = OMP::Config->getData( 'rawdatadir',
-                                              telescope => $telescope,
-                                              utdate => $day,
-                                              instrument => $inst );
+        @files = OMP::FileUtils->files_on_disk( $instrument, $day );
 
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# Because we cannot get instrument-specific directories from the configuration
-# system (yet), we need to append "/pre" onto the directory retrieved for SCUBA
-# observations.
-################################################################################
-        $directory =~ s/\/dem$// unless $inst =~ /scuba/i;
-
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# WFCAM data goes in a "wfcam1" directory. We need to bodge on the "1" to the
-# directory so we can actually get WFCAM data.
-################################################################################
-        $directory =~ s/wfcam/wfcam1/ if $inst =~ /wfcam/i;
-
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# ACSIS data goes in an "acsis/spectra/<utdate>/<obsnum>"
-# directory. We need to look in each <obsnum> directory and use the
-# first file located within.
-################################################################################
-        if( $directory =~ /acsis/i ) {
-
-          # Remove the '/dem' from the end. Put '/spectra' between
-          # 'acsis' and the UT date (which is an eight-digit number).
-
-          $directory =~ s[/dem][];
-          $directory =~ s[/(acsis)/(\d{8})][/\1/spectra/\2];
-
-          # Read the directory. Subdirectories are of the form \d{5}.
-          opendir( OBSNUM_DIRS, $directory );
-          my @obsnum_dirs = grep( /\d{5}/, readdir( OBSNUM_DIRS ) );
-          closedir( OBSNUM_DIRS );
-
-          # For each directory we find, make sure it's a directory,
-          # and if so, open it up and get the first file in there.
-          foreach my $obsnum_dir ( @obsnum_dirs ) {
-            $obsnum_dir = File::Spec->catfile( $directory, $obsnum_dir );
-            next if( ! -d $obsnum_dir );
-
-            opendir( FILES, $obsnum_dir );
-            my @obs_files = sort grep ( /\.sdf$/, readdir( FILES ) );
-            if( defined( $obs_files[0] ) ) {
-              push @files, File::Spec->catfile( $obsnum_dir, $obs_files[0] );
-            }
-            closedir( FILES );
-          }
-
-        } else {
-
-          # Get a file list.
-          if( -d $directory ) {
-            opendir( FILES, $directory );#throw OMP::Error( "Unable to open data directory $directory: $!  --- " );
-            @files = grep(!/^\./, readdir(FILES));
-            closedir(FILES);
-
-# INSTRUMENT SPECIFIC CODE
-#
-# The following line assumes that valid data files end in an observation number
-# and have a ".sdf", a ".dat", or a ".gsd" suffix. If this is not the case,
-# then this line will have to be modified accordingly.
-
-            @files = grep(/_\d+\.(sdf|gsd|dat)$/, @files);
-            @files = sort {
-
-# INSTRUMENT SPECIFIC CODE
-#
-# The following sorting routine assumes that valid data files end in an
-# observation number and have a ".sdf", ".dat", or ".gsd" suffix. If this is not
-# the case, then this will have to be modified accordingly. It is possible to use
-# ORAC::Frame to do this, but dependencies on ORAC classes are to be minimised.
-
-# The following is ORAC::Frame code which can do the same thing. Slower,
-# and more dependant on ORAC classes, but not instrument/telescope specific.
-#          my $a_Frm = new ORAC::Frame($directory . "/" . $a);
-#          my $a_obsnum = $a_Frm->number;
-#          my $b_Frm = new ORAC::Frame($directory . "/" . $b);
-#          my $b_obsnum = $b_Frm->number;;
-
-            $a =~ /_(\d+)\.(sdf|gsd|dat)$/;
-            my $a_obsnum = int($1);
-            $b =~ /_(\d+)\.(sdf|gsd|dat)$/;
-            my $b_obsnum = int($1);
-
-            $a_obsnum <=> $b_obsnum; } @files;
-
-            if( $runnr != 0 ) {
-
-# INSTRUMENT SPECIFIC CODE
-#
-# The following code block assumes that valid data files end in an observation
-# number and have a ".sdf" suffix. If this is not the case, then this block
-# will have to be modified accordingly. It is possible to use ORAC::Frame to
-# retrieve the observation number of a file, but dependencies on ORAC classes
-# are to be minimised.
-
-              # find the file with this run number
-              $runnr = '0' x (4 - length($runnr)) . $runnr;
-              @files = grep(/$runnr\.(sdf|gsd|dat)$/, @files);
-            } # if( $runnr != 0 )
-
-            @files = map { $directory . '/' . $_ } @files;
-
-          } # if ( -d $directory )
-          else {
-            next; # No data disks means no data
-          }
-        }
       } # foreach my $inst ( @instarray )
     } # for( my $day... )
   } # if( simple_query( $query ) ) { } else
 
-  # Remove duplicates from the list of files.
-  my %seen = ();
-  my @uniq = grep { ! $seen{$_} ++ } @files;
+  foreach my $arr_ref ( @files ) {
 
-  foreach my $file ( @uniq ) {
+    foreach my $file ( @$arr_ref ) {
 
-    # Create the Obs object.
-    my $obs;
-    my $Error;
-    try {
-      $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
-    }
-    catch OMP::Error with {
-      # Just log it and go on to the next observation, but only if
-      # we haven't warned about this observation yet.
-      if( ! $WARNED{$file} ) {
-        $Error = shift;
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      # Create the Obs object.
+      my $obs;
+      my $Error;
+      try {
+        $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
       }
-      $WARNED{$file}++;
-    }
-    otherwise {
-      # Just log it and go on to the next observation, but only if
-      # we haven't warned about this observation yet.
-      if( ! $WARNED{$file} ) {
-        $Error = shift;
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
+      catch OMP::Error with {
+        # Just log it and go on to the next observation, but only if
+        # we haven't warned about this observation yet.
+        if( ! $WARNED{$file} ) {
+          $Error = shift;
+          OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
+        }
+        $WARNED{$file}++;
       }
-      $WARNED{$file}++;
-    };
-    next if( defined( $Error ) );
+      otherwise {
+        # Just log it and go on to the next observation, but only if
+        # we haven't warned about this observation yet.
+        if( ! $WARNED{$file} ) {
+          $Error = shift;
+          OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
+        }
+        $WARNED{$file}++;
+      };
+      next if( defined( $Error ) );
 
-    if( !defined( $obs ) ) { next; }
+      if( !defined( $obs ) ) { next; }
 
-    # If the observation's time falls within the range, we'll create the object.
-    my $match_date = 0;
+      # If the observation's time falls within the range, we'll create the object.
+      my $match_date = 0;
 
-    if( ! defined( $obs->startobs ) ) {
-      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
-      $WARNED{$file}++;
-      next;
-    }
-
-    if( $daterange->contains($obs->startobs) ) {
-      $match_date = 1;
-    } elsif( $daterange->max < $obs->startobs ) {
-      last;
-    }
-
-    # Don't bother checking other things because we know they won't match.
-    next unless $match_date;
-
-    # Filter by keywords given in the query string. Look at filters other than DATE,
-    # RUNNR, and _ATTR.
-    # Assume a match, and if we find something that doesn't match, remove it (since
-    # we'll probably always match on telescope at the very least).
-
-    # We're only going to filter if:
-    # - the thing in the query object is an OMP::Range or a scalar, and
-    # - the thing in the Obs object is a scalar
-    my $match_filter = 1;
-    foreach my $filter (keys %$query_hash) {
-      if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+      if( ! defined( $obs->startobs ) ) {
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
+        $WARNED{$file}++;
         next;
       }
 
-      foreach my $filterarray ($query_hash->{$filter}) {
-        if( OMP::Info::Obs->can(lc($filter)) ) {
-          my $value = $obs->$filter;
-          my $matcher = uc($obs->$filter);
-          if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
-            $match_filter = $filterarray->contains( $matcher );
-          } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
-            foreach my $filter2 (@$filterarray) {
+      if( $daterange->contains($obs->startobs) ) {
+        $match_date = 1;
+      } elsif( $daterange->max < $obs->startobs ) {
+        last;
+      }
 
-	      ################################################################
-	      # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT          #
-	      # Match against BACKEND header if instrument filter is 'acsis' #
-	      ################################################################
-	      if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
-		$matcher = uc($obs->backend);
-	      }
-              if($matcher !~ /$filter2/i) {
-                $match_filter = 0;
+      # Don't bother checking other things because we know they won't match.
+      next unless $match_date;
+
+      # Filter by keywords given in the query string. Look at filters
+      # other than DATE, RUNNR, and _ATTR.  Assume a match, and if we
+      # find something that doesn't match, remove it (since we'll
+      # probably always match on telescope at the very least).
+
+      # We're only going to filter if:
+      # - the thing in the query object is an OMP::Range or a scalar, and
+      # - the thing in the Obs object is a scalar
+      my $match_filter = 1;
+      foreach my $filter (keys %$query_hash) {
+        if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+          next;
+        }
+
+        foreach my $filterarray ($query_hash->{$filter}) {
+          if( OMP::Info::Obs->can(lc($filter)) ) {
+            my $value = $obs->$filter;
+            my $matcher = uc($obs->$filter);
+            if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
+              $match_filter = $filterarray->contains( $matcher );
+            } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
+              foreach my $filter2 (@$filterarray) {
+
+                ################################################################
+                # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT          #
+                # Match against BACKEND header if instrument filter is 'acsis' #
+                ################################################################
+                if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
+                  $matcher = uc($obs->backend);
+                }
+                if($matcher !~ /$filter2/i) {
+                  $match_filter = 0;
+                }
               }
             }
           }
         }
       }
-    }
 
-    if( $match_date && $match_filter ) {
-      push @returnarray, $obs;
+      if( $match_date && $match_filter ) {
+        push @returnarray, $obs;
+      }
     }
   }
 
