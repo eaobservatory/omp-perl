@@ -55,7 +55,7 @@ our $VERSION = (qw$Revision$)[1];
 $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
-$SkipDBLookup = 1;
+$SkipDBLookup = 0;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
