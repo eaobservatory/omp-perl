@@ -466,7 +466,7 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{secsPerCycle} = 5;
+    $info->{secsPerJiggle} = 5;
     $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
 
     # Kill baseline removal
@@ -632,7 +632,7 @@ sub tcs_base {
   # if we do not know the position return
   return if $info{autoTarget};
 
-  # First get all the coordinate tags
+  # First get all the coordinate tags (SCIENCE won't be in there)
   my %tags = %{ $info{coordtags} };
 
   # check for reference position
@@ -644,6 +644,18 @@ sub tcs_base {
   # unless we have an offset pixel
   # Note that OFFSETS are only propogated for non-SCIENCE positions
   $tags{SCIENCE} = { coords => $info{coords} };
+
+  # if we have override velocity information we need to apply it now
+  my @vover = $self->velOverride( %info );
+  if (@vover) {
+    print "Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n" if $self->verbose;
+    for my $t (keys %tags) {
+      my $c = $tags{$t}{coords};
+      if ($c->can( "set_vel_pars")) {
+	$c->set_vel_pars( @vover );
+      }
+    }
+  }
 
   # Create some BASE objects
   my %base;
@@ -3676,6 +3688,38 @@ sub convolve_footprint {
 
   return @conv;
 }
+
+=item B<velOverride>
+
+Returns a list of velocity (or redshift), velocity definition and velocity frame
+if an override of these items has been specified in the MSB.
+
+  ($vel, $vdef, $vframe) = $trans->velOverride( %info );
+
+Returns empty list if no override is specified.
+
+=cut
+
+sub velOverride {
+  my $class = shift;
+  my %info = @_;
+
+  my $freq = $info{freqconfig};
+
+  if (defined $freq) {
+    my $vfr = $freq->{velocityFrame};
+    my $vdef = $freq->{velocityDefinition};
+    my $vel = $freq->{velocity};
+
+    if (defined $vfr && defined $vdef && defined $vel) {
+      return ($vel, $vdef, $vfr);
+    }
+  }
+
+  # if we get to here there is no override
+  return ();
+}
+
 
 =item B<getCubeInfo>
 
