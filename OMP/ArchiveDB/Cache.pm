@@ -321,6 +321,14 @@ sub unstored_files {
 
   my $instrument = $query->instrument;
 
+  my $runnr;
+  my $query_hash = $query->query_hash;
+  if( defined( $query_hash->{runnr} ) ) {
+    $runnr = $query_hash->{runnr}->[0];
+  } else {
+    $runnr = 0;
+  }
+
   my @insts;
   if( defined( $instrument ) ) {
     if($instrument =~ /^rx/i) {
@@ -353,7 +361,7 @@ sub unstored_files {
 
       next if( $inst =~ /^rx/i );
 
-      @files = OMP::FileUtils->files_on_disk( $inst, $day );
+      @files = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
 
       foreach my $arr_ref( @files ) {
         push @ifiles, $arr_ref;
