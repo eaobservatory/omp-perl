@@ -35,12 +35,14 @@ There are no instance methods, only class (static) methods.
 For a given instrument and UT date, this method returns a list of
 observation files.
 
-  my @files = OMP::General->files_on_disk( 'CGS4', $date );
-  my $files = OMP::General->files_on_disk( 'CGS4', $date );
+  my @files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
+  my $files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
 
-The instrument must be a string. The date must be a Time::Piece
-object. If the date is not passed as a Time::Piece object then an
-OMP::Error::BadArgs error will be thrown.
+The   instrument must be  a string.   The date  must be  a Time::Piece
+object.  If the date  is  not passed as   a Time::Piece object then an
+OMP::Error::BadArgs error  will be thrown.  The run  number must be an
+integer. If the run number is not passed or is zero, then no filtering
+by run number will be done.
 
 If called in list context, returns a list of array references. Each
 array reference points to a list of observation files for a single
@@ -53,12 +55,18 @@ sub files_on_disk {
   my $class = shift;
   my $instrument = shift;
   my $utdate = shift;
+  my $runnr = shift;
 
   my @return;
 
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
     throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::
 Piece object" );
+  }
+
+  if( ! defined( $runnr ) ||
+      $runnr < 0 ) {
+    $runnr = 0;
   }
 
   my $date = $utdate->ymd;
@@ -93,8 +101,21 @@ Piece object" );
   opendir( OMP_DIR, $directory );
 
   # Get the list of files that match the flag file regexp.
-  my @flag_files = map { File::Spec->catfile( $directory, $_ ) } sort grep ( /$flagfileregexp/
-, readdir( OMP_DIR ) );
+  my @flag_files = sort grep ( /$flagfileregexp/, readdir( OMP_DIR ) );
+
+  # Purge the list if runnr is not zero.
+  if( $runnr != 0 ) {
+    foreach my $flag_file ( @flag_files ) {
+      $flag_file =~ /$flagfileregexp/;
+      if( int($1) == $runnr ) {
+        @flag_files = [];
+        push @flag_files, $flag_file;
+        last;
+      }
+    }
+  }
+
+  @flag_files = map { File::Spec->catfile( $directory, $_ ) } @flag_files;
 
   # Close the directory.
   close( OMP_DIR );
