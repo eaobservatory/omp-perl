@@ -402,7 +402,15 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{secsPerJiggle} = 2;
+
+    # read integration time from config system, else default to 2.0 seconds
+    my $pointing_secs = 2.0;
+    try {
+      $pointing_secs = OMP::Config->getData( 'acsis_translator.secs_per_jiggle_pointing');
+    } otherwise {
+      # no problem, use default
+    };
+    $info->{secsPerJiggle} = $pointing_secs;
 
     my $scaleMode;
     if ($frontend eq 'HARPB') {
@@ -466,8 +474,23 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{secsPerJiggle} = 2;
     $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
+
+    # read integration time from config system, else default to 2.0 seconds
+    my $focus_secs = 2.0;
+    try {
+      $focus_secs = OMP::Config->getData( 'acsis_translator.secs_per_jiggle_focus');
+    } otherwise {
+      # no problem, use default
+    };
+    $info->{secsPerJiggle} = $focus_secs;
+
+    if ($self->verbose) {
+      print "Determining FOCUS parameters...\n";
+      print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
+      print "\tSeconds per focus position: $info->{secsPerJiggle}\n";
+    }
+
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -2794,6 +2817,7 @@ sub observing_mode {
   $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
 
   if ($self->verbose) {
+    print "\n";
     print "Observing Mode Overview:\n";
     print "\tObserving Mode: $info->{observing_mode}\n";
     print "\tObservation Type: $info->{obs_type}\n";
