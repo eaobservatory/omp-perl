@@ -402,7 +402,7 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{secsPerJiggle} = 5;
+    $info->{secsPerJiggle} = 2;
 
     my $scaleMode;
     if ($frontend eq 'HARPB') {
@@ -466,7 +466,7 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
-    $info->{secsPerJiggle} = 5;
+    $info->{secsPerJiggle} = 2;
     $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
 
     # Kill baseline removal
@@ -1276,7 +1276,8 @@ sub jos_config {
   }
 
   # The number of cycles is simply the number of requested integrations
-  $jos->num_cycles( defined $info{nintegrations}  ? $info{nintegrations} :  1);
+  my $num_cycles = (defined $info{nintegrations}  ? $info{nintegrations} : 1);
+  $jos->num_cycles( $num_cycles );
 
   # The step time is always present
   $jos->step_time( $self->step_time( %info ) );
@@ -1509,10 +1510,22 @@ sub jos_config {
     # the number of requested integrations
     # above.
 
+    # However, we need to re-calculate all to take max_time_between_refs
+    # ($refgap) into regard. Basically NUM_CYCLES need to be based on
+    # $refgap unless the secsPerCycle is really short.
+
+    # Calculate max_time_on and total integration time requested
+    my $max_time_on = min($info{secsPerCycle}, $refgap);
+    my $total_time = $num_cycles*$info{secsPerCycle};
+
+    # Recalculate number of cycles.
+    $num_cycles = ceil($total_time/$max_time_on);
+    $jos->num_cycles( $num_cycles );
+
     # First JOS_MIN
     # This is the number of samples on each grid position
     # so = secsPerCycle / STEP_TIME
-    my $jos_min = ceil($info{secsPerCycle} / $self->step_time( %info ));
+    my $jos_min = ceil($total_time/$num_cycles/ $self->step_time( %info ));
     $jos->jos_min($jos_min);
 
     # N_REFSAMPLES should be equal
