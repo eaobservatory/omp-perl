@@ -471,24 +471,26 @@ sub handle_special_modes {
 
   } elsif ($info->{obs_type} eq 'focus') {
     # Focus is a 60 arcsec AZ chop observation
+    # This is a GRID_CHOP observation, not a JIGGLE
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
 
     # read integration time from config system, else default to 2.0 seconds
+    # note that we are not technically jiggling.
     my $focus_secs = 2.0;
     try {
       $focus_secs = OMP::Config->getData( 'acsis_translator.secs_per_jiggle_focus');
     } otherwise {
       # no problem, use default
     };
-    $info->{secsPerJiggle} = $focus_secs;
+    $info->{secsPerCycle} = $focus_secs;
 
     if ($self->verbose) {
       print "Determining FOCUS parameters...\n";
       print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
-      print "\tSeconds per focus position: $info->{secsPerJiggle}\n";
+      print "\tSeconds per focus position: $info->{secsPerCycle}\n";
     }
 
 
@@ -1384,6 +1386,10 @@ sub jos_config {
 
     # Jiggle
 
+    throw OMP::Error::TranslateFail( "Requested integration time (secsPerJiggle) is 0")
+      if (!exists $info{secsPerJiggle} || !defined $info{secsPerJiggle} ||
+	  $info{secsPerJiggle} <= 0);
+
     # We need to calculate the number of full patterns per nod and the number
     # of nod sets. A nod set is a full A B B A combination so there are at
     # least 4 nods.
@@ -1484,6 +1490,10 @@ sub jos_config {
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
 
+    throw OMP::Error::TranslateFail( "Requested integration time (secsPerCycle) is 0")
+      if (!exists $info{secsPerCycle} || !defined $info{secsPerCycle} ||
+	  $info{secsPerCycle} <= 0);
+
     # Similar to a jiggle_chop recipe (in fact they are the same) but
     # we are not jiggling (ie a single jiggle point at the origin)
 
@@ -1531,7 +1541,12 @@ sub jos_config {
 
     # N.B. The NUM_CYCLES has already been set to
     # the number of requested integrations
-    # above.
+    # above except that NUM_CYCLES is now overriden in this recipe unless NUM_CYCLES
+    # is > 1 (indicating an old program).
+
+    throw OMP::Error::TranslateFail( "Requested integration time (secsPerCycle) is 0")
+      if (!exists $info{secsPerCycle} || !defined $info{secsPerCycle} ||
+	  $info{secsPerCycle} <= 0);
 
     # However, we need to re-calculate all to take max_time_between_refs
     # ($refgap) into regard. Basically NUM_CYCLES need to be based on
@@ -1541,9 +1556,13 @@ sub jos_config {
     my $max_time_on = min($info{secsPerCycle}, $refgap);
     my $total_time = $num_cycles*$info{secsPerCycle};
 
-    # Recalculate number of cycles.
-    $num_cycles = ceil($total_time/$max_time_on);
-    $jos->num_cycles( $num_cycles );
+    # Recalculate number of cycles unless we already have num_cycles > 1
+    my $recalc;
+    if ($num_cycles == 1) {
+      $num_cycles = ceil($total_time/$max_time_on);
+      $jos->num_cycles( $num_cycles );
+      $recalc = 1;
+    }
 
     # First JOS_MIN
     # This is the number of samples on each grid position
@@ -1557,16 +1576,19 @@ sub jos_config {
     my $nrefs = $jos_min;
     $jos->n_refsamples( $nrefs );
 
-    # NUM_NOD_SETS - set to 1
+    # NUM_NOD_SETS - set to 1, will not be used.
     my $num_nod_sets = 1;
     $jos->num_nod_sets( $num_nod_sets );
 
     if ($self->verbose) {
       print "Grid JOS parameters:\n";
-      print "\tIntegration time per grid possition: $info{secsPerCycle} secs\n";
+      print "\tIntegration (ON) time per grid position: $info{secsPerCycle} secs\n";
       print "\tNumber of steps per on: $jos_min\n";
       print "\tNumber of steps per off: $nrefs\n";
       print "\tNumber of nod sets: $num_nod_sets\n";
+      if ($num_cycles > 1 && $recalc) {
+	print "\tNumber of cycles recalculated: $num_cycles\n";
+      }
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
@@ -3085,12 +3107,17 @@ sub step_time {
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
     $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
   } elsif ($info{observing_mode} =~ /grid_chop/) {
-    $step = OMP::Config->getData( 'acsis_translator.max_time_between_chops');
+    # step time has to be no bigger than the requested integration
+    $step = min( 
+		$info{secsPerCycle},
+		OMP::Config->getData( 'acsis_translator.max_time_between_chops')
+	       );
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
 
-  throw OMP::Error::TranslateFail( "Calculated step time not a positive number [was $step]\n") unless $step > 0;
+  throw OMP::Error::TranslateFail( "Calculated step time not a positive number [was ".
+				   (defined $step ? $step : "undef")."]\n") unless $step > 0;
 
   return $step;
 }
