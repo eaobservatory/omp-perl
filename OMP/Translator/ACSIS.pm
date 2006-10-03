@@ -1455,12 +1455,14 @@ sub jos_config {
     my $timePerJig = $nsteps * $jos->step_time;
 
     # The number of times we need to go round the jiggle (per cycle) is the total
-    # requested time divided by the step time
-    my $nrepeats = ceil( $info{secsPerJiggle} / $jos->step_time );
+    # requested time divided by the step time. Do not round this since it is only
+    # going to be used to calculate the total required JOS_MULT, and ceil() on this
+    # followed by ceil(total_jos_mult) leads to rounding errors.
+    my $nrepeats = $info{secsPerJiggle} / $jos->step_time;
 
     # These repeats have to spread evenly over 2 or 4 nod cycles (a single nod set)
     # This would be JOS_MULT if NUM_NOD_SETS was 1 and time between nods could go
-    # very high
+    # very high.
     my $total_jos_mult = ceil( $nrepeats / $nod_set_size );
 
     # now get the max time between nods
@@ -1479,8 +1481,8 @@ sub jos_config {
       $jos_mult = $total_jos_mult;
     } else {
       # we need to split the total into equal chunks smaller than max_jos_mult
-      $num_nod_sets = int($total_jos_mult / $max_jos_mult);
-      $jos_mult = $max_jos_mult;
+      $num_nod_sets = ceil($total_jos_mult / $max_jos_mult);
+      $jos_mult = ceil($total_jos_mult/$num_nod_sets);
     }
 
     $jos->jos_mult( $jos_mult );
@@ -1498,8 +1500,11 @@ sub jos_config {
       print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
       print "\tMax allowed JOS_MULT : $max_jos_mult\n";
+      print "\tActual JOS_MULT : $jos_mult\n";
       print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
 	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
+      print "\tActual integration time per jiggle position: ".
+	($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
@@ -1544,14 +1549,14 @@ sub jos_config {
 
     if ($self->verbose) {
       print "Chop JOS parameters:\n";
-      print "\tRequested integration time per cycle: $info{secsPerCycle} sec\n";
+      print "\tRequested integration time per grid point: $info{secsPerCycle} sec\n";
       print "\tStep time for chop: ". $jos->step_time . " sec\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
       print "\tMax allowed JOS_MULT : $max_steps_nod\n";
       print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
 	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
-      print "\tActual integraton time per cycle: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time)
-	." sec\n";
+      print "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time 
+							 * $jos->num_cycles) . " sec\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid/) {
@@ -1599,13 +1604,13 @@ sub jos_config {
 
     if ($self->verbose) {
       print "Grid JOS parameters:\n";
-      print "\tIntegration (ON) time per grid position: $info{secsPerCycle} secs\n";
+      print "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
       print "\tNumber of steps per on: $jos_min\n";
       print "\tNumber of steps per off: $nrefs\n";
-      print "\tNumber of nod sets: $num_nod_sets\n";
       if ($num_cycles > 1 && $recalc) {
 	print "\tNumber of cycles recalculated: $num_cycles\n";
       }
+      print "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
