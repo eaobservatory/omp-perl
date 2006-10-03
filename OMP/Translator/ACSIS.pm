@@ -385,6 +385,11 @@ sub handle_special_modes {
 
   # The trick is to fill in the blanks
 
+  # Specify that all jiggle/chop observations are ABBA nods
+  if ($info->{observing_mode} =~ /(grid|jiggle)_chop/) {
+    $info->{nodSetDefinition} = "ABBA";
+  }
+
   # A pointing should translate to
   #  - Jiggle chop
   #  - 5 point or 9x9 jiggle pattern
@@ -402,6 +407,9 @@ sub handle_special_modes {
     $info->{CHOP_PA} = 90;
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
+
+    # this is configured as an AB nod
+    $info->{nodSetDefinition} = "AB";
 
     # read integration time from config system, else default to 2.0 seconds
     my $pointing_secs = 2.0;
@@ -476,6 +484,9 @@ sub handle_special_modes {
     $info->{CHOP_THROW} = 60;
     $info->{CHOP_SYSTEM} = 'AZEL';
     $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
+
+    # this is configured as an AB nod
+    $info->{nodSetDefinition} = "AB";
 
     # read integration time from config system, else default to 2.0 seconds
     # note that we are not technically jiggling.
@@ -1391,8 +1402,10 @@ sub jos_config {
 	  $info{secsPerJiggle} <= 0);
 
     # We need to calculate the number of full patterns per nod and the number
-    # of nod sets. A nod set is a full A B B A combination so there are at
-    # least 4 nods.
+    # of nod sets. A nod set can either be an "A B" combination or a full
+    # "A B B A" combination. This means that we must group integrations within a cycle
+    # in either sets of 2 or 4.
+    my $nod_set_size = $self->get_nod_set_size( %info );
 
     # first get the Secondary object, via the TCS
     my $tcs = $cfg->tcs;
@@ -1445,10 +1458,10 @@ sub jos_config {
     # requested time divided by the step time
     my $nrepeats = ceil( $info{secsPerJiggle} / $jos->step_time );
 
-    # These repeats have to spread evenly over 4 nod cycles (a single nod set)
+    # These repeats have to spread evenly over 2 or 4 nod cycles (a single nod set)
     # This would be JOS_MULT if NUM_NOD_SETS was 1 and time between nods could go
     # very high
-    my $total_jos_mult = ceil( $nrepeats / 4 );
+    my $total_jos_mult = ceil( $nrepeats / $nod_set_size );
 
     # now get the max time between nods
     my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
@@ -1460,7 +1473,7 @@ sub jos_config {
     # If we need less than required we just use that
     my $num_nod_sets;
     my $jos_mult;
-    if ($total_jos_mult <  $max_jos_mult) {
+    if ($total_jos_mult <=  $max_jos_mult) {
       # we can do it all in one go
       $num_nod_sets = 1;
       $jos_mult = $total_jos_mult;
@@ -1485,7 +1498,8 @@ sub jos_config {
       print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
       print "\tMax allowed JOS_MULT : $max_jos_mult\n";
-      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats\n";
+      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
+	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
@@ -1497,14 +1511,15 @@ sub jos_config {
     # Similar to a jiggle_chop recipe (in fact they are the same) but
     # we are not jiggling (ie a single jiggle point at the origin)
 
-    # Have to do ABBA sequence so JOS_MULT is the secsPerCycle / 4
-    # with the max nod time constraint
+    # Have to do AB or ABBA sequence so JOS_MULT is the secsPerCycle / 4
+    # or secsPerCycle / 2 with the max nod time constraint
+    my $nod_set_size = $self->get_nod_set_size( %info );
 
     # Required Integration time per cycle in STEPS
     my $stepsPerCycle = ceil( $info{secsPerCycle} / $jos->step_time );
 
     # Total number of steps required per nod
-    my $total_jos_mult = ceil( $stepsPerCycle / 4 );
+    my $total_jos_mult = ceil( $stepsPerCycle / $nod_set_size );
 
     # Max time between nods
     my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
@@ -1533,8 +1548,10 @@ sub jos_config {
       print "\tStep time for chop: ". $jos->step_time . " sec\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
       print "\tMax allowed JOS_MULT : $max_steps_nod\n";
-      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod\n";
-      print "\tActual integraton time per cycle: ".($num_nod_sets * $jos_mult * 4)." sec\n";
+      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
+	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
+      print "\tActual integraton time per cycle: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time)
+	." sec\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid/) {
@@ -3107,9 +3124,10 @@ sub step_time {
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
     $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
   } elsif ($info{observing_mode} =~ /grid_chop/) {
-    # step time has to be no bigger than the requested integration
+    # step time has to be no bigger than the requested integration (corrected
+    # for the nods per nod set)
     $step = min( 
-		$info{secsPerCycle},
+		($info{secsPerCycle} / $self->get_nod_set_size( %info )),
 		OMP::Config->getData( 'acsis_translator.max_time_between_chops')
 	       );
   } else {
@@ -3238,6 +3256,33 @@ sub align_offsets {
     push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa });
   }
   return @out;
+}
+
+=item B<get_nod_set_size>
+
+Returns the number of nods in a nod set. Can be either 2 for AB or 4 for ABBA.
+
+  $nod_set_size = $trans->get_nod_set_size( %info );
+
+Throws an exception if the nod set definition is not understood.
+
+=cut
+
+sub get_nod_set_size {
+  my $self = shift;
+  my %info = @_;
+
+  my $nod_set_size;
+  if (!defined $info{nodSetDefinition}) {
+    $nod_set_size = 4; "ABBA";
+  } elsif ($info{nodSetDefinition} eq 'AB') {
+    $nod_set_size = 2;
+  } elsif ($info{nodSetDefinition} eq 'ABBA') {
+    $nod_set_size = 4;
+  } else {
+    throw OMP::Error::TranslateFail("Unrecognized nod set definition ('$info{nodSetDefinition}'). Can not continue.");
+  }
+  return $nod_set_size;
 }
 
 =item B<tracking_receptor>
