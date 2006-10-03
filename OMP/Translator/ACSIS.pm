@@ -1239,6 +1239,44 @@ sub header_config {
     }
   }
 
+  # Some observing modes have exclusion files.
+  # First build the filename
+  my $root;
+  if ($info{obs_type} =~ /pointing|focus/) {
+    $root = $info{obs_type};
+  } else {
+    $root = $info{observing_mode};
+  }
+
+  my $file = File::Spec->catfile( $WIRE_DIR, "header", $root . "_exclude");
+  if (-e $file) {
+    print "Processing header exclusion file '$file'.\n" if $self->verbose;
+
+    # this exclusion file has header cards that should be undeffed
+    open (my $fh, "< $file") || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
+
+    while (defined (my $line = <$fh>)) {
+      # remove comments
+      $line =~ s/\#.*//;
+      # and trailing/leading whitespace
+      $line =~ s/^\s*//;
+      $line =~ s/\s*$//;
+      next unless $line =~ /\w/;
+
+      # ask for the header item
+      my $item = $hdr->item( $line );
+
+      if (defined $item) {
+	# force undef
+	$item->undefine;
+      } else {
+	print "\tAsked to exclude header card '$line' but it is not part of the header\n";
+      }
+
+    }
+
+  }
+
   $cfg->header( $hdr );
 
 }
