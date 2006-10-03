@@ -717,7 +717,7 @@ sub _copy_data {
 	my $date = $1;
 	my $obsnum = $2;
 
-	$base = 'ac${date}_0${obsnum}_01_01.sdf';
+	$base = "ac${date}_0${obsnum}_01_01.sdf";
 	$file = "/jcmtdata/raw/acsis/acsis01/gridder01/$date/cubes/$base";
 	
       }
