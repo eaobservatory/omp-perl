@@ -1578,8 +1578,8 @@ sub jos_config {
       $num_nod_sets = 1;
     } else {
       # Need to spread it out
-      $num_nod_sets = int( $total_jos_mult / $max_steps_nod );
-      $jos_mult = $max_steps_nod;
+      $num_nod_sets = ceil($total_jos_mult / $max_steps_nod);
+      $jos_mult = ceil($total_jos_mult/$num_nod_sets);
     }
 
     $jos->jos_mult( $jos_mult );
@@ -3170,9 +3170,10 @@ sub step_time {
     # step time has to be no bigger than the requested integration (corrected
     # for the nods per nod set)
     $step = min( 
-		($info{secsPerCycle} / $self->get_nod_set_size( %info )),
+		$info{secsPerCycle},
 		OMP::Config->getData( 'acsis_translator.max_time_between_chops')
 	       );
+    $step /= $self->get_nod_set_size( %info );
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
