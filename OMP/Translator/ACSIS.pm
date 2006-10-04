@@ -387,7 +387,7 @@ sub handle_special_modes {
 
   # Specify that all jiggle/chop observations are ABBA nods
   if ($info->{observing_mode} =~ /(grid|jiggle)_chop/) {
-    $info->{nodSetDefinition} = "ABBA";
+    $info->{nodSetDefinition} = "AB";
   }
 
   # A pointing should translate to
@@ -409,7 +409,7 @@ sub handle_special_modes {
     $info->{CHOP_SYSTEM} = 'AZEL';
 
     # this is configured as an AB nod
-    $info->{nodSetDefinition} = "AB";
+    $info->{nodSetDefinition} = "ABBA";
 
     # read integration time from config system, else default to 2.0 seconds
     my $pointing_secs = 2.0;
