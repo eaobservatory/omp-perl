@@ -1977,11 +1977,11 @@ sub spw_list {
   my %dr;
   %dr = %{ $info{data_reduction} } if exists $info{data_reduction};
   if (!keys %dr) {
-    %dr = ( window_type => 'hanning',
+    %dr = ( window_type => 'truncate',
 	    fit_polynomial_order => $defaultPoly,
 	  ); # defaults
   } else {
-    $dr{window_type} ||= 'hanning';
+    $dr{window_type} ||= 'truncate';
     $dr{fit_polynomial_order} ||= $defaultPoly;
 
     # default to number if DEFAULT.
