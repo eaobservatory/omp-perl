@@ -893,7 +893,7 @@ sub secondary_mirror {
   my $sw_mode = $info{switching_mode};
 
   # Default to GROUP mode
-  $smu->motion( "GROUP" );
+  $smu->motion( "CONTINUOUS" );
 
   # Configure the chop parameters
   if ($sw_mode eq 'chop') {
