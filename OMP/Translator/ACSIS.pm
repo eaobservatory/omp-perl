@@ -3169,11 +3169,15 @@ sub step_time {
   } elsif ($info{observing_mode} =~ /grid_chop/) {
     # step time has to be no bigger than the requested integration (corrected
     # for the nods per nod set)
-    $step = min( 
-		$info{secsPerCycle},
-		OMP::Config->getData( 'acsis_translator.max_time_between_chops')
-	       );
-    $step /= $self->get_nod_set_size( %info );
+    $step_time = 
+      OMP::Config->getData( 'acsis_translator.max_time_between_chops');
+    if ($secsPerCycle < $step_time) {
+      $step_time = $secsPerCycle / $nod_set_size;
+    } else {
+      $nr_steps = ceil($secsPerCycle / $step_time);
+      $nr_steps++ if ($nr_steps%2 == 0);
+      $step_time = max(0.1,0.1*int(10*$step_time/($nod_set_size*$nr_steps)));
+    }
   } else {
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
