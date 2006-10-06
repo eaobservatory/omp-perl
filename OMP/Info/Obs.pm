@@ -944,7 +944,9 @@ sub simple_filename {
   # Get the filename without path
   my $base = basename( $infile );
 
-  if ($self->telescope eq 'JCMT' && $self->instrument !~ /(SCUBA|ACSIS)/i) {
+  if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA'
+      && uc( $self->backend ) ne 'ACSIS') {
+
     # Want YYYYMMDD_backend_nnnn.dat
     my $yyyy = $self->startobs->strftime('%Y%m%d');
     $base = $yyyy . '_' . $self->backend .'_' .
