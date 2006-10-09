@@ -175,7 +175,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               drrecipe => '$',
                               duration => '$',
                               endobs => 'Time::Piece',
-                              filename => '$',
+#                              filename => '$',
                               filter => '$',
                               frontend => '$',
                               grating => '$',
@@ -297,7 +297,37 @@ Array Accessors
 
 =back
 
+=item B<filename>
+
+Return or set filename(s) associated with the observation.
+
+  my $filename = $obs->filename;
+  my @filenames = $obs->filename;
+
+If called in scalar context, returns the first filename. If called in
+list context, returns all filenames.
+
+  $obs->filename( \@filenames );
+
+When setting, the filenames must be passed in as an array
+reference. Any filenames passed in override those previously set.
+
 =cut
+
+sub filename {
+  my $self = shift;
+  my $filenames = shift;
+
+  if( defined( $filenames ) ) {
+    $self->{FILENAME} = $filenames;
+  }
+
+  if( wantarray ) {
+    return @{$self->{FILENAME}};
+  } else {
+    return ${$self->{FILENAME}}[0];
+  }
+}
 
 sub fits {
   my $self = shift;
