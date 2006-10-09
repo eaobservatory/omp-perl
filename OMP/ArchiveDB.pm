@@ -55,7 +55,7 @@ our $VERSION = (qw$Revision$)[1];
 $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
-$SkipDBLookup = 0;
+$SkipDBLookup = 1;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -368,6 +368,7 @@ sub _query_files {
   my $obsgroup;
   my @files;
   my @obs;
+  my %headers;
 
   # If we have a simple query, go to the cache for stored information and files
   if( simple_query( $query ) ) {
@@ -378,8 +379,8 @@ sub _query_files {
   } else {
     # Okay, we don't have a simple query, so get the file list the hard way.
 
-    # We need to loop over every UT day in the date range. Get the start day and the end
-    # day from the $daterange object.
+    # We need to loop over every UT day in the date range. Get the
+    # start day and the end day from the $daterange object.
     my $startday = $daterange->min->ymd;
     $startday =~ s/-//g;
     my $endday = $daterange->max->ymd;
@@ -413,94 +414,113 @@ sub _query_files {
 
     foreach my $file ( @$arr_ref ) {
 
-      # Create the Obs object.
-      my $obs;
-      my $Error;
+      # Read the header, get the OBSERVATION_ID generic header.
       try {
-        $obs = readfile OMP::Info::Obs( $file, retainhdr => $retainhdr );
-      }
-      catch OMP::Error with {
-        # Just log it and go on to the next observation, but only if
-        # we haven't warned about this observation yet.
-        if( ! $WARNED{$file} ) {
-          $Error = shift;
-          OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
+        my $FITS_header;
+        if( $file =~ /\.sdf$/ ) {
+          $FITS_header = new Astro::FITS::Header::NDF( File => $file );
+        } elsif( $file =~ /\.(gsd|dat)$/ ) {
+          $FITS_header = new Astro::FITS::Header::GSD( File => $file );
+        } else {
+          throw OMP::Error::FatalError( "Do not recognize file suffix for file $file. Cannot read header" );
         }
-        $WARNED{$file}++;
+
+        # Translate header.
+        tie my %header, ref( $FITS_header ), $FITS_header;
+        my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS( \%header );
+
+        # If this OBSERVATION_ID has been seen before, merge the
+        # headers. Otherwise, just store the header.
+        my $obsid = $generic_header{'OBSERVATION_ID'};
+
+        push( @{$headers{$obsid}{'headers'}}, $FITS_header );
+        push( @{$headers{$obsid}{'filenames'}}, $file );
       }
-      otherwise {
-        # Just log it and go on to the next observation, but only if
-        # we haven't warned about this observation yet.
-        if( ! $WARNED{$file} ) {
-          $Error = shift;
-          OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
-        }
-        $WARNED{$file}++;
+      catch Error with {
+        my $Error = shift;
+        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR );
+        throw OMP::Error::ObsRead( "Error reading FITS header from file: " . $Error->{'-text'} );
       };
-      next if( defined( $Error ) );
+    }
+  }
 
-      if( !defined( $obs ) ) { next; }
+  foreach my $obsid ( keys %headers ) {
 
-      # If the observation's time falls within the range, we'll create the object.
-      my $match_date = 0;
+    # Merge all the headers for this given obsid, but only if we have
+    # more than one.
+    my $FITS_header;
+    if( $#{$headers{$obsid}{'headers'}} > 0 ) {
+      ( my $merged, my @different ) = ${$headers{$obsid}{'headers'}}[0]->merge_primary( { merge_unique => 1 }, @{$headers{$obsid}{'headers'}}[1..$#{$headers{$obsid}{'headers'}}] );
+      $merged->subhdrs( @different );
+      $FITS_header = $merged;
+    } else {
+      $FITS_header = $headers{$obsid}{'headers'}[0];
+    }
 
-      if( ! defined( $obs->startobs ) ) {
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
-        $WARNED{$file}++;
+    # Create the Obs object.
+    my $obs;
+    my $Error;
+
+    $obs = new OMP::Info::Obs( fits => $FITS_header, retainhdr => $retainhdr );
+
+    if( !defined( $obs ) ) { next; }
+
+    $obs->filename( \@{$headers{$obsid}{'filenames'}} );
+
+    # If the observation's time falls within the range, we'll create the object.
+    my $match_date = 0;
+
+    if( ! defined( $obs->startobs ) ) {
+      OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
+      $WARNED{$obs->filename}++;
+      next;
+    }
+
+    if( ! $daterange->contains($obs->startobs) ) {
+      next;
+    }
+
+    # Filter by keywords given in the query string. Look at filters
+    # other than DATE, RUNNR, and _ATTR.  Assume a match, and if we
+    # find something that doesn't match, remove it (since we'll
+    # probably always match on telescope at the very least).
+
+    # We're only going to filter if:
+    # - the thing in the query object is an OMP::Range or a scalar, and
+    # - the thing in the Obs object is a scalar
+    my $match_filter = 1;
+    foreach my $filter (keys %$query_hash) {
+      if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
         next;
       }
 
-      if( $daterange->contains($obs->startobs) ) {
-        $match_date = 1;
-      } elsif( $daterange->max < $obs->startobs ) {
-        last;
-      }
+      foreach my $filterarray ($query_hash->{$filter}) {
+        if( OMP::Info::Obs->can(lc($filter)) ) {
+          my $value = $obs->$filter;
+          my $matcher = uc($obs->$filter);
+          if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
+            $match_filter = $filterarray->contains( $matcher );
+          } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
+            foreach my $filter2 (@$filterarray) {
 
-      # Don't bother checking other things because we know they won't match.
-      next unless $match_date;
-
-      # Filter by keywords given in the query string. Look at filters
-      # other than DATE, RUNNR, and _ATTR.  Assume a match, and if we
-      # find something that doesn't match, remove it (since we'll
-      # probably always match on telescope at the very least).
-
-      # We're only going to filter if:
-      # - the thing in the query object is an OMP::Range or a scalar, and
-      # - the thing in the Obs object is a scalar
-      my $match_filter = 1;
-      foreach my $filter (keys %$query_hash) {
-        if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
-          next;
-        }
-
-        foreach my $filterarray ($query_hash->{$filter}) {
-          if( OMP::Info::Obs->can(lc($filter)) ) {
-            my $value = $obs->$filter;
-            my $matcher = uc($obs->$filter);
-            if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
-              $match_filter = $filterarray->contains( $matcher );
-            } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
-              foreach my $filter2 (@$filterarray) {
-
-                ################################################################
-                # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT          #
-                # Match against BACKEND header if instrument filter is 'acsis' #
-                ################################################################
-                if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
-                  $matcher = uc($obs->backend);
-                }
-                if($matcher !~ /$filter2/i) {
-                  $match_filter = 0;
-                }
+              ################################################################
+              # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT          #
+              # Match against BACKEND header if instrument filter is 'acsis' #
+              ################################################################
+              if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
+                $matcher = uc($obs->backend);
+              }
+              if($matcher !~ /$filter2/i) {
+                $match_filter = 0;
               }
             }
           }
         }
       }
+    }
 
-      if( $match_date && $match_filter ) {
-        push @returnarray, $obs;
-      }
+    if( $match_filter ) {
+      push @returnarray, $obs;
     }
   }
 
