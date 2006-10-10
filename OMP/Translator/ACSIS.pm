@@ -385,9 +385,9 @@ sub handle_special_modes {
 
   # The trick is to fill in the blanks
 
-  # Specify that all jiggle/chop observations are ABBA nods
+  # Specify that all jiggle/chop observations are ABBA or AB nods
   if ($info->{observing_mode} =~ /(grid|jiggle)_chop/) {
-    $info->{nodSetDefinition} = "AB";
+    $info->{nodSetDefinition} = "ABBA";
   }
 
   # A pointing should translate to
@@ -3321,7 +3321,7 @@ sub get_nod_set_size {
 
   my $nod_set_size;
   if (!defined $info{nodSetDefinition}) {
-    $nod_set_size = 2; "AB";
+    $nod_set_size = 2; "ABBA";
   } elsif ($info{nodSetDefinition} eq 'AB') {
     $nod_set_size = 2;
   } elsif ($info{nodSetDefinition} eq 'ABBA') {
