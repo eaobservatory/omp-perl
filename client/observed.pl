@@ -110,6 +110,8 @@ if (!$utdate) {
   } else {
     $utdate = OMP::General->today(1);
   }
+} else {
+  $utdate = OMP::General->parse_date($utdate);
 }
 
 # Get the list of MSBs
