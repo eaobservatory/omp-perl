@@ -125,7 +125,7 @@ sub readfile {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
     }
     $obs = $class->new( fits => $FITS_header, %args );
-    $obs->filename( $filename );
+    $obs->filename($filename);
   }
   catch Error with {
 
@@ -319,7 +319,13 @@ sub filename {
   my $filenames = shift;
 
   if( defined( $filenames ) ) {
-    $self->{FILENAME} = $filenames;
+    if (! ref($filenames)) {
+      $self->{FILENAME} = [$filenames];
+    } elsif (ref($filenames) eq 'ARRAY') {
+      $self->{FILENAME} = $filenames;
+    } else {
+      throw OMP::Error::BadArgs("Argument must be an ARRAY reference");
+    }
   }
 
   if( wantarray ) {
