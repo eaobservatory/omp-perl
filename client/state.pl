@@ -10,6 +10,8 @@ state - Disable or enable a project
  state -id u/05a/1 -disable
  state -id u/05a/1 -enable
 
+ state -id u/05a/1,u/05a/2,u/05a/3 -disable
+
 =head1 DESCRIPTION
 
 This program can be used to disable or re-enable a project, or to view the
@@ -35,7 +37,7 @@ A help message.
 
 =item B<-id>
 
-An OMP project ID.
+An OMP project ID, or multiple IDs separated by commas.
 
 =item B<-man>
 
@@ -72,11 +74,11 @@ use OMP::General;
 use OMP::ProjDB;
 
 # Options
-my ($help, $man, $version, $id, $enable, $disable);
+my ($help, $man, $version, $idstr, $enable, $disable);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
-                        "id=s" => \$id,
+                        "id=s" => \$idstr,
                         "enable" => \$enable,
 			"disable" => \$disable,
                        );
@@ -110,30 +112,32 @@ print "\n";
 # Connect to the database
 my $dbconnection = new OMP::DBbackend;
 
-my $projdb = new OMP::ProjDB( ProjectID => $id,
-			      DB => $dbconnection,
-			      Password => $password, );
+for my $id (split(',',$idstr)) {
+  my $projdb = new OMP::ProjDB( ProjectID => $id,
+				DB => $dbconnection,
+				Password => $password, );
 
-# Get project
-my $proj = $projdb->projectDetails( 'object' );
+  # Get project
+  my $proj = $projdb->projectDetails( 'object' );
 
-# Display project state
-print "Project " . $proj->projectid . " is currently " . ($proj->state ? "enabled" : "disabled") ."\n";
+  # Display project state
+  print "Project " . $proj->projectid . " is currently " . ($proj->state ? "enabled" : "disabled") ."\n";
 
-if ($enable or $disable) {
-  if ($enable) {
-    print "Enabling project ". $proj->projectid ."... ";
+  if ($enable or $disable) {
+    if ($enable) {
+      print "Enabling project ". $proj->projectid ."... ";
 
-    # Set state to enabled
-    $projdb->enableProject();
-  } else {
-    print "Disabling project ". $proj->projectid ."... ";
+      # Set state to enabled
+      $projdb->enableProject();
+    } else {
+      print "Disabling project ". $proj->projectid ."... ";
 
-    # Set state to enabled
-    $projdb->disableProject();
+      # Set state to enabled
+      $projdb->disableProject();
+    }
+
+    print "done.\n";
   }
-
-  print "done.\n";
 }
 
 =head1 AUTHOR
