@@ -712,15 +712,12 @@ sub _copy_data {
     }
 
     # Kludge to serve up ACSIS cubes
-    if ($base =~ /ACSIS/i) {
-      if ($base =~ /(\d{8})_ACSIS_(\d{4})\.dat/) {
-	my $date = $1;
-	my $obsnum = $2;
+    if ($base =~ /^a(\d{8})_(\d{5})_\d{2}_\d{4}\.sdf$/) {
+      my $date = $1;
+      my $obsnum = $2;
 
-	$base = "ac${date}_0${obsnum}_01_01.sdf";
-	$file = "/jcmtdata/raw/acsis/acsis01/gridder01/$date/cubes/$base";
-	
-      }
+      $base = "ac${date}_${obsnum}_01_01.sdf";
+      $file = "/jcmtdata/raw/acsis/acsis01/gridder01/$date/cubes/$base";	
     }
 
     my $outfile = File::Spec->catfile( $outdir, $base );
