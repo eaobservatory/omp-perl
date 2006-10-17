@@ -4188,7 +4188,8 @@ sub getReferenceRA {
       }
     }
   }
-  return "UNDEFINED";
+  # Want this to be an undef header
+  return "";
 }
 
 # Reference position as sexagesimal string or offset
@@ -4221,7 +4222,8 @@ sub getReferenceDec {
       }
     }
   }
-  return "UNDEFINED";
+  # Want this to be an undef header
+  return "";
 }
 
 
