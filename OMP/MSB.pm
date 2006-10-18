@@ -4024,6 +4024,7 @@ sub SpIterFolder {
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
+      my $contmode = $self->_get_pcdata( $child, "continuumMode" );
 
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
@@ -4042,6 +4043,8 @@ sub SpIterFolder {
       $stare{continuousCal} = $ccal if defined $ccal;
       $stare{frequencyRate} = $freqRate if defined $freqRate;
       $stare{frequencyOffset} = $freqOffset if defined $freqOffset;
+      $stare{continuumMode} = $self->_str_to_bool( $contmode )
+	if defined $contmode;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;
