@@ -996,7 +996,67 @@ sub fe_config {
   $fe->sb_mode( $fc{sideBandMode} );
 
   # How to handle 'best'?
-  my $sb = ( $fc{sideBand} =~  /BEST/i ? 'USB' : $fc{sideBand} );
+  my $sb = $fc{sideBand};
+  if ($sb =~ /BEST/i) {
+    # determine from lookup table
+    $sb = "USB";
+
+    # File name is derived from instrument name in wireDir
+    # The instrument config is fixed for a specific instrument
+    # and is therefore a "wiring file"
+    my $inst = lc($self->ocs_frontend($info{instrument}));
+    throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
+      unless defined $inst;
+ 
+    # wiring file name
+    my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
+				    "sideband_$inst.txt");
+
+    if (-e $file) {
+      # can make a guess but make it non-fatal to be missing
+      # The file is a simple format of
+      #    SkyFreq    Sideband
+      # where SkyFreq is the frequency threshold above which that
+      # sideband should be used. We read each line until we get a skyfreq
+      # that is higher than our required value and then use the value from the previous
+      # line
+      open my $fh, "< $file" or 
+	throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
+
+      # Get sky frequency in GHz
+      my $skyFreq = $fc{skyFrequency} / 1.0E9;
+
+      # read the lines, skipping comments and if the current frequency is lower than
+      # that of the line store the sideband and continue
+      $sb = ''; # make sure we read something
+      while (defined (my $line = <$fh>) ) {
+	chomp($line);
+	$line =~ s/\#.*//;  # remove comments
+	$line =~ s/^\s*//;  # remove leading space
+	$line =~ s/\s*$//;  # remove trailing space
+	next if $line !~ /\S/;  # give up if we only have whitespace
+	my ($freq, $refsb) = split(/\s+/, $line);
+	if ($freq < $skyFreq) {
+	  $sb = $refsb;
+	} else {
+	  # freq is larger so drop out of loop
+	  last;
+	}
+      }
+
+      close($fh) or
+	throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
+
+
+      if ($self->verbose) {
+	print "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
+      }
+    } else {
+      if ($self->verbose) {
+	print "No sideband helper file for $inst so assuming $sb will be acceptable\n";
+      }
+    }
+  }
   $fe->sideband( $sb );
 
   # doppler mode
