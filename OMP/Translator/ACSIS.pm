@@ -438,6 +438,15 @@ sub handle_special_modes {
       $scaleMode = "planet"; # Allowed: unity, planet, nyquist
     }
 
+    # should we be in continuum mode or spectral line mode.
+    # Cont mode can be used for both but spec mode is useless in continuum
+    $info->{continuumMode} = 1; # default to yes
+    try {
+      $info->{continuumMode} = OMP::Config->getData( 'acsis_translator.cont_pointing' );
+    } otherwise {
+      # use default
+    };
+
     # Now we need to determine the scaleFactor for the jiggle. This has been
     # specified above. Options are:
     #   unity  : scale factor is 1. Only used for HARP jiggle patterns
@@ -468,6 +477,7 @@ sub handle_special_modes {
       print "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
       print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
       print "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
+      print "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
 
     # Kill baseline removal
@@ -488,6 +498,15 @@ sub handle_special_modes {
     # this is configured as an AB nod
     $info->{nodSetDefinition} = "AB";
 
+    # should we be in continuum mode or spectral line mode.
+    # Cont mode can be used for both but spec mode is useless in continuum
+    $info->{continuumMode} = 1; # default to yes
+    try {
+      $info->{continuumMode} = OMP::Config->getData( 'acsis_translator.cont_focus' );
+    } otherwise {
+      # use default
+    };
+
     # read integration time from config system, else default to 2.0 seconds
     # note that we are not technically jiggling.
     my $focus_secs = 2.0;
@@ -502,6 +521,7 @@ sub handle_special_modes {
       print "Determining FOCUS parameters...\n";
       print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
       print "\tSeconds per focus position: $info->{secsPerCycle}\n";
+      print "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
 
 
@@ -934,7 +954,8 @@ sub secondary_mirror {
     # that n_jigs_on must be divisible into the total number of jiggle positions.
 
     # Let's say this is maximum time between chops in seconds
-    my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops');
+    my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
+					 ($info{continuumMode} ? "_cont" :""));
 
     # Now calculate the number of steps in that time period
     my $maxsteps = int( $tmax_per_chop / $rts );
@@ -1430,7 +1451,8 @@ sub jos_config {
   $jos->steps_per_cal( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
 
   # Now calculate the maximum time between refs in steps
-  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref' );
+  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
+				     ($info{continuumMode} ? "_cont" :""));
   $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
 
   if ($self->verbose) {
@@ -1564,7 +1586,8 @@ sub jos_config {
     my $total_jos_mult = ceil( $nrepeats / $nod_set_size );
 
     # now get the max time between nods
-    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
+    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods'.
+					 ($info{continuumMode} ? "_cont" :""));
 
     # and convert that to the max number of jiggle repeats per nod
     my $max_jos_mult = max(1, int( $max_t_nod / $timePerJig ));
@@ -1593,6 +1616,7 @@ sub jos_config {
       } else {
 	print "\tJiggling then Chopping\n";
       }
+      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print "\tDuration of single jiggle pattern: $timePerJig sec\n";
       print "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
       print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
@@ -1625,7 +1649,8 @@ sub jos_config {
     my $total_jos_mult = ceil( $stepsPerCycle / $nod_set_size );
 
     # Max time between nods
-    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
+    my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods'.
+					 ($info{continuumMode} ? "_cont" :""));
 
     # converted to steps
     my $max_steps_nod = ceil( $max_t_nod / $jos->step_time );
@@ -1647,6 +1672,7 @@ sub jos_config {
 
     if ($self->verbose) {
       print "Chop JOS parameters:\n";
+      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print "\tRequested integration time per grid point: $info{secsPerCycle} sec\n";
       print "\tStep time for chop: ". $jos->step_time . " sec\n";
       print "\tRequired total JOS_MULT: $total_jos_mult\n";
@@ -1703,6 +1729,7 @@ sub jos_config {
     if ($self->verbose) {
       print "Grid JOS parameters:\n";
       print "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
+      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print "\tNumber of steps per on: $jos_min\n";
       print "\tNumber of steps per off: $nrefs\n";
       if ($num_cycles > 1 && $recalc) {
@@ -3233,7 +3260,8 @@ sub step_time {
     $step = max(0.05*$nod_set_size, # ACSIS limit
 		min( 0.5 * $nod_set_size, # <--- for easy division. Will normally be used
 		     $info{secsPerCycle},
-		     OMP::Config->getData( 'acsis_translator.max_time_between_chops')
+		     OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
+					 ($info{continuumMode} ? "_cont" :""))
 		   )
 	       );
     $step /= $nod_set_size;

@@ -4647,7 +4647,10 @@ sub SpInstHeterodyne {
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Translator specific stuff [really need to tweak Astro::Waveband
-  # so that it handles velocity properly
+  # so that it handles velocity properly]
+  my $velocity = $self->_get_pcdata($el, "velocity");
+  my $refFrameVelocity = $self->_get_pcdata($el,"referenceFrameVelocity");
+
   $summary{freqconfig} = {
 			  # Front end configuration
 			  restFrequency => $subsystems[0]->{rest_freq},
@@ -4668,14 +4671,19 @@ sub SpInstHeterodyne {
 
 			  # In new TOML the velocity is stored in the telescope
 			  # object. Read the old values for compatibility
-			  # with old DAS TOML
+			  # with old DAS TOML. Also, it is possible for Het Setup to override
+			  # the telescope (but this is done in simplistic manner where
+			  # no optVelocity or referenceFrameVelocity just velocity)
 
-			  # The velocity field always has the optical velocity
-			  optVelocity => $self->_get_pcdata($el, "velocity"),
 			  velocityDefinition => $self->_get_pcdata($el,
 								   "velocityDefinition"),
 			  velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
-			  velocity => $self->_get_pcdata($el,"referenceFrameVelocity"),
+
+			  # The velocity field always has the optical velocity for DAS
+			  # Assume DAS if we have refFrameVelocity
+			  (defined $refFrameVelocity ?
+			   (optVelocity => $velocity, velocity => $refFrameVelocity) :
+			   (velocity => $velocity)),
 			 };
 
   # Camera mode is really a function of front end and observing
