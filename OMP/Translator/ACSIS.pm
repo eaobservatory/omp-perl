@@ -61,7 +61,8 @@ our %FE_MAP = (
 	       RXWC => 'RXW',
 	       RXWD => 'RXW',
 	       RXB3 => 'RXB',
-               'RXHARP-B' => 'HARPB'
+               'RXHARP-B' => 'HARPB',
+	       HARP => 'HARP',
 	      );
 
 # Lookup table to calculate the LO2 frequencies.
@@ -82,8 +83,8 @@ my %ACSIS_Layouts = (
 		    RXA => 's1r1g1',
 		    RXB => 's2r2g1',
 		    RXW => 's2r2g2',
-		    HARPB => 's8r8g1',
-		    HARPB_raster_pssw => 's8r16g8',
+		    HARP => 's8r8g1',
+		    HARP_raster_pssw => 's8r16g8',
 		   );
 
 # LO2 synthesizer step, hard-wired
