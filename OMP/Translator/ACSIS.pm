@@ -422,7 +422,7 @@ sub handle_special_modes {
     $info->{secsPerJiggle} = $pointing_secs;
 
     my $scaleMode;
-    if ($frontend eq 'HARPB') {
+    if ($frontend =~ /^HARP/) {
       $info->{disableNonTracking} = 0; # Only use 1 receptor if true
       $info->{jigglePattern} = '5x5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
@@ -454,7 +454,7 @@ sub handle_special_modes {
     #   nyquist: use nyquist sampling
     #   planet : use nyquist sampling or if planet use the planet radius, whichever is larger
     #
-    if ($info->{jigglePattern} eq 'HARP' || $scaleMode eq 'unity') {
+    if ($info->{jigglePattern} =~ /^HARP/ || $scaleMode eq 'unity') {
       # HARP jiggle pattern is predefined
       $info->{scaleFactor} = 1;
     } elsif ($scaleMode eq 'planet' || $scaleMode eq 'nyquist') {
@@ -533,9 +533,9 @@ sub handle_special_modes {
       $info->{data_reduction} = \%dr;
     }
 
-  } elsif ($info->{mapping_mode} eq 'jiggle' && $frontend eq 'HARPB') {
+  } elsif ($info->{mapping_mode} eq 'jiggle' && $frontend =~ /^HARP/) {
     # If HARP is the jiggle pattern then we need to set scaleFactor to 1
-    if ($info->{jigglePattern} eq 'HARP') {
+    if ($info->{jigglePattern} =~ /^HARP/) {
       $info->{scaleFactor} = 1; # HARP pattern is fully sampled
 #      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
     }
@@ -824,7 +824,7 @@ sub observing_area {
     } else {
       # For single pixel just align with the map - else need arctan(0.25)
       my $adjpa = 0.0;
-      if ($frontend eq 'HARPB') {
+      if ($frontend =~ /^HARP/) {
 	$adjpa = rad2deg(atan2(1,4));
       }
       @scanpas = map { $info{MAP_PA} + $adjpa + ($_*90) } (0..3);
@@ -3317,14 +3317,15 @@ sub jig_info {
 
   # Look up table for patterns
   my %jigfiles = (
-		  '1x1' => 'smu_1x1.dat',
-		  '3x3' => 'smu_3x3.dat',
-		  '4x4' => 'smu_4x4.dat',
-		  'HARP'=> 'smu_harp.dat',
-		  '5x5' => 'smu_5x5.dat',
-		  '7x7' => 'smu_7x7.dat',
-		  '9x9' => 'smu_9x9.dat',
-		  '5pt' => 'smu_5point.dat',
+		  '1x1'  => 'smu_1x1.dat',
+		  '3x3'  => 'smu_3x3.dat',
+		  '4x4'  => 'smu_4x4.dat',
+		  'HARP4'=> 'smu_harp4.dat',
+		  'HARP5'=> 'smu_harp5.dat',
+		  '5x5'  => 'smu_5x5.dat',
+		  '7x7'  => 'smu_7x7.dat',
+		  '9x9'  => 'smu_9x9.dat',
+		  '5pt'  => 'smu_5point.dat',
 		 );
 
   if (!exists $jigfiles{ $info{jigglePattern} }) {
@@ -3458,7 +3459,7 @@ sub tracking_receptor {
 
     # If we are using the HARP jiggle pattern we will be wanting
     # a fully sampled map so do not offset
-    return if $info{jigglePattern} eq 'HARP';
+    return if $info{jigglePattern} =~ /^HARP/;
 
     # if we have an origin in the pattern we are probably expecting to be
     # centred on a receptor;
