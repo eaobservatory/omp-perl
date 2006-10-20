@@ -3411,7 +3411,7 @@ sub get_nod_set_size {
 
   my $nod_set_size;
   if (!defined $info{nodSetDefinition}) {
-    $nod_set_size = 2; "ABBA";
+    $nod_set_size = 4; "ABBA";
   } elsif ($info{nodSetDefinition} eq 'AB') {
     $nod_set_size = 2;
   } elsif ($info{nodSetDefinition} eq 'ABBA') {
