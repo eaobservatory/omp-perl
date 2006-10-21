@@ -630,6 +630,12 @@ sub rescan {
 
     %obs = $grp->groupby('instrument');
 
+    # Kluge to work around the case where
+    # obs object doesn't have an instrument defined
+    delete $obs{''};
+    throw OMP::Error("Instrument is undefined for all observations.")
+      unless (scalar(keys %obs));
+
     my @sorted_obs = sort {
       $b->startobs <=> $a->startobs
     } $grp->obs;
