@@ -2639,19 +2639,40 @@ sub rtd_config {
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen')
     unless defined $acsis;
 
-  # The filename is DR receipe dependent
+  # Get the instrument we are using
+  my $inst = lc($self->ocs_frontend($info{instrument}));
+  throw OMP::Error::FatalError('No instrument defined - needed to select correct RTD file !')
+    unless defined $inst;
+
+  # The filename is DR receipe dependent and optionally instrument dependent
   my $root;
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
-    $root = $obsmode . '_rtd.ent';
+    $root = $obsmode;
   } else {
     # keyed on observing type
-    $root = $info{obs_type} . '_rtd.ent';
+    $root = $info{obs_type};
   }
 
-  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root);
+  # Try with and without the instrument name
+  my $filename;
+  for my $suffix ( $inst, "" ) {
+    my $tryfile = File::Spec->catfile( $WIRE_DIR, 'acsis', $root. "_rtd" .
+				       ($suffix ? "_$suffix" : "") . ".ent");
+    if (-e $tryfile) {
+      $filename = $tryfile;
+      last;
+    }
+  }
+
+  # no files to find
+  throw OMP::Error::FatalError("Unable to find RTD entity file with root $root\n")
+    unless defined $filename;
+
+  print "Read ACSIS RTD configuration $filename\n"
+    if $self->verbose;
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::RTDConfig( EntityFile => $filename,
