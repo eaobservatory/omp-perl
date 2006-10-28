@@ -423,7 +423,9 @@ sub handle_special_modes {
 
     my $scaleMode;
     if ($frontend =~ /^HARP/) {
-      $info->{disableNonTracking} = 0; # Only use 1 receptor if true
+      # HARP needs to use single receptor pointing until we sort out relative
+      # calibrations. Set disableNonTracking to false and HARP5 jiggle pattern.
+      $info->{disableNonTracking} = 1; # Only use 1 receptor if true
       $info->{jigglePattern} = '5x5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
 
