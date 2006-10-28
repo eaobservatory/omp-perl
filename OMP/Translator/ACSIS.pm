@@ -425,8 +425,8 @@ sub handle_special_modes {
     if ($frontend =~ /^HARP/) {
       # HARP needs to use single receptor pointing until we sort out relative
       # calibrations. Set disableNonTracking to false and HARP5 jiggle pattern.
-      $info->{disableNonTracking} = 1; # Only use 1 receptor if true
-      $info->{jigglePattern} = '5x5'; # or HARP or 5pt
+      $info->{disableNonTracking} = 0; # Only use 1 receptor if true
+      $info->{jigglePattern} = 'HARP5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
 
       # For HARP jiggle pattern use "unity" here
@@ -434,6 +434,10 @@ sub handle_special_modes {
       # pixels you must make sure that you have a big enough pattern for the
       # planet. a 3x3 or 5point should always use "planet".
       $scaleMode = "planet"; # Also: unity, planet, nyquist
+
+      # Use a bigger chop to get off the array
+      $info->{CHOP_THROW} = 120;
+
     } else {
       $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
       $info->{jigglePattern} = '5x5'; # or 5pt
