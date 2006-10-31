@@ -37,6 +37,15 @@ use OMP::Error qw/ :try /;
 
 use Time::HiRes qw/ tv_interval gettimeofday /;
 
+# Different Science program return types
+use constant OMP__SCIPROG_XML => 0;
+use constant OMP__SCIPROG_OBJ => 1;
+use constant OMP__SCIPROG_GZIP => 2;
+use constant OMP__SCIPROG_AUTO => 3;
+
+# GZIP threshold in bytes
+use constant GZIP_THRESHOLD => 30_000;
+
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
 
@@ -133,6 +142,118 @@ sub fetchMSB {
   OMP::General->log_message("fetchMSB: Complete in ".tv_interval($t0)."seconds. Project=".$msb->projectID."\nChecksum=".$msb->checksum."\n");
 
   return "$spprog$msbxml$spprogend" if defined $msb;
+}
+
+
+=item B<fetchCalProgram>
+
+Retrieve the *CAL project science program from the database.
+
+  $xml = OMP::MSBServer->fetchCalProgram( $telescope );
+
+The return argument is an XML representation of the science
+program (encoded in base64 for speed over SOAP if we are using
+SOAP).
+
+The first argument is the name of the telescope that is
+associated with the calibration program to be returned.
+
+A second argument controls what form the returned science program should
+take.
+
+  $gzip = OMP::MSBServer->fetchCalProgram( $telescope, "GZIP" );
+
+The following values can be used to specify different return
+types:
+
+  "XML"    OMP__SCIPROG_XML   (default)  Plain text XML
+  "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
+  "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
+  "AUTO"   OMP__SCIPROG_AUTO  plain text or gzip depending on size
+
+These are not exported and are defined in the OMP::SpServer namespace.
+
+Note that for cases XML and GZIP, these will be Base64 encoded if returned
+via a SOAP request.
+
+=cut
+
+sub fetchCalProgram {
+  my $class = shift;
+  my $telescope = shift;
+  my $rettype = shift;
+
+  $rettype = OMP__SCIPROG_XML unless defined $rettype;
+  $rettype = uc($rettype);
+
+  # Translate input strings to constants
+  if ($rettype !~ /^\d$/) {
+    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
+    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
+    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
+  }
+
+  my $t0 = [gettimeofday];
+  OMP::General->log_message( "fetchCalProgram: Begin.\nTelescope=$telescope\nFormat=$rettype\n");
+
+  my $sp;
+  my $E;
+  try {
+
+    # Create new DB object
+    my $db = new OMP::MSBDB( Password => '***REMOVED***',
+			     ProjectID => uc($telescope) . 'CAL',
+			     DB => $class->dbConnection, );
+
+    # Retrieve the Science Program object
+    $sp = $db->fetchSciProg;
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+
+  if ($rettype == OMP__SCIPROG_OBJ) {
+    # return the object
+    return $sp;
+  } else {
+
+    # Return the stringified form, compressed
+    my $string;
+    if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
+      $string = "$sp";
+
+      # Force gzip if requested
+      if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
+	# Compress the string if its length is greater than the 
+	# threshold value
+	$string = Compress::Zlib::memGzip( "$sp" );
+      }
+
+      throw OMP::Error::FatalError("Unable to gzip compress science program")
+	unless defined $string;
+
+    } else {
+      $string = "$sp";
+    };
+
+    OMP::General->log_message("fetchCalProgram: Complete in ".tv_interval($t0)." seconds\n");
+
+    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
+	    : $string );
+  }
+
 }
 
 =item B<queryMSB>
