@@ -4152,7 +4152,7 @@ sub getDRRecipe {
   } elsif ($info{MODE} =~ /Focus/) {
     return 'REDUCE_FOCUS';
   } else {
-    return 'REDUCE_CUBE';
+    return 'REDUCE_SCIENCE';
   }
 
 }
