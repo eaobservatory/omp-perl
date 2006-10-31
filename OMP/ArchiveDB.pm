@@ -55,7 +55,7 @@ our $VERSION = (qw$Revision$)[1];
 $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
-$SkipDBLookup = 1;
+$SkipDBLookup = 0;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -182,7 +182,7 @@ sub queryArc {
     # First go to the database if we're looking for things that are
     # older than three days and we've been told not to skip the DB
     # lookup.
-    if ($tdiff >= ( 3 * ONE_DAY ) && !$SkipDBLookup) {
+    if (!$istoday && !$SkipDBLookup) {
 
       # Check for a connection. If we have one, good, but otherwise
       # set one up.
