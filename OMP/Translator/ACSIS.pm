@@ -828,12 +828,15 @@ sub observing_area {
     if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
       @scanpas = @{ $info{SCAN_PA} };
     } else {
-      # For single pixel just align with the map - else need arctan(0.25)
-      my $adjpa = 0.0;
-      if ($frontend =~ /^HARP/) {
-	$adjpa = rad2deg(atan2(1,4));
+      # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
+      # receiver then all 4 angles can be used. Else the scan is constrained.
+      my @mults = (0,2);
+      if ( $frontend =~ /^HARP/ || 
+	   ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
+	@mults = (0..3);
       }
-      @scanpas = map { $info{MAP_PA} + $adjpa + ($_*90) } (0..3);
+
+      @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
     }
     # convert from deg to object
     @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg' ) } @scanpas;
@@ -1270,9 +1273,30 @@ sub rotator_config {
   my $pa = $cubs[0]->posang;
   $pa = new Astro::Coords::Angle( 0, units => 'radians' ) unless defined $pa;
 
-  # but we do have 90 deg symmetry in all our maps
-  my @pas = map { new Astro::Coords::Angle( $pa->degrees + ($_ * 90), units => 'degrees') } (0..3);
+  # if we are scanning we need to adjust the position angle of the rotator
+  # here to adjust for the harp pixel footprint sampling
+  my $scan_adj = 0;
+  if ($inst->name =~ /HARP/) {
+    # need the TCS information
+    my $tcs = $cfg->tcs();
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+      unless defined $tcs;
+    # get the observing area
+    my $oa = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS observing area is not available. This can not happen')
+      unless defined $oa;
 
+    if ($oa->mode eq 'area') {
+      # we are scanning with HARP so adjust arctan 1/4. This assumes that the rotator
+      # is working and can be aligned with the AZEL/TRACKING system (instead of always
+      # forcing FPLANE system)
+      $scan_adj = rad2deg(atan2(1,4));
+    }
+  }
+
+  # but we do have 90 deg symmetry in all our maps
+  my @pas = map { new Astro::Coords::Angle( $pa->degrees + $scan_adj + ($_ * 90),
+					    units => 'degrees') } (0..3);
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
