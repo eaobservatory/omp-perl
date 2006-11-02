@@ -213,8 +213,7 @@ sub queryArc {
       # OR if the query succeded but we can not be sure the data are
       # in the DB yet (ie less than a week)
       if ( !$dbqueryok ||                  # Always look to files if query failed
-           ($tdiff < ONE_WEEK && !@results) # look to files if we got no
-                                            # results and younger than a week
+           (!@results) # look to files if we got no results
 	 ) {
         # then go to files
         @results = $self->_query_files( $query, $retainhdr );
