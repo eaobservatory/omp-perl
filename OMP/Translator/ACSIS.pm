@@ -426,8 +426,16 @@ sub handle_special_modes {
       # HARP needs to use single receptor pointing until we sort out relative
       # calibrations. Set disableNonTracking to false and HARP5 jiggle pattern.
       $info->{disableNonTracking} = 0; # Only use 1 receptor if true
-      $info->{jigglePattern} = 'HARP5'; # or HARP or 5pt
       $info->{jiggleSystem} = 'AZEL';
+
+      # Allow the HARP jiggle pattern to be overridden for commissioning
+      # HARP5 and 5x5 are the obvious ones. 5pt or HARP4 are plausible.
+      $info->{jigglePattern} = 'HARP5';
+      try {
+	$info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.harp_pointing_pattern' );
+      } otherwise {
+	# use default
+      };
 
       # For HARP jiggle pattern use "unity" here
       # For other patterns, be careful. If you are disabling non tracking
@@ -484,6 +492,11 @@ sub handle_special_modes {
       print "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
       print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
       print "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
+      if ($info->{disableNonTracking}) {
+	print "\tPointing on a single receptor\n";
+      } else {
+	print "\tAll receptors active\n";
+      }
       print "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
 
