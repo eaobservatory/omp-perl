@@ -33,13 +33,17 @@ use warnings;
 
 use File::Spec;
 use Scalar::Util qw/ blessed /;
+use DateTime;
+use File::Path qw/ mkpath /;
+use Time::HiRes qw/ gettimeofday /;
+use Data::Dumper;
 
 # Path must include the queue classes
 use Queue::EntryXMLIO qw/ writeXML /;
 
 use OMP::Constants qw/ :msb /;
 use OMP::SciProg;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
@@ -73,6 +77,10 @@ are:
 
   simulate : Generate a translation suitable for simulate mode (if supported)
 
+  log    : Log verbose messages to file. If the global $VERBOSE is true, then
+           messages will also go to stdout. If $VERBOSE is false then
+           verbosity will be enabled in the translation class but only to log file.
+
   asdata : If true, method will return either a list of translated 
             configuration objects (the type of which depends on
             the instrument) or a reference to an array of such objects
@@ -91,7 +99,7 @@ sub translate {
   my $thisclass = ref($self) || $self;
   my $sp = shift;
 
-  my %opts = ( asdata => 0, simulate => 0, @_);
+  my %opts = ( asdata => 0, simulate => 0, log => 0, @_);
 
   print join("\n",$sp->summary('asciiarray'))."\n" if $DEBUG;
 
@@ -130,14 +138,49 @@ sub translate {
 		    RXWC => 'DAS',
 		    RXWD => 'DAS',
 		    RXW=> 'DAS',
-		    DAS => 'DAS',
-		    ACSIS => 'ACSIS',
 		    HARP => 'ACSIS',
+		    # the backend name is the one that counts
+		    DAS => 'ACSIS',
+		    ACSIS => 'ACSIS',
 		  );
 
+  # Array of file handles that we should write verbose messages to
+  my @handles = ();
+  push(@handles, \*STDOUT) if $VERBOSE;  # we want stdout messages if verbose
 
+  # Decide on low-level verbosity setting. Should be derived from the global
+  # class $VERBOSE and also the logging functionality.
+  my $verbose = $VERBOSE;
+  my $logh;
+  if ( $opts{log} ) {
+    try {
+      # get hi resolution time
+      my ($sec, $mic_sec) = gettimeofday();
+      my $ut = DateTime->from_epoch( epoch => $sec, time_zone => 'UTC' );
 
-  # Log the translation details
+      # need ut date (in eval if logdir does not exist)
+      my $logdir = OMP::Config->getData( 'acsis_translator.logdir', utdate => $ut );
+
+      # try to make the directory - which may fail hence the try block
+      mkpath( $logdir );
+
+      # filename with date stamp
+      my $fname = "translation_". $ut->strftime("%Y%m%d_%H%M%S") . "_" .
+	sprintf("%06d", $mic_sec ) . ".log";
+
+      # now try to open a file
+      open( $logh, ">", File::Spec->catfile($logdir,$fname))
+	|| die "Error opening log file $fname: $!";
+
+      # Have logging so force verbose and store filehandle
+      $verbose = 1;
+      push(@handles, $logh);
+    } otherwise {
+      # no logging around
+    };
+  }
+
+  # Log the translation details with the OMP
   my $projectid = $sp->projectID;
   my @checksums = map { $_->checksum . "\n" } $sp->msb;
   OMP::General->log_message( "Translate request: Project:$projectid Checksums:\n\t"
@@ -248,12 +291,38 @@ sub translate {
       # Set DEBUGGING in the class depending on the debugging state here
       $class->debug( $DEBUG );
 
-      # Set verbosity in the class depending on this verbose setting
-      $class->verbose( $VERBOSE ) if $class->can("verbose");
+      # enable verbose logging
+      $class->verbose( $verbose ) if $class->can("verbose");
+
+      # and register filehandles
+      $class->outhdl( @handles ) if $class->can("outhdl");
+
+      if (defined $logh) {
+	print $logh "---------------------------------------------\n";
+      }
 
       # And forward to the correct translator
       # We always get objects, sometimes multiple objects
       my @new = $class->translate( $tmpmsb, simulate => $opts{simulate} );
+
+      if (defined $logh) {
+	# Basic XML
+	print $logh "---------------------------------------------\n";
+	print $logh "Input MSB:\n";
+	print $logh "$tmpmsb\n";
+	print $logh "---------------------------------------------\n";
+
+	# Summary
+	my $info = $tmpmsb->info();
+	my $summary = $info->summary("hashlong");
+
+	print $logh "Observation Summary:\n";
+	print $logh Dumper($summary);
+	print $logh "---------------------------------------------\n";
+      }
+
+      # Reset handles so that the globals do not hang around
+      $class->outhdl( undef ) if $class->can("outhdl");
 
       # Now force translator directory into config
       # All of the objects returned by translate() support the outputdir() method
@@ -265,6 +334,9 @@ sub translate {
     }
 
   }
+
+  # Clear logging handles.
+  @handles = ();
 
   # Now we have an array of translated objects
   # Array of SCUBA::ODF objects
@@ -280,6 +352,12 @@ sub translate {
 
   # If they want the data we do not write anything
   if ($opts{asdata}) {
+
+    # disable the loggin
+    for (@configs) {
+      $_->outhdl( undef ) if $_->can("outhdl");
+    }
+
     if (wantarray) {
       return @configs;
     } else {
@@ -287,7 +365,12 @@ sub translate {
     }
   } else {
     # We write to disk and return the name of the wrapper file
-    return $self->write_configs( \@configs );
+    my $xml = $self->write_configs( \@configs );
+
+    # clear logging
+    for (@configs) {
+      $_->outhdl( undef ) if $_->can("outhdl");
+    }
   }
 }
 

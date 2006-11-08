@@ -31,6 +31,7 @@ use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
 use Math::Trig / rad2deg /;
+use IO::Tee;
 
 use JCMT::ACSIS::HWMap;
 use JCMT::SMU::Jiggle;
@@ -157,6 +158,7 @@ sub translate {
     # Set verbosity and debug level
     $cfg->verbose( $self->verbose );
     $cfg->debug( $self->debug );
+    $cfg->outhdl( $self->outhdl ) if $cfg->can("outhdl");
 
     # Add comment
     $cfg->comment( "Translated on ". gmtime() ."UT on host ".
@@ -231,6 +233,35 @@ Method to enable and disable global debugging state.
       $dbg = ($state ? 1 : 0 );
     }
     return $dbg;
+  }
+}
+
+=item B<outhdl>
+
+Output file handles to use for verbose messages.
+Defaults to STDOUT.
+
+  OMP::Translator::ACSIS->outhdl( \*STDOUT, $fh );
+
+Returns an C<IO::Tee> object.
+
+Pass in undef to reset to the default.
+
+=cut
+
+{
+  my $def = new IO::Tee(\*STDOUT);
+  my $oh = $def;
+  sub outhdl {
+    my $class = shift;
+    if (@_) {
+      if (!defined $_[0]) {
+	$oh = $def; # reset
+      } else {
+	$oh = new IO::Tee( @_ );
+      }
+    }
+    return $oh;
   }
 }
 
@@ -487,17 +518,17 @@ sub handle_special_modes {
     }
 
     if ($self->verbose) {
-      print "Determining POINTING parameters...\n";
-      print "\tJiggle Pattern: $info->{jigglePattern} ($info->{jiggleSystem})\n";
-      print "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
-      print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
-      print "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
+      print {$self->outhdl} "Determining POINTING parameters...\n";
+      print {$self->outhdl} "\tJiggle Pattern: $info->{jigglePattern} ($info->{jiggleSystem})\n";
+      print {$self->outhdl} "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
+      print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
+      print {$self->outhdl} "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
       if ($info->{disableNonTracking}) {
-	print "\tPointing on a single receptor\n";
+	print {$self->outhdl} "\tPointing on a single receptor\n";
       } else {
-	print "\tAll receptors active\n";
+	print {$self->outhdl} "\tAll receptors active\n";
       }
-      print "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
+      print {$self->outhdl} "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
 
     # Kill baseline removal
@@ -538,10 +569,10 @@ sub handle_special_modes {
     $info->{secsPerCycle} = $focus_secs;
 
     if ($self->verbose) {
-      print "Determining FOCUS parameters...\n";
-      print "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
-      print "\tSeconds per focus position: $info->{secsPerCycle}\n";
-      print "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
+      print {$self->outhdl} "Determining FOCUS parameters...\n";
+      print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
+      print {$self->outhdl} "\tSeconds per focus position: $info->{secsPerCycle}\n";
+      print {$self->outhdl} "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
 
 
@@ -699,7 +730,7 @@ sub tcs_base {
   my $refpix = $self->tracking_receptor( $cfg, %info );
 
   if ($self->verbose) {
-    print "Tracking Receptor: ".(defined $refpix ? $refpix : "<ORIGIN>")."\n";
+    print {$self->outhdl} "Tracking Receptor: ".(defined $refpix ? $refpix : "<ORIGIN>")."\n";
   }
 
   # Store the pixel
@@ -724,7 +755,7 @@ sub tcs_base {
   # if we have override velocity information we need to apply it now
   my @vover = $self->velOverride( %info );
   if (@vover) {
-    print "Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n" if $self->verbose;
+    print {$self->outhdl} "Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n" if $self->verbose;
     for my $t (keys %tags) {
       my $c = $tags{$t}{coords};
       if ($c->can( "set_vel_pars")) {
@@ -1093,11 +1124,11 @@ sub fe_config {
 
 
       if ($self->verbose) {
-	print "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
+	print {$self->outhdl} "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
       }
     } else {
       if ($self->verbose) {
-	print "No sideband helper file for $inst so assuming $sb will be acceptable\n";
+	print {$self->outhdl} "No sideband helper file for $inst so assuming $sb will be acceptable\n";
       }
     }
   }
@@ -1344,8 +1375,9 @@ sub header_config {
 				 && $_[0]->task eq 'TRANSLATOR'
 				} );
 
-  # Set verbosity level
+  # Set verbosity level and handles
   $OMP::Translator::ACSIS::Header::VERBOSE = $self->verbose;
+  $OMP::Translator::ACSIS::Header::HANDLES = $self->outhdl;
 
   # Now invoke the methods to configure the headers
   my $pkg = "OMP::Translator::ACSIS::Header";
@@ -1364,6 +1396,9 @@ sub header_config {
     }
   }
 
+  # clear global handles to allow the file to close at some point
+  $OMP::Translator::ACSIS::Header::HANDLES = undef;
+
   # Some observing modes have exclusion files.
   # First build the filename
   my $root;
@@ -1375,7 +1410,7 @@ sub header_config {
 
   my $file = File::Spec->catfile( $WIRE_DIR, "header", $root . "_exclude");
   if (-e $file) {
-    print "Processing header exclusion file '$file'.\n" if $self->verbose;
+    print {$self->outhdl} "Processing header exclusion file '$file'.\n" if $self->verbose;
 
     # this exclusion file has header cards that should be undeffed
     open (my $fh, "< $file") || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
@@ -1395,7 +1430,7 @@ sub header_config {
 	# force undef
 	$item->undefine;
       } else {
-	print "\tAsked to exclude header card '$line' but it is not part of the header\n";
+	print {$self->outhdl} "\tAsked to exclude header card '$line' but it is not part of the header\n";
       }
 
     }
@@ -1500,11 +1535,11 @@ sub jos_config {
   $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
 
   if ($self->verbose) {
-    print "Generic JOS parameters:\n";
-    print "\tStep Time: ". $jos->step_time ." sec\n";
-    print "\tSteps between ref: ". $jos->steps_per_ref ."\n";
-    print "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
-    print "\tSteps between Cal: ". $jos->steps_per_cal ."\n";
+    print {$self->outhdl} "Generic JOS parameters:\n";
+    print {$self->outhdl} "\tStep Time: ". $jos->step_time ." sec\n";
+    print {$self->outhdl} "\tSteps between ref: ". $jos->steps_per_ref ."\n";
+    print {$self->outhdl} "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
+    print {$self->outhdl} "\tSteps between Cal: ". $jos->steps_per_cal ."\n";
   }
 
   # Now parameters depends on that recipe name
@@ -1550,10 +1585,10 @@ sub jos_config {
     $jos->jos_min(1);
 
     if ($self->verbose) {
-      print "Raster JOS parameters:\n";
-      print "\tLongest row time (diagonal): $rtime sec\n";
-      print "\tNumber of ref samples for first off (estimated): $nrefs\n";
-      print "\tStep time for sample: ". $jos->step_time . " sec\n";
+      print {$self->outhdl} "Raster JOS parameters:\n";
+      print {$self->outhdl} "\tLongest row time (diagonal): $rtime sec\n";
+      print {$self->outhdl} "\tNumber of ref samples for first off (estimated): $nrefs\n";
+      print {$self->outhdl} "\tStep time for sample: ". $jos->step_time . " sec\n";
     }
 
 
@@ -1654,22 +1689,22 @@ sub jos_config {
     $jos->num_nod_sets( $num_nod_sets );
 
     if ($self->verbose) {
-      print "Jiggle JOS parameters:\n";
+      print {$self->outhdl} "Jiggle JOS parameters:\n";
       if (defined $timing{CHOPS_PER_JIG}) {
-	print "\tChopping then Jiggling\n";
+	print {$self->outhdl} "\tChopping then Jiggling\n";
       } else {
-	print "\tJiggling then Chopping\n";
+	print {$self->outhdl} "\tJiggling then Chopping\n";
       }
-      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print "\tDuration of single jiggle pattern: $timePerJig sec\n";
-      print "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
-      print "\tN repeats of whole jiggle pattern required: $nrepeats\n";
-      print "\tRequired total JOS_MULT: $total_jos_mult\n";
-      print "\tMax allowed JOS_MULT : $max_jos_mult\n";
-      print "\tActual JOS_MULT : $jos_mult\n";
-      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
+      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
+      print {$self->outhdl} "\tDuration of single jiggle pattern: $timePerJig sec\n";
+      print {$self->outhdl} "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
+      print {$self->outhdl} "\tN repeats of whole jiggle pattern required: $nrepeats\n";
+      print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
+      print {$self->outhdl} "\tMax allowed JOS_MULT : $max_jos_mult\n";
+      print {$self->outhdl} "\tActual JOS_MULT : $jos_mult\n";
+      print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
 	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
-      print "\tActual integration time per jiggle position: ".
+      print {$self->outhdl} "\tActual integration time per jiggle position: ".
 	($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n";
     }
 
@@ -1715,15 +1750,15 @@ sub jos_config {
     $jos->num_nod_sets( $num_nod_sets );
 
     if ($self->verbose) {
-      print "Chop JOS parameters:\n";
-      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print "\tRequested integration time per grid point: $info{secsPerCycle} sec\n";
-      print "\tStep time for chop: ". $jos->step_time . " sec\n";
-      print "\tRequired total JOS_MULT: $total_jos_mult\n";
-      print "\tMax allowed JOS_MULT : $max_steps_nod\n";
-      print "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
+      print {$self->outhdl} "Chop JOS parameters:\n";
+      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
+      print {$self->outhdl} "\tRequested integration time per grid point: $info{secsPerCycle} sec\n";
+      print {$self->outhdl} "\tStep time for chop: ". $jos->step_time . " sec\n";
+      print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
+      print {$self->outhdl} "\tMax allowed JOS_MULT : $max_steps_nod\n";
+      print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
 	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
-      print "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time 
+      print {$self->outhdl} "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time 
 							 * $jos->num_cycles) . " sec\n";
     }
 
@@ -1771,15 +1806,15 @@ sub jos_config {
     $jos->num_nod_sets( $num_nod_sets );
 
     if ($self->verbose) {
-      print "Grid JOS parameters:\n";
-      print "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
-      print "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print "\tNumber of steps per on: $jos_min\n";
-      print "\tNumber of steps per off: $nrefs\n";
+      print {$self->outhdl} "Grid JOS parameters:\n";
+      print {$self->outhdl} "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
+      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
+      print {$self->outhdl} "\tNumber of steps per on: $jos_min\n";
+      print {$self->outhdl} "\tNumber of steps per off: $nrefs\n";
       if ($num_cycles > 1 && $recalc) {
-	print "\tNumber of cycles recalculated: $num_cycles\n";
+	print {$self->outhdl} "\tNumber of cycles recalculated: $num_cycles\n";
       }
-      print "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
+      print {$self->outhdl} "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
@@ -1818,12 +1853,12 @@ sub jos_config {
 
     $jos->jos_mult($jos_mult);
     if ($self->verbose) {
-      print "JOS_MULT = $jos_mult\n";
+      print {$self->outhdl} "JOS_MULT = $jos_mult\n";
   }
       my $iter_per_cal=8;
       $jos->iter_per_cal($iter_per_cal);
     if ($self->verbose) {
-      print "ITER_PER_CAL = $iter_per_cal\n";
+      print {$self->outhdl} "ITER_PER_CAL = $iter_per_cal\n";
   }
 
   } else {
@@ -2633,17 +2668,17 @@ sub cubes {
     }
 
     if ($self->verbose) {
-      print "Cube parameters [$cubid]:\n";
-      print "\tDimensions: $nx x $ny\n";
-      print "\tPixel Size: $xsiz x $ysiz arcsec\n";
-      print "\tMap frame:  ". $cube->tcs_coord ."\n";
-      print "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
-      print "\tMap PA:     $mappa deg\n";
-      print "\tGrid Function: $grid_func\n";
+      print {$self->outhdl} "Cube parameters [$cubid]:\n";
+      print {$self->outhdl} "\tDimensions: $nx x $ny\n";
+      print {$self->outhdl} "\tPixel Size: $xsiz x $ysiz arcsec\n";
+      print {$self->outhdl} "\tMap frame:  ". $cube->tcs_coord ."\n";
+      print {$self->outhdl} "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
+      print {$self->outhdl} "\tMap PA:     $mappa deg\n";
+      print {$self->outhdl} "\tGrid Function: $grid_func\n";
       if ( $grid_func eq 'Gaussian') {
-	print "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
+	print {$self->outhdl} "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
       }
-      print "\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n";
+      print {$self->outhdl} "\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n";
     }
 
     $cubes{$cubid} = $cube;
@@ -2714,7 +2749,7 @@ sub rtd_config {
   throw OMP::Error::FatalError("Unable to find RTD entity file with root $root\n")
     unless defined $filename;
 
-  print "Read ACSIS RTD configuration $filename\n"
+  print {$self->outhdl} "Read ACSIS RTD configuration $filename\n"
     if $self->verbose;
 
   # Read the entity
@@ -2920,7 +2955,7 @@ sub acsis_layout {
   my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
   my $layout = _read_file( $lay_file );
 
-  print "Read ACSIS layout $lay_file\n" if $self->verbose;
+  print {$self->outhdl} "Read ACSIS layout $lay_file\n" if $self->verbose;
 
   # Now we need to replace the entities.
   $layout =~ s/\&machine_table\;/$machtable/g;
@@ -3051,12 +3086,12 @@ sub observing_mode {
   $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
 
   if ($self->verbose) {
-    print "\n";
-    print "Observing Mode Overview:\n";
-    print "\tObserving Mode: $info->{observing_mode}\n";
-    print "\tObservation Type: $info->{obs_type}\n";
-    print "\tMapping Mode: $info->{mapping_mode}\n";
-    print "\tSwitching Mode: $info->{switching_mode}\n";
+    print {$self->outhdl} "\n";
+    print {$self->outhdl} "Observing Mode Overview:\n";
+    print {$self->outhdl} "\tObserving Mode: $info->{observing_mode}\n";
+    print {$self->outhdl} "\tObservation Type: $info->{obs_type}\n";
+    print {$self->outhdl} "\tMapping Mode: $info->{mapping_mode}\n";
+    print {$self->outhdl} "\tSwitching Mode: $info->{switching_mode}\n";
   }
 
   return;
@@ -3144,7 +3179,7 @@ sub bandwidth_mode {
 
   # loop over each subsystem
   for my $s (@subs) {
-    print "Processing subsystem...\n" if $self->verbose;
+    print {$self->outhdl} "Processing subsystem...\n" if $self->verbose;
 
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
@@ -3178,7 +3213,7 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
-    print "\tBandwidth: $mhz MHz\n" if $self->verbose;
+    print {$self->outhdl} "\tBandwidth: $mhz MHz\n" if $self->verbose;
 
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
@@ -3198,9 +3233,9 @@ sub bandwidth_mode {
     $chanwid = $bw / $nchan;
     $s->{channwidth} = $chanwid;
 
-    print "\tChanwid : $chanwid Hz\n" if $self->verbose;
+    print {$self->outhdl} "\tChanwid : $chanwid Hz\n" if $self->verbose;
 
-    print "\tNumber of channels: $nchan\n" if $self->verbose;
+    print {$self->outhdl} "\tNumber of channels: $nchan\n" if $self->verbose;
 
     # number of channels per subband
     my $nchan_per_sub = $nchan / $nsubband;
@@ -3232,7 +3267,7 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    print "\tBW per sub: $bw_per_sub MHz with overlap : $olap Hz\n" if $self->verbose;
+    print {$self->outhdl} "\tBW per sub: $bw_per_sub MHz with overlap : $olap Hz\n" if $self->verbose;
 
     # The usable channels are defined by the overlap
     # Simply using the channel width to calculate the offset
@@ -3244,7 +3279,7 @@ sub bandwidth_mode {
     my $nch_lo = $olap_in_chan;
     my $nch_hi = $nchan_per_sub - $olap_in_chan - 1;
 
-    print "\tUsable channel range: $nch_lo to $nch_hi\n" if $self->verbose;
+    print {$self->outhdl} "\tUsable channel range: $nch_lo to $nch_hi\n" if $self->verbose;
 
     my $d_nch = $nch_hi - $nch_lo + 1;
 
@@ -3744,7 +3779,7 @@ sub _calc_offset_stats {
 
       my @grid = map { $trialref + ($_*$spacing) }  (0 .. ($npix-1) );
 
-#      print "Grid: ".join(",",@grid)."\n";
+#      print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
 
       # Calculate the residual from that grid by comparing with @sort
       # use the fact that we are sorted
@@ -3765,7 +3800,7 @@ sub _calc_offset_stats {
 	    next CMP;
 	  } elsif ( $cmp < $startpix ) {
 	    if ($i == 0) {
-	      #print "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
+	      #print {$self->outhdl} "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
 	      push(@errors, 1E5); # make it highly unlikely
 	    } else {
 	      # Probably a rounding error
@@ -3784,7 +3819,7 @@ sub _calc_offset_stats {
 
 	if ($i > $#grid) {
 	  my $endpix = $grid[$#grid] + $halfpix;
-	  #print "Position $cmp lies above pixel $#grid ( > $endpix)\n";
+	  #print {$self->outhdl} "Position $cmp lies above pixel $#grid ( > $endpix)\n";
 	  push(@errors, 1E5); # Make it highly unlikely
 	}
 
@@ -3793,9 +3828,9 @@ sub _calc_offset_stats {
       my $rms = _find_rms( @errors );
 
       if ($rms < 0.1) {
-#	print "Grid: ".join(",",@grid)."\n";
-#	print "Sort: ". join(",",@sort). "\n";
-#	print "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
+#	print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
+#	print {$self->outhdl} "Sort: ". join(",",@sort). "\n";
+#	print {$self->outhdl} "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
       }
 
       if (!defined $lowest_rms || abs($rms) < $lowest_rms) {
@@ -3810,16 +3845,16 @@ sub _calc_offset_stats {
 
         my $temp_centre; 
         if( scalar(@grid)%2)
-         {#print "Odd\n";
+         {#print {$self->outhdl} "Odd\n";
           $temp_centre = $grid[$midpoint];
           } 
           else 
-          {#print "Even\n";
+          {#print {$self->outhdl} "Even\n";
            #$temp_centre = $grid[$midpoint];
 	   $temp_centre=  $grid[$midpoint] - ($grid[$midpoint]-$grid[$midpoint-1])/2.0;
           }
 
-	#print "Temp centre --> $temp_centre \n";
+	#print {$self->outhdl} "Temp centre --> $temp_centre \n";
         
 	%best = (
 		 rms => $lowest_rms,
@@ -4102,6 +4137,7 @@ undef is an error.
 package OMP::Translator::ACSIS::Header;
 
 our $VERBOSE = 0;
+our $HANDLES = undef;
 
 sub getProject {
   my $class = shift;
@@ -4115,7 +4151,7 @@ sub getProject {
     my $sem = OMP::General->determine_semester( tel => 'JCMT' );
     my $pid = "M$sem". "EC19";
     if ($VERBOSE) {
-      print "!!! No Project ID assigned. Inserting ACSIS E&C code: $pid !!!\n";
+      print $HANDLES "!!! No Project ID assigned. Inserting ACSIS E&C code: $pid !!!\n";
     }
     return $pid;
   }

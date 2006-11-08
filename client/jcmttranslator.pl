@@ -79,6 +79,11 @@ Turn on debugging messages.
 
 Turn on verbose messaging.
 
+=item B<-log>
+
+Log verbose messages to the logging directory (defined in the OMP
+config system but usually /jac_logs/YYYYMMDD/translator in a JAC system).
+
 =back
 
 =cut
@@ -114,7 +119,7 @@ use OMP::Error qw/ :try /;
 
 # Options
 my ($help, $man, $debug, $cwd, $tempdir, $old, $sim, $transdir, $verbose,
-   $version);
+   $version, $log);
 my $status = GetOptions("help" => \$help,
 			"man" => \$man,
 			"debug" => \$debug,
@@ -125,6 +130,7 @@ my $status = GetOptions("help" => \$help,
 			"transdir=s" => \$transdir,
 			"verbose" => \$verbose,
 			"version" => \$version,
+			"log" => \$log,
 		       );
 
 pod2usage(1) if !$status;
@@ -201,7 +207,8 @@ my $xml;
 
 }
 
-my $filename = OMP::TransServer->translate( $xml, { simulate => $sim });
+my $filename = OMP::TransServer->translate( $xml, { simulate => $sim,
+						    log => $log});
 
 # convert the filename to an absolute path
 print File::Spec->rel2abs($filename) ."\n";
