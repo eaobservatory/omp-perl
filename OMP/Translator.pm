@@ -371,6 +371,10 @@ sub translate {
     for (@configs) {
       $_->outhdl( undef ) if $_->can("outhdl");
     }
+
+    # return
+    return $xml;
+
   }
 }
 
