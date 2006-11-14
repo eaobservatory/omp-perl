@@ -3186,6 +3186,10 @@ sub bandwidth_mode {
     my $olap = $s->{overlap};
     my $hchan = $s->{channels};
 
+    if ($hchan == 0) {
+      throw OMP::Error::TranslateFail("Number of hybridised channels in subsystem is 0 so unable to calculate channel width");
+    }
+
     # Calculate the channel width and store it
     my $chanwid = $hbw / $hchan;
 
