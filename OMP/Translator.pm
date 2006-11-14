@@ -236,7 +236,9 @@ sub translate {
 
     # Loop over each SpObs separately since that controls the 
     # instrument granularity (each SpObs can only refer to a single instrument)
+    my $spobs_count = 0;
     for my $spobs ($fullmsb->_get_SpObs) {
+      $spobs_count++;
 
       # We need to create a mini MSB object derived from each SpObs
       # For this to work, we need to copy the Component nodes from the
@@ -299,6 +301,14 @@ sub translate {
 
       if (defined $logh) {
 	print $logh "---------------------------------------------\n";
+      }
+
+      # For large MSBs (and large science programmes with multiple msbs)
+      # it is helpful to report the MSB title and SpObs count
+      my $title = $msb->msbtitle;
+      $title = "<no title>" unless defined $title;
+      for my $h (@handles) {
+	print $h "Translating Obs #$spobs_count from MSB $title\n";
       }
 
       # And forward to the correct translator
