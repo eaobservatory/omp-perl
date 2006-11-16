@@ -266,6 +266,41 @@ sub inferTelescope {
   return $tel;
 }
 
+=item B<dumpData>
+
+Debugging method to dump the contents of the config system to stdout.
+
+  $cfg->dumpData();
+
+If an argument is given it is assumed to be a key into the primary
+config. Allowed keys are "omp" for default values, or telescope names.
+
+  $cfg->dumpData( "omp" );
+
+=cut
+
+sub dumpData {
+  my $class = shift;
+  my $key = lc(shift);
+
+  # Make sure we have read some files (ie specified a cfgdir)
+  $class->_checkConfig;
+
+  my $dref;
+  if (defined $key) {
+    if (exists $CONFIG{$key}) {
+      $dref = $CONFIG{$key};
+    } else {
+      $dref = {};
+    }
+  } else {
+    $dref = \%CONFIG;
+  }
+
+  print Dumper($dref);
+
+}
+
 =back
 
 =head2 Internal Methods
@@ -395,6 +430,9 @@ If a scalar "siteconfig" entry if present, the site configuration will be read
 and combined with the configuration file content. Note that site configuration
 override all others.
 
+If a scalar "mergeconfig" is present the configuration will be read from that file
+and merged with existing data. Nested structures will be merged one level down.
+
 =cut
 
 sub _read_cfg_file {
@@ -453,6 +491,7 @@ sub _read_cfg_file {
   }
 
   # loop through the keys (including aliases)
+  # convert comma separated list to array reference
   my %cfg;
   for my $key ( @keys ) {
     print "Trying key $key\n" if $DEBUG;
@@ -490,15 +529,59 @@ sub _read_cfg_file {
 
   # if we have a siteconfig, read that
   if (exists $cfg{siteconfig}) {
-    if (-e $cfg{siteconfig}) {
-      my ($slab, $site) = $class->_read_cfg_file( $cfg{siteconfig} );
+    my @configs = (ref $cfg{siteconfig} ? @{$cfg{siteconfig}} : $cfg{siteconfig} );
 
-      # Site overrides local
-      %cfg = ( %cfg, %$site );
-    } else {
-      warnings::warnif("Site config specified in '$file' as '$cfg{siteconfig}' but could not be found");
+    for my $sitefile (@configs) {
+      if (-e $sitefile) {
+	my ($slab, $site) = $class->_read_cfg_file( $sitefile );
+
+	# Site overrides local
+	%cfg = ( %cfg, %$site );
+      } else {
+	warnings::warnif("Site config specified in '$file' as '$sitefile' but could not be found");
+      }
     }
   }
+
+  # if we have a mergeconfig, read that and merge rather than overwrite
+  # there can be more than one
+  if (exists $cfg{mergeconfig}) {
+    my @configs = (ref $cfg{mergeconfig} ? @{$cfg{mergeconfig}} : $cfg{mergeconfig} );
+
+    for my $mergefile (@configs) {
+      if (-e $mergefile) {
+
+	my ($slab, $merge) = $class->_read_cfg_file( $mergefile );
+
+	# Merge with local (which means merge hashes one level down from siteconfig)
+	for my $k (keys %$merge) {
+	  if (ref($merge->{$k}) eq 'HASH') {
+	    # Hash copy - but only if config either does not exist or is a reference itself
+	    if (exists $cfg{$k} && not ref($cfg{$k})) {
+	      warnings::warnif("Attempting to merge nested data with key $k but original config file has this key as scalar so will not merge");
+	      next;
+	    }
+	    $cfg{$k} = {} unless exists $cfg{$k}; # safety net
+
+	    # merge
+	    $cfg{$k} = { %{$cfg{$k}}, %{$merge->{$k}} };
+
+	  } else {
+	    # simple copy overwrite
+	    if (ref($cfg{$k})) {
+	      warnings::warnif("Attempting to merge scalar data with key '$k' into a nested primary. Will not merge");
+	    } else {
+	      $cfg{$k} = $merge->{$k};
+	    }
+	  }
+	}
+
+      } else {
+	warnings::warnif("Merge config specified in '$file' as '$mergefile' but could not be found");
+      }
+    }
+  }
+
 
   # return the answer
   return ($label, \%cfg);
@@ -781,7 +864,8 @@ key. This should contain the name of a file that can contain site configuration
 information. It should be in the same format as the normal config file
 and is not expected to be in CVS. This can be used to store local encrypted
 passwords. Contents from the site file are read in last and override
-entries in the original config file.
+entries in the original config file. "mergeconfig" can be used if nested
+data should be merged rather than overridden.
 
 Finally, if $OMP_SITE_CONFIG environment variable is set this config
 file is read last.
@@ -883,7 +967,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002-2006 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
