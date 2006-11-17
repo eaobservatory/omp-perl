@@ -2426,18 +2426,21 @@ sub cubes {
       }
 
       if ($inst->name =~ /HARP/) {
-	# Now rotate these coordinates by 180 to take into account uncertainty of
-	# image rotator orientation and merge them with the original set
-	# (duplicate positions don't matter)
-	my @rot_h = map {
-	  my %temp = %$_;
-	  ($temp{OFFSET_DX}, $temp{OFFSET_DY}) = $self->PosAngRot( $temp{OFFSET_DX},
-								   $temp{OFFSET_DY},
-								   180.0);
-	  \%temp;
-	} @footprint_h;
+	# Now rotate these coordinates by multiples of 90 deg to take
+	# into account uncertainty of image rotator orientation and
+	# merge them with the original set (duplicate positions don't
+	# matter). We need 90 deg for edge receptors and 180 for corner receptors.
+	for my $ang ( 90, 180, 270 ) {
+	  my @rot_h = map {
+	    my %temp = %$_;
+	    ($temp{OFFSET_DX}, $temp{OFFSET_DY}) = $self->PosAngRot( $temp{OFFSET_DX},
+								     $temp{OFFSET_DY},
+								     $ang);
+	    \%temp;
+	  } @footprint_h;
 
-	push(@footprint_h, @rot_h);
+	  push(@footprint_h, @rot_h);
+	}
       }
 
     } else {
