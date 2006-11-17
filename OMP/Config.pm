@@ -287,7 +287,7 @@ sub dumpData {
   $class->_checkConfig;
 
   my $dref;
-  if (defined $key) {
+  if ($key) {
     if (exists $CONFIG{$key}) {
       $dref = $CONFIG{$key};
     } else {
@@ -502,11 +502,7 @@ sub _read_cfg_file {
       my %new;
       for my $oldkey (keys %{$data{$key}}) {
 	next if ($oldkey eq 'domainalias' || $oldkey eq 'hostalias');
-	my $newkey = lc($oldkey);
-	my $newval = $data{$key}->{$oldkey};
-	if ($newval =~ /,/) {
-	  $newval = [ split(/,/,$newval)];
-	}
+	my ($newkey, $newval) = $class->_clean_entry($oldkey, $data{$key}->{$oldkey});
 	$new{$newkey} = $newval;
       }
 
@@ -522,9 +518,9 @@ sub _read_cfg_file {
     next if $key =~ /^(domain|host):/;
     next if $key eq 'default';
 
-    # Copy the hash
-    my %temp = %{ $data{$key} };
-    $cfg{lc($key)} = \%temp;
+    # clean them up en route (they will be references to a hash)
+    my ($newkey, $newval) = $class->_clean_entry( $key, $data{$key});
+    $cfg{$newkey} = $newval;
   }
 
   # if we have a siteconfig, read that
@@ -582,7 +578,6 @@ sub _read_cfg_file {
     }
   }
 
-
   # return the answer
   return ($label, \%cfg);
 }
@@ -611,6 +606,39 @@ sub _locate_aliases {
   return @keys,
 }
 
+
+=item B<_clean_entry>
+
+Clean up an entry in the config hash. Will lower case keys and convert
+comma-separated entries into arrays references.
+
+ ($newkey, $newval) = $cfg->_clean_entry( $oldkey, $oldval );
+
+=cut
+
+sub _clean_entry {
+  my $class = shift;
+  my $oldkey = shift;
+  my $oldval = shift;
+
+  my $newkey = lc($oldkey);
+  my $newval = $oldval;
+
+  if (!ref($newval) && $newval =~ /,/) {
+    $newval = [ split(/,/,$newval)];
+  } elsif (ref($newval) eq 'HASH') {
+    # Nested. Need to recurse
+    my %nest;
+    for my $nestkey (keys %$newval) {
+      my ($new_nestkey, $new_nestval) = $class->_clean_entry( $nestkey,
+							      $newval->{$nestkey} );
+      $nest{$new_nestkey} = $new_nestval;
+    }
+    $newval = \%nest;
+  }
+
+  return ($newkey, $newval);
+}
 
 =item B<_determine_constants>
 
