@@ -89,7 +89,7 @@ my $file = shift(@ARGV);
 my $sp;
 if (-e $file) {
   # looks to be a filename
-  $sp = new OMP::SciProg( FILE => shift(@ARGV));
+  $sp = new OMP::SciProg( FILE => $file);
 } elsif ( OMP::ProjServer->verifyProject( $file ) ) {
   # we have a project ID - we need to get permission
 
