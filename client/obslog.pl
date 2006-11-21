@@ -96,6 +96,7 @@ $| = 1;
 my $MainWindow; # The Toplevel frame for obslog itself
 my $obslog;  # refers to the object that holds the obslog information
 my %obs; # keys are instruments, values are ObsGroup objects
+my %obs_ref; # Quick lookup for observations.
 my @shiftcomments; # Shiftlog comments.
 my %notebook_contents; # All the notebook content windows
 my %notebook_headers; # All the notebook header windows
@@ -629,6 +630,7 @@ sub rescan {
     $grp->locate_timegaps( $gaplength );
 
     %obs = $grp->groupby('instrument');
+    grp_to_ref( $grp );
 
     # Kluge to work around the case where
     # obs object doesn't have an instrument defined
@@ -723,19 +725,12 @@ sub RaiseComment {
   my $obs = shift;
   my $index = shift;
 
-#  my $obs = \$obsref;
-
   my $status;
   my $scrolledComment;
 
   $id->cancel unless !defined $id;
 
   my @comments = $obs->comments;
-#  if(defined($comments[$#comments])) {
-#    $status = $comments[$#comments]->status;
-#  } else {
-#    $status = OMP__OBS_GOOD;
-#  }
   $status = $obs->status;
 
   my $CommentWindow = MainWindow->new;
@@ -991,6 +986,125 @@ sub RaiseComment {
 
 }
 
+# Display the multiple observation comment window and allow for
+# editing, etc, etc, etc.
+sub RaiseMultiComment {
+
+  my $status;
+  my $observations = '';
+  my $scrolledComment;
+  my $instrument;
+
+  my @insts = keys %obs;
+
+  my $CommentWindow = MainWindow->new;
+  $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
+  $CommentWindow->geometry('760x240');
+
+  # $commentFrame contains the entire frame.
+  my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
+                                                  -fill => 'both',
+                                                  -expand => 1,
+                                                );
+
+  my $obsFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
+  my $obsLabel = $obsFrame->Label( -text => 'Observations: ' )->pack( -side => 'left' );
+  my $obsEntry = $obsFrame->Entry( -textvariable => \$observations )->pack( -side => 'left' );
+
+  my $instFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
+  my $instLabel = $instFrame->Label( -text => 'Instrument: ' )->pack( -side => 'left' );
+  my @instRadios;
+  foreach my $i ( 0..$#insts ) {
+    $instRadios[$i] = $instFrame->Radiobutton( -text => $insts[$i],
+                                               -value => $insts[$i],
+                                               -variable => \$instrument,
+                                             )->pack( -side => 'left' );
+  }
+
+
+
+  my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
+                                                                      -fill => 'both',
+                                                                    );
+
+  my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
+                                                -fill => 'x',
+                                              );
+
+  # $scrolledComment is the text area that will be used for comment entry.
+  $scrolledComment = $entryFrame->Scrolled( 'Text',
+                                            -wrap => 'word',
+                                            -height => 10,
+                                            -scrollbars => 'oe',
+                                          )->pack( -side => 'bottom',
+                                                   -expand => 1,
+                                                   -fill => 'both',
+                                                 );
+
+  my $radioFrame = $entryFrame->Frame->pack( -side => 'top',
+                                             -fill => 'x',
+                                           );
+
+  # $textStatus displays the string "Status:"
+  my $textStatus = $radioFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
+                                                                  );
+  my $radioGood = $radioFrame->Radiobutton( -text => 'good',
+                                            -value => OMP__OBS_GOOD,
+                                            -variable => \$status,
+                                          )->pack( -side => 'left',
+                                                 );
+  my $radioBad = $radioFrame->Radiobutton( -text => 'bad',
+                                           -value => OMP__OBS_BAD,
+                                           -variable => \$status,
+                                         )->pack( -side => 'left',
+                                                );
+  my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
+                                                    -value => OMP__OBS_QUESTIONABLE,
+                                                    -variable => \$status,
+                                                  )->pack( -side => 'left',
+                                                         );
+
+  # $textUser displays the current user id.
+  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
+                                                                                      );
+
+  # $buttonSave is the button that allows the user to save the comment
+  # to the database.
+  my $buttonSave = $buttonFrame->Button( -text => 'Save',
+                                         -command => sub {
+                                           my $t = $scrolledComment->get( '0.0', 'end' );
+                                           SaveMultiComment( $status,
+                                                             $t,
+                                                             $observations,
+                                                             $user,
+                                                             $instrument,
+                                                           );
+                                           full_rescan( $ut, $telescope );
+                                           if( $currentut eq $ut ) {
+                                             $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                           };
+                                           CloseWindow( $CommentWindow );
+                                         },
+                                       )->pack( -side => 'left',
+                                                -anchor => 'n',
+                                              );
+
+  # $buttonCancel is the button that closes the window without saving
+  # any changes.
+  my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
+                                           -command => sub {
+                                             if(defined($id)) { $id->cancel; }
+                                             if( $ut eq $currentut ) {
+                                               $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
+                                             };
+                                             CloseWindow( $CommentWindow );
+                                           },
+                                         )->pack( -side => 'left',
+                                                  -anchor => 'n',
+                                                );
+
+}
+
 sub help { }
 
 sub SaveComment {
@@ -1018,6 +1132,66 @@ sub SaveComment {
 
   # And let's not forget to update the status of the observation.
   $obs->status( $status );
+
+}
+
+sub SaveMultiComment {
+  my $status = shift;
+  my $text = shift;
+  my $observations = shift;
+  my $user = shift;
+  my $instrument = shift;
+
+  return if ( ! defined $status ||
+              ! defined $text ||
+              ! defined $observations ||
+              ! defined $user ||
+              ! defined $instrument );
+
+  chomp $text;
+
+  my $comment = new OMP::Info::Comment( author => $user,
+                                        text => $text,
+                                        status => $status );
+  my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
+
+  my @obs = ();
+  @obs = split(",", $observations);
+  # Convert a:b or a-b to a..b
+  for( my $i = 0; $i <= $#obs; $i++ ) {
+
+    $obs[$i] =~ /([:-])/ && do {
+      my ( $start, $end ) = split ( /$1/, $obs[$i] );
+      my @junk = $start..$end;
+      splice( @obs, $i, 1, @junk );
+      $i += $#junk;
+    }
+  }
+
+  foreach my $obsnum ( @obs ) {
+
+    my $startobs = $obs_ref{$obsnum}{$instrument}{STARTOBS};
+    my $obsid = $obs_ref{$obsnum}{$instrument}{OBSID};
+
+    next if ! defined( $startobs );
+
+#    print "will insert comment for $instrument #$obsnum $startobs $obsid\n";
+
+    my $obs = new OMP::Info::Obs( runnr => $obsnum,
+                                  instrument => $instrument,
+                                  startobs => $startobs,
+                                  telescope => $telescope,
+                                  obsid => $obsid,
+                                );
+
+    $odb->addComment( $comment, $obs );
+
+  }
+
+#  use Data::Dumper;
+#  print Dumper \@obs;
+
+#  print "status: $status\ntext: $text\nobservations: $observations\nuser: $user\n";
 
 }
 
@@ -1087,6 +1261,11 @@ sub create_shiftlog_widget {
   # Button to add a new comment.
   $topbar->Button( -text => 'Add New Shift Comment',
                    -command => sub { raise_shift_comment() },
+                 )->pack( -side => 'right' );
+
+  # Button to add comments for multiple observations.
+  $topbar->Button( -text => 'Multiple Obs. Comments',
+                   -command => sub { RaiseMultiComment() },
                  )->pack( -side => 'right' );
 
   &BindMouseWheel( $shiftcommentText );
@@ -1551,6 +1730,17 @@ sub set_telescope {
 
   }
 
+}
+
+sub grp_to_ref {
+  my $grp = shift;
+
+  %obs_ref = ();
+
+  foreach my $obs ( $grp->obs ) {
+    $obs_ref{$obs->runnr}{$obs->instrument}{STARTOBS} = $obs->startobs;
+    $obs_ref{$obs->runnr}{$obs->instrument}{OBSID} = $obs->obsid;
+  }
 }
 
 =head1 AUTHORS
