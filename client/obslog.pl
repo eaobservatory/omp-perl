@@ -1019,6 +1019,9 @@ sub RaiseMultiComment {
                                                -value => $insts[$i],
                                                -variable => \$instrument,
                                              )->pack( -side => 'left' );
+    if( $#insts == 0 ) {
+      $instrument = $insts[0];
+    }
   }
 
 
@@ -1264,7 +1267,7 @@ sub create_shiftlog_widget {
                  )->pack( -side => 'right' );
 
   # Button to add comments for multiple observations.
-  $topbar->Button( -text => 'Multiple Obs. Comments',
+  $topbar->Button( -text => 'Multi-Observation Comment',
                    -command => sub { RaiseMultiComment() },
                  )->pack( -side => 'right' );
 
