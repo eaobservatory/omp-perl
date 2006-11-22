@@ -1146,7 +1146,6 @@ sub SaveMultiComment {
   my $instrument = shift;
 
   return if ( ! defined $status ||
-              ! defined $text ||
               ! defined $observations ||
               ! defined $user ||
               ! defined $instrument );
