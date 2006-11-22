@@ -1106,6 +1106,49 @@ sub RaiseMultiComment {
                                                   -anchor => 'n',
                                                 );
 
+  if( uc( $telescope ) eq 'UKIRT' ) {
+    my $buttonGuiding = $buttonFrame->Button( -text => 'Lost Guiding',
+                                              -command => sub {
+                                                my $t = "Lost guiding, repeating observation.";
+                                                my $status = OMP__OBS_BAD;
+                                                SaveMultiComment( $status,
+                                                                  $t,
+                                                                  $observations,
+                                                                  $user,
+                                                                  $instrument,
+                                                                );
+                                                full_rescan( $ut, $telescope );
+                                                if( $currentut eq $ut ) {
+                                                  $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
+                                                };
+                                                CloseWindow( $CommentWindow );
+                                              },
+                                            )->pack( -side => 'right',
+                                                     -anchor => 'n',
+                                                   );
+    my $buttonZeroCountdown = $buttonFrame->Button( -text => 'Zero Countdown',
+                                                    -command => sub {
+                                                      my $t = "Zero countdown problem, repeating group.";
+                                                      my $status = OMP__OBS_BAD;
+                                                      SaveMultiComment( $status,
+                                                                        $t,
+                                                                        $observations,
+                                                                        $user,
+                                                                        $instrument,
+                                                                      );
+                                                      full_rescan( $ut, $telescope );
+                                                      if( $currentut eq $ut ) {
+                                                        $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
+                                                      };
+                                                      CloseWindow( $CommentWindow );
+                                                    },
+                                                  )->pack( -side => 'right',
+                                                           -anchor => 'n',
+                                                         );
+
+  }
+
+
 }
 
 sub help { }
