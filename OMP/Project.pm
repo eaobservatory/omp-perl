@@ -630,7 +630,8 @@ sub pi {
   my $self = shift;
   if (@_) { 
     my $pi = shift;
-    throw OMP::Error::BadArgs("PI must be of type OMP::User")
+    throw OMP::Error::BadArgs("PI must be of type OMP::User but got '".
+			     (defined $pi ? $pi : "<undef>"). "'")
       unless UNIVERSAL::isa($pi, "OMP::User");
     $self->{PI} = $pi;
 
