@@ -1313,12 +1313,17 @@ sub rotator_config {
   my %cubes = $self->getCubeInfo( $cfg );
   my @cubs = values( %cubes );
 
-  # Need to get the map position angle
+  # Assume that the cube definition should probide the defaults for the system and
+  # position angle.
   my $pa = $cubs[0]->posang;
   $pa = new Astro::Coords::Angle( 0, units => 'radians' ) unless defined $pa;
 
+  my $system = $cubs[0]->tcs_coord;
+
   # if we are scanning we need to adjust the position angle of the rotator
   # here to adjust for the harp pixel footprint sampling
+  # Also, if we are jiggling we may need to rotate the rotator to the jiggle system
+  # for HARP where we always jiggle in FPLANE/PA=0
   my $scan_adj = 0;
   if ($inst->name =~ /HARP/) {
     # need the TCS information
@@ -1335,6 +1340,11 @@ sub rotator_config {
       # is working and can be aligned with the AZEL/TRACKING system (instead of always
       # forcing FPLANE system)
       $scan_adj = rad2deg(atan2(1,4));
+    } elsif ($info{mapping_mode} eq 'jiggle') {
+      # override the system from the jiggle. The PA should be matching the cube
+      # but we make sure we use the requested value
+      $system = $info{jiggleSystem} || 'TRACKING';
+      $pa = new Astro::Coords::Angle( ($info{jigglePA} || 0), units => 'deg' );
     }
   }
 
@@ -1344,7 +1354,7 @@ sub rotator_config {
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
-		 SYSTEM => $cubs[0]->tcs_coord,
+		 SYSTEM => $system,
 		 PA => \@pas,
 	       );
 }
@@ -3462,12 +3472,31 @@ sub jig_info {
   my $jig = new JCMT::SMU::Jiggle( File => $file );
 
   # set the scale and other parameters
+  # Note that the jiggle PA and system depend on whether we are using HARP
+  # (or in fact the rotator).
   my $jscal = (defined $info{scaleFactor} ? $info{scaleFactor} : 1);
   $jig->scale( $jscal );
-  my $jpa = $info{jigglePA} || 0;
-  $jig->posang( new Astro::Coords::Angle( $jpa, units => 'deg') );
 
-  my $jsys = $info{jiggleSystem} || 'TRACKING';
+  # Get the instrument we are using
+  my $inst = lc($self->ocs_frontend($info{instrument}));
+  throw OMP::Error::FatalError('No instrument defined - needed to select calculate jiggle !')
+    unless defined $inst;
+
+
+  my ($jpa, $jsys);
+  if ($inst =~ /HARP/i) {
+    # Always jiggle in FPLANE with a PA=0 and rely on the rotator to rotate the receptors
+    # on the sky
+    $jpa = 0;
+    $jsys = "FPLANE";
+
+  } else {
+    $jpa = $info{jigglePA} || 0;
+    $jsys = $info{jiggleSystem} || 'TRACKING';
+  }
+
+  # and store them
+  $jig->posang( new Astro::Coords::Angle( $jpa, units => 'deg') );
   $jig->system( $jsys );
 
   return $jig;
