@@ -512,6 +512,8 @@ Returns undef if the band is not known.
     my $tel = shift;
     my @bands = @_;
 
+    my ($defmin, $defmax) = default_range("TAU");
+
     if (defined $tel && $tel eq 'JCMT') {
 
       my ($min, $max) = (50,-50);
@@ -526,6 +528,11 @@ Returns undef if the band is not known.
 	}
 
       }
+
+      # trap case where there were no inputs
+      $min = $defmin if $min == 50;
+      $max = $defmax if $max == -50;
+
 
       return new OMP::Range( Min => $min, Max => $max );
 
