@@ -1073,8 +1073,10 @@ sub infer_projectid {
   croak "Must supply a project ID"
     unless defined $projid;
 
-  # Make sure its not complete already
-  return $projid if defined $self->extract_projectid( $projid );
+  # Make sure its not complete already (and extract substring at
+  # same time)
+  my $extracted = $self->extract_projectid( $projid );
+  return $extracted if defined $extracted;
 
   # If it's a special reserved ID (two characters + digit)
   # and *not* an abbreviated JCMT service programme
@@ -1188,9 +1190,10 @@ sub extract_projectid {
   if ($string =~ /\b(u\/\d\d[ab]\/[jhd]?\d+[ab]?)\b/i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][unchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
+      or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
-      or $string =~ /\b(u\/ec\/\d+)\b/i           # UKIRT E&C
+      or $string =~ /\b(u\/ec\/\d+)\b/i             # UKIRT E&C
       or $string =~ /\b(u\/ukidss\/[a-z]{3}(\d+[a-z]?|_sv)?)\b/i # UKIRT UKIDSS program
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal

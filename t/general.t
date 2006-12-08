@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 192;
+use Test::More tests => 195;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -367,6 +367,14 @@ my @input = (
 	      result => 'm03ad07b',
 	     },
 	     {
+	      projectid => 'guaranteed time: m06bgt01 <<',
+	      result => 'm06bgt01',
+	     },
+	     {
+	      projectid => 'E&C: m06bec01 <<',
+	      result => 'm06bec01',
+	     },
+	     {
 	      projectid => 'm04bu35a',
 	      result=>'m04bu35a',
 	     }
@@ -374,8 +382,8 @@ my @input = (
 
 for my $input (@input) {
   is( OMP::General->infer_projectid(%$input), $input->{result},
-    "Verify projectid is " . $input->{result} . " from ".
-    $input->{projectid});
+    "Verify projectid is '" . $input->{result} . "' from '".
+    $input->{projectid} ."'");
 }
 
 # Test the failure when we cant decide which telescope
@@ -479,6 +487,7 @@ my %extract = (
 	       'M02BH07A3'  => 'this is uh project M02BH07A3',
 	       'M00AH06A'  => 'this is uh project M00AH06A',
                'm02bec03'  => 'this is E&C m02bec03 project',
+	       'm08bgt01'  => 'm08bgt01 is a guaranteed time project',
                'm02bd01'   => 'm02bd01 is a DDT project',
                'u/02b/d03' => 'u/02b/d03 is a UKIRT DDT project',
 	       'm03au05fb' => 'a fallback project: m03au05fb',
