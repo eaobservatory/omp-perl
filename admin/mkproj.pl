@@ -117,6 +117,16 @@ for my $proj (keys %alloc) {
   # and split on comma in case we have more than one
   $details{country} = [split /,/,uc($details{country}) ];
 
+  # Validate country (if we add a new country we should remove
+  # this test for the first upload
+  my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
+  my %allowed = map { $_ => undef } $projdb->listCountries;
+  for my $c (@{$details{country}}) {
+    if (!exists $allowed{$c}) {
+      die "Unrecognized country code: $c\n";
+    }
+  }
+
   # TAG priority
   my @tag = split /,/, $details{tagpriority};
 
