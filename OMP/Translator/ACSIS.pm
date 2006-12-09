@@ -995,7 +995,7 @@ sub secondary_mirror {
   }
 
   # Relative timing required if we are jiggling and chopping
-  if ($smu->smu_mode() eq 'jiggle_chop') {
+  if ($smu->smu_mode() =~  /(jiggle_chop|chop_jiggle)/) {
     # First get the canonical RTS step time. This controls the time spent on each
     # jiggle position.
     my $rts = $self->step_time( %info );
@@ -2350,17 +2350,39 @@ sub acsisdr_recipe {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
-    $root = $obsmode . '_dr_recipe.ent';
+
+    # Need to special case chop and chop-jiggle vs jiggle-chop
+    if ($obsmode =~ /jiggle/) {
+      # need the secondary configuration
+      # first get the Secondary object, via the TCS
+      my $tcs = $cfg->tcs;
+      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+      # ... and secondary
+      my $secondary = $tcs->getSecondary();
+      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+      # Get the information
+      my $smu_mode = $secondary->smu_mode;
+
+      if ($smu_mode eq 'chop' || $smu_mode eq 'chop_jiggle') {
+	$obsmode = 'chop_jiggle';
+      }
+
+    }
+
+    $root = $obsmode;
   } else {
     # keyed on observation type
-    $root = $info{obs_type} . '_dr_recipe.ent';
+    $root = $info{obs_type};
   }
-  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root );
+  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root . '_dr_recipe.ent');
 
   # Read the recipe itself
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
 						       validation => 0);
   $acsis->red_config_list( $dr );
+  print {$self->outhdl} "Read ACSIS DR recipe from '$filename'\n" if $self->verbose;
 
   # and now the mapping that is also recipe specific
   my $sl = new JAC::OCS::Config::ACSIS::SemanticLinks( EntityFile => $filename,
@@ -3461,7 +3483,7 @@ sub jig_info {
 		 );
 
   if (!exists $jigfiles{ $info{jigglePattern} }) {
-    throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern $info{jigglePattern}\n");
+    throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern '$info{jigglePattern}'\n");
   }
 
 
