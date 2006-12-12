@@ -56,6 +56,11 @@ our $DEBUG = 0;
 # Version number
 our $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
+# Maximum size of a cube per gridder (slice) in pixels
+my $max_slice_size_in_gb = 0.5;
+my $max_slice_size_in_bytes = $max_slice_size_in_gb * 1024 * 1024 * 1024;
+my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
+
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (
 	       RXA3 => 'RXA',
@@ -2495,6 +2500,18 @@ sub cubes {
   # Get the subsystem information
   my $freq = $info{freqconfig}->{subsystems};
 
+  # Find out the total number of gridders in this observation
+  my ($nsync, $nreduc, $ngridder) = $self->determine_acsis_layout( $cfg, %info );
+  throw OMP::Error::FatalError("Number of gridders unavailable!") if !defined $ngridder;
+
+  # and the number of gridders per subsystem
+  my $ngrid_per_spw = $ngridder / scalar(@$freq);
+
+  # sanity check
+  if ($ngrid_per_spw != int($ngrid_per_spw)) {
+    throw OMP::Error::FatalError( "The number of gridders in use ($ngridder) does not divide equally by the number of subsystems (".@$freq.")");
+  }
+
   # Now loop over subsystems to create cube specifications
   my %cubes;
   my $count = 1;
@@ -2508,14 +2525,6 @@ sub cubes {
     throw OMP::Error::FatalError( "Spectral window ID not defined. Internal inconsistency")
        unless defined $ss->{spw};
     $cube->spw_id( $ss->{spw} );
-
-    # Presumably the gridder should not regrid the full spectral dimension
-    # if a specific line region has been specified. For now just use full range.
-    # The cube example xml seems to start at channel 0
-    my $int = new JAC::OCS::Config::Interval( Min => 0,
-					      Max => ( $ss->{nchannels_full}-1),
-					      Units => 'channel');
-    $cube->spw_interval( $int );
 
     # Tangent point (aka group centre) is the base position without offsets
     # Not used if we are in a moving (eg PLANET) frame
@@ -2718,13 +2727,50 @@ sub cubes {
       $cube->truncation_radius( min($xsiz,$ysiz)/2 );
     }
 
+    # Work out what part of the spectral axis can be regridded
+    # Number of pixels per channel
+    my $npix_per_chan = $nx * $ny;
+
+    # Max Number of channels allowed for the gridder
+    my $max_nchan_per_gridder = $MAX_SLICE_NPIX / $npix_per_chan;
+
+    # Number of channels requested per gridder
+    my $nchan_per_gridder = $ss->{nchannels_full} / $ngrid_per_spw;
+
+    # So the actual number for this gridder should be the minimum of these
+    $nchan_per_gridder = min( $nchan_per_gridder, $max_nchan_per_gridder);
+
+    # and now the actual channel range for this subsystem can be calculated
+    my $nchan_per_spw = int($nchan_per_gridder) * $ngrid_per_spw;
+
+    my ($minchan, $maxchan);
+    if ($nchan_per_spw >= $ss->{nchannels_full}) {
+      $minchan = 0;
+      $maxchan = $ss->{nchannels_full} - 1;
+    } else {
+      my $half = int($nchan_per_spw / 2);
+      my $midchan = int($ss->{nchannels_full} / 2);
+      $maxchan = $midchan + $half - 1;
+      $minchan = $midchan - $half;
+    }
+
+    my $int = new JAC::OCS::Config::Interval( Min => $minchan,
+					      Max => $maxchan,
+					      Units => 'channel');
+    $cube->spw_interval( $int );
+
+
     if ($self->verbose) {
-      print {$self->outhdl} "Cube parameters [$cubid]:\n";
+      print {$self->outhdl} "Cube parameters [$cubid/".$cube->spw_id."]:\n";
       print {$self->outhdl} "\tDimensions: $nx x $ny\n";
       print {$self->outhdl} "\tPixel Size: $xsiz x $ysiz arcsec\n";
       print {$self->outhdl} "\tMap frame:  ". $cube->tcs_coord ."\n";
       print {$self->outhdl} "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
       print {$self->outhdl} "\tMap PA:     $mappa deg\n";
+      print {$self->outhdl} "\tSpectral channels: ".($maxchan-$minchan+1).
+                            " as $int (cf ".($ss->{nchannels_full})." total)\n";
+      print {$self->outhdl} "\tSlice size: ".($nchan_per_gridder * $npix_per_chan * 4 /
+					     (1024*1024))." MB\n";
       print {$self->outhdl} "\tGrid Function: $grid_func\n";
       if ( $grid_func eq 'Gaussian') {
 	print {$self->outhdl} "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
@@ -2967,37 +3013,8 @@ sub acsis_layout {
     $monlay = "<monitor_layout>\n$monlay\n</monitor_layout>\n";
   }
 
-  # Get the instrument we are using
-  my $inst = $self->ocs_frontend($info{instrument});
-  throw OMP::Error::FatalError('No instrument defined - needed to select correct layout file !')
-    unless defined $inst;
-
-  # Now select the appropriate layout depending on the instrument found (and possibly mode)
-  my $appropriate_layout;
-  if (exists $ACSIS_Layouts{$inst . "_$info{observing_mode}"}) {
-    $appropriate_layout = $ACSIS_Layouts{$inst."_$info{observing_mode}"};
-  } elsif (exists $ACSIS_Layouts{$inst}) {
-    $appropriate_layout = $ACSIS_Layouts{$inst};
-  } else {
-    throw OMP::Error::FatalError("Could not find an appropriate layout file for instrument $inst !");
-  }
-
-  # We now need to fudge the gridder number by correcting for multi-subsystem, multi-receptor
-  # and multi-waveplate gridding
-  if ( $appropriate_layout =~ /g(\d+)$/) {
-    my $gnum = $1;
-
-    my $spwlist = $acsis->spw_list;
-    if (!defined $spwlist) {
-      throw OMP::Error::FatalError("Could not find spectral window configuration. Should not happen!");
-    }
-
-    my %spw = $spwlist->spectral_windows;
-    $gnum *= scalar keys %spw;
-
-    # replace the number
-    $appropriate_layout =~ s/g\d+$/g$gnum/;
-  }
+  # Make a stab at a layout
+  my $appropriate_layout = $self->determine_acsis_layout($cfg, %info);
 
   # append the standard file extension
   $appropriate_layout .= '_layout.ent';
@@ -3593,6 +3610,75 @@ sub get_nod_set_size {
     throw OMP::Error::TranslateFail("Unrecognized nod set definition ('$info{nodSetDefinition}'). Can not continue.");
   }
   return $nod_set_size;
+}
+
+=item B<determine_acsis_layout>
+
+Return the ACSIS layout name. This is usually of form sNrMgP for
+sync tasks, reducers and gridders.
+
+  $layout = $trans->determine_acsis_layout( $cfg, %info );
+
+In list context returns the number of syncs, reducers and gridder processes.
+
+  ($nsync, $nreduc, $ngrid) = $trans->determine_acsis_layout( $cfg, %info );
+
+This only works if the layout follows standard naming convention.
+
+=cut
+
+sub determine_acsis_layout {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # get the acsis configuration
+  my $acsis = $cfg->acsis;
+  throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
+
+  # Get the instrument we are using
+  my $inst = $self->ocs_frontend($info{instrument});
+  throw OMP::Error::FatalError('No instrument defined - needed to select correct layout!')
+    unless defined $inst;
+
+  # Now select the appropriate layout depending on the instrument found (and possibly mode)
+  my $appropriate_layout;
+  if (exists $ACSIS_Layouts{$inst . "_$info{observing_mode}"}) {
+    $appropriate_layout = $ACSIS_Layouts{$inst."_$info{observing_mode}"};
+  } elsif (exists $ACSIS_Layouts{$inst}) {
+    $appropriate_layout = $ACSIS_Layouts{$inst};
+  } else {
+    throw OMP::Error::FatalError("Could not find an appropriate layout file for instrument $inst !");
+  }
+
+  # We now need to fudge the gridder number by correcting for multi-subsystem, multi-receptor
+  # and multi-waveplate gridding
+  if ( $appropriate_layout =~ /g(\d+)$/) {
+    my $gnum = $1;
+
+    my $spwlist = $acsis->spw_list;
+    if (!defined $spwlist) {
+      throw OMP::Error::FatalError("Could not find spectral window configuration. Should not happen!");
+    }
+
+    my %spw = $spwlist->spectral_windows;
+    $gnum *= scalar keys %spw;
+
+    # replace the number
+    $appropriate_layout =~ s/g\d+$/g$gnum/;
+  }
+
+  if (wantarray) {
+    # list context so need to break up the answer
+    if ( $appropriate_layout =~ /s(\d+)r(\d+)g(\d+)/ ) {
+      return ($1, $2, $3);
+    } else {
+      return ();
+    }
+  } else {
+    # scalar context so return the layout name
+    return $appropriate_layout;
+  }
 }
 
 =item B<tracking_receptor>
