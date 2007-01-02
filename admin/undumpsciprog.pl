@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # UnDump the contents of the Database
 # [currently only the science programs are restored]

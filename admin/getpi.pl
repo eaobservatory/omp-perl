@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # Read in the .ini file used by mkproj.pl and extract the PI
 # information and write it to disk suitable for use as a mailing

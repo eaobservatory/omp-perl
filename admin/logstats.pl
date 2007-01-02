@@ -1,4 +1,4 @@
-#!/usr/local/perl-5.6/bin/perl
+#!/usr/local/perl/bin/perl
 use strict;
 use warnings;
 use Time::Piece qw/ :override /;

@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # Read project IDs from standard input and for each projid set
 # the time remaining to zero seconds.

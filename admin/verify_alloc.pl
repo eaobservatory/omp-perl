@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # Simple script to take the project details for a semester (in INI format)
 # and 

@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # Dump the contents of the Database
 # [currently only the science programs and the project info]

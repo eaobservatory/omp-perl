@@ -1,4 +1,4 @@
-#!/local/perl-5.6/bin/perl
+#!/local/perl/bin/perl
 
 # Query the database for all projects associated with a specific
 # semester and telescope and dump to stdout in a form suitable for use
