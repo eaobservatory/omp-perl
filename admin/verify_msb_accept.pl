@@ -90,7 +90,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if( $version ) {
   my $id = '$Id$ ';
-  print "verify_msb_accept - MSB integrity verification\n";
+  print "ompmsbcheck - MSB integrity verification\n";
   print " CVS revision: $id\n";
   exit;
 }
@@ -130,9 +130,12 @@ my $output = OMP::MSBServer->observedMSBs( {
 
 # Need to convert the OMP::Info::MSB with comments to a time
 # series. [yes this was how they were stored originally]
+my %TITLES; # MSB titles indexed by checksum
 my @msbs;
 for my $msb (@$output) {
   next unless OMP::ProjServer->verifyTelescope( $msb->projectid, $telescope);
+  my $title = $msb->title;
+  $TITLES{$msb->checksum} = $msb->title;
   for my $c ($msb->comments) {
     my $newmsb = $msb->new( checksum => $msb->checksum,
 			    projectid => $msb->projectid,
@@ -241,7 +244,16 @@ for my $i ( 0..$#sorted_msbhdr ) {
   my $msb = $sorted_msbhdr[$i];
   my $id = $msb->{msbid};
 
+  # if we do not have a title for it we have to explicitly look in the database (since it
+  # will not have been listed in the observedMSBs response)
+  if (!exists $TITLES{$id}) {
+    my $missing = OMP::MSBServer->historyMSB( $msb->{projectid}, $id, 'data');
+    $TITLES{$id} = $missing->title if defined $missing;
+  }
+
+  # Print a header
   print "MSB $id for project ". $msb->{projectid} ." completed at ".$msb->{date}->datetime."\n";
+  print "\tMSB title: ". (exists  $TITLES{$id} ? $TITLES{$id} : "<unknown>")."\n";
 
   if (exists $DB{$id}) {
     # We had some activity. If this is the only entry in the HDR info, dump
