@@ -622,6 +622,7 @@ sub rescan {
   try {
     my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
                                        date => $ut,
+                                       ignorebad => 1,
                                      );
     if(!$grp->numobs) {
       throw OMP::Error("There are no observations available for this night.");
