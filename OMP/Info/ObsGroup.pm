@@ -167,6 +167,7 @@ sub runQuery {
   my $self = shift;
   my $q = shift;
   my $retainhdr = shift;
+  my $ignorebad = shift;
 
   throw OMP::Error::FatalError("runQuery: The query argument must be an OMP::ArcQuery class")
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
@@ -175,9 +176,13 @@ sub runQuery {
     $retainhdr = 0;
   }
 
+  if( ! defined( $ignorebad ) ) {
+    $ignorebad = 0;
+  }
+
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
-  my @result = $adb->queryArc( $q, $retainhdr );
+  my @result = $adb->queryArc( $q, $retainhdr, $ignorebad );
 
   # Store the results
   $self->obs(\@result);
@@ -211,7 +216,9 @@ the C<obs> method.
 
   $grp->populate( instrument => $inst,
                   date => $date,
-                  projectid => $proj);
+                  projectid => $proj,
+                  retainhdr => 0,
+                  ignorebad => 0 );
 
 
 This requires access to the obs log database (C<OMP::ObslogDB>) and
@@ -247,6 +254,15 @@ If "sort" is false and inccal is true, the observations will be sorted
 such that the calibrations appear before the science observations
 in the list.
 
+If the "retainhdr" value is true (1), then the FITS header will be
+retained in each individual OMP::Info::Obs object. Otherwise, the
+header will not be retained. This defaults to false (0).
+
+If the "ignorebad" value is true (1), then any files that cannot be
+read to form an OMP::Info::Obs object will be skipped. Otherwise,
+reading these files will cause an error to be thrown. This defaults to
+false (0).
+
 A "verbose" flag can be used to turn on message output. Default
 is false.
 
@@ -261,6 +277,12 @@ sub populate {
   if( exists( $args{retainhdr} ) ) {
     $retainhdr = $args{retainhdr};
     delete $args{retainhdr};
+  }
+
+  my $ignorebad = 0;
+  if( exists( $args{ignorebad} ) ) {
+    $ignorebad = $args{ignorebad};
+    delete $args{ignorebad};
   }
 
   throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
@@ -329,7 +351,7 @@ sub populate {
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
   # run the query
-  $self->runQuery( $arcquery, $retainhdr );
+  $self->runQuery( $arcquery, $retainhdr, $ignorebad );
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.

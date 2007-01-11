@@ -145,9 +145,14 @@ sub queryArc {
   my $self = shift;
   my $query = shift;
   my $retainhdr = shift;
+  my $ignorebad = shift;
 
   if( !defined( $retainhdr ) ) {
     $retainhdr = 0;
+  }
+
+  if( ! defined( $ignorebad ) ) {
+    $ignorebad = 0;
   }
 
   my @results;
@@ -216,7 +221,7 @@ sub queryArc {
            (!@results) # look to files if we got no results
 	 ) {
         # then go to files
-        @results = $self->_query_files( $query, $retainhdr );
+        @results = $self->_query_files( $query, $retainhdr, $ignorebad );
       }
     }
   }
@@ -314,9 +319,14 @@ sub _query_files {
   my $self = shift;
   my $query = shift;
   my $retainhdr = shift;
+  my $ignorebad = shift;
 
   if( !defined( $retainhdr ) ) {
     $retainhdr = 0;
+  }
+
+  if( ! defined( $ignorebad ) ) {
+    $ignorebad = 0;
   }
 
   my ( $telescope, $daterange, $instrument, $runnr, $filterinst );
@@ -438,7 +448,10 @@ sub _query_files {
       catch Error with {
         my $Error = shift;
         OMP::General->log_message( "OMP::Error in OMP::ArchiveDB:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR );
-        throw OMP::Error::ObsRead( "Error reading FITS header from file: " . $Error->{'-text'} );
+
+        if( ! $ignorebad ) {
+          throw OMP::Error::ObsRead( "Error reading FITS header from file $file: " . $Error->{'-text'} );
+        }
       };
     }
   }

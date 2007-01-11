@@ -133,7 +133,7 @@ sub readfile {
 
     OMP::General->log_message("OMP::Error in OMP::Info::Obs::readfile:\nfile: $filename\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR);
 
-    throw OMP::Error::ObsRead("Error reading FITS header from file: " . $Error->{'-text'});
+    throw OMP::Error::ObsRead("Error reading FITS header from file $filename: " . $Error->{'-text'});
   };
 
   return $obs;
