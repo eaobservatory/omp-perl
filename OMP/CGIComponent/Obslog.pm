@@ -663,6 +663,7 @@ sub obs_inst_summary {
                                        date => $ut,
                                        projectid => $projectid,
                                        inccal => 1,
+                                       ignorebad => 1,
                                      );
 
     %results = $grp->groupby('instrument');
@@ -1060,6 +1061,7 @@ sub cgi_to_obsgroup {
                                     telescope => $telescope,
                                     projectid => $projid,
                                     instrument => $inst,
+                                    ignorebad => 1,
                                     %options,
                                   );
   } else {
@@ -1069,17 +1071,20 @@ sub cgi_to_obsgroup {
         $grp = new OMP::Info::ObsGroup( date => $ut,
                                         instrument => $inst,
                                         projectid => $projid,
+                                        ignorebad => 1,
                                         %options,
                                       );
       } else {
         $grp = new OMP::Info::ObsGroup( date => $ut,
                                         projectid => $projid,
+                                        ignorebad => 1,
                                         %options,
                                       );
       }
     } elsif( defined( $inst ) && length( $inst . "" ) > 0 ) {
       $grp = new OMP::Info::ObsGroup( date => $ut,
                                       instrument => $inst,
+                                      ignorebad => 1,
                                       %options,
                                     );
     } else {

@@ -663,7 +663,7 @@ sub obs {
   my $query = new OMP::ArcQuery( XML => $xml );
 
   # Get observations
-  my @obs = $db->queryArc( $query );
+  my @obs = $db->queryArc( $query, 0, 1 );
 
   my $grp;
   try {
