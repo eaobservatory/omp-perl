@@ -1284,7 +1284,7 @@ sub slew_config {
   my $dur = $cfg->duration();
 
   # always use track time
-  $tcs->slew( TRACK_TIME => $dur );
+  $tcs->slew( OPTION => 'LONGEST_TRACK', TRACK_TIME => $dur );
 }
 
 =item B<rotator_config>
@@ -1358,7 +1358,7 @@ sub rotator_config {
 					    units => 'degrees') } (0..3);
 
   # do not know enough about ROTATOR behaviour yet
-  $tcs->rotator( SLEW_OPTION => 'TRACK_TIME',
+  $tcs->rotator( SLEW_OPTION => 'LONGEST_TRACK',
 		 SYSTEM => $system,
 		 PA => \@pas,
 	       );
