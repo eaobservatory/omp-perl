@@ -2065,6 +2065,62 @@ sub stringify {
   return $string;
 }
 
+# Unable to integrate this pretty_print function into the Time::Piece
+# distribution so we need to add it here
 
+package Time::Seconds;
+
+sub pretty_print {
+    my $s = shift;
+    my $fmt = shift || "h";
+    $fmt = lc(substr($fmt,0,1));
+
+    my %lut = (
+               "y" => ONE_YEAR,
+               "d" => ONE_DAY,
+               "h" => ONE_HOUR,
+               "m" => ONE_MINUTE,
+               "s" => 1.0,
+              );
+    my @precedence = (qw/y d h m s/);
+
+    # if the required format is not known convert it to "s"
+    $fmt = "s" unless exists $lut{$fmt};
+
+    my $string = '';
+    my $go = 0; # indicate when to start
+    my $rem = $s->seconds; # number of seconds remaining
+
+    # Take care of any sign
+    my $sgn = '';
+    if ($rem < 0) {
+      $rem *= -1;
+      $sgn = '-';
+    }
+
+    # Now loop over each allowed format
+    for my $u (@precedence) {
+
+        # loop if we havent triggered yet
+        $go = 1 if $u eq $fmt;
+        next unless $go;
+
+        # divide the current number of seconds by the number of seconds
+        # in the unit and store the integer
+        my $div = int( $rem / $lut{$u} );
+
+        # calculate the new remainder
+        $rem -= $div * $lut{$u};
+
+        # append the value to the string if non-zero
+        # and we havent already appended something. ie
+        # do not allow 0h52m15s but do allow 1h0m2s
+        $string .= $div . $u if ($div > 0 || $string);
+
+    }
+
+    return $sgn . $string;
+
+}
 
 1;

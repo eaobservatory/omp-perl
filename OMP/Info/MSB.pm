@@ -39,7 +39,9 @@ use Carp;
 use OMP::Range;
 use OMP::Error;
 use OMP::Constants qw/ :msb /;
-use Time::Seconds 1.01;
+use Time::Seconds;
+use OMP::General; # For Time::Seconds::pretty_print
+
 
 use base qw/ OMP::Info::Base /;
 
