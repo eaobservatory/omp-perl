@@ -2069,7 +2069,7 @@ sub stringify {
 # distribution so we need to add it here
 
 package Time::Seconds;
-
+no warnings 'redefine';
 sub pretty_print {
     my $s = shift;
     my $fmt = shift || "h";
