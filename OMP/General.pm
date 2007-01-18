@@ -173,6 +173,24 @@ sub parse_date {
     return undef;
   }
 
+  # If Time::Piece worked as advertised (broken between v1.08 and v1.11)
+  # the following code would work. For now we need to kluge with tzoffset.
+  # Create a dummy Time::Piece in the required time zone
+  #my $dummy = ( $islocal ? Time::Piece::localtime(0) : Time::Piece::gmtime(0));
+  #my $time = eval { $dummy->strptime( $date, $format ); };
+  #if ($@) {
+  #  print "Could not parse\n" if $DEBUG;
+  #  return undef;
+  #} else {
+  #  # if we got a local, convert it to UTC
+  #  if ($islocal) {
+  #    $time = Time::Piece::gmtime( $time->epoch );
+  #  }
+  #}
+
+  # Now need to bless into class Time::Piece::Sybase
+  #return bless $time, "Time::Piece::Sybase";
+
   # Now parse
   # Use Time::Piece::Sybase so that we can instantiate
   # the object in a state that can be used for sybase queries
@@ -193,7 +211,10 @@ sub parse_date {
     # If we have been supplied a localtime we just need to change the
     # representation rather than the epoch if we have a localtime
     # if we get a UT back but had a local time to start with we 
-    # need to correct
+    # need to correct.
+    # In fact, as of V1.08, strptime will be UTC if called without
+    # an object, but inherit the object if called as a instance method.
+    # So we could do this using a dummy local or UTC object.
     my $epoch = $time->epoch;
     my $tzoffset = $time->tzoffset;
     if ($islocal) {
@@ -201,6 +222,13 @@ sub parse_date {
       # We need to subtract the timezone and then convert the
       # time to a localtime
       if (! $time->[Time::Piece::c_islocal]) {
+	if ($tzoffset->seconds == 0) {
+	  # this may well be because Time::Piece v1.10 decided that
+	  # tzoffset should return 0 if you were asking via a UTC
+	  # object
+	  my $dummy = Time::Piece::localtime($epoch);
+	  $tzoffset = $dummy->tzoffset;
+	}
 	$epoch -= $tzoffset->seconds;
       }
 

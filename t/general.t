@@ -18,7 +18,8 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 195;
+use strict;
+use Test::More tests => 196;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -49,6 +50,7 @@ print "# parse_date\n";
 
 print "# Input date: $dateinput[0]\n";
 
+my $date;
 for my $in (@dateinput) {
 
   $date = OMP::General->parse_date( $in );
@@ -80,6 +82,8 @@ for my $in (@dateinput) {
 print "# Parse a Time::Piece object that is a local time\n";
 my $local = localtime( $date->epoch );
 my $newdate = OMP::General->parse_date( $local );
+print "# Input local: ".$local->datetime. " Output UTC: ". $newdate->datetime.
+  "\n";
 # Compare
 is( $newdate->year, $year, "Check year");
 is( $newdate->mon, $mon, "Check month");
@@ -96,7 +100,9 @@ print "# Parse a local time\n";
 my $localiso = $local->datetime;
 ok( $local->[Time::Piece::c_islocal], "Check we have local date");
 $newdate = OMP::General->parse_date( $localiso, 1);
+print "# Parse local time $localiso and get UT ".$newdate->datetime."\n";
 # Compare
+ok( $localiso ne $newdate->datetime, "Date ISO formats must differ");
 is( $newdate->year, $year, "Check year");
 is( $newdate->mon, $mon, "Check month");
 is( $newdate->mday, $day, "Check day");
