@@ -665,6 +665,10 @@ sub completion_stats {
   my $telescope = $self->_get_telescope();
   my @semesters = $self->_get_semesters();
   my $lowdate = $self->_get_low_date();
+
+  # no real projects so no completion stats
+  if (!defined $lowdate) return (); 
+
   $lowdate -= 1;
 
   # Get total TAG allocation for semesters
@@ -981,12 +985,17 @@ Retrieve the date of the first non-special account object.
 
   $date = $self->_get_low_date();
 
+Returns undef if all accounts are special.
+
 =cut
 
 sub _get_low_date {
   my $self = shift;
   my @accts = $self->_get_non_special_accts;
-  return $accts[0]->date;
+  if (@accts) {
+    return $accts[0]->date;
+  }
+  return undef;
 }
 
 =item B<_get_semesters>
