@@ -160,7 +160,7 @@ sub zeropoint_plot_code {
   $gifdate =~ s/-//g;
   $gifdate = substr( $gifdate, 0, 8 );
 
-  my $URL = "$zeropoint_plot_dir/zero-${gifdate}-cam1.png";
+  my $URL = "$zeropoint_plot_dir/zero_${gifdate}_cam1.png";
 
   my $string = "<a name='zeropoint'></a>\n";
   $string .= "<br>";
