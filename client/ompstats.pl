@@ -52,7 +52,9 @@ BEGIN {
 
 use strict;
 
-use lib qw(/jac_sw/omp/msbserver);
+# Locate the OMP software through guess work
+use FindBin;
+use lib "$FindBin::RealBin/..";
 
 use Pod::Usage;
 use Getopt::Long;
@@ -102,13 +104,16 @@ print "Generating statistics...\n"
 my %coords = $acct->completion_stats();
 
 for my $stat (keys %coords) {
-  open DATA, ">", "nr${stat}.dat"
-    or die ("Could not create dat file: $!\n");
-  print DATA join("\n", map {$_->[0] ." ". $_->[1]} @{$coords{$stat}}) . "\n";
-  close DATA;
+  next if $stat =~ /^__/;
+  my $file = "nr${stat}.dat";
+  print "Writing data to $file\n" if $verbose;
+  open (my $DATA, ">", $file)
+    or die "Could not create dat file '$file': $!\n";
+  print $DATA join("\n", map {$_->[0] ." ". $_->[1]} @{$coords{$stat}}) . "\n";
+  close($DATA) or die "Error closing file '$file': $!\n";
 
   # Print name of dat file to STDERR
-  print STDERR "Created file nr${stat}.dat\n";
+  print STDERR "Created file $file\n";
 }
 
 # Draw plot
@@ -126,6 +131,7 @@ pllab ("", "", "Completion Statistics");
 my $color = 1;
 my $texty = 95;
 for my $stat (keys %coords) {
+  next if $stat =~ /^__/;
   my (@x, @y);
   @x = map {$_->[0]} @{$coords{$stat}};
   @y = map {$_->[1]} @{$coords{$stat}};
