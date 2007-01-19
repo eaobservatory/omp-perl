@@ -141,6 +141,36 @@ sub wvm_graph_code {
   return $string;
 }
 
+=item B<zeropoint_plot_code>
+
+Return HTML snippet for displaying a zeropoint plot.
+
+  $html = zeropoint_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub zeropoint_plot_code {
+  my $utdate = shift;
+
+  my $zeropoint_plot_dir = OMP::Config->getData( 'zeropoint-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+
+  my $URL = "$zeropoint_plot_dir/zero-${gifdate}-cam1.png";
+
+  my $string = "<a name='zeropoint'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>WFCAM zeropoints for camera 1</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
 =cut
 
 =back

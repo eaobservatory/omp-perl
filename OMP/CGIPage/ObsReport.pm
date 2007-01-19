@@ -223,6 +223,10 @@ sub night_report {
     my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
     ($seeing_html) and print "<a href='#seeing'>View seeing graph</a><br>";
 
+    # Link to zeropoint plot.
+    my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
+    ($zeropoint_html) and print "<a href='#zeropoint'>View zeropoint graph</a><br>";
+
     $nr->ashtml( worfstyle => 'staff',
                  commentstyle => 'staff', );
 
@@ -239,6 +243,9 @@ sub night_report {
 
     # Display seeing plot.
     ( $seeing_html ) and print "<p>$seeing_html</p>";
+
+    # Display zeropoint plot.
+    ( $zeropoint_html ) and print "<p>$zeropoint_html</p>";
 
   }
 }
