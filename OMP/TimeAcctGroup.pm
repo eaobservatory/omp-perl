@@ -666,11 +666,6 @@ sub completion_stats {
   my @semesters = $self->_get_semesters();
   my $lowdate = $self->_get_low_date();
 
-  # no real projects so no completion stats
-  if (!defined $lowdate) return (); 
-
-  $lowdate -= 1;
-
   # Get total TAG allocation for semesters
   my $projdb = new OMP::ProjDB(DB=>$self->db);
   my $alloc = 0;
@@ -684,21 +679,26 @@ sub completion_stats {
   # Offset correction: get total time spent on the projects
   # we have accounts for, prior to date of the first account.
   # Subtract this number from the total allocation.
-  my @accts = $self->_get_non_special_accts();
-  my %projectids = map {$_->projectid, undef} @accts;
-  my $tdb = new OMP::TimeAcctDB(DB=>$self->db);
-  my $xml = "<TimeAcctQuery>".
-    "<date><max>".$lowdate->datetime."</max></date>".
-      join("",map {"<projectid>$_</projectid>"} keys %projectids).
-	"</TimeAcctQuery>";
-  my $query = new OMP::TimeAcctQuery(XML=>$xml);
-  my @offset_accts = $tdb->queryTimeSpent( $query );
-  my $offset_grp = $self->new(accounts=>\@offset_accts);
+  # Do not bother if no low date, implying no science projects
+  my $offset = Time::Seconds->new(0);
+  if (defined $lowdate) {
+    $lowdate -= 1; # Yesterday
+    my @accts = $self->_get_non_special_accts();
+    my %projectids = map {$_->projectid, undef} @accts;
+    my $tdb = new OMP::TimeAcctDB(DB=>$self->db);
+    my $xml = "<TimeAcctQuery>".
+      "<date><max>".$lowdate->datetime."</max></date>".
+	join("",map {"<projectid>$_</projectid>"} keys %projectids).
+	  "</TimeAcctQuery>";
+    my $query = new OMP::TimeAcctQuery(XML=>$xml);
+    my @offset_accts = $tdb->queryTimeSpent( $query );
+    my $offset_grp = $self->new(accounts=>\@offset_accts);
 
-  #DEBUG
-  printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n", $offset_grp->science_time->hours;
-
-  my $final_alloc = $alloc - $offset_grp->science_time;
+    #DEBUG
+    printf "Offset (time spent on these projects in previous semesters): [%.1f] hours\n", $offset_grp->science_time->hours;
+    $offset = $offset_grp->science_time;
+  }
+  my $final_alloc = $alloc - $offset;
 
   #DEBUG
   printf "Total allocation minus offset: [%.1f] hours\n", $final_alloc->hours;
