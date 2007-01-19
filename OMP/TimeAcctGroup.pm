@@ -723,7 +723,7 @@ sub completion_stats {
 		    ec => \@ec,
 		    weather => \@weather,
 		    __ALLOC__ => $alloc,
-		    __OFFSET__ => $offset_grp->science_time,
+		    __OFFSET__ => $offset,
 		   );
 
   for my $stat (keys %returnhash) {
