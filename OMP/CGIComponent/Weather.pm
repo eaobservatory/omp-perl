@@ -164,7 +164,7 @@ sub zeropoint_plot_code {
 
   my $string = "<a name='zeropoint'></a>\n";
   $string .= "<br>";
-  $string .= "<strong class='small_title'>WFCAM zeropoints for camera 1</strong><p>";
+  $string .= "<strong class='small_title'>WFCAM zero points for camera 1</strong><p>";
   $string .= "<div align=left>";
   $string .= "<img src='$URL'><br><br></p>";
 

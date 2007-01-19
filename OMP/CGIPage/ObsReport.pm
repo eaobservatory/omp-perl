@@ -225,7 +225,7 @@ sub night_report {
 
     # Link to zeropoint plot.
     my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
-    ($zeropoint_html) and print "<a href='#zeropoint'>View zeropoint graph</a><br>";
+    ($zeropoint_html) and print "<a href='#zeropoint'>View zero point graph</a><br>";
 
     $nr->ashtml( worfstyle => 'staff',
                  commentstyle => 'staff', );
