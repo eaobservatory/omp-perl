@@ -7,7 +7,7 @@ OMP::TimeAcctGroup - Information on a group of OMP::Project::TimeAcct objects
 =head1 SYNOPSIS
 
   use OMP::TimeAcctGroup;
-g
+
   $tg = new OMP::TimeAcctGroup( accounts => \@accounts );
 
   @stats = $tg->timeLostStats();
@@ -575,7 +575,9 @@ The telescope that the time accounts are associated with.
   $tel = $tg->telescope();
   $tg->telescope($tel);
 
-Returns a string.
+Returns a string. If a telescope is requested but has not been defined,
+an attempt will be made to derive it from the first science project ID
+in the group.
 
 =cut
 
@@ -584,6 +586,11 @@ sub telescope {
   if (@_) {
     my $tel = shift;
     $self->{Telescope} = uc($tel);
+  } else {
+    # we have a request
+    if (!defined $self->{Telescope}) {
+      $self->{Telescope} = $self->_get_telescope();
+    }
   }
   return $self->{Telescope};
 }
@@ -753,7 +760,8 @@ sub group_by_ut {
 
   # Convert each group into an OMP::TimeAcctGroup object
   for my $ut (keys %accts) {
-    $accts{$ut} = $self->new(accounts=>$accts{$ut});
+    $accts{$ut} = $self->new(accounts=>$accts{$ut},
+			     telescope => $self->telescope);
   }
 
   return %accts;
@@ -940,6 +948,8 @@ accounts with the project ID '__FAULT__'.
 
   @accts = $self->_get_special_accts("CAL");
 
+If a telescope can not be determined, returns no accounts.
+
 =cut
 
 sub _get_special_accts {
@@ -949,6 +959,14 @@ sub _get_special_accts {
   my @accounts = $self->accounts;
   my $regexpart = $self->telescope;
 
+  # if telescope is not defined that means there were no science
+  # accounts (else _get_telescope would have worked something out)
+  # and we were not told the telescope explicitly at construction
+  if (!defined $regexpart) {
+    return ();
+  }
+
+  # Now look for matching projects
   @accounts = grep {$_->projectid =~ /^(${regexpart})${proj}$/} @accounts;
   if (wantarray) {
     return @accounts;
@@ -1007,10 +1025,13 @@ Retrieve the telescope name associated with the first time account object.
 sub _get_telescope {
   my $self = shift;
   my @accts = $self->_get_non_special_accts;
-  my $db = new OMP::ProjDB(DB=>$self->db,
-			   ProjectID=>$accts[0]->projectid,
-			  );
-  return $db->getTelescope();
+  if (@accts) {
+    my $db = new OMP::ProjDB(DB=>$self->db,
+			     ProjectID=>$accts[0]->projectid,
+			    );
+    return $db->getTelescope();
+  }
+  return undef;
 }
 
 =item B<_mutate_time>
