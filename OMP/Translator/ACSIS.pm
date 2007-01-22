@@ -1284,7 +1284,7 @@ sub slew_config {
   my $dur = $cfg->duration();
 
   # always use track time
-  $tcs->slew( OPTION => 'LONGEST_TRACK', TRACK_TIME => $dur );
+  $tcs->slew( TRACK_TIME => $dur );
 }
 
 =item B<rotator_config>
