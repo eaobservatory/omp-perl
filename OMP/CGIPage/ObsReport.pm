@@ -219,9 +219,21 @@ sub night_report {
       print "<a href='#wvm'>View WVM graph</a><br>";
     }
 
+    # Link to forecast plot.
+    my $forecast_html = OMP::CGIComponent::Weather::forecast_plot_code( $utdate );
+    ( $forecast_html ) and print "<a href='#forecast'>View MKWC forecast</a><br>";
+
+    # Link to opacity plot.
+    my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
+    ( $opacity_html ) and print "<a href='#opacity'>View Mauna Kea opacity graph</a><br>";
+
     # Link to seeing plot.
     my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
     ($seeing_html) and print "<a href='#seeing'>View seeing graph</a><br>";
+
+    # Link to transparency plot.
+    my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
+    ( $transp_html ) and print "<a href='#transparency'>View transparency graph</a><br>";
 
     # Link to zeropoint plot.
     my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
@@ -241,8 +253,17 @@ sub night_report {
       print $wvm_html;
     }
 
+    # Display forecast plot.
+    ( $forecast_html ) and print "<p>$forecast_html</p>";
+
+    # Display opacity plot.
+    ( $opacity_html ) and print "<p>$opacity_html</p>";
+
     # Display seeing plot.
     ( $seeing_html ) and print "<p>$seeing_html</p>";
+
+    # Display transparency plot.
+    ( $transp_html ) and print "<p>$transp_html</p>";
 
     # Display zeropoint plot.
     ( $zeropoint_html ) and print "<p>$zeropoint_html</p>";
