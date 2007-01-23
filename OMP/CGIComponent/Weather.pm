@@ -33,6 +33,71 @@ $| = 1;
 
 =over 4
 
+=item B<forecast_plot_code>
+
+Return HTML snippet for displaying a forecast plot.
+
+  $html = forecast_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub forecast_plot_code {
+  my $utdate = shift;
+
+  my $forecast_plot_dir = OMP::Config->getData( 'forecast-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate = "$1-$2-$3";
+
+  my $URL = "$forecast_plot_dir/${gifdate}.png";
+
+  my $string = "<a name='forecast'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>MKWC forecast</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
+=item B<opacity_plot_code>
+
+Return HTML snippet for displaying a opacity plot.
+
+  $html = opacity_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub opacity_plot_code {
+  my $utdate = shift;
+
+  my $opacity_plot_dir = OMP::Config->getData( 'opacity-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate = "$1-$2-$3";
+
+  my $URL = "$opacity_plot_dir/${gifdate}.png";
+
+  my $string = "<a name='opacity'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>Mauna Kea opacity</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
+
 =item B<seeing_plot_code>
 
 Return HTML snippet for displaying a seeing plot.
@@ -100,6 +165,39 @@ sub tau_plot_code {
     return undef;
   }
 }
+
+=item B<transparency_plot_code>
+
+Return HTML snippet for displaying a transparency plot.
+
+  $html = transparency_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub transparency_plot_code {
+  my $utdate = shift;
+
+  my $transparency_plot_dir = OMP::Config->getData( 'transparency-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate = "$1-$2-$3";
+
+  my $URL = "$transparency_plot_dir/${gifdate}.png";
+
+  my $string = "<a name='transparency'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>CFHT transparency</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
 
 =item B<wvm_graph_code>
 
