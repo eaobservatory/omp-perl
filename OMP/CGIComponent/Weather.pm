@@ -54,7 +54,7 @@ sub forecast_plot_code {
   $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
   $gifdate = "$1-$2-$3";
 
-  my $URL = "$forecast_plot_dir/${gifdate}.png";
+  my $URL = "$forecast_plot_dir/${gifdate}.jpg";
 
   my $string = "<a name='forecast'></a>\n";
   $string .= "<br>";
