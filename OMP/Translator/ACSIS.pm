@@ -879,16 +879,16 @@ sub observing_area {
     } else {
       # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
       # receiver then all 4 angles can be used. Else the scan is constrained.
-      my @mults = (0,2);
-      if ( $frontend =~ /^HARP/ || 
-	   ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
+      # But if HARP is a 4x3 then we must restrict the angle in conjunction with
+      # restricting the rotator angles
+      my @mults = (1,3); # along width: 90 and 270
+      if ( $frontend !~ /harp/i && ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
 	@mults = (0..3);
       }
-
       @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
     }
     # convert from deg to object
-    @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg' ) } @scanpas;
+    @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
 
 
     # Scan specification
@@ -1330,6 +1330,7 @@ sub rotator_config {
   # Also, if we are jiggling we may need to rotate the rotator to the jiggle system
   # for HARP where we always jiggle in FPLANE/PA=0
   my $scan_adj = 0;
+  my @choices = (0..3); # four fold symmetry
   if ($inst->name =~ /HARP/) {
     # need the TCS information
     my $tcs = $cfg->tcs();
@@ -1345,6 +1346,12 @@ sub rotator_config {
       # is working and can be aligned with the AZEL/TRACKING system (instead of always
       # forcing FPLANE system)
       $scan_adj = rad2deg(atan2(1,4));
+
+      # if we have a HARP raster then we no longer have symmetry because of dead
+      # receptors. We therefore have to restrict the position angles to 0 and 180 degrees
+      # with the scan adjustment
+      @choices = (0,2);
+
     } elsif ($info{mapping_mode} eq 'jiggle') {
       # override the system from the jiggle. The PA should be matching the cube
       # but we make sure we use the requested value
@@ -1353,9 +1360,14 @@ sub rotator_config {
     }
   }
 
-  # but we do have 90 deg symmetry in all our maps
-  my @pas = map { new Astro::Coords::Angle( $pa->degrees + $scan_adj + ($_ * 90),
-					    units => 'degrees') } (0..3);
+  # convert to set of allowed angles and remove duplicates
+  my @angles = map {  ($_*90) + $scan_adj } @choices;
+  push(@angles, map { ($_*90) - $scan_adj } @choices);
+  my %angles = map { $_, undef } @angles;
+
+  my @pas = map { new Astro::Coords::Angle( $pa->degrees + $_,
+					    units => 'degrees',
+					    range => "2PI") } keys %angles;
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'LONGEST_TRACK',
