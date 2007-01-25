@@ -123,9 +123,9 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 	 # The meta data should appear right after the initial filing unless
 	 # we are bottom posting in which case it appears right before
 	 if (!$bottompost) {
-	   push(@faulttext, "<br>$text<br>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$meta");
+	   push(@faulttext, "<br>$text<br>================================================================================<br>$meta");
 	 } else {
-	   push(@faulttext, "$meta~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$text<br>--------------------------------------------------------------------------------<br>");
+	   push(@faulttext, "$meta================================================================================<br>$text<br>--------------------------------------------------------------------------------<br>");
 	 }
 
        } else {
@@ -159,7 +159,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     # Make it noticeable if this fault is urgent
     push(@faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>")
       if $fault->isUrgent;
-    push(@faulttext, "$meta~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<br>$text<br><br>");
+    push(@faulttext, "$meta================================================================================<br>$text<br><br>");
   }
 
   # Set link to response page
