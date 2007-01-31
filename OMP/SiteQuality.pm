@@ -530,8 +530,8 @@ Returns undef if the band is not known.
       }
 
       # trap case where there were no inputs
-      $min = $defmin if $min == 50;
-      $max = $defmax if $max == -50;
+      $min = $defmin if (defined $min && $min == 50);
+      $max = $defmax if (defined $max && $max == -50);
 
 
       return new OMP::Range( Min => $min, Max => $max );
