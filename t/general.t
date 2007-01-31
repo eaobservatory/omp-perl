@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 196;
+use Test::More tests => 199;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -193,6 +193,11 @@ $date = gmtime(1099947233); # 2004-11-08
 is( OMP::General->determine_semester(date => $date, tel => 'JCMT'),
     "04B","Check JCMT semesters 04B");
 
+$date = gmtime(1170401154); # 2007-02-02
+is( OMP::General->determine_semester(date => $date, tel => 'JCMT'),
+    "06B","Check JCMT semesters 06B");
+
+
 
 # Run semester determination in reverse
 # These are time piece objects
@@ -221,6 +226,10 @@ is($bound[1]->ymd, '1994-02-01', "UKIRT Semester Y end");
 @bound = OMP::General->semester_boundary( tel => 'UKIRT', semester => [qw/03A 03B/]);
 is($bound[0]->ymd, '2003-02-02', "UKIRT 03A start (2 semesters)");
 is($bound[1]->ymd, '2004-01-16', "UKIRT 03B end (2 semesters)");
+
+@bound = OMP::General->semester_boundary( tel => 'JCMT', semester => [qw/06B/]);
+is($bound[0]->ymd, '2006-08-02', "JCMT 06B");
+is($bound[1]->ymd, '2007-03-01', "JCMT 06B");
 
 print "# Project ID\n";
 
