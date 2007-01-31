@@ -37,7 +37,7 @@ use warnings::register;
 # without loading it first. Fixed in perl 5.8.0. These are triggered
 # because the XML parser and the web server provide UTF8 characters
 # without loading associated handler code.
-if ($] >= 5.006 || $] < 5.008) {
+if ($] >= 5.006 && $] < 5.008) {
   eval "use utf8;";
 }
 use Carp;
@@ -823,7 +823,7 @@ my %SEM_BOUND = (
                  JCMT  => {
                            '05B' => [ 20050802, 20060214 ],
                            '06A' => [ 20060214, 20060801 ], # shutdown
-                           '06B' => [ 20060802, 20070302 ],
+                           '06B' => [ 20060802, 20070301 ],
                           },
 		);
 
