@@ -30,7 +30,7 @@ use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
-use Math::Trig / rad2deg asin /;
+use Math::Trig / rad2deg /;
 use IO::Tee;
 
 use JCMT::ACSIS::HWMap;
@@ -1342,10 +1342,10 @@ sub rotator_config {
       unless defined $oa;
 
     if ($oa->mode eq 'area') {
-      # we are scanning with HARP so adjust arcsin 1/4. This assumes that the rotator
+      # we are scanning with HARP so adjust arctan 1/4. This assumes that the rotator
       # is working and can be aligned with the AZEL/TRACKING system (instead of always
       # forcing FPLANE system)
-      $scan_adj = rad2deg(asin(0.25));
+      $scan_adj = rad2deg(atan2(1,4));
 
       # if we have a HARP raster then we no longer have symmetry because of dead
       # receptors. We therefore have to restrict the position angles to 0 and 180 degrees
