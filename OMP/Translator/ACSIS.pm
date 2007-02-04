@@ -3509,6 +3509,7 @@ sub jig_info {
 		  '7x7'  => 'smu_7x7.dat',
 		  '9x9'  => 'smu_9x9.dat',
 		  '5pt'  => 'smu_5point.dat',
+                  '11x11'=> 'smu_11x11.dat',
 		 );
 
   if (!exists $jigfiles{ $info{jigglePattern} }) {
