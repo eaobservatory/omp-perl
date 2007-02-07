@@ -494,6 +494,56 @@ sub projectDetails {
   }
 }
 
+=item B<projectDetailsNoAuth>
+
+Retrieve a summary of the current project without performing password
+verification. This is returned in either XML format, as a reference to
+a hash, as an C<OMP::Project> object or as a hash and is specified
+using the optional argument.
+
+  $xml = $proj->projectDetails( 'xml' );
+  $href = $proj->projectDetails( 'data' );
+  $obj  = $proj->projectDetails( 'object' );
+  %hash = $proj->projectDetails;
+
+The XML is in the format described in C<OMP::Project>.
+
+If the mode is not specified XML is returned in scalar context and
+a hash (not a reference) is returned in list context.
+
+=cut
+
+sub projectDetailsNoAuth {
+  my $self = shift;
+  my $mode = lc(shift);
+
+  # First thing to do is to retrieve the table row
+  # for this project
+  my $project = $self->_get_project_row;
+
+  if (wantarray) {
+    $mode ||= "xml";
+  } else {
+    # An internal mode
+    $mode ||= "hash";
+  }
+
+  if ($mode eq 'xml') {
+    my $xml = $project->summary;
+    return $xml;
+  } elsif ($mode eq 'object') {
+    return $project;
+  } elsif ($mode eq 'data') {
+    my %hash = $project->summary;
+    return \%hash;
+  } elsif ($mode eq 'hash') {
+    my %hash = $project->summary;
+    return \%hash;
+  } else {
+    throw OMP::Error::BadArgs("Unrecognized summary option: $mode\n");
+  }
+}
+
 =item B<listProjects>
 
 Return all the projects for the given query.
