@@ -146,7 +146,14 @@ sub parse_date {
     # YYYYMMDD format
 
     $format = "%Y%m%d";
-    print "$date = YYYYMMDD with format $format\n" if $DEBUG;
+
+    if ($date =~ /\s\d\d:\d\d:\d\d$/) {
+      $format .= " %H:%M:%S";
+      print "$date = YYYYMMDD HH:MM:SS with format $format\n" if $DEBUG;
+    } else {
+      print "$date = YYYYMMDD with format $format\n" if $DEBUG;
+    }
+
   } elsif ($date =~ /^\w+\s+\d+\s+\d+\s+\d+:\d+[ap]m/i) {
     # Sybase date
     # Mar 15 2002  7:04AM
