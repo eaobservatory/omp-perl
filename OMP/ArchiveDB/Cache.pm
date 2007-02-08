@@ -151,7 +151,8 @@ sub store_archive {
   # Store the ObsGroup to disk.
   try {
     sysopen( my $df, $filename, O_RDWR|O_CREAT, 0666)
-      or croak "Unable to write to cache file: $!";
+      or croak "Unable to write to cache file: $filename: $!";
+
     flock($df, LOCK_EX);
     nstore_fd($obsgrp, $df);
     truncate($df, tell($df));
@@ -554,6 +555,7 @@ sub _filename_from_query {
     } else {
       $projectid = $qhash->{projectid};
     }
+    $projectid =~ s!\/!!g;
   }
 
   my $daterange;
