@@ -232,7 +232,7 @@ if ($critical) {
   $subject .= "OK";
 }
 
-my $email = MIME::Lite->new( From => 'kynan@jach.hawaii.edu',
+my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
 			     To => 'omp_group@jach.hawaii.edu',
 			     Subject => $subject,
 			     Data => $msg, );
