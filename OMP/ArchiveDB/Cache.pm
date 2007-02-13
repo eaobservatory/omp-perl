@@ -299,7 +299,6 @@ sub unstored_files {
     throw OMP::Error::BadArgs( "Must supply a query to retrieve list of files not existing in cache" );
   }
 
-  my @files;
   my @ofiles;
 
   # We want to have a cache returned for us, even if it's suspect.
@@ -362,11 +361,9 @@ sub unstored_files {
 
       next if( $inst =~ /^rx/i );
 
-      @files = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
+      my @files = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
 
-      foreach my $arr_ref( @files ) {
-        push @ifiles, $arr_ref;
-      }
+      push @ifiles, @files;
     }
   }
 
