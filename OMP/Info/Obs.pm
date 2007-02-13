@@ -969,29 +969,38 @@ Note that this method does uses the C<filename>
 method implicitly. Note also that this method
 must work with a valid Obs object.
 
+As for the filename() method, can return multiple files
+in list context, or the first file in scalar context.
+
 =cut
 
 sub simple_filename {
   my $self = shift;
 
-  # Get the filename
-  my $infile = $self->filename;
+  # Get the filename(s)
+  my @infiles = $self->filename;
 
-  # Get the filename without path
-  my $base = basename( $infile );
+  my @outfiles;
 
-  if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA'
-      && uc( $self->backend ) ne 'ACSIS') {
+  for my $infile (@infiles) {
 
-    # Want YYYYMMDD_backend_nnnn.dat
-    my $yyyy = $self->startobs->strftime('%Y%m%d');
-    $base = $yyyy . '_' . $self->backend .'_' .
-      sprintf('%04u', $self->runnr) . '.dat';
+    # Get the filename without path
+    my $base = basename( $infile );
 
+    if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA'
+	&& uc( $self->backend ) ne 'ACSIS') {
+
+      # Want YYYYMMDD_backend_nnnn.dat
+      my $yyyy = $self->startobs->strftime('%Y%m%d');
+      $base = $yyyy . '_' . $self->backend .'_' .
+          sprintf('%04u', $self->runnr) . '.dat';
+
+    }
+    push(@outfiles, $base);
   }
 
   # Return the simplified filename
-  return $base;
+  return (wantarray ? @outfiles : shift(@outfiles) );
 
 }
 
