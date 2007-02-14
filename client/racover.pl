@@ -171,7 +171,7 @@ if (@projects) {
   }
 
   # Default the semester if necessary
-  $semester = OMP::General->determine_semester()
+  $semester = OMP::General->determine_semester( tel => $telescope )
     unless defined $semester;
 
   # Form the country part of the query [and a useful string for later]
