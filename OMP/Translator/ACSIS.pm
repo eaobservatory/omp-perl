@@ -2103,7 +2103,7 @@ sub line_list {
     # have we used this before?
     if (exists $lines{$key}) {
       # if the frequency is the same just skip
-      next if $lines{$key} == $freq;
+      next if $lines{$key}->restfreq == $freq;
 
       # Tweak the key
       $key .= "_$counter";
@@ -2111,7 +2111,9 @@ sub line_list {
     }
 
     # store the new value
-    $lines{$key} = $freq;
+    $lines{$key} = new JAC::OCS::Config::ACSIS::Line( RestFreq => $freq,
+						    Molecule => $s->{species},
+						    Transition => $s->{transition});
   }
 
   # Create the line list object
