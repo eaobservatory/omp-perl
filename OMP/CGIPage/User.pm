@@ -87,8 +87,9 @@ sub details {
   print $user->html;
   print " (".$user->email .")"
     if ($user->email);
-  print " (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ";
-  print (defined $user->cadcuser ? $user->cadcuser : "<unknown>"). ")";
+  if ($user->cadcuser) {
+    print " (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ". $user->cadcuser.")\n";
+  }
   print "<BR>\n";
 
   # Get projects user belongs to
