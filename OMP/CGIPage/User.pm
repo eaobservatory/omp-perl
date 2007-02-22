@@ -380,9 +380,7 @@ sub edit_details {
   }
 
   if ($q->param("edit")) {
-    my $name;
-    my $email;
-    my $cadcuser;
+    my %from_form;
 
     # we need to check for validity of input but also note that if there
     # was no value previously and no value now, then we do not need to warn
@@ -392,64 +390,88 @@ sub edit_details {
     if ( $q->param("name") ) {
       # we were given a value
       if ($q->param("name") =~ /^([\w\s\.\-\(\)]+)$/) {
-	$name = $1;
+	$from_form{name} = $1;
+        # trim leading space
+        $from_form{name} =~ s/^\s*//;
+        $from_form{name} =~ s/\s*$//;
       } else {
 	# did not pass test so do not update
 	$doupdate = 0;
 	print "The name you provided [".$q->param("name")."] is invalid.<br>";
       }  
-    } elsif (!$user->name) {
+    } elsif ($user->name) {
       # there is currently a value but none was supplied
-      $doupdate = 1;
+      $doupdate = 0;
       print "Clearing of name field is not supported by this form.<br>";
     }
 
     if ( $q->param("email") ) {
       # we were given a value
       if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
-	$email = $1;
+	$from_form{email} = $1;
       } else {
 	# did not pass test so do not update
 	$doupdate = 0;
 	print "The email you provided [".$q->param("email")."] is invalid.<br>";
       }  
-    } elsif (!$user->email) {
+    } elsif ($user->email) {
       # there is currently a value but none was supplied
-      $doupdate = 1;
+      $doupdate = 0;
       print "Clearing of email address field is not supported by this form.<br>";
     }
 
     if ( $q->param("cadcuser") ) {
       # we were given a value
       if ($q->param("cadcuser") =~ /^(\w+)$/) {
-	$cadcuser = $1;
+	$from_form{cadcuser} = $1;
       } else {
 	# did not pass test so do not update
 	$doupdate = 0;
 	print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
       }  
-    } elsif (!$user->cadcuser) {
+    } elsif ($user->cadcuser) {
       # there is currently a value but none was supplied
-      $doupdate = 1;
+      $doupdate = 0;
       print "Clearing of CADC user name field is not supported by this form.<br>";
     }
 
     if (!$doupdate) {
       print "User details were not updated.";
     } else {
-      $user->name($name);
-      $user->email($email);
-      $user->cadcuser($cadcuser);
+
+      # see if anything changed, and update the object if it has
+      my $changed;
+      for my $key (qw/ name email cadcuser /) {
+         my $from_db = $user->$key;
+         my $new = $from_form{$key};
+         $new = undef if !$new;
+         if (!defined $from_db && !defined $new) {
+            # both undef so no change
+         } elsif (defined $from_db && !defined $new) {
+            # differ
+            $changed = 1;
+         } elsif (!defined $from_db && defined $new) {
+            # differ
+            $changed = 1;
+         } elsif ($from_db ne $new) {
+            $changed = 1;
+         }
+         $user->$key( $from_form{$key} );
+      }
 
       # Store changes
-      try {
-	OMP::UserServer->updateUser( $user );
-	print "User details for ".$user->userid." have been updated.<br>";
-      } otherwise {
-	my $E = shift;
-	print "An error has occurred: $E<br>";
-	print "User details were not updated.";
-      };
+      if ($changed) {
+        try {
+  	  OMP::UserServer->updateUser( $user );
+	  print "User details for ".$user->userid." have been updated.<br>";
+        } otherwise {
+	  my $E = shift;
+	  print "An error has occurred: $E<br>";
+	  print "User details were not updated.";
+        };
+      } else {
+        print "No change to supplied details.<br>\n";
+      }
     }
   }
 
