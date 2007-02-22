@@ -85,8 +85,11 @@ sub details {
 
   print "<h3>User Details for $user</h3>";
   print $user->html;
-  print " (".$user->email.")<br>"
+  print " (".$user->email .")"
     if ($user->email);
+  print " (<a href=\"http://cadcwww.dao.nrc.ca/\">CADC UserID</a>: ";
+  print (defined $user->cadcuser ? $user->cadcuser : "<unknown>"). ")";
+  print "<BR>\n";
 
   # Get projects user belongs to
   my @projects;
@@ -218,6 +221,7 @@ sub list_users {
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
+      print "<TD>" . $_->cadcuser . "</TD>";
       print "<TD><a href=\"update_user.pl?user=".$_->userid."\">Update</a></TD>";
 
       # Alternate row style
@@ -377,26 +381,64 @@ sub edit_details {
   if ($q->param("edit")) {
     my $name;
     my $email;
+    my $cadcuser;
 
-    if ($q->param("name") =~ /^([\w\s\.\-\(\)]+)$/) {
-      $name = $1;
+    # we need to check for validity of input but also note that if there
+    # was no value previously and no value now, then we do not need to warn
+    # if there is still no value later. Do not allow information to be deleted
+    # though (so don't allow a field to be cleared)
+    my $doupdate = 1; # allow updates
+    if ( $q->param("name") ) {
+      # we were given a value
+      if ($q->param("name") =~ /^([\w\s\.\-\(\)]+)$/) {
+	$name = $1;
+      } else {
+	# did not pass test so do not update
+	$doupdate = 0;
+	print "The name you provided [".$q->param("name")."] is invalid.<br>";
+      }  
+    } elsif (!$user->name) {
+      # there is currently a value but none was supplied
+      $doupdate = 1;
+      print "Clearing of name field is not supported by this form.<br>";
     }
 
-    if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
-      $email = $1;
+    if ( $q->param("email") ) {
+      # we were given a value
+      if ($q->param("email") =~ /^(.+?@.+?\.\w+)$/) {
+	$email = $1;
+      } else {
+	# did not pass test so do not update
+	$doupdate = 0;
+	print "The email you provided [".$q->param("email")."] is invalid.<br>";
+      }  
+    } elsif (!$user->email) {
+      # there is currently a value but none was supplied
+      $doupdate = 1;
+      print "Clearing of email address field is not supported by this form.<br>";
     }
 
-    if (!$name || !$email) {
-      print "The name you provided [".$q->param("name")."] is invalid.<br>"
-	if (!$name);
+    if ( $q->param("cadcuser") ) {
+      # we were given a value
+      if ($q->param("cadcuser") =~ /^(\w+)$/) {
+	$cadcuser = $1;
+      } else {
+	# did not pass test so do not update
+	$doupdate = 0;
+	print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
+      }  
+    } elsif (!$user->cadcuser) {
+      # there is currently a value but none was supplied
+      $doupdate = 1;
+      print "Clearing of CADC user name field is not supported by this form.<br>";
+    }
 
-      print "The email address you provided [".$q->param("email")."] is invalid.<br>"
-	if (!$email);
-
+    if (!$doupdate) {
       print "User details were not updated.";
     } else {
       $user->name($name);
       $user->email($email);
+      $user->cadcuser($cadcuser);
 
       # Store changes
       try {
@@ -422,6 +464,11 @@ sub edit_details {
 		      -default=>$user->email,
 		      -size=>32,
 		      -maxlength=>64,);
+  print "</td><tr><td>CADC ID:</td><td>";
+  print $q->textfield(-name=>"cadcuser",
+		      -default=>$user->cadcuser,
+		      -size=>32,
+		      -maxlength=>64,);
   print "</td><td>";
   print $q->submit(-name=>"edit", -label=>"Change Details");
   print $q->endform;
@@ -434,10 +481,11 @@ sub edit_details {
 =head1 AUTHOR
 
 Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2003 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2003,2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
