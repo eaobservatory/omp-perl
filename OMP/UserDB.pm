@@ -306,7 +306,9 @@ sub _add_user {
 			  $user->userid,
 			  $user->name,
 			  $email,
-			  $user->alias,);
+			  $user->alias,
+			  $user->cadcuser,
+			);
 
 }
 
@@ -331,6 +333,7 @@ sub _update_user {
 			   email => $user->email,
 			   uname => $user->name,
 			   alias => $user->alias,
+			   cadcuser => $user->cadcuser,
 			  },
 			  " userid = '".$user->userid ."' ");
 
@@ -384,7 +387,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002,2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify

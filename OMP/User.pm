@@ -44,8 +44,8 @@ Create a new C<OMP::User> object.
   $u = new OMP::User( %details );
 
 The initial state of the object can be configured by passing in a hash
-with keys: "userid", "email" and "name". See the associated accessor
-methods for details.
+with keys: "userid", "email", "alias", "cadcuser" and "name". See the
+associated accessor methods for details.
 
 Returns C<undef> if an object can not be created or configured.
 
@@ -64,6 +64,7 @@ sub new {
 		    Email => undef,
 		    Name => undef,
 		    Alias => undef,
+		    CADC => undef,
 		   }, $class;
 
   # Go through the input args invoking relevant methods
@@ -328,6 +329,22 @@ sub alias {
   return $self->{Alias};
 }
 
+=item B<alias>
+
+Return the user's CADC user name.
+
+  $cadc = $u->cadcuser;
+  $u->cadcuser( $cadc );
+
+=cut
+
+sub cadcuser {
+  my $self = shift;
+  if (@_) {$self->{CADC} = shift;}
+  return $self->{CADC};
+}
+
+
 =back
 
 =head2 General
@@ -396,11 +413,15 @@ sub text_summary {
   my $email = $self->email;
   my $name = $self->name;
   my $id = $self->userid;
+  my $alias = $self->alias;
+  my $cadcuser = $self->cadcuser;
 
   my $text = "USERID: $id\n";
 
   $text .=   "NAME:   " .(defined $name ? $name : "UNDEFINED")."\n";
   $text .=   "EMAIL:  " .(defined $email ? $email : "UNDEFINED")."\n";
+  $text .=   "ALIAS:  " .(defined $alias ? $email : "UNDEFINED")."\n";
+  $text .=   "CADC:   " .(defined $cadcuser ? $email : "UNDEFINED")."\n";
 
   return $text;
 }
