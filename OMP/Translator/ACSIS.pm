@@ -64,6 +64,7 @@ my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (
 	       RXA3 => 'RXA',
+	       RXWB => 'RXW',
 	       RXWC => 'RXW',
 	       RXWD => 'RXW',
 	       RXB3 => 'RXB',
@@ -484,7 +485,7 @@ sub handle_special_modes {
 
     } else {
       $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
-      $info->{jigglePattern} = '5x5'; # or 5pt
+      $info->{jigglePattern} = '5pt'; # or 5x5
       $info->{jiggleSystem} = 'AZEL';
       $scaleMode = "planet"; # Allowed: unity, planet, nyquist
     }
