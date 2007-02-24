@@ -363,6 +363,16 @@ sub populate {
     $self->filter( projectid => $args{projectid}, inccal => $inccal,
 		   verbose => $args{verbose}, sort => $sort,
 		 );
+  } else {
+    # we do not need to filter but we should list the filenames
+    # for consistency with the filter option
+    if ($args{verbose}) {
+      for my $obs ($self->obs) {
+	my $obsmode = $obs->mode || $obs->type;
+	print "SCIENCE: ". $obs->instrument."/".$obsmode . " [". $obs->target 
+	  ."]\n";
+      }
+    }
   }
 
   # Add in timegaps if necessary (not forgetting to sort if asked)
