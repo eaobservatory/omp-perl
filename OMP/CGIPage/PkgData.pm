@@ -11,15 +11,19 @@ OMP::CGIPage::PkgData - Routines to help web serving of data packaging
 =head1 DESCRIPTION
 
 General routines required to create a web page for packaging
-OMP data files for the PI.
+OMP data files for the PI. Note that JCMT data retrieval requests
+are optionally routed through CADC.
 
 =cut
 
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = '0.02';
+use OMP::Error qw/ :try /;
+use File::Basename;
+our $VERSION = '0.03';
 
+use OMP::ProjServer;
 use OMP::PackageData;
 
 =head1 PUBLIC FUNCTIONS
@@ -31,7 +35,8 @@ These functions write the web page.
 =item B<request_data>
 
 Request the UT date of interest and/or package the data
-and serve it.
+and serve it. Will use CADC if the configuration for this telescope
+requests it.
 
 If inccal is not specified it defaults to true.
 
@@ -53,13 +58,35 @@ sub request_data {
     $inccal = $q->param('inccal') unless $inccal;
     $inccal = 1 unless defined $inccal;
 
-    &_package_data($q, $utdate, $inccal, \%cookie);
+    # Need to decide whether we are using CADC or OMP for data retrieval
+    # To do that we need to know the telescope name
+    my $tel = OMP::ProjServer->getTelescope( $cookie{projectid} );
+
+    if (!defined $tel) {
+      print "Error obtaining telescope name from project $cookie{projectid}\n";
+      return;
+    }
+
+    # Now determine which retrieval scheme is in play (cadc vs omp)
+    my $retrieve_scheme;
+    try {
+      $retrieve_scheme = OMP::Config->getData( "retrieve_scheme", telescope => $tel );
+    } otherwise {
+      $retrieve_scheme = 'omp';
+    };
+
+    if ($tel eq 'JCMT' && $retrieve_scheme =~ /cadc/i ) {
+      &_package_data_cadc($q, $utdate, $inccal, \%cookie);
+    } else {
+      &_package_data($q, $utdate, $inccal, \%cookie);
+    }
 
   } else {
     &_write_form($q, \%cookie);
   }
 
 }
+
 
 =back
 
@@ -89,8 +116,9 @@ sub _write_form {
   print "</td><tr><td>";
   print "Include calibrations:</td><td>";
   print $q->radio_group(-name=>'inccal',
-			-values=>['Yes','No'],
-			-default=>'Yes');
+			-labels => { 1 => 'Yes', 0 => 'No' },
+			-values=>[1,0],
+			-default=>1);
   print "</td><tr><td colspan=2 align=right>";
 
   print $q->submit(-name=>'Submit');
@@ -147,6 +175,72 @@ sub _package_data {
 
 }
 
+=item B<_package_data_cadc>
+
+Write output HTML and special form required for CADC retrieval
+
+  _package_data_cadc( $q, $utdate_string, $inccal, \%cookie );
+
+=cut
+
+sub _package_data_cadc {
+  my $q = shift;
+  my $utdate = shift;
+  my $inccal = shift;
+  my $cookie = shift;
+
+  print $q->h2("Determining data files associated with project ". $cookie->{projectid} .
+    " and UT date $utdate");
+
+  if ($inccal) {
+    print "[including calibrations]";
+  } else {
+    print "[without calibrations]";
+  }
+
+  # Go through the package data object so that we do not need to worry about
+  # inconsistencies with local retrieval
+  print "<PRE>\n";
+  my $pkg;
+  my $E;
+  try {
+    $pkg = new OMP::PackageData( utdate => $utdate,
+				 projectid => $cookie->{projectid},
+				 password => $cookie->{password},
+				 inccal => $inccal,
+			       );
+  } catch OMP::Error::UnknownProject with {
+    $E = shift;
+    print "This project ID is not recognized by the OMP<br>\n";
+  } otherwise {
+    print "Odd data retrieval error\n";
+    $E = shift;
+  };
+  print "</PRE>\n";
+  return if defined $E;
+
+  print "<P>Data retrieval is now handled by the Canadian Astronomical Data Centre (CADC). Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. You will be required to authenticate yourself to CADC</P>";
+
+  # Get the obsGrp
+  my $obsgrp = $pkg->obsGrp;
+  
+  # Now form the CADC form
+  print $q->startform( -action=> "http://test.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/jcmt/search/downloads");
+
+  # get the file names and strip path information if present
+  my @obs = $obsgrp->obs();
+  my @files;
+  for my $o (@obs) {
+    push @files, map { s/.sdf$//; basename($_) } $o->filename;
+  }
+  print $q->hidden( -name => "fileNameClass",
+		    -default => \@files );
+
+  print $q->submit(-name => "Retrieve from CADC" );
+  print $q->endform;
+
+}
+
 =back
 
 =head1 AUTHORS
@@ -155,7 +249,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002,2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
