@@ -485,8 +485,13 @@ sub handle_special_modes {
 
     } else {
       $info->{disableNonTracking} = 0; # If true, Only use 1 receptor
-      $info->{jigglePattern} = '5pt'; # or 5x5
       $info->{jiggleSystem} = 'AZEL';
+      $info->{jigglePattern} = '5pt'; # or 5x5
+      try {
+	$info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.pointing_pattern' );
+      } otherwise {
+	# use default
+      };
       $scaleMode = "planet"; # Allowed: unity, planet, nyquist
     }
 
