@@ -65,6 +65,13 @@ use overload '""' => "stringify";
 
 =item B<new>
 
+Create a new C<OMP::Info::Obs> object.
+
+Special keys are:
+
+  retainhdr =>
+  fits =>
+  hdrhash =>
 
 =cut
 
@@ -137,6 +144,132 @@ sub readfile {
   };
 
   return $obs;
+}
+
+=item B<copy>
+
+Copy constructor. New object should be independent of the original.
+
+ $new = $old->copy();
+
+=cut
+
+sub copy {
+  my $self = shift;
+
+  # see if we have a fits header (we might not if retainhdr is false)
+  # else use hdrhash
+  my %args;
+  my $fits = $self->fits;
+  if (defined $fits) {
+    $args{fits} = $fits;
+  } else {
+    $args{hdrhash} = $self->hdrhash;
+  }
+
+  my $new =  $self->new( %args, retainhdr => $self->retainhdr );
+  $new->filename( [ $self->filename ] );
+  return $new;
+}
+
+=item B<subsystems>
+
+Returns C<OMP::Info::Obs> objects representing each subsystem present in the observation.
+If only one subsystem is being used, this method will return a single object that will be
+distinct from the primary object.
+
+  @obs = $obs->subsystems();
+
+Subsytems are determined by looking at the C<subsystem_idkey> in the FITS header.
+
+=cut
+
+sub subsystems {
+  my $self = shift;
+
+  # get a hash representation of the FITS header
+  my $hdr = $self->hdrhash;
+  my $fits = $self->fits;
+
+  # Get the grouping key
+  my $idkey = $self->subsystem_idkey;
+
+  # If we do not have a grouping key or there is no FITS header or there is only a single instance of the
+  # idkey we only have a single subsystem 
+  return $self->copy() if !defined $idkey;
+  return $self->copy() if !defined $hdr;
+  return $self->copy() if exists $hdr->{$idkey};
+  
+  # see if the primary key is in the subheader (and disable multi subsystem if it isn't)
+  return $self->copy() unless exists $hdr->{SUBHEADERS}->[0]->{$idkey};
+
+  # Now need to group the fits headers
+  # First take a copy of the common headers and delete subheaders
+  my %common = %$hdr;
+  delete $common{SUBHEADERS};
+
+  # and then get the actual subheaders
+  my @subhdrs = $fits->subhdrs;
+
+  # Get the filenames
+  my @filenames = $self->filename;
+
+  # sanity check
+  if (@filenames != @{$hdr->{SUBHEADERS}}) {
+    throw OMP::Error::FatalError("Number of filenames in Obs object does not match number of subheaders\n");
+  }
+
+
+  # Now get the subheaders and split them up on the basis of primary key
+  # Need to track filenames as well (which are assumed to track the subheader)
+  my %subsys;
+  my %subscans;
+  my @suborder;
+  for my $i (0..$#filenames) {
+    my $subhdr = $subhdrs[$i];
+    my $subid = $subhdr->value($idkey);
+    if (!exists $subsys{$subid}) {
+      $subsys{$subid} = [];
+      $subscans{$subid} = [];
+      push(@suborder, $subid); # keep track of original order
+    }
+    push(@{$subscans{$subid}}, $filenames[$i]);
+    push(@{$subsys{$subid}}, $subhdr);
+    
+  }
+
+  # create a common header
+  my $comhdr = Astro::FITS::Header->new( Hash => \%common );
+
+  # merge headers for each subsystem
+  my %headers;
+  for my $subid (keys %subsys) {
+    my $primary = $subsys{$subid}->[0];
+    my $merged;
+    if (@{$subsys{$subid}} > 1) {
+      ($merged, my @different) = $primary->merge_primary( { merge_unique => 1 },
+							  @{ $subsys{$subid} }[1..$#{$subsys{$subid}}]);
+      $merged->subhdrs( @different );
+    } else {
+      $merged = $primary;
+    }
+
+    # Merge with common headers
+    $merged->splice( 0, 0, $comhdr->allitems );
+
+    $headers{$subid} = $merged;
+
+  }
+
+  # Create new subsystem Obs objects
+  my @obs;
+  for my $subid (@suborder) {
+    my $obs = new OMP::Info::Obs( fits => $headers{$subid}, retainhdr => $self->retainhdr );
+    $obs->filename( $subscans{$subid} );
+    push(@obs, $obs);
+  }
+
+  return @obs;
 }
 
 =back
@@ -221,6 +354,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               isSciCal => '$',
                               isGenCal => '$',
                               calType  => '$',
+			      subsystem_idkey => '$',
                             );
 
 
@@ -241,6 +375,11 @@ Scalar accessors:
 =item B<timeest>
 
 =item B<target>
+
+=item B<subsystem_idkey>
+
+Specifies which FITS header key should be used to group subsystems. If undefined
+only a single subsystem is available.
 
 =item B<disperser>
 
@@ -349,13 +488,8 @@ sub fits {
     my $hdrhash = $self->hdrhash;
     if( defined( $hdrhash ) ) {
 
-      my @items = map { new Astro::FITS::Header::Item( Keyword => $_,
-                                                       Value => $hdrhash->{$_}
-                                                     ) } keys (%{$hdrhash});
-
       # Create the Header object.
-      $fits = new Astro::FITS::Header( Cards => \@items );
-
+      $fits = Astro::FITS::Header->new( Hash => $hdrhash );
       $self->_fits( $fits );
 
     }
@@ -380,7 +514,8 @@ sub hdrhash {
       my $FITS_header = $self->fits;
       tie my %header, ref($FITS_header), $FITS_header;
 
-      $self->_hdrhash( \%header );
+      $hdr = \%header;
+      $self->_hdrhash( $hdr );
     }
   }
   return $hdr;
@@ -1062,6 +1197,7 @@ sub _populate {
   $self->telescope( uc($1) );
   $self->filename( $generic_header{FILENAME} );
   $self->inst_dhs( $generic_header{INST_DHS} );
+  $self->subsystem_idkey( $generic_header{SUBSYSTEM_IDKEY} );
 
   # Build the Astro::WaveBand object
   if ( defined( $generic_header{GRATING_WAVELENGTH} ) &&
