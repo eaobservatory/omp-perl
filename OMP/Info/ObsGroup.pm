@@ -157,7 +157,7 @@ sub obs {
 Run a query on the archive (using an OMP::ArcQuery object),
 store the results and attach any relevant comments.
 
-  $grp->runQuery( $query );
+  $grp->runQuery( $query, $retainhdr, $ignorebad, $nocomments );
 
 Previous observations are overwritten.
 
@@ -168,6 +168,7 @@ sub runQuery {
   my $q = shift;
   my $retainhdr = shift;
   my $ignorebad = shift;
+  my $nocomments = shift;
 
   throw OMP::Error::FatalError("runQuery: The query argument must be an OMP::ArcQuery class")
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
@@ -188,7 +189,7 @@ sub runQuery {
   $self->obs(\@result);
 
   # Attach comments
-  $self->commentScan;
+  $self->commentScan() unless $nocomments;
 
   return;
 }
@@ -218,6 +219,7 @@ the C<obs> method.
                   date => $date,
                   projectid => $proj,
                   retainhdr => 0,
+                  nocomments => 1,
                   ignorebad => 0 );
 
 
@@ -263,6 +265,10 @@ read to form an OMP::Info::Obs object will be skipped. Otherwise,
 reading these files will cause an error to be thrown. This defaults to
 false (0).
 
+If "nocomments" is true, observation comments will not be automatically
+associated with the C<OMP::Info::Obs> objects. Default is false (0);
+comments will be attached.
+
 A "verbose" flag can be used to turn on message output. Default
 is false.
 
@@ -283,6 +289,12 @@ sub populate {
   if( exists( $args{ignorebad} ) ) {
     $ignorebad = $args{ignorebad};
     delete $args{ignorebad};
+  }
+
+  my $nocomments;
+  if( exists( $args{nocomments} ) ) {
+    $nocomments = $args{nocomments};
+    delete $args{nocomments};
   }
 
   throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
@@ -351,7 +363,7 @@ sub populate {
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
   # run the query
-  $self->runQuery( $arcquery, $retainhdr, $ignorebad );
+  $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments );
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
