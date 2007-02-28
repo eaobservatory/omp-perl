@@ -1336,29 +1336,35 @@ sub _populate {
     } elsif ($self->telescope eq 'JCMT') {
       # SCUBA is done in other branch
 
+      # For ACSIS/SCUBA-2 data we use less guess work
+      # A Science observation has OBS_TYPE == science
+      # Project id of "jcmt", or "jcmtcal" or "cal" or "deferred obs" (!) == gencal unless STANDARD
+      # Standard will have STANDARD==T (isSciCal)
+
       # fivepoint/focus are generic
-      # anything with 'jcmt' or 'jcmtcal' is generic
+      # anything with 'jcmt' or 'jcmtcal' or 'cal' is generic
       # Do not include planets in the list.
       # Standard spectra are science calibrations but we have to be
       # careful with this since they may also be science observations.
       # For now, only check name matches (names should match pointing
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
-      if (( defined( $self->projectid ) && $self->projectid =~ /JCMT/  ) ||
-          ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
-         ) {
-        $self->isGenCal( 1 );
-        $self->isScience( 0 );
+      if (( defined( $self->projectid ) && $self->projectid =~ /JCMT|CAL|DEFERRED/i  ) ||
+	  ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
+	 ) {
+	$self->isGenCal( 1 );
+	$self->isScience( 0 );
       } elsif ($self->mode =~ /sample/i && $self->target =~ /^(w3\(oh\)|l1551\-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293\-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
-        $self->isSciCal( 1 );
-        $self->isScience( 0 );
+	# this only occurs on DAS because ACSIS does not have SAMPLE mode
+	$self->isSciCal( 1 );
+	$self->isScience( 0 );
       } elsif( $self->standard ) {
-        $self->isSciCal( 1 );
-        $self->isScience( 0 );
+	# modern data
+	$self->isSciCal( 1 );
+	$self->isScience( 0 );
       }
 
     }
-
   }
 
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
