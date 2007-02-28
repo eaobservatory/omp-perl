@@ -1349,7 +1349,7 @@ sub _populate {
       # For now, only check name matches (names should match pointing
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
-      if (( defined( $self->projectid ) && $self->projectid =~ /JCMT|CAL|DEFERRED/i  ) ||
+      if (( defined( $self->projectid ) && ($self->projectid =~ /JCMT|DEFERRED/i || $self->projectid eq 'CAL') ) ||
 	  ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
 	 ) {
 	$self->isGenCal( 1 );
