@@ -229,10 +229,7 @@ sub _package_data_cadc {
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
-  my @files;
-  for my $o (@obs) {
-    push @files, map { s/.sdf$//; basename($_) } $o->filename;
-  }
+  my @files = map { $_->simple_filename } @obs;
   print $q->hidden( -name => "fileNameClass",
 		    -default => \@files );
 
