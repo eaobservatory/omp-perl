@@ -1220,6 +1220,61 @@ sub _populate {
     $self->endobs( $endobs );
   }
 
+  # Easy object modifiers (some of which are used later in the method
+  $self->runnr( $generic_header{OBSERVATION_NUMBER} );
+  $self->utdate( $generic_header{UTDATE} );
+  $self->speed( $generic_header{SPEED_GAIN} );
+  if( defined( $generic_header{AIRMASS_END} ) ) {
+    $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
+  } else {
+    $self->airmass( $generic_header{AIRMASS_START} );
+  }
+  $self->airmass_start( $generic_header{AIRMASS_START} );
+  $self->airmass_end( $generic_header{AIRMASS_END} );
+  $self->rows( $generic_header{Y_DIM} );
+  $self->columns( $generic_header{X_DIM} );
+  $self->drrecipe( $generic_header{DR_RECIPE} );
+  $self->group( $generic_header{DR_GROUP} );
+  $self->standard( $generic_header{STANDARD} );
+  $self->slitname( $generic_header{SLIT_NAME} );
+  $self->slitangle( $generic_header{SLIT_ANGLE} );
+  $self->raoff( $generic_header{RA_TELESCOPE_OFFSET} );
+  $self->decoff( $generic_header{DEC_TELESCOPE_OFFSET} );
+  $self->grating( $generic_header{GRATING_NAME} );
+  $self->order( $generic_header{GRATING_ORDER} );
+  $self->tau( $generic_header{TAU} );
+  $self->seeing( defined( $generic_header{SEEING} ?
+                           sprintf("%.1f",$generic_header{SEEING}) :
+                           "" ) );
+  $self->bolometers( $generic_header{BOLOMETERS} );
+  $self->velocity( $generic_header{VELOCITY} );
+  $self->velsys( $generic_header{SYSTEM_VELOCITY} );
+  $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
+  $self->chopthrow( $generic_header{CHOP_THROW} );
+  $self->chopangle( $generic_header{CHOP_ANGLE} );
+  $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
+  $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
+  $self->rest_frequency( $generic_header{REST_FREQUENCY} );
+  $self->cycle_length( $generic_header{CYCLE_LENGTH} );
+  $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
+  $self->backend( $generic_header{BACKEND} );
+  $self->bandwidth_mode( $generic_header{BANDWIDTH_MODE} );
+  $self->filter( $generic_header{FILTER} );
+  $self->camera( $generic_header{CAMERA} );
+  $self->camera_number( $generic_header{CAMERA_NUMBER} );
+  $self->pol( $generic_header{POLARIMETRY} );
+  if( defined( $generic_header{POLARIMETER} ) ) {
+    $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
+  } else {
+    $self->pol_in( 'unknown' );
+  }
+  $self->switch_mode( $generic_header{SWITCH_MODE} );
+  $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
+  $self->humidity( $generic_header{HUMIDITY} );
+  $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
+  $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
+  $self->tile( $generic_header{TILE_NUMBER} );
+
   # The default calibration is simply the project ID. This will
   # ensure that all calibrations associated with a project
   # are allocated to the project rather than shared. This is
@@ -1367,60 +1422,7 @@ sub _populate {
     }
   }
 
-  $self->runnr( $generic_header{OBSERVATION_NUMBER} );
-  $self->utdate( $generic_header{UTDATE} );
-  $self->speed( $generic_header{SPEED_GAIN} );
-  if( defined( $generic_header{AIRMASS_END} ) ) {
-    $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
-  } else {
-    $self->airmass( $generic_header{AIRMASS_START} );
-  }
-  $self->airmass_start( $generic_header{AIRMASS_START} );
-  $self->airmass_end( $generic_header{AIRMASS_END} );
-  $self->rows( $generic_header{Y_DIM} );
-  $self->columns( $generic_header{X_DIM} );
-  $self->drrecipe( $generic_header{DR_RECIPE} );
-  $self->group( $generic_header{DR_GROUP} );
-  $self->standard( $generic_header{STANDARD} );
-  $self->slitname( $generic_header{SLIT_NAME} );
-  $self->slitangle( $generic_header{SLIT_ANGLE} );
-  $self->raoff( $generic_header{RA_TELESCOPE_OFFSET} );
-  $self->decoff( $generic_header{DEC_TELESCOPE_OFFSET} );
-  $self->grating( $generic_header{GRATING_NAME} );
-  $self->order( $generic_header{GRATING_ORDER} );
-  $self->tau( $generic_header{TAU} );
-  $self->seeing( defined( $generic_header{SEEING} ?
-                           sprintf("%.1f",$generic_header{SEEING}) :
-                           "" ) );
-  $self->bolometers( $generic_header{BOLOMETERS} );
-  $self->velocity( $generic_header{VELOCITY} );
-  $self->velsys( $generic_header{SYSTEM_VELOCITY} );
-  $self->nexp( $generic_header{NUMBER_OF_EXPOSURES} );
-  $self->chopthrow( $generic_header{CHOP_THROW} );
-  $self->chopangle( $generic_header{CHOP_ANGLE} );
-  $self->chopsystem( $generic_header{CHOP_COORDINATE_SYSTEM} );
-  $self->chopfreq( $generic_header{CHOP_FREQUENCY} );
-  $self->rest_frequency( $generic_header{REST_FREQUENCY} );
-  $self->cycle_length( $generic_header{CYCLE_LENGTH} );
-  $self->number_of_cycles( $generic_header{NUMBER_OF_CYCLES} );
-  $self->backend( $generic_header{BACKEND} );
-  $self->bandwidth_mode( $generic_header{BANDWIDTH_MODE} );
-  $self->filter( $generic_header{FILTER} );
-  $self->camera( $generic_header{CAMERA} );
-  $self->camera_number( $generic_header{CAMERA_NUMBER} );
-  $self->pol( $generic_header{POLARIMETRY} );
-  if( defined( $generic_header{POLARIMETER} ) ) {
-    $self->pol_in( $generic_header{POLARIMETER} ? 'T' : 'F' );
-  } else {
-    $self->pol_in( 'unknown' );
-  }
-  $self->switch_mode( $generic_header{SWITCH_MODE} );
-  $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
-  $self->humidity( $generic_header{HUMIDITY} );
-  $self->user_az_corr( $generic_header{USER_AZIMUTH_CORRECTION} );
-  $self->user_el_corr( $generic_header{USER_ELEVATION_CORRECTION} );
-  $self->tile( $generic_header{TILE_NUMBER} );
-
+  # Remaining generic header
   if ($generic_header{OBSERVATION_ID}) {
     $self->obsid( $generic_header{OBSERVATION_ID} );
   } else {
