@@ -64,9 +64,8 @@ my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (
 	       RXA3 => 'RXA',
-	       RXWB => 'RXW',
-	       RXWC => 'RXW',
-	       RXWD => 'RXW',
+	       RXWB => 'RXWB',
+	       RXWD => 'RXWD',
 	       RXB3 => 'RXB',
                'RXHARP-B' => 'HARPB',
 	       HARP => 'HARP',
@@ -89,7 +88,8 @@ our %BWMAP = (
 my %ACSIS_Layouts = (
 		    RXA => 's1r1g1',
 		    RXB => 's2r2g1',
-		    RXW => 's2r2g2',
+		    RXWB => 's2r2g1',
+		    RXWD => 's2r2g1',
 		    HARP => 's8r8g1',
 #		    HARP_raster_pssw => 's8r16g8',
 		   );
