@@ -1071,15 +1071,36 @@ sub fe_config {
   my $cfg = shift;
   my %info = @_;
 
+  # Need instrument information
+  my $inst = $cfg->instrument_setup();
+  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+
+  # Create frontend object for this configuration
   my $fe = new JAC::OCS::Config::Frontend();
 
   # Get the basic frontend setup from the freqconfig key
   my %fc = %{ $info{freqconfig} };
 
-  # Easy setup
-  # FE XML expects rest frequency in GHz
-  $fe->rest_frequency( $fc{restFrequency}/1e9 );
+  # Sideband mode
   $fe->sb_mode( $fc{sideBandMode} );
+
+  # FE XML expects rest frequency in GHz
+  # If the first subsytem has been moved from the centre of the 
+  # band we need to adjust the tuning request to compensate
+  my $restfreq = $fc{restFrequency} / 1e9; # to GHz
+  my $iffreq = $inst->if_center_freq;
+  my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
+  my $offset = $ifsub1 - $iffreq;
+  $restfreq += $offset;
+  $fe->rest_frequency( $restfreq );
+  if ($self->verbose) {
+    print {$self->outhdl} "Tuning to a rest frequency of ".
+      sprintf("%.3f",$restfreq)." GHz\n";
+    if (abs($offset) > 0.001) {
+      print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
+	" MHz to correct for offset of first subsystem in band\n";
+    }
+  }
 
   # How to handle 'best'?
   my $sb = $fc{sideBand};
@@ -1155,14 +1176,12 @@ sub fe_config {
   }
   $fe->freq_off_scale( $freq_off );
 
-  # Mask selection depends on observing mode but for now we can just
-  # make sure that all available pixels are enabled
-  my $inst = $cfg->instrument_setup();
-  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
 
   # store the frontend name in the Frontend config so that we can get the task name
   $fe->frontend( $inst->name );
 
+  # Mask selection depends on observing mode but for now we can just
+  # make sure that all available pixels are enabled
   # Set up a default MASK based on the Instrument XML
   my %receptors = $inst->receptors;
 
