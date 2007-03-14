@@ -33,6 +33,36 @@ $| = 1;
 
 =over 4
 
+=item B<extinction_plot_code>
+
+Return HTML snippet for displaying an extinction plot.
+
+  $html = extinction_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub extinction_plot_code {
+  my $utdate = shift;
+
+  my $extinction_plot_dir = OMP::Config->getData( 'extinction-plot-url' );
+
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+
+  my $URL = "$extinction_plot_dir/trans_${gifdate}_cam1.png";
+
+  my $string = "<a name='extinction'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>WFCAM atmospheric extinction for camera 1</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
 =item B<forecast_plot_code>
 
 Return HTML snippet for displaying a forecast plot.
@@ -268,8 +298,6 @@ sub zeropoint_plot_code {
 
   return $string;
 }
-
-=cut
 
 =back
 
