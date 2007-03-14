@@ -108,9 +108,15 @@ Takes a UT date string as the only argument.
 sub meteogram_plot_code {
   my $utdate = shift;
 
+  my $gifdate = $utdate;
+  $gifdate =~ s/-//g;
+  $gifdate = substr( $gifdate, 0, 8 );
+  $gifdate =~ /(\d{4})(\d\d)(\d\d)/;
+  $gifdate = "$1-$2-$3";
+
   my $meteogram_plot_dir = OMP::Config->getData( 'meteogram-plot-url' );
 
-  my $URL = "$meteogram_plot_dir/${utdate}.png";
+  my $URL = "$meteogram_plot_dir/${gifdate}.png";
 
   my $string = "<a name='meteogram'></a>\n";
   $string .= "<br>";
