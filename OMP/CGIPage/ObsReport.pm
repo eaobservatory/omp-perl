@@ -239,6 +239,9 @@ sub night_report {
     # Link to seeing plot.
     ( $seeing_html ) and print "<a href='#seeing'>UKIRT K-band seeing</a> ";
 
+    # Make it pretty.
+    print "<br>\n";
+
     # Link to UKIRT extinction plot.
     ( $extinction_html ) and print "<a href='#extinction'>UKIRT extinction</a> ";
 
