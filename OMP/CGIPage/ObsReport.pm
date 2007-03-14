@@ -216,28 +216,39 @@ sub night_report {
 
     # Link to WVM graph
     if (! $utdate_end) {
-      print "<a href='#wvm'>View WVM graph</a><br>";
+#      print "<a href='#wvm'>View WVM graph</a><br>";
     }
 
-    # Link to forecast plot.
+    # Retrieve HTML for the various plots.
+    my $extinction_html = OMP::CGIComponent::Weather::extinction_plot_code( $utdate );
     my $forecast_html = OMP::CGIComponent::Weather::forecast_plot_code( $utdate );
-    ( $forecast_html ) and print "<a href='#forecast'>View MKWC forecast</a><br>";
+    my $meteogram_html = OMP::CGIComponent::Weather::meteogram_plot_code( $utdate );
+    my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
+    my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
+    my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
+    my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
+
+    print "Weather information: ";
+
+    # Link to meteogram plot.
+    ( $meteogram_html ) and print "<a href='#meteogram'>JAC meteogram</a> ";
 
     # Link to opacity plot.
-    my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
-    ( $opacity_html ) and print "<a href='#opacity'>View Mauna Kea opacity graph</a><br>";
+    ( $opacity_html ) and print "<a href='#opacity'>Mauna Kea opacity</a> ";
 
     # Link to seeing plot.
-    my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
-    ($seeing_html) and print "<a href='#seeing'>View seeing graph</a><br>";
+    ( $seeing_html ) and print "<a href='#seeing'>UKIRT K-band seeing</a> ";
 
-    # Link to transparency plot.
-    my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
-    ( $transp_html ) and print "<a href='#transparency'>View transparency graph</a><br>";
+    # Link to UKIRT extinction plot.
+    ( $extinction_html ) and print "<a href='#extinction'>UKIRT extinction</a> ";
 
-    # Link to zeropoint plot.
-    my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
-    ($zeropoint_html) and print "<a href='#zeropoint'>View zero point graph</a><br>";
+    # Link to CFHT transparency plot.
+    ( $transp_html ) and print "<a href='#transparency'>CFHT transparency</a> ";
+
+    # Link to forecast plot.
+    ( $forecast_html ) and print "<a href='#forecast'>MKWC forecast</a>";
+
+    print "<p/>\n";
 
     $nr->ashtml( worfstyle => 'staff',
                  commentstyle => 'staff', );
@@ -249,24 +260,27 @@ sub night_report {
     my $wvm_html;
 
     if (! $utdate_end) {
-      $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate->ymd);
-      print $wvm_html;
+#      $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate->ymd);
+#      print $wvm_html;
     }
 
-    # Display forecast plot.
-    ( $forecast_html ) and print "<p>$forecast_html</p>";
+    # Display JAC meteogram.
+    ( $meteogram_html ) and print "<p>$meteogram_html</p>\n";
 
     # Display opacity plot.
-    ( $opacity_html ) and print "<p>$opacity_html</p>";
+    ( $opacity_html ) and print "<p>$opacity_html</p>\n";
 
     # Display seeing plot.
-    ( $seeing_html ) and print "<p>$seeing_html</p>";
+    ( $seeing_html ) and print "<p>$seeing_html</p>\n";
+
+    # Display extinction plot.
+    ( $extinction_html ) and print "<p>$extinction_html</p>\n";
 
     # Display transparency plot.
-    ( $transp_html ) and print "<p>$transp_html</p>";
+    ( $transp_html ) and print "<p>$transp_html</p>\n";
 
-    # Display zeropoint plot.
-    ( $zeropoint_html ) and print "<p>$zeropoint_html</p>";
+    # Display forecast plot.
+    ( $forecast_html ) and print "<p>$forecast_html</p>\n";
 
   }
 }
