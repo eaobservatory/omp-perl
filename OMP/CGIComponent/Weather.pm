@@ -95,6 +95,32 @@ sub forecast_plot_code {
   return $string;
 }
 
+=item B<meteogram_plot_code>
+
+Return HTML snippet for displaying a meteogram plot.
+
+  $html = meteogram_plot_code( $utdate );
+
+Takes a UT date string as the only argument.
+
+=cut
+
+sub meteogram_plot_code {
+  my $utdate = shift;
+
+  my $meteogram_plot_dir = OMP::Config->getData( 'meteogram-plot-url' );
+
+  my $URL = "$meteogram_plot_dir/${utdate}.png";
+
+  my $string = "<a name='meteogram'></a>\n";
+  $string .= "<br>";
+  $string .= "<strong class='small_title'>JAC meteogram</strong><p>";
+  $string .= "<div align=left>";
+  $string .= "<img src='$URL'><br><br></p>";
+
+  return $string;
+}
+
 =item B<opacity_plot_code>
 
 Return HTML snippet for displaying a opacity plot.
