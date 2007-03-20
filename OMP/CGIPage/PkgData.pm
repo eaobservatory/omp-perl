@@ -219,13 +219,15 @@ sub _package_data_cadc {
   print "</PRE>\n";
   return if defined $E;
 
-  print "<P>Data retrieval is now handled by the Canadian Astronomical Data Centre (CADC). Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. You will be required to authenticate yourself to CADC</P>";
+  print "<P>Data retrieval is now handled by the Canadian Astronomical Data Centre (CADC). ".
+	"Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. ".
+	"You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
 
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
   
   # Now form the CADC form
-  print $q->startform( -action=> "http://test.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/jcmt/search/downloads");
+  print $q->startform( -action=> "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/jcmt/search/downloads");
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
