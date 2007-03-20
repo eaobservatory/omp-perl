@@ -223,6 +223,12 @@ sub _package_data_cadc {
 	"Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. ".
 	"You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
 
+  print "<p>To have access to any proprietary data, <B>you must have
+   registered your CADC userid with the JAC.</B> Access permissions
+   at the CADC are assigned to each file based on the CADC userid
+   supplied with the data by the JAC.  It is not sufficient to have a
+   userid at both institutions, even if they are the same!</p>\n";
+
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
   
