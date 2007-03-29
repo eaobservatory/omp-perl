@@ -2140,9 +2140,6 @@ sub line_list {
 							     );
     my $freq = $s->{rest_freq};
 
-    # store the reference key in the hash
-    $s->{rest_freq_ref} = $key;
-
     # have we used this before?
     if (exists $lines{$key}) {
       # if the frequency is the same just skip
@@ -2152,6 +2149,9 @@ sub line_list {
       $key .= "_$counter";
       $counter++;
     }
+
+    # store the reference key in the hash
+    $s->{rest_freq_ref} = $key;
 
     # store the new value
     $lines{$key} = new JAC::OCS::Config::ACSIS::Line( RestFreq => $freq,
