@@ -1084,24 +1084,6 @@ sub fe_config {
   # Sideband mode
   $fe->sb_mode( $fc{sideBandMode} );
 
-  # FE XML expects rest frequency in GHz
-  # If the first subsytem has been moved from the centre of the 
-  # band we need to adjust the tuning request to compensate
-  my $restfreq = $fc{restFrequency} / 1e9; # to GHz
-  my $iffreq = $inst->if_center_freq;
-  my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
-  my $offset = $ifsub1 - $iffreq;
-  $restfreq += $offset;
-  $fe->rest_frequency( $restfreq );
-  if ($self->verbose) {
-    print {$self->outhdl} "Tuning to a rest frequency of ".
-      sprintf("%.3f",$restfreq)." GHz\n";
-    if (abs($offset) > 0.001) {
-      print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
-	" MHz to correct for offset of first subsystem in band\n";
-    }
-  }
-
   # How to handle 'best'?
   my $sb = $fc{sideBand};
   if ($sb =~ /BEST/i) {
@@ -1165,6 +1147,31 @@ sub fe_config {
     }
   }
   $fe->sideband( $sb );
+
+  # FE XML expects rest frequency in GHz
+  # If the first subsytem has been moved from the centre of the 
+  # band we need to adjust the tuning request to compensate
+  # The sense of the shift depends on the sideband
+  my $restfreq = $fc{restFrequency} / 1e9; # to GHz
+  my $iffreq = $inst->if_center_freq;
+  my $ifsub1 = $fc{subsystems}->[0]->{if} / 1e9; # to GHz
+  my $offset = $ifsub1 - $iffreq;
+
+  if (lc($sb) eq 'usb') {
+    $offset *= -1;
+  }
+
+  $restfreq += $offset;
+  $fe->rest_frequency( $restfreq );
+  if ($self->verbose) {
+    print {$self->outhdl} "Tuning to a rest frequency of ".
+      sprintf("%.3f",$restfreq)." GHz\n";
+    if (abs($offset) > 0.001) {
+      print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
+	" MHz to correct for offset of first subsystem in band\n";
+    }
+  }
+
 
   # doppler mode
   $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
