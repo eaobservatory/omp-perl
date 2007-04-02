@@ -561,10 +561,11 @@ sub _populate {
       if $self->verbose;
 
   # Query the database
-  my $grp = new OMP::Info::ObsGroup( %query, verbose => $self->verbose, sort => 1 );
+  my $grp = new OMP::Info::ObsGroup( %query, verbose => $self->verbose,
+                                     ignorebad => 1, sort => 1 );
 
   # Inform them of how many we have found
-  print STDOUT "Done [".$grp->numobs." files match]\n" if $self->verbose;
+  print STDOUT "Done [".$grp->numobs." observations match]\n" if $self->verbose;
 
   # Store the result
   $self->obsGrp($grp);
