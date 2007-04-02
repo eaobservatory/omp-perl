@@ -213,8 +213,8 @@ sub _package_data_cadc {
     $E = shift;
     print "This project ID is not recognized by the OMP<br>\n";
   } otherwise {
-    print "Odd data retrieval error\n";
     $E = shift;
+    print "Odd data retrieval error: $E\n";
   };
   print "</PRE>\n";
   return if defined $E;
