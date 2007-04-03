@@ -41,6 +41,7 @@ use JAC::OCS::Config::Error qw/ :try /;
 use OMP::Config;
 use OMP::Error;
 use OMP::General;
+use OMP::Range;
 
 use base qw/ OMP::Translator /;
 
@@ -95,8 +96,10 @@ my %ACSIS_Layouts = (
 		   );
 
 # LO2 synthesizer step, hard-wired
-our $LO2_INCR = 0.2E6;
+our $LO2_INCR = 0.5E6;
 
+# LO2 tuning range for consistency checks
+our $LO2_RANGE = OMP::Range->new( Min => 5.7E9 , Max => 10.5E9 );
 
 # Telescope diameter in metres
 use constant DIAM => 15;
@@ -3444,6 +3447,9 @@ sub bandwidth_mode {
     my @sbif = map { $s->{if} } (1..$nsubband);
     $s->{if_per_subband} = \@sbif;
 
+    print {$self->outhdl} "\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
+      " GHz\n" if $self->verbose;
+
     # For the LO2 settings we need to offset the IF by the number of channels
     # from the beginning of the band
     my @chan_offset = map { $sbif[$_] + ($refchan[$_] * $chanwid) } (0..$#sbif);
@@ -3456,12 +3462,26 @@ sub bandwidth_mode {
     my @lo2true = map {  OMP::General::nint( $_ / $LO2_INCR) * $LO2_INCR } @lo2exact;
     $s->{lo2} = \@lo2true;
 
+    for my $lo2 (@lo2true) {
+      throw OMP::Error::TranslateFail( "Internal error in translator. LO2 is out of range (".
+				       $LO2_RANGE->min . " < $lo2 < ". $LO2_RANGE->max .")")
+	unless $LO2_RANGE->contains($lo2);
+    }
+
     # Now calculate the error and store this for later correction
     # of the subbands in the spectral window  
 
     my @align_shift = map { $lo2exact[$_] - $lo2true[$_] } (0..$#lo2exact);
     $s->{align_shift} = \@align_shift;
 
+    print "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
+    for my $i (0..$#lo2exact) {
+      printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+	$refchan[$i], $chan_offset[$i]/1E9,
+	  $lo2exact[$i]/1E9,
+	    $lo2true[$i]/1E9,
+	      $align_shift[$i]/1E3;
+    }
     # Store the reference channel for each subband
     $s->{if_ref_channel} = \@refchan;
 
