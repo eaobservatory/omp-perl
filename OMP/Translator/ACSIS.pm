@@ -2152,16 +2152,21 @@ sub line_list {
 
     # have we used this before?
     if (exists $lines{$key}) {
-      # if the frequency is the same just skip
-      next if $lines{$key}->restfreq == $freq;
-
-      # Tweak the key
-      $key .= "_$counter";
-      $counter++;
+      # if the frequency is the same we should not register the line list
+      # object but we still need to associate with the subsystem. If the rest frequency
+      # differs we need to tweak the key to make it unique.
+      if ($lines{$key}->restfreq != $freq) {
+	# Tweak the key
+	$key .= "_$counter";
+	$counter++;
+      }
     }
 
     # store the reference key in the hash
     $s->{rest_freq_ref} = $key;
+
+    # if the key is identical, we have already stored the details so can skip
+    next if exists $lines{$key};
 
     # store the new value
     $lines{$key} = new JAC::OCS::Config::ACSIS::Line( RestFreq => $freq,
