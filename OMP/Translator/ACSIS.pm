@@ -3479,14 +3479,17 @@ sub bandwidth_mode {
     my @align_shift = map { $lo2exact[$_] - $lo2true[$_] } (0..$#lo2exact);
     $s->{align_shift} = \@align_shift;
 
-    print "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
-    for my $i (0..$#lo2exact) {
-      printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
-	$refchan[$i], $chan_offset[$i]/1E9,
-	  $lo2exact[$i]/1E9,
-	    $lo2true[$i]/1E9,
-	      $align_shift[$i]/1E3;
+    if ($self->verbose) {
+       print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
+       for my $i (0..$#lo2exact) {
+         printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+   	   $refchan[$i], $chan_offset[$i]/1E9,
+	     $lo2exact[$i]/1E9,
+	       $lo2true[$i]/1E9,
+	         $align_shift[$i]/1E3;
+       }
     }
+
     # Store the reference channel for each subband
     $s->{if_ref_channel} = \@refchan;
 
