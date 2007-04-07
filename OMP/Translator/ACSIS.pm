@@ -3323,6 +3323,10 @@ sub bandwidth_mode {
   throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
   my $if_center_freq = $inst->if_center_freq * 1E9;
 
+  # Keep track of duplicates
+  # A subsystem is a dupe if the IF, overlap, channels and  bandwidth are the same
+  my %dupe_ss;
+
   # loop over each subsystem
   for my $s (@subs) {
     print {$self->outhdl} "Processing subsystem...\n" if $self->verbose;
@@ -3341,6 +3345,36 @@ sub bandwidth_mode {
 
     if ($chanwid == 0.0) {
       throw OMP::Error::TranslateFail("Channel width 0 Hz from hybridised bandwidth of $hbw and $hchan hybridised channels");
+    }
+
+    # if we have a duplicate subsystem we adjust the IF to make it subtly different - since
+    # there is no gain to having an identical subsystem we may as well disable the subsystem
+    # completel but in the interests of giving people roughly what they asked for we shift
+    # the subsystem by a small amount so that CADC indexing will not get confused when it
+    # gets two identical subsystem data products.
+
+    # Unique key for duplication tracking
+    my $root_uniq = $s->{bw} . $s->{overlap} . $s->{channels};
+    my $unique_ss = $root_uniq . $s->{if};
+
+    $dupe_ss{$unique_ss}++;
+    if ($dupe_ss{$unique_ss} > 1 ) {
+      my $newkey = $unique_ss;
+      my $count = 1;
+      while (exists $dupe_ss{$newkey}) {
+	my $if = $s->{if};
+	$if += ($count * $chanwid);
+	$newkey = $root_uniq . $if;
+	if (!exists $dupe_ss{$newkey}) {
+	  $s->{if} = $if;
+	  $dupe_ss{$newkey}++; # protect against a subsequent subsystem clashing
+	  last;
+	}
+	$count++;
+      }
+      print {$self->outhdl} "\tDuplicate subsystem detected. Shifting by ".$count.
+	" channel".($count > 1 ? "s" : '')." to make unique.\n"
+	  if $self->verbose;
     }
 
     # Currently, we determine whether we are hybridised from the
@@ -3462,7 +3496,7 @@ sub bandwidth_mode {
     my @ifoff = map { $_ - $if_center_freq } @sbif;
 
     print {$self->outhdl} "\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
-      " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E9)." GHz)\n" if $self->verbose;
+      " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E6)." MHz)\n" if $self->verbose;
 
     # Now calculate the exact LO2 for each IF (parking frequency is for band center
     # and IF is reported by the OT for the band centre
