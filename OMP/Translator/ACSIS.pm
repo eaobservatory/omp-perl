@@ -76,12 +76,12 @@ our %FE_MAP = (
 # Indexed simply by subband bandwidth
 our %BWMAP = (
 	      '250MHz' => {
-			   # Parking frequency, channel 1 (Hz)
-			   f_park => 2.5E9,
+			   # Parking frequency, centre channel (Hz)
+			   f_park => 2.625E9,
 		       },
 	      '1GHz' => {
-			 # Parking frequency, channel 1 (to Hz)
-			 f_park => 2.0E9,
+			 # Parking frequency, centre channel (Hz)
+			 f_park => 2.5E9,
 			},
 	     );
 
@@ -1168,7 +1168,7 @@ sub fe_config {
   $fe->rest_frequency( $restfreq );
   if ($self->verbose) {
     print {$self->outhdl} "Tuning to a rest frequency of ".
-      sprintf("%.3f",$restfreq)." GHz\n";
+      sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n";
     if (abs($offset) > 0.001) {
       print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
 	" MHz to correct for offset of first subsystem in band\n";
@@ -2221,7 +2221,7 @@ sub spw_list {
   my $freq = $info{freqconfig}->{subsystems};
 
   # Force bandwidth calculations
-  $self->bandwidth_mode( %info );
+  $self->bandwidth_mode( $cfg, %info );
 
   # Default baseline fitting mode will probably depend on observing mode
   my $defaultPoly = 1;
@@ -3286,7 +3286,7 @@ sub ocs_frontend {
 Determine the standard correlator mode for this observation
 and store the result in the %info hash within each subsystem.
 
- $trans->bandwidth_mode( %info );
+ $trans->bandwidth_mode( $cfg, %info );
 
 There are 2 mode designations. The spectral window bandwidth mode
 (call "bwmode") is a combination of bandwidth and channel count for a
@@ -3312,10 +3312,16 @@ windows each using bandwidth mode 250MHzx4096.
 
 sub bandwidth_mode {
   my $self = shift;
+  my $cfg = shift;
   my %info = @_;
 
   # Get the subsystem array
   my @subs = @{ $info{freqconfig}->{subsystems} };
+
+  # Need the IF center frequency from the frontend for information purposes only
+  my $inst = $cfg->instrument_setup();
+  throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
+  my $if_center_freq = $inst->if_center_freq * 1E9;
 
   # loop over each subsystem
   for my $s (@subs) {
@@ -3452,15 +3458,15 @@ sub bandwidth_mode {
     my @sbif = map { $s->{if} } (1..$nsubband);
     $s->{if_per_subband} = \@sbif;
 
+    # Now calculate the offset from the centre for reference
+    my @ifoff = map { $_ - $if_center_freq } @sbif;
+
     print {$self->outhdl} "\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
-      " GHz\n" if $self->verbose;
+      " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E9)." GHz)\n" if $self->verbose;
 
-    # For the LO2 settings we need to offset the IF by the number of channels
-    # from the beginning of the band
-    my @chan_offset = map { $sbif[$_] + ($refchan[$_] * $chanwid) } (0..$#sbif);
-
-    # Now calculate the exact LO2 for each IF
-    my @lo2exact = map { $_ + $bwmap{f_park} } @chan_offset;
+    # Now calculate the exact LO2 for each IF (parking frequency is for band center
+    # and IF is reported by the OT for the band centre
+    my @lo2exact = map { $_ + $bwmap{f_park} } @sbif;
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
@@ -3480,10 +3486,9 @@ sub bandwidth_mode {
     $s->{align_shift} = \@align_shift;
 
     if ($self->verbose) {
-       print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
+       print {$self->outhdl} "\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
        for my $i (0..$#lo2exact) {
-         printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
-   	   $refchan[$i], $chan_offset[$i]/1E9,
+         printf {$self->outhdl} "\t%14.6f\t%14.6f\t\t%14.3f\n",
 	     $lo2exact[$i]/1E9,
 	       $lo2true[$i]/1E9,
 	         $align_shift[$i]/1E3;
