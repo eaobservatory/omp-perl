@@ -887,11 +887,9 @@ sub observing_area {
       @scanpas = @{ $info{SCAN_PA} };
     } else {
       # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
-      # receiver then all 4 angles can be used. Else the scan is constrained.
-      # But if HARP is a 4x3 then we must restrict the angle in conjunction with
-      # restricting the rotator angles
-      my @mults = (1,3); # along width: 90 and 270
-      if ( $frontend !~ /harp/i && ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
+      # receiver then all 4 angles can be used. Else the scan is constrained to the X direction
+      my @mults = (1,3); # 0, 2 aligns with height, 1, 3 aligns with width
+      if ( $frontend =~ /harp/i || ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
 	@mults = (0..3);
       }
       @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
@@ -1381,11 +1379,6 @@ sub rotator_config {
       # is working and can be aligned with the AZEL/TRACKING system (instead of always
       # forcing FPLANE system)
       $scan_adj = rad2deg(atan2(1,4));
-
-      # if we have a HARP raster then we no longer have symmetry because of dead
-      # receptors. We therefore have to restrict the position angles to 0 and 180 degrees
-      # with the scan adjustment
-      @choices = (0,2);
 
     } elsif ($info{mapping_mode} eq 'jiggle') {
       # override the system from the jiggle. The PA should be matching the cube
