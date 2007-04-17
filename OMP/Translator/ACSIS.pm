@@ -76,12 +76,12 @@ our %FE_MAP = (
 # Indexed simply by subband bandwidth
 our %BWMAP = (
 	      '250MHz' => {
-			   # Parking frequency, centre channel (Hz)
-			   f_park => 2.625E9,
+			   # Parking frequency, channel 1 (Hz)
+			   f_park => 2.5E9,
 		       },
 	      '1GHz' => {
-			 # Parking frequency, centre channel (Hz)
-			 f_park => 2.5E9,
+			 # Parking frequency, channel 1 (Hz)
+			 f_park => 2.0E9,
 			},
 	     );
 
@@ -3491,9 +3491,13 @@ sub bandwidth_mode {
     print {$self->outhdl} "\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
       " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E6)." MHz)\n" if $self->verbose;
 
+    # For the LO2 settings we need to offset the IF by the number of channels
+    # from the beginning of the band
+    my @chan_offset = map { $sbif[$_] + ($refchan[$_] * $chanwid) } (0..$#sbif);
+
     # Now calculate the exact LO2 for each IF (parking frequency is for band center
     # and IF is reported by the OT for the band centre
-    my @lo2exact = map { $_ + $bwmap{f_park} } @sbif;
+    my @lo2exact = map { $_ + $bwmap{f_park} } @chan_offset;
     $s->{lo2exact} = \@lo2exact;
 
     # LO2 is quantized into multiples of LO2_INCR
@@ -3513,9 +3517,10 @@ sub bandwidth_mode {
     $s->{align_shift} = \@align_shift;
 
     if ($self->verbose) {
-       print {$self->outhdl} "\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
+       print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (kHz)\n";
        for my $i (0..$#lo2exact) {
-         printf {$self->outhdl} "\t%14.6f\t%14.6f\t\t%14.3f\n",
+         printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+	   $refchan[$i], $chan_offset[$i]/1E9,
 	     $lo2exact[$i]/1E9,
 	       $lo2true[$i]/1E9,
 	         $align_shift[$i]/1E3;
