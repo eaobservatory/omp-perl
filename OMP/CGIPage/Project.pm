@@ -1000,8 +1000,8 @@ sub alter_proj {
     my $remaining = $project->remaining;
 #    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
     my $alloc_h = int( $allocated / 3600 );
-    my $alloc_m = int( ( $allocated - $hour * 3600 ) / 60 );
-    my $alloc_s = $allocated - $hour * 3600 - $minute * 60;
+    my $alloc_m = int( ( $allocated - $alloc_h * 3600 ) / 60 );
+    my $alloc_s = $allocated - $alloc_h * 3600 - $alloc_m * 60;
     print "<td>";
     print $q->textfield('alloc_h',$alloc_h,3,5);
     print " hours ";
