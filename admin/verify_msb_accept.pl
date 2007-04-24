@@ -119,8 +119,6 @@ if(defined($opt{tel})) {
 }
 
 
-######## Begin #########
-
 # What does the done table say?
 my $output = OMP::MSBServer->observedMSBs( {
 					    date => $ut,
@@ -299,7 +297,7 @@ if (keys %DB) {
 print "\n\n";
 
 if (@missing) {
-  my $ok = $term->readline("Some MSBs were not accepted. Do you wish to accept them now? [Yy|Nn] ");
+  my $ok = $term->readline("Some MSBs were not accepted. Do you wish to accept/reject them now? [Yy|Nn] ");
   if ($ok =~ /^y/i) {
     my @users = keys %users;
     my $default;
