@@ -18,6 +18,7 @@ OMP::Info::Comment - a comment
   $body = $resp->text;
   $user = $resp->author;
 
+  $tid = $resp->tid;
 
 =head1 DESCRIPTION
 
@@ -52,7 +53,7 @@ use overload '""' => "stringify";
 
 Create a new comment object. 
 The comment must ideally be supplied in the constructor but this is
-not enforced. "author", "status" and "date" are optional.
+not enforced. "author", "status", "tid" and "date" are optional.
 
 
   $resp = new OMP::Info::Comment( author => $author,
@@ -60,7 +61,8 @@ not enforced. "author", "status" and "date" are optional.
                                   status => 1 );
 
 If it is not specified the current date will be used. The date must be
-supplied as a C<Time::Piece> object and is assumed to be UT.
+supplied as a C<Time::Piece> object and is assumed to be UT. The tid can
+be undefined.
 
 =cut
 
@@ -91,6 +93,7 @@ __PACKAGE__->CreateAccessors( _text => '$',
                               _date => 'Time::Piece',
                               status => '$',
                               runnr => '$',
+			      tid => '$',
                               instrument => '$',
                               telescope => '$',
                               startobs => 'Time::Piece',
@@ -190,7 +193,7 @@ sub summary {
 
   # Create hash
   my %summary;
-  for (qw/ text author status date /) {
+  for (qw/ text author status date tid /) {
     $summary{$_} = $self->$_();
   }
 
@@ -226,7 +229,8 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2002-2004 Particle Physics and Astronomy Research
-Council.  All Rights Reserved.
+Council. Copyright (C) 2007 Science and Technology Facilities Council.
+All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

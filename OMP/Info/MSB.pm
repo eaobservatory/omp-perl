@@ -196,6 +196,8 @@ Array accessors:
 
 =item B<comments>
 
+Array of C<OMP::Info::Comment> objects.
+
 =back
 
 =head2 General Methods
@@ -264,6 +266,31 @@ sub instrument {
     }
   }
 
+}
+
+=item B<msbtid>
+
+Return a list of MSB transaction ids associated with this MSB object.
+
+ @msbtids = $msb->msbtid;
+
+If a transaction ID is supplied as an argument, returns the comment objects
+associated with that specific transaction.
+
+ @comments = $msb->msbtid( $msbtid );
+
+=cut
+
+sub msbtid {
+  my $self = shift;
+  my @comments = $self->comments;
+
+  if (@_) {
+    my $msbtid = shift;
+    return grep { defined $_->tid && $_->tid eq $msbtid } @comments;
+  } else {
+    return map { $_->tid } grep { defined $_->tid } @comments;
+  }
 }
 
 =item B<target>
@@ -1138,6 +1165,7 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2001-2005 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under

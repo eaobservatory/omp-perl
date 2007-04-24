@@ -564,6 +564,7 @@ sub _add_msb_done_info {
 			   COLUMN => 'comment',
 			  }, $msbinfo->title,
 			  $userid,
+			  $comment->tid,
 			);
 }
 
@@ -697,30 +698,23 @@ sub _reorganize_msb_done {
     # characters on our MSB checksums
     $row->{checksum} =~ s/^.// if substr($row->{checksum},0,1) eq "\0";
 
+    # Prepare comment details
+    my %details = (text => $row->{comment},
+		   date => $row->{date},
+		   status => $row->{status},
+		   tid => $row->{msbtid},);
+
+    # Specify comment author if there is one
+    ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
+
     # see if we've met this msb already
     if (exists $msbs{ $row->{checksum} } ) {
-
-      # Prepare comment details
-      my %details = (text => $row->{comment},
-		     date => $row->{date},
-		     status => $row->{status},);
-
-      # Specify comment author if there is one
-      ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
 
       # Add the new comment
       $msbs{ $row->{checksum} }->addComment( new OMP::Info::Comment(%details));
 
     } else {
       # populate a new entry
-
-      # Prepare comment details
-      my %details = (text => $row->{comment},
-		     date => $row->{date},
-		     status => $row->{status},);
-
-      # Specify comment author if there is one
-      ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
 
       $msbs{ $row->{checksum} } = new OMP::Info::MSB(
 				   title => $row->{title},
@@ -766,6 +760,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
