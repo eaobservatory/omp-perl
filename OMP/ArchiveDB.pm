@@ -42,6 +42,7 @@ use Astro::WaveBand;
 use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
+use NDF;
 use SCUBA::ODF;
 
 use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup /;
@@ -316,6 +317,7 @@ queries that go over a single night?
 =cut
 
 sub _query_files {
+#print "querying files\n";
   my $self = shift;
   my $query = shift;
   my $retainhdr = shift;
@@ -426,8 +428,34 @@ sub _query_files {
       # Read the header, get the OBSERVATION_ID generic header.
       try {
         my $FITS_header;
+        my $frameset;
         if( $file =~ /\.sdf$/ ) {
           $FITS_header = new Astro::FITS::Header::NDF( File => $file );
+
+          # Open the NDF environment.
+          my $STATUS = &NDF::SAI__OK;
+          ndf_begin();
+          err_begin( $STATUS );
+
+          # Retrieve the FrameSet.
+          ndf_find( NDF::DAT__ROOT, $file, my $indf, $STATUS );
+          $frameset = ndfGtwcs( $indf, $STATUS );
+          ndf_annul( $indf, $STATUS );
+          ndf_end( $STATUS );
+
+          # Handle errors.
+          if( $STATUS != &NDF::SAI__OK ) {
+            my ( $oplen, @errs );
+            do {
+              err_load( my $param, my $parlen, my $opstr, $oplen, $STATUS );
+              push @errs, $opstr;
+            } until ( $oplen == 1 );
+            err_annul( $STATUS );
+            err_end( $STATUS );
+            throw OMP::Error::FatalError( "Error retrieving WCS from NDF:\n" . join "\n", @errs );
+          }
+          err_end( $STATUS );
+
         } elsif( $file =~ /\.(gsd|dat)$/ ) {
           $FITS_header = new Astro::FITS::Header::GSD( File => $file );
         } else {
@@ -436,7 +464,8 @@ sub _query_files {
 
         # Translate header.
         tie my %header, ref( $FITS_header ), $FITS_header;
-        my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS( \%header );
+        my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS( \%header,
+                                                                         frameset => $frameset );
 
         # If this OBSERVATION_ID has been seen before, merge the
         # headers. Otherwise, just store the header.
@@ -444,6 +473,7 @@ sub _query_files {
 
         push( @{$headers{$obsid}{'headers'}}, $FITS_header );
         push( @{$headers{$obsid}{'filenames'}}, $file );
+        push( @{$headers{$obsid}{'framesets'}}, $frameset );
       }
       catch Error with {
         my $Error = shift;
@@ -469,11 +499,16 @@ sub _query_files {
       $FITS_header = $headers{$obsid}{'headers'}[0];
     }
 
+    my $frameset = $headers{$obsid}{'framesets'}[0];
+
     # Create the Obs object.
     my $obs;
     my $Error;
 
-    $obs = new OMP::Info::Obs( fits => $FITS_header, retainhdr => $retainhdr );
+    $obs = new OMP::Info::Obs( fits => $FITS_header,
+                               retainhdr => $retainhdr,
+                               wcs => $frameset,
+                             );
 
     if( !defined( $obs ) ) { next; }
 
