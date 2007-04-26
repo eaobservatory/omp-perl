@@ -115,6 +115,37 @@ sub historyMSB {
   }
 }
 
+=item B<historyMSBtid>
+
+Retrieve the observation history for the specified MSB transaction.
+
+  $msbinfo = $db->historyMSBtid( $msbtid );
+
+The information is retrieved as an C<OMP::Info::MSB> object. An exception
+is thrown if the transaction ID is associated with more than one MSB.
+
+=cut
+
+sub historyMSBtid {
+  my $self = shift;
+  my $msbtid = shift;
+
+  # Construct the query
+  my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
+      "<msbtid>$msbtid</msbtid>" .
+	  "</MSBDoneQuery>";
+
+  my $query = new OMP::MSBDoneQuery( XML => $xml );
+
+  # Execute the query
+  my @responses = $self->queryMSBdone( $query );
+
+  throw OMP::Error::FatalError("More than one match for MSB TID $msbtid [".scalar(@responses)." matches]")
+    if scalar(@responses) > 1;
+
+  return $responses[0];
+}
+
 =item B<addMSBcomment>
 
 Add a comment to the specified MSB.
@@ -381,6 +412,35 @@ sub observedDates {
     if $useobj;
 
   return @dates;
+}
+
+=item B<validateMSBtid>
+
+Confirm that the supplied MSB transaction ID is associated with the
+supplied checksum.
+
+  $result = $db->validateMSBtid;
+
+Returns true if the MSB transaction ID is associated with this
+checksum. False otherwise.
+
+Returns true if the supplied transaction ID is undefined (since there
+is no requirement for a transacton ID to be associated with an MSB).
+
+=cut
+
+sub validateMSBtid {
+  my $self = shift;
+  my $checksum = shift;
+  my $msbtid = shift;
+  return 1 unless defined $msbtid;
+
+  # Query for this MSBTID
+  my $msbinfo = $self->historyMSBtid( $msbtid );
+
+  return 0 unless defined $msbinfo;
+  return 1 if $msbinfo->checksum eq $checksum;
+  return 0;
 }
 
 =item B<queryMSBdone>
