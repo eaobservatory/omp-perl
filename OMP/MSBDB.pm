@@ -644,7 +644,7 @@ Mark the specified MSB as having been observed.
   $db->doneMSB( $checksum );
 
 Optionally takes a second argument, a C<OMP::Info::Comment> object
-containing an override comment and associated user.
+containing an override comment, transaction ID and associated user.
 
   $db->doneMSB( $checksum, $comment );
 
@@ -1021,6 +1021,8 @@ action with a particular reason and observer.
 
   $db->suspendMSB( $checksum, $label, $comment);
 
+The comment can be used to specify a transaction ID.
+
 =cut
 
 sub suspendMSB {
@@ -1058,14 +1060,15 @@ sub suspendMSB {
 
   }
 
-  # Work out the reason and user
+  # Work out the reason and user and transaction ID
   my $author;
+  my $msbtid;
   if (defined $comment) {
     $author = $comment->author;
     $msg .= ": ". $comment->text
       if defined $comment->text && $comment->text =~ /\w/;
+    $msbtid = $comment->tid;
   }
-
 
   # Might want to send a message to the feedback system at this
   # point
@@ -1082,7 +1085,7 @@ sub suspendMSB {
   # message and throw an exception. In practice this is not a problem
   # since it was clearly never retrieved from the system!
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   $msg, OMP__DONE_SUSPENDED, $author );
+			   $msg, OMP__DONE_SUSPENDED, $author, $msbtid );
 
   # Give up if we dont have a match
   unless (defined $msb) {
@@ -2920,6 +2923,7 @@ The arguments are:
   message - the required message
   status - the type of message (see OMP::Constants)
   user   - OMP::User object [optional]
+  msbtid  - MSB transaction ID [optional]
 
 This is a thin wrapper around C<OMP::MSBDoneDB::addMSBcomment>.
 
@@ -2938,7 +2942,7 @@ includes a valid status.
 
 sub _notify_msb_done {
   my $self = shift;
-  my ($checksum, $projectid, $msb, $text, $status, $user) = @_;
+  my ($checksum, $projectid, $msb, $text, $status, $user, $msbtid) = @_;
 
   $projectid = $self->projectid
     unless defined $projectid;
@@ -2965,11 +2969,36 @@ sub _notify_msb_done {
 
     # Add the author if supplied
     $comment->author( $user ) if defined $user;
+
+    # Add msbtid if supplied
+    $comment->tid( $msbtid ) if defined $msbtid;
   }
 
   # Add the comment
   $done->addMSBcomment( $info, $comment );
 
+}
+
+=item B<_validate_msb_tid>
+
+Ensure that the supplied MSB transaction ID has been used previously
+for this MSB. Throws an exception if it has not.
+
+  $db->_validate_msb_tid( $checksum, $msbtid );
+
+=cut
+
+sub _validate_msb_tid {
+  my $checksum = shift;
+  my $msbtid = shift;
+
+  my $done = new OMP::MSBDoneDB( DB => self->db );
+
+  my $result = $done->validateMSBTID( $checksum, $msbtid );
+
+  return if $result;
+
+  throw OMP::Error::MSBMissingTID( "Supplied transaction ID ($msbtid) is not associated with MSB $checksum");
 }
 
 =item B<_get_submitted>
