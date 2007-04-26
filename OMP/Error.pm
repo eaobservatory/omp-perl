@@ -262,6 +262,10 @@ the query was made. In general this is non-fatal.
 An MSB was submitted that never resulted in an observation.
 SpIterObserve was missing.
 
+=item B<OMP::Error::MSBMissingTID>
+
+Transaction ID is not associated with the MSB.
+
 =item B<OMP::Error::ObsRead>
 
 An error occurred during the reading of a file to create an
@@ -406,6 +410,9 @@ package OMP::Error::MSBMissing;
 use base qw/ OMP::Error /;
 
 package OMP::Error::MSBMissingObserve;
+use base qw/ OMP::Error /;
+
+package OMP::Error::MSBMissingTID;
 use base qw/ OMP::Error /;
 
 package OMP::Error::ObsRead;
