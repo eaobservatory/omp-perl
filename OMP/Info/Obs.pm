@@ -90,7 +90,7 @@ sub new {
   }
 
   # count keys
-  if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 2) {
+  if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 4) {
     $obs->_populate();
   }
 
@@ -119,10 +119,35 @@ sub readfile {
 
   try {
     my $FITS_header;
+    my $frameset;
 
     if( $filename =~ /\.sdf$/ ) {
 
       $FITS_header = new Astro::FITS::Header::NDF( File => $filename );
+
+      # Open the NDF environment.
+      my $STATUS = &NDF::SAI__OK;
+      ndf_begin();
+      err_begin( $STATUS );
+
+      # Retrieve the FrameSet.
+      ndf_find( NDF::DAT__ROOT, $filename, my $indf, $STATUS );
+      $frameset = ndfGtwcs( $indf, $STATUS );
+      ndf_annul( $indf, $STATUS );
+      ndf_end( $STATUS );
+
+      # Handle errors.
+      if( $STATUS != &NDF::SAI__OK ) {
+        my ( $oplen, @errs );
+        do {
+          err_load( my $param, my $parlen, my $opstr, $oplen, $STATUS );
+          push @errs, $opstr;
+        } until ( $oplen == 1 );
+        err_annul( $STATUS );
+        err_end( $STATUS );
+        throw OMP::Error::FatalError( "Error retrieving WCS from NDF:\n" . join "\n", @errs );
+      }
+      err_end( $STATUS );
 
     } elsif( $filename =~ /\.(gsd|dat)$/ ) {
 
@@ -131,7 +156,7 @@ sub readfile {
     } else {
       throw OMP::Error::FatalError("Do not recognize file suffix for file $filename. Can not read header");
     }
-    $obs = $class->new( fits => $FITS_header, %args );
+    $obs = $class->new( fits => $FITS_header, wcs => $frameset, %args );
     $obs->filename($filename);
   }
   catch Error with {
@@ -320,7 +345,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               nexp => '$',
                               number_of_cycles => '$',
                               object => '$',
-			      obsid => '$',
+                              obsid => '$',
                               order => '$',
                               pol => '$',
                               pol_in => '$',
@@ -349,12 +374,13 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               velocity => '$',
                               velsys => '$',
                               waveband => 'Astro::WaveBand',
+                              wcs => 'Starlink::AST::FrameSet',
 
                               isScience => '$',
                               isSciCal => '$',
                               isGenCal => '$',
                               calType  => '$',
-			      subsystem_idkey => '$',
+                              subsystem_idkey => '$',
                             );
 
 
@@ -1184,7 +1210,7 @@ sub _populate {
 
   my $header = $self->hdrhash;
 
-  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header);
+  my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header, frameset => $self->wcs);
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
