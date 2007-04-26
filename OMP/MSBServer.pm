@@ -392,6 +392,14 @@ can be supplied:
 
   OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason );
 
+A transaction ID can also be specified
+
+  OMP::MSBServer->doneMSB( $project, $checksum, $userid, $reason, $msbtid );
+
+The transaction ID is a string that should be unique for a particular
+instance of an MSB. Userid and reason must be specified (undef is okay)
+if a transaction ID is supplied.
+
 =cut
 
 sub doneMSB {
@@ -400,12 +408,14 @@ sub doneMSB {
   my $checksum = shift;
   my $userid = shift;
   my $reason = shift;
+  my $msbtid = shift;
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
+  my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
 
   my $t0 = [gettimeofday];
-  OMP::General->log_message("doneMSB: Begin.\nProject=$project\nChecksum=$checksum\nUser=$ustr\nReason=$reastr\n");
+  OMP::General->log_message("doneMSB: Begin.\nProject=$project\nChecksum=$checksum\nUser=$ustr\nReason=$reastr\nMSBTID=$tidstr\n");
 
   my $E;
   try {
@@ -431,6 +441,7 @@ sub doneMSB {
     my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
 					  text => $reason,
 					  author => $user,
+					  tid => $msbtid,
 					);
 
     # Create a new object but we dont know any setup values
@@ -531,9 +542,11 @@ Optionally, a user ID and reason for the suspension can be supplied
 (similar to the C<doneMSB> method).
 
   OMP::MSBServer->suspendMSB( $project, $checksum, $label, $userid,
-                              $reason);
+                              $reason, $msbtid);
 
 Reason is optional. User id is mandatory if a reason is supplied.
+MSB transaction ID requires that reason and userid are specified (or are
+at least set explicitly to undef).
 
 =cut
 
@@ -544,11 +557,13 @@ sub suspendMSB {
   my $label = shift;
   my $userid = shift;
   my $reason = shift;
+  my $msbtid = shift;
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
+  my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
   OMP::General->log_message("suspendMSB: $project $checksum $label\n".
-			   "User: $ustr Reason: $reastr\n");
+			   "User: $ustr Reason: $reastr\nTransaction ID: $msbtid\n");
 
   my $E;
   try {
@@ -574,6 +589,7 @@ sub suspendMSB {
     my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
 					  text => $reason,
 					  author => $user,
+					  tid => $msbtid,
 					);
 
 
@@ -662,13 +678,13 @@ Indicate that the MSB has been partially observed but has been
 rejected by the observer rather than being marked as complete
 using C<doneMSB>.
 
-  OMP::MSBServer->rejectMSB( $project, $checksum, $userid, $reason );
+  OMP::MSBServer->rejectMSB( $project, $checksum, $userid, $reason, $msbtid );
 
 This method simply places an entry in the MSB history - it is a
 wrapper around addMSBComment method. The optional reason string can be
 used to specify a particular reason for the rejection. The userid
 is optional unless a reason is supplied (in which case it must be defined
-and must match a valid user ID).
+and must match a valid user ID). The MSB transaction ID can be specified.
 
 =cut
 
@@ -678,10 +694,12 @@ sub rejectMSB {
   my $checksum = shift;
   my $userid = shift;
   my $reason = shift;
+  my $msbtid = shift;
 
   my $reastr = (defined $reason ? $reason : "<None supplied>");
   my $ustr = (defined $userid ? $userid : "<No User>");
-  OMP::General->log_message("rejectMSB: $project $checksum User: $ustr Reason: $reastr");
+  my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
+  OMP::General->log_message("rejectMSB: $project $checksum User: $ustr Reason: $reastr MSBtid=$msbtid");
 
   my $E;
   try {
@@ -712,6 +730,7 @@ sub rejectMSB {
     my $comment = new OMP::Info::Comment( status => OMP__DONE_REJECTED,
 					  text => $reason,
 					  author => $user,
+					  tid => $msbtid,
 					);
 
     # Add the comment
