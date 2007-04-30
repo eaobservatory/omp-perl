@@ -1011,6 +1011,7 @@ sub RaiseMultiComment {
   my $obsFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
   my $obsLabel = $obsFrame->Label( -text => 'Observations: ' )->pack( -side => 'left' );
   my $obsEntry = $obsFrame->Entry( -textvariable => \$observations )->pack( -side => 'left' );
+  my $obsExamp = $obsFrame->Label( -text => 'e.g. 10-12 or 10-12,14' )->pack( -side => 'left' );
 
   my $instFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
   my $instLabel = $instFrame->Label( -text => 'Instrument: ' )->pack( -side => 'left' );
