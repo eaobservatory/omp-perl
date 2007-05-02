@@ -1233,7 +1233,7 @@ sub extract_projectid {
       or $string =~ /\b(u\/serv\/\d+)\b/i           # UKIRT serv
       or $string =~ /\b(u\/ec\/\d+)\b/i             # UKIRT E&C
       or $string =~ /\b(u\/ukidss\/[a-z]{3}(\d+[a-z]?|_sv)?)\b/i # UKIRT UKIDSS program
-      or $string =~ /\b(u\/ukidss\/\d+)\b/i         # UKIRT Backup UKIDSS programs
+      or $string =~ /\b(u\/ukidss\/b\d+)\b/i         # UKIRT Backup UKIDSS programs
       or $string =~ /\b(u\/cmp\/\d+)\b/i            # UKIRT Campaigns
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
