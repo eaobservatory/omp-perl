@@ -1094,13 +1094,13 @@ sub fe_config {
     # File name is derived from instrument name in wireDir
     # The instrument config is fixed for a specific instrument
     # and is therefore a "wiring file"
-    my $inst = lc($self->ocs_frontend($info{instrument}));
+    my $instname = lc($self->ocs_frontend($info{instrument}));
     throw OMP::Error::FatalError('No instrument defined so cannot configure sideband!')
-      unless defined $inst;
+      unless defined $instname;
  
     # wiring file name
     my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
-				    "sideband_$inst.txt");
+				    "sideband_$instname.txt");
 
     if (-e $file) {
       # can make a guess but make it non-fatal to be missing
@@ -1137,6 +1137,17 @@ sub fe_config {
       close($fh) or
 	throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
 
+      # If we have offset subsystems and we have selected LSB, we need to adjust the
+      # IFs to take into account the flip. The OT always sends a USB configurtion for best
+      if (lc($sb) eq 'lsb') {
+	my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
+	my @subsys = @{$fc{subsystems}};
+	for my $ss (@subsys) {
+	  my $offset = $ss->{if} - $iffreq;
+	  $ss->{if} = $iffreq - $offset;
+	}
+
+      }
 
       if ($self->verbose) {
 	print {$self->outhdl} "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
