@@ -4502,6 +4502,8 @@ sub getStandard {
   return $info{standard};
 }
 
+# For continuum we need the continuum recipe
+
 sub getDRRecipe {
   my $class = shift;
   my $cfg = shift;
@@ -4515,7 +4517,11 @@ sub getDRRecipe {
   } elsif ($info{MODE} =~ /Focus/) {
     return 'REDUCE_FOCUS';
   } else {
-    return 'REDUCE_SCIENCE';
+    if ($info{continuumMode}) {
+      return 'REDUCE_SCIENCE_CONTINUUM';
+    } else {
+      return 'REDUCE_SCIENCE';
+    }
   }
 
 }
@@ -4531,11 +4537,34 @@ sub getDRGroup {
 }
 
 # Need to get survey information from the TOML
+# Derive it from the project ID
 
 sub getSurveyName {
   my $class = shift;
   my $cfg = shift;
   my %info = @_;
+  my $project = $class->getProject( $cfg, %info );
+
+  if ($project =~ /^MJLS([A-Z]+)\d+$/i) {
+    my $short = $1;
+    if ($short eq 'G') {
+      return "GBS";
+    } elsif ($short eq 'A') {
+      return "SASSY";
+    } elsif ($short eq 'D') {
+      return "DDS";
+    } elsif ($short eq 'C') {
+      return "CLS";
+    } elsif ($short eq 'S') {
+      return "SLS";
+    } elsif ($short eq 'N') {
+      return "NGS";
+    } elsif ($short eq 'J') {
+      return "JPS"; 
+    } else {
+      throw OMP::Error::TranslateFail( "Unrecognized SURVEY code: '$project' -> '$short'" );
+    }
+  }
   return '';
 }
 
