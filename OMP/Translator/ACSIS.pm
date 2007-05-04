@@ -801,6 +801,34 @@ sub tcs_base {
     $base{$t} = $b;
   }
 
+  # Currently all REFERENCE positions have to be specified as offsets to SCIENCE to enable the TCS
+  # to calculate doppler for the same reference position. Otherwise if the REFERENCE position is a
+  # long way from SCIENCE the doppler correction can change such that atmospheric lines appear
+  # in the spectrum.
+  if (exists $base{REFERENCE}) {
+    my $ref = $base{REFERENCE};
+
+    # see if we have any offsets in reference
+    if (!$ref->offset) {
+
+      # absolute position, so calculate the TAN offset from SCIENCE
+      # currently the offset will always be between J2000 coordinates.
+      my $sci = $base{SCIENCE};
+      my $scicoords = $sci->coords;
+      my @offsets = $scicoords->distance( $ref->coords );
+
+      # Now set the coords to SCIENCE and the offset
+      $ref->coords( $scicoords );
+      my $off = new Astro::Coords::Offset( @offsets, system => "J2000", projection => "TAN" );
+      $ref->offset( $off );
+      print {$self->outhdl} "Converting absolute REFERENCE position to offset from SCIENCE of (".
+	sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n"
+	  if $self->verbose;
+
+    }
+  }
+
+
   $tcs->tags( %base );
 }
 
