@@ -5,12 +5,15 @@ WriteMakefile(
     'VERSION'   => '0.01',
     'PREREQ_PM' => {
                     Test::More => 0,
+                    Crypt::PassGen => 0,
+                    Number::Interval => 0,
 		    Digest::MD5 => '2.20',
 		    Astro::SLA  => '0.95',
 		    Astro::Coords => '0.05',
 		    Astro::FITS::HdrTrans => 0,
 		    Astro::WaveBand => 0,
 		    Astro::FITS::Header => 0,
+                    Astro::Catalog => 0,
 		    Mail::Internet => 0,
 		    MIME::Entity => 0,
 		    HTML::WWWTheme => 0,
@@ -18,7 +21,6 @@ WriteMakefile(
 		    SCUBA::ODF => 0,       # for translator
 		    SCUBA::FlatField => 0, # for translator
 		    JCMT::DAS => 0,        # For WORF
-		    SrcCatalog::JCMT => 0,
 		    XML::LibXML => '1.50',
 		    PDL => '2.3',
 		    PGPLOT => 0,
