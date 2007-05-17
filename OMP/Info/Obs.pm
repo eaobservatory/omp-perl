@@ -1315,7 +1315,12 @@ sub _populate {
   # If we're SCUBA, we can use SCUBA::ODF::getTarget to make the
   # Astro::Coords object for us. Hooray!
 
-  if( $generic_header{'INSTRUMENT'} =~ /scuba/i &&
+  if (!exists $generic_header{INSTRUMENT}) {
+    warnings::warnif "Unable to work out instrument name for observation $generic_header{OBSERVATION_NUMBER}\n";
+  }
+
+  if( exists $generic_header{INSTRUMENT} &&
+      $generic_header{'INSTRUMENT'} =~ /scuba/i &&
       exists( $generic_header{'COORDINATE_TYPE'} ) &&
       defined( $generic_header{'COORDINATE_TYPE'} ) ) {
 
