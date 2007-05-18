@@ -545,7 +545,8 @@ attributes in this case. The assumption will be that if "full" is true
 for any project ID then it is true for all project IDs (but that may
 depend on the order of the XML and should not be relied upon).
 
-A telescope is required unless a fully expanded project ID is specified.
+A telescope is required unless a fully expanded project ID is specified
+or an explicit MSB checksum.
 
 =cut
 
@@ -557,10 +558,13 @@ sub _post_process_hash {
   $self->SUPER::_post_process_hash( $href );
 
   # Need a telescope UNLESS we have a fully specified project ID
-  # (ie no inferred projectid)
-  throw OMP::Error::MSBMalformedQuery( "Please supply a telescope or explicit unabbreviated project ID")
-    if (! exists $href->{telescope} &&
-	! $href->{_attr}->{projectid}->{full});
+  # (ie no inferred projectid) or a checksum (which would completely
+  # constrain the query)
+  if (!exists $href->{checksum} && !exists $href->{msbid} &&
+      (! exists $href->{telescope} && ! $href->{_attr}->{projectid}->{full})) {
+    throw OMP::Error::MSBMalformedQuery( "Please supply a telescope, an explicit unabbreviated project ID or a specific MSB identifier")
+  }
+
 
   # Force moon and cloud to be integers (since that is the column type)
   for my $key (qw/ moon cloud /) {
@@ -702,7 +706,8 @@ sub _post_process_hash {
   # specified.
   # Since we always want to default to current semester
   # in the general case.
-  if (!exists $href->{semester} && !exists $href->{projectid}) {
+  if (!exists $href->{semester} && !exists $href->{projectid}
+     && !exists $href->{checksum} && !exists $href->{msbid}) {
     # Need the telescope in this case
     throw OMP::Error::MSBMalformedQuery("Automatic semester determination requires a telescope in the query")
       unless exists $href->{telescope};
