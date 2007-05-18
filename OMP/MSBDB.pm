@@ -1165,7 +1165,7 @@ sub getSubmitted {
 Return the total number of MSBs, and the total number of active MSBs, for a
 given list of projects.
 
-  %projectid = $db->getMsbCount(@projectids);
+  %projectid = $db->getMSBCount(@projectids);
 
 The only argument is a list (or reference to a list) of project IDs.
 Returns a hash of hashes indexed by project ID where the second-level
@@ -1181,6 +1181,35 @@ sub getMSBCount {
   my @projectids = (ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_);
   my %result = $self->_get_msb_count(@projectids);
   return %result;
+}
+
+=item B<getMSBtitle>
+
+Obtain the title of an MSB given its checksum. This is a convenience
+wrapper function.
+
+ $title = $db->getMSBtitle( $checksum );
+
+=cut
+
+sub getMSBtitle {
+  my $self = shift;
+  my $checksum = shift;
+
+  throw OMP::Error::BadArgs( "No checksum supplied to getMSBtitle" )
+    unless $checksum;
+
+  # can either do this through the XML query system or directly through
+  # SQL since we only want one value from the table... The method approach
+  # is a lot more prone to problems and increased overhead for such a simple
+  # value
+  my $xml = "<MSBQuery><checksum>$checksum</checksum><disableconstraint>all</disableconstraint></MSBQuery>";
+  my $query = new OMP::MSBQuery( XML => $xml );
+  my @results = $self->queryMSB( $query, 'object' );
+  if (@results) {
+    return $results[0]->title;
+  }
+  return undef;
 }
 
 =item B<listModifiedPrograms>

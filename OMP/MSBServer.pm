@@ -785,6 +785,9 @@ content matching that generated from C<OMP::Info::MSB> objects.
      </SpMSBSummary>
    </SpMSBSummaries>
 
+Since checksums are unique, a project ID is not required (but must be
+specified as undef explicitly) if a checksum is provided.
+
 =cut
 
 sub historyMSB {
@@ -794,7 +797,7 @@ sub historyMSB {
   my $type = lc(shift);
   $type ||= 'xml';
 
-  OMP::General->log_message("historyMSB: project:$project, checksum:" .
+  OMP::General->log_message("historyMSB: project:".(defined $project ? $project : "none").", checksum:" .
 			    (defined $checksum ? $checksum : "none") ."\n");
 
   my $E;
@@ -831,6 +834,54 @@ sub historyMSB {
     $xml .= "</SpMSBSummaries>\n";
     $result = $xml;
   }
+
+  return $result;
+}
+
+=item B<titleMSB>
+
+Simple routine for obtaining the title of an MSB given a checksum.
+
+ $title = OMP::MSBServer->titleMSB( $checksum );
+
+Use historyMSB for more details on the MSB if it has previously been
+observed.
+
+Queries both the MSB history table and the to be observed MSB
+table.
+
+=cut
+
+sub titleMSB {
+  my $class = shift;
+  my $checksum = shift;
+
+  my $E;
+  my $result;
+  try {
+    throw OMP::Error::BadArgs( "No checksum specified for titleMSB" )
+      if !$checksum;
+
+    my $connection = $class->dbConnection;
+
+    # first try the Done table
+    my $donedb = new OMP::MSBDoneDB( DB => $connection );
+    $result = $donedb->titleMSB( $checksum );
+
+    # Now MSBDB
+    if (!$result) {
+      my $msbdb = new OMP::MSBDB( DB => $connection );
+      $result = $msbdb->getMSBtitle( $checksum );
+    }
+
+  } catch OMP::Error with {
+    $E = shift;
+  } otherwise {
+    $E = shift;
+  };
+
+  # rethrow if a problem
+  $class->throwException( $E ) if defined $E;
 
   return $result;
 }

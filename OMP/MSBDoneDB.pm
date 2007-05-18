@@ -83,6 +83,8 @@ returned (this is simply an array of MSB information objects).
 If no checksum is supplied, returns a list when called in an array
 context and a reference to an array when called in a scalar context.
 
+One of project or checksum must be available.
+
 =cut
 
 sub historyMSB {
@@ -91,6 +93,9 @@ sub historyMSB {
 
   # Construct the query
   my $projectid = $self->projectid;
+
+  throw OMP::Error::BadArgs( "Must supply either checksum or projectid to historyMSB" )
+    if (!defined $checksum && !defined $projectid);
 
   my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
     ( $checksum ? "<checksum>$checksum</checksum>" : "" ) .
@@ -441,6 +446,28 @@ sub validateMSBtid {
   return 0 unless defined $msbinfo;
   return 1 if $msbinfo->checksum eq $checksum;
   return 0;
+}
+
+=item B<titleMSB>
+
+Retrieve the title of the MSB associated with the supplied
+checksum. This is a convenience wrapper around historyMSB. Note that
+the MSB must be present in the "done" table for this to work.
+
+  $title = $db->titleMSB( $checksum );
+
+Returns undef if the MSBID/checksum is not known. Use
+C<OMP::MSBDB->getMSBtitle> to query the active MSB table.
+
+=cut
+
+sub titleMSB {
+  my $self = shift;
+  my $checksum = shift;
+
+  # get the MSB information 
+  my $msb = $self->historyMSB( $checksum );
+  return $msb->title if defined $msb;
 }
 
 =item B<queryMSBdone>
