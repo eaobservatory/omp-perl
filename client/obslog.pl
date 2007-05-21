@@ -163,7 +163,7 @@ my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
 
-$VERSION = sprintf "%d %03d", q$Revision$ =~ /(\d+)\.(\d+)/;
+$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 &display_loading_status();
 

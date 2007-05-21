@@ -55,7 +55,7 @@ our $WIRE_DIR = OMP::Config->getData( 'acsis_translator.wiredir' );
 our $DEBUG = 0;
 
 # Version number
-our $VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
+our $VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 # Maximum size of a cube per gridder (slice) in pixels
 my $max_slice_size_in_gb = 0.5;

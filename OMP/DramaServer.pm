@@ -31,7 +31,7 @@ use OMP::Error qw/ :try /;
 use base qw/OMP::SOAPServer /;
 
 use vars qw/ $VERSION /;
-$VERSION = sprintf("%d.%03d", q$Revision$ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 
 =head1 METHODS
@@ -158,6 +158,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2004 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science & Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
