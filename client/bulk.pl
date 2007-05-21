@@ -125,7 +125,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if ($version) {
   my $id = '$Id$ ';
   print "bulk - Submit a feedback comment to multiple projects\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

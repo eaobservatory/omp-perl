@@ -102,7 +102,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if( $version ) {
   my $id = '$Id$ ';
   print "override_alert - Provide alerts for overrides\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

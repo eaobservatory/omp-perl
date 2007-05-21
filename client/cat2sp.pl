@@ -125,7 +125,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if ($version) {
   my $id = '$Id$ ';
   print "cat2sp - catalogue to science program importer\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

@@ -76,7 +76,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if ($version) {
   my $id = '$Id$ ';
   print "sp2cat - science program source extractor\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

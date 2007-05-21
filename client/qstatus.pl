@@ -85,7 +85,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if ($version) {
   my $id = '$Id$ ';
   print "ompqstatus - Display current queue status\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

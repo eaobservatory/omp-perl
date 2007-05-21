@@ -79,7 +79,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if ($version) {
   my $id = '$Id$ ';
   print "omplisttargs - List targets found in science programme\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 

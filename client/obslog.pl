@@ -123,7 +123,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if( $version ) {
     my $id = '$Id$ ';
   print "obslog - Observation reporting tool\n";
-  print " CVS revision: $id\n";
+  print " Source code revision: $id\n";
   exit;
 }
 
