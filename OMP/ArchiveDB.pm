@@ -434,13 +434,23 @@ sub _query_files {
 
           # Open the NDF environment.
           my $STATUS = &NDF::SAI__OK;
-          ndf_begin();
           err_begin( $STATUS );
+          ndf_begin();
 
-          # Retrieve the FrameSet.
+          # Retrieve the FrameSet. In cases where the file fails to
+	  # open but we read the header okay above, simply abort from
+	  # retrieving the frameset since we know that HDS containers
+	  # will not usually have a .WCS (especially inside a .HEADER)
           ndf_find( NDF::DAT__ROOT, $file, my $indf, $STATUS );
-          $frameset = ndfGtwcs( $indf, $STATUS );
-          ndf_annul( $indf, $STATUS );
+	  if ($STATUS == &NDF::SAI__OK) {
+	    ndf_state( $indf, "WCS", my $isthere, $STATUS);
+	    $frameset = ndfGtwcs( $indf, $STATUS ) if $isthere;
+	    ndf_annul( $indf, $STATUS );
+	  } else {
+	    # annul status - we only care about status on reading the WCS
+	    # not if the file itself is not a real NDF
+	    err_annul( $STATUS );
+	  }
           ndf_end( $STATUS );
 
           # Handle errors.
