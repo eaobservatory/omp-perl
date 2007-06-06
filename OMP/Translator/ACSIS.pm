@@ -3864,12 +3864,17 @@ the tracking centre.
 This knowledge is especially important for single pixel pointing observations
 and stare observartions with HARP where there is no central pixel.
 
+If the "arrayCentred" switch is true, undef will be returned regardless of mode.
+
 =cut
 
 sub tracking_receptor {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
+
+  # arrayCentred switch trumps everything
+  return if (exists $info{arrayCentred} && $info{arrayCentred});
 
   # First decide whether we should be aligning with a specific
   # receptor?

@@ -4021,6 +4021,7 @@ sub SpIterFolder {
       my $widePhotom = $self->_get_pcdata( $child, 'widePhotometry' );
 
       # For Het
+      my $arrayCentred = $self->_get_pcdata( $child, 'arrayCentred' );
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
@@ -4038,6 +4039,8 @@ sub SpIterFolder {
       $stare{nintegrations} = $nint;
       $stare{widePhotom} = $self->_str_to_bool( $widePhotom )
 	if defined $widePhotom;
+      $stare{arrayCentred} = $self->_str_to_bool( $arrayCentred )
+	if defined $arrayCentred;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
