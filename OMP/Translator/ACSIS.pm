@@ -1038,7 +1038,7 @@ sub secondary_mirror {
   if ($smu->smu_mode() =~  /(jiggle_chop|chop_jiggle)/) {
     # First get the canonical RTS step time. This controls the time spent on each
     # jiggle position.
-    my $rts = $self->step_time( %info );
+    my $rts = $self->step_time( $tcs, %info );
 
     # total number of points in pattern
     my $npts = $jig->npts;
@@ -1554,6 +1554,7 @@ sub rts_config {
   # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
   # is actually a jiggle_chop
   $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
+  $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
 
   # the RTS information is read from a wiring file
   # indexed by observing mode
@@ -1591,6 +1592,7 @@ sub jos_config {
 		pointing    => 'pointing',
 		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
 		jiggle_chop => 'jiggle_chop',
+		jiggle_pssw => 'grid_pssw',
 		grid_chop   => 'jiggle_chop',
 		grid_pssw   => 'grid_pssw',
 		raster_pssw => 'raster_pssw',
@@ -1604,29 +1606,15 @@ sub jos_config {
   }
 
   # The number of cycles is simply the number of requested integrations
+  # This value is no longer present in the OT and is derived for each mode dynamically
   my $num_cycles = (defined $info{nintegrations}  ? $info{nintegrations} : 1);
   $jos->num_cycles( $num_cycles );
 
   # The step time is always present
-  $jos->step_time( $self->step_time( %info ) );
+  $jos->step_time( $self->step_time( $cfg, %info ) );
 
-  # N_CALSAMPLES depends entirely on the step time and the time from
-  # the config file. Number of cal samples. This is hard-wired in
-  # seconds but in units of STEP_TIME
-  my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
-
-  # if caltime is less than step time (eg raster) we still need to do at
-  # least 1 cal
-  $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
-
-  # Now specify the maximum time between cals in steps
-  my $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
-  $jos->steps_per_cal( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
-
-  # Now calculate the maximum time between refs in steps
-  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
-				     ($info{continuumMode} ? "_cont" :""));
-  $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
+  # Calculate the cal time and time between cals/refs in steps
+  my ($calgap, $refgap) = $self->calc_jos_times( $jos, %info );
 
   if ($self->verbose) {
     print {$self->outhdl} "Generic JOS parameters:\n";
@@ -1783,7 +1771,7 @@ sub jos_config {
     $jos->num_nod_sets( $num_nod_sets );
 
     if ($self->verbose) {
-      print {$self->outhdl} "Jiggle JOS parameters:\n";
+      print {$self->outhdl} "Jiggle with chop JOS parameters:\n";
       if (defined $timing{CHOPS_PER_JIG}) {
 	print {$self->outhdl} "\tChopping then Jiggling\n";
       } else {
@@ -1876,6 +1864,8 @@ sub jos_config {
     my $total_time = $num_cycles*$info{secsPerCycle};
 
     # Recalculate number of cycles unless we already have num_cycles > 1
+    # We do this because historically, the OT allowed people to specify the
+    # number of cycles - that is until we realised it was dangerous and wrong
     my $recalc;
     if ($num_cycles == 1) {
       $num_cycles = ceil($total_time/$max_time_on);
@@ -1886,14 +1876,11 @@ sub jos_config {
     # First JOS_MIN
     # This is the number of samples on each grid position
     # so = secsPerCycle / STEP_TIME
-    my $jos_min = ceil($total_time/$num_cycles/ $self->step_time( %info ));
+    my $jos_min = ceil($total_time/$num_cycles/ $self->step_time( $cfg, %info ));
     $jos->jos_min($jos_min);
 
-    # N_REFSAMPLES should be equal
-    # to the number of samples on each grid position
-    # i.e. $jos_min
-    my $nrefs = $jos_min;
-    $jos->n_refsamples( $nrefs );
+    # Sharing the off?
+    $jos->shareoff( $info{separateOff} ? 0 : 1 );
 
     # NUM_NOD_SETS - set to 1, will not be used.
     my $num_nod_sets = 1;
@@ -1903,12 +1890,66 @@ sub jos_config {
       print {$self->outhdl} "Grid JOS parameters:\n";
       print {$self->outhdl} "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
+      print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
       print {$self->outhdl} "\tNumber of steps per on: $jos_min\n";
       print {$self->outhdl} "\tNumber of steps per off: $nrefs\n";
       if ($num_cycles > 1 && $recalc) {
 	print {$self->outhdl} "\tNumber of cycles recalculated: $num_cycles\n";
       }
       print {$self->outhdl} "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
+    }
+
+  } elsif ($info{observing_mode} eq 'jiggle_pssw') {
+    # We know the requested time per point
+    # we know how many points in the pattern
+    # We know if have to break the integration over multiple cycles
+
+    throw OMP::Error::TranslateFail( "Requested integration time (secsPerJiggle) is 0")
+      if (!exists $info{secsPerJiggle} || !defined $info{secsPerJiggle} ||
+	  $info{secsPerJiggle} <= 0);
+
+    # first get the Secondary object, via the TCS
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+    # ... and secondary
+    my $secondary = $tcs->getSecondary();
+    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+    # Get the full jigle parameters from the secondary object
+    my $jig = $secondary->jiggle;
+    my $njigpnts = $jig->npts;
+
+    # The step_time calculation has already taken into account the time between refs
+
+    # How many steps do we need per jiggle position TOTAL
+    my $total_steps_per_jigpos = $info{secsPerJiggle} / $jos->step_time;
+
+    # Number of times we can go round in the time between refs
+    my $times_round_pattern_per_seq = min($total_steps_per_jigpos,
+					  max(1, int( $jos->steps_per_ref / $njigpnts )));
+
+    # number of repeats (cycles)
+    my $num_cycles = POSIX::ceil($total_steps_per_jigpos / $times_round_pattern_per_seq);
+
+    # This gives a JOS_MIN and NUM_CYCLES of
+    $jos->jos_min( $jig->npts * $times_round_pattern_per_seq );
+    $jos->num_cycles( $num_cycles );
+
+    # Sharing the off?
+    $jos->shareoff( $info{separateOff} ? 0 : 1 );
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Jiggle/PSSW JOS parameters:\n";
+      print {$self->outhdl} "\tRequested integration (ON) time per position: $info{secsPerJiggle} secs ".
+	"($total_steps_per_jigpos steps)\n";
+      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
+      print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
+      print {$self->outhdl} "\tNumber of steps per on: ".$jos->jos_min."\n";
+      print {$self->outhdl} "\tNumber of points in jiggle pattern: $njigpnts\n";
+      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
+      print {$self->outhdl} "\tActual integration time per grid position: ".
+	($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
@@ -2459,6 +2500,7 @@ sub acsisdr_recipe {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
+    $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
 
     # Need to special case chop and chop-jiggle vs jiggle-chop
     if ($obsmode =~ /jiggle/) {
@@ -2476,6 +2518,8 @@ sub acsisdr_recipe {
 
       if ($smu_mode eq 'chop' || $smu_mode eq 'chop_jiggle') {
 	$obsmode = 'chop_jiggle';
+      } else {
+	throw OMP::Error::FatalError("SMU mode '$smu_mode' for obsmode '$obsmode' is unexpected");
       }
 
     }
@@ -2923,12 +2967,13 @@ sub rtd_config {
   throw OMP::Error::FatalError('No instrument defined - needed to select correct RTD file !')
     unless defined $inst;
 
-  # The filename is DR receipe dependent and optionally instrument dependent
+  # The filename is DR recipe dependent and optionally instrument dependent
   my $root;
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
+    $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
     $root = $obsmode;
   } else {
     # keyed on observing type
@@ -3244,7 +3289,7 @@ sub observing_mode {
     } elsif ($swmode =~ /^Frequency-/) {
       $switching_mode = 'freqsw';
     } elsif ($swmode eq 'Position') {
-      throw OMP::Error::TranslateFail("jiggle_pssw mode not supported\n");
+      $switching_mode = 'pssw';
     } else {
       throw OMP::Error::TranslateFail("Jiggle with switch mode '$swmode' not supported\n");
     }
@@ -3581,12 +3626,13 @@ sub bandwidth_mode {
 Returns the recommended RTS step time for this observing mode. Time is
 returned in seconds.
 
- $rts = $trans->step_time( %info );
+ $rts = $trans->step_time( $cfg, %info );
 
 =cut
 
 sub step_time {
   my $self = shift;
+  my $cfg = shift;
   my %info = @_;
 
   # In raster_pssw the step time is defined to be the time per 
@@ -3596,6 +3642,67 @@ sub step_time {
     $step = $info{sampleTime};
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
     $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
+  } elsif ($info{observing_mode} =~ /jiggle_pssw/) {
+    # The step time has to be such that we can get round the jiggle
+    # pattern in max_time_between_refs seconds.
+    # It also has to not exceed the requested integration time per jiggle position.
+    # Additionally, we would like to get a reasonable number of spectra out 
+    # for the observation (for statistics) so probably do not want to exceed 2 seconds per spectrum
+
+    # Need the number of points in the jiggle pattern
+    my $tcs;
+    if ($cfg->isa( "JAC::OCS::Config::TCS")) {
+      $tcs = $cfg;
+    } else {
+      $tcs = $cfg->tcs;
+      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    }
+
+    # ... and secondary
+    my $secondary = $tcs->getSecondary();
+    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+    # Get the full jigle parameters from the secondary object
+    my $jig = $secondary->jiggle;
+    my $njigpnts = $jig->npts;
+
+    # Need the time between refs
+    my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
+				       ($info{continuumMode} ? "_cont" :""));
+
+    # Calculate the maximum amount of time we can spend per jiggle point in that period
+    my $max_time = $refgap / $njigpnts;
+
+    # Now we need to find out how much time has actually been requested
+    my $requested = $info{secsPerJiggle};
+
+    # if the requested time is smaller than the max time we can set the step
+    # time to the max time directly - we can divide it up later if we want more
+    # spectra
+    if ($max_time >= $requested) {
+      $step = $requested;
+    } else {
+      # Choose a step time that will be less than max_time but
+      # evenly divide requested time since we will have to go round the
+      # pattern an integer number of times (ie go to a ref an integer
+      # number of times) and step time can't change for the last visit.
+      my $number_of_sequences = POSIX::ceil($requested / $max_time);
+      $step = $requested / $number_of_sequences;
+    }
+
+    # if the step time is larger than 2 seconds divide it up into
+    # smaller chunks that are at least 1 second.
+    my $max_step = 2.0;
+    if ($step > $max_step) {
+      for my $i (2..POSIX::ceil($max_time) ) {
+	my $new = $step / $i;
+	if ($new < $max_step) {
+	  $step = $new;
+	  last;
+	}
+      }
+    }
+
   } elsif ($info{observing_mode} =~ /grid_chop/) {
     # step time has to be no bigger than the requested integration (corrected
     # for the nods per nod set)
@@ -3616,6 +3723,43 @@ sub step_time {
 				   (defined $step ? $step : "undef")."]\n") unless $step > 0;
 
   return $step;
+}
+
+=item B<calc_jos_times>
+
+Calculate the time between refs and cals and the length of a cal.
+
+  ($calgap, $refgap) = $self->calc_jos_times( $jos, %info );
+
+Returns the actual cal and ref gaps (as rederived from the step time)
+
+=cut
+
+sub calc_jos_times {
+  my $self = shift;
+  my $jos = shift;
+  my %info = shift;
+
+  # N_CALSAMPLES depends entirely on the step time and the time from
+  # the config file. Number of cal samples. This is hard-wired in
+  # seconds but in units of STEP_TIME
+  my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
+
+  # if caltime is less than step time (eg raster) we still need to do at
+  # least 1 cal
+  $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
+
+  # Now specify the maximum time between cals in steps
+  my $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
+  $jos->steps_per_cal( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
+
+  # Now calculate the maximum time between refs in steps
+  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
+				     ($info{continuumMode} ? "_cont" :""));
+  $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
+
+  return ($jos->steps_per_cal * $jos->step_time,
+	  $jos->steps_per_ref * $jos->step_time );
 }
 
 =item B<hardware_map>
