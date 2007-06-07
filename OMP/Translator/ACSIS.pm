@@ -1892,9 +1892,8 @@ sub jos_config {
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
       print {$self->outhdl} "\tNumber of steps per on: $jos_min\n";
-      print {$self->outhdl} "\tNumber of steps per off: $nrefs\n";
       if ($num_cycles > 1 && $recalc) {
-	print {$self->outhdl} "\tNumber of cycles recalculated: $num_cycles\n";
+	print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       }
       print {$self->outhdl} "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
     }
