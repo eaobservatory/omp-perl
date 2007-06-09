@@ -4022,7 +4022,7 @@ sub SpIterFolder {
 
       # For Het
       my $arrayCentred = $self->_get_pcdata( $child, 'arrayCentred' );
-      my $separateOff = $self->_get_pcdata( $child, 'separateOff' );
+      my $separateOffs = $self->_get_pcdata( $child, 'separateOffs' );
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
@@ -4042,8 +4042,8 @@ sub SpIterFolder {
 	if defined $widePhotom;
       $stare{arrayCentred} = $self->_str_to_bool( $arrayCentred )
 	if defined $arrayCentred;
-      $stare{separateOff} = $self->_str_to_bool( $separateOff )
-	if defined $separateOff;
+      $stare{separateOffs} = $self->_str_to_bool( $separateOffs )
+	if defined $separateOffs;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
@@ -4064,7 +4064,7 @@ sub SpIterFolder {
       my $jigPA = $self->_get_pcdata( $child, 'jigglePa' );
       my $scaleFactor = $self->_get_pcdata( $child, 'scaleFactor' );
       my $contmode = $self->_get_pcdata( $child, "continuumMode" );
-      my $separateOff = $self->_get_pcdata( $child, 'separateOff' );
+      my $separateOffs = $self->_get_pcdata( $child, 'separateOffs' );
 
       # seconds per cycle is deprecated in favor of seconds per jiggle point
       # we assume that secsPerCycle *means* secsPerJiggle in modern usage
@@ -4086,8 +4086,8 @@ sub SpIterFolder {
 						  'jigglePattern');
       $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
 
-      $jiggle{separateOff} = $self->_str_to_bool( $separateOff )
-	if defined $separateOff;
+      $jiggle{separateOffs} = $self->_str_to_bool( $separateOffs )
+	if defined $separateOffs;
       $jiggle{secsPerJiggle}  = $sPerJ if defined $sPerJ;
       $jiggle{jiggleSystem} = $jigSystem if defined $jigSystem;
       $jiggle{jigglePA} = $jigPA if defined $jigPA;
