@@ -30,7 +30,7 @@ use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
-use Math::Trig / rad2deg /;
+use Math::Trig qw/ rad2deg /;
 use IO::Tee;
 
 use JCMT::ACSIS::HWMap;
@@ -1034,6 +1034,10 @@ sub secondary_mirror {
 
   }
 
+  # Since we need access to the jiggle pattern to calculate step time
+  # we store what we have so it is available to the step_time object
+  $tcs->_setSecondary( $smu );
+
   # Relative timing required if we are jiggling and chopping
   if ($smu->smu_mode() =~  /(jiggle_chop|chop_jiggle)/) {
     # First get the canonical RTS step time. This controls the time spent on each
@@ -1047,6 +1051,9 @@ sub secondary_mirror {
     # maximum amount of time we want to spend per chop position and the constraint
     # that n_jigs_on must be divisible into the total number of jiggle positions.
 
+    # Additionally, if we have been asked to use independent offs we have to 
+    # do only one step per chop
+
     # Let's say this is maximum time between chops in seconds
     my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
 					 ($info{continuumMode} ? "_cont" :""));
@@ -1056,7 +1063,7 @@ sub secondary_mirror {
 
     if ($maxsteps == 0) {
       throw OMP::Error::TranslateFail("Maximum chop duration is shorter than RTS step time!\n");
-    } elsif ($maxsteps == 1) {
+    } elsif ($maxsteps == 1 || $info{separateOffs}) {
       # we can only do one step per chop
       $smu->timing( CHOPS_PER_JIG => 1 );
 
@@ -1071,20 +1078,20 @@ sub secondary_mirror {
 	# start at the maximum allowed and decrement until we get something that
 	# divides exactly into the total number of points. Not a very elegant
 	# approach
-	$njigs = $maxsteps;
+        $njigs = $maxsteps;
 
 	$njigs-- while ($npts % $njigs != 0);
       }
 
       # the number of steps in the "off" position depends on the number
       # of steps we have just completed in the "on" (but half each side).
+      my ($nsteps_total, $steps_per_off) = $self->calc_jiggle_times( $npts, $njigs );
       $smu->timing( N_JIGS_ON => $njigs,
-		    N_CYC_OFF => int( (sqrt($njigs)/2) + 0.5 ),
+		    N_CYC_OFF => $steps_per_off,
 		  );
    }
   }
 
-  $tcs->_setSecondary( $smu );
 }
 
 =item B<fe_config>
@@ -1713,20 +1720,11 @@ sub jos_config {
       # we are (the sqrt scaling means that a single pattern is more efficient than breaking it
       # up into smaller chunks
 
-      # Number of chunks
-      $njig_chunks = $jig->npts / $timing{N_JIGS_ON};
-
-      # Calculate number of steps in a jiggle pattern
-      # The factor of 2 is because the chop pattern does N_CYC_OFF either side of the ON
-      $nsteps = $njig_chunks * ( $timing{N_JIGS_ON} + ( 2 * $timing{N_CYC_OFF} ) );
+      $nsteps = $self->calc_jiggle_times( $jig->npts, $timing{N_JIGS_ON}, $timing{N_CYC_OFF} );
 
     } elsif (defined $timing{CHOPS_PER_JIG}) {
 
-      # always have one chunk
-      $njig_chunks = 1;
-
-      # time on = time off
-      $nsteps = $jig->npts * 2;
+      $nsteps = $self->calc_jiggle_times( $jig->npts );
 
     } else {
       throw OMP::Error::FatalError("Bizarre error whereby jiggle_chop neither defines CHOPS_PER_JIG nor N_JIGS_ON");
@@ -1778,7 +1776,8 @@ sub jos_config {
 	print {$self->outhdl} "\tJiggling then Chopping\n";
       }
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print {$self->outhdl} "\tDuration of single jiggle pattern: $timePerJig sec\n";
+      print {$self->outhdl} "\tOffs are ".($info{separateOffs} ? "not " : "") . "shared\n";
+      print {$self->outhdl} "\tDuration of single jiggle pattern: $timePerJig sec (".$jig->npts." points)\n";
       print {$self->outhdl} "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
       print {$self->outhdl} "\tN repeats of whole jiggle pattern required: $nrepeats\n";
       print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
@@ -1880,7 +1879,7 @@ sub jos_config {
     $jos->jos_min($jos_min);
 
     # Sharing the off?
-    $jos->shareoff( $info{separateOff} ? 0 : 1 );
+    $jos->shareoff( $info{separateOffs} ? 0 : 1 );
 
     # NUM_NOD_SETS - set to 1, will not be used.
     my $num_nod_sets = 1;
@@ -1907,17 +1906,8 @@ sub jos_config {
       if (!exists $info{secsPerJiggle} || !defined $info{secsPerJiggle} ||
 	  $info{secsPerJiggle} <= 0);
 
-    # first get the Secondary object, via the TCS
-    my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-
-    # ... and secondary
-    my $secondary = $tcs->getSecondary();
-    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
-
     # Get the full jigle parameters from the secondary object
-    my $jig = $secondary->jiggle;
-    my $njigpnts = $jig->npts;
+    my $jig = $self->get_jiggle( $cfg );
 
     # The step_time calculation has already taken into account the time between refs
 
@@ -1926,7 +1916,7 @@ sub jos_config {
 
     # Number of times we can go round in the time between refs
     my $times_round_pattern_per_seq = min($total_steps_per_jigpos,
-					  max(1, int( $jos->steps_per_ref / $njigpnts )));
+					  max(1, int( $jos->steps_per_ref / $jig->npts )));
 
     # number of repeats (cycles)
     my $num_cycles = POSIX::ceil($total_steps_per_jigpos / $times_round_pattern_per_seq);
@@ -1936,7 +1926,7 @@ sub jos_config {
     $jos->num_cycles( $num_cycles );
 
     # Sharing the off?
-    $jos->shareoff( $info{separateOff} ? 0 : 1 );
+    $jos->shareoff( $info{separateOffs} ? 0 : 1 );
 
     if ($self->verbose) {
       print {$self->outhdl} "Jiggle/PSSW JOS parameters:\n";
@@ -1945,7 +1935,7 @@ sub jos_config {
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
       print {$self->outhdl} "\tNumber of steps per on: ".$jos->jos_min."\n";
-      print {$self->outhdl} "\tNumber of points in jiggle pattern: $njigpnts\n";
+      print {$self->outhdl} "\tNumber of points in jiggle pattern: ". $jig->npts."\n";
       print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       print {$self->outhdl} "\tActual integration time per grid position: ".
 	($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
@@ -2517,8 +2507,6 @@ sub acsisdr_recipe {
 
       if ($smu_mode eq 'chop' || $smu_mode eq 'chop_jiggle') {
 	$obsmode = 'chop_jiggle';
-      } else {
-	throw OMP::Error::FatalError("SMU mode '$smu_mode' for obsmode '$obsmode' is unexpected");
       }
 
     }
@@ -2758,16 +2746,8 @@ sub cubes {
       #  - the extent of the jiggle pattern
       #  - the footprint of the array. Assume single pixel
 
-      # first get the Secondary object, via the TCS
-      my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-
-      # ... and secondary
-      my $secondary = $tcs->getSecondary();
-      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
-
-      # Get the information
-      my $jig = $secondary->jiggle;
+      # Get the jiggle information
+      my $jig = $self->get_jiggle( $cfg );
       throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
 
       # Store the grid coordinate frame
@@ -3638,8 +3618,13 @@ sub step_time {
   # output pixel. Everything else reads from config file
   my $step;
   if ($info{observing_mode} =~ /raster_pssw/ ) {
+    # One spectrum per sample time requested. This assumes that the sample time is
+    # reasonably small because we do not break the map up into small step time with
+    # more repeats
     $step = $info{sampleTime};
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
+    # Choose a fixed time that will enable us to get a reasonable number of
+    # spectra out rather than a single spectrum for the entire "time_between_ref" period.
     $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
   } elsif ($info{observing_mode} =~ /jiggle_pssw/) {
     # The step time has to be such that we can get round the jiggle
@@ -3649,58 +3634,137 @@ sub step_time {
     # for the observation (for statistics) so probably do not want to exceed 2 seconds per spectrum
 
     # Need the number of points in the jiggle pattern
-    my $tcs;
-    if ($cfg->isa( "JAC::OCS::Config::TCS")) {
-      $tcs = $cfg;
-    } else {
-      $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-    }
-
-    # ... and secondary
-    my $secondary = $tcs->getSecondary();
-    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
-
-    # Get the full jigle parameters from the secondary object
-    my $jig = $secondary->jiggle;
-    my $njigpnts = $jig->npts;
+    my $jig = $self->get_jiggle( $cfg );
 
     # Need the time between refs
     my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
 				       ($info{continuumMode} ? "_cont" :""));
 
     # Calculate the maximum amount of time we can spend per jiggle point in that period
-    my $max_time = $refgap / $njigpnts;
+    my $max_time = $refgap / $jig->npts;
 
     # Now we need to find out how much time has actually been requested
-    my $requested = $info{secsPerJiggle};
+    $step = $self->step_time_reduce( $info{secsPerJiggle}, $max_time, 1.0 );
 
-    # if the requested time is smaller than the max time we can set the step
-    # time to the max time directly - we can divide it up later if we want more
-    # spectra
-    if ($max_time >= $requested) {
-      $step = $requested;
+  } elsif ($info{observing_mode} =~ /jiggle_chop/ && !$info{continuumMode} ) {
+    # Continuum mode should be off. In continuum mode we simply go as fast as we can.
+    # In all cases we must get round the pattern before max_time_between_nods
+    # We will scale the result to be less than 2 seconds for the step time to allow
+    # reasonable readout rate for data examination.
+    # In this calculation there is no difference between shared and non-shared offs.
+    # The difference is in the secondary configuration, whether to chop and jiggle
+    # or jiggle then chop.
+
+    # Get the time between chops
+    my $time_between_chops = OMP::Config->getData( 'acsis_translator.max_time_between_chops' );
+
+    # and the time between
+    my $time_between_nods = OMP::Config->getData( 'acsis_translator.max_time_between_nods' );
+
+    # Minimum step time is read from the config
+    my $min_time = OMP::Config->getData( 'acsis_translator.step_time' );
+
+    # or the requirement that the time between nods can fit the pattern
+    # Need to know the number of jiggle points
+    my $jig = $self->get_jiggle( $cfg );
+
+    # For separate Offs we know exactly how many offs there are going to be and that
+    # we have to fit the pattern into half the nod time whilst not exceeding
+    # the chop time.
+    my $max_time;
+    if ($info{separateOffs}) {
+      # same amount of time in the on and off so divide nod time by 2
+      my $max_pattern_time = $time_between_nods / 2.0;
+
+      # max time is now the minimum of the chop time or the time needed to
+      # complete the pattern in the nod time
+      $max_time = min( $time_between_chops,
+		       $max_pattern_time / $jig->npts );
     } else {
-      # Choose a step time that will be less than max_time but
-      # evenly divide requested time since we will have to go round the
-      # pattern an integer number of times (ie go to a ref an integer
-      # number of times) and step time can't change for the last visit.
-      my $number_of_sequences = POSIX::ceil($requested / $max_time);
-      $step = $requested / $number_of_sequences;
-    }
 
-    # if the step time is larger than 2 seconds divide it up into
-    # smaller chunks that are at least 1 second.
-    my $max_step = 2.0;
-    if ($step > $max_step) {
-      for my $i (2..POSIX::ceil($max_time) ) {
-	my $new = $step / $i;
-	if ($new < $max_step) {
-	  $step = $new;
-	  last;
+      # if we are sharing offs, the amount of time in the off is sqrt(N) number
+      # of ONs in that cycle. BUT there are a number of ways to complete the
+      # pattern which must be broken into equal chunks. We need to calculate the
+      # most efficient way to break up the pattern in order to maximize integration
+      # time whilst minimizing chop time. In practice that means making sure that
+      # we use the largest step time we can in order to fill the time_between_chops
+      # whilst also being able to complete the pattern in time to nod.
+
+      # first thing to do is factor the number of points into equal chunks
+      # Start at half and stop at 2 (since we know that 1 and itself are factors)
+      my $npts = $jig->npts;
+      my @nchunks = ( 1 );
+      for (my $i = 2; $i < POSIX::ceil($npts/2);  $i++) {
+	push(@nchunks, $i ) if $npts % $i == 0;
+      }
+
+      # Now calculate the chunk size (number of points that need to occur before
+      # chopping) from the number of chunks
+      my @chunks = map { $npts / $_ } @nchunks;
+
+      # The maximum step time from the chop time is derived from the
+      # size of that chunk
+      my @max_step_from_chop = map { $time_between_chops / $_ } @chunks;
+
+      # and now calculate the length of the OFF and the duration of the total pattern
+      # including offs
+      my @duration = map { $self->calc_jiggle_times( $npts, $_ ) } @chunks;
+
+      # The maximum step time that we can therefore use and still complete the
+      # pattern is 
+      my @max_step_from_nod = map {$time_between_nods / $_ } @duration;
+
+      print "Chunk size:".join(",",@chunks)."\n";
+      print "Step times from nod constraint: ".join(",",@max_step_from_nod),"\n";
+      print "Step times from chop constraint: ".join(",",@max_step_from_chop),"\n";
+
+      # Need the minimum value of the chop/nod constraint for each pattern
+      my @max_time;
+      for my $i (0..$#chunks) {
+	my $value = min( $max_step_from_nod[$i], $max_step_from_chop[$i]);
+	# if the value is below our threshold replace it with undef
+	$value = undef if $value < $min_time;
+	push(@max_time, $value );
+      }
+
+      # Now choose the time that is smallest and defined
+      # Do not use min() because we wish to know which index was chosen
+      my $chosen_chunk;
+      for my $i (0..$#max_time) {
+	my $this = $max_time[$i];
+	if (!defined $max_time || $max_time[$i] < $max_time) {
+	  $max_time = $max_time[$i];
+	  $chosen_chunk = $i;
 	}
       }
+
+      throw OMP::Error::TranslateFail("Unable to choose a reasonable step time from this jiggle pattern!")
+	if !defined $max_time;
+
+      # We can now tweak the step time to fit into the nod time (since it will not
+      # fit exactly without doing this).
+      my $duration_of_pattern = $duration[$chosen_chunk] * $max_time;
+      my $target_jos_mult = POSIX::ceil($time_between_nods / $duration_of_pattern );
+
+      my $adjusted = $time_between_nods / ( $target_jos_mult * $duration[$chosen_chunk] );
+      print "Duration(steps) = $duration[$chosen_chunk]  Target Mult = $target_jos_mult  Adjusted=$adjusted\n";
+
+      $max_time = $adjusted if $adjusted > $min_time;
+
     }
+
+
+    # Actual integration time requested must be scaled by the nod set size
+    my $nod_set_size = $self->get_nod_set_size( %info );
+    my $time_per_nod = $info{secsPerJiggle} / $nod_set_size;
+
+    print "Max time = $max_time seconds\n";
+    print "Min time = $min_time\n";
+    print "Timepernod = $time_per_nod\n";
+
+
+    # and calculate a value
+    $step = $self->step_time_reduce( $time_per_nod, $max_time, $min_time );
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
     # step time has to be no bigger than the requested integration (corrected
@@ -3714,12 +3778,64 @@ sub step_time {
 		   )
 	       );
     $step /= $nod_set_size;
+
   } else {
+    # eg jiggle/chop continuum mode
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
   }
 
   throw OMP::Error::TranslateFail( "Calculated step time not a positive number [was ".
 				   (defined $step ? $step : "undef")."]\n") unless $step > 0;
+
+  return $step;
+}
+
+=item B<step_time_reduce>
+
+Calculate a step time given the requested total time, the maximum step time
+and the minimum step time.
+
+  $step = $self->step_time_reduce( $requested, $max_time, $min_time );
+
+Step times will be less than 2.0 seconds and greater than min_time.
+
+=cut
+
+sub step_time_reduce {
+  my $self = shift;
+  my ($requested, $max_time, $min_time) = @_;
+
+  # if the requested time is smaller than the max time we can set the step
+  # time to the max time directly - we can divide it up later if we want more
+  # spectra
+  my $step;
+  if ($max_time >= $requested) {
+    $step = $requested;
+  } else {
+    # Choose a step time that will be less than max_time but
+    # evenly divide requested time since we will have to go round the
+    # pattern an integer number of times (ie go to a ref an integer
+    # number of times) and step time can't change for the last visit.
+    my $nrepeats = POSIX::ceil($requested / $max_time);
+    $step = $requested / $nrepeats;
+    print "New step= $step  Requested = $requested NRepeats = $nrepeats\n";
+  }
+
+  # if the step time is larger than 2 seconds divide it up into
+  # smaller chunks that are at least 1 second (2/2)
+  my $max_step = 2.0;
+  if ($step > $max_step) {
+    for my $i (2..POSIX::ceil($max_time) ) {
+      my $new = $step / $i;
+      if ($new < $max_step) {
+	$step = $new;
+	last;
+      }
+    }
+  }
+
+  # make sure we are at least min_time seconds
+  $step = $min_time if $step < $min_time;
 
   return $step;
 }
@@ -3760,6 +3876,65 @@ sub calc_jos_times {
   return ($jos->steps_per_cal * $jos->step_time,
 	  $jos->steps_per_ref * $jos->step_time );
 }
+
+=item B<calc_jiggle_times>
+
+Calculate the total number of steps in a pattern given a number of points in the pattern
+and the size of a chunk and optionally the number of steps in the off beam.
+
+  $nsteps = $self->calc_jiggle_times( $njigpnts, $jigs_per_on, $steps_per_off ); 
+
+Note the scalar context. If the number of steps per off is not given, it
+is calculated and returned along with the total duration.
+
+  ($nsteps, $steps_per_off ) = $self->calc_jiggle_times( $njigpnts, $jigs_per_on );
+
+The steps_per_off calculation assumes sqrt(N) behaviour (shared off) behaviour.
+
+If only a number of jiggle points is supplied, it is assumed that there are the same
+number of points in the off as in the on.
+
+  $nsteps = $self->calc_jiggle_times( $njigpnts );
+
+In scalar context, only returns the number of steps (even if the number of offs
+were calculated).
+
+=cut
+
+sub calc_jiggle_times {
+  my $self = shift;
+  my ($njigpnts, $jigs_per_on, $steps_per_off ) = @_;
+
+  # separate offs
+  if (!defined $jigs_per_on) {
+    # equal size pattern
+    return ( 2 * $njigpnts );
+  }
+
+  # shared offs
+
+  # number of chunks in pattern
+  my $njig_chunks = $njigpnts / $jigs_per_on;
+
+  my $had_steps = 1;
+  if (!defined $steps_per_off) {
+    $had_steps = 0;
+    # the number of steps in the off is split equally around the on
+    # so we half the sqrt(N)
+    $steps_per_off = int( (sqrt($jigs_per_on) / 2 ) + 0.5 );
+  }
+
+  # calculate the number in the jiggle pattern. The factor of 2 is because the SMU
+  # does the OFF repeated each side of the ON.
+  my $nsteps = $njig_chunks * ( $jigs_per_on + ( 2 * $steps_per_off ) );
+
+  if (wantarray()) {
+    return ($nsteps, (!$had_steps ? $steps_per_off : () ));
+  } else {
+    return $nsteps;
+  }
+}
+
 
 =item B<hardware_map>
 
@@ -3852,6 +4027,37 @@ sub jig_info {
   # and store them
   $jig->posang( new Astro::Coords::Angle( $jpa, units => 'deg') );
   $jig->system( $jsys );
+
+  return $jig;
+}
+
+=item B<get_jiggle>
+
+Convenience wrapper for obtaining the jiggle pattern information from the config object
+
+  $jig_object = $self->get_jiggle( $cfg );
+
+=cut
+
+sub get_jiggle {
+  my $self = shift;
+  my $cfg = shift;
+
+  # Need the number of points in the jiggle pattern
+  my $tcs;
+  if ($cfg->isa( "JAC::OCS::Config::TCS")) {
+    $tcs = $cfg;
+  } else {
+    $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  }
+
+  # ... and secondary
+  my $secondary = $tcs->getSecondary();
+  throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+  # Get the full jigle parameters from the secondary object
+  my $jig = $secondary->jiggle;
 
   return $jig;
 }
