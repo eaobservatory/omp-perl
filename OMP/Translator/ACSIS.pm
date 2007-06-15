@@ -32,6 +32,7 @@ use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
 use Math::Trig qw/ rad2deg /;
 use IO::Tee;
+use Storable;
 
 use JCMT::ACSIS::HWMap;
 use JCMT::SMU::Jiggle;
@@ -149,6 +150,10 @@ sub translate {
   # Now unroll the MSB into constituent observations details
   my @configs;
   for my $obs ($msb->unroll_obs) {
+
+    # unroll_obs does not do a deep copy of references - we need independence
+    # because the translator writes to the structure
+    $obs = Storable::dclone( $obs );
 
     # Translate observing mode information to internal form
     $self->observing_mode( $obs );
