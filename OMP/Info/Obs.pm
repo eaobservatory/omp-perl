@@ -48,6 +48,8 @@ use Time::Piece;
 use Text::Wrap qw/ $columns &wrap /;
 use File::Basename;
 
+use NDF qw/ :ndf :err /;
+
 # Text wrap column size.
 $Text::Wrap::columns = 72;
 
