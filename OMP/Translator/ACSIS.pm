@@ -1631,10 +1631,14 @@ sub jos_config {
   if ($self->verbose) {
     print {$self->outhdl} "Generic JOS parameters:\n";
     print {$self->outhdl} "\tStep Time: ". $jos->step_time ." sec\n";
-    print {$self->outhdl} "\tSteps between ref: ". $jos->steps_per_ref ."\n";
+    print {$self->outhdl} "\tSteps between ref: ". $jos->steps_btwn_refs ."\n";
     print {$self->outhdl} "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
-    print {$self->outhdl} "\tSteps between Cal: ". $jos->steps_per_cal ."\n";
+    print {$self->outhdl} "\tSteps between Cal: ". $jos->steps_btwn_cals ."\n";
   }
+
+  # Always start at the first TCS index (row or offset)
+  # - if a science observation
+  $jos->start_index( 1 ) if $info{obs_type} eq 'science';
 
   # Now parameters depends on that recipe name
 
@@ -1642,47 +1646,14 @@ sub jos_config {
 
   if ($info{observing_mode} =~ /raster/) {
 
-    # Start at row 1 by default
-    $jos->start_row( 1 );
+    # Number of ref samples now calculated by the JOS
 
-    # Number of ref samples is the sqrt of the longest row
-    # for the first off only. All subsequent refs are calculated by
-    # the JOS dynamically
-
-    # we need the cube dimensions
-    my %cubes = $self->getCubeInfo( $cfg );
-
-    # need the longest row from all the cubes.
-    # For the moment, I don't expect the cubes to be different sizes...
-    # Be conservative and choose a diagonal
-    my $rlen = 0;
-    for my $c (keys %cubes) {
-      # number of pixels
-      my ($nx, $ny) = $cubes{$c}->npix;
-
-      # size per pixel
-      my ($dx,$dy) = map { $_->arcsec } $cubes{$c}->pixsize;
-
-      # length of row in arcsec
-      $rlen = max( $rlen, sqrt( ($nx*$dx)**2 + ($ny*$dy)**2 ) );
-    }
-
-    # Now convert that to a time
-    my $rtime = $rlen / $info{SCAN_VELOCITY};
-
-    # Now convert to steps
-    my $nrefs = max( 1, int( 0.5 + sqrt( $rtime / $jos->step_time ) ));
-
-    $jos->n_refsamples( $nrefs );
-
-    # JOS_MIN ??
+    # JOS_MIN (should always be 1)
     $jos->jos_min(1);
 
     if ($self->verbose) {
       print {$self->outhdl} "Raster JOS parameters:\n";
-      print {$self->outhdl} "\tLongest row time (diagonal): $rtime sec\n";
-      print {$self->outhdl} "\tNumber of ref samples for first off (estimated): $nrefs\n";
-      print {$self->outhdl} "\tStep time for sample: ". $jos->step_time . " sec\n";
+      print {$self->outhdl} "\tDuration of reference calculated by JOS dynamically\n";
     }
 
 
@@ -1886,10 +1857,6 @@ sub jos_config {
     # Sharing the off?
     $jos->shareoff( $info{separateOffs} ? 0 : 1 );
 
-    # NUM_NOD_SETS - set to 1, will not be used.
-    my $num_nod_sets = 1;
-    $jos->num_nod_sets( $num_nod_sets );
-
     if ($self->verbose) {
       print {$self->outhdl} "Grid JOS parameters:\n";
       print {$self->outhdl} "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
@@ -1921,7 +1888,7 @@ sub jos_config {
 
     # Number of times we can go round in the time between refs
     my $times_round_pattern_per_seq = min($total_steps_per_jigpos,
-					  max(1, int( $jos->steps_per_ref / $jig->npts )));
+					  max(1, int( $jos->steps_btwn_refs / $jig->npts )));
 
     # number of repeats (cycles)
     my $num_cycles = POSIX::ceil($total_steps_per_jigpos / $times_round_pattern_per_seq);
@@ -3871,15 +3838,15 @@ sub calc_jos_times {
 
   # Now specify the maximum time between cals in steps
   my $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
-  $jos->steps_per_cal( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
+  $jos->steps_btwn_cals( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
 
   # Now calculate the maximum time between refs in steps
   my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
 				     ($info{continuumMode} ? "_cont" :""));
-  $jos->steps_per_ref( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
+  $jos->steps_btwn_refs( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
 
-  return ($jos->steps_per_cal * $jos->step_time,
-	  $jos->steps_per_ref * $jos->step_time );
+  return ($jos->steps_btwn_cals * $jos->step_time,
+	  $jos->steps_btwn_refs * $jos->step_time );
 }
 
 =item B<calc_jiggle_times>
