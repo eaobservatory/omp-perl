@@ -3686,9 +3686,11 @@ sub step_time {
       # pattern is 
       my @max_step_from_nod = map {$time_between_nods / $_ } @duration;
 
-      print "Chunk size:".join(",",@chunks)."\n";
-      print "Step times from nod constraint: ".join(",",@max_step_from_nod),"\n";
-      print "Step times from chop constraint: ".join(",",@max_step_from_chop),"\n";
+      if ($self->debug) {
+        print "Chunk size:".join(",",@chunks)."\n";
+        print "Step times from nod constraint: ".join(",",@max_step_from_nod),"\n";
+        print "Step times from chop constraint: ".join(",",@max_step_from_chop),"\n";
+      }
 
       # Need the minimum value of the chop/nod constraint for each pattern
       my @max_time;
@@ -3719,7 +3721,8 @@ sub step_time {
       my $target_jos_mult = POSIX::ceil($time_between_nods / $duration_of_pattern );
 
       my $adjusted = $time_between_nods / ( $target_jos_mult * $duration[$chosen_chunk] );
-      print "Duration(steps) = $duration[$chosen_chunk]  Target Mult = $target_jos_mult  Adjusted=$adjusted\n";
+      print "Duration(steps) = $duration[$chosen_chunk]  Target Mult = $target_jos_mult  Adjusted=$adjusted\n"
+        if $self->debug;
 
       $max_time = $adjusted if $adjusted > $min_time;
 
@@ -3730,10 +3733,11 @@ sub step_time {
     my $nod_set_size = $self->get_nod_set_size( %info );
     my $time_per_nod = $info{secsPerJiggle} / $nod_set_size;
 
-    print "Max time = $max_time seconds\n";
-    print "Min time = $min_time\n";
-    print "Timepernod = $time_per_nod\n";
-
+    if ($self->debug) {
+      print "Max time = $max_time seconds\n";
+      print "Min time = $min_time\n";
+      print "Timepernod = $time_per_nod\n";
+    }
 
     # and calculate a value
     $step = $self->step_time_reduce( $time_per_nod, $max_time, $min_time );
@@ -3790,7 +3794,7 @@ sub step_time_reduce {
     # number of times) and step time can't change for the last visit.
     my $nrepeats = POSIX::ceil($requested / $max_time);
     $step = $requested / $nrepeats;
-    print "New step= $step  Requested = $requested NRepeats = $nrepeats\n";
+    print "New step= $step  Requested = $requested NRepeats = $nrepeats\n" if $self->debug;
   }
 
   # if the step time is larger than 2 seconds divide it up into
