@@ -105,6 +105,14 @@ my %support;
 %support = %{ $alloc{support} }
   if $alloc{support};
 
+# oops
+if (!keys %alloc) {
+  for my $err (@Config::IniFiles::errors) {
+    print "! $err\n";
+  }
+  die "Did not find any projects in input file!"
+}
+
 # Loop over each project and add it in
 for my $proj (keys %alloc) {
   next if $proj eq 'support';
