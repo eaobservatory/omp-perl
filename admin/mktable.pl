@@ -282,7 +282,8 @@ my %tables = (
                           uname => "VARCHAR(255)",
                           email => "VARCHAR(64) NULL",
                           alias => USERID . " NULL",
-                          _ORDER => [qw/ userid uname email alias /],
+                          cadcuser => "VARCHAR(16) NULL",
+                          _ORDER => [qw/ userid uname email alias cadcuser /],
                          },
               # Comments associated with the observing shift.
               # basically a narrative timestamped log
