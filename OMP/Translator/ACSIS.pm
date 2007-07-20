@@ -3958,6 +3958,8 @@ sub jig_info {
 		  '4x4'  => 'smu_4x4.dat',
 		  'HARP4'=> 'smu_harp4.dat',
 		  'HARP5'=> 'smu_harp5.dat',
+		  'HARP4_mc'=> 'smu_harp4_mc.dat',
+		  'HARP5_mc'=> 'smu_harp5_mc.dat',
 		  '5x5'  => 'smu_5x5.dat',
 		  '7x7'  => 'smu_7x7.dat',
 		  '9x9'  => 'smu_9x9.dat',
