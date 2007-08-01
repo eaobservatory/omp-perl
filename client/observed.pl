@@ -283,7 +283,7 @@ for my $proj (keys %sorted) {
 
     my $basedb = new OMP::BaseDB(DB => new OMP::DBbackend,);
 
-    my $flexuser = OMP::User->new(email=>'flex\@jach.hawaii.edu');
+    my $flexuser = OMP::User->new(email=>'flex@jach.hawaii.edu');
 
     $basedb->_mail_information( to => \@contacts,
 				from => $flexuser,

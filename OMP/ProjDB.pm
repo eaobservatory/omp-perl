@@ -1180,7 +1180,7 @@ sub _mail_password {
 			     to => \@addr,
 			     from => OMP::User->new(name => "omp-auto-reply"),
 			     subject => "[$projectid] OMP reissue of password for $projectid",
-			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
+			     headers => {"Reply-To" => 'flex@jach.hawaii.edu',
 					},
 			    );
 
@@ -1188,10 +1188,10 @@ sub _mail_password {
     # aren't working...
     $self->_mail_information(
 			     message => $msg,
-			     to => [OMP::User->new(email=>"frossie\@jach.hawaii.edu")],
+			     to => [OMP::User->new(email=>'frossie@jach.hawaii.edu')],
 			     from => OMP::User->new(name => "omp-auto-reply"),
 			     subject => "[$projectid] OMP reissue of password for $projectid",
-			     headers => {"Reply-To" => "flex\@jach.hawaii.edu",
+			     headers => {"Reply-To" => 'flex@jach.hawaii.edu',
 					},
 			    );
 
