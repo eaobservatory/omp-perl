@@ -55,6 +55,9 @@ our $WIRE_DIR = OMP::Config->getData( 'acsis_translator.wiredir' );
 # Debugging messages
 our $DEBUG = 0;
 
+# Fast mode: omit calculation of grid, just assume 1x1
+our $FAST = 0;
+
 # Version number
 our $VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
@@ -4291,8 +4294,14 @@ sub calc_grid {
   @offsets = $self->align_offsets( $refpa, @offsets);
 
   # Get the array of x coordinates
-  my @x = map { $_->{OFFSET_DX} } @offsets;
-  my @y = map { $_->{OFFSET_DY} } @offsets;
+  my (@x, @y);
+  unless ( $FAST ) {
+    @x = map { $_->{OFFSET_DX} } @offsets;
+    @y = map { $_->{OFFSET_DY} } @offsets;
+  } else {
+    @x = @offsets;            # Just use the default position
+    @y = @offsets;
+  }
 
   # Calculate stats
   my ($xmin, $xmax, $xcen, $xspan, $nx, $dx) = _calc_offset_stats( $nyquist, @x);
