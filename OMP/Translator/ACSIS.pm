@@ -4276,6 +4276,8 @@ the allowed tolerance when fitting irregular offsets into a regular
 grid and also for calculating a default pixel size if only a single
 pixel is required in a particular axis.
 
+In FAST mode, simply returns a default grid without calculation.
+
 =cut
 
 sub calc_grid {
@@ -4289,19 +4291,17 @@ sub calc_grid {
 		 OFFSET_DY => 0,
 	       }) unless @offsets;
 
+  # Abort if we do not require a proper grid
+  return (1,1, $nyquist, $nyquist,$offsets[0]->{OFFSET_PA},
+	  $offsets[0]->{OFFSET_DX}, $offsets[0]->{OFFSET_DY}) if $FAST;
+
   # Rotate to fixed coordinate frame
   my $refpa = $offsets[0]->{OFFSET_PA};
   @offsets = $self->align_offsets( $refpa, @offsets);
 
   # Get the array of x coordinates
-  my (@x, @y);
-  unless ( $FAST ) {
-    @x = map { $_->{OFFSET_DX} } @offsets;
-    @y = map { $_->{OFFSET_DY} } @offsets;
-  } else {
-    @x = @offsets;            # Just use the default position
-    @y = @offsets;
-  }
+  my @x = map { $_->{OFFSET_DX} } @offsets;
+  my @y = map { $_->{OFFSET_DY} } @offsets;
 
   # Calculate stats
   my ($xmin, $xmax, $xcen, $xspan, $nx, $dx) = _calc_offset_stats( $nyquist, @x);
