@@ -1865,7 +1865,28 @@ sub jos_config {
     $jos->jos_min($jos_min);
 
     # Sharing the off?
-    $jos->shareoff( $info{separateOffs} ? 0 : 1 );
+
+    # Need to know how many offsets we have (ask the %info hash rather than
+    # querying the TCS object and obsArea.
+    my $Noffsets = 1;
+    $Noffsets = scalar(@{$info{offsets}}) if (exists $info{offsets} &&
+					      defined $info{offsets});
+
+    # For a simple GRID/PSSW observation we ignore separateOffs from user
+    # if there is only one offset position or if the JOS can only observe
+    # a single off position before going to reference. Note that the OT
+    # tries to default this behaviour but does not itself take into account
+    # number of offsets and there are older programs such as the standards
+    # that will default to shared offs without updating.
+    my $separateOffs = $info{separateOffs};
+    if ( $jos_min > ($jos->steps_btwn_refs()/2)) {
+	# can only fit in a single JOS_MIN in steps_btwn refs so separate offs
+	$separateOffs = 1;
+    } elsif ($Noffsets == 1) {
+	# 1 sky position so we prefer not to share so that we can see all the spectra
+	$separateOffs = 1;
+    }
+    $jos->shareoff( $separateOffs ? 0 : 1 );
 
     if ($self->verbose) {
       print {$self->outhdl} "Grid JOS parameters:\n";
