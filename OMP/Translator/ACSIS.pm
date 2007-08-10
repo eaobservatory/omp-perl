@@ -474,7 +474,14 @@ sub handle_special_modes {
       # HARP needs to use single receptor pointing until we sort out relative
       # calibrations. Set disableNonTracking to false and HARP5 jiggle pattern.
       $info->{disableNonTracking} = 0; # Only use 1 receptor if true
-      $info->{jiggleSystem} = 'AZEL';
+
+      my $jigsys = "AZEL";
+      try {
+	  $jigsys = OMP::Config->getData( 'acsis_translator.harp_pointing_jigsys' );
+      } otherwise {
+	  # no problem, use default
+      };
+      $info->{jiggleSystem} = $jigsys;
 
       # Allow the HARP jiggle pattern to be overridden for commissioning
       # HARP5 and 5x5 are the obvious ones. 5pt or HARP4 are plausible.
@@ -2780,10 +2787,14 @@ sub cubes {
       if defined $mappa;
 
     # Decide whether the grid is regridding in sky coordinates or in AZEL
-    # Focus and Pointing are AZEL
-    # Assume also that AZEL jiggles want AZEL maps
-    if ($info{obs_type} =~ /point|focus/i || (defined $grid_coord && $grid_coord eq 'AZEL') ) {
-      $cube->tcs_coord( 'AZEL' );
+    # Focus is AZEL
+    # Assume also that AZEL jiggles want AZEL maps (this includes POINTINGs)
+    if ($info{obs_type} =~ /focus/i ) {
+	$cube->tcs_coord( 'AZEL' );
+    } elsif ( (defined $info{jiggleSystem} && $info{jiggleSystem} eq 'AZEL') || 
+	      (defined $grid_coord && $grid_coord eq 'AZEL') ) {
+	# For HARP jiggleSystem is needed because grid_coord will be FPLANE
+	$cube->tcs_coord( 'AZEL' );
     } else {
       $cube->tcs_coord( 'TRACKING' );
     }
