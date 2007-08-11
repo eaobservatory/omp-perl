@@ -3471,9 +3471,14 @@ sub bandwidth_mode {
 
     # Original number of channels before hybridisation
     # Because the OT also rounds, we need to take this to the nearest
-    # even number
+    # even number. We know that the answer has to be a power of 2 and that
+    # the rounding will be extremely close to the right answer.
     my $nchan_frac = $bw / $chanwid;
-    my $nchan      = OMP::General::nint( $nchan_frac / 2 ) * 2;
+
+    # hack - divide by 64, nint then multiply by 64
+    # 64 is enough to beat down the difference from rounding
+    my $nchan = $nchan_frac / 64;
+    $nchan = OMP::General::nint($nchan) * 64;
     $s->{nchannels_full} = $nchan;
 
     # and recalculate the channel width (rather than use the OT approximation
