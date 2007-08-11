@@ -3607,9 +3607,39 @@ sub bandwidth_mode {
 
     # Store the reference channel for each subband
     $s->{if_ref_channel} = \@refchan;
-
   }
 
+  # We currently do not want to do hybridisation in the real time DR
+  # because it is problematic and not reversible. Split up subbands into multisub
+  my @outsubs;
+  my $expand;
+  for my $s (@subs) {
+      if ($s->{nsubbands} == 1) {
+	  push(@outsubs, $s);
+      } else {
+	  $expand = 1;
+	  for my $i (1..$s->{nsubbands}) {
+	      my %snew = ();
+	      # copy the data for index $i-1
+	      my $index = $i - 1;
+	      for my $k (keys %$s) {
+		  if (not ref($s->{$k})) {
+		      $snew{$k} = $s->{$k};
+		  } else {
+		      $snew{$k} = [ $s->{$k}->[$index] ];
+		  }
+	      }
+	      # fix ups
+	      $snew{nchannels_full} /= $s->{nsubbands}; 
+	      $snew{nsubbands} = 1;
+	      push(@outsubs, \%snew);
+	  }
+      }
+  }
+  if ($expand) {
+      @{ $info{freqconfig}->{subsystems} } = @outsubs;
+  }
+  return;
 }
 
 =item B<step_time>
