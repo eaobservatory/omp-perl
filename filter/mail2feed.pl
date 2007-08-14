@@ -17,7 +17,7 @@ my $mail = new Mail::Audit(
 			  );
 
 # See if this was an automated reply
-$mail->ignore() if $mail->get("X-Loop");
+$mail->ignore("Ignore message because X-Loop header exists") if $mail->get("X-Loop");
 
 # Look for project ID
 # Note that the act of searching for the projectid forces the
