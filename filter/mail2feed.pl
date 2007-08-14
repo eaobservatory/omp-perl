@@ -16,6 +16,9 @@ my $mail = new Mail::Audit(
 			   log => "/tmp/omp-mailaudit.log",
 			  );
 
+# See if this was an automated reply
+$mail->ignore() if $mail->get("X-Loop");
+
 # Look for project ID
 # Note that the act of searching for the projectid forces the
 # project ID to become a header itself.
