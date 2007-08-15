@@ -305,6 +305,10 @@ sub jcmtintcalc {
   # Raster specific parameters
   if ($obsmode =~ /raster/i) {
 
+    # Need to make sure shared is turned on
+
+    $obs{sepoffs} = "false";
+
     # Overscan by half the array-size on each side.
     $xoverscan = 0.5* $harp_arraysize
           if ( $obs{instrument} =~ /harp/i and
