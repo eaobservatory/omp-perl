@@ -21,7 +21,7 @@ BEGIN {
     unless exists $ENV{SYBASE};
 
   # Global OMP location
-  use constant OMPLIB => "/jac_sw/omp/msbserver";
+  use constant OMPLIB => '/jac_sw/omp-dev/perl';
   use File::Spec;
 
   # Set the configuration directory, unless we have an override
