@@ -25,6 +25,19 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: OMP Users");
-$cgi->write_page_noauth( \&OMP::CGIPage::User::list_users,
-			 \&OMP::CGIPage::User::list_users,
-		         "noauth" );
+
+my ( $in, $out ) =
+  ( \&OMP::CGIPage::User::list_users,
+    \&OMP::CGIPage::User::list_users );
+
+if ( OMP::General->is_host_local ) {
+  # Skip inapplicable project authentication.
+  $cgi->write_page( $in, $out, 'skip-proj-auth' );
+} else {
+  # Skip inapplicable project authentication but not staff authentication.
+  #
+  # In ./viewfault.pl, while calling OMP::CGIPage::Fault::write_page(), there is
+  # no need to send a skip-proj-auth like flag as O::C::F::_write_login(),
+  # overrides O::C::_write_login(), does not do any project authentication.
+  $cgi->write_page_staff( $in, $out, 'skip-proj-auth' );
+}

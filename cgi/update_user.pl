@@ -36,5 +36,15 @@ try {
 (! $user) and $user = "Unknown User";
 
 $cgi->html_title("$title: Edit User Details for $user");
-$cgi->write_page_noauth( \&OMP::CGIPage::User::edit_details,
-			 \&OMP::CGIPage::User::edit_details );
+
+my ( $in, $out ) =
+( \&OMP::CGIPage::User::edit_details,
+  \&OMP::CGIPage::User::edit_details );
+
+if ( OMP::General->is_host_local ) {
+  # Skip inapplicable project authentication.
+  $cgi->write_page( $in, $out, 'skip-proj-auth' );
+} else {
+  # Skip inapplicable project authentication but not staff authentication.
+  $cgi->write_page_staff( $in, $out, 'skip-proj-auth' );
+}
