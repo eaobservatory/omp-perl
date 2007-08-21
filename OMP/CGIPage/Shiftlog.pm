@@ -61,26 +61,19 @@ sub shiftlog_page {
   my $q = shift;
   my %cookie = @_;
 
-  my $verified = parse_query( $q );
+  my $parsed = parse_query( $q );
 
-  # Print a header.
   print_header();
 
-  # Submit the comment.
-  submit_comment( $verified );
+  submit_comment( $parsed );
 
-  # Display the comments for the current shift.
-  display_shift_comments( $verified, \%cookie );
+  display_shift_comments( $parsed, \%cookie );
 
-  # Display a form for inputting comments.
-  display_comment_form( $q, $verified );
+  display_comment_form( $q, $parsed );
 
-  # Display a form for changing the date.
-  display_date_form( $q, $verified );
+  display_date_form( $q, $parsed );
 
-  # Display a form for changing the telescope.
-  display_telescope_form( $q, $verified );
-
+  display_telescope_form( $q, $parsed );
 }
 
 =back
