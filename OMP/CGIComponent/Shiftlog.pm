@@ -169,18 +169,13 @@ sub display_shift_comments {
   my $password = $cookie->{'password'};
   if( exists( $cookie->{'projectid'} ) ) {
     $projectid = $cookie->{'projectid'};
-  } else {
-    $projectid = 'staff';
-    $password = 'pohoiki';
-  }
 
-  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-                                DB => new OMP::DBbackend );
-  my $verified_project = $projdb->verifyPassword( $password );
-
-  if( !$verified_project ) {
-    print "<br>could not verify password for project $projectid.<br>\n";
-    return;
+    my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+                                  DB => new OMP::DBbackend );
+    if( ! $projdb->verifyPassword( $password ) ) {
+      print "<br>could not verify password for project $projectid.<br>\n";
+      return;
+    }
   }
 
   my $date = $v->{'date'};
