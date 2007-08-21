@@ -34,27 +34,31 @@ License:
 
 */
 
-.title { font-family: Arial, sans-serif;
-	 font-size: 140%;
-	 font-weight: normal;
-	 color: #05054f; }
+.title {
+  font-family: Arial, sans-serif;
+  font-size: 140%;
+  font-weight: normal;
+  color: #05054f;
+}
 
 
-.small_title { font-family: Arial, sans-serif;
-	       font-size: 18pt;
-	       font-weight: normal;
-	       color: #05054f; }
+.small_title {
+  font-family: Arial, sans-serif;
+  font-size: 18pt;
+  font-weight: normal;
+  color: #05054f;
+}
 
 .sum_table {
   background-color: #ffffff;
 }
 
 .sum_table_head {
-	  background-image: url(bg_slate.gif);
-	  background-position: right;
-          background-repeat: repeat-y;
-	  background-color: #ffffff;
-	}
+  background-image: url(bg_slate.gif);
+  background-position: right;
+  background-repeat: repeat-y;
+  background-color: #ffffff;
+}
 
 .fault_sum_table_head {
   background-image: url(bg_red.gif);
@@ -64,20 +68,20 @@ License:
 }
 
 .row_a {
-	background-color: #ffffff;
-	font-family: Arial, sans-serif;
-  	font-size: 14pt;
-  	font-weight: normal;
-  	color: #5d5daf;
-      }
+  background-color: #ffffff;
+  font-family: Arial, sans-serif;
+  font-size: 14pt;
+  font-weight: normal;
+  color: #5d5daf;
+}
 
 .row_b {
-        background-color: #e0e0e0;
-	font-family: Arial, sans-serif;
-  	font-size: 14pt;
-  	font-weight: normal;
-  	color: #5d5daf;
-      }
+  background-color: #e0e0e0;
+  font-family: Arial, sans-serif;
+  font-size: 14pt;
+  font-weight: normal;
+  color: #5d5daf;
+}
 
 .userid, .userid a:link, .userid a:visited {
   font-size: xx-small;
@@ -353,7 +357,9 @@ License:
   color: #05054f;
 }
 
-body {font-family:arial,sans-serif}
+body {
+  font-family: arial,sans-serif
+}
 
 div.black a:link, div.black a:visited {
   color: #000;
@@ -372,7 +378,7 @@ b.white, b.white a:link, b.white a:visited {
   font-style: normal;
   text-decoration: none;
 }
-               
+
 div.footer, div.footer a:link, div.footer a:visited {
   font-size: 9pt;
   color: #393989;
@@ -387,8 +393,8 @@ A {
   font-family:arial,sans-serif;
 }
 
-.hide        { visibility: hidden; display: none; }
-.show        { visibility: visible; }
+.hide { visibility: hidden; display: none; }
+.show { visibility: visible; }
 
 .row_system {
   background-color: #dbdbff;
@@ -446,7 +452,7 @@ A {
   color: #ffffff;
 }
 
-.fault_summary_misc { 
+.fault_summary_misc {
   color: #ffffff;
 }
 
@@ -462,17 +468,17 @@ A {
   color: #ffffff;
 }
 
-a.sidemain:link{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none;}
-a.sidemain:visited{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none;}
-a.sidemain:active{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
-a.sidemain:hover{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
+a.sidemain:link    { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
+a.sidemain:visited { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
+a.sidemain:active  { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
+a.sidemain:hover   { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
 
-.cell_standout { 
+.cell_standout {
   border: 1px solid #d63e3e;
   background-color: #f9b1b1;
 }
 
-.infobox { 
+.infobox {
   border: 1px solid #383898;
   background-color: #bcbee3;
 }
@@ -481,7 +487,7 @@ a.sidemain:hover{color:#ffffff; font-size:11px; font-weight:bold; text-decoratio
   background-color: #ffffff;
 }
 
-.row_shaded { 
+.row_shaded {
   background-color: #dddddd;
 }
 
