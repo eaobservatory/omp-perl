@@ -240,8 +240,6 @@ for my $proj (keys %sorted) {
   $msg .= "\nObservation Log\n---------------\n\n";
   $msg .= $grp->summary('72col');
 
-  ### TEMPORARILY, if this is a UKIRT project make the comment hidden
-  #my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
   my $status = OMP__FB_IMPORTANT;
 
   # If we are in debug mode just send to stdout. Else
