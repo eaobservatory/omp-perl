@@ -16,6 +16,8 @@ use warnings;
 use OMP::SpServer;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;
+use OMP::Constants qw/ :status /;
+use OMP::Password;
 use Data::Dumper;
 
 # Abort if $OMP_DUMP_DIR is not set
@@ -47,6 +49,10 @@ for (@files) {
   close($fh) or die "Error closing file: $!\n";
 
   # Force overwrite
-  OMP::SpServer->storeProgram( $xml, "***REMOVED***",1);
-
+  my $pass =
+    OMP::Password->get_verified_password({
+      'prompt' => 'Enter admin password: ',
+      'verify' => 'verify_administrator_password',
+    }) ;
+  OMP::SpServer->storeProgram( $xml, $pass, 1);
 }
