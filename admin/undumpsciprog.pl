@@ -51,7 +51,7 @@ for (@files) {
   # Force overwrite
   my $pass =
     OMP::Password->get_verified_password({
-      'prompt' => 'Enter admin password: ',
+      'prompt' => 'Enter administrator password: ',
       'verify' => 'verify_administrator_password',
     }) ;
   OMP::SpServer->storeProgram( $xml, $pass, 1);
