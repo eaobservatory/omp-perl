@@ -102,7 +102,7 @@ sub get_password {
   my $config = _default_password_prompt();
   _copy_new_hash_values( $config, $opt );
 
-  my $term = Term::ReadLine->new( 'Password Entry' );
+  my $term = Term::ReadLine->new( 'Password Entry', *STDERR, *STDERR );
 
   # Needs Term::ReadLine::Gnu.
   my $attribs = $term->Attribs;
