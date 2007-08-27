@@ -10,9 +10,9 @@ verify_msb_accept
 
 =head1 DESCRIPTION
 
-This program allows you to compare the MSB accept activity as stored in the database
-with the MSBs that were actually observed as obtained from the data FITS headers.
-
+This program allows you to compare the MSB accept activity as stored
+in the database with the MSBs that were actually observed as obtained
+from the data FITS headers.
 
 =head1 OPTIONS
 
@@ -409,3 +409,30 @@ sub _status_to_text {
     return "?????";
   }
 }
+
+=head1 AUTHORS
+
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
+
+=head1 COPYRIGHT
+
+Copyright (C) 2007 Science and Technology Facilities Council.
+Copyright (C) 2003, 2005-2007 Particle Physics and Astronomy Research
+Council. All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+Boston, MA  02111-1307  USA
+
+=cut
