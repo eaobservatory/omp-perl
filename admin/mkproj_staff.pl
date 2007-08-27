@@ -52,8 +52,14 @@ use OMP::Project;
 use OMP::ProjServer;
 use OMP::User;
 use OMP::UserServer;
+use OMP::Password;
 
 my $force = 0;
+
+my $pass = OMP::Password->get_verified_password({
+                'prompt' => 'Enter administrator password: ',
+                'verify' => 'verify_administrator_password',
+            }) ;
 
 while (<>) {
   chomp;
@@ -94,7 +100,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject("***REMOVED***", $force, @details[0..10] );
+    OMP::ProjServer->addProject( $pass, $force, @details[0..10] );
   }
 
 }

@@ -69,6 +69,7 @@ use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use OMP::ProjServer;
 use OMP::SiteQuality;
+use OMP::Password;
 use Pod::Usage;
 use Getopt::Long;
 
@@ -112,6 +113,11 @@ if (!keys %alloc) {
   }
   die "Did not find any projects in input file!"
 }
+
+my $pass = OMP::Password->get_verified_password({
+                'prompt' => 'Enter administrator password: ',
+                'verify' => 'verify_administrator_password',
+            }) ;
 
 # Loop over each project and add it in
 for my $proj (keys %alloc) {
@@ -211,7 +217,7 @@ for my $proj (keys %alloc) {
 
   # Now add the project
   try {
-    OMP::ProjServer->addProject('***REMOVED***', $force,
+    OMP::ProjServer->addProject( $pass, $force,
 				$proj,  # project id
 				uc($details{pi}),
 				uc($details{coi}),

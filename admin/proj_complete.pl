@@ -8,10 +8,16 @@ use FindBin;
 use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
 use OMP::ProjDB;
+use OMP::Password;
+
+my $pass = OMP::Password->get_verified_password({
+             'prompt' => 'Enter administrator password: ',
+             'verify' => 'verify_administrator_password',
+            }) ;
 
 # Connect to the database and create a proj db object
 my $db = new OMP::ProjDB( DB => new OMP::DBbackend,
-			  Password => '***REMOVED***',
+			  Password => $pass,
 			);
 
 while (<>) {
