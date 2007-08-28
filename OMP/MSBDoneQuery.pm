@@ -114,7 +114,7 @@ sub sql {
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "(SELECT * FROM $donetable $where)";
+  my $sql = "(SELECT *, CONVERT( CHAR, date, 109 ) AS 'longdate' FROM $donetable $where)";
 
   return "$sql\n";
 
