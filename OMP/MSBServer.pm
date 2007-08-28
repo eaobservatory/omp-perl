@@ -838,6 +838,49 @@ sub historyMSB {
   return $result;
 }
 
+=item B<historyMSBtid>
+
+Retrieve information associated with a specific MSB transaction.
+
+  $info = OMP::MSBServer->historyMSBtid( $msbtid );
+
+Only a single item should be returned containing all activity
+associated with this transaction. Returns a single C<OMP::Info::MSB>
+object. This method is not compatible with SOAP.
+
+=cut
+
+sub historyMSBtid {
+  my $class = shift;
+  my $msbtid = shift;
+
+  OMP::General->log_message("historyMSBtid: msbtid: $msbtid");
+
+  my $E;
+  my $result;
+  try {
+    # Create a new object but we dont know any setup values
+    my $db = new OMP::MSBDoneDB(DB => $class->dbConnection);
+
+    $result = $db->historyMSBtid( $msbtid );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return $result;
+}
+
 =item B<titleMSB>
 
 Simple routine for obtaining the title of an MSB given a checksum.
