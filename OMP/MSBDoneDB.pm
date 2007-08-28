@@ -134,6 +134,8 @@ is thrown if the transaction ID is associated with more than one MSB.
 sub historyMSBtid {
   my $self = shift;
   my $msbtid = shift;
+  return unless $msbtid;
+  return unless $msbtid =~ /\w/;
 
   # Construct the query
   my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
@@ -524,6 +526,39 @@ sub queryMSBdone {
   return (wantarray ? @all : \@all);
 }
 
+
+=back
+
+=head2 Support Functions
+
+=over 4
+
+=item B<status_to_text>
+
+Convert a "done" status to textual form.
+
+  $text = OMP::MSBDoneDB::status_to_text( $status );
+
+=cut
+
+sub status_to_text {
+  my $status = shift;
+  my %lut = ( 
+	     &OMP__DONE_UNDONE => 'Undone',
+	     &OMP__DONE_ALLDONE => 'AllDone',
+	     &OMP__DONE_COMMENT => 'Commented Upon',
+	     &OMP__DONE_ABORTED => 'Aborted',
+	     &OMP__DONE_REJECTED => 'Rejected',
+	     &OMP__DONE_SUSPENDED => 'Suspended',
+	     &OMP__DONE_DONE     => 'Accepted',
+	     &OMP__DONE_FETCH    => 'Retrieved'
+	    );
+  if (exists $lut{$status} ) {
+    return $lut{$status};
+  } else {
+    return "?????";
+  }
+}
 
 =back
 

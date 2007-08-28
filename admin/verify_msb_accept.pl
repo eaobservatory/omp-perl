@@ -295,7 +295,7 @@ for my $i ( 0..$#sorted_msbhdr ) {
     for my $db (@dbmsbs) {
       # We had some activity - remove each MSB DB entry
       my $com = $db->comments->[0];
-      my $text = _status_to_text( $com->status );
+      my $text = OMP::MSBDoneDB::status_to_text( $com->status );
       my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
       $users{$author}++ if defined $com->author;
       print "\t$text by $author at ". $com->date->datetime ."\n";
@@ -313,7 +313,7 @@ for my $i ( 0..$#sorted_msbhdr ) {
     if ($tidhis) {
       print "\t------>>>>> MSB was processed outside the observing system\n";
       my $com = $tidhis->comments->[0];
-      my $text = _status_to_text( $com->status );
+      my $text = OMP::MSBDoneDB::status_to_text( $com->status );
       my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
       $users{$author}++ if defined $com->author;
       print "\t$text by $author at ". $com->date->datetime ."\n";
@@ -435,26 +435,6 @@ sub print_msb {
   print "$type -- $date,$projectid,$msbid ".
     ($user ? ",$user,$comment" : '') ."\n";
 
-}
-
-
-sub _status_to_text {
-  my $status = shift;
-  my %lut = ( 
-	     &OMP__DONE_UNDONE => 'Undone',
-	     &OMP__DONE_ALLDONE => 'AllDone',
-	     &OMP__DONE_COMMENT => 'Commented Upon',
-	     &OMP__DONE_ABORTED => 'Aborted',
-	     &OMP__DONE_REJECTED => 'Rejected',
-	     &OMP__DONE_SUSPENDED => 'Suspended',
-	     &OMP__DONE_DONE     => 'Accepted',
-	     &OMP__DONE_FETCH    => 'Retrieved'
-	    );
-  if (exists $lut{$status} ) {
-    return $lut{$status};
-  } else {
-    return "?????";
-  }
 }
 
 sub _form_hashkey {
