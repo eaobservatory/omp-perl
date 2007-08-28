@@ -344,6 +344,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               instrument => '$',
                               inst_dhs => '$',
                               mode => '$',
+			      msbtid => '$',
                               nexp => '$',
                               number_of_cycles => '$',
                               object => '$',
@@ -1216,6 +1217,7 @@ sub _populate {
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
+  $self->msbtid( $generic_header{MSB_TRANSACTION_ID} );
   $self->instrument( uc( $generic_header{INSTRUMENT} ) );
 
   $self->duration( $generic_header{EXPOSURE_TIME} );
