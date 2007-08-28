@@ -469,34 +469,34 @@ sub new_instrument {
 
         # Retrieve the MSB title.
         if( ! exists( $msbtitles{$obs->checksum} ) ) {
-          $msbdb->projectid( $obs->projectid );
-          my $msb;
-          try {
-            my $xml = "<MSBDoneQuery><checksum>" . $obs->checksum . "</checksum></MSBDoneQuery>";
-            my $query = new OMP::MSBDoneQuery( XML => $xml );
-            my @msbs = $msbdb->queryMSBdone( $query, 0 );
-            $msb = $msbs[0];
-          }
-          catch OMP::Error with {
-            my $E = shift;
-            OMP::General->log_message( "Error fetching MSB with checksum " . $obs->checksum . ": " . $E->{'-text'}, OMP__LOG_ERROR );
-            $msbtitles{$obs->checksum} = "Unknown MSB";
-          }
-          otherwise {
-            my $E = shift;
-            OMP::General->log_message( "Error fetching MSB with checksum " . $obs->checksum . ": " . $E->{'-text'}, OMP__LOG_ERROR );
-            $msbtitles{$obs->checksum} = "Unknown MSB";
-          };
-          if( defined( $msb ) ) {
-            $msbtitles{$obs->checksum} = $msb->title;
-          }
-        }
+	  my $title = $msbdb->titleMSB( $obs->checksum );
+	  $title = "Unknown MSB" unless defined $title;
+	  $msbtitles{$obs->checksum} = $title;
+	}
+
         $currentmsb = $obs->checksum;
 
         my $index = $counter;
         my $otag = "o" . $index;
         my $start = $nbContent->index('insert');
         $nbContent->insert( 'end', "Beginning of MSB titled: " . $msbtitles{$obs->checksum} . "\n" );
+
+	# Get any activity associated with this MSB accept
+	my $history;
+	try { 
+	  $history = $msbdb->historyMSBtid( $obs->msbtid ) if defined $obs->msbtid;
+	} otherwise {
+	  my $E = shift;
+	  print $E;
+	};
+	if (defined $history) {
+	  my @comments = $history->comments;
+	  for my $c (@comments ) {
+	    my $name = $c->author->name;
+	    my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
+	    $nbContent->insert('end', "  $status_text at ".$c->date . " UT by $name : ".$c->text ."\n");
+	  }
+	}
 
         foreach my $tag ( $nbContent->tag( 'names', $start ) ) {
           $nbContent->tag('remove', $tag, $start, 'insert');
@@ -602,7 +602,15 @@ sub redraw {
   }
 
   foreach my $inst (keys %obs) {
-    new_instrument( $inst, $obs{$inst}, $verbose );
+    try {
+      new_instrument( $inst, $obs{$inst}, $verbose );
+    } catch OMP::Error with {
+      my $E = shift;
+      print "Could not process instrument $inst: $E\n";
+    } otherwise {
+      my $E = shift;
+      print "Could not process instrument $inst: $E\n";
+    };
   }
 
   if( defined( $current ) && exists( $notebook_contents{$current}) ) {
