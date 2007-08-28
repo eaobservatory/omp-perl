@@ -120,6 +120,7 @@ if(defined($opt{tel})) {
 
 
 # What does the done table say?
+OMP::General->log_message( "Verifying MSB acceptance for date $ut on telescope $telescope" );
 my $output = OMP::MSBServer->observedMSBs( {
 					    date => $ut,
 					    returnall => 0,
@@ -168,12 +169,15 @@ my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
 # Go through looking for MSBs
 my @sorted_msbhdr;
 my $previd = '';
+my $prevtid = '';
+my $prevlid = ''; # MSB TID or MSB ID used last time
 my $prevdate = 0;
 my $prevtime;
 my $prevproj = '';
 for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
 
   my $msbid = $obs->checksum;
+  my $msbtid = $obs->msbtid;
   my $project = $obs->projectid;
   my $end = $obs->endobs->datetime;
 
@@ -182,16 +186,26 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
   next unless defined $msbid;
   next if $msbid eq '999999';  # Special code for broken UKIRT headers
 
-  if ($previd ne $msbid) {
+  # if we are lacking an MSB transaction ID for whatever reason we just
+  # have to act as if the MSB was not repeated in a single block
+  # (2007-08-20 JCMT has contiguous MSBs but with differeing MSBTID)
+  # Use a separate variable so that we can store the transaction ID.
+  my $localtid = $msbtid;
+  $localtid = $msbid unless defined $msbtid;
+
+  if ($prevlid ne $localtid) {
     # New MSB, dump the previous one
-    if ($previd && $previd ne 'CAL') {
+    if ($prevlid && $prevlid ne 'CAL') {
       print "[$prevproj] $previd -> $prevdate\n";
       push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
-			     msbid => $previd } );
+			     msbid => $previd,
+			     msbtid => $prevtid} );
     }
   }
 
   # Store new
+  $prevlid = $localtid;
+  $prevtid = $msbtid;
   $previd = $msbid;
   $prevdate = $end;
   $prevproj = $project;
@@ -200,10 +214,10 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
 }
 
 # and last 
-if ($previd && $previd ne 'CAL') {
+if ($prevlid && $prevlid ne 'CAL') {
   print "[$prevproj] $previd -> $prevdate\n" unless $previd eq 'CAL';
   push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
-			 msbid => $previd } );
+			 msbid => $previd, msbtid => $prevtid } );
 }
 
 if ($grp->numobs == 0) {
@@ -213,34 +227,45 @@ if ($grp->numobs == 0) {
 
 print "---> Summary ----\n";
 
-# Create a hash indexed by checksum for both the HDR and MSB activity
+# Create a hash indexed by checksum + transaction ID for both the HDR and MSB activity
 
 my %DB;
 for my $msb ( @sorted_msbdb ) {
   my $id = $msb->checksum;
-  if (exists $DB{$id} ) {
-    push(@{$DB{$id}}, $msb );
+  my $tid = ($msb->msbtid)[0]; # should only be one since we unrolled earlier
+  my $key = _form_hashkey( $id, $tid );
+  if (exists $DB{$key} ) {
+    warn "An MSB was accepted more than once with the same transaction ID. Very difficult to manage!";
+    push(@{$DB{$key}}, $msb );
   } else {
-    $DB{$id} = [ $msb ];
+    $DB{$key} = [ $msb ];
   }
 }
 
 my %HDR;
 for my $msb ( @sorted_msbhdr ) {
   my $id = $msb->{msbid};
-  if (exists $HDR{$id} ) {
-    push(@{$HDR{$id}}, $msb );
+  my $tid = $msb->{msbtid};
+  my $key = _form_hashkey( $id, $tid );
+  if (exists $HDR{$key} ) {
+    warn "An MSB was observed more than once with the same transaction ID. Very difficult to manage!";
+    push(@{$HDR{$key}}, $msb );
   } else {
-    $HDR{$id} = [ $msb ];
+    $HDR{$key} = [ $msb ];
   }
 }
 
 my @missing;
 my %users;
 
+# Loop over MSBs indicated by the data
 for my $i ( 0..$#sorted_msbhdr ) {
   my $msb = $sorted_msbhdr[$i];
   my $id = $msb->{msbid};
+  my $msbtid = $msb->{msbtid};
+
+  # unique key
+  my $key = _form_hashkey( $id, $msbtid );
 
   # if we do not have a title for it we have to explicitly look in the database (since it
   # will not have been listed in the observedMSBs response)
@@ -253,18 +278,18 @@ for my $i ( 0..$#sorted_msbhdr ) {
   print "MSB $id for project ". $msb->{projectid} ." completed at ".$msb->{date}->datetime."\n";
   print "\tMSB title: ". (exists  $TITLES{$id} ? $TITLES{$id} : "<unknown>")."\n";
 
-  if (exists $DB{$id}) {
+  if (exists $DB{$key}) {
     # We had some activity. If this is the only entry in the HDR info, dump
     # all table activity. If there are multiple HDR entries just use the first entry
-    my @thishdr = @{ $HDR{$id} };
+    my @thishdr = @{ $HDR{$key} };
 
     my @dbmsbs;
     if (@thishdr == 1) {
-      @dbmsbs = @{$DB{$id}};
-      delete $DB{$id};
+      @dbmsbs = @{$DB{$key}};
+      delete $DB{$key};
     } else {
-      push(@dbmsbs, shift(@{$DB{$id}}));
-      delete $DB{$id} unless @{$DB{$id}};
+      push(@dbmsbs, shift(@{$DB{$key}}));
+      delete $DB{$key} unless @{$DB{$key}};
     }
 
     for my $db (@dbmsbs) {
@@ -274,18 +299,37 @@ for my $i ( 0..$#sorted_msbhdr ) {
       my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
       $users{$author}++ if defined $com->author;
       print "\t$text by $author at ". $com->date->datetime ."\n";
+      print "\tTransaction ID: ". $com->tid."\n" if defined $com->tid;
       my $gap = $com->date - $msb->{date};
       print "\t\tTime between accept and end of MSB: $gap seconds\n";
     }
 
   } else {
-    push(@missing, $msb);
-    print "\t------>>>>> Has no corresponding ACCEPT/REJECT in the database <<<<<\n";
+    # see whether this MSB was accepted at some later date
+    # This will only happen when an MSB starts on one night and finishes the
+    # next. Eg 2007-08-19
+    my $tidhis;
+    $tidhis = OMP::MSBServer->historyMSBtid( $msb->{msbtid} ) if defined $msb->{msbtid};
+    if ($tidhis) {
+      print "\t------>>>>> MSB was processed outside the observing system\n";
+      my $com = $tidhis->comments->[0];
+      my $text = _status_to_text( $com->status );
+      my $author = (defined $com->author ? $com->author->userid : "<UNKNOWN>");
+      $users{$author}++ if defined $com->author;
+      print "\t$text by $author at ". $com->date->datetime ."\n";
+      print "\tTransaction ID: ". $com->tid."\n" if defined $com->tid;
+      delete $DB{$key};
+    } else {
+      push(@missing, $msb);
+      print "\t------>>>>> Trans Id ".$msb->{msbtid}.
+	" has no corresponding ACCEPT/REJECT in the database <<<<<\n";
+    }
   }
 }
 
 if (keys %DB) {
-  print "----> MSBs activity not associated with a data file (possibly multiple accepts)\n";
+  print "\n";
+  print "----> MSBs activity not associated with a data file (possibly multiple accepts or UT date overrun)\n";
 
   for my $msb (values %DB) {
     for my $m (@$msb) {
@@ -327,6 +371,7 @@ if (@missing) {
       my $id = $msb->{msbid};
       my $projectid = $msb->{projectid};
       my $date = $msb->{date};
+      my $msbtid = $msb->{msbtid};
       print "Processing MSB $id for project $projectid\n";
       my $continue = $term->readline("\tAccept [Aa] / Reject [Rr] / Skip [] ");
       my $accept;
@@ -340,6 +385,7 @@ if (@missing) {
 
       my $c = new OMP::Info::Comment( author => $validated,
 				      date => $date,
+				      tid => $msbtid,
 				      status => $status );
 
       if ($accept) {
@@ -351,6 +397,7 @@ if (@missing) {
 	$msbdone->projectid( $projectid );
 	$msbdone->addMSBcomment( $id, $c );
       }
+      OMP::General->log_message( "ompmsbcheck: Processed MSB $msbtid ($accept) for date $date" );
 
     }
     print "\nAll MSBs processed.\n\n";
@@ -408,6 +455,14 @@ sub _status_to_text {
   } else {
     return "?????";
   }
+}
+
+sub _form_hashkey {
+  my $msbid = shift;
+  my $msbtid = shift;
+  my $key = $msbid;
+  $key .= "_$msbtid" if defined $msbtid;
+  return $key;
 }
 
 =head1 AUTHORS
