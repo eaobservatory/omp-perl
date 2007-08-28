@@ -61,11 +61,11 @@ for my $projid (@projects) {
   try {
 
     # Create new DB object using backdoor password
-    my $db = new OMP::MSBDB( Password => "***REMOVED***",
+    my $db = new OMP::MSBDB(
 			     ProjectID => $projid,
 			     DB => new OMP::DBbackend );
 
-    my $xml = $db->fetchSciProg(1);
+    my $xml = $db->fetchSciProgNoAuth(1);
 
     print "Retrieved science program for project $projid\n";
 

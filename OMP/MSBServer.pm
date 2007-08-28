@@ -202,12 +202,12 @@ sub fetchCalProgram {
   try {
 
     # Create new DB object
-    my $db = new OMP::MSBDB( Password => '***REMOVED***',
+    my $db = new OMP::MSBDB(
 			     ProjectID => uc($telescope) . 'CAL',
 			     DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
-    $sp = $db->fetchSciProg;
+    $sp = $db->fetchSciProgNoAuth;
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

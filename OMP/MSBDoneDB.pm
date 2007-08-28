@@ -768,9 +768,8 @@ sub _store_msb_done_comment {
     # Catch any exceptions - we are only interested in whether
     # we can get some information.
     try {
-      my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,
-				  Password => '***REMOVED***');
-      my $sp = $msbdb->fetchSciProg(1);
+      my $msbdb = new OMP::MSBDB( DB => $self->db, ProjectID => $project,);
+      my $sp = $msbdb->fetchSciProgNoAuth(1);
       my $msb = $sp->fetchMSB( $checksum );
       $msbinfo = $msb->info() if $msb;
     };

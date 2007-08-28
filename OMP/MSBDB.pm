@@ -304,15 +304,33 @@ sub fetchSciProg {
   my $self = shift;
   my $internal = shift;
 
+  # Verify the password [staff access is allowed]
+  $self->_verify_project_password(1);
+
+  return $self->fetchSciProgNoAuth( $internal );
+}
+
+=item B<fetchSciProgNoAuth>
+
+Retrieve a science program from the database.
+
+  $sp = $db->fetchSciProgNoAuth()
+
+It is same as I<fetchSciProg> method in that it needs a project id.  It,
+however, does not need a password to verify.
+
+=cut
+
+sub fetchSciProgNoAuth {
+  my $self = shift;
+  my $internal = shift;
+
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
   my $pid = $self->projectid;
   $pid = '' unless defined $pid;
   throw OMP::Error::UnknownProject("No science program available for \"$pid\"")
     unless $self->_get_old_sciprog_timestamp;
-
-  # Verify the password [staff access is allowed]
-  $self->_verify_project_password(1);
 
   # Get the science program XML
   my $xml = $self->_db_fetch_sciprog()
@@ -501,12 +519,6 @@ sub fetchMSB {
   my $self = shift;
   my %args = @_;
 
-  # Administrator password so that we can fetch and store
-  # science programs without resorting to knowing the
-  # actual password or to disabling password authentication
-  $self->password("***REMOVED***");
-
-
   # The important result is the checksum
   my $checksum;
 
@@ -539,7 +551,7 @@ sub fetchMSB {
   }
 
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg(1);
+  my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -568,9 +580,8 @@ sub fetchMSB {
   my %pconst;
   my $projdb = new OMP::ProjDB( DB => $self->db, 
 				ProjectID => $sp->projectID,
-				Password => '***REMOVED***',
 			      );
-  my $pobj = $projdb->projectDetails( 'object' );
+  my $pobj = $projdb->projectDetailsNoAuth( 'object' );
 
   $msb->addFITStoObs( $pobj );
 
@@ -694,11 +705,6 @@ sub doneMSB {
 
   OMP::General->log_message("Attempting to mark MSB for project ". $self->projectid . " as done [$checksum]");
 
-  # Administrator password so that we can fetch and store
-  # science programs without resorting to knowing the
-  # actual password or to disabling password authentication
-  $self->password("***REMOVED***");
-
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
   $self->_dblock;
@@ -707,7 +713,7 @@ sub doneMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg(1);
+  my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -845,11 +851,6 @@ sub undoMSB {
   my $self = shift;
   my $checksum = shift;
 
-  # Administrator password so that we can fetch and store
-  # science programs without resorting to knowing the
-  # actual password or to disabling password authentication
-  $self->password("***REMOVED***");
-
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
   $self->_dblock;
@@ -858,7 +859,7 @@ sub undoMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg(1);
+  my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -937,11 +938,6 @@ sub alldoneMSB {
   my $self = shift;
   my $checksum = shift;
 
-  # Administrator password so that we can fetch and store
-  # science programs without resorting to knowing the
-  # actual password or to disabling password authentication
-  $self->password("***REMOVED***");
-
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
   $self->_dblock;
@@ -950,7 +946,7 @@ sub alldoneMSB {
   # science program object. Unfortunately, since we intend to modify
   # the science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg(1);
+  my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
@@ -1031,11 +1027,6 @@ sub suspendMSB {
   my $label = shift;
   my $comment = shift;
 
-  # Administrator password so that we can fetch and store
-  # science programs without resorting to knowing the
-  # actual password or to disabling password authentication
-  $self->password("***REMOVED***");
-
   # Connect to the DB (and lock it out)
   $self->_db_begin_trans;
   $self->_dblock;
@@ -1044,7 +1035,7 @@ sub suspendMSB {
   # program object. Unfortunately, since we intend to modify the
   # science program we need to get access to the object here
   # Retrieve the relevant science program
-  my $sp = $self->fetchSciProg(1);
+  my $sp = $self->fetchSciProgNoAuth(1);
 
   # Get the MSB
   my $msb = $sp->fetchMSB( $checksum );
