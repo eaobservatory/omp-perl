@@ -579,7 +579,6 @@ sub proj_sum_page {
   # Get project ID from form or display form
   if ($q->param('projectid')) {
     $cookie{projectid} = $q->param('projectid');
-    $cookie{password} = '***REMOVED***';
 
     # Display project details
     OMP::CGIComponent::Project::proj_status_table($q, %cookie);

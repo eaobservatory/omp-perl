@@ -143,9 +143,8 @@ sub proj_status_table {
   my %cookie = @_;
 
   # Get the project details
-  my $project = OMP::ProjServer->projectDetails( $cookie{projectid},
-						 $cookie{password},
-						 'object' );
+  my $project = OMP::ProjServer->projectDetailsNoAuth( $cookie{projectid},
+						       'object' );
 
   my $projectid = $cookie{projectid};
 
