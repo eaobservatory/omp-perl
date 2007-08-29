@@ -298,9 +298,8 @@ sub observed_output {
     my @msbs;
     for my $msb (@$commentref) {
       my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
-				    Password => "***REMOVED***",
 				    DB => $dbconnection );
-      my $proj = $projdb->projectDetails( 'object' );
+      my $proj = $projdb->projectDetailsNoAuth( 'object' );
       if ($proj->telescope eq $telescope) {
 	push @msbs, $msb;
       }
