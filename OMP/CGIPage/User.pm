@@ -97,7 +97,6 @@ sub details {
   my @support;
   try {
     my $db = new OMP::ProjDB(ProjectID => $cookie{projectid},
-			     Password => "***REMOVED***",
 			     DB => new OMP::DBbackend,);
 
     my $xml = "<ProjQuery>".
