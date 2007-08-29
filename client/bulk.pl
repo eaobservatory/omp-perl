@@ -12,7 +12,7 @@ bulk -comment comment.txt -projects projects.txt -userid deloreyk
 
 This program submits a feedback comment to multiple projects.  As with
 all feedback comments, the comment is e-mailed to any parties that
-normally recieve e-mail associated with a project.  The comment and
+normally receive e-mail associated with a project.  The comment and
 list of project IDs are provided in separate text files.  See the section
 on B<FORMAT> for more details on the required format of those files.
 

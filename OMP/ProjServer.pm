@@ -43,7 +43,7 @@ our $VERSION = (qw$Revision$)[1];
 
 Generate a new password for the specified project and mail the
 resulting plain text password to the PI (or the person
-designated to recieve it in the project database).
+designated to receive it in the project database).
 
   OMP::ProjServer->issuePassword( $projectid );
 

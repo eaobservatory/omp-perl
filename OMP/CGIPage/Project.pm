@@ -807,7 +807,7 @@ sub support {
   print $q->hidden(-name=>'projectid', -default=>$projectid);
   print "<br>" . $q->submit(-name=>'change_primary', -value=>'Submit');
   print $q->end_form;
-  print "<br><small>Note: Only primary support contacts will recieve project email.</small>";
+  print "<br><small>Note: Only primary support contacts will receive project email.</small>";
 }
 
 =item B<alter_proj>
