@@ -224,13 +224,16 @@ Return the details of a single project, without performing project
 password verification. The summary is returned as a data structure
 (a reference to a hash), as an C<OMP::Project> object or as XML.
 
-  $href = OMP::ProjServer->projectDetails( $project, $password, "data" );
-  $xml = OMP::ProjServer->projectDetails( $project,$password, "xml" );
-  $obj = OMP::ProjServer->projectDetails( $project,$password, "object" );
+  $href = OMP::ProjServer->projectDetailsNoAuth( $project, "data" );
+  $xml = OMP::ProjServer->projectDetailsNoAuth( $project, "xml" );
+  $obj = OMP::ProjServer->projectDetailsNoAuth( $project, "object" );
 
 Note that this may cause problems for a strongly typed language.
 
 The default is to return XML since that is a simple string.
+
+This method is insecure and so should not be present if ProjServer
+is attached to a SOAP server.
 
 =cut
 
