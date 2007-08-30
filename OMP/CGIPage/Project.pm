@@ -119,7 +119,7 @@ sub fb_proj_summary {
   print $q->h2("MSBs to be observed");
 
   # MSBs to be observed table
-  OMP::CGIComponent::MSB::fb_msb_active($q, $cookie{projectid});
+  OMP::CGIComponent::MSB::fb_msb_active($q, @cookie{qw/projectid password/});
 
   print $q->hr;
 }
@@ -304,7 +304,7 @@ sub list_projects_output {
 	OMP::CGIComponent::MSB::fb_msb_observed($q, $project->projectid);
 	
 	print $q->h3('MSBs to be observed');
-	OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid);	
+	OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid,$cookie{'password'});	
       }
 
     }
@@ -535,7 +535,7 @@ sub project_home {
   
   # Display remaining MSBs
   print "<h3>MSBs remaining to be observed:</h3>";
-  OMP::CGIComponent::MSB::fb_msb_active($q, $cookie{projectid});
+  OMP::CGIComponent::MSB::fb_msb_active($q, @cookie{qw/projectid password/});
 
   # Link to the program details page
   print "<br>Click <a href='fbmsb.pl'>here</a> for more details on the science program.";

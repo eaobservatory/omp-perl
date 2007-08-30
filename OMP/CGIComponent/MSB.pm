@@ -52,13 +52,13 @@ Create a table of active MSBs for a given project
 
 sub fb_msb_active {
   my $q = shift;
-  my $projectid = shift;
+  my ( $projectid, $password ) = @_;
 
   # Get project's associated telescope
   my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
 					      "object");
 
-  my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, '***REMOVED***', 'objects' );
+  my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, $password, 'objects' );
 
   if (defined $active) {
 
