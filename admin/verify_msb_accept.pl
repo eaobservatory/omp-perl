@@ -228,11 +228,21 @@ if ($grp->numobs == 0) {
 print "---> Summary ----\n";
 
 # Create a hash indexed by checksum + transaction ID for both the HDR and MSB activity
+# It's possible that some transactions will have a valid DB transaction ID but
+# no transaction ID in the data headers
+my $havetids = 1;
+for my $msb (@sorted_msbhdr) {
+  if (!defined $msb->{msbtid}) {
+    $havetids = 0;
+    last;
+  }
+}
 
 my %DB;
 for my $msb ( @sorted_msbdb ) {
   my $id = $msb->checksum;
-  my $tid = ($msb->msbtid)[0]; # should only be one since we unrolled earlier
+  my $tid;
+  $tid = ($msb->msbtid)[0] if $havetids; # should only be one since we unrolled earlier
   my $key = _form_hashkey( $id, $tid );
   if (exists $DB{$key} ) {
     warn "An MSB was accepted more than once with the same transaction ID. Very difficult to manage!";
@@ -245,7 +255,8 @@ for my $msb ( @sorted_msbdb ) {
 my %HDR;
 for my $msb ( @sorted_msbhdr ) {
   my $id = $msb->{msbid};
-  my $tid = $msb->{msbtid};
+  my $tid;
+  $tid = $msb->{msbtid} if $havetids;
   my $key = _form_hashkey( $id, $tid );
   if (exists $HDR{$key} ) {
     warn "An MSB was observed more than once with the same transaction ID. Very difficult to manage!";
@@ -271,7 +282,11 @@ for my $i ( 0..$#sorted_msbhdr ) {
   # will not have been listed in the observedMSBs response)
   if (!exists $TITLES{$id}) {
     my $missing = OMP::MSBServer->historyMSB( $msb->{projectid}, $id, 'data');
-    $TITLES{$id} = $missing->title if defined $missing;
+    if (defined $missing) {
+       $TITLES{$id} = $missing->title;
+    } else {
+       $TITLES{$id} = "<Unknown>";
+    }
   }
 
   # Print a header
@@ -321,8 +336,12 @@ for my $i ( 0..$#sorted_msbhdr ) {
       delete $DB{$key};
     } else {
       push(@missing, $msb);
-      print "\t------>>>>> Trans Id ".$msb->{msbtid}.
-	" has no corresponding ACCEPT/REJECT in the database <<<<<\n";
+      if (defined $msb->{msbtid}) {
+        print "\t------>>>>> Trans Id ".$msb->{msbtid}.
+	  " has no corresponding ACCEPT/REJECT in the database <<<<<\n";
+      } else {
+        print "\t----->>>>>> MSB has no corresponding ACCEPT/REJECT in the database\n";
+      }
     }
   }
 }
