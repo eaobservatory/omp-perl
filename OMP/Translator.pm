@@ -263,6 +263,10 @@ sub translate {
 				 OTVERSION => $msb->ot_version,
 			       );
 
+      # This may have trashed the checksum so we need to make sure
+      # it's consistent
+      $tmpmsb->checksum( $msb->checksum );
+
       # Now we can ask this MSB for its instrument
       # First we need to summarise the observation
       my @sum = $tmpmsb->obssum();
