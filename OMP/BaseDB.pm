@@ -693,12 +693,12 @@ supplied clause.
   $db->_db_update_data( $table, \%new, $clause);
 
 The table name must be supplied. The second argument contains a hash
-where the keywords should match the columns to be changed and the
-values should be the new values to insert.  The WHERE clause should be
-supplied as SQL (no attempt is made to automatically generate this
-information from a hash [yet) and should not include the "WHERE". The
-WHERE clause can be undefined if you want the update to apply to all
-columns.
+reference where the keywords should match the columns to be changed
+and the values should be the new values to insert.  The WHERE clause
+should be supplied as SQL (no attempt is made to automatically
+generate this information from a hash yet) and should not include the
+"WHERE". The WHERE clause can be undefined if you want the update to
+apply to all columns.
 
 =cut
 
