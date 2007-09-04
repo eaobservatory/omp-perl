@@ -43,7 +43,7 @@ use constant D2R => 4 * atan2(1,1) / 180.0; # Degrees to radians
 =head2 Accessor Methods
 
 Instance accessor methods. Methods beginning with an underscore
-are deemed to be private and do not form part of the publi interface.
+are deemed to be private and do not form part of the public interface.
 
 =over 4
 
@@ -249,7 +249,7 @@ sub constraints {
 	}
 	last;
       } elsif (exists $constraints{$con}) {
-	# If its in the allowed constraints list set to false
+	# If it is in the allowed constraints list set to false
 	$constraints{$con} = 0;
       }
     }
