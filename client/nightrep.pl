@@ -505,7 +505,7 @@ sub request_extra_project {
   if (OMP::ProjServer->verifyProject($proj)) {
     # Yay
     # Popup information on the project
-    my $p = OMP::ProjServer->projectDetailsoNoAuth($proj, "object");
+    my $p = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
     if ($p->state) {
       my $dialog = $w->DialogBox(-title => "Project: $proj",
 				 -buttons => ["Accept","Cancel"]);
