@@ -711,15 +711,15 @@ sub updateContactability {
   # Rely on _get_project_row() to validate a project; may throw exceptions.
   my $proj = $self->_get_project_row;
 
-  $contact = $self->_remove_unchanged_contactability( $proj, $contact );
+  my %contact = $self->_remove_unchanged_contactability( $proj, $contact );
   # No change in any user or contactability.
-  return unless OMP::General->hashref_keys_size( $contact );
+  return unless scalar %contact;
 
   my $id = $proj->projectid;
-  for my $user ( keys %{ $contact } ) {
+  for my $user ( keys %contact ) {
 
     $self->_db_update_data( $PROJUSERTABLE,
-                            { 'contactable' => $contact->{ $user } ? 1 : 0 },
+                            { 'contactable' => $contact{ $user } ? 1 : 0 },
                             qq/projectid = $id AND userid = $user/
                           ) ;
   }
@@ -1279,14 +1279,14 @@ sub _remove_unchanged_contactability {
   for my $user ( keys %{ $updates } ) {
 
     next if exists $old_contact{ $user }
-          # '!! $var' construct takes care of 'uninitialized' warning when
-          # comparing a number to undef.
-          && !! $updates->{ $user } == !! $old_contact{ $user } ;
+          && ( ( $updates->{ $user } && $old_contact{ $user } )
+              || ( ! $updates->{ $user } && ! $old_contact{ $user } )
+              ) ;
 
     $changed{ $user } = $updates->{ $user } ;
   }
 
-  return { %changed };
+  return %changed;
 }
 
 =back
