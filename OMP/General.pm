@@ -2048,6 +2048,8 @@ value. 0.5 is rounded up.
 
   $nint = OMP::General::nint( $in );
 
+=back
+
 =cut
 
 sub nint {
@@ -2060,17 +2062,39 @@ sub nint {
     }
 };
 
+=pod
+
+=head2 References
+
+=over 4
+
+=item B<hashref_keys_size>
+
+Returns the number of keys in a given hash reference; returns nothing
+if the reference is undefined or is not actually a reference.
+
+  print "given hash ref is undef, empty, or not a reference at all"
+    unless OMP::General->hashref_keys_size( $some_hash_ref );
 
 =back
+
+=cut
+
+sub hashref_keys_size {
+  my ( $self, $r ) = @_;
+  return unless defined $r and ref $r ;
+  return scalar keys %{ $r };
+}
 
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
-Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>
+Kynan Delorey E<lt>k.delorey@jach.hawaii.eduE<gt>,
+Anubhav AgarwalE<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
