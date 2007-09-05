@@ -1278,12 +1278,14 @@ sub _remove_unchanged_contactability {
   my %changed;
   for my $user ( keys %{ $updates } ) {
 
+    my $contactable = $updates->{ $user };
+
     next if exists $old_contact{ $user }
-          && ( ( $updates->{ $user } && $old_contact{ $user } )
-              || ( ! $updates->{ $user } && ! $old_contact{ $user } )
+          && ( ( $contactable && $old_contact{ $user } )
+              || ( ! $contactable && ! $old_contact{ $user } )
               ) ;
 
-    $changed{ $user } = $updates->{ $user } ;
+    $changed{ $user } = $contactable;
   }
 
   return %changed;
