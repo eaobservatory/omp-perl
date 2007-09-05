@@ -36,6 +36,7 @@ use OMP::ProjQuery;
 use OMP::Constants qw/ :fb /;
 use OMP::User;
 use OMP::UserDB;
+use OMP::General;
 use OMP::Project::TimeAcct;
 use OMP::SiteQuality;
 
@@ -680,6 +681,54 @@ sub getTotalAlloc {
   return Time::Seconds->new( $self->_get_total_alloc($telescope, $semester) );
 }
 
+=pod
+
+=item B<updateContactability>
+
+Given a hash reference of user id as keys and and contact-ability
+(truth values) as values, updates user & contactabiliy in the database.
+It will update only those records which are actually changed.
+
+  $db->updateContactability({ 'USR1' => 1, 'USR2' => 0 });
+
+=cut
+
+sub updateContactability {
+
+  my ( $self, $contact ) = @_;
+
+  throw OMP::Error::FatalError( q/Need a hash of user ids as keys and /
+                                . q/truth values to update a user's contactability./
+                              )
+    unless OMP::General->hashref_keys_size( $contact )
+    and ! scalar grep { ! defined $_ } keys %{ $contact } ;
+
+  # Begin transaction
+  $self->_db_begin_trans;
+  $self->_dblock;
+
+  # Rely on _get_project_row() to validate a project; may throw exceptions.
+  my $proj = $self->_get_project_row;
+
+  $contact = $self->_remove_unchanged_contactability( $proj, $contact );
+  # No change in any user or contactability.
+  return unless OMP::General->hashref_keys_size( $contact );
+
+  my $id = $proj->projectid;
+  for my $user ( keys %{ $contact } ) {
+
+    $self->_db_update_data( $PROJUSERTABLE,
+                            { 'contactable' => $contact->{ $user } ? 1 : 0 },
+                            qq/projectid = $id AND userid = $user/
+                          ) ;
+  }
+  # End transaction
+  $self->_dbunlock;
+  $self->_db_commit_trans;
+
+  return;
+}
+
 =back
 
 =head2 Internal Methods
@@ -1205,6 +1254,39 @@ sub _mail_password {
 
 }
 
+=pod
+
+=item B<_remove_unchanged_contactability>
+
+Given an C<OMP::Project> object and a hash reference of (possibly)
+updated user-contactable key-value pairs, returns a new hash reference
+of the remaining changed, possibly none, pairs.
+
+  $changed = 
+    $db->_remove_unchanged_contactability( $project,
+                                          { 'USR1' => 1, 'USR2' => 0 }
+                                        );
+
+=cut
+
+sub _remove_unchanged_contactability {
+
+  my ( $self, $proj, $updates ) = @_;
+
+  my %old_contact = $proj->contactable;
+  my %changed;
+  for my $user ( keys %{ $updates } ) {
+
+    next if exists $old_contact{ $user }
+          # '!! $var' construct takes care of 'uninitialized' warning when
+          # comparing a number to undef.
+          && !! $updates->{ $user } == !! $old_contact{ $user } ;
+
+    $changed{ $user } = $updates->{ $user } ;
+  }
+
+  return { %changed };
+}
 
 =back
 
