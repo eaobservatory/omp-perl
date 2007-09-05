@@ -7,7 +7,7 @@ OMP::CGIHelper - Helper for the OMP feedback system CGI scripts
 =head1 SYNOPSIS
 
   use OMP::CGIComponent::Helper;
-  use OMP::CGIComponent::Helper qw/flex_page/;
+  use OMP::CGIComponent::Helper qw/public_url/;
 
 =head1 DESCRIPTION
 
@@ -35,7 +35,7 @@ $| = 1;
 
 @ISA = qw/Exporter/;
 
-@EXPORT_OK = (qw/flex_page public_url private_url/);
+@EXPORT_OK = (qw/public_url private_url/);
 
 %EXPORT_TAGS = (
 		'all' =>[ @EXPORT_OK ],
@@ -49,45 +49,6 @@ our $TABLEWIDTH = 720;
 =head1 Routines
 
 =over 4
-
-=item B<flex_page>
-
-Routine to serve the UKIRT flex page through the OMP feedback pages.
-
-  flex_page($q, %cookie);
-
-=cut
-
-sub flex_page {
-  my $q = shift;
-  my %cookie = @_;
-
-  my $sem;
-  my $tainted = $q->url_param('sem');
-  if ($tainted =~ m!^(\d{2}\w)$!) {
-    $sem = $1;
-  }
-
-  # Default to current semester if we couldn't untaint the semester url
-  # param (or it just wasn't provided)
-  if (! $sem) {
-    $sem = OMP::General->determine_semester( tel => 'UKIRT' );
-  }
-
-  $sem = lc($sem);
-  my $flexpage = "/web/html/UKIRT/observing/omp/$sem/Flex_programme_descriptions.html";
-
-  # Read in flex page
-  open(FLEX, $flexpage) or die "Unable to open flex page [$flexpage]: $!";
-
-  local $/ = undef;
-  my $output = <FLEX>;  # Slurp!
-
-  close(FLEX);
-
-  # Display the page
-  print $output;
-}
 
 =item B<public_url>
 

@@ -389,12 +389,6 @@ sub project_home {
   print "<tr><td><b>Semester:</b></td><td>$semester</td>";
   print "<tr><td colspan=2><a href='props.pl?urlprojid=$cookie{projectid}'>Click here to view the science case for this project</a></td>";
 
-  # Display a flex page link for UKIRT.  Temporary, of course.
-  if ($project->telescope =~ /ukirt/i) {
-    my $sem = $project->semester;
-    print "<tr><td><a href='http://www.jach.hawaii.edu/jac-bin/omp/flexpage.pl?output=1&sem=$sem'>View the Flex programme descriptions page</a></td>";
-  }
-
   print "</table>";
 
   # Time allocated/remaining along with tau range
