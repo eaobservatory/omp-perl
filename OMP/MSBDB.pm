@@ -39,6 +39,7 @@ use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
 use OMP::General;
+use OMP::Password;
 use OMP::ProjDB;
 use OMP::Constants qw/ :done :fb :logging /;
 use OMP::SiteQuality;
@@ -1726,7 +1727,7 @@ sub _verify_project_password {
   # Is the staff password sufficient?
   if ($allow_staff) {
     # dont throw an exception on failure
-    return if OMP::General->verify_administrator_password($self->password, 1);
+    return if OMP::Password->verify_administrator_password($self->password, 1);
   }
 
   # Ask the project DB class
@@ -1868,9 +1869,9 @@ sub _password_text_info {
   my $password = $self->password();
 
   my $note = '';
-  if (OMP::General->verify_administrator_password( $password, 1)) {
+  if (OMP::Password->verify_administrator_password( $password, 1)) {
     $note = "[using the administrator password]"
-  } elsif (OMP::General->verify_staff_password( $password, 1)) {
+  } elsif (OMP::Password->verify_staff_password( $password, 1)) {
     $note = "[using the staff password]"
   } else {
     # get database connection
@@ -1883,7 +1884,7 @@ sub _password_text_info {
     # get the project information
     my $proj = $projdb->projectDetails('object');
 
-    if ($proj && OMP::General->verify_queman_password($password, $proj->country, 1)) {
+    if ($proj && OMP::Password->verify_queman_password($password, $proj->country, 1)) {
       $note = "[using the ".$proj->country." queue manager password]";
     }
 

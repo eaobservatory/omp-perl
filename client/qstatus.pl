@@ -62,6 +62,7 @@ use lib "$FindBin::RealBin/..";
 # OMP classes
 use OMP::Config;
 use OMP::General;
+use OMP::Password;
 use OMP::DBbackend;
 use OMP::MSBDB;
 use OMP::MSBQuery;
@@ -111,7 +112,7 @@ $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
 my $password = $term->readline( "Please enter staff password: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
-OMP::General->verify_staff_password( $password );
+OMP::Password->verify_staff_password( $password );
 
 # Form template query XML
 

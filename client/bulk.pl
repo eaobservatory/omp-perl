@@ -104,7 +104,7 @@ use FindBin;
 use lib "$FindBin::RealBin/..";
 
 use OMP::FBServer;
-use OMP::General;
+use OMP::Password;
 use OMP::UserServer;
 use OMP::ProjServer;
 
@@ -147,7 +147,7 @@ my $attribs = $term->Attribs;
 $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
 my $passwd = $term->readline( "Please enter the staff password: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
-OMP::General->verify_staff_password($passwd);
+OMP::Password->verify_staff_password($passwd);
 
 # Get the projects
 open(PROJECTS, $projectsfile) or die ("Couldn't open file [$projectsfile]: $!\n");

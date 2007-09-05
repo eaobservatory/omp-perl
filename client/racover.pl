@@ -89,6 +89,7 @@ use lib "$FindBin::RealBin/..";
 # OMP Classes
 use OMP::Error qw/ :try /;
 use OMP::General;
+use OMP::Password;
 use OMP::SciProgStats;
 use OMP::ProjServer;
 use OMP::SpServer;
@@ -127,7 +128,7 @@ $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
 my $password = $term->readline( "Please enter staff password: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
-OMP::General->verify_staff_password( $password );
+OMP::Password->verify_staff_password( $password );
 
 print "Password Verified. Now verifying project information.\n";
 

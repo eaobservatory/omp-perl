@@ -32,7 +32,7 @@ use warnings;
 use warnings::register;
 use Carp;
 use Time::Seconds;
-use OMP::General;
+use OMP::Password;
 use OMP::SiteQuality;
 use OMP::User;
 
@@ -1294,7 +1294,7 @@ sub verify_password {
   # Need to check each country
   for my $c ($self->country) {
     return 1
-      if OMP::General->verify_queman_password( $plain, $c,1);
+      if OMP::Password->verify_queman_password( $plain, $c,1);
   }
 
   # Need to verify against this password

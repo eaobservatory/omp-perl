@@ -38,6 +38,7 @@ use OMP::UserServer;
 use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
+use OMP::Password;
 
 use Text::Wrap;
 
@@ -305,7 +306,7 @@ sub alterStatus {
   my $status = shift;
 
   # Verify admin password.
-  OMP::General->verify_administrator_password( $self->password );
+  OMP::Password->verify_administrator_password( $self->password );
 
   # Begin trans
   $self->_db_begin_trans;

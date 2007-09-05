@@ -36,7 +36,7 @@ use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::FaultServer;
-use OMP::General;
+use OMP::Password;
 use OMP::UserServer;
 
 use HTML::WWWTheme;
@@ -694,7 +694,7 @@ sub write_page_staff {
   if ($userid and $password) {
     try {
       $verifyuser = OMP::UserServer->verifyUser($userid);
-      $verifypass = OMP::General->verify_staff_password($password);
+      $verifypass = OMP::Password->verify_staff_password($password);
     } catch OMP::Error::Authentication with {
       # Login failed...
       my $E = shift;
@@ -773,7 +773,7 @@ sub write_page_admin {
   my $verifypass;
   if ($cookie{userid} and $cookie{password}) {
     $verifyuser = OMP::UserServer->verifyUser($cookie{userid});
-    $verifypass = OMP::General->verify_administrator_password($cookie{password});
+    $verifypass = OMP::Password->verify_administrator_password($cookie{password});
   }
 
   $self->_make_theme;

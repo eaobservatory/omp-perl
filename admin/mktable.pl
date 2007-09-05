@@ -10,7 +10,7 @@ use Term::ReadLine;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 use OMP::DBbackend;
-use OMP::General;
+use OMP::Password;
 
 # First thing we do is ask for a password
 my $term = new Term::ReadLine 'Make OMP database tables';
@@ -21,7 +21,7 @@ $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
 my $password = $term->readline( "Please enter administrator password: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
-OMP::General->verify_administrator_password( $password );
+OMP::Password->verify_administrator_password( $password );
 
 # Connect
 my $db = new OMP::DBbackend;

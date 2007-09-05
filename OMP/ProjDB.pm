@@ -37,6 +37,7 @@ use OMP::Constants qw/ :fb /;
 use OMP::User;
 use OMP::UserDB;
 use OMP::General;
+use OMP::Password;
 use OMP::Project::TimeAcct;
 use OMP::SiteQuality;
 
@@ -113,7 +114,7 @@ sub addProject {
   my $force = shift;
 
   # Verify that we can update the database
-  OMP::General->verify_administrator_password( $self->password );
+  OMP::Password->verify_administrator_password( $self->password );
 
   # Begin transaction
   $self->_db_begin_trans;
@@ -160,11 +161,11 @@ sub verifyPassword {
   }
 
   # Obviate the need for a db query
-  return 1 if OMP::General->verify_administrator_password( $password, 1 );
+  return 1 if OMP::Password->verify_administrator_password( $password, 1 );
 
   # If we have a user name of "staff" then we special case
   # the authentication
-  return OMP::General->verify_staff_password( $password, 1 )
+  return OMP::Password->verify_staff_password( $password, 1 )
     if $self->projectid =~ /^staff$/i;
 
   # Retrieve the contents of the table
@@ -362,7 +363,7 @@ sub disableProject {
   my $self = shift;
 
   # Verify that we can update the database
-  OMP::General->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $self->password );
 
   # First thing to do is to retrieve the table row
   # for this project
@@ -407,7 +408,7 @@ sub enableProject {
   my $self = shift;
 
   # Verify that we can update the database
-  OMP::General->verify_staff_password( $self->password );
+  OMP::Password->verify_staff_password( $self->password );
 
   # First thing to do is to retrieve the table row
   # for this project
