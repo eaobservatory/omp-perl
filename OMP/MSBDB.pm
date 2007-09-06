@@ -308,7 +308,7 @@ sub fetchSciProg {
   # Verify the password [staff access is allowed]
   $self->_verify_project_password(1);
 
-  return $self->fetchSciProgNoAuth( $internal );
+  return $self->fetchSciProgNoAuth( $internal, my $add_password_note = 'please' );
 }
 
 =item B<fetchSciProgNoAuth>
@@ -323,8 +323,7 @@ however, does not need a password to verify.
 =cut
 
 sub fetchSciProgNoAuth {
-  my $self = shift;
-  my $internal = shift;
+  my ( $self, $internal, $password_note ) = @_;
 
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
@@ -347,31 +346,43 @@ sub fetchSciProgNoAuth {
   my $sp = new OMP::SciProg( XML => $xml )
     or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
 
-  # And file with feedback system.
-  unless ($internal) {
-
-    # remove any obs labels here since the OT does not use them
-    # and it is best that they are regenerated on submission
-    # [They are retained only when an MSB is retrieved]
-    # Note that we do not strip them when we are doing an internal
-    # fetch of the science program since fetchMSB has to fetch
-    # a science program in order to obtain the labels
-    for my $msb ($sp->msb) {
-      $msb->_clear_obs_counter;
-    }
-
-    # Add a little note if we used the admin password
-    my $note = $self->_password_text_info();
-
-    $self->_notify_feedback_system(
-				   subject => "Science program retrieved",
-				   text => "Science program retrieved for project <b>".
-				   $self->projectid ."</b> $note\n",
-				   msgtype => OMP__FB_MSG_SP_RETRIEVED,
-				  );
-  }
+  $self->_clear_counter_add_feedback_post_sciprog_fetch( $internal, $sp, $password_note );
 
   return $sp;
+}
+
+sub _clear_counter_add_feedback_post_sciprog_fetch {
+
+  my ( $self, $internal, $sciprog, $password_note ) = @_;
+
+  return if $internal;
+
+  # remove any obs labels here since the OT does not use them
+  # and it is best that they are regenerated on submission
+  # [They are retained only when an MSB is retrieved]
+  # Note that we do not strip them when we are doing an internal
+  # fetch of the science program since fetchMSB has to fetch
+  # a science program in order to obtain the labels
+  for my $msb ($sciprog->msb) {
+    $msb->_clear_obs_counter;
+  }
+
+  # Add a little note if we used the admin password
+  my $note;
+  # It is not clear if/how _password_text_info() returns a value; otheriwse the
+  # assignment would have been without the C<|| ''>.
+  $note =
+    $password_note ? $self->_password_text_info() || ''
+      : '' ;
+
+  # And file with feedback system.
+  $self->_notify_feedback_system(
+                                subject => "Science program retrieved",
+                                text => "Science program retrieved for project <b>".
+                                $self->projectid ."</b> $note\n",
+                                msgtype => OMP__FB_MSG_SP_RETRIEVED,
+                                );
+  return;
 }
 
 =item B<removeSciProg>
