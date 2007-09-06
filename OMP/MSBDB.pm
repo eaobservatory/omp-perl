@@ -1819,7 +1819,7 @@ sub _verify_project_constraints {
   my @warnings;
 
   if (!defined $sciprog) {
-    throw OMP::Error::FatalError("Attempting to verify contraints but no science program supplied");
+    throw OMP::Error::FatalError("Attempting to verify constraints but no science program supplied");
   }
 
   # Ask the project DB class for project object
@@ -1830,7 +1830,7 @@ sub _verify_project_constraints {
 			    );
   my $proj = $projdb->_get_project_row();
   if (!defined $proj) {
-    throw OMP::Error::FatalError("Attempting to verify contraints but project '".
+    throw OMP::Error::FatalError("Attempting to verify constraints but project '".
 				 $self->projectid."' is not available");
   }
 
