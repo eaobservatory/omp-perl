@@ -308,7 +308,15 @@ sub fetchSciProg {
   # Verify the password [staff access is allowed]
   $self->_verify_project_password(1);
 
-  return $self->fetchSciProgNoAuth( $internal, my $add_password_note = 'please' );
+  my $sp = $self->_really_fetch_sciprog;
+
+  unless ( $internal ) {
+
+    my $note = $self->_password_text_info;
+    $self->_clear_counter_add_feedback_post_fetch( $sp, $note );
+  }
+
+  return $sp;
 }
 
 =item B<fetchSciProgNoAuth>
@@ -323,66 +331,15 @@ however, does not need a password to verify.
 =cut
 
 sub fetchSciProgNoAuth {
-  my ( $self, $internal, $password_note ) = @_;
 
-  # Test to see if the file exists first so that we can
-  # raise a special UnknownProject exception.
-  my $pid = $self->projectid;
-  $pid = '' unless defined $pid;
-  throw OMP::Error::UnknownProject("No science program available for \"$pid\"")
-    unless $self->_get_old_sciprog_timestamp;
+  my ( $self, $internal ) = @_;
 
-  # Get the science program XML
-  my $xml = $self->_db_fetch_sciprog()
-    or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
+  my $sp = $self->_really_fetch_sciprog;
 
-  # Verify for truncation
-  if ($xml !~ /SpProg>$/) {
-    throw OMP::Error::SpTruncated("Science program for $pid is present in the database but is truncated!!! This should not happen");
-  }
-
-  # Instantiate a new Science Program object
-  # The file name is derived automatically
-  my $sp = new OMP::SciProg( XML => $xml )
-    or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
-
-  $self->_clear_counter_add_feedback_post_sciprog_fetch( $internal, $sp, $password_note );
+  $self->_clear_counter_add_feedback_post_fetch( $sp )
+    unless $internal ;
 
   return $sp;
-}
-
-sub _clear_counter_add_feedback_post_sciprog_fetch {
-
-  my ( $self, $internal, $sciprog, $password_note ) = @_;
-
-  return if $internal;
-
-  # remove any obs labels here since the OT does not use them
-  # and it is best that they are regenerated on submission
-  # [They are retained only when an MSB is retrieved]
-  # Note that we do not strip them when we are doing an internal
-  # fetch of the science program since fetchMSB has to fetch
-  # a science program in order to obtain the labels
-  for my $msb ($sciprog->msb) {
-    $msb->_clear_obs_counter;
-  }
-
-  # Add a little note if we used the admin password
-  my $note;
-  # It is not clear if/how _password_text_info() returns a value; otheriwse the
-  # assignment would have been without the C<|| ''>.
-  $note =
-    $password_note ? $self->_password_text_info() || ''
-      : '' ;
-
-  # And file with feedback system.
-  $self->_notify_feedback_system(
-                                subject => "Science program retrieved",
-                                text => "Science program retrieved for project <b>".
-                                $self->projectid ."</b> $note\n",
-                                msgtype => OMP__FB_MSG_SP_RETRIEVED,
-                                );
-  return;
 }
 
 =item B<removeSciProg>
@@ -1613,6 +1570,49 @@ sub _store_sciprog_todisk {
   return;
 }
 
+=pod
+
+=item B<_really_fetch_sciprog>
+
+Returns C<OMP::SciProg> object after checking for truncation in XML
+retrieved from database.
+
+  $sciprog = $db->_really_fetch_sciprog;
+
+It throws C<OMP::Error::UnknownProject> error if science program is
+unavailable;
+throws C<OMP::Error::SpTruncated> error if XML is truncated;
+throws C<OMP::Error::SpRetrieveFail> error if retrieval from database
+fails or science program cannot be parsed.
+
+=cut
+
+sub _really_fetch_sciprog {
+
+  my ( $self ) = @_;
+
+  # Test to see if the file exists first so that we can
+  # raise a special UnknownProject exception.
+  my $pid = $self->projectid;
+  $pid = '' unless defined $pid;
+  throw OMP::Error::UnknownProject("No science program available for \"$pid\"")
+    unless $self->_get_old_sciprog_timestamp;
+
+  # Get the science program XML
+  my $xml = $self->_db_fetch_sciprog()
+    or throw OMP::Error::SpRetrieveFail("Unable to fetch science program\n");
+
+  # Verify for truncation
+  if ($xml !~ /SpProg>$/) {
+    throw OMP::Error::SpTruncated("Science program for $pid is present in the database but is truncated!!! This should not happen");
+  }
+
+  # Instantiate a new Science Program object
+  # The file name is derived automatically
+  return OMP::SciProg->new( XML => $xml )
+    or throw OMP::Error::SpRetrieveFail("Unable to parse science program\n");
+}
+
 =item B<_db_fetch_sciprog>
 
 Retrieve the XML from the database and return it.
@@ -1649,6 +1649,45 @@ sub _db_fetch_sciprog {
   throw OMP::Error::SpRetrieveFail("Science program does not seem to be in database") unless @$ref;
 
   return $ref->[0]->{sciprog};
+}
+
+=pod
+
+=item B<_clear_counter_add_feedback_post_fetch>
+
+Remove the observations lables and file feedback about science program
+retrieval given an C<OMP::SciProg> object.  It is meant to be run when
+science program is fetched for non-internal use (as in C<fetchSciProg>
+and C<fetchSciProgNoAuth> methods).
+
+  $db->_clear_counter_add_feedback_post_fetch( $sciprog );
+
+It takes an optional string argument to append to feedback.
+
+=cut
+
+sub _clear_counter_add_feedback_post_fetch {
+
+  my ( $self, $sciprog, $note ) = @_;
+
+  # remove any obs labels here since the OT does not use them
+  # and it is best that they are regenerated on submission
+  # [They are retained only when an MSB is retrieved]
+  # Note that we do not strip them when we are doing an internal
+  # fetch of the science program since fetchMSB has to fetch
+  # a science program in order to obtain the labels
+  for my $msb ($sciprog->msb) {
+    $msb->_clear_obs_counter;
+  }
+
+  $note = '' unless defined $note;
+  $self->_notify_feedback_system(
+                                subject => "Science program retrieved",
+                                text => "Science program retrieved for project <b>"
+                                        . $self->projectid . "</b> $note\n",
+                                msgtype => OMP__FB_MSG_SP_RETRIEVED,
+                                );
+  return;
 }
 
 =item B<_get_next_msb_index>
@@ -1881,9 +1920,9 @@ sub _password_text_info {
 
   my $note = '';
   if (OMP::Password->verify_administrator_password( $password, 1)) {
-    $note = "[using the administrator password]"
+    $note = "[using the administrator password]";
   } elsif (OMP::Password->verify_staff_password( $password, 1)) {
-    $note = "[using the staff password]"
+    $note = "[using the staff password]";
   } else {
     # get database connection
     my $projdb = new OMP::ProjDB(
@@ -1898,10 +1937,9 @@ sub _password_text_info {
     if ($proj && OMP::Password->verify_queman_password($password, $proj->country, 1)) {
       $note = "[using the ".$proj->country." queue manager password]";
     }
-
-
   }
 
+  return $note;
 }
 
 =back
