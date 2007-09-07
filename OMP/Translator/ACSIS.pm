@@ -3813,17 +3813,26 @@ sub step_time {
     $step = $self->step_time_reduce( $time_per_nod, $max_time, $min_time );
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
-    # step time has to be no bigger than the requested integration (corrected
-    # for the nods per nod set)
-    my $nod_set_size = $self->get_nod_set_size( %info );
-    $step = max(0.05*$nod_set_size, # ACSIS limit
-		min( 0.5 * $nod_set_size, # <--- for easy division. Will normally be used
-		     $info{secsPerCycle},
-		     OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
-					 ($info{continuumMode} ? "_cont" :""))
-		   )
-	       );
-    $step /= $nod_set_size;
+    # in continuum mode we simply chop at the requested rate
+    if ($info{continuumMode}) {
+      $step = OMP::Config->getData( 'acsis_translator.max_time_between_chops_cont' );
+
+    } else {
+	# we can chop slowly but we have a lower limit
+	my $min_step = OMP::Config->getData( 'acsis_translator.step_time' );
+
+	# The required integration time is split over the nod set so our
+	# step time must be reduced by the nod set size
+	my $time_per_nod = $info{secsPerCycle} / $self->get_nod_set_size( %info );
+
+	# the largest value we can use is given by max_time_between_chops
+	# although in practice we decide to use a smaller number to generate spectra
+	# at a reasonable rate
+	my $max_time_per_chop = OMP::Config->getData( "acsis_translator.max_time_between_chops" );
+
+	# Calculate the step time
+	$step = $self->step_time_reduce( $time_per_nod, $max_time_per_chop, $min_step );
+    }
 
   } else {
     # eg jiggle/chop continuum mode
