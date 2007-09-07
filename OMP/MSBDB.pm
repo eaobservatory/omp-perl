@@ -170,7 +170,8 @@ and NoCache (unless set explicitly).
   $status = $db->storeSciProg( SciProg => $sp,
                                FreezeTimeStamp => 1,
                                NoFeedback => 1,
-                               NoCache => 1);
+                               NoCache => 1,
+                               NoAuth => 0 );
 
 The NoFeedback key can be used to disable the writing of an
 entry to the feedback table on store. This is useful when an MSB
@@ -182,6 +183,9 @@ from attempting to write a backup of the submitted science program
 to disk. This is important for MSB acceptance etc, since the
 purpose for the cache is to track a limited number of PI submissions,
 not to track MSB accepts.
+
+The C<NoAuth> switch, if true, will not verify the project password.
+Default is false (to verify).
 
 The C<Force> key can be used for force the saving of the program
 to the database even if the timestamps do not match. This option
@@ -212,7 +216,7 @@ sub storeSciProg {
   $self->_verify_project_exists;
 
   # Verify the password as soon as possible
-  $self->_verify_project_password();
+  $self->_verify_project_password() unless $args{'NoAuth'};
 
   # Check them
   return undef unless exists $args{SciProg};
@@ -743,7 +747,7 @@ sub doneMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
 
   OMP::General->log_message("Science program stored back to database");
 
@@ -858,7 +862,7 @@ sub undoMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
 
 
   # Might want to send a message to the feedback system at this
@@ -944,7 +948,7 @@ sub alldoneMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
 
   # Might want to send a message to the feedback system at this
   # point
@@ -1066,7 +1070,7 @@ sub suspendMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1);
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
 
   # Disconnect
   $self->_dbunlock;
