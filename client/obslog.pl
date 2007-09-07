@@ -93,19 +93,19 @@ BEGIN {
 
 # global variables
 $| = 1;
-my $MainWindow; # The Toplevel frame for obslog itself
-my $obslog;  # refers to the object that holds the obslog information
-my %obs; # keys are instruments, values are ObsGroup objects
-my %obs_ref; # Quick lookup for observations.
-my @shiftcomments; # Shiftlog comments.
-my %notebook_contents; # All the notebook content windows
-my %notebook_headers; # All the notebook header windows
-my $notebook; # The widget that holds the tabbed windows.
-my $shiftcommentText; # The widget that holds shiftlog comments.
-my $lastinst; # The instrument of the most recent observation.
-my $current_instrument; # The instrument currently displayed.
-my $verbose; # Long or short output
-my %msbtitles; # md5 to title
+my $MainWindow;          # The Toplevel frame for obslog itself
+my $obslog;              # refers to the object that holds the obslog information
+my %obs;                 # keys are instruments, values are ObsGroup objects
+my %obs_ref;             # Quick lookup for observations.
+my @shiftcomments;       # Shiftlog comments.
+my %notebook_contents;   # All the notebook content windows
+my %notebook_headers;    # All the notebook header windows
+my $notebook;            # The widget that holds the tabbed windows.
+my $shiftcommentText;    # The widget that holds shiftlog comments.
+my $lastinst;            # The instrument of the most recent observation.
+my $current_instrument;  # The instrument currently displayed.
+my $verbose;             # Long or short output
+my %msbtitles;           # md5 to title
 $msbtitles{'CAL'} = "Calibration";
 my $id;
 
