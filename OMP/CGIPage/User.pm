@@ -329,16 +329,16 @@ sub project_users_output {
       return;
     }
 
-    $project->contactable(%new_contactable);
-
     # Store user contactable info to database (have to actually store
     # entire project back to database)
     my $db = new OMP::ProjDB( ProjectID => $cookie{projectid},
-			      Password => "***REMOVED***",
+                              'Password' => $cookie{'password'},
 			      DB => new OMP::DBbackend, );
 
     try {
-      $db->addProject( $project, 1 ); # Overwrite
+
+      $db->updateContactability( \%new_contactable );
+      $project->contactable(%new_contactable);
 
       print "<h3>Contactable information for project $cookie{projectid} has been updated</h3>";
     } otherwise {

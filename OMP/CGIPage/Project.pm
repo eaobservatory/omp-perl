@@ -716,7 +716,7 @@ sub support {
   return if (! $projectid);
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-				Password => "***REMOVED***",
+                                'Password' => $cookie{'password'},
 				DB => new OMP::DBbackend, );
 
   # Verify that project exists
@@ -742,12 +742,11 @@ sub support {
 	$_->userid, (exists $primary{$_->userid} ? 1 : 0)
       } $project->support;
       
-      $project->contactable(%contactable);
-
       # Store changes to DB
       my $E;
       try {
-	$projdb->addProject( $project, 1 );
+        $projdb->updateContactability( \%contactable );
+        $project->contactable(%contactable);
       } otherwise {
 	$E = shift;
 	print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
