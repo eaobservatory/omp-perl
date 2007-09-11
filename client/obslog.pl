@@ -489,8 +489,10 @@ sub new_instrument {
 	  my $E = shift;
 	  print $E;
 	};
+
+        my @comments;
 	if (defined $history) {
-	  my @comments = $history->comments;
+	  @comments = $history->comments;
 	  for my $c (@comments ) {
 	    my $name = $c->author->name;
 	    my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
@@ -1313,21 +1315,30 @@ sub RaiseStatusComment {
 
       $userComment->insert( 'end', $text )
     }
-    else {
 
-      $hist .=
-        qq{$name:\n\t}
-        . join ', ', OMP::MSBDoneDB::status_to_text( $c->status ), $c->date . ' UT'
-        ;
-      $hist .= qq{\n\t$text} if $text;
-    }
+    $hist .=
+      qq{$name:\n\t}
+      . join ', ', OMP::MSBDoneDB::status_to_text( $c->status ), $c->date . ' UT'
+      ;
+    $hist .= qq{\n\t$text} if $text;
   }
 
   $hist =~ s/\s+$//;
-  if ( $hist ) {
+  unless ( $hist ) {
 
-    my ( $min, $max ) = ( 3, 7 ) ;
-    $histText->configure( '-height' => ( $hist =~ tr/\n// ) < $max ? $min : $max  );
+    for my $w ( $histLabel, $histText ) {
+
+       $w->destroy if Tk::Exists( $w );
+    }
+  }
+  else {
+
+    my ( $min, $max ) = ( 3, 7 );
+    my $rows = ( $hist =~ tr/\n// );
+    $rows = $min >= $rows ? $min
+            : $max <= $rows ? $max
+              : $rows ;
+    $histText->configure( '-height' => $rows );
 
     $histText->configure( '-state' => 'normal' );
     $histText->delete( '0.0', 'end');
