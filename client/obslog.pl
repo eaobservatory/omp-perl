@@ -1225,30 +1225,30 @@ sub RaiseStatusComment {
                                                       -fill => 'x',
                                                     );
 
-  my $histLabel = $entryFrame->Label( '-text' => q{History:},
+  my $histLabel = $entryFrame->Label( -text => q{History:},
                                       -font => $CONTENTFONT,
-                                    )->pack( '-expand' => 1,
-                                              '-side' => 'top',
-                                              '-anchor' => 'nw'
+                                    )->pack( -expand => 1,
+                                              -side => 'top',
+                                              -anchor => 'nw'
                                             );
 
   my $histText = $entryFrame->Scrolled( 'Text',
-                                        '-wrap' => 'word',
-                                        '-height' => 1,
-                                        '-scrollbars' => 'oe',
-                                        '-state' => 'disabled',
-                                        '-borderwidth' => 0,
+                                        -wrap => 'word',
+                                        -height => 1,
+                                        -scrollbars => 'oe',
+                                        -state => 'disabled',
+                                        -borderwidth => 0,
                                         -font => $CONTENTFONT,
-                                      )->pack( '-side' => 'top',
-                                                '-expand' => 1,
-                                                '-fill' => 'x',
+                                      )->pack( -side => 'top',
+                                                -expand => 1,
+                                                -fill => 'x',
                                               );
 
-  my $userLabel = $entryFrame->Label( '-text' => 'Current user: ' . $user->userid,
+  my $userLabel = $entryFrame->Label( -text => 'Current user: ' . $user->userid,
                                       -font => $CONTENTFONT,
-                                    )->pack( '-expand' => 1,
-                                              '-side' => 'top',
-                                              '-anchor' => 'nw'
+                                    )->pack( -expand => 1,
+                                              -side => 'top',
+                                              -anchor => 'nw'
                                             );
 
   # (Current) User's comments.
@@ -1257,9 +1257,8 @@ sub RaiseStatusComment {
                                             -height => 10,
                                             -scrollbars => 'oe',
                                             -font => $CONTENTFONT,
-                                          )->pack(
+                                          )->pack( -expand => 1,
                                                     -side => 'top',
-                                                    -expand => 1,
                                                     -fill => 'x',
                                                   );
 
@@ -1306,9 +1305,9 @@ sub RaiseStatusComment {
   for my $conf ( [ $titleFrame, qq{MSB: $title} ],
                   [ $summaryFrame, $obs->summary( 'text')] ) {
 
-    $conf->[0]->configure( '-state' => 'normal' );
+    $conf->[0]->configure( -state => 'normal' );
     $conf->[0]->insert( 'end', $conf->[1] );
-    $conf->[0]->configure( '-state' => 'disabled' );
+    $conf->[0]->configure( -state => 'disabled' );
   }
 
   #  Add old users' comments if any.
@@ -1354,12 +1353,12 @@ sub RaiseStatusComment {
     $rows = $min >= $rows ? $min
             : $max <= $rows ? $max
               : $rows ;
-    $histText->configure( '-height' => $rows );
+    $histText->configure( -height => $rows );
 
-    $histText->configure( '-state' => 'normal' );
+    $histText->configure( -state => 'normal' );
     $histText->delete( '0.0', 'end');
     $histText->insert( 'end', $hist );
-    $histText->configure( '-state' => 'disable' );
+    $histText->configure( -state => 'disable' );
   }
 
   return;
