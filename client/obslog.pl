@@ -1178,7 +1178,11 @@ sub RaiseStatusComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System: $title");
-  #$CommentWindow->geometry('760x320');
+
+  # Following is ok for Courier 12pt medium normal, but is not big enough for
+  # 14pt.  As geometry works for a particular font size, so let the Tk to
+  # calculate it.
+  #$CommentWindow->geometry('700x370');
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1221,11 +1225,12 @@ sub RaiseStatusComment {
                                                       -fill => 'x',
                                                     );
 
-  my $histLabel = $entryFrame->Label( '-text' => q{History:} )
-                  ->pack( '-expand' => 1,
-                          '-side' => 'top',
-                          '-anchor' => 'nw'
-                        );
+  my $histLabel = $entryFrame->Label( '-text' => q{History:},
+                                      -font => $CONTENTFONT,
+                                    )->pack( '-expand' => 1,
+                                              '-side' => 'top',
+                                              '-anchor' => 'nw'
+                                            );
 
   my $histText = $entryFrame->Scrolled( 'Text',
                                         '-wrap' => 'word',
@@ -1233,22 +1238,25 @@ sub RaiseStatusComment {
                                         '-scrollbars' => 'oe',
                                         '-state' => 'disabled',
                                         '-borderwidth' => 0,
+                                        -font => $CONTENTFONT,
                                       )->pack( '-side' => 'top',
                                                 '-expand' => 1,
                                                 '-fill' => 'x',
                                               );
 
-  my $userLabel = $entryFrame->Label( '-text' => 'Current user: ' .  $user->userid );
-  $userLabel->pack( '-expand' => 1,
-                    '-side' => 'top',
-                    '-anchor' => 'nw'
-                  );
+  my $userLabel = $entryFrame->Label( '-text' => 'Current user: ' . $user->userid,
+                                      -font => $CONTENTFONT,
+                                    )->pack( '-expand' => 1,
+                                              '-side' => 'top',
+                                              '-anchor' => 'nw'
+                                            );
 
   # (Current) User's comments.
   my $userComment = $entryFrame->Scrolled( 'Text',
                                             -wrap => 'word',
                                             -height => 10,
                                             -scrollbars => 'oe',
+                                            -font => $CONTENTFONT,
                                           )->pack(
                                                     -side => 'top',
                                                     -expand => 1,
