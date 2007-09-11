@@ -506,6 +506,13 @@ sub new_instrument {
                          -background => $BACKGROUNDMSB,
                        );
 
+        # Bind the tag to double-left-click
+        $nbContent->tag('bind', $otag,
+                        '<Double-Button-1>' =>
+                          [ \&RaiseStatusComment, $obs, $index,
+                          $msbtitles{$obs->checksum}, @comments ]
+                        );
+
         $counter++;
       }
 
@@ -1159,6 +1166,176 @@ sub RaiseMultiComment {
   }
 
 
+}
+
+# Display form to enter comment (mainly) to specify reason for change in MSB status.
+sub RaiseStatusComment {
+
+  my ( $widget, $obs, $index, $title, @comment ) = @_;
+
+  $id->cancel if defined $id;
+
+  my $CommentWindow = MainWindow->new;
+  $CommentWindow->title("OMP Observation Log Tool Commenting System: $title");
+  #$CommentWindow->geometry('760x320');
+
+  # $commentFrame contains the entire frame.
+  my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
+                                                  -fill => 'both',
+                                                  -expand => 1,
+                                                );
+
+  my $contentFrame = $commentFrame->Frame->pack( -side => 'top',
+                                                 -fill => 'x',
+                                               );
+
+  my $entryFrame = $commentFrame->Frame->pack( -side => 'top',
+                                                -fill => 'x',
+                                              );
+
+  my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
+                                                -fill => 'x',
+                                              );
+
+  my $titleFrame = $contentFrame->Text( -wrap => 'none',
+                                        -relief => 'flat',
+                                        -foreground => $HEADERCOLOUR,
+                                        -height => 1,
+                                        -font => $HEADERFONT,
+                                        -takefocus => 0,
+                                        -state => 'disabled',
+                                      )->pack( -side => 'top',
+                                              -fill => 'x',
+                                            );
+
+  my $summaryFrame = $contentFrame->Scrolled( 'Text',
+                                              -wrap => 'word',
+                                              -relief => 'flat',
+                                              -height => 5,
+                                              -font => $CONTENTFONT,
+                                              -takefocus => 0,
+                                              -state => 'disabled',
+                                              -scrollbars => 'oe',
+                                            )->pack( -side => 'top',
+                                                      -fill => 'x',
+                                                    );
+
+  my $histLabel = $entryFrame->Label( '-text' => q{History:} )
+                  ->pack( '-expand' => 1,
+                          '-side' => 'top',
+                          '-anchor' => 'nw'
+                        );
+
+  my $histText = $entryFrame->Scrolled( 'Text',
+                                        '-wrap' => 'word',
+                                        '-height' => 1,
+                                        '-scrollbars' => 'oe',
+                                        '-state' => 'disabled',
+                                        '-borderwidth' => 0,
+                                      )->pack( '-side' => 'top',
+                                                '-expand' => 1,
+                                                '-fill' => 'x',
+                                              );
+
+  my $userLabel = $entryFrame->Label( '-text' => 'Current user: ' .  $user->userid );
+  $userLabel->pack( '-expand' => 1,
+                    '-side' => 'top',
+                    '-anchor' => 'nw'
+                  );
+
+  # (Current) User's comments.
+  my $userComment = $entryFrame->Scrolled( 'Text',
+                                            -wrap => 'word',
+                                            -height => 10,
+                                            -scrollbars => 'oe',
+                                          )->pack(
+                                                    -side => 'top',
+                                                    -expand => 1,
+                                                    -fill => 'x',
+                                                  );
+
+  # $buttonSave is the button that allows the user to save the comment
+  # to the database.
+  my $buttonSave =
+    $buttonFrame->Button( -text => 'Save',
+                          -command =>
+                            sub {
+                              SaveComment( $obs->status,
+                                            $userComment->get( '0.0', 'end' ),
+                                            $user, $obs, $index );
+                              redraw( undef, uc($obs->instrument), $verbose );
+                              $id->cancel if defined $id ;
+                              $id = $MainWindow->after( $SCANFREQ,
+                                                        sub { full_rescan($ut, $telescope); } )
+                                if $currentut eq $ut ;
+                              CloseWindow( $CommentWindow );
+                            },
+                        )->pack( -side => 'left',
+                                -anchor => 'n',
+                                ) ;
+
+  # $buttonCancel is the button that closes the window without saving
+  # any changes.
+  my $buttonCancel =
+    $buttonFrame->Button( -text => 'Cancel',
+                          -command =>
+                            sub {
+                              $id->cancel if defined $id ;
+                              $id = $MainWindow->after( $SCANFREQ,
+                                                        sub { full_rescan($ut, $telescope); } )
+                                if $currentut eq $ut ;
+                              CloseWindow( $CommentWindow );
+                            },
+                        )->pack( -side => 'left',
+                                -anchor => 'n',
+                                ) ;
+
+  # Clear junk if any.
+  $_->delete( '0.0', 'end' )
+    for $titleFrame, $summaryFrame, $userComment ;
+
+  for my $conf ( [ $titleFrame, qq{MSB: $title} ],
+                  [ $summaryFrame, $obs->summary( 'text')] ) {
+
+    $conf->[0]->configure( '-state' => 'normal' );
+    $conf->[0]->insert( 'end', $conf->[1] );
+    $conf->[0]->configure( '-state' => 'disabled' );
+  }
+
+  #  Add old users' comments if any.
+  my $hist = '';
+  foreach my $c ( @comment ) {
+
+    my $text = $c->text;
+    my $name = $c->author->name;
+
+    if ( $c->author->userid eq $user->userid ) {
+
+      $userComment->insert( 'end', $text )
+    }
+    else {
+
+      $hist .=
+        qq{$name:\n\t}
+        . join ', ', OMP::MSBDoneDB::status_to_text( $c->status ), $c->date . ' UT'
+        ;
+      $hist .= qq{\n\t$text} if $text;
+    }
+  }
+
+  $hist =~ s/\s+$//;
+  if ( $hist ) {
+
+    my ( $min, $max ) = ( 3, 7 ) ;
+    $histText->configure( '-height' => ( $hist =~ tr/\n// ) < $max ? $min : $max  );
+
+    $histText->configure( '-state' => 'normal' );
+    $histText->delete( '0.0', 'end');
+    $histText->insert( 'end', $hist );
+    $histText->configure( '-state' => 'disable' );
+  }
+
+  return;
 }
 
 sub help { }
