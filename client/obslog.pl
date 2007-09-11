@@ -176,24 +176,24 @@ $user = &get_userid();
 MainLoop();
 
 sub display_loading_status {
-        my $w = $MW->Toplevel;
-	$w->positionfrom('user');
-	$w->geometry('+40+40');
-	$w->title('Observation Log Utility');
-	$w->resizable(0,0);
-	$w->iconname('obslog');
-	$STATUS = $w->Label(qw(-width 40 -anchor w -foreground blue),
-											 -text => "Obslog $VERSION ...");
-	$STATUS->grid(-row => 0, -column => 0, -sticky => 'w');
-	$BAR = $w->ProgressBar(-from =>0, -to=>100,
-													-width=>15, -length=>270,
-													-blocks => 20, -anchor => 'w',
-													-colors => [0, 'blue'],
-													-relief => 'sunken',
-													-borderwidth => 3,
-													-troughcolor => 'grey',
-												 )->grid(-sticky => 's');
-	$w->update;
+  my $w = $MW->Toplevel;
+  $w->positionfrom('user');
+  $w->geometry('+40+40');
+  $w->title('Observation Log Utility');
+  $w->resizable(0,0);
+  $w->iconname('obslog');
+  $STATUS = $w->Label(qw(-width 40 -anchor w -foreground blue),
+                        -text => "Obslog $VERSION ...");
+  $STATUS->grid(-row => 0, -column => 0, -sticky => 'w');
+  $BAR = $w->ProgressBar(-from =>0, -to=>100,
+                          -width=>15, -length=>270,
+                          -blocks => 20, -anchor => 'w',
+                          -colors => [0, 'blue'],
+                          -relief => 'sunken',
+                          -borderwidth => 3,
+                          -troughcolor => 'grey',
+                          )->grid(-sticky => 's');
+  $w->update;
 
   use subs 'update_status';
 
@@ -287,7 +287,7 @@ sub create_main_window {
 # $buttonRescan is the button that rescans for new observations and
 # comments.
   my $buttonRescan = $buttonbarFrame->Button( -text => 'Rescan',
-                                              -command => sub{ 
+                                              -command => sub{
                                                 full_rescan( $ut, $telescope );
                                               },
                                             );
@@ -344,8 +344,8 @@ sub create_main_window {
                      );
 
   $shiftFrame->pack( -side => 'bottom',
-		   -fill => 'x',
-		   -expand => 1);
+                    -fill => 'x',
+                    -expand => 1);
 
   $nbFrame->pack( -side => 'bottom',
                   -fill => 'both',
@@ -469,10 +469,10 @@ sub new_instrument {
 
         # Retrieve the MSB title.
         if( ! exists( $msbtitles{$obs->checksum} ) ) {
-	  my $title = $msbdb->titleMSB( $obs->checksum );
-	  $title = "Unknown MSB" unless defined $title;
-	  $msbtitles{$obs->checksum} = $title;
-	}
+          my $title = $msbdb->titleMSB( $obs->checksum );
+          $title = "Unknown MSB" unless defined $title;
+          $msbtitles{$obs->checksum} = $title;
+        }
 
         $currentmsb = $obs->checksum;
 
@@ -481,24 +481,24 @@ sub new_instrument {
         my $start = $nbContent->index('insert');
         $nbContent->insert( 'end', "Beginning of MSB titled: " . $msbtitles{$obs->checksum} . "\n" );
 
-	# Get any activity associated with this MSB accept
-	my $history;
-	try { 
-	  $history = $msbdb->historyMSBtid( $obs->msbtid ) if defined $obs->msbtid;
-	} otherwise {
-	  my $E = shift;
-	  print $E;
-	};
+        # Get any activity associated with this MSB accept
+        my $history;
+        try {
+          $history = $msbdb->historyMSBtid( $obs->msbtid ) if defined $obs->msbtid;
+        } otherwise {
+          my $E = shift;
+          print $E;
+        };
 
         my @comments;
-	if (defined $history) {
-	  @comments = $history->comments;
-	  for my $c (@comments ) {
-	    my $name = $c->author->name;
-	    my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
-	    $nbContent->insert('end', "  $status_text at ".$c->date . " UT by $name : ".$c->text ."\n");
-	  }
-	}
+        if (defined $history) {
+          @comments = $history->comments;
+          for my $c (@comments ) {
+            my $name = $c->author->name;
+            my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
+            $nbContent->insert('end', "  $status_text at ".$c->date . " UT by $name : ".$c->text ."\n");
+          }
+        }
 
         foreach my $tag ( $nbContent->tag( 'names', $start ) ) {
           $nbContent->tag('remove', $tag, $start, 'insert');
@@ -1167,7 +1167,6 @@ sub RaiseMultiComment {
 
   }
 
-
 }
 
 # Display form to enter comment (mainly) to specify reason for change in MSB status.
@@ -1674,10 +1673,10 @@ sub save_shift_comment {
       # popup the error and return
       require Tk::Dialog;
       my $dialog = $w->Dialog( -text => "Error parsing the date string. Please fix. Should be YYYY-MM-DDTHH:MM:SS",
-			       -title => "Error parsing time",
-			       -buttons => ["Abort"],
-			       -bitmap => 'error',
-			     );
+                               -title => "Error parsing time",
+                               -buttons => ["Abort"],
+                               -bitmap => 'error',
+                             );
 
       $dialog->Show;
       return;
@@ -1864,7 +1863,7 @@ sub create_options_widget {
                     -command => sub { set_user( \$RefUser, $w );
                                       $RefUser = $user->userid;
                                       populate_shiftlog_widget();
- },
+                    },
                     -width => 10,
                   )->pack( -side => 'left' );
 
