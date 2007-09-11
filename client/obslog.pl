@@ -1305,24 +1305,33 @@ sub RaiseStatusComment {
   }
 
   #  Add old users' comments if any.
+  #
+  # Separator between parts of same OMP::Info::Comments object.
+  my $sep = qq[\n];
+  #  Separator between two O::I::C objects.
+  my $comment_sep = $sep . q[-] x 50 . $sep;
+
   my $hist = '';
   foreach my $c ( @comment ) {
 
     my $text = $c->text;
-    my $name = $c->author->name;
+    my $status = $c->status;
 
     if ( $c->author->userid eq $user->userid ) {
 
       $userComment->insert( 'end', $text )
     }
 
-    $hist .=
-      qq{$name:\n\t}
-      . join ', ', OMP::MSBDoneDB::status_to_text( $c->status ), $c->date . ' UT'
-      ;
-    $hist .= qq{\n\t$text} if $text;
-  }
+    # Start of next comment.
+    $hist and $hist .= $comment_sep;
 
+    $c->author->name and $hist .= q[* ] . $c->author->name . q[:] ;
+
+    $status and $hist .= $sep . OMP::MSBDoneDB::status_to_text( $status ) ;
+    $c->date and $hist .= ( $status ? q[, ] : $sep ) . $c->date . q[ UT] ;
+
+    $text and $hist .= $sep . $text ;
+  }
   $hist =~ s/\s+$//;
   unless ( $hist ) {
 
@@ -1333,7 +1342,7 @@ sub RaiseStatusComment {
   }
   else {
 
-    my ( $min, $max ) = ( 3, 7 );
+    my ( $min, $max ) = ( 5, 8 );
     my $rows = ( $hist =~ tr/\n// );
     $rows = $min >= $rows ? $min
             : $max <= $rows ? $max
