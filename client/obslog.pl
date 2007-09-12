@@ -512,7 +512,7 @@ sub new_instrument {
         $obs->checksum ne 'CAL' and
           $nbContent->tag( 'bind', $otag,
                           '<Double-Button-1>' =>
-                              [ \&RaiseStatusComment, $obs, $index,
+                              [ \&RaiseMSBComment, $obs,
                                 $msbtitles{$obs->checksum}, @comments
                               ]
                           ) ;
@@ -1173,9 +1173,9 @@ sub RaiseMultiComment {
 }
 
 # Display form to enter comment (mainly) to specify reason for change in MSB status.
-sub RaiseStatusComment {
+sub RaiseMSBComment {
 
-  my ( $widget, $obs, $index, $title, @comment ) = @_;
+  my ( $widget, $obs, $title, @comment ) = @_;
 
   $id->cancel if defined $id;
 
@@ -1271,7 +1271,7 @@ sub RaiseStatusComment {
     $buttonFrame->Button( -text => 'Save',
                           -command =>
                             sub {
-                              SaveStatusComment( $obs, $user,
+                              SaveMSBComment( $obs, $user,
                                                   $userComment->get( '0.0', 'end' )
                                                 );
                               redraw_rescan_close_window( $obs, $CommentWindow );
@@ -1444,7 +1444,7 @@ sub SaveMultiComment {
 
 }
 
-sub SaveStatusComment {
+sub SaveMSBComment {
 
   warn "comment save to be implemented";
   return;
