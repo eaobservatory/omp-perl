@@ -508,12 +508,14 @@ sub new_instrument {
                          -background => $BACKGROUNDMSB,
                        );
 
-        # Bind the tag to double-left-click
-        $nbContent->tag('bind', $otag,
-                        '<Double-Button-1>' =>
-                          [ \&RaiseStatusComment, $obs, $index,
-                          $msbtitles{$obs->checksum}, @comments ]
-                        );
+        # Binding to add comment to start/status of MSB.
+        $obs->checksum ne 'CAL' and
+          $nbContent->tag( 'bind', $otag,
+                          '<Double-Button-1>' =>
+                              [ \&RaiseStatusComment, $obs, $index,
+                                $msbtitles{$obs->checksum}, @comments
+                              ]
+                          ) ;
 
         $counter++;
       }
@@ -1226,7 +1228,7 @@ sub RaiseStatusComment {
                                                     );
 
   my $histLabel = $entryFrame->Label( -text => q{History:},
-                                      -font => $CONTENTFONT,
+                                      -font => $HEADERFONT,
                                     )->pack( -expand => 1,
                                               -side => 'top',
                                               -anchor => 'nw'
@@ -1245,7 +1247,7 @@ sub RaiseStatusComment {
                                               );
 
   my $userLabel = $entryFrame->Label( -text => 'Current user: ' . $user->userid,
-                                      -font => $CONTENTFONT,
+                                      -font => $HEADERFONT,
                                     )->pack( -expand => 1,
                                               -side => 'top',
                                               -anchor => 'nw'
