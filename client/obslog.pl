@@ -1270,9 +1270,9 @@ sub RaiseStatusComment {
     $buttonFrame->Button( -text => 'Save',
                           -command =>
                             sub {
-                              SaveComment( $obs->status,
+                              SaveStatusComment( $obs, $user,
                                             $userComment->get( '0.0', 'end' ),
-                                            $user, $obs, $index );
+                                            $index );
                               redraw( undef, uc($obs->instrument), $verbose );
                               $id->cancel if defined $id ;
                               $id = $MainWindow->after( $SCANFREQ,
@@ -1367,6 +1367,10 @@ sub RaiseStatusComment {
 }
 
 sub help { }
+
+sub SaveStatusComment {
+  warn "comment save to be implemented";
+}
 
 sub SaveComment {
   my $status = shift;
