@@ -515,7 +515,7 @@ sub new_instrument {
                               [ \&RaiseMSBComment, $obs,
                                 $msbtitles{$obs->checksum}, @comments
                               ]
-                          ) ;
+                          );
 
         $counter++;
       }
@@ -1213,8 +1213,8 @@ sub RaiseMSBComment {
                                         -takefocus => 0,
                                         -state => 'disabled',
                                       )->pack( -side => 'top',
-                                              -fill => 'x',
-                                            );
+                                                -fill => 'x',
+                                              );
 
   my $summaryFrame = $contentFrame->Scrolled( 'Text',
                                               -wrap => 'word',
@@ -1272,12 +1272,12 @@ sub RaiseMSBComment {
                           -command =>
                             sub {
                               SaveMSBComment( $obs, $user,
-                                                  $userComment->get( '0.0', 'end' )
-                                                );
+                                              $userComment->get( '0.0', 'end' )
+                                            );
                               redraw_rescan_close_window( $obs, $CommentWindow );
                             },
                         )->pack( -side => 'left',
-                                -anchor => 'n',
+                                  -anchor => 'n',
                                 ) ;
 
   # $buttonCancel is the button that closes the window without saving
@@ -1286,7 +1286,7 @@ sub RaiseMSBComment {
     $buttonFrame->Button( -text => 'Cancel',
                           -command => sub { rescan_close_window( $CommentWindow ) },
                         )->pack( -side => 'left',
-                                -anchor => 'n',
+                                  -anchor => 'n',
                                 ) ;
 
   # Clear junk if any.
@@ -1458,11 +1458,10 @@ sub SaveMSBComment {
                                 'DB' => OMP::DBbackend->new
                               );
 
-  $text = OMP::Info::Comment
-                ->new( 'author' => $user,
-                        'text' => $text,
-                        'tid' => $obs->msbtid,
-                      );
+  $text = OMP::Info::Comment->new( 'author' => $user,
+                                    'text' => $text,
+                                    'tid' => $obs->msbtid,
+                                  );
 
   $db->addMSBComment( $obs->msbtid, $text );
 
