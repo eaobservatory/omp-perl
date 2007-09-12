@@ -718,6 +718,32 @@ sub full_rescan {
 
 }
 
+# Handy wrapper around window re-draw for instrument of given OMP::Info::Obs
+# object, re-scan, and closing of a given window.
+sub redraw_rescan_close_window {
+
+  my ( $obs, $window ) = @_;
+
+  redraw( undef, uc($obs->instrument), $verbose );
+
+  rescan_close_window( $window );
+  return;
+}
+
+# Handy wrapper around re-scan and closing of a given window.
+sub rescan_close_window {
+
+  my ( $window ) = @_;
+
+  $id->cancel if defined $id ;
+
+  $id = $MainWindow->after( $SCANFREQ, sub { full_rescan($ut, $telescope) } )
+    if $ut eq $currentut;
+
+  CloseWindow( $window );
+  return;
+}
+
 sub dump_to_disk {
 
   my $current = $notebook->raised;
@@ -911,12 +937,7 @@ sub RaiseComment {
                                                         $user,
                                                         $obs,
                                                         $index );
-                                           redraw( undef, uc($obs->instrument), $verbose );
-                                           if(defined($id)) { $id->cancel; }
-                                           if( $currentut eq $ut ) {
-                                             $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-                                           };
-                                           CloseWindow( $CommentWindow );
+                                           redraw_rescan_close_window( $obs, $CommentWindow );
                                          },
                                        )->pack( -side => 'left',
                                                 -anchor => 'n',
@@ -925,13 +946,7 @@ sub RaiseComment {
   # $buttonCancel is the button that closes the window without saving
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
-                                           -command => sub {
-                                             if(defined($id)) { $id->cancel; }
-                                             if( $ut eq $currentut ) {
-                                               $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-                                             };
-                                             CloseWindow( $CommentWindow );
-                                           },
+                                           -command => sub { rescan_close_window( $CommentWindow ); },
                                          )->pack( -side => 'left',
                                                   -anchor => 'n',
                                                 );
@@ -946,12 +961,7 @@ sub RaiseComment {
                                                              $user,
                                                              $obs,
                                                              $index );
-                                                redraw( undef, uc( $obs->instrument ), $verbose );
-                                                if( defined( $id ) ) { $id->cancel; }
-                                                if( $currentut eq $ut ) {
-                                                  $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
-                                                };
-                                                CloseWindow( $CommentWindow );
+                                                redraw_rescan_close_window( $obs, $CommentWindow );
                                               },
                                             )->pack( -side => 'right',
                                                      -anchor => 'n',
@@ -965,12 +975,7 @@ sub RaiseComment {
                                                                    $user,
                                                                    $obs,
                                                                    $index );
-                                                      redraw( undef, uc( $obs->instrument ), $verbose );
-                                                      if( defined( $id ) ) { $id->cancel; }
-                                                      if( $currentut eq $ut ) {
-                                                        $id = $MainWindow->after($SCANFREQ, sub { full_rescan( $ut, $telescope ); });
-                                                      };
-                                                      CloseWindow( $CommentWindow );
+                                                      redraw_rescan_close_window( $obs, $CommentWindow );
                                                     },
                                                   )->pack( -side => 'right',
                                                            -anchor => 'n',
@@ -1117,11 +1122,7 @@ sub RaiseMultiComment {
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
                                            -command => sub {
-                                             if(defined($id)) { $id->cancel; }
-                                             if( $ut eq $currentut ) {
-                                               $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-                                             };
-                                             CloseWindow( $CommentWindow );
+                                             rescan_close_window( $CommentWindow );
                                            },
                                          )->pack( -side => 'left',
                                                   -anchor => 'n',
@@ -1271,14 +1272,9 @@ sub RaiseStatusComment {
                           -command =>
                             sub {
                               SaveStatusComment( $obs, $user,
-                                            $userComment->get( '0.0', 'end' ),
-                                            $index );
-                              redraw( undef, uc($obs->instrument), $verbose );
-                              $id->cancel if defined $id ;
-                              $id = $MainWindow->after( $SCANFREQ,
-                                                        sub { full_rescan($ut, $telescope); } )
-                                if $currentut eq $ut ;
-                              CloseWindow( $CommentWindow );
+                                                  $userComment->get( '0.0', 'end' )
+                                                );
+                              redraw_rescan_close_window( $obs, $CommentWindow );
                             },
                         )->pack( -side => 'left',
                                 -anchor => 'n',
@@ -1288,14 +1284,7 @@ sub RaiseStatusComment {
   # any changes.
   my $buttonCancel =
     $buttonFrame->Button( -text => 'Cancel',
-                          -command =>
-                            sub {
-                              $id->cancel if defined $id ;
-                              $id = $MainWindow->after( $SCANFREQ,
-                                                        sub { full_rescan($ut, $telescope); } )
-                                if $currentut eq $ut ;
-                              CloseWindow( $CommentWindow );
-                            },
+                          -command => sub { rescan_close_window( $CommentWindow ) },
                         )->pack( -side => 'left',
                                 -anchor => 'n',
                                 ) ;
@@ -1367,10 +1356,6 @@ sub RaiseStatusComment {
 }
 
 sub help { }
-
-sub SaveStatusComment {
-  warn "comment save to be implemented";
-}
 
 sub SaveComment {
   my $status = shift;
@@ -1457,6 +1442,31 @@ sub SaveMultiComment {
 
 #  print "status: $status\ntext: $text\nobservations: $observations\nuser: $user\n";
 
+}
+
+sub SaveStatusComment {
+
+  warn "comment save to be implemented";
+  return;
+
+  my ( $obs, $user, $text ) = @_;
+
+  throw OMP::Error::FatalError( 'Need an OMP::Info::Obs object with project id & transaction id.' )
+    unless $obs->projectid && $obs->msbtid;
+
+  my $db = OMP::MSBDoneDB->new( 'ProjectID' => $obs->projectid,
+                                'DB' => OMP::DBbackend->new
+                              );
+
+  $text = OMP::Info::Comment
+                ->new( 'author' => $user,
+                        'text' => $text,
+                        'tid' => $obs->msbtid,
+                      );
+
+  $db->addMSBComment( $obs->msbtid, $text );
+
+  return;
 }
 
 sub CloseWindow {
