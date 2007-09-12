@@ -159,6 +159,7 @@ my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
 my $BACKGROUNDMSB = '#CCFFCC';
+my $FOREGROUNDMSB = '#000000';
 my $BREAK = 92; # Number of characters to display for observation summary
                 # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
@@ -506,16 +507,27 @@ sub new_instrument {
         $nbContent->tag( 'add', $otag, $start, 'insert' );
         $nbContent->tag( 'configure', $otag,
                          -background => $BACKGROUNDMSB,
+                         -foreground => $FOREGROUNDMSB,
                        );
 
         # Binding to add comment to start/status of MSB.
-        $obs->checksum ne 'CAL' and
+        if ( $obs->checksum ne 'CAL' ) {
+
           $nbContent->tag( 'bind', $otag,
                           '<Double-Button-1>' =>
                               [ \&RaiseMSBComment, $obs,
                                 $msbtitles{$obs->checksum}, @comments
                               ]
                           );
+
+          bind_mouse_highlight( $nbContent, $otag,
+                                'bg-hi' => $HIGHLIGHTBACKGROUND,
+                                'fg-hi' => $FOREGROUNDMSB,
+                                'bg' => $BACKGROUNDMSB,
+                                'fg' => $FOREGROUNDMSB,
+                              );
+
+        }
 
         $counter++;
       }
@@ -569,18 +581,12 @@ sub new_instrument {
                       [\&RaiseComment, $obs, $index] );
 
       # Do some funky mouse-over colour changing.
-      $nbContent->tag('bind', $otag, '<Any-Enter>' =>
-                      sub { shift->tag('configure', $otag,
-                                       -background => $HIGHLIGHTBACKGROUND,
-                                       -foreground => $CONTENTCOLOUR[$status],
-                                       qw/ -relief raised
-                                           -borderwidth 1 /); } );
-
-      $nbContent->tag('bind', $otag, '<Any-Leave>' =>
-                      sub { shift->tag('configure', $otag,
-                                       -background => $bgcolour,
-                                       -foreground => $CONTENTCOLOUR[$status],
-                                       qw/ -relief flat /); } );
+      bind_mouse_highlight( $nbContent, $otag,
+                            'bg-hi' => $HIGHLIGHTBACKGROUND,
+                            'fg-hi' => $CONTENTCOLOUR[$status],
+                            'bg' => $bgcolour,
+                            'fg' => $CONTENTCOLOUR[$status],
+                          );
 
       # And increment the counter.
       $counter++;
@@ -1848,6 +1854,34 @@ sub update_shift_comment_time {
   $PrevTZ = $TZ;
   $$RefTimeRef = $time->datetime;
   $PrevTime = $$RefTimeRef;
+}
+
+# Do some funky mouse-over colour changing given a widget, tag and a hash of
+# colors for highlight & normal views.
+sub bind_mouse_highlight {
+
+  my ( $widget, $tag, %color ) = @_;
+
+  $widget->tag( 'bind', $tag,
+                '<Any-Enter>' =>
+                  sub { shift->tag( 'configure', $tag,
+                                    -background => $color{'bg-hi'},
+                                    -foreground => $color{'fg-hi'},
+                                    qw/ -relief raised
+                                        -borderwidth 1 / );
+                      }
+              );
+
+  $widget->tag( 'bind', $tag,
+                '<Any-Leave>' =>
+                  sub { shift->tag( 'configure', $tag,
+                                    -background => $color{'bg'},
+                                    -foreground => $color{'fg'},
+                                    qw/ -relief flat / );
+                      }
+              );
+
+  return;
 }
 
 ######################### O P T I O N S #######################
