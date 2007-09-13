@@ -227,6 +227,15 @@ sub msb_comments {
 
   print "<table class='infobox' width=100%>";
 
+  # Colors associated with statuses
+  my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
+                &OMP__DONE_DONE => '#c6bee0',
+                &OMP__DONE_ALLDONE => '#8075a5',
+                &OMP__DONE_COMMENT => '#9f93c9',
+                &OMP__DONE_UNDONE => '#ffd8a3',
+                &OMP__DONE_ABORTED => '#9573a0',
+                &OMP__DONE_REJECTED => '#bc5a74',
+                &OMP__DONE_SUSPENDED => '#ffb959',);
   my $i = 0;
   my $bgcolor;
   foreach my $msb (@output) {
@@ -266,17 +275,6 @@ sub msb_comments {
     print "<td><b>Waveband:</b>". $msb->waveband ."</td>";
     print "<td><b>Instrument:</b>". $msb->instrument ."</td>";
     print "<tr><td colspan=5><b>Title: $msbtitle</b></td>";
-
-
-    # Colors associated with statuses
-    my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
-                  &OMP__DONE_DONE => '#c6bee0',
-                  &OMP__DONE_ALLDONE => '#8075a5',
-                  &OMP__DONE_COMMENT => '#9f93c9',
-                  &OMP__DONE_UNDONE => '#ffd8a3',
-                  &OMP__DONE_ABORTED => '#9573a0',
-                  &OMP__DONE_REJECTED => '#bc5a74',
-                  &OMP__DONE_SUSPENDED => '#ffb959',);
 
     foreach my $comment ($msb->comments) {
       my $status = $comment->status;
