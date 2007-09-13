@@ -245,11 +245,11 @@ sub msb_comments {
       $spmsb = $sp->fetchMSB( $msb->checksum );
       my $remaining = $spmsb->remaining;
       if ($spmsb->isRemoved) {
-	$remstatus = "REMOVED";
+        $remstatus = "REMOVED";
       } elsif ($remaining == 0) {
-	$remstatus = "COMPLETE";
+        $remstatus = "COMPLETE";
       } else {
-	$remstatus = "Remaining: $remaining";
+        $remstatus = "Remaining: $remaining";
       }
     }
 
@@ -270,13 +270,13 @@ sub msb_comments {
 
     # Colors associated with statuses
     my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
-		  &OMP__DONE_DONE => '#c6bee0',
-		  &OMP__DONE_ALLDONE => '#8075a5',
-		  &OMP__DONE_COMMENT => '#9f93c9',
-		  &OMP__DONE_UNDONE => '#ffd8a3',
-		  &OMP__DONE_ABORTED => '#9573a0',
-		  &OMP__DONE_REJECTED => '#bc5a74',
-		  &OMP__DONE_SUSPENDED => '#ffb959',);
+                  &OMP__DONE_DONE => '#c6bee0',
+                  &OMP__DONE_ALLDONE => '#8075a5',
+                  &OMP__DONE_COMMENT => '#9f93c9',
+                  &OMP__DONE_UNDONE => '#ffd8a3',
+                  &OMP__DONE_ABORTED => '#9573a0',
+                  &OMP__DONE_REJECTED => '#bc5a74',
+                  &OMP__DONE_SUSPENDED => '#ffb959',);
 
     foreach my $comment ($msb->comments) {
       my $status = $comment->status;
@@ -284,11 +284,11 @@ sub msb_comments {
       # Set the background color for the cell
       $bgcolor = $colors{$comment->status};
       print "<tr bgcolor=$bgcolor valign=top><td><div class='black'><font size =-2>Date (UT):  " .
-	$comment->date ."<br>";
+        $comment->date ."<br>";
 
       # Show comment author if there is one
       if ($comment->author) {
-	print "Author: " . $comment->author->html . "</font></div>";
+        print "Author: " . $comment->author->html . "</font></div>";
       }
 
       print "<td colspan=4>" . $comment->text ."</td>";
@@ -299,27 +299,27 @@ sub msb_comments {
 
     # Some hidden params to pass
     ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
-					       -default=>$q->param('utdate'));
+                                                -default=>$q->param('utdate'));
     ($q->param('telescope')) and print $q->hidden(-name=>'telescope',
-					       -default=>$q->param('telescope'));
+                                                  -default=>$q->param('telescope'));
 
     print $q->hidden(-name=>'show_output',
-		     -default=>1,);
+                      -default=>1,);
     print $q->hidden(-name=>'checksum',
-		     -default=>$msb->checksum);
+                      -default=>$msb->checksum);
     print $q->hidden(-name=>'projectid',
-		     -default=>$msb->projectid);
+                      -default=>$msb->projectid);
 
     # Make "Remove" and "undo" buttons if the MSB exists in the 
     # science program
     if ($exists) {
       if ($spmsb->isRemoved) {
-	# If it has been removed, the only relevant action is to unremove it
-	print $q->submit("unRemove");
+        # If it has been removed, the only relevant action is to unremove it
+        print $q->submit("unRemove");
       } else {
-	print $q->submit("Remove");
-	print " ";
-	print $q->submit("Undo");
+        print $q->submit("Remove");
+        print " ";
+        print $q->submit("Undo");
       }
       print " ";
     }
