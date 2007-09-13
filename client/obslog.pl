@@ -1181,12 +1181,12 @@ sub RaiseMultiComment {
 # Display form to enter comment (mainly) to specify reason for change in MSB status.
 sub RaiseMSBComment {
 
-  my ( $widget, $obs, $title, @comment ) = @_;
+  my ( undef, $obs, $title, @comment ) = @_;
 
   $id->cancel if defined $id;
 
   my $CommentWindow = MainWindow->new;
-  $CommentWindow->title("OMP Observation Log Tool Commenting System: $title");
+  $CommentWindow->title( "OMP MSB Log Tool: $title" );
 
   # Following is ok for Courier 12pt medium normal, but is not big enough for
   # 14pt.  As geometry works for a particular font size, so let the Tk to
@@ -1225,7 +1225,6 @@ sub RaiseMSBComment {
   my $summaryFrame = $contentFrame->Scrolled( 'Text',
                                               -wrap => 'word',
                                               -relief => 'flat',
-                                              -height => 5,
                                               -font => $CONTENTFONT,
                                               -takefocus => 0,
                                               -state => 'disabled',
@@ -1233,6 +1232,13 @@ sub RaiseMSBComment {
                                             )->pack( -side => 'top',
                                                       -fill => 'x',
                                                     );
+  {
+    # Summary height for the UKIRT telescope is the default, in case
+    # $obs->telescope gives something unknown.
+    my %sum_height = ( 'JCMT' => 5, 'UKIRT' => 7 );
+    my $tel = uc $obs->telescope eq 'JCMT' ? 'JCMT' : 'UKIRT' ;
+    $summaryFrame->configure( -height => $sum_height{ $tel } );
+  }
 
   my $histLabel = $entryFrame->Label( -text => q{History:},
                                       -font => $HEADERFONT,
@@ -1307,7 +1313,7 @@ sub RaiseMSBComment {
     $conf->[0]->configure( -state => 'disabled' );
   }
 
-  #  Add old users' comments if any.
+  #  Add old comments if any.
   #
   # Separator between parts of same OMP::Info::Comments object.
   my $sep = qq[\n];
@@ -1320,12 +1326,7 @@ sub RaiseMSBComment {
     my $text = $c->text;
     my $status = $c->status;
 
-    if ( $c->author->userid eq $user->userid ) {
-
-      $userComment->insert( 'end', $text )
-    }
-
-    # Start of next comment.
+    # Start of next Comment object.
     $hist and $hist .= $comment_sep;
 
     $c->author->name and $hist .= q[* ] . $c->author->name . q[:] ;
@@ -1452,13 +1453,18 @@ sub SaveMultiComment {
 
 sub SaveMSBComment {
 
-  warn "comment save to be implemented";
-  return;
-
   my ( $obs, $user, $text ) = @_;
 
-  throw OMP::Error::FatalError( 'Need an OMP::Info::Obs object with project id & transaction id.' )
-    unless $obs->projectid && $obs->msbtid;
+  throw OMP::Error::FatalError( 'Cannot save: Need user id.' )
+    unless $user;
+
+  throw OMP::Error::FatalError( <<'NOINFO'
+Cannot save: Need OMP::Info::Obs object with project id, transaction id, and MSB checksum.
+NOINFO
+                              )
+    unless $obs->msbtid
+    && $obs->checksum
+    && $obs->projectid ;
 
   my $db = OMP::MSBDoneDB->new( 'ProjectID' => $obs->projectid,
                                 'DB' => OMP::DBbackend->new
@@ -1469,7 +1475,7 @@ sub SaveMSBComment {
                                     'tid' => $obs->msbtid,
                                   );
 
-  $db->addMSBComment( $obs->msbtid, $text );
+  $db->addMSBcomment( $obs->checksum, $text );
 
   return;
 }
@@ -1505,6 +1511,33 @@ sub BindMouseWheel {
   }
 } # end BindMouseWheel
 
+# Do some funky mouse-over colour changing given a widget, tag and a hash of
+# colors for highlight & normal views.
+sub bind_mouse_highlight {
+
+  my ( $widget, $tag, %color ) = @_;
+
+  $widget->tag( 'bind', $tag,
+                '<Any-Enter>' =>
+                  sub { shift->tag( 'configure', $tag,
+                                    -background => $color{'bg-hi'},
+                                    -foreground => $color{'fg-hi'},
+                                    qw/ -relief raised
+                                        -borderwidth 1 / );
+                      }
+              );
+
+  $widget->tag( 'bind', $tag,
+                '<Any-Leave>' =>
+                  sub { shift->tag( 'configure', $tag,
+                                    -background => $color{'bg'},
+                                    -foreground => $color{'fg'},
+                                    qw/ -relief flat / );
+                      }
+              );
+
+  return;
+}
 
 ################### S H I F T  L O G ############################
 
@@ -1854,34 +1887,6 @@ sub update_shift_comment_time {
   $PrevTZ = $TZ;
   $$RefTimeRef = $time->datetime;
   $PrevTime = $$RefTimeRef;
-}
-
-# Do some funky mouse-over colour changing given a widget, tag and a hash of
-# colors for highlight & normal views.
-sub bind_mouse_highlight {
-
-  my ( $widget, $tag, %color ) = @_;
-
-  $widget->tag( 'bind', $tag,
-                '<Any-Enter>' =>
-                  sub { shift->tag( 'configure', $tag,
-                                    -background => $color{'bg-hi'},
-                                    -foreground => $color{'fg-hi'},
-                                    qw/ -relief raised
-                                        -borderwidth 1 / );
-                      }
-              );
-
-  $widget->tag( 'bind', $tag,
-                '<Any-Leave>' =>
-                  sub { shift->tag( 'configure', $tag,
-                                    -background => $color{'bg'},
-                                    -foreground => $color{'fg'},
-                                    qw/ -relief flat / );
-                      }
-              );
-
-  return;
 }
 
 ######################### O P T I O N S #######################
