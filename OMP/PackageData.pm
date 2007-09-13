@@ -929,7 +929,7 @@ sub _log_request {
   my $pstr = (defined $projectid ? $projectid : '<undefined>' );
   my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
 
-  OMP::General->log_message("Request received to archive data for project $pstr for UT date $utstr");
+  OMP::General->log_message("Request received to retrieve archive data for project $pstr for UT date $utstr");
 
 }
 
