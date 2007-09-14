@@ -233,7 +233,12 @@ sub msb_comments {
     @output = @$commentref;
   }
 
-  print '<table class="infobox" border="0" cellspacing="0" cellpadding="4" width="100%">';
+  print <<'TABLE';
+<table class="infobox" width="100%" cellspacing="0"
+  border="0"
+  cellpadding="3"
+  >
+TABLE
 
   # Colors associated with statuses
   my %colors = (&OMP__DONE_FETCH => '#c9d5ea',
@@ -276,10 +281,11 @@ sub msb_comments {
     (!$msbtitle) and $msbtitle = "[NONE]";
 
     my @comments = $msb->comments;
+    my $comments = scalar @comments;
 
     _print_msb_header(
       'count' => $i,
-      'count-rowspan' => scalar @comments + 2,
+      'count-rowspan' => ( 2 + ( $comments ? 2 * $comments - 1 : 0 ) ),
       'title' => $msbtitle,
       'title-colspan' => $table_cols - 1,
       'status' => $remstatus,
@@ -653,7 +659,7 @@ sub _print_msb_header {
             $info{'count'} . '.'
           ),
         th( { 'colspan' => $info{'title-colspan'} },
-            $info{'title'} || nbsp
+            $info{'title'} || nbsp ,
           ),
       ),
     Tr( $text_pos,
@@ -688,34 +694,39 @@ sub _print_transaction_comments {
 
  return unless %args;
 
-  my $text_pos = { 'valign' => 'top', 'align' => 'left' };
+  my %text_pos = ( 'valign' => 'top', 'align' => 'left' );
 
   my $count = scalar @{ $args{'comments'} };
-  for my $c ( @{ $args{'comments'} } ) {
 
-    my $author = $c->author;
+  for my $c ( @{ $args{'comments'} } ) {
 
     my $status =
       $c->status != OMP__DONE_FETCH ? OMP::MSBDoneDB::status_to_text( $c->status )
         : nbsp ;
 
-    my $show_status = 0;
+    my $prop = { 'bgcolor' => $args{'colors'}->{ $c->status }, %text_pos };
+
+    my $author = $c->author;
+
     print
-        Tr( { 'bgcolor' => $args{'colors'}->{ $c->status },
-              %{ $text_pos }
-            },
-            td( $show_status ? $status : nbsp,
-              ),
-            td( { 'colspan' => $args{'comment-colspan'} },
-                div( { 'class' => 'black' },
-                      ( join q[, ], $c->date . ' UT',
-                          $author ? $author->html : ()
-                      ),
-                      '<br>', $c->text
+        Tr( $prop,
+          td( nbsp #, qw([Add comment])
+            ),
+          td( { 'colspan' => $args{'comment-colspan'} },
+              div( { 'class' => 'black' },
+                    ( join q[, ], i( $c->date . ' UT' ),
+                        $author ? $author->html : ()
                     ),
-                 $count-- > 1 ? hr : ()
-              )
-          ) ;
+                    '<br>', $c->text
+                  ),
+            ),
+        ) ;
+
+    $count-- > 1 and
+      print Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
+                    hr
+                  )
+              );
   }
 
   return;
