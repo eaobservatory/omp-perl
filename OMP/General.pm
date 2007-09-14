@@ -1911,6 +1911,61 @@ sub hashref_keys_size {
   return scalar keys %{ $r };
 }
 
+=pod
+
+=head2 Unit Conversion
+
+=over 4
+
+=item B<frequency_in_xhz>
+
+Given a frequency in Hz (number), returns a string of frequency in
+appropriate order rounded to 3 decimal places with units designation.
+
+  my $freq = frequency_in_xhz( 3.457959899E11 ); # '345.796 GHz'
+
+It is entirely based on code in "Re: Directory tree explorer with
+stats reporting" L<http://perlmonks.org/?node_id=536006> by parv.
+Though the basic idea can be generalized, better solution (even in
+this case) would be to use L<Math::Units>, L<Physical::Units>, or
+similar.
+
+=back
+
+=cut
+
+BEGIN {
+
+  my %freq_units =
+    ( 1                         => 'Hz',
+      1000                      => 'KHz',
+      1000 * 1000               => 'MHz',
+      1000 * 1000 * 1000        => 'GHz',
+      1000 * 1000 * 1000 * 1000 => 'THz',
+    ) ;
+  my @ordered = sort { $a <=> $b } keys %freq_units;
+
+  # Convert frequency in Hz to a unit (upto THz) appropriate for the order.
+  sub frequency_in_xhz {
+
+    my ( $freq ) = @_;
+
+    return unless defined $freq;
+
+    my $factor = $ordered[0];
+    foreach my $u ( @ordered ) {
+
+      $freq < $u and last;
+      $factor = $u;
+    }
+
+    # Use the frequency of Hz as is (knowing that $factor will be 1).
+    my $format = $factor != $ordered[0] ? '%0.3f %s' : '%s %s';
+
+    return sprintf $format, $freq / $factor, $freq_units{ $factor };
+  }
+}
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
