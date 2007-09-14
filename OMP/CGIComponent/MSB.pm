@@ -120,8 +120,11 @@ sub fb_msb_observed {
   (@$observed) and msb_table(cgi=>$q, msbs=>$observed, telescope=> $proj->telescope);
 }
 
-# Non breaking space HTML entity.
+# Non breaking space HTML entity.  Predeclare where can be used as a bareword.
 sub nbsp { '&nbsp;' }
+# And this one is for interpolation, including non /e usage in regular
+# expressions.
+my $NBSP = nbsp;
 
 =item B<msb_action>
 
@@ -660,13 +663,14 @@ sub _print_msb_header {
             $info{'status'} || nbsp
           ),
         td( { 'colspan' =>  $info{'title-colspan'} - 1 },
-            join +( nbsp() ) x 2,
+            join +( nbsp ) x 2,
               map
                 { my $label = $_->[0];
-                  join nbsp(), $label ? b( $label . ':' ) : '', $_->[1]
+                  ( my $val = $_->[1] ) =~ s/[ \t]+/$NBSP/g;
+                  join nbsp, $label ? b( $label . ':' ) : '', $val;
                 }
                 ( [ 'Target'     , $info{'target'} ],
-                  [ 'Waveband'   , $info{'waveband'} ],
+                  [ 'Waveband'   , OMP::General::frequency_in_xhz( $info{'waveband'} ) ],
                   [ 'Instrument' , $info{'inst'} ],
                 )
           )
@@ -709,7 +713,7 @@ sub _print_transaction_comments {
                       ),
                       '<br>', $c->text
                     ),
-                 --$count > 1 ? hr : ()
+                 $count-- > 1 ? hr : ()
               )
           ) ;
   }
