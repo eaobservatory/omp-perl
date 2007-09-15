@@ -1889,6 +1889,79 @@ sub nint {
 
 =pod
 
+=head2 HTML Form
+
+=over 4
+
+=item B<make_hidden_fields>
+
+Generates a list of (HTML form) hidden field strings given CGI object
+and a hash reference with field names as keys and default values as,
+well, values. The keys & values are passed to C<hidden> method of the
+given CGI object.
+
+  my @hidden = OMP::General->make_hidden_fields(
+                  $cgi,
+                  { 'fruit' => 'kiwi', 'drink' => 'coconut juice' }
+                );
+
+Essentially, it is a wrapper around C<CGI::hidden> method to operate
+on multiple key-value pairs.
+
+It optionally takes a code reference as a filter to select only some
+of the fields.
+
+=over 4
+
+=item
+
+If missing, then all the hidden fields will be produced from the hash
+reference.
+
+=item
+
+If given, the reference is passed the values of fields (those listed
+in the hash reference) already associated with the CGI object.  Only a
+true value returned will allow the production of each associated
+hidden field.
+
+  my @non_empty = OMP::Generates->make_hidden_fields(
+                    $cgi,
+                    { 'fruit' => 'kiwi', 'drink' => 'coconut juice' },
+                    sub { length $_[0] }
+                  );
+
+=back
+
+Throws C<OMP::Error::BadArgs> error if hash reference isn't one, or
+filter isn't a code reference.
+
+=cut
+
+sub make_hidden_fields {
+
+  my ( $self, $cgi, $fields, $filter ) = @_;
+
+  throw OMP::Error::BadArgs(
+    'Need hash reference of field names and default values.'
+  )
+    unless $fields && ref $fields;
+
+  throw OMP::Error::BadArgs( 'Filter is not a code reference.' )
+    if $filter && ! ref $filter;
+
+  $filter = sub { 1 } unless $filter;
+
+  return
+    map { $filter->( $cgi->param( $_ ) )
+          ? $cgi->hidden( '-name' => $_, '-default' => $fields->{ $_ } )
+          : ()
+        }
+        keys %{ $fields } ;
+}
+
+=pod
+
 =head2 References
 
 =over 4
