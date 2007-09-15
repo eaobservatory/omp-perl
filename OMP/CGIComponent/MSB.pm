@@ -120,7 +120,7 @@ sub fb_msb_observed {
   (@$observed) and msb_table(cgi=>$q, msbs=>$observed, telescope=> $proj->telescope);
 }
 
-my ( $NBSP, $NEWLINE ) = ( '&nbsp;', "\n" );
+my ( $NBSP ) = ( '&nbsp;' );
 
 =item B<msb_action>
 
@@ -314,7 +314,7 @@ TABLE
         'comment-colspan' => $table_cols - 2,
         'colors' => \%colors,
       }
-    );
+    ) ;
 
     # Make "Remove" and "undo" buttons if the MSB exists in the
     # science program
@@ -324,24 +324,21 @@ TABLE
         Tr( td( $NBSP ),
             td( { 'colspan' => , $table_cols - 1 },
               $q->startform,
-              $NEWLINE,
               # If it has been removed, the only relevant action is to unremove it
               ( $spmsb->isRemoved ? $q->submit('unRemove')
                   : $q->submit('Remove'), $NBSP, $q->submit('Undo')
               ),
-              $NEWLINE,
               OMP::General->make_hidden_fields( $q, { %common_hidden } ),
-              $NEWLINE,
               _make_non_empty_hidden_fields( $q, qw[utdate telescope] ),
-              $NEWLINE,
               $q->endform
             )
-          )
+          ) ;
     }
 
-    print Tr( { 'bgcolor' => "#d3d3dd" },
-              qq[<td colspan="$table_cols"> $NBSP</td>]
-            );
+    print
+      Tr( { 'bgcolor' => "#d3d3dd" },
+          qq[<td colspan="$table_cols"> $NBSP</td>]
+        );
   }
   print "</table>";
 }
@@ -702,7 +699,7 @@ sub _print_msb_header {
                 [ 'Waveband'   , OMP::General::frequency_in_xhz( $info{'waveband'} ) ],
                 [ 'Instrument' , $info{'inst'} ]
           )
-      );
+      ) ;
 
   return;
 }
@@ -733,27 +730,28 @@ sub _print_transaction_comments {
     my $author = $c->author;
 
     print
-        Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } },
-            td( $query->startform, "\n",
-                $query->submit('Add Comment'), "\n",
-                @{ $hidden_fields }, "\n",
-                $query->endform, "\n",
-              ),
-            td( { 'colspan' => $args->{'comment-colspan'} },
-                div( { 'class' => 'black' },
-                      ( join q[, ], i( $c->date . ' UT' ),
-                          $author ? $author->html : ()
-                      ),
-                      '<br>', $c->text
+      Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } },
+          td( $query->startform, "\n",
+              $query->submit('Add Comment'), "\n",
+              @{ $hidden_fields }, "\n",
+              $query->endform, "\n",
+            ),
+          td( { 'colspan' => $args->{'comment-colspan'} },
+              div( { 'class' => 'black' },
+                    ( join q[, ], i( $c->date . ' UT' ),
+                        $author ? $author->html : ()
                     ),
-              ),
-          ) ;
+                    '<br>', $c->text
+                  ),
+            ),
+        ) ;
 
     $count-- > 1 and
-      print Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
-                    hr
-                  )
-              );
+      print
+        Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
+                hr
+              )
+          ) ;
   }
 
   return;
@@ -770,7 +768,7 @@ sub _print_add_comment {
             $query->submit("Add Comment"),
             $query->endform
           )
-      );
+      ) ;
 
   return;
 }
