@@ -58,7 +58,7 @@ sub fb_msb_active {
 
   # Get project's associated telescope
   my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
-					      "object");
+                                              "object");
 
   my $active = OMP::CGIDBHelper::safeProgramDetails( $projectid, $password, 'objects' );
 
@@ -72,21 +72,21 @@ sub fb_msb_active {
     my $done = $total - $left;
     if ($left == 0) {
       if ($total == 1) {
-	print "The MSB present in the science program has been observed.<br>\n";
+        print "The MSB present in the science program has been observed.<br>\n";
       } else {
-	print "All $total MSBs in the science program have been observed.<br>\n";
-      } 
+        print "All $total MSBs in the science program have been observed.<br>\n";
+      }
 
     } else {
 
       # Nice little message letting us know no of msbs present in the table
       # that have not been observed.
       if ($done > 0) {
-	if ($done == 1) {
-	  print "$done out of $total MSBs present in the science program has been observed.<br>\n"; 
-	} else {
-	  print "$done out of $total MSBs present in the science program have been observed.<br>\n"; 
-	}
+        if ($done == 1) {
+          print "$done out of $total MSBs present in the science program has been observed.<br>\n";
+        } else {
+          print "$done out of $total MSBs present in the science program have been observed.<br>\n";
+        }
       }
 
       # Now print the table (with an est. time column) if we have content
@@ -110,11 +110,11 @@ sub fb_msb_observed {
 
   # Get observed MSBs
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-					       format => 'data'});
+                                               format => 'data'});
 
   # Get project's associated telescope
   my $proj = OMP::ProjServer->projectDetailsNoAuth( $projectid,
-					      "object");
+                                              "object");
 
   # Generate the HTML table
   (@$observed) and msb_table(cgi=>$q, msbs=>$observed, telescope=> $proj->telescope);
@@ -146,18 +146,18 @@ sub msb_action {
 
       # Make sure we got a user object
       if (! $user) {
-	print "Must supply a valid OMP user ID in order to submit a comment";
+        print "Must supply a valid OMP user ID in order to submit a comment";
 
-	# Redisplay the comment form and return
-	msb_comment_form($q, 1);
-	return;
+        # Redisplay the comment form and return
+        msb_comment_form($q, 1);
+        return;
       }
 
       # Create the comment object
       my $trans = $q->param( 'transaction' );
       my $comment = new OMP::Info::Comment( author => $user,
-					    text => $q->param('comment'),
-					    status => OMP__DONE_COMMENT,
+                                            text => $q->param('comment'),
+                                            status => OMP__DONE_COMMENT,
                                             ( $trans ? ( 'transaction' => $trans )
                                               : ()
                                             )
@@ -165,8 +165,8 @@ sub msb_action {
 
       # Add the comment
       OMP::MSBServer->addMSBcomment( $q->param('projectid'),
-				     $q->param('msbid'),
-				     $comment );
+                                     $q->param('msbid'),
+                                     $comment );
       print $q->h2("MSB comment successfully submitted");
     } catch OMP::Error::MSBMissing with {
       my $Error = shift;
@@ -194,9 +194,9 @@ sub msb_action {
     try {
       OMP::MSBServer->undoMSB( $q->param('projectid'), $q->param('checksum') );
       if ($q->param("Undo")) {
-	print $q->h2("MSB done mark removed");
+        print $q->h2("MSB done mark removed");
       } else {
-	print $q->h2("MSB no longer removed from consideration");
+        print $q->h2("MSB no longer removed from consideration");
       }
 
     } catch OMP::Error::MSBMissing with {
@@ -416,16 +416,16 @@ sub msb_comment_form {
     %defaults = map {$_, $q->param($_)} qw/author comment msbid/;
   } else {
     %defaults = (author => undef,
-		 comment => undef,
-		 msbid =>$q->param('checksum'),)
+                 comment => undef,
+                 msbid =>$q->param('checksum'),)
   }
 
   print "<table border=0><tr><td valign=top>User ID: </td><td>";
   print $q->startform;
   print $q->textfield(-name=>'author',
-		      -size=>22,
-		      -maxlength=>32,
-		      -default=>$defaults{author},);
+                      -size=>22,
+                      -maxlength=>32,
+                      -default=>$defaults{author},);
   print "</td><tr><td valign=top>Comment: </td><td>";
 
   print OMP::General->make_hidden_fields(
@@ -441,9 +441,9 @@ sub msb_comment_form {
         ;
 
   print $q->textarea(-name=>'comment',
-		     -rows=>5,
-		     -columns=>80,
-		     -default=>$defaults{comment},);
+                     -rows=>5,
+                     -columns=>80,
+                     -default=>$defaults{comment},);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit("Submit");
   print $q->endform;
@@ -464,8 +464,8 @@ sub msb_sum {
 
   print $q->h2("MSB summary");
   my $msbsum = OMP::CGIDBHelper::safeProgramDetails( $cookie{projectid},
-						     $cookie{password},
-						     'htmlcgi' );
+                                                     $cookie{password},
+                                                     'htmlcgi' );
   print $msbsum if defined $msbsum;
 
 }
@@ -488,14 +488,14 @@ sub msb_sum_hidden {
   my $projectid = $cookie{projectid};
   try {
     my $db = OMP::MSBDB->new(DB=>new OMP::DBbackend,
-			     ProjectID => $projectid,
-			     Password => $cookie{password},);
+                             ProjectID => $projectid,
+                             Password => $cookie{password},);
 
     # Our XML query for retrieving all MSBs
     my $xml = "<MSBQuery>"
       ."<projectid full=\"1\">$projectid</projectid>"
-	."<disableconstraint>all</disableconstraint>"
-	  ."</MSBQuery>";
+        ."<disableconstraint>all</disableconstraint>"
+          ."</MSBQuery>";
 
     my $query = new OMP::MSBQuery( XML => $xml );
 
@@ -560,7 +560,7 @@ sub msb_table {
 
   # Decide whether to show MSB targets or MSB name
   my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-					       telescope => $telescope,);
+                                               telescope => $telescope,);
   my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
   print "<table width=100%>";
@@ -592,8 +592,8 @@ sub msb_table {
     next if defined $msb->remaining && $msb->remaining <= 0;
 
     # Skip if this is only a fetch comment
-    next if (scalar @{$msb->comments} && 
-	     $msb->comments->[0]->status == &OMP__DONE_FETCH);
+    next if (scalar @{$msb->comments} &&
+             $msb->comments->[0]->status == &OMP__DONE_FETCH);
 
     # Create a summary table
     $i++;
@@ -605,11 +605,11 @@ sub msb_table {
 
     if ($est_column) {
       if ($msb->timeest) {
-	# Convert estimated time from seconds to hours
-	my $timeest = sprintf "%.2f hours", ($msb->timeest / ONE_HOUR);
-	print "<td>$timeest</td>";
+        # Convert estimated time from seconds to hours
+        my $timeest = sprintf "%.2f hours", ($msb->timeest / ONE_HOUR);
+        print "<td>$timeest</td>";
       } else {
-	print "<td>--</td>";
+        print "<td>--</td>";
       }
     }
 
@@ -647,17 +647,17 @@ sub observed_form {
   print "<table><td align='right'><b>";
   print $q->startform;
   print $q->hidden(-name=>'show_output',
-		   -default=>1,);
+                   -default=>1,);
   print "UT Date: </b><td>";
   print $q->textfield(-name=>'utdate',
-		      -size=>15,
-		      -maxlength=>75,
-		      -default=>$utdate,);
+                      -size=>15,
+                      -maxlength=>75,
+                      -default=>$utdate,);
   print "</td><td></td><tr><td align='right'><b>Telescope: </b></td><td>";
   print $q->popup_menu(-name=>'telescope',
-		       -values=>\@tel,
-		       -labels=>\%tel_labels,
-		       -default=>0,);
+                       -values=>\@tel,
+                       -labels=>\%tel_labels,
+                       -default=>0,);
   print "</td><td colspan=2>";
   print $q->submit("View Comments");
   print $q->endform;
