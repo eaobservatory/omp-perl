@@ -158,7 +158,7 @@ sub msb_action {
       my $comment = new OMP::Info::Comment( author => $user,
                                             text => $q->param('comment'),
                                             status => OMP__DONE_COMMENT,
-                                            ( $trans ? ( 'transaction' => $trans )
+                                            ( $trans ? ( 'tid' => $trans )
                                               : ()
                                             )
                                           );
