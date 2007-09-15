@@ -120,11 +120,7 @@ sub fb_msb_observed {
   (@$observed) and msb_table(cgi=>$q, msbs=>$observed, telescope=> $proj->telescope);
 }
 
-# Non breaking space HTML entity.  Predeclare where can be used as a bareword.
-sub nbsp { '&nbsp;' }
-# And this one is for interpolation, including non /e usage in regular
-# expressions.
-my $NBSP = nbsp;
+my ( $NBSP, $NEWLINE ) = ( '&nbsp;', "\n" );
 
 =item B<msb_action>
 
@@ -158,9 +154,14 @@ sub msb_action {
       }
 
       # Create the comment object
+      my $trans = $q->param( 'transaction' );
       my $comment = new OMP::Info::Comment( author => $user,
 					    text => $q->param('comment'),
-					    status => OMP__DONE_COMMENT );
+					    status => OMP__DONE_COMMENT,
+                                            ( $trans ? ( 'transaction' => $trans )
+                                              : ()
+                                            )
+                                          );
 
       # Add the comment
       OMP::MSBServer->addMSBcomment( $q->param('projectid'),
@@ -250,10 +251,14 @@ TABLE
                 &OMP__DONE_REJECTED => '#bc5a74',
                 &OMP__DONE_SUSPENDED => '#ffb959',);
 
-  my ( $table_cols, $i ) = ( 4, 0 );
+  my ( $table_cols, $header_rows, $i ) = ( 4, 2, 1 );
+
+  # For CGI+form.
+  my %common_hidden =
+    ( 'show_output' => 1,
+    );
 
   foreach my $msb (@output) {
-    $i++;
 
     # If the MSB exists in the science program we'll provide a "Remove" button
     # and we'll be able to display the number of remaining observations.
@@ -285,56 +290,76 @@ TABLE
 
     _print_msb_header(
       'count' => $i,
-      'count-rowspan' => ( 2 + ( $comments ? 2 * $comments - 1 : 0 ) ),
+      # (2 * $comments -1): number of comments & dividers between two comments.
+      'count-rowspan' => $header_rows + ( $comments ? 2 * $comments - 1 : 0 ),
       'title' => $msbtitle,
+      # Count goes in the 1st column.
       'title-colspan' => $table_cols - 1,
       'status' => $remstatus,
       'target' => $msb->target,
       'inst' => $msb->instrument,
       'waveband' => $msb->waveband,
     );
+    $i++;
+
+    $common_hidden{'projectid'} = $msb->projectid;
+    $common_hidden{'checksum'} = $msb->checksum;
 
     _print_transaction_comments(
-      'comments' => [ @comments ],
-      'comment-colspan' => $table_cols - 2,
-      'colors' => \%colors,
+      $q,
+      [ OMP::General
+        ->make_hidden_fields( $q, { %common_hidden, 'transaction' => $msb->msbtid } )
+      ],
+      { 'comments' => [ @comments ],
+        'comment-colspan' => $table_cols - 2,
+        'colors' => \%colors,
+      }
     );
 
-    print "<tr bgcolor='#d3d3dd'><td align=left colspan=5>";
-    print $q->startform;
-
-    # Some hidden params to pass
-    ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
-                                                -default=>$q->param('utdate'));
-    ($q->param('telescope')) and print $q->hidden(-name=>'telescope',
-                                                  -default=>$q->param('telescope'));
-
-    print $q->hidden(-name=>'show_output',
-                      -default=>1,);
-    print $q->hidden(-name=>'checksum',
-                      -default=>$msb->checksum);
-    print $q->hidden(-name=>'projectid',
-                      -default=>$msb->projectid);
-
-    # Make "Remove" and "undo" buttons if the MSB exists in the 
+    # Make "Remove" and "undo" buttons if the MSB exists in the
     # science program
-    if ($exists) {
-      if ($spmsb->isRemoved) {
-        # If it has been removed, the only relevant action is to unremove it
-        print $q->submit("unRemove");
-      } else {
-        print $q->submit("Remove");
-        print " ";
-        print $q->submit("Undo");
-      }
-      print " ";
+    if ( $exists ) {
+
+      print
+        Tr( td( $NBSP ),
+            td( { 'colspan' => , $table_cols - 1 },
+              $q->startform,
+              $NEWLINE,
+              # If it has been removed, the only relevant action is to unremove it
+              ( $spmsb->isRemoved ? $q->submit('unRemove')
+                  : $q->submit('Remove'), $NBSP, $q->submit('Undo')
+              ),
+              $NEWLINE,
+              OMP::General->make_hidden_fields( $q, { %common_hidden } ),
+              $NEWLINE,
+              _make_non_empty_hidden_fields( $q, qw[utdate telescope] ),
+              $NEWLINE,
+              $q->endform
+            )
+          )
     }
 
-    print $q->submit("Add Comment");
-    print $q->endform;
-    print "</td>";
+    print Tr( { 'bgcolor' => "#d3d3dd" },
+              qq[<td colspan="$table_cols"> $NBSP</td>]
+            );
   }
   print "</table>";
+}
+
+sub _make_non_empty_hidden_fields {
+
+  my ( $cgi, @fields ) = @_;
+
+  return
+    OMP::General->make_hidden_fields(
+            $cgi,
+            { map
+                { length $cgi->param( $_ ) ? ( $_ => $cgi->param( $_ ) )
+                    : ()
+                }
+                @fields
+            }
+          ) ;
 }
 
 =item B<msb_comments_by_project>
@@ -402,20 +427,18 @@ sub msb_comment_form {
 		      -maxlength=>32,
 		      -default=>$defaults{author},);
   print "</td><tr><td valign=top>Comment: </td><td>";
-  print $q->hidden(-name=>'submit_msb_comment',
-		   -default=>1,);
-  print $q->hidden(-name=>'show_output',
-		   -default=>1,);
-  print $q->hidden(-name=>'msbid',
-		   -default=>$defaults{msbid},);
-  ($q->param('projectid')) and print $q->hidden(-name=>'projectid',
-						-default=>$q->param('projectid'));
 
-  # Pass along UT Date and Telescope parameters, if they are available
-  ($q->param('utdate')) and print $q->hidden(-name=>'utdate',
-					     -default=>$q->param('utdate'));
-  ($q->param('telescope')) and print $q->hidden(-name=>'telescope',
-					        -default=>$q->param('telescope'));
+  print OMP::General->make_hidden_fields(
+              $q,
+              { 'show_output' => 1,
+                'submit_msb_comment' => 1,
+                # This is checksum not transaction id.
+                'msbid' => $defaults{'msbid'},
+                'transaction' => $q->param( 'transaction' )
+              }
+            ),
+        _make_non_empty_hidden_fields( $q, qw[ projectid utdate telescope ] )
+        ;
 
   print $q->textarea(-name=>'comment',
 		     -rows=>5,
@@ -659,26 +682,25 @@ sub _print_msb_header {
             $info{'count'} . '.'
           ),
         th( { 'colspan' => $info{'title-colspan'} },
-            $info{'title'} || nbsp ,
+            $info{'title'} || $NBSP ,
           ),
       ),
     Tr( $text_pos,
         td( { 'align' => 'center',
               'rowspan' => $info{'count-rowspan'} - 1
             },
-            $info{'status'} || nbsp
+            $info{'status'} || $NBSP
           ),
         td( { 'colspan' =>  $info{'title-colspan'} - 1 },
-            join +( nbsp ) x 2,
+            join +( $NBSP ) x 2,
               map
                 { my $label = $_->[0];
                   ( my $val = $_->[1] ) =~ s/[ \t]+/$NBSP/g;
-                  join nbsp, $label ? b( $label . ':' ) : '', $val;
+                  join $NBSP, $label ? b( $label . ':' ) : '', $val;
                 }
-                ( [ 'Target'     , $info{'target'} ],
-                  [ 'Waveband'   , OMP::General::frequency_in_xhz( $info{'waveband'} ) ],
-                  [ 'Instrument' , $info{'inst'} ],
-                )
+                [ 'Target'     , $info{'target'} ],
+                [ 'Waveband'   , OMP::General::frequency_in_xhz( $info{'waveband'} ) ],
+                [ 'Instrument' , $info{'inst'} ]
           )
       );
 
@@ -690,37 +712,42 @@ sub _print_msb_header {
 # appropriate.
 sub _print_transaction_comments {
 
- my ( %args ) = @_;
+  my ( $query, $hidden_fields, $args ) = @_;
 
- return unless %args;
+  return
+    unless $query
+    && $hidden_fields && ref $hidden_fields
+    && $args && OMP::General->hashref_keys_size( $args )
+    ;
 
-  my %text_pos = ( 'valign' => 'top', 'align' => 'left' );
+  my %prop = ( 'valign' => 'top', 'align' => 'left' );
 
-  my $count = scalar @{ $args{'comments'} };
+  my $count = scalar @{ $args->{'comments'} };
 
-  for my $c ( @{ $args{'comments'} } ) {
+  for my $c ( @{ $args->{'comments'} } ) {
 
-    my $status =
-      $c->status != OMP__DONE_FETCH ? OMP::MSBDoneDB::status_to_text( $c->status )
-        : nbsp ;
-
-    my $prop = { 'bgcolor' => $args{'colors'}->{ $c->status }, %text_pos };
+    #my $status =
+    #  $c->status != OMP__DONE_FETCH ? OMP::MSBDoneDB::status_to_text( $c->status )
+    #    : $NBSP ;
 
     my $author = $c->author;
 
     print
-        Tr( $prop,
-          td( nbsp #, qw([Add comment])
-            ),
-          td( { 'colspan' => $args{'comment-colspan'} },
-              div( { 'class' => 'black' },
-                    ( join q[, ], i( $c->date . ' UT' ),
-                        $author ? $author->html : ()
+        Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } },
+            td( $query->startform, "\n",
+                $query->submit('Add Comment'), "\n",
+                @{ $hidden_fields }, "\n",
+                $query->endform, "\n",
+              ),
+            td( { 'colspan' => $args->{'comment-colspan'} },
+                div( { 'class' => 'black' },
+                      ( join q[, ], i( $c->date . ' UT' ),
+                          $author ? $author->html : ()
+                      ),
+                      '<br>', $c->text
                     ),
-                    '<br>', $c->text
-                  ),
-            ),
-        ) ;
+              ),
+          ) ;
 
     $count-- > 1 and
       print Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
