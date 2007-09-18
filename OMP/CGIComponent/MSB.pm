@@ -795,8 +795,8 @@ sub _print_transaction_comments {
     print
       div( { 'class' => 'black' },
             join( ', ', i( $c->date . ' UT' ),
-                  $author ? $author->html : (),
-                  $cur ? '( ' . $cur . ' )' : '--'
+                  $author ? $author->html : ()
+                  #, $cur ? '( ' . $cur . ' )' : '--'
                 ),
             '<br>', $c->text
           ) ;
