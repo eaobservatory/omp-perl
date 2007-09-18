@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 
 use Time::Seconds qw(ONE_HOUR);
-use CGI qw/ :html /;
+use CGI qw/ :html *Tr *td /;
 
 use OMP::CGIComponent::Helper;
 use OMP::CGIDBHelper;
@@ -286,7 +286,7 @@ TABLE
     (!$msbtitle) and $msbtitle = "[NONE]";
 
     my @comments = $msb->comments;
-    my $comments = scalar @comments;
+    my $comments = _count_unique_tids( @comments );
 
     _print_msb_header(
       'count' => $i,
@@ -307,12 +307,14 @@ TABLE
 
     _print_transaction_comments(
       $q,
-      [ OMP::General
-        ->make_hidden_fields( $q, { %common_hidden, 'transaction' => $msb->msbtid } )
-      ],
       { 'comments' => [ @comments ],
         'comment-colspan' => $table_cols - 2,
         'colors' => \%colors,
+        'hidden' =>
+          [ OMP::General->make_hidden_fields(
+              $q, { %common_hidden, 'transaction' => $msb->msbtid }
+            )
+          ],
       }
     ) ;
 
@@ -341,22 +343,6 @@ TABLE
         );
   }
   print "</table>";
-}
-
-sub _make_non_empty_hidden_fields {
-
-  my ( $cgi, @fields ) = @_;
-
-  return
-    OMP::General->make_hidden_fields(
-            $cgi,
-            { map
-                { length $cgi->param( $_ ) ? ( $_ => $cgi->param( $_ ) )
-                    : ()
-                }
-                @fields
-            }
-          ) ;
 }
 
 =item B<msb_comments_by_project>
@@ -425,17 +411,17 @@ sub msb_comment_form {
                       -default=>$defaults{author},);
   print "</td><tr><td valign=top>Comment: </td><td>";
 
-  print OMP::General->make_hidden_fields(
-              $q,
-              { 'show_output' => 1,
-                'submit_msb_comment' => 1,
-                # This is checksum not transaction id.
-                'msbid' => $defaults{'msbid'},
-                'transaction' => $q->param( 'transaction' )
-              }
-            ),
-        _make_non_empty_hidden_fields( $q, qw[ projectid utdate telescope ] )
-        ;
+  print
+    OMP::General->make_hidden_fields(
+      $q,
+      { 'show_output' => 1,
+        'submit_msb_comment' => 1,
+        # This is checksum not transaction id.
+        'msbid' => $defaults{'msbid'},
+        'transaction' => $q->param( 'transaction' )
+      }
+    ),
+    _make_non_empty_hidden_fields( $q, qw[ projectid utdate telescope ]) ;
 
   print $q->textarea(-name=>'comment',
                      -rows=>5,
@@ -662,8 +648,31 @@ sub observed_form {
 
 }
 
-# Given hash with information about MSB, print MSB header as HTML table
-# rows+columns.
+=pod
+
+=item B<_print_msb_header>
+
+Given a hash with information about MSB, print MSB header as (HTML)
+table rows and columns.
+
+  _print_msb_header(
+    'title' => <MSB title>,
+    'title-colspan' => <column-span for the title>,
+    'count' => <current number of the MSB>,
+    'count-rowspan' => <row-span for current number of the MSB>,
+    'status' => <MSB status>,
+    'inst' => <instrument>
+    'target' => <target>,
+    'waveband' => <frequency in Hz>,
+  );
+
+MSB count and title are printed in one row; status, target, waveband,
+and instrument in the second.  The MSB count table cell spans the rows
+as long as title rows plus the number of comments with distinct
+transaction ids.
+
+=cut
+
 sub _print_msb_header {
 
   my ( %info ) = @_;
@@ -692,8 +701,7 @@ sub _print_msb_header {
             join +( $NBSP ) x 2,
               map
                 { my $label = $_->[0];
-                  ( my $val = $_->[1] ) =~ s/[ \t]+/$NBSP/g;
-                  join $NBSP, $label ? b( $label . ':' ) : '', $val;
+                  join $NBSP, ( $label ? b( $label . ':' ) : '' ), $_->[1];
                 }
                 [ 'Target'     , $info{'target'} ],
                 [ 'Waveband'   , OMP::General::frequency_in_xhz( $info{'waveband'} ) ],
@@ -704,16 +712,36 @@ sub _print_msb_header {
   return;
 }
 
-# Given array reference of OMP::Info::Comment objects associated with a
-# transaction id, print the comments in <p>, with dividers (<hr>) if
-# appropriate.
+=pod
+
+=item B<_print_transaction_comments>
+
+Given array reference of OMP::Info::Comment objects associated with a
+transaction id, print the comments in <p>, with dividers (<hr>) if
+appropriate.
+
+  _print_transaction_comments(
+    $cgi,
+    { 'comments' => <array ref of OMP::Info::Comment objects>,
+      'comment-colspan' => <column-span for comment table cells>,
+      'colors' =>
+        <hash ref of keys as OMP__DONE* status, colors as values>',
+      'hidden' =>
+        <array ref of hidden field HTML code strings
+          to pass to "Add comment to MSB" form>
+    }
+  );
+
+See also L<OMP::Constants/MSB Done constants>.
+
+=cut
+
 sub _print_transaction_comments {
 
-  my ( $query, $hidden_fields, $args ) = @_;
+  my ( $query, $args ) = @_;
 
   return
     unless $query
-    && $hidden_fields && ref $hidden_fields
     && $args && OMP::General->hashref_keys_size( $args )
     ;
 
@@ -721,56 +749,118 @@ sub _print_transaction_comments {
 
   my $count = scalar @{ $args->{'comments'} };
 
-  for my $c ( @{ $args->{'comments'} } ) {
+  my $all = $args->{'comments'};
+  my ( $prev );
+  for my $i ( 0 .. $count - 1 ) {
 
-    #my $status =
-    #  $c->status != OMP__DONE_FETCH ? OMP::MSBDoneDB::status_to_text( $c->status )
-    #    : $NBSP ;
+    my $c = $all->[ $i ];
 
-    my $author = $c->author;
+    my $cur = $c->tid;
+    #  Consider each comment with empty|undef transaction id as
+    #  unique.
+    my $diff = ! ( $cur && $prev && $cur eq $prev );
+    $prev = $cur ;
 
-    print
-      Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } },
-          td( $query->startform, "\n",
-              $query->submit('Add Comment'), "\n",
-              @{ $hidden_fields }, "\n",
-              $query->endform, "\n",
-            ),
-          td( { 'colspan' => $args->{'comment-colspan'} },
-              div( { 'class' => 'black' },
-                    ( join q[, ], i( $c->date . ' UT' ),
-                        $author ? $author->html : ()
-                    ),
-                    '<br>', $c->text
-                  ),
-            ),
-        ) ;
+    unless ( $diff ) {
 
-    $count-- > 1 and
+      # Divider between two comments with the same transaction ids.
+      $i and print hr ;
+    }
+    else {
+
+      # Divider(Blank row) between comments with different transaction ids.
+      $i and
+        print
+          Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
+                  hr
+                )
+            ) ;
+
+      # End of comments.
+      $i + 1 == $count and print end_td, end_Tr ;
+
+      # Start of comments.
       print
-        Tr( td( { 'align' => 'center', 'valign' => 'middle', 'colspan' => 2 },
-                hr
-              )
+        start_Tr( { %prop, 'bgcolor' => $args->{'colors'}->{ $c->status } } ),
+        td( $query->startform, "\n",
+            $query->submit('Add Comment'), "\n",
+            @{ $args->{'hidden' } }, "\n",
+            $query->endform, "\n",
+          ),
+        start_td( { 'colspan' => $args->{'comment-colspan'} } ) ;
+    }
+
+    # The actual comment.  Finally!
+    my $author = $c->author;
+    print
+      div( { 'class' => 'black' },
+            join( ', ', i( $c->date . ' UT' ),
+                  $author ? $author->html : (),
+                  $cur ? '( ' . $cur . ' )' : '--'
+                ),
+            '<br>', $c->text
           ) ;
   }
 
   return;
 }
 
-sub _print_add_comment {
+=pod
 
-  my ( $status, $query, $form ) = @_;
+=item B<_make_non_empty_hidden_fields>
+
+Given C<CGI> object and the parameter names associated with the
+object, returns an array of HTML strings of hidden fields for those
+parameters which have non empty values.
 
   print
-    Tr( td( b( $status ) ),
-        td( { 'colspan' => $form->{'colspan'} },
-            $query->startform,
-            $query->submit("Add Comment"),
-            $query->endform
-          )
-      ) ;
+    _make_non_empty_hidden_fields( $cgi, qw[ telescope utdate ] );
 
-  return;
+=cut
+
+sub _make_non_empty_hidden_fields {
+
+  my ( $cgi, @fields ) = @_;
+
+  return
+    OMP::General->make_hidden_fields(
+      $cgi,
+      { map
+          { length $cgi->param( $_ ) ? ( $_ => $cgi->param( $_ ) )
+              : ()
+          }
+          @fields
+      }
+    ) ;
+}
+
+=pod
+
+=item B<_count_unique_tids>
+
+Given an array of OMP::Info::Comment objects, returns the count of comments with
+unique transaction ids, where each comment with missing transaction id is also
+considered to be unique for the purpose of HTML table code generation.
+
+  my $count = _count_unique_tids( @comments );
+
+=cut
+
+sub _count_unique_tids {
+
+  my ( @comments ) = @_;
+
+  my %uniq;
+  # C<OMP::Info::Comment::tid> method produces a string =~
+  # m/^[A-Z]+[_0-9]+$/ if a transaction id is present, so no need to
+  # be concerned about it being 0-but-valid id.
+  $uniq{ $_->tid ? $_->tid : 'empty' }++ for @comments;
+
+  return
+    # keys() already accounts for 1 of the empty values.
+    ( $uniq{'empty'} ? $uniq{'empty'} - 1 : 0 )
+    + scalar keys %uniq
+    ;
 }
 
 =back
