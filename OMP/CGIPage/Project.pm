@@ -645,12 +645,16 @@ sub proposals {
 
     my $propfile;
     my $type;
+    #  File name to offer for file being downloaded.
+    my $offer = 'proposal';
 
   dirloop:
     for my $dir (@dirs) {
       for my $ext (qw/ps pdf ps.gz txt/) {
-	if (-e "$dir/$propfilebase.$ext") {
-	  $propfile = "$dir/$propfilebase.$ext";
+        my $name = "$propfilebase.$ext";
+	if (-e "$dir/$name") {
+	  $propfile = "$dir/$name";
+          $offer .= '-' . $name;
 	  $type = $extensions{$ext};
 	  last dirloop;
 	}
@@ -666,7 +670,10 @@ sub proposals {
       close(PROP);
 
       # Serve proposal
-      print $q->header(-type=>$type);
+      print $q->header( -type=>$type,
+                        -Content_Disposition => qq[attachment; filename=$offer]
+                      );
+
       print join("",@file);
 
       # Enter log message
