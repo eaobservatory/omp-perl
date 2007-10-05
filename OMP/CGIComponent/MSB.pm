@@ -616,6 +616,15 @@ Create a form with a textfield for inputting a UT date and submitting it.
 sub observed_form {
   my $q = shift;
 
+  # Match case of telescope type value as present in database so that it would
+  # be already selected in selection list.
+  my %tel = OMP::General->find_in_post_or_get( $q, 'telescope' );
+  for ( $tel{'telescope'} ) {
+
+    defined $_ and $q->param( 'telescope', uc $_ );
+  }
+
+
   my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
 
   # Get today's date and use that ase the default
