@@ -300,7 +300,7 @@ sub observed_output {
       my $projdb = new OMP::ProjDB( ProjectID => $msb->projectid,
 				    DB => $dbconnection );
       my $proj = $projdb->projectDetailsNoAuth( 'object' );
-      if ($proj->telescope eq $telescope) {
+      if (uc $proj->telescope eq uc $telescope) {
 	push @msbs, $msb;
       }
     }
