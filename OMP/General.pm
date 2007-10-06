@@ -2002,6 +2002,8 @@ sub find_in_post_or_get {
 
 =pod
 
+=back
+
 =head2 References
 
 =over 4
