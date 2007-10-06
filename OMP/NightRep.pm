@@ -1228,7 +1228,7 @@ sub ashtml {
       "</td>";
 
   # Get clear time
-  my $cleartime = $total;
+  my $cleartime = $total - $shuttime;
   $cleartime -= $acct{$tel.'WEATHER'}->{total}->hours
     if exists $acct{$tel.'WEATHER'};
 
