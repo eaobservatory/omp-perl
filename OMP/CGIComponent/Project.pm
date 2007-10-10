@@ -27,6 +27,8 @@ use OMP::MSBServer;
 use OMP::ProjDB;
 use OMP::ProjServer;
 
+use File::Spec;
+
 $| = 1;
 
 =head1 Routines
@@ -188,24 +190,35 @@ sub proj_sum_table {
 
   my $url = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  print "<table cellspacing=0>";
-  print "<tr align=center><td>Project ID</td>";
-  print "<td>PI</td>";
-  print "<td>Support</td>";
-  print "<td># MSBs</td>";
-  print "<td>Priority</td>";
-  print "<td>Allocated</td>";
-  print "<td>Completed</td>";
-  print "<td>Tau range</td>";
-  print "<td>Seeing range</td>";
-  print "<td>Cloud</td>";
-  print "<td>Sky Brightness</td>";
-  print "<td>Title</td>";
+  print <<'TABLE';
+  <table cellspacing=0>
+  <tr align=center>
+  <td>Enabled(v) / Disabled(x)</td>
+  <td>Project ID</td>
+  <td>PI</td>
+  <td>Support</td>
+  <td># MSBs</td>
+  <td>Priority</td>
+  <td>Allocated</td>
+  <td>Completed</td>
+  <td>Tau range</td>
+  <td>Seeing range</td>
+  <td>Cloud</td>
+  <td>Sky Brightness</td>
+  <td>Title</td>
+TABLE
 
   my %bgcolor = (dark => "#6161aa",
 		 light => "#8080cc",
                  disabled => "#e26868",
 		 heading => "#c2c5ef",);
+
+  # Images, with width & height, to distinguish between enabled & disabled
+  # projects more easily than just by background colors.
+  my $img_dir = OMP::Config->getData( 'iconsdir' );
+  my %images = ( 'enabled' => [qw( tick-green-24.png 23 24 )],
+                  'disabled' => [qw( cross-red-24.png 23 24 )]
+                );
 
   my $rowclass = 'row_shaded';
 
@@ -250,6 +263,17 @@ sub proj_sum_table {
     (! $project->state) and $rowclass = 'row_disabled';
 
     print "<tr class=${rowclass} valign=top>";
+
+    my $status = !! $project->state ? 'enabled' : 'disabled';
+    printf <<'STATUS',
+      <td align="center" valign="top"><img
+        alt="%s" src="%s" width="%d" height="%d"></td>
+STATUS
+      $status,
+      File::Spec->catfile( $img_dir, $images{ $status }->[0] ),
+      map { $images{ $status }->[ $_ ] } ( 1, 2 )
+      ;
+
     print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
     print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
     print "<td>". $support ."</td>";
