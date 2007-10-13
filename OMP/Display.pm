@@ -21,6 +21,7 @@ use warnings;
 use strict;
 use Carp;
 
+use File::Spec;
 use OMP::Config;
 
 require HTML::TreeBuilder;
@@ -102,17 +103,21 @@ sub userhtml {
     $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
   }
 
-  my $html = "<a href=$url>$user</a>";
+  my $html = qq(<a href="$url">$user</a> );
 
   # Append email status icon
   if (defined $emailstatus) {
-    if ($emailstatus) {
-      $html .= " <a href=$public$cgidir/projusers.pl?urlprojid=$project>".
-	"<img src=$public$iconsdir/mail.gif alt='receives email' border=0></a>"
-    } else {
-      $html .= " <a href=$public$cgidir/projusers.pl?urlprojid=$project>".
-	"<img src=$public$iconsdir/nomail.gif alt='ignores email' border=0></a>";
-    }
+
+    my @mail = $emailstatus ? ( 'mail.gif',  'receives email' )
+                : ( 'normal.gif',  'ignores email' ) ;
+
+   $html .=
+    sprintf
+      qq( <a href="%s/projusers.pl?urlprojid=%s"><img src="%s" alt="%s" border="0"></a>),
+      $public . $cgidir,
+      $project,
+      join( '/', $iconsdir, $mail[0] ),
+      $mail[1] ;
   }
 
   return $html;
