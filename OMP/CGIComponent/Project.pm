@@ -22,6 +22,8 @@ use Carp;
 
 use OMP::Config;
 use OMP::Display;
+use OMP::Error qw/ :try /;
+use OMP::Constants qw/ :status /;
 use OMP::General;
 use OMP::MSBServer;
 use OMP::ProjDB;
@@ -201,6 +203,7 @@ sub proj_sum_table {
   <td>Priority</td>
   <td>Allocated</td>
   <td>Completed</td>
+  <td>Instruments</td>
   <td>Tau range</td>
   <td>Seeing range</td>
   <td>Cloud</td>
@@ -229,68 +232,84 @@ TABLE
   my @projectids = map {$_->projectid} @$projects;
   my %msbcount = OMP::MSBServer->getMSBCount(@projectids);
 
-  foreach my $project (@$projects) {
+  #  XXX Just catch any errors thrown by OMP::SpServer->programInstruments.
+  #  This try-catch should really be around the acutal usage of
+  #  programInstruments(), but that may cause a slowdown when looped over many
+  #  times.
+  try {
+    foreach my $project (@$projects) {
 
-    if ($headings) {
-      # If the country or semester for this project are different
-      # than the previous project row, create a new heading
+      if ($headings) {
+        # If the country or semester for this project are different
+        # than the previous project row, create a new heading
 
-      if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
-	$hsem = $project->semester_ori;
-	$hcountry = $project->country;
-	print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td>";
+        if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
+          $hsem = $project->semester_ori;
+          $hcountry = $project->country;
+          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td>";
+        }
       }
-    }
 
-    # Get MSB counts
-    my $nmsb = $msbcount{$project->projectid}{total};
-    my $nremaining = $msbcount{$project->projectid}{active};
-    (! defined $nmsb) and $nmsb = 0;
-    (! defined $nremaining) and $nremaining = 0;
+      # Get MSB counts
+      my $nmsb = $msbcount{$project->projectid}{total};
+      my $nremaining = $msbcount{$project->projectid}{active};
+      (! defined $nmsb) and $nmsb = 0;
+      (! defined $nremaining) and $nremaining = 0;
 
-    # Get seeing and tau info
-    my $taurange = $project->taurange;
-    my $seerange = $project->seeingrange;
-    my $skyrange = $project->skyrange;
+      # Get seeing and tau info
+      my $taurange = $project->taurange;
+      my $seerange = $project->seeingrange;
+      my $skyrange = $project->skyrange;
 
-    $taurange = '--' if OMP::SiteQuality::is_default( 'TAU',$taurange );
-    $seerange = '--' if OMP::SiteQuality::is_default( 'SEEING',$seerange );
-    $skyrange = '--' if OMP::SiteQuality::is_default( 'SKY',$skyrange );
+      $taurange = '--' if OMP::SiteQuality::is_default( 'TAU',$taurange );
+      $seerange = '--' if OMP::SiteQuality::is_default( 'SEEING',$seerange );
+      $skyrange = '--' if OMP::SiteQuality::is_default( 'SKY',$skyrange );
 
-    my $support = join(", ", map {$_->userid} $project->support);
+      # programInstruments() may return empty array reference.
+      my $instruments = OMP::SpServer->programInstruments( $project->projectid );
 
-    # Make it noticeable if the project is disabled
-    (! $project->state) and $rowclass = 'row_disabled';
+      my $support = join(", ", map {$_->userid} $project->support);
 
-    print "<tr class=${rowclass} valign=top>";
+      # Make it noticeable if the project is disabled
+      (! $project->state) and $rowclass = 'row_disabled';
 
-    my $status = !! $project->state ? 'enabled' : 'disabled';
-    printf <<'STATUS',
-      <td align="center" valign="top"><img
-        alt="%s" src="%s" width="%d" height="%d"></td>
+      print "<tr class=${rowclass} valign=top>";
+
+      my $status = !! $project->state ? 'enabled' : 'disabled';
+      printf <<'STATUS',
+        <td align="center" valign="top"><img
+          alt="%s" src="%s" width="%d" height="%d"></td>
 STATUS
-      $status,
-      File::Spec->catfile( $img_dir, $images{ $status }->[0] ),
-      map { $images{ $status }->[ $_ ] } ( 1, 2 )
-      ;
+        $status,
+        File::Spec->catfile( $img_dir, $images{ $status }->[0] ),
+        map { $images{ $status }->[ $_ ] } ( 1, 2 )
+        ;
 
-    print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
-    print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
-    print "<td>". $support ."</td>";
-    print "<td align=center>$nremaining/$nmsb</td>";
-    print "<td align=center>". $project->tagpriority ."</td>";
-    print "<td align=center>". $project->allocated->pretty_print ."</td>";
-    print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
-    print "<td align=center>$taurange</td>";
-    print "<td align=center>$seerange</td>";
-    print "<td align=center>". $project->cloudtxt ."</td>";
-    print "<td align=center>$skyrange</td>";
-    print "<td>". $project->title ."</td>";
+      print "<td><a href='$url/projecthome.pl?urlprojid=". $project->projectid ."'>". $project->projectid ."</a></td>";
+      print "<td>". OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid) ."</td>";
+      print "<td>". $support ."</td>";
+      print "<td align=center>$nremaining/$nmsb</td>";
+      print "<td align=center>". $project->tagpriority ."</td>";
+      print "<td align=center>". $project->allocated->pretty_print ."</td>";
+      print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
 
-    # Alternate row class style
-    ($rowclass eq 'row_shaded') and $rowclass = 'row_clear'
-      or $rowclass = 'row_shaded';
+      printf '<td align="center">%s</td>',
+        scalar @{ $instruments } ? join '<br />', @{ $instruments }
+          : '--' ;
+
+      print "<td align=center>$taurange</td>";
+      print "<td align=center>$seerange</td>";
+      print "<td align=center>". $project->cloudtxt ."</td>";
+      print "<td align=center>$skyrange</td>";
+      print "<td>". $project->title ."</td>";
+
+      # Alternate row class style
+      ($rowclass eq 'row_shaded') and $rowclass = 'row_clear'
+        or $rowclass = 'row_shaded';
+    }
   }
+  catch OMP::Error with { }
+  otherwise { };
 
   print "</table>";
 
