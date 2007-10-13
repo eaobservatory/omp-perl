@@ -85,11 +85,11 @@ sub list_projects_form {
   print $q->popup_menu(-name=>'semester',
 		       -values=>\@sem,
 		       -default=>uc($sem),);
-  print "</td><tr><td align='right'>Telescope: </td><td>";
+  print "</td></tr><tr><td align='right'>Telescope: </td><td>";
   print $q->popup_menu(-name=>'telescope',
 		       -values=>\@tel,
 		       -default=>'Any',);
-  print "</td><tr><td align='right'>Show: </td><td>";
+  print "</td></tr><tr><td align='right'>Show: </td><td>";
   print $q->radio_group(-name=>'status',
 		        -values=>['active', 'inactive', 'all'],
 			-labels=>{active=>'Time remaining',
@@ -103,22 +103,22 @@ sub list_projects_form {
 				  0=>'Disabled',
 				  all=>'Both',},
 		        -default=>1,);
-  print "</td><tr><td align='right'>Support: </td><td>";
+  print "</td></tr><tr><td align='right'>Support: </td><td>";
   print $q->popup_menu(-name=>'support',
 		       -values=>\@values,
 		       -labels=>\%labels,
 		       -default=>'dontcare',);
-  print "</td><tr><td align='right'>Country: </td><td>";
+  print "</td></tr><tr><td align='right'>Country: </td><td>";
   print $q->popup_menu(-name=>'country',
 		       -values=>\@countries,
 		       -default=>'Any',);
-  print "</td><tr><td align='right'>Order by:</td><td colspan=2>";
+  print "</td></tr><tr><td align='right'>Order by:</td><td colspan=2>";
   print $q->radio_group(-name=>'order',
 			-values=>['priority', 'projectid'],
 		        -labels=>{priority => 'Priority',
 				  projectid => 'Project ID',},
 		        -default=>'priority',);
-  print "</td><tr><td colspan=2>";
+  print "</td></tr><tr><td colspan=2>";
   print $q->checkbox(-name=>'table_format',
 		     -value=>1,
 		     -label=>'Display using tabular format',
@@ -126,7 +126,7 @@ sub list_projects_form {
   print "&nbsp;&nbsp;&nbsp;";
   print $q->submit(-name=>'Submit');
   print $q->endform();
-  print "</td></table>";
+  print "</td></tr></table>";
 }
 
 =item B<proj_status_table>
@@ -165,12 +165,12 @@ sub proj_status_table {
 	"<tr>",
 	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid)."</td>",
 	"<td><b>Title:</b> " . $project->title . "</td>",
-	"<td> $case_href </td>",
+	"<td> $case_href </td></tr>",
 	"<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",
-	"<td><b>Staff Contact:</b> $supportemail</td>",
+	"<td><b>Staff Contact:</b> $supportemail</td></tr>",
         "<tr><td><b>Time allocated:</b> " . $project->allocated->pretty_print . "</td>",
 	"<td><b>Time Remaining:</b> " . $project->allRemaining->pretty_print . "</td>",
-	"<td><b>Country:</b>" . $project->country . "</td>",
+	"<td><b>Country:</b>" . $project->country . "</td></tr>",
         "</table><p>";
 }
 
@@ -209,6 +209,7 @@ sub proj_sum_table {
   <td>Cloud</td>
   <td>Sky Brightness</td>
   <td>Title</td>
+  </tr>
 TABLE
 
   my %bgcolor = (dark => "#6161aa",
@@ -246,7 +247,7 @@ TABLE
         if ($project->semester_ori ne $hsem or $project->country ne $hcountry) {
           $hsem = $project->semester_ori;
           $hcountry = $project->country;
-          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td>";
+          print "<tr bgcolor='$bgcolor{heading}'><td colspan=11>Semester: $hsem, Country: $hcountry</td></td></tr>\n";
         }
       }
 
@@ -302,6 +303,8 @@ STATUS
       print "<td align=center>". $project->cloudtxt ."</td>";
       print "<td align=center>$skyrange</td>";
       print "<td>". $project->title ."</td>";
+
+      print "</tr>\n";
 
       # Alternate row class style
       ($rowclass eq 'row_shaded') and $rowclass = 'row_clear'
