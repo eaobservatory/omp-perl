@@ -81,8 +81,8 @@ sub fb_fault_content {
   }
 
   $faultcomp->show_faults(faults => \@faults,
-			  descending => 0,
-			  url => "fbfault.pl",);
+                          descending => 0,
+                          url => "fbfault.pl",);
 
   print "<hr>";
   print "<font size=+1><b>ID: " . $showfault->faultid . "</b></font><br>";
@@ -142,7 +142,7 @@ sub issuepwd {
 
   print $q->startform;
   print $q->hidden(-name=>'show_output',
-		   -default=>1,);
+                   -default=>1,);
   print "Project ID: ",$q->textfield('projectid','',8,20);
   print "<P>", $q->submit( '  Request password  ');
   print $q->endform;
@@ -223,55 +223,55 @@ sub list_projects_output {
     #
     # NOTE: This may be too slow.  We will probably want to let the
     # database do the sorting and grouping for us in the future,
-    # although that will require OMP::ProjQuery to support 
+    # although that will require OMP::ProjQuery to support
     # <orderby> and <groupby> tags
     my @sorted;
 
     if ($order eq 'projectid') {
-      
+
       my %group;
       for (@$projects) {
 
-	# Try to get the semester from the project ID since that is
-	# more useful for sorting than the actual semester which will
-	# be the same for all projects
-	my $sem = $_->semester_ori;
-	(! $sem) and $sem = $_->semester;
+        # Try to get the semester from the project ID since that is
+        # more useful for sorting than the actual semester which will
+        # be the same for all projects
+        my $sem = $_->semester_ori;
+        (! $sem) and $sem = $_->semester;
 
-	# Fudge with semesters like 99A so that they are sorted
-	# before and not after later semesters like 00B and 04A
-	($sem =~ /^(9\d)([ab])$/i) and $sem = $1 - 100 . $2;
+        # Fudge with semesters like 99A so that they are sorted
+        # before and not after later semesters like 00B and 04A
+        ($sem =~ /^(9\d)([ab])$/i) and $sem = $1 - 100 . $2;
 
-	push @{$group{$_->telescope}{$sem}{$_->country}}, $_;
+        push @{$group{$_->telescope}{$sem}{$_->country}}, $_;
       }
 
       # Grouping is finished. Now sort.
       for my $telescope (sort keys %group) {
-	for my $semester (sort {$a <=> $b} keys %{$group{$telescope}}) {
-	  for my $country (sort keys %{$group{$telescope}{$semester}}) {
+        for my $semester (sort {$a <=> $b} keys %{$group{$telescope}}) {
+          for my $country (sort keys %{$group{$telescope}{$semester}}) {
 
-	    my @tmpsort = sort {$a->project_number <=> $b->project_number}
-	      @{$group{$telescope}{$semester}{$country}};
+            my @tmpsort = sort {$a->project_number <=> $b->project_number}
+              @{$group{$telescope}{$semester}{$country}};
 
-	    push @sorted, @tmpsort;
-	  }
-	}
+            push @sorted, @tmpsort;
+          }
+        }
       }
     } else {
       if ($telescope and $country) {
-	@sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
+        @sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
       } else {
-	my %group;
-	for (@$projects) {
-	  push @{$group{$_->telescope}{$_->country}}, $_;
-	}
+        my %group;
+        for (@$projects) {
+          push @{$group{$_->telescope}{$_->country}}, $_;
+        }
 
-	for my $telescope (sort keys %group) {
-	  for my $country (sort keys %{$group{$telescope}}) {
-	    my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
-	    push @sorted, @sortedcountry;
-	  }
-	}
+        for my $telescope (sort keys %group) {
+          for my $country (sort keys %{$group{$telescope}}) {
+            my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
+            push @sorted, @sortedcountry;
+          }
+        }
       }
     }
 
@@ -285,26 +285,26 @@ sub list_projects_output {
     if ($q->param('table_format')) {
 
       if ($order eq 'priority') {
-	OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q);
+        OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q);
       } else {
-	# Display table with semester and country headings
-	# since we sorted by project ID
-	OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q, 1);
+        # Display table with semester and country headings
+        # since we sorted by project ID
+        OMP::CGIComponent::Project::proj_sum_table(\@sorted, $q, 1);
       }
 
     } else {
       foreach my $project (@sorted) {
-	print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
-	print $q->h2('Project ' . $project->projectid);
-	print "</a>";
-	my %details = (projectid=>$project->projectid, password=>$cookie{password});
-	OMP::CGIComponent::Project::proj_status_table($q, %details);
-	
-	print $q->h3('MSBs observed');
-	OMP::CGIComponent::MSB::fb_msb_observed($q, $project->projectid);
-	
-	print $q->h3('MSBs to be observed');
-	OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid,$cookie{'password'});	
+        print "<a href='$public_url/projecthome.pl?urlprojid=" . $project->projectid . "'>";
+        print $q->h2('Project ' . $project->projectid);
+        print "</a>";
+        my %details = (projectid=>$project->projectid, password=>$cookie{password});
+        OMP::CGIComponent::Project::proj_status_table($q, %details);
+
+        print $q->h3('MSBs observed');
+        OMP::CGIComponent::MSB::fb_msb_observed($q, $project->projectid);
+
+        print $q->h3('MSBs to be observed');
+        OMP::CGIComponent::MSB::fb_msb_active($q,$project->projectid,$cookie{'password'});
       }
 
     }
@@ -337,8 +337,8 @@ sub project_home {
 
   # Get the project details
   my $project = OMP::ProjServer->projectDetails( $cookie{projectid},
-						 $cookie{password},
-						 'object' );
+                                                 $cookie{password},
+                                                 'object' );
 
   # Store the details we want to display later
   my $projectid = $project->projectid;
@@ -365,7 +365,7 @@ sub project_home {
 
   # Is this project a TOO?
   ($project->isTOO) and print "<i>This project is a target of opportunity</i><br>";
-  
+
   # Make it obvious if this project is disabled
   (! $project->state) and print "<h2>This project is disabled</h2>";
 
@@ -462,10 +462,10 @@ sub project_home {
       my %inproj = map { (uc($_), undef ) } @$projinst;
 
       for my $nr (@noretrieve) {
-	if (exists $inproj{uc($nr)}) {
-	  $cannot_retrieve = 1;
-	  last;
-	}
+        if (exists $inproj{uc($nr)}) {
+          $cannot_retrieve = 1;
+          last;
+        }
       }
     } otherwise {
     };
@@ -486,23 +486,23 @@ sub project_home {
       print "<a href='$obslog_url'>$ymd</a> ";
 
       if (exists $accounts{$ymd}) {
-	my $timespent = $accounts{$ymd}->timespent;
+        my $timespent = $accounts{$ymd}->timespent;
         if ($timespent->hours) {
-  	  my $h = sprintf("%.1f", $timespent->hours);
+          my $h = sprintf("%.1f", $timespent->hours);
 
-	  # If the time spent is unconfirmed, say so
-	  print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
+          # If the time spent is unconfirmed, say so
+          print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
 
-	  print "($h hours) ";
+          print "($h hours) ";
 
-	  if ($cannot_retrieve) {
-	    print "click on date to view project log";
-	  } else {
-	    print "click on date to retrieve data";
-	  }
+          if ($cannot_retrieve) {
+            print "click on date to view project log";
+          } else {
+            print "click on date to retrieve data";
+          }
 
         } else {
-	  print "(no science data taken) ";
+          print "(no science data taken) ";
         }
       } else {
         print "[internal error - do not know accounting information] ";
@@ -526,7 +526,7 @@ sub project_home {
 
   # Link to the MSB history page
   print "Click <a href='msbhist.pl'>here</a> for more details on the observing history of each MSB.";
-  
+
   # Display remaining MSBs
   print "<h3>MSBs remaining to be observed:</h3>";
   OMP::CGIComponent::MSB::fb_msb_active($q, @cookie{qw/projectid password/});
@@ -536,8 +536,8 @@ sub project_home {
 
   # Get the "important" feedback comments
   my $comments = OMP::FBServer->getComments($cookie{projectid},
-					    $cookie{password},
-					    [OMP__FB_IMPORTANT],);
+                                            $cookie{password},
+                                            [OMP__FB_IMPORTANT],);
 
   # Link to feedback comments page (if there are any important
   # comments)
@@ -595,11 +595,11 @@ sub proj_sum_page {
     print $q->startform;
     print "Project ID: ";
     print $q->textfield(-name=>"projectid",
-			1-size=>12,
-		        -maxlength=>32,);
+                        1-size=>12,
+                        -maxlength=>32,);
     print "&nbsp;";
     print $q->submit(-name=>"projectid_submit",
-		     -label=>"Submit",);
+                     -label=>"Submit",);
   }
 
 }
@@ -639,9 +639,9 @@ sub proposals {
     $propfilebase = lc($propfilebase);
 
     my %extensions = (ps => "application/postscript",
-		      pdf => "application/pdf",
-		      "ps.gz" => "application/postscript",
-		      "txt" => "text/plain",);
+                      pdf => "application/pdf",
+                      "ps.gz" => "application/postscript",
+                      "txt" => "text/plain",);
 
     my $propfile;
     my $type;
@@ -652,12 +652,12 @@ sub proposals {
     for my $dir (@dirs) {
       for my $ext (qw/ps pdf ps.gz txt/) {
         my $name = "$propfilebase.$ext";
-	if (-e "$dir/$name") {
-	  $propfile = "$dir/$name";
+        if (-e "$dir/$name") {
+          $propfile = "$dir/$name";
           $offer .= '-' . $name;
-	  $type = $extensions{$ext};
-	  last dirloop;
-	}
+          $type = $extensions{$ext};
+          last dirloop;
+        }
       }
     }
 
@@ -714,8 +714,8 @@ sub support {
   print $q->start_form;
   print "<strong>Project ID: </strong>";
   print $q->textfield(-name=>'projectid',
-		      -size=>12,
-		      -maxlength=>32,);
+                      -size=>12,
+                      -maxlength=>32,);
   print " " . $q->submit(-name=>'get_projectid', -value=>'Submit');
   print $q->end_form;
   print "<hr>";
@@ -724,7 +724,7 @@ sub support {
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
                                 'Password' => $cookie{'password'},
-				DB => new OMP::DBbackend, );
+                                DB => new OMP::DBbackend, );
 
   # Verify that project exists
   my $verify = $projdb->verifyProject;
@@ -746,17 +746,17 @@ sub support {
     if (%primary) {
       # Create a new contactability hash
       my %contactable = map {
-	$_->userid, (exists $primary{$_->userid} ? 1 : 0)
+        $_->userid, (exists $primary{$_->userid} ? 1 : 0)
       } $project->support;
-      
+
       # Store changes to DB
       my $E;
       try {
         $projdb->updateContactability( \%contactable );
         $project->contactable(%contactable);
       } otherwise {
-	$E = shift;
-	print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
+        $E = shift;
+        print "<h3>An error occurred.  Your changes have not been stored.</h3>$E";
       };
       return if ($E);
 
@@ -798,10 +798,10 @@ sub support {
   print "<h3>Define primary support contacts</h3>";
   print $q->start_form(-name=>'define_primary');
   print $q->checkbox_group(-name=>'primary',
-			   -values=>\@userids,
-			   -defaults=>\@defaults,
-			   -linebreak=>'true',
-			   -labels=>\%labels,);
+                           -values=>\@userids,
+                           -defaults=>\@defaults,
+                           -linebreak=>'true',
+                           -labels=>\%labels,);
 
   # Hide project ID in form
   print $q->hidden(-name=>'projectid', -default=>$projectid);
@@ -855,10 +855,10 @@ sub alter_proj {
       my $old_alloc = $project->allocated;
 
       if ($new_alloc != $old_alloc) {
-	$changed++;
+        $changed++;
 
-	# Allocation was changed
-	$project->fixAlloc($new_alloc->hours);
+        # Allocation was changed
+        $project->fixAlloc($new_alloc->hours);
 
         push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
       }
@@ -868,12 +868,12 @@ sub alter_proj {
       my $old_sem = $project->semester;
 
       if ($new_sem ne $old_sem) {
-	$changed++;
+        $changed++;
 
-	# Semester waschanged
-	$project->semester($new_sem);
+        # Semester waschanged
+        $project->semester($new_sem);
 
-	push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
+        push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
       }
 
       # Check whether cloud constraint has changed
@@ -883,40 +883,40 @@ sub alter_proj {
       my $old_cloud = $project->cloudrange;
 
       if ($new_cloud->max() != $old_cloud->max()) {
-	$changed++;
-	
-	# Cloud constraint was changed
-	$project->cloudrange($new_cloud);
+        $changed++;
 
-	push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
+        # Cloud constraint was changed
+        $project->cloudrange($new_cloud);
+
+        push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
       }
 
       # Check whether TAG adjustment has changed
       my %oldadj = $project->tagadjustment;
       my %newadj;
       for my $queue (keys %oldadj) {
-	$newadj{$queue} = $q->param('tag_'. $queue);
+        $newadj{$queue} = $q->param('tag_'. $queue);
 
-	# Taint checking
+        # Taint checking
 
 
-	if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
-	  $changed++;
+        if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
+          $changed++;
 
-	  # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
-	  # tagpriority to change, which is okay when reading a project
-	  # object, but not okay when storing the object back to the database.
-	  # In order to reset the tagpriority, the tagpriority method is
-	  # called with its original value.
+          # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
+          # tagpriority to change, which is okay when reading a project
+          # object, but not okay when storing the object back to the database.
+          # In order to reset the tagpriority, the tagpriority method is
+          # called with its original value.
 
-	  my $oldpriority = $project->tagpriority($queue);
+          my $oldpriority = $project->tagpriority($queue);
 
-	  $project->tagadjustment({$queue, $newadj{$queue}});
+          $project->tagadjustment({$queue, $newadj{$queue}});
 
-	  $project->tagpriority($queue => $oldpriority);
+          $project->tagpriority($queue => $oldpriority);
 
-	  push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
-	}
+          push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
+        }
       }
 
       # Check whether TAU range has changed
@@ -924,16 +924,16 @@ sub alter_proj {
       my %tau_params;
       $tau_params{Min} = $q->param('taumin');
       $tau_params{Max} = $q->param('taumax')
-	unless (! $q->param('taumax'));
+        unless (! $q->param('taumax'));
       my $new_taurange = new OMP::Range(%tau_params);
 
       if ($old_taurange->min() != $new_taurange->min()
-	  or $old_taurange->max() != $new_taurange->max()) {
-	$changed++;
+          or $old_taurange->max() != $new_taurange->max()) {
+        $changed++;
 
-	$project->taurange($new_taurange);
-	
-	push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
+        $project->taurange($new_taurange);
+
+        push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
       }
 
       # Check whether Seeing range has changed
@@ -941,16 +941,16 @@ sub alter_proj {
       my %seeing_params;
       $seeing_params{Min} = $q->param('seeingmin');
       $seeing_params{Max} = $q->param('seeingmax')
-	unless (! $q->param('seeingmax'));
+        unless (! $q->param('seeingmax'));
       my $new_seeingrange = new OMP::Range(%seeing_params);
 
       if ($old_seeingrange->min() != $new_seeingrange->min()
-	  or $old_seeingrange->max() != $new_seeingrange->max()) {
-	$changed++;
+          or $old_seeingrange->max() != $new_seeingrange->max()) {
+        $changed++;
 
-	$project->seeingrange($new_seeingrange);
-	
-	push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
+        $project->seeingrange($new_seeingrange);
+
+        push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
       }
 
       # Generate feedback message
@@ -958,25 +958,25 @@ sub alter_proj {
       # Get OMP user object
       my $user_obj = OMP::UserServer->getUser($userid);
       OMP::FBServer->addComment($project->projectid,
-				{author => $user_obj,
-				 subject => 'Project details altered',
-				 text => "The following changes have been made to this project:\n\n".
-				 join("\n", @msg)},
-			       );
+                                {author => $user_obj,
+                                 subject => 'Project details altered',
+                                 text => "The following changes have been made to this project:\n\n".
+                                 join("\n", @msg)},
+                               );
 
       # Now store the changes
       $projdb->_update_project_row( $project );
 
       if ($msg[0]) {
-	print join("<br>", @msg);
+        print join("<br>", @msg);
 
-	if (scalar(@msg) == 1) {
-	  print "<br><br>This change has been committed.<br>";
-	} else {
-	  print "<br><br>These changes have been committed.<br>";
-	}
+        if (scalar(@msg) == 1) {
+          print "<br><br>This change has been committed.<br>";
+        } else {
+          print "<br><br>These changes have been committed.<br>";
+        }
       } else {
-	print "<br>No changes were submitted.</br>";
+        print "<br>No changes were submitted.</br>";
       }
 
       return;
@@ -986,10 +986,10 @@ sub alter_proj {
     print $q->start_form(-name=>'alter_project');
 
     print $q->hidden(-name=>'projectid',
-		     -default=>$project->projectid,);
+                     -default=>$project->projectid,);
 
     print $q->hidden(-name=>'userid',
-		     -default=>$userid,);
+                     -default=>$userid,);
 
     print "<table>";
 
@@ -1020,8 +1020,8 @@ sub alter_proj {
 
     print "<td>";
     print $q->popup_menu(-name=>'semester',
-			 -default=>$semester,
-			 -values=>[@semesters]);
+                         -default=>$semester,
+                         -values=>[@semesters]);
     print "</td></tr>";
 
     # Cloud
@@ -1034,9 +1034,9 @@ sub alter_proj {
 
     print "<td>";
     print $q->popup_menu(-name=>'cloud',
-			 -default=>int($cloud->max()),
-			 -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
-			 -labels=>\%cloud_labels,);
+                         -default=>int($cloud->max()),
+                         -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
+                         -labels=>\%cloud_labels,);
     print "</td></tr>";
 
     # Tag adjustment
@@ -1048,15 +1048,15 @@ sub alter_proj {
     for my $queue (keys %tagpriority) {
       $keycount++;
       print "<tr><td></td>"
-	if ($keycount > 1);
+        if ($keycount > 1);
 
       print "<td valign='top'>";
       print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
-	unless ($keycount > 1);
+        unless ($keycount > 1);
 
       print $q->textfield("tag_${queue}",
-			  ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
-			  4,32);
+                          ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+                          4,32);
       print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
 
       print "</td></tr>";
@@ -1089,7 +1089,7 @@ sub alter_proj {
     print "<br>";
 
     print $q->submit(-name=>"alter_submit",
-		     -label=>"Submit",);
+                     -label=>"Submit",);
 
     print $q->end_form();
   }
