@@ -427,34 +427,6 @@ sub getInstruments {
   return sort @results;
 }
 
-=item B<getAllInstruments>
-
-Returns a alphabetically sorted list of all the instruments
-(associated with any and all the projects).
-
-  @all_instruments = $db->getAllInstruments;
-
-The C<OMP::MSBDB> object, C<$db>, does not need to have a project id
-or a password associated, just a L<OMP::DBbackend> instance.  See also
-I<new> method described elsewhere.
-
-=cut
-
-sub getAllInstruments {
-
-  my ( $self ) = @_;
-  
-  # Until there is a table listing only the instruments, (ab)use $OBSTABLE ...
-  my $inst = $self->_db_retrieve_data_ashash( <<"INST" );
-      SELECT instrument
-      FROM $OBSTABLE
-      GROUP BY instrument
-      ORDER BY instrument
-INST
-
-  return grep { $_->{'instrument'} } @{ $inst } ;
-}
-
 =item B<fetchMSB>
 
 Retrieve an MSB (in the form of an OMP::MSB object) from the database.
