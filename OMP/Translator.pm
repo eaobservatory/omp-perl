@@ -789,11 +789,87 @@ sub _list_children {
   return @children;
 }
 
+=item B<correct_wplate>
+
+Convert separate waveplate angles per observation into a single
+observation. All OCS config driven instruments at JCMT require
+that all angles are in a single observation.
+
+  OMP::Translator->correct_wplate( $msb );
+
+=cut
+
+sub correct_wplate {
+  my $self = shift;
+  my $msb = shift;
+
+  # Note that this returns references to each observation summary.
+  # We can modify this hash in place without putting the structure
+  # back into the object. This will trigger a nice bug if the obssum
+  # method is changed to return a copy.
+  my @obs = $msb->obssum;
+
+  # loop over each observation
+  for my $obs (@obs) {
+    # do not care what happens if this is not polarimetry
+    next unless $obs->{pol};
+
+    # Now need to recurse through the data structure changing
+    # waveplate iterator to a single array rather than an array
+    # separate positions.
+    for my $child (@{ $obs->{SpIter}->{CHILDREN} }) {
+      $self->_fix_wplate_recurse( $child );
+    }
+
+  }
+
+}
+
+# When we hit SpIterPOL we correct the ATTR array
+# This modifies it in-place. No need to re-register.
+
+sub _fix_wplate_recurse {
+  my $self = shift;
+  my $this = shift;
+
+  # Loop over keys in children [the iterators]
+  for my $key (keys %$this) {
+
+    if ($key eq 'SpIterPOL') {
+
+      # if we have no waveplate angles skip
+      next unless exists $this->{$key}->{ATTR}->[0]->{waveplate};
+
+      # FIX UP - it does not make any sense to have another
+      # waveplate iterator below this level but we do support it
+      my @wplate = map { @{$_->{waveplate}} } @{ $this->{$key}->{ATTR}};
+
+      # and store it back
+      $this->{$key}->{ATTR} = [ { waveplate => \@wplate } ];
+
+    }
+
+    # Now need to go deeper if need be
+    if (UNIVERSAL::isa($this->{$key},"HASH") &&
+	exists $this->{$key}->{CHILDREN}) {
+      # This means we have some children to analyze
+
+      for my $child (@{ $this->{$key}->{CHILDREN} }) {
+	$self->_fix_wplate_recurse( $child );
+      }
+
+    }
+
+  }
+
+}
+
 =back
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2004 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science and Technology Facilities Council.
+Copyright (C) 2002-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under

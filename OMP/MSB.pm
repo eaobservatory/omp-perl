@@ -3936,18 +3936,28 @@ sub SpIterFolder {
       # Store the chop details
       $summary{$parent}{ATTR} = \@chops;
     } elsif ($name eq 'POLIter') {
-      # SpIterPOL iterator for waveplates
-
+      # SpIterPOL iterator for waveplates - POLIter encloses all the waveplate angles
       # Get the value tags
       my @waveplate = $self->_get_pcvalues( $child );
 
       # Store the waveplate angles
       # Treat this as a true iterator (one waveplate per obs)
       # Note that this is not true for JCMT jiggle pol maps
-      # but is true for JCMT scan maps and IRPOL observations.
+      # or modern SCUBA-2 and ACSIS pol configurations
+      # but is true for SCUBA scan maps and IRPOL observations.
       # Need to fix up this discrepancy later but must take
       # care to retain hierarchy here.
       $summary{$parent}{ATTR}  = [map { { waveplate => [$_]} } @waveplate ];
+
+    } elsif ($name eq 'continuousSpin') {
+
+      # or continuousSpin
+      my $spin = $self->_get_pcdata($el, "continuousSpin");
+      if (defined $spin) {
+        $summary{$parent}{ATTR} = [ { pol_spin_speed => $spin } ];
+      } else {
+        throw OMP::Error::SpBadStructure("continuousSpin element detected but was empty!");
+      }
     } elsif ($name eq 'repeatCount') {
       # SpIterRepeat
       my $repeat = $child->firstChild->toString;
@@ -4853,7 +4863,8 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2006 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007 Science and Technology Facilities Council.
+Copyright (C) 2001-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify

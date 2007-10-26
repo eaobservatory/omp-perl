@@ -143,6 +143,11 @@ sub translate {
   my $otver = $msb->ot_version;
   print "OTVERS: $otver \n" if $DEBUG;
 
+  # The default parser treats waveplate angles as discrete
+  # observations per waveplate. This translator treats them as a single
+  # observation.
+  $self->correct_wplate($msb);
+
   # Correct Stare observations such that multiple offsets are
   # combined
   # Note that there may be a requirement to convert non-regular offset
@@ -200,6 +205,9 @@ sub translate {
 
     # HEADER_CONFIG
     $self->header_config( $cfg, %$obs );
+
+    # Polarimeter
+    $self->pol_config( $cfg, %$obs );
 
     # RTS
     $self->rts_config( $cfg, %$obs );
@@ -1590,6 +1598,59 @@ sub rts_config {
 
   $cfg->rts( $rts );
 
+}
+
+
+=item B<pol_config>
+
+Configure the polarimeter.
+
+  $trans->pol_config( $cfg, %info );
+
+=cut
+
+sub pol_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # see if we have a polarimeter
+  return unless $info{pol};
+  print {$self->outhdl} "Polarimeter observation:\n" if $self->verbose;
+
+  # create a blank object
+  my $pol = JAC::OCS::Config::POL->new();
+
+  # what mode is this?
+  if (exists $info{waveplate}) {
+    my @pa = map { Astro::Coords::Angle->new( $_, units => 'deg') } @{$info{waveplate}};
+
+    throw OMP::Error::TranslateFail("No angles found for step-and-integrate")
+      unless @pa;
+
+    $pol->discrete_angles( @pa );
+
+    if ($self->verbose) {
+      print {$self->outhdl} "\tStep and Integrate\n";
+      print {$self->outhdl} "\t ". join(",",map {$_->degrees} @pa)."\n";
+    }
+
+  } else {
+    print Dumper(\%info);
+    my $speed = $info{pol_spin_speed};
+    throw OMP::Error::TranslateFail("No spin speed found for continuous spin polarimeter observation") unless defined $speed;
+    $pol->spin_speed( $speed );
+    if ($self->verbose) {
+      print {$self->outhdl} "\tContinuous Spin: $speed deg/sec\n";
+    }
+
+  }
+
+  # always use azel
+  $pol->system( "AZEL" );
+
+  $cfg->pol( $pol );
+  return;
 }
 
 =item B<jos_config>
