@@ -720,7 +720,7 @@ sub updateContactability {
 
     $self->_db_update_data( $PROJUSERTABLE,
                             { 'contactable' => $contact{ $user } ? 1 : 0 },
-                            qq/projectid = $id AND userid = $user/
+                              "projectid = '$id' AND userid = '$user'"
                           ) ;
   }
   # End transaction
