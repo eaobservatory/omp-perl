@@ -346,6 +346,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               mode => '$',
 			      msbtid => '$',
                               nexp => '$',
+                              number_of_coadds => '$',
                               number_of_cycles => '$',
                               object => '$',
                               obsid => '$',
@@ -853,11 +854,12 @@ sub nightlog {
     $return{'UT time'} = defined( $self->startobs ) ? $self->startobs->hms : '';
     $return{'Airmass'} = defined( $self->airmass ) ? sprintf( "%.2f", $self->airmass ) : 0;
     $return{'Exposure time'} = defined( $self->duration ) ? sprintf( "%.2f", $self->duration ) : 0;
+    $return{'Number of coadds'} = defined( $self->number_of_coadds ) ? sprintf( "%d", $self->number_of_coadds ) : 0;
     $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
     $return{'Project ID'} = defined( $self->projectid ) ? $self->projectid : '';
     $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
-                          "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
-                          "Airmass", "DR Recipe" ];
+                          "Observation type", "Exposure time", "Number of coadds", "Waveband",
+                          "RA offset", "Dec offset", "Airmass", "DR Recipe" ];
     $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
     $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
@@ -1221,6 +1223,7 @@ sub _populate {
   $self->instrument( uc( $generic_header{INSTRUMENT} ) );
 
   $self->duration( $generic_header{EXPOSURE_TIME} );
+  $self->number_of_coadds( $generic_header{NUMBER_OF_COADDS} );
   $self->disperser( $generic_header{GRATING_NAME} );
   $self->type( $generic_header{OBSERVATION_TYPE} );
   $generic_header{TELESCOPE} =~ /^(\w+)/;
