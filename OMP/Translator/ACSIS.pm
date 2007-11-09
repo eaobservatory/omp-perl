@@ -1636,7 +1636,6 @@ sub pol_config {
     }
 
   } else {
-    print Dumper(\%info);
     my $speed = $info{pol_spin_speed};
     throw OMP::Error::TranslateFail("No spin speed found for continuous spin polarimeter observation") unless defined $speed;
     $pol->spin_speed( $speed );
