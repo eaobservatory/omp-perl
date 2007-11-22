@@ -783,6 +783,12 @@ sub tcs_base {
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
 
+  # Mandatory for raster/chop too
+  throw OMP::Error::TranslateFail("No reference position defined for raster/chop observation (needed for CAL)")
+    if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/
+       && $info{mapping_mode} =~ /raster/);
+
+
   # and augment with the SCIENCE tag
   # we only needs the Astro::Coords object in this case
   # unless we have an offset pixel
