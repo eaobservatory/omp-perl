@@ -4737,33 +4737,13 @@ sub SpDRRecipe {
   my %summary = @_;
 
   # store all the parameters in a DR component in the hash
+  # For each mode get the recipe
   my %dr;
 
-  # These will be ACSIS specific but non-fatal if missing
-  $dr{window_type} = $self->_get_pcdata($el, 'window_type');
-  $dr{spectral_binning} = $self->_get_pcdata($el, 'channelBinning');
-  $dr{spectral_truncation} = $self->_get_pcdata($el, 'truncationChannels');
-  $dr{fit_polynomial_order} = $self->_get_pcdata($el, 'polynomialOrder');
-
-  # Baselines can be specified in 3 ways:
-  #   - None : baselines is "undef"
-  #   - Auto : baselines is a scalar indicating the fraction
-  #              of the spectral width to use for baselining
-  #   - Manual : baselines is an array ref of OMP::Range objects
-  # Baselines are stored as an array of OMP::Range objects if
-  # present. 
-  my ($baseline) = $el->findnodes(".//baseline");
-  if ($baseline) {
-    my $method = $self->_get_pcdata( $baseline, "baseliningMethod" );
-    if ($method eq 'Manual') {
-      my @regel = $baseline->findnodes(".//fit_region");
-      my @blines = map { $self->_get_range( $_, "range" ) } @regel;
-      $dr{baseline} = \@blines;
-    } elsif ($method eq 'Automatic') {
-      $dr{baseline} = $self->_get_pcdata( $baseline, "baselineFraction");
-    }
+  for my $mode (qw/ focus jiggle pointing raster stare / ) {
+    $dr{$mode} = $self->_get_pcdata($el, $mode ."Recipe" );
   }
-
+ 
   # Store it
   $summary{data_reduction} = \%dr;
 

@@ -5037,18 +5037,54 @@ sub getDRRecipe {
   # This is where we insert an OT override once that override is possible
   # it will need to know which parameters to override
 
-  if ($info{MODE} =~ /Pointing/) {
-    return 'REDUCE_POINTING';
-  } elsif ($info{MODE} =~ /Focus/) {
-    return 'REDUCE_FOCUS';
-  } else {
-    if ($info{continuumMode}) {
-      return 'REDUCE_SCIENCE_CONTINUUM';
-    } else {
-      return 'REDUCE_SCIENCE';
+  # if we have been given recipes we should try to select from them
+  if (exists $info{data_reduction}) {
+    # see if the key is a subset of the mode
+    my $found;
+    my $firstmatch;
+    for my $key (keys %{$info{data_reduction}}) {
+      if ($info{MODE} =~ /$key/i) {
+        my $recipe = $info{data_reduction}->{$key};
+        if (!defined $found) {
+          $found = $recipe;
+          $firstmatch = $key;
+        } else {
+          # sanity check
+          throw OMP::Error::TranslateFail("Strange error where mode $info{MODE} matched more than one DR key ('$key' and '$firstmatch')");
+        }
+      }
+    }
+
+    if (defined $found) {
+      if ($info{continuumMode}) {
+        # append continuum mode (if not already appended)
+        $found .= "_CONTINUUM" unless $found =~ /_CONTINUUM$/;
+      }
+      if ($VERBOSE) {
+        print $HANDLES "Using DR recipe $found provided by user\n";
+      }
+      return $found;
     }
   }
 
+  # if there was no DR component we have to guess
+  my $recipe;
+  if ($info{MODE} =~ /Pointing/) {
+    $recipe = 'REDUCE_POINTING';
+  } elsif ($info{MODE} =~ /Focus/) {
+    $recipe = 'REDUCE_FOCUS';
+  } else {
+    if ($info{continuumMode}) {
+      $recipe = 'REDUCE_SCIENCE_CONTINUUM';
+    } else {
+      $recipe = 'REDUCE_SCIENCE';
+    }
+  }
+
+  if ($VERBOSE) {
+    print $HANDLES "Using DR recipe $recipe determined from context\n";
+  }
+  return $recipe;
 }
 
 sub getDRGroup {
