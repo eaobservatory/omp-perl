@@ -94,7 +94,7 @@ unless ($primary_db_down or $secondary_db_down) {
   my $sql = "SELECT projectid FROM ompsciprog WHERE sciprog not like \"%</SpProg>%\"";
 
   my %results;
-  for my $dbserver (qw/SYB_OMP1 SYB_OMP2/) {
+  for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
     
@@ -126,7 +126,7 @@ unless ($primary_db_down or $secondary_db_down) {
 	  "AND S.sciprog LIKE NULL";
 
   my %missing_results;
-  for my $dbserver (qw/SYB_OMP1 SYB_OMP2/) {
+  for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
     
@@ -152,7 +152,7 @@ unless ($primary_db_down or $secondary_db_down) {
 
   # Compare row counts for disparity
   my %row_count_results;
-  for my $dbserver (qw/SYB_OMP1 SYB_OMP2/) {
+  for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
     for my $table (qw/ompfault ompfaultassoc ompfaultbody ompfeedback
@@ -167,8 +167,8 @@ unless ($primary_db_down or $secondary_db_down) {
   }
 
   my @row_count_disparity;
-  for my $table (keys %{$row_count_results{SYB_OMP1}}) {
-    if ($row_count_results{SYB_OMP1}{$table} ne $row_count_results{SYB_OMP2}{$table}) {
+  for my $table (keys %{$row_count_results{ $primary_db }}) {
+    if ($row_count_results{ $primary_db }{$table} ne $row_count_results{ $secondary_db }{$table}) {
       push(@row_count_disparity, $table)
 	unless $table eq 'ompkey';
     }
@@ -180,8 +180,8 @@ unless ($primary_db_down or $secondary_db_down) {
     $msg .= "Disparity between row counts detected!\n";
     $msg .= "The following tables are affected:\n";
     for my $table (@row_count_disparity) {
-      $msg .= "\t$table (SYB_OMP1: ". $row_count_results{SYB_OMP1}{$table}
-	." SYB_OMP2: ". $row_count_results{SYB_OMP2}{$table} . ")\n";
+      $msg .= "\t$table ($primary_db: ". $row_count_results{ $primary_db }{$table}
+	." $secondary_db: ". $row_count_results{ $secondary_db }{$table} . ")\n";
     }
     $msg .= "\n";
   } else {
@@ -189,7 +189,7 @@ unless ($primary_db_down or $secondary_db_down) {
   }
 
   # Make sure MSBs are present if there's a science program
-  for my $dbserver (qw/SYB_OMP1 SYB_OMP2/) {
+  for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
     my $sql = "SELECT projectid FROM ompsciprog\n".
