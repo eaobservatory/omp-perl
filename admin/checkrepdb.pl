@@ -6,6 +6,8 @@ use lib "$FindBin::RealBin/..";
 
 use MIME::Lite;
 
+use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
+
 use OMP::BaseDB;
 use OMP::DBbackend;
 use OMP::Error qw/ :try /;
@@ -21,6 +23,17 @@ my $fault = 0;
 
 my $primary_db = "SYB_OMP1";
 my $secondary_db = "SYB_OMP2";
+
+{
+  my $help;
+  GetOptions(
+    'h|help' => \$help,
+    'p|pri|primary:s' => \$primary_db,
+    's|sec|secondary:s' => \$secondary_db
+  ) || die usage();
+  if ( $help ) { print usage(); exit; }
+}
+
 my $primary_kdb;
 my $secondary_kdb;
 my $primary_db_down;
@@ -242,3 +255,25 @@ MIME::Lite->send("smtp", "mailhost", Timeout => 30);
 # Send the message
 $email->send
   or die "Error sending message: $!\n";
+
+sub usage {
+
+  return <<"USAGE";
+SYNOPSIS
+
+  $0 -help
+
+  $0 \\
+    [-p <primary db server>] [-s <secondary db server>]
+
+OPTIONS:
+  -h | -help
+    Prints this message.
+
+  -p <db server> | -primary <db server>
+    Specify primary database server (source); default is "SYB_OMP1".
+
+  -s <db server> | -secondary <db server>
+    Specify secondary database server (replicate); default is "SYB_OMP2".
+USAGE
+}
