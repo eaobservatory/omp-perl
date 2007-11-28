@@ -97,7 +97,7 @@ unless ($primary_db_down or $secondary_db_down) {
   for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
-    
+
     my $ref = $db->_db_retrieve_data_ashash( $sql );
 
     if ($ref->[0]) {
@@ -122,14 +122,14 @@ unless ($primary_db_down or $secondary_db_down) {
   my $missing_sql = "SELECT DISTINCT F.projectid\n".
     "FROM ompfeedback F, ompsciprog S\n".
       "WHERE F.projectid = S.projectid\n".
-	"AND F.msgtype = 70\n".
-	  "AND S.sciprog LIKE NULL";
+        "AND F.msgtype = 70\n".
+          "AND S.sciprog LIKE NULL";
 
   my %missing_results;
   for my $dbserver ( $primary_db, $secondary_db ) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
-    
+
     my $ref = $db->_db_retrieve_data_ashash( $sql );
 
         if ($ref->[0]) {
@@ -156,9 +156,9 @@ unless ($primary_db_down or $secondary_db_down) {
     $ENV{OMP_DBSERVER} = $dbserver;
     my $db = new OMP::BaseDB( DB => new OMP::DBbackend(1) );
     for my $table (qw/ompfault ompfaultassoc ompfaultbody ompfeedback
-		      ompmsb ompmsbdone ompobs ompobslog ompproj
-		      ompprojqueue ompprojuser ompshiftlog ompsciprog
-		      omptimeacct ompuser ompkey/) {
+                      ompmsb ompmsbdone ompobs ompobslog ompproj
+                      ompprojqueue ompprojuser ompshiftlog ompsciprog
+                      omptimeacct ompuser ompkey/) {
       my $sql = "SELECT COUNT(*) AS \'count\' FROM $table";
 
       my $ref = $db->_db_retrieve_data_ashash( $sql );
@@ -170,7 +170,7 @@ unless ($primary_db_down or $secondary_db_down) {
   for my $table (keys %{$row_count_results{ $primary_db }}) {
     if ($row_count_results{ $primary_db }{$table} ne $row_count_results{ $secondary_db }{$table}) {
       push(@row_count_disparity, $table)
-	unless $table eq 'ompkey';
+        unless $table eq 'ompkey';
     }
   }
 
@@ -181,7 +181,7 @@ unless ($primary_db_down or $secondary_db_down) {
     $msg .= "The following tables are affected:\n";
     for my $table (@row_count_disparity) {
       $msg .= "\t$table ($primary_db: ". $row_count_results{ $primary_db }{$table}
-	." $secondary_db: ". $row_count_results{ $secondary_db }{$table} . ")\n";
+        ." $secondary_db: ". $row_count_results{ $secondary_db }{$table} . ")\n";
     }
     $msg .= "\n";
   } else {
@@ -200,13 +200,13 @@ unless ($primary_db_down or $secondary_db_down) {
     my @really_missing;
     if ($ref->[0]) {
       for my $row (@$ref) {
-	my $projectid = $row->{projectid};
-	my $sql = "SELECT projectid FROM ompsciprog\n".
-	  "WHERE projectid = '$projectid' AND sciprog NOT LIKE '%<SpObs%'";
+        my $projectid = $row->{projectid};
+        my $sql = "SELECT projectid FROM ompsciprog\n".
+          "WHERE projectid = '$projectid' AND sciprog NOT LIKE '%<SpObs%'";
 
-	my $really_missing_ref = $db->_db_retrieve_data_ashash( $sql );
-	push @really_missing, $projectid
-	  unless ($really_missing_ref->[0]);
+        my $really_missing_ref = $db->_db_retrieve_data_ashash( $sql );
+        push @really_missing, $projectid
+          unless ($really_missing_ref->[0]);
       }
     }
 
@@ -217,7 +217,7 @@ unless ($primary_db_down or $secondary_db_down) {
       $msg .= "Missing MSBs detected on ${dbserver}!\n";
       $msg .= "The following projects are affected:\n";
       for my $projectid (@really_missing) {
-	$msg .= "\t$projectid\n";
+        $msg .= "\t$projectid\n";
       }
       $msg .= "\n";
     }
@@ -246,9 +246,9 @@ if ($critical) {
 }
 
 my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
-			     To => 'omp_group@jach.hawaii.edu',
-			     Subject => $subject,
-			     Data => $msg, );
+                             To => 'omp_group@jach.hawaii.edu',
+                             Subject => $subject,
+                             Data => $msg, );
 
 MIME::Lite->send("smtp", "mailhost", Timeout => 30);
 
@@ -260,13 +260,12 @@ sub usage {
 
   return <<"USAGE";
 SYNOPSIS
-
   $0 -help
 
   $0 \\
     [-p <primary db server>] [-s <secondary db server>]
 
-OPTIONS:
+OPTIONS
   -h | -help
     Prints this message.
 
