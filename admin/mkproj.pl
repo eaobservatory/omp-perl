@@ -78,7 +78,7 @@ my ($help, $man, $version,$force);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
-			"force" => \$force,
+                        "force" => \$force,
                        );
 
 pod2usage(1) if $help;
@@ -163,7 +163,7 @@ for my $proj (keys %alloc) {
       $details{support} = $support{$details{country}->[0]};
     } else {
       die "Can not find support for country ".
-	$details{country}->[0]."\n";
+        $details{country}->[0]."\n";
     }
   }
 
@@ -177,7 +177,7 @@ for my $proj (keys %alloc) {
     # Get the tau range from the weather bands if it exists
     my @bands = split( /,/, $details{band});
     my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope},
-						       @bands);
+                                                       @bands);
     die "Error determining tau range from band '$details{band}' !"
       unless defined $taurange;
 
@@ -218,23 +218,23 @@ for my $proj (keys %alloc) {
   # Now add the project
   try {
     OMP::ProjServer->addProject( $pass, $force,
-				$proj,  # project id
-				uc($details{pi}),
-				uc($details{coi}),
-				uc($details{support}),
-				$details{title},
-				$details{tagpriority},
-				$details{country},
-				$details{tagadjustment},
-				$details{semester},
-				"xxxxxx", # default password
-				$details{allocation},
-				$details{telescope},
-				$taumin, $taumax,
-				$seemin,$seemax,
-				$cloudmin, $cloudmax,
-				$skymin, $skymax,
-			       );
+                                $proj,  # project id
+                                uc($details{pi}),
+                                uc($details{coi}),
+                                uc($details{support}),
+                                $details{title},
+                                $details{tagpriority},
+                                $details{country},
+                                $details{tagadjustment},
+                                $details{semester},
+                                "xxxxxx", # default password
+                                $details{allocation},
+                                $details{telescope},
+                                $taumin, $taumax,
+                                $seemin,$seemax,
+                                $cloudmin, $cloudmax,
+                                $skymin, $skymax,
+                               );
 
   } catch OMP::Error::ProjectExists with {
     print " - but the project already exists. Skipping.";
