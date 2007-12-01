@@ -124,6 +124,8 @@ for my $proj (keys %alloc) {
   next if $proj eq 'support';
   next if $proj eq 'info';
 
+  reset_err();
+
   # Copy the data from the file and merge with the defaults
   my %details = ( %defaults, %{ $alloc{$proj} });
 
@@ -137,14 +139,14 @@ for my $proj (keys %alloc) {
   my %allowed = map { $_ => undef } $projdb->listCountries;
   for my $c (@{$details{country}}) {
     if (!exists $allowed{$c}) {
-      die "Unrecognized country code: $c\n";
+      collect_err( "Unrecognized country code: $c" );
     }
   }
 
   # TAG priority
   my @tag = split /,/, $details{tagpriority};
 
-  die "Number of TAG priorities is neither 1 nor number of countries [$proj]"
+  collect_err( "Number of TAG priorities is neither 1 nor number of countries [$proj]" )
     unless ($#tag == 0 || $#tag == $#{$details{country}});
 
   $details{tagpriority} = \@tag if scalar(@tag) > 1;
@@ -162,12 +164,12 @@ for my $proj (keys %alloc) {
     if (exists $support{$details{country}->[0]}) {
       $details{support} = $support{$details{country}->[0]};
     } else {
-      die "Can not find support for country ".
-        $details{country}->[0]."\n";
+      collect_err( "Can not find support for country " . $details{country}->[0] );
     }
   }
 
-  die "Must supply a telescope!!!" unless exists $details{telescope};
+  collect_err( "Must supply a telescope!!!" )
+    unless exists $details{telescope};
 
   # Now weather bands
   my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
@@ -178,7 +180,7 @@ for my $proj (keys %alloc) {
     my @bands = split( /,/, $details{band});
     my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope},
                                                        @bands);
-    die "Error determining tau range from band '$details{band}' !"
+    collect_err( "Error determining tau range from band '$details{band}' !" )
       unless defined $taurange;
 
     ($taumin, $taumax) = $taurange->minmax;
@@ -210,10 +212,23 @@ for my $proj (keys %alloc) {
   }
 
   # Now convert the allocation to seconds instead of hours
-  die "[project $proj] Allocation is mandatory!" unless $details{allocation};
+  collect_err( "[project $proj] Allocation is mandatory!" )
+    unless $details{allocation};
   $details{allocation} *= 3600;
 
-  print "Adding [$proj]";
+  # User ids
+  if ( my @unknown = unverified_users( @details{qw/pi coi support/} ) ) {
+
+    collect_err( 'Unverified user(s): ' . join ', ', @unknown );
+  }
+
+  print "Adding [$proj]\n";
+
+  if ( any_err() ) {
+
+    print " skipped due to ... \n", get_err();
+    next;
+  }
 
   # Now add the project
   try {
@@ -237,13 +252,70 @@ for my $proj (keys %alloc) {
                                );
 
   } catch OMP::Error::ProjectExists with {
-    print " - but the project already exists. Skipping.";
+    print " - but the project already exists. Skipping.\n";
 
   };
-  print "\n";
-
 }
 
+# Given a hash reference of users (see "FORMAT" section of pod elsewhere),
+# returns a list of unverified users for a project. C<OMP::Error> exceptions are
+# caught & saved for later display elsewhere.
+#
+# OMP::UserServer->addProject throws exceptions for each user one at a time.  So
+# user id verification is also done for all the user ids related to a project in
+# one go.
+sub unverified_users {
+
+  my ( @list ) = @_;
+
+  # For reference, see C<OMP::ProjServer->addProject()>.
+  my $id_sep = qr/[,:]+/;
+
+  my @user;
+  for my $user ( map {  $_ ? split /$id_sep/, $_ : () } @list ) {
+
+    try {
+      push @user, $user
+        unless OMP::UserServer->verifyUser( $user );
+    }
+    catch OMP::Error with {
+
+      my $E = shift;
+      collect_err( "Error while checking user id [$user]: $E" );
+    }
+  }
+  return sort { uc $a cmp uc $b } @user;
+}
+
+# Collect the errors for a project.
+{
+  my ( @err );
+
+  # To reset the error string list, say, while looping over a list of projects.
+  sub reset_err { undef @err ; return; }
+
+  # Tell if any error strings have been saved yet.
+  sub any_err { return scalar @err; }
+
+  # Save errors.
+  sub collect_err { push @err, @_; return; }
+
+  # Returns a list of error strings with newlines at the end.  Optionally takes
+  # a truth value to disable addition of a newline.
+  sub get_err {
+
+    my ( $no_newline ) = @_;
+
+    return unless any_err() ;
+    return
+      map
+        {
+          my $nl =  $no_newline || $_ =~ m{\n\z}x ? '' : "\n";
+          sprintf " - %s$nl", $_ ;
+        }
+        @err ;
+  }
+}
 
 =head1 FORMAT
 
