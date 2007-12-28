@@ -49,11 +49,7 @@ try {
   $critical = 1;
 };
 
-if ($primary_db_down) {
-  $msg .= "Database $primary_db is down!\n";
-} else {
-  $msg .= "Database $primary_db is up. [OK]\n";
-}
+$msg .= make_server_status( $primary_db, $primary_db_down );
 
 my $key = $primary_kdb->genKey()
   unless (! $primary_kdb);
@@ -69,11 +65,7 @@ try {
   $critical = 1;
 };
 
-if ($secondary_db_down) {
-  $msg .= "Database $secondary_db is down!\n";
-} else {
-  $msg .= "Database $secondary_db is up. [OK]\n";
-}
+$msg .= make_server_status( $secondary_db, $secondary_db_down );
 
 my $verify = $secondary_kdb->verifyKey($key)
   unless (! $secondary_kdb);
@@ -255,6 +247,13 @@ MIME::Lite->send("smtp", "mailhost", Timeout => 30);
 # Send the message
 $email->send
   or die "Error sending message: $!\n";
+
+sub make_server_status {
+
+  my ( $server, $down ) = @_;
+
+  return "Database server $server is " . ( $down ? "down!\n" : "up. [OK]\n" );
+}
 
 sub usage {
 
