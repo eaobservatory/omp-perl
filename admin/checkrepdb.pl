@@ -219,7 +219,7 @@ unless ($primary_db_down or $secondary_db_down) {
   }
 }
 
-my $subject = "Replication status: ";
+my $subject = "Replication status ($primary_db -> $secondary_db): ";
 
 if ($critical) {
   $subject .= "CRITICAL!";
