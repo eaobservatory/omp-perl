@@ -109,7 +109,7 @@ sub historyMSB {
   my @responses = $self->queryMSBdone( $query );
 
   if ($checksum) {
-    throw OMP::Error::FatalError("More than one match for checksum $checksum [".scalar(@responses)." matches]")
+    throw OMP::Error::FatalError("More than one match for checksum '$checksum' [".scalar(@responses)." matches]")
       if scalar(@responses) > 1;
     return $responses[0];
   } elsif (wantarray) {
