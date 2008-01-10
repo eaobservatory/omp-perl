@@ -909,7 +909,7 @@ sub nightlog {
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %6d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Coadds'});
 
     } elsif( $instrument =~ /ircam/i ) {
-
+      
     } elsif( $instrument =~ /ufti/i ) {
 
       $return{'Filter'} = $self->filter;
@@ -975,7 +975,21 @@ sub nightlog {
       }
 
     }
+  } else {
+    # Unexpected instrument
+    $return{Run} = $self->runnr;
+    $return{ProjectID} = $self->projectid;
+    $return{UT} = $self->startobs->hms;
+    $return{Source} = $self->target;
+    $return{Mode} = uc($self->mode);
 
+    $return{_ORDER} = [ "Run", "UT", "Mode", "ProjectID", "Source" ];
+    $return{_STRING_HEADER} = "Run  UT start              Mode     Project          Source";
+    $return{_STRING} = sprintf("%3s  %8s  %16.16s %11s %15s",
+                               $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'ProjectID'},
+                               $return{'Source'});
+    $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
+    $return{'_STRING_LONG'} = $return{'_STRING'};
   }
 
   if( $comments ) {
