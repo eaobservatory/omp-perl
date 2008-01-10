@@ -57,6 +57,7 @@ This manual page.
 
 =cut
 
+use warnings;
 use strict;
 
 my ($VERSION, $BAR, $STATUS);
@@ -466,7 +467,8 @@ sub new_instrument {
       # If the current MSB differs from the MSB to which this
       # observation belongs, we need to insert text denoting the start
       # of the MSB. Ignore blank checksums.
-      if( ( $obs->checksum ne '' ) && ( $obs->checksum ne $currentmsb ) ) {
+      if( (defined $obs->checksum) && ( $obs->checksum ne '' )
+          && ( $obs->checksum ne $currentmsb ) ) {
 
         # Retrieve the MSB title.
         if( ! exists( $msbtitles{$obs->checksum} ) ) {
