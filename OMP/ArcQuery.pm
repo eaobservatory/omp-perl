@@ -31,18 +31,18 @@ use Time::Piece;
 use Time::Seconds;
 
 # TABLES
-our $SCUTAB = 'archive..SCU S';
-our $GSDTAB = 'jcmt..SCA G';
-our $SUBTAB = 'jcmt..SUB H';
-our $SPHTAB = 'jcmt..SPH I';
+our $SCUTAB = 'jcmt_tms..SCU S';
+our $GSDTAB = 'jcmt_tms..SCA G';
+our $SUBTAB = 'jcmt_tms..SUB H';
+our $SPHTAB = 'jcmt_tms..SPH I';
 our $UKIRTTAB = 'ukirt..COMMON U';
 our $UFTITAB = 'ukirt..UFTI F';
 our $CGS4TAB = 'ukirt..CGS4 C';
 our $UISTTAB = 'ukirt..UIST I';
 our $IRCAMTAB = 'ukirt..IRCAM3 I';
 our $WFCAMTAB = 'ukirt..WFCAM W';
-our $JCMTTAB = 'archive..COMMON J';
-our $ACSISTAB = 'archive..ACSIS A';
+our $JCMTTAB = 'jcmt..COMMON J';
+our $ACSISTAB = 'jcmt..ACSIS A';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
@@ -485,6 +485,27 @@ sub _post_process_hash {
     $self->_process_elements($href, sub { uc(shift) }, [qw/telescope/]);
   }
 
+  # For JCMT there is a date at which we switch from bespoke tables to a COMMON+Instrument format
+  # This knowledge can help to optimize queries (although it may get complicate if the heterodyne
+  # data are moved to COMMON leaving behind the continuum data)
+  my $newjcmt;
+  if (exists $href->{date}) {
+    # Use semester 06B as break: 20060801
+    my $refdate = 1154391000; # no need to be spot on
+    my $min = $href->{date}->min;
+    $min = $min->epoch if defined $min;
+    my $max = $href->{date}->max;
+    $max = $max->epoch if defined $max;
+    # Options are:  min greater than refdate meaning we have only new data
+    #               max less than refdate so only old data
+    #               must span the refdate so need both
+    if ($min && $min > $refdate) {
+      $newjcmt = 1;
+    } elsif ($max && $max < $refdate) {
+      $newjcmt = 0;
+    }
+  }
+
   # Loop over instruments if specified
   # This is required for a sanity check to make sure incorrect combos are
   # trapped
@@ -498,10 +519,32 @@ sub _post_process_hash {
         $tables{$SCUTAB}++;
         $tels{JCMT}++;
         $insts{SCUBA}++;
-      } elsif ($inst =~ /^(RX|UKT|HETERODYNE)/i) {
-        $tables{$GSDTAB}++;
+      } elsif ($inst =~ /^HARP/i) {
+        # Only new data for harp so no GSD
+        $tables{$JCMTTAB}++;
         $tels{JCMT}++;
+        $insts{ACSIS}++;
+      } elsif ($inst =~ /^UKT/) {
+        # must be old JCMT
+        $tels{JCMT}++;
+        $tables{$GSDTAB}++;
         $insts{HETERODYNE}++;
+      } elsif ($inst =~ /^(RX|HETERODYNE)/i) {
+        # can make a decision to trim if we have a date
+        if (defined $newjcmt) {
+          if (!$newjcmt) {
+            $tables{$GSDTAB}++;
+            $insts{HETERODYNE}++;
+          } else {
+            $insts{ACSIS}++;
+            $tables{$JCMTTAB}++;
+          }
+        } else {
+          $tables{$GSDTAB}++;
+          $tables{$JCMTTAB}++;
+          $insts{HETERODYNE}++;
+        }
+        $tels{JCMT}++;
       } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST|WFCAM)/) {
         $tables{$UKIRTTAB}++;
         $tels{UKIRT}++;
@@ -524,13 +567,29 @@ sub _post_process_hash {
       $insts{UIST}++;
       $insts{WFCAM}++;
     } elsif ($tel eq 'JCMT') {
-      $tables{$SCUTAB}++;
-      $tables{$GSDTAB}++;
-      $tables{$JCMTTAB}++;
-      $tables{$ACSISTAB}++;
-      $insts{SCUBA}++;
-      $insts{HETERODYNE}++;
-      $insts{ACSIS}++;
+      if (defined $newjcmt) {
+        if ($newjcmt) {
+          $tables{$JCMTTAB}++;
+          $tables{$ACSISTAB}++;
+          $insts{ACSIS}++;
+        } else {
+          $insts{SCUBA}++;
+          $insts{HETERODYNE}++;
+          $tables{$SCUTAB}++;
+          $tables{$GSDTAB}++;
+        }
+      } else {
+        $insts{ACSIS}++;
+        $insts{SCUBA}++;
+        $insts{HETERODYNE}++;
+        $tables{$SCUTAB}++;
+        $tables{$GSDTAB}++;
+        $tables{$JCMTTAB}++;
+        $tables{$ACSISTAB}++;
+      }
+
+
+
     } else {
       throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " . $tel);
     }
@@ -611,6 +670,7 @@ sub _post_process_hash {
   # Remove attributes since we dont need them anymore
   delete $href->{_attr};
 
+  return 1;
 }
 
 =item B<_qhash_tosql>
