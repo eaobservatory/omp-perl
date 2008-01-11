@@ -51,8 +51,7 @@ try {
 
 $msg .= make_server_status( $primary_db, $primary_db_down );
 
-my $key = $primary_kdb->genKey()
-  unless (! $primary_kdb);
+my $key = !!$primary_kdb && $primary_kdb->genKey()
 
 sleep 20;
 
@@ -67,8 +66,7 @@ try {
 
 $msg .= make_server_status( $secondary_db, $secondary_db_down );
 
-my $verify = $secondary_kdb->verifyKey($key)
-  unless (! $secondary_kdb);
+my $verify = !!$secondary_kdb && $secondary_kdb->verifyKey($key);
 
 if ($primary_db_down or $secondary_db_down) {
   $msg .= "\nCannot proceed with tests.\n";
