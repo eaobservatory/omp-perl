@@ -7,7 +7,7 @@ OMP::ProjDB - Manipulate the project database
 =head1 SYNOPSIS
 
   $projdb = new OMP::ProjDB( ProjectID => $projectid,
-			     DB => $dbconnection );
+                             DB => $dbconnection );
 
   $projdb->issuePassword();
 
@@ -239,13 +239,13 @@ name or undef if the project does not exist.
       # Use a try block since we know that _get_project_row raises
       # an exception
       try {
-	my $p = $self->_get_project_row();
-	$tel = uc($p->telescope);
+        my $p = $self->_get_project_row();
+        $tel = uc($p->telescope);
 
-	# Cache result
-	$PROJTELESCOPE{$p->projectid} = $tel;
+        # Cache result
+        $PROJTELESCOPE{$p->projectid} = $tel;
       } catch OMP::Error::UnknownProject with {
-	$tel = undef;
+        $tel = undef;
       };
     }
     return $tel;
@@ -382,10 +382,10 @@ sub disableProject {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 subject => "[$projectid] Project disabled",
-				 text => "<html>project <b>$projectid</b> disabled",
-				 msgtype => OMP__FB_MSG_PROJECT_DISABLED,
-				);
+                                 subject => "[$projectid] Project disabled",
+                                 text => "<html>project <b>$projectid</b> disabled",
+                                 msgtype => OMP__FB_MSG_PROJECT_DISABLED,
+                                );
 
   # Transaction end
   $self->_dbunlock;
@@ -427,10 +427,10 @@ sub enableProject {
   # Notify the feedback system
   my $projectid = $self->projectid;
   $self->_notify_feedback_system(
-				 subject => "[$projectid] Project enabled",
-				 text => "<html>project <b>$projectid</b> enabled",
-				 msgtype => OMP__FB_MSG_PROJECT_ENABLED,
-				);
+                                 subject => "[$projectid] Project enabled",
+                                 text => "<html>project <b>$projectid</b> enabled",
+                                 msgtype => OMP__FB_MSG_PROJECT_ENABLED,
+                                );
 
   # Transaction end
   $self->_dbunlock;
@@ -470,7 +470,7 @@ sub projectDetails {
   # We dont use verifyPassword since that would involve an
   # additional fetch from the database
   throw OMP::Error::Authentication("Incorrect password for project ".
-				  $self->projectid ."\n")
+                                  $self->projectid ."\n")
     unless $project->verify_password( $self->password );
 
   if (wantarray) {
@@ -612,7 +612,7 @@ Retrieve all the support scientists (as a list of C<OMP::User> objects)
 associated with projects in the specified semesters and for the specified
 telescope.
 
-  @support = $projdb->listSupport( telescope => $tel, 
+  @support = $projdb->listSupport( telescope => $tel,
                                    semester => \@semesters );
 
 Neither C<telescope> nor C<semesters> are mandatory keys.
@@ -642,7 +642,7 @@ sub listSupport {
 Retrieve all the countries associated with projects in the specified
 semesters and for the specified telescope.
 
-  @countries = $projdb->listSupport( telescope => $tel, 
+  @countries = $projdb->listSupport( telescope => $tel,
                                      semester => \@semesters );
 
 Neither C<telescope> nor C<semesters> are mandatory keys.
@@ -782,8 +782,8 @@ sub _get_total_alloc {
   my $sql = "SELECT sum(P.allocated)".
     " FROM $PROJTABLE P, $PROJQUEUETABLE Q".
       " WHERE P.projectid = Q.projectid".
-	" AND semester = \"$semester\" AND telescope = \"$telescope\"".
-	  " AND country != \"EC\"";
+        " AND semester = \"$semester\" AND telescope = \"$telescope\"".
+          " AND country != \"EC\"";
 
   # Now run the query
   my $dbh = $self->_dbhandle;
@@ -885,7 +885,7 @@ sub _update_project_row {
 
   } else {
 
-    throw OMP::Error::BadArgs("Argument to _update_project_row must be of type OMP::Project\n"); 
+    throw OMP::Error::BadArgs("Argument to _update_project_row must be of type OMP::Project\n");
 
   }
 
@@ -927,25 +927,25 @@ sub _insert_project_row {
   my $pi = $proj->pi->userid;
 
   my ($taumin, $taumax)     = OMP::SiteQuality::to_db( 'TAU',
-						       $proj->taurange );
+                                                       $proj->taurange );
   my ($seemin, $seemax)     = OMP::SiteQuality::to_db( 'SEEING',
-						       $proj->seeingrange );
+                                                       $proj->seeingrange );
   my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db( 'CLOUD',
-						       $proj->cloudrange );
+                                                       $proj->cloudrange );
   my ($skymin, $skymax)     = OMP::SiteQuality::to_db( 'SKY',
-						       $proj->skyrange );
+                                                       $proj->skyrange );
 
   # Insert the generic data into table
   $self->_db_insert_data( $PROJTABLE,
-			  $proj->projectid, $pi,
-			  $proj->title,
-			  $proj->semester, $proj->encrypted,
-			  $proj->allocated->seconds,
-			  $proj->remaining->seconds, $proj->pending->seconds,
-			  $proj->telescope,$taumin,$taumax,$seemin,$seemax,
-			  int($cloudmax), $proj->state, int($cloudmin),
-			  $skymin, $skymax,
-			);
+                          $proj->projectid, $pi,
+                          $proj->title,
+                          $proj->semester, $proj->encrypted,
+                          $proj->allocated->seconds,
+                          $proj->remaining->seconds, $proj->pending->seconds,
+                          $proj->telescope,$taumin,$taumax,$seemin,$seemax,
+                          int($cloudmax), $proj->state, int($cloudmin),
+                          $skymin, $skymax,
+                        );
 
   # Now insert the queue information
   # pick a random queue as primary if we do not have one
@@ -957,25 +957,25 @@ sub _insert_project_row {
     my $adj = $proj->tagadjustment( $c );
     my $prim = ($primary eq uc($c) ? 1 : 0);
     $self->_db_insert_data( $PROJQUEUETABLE,
-			    $proj->projectid,
-			    uc($c), ($queue{$c} - $adj),
-			    $prim, $adj,
-			  );
+                            $proj->projectid,
+                            uc($c), ($queue{$c} - $adj),
+                            $prim, $adj,
+                          );
   }
 
   # Now insert the user data
   # All users end up in the same table. Contact information for a particular
   # user is available via the contactable method in the OMP::Project.
 
-  # Loop over all the users. Note that this is *not* the output from the 
+  # Loop over all the users. Note that this is *not* the output from the
   # contacts method since that will only contain contactable people
   my %contactable = $proj->contactable;
 
   # Group all the user information
   my %roles = (PI => [$proj->pi],
-	       COI => [$proj->coi],
-	       SUPPORT => [$proj->support]
-	      );
+               COI => [$proj->coi],
+               SUPPORT => [$proj->support]
+              );
 
   # Loop over all the different roles
   for my $role (keys %roles) {
@@ -983,9 +983,9 @@ sub _insert_project_row {
       # Note that we must convert undef to 0 here for the DB
       my $cancontact = ( $contactable{ $user->userid} ? 1 : 0);
       $self->_db_insert_data( $PROJUSERTABLE,
-			      $proj->projectid, $user->userid,
-			      $role, $cancontact
-			    );
+                              $proj->projectid, $user->userid,
+                              $role, $cancontact
+                            );
     }
   }
 
@@ -1028,10 +1028,10 @@ sub _get_projects {
   my $start_index = 0;
   while ($start_index <= $#$ref) {
     my $end_index = ( $start_index + $MAX_ID < $#$ref ?
-		      $start_index + $MAX_ID : $#$ref);
+                      $start_index + $MAX_ID : $#$ref);
     my $proj_list = join(",", map {"\"".$_->{projectid}."\""}
-			 @$ref[$start_index..$end_index]
-			);
+                         @$ref[$start_index..$end_index]
+                        );
 
     # First do the user info query
     $sql = $userquery_sql . "projectid in ($proj_list)";
@@ -1045,13 +1045,13 @@ sub _get_projects {
 
       # Store the results for assignment to project objects later on
       $projroles{$projectid}->{$capacity} = []
-	unless exists $projroles{$projectid}->{$capacity};
+        unless exists $projroles{$projectid}->{$capacity};
 
       push(@{ $projroles{$projectid}->{$capacity} },
-	   new OMP::User( userid => $userid,
-			  name => $row->{uname},
-			  email => $row->{email},
-			));
+           new OMP::User( userid => $userid,
+                          name => $row->{uname},
+                          email => $row->{email},
+                        ));
 
       $projcontactable{$projectid}->{$userid} = $row->{contactable};
     }
@@ -1106,9 +1106,9 @@ sub _get_projects {
 
       # convert the min and max into a OMP::Range object
       $projhash->{$outkey} = OMP::SiteQuality::from_db( $key,
-							$projhash->{$minkey},
-							$projhash->{$maxkey}
-						      );
+                                                        $projhash->{$minkey},
+                                                        $projhash->{$maxkey}
+                                                      );
 
       # fix up any NULLs
       OMP::SiteQuality::undef_to_default( $key, $projhash->{$outkey});
@@ -1116,10 +1116,10 @@ sub _get_projects {
       # convert to 2 decimal places because of precision problems
       # with a REAL sybase column
       for my $m (qw/ min max /) {
-	my $val = $projhash->{$outkey}->$m();
-	next unless defined $val;
-	$val = sprintf( '%.2f', $val);
-	$projhash->{$outkey}->$m( $val );
+        my $val = $projhash->{$outkey}->$m();
+        next unless defined $val;
+        $val = sprintf( '%.2f', $val);
+        $projhash->{$outkey}->$m( $val );
       }
 
       delete $projhash->{$minkey};
@@ -1212,38 +1212,38 @@ sub _mail_password {
     # Disable transactions since we can only have a single
     # transaction at any given time with a single handle
     $self->_notify_feedback_system(
-				   subject => "Password change for $projectid",
-				   text => $fbmsg,
-				   status => OMP__FB_INFO,
-				   msgtype => OMP__FB_MSG_PASSWD_ISSUED,
-				   );
+                                   subject => "Password change for $projectid",
+                                   text => $fbmsg,
+                                   status => OMP__FB_INFO,
+                                   msgtype => OMP__FB_MSG_PASSWD_ISSUED,
+                                   );
 
     # Now set up the mail
 
     # Mail message content
     my $msg = "\nNew password for project $projectid: $password\n\n" .
       "This password was generated automatically at the request\nof $addr.\n".
-	"\nPlease do not reply to this email message directly.\n";
+        "\nPlease do not reply to this email message directly.\n";
 
     $self->_mail_information(
-			     message => $msg,
-			     to => \@addr,
-			     from => OMP::User->new(name => "omp-auto-reply"),
-			     subject => "[$projectid] OMP reissue of password for $projectid",
-			     headers => {"Reply-To" => 'flex@jach.hawaii.edu',
-					},
-			    );
+                             message => $msg,
+                             to => \@addr,
+                             from => OMP::User->new(name => "omp-auto-reply"),
+                             subject => "[$projectid] OMP reissue of password for $projectid",
+                             headers => {"Reply-To" => 'flex@jach.hawaii.edu',
+                                        },
+                            );
 
     # Mail a copy to frossie.  For some reason the Bcc and Cc headers
     # aren't working...
     $self->_mail_information(
-			     message => $msg,
-			     to => [OMP::User->new(email=>'frossie@jach.hawaii.edu')],
-			     from => OMP::User->new(name => "omp-auto-reply"),
-			     subject => "[$projectid] OMP reissue of password for $projectid",
-			     headers => {"Reply-To" => 'flex@jach.hawaii.edu',
-					},
-			    );
+                             message => $msg,
+                             to => [OMP::User->new(email=>'frossie@jach.hawaii.edu')],
+                             from => OMP::User->new(name => "omp-auto-reply"),
+                             subject => "[$projectid] OMP reissue of password for $projectid",
+                             headers => {"Reply-To" => 'flex@jach.hawaii.edu',
+                                        },
+                            );
 
 
   } else {
@@ -1263,7 +1263,7 @@ Given an C<OMP::Project> object and a hash reference of (possibly)
 updated user-contactable key-value pairs, returns a new hash reference
 of the remaining changed, possibly none, pairs.
 
-  $changed = 
+  $changed =
     $db->_remove_unchanged_contactability( $project,
                                           { 'USR1' => 1, 'USR2' => 0 }
                                         );
@@ -1315,8 +1315,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
