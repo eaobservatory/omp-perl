@@ -546,6 +546,39 @@ sub projectDetailsNoAuth {
   }
 }
 
+=item B<enqueueProject>
+
+Given a C<OMP::Project> object, add it to the queue.
+
+  $db->enqueueProject( $project );
+
+=cut
+
+sub enqueueProject {
+  my $self = shift;
+  my $proj = shift;
+
+  # pick a random queue as primary if we do not have one
+  my %queue = $proj->queue;
+  my $primary = $proj->primaryqueue;
+  $primary = (values %queue)[0] unless defined $primary;
+
+  for my $c (keys %queue) {
+
+    # The TAG priority is the queue value - the adjustment
+    my $adj = $proj->tagadjustment( $c );
+    my $prim = ($primary eq uc($c) ? 1 : 0);
+
+    $self->_db_insert_data( $PROJQUEUETABLE,
+                            $proj->projectid,
+                            uc($c), ($queue{$c} - $adj),
+                            $prim, $adj,
+                          );
+  }
+
+  return;
+}
+
 =item B<listProjects>
 
 Return all the projects for the given query.
@@ -948,20 +981,7 @@ sub _insert_project_row {
                         );
 
   # Now insert the queue information
-  # pick a random queue as primary if we do not have one
-  my %queue = $proj->queue;
-  my $primary = $proj->primaryqueue;
-  $primary = (values %queue)[0] unless defined $primary;
-  for my $c (keys %queue) {
-    # The TAG priority is the queue value - the adjustment
-    my $adj = $proj->tagadjustment( $c );
-    my $prim = ($primary eq uc($c) ? 1 : 0);
-    $self->_db_insert_data( $PROJQUEUETABLE,
-                            $proj->projectid,
-                            uc($c), ($queue{$c} - $adj),
-                            $prim, $adj,
-                          );
-  }
+  $self->enqueueProject( $proj );
 
   # Now insert the user data
   # All users end up in the same table. Contact information for a particular
