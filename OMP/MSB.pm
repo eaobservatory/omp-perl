@@ -25,7 +25,7 @@ use Carp;
 # External modules
 use XML::LibXML; # Our standard parser
 use Digest::MD5 2.20 qw/ md5_hex /;
-use OMP::Error;
+use OMP::Error qw/ :try /;
 use OMP::General;
 use OMP::Range;
 use OMP::Info::MSB;
@@ -4780,9 +4780,18 @@ sub SpTelescopeObsComp {
 
   # Use the generic TCS_CONFIG parsing code since the SpTelescopeObsComp
   # is meant to be valid TCS_CONFIG format (for base and tag positions)
-  my $cfg = new JAC::OCS::Config::TCS( validation => 0,
-				       DOM => $el,
-				       telescope => $telName );
+  my $cfg;
+  my $CfgErr;
+  try {
+    $cfg = new JAC::OCS::Config::TCS( validation => 0,
+                                      DOM => $el,
+                                      telescope => $telName );
+  } catch JAC::OCS::Config::Error with {
+    $CfgErr = shift;
+  };
+
+  throw OMP::Error::FatalError("Error determining telescope coordinates in MSB '".$self->msbtitle."' - $CfgErr")
+    if defined $CfgErr;
 
   # Now pluck out the bits of interest
   $summary{coords} = $cfg->getTarget();
