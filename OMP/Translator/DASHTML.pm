@@ -75,7 +75,8 @@ sub new {
                 FILES => { %$files },
                 CATFILE => $catfile,
                 PROJECTID => $proj,
-               };
+               },
+               $class;
 
 }
 

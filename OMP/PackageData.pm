@@ -104,7 +104,8 @@ sub new {
                    FTPDir => undef,
                    Key => undef,
                    IncCal => 1,
-                  };
+                  },
+                  $class;
 
   if (@_) {
     $pkg->_populate( @_ );

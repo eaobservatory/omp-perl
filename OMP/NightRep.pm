@@ -97,7 +97,8 @@ sub new {
                   UTDateEnd => undef,
                   DeltaDay => 1,
                   DB => undef,
-                 };
+                 },
+                 $class;
 
 
   # Deal with arguments
