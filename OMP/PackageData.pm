@@ -10,8 +10,8 @@ OMP::PackageData - Package up data for retrieval by PI
 
   my $pkg = new OMP::PackageData( projectid => 'M02BU127',
                                   utdate => '2002-09-15',
-				  inccal => 1,
-				);
+                                  inccal => 1,
+                                );
 
   $pkg->root_tmpdir("/tmp/ompdata");
 
@@ -78,8 +78,8 @@ use constant OLD_AGE => 1;
 Object constructor. Requires a project and a ut date.
 
   $pkg = new OMP::PackageData( projectid => 'blah',
-			       password => $pass,
-			       utdate => '2002-09-17');
+                               password => $pass,
+                               utdate => '2002-09-17');
 
 UT date can either be a Time::Piece object or a string in the
 form "YYYY-MM-DD".
@@ -91,20 +91,20 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $pkg = bless {
-		   ProjectID => undef,
-		   UTDate => undef,
-		   RootTmpDir => OMP::Config->getData('tmpdir'),
-		   TmpDir => undef,
-		   FtpRootDir => OMP::Config->getData('ftpdir'),
-		   Verbose => 1,
-		   ObsGroup => undef,
-		   TarFile => [],
-		   Password => undef,
-		   UTDir => undef,
-		   FTPDir => undef,
-		   Key => undef,
-		   IncCal => 1,
-		  };
+                   ProjectID => undef,
+                   UTDate => undef,
+                   RootTmpDir => OMP::Config->getData('tmpdir'),
+                   TmpDir => undef,
+                   FtpRootDir => OMP::Config->getData('ftpdir'),
+                   Verbose => 1,
+                   ObsGroup => undef,
+                   TarFile => [],
+                   Password => undef,
+                   UTDir => undef,
+                   FTPDir => undef,
+                   Key => undef,
+                   IncCal => 1,
+                  };
 
   if (@_) {
     $pkg->_populate( @_ );
@@ -171,15 +171,15 @@ sub utdate {
     my $ut = shift;
     if (defined $ut) {
       if (not ref $ut) {
-	# A scalar, try to parse
-	my $parsed = OMP::General->parse_date($ut);
-	throw OMP::Error::BadArgs("Unable to parse string '$ut' as a date. Must be YYYY-MM-DD") unless $parsed;
-	
-	# overwrite $ut
-	$ut = $parsed;
+        # A scalar, try to parse
+        my $parsed = OMP::General->parse_date($ut);
+        throw OMP::Error::BadArgs("Unable to parse string '$ut' as a date. Must be YYYY-MM-DD") unless $parsed;
+
+        # overwrite $ut
+        $ut = $parsed;
 
       } elsif (!UNIVERSAL::isa($ut, "Time::Piece")) {
-	throw OMP::Error::BadArgs("The object supplied to utdate method must be a Time::Piece");
+        throw OMP::Error::BadArgs("The object supplied to utdate method must be a Time::Piece");
       }
     }
     $self->{UTDate} = $ut;
@@ -201,7 +201,7 @@ sub obsGrp {
     my $grp = shift;
     if (defined $grp) {
       throw OMP::Error::BadArgs("Argument to obsGrp must be an OMP::Info::ObsGroup object")
-	unless UNIVERSAL::isa($grp,"OMP::Info::ObsGroup");
+        unless UNIVERSAL::isa($grp,"OMP::Info::ObsGroup");
     }
     $self->{ObsGroup} = $grp;
   }
@@ -285,9 +285,9 @@ sub tarfile {
   if (@_) {
     @{$self->{TarFile}} = @_;
   }
-  return (wantarray ? @{$self->{TarFile}} : 
-	             (scalar @{$self->{TarFile}} ? $self->{TarFile}->[0] : undef )
-	 );
+  return (wantarray ? @{$self->{TarFile}} :
+                     (scalar @{$self->{TarFile}} ? $self->{TarFile}->[0] : undef )
+         );
 }
 
 =item B<root_tmpdir>
@@ -443,7 +443,7 @@ sub pkgdata {
 
 =item B<keygen>
 
-Force a new key to be generated. If this is done during data 
+Force a new key to be generated. If this is done during data
 packaging there is a very good chance that things will get confused.
 
   $pkg->keygen;
@@ -550,10 +550,10 @@ sub _populate {
   # Pass our query onto the ObsGroup constructor which can correctly handle the inccal
   # switch and optimize for it.
   my %query = ( telescope => $tel,
-		date => $self->utdate,
-		inccal => $self->inccal,
-		projectid => $self->projectid,
-	      );
+                date => $self->utdate,
+                inccal => $self->inccal,
+                projectid => $self->projectid,
+              );
 
   # information for the user
   print STDOUT "Querying database for relevant data files...[tel:$tel / ut:".
@@ -718,7 +718,7 @@ sub _copy_data {
       my $obsnum = $2;
 
       $base = "ac${date}_${obsnum}_01_01.sdf";
-      $file = "/jcmtdata/raw/acsis/acsis01/gridder01/$date/cubes/$base";	
+      $file = "/jcmtdata/raw/acsis/acsis01/gridder01/$date/cubes/$base";
     }
 
     my $outfile = File::Spec->catfile( $outdir, $base );
@@ -789,11 +789,11 @@ sub _mktarfile {
   my $tardir = $dirs[-1];
 
   # Open the directory
-  opendir my $dh, $utdir 
+  opendir my $dh, $utdir
     or croak "Error reading dir $utdir to get tar files: $!";
 
   # Read them into an array, ignoring hidden files
-  my @files = map { File::Spec->catfile($tardir,$_) } 
+  my @files = map { File::Spec->catfile($tardir,$_) }
       grep { $_ !~ /^\./ } readdir $dh;
 
   # And untaint them all
@@ -850,8 +850,8 @@ sub _mktarfile {
     # input group
     my $suffix = ( $ntar > 1 ? "_$counter" : '' );
     my $outfile = File::Spec->catfile( $ftpdir,
-				       "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
-				     );
+                                       "ompdata_$utstr" . "_$$". $suffix .".tar.gz"
+                                     );
 
     print STDOUT "Creating tar file $counter [of $ntar] " . basename($outfile) ."...\n"
       if $self->verbose;
@@ -864,7 +864,7 @@ sub _mktarfile {
 
       # Finally create the tar file
       Archive::Tar->create_archive($outfile, 2, $tardir,@$grp )
-	or croak "Error creating tar file in $outfile: ".&Tar::error;
+        or croak "Error creating tar file in $outfile: ".&Tar::error;
 
     } else {
       # It is much faster to use the tar command directly
@@ -873,14 +873,14 @@ sub _mktarfile {
       # Must give full path
       my $tarcmd;
       if ($^O eq 'solaris') {
-	# GNU tar
-	$tarcmd = "/usr/local/bin/tar";
+        # GNU tar
+        $tarcmd = "/usr/local/bin/tar";
       } elsif ($^O eq 'linux') {
-	$tarcmd = "/bin/tar";
+        $tarcmd = "/bin/tar";
       } else {
-	croak "Unable to determine tar command for OS $^O";
+        croak "Unable to determine tar command for OS $^O";
       }
-      # Locally Disable $PATH under taint checking 
+      # Locally Disable $PATH under taint checking
       #  - we need /usr/local/bin for gzip on Solaris
       #    when running tar
       local $ENV{PATH} = "/usr/bin:/bin:/usr/local/bin";
@@ -960,17 +960,17 @@ sub _add_comment {
   my $pi = $project->pi;
 
   OMP::FBServer->addComment(
-			    $projectid,
-			    {
-			     subject => "Data requested",
-			     author => undef,
-			     program => $0,
-			     sourceinfo => $host,
-			     status => OMP__FB_SUPPORT,
-			     text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi",
-			     msgtype => OMP__FB_MSG_DATA_REQUESTED,
-			    }
-			   )
+                            $projectid,
+                            {
+                             subject => "Data requested",
+                             author => undef,
+                             program => $0,
+                             sourceinfo => $host,
+                             status => OMP__FB_SUPPORT,
+                             text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi",
+                             msgtype => OMP__FB_MSG_DATA_REQUESTED,
+                            }
+                           )
 
 }
 
@@ -978,7 +978,7 @@ sub _add_comment {
 
 Remove files that are older than 4 days from the FTP directory.
 
-Note that files and directories created in order to create the 
+Note that files and directories created in order to create the
 tar file itself are cleaned up automatically when the process
 exits. [but will be left around if the previous invocation
 crashed]. For that reason we look for old files in both root_tmpdir
@@ -995,10 +995,10 @@ sub _purge_old_ftp_files {
   # loop over them, unlinking files that are older than 7 days
   # do not bother doing a chdir
   find({ wanted => \&_unlink_if_old,
-	 no_chdir => 1,
-	 untaint => 1,
+         no_chdir => 1,
+         untaint => 1,
        },
-	 @dirs);
+         @dirs);
 
 }
 
@@ -1117,8 +1117,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

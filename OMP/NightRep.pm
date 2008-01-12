@@ -73,9 +73,9 @@ Create a new night report object. Accepts a hash argument specifying
 the date, delta and telescope to use for all queries.
 
   $nr = OMP::NightRep->new( telescope => 'JCMT',
-			    date => '2002-12-10',
-			    delta_day => '7',
-			  );
+                            date => '2002-12-10',
+                            delta_day => '7',
+                          );
 
 The date can be specified as a Time::Piece object and the telescope
 can be a Astro::Telescope object.  Default delta is 1 day.
@@ -88,16 +88,16 @@ sub new {
   my %args = @_;
 
   my $nr = bless {
-		  DBAccounts => undef,
-		  HdrAccounts => undef,
-		  Faults => undef,
-		  Warnings => [],
-		  Telescope => undef,
-		  UTDate => undef,
-		  UTDateEnd => undef,
-		  DeltaDay => 1,
-		  DB => undef,
-		 };
+                  DBAccounts => undef,
+                  HdrAccounts => undef,
+                  Faults => undef,
+                  Warnings => [],
+                  Telescope => undef,
+                  UTDate => undef,
+                  UTDateEnd => undef,
+                  DeltaDay => 1,
+                  DB => undef,
+                 };
 
 
   # Deal with arguments
@@ -227,7 +227,7 @@ sub db_accounts {
     # XML query
     my $xml = "<TimeAcctQuery>".
       $self->_get_date_xml(timeacct=>1) .
-	"</TimeAcctQuery>";
+        "</TimeAcctQuery>";
 
     # Get our sql query
     my $query = new OMP::TimeAcctQuery( XML => $xml );
@@ -238,12 +238,12 @@ sub db_accounts {
 
     # Keep only the results for the telescope we are querying for
     @acct = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
-						     $self->telescope
-						   )} @acct;
+                                                     $self->telescope
+                                                   )} @acct;
 
     # Store result
     my $acctgrp = new OMP::TimeAcctGroup(accounts=>\@acct,
-					 telescope=>$self->telescope,);
+                                         telescope=>$self->telescope,);
 
     $self->{DBAccounts} = $acctgrp;
   }
@@ -306,15 +306,15 @@ sub faults {
     # XML query to get faults filed on the dates we are reaporting for
     $xml{filed} = "<FaultQuery>".
       $self->_get_date_xml() .
-	"<category>". $self->telescope ."</category>".
-	  "<isfault>1</isfault>".
-	    "</FaultQuery>";
+        "<category>". $self->telescope ."</category>".
+          "<isfault>1</isfault>".
+            "</FaultQuery>";
 
     # XML query to get faults that occurred on the dates we are reporting for
     $xml{actual} = "<FaultQuery>".
       $self->_get_date_xml(tag => 'faultdate') .
-	"<category>". $self->telescope ."</category>".
-	  "</FaultQuery>";
+        "<category>". $self->telescope ."</category>".
+          "</FaultQuery>";
 
     # Do both queries and merge the results
     my %results;
@@ -323,17 +323,17 @@ sub faults {
       my @results = $fdb->queryFaults( $query );
 
       for (@results) {
-	# Use fault date epoch followed by ID for key so that we can
-	# sort properly and maintain uniqueness
-	if ($xmlquery =~ /filed/) {
-	  # Don't keep results that have an actual date if they were
-	  # returned by our "filed on" query
-	  if (! $_->faultdate) {
-	    $results{$_->date->epoch . $_->id} = $_;
-	  }
-	} else {
-	  $results{$_->date->epoch . $_->id} = $_;
-	}
+        # Use fault date epoch followed by ID for key so that we can
+        # sort properly and maintain uniqueness
+        if ($xmlquery =~ /filed/) {
+          # Don't keep results that have an actual date if they were
+          # returned by our "filed on" query
+          if (! $_->faultdate) {
+            $results{$_->date->epoch . $_->id} = $_;
+          }
+        } else {
+          $results{$_->date->epoch . $_->id} = $_;
+        }
       }
     }
     # Convert result hash to array, then to fault group object
@@ -504,11 +504,11 @@ sub accounting {
     for my $proj (keys %{ $results{$src} } ) {
       # Special case for warnings
       if ($proj eq $WARNKEY) {
-	$combo{$WARNKEY} = [] unless exists $combo{$WARNKEY};
-	push(@{ $combo{$WARNKEY} }, @{ $results{$src}->{$proj} });
+        $combo{$WARNKEY} = [] unless exists $combo{$WARNKEY};
+        push(@{ $combo{$WARNKEY} }, @{ $results{$src}->{$proj} });
       } else {
-	# Store the results in the right place
-	$combo{$proj}->{$src} = $results{$src}->{$proj};
+        # Store the results in the right place
+        $combo{$proj}->{$src} = $results{$src}->{$proj};
       }
     }
   }
@@ -657,7 +657,7 @@ sub obs {
   my $xml = "<ArcQuery>".
     "<telescope>". $self->telescope ."</telescope>".
       "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
-	"</ArcQuery>";
+        "</ArcQuery>";
 
   # Convert XML to an sql query
   my $query = new OMP::ArcQuery( XML => $xml );
@@ -693,10 +693,10 @@ sub msbs {
   my $xml = "<MSBDoneQuery>" .
     "<status>". OMP__DONE_DONE ."</status>" .
       "<status>" . OMP__DONE_REJECTED . "</status>" .
-	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
-	  "<status>" . OMP__DONE_ABORTED . "</status>" .
+        "<status>" . OMP__DONE_SUSPENDED . "</status>" .
+          "<status>" . OMP__DONE_ABORTED . "</status>" .
             "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
-	      "</MSBDoneQuery>";
+              "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -705,8 +705,8 @@ sub msbs {
   # Currently need to verify the telescope outside of the query
   # This verification really slows things down
   @results = grep { OMP::ProjServer->verifyTelescope( $_->projectid,
-						      $self->telescope
-						    )} @results;
+                                                      $self->telescope
+                                                    )} @results;
 
   # Index by project id
   my %index;
@@ -757,7 +757,7 @@ sub shiftComments {
   my $xml = "<ShiftQuery>".
      "<date delta=\"". $self->delta_day ."\">". $self->date->ymd ."</date>".
        "<telescope>". $self->telescope ."</telescope>".
-	 "</ShiftQuery>";
+         "</ShiftQuery>";
 
   my $query = new OMP::ShiftQuery( XML => $xml );
 
@@ -909,10 +909,10 @@ Project Time Summary
 
   # Weather and Extended and UNKNOWN and OTHER
   my %text = ( WEATHER => "Time lost to weather:",
-	       OTHER   =>  "Other time:",
-	       EXTENDED => "Extended Time:",
-	       CAL      => "Unallocated calibrations:",
-	     );
+               OTHER   =>  "Other time:",
+               EXTENDED => "Extended Time:",
+               CAL      => "Unallocated calibrations:",
+             );
 
   for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
     my $time = 0.0;
@@ -954,7 +954,7 @@ Project Time Summary
     $str .= "  $proj\n";
     for my $msb (@{$msbs{$proj}}) {
       $str .= sprintf("    %-30s %s    %s", substr($msb->targets,0,30),
-		      $msb->wavebands, $msb->title). "\n";
+                      $msb->wavebands, $msb->title). "\n";
     }
   }
   $str .= "\n";
@@ -969,7 +969,7 @@ Project Time Summary
       my $date = $fault->date;
       my $local = localtime($date->epoch);
       $str.= "  ". $fault->faultid ." [". $local->strftime("%H:%M %Z")."] ".
-	$fault->subject ."(".$fault->timelost." hrs lost)\n";
+        $fault->subject ."(".$fault->timelost." hrs lost)\n";
 
     }
   } else {
@@ -1132,11 +1132,11 @@ sub ashtml {
 
   # Time lost to weather, extended accounting
   my %text = (
-	      WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
-	      EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
-	      OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
-	      CAL => "<tr class='proj_time_sum_weather_row'><td>Unallocated Calibrations</td>",
-	     );
+              WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
+              EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
+              OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
+              CAL => "<tr class='proj_time_sum_weather_row'><td>Unallocated Calibrations</td>",
+             );
 
   for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
     my $time = 0.0;
@@ -1144,7 +1144,7 @@ sub ashtml {
     if (exists $acct{$tel.$proj}) {
       $time = $acct{$tel.$proj}->{total}->hours;
       if ($acct{$tel.$proj}->{pending}) {
-	$pending += $acct{$tel.$proj}->{pending}->hours;
+        $pending += $acct{$tel.$proj}->{pending}->hours;
       }
       $total += $time unless $proj eq 'EXTENDED';
     }
@@ -1188,8 +1188,8 @@ sub ashtml {
 
       my $pending;
       if  ($account->{pending}) {
-	$total_pending += $account->{pending}->hours;
-	$pending = $account->{pending}->hours;
+        $total_pending += $account->{pending}->hours;
+        $pending = $account->{pending}->hours;
       }
 
       print "<tr class='row_$bgcolor'>";
@@ -1198,13 +1198,13 @@ sub ashtml {
       print " [unconfirmed]" if ($pending);
       print "</td>";
       if ($self->delta_day != 1) {
-	if ($rowcount == 1) {
-	  print "<td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
-	} else {
-	  print "<td class=country_$country></td>";
-	}
+        if ($rowcount == 1) {
+          print "<td class=country_$country>$country ". sprintf($format, $country_total) ."</td>";
+        } else {
+          print "<td class=country_$country></td>";
+        }
       } else {
-	print "<td></td>";
+        print "<td></td>";
       }
 
       # Alternate background color
@@ -1249,26 +1249,26 @@ sub ashtml {
 
     # Decide whether to show MSB targets or MSB name
     my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-						 telescope => $self->telescope,);
+                                                 telescope => $self->telescope,);
     my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
     print "<table class='sum_table' cellspacing='0' width='600'>";
     print "<tr class='sum_table_head'><td colspan=5><strong class='small_title'>MSB Summary</strong></td>";
-    
+
     for my $proj (keys %msbs) {
       print "<tr class='sum_other'><td><a href='$ompurl/msbhist.pl?urlprojid=$proj' class='link_dark'>$proj</a></td>";
       print "<td>$alt_msb_column</td><td>Waveband</td><td>Instrument</td><td>N Repeats</td>";
 
       for my $msb (@{$msbs{$proj}}) {
-	print "<tr class='row_a'>";
-	print "<td></td>";
-	print "<td>". ($display_msb_name ? $msb->title : substr($msb->targets,0,30)) ."</td>";
-	print "<td>". $msb->wavebands ."</td>";
-	print "<td>". $msb->instruments ."</td>";
-	print "<td>". $msb->nrepeats ."</td>";
+        print "<tr class='row_a'>";
+        print "<td></td>";
+        print "<td>". ($display_msb_name ? $msb->title : substr($msb->targets,0,30)) ."</td>";
+        print "<td>". $msb->wavebands ."</td>";
+        print "<td>". $msb->instruments ."</td>";
+        print "<td>". $msb->nrepeats ."</td>";
       }
     }
-    
+
     print "</table>";
     print "<p>";
 
@@ -1291,26 +1291,26 @@ sub ashtml {
     for my $date (sort keys %faults) {
       my $timecellclass = 'time_a';
       if ($self->delta_day != 1) {
-	
-	# Summarizing faults for more than one day
 
-	# Do all this date magic so we can use the appropriate CSS class
-	# (i.e.: time_mon, time_tue, time_wed)
-	my $fdate = $faults{$date}->[0]->date;
-	my $local = localtime($fdate->epoch);
-	$timecellclass = 'time_' . $local->day . '_a';
+        # Summarizing faults for more than one day
 
-	print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
+        # Do all this date magic so we can use the appropriate CSS class
+        # (i.e.: time_mon, time_tue, time_wed)
+        my $fdate = $faults{$date}->[0]->date;
+        my $local = localtime($fdate->epoch);
+        $timecellclass = 'time_' . $local->day . '_a';
+
+        print "<tr class=sum_other valign=top><td class=$timecellclass colspan=2>$date</td><td colspan=2></td>";
     }
       for my $fault (@{$faults{$date}}) {
-	print "<tr class=sum_other valign=top>";
-	print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
+        print "<tr class=sum_other valign=top>";
+        print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='link_small'>". $fault->id ."</a></td>";
 
-	# Use local time for fault date
-	my $local = localtime($fault->date->epoch);
-	print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
-	print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
-	print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
+        # Use local time for fault date
+        my $local = localtime($fault->date->epoch);
+        print "<td class='$timecellclass'>". $local->strftime("%H:%M %Z") ."</td>";
+        print "<td><a href='$ompurl/viewfault.pl?id=". $fault->id ."' class='subject'>".$fault->subject ."</a></td>";
+        print "<td class='time' align=right>". $fault->timelost ." hrs lost</td>";
       }
     }
 
@@ -1352,19 +1352,19 @@ sub ashtml {
 
       if ($grp and $grp->numobs > 1) {
 
-	# Display log as plain text if there are a huge amount of observations
-	my $plaintext = ($grp->numobs > 2000 ? 1 : 0);
+        # Display log as plain text if there are a huge amount of observations
+        my $plaintext = ($grp->numobs > 2000 ? 1 : 0);
 
-	print "<pre>" if ($plaintext);
+        print "<pre>" if ($plaintext);
 
-	OMP::CGIComponent::Obslog::obs_table($grp,
-					     sort => 'chronological',
-					     worfstyle => $worfstyle,
-					     commentstyle => $commentstyle,
-					     text => $plaintext,
-					    );
+        OMP::CGIComponent::Obslog::obs_table($grp,
+                                             sort => 'chronological',
+                                             worfstyle => $worfstyle,
+                                             commentstyle => $commentstyle,
+                                             text => $plaintext,
+                                            );
 
-	print "</pre>" if ($plaintext);
+        print "</pre>" if ($plaintext);
 
       } else {
         # Don't display the table if no observations are available
@@ -1393,8 +1393,8 @@ sub mail_report {
 
   # Get the mailing list
   my @mailaddr = map { OMP::User->new(email => $_) }
-    OMP::Config->getData( 'nightrepemail', 
-			  telescope => $self->telescope);
+    OMP::Config->getData( 'nightrepemail',
+                          telescope => $self->telescope);
 
   # Should CC observers
 
@@ -1411,12 +1411,12 @@ sub mail_report {
 
   # and mail it
   OMP::BaseDB->_mail_information(
-				 to => \@mailaddr,
-				 from => $from,
-				 subject => 'OBS REPORT: '.$self->date->ymd .
-				 ' at the ' . $self->telescope,
-				 message => $report,
-				);
+                                 to => \@mailaddr,
+                                 from => $from,
+                                 subject => 'OBS REPORT: '.$self->date->ymd .
+                                 ' at the ' . $self->telescope,
+                                 message => $report,
+                                );
 }
 
 =back
@@ -1485,8 +1485,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

@@ -46,7 +46,7 @@ our $DEBUG = 0;
 
 =item B<new>
 
-  $tr = new OMP::Translator::DASHTML( $html, \@targets, \%files, 
+  $tr = new OMP::Translator::DASHTML( $html, \@targets, \%files,
                                       $projectid, $catfile );
 
 The projectid is used for tagging the MSB targets in the output catalogue.
@@ -70,12 +70,12 @@ sub new {
   }
 
   return bless {
-		HTML => $html,
-		TARGETS => [ @$targ ],
-		FILES => { %$files },
-		CATFILE => $catfile,
-		PROJECTID => $proj,
-	       };
+                HTML => $html,
+                TARGETS => [ @$targ ],
+                FILES => { %$files },
+                CATFILE => $catfile,
+                PROJECTID => $proj,
+               };
 
 }
 
@@ -172,12 +172,12 @@ sub write_file {
 
   # The internal name
   my $file = $htmlroot . "_" . $suffix . ".html";
-  open my $fh, '>', $file or 
+  open my $fh, '>', $file or
   throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
 
   print $fh $self->{HTML};
 
-  close($fh) 
+  close($fh)
   or throw OMP::Error::FatalError("Error closing HTML translation [$file]: $!\n");
 
   # and make sure the file protections are correct
@@ -206,7 +206,7 @@ sub write_file {
       print $fh "$l\n";
     }
 
-    close($fh) 
+    close($fh)
       or throw OMP::Error::FatalError("Error closing translation [$outfile]: $!\n");
 
     # and make sure the file protections are correct
@@ -224,7 +224,7 @@ sub write_file {
   my $cat;
   eval {
     $cat = new Astro::Catalog(Format => 'JCMT',
-			      File => '/local/progs/etc/poi.dat');
+                              File => '/local/progs/etc/poi.dat');
   };
   unless (defined $cat) {
     warnings::warnif("Unable to read local pointing catalogue.");
@@ -239,7 +239,7 @@ sub write_file {
 
   # Insert the new sources at the start
   unshift(@{$cat->allstars},
-	  map {new Astro::Catalog::Star(Coords=>$_)} @targets);
+          map {new Astro::Catalog::Star(Coords=>$_)} @targets);
 
   # And write it out
   my $catroot = ( $self->{CATFILE} || "omp.cat" );
@@ -289,7 +289,7 @@ sub push_config {
     # instance of the translator
     for my $f ( keys %{ $new->{FILES} } ) {
       if ( exists $self->{FILES}->{$f}) {
-	throw OMP::Error::FatalError("Internal error file $f exists in both instances of object");
+        throw OMP::Error::FatalError("Internal error file $f exists in both instances of object");
       }
       $self->{FILES}->{$f} = $new->{FILES}->{$f};
     }
@@ -319,7 +319,7 @@ defined in C<OMP::Translator::DAS>.
     sub outputdir {
       my $class = shift;
       if ( @_ ) {
-	$outputdir = shift;
+        $outputdir = shift;
       }
       return $outputdir;
     }
