@@ -110,16 +110,16 @@ if( ( length( $q_file . '' ) != 0 ) &&
 
   my $filepath = $ENV{"ORAC_DATA_OUT"};
 
-  open(FILE, $filepath . "/" . $q_file) or die "Could not open file $filepath" . "/" . "$q_file: $!";
+  open(my $fh, '<', qq{$filepath/$q_file}) or die "Could not open file $filepath" . "/" . "$q_file: $!";
   {
     undef $/;
-    $data = <FILE>;
+    $data = <$fh>;
   }
 
   print $query->header(-type => 'image/x-ndf');
   print $data;
 
-  close FILE;
+  close $fh;
 }
 
 sub pad {

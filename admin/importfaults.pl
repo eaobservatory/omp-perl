@@ -27,9 +27,9 @@ my %status = OMP::Fault->faultStatus;
 # Map more type names to existing type constants
 $types->{'Other/Unknown'} = $types->{Other};
 
-opendir(DIR, $dir) or die "Couldn't open directory: $!\n";
-my @listing = readdir DIR;
-closedir(DIR);
+opendir(my $fh, $dir) or die "Couldn't open directory: $!\n";
+my @listing = readdir $fh;
+closedir($fh);
 shift @listing; # get rid of . and ..
 shift @listing;
 
@@ -39,11 +39,11 @@ chdir($dir);
 
 # Our success log
 my $log = "/home/kynan/importfault.log";
-open(LOG, ">>$log") or die "Couldn't open the success log $log:\n$!\n";
+open(my $log_fh, '>>', $log) or die "Couldn't open the success log $log:\n$!\n";
 
 # Our error log
 my $errorlog = "/home/kynan/importfault.error";
-open(ERRORLOG, ">>$errorlog") or die "Couldn't open the error log $errorlog:\n$!\n";
+open(my $errlog_fh, '>>', $errorlog) or die "Couldn't open the error log $errorlog:\n$!\n";
 
 my $count;
 my $import;
@@ -64,15 +64,15 @@ for my $fault (@listing) {
   if (! $user) {
     # User doesn't exist so store the fault file name
     # in our error log.
-    print ERRORLOG "$fault No such user [$author]\n";
+    print $errlog_fh "$fault No such user [$author]\n";
     print "$fault: No such user [$author]\n";
     next;
   }
 
   # Read in the fault
-  open(FAULT, "$fault") or die "Couldn't open fault $fault: $!\n";
-  my @fault = <FAULT>;  # Slurrrp!
-  close(FAULT);
+  open(my $fault_fh, '<', $fault) or die "Couldn't open fault $fault: $!\n";
+  my @fault = <$fault_fh>;  # Slurrrp!
+  close($fault_fh);
 
   # Get the fault meta data (this is the hard part)
   my @meta;
@@ -101,7 +101,7 @@ for my $fault (@listing) {
   # Skip this fault if we didn't get required meta data
   for (qw/time date system type/) {
     if (! exists $meta{$_}) {
-      print ERRORLOG "$fault Meta details missing [" .uc($_). "]\n";
+      print $errlog_fh "$fault Meta details missing [" .uc($_). "]\n";
       print "$fault Meta details missing [" .uc($_). "]\n";
       $skip++
     }
@@ -120,7 +120,7 @@ for my $fault (@listing) {
   $details{system} = $systems->{$meta{system}};
   $details{type} = $types->{$meta{type}};
   if (! exists $details{system} || ! exists $details{type}) {
-    print ERRORLOG "$fault either system [$meta{system}] or type [$meta{type}] are invalid\n";
+    print $errlog_fh "$fault either system [$meta{system}] or type [$meta{type}] are invalid\n";
     print "$fault either system [$meta{system}] or type [$meta{type}] are invalid\n";
     next;
   }
@@ -161,7 +161,7 @@ for my $fault (@listing) {
       $details{faultdate} -= ONE_DAY;
     } else {
       # Can't figure out what format it is
-      print ERRORLOG "$fault Time format not understood [$meta{actual}]\n";
+      print $errlog_fh "$fault Time format not understood [$meta{actual}]\n";
       print "$fault Time format not understood [$meta{actual}]\n";
       next;
     }
@@ -259,7 +259,7 @@ for my $fault (@listing) {
     # Verify that we have all the response details, if not, skip this fault
     for (qw/text author date/) {
       if (! $response{$_}) {
-	print ERRORLOG "$fault Response [$rcount] details missing [" .uc($_). "]\n";
+	print $errlog_fh "$fault Response [$rcount] details missing [" .uc($_). "]\n";
 	print "$fault Response [$rcount] details missing [" .uc($_). "]\n";
 	$skip++;
       }
@@ -302,12 +302,12 @@ for my $fault (@listing) {
 
   #if (! $faultid) {
   #  $skip++;
-  #  print ERRORLOG "$fault Not imported\n";
+  #  print $errlog_fh "$fault Not imported\n";
   #  next;
   #}
 
   # Write the fault ID to our log file
-  #print LOG "$faultid $fault\n";
+  #print $log_fh "$faultid $fault\n";
   $import++;
 }
 
@@ -315,5 +315,5 @@ my $skipped = $count - $import;
 print "Total:\t\t$count\nSkipped:\t$skipped -\n";
 print "\t\t-----\nImported: =\t$import\n";
 # Close our logs
-close LOG;
-close ERRORLOG;
+close $log_fh;
+close $errlog_fh;

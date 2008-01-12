@@ -41,7 +41,7 @@ for my $proj (sort keys %alloc ) {
   }
 
   # Read the file
-  open(my $fh, "<$found") or do { print "Error opening file $found: $!"; next};
+  open(my $fh, '<', $found) or do { print "Error opening file $found: $!"; next};
 
   my %data;
   my @keys = qw/ PIfirstname PIlastname email/;

@@ -575,13 +575,13 @@ sub _plot_image {
     # If the cachefile exists, display that. Otherwise, just continue on.
     if( -e $cachefile ) {
 
-      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
-      binmode( CACHE );
+      open( my $fh, '<', $cachefile ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( $fh );
       binmode( STDOUT );
 
-      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+      while( read( $fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
 
-      close( CACHE );
+      close( $fh );
 
       return;
     }
@@ -836,13 +836,13 @@ sub _plot_spectrum {
     # If the cachefile exists, display that. Otherwise, just continue on.
     if( -e $cachefile ) {
 
-      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
-      binmode( CACHE );
+      open( my $fh, '<', $cachefile ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( $fh );
       binmode( STDOUT );
 
-      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+      while( read( $fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
 
-      close( CACHE );
+      close( $fh );
 
       return;
     }
@@ -1195,7 +1195,7 @@ sub _return_fits {
 
   # FITS is a fairly straight-forward format, we can just read in the
   # file and pipe it directly to STDOUT, in binary mode.
-  open( my $fits_fh, "< $fits_file" ) or throw OMP::Error("Cannot open FITS file $fits_file: $!");
+  open( my $fits_fh, '<', $fits_file ) or throw OMP::Error("Cannot open FITS file $fits_file: $!");
   binmode( $fits_fh );
   binmode( STDOUT );
   while( read( $fits_fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
@@ -1241,7 +1241,7 @@ sub _return_ndf {
   }
 
   # Just read in file and pipe it directly to STDOUT, in binary mode.
-  open( my $ndf_fh, "< $input_file" ) or throw OMP::Error("Cannot open NDF file $input_file: $!");
+  open( my $ndf_fh, '<', $input_file ) or throw OMP::Error("Cannot open NDF file $input_file: $!");
   binmode( $ndf_fh );
   binmode( STDOUT );
   while( read( $ndf_fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }

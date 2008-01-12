@@ -1174,7 +1174,7 @@ sub fe_config {
       # sideband should be used. We read each line until we get a skyfreq
       # that is higher than our required value and then use the value from the previous
       # line
-      open my $fh, "< $file" or 
+      open my $fh, '<', $file or 
 	throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
 
       # Get sky frequency in GHz
@@ -1543,7 +1543,7 @@ sub header_config {
     print {$self->outhdl} "Processing header exclusion file '$file'.\n" if $self->verbose;
 
     # this exclusion file has header cards that should be undeffed
-    open (my $fh, "< $file") || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
+    open (my $fh, '<', $file) || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
 
     while (defined (my $line = <$fh>)) {
       # remove comments
@@ -4917,7 +4917,7 @@ Not a method. Could probably use the slurp function.
 
 sub _read_file {
   my $file = shift;
-  open (my $fh, "< $file") or 
+  open (my $fh, '<', $file) or 
     throw OMP::Error::FatalError( "Unable to open file $file: $!");
 
   local $/ = undef;

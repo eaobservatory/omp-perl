@@ -760,10 +760,10 @@ sub dump_to_disk {
   my $header = $contentHeader->get('0.0', 'end');
   my $text = $contentBody->get('0.0', 'end');
   my $filename = "$ut-$current.log";
-  open( FILE, ">" . $filename ) or return; # just a quickie, need a better way to handle this
-  print FILE $header;
-  print FILE $text;
-  close FILE;
+  open( my $fh, '>', $filename ) or return; # just a quickie, need a better way to handle this
+  print $fh $header;
+  print $fh $text;
+  close $fh;
   my $dbox = $MainWindow->DialogBox( -title => "File Saved",
                                      -buttons => ["OK"],
                                    );

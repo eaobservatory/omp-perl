@@ -172,7 +172,7 @@ sub write_file {
 
   # The internal name
   my $file = $htmlroot . "_" . $suffix . ".html";
-  open my $fh, ">$file" or 
+  open my $fh, '>', $file or 
   throw OMP::Error::FatalError("Could not write HTML translation [$file] to disk: $!\n");
 
   print $fh $self->{HTML};
@@ -198,7 +198,7 @@ sub write_file {
   # Now the pattern files et al
   for my $f (keys %files) {
     my $outfile = File::Spec->catfile( $TRANS_DIR, $f );
-    open my $fh, ">$outfile" or
+    open my $fh, '>', $outfile or
       throw OMP::Error::FatalError("Could not write translation file [$file] to disk: $!\n");
 
     for my $l ( @{ $files{$f} } ) {

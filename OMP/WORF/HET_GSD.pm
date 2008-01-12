@@ -358,13 +358,13 @@ sub _plot_spectrum {
     # If the cachefile exists, display that. Otherwise, just continue on.
     if( -e $cachefile ) {
 
-      open( CACHE, "< $cachefile" ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
-      binmode( CACHE );
+      open( my $fh, '<', $cachefile ) or throw OMP::Error("Cannot open cached thumbnail for display: $!");
+      binmode( $fh );
       binmode( STDOUT );
 
-      while( read( CACHE, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
+      while( read( $fh, my $buff, 8 * 2 ** 10 ) ) { print STDOUT $buff; }
 
-      close( CACHE );
+      close( $fh );
 
       return;
     }

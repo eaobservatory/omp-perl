@@ -15,7 +15,7 @@ my $log = File::Spec->catfile($logdir, "log.20030529");
 
 # probably want to analyze a directory of log files...
 
-open my $fh, "< $log" or die "Error opening log file: $!";
+open my $fh, '<', $log or die "Error opening log file: $!";
 
 # Need to build up stats based on PID and datestamp
 my %results;

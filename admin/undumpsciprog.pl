@@ -44,7 +44,7 @@ for (@files) {
   print "$_\n";
 
   # Read the file
-  open my $fh, $_ or die "Could not open file $_: $!\n";
+  open my $fh, '<', $_ or die "Could not open file $_: $!\n";
   my $xml = <$fh>;
   close($fh) or die "Error closing file: $!\n";
 

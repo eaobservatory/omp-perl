@@ -15,7 +15,7 @@ local $/ = undef;
 my $file = '/home/timj/elements.xml';
 my $file = '/net/kalani/export/ukirtdata/omp-cache/sciprogs/U_03B_J3.xml';
 $file = 'xxx.xml';
-open my $fh, "<$file";
+open my $fh, '<', $file;
 my $xml = <$fh>;
 
 my $reply = $sps->storeProgram( $xml, "pohoiki" ,1);

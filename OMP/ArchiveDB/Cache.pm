@@ -230,7 +230,7 @@ sub retrieve_archive {
     try {
 
       # Try to open the file. If there's an error, throw an exception.
-      open(my $df, "< " . $filename)
+      open(my $df, '<', $filename)
         or throw OMP::Error::CacheFailure("Failure to open cache $filename: $!");
 
       # We've opened the file, so lock it for reading.

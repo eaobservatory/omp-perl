@@ -150,10 +150,10 @@ $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 OMP::Password->verify_staff_password($passwd);
 
 # Get the projects
-open(PROJECTS, $projectsfile) or die ("Couldn't open file [$projectsfile]: $!\n");
-my @projects = <PROJECTS>; # Slurrrrp!
+open(my $proj_fh, '<', $projectsfile) or die ("Couldn't open file [$projectsfile]: $!\n");
+my @projects = <$proj_fh>; # Slurrrrp!
 chomp(@projects);
-close(PROJECTS);
+close($proj_fh);
 
 # Verify that the projects exist
 for my $projectid (@projects) {
@@ -163,9 +163,9 @@ for my $projectid (@projects) {
 }
 
 # Create the comment
-open(COMMENT, $commentfile) or die ("Couldn't open file [$commentfile]: $!\n");
-my @comment = <COMMENT>; # Slurrrrp!
-close(COMMENT);
+open(my $comment_fh, '<', $commentfile) or die ("Couldn't open file [$commentfile]: $!\n");
+my @comment = <$comment_fh>; # Slurrrrp!
+close($comment_fh);
 
 my $subject = shift(@comment);
 

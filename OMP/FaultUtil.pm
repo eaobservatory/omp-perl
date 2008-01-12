@@ -222,7 +222,7 @@ sub print_faults {
 
     # Set up printer. Should check that enscript can be found.
     my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"Faults\" -P$printer";
-    open(my $PRTHNDL, "| $printcom");
+    open(my $PRTHNDL, '|-', $printcom);
     print $PRTHNDL $toprint;
 
     close($PRTHNDL);
@@ -248,7 +248,7 @@ sub print_faults {
 
       # Set up printer. Should check that enscript can be found.
       my $printcom =  "/usr/bin/enscript -G -fCourier10 -b\"[$faultid] $subject\" -P$printer";
-      open(my $PRTHNDL, "| $printcom");
+      open(my $PRTHNDL, '|-', $printcom);
       print $PRTHNDL "$plaintext";
       close($PRTHNDL);
     }

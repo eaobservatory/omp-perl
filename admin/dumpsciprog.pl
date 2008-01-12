@@ -40,7 +40,7 @@ my $dumplog = File::Spec->catfile($ENV{OMP_DUMP_DIR}, "dumpsciprog.log");
 # Get the date of the last dump
 my $date;
 if (-e $dumplog) {
-  open my $fh, "$dumplog" or die "Error opening file $dumplog: $!";
+  open my $fh, '<', $dumplog or die "Error opening file $dumplog: $!";
   my $line = <$fh>;
   close $fh;
   $date = gmtime($line);
@@ -72,7 +72,7 @@ for my $projid (@projects) {
     # Write it out
     my $outfile = $projid . ".xml";
     $outfile =~ s/\//_/g;
-    open my $fh, "> $outfile" or die "Error opening outfile\n";
+    open my $fh, '>',  $outfile or die "Error opening outfile\n";
     print $fh $xml;
     close $fh;
 
@@ -89,7 +89,7 @@ for my $projid (@projects) {
 
 # Write date of this dump to the log
 my $today = gmtime;
-open my $log, ">$dumplog" or die "Error opening file $dumplog: $!";
+open my $log, '>', $dumplog or die "Error opening file $dumplog: $!";
 print $log $today->epoch;
 print $log "\nTHIS FILE KEEPS TRACK OF THE MOST RECENT SCIENCE PROGRAM DUMP.\nREMOVING THIS FILE WILL RESULT IN A REFETCH OF ALL SCIENCE PROGRAMS.";
 close $log;

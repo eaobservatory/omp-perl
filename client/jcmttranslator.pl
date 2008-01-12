@@ -190,7 +190,7 @@ my $xml;
 
   if (@ARGV) {
     my $file = shift(@ARGV);
-    open my $fh, "< $file" or die "Error reading input science program from file $file: $!";
+    open my $fh, '<', $file or die "Error reading input science program from file $file: $!";
     $xml = <$fh>;
   } else {
     # Stdin should be readable

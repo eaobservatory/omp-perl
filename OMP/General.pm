@@ -1679,7 +1679,7 @@ sub log_message {
 
     # Open the file for append
     # Creating the file if it is not there already
-    open my $fh, ">> $path"
+    open my $fh, '>>', $path
       or next;
 
     # Get an exclusive lock (this blocks)

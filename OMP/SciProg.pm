@@ -71,7 +71,7 @@ sub new {
     $xml = $args{XML};
   } elsif (exists $args{FILE}) {
     # Dont check for existence - the open will do that for me
-    open my $fh, "<$args{FILE}" or return undef;
+    open my $fh, '<', $args{FILE} or return undef;
     local $/ = undef; # slurp whole file
     $xml = <$fh>;
   } else {

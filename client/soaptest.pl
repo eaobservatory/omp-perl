@@ -12,7 +12,7 @@ use OMP::MSBServer;
 # Read the data handle
 local $/ = undef;
 my $file = "/home/timj/my.xml";
-open my $fh, "<$file" or die "Oops: $!";
+open my $fh, '<', $file or die "Oops: $!";
 my $xml = <$fh>;
 close($fh);
 

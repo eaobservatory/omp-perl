@@ -664,10 +664,10 @@ sub proposals {
     if ($propfile) {
 
       # Read in proposal file
-      open(PROP, $propfile);
-      my @file = <PROP>;   # Slurrrp!
+      open( my $fh, '<', $propfile);
+      my @file = <$fh>;   # Slurrrp!
 
-      close(PROP);
+      close($fh);
 
       # Serve proposal
       print $q->header( -type=>$type,
