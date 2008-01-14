@@ -51,7 +51,7 @@ try {
 
 $msg .= make_server_status( $primary_db, $primary_db_down );
 
-my $key = !!$primary_kdb && $primary_kdb->genKey()
+my $key = !!$primary_kdb && $primary_kdb->genKey();
 
 sleep 20;
 
