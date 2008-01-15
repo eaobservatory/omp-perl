@@ -66,8 +66,9 @@ sub format_fault {
   my $category = $fault->category;
 
   # Don't show the status if there is only the initial filing and it is 'Open'
-  my $status = "<b>Status:</b> " . $fault->statusText
-    unless (!$responses[1] and $fault->statusText eq /open/i);
+  my $status = $responses[1] || $fault->statusText ne /open/i
+                ? '<b>Status:</b> ' . $fault->statusText
+                  : undef;
 
   my $faultdatetext;
   if ($fault->faultdate) {

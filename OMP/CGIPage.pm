@@ -669,7 +669,7 @@ is done.
 sub write_page_staff {
   my $self = shift;
   my @args = @_;
-  my $noauth = pop @args if (defined $args[2]);
+  my $noauth = defined $args[2] ? pop @args : undef;
   my $q = $self->cgi;
 
   # Initialize the cookie
@@ -1133,8 +1133,7 @@ sub _verify_login {
   my %cookie = $c->getCookie;
 
   # Use URL parameter projectid if it's available
-  my $projectid = $q->url_param('urlprojid')
-    unless (! defined $q->url_param('urlprojid'));
+  my $projectid = $q->url_param('urlprojid');
   my $password;
 
   if (exists $cookie{projectid} and exists $cookie{password}) {
@@ -1260,8 +1259,7 @@ sub _write_login {
   my $failed = shift;
   my $q = $self->cgi;
   my $c = $self->cookie;
-  my $projectid = $q->url_param('urlprojid')
-    unless (! defined $q->url_param('urlprojid'));
+  my $projectid = $q->url_param('urlprojid');
 
   $self->_write_header();
 

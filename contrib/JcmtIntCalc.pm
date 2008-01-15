@@ -367,7 +367,7 @@ sub jcmtintcalc {
   my $rms     = 0;
   my $inttime = 0;
   my $elapse  = 0;
-  my $ori_elapse = $obs{elapse} if (exists $obs{elapse});
+  my $ori_elapse = exists $obs{elapse} ? $obs{elapse} : undef;
 
 
   if ($debug) {

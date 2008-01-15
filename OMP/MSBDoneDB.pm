@@ -660,8 +660,8 @@ sub _add_msb_done_info {
 
   # The user ID must be stored if the status is DONE_COMMENT, but always
   # store the user ID if it is available regardless of status.
-  my $userid = $comment->author->userid
-    unless (! defined $comment->author);
+  my $userid = defined $comment->author ? $comment->author->userid
+                : undef;
 
   throw OMP::Error::BadArgs("An OMP user ID is required for making a comment but none was supplied")
     if ($comment->status == OMP__DONE_COMMENT and ! $userid);

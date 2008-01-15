@@ -352,8 +352,9 @@ sub report_output {
 
   # Get the date, telescope and shift from the URL
   my $date = $q->url_param('date');
-  my $shift = $q->url_param('sh')
-    unless ($q->url_param('sh') !~ /1|2/);
+  my $shift = $q->url_param('sh') =~ /1|2/ ? $q->url_param('sh')
+                : undef;
+
   my $telescope = $q->url_param('tel');
 
   my $t = Time::Piece->strptime($date,"%Y%m%d");
