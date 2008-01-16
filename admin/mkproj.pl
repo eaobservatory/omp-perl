@@ -260,9 +260,9 @@ for my $proj (keys %alloc) {
   };
 }
 
-# Given a hash reference of users (see "FORMAT" section of pod elsewhere),
-# returns a list of unverified users for a project. C<OMP::Error> exceptions are
-# caught & saved for later display elsewhere.
+# Given a a list of users (see "FORMAT" section of pod elsewhere) for a project,
+# returns a list of unverified users. C<OMP::Error> exceptions are caught &
+# saved for later display elsewhere.
 #
 # OMP::UserServer->addProject throws exceptions for each user one at a time.  So
 # user id verification is also done for all the user ids related to a project in
