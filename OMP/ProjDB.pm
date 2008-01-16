@@ -1000,15 +1000,40 @@ sub _insert_project_row {
   # Loop over all the different roles
   for my $role (keys %roles) {
     for my $user (@{ $roles{$role} }) {
-      # Note that we must convert undef to 0 here for the DB
-      my $cancontact = ( $contactable{ $user->userid} ? 1 : 0);
-      $self->_db_insert_data( $PROJUSERTABLE,
-                              $proj->projectid, $user->userid,
-                              $role, $cancontact
-                            );
+      $self->_insert_project_user( 'projectid' => $proj->projectid,
+                                    'userid' => $user->userid,
+                                    'role' => $role,
+                                    'contactable' => $contactable{ $user->userid }
+                                  );
     }
   }
 
+}
+
+=item B<_insert_project_user>
+
+Given a hash with keys of projectid, userid, role, and contactable, add a user
+to the OMP database table.
+
+  $self->_insert_project_user( 'projectid' => $projectid
+                                'userid' => 'jdove'
+                                'role' => 'COI'
+                                'contactable' => undef
+                              );
+
+=cut
+
+sub _insert_project_user {
+
+  my ( $self, %attr ) = @_;
+
+  # Note that we must convert undef to 0 here for the DB
+  $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
+  $self->_db_insert_data( $PROJUSERTABLE,
+                          map { $attr{$_} }
+                              qw( projectid userid role contactable )
+                        );
+  return;
 }
 
 =item B<_get_projects>
