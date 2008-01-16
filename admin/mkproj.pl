@@ -67,9 +67,12 @@ use strict;
 
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
+use OMP::DBServer;
+use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::SiteQuality;
 use OMP::Password;
+use OMP::UserServer;
 use Pod::Usage;
 use Getopt::Long;
 
