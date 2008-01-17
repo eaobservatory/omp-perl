@@ -531,10 +531,10 @@ sub query_fault_output {
     my $sort_order = $self->_get_param('sort_order');
     if ($sort_order eq "ascending") {
       my $sort_url = $comp->url_args("sort_order", "ascending", "descending");
-      print "Showing oldest first | <a href='$sort_url'>Show most recent first</a>";
+      print "Showing oldest/lowest first | <a href='$sort_url'>Show most recent/highest first</a>";
     } else {
       my $sort_url = $comp->url_args("sort_order", "descending", "ascending");
-      print "<a href='$sort_url'>Show oldest first</a> | Showing most recent first";
+      print "<a href='$sort_url'>Show oldest/lowest first</a> | Showing most recent/highest first";
     }
     print "<br>";
 
@@ -542,10 +542,16 @@ sub query_fault_output {
     my $orderby = $self->_get_param('orderby');
     if ($orderby eq "filedate") {
       my $url = $comp->url_args("orderby", "filedate", "response");
-      print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a>"
+      my $url2 = $comp->url_args("orderby", "filedate", "timelost");
+      print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a> | <a href='$url2'>Sort by time lost</a>";
+    } elsif ($orderby eq "timelost") {
+      my $url = $comp->url_args("orderby", "timelost", "filedate");
+      my $url2 = $comp->url_args("orderby", "timelost", "response");
+      print "<a href='$url'>Sort by file date</a> | <a href='$url2'>Sort by date of latest response</a> | Sorted by time lost</a>";
     } else {
       my $url = $comp->url_args("orderby", "response", "filedate");
-      print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response";
+      my $url2 = $comp->url_args("orderby", "response", "timelost");
+      print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response | <a href='$url2'>Sort by time lost</a>";
     }
 
     print "<p>";
@@ -560,6 +566,8 @@ sub query_fault_output {
       $showfaultargs{orderby} = 'response';
     } elsif ($q->param('orderby') eq 'filedate') {
       $showfaultargs{orderby} = 'filedate';
+    } elsif ($q->param('orderby') eq 'timelost') {
+      $showfaultargs{orderby} = 'timelost';
     }
     
     if ($faults->[0]) {
