@@ -983,7 +983,8 @@ Takes the following key/value pairs as arguments:
   url        - The absolute or relative path to the script to be
                used for the view/respond link
   orderby    - Should be either 'response' (to sort by date of
-               latest response) or 'filedate'
+               latest response) 'filedate', or 'timelost' (by amount
+               of time lost).
   showcat    - true if a category column should be displayed
 
 Only the B<faults> key is required.
@@ -1024,6 +1025,8 @@ sub show_faults {
 
   if ($args{orderby} eq 'response') {
     @$faults = sort {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch} @$faults;
+  } elsif ($args{orderby} eq 'timelost') {
+    @$faults = sort {$a->timelost <=> $b->timelost} @$faults;
   }
 
   my @faults;
