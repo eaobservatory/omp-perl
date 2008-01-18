@@ -281,7 +281,7 @@ checkrepdb.pl - Check database replication
   checkrepdb.pl \\
     [-p <primary db server>] [-s <secondary db server>] \
     [ -to root@example.org [, -to tech@example.org ] ] \
-    [ -cc support@example.net [, -cc sales@example.com ] ] \
+    [ -cc support@example.net [, -cc sales@example.com ] ]
 
 =head1 OPTIONS
 
