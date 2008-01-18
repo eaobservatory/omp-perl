@@ -4037,6 +4037,8 @@ sub SpIterFolder {
       my $sPerC = $self->_get_pcdata( $child, 'secsPerCycle');
       my $ccal  = $self->_get_pcdata( $child, 'continuousCal');
       my $contmode = $self->_get_pcdata( $child, "continuumMode" );
+      my $stareSystem = $self->_get_pcdata( $child, "stareSystem" );
+      my $starePA = $self->_get_pcdata( $child, "starePa");
 
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
@@ -4046,6 +4048,8 @@ sub SpIterFolder {
       $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow')
 	unless defined $freqOffset;
 
+      # Make sure absence does not result in an undef value.
+      # Prefer to have absence in output hash
       my %stare;
       $stare{nintegrations} = $nint;
       $stare{widePhotom} = $self->_str_to_bool( $widePhotom )
@@ -4061,6 +4065,8 @@ sub SpIterFolder {
       $stare{frequencyOffset} = $freqOffset if defined $freqOffset;
       $stare{continuumMode} = $self->_str_to_bool( $contmode )
 	if defined $contmode;
+      $stare{stareSystem} = $stareSystem if defined $stareSystem;
+      $stare{starePA} = $starePA if defined $starePA;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;

@@ -1437,6 +1437,8 @@ sub rotator_config {
   # here to adjust for the harp pixel footprint sampling
   # Also, if we are jiggling we may need to rotate the rotator to the jiggle system
   # for HARP where we always jiggle in FPLANE/PA=0
+  # Finally, for some specialist Stare HARP observations we need to rotate the K mirror
+  # separately.
   my $scan_adj = 0;
   my @choices = (0..3); # four fold symmetry
   if ($inst->name =~ /HARP/) {
@@ -1460,6 +1462,12 @@ sub rotator_config {
       # but we make sure we use the requested value
       $system = $info{jiggleSystem} || 'TRACKING';
       $pa = new Astro::Coords::Angle( ($info{jigglePA} || 0), units => 'deg' );
+    } elsif ($info{mapping_mode} eq 'grid' && exists $info{stareSystem}
+             && defined $info{stareSystem}) {
+      # override K mirror option
+      # For now only allow when there are no offsets (simplifies map making)
+      $system = $info{stareSystem} || 'TRACKING';
+      $pa = new Astro::Coords::Angle( ($info{starePA} || 0), units => 'deg' );
     }
   }
 
