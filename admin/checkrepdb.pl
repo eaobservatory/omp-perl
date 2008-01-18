@@ -4,10 +4,9 @@ use strict;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
-use MIME::Lite;
-
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
-
+use Pod::Usage;
+use MIME::Lite;
 use OMP::BaseDB;
 use OMP::DBbackend;
 use OMP::Error qw/ :try /;
@@ -24,15 +23,24 @@ my $fault = 0;
 my $primary_db = "SYB_OMP1";
 my $secondary_db = "SYB_OMP2";
 
+my ( @to_addr, @cc_addr);
+
 {
   my $help;
   GetOptions(
     'h|help' => \$help,
-    'p|pri|primary:s' => \$primary_db,
-    's|sec|secondary:s' => \$secondary_db
-  ) || die usage();
-  if ( $help ) { print usage(); exit; }
+    'p|pri|primary=s' => \$primary_db,
+    's|sec|secondary=s' => \$secondary_db,
+    'to=s' => \@to_addr,
+    'cc=s' => \@cc_addr,
+  ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
+
+  pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 }
+
+#  Default address.
+@to_addr = ( 'omp_group@jach.hawaii.edu' )
+  if 0 == scalar @to_addr + scalar @cc_addr ;
 
 my $primary_kdb;
 my $secondary_kdb;
@@ -235,10 +243,17 @@ if ($critical) {
   $subject .= "OK";
 }
 
+my %addr =
+  (
+    scalar @to_addr ? ( 'To' => join ', ', @to_addr ) : (),
+    scalar @cc_addr ? ( 'Cc' => join ', ', @cc_addr ) : ()
+  );
+
 my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
-                             To => 'omp_group@jach.hawaii.edu',
+                             %addr,
                              Subject => $subject,
-                             Data => $msg, );
+                             Data => $msg,
+                             );
 
 MIME::Lite->send("smtp", "mailhost", Timeout => 30);
 
@@ -253,23 +268,52 @@ sub make_server_status {
   return "Database server $server is " . ( $down ? "down!\n" : "up. [OK]\n" );
 }
 
-sub usage {
+=pod
 
-  return <<"USAGE";
-SYNOPSIS
-  $0 -help
+=head1 NAME
 
-  $0 \\
-    [-p <primary db server>] [-s <secondary db server>]
+checkrepdb.pl - Check database replication
 
-OPTIONS
-  -h | -help
-    Prints this message.
+=head1 SYNOPSIS
 
-  -p <db server> | -primary <db server>
-    Specify primary database server (source); default is "SYB_OMP1".
+  checkrepdb.pl -help
 
-  -s <db server> | -secondary <db server>
-    Specify secondary database server (replicate); default is "SYB_OMP2".
-USAGE
-}
+  checkrepdb.pl \\
+    [-p <primary db server>] [-s <secondary db server>] \
+    [ -to root@example.org [, -to tech@example.org ] ] \
+    [ -cc support@example.net [, -cc sales@example.com ] ] \
+
+=head1 OPTIONS
+
+=over 2
+
+=item B<-h> | B<-help>
+
+Prints this message.
+
+=item B<-to> <email address>
+
+Specify email address as the recepint of the check report; default is
+"omp_group@jach.hawaii.edu".
+
+It can be specified multiple times to send email to more than one address.
+
+=item B<-cc> <email address>
+
+Specify email address as the carbon copy recepint of the check report.
+Note that if given, default email address will not be used.
+
+It can be specified multiple times to send email to more than one address.
+
+=item B<-p> <db server> | B<-primary> <db server>
+
+Specify primary database server (source); default is "SYB_OMP1".
+
+=item B<-s> <db server> | B<-secondary> <db server>
+
+Specify secondary database server (replicate); default is "SYB_OMP2".
+
+=back
+
+=cut
+
