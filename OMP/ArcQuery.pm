@@ -43,6 +43,7 @@ our $IRCAMTAB = 'ukirt..IRCAM3 I';
 our $WFCAMTAB = 'ukirt..WFCAM W';
 our $JCMTTAB = 'jcmt..COMMON J';
 our $ACSISTAB = 'jcmt..ACSIS A';
+our $JFILESTAB = 'jcmt..FILES F';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
@@ -52,7 +53,7 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
-                   ACSIS => [ $JCMTTAB, $ACSISTAB ],
+                   ACSIS => [ $JCMTTAB, $ACSISTAB, $JFILESTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
@@ -64,6 +65,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                   $WFCAMTAB => '(U.idkey = W.idkey)',
                                 },
                    $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid)',
+                                 $JFILESTAB => '(J.obsid = F.obsid)',
                                },
                  );
 
@@ -382,10 +384,10 @@ sub sql {
     if ($tel eq 'JCMT') {
 
       $sql  = "SELECT *, ";
-      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdate', ";
+      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'date_obs', ";
       $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdateobs' ";
       if( defined( $lut{dateend}->{$insttable{$t}->[0]} ) ) {
-        $sql .= ", CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdateend' ";
+        $sql .= ", CONVERT(CHAR(32), " . $lut{dateend}->{$insttable{$t}->[0]} . ",109) AS 'date_end' ";
       }
       $sql .= "FROM $tables $where";
 
@@ -571,6 +573,7 @@ sub _post_process_hash {
         if ($newjcmt) {
           $tables{$JCMTTAB}++;
           $tables{$ACSISTAB}++;
+          $tables{$JFILESTAB}++;
           $insts{ACSIS}++;
         } else {
           $insts{SCUBA}++;
@@ -586,6 +589,7 @@ sub _post_process_hash {
         $tables{$GSDTAB}++;
         $tables{$JCMTTAB}++;
         $tables{$ACSISTAB}++;
+        $tables{$JFILESTAB}++;
       }
 
 
