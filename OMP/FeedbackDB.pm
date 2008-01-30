@@ -162,9 +162,9 @@ sub getComments {
     # Just order comments by comment ID if only returning results for a single project
     my @sorted;
     if ($args{order} eq 'ascending') {
-      @sorted = map {$_} sort {$a->{commid} <=> $b->{commid}} @$comments;
+      @sorted = sort {$a->{commid} <=> $b->{commid}} @$comments;
     } else {
-      @sorted = map {$_} sort {$b->{commid} <=> $a->{commid}} @$comments;
+      @sorted = sort {$b->{commid} <=> $a->{commid}} @$comments;
     }
     $comments = \@sorted;
   }
