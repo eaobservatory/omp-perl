@@ -7,8 +7,8 @@ OMP::FeedbackDB - Manipulate the feedback database
 =head1 SYNOPSIS
 
   $db = new OMP::FeedbackDB( ProjectID => $projectid,
-			     Password => $password,
-			     DB => $dbconnection );
+                             Password => $password,
+                             DB => $dbconnection );
 
   $db->addComment( $comment );
   $db->getComments( \@status );
@@ -59,7 +59,7 @@ Create a new instance of an C<OMP::FeedbackDB> object.
 
   $db = new OMP::FeedbackDB( ProjectID => $project,
                              Password => $password,
-			     DB => $connection );
+                             DB => $connection );
 
 If supplied, the database connection object must be of type
 C<OMP::DBbackend>.  It is not accepted if that is not the case.
@@ -110,8 +110,8 @@ sub getComments {
   my $self = shift;
 
   my %defaults = (status => [OMP__FB_IMPORTANT, OMP__FB_INFO,],
-		  msgtype => undef,
-		  order => 'ascending',);
+                  msgtype => undef,
+                  order => 'ascending',);
 
   my %args = (%defaults, @_);
 
@@ -126,7 +126,7 @@ sub getComments {
   if ($self->projectid) {
     # Verify the password
     my $projdb = new OMP::ProjDB( ProjectID => $self->projectid,
-				  DB => $self->db );
+                                  DB => $self->db );
 
     throw OMP::Error::Authentication("Supplied password for project " .$self->projectid )
       unless $projdb->verifyPassword( $self->password );
@@ -136,7 +136,7 @@ sub getComments {
   my $xml = "<FBQuery>".
     ($self->projectid ? "<projectid>". $self->projectid ."</projectid>" : "").
       join("", map {$xmlpart{$_}} keys %xmlpart).
-	"</FBQuery>";
+        "</FBQuery>";
 
   # Create the query object
   my $query = new OMP::FBQuery( XML => $xml );
@@ -155,7 +155,7 @@ sub getComments {
     if ($args{order} eq 'ascending') {
       map {push @{$project{$_->{projectid}}}, $_} sort {$a->{commid} <=> $b->{commid}} @$comments;
     } else {
-      map {push @{$project{$_->{projectid}}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;	
+      map {push @{$project{$_->{projectid}}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;
     }
     $comments = \%project;
   } else {
@@ -228,11 +228,11 @@ sub addComment {
 
   my $t = gmtime;
   my %defaults = ( subject => 'none',
-		   date => $t->strftime("%b %e %Y %T"),
-		   program => 'unspecified',
-		   sourceinfo => 'unspecified',
-		   status => OMP__FB_IMPORTANT,
-		   msgtype => OMP__FB_MSG_COMMENT, );
+                   date => $t->strftime("%b %e %Y %T"),
+                   program => 'unspecified',
+                   sourceinfo => 'unspecified',
+                   status => OMP__FB_IMPORTANT,
+                   msgtype => OMP__FB_MSG_COMMENT, );
 
   # Override defaults
   $comment = {%defaults, %$comment};
@@ -349,37 +349,37 @@ sub _store_comment {
     or $entrynum = 1;
 
   # Store the data
-  $self->_db_insert_data( $FBTABLE, 
-			  { COLUMN => 'projectid',
-			    QUOTE => 1,
-			    POSN => 1 },
-			  $entrynum,
-			  $projectid,
-			  (defined $comment->{author} ? 
-			   $comment->{author}->userid : undef),
-			  @$comment{ 'date',
-				     'subject',
-				     'program',
-				     'sourceinfo',
-				     'status',
-				   },
-			  {
-			   TEXT => $comment->{text},
-			   COLUMN => 'text',
-			  },
-			  $comment->{msgtype},
-			);
+  $self->_db_insert_data( $FBTABLE,
+                          { COLUMN => 'projectid',
+                            QUOTE => 1,
+                            POSN => 1 },
+                          $entrynum,
+                          $projectid,
+                          (defined $comment->{author} ?
+                           $comment->{author}->userid : undef),
+                          @$comment{ 'date',
+                                     'subject',
+                                     'program',
+                                     'sourceinfo',
+                                     'status',
+                                   },
+                          {
+                           TEXT => $comment->{text},
+                           COLUMN => 'text',
+                          },
+                          $comment->{msgtype},
+                        );
 
 }
 
 =item B<_mail_comment>
 
-Mail the comment to the specified users.  
+Mail the comment to the specified users.
 
   $db->_mail_comment( comment => $comment,
-		      to => \@to,
-		      cc => \@cc,
-		      bcc => \@bcc, );
+                      to => \@to,
+                      cc => \@cc,
+                      bcc => \@bcc, );
 
 Arguments should be provided in the form of a hash with the following keys:
  comment - a hash reference containing comment details
@@ -412,17 +412,17 @@ sub _mail_comment {
     or $subject = "$args{comment}->{subject}";
 
   my $from = (defined $args{comment}->{author} ?
-	      $args{comment}->{author} : OMP::User->new(email=>'flex@' . OMP::Config->getData('maildomain')));
+              $args{comment}->{author} : OMP::User->new(email=>'flex@' . OMP::Config->getData('maildomain')));
 
   # Setup message details
   my %details = ( message => $msg,
-		  to => $args{to},
-		  from => $from,
-		  bcc => $args{bcc},
-		  subject => $subject,
-		  headers => {
-			      "Reply-to" => 'flex@jach.hawaii.edu',
-			     }, );
+                  to => $args{to},
+                  from => $from,
+                  bcc => $args{bcc},
+                  subject => $subject,
+                  headers => {
+                              "Reply-to" => 'flex@jach.hawaii.edu',
+                             }, );
 
   if ($args{cc}) {
     $details{cc} = $args{cc};
@@ -445,8 +445,8 @@ sub _mail_comment_important {
   my $comment = shift;
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-				DB => $self->db,
-			      );
+                                DB => $self->db,
+                              );
 
   my $proj = $projdb->_get_project_row;
 
@@ -466,9 +466,9 @@ sub _mail_comment_important {
   }
 
   $self->_mail_comment( comment => $comment,
-			to => \@to,
-			cc => \@cc,
-		        bcc => \@bcc, );
+                        to => \@to,
+                        cc => \@cc,
+                        bcc => \@bcc, );
 }
 
 =item B<_mail_comment_support>
@@ -485,7 +485,7 @@ sub _mail_comment_support {
   my $comment = shift;
 
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-			        DB => $self->db,);
+                                DB => $self->db,);
 
   my $project = $projdb->_get_project_row;
 
@@ -511,8 +511,8 @@ sub _mail_comment_info {
 
   # Get a ProjDB object so we can get info from the database
   my $projdb = new OMP::ProjDB( ProjectID => $projectid,
-				DB => $self->db,
-			      );
+                                DB => $self->db,
+                              );
 
   # This is an internal method that removes password
   # verification. Since comments are not meant to need password
@@ -527,7 +527,7 @@ sub _mail_comment_info {
 
 =item B<_fetch_comments>
 
-Internal method to retrieve the comments from the database.  
+Internal method to retrieve the comments from the database.
 
 The hash argument controls the sort order of the results and the
 status of comments to be retrieved.
@@ -582,8 +582,8 @@ sub _alter_status {
   my $status = shift;
 
   $self->_db_update_data( $FBTABLE,
-			  { status => $status },
-			  " commid = $commid ");
+                          { status => $status },
+                          " commid = $commid ");
 
 }
 
@@ -611,8 +611,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
