@@ -149,24 +149,18 @@ sub getComments {
     $_->{date} =~ s/:000/ /g;
   }
 
+  my $sort =
+    $args{'order'} eq 'ascending' ? sub { $a->{'commid'} <=> $b->{'commid'} }
+      : sub { $b->{'commid'} <=> $a->{'commid'} }
+      ;
   # Group by project ID if we might have comments for multiple projects
   if (! $self->projectid) {
     my %project;
-    if ($args{order} eq 'ascending') {
-      map {push @{$project{$_->{projectid}}}, $_} sort {$a->{commid} <=> $b->{commid}} @$comments;
-    } else {
-      map {push @{$project{$_->{projectid}}}, $_} sort {$b->{commid} <=> $a->{commid}} @$comments;
-    }
+    map {push @{$project{$_->{projectid}}}, $_} sort $sort @$comments;
     $comments = \%project;
   } else {
     # Just order comments by comment ID if only returning results for a single project
-    my @sorted;
-    if ($args{order} eq 'ascending') {
-      @sorted = sort {$a->{commid} <=> $b->{commid}} @$comments;
-    } else {
-      @sorted = sort {$b->{commid} <=> $a->{commid}} @$comments;
-    }
-    $comments = \@sorted;
+    $comments = [ sort $sort @$comments ];
   }
 
   return $comments;
