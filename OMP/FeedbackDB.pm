@@ -156,7 +156,7 @@ sub getComments {
   # Group by project ID if we might have comments for multiple projects
   if (! $self->projectid) {
     my %project;
-    map {push @{$project{$_->{projectid}}}, $_} sort $sort @$comments;
+    push @{$project{$_->{projectid}}}, $_ for sort $sort @$comments;
     $comments = \%project;
   } else {
     # Just order comments by comment ID if only returning results for a single project
