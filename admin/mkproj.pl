@@ -136,6 +136,8 @@ for my $proj (keys %alloc) {
   # and split on comma in case we have more than one
   $details{country} = [split /,/,uc($details{country}) ];
 
+  upcase( \%details, qw/ pi coi support semester telescope / );
+
   # Validate country (if we add a new country we should remove
   # this test for the first upload
   my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
@@ -237,9 +239,9 @@ for my $proj (keys %alloc) {
   try {
     OMP::ProjServer->addProject( $pass, $force,
                                 $proj,  # project id
-                                uc($details{pi}),
-                                uc($details{coi}),
-                                uc($details{support}),
+                                $details{pi},
+                                $details{coi},
+                                $details{support},
                                 $details{title},
                                 $details{tagpriority},
                                 $details{country},
@@ -318,6 +320,28 @@ sub unverified_users {
         }
         @err ;
   }
+}
+
+# Changes case of values (plain scalars or array references) to upper case in
+# place, given a hash reference and a list of interesting keys.
+sub upcase {
+
+  my ( $hash, @key ) = @_;
+
+  KEY:
+  for my $k ( @key ) {
+
+    next unless exists $hash->{ $k };
+
+    for ( $hash->{ $k } ) {
+
+      next KEY unless defined $_;
+
+      # Only an array reference is expected.
+      $_ = ref $_ ? [ map { uc $_ } @{ $_ } ] : uc $_;
+    }
+  }
+  return;
 }
 
 =head1 FORMAT
