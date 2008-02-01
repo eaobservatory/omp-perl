@@ -8,6 +8,7 @@ use Pod::Usage;
 use List::Util qw/ first /;
 use Scalar::Util qw/ blessed openhandle /;
 
+use OMP::General;
 use OMP::DBbackend;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctQuery;
@@ -50,19 +51,16 @@ my $db = OMP::TimeAcctDB->new( 'DB' => OMP::DBbackend->new );
 
 for my $id ( @proj ) {
 
-  Acct::print_header( $opt{'header'} );
+  print_header( $opt{'header'} );
 
-  Acct::print_csv( $db->queryTimeSpent( make_query( $id ) ) );
+  print_csv( $db->queryTimeSpent( make_query( $id ) ) );
 
   print "\n" if $opt{'divider'} && $id ne $last;
 }
 
 exit;
 
-BEGIN
-{{
-  # Keep related things together.
-  package Acct;
+BEGIN {
 
   # The method names to be called, in order, on given C<OMP::TimeAcctQuery>
   # object.
@@ -75,21 +73,28 @@ BEGIN
 
     for my $ac ( @acct ) {
 
-      main::print_csv( map { $ac->$_ } @header )  ;
+      my @val = map { $ac->$_ } @header ;
+      # Specail handling of date.
+      for ( $val[2] ) {
+
+        $_ = OMP::General->parse_date( $_ ) || '';
+        $_ = $_->ymd if blessed( $_ ) =~ m/^Time::Piece\b/;
+      }
+      really_print_csv( @val );
     }
     return;
   }
 
   # Prints the header given a flag (if & how many times to print) and list of
   # header strings.
-  sub print_header { return main::print_header( $_[0], @header ); }
-}}
+  sub print_header { return really_print_header( $_[0], @header ); }
+}
 
 {
   my $once;
   # Prints header as CSV given a flag and a list of header strings.  Flag
   # specifies if to print the header at all, only once, or every time.
-  sub print_header {
+  sub really_print_header {
 
     my $header_once = shift;
 
@@ -100,12 +105,12 @@ BEGIN
     my @header = @_;
     return
       # Header in lower case after normalizing any camelCase ones.
-      print_csv( map { s/([a-z])([A-Z])/$1_$2/; lc $_ } @header );
+      really_print_csv( map { s/([a-z])([A-Z])/$1_$2/; lc $_ } @header );
   }
 }
 
 # Simple mindedly prints CSV (see I<Text::CSV> for robustness).
-sub print_csv {
+sub really_print_csv {
 
   printf "%s\n", join ',', @_;
   return;
