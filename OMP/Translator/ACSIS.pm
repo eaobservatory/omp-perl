@@ -1650,17 +1650,29 @@ sub pol_config {
     }
 
   } else {
-    my $speed = $info{pol_spin_speed};
-    throw OMP::Error::TranslateFail("No spin speed found for continuous spin polarimeter observation") unless defined $speed;
+
+    # note that pol_spin
+    throw OMP::Error::TranslateFail("No spin flag for continuous spin polarimeter observation")
+      unless $self->is_pol_spin(%info);
+
+    # Spin speed depends on the step time
+    my $step_time = $self->step_time( $cfg, %info );
+
+    # number of steps in a cycle controls the spin speed
+    my $nsteps = OMP::Config->getData( 'acsis_translator.steps_per_cycle_pol' );
+    my $speed = (360/$nsteps)/$step_time;
+
     $pol->spin_speed( $speed );
     if ($self->verbose) {
+      print {$self->outhdl} "\t$nsteps spectra per cycle\n";
       print {$self->outhdl} "\tContinuous Spin: $speed deg/sec\n";
     }
 
   }
 
-  # always use azel
-  $pol->system( "AZEL" );
+  # always use TRACKING (since we can and in step-and-integrate mode we need to make
+  # sure that we return to the same place)
+  $pol->system( "TRACKING" );
 
   $cfg->pol( $pol );
   return;
@@ -1690,7 +1702,7 @@ sub jos_config {
 		jiggle_chop => 'jiggle_chop',
 		jiggle_pssw => 'grid_pssw',
 		grid_chop   => 'jiggle_chop',
-		grid_pssw   => 'grid_pssw',
+		grid_pssw   => ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
 		raster_pssw => 'raster_pssw',
 	       );
   if (exists $JOSREC{$info{obs_type}}) {
@@ -1919,15 +1931,32 @@ sub jos_config {
     # $refgap unless the secsPerCycle is really short.
 
     # Calculate max_time_on and total integration time requested
-    my $max_time_on = min($info{secsPerCycle}, $refgap);
     my $total_time = $num_cycles*$info{secsPerCycle};
+    my $max_time_on = min($info{secsPerCycle}, $refgap);
+
+    # For pol continuous spin we just need enough time for a single rotation
+    # of the waveplate and we know that immediately in terms of the number of steps
+    # required
+    my $jos_min;
+    if ($self->is_pol_spin(%info)) {
+      $jos_min = OMP::Config->getData( 'acsis_translator.steps_per_cycle_pol' );
+      $max_time_on = $jos_min * $self->step_time($cfg,%info);
+    }
+
+    # if we are in pol step and integrate mode we need to scale the requested
+    # total time by the number of waveplate positions so that the total
+    # number of cycles is calculated correctly.
+    my $nwplate = 1;
+    if ($self->is_pol_step_integ(%info)) {
+      $nwplate = @{$info{waveplate}};
+    }
 
     # Recalculate number of cycles unless we already have num_cycles > 1
     # We do this because historically, the OT allowed people to specify the
     # number of cycles - that is until we realised it was dangerous and wrong
     my $recalc;
     if ($num_cycles == 1) {
-      $num_cycles = ceil($total_time/$max_time_on);
+      $num_cycles = ceil($total_time/($nwplate*$max_time_on));
       $jos->num_cycles( $num_cycles );
       $recalc = 1;
     }
@@ -1935,8 +1964,19 @@ sub jos_config {
     # First JOS_MIN
     # This is the number of samples on each grid position
     # so = secsPerCycle / STEP_TIME
-    my $jos_min = ceil($total_time/$num_cycles/ $self->step_time( $cfg, %info ));
+    $jos_min = ceil($total_time/$nwplate/$num_cycles/ $self->step_time( $cfg, %info ))
+      unless defined $jos_min; # pol override
     $jos->jos_min($jos_min);
+
+    # Recalculate cal time for pol step and integrate to take into account a new
+    # jos min
+    my $recalc_cal_gap;
+    if ($nwplate > 1) {
+      my $new = ($jos_min * 4 * 2) - 1;
+      my $old = $jos->steps_btwn_cals;
+      $jos->steps_btwn_cals( $new );
+      $recalc_cal_gap = 1 if $new != $old;
+    }
 
     # Sharing the off?
 
@@ -1952,13 +1992,18 @@ sub jos_config {
     # tries to default this behaviour but does not itself take into account
     # number of offsets and there are older programs such as the standards
     # that will default to shared offs without updating.
+    # When we are spinning the polarimeter we use a shared off
     my $separateOffs = $info{separateOffs};
-    if ( $jos_min > ($jos->steps_btwn_refs()/2)) {
+    if ($self->is_pol_spin(%info)) {
+      $separateOffs = 0;
+    } else {
+      if ( $jos_min > ($jos->steps_btwn_refs()/2)) {
 	# can only fit in a single JOS_MIN in steps_btwn refs so separate offs
 	$separateOffs = 1;
-    } elsif ($Noffsets == 1) {
+      } elsif ($Noffsets == 1) {
 	# 1 sky position so we prefer not to share so that we can see all the spectra
 	$separateOffs = 1;
+      }
     }
     $jos->shareoff( $separateOffs ? 0 : 1 );
 
@@ -1971,7 +2016,11 @@ sub jos_config {
       if ($num_cycles > 1 && $recalc) {
 	print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       }
-      print {$self->outhdl} "\tActual integration time per grid position: ".($jos_min * $num_cycles * $jos->step_time)." secs\n";
+      if ($recalc_cal_gap) {
+        print {$self->outhdl} "\tSteps between cals recalculated to be ".$jos->steps_btwn_cals."\n";
+      }
+      print {$self->outhdl} "\tActual integration time per grid position: ".
+        ($jos_min * $num_cycles * $nwplate *$jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} eq 'jiggle_pssw') {
@@ -2589,10 +2638,15 @@ sub acsisdr_recipe {
     }
 
     $root = $obsmode;
+
+    # if we are continuous spin pol we need to modify how we are dealing with offs
+    $root .= "_no_coadding" if $self->is_pol_spin(%info);
+
   } else {
     # keyed on observation type
     $root = $info{obs_type};
   }
+
   my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root . '_dr_recipe.ent');
 
   # Read the recipe itself
@@ -3389,6 +3443,40 @@ sub is_fast_freqsw {
   return ( $info{switchingMode} eq 'Frequency-Fast');
 }
 
+=item B<is_pol_step_integ>
+
+We are a polarimeter step and integrate observation.
+
+ $ispol = $trans->is_pol_step_integ( %info );
+
+=cut
+
+sub is_pol_step_integ {
+  my $self = shift;
+  my %info = @_;
+  if (exists $info{waveplate} && @{$info{waveplate}}) {
+    return 1;
+  }
+  return;
+}
+
+=item B<is_pol_spin>
+
+Is this a continuously spinning polarimeter observation?
+
+  $spin = $trans->is_pol_spin( %info );
+
+=cut
+
+sub is_pol_spin {
+  my $self = shift;
+  my %info = @_;
+  if (exists $info{pol_spin} && $info{pol_spin}) {
+    return 1;
+  }
+  return;
+}
+
 =item B<ocs_frontend>
 
 The name of the frontend from the viewpoint of the OCS. In general,
@@ -3739,9 +3827,14 @@ sub step_time {
     # more repeats
     $step = $info{sampleTime};
   } elsif ($info{observing_mode} =~ /grid_pssw/) {
-    # Choose a fixed time that will enable us to get a reasonable number of
-    # spectra out rather than a single spectrum for the entire "time_between_ref" period.
-    $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
+    if ($self->is_pol_spin(%info)) {
+      # we are spinning a polarimeter
+      $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw_pol' );
+    } else {
+      # Choose a fixed time that will enable us to get a reasonable number of
+      # spectra out rather than a single spectrum for the entire "time_between_ref" period.
+      $step = OMP::Config->getData( 'acsis_translator.step_time_grid_pssw');
+    }
   } elsif ($info{observing_mode} =~ /jiggle_pssw/) {
     # The step time has to be such that we can get round the jiggle
     # pattern in max_time_between_refs seconds.
@@ -3982,7 +4075,7 @@ Returns the actual cal and ref gaps (as rederived from the step time)
 sub calc_jos_times {
   my $self = shift;
   my $jos = shift;
-  my %info = shift;
+  my %info = @_;
 
   # N_CALSAMPLES depends entirely on the step time and the time from
   # the config file. Number of cal samples. This is hard-wired in
@@ -3993,14 +4086,40 @@ sub calc_jos_times {
   # least 1 cal
   $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
 
-  # Now specify the maximum time between cals in steps
-  my $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
-  $jos->steps_btwn_cals( max(1, OMP::General::nint( $calgap / $jos->step_time ) ) );
+  my $calgap = 1;
+  my $refgap = 1;
 
-  # Now calculate the maximum time between refs in steps
-  my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
-				     ($info{continuumMode} ? "_cont" :""));
-  $jos->steps_btwn_refs( max( 1, OMP::General::nint( $refgap / $jos->step_time ) ) );
+  # For polarimeter observations we need to have a cal each cycle
+  if ($self->is_pol_spin(%info)) {
+    # effective requirement is to do a sky and cal every sequence so just use a short value
+    # so take the default of 1
+
+  } elsif ($self->is_pol_step_integ(%info)) {
+
+    # Use special ref for pol
+    $refgap = OMP::Config->getData('acsis_translator.time_between_ref_pol');
+
+    # for step and integrate we want to cal every 4 positions
+    # 4 position on+off. This assumes that people are sensible in the ordering
+    # of their step and integrate angles. Since the JOS_MIN can be calcualted
+    # to be smaller than refgap we will probably have to recalculate later
+    $calgap = 4 * 2 * $refgap;
+
+  } else {
+
+    # Now specify the maximum time between cals in steps
+    $calgap = OMP::Config->getData( 'acsis_translator.time_between_cal' );
+
+    # Now calculate the maximum time between refs in steps
+    $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
+                                    ($info{continuumMode} ? "_cont" :""));
+
+  }
+
+  my $cal_step_gap = OMP::General::nint( $calgap / $jos->step_time );
+  my $ref_step_gap = OMP::General::nint( $refgap / $jos->step_time );
+  $jos->steps_btwn_cals( max(1, $cal_step_gap ) );
+  $jos->steps_btwn_refs( max(1, $ref_step_gap ) );
 
   return ($jos->steps_btwn_cals * $jos->step_time,
 	  $jos->steps_btwn_refs * $jos->step_time );

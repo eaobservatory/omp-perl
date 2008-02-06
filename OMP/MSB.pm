@@ -3954,7 +3954,7 @@ sub SpIterFolder {
       # or continuousSpin
       my $spin = $self->_get_pcdata($el, "continuousSpin");
       if (defined $spin) {
-        $summary{$parent}{ATTR} = [ { pol_spin_speed => $spin } ];
+        $summary{$parent}{ATTR} = [ { pol_spin => 1 } ];
       } else {
         throw OMP::Error::SpBadStructure("continuousSpin element detected but was empty!");
       }
