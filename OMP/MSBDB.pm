@@ -1416,6 +1416,16 @@ sub _db_store_sciprog {
   my $spxml = "$sp";
   $spxml =~ s/\'/\&apos;/g;
 
+use Data::Dumper;
+OMP::General->log_message(
+  Dumper( [ $proj, $timestamp ] , $spxml ),
+  OMP__LOG_WARN
+);
+#  Save old log level;
+my $old = OMP::General->log_level;
+#  See the db activity.
+OMP::General->log_level( OMP__LOG_DEBUG );
+
   # Insert the data into the science program
   $self->_db_insert_data($SCITABLE,
 			 { COLUMN => 'projectid',
@@ -1430,16 +1440,34 @@ sub _db_store_sciprog {
 			);
 
 
+#  Reset log level.
+OMP::General->log_level( $old );
+
   # Now check for truncation issues
   my $dbh = $self->_dbhandle;
   my $chk_statement = 'SELECT projectid FROM '. $SCITABLE .' '.
     'WHERE projectid = "'. $proj .'" '.
       'AND sciprog LIKE "%SpProg>"';
+
+OMP::General->log_level( OMP__LOG_DEBUG );
+
   my @chk_row = $dbh->selectrow_array($chk_statement);
+
+OMP::General->log_level( $old );
+OMP::General->log_message(
+  Dumper( [ $chk_statement, [ @chk_row ] ] ),
+  OMP__LOG_WARN
+);
 
   # Fetch the whole program back if it was truncated
   if (! defined $chk_row[0]) {
+
+OMP::General->log_level( OMP__LOG_DEBUG );
+
     my $xml = $self->_db_fetch_sciprog();
+
+OMP::General->log_level( $old );
+
     $xml =~ s/\&apos;/\'/g; # level the playing field
     my $orilen = length("$sp");
     my $newlen = length($xml);
