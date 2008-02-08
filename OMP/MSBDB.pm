@@ -1434,7 +1434,7 @@ sub _db_store_sciprog {
   my $dbh = $self->_dbhandle;
   my $chk_statement = 'SELECT projectid FROM '. $SCITABLE .' '.
     'WHERE projectid = "'. $proj .'" '.
-      'AND sciprog LIKE "%SpProg>"';
+      'AND sciprog LIKE "%</SpProg>%"';
   my @chk_row = $dbh->selectrow_array($chk_statement);
 
   # Fetch the whole program back if it was truncated
