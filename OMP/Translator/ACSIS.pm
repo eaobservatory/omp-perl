@@ -1996,11 +1996,9 @@ sub jos_config {
     # tries to default this behaviour but does not itself take into account
     # number of offsets and there are older programs such as the standards
     # that will default to shared offs without updating.
-    # When we are spinning the polarimeter we use a shared off
+    # Do not override separateOffs flag if we are spinning the polarimeter
     my $separateOffs = $info{separateOffs};
-    if ($self->is_pol_spin(%info)) {
-      $separateOffs = 0;
-    } else {
+    if (!$self->is_pol_spin(%info)) {
       if ( $jos_min > ($jos->steps_btwn_refs()/2)) {
 	# can only fit in a single JOS_MIN in steps_btwn refs so separate offs
 	$separateOffs = 1;
@@ -2644,8 +2642,13 @@ sub acsisdr_recipe {
     $root = $obsmode;
 
     # if we are continuous spin pol we need to modify how we are dealing with offs
-    $root .= "_no_coadding" if $self->is_pol_spin(%info);
-
+    if ($self->is_pol_spin(%info)) {
+      if ($info{separateOffs}) {
+        $root .= "_pol_index";
+      } else {
+        $root .= "_no_coadding";
+      }
+    }
   } else {
     # keyed on observation type
     $root = $info{obs_type};
