@@ -342,7 +342,7 @@ sub undef_to_default {
 =item B<upgrade_cloud>
 
 Convert a single moon parameter as used in the old system
-(0=photometric, 1=cirrus, 101=inf) to an OMP::Range object
+(0=photometric, 1=cirrus, 2 or 101=inf) to an OMP::Range object
 using percentage illumination variability.
 
   $range = upgrade_cloud( $oldcloud );
@@ -361,7 +361,8 @@ sub upgrade_cloud {
     ($min,$max) = ( 0, 0 );
   } elsif ($old == 1) {
     ($min,$max) = (0, OMP__CLOUD_CIRRUS_MAX);
-  } elsif ($old >= 101) {
+  } elsif ($old >= 101 || $old == 2) {
+    # Yes, a 2 implies 100% for "historic reasons".
     ($min,$max) = (0,100);
   } else {
     ($min,$max) = (0, $old);
