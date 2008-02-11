@@ -1352,9 +1352,18 @@ sub _populate {
     $self->endobs( $endobs );
   }
 
+  # Check to see if the UTDATE header is an object or a string.
+  if( $generic_header{UTDATE}->can('year') ) {
+    $self->utdate( sprintf( "%4d%2d%2d",
+                            $generic_header{UTDATE}->year,
+                            $generic_header{UTDATE}->mon,
+                            $generic_header{UTDATE}->mday ) );
+  } else {
+    $self->utdate( $generic_header{UTDATE} );
+  }
+
   # Easy object modifiers (some of which are used later in the method
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
-  $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
   if( defined( $generic_header{AIRMASS_END} ) ) {
     $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
