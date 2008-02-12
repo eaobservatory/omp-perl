@@ -23,7 +23,7 @@ my $fault = 0;
 my $primary_db = "SYB_OMP1";
 my $secondary_db = "SYB_OMP2";
 
-my ( @to_addr, @cc_addr);
+my ( @to_addr, @cc_addr, $debug);
 
 {
   my $help;
@@ -33,6 +33,7 @@ my ( @to_addr, @cc_addr);
     's|sec|secondary=s' => \$secondary_db,
     'to=s' => \@to_addr,
     'cc=s' => \@cc_addr,
+    'debug' => \$debug
   ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
   pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
@@ -243,23 +244,38 @@ if ($critical) {
   $subject .= "OK";
 }
 
-my %addr =
-  (
-    scalar @to_addr ? ( 'To' => join ', ', @to_addr ) : (),
-    scalar @cc_addr ? ( 'Cc' => join ', ', @cc_addr ) : ()
-  );
+unless ( $debug ) {
 
-my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
-                             %addr,
-                             Subject => $subject,
-                             Data => $msg,
-                             );
+  my %addr =
+    (
+      scalar @to_addr ? ( 'To' => join ', ', @to_addr ) : (),
+      scalar @cc_addr ? ( 'Cc' => join ', ', @cc_addr ) : ()
+    );
+  send_mail( $subject, $msg, %addr );
+}
+else {
 
-MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+  warn $msg;
+}
 
-# Send the message
-$email->send
-  or die "Error sending message: $!\n";
+exit;
+
+sub send_mail {
+
+  my ( $subj, $msg, %addr ) = @_;
+
+  my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
+                                %addr,
+                                Subject => $subject,
+                                Data => $msg,
+                              );
+
+  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+
+  # Send the message
+  $email->send
+    or die "Error sending message: $!\n";
+}
 
 sub make_server_status {
 
