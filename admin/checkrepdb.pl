@@ -7,6 +7,7 @@ use lib "$FindBin::RealBin/..";
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
 use Pod::Usage;
 use MIME::Lite;
+use List::Util qw/ max /;
 use OMP::BaseDB;
 use OMP::DBbackend;
 use OMP::Error qw/ :try /;
@@ -176,12 +177,16 @@ unless ($primary_db_down or $secondary_db_down) {
   if ($row_count_disparity[0]) {
     $row_count = 1;
     $fault++;
-    $msg .= "Disparity between row counts detected!\n";
-    $msg .= "The following tables are affected:\n";
-    for my $table (@row_count_disparity) {
-      $msg .= "\t$table ($primary_db: ". $row_count_results{ $primary_db }{$table}
-        ." $secondary_db: ". $row_count_results{ $secondary_db }{$table} . ")\n";
-    }
+    $msg .= <<"DISPARITY";
+Disparity in row counts detected between $primary_db & $secondary_db!
+The following tables are affected:
+DISPARITY
+
+    $msg .=
+      make_diff_status( $row_count_results{ $primary_db },
+                        $row_count_results{ $secondary_db },
+                        @row_count_disparity
+                      );
     $msg .= "\n";
   } else {
     $msg .= "Row counts are equal across both databases. [OK]\n\n";
@@ -282,6 +287,25 @@ sub make_server_status {
   my ( $server, $down ) = @_;
 
   return "Database server $server is " . ( $down ? "down!\n" : "up. [OK]\n" );
+}
+
+sub make_diff_status {
+
+  my ( $prim_rows, $sec_rows, @tables ) = @_;
+
+  # 2: indent spaces.
+  my $max = 2 + max( map { length $_ } @tables );
+
+  my $format = "%${max}s: %+5d (%7d - %7d)\n";
+
+  my $text = '';
+  for my $tab ( sort @tables ) {
+
+    my ( $prim, $sec ) = map { $_->{ $tab } } $prim_rows, $sec_rows;
+
+    $text .= sprintf $format, $tab, $prim - $sec, $prim, $sec;
+  }
+  return $text;
 }
 
 =pod
