@@ -296,7 +296,7 @@ sub make_diff_status {
   # 2: indent spaces.
   my $max = 2 + max( map { length $_ } @tables );
 
-  my $format = "%${max}s: %+5d (%7d - %7d)\n";
+  my $format = "%${max}s: %5d (%7d - %7d)\n";
 
   my $text = '';
   for my $tab ( sort @tables ) {
