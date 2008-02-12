@@ -123,7 +123,7 @@ my $pass = OMP::Password->get_verified_password({
             }) ;
 
 # Loop over each project and add it in
-for my $proj (keys %alloc) {
+for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   next if $proj eq 'support';
   next if $proj eq 'info';
 
@@ -135,6 +135,7 @@ for my $proj (keys %alloc) {
   # Upper case country for lookup table
   # and split on comma in case we have more than one
   $details{country} = [split /,/,uc($details{country}) ];
+    #if exists $details{country};
 
   upcase( \%details, qw/ pi coi support semester telescope / );
 
@@ -149,11 +150,12 @@ for my $proj (keys %alloc) {
   }
 
   # TAG priority
-  my @tag = split /,/, $details{tagpriority};
+  my @tag;
+  @tag = split /,/, $details{tagpriority}
+    if exists $details{tagpriority};
 
   collect_err( "Number of TAG priorities is neither 1 nor number of countries [$proj]" )
     unless ($#tag == 0 || $#tag == $#{$details{country}});
-
   $details{tagpriority} = \@tag if scalar(@tag) > 1;
 
   # TAG adjustment
