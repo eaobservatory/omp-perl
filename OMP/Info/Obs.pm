@@ -37,6 +37,7 @@ use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
 use OMP::ObslogDB;
 use OMP::DBbackend;
+use Scalar::Util qw/ blessed /;
 
 use Astro::FITS::Header::NDF;
 use Astro::FITS::Header::GSD;
@@ -374,7 +375,6 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               type => '$',
                               user_az_corr => '$',
                               user_el_corr => '$',
-                              utdate => 'Time::Piece',
                               velocity => '$',
                               velsys => '$',
                               waveband => 'Astro::WaveBand',
@@ -405,6 +405,27 @@ Scalar accessors:
 =item B<timeest>
 
 =item B<target>
+
+=item B<utdate>
+
+The UT date of the observation in YYYYMMDD integer form.
+
+Can accept an integer, a C<Time::Piece> or C<DateTime> object.
+
+=cut
+
+sub utdate {
+  my $self = shift;
+  if (@_) {
+    my $arg = shift;
+    if (blessed($arg) && $arg->can('year')) {
+      $arg = sprintf('%04d%02d%02d',
+                     $arg->year, $arg->mon, $arg->mday);
+    }
+    $self->{UTDATE} = $arg;
+  }
+  return $self->{UTDATE};
+}
 
 =item B<subsystem_idkey>
 
@@ -1352,18 +1373,9 @@ sub _populate {
     $self->endobs( $endobs );
   }
 
-  # Check to see if the UTDATE header is an object or a string.
-  if( $generic_header{UTDATE}->can('year') ) {
-    $self->utdate( sprintf( "%4d%2d%2d",
-                            $generic_header{UTDATE}->year,
-                            $generic_header{UTDATE}->mon,
-                            $generic_header{UTDATE}->mday ) );
-  } else {
-    $self->utdate( $generic_header{UTDATE} );
-  }
-
   # Easy object modifiers (some of which are used later in the method
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
+  $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
   if( defined( $generic_header{AIRMASS_END} ) ) {
     $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
