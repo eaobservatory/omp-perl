@@ -8,6 +8,14 @@ use Pod::Usage;
 use List::Util qw/ first /;
 use Scalar::Util qw/ blessed openhandle /;
 
+BEGIN {
+  use FindBin;
+  use constant OMPLIB => "$FindBin::RealBin/..";
+  use lib OMPLIB;
+
+  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
+}
+
 use OMP::General;
 use OMP::DBbackend;
 use OMP::TimeAcctDB;
@@ -255,6 +263,3 @@ Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =cut
 
-__DATA__
-m07bc01 m07bc17
-m07bc16
