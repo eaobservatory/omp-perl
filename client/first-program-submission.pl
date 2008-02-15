@@ -189,7 +189,7 @@ sub make_query {
         ( SELECT MIN(f2.date)
           FROM ompfeedback f2
           WHERE f2.projectid = f.projectid
-            AND ( f2.msgtype = $submitted OR f2.text LIKE 'Science program submitted%' )
+            AND ( f2.msgtype = $submitted OR f2.subject LIKE 'Science program submitted%' )
         )
     ORDER BY f.date
 __SQL__
