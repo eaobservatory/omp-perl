@@ -897,9 +897,10 @@ sub nightlog {
     $return{'Number of coadds'} = defined( $self->number_of_coadds ) ? sprintf( "%d", $self->number_of_coadds ) : 0;
     $return{'DR Recipe'} = defined( $self->drrecipe ) ? $self->drrecipe : '';
     $return{'Project ID'} = defined( $self->projectid ) ? $self->projectid : '';
+    $return{'Hour Angle'} = defined( $self->coords ) ? $self->coords->ha( "s" ) : '';
     $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
                           "Observation type", "Exposure time", "Number of coadds", "Waveband",
-                          "RA offset", "Dec offset", "Airmass", "DR Recipe" ];
+                          "RA offset", "Dec offset", "Airmass", "Hour Angle", "DR Recipe" ];
     $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
     $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
 
