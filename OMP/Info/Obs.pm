@@ -1581,6 +1581,11 @@ sub _populate {
     }
   }
 
+  # Set the reference epoch for the coordinates, if both are defined.
+  if( defined( $self->coords ) && defined( $self->startobs ) ) {
+    $self->coords->datetime( $self->startobs );
+  }
+
   # Remaining generic header
   if ($generic_header{OBSERVATION_ID}) {
     $self->obsid( $generic_header{OBSERVATION_ID} );
