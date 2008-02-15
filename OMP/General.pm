@@ -53,6 +53,7 @@ use OMP::Error qw/ :try /;
 use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 use OMP::SiteQuality;
+use POSIX qw/ /;
 
 require HTML::TreeBuilder;
 require HTML::FormatText;
@@ -361,8 +362,7 @@ in an email Date header.
 sub mail_date {
   my $class = shift;
 
-  my $date = localtime;
-  my $string = $date->strftime("%a, %d %b %Y %H:%M:%S %z");
+  my $string = POSIX::strftime("%a, %d %b %Y %H:%M:%S %z", localtime);
 
   return $string;
 }
