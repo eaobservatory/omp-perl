@@ -140,10 +140,10 @@ sub get_projects {
         s/\s+$//;
       }
 
-      push @proj, map { uc $_ } split /\s+/, $line;
+      push @proj, split /\s+/, $line;
     }
   }
-  return @proj;
+  return map { uc $_ } @proj;
 }
 
 #  Returns the file handle after opening the given file name.
