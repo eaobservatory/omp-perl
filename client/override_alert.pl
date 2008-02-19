@@ -181,9 +181,11 @@ sub scan_for_msbs {
   try {
     my $semesters = OMP::Config->getData( "override_semester",
 					  telescope => $telescope );
-
-    # Transform the comma-separated list into a proper Perl list.
-    @semesters = split ',', $semesters;
+    if( ref( $semesters ) eq 'ARRAY' ) {
+      @semesters = @$semesters;
+    } else {
+      push @semesters, $semesters;
+    }
   } catch OMP::Error with {
     # don't care
   } otherwise {
