@@ -218,7 +218,7 @@ sub parse_date {
     # The joys of backwards compatibility.
     # If we have been supplied a localtime we just need to change the
     # representation rather than the epoch if we have a localtime
-    # if we get a UT back but had a local time to start with we 
+    # if we get a UT back but had a local time to start with we
     # need to correct.
     # In fact, as of V1.08, strptime will be UTC if called without
     # an object, but inherit the object if called as a instance method.
@@ -230,20 +230,20 @@ sub parse_date {
       # We need to subtract the timezone and then convert the
       # time to a localtime
       if (! $time->[Time::Piece::c_islocal]) {
-	if ($tzoffset->seconds == 0) {
-	  # this may well be because Time::Piece v1.10 decided that
-	  # tzoffset should return 0 if you were asking via a UTC
-	  # object
-	  my $dummy = Time::Piece::localtime($epoch);
-	  $tzoffset = $dummy->tzoffset;
-	}
-	$epoch -= $tzoffset->seconds;
+        if ($tzoffset->seconds == 0) {
+          # this may well be because Time::Piece v1.10 decided that
+          # tzoffset should return 0 if you were asking via a UTC
+          # object
+          my $dummy = Time::Piece::localtime($epoch);
+          $tzoffset = $dummy->tzoffset;
+        }
+        $epoch -= $tzoffset->seconds;
       }
 
     } else {
       # We are supposed to have a UT, if we do not, add on the timezone
       if ($time->[Time::Piece::c_islocal]) {
-	$epoch += $tzoffset->seconds;
+        $epoch += $tzoffset->seconds;
       }
     }
 
@@ -370,20 +370,20 @@ sub mail_date {
 =item B<determine_extended>
 
 Given a start and end time, or a start time and duration, return
-the time that should be charged to a project and the time that 
+the time that should be charged to a project and the time that
 should be treated as EXTENDED time.
 
   ($project, $extended) = OMP::General->determine_extended(start => $start,
                                                            end => $end,
-							   tel => 'JCMT',
-							  );
+                                                           tel => 'JCMT',
+                                                          );
 
   ($project, $extended) = OMP::General->determine_extended(start => $start,
-							   tel => 'UKIRT',
+                                                           tel => 'UKIRT',
                                                            duration => $duration);
 
   ($project, $extended) = OMP::General->determine_extended(duration => $duration,
-							   tel => 'UKIRT',
+                                                           tel => 'UKIRT',
                                                            end => $end);
 
 
@@ -401,7 +401,7 @@ sub determine_extended {
   my $class = shift;
   my %args = @_;
 
-  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times") 
+  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times")
     unless exists $args{tel};
 
   # Convert duration as number into duration as Time::Seconds
@@ -421,11 +421,11 @@ sub determine_extended {
     if (exists $args{end} && defined $args{end}) {
       # We have start and end time already
       if (! exists $args{duration} || ! defined $args{duration}) {
-	$args{duration} = $args{end} - $args{start};
+        $args{duration} = $args{end} - $args{start};
       }
     } elsif (exists $args{duration} && defined $args{duration}) {
       # Get the end from the start and duration
-      $args{end} = $args{start} + $args{duration}->seconds; 
+      $args{end} = $args{start} + $args{duration}->seconds;
     }
 
   } elsif (exists $args{end} && defined $args{end}) {
@@ -436,9 +436,9 @@ sub determine_extended {
 
   # Check that we now have start, end and duration
   throw OMP::Error::BadArgs("Must supply 2 of start, end or duration")
-    unless exists $args{start} && defined $args{start} && 
-      exists $args{end} && defined $args{end} && 
-	exists $args{duration} && defined $args{duration};
+    unless exists $args{start} && defined $args{start} &&
+      exists $args{end} && defined $args{end} &&
+        exists $args{duration} && defined $args{duration};
 
   # Now we need to get the valid ranges
   # We assume that the UT date matches that of the start and end times
@@ -520,8 +520,8 @@ sub determine_utdate {
       # Have a date object, check that we have no hours, minutes
       # or seconds
       if ($date->hour != 0 || $date->min != 0 || $date->sec != 0) {
-	# Force pure date
-	$date = $class->parse_date( $date->ymd );
+        # Force pure date
+        $date = $class->parse_date( $date->ymd );
       }
     } else {
       # did not parse, use today
@@ -649,7 +649,7 @@ sub determine_host {
   } else {
     # For taint checking with Net::Domain when etc/resolv.conf
     # has no domain
-    local $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin" 
+    local $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"
       unless ${^TAINT} == 0;
 
     # localhost
@@ -815,26 +815,26 @@ calculation.
 # Indexed by telescope, then semester name then YYYYMMDD date in 2 element array
 # These are inclusive numbers
 my %SEM_BOUND = (
-		 UKIRT => {
-			   # 04A started early and finished very late because of WFCAM
-			   # this also forces 03B to finish early
-			   # Note that we do not attempt to indicate undef when the
-			   # date is the normal date but with a new uppoer or lower bound
-			   '03B' => [ 20030802, 20040116 ],
-			   '04A' => [ 20040117, 20041001 ],
-			   '04B' => [ 20041002, 20041101 ],
-			   '05A' => [ 20041102, 20050822 ],
-			   '05B' => [ 20050823, 20060209 ],
-			   '06A' => [ 20060210, 20060801 ],
+                 UKIRT => {
+                           # 04A started early and finished very late because of WFCAM
+                           # this also forces 03B to finish early
+                           # Note that we do not attempt to indicate undef when the
+                           # date is the normal date but with a new uppoer or lower bound
+                           '03B' => [ 20030802, 20040116 ],
+                           '04A' => [ 20040117, 20041001 ],
+                           '04B' => [ 20041002, 20041101 ],
+                           '05A' => [ 20041102, 20050822 ],
+                           '05B' => [ 20050823, 20060209 ],
+                           '06A' => [ 20060210, 20060801 ],
                            '06B' => [ 20060802, 20070401 ],
-			  },
+                          },
                  JCMT  => {
                            '05B' => [ 20050802, 20060214 ],
                            '06A' => [ 20060214, 20060801 ], # shutdown
                            '06B' => [ 20060802, 20070301 ],
                            '08A' => [ 20080129, 20080801 ],
                           },
-		);
+                );
 
 
 sub determine_semester {
@@ -859,9 +859,9 @@ sub determine_semester {
   if (exists $SEM_BOUND{$tel}) {
     for my $lsem (keys %{ $SEM_BOUND{$tel} } ) {
       if ($ymd >= $SEM_BOUND{$tel}{$lsem}[0] &&
-	  $ymd <= $SEM_BOUND{$tel}{$lsem}[1] ) {
-	# we have a hit
-	return $lsem;
+          $ymd <= $SEM_BOUND{$tel}{$lsem}[1] ) {
+        # we have a hit
+        return $lsem;
       }
     }
   }
@@ -950,15 +950,15 @@ sub _determine_pparc_semester_boundary {
     # incyr indicates whether the year should be incremented prior to
     # concatenation
     my %bound = (
-		 A => {
-		       incyr  => [ 0, 0 ],
-		       suffix => [qw/ 0202 0801 /],
-		      },
-		 B => {
-		       incyr  => [ 0, 1 ],
-		       suffix => [qw/ 0802 0201 /],
-		      },
-		);
+                 A => {
+                       incyr  => [ 0, 0 ],
+                       suffix => [qw/ 0202 0801 /],
+                      },
+                 B => {
+                       incyr  => [ 0, 1 ],
+                       suffix => [qw/ 0802 0201 /],
+                      },
+                );
 
     my %semdetails = %{ $bound{$ab} };
     my @bounds = map { ( $year + $semdetails{incyr}[$_] ) . $semdetails{suffix}[$_] } (0,1);
@@ -1056,18 +1056,18 @@ Given a subset of a project ID attempt to determine the actual
 project ID.
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-					 telescope => 'ukirt',
-				       );
+                                         telescope => 'ukirt',
+                                       );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-					 telescope => 'ukirt',
-					 semester => $sem,
-				       );
+                                         telescope => 'ukirt',
+                                         semester => $sem,
+                                       );
 
   $proj = OMP::General->infer_projectid( projectid => $input,
-					 telescope => 'ukirt',
-					 date => $date,
-				       );
+                                         telescope => 'ukirt',
+                                         date => $date,
+                                       );
 
 If telescope is not supplied it is guessed.  If the project ID is just
 a number it is assumed to be part of a UKIRT style project. If it is a
@@ -1088,7 +1088,7 @@ The semester is determined from a "semester" key directly or from a date.
 The current date is used if no date or semester is supplied.
 The supplied date must be a C<Time::Piece> object.
 
-Finally, if the number is prefixed by more than one letter 
+Finally, if the number is prefixed by more than one letter
 (with the exception of s[uic] reserved for JCMT service) it is
 assumed to indicate a special ID (usually reserved for support
 scientists) that is not telescope specific (although be aware that
@@ -1119,7 +1119,7 @@ sub infer_projectid {
   # If it's a special reserved ID (two characters + digit)
   # and *not* an abbreviated JCMT service programme
   # return it - padding the number)
-  if ($projid !~ /^s[uic]\d\d/i && 
+  if ($projid !~ /^s[uic]\d\d/i &&
       $projid =~ /^([A-Za-z]{2,}?)(\d+)$/) {
     return $1 . sprintf("%02d", $2);
   }
@@ -1128,7 +1128,7 @@ sub infer_projectid {
   # In most cases the supplied ID will be able to distinguish
   # JCMT from UKIRT (for example JCMT has a letter prefix
   # such as "u03" whereas UKIRT mainly has a number "03" or "3")
-  # The exception is for UH where both telescopes have 
+  # The exception is for UH where both telescopes have
   # an "h" prefix. Additinally "s" prefix is UKIRT service.
   my $tel;
   if (exists $args{telescope}) {
@@ -1158,7 +1158,7 @@ sub infer_projectid {
   my $fullid;
   if ($tel eq "UKIRT") {
 
-    # Get the prefix and numbers if supplied project id is in 
+    # Get the prefix and numbers if supplied project id is in
     # that form
 
     if ($projid =~ /^([hsHSJj]?)(\d+)$/ ) {
@@ -1171,8 +1171,8 @@ sub infer_projectid {
       # For service the semester is always "serv" and
       # the prefix is blank
       if ($prefix =~ /[sS]/) {
-	$sem = "serv";
-	$prefix = '';
+        $sem = "serv";
+        $prefix = '';
       }
 
       # Recreate the root project id
@@ -1240,7 +1240,7 @@ sub extract_projectid {
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
       or $string =~ /\b([A-Za-z]+CAL)\b/i           # Things like JCMTCAL
       or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
-	  && $string !~ /\bs[uinc]\d+\b/ ) # but not JCMT service abbrev
+          && $string !~ /\bs[uinc]\d+\b/ ) # but not JCMT service abbrev
      ) {
     $projid = $1;
   }
@@ -1273,7 +1273,7 @@ without a Tk widget is identical to querying the config system directly.
 Returns undef if the user presses the "cancel" button when prompted
 for a telescope selection.
 
-If a Term::ReadLine object is provided, the routine will prompt for 
+If a Term::ReadLine object is provided, the routine will prompt for
 a telescope if there is a choice. This has the same behaviour as for the
 Tk option. Returns undef if the telescope was not valid after a prompt.
 
@@ -1290,20 +1290,20 @@ sub determine_tel {
     if (! defined $w) {
       # Have no choice but to return the array
       if (wantarray) {
-	return @$tel;
+        return @$tel;
       } else {
-	return $tel;
+        return $tel;
       }
     } elsif (UNIVERSAL::isa($w, "Term::ReadLine") ||
-	     UNIVERSAL::isa($w, "Term::ReadLine::Perl")) {
+             UNIVERSAL::isa($w, "Term::ReadLine::Perl")) {
       # Prompt for it
       my $res = $w->readline("Which telescope [".join(",",@$tel)."] : ");
       $res = uc($res);
       if (grep /^$res$/i, @$tel) {
-	return $res;
+        return $res;
       } else {
-	# no match
-	return ();
+        # no match
+        return ();
       }
 
     } else {
@@ -1311,25 +1311,25 @@ sub determine_tel {
       require Tk::DialogBox;
       my $newtel;
       my $dbox = $w->DialogBox( -title => "Select telescope",
-				-buttons => ["Accept","Cancel"],
-			      );
+                                -buttons => ["Accept","Cancel"],
+                              );
       my $txt = $dbox->add('Label',
-			   -text => "Select telescope for obslog",
-			  )->pack;
+                           -text => "Select telescope for obslog",
+                          )->pack;
       foreach my $ttel ( @$tel ) {
-	my $rad = $dbox->add('Radiobutton',
-			     -text => $ttel,
-			     -value => $ttel,
-			     -variable => \$newtel,
-			    )->pack;
+        my $rad = $dbox->add('Radiobutton',
+                             -text => $ttel,
+                             -value => $ttel,
+                             -variable => \$newtel,
+                            )->pack;
       }
       my $but = $dbox->Show;
 
       if( $but eq 'Accept' && $newtel ne '') {
-	$telescope = uc($newtel);
+        $telescope = uc($newtel);
       } else {
-	# Pressed cancel
-	return ();
+        # Pressed cancel
+        return ();
       }
     }
   } else {
@@ -1351,8 +1351,8 @@ Compare the supplied project ID with the internal staff project ID.
 
   OMP::General->am_i_staff( $projectid );
 
-Returns true if the supplied project ID matches, false otherwise. This 
-method does a case-insensitive match, and does not do password or database 
+Returns true if the supplied project ID matches, false otherwise. This
+method does a case-insensitive match, and does not do password or database
 verification.
 
 =cut
@@ -1532,7 +1532,7 @@ by defining the environment OMP_LOG_LEVEL to one of "IMPORTANT", "INFO" or
     if (!defined $LEVEL) {
       _str_or_const_to_level( $ENV{OMP_LOG_LEVEL} )
         if exists $ENV{OMP_LOG_LEVEL};
-      _str_or_const_to_level( OMP__LOG_INFO ) 
+      _str_or_const_to_level( OMP__LOG_INFO )
         unless defined $LEVEL;
     }
     return $LEVEL;
@@ -1675,7 +1675,7 @@ sub log_message {
     # Loop around if we can not open it
     unless (-d $thisdir) {
       mkdir $thisdir, 0777
-	or next;
+        or next;
     }
 
     # Open the file for append
@@ -1796,9 +1796,9 @@ sub escape_entity {
 
   # Escape sequence lookup table
   my %lut = (">" => "&gt;",
-	     "<" => "&lt;",
-	     "&" => "&amp;",
-	     '"' => "&quot;",);
+             "<" => "&lt;",
+             "&" => "&amp;",
+             '"' => "&quot;",);
 
   # Do the search and replace
   # Make sure we replace ampersands first, otherwise we'll end
@@ -1827,9 +1827,9 @@ sub replace_entity {
 
   # Escape sequence lookup table
   my %lut = ("&gt;" => ">",
-	     "&lt;" => "<",
-	     "&amp;" => "&",
-	     "&quot;" => '"',);
+             "&lt;" => "<",
+             "&amp;" => "&",
+             "&quot;" => '"',);
 
   # Do the search and replace
   for (keys %lut) {
@@ -2104,8 +2104,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
