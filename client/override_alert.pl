@@ -179,13 +179,8 @@ sub scan_for_msbs {
   my $E;
   my @semesters;
   try {
-    my $semesters = OMP::Config->getData( "override_semester",
-					  telescope => $telescope );
-    if( ref( $semesters ) eq 'ARRAY' ) {
-      @semesters = @$semesters;
-    } else {
-      push @semesters, $semesters;
-    }
+    @semesters = OMP::Config->getData( "override_semester",
+                                       telescope => $telescope );
   } catch OMP::Error with {
     # don't care
   } otherwise {
