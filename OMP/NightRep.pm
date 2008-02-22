@@ -1354,7 +1354,7 @@ sub ashtml {
       if ($grp and $grp->numobs > 1) {
 
         # Display log as plain text if there are a huge amount of observations
-        my $plaintext = ($grp->numobs > 2000 ? 1 : 0);
+        my $plaintext = ($grp->numobs > 5000 ? 1 : 0);
 
         print "<pre>" if ($plaintext);
 
