@@ -68,36 +68,36 @@ my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
 
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (
-	       RXA3 => 'RXA',
-	       RXWB => 'RXWB',
-	       RXWD => 'RXWD',
-	       RXB3 => 'RXB',
+               RXA3 => 'RXA',
+               RXWB => 'RXWB',
+               RXWD => 'RXWD',
+               RXB3 => 'RXB',
                'RXHARP-B' => 'HARPB',
-	       HARP => 'HARP',
-	      );
+               HARP => 'HARP',
+              );
 
 # Lookup table to calculate the LO2 frequencies.
 # Indexed simply by subband bandwidth
 our %BWMAP = (
-	      '250MHz' => {
-			   # Parking frequency, channel 1 (Hz)
-			   f_park => 2.5E9,
-		       },
-	      '1GHz' => {
-			 # Parking frequency, channel 1 (Hz)
-			 f_park => 2.0E9,
-			},
-	     );
+              '250MHz' => {
+                           # Parking frequency, channel 1 (Hz)
+                           f_park => 2.5E9,
+                          },
+              '1GHz' => {
+                         # Parking frequency, channel 1 (Hz)
+                         f_park => 2.0E9,
+                        },
+             );
 
 # This is the gridder/reducer layout selection
 my %ACSIS_Layouts = (
-		    RXA => 's1r1g1',
-		    RXB => 's2r2g1',
-		    RXWB => 's2r2g1',
-		    RXWD => 's2r2g1',
-		    HARP => 's8r8g1',
-#		    HARP_raster_pssw => 's8r16g8',
-		   );
+                     RXA => 's1r1g1',
+                     RXB => 's2r2g1',
+                     RXWB => 's2r2g1',
+                     RXWD => 's2r2g1',
+                     HARP => 's8r8g1',
+                     #        HARP_raster_pssw => 's8r16g8',
+                    );
 
 # LO2 synthesizer step, hard-wired
 our $LO2_INCR = 0.5E6;
@@ -184,8 +184,8 @@ sub translate {
 
     # Add comment
     $cfg->comment( "Translated on ". gmtime() ."UT on host ".
-		   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
-		   "using Translator version $VERSION on an MSB created by the OT version $otver\n");
+                   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
+                   "using Translator version $VERSION on an MSB created by the OT version $otver\n");
 
     # Observation summary
     $self->obs_summary( $cfg, %$obs );
@@ -281,9 +281,9 @@ Pass in undef to reset to the default.
     my $class = shift;
     if (@_) {
       if (!defined $_[0]) {
-	$oh = $def; # reset
+        $oh = $def;             # reset
       } else {
-	$oh = new IO::Tee( @_ );
+        $oh = new IO::Tee( @_ );
       }
     }
     return $oh;
@@ -346,38 +346,38 @@ sub upgrade_das_specification {
 
   # Band width mode must translate to ACSIS equivalent
   my %bwmode = (
-		# always map 125MHz to 250MHz
-		125 => {
-			bw => 2.5E8,
-			overlap => 0.0,
-			channels => 8192,
-		       },
-		250 => {
-			bw => 2.5E8,
-			overlap => 0.0,
-			channels => 8192,
-		       },
-		500 => {
-			bw => 4.8E8,
-			overlap => 1.0E7,
-			channels => 7864,
-		       },
-		760 => {
-			bw => 9.5E8,
-			overlap => 5.0E7,
-			channels => 1945,
-		       },
-		920 => {
-			bw => 9.5E8,
-			overlap => 5.0E7,
-			channels => 1945,
-		       },
-		1840 => {
-			 bw => 1.9E9,
-			 overlap => 5.0E7,
-			 channels => 1945,
-			},
-		);
+                # always map 125MHz to 250MHz
+                125 => {
+                        bw => 2.5E8,
+                        overlap => 0.0,
+                        channels => 8192,
+                       },
+                250 => {
+                        bw => 2.5E8,
+                        overlap => 0.0,
+                        channels => 8192,
+                       },
+                500 => {
+                        bw => 4.8E8,
+                        overlap => 1.0E7,
+                        channels => 7864,
+                       },
+                760 => {
+                        bw => 9.5E8,
+                        overlap => 5.0E7,
+                        channels => 1945,
+                       },
+                920 => {
+                        bw => 9.5E8,
+                        overlap => 5.0E7,
+                        channels => 1945,
+                       },
+                1840 => {
+                         bw => 1.9E9,
+                         overlap => 5.0E7,
+                         channels => 1945,
+                        },
+               );
 
   # need to add the following
   # freqconfig => overlap
@@ -485,9 +485,9 @@ sub handle_special_modes {
 
       my $jigsys = "AZEL";
       try {
-	  $jigsys = OMP::Config->getData( 'acsis_translator.harp_pointing_jigsys' );
+        $jigsys = OMP::Config->getData( 'acsis_translator.harp_pointing_jigsys' );
       } otherwise {
-	  # no problem, use default
+        # no problem, use default
       };
       $info->{jiggleSystem} = $jigsys;
 
@@ -495,16 +495,16 @@ sub handle_special_modes {
       # HARP5 and 5x5 are the obvious ones. 5pt or HARP4 are plausible.
       $info->{jigglePattern} = 'HARP5';
       try {
-	$info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.harp_pointing_pattern' );
+        $info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.harp_pointing_pattern' );
       } otherwise {
-	# use default
+        # use default
       };
 
       # For HARP jiggle pattern use "unity" here
       # For other patterns, be careful. If you are disabling non tracking
       # pixels you must make sure that you have a big enough pattern for the
       # planet. a 3x3 or 5point should always use "planet".
-      $scaleMode = "planet"; # Also: unity, planet, nyquist
+      $scaleMode = "planet";    # Also: unity, planet, nyquist
 
       # Use a bigger chop to get off the array
       $info->{CHOP_THROW} = 120;
@@ -514,11 +514,11 @@ sub handle_special_modes {
       $info->{jiggleSystem} = 'AZEL';
       $info->{jigglePattern} = '5pt'; # or 5x5
       try {
-	$info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.pointing_pattern' );
+        $info->{jigglePattern} = OMP::Config->getData( 'acsis_translator.pointing_pattern' );
       } otherwise {
-	# use default
+        # use default
       };
-      $scaleMode = "planet"; # Allowed: unity, planet, nyquist
+      $scaleMode = "planet";    # Allowed: unity, planet, nyquist
     }
 
     # should we be in continuum mode or spectral line mode.
@@ -544,9 +544,9 @@ sub handle_special_modes {
       my $half_beam = $self->nyquist( %$info )->arcsec;
       my $plan_rad = 0;
       if ($scaleMode eq 'planet' && $info->{coords}->type eq 'PLANET') {
-	# Currently need to force an apparent ra/dec calculation to get the diameter
-	my @discard = $info->{coords}->apparent();
-	$plan_rad = $info->{coords}->diam->arcsec / 2;
+        # Currently need to force an apparent ra/dec calculation to get the diameter
+        my @discard = $info->{coords}->apparent();
+        $plan_rad = $info->{coords}->diam->arcsec / 2;
       }
 
       $info->{scaleFactor} = max( $half_beam, $plan_rad );
@@ -561,9 +561,9 @@ sub handle_special_modes {
       print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
       print {$self->outhdl} "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
       if ($info->{disableNonTracking}) {
-	print {$self->outhdl} "\tPointing on a single receptor\n";
+        print {$self->outhdl} "\tPointing on a single receptor\n";
       } else {
-	print {$self->outhdl} "\tAll receptors active\n";
+        print {$self->outhdl} "\tAll receptors active\n";
       }
       print {$self->outhdl} "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
     }
@@ -624,7 +624,7 @@ sub handle_special_modes {
     # If HARP is the jiggle pattern then we need to set scaleFactor to 1
     if ($info->{jigglePattern} =~ /^HARP/) {
       $info->{scaleFactor} = 1; # HARP pattern is fully sampled
-#      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
+      #      $info->{jiggleSystem} = "FPLANE"; # in focal plane coordinates...
     }
   }
 
@@ -660,7 +660,7 @@ sub obs_summary {
 
   $obs->mapping_mode( $info{mapping_mode} );
   $obs->switching_mode( defined $info{switching_mode} 
-			? $info{switching_mode} : 'none' );
+                        ? $info{switching_mode} : 'none' );
   $obs->type( $info{obs_type} );
 
   $cfg->obs_summary( $obs );
@@ -728,7 +728,7 @@ sub tcs_config {
 
     # offset
     my $offset = new Astro::Coords::Offset( $chop_x, $chop_y,
-					    system => $chop{SYSTEM} );
+                                            system => $chop{SYSTEM} );
 
     $ref->offset( $offset );
 
@@ -786,7 +786,7 @@ sub tcs_base {
   # Mandatory for raster/chop too
   throw OMP::Error::TranslateFail("No reference position defined for raster/chop observation (needed for CAL)")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/
-       && $info{mapping_mode} =~ /raster/);
+        && $info{mapping_mode} =~ /raster/);
 
 
   # and augment with the SCIENCE tag
@@ -802,7 +802,7 @@ sub tcs_base {
     for my $t (keys %tags) {
       my $c = $tags{$t}{coords};
       if ($c->can( "set_vel_pars")) {
-	$c->set_vel_pars( @vover );
+        $c->set_vel_pars( @vover );
       }
     }
   }
@@ -815,11 +815,11 @@ sub tcs_base {
     $b->coords( $tags{$t}->{coords} );
 
     if (exists $tags{$t}->{OFFSET_DX} ||
-	exists $tags{$t}->{OFFSET_DY} ) {
+        exists $tags{$t}->{OFFSET_DY} ) {
       my $off = new Astro::Coords::Offset( ($tags{$t}->{OFFSET_DX} || 0),
-					   ($tags{$t}->{OFFSET_DY} || 0));
+                                           ($tags{$t}->{OFFSET_DY} || 0));
       if (exists $tags{$t}->{OFFSET_SYSTEM}) {
-	$off->system( $tags{$t}->{OFFSET_SYSTEM} );
+        $off->system( $tags{$t}->{OFFSET_SYSTEM} );
       }
       $b->offset( $off );
     }
@@ -851,8 +851,8 @@ sub tcs_base {
       my $off = new Astro::Coords::Offset( @offsets, system => "J2000", projection => "TAN" );
       $ref->offset( $off );
       print {$self->outhdl} "Converting absolute REFERENCE position to offset from SCIENCE of (".
-	sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n"
-	  if $self->verbose;
+        sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n"
+          if $self->verbose;
 
     }
   }
@@ -935,7 +935,7 @@ sub observing_area {
     # Map specification
     $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
     $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
-		  WIDTH => $info{MAP_WIDTH});
+                  WIDTH => $info{MAP_WIDTH});
 
     # The scan position angle is either supplied or automatic
     # if it is not supplied we currently have to give the TCS a hint
@@ -947,7 +947,7 @@ sub observing_area {
       # receiver then all 4 angles can be used. Else the scan is constrained to the X direction
       my @mults = (1,3); # 0, 2 aligns with height, 1, 3 aligns with width
       if ( $frontend =~ /harp/i || ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
-	@mults = (0..3);
+        @mults = (0..3);
       }
       @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
     }
@@ -957,10 +957,10 @@ sub observing_area {
 
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
-	       DY => $info{SCAN_DY},
-	       SYSTEM => $info{SCAN_SYSTEM},
-	       PA => \@scanpas,
-	     );
+               DY => $info{SCAN_DY},
+               SYSTEM => $info{SCAN_SYSTEM},
+               PA => \@scanpas,
+             );
 
     # N.B. The PTCS has now been modified to default to the
     # scan values below as per the DTD spec. so there is no need
@@ -976,7 +976,7 @@ sub observing_area {
     ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
 
     my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
-					 system => 'TRACKING' );
+                                         system => 'TRACKING' );
 
     $oa->offsets( $off );
   } else {
@@ -986,9 +986,9 @@ sub observing_area {
       @offsets = @{ $info{offsets} };
     } else {
       @offsets = ( { OFFSET_DX => ($info{OFFSET_DX} || 0),
-		     OFFSET_DY => ($info{OFFSET_DY} || 0),
-		     OFFSET_PA => ($info{OFFSET_PA} || 0),
-		   } );
+                     OFFSET_DY => ($info{OFFSET_DY} || 0),
+                     OFFSET_PA => ($info{OFFSET_PA} || 0),
+                   } );
     }
 
     my $refpa = ($offsets[0]->{OFFSET_PA} || 0);
@@ -1000,11 +1000,11 @@ sub observing_area {
 
     # Now convert them to Astro::Coords::Offset objects
     my @out = map { new Astro::Coords::Offset( $_->{OFFSET_DX},
-					       $_->{OFFSET_DY},
-					       projection => 'TAN',
-					       system => 'TRACKING'
-					     )
-		  } @offsets;
+                                               $_->{OFFSET_DY},
+                                               projection => 'TAN',
+                                               system => 'TRACKING'
+                                             )
+                  } @offsets;
 
     # store them in the observing area
     $oa->offsets( @out );
@@ -1042,12 +1042,12 @@ sub secondary_mirror {
   if ($sw_mode eq 'chop') {
     throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
       unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
-	      defined $info{CHOP_SYSTEM} );
+              defined $info{CHOP_SYSTEM} );
 
     $smu->chop( THROW => $info{CHOP_THROW},
-		PA => new Astro::Coords::Angle( $info{CHOP_PA}, units => 'deg' ),
-		SYSTEM => $info{CHOP_SYSTEM},
-	      );
+                PA => new Astro::Coords::Angle( $info{CHOP_PA}, units => 'deg' ),
+                SYSTEM => $info{CHOP_SYSTEM},
+              );
   }
 
   # Jiggling
@@ -1085,7 +1085,7 @@ sub secondary_mirror {
 
     # Let's say this is maximum time between chops in seconds
     my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
-					 ($info{continuumMode} ? "_cont" :""));
+                                              ($info{continuumMode} ? "_cont" :""));
 
     # Now calculate the number of steps in that time period
     my $maxsteps = int( $tmax_per_chop / $rts );
@@ -1102,23 +1102,23 @@ sub secondary_mirror {
       # now work out how many evenly spaced jiggles we can fit into this period
       my $njigs;
       if ($npts < $maxsteps) {
-	$njigs = $npts;
+        $njigs = $npts;
       } else {
-	# start at the maximum allowed and decrement until we get something that
-	# divides exactly into the total number of points. Not a very elegant
-	# approach
+        # start at the maximum allowed and decrement until we get something that
+        # divides exactly into the total number of points. Not a very elegant
+        # approach
         $njigs = $maxsteps;
 
-	$njigs-- while ($npts % $njigs != 0);
+        $njigs-- while ($npts % $njigs != 0);
       }
 
       # the number of steps in the "off" position depends on the number
       # of steps we have just completed in the "on" (but half each side).
       my ($nsteps_total, $steps_per_off) = $self->calc_jiggle_times( $npts, $njigs );
       $smu->timing( N_JIGS_ON => $njigs,
-		    N_CYC_OFF => $steps_per_off,
-		  );
-   }
+                    N_CYC_OFF => $steps_per_off,
+                  );
+    }
   }
 
 }
@@ -1164,7 +1164,7 @@ sub fe_config {
  
     # wiring file name
     my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
-				    "sideband_$instname.txt");
+                                    "sideband_$instname.txt");
 
     if (-e $file) {
       # can make a guess but make it non-fatal to be missing
@@ -1175,50 +1175,50 @@ sub fe_config {
       # that is higher than our required value and then use the value from the previous
       # line
       open my $fh, '<', $file or 
-	throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
+        throw OMP::Error::FatalError("Error opening sideband preferences file $file: $!");
 
       # Get sky frequency in GHz
       my $skyFreq = $fc{skyFrequency} / 1.0E9;
 
       # read the lines, skipping comments and if the current frequency is lower than
       # that of the line store the sideband and continue
-      $sb = ''; # make sure we read something
+      $sb = '';                 # make sure we read something
       while (defined (my $line = <$fh>) ) {
-	chomp($line);
-	$line =~ s/\#.*//;  # remove comments
-	$line =~ s/^\s*//;  # remove leading space
-	$line =~ s/\s*$//;  # remove trailing space
-	next if $line !~ /\S/;  # give up if we only have whitespace
-	my ($freq, $refsb) = split(/\s+/, $line);
-	if ($freq < $skyFreq) {
-	  $sb = $refsb;
-	} else {
-	  # freq is larger so drop out of loop
-	  last;
-	}
+        chomp($line);
+        $line =~ s/\#.*//;      # remove comments
+        $line =~ s/^\s*//;      # remove leading space
+        $line =~ s/\s*$//;      # remove trailing space
+        next if $line !~ /\S/;  # give up if we only have whitespace
+        my ($freq, $refsb) = split(/\s+/, $line);
+        if ($freq < $skyFreq) {
+          $sb = $refsb;
+        } else {
+          # freq is larger so drop out of loop
+          last;
+        }
       }
 
       close($fh) or
-	throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
+        throw OMP::Error::FatalError("Error closing sideband preferences file $file: $!");
 
       # If we have offset subsystems and we have selected LSB, we need to adjust the
       # IFs to take into account the flip. The OT always sends a USB configurtion for best
       if (lc($sb) eq 'lsb') {
-	my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
-	my @subsys = @{$fc{subsystems}};
-	for my $ss (@subsys) {
-	  my $offset = $ss->{if} - $iffreq;
-	  $ss->{if} = $iffreq - $offset;
-	}
+        my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
+        my @subsys = @{$fc{subsystems}};
+        for my $ss (@subsys) {
+          my $offset = $ss->{if} - $iffreq;
+          $ss->{if} = $iffreq - $offset;
+        }
 
       }
 
       if ($self->verbose) {
-	print {$self->outhdl} "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
+        print {$self->outhdl} "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
       }
     } else {
       if ($self->verbose) {
-	print {$self->outhdl} "No sideband helper file for $inst so assuming $sb will be acceptable\n";
+        print {$self->outhdl} "No sideband helper file for $inst so assuming $sb will be acceptable\n";
       }
     }
   }
@@ -1244,7 +1244,7 @@ sub fe_config {
       sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n";
     if (abs($offset) > 0.001) {
       print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
-	" MHz to correct for offset of first subsystem in band\n";
+        " MHz to correct for offset of first subsystem in band\n";
     }
   }
 
@@ -1322,14 +1322,14 @@ sub instrument_config {
  
   # wiring file name
   my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
-				  "instrument_$inst.ent");
+                                  "instrument_$inst.ent");
   throw OMP::Error::FatalError("$inst instrument configuration XML not found in $file !")
     unless -e $file;
 
   # Read it
   my $inst_cfg = new JAC::OCS::Config::Instrument( File => $file,
-						   validation => 0,
-						 );
+                                                   validation => 0,
+                                                 );
 
   # tweak the wavelength
   $inst_cfg->wavelength( $info{wavelength} );
@@ -1415,7 +1415,7 @@ sub rotator_config {
   throw OMP::Error::FatalError('for some reason instrument setup is not available. This can not happen') unless defined $inst;
 
   return if (defined $inst->focal_station && 
-	     $inst->focal_station !~ /NASMYTH/);
+             $inst->focal_station !~ /NASMYTH/);
 
   # get the tcs
   my $tcs = $cfg->tcs();
@@ -1440,7 +1440,7 @@ sub rotator_config {
   # Finally, for some specialist Stare HARP observations we need to rotate the K mirror
   # separately.
   my $scan_adj = 0;
-  my @choices = (0..3); # four fold symmetry
+  my @choices = (0..3);         # four fold symmetry
   if ($inst->name =~ /HARP/) {
     # need the TCS information
     my $tcs = $cfg->tcs();
@@ -1477,14 +1477,14 @@ sub rotator_config {
   my %angles = map { $_, undef } @angles;
 
   my @pas = map { new Astro::Coords::Angle( $pa->degrees + $_,
-					    units => 'degrees',
-					    range => "2PI") } keys %angles;
+                                            units => 'degrees',
+                                            range => "2PI") } keys %angles;
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => 'LONGEST_TRACK',
-		 SYSTEM => $system,
-		 PA => \@pas,
-	       );
+                 SYSTEM => $system,
+                 PA => \@pas,
+               );
 }
 
 =item B<header_config>
@@ -1503,15 +1503,15 @@ sub header_config {
 
   my $file = File::Spec->catfile( $WIRE_DIR, 'header','headers.ent' );
   my $hdr = new JAC::OCS::Config::Header( validation => 0,
-					  File => $file );
+                                          File => $file );
 
   # Get all the items that we are to be processed by the translator
   my @items = $hdr->item( sub { 
-			    defined $_[0]->source
-			     &&  $_[0]->source eq 'DERIVED'
-			       && defined $_[0]->task
-				 && $_[0]->task eq 'TRANSLATOR'
-				} );
+                            defined $_[0]->source
+                              &&  $_[0]->source eq 'DERIVED'
+                                && defined $_[0]->task
+                                  && $_[0]->task eq 'TRANSLATOR'
+                                } );
 
   # Set verbosity level and handles
   $OMP::Translator::ACSIS::Header::VERBOSE = $self->verbose;
@@ -1524,10 +1524,10 @@ sub header_config {
     if ($pkg->can( $method ) ) {
       my $val = $pkg->$method( $cfg, %info );
       if (defined $val) {
-	$i->value( $val );
-	$i->source( undef ); # clear derived status
+        $i->value( $val );
+        $i->source( undef );    # clear derived status
       } else {
-	throw OMP::Error::FatalError( "Method $method for keyword ". $i->keyword ." resulted in an undefined value");
+        throw OMP::Error::FatalError( "Method $method for keyword ". $i->keyword ." resulted in an undefined value");
       }
     } else {
       throw OMP::Error::FatalError( "Method $method can not be invoked in package $pkg for header item ". $i->keyword);
@@ -1565,10 +1565,10 @@ sub header_config {
       my $item = $hdr->item( $line );
 
       if (defined $item) {
-	# force undef
-	$item->undefine;
+        # force undef
+        $item->undefine;
       } else {
-	print {$self->outhdl} "\tAsked to exclude header card '$line' but it is not part of the header\n";
+        print {$self->outhdl} "\tAsked to exclude header card '$line' but it is not part of the header\n";
       }
 
     }
@@ -1603,12 +1603,12 @@ sub rts_config {
   # the RTS information is read from a wiring file
   # indexed by observing mode
   my $file = File::Spec->catfile( $WIRE_DIR, 'rts',
-				  $obsmode .".xml");
+                                  $obsmode .".xml");
   throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
     unless -e $file;
 
   my $rts = new JAC::OCS::Config::RTS( File => $file,
-				       validation => 0);
+                                       validation => 0);
 
   $cfg->rts( $rts );
 
@@ -1700,15 +1700,15 @@ sub jos_config {
   # need to determine recipe name
   # use hash indexed by observing mode
   my %JOSREC = (
-		focus       => 'focus',
-		pointing    => 'pointing',
-		jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
-		jiggle_chop => 'jiggle_chop',
-		jiggle_pssw => 'grid_pssw',
-		grid_chop   => 'jiggle_chop',
-		grid_pssw   => ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
-		raster_pssw => 'raster_pssw',
-	       );
+                focus       => 'focus',
+                pointing    => 'pointing',
+                jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
+                jiggle_chop => 'jiggle_chop',
+                jiggle_pssw => 'grid_pssw',
+                grid_chop   => 'jiggle_chop',
+                grid_pssw   => ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
+                raster_pssw => 'raster_pssw',
+               );
   if (exists $JOSREC{$info{obs_type}}) {
     $jos->recipe( $JOSREC{$info{obs_type}} );
   } elsif (exists $JOSREC{$info{observing_mode}}) {
@@ -1763,7 +1763,7 @@ sub jos_config {
 
     throw OMP::Error::TranslateFail( "Requested integration time (secsPerJiggle) is 0")
       if (!exists $info{secsPerJiggle} || !defined $info{secsPerJiggle} ||
-	  $info{secsPerJiggle} <= 0);
+          $info{secsPerJiggle} <= 0);
 
     # We need to calculate the number of full patterns per nod and the number
     # of nod sets. A nod set can either be an "A B" combination or a full
@@ -1788,8 +1788,8 @@ sub jos_config {
     # Now calculate the total time for 1 full coverage of the jiggle pattern
     # We can either jiggle+chop or chop+jiggle. Unfortunately chop_jiggle is not a mode.
 
-    my $njig_chunks = 1; # Number of chunks to break pattern into
-    my $nsteps = 0; # Number of steps in ON + OFF
+    my $njig_chunks = 1;      # Number of chunks to break pattern into
+    my $nsteps = 0;           # Number of steps in ON + OFF
     if (defined $timing{N_JIGS_ON}) {
 
       # We need the N_JIGS_ON and N_CYC_OFF here because the more we chop the more inefficient
@@ -1822,7 +1822,7 @@ sub jos_config {
 
     # now get the max time between nods
     my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods'.
-					 ($info{continuumMode} ? "_cont" :""));
+                                          ($info{continuumMode} ? "_cont" :""));
 
     # and convert that to the max number of jiggle repeats per nod
     my $max_jos_mult = max(1, int( $max_t_nod / $timePerJig ));
@@ -1847,9 +1847,9 @@ sub jos_config {
     if ($self->verbose) {
       print {$self->outhdl} "Jiggle with chop JOS parameters:\n";
       if (defined $timing{CHOPS_PER_JIG}) {
-	print {$self->outhdl} "\tChopping then Jiggling\n";
+        print {$self->outhdl} "\tChopping then Jiggling\n";
       } else {
-	print {$self->outhdl} "\tJiggling then Chopping\n";
+        print {$self->outhdl} "\tJiggling then Chopping\n";
       }
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print {$self->outhdl} "\tOffs are ".($info{separateOffs} ? "not " : "") . "shared\n";
@@ -1860,16 +1860,16 @@ sub jos_config {
       print {$self->outhdl} "\tMax allowed JOS_MULT : $max_jos_mult\n";
       print {$self->outhdl} "\tActual JOS_MULT : $jos_mult\n";
       print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
-	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
+        ($nod_set_size == 2 ? "AB" : "ABBA").")\n";
       print {$self->outhdl} "\tActual integration time per jiggle position: ".
-	($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n";
+        ($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
 
     throw OMP::Error::TranslateFail( "Requested integration time (secsPerCycle) is 0")
       if (!exists $info{secsPerCycle} || !defined $info{secsPerCycle} ||
-	  $info{secsPerCycle} <= 0);
+          $info{secsPerCycle} <= 0);
 
     # Similar to a jiggle_chop recipe (in fact they are the same) but
     # we are not jiggling (ie a single jiggle point at the origin)
@@ -1886,7 +1886,7 @@ sub jos_config {
 
     # Max time between nods
     my $max_t_nod = OMP::Config->getData( 'acsis_translator.max_time_between_nods'.
-					 ($info{continuumMode} ? "_cont" :""));
+                                          ($info{continuumMode} ? "_cont" :""));
 
     # converted to steps
     my $max_steps_nod = ceil( $max_t_nod / $jos->step_time );
@@ -1914,9 +1914,9 @@ sub jos_config {
       print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
       print {$self->outhdl} "\tMax allowed JOS_MULT : $max_steps_nod\n";
       print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
-	($nod_set_size == 2 ? "AB" : "ABBA").")\n";
+        ($nod_set_size == 2 ? "AB" : "ABBA").")\n";
       print {$self->outhdl} "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time 
-							 * $jos->num_cycles) . " sec\n";
+                                                                          * $jos->num_cycles) . " sec\n";
     }
 
   } elsif ($info{observing_mode} =~ /grid/) {
@@ -1928,7 +1928,7 @@ sub jos_config {
 
     throw OMP::Error::TranslateFail( "Requested integration time (secsPerCycle) is 0")
       if (!exists $info{secsPerCycle} || !defined $info{secsPerCycle} ||
-	  $info{secsPerCycle} <= 0);
+          $info{secsPerCycle} <= 0);
 
     # However, we need to re-calculate all to take max_time_between_refs
     # ($refgap) into regard. Basically NUM_CYCLES need to be based on
@@ -1969,7 +1969,7 @@ sub jos_config {
     # This is the number of samples on each grid position
     # so = secsPerCycle / STEP_TIME
     $jos_min = ceil($total_time/$nwplate/$num_cycles/ $self->step_time( $cfg, %info ))
-      unless defined $jos_min; # pol override
+      unless defined $jos_min;  # pol override
     $jos->jos_min($jos_min);
 
     # Recalculate cal time for pol step and integrate to take into account a new
@@ -1988,7 +1988,7 @@ sub jos_config {
     # querying the TCS object and obsArea.
     my $Noffsets = 1;
     $Noffsets = scalar(@{$info{offsets}}) if (exists $info{offsets} &&
-					      defined $info{offsets});
+                                              defined $info{offsets});
 
     # For a simple GRID/PSSW observation we ignore separateOffs from user
     # if there is only one offset position or if the JOS can only observe
@@ -2000,11 +2000,11 @@ sub jos_config {
     my $separateOffs = $info{separateOffs};
     if (!$self->is_pol_spin(%info)) {
       if ( $jos_min > ($jos->steps_btwn_refs()/2)) {
-	# can only fit in a single JOS_MIN in steps_btwn refs so separate offs
-	$separateOffs = 1;
+        # can only fit in a single JOS_MIN in steps_btwn refs so separate offs
+        $separateOffs = 1;
       } elsif ($Noffsets == 1) {
-	# 1 sky position so we prefer not to share so that we can see all the spectra
-	$separateOffs = 1;
+        # 1 sky position so we prefer not to share so that we can see all the spectra
+        $separateOffs = 1;
       }
     }
     $jos->shareoff( $separateOffs ? 0 : 1 );
@@ -2016,7 +2016,7 @@ sub jos_config {
       print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
       print {$self->outhdl} "\tNumber of steps per on: $jos_min\n";
       if ($num_cycles > 1 && $recalc) {
-	print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
+        print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       }
       if ($recalc_cal_gap) {
         print {$self->outhdl} "\tSteps between cals recalculated to be ".$jos->steps_btwn_cals."\n";
@@ -2032,7 +2032,7 @@ sub jos_config {
 
     throw OMP::Error::TranslateFail( "Requested integration time (secsPerJiggle) is 0")
       if (!exists $info{secsPerJiggle} || !defined $info{secsPerJiggle} ||
-	  $info{secsPerJiggle} <= 0);
+          $info{secsPerJiggle} <= 0);
 
     # Get the full jigle parameters from the secondary object
     my $jig = $self->get_jiggle( $cfg );
@@ -2044,7 +2044,7 @@ sub jos_config {
 
     # Number of times we can go round in the time between refs
     my $times_round_pattern_per_seq = min($total_steps_per_jigpos,
-					  max(1, int( $jos->steps_btwn_refs / $jig->npts )));
+                                          max(1, int( $jos->steps_btwn_refs / $jig->npts )));
 
     # number of repeats (cycles)
     my $num_cycles = POSIX::ceil($total_steps_per_jigpos / $times_round_pattern_per_seq);
@@ -2059,14 +2059,14 @@ sub jos_config {
     if ($self->verbose) {
       print {$self->outhdl} "Jiggle/PSSW JOS parameters:\n";
       print {$self->outhdl} "\tRequested integration (ON) time per position: $info{secsPerJiggle} secs ".
-	"($total_steps_per_jigpos steps)\n";
+        "($total_steps_per_jigpos steps)\n";
       print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
       print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
       print {$self->outhdl} "\tNumber of steps per on: ".$jos->jos_min."\n";
       print {$self->outhdl} "\tNumber of points in jiggle pattern: ". $jig->npts."\n";
       print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       print {$self->outhdl} "\tActual integration time per grid position: ".
-	($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
+        ($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
     }
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
@@ -2106,12 +2106,12 @@ sub jos_config {
     $jos->jos_mult($jos_mult);
     if ($self->verbose) {
       print {$self->outhdl} "JOS_MULT = $jos_mult\n";
-  }
-      my $iter_per_cal=8;
-      $jos->iter_per_cal($iter_per_cal);
+    }
+    my $iter_per_cal=8;
+    $jos->iter_per_cal($iter_per_cal);
     if ($self->verbose) {
       print {$self->outhdl} "ITER_PER_CAL = $iter_per_cal\n";
-  }
+    }
 
   } else {
     throw OMP::Error::TranslateFail("Unrecognized observing mode for JOS configuration '$info{observing_mode}'");
@@ -2198,7 +2198,7 @@ sub correlator {
       my $spw = $_; my $ncm = $subbands{$spw}->numcm;
       my @temp = $_;
       for my $i (2..$ncm) {
-	push(@temp, $spw);
+        push(@temp, $spw);
       }
       @temp;
     } @spwids;
@@ -2236,32 +2236,32 @@ sub correlator {
 
       # hardware mapping to spectral window ID
       my %map = (
-		 CM_ID => $cmid,
-		 DCM_ID => $dcmid,
-		 RECEPTOR => $r,
-		 SPW_ID => $spwid,
-		);
+                 CM_ID => $cmid,
+                 DCM_ID => $dcmid,
+                 RECEPTOR => $r,
+                 SPW_ID => $spwid,
+                );
 
       $cm_map[$cmid] = \%map;
 
       # Quadrant mapping to subband mode is fixed by the hardware map
       if (defined $sbmodes[$quadnum]) {
-	if ($sbmodes[$quadnum] != $sbmode) {
-	  throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
-	}
+        if ($sbmodes[$quadnum] != $sbmode) {
+          throw OMP::Error::FatalError("Subband mode for quadrant $quadnum does not match previous setting\n");
+        }
       } else {
-	$sbmodes[$quadnum] = $sbmode;
+        $sbmodes[$quadnum] = $sbmode;
       }
 
       # Convert lo2id to an array index
       $lo2id--;
 
       if (defined $lo2spw[$lo2id]) {
-	if ($lo2spw[$lo2id] ne $spwid) {
-	  throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
-	}
+        if ($lo2spw[$lo2id] ne $spwid) {
+          throw OMP::Error::FatalError("LO2 #$lo2id is associated with spectral windows $spwid AND $lo2spw[$lo2id]\n");
+        }
       } else {
-	$lo2spw[$lo2id] = $spwid;
+        $lo2spw[$lo2id] = $spwid;
       }
 
     }
@@ -2333,11 +2333,11 @@ sub line_list {
   # Get the frequency information
   my $freq = $info{freqconfig}->{subsystems};
   my %lines;
-  my $counter = 1; # used when a duplicate label is in use
+  my $counter = 1;             # used when a duplicate label is in use
   for my $s ( @$freq ) {
     my $key = JAC::OCS::Config::ACSIS::LineList->moltrans2key( $s->{species},
-							       $s->{transition}
-							     );
+                                                               $s->{transition}
+                                                             );
     my $freq = $s->{rest_freq};
 
     # have we used this before?
@@ -2346,9 +2346,9 @@ sub line_list {
       # object but we still need to associate with the subsystem. If the rest frequency
       # differs we need to tweak the key to make it unique.
       if ($lines{$key}->restfreq != $freq) {
-	# Tweak the key
-	$key .= "_$counter";
-	$counter++;
+        # Tweak the key
+        $key .= "_$counter";
+        $counter++;
       }
     }
 
@@ -2360,8 +2360,8 @@ sub line_list {
 
     # store the new value
     $lines{$key} = new JAC::OCS::Config::ACSIS::Line( RestFreq => $freq,
-						    Molecule => $s->{species},
-						    Transition => $s->{transition});
+                                                      Molecule => $s->{species},
+                                                      Transition => $s->{transition});
   }
 
   # Create the line list object
@@ -2421,8 +2421,8 @@ sub spw_list {
   %dr = %{ $info{data_reduction} } if exists $info{data_reduction};
   if (!keys %dr) {
     %dr = ( window_type => 'truncate',
-	    fit_polynomial_order => $defaultPoly,
-	  ); # defaults
+            fit_polynomial_order => $defaultPoly,
+          );                    # defaults
   } else {
     $dr{window_type} ||= 'truncate';
     $dr{fit_polynomial_order} ||= $defaultPoly;
@@ -2441,9 +2441,9 @@ sub spw_list {
     if (ref($dr{baseline})) {
       # array of OMP::Range objects
       @baselines = map { new JAC::OCS::Config::Interval( Min => $_->min,
-							 Max => $_->max,
-							 Units => $_->units); 
-		       } @{$dr{baseline}};
+                                                         Max => $_->max,
+                                                         Units => $_->units); 
+                       } @{$dr{baseline}};
     } else {
       # scalar fraction implies two baseline regions
       $frac = $dr{baseline};
@@ -2463,17 +2463,17 @@ sub spw_list {
     $spw->rest_freq_ref( $ss->{rest_freq_ref});
     $spw->fe_sideband( $fe_sign );
     $spw->baseline_fit( function => "polynomial",
-			degree => $dr{fit_polynomial_order}
-		      ) if exists $dr{fit_polynomial_order};
+                        degree => $dr{fit_polynomial_order}
+                      ) if exists $dr{fit_polynomial_order};
 
     # Create an array of IF objects suitable for use in the spectral
     # window object(s). The ref channel and the if freq are per-sideband
     my @ifcoords = map { 
       new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if_per_subband}->[$_],
-					    nchannels => $ss->{nchan_per_sub},
-					    channel_width => $ss->{channwidth},
-					    ref_channel => $ss->{if_ref_channel}->[$_],
-					  )
+                                            nchannels => $ss->{nchan_per_sub},
+                                            channel_width => $ss->{channwidth},
+                                            ref_channel => $ss->{if_ref_channel}->[$_],
+                                          )
     } (0..($ss->{nsubbands}-1));
 
     # Counting for hybridized spectra still assumes the original number
@@ -2501,14 +2501,14 @@ sub spw_list {
       my $offset = $nchop + $nedge;
 
       @baselines = (
-	   new JAC::OCS::Config::Interval( Units => 'pixel',
-					   Min => $offset, 
-					   Max => ($nchan_bl+$offset)),
-	   new JAC::OCS::Config::Interval( Units => 'pixel',
-					   Min => ($nchan_full 
-						   - $offset - $nchan_bl),
-					   Max => ($nchan_full-$offset)),
-	  );
+                    new JAC::OCS::Config::Interval( Units => 'pixel',
+                                                    Min => $offset, 
+                                                    Max => ($nchan_bl+$offset)),
+                    new JAC::OCS::Config::Interval( Units => 'pixel',
+                                                    Min => ($nchan_full 
+                                                            - $offset - $nchan_bl),
+                                                    Max => ($nchan_full-$offset)),
+                   );
     }
     $spw->baseline_region( @baselines ) if @baselines;
 
@@ -2516,8 +2516,8 @@ sub spw_list {
     # This will be ignored in subbands
     if ($info{obs_type} ne 'science') {
       $spw->line_region( new JAC::OCS::Config::Interval( Units => 'pixel',
-							 Min => 0,
-							 Max => ($ss->{nchannels_full}-1 ) ));
+                                                         Min => 0,
+                                                         Max => ($ss->{nchannels_full}-1 ) ));
     }
 
 
@@ -2533,17 +2533,17 @@ sub spw_list {
       my %hybrid;
       my $sbcount = 1;
       for my $i (0..$#ifcoords) {
-	my $sp = new JAC::OCS::Config::ACSIS::SpectralWindow;
-	$sp->bandwidth_mode( $ss->{bwmode} );
-	$sp->if_coordinate( $ifcoords[$i] );
-	$sp->fe_sideband( $fe_sign );
-	$sp->align_shift( $ss->{align_shift}->[$i] );
-	$sp->rest_freq_ref( $ss->{rest_freq_ref});
-	$sp->window( $dr{window_type} );
-	my $id = "SPW". $spwcount . "." . $sbcount;
-	$hybrid{$id} = $sp;
-	$lo2spw{$id} = $ss->{lo2}->[$i];
-	$sbcount++;
+        my $sp = new JAC::OCS::Config::ACSIS::SpectralWindow;
+        $sp->bandwidth_mode( $ss->{bwmode} );
+        $sp->if_coordinate( $ifcoords[$i] );
+        $sp->fe_sideband( $fe_sign );
+        $sp->align_shift( $ss->{align_shift}->[$i] );
+        $sp->rest_freq_ref( $ss->{rest_freq_ref});
+        $sp->window( $dr{window_type} );
+        my $id = "SPW". $spwcount . "." . $sbcount;
+        $hybrid{$id} = $sp;
+        $lo2spw{$id} = $ss->{lo2}->[$i];
+        $sbcount++;
       }
 
       # Store the subbands
@@ -2553,9 +2553,9 @@ sub spw_list {
       # this does not take overlap into account but does take the if of the first subband
       # rather than the centre IF
       my $if = new JAC::OCS::Config::ACSIS::IFCoord( if_freq => $ss->{if_per_subband}->[0],
-						     nchannels => $ss->{nchannels_full},
-						     channel_width => $ss->{channwidth},
-						     ref_channel => ($ss->{nchannels_full}/2));
+                                                     nchannels => $ss->{nchannels_full},
+                                                     channel_width => $ss->{channwidth},
+                                                     ref_channel => ($ss->{nchannels_full}/2));
       $spw->if_coordinate( $if );
 
     } else {
@@ -2585,9 +2585,9 @@ sub spw_list {
   # Store the data fiels. Just assume these are okay but probably need a template 
   # file
   $spwlist->data_fields( spw_id => "SPEC_WINDOW_ID",
-			 doppler => 'FE.STATE.DOPPLER',
-			 fe_lo => 'FE.STATE.LO_FREQUENCY'
-		       );
+                         doppler => 'FE.STATE.DOPPLER',
+                         fe_lo => 'FE.STATE.LO_FREQUENCY'
+                       );
 
   # Store it
   $acsis->spw_list( $spwlist );
@@ -2634,7 +2634,7 @@ sub acsisdr_recipe {
       my $smu_mode = $secondary->smu_mode;
 
       if ($smu_mode eq 'chop' || $smu_mode eq 'chop_jiggle') {
-	$obsmode = 'chop_jiggle';
+        $obsmode = 'chop_jiggle';
       }
 
     }
@@ -2658,26 +2658,26 @@ sub acsisdr_recipe {
 
   # Read the recipe itself
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
-						       validation => 0);
+                                                       validation => 0);
   $acsis->red_config_list( $dr );
   print {$self->outhdl} "Read ACSIS DR recipe from '$filename'\n" if $self->verbose;
 
   # and now the mapping that is also recipe specific
   my $sl = new JAC::OCS::Config::ACSIS::SemanticLinks( EntityFile => $filename,
-						       validation => 0);
+                                                       validation => 0);
   $acsis->semantic_links( $sl );
 
   # and the basic gridder configuration
   my $g = new JAC::OCS::Config::ACSIS::GridderConfig( EntityFile => $filename,
-						      validation => 0,
-						    );
+                                                      validation => 0,
+                                                    );
   $acsis->gridder_config( $g );
 
   # and the basic gridder and spectrum writer configuration (optional)
   try {
     my $sw = new JAC::OCS::Config::ACSIS::SWriterConfig( EntityFile => $filename,
-							 validation => 0,
-						       );
+                                                         validation => 0,
+                                                       );
     $acsis->swriter_config( $sw ) if defined $sw;
   } catch JAC::OCS::Config::Error::XMLConfigMissing with {
     # can be ignored
@@ -2728,29 +2728,29 @@ sub cubes {
   if (defined $apoff) {
     if ($apoff->system eq 'FPLANE') {
       throw OMP::Error::TranslateFail("Non-zero position angle for focal plane offset is unexpected\n")
-	if $apoff->posang->radians != 0.0;
+        if $apoff->posang->radians != 0.0;
 
       for my $pos (@footprint_h) {
-	$pos->{OFFSET_DX} -= $apoff->xoffset->arcsec;
-	$pos->{OFFSET_DY} -= $apoff->yoffset->arcsec;
+        $pos->{OFFSET_DX} -= $apoff->xoffset->arcsec;
+        $pos->{OFFSET_DY} -= $apoff->yoffset->arcsec;
       }
 
       if ($inst->name =~ /HARP/) {
-	# Now rotate these coordinates by multiples of 90 deg to take
-	# into account uncertainty of image rotator orientation and
-	# merge them with the original set (duplicate positions don't
-	# matter). We need 90 deg for edge receptors and 180 for corner receptors.
-	for my $ang ( 90, 180, 270 ) {
-	  my @rot_h = map {
-	    my %temp = %$_;
-	    ($temp{OFFSET_DX}, $temp{OFFSET_DY}) = $self->PosAngRot( $temp{OFFSET_DX},
-								     $temp{OFFSET_DY},
-								     $ang);
-	    \%temp;
-	  } @footprint_h;
+        # Now rotate these coordinates by multiples of 90 deg to take
+        # into account uncertainty of image rotator orientation and
+        # merge them with the original set (duplicate positions don't
+        # matter). We need 90 deg for edge receptors and 180 for corner receptors.
+        for my $ang ( 90, 180, 270 ) {
+          my @rot_h = map {
+            my %temp = %$_;
+            ($temp{OFFSET_DX}, $temp{OFFSET_DY}) = $self->PosAngRot( $temp{OFFSET_DX},
+                                                                     $temp{OFFSET_DY},
+                                                                     $ang);
+            \%temp;
+          } @footprint_h;
 
-	  push(@footprint_h, @rot_h);
-	}
+          push(@footprint_h, @rot_h);
+        }
       }
 
     } else {
@@ -2796,7 +2796,7 @@ sub cubes {
 
     # Data source
     throw OMP::Error::FatalError( "Spectral window ID not defined. Internal inconsistency")
-       unless defined $ss->{spw};
+      unless defined $ss->{spw};
     $cube->spw_id( $ss->{spw} );
 
     # Tangent point (aka group centre) is the base position without offsets
@@ -2831,13 +2831,13 @@ sub cubes {
       # between scan rows. For HARP we probably want to be clever but for
       # now choose the pixel size to be the x pixel size.
       if ($inst->name =~ /HARP/) {
-	$ysiz = $xsiz;
+        $ysiz = $xsiz;
       } else {
-	$ysiz = $info{SCAN_DY};
+        $ysiz = $info{SCAN_DY};
       }
 
       # read the map position angle
-      $mappa = $info{MAP_PA}; # degrees
+      $mappa = $info{MAP_PA};   # degrees
 
       # Requested map area must include room for overscan from the instrument
       # footprint. Be pessimistic since we can not know how the telescope will
@@ -2859,7 +2859,7 @@ sub cubes {
       # if it is meant to be in the coordinate frame of the map
       # for now rotate to ra/dec.
       if ($info{OFFSET_PA} != 0) {
-	($offx, $offy) = $self->PosAngRot( $offx, $offy, $info{OFFSET_PA});
+        ($offx, $offy) = $self->PosAngRot( $offx, $offy, $info{OFFSET_PA});
       }
 
     } elsif ($info{mapping_mode} =~ /grid/i) {
@@ -2869,7 +2869,7 @@ sub cubes {
 
       # Should fix up earlier code to add SYSTEM
       for (@offsets) {
-	$_->{SYSTEM} = "TRACKING";
+        $_->{SYSTEM} = "TRACKING";
       }
 
       # Now convolve these offsets with the instrument footprint
@@ -2877,7 +2877,7 @@ sub cubes {
 
       # Now calculate the final grid
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
-									 @convolved );
+                                                                         @convolved );
 
     } elsif ($info{mapping_mode} =~ /jiggle/i) {
       # Need to know:
@@ -2896,16 +2896,17 @@ sub cubes {
 
       # Get the map offsets
       my @offsets = map { { OFFSET_DX => $_->[0],
-			    OFFSET_DY => $_->[1],
-			    OFFSET_PA => $pa,
-		        } } $jig->spattern;
+                              OFFSET_DY => $_->[1],
+                                OFFSET_PA => $pa,
+                              }
+                        } $jig->spattern;
 
       # Convolve them with the instrument footprint
       my @convolved = $self->convolve_footprint( $matchpa, \@footprint_h, \@offsets );
 
       # calculate the pattern without a global offset
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
-									 @convolved);
+                                                                         @convolved);
 
       # get the global offset for this observation
       my $global_offx = ($info{OFFSET_DX} || 0);
@@ -2913,7 +2914,7 @@ sub cubes {
 
       # rotate those offsets to the mappa
       if ($info{OFFSET_PA} != $mappa) {
-	($global_offx, $global_offy) = $self->PosAngRot( $global_offx, $global_offy, ($info{OFFSET_PA}-$mappa));
+        ($global_offx, $global_offy) = $self->PosAngRot( $global_offx, $global_offy, ($info{OFFSET_PA}-$mappa));
       }
 
       # add any offset from the unrolled offset iterator
@@ -2936,7 +2937,7 @@ sub cubes {
 
     # Store the parameters
     $cube->pixsize( new Astro::Coords::Angle($xsiz, units => 'arcsec'),
-		    new Astro::Coords::Angle($ysiz, units => 'arcsec'));
+                    new Astro::Coords::Angle($ysiz, units => 'arcsec'));
     $cube->npix( $nx, $ny );
 
     $cube->posang( new Astro::Coords::Angle( $mappa, units => 'deg'))
@@ -2946,11 +2947,11 @@ sub cubes {
     # Focus is AZEL
     # Assume also that AZEL jiggles want AZEL maps (this includes POINTINGs)
     if ($info{obs_type} =~ /focus/i ) {
-	$cube->tcs_coord( 'AZEL' );
+      $cube->tcs_coord( 'AZEL' );
     } elsif ( (defined $info{jiggleSystem} && $info{jiggleSystem} eq 'AZEL') || 
-	      (defined $grid_coord && $grid_coord eq 'AZEL') ) {
-	# For HARP jiggleSystem is needed because grid_coord will be FPLANE
-	$cube->tcs_coord( 'AZEL' );
+              (defined $grid_coord && $grid_coord eq 'AZEL') ) {
+      # For HARP jiggleSystem is needed because grid_coord will be FPLANE
+      $cube->tcs_coord( 'AZEL' );
     } else {
       $cube->tcs_coord( 'TRACKING' );
     }
@@ -3024,8 +3025,8 @@ sub cubes {
     }
 
     my $int = new JAC::OCS::Config::Interval( Min => $minchan,
-					      Max => $maxchan,
-					      Units => 'channel');
+                                              Max => $maxchan,
+                                              Units => 'channel');
     $cube->spw_interval( $int );
 
 
@@ -3037,12 +3038,12 @@ sub cubes {
       print {$self->outhdl} "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
       print {$self->outhdl} "\tMap PA:     $mappa deg\n";
       print {$self->outhdl} "\tSpectral channels: ".($maxchan-$minchan+1).
-                            " as $int (cf ".($ss->{nchannels_full})." total)\n";
+        " as $int (cf ".($ss->{nchannels_full})." total)\n";
       print {$self->outhdl} "\tSlice size: ".($nchan_per_gridder * $npix_per_chan * 4 /
-					     (1024*1024))." MB\n";
+                                              (1024*1024))." MB\n";
       print {$self->outhdl} "\tGrid Function: $grid_func\n";
       if ( $grid_func eq 'Gaussian') {
-	print {$self->outhdl} "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
+        print {$self->outhdl} "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
       }
       print {$self->outhdl} "\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n";
     }
@@ -3105,7 +3106,7 @@ sub rtd_config {
   my $filename;
   for my $suffix ( $inst, "" ) {
     my $tryfile = File::Spec->catfile( $WIRE_DIR, 'acsis', $root. "_rtd" .
-				       ($suffix ? "_$suffix" : "") . ".ent");
+                                       ($suffix ? "_$suffix" : "") . ".ent");
     if (-e $tryfile) {
       $filename = $tryfile;
       last;
@@ -3121,7 +3122,7 @@ sub rtd_config {
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::RTDConfig( EntityFile => $filename,
-						   validation => 0);
+                                                   validation => 0);
   $acsis->rtd_config( $il );
 
 }
@@ -3149,7 +3150,7 @@ sub simulator_config {
 
   # Get the cube definition
   my $cl = $acsis->cube_list;
-    throw OMP::Error::FatalError('for some reason the ACSIS Cube List is not defined. This can not happen')
+  throw OMP::Error::FatalError('for some reason the ACSIS Cube List is not defined. This can not happen')
     unless defined $cl;
 
   # Get the spectral window definitions
@@ -3163,11 +3164,11 @@ sub simulator_config {
   my @clouds;
   for my $cube (values %cubes) {
     my %thiscloud = (
-		     position_angle => 0,
-		     pos_z_width => 300,
-		     neg_z_width => 300,
-		     amplitude => 20,
-		    );
+                     position_angle => 0,
+                     pos_z_width => 300,
+                     neg_z_width => 300,
+                     amplitude => 20,
+                    );
 
     # Spectral window is required so that we can choose a channel somewhere
     # in the middle
@@ -3243,7 +3244,7 @@ sub interface_list {
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::InterfaceList( EntityFile => $filename,
-						       validation => 0);
+                                                       validation => 0);
   $acsis->interface_list( $il );
 }
 
@@ -3310,12 +3311,12 @@ sub acsis_layout {
 
   # Create the process layout object
   my $playout = new JAC::OCS::Config::ACSIS::ProcessLayout( XML => $layout,
-							    validation => 0);
+                                                            validation => 0);
   $acsis->process_layout( $playout );
 
   # and links
   my $plinks = new JAC::OCS::Config::ACSIS::ProcessLinks( XML => $layout,
-							  validation => 0);
+                                                          validation => 0);
   $acsis->process_links( $plinks );
 
 }
@@ -3388,7 +3389,7 @@ sub observing_mode {
     $switching_mode = 'chop';
     $obs_type = 'pointing';
   } elsif ($mode eq 'SpIterFocusObs' ) {
-    $mapping_mode = 'grid'; # Just chopping at 0,0
+    $mapping_mode = 'grid';     # Just chopping at 0,0
     $switching_mode = 'chop';
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
@@ -3397,7 +3398,7 @@ sub observing_mode {
       $mapping_mode = 'grid';
       $switching_mode = 'pssw';
     } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $mapping_mode = 'grid'; # No jiggling
+      $mapping_mode = 'grid';   # No jiggling
       $switching_mode = 'chop';
     } else {
       throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
@@ -3594,19 +3595,19 @@ sub bandwidth_mode {
       my $newkey = $unique_ss;
       my $count = 1;
       while (exists $dupe_ss{$newkey}) {
-	my $if = $s->{if};
-	$if += ($count * $chanwid);
-	$newkey = $root_uniq . $if;
-	if (!exists $dupe_ss{$newkey}) {
-	  $s->{if} = $if;
-	  $dupe_ss{$newkey}++; # protect against a subsequent subsystem clashing
-	  last;
-	}
-	$count++;
+        my $if = $s->{if};
+        $if += ($count * $chanwid);
+        $newkey = $root_uniq . $if;
+        if (!exists $dupe_ss{$newkey}) {
+          $s->{if} = $if;
+          $dupe_ss{$newkey}++; # protect against a subsequent subsystem clashing
+          last;
+        }
+        $count++;
       }
       print {$self->outhdl} "\tDuplicate subsystem detected. Shifting by ".$count.
-	" channel".($count > 1 ? "s" : '')." to make unique.\n"
-	  if $self->verbose;
+        " channel".($count > 1 ? "s" : '')." to make unique.\n"
+          if $self->verbose;
     }
 
     # Currently, we determine whether we are hybridised from the
@@ -3667,8 +3668,8 @@ sub bandwidth_mode {
 
     # subband bandwidth label
     $s->{sbbwlabel} = ( $bw_per_sub < 1000 ? int($bw_per_sub). "MHz" :
-			int($bw_per_sub/1000) . "GHz"
-		      );
+                        int($bw_per_sub/1000) . "GHz"
+                      );
 
     # Store the number of subbands
     $s->{nsubbands} = $nsubband;
@@ -3684,7 +3685,7 @@ sub bandwidth_mode {
 
     # Get the bandwidth mode fixed info
     throw OMP::Error::FatalError("Bandwidth mode [".$s->{sbbwlabel}.
-				 "] not in lookup")
+                                 "] not in lookup")
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
@@ -3708,7 +3709,7 @@ sub bandwidth_mode {
     # For 1 subband just choose the middle channel.
     # For 2 subbands make sure that the reference channel in each subband
     # is the centre of the overlap region and is the same for each.
-    my @refchan; # Reference channel for each subband
+    my @refchan;                # Reference channel for each subband
 
     if ($nsubband == 1) {
       # middle usable channel
@@ -3750,8 +3751,8 @@ sub bandwidth_mode {
 
     for my $lo2 (@lo2true) {
       throw OMP::Error::TranslateFail( "Internal error in translator. LO2 is out of range (".
-				       $LO2_RANGE->min . " < $lo2 < ". $LO2_RANGE->max .")")
-	unless $LO2_RANGE->contains($lo2);
+                                       $LO2_RANGE->min . " < $lo2 < ". $LO2_RANGE->max .")")
+        unless $LO2_RANGE->contains($lo2);
     }
 
     # Now calculate the error and store this for later correction
@@ -3764,14 +3765,14 @@ sub bandwidth_mode {
     $s->{align_shift} = \@align_shift;
 
     if ($self->verbose) {
-       print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (chann)\n";
-       for my $i (0..$#lo2exact) {
-         printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
-	   $refchan[$i], $chan_offset[$i]/1E9,
-	     $lo2exact[$i]/1E9,
-	       $lo2true[$i]/1E9,
-	         $align_shift[$i];
-       }
+      print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (chann)\n";
+      for my $i (0..$#lo2exact) {
+        printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+          $refchan[$i], $chan_offset[$i]/1E9,
+            $lo2exact[$i]/1E9,
+              $lo2true[$i]/1E9,
+                $align_shift[$i];
+      }
     }
 
     # Store the reference channel for each subband
@@ -3783,30 +3784,30 @@ sub bandwidth_mode {
   my @outsubs;
   my $expand;
   for my $s (@subs) {
-      if ($s->{nsubbands} == 1) {
-	  push(@outsubs, $s);
-      } else {
-	  $expand = 1;
-	  for my $i (1..$s->{nsubbands}) {
-	      my %snew = ();
-	      # copy the data for index $i-1
-	      my $index = $i - 1;
-	      for my $k (keys %$s) {
-		  if (not ref($s->{$k})) {
-		      $snew{$k} = $s->{$k};
-		  } else {
-		      $snew{$k} = [ $s->{$k}->[$index] ];
-		  }
-	      }
-	      # fix ups
-	      $snew{nchannels_full} /= $s->{nsubbands}; 
-	      $snew{nsubbands} = 1;
-	      push(@outsubs, \%snew);
-	  }
+    if ($s->{nsubbands} == 1) {
+      push(@outsubs, $s);
+    } else {
+      $expand = 1;
+      for my $i (1..$s->{nsubbands}) {
+        my %snew = ();
+        # copy the data for index $i-1
+        my $index = $i - 1;
+        for my $k (keys %$s) {
+          if (not ref($s->{$k})) {
+            $snew{$k} = $s->{$k};
+          } else {
+            $snew{$k} = [ $s->{$k}->[$index] ];
+          }
+        }
+        # fix ups
+        $snew{nchannels_full} /= $s->{nsubbands}; 
+        $snew{nsubbands} = 1;
+        push(@outsubs, \%snew);
       }
+    }
   }
   if ($expand) {
-      @{ $info{freqconfig}->{subsystems} } = @outsubs;
+    @{ $info{freqconfig}->{subsystems} } = @outsubs;
   }
   return;
 }
@@ -3854,7 +3855,7 @@ sub step_time {
 
     # Need the time between refs
     my $refgap = OMP::Config->getData( 'acsis_translator.time_between_ref'.
-				       ($info{continuumMode} ? "_cont" :""));
+                                       ($info{continuumMode} ? "_cont" :""));
 
     # Calculate the maximum amount of time we can spend per jiggle point in that period
     my $max_time = $refgap / $jig->npts;
@@ -3895,7 +3896,7 @@ sub step_time {
       # max time is now the minimum of the chop time or the time needed to
       # complete the pattern in the nod time
       $max_time = min( $time_between_chops,
-		       $max_pattern_time / $jig->npts );
+                       $max_pattern_time / $jig->npts );
     } else {
 
       # if we are sharing offs, the amount of time in the off is sqrt(N) number
@@ -3911,7 +3912,7 @@ sub step_time {
       my $npts = $jig->npts;
       my @nchunks = ( 1 );
       for (my $i = 2; $i < POSIX::ceil($npts/2);  $i++) {
-	push(@nchunks, $i ) if $npts % $i == 0;
+        push(@nchunks, $i ) if $npts % $i == 0;
       }
 
       # Now calculate the chunk size (number of points that need to occur before
@@ -3939,25 +3940,25 @@ sub step_time {
       # Need the minimum value of the chop/nod constraint for each pattern
       my @max_time;
       for my $i (0..$#chunks) {
-	my $value = min( $max_step_from_nod[$i], $max_step_from_chop[$i]);
-	# if the value is below our threshold replace it with undef
-	$value = undef if $value < $min_time;
-	push(@max_time, $value );
+        my $value = min( $max_step_from_nod[$i], $max_step_from_chop[$i]);
+        # if the value is below our threshold replace it with undef
+        $value = undef if $value < $min_time;
+        push(@max_time, $value );
       }
 
       # Now choose the time that is smallest and defined
       # Do not use min() because we wish to know which index was chosen
       my $chosen_chunk;
       for my $i (0..$#max_time) {
-	my $this = $max_time[$i];
-	if (!defined $max_time || $max_time[$i] < $max_time) {
-	  $max_time = $max_time[$i];
-	  $chosen_chunk = $i;
-	}
+        my $this = $max_time[$i];
+        if (!defined $max_time || $max_time[$i] < $max_time) {
+          $max_time = $max_time[$i];
+          $chosen_chunk = $i;
+        }
       }
 
       throw OMP::Error::TranslateFail("Unable to choose a reasonable step time from this jiggle pattern!")
-	if !defined $max_time;
+        if !defined $max_time;
 
       # We can now tweak the step time to fit into the nod time (since it will not
       # fit exactly without doing this).
@@ -3992,20 +3993,20 @@ sub step_time {
       $step = OMP::Config->getData( 'acsis_translator.max_time_between_chops_cont' );
 
     } else {
-	# we can chop slowly but we have a lower limit
-	my $min_step = OMP::Config->getData( 'acsis_translator.step_time' );
+      # we can chop slowly but we have a lower limit
+      my $min_step = OMP::Config->getData( 'acsis_translator.step_time' );
 
-	# The required integration time is split over the nod set so our
-	# step time must be reduced by the nod set size
-	my $time_per_nod = $info{secsPerCycle} / $self->get_nod_set_size( %info );
+      # The required integration time is split over the nod set so our
+      # step time must be reduced by the nod set size
+      my $time_per_nod = $info{secsPerCycle} / $self->get_nod_set_size( %info );
 
-	# the largest value we can use is given by max_time_between_chops
-	# although in practice we decide to use a smaller number to generate spectra
-	# at a reasonable rate
-	my $max_time_per_chop = OMP::Config->getData( "acsis_translator.max_time_between_chops" );
+      # the largest value we can use is given by max_time_between_chops
+      # although in practice we decide to use a smaller number to generate spectra
+      # at a reasonable rate
+      my $max_time_per_chop = OMP::Config->getData( "acsis_translator.max_time_between_chops" );
 
-	# Calculate the step time
-	$step = $self->step_time_reduce( $time_per_nod, $max_time_per_chop, $min_step );
+      # Calculate the step time
+      $step = $self->step_time_reduce( $time_per_nod, $max_time_per_chop, $min_step );
     }
 
   } else {
@@ -4014,7 +4015,7 @@ sub step_time {
   }
 
   throw OMP::Error::TranslateFail( "Calculated step time not a positive number [was ".
-				   (defined $step ? $step : "undef")."]\n") unless $step > 0;
+                                   (defined $step ? $step : "undef")."]\n") unless $step > 0;
 
   return $step;
 }
@@ -4057,8 +4058,8 @@ sub step_time_reduce {
     for my $i (2..POSIX::ceil($max_time) ) {
       my $new = $step / $i;
       if ($new < $max_step) {
-	$step = $new;
-	last;
+        $step = $new;
+        last;
       }
     }
   }
@@ -4129,7 +4130,7 @@ sub calc_jos_times {
   $jos->steps_btwn_refs( max(1, $ref_step_gap ) );
 
   return ($jos->steps_btwn_cals * $jos->step_time,
-	  $jos->steps_btwn_refs * $jos->step_time );
+          $jos->steps_btwn_refs * $jos->step_time );
 }
 
 =item B<calc_jiggle_times>
@@ -4232,19 +4233,19 @@ sub jig_info {
 
   # Look up table for patterns
   my %jigfiles = (
-		  '1x1'  => 'smu_1x1.dat',
-		  '3x3'  => 'smu_3x3.dat',
-		  '4x4'  => 'smu_4x4.dat',
-		  'HARP4'=> 'smu_harp4.dat',
-		  'HARP5'=> 'smu_harp5.dat',
-		  'HARP4_mc'=> 'smu_harp4_mc.dat',
-		  'HARP5_mc'=> 'smu_harp5_mc.dat',
-		  '5x5'  => 'smu_5x5.dat',
-		  '7x7'  => 'smu_7x7.dat',
-		  '9x9'  => 'smu_9x9.dat',
-		  '5pt'  => 'smu_5point.dat',
+                  '1x1'  => 'smu_1x1.dat',
+                  '3x3'  => 'smu_3x3.dat',
+                  '4x4'  => 'smu_4x4.dat',
+                  'HARP4'=> 'smu_harp4.dat',
+                  'HARP5'=> 'smu_harp5.dat',
+                  'HARP4_mc'=> 'smu_harp4_mc.dat',
+                  'HARP5_mc'=> 'smu_harp5_mc.dat',
+                  '5x5'  => 'smu_5x5.dat',
+                  '7x7'  => 'smu_7x7.dat',
+                  '9x9'  => 'smu_9x9.dat',
+                  '5pt'  => 'smu_5point.dat',
                   '11x11'=> 'smu_11x11.dat',
-		 );
+                 );
 
   if (!exists $jigfiles{ $info{jigglePattern} }) {
     throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern '$info{jigglePattern}'\n");
@@ -4356,8 +4357,8 @@ sub align_offsets {
   my @out;
   for my $o (@input) {
     my ($x, $y) = $self->PosAngRot( $o->{OFFSET_DX}, $o->{OFFSET_DY},
-				    ( $refpa - $o->{OFFSET_PA})
-				  );
+                                    ( $refpa - $o->{OFFSET_PA})
+                                  );
     push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa });
   }
   return @out;
@@ -4563,13 +4564,13 @@ sub calc_grid {
 
   # default to single position at the origin
   @offsets = ( { OFFSET_PA => 0,
-		 OFFSET_DX => 0,
-		 OFFSET_DY => 0,
-	       }) unless @offsets;
+                 OFFSET_DX => 0,
+                 OFFSET_DY => 0,
+               }) unless @offsets;
 
   # Abort if we do not require a proper grid
   return (1,1, $nyquist, $nyquist,$offsets[0]->{OFFSET_PA},
-	  $offsets[0]->{OFFSET_DX}, $offsets[0]->{OFFSET_DY}) if $FAST;
+          $offsets[0]->{OFFSET_DX}, $offsets[0]->{OFFSET_DY}) if $FAST;
 
   # Rotate to fixed coordinate frame
   my $refpa = $offsets[0]->{OFFSET_PA};
@@ -4660,8 +4661,8 @@ sub _calc_offset_stats {
   # Store the reference and try to adjust it until we find a match
   # or until the trial is smaller than the tolerance
   my $reftrial = $trial;
-  my $mod = 2; # trial modifier
-  OUTER: while ($trial > $tol) {
+  my $mod = 2;                  # trial modifier
+ OUTER: while ($trial > $tol) {
 
     # Calculate the tolerance in units of trial pixels
     my $tolpix = $tol / $trial;
@@ -4680,12 +4681,12 @@ sub _calc_offset_stats {
 
       # Now compare this with the tolerance in units of pixels
       if ($pixerr > $tol) {
-	# This trial did not work. Calculate a new one by dividing
-	# original by an increasing factor (which will stop when we hit
-	# the tolerance)
-	$trial = $reftrial / $mod;
-	$mod++;
-	next OUTER;
+        # This trial did not work. Calculate a new one by dividing
+        # original by an increasing factor (which will stop when we hit
+        # the tolerance)
+        $trial = $reftrial / $mod;
+        $mod++;
+        next OUTER;
       }
     }
 
@@ -4713,10 +4714,10 @@ sub _calc_offset_stats {
   my $lowest_rms;
 
   # Start the grid from the lower end (the only point we know about)
-  my $range = 1.0; # arcsec
+  my $range = 1.0;              # arcsec
 
   # amount to adjust pixel size
-  my $pixrange = 1.0; # arcsec
+  my $pixrange = 1.0;           # arcsec
 
   for (my $pixtweak = -$pixrange; $pixtweak <= $pixrange; $pixtweak += 0.05 ) {
 
@@ -4728,91 +4729,88 @@ sub _calc_offset_stats {
 
       my @grid = map { $trialref + ($_*$spacing) }  (0 .. ($npix-1) );
 
-#      print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
+      #      print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
 
       # Calculate the residual from that grid by comparing with @sort
       # use the fact that we are sorted
-#      my $residual = 0.0;
+      #      my $residual = 0.0;
       my $halfpix = $spacing / 2;
-      my $i = 0; # grid index (also sorted)
+      my $i = 0;                # grid index (also sorted)
       my @errors;
 
     CMP: for my $cmp (@sort) {
 
-	# search through the grid until we find a pixel containing this value
-	while ( $i <= $#grid ) {
-	  my $startpix = $grid[$i] - $halfpix;
-	  my $endpix = $grid[$i] + $halfpix;
-	  if ($cmp >= $startpix && $cmp <= $endpix ) {
-	    # found the pixel abort from loop
-	    push(@errors, ( $grid[$i] - $cmp ) );
-	    next CMP;
-	  } elsif ( $cmp < $startpix ) {
-	    if ($i == 0) {
-	      #print {$self->outhdl} "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
-	      push(@errors, 1E5); # make it highly unlikely
-	    } else {
-	      # Probably a rounding error
-	      if (abs($cmp-$startpix) < 1.0E-10) {
-		push(@errors, ( $grid[$i] - $cmp ) );
-	      } else {
-		croak "Somehow we missed pixel $startpix <= $cmp <= $endpix (grid[$i] = $grid[$i])\n";
-	      }
-	    }
-	    next CMP;
-	  }
-	
-	  # try next grid position
-	  $i++;
-	}
+        # search through the grid until we find a pixel containing this value
+        while ( $i <= $#grid ) {
+          my $startpix = $grid[$i] - $halfpix;
+          my $endpix = $grid[$i] + $halfpix;
+          if ($cmp >= $startpix && $cmp <= $endpix ) {
+            # found the pixel abort from loop
+            push(@errors, ( $grid[$i] - $cmp ) );
+            next CMP;
+          } elsif ( $cmp < $startpix ) {
+            if ($i == 0) {
+              #print {$self->outhdl} "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
+              push(@errors, 1E5); # make it highly unlikely
+            } else {
+              # Probably a rounding error
+              if (abs($cmp-$startpix) < 1.0E-10) {
+                push(@errors, ( $grid[$i] - $cmp ) );
+              } else {
+                croak "Somehow we missed pixel $startpix <= $cmp <= $endpix (grid[$i] = $grid[$i])\n";
+              }
+            }
+            next CMP;
+          }
+  
+          # try next grid position
+          $i++;
+        }
 
-	if ($i > $#grid) {
-	  my $endpix = $grid[$#grid] + $halfpix;
-	  #print {$self->outhdl} "Position $cmp lies above pixel $#grid ( > $endpix)\n";
-	  push(@errors, 1E5); # Make it highly unlikely
-	}
+        if ($i > $#grid) {
+          my $endpix = $grid[$#grid] + $halfpix;
+          #print {$self->outhdl} "Position $cmp lies above pixel $#grid ( > $endpix)\n";
+          push(@errors, 1E5);   # Make it highly unlikely
+        }
 
       }
 
       my $rms = _find_rms( @errors );
 
       if ($rms < 0.1) {
-#	print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
-#	print {$self->outhdl} "Sort: ". join(",",@sort). "\n";
-#	print {$self->outhdl} "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
+        # print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
+        # print {$self->outhdl} "Sort: ". join(",",@sort). "\n";
+        # print {$self->outhdl} "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
       }
 
       if (!defined $lowest_rms || abs($rms) < $lowest_rms) {
-	$lowest_rms = $rms;
+        $lowest_rms = $rms;
 
-	# Recalculate the centre location based on this grid
-	# Assume that the reference pixel for "0 1 2 3"   is "2" (acsis assumes we align with "2")
-	# Assume that the reference pixel for "0 1 2 3 4" is "2" (middle pixel)
-	# ACSIS *always* assumes that the "ref pix" is  int(N/2)+1
-	# but we start counting at 0, not 1 so subtract an extra 1
-	my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
+        # Recalculate the centre location based on this grid
+        # Assume that the reference pixel for "0 1 2 3"   is "2" (acsis assumes we align with "2")
+        # Assume that the reference pixel for "0 1 2 3 4" is "2" (middle pixel)
+        # ACSIS *always* assumes that the "ref pix" is  int(N/2)+1
+        # but we start counting at 0, not 1 so subtract an extra 1
+        my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
 
         my $temp_centre; 
-        if( scalar(@grid)%2)
-         {#print {$self->outhdl} "Odd\n";
+        if ( scalar(@grid)%2) { #print {$self->outhdl} "Odd\n";
           $temp_centre = $grid[$midpoint];
-          } 
-          else 
-          {#print {$self->outhdl} "Even\n";
-           #$temp_centre = $grid[$midpoint];
-	   $temp_centre=  $grid[$midpoint] - ($grid[$midpoint]-$grid[$midpoint-1])/2.0;
-          }
+        } else {                #print {$self->outhdl} "Even\n";
+          #$temp_centre = $grid[$midpoint];
+          $temp_centre=  $grid[$midpoint] - ($grid[$midpoint]-$grid[$midpoint-1])/2.0;
+        }
 
-	#print {$self->outhdl} "Temp centre --> $temp_centre \n";
+        #print {$self->outhdl} "Temp centre --> $temp_centre \n";
         
-	%best = (
-		 rms => $lowest_rms,
-		 spacing => $spacing,
-		 centre => $temp_centre,
-		 span => ( $grid[$#grid] - $grid[0] ),
-		 min  => $grid[0],
-		 max  => $grid[$#grid],
-		);
+        %best = (
+                 rms => $lowest_rms,
+                 spacing => $spacing,
+                 centre => $temp_centre,
+                 span => ( $grid[$#grid] - $grid[0] ),
+                 min  => $grid[0],
+                 max  => $grid[$#grid],
+                );
       }
     }
   }
@@ -4870,10 +4868,10 @@ sub _to_acoff {
   }
 
   return map { new Astro::Coords::Offset( $_->{OFFSET_DX},
-					  $_->{OFFSET_DY},
-					  posang => $_->{OFFSET_PA},
-					  system => $_->{SYSTEM},
-					) } @_;
+                                          $_->{OFFSET_DY},
+                                          posang => $_->{OFFSET_PA},
+                                          system => $_->{SYSTEM},
+                                        ) } @_;
 }
 
 =item B<_to_offhash>
@@ -4899,10 +4897,10 @@ sub _to_offhash {
   return map {
     {
       OFFSET_DX => ($_->offsets)[0]->arcsec,
-	OFFSET_DY => ($_->offsets)[1]->arcsec,
-	  OFFSET_PA => $_->posang->degrees,
-	    SYSTEM => $_->system,
-	  }
+        OFFSET_DY => ($_->offsets)[1]->arcsec,
+          OFFSET_PA => $_->posang->degrees,
+            SYSTEM => $_->system,
+          }
   } @_;
 }
 
@@ -4973,10 +4971,10 @@ sub convolve_footprint {
       my $my = $mappixel->{OFFSET_DY};
 
       push(@conv, { OFFSET_DX => ( $rx+$mx ),
-		    OFFSET_DY => ( $ry+$my ),
-		    OFFSET_PA => $refpa,
-		    SYSTEM    => $refsys,
-		  } );
+                    OFFSET_DY => ( $ry+$my ),
+                    OFFSET_PA => $refpa,
+                    SYSTEM    => $refsys,
+                  } );
     }
   }
 
@@ -5036,7 +5034,7 @@ sub getCubeInfo {
   my $cubelist = $acsis->cube_list();
   throw OMP::Error::FatalError('for some reason Cube configuration is not available. This can not happen') unless defined $cubelist;
 
-    return $cubelist->cubes;
+  return $cubelist->cubes;
 }
 
 =item B<_read_file>
@@ -5386,9 +5384,9 @@ sub getReferenceRA {
       return "[OFFSET] ". $off[0]->arcsec . " [".$offset->system."]";
     } else {
       if ($refpos->can("ra2000")) {
-	return "". $refpos->ra2000;
+        return "". $refpos->ra2000;
       } elsif ($refpos->type eq "AZEL") {
-	return $refpos->az . " (AZ)";
+        return $refpos->az . " (AZ)";
       }
     }
   }
@@ -5420,9 +5418,9 @@ sub getReferenceDec {
       return "[OFFSET] ". $off[1]->arcsec . " [".$offset->system."]";
     } else {
       if ($refpos->can("dec2000")) {
-	return "". $refpos->dec2000;
+        return "". $refpos->dec2000;
       } elsif ($refpos->type eq "AZEL") {
-	return $refpos->el ." (EL)";
+        return $refpos->el ." (EL)";
       }
     }
   }
@@ -5462,7 +5460,7 @@ sub getRPRecipe {
       my $file = $red->filename;
       if (defined $file) {
         # just give file name, not path
-	return File::Basename::basename($file);
+        return File::Basename::basename($file);
       }
     }
   }
