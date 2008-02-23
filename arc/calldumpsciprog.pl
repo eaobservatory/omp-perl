@@ -5,16 +5,16 @@ use strict;
 my $err;
 BEGIN {
  use Getopt::Long;
- my ($omp1, $omp2);
- my $status = GetOptions("omp1" => \$omp1, "omp2" => \$omp2 );
- if ($omp1 && $omp2) {
-   $err = "Can not use both OMP1 and OMP2";
- } elsif ($omp1) {
-   $ENV{OMP_DBSERVER} = 'SYB_OMP1';
- } elsif ($omp2) {
-   $ENV{OMP_DBSERVER} = 'SYB_OMP2';
+ my ($main, $secondary);
+ my $status = GetOptions("jac" => \$main, "jac2" => \$secondary );
+ if ($main && $secondary) {
+   $err = "Can not use both JAC and JAC2";
+ } elsif ($main) {
+   $ENV{OMP_DBSERVER} = 'SYB_JAC';
+ } elsif ($secondary) {
+   $ENV{OMP_DBSERVER} = 'SYB_JAC2';
  } else {
-   $err = "Must specify -omp1 or -omp2";
+   $err = "Must specify -jac or -jac2";
  }
 }
 die "$err\n" if defined $err;
