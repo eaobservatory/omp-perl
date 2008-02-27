@@ -23,7 +23,7 @@ use warnings;
 use Carp;
 
 # External modules
-use XML::LibXML; # Our standard parser
+use XML::LibXML;                # Our standard parser
 use Digest::MD5 2.20 qw/ md5_hex /;
 use OMP::Error qw/ :try /;
 use OMP::General;
@@ -57,7 +57,7 @@ our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
 
 # This is the attribute name for the observation counter
 my $OBSNUM_ATTR = "obsnum";
-my $SUSPEND_ATTR = "suspend"; # suspend attribute
+my $SUSPEND_ATTR = "suspend";   # suspend attribute
 
 # Definition of missing target
 use constant NO_TARGET => 'NONE SUPPLIED';
@@ -73,9 +73,9 @@ use constant NO_TARGET => 'NONE SUPPLIED';
 The constructor takes an XML representation of the science
 program as argument and returns a new object.
 
-		$msb = new OMP::MSB( XML => $xml );
+    $msb = new OMP::MSB( XML => $xml );
 
-		$msb = new OMP::MSB( TREE => $tree, REFS => \%refs 
+    $msb = new OMP::MSB( TREE => $tree, REFS => \%refs 
                                      PROJECTID => $proj);
 
 The argument hash can either refer to an XML string or an
@@ -150,17 +150,17 @@ sub new {
 
   # Now create our MSB hash
   my $msb = {
-	    ProjectID => $projid,
-	    Parser => $parser,
-	    XMLRefs => $refs,
-	    Tree => $tree,
-	    OT_Version => $ot_version,
-	    CheckSum => undef,
-	    ObsSum => [],
-	    Weather => {},
-	    SchedConst => {},
-	    OverrideTarget => $otarg,
-	   };
+             ProjectID => $projid,
+             Parser => $parser,
+             XMLRefs => $refs,
+             Tree => $tree,
+             OT_Version => $ot_version,
+             CheckSum => undef,
+             ObsSum => [],
+             Weather => {},
+             SchedConst => {},
+             OverrideTarget => $otarg,
+            };
 
   # and create the object
   bless $msb, $class;
@@ -211,11 +211,11 @@ sub clone {
     if (ref($self->{$key}) && !blessed($self->{$key})) {
       # copy first level of non-blessed structures
       if (ref($self->{$key}) eq 'HASH') {
-	$copy{$key} = { %{ $self->{$key} } };
-	next;
+        $copy{$key} = { %{ $self->{$key} } };
+        next;
       } elsif (ref($self->{$key}) eq 'ARRAY') {
-	$copy{$key} = [ @{ $self->{$key} } ];
-	next;
+        $copy{$key} = [ @{ $self->{$key} } ];
+        next;
       }
     }
     # Default is to simple copy. This will include objects.
@@ -246,7 +246,9 @@ than a pre-existing C<XML::LibXML::Element>.
 
 sub _parser {
   my $self = shift;
-  if (@_) { $self->{Parser} = shift; }
+  if (@_) {
+    $self->{Parser} = shift;
+  }
   return $self->{Parser};
 }
 
@@ -264,7 +266,9 @@ parent for that).
 
 sub projectID {
   my $self = shift;
-  if (@_) { $self->{ProjectID} = shift; }
+  if (@_) {
+    $self->{ProjectID} = shift;
+  }
   return $self->{ProjectID};
 }
 
@@ -317,7 +321,9 @@ since that relies on the choice of XML parser.
 
 sub _tree {
   my $self = shift;
-  if (@_) { $self->{Tree} = shift; }
+  if (@_) {
+    $self->{Tree} = shift;
+  }
   return $self->{Tree};
 }
 
@@ -462,14 +468,14 @@ sub remote_trigger {
     # set values if we have them
     for my $type (qw/ src id /) {
       if (defined $node{$type}) {
-	my $child = $node{$type}->firstChild;
-	$child->setData( $info{$type} );
+        my $child = $node{$type}->firstChild;
+        $child->setData( $info{$type} );
       } else {
-	# need to make the node
-	my $name = $root . $type;
-	my $el = new XML::LibXML::Element( $name );
-	$self->_tree->appendChild( $el );
-	$el->appendText( $info{$type} );
+        # need to make the node
+        my $name = $root . $type;
+        my $el = new XML::LibXML::Element( $name );
+        $self->_tree->appendChild( $el );
+        $el->appendText( $info{$type} );
       }
     }
 
@@ -648,8 +654,8 @@ sub remaining {
   # in rare cases we can get it from the override hash but this will
   # not track if the state of the XML is changed externally during an
   # MSB acceptance
-  my $node;  # XML node
-  my $ref;   # Reference to scalar containing the perl value
+  my $node;            # XML node
+  my $ref;             # Reference to scalar containing the perl value
 
   # do we have an override?
   if (defined $oride && keys %$oride) {
@@ -693,7 +699,7 @@ sub remaining {
       # Remove the MSB if it is not already in that state
       # If already removed we do not set a new value
       if (!$self->isRemoved) {
-	$new = -1 * $current;
+        $new = -1 * $current;
       }
     } elsif (!$self->isRemoved && $arg < 0) {
       # The msb has not been removed and we need to decrement the counter
@@ -708,10 +714,10 @@ sub remaining {
       # case do nothing to the counter) or the remaining counter is a negative
       # version of the original counter.
       if ($current != OMP__MSB_REMOVED) {
-	# In this case we can increment the remaining counter by 1 so that
-	# if the removal is reversed the counvt will be correct as if it
-	# had been observed normally
-	$new = $current - $arg; # two negatives
+        # In this case we can increment the remaining counter by 1 so that
+        # if the removal is reversed the counvt will be correct as if it
+        # had been observed normally
+        $new = $current - $arg; # two negatives
       }
     } else {
       # we have a new value that is positive and not corresponding to a REMOVED
@@ -890,9 +896,9 @@ sub internal_priority {
     if ($pri =~ /\d/) {
       $pri = int($pri);
       if ($pri < 1) {
-	$pri = 1;
+        $pri = 1;
       } elsif ($pri > 99) {
-	$pri = 99;
+        $pri = 99;
       }
 
     } elsif ($pri =~ /high/i) {
@@ -974,11 +980,11 @@ sub telescope {
     for my $obs ( $self->obssum ) {
       my $tel = $obs->{telescope};
       if (defined $telescope) {
-	# Oops - two different telescopes
-	throw OMP::Error::SpBadStructure("It seems this MSB comes from two telescopes!\n")
-	  if $tel ne $telescope;
+        # Oops - two different telescopes
+        throw OMP::Error::SpBadStructure("It seems this MSB comes from two telescopes!\n")
+          if $tel ne $telescope;
       } else {
-	$telescope = $tel;
+        $telescope = $tel;
       }
     }
 
@@ -1188,7 +1194,7 @@ sub info {
 
   # Populate with observations
   my @obs = map { new OMP::Info::Obs( %{$_}, 
-				      telescope => $summary{telescope} ) } $self->obssum;
+                                      telescope => $summary{telescope} ) } $self->obssum;
   $info->observations(@obs);
 
   return $info;
@@ -1269,48 +1275,48 @@ sub hasBeenObserved {
       my ($cnode) = $self->_get_children_by_name( $sc, 'choose' );
 
       if ($cnode) {
-	# get the current value
-	my $pcnode = $cnode->firstChild;
-	my $curval = $pcnode->toString;
+        # get the current value
+        my $pcnode = $cnode->firstChild;
+        my $curval = $pcnode->toString;
 
-	# do nothing if the current value is already zero
-	# only modify counts if we have not already done so
-	if ($curval > 0) {
+        # do nothing if the current value is already zero
+        # only modify counts if we have not already done so
+        if ($curval > 0) {
 
-	  # update the value by decrementing
-	  my $newval = $curval - 1;
+          # update the value by decrementing
+          my $newval = $curval - 1;
 
-	  # and update the XML
-	  $pcnode->setData( $newval );
+          # and update the XML
+          $pcnode->setData( $newval );
 
-	  # if the current value is 0 we need to disable all the 
-	  # remaining fields by setting to REMOVED all survey positions
-	  # that do not have an "observed" count > 0.
-	  if ($newval == 0) {
+          # if the current value is 0 we need to disable all the 
+          # remaining fields by setting to REMOVED all survey positions
+          # that do not have an "observed" count > 0.
+          if ($newval == 0) {
 
-	    # get TargetList
-	    my ($tl) = $self->_get_children_by_name( $sc, 'TargetList' );
-	    throw OMP::Error::SpBadStructure( 'Missing targetlist when trying to disable survey fields')
-	      unless defined $tl;
+            # get TargetList
+            my ($tl) = $self->_get_children_by_name( $sc, 'TargetList' );
+            throw OMP::Error::SpBadStructure( 'Missing targetlist when trying to disable survey fields')
+              unless defined $tl;
 
-	    # Get all the Target nodes and examine their attributes
-	    # The current MSB will have adjusted its observed and remaining
-	    # attributes already
-	    my @targets = $tl->findnodes( './/Target' );
-	    for my $t (@targets) {
-	      my $remaining = $t->getAttribute( 'remaining' );
-	      my $observed = $t->getAttribute( 'observed' );
-	      $observed = 0 unless defined $observed; # default to 0
+            # Get all the Target nodes and examine their attributes
+            # The current MSB will have adjusted its observed and remaining
+            # attributes already
+            my @targets = $tl->findnodes( './/Target' );
+            for my $t (@targets) {
+              my $remaining = $t->getAttribute( 'remaining' );
+              my $observed = $t->getAttribute( 'observed' );
+              $observed = 0 unless defined $observed; # default to 0
 
-	      if ($remaining > 0 && $observed == 0) {
-		# disable
-		# this feels klugey since we should really be defining
-		# "removed-ness" in a single place
-		$t->setAttribute( 'remaining', (-1 * $remaining));
-	      }
-	    }
-	  }
-	}
+              if ($remaining > 0 && $observed == 0) {
+                # disable
+                # this feels klugey since we should really be defining
+                # "removed-ness" in a single place
+                $t->setAttribute( 'remaining', (-1 * $remaining));
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -1368,7 +1374,7 @@ sub hasBeenObserved {
     # The 04A OT was released on 20031223
     print "OT Version: ". $self->ot_version ."\n" if $DEBUG;
     if (defined $self->ot_version && $self->ot_version > 20030522 && 
-	$self->ot_version < 20031223) {
+        $self->ot_version < 20031223) {
       print "Fudging numberOfItems due to OT bug\n" if $DEBUG;
       $n--;
     }
@@ -1393,9 +1399,9 @@ sub hasBeenObserved {
       print "Located ". (@msbs - $count). " SpObs...\n" if $DEBUG;
 
       for (@msbs) {
-	# Eek this should be happening on little OMP::MSB objects
-	my $rem = $_->getAttribute( "remaining" );
-	$_->setAttribute("remaining",($rem*-1)) if $rem > 0;
+        # Eek this should be happening on little OMP::MSB objects
+        my $rem = $_->getAttribute( "remaining" );
+        $_->setAttribute("remaining",($rem*-1)) if $rem > 0;
       }
     }
 
@@ -1623,19 +1629,19 @@ sub addFITStoObs {
 
   # Create hash with information we wish to insert
   my %data = (
-	      msbid => $self->checksum,
-	      project => $self->projectID,
-	      rq_minsb => (defined $sb   ? $sb->min   : undef ),
-	      rq_maxsb => (defined $sb   ? $sb->max   : undef ),
-	      rq_mnsee => (defined $see  ? $see->min  : undef ),
-	      rq_mxsee => (defined $see  ? $see->max  : undef ),
-	      rq_mincl => (defined $cl   ? $cl->min   : undef ),
-	      rq_maxcl => (defined $cl   ? $cl->max   : undef ),
-	      rq_mntau => (defined $tau  ? $tau->min  : undef ),
-	      rq_mxtau => (defined $tau  ? $tau->max  : undef ),
-	      rq_minmn => (defined $moon ? $moon->min : undef ),
-	      rq_maxmn => (defined $moon ? $moon->max : undef ),
-	     );
+              msbid => $self->checksum,
+              project => $self->projectID,
+              rq_minsb => (defined $sb   ? $sb->min   : undef ),
+              rq_maxsb => (defined $sb   ? $sb->max   : undef ),
+              rq_mnsee => (defined $see  ? $see->min  : undef ),
+              rq_mxsee => (defined $see  ? $see->max  : undef ),
+              rq_mincl => (defined $cl   ? $cl->min   : undef ),
+              rq_maxcl => (defined $cl   ? $cl->max   : undef ),
+              rq_mntau => (defined $tau  ? $tau->min  : undef ),
+              rq_mxtau => (defined $tau  ? $tau->max  : undef ),
+              rq_minmn => (defined $moon ? $moon->min : undef ),
+              rq_maxmn => (defined $moon ? $moon->max : undef ),
+             );
 
   # For each SpObs insert these elements.
   # problems with insertBefore so I have to insert at end
@@ -1675,7 +1681,7 @@ sub stringify {
   # Because we have to resolve references and inset overrides, we 
   # need to build the string up from its elements
 
-  my $tree = $self->_tree; # for efficiency;
+  my $tree = $self->_tree;      # for efficiency;
 
   # Do we have an override
   my %override;
@@ -1735,13 +1741,13 @@ sub stringify {
 
   # String buffer, prefill with the top level element and attributes
   my $string = "<$name ". join(" ", 
-			       map { $_ . '="' . $attrs{$_} .'"' }
-			         keys %attrs) .">\n";
+                               map { $_ . '="' . $attrs{$_} .'"' }
+                               keys %attrs) .">\n";
 
   # if there is no SpTelescopeObsComp in the children list we need
   # to insert one explicitly if we have an override
   if (defined $override_tel && ! grep { $_->getName eq 'SpTelescopeObsComp' }
-                                    @children) {
+      @children) {
 
     # it is easier simply to $string.=override_tel here but we get
     # neater output XML if we insert it just in front of the first
@@ -1750,10 +1756,10 @@ sub stringify {
     my $inserted;
     @children = map { 
       if ( $_->getName eq 'SpObs' && !$inserted ) {
-	$inserted = 1;
-	( $override{telNode}, $_);
+        $inserted = 1;
+        ( $override{telNode}, $_);
       } else {
-	$_;
+        $_;
       }
     } @children;
   }
@@ -1772,9 +1778,9 @@ sub stringify {
       # else do not even insert the XML since we only need one target
       # component at this level
       if (!$inserttel) {
-	print "INSERTING TEL OVERRIDE\n" if $DEBUG;
-	$string .= $override_tel ."\n";
-	$inserttel = 1;
+        print "INSERTING TEL OVERRIDE\n" if $DEBUG;
+        $string .= $override_tel ."\n";
+        $inserttel = 1;
       }
       next;
     } elsif ($name eq 'SpSurveyContainer') {
@@ -1784,7 +1790,7 @@ sub stringify {
       # the global SpObs parser logic and the msb acceptance)
       my ($tl) = $self->_get_children_by_name( $child, 'TargetList' );
       throw OMP::Error::SpBadStructure( 'Missing targetlist when trying to expand survey container')
-	unless defined $tl;
+        unless defined $tl;
 
       my %summary = $self->TargetList( $tl );
       my @targets = @{ $summary{targets} };
@@ -1793,18 +1799,18 @@ sub stringify {
       # No references to be resolved since they are all in the MSB parent
       my @childnodes = $child->childNodes;
 
-      my @obs; # SpObs nodes
+      my @obs;                  # SpObs nodes
       for my $schild (@childnodes) {
-	my $name = $schild->getName;
-	next if $name eq 'TargetList';
-	next if $name eq 'choose';
-	if ($name eq 'SpObs') {
-	  # store it
-	  push(@obs, $schild);
-	} else {
-	  # stringify the componet
-	  $string .= $schild->toString ."\n";
-	}
+        my $name = $schild->getName;
+        next if $name eq 'TargetList';
+        next if $name eq 'choose';
+        if ($name eq 'SpObs') {
+          # store it
+          push(@obs, $schild);
+        } else {
+          # stringify the componet
+          $string .= $schild->toString ."\n";
+        }
       }
 
       # Now the SpObs nodes have to be duplicated in a for loop for
@@ -1813,48 +1819,48 @@ sub stringify {
       # Container parse. Maybe we should fully stringify the xml and then
       # reparse so this only happens once?
       for my $t (@targets) {
-	# loop blindly for the required number of times
-	for (1.. $t->{remaining}) {
+        # loop blindly for the required number of times
+        for (1.. $t->{remaining}) {
 
-	  # Now loop over each SpObs
-	  for my $obs (@obs) {
-	    print "Processing SpObs in survey container\n" if $DEBUG;
-	    # Now we either stringify this directly and loop
-	    # or we insert a SpTelescopeObsComp directly after the SpObs
-	    # node. Need to duplicate autoTarget logic!!!
-	    my ($child_tel) = $obs->findnodes('.//SpTelescopeObsComp');
-	    my ($child_standard) = $obs->findnodes('.//standard');
-	    my $isstd;
-	    if (defined $child_standard) {
-	      my $str = $child_standard->firstChild->toString;
-	      $isstd = $self->_str_to_bool( $str );
-	    }
+          # Now loop over each SpObs
+          for my $obs (@obs) {
+            print "Processing SpObs in survey container\n" if $DEBUG;
+            # Now we either stringify this directly and loop
+            # or we insert a SpTelescopeObsComp directly after the SpObs
+            # node. Need to duplicate autoTarget logic!!!
+            my ($child_tel) = $obs->findnodes('.//SpTelescopeObsComp');
+            my ($child_standard) = $obs->findnodes('.//standard');
+            my $isstd;
+            if (defined $child_standard) {
+              my $str = $child_standard->firstChild->toString;
+              $isstd = $self->_str_to_bool( $str );
+            }
 
-	    # if we have a target component defined or we are a standard
-	    # we just stringify
-	    if (defined $child_tel || $isstd) {
-	      # We probably need to look to see if we are inheriting
-	      # another SpTelescopeObsComp for UKIRT where autoTarget
-	      # does not work
-	      print "NO TARGET INSERT:" . ($child_tel ? " FOUND TEL " : '') .
-	        ($isstd ? " IS STANDARD " : '') . "\n"
-	        if $DEBUG;
-	      $string .= $obs->toString;
-	    } else {
-	      # Stringify the SpObs whilst inserting an extra Tel component
-	      print "SURVEY TARGET INSERT REQUIRED\n" if $DEBUG;
-	      $string .= "<".$obs->getName . " ".
-		join(" ",map { $_->getName . '="' . $_->getValue .'"'}
-		     $obs->getAttributes) . ">\n";
+            # if we have a target component defined or we are a standard
+            # we just stringify
+            if (defined $child_tel || $isstd) {
+              # We probably need to look to see if we are inheriting
+              # another SpTelescopeObsComp for UKIRT where autoTarget
+              # does not work
+              print "NO TARGET INSERT:" . ($child_tel ? " FOUND TEL " : '') .
+                ($isstd ? " IS STANDARD " : '') . "\n"
+                  if $DEBUG;
+              $string .= $obs->toString;
+            } else {
+              # Stringify the SpObs whilst inserting an extra Tel component
+              print "SURVEY TARGET INSERT REQUIRED\n" if $DEBUG;
+              $string .= "<".$obs->getName . " ".
+                join(" ",map { $_->getName . '="' . $_->getValue .'"'}
+                     $obs->getAttributes) . ">\n";
 
-	      $string .= $t->{telNode}->toString ."\n";
-	      for my $c ($obs->childNodes) {
-		$string .= $c->toString ."\n";
-	      }
-	      $string .= "</". $obs->getName .">\n";
-	    }
-	  }
-	}
+              $string .= $t->{telNode}->toString ."\n";
+              for my $c ($obs->childNodes) {
+                $string .= $c->toString ."\n";
+              }
+              $string .= "</". $obs->getName .">\n";
+            }
+          }
+        }
       }
 
       next;
@@ -1862,7 +1868,7 @@ sub stringify {
     # default is to append
     $string .= $child->toString ."\n";
   }
-	
+  
   # Close XML
   $string .= "\n</$name>";
   return $string;
@@ -1935,7 +1941,7 @@ sub verifyMSB {
   if ($status == 1) {
     $string = "Some of the observations in the MSB contained default\n" .
       "settings for the target information. Please specify a real target\n" .
-	"if this is not correct";
+        "if this is not correct";
   }
 
   return ($status, $string);
@@ -2045,7 +2051,7 @@ sub getObserverNote {
   # (if present)
   my @comp;
   push(@comp, $self->_tree->findnodes(".//SpNoteRef"),
-        $self->_tree->findnodes(".//SpNote"));
+       $self->_tree->findnodes(".//SpNote"));
 
   # Find the last component that refers to an observer note
   my @el;
@@ -2060,8 +2066,8 @@ sub getObserverNote {
   return () unless @el;
 
   my @retval = map { [ $self->_get_pcdata($_,"title"),
-		       $self->_get_pcdata($_,"note")
-		     ] } @el;
+                       $self->_get_pcdata($_,"note")
+                     ] } @el;
 
   if ($retall) {
     return @retval;
@@ -2200,7 +2206,7 @@ sub fill_template {
   # Read the coordinates into a simple array
   my @sources;
   @sources = (ref $args{coords} eq 'ARRAY' ? @{ $args{coords} } :
-	       $args{coords} );
+              $args{coords} );
 
   # Coordinate replacement
   # Count the number of useful blank target components
@@ -2219,24 +2225,24 @@ sub fill_template {
     @tels = grep { $self->_is_blank_target($_); } @tels;
 
     # Make sure we are replacing the correct number
-      throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
-	unless scalar(@tels) == $blanks;
+    throw OMP::Error::FatalError("Internal error: We found fewer blank telescope components than expected!!!\n")
+      unless scalar(@tels) == $blanks;
 
 
     # Now loop over the telescope components
-    my $i = 0; # Current source index
+    my $i = 0;                  # Current source index
     for my $tel (@tels) {
 
       # There is no way this can happen
       throw OMP::Error::FatalError( "Internal error: The number of blank telescope components encountered exceeds the expected number!!!\n")
-	if $c >= $blanks;
+        if $c >= $blanks;
 
       # Find the SCIENCE or BASE position, and retrieve it as a DOM
       my $tcs = new JAC::OCS::Config::TCS( DOM => $tel, telescope => $telName);
       my $sci = $tcs->getSciTag()->_tree;
 
       throw OMP::Error::SpBadStructure("Unable to find SCIENCE/BASE position in target component")
-	unless defined $sci;
+        unless defined $sci;
 
       # Select the correct target object
       my $coords = $sources[$i];
@@ -2482,7 +2488,7 @@ sub _fixup_msb {
       # Fixup the XML if required. Hopefully this should be fixed in the OT
       # No point changing anything if it is correct already
       if ($isstd && !$opt) {
-	$obs->setAttribute("optional", "true")
+        $obs->setAttribute("optional", "true")
       }
 
     }
@@ -2608,8 +2614,8 @@ sub _get_obs {
   # a hash containing the current state.
   # if returns a new hash with the new state
 
-  my %status; # for storing current parameters
-  my @obs; # for storing results
+  my %status;                   # for storing current parameters
+  my @obs;                      # for storing results
 
   # If we are a lone SpObs we want to use ourself rather
   # than the children
@@ -2637,19 +2643,19 @@ sub _get_obs {
 
     if ($self->can($name)) {
       if ($name eq 'SpObs' || $name eq 'SpSurveyContainer' ) {
-	# For each SpObs if we have an override target we need to force
-	# this target into the status hash at this point so that we 
-	# can override an explict Target component at this level but not
-	# override Target component that may be in the child SpObs
-	%status = (%status, %$toverride) if defined $toverride;
+        # For each SpObs if we have an override target we need to force
+        # this target into the status hash at this point so that we 
+        # can override an explict Target component at this level but not
+        # override Target component that may be in the child SpObs
+        %status = (%status, %$toverride) if defined $toverride;
 
-	# Special case. When it is an observation we want to
-	# return the final hash for the observation rather than
-	# an augmented hash used for inheritance.
-	# also special case Survey containers since they return Obs
-	push(@obs, $self->$name($el, %status ));
+        # Special case. When it is an observation we want to
+        # return the final hash for the observation rather than
+        # an augmented hash used for inheritance.
+        # also special case Survey containers since they return Obs
+        push(@obs, $self->$name($el, %status ));
       } else {
-	%status = $self->$name($el, %status );	
+        %status = $self->$name($el, %status );  
       }
     }
   }
@@ -2806,7 +2812,7 @@ sub _get_weather_data {
   # First get the SpSiteQualityComp and refs
   my @comp;
   push(@comp, $self->_tree->findnodes(".//SpSiteQualityObsCompRef"),
-        $self->_tree->findnodes(".//SpSiteQualityObsComp"));
+       $self->_tree->findnodes(".//SpSiteQualityObsComp"));
 
   # and use the last one in the list (hopefully we are only allowed
   # to specify a single value). We get the last one because we want
@@ -2870,7 +2876,7 @@ sub _get_weather_data {
   $summary{sky} = OMP::SiteQuality::default_range( 'SKY' )
     unless defined $summary{sky};
 
-#  print Dumper(\%summary);
+  #  print Dumper(\%summary);
 
   return %summary;
 
@@ -2892,7 +2898,7 @@ sub _get_sched_constraints {
   # (if present)
   my @comp;
   push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
-        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+       $self->_tree->findnodes(".//SpSchedConstObsComp"));
 
   # and use the last one in the list (hopefully we are only allowed
   # to specify a single value). We get the last one because we want
@@ -2906,9 +2912,9 @@ sub _get_sched_constraints {
 
   # Need to get earliest and latest
   # Convert them to Time::Piece objects
-  my %columns = ( # Since XML key is different to db column
-		 earliest => "datemin",
-		 latest => "datemax");
+  my %columns = (            # Since XML key is different to db column
+                 earliest => "datemin",
+                 latest => "datemax");
   for my $key ( qw/ earliest latest / ) {
     my $val = $self->_get_pcdata( $el, $key );
     if (defined $val) {
@@ -2974,7 +2980,7 @@ sub _set_sched_constraints {
     unless ($tag eq 'earliest' || $tag eq 'latest' );
 
   throw OMP::Error::BadArgs("Value must be Time::Piece object not '".
-			   ref($value) ."'")
+                            ref($value) ."'")
     unless UNIVERSAL::isa($value, 'Time::Piece');
 
 
@@ -2984,7 +2990,7 @@ sub _set_sched_constraints {
   # (if present)
   my @comp;
   push(@comp, $self->_tree->findnodes(".//SpSchedConstObsCompRef"),
-        $self->_tree->findnodes(".//SpSchedConstObsComp"));
+       $self->_tree->findnodes(".//SpSchedConstObsComp"));
 
   # and use the last one in the list (hopefully we are only allowed
   # to specify a single value). We get the last one because we want
@@ -3470,7 +3476,7 @@ sub _unroll_obs_recurse {
   my $iterator = shift;
   my %config = @_;
 
-#  print "DUMP: ",Dumper($iterator);
+  #  print "DUMP: ",Dumper($iterator);
 
   throw OMP::Error::FatalError "Recursing on non-HASH not supported"
     unless ref($iterator) eq 'HASH';
@@ -3506,7 +3512,7 @@ sub _unroll_obs_recurse {
     my @keys = keys %$iter;
     throw OMP::Error::FatalError "More than one hash key in iterator [".
       join(",",@keys)."]"
-      unless scalar(@keys) == 1;
+        unless scalar(@keys) == 1;
 
     my $key = $keys[0];
 
@@ -3529,14 +3535,14 @@ sub _unroll_obs_recurse {
       my @ATTR = @{$iter->{$key}->{ATTR}};
 
       throw OMP::Error::SpBadStructure("Empty sequence iterator found: $key")
-	unless @ATTR;
+        unless @ATTR;
 
       # The next layer down ignores the ATTR array
 
       #print "Recursing for $key\n";
       for my $extra (@ATTR) {
-	$self->_unroll_obs_recurse( $obsarr, $obscounter_ref, $iter->{$key}, 
-				    %config, %$extra );
+        $self->_unroll_obs_recurse( $obsarr, $obscounter_ref, $iter->{$key}, 
+                                    %config, %$extra );
       }
 
     }
@@ -3723,7 +3729,7 @@ sub SpSurveyContainer {
   my $self = shift;
   my $el = shift;
   my %summary = @_;
-  my @obs; # any observations stored in the survey container
+  my @obs;           # any observations stored in the survey container
 
   # Clear out inherited targets
   delete $summary{coords};
@@ -3749,13 +3755,13 @@ sub SpSurveyContainer {
     #print "Name is $name \n";
     if ($self->can($name)) {
       if ($name eq 'SpObs') {
-	# special case. Returns reference and does not augment the
-	# current hash
-	push(@obs, $self->$name( $node, %summary));
+        # special case. Returns reference and does not augment the
+        # current hash
+        push(@obs, $self->$name( $node, %summary));
       } else {
-	# parse any components at this level of the hierarchy
-	# including specifically the TargetList node
-	%summary = $self->$name( $node, %summary );
+        # parse any components at this level of the hierarchy
+        # including specifically the TargetList node
+        %summary = $self->$name( $node, %summary );
       }
     }
   }
@@ -3774,13 +3780,13 @@ sub SpSurveyContainer {
 
       # Loop over observations
       for my $obs (@obs) {
-	# take a copy of the obs info
-	my %info = %{ $obs };
-	if (!exists $info{coords} && !$info{autoTarget}) {
-	  # merge in the target information
-	  %info = (%info, %{$t->{coords}});
-	}
-	push(@allobs, \%info);
+        # take a copy of the obs info
+        my %info = %{ $obs };
+        if (!exists $info{coords} && !$info{autoTarget}) {
+          # merge in the target information
+          %info = (%info, %{$t->{coords}});
+        }
+        push(@allobs, \%info);
       }
     }
   }
@@ -3854,19 +3860,19 @@ sub TargetList {
       # add it to the existing count or replace a negative value
       # (indicating REMOVED) with the current value
       if ($rem > 0) {
-	if ($collisions{$checksum}->{remaining} > 0 ) {
-	  $collisions{$checksum}->{remaining} += $rem;
-	} else {
-	  $collisions{$checksum}->{remaining} = $rem;
-	}
+        if ($collisions{$checksum}->{remaining} > 0 ) {
+          $collisions{$checksum}->{remaining} += $rem;
+        } else {
+          $collisions{$checksum}->{remaining} = $rem;
+        }
       }
 
     } else {
       # new target, so create a hash containing the new target data
       my %targdata = ( priority => $pri, remaining => $rem, 
-		       coords => \%tel, targetNode => $targ,
-		       telNode => $obscomp,
-		     );
+                       coords => \%tel, targetNode => $targ,
+                       telNode => $obscomp,
+                     );
 
       # and push it onto the target list
       push(@targs, \%targdata );
@@ -3924,13 +3930,13 @@ sub SpIterFolder {
 
       my @chops;
       for my $chops ($child->getChildnodes) {
-	my $name = $chops->getName;
-	next unless $name eq 'CHOP';
-	my %details;
-	$details{CHOP_SYSTEM} = $self->_get_attribute( $chops, 'SYSTEM');
-	$details{CHOP_THROW}  = $self->_get_pcdata($chops, 'THROW');
-	$details{CHOP_PA}  = $self->_get_pcdata($chops, 'PA');
-	push(@chops, \%details);
+        my $name = $chops->getName;
+        next unless $name eq 'CHOP';
+        my %details;
+        $details{CHOP_SYSTEM} = $self->_get_attribute( $chops, 'SYSTEM');
+        $details{CHOP_THROW}  = $self->_get_pcdata($chops, 'THROW');
+        $details{CHOP_PA}  = $self->_get_pcdata($chops, 'PA');
+        push(@chops, \%details);
       }
 
       # Store the chop details
@@ -3970,21 +3976,21 @@ sub SpIterFolder {
 
       my @offsets;
       for my $off ($child->getChildnodes) {
-	my $name = $off->getName;
-	next unless $name eq 'OFFSET';
-	my %details;
-	$details{OFFSET_PA} = $pa;
-	$details{OFFSET_DX}  = $self->_get_pcdata($off, 'DC1');
-	$details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
+        my $name = $off->getName;
+        next unless $name eq 'OFFSET';
+        my %details;
+        $details{OFFSET_PA} = $pa;
+        $details{OFFSET_DX}  = $self->_get_pcdata($off, 'DC1');
+        $details{OFFSET_DY}  = $self->_get_pcdata($off, 'DC2');
 
-	# OFFSET system should always be TRACKING for the OT usage at the moment
-	# We read this for interest but do not yet use the answer in the Translator
-	# until we clarify what the OT is allowed to specify
-	$details{OFFSET_SYSTEM} = $off->getAttribute("SYSTEM");
-	$details{OFFSET_SYSTEM} = 'AZEL' if ( defined( $details{OFFSET_SYSTEM} ) &&
-                                        $details{OFFSET_SYSTEM} eq 'Az/El' );
+        # OFFSET system should always be TRACKING for the OT usage at the moment
+        # We read this for interest but do not yet use the answer in the Translator
+        # until we clarify what the OT is allowed to specify
+        $details{OFFSET_SYSTEM} = $off->getAttribute("SYSTEM");
+        $details{OFFSET_SYSTEM} = 'AZEL' if ( defined( $details{OFFSET_SYSTEM} ) &&
+                                              $details{OFFSET_SYSTEM} eq 'Az/El' );
 
-	push(@offsets, \%details);
+        push(@offsets, \%details);
       }
       $summary{$parent}{ATTR} = \@offsets;
     }
@@ -4004,14 +4010,14 @@ sub SpIterFolder {
 
       # obstype is a special key
       if (exists $dummy{obstype}) {
-	push(@types, @{$dummy{obstype}});
-	delete $dummy{obstype};
+        push(@types, @{$dummy{obstype}});
+        delete $dummy{obstype};
       }
 
       # As is the current structure key
       if (exists $dummy{$name}) {
-	push(@{$summary{$parent}{CHILDREN}}, {$name => $dummy{$name}});
-	delete $dummy{$name};
+        push(@{$summary{$parent}{CHILDREN}}, {$name => $dummy{$name}});
+        delete $dummy{$name};
       }
 
       # Merge information with child iterators
@@ -4043,28 +4049,28 @@ sub SpIterFolder {
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
       $freqRate = $self->_get_pcdata( $child, 'frequencyOffsetRate')
-	unless defined $freqRate;
+        unless defined $freqRate;
       my $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw');
       $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow')
-	unless defined $freqOffset;
+        unless defined $freqOffset;
 
       # Make sure absence does not result in an undef value.
       # Prefer to have absence in output hash
       my %stare;
       $stare{nintegrations} = $nint;
       $stare{widePhotom} = $self->_str_to_bool( $widePhotom )
-	if defined $widePhotom;
+        if defined $widePhotom;
       $stare{arrayCentred} = $self->_str_to_bool( $arrayCentred )
-	if defined $arrayCentred;
+        if defined $arrayCentred;
       $stare{separateOffs} = $self->_str_to_bool( $separateOffs )
-	if defined $separateOffs;
+        if defined $separateOffs;
       $stare{secsPerCycle}  = $sPerC if defined $sPerC;
       $stare{switchingMode} = $switchMode if defined $switchMode;
       $stare{continuousCal} = $ccal if defined $ccal;
       $stare{frequencyRate} = $freqRate if defined $freqRate;
       $stare{frequencyOffset} = $freqOffset if defined $freqOffset;
       $stare{continuumMode} = $self->_str_to_bool( $contmode )
-	if defined $contmode;
+        if defined $contmode;
       $stare{stareSystem} = $stareSystem if defined $stareSystem;
       $stare{starePA} = $starePA if defined $starePA;
 
@@ -4092,18 +4098,18 @@ sub SpIterFolder {
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
       $freqRate = $self->_get_pcdata( $child, 'frequencyOffsetRate')
-	unless defined $freqRate;
+        unless defined $freqRate;
       my $freqOffset = $self->_get_pcdata( $child, 'frequencyOffset.throw');
       $freqOffset = $self->_get_pcdata( $child, 'frequencyOffsetThrow')
-	unless defined $freqOffset;
+        unless defined $freqOffset;
 
       my %jiggle;
       $jiggle{jigglePattern} = $self->_get_pcdata($child,
-						  'jigglePattern');
+                                                  'jigglePattern');
       $jiggle{nintegrations} = $self->_get_pcdata( $child, 'integrations');
 
       $jiggle{separateOffs} = $self->_str_to_bool( $separateOffs )
-	if defined $separateOffs;
+        if defined $separateOffs;
       $jiggle{secsPerJiggle}  = $sPerJ if defined $sPerJ;
       $jiggle{jiggleSystem} = $jigSystem if defined $jigSystem;
       $jiggle{jigglePA} = $jigPA if defined $jigPA;
@@ -4114,7 +4120,7 @@ sub SpIterFolder {
       $jiggle{frequencyOffset} = $freqOffset if defined $freqOffset;
 
       $jiggle{continuumMode} = $self->_str_to_bool( $contmode )
-	if defined $contmode;
+        if defined $contmode;
 
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
@@ -4133,18 +4139,18 @@ sub SpIterFolder {
       # if we have not already had a science target. If the
       # switch is set to false then this is also a science target
       if ($auto) {
-	$summary{autoTarget} = 1
-	  unless $summary{scitarget};
+        $summary{autoTarget} = 1
+          unless $summary{scitarget};
       } else {
-	$summary{scitarget} = 1;
-	$summary{autoTarget} = 0;
+        $summary{scitarget} = 1;
+        $summary{autoTarget} = 0;
       }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
-						       nintegrations => $nint,
-						       autoTarget => $auto,
-						       #pointingPixel => $pix,
-						      }});
+                                                       nintegrations => $nint,
+                                                       autoTarget => $auto,
+                                                       #pointingPixel => $pix,
+                                                      }});
 
 
     } elsif ($name eq 'SpIterFocusObs') {
@@ -4161,20 +4167,20 @@ sub SpIterFolder {
       # if we have not already had a science target. If the
       # switch is set to false then this is also a science target
       if ($auto) {
-	$summary{autoTarget} = 1
-	  unless $summary{scitarget};
+        $summary{autoTarget} = 1
+          unless $summary{scitarget};
       } else {
-	$summary{scitarget} = 1;
-	$summary{autoTarget} = 0;
+        $summary{scitarget} = 1;
+        $summary{autoTarget} = 0;
       }
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { 
-						       nintegrations => $nint,
-						       autoTarget => $auto,
-						       focusPoints => $npoints,
-						       focusAxis => $axis,
-						       focusStep => $steps,
-						      }});
+                                                       nintegrations => $nint,
+                                                       autoTarget => $auto,
+                                                       focusPoints => $npoints,
+                                                       focusAxis => $axis,
+                                                       focusStep => $steps,
+                                                      }});
 
 
     } elsif ($name eq 'SpIterNoiseObs') {
@@ -4183,9 +4189,9 @@ sub SpIterFolder {
       my $source = $self->_get_pcdata( $child, 'noiseSource');
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
-						       nintegrations => $nint,
-						       noiseSource => $source,
-						       }});
+                                                       nintegrations => $nint,
+                                                       noiseSource => $source,
+                                                      }});
 
     } elsif ($name eq 'SpIterSkydipObs') {
 
@@ -4193,15 +4199,15 @@ sub SpIterFolder {
       my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
       # Defaults to false if not present
       if (defined $currAz) {
-	$currAz = ($currAz =~ /^false$/i ? 0 : 1);
+        $currAz = ($currAz =~ /^false$/i ? 0 : 1);
       } else {
-	$currAz = 0;
+        $currAz = 0;
       }
 
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint,
-							currentAz => $currAz,
-						      }});
+                                                        currentAz => $currAz,
+                                                      }});
 
     } elsif ($name eq 'SpIterRasterObs') {
 
@@ -4261,7 +4267,7 @@ sub SpIterFolder {
 
   # Store results
   $summary{obstype} = \@types if @types;
-#  $summary{SpIter}->{order} = \@iterators if @iterators;
+  #  $summary{SpIter}->{order} = \@iterators if @iterators;
 
   delete $summary{PARENT};
 
@@ -4293,7 +4299,7 @@ sub SpInstCGS4 {
   # else the hierarchy might print through
   my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
   $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
-					    Instrument => 'CGS4');
+                                            Instrument => 'CGS4');
   $summary{wavelength} = $summary{waveband}->wavelength;
   $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
 
@@ -4329,7 +4335,7 @@ sub SpInstUFTI {
   $summary{instrument} = "UFTI";
   my $filter  = $self->_get_pcdata( $el, "filter" );
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					    Instrument => 'UFTI');
+                                            Instrument => 'UFTI');
   $summary{wavelength} = $summary{waveband}->wavelength;
   $summary{disperser} = undef;
 
@@ -4364,7 +4370,7 @@ sub SpInstWFCAM {
   $summary{instrument} = "WFCAM";
   my $filter  = $self->_get_pcdata( $el, "filter" );
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					    Instrument => 'WFCAM');
+                                            Instrument => 'WFCAM');
   $summary{wavelength} = $summary{waveband}->wavelength;
   $summary{disperser} = undef;
 
@@ -4405,13 +4411,13 @@ sub SpInstMichelle {
   if ($type eq 'imaging') {
     my $filter = $self->_get_pcdata( $el, "filterOT" );
     $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					      Instrument => 'MICHELLE');
+                                              Instrument => 'MICHELLE');
 
     $summary{disperser} = undef;
   } else {
     my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
     $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
-					      Instrument => 'MICHELLE');
+                                              Instrument => 'MICHELLE');
 
     $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
   }
@@ -4459,13 +4465,13 @@ sub SpInstUIST {
   if ($type eq 'imaging') {
     my $filter = $self->_get_pcdata( $el, "filter" );
     $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					      Instrument => 'UIST');
+                                              Instrument => 'UIST');
 
     $summary{disperser} = undef;
   } else {
     my $wavelength = $self->_get_pcdata( $el, "centralWavelength" );
     $summary{waveband} = new Astro::WaveBand( Wavelength => $wavelength,
-					      Instrument => 'UIST');
+                                              Instrument => 'UIST');
 
     $summary{disperser} = $self->_get_pcdata( $el, "disperser" );
   }
@@ -4507,7 +4513,7 @@ sub SpInstIRCAM3 {
   # else the hierarchy might print through
   my $filter  = $self->_get_pcdata( $el, "filter" );
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					    Instrument => 'IRCAM');
+                                            Instrument => 'IRCAM');
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Camera mode
@@ -4545,7 +4551,7 @@ sub SpInstSCUBA {
   # else the hierarchy might print through
   my $filter  = $self->_get_pcdata( $el, "filter" );
   $summary{waveband} = new Astro::WaveBand( Filter => $filter,
-					    Instrument => 'SCUBA');
+                                            Instrument => 'SCUBA');
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Get some info required for translator
@@ -4615,20 +4621,20 @@ sub SpInstHeterodyne {
     for my $sub (@subs) {
 
       my %subconf = $self->_get_attributes( $sub,
-					    (qw| if bw overlap channels |) );
+                                            (qw| if bw overlap channels |) );
 
       # Find the line information
       my @lines = $sub->findnodes( ".//line");
       throw OMP::Error::SpBadStructure( "Can only be one line specification per subsystem/spectral region")
-	if @lines != 1;
+        if @lines != 1;
 
       %subconf = (%subconf, 
-		  $self->_get_attributes($lines[0],
-					 qw| species transition rest_freq |));
+                  $self->_get_attributes($lines[0],
+                                         qw| species transition rest_freq |));
 
       # Verify the content
       for my $a (keys %subconf) {
-	throw OMP::Error::SpBadStructure("Could not find attribute '$a' in subsystem XML") unless defined $subconf{$a};
+        throw OMP::Error::SpBadStructure("Could not find attribute '$a' in subsystem XML") unless defined $subconf{$a};
       }
 
       push(@subsystems, \%subconf);
@@ -4667,8 +4673,8 @@ sub SpInstHeterodyne {
   # Astro::WaveBand should probably take a velocity, velocity frame
   # and line as argument to correctly call itself a WaveBand class
   $summary{waveband} = new Astro::WaveBand( Frequency => $subsystems[0]->{rest_freq},
-					    Instrument => $summary{instrument}
-					  );
+                                            Instrument => $summary{instrument}
+                                          );
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # Translator specific stuff [really need to tweak Astro::Waveband
@@ -4677,39 +4683,39 @@ sub SpInstHeterodyne {
   my $refFrameVelocity = $self->_get_pcdata($el,"referenceFrameVelocity");
 
   $summary{freqconfig} = {
-			  # Front end configuration
-			  restFrequency => $subsystems[0]->{rest_freq},
-			  sideBand => $self->_get_pcdata($el,"band"),
-			  mixers => $self->_get_pcdata($el,"mixers"),
-			  sideBandMode => $self->_get_pcdata($el,"mode"),
-			  transition => $subsystems[0]->{"transition"},
-			  molecule => $subsystems[0]->{"species"},
+                          # Front end configuration
+                          restFrequency => $subsystems[0]->{rest_freq},
+                          sideBand => $self->_get_pcdata($el,"band"),
+                          mixers => $self->_get_pcdata($el,"mixers"),
+                          sideBandMode => $self->_get_pcdata($el,"mode"),
+                          transition => $subsystems[0]->{"transition"},
+                          molecule => $subsystems[0]->{"species"},
 
-			  # Helper information
-			  skyFrequency => $self->_get_pcdata( $el, 'skyFrequency'),
+                          # Helper information
+                          skyFrequency => $self->_get_pcdata( $el, 'skyFrequency'),
 
-			  # Backend configuration
-			  beName => $self->_get_pcdata($el, "beName"),
-			  bandWidth => $subsystems[0]->{bw},
-			  configuration => $self->_get_pcdata($el,"configuration"),
-			  subsystems => \@subsystems,
+                          # Backend configuration
+                          beName => $self->_get_pcdata($el, "beName"),
+                          bandWidth => $subsystems[0]->{bw},
+                          configuration => $self->_get_pcdata($el,"configuration"),
+                          subsystems => \@subsystems,
 
-			  # In new TOML the velocity is stored in the telescope
-			  # object. Read the old values for compatibility
-			  # with old DAS TOML. Also, it is possible for Het Setup to override
-			  # the telescope (but this is done in simplistic manner where
-			  # no optVelocity or referenceFrameVelocity just velocity)
+                          # In new TOML the velocity is stored in the telescope
+                          # object. Read the old values for compatibility
+                          # with old DAS TOML. Also, it is possible for Het Setup to override
+                          # the telescope (but this is done in simplistic manner where
+                          # no optVelocity or referenceFrameVelocity just velocity)
 
-			  velocityDefinition => $self->_get_pcdata($el,
-								   "velocityDefinition"),
-			  velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
+                          velocityDefinition => $self->_get_pcdata($el,
+                                                                   "velocityDefinition"),
+                          velocityFrame => $self->_get_pcdata($el,"velocityFrame"),
 
-			  # The velocity field always has the optical velocity for DAS
-			  # Assume DAS if we have refFrameVelocity
-			  (defined $refFrameVelocity ?
-			   (optVelocity => $velocity, velocity => $refFrameVelocity) :
-			   (velocity => $velocity)),
-			 };
+                          # The velocity field always has the optical velocity for DAS
+                          # Assume DAS if we have refFrameVelocity
+                          (defined $refFrameVelocity ?
+                           (optVelocity => $velocity, velocity => $refFrameVelocity) :
+                           (velocity => $velocity)),
+                         };
 
   # Camera mode is really a function of front end and observing
   # mode. "s" for spectroscopy does not really say enough
@@ -4779,8 +4785,8 @@ sub SpTelescopeObsComp {
 
   my $telName;
   if (blessed($self)) {
-#     Causes deep recursion
-#    $telName = $self->telescope;
+    #     Causes deep recursion
+    #    $telName = $self->telescope;
     $telName = 'JCMT';
   }
 
@@ -4813,7 +4819,7 @@ sub SpTelescopeObsComp {
     {
       local ($@);
       eval {
-	$summary{coords}->el();
+        $summary{coords}->el();
       };
       $err = $@ if $@;
     }
