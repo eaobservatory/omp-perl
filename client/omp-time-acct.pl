@@ -21,33 +21,18 @@ use OMP::DBbackend;
 use OMP::TimeAcctDB;
 use OMP::TimeAcctQuery;
 
-my %opt =
+my %default_opt =
   ( 'header' => undef,
     'divider' => undef,
-    'file' => []
+    'file' => [],
+    'timezone' => 'UTC',
+    'start-date' => undef,
+    'end-date' => undef,
+    # Individual dates.
+    'date' => []
   );
 
-{
-  my ( $help, @file );
-  GetOptions(
-    'h|help|man' => \$help,
-    'file=s'     => \@file,
-    'header+'    => \$opt{'header'},
-    'H|noheader' => sub{ $opt{'header'} = 0 },
-    'divider!'    => \$opt{'divider'},
-  )
-    # As of Pod::Usage 1.30, C<'-sections' => 'OPTIONS', '-verbose' => 99> does
-    # not output only the OPTIONS part.  Also note that in pod, key is listed
-    # '-section' but in code '-sections' is actually used.
-    or pod2usage( '-exitval' => 2, '-verbose' => 1,);
-
-  pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
-
-  $opt{'file'} = [ @file ] if scalar @file;
-
-  # Print header at least once in the beginning by default.
-  $opt{'header'}++ unless defined $opt{'header'};
-}
+my %opt = process_options( %default_opt );
 
 my @proj = get_projects( \%opt, @ARGV )
   or pod2usage( '-exitval' => 2, '-verbose' => 99, '-sections' => 'SYNOPSIS',
@@ -67,6 +52,16 @@ for my $id ( @proj ) {
 }
 
 exit;
+
+sub parse_date {
+
+  my ( $date ) = @_;
+
+  my $parsed;
+
+
+  return $parsed;
+}
 
 BEGIN {
 
@@ -192,6 +187,55 @@ sub wrap {
   return qq{<$tag>} . join( ' ' , @val ) . qq{</$tag>};
 }
 
+#  Process options.
+sub process_options {
+
+  my ( %opt ) = @_;
+
+  my ( $help, @file );
+  GetOptions(
+    'h|help|man' => \$help,
+    'file=s'     => \@file,
+    'header+'    => \$opt{'header'},
+    'H|noheader' => sub{ $opt{'header'} = 0 },
+    'divider!'    => \$opt{'divider'},
+    'date=s@'      => $opt{'date'},
+    'start-date=s' => \$opt{'start-date'},
+    'end-date=s'   => \$opt{'end-date'},
+    'tz|timezone'  => \$opt{'timezone'},
+  )
+    # As of Pod::Usage 1.30, C<'-sections' => 'OPTIONS', '-verbose' => 99> does
+    # not output only the OPTIONS part.  Also note that in pod, key is listed
+    # '-section' but in code '-sections' is actually used.
+    or pod2usage( '-exitval' => 2, '-verbose' => 1,);
+
+  pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
+
+  $opt{'file'} = [ @file ] if scalar @file;
+
+  # Print header at least once in the beginning by default.
+  $opt{'header'}++ unless defined $opt{'header'};
+
+  die 'Date options have not been implemented yet.'
+    if scalar
+          map
+          { my $v = $opt{ $_ };
+            ( ref $v ? scalar @{ $v } : $v )
+            ? undef
+              : ()
+          }
+          qw/ date start-date end-date /;
+
+  # If one date point for date range is given, other must be specified.
+  pod2usage( '-msg' => 'Both dates must be specified for a date range.',
+              '-exitval' => 2, '-verbose' => 1,
+            )
+    if $opt{'start-date'} && ! $opt{'end-date'}
+    or ! $opt{'start-date'} && $opt{'end-date'}  ;
+
+  return %opt;
+}
+
 =pod
 
 =head1 NAME
@@ -228,10 +272,46 @@ file, or provided on standard input.
 
 Show the full help message.
 
+=item B<-date> I<yyyy.mm.dd.hh.mm.ss>
+
+Specify a date in UTC time zone, not used for date range. (See
+I<timezone> option to other time zone.)
+
+It can be used mulitple times, with or without date range (see
+I<start-date> and I<end-date> options).
+
+A '/' or a '-' is also ok in place of '.', so is lack of any of the
+three characters mentioned.  A date can be specified in one of
+the following formats ...
+
+=over 2
+
+=item *
+
+yyyy.mm.dd.hh.mm.ss
+
+=item *
+
+yyyy.mm.dd.hh.mm
+
+=item *
+
+yyyy.mm.dd
+
+=back
+
 =item B<-divider>
 
 Print a blank line after output of each project id.  Default is not to
 print the blank line.
+
+=item B<-end-date> I<yyyy.mm.dd.hh.mm.ss>
+
+Specify end date, inclusive, for the date range.
+
+Both this option and I<start-date> must be given, when  providing a
+date range.  The date range can be specified in addition to I<date>
+option.  See I<date> option description on acceptable date formats.
 
 =item B<-file> file-containing-project-ids
 
@@ -250,6 +330,17 @@ project id.
 =item B<-noheader> | B<-H>
 
 Turn off header printing.
+
+=item B<-start-date> I<yyyy.mm.dd.hh.mm.ss>
+
+Specify starting date, inclusive, for the date range. See I<end-date>
+option for other details.
+
+=item B<-timezone> | B<-tz> I<time zone>
+
+Specify a time zone for all the dates given, default is UTC.
+
+Dates will be shifted to UTC time zone (from the given time zone).
 
 =back
 
