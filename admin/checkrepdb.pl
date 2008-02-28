@@ -87,7 +87,12 @@ unless ($primary_db_down or $secondary_db_down) {
     $msg .= "\nReplication server ($primary_db -> $secondary_db) is actively replicating. [OK]\n\n";
   } else {
     $critical = 1;
-    $msg .= "\nReplication server ($primary_db -> $secondary_db) is not replicating!\n\n";
+    $msg .= <<"REP_SERVER";
+
+Replication server ($primary_db -> $secondary_db) is not replicating!
+(key used to verify was $key)
+
+REP_SERVER
   }
 
   # Check for truncated science programs
