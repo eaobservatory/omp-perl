@@ -4,7 +4,7 @@
 # [excluding the sciprog, user, obs and msb tables]
 
 # The sciprog table is excluded because there are problems
-# with text truncation for large science programs and we 
+# with text truncation for large science programs and we
 # have a special dumpsciprog routine specifically for this.
 # We might be able to overcome this by using
 #
@@ -55,19 +55,19 @@ foreach my $tab (@tab) {
     if ($old_dump[7] > $new_dump[7]) {
       my $date = localtime;
       copy($tab . "_2", $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"));
-      
-      # If new dump is less than 75 percent of old dump size 
+
+      # If new dump is less than 75 percent of old dump size
       # send a warning
       if (@new_dump / @old_dump * 100 < 75) {
-	my $msg = MIME::Lite->new(
-				  From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
-				  To => "kynan\@jach.hawaii.edu",
-				  Subject => "Warning: table $tab has shrunken significantly",
-				  Data => "New size is $new_dump[7].  Was previously $old_dump[7].  This could mean an accidental deletion has occurred.",
-				 );
-	
-	MIME::Lite->send("smtp", "mailhost", Timeout => 30);
-	$msg->send;
+        my $msg = MIME::Lite->new(
+                                  From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
+                                  To => "kynan\@jach.hawaii.edu",
+                                  Subject => "Warning: table $tab has shrunken significantly",
+                                  Data => "New size is $new_dump[7].  Was previously $old_dump[7].  This could mean an accidental deletion has occurred.",
+                                 );
+
+        MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+        $msg->send;
       }
     }
   }
