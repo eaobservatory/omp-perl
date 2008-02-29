@@ -32,9 +32,21 @@ chdir $dumpdir
 my $db = new OMP::DBbackend;
 my $dbh = $db->handle;
 
-my @tab;
-(@ARGV) and @tab = @ARGV or
-  @tab = qw/ompproj ompfeedback ompmsbdone ompfault ompfaultbody ompfaultassoc ompuser ompprojuser omptimeacct ompprojqueue ompshiftlog ompobslog ompobs/;
+my @tab = @ARGV || qw/
+                      ompfault
+                      ompfaultassoc
+                      ompfaultbody
+                      ompfeedback
+                      ompmsbdone
+                      ompobs
+                      ompobslog
+                      ompproj
+                      ompprojqueue
+                      ompprojuser
+                      ompshiftlog
+                      omptimeacct
+                      ompuser
+                    /;
 
 foreach my $tab (@tab) {
   my $ref = $dbh->selectall_arrayref("SELECT * FROM $tab")
