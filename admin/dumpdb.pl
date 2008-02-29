@@ -53,32 +53,32 @@ foreach my $tab (@tab) {
     or die "Cannot select on $tab: ". $DBI::errstr;
 
   # rename the previous dump
+  my $old = $tab . '_2';
+
   if (-e $tab) {
-    rename($tab, $tab . "_2")
-      or die "Cannot rename previous dump file: $!\n";
+    rename($tab, $old)
+      or die "Cannot rename previous dump file ($tab to $old): $!\n";
   }
   nstore($ref, "$tab");
 
   # Take a permanent copy of the old dump if it is larger than
   # the new dump.
-  my $old = $tab . '_2';
 
   if (-e $old) {
-    my @new_dump = stat($tab);
-    my @old_dump = stat($old);
-    if ($old_dump[7] > $new_dump[7]) {
+    my ($new_size, $old_size) = map { ( stat $_ )[7] } $tab, $old;
+    if ($old_size > $new_size) {
       my $date = localtime;
       copy($old, $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"))
         or die "Cannot copy '$tab' to '$old': $!\n";
 
       # If new dump is less than 75 percent of old dump size
       # send a warning
-      if (@new_dump / @old_dump * 100 < 75) {
+      if ($new_size / $old_size * 100 < 75) {
         my $msg = MIME::Lite->new(
                                   From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
                                   To => "kynan\@jach.hawaii.edu",
                                   Subject => "Warning: table $tab has shrunken significantly",
-                                  Data => "New size is $new_dump[7].  Was previously $old_dump[7].  This could mean an accidental deletion has occurred.",
+                                  Data => "New size is $new_size.  Was previously $old_size.  This could mean an accidental deletion has occurred.",
                                  );
 
         MIME::Lite->send("smtp", "mailhost", Timeout => 30);
