@@ -56,7 +56,8 @@ foreach my $tab (@tab) {
     my @old_dump = stat($old);
     if ($old_dump[7] > $new_dump[7]) {
       my $date = localtime;
-      copy($old, $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"));
+      copy($old, $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"))
+        or die "Cannot copy '$tab' to '$old': $!\n";
 
       # If new dump is less than 75 percent of old dump size
       # send a warning
