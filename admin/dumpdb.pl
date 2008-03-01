@@ -23,7 +23,7 @@ use Storable qw(nstore);
 use File::Copy;
 use Time::Piece;
 
-my $dumpdir = "/omp-cache/tables";
+my $dumpdir = '/omp-cache/tables';
 
 chdir $dumpdir
   or die "Error changing to directory $dumpdir: $!\n";
@@ -59,7 +59,7 @@ foreach my $tab (@tab) {
     rename($tab, $old)
       or die "Cannot rename previous dump file ($tab to $old): $!\n";
   }
-  nstore($ref, "$tab");
+  nstore($ref, $tab);
 
   # Take a permanent copy of the old dump if it is larger than
   # the new dump.
@@ -68,21 +68,22 @@ foreach my $tab (@tab) {
     my ($new_size, $old_size) = map { ( stat $_ )[7] } $tab, $old;
     if ($old_size > $new_size) {
       my $date = localtime;
-      copy($old, $tab . "_" . $date->strftime("%Y%m%d_%H_%M_%S"))
+      copy($old, $tab . '_' . $date->strftime('%Y%m%d_%H_%M_%S'))
         or die "Cannot copy '$tab' to '$old': $!\n";
 
       # If new dump is less than 75 percent of old dump size
       # send a warning
       if ($new_size / $old_size * 100 < 75) {
-        my $msg = MIME::Lite->new(
-                                  From => "dumpdb.pl <kynan\@jach.hawaii.edu>",
-                                  To => "kynan\@jach.hawaii.edu",
-                                  Subject => "Warning: table $tab has shrunken significantly",
-                                  Data => "New size is $new_size.  Was previously $old_size.  This could mean an accidental deletion has occurred.",
-                                 );
 
-        MIME::Lite->send("smtp", "mailhost", Timeout => 30);
-        $msg->send;
+        # Let cron handle the mail to jcmtarch, given that it is run as jcmtarch
+        # user.
+        print <<"SHRUNK";
+WARNING: table $tab has shrunken significantly.
+
+  New size is $new_size B, previously was $old_size B.
+  This could mean an accidental deletion has occurred.
+
+SHRUNK
       }
     }
   }
