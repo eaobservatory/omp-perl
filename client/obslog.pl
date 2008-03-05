@@ -497,11 +497,11 @@ sub new_instrument {
         if (defined $history) {
           @comments = $history->comments;
           for my $c (@comments ) {
-            if( defined( $c->author ) ) {
-              my $name = $c->author->name;
-              my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
-              $nbContent->insert('end', "  $status_text at ".$c->date . " UT by $name : ".$c->text ."\n");
-            }
+            my $author = $c->author;
+            # we should never get undef author
+            my $name = (defined $author ? $c->author->name : "<UNKNOWN>");
+            my $status_text = OMP::MSBDoneDB::status_to_text( $c->status );
+            $nbContent->insert('end', "  $status_text at ".$c->date . " UT by $name : ".$c->text ."\n");
           }
         }
 
