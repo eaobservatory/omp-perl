@@ -4229,6 +4229,7 @@ sub SpIterFolder {
       $scan{rowsPerRef} = $rowsPerRef if defined $rowsPerRef;
 
       my $switchMode = $self->_get_pcdata( $child, 'switchingMode' );
+      $switchMode = "none" if !defined $switchMode;
 
       # scan information is in <obsArea>
       # PA
@@ -4245,6 +4246,8 @@ sub SpIterFolder {
       $scan{SCAN_VELOCITY} = $self->_get_attribute($node, 'VELOCITY');
 
       $scan{switchingMode} = $switchMode if defined $switchMode;
+
+      $scan{pattern} = $self->_get_attribute( $node, "scanPattern" );
 
       # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");
@@ -4571,6 +4574,44 @@ sub SpInstSCUBA {
 
   return %summary;
 }
+
+=item B<SpInstSCUBA2>
+
+Examine the structure of this name and add information to the
+argument hash.
+
+  %summary = $self->SpInstSCUBA2( $el, %summary );
+
+where C<$el> is the XML node object and %summary is the
+current hierarchy.
+
+=cut
+
+sub SpInstSCUBA2 {
+  my $self = shift;
+  my $el = shift;
+  my %summary = @_;
+
+  $summary{telescope} = "JCMT";
+  $summary{instrument} = "SCUBA2";
+
+  # We have to make sure we set all instrument related components
+  # else the hierarchy might print through
+
+  # Assume 850 although in principal someone could request
+  # 450
+  $summary{waveband} = new Astro::WaveBand( Filter => '850',
+                                            Instrument => 'SCUBA2');
+  $summary{wavelength} = $summary{waveband}->wavelength;
+
+  # in principal we might be asked for a tracking subarray
+
+  # Camera mode
+  $summary{type} = "i";
+
+  return %summary;
+}
+
 
 =item B<SpInstHeterodyne>
 
