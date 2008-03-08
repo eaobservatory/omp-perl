@@ -78,10 +78,10 @@ BEGIN {
 }
 
 END {
-  OMP::General->log_message( "Closing override_alert program." );
+  OMP::General->log_message( "override_alert.pl: Closing override_alert program." );
 }
 
-OMP::General->log_message( "Starting up override_alert program..." );
+OMP::General->log_message( "override_alert.pl: Starting up override_alert program..." );
 
 $| = 1;
 my $MainWindow = new MainWindow;;
@@ -204,6 +204,10 @@ sub scan_for_msbs {
   my $xml = "<MSBQuery><telescope>$telescope</telescope><priority><max>0</max></priority>$sem_xml</MSBQuery>";
   my @results;
   try {
+
+    OMP::General->log_message( "override_alert.pl: Querying for override programs..." );
+    OMP::General->log_message( "override_alert.pl: XML: $xml" );
+
     my $query = new OMP::MSBQuery( XML => $xml,
                                    MaxCount => 100,
                                  );
@@ -224,11 +228,16 @@ sub scan_for_msbs {
   # Find MSBs that we haven't seen yet.
   foreach my $msb ( @results ) {
     my $checksum = $msb->checksum;
+
+    OMP::General->log_message( "override_alert.pl: Retrieved MSB with checksum $checksum" );
+
     $returned_checksums{ $checksum }++;
     if( ! $seen_msbs{$checksum} ) {
       $seen_msbs{$checksum} = $msb;
       $new_checksums{$checksum}++;
       print "MSB with checksum $checksum is new!\n" if $DEBUG;
+      OMP::General->log_message( "override_alert.pl: Checksum $checksum is new." );
+
     }
   }
 
@@ -237,6 +246,8 @@ sub scan_for_msbs {
     if( ! $returned_checksums{$checksum} ) {
       delete $seen_msbs{$checksum};
       print "MSB with checksum $checksum is no longer returned from database. Purging.\n" if $DEBUG;
+      OMP::General->log_message( "override_alert.pl: Checksum $checksum no longer returned from database." );
+
     }
   }
 
