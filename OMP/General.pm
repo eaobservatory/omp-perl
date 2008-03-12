@@ -115,7 +115,6 @@ sub parse_date {
   }
 
   # Clean trailing and leading spaces from the string and remove new lines
-  chomp($date);
   $date =~ s/^\s+//;
   $date =~ s/\s+$//;
 
