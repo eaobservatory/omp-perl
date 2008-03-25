@@ -789,12 +789,27 @@ sub file_fault_form {
     if (@$aref[0] and ! $fault) {
       # We don't want this checkbox group if this form is being used for editing a fault
       my %projects;
+      my %badproj; # used to limit error message noise
       for (@$aref) {
         # Make sure to only include projects associated with the current
         # telescope category
         my $category = $self->category;
         my @instruments = split(/\W/, $_->instrument);
-        my $tel = OMP::Config->inferTelescope('instruments', @instruments);
+        # this may fail if an unexpected instrument turns up
+        my $tel;
+        try {
+          $tel = OMP::Config->inferTelescope('instruments', @instruments);
+        } catch OMP::Error::BadCfgKey with {
+          my $key = $_->{projectid} . join("",@instruments);
+          if (!exists $badproj{$key}) {
+            print "Warning: Project $_->{projectid} used an instrument ".
+              join(",",@instruments) .
+                " that has no associated telescope. Please file an OMP fault<br>\n";
+            $badproj{$key}++;
+          }
+        };
+        next unless defined $tel;
+
         $projects{$_->projectid} = $_->projectid
           unless ($tel !~ /$category/i);
 	
