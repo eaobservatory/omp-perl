@@ -207,12 +207,12 @@ sub fault_table {
     print $q->hidden(-name=>'show_output', -default=>'true');
     print $q->hidden(-name=>'faultid', -default=>$fault->id);
     print $q->popup_menu(-name=>'status',
-			 -default=>$fault->status,
-			 -values=>[values %status],
-			 -labels=>\%labels,);
+                         -default=>$fault->status,
+                         -values=>[values %status],
+                         -labels=>\%labels,);
     print " ";
     print $q->submit(-name=>'change_status',
-		     -label=>'Change',);
+                     -label=>'Change',);
     print $q->endform;
   } else {
     # Display only
@@ -258,7 +258,7 @@ sub fault_table {
 
       # Link to respons editing page
       if (! $noedit) {
-	print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
+        print "&nbsp;&nbsp;&nbsp;&nbsp;<span class='editlink'><a href='updateresp.pl?id=".$fault->id."&respid=".$resp->id."'>Edit this response</a></span></td>";
       }
     }
 
@@ -337,36 +337,36 @@ sub query_fault_form {
 
   print "<b>Find faults ";
   print $q->radio_group(-name=>'action',
-		        -values=>['response','file','activity'],
-		        -default=>'activity',
-		        -labels=>{response=>"responded to",
-				  file=>"filed",
-				  activity=>"with any activity"});
+                        -values=>['response','file','activity'],
+                        -default=>'activity',
+                        -labels=>{response=>"responded to",
+                                  file=>"filed",
+                                  activity=>"with any activity"});
   print "</td><tr><td colspan=2><b>by user <small>(ID)</small> </b>";
   print $q->textfield(-name=>'author',
-		      -size=>17,
-		      -maxlength=>32,);
+                      -size=>17,
+                      -maxlength=>32,);
   print "</b></td><tr><td valign=top align=right><b>";
   print $q->radio_group(-name=>'period',
-		        -values=>['arbitrary','days','last_month'],
-		        -default=>'arbitrary',
-		        -labels=>{arbitrary=>'between dates',days=>'in the last',last_month=>'in the last calendar month'},
-			-linebreak=>'true',);
+                        -values=>['arbitrary','days','last_month'],
+                        -default=>'arbitrary',
+                        -labels=>{arbitrary=>'between dates',days=>'in the last',last_month=>'in the last calendar month'},
+                        -linebreak=>'true',);
   print "</b></td><td valign=top><b>";
   print "<small>(YYYYMMDD)</small> ";
   print $q->textfield(-name=>'mindate',
-		      -size=>18,
-		      -maxlength=>32);
+                      -size=>18,
+                      -maxlength=>32);
   print " and ";
   print $q->textfield(-name=>'maxdate',
-		      -size=>18,
-		      -maxlength=>32);
+                      -size=>18,
+                      -maxlength=>32);
   # Display the local timezone since date searches are localtime
   print " ". $today->strftime("%Z");
   print "<br>";
   print $q->textfield(-name=>'days',
-		      -size=>3,
-		      -maxlength=>4,);
+                      -size=>3,
+                      -maxlength=>4,);
   print " days";
   print "<br>";
   print "</b></td><tr><td colspan=2>";
@@ -374,21 +374,21 @@ sub query_fault_form {
   if (! $hidefields) {
     print "<b>System </b>";
     print $q->popup_menu(-name=>'system',
-			 -values=>\@systems,
-			 -labels=>\%syslabels,
-			 -default=>'any',);
+                         -values=>\@systems,
+                         -labels=>\%syslabels,
+                         -default=>'any',);
     print "<b>Type </b>";
     print $q->popup_menu(-name=>'type',
-			 -values=>\@types,
-			 -labels=>\%typelabels,
-			 -default=>'any',);
+                         -values=>\@types,
+                         -labels=>\%typelabels,
+                         -default=>'any',);
   }
 
   print "<b>Status </b>";
   print $q->popup_menu(-name=>'status',
-		       -values=>\@status,
-		       -labels=>\%statuslabels,
-		       -default=>'any',);
+                       -values=>\@status,
+                       -labels=>\%statuslabels,
+                       -default=>'any',);
 
   print "</td><tr><td colspan=2>";
   print "<b>";
@@ -396,36 +396,36 @@ sub query_fault_form {
   # Only display option to return time-losing faults if the category allows it
   if (OMP::Fault->faultCanLoseTime($self->category)) {
     print $q->checkbox(-name=>'timelost',
-		       -value=>'true',
-		       -label=>'Return time-losing faults only',
-		       -checked=>0,);
+                       -value=>'true',
+                       -label=>'Return time-losing faults only',
+                       -checked=>0,);
     print "&nbsp;&nbsp;";
   }
 
   # Only display option to return affected projects if the category allows it
   if (OMP::Fault->faultCanAssocProjects($self->category)) {
     print $q->checkbox(-name=>'show_affected',
-		       -value=>'true',
-		       -label=>'Show affected projects',
-		       -checked=>0,);
+                       -value=>'true',
+                       -label=>'Show affected projects',
+                       -checked=>0,);
   }
 
   # Return chronic faults checkbox
   print "<br>";
   print $q->checkbox(-name=>'chronic',
-		     -value=>'true',
-		     -label=>'Return chronic faults only',
-		     -checked=>0,);
+                     -value=>'true',
+                     -label=>'Return chronic faults only',
+                     -checked=>0,);
 
   print "<br>";
   print $q->checkbox(-name=>'summary',
-		     -value=>'true',
-		     -label=>'Organize by system/type',
-		     -checked=>0,);
+                     -value=>'true',
+                     -label=>'Organize by system/type',
+                     -checked=>0,);
   print "</b></td><tr><td colspan=2>";
   print $q->textfield(-name=>'text',
-		      -size=>44,
-		      -maxlength=>256,);
+                      -size=>44,
+                      -maxlength=>256,);
   print "&nbsp;&nbsp;";
   print $q->submit(-name=>"search", -label=>"Search",);
   print "</b></td>";
@@ -490,8 +490,8 @@ sub view_fault_form {
   print $q->startform;
   print "<b>Enter a fault ID: </b></td><td>";
   print $q->textfield(-name=>'id',
-		      -size=>15,
-		      -maxlength=>32);
+                      -size=>15,
+                      -maxlength=>32);
   print "</td><tr><td colspan=2 align=right>";
   print $q->submit(-name=>'Submit');
   print $q->endform;
@@ -520,7 +520,7 @@ sub close_fault_form {
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->submit(-name=>'close',
-		   -label=>'Close Fault',);
+                   -label=>'Close Fault',);
   print $q->endform;
   print "</td></table>";
 }
@@ -549,12 +549,12 @@ sub change_status_form {
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->popup_menu(-name=>'status',
-		       -default=>$fault->status,
-		       -values=>[values %status],
-		       -labels=>\%labels,);
+                       -default=>$fault->status,
+                       -values=>[values %status],
+                       -labels=>\%labels,);
   print " ";
   print $q->submit(-name=>'change_status',
-		   -label=>'Change',);
+                   -label=>'Change',);
   print $q->endform;
   
 }
@@ -613,18 +613,18 @@ sub file_fault_form {
 
   if (!$fault) {
     %defaults = (user => $self->user,
-		 system => '',
-		 type => '',
-		 status => $status{Open},
-		 loss => undef,
-		 time => undef,
-		 tz => 'HST',
-		 subject => undef,
-		 message => undef,
-		 assoc => undef,
-		 assoc2 => undef,
-		 urgency => undef,
-		 condition => undef,);
+                 system => '',
+                 type => '',
+                 status => $status{Open},
+                 loss => undef,
+                 time => undef,
+                 tz => 'HST',
+                 subject => undef,
+                 message => undef,
+                 assoc => undef,
+                 assoc2 => undef,
+                 urgency => undef,
+                 condition => undef,);
 
     # Set the text for our submit button
     $submittext = "Submit fault";
@@ -661,17 +661,17 @@ sub file_fault_form {
     }
 
     %defaults = (user=> $fault->responses->[0]->author->userid,
-		 system => $fault->system,
-		 status => $fault->status,
-		 type => $fault->type,
-		 loss => $fault->timelost,
-		 time => $faultdate,
-		 tz => 'HST',
-		 subject => $fault->subject,
-		 message => $message,
-		 assoc2 => join(',',@assoc),
-		 urgency => $urgent,
-		 condition => $chronic,);
+                 system => $fault->system,
+                 status => $fault->status,
+                 type => $fault->type,
+                 loss => $fault->timelost,
+                 time => $faultdate,
+                 tz => 'HST',
+                 subject => $fault->subject,
+                 message => $message,
+                 assoc2 => join(',',@assoc),
+                 urgency => $urgent,
+                 condition => $chronic,);
 
     # Set the text for our submit button
     $submittext = "Submit changes";
@@ -689,16 +689,16 @@ sub file_fault_form {
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
-		   -default=>$formkey);
+                   -default=>$formkey);
 
   # Embed fault category in case the user's cookie changes to
   # another category while fault is being filed
   print $q->hidden(-name=>'category',
-		   -default=>$self->category,);
+                   -default=>$self->category,);
 
   # Need the show_output param in order for the output code ref to be called next
   print $q->hidden(-name=>'show_output',
-		   -default=>'true');
+                   -default=>'true');
 
   # Embed the fault ID and status if we are editing a fault
   if ($fault) {
@@ -711,9 +711,9 @@ sub file_fault_form {
   # DISABLE USER FIELD IF FORM IS FOR EDITING
   if (! $fault) {
     print $q->textfield(-name=>'user',
-			-size=>'16',
-			-maxlength=>'90',
-			-default=>$defaults{user},);
+                        -size=>'16',
+                        -maxlength=>'90',
+                        -default=>$defaults{user},);
   } else {
     print " <strong>$defaults{user}</strong>";
     print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
@@ -721,21 +721,21 @@ sub file_fault_form {
 
   print "</td><tr><td align=right><b>System:</b></td><td>";
   print $q->popup_menu(-name=>'system',
-		       -values=>\@system_values,
-		       -default=>$defaults{system},
-		       -labels=>\%system_labels,);
+                       -values=>\@system_values,
+                       -default=>$defaults{system},
+                       -labels=>\%system_labels,);
   print "</td><tr><td align=right><b>Type:</b></td><td>";
   print $q->popup_menu(-name=>'type',
-		       -values=>\@type_values,
-		       -default=>$defaults{type},
-		       -labels=>\%type_labels,);
+                       -values=>\@type_values,
+                       -default=>$defaults{type},
+                       -labels=>\%type_labels,);
 
   unless ($fault) {
     print "</td><tr><td align=right><b>Status:</b></td><td>";
     print $q->popup_menu(-name=>'status',
-			 -values=>\@status_values,
-			 -default=>$defaults{status},
-			 -labels=>\%status_labels,);
+                         -values=>\@status_values,
+                         -default=>$defaults{status},
+                         -labels=>\%status_labels,);
   }
 
   # Only provide fields for taking "time lost" and "time of fault"
@@ -743,25 +743,25 @@ sub file_fault_form {
   if (OMP::Fault->faultCanLoseTime($self->category)) {
     print "</td><tr><td align=right><b>Time lost <small>(hours)</small>:</b></td><td>";
     print $q->textfield(-name=>'loss',
-			-default=>$defaults{loss},
-			-size=>'4',
-			-maxlength=>'10',);
+                        -default=>$defaults{loss},
+                        -size=>'4',
+                        -maxlength=>'10',);
     print "</td><tr><td align=right valign=top><b>Time of fault <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>:</td><td>";
     print $q->textfield(-name=>'time',
-			-default=>$defaults{time},
-			-size=>20,
-			-maxlength=>128,);
+                        -default=>$defaults{time},
+                        -size=>20,
+                        -maxlength=>128,);
     print "&nbsp;";
     print $q->popup_menu(-name=>'tz',
-			 -values=>['UT','HST'],
-			 -default=>$defaults{tz},);
+                         -values=>['UT','HST'],
+                         -default=>$defaults{tz},);
   }
 
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
   print $q->textfield(-name=>'subject',
-		      -size=>'60',
-		      -maxlength=>'128',
-		      -default=>$defaults{subject},);
+                      -size=>'60',
+                      -maxlength=>'128',
+                      -default=>$defaults{subject},);
 
   # Put up this reminder for telescope related filings
   if (OMP::Fault->faultIsTelescope($self->category)) {
@@ -773,9 +773,9 @@ sub file_fault_form {
   print "</td><tr><td colspan=2 align=right>";
 
   print $q->textarea(-name=>'message',
-		     -rows=>20,
-		     -columns=>78,
-		     -default=>$defaults{message},);
+                     -rows=>20,
+                     -columns=>78,
+                     -default=>$defaults{message},);
 
   # If were in a category that allows project association create a
   # checkbox group for specifying an association with projects.
@@ -783,31 +783,31 @@ sub file_fault_form {
   if (OMP::Fault->faultCanAssocProjects($self->category)) {
     # Values for checkbox group will be tonights projects
     my $aref = OMP::MSBServer->observedMSBs({usenow => 1,
-					     format => 'data',
-					     returnall => 0,});
+                                             format => 'data',
+                                             returnall => 0,});
 
     if (@$aref[0] and ! $fault) {
       # We don't want this checkbox group if this form is being used for editing a fault
       my %projects;
       for (@$aref) {
-	# Make sure to only include projects associated with the current
-	# telescope category
-	my $category = $self->category;
-	my @instruments = split(/\W/, $_->instrument);
-	my $tel = OMP::Config->inferTelescope('instruments', @instruments);
-	$projects{$_->projectid} = $_->projectid
-	  unless ($tel !~ /$category/i);
+        # Make sure to only include projects associated with the current
+        # telescope category
+        my $category = $self->category;
+        my @instruments = split(/\W/, $_->instrument);
+        my $tel = OMP::Config->inferTelescope('instruments', @instruments);
+        $projects{$_->projectid} = $_->projectid
+          unless ($tel !~ /$category/i);
 	
       }
       if (%projects) {
-	print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
-	print $q->checkbox_group(-name=>'assoc',
-				 -values=>[keys %projects],
-				 -default=>$defaults{assoc},
-				 -linebreak=>'true',);
-	print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
+        print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
+        print $q->checkbox_group(-name=>'assoc',
+                                 -values=>[keys %projects],
+                                 -default=>$defaults{assoc},
+                                 -linebreak=>'true',);
+        print "</td><tr><td colspan=2><b>Associated projects may also be specified here if not listed above </b>";
       } else {
-	print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
+        print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
       }
     } else {
       print "</td><tr><td colspan=2><b>Projects associated with this fault may be specified here </b>";
@@ -815,9 +815,9 @@ sub file_fault_form {
     print "<font size=-1>(separated by spaces)</font><b>:</b>";
     print "</td><tr><td colspan=2>";
     print $q->textfield(-name=>'assoc2',
-		        -size=>50,
-		        -maxlength=>300,
-		        -default=>$defaults{assoc2},);
+                        -size=>50,
+                        -maxlength=>300,
+                        -default=>$defaults{assoc2},);
   }
 
   print "</td><tr><td colspan='2'><b>";
@@ -839,13 +839,13 @@ sub file_fault_form {
   # since it's easier to set a default this way
   print "This fault is ";
   print $q->checkbox_group(-name=>'condition',
-			   -values=>\@convalues,
-			   -labels=>\%conlabels,
-			   -defaults=>\@condefaults,);
+                           -values=>\@convalues,
+                           -labels=>\%conlabels,
+                           -defaults=>\@condefaults,);
 
   print "</b></td><tr><td colspan='2' align=right>";
   print $q->submit(-name=>'submit',
-		   -label=>$submittext,);
+                   -label=>$submittext,);
   print $q->endform;
   print "</td></table>";
 
@@ -903,14 +903,14 @@ sub response_form {
     }
 
     %defaults = (user => $resp->author->userid,
-		 text => $text,
-		 submitlabel => "Submit changes",);
+                 text => $text,
+                 submitlabel => "Submit changes",);
   } else {
 
     %defaults = (user => $self->user,
-		 text => undef,
-		 status => $fault->status,
-		 submitlabel => "Submit response",);
+                 text => undef,
+                 status => $fault->status,
+                 submitlabel => "Submit response",);
   }
 
   # Param list values take precedence
@@ -925,7 +925,7 @@ sub response_form {
 
   # Embed the key
   print $q->hidden(-name=>'formkey',
-		   -default=>$formkey);
+                   -default=>$formkey);
   print $q->hidden(-name=>'show_output', -default=>['true']);
   print $q->hidden(-name=>'faultid', -default=>$fault->id);
 
@@ -936,9 +936,9 @@ sub response_form {
   # DISABLE USER FIELD IF FORM IS FOR EDITING
   if (! $respid) {
     print $q->textfield(-name=>'user',
-			-size=>'25',
-			-maxlength=>'75',
-			-default=>$defaults{user},);
+                        -size=>'25',
+                        -maxlength=>'75',
+                        -default=>$defaults{user},);
   } else {
     print " <strong>$defaults{user}</strong>";
     print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
@@ -948,19 +948,19 @@ sub response_form {
   if (! $respid) {
     print "</td><tr><td><b>Status: </b></td><td>";
     print $q->popup_menu(-name=>'status',
-			 -default=>$defaults{status},
-			 -values=>[values %status],
-			 -labels=>\%labels,);
+                         -default=>$defaults{status},
+                         -values=>[values %status],
+                         -labels=>\%labels,);
   }
 
   print "</td><tr><td></td><td>";
   print $q->textarea(-name=>'text',
-		     -rows=>20,
-		     -columns=>72,
-		     -default=>$defaults{text},);
+                     -rows=>20,
+                     -columns=>72,
+                     -default=>$defaults{text},);
   print "</td></tr><td colspan=2 align=right>";
   print $q->submit(-name=>'respond',
-		   -label=>$defaults{submitlabel});
+                   -label=>$defaults{submitlabel});
   print $q->endform;
   print "</td></table>";
 }
@@ -1037,7 +1037,7 @@ sub show_faults {
     @faults = @$faults;
   }
 
-  my $alt_class; # Keep track of alternating class style
+  my $alt_class;               # Keep track of alternating class style
   for my $fault (@faults) {
     my $classid;
 
@@ -1061,7 +1061,7 @@ sub show_faults {
     my $status = $fault->statusText;
     ($fault->isNew and $fault->isOpen) and $status = "New";
 
-    my $replies = $#{$fault->responses};  # The number of actual replies
+    my $replies = $#{$fault->responses}; # The number of actual replies
 
     print "<tr class=\"${classid}\">";
 
@@ -1128,18 +1128,18 @@ sub print_form {
   # ($showoutput) and print $q->hidden(-name=>'show_output', -default=>'true');
 
   print $q->hidden(-name=>'faults',
-		   -default=>join(',',@faultids));
+                   -default=>join(',',@faultids));
   print $q->submit(-name=>'print',
-		   -label=>'Send to printer');
+                   -label=>'Send to printer');
   print "&nbsp;";
   print $q->popup_menu(-name=>'printer',
-			-values=>\@printers,);
+                       -values=>\@printers,);
   if ($advanced) {
     print "<br>Using method ";
     print $q->popup_menu(-name=>'print_method',
-			 -values=>["separate","combined"],
-			 -labels=>{separate => "One fault per page",
-				   combined => "Combined",},);
+                         -values=>["separate","combined"],
+                         -labels=>{separate => "One fault per page",
+                                   combined => "Combined",},);
   }
 
   print $q->endform;
@@ -1157,24 +1157,24 @@ element will appear in a smaller font below the top-bar.
 
 =cut
 
-sub titlebar {
-  my $self = shift;
-  my $title = shift;
-  my $q = $self->cgi;
+  sub titlebar {
+    my $self = shift;
+    my $title = shift;
+    my $q = $self->cgi;
 
-  # We'll check the URL to determine if we're in the report problem or the
-  # fault system and set the titlebar accordingly
-  my $script = $q->url(-relative=>1);
+    # We'll check the URL to determine if we're in the report problem or the
+    # fault system and set the titlebar accordingly
+    my $script = $q->url(-relative=>1);
 
 
-  my $toptitle = ($self->category ne "ANYCAT" ? $self->category : "All") . " Faults";
+    my $toptitle = ($self->category ne "ANYCAT" ? $self->category : "All") . " Faults";
 
-  my $width = $self->_get_table_width;
-  print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
-  print "<tr><td><font size=+2><b>$title->[1]</b></font></td>"
-    if ($title->[1]);
-  print "</table><br>";
-}
+    my $width = $self->_get_table_width;
+    print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
+    print "<tr><td><font size=+2><b>$title->[1]</b></font></td>"
+      if ($title->[1]);
+    print "</table><br>";
+  }
 
 =item B<parse_file_fault_form>
 
@@ -1195,9 +1195,9 @@ sub parse_file_fault_form {
   my $q = $self->cgi;
 
   my %parsed = (subject => $q->param('subject'),
-	        system => $q->param('system'),
-	        type => $q->param('type'),
-	        status => $q->param('status'));
+                system => $q->param('system'),
+                type => $q->param('type'),
+                status => $q->param('status'));
 
   # Determine urgency and condition
   my @checked = $q->param('condition');
@@ -1243,14 +1243,14 @@ sub parse_file_fault_form {
       my $hh = $1;
       my $mm = $2;
       if ($islocal) {
-	# Time is local
-	# Using Time::Piece localtime() method until OMP::General today()
+        # Time is local
+        # Using Time::Piece localtime() method until OMP::General today()
         # method supports local time
-	my $today = localtime;
-	$utdate = OMP::General->parse_date($today->ymd . "T$hh:$mm", 1);
+        my $today = localtime;
+        $utdate = OMP::General->parse_date($today->ymd . "T$hh:$mm", 1);
       } else {
-	my $today = OMP::General->today;
-	$utdate = OMP::General->parse_date("$today" . "T$hh:$mm");
+        my $today = OMP::General->today;
+        $utdate = OMP::General->parse_date("$today" . "T$hh:$mm");
       }
     } else {
       $utdate = OMP::General->parse_date($time, $islocal);
@@ -1302,18 +1302,18 @@ sub fault_summary_form {
   print $q->start_form;
   print "Category";
   print $q->popup_menu(-name=>"category",
-		       -values=>\@categories,);
+                       -values=>\@categories,);
   print "<table><td>";
   print $q->radio_group(-name=>"period",
-		        -values=>["last_month","arbitrary"],
-		        -labels=>{last_month=>"Last calendar month",arbitrary=>"For the past"},
-		        -default=>"last_month",
-		        -linebreak=>"true",);
+                        -values=>["last_month","arbitrary"],
+                        -labels=>{last_month=>"Last calendar month",arbitrary=>"For the past"},
+                        -default=>"last_month",
+                        -linebreak=>"true",);
   print "</td><td valign=bottom>";
   print $q->textfield(-name=>"days",
-		      -default=>7,
-		      -size=>3,
-		      -maxlength=>4,);
+                      -default=>7,
+                      -size=>3,
+                      -maxlength=>4,);
   print " days";
   print "</td><tr><td>";
   print $q->submit(-name=>'submit',);
