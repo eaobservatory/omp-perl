@@ -802,7 +802,7 @@ sub file_fault_form {
         } catch OMP::Error::BadCfgKey with {
           my $key = $_->{projectid} . join("",@instruments);
           if (!exists $badproj{$key}) {
-            print "Warning: Project $_->{projectid} used an instrument ".
+            print "<BR>Warning: Project $_->{projectid} used an instrument ".
               join(",",@instruments) .
                 " that has no associated telescope. Please file an OMP fault<br>\n";
             $badproj{$key}++;
