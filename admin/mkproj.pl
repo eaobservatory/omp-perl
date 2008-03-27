@@ -220,7 +220,9 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Now convert the allocation to seconds instead of hours
   collect_err( "[project $proj] Allocation is mandatory!" )
-    unless $details{allocation};
+    unless defined $details{allocation};
+  collect_err( "[project $proj] Allocation must be positive!" )
+    unless $details{allocation} >= 0;
   $details{allocation} *= 3600;
 
   # User ids
