@@ -128,6 +128,7 @@ if( $version ) {
   exit;
 }
 
+# initialise
 my $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
 my $currentut = OMP::General->today;
 my $utdisp = "Current UT date: $ut";
@@ -151,9 +152,12 @@ if(defined($opt{tel})) {
   die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
 }
 
+# CONTENTCOLOUR controls the colour of the text comments and entries
+# for an observation. It assumes that OBS comments status is an integer
+# starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
 my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my @CONTENTCOLOUR = qw/ black brown red /;
+my @CONTENTCOLOUR = qw/ black brown red orange/;
 my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
@@ -930,6 +934,11 @@ sub RaiseComment {
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
                                                            );
+    my $radioQuestionable = $radioFrame->Radiobutton( -text => 'rejected',
+                                                      -value => OMP__OBS_REJECTED,
+                                                      -variable => \$status,
+                                                    )->pack( -side => 'left',
+                                                           );
 
   }
 
@@ -1572,7 +1581,8 @@ sub create_shiftlog_widget {
   my $TZ = "LocalTime";
 
   # A label.
-  $topbar->Label( -text => "Shift Comments for $ut:" )->pack( -side => 'left' );
+  $topbar->Label( -text => "Shift comments. ")->pack(-side=>'left');
+  $topbar->Label( -textvariable => \$utdisp )->pack( -side => 'left' );
 
   # Button to add a new comment.
   $topbar->Button( -text => 'Add New Shift Comment',
@@ -2066,7 +2076,8 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
+Copyright (C) 2008 Science and Technology Facilities Council.
+Copyright (C) 2002-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under

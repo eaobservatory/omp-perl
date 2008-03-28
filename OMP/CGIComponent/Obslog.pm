@@ -23,7 +23,7 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 
 use OMP::Config;
-use OMP::Constants;
+use OMP::Constants qw/ :obs :timegap /;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -51,9 +51,14 @@ require Exporter;
 
 Exporter::export_tags(qw/ all /);
 
-# Colours for displaying observation status. First is 'good', second
-# is 'questionable', third is 'bad'.
-our @colour = ( "BLACK", "#BB3333", "#FF3300" );
+# Colours for displaying observation status.
+
+our %colour = (
+               OMP__OBS_GOOD => "BLACK",
+               OMP__OBS_QUESTIONABLE => "#BB3333",
+               OMP__OBS_BAD => "#FF3300",
+               OMP__OBS_REJECTED => "BROWN"
+              );
 
 =head1 Routines
 				
@@ -218,7 +223,7 @@ sub obs_table {
     print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
     print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
     print "<tr class=\"sum_other\"><td>";
-    print "Colour legend: <font color=\"" . $colour[0] . "\">good</font> <font color=\"" . $colour[1] . "\">questionable</font> <font color=\"" . $colour[2] . "\">bad</font></td></tr>\n";
+    print "Colour legend: <font color=\"" . $colour{OMP__OBS_GOOD} . "\">good</font> <font color=\"" . $colour{OMP__OBS_QUESTIONABLE} . "\">questionable</font> <font color=\"" . $colour{OMP__OBS_BAD} . "\">bad</font>  <font color=\"" . $colour{OMP__OBS_REJECTED} . "\">rejected</font> </td></tr>\n";
     print "</table>";
   }
 
@@ -336,7 +341,7 @@ sub obs_table {
 
     my $comments = $obs->comments;
     my $status = $obs->status;
-    my $colour = defined( $status ) ? $colour[$status] : $colour[0];
+    my $colour = defined( $status ) ? $colour{$status} : $colour{OMP__OBS_GOOD};
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
       if( $text ) {
@@ -482,7 +487,7 @@ sub obs_table {
         my @printstrings;
         foreach my $comment (@$comments) {
           my $string = "<font color=\"";
-          $string .= $colour[$comment->status];
+          $string .= $colour{$comment->status};
           $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
           $string .= " " . OMP::General::escape_entity( $comment->text );
           $string .= "</font>";
@@ -562,7 +567,7 @@ sub obs_summary {
     foreach my $comment (@comments) {
       print "<tr class=\"$rowclass\"><td>";
       my $string = "<font color=\"";
-      $string .= ( defined( $colour[$comment->status] ) ) ? $colour[$comment->status] : "BLACK";
+      $string .= ( defined( $colour{$comment->status} ) ) ? $colour{$comment->status} : "BLACK";
       $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
       $string .= "</strong> " . $comment->text;
       $string .= "</font>";
@@ -715,23 +720,27 @@ sub obs_comment_form {
   my $obs = shift;
   my $cookie = shift;
 
-  my %status_label = ( 0 => 'Good',
-                       1 => 'Questionable',
-                       2 => 'Bad' ) ;
-  my @status_value = qw/ 0 1 2 /;
+  my %status_label = ( OMP__OBS_GOOD => 'Good',
+                       OMP__OBS_QUESTIONABLE => 'Questionable',
+                       OMP__OBS_BAD => 'Bad',
+                       OMP__OBS_REJECTED => "Rejected",
+                     ) ;
+  my @status_value = sort keys %status_label;
 
-  my %timegap_label = ( 10 => 'Instrument',
-                        11 => 'Weather',
-                        12 => 'Fault',
-                        13 => 'Unknown',
-                        14 => 'Next Project',
-                        15 => 'Last Project',
-                        16 => 'Observer Not Driver',
-                        17 => 'Scheduled Downtime',
-                        18 => 'Queue Overhead',
-                        19 => 'Logistics',
+  # Note that we want Unknown to appear at the end
+  my %timegap_label = ( OMP__TIMEGAP_INSTRUMENT => 'Instrument',
+                        OMP__TIMEGAP_WEATHER => 'Weather',
+                        OMP__TIMEGAP_FAULT => 'Fault',
+                        OMP__TIMEGAP_NEXT_PROJECT => 'Next Project',
+                        OMP__TIMEGAP_PREV_PROJECT => 'Last Project',
+                        OMP__TIMEGAP_NOT_DRIVER => 'Observer Not Driver',
+                        OMP__TIMEGAP_SCHEDULED => 'Scheduled Downtime',
+                        OMP__TIMEGAP_QUEUE_OVERHEAD => 'Queue Overhead',
+                        OMP__TIMEGAP_LOGISTICS => 'Logistics',
                       );
-  my @timegap_value = qw/ 10 11 12 15 14 16 17 18 19 13 /;
+  my @timegap_value = sort(keys %timegap_label);
+  $timegap_label{OMP__TIMEGAP_UNKNOWN} = "Unknown";
+  push(@timegap_value, OMP__TIMEGAP_UNKNOWN );
 
   # Verify we have an Info::Obs object.
   if( ! UNIVERSAL::isa($obs, "OMP::Info::Obs") ) {
@@ -1193,6 +1202,7 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
+Copyright (C) 2008 Science and Technology Facilities Council.
 Copyright (C) 2002 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 

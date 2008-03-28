@@ -44,7 +44,8 @@ my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_COMMENT OMP__DONE_UNDONE OMP__DONE_ABORTED
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
 my @msb = qw/ OMP__MSB_REMOVED /;
-my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE /;
+my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
+            OMP__OBS_REJECTED /;
 my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
                   OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
                   OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
@@ -426,6 +427,16 @@ Flags an observation as bad.
 
 use constant OMP__OBS_BAD => 2;
 
+=item OMP__OBS_REJECTED
+
+Flags an observation as rejected. To be used if the data are not
+Good enough to be charged to a project but are good enough not 
+to be marked as bad (and so invisible in the science archive).
+
+=cut
+
+use constant OMP__OBS_REJECTED => 3;
+
 =back
 
 =head2 Timegap reasons
@@ -651,7 +662,8 @@ perl package.
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998-2002 Particle Physics and Astronomy Research
+Copyright (C) 2008 Science and Technology Facilities Council.
+Copyright (C) 1998-2007 Particle Physics and Astronomy Research
 Council. All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
