@@ -54,10 +54,10 @@ Exporter::export_tags(qw/ all /);
 # Colours for displaying observation status.
 
 our %colour = (
-               OMP__OBS_GOOD => "BLACK",
-               OMP__OBS_QUESTIONABLE => "#BB3333",
-               OMP__OBS_BAD => "#FF3300",
-               OMP__OBS_REJECTED => "BROWN"
+               OMP__OBS_GOOD() => "BLACK",
+               OMP__OBS_QUESTIONABLE() => "#BB3333",
+               OMP__OBS_BAD() => "#FF3300",
+               OMP__OBS_REJECTED() => "BROWN"
               );
 
 =head1 Routines
@@ -222,8 +222,8 @@ sub obs_table {
   } else {
     print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
     print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
-    print "<tr class=\"sum_other\"><td>";
-    print "Colour legend: <font color=\"" . $colour{OMP__OBS_GOOD} . "\">good</font> <font color=\"" . $colour{OMP__OBS_QUESTIONABLE} . "\">questionable</font> <font color=\"" . $colour{OMP__OBS_BAD} . "\">bad</font>  <font color=\"" . $colour{OMP__OBS_REJECTED} . "\">rejected</font> </td></tr>\n";
+    print "<tr class=\"sum_other\"><td>\n";
+    print "Colour legend: <font color=\"" . $colour{OMP__OBS_GOOD()} . "\">good</font> <font color=\"" . $colour{OMP__OBS_QUESTIONABLE()} . "\">questionable</font> <font color=\"" . $colour{OMP__OBS_BAD()} . "\">bad</font>  <font color=\"" . $colour{OMP__OBS_REJECTED()} . "\">rejected</font> </td></tr>\n";
     print "</table>";
   }
 
@@ -341,7 +341,7 @@ sub obs_table {
 
     my $comments = $obs->comments;
     my $status = $obs->status;
-    my $colour = defined( $status ) ? $colour{$status} : $colour{OMP__OBS_GOOD};
+    my $colour = defined( $status ) ? $colour{$status} : $colour{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
       if( $text ) {
@@ -720,26 +720,26 @@ sub obs_comment_form {
   my $obs = shift;
   my $cookie = shift;
 
-  my %status_label = ( OMP__OBS_GOOD => 'Good',
-                       OMP__OBS_QUESTIONABLE => 'Questionable',
-                       OMP__OBS_BAD => 'Bad',
-                       OMP__OBS_REJECTED => "Rejected",
+  my %status_label = ( OMP__OBS_GOOD() => 'Good',
+                       OMP__OBS_QUESTIONABLE() => 'Questionable',
+                       OMP__OBS_BAD() => 'Bad',
+                       OMP__OBS_REJECTED() => "Rejected",
                      ) ;
   my @status_value = sort keys %status_label;
 
   # Note that we want Unknown to appear at the end
-  my %timegap_label = ( OMP__TIMEGAP_INSTRUMENT => 'Instrument',
-                        OMP__TIMEGAP_WEATHER => 'Weather',
-                        OMP__TIMEGAP_FAULT => 'Fault',
-                        OMP__TIMEGAP_NEXT_PROJECT => 'Next Project',
-                        OMP__TIMEGAP_PREV_PROJECT => 'Last Project',
-                        OMP__TIMEGAP_NOT_DRIVER => 'Observer Not Driver',
-                        OMP__TIMEGAP_SCHEDULED => 'Scheduled Downtime',
-                        OMP__TIMEGAP_QUEUE_OVERHEAD => 'Queue Overhead',
-                        OMP__TIMEGAP_LOGISTICS => 'Logistics',
+  my %timegap_label = ( OMP__TIMEGAP_INSTRUMENT() => 'Instrument',
+                        OMP__TIMEGAP_WEATHER() => 'Weather',
+                        OMP__TIMEGAP_FAULT() => 'Fault',
+                        OMP__TIMEGAP_NEXT_PROJECT() => 'Next Project',
+                        OMP__TIMEGAP_PREV_PROJECT() => 'Last Project',
+                        OMP__TIMEGAP_NOT_DRIVER() => 'Observer Not Driver',
+                        OMP__TIMEGAP_SCHEDULED() => 'Scheduled Downtime',
+                        OMP__TIMEGAP_QUEUE_OVERHEAD() => 'Queue Overhead',
+                        OMP__TIMEGAP_LOGISTICS() => 'Logistics',
                       );
   my @timegap_value = sort(keys %timegap_label);
-  $timegap_label{OMP__TIMEGAP_UNKNOWN} = "Unknown";
+  $timegap_label{OMP__TIMEGAP_UNKNOWN()} = "Unknown";
   push(@timegap_value, OMP__TIMEGAP_UNKNOWN );
 
   # Verify we have an Info::Obs object.
