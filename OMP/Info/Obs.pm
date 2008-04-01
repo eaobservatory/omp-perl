@@ -1492,8 +1492,6 @@ sub _populate {
 
 # Set up a planet coordinate system.
         my $coords = new Astro::Coords( planet => $self->target );
-        $coords->datetime( $self->startobs );
-        $coords->telescope( new Astro::Telescope( $self->telescope ) );
         $self->coords( $coords );
       } elsif ( defined ( $generic_header{COORDINATE_TYPE} ) ) {
 
@@ -1512,6 +1510,9 @@ sub _populate {
                                           ) );
         }
       }
+
+      $self->coords->datetime( $self->startobs );
+      $self->coords->telescope( new Astro::Telescope( $self->telescope ) );
     }
 
     # Set science/scical/gencal defaults.
@@ -1579,11 +1580,6 @@ sub _populate {
       }
 
     }
-  }
-
-  # Set the reference epoch for the coordinates, if both are defined.
-  if( defined( $self->coords ) && defined( $self->startobs ) ) {
-    $self->coords->datetime( $self->startobs );
   }
 
   # Remaining generic header
