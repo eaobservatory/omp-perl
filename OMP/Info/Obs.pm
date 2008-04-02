@@ -1511,8 +1511,14 @@ sub _populate {
         }
       }
 
-      $self->coords->datetime( $self->startobs );
-      $self->coords->telescope( new Astro::Telescope( $self->telescope ) );
+      if( defined( $self->coords ) ) {
+        if( defined( $self->startobs ) ) {
+          $self->coords->datetime( $self->startobs );
+        }
+        if( defined( $self->telescope ) ) {
+          $self->coords->telescope( new Astro::Telescope( $self->telescope ) );
+        }
+      }
     }
 
     # Set science/scical/gencal defaults.
