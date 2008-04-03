@@ -47,9 +47,9 @@ $st->execute or die log_db_error( $db->errstr );
   my $print_head;
   while ( my @rec = $st->fetchrow_array ) {
 
-    #  Print header only if there are any results, so it is here in loop.
-    !$print_head and
-      $print_head = 1, print_header() if $opt{'header'};
+    # Print header (once, when requested, and) if there are any
+    # results, so it is here in loop.
+    !$print_head && $opt{'header'} and $print_head++, print_header();
 
     print_csv( @rec );
   }
