@@ -665,7 +665,13 @@ sub listSupport {
   # Kluge. We should not be doing SQL at this level
   # Note that current project table does not know which telescope
   # it belongs to!
-  my $supref = $self->_db_retrieve_data_ashash( "SELECT DISTINCT S.userid, email, uname as 'name' FROM $PROJUSERTABLE S, $utable U WHERE S.userid = U.userid AND capacity = 'SUPPORT'" );
+  my $supref = $self->_db_retrieve_data_ashash( <<"USER_SQL" );
+    SELECT DISTINCT S.userid, email, uname as 'name'
+    FROM $PROJUSERTABLE S, $utable U
+    WHERE S.userid = U.userid AND capacity = 'SUPPORT'
+    ORDER BY S.capacity_order
+USER_SQL
+
   map { new OMP::User( %$_ ) } @$supref
 
 }
@@ -999,11 +1005,14 @@ sub _insert_project_row {
 
   # Loop over all the different roles
   for my $role (keys %roles) {
+
+    my $order = 1;
     for my $user (@{ $roles{$role} }) {
       $self->_insert_project_user( 'projectid' => $proj->projectid,
                                     'userid' => $user->userid,
                                     'role' => $role,
-                                    'contactable' => $contactable{ $user->userid }
+                                    'contactable' => $contactable{ $user->userid },
+                                    'capacity_order' => $order++,
                                   );
     }
   }
@@ -1012,13 +1021,14 @@ sub _insert_project_row {
 
 =item B<_insert_project_user>
 
-Given a hash with keys of projectid, userid, role, and contactable, add a user
-to the OMP database table.
+Given a hash with keys of projectid, userid, role, contactable, and order per
+role per project, add a user to the OMP database table.
 
-  $self->_insert_project_user( 'projectid' => $projectid
-                                'userid' => 'jdove'
-                                'role' => 'COI'
-                                'contactable' => undef
+  $self->_insert_project_user( 'projectid' => $projectid,
+                                'userid' => 'jdove',
+                                'role' => 'COI',
+                                'contactable' => undef,
+                                'capacity_order' => 2
                               );
 
 =cut
@@ -1031,7 +1041,9 @@ sub _insert_project_user {
   $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
   $self->_db_insert_data( $PROJUSERTABLE,
                           map { $attr{$_} }
-                              qw( projectid userid role contactable )
+                              qw( projectid userid role contactable
+                                  capacity_order
+                                )
                         );
   return;
 }
@@ -1060,9 +1072,16 @@ sub _get_projects {
   # N projects, where N is the value of $MAX_ID
   my $MAX_ID = 100;
   my $utable = $OMP::UserDB::USERTABLE; #--- Proj user table ---#
-  my $userquery_sql = "SELECT P.projectid, P.userid, P.capacity, P.contactable, U.uname, U.email\n".
-    "FROM $PROJUSERTABLE P, $utable U\n".
-      "WHERE P.userid = U.userid AND ";
+  my $uproj_alias = 'P'
+  my $userquery_sql = <<"USER_SQL";
+  SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
+         $uproj_alias.contactable,
+         U.uname, U.email
+    FROM $PROJUSERTABLE $uproj_alias, $utable U
+      WHERE $uproj_alias.userid = U.userid AND
+
+USER_SQL
+
   my $queuequery_sql = "SELECT * FROM $PROJQUEUETABLE WHERE ";
 
   my %projroles;
@@ -1079,7 +1098,13 @@ sub _get_projects {
                         );
 
     # First do the user info query
-    $sql = $userquery_sql . "projectid in ($proj_list)";
+    $sql = $userquery_sql . <<"WHERE_ORDER_SQL";
+        projectid in ($proj_list)
+        ORDER BY $uproj_alias.projectid,
+                 $uproj_alias.capacity,
+                 $uproj_alias.capacity_order
+WHERE_ORDER_SQL
+
     my $userref = $self->_db_retrieve_data_ashash( $sql );
 
     # Loop over the results and assign to different roles

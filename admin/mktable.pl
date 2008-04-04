@@ -89,9 +89,10 @@ my %tables = (
                               # PI, COI, SUPPORT
                               capacity => "VARCHAR(16)",
                               contactable => $BOOL,
+                              capacity_order => 'TINYINT DEFAULT 0 NOT NULL',
                               _ORDER => [qw/
                                          uniqid projectid userid
-                                         capacity contactable
+                                         capacity contactable capacity_order
                                         /],
                              },
               # General project details
