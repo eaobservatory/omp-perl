@@ -1072,7 +1072,7 @@ sub _get_projects {
   # N projects, where N is the value of $MAX_ID
   my $MAX_ID = 100;
   my $utable = $OMP::UserDB::USERTABLE; #--- Proj user table ---#
-  my $uproj_alias = 'P'
+  my $uproj_alias = 'P';
   my $userquery_sql = <<"USER_SQL";
   SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
          $uproj_alias.contactable,
