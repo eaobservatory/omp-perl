@@ -849,8 +849,8 @@ sub nightlog {
     $return{'Mode'} = uc($self->mode);
     $return{'Source'} = $self->target;
     $return{'Cycle Length'} = ( defined( $self->cycle_length ) ?
-                                $self->cycle_length :
-                                '-' );
+                                sprintf( "%3d", $self->cycle_length ) :
+                                ' - ' );
     $return{'Number of Cycles'} = $self->number_of_cycles;
     $return{'Frequency'} = $self->rest_frequency;
 
@@ -875,7 +875,7 @@ sub nightlog {
 
     $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode";
 #    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
-    $return{'_STRING'} = sprintf("%3s  %8s  %16.16s %11s %15s  %3d/%3d    %7.3f %5s/%6s %11s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'}, $return{'Bandwidth Mode'});
+    $return{'_STRING'} = sprintf("%3s  %8s  %16.16s %11s %15s  %3s/%3d    %7.3f %5s/%6s %11s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'}, $return{'Bandwidth Mode'});
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
