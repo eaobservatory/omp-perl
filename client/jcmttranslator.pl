@@ -166,7 +166,7 @@ if ($transdir) {
     OMP::Translator->outputdir(File::Spec->curdir);
   } elsif ($tempdir) {
     # this should fail if no temp dir is defined
-    my $tmp = OMP::Config->getData( "acsis_translator.temptransdir" );
+    my $tmp = OMP::Config->getData( "jcmt_translator.temptransdir" );
     if ($tmp) {
       print "Overriding output directory. Using '$tmp'\n" if $verbose;
       OMP::Translator->outputdir( $tmp );

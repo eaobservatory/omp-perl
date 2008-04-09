@@ -144,6 +144,7 @@ sub translate {
 		    # the backend name is the one that counts
 		    DAS => 'ACSIS',
 		    ACSIS => 'ACSIS',
+        SCUBA2 => 'SCUBA2',
 		  );
 
   # Array of file handles that we should write verbose messages to
@@ -161,7 +162,7 @@ sub translate {
       my $ut = DateTime->from_epoch( epoch => $sec, time_zone => 'UTC' );
 
       # need ut date (in eval if logdir does not exist)
-      my $logdir = OMP::Config->getData( 'acsis_translator.logdir', utdate => $ut );
+      my $logdir = OMP::Config->getData( 'translator.logdir', utdate => $ut );
 
       # try to make the directory - which may fail hence the try block
       mkpath( $logdir );

@@ -23,19 +23,14 @@ use Carp;
 
 use Data::Dumper;
 
-use Net::Domain;
 use File::Spec;
-use File::Basename;
 use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
 use POSIX qw/ ceil /;
 use Math::Trig qw/ rad2deg /;
-use IO::Tee;
-use Storable;
 
 use JCMT::ACSIS::HWMap;
-use JCMT::SMU::Jiggle;
 use JAC::OCS::Config;
 use JAC::OCS::Config::Error qw/ :try /;
 
@@ -44,15 +39,9 @@ use OMP::Error;
 use OMP::General;
 use OMP::Range;
 
-use base qw/ OMP::Translator /;
+use base qw/ OMP::Translator::JCMT /;
 
-# Default directory for writing configs
-our $TRANS_DIR = OMP::Config->getData( 'acsis_translator.transdir');
-
-# Location of wiring xml
-our $WIRE_DIR = OMP::Config->getData( 'acsis_translator.wiredir' );
-
-# Debugging messages
+# Real debugging messages. Do not confuse with debug() method
 our $DEBUG = 0;
 
 # Fast mode: omit calculation of grid, just assume 1x1
@@ -65,16 +54,6 @@ our $VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 my $max_slice_size_in_gb = 0.5;
 my $max_slice_size_in_bytes = $max_slice_size_in_gb * 1024 * 1024 * 1024;
 my $MAX_SLICE_NPIX = $max_slice_size_in_bytes / 4.0;
-
-# Mapping from OMP to OCS frontend names
-our %FE_MAP = (
-               RXA3 => 'RXA',
-               RXWB => 'RXWB',
-               RXWD => 'RXWD',
-               RXB3 => 'RXB',
-               'RXHARP-B' => 'HARPB',
-               HARP => 'HARP',
-              );
 
 # Lookup table to calculate the LO2 frequencies.
 # Indexed simply by subband bandwidth
@@ -105,240 +84,38 @@ our $LO2_INCR = 0.5E6;
 # LO2 tuning range for consistency checks
 our $LO2_RANGE = OMP::Range->new( Min => 5.7E9 , Max => 10.5E9 );
 
-# Telescope diameter in metres
-use constant DIAM => 15;
-
 =head1 METHODS
 
 =over 4
 
-=item B<translate>
+=item B<wiredir>
 
-Converts a single MSB object to one or many ACSIS Configs.
-It is assumed that this MSB will refer to an ACSIS observation
-(and has been prefiltered by the caller, usually C<OMP::Translator>).
-Always returns the configs as an array of C<JAC::OCS::Config> objects.
+Returns the wiring directory that should be used for ACSIS.
 
-  @configs = OMP::Translate->translate( $msb );
-  @configs = OMP::Translate->translate( $msb, simulate => 1 );
-
-It is the responsibility of the caller to write these objects.
-
-Optional hash arguments can control the specific translation.
-Supported arguments are:
-
-  simulate :  Include simulation configuration. Default is false.
-
-=cut
-
-sub translate {
-  my $self = shift;
-  my $msb = shift;
-  my %opts = ( simulate => 0, @_ );
-
-  # Project
-  my $projectid = $msb->projectID;
-
-  # OT version
-  my $otver = $msb->ot_version;
-  print "OTVERS: $otver \n" if $DEBUG;
-
-  # The default parser treats waveplate angles as discrete
-  # observations per waveplate. This translator treats them as a single
-  # observation.
-  $self->correct_wplate($msb);
-
-  # Correct Stare observations such that multiple offsets are
-  # combined
-  # Note that there may be a requirement to convert non-regular offset
-  # patterns into individual observations rather than having a very sparse
-  # but large grid
-  $self->correct_offsets( $msb, "Stare" );
-
-  # Now unroll the MSB into constituent observations details
-  my @configs;
-  for my $obs ($msb->unroll_obs) {
-
-    # unroll_obs does not do a deep copy of references - we need independence
-    # because the translator writes to the structure
-    $obs = Storable::dclone( $obs );
-
-    # Translate observing mode information to internal form
-    $self->observing_mode( $obs );
-
-    # We need to patch up DAS observations if we are attempting to translate
-    # them as ACSIS observations
-    $self->upgrade_das_specification( $obs );
-
-    # We need to patch up POINTING and FOCUS observations so that they have
-    # the correct jiggle parameters
-    $self->handle_special_modes( $obs );
-
-    # Create blank configuration
-    my $cfg = new JAC::OCS::Config;
-
-    # Set verbosity and debug level
-    $cfg->verbose( $self->verbose );
-    $cfg->debug( $self->debug );
-    $cfg->outhdl( $self->outhdl ) if $cfg->can("outhdl");
-
-    # Add comment
-    $cfg->comment( "Translated on ". gmtime() ."UT on host ".
-                   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
-                   "using Translator version $VERSION on an MSB created by the OT version $otver\n");
-
-    # Observation summary
-    $self->obs_summary( $cfg, %$obs );
-
-    # Instrument config
-    $self->instrument_config( $cfg, %$obs );
-
-    # configure the basic TCS parameters
-    $self->tcs_config( $cfg, %$obs );
-
-    # FRONTEND_CONFIG
-    $self->fe_config( $cfg, %$obs );
-
-    # ACSIS_CONFIG
-    # SCUBA-2 translator will need to inherit some of these methods
-    $self->acsis_config( $cfg, %$obs );
-
-    # HEADER_CONFIG
-    $self->header_config( $cfg, %$obs );
-
-    # Polarimeter
-    $self->pol_config( $cfg, %$obs );
-
-    # RTS
-    $self->rts_config( $cfg, %$obs );
-
-    # JOS Config
-    $self->jos_config( $cfg, %$obs );
-
-    # Slew and rotator need to wait until we can estimate
-    # the duration of the configuration
-    $self->slew_config( $cfg, %$obs );
-    $self->rotator_config( $cfg, %$obs );
-
-    # Simulator
-    $self->simulator_config( $cfg, %$obs ) if $opts{simulate};
-
-    # Store the completed config
-    push(@configs, $cfg);
-
-    # For debugging we need to see the unrolled information
-    # do it late so that we get to see the acsis backend information
-    # as calculated by the translator
-    print Dumper( $obs ) if $self->debug;
-
-    # and also the translated config itself
-    print $cfg if $self->debug;
-
-  }
-
-
-  # return the config objects
-  return @configs;
-}
-
-=item B<debug>
-
-Method to enable and disable global debugging state.
-
-  OMP::Translator::ACSIS->debug( 1 );
+  $trans->wiredir();
 
 =cut
 
 {
-  my $dbg;
-  sub debug {
-    my $class = shift;
-    if (@_) {
-      my $state = shift;
-      $dbg = ($state ? 1 : 0 );
-    }
-    return $dbg;
+  my $wiredir;
+  sub wiredir {
+    $wiredir = OMP::Config->getData( 'acsis_translator.wiredir' )
+      unless defined $wiredir;
+    return $wiredir;
   }
 }
 
-=item B<outhdl>
-
-Output file handles to use for verbose messages.
-Defaults to STDOUT.
-
-  OMP::Translator::ACSIS->outhdl( \*STDOUT, $fh );
-
-Returns an C<IO::Tee> object.
-
-Pass in undef to reset to the default.
-
-=cut
-
-{
-  my $def = new IO::Tee(\*STDOUT);
-  my $oh = $def;
-  sub outhdl {
-    my $class = shift;
-    if (@_) {
-      if (!defined $_[0]) {
-        $oh = $def;             # reset
-      } else {
-        $oh = new IO::Tee( @_ );
-      }
-    }
-    return $oh;
-  }
-}
-
-=item B<verbose>
-
-Method to enable and disable global verbosity state.
-
-  OMP::Translator::ACSIS->verbose( 1 );
-
-=cut
-
-{
-  my $verb;
-  sub verbose {
-    my $class = shift;
-    if (@_) {
-      my $state = shift;
-      $verb = ($state ? 1 : 0 );
-    }
-    return $verb;
-  }
-}
-
-
-=item B<transdir>
-
-Override the default translation directory.
-
-  OMP::Translator::ACSIS->transdir( $dir );
-
-=cut
-
-sub transdir {
-  my $class = shift;
-  if (@_) {
-    my $dir = shift;
-    $TRANS_DIR = $dir;
-  }
-  return $TRANS_DIR;
-}
-
-=item B<upgrade_das_specification>
+=item B<fixup_historical_problems>
 
 In order for DAS observations to be translated as ACSIS observations we
 need to fill in missing information and translate DAS bandwidth settings
 to ACSIS equivalents.
 
-  $cfg->upgrade_das_specification( \%obs );
+  $cfg->fixup_historical_problems( \%obs );
 
 =cut
 
-sub upgrade_das_specification {
+sub fixup_historical_problems {
   my $self = shift;
   my $info = shift;
 
@@ -639,488 +416,21 @@ These routines configure the specific C<JAC::OCS::Config> objects.
 
 =over 4
 
-=item B<obs_summary>
+=item B<frontend_backend_config>
 
-Observation summary.
+Wrapper routine that will configure both the frontend and backend for this
+observation. Calls C<fe_config> and <acsis_config>.
 
- $trans->obs_summary( $cfg, %info );
-
-where $cfg is the main C<JAC::OCS::Config> object. Stores a
-C<JAC::OCS::Config::ObsSummary> object into the supplied
-configuration.
+  $trans->frontend_backend_config($cfg, %$obs );
 
 =cut
 
-sub obs_summary {
+sub frontend_backend_config {
   my $self = shift;
   my $cfg = shift;
   my %info = @_;
-
-  my $obs = new JAC::OCS::Config::ObsSummary;
-
-  $obs->mapping_mode( $info{mapping_mode} );
-  $obs->switching_mode( defined $info{switching_mode} 
-                        ? $info{switching_mode} : 'none' );
-  $obs->type( $info{obs_type} );
-
-  $cfg->obs_summary( $obs );
-}
-
-=item B<tcs_config>
-
-TCS configuration.
-
-  $trans->tcs_config( $cfg, %info );
-
-where $cfg is the main C<JAC::OCS::Config> object.
-
-=cut
-
-sub tcs_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # Create the template
-  my $tcs = new JAC::OCS::Config::TCS;
-
-  # Pointing, focus and autoTarget observations need to force
-  # state rather than using the inherited state
-
-  # Telescope is known
-  $tcs->telescope( 'JCMT' );
-
-  # First the base position
-  $self->tcs_base( $cfg, $tcs, %info );
-
-  # observing area
-  $self->observing_area( $tcs, %info );
-
-  # Then secondary mirror
-  $self->secondary_mirror( $tcs, %info );
-
-  # Fix up the REFERENCE position for Jiggle/Chop if we have not been given
-  # one explicitly. We need to do this until the JOS recipe can be fixed to
-  # go to the chop position for its CAL automatically
-  # Only do this if we have a target.
-  my %tags = $tcs->getAllTargetInfo;
-  if (exists $tags{SCIENCE} && 
-      !exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/) {
-    # The REFERENCE should be the chop off position for now
-    my $ref = new JAC::OCS::Config::TCS::BASE;
-    $ref->tag( "REFERENCE" );
-    $ref->coords( $tags{SCIENCE}->coords );
-    $ref->tracking_system( $tags{SCIENCE}->tracking_system );
-
-    # Chop info
-    my $sec = $tcs->getSecondary;
-    my %chop = $sec->chop();
-
-    throw OMP::Error::TranslateFail("Chopped mode specified but no chop position angle defined\n") unless exists $chop{PA} && defined $chop{PA};
-
-    # convert this polar coordinate to cartesian
-    my $chop_x = $chop{THROW} * sin( $chop{PA}->radians );
-    my $chop_y = $chop{THROW} * cos( $chop{PA}->radians );
-
-    # prettyify
-    $chop_x = sprintf( "%.2f", $chop_x );
-    $chop_y = sprintf( "%.2f", $chop_y );
-
-    # offset
-    my $offset = new Astro::Coords::Offset( $chop_x, $chop_y,
-                                            system => $chop{SYSTEM} );
-
-    $ref->offset( $offset );
-
-    $tcs->setCoords( "REFERENCE", $ref );
-
-  }
-
-
-  # Slew and rotator require the duration to be known which can
-  # only be calculated when the configuration is complete
-
-  # Store it
-  $cfg->tcs( $tcs );
-}
-
-=item B<tcs_base>
-
-Calculate the position information (SCIENCE and REFERENCE)
-and store in the TCS object.
-
-  $trans->tcs_base( $cfg, $tcs, %info );
-
-where $tcs is a C<JAC::OCS::Config::TCS> object.
-
-Does nothing if autoTarget is true.
-
-=cut
-
-sub tcs_base {
-  my $self = shift;
-  my $cfg = shift;
-  my $tcs = shift;
-  my %info = @_;
-
-  # Find out if we have to offset to a particular receptor
-  my $refpix = $self->tracking_receptor( $cfg, %info );
-
-  if ($self->verbose) {
-    print {$self->outhdl} "Tracking Receptor: ".(defined $refpix ? $refpix : "<ORIGIN>")."\n";
-  }
-
-  # Store the pixel
-  $tcs->aperture_name( $refpix ) if defined $refpix;
-
-  # if we do not know the position return
-  return if $info{autoTarget};
-
-  # First get all the coordinate tags (SCIENCE won't be in there)
-  my %tags = %{ $info{coordtags} };
-
-  # check for reference position
-  throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
-    if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
-
-  # Mandatory for raster/chop too
-  throw OMP::Error::TranslateFail("No reference position defined for raster/chop observation (needed for CAL)")
-    if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/
-        && $info{mapping_mode} =~ /raster/);
-
-
-  # and augment with the SCIENCE tag
-  # we only needs the Astro::Coords object in this case
-  # unless we have an offset pixel
-  # Note that OFFSETS are only propogated for non-SCIENCE positions
-  $tags{SCIENCE} = { coords => $info{coords} };
-
-  # if we have override velocity information we need to apply it now
-  my @vover = $self->velOverride( %info );
-  if (@vover) {
-    print {$self->outhdl} "Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n" if $self->verbose;
-    for my $t (keys %tags) {
-      my $c = $tags{$t}{coords};
-      if ($c->can( "set_vel_pars")) {
-        $c->set_vel_pars( @vover );
-      }
-    }
-  }
-
-  # Create some BASE objects
-  my %base;
-  for my $t ( keys %tags ) {
-    my $b = new JAC::OCS::Config::TCS::BASE();
-    $b->tag( $t );
-    $b->coords( $tags{$t}->{coords} );
-
-    if (exists $tags{$t}->{OFFSET_DX} ||
-        exists $tags{$t}->{OFFSET_DY} ) {
-      my $off = new Astro::Coords::Offset( ($tags{$t}->{OFFSET_DX} || 0),
-                                           ($tags{$t}->{OFFSET_DY} || 0));
-      if (exists $tags{$t}->{OFFSET_SYSTEM}) {
-        $off->system( $tags{$t}->{OFFSET_SYSTEM} );
-      }
-      $b->offset( $off );
-    }
-
-    # The OT can only specify tracking as the TRACKING system
-    $b->tracking_system ( 'TRACKING' );
-
-    $base{$t} = $b;
-  }
-
-  # Currently all REFERENCE positions have to be specified as offsets to SCIENCE to enable the TCS
-  # to calculate doppler for the same reference position. Otherwise if the REFERENCE position is a
-  # long way from SCIENCE the doppler correction can change such that atmospheric lines appear
-  # in the spectrum.
-  if (exists $base{REFERENCE}) {
-    my $ref = $base{REFERENCE};
-
-    # see if we have any offsets in reference
-    if (!$ref->offset) {
-
-      # absolute position, so calculate the TAN offset from SCIENCE
-      # currently the offset will always be between J2000 coordinates.
-      my $sci = $base{SCIENCE};
-      my $scicoords = $sci->coords;
-      my @offsets = $scicoords->distance( $ref->coords );
-
-      # Now set the coords to SCIENCE and the offset
-      $ref->coords( $scicoords );
-      my $off = new Astro::Coords::Offset( @offsets, system => "J2000", projection => "TAN" );
-      $ref->offset( $off );
-      print {$self->outhdl} "Converting absolute REFERENCE position to offset from SCIENCE of (".
-        sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n"
-          if $self->verbose;
-
-    }
-  }
-
-
-  $tcs->tags( %base );
-}
-
-=item B<tracking_offset>
-
-Returns, if defined, an offset to BASE that has been defined for this
-configuration. This is normally needed to correct the gridder so that
-it can define the tangent point correctly (the gridder can not understand
-offsets in any system other than pixel coordinates).
-
- $offset = $trans->tracking_offset( $cfg, %info );
-
-Returns an C<Astro::Coords::Offset> object.
-
-=cut
-
-sub tracking_offset {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # Get the tcs_config
-  my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
-    unless defined $tcs;
-
-  # Get the name of the aperture name
-  my $apname = $tcs->aperture_name;
-  return undef unless defined $apname;
-
-  # Get the instrument config
-  my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen')
-    unless defined $inst;
-
-  # Convert this to an offset
-  return $inst->receptor_offset( $apname );
-}
-
-=item B<observing_area>
-
-Calculate the observing area parameters. Critically depends on
-observing mode.
-
-  $trans->observing_area( $tcs, %info );
-
-First argument is C<JAC::OCS::Config::TCS> object.
-
-=cut
-
-sub observing_area {
-  my $self = shift;
-  my $tcs = shift;
-  my %info = @_;
-
-  my $obsmode = $info{mapping_mode};
-
-  my $oa = new JAC::OCS::Config::TCS::obsArea();
-
-  # Offset [needs work in unroll_obs to fix this for stare so that
-  # we get a single configuration]. Jiggle needs multiple configurations.
-
-  # There is only one position angle in an observing Area so the
-  # offsets have to be in the same frame as the map if we are
-  # defining a map area
-
-
-  if ($obsmode eq 'raster') {
-
-    # Need to know the frontend
-    my $frontend = $self->ocs_frontend($info{instrument});
-    throw OMP::Error::FatalError("Unable to determine appropriate frontend!")
-      unless defined $frontend;
-
-    # Map specification
-    $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
-    $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
-                  WIDTH => $info{MAP_WIDTH});
-
-    # The scan position angle is either supplied or automatic
-    # if it is not supplied we currently have to give the TCS a hint
-    my @scanpas;
-    if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
-      @scanpas = @{ $info{SCAN_PA} };
-    } else {
-      # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
-      # receiver then all 4 angles can be used. Else the scan is constrained to the X direction
-      my @mults = (1,3); # 0, 2 aligns with height, 1, 3 aligns with width
-      if ( $frontend =~ /harp/i || ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
-        @mults = (0..3);
-      }
-      @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
-    }
-    # convert from deg to object
-    @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
-
-
-    # Scan specification
-    $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
-               DY => $info{SCAN_DY},
-               SYSTEM => $info{SCAN_SYSTEM},
-               PA => \@scanpas,
-             );
-
-    # N.B. The PTCS has now been modified to default to the
-    # scan values below as per the DTD spec. so there is no need
-    # to hardwire these directly into the translator.
-    # REVERSAL => "YES",
-    # TYPE => "TAN" 
-
-    # Offset
-    my $offx = ($info{OFFSET_DX} || 0);
-    my $offy = ($info{OFFSET_DY} || 0);
-
-    # Now rotate to the MAP_PA
-    ($offx, $offy) = $self->PosAngRot( $offx, $offy, ( $info{OFFSET_PA} - $info{MAP_PA}));
-
-    my $off = new Astro::Coords::Offset( $offx, $offy, projection => 'TAN',
-                                         system => 'TRACKING' );
-
-    $oa->offsets( $off );
-  } else {
-    # Just insert offsets, either as an offsets array or explicit
-    my @offsets;
-    if (exists $info{offsets}) {
-      @offsets = @{ $info{offsets} };
-    } else {
-      @offsets = ( { OFFSET_DX => ($info{OFFSET_DX} || 0),
-                     OFFSET_DY => ($info{OFFSET_DY} || 0),
-                     OFFSET_PA => ($info{OFFSET_PA} || 0),
-                   } );
-    }
-
-    my $refpa = ($offsets[0]->{OFFSET_PA} || 0);
-    $oa->posang( new Astro::Coords::Angle( $refpa, units => 'deg' ) );
-
-    # Rotate them all to the reference frame (this should be a no-op with
-    # the current enforcement by the OT)
-    @offsets = $self->align_offsets( $refpa, @offsets);
-
-    # Now convert them to Astro::Coords::Offset objects
-    my @out = map { new Astro::Coords::Offset( $_->{OFFSET_DX},
-                                               $_->{OFFSET_DY},
-                                               projection => 'TAN',
-                                               system => 'TRACKING'
-                                             )
-                  } @offsets;
-
-    # store them in the observing area
-    $oa->offsets( @out );
-  }
-
-  # need to decide on public vs private
-  $tcs->_setObsArea( $oa );
-}
-
-=item B<secondary_mirror>
-
-Calculate the secondary mirror parameters. Critically depends on
-switching mode.
-
-  $trans->secondary_mirror( $tcs, %info );
-
-First argument is C<JAC::OCS::Config::TCS> object.
-
-=cut
-
-sub secondary_mirror {
-  my $self = shift;
-  my $tcs = shift;
-  my %info = @_;
-
-  my $smu = new JAC::OCS::Config::TCS::Secondary();
-
-  my $obsmode = $info{mapping_mode};
-  my $sw_mode = $info{switching_mode};
-
-  # Default to GROUP mode
-  $smu->motion( "CONTINUOUS" );
-
-  # Configure the chop parameters
-  if ($sw_mode eq 'chop') {
-    throw OMP::Error::TranslateFail("No chop defined for chopped observation!")
-      unless (defined $info{CHOP_THROW} && defined $info{CHOP_PA} && 
-              defined $info{CHOP_SYSTEM} );
-
-    $smu->chop( THROW => $info{CHOP_THROW},
-                PA => new Astro::Coords::Angle( $info{CHOP_PA}, units => 'deg' ),
-                SYSTEM => $info{CHOP_SYSTEM},
-              );
-  }
-
-  # Jiggling
-
-  my $jig;
-
-  if ($obsmode eq 'jiggle') {
-
-    $jig = $self->jig_info( %info );
-
-    # store the object
-    $smu->jiggle( $jig );
-
-  }
-
-  # Since we need access to the jiggle pattern to calculate step time
-  # we store what we have so it is available to the step_time object
-  $tcs->_setSecondary( $smu );
-
-  # Relative timing required if we are jiggling and chopping
-  if ($smu->smu_mode() =~  /(jiggle_chop|chop_jiggle)/) {
-    # First get the canonical RTS step time. This controls the time spent on each
-    # jiggle position.
-    my $rts = $self->step_time( $tcs, %info );
-
-    # total number of points in pattern
-    my $npts = $jig->npts;
-
-    # Now the number of jiggles per chop position is dependent on the
-    # maximum amount of time we want to spend per chop position and the constraint
-    # that n_jigs_on must be divisible into the total number of jiggle positions.
-
-    # Additionally, if we have been asked to use independent offs we have to 
-    # do only one step per chop
-
-    # Let's say this is maximum time between chops in seconds
-    my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
-                                              ($info{continuumMode} ? "_cont" :""));
-
-    # Now calculate the number of steps in that time period
-    my $maxsteps = int( $tmax_per_chop / $rts );
-
-    if ($maxsteps == 0) {
-      throw OMP::Error::TranslateFail("Maximum chop duration is shorter than RTS step time!\n");
-    } elsif ($maxsteps == 1 || $info{separateOffs}) {
-      # we can only do one step per chop
-      $smu->timing( CHOPS_PER_JIG => 1 );
-
-    } else {
-      # we can fit in multiple jiggle positions per chop
-
-      # now work out how many evenly spaced jiggles we can fit into this period
-      my $njigs;
-      if ($npts < $maxsteps) {
-        $njigs = $npts;
-      } else {
-        # start at the maximum allowed and decrement until we get something that
-        # divides exactly into the total number of points. Not a very elegant
-        # approach
-        $njigs = $maxsteps;
-
-        $njigs-- while ($npts % $njigs != 0);
-      }
-
-      # the number of steps in the "off" position depends on the number
-      # of steps we have just completed in the "on" (but half each side).
-      my ($nsteps_total, $steps_per_off) = $self->calc_jiggle_times( $npts, $njigs );
-      $smu->timing( N_JIGS_ON => $njigs,
-                    N_CYC_OFF => $steps_per_off,
-                  );
-    }
-  }
-
+  $self->fe_config( $cfg, %info );
+  $self->acsis_config( $cfg, %info );
 }
 
 =item B<fe_config>
@@ -1163,7 +473,7 @@ sub fe_config {
       unless defined $instname;
  
     # wiring file name
-    my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
+    my $file = File::Spec->catfile( $self->wiredir, 'frontend',
                                     "sideband_$instname.txt");
 
     if (-e $file) {
@@ -1260,39 +570,12 @@ sub fe_config {
   $fe->freq_off_scale( $freq_off );
 
 
-  # store the frontend name in the Frontend config so that we can get the task name
+  # store the frontend name in the Frontend config so that we can get the 
+  # task name
   $fe->frontend( $inst->name );
 
-  # Mask selection depends on observing mode but for now we can just
-  # make sure that all available pixels are enabled
-  # Set up a default MASK based on the Instrument XML
-  my %receptors = $inst->receptors;
-
-  my %mask;
-  for my $id ( keys %receptors ) {
-    my $status = $receptors{$id}{health};
-    # Convert UNSTABLE to ON and OFF to ANY
-    if ($status eq 'UNSTABLE') {
-      $mask{$id} = 'ON';
-    } elsif ($status eq 'OFF') {
-      $mask{$id} = 'ANY';
-    } else {
-      $mask{$id} = $status;
-    }
-  }
-
-  # If we have a specific tracking receptor in mind, make sure it is working
-  my $trackrec = $self->tracking_receptor($cfg, %info );
-  $mask{$trackrec} = "NEED" if defined $trackrec;
-
-  # if we are ONLY meant to use this tracking receptor then we turn everything
-  # else to OFF
-  if (defined $trackrec && $info{disableNonTracking}) {
-    for my $id ( keys %receptors ) {
-      next if $id eq $trackrec;
-      $mask{$id} = "OFF";
-    }
-  }
+  # Calculate the frontend mask
+  my %mask = $self->calc_receptor_or_subarray_mask( $cfg, %info );
 
   # Store the mask
   $fe->mask( %mask );
@@ -1301,42 +584,6 @@ sub fe_config {
   $cfg->frontend( $fe );
 }
 
-=item B<instrument_config>
-
-Specify the instrument configuration.
-
- $trans->instrument_config( $cfg, %info );
-
-=cut
-
-sub instrument_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # The instrument config is fixed for a specific instrument
-  # and is therefore a "wiring file"
-  my $inst = lc($self->ocs_frontend($info{instrument}));
-  throw OMP::Error::FatalError('No instrument defined so cannot configure!')
-    unless defined $inst;
- 
-  # wiring file name
-  my $file = File::Spec->catfile( $WIRE_DIR, 'frontend',
-                                  "instrument_$inst.ent");
-  throw OMP::Error::FatalError("$inst instrument configuration XML not found in $file !")
-    unless -e $file;
-
-  # Read it
-  my $inst_cfg = new JAC::OCS::Config::Instrument( File => $file,
-                                                   validation => 0,
-                                                 );
-
-  # tweak the wavelength
-  $inst_cfg->wavelength( $info{wavelength} );
-
-  $cfg->instrument_setup( $inst_cfg );
-
-}
 
 =item B<acsis_config>
 
@@ -1366,33 +613,6 @@ sub acsis_config {
   $self->acsis_layout( $cfg, %info );
   $self->rtd_config( $cfg, %info );
 
-}
-
-=item B<slew_config>
-
-Configure the slew parameter. Requires the Config object to be mainly
-complete such that the duration can be requested.
-
- $trans->slew_config( $cfg, %info );
-
-Should be called after C<tcs_config>.
-
-=cut
-
-sub slew_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # get the tcs
-  my $tcs = $cfg->tcs();
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-
-  # Get the duration
-  my $dur = $cfg->duration();
-
-  # always use track time
-  $tcs->slew( TRACK_TIME => $dur );
 }
 
 =item B<rotator_config>
@@ -1485,201 +705,6 @@ sub rotator_config {
                  SYSTEM => $system,
                  PA => \@pas,
                );
-}
-
-=item B<header_config>
-
-Add header items to configuration object. Reads a template header xml
-file. Will replace TRANSLATOR header items with dynamic values.
-
- $trans->header_config( $cfg, %info );
-
-=cut
-
-sub header_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  my $file = File::Spec->catfile( $WIRE_DIR, 'header','headers.ent' );
-  my $hdr = new JAC::OCS::Config::Header( validation => 0,
-                                          File => $file );
-
-  # Get all the items that we are to be processed by the translator
-  my @items = $hdr->item( sub { 
-                            defined $_[0]->source
-                              &&  $_[0]->source eq 'DERIVED'
-                                && defined $_[0]->task
-                                  && $_[0]->task eq 'TRANSLATOR'
-                                } );
-
-  # Set verbosity level and handles
-  $OMP::Translator::ACSIS::Header::VERBOSE = $self->verbose;
-  $OMP::Translator::ACSIS::Header::HANDLES = $self->outhdl;
-
-  # Now invoke the methods to configure the headers
-  my $pkg = "OMP::Translator::ACSIS::Header";
-  for my $i (@items) {
-    my $method = $i->method;
-    if ($pkg->can( $method ) ) {
-      my $val = $pkg->$method( $cfg, %info );
-      if (defined $val) {
-        $i->value( $val );
-        $i->source( undef );    # clear derived status
-      } else {
-        throw OMP::Error::FatalError( "Method $method for keyword ". $i->keyword ." resulted in an undefined value");
-      }
-    } else {
-      throw OMP::Error::FatalError( "Method $method can not be invoked in package $pkg for header item ". $i->keyword);
-    }
-  }
-
-  # clear global handles to allow the file to close at some point
-  $OMP::Translator::ACSIS::Header::HANDLES = undef;
-
-  # Some observing modes have exclusion files.
-  # First build the filename
-  my $root;
-  if ($info{obs_type} =~ /pointing|focus/) {
-    $root = $info{obs_type};
-  } else {
-    $root = $info{observing_mode};
-  }
-
-  my $file = File::Spec->catfile( $WIRE_DIR, "header", $root . "_exclude");
-  if (-e $file) {
-    print {$self->outhdl} "Processing header exclusion file '$file'.\n" if $self->verbose;
-
-    # this exclusion file has header cards that should be undeffed
-    open (my $fh, '<', $file) || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
-
-    while (defined (my $line = <$fh>)) {
-      # remove comments
-      $line =~ s/\#.*//;
-      # and trailing/leading whitespace
-      $line =~ s/^\s*//;
-      $line =~ s/\s*$//;
-      next unless $line =~ /\w/;
-
-      # ask for the header item
-      my $item = $hdr->item( $line );
-
-      if (defined $item) {
-        # force undef
-        $item->undefine;
-      } else {
-        print {$self->outhdl} "\tAsked to exclude header card '$line' but it is not part of the header\n";
-      }
-
-    }
-
-  }
-
-  $cfg->header( $hdr );
-
-}
-
-=item B<rts_config>
-
-Configure the RTS
-
- $trans->rts_config( $cfg, %info );
-
-=cut
-
-sub rts_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # Need observing mode
-  my $obsmode = $info{observing_mode};
-
-  # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
-  # is actually a jiggle_chop
-  $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
-  $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
-
-  # the RTS information is read from a wiring file
-  # indexed by observing mode
-  my $file = File::Spec->catfile( $WIRE_DIR, 'rts',
-                                  $obsmode .".xml");
-  throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
-    unless -e $file;
-
-  my $rts = new JAC::OCS::Config::RTS( File => $file,
-                                       validation => 0);
-
-  $cfg->rts( $rts );
-
-}
-
-
-=item B<pol_config>
-
-Configure the polarimeter.
-
-  $trans->pol_config( $cfg, %info );
-
-=cut
-
-sub pol_config {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # see if we have a polarimeter
-  return unless $info{pol};
-  print {$self->outhdl} "Polarimeter observation:\n" if $self->verbose;
-
-  # we currently only support grid/pssw observations
-  throw OMP::Error::FatalError("Can only use ROVER in grid/pssw mode not '$info{observing_mode}'\n")
-    unless $info{observing_mode} eq 'grid_pssw';
-
-  # create a blank object
-  my $pol = JAC::OCS::Config::POL->new();
-
-  # what mode is this?
-  if (exists $info{waveplate}) {
-    my @pa = map { Astro::Coords::Angle->new( $_, units => 'deg') } @{$info{waveplate}};
-
-    throw OMP::Error::TranslateFail("No angles found for step-and-integrate")
-      unless @pa;
-
-    $pol->discrete_angles( @pa );
-
-    if ($self->verbose) {
-      print {$self->outhdl} "\tStep and Integrate\n";
-      print {$self->outhdl} "\t ". join(",",map {$_->degrees} @pa)."\n";
-    }
-
-  } else {
-
-    # note that pol_spin
-    throw OMP::Error::TranslateFail("No spin flag for continuous spin polarimeter observation")
-      unless $self->is_pol_spin(%info);
-
-    # Spin speed depends on the step time
-    my $step_time = $self->step_time( $cfg, %info );
-
-    # number of steps in a cycle controls the spin speed
-    my $nsteps = OMP::Config->getData( 'acsis_translator.steps_per_cycle_pol' );
-    my $speed = (360/$nsteps)/$step_time;
-
-    $pol->spin_speed( $speed );
-    if ($self->verbose) {
-      print {$self->outhdl} "\t$nsteps spectra per cycle\n";
-      print {$self->outhdl} "\tContinuous Spin: $speed deg/sec\n";
-    }
-
-  }
-
-  # always use TRACKING (since we can and in step-and-integrate mode we need to make
-  # sure that we return to the same place)
-  $pol->system( "TRACKING" );
-
-  $cfg->pol( $pol );
-  return;
 }
 
 =item B<jos_config>
@@ -2649,7 +1674,7 @@ sub acsisdr_recipe {
     $root = $info{obs_type};
   }
 
-  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', $root . '_dr_recipe.ent');
+  my $filename = File::Spec->catfile( $self->wiredir, 'acsis', $root . '_dr_recipe.ent');
 
   # Read the recipe itself
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
@@ -3100,7 +2125,7 @@ sub rtd_config {
   # Try with and without the instrument name
   my $filename;
   for my $suffix ( $inst, "" ) {
-    my $tryfile = File::Spec->catfile( $WIRE_DIR, 'acsis', $root. "_rtd" .
+    my $tryfile = File::Spec->catfile( $self->wiredir, 'acsis', $root. "_rtd" .
                                        ($suffix ? "_$suffix" : "") . ".ent");
     if (-e $tryfile) {
       $filename = $tryfile;
@@ -3235,7 +2260,7 @@ sub interface_list {
   my $acsis = $cfg->acsis;
   throw OMP::Error::FatalError('for some reason ACSIS setup is not available. This can not happen') unless defined $acsis;
 
-  my $filename = File::Spec->catfile( $WIRE_DIR, 'acsis', 'interface_list.ent');
+  my $filename = File::Spec->catfile( $self->wiredir, 'acsis', 'interface_list.ent');
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::InterfaceList( EntityFile => $filename,
@@ -3267,12 +2292,12 @@ sub acsis_layout {
   # layout files
 
   # Read the new machine table (no longer in the acsis directory)
-  my $machtable_file = File::Spec->catfile( $WIRE_DIR, 'machine_table.xml');
-  my $machtable = _read_file( $machtable_file );
+  my $machtable_file = File::Spec->catfile( $self->wiredir, 'machine_table.xml');
+  my $machtable = $self->_read_file( $machtable_file );
 
   # Read the monitor layout
-  my $monlay_file = File::Spec->catfile( $WIRE_DIR, 'acsis', 'monitor_layout.ent');
-  my $monlay = _read_file( $monlay_file );
+  my $monlay_file = File::Spec->catfile( $self->wiredir, 'acsis', 'monitor_layout.ent');
+  my $monlay = $self->_read_file( $monlay_file );
 
   # make sure we have enclosing tags
   if ($monlay !~ /monitor_layout/) {
@@ -3286,8 +2311,8 @@ sub acsis_layout {
   $appropriate_layout .= '_layout.ent';
 
   # Read the template process_layout file
-  my $lay_file = File::Spec->catfile( $WIRE_DIR, 'acsis',$appropriate_layout);
-  my $layout = _read_file( $lay_file );
+  my $lay_file = File::Spec->catfile( $self->wiredir, 'acsis',$appropriate_layout);
+  my $layout = $self->_read_file( $lay_file );
 
   print {$self->outhdl} "Read ACSIS layout $lay_file\n" if $self->verbose;
 
@@ -3316,120 +2341,57 @@ sub acsis_layout {
 
 }
 
+=item B<need_offset_tracking>
 
-=item B<observing_mode>
+Returns true if we are meant to be tracking an offset position
+in the focal plane.
 
-Retrieves the ACSIS observing mode from the OT observation summary
-(not from the OCS configuration) and updates the supplied observation
-summary.
+  $need_offset = $trans->need_offset_tracking($cfg, %info);
 
- $trans->observing_mode( \%info );
+The caller routine can decide how that position is defined.
 
-The following keys are filled in:
-
-=over 8
-
-=item observing_mode
-
-A single string describing the observing mode. One of
-jiggle_freqsw, jiggle_chop, grid_pssw, raster_pssw.
-
-Note that there is no explicit slow vs fast jiggle switch mode
-set from this routine since more subsystems ignore the difference
-than care about the difference.
-
-Note also that POINTING or FOCUS are not observing modes in this science.
-
-=item mapping_mode
-
-The underlying mapping mode. One of "jiggle", "raster" and "grid".
-
-=item switching_mode
-
-The switching scheme. One of "freqsw", "chop" and "pssw". This is 
-a translated form of the input "switchingMode" parameter.
-
-=item obs_type
-
-The type of observation. One of "science", "pointing", "focus".
-
-=back
+Returns true if we need to offset. False if we should track
+the focal plane origin.
 
 =cut
 
-sub observing_mode {
+sub need_offset_tracking {
   my $self = shift;
-  my $info = shift;
+  my $cfg = shift;
+  my %info = @_;
 
-  my $mode = $info->{MODE};
-  my $swmode = $info->{switchingMode};
+  # arrayCentred switch trumps everything
+  return if (exists $info{arrayCentred} && $info{arrayCentred});
 
-  my ($mapping_mode, $switching_mode, $obs_type);
+  # First decide whether we should be aligning with a specific
+  # receptor?
 
-  # assume science
-  $obs_type = 'science';
+  # Focus:   Yes
+  # Stare:   Yes
+  # Grid_chop: Yes
+  # Jiggle   : Yes (if the jiggle pattern has a 0,0)
+  # Pointing : Yes (if 5point)
+  # Raster   : No
 
-  if ($mode eq 'SpIterRasterObs') {
-    $mapping_mode = 'raster';
-    if ($swmode eq 'Position') {
-      $switching_mode = 'pssw';
-    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
-      $switching_mode = 'chop';
-    } else {
-      throw OMP::Error::TranslateFail("Raster with switch mode '$swmode' not supported\n");
-    }
-  } elsif ($mode eq 'SpIterPointingObs') {
-    $mapping_mode = 'jiggle';
-    $switching_mode = 'chop';
-    $obs_type = 'pointing';
-  } elsif ($mode eq 'SpIterFocusObs' ) {
-    $mapping_mode = 'grid';     # Just chopping at 0,0
-    $switching_mode = 'chop';
-    $obs_type = 'focus';
-  } elsif ($mode eq 'SpIterStareObs' ) {
-    # check switch mode
-    if ($swmode eq 'Position') {
-      $mapping_mode = 'grid';
-      $switching_mode = 'pssw';
-    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $mapping_mode = 'grid';   # No jiggling
-      $switching_mode = 'chop';
-    } else {
-      throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
-    }
-  } elsif ($mode eq 'SpIterJiggleObs' ) {
-    # depends on switch mode
-    $mapping_mode = 'jiggle';
-    if ($swmode eq 'Chop' || $swmode eq 'Beam') {
-      $switching_mode = 'chop';
-    } elsif ($swmode =~ /^Frequency-/) {
-      $switching_mode = 'freqsw';
-    } elsif ($swmode eq 'Position') {
-      $switching_mode = 'pssw';
-    } else {
-      throw OMP::Error::TranslateFail("Jiggle with switch mode '$swmode' not supported\n");
-    }
-  } else {
-    throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
+  return if ($info{observing_mode} =~ /raster/);
+
+  # Get the jiggle pattern
+  if ($info{mapping_mode} eq 'jiggle') {
+    # Could also ask the configuration for Secondary information
+    my $jig = $self->jig_info( %info );
+
+    # If we are using the HARP jiggle pattern we will be wanting
+    # a fully sampled map so do not offset
+    return if $info{jigglePattern} =~ /^HARP/;
+
+    # if we have an origin in the pattern we are probably expecting to be
+    # centred on a receptor;
+    return unless $jig->has_origin;
   }
 
-  $info->{obs_type}       = $obs_type;
-  $info->{switching_mode} = $switching_mode;
-  $info->{mapping_mode}   = $mapping_mode;
-  $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
-
-  if ($self->verbose) {
-    print {$self->outhdl} "\n";
-    print {$self->outhdl} "Observing Mode Overview:\n";
-    print {$self->outhdl} "\tObserving Mode: $info->{observing_mode}\n";
-    print {$self->outhdl} "\tObservation Type: $info->{obs_type}\n";
-    print {$self->outhdl} "\tMapping Mode: $info->{mapping_mode}\n";
-    print {$self->outhdl} "\tSwitching Mode: $info->{switching_mode}\n";
-  }
-
-  return;
+  return 1;
 }
+
 
 =item B<is_fast_freqsw>
 
@@ -3444,69 +2406,6 @@ sub is_fast_freqsw {
   my $self = shift;
   my %info = @_;
   return ( $info{switchingMode} eq 'Frequency-Fast');
-}
-
-=item B<is_pol_step_integ>
-
-We are a polarimeter step and integrate observation.
-
- $ispol = $trans->is_pol_step_integ( %info );
-
-=cut
-
-sub is_pol_step_integ {
-  my $self = shift;
-  my %info = @_;
-  if (exists $info{waveplate} && @{$info{waveplate}}) {
-    return 1;
-  }
-  return;
-}
-
-=item B<is_pol_spin>
-
-Is this a continuously spinning polarimeter observation?
-
-  $spin = $trans->is_pol_spin( %info );
-
-=cut
-
-sub is_pol_spin {
-  my $self = shift;
-  my %info = @_;
-  if (exists $info{pol_spin} && $info{pol_spin}) {
-    return 1;
-  }
-  return;
-}
-
-=item B<ocs_frontend>
-
-The name of the frontend from the viewpoint of the OCS. In general,
-the number is dropped from the end of the instrument name such that
-RXA3 becomes RXA.
-
-  $fe = $trans->ocs_frontend( $ompfe );
-
-Takes the OMP instrument name as argument. Returned string is upper cased.
-Returns undef if the frontend is not recognized.
-
-If the second argument is true, a version is returned that has the "x" 
-in lower case
-
-  $fe = $trans->ocs_frontend( $ompfe, 1);
-
-=cut
-
-sub ocs_frontend {
-  my $self = shift;
-  my $ompfe = uc( shift );
-  my $lc = shift;
-
-  my $answer;
-  $answer = $FE_MAP{$ompfe} if exists $FE_MAP{$ompfe};
-  $answer =~ tr|X|x| if (defined $answer && $lc);
-  return $answer;
 }
 
 =item B<bandwidth_mode>
@@ -4198,165 +3097,9 @@ Read the ACSIS hardware map into an object.
 sub hardware_map {
   my $self = shift;
 
-  my $path = File::Spec->catfile( $WIRE_DIR, 'acsis', 'cm_wire_file.txt');
+  my $path = File::Spec->catfile( $self->wiredir, 'acsis', 'cm_wire_file.txt');
 
   return new JCMT::ACSIS::HWMap( File => $path );
-}
-
-
-=item B<jig_info>
-
-Return information relating to the selected jiggle pattern as a 
-C<JCMT::SMU::Jiggle> object.
-
-  $jig = $trans->jig_info( %info );
-
-Throws an exception if Jiggle mode is defined but the pattern is missing
-or if this method is called without jiggle mode selected.
-
-=cut
-
-sub jig_info {
-  my $self = shift;
-  my %info = @_;
-
-  throw OMP::Error::TranslateFail("Jiggle pattern requested but no jiggle mode selected")
-    unless $info{mapping_mode} =~ /jiggle/;
-
-  throw OMP::Error::TranslateFail( "No jiggle pattern specified!" )
-    unless exists $info{jigglePattern};
-
-  # Look up table for patterns
-  my %jigfiles = (
-                  '1x1'  => 'smu_1x1.dat',
-                  '3x3'  => 'smu_3x3.dat',
-                  '4x4'  => 'smu_4x4.dat',
-                  'HARP4'=> 'smu_harp4.dat',
-                  'HARP5'=> 'smu_harp5.dat',
-                  'HARP4_mc'=> 'smu_harp4_mc.dat',
-                  'HARP5_mc'=> 'smu_harp5_mc.dat',
-                  '5x5'  => 'smu_5x5.dat',
-                  '7x7'  => 'smu_7x7.dat',
-                  '9x9'  => 'smu_9x9.dat',
-                  '5pt'  => 'smu_5point.dat',
-                  '11x11'=> 'smu_11x11.dat',
-                 );
-
-  if (!exists $jigfiles{ $info{jigglePattern} }) {
-    throw OMP::Error::TranslateFail("Jiggle requested but there is no pattern associated with pattern '$info{jigglePattern}'\n");
-  }
-
-
-  # obtin path to actual file
-  my $file = File::Spec->catfile( $WIRE_DIR,'smu',$jigfiles{$info{jigglePattern}});
-
-  # Need to read the pattern 
-  my $jig = new JCMT::SMU::Jiggle( File => $file );
-
-  # set the scale and other parameters
-  # Note that the jiggle PA and system depend on whether we are using HARP
-  # (or in fact the rotator).
-  my $jscal = (defined $info{scaleFactor} ? $info{scaleFactor} : 1);
-  $jig->scale( $jscal );
-
-  # Get the instrument we are using
-  my $inst = lc($self->ocs_frontend($info{instrument}));
-  throw OMP::Error::FatalError('No instrument defined - needed to select calculate jiggle !')
-    unless defined $inst;
-
-
-  my ($jpa, $jsys);
-  if ($inst =~ /HARP/i) {
-    # Always jiggle in FPLANE with a PA=0 and rely on the rotator to rotate the receptors
-    # on the sky
-    $jpa = 0;
-    $jsys = "FPLANE";
-
-  } else {
-    $jpa = $info{jigglePA} || 0;
-    $jsys = $info{jiggleSystem} || 'TRACKING';
-  }
-
-  # and store them
-  $jig->posang( new Astro::Coords::Angle( $jpa, units => 'deg') );
-  $jig->system( $jsys );
-
-  return $jig;
-}
-
-=item B<get_jiggle>
-
-Convenience wrapper for obtaining the jiggle pattern information from the config object
-
-  $jig_object = $self->get_jiggle( $cfg );
-
-=cut
-
-sub get_jiggle {
-  my $self = shift;
-  my $cfg = shift;
-
-  # Need the number of points in the jiggle pattern
-  my $tcs;
-  if ($cfg->isa( "JAC::OCS::Config::TCS")) {
-    $tcs = $cfg;
-  } else {
-    $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-  }
-
-  # ... and secondary
-  my $secondary = $tcs->getSecondary();
-  throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
-
-  # Get the full jigle parameters from the secondary object
-  my $jig = $secondary->jiggle;
-
-  return $jig;
-}
-
-=item B<nyquist>
-
-Returns the Nyquist sampling value for this observation. Defined as lambda/2D
-
-  $ny = $trans->nyquist( %info );
-
-Returns an Astro::Coords::Angle object
-
-=cut
-
-sub nyquist {
-  my $self = shift;
-  my %info = @_;
-  my $wav = $info{wavelength} * 1E-6; # microns to metres
-  my $ny = $wav / ( 2 * DIAM );
-  return new Astro::Coords::Angle( $ny, units => 'rad' );
-}
-
-=item B<align_offsets>
-
-Given an set of offset hashes with OFFSET_DX, OFFSET_DY and OFFSET_PA
-keys and a reference angle. Return a new hash with the offsets all in the
-reference angle coordinate frame.
-
-  @new = $trans->align_offsets( $refpa, @input );
-
-=cut
-
-sub align_offsets {
-  my $self = shift;
-  my $refpa = shift;
-  my @input = @_;
-
-  # A Map would work but a for is more redable
-  my @out;
-  for my $o (@input) {
-    my ($x, $y) = $self->PosAngRot( $o->{OFFSET_DX}, $o->{OFFSET_DY},
-                                    ( $refpa - $o->{OFFSET_PA})
-                                  );
-    push( @out, { OFFSET_DX => $x, OFFSET_DY => $y, OFFSET_PA => $refpa });
-  }
-  return @out;
 }
 
 =item B<get_nod_set_size>
@@ -5032,471 +3775,20 @@ sub getCubeInfo {
   return $cubelist->cubes;
 }
 
-=item B<_read_file>
+=item B<backend>
 
-Read a file and return the contents as a single string.
 
- $string = _read_file( $filename );
-
-Not a method. Could probably use the slurp function.
+Returns the backend name. The name is suitable for use in
+filenames that are targetted for a specific translator.
+SCUBA2 in this case.
 
 =cut
 
-sub _read_file {
-  my $file = shift;
-  open (my $fh, '<', $file) or 
-    throw OMP::Error::FatalError( "Unable to open file $file: $!");
-
-  local $/ = undef;
-  my $str = <$fh>;
-
-  close($fh) or 
-    throw OMP::Error::FatalError( "Unable to close file $file: $!");
-  return $str;
+sub backend {
+  return "ACSIS";
 }
-
 
 =back
-
-=head2 Header Configuration
-
-Some header values are determined through the invocation of methods
-specified in the header template XML. These methods are flagged by
-using the DERIVED specifier with a task name of TRANSLATOR.
-
-The following methods are in the OMP::Translator::ACSIS::Header
-namespace. They are all given the observation summary hash as argument
-and the current Config object, and they return the value that should
-be used in the header.
-
-  $value = OMP::Translator::ACSIS::Header->getProject( $cfg, %info );
-
-An empty string will be recognized as a true UNDEF header value. Returning
-undef is an error.
-
-=cut
-
-package OMP::Translator::ACSIS::Header;
-
-our $VERBOSE = 0;
-our $HANDLES = undef;
-
-sub getProject {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # if the project ID is not known, we need to use a ACSIS project
-  if ( defined $info{PROJECTID} && $info{PROJECTID} ne 'UNKNOWN' ) {
-    return $info{PROJECTID};
-  } else {
-    my $sem = OMP::General->determine_semester( tel => 'JCMT' );
-    my $pid = "M$sem". "EC19";
-    if ($VERBOSE) {
-      print $HANDLES "!!! No Project ID assigned. Inserting ACSIS E&C code: $pid !!!\n";
-    }
-    return $pid;
-  }
-  # should not get here
-  return undef;
-}
-
-sub getMSBID {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  return $info{MSBID};
-}
-
-sub getRemoteAgent {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  if (exists $info{REMOTE_TRIGGER} && ref($info{REMOTE_TRIGGER}) eq 'HASH') {
-    my $src = $info{REMOTE_TRIGGER}->{src};
-    return (defined $src ? $src : "" );
-  }
-  return "";
-}
-
-sub getAgentID {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  if (exists $info{REMOTE_TRIGGER} && ref($info{REMOTE_TRIGGER}) eq 'HASH') {
-    my $id = $info{REMOTE_TRIGGER}->{id};
-    return (defined $id ? $id : "" );
-  }
-  return "";
-}
-
-sub getScanPattern {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # get the TCS config
-  my $tcs = $cfg->tcs;
-
-  # and the observing area
-  my $oa = $tcs->getObsArea;
-
-  my $name = $oa->scan_pattern;
-  return (defined $name ? $name : "" );
-}
-
-sub getStandard {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  return $info{standard};
-}
-
-# For continuum we need the continuum recipe
-
-sub getDRRecipe {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # This is where we insert an OT override once that override is possible
-  # it will need to know which parameters to override
-
-  # if we have been given recipes we should try to select from them
-  if (exists $info{data_reduction}) {
-    # see if the key is a subset of the mode
-    my $found;
-    my $firstmatch;
-    for my $key (keys %{$info{data_reduction}}) {
-      if ($info{MODE} =~ /$key/i) {
-        my $recipe = $info{data_reduction}->{$key};
-        if (!defined $found) {
-          $found = $recipe;
-          $firstmatch = $key;
-        } else {
-          # sanity check
-          throw OMP::Error::TranslateFail("Strange error where mode $info{MODE} matched more than one DR key ('$key' and '$firstmatch')");
-        }
-      }
-    }
-
-    if (defined $found) {
-      if ($info{continuumMode}) {
-        # append continuum mode (if not already appended)
-        $found .= "_CONTINUUM" unless $found =~ /_CONTINUUM$/;
-      }
-      if ($VERBOSE) {
-        print $HANDLES "Using DR recipe $found provided by user\n";
-      }
-      return $found;
-    }
-  }
-
-  # if there was no DR component we have to guess
-  my $recipe;
-  if ($info{MODE} =~ /Pointing/) {
-    $recipe = 'REDUCE_POINTING';
-  } elsif ($info{MODE} =~ /Focus/) {
-    $recipe = 'REDUCE_FOCUS';
-  } else {
-    if ($info{continuumMode}) {
-      $recipe = 'REDUCE_SCIENCE_CONTINUUM';
-    } else {
-      $recipe = 'REDUCE_SCIENCE';
-    }
-  }
-
-  if ($VERBOSE) {
-    print $HANDLES "Using DR recipe $recipe determined from context\n";
-  }
-  return $recipe;
-}
-
-sub getDRGroup {
-  my $class = shift;
-  my $cfg = shift;
-
-  # Not quite sure how to handle this in the translator since there are no
-  # hints from the OT and the DR is probably better at doing this.
-  # by default return an empty string indicating undef
-  return '';
-}
-
-# Need to get survey information from the TOML
-# Derive it from the project ID
-
-sub getSurveyName {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  my $project = $class->getProject( $cfg, %info );
-
-  if ($project =~ /^MJLS([A-Z]+)\d+$/i) {
-    my $short = $1;
-    if ($short eq 'G') {
-      return "GBS";
-    } elsif ($short eq 'A') {
-      return "SASSY";
-    } elsif ($short eq 'D') {
-      return "DDS";
-    } elsif ($short eq 'C') {
-      return "CLS";
-    } elsif ($short eq 'S') {
-      return "SLS";
-    } elsif ($short eq 'N') {
-      return "NGS";
-    } elsif ($short eq 'J') {
-      return "JPS"; 
-    } else {
-      throw OMP::Error::TranslateFail( "Unrecognized SURVEY code: '$project' -> '$short'" );
-    }
-  }
-  return '';
-}
-
-sub getSurveyID {
-  return '';
-}
-
-sub getNumIntegrations {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  return $info{nintegrations};
-}
-
-sub getNumMeasurements {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # do not know what this really means. It may mean the scuba definition
-  # Assume this means the number of discrete hardware moves
-  if ($info{MODE} =~ /Focus/) {
-    return $info{focusStep};
-  } else {
-    return 1;
-  }
-}
-
-# Retrieve the molecule associated with the first spectral window
-sub getMolecule {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  my $freq = $info{freqconfig}->{subsystems};
-  my $s = $freq->[0];
-  return $s->{species};
-}
-
-# Retrieve the transition associated with the first spectral window
-sub getTransition {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-  my $freq = $info{freqconfig}->{subsystems};
-  my $s = $freq->[0];
-  return $s->{transition};
-}
-
-# Receptor aligned with tracking centre
-sub getTrkRecep {
-  my $class = shift;
-  my $cfg = shift;
-
-  my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS configuration is not available. This can not happen')
-    unless defined $tcs;
-  my $ap = $tcs->aperture_name;
-  return ( defined $ap ? $ap : "" );
-}
-
-# Get the X and Y aperture offsets
-sub _getInstapXY {
-  my $class = shift;
-  my $cfg = shift;
-  my $ap = $class->getTrkRecep( $cfg );
-  if ($ap) {
-    my $inst = $cfg->instrument_setup;
-    throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
-      unless defined $inst;
-
-    my %rec = $inst->receptor( $ap );
-    throw OMP::Error::FatalError("Thought there was an instrument aperture ($ap) but it is unknown to the instrument")
-      if (!keys %rec);
-
-    return @{$rec{xypos}};
-  }
-  return (0.0,0.0);
-}
-
-sub getInstapX {
-  my $class = shift;
-  my $cfg = shift;
-  return ($class->_getInstapXY( $cfg ) )[0];
-}
-
-sub getInstapY {
-  my $class = shift;
-  my $cfg = shift;
-  return ($class->_getInstapXY( $cfg ) )[1];
-}
-
-# Reference receptor
-sub getRefRecep {
-  my $class = shift;
-  my $cfg = shift;
-
-  my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
-    unless defined $inst;
-  return scalar $inst->reference_receptor;
-}
-
-# Reference position as sexagesimal string or offset
-sub getReferenceRA {
-  my $class = shift;
-  my $cfg = shift;
-
-  # Get the TCS
-  my $tcs = $cfg->tcs;
-
-  my %allpos = $tcs->getAllTargetInfo;
-
-  # check if SCIENCE == REFERENCE
-  if (exists $allpos{REFERENCE}) {
-
-    # Assume that for now since the OT enforces either an absolute position
-    # or one relative to BASE as an offset that if we have an offset people
-    # are offsetting and if we have just coords that we are using that explicitly
-    my $refpos = $allpos{REFERENCE}->coords;
-    my $offset = $allpos{REFERENCE}->offset;
-
-    if (defined $offset) {
-      my @off = $offset->offsets;
-      return "[OFFSET] ". $off[0]->arcsec . " [".$offset->system."]";
-    } else {
-      if ($refpos->can("ra2000")) {
-        return "". $refpos->ra2000;
-      } elsif ($refpos->type eq "AZEL") {
-        return $refpos->az . " (AZ)";
-      }
-    }
-  }
-  # Want this to be an undef header
-  return "";
-}
-
-# Reference position as sexagesimal string or offset
-sub getReferenceDec {
-  my $class = shift;
-  my $cfg = shift;
-
-  # Get the TCS
-  my $tcs = $cfg->tcs;
-
-  my %allpos = $tcs->getAllTargetInfo;
-
-  # check if SCIENCE == REFERENCE
-  if (exists $allpos{REFERENCE}) {
-
-    # Assume that for now since the OT enforces either an absolute position
-    # or one relative to BASE as an offset that if we have an offset people
-    # are offsetting and if we have just coords that we are using that explicitly
-    my $refpos = $allpos{REFERENCE}->coords;
-    my $offset = $allpos{REFERENCE}->offset;
-
-    if (defined $offset) {
-      my @off = $offset->offsets;
-      return "[OFFSET] ". $off[1]->arcsec . " [".$offset->system."]";
-    } else {
-      if ($refpos->can("dec2000")) {
-        return "". $refpos->dec2000;
-      } elsif ($refpos->type eq "AZEL") {
-        return $refpos->el ." (EL)";
-      }
-    }
-  }
-  # Want this to be an undef header
-  return "";
-}
-
-
-# For jiggle: This is the number of nod sets required to build up the pattern
-#             ie  Total number of points / N_JIG_ON
-
-# For grid: returns the number of points in the grid
-
-# For scan: Estimate at the number of scans
-
-sub getNumExposures {
-  my $class = shift;
-  my $cfg = shift;
-
-  warn "******** Do not calculate Number of exposures correctly\n"
-    if OMP::Translator::ACSIS->verbose;;
-  return 1;
-}
-
-# Reduce process recipe requires access to the file name used to read
-# the recipe This should be stored in the Cfg object
-
-sub getRPRecipe {
-  my $class = shift;
-  my $cfg = shift;
-
-  # Get the acsis config
-  my $acsis = $cfg->acsis;
-  if (defined $acsis) {
-    my $red = $acsis->red_config_list;
-    if (defined $red) {
-      my $file = $red->filename;
-      if (defined $file) {
-        # just give file name, not path
-        return File::Basename::basename($file);
-      }
-    }
-  }
-  return '';
-}
-
-
-sub getOCSCFG {
-  # this gets written automatically by the OCS Config classes
-  return '';
-}
-
-sub getBinning {
-  my $class = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  my $dr = $info{data_reduction};
-  if (defined $dr) {
-    if (exists $dr->{spectral_binning}) {
-      return $dr->{spectral_binning};
-    }
-  }
-  return 1;
-}
-
-sub getNumMixers {
-  my $class = shift;
-  my $cfg = shift;
-
-  # Get the frontend
-  my $fe = $cfg->frontend;
-  throw OMP::Error::TranslateFail("Asked to determine number of mixers but no Frontend has been specified\n") unless defined $fe;
-
-  my %mask = $fe->mask;
-  my $count;
-  for my $state (values %mask) {
-    $count++ if ($state eq 'ON' || $state eq 'NEED');
-  }
-  return $count;
-}
 
 =head1 NOTES
 
@@ -5511,7 +3803,8 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright 2003-2006 Particle Physics and Astronomy Research Council.
+Copyright (C) 2007-2008 Science and Technology Facilities Council.
+Copyright 2003-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
