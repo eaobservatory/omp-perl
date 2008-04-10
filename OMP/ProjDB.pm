@@ -669,7 +669,6 @@ sub listSupport {
     SELECT DISTINCT S.userid, email, uname as 'name'
     FROM $PROJUSERTABLE S, $utable U
     WHERE S.userid = U.userid AND capacity = 'SUPPORT'
-    ORDER BY S.capacity_order
 USER_SQL
 
   map { new OMP::User( %$_ ) } @$supref
