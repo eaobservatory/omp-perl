@@ -103,7 +103,7 @@ sub userhtml {
     $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
   }
 
-  my $html = qq(<a href="$url">$user</a> );
+  my $html = qq(<a href="$url">$user</a>);
 
   # Append email status icon
   if (defined $emailstatus) {
