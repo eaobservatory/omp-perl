@@ -100,7 +100,7 @@ sub historyMSB {
   my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
     ( $checksum ? "<checksum>$checksum</checksum>" : "" ) .
       ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
-	  "</MSBDoneQuery>";
+          "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -140,7 +140,7 @@ sub historyMSBtid {
   # Construct the query
   my $xml = '<?xml version="1.0" encoding="ISO-8859-1"?>'."\n<MSBDoneQuery>" .
       "<msbtid>$msbtid</msbtid>" .
-	  "</MSBDoneQuery>";
+          "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -226,8 +226,8 @@ sub addMSBcomment {
     throw OMP::Error::FatalError("checksum supplied without project ID")
       unless $projectid;
     $msbinfo = new OMP::Info::MSB( checksum => $msbinfo,
-				   projectid => $projectid,
-				 );
+                                   projectid => $projectid,
+                                 );
   }
 
   # Do we have a comment or an index (or no comment at all)
@@ -236,7 +236,7 @@ sub addMSBcomment {
     if (ref($comment)) {
       # fall over if we arent a comment object
       throw OMP::Error::BadArgs("Wrong class for comment object: ". ref($comment))
-	unless UNIVERSAL::isa($comment, "OMP::Info::Comment");
+        unless UNIVERSAL::isa($comment, "OMP::Info::Comment");
 
     } elsif ($comment =~ /^\d+$/) {
       # An integer index
@@ -324,11 +324,11 @@ sub observedMSBs {
   my $xml = "<MSBDoneQuery>" .
     "<status>". OMP__DONE_DONE ."</status>" .
       "<status>" . OMP__DONE_REJECTED . "</status>" .
-	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
-	  "<status>" . OMP__DONE_ABORTED . "</status>" .
+        "<status>" . OMP__DONE_SUSPENDED . "</status>" .
+          "<status>" . OMP__DONE_ABORTED . "</status>" .
             ($date ?"<date delta=\"1\">$date</date>" : "" ) .
-	      ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
-	        "</MSBDoneQuery>";
+              ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
+                "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -355,7 +355,7 @@ of date strings (YYYYMMDD format).
   @objects = $db->observedDates( 1 );
 
 Throws an exception if the project ID can not be determined from the
-class (since there is no reason why you would want to ask for 
+class (since there is no reason why you would want to ask for
 all the nights that any data was observed).
 
 The definition of "observed" includes MSBs that were completed,
@@ -374,10 +374,10 @@ sub observedDates {
   my $xml = "<MSBDoneQuery>" .
     "<status>". OMP__DONE_DONE . "</status>" .
       "<status>" . OMP__DONE_REJECTED . "</status>" .
-	"<status>" . OMP__DONE_SUSPENDED . "</status>" .
-	  "<status>" . OMP__DONE_ABORTED . "</status>" .
-	    "<projectid>$projectid</projectid>".
-	      "</MSBDoneQuery>";
+        "<status>" . OMP__DONE_SUSPENDED . "</status>" .
+          "<status>" . OMP__DONE_ABORTED . "</status>" .
+            "<projectid>$projectid</projectid>".
+              "</MSBDoneQuery>";
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -396,15 +396,15 @@ sub observedDates {
       # this should always be true since that was the query
       my $cstat = $comment->status;
       if ($cstat == OMP__DONE_DONE ||
-	  $cstat == OMP__DONE_REJECTED ||
-	  $cstat == OMP__DONE_ABORTED ||
-	  $cstat == OMP__DONE_SUSPENDED
-	 ) {
-	my $date = $comment->date;
-	my $ut = sprintf("%04d%02d%02d", $date->year, $date->mon, $date->mday);
+          $cstat == OMP__DONE_REJECTED ||
+          $cstat == OMP__DONE_ABORTED ||
+          $cstat == OMP__DONE_SUSPENDED
+         ) {
+        my $date = $comment->date;
+        my $ut = sprintf("%04d%02d%02d", $date->year, $date->mon, $date->mday);
 
-	# Store it in the hash
-	$days{$ut}++;
+        # Store it in the hash
+        $days{$ut}++;
       }
 
     }
@@ -467,7 +467,7 @@ sub titleMSB {
   my $self = shift;
   my $checksum = shift;
 
-  # get the MSB information 
+  # get the MSB information
   my $msb = $self->historyMSB( $checksum );
   return $msb->title if defined $msb;
 }
@@ -504,7 +504,7 @@ sub queryMSBdone {
 
   # If all the comments are required then we now need
   # to loop through this hash and refetch the data
-  # using a different query. 
+  # using a different query.
   # The query should tell us whether this is required.
   # Note that there is a possibility of infinite looping
   # since historyMSB calls this routine
@@ -518,9 +518,9 @@ sub queryMSBdone {
   # Create an array from the hash. Sort by projectid
   # and then by target and date of most recent comment
   my @all = map { $msbs->{$_} }
-    sort { $msbs->{$a}->projectid cmp $msbs->{$b}->projectid 
-      || $msbs->{$a}->target cmp $msbs->{$b}->target 
-	|| $msbs->{$a}->comments->[-1]->date <=> $msbs->{$b}->comments->[-1]->date
+    sort { $msbs->{$a}->projectid cmp $msbs->{$b}->projectid
+      || $msbs->{$a}->target cmp $msbs->{$b}->target
+        || $msbs->{$a}->comments->[-1]->date <=> $msbs->{$b}->comments->[-1]->date
   } keys %$msbs;
 
   return (wantarray ? @all : \@all);
@@ -543,16 +543,16 @@ Convert a "done" status to textual form.
 
 sub status_to_text {
   my $status = shift;
-  my %lut = ( 
-	     &OMP__DONE_UNDONE => 'Undone',
-	     &OMP__DONE_ALLDONE => 'AllDone',
-	     &OMP__DONE_COMMENT => 'Commented Upon',
-	     &OMP__DONE_ABORTED => 'Aborted',
-	     &OMP__DONE_REJECTED => 'Rejected',
-	     &OMP__DONE_SUSPENDED => 'Suspended',
-	     &OMP__DONE_DONE     => 'Accepted',
-	     &OMP__DONE_FETCH    => 'Retrieved'
-	    );
+  my %lut = (
+             &OMP__DONE_UNDONE => 'Undone',
+             &OMP__DONE_ALLDONE => 'AllDone',
+             &OMP__DONE_COMMENT => 'Commented Upon',
+             &OMP__DONE_ABORTED => 'Aborted',
+             &OMP__DONE_REJECTED => 'Rejected',
+             &OMP__DONE_SUSPENDED => 'Suspended',
+             &OMP__DONE_DONE     => 'Accepted',
+             &OMP__DONE_FETCH    => 'Retrieved'
+            );
   if (exists $lut{$status} ) {
     return $lut{$status};
   } else {
@@ -610,7 +610,7 @@ entries as old (status = false).
  $db->_add_msb_done_info( $msbinfo, $comment );
 
 The first argument is an C<OMP::Info::MSB> object. The second argument is
-an C<OMP::Info::Comment> object. 
+an C<OMP::Info::Comment> object.
 
 All entries with status OMP__DONE_FETCH and the same
 checksum are removed prior to uploading this information. This
@@ -643,10 +643,10 @@ sub _add_msb_done_info {
 
   # First remove any placeholder observations
   $self->_db_delete_data( $MSBDONETABLE,
-			  " checksum = '$checksum' AND " .
-			  " projectid = '$projectid' AND " .
-			  " status = " . OMP__DONE_FETCH
-			);
+                          " checksum = '$checksum' AND " .
+                          " projectid = '$projectid' AND " .
+                          " status = " . OMP__DONE_FETCH
+                        );
 
   # Now insert the information into the table
 
@@ -674,20 +674,20 @@ sub _add_msb_done_info {
                  $msbinfo->target );
 
   $self->_db_insert_data( $MSBDONETABLE,
-			  { COLUMN => 'checksum',
-			    QUOTE => 1,
-			    POSN => 0 },
-			  $checksum, $comment->status,
-			  $projectid, $date,
-			  $target, $msbinfo->instrument,
-			  $msbinfo->waveband,
-			  {
-			   TEXT => $comment->text,
-			   COLUMN => 'comment',
-			  }, $msbinfo->title,
-			  $userid,
-			  $comment->tid,
-			);
+                          { COLUMN => 'checksum',
+                            QUOTE => 1,
+                            POSN => 0 },
+                          $checksum, $comment->status,
+                          $projectid, $date,
+                          $target, $msbinfo->instrument,
+                          $msbinfo->waveband,
+                          {
+                           TEXT => $comment->text,
+                           COLUMN => 'comment',
+                          }, $msbinfo->title,
+                          $userid,
+                          $comment->tid,
+                        );
 }
 
 =item B<_store_msb_done_comment>
@@ -776,7 +776,7 @@ sub _store_msb_done_comment {
   }
 
   # throw an exception if we dont have anything
-  throw OMP::Error::MSBMissing("Unable to associate any information with the checksum '$checksum' in project $project") 
+  throw OMP::Error::MSBMissing("Unable to associate any information with the checksum '$checksum' in project $project")
     unless $msbinfo;
 
   # Add this information to the table
@@ -822,9 +822,9 @@ sub _reorganize_msb_done {
 
     # Prepare comment details
     my %details = (text => $row->{comment},
-		   date => $row->{$datekey},
-		   status => $row->{status},
-		   tid => $row->{msbtid},);
+                   date => $row->{$datekey},
+                   status => $row->{status},
+                   tid => $row->{msbtid},);
 
     # Specify comment author if there is one
     ($row->{userid}) and $details{author} = OMP::UserServer->getUser($row->{userid});
@@ -839,17 +839,17 @@ sub _reorganize_msb_done {
       # populate a new entry
 
       $msbs{ $row->{checksum} } = new OMP::Info::MSB(
-				   title => $row->{title},
-				   checksum => $row->{checksum},
-				   target => $row->{target},
-				   waveband => $row->{waveband},
-				   instrument => $row->{instrument},
-				   projectid => $row->{projectid},
-				   nrepeats => 0, # initial value
-				   comments => [
-					       new OMP::Info::Comment(%details)
-					      ],
-				  );
+                                   title => $row->{title},
+                                   checksum => $row->{checksum},
+                                   target => $row->{target},
+                                   waveband => $row->{waveband},
+                                   instrument => $row->{instrument},
+                                   projectid => $row->{projectid},
+                                   nrepeats => 0, # initial value
+                                   comments => [
+                                               new OMP::Info::Comment(%details)
+                                              ],
+                                  );
     }
 
     # If we have an OMP__DONE_DONE increment the repeat count
@@ -896,8 +896,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
