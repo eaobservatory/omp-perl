@@ -326,7 +326,7 @@ sub observedMSBs {
       "<status>" . OMP__DONE_REJECTED . "</status>" .
         "<status>" . OMP__DONE_SUSPENDED . "</status>" .
           "<status>" . OMP__DONE_ABORTED . "</status>" .
-            ($date ?"<date delta=\"1\">$date</date>" : "" ) .
+            ($date ? qq{<date delta="1">$date</date>} : "" ) .
               ( $projectid ? "<projectid>$projectid</projectid>" : "" ) .
                 "</MSBDoneQuery>";
 
