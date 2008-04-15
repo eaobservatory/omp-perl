@@ -818,7 +818,7 @@ sub _reorganize_msb_done {
 
     # nasty hack since for some reason we have leading null
     # characters on our MSB checksums
-    $row->{checksum} =~ s/^.// if substr($row->{checksum},0,1) eq "\0";
+    $row->{checksum} =~ s/^\x00//;
 
     # Prepare comment details
     my %details = (text => $row->{comment},
