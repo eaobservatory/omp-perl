@@ -501,6 +501,7 @@ sub queryMSBdone {
   # Now reorganize the data structure to better match
   # our output format
   my $msbs = $self->_reorganize_msb_done( \@rows );
+  my @checksum = keys %{ $msbs };
 
   # If all the comments are required then we now need
   # to loop through this hash and refetch the data
@@ -509,7 +510,7 @@ sub queryMSBdone {
   # Note that there is a possibility of infinite looping
   # since historyMSB calls this routine
   if ($allcomment) {
-    foreach my $checksum (keys %$msbs) {
+    foreach my $checksum ( @checksum ) {
       # over write the previous entry
       $msbs->{$checksum} = $self->historyMSB($checksum,  'data');
     }
@@ -521,7 +522,7 @@ sub queryMSBdone {
     sort { $msbs->{$a}->projectid cmp $msbs->{$b}->projectid
       || $msbs->{$a}->target cmp $msbs->{$b}->target
         || $msbs->{$a}->comments->[-1]->date <=> $msbs->{$b}->comments->[-1]->date
-  } keys %$msbs;
+  } @checksum;
 
   return (wantarray ? @all : \@all);
 }
