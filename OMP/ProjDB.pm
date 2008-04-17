@@ -1230,6 +1230,34 @@ WHERE_ORDER_SQL
   return @projects;
 }
 
+=item B<_get_max_role_order>
+
+Given a project id and a role, returns the maximum capacity order
+(integer) assigned for the role.  If nothing is found, 0 is returned.
+
+  my $max_order = $db->_get_max_role_order( $projectid, $role );
+
+=cut
+
+sub _get_max_role_order {
+
+  my ( $self, $projid, $role ) = @_;
+
+  throw OMP::Error::BadArgs('Need both a project id and a role')
+    unless $proj && $role;
+
+  my $column = 'max_order';
+  my $sql =
+    qq[ SELECT MAX( capacity_order ) $column
+        FROM $PROJUSERTABLE
+        WHERE projectid = '$projid' AND capacity = '$role'
+      ];
+
+  my $order = $self->_db_retrieve_data_ashash( $sql );
+
+  return $order->[0]{ $column } || 0;
+}
+
 =item B<_mail_password>
 
 Mail the password associated with the supplied project to the
