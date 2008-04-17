@@ -1244,7 +1244,7 @@ sub _get_max_role_order {
   my ( $self, $projid, $role ) = @_;
 
   throw OMP::Error::BadArgs('Need both a project id and a role')
-    unless $proj && $role;
+    unless $projid && $role;
 
   my $column = 'max_order';
   my $sql =
