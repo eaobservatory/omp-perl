@@ -41,7 +41,7 @@ our $VERSION = (qw$Revision$)[1];
 
 Throw a SOAP exception using an C<OMP::Error> object.
 If we are not running in SOAP environment (determined by
-looking at HTTP_SOAPACTION encironment variable) we throw
+looking at HTTP_SOAPACTION environment variable) we throw
 the exception as is.
 
 The faultcode is determined by looking at the class of the
