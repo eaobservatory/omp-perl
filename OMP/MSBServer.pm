@@ -935,22 +935,29 @@ Return all the MSBs observed (ie "marked as done" or MSBs started) on
 the specified date and/or for the specified project.
 
   $output = OMP::MSBServer->observedMSBs( { date => $date,
-					    returnall => 1,
+					    comments => 1,
+                                            transactions => 1,
 					    format => 'xml',
 					    projectid => $proj,
 					  } );
 
-The C<returnall> parameter governs whether all the comments
+I<returnall> parameter has been I<deprecated> in favor of I<comments>.
+
+The C<comments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
 
 The output format matches that returned by C<historyMSB>.
 
+(I<NOT YET IMPLEMENTED.>)
+Similarly for C<transactions>, all the comments related to a
+transaction id will be returned if true.
+
 If the current date is required use the "usenow" flag:
 
   $output = OMP::MSBServer->observedMSBs( { usenow => 1,
-					    returnall => 1,
+					    comments => 1,
 					    format => 'xml',
 					  } );
 
@@ -965,6 +972,13 @@ Note that the argument is a reference to a hash.
 sub observedMSBs {
   my $class = shift;
   my $args = shift;
+
+  # Support old key until its usage is brought upto date.
+  for ( 'returnall') {
+
+    exists $args->{ $_ } and
+      $args->{'comments'} = delete $args->{ $_ };
+  }
 
   my $type = lc( $args->{format} );
   $type ||= 'xml';
@@ -1085,12 +1099,19 @@ sub observedDates {
 
 Return all the MSBs that match the specified XML query 
 
-  $output = OMP::MSBServer->queryMSBdone( $xml, $allcomments, 'xml' );
+  $output = OMP::MSBServer->queryMSBdone( $xml,
+                                          { 'comments' => $allcomments }
+                                          , 'xml'
+                                        );
 
-The C<allcomments> parameter governs whether all the comments
+The truth value for C<comments> governs whether all the comments
 associated with the matching MSBs are returned (regardless of when
 they were added) or only those added for the specific query. If the
 value is false only the comments for the query are returned.
+
+(I<NOT YET IMPLEMENTED.>)
+Similarly for C<transactions>, all the comments related to a
+transaction id will be returned if true.
 
 The output format matches that returned by C<historyMSB>.
 
@@ -1101,7 +1122,7 @@ The XML query must match that described in C<OMP::MSBDoneQuery>.
 sub queryMSBdone {
   my $class = shift;
   my $xml = shift;
-  my $allcomments = shift;
+  my $more = shift;
   my $type = lc(shift);
   $type ||= 'xml';
 
@@ -1117,7 +1138,7 @@ sub queryMSBdone {
 
     my $q = new OMP::MSBDoneQuery( XML => $xml );
 
-    $result = $db->queryMSBdone( $q, $allcomments );
+    $result = $db->queryMSBdone( $q, $more );
 
   } catch OMP::Error with {
     # Just catch OMP::Error exceptions

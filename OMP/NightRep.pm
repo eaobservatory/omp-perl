@@ -701,7 +701,7 @@ sub msbs {
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  my @results = $db->queryMSBdone( $query, 0 );
+  my @results = $db->queryMSBdone( $query, { 'comments' => 0 } );
 
   # Currently need to verify the telescope outside of the query
   # This verification really slows things down

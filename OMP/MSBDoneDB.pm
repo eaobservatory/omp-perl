@@ -13,8 +13,8 @@ OMP::MSBDoneDB - Manipulate MSB Done table
 
   @output = OMP::MSBServer->historyMSB( $checksum );
   $db->addMSBcomment( $checksum, $comment );
-  @output = $db->observedMSBs( $date, $allcomments );
-  @output = $db->queryMSBdone( $query, $allcomments );
+  @output = $db->observedMSBs( $date, { 'comments' => $allcomments } );
+  @output = $db->queryMSBdone( $query, { 'comments' => $allcomments } );
 
 =head1 DESCRIPTION
 
@@ -277,18 +277,26 @@ Return all the MSBs observed (ie "marked as done") on the specified
 date. If a project ID has been set only those MSBs observed on the
 date for the specified project will be returned.
 
-  $output = $db->observedMSBs( date => $date, returnall => $allcomments );
-  @output = $db->observedMSBs( date => $date, returnall => $allcomments );
+  $output = $db->observedMSBs( date => $date, comments => $allcomments );
+  @output = $db->observedMSBs( date => $date, comments => $allcomments,
+                                              transactions => $alltrans
+                              );
 
-The C<returnall> parameter governs whether all the comments
+I<returnall> parameter has been I<deprecated> in favor of I<comments>.
+
+The C<comments> parameter governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
 
+(I<NOT YET IMPLEMENTED.>)
+Similarly for C<transactions>, all the comments related to a
+transaction id will be returned if true.
+
 If no date is defined the date is not used in the query at all.
 If the current UT date is required then use the "usenow" key:
 
-  $output = $db->observedMSBs( usenow => 1, returnall => $allcomments);
+  $output = $db->observedMSBs( usenow => 1, comments => $allcomments);
 
 "usenow" overrides any date. If neither date nor usenow are specified
 no date is used in the query (ie all dates) but a project must
@@ -302,6 +310,13 @@ rejected, suspended or aborted.
 sub observedMSBs {
   my $self = shift;
   my %args = @_;
+
+  # Support old key until its usage is brought upto date.
+  for ( 'returnall') {
+
+    exists $args{ $_ } and
+      $args{'comments'} = delete $args{ $_ };
+  }
 
   # Do we mean today? Override if we have usenow
   my $date;
@@ -332,7 +347,8 @@ sub observedMSBs {
 
   my $query = new OMP::MSBDoneQuery( XML => $xml );
 
-  my @results = $self->queryMSBdone( $query, $args{returnall} );
+  my @results = $self->queryMSBdone( $query, \%args );
+
   return (wantarray ? @results : \@results );
 }
 
@@ -383,7 +399,7 @@ sub observedDates {
 
   # Execute the query - note that we dont need all the comments
   # since we are only interested in dates
-  my @results = $self->queryMSBdone( $query, 0 );
+  my @results = $self->queryMSBdone( $query, { 'comments' => 0 } );
 
   # Now need to go through each MSB forming a hash indexed by
   # the actual UT day
@@ -432,7 +448,7 @@ Returns true if the MSB transaction ID is associated with this
 checksum. False otherwise.
 
 Returns true if the supplied transaction ID is undefined (since there
-is no requirement for a transacton ID to be associated with an MSB).
+is no requirement for a transaction ID to be associated with an MSB).
 
 =cut
 
@@ -477,12 +493,20 @@ sub titleMSB {
 Query the MSB done table. Query must be supplied as an
 C<OMP::MSBDoneQuery> object.
 
-  @results = $db->queryMSBdone( $query, $allcomments );
+  @results = $db->queryMSBdone( $query,
+                                { 'comments' => $allcomments,
+                                  'transactions' => $alltrans
+                                }
+                              );
 
-The C<allcomments> parameter governs whether all the comments
+The truth value for C<comments> governs whether all the comments
 associated with the observed MSBs are returned (regardless of when
 they were added) or only those matching the specific query. If the
 value is false only the comments matched by the query are returned.
+
+I<NOT YET IMPLEMENTED.>
+Similarly for C<transactions>, all the comments related to a
+transaction id will be returned if true.
 
 Returns an array of results in list context, or a reference to an
 array of results in scalar context.
@@ -492,7 +516,7 @@ array of results in scalar context.
 sub queryMSBdone {
   my $self = shift;
   my $query = shift;
-  my $allcomment = shift;
+  my $more = shift;
 
   # First read the rows from the database table
   # and get the array ref
@@ -509,11 +533,16 @@ sub queryMSBdone {
   # The query should tell us whether this is required.
   # Note that there is a possibility of infinite looping
   # since historyMSB calls this routine
-  if ($allcomment) {
+  if ( $more->{'comments'} ) {
     foreach my $checksum ( @checksum ) {
       # over write the previous entry
       $msbs->{$checksum} = $self->historyMSB($checksum,  'data');
     }
+  }
+
+  # XXX : not done yet.
+  if ( $more->{'transactions'} ) {
+    throw OMP::Error( 'Comment fetching by transaction id is to be implemented' );
   }
 
   # Create an array from the hash. Sort by projectid
