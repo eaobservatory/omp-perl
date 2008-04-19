@@ -309,6 +309,8 @@ sub obs_summary {
   $obs->switching_mode( defined $info{switching_mode} 
                         ? $info{switching_mode} : 'none' );
   $obs->type( $info{obs_type} );
+  $obs->inbeam( $info{inbeam} )
+    if (exists $info{inbeam} && defined $info{inbeam});
 
   $cfg->obs_summary( $obs );
 }
@@ -430,10 +432,10 @@ sub tcs_base {
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /pssw/);
 
-  # Mandatory for raster/chop too
-  throw OMP::Error::TranslateFail("No reference position defined for raster/chop observation (needed for CAL)")
+  # Mandatory for scan/chop too
+  throw OMP::Error::TranslateFail("No reference position defined for scan/chop observation (needed for CAL)")
     if (!exists $tags{REFERENCE} && $info{switching_mode} =~ /chop/
-        && $info{mapping_mode} =~ /raster/);
+        && $info{mapping_mode} =~ /^scan/);
 
 
   # and augment with the SCIENCE tag
@@ -572,7 +574,7 @@ sub observing_area {
   # defining a map area
 
 
-  if ($obsmode eq 'raster') {
+  if ($obsmode eq 'scan') {
 
     # Need to know the frontend
     my $frontend = $self->ocs_frontend($info{instrument});
@@ -943,18 +945,27 @@ sub rts_config {
   my $cfg = shift;
   my %info = @_;
 
-  # Need observing mode
-  my $obsmode = $info{observing_mode};
+  # SCUBA-2 uses a single file
+  my $root;
+  if ($self->backend eq 'SCUBA2') {
+    $root = "scuba2";
+  } else {
 
-  # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
-  # is actually a jiggle_chop
-  $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
-  $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
+    # Need observing mode
+    my $obsmode = $info{observing_mode};
+
+    # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
+    # is actually a jiggle_chop
+    $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
+    $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
+
+    $root = $obsmode;
+  }
 
   # the RTS information is read from a wiring file
   # indexed by observing mode
   my $file = File::Spec->catfile( $self->wiredir, 'rts',
-                                  $obsmode .".xml");
+                                  $root .".xml");
   throw OMP::Error::TranslateFail("Unable to find RTS wiring file $file")
     unless -e $file;
 
@@ -1048,26 +1059,41 @@ The following keys are filled in:
 =item observing_mode
 
 A single string describing the observing mode. One of
-jiggle_freqsw, jiggle_chop, grid_pssw, raster_pssw.
+jiggle_freqsw, jiggle_chop, grid_pssw, scan_pssw.
 
 Note that there is no explicit slow vs fast jiggle switch mode
 set from this routine since more subsystems ignore the difference
 than care about the difference.
 
-Note also that POINTING or FOCUS are not observing modes in this science.
+Note also that POINTING or FOCUS are not observing modes in this sense.
+
+If "inbeam" is set it will be appended. eg stare_spin_pol.
+
+If switching mode is "self" or "none" it will not be included in
+the observing mode definition.
 
 =item mapping_mode
 
-The underlying mapping mode. One of "jiggle", "raster" and "grid".
+The underlying mapping mode. One of "jiggle", "scan" and "grid" for ACSIS.
+"stare", "scan", "dream" for SCUBA-2.
 
 =item switching_mode
 
-The switching scheme. One of "freqsw", "chop" and "pssw". This is 
-a translated form of the input "switchingMode" parameter.
+The switching scheme. One of "freqsw", "chop", "pssw" and "none" for ACSIS.
+This is a translated form of the input "switchingMode" parameter.
+SCUBA-2 does not really need a switching mode (it's implicit in most
+cases) but options are "none", "self", "spin" or "scan". The latter
+two are for POL-2 and FTS-2 respectively.
 
 =item obs_type
 
-The type of observation. One of "science", "pointing", "focus".
+The type of observation. One of "science", "pointing", "focus",
+"skydip" or "flatfield".
+
+=item inbeam
+
+Indicates if any additional equipment is to be placed in the beam
+for this observation.
 
 =back
 
@@ -1077,65 +1103,45 @@ sub observing_mode {
   my $self = shift;
   my $info = shift;
 
-  my $mode = $info->{MODE};
+  my $otmode = $info->{MODE};
   my $swmode = $info->{switchingMode};
 
-  my ($mapping_mode, $switching_mode, $obs_type);
+  # "inbeam" can be handled generically.
+  # "obs_type" could be but the tests are already being performed.
+  # Mapping and switch modes (Especially for non-science)
+  # need special case
 
-  # assume science
-  $obs_type = 'science';
+  my ($mapping_mode, $switching_mode, $obs_type)
+    = $self->determine_map_and_switch_mode($otmode, $swmode);
 
-  if ($mode eq 'SpIterRasterObs') {
-    $mapping_mode = 'raster';
-    if ($swmode eq 'Position') {
-      $switching_mode = 'pssw';
-    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      throw OMP::Error::TranslateFail("raster_chop not yet supported\n");
-      $switching_mode = 'chop';
-    } elsif ($swmode =~ /none/i) {
-      $switching_mode = "none";
-    } else {
-      throw OMP::Error::TranslateFail("Raster with switch mode '$swmode' not supported\n");
+  # inbeam
+  my $inbeam;
+  if ($info->{pol}) {
+    $inbeam = 'pol';
+
+    # tweak switching mode
+    if ($self->is_pol_spin(%$info)) {
+      if ($switching_mode =~ /^(none|self)$/) {
+        $switching_mode = 'spin';
+      } else {
+        $switching_mode .= '_spin';
+      }
     }
-  } elsif ($mode eq 'SpIterPointingObs') {
-    $mapping_mode = 'jiggle';
-    $switching_mode = 'chop';
-    $obs_type = 'pointing';
-  } elsif ($mode eq 'SpIterFocusObs' ) {
-    $mapping_mode = 'grid';     # Just chopping at 0,0
-    $switching_mode = 'chop';
-    $obs_type = 'focus';
-  } elsif ($mode eq 'SpIterStareObs' ) {
-    # check switch mode
-    if ($swmode eq 'Position') {
-      $mapping_mode = 'grid';
-      $switching_mode = 'pssw';
-    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $mapping_mode = 'grid';   # No jiggling
-      $switching_mode = 'chop';
-    } else {
-      throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
-    }
-  } elsif ($mode eq 'SpIterJiggleObs' ) {
-    # depends on switch mode
-    $mapping_mode = 'jiggle';
-    if ($swmode eq 'Chop' || $swmode eq 'Beam') {
-      $switching_mode = 'chop';
-    } elsif ($swmode =~ /^Frequency-/) {
-      $switching_mode = 'freqsw';
-    } elsif ($swmode eq 'Position') {
-      $switching_mode = 'pssw';
-    } else {
-      throw OMP::Error::TranslateFail("Jiggle with switch mode '$swmode' not supported\n");
-    }
-  } else {
-    throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
   }
 
   $info->{obs_type}       = $obs_type;
   $info->{switching_mode} = $switching_mode;
   $info->{mapping_mode}   = $mapping_mode;
-  $info->{observing_mode} = $mapping_mode . '_' . $switching_mode;
+  $info->{inbeam}        = $inbeam;
+
+  # observing mode
+  my @parts = ($mapping_mode);
+  if ($switching_mode !~ /^(none|self)$/) {
+    push(@parts, $switching_mode);
+  }
+  push(@parts, $inbeam) if $inbeam;
+
+  $info->{observing_mode} = join("_",@parts);
 
   if ($self->verbose) {
     print {$self->outhdl} "\n";
@@ -1144,6 +1150,8 @@ sub observing_mode {
     print {$self->outhdl} "\tObservation Type: $info->{obs_type}\n";
     print {$self->outhdl} "\tMapping Mode: $info->{mapping_mode}\n";
     print {$self->outhdl} "\tSwitching Mode: $info->{switching_mode}\n";
+    print {$self->outhdl} "\tIn Beam: $info->{inbeam}\n"
+      if $info->{inbeam};
   }
 
   return;
@@ -1461,7 +1469,8 @@ sub tracking_receptor_or_subarray {
 
   # Go through the preferred receptors looking for a match
   for my $test (@configs) {
-    return $test if $inst->contains_id( $test );
+    my $match = $inst->contains_id( $test );
+    return $match if $match;
   }
 
   # If this is a 5pt pointing or a focus observation we need to choose the reference pixel

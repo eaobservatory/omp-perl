@@ -122,6 +122,9 @@ sub jos_config {
 
   my $jos = new JAC::OCS::Config::JOS();
 
+  # Basics
+  $jos->step_time( $self->step_time );
+
   # Allowed JOS recipes seem to be
   #   scuba2_scan
   #   scuba2_dream
@@ -140,6 +143,15 @@ sub jos_config {
   # store it
   $cfg->jos( $jos );
 
+}
+
+=item B<rotator_config>
+
+There is no rotator for SCUBA-2.
+
+=cut
+
+sub rotator_config {
 }
 
 =item B<need_offset_tracking>
@@ -190,6 +202,61 @@ SCUBA2 in this case.
 
 sub backend {
   return "SCUBA2";
+}
+
+=item B<determine_map_and_switch_mode>
+
+Calculate the mapping mode, switching mode and observation type from
+the Observing Tool mode and switching string.
+
+  ($map_mode, $sw_mode) = $trans->determine_observing_summary( $mode, $sw );
+
+Called from the C<observing_mode> method.  See
+C<OMP::Translator::JCMT::observing_mode> method for more details.
+
+=cut
+
+sub determine_map_and_switch_mode {
+  my $self = shift;
+  my $mode = shift;
+  my $swmode = shift;
+
+  my ($mapping_mode, $switching_mode);
+
+  my $obs_type = 'science';
+
+  # Supplied switch mode is not important for scuba-2
+  if ($mode eq 'SpIterRasterObs') {
+    $mapping_mode = 'scan';
+  } elsif ($mode eq 'SpIterStareObs') {
+    $mapping_mode = 'stare';
+  } elsif ($mode eq 'SpIterDREAMObs') {
+    $mapping_mode = 'dream';
+  } elsif ($mode eq 'SpIterPointingObs') {
+    $mapping_mode = 'scan';
+    $obs_type = 'pointing';
+  } elsif ($mode eq 'SpIterFocusObs') {
+    $mapping_mode = 'stare';
+    $obs_type = 'focus';
+  } elsif ($mode eq 'SpIterSkydipObs') {
+    $mapping_mode = 'scan';
+    $switching_mode = 'none';
+    $obs_type = 'skydip';
+  } else {
+    throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
+  }
+
+  # switch mode
+  my %SW = ( scan => 'self',
+             stare => 'none',
+             dream => 'self',);
+  $switching_mode = $SW{$mapping_mode}
+    unless defined $switching_mode;
+
+  throw OMP::Error::TranslateFail("Unable to determine switch mode from map mode of $mapping_mode")
+    unless defined $switching_mode;
+
+  return ($mapping_mode, $switching_mode, $obs_type);
 }
 
 =back

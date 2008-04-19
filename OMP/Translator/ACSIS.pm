@@ -75,7 +75,6 @@ my %ACSIS_Layouts = (
                      RXWB => 's2r2g1',
                      RXWD => 's2r2g1',
                      HARP => 's8r8g1',
-                     #        HARP_raster_pssw => 's8r16g8',
                     );
 
 # LO2 synthesizer step, hard-wired
@@ -732,7 +731,7 @@ sub jos_config {
                 jiggle_pssw => 'grid_pssw',
                 grid_chop   => 'jiggle_chop',
                 grid_pssw   => ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
-                raster_pssw => 'raster_pssw',
+                scan_pssw => 'raster_pssw',
                );
   if (exists $JOSREC{$info{obs_type}}) {
     $jos->recipe( $JOSREC{$info{obs_type}} );
@@ -767,9 +766,9 @@ sub jos_config {
 
   # Now parameters depends on that recipe name
 
-  # Raster
+  # Scan map
 
-  if ($info{observing_mode} =~ /raster/) {
+  if ($info{observing_mode} =~ /^scan/) {
 
     # Number of ref samples now calculated by the JOS
 
@@ -777,7 +776,7 @@ sub jos_config {
     $jos->jos_min(1);
 
     if ($self->verbose) {
-      print {$self->outhdl} "Raster JOS parameters:\n";
+      print {$self->outhdl} "Scan map JOS parameters:\n";
       print {$self->outhdl} "\tDuration of reference calculated by JOS dynamically\n";
     }
 
@@ -1830,16 +1829,16 @@ sub cubes {
     # HARP without image rotator will require Gaussian.
     # This will need support for rotated coordinate frames in the gridder
     my $grid_func = "TopHat";
-    $grid_func = "Gaussian" if $info{mapping_mode} =~ /raster/;
+    $grid_func = "Gaussian" if $info{mapping_mode} =~ /^scan/;
     $cube->grid_function( $grid_func );
 
     # Variable to indicate map coord override
     my $grid_coord;
 
     # The size and number of pixels depends on the observing mode.
-    # For raster, we have a regular grid but the 
+    # For scan, we have a regular grid but the 
     my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
-    if ($info{mapping_mode} =~ /raster/) {
+    if ($info{mapping_mode} =~ /^scan/) {
       # This will be more complicated for HARP since DY will possibly
       # be larger and we will need to take the receptor spacing into account
 
@@ -1866,7 +1865,7 @@ sub cubes {
       # a whole array footprint on each end)
       my $rad = $inst->footprint_radius->arcsec;
 
-      # Increase the cube area for raster maps by one pixel in order
+      # Increase the cube area for scan maps by one pixel in order
       # to use the same convention as the TCS: through the centers of
       # the outer pixels rather than around them.
       $nx = int( ( ( $info{MAP_WIDTH} + ( 2 * $rad ) ) / $xsiz ) + 1.5 ) ;
@@ -2243,6 +2242,82 @@ sub simulator_config {
   $acsis->simulation( $sim );
 }
 
+=item B<determine_map_and_switch_mode>
+
+Calculate the mapping mode, switching mode and observation type from the Observing
+Tool mode and switching string.
+
+  ($map_mode, $sw_mode) = $trans->determine_observing_summary( $mode, $sw );
+
+Called from the C<observing_mode> method.  See
+C<OMP::Translator::JCMT::observing_mode> method for more details.
+
+=cut 
+
+sub determine_map_and_switch_mode {
+  my $self = shift;
+  my $mode = shift;
+  my $swmode = shift;
+
+  my ($mapping_mode, $switching_mode);
+
+  # assume science
+  my $obs_type = 'science';
+
+  if ($mode eq 'SpIterRasterObs') {
+    $mapping_mode = 'scan';
+    if ($swmode eq 'Position') {
+      $switching_mode = 'pssw';
+    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
+      throw OMP::Error::TranslateFail("scan_chop not yet supported\n");
+      $switching_mode = 'chop';
+    } elsif ($swmode =~ /none/i) {
+      $switching_mode = "none";
+    } else {
+      throw OMP::Error::TranslateFail("Scan with switch mode '$swmode' not supported\n");
+    }
+  } elsif ($mode eq 'SpIterPointingObs') {
+    $mapping_mode = 'jiggle';
+    $switching_mode = 'chop';
+    $obs_type = 'pointing';
+  } elsif ($mode eq 'SpIterFocusObs' ) {
+    $mapping_mode = 'grid';     # Just chopping at 0,0
+    $switching_mode = 'chop';
+    $obs_type = 'focus';
+  } elsif ($mode eq 'SpIterStareObs' ) {
+    # check switch mode
+    if ($swmode eq 'Position') {
+      $mapping_mode = 'grid';
+      $switching_mode = 'pssw';
+    } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
+      $mapping_mode = 'grid';   # No jiggling
+      $switching_mode = 'chop';
+    } else {
+      throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
+    }
+  } elsif ($mode eq 'SpIterJiggleObs' ) {
+    # depends on switch mode
+    $mapping_mode = 'jiggle';
+    if ($swmode eq 'Chop' || $swmode eq 'Beam') {
+      $switching_mode = 'chop';
+    } elsif ($swmode =~ /^Frequency-/) {
+      $switching_mode = 'freqsw';
+    } elsif ($swmode eq 'Position') {
+      $switching_mode = 'pssw';
+    } else {
+      throw OMP::Error::TranslateFail("Jiggle with switch mode '$swmode' not supported\n");
+    }
+  } elsif ($mode eq 'SpIterSkydipObs') {
+    $obs_type = 'skydip';
+    $mapping_mode = 'scan';
+    $switching_mode = 'none';
+  } else {
+    throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
+  }
+
+  return ($mapping_mode, $switching_mode, $obs_type);
+}
+
 =item B<interface_list>
 
 Configure the interface XML.
@@ -2371,9 +2446,9 @@ sub need_offset_tracking {
   # Grid_chop: Yes
   # Jiggle   : Yes (if the jiggle pattern has a 0,0)
   # Pointing : Yes (if 5point)
-  # Raster   : No
+  # Scan     : No
 
-  return if ($info{observing_mode} =~ /raster/);
+  return if ($info{observing_mode} =~ /^scan/);
 
   # Get the jiggle pattern
   if ($info{mapping_mode} eq 'jiggle') {
@@ -2720,10 +2795,10 @@ sub step_time {
   my $cfg = shift;
   my %info = @_;
 
-  # In raster_pssw the step time is defined to be the time per 
+  # In scan_pssw the step time is defined to be the time per 
   # output pixel. Everything else reads from config file
   my $step;
-  if ($info{observing_mode} =~ /raster_pssw/ ) {
+  if ($info{observing_mode} =~ /scan_pssw/ ) {
     # One spectrum per sample time requested. This assumes that the sample time is
     # reasonably small because we do not break the map up into small step time with
     # more repeats
@@ -2984,7 +3059,7 @@ sub calc_jos_times {
   # seconds but in units of STEP_TIME
   my $caltime = OMP::Config->getData( 'acsis_translator.cal_time' );
 
-  # if caltime is less than step time (eg raster) we still need to do at
+  # if caltime is less than step time (eg scan) we still need to do at
   # least 1 cal
   $jos->n_calsamples( max(1, OMP::General::nint( $caltime / $jos->step_time) ) );
 
@@ -3196,79 +3271,6 @@ sub determine_acsis_layout {
     # scalar context so return the layout name
     return $appropriate_layout;
   }
-}
-
-=item B<tracking_receptor>
-
-Returns the receptor ID that should be aligned with the supplied telescope
-centre. Returns undef if no special receptor should be aligned with
-the tracking centre.
-
-  $recid = $trans->tracking_receptor( $cfg, %info );
-
-This knowledge is especially important for single pixel pointing observations
-and stare observartions with HARP where there is no central pixel.
-
-If the "arrayCentred" switch is true, undef will be returned regardless of mode.
-
-=cut
-
-sub tracking_receptor {
-  my $self = shift;
-  my $cfg = shift;
-  my %info = @_;
-
-  # arrayCentred switch trumps everything
-  return if (exists $info{arrayCentred} && $info{arrayCentred});
-
-  # First decide whether we should be aligning with a specific
-  # receptor?
-
-  # Focus:   Yes
-  # Stare:   Yes
-  # Grid_chop: Yes
-  # Jiggle   : Yes (if the jiggle pattern has a 0,0)
-  # Pointing : Yes (if 5point)
-  # Raster   : No
-
-  return if ($info{observing_mode} =~ /raster/);
-
-  # Get the jiggle pattern
-  if ($info{mapping_mode} eq 'jiggle') {
-    # Could also ask the configuration for Secondary information
-    my $jig = $self->jig_info( %info );
-
-    # If we are using the HARP jiggle pattern we will be wanting
-    # a fully sampled map so do not offset
-    return if $info{jigglePattern} =~ /^HARP/;
-
-    # if we have an origin in the pattern we are probably expecting to be
-    # centred on a receptor;
-    return unless $jig->has_origin;
-  }
-
-  # Get the config file options
-  my @configs = OMP::Config->getData( "acsis_translator.tracking_receptors" );
-
-  # Get the actual receptors in use for this observation
-  my $inst = $cfg->instrument_setup;
-  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
-    unless defined $inst;
-
-  # Go through the preferred receptors looking for a match
-  for my $test (@configs) {
-    return $test if $inst->contains_id( $test );
-  }
-
-  # If this is a 5pt pointing or a focus observation we need to choose the reference pixel
-  # We have the choice of simply throwing an exception
-  if (($info{obs_type} eq 'pointing') || $info{obs_type} eq 'focus') {
-    return scalar($inst->reference_receptor);
-  }
-
-  # Still here? We have the choice of returning undef or choosing the
-  # reference receptor. For now the consensus is to return undef.
-  return;
 }
 
 =item B<calc_grid>
