@@ -85,8 +85,8 @@ sub fetchMSB {
 
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     $msb = $db->fetchMSB( msbid => $key );
 
@@ -203,8 +203,8 @@ sub fetchCalProgram {
 
     # Create new DB object
     my $db = new OMP::MSBDB(
-			     ProjectID => uc($telescope) . 'CAL',
-			     DB => $class->dbConnection, );
+                             ProjectID => uc($telescope) . 'CAL',
+                             DB => $class->dbConnection, );
 
     # Retrieve the Science Program object
     $sp = $db->fetchSciProgNoAuth;
@@ -236,13 +236,13 @@ sub fetchCalProgram {
 
       # Force gzip if requested
       if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
-	# Compress the string if its length is greater than the 
-	# threshold value
-	$string = Compress::Zlib::memGzip( "$sp" );
+        # Compress the string if its length is greater than the
+        # threshold value
+        $string = Compress::Zlib::memGzip( "$sp" );
       }
 
       throw OMP::Error::FatalError("Unable to gzip compress science program")
-	unless defined $string;
+        unless defined $string;
 
     } else {
       $string = "$sp";
@@ -251,7 +251,7 @@ sub fetchCalProgram {
     OMP::General->log_message("fetchCalProgram: Complete in ".tv_interval($t0)." seconds\n");
 
     return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
-	    : $string );
+            : $string );
   }
 
 }
@@ -325,16 +325,16 @@ sub queryMSB {
     # Convert the Query to an object
     # Triggers an exception on fatal errors
     my $query = new OMP::MSBQuery( XML => $xmlquery,
-				   MaxCount => $maxCount,
-				 );
+                                   MaxCount => $maxCount,
+                                 );
 
     # Not really needed if exceptions work
     return '' unless defined $query;
 
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     # Do the query
     @results = $db->queryMSB( $query );
@@ -362,7 +362,7 @@ sub queryMSB {
     $result = "$xmlhead\n<$tag>\n". join("\n",@results). "\n</$tag>\n";
 
     OMP::General->log_message("queryMSB: Complete. Retrieved ".@results." MSBs in ".
-			      tv_interval($t0)." seconds\n");
+                              tv_interval($t0)." seconds\n");
   } catch OMP::Error with {
     $E = shift;
   } otherwise {
@@ -427,7 +427,7 @@ sub doneMSB {
     if ($userid) {
       $user = new OMP::User( userid => $userid );
       if (!$user->verify) {
-	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+        throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
       }
     }
 
@@ -439,15 +439,15 @@ sub doneMSB {
 
     # Form the comment object
     my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
-					  text => $reason,
-					  author => $user,
-					  tid => $msbtid,
-					);
+                                          text => $reason,
+                                          author => $user,
+                                          tid => $msbtid,
+                                        );
 
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     $db->doneMSB( $checksum, $comment );
 
@@ -496,8 +496,8 @@ sub undoMSB {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     $db->undoMSB( $checksum );
 
@@ -563,7 +563,7 @@ sub suspendMSB {
   my $ustr = (defined $userid ? $userid : "<No User>");
   my $tidstr = (defined $msbtid ? $msbtid : '<No MSBTID>');
   OMP::General->log_message("suspendMSB: $project $checksum $label\n".
-			   "User: $ustr Reason: $reastr\nTransaction ID: $msbtid\n");
+                           "User: $ustr Reason: $reastr\nTransaction ID: $msbtid\n");
 
   my $E;
   try {
@@ -575,7 +575,7 @@ sub suspendMSB {
     if ($userid) {
       $user = new OMP::User( userid => $userid );
       if (!$user->verify) {
-	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+        throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
       }
     }
 
@@ -587,16 +587,16 @@ sub suspendMSB {
 
     # Form the comment object
     my $comment = new OMP::Info::Comment( status => OMP__DONE_DONE,
-					  text => $reason,
-					  author => $user,
-					  tid => $msbtid,
-					);
+                                          text => $reason,
+                                          author => $user,
+                                          tid => $msbtid,
+                                        );
 
 
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     $db->suspendMSB( $checksum, $label, $comment );
 
@@ -650,8 +650,8 @@ sub alldoneMSB {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(ProjectID => $project,
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     $db->alldoneMSB( $checksum );
 
@@ -710,7 +710,7 @@ sub rejectMSB {
     if ($userid) {
       $user = new OMP::User( userid => $userid );
       if (!$user->verify) {
-	throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
+        throw OMP::Error::InvalidUser("The userid [$userid] is not a valid OMP user ID. Please supply a valid id.");
       }
     }
 
@@ -728,10 +728,10 @@ sub rejectMSB {
 
     # Form the comment object
     my $comment = new OMP::Info::Comment( status => OMP__DONE_REJECTED,
-					  text => $reason,
-					  author => $user,
-					  tid => $msbtid,
-					);
+                                          text => $reason,
+                                          author => $user,
+                                          tid => $msbtid,
+                                        );
 
     # Add the comment
     OMP::MSBServer->addMSBcomment($project, $checksum, $comment);
@@ -798,15 +798,15 @@ sub historyMSB {
   $type ||= 'xml';
 
   OMP::General->log_message("historyMSB: project:".(defined $project ? $project : "none").", checksum:" .
-			    (defined $checksum ? $checksum : "none") ."\n");
+                            (defined $checksum ? $checksum : "none") ."\n");
 
   my $E;
   my $result;
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(ProjectID => $project,
-				DB => $class->dbConnection
-			       );
+                                DB => $class->dbConnection
+                               );
 
     $result = $db->historyMSB( $checksum );
 
@@ -935,11 +935,11 @@ Return all the MSBs observed (ie "marked as done" or MSBs started) on
 the specified date and/or for the specified project.
 
   $output = OMP::MSBServer->observedMSBs( { date => $date,
-					    comments => 1,
+                                            comments => 1,
                                             transactions => 1,
-					    format => 'xml',
-					    projectid => $proj,
-					  } );
+                                            format => 'xml',
+                                            projectid => $proj,
+                                          } );
 
 I<returnall> parameter has been I<deprecated> in favor of I<comments>.
 
@@ -957,9 +957,9 @@ transaction id will be returned if true.
 If the current date is required use the "usenow" flag:
 
   $output = OMP::MSBServer->observedMSBs( { usenow => 1,
-					    comments => 1,
-					    format => 'xml',
-					  } );
+                                            comments => 1,
+                                            format => 'xml',
+                                          } );
 
 At least one of "usenow", "projectid" or "date" must be defined
 else the query is too open-ended (and would result in every MSB
@@ -1005,8 +1005,8 @@ sub observedMSBs {
 
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(
-				DB => $class->dbConnection
-			       );
+                                DB => $class->dbConnection
+                               );
 
     # Do we have a project?
     $db->projectid( $args->{projectid} )
@@ -1071,9 +1071,9 @@ sub observedDates {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(
-				ProjectID => $projectid,
-				DB => $class->dbConnection
-			       );
+                                ProjectID => $projectid,
+                                DB => $class->dbConnection
+                               );
 
     @result = $db->observedDates($useobj);
 
@@ -1097,7 +1097,7 @@ sub observedDates {
 
 =item B<queryMSBdone>
 
-Return all the MSBs that match the specified XML query 
+Return all the MSBs that match the specified XML query
 
   $output = OMP::MSBServer->queryMSBdone( $xml,
                                           { 'comments' => $allcomments }
@@ -1133,8 +1133,8 @@ sub queryMSBdone {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(
-				DB => $class->dbConnection
-			       );
+                                DB => $class->dbConnection
+                               );
 
     my $q = new OMP::MSBDoneQuery( XML => $xml );
 
@@ -1198,8 +1198,8 @@ sub addMSBcomment {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDoneDB(ProjectID => $project,
-				DB => $class->dbConnection
-			       );
+                                DB => $class->dbConnection
+                               );
 
     $result = $db->addMSBcomment( $checksum, $comment );
 
@@ -1244,8 +1244,8 @@ sub getMSBCount {
   try {
     # Create a new object but we dont know any setup values
     my $db = new OMP::MSBDB(
-			    DB => $class->dbConnection
-			   );
+                            DB => $class->dbConnection
+                           );
 
     %result = $db->getMSBCount(@projectids);
 
@@ -1384,8 +1384,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
