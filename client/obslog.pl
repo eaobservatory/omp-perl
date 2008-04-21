@@ -470,9 +470,9 @@ sub new_instrument {
 
       # If the current MSB differs from the MSB to which this
       # observation belongs, we need to insert text denoting the start
-      # of the MSB. Ignore blank checksums.
-      if( (defined $obs->checksum) && ( $obs->checksum ne '' )
-          && ( $obs->checksum ne $currentmsb ) ) {
+      # of the MSB. Ignore blank MSBTIDS.
+      if( (defined $obs->msbtid) && ( $obs->msbtid ne '' )
+          && ( $obs->msbtid ne $currentmsb ) ) {
 
         # Retrieve the MSB title.
         if( ! exists( $msbtitles{$obs->checksum} ) ) {
@@ -481,7 +481,7 @@ sub new_instrument {
           $msbtitles{$obs->checksum} = $title;
         }
 
-        $currentmsb = $obs->checksum;
+        $currentmsb = $obs->msbtid;
 
         my $index = $counter;
         my $otag = "o" . $index;
