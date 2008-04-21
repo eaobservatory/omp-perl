@@ -50,7 +50,7 @@ require Exporter;
 
 our @ISA = qw/Exporter/;
 our @EXPORT = qw( file_comment file_comment_output projlog_content
-		  list_observations list_observations_txt );
+                  list_observations list_observations_txt );
 
 our %EXPORT_TAGS = (
                     'all' => [ @EXPORT ]
@@ -349,9 +349,9 @@ sub projlog_content {
   # Display MSBs observed on this date
 
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-					       date => $utdate,
-					       returnall => 0,
-					       format => 'data',});
+                                               date => $utdate,
+                                               returnall => 0,
+                                               format => 'data',});
   print $q->h2("MSB history for $utdate");
 
   my $sp = OMP::CGIDBHelper::safeFetchSciProg( $projectid, $cookie{password} );
@@ -363,8 +363,8 @@ sub projlog_content {
     $OMP::ArchiveDB::FallbackToFiles = 1;
 
     my $grp = new OMP::Info::ObsGroup(projectid => $projectid,
-				      date => $utdate,
-				      inccal => 1,);
+                                      date => $utdate,
+                                      inccal => 1,);
 
     if ($grp->numobs > 1) {
       print "<h2>Observation log</h2>";
