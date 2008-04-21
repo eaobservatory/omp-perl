@@ -950,7 +950,6 @@ value is false only the comments for the night are returned.
 
 The output format matches that returned by C<historyMSB>.
 
-(I<NOT YET IMPLEMENTED.>)
 Similarly for C<transactions>, all the comments related to a
 transaction id will be returned if true.
 
@@ -1109,7 +1108,6 @@ associated with the matching MSBs are returned (regardless of when
 they were added) or only those added for the specific query. If the
 value is false only the comments for the query are returned.
 
-(I<NOT YET IMPLEMENTED.>)
 Similarly for C<transactions>, all the comments related to a
 transaction id will be returned if true.
 

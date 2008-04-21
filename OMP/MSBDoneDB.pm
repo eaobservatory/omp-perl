@@ -289,7 +289,6 @@ associated with the observed MSBs are returned (regardless of when
 they were added) or only those added for the specified night. If the
 value is false only the comments for the night are returned.
 
-(I<NOT YET IMPLEMENTED.>)
 Similarly for C<transactions>, all the comments related to a
 transaction id will be returned if true.
 
@@ -504,7 +503,6 @@ associated with the observed MSBs are returned (regardless of when
 they were added) or only those matching the specific query. If the
 value is false only the comments matched by the query are returned.
 
-I<NOT YET IMPLEMENTED.>
 Similarly for C<transactions>, all the comments related to a
 transaction id will be returned if true.
 
@@ -540,9 +538,9 @@ sub queryMSBdone {
     }
   }
 
-  # XXX : not done yet.
   if ( $more->{'transactions'} ) {
-    throw OMP::Error( 'Comment fetching by transaction id is to be implemented' );
+
+    $msbs = $self->_get_comments_for_tid( $msbs );
   }
 
   # Create an array from the hash. Sort by projectid
@@ -630,6 +628,38 @@ sub _fetch_msb_done_info {
     my $hashref = (defined $ref->[0] ? $ref->[0] : {});
     return $hashref;
   }
+}
+
+=item B<_get_comments_for_tid>
+
+Given a hash reference of C<OMP::Info::MSB> objects, returns the updated hash
+reference which has comments for all the transaction ids originally present.
+
+  $msbs = $self->_get_comments_for_tid( $msbs );
+
+=cut
+
+sub _get_comments_for_tid {
+
+  my ( $self, $msbs ) = @_;
+
+  my %seen;
+  for my $tid ( map { $msbs->{ $_ }->msbtid } keys %{ $msbs } )
+  {
+    my $new = $self->historyMSBtid( $tid );
+    my $sum = $new->checksum;
+
+    unless ( $seen{ $sum }++ ) {
+
+      $msbs->{ $sum } = $new;
+    }
+    else {
+
+      $msbs->{ $sum }->addComment( $_ ) for $new->comments;
+    }
+  }
+
+  return $msbs;
 }
 
 =item B<_add_msb_done_info>
