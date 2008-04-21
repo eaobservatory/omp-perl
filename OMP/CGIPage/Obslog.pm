@@ -350,7 +350,8 @@ sub projlog_content {
 
   my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
                                                date => $utdate,
-                                               returnall => 0,
+                                               comments => 0,
+                                               transactions => 1,
                                                format => 'data',});
   print $q->h2("MSB history for $utdate");
 
