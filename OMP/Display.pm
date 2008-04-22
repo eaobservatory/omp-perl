@@ -109,7 +109,7 @@ sub userhtml {
   if (defined $emailstatus) {
 
     my @mail = $emailstatus ? ( 'mail.gif',  'receives email' )
-                : ( 'normal.gif',  'ignores email' ) ;
+                : ( 'nomail.gif',  'ignores email' ) ;
 
    $html .=
     sprintf
