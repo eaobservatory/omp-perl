@@ -51,16 +51,16 @@ my $pubdest = "/WWW/omp";
 my @srcdirs = qw/ cgi server web /;
 
 my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
-		   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
-		   fbworfthumb.pl feedback.pl filefault.pl index.html issuepwd.pl
-		   listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
-		   ompusers.pl
-		   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
-		   spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
-		   updatefault.pl updateresp.pl update_user.pl userdetails.pl
-		   utprojlog.pl
-		   viewfault.pl worf.pl worf_file.pl worf_fits.pl worf_graphic.pl
-		   Worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
+                   fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
+                   fbworfthumb.pl feedback.pl filefault.pl index.html issuepwd.pl
+                   listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
+                   ompusers.pl
+                   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
+                   spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
+                   updatefault.pl updateresp.pl update_user.pl userdetails.pl
+                   utprojlog.pl
+                   viewfault.pl worf.pl worf_file.pl worf_fits.pl worf_graphic.pl
+                   Worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
 my @sharedfiles = qw/ omp-cgi-init.pl omp.css omp.js LookAndFeelConfig /;
@@ -93,7 +93,7 @@ for my $subdir (@srcdirs) {
       $dest = File::Spec->catfile(@$path, $file);
       print "Copying $srcfile to $dest\n";
       copy($srcfile, $dest) or
-	warn "Error copying file $srcfile to $dest: $!";
+        warn "Error copying file $srcfile to $dest: $!";
     }
   }
 }
