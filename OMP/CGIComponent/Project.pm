@@ -21,6 +21,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
+use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
@@ -153,7 +154,8 @@ sub proj_status_table {
   my $projectid = $cookie{projectid};
 
   # Link to the science case
-  my $case_href = "<a href='props.pl?urlprojid=$projectid'>Science Case</a>";
+  my $pub = public_url();
+  my $case_href = qq[<a href="$pub/props.pl?urlprojid=$projectid">Science Case</a>];
 
   # Get the CoI email(s)
   my $coiemail = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid) } $project->coi);
