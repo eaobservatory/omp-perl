@@ -54,14 +54,14 @@ License:
 }
 
 .sum_table_head {
-  background-image: url(bg_slate.gif);
+  background-image: url(/images/bg_slate.gif);
   background-position: right;
   background-repeat: repeat-y;
   background-color: #ffffff;
 }
 
 .fault_sum_table_head {
-  background-image: url(bg_red.gif);
+  background-image: url(/images/bg_red.gif);
   background-position: left;
   background-repeat: repeat-y;
   background-color: #ffffff;
