@@ -119,19 +119,19 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$baseurl/viewfault.pl?id=$1'>$1</a>!g;
 
       if ($_->isfault) {
-	 push(@faulttext, "$category fault filed by $author on $date<br><br>");
+         push(@faulttext, "$category fault filed by $author on $date<br><br>");
 
-	 # The meta data should appear right after the initial filing unless
-	 # we are bottom posting in which case it appears right before
-	 if (!$bottompost) {
-	   push(@faulttext, "<br>$text<br>================================================================================<br>$meta");
-	 } else {
-	   push(@faulttext, "$meta================================================================================<br>$text<br>--------------------------------------------------------------------------------<br>");
-	 }
+         # The meta data should appear right after the initial filing unless
+         # we are bottom posting in which case it appears right before
+         if (!$bottompost) {
+           push(@faulttext, "<br>$text<br>================================================================================<br>$meta");
+         } else {
+           push(@faulttext, "$meta================================================================================<br>$text<br>--------------------------------------------------------------------------------<br>");
+         }
 
        } else {
-	 push(@faulttext, "Response filed by $author on $date<br><br>$text<br>");
-	 push(@faulttext, "--------------------------------------------------------------------------------<br>");
+         push(@faulttext, "Response filed by $author on $date<br><br>$text<br>");
+         push(@faulttext, "--------------------------------------------------------------------------------<br>");
        }
     }
 
@@ -165,8 +165,8 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 
   # Set link to response page
   my $url = ($category eq "BUG" ?
-	     "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
-	     "$baseurl/viewfault.pl?id=$faultid");
+             "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
+             "$baseurl/viewfault.pl?id=$faultid");
 
   my $responselink = "<a href='$url'>here</a>";
 
@@ -306,10 +306,10 @@ sub compare {
       $keyb = join(",",@{$objb->projects});
     } elsif ($_ =~ /faultdate/) {
       if ($obja->faultdate) {
-	$keya = $obja->faultdate->epoch;
+        $keya = $obja->faultdate->epoch;
       }
       if ($objb->faultdate) {
-	$keyb = $objb->faultdate->epoch;
+        $keyb = $objb->faultdate->epoch;
       }
     } else {
       $keya = $obja->$_;
@@ -378,8 +378,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
