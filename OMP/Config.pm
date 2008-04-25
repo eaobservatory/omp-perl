@@ -817,7 +817,7 @@ sub _format_output {
   return $input;
 }
 
-=item B<_read_key>
+=item B<_traverse_cfg>
 
 Internal routine to parse the supplied key and return the corresponding
 data value from the internal hash.
