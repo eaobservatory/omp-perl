@@ -90,19 +90,12 @@ sub userhtml {
     $emailstatus = undef;
   }
 
-  my $private = OMP::Config->getData('omp-private');
   my $public = OMP::Config->getData('omp-url');
   my $cgidir = OMP::Config->getData('cgidir');
   my $iconsdir = OMP::Config->getData('iconsdir');
 
   # Link to private pages if we are currently on a private page
-  my $url;
-  if ($cgi->url(-base=>1) =~ /^$private/) {
-    $url = $private . $cgidir . "/userdetails.pl?user=" . $user->userid;
-  } else {
-    $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
-  }
-
+  my $url = $public . $cgidir . "/userdetails.pl?user=" . $user->userid;
   my $html = qq(<a href="$url">$user</a>);
 
   # Append email status icon
