@@ -164,11 +164,9 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   }
 
   # Set link to response page
-  my $url = ($category eq "BUG" ?
-             "http://omp-dev.jach.hawaii.edu/cgi-bin/viewreport.pl?id=$faultid" :
-             "$baseurl/viewfault.pl?id=$faultid");
+  my $url = "$baseurl/viewfault.pl?id=$faultid";
 
-  my $responselink = "<a href='$url'>here</a>";
+  my $responselink = qq[<a href="$url">here</a>];
 
   # Add the response link to the bottom of our message
   push(@faulttext, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
