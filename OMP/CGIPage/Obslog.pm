@@ -198,9 +198,9 @@ sub list_observations {
       print "Error: $errortext<br>\n";
     };
   } else {
-      print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
-      print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
-      print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
+      print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_table_head"><td>],
+        qq[<strong class="small_title">Observation Log</strong></td></tr>\n],
+        qq[<tr class="sum_other"><td>No observations available</td></tr></table>\n];
   }
 
   print_obslog_footer( $q );

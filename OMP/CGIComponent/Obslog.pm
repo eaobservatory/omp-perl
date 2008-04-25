@@ -543,10 +543,10 @@ sub obs_summary {
 
   my @comments = $obs->comments;
 
-  print "<table width=\"600\" border=\"0\" class=\"sum_table\">\n";
-  print "<tr class=\"sum_table_head\"><td><strong class=\"small_title\">";
-  print "Comment for ";
-  print $obs->instrument;
+  print qq[<table width="600" border="0" class="sum_table">\n],
+    '<tr class="sum_table_head"><td><strong class="small_title">',
+    "Comment for ",
+    $obs->instrument;
 
   if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
     print " timegap between observations ";
@@ -561,14 +561,14 @@ sub obs_summary {
   print "</strong></td></tr></table>\n";
 
   if( defined( $comments[0] ) ) {
-    print "<table border=\"0\" class=\"sum_table\" width=\"600\">";
+    print '<table border="0" class="sum_table" width="600">';
 
     my $rowclass = 'row_a';
     foreach my $comment (@comments) {
-      print "<tr class=\"$rowclass\"><td>";
-      my $string = "<font color=\"";
+      print '<tr class="$rowclass"><td>';
+      my $string = '<font color="';
       $string .= ( defined( $colour{$comment->status} ) ) ? $colour{$comment->status} : "BLACK";
-      $string .= "\"><strong>" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
+      $string .= '"><strong>' . $comment->date->cdate . " UT / " . $comment->author->name . ":";
       $string .= "</strong> " . $comment->text;
       $string .= "</font>";
       $string =~ s/\n/\<br\>/g;
@@ -753,7 +753,7 @@ sub obs_comment_form {
   }
 
   print $q->startform;
-  print "<table border=\"0\" width=\"100%\"><tr><td width=\"20%\">";
+  print '<table border="0" width="100%"><tr><td width="20%">';
   print "Author: </td><td>";
 
   print $q->textfield( -name => 'user',
@@ -784,7 +784,7 @@ sub obs_comment_form {
   }
 
   print "</td></tr>\n";
-  print "<tr><td colspan=\"2\">";
+  print '<tr><td colspan="2">';
 
   print $q->textarea( -name => 'text',
                       -rows => 20,
@@ -814,7 +814,7 @@ sub obs_comment_form {
                     -value => 1,
                   );
 
-  print "</td></tr>\n<tr><td colspan=\"2\">";
+  print '</td></tr>\n<tr><td colspan="2">';
 
   print $q->submit( -name => 'Submit Comment' );
 
