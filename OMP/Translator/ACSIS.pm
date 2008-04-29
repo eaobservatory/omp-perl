@@ -1660,13 +1660,6 @@ sub acsisdr_recipe {
 
     $root = $obsmode;
 
-    # if we are continuous spin pol we need to modify how we are dealing with offs
-    if ($self->is_pol_spin(%info)) {
-      if ($info{separateOffs}) {
-        $root .= "_pol_index";
-      } else {
-        $root .= "_no_coadding";
-      }
     }
   } else {
     # keyed on observation type
