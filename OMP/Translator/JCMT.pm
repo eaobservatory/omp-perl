@@ -954,6 +954,9 @@ sub rts_config {
     # Need observing mode
     my $obsmode = $info{observing_mode};
 
+    # POL-ness is not relevant
+    $obsmode =~ s/_pol//;
+
     # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
     # is actually a jiggle_chop
     $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
@@ -996,7 +999,7 @@ sub pol_config {
 
   # we currently only support grid/pssw observations
   throw OMP::Error::FatalError("Can only use ROVER in grid/pssw mode not '$info{observing_mode}'\n")
-    unless $info{observing_mode} eq 'grid_pssw';
+    unless $info{observing_mode} =~ /^grid_pssw/;
 
   # create a blank object
   my $pol = JAC::OCS::Config::POL->new();

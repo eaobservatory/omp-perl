@@ -730,7 +730,8 @@ sub jos_config {
                 jiggle_chop => 'jiggle_chop',
                 jiggle_pssw => 'grid_pssw',
                 grid_chop   => 'jiggle_chop',
-                grid_pssw   => ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
+                grid_pssw_pol=> ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
+                grid_pssw   => 'grid_pssw',
                 scan_pssw => 'raster_pssw',
                );
   if (exists $JOSREC{$info{obs_type}}) {
@@ -1635,6 +1636,10 @@ sub acsisdr_recipe {
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
+
+    # POL mode does not have a special recipe
+    $obsmode =~ s/_pol$//;
+
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
 
@@ -2105,6 +2110,10 @@ sub rtd_config {
   if ($info{obs_type} eq 'science') {
     # keyed on observing mode
     my $obsmode = $info{observing_mode};
+
+    # POL is irrelevant
+    $obsmode =~ s/_pol$//;
+
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
     $root = $obsmode;
