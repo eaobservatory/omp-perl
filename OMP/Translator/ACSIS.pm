@@ -1660,7 +1660,6 @@ sub acsisdr_recipe {
 
     $root = $obsmode;
 
-    }
   } else {
     # keyed on observation type
     $root = $info{obs_type};
