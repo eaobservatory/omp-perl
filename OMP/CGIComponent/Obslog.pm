@@ -22,6 +22,7 @@ use Carp;
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;
 
+use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
 use OMP::General;
@@ -1140,9 +1141,9 @@ sub print_obslog_header {
   print $q->submit( -name => 'Submit New UT' );
   print $q->endform;
 
-  print "<a href=\"obslog_text.pl?ut=" . ( defined( $qv->{'ut'} ) ?
-                                           $qv->{'ut'} :
-                                           $currentut );
+  print '<a href="' .  public_url() . '/obslog_text.pl?ut="'
+        . ( defined( $qv->{'ut'} ) ?  $qv->{'ut'} : $currentut );
+
   if( defined( $qv->{'inst'} ) ) {
     print "&inst=" . $qv->{'inst'};
   }
