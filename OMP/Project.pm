@@ -74,35 +74,35 @@ sub new {
   my $class = ref($proto) || $proto;
 
   my $proj = bless {
-		    Semester => undef,
-		    Allocated => Time::Seconds->new(0),
-		    Title => '',
-		    Telescope => undef,
-		    Encrypted => undef,
-		    Password => undef,
-		    ProjectID => undef,
+                    Semester => undef,
+                    Allocated => Time::Seconds->new(0),
+                    Title => '',
+                    Telescope => undef,
+                    Encrypted => undef,
+                    Password => undef,
+                    ProjectID => undef,
 
-		    # weather constrints
-		    TauRange => undef,
-		    SeeingRange => undef,
-		    CloudRange => undef,
-		    SkyRange => undef,
+                    # weather constrints
+                    TauRange => undef,
+                    SeeingRange => undef,
+                    CloudRange => undef,
+                    SkyRange => undef,
 
-		    # Country and tag priority now
-		    # can have more than one value
-		    PrimaryQueue => undef,
-		    Queue => {},
-		    TAGAdjustment => {},
+                    # Country and tag priority now
+                    # can have more than one value
+                    PrimaryQueue => undef,
+                    Queue => {},
+                    TAGAdjustment => {},
 
-		    PI => undef,
-		    CoI => [],
+                    PI => undef,
+                    CoI => [],
 
-		    Remaining => undef, # so that it defaults to allocated
-		    Pending => Time::Seconds->new(0),
-		    Support => [],
-		    State => 1,
-		    Contactable => {},
-		   }, $class;
+                    Remaining => undef, # so that it defaults to allocated
+                    Pending => Time::Seconds->new(0),
+                    Support => [],
+                    State => 1,
+                    Contactable => {},
+                   }, $class;
 
   # Deal with arguments
   if (@_) {
@@ -113,7 +113,7 @@ sub new {
     for my $key (keys %args) {
       my $method = lc($key);
       if ($proj->can($method)) {
-	$proj->$method( $args{$key} );
+        $proj->$method( $args{$key} );
       }
     }
 
@@ -137,7 +137,7 @@ disabled you will not be able to do queries on it by default.
 
 sub state {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $state = shift;
     # force binary
     $state = ($state ? 1 : 0 );
@@ -165,7 +165,7 @@ internals of the module may be much more complicated.
 
 sub allocated {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     # if we have a Time::Seoncds object just store it. Else create one.
     my $time = shift;
     $time = new Time::Seconds( $time )
@@ -346,7 +346,7 @@ the C<contactable> method if the CoI information is updated.
 
 sub coi {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my @names;
     if (ref($_[0]) eq 'ARRAY') {
       @names = @{ $_[0] };
@@ -360,18 +360,18 @@ sub coi {
     my @users;
     for my $name (@names) {
       if (UNIVERSAL::isa($name, "OMP::User")) {
-	push(@users, $name);
+        push(@users, $name);
       } else {
-	# Split on delimiter
-	my @split = split /$DELIM/, $name;
+        # Split on delimiter
+        my @split = split /$DELIM/, $name;
 
-	# Convert them to OMP::User objects
-	push(@users, map { new OMP::User( userid => $_ ) } @split);
+        # Convert them to OMP::User objects
+        push(@users, map { new OMP::User( userid => $_ ) } @split);
       }
     }
 
     # And store the result
-    $self->{CoI} = \@users; 
+    $self->{CoI} = \@users;
   }
 
   # Return either the array of name objects or a delimited string
@@ -480,8 +480,8 @@ sub country {
   } else {
     # Return the primary country
     my $country = $self->primaryqueue;
-    return (defined $country ? $country : 
-	    join( "/", sort keys %{ $self->queue } ) );
+    return (defined $country ? $country :
+            join( "/", sort keys %{ $self->queue } ) );
   }
 }
 
@@ -540,13 +540,13 @@ sub password {
       # Time to encrypt
       # Generate the salt from a random set
       # See the crypt entry in perlfunc
-      my $salt = join '', 
-	('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
+      my $salt = join '',
+        ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
 
       # Encrypt and store it
       # Note that we store the plain password after this
       # step to prevent the encrypted() method clearing it
-      # and ruining everything [the easy approach is simply 
+      # and ruining everything [the easy approach is simply
       # to not use the accessor method]
       $self->encrypted( crypt( $plain, $salt) );
 
@@ -628,10 +628,10 @@ is not the case the C<contactable> method must be called explicitly.
 
 sub pi {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $pi = shift;
     throw OMP::Error::BadArgs("PI must be of type OMP::User but got '".
-			     (defined $pi ? $pi : "<undef>"). "'")
+                             (defined $pi ? $pi : "<undef>"). "'")
       unless UNIVERSAL::isa($pi, "OMP::User");
     $self->{PI} = $pi;
 
@@ -702,7 +702,7 @@ is not the case the C<contactable> method must be called explicitly.
 
 sub support {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my @names;
     if (ref($_[0]) eq 'ARRAY') {
       @names = @{ $_[0] };
@@ -716,13 +716,13 @@ sub support {
     my @users;
     for my $name (@names) {
       if (UNIVERSAL::isa($name, "OMP::User")) {
-	push(@users, $name);
+        push(@users, $name);
       } else {
-	# Split on delimiter
-	my @split = split /$DELIM/, $name;
+        # Split on delimiter
+        my @split = split /$DELIM/, $name;
 
-	# Convert them to OMP::User objects
-	push(@users, map { new OMP::User( userid => $_ ) } @split);
+        # Convert them to OMP::User objects
+        push(@users, map { new OMP::User( userid => $_ ) } @split);
       }
     }
 
@@ -732,7 +732,7 @@ sub support {
     }
 
     # And store the result
-    $self->{Support} = \@users; 
+    $self->{Support} = \@users;
   }
 
   # Return either the array of name objects or a delimited string
@@ -792,7 +792,7 @@ Returns a C<Time::Seconds> object.
 
 sub remaining {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     # if we have a Time::Seoncds object just store it. Else create one.
     my $time = shift;
     $time = new Time::Seconds( $time )
@@ -932,37 +932,37 @@ time.
 sub tagpriority {
   my $self = shift;
   my $delim = ","; # for scalar context
-  if (@_) { 
+  if (@_) {
     if (scalar @_ == 1 && ref($_[0]) ne 'HASH') {
       # if we have a number, it is being set
       if ($_[0] =~ /\d/) {
-	# set every priority
-	my @c = $self->country;
-	if (@c) {
-	  for my $c (@c) {
-	    $self->queue( $c => ($_[0] + $self->tagadjustment($c)));
-	  }
-	} else {
-	  # Store it for later [uncorrected for Adj]
-	  $self->{$TAGPRI_KEY} = $_[0];
-	}
+        # set every priority
+        my @c = $self->country;
+        if (@c) {
+          for my $c (@c) {
+            $self->queue( $c => ($_[0] + $self->tagadjustment($c)));
+          }
+        } else {
+          # Store it for later [uncorrected for Adj]
+          $self->{$TAGPRI_KEY} = $_[0];
+        }
       } else {
-	# A country has been requested or more than one
-	my @c = ( ref($_[0]) ? @{$_[0]} : @_);
-	my %queue = $self->queue;
-	my @pris = map { $queue{uc($_)} - $self->tagadjustment($_) } @c;
-	return (wantarray ? @pris : join($delim,@pris));
+        # A country has been requested or more than one
+        my @c = ( ref($_[0]) ? @{$_[0]} : @_);
+        my %queue = $self->queue;
+        my @pris = map { $queue{uc($_)} - $self->tagadjustment($_) } @c;
+        return (wantarray ? @pris : join($delim,@pris));
       }
     } else {
       # More than one argument, assume hash
       my %queue = $self->queue;
       my %args = (ref($_[0]) eq 'HASH' ? %{$_[0]} : @_);
       for my $c (keys %args) {
-	my $uc = uc($c);
-	# check that the country is supported
-	croak "Country $c not recognized"
-	  unless exists $queue{$uc};
-	$self->queue( $c => ($args{$c} + $self->tagadjustment($c)));
+        my $uc = uc($c);
+        # check that the country is supported
+        croak "Country $c not recognized"
+          unless exists $queue{$uc};
+        $self->queue( $c => ($args{$c} + $self->tagadjustment($c)));
       }
     }
   }
@@ -1077,8 +1077,8 @@ sub contactable {
       # key/value pairs
       my %args = @_;
       for my $u (keys %args) {
-	# make sure we are case-insensitive
-	$self->{Contactable}->{uc($u)} = $args{$u};
+        # make sure we are case-insensitive
+        $self->{Contactable}->{uc($u)} = $args{$u};
       }
     }
   }
@@ -1133,15 +1133,15 @@ sub queue {
     if (@_ == 1 && not ref( $_[0] )) {
       my $arg = uc(shift);
       if (exists $self->{Queue}->{$arg}) {
-	return $self->{Queue}->{$arg};
+        return $self->{Queue}->{$arg};
       } else {
-	return undef;
+        return undef;
       }
     } else {
       # either a hash ref as first arg or a list
       my %args = ( ref($_[0]) ? %{$_[0]} : @_);
       for my $c (keys %args) {
-	$self->{Queue}->{uc($c)} = $args{$c};
+        $self->{Queue}->{uc($c)} = $args{$c};
       }
     }
   }
@@ -1188,16 +1188,16 @@ sub tagadjustment {
     if (@_ == 1 && not ref( $_[0] )) {
       my $arg = uc(shift);
       if (exists $self->{TAGAdjustment}->{$arg}) {
-	return $self->{TAGAdjustment}->{$arg};
+        return $self->{TAGAdjustment}->{$arg};
       } else {
-	return 0;
+        return 0;
       }
     } else {
       # either a hash ref as first arg or a list
       my %args = ( ref($_[0]) ? %{$_[0]} : @_);
       for my $c (keys %args) {
-	$args{$c} = 0 if ( !defined $args{$c} || ref($args{$c}));
-	$self->{TAGAdjustment}->{uc($c)} = $args{$c};
+        $args{$c} = 0 if ( !defined $args{$c} || ref($args{$c}));
+        $self->{TAGAdjustment}->{uc($c)} = $args{$c};
       }
     }
   }
@@ -1437,8 +1437,8 @@ sub summary {
   # retrieve the information from the object
   my %summary;
   for my $key (qw/allocated coi coiemail country encrypted password pending
-	       pi piemail projectid remaining semester tagpriority
-	       support supportemail /) {
+               pi piemail projectid remaining semester tagpriority
+               support supportemail /) {
     $summary{$key} = $self->$key;
   }
 
@@ -1455,9 +1455,9 @@ sub summary {
       next if $key eq 'projectid';
       my $value = $summary{$key};
       if (defined $value and length($value) > 0) {
-	$xml .= "<$key>$value</$key>";
+        $xml .= "<$key>$value</$key>";
       } else {
-	$xml .= "<$key/>";
+        $xml .= "<$key/>";
       }
       $xml .= "\n";
     }
@@ -1552,7 +1552,7 @@ sub semester_ori {
   my $sem;
 
   if ($string =~ m!^u/(\d{2}[ab])/[jhd]?\d+.*$!i       # UKIRT
-	or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/i  # JCMT
+        or $string =~ /^[ms](\d{2}[ab])[a-z]+\d+.*$/i  # JCMT
      ) {
     $sem = $1;
   }
