@@ -112,20 +112,20 @@ for my $proj (keys %alloc) {
     if ($mod eq 'support') {
       my @support = split(/,/,$alloc{$proj}->{$mod});
       for my $s (@support) {
-	die "Unable to locate user $s in database [mode = $mod]\n"
-	  unless OMP::UserServer->verifyUser( $s );
-	$s = OMP::UserServer->getUser( $s );
+        die "Unable to locate user $s in database [mode = $mod]\n"
+          unless OMP::UserServer->verifyUser( $s );
+        $s = OMP::UserServer->getUser( $s );
       }
       my @old = $project->support;
       print "Changing $mod from ".join(" and ", @old) . " to ".
-	join( " and ", @support)."\n";
+        join( " and ", @support)."\n";
       $project->support(@support);
 
     } elsif ($mod eq 'pi') {
       # Need to generate an OMP::User object
       my $pi = $alloc{$proj}->{$mod};
       die "Unable to locate user $pi in database [mode = $mod]\n"
-	  unless OMP::UserServer->verifyUser( $pi );
+          unless OMP::UserServer->verifyUser( $pi );
       $pi = OMP::UserServer->getUser( $pi );
       print "Changing $mod from ". $project->$mod . " to $pi\n";
       $project->$mod( $pi );
@@ -170,7 +170,7 @@ for my $proj (keys %alloc) {
       my @bands = split( /,/, $alloc{$proj}->{band});
       my $taurange = OMP::SiteQuality::get_tauband_range($project->telescope, @bands);
       die "Error determining tau range from band ".$alloc{proj}->{band}." !"
-	unless defined $taurange;
+        unless defined $taurange;
       print "Chaning tau range from ". $project->taurange ." to $taurange\n";
       $project->taurange( $taurange );
 
