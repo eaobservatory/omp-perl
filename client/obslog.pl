@@ -1597,7 +1597,7 @@ sub create_shiftlog_widget {
   &BindMouseWheel( $shiftcommentText );
 
   $shiftcommentText->configure( -state => 'disable' );
-
+  $shiftcommentText->see("end");
 }
 
 sub update_shiftlog_comments {
@@ -1716,7 +1716,6 @@ sub populate_shiftlog_widget {
                                               -background => $bgcolour,
                                               -foreground => $CONTENTCOLOUR[0],
                                               qw/ -relief flat /); } );
-
     }
 
     # Increment the counter.
@@ -1724,6 +1723,7 @@ sub populate_shiftlog_widget {
   }
 
   $shiftcommentText->configure( -state => 'disable' );
+  $shiftcommentText->see("end");
 
 }
 
