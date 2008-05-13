@@ -348,17 +348,6 @@ sub getInstAper {
   return ( defined $ap ? $ap : "" );
 }
 
-=item B<getTrkRecep>
-
-Backwards compatibility version of getInstAper. Will be removed.
-
-=cut
-
-sub getTrkRecep {
-  my $self = shift;
-  return $self->getInstAper( @_ );
-}
-
 =item B<getOCSCFG>
 
 This gets written automatically by the OCS Config classes. This is a dummy configuration
