@@ -750,6 +750,25 @@ sub observing_area {
 
     # store them in the observing area
     $oa->offsets( @out );
+
+    # Sort out microsteps
+    if (defined $info{ms_pattern}) {
+      # get the coordinates from the config file
+      my @msx = OMP::Config->getData( $self->cfgkey.".ms_".$info{ms_pattern}."_x");
+      my @msy = OMP::Config->getData( $self->cfgkey.".ms_".$info{ms_pattern}."_y");
+
+      OMP::Error::FatalError->throw("Number of coordinates in X differs from Y (".@msx.
+                                    "!=".@msy.")") if @msx != @msy;
+
+      # convert to offset objects
+      my @ms;
+      for my $i (0..$#msx) {
+        push(@ms, Astro::Coords::Offset->new( $msx[$i], $msy[$i],
+                                              system => "FPLANE" ));
+      }
+      $oa->microsteps( @ms );
+    }
+
   }
 
   # need to decide on public vs private

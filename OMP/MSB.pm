@@ -3981,8 +3981,18 @@ sub SpIterFolder {
       # SpIterRepeat
       my $repeat = $child->firstChild->toString;
       $summary{$parent}{ATTR} = [ map { { repeat => undef } } 1..$repeat ];
+    } elsif ($name eq 'pattern' && $parent eq 'SpIterMicroStep') {
+      # do not parse offsets in MicroStep. Let the translator define them
+      my $pattern = $self->_get_pcdata($el, "pattern");
+      if (defined $pattern) {
+        # treat "NONE" as special
+        $pattern = undef if $pattern eq 'NONE';
+        $summary{$parent}{ATTR} = [ { ms_pattern => $pattern } ];
+      } else {
+        throw OMP::Error::SpBadStructure("pattern element in SpIterMicroStep was empty!");
+      }
 
-    } elsif ($name eq 'obsArea') {
+    } elsif ($name eq 'obsArea' && $parent eq 'SpIterOffset') {
       # SpIterOffset
       # This code is very like the SECONDARY chop code
       my $pa = $self->_get_pcdata( $child, 'PA');
