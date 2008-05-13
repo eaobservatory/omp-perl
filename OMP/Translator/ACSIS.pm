@@ -643,12 +643,16 @@ sub rotator_config {
   return if (defined $inst->focal_station && 
              $inst->focal_station !~ /NASMYTH/);
 
-  # if we are a sky dip observation then we do not care about the rotator even for HARP
-  return if $info{obs_type} eq 'skydip';
-
   # get the tcs
   my $tcs = $cfg->tcs();
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+  # if we are a sky dip observation then we need a rotator config but it should say 
+  # motion=none
+  if ($info{obs_type} eq 'skydip') {
+    $tcs->rotator( SYSTEM => "FIXED", MOTION => "NONE", PA => [Astro::Coords::Angle->new( 0, units=>'radians' )] );
+    return;
+  }
 
   # Need to find out the coordinate frame of the map
   # This will either be AZEL or TRACKING - choose the result from any cube
