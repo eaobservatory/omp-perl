@@ -39,6 +39,8 @@ use OMP::Error;
 use OMP::General;
 use OMP::Range;
 
+use OMP::Translator::ACSISHeaders;
+
 use base qw/ OMP::Translator::JCMT /;
 
 # Real debugging messages. Do not confuse with debug() method
@@ -97,6 +99,16 @@ Returns the config system name for this translator: acsis_translator
 
 sub cfgkey {
   return "acsis_translator";
+}
+
+=item B<hdrpkg>
+
+Name of the class implementing DERIVED header configuration.
+
+=cut
+
+sub hdrpkg {
+  return "OMP::Translator::ACSISHeaders";
 }
 
 =item B<fixup_historical_problems>

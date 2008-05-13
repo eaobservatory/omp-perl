@@ -30,6 +30,8 @@ use JAC::OCS::Config::Error qw/ :try /;
 use OMP::Config;
 use OMP::Error;
 
+use OMP::Translator::SCUBA2Headers;
+
 use base qw/ OMP::Translator::JCMT /;
 
 =head1 METHODS
@@ -63,6 +65,16 @@ Returns the config system name for this translator: scuba2_translator
 
 sub cfgkey {
   return "scuba2_translator";
+}
+
+=item B<hdrpkg>
+
+Name of the class implementing DERIVED header configuration.
+
+=cut
+
+sub hdrpkg {
+  return "OMP::Translator::SCUBA2Headers";
 }
 
 =item B<handle_special_modes>
@@ -268,7 +280,6 @@ sub determine_map_and_switch_mode {
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
-    print "SDIP _MODE = $sdip_mode\n";
     if ($sdip_mode =~ /^cont/) {
       $mapping_mode = 'scan';
     } elsif ($sdip_mode =~ /^dis/) {
