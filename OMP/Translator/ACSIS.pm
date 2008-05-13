@@ -647,10 +647,10 @@ sub rotator_config {
   my $tcs = $cfg->tcs();
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
 
-  # if we are a sky dip observation then we need a rotator config but it should say 
-  # motion=none
+  # if we are a sky dip observation then we need a rotator config but it should simply say "FIXED" system.
+  # The TCS will then know not to bother asking it to move.
   if ($info{obs_type} eq 'skydip') {
-    $tcs->rotator( SYSTEM => "FIXED", MOTION => "NONE", PA => [Astro::Coords::Angle->new( 0, units=>'radians' )] );
+    $tcs->rotator( SYSTEM => "FIXED");
     return;
   }
 
