@@ -89,6 +89,26 @@ sub default_project {
   croak "Must subclass default project";
 }
 
+=item B<islocal>
+
+Returns true if the supplied arguments from the C<caller> function indicate
+that the callers method is being invoked from within the header configuratio
+package. Used to prevent warning messages being issued when a configuration
+method calls another configurtion method.
+
+  $isl = $class->islocal( caller );
+
+=cut
+
+sub islocal {
+  my $class = shift;
+  my $callpkg = shift;
+  if (UNIVERSAL::isa($callpkg, __PACKAGE__)) {
+    return 1;
+  }
+  return 0;
+}
+
 =back
 
 =head1 TRANSLATION METHODS
@@ -111,7 +131,10 @@ sub getProject {
     my $sem = OMP::General->determine_semester( tel => 'JCMT' );
     my $pid = "M$sem" . $class->default_project();
     if ($class->VERBOSE) {
-      print {$class->HANDLES} "!!! No Project ID assigned. Inserting E&C code: $pid !!!\n";
+      # only warn if we are called from outside this package
+      if (!$class->islocal(caller)) {
+        print {$class->HANDLES} "!!! No Project ID assigned. Inserting E&C code: $pid !!!\n";
+      }
     }
     return $pid;
   }
@@ -119,12 +142,20 @@ sub getProject {
   return undef;
 }
 
+=item B<getMSBID>
+
+=cut
+
 sub getMSBID {
   my $class = shift;
   my $cfg = shift;
   my %info = @_;
   return $info{MSBID};
 }
+
+=item B<getRemoteAgent>
+
+=cut
 
 sub getRemoteAgent {
   my $class = shift;
@@ -138,6 +169,10 @@ sub getRemoteAgent {
   return "";
 }
 
+=item B<getAgentID>
+
+=cut
+
 sub getAgentID {
   my $class = shift;
   my $cfg = shift;
@@ -149,6 +184,10 @@ sub getAgentID {
   }
   return "";
 }
+
+=item B<getScanPattern>
+
+=cut
 
 sub getScanPattern {
   my $class = shift;
@@ -165,6 +204,10 @@ sub getScanPattern {
   return (defined $name ? $name : "" );
 }
 
+=item B<getStandard>
+
+=cut
+
 sub getStandard {
   my $class = shift;
   my $cfg = shift;
@@ -173,6 +216,12 @@ sub getStandard {
 }
 
 # For continuum we need the continuum recipe
+
+=item B<getDRRecipe>
+
+For continuum we need the continuum recipe.
+
+=cut
 
 sub getDRRecipe {
   my $class = shift;
@@ -232,6 +281,10 @@ sub getDRRecipe {
   return $recipe;
 }
 
+=item B<getDRGroup>
+
+=cut
+
 sub getDRGroup {
   my $class = shift;
   my $cfg = shift;
@@ -242,8 +295,12 @@ sub getDRGroup {
   return '';
 }
 
-# Need to get survey information from the TOML
-# Derive it from the project ID
+=item B<getSurveyName>
+
+Need to get survey information from the TOML.
+Derive it from the project ID
+
+=cut
 
 sub getSurveyName {
   my $class = shift;
@@ -274,9 +331,17 @@ sub getSurveyName {
   return '';
 }
 
+=item B<getSurveyID>
+
+=cut
+
 sub getSurveyID {
   return '';
 }
+
+=item B<getNumIntegrations>
+
+=cut
 
 sub getNumIntegrations {
   my $class = shift;
@@ -284,6 +349,10 @@ sub getNumIntegrations {
   my %info = @_;
   return $info{nintegrations};
 }
+
+=item B<getNumMeasurements>
+
+=cut
 
 sub getNumMeasurements {
   my $class = shift;
@@ -299,7 +368,12 @@ sub getNumMeasurements {
   }
 }
 
-# Retrieve the molecule associated with the first spectral window
+=item B<getMolecule>
+
+Retrieve the molecule associated with the first spectral window
+
+=cut
+
 sub getMolecule {
   my $class = shift;
   my $cfg = shift;
@@ -309,7 +383,12 @@ sub getMolecule {
   return $s->{species};
 }
 
-# Retrieve the transition associated with the first spectral window
+=item B<getTransition>
+
+Retrieve the transition associated with the first spectral window
+
+=cut
+
 sub getTransition {
   my $class = shift;
   my $cfg = shift;
@@ -319,7 +398,12 @@ sub getTransition {
   return $s->{transition};
 }
 
-# Receptor aligned with tracking centre
+=item B<getInstAper>
+
+Receptor aligned with tracking centre
+
+=cut
+
 sub getInstAper {
   my $class = shift;
   my $cfg = shift;
@@ -331,7 +415,12 @@ sub getInstAper {
   return ( defined $ap ? $ap : "" );
 }
 
-# backwards compatibility
+=item B<getTrkRecep>
+
+Backwards compatibility version of getInstAper. Will be removed.
+
+=cut
+
 sub getTrkRecep {
   my $self = shift;
   return $self->getInstAper( @_ );
@@ -356,11 +445,23 @@ sub _getInstapXY {
   return (0.0,0.0);
 }
 
+=item B<getInstapX>
+
+Get the X aperture offset. Not used for SCUBA-2 TCS.
+
+=cut
+
 sub getInstapX {
   my $class = shift;
   my $cfg = shift;
   return ($class->_getInstapXY( $cfg ) )[0];
 }
+
+=item B<getInstapY>
+
+Get the Y aperture offset. Not used for SCUBA-2 TCS.
+
+=cut
 
 sub getInstapY {
   my $class = shift;
@@ -368,7 +469,12 @@ sub getInstapY {
   return ($class->_getInstapXY( $cfg ) )[1];
 }
 
-# Reference receptor
+=item B<getRefRecep>
+
+Get the reference recptor.
+
+=cut
+
 sub getRefRecep {
   my $class = shift;
   my $cfg = shift;
@@ -379,7 +485,12 @@ sub getRefRecep {
   return scalar $inst->reference_receptor;
 }
 
-# Reference position as sexagesimal string or offset
+=item B<getReferenceRA>
+
+Reference position as sexagesimal string or offset
+
+=cut
+
 sub getReferenceRA {
   my $class = shift;
   my $cfg = shift;
@@ -413,7 +524,12 @@ sub getReferenceRA {
   return "";
 }
 
-# Reference position as sexagesimal string or offset
+=item B<getReferenceDec>
+
+Reference position as sexagesimal string or offset
+
+=cut
+
 sub getReferenceDec {
   my $class = shift;
   my $cfg = shift;
@@ -447,13 +563,16 @@ sub getReferenceDec {
   return "";
 }
 
+=item B<getNumExpsures>
 
-# For jiggle: This is the number of nod sets required to build up the pattern
-#             ie  Total number of points / N_JIG_ON
+For jiggle: This is the number of nod sets required to build up the pattern
+             ie  Total number of points / N_JIG_ON
 
-# For grid: returns the number of points in the grid
+For grid: returns the number of points in the grid
 
-# For scan: Estimate at the number of scans
+For scan: Estimate at the number of scans
+
+=cut
 
 sub getNumExposures {
   my $class = shift;
@@ -464,8 +583,12 @@ sub getNumExposures {
   return 1;
 }
 
-# Reduce process recipe requires access to the file name used to read
-# the recipe This should be stored in the Cfg object
+=item B<getRPRecipe>
+
+Reduce process recipe requires access to the file name used to read
+the recipe This should be stored in the Cfg object.
+
+=cut
 
 sub getRPRecipe {
   my $class = shift;
@@ -486,11 +609,20 @@ sub getRPRecipe {
   return '';
 }
 
+=item B<getOCSCFG>
+
+This gets written automatically by the OCS Config classes. This is a dummy configuration
+method.
+
+=cut
 
 sub getOCSCFG {
-  # this gets written automatically by the OCS Config classes
   return '';
 }
+
+=item B<getBinning>
+
+=cut
 
 sub getBinning {
   my $class = shift;
@@ -505,6 +637,10 @@ sub getBinning {
   }
   return 1;
 }
+
+=item B<getNumMixers>
+
+=cut
 
 sub getNumMixers {
   my $class = shift;
