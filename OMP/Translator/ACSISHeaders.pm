@@ -56,6 +56,146 @@ sub default_project {
 
 =over 4
 
+=item B<getNumMixers>
+
+=cut
+
+sub getNumMixers {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the frontend
+  my $fe = $cfg->frontend;
+  throw OMP::Error::TranslateFail("Asked to determine number of mixers but no Frontend has been specified\n") unless defined $fe;
+
+  my %mask = $fe->mask;
+  my $count;
+  for my $state (values %mask) {
+    $count++ if ($state eq 'ON' || $state eq 'NEED');
+  }
+  return $count;
+}
+
+=item B<getReferenceDec>
+
+Reference position as sexagesimal string or offset
+
+=cut
+
+sub getReferenceDec {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the TCS
+  my $tcs = $cfg->tcs;
+
+  my %allpos = $tcs->getAllTargetInfo;
+
+  # check if SCIENCE == REFERENCE
+  if (exists $allpos{REFERENCE}) {
+
+    # Assume that for now since the OT enforces either an absolute position
+    # or one relative to BASE as an offset that if we have an offset people
+    # are offsetting and if we have just coords that we are using that explicitly
+    my $refpos = $allpos{REFERENCE}->coords;
+    my $offset = $allpos{REFERENCE}->offset;
+
+    if (defined $offset) {
+      my @off = $offset->offsets;
+      return "[OFFSET] ". $off[1]->arcsec . " [".$offset->system."]";
+    } else {
+      if ($refpos->can("dec2000")) {
+        return "". $refpos->dec2000;
+      } elsif ($refpos->type eq "AZEL") {
+        return $refpos->el ." (EL)";
+      }
+    }
+  }
+  # Want this to be an undef header
+  return "";
+}
+
+=item B<getReferenceRA>
+
+Reference position as sexagesimal string or offset
+
+=cut
+
+sub getReferenceRA {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the TCS
+  my $tcs = $cfg->tcs;
+
+  my %allpos = $tcs->getAllTargetInfo;
+
+  # check if SCIENCE == REFERENCE
+  if (exists $allpos{REFERENCE}) {
+
+    # Assume that for now since the OT enforces either an absolute position
+    # or one relative to BASE as an offset that if we have an offset people
+    # are offsetting and if we have just coords that we are using that explicitly
+    my $refpos = $allpos{REFERENCE}->coords;
+    my $offset = $allpos{REFERENCE}->offset;
+
+    if (defined $offset) {
+      my @off = $offset->offsets;
+      return "[OFFSET] ". $off[0]->arcsec . " [".$offset->system."]";
+    } else {
+      if ($refpos->can("ra2000")) {
+        return "". $refpos->ra2000;
+      } elsif ($refpos->type eq "AZEL") {
+        return $refpos->az . " (AZ)";
+      }
+    }
+  }
+  # Want this to be an undef header
+  return "";
+}
+
+=item B<getRefRecep>
+
+Get the reference recptor.
+
+=cut
+
+sub getRefRecep {
+  my $class = shift;
+  my $cfg = shift;
+
+  my $inst = $cfg->instrument_setup;
+  throw OMP::Error::FatalError('for some reason Instrument configuration is not available. This can not happen') 
+    unless defined $inst;
+  return scalar $inst->reference_receptor;
+}
+
+=item B<getRPRecipe>
+
+Reduce process recipe requires access to the file name used to read
+the recipe This should be stored in the Cfg object.
+
+=cut
+
+sub getRPRecipe {
+  my $class = shift;
+  my $cfg = shift;
+
+  # Get the acsis config
+  my $acsis = $cfg->acsis;
+  if (defined $acsis) {
+    my $red = $acsis->red_config_list;
+    if (defined $red) {
+      my $file = $red->filename;
+      if (defined $file) {
+        # just give file name, not path
+        return File::Basename::basename($file);
+      }
+    }
+  }
+  return '';
+}
+
 =back
 
 =head1 AUTHOR
