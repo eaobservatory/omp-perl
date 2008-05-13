@@ -3645,15 +3645,27 @@ sub SpObs {
   # If we are a standard but have no target we are really an autoTarget
   $summary{autoTarget} = 1 if ($summary{standard} && !exists $summary{coords});
 
+  # A skydip can have a target associated with it but it is not mandatory
+  # even if useCurrentAz is false. Use two flags to indicate this.
+  my $optional_coords = 0;
+  my $use_sci_coords = 0;
+  if ( grep /^Observe$/, @{$summary{obstype}} or
+       grep /Pointing|Photom|Jiggle|Stare|Raster|Focus/, @{$summary{obstype}}) {
+    $use_sci_coords = 1;
+    $optional_coords = 0; # need a target unless autotarget
+  } elsif ( grep /Skydip/, @{$summary{obstype}}) {
+    $use_sci_coords = ( exists $summary{coords} ? 1 : 0);
+    $optional_coords = 1; # do not need a target
+  }
+
   # Check to see if a Target was present but no Observe
   # If there were calibration observations that do not need
   # targets then we should fill in the targetname now with
   # CAL
-  if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle|Stare|Raster|Focus/, @{$summary{obstype}}) {
+  if ( $use_sci_coords ) {
 
     # Raise an exception unless we have been configured with autoTarget
-    if ($summary{autoTarget}) {
+    if ($summary{autoTarget} ) {
       # Need to have a dummy CAL observation here
       # since the translator will need to determine the 
       # target at "run time". This can always be scheduled.
@@ -3661,7 +3673,8 @@ sub SpObs {
       $summary{coordstype} = $summary{coords}->type;
       $summary{target} = "TBD";
 
-    } elsif (!exists $summary{coords} && !exists $summary{targets}) {
+    } elsif (!exists $summary{coords} && !exists $summary{targets}
+            && !$optional_coords) {
       throw OMP::Error::MSBMissingObserve("SpObs has an Observe iterator without corresponding target specified in MSB '".$self->msbtitle."'\n");
     }
     # We have a normal observe - just use it and the associated target
@@ -4195,7 +4208,6 @@ sub SpIterFolder {
 
     } elsif ($name eq 'SpIterSkydipObs') {
 
-      my $nint =  $self->_get_pcdata( $child, 'integrations');
       my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
       # Defaults to false if not present
       if (defined $currAz) {
@@ -4205,7 +4217,7 @@ sub SpIterFolder {
       }
 
 
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { nintegrations => $nint,
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                         currentAz => $currAz,
                                                       }});
 

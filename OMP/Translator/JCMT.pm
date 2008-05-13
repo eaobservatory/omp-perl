@@ -29,6 +29,7 @@ use File::Basename;
 use Astro::Coords::Offset;
 use IO::Tee;
 use Storable;
+use Math::Trig ();
 
 use JCMT::SMU::Jiggle;
 use JAC::OCS::Config;
@@ -278,6 +279,39 @@ sub transdir {
   return $TRANS_DIR;
 }
 
+=item B<wiredir>
+
+Returns the wiring directory that should be used for ACSIS.
+
+  $trans->wiredir();
+
+=cut
+
+{
+  my $wiredir;
+  sub wiredir {
+    my $self = shift;
+    if (!defined $wiredir) {
+      my $key = $self->cfgkey;
+      $wiredir = OMP::Config->getData( $key . '.wiredir' );
+    }
+    return $wiredir;
+  }
+}
+
+
+=item B<cfgkey>
+
+Name in the config system associated with this translator.
+
+  $key = $trans->cfgkey();
+
+=cut
+
+sub cfgkey {
+  die "Please subclass cfgkey";
+}
+
 =back
 
 =head1 CONFIG GENERATORS
@@ -425,8 +459,26 @@ sub tcs_base {
   # if we do not know the position return
   return if $info{autoTarget};
 
+  # if we are supposed to do do this observation at the current azimuth
+  # no base position is required
+  if ($info{currentAz}) {
+    if ($self->verbose) {
+      print {$self->outhdl} "Using current azimuth for observation.\n";
+    }
+    return;
+  }
+
+  # if this is a skydip and does not have a BASE position do not worry
+  if ($info{obs_type} eq 'skydip' && $info{coords}->type eq 'CAL') {
+    if ($self->verbose) {
+      print {$self->outhdl} "No target supplied for Skydip. Using current Azimuth.\n";
+    }
+    return;
+  }
+
   # First get all the coordinate tags (SCIENCE won't be in there)
-  my %tags = %{ $info{coordtags} };
+  my %tags;
+  my %tags = %{ $info{coordtags} } if defined $info{coordtags};
 
   # check for reference position
   throw OMP::Error::TranslateFail("No reference position defined for position switch observation")
@@ -573,8 +625,47 @@ sub observing_area {
   # offsets have to be in the same frame as the map if we are
   # defining a map area
 
+  if ($info{obs_type} eq 'skydip') {
+    # get the elevation range
+    my $maxel = OMP::Config->getData($self->cfgkey . ".skydip_maxel");
+    my $minel = OMP::Config->getData($self->cfgkey . ".skydip_minel");
 
-  if ($obsmode eq 'scan') {
+    my @el;
+    if ($obsmode eq 'scan') {
+      $oa->skydip_mode( "continuous" );
+      @el = map { Astro::Coords::Angle->new($_, units =>"deg") } 
+        ($maxel,$minel);
+      $oa->skydip_velocity( OMP::Config->getData($self->cfgkey. ".skydip_velocity") );
+    } elsif ($obsmode eq 'stare') {
+      $oa->skydip_mode( 'discrete' );
+
+      # calculate the angles - equally spaced in airmass
+      my $amstart = to_airmass( $maxel );
+      my $amend   = to_airmass( $minel );
+
+      my $numel = OMP::Config->getData( $self->cfgkey. ".skydip_numel");
+      OMP::Error::FatalError->throw( "Number of elevations in skydip (skyipd_numel) must be at least 2 (was $numel)") if $numel <= 2;
+      my $delta_am = ($amend - $amstart) / ($numel - 1 );
+
+      # work out the elevations
+      for my $nel (0..($numel-1)) {
+        my $am = $amstart + ($nel * $delta_am );
+        my $el = airmass_to_el( $am );
+        push(@el, Astro::Coords::Angle->new( $el, units => "deg" ));
+      }
+
+    } else {
+      throw OMP::Error::FatalError("Unknown skydip mode '$obsmode'");
+    }
+
+    if ($self->verbose) {
+      print {$self->outhdl} $oa->skydip_mode ." skydip from $maxel to $minel degrees elevation\n";
+    }
+
+    # store the elevations
+    $oa->skydip( @el );
+
+  } elsif ($obsmode eq 'scan') {
 
     # Need to know the frontend
     my $frontend = $self->ocs_frontend($info{instrument});
@@ -733,7 +824,7 @@ sub secondary_mirror {
     # do only one step per chop
 
     # Let's say this is maximum time between chops in seconds
-    my $tmax_per_chop = OMP::Config->getData( 'acsis_translator.max_time_between_chops'.
+    my $tmax_per_chop = OMP::Config->getData( $self->cfgkey .'.max_time_between_chops'.
                                               ($info{continuumMode} ? "_cont" :""));
 
     # Now calculate the number of steps in that time period
@@ -899,12 +990,14 @@ sub header_config {
     $root = $info{observing_mode};
   }
 
-  my $file = File::Spec->catfile( $self->wiredir, "header", $root . "_exclude");
-  if (-e $file) {
-    print {$self->outhdl} "Processing header exclusion file '$file'.\n" if $self->verbose;
+  my $xfile = File::Spec->catfile( $self->wiredir,"header",$root . "_exclude");
+  if (-e $xfile) {
+    print {$self->outhdl} "Processing header exclusion file '$file'.\n"
+      if $self->verbose;
 
     # this exclusion file has header cards that should be undeffed
-    open (my $fh, '<', $file) || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
+    open (my $fh, '<', $xfile)
+      || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
 
     while (defined (my $line = <$fh>)) {
       # remove comments
@@ -963,6 +1056,14 @@ sub rts_config {
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
 
     $root = $obsmode;
+
+    # skydip we assume pssw for the RTS file
+    if ($root eq 'scan') {
+      $root = "scan_pssw";
+    } elsif ($root eq 'stare') {
+      $root = 'grid_pssw';
+    }
+
   }
 
   # the RTS information is read from a wiring file
@@ -1028,7 +1129,7 @@ sub pol_config {
     my $step_time = $self->step_time( $cfg, %info );
 
     # number of steps in a cycle controls the spin speed
-    my $nsteps = OMP::Config->getData( 'acsis_translator.steps_per_cycle_pol' );
+    my $nsteps = OMP::Config->getData( $self->cfgkey.'.steps_per_cycle_pol' );
     my $speed = (360/$nsteps)/$step_time;
 
     $pol->spin_speed( $speed );
@@ -1567,6 +1668,37 @@ sub _read_file {
   return $str;
 }
 
+
+=item B<to_airmass>
+
+Convert elevation (degrees) to airmass. Is not overly accurate
+and does not use slaAirmas.
+
+  $am = to_airmass( $degel );
+
+=cut
+
+sub to_airmass {
+  my $degel = shift;
+  # safety
+  return 99999 if $degel < 1.0;
+  return 1 if $degel > 90;
+  return Math::Trig::cosec( Math::Trig::deg2rad( $degel ) );
+
+}
+
+=item B<airmass_to_el>
+
+Convert airmass back to elevation (degrees).
+
+  $degel = airmass_to_el( $am );
+
+=cut
+
+sub airmass_to_el {
+  my $am = shift;
+  return Math::Trig::rad2deg( Math::Trig::acosec( $am ) );
+}
 
 =back
 

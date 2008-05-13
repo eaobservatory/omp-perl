@@ -87,21 +87,16 @@ our $LO2_RANGE = OMP::Range->new( Min => 5.7E9 , Max => 10.5E9 );
 
 =over 4
 
-=item B<wiredir>
+=item B<cfgkey>
 
-Returns the wiring directory that should be used for ACSIS.
+Returns the config system name for this translator: acsis_translator
 
-  $trans->wiredir();
+ $cfgkey = $trans->cfgkey;
 
 =cut
 
-{
-  my $wiredir;
-  sub wiredir {
-    $wiredir = OMP::Config->getData( 'acsis_translator.wiredir' )
-      unless defined $wiredir;
-    return $wiredir;
-  }
+sub cfgkey {
+  return "acsis_translator";
 }
 
 =item B<fixup_historical_problems>
@@ -636,6 +631,9 @@ sub rotator_config {
   return if (defined $inst->focal_station && 
              $inst->focal_station !~ /NASMYTH/);
 
+  # if we are a sky dip observation then we do not care about the rotator even for HARP
+  return if $info{obs_type} eq 'skydip';
+
   # get the tcs
   my $tcs = $cfg->tcs();
   throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
@@ -726,6 +724,7 @@ sub jos_config {
   my %JOSREC = (
                 focus       => 'focus',
                 pointing    => 'pointing',
+                skydip      => 'skydip',
                 jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
                 jiggle_chop => 'jiggle_chop',
                 jiggle_pssw => 'grid_pssw',
@@ -767,9 +766,33 @@ sub jos_config {
 
   # Now parameters depends on that recipe name
 
-  # Scan map
+  if ($info{obs_type} =~ /^skydip/) {
 
-  if ($info{observing_mode} =~ /^scan/) {
+   if ($self->verbose) {
+     print {$self->outhdl} "Skydip JOS parameters:\n";
+   }
+
+    if ($info{observing_mode} =~ /^stare/) {
+      # need JOS_MIN since we have multiple offsets
+      my $integ = OMP::Config->getData( 'acsis_translator.skydip_integ' );
+      $jos->jos_min( POSIX::ceil($integ / $jos->step_time));
+
+      if ($self->verbose) {
+        print {$self->outhdl} "\tSteps per discrete elevation: ". $jos->jos_min()."\n";
+      }
+
+    } else {
+      # scan so JOS_MIN is 1
+      $jos->jos_min(1);
+
+      if ($self->verbose) {
+        print {$self->outhdl} "\tContinuous scanning skydip\n";
+      }
+    }
+
+  } elsif ($info{observing_mode} =~ /^scan/) {
+
+    # Scan map
 
     # Number of ref samples now calculated by the JOS
 
@@ -1835,7 +1858,10 @@ sub cubes {
     # The size and number of pixels depends on the observing mode.
     # For scan, we have a regular grid but the 
     my ($nx, $ny, $mappa, $xsiz, $ysiz, $offx, $offy);
-    if ($info{mapping_mode} =~ /^scan/) {
+    if ($info{obs_type} eq 'skydip') {
+      # Skydips do not need anything clever for display
+      $nx = 1; $ny = 1; $mappa = 0; $xsiz = 1; $ysiz = 1; $offx = 0; $offy = 0;
+    } elsif ($info{mapping_mode} =~ /^scan/) {
       # This will be more complicated for HARP since DY will possibly
       # be larger and we will need to take the receptor spacing into account
 
@@ -2120,6 +2146,9 @@ sub rtd_config {
   } else {
     # keyed on observing type
     $root = $info{obs_type};
+
+    # for skydip we do not care
+    $root = 'grid_pssw' if $root eq 'skydip';
   }
 
   # Try with and without the instrument name
@@ -2310,7 +2339,14 @@ sub determine_map_and_switch_mode {
     }
   } elsif ($mode eq 'SpIterSkydipObs') {
     $obs_type = 'skydip';
-    $mapping_mode = 'scan';
+    my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
+    if ($sdip_mode =~ /^cont/) {
+      $mapping_mode = 'scan';
+    } elsif ($sdip_mode =~ /^dis/) {
+      $mapping_mode = "stare";
+    } else {
+      OMP::Error::TranslateFail->throw("Skydip mode '$sdip_mode' not recognized");
+    }
     $switching_mode = 'none';
   } else {
     throw OMP::Error::TranslateFail("Unable to determine observing mode from observation of type '$mode'");
@@ -2448,8 +2484,10 @@ sub need_offset_tracking {
   # Jiggle   : Yes (if the jiggle pattern has a 0,0)
   # Pointing : Yes (if 5point)
   # Scan     : No
+  # Skydip   : No
 
   return if ($info{observing_mode} =~ /^scan/);
+  return if $info{obs_type} eq 'skydip';
 
   # Get the jiggle pattern
   if ($info{mapping_mode} eq 'jiggle') {

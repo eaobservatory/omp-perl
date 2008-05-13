@@ -53,6 +53,18 @@ Returns the wiring directory that should be used for ACSIS.
   }
 }
 
+=item B<cfgkey>
+
+Returns the config system name for this translator: scuba2_translator
+
+ $cfgkey = $trans->cfgkey;
+
+=cut
+
+sub cfgkey {
+  return "scuba2_translator";
+}
+
 =item B<handle_special_modes>
 
 Special modes such as POINTING or FOCUS are normal observations that
@@ -132,6 +144,22 @@ sub jos_config {
   #   scuba2_skyDip
   #   scuba2_flatField
   #   scuba2_noise
+
+  my $recipe = $info{obs_type};
+  if ($info{obs_type} eq 'science') {
+    $recipe = $info{observing_mode};
+  }
+  # prepend scuba2
+  $recipe = "scuba2_".$recipe;
+
+  # and store it
+  $jos->recipe( $recipe );
+
+  # Time between darks depends on observing mode
+  my $tbdark = OMP::Config->getData( "scuba2_translator.time_between_dark_".
+                                     $info{observing_mode} ) / $jos->step_time;
+
+  $jos->steps_btwn_dark( $tbdark );
 
   # Non science observing types
   if ($info{obs_type} =~ /focus/ ) {
@@ -239,7 +267,15 @@ sub determine_map_and_switch_mode {
     $mapping_mode = 'stare';
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterSkydipObs') {
-    $mapping_mode = 'scan';
+    my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
+    print "SDIP _MODE = $sdip_mode\n";
+    if ($sdip_mode =~ /^cont/) {
+      $mapping_mode = 'scan';
+    } elsif ($sdip_mode =~ /^dis/) {
+      $mapping_mode = "stare";
+    } else {
+      OMP::Error::TranslateFail->throw("Skydip mode '$sdip_mode' not recognized");
+    }
     $switching_mode = 'none';
     $obs_type = 'skydip';
   } else {
