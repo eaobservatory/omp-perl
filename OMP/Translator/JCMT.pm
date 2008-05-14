@@ -825,6 +825,19 @@ sub secondary_mirror {
     # store the object
     $smu->jiggle( $jig );
 
+  } elsif ($obsmode eq 'dream') {
+
+    # Pick up DREAM definition from config
+    my %DREAM;
+    for my $k (qw/ NAME LEG_LENGTH BOLO_PER_VERTS/) {
+      $DREAM{$k} = OMP::Config->getData($self->cfgkey.".dream_".lc($k));
+    }
+
+    $smu->dream( %DREAM );
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Using $DREAM{NAME} dream pattern\n";
+    }
   }
 
   # Since we need access to the jiggle pattern to calculate step time
