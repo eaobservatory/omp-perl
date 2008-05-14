@@ -669,29 +669,31 @@ sub observing_area {
 
   } elsif ($obsmode eq 'scan') {
 
-    # Need to know the frontend
-    my $frontend = $self->ocs_frontend($info{instrument});
-    throw OMP::Error::FatalError("Unable to determine appropriate frontend!")
-      unless defined $frontend;
-
     # Map specification
     $oa->posang( new Astro::Coords::Angle( $info{MAP_PA}, units => 'deg'));
     $oa->maparea( HEIGHT => $info{MAP_HEIGHT},
                   WIDTH => $info{MAP_WIDTH});
 
-    # The scan position angle is either supplied or automatic
-    # if it is not supplied we currently have to give the TCS a hint
+    # Pattern - the actual pattern name will depend on ACSIS vs SCUBA-2
+    # since SCUBA-2 will use continuous versions
+    my $pattern = $self->translate_scan_pattern( $info{scanPattern} );
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Scanning area $info{MAP_HEIGHT} x $info{MAP_WIDTH} arcsec at $info{MAP_PA} deg\n";
+      print {$self->outhdl} "Using scanning pattern '$pattern'\n";
+
+    }
+
+    # The scan position angle is either supplied or automatic.
+    # If it is not supplied we have to give the TCS a hint.
     my @scanpas;
+    my $scan_sys = $info{SCAN_SYSTEM};
     if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
       @scanpas = @{ $info{SCAN_PA} };
     } else {
-      # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
-      # receiver then all 4 angles can be used. Else the scan is constrained to the X direction
-      my @mults = (1,3); # 0, 2 aligns with height, 1, 3 aligns with width
-      if ( $frontend =~ /harp/i || ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
-        @mults = (0..3);
-      }
-      @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
+      # Scan angle strategy depends on instrument
+      ($scan_sys, @scanpas) = $self->determine_scan_angles($pattern, %info );
+
     }
     # convert from deg to object
     @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
@@ -700,15 +702,10 @@ sub observing_area {
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
                DY => $info{SCAN_DY},
-               SYSTEM => $info{SCAN_SYSTEM},
-               PA => \@scanpas,
+               SYSTEM => $scan_sys,
+               PATTERN => $pattern,
+               (@scanpas ? (PA => \@scanpas) : ()),
              );
-
-    # N.B. The PTCS has now been modified to default to the
-    # scan values below as per the DTD spec. so there is no need
-    # to hardwire these directly into the translator.
-    # REVERSAL => "YES",
-    # TYPE => "TAN" 
 
     # Offset
     my $offx = ($info{OFFSET_DX} || 0);

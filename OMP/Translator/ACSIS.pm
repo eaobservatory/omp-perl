@@ -111,6 +111,75 @@ sub hdrpkg {
   return "OMP::Translator::ACSISHeaders";
 }
 
+=item B<translate_scan_pattern>
+
+Given a requested OT scan pattern, return the pattern name suitable
+for use in the TCS.
+
+  $tcspatt = $trans->translate_scan_pattern( $ot_pattern );
+
+ACSIS uses the discrete patterns.
+
+=cut
+
+sub translate_scan_pattern {
+  my $self = shift;
+  my $otpatt = shift;
+
+  # if we do not have a pattern, default to bous
+  $otpatt = "boustrophedon" unless defined $otpatt;
+
+  if ($otpatt eq "raster") {
+    return "RASTER";
+  } elsif ($otpatt eq "boustrophedon") {
+    return "DISCRETE_BOUSTROPHEDON";
+  } elsif ($otpatt eq "pong") {
+    return "CURVY_PONG";
+  } elsif ($otpatt eq 'lissajous') {
+    return "LISSAJOUS";
+  } else {
+    OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
+  }
+
+}
+
+=item B<determine_scan_angles>
+
+Given a particular scan area and frontend, determine which angles can be given
+to the TCS.
+
+  @angles = $trans->determine_scan_angles( $pattern, %info );
+
+Angles are simple numbers in degrees. Not objects.
+
+The scanning system is determined by this routine.
+
+=cut
+
+sub determine_scan_angles {
+  my $self = shift;
+  my $pattern = shift;
+  my %info = @_;
+
+  # only calculate angles for bous or raster
+  return () unless $pattern =~ /BOUS|RASTER/i;
+
+  # Need to know the frontend
+  my $frontend = $self->ocs_frontend($info{instrument});
+  throw OMP::Error::FatalError("Unable to determine appropriate frontend!")
+    unless defined $frontend;
+
+  # Choice depends on pixel size. If sampling is equal in DX/DY or for an array
+  # receiver then all 4 angles can be used. Else the scan is constrained to the X direction
+  my @mults = (1,3); # 0, 2 aligns with height, 1, 3 aligns with width
+  if ( $frontend =~ /harp/i || ($info{SCAN_VELOCITY}*$info{sampleTime} == $info{SCAN_DY}) ) {
+    @mults = (0..3);
+  }
+  my @scanpas = map { $info{MAP_PA} + ($_*90) } @mults;
+
+  return ($info{SCAN_SYSTEM}, @scanpas);
+}
+
 =item B<fixup_historical_problems>
 
 In order for DAS observations to be translated as ACSIS observations we

@@ -78,6 +78,66 @@ sub hdrpkg {
   return "OMP::Translator::SCUBA2Headers";
 }
 
+=item B<translate_scan_pattern>
+
+Given a requested OT scan pattern, return the pattern name suitable
+for use in the TCS.
+
+  $tcspatt = $trans->translate_scan_pattern( $ot_pattern );
+
+SCUBA-2 uses continuous patterns.
+
+=cut
+
+sub translate_scan_pattern {
+  my $self = shift;
+  my $otpatt = shift;
+
+  # if we do not have a pattern, default to bous
+  $otpatt = "boustrophedon" unless defined $otpatt;
+
+  if ($otpatt eq "raster") {
+    return "RASTER";
+  } elsif ($otpatt eq "boustrophedon") {
+    return "CONTINUOUS_BOUSTROPHEDON";
+  } elsif ($otpatt eq "pong") {
+    return "CURVY_PONG";
+  } elsif ($otpatt eq 'lissajous') {
+    return "LISSAJOUS";
+  } else {
+    OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
+  }
+
+}
+
+=item B<determine_scan_angles>
+
+Given a particular scan area and frontend, determine which angles can be given
+to the TCS. 
+
+  ($system,@angles) = $trans->determine_scan_angles( $pattern, %info );
+
+Angles are simple numbers in degrees. Not objects. Returns empty
+list if the pattern is not BOUSTROPHEDON or RASTER.
+
+The scanning system is determined by this routine.
+
+=cut
+
+sub determine_scan_angles {
+  my $self = shift;
+  my $pattern = shift;
+
+  # only calculate angles for bous or raster
+  return () unless $pattern =~ /BOUS|RASTER/i;
+
+  # SCUBA-2 currently needs to be 26.6 deg in NASMYTH.
+  my $basepa = 26.6;
+  my @scanpas = map { $basepa + (90*$_) } (0..3);
+
+  return ("FPLANE", @scanpas);
+}
+
 =item B<handle_special_modes>
 
 Special modes such as POINTING or FOCUS are normal observations that
@@ -160,7 +220,7 @@ sub jos_config {
   #   scuba2_scan
   #   scuba2_dream
   #   scuba2_stare
-  #   scuba2_skyDip
+  #   scuba2_skydip
   #   scuba2_flatField
   #   scuba2_noise
 
@@ -253,6 +313,18 @@ sub jos_config {
       print {$self->outhdl} "\tActual integration time per stare position: ".
         ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n";
     }
+  } elsif ($info{mapping_mode} eq 'scan') {
+    # jos_min is always 1 and num_cycles is the number of times round
+    # the map. The TCS will work out when to do the dark.
+    $jos->jos_min(1);
+    $jos->num_cycles($info{nintegrations});
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Scan map JOS parameters\n";
+      print {$self->outhdl} "\tNumber of repeats of map area: ".
+        $jos->num_cycles."\n";
+    }
+
   }
 
 
