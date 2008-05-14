@@ -182,7 +182,7 @@ sub jos_config {
 
   if ($self->verbose) {
     print {$self->outhdl} "Generic JOS parameters:\n";
-    print {$self->outhdl} "\tStep time: ".$jos->step_time."\n";
+    print {$self->outhdl} "\tStep time: ".$jos->step_time." secs\n";
     print {$self->outhdl} "\tSteps between darks: ". $jos->steps_btwn_dark().
       "\n";
   }
@@ -211,10 +211,22 @@ sub jos_config {
       }
     }
 
-  } elsif ($info{mapping_mode} eq 'stare') {
-    # total requested integration time
-    # Note that we use "secsPerCycle" for historical reasons.
-    my $inttime = $info{secsPerCycle};
+  } elsif ($info{mapping_mode} eq 'stare'
+          || $info{mapping_mode} eq 'dream') {
+    # STARE and DREAM have the same calculations because the
+    # array is fully sampled at 850 microns so the exposure
+    # time per pixel is the same even though the SMU is moving.
+    # The only difference is that the key for integration time
+    # is secsPerCycle (for historical reasons) for STARE and
+    # sampleTime for DREAM.
+    my $inttime;
+    for my $key (qw/ secsPerCycle sampleTime/) {
+      if (exists $info{$key}) {
+        $inttime = $info{$key};
+        last;
+      }
+    }
+    OMP::Error::FatalError->throw("Could not determine integration time for $info{mapping_mode} observation") unless defined $inttime;
 
     # This time should be spread over the number of microsteps
     my @ms = $obsArea->microsteps;
@@ -234,8 +246,8 @@ sub jos_config {
     $jos->num_cycles($num_cycles);
 
     if ($self->verbose) {
-      print {$self->outhdl} "Stare JOS parameters:\n";
-      print {$self->outhdl} "\tRequested integration time per stare position: $info{secsPerCycle} secs\n";
+      print {$self->outhdl} uc($info{mapping_mode})." JOS parameters:\n";
+      print {$self->outhdl} "\tRequested integration time per pixel: $inttime secs\n";
       print {$self->outhdl} "\tNumber of steps per microstep/offset: $jos_min\n";
       print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       print {$self->outhdl} "\tActual integration time per stare position: ".
