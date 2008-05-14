@@ -3650,7 +3650,7 @@ sub SpObs {
   my $optional_coords = 0;
   my $use_sci_coords = 0;
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle|Stare|Raster|Focus/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle|Stare|Raster|DREAM|Focus/, @{$summary{obstype}}) {
     $use_sci_coords = 1;
     $optional_coords = 0; # need a target unless autotarget
   } elsif ( grep /Skydip/, @{$summary{obstype}}) {
@@ -4028,7 +4028,7 @@ sub SpIterFolder {
     # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
     # or other iterators
     # we need to go down a level
-    if ($name =~ /^SpIter(Repeat|Offset|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|UFTI|FP|Nod|WFCAM)$/) {
+    if ($name =~ /^SpIter(Repeat|Offset|DREAM|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|UFTI|FP|Nod|WFCAM)$/) {
       my %dummy = $self->SpIterFolder($child, PARENT => $name);
 
       # obstype is a special key
@@ -4098,6 +4098,15 @@ sub SpIterFolder {
       $stare{starePA} = $starePA if defined $starePA;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
+
+    } elsif ($name eq 'SpIterDREAMObs') {
+      my %dream;
+      my $samptime = $self->_get_pcdata($child, "sampleTime");
+      $dream{sampleTime} = $samptime if defined $samptime;
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => \%dream});
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
 
