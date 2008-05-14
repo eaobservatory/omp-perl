@@ -29,6 +29,7 @@ use JAC::OCS::Config::Error qw/ :try /;
 
 use OMP::Config;
 use OMP::Error;
+use OMP::General;
 
 use OMP::Translator::SCUBA2Headers;
 
@@ -149,6 +150,12 @@ sub jos_config {
   # Basics
   $jos->step_time( $self->step_time );
 
+  # Need an obsArea for number of microsteps
+  my $tcs = $cfg->tcs;
+  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+  my $obsArea = $tcs->getObsArea();
+  throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+
   # Allowed JOS recipes seem to be
   #   scuba2_scan
   #   scuba2_dream
@@ -172,6 +179,70 @@ sub jos_config {
                                      $info{observing_mode} ) / $jos->step_time;
 
   $jos->steps_btwn_dark( $tbdark );
+
+  if ($self->verbose) {
+    print {$self->outhdl} "Generic JOS parameters:\n";
+    print {$self->outhdl} "\tStep time: ".$jos->step_time."\n";
+    print {$self->outhdl} "\tSteps between darks: ". $jos->steps_btwn_dark().
+      "\n";
+  }
+
+  if ($info{obs_type} =~ /^skydip/) {
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Skydip JOS parameters:\n";
+    }
+
+    if ($info{observing_mode} =~ /^stare/) {
+      # need JOS_MIN since we have multiple offsets
+      my $integ = OMP::Config->getData( $self->cfgkey.'.skydip_integ' );
+      $jos->jos_min( POSIX::ceil($integ / $jos->step_time));
+
+      if ($self->verbose) {
+        print {$self->outhdl} "\tSteps per discrete elevation: ". $jos->jos_min()."\n";
+      }
+
+    } else {
+      # scan so JOS_MIN is 1
+      $jos->jos_min(1);
+
+      if ($self->verbose) {
+        print {$self->outhdl} "\tContinuous scanning skydip\n";
+      }
+    }
+
+  } elsif ($info{mapping_mode} eq 'stare') {
+    # total requested integration time
+    # Note that we use "secsPerCycle" for historical reasons.
+    my $inttime = $info{secsPerCycle};
+
+    # This time should be spread over the number of microsteps
+    my @ms = $obsArea->microsteps;
+    my $nms = (@ms ? @ms : 1);
+
+    # convert total integration time to steps
+    my $nsteps = $inttime / $jos->step_time;
+
+    # Spread over microsteps
+    $nsteps /= $nms;
+
+    # split into chunks
+    my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+    my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
+
+    $jos->jos_min($jos_min);
+    $jos->num_cycles($num_cycles);
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Stare JOS parameters:\n";
+      print {$self->outhdl} "\tRequested integration time per stare position: $info{secsPerCycle} secs\n";
+      print {$self->outhdl} "\tNumber of steps per microstep/offset: $jos_min\n";
+      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
+      print {$self->outhdl} "\tActual integration time per stare position: ".
+        ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n";
+    }
+  }
+
 
   # Non science observing types
   if ($info{obs_type} =~ /focus/ ) {
