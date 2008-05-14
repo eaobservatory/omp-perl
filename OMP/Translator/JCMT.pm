@@ -767,6 +767,9 @@ sub observing_area {
                                               system => "FPLANE" ));
       }
       $oa->microsteps( @ms );
+      if ($self->verbose) {
+        print {$self->outhdl} "Microstep pattern '$info{ms_pattern}' : ".@ms." microsteps\n";
+      }
     }
 
   }
