@@ -95,6 +95,7 @@ sub translate_scan_pattern {
 
   # if we do not have a pattern, default to bous
   $otpatt = "boustrophedon" unless defined $otpatt;
+  $otpatt = lc($otpatt);
 
   if ($otpatt eq "raster") {
     return "RASTER";
