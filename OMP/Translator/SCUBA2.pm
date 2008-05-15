@@ -293,11 +293,16 @@ sub jos_config {
 
   $jos->steps_btwn_dark( $tbdark );
 
+  # Length of dark is fixed
+  my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
+  $jos->n_calsamples( $darklen / $jos->step_time );
+
   if ($self->verbose) {
     print {$self->outhdl} "Generic JOS parameters:\n";
     print {$self->outhdl} "\tStep time: ".$jos->step_time." secs\n";
     print {$self->outhdl} "\tSteps between darks: ". $jos->steps_btwn_dark().
       "\n";
+    print {$self->outhdl} "\tDark duration: ".$jos->n_calsamples(). " steps\n";
   }
 
   if ($info{obs_type} =~ /^skydip/) {
