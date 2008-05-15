@@ -87,7 +87,7 @@ tie %alloc, 'Config::IniFiles', ( -file => $file );
 my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
 
 # Loop over each project and update it
-for my $proj (keys %alloc) {
+for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
   # Set the project ID in the DB object
   $projdb->projectid( $proj );
