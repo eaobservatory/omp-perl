@@ -4278,7 +4278,7 @@ sub SpIterFolder {
 
       $scan{switchingMode} = $switchMode if defined $switchMode;
 
-      $scan{pattern} = $self->_get_attribute( $node, "scanPattern" );
+      $scan{scanPattern} = $self->_get_pcdata( $child, "scanPattern" );
 
       # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");

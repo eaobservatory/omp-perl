@@ -127,9 +127,10 @@ The scanning system is determined by this routine.
 sub determine_scan_angles {
   my $self = shift;
   my $pattern = shift;
+  my %info = @_;
 
   # only calculate angles for bous or raster
-  return () unless $pattern =~ /BOUS|RASTER/i;
+  return ($info{SCAN_SYSTEM},) unless $pattern =~ /BOUS|RASTER/i;
 
   # SCUBA-2 currently needs to be 26.6 deg in NASMYTH.
   my $basepa = 26.6;
@@ -158,6 +159,57 @@ sub handle_special_modes {
   my $info = shift;
 
   # The trick is to fill in the blanks
+
+  # POINTING and FOCUS
+  if ($info->{obs_type} =~ /pointing|focus/) {
+
+    # Get the integration time in seconds
+    my $exptime = OMP::Config->getData($self->cfgkey.".".
+                                       $info->{obs_type}.
+                                       "_integration");
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Determining ".uc($info->{obs_type}).
+        " parameters...\n";
+      print {$self->outhdl} "\tIntegration time: $exptime secs\n";
+    }
+
+    if ($info->{mapping_mode} eq 'scan') {
+      # do this as a point source
+      $info->{scanPattern} = 'Point Source';
+      $info->{sampleTime} = $exptime;
+
+    } elsif ($info->{mapping_mode} eq 'stare') {
+      $info->{secsPerCycle} = $exptime;
+    } elsif ($info->{mapping_mode} eq 'dream') {
+      $info->{sampleTime} = $exptime;
+    }
+
+  }
+
+  # fix up point source scanning
+  if ($info->{mapping_mode} eq 'scan' && 
+      $info->{scanPattern} eq 'Point Source') {
+
+    $info->{scanPattern} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_pattern");
+    $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_map_height");
+    $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_map_width");
+    $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_velocity");
+    $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_scan_dy");
+
+    $info->{SCAN_SYSTEM} = "FPLANE";
+    $info->{MAP_PA} = 0;
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Defining point source scan map from config.\n";
+    }
+
+  }
 
   return;
 }
@@ -314,15 +366,41 @@ sub jos_config {
         ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n";
     }
   } elsif ($info{mapping_mode} eq 'scan') {
-    # jos_min is always 1 and num_cycles is the number of times round
-    # the map. The TCS will work out when to do the dark.
-    $jos->jos_min(1);
-    $jos->num_cycles($info{nintegrations});
+    # in most cases, we set jos_min to 1 and the number of cycles
+    # to be the number of map area repeats. The TCS knows when to go to 
+    # a dark. If we have an explicit sampleTime though, we use that
+    # for JOS_MIN - it indicates that the OT has requested a particular
+    # amount of time doing the observation not a particular number of
+    # complete map areas. This is assumed to be used in point source mode.
 
     if ($self->verbose) {
       print {$self->outhdl} "Scan map JOS parameters\n";
-      print {$self->outhdl} "\tNumber of repeats of map area: ".
-        $jos->num_cycles."\n";
+    }
+
+    if (exists $info{sampleTime} && defined $info{sampleTime}) {
+      my $nsteps = $info{sampleTime} / $jos->step_time;
+      my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+      my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
+      $jos->jos_min( $jos_min );
+      $jos->num_cycles( $num_cycles );
+
+      if ($self->verbose) {
+        print {$self->outhdl} "\tScan map executing for a specific time. Not map coverage\n";
+        print {$self->outhdl} "\tTotal duration of scan map: $info{sampleTime} secs.\n";
+        print {$self->outhdl} "\tNumber of steps in scan map sequence: $jos_min\n";
+        print {$self->outhdl} "\tNumber of repeats: $num_cycles\n";
+      }
+    } else { 
+
+      # jos_min is always 1 and num_cycles is the number of times round
+      # the map. The TCS will work out when to do the dark.
+      $jos->jos_min(1);
+      $jos->num_cycles($info{nintegrations});
+      
+      if ($self->verbose) {
+        print {$self->outhdl} "\tNumber of repeats of map area: ".
+          $jos->num_cycles."\n";
+      }
     }
 
   }
@@ -428,10 +506,10 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterDREAMObs') {
     $mapping_mode = 'dream';
   } elsif ($mode eq 'SpIterPointingObs') {
-    $mapping_mode = 'scan';
+    $mapping_mode = OMP::Config->getData($self->cfgkey.".pointing_obsmode");
     $obs_type = 'pointing';
   } elsif ($mode eq 'SpIterFocusObs') {
-    $mapping_mode = 'stare';
+    $mapping_mode = OMP::Config->getData($self->cfgkey.".focus_obsmode");
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
