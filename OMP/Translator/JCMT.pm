@@ -929,7 +929,8 @@ sub instrument_config {
                                                  );
 
   # tweak the wavelength
-  $inst_cfg->wavelength( $info{wavelength} );
+  $inst_cfg->wavelength( $info{wavelength} )
+    if defined $info{wavelength};
 
   $cfg->instrument_setup( $inst_cfg );
 
