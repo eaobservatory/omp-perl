@@ -4632,7 +4632,7 @@ sub SpInstSCUBA2 {
   # Assume 850 although in principal someone could request
   # 450
   $summary{waveband} = new Astro::WaveBand( Filter => '850',
-                                            Instrument => 'SCUBA2');
+                                            Instrument => 'SCUBA-2');
   $summary{wavelength} = $summary{waveband}->wavelength;
 
   # in principal we might be asked for a tracking subarray
