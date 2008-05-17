@@ -143,6 +143,31 @@ sub translate_scan_pattern {
 
 }
 
+=item B<header_exclusion_file>
+
+Work out the name of the header exclusion file.
+
+  $xfile = $trans->header_exclusion_file( %info );
+
+Does not check to see if the file is present.
+
+=cut
+
+sub header_exclusion_file {
+  my $self = shift;
+  my %info = @_;
+
+  my $root;
+  if ($info{obs_type} =~ /pointing|focus|skydip/) {
+    $root = $info{obs_type};
+  } else {
+    $root = $info{observing_mode};
+  }
+
+  my $xfile = File::Spec->catfile( $self->wiredir,"header",$root . "_exclude");
+  return $xfile;
+}
+
 =item B<determine_scan_angles>
 
 Given a particular scan area and frontend, determine which angles can be given

@@ -111,6 +111,35 @@ sub translate_scan_pattern {
 
 }
 
+=item B<header_exclusion_file>
+
+Work out the name of the header exclusion file.
+
+  $xfile = $trans->header_exclusion_file( %info );
+
+Does not check to see if the file is present.
+
+For SCUBA-2, pointing has no special header exclusion requirements
+compared to the underlying scan or stare.
+
+=cut
+
+sub header_exclusion_file {
+  my $self = shift;
+  my %info = @_;
+
+  my $root;
+  if ($info{obs_type} =~ /focus|skydip/) {
+    $root = $info{obs_type} . "_". $info{mapping_mode};
+  } else {
+    # A pointing is just the mapping mode
+    $root = $info{mapping_mode};
+  }
+
+  my $xfile = File::Spec->catfile( $self->wiredir,"header","scuba2_". $root . "_exclude");
+  return $xfile;
+}
+
 =item B<determine_scan_angles>
 
 Given a particular scan area and frontend, determine which angles can be given

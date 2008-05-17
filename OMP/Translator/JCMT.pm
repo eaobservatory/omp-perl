@@ -1018,42 +1018,23 @@ sub header_config {
 
   # Some observing modes have exclusion files.
   # First build the filename
-  my $root;
-  if ($info{obs_type} =~ /pointing|focus/) {
-    $root = $info{obs_type};
-  } else {
-    $root = $info{observing_mode};
-  }
+  my $xfile = $self->header_exclusion_file(%info);
 
-  my $xfile = File::Spec->catfile( $self->wiredir,"header",$root . "_exclude");
-  if (-e $xfile) {
-    print {$self->outhdl} "Processing header exclusion file '$file'.\n"
-      if $self->verbose;
+  # Read the exclusion file
+  my @toexclude = $self->read_header_exclusion_file( $xfile );
 
-    # this exclusion file has header cards that should be undeffed
-    open (my $fh, '<', $xfile)
-      || throw OMP::Error::FatalError("Error opening exclusion file '$file': $!");
+  for my $ex (@toexclude) {
+    # ask for the header item
+    my $item = $hdr->item( $ex );
 
-    while (defined (my $line = <$fh>)) {
-      # remove comments
-      $line =~ s/\#.*//;
-      # and trailing/leading whitespace
-      $line =~ s/^\s*//;
-      $line =~ s/\s*$//;
-      next unless $line =~ /\w/;
-
-      # ask for the header item
-      my $item = $hdr->item( $line );
-
-      if (defined $item) {
-        # force undef
-        $item->undefine;
-      } else {
-        print {$self->outhdl} "\tAsked to exclude header card '$line' but it is not part of the header\n";
-      }
-
+    if (defined $item) {
+      # force undef
+      $item->undefine;
+      print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
+    } else {
+      print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
+        if $self->verbose;
     }
-
   }
 
   $cfg->header( $hdr );
@@ -1676,6 +1657,74 @@ sub calc_receptor_or_subarray_mask {
   }
 
   return %mask;
+}
+
+=item B<read_header_exclusion_file>
+
+Read the header exclusion file and return an array of all headers that
+should be excluded.
+
+ @toexclude = $trans->read_header_exclusion_file($file);
+
+Returns empty list if the file can not be found.
+
+=cut
+
+sub read_header_exclusion_file {
+  my $self = shift;
+  my $xfile = shift;
+
+  return unless -e $xfile;
+
+  # Get the directory path for INCLUDE handling
+  my ($vol, $rootdir, $barefile) = File::Spec->splitpath( $xfile );
+
+  print {$self->outhdl} "Processing header exclusion file '$xfile'.\n"
+    if $self->verbose;
+
+  # this exclusion file has header cards that should be undeffed
+  open (my $fh, '<', $xfile)
+    || throw OMP::Error::FatalError("Error opening exclusion file '$xfile': $!");
+
+  # use a hash to make it easy to remove entries
+  my %toexclude;
+  while (defined (my $line = <$fh>)) {
+    # remove comments
+    $line =~ s/\#.*//;
+    # and trailing/leading whitespace
+    $line =~ s/^\s*//;
+    $line =~ s/\s*$//;
+    next unless $line =~ /\w/;
+
+    # A "+" indicates that the keyword should be removed from toexclude
+    my $addback = 0;
+    if ($line =~ /^\+/) {
+      $addback = 1;
+      $line =~ s/^\+//;
+    }
+
+    # Keys that are associated with this line
+    my @newkeys;
+
+    # INCLUDE directive
+    if ($line =~ /^INCLUDE\s+(.*)$/) {
+      my $fullpath = File::Spec->catpath( $vol, $rootdir, $1 );
+      push(@newkeys, $self->read_header_exclusion_file( $fullpath ) );
+    } else {
+      push(@newkeys, $line);
+    }
+
+    if ($addback) {
+      delete $toexclude{$_} for @newkeys;
+    } else {
+      # put them on the list of keys to remove
+      $toexclude{$_}++ for @newkeys;
+    }
+
+  }
+
+  return sort keys %toexclude;
+
 }
 
 
