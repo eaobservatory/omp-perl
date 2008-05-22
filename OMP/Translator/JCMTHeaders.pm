@@ -252,7 +252,7 @@ sub getDRRecipe {
     if (defined $found) {
       if ($info{continuumMode}) {
         # append continuum mode (if not already appended)
-        $found .= "_CONTINUUM" unless $found =~ /_CONTINUUM$/;
+        $found .= "_CONTINUUM" if $found eq 'REDUCE_SCIENCE';
       }
       if ($class->VERBOSE) {
         print {$class->HANDLES} "Using DR recipe $found provided by user\n";
