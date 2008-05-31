@@ -21,8 +21,8 @@ my $missing_msb;
 my $critical;
 my $fault = 0;
 
-my $primary_db = "SYB_OMP1";
-my $secondary_db = "SYB_OMP2";
+my $primary_db = "SYB_JAC";
+my $secondary_db = "SYB_JAC2";
 
 my ( @to_addr, @cc_addr, $debug);
 
@@ -236,23 +236,23 @@ DISPARITY
   }
 }
 
-my $subject = "Replication status ($primary_db -> $secondary_db): ";
-
+my $subject;
 if ($critical) {
-  $subject .= "CRITICAL!";
+  $subject = 'CRITICAL!';
 } elsif ($fault > 1) {
-  $subject .= "MULTIPLE FAULTS!";
+  $subject = 'MULTIPLE FAULTS!';
 } elsif ($trunc) {
-  $subject .= "TRUNCATED PROGRAMS FOUND!";
+  $subject = 'TRUNCATED PROGRAMS FOUND!';
 } elsif ($missing) {
-  $subject .= "MISSING PROGRAMS DETECTED!";
+  $subject = 'MISSING PROGRAMS DETECTED!';
 } elsif ($row_count) {
-  $subject .= "ROW COUNT DISPARITY DETECTED!";
+  $subject = 'ROW COUNT DISPARITY DETECTED!';
 } elsif ($missing_msb) {
-  $subject .= "MISSING MSBS DETECTED!";
+  $subject = 'MISSING MSBS DETECTED!';
 } else {
-  $subject .= "OK";
+  $subject = 'OK';
 }
+$subject .= " - Replication status ($primary_db -> $secondary_db)";
 
 unless ( $debug ) {
 
