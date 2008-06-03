@@ -1,0 +1,259 @@
+#!/local/bin/perl
+#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Non-interactive routine to create a hardcopy plot of EL-TIME for
+# astronomical sources, including planets, as seen from the JCMT.  The
+# main purpose of this routine is to generate on-demand plots for
+# display on the Web.
+# This version connects directly to the OMP to retrieve source
+# coordinates and should remain access restricted!!!!
+#----------------------------------------------------------------------
+
+
+use lib qw( /web/jac-bin/ompsplot );
+
+use strict;
+#use Astro::SourcePlot qw/ sourceplot /;
+use SourcePlot_new qw/ sourceplot /;
+use GetCoords qw/ get_coords /;
+
+use lib qw( /jac_sw/omp/msbserver );
+
+use OMP::Config;
+use OMP::SpServer;
+use OMP::SciProg;
+use OMP::MSB;
+use Time::Piece qw/ :override /;
+use Getopt::Long;
+
+$ENV{PGPLOT_DIR} = "/star/bin"
+   unless exists $ENV{PGPLOT_DIR};
+$ENV{PGPLOT_FONT} = "/star/etc/grfont.dat"
+   unless exists $ENV{PGPLOT_FONT};
+
+OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
+
+# not 0: debug output
+my $debug = 0;
+
+# Program name
+my $program = ( split( /\//, $0 ) )[-1];
+
+#----------------------------------------------------------------------
+# Get command-line parameters.
+
+my $cmd_line = join(' ', @ARGV);
+
+my ($prj, $help, $pld, $tel, $mod, $ptype, $objs, $tzone, $agrid, $labpos, $out, $dbug );
+my $status = GetOptions("help" => \$help,
+                        "ut=s" => \$pld,
+                        "proj=s" => \$prj,
+                        "obj=s"  => \$objs,
+                        "tel=s" => \$tel,
+                        "mode=s" => \$mod,
+                        "ptype=s" => \$ptype,
+                        "tzone=s" => \$tzone,
+                        "agrid=s" => \$agrid,
+                        "label=s" => \$labpos,
+                        "out=s" => \$out,
+                        "debug" => \$dbug
+                       );
+
+if (defined($dbug)) {
+  print "DEBUG output on\n";
+  $debug = 1;
+}
+
+if (defined($help)) {
+  print "\n--------------------------------------------------------------------\n";
+  print " This routine plots the  EL of sources as a function of Time.\n\n";
+  print "    $program [-proj] projid [-help] [-ut utdate] [-tel telescope]\n";
+  print "                [-mode smode] [-ptype plottype]\n"; # [-tzone timezone]\n";
+  print "                [-agrid 0/1] [-label labelpos] [-out gif | xw]\n\n";
+  print "\t\t(-proj)\tProject to plot (no default)\n";
+  print "\t\t-ut\tUtdate to plot for (YYYYMMDD)\n";
+  print "\t\t-tel\tTelescope name [MKO]\n";
+  print "\t\t-mode\tSources to plot: [active] | completed | all\n";
+  print "\t\t-ptype\t[TIMEEL]/AZEL/TIMEAZ/TIMEPA/TIMENA\n";
+#  print "\t\t-tzone\t[10 = HAWAII]\n";
+  print "\t\t-agrid\t[0] EL grid; 1: airmass grid\n";
+  print "\t\t-label\t[curve] along track; list: on the side\n";
+  print "\t\t-out\tPlot to GIF file (projid.gif) or XW device: Gif/[XW]\n";
+  print "\t\t-help\tThis help\n";
+  print "\t\t-debug\tSwitch on some debug output\n\n";
+  print "A project name is required but the switch prefix '-p' ('-proj')\n";
+  print "is optional. All switches can be abbreviated.\n";
+  print "--------------------------------------------------------------------\n\n";
+  exit;
+};
+
+# Make all parameters trusted
+
+# Project:
+my $projlis;
+unless (defined $prj) {
+  if ($#ARGV > -1) {
+    $prj = $ARGV[0];
+  } else {
+    print "-------------------------------------------------------------\n";
+    print " Error:       You must specify a science program:\n";
+    print "              '$program projid' or '$program -p projid'\n";
+    print "              Type '$program -help' for additional info\n";
+    print "-------------------------------------------------------------\n";
+    exit;
+  }
+}
+$prj =~ /^([\w\@\/\$\.\_]+)$/ && ($projlis = $1) || ($projlis = "");
+
+# UT date
+my $utdate;
+if (defined $pld) {
+  $pld =~ /^(\d{8})$/ && ($utdate = $1) || ($utdate = "");
+  if ($utdate !~ /^\d{8}$/) {
+    print "-------------------------------------------------------------\n";
+    print " Error:       UTDATE '$pld' must have format YYYYMMDD\n";
+    print "              Type '$program -help' for additional info\n";
+    print "-------------------------------------------------------------\n";
+    exit;
+  }
+} else {
+  my ($us, $um, $uh, $md, $mo, $yr, $wd, $yd, $isdst) = gmtime(time);
+  $yr += 1900;
+  $mo += 1;
+  $utdate= 10000*$yr+100*$mo+($md);
+}
+
+# Telescope:
+my $telescope;
+if (defined $tel) {
+  $tel =~ /^([\w\+\-\.\_]+)$/ && ($telescope = $1) || ($telescope = "");
+  if ($telescope eq "") {
+    print "-------------------------------------------------------------\n";
+    print " Error:       Telescope '$tel' should be regular text string\n";
+    print "              Type '$program -help' for additional info\n";
+    print "-------------------------------------------------------------\n";
+    exit;
+  }
+} else {
+   $telescope = 'JCMT';
+   $telescope = 'UKIRT' if ($projlis =~ /^u\//i);
+}
+
+# Mode:
+my $plmode;
+if (defined $mod) {
+  $mod =~ /^([\w\+\-\.\_]+)$/ && ($plmode = $1) || ($plmode = "");
+  if ($plmode !~ /^all$/i && $plmode !~ /^active$/i && $plmode !~ /^completed$/i) {
+    print "-------------------------------------------------------------\n";
+    print " Error:       MODE must be [ all | active | completed ]\n";
+    print "              Type '$program -help' for additional info\n";
+    print "-------------------------------------------------------------\n";
+    exit;
+  }
+} else {
+  $plmode = "Active";
+}
+
+# Output device
+my $outdev;
+if (defined $out) {
+  $out =~ /^([\w\+\-\.\_]+)$/ && ($outdev = $1) || ($outdev = "");
+  if ($outdev ne "gif" and $outdev ne "xw") {
+    print "-------------------------------------------------------------\n";
+    print " Error:       OUT '$outdev' should be either 'gif' or 'xw'\n";
+    print "              Type '$program -help' for additional info\n";
+    print "-------------------------------------------------------------\n";
+    exit;
+  }
+} else {
+  $outdev = "xw";
+}
+
+#----------------------------------------------------------------------
+# Hash with regular sourceplot arguments being passed through directly
+my %sargs;
+
+# Debug: pipe debug request down to Sourceplot
+if ($debug == 1) {
+  $sargs{'debug'} = 1;
+}
+
+# Format:
+if (defined $ptype && $ptype ne "TIMEEL") {
+  $ptype =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'format'} = "$1");
+}
+
+# Timezone:
+if (defined $tzone && $tzone != 10) {
+  $tzone =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'ut0hr'} = "$1");
+}
+
+# Airmassgrid:
+if (defined $agrid && $agrid != 0) {
+  $agrid =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'airmassgrid'} = 1);
+}
+
+# Label position:
+if (defined $labpos && $labpos ne "curve") {
+  $labpos =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'objlabel'} = "$1");
+}
+
+if ($outdev eq 'gif') {
+  $sargs{'hdevice'} = '/gif';
+  $prj = (split/\@/,$projlis)[0];
+  $sargs{'output'} = "${prj}.gif";
+  $sargs{'output'} =~ s/\///g;
+} else {
+  $sargs{'hdevice'} = '/xw';
+  $sargs{'output'} = '';
+}
+my $output = $sargs{'output'};
+
+if ($utdate =~ /^\d{8}$/) {
+  $sargs{'start'} = Time::Piece->strptime( "${utdate}T00:00:00", "%Y%m%dT%T");
+  $sargs{'end'}   = Time::Piece->strptime( "${utdate}T23:59:59", "%Y%m%dT%T");
+
+  if ($tel =~ /jcmt/i or $projlis =~ /^m\d/i) {
+    # Plot around shift change
+    $sargs{'plot_center'} = 1.5*3600.0;
+  }
+  if ($tel =~ /ukirt/i or $projlis =~ /^u\//i) {
+    # Plot smaller time window for UKIRT
+    $sargs{'plot_int'} = 7 * 3600;
+    # Also stop tracks outside time window in AZEL plot
+    $sargs{'start'} = Time::Piece->strptime( "${utdate}T03:00:00", "%Y%m%dT%T");
+    $sargs{'end'}   = Time::Piece->strptime( "${utdate}T16:59:59", "%Y%m%dT%T");
+  }
+
+} else {
+  print "Invalid UTDATE: '$utdate'\n";
+  exit;
+}
+
+
+
+# Project array
+my @projids = split( /\@/, $projlis );
+
+# Array of hashes
+my @objects;
+
+$sargs{'telescope'} = $telescope;
+$sargs{'msbmode'} = $plmode;
+
+print "Projid: $projlis $utdate $telescope $plmode $outdev $output\n" if ($debug);
+
+my @coords = get_coords( 'omp', \@projids, \@objects, %sargs );
+printf "Nr of objects found: %d\n", $#coords+1 if ($debug);
+
+# Call plot subtroutine
+my $plot;
+
+if ($#coords >= 0) {
+  print "Calling sourceplot...\n" if ($debug);
+  $plot = sourceplot( coords => \@coords, %sargs );
+  print "Output saved to: ${plot}\n" if ($outdev eq "gif");
+} else {
+  print "No objects found\n";
+  exit;
+}

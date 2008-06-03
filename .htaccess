@@ -1,0 +1,4 @@
+AuthName "JAC Staff only"
+AuthType Basic
+require valid-user 
+AuthUserFile "/var/www/wikis/staff_wiki/.htpasswd"
