@@ -834,7 +834,7 @@ sub jos_config {
   my %JOSREC = (
                 focus       => 'focus',
                 pointing    => 'pointing',
-                skydip      => 'skydip',
+                skydip      => 'raster_pssw',
                 jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
                 jiggle_chop => 'jiggle_chop',
                 jiggle_pssw => 'grid_pssw',
@@ -1950,7 +1950,8 @@ sub cubes {
 
     # Tangent point (aka group centre) is the base position without offsets
     # Not used if we are in a moving (eg PLANET) frame
-    $cube->group_centre( $info{coords} ) if $info{coords}->type eq 'RADEC';
+    $cube->group_centre( $info{coords} ) 
+      if ($info{obs_type} ne "skydip" && $info{coords}->type eq 'RADEC');
 
     # Calculate Nyquist value for this map
     my $nyq = $self->nyquist( %info );
