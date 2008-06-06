@@ -2558,8 +2558,8 @@ sub acsis_layout {
   $acsis->process_layout( $playout );
 
   # and links
-  my $plinks = new JAC::OCS::Config::ACSIS::ProcessLinks( XML => $layout,
-                                                          validation => 0);
+  my ($nsync, $nreducer, $ngridder) = $self->determine_acsis_layout($cfg, %info);
+  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder);
   $acsis->process_links( $plinks );
 
 }
