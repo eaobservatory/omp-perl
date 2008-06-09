@@ -14,9 +14,9 @@ OMP::Config - parse and supply information from OMP configuration files
   $dbserver = OMP::Config->getData( 'database.server' );
 
   $datadir = OMP::Config->getdata( 'datadir',
-				   telescope => 'JCMT',
+                                   telescope => 'JCMT',
                                    instrument => 'SCUBA',
-				   utdate => 'YYYY-MM-DD');
+                                   utdate => 'YYYY-MM-DD');
 
   $tel = OMP::Config->inferTelescope('instruments', 'SCUBA');
 
@@ -235,20 +235,20 @@ sub inferTelescope {
     if (exists $CONFIG{$tel}->{$refkey}) {
       my $val = $CONFIG{$tel}->{$refkey};
       if (not ref $val) {
-	# compare directly
-	$val = lc($val);
-	if ($val eq $refval) {
-	  push(@matches, $tel);
-	}
+        # compare directly
+        $val = lc($val);
+        if ($val eq $refval) {
+          push(@matches, $tel);
+        }
       } elsif (ref($val) eq 'ARRAY') {
-	my @vals = map { lc($_); } @$val;
-	my @mm = grep { $_ eq $refval } @vals;
-	if (scalar(@mm) > 0) {
-	  push(@matches, $tel);
-	}
+        my @vals = map { lc($_); } @$val;
+        my @mm = grep { $_ eq $refval } @vals;
+        if (scalar(@mm) > 0) {
+          push(@matches, $tel);
+        }
 
       } else {
-	throw OMP::Error::FatalError("Key value is unexpected reference type!");
+        throw OMP::Error::FatalError("Key value is unexpected reference type!");
       }
     }
   }
@@ -338,7 +338,7 @@ sub _checkConfig {
 Read all the configuration files in the config directory and store
 the results.
 
-If the $OMP_SITE_CONFIG environment variable is set this overrides 
+If the $OMP_SITE_CONFIG environment variable is set this overrides
 all the non-telescope settings.
 
 =cut
@@ -362,7 +362,7 @@ sub _read_configs {
 
   # files must end in .cfg and not be hidden
   # and we must prefix the actual directory name
-  my @files = map {File::Spec->catfile($dir,$_) } 
+  my @files = map {File::Spec->catfile($dir,$_) }
          grep { $_ !~ /^\./ }
             grep /\.cfg$/, readdir $dh;
 
@@ -501,9 +501,9 @@ sub _read_cfg_file {
       # We also want to filter out domainalias and hostalias keys
       my %new;
       for my $oldkey (keys %{$data{$key}}) {
-	next if ($oldkey eq 'domainalias' || $oldkey eq 'hostalias');
-	my ($newkey, $newval) = $class->_clean_entry($oldkey, $data{$key}->{$oldkey});
-	$new{$newkey} = $newval;
+        next if ($oldkey eq 'domainalias' || $oldkey eq 'hostalias');
+        my ($newkey, $newval) = $class->_clean_entry($oldkey, $data{$key}->{$oldkey});
+        $new{$newkey} = $newval;
       }
 
       # this involves increasing overhead as more keys are added
@@ -529,12 +529,12 @@ sub _read_cfg_file {
 
     for my $sitefile (@configs) {
       if (-e $sitefile) {
-	my ($slab, $site) = $class->_read_cfg_file( $sitefile );
+        my ($slab, $site) = $class->_read_cfg_file( $sitefile );
 
-	# Site overrides local
-	%cfg = ( %cfg, %$site );
+        # Site overrides local
+        %cfg = ( %cfg, %$site );
       } else {
-	warnings::warnif("Site config specified in '$file' as '$sitefile' but could not be found");
+        warnings::warnif("Site config specified in '$file' as '$sitefile' but could not be found");
       }
     }
   }
@@ -547,33 +547,33 @@ sub _read_cfg_file {
     for my $mergefile (@configs) {
       if (-e $mergefile) {
 
-	my ($slab, $merge) = $class->_read_cfg_file( $mergefile );
+        my ($slab, $merge) = $class->_read_cfg_file( $mergefile );
 
-	# Merge with local (which means merge hashes one level down from siteconfig)
-	for my $k (keys %$merge) {
-	  if (ref($merge->{$k}) eq 'HASH') {
-	    # Hash copy - but only if config either does not exist or is a reference itself
-	    if (exists $cfg{$k} && not ref($cfg{$k})) {
-	      warnings::warnif("Attempting to merge nested data with key $k but original config file has this key as scalar so will not merge");
-	      next;
-	    }
-	    $cfg{$k} = {} unless exists $cfg{$k}; # safety net
+        # Merge with local (which means merge hashes one level down from siteconfig)
+        for my $k (keys %$merge) {
+          if (ref($merge->{$k}) eq 'HASH') {
+            # Hash copy - but only if config either does not exist or is a reference itself
+            if (exists $cfg{$k} && not ref($cfg{$k})) {
+              warnings::warnif("Attempting to merge nested data with key $k but original config file has this key as scalar so will not merge");
+              next;
+            }
+            $cfg{$k} = {} unless exists $cfg{$k}; # safety net
 
-	    # merge
-	    $cfg{$k} = { %{$cfg{$k}}, %{$merge->{$k}} };
+            # merge
+            $cfg{$k} = { %{$cfg{$k}}, %{$merge->{$k}} };
 
-	  } else {
-	    # simple copy overwrite
-	    if (ref($cfg{$k})) {
-	      warnings::warnif("Attempting to merge scalar data with key '$k' into a nested primary. Will not merge");
-	    } else {
-	      $cfg{$k} = $merge->{$k};
-	    }
-	  }
-	}
+          } else {
+            # simple copy overwrite
+            if (ref($cfg{$k})) {
+              warnings::warnif("Attempting to merge scalar data with key '$k' into a nested primary. Will not merge");
+            } else {
+              $cfg{$k} = $merge->{$k};
+            }
+          }
+        }
 
       } else {
-	warnings::warnif("Merge config specified in '$file' as '$mergefile' but could not be found");
+        warnings::warnif("Merge config specified in '$file' as '$mergefile' but could not be found");
       }
     }
   }
@@ -599,7 +599,7 @@ sub _locate_aliases {
       push( @keys, _locate_aliases($nkey, $type, $dataref, $nkey ) );
     } else {
       throw OMP::Error::FatalError("$type alias of '$nkey' defined in entry '$key' " .
-				   "but that $type is not specified in config file");
+                                   "but that $type is not specified in config file");
 
     }
   }
@@ -631,7 +631,7 @@ sub _clean_entry {
     my %nest;
     for my $nestkey (keys %$newval) {
       my ($new_nestkey, $new_nestval) = $class->_clean_entry( $nestkey,
-							      $newval->{$nestkey} );
+                                                              $newval->{$nestkey} );
       $nest{$new_nestkey} = $new_nestval;
     }
     $newval = \%nest;
@@ -703,11 +703,11 @@ sub _determine_default_cfgdir {
     $cfgdir = $ENV{OMP_CFG_DIR};
   } elsif (exists $ENV{OMP_DIR}) {
     $cfgdir = File::Spec->catdir($ENV{OMP_DIR},
-				 "cfg");
+                                 "cfg");
   } else {
     $cfgdir = File::Spec->catdir( $FindBin::RealBin,
-				  File::Spec->updir,
-				  "cfg");
+                                  File::Spec->updir,
+                                  "cfg");
   }
 
   print "Guessing CFGDIR as $cfgdir\n" if $DEBUG;
@@ -782,9 +782,9 @@ sub _format_output {
 
       # Warn if the string includes SEMESTER without us being given a telescope
       if (!exists $tel{tel}) {
-	my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
-	warnings::warnif("Warning. Telescope not supplied despite request for semester")
-	  if $all =~ /_\+semester\+_/i;
+        my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
+        warnings::warnif("Warning. Telescope not supplied despite request for semester")
+          if $all =~ /_\+semester\+_/i;
       }
     }
   }
@@ -849,11 +849,11 @@ sub _traverse_cfg {
     } else {
       # Need to go down a level *if* we have a hash
       if (ref($curhash->{$curkey}) eq 'HASH' ) {
-	return _traverse_cfg( $refkey, $curhash->{$curkey}, @keys);
+        return _traverse_cfg( $refkey, $curhash->{$curkey}, @keys);
       } else {
-	throw OMP::Error::FatalError("Hierarchical key referenced [".$refkey->[0]. "] ".
-				     "but entry '$keys[0]' does not exist in hierarchy ".
-				     "[telescope=".$refkey->[1]."]");
+        throw OMP::Error::FatalError("Hierarchical key referenced [".$refkey->[0]. "] ".
+                                     "but entry '$keys[0]' does not exist in hierarchy ".
+                                     "[telescope=".$refkey->[1]."]");
       }
     }
   } else {
@@ -1019,8 +1019,8 @@ Place,Suite 330, Boston, MA  02111-1307, USA
 
 # secondly set the default config directory (forcing read of config files)
 #__PACKAGE__->cfgdir( File::Spec->catdir($FindBin::RealBin,
-#					File::Spec->updir,
-#					"cfg"));
+#                                       File::Spec->updir,
+#                                       "cfg"));
 
 
 1;
