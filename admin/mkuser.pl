@@ -32,6 +32,9 @@ use OMP::UserServer;
 use OMP::Error qw/ :try /;
 
 while (<>) {
+
+  next if /^\s*#/ or /^\s*$/;
+
   chomp;
   my $line = $_;
 
@@ -47,7 +50,13 @@ while (<>) {
   # and a missing userid
   #  name,email
   # If a single name is supplied this is fine it it ends in a ,
-  my @details  = split(/,/,$line,3);
+  my @details  = split(/\s*,\s*/,$line,3);
+
+  for ( @details ) {
+
+    s/^\s+//;
+    s/\s+$//;
+  }
 
   my ($userid, $name, $email);
   my %user;
@@ -71,7 +80,7 @@ while (<>) {
 
   # Derive user id
   $user{userid} = OMP::User->infer_userid( $user{name} )
-    unless defined $user{userid};
+    unless defined $user{userid} && length $user{userid};
 
   # Create new object
   my $ompuser = new OMP::User( %user );
