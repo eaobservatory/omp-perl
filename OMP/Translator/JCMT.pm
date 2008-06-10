@@ -1066,6 +1066,9 @@ sub rts_config {
     # POL-ness is not relevant
     $obsmode =~ s/_pol//;
 
+    # Spin is not special recipe
+    $obsmode =~ s/_spin//;
+
     # For the purposes of the RTS, the observing mode grid_chop (ie beam switch)
     # is actually a jiggle_chop
     $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';

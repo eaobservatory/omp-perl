@@ -839,7 +839,8 @@ sub jos_config {
                 jiggle_chop => 'jiggle_chop',
                 jiggle_pssw => 'grid_pssw',
                 grid_chop   => 'jiggle_chop',
-                grid_pssw_pol=> ($self->is_pol_step_integ(%info) ? 'grid_pssw_pol_step_integ' : 'grid_pssw'),
+                grid_pssw_spin_pol => 'grid_pssw',
+                grid_pssw_pol=> 'grid_pssw_pol_step_integ',
                 grid_pssw   => 'grid_pssw',
                 scan_pssw => 'raster_pssw',
                );
@@ -1773,6 +1774,9 @@ sub acsisdr_recipe {
     # POL mode does not have a special recipe
     $obsmode =~ s/_pol$//;
 
+    # Spin is not special recipe
+    $obsmode =~ s/_spin//;
+
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
 
@@ -2250,6 +2254,9 @@ sub rtd_config {
 
     # POL is irrelevant
     $obsmode =~ s/_pol$//;
+
+    # Spin is not special recipe
+    $obsmode =~ s/_spin//;
 
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
