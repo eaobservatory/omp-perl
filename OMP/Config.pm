@@ -480,9 +480,13 @@ sub _read_configs {
 
   # files must end in .cfg and not be hidden
   # and we must prefix the actual directory name
-  my @files = map {File::Spec->catfile($dir,$_) }
-          grep { $_ !~ /^\./ }
-            grep /\.cfg$/, readdir $dh;
+  my @files =
+      map
+        { m[\.cfg$] && $_ !~ m[^\.]
+          ? File::Spec->catfile( $dir, $_ )
+            : () ;
+        }
+        readdir $dh;
 
   warn "No config files read from directory $dir!"
     unless scalar(@files);
