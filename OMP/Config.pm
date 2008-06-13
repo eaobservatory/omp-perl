@@ -148,6 +148,46 @@ sub cfgdir {
   return $self->{'cfgdir'};
 }
 
+=item B<configDatabase>
+
+Given a "ini" file for database connection, overrides the existing
+database connection & login information.  Only the "database" and
+"hdr_database" sections are recognised.
+
+  $self->configDatabase( 'db.ini' );
+
+=cut
+
+sub configDatabase {
+
+  my ( $self, $file ) = @_;
+
+  {
+    my $msg =
+      ! defined $file
+      ? 'No database "ini" file given.'
+      : ! ( -f $file && -r _ )
+        ? "'$file' is not a regular, readable file."
+        : ''
+        ;
+
+    $msg and throw OMP::Error::BadArgs $msg;
+  }
+
+  my ( $label, $cf ) = $self->_read_cfg_file( $file );
+
+  # Suck in only the database information, ignoring any other sections.
+  for my $db ( qw[ database hdr_database ] ) {
+
+    next unless exists $cf->{ $db };
+
+    $self->{ $DEFAULT_CONFIG }{ $db }{ $_ } = $cf->{ $db }{ $_ }
+      for keys %{ $cf->{ $db } } ;
+  }
+
+  return;
+}
+
 =item B<getData>
 
 Retrieve the data associated with the supplied key.
