@@ -46,31 +46,73 @@ $DEBUG = 0;
 # just in case we need to know where we are
 use FindBin;
 
-# These are the variables that contain the important information
-# [class variables] - the actual configuration
-my %CONFIG;
-
-# Must do two things on startup
-# Note that we use __PACKAGE__ here rather than OMP::Config simply
-# because we can! [and it would allow us to use this code somewhere else]
-
 # First determine the domainname and hostname
 my %CONST;
 __PACKAGE__->_determine_constants;
 
-# Find default config directory
-# If none of the directories exist simply defer the read until later
-__PACKAGE__->_determine_default_cfgdir();
+# Stand-in object solely to satisfy reinterpretted class method calls.
+my $LAST_INST;
+
+# The relevant config table. Only choices are "omp" and a valid telescope
+my $DEFAULT_CONFIG = 'omp';
 
 =head1 METHODS
 
-There are no instance objects created by this class. The config
-files are always read whenever the config directory is changed
-and at startup.
+The config files are always read whenever the config directory is
+changed and at startup.
 
 =head2 Public Methods
 
 =over 4
+
+=item B<new>
+
+Constructor, returns an I<OMP::Config> object and takes a hash of
+optional values.  Currently only "cfgdir" is recognised.
+
+  # Uses default directory with "ini" style configuration files,
+  # ending in ".cfg".
+  my $config = OMP::Config->new;
+
+  # Supply a particular directory.
+  $config = OMP::Config->new( 'cfgdir' => '/path/to/dir' );
+
+
+L<OMP::Error::BadArgs> exception is thrown when no directory is found.
+
+=cut
+
+CHECK
+{
+  my @opt = qw[ cfgdir ];
+
+  sub new {
+
+    my $class = shift;
+    my %opt = @_;
+
+    $DEBUG > 1 and print "In new()\n  ", Dumper( \%opt );
+
+    # Set default configuration directory.
+    unless ( exists $opt{'cfgdir'} ) {
+
+      $DEBUG and print '  Setting "cfgdir" to default of ';
+
+      $opt{'cfgdir'} = __PACKAGE__->_determine_default_cfgdir ;
+
+      $DEBUG and print $opt{'cfgdir'}, "\n";
+    }
+
+    throw OMP::Error::BadArgs "Need at least 'cfgdir' directory"
+      unless exists $opt{'cfgdir'}
+        && -d $opt{'cfgdir'} ;
+
+    my $prop = { };
+    $prop->{ $_ } = $opt{ $_ } for @opt;
+
+    return $LAST_INST = bless $prop, $class;
+  }
+}
 
 =item B<cfgdir>
 
@@ -85,25 +127,25 @@ is changed, old configs are cleared.
 
 =cut
 
-{
-  # Keep the real variable private
-  my $cfgdir;
-  sub cfgdir {
-    my $class = shift;
-    print "In cfgdir method\n" if $DEBUG;
-    if (@_) {
-      my $dir = shift;
-      print "dir: $dir\n" if $DEBUG;
-      if (-d $dir) {
-        $cfgdir = $dir;
-        print "cfgdir: $cfgdir\n" if $DEBUG;
-        %CONFIG = (); # reset configs
-      } else {
-        throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
-      }
+sub cfgdir {
+  my $class = shift;
+
+  my $self = _get_instance( $class );
+
+  print "In cfgdir method\n" if $DEBUG;
+
+  if (@_) {
+    my $dir = shift;
+    print "dir: $dir\n" if $DEBUG;
+
+    if (-d $dir) {
+      $self->{'cfgdir'} = $dir;
+      print "cfgdir: ", $self->{'cfgdir'}, "\n" if $DEBUG;
+    } else {
+      throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
     }
-    return $cfgdir;
   }
+  return $self->{'cfgdir'};
 }
 
 =item B<getData>
@@ -147,18 +189,19 @@ sub getData {
   my $key = lc(shift);
   my %args = @_;
 
-  # Make sure we have read some files (ie specified a cfgdir)
-  $class->_checkConfig;
+  my $self = _get_instance( $class );
 
-  # Need to find the relevant config table. Only choices are "omp"
-  # and a valid telescope
-  my $table = "omp";
+  # Make sure we have read some files (ie specified a cfgdir)
+  $self->_checkConfig;
+
+  # It may be overriden later.
+  my $table = $DEFAULT_CONFIG;
 
   # Do we have a telescope?
   if (exists $args{telescope}) {
     # and is it valid
     my $tel = lc($args{telescope});
-    if (exists $CONFIG{$tel}) {
+    if (exists $self->{$tel}) {
       $table = $tel;
     } else {
       throw OMP::Error::FatalError("Telescope [$tel] is not recognized by the OMP config system");
@@ -169,10 +212,10 @@ sub getData {
   my @keys = split(/\./, $key);
 
   # Now traverse the hash looking for the supplied key
-  my $value = _traverse_cfg( [$key, $table], $CONFIG{$table}, @keys);
+  my $value = _traverse_cfg( [$key, $table], $self->{$table}, @keys);
 
   # Now need to either replace the placeholders or convert to array
-  my $retval = $class->_format_output( $value, %args );
+  my $retval = $self->_format_output( $value, %args );
   if (wantarray) {
     my $ref = ref($retval);
     if (not $ref) {
@@ -200,8 +243,11 @@ Return a list of telescopes for which a config file exists.
 
 sub telescopes {
   my $class = shift;
-  $class->_checkConfig;
-  return grep { $_ ne 'omp' }  keys %CONFIG;
+
+  my $self = _get_instance( $class );
+
+  $self->_checkConfig;
+  return grep { $_ ne 'omp' }  keys %{ $self };
 }
 
 =item B<inferTelescope>
@@ -227,13 +273,15 @@ sub inferTelescope {
   my $refkey = lc(shift);
   my $refval = lc(shift);
 
+  my $self = _get_instance( $class );
+
   # Make sure we have read some files (ie specified a cfgdir)
-  $class->_checkConfig;
+  $self->_checkConfig;
 
   my @matches;
-  for my $tel (keys %CONFIG) {
-    if (exists $CONFIG{$tel}->{$refkey}) {
-      my $val = $CONFIG{$tel}->{$refkey};
+  for my $tel (keys %{ $self } ) {
+    if (exists $self->{$tel}->{$refkey}) {
+      my $val = $self->{$tel}->{$refkey};
       if (not ref $val) {
         # compare directly
         $val = lc($val);
@@ -283,18 +331,20 @@ sub dumpData {
   my $class = shift;
   my $key = lc(shift);
 
+  my $self = _get_instance( $class );
+
   # Make sure we have read some files (ie specified a cfgdir)
-  $class->_checkConfig;
+  $self->_checkConfig;
 
   my $dref;
   if ($key) {
-    if (exists $CONFIG{$key}) {
-      $dref = $CONFIG{$key};
+    if (exists $self->{$key}) {
+      $dref = $self->{$key};
     } else {
       $dref = {};
     }
   } else {
-    $dref = \%CONFIG;
+    $dref = $self;
   }
 
   print Dumper($dref);
@@ -306,6 +356,30 @@ sub dumpData {
 =head2 Internal Methods
 
 =over 4
+
+=item   B<_get_instance>
+
+Returns the last create instance to take care of a method being called
+as class method.  If there does not exist one already, it will be
+created.
+
+  $obj = _get_instance( 'OMP::Config' );
+
+=cut
+
+sub _get_instance {
+
+  my ( $self ) = @_;
+
+  $DEBUG > 1 and print __LINE__ . ' ' . "Testing \$self\n";
+  return $self if ref $self && $self->isa( __PACKAGE__ );
+
+  $DEBUG > 1 and print __LINE__ . '  ' . "Testing \$LAST_INST\n";
+  return $LAST_INST if ref $LAST_INST && $LAST_INST->isa( __PACKAGE__ );
+
+  $DEBUG > 1 and print __LINE__ . '   ' . "Creating new instance\n";
+  return __PACKAGE__->new;
+}
 
 =item B<_checkConfig>
 
@@ -319,14 +393,16 @@ attempt to read a config. If still no keys throw an exception.
 sub _checkConfig {
   my $class = shift;
 
+  my $self = _get_instance( $class );
+
   # check for the OMP key
-  if (!exists $CONFIG{omp}) {
+  if (!exists $self->{ $DEFAULT_CONFIG }) {
     # Try to read the configs on demand
-    $class->_read_configs();
+    $self->_read_configs();
 
     # if still no luck complain about it
-    if (!exists $CONFIG{omp}) {
-      my $cfgdir = $class->cfgdir;
+    if (!exists $self->{ $DEFAULT_CONFIG }) {
+      my $cfgdir = $self->cfgdir;
       $cfgdir = (defined $cfgdir ? $cfgdir : "<undefined>");
       throw OMP::Error::FatalError("We have not read any config files yet. Please set cfgdir [currently = '$cfgdir']");
     }
@@ -346,8 +422,10 @@ all the non-telescope settings.
 sub _read_configs {
   my $class = shift;
 
+  my $self = _get_instance( $class );
+
   # First step is to read all the .cfg files from the config directory
-  my $dir = $class->cfgdir;
+  my $dir = $self->cfgdir;
 
   if ($DEBUG) {
     my $text = (defined $dir ? $dir : "<undef>");
@@ -363,7 +441,7 @@ sub _read_configs {
   # files must end in .cfg and not be hidden
   # and we must prefix the actual directory name
   my @files = map {File::Spec->catfile($dir,$_) }
-         grep { $_ !~ /^\./ }
+          grep { $_ !~ /^\./ }
             grep /\.cfg$/, readdir $dh;
 
   warn "No config files read from directory $dir!"
@@ -377,18 +455,16 @@ sub _read_configs {
   print Dumper(\@files) if $DEBUG;
 
   # Read each of the files and store the results
-  my %read = map { $class->_read_cfg_file($_) } @files;
+  my %read = map { $self->_read_cfg_file($_) } @files;
 
   # Do we have a 'omp' entry? Is this fatal?
-  $read{omp} = {} unless exists $read{omp};
-
-  print Dumper(\%read) if $DEBUG;
+  $read{ $DEFAULT_CONFIG } = {} unless exists $read{ $DEFAULT_CONFIG };
 
   # if we have a siteconfig override environment variable, read that
   my %envsite;
   if (exists $ENV{OMP_SITE_CONFIG}) {
     if (-e $ENV{OMP_SITE_CONFIG}) {
-      my ($slab, $site) = $class->_read_cfg_file( $ENV{OMP_SITE_CONFIG} );
+      my ($slab, $site) = $self->_read_cfg_file( $ENV{OMP_SITE_CONFIG} );
       %envsite = %$site;
     } else {
       warnings::warnif("Site config specified as '$ENV{OMP_SITE_CONFIG}' in \$OMP_SITE_CONFIG but could not be found");
@@ -400,11 +476,11 @@ sub _read_configs {
   # look in two places for each lookup.
   # We also override the contents from the environment variable site config
   # which overrides everything
-  $CONFIG{omp} = { %{$read{omp}}, %envsite };
-  delete $read{omp};
+  $self->{ $DEFAULT_CONFIG } = { %{$read{ $DEFAULT_CONFIG }}, %envsite };
+  delete $read{ $DEFAULT_CONFIG };
 
   for my $cfg (keys %read) {
-    $CONFIG{$cfg} = { %{$CONFIG{omp}}, %{$read{$cfg}} };
+    $self->{$cfg} = { %{$self->{ $DEFAULT_CONFIG }}, %{$read{$cfg}} };
   }
 
   # done
@@ -438,6 +514,8 @@ and merged with existing data. Nested structures will be merged one level down.
 sub _read_cfg_file {
   my $class = shift;
   my $file = shift;
+
+  my $self = _get_instance( $class );
 
   # Determine the "label"
   my $label = basename($file,'.cfg');
@@ -502,7 +580,7 @@ sub _read_cfg_file {
       my %new;
       for my $oldkey (keys %{$data{$key}}) {
         next if ($oldkey eq 'domainalias' || $oldkey eq 'hostalias');
-        my ($newkey, $newval) = $class->_clean_entry($oldkey, $data{$key}->{$oldkey});
+        my ($newkey, $newval) = $self->_clean_entry($oldkey, $data{$key}->{$oldkey});
         $new{$newkey} = $newval;
       }
 
@@ -519,7 +597,7 @@ sub _read_cfg_file {
     next if $key eq 'default';
 
     # clean them up en route (they will be references to a hash)
-    my ($newkey, $newval) = $class->_clean_entry( $key, $data{$key});
+    my ($newkey, $newval) = $self->_clean_entry( $key, $data{$key});
     $cfg{$newkey} = $newval;
   }
 
@@ -529,7 +607,7 @@ sub _read_cfg_file {
 
     for my $sitefile (@configs) {
       if (-e $sitefile) {
-        my ($slab, $site) = $class->_read_cfg_file( $sitefile );
+        my ($slab, $site) = $self->_read_cfg_file( $sitefile );
 
         # Site overrides local
         %cfg = ( %cfg, %$site );
@@ -547,7 +625,7 @@ sub _read_cfg_file {
     for my $mergefile (@configs) {
       if (-e $mergefile) {
 
-        my ($slab, $merge) = $class->_read_cfg_file( $mergefile );
+        my ($slab, $merge) = $self->_read_cfg_file( $mergefile );
 
         # Merge with local (which means merge hashes one level down from siteconfig)
         for my $k (keys %$merge) {
@@ -606,7 +684,6 @@ sub _locate_aliases {
   return @keys,
 }
 
-
 =item B<_clean_entry>
 
 Clean up an entry in the config hash. Will lower case keys and convert
@@ -621,6 +698,8 @@ sub _clean_entry {
   my $oldkey = shift;
   my $oldval = shift;
 
+  my $self = _get_instance( $class );
+
   my $newkey = lc($oldkey);
   my $newval = $oldval;
 
@@ -630,7 +709,7 @@ sub _clean_entry {
     # Nested. Need to recurse
     my %nest;
     for my $nestkey (keys %$newval) {
-      my ($new_nestkey, $new_nestval) = $class->_clean_entry( $nestkey,
+      my ($new_nestkey, $new_nestval) = $self->_clean_entry( $nestkey,
                                                               $newval->{$nestkey} );
       $nest{$new_nestkey} = $new_nestval;
     }
@@ -703,7 +782,7 @@ sub _determine_default_cfgdir {
     $cfgdir = $ENV{OMP_CFG_DIR};
   } elsif (exists $ENV{OMP_DIR}) {
     $cfgdir = File::Spec->catdir($ENV{OMP_DIR},
-                                 "cfg");
+                                "cfg");
   } else {
     $cfgdir = File::Spec->catdir( $FindBin::RealBin,
                                   File::Spec->updir,
@@ -712,10 +791,7 @@ sub _determine_default_cfgdir {
 
   print "Guessing CFGDIR as $cfgdir\n" if $DEBUG;
 
-  # set it if it is accessible
-  $class->cfgdir($cfgdir)
-    if -d $cfgdir;
-
+  return $cfgdir if -d $cfgdir;
   return;
 }
 
