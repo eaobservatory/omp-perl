@@ -391,7 +391,11 @@ sub dumpData {
     $dref = $self;
   }
 
-  print Dumper($dref);
+  {
+    local $Data::Dumper::Sortkeys = 1;
+    local $Data::Dumper::Indent = 1;
+    print Dumper($dref);
+  }
 
 }
 
