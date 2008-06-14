@@ -82,7 +82,7 @@ L<OMP::Error::BadArgs> exception is thrown when no directory is found.
 
 =cut
 
-CHECK
+BEGIN
 {
   my @opt = qw[ cfgdir ];
 
@@ -91,20 +91,24 @@ CHECK
     my $class = shift;
     my %opt = @_;
 
-    $DEBUG > 1 and print "In new()\n  ", Dumper( \%opt );
+    $DEBUG and print "In new(), remaining: \@_ \n  ", Dumper( \%opt );
 
     # Set default configuration directory.
     unless ( exists $opt{'cfgdir'} ) {
 
-      $DEBUG and print '  Setting "cfgdir" to default of ';
+      $DEBUG and print "Setting 'cfgdir' to default.\n";
 
       $opt{'cfgdir'} = __PACKAGE__->_determine_default_cfgdir ;
 
-      $DEBUG and print $opt{'cfgdir'}, "\n";
+      $DEBUG and
+        print 'cfgdir is ',
+          (defined $opt{'cfgdir'} ? $opt{'cfgdir'} : '<undef>'),
+          "\n";
     }
 
     throw OMP::Error::BadArgs "Need at least 'cfgdir' directory"
-      unless exists $opt{'cfgdir'}
+        unless exists $opt{'cfgdir'}
+        && defined $opt{'cfgdir'}
         && -d $opt{'cfgdir'} ;
 
     my $prop = { };
