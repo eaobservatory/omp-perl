@@ -873,7 +873,8 @@ sub jos_config {
 
   # Always start at the first TCS index (row or offset)
   # - if a science observation
-  $jos->start_index( 1 ) if $info{obs_type} eq 'science';
+  $jos->start_index( 1 ) 
+    if $info{obs_type} =~ /science|skydip/;
 
   # Now parameters depends on that recipe name
 
