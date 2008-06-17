@@ -528,7 +528,12 @@ sub tcs_base {
     }
 
     # The OT can only specify tracking as the TRACKING system
-    $b->tracking_system ( 'TRACKING' );
+    if ($info{obs_type} eq 'skydip') {
+      # Skydips must always be in AZEL
+      $b->tracking_system ( 'AZEL' );
+    } else {
+      $b->tracking_system ( 'TRACKING' );
+    }
 
     $base{$t} = $b;
   }
