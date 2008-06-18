@@ -940,7 +940,7 @@ sub _plot_spectrum {
   }
 
   # Slight hackery to handle bad pixels.
-  $spectrum = 0 * ( $spectrum < -1e25 ) + $spectrum * ( $spectrum >= -1e25 );
+  $spectrum = $spectrum->setbadif( $spectrum < -1e25 );
 
   if( exists $args{zmin} && defined $args{zmin} ) {
     $zmin = $args{zmin};
