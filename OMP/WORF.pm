@@ -914,7 +914,6 @@ sub _plot_spectrum {
   }
 
 # Grab the axis information
-
   my $hdr = $image->gethdr;
   my $title = ( defined( $hdr->{Title} ) ? $hdr->{Title} : '' );
   my ( $axis, $axishdr, $units, $label );
@@ -939,6 +938,10 @@ sub _plot_spectrum {
   } else {
     $xend = $xdim - 1;
   }
+
+  # Slight hackery to handle bad pixels.
+  $spectrum = 0 * ( $spectrum < -1e25 ) + $spectrum * ( $spectrum >= -1e25 );
+
   if( exists $args{zmin} && defined $args{zmin} ) {
     $zmin = $args{zmin};
   } else {
