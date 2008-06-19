@@ -88,7 +88,7 @@ while (<>) {
   die "Error creating user object: $user{userid}\n"
     unless $ompuser;
 
-  print $ompuser->userid . ":" . $ompuser->name ."," . 
+  print $ompuser->userid . ":" . $ompuser->name ."," .
     (defined $ompuser->email ? $ompuser->email  : "EMPTY" )."\n";
 
   # More efficient to do the add and catch the failure rather than
@@ -101,8 +101,8 @@ while (<>) {
     if ($exist) {
       print "\n*** ";
       print "Failed to add user. Existing entry retrieved for comparison:\n";
-      print "#" .$exist->userid . ":" . $exist->name ."," . 
-	(defined $exist->email ? $exist->email : "EMPTY" )."\n";
+      print "#" .$exist->userid . ":" . $exist->name ."," .
+        (defined $exist->email ? $exist->email : "EMPTY" )."\n";
       print "***\n";
     } else {
       print "ERROR ADDING USER $user{userid}\n";
