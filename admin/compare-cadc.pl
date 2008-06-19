@@ -5,11 +5,13 @@ use warnings;
 use Data::Dumper;
 
 use DBI;
+use FindBin;
 use Getopt::Long qw[ :config gnu_compat no_ignore_case no_debug ];
 use List::Util qw[ max first ];
 use MIME::Lite;
 use Pod::Usage;
 
+use lib "$FindBin::RealBin/..";
 use OMP::Config;
 
 $ENV{'SYBASE'} = qw[/local/progs/sybase];
