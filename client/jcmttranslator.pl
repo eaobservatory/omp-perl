@@ -209,6 +209,9 @@ my $xml;
 my $filename = OMP::TransServer->translate( $xml, { simulate => $sim,
 						    log => $log});
 
+die "Nothing was translated. Was the science program empty?"
+  unless $filename;
+
 # convert the filename to an absolute path
 print File::Spec->rel2abs($filename) ."\n";
 
