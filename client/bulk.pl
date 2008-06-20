@@ -111,11 +111,11 @@ use OMP::ProjServer;
 # Options
 my ($commentfile, $help, $man, $projectsfile, $author, $version);
 my $status = GetOptions(
-			"comment=s" => \$commentfile,
-			"help" => \$help,
+                        "comment=s" => \$commentfile,
+                        "help" => \$help,
                         "man" => \$man,
-			"projects=s" => \$projectsfile,
-			"userid=s" => \$author,
+                        "projects=s" => \$projectsfile,
+                        "userid=s" => \$author,
                         "version" => \$version,
                        );
 
@@ -170,9 +170,9 @@ close($comment_fh);
 my $subject = shift(@comment);
 
 my %comment = (text => join("", @comment),
-	       author => $user,
-	       program => 'COMMENT_CLIENT',
-	       subject => $subject,);
+               author => $user,
+               program => 'COMMENT_CLIENT',
+               subject => $subject,);
 
 # Submit the comment for each project
 for my $projectid (@projects) {
