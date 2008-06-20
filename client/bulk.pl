@@ -32,6 +32,11 @@ be submitted.
 Specify the location of the file containing IDs of projects for which
 the comment will be submitted.
 
+=item B<-support>
+
+Mark comment with "support" status to limit the emails sent only to the support
+staff.
+
 =item B<-userid>
 
 Specify the user ID of the comment author.
@@ -103,13 +108,15 @@ use Term::ReadLine;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
+use OMP::Constants qw[ fb ];
 use OMP::FBServer;
 use OMP::Password;
 use OMP::UserServer;
 use OMP::ProjServer;
 
 # Options
-my ($commentfile, $help, $man, $projectsfile, $author, $version);
+my ($commentfile, $help, $man, $projectsfile, $author, $version, $type);
+
 my $status = GetOptions(
                         "comment=s" => \$commentfile,
                         "help" => \$help,
@@ -117,6 +124,7 @@ my $status = GetOptions(
                         "projects=s" => \$projectsfile,
                         "userid=s" => \$author,
                         "version" => \$version,
+                        "support" => sub { $type = 'support' },
                        );
 
 pod2usage(1) if $help;
@@ -173,6 +181,9 @@ my %comment = (text => join("", @comment),
                author => $user,
                program => 'COMMENT_CLIENT',
                subject => $subject,);
+
+$type eq 'support' and
+  $comment{'status'} = OMP__FB_SUPPORT;
 
 # Submit the comment for each project
 for my $projectid (@projects) {
