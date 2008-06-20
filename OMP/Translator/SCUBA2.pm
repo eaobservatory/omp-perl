@@ -444,7 +444,16 @@ sub jos_config {
   # Non science observing types
   if ($info{obs_type} =~ /focus/ ) {
     $jos->num_focus_steps( $info{focusPoints} );
-    $jos->focus_step( $info{focusStep} );
+    # Focus step is missing from OT at the moment.
+    my $stepsize = $info{focusStep};
+    if (!defined $stepsize) {
+      if ($info{focusAxis} =~ /z/i) {
+        $stepsize = 0.3;
+      } else {
+        $stepsize = 1.0;
+      }
+    }
+    $jos->focus_step( $stepsize );
     $jos->focus_axis( $info{focusAxis} );
   }
 

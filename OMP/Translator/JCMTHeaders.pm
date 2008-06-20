@@ -350,6 +350,11 @@ sub getInstAper {
   return ( defined $ap ? $ap : "" );
 }
 
+sub getTrkRecep {
+  my $class = shift;
+  return $class->getInstAper( @_ );
+}
+
 =item B<getOCSCFG>
 
 This gets written automatically by the OCS Config classes. This is a dummy configuration
