@@ -205,6 +205,23 @@ sub determine_scan_angles {
   return ($info{SCAN_SYSTEM}, @scanpas);
 }
 
+=item B<is_private_sequence>
+
+Returns true if the sequence only requires the instrument itself
+to be involved. If true, the telescope, SMU and RTS are not involved
+and so do not generate configuration XML.
+
+  $trans->is_private_sequence( %info );
+
+For ACSIS always returns false.
+
+=cut
+
+sub is_private_sequence {
+  return 0;
+}
+
+
 =item B<fixup_historical_problems>
 
 In order for DAS observations to be translated as ACSIS observations we

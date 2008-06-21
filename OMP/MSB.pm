@@ -4215,6 +4215,10 @@ sub SpIterFolder {
                                                       }});
 
 
+    } elsif ($name eq 'SpIterFlatObs') {
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
+                                                        }});
+
     } elsif ($name eq 'SpIterNoiseObs') {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');

@@ -129,6 +129,9 @@ sub translate {
     # the correct parameters
     $self->handle_special_modes( $obs );
 
+    # Do we need other tasks?
+    my $ispriv = $self->is_private_sequence( %$obs );
+
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
 
@@ -149,7 +152,7 @@ sub translate {
     $self->instrument_config( $cfg, %$obs );
 
     # configure the basic TCS parameters
-    $self->tcs_config( $cfg, %$obs );
+    $self->tcs_config( $cfg, %$obs ) unless $ispriv;
 
     # call the special routines for this instrument
     $self->frontend_backend_config( $cfg, %$obs );
@@ -158,18 +161,20 @@ sub translate {
     $self->header_config( $cfg, %$obs );
 
     # Polarimeter
-    $self->pol_config( $cfg, %$obs );
+    $self->pol_config( $cfg, %$obs ) unless $ispriv;
 
     # RTS
-    $self->rts_config( $cfg, %$obs );
+    $self->rts_config( $cfg, %$obs ) unless $ispriv;
 
     # JOS Config
     $self->jos_config( $cfg, %$obs );
 
     # Slew and rotator need to wait until we can estimate
     # the duration of the configuration
-    $self->slew_config( $cfg, %$obs );
-    $self->rotator_config( $cfg, %$obs );
+    if (!$ispriv) {
+      $self->slew_config( $cfg, %$obs );
+      $self->rotator_config( $cfg, %$obs );
+    }
 
     # Simulator
     $self->simulator_config( $cfg, %$obs ) if $opts{simulate};
@@ -989,6 +994,27 @@ sub header_config {
   my $hdr = new JAC::OCS::Config::Header( validation => 0,
                                           File => $file );
 
+  # Some observing modes have exclusion files.
+  # First build the filename
+  my $xfile = $self->header_exclusion_file(%info);
+
+  # Read the exclusion file
+  my @toexclude = $self->read_header_exclusion_file( $xfile );
+
+  for my $ex (@toexclude) {
+    # ask for the header item
+    my $item = $hdr->item( $ex );
+
+    if (defined $item) {
+      # force undef
+      $item->undefine;
+      print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
+    } else {
+      print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
+        if $self->verbose;
+    }
+  }
+
   # Get all the items that we are to be processed by the translator
   my @items = $hdr->item( sub { 
                             defined $_[0]->source
@@ -1020,27 +1046,6 @@ sub header_config {
 
   # clear global handles to allow the file to close at some point
   OMP::Translator::JCMTHeaders->HANDLES( undef );
-
-  # Some observing modes have exclusion files.
-  # First build the filename
-  my $xfile = $self->header_exclusion_file(%info);
-
-  # Read the exclusion file
-  my @toexclude = $self->read_header_exclusion_file( $xfile );
-
-  for my $ex (@toexclude) {
-    # ask for the header item
-    my $item = $hdr->item( $ex );
-
-    if (defined $item) {
-      # force undef
-      $item->undefine;
-      print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
-    } else {
-      print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
-        if $self->verbose;
-    }
-  }
 
   $cfg->header( $hdr );
 

@@ -131,6 +131,8 @@ sub header_exclusion_file {
   my $root;
   if ($info{obs_type} =~ /focus|skydip/) {
     $root = $info{obs_type} . "_". $info{mapping_mode};
+  } elsif ($info{obs_type} eq 'flatfield') {
+    $root = $info{obs_type};
   } else {
     # A pointing is just the mapping mode
     $root = $info{mapping_mode};
@@ -167,6 +169,27 @@ sub determine_scan_angles {
   my @scanpas = map { $basepa + (90*$_) } (0..3);
 
   return ("FPLANE", @scanpas);
+}
+
+=item B<is_private_sequence>
+
+Returns true if the sequence only requires the instrument itself
+to be involved. If true, the telescope, SMU and RTS are not involved
+and so do not generate configuration XML.
+
+  $trans->is_private_sequence( %info );
+
+For SCUBA-2 returns true for Flatfield, false otherwise.
+
+=cut
+
+sub is_private_sequence {
+  my $self = shift;
+  my %info = @_;
+  if ($info{obs_type} eq 'flatfield') {
+    return 1;
+  }
+  return 0;
 }
 
 =item B<handle_special_modes>
@@ -292,12 +315,6 @@ sub jos_config {
   # Basics
   $jos->step_time( $self->step_time );
 
-  # Need an obsArea for number of microsteps
-  my $tcs = $cfg->tcs;
-  throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-  my $obsArea = $tcs->getObsArea();
-  throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
-
   # Allowed JOS recipes seem to be
   #   scuba2_scan
   #   scuba2_dream
@@ -358,6 +375,10 @@ sub jos_config {
       }
     }
 
+  } elsif ($info{obs_type} =~ /^flatfield/) {
+
+    # need some stuff in here
+
   } elsif ($info{mapping_mode} eq 'stare'
           || $info{mapping_mode} eq 'dream') {
     # STARE and DREAM have the same calculations because the
@@ -374,6 +395,12 @@ sub jos_config {
       }
     }
     OMP::Error::FatalError->throw("Could not determine integration time for $info{mapping_mode} observation") unless defined $inttime;
+
+    # Need an obsArea for number of microsteps
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
 
     # This time should be spread over the number of microsteps
     my @ms = $obsArea->microsteps;
@@ -556,6 +583,9 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterFocusObs') {
     $mapping_mode = OMP::Config->getData($self->cfgkey.".focus_obsmode");
     $obs_type = 'focus';
+  } elsif ($mode eq 'SpIterFlatObs') {
+    $obs_type = "flatfield";
+    $mapping_mode = "stare";
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
     if ($sdip_mode =~ /^cont/) {
