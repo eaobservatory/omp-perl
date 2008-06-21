@@ -54,8 +54,8 @@ sub addUser {
   try {
 
     my $db = new OMP::UserDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $db->addUser($user);
 
@@ -95,8 +95,8 @@ sub updateUser {
   try {
 
     my $db = new OMP::UserDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $db->updateUser( $user );
 
@@ -135,8 +135,8 @@ sub verifyUser {
   try {
 
     my $db = new OMP::UserDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $status = $db->verifyUser($userid);
 
@@ -178,8 +178,8 @@ sub getUser {
   try {
 
     my $db = new OMP::UserDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     $user = $db->getUser($userid);
 
@@ -221,7 +221,7 @@ This would return the user information for TIMJ and AJA.
 The format of the returned data is controlled by the last argument.
 This can either be "object" (a reference to an array containing
 C<OMP::User> objects), "hash" (reference to an array of hashes), or
-"xml" (return data as XML document). 
+"xml" (return data as XML document).
 
 I<Currently only "object" is implemented>.
 
@@ -240,8 +240,8 @@ sub queryUsers {
     my $query = new OMP::UserQuery( XML => $xmlquery );
 
     my $db = new OMP::UserDB(
-			     DB => $class->dbConnection,
-			    );
+                             DB => $class->dbConnection,
+                            );
 
     @users = $db->queryUsers( $query );
 
@@ -286,8 +286,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
