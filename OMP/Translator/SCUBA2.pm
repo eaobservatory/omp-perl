@@ -488,14 +488,15 @@ sub need_offset_tracking {
 
 =item B<step_time>
 
-Step time for SCUBA-2 is fixed at 200 Hz.
+Step time for SCUBA-2 is usually fixed at 200 Hz.
 
  $rts = $trans->step_time( $cfg, %info );
 
 =cut
 
 sub step_time {
-  return 0.005;
+  my $self = shift;
+  return OMP::Config->getData( $self->cfgkey . '.step_time' );
 }
 
 =item B<velOverride>
