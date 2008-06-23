@@ -108,7 +108,7 @@ use Term::ReadLine;
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
-use OMP::Constants qw[ fb ];
+use OMP::Constants qw[ :fb ];
 use OMP::FBServer;
 use OMP::Password;
 use OMP::UserServer;
