@@ -63,8 +63,8 @@ sub fb_entries {
     or $order = 'ascending';
 
   my $comments = OMP::FBServer->getComments( $cookie{projectid},
-					     $cookie{password},
-					     $status, $order);
+                                             $cookie{password},
+                                             $status, $order);
 
   print "<SCRIPT LANGUAGE='javascript'> ";
   print "function mysubmit() ";
@@ -73,27 +73,27 @@ sub fb_entries {
 
 
   print $q->h2("Feedback entries"),
-	$q->startform(-name=>'sortform'),
-	"<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
-	"Order: ",
-	$q->hidden(-name=>'show_content',
-		   -default=>1),
-	$q->popup_menu(-name=>'order',
-		       -values=>[qw/ascending descending/],
-		       -default=>'ascending',
-		       -onChange=>'mysubmit()'),
+        $q->startform(-name=>'sortform'),
+        "<a href='fbcomment.pl'>Add a comment</a>&nbsp;&nbsp;|&nbsp;&nbsp;",
+        "Order: ",
+        $q->hidden(-name=>'show_content',
+                   -default=>1),
+        $q->popup_menu(-name=>'order',
+                       -values=>[qw/ascending descending/],
+                       -default=>'ascending',
+                       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;&nbsp;",
-	"Show: ",
+        "Show: ",
 
-	$q->popup_menu(-name=>'show',
-		       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],
-		       -default=>OMP__FB_IMPORTANT,
-		       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"},
-		       -onChange=>'mysubmit()'),
+        $q->popup_menu(-name=>'show',
+                       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],
+                       -default=>OMP__FB_IMPORTANT,
+                       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"},
+                       -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;",
         $q->submit("Refresh"),
         $q->endform,
-	$q->p;
+        $q->p;
 
   foreach my $row (@$comments) {
     # make the date more readable here
@@ -106,11 +106,11 @@ sub fb_entries {
 
     print "<font size=+1>Entry $row->{entrynum} (on $date by ",
 
-	  # If author is not defined display sourceinfo as the author
+          # If author is not defined display sourceinfo as the author
           ($row->{author} ? OMP::Display->userhtml($row->{author}, $q) : $row->{sourceinfo}) . " )</font><br>",
-	  "<b>Subject: $row->{'subject'}</b><br>",
+          "<b>Subject: $row->{'subject'}</b><br>",
           "$text",
-	  "<p>";
+          "<p>";
   }
 
   print "<a href='fbcomment.pl'>Add a comment</a><p>",
@@ -129,8 +129,8 @@ sub fb_entries_hidden {
   my %cookie = @_;
 
   my $comments = OMP::FBServer->getComments($cookie{projectid},
-					    $cookie{password},
-					    [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],);
+                                            $cookie{password},
+                                            [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],);
   print $q->h2("Feedback entries");
     if (scalar(@$comments) == 1) {
       print "There is 1 comment";
@@ -167,26 +167,26 @@ sub comment_form {
   # lost and a login form will be popped up.  the addComment method doesn't
   # actually require a password to work, however...
 
-    	$q->hidden(-name=>'show_output',
-		   -default=>1),
+        $q->hidden(-name=>'show_output',
+                   -default=>1),
         $q->hidden(-name=>'projectid',
-		   -default=>$cookie{projectid}),
+                   -default=>$cookie{projectid}),
         $q->br,
-	"User ID: </td><td>",
-	$q->textfield(-name=>'author',
-		      -size=>20,
-		      -maxlength=>32),
+        "User ID: </td><td>",
+        $q->textfield(-name=>'author',
+                      -size=>20,
+                      -maxlength=>32),
         "</td><tr><td align='right'>Subject: </td><td>",
-	$q->textfield(-name=>'subject',
-		      -size=>50,
-		      -maxlength=>70),
-	"</td><tr><td></td><td>",
-	$q->textarea(-name=>'text',
-		     -rows=>10,
-		     -columns=>80),
-	"</td><tr><td></td><td align='right'>",
-	$q->submit("Submit"),
-	$q->endform;
+        $q->textfield(-name=>'subject',
+                      -size=>50,
+                      -maxlength=>70),
+        "</td><tr><td></td><td>",
+        $q->textarea(-name=>'text',
+                     -rows=>10,
+                     -columns=>80),
+        "</td><tr><td></td><td align='right'>",
+        $q->submit("Submit"),
+        $q->endform;
   print "</td></table>";
 
 }
@@ -212,11 +212,11 @@ sub submit_fb_comment {
     throw OMP::Error::BadArgs("Must supply a valid OMP User ID");
 
   my $comment = { author => $user,
-		  subject => $q->param('subject'),
-		  sourceinfo => $host[1],
-		  text => $q->param('text'),
-		  program => $q->url(-relative=>1), # the name of the cgi script
-		  status => OMP__FB_IMPORTANT, };
+                  subject => $q->param('subject'),
+                  sourceinfo => $host[1],
+                  text => $q->param('text'),
+                  program => $q->url(-relative=>1), # the name of the cgi script
+                  status => OMP__FB_IMPORTANT, };
 
   try {
     OMP::FBServer->addComment( $projectid, $comment );
