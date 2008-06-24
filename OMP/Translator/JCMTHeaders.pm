@@ -221,6 +221,9 @@ sub getStandard {
 
 For continuum we need the continuum recipe.
 
+BASE class implementation simply parses the supplied data_reduction information from the OT.
+Subclasses can additionally determine defaults if this method returns undef.
+
 =cut
 
 sub getDRRecipe {
@@ -251,7 +254,8 @@ sub getDRRecipe {
 
     if (defined $found) {
       if ($info{continuumMode}) {
-        # append continuum mode (if not already appended)
+        # append continuum mode (if not already appended). Only works if default
+        # recipe is REDUCE_SCIENCE. So this clause is really an ACSIS clause.
         $found .= "_CONTINUUM" if $found eq 'REDUCE_SCIENCE';
       }
       if ($class->VERBOSE) {
@@ -261,26 +265,8 @@ sub getDRRecipe {
     }
   }
 
-  # if there was no DR component we have to guess
-  my $recipe;
-  if ($info{MODE} =~ /Pointing/) {
-    $recipe = 'REDUCE_POINTING';
-  } elsif ($info{MODE} =~ /Focus/) {
-    $recipe = 'REDUCE_FOCUS';
-  } elsif ($info{MODE} =~ /Skydip/) {
-    $recipe = 'REDUCE_SKYDIP';
-  } else {
-    if ($info{continuumMode}) {
-      $recipe = 'REDUCE_SCIENCE_CONTINUUM';
-    } else {
-      $recipe = 'REDUCE_SCIENCE';
-    }
-  }
-
-  if ($class->VERBOSE) {
-    print {$class->HANDLES} "Using DR recipe $recipe determined from context\n";
-  }
-  return $recipe;
+  # Leave it to subclasses to handle special cases
+  return;
 }
 
 =item B<getDRGroup>

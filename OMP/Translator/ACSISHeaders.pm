@@ -56,6 +56,44 @@ sub default_project {
 
 =over 4
 
+=item B<getDRRecipe>
+
+Default recipe can be supplied by the OT user or determined from context.
+
+Uses the base class for the user supplied value.
+
+=cut
+
+sub getDRRecipe {
+  my $class = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # See if the base class knows better
+  my $recipe = $class->SUPER::getDRRecipe($cfg, %info );
+  return $recipe if defined $recipe;
+
+  # if there was no DR component we have to guess
+  if ($info{MODE} =~ /Pointing/) {
+    $recipe = 'REDUCE_POINTING';
+  } elsif ($info{MODE} =~ /Focus/) {
+    $recipe = 'REDUCE_FOCUS';
+  } else {
+    if ($info{continuumMode}) {
+      $recipe = 'REDUCE_SCIENCE_CONTINUUM';
+    } else {
+      $recipe = 'REDUCE_SCIENCE';
+    }
+  }
+
+  if ($class->VERBOSE) {
+    print {$class->HANDLES} "Using DR recipe $recipe determined from context\n";
+  }
+  return $recipe;
+}
+
+
+
 =item B<getNumMixers>
 
 =cut

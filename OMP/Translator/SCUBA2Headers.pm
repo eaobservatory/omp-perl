@@ -60,6 +60,8 @@ sub default_project {
 
 Default recipe can be supplied by the OT user or determined from context.
 
+Uses the base class for the user supplied value.
+
 =cut
 
 sub getDRRecipe {
@@ -67,51 +69,32 @@ sub getDRRecipe {
   my $cfg = shift;
   my %info = @_;
 
-  # This is where we insert an OT override once that override is possible
-  # it will need to know which parameters to override
+  # See if the base class knows better
+  my $recipe = $class->SUPER::getDRRecipe($cfg, %info );
+  return $recipe if defined $recipe;
 
-  # if we have been given recipes we should try to select from them
-  if (exists $info{data_reduction}) {
-    # see if the key is a subset of the mode
-    my $found;
-    my $firstmatch;
-    for my $key (keys %{$info{data_reduction}}) {
-      if ($info{MODE} =~ /$key/i) {
-        my $recipe = $info{data_reduction}->{$key};
-        if (!defined $found) {
-          $found = $recipe;
-          $firstmatch = $key;
-        } else {
-          # sanity check
-          throw OMP::Error::TranslateFail("Strange error where mode $info{MODE} matched more than one DR key ('$key' and '$firstmatch')");
-        }
-      }
-    }
-
-    if (defined $found) {
-      if ($info{continuumMode}) {
-        # append continuum mode (if not already appended)
-        $found .= "_CONTINUUM" unless $found =~ /_CONTINUUM$/;
-      }
-      if ($class->VERBOSE) {
-        print {$class->HANDLES} "Using DR recipe $found provided by user\n";
-      }
-      return $found;
-    }
-  }
+  # Get the observation type and the mapping mode
+  my $obstype = $info{obs_type};
+  my $mapmode = $info{mapping_mode};
 
   # if there was no DR component we have to guess
-  my $recipe;
-  if ($info{MODE} =~ /Pointing/) {
+  if ($obstype eq 'pointing') {
     $recipe = 'REDUCE_POINTING';
-  } elsif ($info{MODE} =~ /Focus/) {
+    $recipe .= "_SCAN" if $mapmode eq 'scan';
+  } elsif ($obstype eq 'focus') {
     $recipe = 'REDUCE_FOCUS';
+    $recipe .= "_SCAN" if $mapmode eq 'scan';
+  } elsif ($obstype eq 'skydip') {
+    $recipe = "REDUCE_SKYDIP";
+  } elsif ($obstype eq 'flatfield') {
+    $recipe = "REDUCE_FLATFIELD";
+  } elsif ($mapmode eq 'scan') {
+    $recipe = "REDUCE_SCAN";
+  } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
+    $recipe = "REDUCE_DREAMSTARE";
   } else {
-    if ($info{continuumMode}) {
-      $recipe = 'REDUCE_SCIENCE_CONTINUUM';
-    } else {
-      $recipe = 'REDUCE_SCIENCE';
-    }
+    OMP::Error::TranslateFail->throw("Unexpected obs mode ($obstype/$mapmode)".
+                                    " when calculating DR recipe");
   }
 
   if ($class->VERBOSE) {
