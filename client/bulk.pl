@@ -182,7 +182,7 @@ my %comment = (text => join("", @comment),
                program => 'COMMENT_CLIENT',
                subject => $subject,);
 
-$type eq 'support' and
+defined $type && $type eq 'support' and
   $comment{'status'} = OMP__FB_SUPPORT;
 
 # Submit the comment for each project
