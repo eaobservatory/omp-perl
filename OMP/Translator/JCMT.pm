@@ -135,6 +135,12 @@ sub translate {
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
 
+    # This is a JCMT translator (and may not have a telescope config)
+    if ($obs->{telescope} ne "JCMT") {
+      OMP::Error::TranslateFail->throw("Got into the JCMT translator with telescope '".$obs->{telescope}."'");
+    }
+    $cfg->telescope("JCMT");
+
     # Set verbosity and debug level
     $cfg->verbose( $self->verbose );
     $cfg->debug( $self->debug );
