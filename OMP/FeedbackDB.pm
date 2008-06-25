@@ -306,7 +306,7 @@ sub alterStatus {
   $self->_db_begin_trans;
   $self->_dblock;
 
-  # Alter comment's status
+  # Alter comment status
   $self->_alter_status( $commentid, $status );
 
   # End trans
@@ -492,19 +492,31 @@ sub _mail_comment_support {
 
 =item B<_mail_comment_info>
 
-Will send the message to support only.  (It is exactly the same as
-I<_mail_comment_support> ever since I<OMP__FB_INFO> status has been
-appropriated for support use.)
+Will send the message to PI only.
 
   $db->_mail_comment_info( $projectid, $comment );
 
 =cut
 
-BEGIN {
+sub _mail_comment_info {
+  my $self = shift;
+  my $projectid = shift;
+  my $comment = shift;
 
-  my $pkg = __PACKAGE__;
-  no strict 'refs';
-  *{ $pkg . '::_mail_comment_info' } = \&{ $pkg . '::_mail_comment_support' };
+  # Get a ProjDB object so we can get info from the database
+  my $projdb = new OMP::ProjDB( ProjectID => $projectid,
+                                DB => $self->db,
+                              );
+
+  # This is an internal method that removes password
+  # verification. Since comments are not meant to need password
+  # to be added we can not use $projdb->projectDetails [unless
+  # we specfy the administrator password here]
+  my $proj = $projdb->_get_project_row;
+
+  my @to = ($proj->pi);
+
+  $self->_mail_comment( comment => $comment, to => \@to );
 }
 
 =item B<_fetch_comments>
