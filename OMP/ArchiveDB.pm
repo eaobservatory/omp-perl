@@ -103,16 +103,16 @@ sub getObs {
   my %args = @_;
 
   my $xml = "<ArcQuery>";
-  if( defined( $args{telescope} ) && length( $args{telescope} . '' ) > 0 ) {
+  if ( defined( $args{telescope} ) && length( $args{telescope} . '' ) > 0 ) {
     $xml .= "<telescope>" . $args{telescope} . "</telescope>";
   }
-  if( defined( $args{runnr} ) && length( $args{runnr} . '' ) > 0 ) {
+  if ( defined( $args{runnr} ) && length( $args{runnr} . '' ) > 0 ) {
     $xml .= "<runnr>" . $args{runnr} . "</runnr>";
   }
-  if( defined( $args{instrument} ) && length( $args{instrument} . '' ) > 0 ) {
+  if ( defined( $args{instrument} ) && length( $args{instrument} . '' ) > 0 ) {
     $xml .= "<instrument>" . $args{instrument} . "</instrument>";
   }
-  if( defined( $args{ut} ) && length( $args{ut} . '' ) > 0 ) {
+  if ( defined( $args{ut} ) && length( $args{ut} . '' ) > 0 ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
   }
 
@@ -149,11 +149,11 @@ sub queryArc {
   my $retainhdr = shift;
   my $ignorebad = shift;
 
-  if( !defined( $retainhdr ) ) {
+  if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
   }
 
-  if( ! defined( $ignorebad ) ) {
+  if ( ! defined( $ignorebad ) ) {
     $ignorebad = 0;
   }
 
@@ -161,7 +161,7 @@ sub queryArc {
 
   my $grp = retrieve_archive( $query, 1, $retainhdr );
 
-  if(defined($grp)) {
+  if (defined($grp)) {
     @results = $grp->obs;
   } else {
 
@@ -169,7 +169,7 @@ sub queryArc {
     # $SkipDBLookup are set such that neither DB nor file
     # lookup can happen. If that's the case, then throw an
     # exception.
-    if( !$FallbackToFiles && $SkipDBLookup ) {
+    if ( !$FallbackToFiles && $SkipDBLookup ) {
       throw OMP::Error("FallbackToFiles and SkipDBLookup are both set to return no information.");
     }
 
@@ -193,7 +193,7 @@ sub queryArc {
 
       # Check for a connection. If we have one, good, but otherwise
       # set one up.
-      if( ! defined( $self->db ) ) {
+      if ( ! defined( $self->db ) ) {
         $self->db( new OMP::DBbackend::Archive );
       }
 
@@ -219,9 +219,9 @@ sub queryArc {
       # (no connection, or error from the query)
       # OR if the query succeded but we can not be sure the data are
       # in the DB yet (ie less than a week)
-      if ( !$dbqueryok ||                  # Always look to files if query failed
-           (!@results) # look to files if we got no results
-	 ) {
+      if ( !$dbqueryok ||       # Always look to files if query failed
+           (!@results)          # look to files if we got no results
+         ) {
         # then go to files
         @results = $self->_query_files( $query, $retainhdr, $ignorebad );
       }
@@ -254,7 +254,7 @@ sub _query_arcdb {
   my $query = shift;
   my $retainhdr = shift;
 
-  if( !defined( $retainhdr ) ) {
+  if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
   }
 
@@ -281,17 +281,17 @@ sub _query_arcdb {
     push @return, @reorg;
   }
 
-  if( scalar( @return ) > 0 ) {
+  if ( scalar( @return ) > 0 ) {
     # Push the stuff in the cache, but only if we have results.
     try {
       store_archive( $query, new OMP::Info::ObsGroup( obs => \@return ) );
     }
-    catch OMP::Error::CacheFailure with {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print STDERR "Warning when storing archive: $errortext. Continuing.\n";
-      OMP::General->log_message( $errortext, OMP__LOG_WARNING );
-    };
+      catch OMP::Error::CacheFailure with {
+        my $Error = shift;
+        my $errortext = $Error->{'-text'};
+        print STDERR "Warning when storing archive: $errortext. Continuing.\n";
+        OMP::General->log_message( $errortext, OMP__LOG_WARNING );
+      };
 
   }
 
@@ -318,17 +318,17 @@ queries that go over a single night?
 =cut
 
 sub _query_files {
-#print "querying files\n";
+  #print "querying files\n";
   my $self = shift;
   my $query = shift;
   my $retainhdr = shift;
   my $ignorebad = shift;
 
-  if( !defined( $retainhdr ) ) {
+  if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
   }
 
-  if( ! defined( $ignorebad ) ) {
+  if ( ! defined( $ignorebad ) ) {
     $ignorebad = 0;
   }
 
@@ -343,7 +343,7 @@ sub _query_files {
   $instrument = $query->instrument;
   $telescope = $query->telescope;
 
-  if( defined( $query_hash->{runnr} ) ) {
+  if ( defined( $query_hash->{runnr} ) ) {
     $runnr = $query_hash->{runnr}->[0];
   } else {
     $runnr = 0;
@@ -351,22 +351,22 @@ sub _query_files {
 
   my @instarray;
 
-  if( defined( $instrument ) && length($instrument . "") != 0) {
-    if($instrument =~ /^rx/i) { 
+  if ( defined( $instrument ) && length($instrument . "") != 0) {
+    if ($instrument =~ /^rx/i) { 
       $filterinst = $instrument;
       $instrument = "heterodyne";
     }
     push @instarray, $instrument;
-  } elsif( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
+  } elsif ( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
     # Need to make sure we kluge the rx -> heterodyne conversion
     my @initial = OMP::Config->getData('instruments',
-				       telescope => $telescope
-				      );
+                                       telescope => $telescope
+                                      );
     my $ishet = 0;
     for my $inst (@initial) {
       if ($inst =~ /^rx/i || $inst eq 'heterodyne') {
-	$ishet = 1;
-	next;
+        $ishet = 1;
+        next;
       }
       push(@instarray, $inst);
     }
@@ -382,9 +382,9 @@ sub _query_files {
   my @obs;
 
   # If we have a simple query, go to the cache for stored information and files
-  if( simple_query( $query ) ) {
+  if ( simple_query( $query ) ) {
     ( $obsgroup, @files ) = unstored_files( $query );
-    if( defined( $obsgroup ) ) {
+    if ( defined( $obsgroup ) ) {
       @obs = $obsgroup->obs;
     }
   } else {
@@ -397,29 +397,29 @@ sub _query_files {
     my $endday = $daterange->max->ymd;
     $endday =~ s/-//g;
 
-    for( my $day = $daterange->min;
-         $day <= $query->daterange->max;
-         $day = $day + ONE_DAY ) {
+    for ( my $day = $daterange->min;
+          $day <= $query->daterange->max;
+          $day = $day + ONE_DAY ) {
 
       foreach my $inst ( @instarray ) {
 
-################################################################################
-# KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
-################################################################################
-# We need to have all the different heterodyne instruments in the config system
-# so that inferTelescope() will work. Unfortunately, we just want 'heterodyne',
-# so we'll just go on to the next one if the instrument name starts with 'rx'.
-################################################################################
+        ################################################################################
+        # KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT KLUDGE ALERT
+        ################################################################################
+        # We need to have all the different heterodyne instruments in the config system
+        # so that inferTelescope() will work. Unfortunately, we just want 'heterodyne',
+        # so we'll just go on to the next one if the instrument name starts with 'rx'.
+        ################################################################################
         next if( $inst =~ /^rx/i );
 
         my @tfiles = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
-        foreach my $arr_ref( @tfiles ) {
+        foreach my $arr_ref ( @tfiles ) {
           push @files, $arr_ref;
         }
 
-      } # foreach my $inst ( @instarray )
-    } # for( my $day... )
-  } # if( simple_query( $query ) ) { } else
+      }                        # foreach my $inst ( @instarray )
+    }                          # for( my $day... )
+  }                            # if( simple_query( $query ) ) { } else
 
   my @allheaders;
   foreach my $arr_ref ( @files ) {
@@ -430,7 +430,7 @@ sub _query_files {
       try {
         my $FITS_header;
         my $frameset;
-        if( $file =~ /\.sdf$/ ) {
+        if ( $file =~ /\.sdf$/ ) {
           $FITS_header = new Astro::FITS::Header::NDF( File => $file );
 
           # Open the NDF environment.
@@ -439,23 +439,23 @@ sub _query_files {
           ndf_begin();
 
           # Retrieve the FrameSet. In cases where the file fails to
-	  # open but we read the header okay above, simply abort from
-	  # retrieving the frameset since we know that HDS containers
-	  # will not usually have a .WCS (especially inside a .HEADER)
+          # open but we read the header okay above, simply abort from
+          # retrieving the frameset since we know that HDS containers
+          # will not usually have a .WCS (especially inside a .HEADER)
           ndf_find( NDF::DAT__ROOT, $file, my $indf, $STATUS );
-	  if ($STATUS == &NDF::SAI__OK) {
-	    ndf_state( $indf, "WCS", my $isthere, $STATUS);
-	    $frameset = ndfGtwcs( $indf, $STATUS ) if $isthere;
-	    ndf_annul( $indf, $STATUS );
-	  } else {
-	    # annul status - we only care about status on reading the WCS
-	    # not if the file itself is not a real NDF
-	    err_annul( $STATUS );
-	  }
+          if ($STATUS == &NDF::SAI__OK) {
+            ndf_state( $indf, "WCS", my $isthere, $STATUS);
+            $frameset = ndfGtwcs( $indf, $STATUS ) if $isthere;
+            ndf_annul( $indf, $STATUS );
+          } else {
+            # annul status - we only care about status on reading the WCS
+            # not if the file itself is not a real NDF
+            err_annul( $STATUS );
+          }
           ndf_end( $STATUS );
 
           # Handle errors.
-          if( $STATUS != &NDF::SAI__OK ) {
+          if ( $STATUS != &NDF::SAI__OK ) {
             my ( $oplen, @errs );
             do {
               err_load( my $param, my $parlen, my $opstr, $oplen, $STATUS );
@@ -467,7 +467,7 @@ sub _query_files {
           }
           err_end( $STATUS );
 
-        } elsif( $file =~ /\.(gsd|dat)$/ ) {
+        } elsif ( $file =~ /\.(gsd|dat)$/ ) {
           $FITS_header = new Astro::FITS::Header::GSD( File => $file );
         } else {
           throw OMP::Error::FatalError( "Do not recognize file suffix for file $file. Cannot read header" );
@@ -475,19 +475,19 @@ sub _query_files {
 
         # Push onto array so that we can filter by OBSID later
         push(@allheaders, {
-                        header => $FITS_header,
-                        filename => $file,
-                        frameset => $frameset } );
+                           header => $FITS_header,
+                           filename => $file,
+                           frameset => $frameset } );
 
       }
-      catch Error with {
-        my $Error = shift;
-        OMP::General->log_message( "OMP::Error in OMP::ArchiveDB:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR );
+        catch Error with {
+          my $Error = shift;
+          OMP::General->log_message( "OMP::Error in OMP::ArchiveDB:\nfile: $file\ntext: " . $Error->{'-text'} . "\nsource: " . $Error->{'-file'} . "\nline: " . $Error->{'-line'}, OMP__LOG_ERROR );
 
-        if( ! $ignorebad ) {
-          throw OMP::Error::ObsRead( "Error reading FITS header from file $file: " . $Error->{'-text'} );
-        }
-      };
+          if ( ! $ignorebad ) {
+            throw OMP::Error::ObsRead( "Error reading FITS header from file $file: " . $Error->{'-text'} );
+          }
+        };
     }
   }
 
@@ -503,13 +503,13 @@ sub _query_files {
     # If the observation's time falls within the range, we'll create the object.
     my $match_date = 0;
 
-    if( ! defined( $obs->startobs ) ) {
+    if ( ! defined( $obs->startobs ) ) {
       OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
       $WARNED{$obs->filename}++;
       next;
     }
 
-    if( ! $daterange->contains($obs->startobs) ) {
+    if ( ! $daterange->contains($obs->startobs) ) {
       next;
     }
 
@@ -523,17 +523,17 @@ sub _query_files {
     # - the thing in the Obs object is a scalar
     my $match_filter = 1;
     foreach my $filter (keys %$query_hash) {
-      if( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+      if ( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
         next;
       }
 
       foreach my $filterarray ($query_hash->{$filter}) {
-        if( OMP::Info::Obs->can(lc($filter)) ) {
+        if ( OMP::Info::Obs->can(lc($filter)) ) {
           my $value = $obs->$filter;
           my $matcher = uc($obs->$filter);
-          if( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
+          if ( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
             $match_filter = $filterarray->contains( $matcher );
-          } elsif( UNIVERSAL::isa($filterarray, "ARRAY") ) {
+          } elsif ( UNIVERSAL::isa($filterarray, "ARRAY") ) {
             foreach my $filter2 (@$filterarray) {
 
               ################################################################
@@ -543,7 +543,7 @@ sub _query_files {
               if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
                 $matcher = uc($obs->backend);
               }
-              if($matcher !~ /$filter2/i) {
+              if ($matcher !~ /$filter2/i) {
                 $match_filter = 0;
               }
             }
@@ -552,7 +552,7 @@ sub _query_files {
       }
     }
 
-    if( $match_filter ) {
+    if ( $match_filter ) {
       push @returnarray, $obs;
     }
   }
@@ -571,12 +571,12 @@ sub _query_files {
     my $obsgroup = new OMP::Info::ObsGroup( obs => \@returnarray );
     store_archive( $query, $obsgroup );
   }
-  catch OMP::Error::CacheFailure with {
-    my $Error = shift;
-    my $errortext = $Error->{'-text'};
-    print STDERR "Warning: $errortext\n";
-   OMP::General->log_message( $errortext, OMP__LOG_WARNING );
-  };
+    catch OMP::Error::CacheFailure with {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
+      print STDERR "Warning: $errortext\n";
+      OMP::General->log_message( $errortext, OMP__LOG_WARNING );
+    };
 
   return @returnarray;
 }
@@ -596,7 +596,7 @@ sub _reorganize_archive {
   my $rows = shift;
   my $retainhdr = shift;
 
-  if( !defined( $retainhdr ) ) {
+  if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
   }
 
@@ -700,15 +700,15 @@ sub _merge_dupes {
 
     # Merge if necessary (shift off the primary)
     my $fitshdr = shift(@fits);
-#    use Data::Dumper; print Dumper($fitshdr);
+    #    use Data::Dumper; print Dumper($fitshdr);
     if (@fits) {
       # need to merge
-#      print "FITS:$_\n" for @fits;
+      #      print "FITS:$_\n" for @fits;
       my ( $merged, @different ) = $fitshdr->merge_primary( { merge_unique => 1 }, @fits );
-#      print Dumper(\@different);
+      #      print Dumper(\@different);
 
       $merged->subhdrs( @different );
-#      print Dumper({merged => $merged, different => \@different});
+      #      print Dumper({merged => $merged, different => \@different});
       $fitshdr = $merged;
     }
 
@@ -748,7 +748,9 @@ sub _hdrs_to_obs {
                                   wcs => $merged{$obsid}{frameset},
                                 );
 
-    if( !defined( $obs ) ) { print "Error creating obs $obsid\n";next; }
+    if ( !defined( $obs ) ) {
+      print "Error creating obs $obsid\n";next;
+    }
 
     # store the filename information
     $obs->filename( \@{$merged{$obsid}{'filenames'}}, 1 );
