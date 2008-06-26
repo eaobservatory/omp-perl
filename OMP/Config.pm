@@ -112,7 +112,7 @@ BEGIN
         && -d $opt{'cfgdir'} ;
 
     my $prop = { };
-    $prop->{ $_ } = $opt{ $_ } for @opt;
+    $prop->{'_init'}{ $_ } = $opt{ $_ } for @opt;
 
     return $LAST_INST = bless $prop, $class;
   }
@@ -143,13 +143,13 @@ sub cfgdir {
     print "dir: $dir\n" if $DEBUG;
 
     if (-d $dir) {
-      $self->{'cfgdir'} = $dir;
-      print "cfgdir: ", $self->{'cfgdir'}, "\n" if $DEBUG;
+      $self->{'_init'}{'cfgdir'} = $dir;
+      print "cfgdir: ", $self->{'_init'}{'cfgdir'}, "\n" if $DEBUG;
     } else {
       throw OMP::Error::FatalError "Specified config directory [$dir] does not exist";
     }
   }
-  return $self->{'cfgdir'};
+  return $self->{'_init'}{'cfgdir'};
 }
 
 =item B<configDatabase>
