@@ -713,8 +713,17 @@ sub _merge_dupes {
     }
 
     # Some queries result in duplicate rows for filename so uniqify
-    my %files_uniq = map { $_ => undef } @files;
-    @files = keys %files_uniq;
+    # Do not use a hash directly to get the list because that would scramble
+    # the original order and we get upset when the OBSIDSS does not match the filename.
+    my %files_uniq;
+    my @compressed;
+    for my $f (@files) {
+      if (!exists $files_uniq{$f}) {
+        $files_uniq{$f}++;
+        push(@compressed, $f);
+      }
+    }
+    @files = @compressed;
 
     $unique{$obsid} = {
                        header => $fitshdr,
