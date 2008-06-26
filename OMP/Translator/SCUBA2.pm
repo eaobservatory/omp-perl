@@ -131,8 +131,12 @@ sub header_exclusion_file {
   my $root;
   if ($info{obs_type} =~ /focus|skydip/) {
     $root = $info{obs_type} . "_". $info{mapping_mode};
-  } elsif ($info{obs_type} eq 'flatfield') {
-    $root = $info{obs_type};
+  } elsif ($info{obs_type} eq 'flatfield' ||
+	   $info{obs_type} eq 'array_tests' ) {
+    # flatfield and array tests do not use
+    # the rest of the observing system so the exclusion files
+    # are the same
+     $root = "flatfield";
   } else {
     # A pointing is just the mapping mode
     $root = $info{mapping_mode};
@@ -179,14 +183,15 @@ and so do not generate configuration XML.
 
   $trans->is_private_sequence( %info );
 
-For SCUBA-2 returns true for Flatfield, false otherwise.
+For SCUBA-2 returns true for Flatfield and Array Tests, false otherwise.
 
 =cut
 
 sub is_private_sequence {
   my $self = shift;
   my %info = @_;
-  if ($info{obs_type} eq 'flatfield') {
+  if ($info{obs_type} eq 'flatfield' ||
+      $info{obs_type} eq 'array_tests' ) {
     return 1;
   }
   return 0;
@@ -238,6 +243,9 @@ sub handle_special_modes {
       $info->{sampleTime} = $exptime;
     }
 
+  } elsif ($info->{obs_type} =~ /array_tests/) {
+      $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
+						   "array_tests_integration");
   }
 
   # fix up point source scanning
@@ -324,7 +332,9 @@ sub jos_config {
   #   scuba2_noise
 
   my $recipe = $info{obs_type};
-  if ($info{obs_type} eq 'science') {
+  if ($info{obs_type} eq 'array_tests') {
+    $recipe = "stare";
+  } elsif ($info{obs_type} eq 'science') {
     $recipe = $info{observing_mode};
   }
   # prepend scuba2
@@ -396,15 +406,18 @@ sub jos_config {
     }
     OMP::Error::FatalError->throw("Could not determine integration time for $info{mapping_mode} observation") unless defined $inttime;
 
-    # Need an obsArea for number of microsteps
-    my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-    my $obsArea = $tcs->getObsArea();
-    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    # Need an obsArea for number of microsteps (except for array tests)
+    my $nms = 1;
+    if ($info{obs_type} ne 'array_tests') {
+      my $tcs = $cfg->tcs;
+      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+      my $obsArea = $tcs->getObsArea();
+      throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
 
-    # This time should be spread over the number of microsteps
-    my @ms = $obsArea->microsteps;
-    my $nms = (@ms ? @ms : 1);
+      # This time should be spread over the number of microsteps
+      my @ms = $obsArea->microsteps;
+      $nms = (@ms ? @ms : 1);
+    }
 
     # convert total integration time to steps
     my $nsteps = $inttime / $jos->step_time;
@@ -586,6 +599,9 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterFlatObs') {
     $obs_type = "flatfield";
     $mapping_mode = "stare";
+  } elsif ($mode eq 'SpIterArrayTestObs') {
+    $obs_type = 'array_tests';
+    $mapping_mode = 'stare';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
     if ($sdip_mode =~ /^cont/) {

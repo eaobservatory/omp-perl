@@ -88,6 +88,8 @@ sub getDRRecipe {
     $recipe = "REDUCE_SKYDIP";
   } elsif ($obstype eq 'flatfield') {
     $recipe = "REDUCE_FLATFIELD";
+  } elsif ($obstype eq 'array_tests') {
+    $recipe = "ARRAY_TESTS";
   } elsif ($mapmode eq 'scan') {
     $recipe = "REDUCE_SCAN";
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {

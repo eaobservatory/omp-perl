@@ -4219,6 +4219,10 @@ sub SpIterFolder {
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                         }});
 
+    } elsif ($name eq 'SpIterArrayTestObs') {
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
+                                                        }});
+
     } elsif ($name eq 'SpIterNoiseObs') {
 
       my $nint =  $self->_get_pcdata( $child, 'integrations');
