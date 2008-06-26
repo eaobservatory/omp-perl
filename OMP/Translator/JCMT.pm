@@ -490,7 +490,6 @@ sub tcs_base {
   }
 
   # First get all the coordinate tags (SCIENCE won't be in there)
-  my %tags;
   my %tags = %{ $info{coordtags} } if defined $info{coordtags};
 
   # check for reference position
