@@ -470,7 +470,7 @@ sub jos_config {
       # jos_min is always 1 and num_cycles is the number of times round
       # the map. The TCS will work out when to do the dark.
       $jos->jos_min(1);
-      $jos->num_cycles($info{nintegrations});
+      $jos->num_cycles($info{nintegrations} ? $info{nintegrations} : 1);
       
       if ($self->verbose) {
         print {$self->outhdl} "\tNumber of repeats of map area: ".
