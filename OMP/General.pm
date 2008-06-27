@@ -788,8 +788,9 @@ Given a date determine the current semester.
 
   $semester = OMP::General->determine_semester( date => $date, tel => 'JCMT' );
 
-Date should be of class C<Time::Piece> and should be in UT. The
-current date is used if none is supplied.
+Date should be of class C<Time::Piece> or a string in I<yyyymmdd>
+format, and should be in UT. The current date is used if none is
+supplied.
 
 A telescope option is supported since semester boundaries are a
 function of telescope.  If no telescope is provided, a telescope of
@@ -841,8 +842,17 @@ sub determine_semester {
   my %args = @_;
   my $date = $args{date};
   if (defined $date) {
-    croak "determine_semester: Date should be of class Time::Piece rather than \"$date\""
-      unless UNIVERSAL::isa($date, "Time::Piece");
+
+    croak 'determine_semester: Date should be of class Time::Piece'
+        . qq[ or a "yyyymmdd" formatted string rather than "$date"]
+      unless UNIVERSAL::isa($date, "Time::Piece")
+          or $date =~ m/
+                        ^\d{4}
+                        (?: [01]\d | 1[0-2])
+                        (?: [0-2]\d | 3[01])
+                        $
+                      /x;
+
   } else {
     $date = gmtime();
   }
@@ -854,7 +864,11 @@ sub determine_semester {
   # in a generic search. This will have minimal impact on a telescope
   # that has never had a special semester boundary (apart from the
   # requirement to convert date to YYYYMMDD only once)
-  my $ymd = $date->strftime("%Y%m%d");
+
+  my $ymd = $date =~ m/^\d{8}$/
+            ? $date
+            : $date->strftime("%Y%m%d");
+
   if (exists $SEM_BOUND{$tel}) {
     for my $lsem (keys %{ $SEM_BOUND{$tel} } ) {
       if ($ymd >= $SEM_BOUND{$tel}{$lsem}[0] &&
@@ -885,11 +899,18 @@ sub determine_semester {
 sub _determine_pparc_semester {
   my $date = shift;
 
-  # 4 digit year
-  my $yyyy = $date->year;
+  #  Parse date into 4-digit year & 4-digit month.day portions.
+  my ( $yyyy, $mmdd );
 
-  # Month plus two digit day
-  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
+  if ( $date =~ m/^ (\d{4}) (\d{4}) $/x ) {
+
+    ( $yyyy, $mmdd ) = ( "$1", "$2" );
+  }
+  else {
+
+    $yyyy = $date->year;
+    $mmdd = $date->mon . sprintf( "%02d", $date->mday );
+  }
 
   # Calculate previous year
   my $prev_yyyy = $yyyy - 1;
