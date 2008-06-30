@@ -78,6 +78,8 @@ sub getDRRecipe {
     $recipe = 'REDUCE_POINTING';
   } elsif ($info{MODE} =~ /Focus/) {
     $recipe = 'REDUCE_FOCUS';
+  } elsif ($info{MODE} =~ /Skydip/) {
+    $recipe = 'REDUCE_SKYDIP';
   } else {
     if ($info{continuumMode}) {
       $recipe = 'REDUCE_SCIENCE_CONTINUUM';
