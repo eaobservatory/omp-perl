@@ -233,7 +233,11 @@ sub CreateAccessors {
            %new = @_;
          }
          HASH_CLASS_CHECK;
-         %{ $self->{METHOD} } = %new;
+         if (ref($_[0]) eq 'HASH' && tied(%{$_[0]})) {
+           $self->{METHOD} = $_[0];
+         } else {
+           %{ $self->{METHOD} } = %new;
+         }
        } else {
          # clear class
          $self->{METHOD} = undef;
