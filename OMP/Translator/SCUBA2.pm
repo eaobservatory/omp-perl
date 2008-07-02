@@ -322,6 +322,7 @@ sub jos_config {
 
   # Basics
   $jos->step_time( $self->step_time );
+  $jos->start_index( 1 );
 
   # Allowed JOS recipes seem to be
   #   scuba2_scan
