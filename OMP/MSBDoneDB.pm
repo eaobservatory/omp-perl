@@ -473,14 +473,15 @@ the MSB must be present in the "done" table for this to work.
 
   $title = $db->titleMSB( $checksum );
 
-Returns undef if the MSBID/checksum is not known. Use
-C<OMP::MSBDB->getMSBtitle> to query the active MSB table.
+Returns undef if the MSBID/checksum is not known or if the checksum is
+missing. Use C<OMP::MSBDB->getMSBtitle> to query the active MSB table.
 
 =cut
 
 sub titleMSB {
   my $self = shift;
   my $checksum = shift;
+  return unless defined $checksum;
 
   # get the MSB information
   my $msb = $self->historyMSB( $checksum );
