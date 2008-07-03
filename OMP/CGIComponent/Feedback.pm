@@ -53,6 +53,7 @@ sub fb_entries {
     my %status;
     $status{&OMP__FB_IMPORTANT} = [OMP__FB_IMPORTANT];
     $status{&OMP__FB_INFO} = [OMP__FB_IMPORTANT, OMP__FB_INFO];
+    $status{&OMP__FB_SUPPORT} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT];
     $status{&OMP__FB_HIDDEN} = [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN, OMP__FB_SUPPORT];
 
     $status = $status{$q->param("show")};
@@ -86,9 +87,15 @@ sub fb_entries {
         "Show: ",
 
         $q->popup_menu(-name=>'show',
-                       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],
+                       -values=>[OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_SUPPORT, OMP__FB_HIDDEN],
                        -default=>OMP__FB_IMPORTANT,
-                       -labels=>{OMP__FB_IMPORTANT, "important", OMP__FB_INFO, "info", OMP__FB_HIDDEN, "hidden"},
+                       -labels=>
+                          { OMP__FB_IMPORTANT() => 'important',
+                            OMP__FB_INFO()      => 'info',
+                            OMP__FB_SUPPORT()   => 'support',
+                            OMP__FB_HIDDEN()    => 'hidden'
+                          },
+
                        -onChange=>'mysubmit()'),
         "&nbsp;&nbsp;",
         $q->submit("Refresh"),
@@ -130,7 +137,12 @@ sub fb_entries_hidden {
 
   my $comments = OMP::FBServer->getComments($cookie{projectid},
                                             $cookie{password},
-                                            [OMP__FB_IMPORTANT, OMP__FB_INFO, OMP__FB_HIDDEN],);
+                                            [ OMP__FB_IMPORTANT,
+                                              OMP__FB_INFO,
+                                              OMP__FB_SUPPORT,
+                                              OMP__FB_HIDDEN
+                                            ],
+                                            );
   print $q->h2("Feedback entries");
     if (scalar(@$comments) == 1) {
       print "There is 1 comment";
