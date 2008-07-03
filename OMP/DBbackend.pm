@@ -591,7 +591,7 @@ sub connect {
   print "DBI DRIVER: $DBIdriver; SERVER: $DBserver DATABASE: $DBdatabase USER: $DBuser\n"
     if $DEBUG;
 
-  OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver as $DBuser <-----");
+  OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver, database $DBdatabase, as $DBuser <-----");
 
   # We are using sybase
   my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, { PrintError => 0 })
