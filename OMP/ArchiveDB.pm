@@ -223,6 +223,7 @@ sub queryArc {
            (!@results)          # look to files if we got no results
          ) {
         # then go to files
+        OMP::General->log_message("Querying disk files", OMP__LOG_DEBUG);
         @results = $self->_query_files( $query, $retainhdr, $ignorebad );
       }
     }
@@ -421,6 +422,8 @@ sub _query_files {
     }                          # for( my $day... )
   }                            # if( simple_query( $query ) ) { } else
 
+  OMP::General->log_message( "Found ".@files. " files", OMP__LOG_DEBUG);
+
   my @allheaders;
   foreach my $arr_ref ( @files ) {
 
@@ -478,7 +481,7 @@ sub _query_files {
                            header => $FITS_header,
                            filename => $file,
                            frameset => $frameset } );
-
+        OMP::General->log_message("Processed file $file", OMP__LOG_DEBUG);
       }
         catch Error with {
           my $Error = shift;
