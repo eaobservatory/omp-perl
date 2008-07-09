@@ -35,6 +35,7 @@ use OMP::Info::Comment;
 use OMP::Constants qw/ :done /;
 use OMP::Error qw/ :try /;
 
+use Compress::Zlib;
 use Time::HiRes qw/ tv_interval gettimeofday /;
 
 # Different Science program return types
@@ -74,7 +75,12 @@ Returns empty string on error (but should raise an exception).
 
 sub fetchMSB {
   my $class = shift;
-  my $key = shift;
+  my ( $key , $rettype ) = @_;
+
+  $rettype = _find_return_type( $rettype );
+
+  throw OMP::Error::BadArgs "Type OMP__SCIPROG_OBJ (object) is not supported yet"
+    if $rettype == OMP__SCIPROG_OBJ;
 
   my $t0 = [gettimeofday];
   OMP::General->log_message( "fetchMSB: Begin.\nKey=$key\n");
@@ -103,6 +109,8 @@ sub fetchMSB {
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
+
+  return unless defined $msb;
 
   # Return stringified form of object
   # Note that we have to make these actual Science Programs
@@ -134,14 +142,17 @@ sub fetchMSB {
 };
   }
 
-  my $spprogend = "\n</SpProg>\n";
+  $spprog = join '',
+              $spprog,
+              "<projectID>", $msb->projectID, "</projectID>\n",
+              $msbxml,
+              "\n</SpProg>\n"
+              ;
 
-  # Also add in the projectID
-  $spprog .= "<projectID>" . $msb->projectID . "</projectID>\n";
+  my $log = sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
+              tv_interval( $t0 ), $msb->projectID, $msb->checksum ;
 
-  OMP::General->log_message("fetchMSB: Complete in ".tv_interval($t0)."seconds. Project=".$msb->projectID."\nChecksum=".$msb->checksum."\n");
-
-  return "$spprog$msbxml$spprogend" if defined $msb;
+  return _convert_sciprog( $spprog, $rettype, $log );
 }
 
 
@@ -183,16 +194,7 @@ sub fetchCalProgram {
   my $telescope = shift;
   my $rettype = shift;
 
-  $rettype = OMP__SCIPROG_XML unless defined $rettype;
-  $rettype = uc($rettype);
-
-  # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
-    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
-    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
-    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
-    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
-  }
+  $rettype = _find_return_type( $rettype );
 
   my $t0 = [gettimeofday];
   OMP::General->log_message( "fetchCalProgram: Begin.\nTelescope=$telescope\nFormat=$rettype\n");
@@ -223,37 +225,64 @@ sub fetchCalProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
+  return
+    _convert_sciprog( $sp, $rettype,
+                      "fetchCalProgram: Complete in " . tv_interval($t0) . " seconds\n"
+                    );
+}
+
+sub _convert_sciprog {
+
+  my ( $in, $rettype, $endlog ) = @_;
 
   if ($rettype == OMP__SCIPROG_OBJ) {
     # return the object
-    return $sp;
-  } else {
-
-    # Return the stringified form, compressed
-    my $string;
-    if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
-      $string = "$sp";
-
-      # Force gzip if requested
-      if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
-        # Compress the string if its length is greater than the
-        # threshold value
-        $string = Compress::Zlib::memGzip( "$sp" );
-      }
-
-      throw OMP::Error::FatalError("Unable to gzip compress science program")
-        unless defined $string;
-
-    } else {
-      $string = "$sp";
-    };
-
-    OMP::General->log_message("fetchCalProgram: Complete in ".tv_interval($t0)." seconds\n");
-
-    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
-            : $string );
+    return $in;
   }
 
+  # Return the stringified form, compressed
+  my $string;
+  if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
+    $string = "$in";
+
+    # Force gzip if requested
+    if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
+      # Compress the string if its length is greater than the
+      # threshold value
+      $string = Compress::Zlib::memGzip( "$in" );
+    }
+
+    throw OMP::Error::FatalError("Unable to gzip compress science program")
+      unless defined $string;
+
+  } else {
+    $string = "$in";
+  }
+
+  OMP::General->log_message( $endlog )
+    if defined $endlog && length $endlog ;
+
+  return exists $ENV{HTTP_SOAPACTION}
+          ? SOAP::Data->type(base64 => $string)
+          : $string ;
+}
+
+sub _find_return_type {
+
+  my ( $rettype ) = @_;
+
+  $rettype = OMP__SCIPROG_XML unless defined $rettype;
+  $rettype = uc($rettype);
+
+  # Translate input strings to constants
+  if ($rettype !~ /^\d$/) {
+    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
+    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
+    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
+  }
+
+  retrun $rettype;
 }
 
 =item B<queryMSB>
