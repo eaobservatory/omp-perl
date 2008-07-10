@@ -1354,8 +1354,6 @@ Returns a list of converted string and compression indicating flag,
 given a string, return type, and optional message of non zero length
 to log.
 
-Throws L<OMP::Error::FatalError> if the string cannot be compressed.
-
   # Compress if needed, save converted string & compression flag.
   ( $converted, $compressed ) =
     _convert_sciprog( $var, OMP__SCIPROG_AUTO );
@@ -1363,8 +1361,10 @@ Throws L<OMP::Error::FatalError> if the string cannot be compressed.
   # Compress, log message, save only converted string.
   ( $converted ) = _convert_sciprog( $var, OMP__SCIPROG_GZIP, "log this" );
 
-Behaviour based on a return type (see I<_find_return_type> function
-for details):
+
+If the string cannot be compressed, L<OMP::Error::FatalError>
+exception is thrown.  Behaviour based on a return type (see
+I<_find_return_type> function for details):
 
 =over 4
 
@@ -1392,35 +1392,28 @@ For all other types, stringyfied value of C<$var> is returned.
 
 sub _convert_sciprog {
 
-  my ( $in, $rettype, $endlog ) = @_;
+  my ( $in, $type, $log ) = @_;
 
-  if ($rettype == OMP__SCIPROG_OBJ) {
-    # return the object
-    return ( $in );
+  return ( $in )
+    if $type == OMP__SCIPROG_OBJ;
+
+  # Return the stringified form, compressed if asked or needed.
+  my ( $string, $zipped ) = ( "$in" );
+
+  if ( $type == OMP__SCIPROG_GZIP
+        || ( $type == OMP__SCIPROG_AUTO
+              && length $string > GZIP_THRESHOLD
+            )
+      ) {
+
+    $string = Compress::Zlib::memGzip( $string )
+      or throw OMP::Error::FatalError "Unable to gzip compress science program";
+
+    $zipped++;
   }
 
-  # Return the stringified form, compressed
-  my ( $string, $zipped );
-  if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
-    $string = "$in";
-
-    # Force gzip if requested
-    if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
-      # Compress the string if its length is greater than the
-      # threshold value
-      $string = Compress::Zlib::memGzip( "$in" );
-      $zipped++;
-    }
-
-    throw OMP::Error::FatalError("Unable to gzip compress science program")
-      unless defined $string;
-
-  } else {
-    $string = "$in";
-  }
-
-  OMP::General->log_message( $endlog )
-    if defined $endlog && length $endlog ;
+  OMP::General->log_message( $log )
+    if defined $log && length $log;
 
   return ( $string, $zipped );
 }
