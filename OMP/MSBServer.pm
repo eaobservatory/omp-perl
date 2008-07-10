@@ -69,7 +69,18 @@ for <SpMSBSummary> elements).
 The MSB is contained in an SpProg element for compatibility with
 standard Science Program classes.
 
-Returns empty string on error (but should raise an exception).
+Returns nothing is no MSB is found.  Throws I<OMP::Error> exception on
+errors.
+
+A second argument controls what form the returned MSB should
+take.
+
+  # The gzip output will be base64 encoded.
+  $gzip_base64 = OMP::MSBServer->fetchMSB( $key, 'GZIP' );
+
+The following values can be used to specify different return types:
+I<GZIP>, I<AUTO>, I<XML> (default).
+See also I<_find_return_type> function.
 
 =cut
 
@@ -239,13 +250,51 @@ sub fetchCalProgram {
           : $converted ;
 }
 
+=item B<_convert_sciprog>
+
+Returns a list of converted string and compression indicating flag,
+given a string, return type, and optional message of non zero length
+to log.
+
+Throws L<OMP::Error::FatalError> if the string cannot be compressed.
+
+  # Compress if needed, save converted string & compression flag.
+  ( $converted, $compressed ) =
+    _convert_sciprog( $var, OMP__SCIPROG_AUTO );
+
+  # Compress, log message, save only converted string.
+  ( $converted ) = _convert_sciprog( $var, OMP__SCIPROG_GZIP, "log this" );
+
+Behaviour based on a return type (see I<_find_return_type> function
+for details):
+
+=over 4
+
+=item *
+
+If type is I<OMP__SCIPROG_AUTO>, return value of C<$var> will be
+compressed only if its length exceeds L<GZIP_THRESHOLD>.
+
+=item *
+
+If type is I<OMP__SCIPROG_GZIP>, compressed value of C<$var> is
+returned.
+
+=item *
+
+For all other types, value of C<$var> is returned as is.
+
+=back
+
+=cut
+
 sub _convert_sciprog {
 
   my ( $in, $rettype, $endlog ) = @_;
 
   if ($rettype == OMP__SCIPROG_OBJ) {
     # return the object
-    return $in;
+    return ( $in );
   }
 
   # Return the stringified form, compressed
@@ -273,6 +322,28 @@ sub _convert_sciprog {
 
   return ( $string, $zipped );
 }
+
+=item B<_find_return_type>
+
+Returns one of OMP__SCIPROG* value given a text description
+irrespective of case.
+
+  $type = _find_return_type( 'auto' );
+
+Valid types are:
+
+  "XML"    OMP__SCIPROG_XML   Plain text XML
+  "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
+  "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
+  "AUTO"   OMP__SCIPROG_AUTO  plain text or gzip depending on size
+
+C<AUTO> type implies compression when length of the output of other
+methods (I<fetchCalProgram> and I<fetchMSB> for example) exceeds
+I<GZIP_THRESHOLD> which is currently 30,000.
+
+These are not exported and are defined in the I<OMP::SpServer> namespace.
+
+=cut
 
 sub _find_return_type {
 
