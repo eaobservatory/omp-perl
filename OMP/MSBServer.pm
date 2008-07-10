@@ -170,7 +170,6 @@ sub fetchMSB {
       : $converted;
 }
 
-
 =item B<fetchCalProgram>
 
 Retrieve the *CAL project science program from the database.
@@ -248,119 +247,6 @@ sub fetchCalProgram {
   return exists $ENV{HTTP_SOAPACTION}
           ? SOAP::Data->type(base64 => $converted)
           : $converted ;
-}
-
-=item B<_convert_sciprog>
-
-Returns a list of converted string and compression indicating flag,
-given a string, return type, and optional message of non zero length
-to log.
-
-Throws L<OMP::Error::FatalError> if the string cannot be compressed.
-
-  # Compress if needed, save converted string & compression flag.
-  ( $converted, $compressed ) =
-    _convert_sciprog( $var, OMP__SCIPROG_AUTO );
-
-  # Compress, log message, save only converted string.
-  ( $converted ) = _convert_sciprog( $var, OMP__SCIPROG_GZIP, "log this" );
-
-Behaviour based on a return type (see I<_find_return_type> function
-for details):
-
-=over 4
-
-=item *
-
-If type is I<OMP__SCIPROG_AUTO>, return value of C<$var> will be
-compressed only if its length exceeds L<GZIP_THRESHOLD>.
-
-=item *
-
-If type is I<OMP__SCIPROG_GZIP>, compressed value of C<$var> is
-returned.
-
-=item *
-
-For all other types, value of C<$var> is returned as is.
-
-=back
-
-=cut
-
-sub _convert_sciprog {
-
-  my ( $in, $rettype, $endlog ) = @_;
-
-  if ($rettype == OMP__SCIPROG_OBJ) {
-    # return the object
-    return ( $in );
-  }
-
-  # Return the stringified form, compressed
-  my ( $string, $zipped );
-  if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
-    $string = "$in";
-
-    # Force gzip if requested
-    if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
-      # Compress the string if its length is greater than the
-      # threshold value
-      $string = Compress::Zlib::memGzip( "$in" );
-      $zipped++;
-    }
-
-    throw OMP::Error::FatalError("Unable to gzip compress science program")
-      unless defined $string;
-
-  } else {
-    $string = "$in";
-  }
-
-  OMP::General->log_message( $endlog )
-    if defined $endlog && length $endlog ;
-
-  return ( $string, $zipped );
-}
-
-=item B<_find_return_type>
-
-Returns one of OMP__SCIPROG* value given a text description
-irrespective of case.
-
-  $type = _find_return_type( 'auto' );
-
-Valid types are:
-
-  "XML"    OMP__SCIPROG_XML   Plain text XML
-  "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
-  "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
-  "AUTO"   OMP__SCIPROG_AUTO  plain text or gzip depending on size
-
-C<AUTO> type implies compression when length of the output of other
-methods (I<fetchCalProgram> and I<fetchMSB> for example) exceeds
-I<GZIP_THRESHOLD> which is currently 30,000.
-
-These are not exported and are defined in the I<OMP::SpServer> namespace.
-
-=cut
-
-sub _find_return_type {
-
-  my ( $rettype ) = @_;
-
-  $rettype = OMP__SCIPROG_XML unless defined $rettype;
-  $rettype = uc($rettype);
-
-  # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
-    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
-    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
-    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
-    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
-  }
-
-  return $rettype;
 }
 
 =item B<queryMSB>
@@ -625,7 +511,6 @@ sub undoMSB {
 
 }
 
-
 =item B<suspendMSB>
 
 Cause the MSB to go into a "suspended" state such that the next
@@ -723,7 +608,6 @@ sub suspendMSB {
 
 
 }
-
 
 =item B<alldoneMSB>
 
@@ -1451,7 +1335,6 @@ sub getTypeColumns {
 
 }
 
-
 =item B<testServer>
 
 Test the server is actually handling requests.
@@ -1465,6 +1348,118 @@ sub testServer {
   return 1;
 }
 
+=item B<_convert_sciprog>
+
+Returns a list of converted string and compression indicating flag,
+given a string, return type, and optional message of non zero length
+to log.
+
+Throws L<OMP::Error::FatalError> if the string cannot be compressed.
+
+  # Compress if needed, save converted string & compression flag.
+  ( $converted, $compressed ) =
+    _convert_sciprog( $var, OMP__SCIPROG_AUTO );
+
+  # Compress, log message, save only converted string.
+  ( $converted ) = _convert_sciprog( $var, OMP__SCIPROG_GZIP, "log this" );
+
+Behaviour based on a return type (see I<_find_return_type> function
+for details):
+
+=over 4
+
+=item *
+
+If type is I<OMP__SCIPROG_AUTO>, return value of C<$var> will be
+compressed only if its length exceeds L<GZIP_THRESHOLD>.
+
+=item *
+
+If type is I<OMP__SCIPROG_GZIP>, compressed value of C<$var> is
+returned.
+
+=item *
+
+For all other types, value of C<$var> is returned as is.
+
+=back
+
+=cut
+
+sub _convert_sciprog {
+
+  my ( $in, $rettype, $endlog ) = @_;
+
+  if ($rettype == OMP__SCIPROG_OBJ) {
+    # return the object
+    return ( $in );
+  }
+
+  # Return the stringified form, compressed
+  my ( $string, $zipped );
+  if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
+    $string = "$in";
+
+    # Force gzip if requested
+    if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
+      # Compress the string if its length is greater than the
+      # threshold value
+      $string = Compress::Zlib::memGzip( "$in" );
+      $zipped++;
+    }
+
+    throw OMP::Error::FatalError("Unable to gzip compress science program")
+      unless defined $string;
+
+  } else {
+    $string = "$in";
+  }
+
+  OMP::General->log_message( $endlog )
+    if defined $endlog && length $endlog ;
+
+  return ( $string, $zipped );
+}
+
+=item B<_find_return_type>
+
+Returns one of OMP__SCIPROG* value given a text description
+irrespective of case.
+
+  $type = _find_return_type( 'auto' );
+
+Valid types are:
+
+  "XML"    OMP__SCIPROG_XML   Plain text XML
+  "OBJECT" OMP__SCIPROG_OBJ   Perl OMP::SciProg object
+  "GZIP"   OMP__SCIPROG_GZIP  Gzipped XML
+  "AUTO"   OMP__SCIPROG_AUTO  plain text or gzip depending on size
+
+C<AUTO> type implies compression when length of the output of other
+methods (I<fetchCalProgram> and I<fetchMSB> for example) exceeds
+I<GZIP_THRESHOLD> which is currently 30,000.
+
+These are not exported and are defined in the I<OMP::SpServer> namespace.
+
+=cut
+
+sub _find_return_type {
+
+  my ( $rettype ) = @_;
+
+  $rettype = OMP__SCIPROG_XML unless defined $rettype;
+  $rettype = uc($rettype);
+
+  # Translate input strings to constants
+  if ($rettype !~ /^\d$/) {
+    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
+    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
+    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
+    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
+  }
+
+  return $rettype;
+}
 
 
 =back
