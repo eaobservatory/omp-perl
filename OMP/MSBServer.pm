@@ -1370,6 +1370,10 @@ for details):
 
 =item *
 
+If type is I<OMP__SCIPROG_OBJ>, value of C<$var> is returned as is.
+
+=item *
+
 If type is I<OMP__SCIPROG_AUTO>, return value of C<$var> will be
 compressed only if its length exceeds L<GZIP_THRESHOLD>.
 
@@ -1380,7 +1384,7 @@ returned.
 
 =item *
 
-For all other types, value of C<$var> is returned as is.
+For all other types, stringyfied value of C<$var> is returned.
 
 =back
 
