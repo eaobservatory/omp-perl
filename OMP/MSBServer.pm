@@ -225,10 +225,14 @@ sub fetchCalProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  return
+  my $converted =
     _convert_sciprog( $sp, $rettype,
                       "fetchCalProgram: Complete in " . tv_interval($t0) . " seconds\n"
                     );
+
+  return exists $ENV{HTTP_SOAPACTION}
+          ? SOAP::Data->type(base64 => $converted)
+          : $converted ;
 }
 
 sub _convert_sciprog {
@@ -262,9 +266,7 @@ sub _convert_sciprog {
   OMP::General->log_message( $endlog )
     if defined $endlog && length $endlog ;
 
-  return exists $ENV{HTTP_SOAPACTION}
-          ? SOAP::Data->type(base64 => $string)
-          : $string ;
+  return $string;
 }
 
 sub _find_return_type {
