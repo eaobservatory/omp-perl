@@ -152,7 +152,11 @@ sub fetchMSB {
   my $log = sprintf "fetchMSB: Complete in %d seconds. Project=%s\nChecksum=%s\n",
               tv_interval( $t0 ), $msb->projectID, $msb->checksum ;
 
-  return _convert_sciprog( $spprog, $rettype, $log );
+  my ( $converted, $zipped ) = _convert_sciprog( $spprog, $rettype, $log );
+  return
+    $zipped
+      ? SOAP::Data->type( 'base64' => $converted )
+      : $converted;
 }
 
 
@@ -225,7 +229,7 @@ sub fetchCalProgram {
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-  my $converted =
+  my ( $converted ) =
     _convert_sciprog( $sp, $rettype,
                       "fetchCalProgram: Complete in " . tv_interval($t0) . " seconds\n"
                     );
@@ -245,7 +249,7 @@ sub _convert_sciprog {
   }
 
   # Return the stringified form, compressed
-  my $string;
+  my ( $string, $zipped );
   if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
     $string = "$in";
 
@@ -254,6 +258,7 @@ sub _convert_sciprog {
       # Compress the string if its length is greater than the
       # threshold value
       $string = Compress::Zlib::memGzip( "$in" );
+      $zipped++;
     }
 
     throw OMP::Error::FatalError("Unable to gzip compress science program")
@@ -266,7 +271,7 @@ sub _convert_sciprog {
   OMP::General->log_message( $endlog )
     if defined $endlog && length $endlog ;
 
-  return $string;
+  return ( $string, $zipped );
 }
 
 sub _find_return_type {
