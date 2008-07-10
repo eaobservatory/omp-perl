@@ -79,7 +79,7 @@ sub fetchMSB {
 
   $rettype = _find_return_type( $rettype );
 
-  throw OMP::Error::BadArgs "Type OMP__SCIPROG_OBJ (object) is not supported yet"
+  throw OMP::Error::BadArgs "Return type OMP__SCIPROG_OBJ (object) is not supported yet"
     if $rettype == OMP__SCIPROG_OBJ;
 
   my $t0 = [gettimeofday];
@@ -282,7 +282,7 @@ sub _find_return_type {
     $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
   }
 
-  retrun $rettype;
+  return $rettype;
 }
 
 =item B<queryMSB>
