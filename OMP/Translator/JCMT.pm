@@ -41,7 +41,7 @@ use OMP::General;
 
 use OMP::Translator::JCMTHeaders;
 
-use base qw/ OMP::Translator /;
+use base qw/ OMP::Translator::Base /;
 
 # Default directory for writing configs
 our $TRANS_DIR = OMP::Config->getData( 'jcmt_translator.transdir');

@@ -39,7 +39,7 @@ use Text::Wrap;
 
 use OMP::Translator::DASHTML;
 
-use base qw/ OMP::Translator /;
+use base qw/ OMP::Translator::Base /;
 
 # Default translation directory. This will not be where the queue would write
 # it necessarily.

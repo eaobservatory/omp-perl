@@ -37,7 +37,7 @@ use SCUBA::FlatField;
 use Data::Dumper;
 use Astro::Telescope;
 
-use base qw/ OMP::Translator /;
+use base qw/ OMP::Translator::Base /;
 
 our $VERSION = (qw$Revision$)[1];
 
