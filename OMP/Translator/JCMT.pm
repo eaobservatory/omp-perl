@@ -1004,21 +1004,25 @@ sub header_config {
   my $xfile = $self->header_exclusion_file(%info);
 
   # Read the exclusion file
-  my @toexclude = $self->read_header_exclusion_file( $xfile );
+  my @toexclude = $hdr->read_header_exclusion_file( $xfile );
 
-  for my $ex (@toexclude) {
-    # ask for the header item
-    my $item = $hdr->item( $ex );
+  $hdr->remove_excluded_headers( \@toexclude,
+                                  map { $self->$_ } qw[ verbose outhdl ]
+                                );
 
-    if (defined $item) {
-      # force undef
-      $item->undefine;
-      print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
-    } else {
-      print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
-        if $self->verbose;
-    }
-  }
+  #for my $ex (@toexclude) {
+  #  # ask for the header item
+  #  my $item = $hdr->item( $ex );
+
+  #  if (defined $item) {
+  #    # force undef
+  #    $item->undefine;
+  #    print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
+  #  } else {
+  #    print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
+  #      if $self->verbose;
+  #  }
+  #}
 
   # Get all the items that we are to be processed by the translator
   my @items = $hdr->item( sub { 
@@ -1676,75 +1680,6 @@ sub calc_receptor_or_subarray_mask {
 
   return %mask;
 }
-
-=item B<read_header_exclusion_file>
-
-Read the header exclusion file and return an array of all headers that
-should be excluded.
-
- @toexclude = $trans->read_header_exclusion_file($file);
-
-Returns empty list if the file can not be found.
-
-=cut
-
-sub read_header_exclusion_file {
-  my $self = shift;
-  my $xfile = shift;
-
-  return unless -e $xfile;
-
-  # Get the directory path for INCLUDE handling
-  my ($vol, $rootdir, $barefile) = File::Spec->splitpath( $xfile );
-
-  print {$self->outhdl} "Processing header exclusion file '$xfile'.\n"
-    if $self->verbose;
-
-  # this exclusion file has header cards that should be undeffed
-  open (my $fh, '<', $xfile)
-    || throw OMP::Error::FatalError("Error opening exclusion file '$xfile': $!");
-
-  # use a hash to make it easy to remove entries
-  my %toexclude;
-  while (defined (my $line = <$fh>)) {
-    # remove comments
-    $line =~ s/\#.*//;
-    # and trailing/leading whitespace
-    $line =~ s/^\s*//;
-    $line =~ s/\s*$//;
-    next unless $line =~ /\w/;
-
-    # A "+" indicates that the keyword should be removed from toexclude
-    my $addback = 0;
-    if ($line =~ /^\+/) {
-      $addback = 1;
-      $line =~ s/^\+//;
-    }
-
-    # Keys that are associated with this line
-    my @newkeys;
-
-    # INCLUDE directive
-    if ($line =~ /^INCLUDE\s+(.*)$/) {
-      my $fullpath = File::Spec->catpath( $vol, $rootdir, $1 );
-      push(@newkeys, $self->read_header_exclusion_file( $fullpath ) );
-    } else {
-      push(@newkeys, $line);
-    }
-
-    if ($addback) {
-      delete $toexclude{$_} for @newkeys;
-    } else {
-      # put them on the list of keys to remove
-      $toexclude{$_}++ for @newkeys;
-    }
-
-  }
-
-  return sort keys %toexclude;
-
-}
-
 
 =item B<_read_file>
 
