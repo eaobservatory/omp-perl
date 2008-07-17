@@ -2584,7 +2584,19 @@ sub acsis_layout {
 
   # and links
   my ($nsync, $nreducer, $ngridder) = $self->determine_acsis_layout($cfg, %info);
-  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder);
+  
+  # find out which correlators are used so we can connect the monitors to the sync_tasks
+  my $hw_map = $self->hardware_map();
+  my %receptor_mask = $cfg->frontend->mask();
+  my %corrtasks;
+  for my $receptor (keys %receptor_mask) {
+    for my $rm ($hw_map->receptor( $receptor )) {
+      $corrtasks{$rm->{"CorrTask"}} = undef;
+    }
+  }
+  my @corr_monitors = map { "corr_monitor" . $_ } (sort keys %corrtasks);
+
+  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder, @corr_monitors);
   $acsis->process_links( $plinks );
 
 }
