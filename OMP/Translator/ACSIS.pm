@@ -2596,7 +2596,16 @@ sub acsis_layout {
   }
   my @corr_monitors = map { "corr_monitor" . $_ } (sort keys %corrtasks);
 
-  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder, @corr_monitors);
+  my %monitorInterfaces = $playout->getMonitorInterfaces();
+  my %monitorEvents;
+  for my $monitor (keys %monitorInterfaces) {
+    my $eventNames = $cfg->acsis->interface_list->getEventNames($monitorInterfaces{$monitor});
+    throw OMP::Error::TranslateFail( "$monitorInterfaces{$monitor} should have 1 outgoing event, not " . @$eventNames . "!")
+      unless scalar @$eventNames == 1;
+    $monitorEvents{$monitor} = @{$eventNames}[0];
+  }
+
+  my $plinks = JAC::OCS::Config::ACSIS::ProcessLinks::createFromNumbers($nsync, $nreducer, $ngridder, \%monitorEvents, \@corr_monitors);
   $acsis->process_links( $plinks );
 
 }
