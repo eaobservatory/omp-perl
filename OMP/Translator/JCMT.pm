@@ -1010,20 +1010,6 @@ sub header_config {
                                   map { $self->$_ } qw[ verbose outhdl ]
                                 );
 
-  #for my $ex (@toexclude) {
-  #  # ask for the header item
-  #  my $item = $hdr->item( $ex );
-
-  #  if (defined $item) {
-  #    # force undef
-  #    $item->undefine;
-  #    print {$self->outhdl} "\tClearing header $ex\n" if $self->verbose;
-  #  } else {
-  #    print {$self->outhdl} "\tAsked to exclude header card '$ex' but it is not part of the header\n"
-  #      if $self->verbose;
-  #  }
-  #}
-
   # Get all the items that we are to be processed by the translator
   my @items = $hdr->item( sub { 
                             defined $_[0]->source
