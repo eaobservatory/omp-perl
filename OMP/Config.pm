@@ -132,14 +132,14 @@ is changed, old configs are cleared.
 =cut
 
 sub cfgdir {
-  my $class = shift;
+  my ( $class, $dir ) = @_;
 
-  my $self = _get_instance( $class );
+  my $self = _get_instance( $class, $dir );
 
   print "In cfgdir method\n" if $DEBUG;
 
-  if (@_) {
-    my $dir = shift;
+  if ( 1 < scalar @_ ) {
+
     print "dir: $dir\n" if $DEBUG;
 
     if (-d $dir) {
@@ -413,11 +413,15 @@ created.
 
   $obj = _get_instance( 'OMP::Config' );
 
+Optionally takes the configuration directory path.
+
+  $obj = _get_instance( 'OMP::Config', '/path/to/cfg' );
+
 =cut
 
 sub _get_instance {
 
-  my ( $self ) = @_;
+  my ( $self, $dir ) = @_;
 
   $DEBUG > 1 and print __LINE__ . ' ' . "Testing \$self\n";
   return $self if ref $self && $self->isa( __PACKAGE__ );
@@ -426,7 +430,7 @@ sub _get_instance {
   return $LAST_INST if ref $LAST_INST && $LAST_INST->isa( __PACKAGE__ );
 
   $DEBUG > 1 and print __LINE__ . '   ' . "Creating new instance\n";
-  return __PACKAGE__->new;
+  return __PACKAGE__->new( defined $dir ? ( 'cfgdir' => $dir ) : () );
 }
 
 =item B<_checkConfig>
