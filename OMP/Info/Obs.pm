@@ -582,7 +582,7 @@ sub hdrhash {
     my $fits = $self->fits;
     if( defined( $fits ) ) {
       my $FITS_header = $self->fits;
-      $FITS_header->tiereturnsref( 0 );
+      $FITS_header->tiereturnsref( 1 );
       tie my %header, ref($FITS_header), $FITS_header;
 
       $hdr = \%header;
