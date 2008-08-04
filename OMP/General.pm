@@ -54,6 +54,7 @@ use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 use OMP::SiteQuality;
 use POSIX qw/ /;
+use Astro::Coords;   # For  sunrise, sunset
 
 require HTML::TreeBuilder;
 require HTML::FormatText;
@@ -451,8 +452,8 @@ sub determine_extended {
   }
 
   # Now convert to Time::Piece object
-  my $min = $class->parse_date($args{start}->ymd . "T$range[0]");
-  my $max = $class->parse_date($args{end}->ymd . "T$range[1]");
+  my ($min, $max) = $class->_process_freeut_range( $args{tel}, $args{start}, @range );
+  print "Min = $min  Max = $max  duration = ".(($max-$min)/3600)."\n" if $DEBUG;
 
   throw OMP::Error::BadArgs("Error parsing the extended boundary string")
     unless defined $min && defined $max;
@@ -490,6 +491,75 @@ sub determine_extended {
 
   return ($timespent, $extended);
 
+}
+
+# Convert a range parameter as provided in the config file, to a date object.
+# Input values can be given as either UT numbers HH:MM format or as the
+# phrase "sunrise+NN" or "sunset+NN" where NN is in minutes.
+
+# my ($datestart, $dateend) = $class->_process_freeut_range( $tel, $refdate, $range1, $range2 );
+
+sub _process_freeut_range {
+  my $class = shift;
+  my ($telescope, $refdate, @ranges) = @_;
+
+  throw OMP::Error::BadArgs("Must supply two values for the range argument of process_freeut_range")
+    if (@ranges != 2 || !defined $ranges[0] || !defined $ranges[1]);
+
+  # A cache of the Sun coordinate object if needed.
+  my $Sun;
+
+  my @processed;
+  for my $r (@ranges) {
+    my $out;
+    if ($r =~ /^\s*\d\d:\d\d\s*$/) {
+      # HH:MM
+      $out = $class->parse_date($refdate->ymd . "T$r"); 
+    } elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/) {
+      my $mode = $1;
+      my $offset = $2;
+      if (!defined $Sun) {
+        # need to create an Astro::Coords object for the sun
+        $Sun = Astro::Coords->new( planet => 'sun');
+        my $tel = Astro::Telescope->new( $telescope );
+        $Sun->telescope( $tel );
+        $Sun->datetime( $refdate );
+
+        # assume that all observations are during the night not during the day(!) - probably bad
+        # Get previous midday and then add 12 hours so that we can refer to next and previous
+        # for sunset, sunrise.
+        my $midday = $Sun->meridian_time( event => -1 );
+        
+        throw OMP::Error::FatalError("Error calculating transit time of Sun!")
+          unless defined $midday;
+
+        # now add 12 hours to get us roughly in the middle of the night
+        $midday += 12 * 60 * 60;
+
+        # and update that as the reference time
+        $Sun->datetime( $midday );
+      }
+
+      if ($mode =~ /rise$/) {
+        $out = $Sun->rise_time( event => 1, horizon => Astro::Coords::CIVIL_TWILIGHT() );
+      } elsif ($mode =~ /set$/) {
+        $out = $Sun->set_time( event => -1, horizon => Astro::Coords::CIVIL_TWILIGHT() );
+      } else {
+        throw OMP::Error::FatalError("Odd programming error");
+      }
+
+      # and add on the offset (convert to seconds)
+      $out += $offset * 60;
+
+    } else {
+      throw OMP::Error::BadArgs("Error parsing the extended boundary string of '$r' (expect HH:MM or sunxxx+/-NNN");
+    }
+
+    throw OMP::Error::BadArgs("Error processing boundary event '$r'")
+      unless defined $out;
+    push(@processed, $out);
+  }
+  return @processed;
 }
 
 =item B<determine_utdate>
