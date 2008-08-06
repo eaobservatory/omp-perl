@@ -42,13 +42,13 @@ require Exporter;
 
 @ISA = qw/Exporter/;
 @EXPORT_OK = qw( obs_table obs_summary obs_inst_summary obs_comment_form
-		 obs_add_comment cgi_to_obs cgi_to_obsgroup
-		 print_obslog_header print_obslog_footer
-		 print_obscomment_footer );
+                 obs_add_comment cgi_to_obs cgi_to_obsgroup
+                 print_obslog_header print_obslog_footer
+                 print_obscomment_footer );
 
 %EXPORT_TAGS = (
-		'all' => [ @EXPORT_OK ]
-	       );
+                'all' => [ @EXPORT_OK ]
+               );
 
 Exporter::export_tags(qw/ all /);
 
@@ -62,7 +62,7 @@ our %colour = (
               );
 
 =head1 Routines
-				
+
 All routines are exported by default.
 
 =over 4
