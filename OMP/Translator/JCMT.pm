@@ -23,6 +23,7 @@ use Carp;
 
 use Data::Dumper;
 
+use List::Util qw/ max /;
 use Net::Domain;
 use File::Spec;
 use File::Basename;
@@ -432,6 +433,8 @@ sub tcs_config {
 
   }
 
+  # Calculate the dome mode
+  $self->dome($tcs, %info);
 
   # Slew and rotator require the duration to be known which can
   # only be calculated when the configuration is complete
@@ -912,6 +915,67 @@ sub secondary_mirror {
 
 }
 
+=item B<dome>
+
+Calculate the dome mode. Usually this would be BASE (to track the base
+position) but we should see if any of the offsets are excessively large)
+"
+
+  $trans->dome( $tcs, %info );
+
+First argument is C<JAC::OCS::Config::TCS> object.
+
+=cut
+
+sub dome {
+  my $self = shift;
+  my $tcs = shift;
+  my %info = @_;
+
+  my $oa = $tcs->getObsArea();
+  my $mode = $oa->mode;
+
+  # default DOME mode
+  my $dmode = "BASE";
+
+  if ($mode eq 'skydip') {
+    $dmode = "TELESCOPE";
+  } else {
+
+    # amount  to adjust offset range calculation
+    my $adj = 0;
+
+    if ($mode eq 'area') {
+      # Remember to take scan area into account. Be pessimistic
+      # to take into account telescope accelerations so just take the
+      # longest side rather than half the diagonal.
+      my %area = $oa->map_area;
+      $adj = max( $area{HEIGHT}, $area{WIDTH}, 0 );
+    }
+
+    # Maximum offset allowed in order to use BASE dome mode (arcsec)
+    my $MAXOFF = 2 * 60 * 60;
+
+    for my $off ($oa->offsets) {
+      my $offx = $off->xoffset->arcsec;
+      my $offy = $off->yoffset->arcsec;
+      my $distsq = ($offx ** 2) + ($offy ** 2);
+      my $dist = sqrt($distsq) + $adj;
+      if ($dist > $MAXOFF) {
+        $dmode = "TELESCOPE";
+        last;
+      }
+    }
+  }
+
+  if ($self->verbose) {
+    print {$self->outhdl} "Selecting dome mode of $dmode\n";
+  }        
+
+  # set the dome mode itself
+  $tcs->dome_mode( $dmode );
+  return;
+}
 
 =item B<instrument_config>
 
