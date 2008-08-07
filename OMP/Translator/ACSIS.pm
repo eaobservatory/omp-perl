@@ -1758,8 +1758,8 @@ sub spw_list {
   # Store the data fiels. Just assume these are okay but probably need a template 
   # file
   $spwlist->data_fields( spw_id => "SPEC_WINDOW_ID",
-                         doppler => 'FE.STATE.DOPPLER',
-                         fe_lo => 'FE.STATE.LO_FREQUENCY'
+                         doppler => 'FE.DOPPLER',
+                         fe_lo => 'FE.LO_FREQUENCY'
                        );
 
   # Store it
