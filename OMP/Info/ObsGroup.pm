@@ -83,8 +83,8 @@ sub new {
   my %args = @_;
 
   my $grp = bless {
-		   ObsArray => [],
-		  }, $class;
+                   ObsArray => [],
+                  }, $class;
 
   # if we have an "obs" arg we just store the objects
   if (exists $args{obs}) {
@@ -325,7 +325,7 @@ sub populate {
   # for inccal. If it is true we need to modify the query so that
   # it does not include a projectid by default.
   my $inccal;
-  if (exists $args{projectid} && exists $args{date} 
+  if (exists $args{projectid} && exists $args{date}
       && exists $args{inccal}) {
     $inccal = $args{inccal};
   }
@@ -373,16 +373,16 @@ sub populate {
     # will be sorted later on.
     my $sort = (exists $args{timegap} && $args{timegap} ? 0 : $args{sort});
     $self->filter( projectid => $args{projectid}, inccal => $inccal,
-		   verbose => $args{verbose}, sort => $sort,
-		 );
+                   verbose => $args{verbose}, sort => $sort,
+                 );
   } else {
     # we do not need to filter but we should list the filenames
     # for consistency with the filter option
     if ($args{verbose}) {
       for my $obs ($self->obs) {
-	my $obsmode = $obs->mode || $obs->type;
-	print "SCIENCE: ". $obs->instrument."/".$obsmode . " [". $obs->target 
-	  ."]\n";
+        my $obsmode = $obs->mode || $obs->type;
+        print "SCIENCE: ". $obs->instrument."/".$obsmode . " [". $obs->target
+          ."]\n";
       }
     }
   }
@@ -451,7 +451,7 @@ sub filter {
     my @newobs;
     if (exists $args{projectid}) {
       @newobs = grep { uc($_->projectid) eq $args{projectid} &&
-		       $_->isScience } $self->obs;
+                       $_->isScience } $self->obs;
     } else {
       @newobs = grep { $_->isScience } $self->obs;
     }
@@ -517,8 +517,8 @@ sub filter {
       #   - They are a SciCal that uses the same observing mode as us
       $match = join("|", keys %obsmodes);
       @cal = grep { my $obsmode = $_->mode || $_->type;
-		    uc($_->projectid) eq $args{projectid} ||
-		    $_->isGenCal || $obsmode =~ /^$match/i } @cal;
+                    uc($_->projectid) eq $args{projectid} ||
+                    $_->isGenCal || $obsmode =~ /^$match/i } @cal;
 
     }
 
@@ -600,7 +600,7 @@ to populate the C<Project::TimeAcct> objects.
 
 The first argument returned is an array of warning messages generated
 by the time accounting tool. Usually these will indicate calibrations
-that are not required by any science observations, or science 
+that are not required by any science observations, or science
 observations that have no corresponding calibration.
 
 Calibrations are shared amongst those projects that required
@@ -614,7 +614,7 @@ of general calibrations. This may be a bug.
 Observations taken outside the normal observing periods
 are not charged to any particular project but are charged
 to project $tel"EXTENDED". This definition of extended time
-is telescope dependent. 
+is telescope dependent.
 
 Does not yet take the observation status (questionable, bad, good)
 into account when calculating the statistics. In principal observations
@@ -679,7 +679,7 @@ sub projectStats {
   # In some cases we need to know the most recent observation
   my $prevobs;
 
-  # Go through all the observations, determining the time spent on 
+  # Go through all the observations, determining the time spent on
   # each project and the calibration requirements for each observation
   # Note that calibrations are not spread over instruments
   my %night_totals;
@@ -700,16 +700,16 @@ sub projectStats {
       next if $status == OMP__TIMEGAP_FAULT;
 
       if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_NEXT_PROJECT) {
-	# INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
-	# gaps are shared by instrument, PROJECT gaps are given to the following
-	# project. In both cases we handle it properly in the next section.
-	# Simply let the default project ID go through since it will be ignored
-	# in a little while.
+        # INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
+        # gaps are shared by instrument, PROJECT gaps are given to the following
+        # project. In both cases we handle it properly in the next section.
+        # Simply let the default project ID go through since it will be ignored
+        # in a little while.
       } elsif ($status == OMP__TIMEGAP_WEATHER) {
         $projectid = $WEATHER_GAP;
       } elsif ($status == OMP__TIMEGAP_PREV_PROJECT) {
-	# This is time that should be charged to the project
-	# preceeding this gap. For now we do not need to do anything
+        # This is time that should be charged to the project
+        # preceeding this gap. For now we do not need to do anything
 
       } else {
         $projectid = $OTHER_GAP;
@@ -734,7 +734,7 @@ sub projectStats {
     my $duration = $obs->duration;
 
     # Store the project ID if it is significant
-    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/ 
+    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/
                                          && $projectid !~ /$WEATHER_GAP$/
                                          && $projectid !~ /$OTHER_GAP$/
                                          && $projectid !~ /$EXTENDED_KEY$/
@@ -770,7 +770,7 @@ sub projectStats {
     # with the actual gap later on]
     if (!$isgap) {
       push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
-        if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 || 
+        if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 ||
             (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
             (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
              $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
@@ -795,8 +795,8 @@ sub projectStats {
       # unless the gap is small (less than the threshold)
       # since most people define extended as time from when we really
       # start to when we really end the observing.
-      $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds 
-        if defined $extended && $extended->seconds > 0 
+      $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds
+        if defined $extended && $extended->seconds > 0
         && (!$isgap || ($isgap && $extended->seconds < $GAP_THRESHOLD));
 
       # If the duration is negative set it to zero rather than kludging
@@ -819,24 +819,24 @@ sub projectStats {
     if ($isgap) {
       # Just need to add into the %other hash
       # UNLESS this is an OTHER gap that is smaller than the required threshold
-      if ($projectid eq $OTHER_GAP && $timespent->seconds < $GAP_THRESHOLD 
+      if ($projectid eq $OTHER_GAP && $timespent->seconds < $GAP_THRESHOLD
           && $timespent->seconds > 0) {
-	# Replace the project entry with a hash pointing to the gap
-	# Use a hash ref just to make it easy to spot rather than matching
-	# to a digit
+        # Replace the project entry with a hash pointing to the gap
+        # Use a hash ref just to make it easy to spot rather than matching
+        # to a digit
         push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
       } elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
-	# Always charge PROJECT gaps to the following project (this
-	# is the same logic as for short gaps). Keep this separate
-	# in case we had different types of accounting (especially
-	# if we start to share between previous project or have a POSTPROJECT
-	# and PREVPROJECT gap type). In that case will adjust the key here
-	# to be PREVIOUS, POST or SHARED
+        # Always charge PROJECT gaps to the following project (this
+        # is the same logic as for short gaps). Keep this separate
+        # in case we had different types of accounting (especially
+        # if we start to share between previous project or have a POSTPROJECT
+        # and PREVPROJECT gap type). In that case will adjust the key here
+        # to be PREVIOUS, POST or SHARED
         print "CHARGING ".$timespent->seconds." TO PROJECT GAP\n"
           if $DEBUG;
         push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
       } elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
-	# Must charge the previous project
+        # Must charge the previous project
         print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
           if $DEBUG;
         if (defined $prevobs) {
@@ -974,7 +974,7 @@ sub projectStats {
             my @either;
             push(@either, $projects[$i+1]) if $#projects != $i;
 
-            # if we do not have a project following this 
+            # if we do not have a project following this
             # charge to OTHER
             if (@either) {
               for my $projdata (@either) {
@@ -1150,7 +1150,7 @@ sub projectStats {
     my $date = OMP::General->parse_date( $ymd );
     print "Date: $ymd\n" if $DEBUG;
     for my $proj (keys %{$proj_totals{$ymd}}) {
-      printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG; 
+      printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG;
       push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
                                                  date => $date,
                                                  timespent => new Time::Seconds($proj_totals{$ymd}{$proj})
