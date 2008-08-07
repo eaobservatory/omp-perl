@@ -129,23 +129,22 @@ my $db = new OMP::MSBDB( DB => $backend );
 # Run a simulated set of queries to determine which projects
 # have MSBs available
 
-my $today = OMP::General->today;
+my $today = OMP::General->today(1);
 
 # The hour range for queries should be restricted by the freetimeut
 # parameter from the config system
 my ($utmin, $utmax) = OMP::Config->getData( 'freetimeut',
 					    telescope => $telescope);
-# Get the start hour
-if ($utmin =~ /(\d+):*/) {
-  $utmin = $1;
-  $utmin =~ s/^0//;
-}
-# end hour (round up)
-if ($utmax =~ /(\d+):(\d+)/) {
-  $utmax = $1;
-  $utmax++ if $2 > 0;
-  $utmin =~ s/^0//;
-}
+
+# parse the values, get them back as date objects
+($utmin, $utmax) = OMP::General->_process_freeut_range( $telescope,
+                                                        $today,
+                                                        $utmin, $utmax);
+
+# easier for now to convert them back to an hour
+$utmin = $utmin->hour;
+$utmax = $utmax->hour + ($utmax->min > 0 ? 1 : 0);
+$today = $today->ymd;
 
 # Calculate localtime to GMT offset (hours)
 my $tzoffset = gmtime()->tzoffset->hours;
