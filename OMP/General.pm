@@ -543,10 +543,8 @@ sub _process_freeut_range {
       my $sundef = Astro::Coords::SUN_RISE_SET();
       if ($mode =~ /rise$/) {
         $out = $Sun->rise_time( event => 1, horizon => $sundef );
-        print "Sunrise $out\n";
       } elsif ($mode =~ /set$/) {
         $out = $Sun->set_time( event => -1, horizon => $sundef);
-        print "Sunset $out\n";
       } else {
         throw OMP::Error::FatalError("Odd programming error");
       }
