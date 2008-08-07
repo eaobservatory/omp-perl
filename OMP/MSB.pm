@@ -4216,7 +4216,11 @@ sub SpIterFolder {
 
 
     } elsif ($name eq 'SpIterFlatObs') {
+
+      my $source = $self->_get_pcdata( $child, "flatSource" );
+
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
+                                                       flatSource => $source,
                                                         }});
 
     } elsif ($name eq 'SpIterArrayTestObs') {
