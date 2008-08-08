@@ -357,7 +357,7 @@ sub obs_summary {
   $obs->switching_mode( defined $info{switching_mode} 
                         ? $info{switching_mode} : 'none' );
   $obs->type( $info{obs_type} );
-  $obs->inbeam( $info{inbeam} )
+  $obs->inbeam( @{$info{inbeam}} )
     if (exists $info{inbeam} && defined $info{inbeam});
 
   $cfg->obs_summary( $obs );
@@ -1298,7 +1298,7 @@ sub observing_mode {
   my $otmode = $info->{MODE};
   my $swmode = $info->{switchingMode};
 
-  # "inbeam" can be handled generically.
+  # "inbeam" can be handled generically in some cases.
   # "obs_type" could be but the tests are already being performed.
   # Mapping and switch modes (Especially for non-science)
   # need special case
@@ -1306,10 +1306,13 @@ sub observing_mode {
   my ($mapping_mode, $switching_mode, $obs_type)
     = $self->determine_map_and_switch_mode($otmode, $swmode);
 
-  # inbeam
-  my $inbeam;
-  if ($info->{pol}) {
-    $inbeam = 'pol';
+  $info->{obs_type}       = $obs_type;
+  $info->{switching_mode} = $switching_mode;
+  $info->{mapping_mode}   = $mapping_mode;
+  $info->{inbeam}        = [$self->determine_inbeam( %$info )];
+
+  # Finally, tweak the switching mode if POL is in the beam
+  if ($info->{pol} && grep /pol/i, @{$info->{inbeam}}) {
 
     # tweak switching mode
     if ($self->is_pol_spin(%$info)) {
@@ -1321,17 +1324,12 @@ sub observing_mode {
     }
   }
 
-  $info->{obs_type}       = $obs_type;
-  $info->{switching_mode} = $switching_mode;
-  $info->{mapping_mode}   = $mapping_mode;
-  $info->{inbeam}        = $inbeam;
-
   # observing mode
   my @parts = ($mapping_mode);
   if ($switching_mode !~ /^(none|self)$/) {
     push(@parts, $switching_mode);
   }
-  push(@parts, $inbeam) if $inbeam;
+  push(@parts, @{$info->{inbeam}});
 
   $info->{observing_mode} = join("_",@parts);
 
@@ -1342,7 +1340,7 @@ sub observing_mode {
     print {$self->outhdl} "\tObservation Type: $info->{obs_type}\n";
     print {$self->outhdl} "\tMapping Mode: $info->{mapping_mode}\n";
     print {$self->outhdl} "\tSwitching Mode: $info->{switching_mode}\n";
-    print {$self->outhdl} "\tIn Beam: $info->{inbeam}\n"
+    print {$self->outhdl} "\tIn Beam: ".join(",",@{$info->{inbeam}})."\n"
       if $info->{inbeam};
   }
 
@@ -1382,6 +1380,29 @@ sub is_pol_spin {
   }
   return;
 }
+
+=item B<determine_inbeam>
+
+Determine what should be in the beam for this observation. Base class
+looks at polarimeter settings. Use a subclass to decide on blackbody
+and other issues.
+
+  @inbeam = $trans->determine_inbeam( %info );
+
+=cut
+
+sub determine_inbeam {
+  my $self = shift;
+  my %info = @_;
+
+  my @inbeam;
+  if ($info{pol}) {
+    push(@inbeam, "pol");
+  }
+  return @inbeam;
+}
+
+
 
 =item B<ocs_frontend>
 

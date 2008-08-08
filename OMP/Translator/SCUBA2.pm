@@ -131,9 +131,8 @@ sub header_exclusion_file {
   my $root;
   if ($info{obs_type} =~ /focus|skydip/) {
     $root = $info{obs_type} . "_". $info{mapping_mode};
-  } elsif ($info{obs_type} eq 'flatfield' ||
-	   $info{obs_type} eq 'array_tests' ) {
-    # flatfield and array tests do not use
+  } elsif ($self->is_private_sequence(%info) ) {
+    # flatfield and array tests (and some noise) do not use
     # the rest of the observing system so the exclusion files
     # are the same
      $root = "flatfield";
@@ -184,6 +183,7 @@ and so do not generate configuration XML.
   $trans->is_private_sequence( %info );
 
 For SCUBA-2 returns true for Flatfield and Array Tests, false otherwise.
+Except that some Noise observations need the TCS and others do not.
 
 =cut
 
@@ -193,7 +193,12 @@ sub is_private_sequence {
   if ($info{obs_type} eq 'flatfield' ||
       $info{obs_type} eq 'array_tests' ) {
     return 1;
+  } elsif ($info{obs_type} eq 'noise') {
+    if ($info{noiseSource} =~ /^(dark|blackbody)$/i) {
+      return 1;
+    }
   }
+
   return 0;
 }
 
@@ -244,8 +249,16 @@ sub handle_special_modes {
     }
 
   } elsif ($info->{obs_type} =~ /array_tests/) {
-      $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
-						   "array_tests_integration");
+    # Array Tests is currently shorthand for a long noise
+    # observation
+    $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
+                                                 "array_tests_integration");
+    $info->{noiseSource} = "DARK";
+
+  } elsif ($info->{obs_type} =~ /noise/) {
+    $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
+                                                 "noise_integration");
+
   }
 
   # fix up point source scanning
@@ -334,7 +347,7 @@ sub jos_config {
 
   my $recipe = $info{obs_type};
   if ($info{obs_type} eq 'array_tests') {
-    $recipe = "stare";
+    $recipe = "noise";
   } elsif ($info{obs_type} eq 'science') {
     $recipe = $info{observing_mode};
   }
@@ -344,22 +357,28 @@ sub jos_config {
   # and store it
   $jos->recipe( $recipe );
 
-  # Time between darks depends on observing mode
+  # Time between darks depends on observing mode (but not _pol, _blackbody)
+  my $obsmode_strip = $info{observing_mode};
+  $obsmode_strip =~ s/_.*$//;
   my $tbdark = OMP::Config->getData( "scuba2_translator.time_between_dark_".
-                                     $info{observing_mode} ) / $jos->step_time;
+                                     $obsmode_strip ) / $jos->step_time;
 
   $jos->steps_btwn_dark( $tbdark );
 
-  # Length of dark is fixed
-  my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
-  $jos->n_calsamples( $darklen / $jos->step_time );
+  # Length of dark is fixed for all except observations that 
+  # have a noiseSource of "DARK".
+  unless (exists $info{noiseSource} && $info{noiseSource} =~ /DARK/) {
+    my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
+    $jos->n_calsamples( $darklen / $jos->step_time );
+  }
 
   if ($self->verbose) {
     print {$self->outhdl} "Generic JOS parameters:\n";
     print {$self->outhdl} "\tStep time: ".$jos->step_time." secs\n";
     print {$self->outhdl} "\tSteps between darks: ". $jos->steps_btwn_dark().
       "\n";
-    print {$self->outhdl} "\tDark duration: ".$jos->n_calsamples(). " steps\n";
+    print {$self->outhdl} "\tDark duration: ".$jos->n_calsamples(). " steps\n"
+      if $jos->n_calsamples;
   }
 
   if ($info{obs_type} =~ /^skydip/) {
@@ -389,6 +408,42 @@ sub jos_config {
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
     # need some stuff in here
+
+  } elsif ($info{obs_type} eq 'noise') {
+
+    # see if the blackbody is needed
+    if ($info{noiseSource} =~ /^blackbody$/) {
+      my $bbtemp = OMP::Config->getData($self->cfgkey .".noise_bbtemp");
+      $jos->bb_temp_start( $bbtemp );
+    }
+
+    # Requested duration of noise observation
+    my $inttime = $info{secsPerCycle};
+
+    # convert total integration time to steps
+    my $nsteps = $inttime / $jos->step_time;
+
+    # split into chunks
+    my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+    my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
+    $jos->num_cycles($num_cycles);
+
+    if ($self->verbose) {
+      print {$self->outhdl} ucfirst($info{obs_type})." JOS parameters:\n";
+      print {$self->outhdl} "\tNoise source: $info{noiseSource}\n";
+      print {$self->outhdl} "\tRequested integration time: $inttime secs\n";
+      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
+      print {$self->outhdl} "\tActual integration time: ".
+        ($jos_min * $num_cycles * $jos->step_time)." secs\n";
+    }
+
+    # The DARK mode is special since we never open the shutter
+    if ($info{noiseSource} eq 'DARK') {
+      $jos->jos_min(0);
+      $jos->n_calsamples( $jos_min );
+    } else {
+      $jos->jos_min($jos_min);
+    }
 
   } elsif ($info{mapping_mode} eq 'stare'
           || $info{mapping_mode} eq 'dream') {
@@ -603,6 +658,9 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterArrayTestObs') {
     $obs_type = 'array_tests';
     $mapping_mode = 'stare';
+  } elsif ($mode eq 'SpIterNoiseObs') {
+    $obs_type = 'noise';
+    $mapping_mode = 'stare';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
     if ($sdip_mode =~ /^cont/) {
@@ -629,6 +687,43 @@ sub determine_map_and_switch_mode {
     unless defined $switching_mode;
 
   return ($mapping_mode, $switching_mode, $obs_type);
+}
+
+=item B<determine_inbeam>
+
+Decide what should be in the beam. Empty if "DARK", blackbody does not
+allow FTS.
+
+  @inbeam = $trans->determine_inbeam( %info );
+
+=cut
+
+sub determine_inbeam {
+  my $self = shift;
+  my %info = @_;
+  my @inbeam;
+
+  # see if we have a source in the beam
+  my $source;
+  if ($info{obs_type} eq 'flatfield') {
+    $source = lc($info{flatSource});
+  } elsif (exists $info{noiseSource}) {
+    $source = lc($info{noiseSource});
+  }
+
+  if (defined $source) {
+    if ($source =~ /blackbody/i) {
+      push(@inbeam, "blackbody");
+    } elsif ($source =~ /dark/i) {
+      # can not be anything in the beam for a dark
+      return ();
+    }
+  }
+
+  # get base class values
+  push(@inbeam, $self->SUPER::determine_inbeam(%info));
+  
+  return @inbeam;
 }
 
 =back
