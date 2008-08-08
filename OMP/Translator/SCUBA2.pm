@@ -259,6 +259,9 @@ sub handle_special_modes {
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
                                                  "noise_integration");
 
+  } elsif ($info->{obs_type} =~ /flatfield/) {
+    $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
+                                                 "flatfield_integration");
   }
 
   # fix up point source scanning
@@ -334,7 +337,7 @@ sub jos_config {
   my $jos = new JAC::OCS::Config::JOS();
 
   # Basics
-  $jos->step_time( $self->step_time );
+  $jos->step_time( $self->step_time($cfg, %info) );
   $jos->start_index( 1 );
 
   # Allowed JOS recipes seem to be
@@ -408,6 +411,9 @@ sub jos_config {
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
     # need some stuff in here
+
+
+
 
   } elsif ($info{obs_type} eq 'noise') {
 
@@ -588,11 +594,24 @@ Step time for SCUBA-2 is usually fixed at 200 Hz.
 
  $rts = $trans->step_time( $cfg, %info );
 
+Flatfield and Noise can be configured independently.
+
 =cut
 
 sub step_time {
   my $self = shift;
-  return OMP::Config->getData( $self->cfgkey . '.step_time' );
+  my $cfg = shift;
+  my %info = @_;
+
+  # Try obs type version first
+  my $step;
+  if ($info{obs_type} =~ /^(flatfield|array_tests|noise)$/) {
+    $step = eval { OMP::Config->getData( $self->cfgkey . ".step_time_".
+                                         $info{obs_type} ) };
+  }
+  $step = OMP::Config->getData( $self->cfgkey . '.step_time' )
+    unless defined $step;
+  return $step;
 }
 
 =item B<velOverride>
