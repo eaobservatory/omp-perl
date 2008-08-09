@@ -129,15 +129,17 @@ sub header_exclusion_file {
   my %info = @_;
 
   my $root;
-  if ($info{obs_type} =~ /focus|skydip/) {
-    $root = $info{obs_type} . "_". $info{mapping_mode};
-  } elsif ($self->is_private_sequence(%info) ) {
+  if ($self->is_private_sequence(%info) ) {
     # flatfield and array tests (and some noise) do not use
     # the rest of the observing system so the exclusion files
     # are the same
-     $root = "flatfield";
+    $root = "flatfield";
+  } elsif ($info{obs_type} =~ /focus|skydip/) {
+    $root = $info{obs_type} . "_". $info{mapping_mode};
   } else {
     # A pointing is just the mapping mode
+    # A noise will just be the stare mode since dark and blackbody
+    # have been filtered out previously.
     $root = $info{mapping_mode};
   }
 
