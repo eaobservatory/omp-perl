@@ -412,15 +412,38 @@ sub jos_config {
 
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
-    # need some stuff in here
+    # This is the integration time directly from 
+    my $inttime = $info{secsPerCycle};
+    my $nsteps = $inttime / $jos->step_time;
+    $jos->n_calsamples( $nsteps );
+    $jos->num_cycles( OMP::Config->getData($self->cfgkey.
+                                           ".flatfield_num_cycles"));
 
+    # next set depends on flatfield mode
+    my @keys;
+    if ($info{flatSource} =~ /^blackbody$/i) {
+      @keys = (qw/ bb_temp_start bb_temp_step bb_temp_wait shut_frac /);
+    } elsif ($info{flatSource} =~ /^dark$/i) {
+      @keys = (qw/ heat_cur_start heat_cur_step heat_cur_ref /);
+    } else {
+      throw OMP::Error::FatalError("Unrecognized flatfield source: $info{flatSource}");
+    }
 
+    # read the values from the config file
+    for my $k (@keys) {
+      my $value = OMP::Config->getData($self->cfgkey.
+                                       ".flatfield_".$k);
+      $jos->$k( $value );
+    }
 
+    if ($self->verbose) {
+      print {$self->outhdl} "\tFlatfield source: $info{flatSource}\n";
+    }
 
   } elsif ($info{obs_type} eq 'noise') {
 
     # see if the blackbody is needed
-    if ($info{noiseSource} =~ /^blackbody$/) {
+    if ($info{noiseSource} =~ /^blackbody$/i) {
       my $bbtemp = OMP::Config->getData($self->cfgkey .".noise_bbtemp");
       $jos->bb_temp_start( $bbtemp );
     }
