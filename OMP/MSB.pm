@@ -4234,9 +4234,18 @@ sub SpIterFolder {
       my $nint =  $self->_get_pcdata( $child, 'integrations');
       my $source = $self->_get_pcdata( $child, 'noiseSource');
 
+      my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
+      # Defaults to true if not present
+      if (defined $currAz) {
+        $currAz = $self->_str_to_bool( $currAz );
+      } else {
+        $currAz = 1;
+      }
+
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                        nintegrations => $nint,
                                                        noiseSource => $source,
+                                                       currentAz => $currAz,
                                                       }});
 
     } elsif ($name eq 'SpIterSkydipObs') {
@@ -4244,11 +4253,10 @@ sub SpIterFolder {
       my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
       # Defaults to false if not present
       if (defined $currAz) {
-        $currAz = ($currAz =~ /^false$/i ? 0 : 1);
+        $currAz = $self->_str_to_bool( $currAz );
       } else {
         $currAz = 0;
       }
-
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                         currentAz => $currAz,
