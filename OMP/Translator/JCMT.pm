@@ -484,8 +484,9 @@ sub tcs_base {
     return;
   }
 
-  # if this is a skydip and does not have a BASE position do not worry
-  if ($info{obs_type} eq 'skydip' && $info{coords}->type eq 'CAL') {
+  # if this is a skydip or noise and does not have a BASE position do not worry
+  # since we will default to using the current Azimuth in this case.
+  if ($info{obs_type} =~ /skydip|noise/ && $info{coords}->type eq 'CAL') {
     if ($self->verbose) {
       print {$self->outhdl} "No target supplied for Skydip. Using current Azimuth.\n";
     }
@@ -645,10 +646,23 @@ sub observing_area {
   # offsets have to be in the same frame as the map if we are
   # defining a map area
 
-  if ($info{obs_type} eq 'skydip') {
-    # get the elevation range
-    my $maxel = OMP::Config->getData($self->cfgkey . ".skydip_maxel");
-    my $minel = OMP::Config->getData($self->cfgkey . ".skydip_minel");
+  # Note that a ZENITH noise is implemented as a SKYDIP with a single
+  # elevation
+
+  if ($info{obs_type} eq 'skydip' ||
+     ($info{obs_type} eq 'noise' && $info{noiseSource} =~ /zenith/i)) {
+
+    my $isskydip = ($info{obs_type} eq 'skydip');
+
+    # get the elevation range (for skydip)
+    my ($maxel, $minel);
+    if ($isskydip) {
+      $maxel = OMP::Config->getData($self->cfgkey . ".skydip_maxel");
+      $minel = OMP::Config->getData($self->cfgkey . ".skydip_minel");
+    } else {
+      $maxel = 80.0;
+      $minel = $maxel;
+    }
 
     my @el;
     if ($obsmode eq 'scan') {
@@ -659,27 +673,36 @@ sub observing_area {
     } elsif ($obsmode eq 'stare') {
       $oa->skydip_mode( 'discrete' );
 
-      # calculate the angles - equally spaced in airmass
-      my $amstart = to_airmass( $maxel );
-      my $amend   = to_airmass( $minel );
+      if ($isskydip) {
+        # calculate the angles - equally spaced in airmass
+        my $amstart = to_airmass( $maxel );
+        my $amend   = to_airmass( $minel );
 
-      my $numel = OMP::Config->getData( $self->cfgkey. ".skydip_numel");
-      OMP::Error::FatalError->throw( "Number of elevations in skydip (skyipd_numel) must be at least 2 (was $numel)") if $numel <= 2;
-      my $delta_am = ($amend - $amstart) / ($numel - 1 );
+        my $numel = OMP::Config->getData( $self->cfgkey. ".skydip_numel");
+        OMP::Error::FatalError->throw( "Number of elevations in skydip (skydip_numel) must be at least 2 (was $numel)") if $numel <= 2;
+        my $delta_am = ($amend - $amstart) / ($numel - 1 );
 
-      # work out the elevations
-      for my $nel (0..($numel-1)) {
-        my $am = $amstart + ($nel * $delta_am );
-        my $el = airmass_to_el( $am );
-        push(@el, Astro::Coords::Angle->new( $el, units => "deg" ));
+        # work out the elevations
+        for my $nel (0..($numel-1)) {
+          my $am = $amstart + ($nel * $delta_am );
+          my $el = airmass_to_el( $am );
+          push(@el, Astro::Coords::Angle->new( $el, units => "deg" ));
+        }
+      } else {
+        # only one position for noise
+        push(@el, Astro::Coords::Angle->new( $maxel, units=>"deg"));
       }
-
     } else {
       throw OMP::Error::FatalError("Unknown skydip mode '$obsmode'");
     }
 
     if ($self->verbose) {
-      print {$self->outhdl} $oa->skydip_mode ." skydip from $maxel to $minel degrees elevation\n";
+      if ($isskydip) {
+        print {$self->outhdl} $oa->skydip_mode
+          ." skydip from $maxel to $minel degrees elevation\n";
+      } else {
+        print {$self->outhdl} "$info{obs_type} observation at elevation $maxel deg\n";
+      }
     }
 
     # store the elevations
