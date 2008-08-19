@@ -43,7 +43,7 @@ GetOptions(
 pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 
 pod2usage( '-exitval' => 2, '-verbose' => 1,
-            '-msg' => 'Need readable regular files.'
+            '-msg' => 'Need readable configuration files.'
           )
   if scalar values %config > scalar grep { -f $_ && -r _ } values %config;
 
