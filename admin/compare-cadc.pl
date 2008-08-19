@@ -302,7 +302,7 @@ Show this message.
 
 Run in debug mode.  Specify multiple times to increase output.
 
-Output is printed on standard error.
+Output is printed on standard error.  No email is sent in this mode.
 
 =item B<jcmt> file
 
@@ -330,8 +330,6 @@ database (at JAC).
 =head1 AUTHOR
 
 Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
-
-=head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
