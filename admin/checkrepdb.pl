@@ -21,6 +21,8 @@ my $missing_msb;
 my $critical;
 my $fault = 0;
 
+# Roles are as defined by the enteries in a "interfaces" file.  In this case,
+# they are based on the file as found in "/local/progs/sybase".
 my $primary_db = "SYB_JAC";
 my $secondary_db = "SYB_JAC2";
 
