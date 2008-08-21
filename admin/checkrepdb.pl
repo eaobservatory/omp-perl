@@ -21,7 +21,7 @@ my $missing_msb;
 my $critical;
 my $fault = 0;
 
-# Roles are as defined by the enteries in a "interfaces" file.  In this case,
+# Roles are as defined by the entries in a "interfaces" file.  In this case,
 # they are based on the file as found in "/local/progs/sybase".
 my $primary_db = "SYB_JAC";
 my $secondary_db = "SYB_JAC2";
@@ -425,14 +425,14 @@ Prints this message.
 
 =item B<-to> <email address>
 
-Specify email address as the recepint of the check report; default is
+Specify email address as the recipient of the check report; default is
 "omp_group@jach.hawaii.edu".
 
 It can be specified multiple times to send email to more than one address.
 
 =item B<-cc> <email address>
 
-Specify email address as the carbon copy recepint of the check report.
+Specify email address as the carbon copy recipient of the check report.
 Note that if given, default email address will not be used.
 
 It can be specified multiple times to send email to more than one address.
