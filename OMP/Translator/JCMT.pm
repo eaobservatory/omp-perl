@@ -972,7 +972,7 @@ sub dome {
       # Remember to take scan area into account. Be pessimistic
       # to take into account telescope accelerations so just take the
       # longest side rather than half the diagonal.
-      my %area = $oa->map_area;
+      my %area = $oa->maparea;
       $adj = max( $area{HEIGHT}, $area{WIDTH}, 0 );
     }
 
