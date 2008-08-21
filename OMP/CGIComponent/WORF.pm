@@ -394,15 +394,15 @@ sub options_form {
 
 }
 
-sub obsnumsort {
+sub obsnumsort ($$) {
 
 # Sorting routine to sort files by observation number, numerically instead of alphabetically
 # (so that 19 comes before 143)
 
-        $a =~ /_(\d+)(_)?/;
+        $_[0] =~ /_(\d+)(_)?/;
         my $a_obsnum = $1;
         my $a_nosuffix = $2;
-        $b =~ /_(\d+)(_)?/;
+        $_[1] =~ /_(\d+)(_)?/;
         my $b_obsnum = $1;
         my $b_nosuffix = $2;
         if( $a_obsnum == $b_obsnum ) {
