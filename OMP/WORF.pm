@@ -615,9 +615,8 @@ sub _plot_image {
   my $hdr = $image->gethdr;
   my $title = $file;
 
-  # Fudge to set bad pixels to zero.
-  my $bad = -1e-10;
-  $image *= ( $image > $bad );
+  # Clean up bad pixels.
+  clean_bad_pixels( $image );
 
   if( exists( $args{zmin} ) && defined( $args{zmin} ) &&
       exists( $args{zmax} ) && defined( $args{zmax} ) &&
@@ -849,10 +848,6 @@ sub _plot_spectrum {
 
   }
 
-  # Fudge to set bad pixels to zero.
-#  my $bad = -1e-10;
-#  $image *= ( $image > $bad );
-
   my $spectrum;
   my ( $xdim, $ydim, $zdim ) = dims $image;
 
@@ -915,6 +910,7 @@ sub _plot_spectrum {
 
 # Grab the axis information
   my $hdr = $image->gethdr;
+
   my $title = ( defined( $hdr->{Title} ) ? $hdr->{Title} : '' );
   my ( $axis, $axishdr, $units, $label );
   if( defined( $hdr->{Axis} ) ) {
@@ -939,8 +935,8 @@ sub _plot_spectrum {
     $xend = $xdim - 1;
   }
 
-  # Slight hackery to handle bad pixels.
-  $spectrum = $spectrum->setbadif( $spectrum < -1e25 );
+  # Clean up bad pixels.
+  clean_bad_pixels( $spectrum );
 
   if( exists $args{zmin} && defined $args{zmin} ) {
     $zmin = $args{zmin};
@@ -965,7 +961,6 @@ sub _plot_spectrum {
 
   env(0, ($xend - $xstart), $zmin, $zmax);
   label_axes( undef, undef, $title);
-#  points $spectrum, $opt;
   line $spectrum;
   dev "/null";
 
@@ -974,7 +969,6 @@ sub _plot_spectrum {
     dev "$cachefile/GIF";
     env(0, ($xend - $xstart), $zmin, $zmax);
     label_axes( undef, undef, $title);
-#    points $spectrum, $opt;
     line $spectrum;
     dev "/null";
   }
@@ -1061,9 +1055,8 @@ sub _plot_cube {
   }
 
   # Do the image manipulation so we can rebin.
-  $cube->badflag(0);
-  my $e = 0 * ($cube < -1e25) + $cube * ($cube >= -1e25);
-  my $e1 = $e->xchg(1,2);
+  clean_bad_pixels( $cube );
+  my $e1 = $cube->xchg(1,2);
   my $e2 = $e1->xchg(0,1);
   my $rebin = $e2->rebin($zdim, $xbin, $ybin);
 
@@ -1282,6 +1275,24 @@ sub worf_determine_class {
   }
 
   return $class;
+
+}
+
+=item B<clean_bad_pixels>
+
+  clean_bad_pixels( $pdl );
+
+Cleans up bad pixels in a piddle. Values less than -1e25 are
+considered to be bad. The piddle is cleaned up in-place.
+
+=cut
+
+sub clean_bad_pixels {
+  my $pdl = shift;
+
+  $pdl *= ( $pdl > -1e25 );
+  $pdl->badflag( 1 );
+  $pdl->badvalue( 0 );
 
 }
 
