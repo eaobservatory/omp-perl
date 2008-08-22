@@ -92,7 +92,7 @@ sub display_graphic {
 
     # See if the cache file exists. It will be of the form
     # $ut . $inst . $runnr . $suffix . ".gif"
-    my $cachefile = "/tmp/worfthumbs/" . $ut . $inst . $runnr . $suffix . ".gif";
+    my $cachefile = "/tmp/" . $ut . $inst . $runnr . $suffix . ".gif";
 
     if( -e $cachefile ) {
 
