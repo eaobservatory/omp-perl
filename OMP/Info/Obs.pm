@@ -553,6 +553,12 @@ sub fits {
     return unless $self->retainhdr;
   }
 
+  unless ( $self->_defined_fits ) {
+
+    warn "Neither '_fits' nor '_hdrhash' is defined";
+    return;
+  }
+
   my $fits = $self->_fits;
   if( ! defined( $fits ) ) {
     my $hdrhash = $self->hdrhash;
@@ -575,6 +581,12 @@ sub hdrhash {
 
     # Do not synchronize if we're not retaining headers.
     return unless $self->retainhdr;
+  }
+
+  unless ( $self->_defined_fits ) {
+
+    warn "Neither '_fits' nor '_hdrhash' is defined";
+    return;
   }
 
   my $hdr = $self->_hdrhash;
@@ -1319,6 +1331,25 @@ sub uniqueid {
 =head2 Private Methods
 
 =over 4
+
+=item B<_defined_fits>
+
+Returns a truth value indicating whether one of L<Astro::FITS::Header>
+object or a hash representation of L<Astro::FITS::Header> has been
+defined (for the L<OMP::Info::Obs> object).
+
+  $def = $obs->_defined_fits;
+
+=cut
+
+sub _defined_fits {
+
+  my ( $self ) = @_;
+
+  # Poke inside the implementation to avoid infinite recursion.
+  return defined $self->{'_fits'}
+    || defined $self->{'_hdrhash'};
+}
 
 =item B<_populate>
 
