@@ -114,7 +114,9 @@ BEGIN
     my $prop = { };
     $prop->{'_init'}{ $_ } = $opt{ $_ } for @opt;
 
-    return $LAST_INST = bless $prop, $class;
+    $LAST_INST = bless $prop, $class;
+    $LAST_INST->_checkConfig;
+    return $LAST_INST;
   }
 }
 
