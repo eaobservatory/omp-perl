@@ -735,9 +735,12 @@ sub acsis_config {
 
 =item B<rotator_config>
 
-Configure the rotator parameter. Requires the Config object to at least have a TCS and Instrument configuration defined.
+Configure the rotator parameter. Requires the Config object to at
+least have a TCS and Instrument configuration defined. The second argument
+indicates how many science observations are related for this SpObs.This
+information can be used to control the slew mode.
 
- $trans->rotator_config( $cfg, %info );
+ $trans->rotator_config( $cfg, $nsci, %info );
 
 Only relevant for instruments that are on the Nasmyth platform.
 
@@ -746,6 +749,7 @@ Only relevant for instruments that are on the Nasmyth platform.
 sub rotator_config {
   my $self = shift;
   my $cfg = shift;
+  my $nsci = shift;
   my %info = @_;
 
   # Get the instrument configuration
@@ -829,7 +833,9 @@ sub rotator_config {
   my $slew = "LONGEST_TRACK";
 
   # for jiggle or stare we want to bounce to fill in gaps for subsequent configures
-  if ($info{obs_type} eq 'science' && 
+  # but only if they are science observations and if this SpObs consists of multiple
+  # science observations.
+  if ($nsci > 1 && $info{obs_type} eq 'science' && 
       ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
     $slew = "LONGEST_SLEW";
   }

@@ -112,14 +112,43 @@ sub translate {
   $self->correct_offsets( $msb, "Stare" );
 
   # Now unroll the MSB into constituent observations details
-  my @configs;
-  for my $obs ($msb->unroll_obs) {
+  # Do a deep copy - we need independence because the translator writes
+  # to the structure.
+  my @unrolled = map { Storable::dclone($_) } $msb->unroll_obs;
 
-    # unroll_obs does not do a deep copy of references - we need independence
-    # because the translator writes to the structure
-    $obs = Storable::dclone( $obs );
+  # we need to know how many science observations are in this observation
+  # Disable verbose mode so that we do not see information twice
+  my $verbcur = $self->verbose;
+  $self->verbose(0);
+
+  my $nsci = 0;
+  for my $obs (@unrolled) {
 
     # Translate observing mode information to internal form
+    # Wasteful to call this twice but the second call is mainly
+    # there to report the information in verbose mode
+    $self->observing_mode( $obs );
+
+    # Count science
+    $nsci++ if $obs->{obs_type} eq 'science';
+  }
+
+  # reset verbose mode
+  $self->verbose( $verbcur );
+
+  # Now report useful information
+  if ($self->verbose) {
+    print {$self->outhdl} "Number of configurations: ".@unrolled."\n";
+    print {$self->outhdl} "Number of science observations: $nsci\n";
+  }
+
+  # Now loop over each observation and translate it to a config object
+  my @configs;
+  for my $obs (@unrolled) {
+
+    # Translate observing mode information to internal form
+    # Repeat here so that information is properly reported in the
+    # stream of information associated with this observation.
     $self->observing_mode( $obs );
 
     # if there are any special patch ups call them here
@@ -180,7 +209,7 @@ sub translate {
     # the duration of the configuration
     if (!$ispriv) {
       $self->slew_config( $cfg, %$obs );
-      $self->rotator_config( $cfg, %$obs );
+      $self->rotator_config( $cfg, $nsci, %$obs );
     }
 
     # Simulator
