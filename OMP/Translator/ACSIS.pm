@@ -829,7 +829,8 @@ sub rotator_config {
   my $slew = "LONGEST_TRACK";
 
   # for jiggle or stare we want to bounce to fill in gaps for subsequent configures
-  if ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid') {
+  if ($info{obs_type} eq 'science' && 
+      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
     $slew = "LONGEST_SLEW";
   }
 
