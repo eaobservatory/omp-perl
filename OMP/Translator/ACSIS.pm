@@ -825,8 +825,16 @@ sub rotator_config {
                                             units => 'degrees',
                                             range => "2PI") } keys %angles;
 
+  # decide on slew option
+  my $slew = "LONGEST_TRACK";
+
+  # for jiggle or stare we want to bounce to fill in gaps for subsequent configures
+  if ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid') {
+    $slew = "LONGEST_SLEW";
+  }
+
   # do not know enough about ROTATOR behaviour yet
-  $tcs->rotator( SLEW_OPTION => 'LONGEST_TRACK',
+  $tcs->rotator( SLEW_OPTION => $slew,
                  SYSTEM => $system,
                  PA => \@pas,
                );
