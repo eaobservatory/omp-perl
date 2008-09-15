@@ -1,0 +1,947 @@
+#!/local/bin/perl
+
+=head1 NAME
+
+ompchecktarget - checks observed targets against targets proposed for the
+                 project or extract proposed targets into JCMT-style
+                 catalog.
+
+=head1 SYNOPSIS
+
+ ompchecktarget
+ ompchecktarget -ut 20080208  -utstop 20080826 -max 3d -all
+ ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000"
+ ompchecktarget -proj m08bu01 -cat > m08bu01.cat
+ ompchecktarget -man | -help | -version
+
+=head1 DESCRIPTION
+
+Note: this program can only be run by the 'staff' group members.
+
+There are three basic ways to use this program:
+
+1. Check observed targets against NORTHSTAR DB:
+The first way to use this program is to check already observed and
+archived targets against the ones proposed for the project. The
+program will extract observed targets (names, projects, coordinates)
+from the JCMT Archive COMMON table for the UT date(s) requested and
+compares those against the coordinates of targets for the associated
+project in the NORTHSTAR proposal DB.
+
+By default ompchecktarget will print observed targets for which NO
+matching proposed target can be found within the search radius
+including the relevant observing dates plus the distance to the
+closest proposed target. If '-all' is specified, information on
+all observed targets, including ones with matching proposed targets,
+is printed.
+
+2. Check user provided position against NORTHSTAR DB:
+A second way to use the program is to compare a user-provided position
+against proposed targets for a particular project. The position needs
+to be specified on the command-line as a set of coordinates enclosed
+in single or double quotes (see -coords).
+
+3. Extract JAC-style catalog from NORTHSTAR DB:
+A third way to use the program is to extract proposed targets for a
+project from the NORTHSTAR DB and print them in a JAC-style catalog
+format (see -cat) for use with e.g. sourceplot.
+
+=head1 OPTIONS
+
+The following options are supported:
+
+=over 4
+
+=item B<-ut>
+
+UT date to check. By default the current date is used.  The UT can be
+specified in either YYYYMMDD or YYYY-MM-DD format.
+
+=item B<-uts(top)>
+
+Last UT date if the check is to performed over an interval -ut to -utstop.
+If a number less than 367 is specified it is assumed to be the number of
+days of the interval, rather than an explicit UT stop date given as
+YYYYMMDD or YYYY-MM-DD.
+
+=item B<-max(dist)>
+
+Maximum distance between targets to be regarded as matching. Note that
+proposed positions can be (very) approximate only. Bare values or ones
+with a 's' appended are deemed to be arcsecs; with a 'm' are taken to
+be arcmins, and with a 'd' degrees. Default: 2.5d.
+
+=item B<-a(ll)>
+
+Print information for all observed targets. By default the routine only
+displays information on targets for which no matching proposed target
+can be found
+
+=item B<-p(roject)>
+
+Restrict the check to the specified project(s) (OMP ID e.g. M07BU01).
+It is possible to specify a number of project by using a wildcards '*'
+in which case the string has to be enclosed in quotes or the wildcards
+back-slashed: \*
+
+=item B<-cat>
+
+Extract proposed targets from the NORTHSTAR DB and print their position
+in a JAC-style catalog format. It requires -project to be specified as
+well, all other command-line settings are ignored. E.g. 
+   ompchecktarget -proj M08BN\* -cat 
+
+=item B<-co(ords)>
+
+Coordinates to check against proposed sources: instead of obtaining
+observed targets from the OMP DB, these user specified coordinates
+are used. The coordinate string has to be enclosed within single or
+double quotes: 'long lat [type] [format]'
+     long, lat: coordinates
+     type:     J2000, B1950, galactic, supergalactic.
+               Default: J2000
+     units:    deg(grees), rad(ians), sex(agesimal). 
+               Default: "sexagesimal" i.e. colon separated strings.
+If coordinates are specified, -all is assumed and -ut, -utstop settings
+will be ignored.
+
+=item B<-t(el)>
+
+Specify the telescope to use for the report. This option is a placeholder
+for possible future use with UKIRT. Currently JCMT is hardwired.
+
+=item B<-v(ersion)>
+
+Report the version number.
+
+=item B<-h(elp)>
+
+Show a brief help: use -man for more information.
+
+=item B<-man>
+
+Show manual page.
+
+=item B<-d(ebug)>
+
+Switch on debug output
+
+=back
+
+=cut
+
+# ----------------------------------------------------------------------
+
+BEGIN {
+  $ENV{SYBASE} = "/local/progs/sybase";
+}
+
+use warnings;
+use strict;
+use Getopt::Long;
+use Math::Trig;
+use Time::Piece;
+use Pod::Usage;
+
+use Astro::Coords;
+use Astro::Telescope;
+
+use DBI;
+
+my $HPI = pi/2;
+
+# ----------------------------------------------------------------------
+# Global variables
+
+# Unbuffer output
+$| = 1;
+
+# Program name
+my $prog = (split /\//,$0)[-1];
+
+# Security
+#   1. Make sure program is not readable to the world.
+#   2. Exit if not in group staff
+#   Will try to set world permission bit to 0 if different.
+
+&check_permissions( "$0" );
+
+my $observed = []; # Array of hashes with observed targets (J2000),
+                   # keys:
+                   # 'project' (string), 'utdate' (yyyymmdd), 
+                   # 'name', 'ra', 'dec', 'type' (e.g. j2000), 
+                   # 'units' (e.g. deg) as retrieved from DB. 
+                   # To facilitate easy coordinate conversions, 
+                   # this information has also been configured into
+                   # an Astro::Coords object as hash key 'coords'.
+
+my $proposed = []; # Same as @observed, but for proposed targets.
+                   # The hash key utdate will be empty.
+
+my %results;       # Set up a hash with the printed line as key and the
+                   # associated dates as value. By checking the existance
+                   # of the key duplication for the same source observed
+                   # on multiple dates is avoided.
+
+# ----------------------------------------------------------------------
+# Command-line parameters
+#
+my ($help, $man, $version, $dbg);
+my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds);
+
+my $status = GetOptions("ut=s"       => \$utd,
+                        "utstop=s"   => \$uts,
+                        "maxdist=s"  => \$max,
+                        "project=s"  => \$prjs,
+                        "cat"        => \$cat,
+                        "coords=s"   => \$crds,
+                        "tel=s"      => \$tel,
+                        "all"        => \$all,
+                        "help"       => \$help,
+                        "man"        => \$man,
+                        "version"    => \$version,
+                        "debug"      => \$dbg,
+                       );
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+if( $version ) {
+  print "${prog} - Check observed targets versus proposed targets\n";
+  print "\tversion 1.0 2008-08-29 rpt - Joint Astronomy Centre\n";
+  exit;
+}
+
+
+# Switch debug output to STDERR on (1; else 0)
+my $debug = 0;
+$debug = 1 if (defined $dbg);
+
+
+# Telescope (currently hard-wired to JCMT)
+my $telescope = 'JCMT';
+#$telescope = uc $tel if (defined $tel);
+
+
+# Project(s)
+my $projects = '';
+$projects = uc $prjs if (defined $prjs);
+die "*ERROR* Need to also specify a project with user-specified coordinates"
+    if ($projects eq '' and (defined $crds or defined $cat));
+
+
+# Just print catalog of proposed targets?
+if (defined $cat) {
+  print_cat ( $telescope, "$projects" );
+  exit;
+}
+
+
+# User specified coordinates (parse below)
+my $coords = $crds if (defined $crds);
+
+
+# Show all?
+my $show_all = 0;
+$show_all = 1 if (defined $all or defined $crds);
+
+
+# UT start and stop
+my $utstart = gmtime->ymd;
+$utstart = $utd if (defined $utd and not defined $crds);
+$utstart =~ s/\-//g;
+die "*Error* '-utd $utd' not a valid date yyyymmd or yyyy-mm-dd\n"
+    if ( $utstart !~ /^\d{8}$/ );
+
+my $utstop  = $utstart;
+$utstop = $uts if (defined $uts and not defined $crds);
+$utstop =~ s/\-//g;
+die "*Error* '-uts $uts' not a valid date yyyymmd or yyyy-mm-dd\n"
+    if ( $utstop !~ /^\d{1,8}$/ );
+
+# If small number interpret as interval rather than date
+if ($utstop < 367) {
+  my $t = new Time::Piece->strptime( "$utstart","%Y%m%d" );
+  $utstop--;        # SQL 'between' is inclusive boundaries
+  $t += (24*3600*$utstop);
+  $utstop = $t->ymd;
+  $utstop =~ s/\-//g;
+}
+
+
+# Maximum distance allowed
+my $maxdist = 2.5*3600.0;
+if (defined $max) {
+  my $unit = 's';  # default unit, append to max to have at least 1 char.
+  "${max}${unit}" =~ /(\d+\.?\d*)([a-z]?)/i && do {$maxdist = $1; $unit = $2};
+
+  die "*Error* '-max $max' unit not recognized.\nUse 'm' for arcmins and 'd' for degrees. Nothing or 's' for arcsecs.\n"  if ($unit !~ /(s|m|d)/i);
+
+  $maxdist *= 60 if ($unit eq 'm');
+  $maxdist *= 3600 if ($unit eq 'd');
+}
+
+my $prtdist = $maxdist;
+my $unit = "arcsecs";
+if ( $prtdist >= 60.0 and $prtdist < 3600 ) {
+  $prtdist /= 60.0;
+  $unit = "arcmins";
+} elsif ( $maxdist >= 3600.0) {
+  $prtdist /= 3600.0;
+  $unit = "degrees";
+}
+
+
+#----------------------------------------------------------------------
+# Print header
+
+print "\n---------------------------------------------------------------------------\n";
+unless (defined $crds) {
+  print "$telescope ${prog} results for UT date";
+  if ($utstart == $utstop) {
+    print " $utstart.\n";
+  } else {
+    print "s $utstart - $utstop.\n";
+  }
+} else {
+  print "$telescope ${prog} results for user specified coordinates\n";
+}
+printf 
+  "Max distance allowed between observed and proposed targets: %5.2f %s\n",
+  $prtdist, $unit;
+
+print "\n";
+
+
+#----------------------------------------------------------------------
+# Here we go...
+
+# Get observed targets
+unless ($coords) {
+  # from COMMON table in JCMT DB sorted by project.
+  $observed = &get_observed_targets( $utstart, $utstop,
+                                      "$projects", $telescope );
+} else {
+  # or for user-specified coordinates
+  $observed = &get_user_target( "$projects", $telescope, $coords );
+}
+
+
+# Get proposed targets for observed projects.
+$proposed = &get_proposed_targets( $telescope, $observed );
+
+print "---------------------------------------------------------------------------\n";
+
+
+# Compare observed targets to proposed ones.
+foreach my $obs (@$observed) {
+
+  my $utdate = $obs->{'utdate'};
+
+  # Give warning if coordinates not recognized.
+  unless ( defined $obs->{'ra'} and defined $obs->{'dec'}
+           and $obs->{'ra'} ne "" and $obs->{'dec'} ne "" ) {
+    my $msg = sprintf 
+      "[%s] target '%s': No observed coordinates in OMP DB",
+      $obs->{'project'}, $obs->{'name'};
+    unless (exists $results{ "$msg" } ) {
+      $results{ "$msg" } = "$utdate";
+    } else {
+      $results{ "$msg" } .= " $utdate";
+    }
+    next;
+  }
+
+  printf STDERR "Observed: %-16s %12s %12s J2000\n",
+       $obs->{'coords'}->{'name'},
+       $obs->{'coords'}->ra2000( format => 'sex' ),
+       $obs->{'coords'}->dec2000( format => 'sex' ),
+       if ($debug);
+
+  # Find nearest target for current project
+  my $msg = &find_nearest( $obs, $proposed );
+
+  # Just append utdate to 'value' string if message already
+  # exists (i.e. same results was found for a different date
+  if ( $msg ne "" ) {
+    unless (exists $results{ "$msg" } ) {
+      $results{ "$msg" } = "$utdate";
+    } else {
+      $results{ "$msg" } .= " $utdate";
+    }
+  }
+
+}
+
+print "\nObserved targets sorted by project, ";
+unless (defined $crds) {
+  if ($show_all) {
+    print "results include matching targets:\n";
+  } else {
+    print "non-matching targets only:\n";
+  }
+}
+print "\n";
+
+if ( scalar(keys %results) > 0 ) {
+  foreach my $key (sort (keys(%results))) {
+    print "$key\n\tDate(s): $results{$key}\n\n";
+  }
+} else {
+    print "No non-matching targets found\n\n";
+}
+
+#----------------------------------------------------------------------
+
+sub get_observed_targets {
+
+# Get the observed targets from the COMMON table in JCMT Archive.
+# Would have like to use OMP::ObsGroups but, due to a bug, it does
+# not presently return the Coord object. Hence used a direct query.
+#
+# Use: $observed = get_observed_targets ( $utstart, $utstop,
+#                                         $projects, $telescope )
+#
+# Input:
+#    $utstart, $utstop: observed date range (yyyymmdd)
+#    $projects: string, possibly with wild cards ('*')
+#    $telescope: telescope to query COMMON table for (not yet used)
+#
+# Returned:
+#    Reference to array of hashes with observed targets, keys:
+#       'project' (string), 'utdate' (yyyymmdd), 'name', 'ra', 'dec',
+#       'type' (e.g. j2000), 'units' (e.g. deg) as retrieved from DB.
+#       To facilitate easy coordinate conversions, this information
+#       has also been configured into an Astro::Coords object
+#       as hash key 'coords'.
+
+  my ($utstart, $utstop, $projids, $telescope) = @_;
+
+  my $prjclause = "";
+  if ($projects ne "") {
+    $prjclause = qq{AND project LIKE "$projids"};
+    $prjclause =~ s/\*/\%/g;
+  }
+
+  # Connect to the database.
+  my $server   = "SYB_JAC";
+  my $database = "jcmt";
+  my $dbtable  = "COMMON";
+  my $dbh;
+
+  print STDERR "# Connecting to OMP server...";
+  $dbh = DBI->connect(
+     "dbi:Sybase:server=${server};database=${database};timeout=30",
+     "staff","***REMOVED***") 
+     || die ("*ERROR* JCMT DB_LOGIN failed\n");
+  print STDERR "done\n";
+
+  # Now retrieve data from the table.
+  my $sth = $dbh->prepare(qq{
+    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec
+    FROM $dbtable WHERE
+    utdate BETWEEN $utstart AND $utstop
+    $prjclause
+    AND telescop="$telescope"
+    ORDER BY project, utdate
+    }
+    );
+  $sth->execute();
+
+  my @observed;
+  while (my $ref = $sth->fetchrow_hashref()) {
+
+    next unless ( $ref->{'project'} =~ /^M\d\d(A|B)/i and
+                  $ref->{'project'} !~ /^M\d\d(A|B)EC/i );
+
+    printf STDERR "[%s] Observed: %-16s", $ref->{'project'}, $ref->{'name'}
+          if $debug;
+
+    $ref->{'type'}    = 'j2000';
+    $ref->{'units'}   = 'deg';
+    if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
+
+      printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
+          if $debug;
+
+      my $ocoords = new Astro::Coords(  name  => $ref->{'name'},
+                                        ra    => $ref->{'ra'},
+                                        dec   => $ref->{'dec'},
+                                        type  => $ref->{'type'},
+                                        units => $ref->{'units'}
+                                     );
+      $ocoords->telescope( new Astro::Telescope( $telescope ));
+
+      $ref->{'coords'}   = $ocoords;
+
+    }
+    print STDERR "\n" if $debug;
+
+    push @observed, $ref;
+  }
+
+  $sth->finish();
+
+  # Disconnect from the database.
+  $dbh->disconnect();
+
+  if (@observed > 0) {
+    printf STDERR "# Fetched %d observed targets\n", $#observed+1;
+  } else {
+    print STDERR "No observed targets found\nFinished\n";
+    exit;
+  }
+
+  return \@observed;
+
+}
+
+
+#----------------------------------------------------------------------
+
+sub get_proposed_targets {
+
+# Get the proposed sources from the MYSQL NORTHSTAR DB.
+#
+# Use: $proposed = get_proposed_targets ( $telescope, \@observed )
+#
+# $telescope: (string) Telescope name.
+#
+# $observed:
+#    Array of hashes with a key 'project'  with valid project names.
+#    Duplicate entries may exist: the DB will only be queries once
+#    for each unique project. Any other keys that may be present
+#    for each entry are ignored.
+#
+# Returned:
+#    Ref to array of hashes with observed targets, keys:
+#         'project' (string), 'utdate' (yyyymmdd), 'name', 'ra', 'dec',
+#         'type' (e.g. j2000), 'units' (e.g. deg) as retrieved from DB.
+#         To facilitate easy coordinate conversions, this information
+#         has also been configured into an Astro::Coords object
+#         as hash key 'coords'.
+
+  my ($telescope, $observed) = @_;
+
+  # Array of hashes for results
+  my @proposed;
+
+  # Connect to the Nortstar database.
+  my $server = "hokuakau";
+  my $database = "northstar";
+  my $dbtable = "target, observation, observingrequest, proposal";
+  my $dbh;
+
+  print STDERR "# Connecting to NORTHSTAR server...";
+  $dbh = DBI->connect(
+     "DBI:mysql:database=${database};host=${server};timeout=120",
+     "jac", "8hokupaa9", {'RaiseError' => 1} )
+     || die ("*ERROR* NORTHSTAR DB_LOGIN failed\n");
+  print STDERR "done\n";
+
+  my $previous = "";
+
+  foreach my $obs (sort {$$a{'project'} cmp $$b{'project'}} @$observed){
+
+    # Fix up project id for NORTHSTAR standard of having 3-digit numbers.
+    my $projid = $obs->{'project'};
+
+    next if ($projid eq $previous);
+    $previous = $projid;
+
+    $projid =~ s/^(M\d\d(A|B)\w)(\d\d)(\w*)$/${1}0${3}/i;
+    $projid =~ s/\*/\%/g;
+
+    print STDERR "Obtaining proposed targets for $projid\n" if ($debug);
+
+    # Get any UH projects sources from hardcoded subroutine below for now.
+    if ( $projid =~ /h/i  or $projid =~ /\%/ ) {
+
+      my $uhproposed = &get_uh_proposed( $projid );
+      foreach my $ref (@$uhproposed) {
+        push @proposed, $ref;
+      }
+    }
+
+    # Now retrieve proposed targets from NORTHSTAR tables.
+    my $sth = $dbh->prepare(qq{
+      SELECT proposal.code AS project, fieldname AS name,
+             ra, decl, epoch AS type
+       FROM $dbtable
+       WHERE
+         target.observationid = observation.id 
+         AND observation.observingrequestid = observingrequest.id
+         AND observingrequest.proposalid = proposal.id
+         AND proposal.code like "$projid"
+         ORDER BY proposal.code
+      }
+      );
+
+    $sth->execute();
+
+    while (my $ref = $sth->fetchrow_hashref()) {
+
+      # Somehow 'dec' as is protected as variable name in MySQL query
+      # Create column here
+      $ref->{'dec'} = $ref->{'decl'} if (defined $ref->{'decl'});
+
+      $ref->{'units'} = 'degrees' unless (exists $ref->{'units'});
+
+
+      push @proposed, $ref;
+
+    }
+
+    $sth->finish();
+
+  }
+
+  # Disconnect from the database.
+  $dbh->disconnect();
+
+
+  foreach my $ref ( @proposed ) {
+
+    $ref->{'project'} =~ s/^(M\d\d(A|B)\w)0(\d\d)(\w*)$/${1}${3}${4}/i;
+
+    printf STDERR "Proposed: [%s] %-16s", $ref->{'project'},
+                $ref->{'name'} if ($debug);
+
+    if (defined $ref->{'ra'} and defined $ref->{'dec'}
+        and defined $ref->{'type'} 
+        and $ref->{'type'} ne 'Other system') {
+
+      my $pcoords = new Astro::Coords(  name  => $ref->{'name'},
+                                        ra    => $ref->{'ra'},
+                                        dec   => $ref->{'dec'},
+                                        type  => $ref->{'type'},
+                                        units => $ref->{'units'}
+                                      );
+      $pcoords->telescope( new Astro::Telescope( $telescope ));
+
+      $ref->{'coords'} = $pcoords;
+
+      printf STDERR " %12s %12s J2000", 
+         $ref->{'coords'}->ra2000( format => 'sex' ),
+         $ref->{'coords'}->dec2000( format => 'sex' )
+      if ($debug);
+
+    }
+    print STDERR "\n" if $debug;
+
+  }
+
+  if (@proposed > 0) {
+    printf STDERR "# Fetched %d proposed targets\n", $#proposed+1;
+  } else {
+    print STDERR "No proposed targets found\nFinished\n";
+    exit;
+  }
+
+  return \@proposed;
+
+}
+
+
+#----------------------------------------------------------------------
+
+sub find_nearest {
+
+# For an observed source find the nearest proposed source in the
+# associated project(s).
+#
+# Use: $msg = find_nearest ( \%obs, \@proposed )
+#
+# $obs:
+#    Ref to hash with  observed target, keys:
+#         'project' (string), 'utdate' (yyyymmdd), 'name', 'ra', 'dec',
+#         'type' (e.g. j2000), 'units' (e.g. deg) as retrieved from DB.
+#         To facilitate easy coordinate conversions, this information
+#         has also been configured into an Astro::Coords object
+#         as hash key 'coords'.
+#
+# $proposed: Array of hashes with proposed targets, as above.
+#
+# Returned: String with result of search
+#
+
+  my ( $obs, $proposed ) = @_;
+
+  my $mindist = 1e+12;
+  my $idxmin = -1;
+  my $idx = -1;
+
+  # Find closest proposed target
+  my $ora =  $obs->{'coords'}->ra2000( format => 'rad' );
+  my $odec = $obs->{'coords'}->dec2000( format => 'rad' );
+
+  # Translate observed project for perl =~
+  my $oproject = $obs->{'project'};
+  $oproject =~ s/\*/\.\*/g;
+
+  foreach my $prop (@$proposed) {
+
+    $idx++;
+
+    # Skip if not the same project
+    next if ( $prop->{'project'} !~ /$oproject/i );
+
+    my $pra =  $prop->{'coords'}->ra2000( format => 'rad' );
+    my $pdec = $prop->{'coords'}->dec2000( format => 'rad' );
+
+    # Astro::Coords-> distance uses tangent plane which is not
+    # appropriate here. Calculate from ra,dec.
+    my $distance = 3600.0*rad2deg(abs(acos(
+                          cos($HPI-$odec)*cos($HPI-$pdec)+
+                          sin($HPI-$odec)*sin($HPI-$pdec)*
+                          cos($ora-$pra) )));
+
+    printf STDERR "%-16s <--> %-16s distance: %12.2f arcsec\n",
+         $obs->{'coords'}->name, $prop->{'coords'}->name, 
+         $distance if ($debug);
+
+    if ( $distance < $mindist ) {
+      $idxmin = $idx;
+      $mindist = $distance;
+    }
+
+  }
+
+  my $msg = "";
+
+  # Project not in NORTHSTAR DB
+  if ( $idxmin < 0 ) {
+    $msg = sprintf "[%s] target %-16s: project *NOT* in NORTHSTAR DB",
+      $obs->{'project'}, $obs->{'coords'}->name;
+    return $msg;
+  }
+
+
+  my $unit = "arcsecs";
+  my $prtdist = $mindist;
+  if ( $prtdist >= 60.0 and $prtdist < 3600 ) {
+    $prtdist /= 60.0;
+    $unit = "arcmins";
+  } elsif ( $prtdist >= 3600.0 and $prtdist != 1e+12 ) {
+    $prtdist /= 3600.0;
+    $unit = "degrees";
+  }
+
+  if ( $mindist <= $maxdist ) {
+
+    # Target found 
+    $msg = sprintf 
+      "[%s] target %-16s found\nas proposed target [%s] %s at %5.2f $unit",
+      $obs->{'project'}, $obs->{'coords'}->name,
+      $$proposed[$idxmin]->{'project'}, 
+      $$proposed[$idxmin]->{'coords'}->name, $prtdist
+      if $show_all;
+
+  } else {
+
+    # Target not found
+    $msg = sprintf 
+        "[%s] target %-16s is *NOT* found in NORTHSTAR!\n",
+        $obs->{'project'}, $obs->{'coords'}->name;
+    $msg .= sprintf "Observed position: %12s %12s J2000\n",
+        $obs->{'coords'}->ra2000( format => 'sex' ),
+        $obs->{'coords'}->dec2000(format => 'sex') 
+        if ( $obs->{'coords'}->name !~ /user defined\:/ );
+    if ($mindist != 1e+12) {
+      $msg .= sprintf "Closest proposed target is [%s] %-16s at %5.2f $unit",
+        $$proposed[$idxmin]->{'project'}, 
+        $$proposed[$idxmin]->{'coords'}->name, $prtdist;
+    } else {
+      $msg .= "No close proposed targets";
+    }
+
+  }
+
+  return $msg;
+
+}
+
+
+# ----------------------------------------------------------------------
+
+sub get_user_target {
+
+# Convert user specified coordinates in @observe hash (see above)
+#
+# Use: $observed = &get_user_target( "$projects", $telescope, $coords );
+#
+# $projects:  (string) Project string (can contain wildcards)
+# $telescope: (string)
+# $coords:    User specified coordinates: 'long lat [type] [format]'
+#     long, lat: coordinates
+#     type:     J2000, B1950, galactic, supergalactic.
+#     units:    deg(grees), rad(ians), sex(agesimal).
+#
+
+  my ( $projects, $telescope, $coords ) = @_;
+
+  $coords =~ s/^\s+//;
+  my ($long, $lat, $type, $units) = split /\s+/, $coords;
+  $type = 'j2000' unless (defined $type and $type ne '');
+  $units = 'sex' unless (defined $units and $units ne '');
+  $type = lc $type;
+  $units = lc $units;
+  if ($type =~ /^deg|rad|sex/) {
+    $units = lc $type;
+    $type = "j2000";
+  }
+
+  my $href = {};
+  $href->{'utdate'}  = "n/a";
+  $href->{'project'} = "$projects";
+  $href->{'name'}    = "'user defined: $coords'";
+  $href->{'ra'}      = "$long";
+  $href->{'dec'}     = "$lat";
+  $href->{'type'}    = "$type";
+  $href->{'units'}   = "$units";
+
+  my $ocoord = new Astro::Coords(  name  => $href->{'name'},
+                                   ra    => $href->{'ra'},
+                                   dec   => $href->{'dec'},
+                                   type  => $href->{'type'},
+                                   units => $href->{'units'} );
+  $ocoord->telescope( new Astro::Telescope( $telescope ));
+
+  $href->{'coords'} = $ocoord;
+
+  my @observed;
+  push @observed, $href;
+
+  return \@observed;
+
+}
+
+
+# ----------------------------------------------------------------------
+
+sub print_cat {
+
+# Query NORTHSTAR DB for project targets and print JAC-style catalog
+#
+# Use: print_cat( $telescope, "$projects" );
+#
+# $projects:  (string) Project string (can contain wildcards)
+# $telescope: (string)
+
+  my ($telescope, $project) = @_;
+
+  # See $observed and $proposed at top code
+  my @observed;
+  push @observed, { 'project' => "$project" };
+
+  my $proposed = [];
+
+  $proposed = &get_proposed_targets( $telescope, \@observed );
+
+  # print catalog
+  foreach my $p ( @$proposed ) {
+
+    $p->{'name'} =~ s/\s+/\_/g;
+    my $line = sprintf "%-16s %12s &%12s RJ [%s]",
+      $p->{'coords'}->{'name'},
+      $p->{'coords'}->ra2000( format => 'sex' ),
+      $p->{'coords'}->dec2000( format => 'sex' ),
+      $p->{'project'};
+
+    # Space separated coordinates
+    $line =~ s/\:/\ /g;
+
+    # Separate - sign on Dec and add + if necessary
+    $line =~ s/\&\-/\-\ /g;
+    $line =~ s/\&/\+/g;
+
+    print "$line\n";
+
+  }
+
+}
+
+#----------------------------------------------------------------------
+
+sub check_permissions {
+
+# Check file permissions program and group id of user.
+# Die unless permission for world is 'no access' group is 'staff'.
+# Will first attempt to set the world permission bit on the program
+# file to 0.
+#
+# Use: check_permissions( $program )
+#
+# $program: program with full path (typically $0)
+
+  my $program = shift;
+
+  my $user = $ENV{'USER'};
+
+  my ($dev,$ino,$fmode,$nlink,$uid,$gid,$rdev,$size,
+         $atime,$mtime,$ctime,$blksize,$blocks)
+             = stat($0);
+  my $mode = sprintf "%04o", $fmode & 07777;
+  my $world = substr $mode, (length $mode)-1, 1;
+
+  print "User: $user  World: $world  Group: $gid\n" if ($debug);
+
+  $mode -= $world;
+  system "chmod 0$mode $program" if ($world != 0);
+
+  ( ($world == 0 && $gid == 10)) ||
+    die qq { 
+-------------------------------------------------------------- 
+        Error: ${prog} can only be used by 'staff'
+        and can not be 'world' readable.
+-------------------------------------------------------------- 
+
+};
+
+}
+
+# ----------------------------------------------------------------------
+
+sub get_uh_proposed {
+
+# Load proposed UH targets since they are not in the NORTHSTAR DB.
+# For now UH targets are hard-coded below.
+#
+
+  my $projids = shift;
+  $projids =~ s/\%/\.\*/g;
+
+  my @proposed;
+
+  if ( "M08BH002" =~ /$projids/i ) {
+    push @proposed, { 'project' => 'M08BH002',
+                         'name' => 'Braid Nebula', 'type' => 'J2000',
+                           'ra' => '21:00:00', 'dec' => '+52:00:00',
+                        'units' => 'sexagesimal' };
+  }
+
+  if ( "M08BH015" =~ /$projids/i ) {
+    push @proposed, { 'project' => 'M08BH015',
+                         'name' => 'W3', 'type' => 'J2000',
+                           'ra' => '02:30:00', 'dec' => '+61:52:00',
+                        'units' => 'sexagesimal' };
+    push @proposed, { 'project' => 'M08BH015',
+                         'name' => 'W4', 'type' => 'J2000',
+                           'ra' => '02:30:00', 'dec' => '+61:52:00',
+                        'units' => 'sexagesimal' };
+    push @proposed, { 'project' => 'M08BH015',
+                         'name' => 'W5', 'type' => 'J2000',
+                           'ra' => '02:30:00', 'dec' => '+61:52:00',
+                        'units' => 'sexagesimal' };
+  } 
+
+  if ( "M08BH020" =~ /$projids/i ) {
+    push @proposed, { 'project' => 'M08BH020',
+                         'name' => 'G030.88+00.13', 'type' => 'J2000',
+                           'ra' => '18:47:13.5', 'dec' => '-01:45:00',
+                        'units' => 'sexagesimal' };
+  }
+
+  return \@proposed;
+
+}
