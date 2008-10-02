@@ -499,6 +499,8 @@ sub determine_extended {
 
 # my ($datestart, $dateend) = $class->_process_freeut_range( $tel, $refdate, $range1, $range2 );
 
+my %SUN_CACHE;
+
 sub _process_freeut_range {
   my $class = shift;
   my ($telescope, $refdate, @ranges) = @_;
@@ -540,13 +542,29 @@ sub _process_freeut_range {
         $Sun->datetime( $midday );
       }
 
+      my $cacheKey = $Sun->datetime->datetime;
+
       my $sundef = Astro::Coords::SUN_RISE_SET();
+      my $event;
+      my $eventKey;
+      my $method;
       if ($mode =~ /rise$/) {
-        $out = $Sun->rise_time( event => 1, horizon => $sundef );
+        $event = 1;
+        $eventKey = "RISE";
+        $method = "rise_time";
       } elsif ($mode =~ /set$/) {
-        $out = $Sun->set_time( event => -1, horizon => $sundef);
+        $event = -1;
+        $eventKey = "SET";
+        $method = "set_time";
       } else {
         throw OMP::Error::FatalError("Odd programming error");
+      }
+
+      if (exists $SUN_CACHE{$cacheKey}{$eventKey}) {
+        $out = $SUN_CACHE{$cacheKey}{$eventKey};
+      } else {
+        $out = $Sun->$method( event => $event, horizon => $sundef );
+        $SUN_CACHE{$cacheKey}{$eventKey} = $out;
       }
 
       # and add on the offset (convert to seconds)
