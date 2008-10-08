@@ -621,8 +621,8 @@ sub ecTime {
 
 =item B<shutdownTime>
 
-Return the time spent on planned shutdowns during this reporting period for
-this telescope.
+Return the time spent closed, planned or otherwise, during this reporting period
+for this telescope.
 
   my $time = $nr->shutdownTime();
 
@@ -890,7 +890,7 @@ Project Time Summary
   my $totalobserved = 0.0; # Total time spent observing
   my $totalproj = 0.0;
 
-  # Get planned shutdown time
+  # Get closed time
   my $shuttime = $self->shutdownTime;
 
   # Convert shutdown time to hours, we won't ever want to see seconds.
@@ -935,7 +935,7 @@ Project Time Summary
 
   if ($shuttime) {
     $str .= "\n";
-    $str .= sprintf($format, "Planned shutdown time:", $shuttime);
+    $str .= sprintf($format, "Closed time:", $shuttime);
   }
   $str .= "\n";
   $str .= sprintf($format, "Project time", $totalproj);
@@ -1089,7 +1089,7 @@ sub ashtml {
 
   # T i m e  A c c o u n t i n g
 
-  # Get planned shutdown time
+  # Get closed time
   my $shuttime = $self->shutdownTime;
 
   # Convert shutdown time to hours, we won't ever want to see seconds.
@@ -1107,10 +1107,10 @@ sub ashtml {
   print "<tr class='sum_table_head'>";
   print "<td colspan='3'><strong class='small_title'>Project Time Summary</strong></td>";
 
-  # Planned shutdown time
+  # Closed time
   if ($shuttime) {
     print "<tr class='sum_other'>";
-    print "<td>Planned shutdown</td>";
+    print "<td>Closed</td>";
     print "<td colspan='2'>". sprintf($format, $shuttime) . "</td>";
     print "</tr>";
   }
