@@ -468,6 +468,26 @@ A {
   color: #ffffff;
 }
 
+.obslog-good, .obslog-bad, .obslog-questionable, .obslog-rejected {
+  background-color: transparent;
+}
+
+.obslog-good {
+  color: #000;
+}
+
+.obslog-bad {
+  color: #f30;
+}
+
+.obslog-questionable {
+  color: #b33;
+}
+
+.obslog-rejected {
+  color: #a52a2a;
+}
+
 a.sidemain:link    { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
 a.sidemain:visited { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
 a.sidemain:active  { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
