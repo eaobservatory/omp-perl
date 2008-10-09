@@ -54,11 +54,11 @@ Exporter::export_tags(qw/ all /);
 
 # Colours for displaying observation status.
 
-our %colour = (
-               OMP__OBS_GOOD() => "BLACK",
-               OMP__OBS_QUESTIONABLE() => "#BB3333",
-               OMP__OBS_BAD() => "#FF3300",
-               OMP__OBS_REJECTED() => "BROWN"
+our %css = (
+               OMP__OBS_GOOD() => '.obslog-good',
+               OMP__OBS_QUESTIONABLE() => '.obslog-questionable',
+               OMP__OBS_BAD() => '.obslog-bad',
+               OMP__OBS_REJECTED() => '.obslog-rejected'
               );
 
 =head1 Routines
@@ -221,10 +221,21 @@ sub obs_table {
   if( $text ) {
 
   } else {
-    print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n<tr class=\"sum_table_head\"><td>";
-    print "<strong class=\"small_title\">Observation Log</strong></td></tr>\n";
-    print "<tr class=\"sum_other\"><td>\n";
-    print "Colour legend: <font color=\"" . $colour{OMP__OBS_GOOD()} . "\">good</font> <font color=\"" . $colour{OMP__OBS_QUESTIONABLE()} . "\">questionable</font> <font color=\"" . $colour{OMP__OBS_BAD()} . "\">bad</font>  <font color=\"" . $colour{OMP__OBS_REJECTED()} . "\">rejected</font> </td></tr>\n";
+    print qq[<table width="600" class="sum_table" border="0">\n<tr class="sum_table_head"><td>];
+    print qq[<strong class="small_title">Observation Log</strong></td></tr>\n];
+    print qq[<tr class="sum_other"><td>\n];
+    print 'Colour legend: ',
+      join ', ',
+      map
+      { '<span class="' . $css{$_->[0]} . . '">' . $_->[1] . '</span>' }
+      (
+        [ OMP__OBS_GOOD(),         'good'         ],
+        [ OMP__OBS_QUESTIONABLE(), 'questionable' ],
+        [ OMP__OBS_BAD(),          'bad'          ],
+        [ OMP__OBS_REJECTED(),     'rejected'     ]
+      ) ;
+    print  "</td></tr>\n";
+
     print "</table>";
   }
 
@@ -233,8 +244,8 @@ sub obs_table {
     if( $text ) {
 
     } else {
-      print "<table width=\"600\" class=\"sum_table\" border=\"0\">\n";
-      print "<tr class=\"sum_other\"><td>No observations available</td></tr></table>\n";
+      print qq[<table width="600" class="sum_table" border="0">\n];
+      print qq[<tr class="sum_other"><td>No observations available</td></tr></table>\n];
     }
     return;
   }
@@ -342,7 +353,7 @@ sub obs_table {
 
     my $comments = $obs->comments;
     my $status = $obs->status;
-    my $colour = defined( $status ) ? $colour{$status} : $colour{OMP__OBS_GOOD()};
+    my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
       if( $text ) {
@@ -356,10 +367,15 @@ sub obs_table {
       if( $text ) {
         print $nightlog{'_STRING'}, "\n";
       } else {
-        print "<tr class=\"$rowclass\"><td><font color=\"$colour\">";
-        print join("</font></td><td><font color=\"$colour\">" , map {
-          ref($nightlog{$_}) eq "ARRAY" ? join ', ', @{$nightlog{$_}} : $nightlog{$_};
-        } @{$nightlog{_ORDER}} );
+        print qq[<tr class="$rowclass"><td class="$css_status">],
+          join qq[</td><td class="$css_status">],
+            map
+            { ref($nightlog{$_}) eq 'ARRAY'
+              ? join ', ', @{$nightlog{$_}}
+              : $nightlog{$_};
+            }
+            @{$nightlog{_ORDER}} ;
+
         $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
       }
     }
@@ -368,20 +384,25 @@ sub obs_table {
     if( $text ) {
 
     } else {
-      print "</font></td><td><a class=\"link_dark_small\" href=\"$commentlink?ut=";
-      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-        $obsut = $obs->endobs->ymd . "-" . $obs->endobs->hour;
-        $obsut .= "-" . $obs->endobs->minute . "-" . $obs->endobs->second;
-      } else {
-        $obsut = $obs->startobs->ymd . "-" . $obs->startobs->hour;
-        $obsut .= "-" . $obs->startobs->minute . "-" . $obs->startobs->second;
-      }
-      print $obsut;
-      print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-      if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
-        print "&timegap=1";
-      }
-      print "\">comment</a></td>";
+
+      my $endpoint =
+        UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" )
+        ? $obs->endobs
+        : $obs->startobs;
+
+      $obsut = join '-', map { $endpoint->$_ } qw[ ymd hour minute second ];
+
+      my %param = ( 'ut'  => $obsut,
+                    'runnr' => $obs->runnr
+                    'inst' => $instrument
+                  );
+
+      $param{'timegap} = 1
+        if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
+
+      print qq[</td><td><a class="link_dark_small" href="$commentlink?]
+            . join( '&', map { $_ . '=' . $param{ $_ } } keys %param )
+            . qq[">comment</a></td>];
     }
 
     if( $text ) {
@@ -466,7 +487,7 @@ sub obs_table {
       } else {
         print "<td>&nbsp;</td>";
       }
-      print "<td><font color=\"$colour\">" . $obs->runnr . "</font></td>";
+      print qq[<td class="$css_status">] . $obs->runnr . '</td>';
       print "</tr>\n";
     }
 
@@ -487,11 +508,13 @@ sub obs_table {
         print "<tr class=\"$rowclass\"><td colspan=\"" . (scalar(@{$nightlog{_ORDER}}) + 2) . "\">";
         my @printstrings;
         foreach my $comment (@$comments) {
-          my $string = "<font color=\"";
-          $string .= $colour{$comment->status};
-          $string .= "\">" . $comment->date->cdate . " UT / " . $comment->author->name . ":";
-          $string .= " " . OMP::General::escape_entity( $comment->text );
-          $string .= "</font>";
+          my $string = qq[ <span class="] . $css{$comment->status} . '">'
+                      . $comment->date->cdate . ' UT / '
+                      . $comment->author->name . ':'
+                      . ' '
+                      . OMP::General::escape_entity( $comment->text )
+                      . '</span>';
+
           $string =~ s/\n/\<br\>/g;
           push @printstrings, $string;
         }
