@@ -397,7 +397,7 @@ sub obs_table {
                     'inst' => $instrument
                   );
 
-      $param{'timegap} = 1
+      $param{'timegap'} = 1
         if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
 
       print qq[</td><td><a class="link_dark_small" href="$commentlink?]
