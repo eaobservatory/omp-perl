@@ -157,7 +157,7 @@ if(defined($opt{tel})) {
 # starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
 my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my @CONTENTCOLOUR = qw/ black brown red orange/;
+my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff' );
 my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
@@ -648,6 +648,11 @@ sub redraw {
 
 }
 
+
+{
+
+my %seen;
+
 sub rescan {
   my $ut = shift;
   my $telescope = shift;
@@ -677,6 +682,13 @@ sub rescan {
     } $grp->obs;
 
     $lastinst = $sorted_obs[0]->instrument;
+
+for ( $grp->obs )
+{
+  ( my $ob = "$_" ) =~ s/\s+/;/g;
+  $seen{ $ob }++;
+  #warn $ob , ' ' , $seen{ $ob };
+}
 
   }
   catch OMP::Error with {
@@ -718,9 +730,12 @@ sub rescan {
   $id->cancel unless !defined($id);
   if( $ut eq $currentut ) {
     $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-  };
+    };
 
 }
+
+}
+
 
 # Perform a full rescan/redraw sequence.
 sub full_rescan {
