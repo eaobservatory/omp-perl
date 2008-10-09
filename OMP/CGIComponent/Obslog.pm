@@ -55,10 +55,10 @@ Exporter::export_tags(qw/ all /);
 # Colours for displaying observation status.
 
 our %css = (
-               OMP__OBS_GOOD() => '.obslog-good',
-               OMP__OBS_QUESTIONABLE() => '.obslog-questionable',
-               OMP__OBS_BAD() => '.obslog-bad',
-               OMP__OBS_REJECTED() => '.obslog-rejected'
+               OMP__OBS_GOOD() => 'obslog-good',
+               OMP__OBS_QUESTIONABLE() => 'obslog-questionable',
+               OMP__OBS_BAD() => 'obslog-bad',
+               OMP__OBS_REJECTED() => 'obslog-rejected'
               );
 
 =head1 Routines
