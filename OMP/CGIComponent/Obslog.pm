@@ -227,7 +227,7 @@ sub obs_table {
     print 'Colour legend: ',
       join ', ',
       map
-      { '<span class="' . $css{$_->[0]} . . '">' . $_->[1] . '</span>' }
+      { '<span class="' . $css{$_->[0]} . '">' . $_->[1] . '</span>' }
       (
         [ OMP__OBS_GOOD(),         'good'         ],
         [ OMP__OBS_QUESTIONABLE(), 'questionable' ],
@@ -393,7 +393,7 @@ sub obs_table {
       $obsut = join '-', map { $endpoint->$_ } qw[ ymd hour minute second ];
 
       my %param = ( 'ut'  => $obsut,
-                    'runnr' => $obs->runnr
+                    'runnr' => $obs->runnr,
                     'inst' => $instrument
                   );
 
