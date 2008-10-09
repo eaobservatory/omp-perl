@@ -591,7 +591,7 @@ sub obs_summary {
     foreach my $comment (@comments) {
       print '<tr class="$rowclass"><td>';
       my $string = '<font color="';
-      $string .= ( defined( $colour{$comment->status} ) ) ? $colour{$comment->status} : "BLACK";
+      $string .= ( defined( $css{$comment->status} ) ) ? $css{$comment->status} : "BLACK";
       $string .= '"><strong>' . $comment->date->cdate . " UT / " . $comment->author->name . ":";
       $string .= "</strong> " . $comment->text;
       $string .= "</font>";
