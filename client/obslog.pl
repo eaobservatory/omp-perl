@@ -648,11 +648,6 @@ sub redraw {
 
 }
 
-
-{
-
-my %seen;
-
 sub rescan {
   my $ut = shift;
   my $telescope = shift;
@@ -682,13 +677,6 @@ sub rescan {
     } $grp->obs;
 
     $lastinst = $sorted_obs[0]->instrument;
-
-for ( $grp->obs )
-{
-  ( my $ob = "$_" ) =~ s/\s+/;/g;
-  $seen{ $ob }++;
-  #warn $ob , ' ' , $seen{ $ob };
-}
 
   }
   catch OMP::Error with {
@@ -730,12 +718,9 @@ for ( $grp->obs )
   $id->cancel unless !defined($id);
   if( $ut eq $currentut ) {
     $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
-    };
+  };
 
 }
-
-}
-
 
 # Perform a full rescan/redraw sequence.
 sub full_rescan {
