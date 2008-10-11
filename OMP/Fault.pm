@@ -118,192 +118,192 @@ use constant WORF => 1064;
 
 # Mailing list
 my %MAILLIST = (
-		"CSG" => "csg_faults\@jach.hawaii.edu",
-		"JCMT" => "jcmt_faults\@jach.hawaii.edu",
-		"UKIRT" => "ukirt_faults\@jach.hawaii.edu",
-		"OMP" => "omp_faults\@jach.hawaii.edu",
-		"DR" => "dr_faults\@jach.hawaii.edu",
-	       );
+                "CSG" => "csg_faults\@jach.hawaii.edu",
+                "JCMT" => "jcmt_faults\@jach.hawaii.edu",
+                "UKIRT" => "ukirt_faults\@jach.hawaii.edu",
+                "OMP" => "omp_faults\@jach.hawaii.edu",
+                "DR" => "dr_faults\@jach.hawaii.edu",
+               );
 
 my %DATA = (
-	     "CSG" => {
-		       SYSTEM => {
-				  "Sun/Solaris" => SUN_SOLARIS,
-				  "Alpha/OSF"   => ALPHA_OSF,
-				  "PC/Windows"  => PC_WINDOWS,
-				  "VAX/VMS"     => VAX_VMS,
-				  "PC/Linux"    => PC_LINUX,
-				  "Other/Unknown"=> SYSTEMOTHER,
-				 },
-		       TYPE => {
-				Other    => TYPEOTHER,
-				Human    => HUMAN,
-				Hardware => HARDWARE,
-				Software => SOFTWARE,
-				Network  => NETWORK,
-				Printer  => PRINTER,
-			       },
-		      },
-	     "JCMT" => {
-			SYSTEM => {
-				   Telescope => TELESCOPE,
-				   "Back End - DAS" => BACK_END_DAS,
-				   "Back End - ACSIS" => BACK_END_ACSIS,
-				   "Back End - CBE" => BACK_END_CBE,
-				   "Back End - IFD" => BACK_END_IFD,
-				   "Front End - HARP" => FRONT_END_HARP,
-				   "Front End - RxA" => FRONT_END_RXA,
-				   "Front End - RxB" => FRONT_END_RXB,
-				   "Front End - RxW" => FRONT_END_RXW,
-				   "Front End - RxH3" => FRONT_END_RXH3,
-				   Surface => SURFACE,
-				   SCUBA   => SCUBA,
+             "CSG" => {
+                       SYSTEM => {
+                                  "Sun/Solaris" => SUN_SOLARIS,
+                                  "Alpha/OSF"   => ALPHA_OSF,
+                                  "PC/Windows"  => PC_WINDOWS,
+                                  "VAX/VMS"     => VAX_VMS,
+                                  "PC/Linux"    => PC_LINUX,
+                                  "Other/Unknown"=> SYSTEMOTHER,
+                                 },
+                       TYPE => {
+                                Other    => TYPEOTHER,
+                                Human    => HUMAN,
+                                Hardware => HARDWARE,
+                                Software => SOFTWARE,
+                                Network  => NETWORK,
+                                Printer  => PRINTER,
+                               },
+                      },
+             "JCMT" => {
+                        SYSTEM => {
+                                   Telescope => TELESCOPE,
+                                   "Back End - DAS" => BACK_END_DAS,
+                                   "Back End - ACSIS" => BACK_END_ACSIS,
+                                   "Back End - CBE" => BACK_END_CBE,
+                                   "Back End - IFD" => BACK_END_IFD,
+                                   "Front End - HARP" => FRONT_END_HARP,
+                                   "Front End - RxA" => FRONT_END_RXA,
+                                   "Front End - RxB" => FRONT_END_RXB,
+                                   "Front End - RxW" => FRONT_END_RXW,
+                                   "Front End - RxH3" => FRONT_END_RXH3,
+                                   Surface => SURFACE,
+                                   SCUBA   => SCUBA,
                                    'SCUBA-2' => SCUBA2,
-				   IFS => IFS,
-				   "Water Vapor Rad." => WATER_VAPOR_RAD,
-				   "Visitor Instruments" => INSTRUMENT_VISITOR,
-				   Instrument => INSTRUMENT_OTHER_UNKNOWN,
-				   Computer => COMPUTER,
-				   Carousel => CAROUSEL,
-				   "Other/Unknown" => SYSTEMOTHER,
-				  },
-			TYPE => {
-				 Mechanical => MECHANICAL,
-				 Electronic => ELECTRONIC,
-				 Software => SOFTWARE,
-				 Cryogenic => CRYOGENIC,
-				 "Other/Unknown" => TYPEOTHER,
-				 Human => HUMAN,
-				},
+                                   IFS => IFS,
+                                   "Water Vapor Rad." => WATER_VAPOR_RAD,
+                                   "Visitor Instruments" => INSTRUMENT_VISITOR,
+                                   Instrument => INSTRUMENT_OTHER_UNKNOWN,
+                                   Computer => COMPUTER,
+                                   Carousel => CAROUSEL,
+                                   "Other/Unknown" => SYSTEMOTHER,
+                                  },
+                        TYPE => {
+                                 Mechanical => MECHANICAL,
+                                 Electronic => ELECTRONIC,
+                                 Software => SOFTWARE,
+                                 Cryogenic => CRYOGENIC,
+                                 "Other/Unknown" => TYPEOTHER,
+                                 Human => HUMAN,
+                                },
 
-		       },
-	     "UKIRT" => {
-			 SYSTEM => {
-				    Telescope => TELESCOPE,
-				    "Computer" => COMPUTER,
-				    OT => OT,
-				    "OT Libraries" => OT_LIBRARIES,
-				    "ORAC-DR" => ORAC_DR,
-				    "Query Tool" => QUERYTOOL,
-				    "Sequence Console" => SEQUENCER_QUEUE,
-				    Translator => TRANSLATOR,
-				    "Observing Database" => DBSERVER,
-				    "Web feedback system" => OMP_FEEDBACK_SYSTEM,
-				    Dome => DOME,
-				    Ancillaries => ANCILLARIES,
-				    "Instrument - CGS4" => INSTRUMENT_CGS4,
-				    "Instrument - UFTI" => INSTRUMENT_UFTI,
-				    "Instrument - UIST" => INSTRUMENT_UIST,
-				    "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
-				    "Instrument - WFCAM" => INSTRUMENT_WFCAM,
-				    "Instrument - WFS" => INSTRUMENT_WFS,
-				    "Instrument - Visitor" => INSTRUMENT_VISITOR,
-				    "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
-				    "Other/Unknown" => SYSTEMOTHER,
-				   },
-			 TYPE => {
-				  Mechanical => MECHANICAL,
-				  Electronic => ELECTRONIC,
-				  "Software" => SOFTWARE,
-				  Network => NETWORK,
-				  Cryogenic => CRYOGENIC,
-				  "Other/Unknown" => TYPEOTHER,
-				  Human => HUMAN,
-				 },
-			},
-	     "OMP"   => {
-			 SYSTEM => {
-				    "Feedback/Web" => FEEDBACK_WEB,
-				    DBServer => DBSERVER,
-				    ObservingTool => OBSERVINGTOOL,
-				    QueryTool => QUERYTOOL,
-				    "Sequencer/Queue" => SEQUENCER_QUEUE,
-				    Translator => TRANSLATOR,
-				    "Monitor/Console" => MONITOR_CONSOLE,
-				    "Other/Unknown" => SYSTEMOTHER,
-				   },
-			 TYPE => {
-				  GUI => GUI,
-				  Exception => EXCEPTION,
-				  Scheduling => SCHEDULING,
-				  Bug => BUG,
-				  "Feature Request"=> FEATURE_REQUEST,
-				  Other => TYPEOTHER,
-				  Human => HUMAN,
-				 },
-			},
-	    "DR"     => {
-			 SYSTEM => {
-				    "JCMT-DR" => JCMT_DR,
-				    SPECX => SPECX,
-				    "AIPS++" => AIPSPLUSPLUS,
-				    SURF => SURF,
-				    STARLINK => STARLINK,
-				    "ORAC-DR" => ORAC_DR,
-				    OTHER => SYSTEMOTHER,
-				   },
-			 TYPE => {
-				  Bug => BUG,
-				  "Feature Request" => FEATURE_REQUEST,
-				  Human => HUMAN,
-				  Other => TYPEOTHER,
-				 },
-			},
-	   );
+                       },
+             "UKIRT" => {
+                         SYSTEM => {
+                                    Telescope => TELESCOPE,
+                                    "Computer" => COMPUTER,
+                                    OT => OT,
+                                    "OT Libraries" => OT_LIBRARIES,
+                                    "ORAC-DR" => ORAC_DR,
+                                    "Query Tool" => QUERYTOOL,
+                                    "Sequence Console" => SEQUENCER_QUEUE,
+                                    Translator => TRANSLATOR,
+                                    "Observing Database" => DBSERVER,
+                                    "Web feedback system" => OMP_FEEDBACK_SYSTEM,
+                                    Dome => DOME,
+                                    Ancillaries => ANCILLARIES,
+                                    "Instrument - CGS4" => INSTRUMENT_CGS4,
+                                    "Instrument - UFTI" => INSTRUMENT_UFTI,
+                                    "Instrument - UIST" => INSTRUMENT_UIST,
+                                    "Instrument - MICHELLE" => INSTRUMENT_MICHELLE,
+                                    "Instrument - WFCAM" => INSTRUMENT_WFCAM,
+                                    "Instrument - WFS" => INSTRUMENT_WFS,
+                                    "Instrument - Visitor" => INSTRUMENT_VISITOR,
+                                    "Instrument - Other/Unknown" => INSTRUMENT_OTHER_UNKNOWN,
+                                    "Other/Unknown" => SYSTEMOTHER,
+                                   },
+                         TYPE => {
+                                  Mechanical => MECHANICAL,
+                                  Electronic => ELECTRONIC,
+                                  "Software" => SOFTWARE,
+                                  Network => NETWORK,
+                                  Cryogenic => CRYOGENIC,
+                                  "Other/Unknown" => TYPEOTHER,
+                                  Human => HUMAN,
+                                 },
+                        },
+             "OMP"   => {
+                         SYSTEM => {
+                                    "Feedback/Web" => FEEDBACK_WEB,
+                                    DBServer => DBSERVER,
+                                    ObservingTool => OBSERVINGTOOL,
+                                    QueryTool => QUERYTOOL,
+                                    "Sequencer/Queue" => SEQUENCER_QUEUE,
+                                    Translator => TRANSLATOR,
+                                    "Monitor/Console" => MONITOR_CONSOLE,
+                                    "Other/Unknown" => SYSTEMOTHER,
+                                   },
+                         TYPE => {
+                                  GUI => GUI,
+                                  Exception => EXCEPTION,
+                                  Scheduling => SCHEDULING,
+                                  Bug => BUG,
+                                  "Feature Request"=> FEATURE_REQUEST,
+                                  Other => TYPEOTHER,
+                                  Human => HUMAN,
+                                 },
+                        },
+            "DR"     => {
+                         SYSTEM => {
+                                    "JCMT-DR" => JCMT_DR,
+                                    SPECX => SPECX,
+                                    "AIPS++" => AIPSPLUSPLUS,
+                                    SURF => SURF,
+                                    STARLINK => STARLINK,
+                                    "ORAC-DR" => ORAC_DR,
+                                    OTHER => SYSTEMOTHER,
+                                   },
+                         TYPE => {
+                                  Bug => BUG,
+                                  "Feature Request" => FEATURE_REQUEST,
+                                  Human => HUMAN,
+                                  Other => TYPEOTHER,
+                                 },
+                        },
+           );
 
 # Miscellaneous options for each category
 my %OPTIONS = (
-	       CSG => {
-		       CAN_LOSE_TIME => 0,
-		       CAN_ASSOC_PROJECTS => 0,
-		       IS_TELESCOPE => 0,
-		      },
-	       JCMT => {
-			CAN_LOSE_TIME => 1,
-			CAN_ASSOC_PROJECTS => 1,
-			IS_TELESCOPE => 1,
-		       },
-	       OMP => {
-		       CAN_LOSE_TIME => 0,
-		       CAN_ASSOC_PROJECTS => 0,
-		       IS_TELESCOPE => 0,
-		      },
-	       UKIRT => {
-			 CAN_LOSE_TIME => 1,
-			 CAN_ASSOC_PROJECTS => 1,
-			 IS_TELESCOPE => 1,
-			},
-	       DR => {
-		      CAN_LOSE_TIME => 0,
-		      CAN_ASSOC_PROJECTS => 0,
-		      IS_TELESCOPE => 0,
-		     },
-	      );
+               CSG => {
+                       CAN_LOSE_TIME => 0,
+                       CAN_ASSOC_PROJECTS => 0,
+                       IS_TELESCOPE => 0,
+                      },
+               JCMT => {
+                        CAN_LOSE_TIME => 1,
+                        CAN_ASSOC_PROJECTS => 1,
+                        IS_TELESCOPE => 1,
+                       },
+               OMP => {
+                       CAN_LOSE_TIME => 0,
+                       CAN_ASSOC_PROJECTS => 0,
+                       IS_TELESCOPE => 0,
+                      },
+               UKIRT => {
+                         CAN_LOSE_TIME => 1,
+                         CAN_ASSOC_PROJECTS => 1,
+                         IS_TELESCOPE => 1,
+                        },
+               DR => {
+                      CAN_LOSE_TIME => 0,
+                      CAN_ASSOC_PROJECTS => 0,
+                      IS_TELESCOPE => 0,
+                     },
+              );
 
 # Urgency
 my %URGENCY = (
-	       Urgent => 0,
-	       Normal => 1,
-	       Info   => 2,
-	      );
+               Urgent => 0,
+               Normal => 1,
+               Info   => 2,
+              );
 
 my %CONDITION = (
-		 Chronic => 0,
-		 Normal  => 1,
-		);
+                 Chronic => 0,
+                 Normal  => 1,
+                );
 
 my %STATUS_OPEN = (
-		   Open                   => OPEN,
-		   "Open - Will be fixed" => WILL_BE_FIXED,
-		  );
+                   Open                   => OPEN,
+                   "Open - Will be fixed" => WILL_BE_FIXED,
+                  );
 
 my %STATUS_CLOSED = (
-		     Closed           => CLOSED,
-		     "Works for me"   => WORKS_FOR_ME,
-		     "Not a fault"    => NOT_A_FAULT,
-		     "Won't be fixed" => WON_T_BE_FIXED,
-		     Duplicate        => DUPLICATE,
-		    );
+                     Closed           => CLOSED,
+                     "Works for me"   => WORKS_FOR_ME,
+                     "Not a fault"    => NOT_A_FAULT,
+                     "Won't be fixed" => WON_T_BE_FIXED,
+                     Duplicate        => DUPLICATE,
+                    );
 
 my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
 
@@ -600,20 +600,20 @@ sub new {
 
   # Create the object with default state
   my $fault = bless {
-		     FaultID => undef,
-		     Type => TYPEOTHER,
-		     System => SYSTEMOTHER,
-		     TimeLost => 0,
-		     FaultDate => undef,
-		     Urgency => $URGENCY{Normal},
-		     Condition => $CONDITION{Normal},
-		     Entity => undef,
-		     Category => undef,
-		     Responses => [],
-		     Projects => [],
-		     Status => OPEN,
-		     Subject => undef,
-		    }, $class;
+                     FaultID => undef,
+                     Type => TYPEOTHER,
+                     System => SYSTEMOTHER,
+                     TimeLost => 0,
+                     FaultDate => undef,
+                     Urgency => $URGENCY{Normal},
+                     Condition => $CONDITION{Normal},
+                     Entity => undef,
+                     Category => undef,
+                     Responses => [],
+                     Projects => [],
+                     Status => OPEN,
+                     Subject => undef,
+                    }, $class;
 
   # Go through the input args invoking relevant methods
   for my $key (keys %args) {
@@ -870,7 +870,7 @@ Time lost to the fault in hours.
 
 sub timelost {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $tl = shift;
     # Dont need more than 2 decimal places
     $self->{TimeLost} = sprintf("%.2f", $tl); }
@@ -891,7 +891,7 @@ filed is good enough). Must be a C<Time::Piece> object
 
 sub faultdate {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $date = shift;
     croak "Date must be supplied as Time::Piece object"
       if (defined $date && ! UNIVERSAL::isa( $date, "Time::Piece" ));
@@ -1063,7 +1063,7 @@ See also C<respond> method.
 
 sub responses {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
 
     # If we have an array ref we are replacing
     my $replace = 0;
@@ -1082,7 +1082,7 @@ sub responses {
     # Check they are the right class
     for (@input) {
       croak "Responses must be in class OMP::Fault::Response"
-	unless UNIVERSAL::isa( $_, "OMP::Fault::Response");
+        unless UNIVERSAL::isa( $_, "OMP::Fault::Response");
     }
 
     # Now store or overwrite
@@ -1273,7 +1273,7 @@ sub stringify {
   # or we have CSG. Ignore that for now
 
   # Now build up the message
-  my $output = 
+  my $output =
 "--------------------------------------------------------------------------------\n".
 "    Report by     :  $author\n".
 "                                         date: $day\n".
@@ -1327,8 +1327,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
