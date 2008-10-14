@@ -77,7 +77,7 @@ sub new {
 
   # Populate object
   $self->rss_feed({title=>'OMP Fault System (last 24 hours)',
-		   href=>'faultrss.pl',});
+                   href=>'faultrss.pl',});
 
   for my $key (keys %args) {
     my $method = lc($key);
@@ -165,10 +165,10 @@ sub file_fault_output {
 
   # Make sure all the necessary params were provided
   my %params = (User => "user",
-		Subject => "subject",
-	        "Fault report" => "message",
-	        Type => "type",
-	        System => "system",);
+                Subject => "subject",
+                "Fault report" => "message",
+                Type => "type",
+                System => "system",);
   my @error;
   for (keys %params) {
     if (length($q->param($params{$_})) < 1) {
@@ -202,17 +202,17 @@ sub file_fault_output {
   my %faultdetails = $comp->parse_file_fault_form();
 
   my $resp = new OMP::Fault::Response(author=>$faultdetails{author},
-				      text=>$faultdetails{text},);
+                                      text=>$faultdetails{text},);
 
   # Create the fault object
   my $category = $q->param('category');
   my $fault = new OMP::Fault(category=>$category,
-			     subject=>$faultdetails{subject},
-			     system=>$faultdetails{system},
-			     type=>$faultdetails{type},
-			     status=>$faultdetails{status},
-			     urgency=>$faultdetails{urgency},
-			     fault=>$resp);
+                             subject=>$faultdetails{subject},
+                             system=>$faultdetails{system},
+                             type=>$faultdetails{type},
+                             status=>$faultdetails{status},
+                             urgency=>$faultdetails{urgency},
+                             fault=>$resp);
 
   # The following are not always present
   ($faultdetails{projects}) and $fault->projects($faultdetails{projects});
@@ -279,7 +279,7 @@ sub query_fault_output {
   my $currentxml = "<FaultQuery>".
     $comp->category_xml().
       "<date delta='-14'>" . $t->datetime . "</date>".
-	"</FaultQuery>";
+        "</FaultQuery>";
 
   # Setup an argument for use with the query_fault_form function
   my $hidefields = ($category ne 'ANYCAT' ? 0 : 1);
@@ -327,19 +327,19 @@ sub query_fault_output {
       my $status = $q->param('status');
       if ($status eq "all_closed") {
 
-	# Do query on all closed statuses
-	my %status = OMP::Fault->faultStatusClosed;
-	push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
+        # Do query on all closed statuses
+        my %status = OMP::Fault->faultStatusClosed;
+        push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
       } elsif ($status eq "all_open") {
 
-	# Do a query on all open statuses
-	my %status = OMP::Fault->faultStatusOpen;
-	push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
+        # Do a query on all open statuses
+        my %status = OMP::Fault->faultStatusOpen;
+        push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
       } else {
 
-	# Do a query on just a single status
-	my %status = OMP::Fault->faultStatus;
-	push (@xml, "<status>$status</status>");
+        # Do a query on just a single status
+        my %status = OMP::Fault->faultStatus;
+        push (@xml, "<status>$status</status>");
       }
     }
 
@@ -356,7 +356,7 @@ sub query_fault_output {
     # Generate the date portion of our query
     my $queryDateStr;
     if ($q->param('period') eq 'arbitrary') {
-      
+
       # Get our min and max dates
       my $mindatestr = $q->param('mindate');
       my $maxdatestr = $q->param('maxdate');
@@ -365,15 +365,15 @@ sub query_fault_output {
       # Maybe OMP::General parse_date method should be
       # catching these...
       for ($mindatestr, $maxdatestr) {
-	if ($_) {
-	  unless ($_ =~ /^\d{8}$/ or
-		  $_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
-		  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
-		  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+        if ($_) {
+          unless ($_ =~ /^\d{8}$/ or
+                  $_ =~ /^\d\d\d\d-\d\d-\d\d$/ or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d$/ or
+                  $_ =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
 
-	    croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
-	  }
-	}
+            croak "Date [$_] not understood. Please use either YYYYMMDD or YYYY-MM-DDTHH:MM format.";
+          }
+        }
       }
 
       # Convert dates to UT
@@ -385,10 +385,10 @@ sub query_fault_output {
 
       # Do a min/max date query
       if ($mindate or $maxdate) {
-	push (@xml, "<date>");
-	($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
-	($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
-	push (@xml, "</date>");
+        push (@xml, "<date>");
+        ($mindate) and push (@xml, "<min>" . $mindate->datetime . "</min>");
+        ($maxdate) and push (@xml, "<max>" . $maxdate->datetime . "</max>");
+        push (@xml, "</date>");
       }
 
       # Convert dates back to localtime
@@ -404,19 +404,19 @@ sub query_fault_output {
 
       push (@xml, "<date delta='-$days'>". $t->datetime ."</date>");
     } elsif ($q->param('period') eq 'last_month') {
-      # Get results for the period between the first 
+      # Get results for the period between the first
       # and last days of the last month
       my $year;
       my $month;
       if ($t->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
-	$year = $1;
-	$month = $2;
+        $year = $1;
+        $month = $2;
       }
 
       $month -= 1;
       if ($month eq 0) {
-	$month = 12;
-	$year -= 1;
+        $month = 12;
+        $year -= 1;
       }
 
       # Zero pad the month number
@@ -460,12 +460,12 @@ sub query_fault_output {
     # Faults within the last 14 days with 2 or more hours lost
     $xml = "<FaultQuery>".
       $comp->category_xml().
-	"<date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
+        "<date delta='-14'>" . $t->datetime . "</date><timelost><min>2</min></timelost></FaultQuery>";
   } elsif ($q->param('recent')) {
     # Faults active in the last 36 hours
     $xml = "<FaultQuery>".
       $comp->category_xml().
-	"<date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
+        "<date delta='-2'>" . $t->datetime . "</date></FaultQuery>";
   } elsif ($q->param('current')) {
     # Faults within the last 14 days
     $xml = $currentxml;
@@ -474,7 +474,7 @@ sub query_fault_output {
     # Initial display of query page
     $xml = "<FaultQuery>".
       $comp->category_xml().
-	"<date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
+        "<date delta='-7'>" . $t->datetime . "</date></FaultQuery>";
     $title = "Displaying faults with any activity in the last 7 days";
   }
 
@@ -558,10 +558,10 @@ sub query_fault_output {
 
     my $category = $self->_get_param('cat');
     my %showfaultargs = (
-			 faults => $faults,
-			 showcat => ($category ne 'ANYCAT' ? 0 : 1),
-			);
-    
+                         faults => $faults,
+                         showcat => ($category ne 'ANYCAT' ? 0 : 1),
+                        );
+
     if ($orderby eq 'response' or ! defined $orderby) {
       $showfaultargs{orderby} = 'response';
     } elsif ($q->param('orderby') eq 'filedate') {
@@ -569,10 +569,10 @@ sub query_fault_output {
     } elsif ($q->param('orderby') eq 'timelost') {
       $showfaultargs{orderby} = 'timelost';
     }
-    
+
     if ($faults->[0]) {
       unless ($sort_order eq "ascending") {
-	$showfaultargs{descending} = 1;
+        $showfaultargs{descending} = 1;
       }
 
       $comp->show_faults(%showfaultargs);
@@ -584,8 +584,8 @@ sub query_fault_output {
 
       # Put up the query form again if there are lots of faults displayed
       if ($faults->[15]) {
-	print "<P>";
-	$comp->query_fault_form($hidefields);
+        print "<P>";
+        $comp->query_fault_form($hidefields);
       }
     }
   } else {
@@ -608,7 +608,7 @@ sub view_fault_content {
   my $q = $self->cgi;
   my $comp = $self->fault_component;
 
-  # First try and get the fault ID from the sidebar form param, then 
+  # First try and get the fault ID from the sidebar form param, then
   # try and get it from the URL or from the regular form param
   my $faultid;
   if ($q->param('goto_fault')) {
@@ -687,11 +687,11 @@ sub view_fault_output {
 
     # Make sure all the necessary params were provided
     my %params = (User => "user",
-		  Response => "text",);
+                  Response => "text",);
     my @error;
     for (keys %params) {
       if (length($q->param($params{$_})) < 1) {
-	push @error, $_;
+        push @error, $_;
       }
     }
 
@@ -723,14 +723,14 @@ sub view_fault_output {
 
       my $E;
       try {
-	# Resubmit fault with new status
-	OMP::FaultServer->updateFault($fault);
-	push @title, "Fault status changed to \"" . $fault->statusText . "\"";
+        # Resubmit fault with new status
+        OMP::FaultServer->updateFault($fault);
+        push @title, "Fault status changed to \"" . $fault->statusText . "\"";
       } otherwise {
-	$E = shift;
-	push @title, "An error prevented the fault status from being updated: $E";
+        $E = shift;
+        push @title, "An error prevented the fault status from being updated: $E";
       };
-	
+
     }
 
     # The text.  Put it in <pre> tags if there isn't an <html>
@@ -750,7 +750,7 @@ sub view_fault_output {
     my $E;
     try {
       my $resp = new OMP::Fault::Response(author => $user,
-					  text => $text);
+                                          text => $text);
       OMP::FaultServer->respondFault($fault->id, $resp);
 
       push @title, "Fault response successfully submitted";
@@ -785,26 +785,26 @@ sub view_fault_output {
 
       # Make author either an email address or "user on [machine name]"
       if ($user[2] =~ /@/) {
-	$author = $user[0];
+        $author = $user[0];
       } else {
-	$author = "user on $user[2]";
+        $author = "user on $user[2]";
       }
 
      try {
-	# Right now we'll just do an update by resubmitting the fault
-	# with the new status parameter.  But in principal we should
-	# have a method for doing an explicit status update.
-	
-	# Change the status parameter
-	$fault->status($q->param('status'));
-	
-	# Resubmit the fault
-	OMP::FaultServer->updateFault($fault, $author);
-	
-	push @title, "Fault status changed to \"" . $fault->statusText . "\"";
+        # Right now we'll just do an update by resubmitting the fault
+        # with the new status parameter.  But in principal we should
+        # have a method for doing an explicit status update.
+
+        # Change the status parameter
+        $fault->status($q->param('status'));
+
+        # Resubmit the fault
+        OMP::FaultServer->updateFault($fault, $author);
+
+        push @title, "Fault status changed to \"" . $fault->statusText . "\"";
       } otherwise {
-	my $E = shift;
-	push @title, "An error has prevented the fault status from being updated: $E";
+        my $E = shift;
+        push @title, "An error has prevented the fault status from being updated: $E";
       };
     } else {
       # Status is the same, dont update
@@ -849,8 +849,8 @@ sub update_fault_content {
     print $q->startform;
     print "<b>Enter a fault ID: </b></td><td>";
     print $q->textfield(-name=>'id',
-		        -size=>15,
-		        -maxlength=>32);
+                        -size=>15,
+                        -maxlength=>32);
     print "</td><tr><td colspan=2 align=right>";
     print $q->submit(-name=>'Submit');
     print $q->endform;
@@ -906,8 +906,8 @@ sub update_fault_output {
   # Store details in a fault object for comparison
   my $category = $self->_get_param('cat');
   my $new_f = new OMP::Fault(category=>$category,
-			     fault=>$fault->responses->[0],
-			     %newdetails);
+                             fault=>$fault->responses->[0],
+                             %newdetails);
 
   my @details_changed = OMP::FaultUtil->compare($new_f, $fault);
 
@@ -931,23 +931,23 @@ sub update_fault_output {
     try {
 
       if ($details_changed[0]) {
-	# Apply changes to fault
-	for (@details_changed) {
-	  $fault->$_($newdetails{$_});
-	}
+        # Apply changes to fault
+        for (@details_changed) {
+          $fault->$_($newdetails{$_});
+        }
 
-	# Store changes to DB
-	OMP::FaultServer->updateFault($fault, $author);
+        # Store changes to DB
+        OMP::FaultServer->updateFault($fault, $author);
       }
 
       if ($response_changed[0]) {
 
-	# Apply changes to response
-	for (@response_changed) {
-	  $response->$_($newdetails{$_});
-	}
+        # Apply changes to response
+        for (@response_changed) {
+          $response->$_($newdetails{$_});
+        }
 
-	OMP::FaultServer->updateResponse($fault->id, $response);
+        OMP::FaultServer->updateResponse($fault->id, $response);
       }
 
       push @title, "This fault has been updated";
@@ -996,7 +996,7 @@ sub update_resp_content {
 
     # Form for taking new details.  Displays current values.
     $comp->response_form(fault => $fault,
-			 respid => $respid,);
+                         respid => $respid,);
   } else {
     croak "A fault ID and response ID must be provided in the URL\n";
   }
@@ -1100,20 +1100,20 @@ sub fault_summary_content {
     my $today = localtime;
     my $period;
     if ($q->param('period') eq 'last_month') {
-      # Get results for the period between the first 
+      # Get results for the period between the first
       # and last days of the last month
       my $today = localtime;
       my $year;
       my $month;
       if ($today->strftime("%Y%m") =~ /^(\d{4})(\d{2})$/) {
-	$year = $1;
-	$month = $2;
+        $year = $1;
+        $month = $2;
       }
 
       $month -= 1;
       if ($month eq 0) {
-	$month = 12;
-	$year -= 1;
+        $month = 12;
+        $year -= 1;
       }
 
       my $beginDate = Time::Piece->strptime($year . $month . "01", "%Y%m%d");
@@ -1124,7 +1124,7 @@ sub fault_summary_content {
       # Get results between today and N days ago
       my $days = $q->param('days');
       (! $days) and $days = 7;
-      
+
       $queryDateStr = "<date delta='-".$days."'>" . $today->datetime . "</date>";
       $period = "the past $days days";
     }
@@ -1133,9 +1133,9 @@ sub fault_summary_content {
     # Construct our fault query
     my $xml = "<FaultQuery>".
       "<category>$category</category>".
-	$queryDateStr.
-	  "<isfault>1</isfault>".
-	    "</FaultQuery>";
+        $queryDateStr.
+          "<isfault>1</isfault>".
+            "</FaultQuery>";
 
     # Run the query
     $faults = OMP::FaultServer->queryFaults($xml, 'object');
@@ -1245,90 +1245,90 @@ sub fault_summary_content {
     my $systemTimeLost = 0;
 
     for my $status (qw/open closed/) {
-      
+
       next if (! $faults{$system}{$status});
 
       # Use different background colors for different statuses
       my $bgcolor;
       ($status eq 'open') and $bgcolor = '#8080cc'
-	or $bgcolor = '#6767af';
+        or $bgcolor = '#6767af';
 
       # Make a button for toggling view of closed faults
       if ($status eq 'closed') {
-	print "<tr>";
-	print "<td class='row_closed_title' colspan=4>";
-	print "<a class=\"link_option\" href=\"#\" onclick=\"toggle('$sysID{$system}'); return false\"><img border=\"0\" src=\"$iconurl/$toggleDef.gif\" width=\"10\" height=\"10\" id=\"img$sysID{$system}\"></a>";
+        print "<tr>";
+        print "<td class='row_closed_title' colspan=4>";
+        print "<a class=\"link_option\" href=\"#\" onclick=\"toggle('$sysID{$system}'); return false\"><img border=\"0\" src=\"$iconurl/$toggleDef.gif\" width=\"10\" height=\"10\" id=\"img$sysID{$system}\"></a>";
         print "&nbsp;<a class=\"link_option\" href=\"#\" onclick=\"toggle('$sysID{$system}'); return false\">Closed faults</a></td>";
-	print "<td class='row_closed'><span id=\"info$sysID{$system}\" value=\"$timelost{$status}{$system}\">";
-	($class eq 'hide') and print $timelost{$status}{$system};
+        print "<td class='row_closed'><span id=\"info$sysID{$system}\" value=\"$timelost{$status}{$system}\">";
+        ($class eq 'hide') and print $timelost{$status}{$system};
         print "</span>&nbsp;</td><td colspan=2 class='row_closed'>&nbsp;</td>";
-	print "</tr>";
+        print "</tr>";
       }
 
       for my $type (sort keys %{$faults{$system}{$status}}) {
 
-	my $rowID = $sysID{$system} . "_" . $typeID{$type};
+        my $rowID = $sysID{$system} . "_" . $typeID{$type};
 
-	($status eq 'closed') and print "<tr id=\"$rowID\" class=\"$class\">"
-	  or print "<tr>";
+        ($status eq 'closed') and print "<tr id=\"$rowID\" class=\"$class\">"
+          or print "<tr>";
 
-	print "<td bgcolor=$bgcolor colspan=7><font color=$bgcolor>----</font><strong><span class=\"fault_summary_misc\">$type</span></strong></td>";
+        print "<td bgcolor=$bgcolor colspan=7><font color=$bgcolor>----</font><strong><span class=\"fault_summary_misc\">$type</span></strong></td>";
 
-	my $count = 0;
+        my $count = 0;
 
-	for my $fault (@{$faults{$system}{$status}{$type}}) {
+        for my $fault (@{$faults{$system}{$status}{$type}}) {
 
-	  $count++;
+          $count++;
 
-	  # Find out how long since the last response
-	  my $localtime = localtime;
-	  my $locallast = localtime($fault->responses->[-1]->date->epoch);
-	  my $lastresponse = $localtime - $locallast;
-	  $lastresponse = sprintf("%d", $lastresponse->days);
-	  $systemTimeLost += $fault->timelost;
+          # Find out how long since the last response
+          my $localtime = localtime;
+          my $locallast = localtime($fault->responses->[-1]->date->epoch);
+          my $lastresponse = $localtime - $locallast;
+          $lastresponse = sprintf("%d", $lastresponse->days);
+          $systemTimeLost += $fault->timelost;
 
-	  # Setup the preview
-	  my $preview = substr($fault->responses->[0]->text, 0, 87);
-	  $preview = OMP::General->html_to_plain($preview);
-	  $preview =~ s/\"/\'\'/gi;
-	  $preview =~ s/\s+/ /gi;
+          # Setup the preview
+          my $preview = substr($fault->responses->[0]->text, 0, 87);
+          $preview = OMP::General->html_to_plain($preview);
+          $preview =~ s/\"/\'\'/gi;
+          $preview =~ s/\s+/ /gi;
 
-	  my $subject = ($fault->subject) ? $fault->subject : "No subject";
+          my $subject = ($fault->subject) ? $fault->subject : "No subject";
 
-	  my $author = OMP::Display->userhtml($fault->responses->[0]->author, $q);
-	  my $respAuthor;
-	  ($fault->responses->[1]) and
-	    $respAuthor = OMP::Display->userhtml($fault->responses->[-1]->author, $q);
+          my $author = OMP::Display->userhtml($fault->responses->[0]->author, $q);
+          my $respAuthor;
+          ($fault->responses->[1]) and
+            $respAuthor = OMP::Display->userhtml($fault->responses->[-1]->author, $q);
 
-	  my $faultRowID = $rowID . "_" . $count;
+          my $faultRowID = $rowID . "_" . $count;
 
-	  ($status eq 'closed') and print "<tr id=\"$faultRowID\" class=\"$class\""
-	    or print "<tr ";
+          ($status eq 'closed') and print "<tr id=\"$faultRowID\" class=\"$class\""
+            or print "<tr ";
 
-	  print "bgcolor=$bgcolor><td><font color=$bgcolor>------</font>";
-	  ($fault->timelost > 0) and print "<img src=$iconurl/timelost.gif alt=\"Fault lost time\">"
-	    or print "<img src=$iconurl/spacer.gif height=13 width=10>";
-	  print " <a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_id\" title=\"$preview\">". $fault->id ."</td>";
-	  print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_subject\" title=\"$preview\">". $subject ."</a>";
+          print "bgcolor=$bgcolor><td><font color=$bgcolor>------</font>";
+          ($fault->timelost > 0) and print "<img src=$iconurl/timelost.gif alt=\"Fault lost time\">"
+            or print "<img src=$iconurl/spacer.gif height=13 width=10>";
+          print " <a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_id\" title=\"$preview\">". $fault->id ."</td>";
+          print "<td><a href=\"viewfault.pl?id=".$fault->id."\" class=\"link_fault_subject\" title=\"$preview\">". $subject ."</a>";
 
-	  # Show affected projects?
-	  if ($q->param('show_affected') and $fault->projects) {
-	    print "<br><span class='proj_fault_link'>";
-	    my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
-	    print join (" | ", @projlinks);
-	    print "</span>";
-	  }
+          # Show affected projects?
+          if ($q->param('show_affected') and $fault->projects) {
+            print "<br><span class='proj_fault_link'>";
+            my @projlinks = map {"<a href='projecthome.pl?urlprojid=$_'>$_</a>"} $fault->projects;
+            print join (" | ", @projlinks);
+            print "</span>";
+          }
 
-	  print "</td>";
-	  print "<td align=right class='fault_summary_userid'>". $fault->responses->[0]->author->html . "</td>";
-	  print "<td align=right class='fault_summary_userid'>";
-	  ($respAuthor) and print $respAuthor
-	    or print "n/a";
-	  print "</td>";
-	  print "<td align=right><span class='fault_numbers'>". $fault->timelost ."</span></td>";
-	  print "<td align=right><span class='fault_numbers'>". $#{$fault->responses} ."</span></td>";
-	  print "<td align=right><span class='fault_numbers'>". $lastresponse ."</span></td>";
-	}
+          print "</td>";
+          print "<td align=right class='fault_summary_userid'>". $fault->responses->[0]->author->html . "</td>";
+          print "<td align=right class='fault_summary_userid'>";
+          ($respAuthor) and print $respAuthor
+            or print "n/a";
+          print "</td>";
+          print "<td align=right><span class='fault_numbers'>". $fault->timelost ."</span></td>";
+          print "<td align=right><span class='fault_numbers'>". $#{$fault->responses} ."</span></td>";
+          print "<td align=right><span class='fault_numbers'>". $lastresponse ."</span></td>";
+        }
       }
     }
     # Total time lost for system
@@ -1443,26 +1443,27 @@ sub _sidebar {
     "<br><font color=#ffffff>Fault ID:</font><br>".
       $q->start_form .
       $q->textfield(-name=>'goto_fault',
-		    -size=>14,
-		    -maxlength=>20,) .
-		      "<br><br>" .
-			$q->submit("View Fault") .
-			  $q->end_form ;
+                    -size=>14,
+                    -maxlength=>20,) .
+                      "<br><br>" .
+                        $q->submit("View Fault") .
+                          $q->end_form ;
 
   my @sidebarlinks = ("<a class='sidemain' href='queryfault.pl?cat=csg'>CSG Faults</a>",
-		      "<a class='sidemain' href='queryfault.pl?cat=omp'>OMP Faults</a>",
-		      "<a class='sidemain' href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
-		      "<a class='sidemain' href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
-		      "<a class='sidemain' href='queryfault.pl?cat=dr'>DR Faults</a>",
-		      "<a class='sidemain' href='queryfault.pl?cat=anycat'>All Faults</a>",
-		      "<br><a class='sidemain' href='".
-		      OMP::Config->getData('omp-url')
-		      ."'>OMP home</a>",
-		      "$sidebarform</font>",);
+                      "<a class='sidemain' href='queryfault.pl?cat=omp'>OMP Faults</a>",
+                      "<a class='sidemain' href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
+                      "<a class='sidemain' href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
+                      "<a class='sidemain' href='queryfault.pl?cat=dr'>DR Faults</a>",
+                      '<a class="sidemain" href="queryfault.pl?cat=safety">Safety Faults</a>',
+                      "<a class='sidemain' href='queryfault.pl?cat=anycat'>All Faults</a>",
+                      "<br><a class='sidemain' href='".
+                      OMP::Config->getData('omp-url')
+                      ."'>OMP home</a>",
+                      "$sidebarform</font>",);
 
   if (defined $cat and $cat ne "ANYCAT") {
     unshift (@sidebarlinks, "<a class='sidemain' href='filefault.pl?cat=$cat'>File a fault</a>",
-	                    "<a class='sidemain' href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
+                            "<a class='sidemain' href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
   }
 
   $theme->SetInfoLinks(\@sidebarlinks);
