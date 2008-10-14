@@ -556,7 +556,7 @@ sub change_status_form {
   print $q->submit(-name=>'change_status',
                    -label=>'Change',);
   print $q->endform;
-  
+
 }
 
 =item B<file_fault_form>
@@ -597,7 +597,7 @@ sub file_fault_form {
   my @status_values = map {$status{$_}} sort keys %status;
   my %status_labels = map {$status{$_}, $_} %status;
 
-  # Add some empty values to our menus (this is part of making sure that a 
+  # Add some empty values to our menus (this is part of making sure that a
   # meaningful value is selected by the user) if a new fault is being filed
   unless ($fault) {
     push @system_values, undef;
@@ -812,7 +812,7 @@ sub file_fault_form {
 
         $projects{$_->projectid} = $_->projectid
           unless ($tel !~ /$category/i);
-	
+
       }
       if (%projects) {
         print "</td><tr><td colspan=2><b>Fault is associated with the projects: </b>";
@@ -871,7 +871,7 @@ sub file_fault_form {
 Create and display a form for submitting or editing a response.
 
   $fcgi->response_form(respid => $respid,
-		       fault => $fault_obj);
+                       fault => $fault_obj);
 
 Accepts arguments in hash format.  The following keys will be used:
 
@@ -985,9 +985,9 @@ sub response_form {
 Show a list of faults.
 
   $fcgi->show_faults(faults => \@faults,
-	             orderby => 'response',
-	             descending => 1,
-	             url => "fbfault.pl"
+                     orderby => 'response',
+                     descending => 1,
+                     url => "fbfault.pl"
                      showcat => 1,);
 
 Takes the following key/value pairs as arguments:
