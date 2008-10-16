@@ -57,6 +57,7 @@ my @omp =
       ompfaultbodypub
       ompfaultpub
       ompmsbdone
+      ompproj
       ompprojuser
       ompuser
       ompobslog
