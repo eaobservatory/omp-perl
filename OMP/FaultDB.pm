@@ -234,7 +234,7 @@ sub getFaultsByDate {
   my $xml = "<FaultQuery><date delta=\"1\">$date</date>".
     ( defined $cat ? "<category>$cat</category>" : "")
       ."<isfault>1</isfault>"
-	."</FaultQuery>";
+        ."</FaultQuery>";
   my $query = new OMP::FaultQuery( XML => $xml );
 
   my @result = $self->queryFaults( $query );
@@ -424,10 +424,10 @@ sub _store_new_fault {
 
   # Insert the data into the table
   $self->_db_insert_data( $FAULTTABLE,
-			  $fault->id, $fault->category, $fault->subject,
-			  $faultdate, $fault->type, $fault->system,
-			  $fault->status, $fault->urgency,
-			  $fault->timelost, $fault->entity, $fault->condition);
+                          $fault->id, $fault->category, $fault->subject,
+                          $faultdate, $fault->type, $fault->system,
+                          $fault->status, $fault->urgency,
+                          $fault->timelost, $fault->entity, $fault->condition);
 
   # Insert the project association data
   # In this case we dont need an entry if there are no projects
@@ -469,23 +469,23 @@ sub _add_new_response {
   # Create UserDB object for user determination
   my $udb = new OMP::UserDB( DB => $self->db );
   my $userid = $udb->verifyUser($author->userid);
-  
+
   throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]") unless ($userid);
 
-  
+
   # Format the date in a way that sybase understands
   $date = $date->strftime("%Y%m%d %T");
 
   $self->_db_insert_data( $FAULTBODYTABLE,
-			  { COLUMN => 'faultid',
-			    QUOTE => 0,
-			    POSN => 0 },
-			  $id, $date, $userid, $resp->isfault,
-			  {
-			   TEXT => $text,
-			   COLUMN => 'text',
-			  }
-			);
+                          { COLUMN => 'faultid',
+                            QUOTE => 0,
+                            POSN => 0 },
+                          $id, $date, $userid, $resp->isfault,
+                          {
+                           TEXT => $text,
+                           COLUMN => 'text',
+                          }
+                        );
 
 }
 
@@ -504,9 +504,9 @@ sub _close_fault {
   my $close = $status{Closed}; # Dont like bare string
 
   # Update the status field
-  $self->_db_update_data( $FAULTTABLE, 
-			  { status => $close },
-			  " faultid = $id");
+  $self->_db_update_data( $FAULTTABLE,
+                          { status => $close },
+                          " faultid = $id");
 
 }
 
@@ -632,11 +632,11 @@ sub _update_fault_row {
 
     # Insert the new values
     $self->_db_insert_data( $FAULTTABLE,
-			    $fault->id, $fault->category, $fault->subject,
-			    $faultdate, $fault->type, $fault->system,
-			    $fault->status, $fault->urgency,
-			    $fault->timelost, $fault->entity,
-			    $fault->condition, );
+                            $fault->id, $fault->category, $fault->subject,
+                            $faultdate, $fault->type, $fault->system,
+                            $fault->status, $fault->urgency,
+                            $fault->timelost, $fault->entity,
+                            $fault->condition, );
 
     # Insert the project association data
     # In this case we dont need an entry if there are no projects
@@ -743,7 +743,7 @@ sub _mail_fault {
     grep {$_->author->userid ne $responses[-1]->author->userid} @responses;
 
   my $faultuser = OMP::User->new(name=>$fault->category . " Faults",
-				 email=>$fault->mail_list);
+                                 email=>$fault->mail_list);
 
   # If there is no email address associated with author of last response
   # use the fault list "user" for the From header
@@ -754,10 +754,10 @@ sub _mail_fault {
 
   # Mail it off
   $self->_mail_information(message => $msg,
-			   to => [ $faultuser ],
-			   cc => [ map {$cc{$_}} keys %cc ],
-			   from => $from,
-			   subject => $subject);
+                           to => [ $faultuser ],
+                           cc => [ map {$cc{$_}} keys %cc ],
+                           from => $from,
+                           subject => $subject);
 
 }
 
@@ -789,17 +789,17 @@ sub _mail_fault_update {
 
   # Map property names to their accessor method names
   my %property = (
-		  systemText => "System",
-		  typeText => "Type",
-		  statusText => "Status",
-		  timelost => "Time lost",
-		  faultdate => "Time of fault",
-		  subject => "Subject",
-		  category => "Category",
-		  urgency => "Urgency",
-		  condition => "Condition",
-		  projects => "Projects",
-		 );
+                  systemText => "System",
+                  typeText => "Type",
+                  statusText => "Status",
+                  timelost => "Time lost",
+                  faultdate => "Time of fault",
+                  subject => "Subject",
+                  category => "Category",
+                  urgency => "Urgency",
+                  condition => "Condition",
+                  projects => "Projects",
+                 );
 
   # Compare the fault details
   my @details_changed = OMP::FaultUtil->compare($fault, $oldfault);
@@ -839,10 +839,10 @@ sub _mail_fault_update {
   # address
   if ($fault->author->email) {
     $self->_mail_information(message => $msg,
-			     to => [ $fault->author ],
-			     from => OMP::User->new(name => $fault->category . " Faults",
-						    email=> $fault->mail_list,),
-			     subject => "Your fault [" . $fault->id . "] has been updated",);
+                             to => [ $fault->author ],
+                             from => OMP::User->new(name => $fault->category . " Faults",
+                                                    email=> $fault->mail_list,),
+                             subject => "Your fault [" . $fault->id . "] has been updated",);
 
   }
 
@@ -850,7 +850,7 @@ sub _mail_fault_update {
 
 =item B<_mail_response_update>
 
-Send an email to a fault owner 
+Send an email to a fault owner
 
 =back
 
@@ -862,7 +862,7 @@ For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
 
 =head1 AUTHORS
 
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt> 
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
@@ -880,8 +880,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
