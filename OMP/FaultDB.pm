@@ -427,7 +427,9 @@ sub _store_new_fault {
                           $fault->id, $fault->category, $fault->subject,
                           $faultdate, $fault->type, $fault->system,
                           $fault->status, $fault->urgency,
-                          $fault->timelost, $fault->entity, $fault->condition);
+                          $fault->timelost, $fault->entity, $fault->condition,
+                          $fault->location
+                        );
 
   # Insert the project association data
   # In this case we dont need an entry if there are no projects
@@ -636,7 +638,9 @@ sub _update_fault_row {
                             $faultdate, $fault->type, $fault->system,
                             $fault->status, $fault->urgency,
                             $fault->timelost, $fault->entity,
-                            $fault->condition, );
+                            $fault->condition,
+                            $fault->location,
+                          );
 
     # Insert the project association data
     # In this case we dont need an entry if there are no projects
@@ -742,8 +746,12 @@ sub _mail_fault {
   my %cc = map {$_->author->userid, $_->author}
     grep {$_->author->userid ne $responses[-1]->author->userid} @responses;
 
-  my $faultuser = OMP::User->new(name=>$fault->category . " Faults",
-                                 email=>$fault->mail_list);
+  my $faultuser = OMP::User->new( 'name' =>
+                                    $category
+                                    . ( $fault->isNotSafety ? ' Faults' : ' Reporting' ),
+
+                                  'email' => $fault->mail_list
+                                 );
 
   # If there is no email address associated with author of last response
   # use the fault list "user" for the From header

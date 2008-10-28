@@ -116,13 +116,48 @@ use constant SURF => 1062;
 use constant STARLINK => 1063;
 use constant WORF => 1064;
 
+# Safety - severity.
+use constant SAFETY_CLARAFICATION_SEVERITY => 3000;
+use constant {
+  EQUIP_DAMAGE => SAFETY_CLARAFICATION_SEVERITY + 1,
+  MINOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 2,
+  MAJOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 3,
+  INJURY_DEATH => SAFETY_CLARAFICATION_SEVERITY + 4,
+};
+
+# Safety - type.
+use constant SAFETY_CLARAFICATION_TYPE => 3010;
+use constant {
+  SAFETY_CONCERN => SAFETY_CLARAFICATION_TYPE + 1,
+  NEAR_MISS      => SAFETY_CLARAFICATION_TYPE + 2,
+  INCIDENT       => SAFETY_CLARAFICATION_TYPE + 3,
+};
+
+# Safety - action/status.
+use constant NO_ACTION => 3020;
+use constant {
+  IMMEDIATE_ACTION          => NO_ACTION + 1,
+  FOLLOW_UP                 => NO_ACTION + 2,
+  REFER_TO_SAFETY_COMMITTEE => NO_ACTION + 3,
+};
+
+#  Places.
+use constant IN_TRANSIT => 4000;
+use constant {
+  JAC    => IN_TRANSIT + 1,
+  HP     => IN_TRANSIT + 2,
+  JCMT   => IN_TRANSIT + 3,
+  UKIRT  => IN_TRANSIT + 4,
+};
+
 # Mailing list
 my %MAILLIST = (
-                "CSG" => "csg_faults\@jach.hawaii.edu",
-                "JCMT" => "jcmt_faults\@jach.hawaii.edu",
-                "UKIRT" => "ukirt_faults\@jach.hawaii.edu",
-                "OMP" => "omp_faults\@jach.hawaii.edu",
-                "DR" => "dr_faults\@jach.hawaii.edu",
+                  'CSG'   => 'csg_faults@jach.hawaii.edu'   ,
+                  'JCMT'  => 'jcmt_faults@jach.hawaii.edu'  ,
+                  'UKIRT' => 'ukirt_faults@jach.hawaii.edu' ,
+                  'OMP'   => 'omp_faults@jach.hawaii.edu'   ,
+                  'DR'    => 'dr_faults@jach.hawaii.edu'    ,
+                  'SAFETY' => 'safety_faults@jach.hawaii.edu' ,
                );
 
 my %DATA = (
@@ -175,7 +210,6 @@ my %DATA = (
                                  "Other/Unknown" => TYPEOTHER,
                                  Human => HUMAN,
                                 },
-
                        },
              "UKIRT" => {
                          SYSTEM => {
@@ -249,7 +283,30 @@ my %DATA = (
                                   Other => TYPEOTHER,
                                  },
                         },
+            'SAFETY' => {
+                          'SEVERITY' => {
+                                          'Severe injury or death' => INJURY_DEATH,
+                                          'Major injury' => MAJOR_INJURY,
+                                          'Minor injury' => MINOR_INJURY,
+                                          'Equipment damage' => EQUIP_DAMAGE,
+                                          'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
+                                        },
+                           'TYPE' => {
+                                        'Incident' => INCIDENT,
+                                        'Near miss' => NEAR_MISS,
+                                        'Safety concern' => SAFETY_CONCERN,
+                                        'Safety clarification' => SAFETY_CLARAFICATION_TYPE
+                                      },
+                        }
            );
+
+my %LOCATION = (
+                  'UKIRT' => UKIRT,
+                  'JCMT' => JCMT,
+                  'HP' => HP,
+                  'JAC' => JAC,
+                  'In transit' => IN_TRANSIT
+                );
 
 # Miscellaneous options for each category
 my %OPTIONS = (
@@ -278,6 +335,11 @@ my %OPTIONS = (
                       CAN_ASSOC_PROJECTS => 0,
                       IS_TELESCOPE => 0,
                      },
+               'SAFETY' => {
+                              CAN_LOSE_TIME => 0,
+                              CAN_ASSOC_PROJECTS => 0,
+                              IS_TELESCOPE => 0,
+                            }
               );
 
 # Urgency
@@ -305,7 +367,20 @@ my %STATUS_CLOSED = (
                      Duplicate        => DUPLICATE,
                     );
 
-my %STATUS = (%STATUS_OPEN, %STATUS_CLOSED);
+my %SAFETY_STATUS_OPEN = (
+                            'Immediate action required' => IMMEDIATE_ACTION,
+                            'Follow up required' => FOLLOW_UP,
+                            'Refer to safety commitee' => REFER_TO_SAFETY_COMMITTEE,
+                          );
+
+my %SAFETY_STATUS_CLOSED = (
+                              'No futher action' => NO_ACTION,
+                              'Closed' => $STATUS_CLOSED{'Closed'}
+                            );
+
+my %STATUS = ( %STATUS_OPEN, %STATUS_CLOSED );
+
+my %SAFETY_STATUS = ( %SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED );
 
 # Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
@@ -322,6 +397,15 @@ my %INVERSE_STATUS;
 for (keys %STATUS) {
   $INVERSE_STATUS{ $STATUS{$_} } = $_;
 }
+
+for (keys %SAFETY_STATUS ) {
+  $INVERSE_STATUS{ $SAFETY_STATUS{$_} } = $_;
+}
+
+my %INVERSE_PLACE;
+$INVERSE_PLACE{ $LOCATION{ $_ } } = $_
+  for keys %LOCATION;
+
 
 # Loop over categories
 my %INVERSE;
@@ -385,7 +469,7 @@ sub faultSystems {
   my $category = uc(shift);
 
   if (exists $DATA{$category}) {
-    return $DATA{$category}{SYSTEM};
+    return $DATA{$category}{ $category ne 'SAFETY' ? 'SYSTEM' : 'SEVERITY' };
   } else {
     return ();
   }
@@ -469,6 +553,7 @@ sub faultStatusOpen {
   return %STATUS_OPEN;
 }
 
+
 =item B<faultStatusClosed>
 
 Return a hash containing the statuses that can represent a closed fault.
@@ -480,6 +565,29 @@ Return a hash containing the statuses that can represent a closed fault.
 sub faultStatusClosed {
   my $class = shift;
   return %STATUS_CLOSED;
+}
+
+sub faultStatus_Safety {
+  my $class = shift;
+  return %SAFETY_STATUS;
+}
+
+sub faultStatusOpen_Safety {
+
+  my $class = shift;
+  return %SAFETY_STATUS_OPEN;
+}
+
+sub faultStatusClosed_Safety {
+
+  my $class = shift;
+  return %SAFETY_STATUS_CLOSED;
+}
+
+sub faultLocation_Safety {
+
+  my $class = shift;
+  return %LOCATION;
 }
 
 =item B<faultCanAssocProjects>
@@ -604,6 +712,8 @@ sub new {
                      Type => TYPEOTHER,
                      System => SYSTEMOTHER,
                      TimeLost => 0,
+                     Severity => undef,
+                     Location => undef,
                      FaultDate => undef,
                      Urgency => $URGENCY{Normal},
                      Condition => $CONDITION{Normal},
@@ -615,9 +725,11 @@ sub new {
                      Subject => undef,
                     }, $class;
 
+
   # Go through the input args invoking relevant methods
-  for my $key (keys %args) {
-    my $method = lc($key);
+  for my $key (sort map { lc } keys %args) {
+    my $method = $key;
+
     if ($fault->can($method)) {
       $fault->$method( $args{$key});
     }
@@ -704,10 +816,15 @@ Fault system (supplied as an integer - see C<faultSystems>).
 
 =cut
 
-sub system {
-  my $self = shift;
-  if (@_) { $self->{System} = shift; }
-  return $self->{System};
+BEGIN {
+
+  sub system {
+    my $self = shift;
+    $self->{Severity} = $self->{System} = shift if @_;
+    return $self->{System};
+  }
+
+  *severity = \&system;
 }
 
 =item B<typeText>
@@ -735,8 +852,33 @@ A fault can not be modified using this method.
 
 sub systemText {
   my $self = shift;
-  return $INVERSE{$self->category}{SYSTEM}{$self->system};
+
+  return $INVERSE{$self->category}{SYSTEM}{$self->system}
+    if $self->isNotSafety;
+
+  return $self->severityText;
 }
+
+sub severityText {
+
+  my $self = shift;
+  return $INVERSE{$self->category}{'SEVERITY'}{$self->severity};
+}
+
+sub location {
+
+  my $self = shift;
+
+  if (@_) { $self->{'Location'} = shift; }
+  return $self->{'Location'};
+}
+
+sub locationText {
+
+  my $self = shift;
+  return $INVERSE_PLACE{ $self->location };
+}
+
 
 =item B<statusText>
 
@@ -808,7 +950,13 @@ Is the fault open or closed?
 sub isOpen {
   my $self = shift;
   my $status = $self->status;
-  return ( $status == OPEN or $status == WILL_BE_FIXED ? 1 : 0 );
+  return ( $status == OPEN or $status == WILL_BE_FIXED
+           or $status == FOLLOW_UP
+           or $status == IMMEDIATE_ACTION
+           or $status == REFER_TO_SAFETY_COMMITTEE
+            ? 1
+            : 0
+          );
 }
 
 =item B<isNew>
@@ -825,6 +973,13 @@ sub isNew {
 
   $t -= 129600; # 36 hours ago
   return ( $date >= $t ? 1 : 0 );
+}
+
+sub isNotSafety {
+
+  my ( $self ) = @_;
+
+  return 'safety' ne lc $self->category;
 }
 
 =item B<subject>
@@ -1277,9 +1432,20 @@ sub stringify {
 "--------------------------------------------------------------------------------\n".
 "    Report by     :  $author\n".
 "                                         date: $day\n".
-"    System is     :  $system\n".
+
+( $self->isNotSafety
+  ? '    System'
+  : '    Severity'
+) .  " is     :  $system\n" .
+
 "                                         time: $time\n".
 "    Fault type is :  $type\n".
+
+( $self->isNotSafety
+  ? ''
+  : sprintf "    Location is   :  %s\n" , $self->location
+) .
+
 "                                         loss: $tlost hrs\n".
 "    Status        :  $status\n".
 "\n".

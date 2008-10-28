@@ -188,7 +188,10 @@ sub fault_table {
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
   # Get available statuses
-  my %status = $fault->faultStatus();
+  my %status = $fault->isNotSafety
+                ? $fault->faultStatus()
+                : $fault->faultStatus_Safety
+                ;
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   my $width = $self->_get_table_width;
@@ -198,7 +201,11 @@ sub fault_table {
   print "<table width=$width bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
-  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate"  . "</td><td><b>System: </b>" . $fault->systemText . "</td>";
+  print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate</td><td><b>"
+    . ( 'safety' ne lc $fault->category ? 'System:' : 'Severity:' )
+    . '</b> ' . $fault->systemText . '</td>'
+    ;
+
   print "<tr bgcolor=#ffffff><td><b>Loss: </b>" . $fault->timelost . " hours</td><td><b>Fault type: </b>" . $fault->typeText . "</td>";
   print "<tr bgcolor=#ffffff><td><b>Actual time of failure: </b>$faultdate</td><td><b>Status: </b>";
 
@@ -298,6 +305,7 @@ sub query_fault_form {
 
   # Get category
   my $category = $self->category;
+  my $not_safety = 'safety' ne lc $category;
 
   my $systems;
   my $types;
@@ -321,6 +329,16 @@ sub query_fault_form {
   }
 
   my %status = OMP::Fault->faultStatus;
+
+  if ( 'anycat' eq lc $category ) {
+
+    %status = ( %status, OMP::Fault->faultStatus_Safety );
+  }
+  elsif ( ! $not_safety ) {
+
+    %status = OMP::Fault->faultStatus_Safety;
+  }
+
   my @status = map {$status{$_}} sort keys %status;
   unshift( @status, "any", "all_open", "all_closed");
   my %statuslabels = map {$status{$_}, $_} %status;
@@ -372,19 +390,19 @@ sub query_fault_form {
   print "</b></td><tr><td colspan=2>";
 
   if (! $hidefields) {
-    print "<b>System </b>";
+    print '<b>' . ( $not_safety ? 'System' : 'Severity' ) . '</b> ';
     print $q->popup_menu(-name=>'system',
                          -values=>\@systems,
                          -labels=>\%syslabels,
                          -default=>'any',);
-    print "<b>Type </b>";
+    print " <b>Type</b> ";
     print $q->popup_menu(-name=>'type',
                          -values=>\@types,
                          -labels=>\%typelabels,
                          -default=>'any',);
   }
 
-  print "<b>Status </b>";
+  print " <b>Status</b> ";
   print $q->popup_menu(-name=>'status',
                        -values=>\@status,
                        -labels=>\%statuslabels,
@@ -542,7 +560,10 @@ sub change_status_form {
 
   my $faultid = $fault->id;
   # Get available statuses
-  my %status = OMP::Fault->faultStatus();
+  my %status = $fault->isNotSafety
+                ? OMP::Fault->faultStatus
+                : OMP::Fault->faultStatus_Safety
+                ;
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   print $q->startform;
@@ -583,19 +604,36 @@ sub file_fault_form {
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
 
+  my $category = $self->category;
+  my $not_safety = lc $category ne 'safety';
+
   # Create values and labels for the popup_menus
-  my $systems = OMP::Fault->faultSystems($self->category);
+  my $systems = OMP::Fault->faultSystems( $category );
   my @system_values = map {$systems->{$_}} sort keys %$systems;
   my %system_labels = map {$systems->{$_}, $_} keys %$systems;
 
-  my $types = OMP::Fault->faultTypes($self->category);
+  my $types = OMP::Fault->faultTypes($category);
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
   # Get available statuses
-  my %status = OMP::Fault->faultStatus();
+  my $staus_meth = $not_safety ? 'faultStatus' : 'faultStatus_Safety';
+  my %status = OMP::Fault->$staus_meth;
   my @status_values = map {$status{$_}} sort keys %status;
   my %status_labels = map {$status{$_}, $_} %status;
+
+  # Location (for "Safety" category).
+  my ( @place_values, %place_labels );
+  unless ( $not_safety ) {
+
+    my %places = OMP::Fault->faultLocation_Safety;
+
+    for ( sort keys %places ) {
+
+      push @place_values, $places{ $_ };
+      $place_labels{ $places{ $_ } } = $_ ;
+    }
+  }
 
   # Add some empty values to our menus (this is part of making sure that a
   # meaningful value is selected by the user) if a new fault is being filed
@@ -603,7 +641,13 @@ sub file_fault_form {
     push @system_values, undef;
     push @type_values, undef;
     $type_labels{''} = "Select a type";
-    $system_labels{''} = "Select a system";
+    $system_labels{''} = 'Select a ' . ( $not_safety ? 'system' : 'severity level' );
+
+    unless ( $not_safety ) {
+
+      push @place_values, undef;
+      $place_labels{''} = 'Select a location';
+    }
   }
 
   # Set defaults.  There's probably a better way of doing what I'm about
@@ -615,7 +659,8 @@ sub file_fault_form {
     %defaults = (user => $self->user,
                  system => '',
                  type => '',
-                 status => $status{Open},
+                 location => '',
+                 status => $not_safety ? $status{Open} : $status{'Follow up required'},
                  loss => undef,
                  time => undef,
                  tz => 'HST',
@@ -663,6 +708,7 @@ sub file_fault_form {
     %defaults = (user=> $fault->responses->[0]->author->userid,
                  system => $fault->system,
                  status => $fault->status,
+                 location => $fault->location,
                  type => $fault->type,
                  loss => $fault->timelost,
                  time => $faultdate,
@@ -671,7 +717,8 @@ sub file_fault_form {
                  message => $message,
                  assoc2 => join(',',@assoc),
                  urgency => $urgent,
-                 condition => $chronic,);
+                 condition => $chronic,
+                );
 
     # Set the text for our submit button
     $submittext = "Submit changes";
@@ -694,7 +741,7 @@ sub file_fault_form {
   # Embed fault category in case the user's cookie changes to
   # another category while fault is being filed
   print $q->hidden(-name=>'category',
-                   -default=>$self->category,);
+                   -default=>$category,);
 
   # Need the show_output param in order for the output code ref to be called next
   print $q->hidden(-name=>'show_output',
@@ -719,8 +766,11 @@ sub file_fault_form {
     print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
   }
 
-  print "</td><tr><td align=right><b>System:</b></td><td>";
-  print $q->popup_menu(-name=>'system',
+  print '</td><tr><td align=right><b>',
+    ( $not_safety ? 'System:' : 'Severity:' ),
+    '</b></td><td>';
+
+  print $q->popup_menu(-name=> ( $not_safety ? 'system' : 'severity' ),
                        -values=>\@system_values,
                        -default=>$defaults{system},
                        -labels=>\%system_labels,);
@@ -731,6 +781,17 @@ sub file_fault_form {
                        -labels=>\%type_labels,);
 
   unless ($fault) {
+
+   unless ( $not_safety ) {
+
+    print '</td><tr><td align="right"><b>Location:</b></td><td>',
+          $q->popup_menu( '-name'    => 'location',
+                          '-values'  => \@place_values,
+                          '-default' => $defaults{'location'},
+                          '-labels'  => \%place_labels,
+                        );
+   }
+
     print "</td><tr><td align=right><b>Status:</b></td><td>";
     print $q->popup_menu(-name=>'status',
                          -values=>\@status_values,
@@ -740,7 +801,7 @@ sub file_fault_form {
 
   # Only provide fields for taking "time lost" and "time of fault"
   # if the category allows it
-  if (OMP::Fault->faultCanLoseTime($self->category)) {
+  if (OMP::Fault->faultCanLoseTime($category)) {
     print "</td><tr><td align=right><b>Time lost <small>(hours)</small>:</b></td><td>";
     print $q->textfield(-name=>'loss',
                         -default=>$defaults{loss},
@@ -764,7 +825,7 @@ sub file_fault_form {
                       -default=>$defaults{subject},);
 
   # Put up this reminder for telescope related filings
-  if (OMP::Fault->faultIsTelescope($self->category)) {
+  if (OMP::Fault->faultIsTelescope($category)) {
     print "</td><tr><td colspan=2>";
     print "<small>Please remember to identify the instrument being used and "
       ."the data frame number if either are relevant</small>";
@@ -780,7 +841,7 @@ sub file_fault_form {
   # If were in a category that allows project association create a
   # checkbox group for specifying an association with projects.
 
-  if (OMP::Fault->faultCanAssocProjects($self->category)) {
+  if (OMP::Fault->faultCanAssocProjects($category)) {
     # Values for checkbox group will be tonights projects
     my $aref = OMP::MSBServer->observedMSBs({usenow => 1,
                                              format => 'data',
@@ -793,7 +854,6 @@ sub file_fault_form {
       for (@$aref) {
         # Make sure to only include projects associated with the current
         # telescope category
-        my $category = $self->category;
         my @instruments = split(/\W/, $_->instrument);
         # this may fail if an unexpected instrument turns up
         my $tel;
@@ -899,7 +959,10 @@ sub response_form {
   my $formkey = OMP::KeyServer->genKey;
 
   # Get available statuses
-  my %status = $fault->faultStatus();
+  my %status = $fault->isNotSafety
+                ? $fault->faultStatus
+                : $fault->faultStatus_Safety
+                ;
   my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   # Set defaults.  Use cookie values if param values aren't available.
@@ -1181,8 +1244,14 @@ element will appear in a smaller font below the top-bar.
     # fault system and set the titlebar accordingly
     my $script = $q->url(-relative=>1);
 
-
-    my $toptitle = ($self->category ne "ANYCAT" ? $self->category : "All") . " Faults";
+    my $cat = $self->category;
+    my $toptitle =
+        lc $cat eq 'safety'
+        ? "$cat Reporting"
+        : lc $cat ne 'anycat'
+          ? "$cat Faults"
+          : 'All Faults'
+          ;
 
     my $width = $self->_get_table_width;
     print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
@@ -1210,9 +1279,18 @@ sub parse_file_fault_form {
   my $q = $self->cgi;
 
   my %parsed = (subject => $q->param('subject'),
-                system => $q->param('system'),
                 type => $q->param('type'),
                 status => $q->param('status'));
+
+  if ( 'safety' ne lc $q->param( 'category' ) ) {
+
+    $parsed{'system'} =  $q->param('system');
+  }
+  else {
+
+    $parsed{'system'} = $parsed{'severity'} =  $q->param('severity');
+    $parsed{'location'} =  $q->param('location');
+  }
 
   # Determine urgency and condition
   my @checked = $q->param('condition');

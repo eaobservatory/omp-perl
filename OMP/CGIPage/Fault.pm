@@ -169,6 +169,15 @@ sub file_fault_output {
                 "Fault report" => "message",
                 Type => "type",
                 System => "system",);
+
+  # Adjust for "Safety" category.
+  if ( 'safety' eq lc $self->_get_param( 'cat' ) ) {
+
+    delete $params{'System'};
+    $params{'Location'} = 'location';
+    $params{'Severity'} = 'severity';
+  }
+
   my @error;
   for (keys %params) {
     if (length($q->param($params{$_})) < 1) {
@@ -201,18 +210,21 @@ sub file_fault_output {
   # Get the fault details
   my %faultdetails = $comp->parse_file_fault_form();
 
-  my $resp = new OMP::Fault::Response(author=>$faultdetails{author},
-                                      text=>$faultdetails{text},);
+  my $resp = OMP::Fault::Response->new( author=>$faultdetails{author},
+                                        text=>$faultdetails{text},);
 
   # Create the fault object
   my $category = $q->param('category');
-  my $fault = new OMP::Fault(category=>$category,
-                             subject=>$faultdetails{subject},
-                             system=>$faultdetails{system},
-                             type=>$faultdetails{type},
-                             status=>$faultdetails{status},
-                             urgency=>$faultdetails{urgency},
-                             fault=>$resp);
+  my $fault = OMP::Fault->new( category => $category,
+                                subject  => $faultdetails{subject},
+                                system   => $faultdetails{system},
+                                severity => $faultdetails{severity},
+                                type     => $faultdetails{type},
+                                status   => $faultdetails{status},
+                                location => $faultdetails{location},
+                                urgency  => $faultdetails{urgency},
+                                fault    => $resp
+                              );
 
   # The following are not always present
   ($faultdetails{projects}) and $fault->projects($faultdetails{projects});
@@ -275,7 +287,10 @@ sub query_fault_output {
   my $category = $self->_get_param('cat');
 
   # XML query to return faults from the last 14 days
-  my %faultstatus = OMP::Fault->faultStatus;
+  my %faultstatus = 'safety' ne lc $category
+                      ? OMP::Fault->faultStatus
+                      : OMP::Fault->faultStatus_Safety
+                      ;
   my $currentxml = "<FaultQuery>".
     $comp->category_xml().
       "<date delta='-14'>" . $t->datetime . "</date>".
@@ -328,17 +343,26 @@ sub query_fault_output {
       if ($status eq "all_closed") {
 
         # Do query on all closed statuses
-        my %status = OMP::Fault->faultStatusClosed;
+        my %status = ( OMP::Fault->faultStatusClosed,
+                        OMP::Fault->faultStatusClosed_Safety
+                      );
+
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
       } elsif ($status eq "all_open") {
 
         # Do a query on all open statuses
-        my %status = OMP::Fault->faultStatusOpen;
+        my %status = ( OMP::Fault->faultStatusOpen,
+                        OMP::Fault->faultStatusOpen_Safety
+                      );
+
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
       } else {
 
         # Do a query on just a single status
-        my %status = OMP::Fault->faultStatus;
+        my %status = ( OMP::Fault->faultStatus,
+                        OMP::Fault->faultStatus_Safety
+                      );
+
         push (@xml, "<status>$status</status>");
       }
     }
@@ -716,7 +740,7 @@ sub view_fault_output {
     # Now update the status if necessary
     if ($status != $fault->status) {
       # Lookup table for status
-      my %status = OMP::Fault->faultStatus();
+      my %status = ( OMP::Fault->faultStatus(), OMP::Fault->faultStatus_Safety );
 
       # Change status in fault object
       $fault->status($status);
@@ -1435,7 +1459,14 @@ sub _sidebar {
   my $q = $self->cgi;
   my $cat = $self->_get_param('cat');
 
-  my $title = (defined $cat and $cat ne "ANYCAT" ? "<font color=#ffffff>${cat} Faults</font>" : "<font color=#ffffff>Select a fault system</font>");
+  my $suffix = 'safety' ne lc $cat ? 'Faults' : 'Reporting';
+  my $title =
+    defined $cat && uc $cat ne 'ANYCAT'
+    ? "$cat $suffix"
+    : 'Select a fault system';
+
+   $title = qq[<font color="#ffffff">$title</font>];
+
   $theme->SetMoreLinksTitle($title);
 
   # Construct our HTML for the sidebar fault form
@@ -1449,25 +1480,51 @@ sub _sidebar {
                         $q->submit("View Fault") .
                           $q->end_form ;
 
-  my @sidebarlinks = ("<a class='sidemain' href='queryfault.pl?cat=csg'>CSG Faults</a>",
-                      "<a class='sidemain' href='queryfault.pl?cat=omp'>OMP Faults</a>",
-                      "<a class='sidemain' href='queryfault.pl?cat=jcmt'>JCMT Faults</a>",
-                      "<a class='sidemain' href='queryfault.pl?cat=ukirt'>UKIRT Faults</a>",
-                      "<a class='sidemain' href='queryfault.pl?cat=dr'>DR Faults</a>",
-                      '<a class="sidemain" href="queryfault.pl?cat=safety">Safety Faults</a>',
-                      "<a class='sidemain' href='queryfault.pl?cat=anycat'>All Faults</a>",
-                      "<br><a class='sidemain' href='".
-                      OMP::Config->getData('omp-url')
-                      ."'>OMP home</a>",
-                      "$sidebarform</font>",);
+  my @sidebarlinks;
+  my %query_link = $self->_fault_sys_links;
+  for my $c ( $self->_fault_sys_links_order ) {
 
-  if (defined $cat and $cat ne "ANYCAT") {
-    unshift (@sidebarlinks, "<a class='sidemain' href='filefault.pl?cat=$cat'>File a fault</a>",
-                            "<a class='sidemain' href='queryfault.pl?cat=$cat'>View faults</a><br><br>",);
+    next if 'anycat' eq lc $c;
+
+    push @sidebarlinks,
+      $self->_make_side_link( map { $query_link{ $c }->{ $_ } } qw[ url text ] );
+  }
+
+  push @sidebarlinks,
+    $self->_make_side_link( $query_link{'ANYCAT'}->{'url'}, 'All Faults', '<br><br>' ),
+    $self->_make_side_link( OMP::Config->getData('omp-url'), 'OMP home' ),
+    $sidebarform . '</font>'
+    ;
+
+  if (defined $cat and uc $cat ne "ANYCAT") {
+
+    unshift @sidebarlinks,
+      $self->_make_side_link( qq[filefault.pl?cat=$cat], 'File a fault' ),
+      $self->_make_side_link( $query_link{ uc $cat }->{'url'}, 'View faults', '<br><br>' )
+      ;
   }
 
   $theme->SetInfoLinks(\@sidebarlinks);
 }
+
+sub _make_side_link {
+
+  my ( $self, $url, $text, $suffix, $prefix ) = @_;
+
+  for ( $prefix, $suffix ) {
+
+    $_ or $_ = '';
+  }
+
+  return
+    sprintf q[%s<a class="sidemain" href="%s">%s</a>%s],
+      $prefix,
+      $url,
+      $text,
+      $suffix
+      ;
+}
+
 
 =item B<_verify_login>
 
@@ -1515,19 +1572,78 @@ sub _write_login {
   # Create a page body with some links to fault categories
   print $q->h2("You may search for and file faults in the following categories:");
   print "<ul>";
-  print "<h3><li><a href='queryfault.pl?cat=CSG'>CSG Faults</a> for faults relating to JAC computer services</h3>";
-  print "<h3><li><a href='queryfault.pl?cat=OMP'>OMP Faults</a> for faults relating to the Observation Management Project</h3>";
-  print "<h3><li><a href='queryfault.pl?cat=UKIRT'>UKIRT Faults</a> for faults relating to UKIRT</h3>";
-  print "<h3><li><a href='queryfault.pl?cat=JCMT'>JCMT Faults</a> for faults relating to JCMT</h3>";
-  print "<h3><li><a href='queryfault.pl?cat=DR'>DR Faults</a> for faults relating to data reduction systems.</h3>";
+
+  my %query = $self->_fault_sys_links;
+  my $format = qq[<li><h3><a href="%s">%s<a/> for %s</h3>\n];
+
+  for my $cat ( $self->_fault_sys_links_order ) {
+
+    next if 'anycat' eq lc $cat;
+
+    printf $format, map { $query{ $cat }->{ $_ } } qw[ url text extra ];
+  }
+
   print "</ul>";
   print $q->h2("Or");
   print "<ul>";
-  print "<h3><li><a href='queryfault.pl?cat=ANYCAT'>Search for faults in all categories</a></h3>";
+
+  printf $format,
+    $query{'ANYCAT'}->{'url'},
+    'Search',
+    $query{'ANYCAT'}->{'extra'}
+    ;
+
   print "</ul>";
 
   $self->_write_footer();
   return;
+}
+
+BEGIN {
+
+  my @order = qw[ CSG OMP UKIRT JCMT DR SAFETY ANYCAT ];
+
+  my %long_text =
+    ( 'CSG'    => 'JAC computer services',
+      'OMP'    => 'Observation Management Project',
+      'UKIRT'  => 'UKIRT',
+      'JCMT'   => 'JCMT',
+      'DR'     => 'data reduction systems',
+      'SAFETY' => 'safety',
+      'ANYCAT' => 'all categories',
+    );
+
+  sub _fault_sys_links {
+
+    my %links;
+    for ( @order ) {
+
+      next if $_ eq 'SAFETY';
+
+      $links{ $_ } =
+        { 'url'   => "queryfault.pl?cat=$_",
+          'text'  => "$_ Faults",
+          'extra' => 'faults relating to ' . $long_text{ $_ }
+        };
+    }
+
+    $links{'SAFETY'} =
+      { 'url'   => 'queryfault.pl?cat=SAFETY',
+        'text'  => 'Safety Reporting',
+        'extra' => 'issues relating to safety'
+      };
+
+    #  Fine tune 'ANYCAT' description.
+    $links{'ANYCAT'}->{'extra'} = 'faults in all categories';
+
+    return %links;
+  }
+
+  sub _fault_sys_links_order {
+
+    my ( $self ) = @_;
+    return @order;
+  }
 }
 
 =back
