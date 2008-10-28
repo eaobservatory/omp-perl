@@ -120,7 +120,7 @@ my %tables = (
                                      title semester encrypted allocated
                                      remaining pending telescope taumin
                                      taumax seeingmin seeingmax cloudmax state
-				     cloudmin skymin skymax
+                                     cloudmin skymin skymax
                                      /],
                          },
               # Queue details for each project
@@ -225,11 +225,11 @@ my %tables = (
                               sourceinfo => "varchar(60) not null",
                               status => "integer null",
                               text => "text not null",
-			      msgtype => "integer null",
+                              msgtype => "integer null",
                               _ORDER => [qw/
                                          commid entrynum projectid author date
-					 subject program sourceinfo status text
-					 msgtype
+                                         subject program sourceinfo status text
+                                         msgtype
                                         /],
                              },
               # Bug/Fault meta-data
@@ -245,11 +245,11 @@ my %tables = (
                            status => "INTEGER",
                            subject => "VARCHAR(128) null",
                            urgency => "INTEGER",
-			   condition => "INTEGER null",
+                           condition => "INTEGER null",
                            _ORDER => [qw/
                                       faultid category subject faultdate type
                                       fsystem status urgency timelost entity
-				      condition
+                                      condition
                                       /],
                           },
               # Textual information associated with each fault. Can be
@@ -295,36 +295,36 @@ my %tables = (
                               author => USERID,
                               telescope => "VARCHAR(32)",
                               text => "TEXT",
-                              _ORDER => [qw/ shiftid date author 
+                              _ORDER => [qw/ shiftid date author
                                              telescope text /],
                              },
-	      # Observation log table, used to store basic
-	      # information about observations, along with
-	      # comments associated with those observations.
-	      # See OMP::ArchiveDB
-	      ompobslog => {
-			    obslogid => $NUMID,
-			    runnr => "INT",
-			    instrument => "VARCHAR(32)",
-			    telescope => "VARCHAR(32) NULL",
-			    date => $DATE,
-			    obsactive => "INTEGER",
-			    commentdate => $DATE,
-			    commentauthor => USERID,
-			    commenttext => "TEXT NULL",
-			    commentstatus => "INTEGER",
-			    _ORDER => [qw/ obslogid runnr instrument telescope
-					   date obsactive commentdate commentauthor
-					   commenttext commentstatus /],
-			   },
-	      # OMP key table, used to store authentication
-	      # keys which are generated to prevent duplicate form
-	      # submissions.
-	      ompkey => {
-			 keystring => "VARCHAR(64)",
-			 expiry => $DATE,
-			 _ORDER => [qw/ keystring expiry /],
-			},
+              # Observation log table, used to store basic
+              # information about observations, along with
+              # comments associated with those observations.
+              # See OMP::ArchiveDB
+              ompobslog => {
+                            obslogid => $NUMID,
+                            runnr => "INT",
+                            instrument => "VARCHAR(32)",
+                            telescope => "VARCHAR(32) NULL",
+                            date => $DATE,
+                            obsactive => "INTEGER",
+                            commentdate => $DATE,
+                            commentauthor => USERID,
+                            commenttext => "TEXT NULL",
+                            commentstatus => "INTEGER",
+                            _ORDER => [qw/ obslogid runnr instrument telescope
+                                           date obsactive commentdate commentauthor
+                                           commenttext commentstatus /],
+                           },
+              # OMP key table, used to store authentication
+              # keys which are generated to prevent duplicate form
+              # submissions.
+              ompkey => {
+                         keystring => "VARCHAR(64)",
+                         expiry => $DATE,
+                         _ORDER => [qw/ keystring expiry /],
+                        },
              );
 
 for my $table (sort keys %tables) {
@@ -352,7 +352,7 @@ for my $table (sort keys %tables) {
   # that need named inserts
   my $str = join(", ", map {
     "$_ " .$tables{$table}->{$_}
-  } grep { 
+  } grep {
     # Always return TRUE if we are not a NUMID column
     if ($tables{$table}->{$_} ne $NUMID ) {
       1;
