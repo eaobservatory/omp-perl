@@ -1601,16 +1601,17 @@ sub _write_login {
 
 BEGIN {
 
-  my @order = qw[ CSG OMP UKIRT JCMT DR SAFETY ANYCAT ];
+  my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ANYCAT ];
 
   my %long_text =
-    ( 'CSG'    => 'JAC computer services',
-      'OMP'    => 'Observation Management Project',
-      'UKIRT'  => 'UKIRT',
-      'JCMT'   => 'JCMT',
-      'DR'     => 'data reduction systems',
-      'SAFETY' => 'safety',
-      'ANYCAT' => 'all categories',
+    ( 'CSG'      => 'JAC computer services',
+      'OMP'      => 'Observation Management Project',
+      'UKIRT'    => 'UKIRT',
+      'JCMT'     => 'JCMT',
+      'DR'       => 'data reduction systems',
+      'FACILITY' => 'facilities',
+      'SAFETY'   => 'safety',
+      'ANYCAT'   => 'all categories',
     );
 
   sub _fault_sys_links {

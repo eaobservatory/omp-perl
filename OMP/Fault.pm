@@ -150,6 +150,30 @@ use constant {
   UKIRT  => IN_TRANSIT + 4,
 };
 
+# Facility - system.
+use constant TOILET => 5000;
+use constant {
+  OFFICE       => TOILET + 1,
+  LIBRARY      => TOILET + 2,
+  COMP_ROOM    => TOILET + 3,
+  MEETING_ROOM => TOILET + 4,
+  LAB          => TOILET + 5,
+  WORKSHOP     => TOILET + 6,
+  VEHICLE_BAY  => TOILET + 7,
+  CAR_PARK     => TOILET + 8,
+};
+
+# Facility - type.
+use constant INSECT => 5020;
+use constant {
+  LEAK            => INSECT + 1,
+  PLUMBING        => INSECT + 2,
+  AC_DEHUMIDIFIER => INSECT + 3,
+  ALARM_SYS       => INSECT + 4,
+  ELECTTICAL      => INSECT + 5,
+  NETWORK_COMP    => INSECT + 6,
+};
+
 # Mailing list
 my %MAILLIST = (
                   'CSG'   => 'csg_faults@jach.hawaii.edu'   ,
@@ -157,7 +181,8 @@ my %MAILLIST = (
                   'UKIRT' => 'ukirt_faults@jach.hawaii.edu' ,
                   'OMP'   => 'omp_faults@jach.hawaii.edu'   ,
                   'DR'    => 'dr_faults@jach.hawaii.edu'    ,
-                  'SAFETY' => 'safety_faults@jach.hawaii.edu' ,
+                  'SAFETY'   => 'safety_faults@jach.hawaii.edu'   ,
+                  'FACILITY' => 'facility_faults@jach.hawaii.edu' ,
                );
 
 my %DATA = (
@@ -297,8 +322,32 @@ my %DATA = (
                                         'Safety concern' => SAFETY_CONCERN,
                                         'Safety clarification' => SAFETY_CLARAFICATION_TYPE
                                       },
-                        }
-           );
+                        },
+            'FACILITY' => {
+                            'SYSTEM' => {
+                                          'Toilet'        => TOILET       ,
+                                          'Office'        => OFFICE       ,
+                                          'Library'       => LIBRARY      ,
+                                          'Computer Room' => COMP_ROOM    ,
+                                          'Meeting Room'  => MEETING_ROOM ,
+                                          'Laboratory'    => LAB          ,
+                                          'Workshop'      => WORKSHOP     ,
+                                          'Vehicle Bay'   => VEHICLE_BAY  ,
+                                          'Car Park'      => CAR_PARK     ,
+                                          'Other'         => SYSTEMOTHER  ,
+                                        },
+                            'TYPE' => {
+                                        'Insect'              => INSECT          ,
+                                        'Leak'                => LEAK            ,
+                                        'Plumbing'            => PLUMBING        ,
+                                        'A/C or dehumidifier' => AC_DEHUMIDIFIER ,
+                                        'Alarm system'        => ALARM_SYS       ,
+                                        'Electrical'          => ELECTTICAL      ,
+                                        'Network/Computing'   => NETWORK_COMP    ,
+                                        'Other'               => TYPEOTHER,
+                                      },
+                          },
+            );
 
 my %LOCATION = (
                   'UKIRT' => UKIRT,
