@@ -171,7 +171,6 @@ use constant {
   AC_DEHUMIDIFIER => INSECT + 3,
   ALARM_SYS       => INSECT + 4,
   ELECTTICAL      => INSECT + 5,
-  NETWORK_COMP    => INSECT + 6,
 };
 
 # Mailing list
@@ -343,8 +342,9 @@ my %DATA = (
                                         'A/C or dehumidifier' => AC_DEHUMIDIFIER ,
                                         'Alarm system'        => ALARM_SYS       ,
                                         'Electrical'          => ELECTTICAL      ,
-                                        'Network/Computing'   => NETWORK_COMP    ,
-                                        'Other'               => TYPEOTHER,
+                                        'Network'             => NETWORK         ,
+                                        'Computer'            => COMPUTER        ,
+                                        'Other'               => TYPEOTHER       ,
                                       },
                           },
             );
