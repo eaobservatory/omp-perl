@@ -1150,7 +1150,7 @@ sub show_faults {
     # Make the fault ID cell stand out if the fault is urgent
     print ($fault->isUrgent ? "<td class=\"cell_standout\">" : "<td>");
     print "$faultid</td>";
-    print "<td><b><a href='$url?id=$faultid'>$subject &nbsp;</a></b>";
+    print qq[<td><b><a href="$url?id=$faultid">$subject</a></b> &nbsp;];
 
     # Show affected projects?
     if ($q->param('show_affected') and $fault->projects) {
