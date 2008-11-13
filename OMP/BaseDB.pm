@@ -458,6 +458,8 @@ sub _db_insert_data {
   my $self = shift;
   my $table = shift;
 
+  $self->_set_log_level( $table );
+
   # look for hint
   my $hints;
   if (ref($_[0]) eq 'HASH' && exists $_[0]->{COLUMN} && exists $_[0]->{POSN}) {
@@ -629,6 +631,8 @@ select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
   }
 
   OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
+
+  $self->_reset_log_level;
 }
 
 # internal method to quote text ready for insert
@@ -709,6 +713,8 @@ sub _db_update_data {
   my $change = shift;
   my $clause = shift;
 
+  $self->_set_log_level( $table );
+
   # Add WHERE
   $clause = "WHERE ". $clause if $clause;
 
@@ -741,6 +747,7 @@ sub _db_update_data {
 
   }
 
+  $self->_reset_log_level;
 }
 
 =item B<_db_delete_data>
@@ -765,6 +772,8 @@ sub _db_delete_data {
   throw OMP::Error::BadArgs("db_delete_data: Must supply a WHERE clause")
     unless $clause;
 
+  $self->_set_log_level( $table );
+
   # Add WHERE
   $clause = "WHERE ". $clause;
 
@@ -783,6 +792,7 @@ sub _db_delete_data {
 
   OMP::General->log_message("Row deleted.", OMP__LOG_DEBUG );
 
+  $self->_reset_log_level;
 }
 
 =item B<_db_delete_project_data>
@@ -1064,6 +1074,54 @@ sub DESTROY {
 
   }
 
+}
+
+BEGIN
+{
+
+  my ( $level , $table );
+  my $debug =  qr[^omp(?:msbdone|proj)\b];
+
+=pod
+
+=item B<_set_log_level>
+
+Set log level depending on given table name to track SQL statemens to
+help cure broken table replication with CADC.
+
+A level of debug is set for ompproj or ompmsbdone tables.
+
+=cut
+
+  sub _set_log_level {
+
+    my $self = shift;
+    $table = shift;
+
+    $level = OMP::General->log_level;
+    OMP::General->log_level( $table =~ m/$debug/ ? OMP__LOG_DEBUG() : $level );
+    return;
+  }
+
+=pod
+
+=item B<_reset_log_level>
+
+Resets the log level (set to one level of less verbosity than debug if
+the table is one of ompmsbdone or ompproj). 
+
+It is expected to be called at the end of the sub in which
+_set_log_level() was called.
+
+=cut
+
+  sub _reset_log_level {
+
+    my ( $self ) = @_;
+  
+    OMP::General->log_level( $table =~ m/$debug/ ? OMP__LOG_INFO() : $level );
+    return;
+  }
 }
 
 =back
