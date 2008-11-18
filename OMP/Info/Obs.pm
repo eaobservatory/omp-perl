@@ -45,6 +45,7 @@ use Astro::FITS::HdrTrans;
 use Astro::WaveBand;
 use Astro::Telescope;
 use Astro::Coords;
+use Storable qw/ dclone /;
 use Time::Piece;
 use Text::Wrap qw/ $columns &wrap /;
 use File::Basename;
@@ -176,7 +177,7 @@ sub readfile {
 
 =item B<copy>
 
-Copy constructor. New object should be independent of the original.
+Copy constructor. New object will be independent of the original.
 
  $new = $old->copy();
 
@@ -184,20 +185,7 @@ Copy constructor. New object should be independent of the original.
 
 sub copy {
   my $self = shift;
-
-  # see if we have a fits header (we might not if retainhdr is false)
-  # else use hdrhash
-  my %args;
-  my $fits = $self->fits;
-  if (defined $fits) {
-    $args{fits} = $fits;
-  } else {
-    $args{hdrhash} = $self->hdrhash;
-  }
-
-  my $new =  $self->new( %args, retainhdr => $self->retainhdr );
-  $new->filename( [ $self->filename ] );
-  return $new;
+  return dclone( $self );
 }
 
 =item B<subsystems>
@@ -215,21 +203,25 @@ Subsytems are determined by looking at the C<subsystem_idkey> in the FITS header
 sub subsystems {
   my $self = shift;
 
+  my $copy = $self->copy();
+
   # get a hash representation of the FITS header
-  my $hdr = $self->hdrhash;
-  my $fits = $self->fits;
+  my $hdr = $copy->hdrhash;
+  my $fits = $copy->fits;
 
   # Get the grouping key
-  my $idkey = $self->subsystem_idkey;
+  my $idkey = $copy->subsystem_idkey;
 
-  # If we do not have a grouping key or there is no FITS header or there is only a single instance of the
-  # idkey we only have a single subsystem 
-  return $self->copy() if !defined $idkey;
-  return $self->copy() if !defined $hdr;
-  return $self->copy() if exists $hdr->{$idkey};
-  
-  # see if the primary key is in the subheader (and disable multi subsystem if it isn't)
-  return $self->copy() unless exists $hdr->{SUBHEADERS}->[0]->{$idkey};
+  # If we do not have a grouping key or there is no FITS header or
+  # there is only a single instance of the idkey we only have a single
+  # subsystem
+  return $copy if !defined $idkey;
+  return $copy if !defined $hdr;
+  return $copy if exists $hdr->{$idkey};
+
+  # see if the primary key is in the subheader (and disable multi
+  # subsystem if it isn't)
+  return $copy unless exists $hdr->{SUBHEADERS}->[0]->{$idkey};
 
   # Now need to group the fits headers
   # First take a copy of the common headers and delete subheaders
@@ -240,7 +232,7 @@ sub subsystems {
   my @subhdrs = $fits->subhdrs;
 
   # Get the filenames
-  my @filenames = $self->filename;
+  my @filenames = $copy->filename;
 
   # sanity check
   if (@filenames != @{$hdr->{SUBHEADERS}}) {
@@ -263,7 +255,6 @@ sub subsystems {
     }
     push(@{$subscans{$subid}}, $filenames[$i]);
     push(@{$subsys{$subid}}, $subhdr);
-    
   }
 
   # create a common header
@@ -276,7 +267,7 @@ sub subsystems {
     my $merged;
     if (@{$subsys{$subid}} > 1) {
       ($merged, my @different) = $primary->merge_primary( { merge_unique => 1 },
-							  @{ $subsys{$subid} }[1..$#{$subsys{$subid}}]);
+                                                          @{ $subsys{$subid} }[1..$#{$subsys{$subid}}]);
       $merged->subhdrs( @different );
     } else {
       $merged = $primary;
@@ -286,13 +277,12 @@ sub subsystems {
     $merged->splice( 0, 0, $comhdr->allitems );
 
     $headers{$subid} = $merged;
-
   }
 
   # Create new subsystem Obs objects
   my @obs;
   for my $subid (@suborder) {
-    my $obs = new OMP::Info::Obs( fits => $headers{$subid}, retainhdr => $self->retainhdr );
+    my $obs = new OMP::Info::Obs( fits => $headers{$subid}, retainhdr => $copy->retainhdr );
     $obs->filename( $subscans{$subid} );
     push(@obs, $obs);
   }
@@ -1367,7 +1357,6 @@ sub _populate {
   my $self = shift;
 
   my $header = $self->hdrhash;
-
   my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header, frameset => $self->wcs);
 
   $self->projectid( $generic_header{PROJECT} );
