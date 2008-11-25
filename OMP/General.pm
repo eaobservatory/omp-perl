@@ -1345,6 +1345,7 @@ sub extract_projectid {
       or $string =~ m{\b(u/ukidss/[a-z]{3}(\d+[a-z]?|_sv)?)\b}i # UKIRT UKIDSS program
       or $string =~ m{\b(u/ukidss/b\d+)\b}i         # UKIRT Backup UKIDSS programs
       or $string =~ m{\b(u/ukidss/0)\b}i            # UKIRT project for email use
+      or $string =~ m{\b(u/ukidss/uh)\b}i           # UKIRT project for email use w/ UH
       or $string =~ m{\b(u/cmp/\d+)\b}i             # UKIRT Campaigns
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
