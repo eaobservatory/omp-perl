@@ -163,6 +163,8 @@ sub header_exclusion_file {
     $root = $info{obs_type};
   } else {
     $root = $info{observing_mode};
+    # scan_pol and pol are the same thing
+    $root =~ s/spin_pol/pol/;
   }
 
   my $xfile = File::Spec->catfile( $self->wiredir,"header",$root . "_exclude");
