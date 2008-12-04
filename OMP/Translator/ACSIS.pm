@@ -2197,8 +2197,15 @@ sub cubes {
     # Max Number of channels allowed for the gridder
     my $max_nchan_per_gridder = $MAX_SLICE_NPIX / $npix_per_chan;
 
+    # We want to chop off the noisy ends of the spectrum. 
+    # Currently the best way to do this is to exclude 12.5% on each side
+    my $part_to_exclude = 0.125;
+
+    # Number of channels to be gridded (without the noisy ends of the spectrum)
+    my $channels_to_grid = $ss->{nchannels_full} * (1 - 2 * $part_to_exclude);
+
     # Number of channels requested per gridder
-    my $nchan_per_gridder = $ss->{nchannels_full} / $ngrid_per_spw;
+    my $nchan_per_gridder = $channels_to_grid / $ngrid_per_spw;
 
     # So the actual number for this gridder should be the minimum of these
     $nchan_per_gridder = min( $nchan_per_gridder, $max_nchan_per_gridder);
@@ -2207,9 +2214,9 @@ sub cubes {
     my $nchan_per_spw = int($nchan_per_gridder) * $ngrid_per_spw;
 
     my ($minchan, $maxchan);
-    if ($nchan_per_spw >= $ss->{nchannels_full}) {
-      $minchan = 0;
-      $maxchan = $ss->{nchannels_full} - 1;
+    if ($nchan_per_spw >= $channels_to_grid) {
+      $minchan = int(($ss->{nchannels_full} - 1) * $part_to_exclude);
+      $maxchan = int(($ss->{nchannels_full} - 1) * (1 - $part_to_exclude));
     } else {
       my $half = int($nchan_per_spw / 2);
       my $midchan = int($ss->{nchannels_full} / 2);
