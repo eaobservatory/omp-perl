@@ -424,7 +424,7 @@ sub jos_config {
     if ($info{flatSource} =~ /^blackbody$/i) {
       @keys = (qw/ bb_temp_start bb_temp_step bb_temp_wait shut_frac /);
     } elsif ($info{flatSource} =~ /^dark$/i) {
-      @keys = (qw/ heat_cur_start heat_cur_step heat_cur_ref /);
+      @keys = (qw/ heat_cur_step /);
     } else {
       throw OMP::Error::FatalError("Unrecognized flatfield source: $info{flatSource}");
     }
