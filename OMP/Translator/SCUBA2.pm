@@ -584,6 +584,10 @@ sub jos_config {
     $jos->focus_axis( $info{focusAxis} );
   }
 
+  # now that we have used to time between darksin calculations, lie to the JOS
+  # so that it does one after every sequence
+  $jos->steps_btwn_dark(1);
+
   # store it
   $cfg->jos( $jos );
 
