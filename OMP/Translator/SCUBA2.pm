@@ -454,8 +454,9 @@ sub jos_config {
     # convert total integration time to steps
     my $nsteps = $inttime / $jos->step_time;
 
-    # split into chunks
-    my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+    # The whole point of noise is to have a continuous time series
+    # so we never split it up
+    my $num_cycles = 1;
     my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
     $jos->num_cycles($num_cycles);
 
