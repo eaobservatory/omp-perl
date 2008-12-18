@@ -372,7 +372,7 @@ sub project_home {
 
   # We'll display a flag icon representing the country if we have
   # one for it
-  if ($country =~ /(UK|INT|CA|NL|UH|JAC|JP)/) {
+  if ($country =~ /\b(UK|INT|CA|NL|UH|JAC|JP|KR)\b/) {
     my $country = lc($country);
     print "<img src='/images/flag_$country.gif'>";
   }
