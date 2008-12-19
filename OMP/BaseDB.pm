@@ -164,7 +164,7 @@ instance. Must be zero or positive.
 
 sub _intrans {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $c = shift;
     $c = 0 if $c < 0;
     $self->{InTrans} = $c;
@@ -194,7 +194,7 @@ is thrown.
 
 sub _dbhandle {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $db = shift;
     if (UNIVERSAL::isa($db, "OMP::DBbackend")) {
       $self->{DB} = $db;
@@ -458,8 +458,6 @@ sub _db_insert_data {
   my $self = shift;
   my $table = shift;
 
-  $self->_set_log_level( $table );
-
   # look for hint
   my $hints;
   if (ref($_[0]) eq 'HASH' && exists $_[0]->{COLUMN} && exists $_[0]->{POSN}) {
@@ -474,7 +472,7 @@ sub _db_insert_data {
   my $UNIQVAL;
   if (defined $hints) {
     $UNIQCOL = $hints->{COLUMN};
-    if (defined $hints->{POSN} && 
+    if (defined $hints->{POSN} &&
 	($hints->{POSN} >= 0 || $hints->{POSN} <= $#data)) {
       $UNIQVAL = $data[$hints->{POSN}];
       $UNIQVAL = "'$UNIQVAL'" if $hints->{QUOTE};
@@ -527,7 +525,7 @@ sub _db_insert_data {
       # Add a placeholder (the comma should be in already)
       $placeholder .= "?";
 
-    } elsif (ref($column) eq "HASH" 
+    } elsif (ref($column) eq "HASH"
 	     && exists $column->{TEXT}
 	     && exists $column->{COLUMN}) {
 
@@ -617,7 +615,7 @@ select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
     if (defined $UNIQVAL && defined $UNIQCOL) {
       $sql .= " AND $UNIQCOL = $UNIQVAL";
 
-      OMP::General->log_message("Using writetext with a hint of $UNIQCOL = $UNIQVAL", OMP__LOG_DEBUG); 
+      OMP::General->log_message("Using writetext with a hint of $UNIQCOL = $UNIQVAL", OMP__LOG_DEBUG);
     }
     # final chunk
     $sql .= "\nwritetext $table.$col \@val '$text'";
@@ -631,8 +629,6 @@ select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
   }
 
   OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
-
-  $self->_reset_log_level;
 }
 
 # internal method to quote text ready for insert
@@ -713,8 +709,6 @@ sub _db_update_data {
   my $change = shift;
   my $clause = shift;
 
-  $self->_set_log_level( $table );
-
   # Add WHERE
   $clause = "WHERE ". $clause if $clause;
 
@@ -747,7 +741,6 @@ sub _db_update_data {
 
   }
 
-  $self->_reset_log_level;
 }
 
 =item B<_db_delete_data>
@@ -772,8 +765,6 @@ sub _db_delete_data {
   throw OMP::Error::BadArgs("db_delete_data: Must supply a WHERE clause")
     unless $clause;
 
-  $self->_set_log_level( $table );
-
   # Add WHERE
   $clause = "WHERE ". $clause;
 
@@ -792,7 +783,6 @@ sub _db_delete_data {
 
   OMP::General->log_message("Row deleted.", OMP__LOG_DEBUG );
 
-  $self->_reset_log_level;
 }
 
 =item B<_db_delete_project_data>
@@ -848,7 +838,7 @@ consist of:
   program     - the program implementing the change (defaults to
                 this program [C<$0>])
   sourceinfo  - IP address of computer submitting comment
-                Defaults to the current hostname or $REMOTE_ADDR 
+                Defaults to the current hostname or $REMOTE_ADDR
                 if set.
 
   subject     - subject of comment (Required)
@@ -918,7 +908,7 @@ environment. The argument hash should have the following keys:
 			  subject => "hello",
 			  message => "this is the content\n",
 			  headers => {
-				      Reply-To => "you\@yourself.com", 
+				      Reply-To => "you\@yourself.com",
 				     },
 			);
 
@@ -1076,54 +1066,6 @@ sub DESTROY {
 
 }
 
-BEGIN
-{
-
-  my ( $level , $table );
-  my $debug =  qr[^omp(?:msbdone|proj)\b];
-
-=pod
-
-=item B<_set_log_level>
-
-Set log level depending on given table name to track SQL statemens to
-help cure broken table replication with CADC.
-
-A level of debug is set for ompproj or ompmsbdone tables.
-
-=cut
-
-  sub _set_log_level {
-
-    my $self = shift;
-    $table = shift;
-
-    $level = OMP::General->log_level;
-    OMP::General->log_level( $table =~ m/$debug/ ? OMP__LOG_DEBUG() : $level );
-    return;
-  }
-
-=pod
-
-=item B<_reset_log_level>
-
-Resets the log level (set to one level of less verbosity than debug if
-the table is one of ompmsbdone or ompproj). 
-
-It is expected to be called at the end of the sub in which
-_set_log_level() was called.
-
-=cut
-
-  sub _reset_log_level {
-
-    my ( $self ) = @_;
-  
-    OMP::General->log_level( $table =~ m/$debug/ ? OMP__LOG_INFO() : $level );
-    return;
-  }
-}
-
 =back
 
 =head1 SEE ALSO
@@ -1151,8 +1093,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
