@@ -335,7 +335,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               instrument => '$',
                               inst_dhs => '$',
                               mode => '$',
-			      msbtid => '$',
+                              msbtid => '$',
                               nexp => '$',
                               number_of_coadds => '$',
                               number_of_cycles => '$',
@@ -679,7 +679,7 @@ sub summary {
     }
   } elsif ($format eq 'text') {
     # Simple  - needs more work
-    return join "\n", map { "$_: $summary{$_}" } 
+    return join "\n", map { "$_: $summary{$_}" }
       grep { defined $_ and defined $summary{$_} } keys %summary;
   } elsif ($format eq 'xml') {
 
@@ -705,12 +705,12 @@ sub summary {
 
     # Protect against undef [easy since the sprintf expects strings]
     # Silently fix things.
-    my @strings = map { defined $_ ? $_ : '' } $self->runnr, 
-      $start, $self->projectid, $self->instrument, 
-	$self->target, $self->mode;
+    my @strings = map { defined $_ ? $_ : '' } $self->runnr,
+      $start, $self->projectid, $self->instrument,
+        $self->target, $self->mode;
 
     my $obssum = sprintf("%4.4s %8.8s %15.15s %8.8s %-18.18s %-14.14s\n",
-			@strings);
+                        @strings);
     my $commentsum;
     foreach my $comment ( $self->comments ) {
       if(defined($comment)) {
@@ -953,7 +953,7 @@ sub nightlog {
       $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %6d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Coadds'});
 
     } elsif( $instrument =~ /ircam/i ) {
-      
+
     } elsif( $instrument =~ /ufti/i ) {
 
       $return{'Filter'} = $self->filter;
@@ -1068,7 +1068,7 @@ sub file_from_bits {
   throw OMP::Error("file_from_bits: Unable to determine instrument to create filename.")
     unless defined $instrument;
 
-  # first get the raw data directory 
+  # first get the raw data directory
   my $rawdir = $self->rawdatadir;
 
   # Now work out the full path
@@ -1278,7 +1278,7 @@ sub simple_filename {
     my $base = basename( $infile );
 
     if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA'
-	&& uc( $self->backend ) ne 'ACSIS') {
+        && uc( $self->backend ) ne 'ACSIS') {
 
       # Want YYYYMMDD_backend_nnnn.dat
       my $yyyy = $self->startobs->strftime('%Y%m%d');
@@ -1592,18 +1592,18 @@ sub _populate {
       # catalog name exactly) and also that it is a single SAMPLE. Should really
       # be cleverer than that...
       if (( defined( $self->projectid ) && ($self->projectid =~ /JCMT|DEFERRED/i || $self->projectid eq 'CAL') ) ||
-	  ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
-	 ) {
-	$self->isGenCal( 1 );
-	$self->isScience( 0 );
+          ( defined( $self->mode ) && $self->mode =~ /pointing|fivepoint|focus/i )
+         ) {
+        $self->isGenCal( 1 );
+        $self->isScience( 0 );
       } elsif ($self->mode =~ /sample/i && $self->target =~ /^(w3\(oh\)|l1551\-irs5|crl618|omc1|n2071ir|oh231\.8|irc\+10216|16293\-2422|ngc6334i|g34\.3|w75n|crl2688|n7027|n7538irs1)$/i) {
-	# this only occurs on DAS because ACSIS does not have SAMPLE mode
-	$self->isSciCal( 1 );
-	$self->isScience( 0 );
+        # this only occurs on DAS because ACSIS does not have SAMPLE mode
+        $self->isSciCal( 1 );
+        $self->isScience( 0 );
       } elsif( $self->standard ) {
-	# modern data
-	$self->isSciCal( 1 );
-	$self->isScience( 0 );
+        # modern data
+        $self->isSciCal( 1 );
+        $self->isScience( 0 );
       }
 
     }
