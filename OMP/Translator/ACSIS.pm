@@ -446,7 +446,9 @@ sub handle_special_modes {
         $plan_rad = $info->{coords}->diam->arcsec / 2;
       }
 
-      $info->{scaleFactor} = max( $half_beam, $plan_rad );
+      # Never go smaller than 3.75 arcsec
+      $info->{scaleFactor} = max( $half_beam, $plan_rad, 3.75 );
+
     } else {
       throw OMP::Error::FatalError( "Unable to understand scale factor request for pointing" );
     }
