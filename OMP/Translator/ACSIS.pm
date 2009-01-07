@@ -3640,7 +3640,7 @@ sub _calc_offset_stats {
 
       # Now in an ideal world we have an integer match. Found the
       # pixel error
-      my $pixerr = abs( $pixpos - int($pixpos) );
+      my $pixerr = abs( $pixpos - OMP::General::nint($pixpos) );
 
       # Now compare this with the tolerance in units of pixels
       if ($pixerr > $tol) {
