@@ -210,9 +210,11 @@ lack of it).
 
 The recognised modifiers are:
 
-   telescope  - the telescope name (JCMT, UKIRT etc)
-   utdate     - YYYY-MM-DD string or Time::Piece object
-   instrument - instrument name
+    instrument - instrument name
+    runnr      - observation run number
+    subarray   - SCUBA2 subarray (matching /^[48][a-d]$/)
+    telescope  - the telescope name (JCMT, UKIRT etc)
+    utdate     - YYYY-MM-DD string or Time::Piece object
 
 In scalar context, this method can return a single value
 or a reference to an array (depending on the entry), when
@@ -864,9 +866,11 @@ strings.
 The hash contains information used to replace placeholders.
 Recognized entries are:
 
-  instrument   - instrument name
-  utdate       - YYYY-MM-DD or Time::Piece object
-  telescope    - telescope name
+    instrument - instrument name
+    runnr      - observation run number
+    subarray   - SCUBA2 subarray (matching /^[48][a-d]$/)
+    telescope  - the telescope name (JCMT, UKIRT etc)
+    utdate     - YYYY-MM-DD string or Time::Piece object
 
 Additionally the utdate is used to generate a semester. An exception
 is raised if some of the placeholders can not be replaced.
@@ -887,6 +891,8 @@ sub _format_output {
   # semester   - semester name [lower case]
   # TELESCOPE  - telescope name [upper case]
   # telescope  - telescope name [lower case]
+  # runnr      - run number
+  # subarray   - SCUBA2 sub array
 
   # If formatting of UTDATE becomes an issue we will need to
   # provide a config entry suitable for strftime. That will
@@ -897,10 +903,16 @@ sub _format_output {
   # Get the replacement strings
   my %places;
 
-  for my $key (qw/ instrument telescope /) {
+  for my $key (qw/ instrument telescope runnr subarray /) {
     if (exists $args{$key}) {
       my $up = uc($key);
       my $down = lc($key);
+
+      if ( $key eq 'runnr' ) {
+
+        $_ = sprintf '%05d', $_ for $args{ $key };
+      }
+
       $places{$up} = uc($args{$key});
       $places{$down} = lc($args{$key});
     }
@@ -1147,14 +1159,5 @@ Place,Suite 330, Boston, MA  02111-1307, USA
 
 
 =cut
-
-# First determine the domainname and hostname
-#__PACKAGE__->_determine_constants;
-
-# secondly set the default config directory (forcing read of config files)
-#__PACKAGE__->cfgdir( File::Spec->catdir($FindBin::RealBin,
-#                                       File::Spec->updir,
-#                                       "cfg"));
-
 
 1;
