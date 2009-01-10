@@ -272,7 +272,7 @@ sub _query_arcdb {
   my @sql = $query->sql();
 
   foreach my $sql (@sql) {
-    
+
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash( $sql );
 
@@ -353,7 +353,7 @@ sub _query_files {
   my @instarray;
 
   if ( defined( $instrument ) && length($instrument . "") != 0) {
-    if ($instrument =~ /^rx/i) { 
+    if ($instrument =~ /^rx/i) {
       $filterinst = $instrument;
       $instrument = "heterodyne";
     }
@@ -770,7 +770,7 @@ sub _hdrs_to_obs {
     # Ask for the raw data directory
     my $rawdir = $obs->rawdatadir;
 
-    
+
 
 
     push(@observations, $obs);
@@ -809,8 +809,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
