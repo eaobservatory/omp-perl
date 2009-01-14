@@ -96,9 +96,9 @@ sub files_on_disk {
   # then as default value will be used instead from earlier extraction.
   try {
 
-    $directory = OMP::Config->getData( "${inst}.rawdatadir" , %config );
+    $directory = OMP::Config->getData( "${instrument}.rawdatadir" , %config );
 
-    $flagfileregexp = OMP::Config->getData( "${inst}.flagfileregexp", %config );
+    $flagfileregexp = OMP::Config->getData( "${instrument}.flagfileregexp", %config );
   }
   catch OMP::Error::BadCfgKey with {
 
