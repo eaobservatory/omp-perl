@@ -21,6 +21,8 @@ use 5.006;
 use strict;
 use warnings::register;
 
+use OMP::Error qw[ :try ];
+
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
 
@@ -38,11 +40,16 @@ observation files.
   my @files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
   my $files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
 
+  @files = OMP::General->files_on_disk( 'SCUBA2', $date, $runnr, $subarray );
+
 The   instrument must be  a string.   The date  must be  a Time::Piece
 object.  If the date  is  not passed as   a Time::Piece object then an
 OMP::Error::BadArgs error  will be thrown.  The run  number must be an
 integer. If the run number is not passed or is zero, then no filtering
 by run number will be done.
+
+For SCUBA2 files, a subarray must be specified (from '4a' to '4d', or
+'8a' to '8d').
 
 If called in list context, returns a list of array references. Each
 array reference points to a list of observation files for a single
@@ -52,16 +59,12 @@ array of array references.
 =cut
 
 sub files_on_disk {
-  my $class = shift;
-  my $instrument = shift;
-  my $utdate = shift;
-  my $runnr = shift;
+  my ( $class, $instrument, $utdate, $runnr, $subarray ) = @_;
 
   my @return;
 
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
-    throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::
-Piece object" );
+    throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::Piece object" );
   }
 
   if( ! defined( $runnr ) ||
@@ -74,28 +77,34 @@ Piece object" );
 
   # Retrieve information from the configuration system.
   my $tel = OMP::Config->inferTelescope( 'instruments', $instrument );
-  my $directory = OMP::Config->getData( 'rawdatadir',
-                                        telescope => $tel,
-                                        instrument => $instrument,
-                                        utdate => $utdate,
-                                      );
+
+  my %config =
+    (
+      telescope  => $tel,
+      instrument => $instrument,
+      utdate     => $utdate,
+      runnr      => $runnr,
+      subarray   => $subarray,
+    );
+
+  my $directory = OMP::Config->getData( 'rawdatadir', %config );
   my $flagfileregexp = OMP::Config->getData( 'flagfileregexp',
-                                             telescope => $tel,
-                                           );
+                                              telescope => $tel,
+                                            );
 
-  # Remove the /dem from non-SCUBA directories.
-  if( uc( $instrument ) ne 'SCUBA' ) {
-    $directory =~ s/\/dem$//;
-  }
+  # getData() throws an exception in the case of missing key.  No point in dying
+  # then as default value will be used instead from earlier extraction.
+  try {
 
-  # Change wfcam to wfcam1 if the instrument is WFCAM.
-  if( uc( $instrument ) eq 'WFCAM' ) {
-    $directory =~ s/wfcam/wfcam1/;
+    $directory = OMP::Config->getData( "${inst}.rawdatadir" , %config );
+
+    $flagfileregexp = OMP::Config->getData( "${inst}.flagfileregexp", %config );
   }
-  # ACSIS directory is actually acsis/acsis00/utdate.
-  if( uc( $instrument ) eq 'ACSIS' ) {
-    $directory =~ s[(acsis)/(\d{8})][$1/spectra/$2];
-  }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e  ) = @_;
+    throw $e unless $e =~ /^Key.+could not be found in OMP config system/i;
+  };
 
   # Open the directory.
   opendir( OMP_DIR, $directory );
