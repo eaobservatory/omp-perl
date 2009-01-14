@@ -45,6 +45,7 @@ observation files.
   @files =
     OMP::General->files_on_disk( 'SCUBA-2', $date, $runnr, $subarray );
 
+
 The   instrument must be  a string.   The date  must be  a Time::Piece
 object.  If the date  is  not passed as   a Time::Piece object then an
 OMP::Error::BadArgs error  will be thrown.  The run  number must be an
@@ -98,6 +99,8 @@ sub files_on_disk {
   my $flagfileregexp = $sys_config->getData( 'flagfileregexp',
                                               telescope => $tel,
                                             );
+
+warn join '  ', 'BEFORE', $instrument , 'dir' , $directory , 'flag' , $flagfileregexp ;
 
   # getData() throws an exception in the case of missing key.  No point in dying
   # then as default value will be used instead from earlier extraction.
