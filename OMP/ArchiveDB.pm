@@ -352,13 +352,13 @@ sub _query_files {
 
   my @instarray;
 
-  if ( defined( $instrument ) && length($instrument . "") != 0) {
+  if ( defined( $instrument ) && length($instrument ) != 0) {
     if ($instrument =~ /^rx/i) {
       $filterinst = $instrument;
       $instrument = "heterodyne";
     }
     push @instarray, $instrument;
-  } elsif ( defined( $telescope ) && length( $telescope . "" ) != 0 ) {
+  } elsif ( defined( $telescope ) && length( $telescope ) != 0 ) {
     # Need to make sure we kluge the rx -> heterodyne conversion
     my @initial = OMP::Config->getData('instruments',
                                        telescope => $telescope
