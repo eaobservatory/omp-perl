@@ -440,7 +440,9 @@ sub handle_special_modes {
       # The scale factor should be the larger of half beam or planet limb
       my $half_beam = $self->nyquist( %$info )->arcsec;
       my $plan_rad = 0;
-      if ($scaleMode eq 'planet' && $info->{coords}->type eq 'PLANET') {
+      if ($scaleMode eq 'planet' &&
+          !$info->{autoTarget} &&
+          $info->{coords}->type eq 'PLANET') {
         # Currently need to force an apparent ra/dec calculation to get the diameter
         my @discard = $info->{coords}->apparent();
         $plan_rad = $info->{coords}->diam->arcsec / 2;
