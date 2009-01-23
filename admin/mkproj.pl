@@ -141,7 +141,7 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Validate country (if we add a new country we should remove
   # this test for the first upload
-  my $projdb = new OMP::ProjDB( DB => OMP::DBServer->dbConnection );
+  my $projdb = OMP::ProjDB->new( DB => OMP::DBServer->dbConnection );
   my %allowed = map { $_ => undef } $projdb->listCountries;
   for my $c (@{$details{country}}) {
     if (!exists $allowed{$c}) {
