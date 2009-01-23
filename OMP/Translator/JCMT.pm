@@ -1570,6 +1570,7 @@ sub jig_info {
   # Look up table for patterns
   my %jigfiles = (
                   '1x1'  => 'smu_1x1.dat',
+                  '2x1'  => 'smu_2x1.dat',
                   '3x3'  => 'smu_3x3.dat',
                   '4x4'  => 'smu_4x4.dat',
                   'HARP4'=> 'smu_harp4.dat',
