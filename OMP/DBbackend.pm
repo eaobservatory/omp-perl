@@ -82,12 +82,12 @@ file rather than hard-wiring the values in the module.
 sub loginhash {
   my $class = shift;
   my %details = (
-		 driver   => OMP::Config->getData("database.driver"),
-		 server   => OMP::Config->getData("database.server"),
-		 database => OMP::Config->getData("database.database"),
-		 user     => OMP::Config->getData("database.user"),
-		 password => OMP::Config->getData("database.password"),
-		);
+                 driver   => OMP::Config->getData("database.driver"),
+                 server   => OMP::Config->getData("database.server"),
+                 database => OMP::Config->getData("database.database"),
+                 user     => OMP::Config->getData("database.user"),
+                 password => OMP::Config->getData("database.password"),
+                );
 
   # possible override for sybase users
   if ($details{driver} eq 'Sybase') {
@@ -444,10 +444,10 @@ sub new {
   }
 
   my $db = bless {
-		  TransCount => 0,
-		  Handle => undef,
+                  TransCount => 0,
+                  Handle => undef,
                   IsConnected => 0,
-		 }, $class;
+                 }, $class;
 
   # Store object in the cache
   $CACHE{$class} = $db;
@@ -531,7 +531,7 @@ The number can not be negative (forced to zero if it is).
 
 sub trans_count {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $c = shift;
     $c = 0 if $c < 0;
     $self->{TransCount} = $c;
@@ -624,7 +624,7 @@ sub disconnect {
 Begin a database transaction. This is defined as something that has
 to happen in one go or trigger a rollback to reverse it.
 
-If a transaction is already in progress this method increments the 
+If a transaction is already in progress this method increments the
 transaction counter and returns without attempting to start a new
 transaction.
 
@@ -661,7 +661,7 @@ sub begin_trans {
 Commit the transaction. This informs the database that everthing
 is okay and that the actions should be finalised.
 
-Note that if we have started multiple nested transactions we only 
+Note that if we have started multiple nested transactions we only
 commit when the last transaction is committed.
 
 =cut
@@ -816,8 +816,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
