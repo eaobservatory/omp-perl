@@ -74,39 +74,39 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
 
 # Lookup table
 my %lut = (
-	   # XML tag -> database table -> column name
-	   instrument => {
-			  $SCUTAB => undef, # implied
-			  $GSDTAB => 'G.frontend',
-			  $UKIRTTAB => 'U.INSTRUME',
+     # XML tag -> database table -> column name
+     instrument => {
+        $SCUTAB => undef, # implied
+        $GSDTAB => 'G.frontend',
+        $UKIRTTAB => 'U.INSTRUME',
         $JCMTTAB => 'J.instrument',
-			 },
-	   date => {
-		    $SCUTAB => 'S.ut',
-		    $GSDTAB => 'G.ut',
-		    $UKIRTTAB => 'U.UT_DATE',
+       },
+     date => {
+        $SCUTAB => 'S.ut',
+        $GSDTAB => 'G.ut',
+        $UKIRTTAB => 'U.UT_DATE',
         $JCMTTAB => 'J.date_obs',
-		   },
+       },
      dateend => {
         $SCUTAB => undef,
         $GSDTAB => undef,
         $UKIRTTAB => undef,
         $JCMTTAB => 'J.date_end',
        },
-	   runnr => {
-		    $SCUTAB => 'S.run',
-		    $GSDTAB => 'G.scan',
-		    $UKIRTTAB => 'U.OBSNUM',
+     runnr => {
+        $SCUTAB => 'S.run',
+        $GSDTAB => 'G.scan',
+        $UKIRTTAB => 'U.OBSNUM',
         $JCMTTAB => 'J.obsnum',
-		   },
-	   projectid => {
-		    $SCUTAB => 'S.proj_id',
-		    $GSDTAB => 'G.projid',
-		    $UKIRTTAB => 'U.PROJECT',
+       },
+     projectid => {
+        $SCUTAB => 'S.proj_id',
+        $GSDTAB => 'G.projid',
+        $UKIRTTAB => 'U.PROJECT',
         $JCMTTAB => 'J.project',
-		   },
+       },
 
-	  );
+    );
 
 # Inheritance
 use base qw/ OMP::DBQuery /;
@@ -449,7 +449,7 @@ be able to distinguish between a query of the heterodyne table
 (this includes UKT14) and a query on the SCUBA table.
 
 This means that each query must include either a C<telescope> tag
-or be able to determine the telescope from the C<instrument> 
+or be able to determine the telescope from the C<instrument>
 requirements. If no instrument is supplied there must be a telescope.
 If the telescope is supplied and no instrument is supplied then
 I<the GSD table is implied>.
@@ -746,8 +746,8 @@ Returns a chunk of SQL
 
   $sql = $self->_create_sql( $column, $entry );
 
-where C<$column> is the database column name and 
-C<$entry> can be 
+where C<$column> is the database column name and
+C<$entry> can be
 
   - An array of values that will be ORed
   - An OMP::Range object
@@ -787,9 +787,9 @@ sub _create_sql_recurse {
 
     # use an OR join [must surround it with parentheses]
     $sql = "(".join(" OR ",
-		    map { $self->_querify($colname, $_, $cmp); }
-		    @{ $entry }
-		   ) . ")";
+        map { $self->_querify($colname, $_, $cmp); }
+        @{ $entry }
+       ) . ")";
 
   } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
     # A Range object
@@ -807,14 +807,14 @@ sub _create_sql_recurse {
 
     # an AND clause
     $sql = join(" AND ",
-		map { $self->_querify($column, $range{$_}, $_);}
-		keys %range
-	       );
+    map { $self->_querify($column, $range{$_}, $_);}
+    keys %range
+         );
 
   } elsif (ref($entry) eq 'HASH') {
     # Call myself but join with an OR
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
-		      } keys %$entry;
+          } keys %$entry;
     # Need to bracket each of the sub entries
     $sql = "(". join(" OR ", map { "($_)" } @chunks ) . ")";
 
@@ -924,8 +924,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
