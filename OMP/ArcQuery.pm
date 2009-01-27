@@ -44,6 +44,7 @@ our $WFCAMTAB = 'ukirt..WFCAM W';
 our $JCMTTAB = 'jcmt..COMMON J';
 our $ACSISTAB = 'jcmt..ACSIS A';
 our $JFILESTAB = 'jcmt..FILES F';
+our $SCUBA2TAB = 'jcmt..SCUBA2 S2';
 
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
@@ -54,6 +55,7 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
                    ACSIS => [ $JCMTTAB, $ACSISTAB, $JFILESTAB ],
+                   SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $JFILESTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
@@ -66,6 +68,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                 },
                    $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid)',
                                  $JFILESTAB => '(J.obsid = F.obsid)',
+                                 $SCUBA2TAB => '(J.obsid = S2.obsid)',
                                },
                  );
 
