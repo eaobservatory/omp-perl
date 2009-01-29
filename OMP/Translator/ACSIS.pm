@@ -2481,12 +2481,14 @@ sub determine_map_and_switch_mode {
     $obs_type = 'focus';
   } elsif ($mode eq 'SpIterStareObs' ) {
     # check switch mode
+    $mapping_mode = 'grid';
     if ($swmode eq 'Position') {
-      $mapping_mode = 'grid';
       $switching_mode = 'pssw';
     } elsif ($swmode eq 'Chop' || $swmode eq 'Beam' ) {
-      $mapping_mode = 'grid';   # No jiggling
+      # no jiggling
       $switching_mode = 'chop';
+    } elsif ($swmode =~ /^Frequency-/) {
+      $switching_mode = "freqsw";
     } else {
       throw OMP::Error::TranslateFail("Sample with switch mode '$swmode' not supported\n");
     }
