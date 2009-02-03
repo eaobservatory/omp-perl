@@ -122,6 +122,7 @@ sub translate {
   $self->verbose(0);
 
   my $nsci = 0;
+  my $npt = 0;
   for my $obs (@unrolled) {
 
     # Translate observing mode information to internal form
@@ -130,7 +131,11 @@ sub translate {
     $self->observing_mode( $obs );
 
     # Count science
-    $nsci++ if $obs->{obs_type} eq 'science';
+    if ($obs->{obs_type} eq 'science') {
+      $nsci++; 
+    } elsif ($obs->{obs_type} eq 'pointing') {
+      $npt++;
+    }
   }
 
   # reset verbose mode
@@ -209,7 +214,7 @@ sub translate {
     # the duration of the configuration
     if (!$ispriv) {
       $self->slew_config( $cfg, %$obs );
-      $self->rotator_config( $cfg, $nsci, %$obs );
+      $self->rotator_config( $cfg, { science => $nsci, pointing => $npt }, %$obs );
     }
 
     # Simulator
