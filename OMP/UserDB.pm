@@ -66,9 +66,9 @@ sub addUser {
 
   # Make sure the user is not there already
   $self->verifyUser( $user->userid )
-    and throw OMP::Error::FatalError( "This user [". 
-				      $user->userid .
-				      "] already exists. Use updateUser to modify the information");
+    and throw OMP::Error::FatalError( "This user [".
+                                      $user->userid .
+                                      "] already exists. Use updateUser to modify the information");
 
   # Make sure user's alias is not already in use
   if ($user->alias) {
@@ -373,12 +373,12 @@ sub _add_user {
   my $email = $user->email;
 
   $self->_db_insert_data( $USERTABLE,
-			  $user->userid,
-			  $user->name,
-			  $email,
-			  $user->alias,
-			  $user->cadcuser,
-			);
+                          $user->userid,
+                          $user->name,
+                          $email,
+                          $user->alias,
+                          $user->cadcuser,
+                        );
 
 }
 
@@ -399,13 +399,13 @@ sub _update_user {
 
   # Update the fields
   $self->_db_update_data( $USERTABLE,
-			  {
-			   email => $user->email,
-			   uname => $user->name,
-			   alias => $user->alias,
-			   cadcuser => $user->cadcuser,
-			  },
-			  " userid = '".$user->userid ."' ");
+                          {
+                           email => $user->email,
+                           uname => $user->name,
+                           alias => $user->alias,
+                           cadcuser => $user->cadcuser,
+                          },
+                          " userid = '".$user->userid ."' ");
 
 
 }
@@ -435,7 +435,7 @@ sub _query_userdb {
 
   # Return the object equivalents
   return map { $_->{email} = undef if (defined $_->{email} && length($_->{email}) eq 0);
-		 new OMP::User( %$_ ) } @$ref;
+                 new OMP::User( %$_ ) } @$ref;
 }
 
 =item B<_query_userdb_expensive>
@@ -557,8 +557,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
