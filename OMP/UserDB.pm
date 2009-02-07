@@ -25,13 +25,16 @@ The C<UserDB> class is used to manipulate the user database.
 use 5.006;
 use warnings;
 use strict;
+
+use List::Util qw[ first ];
+
 use OMP::User;
 use OMP::Error;
 use OMP::UserQuery;
 
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = (qw$Revision: 10923 $)[1];
 
 our $USERTABLE = "ompuser";
 
@@ -135,6 +138,24 @@ sub verifyUser {
   return ($user ? $user->userid : undef );
 }
 
+=item B<verifyUserExpensive>
+
+Verify that the user exists in the database. This is a thin wrapper
+around B<getUserExpensive>. Returns user id list if users exist, else
+an empty list.
+
+  @id = $db->verifyUserExpensive( $userid );
+
+=cut
+
+sub verifyUserExpensive {
+  my $self = shift;
+  my %args = @_;
+  my @user = $self->getUserExpensive( %args );
+
+  return map { $_->userid } @user;
+}
+
 =item B<getUser>
 
 Retrieve information on the specified user name, where the user name is
@@ -173,6 +194,55 @@ sub getUser {
   # Guaranteed to be only one match
   return $result[0];
 
+}
+
+=item B<getUserExpensive>
+
+Returns a list of C<OMP::User> objects, given at least one of user
+name, email, user id, cadc user id, and alias.
+
+  @user = $db
+          ->getUserExpensive( 'name'     => 'Entity Example',
+                              'userid'   => 'EXMPALE',
+                              'alias'    => 'EXMPALES',
+                              'cadcuser' => 'exam',
+                              'email'    => 'entity@example.org',
+                            );
+
+=cut
+
+sub getUserExpensive {
+
+  my $self = shift;
+  my %attr = @_;
+
+  return unless keys %attr;
+
+  # Change to actual column names.
+  my %convert =
+    ( 'name' => 'uname',
+      'cadc' => 'cadcuser'
+    ) ;
+
+  for ( keys %convert ) {
+
+    exists $attr{ $_ }
+      and $attr{ $convert{ $_ } } = delete $attr{ $_ };
+  }
+
+  my $msg = '';
+  for my $k ( keys %attr ) {
+
+    $msg .= "(getUserExpensive) Unknown key: $k\n"
+      unless first { $k eq $_ } qw[ uname email userid alias cadcuser ];
+  }
+  $msg and throw OMP::Error $msg;
+
+  my $users = $self->_query_userdb_expensive( %attr );
+  return unless $users;
+
+  _convert_name( $users, 'name' );
+  return map OMP::User->new( %{ $_ } ), @{ $users } ;
 }
 
 =item B<queryUsers>
@@ -361,14 +431,100 @@ sub _query_userdb {
 
   # The user name attribute is stored in the database in column 'uname',
   # so replace key 'uname' with 'name'
-  for (@$ref) {
-    $_->{name} = $_->{uname};
-    delete $_->{uname};
-  }
+  _convert_name( $ref, 'name' );
 
   # Return the object equivalents
   return map { $_->{email} = undef if (defined $_->{email} && length($_->{email}) eq 0);
 		 new OMP::User( %$_ ) } @$ref;
+}
+
+=item B<_query_userdb_expensive>
+
+Main purpose is to verify a user name, proposed user id, and email
+address before adding user in the database, in turn to avoid
+duplicates.
+
+Returns an array reference of query results from the OMP users table.
+It is expensive (than I<_query_userdb()>) in that it does inexact
+search against almost all the columns (user name, email address,
+alias, CADC user id).  The parameters are taken in as a hash.
+
+  $result =
+    $db->_query_userdb_expensive(
+                                  'name'     => 'Entity Example',
+                                  'userid'   => 'EXMPALE',
+                                  'alias'    => 'EXMPALES',
+                                  'cadcuser' => 'exam',
+                                  'email'    => 'entity@example.org',
+                                );
+
+Throws I<OMP::Error::FatalError> exception on query error.
+
+=cut
+
+sub _query_userdb_expensive {
+
+  my ( $self, %attr ) = @_;
+
+  my @col = qw[ uname email userid alias cadcuser ];
+  my @up_case= qw[ userid alias ];
+
+  my %check;
+  for my $k ( @col ) {
+
+    next unless exists $attr{ $k } && defined $attr{ $k };
+
+    $attr{ $k } = uc $attr{ $k } if first { $k eq $_ } @up_case;
+    $check{ $k } = join $attr{ $k }, '%', '%' ;
+  }
+
+  my $sql =
+      'SELECT DISTINCT ' . join(  ', ', @col )
+    . qq[ FROM $OMP::UserDB::USERTABLE ]
+    . ' WHERE ' . join( ' OR ', map { " $_ LIKE ? " } keys %check )
+    . ' ORDER BY userid , email , uname'
+    ;
+
+  my $dbh = $self->_dbhandle;
+
+  $dbh->trace(0);
+
+  return $dbh->selectall_arrayref( $sql, { 'Slice' => {} }, values %check )
+    or throw OMP::Error::FatalError $dbh->errstr;
+}
+
+
+=item B<_convert_name>
+
+Returns nothing.  Takes in an array reference of hash reference with
+either I<uname> or I<name> as one of keys.
+
+If I<uname> is present in hash reference, then I<name> is put in its
+place, and vice versa.
+
+  $result = [ { 'name' => 'Entity Example' } ];
+
+  $db->_convert_name( $result );
+
+  # $result now is "[ { 'uname' => 'Entity Example' } ]".
+
+=cut
+
+sub _convert_name {
+
+  my ( $aref, $to ) = @_;
+
+  throw OMP::Error::BadArgs "Need one of 'name' or 'uname' for conversion"
+    unless $to eq 'uname'
+        or $to eq 'name';
+
+  my $from = $to eq 'name' ? 'uname' : 'name';
+
+  for ( @{ $aref } ) {
+
+    exists $_->{ $from } and $_->{ $to } = delete $_->{ $from };
+  }
+  return;
 }
 
 

@@ -22,6 +22,7 @@ maintained in external databases. All methods are class methods.
 use strict;
 use warnings;
 use Carp;
+use List::Util qw[ first ];
 
 # OMP dependencies
 use OMP::UserDB;
@@ -158,6 +159,53 @@ sub verifyUser {
   return $status;
 }
 
+=item B<verifyUserExpensive>
+
+Verify the specified user exists on the system, given any one of the
+attributes to check.  If more than one attribute is given, then all of
+them will be checked independently of each other.
+
+  $isthere = OMP::UserServer
+              ->verifyUserExpensive( 'name' => 'user name',
+                                      'email' => 'email@example.org',
+                                      'userid' => 'userid'
+                                    );
+
+Known attributes are: name, email, userid, alias, cadcid.
+
+=cut
+
+sub verifyUserExpensive {
+
+  my $class = shift;
+  my %attr = @_;
+
+  $attr{'cadcuser'} = delete $attr{'cadc'}
+    if exists $attr{'cadc'};
+
+  my @status;
+  my $E;
+  try {
+
+    my $db = new OMP::UserDB( DB => $class->dbConnection );
+
+    @status = $db->verifyUserExpensive( %attr );
+  } catch OMP::Error with {
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return @status;
+}
+
 =item B<getUser>
 
 Get the specified user information.
@@ -199,6 +247,56 @@ sub getUser {
   $class->throwException( $E ) if defined $E;
 
   return $user;
+}
+
+=item B<getUserExpensive>
+
+Verify the specified user exists on the system, given any one of the
+attributes to check.  If more than one attribute is given, then all of
+them will be checked independently of each other.
+
+  $isthere = OMP::UserServer
+              ->getUserExpensive( 'name' => 'user name',
+                                  'email' => 'email@example.org',
+                                  'userid' => 'userid'
+                                );
+
+Known attributes are: name, email, userid, alias, cadcid.
+
+=cut
+
+sub getUserExpensive {
+
+  my $class = shift;
+  my %attr = @_;
+
+  $attr{'cadcuser'} = delete $attr{'cadc'}
+    if exists $attr{'cadc'};
+
+  my @user;
+  my $E;
+  try {
+
+    my $db = OMP::UserDB->new ( 'DB' => $class->dbConnection );
+
+    @user = $db->getUserExpensive( %attr );
+
+  } catch OMP::Error with {
+    # Just catch OMP::Error exceptions
+    # Server infrastructure should catch everything else
+    $E = shift;
+
+  } otherwise {
+    # This is "normal" errors. At the moment treat them like any other
+    $E = shift;
+
+  };
+
+  # This has to be outside the catch block else we get
+  # a problem where we cant use die (it becomes throw)
+  $class->throwException( $E ) if defined $E;
+
+  return @user;
 }
 
 =item B<queryUsers>
