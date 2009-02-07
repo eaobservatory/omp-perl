@@ -370,7 +370,7 @@ L<OMP::ProjServer>, L<OMP::User>, L<OMP::UserDB>.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001-2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2001-2008 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -392,6 +392,8 @@ Boston, MA  02111-1307  USA
 =head1 AUTHOR
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =cut
 
