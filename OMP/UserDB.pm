@@ -541,9 +541,11 @@ For related classes see C<OMP::ProjDB> and C<OMP::FeedbackDB>.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
+Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
+
 =head1 COPYRIGHT
 
-Copyright (C) 2002,2007 Particle Physics and Astronomy Research Council.
+Copyright (C) 2002,2007-2008 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
