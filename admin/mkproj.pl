@@ -88,7 +88,7 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
+  my $id = '$Id: mkproj.pl 16396 2009-01-23 02:50:27Z agarwal $ ';
   print "mkproj - upload project details from file\n";
   print " CVS revision: $id\n";
   exit;
@@ -131,6 +131,12 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Copy the data from the file and merge with the defaults
   my %details = ( %defaults, %{ $alloc{$proj} });
+
+  collect_err( "No country code given" )
+   unless exists $details{'country'}
+     and defined $details{'country'}
+     and length  $details{'country'}
+     ;
 
   # Upper case country for lookup table
   # and split on comma in case we have more than one
