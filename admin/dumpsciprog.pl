@@ -72,7 +72,7 @@ for my $projid (@projects) {
     # Write it out
     my $outfile = $projid . ".xml";
     $outfile =~ s/\//_/g;
-    open my $fh, '>',  $outfile or die "Error opening outfile\n";
+    open my $fh, '>',  $outfile or die "Error opening outfile, $outfile: $!\n";
     print $fh $xml;
     close $fh;
 
@@ -81,7 +81,8 @@ for my $projid (@projects) {
     my $E = shift;
     print "Science program truncated [$projid]: $E\n";
   } otherwise {
-    print "No science program available for $projid\n";
+    my $E = shift;
+    print "$E\n";
 
   };
 
