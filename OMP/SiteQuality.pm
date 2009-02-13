@@ -38,7 +38,7 @@ use OMP::Error;
 use OMP::Range;
 
 use vars qw/ $VERSION %DBRANGES %OMPRANGES %CLOUDTERMS/;
-$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 
 =head1 CONSTANTS

@@ -29,7 +29,7 @@ use Carp;
 use base qw/ Number::Interval /;
 use vars qw/ $VERSION /;
 
-$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 =head1 METHODS
 
