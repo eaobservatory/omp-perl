@@ -50,7 +50,7 @@ our $DEBUG = 0;
 our $FAST = 0;
 
 # Version number
-our $VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+#our $VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 # Maximum size of a cube per gridder (slice) in pixels
 my $max_slice_size_in_gb = 0.5;

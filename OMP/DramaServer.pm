@@ -31,7 +31,7 @@ use OMP::Error qw/ :try /;
 use base qw/OMP::SOAPServer /;
 
 use vars qw/ $VERSION /;
-$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
 
 
 =head1 METHODS
