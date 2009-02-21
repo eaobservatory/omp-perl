@@ -1886,9 +1886,7 @@ sub get_file_contents {
     or throw OMP::Error::FatalError
               qq[Cannot close file "$arg{'file'}" after reading: $!\n];
 
-  return unless scalar @lines;
-
-  # Loop only if requested to keep whitespace at both ends.
+  # Loop only if requested to keep whitespace on at least one end.
   unless ( $arg{'start-whitespace'} && $arg{'end-whitespace'} ) {
 
     for ( @lines ) {
