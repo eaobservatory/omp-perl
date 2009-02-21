@@ -1818,6 +1818,91 @@ sub log_message {
 
 =back
 
+=head2 File
+
+=over 4
+
+=item B<get_file_contents>
+
+Returns the file contents (lines) as array reference.  Throws
+L<OMP::Error::FatalError> if file cannot be  or closed.  Takes in a
+hash with keys of ...
+
+=over 4
+
+=item I<file>
+
+File path to open.
+
+=item I<filter>
+
+Optional regular expression to keep only the matching lines.
+
+=item I<start-whitespace>
+
+Optional true value to keep whitespaces at the start of line (default
+is to remove).
+
+=item I<end-whitespace>
+
+Optional true value to keep whitespaces at the end of line (default is
+to remove).
+
+=back
+
+Get all the lines with whitespace removed from both ends of file called
+F</file/path> ...
+
+  $lines = OMP::General
+          ->get_file_contents( 'file' => '/file/path' );
+
+Get the lines matching "is" anywhere in the line, with whitespace at
+the line beginning intact ....
+
+  $filtered = OMP::General
+              ->get_file_contents( 'file' => '/file/path',
+                                    'filter' => qr{is}i,
+                                    'start-whitespace' => 1,
+                                  );
+
+=cut
+
+sub get_file_contents {
+
+  my ( $self, %arg ) =  @_;
+
+  open my $fh , '<' , $arg{'file'}
+    or throw OMP::Error::FatalError
+              qq[Cannot open file "$arg{'file'}" to read: $!\n];
+
+  my @lines;
+  while ( my $line = <$fh> ) {
+
+    next if $arg{'filter'} && $line !~ $arg{'filter'};
+    push @lines, $line;
+  }
+
+  close $fh
+    or throw OMP::Error::FatalError
+              qq[Cannot close file "$arg{'file'}" after reading: $!\n];
+
+  return unless scalar @lines;
+
+  # Loop only if requested to keep whitespace at both ends.
+  unless ( $arg{'start-whitespace'} && $arg{'end-whitespace'} ) {
+
+    for ( @lines ) {
+
+      s/^\s+// unless $arg{'start-whitespace'};
+      s/\s+$// unless $arg{'end-whitespace'};
+    }
+  }
+
+  return \@lines;
+}
+
+=back
+
 =head2 String manipulation
 
 =over 4
