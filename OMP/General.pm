@@ -1899,6 +1899,81 @@ sub get_file_contents {
   return \@lines;
 }
 
+=item B<get_directory_contents>
+
+Returns non-recursive directory listing as array reference.  Current
+and parent directories are skipped; every file path is prefixed with
+the given directory path.
+
+Throws L<OMP::Error::FatalError> if directory cannot be  or closed.
+Takes in a hash with keys of ...
+
+=over 4
+
+=item I<dir>
+
+Directory path to list.
+
+=item I<filter>
+
+Optional regular expression to keep only the matching names.
+
+=item I<sort>
+
+Optional truth value to sort alphabetiscally.
+
+=back
+
+Get an unsorted, unfiletered list as array reference ...
+
+  $files = OMP::General
+          ->get_directory_contents( 'dir' => '/dir/path' );
+
+Get the sorted list of files matching regular expression "te?mp"
+anywhere in the its name ...
+
+  $filtered = OMP::General
+              ->get_directory_contents( 'dir' => '/dir/path',
+                                        'filter' => qr{te?mp},
+                                        'sort' => 1
+                                      );
+
+For other filter options, please refer to L<find(1)>, L<File::Find>,
+L<File::Find::Rule>.
+
+=cut
+
+sub get_directory_contents {
+
+  my ( $self, %arg ) = @_;
+
+  my $dh;
+  opendir $dh, $arg{'dir'}
+    or throw OMP::Error::FatalError
+              qq[Could not open directory "$arg{'dir'}": $!\n];
+
+  my @file;
+  my ( $cur, $up ) = map { File::Spec->$_ } qw[ curdir updir ];
+  while ( my $f = readdir $dh ) {
+
+    next if $f eq $cur or $f eq $up;
+
+    next if $arg{'filter'} && $f !~ $arg{'filter'};
+
+    push @file, File::Spec->catfile( $arg{'dir'}, $f );
+  }
+
+  closedir $dh
+    or throw OMP::Error::FatalError
+              qq[Could not close directory "$arg{'dir'}": $!\n];
+
+  return
+    $arg{'sort'}
+    ? [ sort { $a cmp $b || $a <=> $b } @file ]
+    : \@file
+    ;
+}
+
 =back
 
 =head2 String manipulation
