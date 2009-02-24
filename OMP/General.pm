@@ -2184,12 +2184,12 @@ of the fields.
 
 =over 4
 
-=item
+=item *
 
 If missing, then all the hidden fields will be produced from the hash
 reference.
 
-=item
+=item *
 
 If given, the reference is passed the values of fields (those listed
 in the hash reference) already associated with the CGI object.  Only a
