@@ -45,7 +45,6 @@ observation files.
   @files =
     OMP::General->files_on_disk( 'SCUBA-2', $date, $runnr, $subarray );
 
-
 The   instrument must be  a string.   The date  must be  a Time::Piece
 object.  If the date  is  not passed as   a Time::Piece object then an
 OMP::Error::BadArgs error  will be thrown.  The run  number must be an
@@ -93,14 +92,10 @@ sub files_on_disk {
       subarray   => $subarray,
     );
 
-  my $scuba2_re = qr{^scuba-?2$}i;
-
   my $directory = $sys_config->getData( 'rawdatadir', %config );
   my $flagfileregexp = $sys_config->getData( 'flagfileregexp',
                                               telescope => $tel,
                                             );
-
-warn join '  ', 'BEFORE', $instrument , 'dir' , $directory , 'flag' , $flagfileregexp ;
 
   # getData() throws an exception in the case of missing key.  No point in dying
   # then as default value will be used instead from earlier extraction.
@@ -116,12 +111,12 @@ warn join '  ', 'BEFORE', $instrument , 'dir' , $directory , 'flag' , $flagfiler
     throw $e unless $e =~ /^Key.+could not be found in OMP config system/i;
   };
 
-  my @return;
+  my ( $use_meta, @return );
 
-  if ( $instrument =~ $scuba2_re ) {
+  if ( $class->use_raw_meta_opt( $sys_config, %config ) ) {
 
     @return =
-      $class->get_scuba2_raw_files( $sys_config, \%config, $flagfileregexp );
+      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp );
   }
   else {
 
@@ -134,7 +129,29 @@ warn join '  ', 'BEFORE', $instrument , 'dir' , $directory , 'flag' , $flagfiler
   return wantarray ? @return : \@return ;
 }
 
-sub get_scuba2_raw_files {
+sub use_raw_meta_opt {
+
+  my ( $class, $omp_config, %config ) = @_;
+
+  my $meta;
+  try {
+
+    $meta = $omp_config
+            ->getData( qq[$config{'instrument'}.raw_meta_opt], %config );
+  }
+  # "raw_meta_opt" may be missing entirely, considered same as a false value.
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e  ) = @_;
+
+    throw $e
+      unless $e =~ /^Key.+could not be found in OMP config system/i;
+  };
+
+  return !!$meta;
+}
+
+sub get_raw_files_from_meta {
 
   my ( $class, $sys_config, $config, $flag_re ) = @_;
 
