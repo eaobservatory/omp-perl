@@ -83,7 +83,7 @@ are:
            messages will also go to stdout. If $VERBOSE is false then
            verbosity will be enabled in the translation class but only to log file.
 
-  asdata : If true, method will return either a list of translated 
+  asdata : If true, method will return either a list of translated
             configuration objects (the type of which depends on
             the instrument) or a reference to an array of such objects
             (depending on context).  The expected object classes will be:
@@ -130,24 +130,24 @@ sub translate {
   # This should be configuration driven
   #  OMP::Config->getData( 'translator.SCUBA' );
   my %class_lut = ( SCUBA => 'SCUBA',
-		    A3 => 'DAS',
-		    B3 => 'DAS',
-		    WB => 'ACSIS',
-		    WC => 'DAS',
-		    WD => 'DAS',
-		    RXA3 => 'DAS',
-		    RXA3 => 'DAS',
-		    RXB3 => 'DAS',
-		    RXWB => 'ACSIS',
-		    RXWC => 'DAS',
-		    RXWD => 'DAS',
-		    RXW=> 'DAS',
-		    HARP => 'ACSIS',
-		    # the backend name is the one that counts
-		    DAS => 'ACSIS',
-		    ACSIS => 'ACSIS',
-        SCUBA2 => 'SCUBA2',
-		  );
+                    A3 => 'DAS',
+                    B3 => 'DAS',
+                    WB => 'ACSIS',
+                    WC => 'DAS',
+                    WD => 'DAS',
+                    RXA3 => 'DAS',
+                    RXA3 => 'DAS',
+                    RXB3 => 'DAS',
+                    RXWB => 'ACSIS',
+                    RXWC => 'DAS',
+                    RXWD => 'DAS',
+                    RXW=> 'DAS',
+                    HARP => 'ACSIS',
+                    # the backend name is the one that counts
+                    DAS => 'ACSIS',
+                    ACSIS => 'ACSIS',
+                    SCUBA2 => 'SCUBA2',
+                  );
 
   # Array of file handles that we should write verbose messages to
   my @handles = ();
@@ -171,11 +171,11 @@ sub translate {
 
       # filename with date stamp
       my $fname = "translation_". $ut->strftime("%Y%m%d_%H%M%S") . "_" .
-	sprintf("%06d", $mic_sec ) . ".log";
+        sprintf("%06d", $mic_sec ) . ".log";
 
       # now try to open a file
       open( $logh, ">", File::Spec->catfile($logdir,$fname))
-	|| die "Error opening log file $fname: $!";
+        || die "Error opening log file $fname: $!";
 
       # Have logging so force verbose and store filehandle
       $verbose = 1;
@@ -189,8 +189,8 @@ sub translate {
   my $projectid = $sp->projectID;
   my @checksums = map { $_->checksum . "\n" } $sp->msb;
   OMP::General->log_message( "Translate request: Project:$projectid Checksums:\n\t"
-			     .join("\t",@checksums)
-			   );
+                             .join("\t",@checksums)
+                           );
 
   # Loop over each MSB
   my @configs; # Somewhere to put the translated output
@@ -206,7 +206,7 @@ sub translate {
 
     # rather than duplicating container logic in another place
     # we either need to
-    # 1. Fix _get_SpObs (or add a new method) to return cloned 
+    # 1. Fix _get_SpObs (or add a new method) to return cloned
     #    SpObs nodes with the correct target available
     # 2. Reparse from a stringified form
 
@@ -219,18 +219,18 @@ sub translate {
 
     # regenerate
     my $fullmsb = new OMP::MSB( XML => $msbxml,
-				PROJECTID => $msb->projectID,
-				OTVERSION => $msb->ot_version,
-				TELESCOPE => $msb->telescope,
-			      );
+                                PROJECTID => $msb->projectID,
+                                OTVERSION => $msb->ot_version,
+                                TELESCOPE => $msb->telescope,
+                              );
 
-    # Get all the component nodes (Sp* is fine 
+    # Get all the component nodes (Sp* is fine
     # since we want SpInst and SpObsComp)
     # unless this MSB is actually an SpObs
     my @components;
-    @components = grep { $_->getName =~ /Sp.*/ && $_->getName ne 'SpObs'} 
+    @components = grep { $_->getName =~ /Sp.*/ && $_->getName ne 'SpObs'}
       $fullmsb->_tree->findnodes( 'child::*' )
-	unless $fullmsb->_tree->getName eq 'SpObs';
+        unless $fullmsb->_tree->getName eq 'SpObs';
 
     # Need to include all the code for determining whether the MSB
     # was suspended and whether to skip the observation or not
@@ -239,7 +239,7 @@ sub translate {
     # by default do not skip observations unless we are suspended
     my $skip = ( defined $suspend ? 1 : 0);
 
-    # Loop over each SpObs separately since that controls the 
+    # Loop over each SpObs separately since that controls the
     # instrument granularity (each SpObs can only refer to a single instrument)
     my $spobs_count = 0;
     for my $spobs ($fullmsb->_get_SpObs) {
@@ -256,15 +256,15 @@ sub translate {
 
       # now insert the component nodes
       for my $node ( @components ) {
-	$spobs->insertBefore( $node, $child );
+        $spobs->insertBefore( $node, $child );
       }
 
       # Create a dummy MSB object (which will be fine so long as we
       # do not access attributes of an MSB such as isSuspended)
       my $tmpmsb = new OMP::MSB( TREE => $spobs,
-				 PROJECTID => $msb->projectID,
-				 OTVERSION => $msb->ot_version,
-			       );
+                                 PROJECTID => $msb->projectID,
+                                 OTVERSION => $msb->ot_version,
+                               );
 
       # This may have trashed the checksum so we need to make sure
       # it's consistent
@@ -280,13 +280,13 @@ sub translate {
 
       # and overriding this with backend if we have one
       $inst = uc($sum[0]->{freqconfig}->{beName})
-	if (exists $sum[0]->{freqconfig} && 
-	    exists $sum[0]->{freqconfig}->{beName});
+        if (exists $sum[0]->{freqconfig} &&
+            exists $sum[0]->{freqconfig}->{beName});
 
 
       # check we have the class
       throw OMP::Error::TranslateFail("Instrument '$inst' has no corresponding Translator class")
-	unless exists $class_lut{$inst};
+        unless exists $class_lut{$inst};
 
       # Create the full class name
       my $class = $class_lut{$inst};
@@ -296,7 +296,7 @@ sub translate {
       # Load the class
       eval "require $class;";
       if ($@) {
-	throw OMP::Error::FatalError("Error loading class '$class': $@\n");
+        throw OMP::Error::FatalError("Error loading class '$class': $@\n");
       }
 
       # Set DEBUGGING in the class depending on the debugging state here
@@ -309,7 +309,7 @@ sub translate {
       $class->outhdl( @handles ) if $class->can("outhdl");
 
       if (defined $logh) {
-	print $logh "---------------------------------------------\n";
+        print $logh "---------------------------------------------\n";
       }
 
       # For large MSBs (and large science programmes with multiple msbs)
@@ -317,7 +317,7 @@ sub translate {
       my $title = $msb->msbtitle;
       $title = "<no title>" unless defined $title;
       for my $h (@handles) {
-	print $h "Translating Obs #$spobs_count from MSB $title\n";
+        print $h "Translating Obs #$spobs_count from MSB $title\n";
       }
 
       # And forward to the correct translator
@@ -325,19 +325,19 @@ sub translate {
       my @new = $class->translate( $tmpmsb, simulate => $opts{simulate} );
 
       if (defined $logh) {
-	# Basic XML
-	print $logh "---------------------------------------------\n";
-	print $logh "Input MSB:\n";
-	print $logh "$tmpmsb\n";
-	print $logh "---------------------------------------------\n";
+        # Basic XML
+        print $logh "---------------------------------------------\n";
+        print $logh "Input MSB:\n";
+        print $logh "$tmpmsb\n";
+        print $logh "---------------------------------------------\n";
 
-	# Summary
-	my $info = $tmpmsb->info();
-	my $summary = $info->summary("hashlong");
+        # Summary
+        my $info = $tmpmsb->info();
+        my $summary = $info->summary("hashlong");
 
-	print $logh "Observation Summary:\n";
-	print $logh Dumper($summary);
-	print $logh "---------------------------------------------\n";
+        print $logh "Observation Summary:\n";
+        print $logh Dumper($summary);
+        print $logh "---------------------------------------------\n";
       }
 
       # Reset handles so that the globals do not hang around
@@ -440,7 +440,7 @@ combined within a single translation.
     sub backwards_compatibility_mode {
       my $class = shift;
       if ( @_ ) {
-	$cmode = shift;
+        $cmode = shift;
       }
       return $cmode;
     }
@@ -494,7 +494,7 @@ sub write_configs {
     my $inst = $configs->[0]->instrument;
     for my $c ( @$configs ) {
       if ( blessed($c) ne $class) {
-	throw OMP::Error::TranslateFail( "Attempting to write different instrument configurations to incompatible output files. Compatibility mode only supports a single translated instrument/backend [$inst vs ".$c->instrument."]");
+        throw OMP::Error::TranslateFail( "Attempting to write different instrument configurations to incompatible output files. Compatibility mode only supports a single translated instrument/backend [$inst vs ".$c->instrument."]");
       }
     }
 
@@ -512,14 +512,14 @@ sub write_configs {
 
     # Now write the container
     return $container->write_file( (defined $outdir ? $outdir : () ),
-				   { chmod => 0666 });
+                                   { chmod => 0666 });
 
   } else {
 
     # Arguments
     my %args = ( fprefix => 'translated',
-		 chmod => 0666,
-	       );
+                 chmod => 0666,
+               );
     $args{outputdir} = $outdir if defined $outdir;
 
     # XML location is required for the queue. This is not instrument
@@ -531,7 +531,7 @@ sub write_configs {
       # specify our default location
       my $qdir;
       eval {
-	$qdir = OMP::Config->getData( "translator.queuedir" );
+        $qdir = OMP::Config->getData( "translator.queuedir" );
       };
       $qdir = File::Spec->curdir() if !defined $qdir;
       $args{xmldir} = $qdir;
@@ -539,7 +539,7 @@ sub write_configs {
 
     # Delegate the writing to the XMLIO class
     return Queue::EntryXMLIO::writeXML(\%args,
-				       @$configs );
+                                       @$configs );
   }
 
 }
