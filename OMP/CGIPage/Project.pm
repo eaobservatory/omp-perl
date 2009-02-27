@@ -504,7 +504,7 @@ _HEADER_
           }
 
         } else {
-          print "(no science data taken) ";
+          print "(no science data charged) ";
         }
       } else {
         print "[internal error - do not know accounting information] ";
