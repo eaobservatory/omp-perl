@@ -57,7 +57,7 @@ E.g. "grid_pssw". [No default]
 
 =item instrument
 
-Receiver used "rxa", "harp", "rxwb", "rxwd", "scuba2" . [No default]
+Receiver used "rxa", "harp", "rxwb", "rxwd", "scuba-2" . [No default]
 
 =item rms
 
