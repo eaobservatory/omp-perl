@@ -4646,7 +4646,7 @@ sub SpInstSCUBA2 {
   my %summary = @_;
 
   $summary{telescope} = "JCMT";
-  $summary{instrument} = "SCUBA2";
+  $summary{instrument} = "SCUBA-2";
 
   # We have to make sure we set all instrument related components
   # else the hierarchy might print through

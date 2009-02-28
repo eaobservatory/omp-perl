@@ -1272,12 +1272,14 @@ sub simple_filename {
 
   my @outfiles;
 
+  my $scuba_re = qr{^scuba-?2?$}i;
+
   for my $infile (@infiles) {
 
     # Get the filename without path
     my $base = basename( $infile );
 
-    if ($self->telescope eq 'JCMT' && $self->instrument ne 'SCUBA'
+    if ($self->telescope eq 'JCMT' && $self->instrument !~ $scuba_re
         && uc( $self->backend ) ne 'ACSIS') {
 
       # Want YYYYMMDD_backend_nnnn.dat

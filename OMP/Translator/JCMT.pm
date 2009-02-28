@@ -58,7 +58,7 @@ our %FE_MAP = (
                RXB3 => 'RXB',
                'RXHARP-B' => 'HARPB',
                HARP => 'HARP',
-               SCUBA2 => 'SCUBA2',
+               SCUBA2 => 'SCUBA-2',
               );
 
 # Telescope diameter in metres
@@ -1181,8 +1181,9 @@ sub rts_config {
   my %info = @_;
 
   # SCUBA-2 uses a single file
+  my $scuba2_re = qr{^scuba-?2$}i;
   my $root;
-  if ($self->backend eq 'SCUBA2') {
+  if ($self->backend =~ $scuba2_re ) {
     $root = "scuba2";
   } else {
 
