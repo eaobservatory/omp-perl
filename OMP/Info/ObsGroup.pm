@@ -52,6 +52,10 @@ use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Error qw/ :try /;
 use Data::Dumper;
+$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Deepcopy = 1;
+
 
 use vars qw/ $VERSION $DEBUG/;
 $VERSION = 0.02;
