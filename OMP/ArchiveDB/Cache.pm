@@ -154,7 +154,8 @@ sub store_archive {
       or croak "Unable to write to cache file: $filename: $!";
 
     flock($df, LOCK_EX);
-    nstore_fd($obsgrp, $df);
+    nstore_fd($obsgrp, $df)
+      or croak "Cannot store to $filename";
     truncate($df, tell($df));
     close($df);
   }
