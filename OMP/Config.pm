@@ -54,7 +54,7 @@ __PACKAGE__->_determine_constants;
 my $LAST_INST;
 
 # The relevant config table. Only choices are "omp" and a valid telescope
-my $DEFAULT_CONFIG = 'omp';
+my $DEFAULT_CONFIG = 'omp-dev';
 
 =head1 METHODS
 

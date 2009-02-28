@@ -476,6 +476,7 @@ by default.
 
 sub _connected {
   my $self = shift;
+
   if (@_) { $self->{IsConnected} = shift; }
   return $self->{IsConnected};
 }

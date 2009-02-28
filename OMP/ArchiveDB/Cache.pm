@@ -224,6 +224,7 @@ sub retrieve_archive {
 
   # Retrieve the ObsGroup object, if it exists. Prefer in memory version
   if (exists $MEMCACHE{$filename}) {
+
     $obsgrp = $MEMCACHE{$filename};
   } else {
 
@@ -253,12 +254,16 @@ sub retrieve_archive {
       # Just write the error to log.
       my $Error = shift;
       my $errortext = $Error->{'-text'};
+
       OMP::General->log_message( "Error in archive cache read: $errortext" );
     };
 
     # Return if we didn't get an ObsGroup from the cache, since we can't return
     # inside the catch block.
-    if(!defined($obsgrp)) { return; }
+    if(!defined($obsgrp)) {
+
+      return;
+    }
 
     # Store in memory cache for next time around
     $MEMCACHE{$filename} = new OMP::Info::ObsGroup( obs => scalar( $obsgrp->obs ),
@@ -268,7 +273,6 @@ sub retrieve_archive {
 
   # And return.
   return $obsgrp;
-
 }
 
 =item B<unstored_files>

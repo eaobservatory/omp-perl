@@ -45,8 +45,10 @@ Returns a connection object of type C<OMP::DBbackend>.
 {
  # Hide the lexical variable
   my $db;
+
   sub dbConnection {
     my $class = shift;
+
     if (defined $db) {
       return $db;
     } else {

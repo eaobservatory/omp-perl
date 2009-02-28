@@ -126,7 +126,9 @@ are stored.
 =cut
 
 sub obs {
+
   my $self = shift;
+
   if (@_) {
     my @obs;
     # look for ref to array
@@ -142,7 +144,9 @@ sub obs {
     }
 
     @{$self->{ObsArray}} = @obs;
+
   }
+
   if (wantarray) {
     return @{$self->{ObsArray}};
   } else {
@@ -187,6 +191,7 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
+
   my @result = $adb->queryArc( $q, $retainhdr, $ignorebad );
 
   # Store the results
@@ -397,6 +402,7 @@ sub populate {
   } elsif ($args{sort}) {
     $self->sort_by_time();
   }
+
 }
 
 =item B<filter>
@@ -1190,6 +1196,7 @@ sub groupby {
 
   my %group;
   foreach my $obs ($self->obs) {
+
     push @{$group{$obs->$method}}, $obs;
   }
 

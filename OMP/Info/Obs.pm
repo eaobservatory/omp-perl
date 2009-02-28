@@ -517,6 +517,7 @@ sub filename {
       # put a path in front of everything.
       # Note that rawdatadir() calls this method without arguments
       my $rawdir = $self->rawdatadir;
+
       for my $f (@{$self->{FILENAME}}) {
         my ($vol, $path, $file) = File::Spec->splitpath( $f );
         next if $path;

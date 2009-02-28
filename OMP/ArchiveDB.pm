@@ -205,6 +205,7 @@ sub queryArc {
       } otherwise {
         my $Error = shift;
         my $errortext = $Error->{'-text'};
+
         OMP::General->log_message( "Header DB query problem: $errortext", OMP__LOG_WARNING );
         # just need to drop through and catch any exceptions
       };
@@ -222,6 +223,7 @@ sub queryArc {
       if ( !$dbqueryok ||       # Always look to files if query failed
            (!@results)          # look to files if we got no results
          ) {
+
         # then go to files
         OMP::General->log_message("Querying disk files", OMP__LOG_DEBUG);
         @results = $self->_query_files( $query, $retainhdr, $ignorebad );
@@ -319,7 +321,7 @@ queries that go over a single night?
 =cut
 
 sub _query_files {
-  #print "querying files\n";
+
   my $self = shift;
   my $query = shift;
   my $retainhdr = shift;
@@ -509,10 +511,12 @@ sub _query_files {
     if ( ! defined( $obs->startobs ) ) {
       OMP::General->log_message( "OMP::Error in OMP::ArchiveDB::_query_files: Observation is missing startobs(). Possible error in FITS headers.", OMP__LOG_ERROR );
       $WARNED{$obs->filename}++;
+
       next;
     }
 
     if ( ! $daterange->contains($obs->startobs) ) {
+
       next;
     }
 
@@ -525,8 +529,10 @@ sub _query_files {
     # - the thing in the query object is an OMP::Range or a scalar, and
     # - the thing in the Obs object is a scalar
     my $match_filter = 1;
+
     foreach my $filter (keys %$query_hash) {
       if ( uc($filter) eq 'RUNNR' or uc($filter) eq 'DATE' or uc($filter) eq '_ATTR') {
+
         next;
       }
 
@@ -536,6 +542,7 @@ sub _query_files {
           my $matcher = uc($obs->$filter);
           if ( UNIVERSAL::isa($filterarray, "OMP::Range") ) {
             $match_filter = $filterarray->contains( $matcher );
+
           } elsif ( UNIVERSAL::isa($filterarray, "ARRAY") ) {
             foreach my $filter2 (@$filterarray) {
 
@@ -545,9 +552,11 @@ sub _query_files {
               ################################################################
               if ($filter eq 'instrument' and $filter2 =~ /^acsis$/i) {
                 $matcher = uc($obs->backend);
+
               }
               if ($matcher !~ /$filter2/i) {
                 $match_filter = 0;
+
               }
             }
           }
@@ -556,6 +565,7 @@ sub _query_files {
     }
 
     if ( $match_filter ) {
+
       push @returnarray, $obs;
     }
   }
@@ -769,9 +779,6 @@ sub _hdrs_to_obs {
 
     # Ask for the raw data directory
     my $rawdir = $obs->rawdatadir;
-
-
-
 
     push(@observations, $obs);
   }
