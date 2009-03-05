@@ -843,13 +843,15 @@ sub rotator_config {
   # for jiggle or stare we want to bounce to fill in gaps for subsequent configures
   # but only if they are science observations and if this SpObs consists of multiple
   # science observations.
-  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' && 
-      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
-    $slew = "LONGEST_SLEW";
-  } elsif ( $nobs->{science} == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
-    # if we only have pointings, bounce
-    $slew = "LONGEST_SLEW";
-  }
+# 20090304: Disable bouncing since HARP seems to have 15/16 working receptors
+# Leave code in place to make it easy to change our minds.
+#  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' && 
+#      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
+#    $slew = "LONGEST_SLEW";
+#  } elsif ( $nobs->{science} == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
+#    # if we only have pointings, bounce
+#    $slew = "LONGEST_SLEW";
+#  }
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => $slew,
