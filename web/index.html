@@ -1,9 +1,7 @@
-
-
-
 <html><head>
+<link rel="icon" href="images/jac.ico">
+<title>OMP@JAC: Observation Management Project @ Joint Astronomy Centre</title>
 <style type="text/css">
-/* General */
 body{background-color:#ffffff; font-family:sans-serif, "MS sans serif"; font-size:13px;
 font-weight:normal;
 color:#000000; margin:0em;}
@@ -11,7 +9,6 @@ td{font-family:sans-serif; font-size:13px; font-weight:normal;}
 b{font-weight:bold;}
 .tbtitle{font-size:22px; font-weight:bold; color:#ffffff}
 
-/* Links */
 a:link {font-family:sans-serif; color:#393989; text-decoration:underline;}
 a:visited {font-family:sans-serif; color:#7b7bc4; text-decoration:underline;}
 a:active {font-family:sans-serif; color:#393989; text-decoration:underline;}
@@ -22,22 +19,18 @@ a.sidemain:visited{color:#ffffff; font-size:11px; font-weight:bold; text-decorat
 a.sidemain:active{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
 a.sidemain:hover{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
 
-a.sideuser:link{color:#ffffff; font-size:11px; font-weight:normal; text-decoration:underline;}
-a.sideuser:visited{color:#ffffff; font-size:11px; font-weight:normal;
-text-decoration:underline;}
+a.sideuser:link{color:#ffffff; font-size:11px; font-weight:normal; text-decoration:none;}
+a.sideuser:visited{color:#ffffff; font-size:11px; font-weight:normal; text-decoration:none;}
 a.sideuser:active{color:#ffffff; font-size:11px; font-weight:normal; text-decoration:underline;}
+a.sideuser:hover{color:#ffffff; font-size:11px; font-weight:normal; text-decoration:underline;}
 
 a.susel:link{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
-a.susel:visited{color:#ffffff; font-size:11px; font-weight:bold;
-text-decoration:underline;}
-a.susel:active{color:#ffffff; font-size:11px; font-weight:bold;
-text-decoration:underline;}
+a.susel:visited{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
+a.susel:active{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
 
 a.smsel:link{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
-a.smsel:visited{color:#ffffff; font-size:11px; font-weight:bold;
-text-decoration:underline;}
-a.smsel:active{color:#ffffff; font-size:11px; font-weight:bold;
-text-decoration:underline;}
+a.smsel:visited{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
+a.smsel:active{color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline;}
 
 a.mb:link{color:#444444; font-size:10px; font-weight:normal; text-decoration:underline;}
 a.mb:visited{color:#444444; font-size:10px; font-weight:normal; text-decoration:underline;}
@@ -49,10 +42,8 @@ a.bottom:visited{color:#55559b; font-size:10px; font-weight:normal; text-decorat
 a.bottom:active{color:#55559b; font-size:10px; font-weight:normal; text-decoration:underline;}
 a.bottom:hover{color:#55559b; font-size:10px; font-weight:normal; text-decoration:underline;}
 
-/* Tables */
-.shadow{background:#ffffff url("/images/shadow.gif");}
-td.sidesel{color:#ffffff; font-size:11px; font-weight:bold; background-color:#b0b0dd;
-text-align:right;}
+.shadow{background:#ffffff url("images/shadow.gif");}
+td.sidesel{color:#ffffff; font-size:11px; font-weight:bold; background-color:#b0b0dd; text-align:right;}
 td.sidemain{text-align:right;}
 td.sideuser{text-align:right;}
 td.smsel{background-color:#b0b0dd; text-align:right;}
@@ -62,318 +53,640 @@ td.sunest{background-color:#cccce5; text-align:right;}
 td.smon{background-color:#ff6500;}
 td.suon{background-color:#af0de0;}
 td.miscbar{color:#000000; font-size:10px; font-weight:normal; background-color:#c1c7c8;}
-td.search{color:#000000; font-size:10px; font-weight:normal; background-color:#8080cc;
-background-image:url("/images/srch_corner_gry.gif");
+background-image:url("images/srch_corner_gry.gif");
 background-repeat:no-repeat;}
-td.search_end{color:#000000; font-size:10px; font-weight:normal;
-background:#8080cc url("/images/srch_corner_r_gry.gif") right top; background-repeat:no-repeat;}
+background:#c1c7c8 url("images/srch_corner_r_gry.gif") right top; background-repeat:no-repeat;}
 td.sidetitle{font-size:14px; font-weight:bold; color:#55559b;
 background-color:#e1e1f2; text-align:right; text-decoration:underline}
 
-/* Forms */
 input.sbox{font-size:10px; color:#000000; border-width:2px}
 input.sbutton{background-color:#b0b0dd; font-size:10px; color:#000000;
 border-width:2px; border-color: #b0b0dd;}
 
-</style></head>
-<body topmargin="0" marginwidth="0">
+td.mod1 {background-color: #dbdbff;}
+td.mod2 {background-color: #a8a8e0;}
+td.mod3 {background-color: #c1c1f4;}
+img.mod4 {height: 12px; width: 12px; border-top: 2px darkgreen solid; border-bottom: 2px darkgreen solid; border-left: 2px darkgreen solid; border-right: 2px darkgreen solid;}
+img.mod4:hover {height: 12px; width: 12px; border-top: 2px lightgreen solid; border-bottom: 2px lightgreen solid; border-left: 2px lightgreen solid; border-right: 2px lightgreen solid;}
+img.mod5 {height: 12px; width: 12px; border-top: 2px darkred solid; border-bottom: 2px darkred solid; border-left: 2px darkred solid; border-right: 2px darkred solid;}
+img.mod5:hover {height: 12px; width: 12px; border-top: 2px pink solid; border-bottom: 2px pink solid; border-left: 2px pink solid; border-right: 2px pink solid;}
+font.mod6 {color: darkgreen;}
+font.mod7 {color: darkred;}
 
-<a name="top"></a>
-<table style="border-bottom: 1px solid rgb(85, 85, 155);" cellpadding="0" cellspacing="0" width="100%">
+</style>
+</head>
+<body marginwidth="0" topmargin="0">
 
-<!-- Top bar -->
-<tbody><tr>
+<table style="border-bottom: 1px solid #55559b;" width="100%" cellpadding="0" cellspacing="0">
+
+<tr>
   <td class="shadow" colspan="2" height="2">
-    <!--img src="/images/t.gif" height="2"-->
+
   </td>
 </tr>
 <tr>
 <td colspan="2">
 
-<table cellspacing="0" width="100%">
-<tbody><tr>
+<table width="100%" cellspacing="0">
+<tr>
 <td colspan="4" bgcolor="#8080cc">
-<img src="http://www.jach.hawaii.edu/images/t.gif" height="4">
+<img src="images/spacer.gif" height="4">
 </td>
 </tr>
 <tr>
-  <td bgcolor="#8080cc">
+  <td bgcolor="#8080cc" height=48>
     <span class="tbtitle">Joint Astronomy Centre</span>
+
   </td>
 
-<!-- Google Search Box -->
-
-<td bgcolor="#8080cc" valign="top" width="200">
-<img src="http://www.jach.hawaii.edu/images/t.gif" width="1">
-</td>
-<td bgcolor="#8080cc">
-
-</td>
-<td bgcolor="#8080cc">
-<img src="http://www.jach.hawaii.edu/images/t.gif" width="6">
-</td>
 </tr>
-</tbody></table>
+</table>
 </td>
 </tr>
 
-<!-- Printable version link -->
 <tr>
+
 <td colspan="2" bgcolor="#c1c7c8">
 <table>
-<tbody><tr>
+<tr>
 <td class="miscbar">
-
+&nbsp;
 </td>
 </tr>
-</tbody></table>
-</td>
-</tr>
-
-<tr>
-<td style="border-top: 1px solid rgb(85, 85, 155);" colspan="2" bgcolor="#55559b">
-<img src="http://www.jach.hawaii.edu/images/t.gif" height="20">
+</table>
 </td>
 </tr>
 
 <tr>
-<td align="right" bgcolor="#8080cc" valign="top" width="150">
-<table cellpadding="0" cellspacing="0" width="100%">
-<tbody><tr>
+<td style="border-top: 1px solid #55559b;" bgcolor="#55559b" colspan="2">
+<img src="images/spacer.gif" height="20">
+</td>
+</tr>
+
+<tr>
+<td width="150" valign="top" bgcolor="#8080cc" align="right">
+<table cellspacing="0" cellpadding="0" width="100%">
+<tr>
 <td>
 
-<table cellpadding="1" cellspacing="0" width="100%">
-
-
-
-
-      <tbody><tr>
-      <td class="sidemain">
-      <a href="http://www.jach.hawaii.edu/" class="sidemain">JAC Home</a>
-      </td>
-      <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
-      </td>
-      </tr>
-
-
-
+<table width="100%" cellspacing="0" cellpadding="1" link="ffffff">
 
       <tr>
       <td class="sidemain">
-      <a href="http://www.jach.hawaii.edu/JCMT/" class="sidemain">JCMT</a>
+      <a href="http://www.jach.hawaii.edu/" class="sidemain">JAC Home</a>
+
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
       </td>
       </tr>
 
+      <tr>
+      <td class="sidemain">
 
-
+      <a href="http://www.jach.hawaii.edu/JCMT/" class="sidemain">JCMT</a>
+      </td>
+      <td class="sidemain" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
 
       <tr>
       <td class="sidemain">
       <a href="http://www.jach.hawaii.edu/UKIRT/" class="sidemain">UKIRT</a>
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
       </td>
       </tr>
 
-
-
       <tr>
       <td class="sidemain">
-<!--      <a href="http://devel.jach.hawaii.edu:8080/divisions.html" class="sidemain">JAC Divisions</a> -->
+      <a href="http://www.jach.hawaii.edu/admin/contact.html" class="sidemain">Contact info</a>
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
+
       </td>
       </tr>
 
+      <tr>
+      <td class="sidemain">
+      <a href="http://www.jach.hawaii.edu/divisions.html" class="sidemain">JAC Divisions</a>
+      </td>
 
+      <td class="sidemain" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
 
+      <tr>
+      <td class="smsel">
+      <a href="/" class="smsel">OMP</a>
+
+      </td>
+      <td class="smon" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
 
       <tr>
       <td class="sidemain">
+
       <a href="http://outreach.jach.hawaii.edu/" class="sidemain">Outreach</a>
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
       </td>
       </tr>
-
-
-
 
       <tr>
       <td class="sidemain">
-      <a href="http://www.jach.hawaii.edu/%7Ejkemp/wx/" class="sidemain">Weather</a>
+      <a href="http://www.jach.hawaii.edu/Seminars/seminars.html" class="sidemain">Seminars</a>
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
       </td>
       </tr>
-
-
-
 
       <tr>
       <td class="sidemain">
-<!--      <a href="http://devel.jach.hawaii.edu:8080/admin/contact.html" class="sidemain">Contact info</a> -->
+      <a href="http://www.jach.hawaii.edu/staff_wiki" class="sidemain">Staff-only Wiki</a>
       </td>
       <td class="sidemain" width="4">
-      <img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+      <img src="images/spacer.gif" width="4">
+
       </td>
       </tr>
 
-</tbody></table>
+      <tr>
+      <td class="sidemain">
+      <a href="http://www.jach.hawaii.edu/weather/" class="sidemain">Weather</a>
+      </td>
+
+      <td class="sidemain" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
+
+      <tr>
+      <td class="sidemain">
+      <a href="http://www.jach.hawaii.edu/weather/jac/" class="sidemain">Web Cameras</a>
+
+      </td>
+      <td class="sidemain" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
+
+</table>
 
 </td>
 </tr>
 <tr>
-<td style="color: rgb(85, 85, 155); text-align: right; font-size: 11px;">
+<td style="color:#55559b; text-align:right; font-size:11px;">
 
 ____________________
 <p>
-
-<a class="sidemain" href="/cgi-bin/projecthome.pl">OMP Feedback System</a> <br>
-<a class="sidemain" href="/cgi-bin/queryfault.pl">Fault System</a> <br>
-<a class="sidemain" href="/index.html">OMP Home</a> <br>
-
-<img src="http://www.jach.hawaii.edu/images/t.gif" width="4">
+<img src="images/spacer.gif" width="4">
 </td>
 </tr>
 <tr>
 <td align="right">
 
+<table width="100%" cellspacing="0" cellpadding="1">
+
+      <tr>
+
+      <td class="sideuser">
+      <a href="/cgi-bin/projecthome.pl" class="sideuser">OMP Feedback System</a>
+      </td>
+      <td class="sideuser" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
+
+      <tr>
+      <td class="sideuser">
+      <a href="/cgi-bin/queryfault.pl" class="sideuser">OMP Fault System</a>
+      </td>
+      <td class="sideuser" width="4">
+      <img src="images/spacer.gif" width="4">
+      </td>
+
+      </tr>
+
+      <tr>
+      <td class="sideuser">
+      <a href="/" class="sideuser">OMP Home</a>
+      </td>
+      <td class="sideuser" width="4">
+
+      <img src="images/spacer.gif" width="4">
+      </td>
+      </tr>
+
+</table>
 
 </td>
 </tr>
-</tbody></table>
+</table>
 </td>
 <td valign="top">
-<table style="margin-left: 1em;">
-<tbody><tr>
+<table style="margin-left: 1em; width: 100%;">
+<tr>
 <td>
 
+<br>
 
-<!-- BODY GOES HERE -->
+<table border=0 cellspacing=1 cellpadding=2>
+<tr><td align=left valign=bottom>
 
-    <h1><IMG SRC="/images/banner_white.gif" ALT="Observation Management Project"></h1><p>
+<table border=0 cellspacing=1 cellpadding=2>
 
+<tr><td align=left valign=top colspan=3>
+<img src="images/omp.png" width=400 height=100 align=left>
+</td></tr>
 
+<tr><td colspan=3>
+&nbsp;
+</td></tr>
 
-These pages describe the JAC Observation management project (OMP). The OMP
-provides tools and define processes to aid with flexible-scheduled
-observing at the JCMT and UKIRT. It builds on the JCMT Observation
-Management Project and the UKIRT ORAC project.
+<tr><td colspan=3>
+&nbsp;
+</td></tr>
 
+<tr><td align=left valign=top colspan=3><font size=-1>
+This&nbsp;is&nbsp;the&nbsp;JAC&nbsp;Observation&nbsp;Management&nbsp;Project&nbsp;(OMP)&nbsp;web&nbsp;portal.
+<br>
+&nbsp;
+<br>
+The&nbsp;OMP&nbsp;provides&nbsp;tools&nbsp;and&nbsp;defines&nbsp;processes&nbsp;to&nbsp;aid&nbsp;with
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flexibly-scheduled&nbsp;observing&nbsp;at&nbsp;JCMT&nbsp;and&nbsp;UKIRT.
+<br>
+&nbsp;
+<br>
+It&nbsp;builds&nbsp;upon&nbsp;the&nbsp;JCMT&nbsp;Observation&nbsp;Management&nbsp;Project&nbsp;and&nbsp;the
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UKIRT&nbsp;Observatory&nbsp;Reduction&nbsp;and&nbsp;Acquisition&nbsp;Control&nbsp;project.
+</font></td></tr>
+</td></tr>
 
-<h2>All users:</h2>
+<tr><td colspan=3>
+&nbsp;
+</td></tr>
 
-<ul>
+<tr><td colspan=3>
+&nbsp;
+</td></tr>
 
-<li>Access the online
-<a href="cgi-bin/projecthome.pl">feedback system</a> for all
-project information  (P.I.s and staff).
+<tr><td colspan=3>
+&nbsp;
+</td></tr>
 
-<ul>
-<li>Observers' version is
-<a href="http://omp-private.jach.hawaii.edu/cgi-bin/projsum.pl">here</a>
-</ul>
-<p>
+<tr><td valign=top align=left class=mod3 colspan=3><font size=+2
+class=mod6>
+&nbsp;General&nbsp;Access&nbsp;&nbsp;
+</font></td></tr>
 
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Project&nbsp;Feedback&nbsp;System&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2 colspan=2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&amp;&nbsp;UKIRT&nbsp;&nbsp;
+</font></td></tr>
 
-<li> <a href="cgi-bin/issuepwd.pl">Issue a new password</a>
-for a project
-<p>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Access&nbsp;a&nbsp;Project&nbsp;&nbsp;
+</font></td><td valign=middle align=center colspan=2 class=mod1><font size=-1>
+<a href="/cgi-bin/projecthome.pl">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-<li>Access the <a href="cgi-bin/queryfault.pl">fault system</a>
-            <p>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Comment&nbsp;on&nbsp;a&nbsp;Project&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="http://omp-private.jach.hawaii.edu/cgi-bin/projsum.pl">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Issue&nbsp;a&nbsp;New&nbsp;Project&nbsp;Password&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="/cgi-bin/issuepwd.pl">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-</ul>
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Instructional&nbsp;Documentation&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;UKIRT&nbsp;
+</font></td></tr>
 
-<h2>JCMT specific:</h2>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Preparing&nbsp;and&nbsp;Submitting&nbsp;with&nbsp;the&nbsp;OT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/software/jcmtot/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/software/ukirtot/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-    <ul>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Acquiring&nbsp;and&nbsp;Installing&nbsp;the&nbsp;OT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/software/jcmtot/download.html">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/software/ukirtot/download.html">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-<li>Primer on using the
-<a href="http://www.jach.hawaii.edu/software/jcmtot/">JCMT Observing Tool</a> (JCMT OT)
-<p>
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Useful&nbsp;Links&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;UKIRT&nbsp;
+</font></td></tr>
 
-<!-- <li>Web-based
-<a href="http://ulili.jcmt.jach.hawaii.edu/JACsummit/JCMT/obslog/cgi-bin/obslog.pl">obslog</a>
-and
-<a href="http://omp-private.jach.hawaii.edu/cgi-bin/shiftlog.pl?telescope=JCMT">shift log</a>. -->
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telescope&nbsp;Web&nbsp;Site&nbsp;and&nbsp;Information&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/JCMT/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/UKIRT/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-    </ul>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telescope&nbsp;Observer&nbsp;Schedule&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/JCMT/schedules/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/jac-bin/ukirt_sched.csh">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-<h2>UKIRT specific:</h2>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telescope&nbsp;Observing&nbsp;Process&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/JCMT/observing/">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/UKIRT/observe.html">
+<img src="images/square-green-12.png" class=mod4></a>
+</font></td></tr>
 
-<ul>
+</table>
 
-<li>Documentation for the
-<a href="http://www.jach.hawaii.edu/software/ukirtot/">UKIRT Observing Tool</a> (UKIRT OT)
-<p>
+</td>
 
-<li>Current
-<a href="http://www.jach.hawaii.edu/UKIRT/observing/PREP_and_EXEC_index.html">UKIRT instructions</a>
-on using the OMP
+<td align=left valign=bottom>
+&nbsp;&nbsp;&nbsp;
+</td>
 
-<p>
-<!--
-<li>Web-based
-<a href="http://omp-private.jach.hawaii.edu/cgi-bin/obslog.pl">obslog</a>
-and
-<a href="http://omp-private.jach.hawaii.edu/cgi-bin/shiftlog.pl?telescope=UKIRT">shift log</a>.
-<p> -->
-</ul>
+<td align=left valign=bottom>
 
-<h2>Restricted access:</h2>
-<ul>
-<li><a href="/cgi-bin/nightrep.pl">Observing Reports</a> for
-<a href="/cgi-bin/nightrep.pl?tel=jcmt">JCMT</a> and
-<a href="/cgi-bin/nightrep.pl?tel=ukirt">UKIRT</a>
-<p>
+<table border=0 cellspacing=1 cellpadding=2>
 
-<li><a href="/cgi-bin/listprojects.pl">List projects</a> according to semester,
-support scientist and country
-<p>
+<tr><td valign=middle align=left class=mod3 colspan=3><font size=+2 class=mod7>
+&nbsp;Restricted&nbsp;Access&nbsp;&nbsp;
+</font></td></tr>
 
-<li>Display <a href="/cgi-bin/wwwobserved.pl">MSBs observed</a> on a
-specified UT date sorted by project
-<p>
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Observing&nbsp;Reports&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;UKIRT&nbsp;
+</font></td></tr>
 
-<li>Display and update <a href="/cgi-bin/ompusers.pl">OMP user details</a>
-<p>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;an&nbsp;Observing&nbsp;Report&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/nightrep.pl?tel=JCMT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/nightrep.pl?tel=UKIRT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
 
-<li>View and edit
-<a href="http://omp-private.jach.hawaii.edu/cgi-bin/edit_support.pl">support contacts</a>
-for a specific project
-<p>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;Shift&nbsp;Log&nbsp;Comments&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/shiftlog.pl?telescope=JCMT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/shiftlog.pl?telescope=UKIRT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
 
-<li><a href="http://omp-private.jach.hawaii.edu/cgi-bin/alterproj.pl">Edit details</a>
-of a specific project
-<p>
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;an&nbsp;MSB&nbsp;Summary&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/wwwobserved.pl?telescope=JCMT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/wwwobserved.pl?telescope=UKIRT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
 
-</ul>
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Project&nbsp;Administration&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2 colspan=2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&amp;&nbsp;UKIRT&nbsp;&nbsp;
+</font></td></tr>
 
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;and&nbsp;Sort&nbsp;Projects&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="/cgi-bin/listprojects.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;and&nbsp;Edit&nbsp;User&nbsp;Details&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="/cgi-bin/ompusers.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;and&nbsp;Edit&nbsp;Project&nbsp;Details&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="http://omp-private.jach.hawaii.edu/cgi-bin/alterproj.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;and&nbsp;Edit&nbsp;Support&nbsp;Contacts&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="http://omp-private.jach.hawaii.edu/cgi-bin/edit_support.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Target&nbsp;Tools&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2 colspan=2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&amp;&nbsp;UKIRT&nbsp;&nbsp;
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;Target&nbsp;Observability&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="http://www.jach.hawaii.edu/jac-bin/omputils/ompsplot.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;View&nbsp;Target&nbsp;Positioning&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1 colspan=2><font size=-1>
+<a href="http://www.jach.hawaii.edu/jac-bin/omputils/ompfindtarget.pl">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Useful&nbsp;Links&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;JCMT&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;UKIRT&nbsp;
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telescope&nbsp;Support&nbsp;Schedule&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/JCMT/schedules/full/">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/jac-bin/ukirt_sched_full.csh">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Telescope&nbsp;Nightly&nbsp;Snapshot&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/JCMT/tonight/">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="http://www.jach.hawaii.edu/UKIRT/tonight/">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;Fault&nbsp;System&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;View&nbsp;&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod2><font size=+1>
+&nbsp;&nbsp;&nbsp;File&nbsp;&nbsp;&nbsp;
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JCMT&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=JCMT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=JCMT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UKIRT&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=UKIRT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=UKIRT">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CSG&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=CSG">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=CSG">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OMP&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=OMP">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=OMP">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DR&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=DR">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=DR">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Facility&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=Facility">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=Facility">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Safety&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=Safety">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/filefault.pl?cat=Safety">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td></tr>
+
+<tr><td valign=middle align=left class=mod1><font size=-1>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;Faults&nbsp;&nbsp;
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+<a href="/cgi-bin/queryfault.pl?cat=anycat">
+<img src="images/square-red-12.png" class=mod5></a>
+</font></td><td valign=middle align=center class=mod1><font size=-1>
+&nbsp;
+</font></td></tr>
+
+</table>
+
+</td></tr></table>
+
+<br>
 
 </td>
 </tr>
-</tbody></table>
+</table>
 </td>
 </tr>
-</tbody></table>
+</table>
 <table width="100%">
-<tbody><tr>
+<tr>
 <td align="right">
 
-Contact: <a href="mailto:webmaster@jach.hawaii.edu">JAC Webmaster</a><br><br>
+Contact: <a href="http://www.jach.hawaii.edu/software/">JAC software group</a>.<br><br>
 
-<a href="#top" class="bottom">Return to top ^</a>
+<font style="font-size:10px">&nbsp;</font>
 </td>
 </tr>
-</tbody></table></body></html>
+</table>
+</body>
+</html>
