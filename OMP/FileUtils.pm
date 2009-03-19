@@ -153,7 +153,7 @@ sub get_scuba2_raw_files {
                                             'sort' => 1
                                             );
   }
-  catch OMP::Error::FatalError {
+  catch OMP::Error::FatalError with {
 
     my ( $err ) = @_;
     return
@@ -231,7 +231,7 @@ sub get_flag_files {
                                             'filter' => $filter
                                           );
   }
-  catch OMP::Error::FatalError {
+  catch OMP::Error::FatalError with {
 
     my ( $err ) = @_;
     return
