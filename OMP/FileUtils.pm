@@ -144,11 +144,21 @@ sub get_scuba2_raw_files {
               metafiledir
             ];
 
-  my $metas =
-    OMP::General->get_directory_contents( 'dir' => $meta_dir,
-                                          'filter' => qr/$meta_date_re/,
-                                          'sort' => 1
-                                          );
+  my $metas;
+  try {
+
+    $metas =
+      OMP::General->get_directory_contents( 'dir' => $meta_dir,
+                                            'filter' => qr/$meta_date_re/,
+                                            'sort' => 1
+                                            );
+  }
+  catch OMP::Error::FatalError {
+
+    my ( $err ) = @_;
+    return
+      if $err =~ /n[o']t open directory/i;
+  };
 
   # Get flag file list by reading meta files.
   my ( @flag );
@@ -213,10 +223,20 @@ sub get_flag_files {
 
   my ( $class, $dir, $filter, $runnr ) = @_;
 
-  my $flags =
-    OMP::General->get_directory_contents( 'dir' => $dir,
-                                          'filter' => $filter
-                                        );
+  my $flags;
+  try {
+
+    $flags =
+      OMP::General->get_directory_contents( 'dir' => $dir,
+                                            'filter' => $filter
+                                          );
+  }
+  catch OMP::Error::FatalError {
+
+    my ( $err ) = @_;
+    return
+      if $err =~ /n[o']t open directory/i;
+  };
 
   # Purge the list if runnr is not zero.
   if ( $runnr && $runnr != 0 ) {
