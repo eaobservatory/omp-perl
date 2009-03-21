@@ -21,6 +21,8 @@ use 5.006;
 use strict;
 use warnings::register;
 
+use File::Basename qw[ fileparse ];
+use File::Spec;
 use OMP::Error qw[ :try ];
 
 our $VERSION = (qw$Revision$)[1];
@@ -180,7 +182,6 @@ sub get_raw_files {
 
   my ( $class, $dir, $flags ) = @_;
 
-  my $parse = qr/(.+)\.(\w+)\.ok$/;
   my @raw;
 
   foreach my $file ( @{ $flags } ) {
@@ -190,8 +191,7 @@ sub get_raw_files {
     # the dot from the front and replacing the .ok on the end with .sdf.
     if ( -z $file ) {
 
-      my ( $prefix, $partial ) = ( $file =~ $parse );
-      push @raw, [ join '.', $prefix, $partial, 'sdf' ];
+      push @raw, [ $class->make_raw_name_from_flag( $file ) ];
       next;
     }
 
@@ -217,6 +217,18 @@ sub get_raw_files {
   }
 
   return @raw;
+}
+
+sub make_raw_name_from_flag {
+
+  my ( $class, $flag ) = @_;
+
+  my $suffix = '.sdf';
+
+  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
+  $raw =~ s/^[.]//;
+
+  return File::Spec->catfile( $dir, $raw . $suffix );
 }
 
 sub get_flag_files {
