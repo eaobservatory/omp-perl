@@ -147,6 +147,7 @@ sub translate {
                     DAS => 'ACSIS',
                     ACSIS => 'ACSIS',
                     SCUBA2 => 'SCUBA2',
+                    "SCUBA-2" => "SCUBA2",
                   );
 
   # Array of file handles that we should write verbose messages to
