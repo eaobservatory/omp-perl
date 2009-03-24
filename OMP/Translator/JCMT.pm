@@ -522,7 +522,7 @@ sub tcs_base {
   # since we will default to using the current Azimuth in this case.
   if ($info{obs_type} =~ /skydip|noise/ && $info{coords}->type eq 'CAL') {
     if ($self->verbose) {
-      print {$self->outhdl} "No target supplied for Skydip. Using current Azimuth.\n";
+      print {$self->outhdl} "No target supplied for $info{obs_type}. Using current Azimuth.\n";
     }
     return;
   }
