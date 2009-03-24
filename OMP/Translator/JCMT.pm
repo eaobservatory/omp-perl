@@ -58,7 +58,8 @@ our %FE_MAP = (
                RXB3 => 'RXB',
                'RXHARP-B' => 'HARPB',
                HARP => 'HARP',
-               SCUBA2 => 'SCUBA-2',
+               SCUBA2 => 'SCUBA2',
+               'SCUBA-2' => 'SCUBA2',
               );
 
 # Telescope diameter in metres
