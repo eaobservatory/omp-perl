@@ -681,11 +681,7 @@ sub observing_area {
   # offsets have to be in the same frame as the map if we are
   # defining a map area
 
-  # Note that a ZENITH noise is implemented as a SKYDIP with a single
-  # elevation
-
-  if ($info{obs_type} eq 'skydip' ||
-     ($info{obs_type} eq 'noise' && $info{noiseSource} =~ /zenith/i)) {
+  if ($info{obs_type} eq 'skydip' ) {
 
     my $isskydip = ($info{obs_type} eq 'skydip');
 
@@ -742,6 +738,18 @@ sub observing_area {
 
     # store the elevations
     $oa->skydip( @el );
+
+  } elsif ($info{obs_type} eq 'noise' &&
+           $info{noiseSource} =~ /(zenith|sky)/i ) {
+
+    if ($info{noiseSource} =~ /zenith/i) {
+      # default elevation for now
+      $oa->is_zenith_mode(1);
+    } elsif ($info{noiseSource} =~ /sky/i) {
+      $oa->is_sky_mode(1);
+    } else {
+      OMP::Error::FatalError->throw("Unexpectedly fell off if clause in noise: $info{noiseSource}");
+    }
 
   } elsif ($obsmode eq 'scan') {
 
