@@ -848,10 +848,11 @@ sub rotator_config {
 #  if ($nobs->{science} > 1 && $info{obs_type} eq 'science' && 
 #      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
 #    $slew = "LONGEST_SLEW";
-#  } elsif ( $nobs->{science} == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
-#    # if we only have pointings, bounce
-#    $slew = "LONGEST_SLEW";
-#  }
+#  } els
+  if ( $nobs->{science} == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
+    # if we only have pointings, bounce
+    $slew = "LONGEST_SLEW";
+  }
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => $slew,
