@@ -123,6 +123,8 @@ use constant {
   MINOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 2,
   MAJOR_INJURY => SAFETY_CLARAFICATION_SEVERITY + 3,
   INJURY_DEATH => SAFETY_CLARAFICATION_SEVERITY + 4,
+  ENV_ISSUE    => SAFETY_CLARAFICATION_SEVERITY + 5,
+  ENV_INCIDENT => SAFETY_CLARAFICATION_SEVERITY + 6,
 };
 
 # Safety - type.
@@ -131,6 +133,7 @@ use constant {
   SAFETY_CONCERN => SAFETY_CLARAFICATION_TYPE + 1,
   NEAR_MISS      => SAFETY_CLARAFICATION_TYPE + 2,
   INCIDENT       => SAFETY_CLARAFICATION_TYPE + 3,
+  ENVIRONMENT    => SAFETY_CLARAFICATION_TYPE + 4,
 };
 
 # Safety - action/status.
@@ -314,12 +317,15 @@ my %DATA = (
                                           'Minor injury' => MINOR_INJURY,
                                           'Equipment damage' => EQUIP_DAMAGE,
                                           'Clarification' => SAFETY_CLARAFICATION_SEVERITY,
+                                          'Environmental issue' => ENV_ISSUE,
+                                          'Environmental incident' => ENV_INCIDENT,
                                         },
                            'TYPE' => {
                                         'Incident' => INCIDENT,
                                         'Near miss' => NEAR_MISS,
                                         'Safety concern' => SAFETY_CONCERN,
-                                        'Safety clarification' => SAFETY_CLARAFICATION_TYPE
+                                        'Safety clarification' => SAFETY_CLARAFICATION_TYPE,
+                                        'Environment' => ENVIRONMENT,
                                       },
                         },
             'FACILITY' => {
