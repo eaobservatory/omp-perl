@@ -66,9 +66,9 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                   $IRCAMTAB => '(U.idkey = I.idkey)',
                                   $WFCAMTAB => '(U.idkey = W.idkey)',
                                 },
-                   $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid)',
+                   $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid AND A.obsid_subsysnr = F.obsid_subsysnr)',
                                  $JFILESTAB => '(J.obsid = F.obsid)',
-                                 $SCUBA2TAB => '(J.obsid = S2.obsid)',
+                                 $SCUBA2TAB => '(J.obsid = S2.obsid AND S2.obsid_subsysnr = F.obsid_subsysnr)',
                                },
                  );
 
