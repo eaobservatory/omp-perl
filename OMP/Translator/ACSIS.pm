@@ -799,6 +799,8 @@ sub rotator_config {
   my $scan_adj = 0;
   my @choices = (0..3);         # four fold symmetry
   if ($inst->name =~ /HARP/) {
+    print {$self->outhdl} "Selecting K-mirror angles\n" if $self->verbose;
+
     # need the TCS information
     my $tcs = $cfg->tcs();
     throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
@@ -814,6 +816,34 @@ sub rotator_config {
       # forcing FPLANE system)
       $scan_adj = rad2deg(atan2(1,4));
 
+      # we have to make sure that the k-mirror is rotated relative to the 
+      # scan angle and not the map angle. For "auto" mode these will be the same
+      # but for others they may not be. Problem occurs when multiple scan PAs
+      # are specified and they are not at 90 degrees to each other.
+      my %scan = $oa->scan();
+      if (exists $scan{PA}) {
+        my @scanpas = @{$scan{PA}};
+        if (@scanpas == 1) {
+          $pa = $scanpas[0];
+        } else {
+          my $use_scan = 1;
+          for my $i (1..$#scanpas) {
+            my $diff = abs($scanpas[$i]->degrees - $scanpas[$i-1]->degrees);
+            if ($diff % 90.0) {
+              if ($self->verbose) {
+                print {$self->outhdl} "\tScan selections do not differ by multiples of 90 degrees.\n";
+                print {$self->outhdl} "\tUsing map PA for K-mirror angle.\n";
+              }
+              $use_scan = 0;
+              last;
+            }
+          }
+          if ($use_scan) {
+            $pa = $scanpas[0];  # scans are at multiples of 90 deg
+          }
+        }
+        $system = $scan{SYSTEM};
+      }
     } elsif ($info{mapping_mode} eq 'jiggle') {
       # override the system from the jiggle. The PA should be matching the cube
       # but we make sure we use the requested value
@@ -827,6 +857,9 @@ sub rotator_config {
       $pa = new Astro::Coords::Angle( ($info{starePA} || 0), units => 'deg' );
     }
   }
+
+  print {$self->outhdl} "\tAligning K-mirror to ".$pa->degrees." deg with $scan_adj sampling adjustment ($system)\n"
+    if $self->verbose;
 
   # convert to set of allowed angles and remove duplicates
   my @angles = map {  ($_*90) + $scan_adj } @choices;
