@@ -59,7 +59,8 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
                    ACSIS => [ $JCMTTAB, $ACSISTAB, $AFILESTAB ],
-                   SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
+                   #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
+                   'SCUBA-2' => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
@@ -583,6 +584,7 @@ sub _post_process_hash {
           $tables{$ACSISTAB}++;
           $tables{$AFILESTAB}++;
           $insts{ACSIS}++;
+          $insts{'SCUBA-2'}++;
         } else {
           $insts{SCUBA}++;
           $insts{HETERODYNE}++;
@@ -592,6 +594,7 @@ sub _post_process_hash {
       } else {
         $insts{ACSIS}++;
         $insts{SCUBA}++;
+        $insts{'SCUBA-2'}++;
         $insts{HETERODYNE}++;
         $tables{$SCUTAB}++;
         $tables{$GSDTAB}++;
