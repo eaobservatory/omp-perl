@@ -506,6 +506,19 @@ sub handle_special_modes {
     };
     $info->{secsPerCycle} = $focus_secs;
 
+    # if this is harp then we want the K-mirror to be aligned in the same way it is aligned
+    # for POINTING observations (since you point and then focus and you do not want the thing to
+    # flip between the two if at all possible
+    if ($frontend =~ /^HARP/) {
+      my $staresys = "AZEL";
+      try {
+        $staresys = OMP::Config->getData( 'acsis_translator.harp_pointing_jigsys' );
+      } otherwise {
+        # no problem, use default
+      };
+      $info->{stareSystem} = $staresys;
+    }
+
     if ($self->verbose) {
       print {$self->outhdl} "Determining FOCUS parameters...\n";
       print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
