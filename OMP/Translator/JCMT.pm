@@ -122,8 +122,7 @@ sub translate {
   my $verbcur = $self->verbose;
   $self->verbose(0);
 
-  my $nsci = 0;
-  my $npt = 0;
+  my %obstypes = ( science => 0 );
   for my $obs (@unrolled) {
 
     # Translate observing mode information to internal form
@@ -131,12 +130,8 @@ sub translate {
     # there to report the information in verbose mode
     $self->observing_mode( $obs );
 
-    # Count science
-    if ($obs->{obs_type} eq 'science') {
-      $nsci++; 
-    } elsif ($obs->{obs_type} eq 'pointing') {
-      $npt++;
-    }
+    # count each type
+    $obstypes{$obs->{obs_type}}++;
   }
 
   # reset verbose mode
@@ -145,7 +140,9 @@ sub translate {
   # Now report useful information
   if ($self->verbose) {
     print {$self->outhdl} "Number of configurations: ".@unrolled."\n";
-    print {$self->outhdl} "Number of science observations: $nsci\n";
+    for my $t (keys %obstypes) {
+      print {$self->outhdl} "Number of $t observations: $obstypes{$t}\n";
+    }
   }
 
   # Now loop over each observation and translate it to a config object
@@ -215,7 +212,7 @@ sub translate {
     # the duration of the configuration
     if (!$ispriv) {
       $self->slew_config( $cfg, %$obs );
-      $self->rotator_config( $cfg, { science => $nsci, pointing => $npt }, %$obs );
+      $self->rotator_config( $cfg, \%obstypes, %$obs );
     }
 
     # Simulator

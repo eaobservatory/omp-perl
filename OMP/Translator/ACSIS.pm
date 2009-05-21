@@ -895,7 +895,16 @@ sub rotator_config {
 #      ($info{mapping_mode} eq 'jiggle' || $info{mapping_mode} eq 'grid')) {
 #    $slew = "LONGEST_SLEW";
 #  } els
-  if ( $nobs->{science} == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
+
+  # only bounce if the MSB consists entirely of pointings
+  # ideally we'd like to bounce for continuous chunks of pointings but this is easier
+  # and solves the pointing run issue.
+  my $nonpnt = 0;
+  for my $t (keys %$nobs) {
+    $nonpnt += $nobs->{$t} unless $t eq 'pointing';
+  }
+
+  if ( $nonpnt == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
     # if we only have pointings, bounce
     $slew = "LONGEST_SLEW";
   }
