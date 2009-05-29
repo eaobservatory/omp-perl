@@ -64,8 +64,6 @@ array of array references.
 sub files_on_disk {
   my ( $class, $instrument, $utdate, $runnr, $subarray ) = @_;
 
-  my @return;
-
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
     throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::Piece object" );
   }
