@@ -437,7 +437,7 @@ sub new_instrument {
   $nbContent->delete('0.0','end');
 
   my $counter = 0;
-  my $currentmsb = '';
+  my ( $currentmsb, $current_title ) = ( '' ) x2;
 
   # Set up a connection to the MSBDB.
   my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
@@ -468,25 +468,60 @@ sub new_instrument {
         $header_printed = 1;
       }
 
+      # Retrieve the MSB title.
+      if( ! exists( $msbtitles{$obs->checksum} ) ) {
+
+        my $title = $msbdb->titleMSB( $obs->checksum );
+        $msbtitles{$obs->checksum} =
+          defined $title
+          ? $title
+          : 'Unknown MSB' ;
+      }
+
       # If the current MSB differs from the MSB to which this
       # observation belongs, we need to insert text denoting the start
       # of the MSB. Ignore blank MSBTIDS.
-      if( (defined $obs->msbtid) && ( $obs->msbtid ne '' )
-          && ( $obs->msbtid ne $currentmsb ) ) {
+      my $new_msbtid =
+        defined $obs->msbtid
+        && $obs->msbtid ne ''
+        && $obs->msbtid ne $currentmsb ;
 
-        # Retrieve the MSB title.
-        if( ! exists( $msbtitles{$obs->checksum} ) ) {
-          my $title = $msbdb->titleMSB( $obs->checksum );
-          $title = "Unknown MSB" unless defined $title;
-          $msbtitles{$obs->checksum} = $title;
-        }
+      $currentmsb = $obs->msbtid
+        if $new_msbtid ;
 
-        $currentmsb = $obs->msbtid;
+      # Set true iff msbtid is not being used (as is currently (as of Jun 15,
+      # 2009) the case for ukirt..COMMON table, unlike in jcmt..COMMON where
+      # msbtid exists).
+      my $new_title =
+        ! ( $currentmsb
+            ||
+            $current_title eq $msbtitles{$obs->checksum}
+            ||
+            # TimeGap object causes production of its own title.
+            UNIVERSAL::isa( $obs, 'OMP::Info::Obs::TimeGap' )
+          ) ;
 
-        my $index = $counter;
-        my $otag = "o" . $index;
-        my $start = $nbContent->index('insert');
-        $nbContent->insert( 'end', "Beginning of MSB titled: " . $msbtitles{$obs->checksum} . "\n" );
+      $current_title = $msbtitles{$obs->checksum}
+        if $new_title;
+
+      my ( $index, $otag, $start );
+
+      if ( $new_msbtid || $new_title ) {
+
+        $index = $counter;
+        $otag = "o" . $index;
+        $start = $nbContent->index('insert');
+        $nbContent->insert( 'end',
+                            # Using msbtid if true.
+                            'Beginning of MSB titled: '
+                            . $msbtitles{$obs->checksum}
+                            . "\n"
+                          );
+
+        $nbContent->tag( 'configure', $otag,
+                         -background => $BACKGROUNDMSB,
+                         -foreground => $FOREGROUNDMSB,
+                       );
 
         # Get any activity associated with this MSB accept
         my $history;
@@ -541,10 +576,10 @@ sub new_instrument {
       }
 
       # Take a local copy of the index for callbacks
-      my $index = $counter;
+      $index = $counter;
 
       # Generate the tag name based on the index.
-      my $otag = "o" . $index;
+      $otag = "o" . $index;
 
       # Get the reference position
       my $start = $nbContent->index('insert');
