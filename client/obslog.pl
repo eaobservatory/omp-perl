@@ -436,13 +436,15 @@ sub new_instrument {
   $nbContent->configure( -state => 'normal' );
   $nbContent->delete('0.0','end');
 
-  my $counter = 0;
-  my ( $currentmsb, $current_title ) = ( '' ) x2;
-
   # Set up a connection to the MSBDB.
   my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
   if( defined( $obsgrp ) ) {
+
+    my $counter = 0;
+    my ( $old_checksum, $old_msbtid ) = ( '' ) x2;
+    my ( $is_new_checksum, $is_new_msbtid ) ;
+
     foreach my $obs( $obsgrp->obs ) {
       my %nightlog = $obs->nightlog(display => 'long',
                                   comments => 1, );
@@ -468,53 +470,65 @@ sub new_instrument {
         $header_printed = 1;
       }
 
-      # Retrieve the MSB title.
-      if( ! exists( $msbtitles{$obs->checksum} ) ) {
+      my $checksum = $obs->checksum;
 
-        my $title = $msbdb->titleMSB( $obs->checksum );
-        $msbtitles{$obs->checksum} =
-          defined $title
-          ? $title
-          : 'Unknown MSB' ;
+      my $msbtid = $obs->msbtid;
+      my $has_msbtid = defined $msbtid;
+
+      # Retrieve the MSB title.
+      if( ! exists( $msbtitles{ $checksum } ) ) {
+
+        my $title = $msbdb->titleMSB( $checksum );
+        $msbtitles{ $checksum } =
+            defined $title ? $title : 'Unknown MSB' ;
       }
+
+use lib '/home/agarwal/comp/perl5/lib';
+use Anubhav::Debug qw[ err_pkg_line err_trace ];
 
       # If the current MSB differs from the MSB to which this
       # observation belongs, we need to insert text denoting the start
       # of the MSB. Ignore blank MSBTIDS.
-      my $new_msbtid =
-        defined $obs->msbtid
-        && $obs->msbtid ne ''
-        && $obs->msbtid ne $currentmsb ;
 
-      $currentmsb = $obs->msbtid
-        if $new_msbtid ;
+      if ( $has_msbtid ) {
 
-      # Set true iff msbtid is not being used (as is currently (as of Jun 15,
-      # 2009) the case for ukirt..COMMON table, unlike in jcmt..COMMON where
-      # msbtid exists).
-      my $new_title =
-        ! ( $currentmsb
-            ||
-            $current_title eq $msbtitles{$obs->checksum}
-            ||
-            # TimeGap object causes production of its own title.
-            UNIVERSAL::isa( $obs, 'OMP::Info::Obs::TimeGap' )
-          ) ;
+        $is_new_msbtid =
+          $msbtid ne ''
+          && $msbtid ne $old_msbtid ;
 
-      $current_title = $msbtitles{$obs->checksum}
-        if $new_title;
+        $old_msbtid = $msbtid
+          if $has_msbtid;
+      }
+      # Set true iff msbtid is not being used, as is currently -- as of Jun 15,
+      # 2009 -- the case for ukirt..COMMON table, unlike jcmt..COMMON.msbtid.
+      else {
+
+err_pkg_line( [ $old_checksum , $is_new_checksum , $msbtitles{ $checksum } ] );
+
+        $is_new_checksum =
+          ! ( $old_checksum eq $checksum
+              ||
+              # Title is produced for TimeGap object elsewhere.
+              UNIVERSAL::isa( $obs, 'OMP::Info::Obs::TimeGap' )
+            ) ;
+
+        $old_checksum = $checksum
+          if $is_new_checksum;
+
+err_pkg_line( [ $old_checksum , $is_new_checksum , $msbtitles{ $checksum } ] );
+
+      }
 
       my ( $index, $otag, $start );
 
-      if ( $new_msbtid || $new_title ) {
+      if ( $is_new_msbtid || $is_new_checksum ) {
 
         $index = $counter;
         $otag = "o" . $index;
         $start = $nbContent->index('insert');
         $nbContent->insert( 'end',
-                            # Using msbtid if true.
                             'Beginning of MSB titled: '
-                            . $msbtitles{$obs->checksum}
+                            . $msbtitles{ $checksum }
                             . "\n"
                           );
 
@@ -526,7 +540,7 @@ sub new_instrument {
         # Get any activity associated with this MSB accept
         my $history;
         try {
-          $history = $msbdb->historyMSBtid( $obs->msbtid ) if defined $obs->msbtid;
+          $history = $msbdb->historyMSBtid( $msbtid ) if $has_msbtid;
         } otherwise {
           my $E = shift;
           print $E;
@@ -553,13 +567,14 @@ sub new_instrument {
                          -foreground => $FOREGROUNDMSB,
                        );
 
-        # Binding to add comment to start/status of MSB.
-        if ( $obs->checksum ne 'CAL' ) {
+        # Binding to add comment to start/status of MSB iff msbtid is also
+        # available.  Else, SaveMSBComment() will carp out.
+        if ( $checksum ne 'CAL' && $has_msbtid ) {
 
           $nbContent->tag( 'bind', $otag,
                           '<Double-Button-1>' =>
                               [ \&RaiseMSBComment, $obs,
-                                $msbtitles{$obs->checksum}, @comments
+                                $msbtitles{ $checksum }, @comments
                               ]
                           );
 
