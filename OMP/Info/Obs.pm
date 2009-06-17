@@ -517,6 +517,7 @@ sub filename {
       # put a path in front of everything.
       # Note that rawdatadir() calls this method without arguments
       my $rawdir = $self->rawdatadir;
+
       for my $f (@{$self->{FILENAME}}) {
         my ($vol, $path, $file) = File::Spec->splitpath( $f );
         next if $path;
@@ -1177,7 +1178,7 @@ sub rawdatadir {
   # We need the date in YYYYMMDD format
   my $utdate = $self->startobs->ymd;
 
-  my $dir;
+  my ( $dir , $tel , $sub_inst ) ;
   if( $instrument =~ /(ufti|ircam|cgs4|michelle|uist|wfcam)/i ) {
     $dir = OMP::Config->getData( 'rawdatadir',
                                  telescope => 'UKIRT',
@@ -1196,20 +1197,48 @@ sub rawdatadir {
     my ( $pre, $post ) = split /acsis/, $dir;
     $dir = File::Spec->catdir( $pre, 'acsis', 'spectra', $post, $runnr );
 
+    $sub_inst  = 'ACSIS';
+
   } elsif( $instrument =~ /^(rx|het|fts)/i ) {
     $dir = OMP::Config->getData( 'rawdatadir',
                                  telescope => 'JCMT',
                                  instrument => 'heterodyne',
                                  utdate => $utdate );
 
-  } elsif( $instrument =~ /scuba/i ) {
+    $sub_inst = 'heterodyne';
+
+  } elsif( $instrument =~ /^scuba$/i ) {
     $dir = OMP::Config->getData( 'rawdatadir',
                                  telescope => 'JCMT',
                                  instrument => 'SCUBA',
                                  utdate => $utdate );
-  } else {
-    throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
+
+    $sub_inst = 'SCUBA';
+
+  } elsif ( $instrument =~ /^scuba-?2$/i ) {
+    #throw OMP::Error("file_from_bits: Unable to determine filename for $instrument");
   }
+
+  #  Need to have run number appeneded (as least in case of ACSIS backend).
+  my $new_dir;
+  try {
+
+    my $cfg = OMP::Config->new;
+    my $inst = $self->backend;
+    $new_dir =
+      $cfg->getData( "${inst}.rawdatadir",
+                      telescope => $cfg->inferTelescope( 'instruments', $instrument),
+                      instrument => $inst,
+                      utdate => $utdate,
+                    );
+  }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $err ) = @_;
+
+    throw $err
+      unless $err =~ /^Key.+could not be found in OMP config system/i;
+  };
 
   return $dir;
 }

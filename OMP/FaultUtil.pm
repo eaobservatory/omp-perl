@@ -169,7 +169,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
   my $responselink = qq[<a href="$url">here</a>];
 
   # Add the response link to the bottom of our message
-  push(@faulttext, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url");
+  push(@faulttext, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url\n<br>\n");
 
   return join('',@faulttext);
 }

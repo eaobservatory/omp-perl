@@ -21,6 +21,10 @@ use 5.006;
 use strict;
 use warnings::register;
 
+use File::Basename qw[ fileparse ];
+use File::Spec;
+use OMP::Error qw[ :try ];
+
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
 
@@ -38,11 +42,17 @@ observation files.
   my @files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
   my $files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
 
+  @files =
+    OMP::General->files_on_disk( 'SCUBA-2', $date, $runnr, $subarray );
+
 The   instrument must be  a string.   The date  must be  a Time::Piece
 object.  If the date  is  not passed as   a Time::Piece object then an
 OMP::Error::BadArgs error  will be thrown.  The run  number must be an
 integer. If the run number is not passed or is zero, then no filtering
 by run number will be done.
+
+For SCUBA2 files, a subarray must be specified (from '4a' to '4d', or
+'8a' to '8d').
 
 If called in list context, returns a list of array references. Each
 array reference points to a list of observation files for a single
@@ -52,16 +62,10 @@ array of array references.
 =cut
 
 sub files_on_disk {
-  my $class = shift;
-  my $instrument = shift;
-  my $utdate = shift;
-  my $runnr = shift;
-
-  my @return;
+  my ( $class, $instrument, $utdate, $runnr, $subarray ) = @_;
 
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
-    throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::
-Piece object" );
+    throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::Piece object" );
   }
 
   if( ! defined( $runnr ) ||
@@ -72,93 +76,213 @@ Piece object" );
   my $date = $utdate->ymd;
   $date =~ s/-//g;
 
+  my $sys_config = OMP::Config->new;
+
   # Retrieve information from the configuration system.
-  my $tel = OMP::Config->inferTelescope( 'instruments', $instrument );
-  my $directory = OMP::Config->getData( 'rawdatadir',
-                                        telescope => $tel,
-                                        instrument => $instrument,
-                                        utdate => $utdate,
-                                      );
-  my $flagfileregexp = OMP::Config->getData( 'flagfileregexp',
-                                             telescope => $tel,
-                                           );
+  my $tel = $sys_config->inferTelescope( 'instruments', $instrument );
 
-  # Remove the /dem from non-SCUBA directories.
-  if( uc( $instrument ) ne 'SCUBA' ) {
-    $directory =~ s/\/dem$//;
+  my %config =
+    (
+      telescope  => $tel,
+      instrument => $instrument,
+      utdate     => $utdate,
+      runnr      => $runnr,
+      subarray   => $subarray,
+    );
+
+  my $directory = $sys_config->getData( 'rawdatadir', %config );
+  my $flagfileregexp = $sys_config->getData( 'flagfileregexp',
+                                              telescope => $tel,
+                                            );
+
+  # getData() throws an exception in the case of missing key.  No point in dying
+  # then as default value will be used instead from earlier extraction.
+  try {
+
+    $directory = $sys_config->getData( "${instrument}.rawdatadir" , %config );
+
+    $flagfileregexp = $sys_config->getData( "${instrument}.flagfileregexp", %config );
+  }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e  ) = @_;
+    throw $e unless $e =~ /^Key.+could not be found in OMP config system/i;
+  };
+
+  my ( $use_meta, @return );
+
+  if ( $class->use_raw_meta_opt( $sys_config, %config ) ) {
+
+    @return =
+      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp );
+  }
+  else {
+
+    @return =
+      $class->get_raw_files( $directory,
+                              $class->get_flag_files( $directory, $flagfileregexp, $runnr )
+                            );
   }
 
-  # Change wfcam to wfcam1 if the instrument is WFCAM.
-  if( uc( $instrument ) eq 'WFCAM' ) {
-    $directory =~ s/wfcam/wfcam1/;
+  return wantarray ? @return : \@return ;
+}
+
+sub use_raw_meta_opt {
+
+  my ( $class, $omp_config, %config ) = @_;
+
+  my $meta;
+  try {
+
+    $meta = $omp_config
+            ->getData( qq[$config{'instrument'}.raw_meta_opt], %config );
   }
-  # ACSIS directory is actually acsis/acsis00/utdate.
-  if( uc( $instrument ) eq 'ACSIS' ) {
-    $directory =~ s[(acsis)/(\d{8})][$1/spectra/$2];
+  # "raw_meta_opt" may be missing entirely, considered same as a false value.
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e  ) = @_;
+
+    throw $e
+      unless $e =~ /^Key.+could not be found in OMP config system/i;
+  };
+
+  return !!$meta;
+}
+
+sub get_raw_files_from_meta {
+
+  my ( $class, $sys_config, $config, $flag_re ) = @_;
+
+  $flag_re = qr{$flag_re};
+
+  # Get meta file list.
+  my $inst = $config->{'instrument'};
+  my ( $meta_re, $meta_date_re, $meta_dir )
+    = map { $sys_config->getData( "${inst}.${_}", %{ $config } ) }
+          qw[ metafileregexp
+              metafiledateregexp
+              metafiledir
+            ];
+
+  my $metas;
+  try {
+
+    $metas =
+      OMP::General->get_directory_contents( 'dir' => $meta_dir,
+                                            'filter' => qr/$meta_date_re/,
+                                            'sort' => 1
+                                            );
+  }
+  catch OMP::Error::FatalError with {
+
+    my ( $err ) = @_;
+    return
+      if $err =~ /n[o']t open directory/i;
+  };
+
+  # Get flag file list by reading meta files.
+  my ( @flag );
+  for my $file ( @{ $metas } ) {
+
+    my $flags = OMP::General->get_file_contents( 'file' => $file,
+                                                  'filter' => $flag_re,
+                                                );
+    next unless scalar @{ $flags };
+
+    push @flag, map { File::Spec->catfile( $meta_dir, $_ ) } @{ $flags };
   }
 
-  # Open the directory.
-  opendir( OMP_DIR, $directory );
+  return $class->get_raw_files( $meta_dir, \@flag );
+}
 
-  # Get the list of files that match the flag file regexp.
-  my @flag_files = sort grep ( /$flagfileregexp/, readdir( OMP_DIR ) );
+# Go through each flag file, open it, and retrieve the list of files within it.
+sub get_raw_files {
+
+  my ( $class, $dir, $flags ) = @_;
+
+  my @raw;
+
+  foreach my $file ( @{ $flags } ) {
+
+    # If the flag file size is 0 bytes, then we assume that the observation file
+    # associated with that flag file is of the same naming convention, removing
+    # the dot from the front and replacing the .ok on the end with .sdf.
+    if ( -z $file ) {
+
+      push @raw, [ $class->make_raw_name_from_flag( $file ) ];
+      next;
+    }
+
+    my ( $lines, $err );
+    try {
+
+      $lines = OMP::General->get_file_contents( 'file' => $file );
+    }
+    catch OMP::Error::FatalError with {
+
+      ( $err ) = @_;
+      throw $err
+        unless $err =~ /^Cannot open file/i;
+    };
+    if ( $err ) {
+
+      warn $err;
+      warn "... skipped\n";
+      next;
+    }
+
+    push @raw, [ map { File::Spec->catfile( $dir, $_ ) } @{ $lines } ];
+  }
+
+  return @raw;
+}
+
+sub make_raw_name_from_flag {
+
+  my ( $class, $flag ) = @_;
+
+  my $suffix = '.sdf';
+
+  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
+  $raw =~ s/^[.]//;
+
+  return File::Spec->catfile( $dir, $raw . $suffix );
+}
+
+sub get_flag_files {
+
+  my ( $class, $dir, $filter, $runnr ) = @_;
+
+  my $flags;
+  try {
+
+    $flags =
+      OMP::General->get_directory_contents( 'dir' => $dir,
+                                            'filter' => $filter
+                                          );
+  }
+  catch OMP::Error::FatalError with {
+
+    my ( $err ) = @_;
+    return
+      if $err =~ /n[o']t open directory/i;
+  };
 
   # Purge the list if runnr is not zero.
-  if( $runnr != 0 ) {
-    foreach my $flag_file ( @flag_files ) {
-      $flag_file =~ /$flagfileregexp/;
+  if ( $runnr && $runnr != 0 ) {
+
+    foreach my $f ( @{ $flags } ) {
+
+      $f =~ /$filter/;
       if( int($1) == $runnr ) {
-        @flag_files = [];
-        push @flag_files, $flag_file;
+
+        $flags = [ $f ];
         last;
       }
     }
   }
 
-  @flag_files = map { File::Spec->catfile( $directory, $_ ) } @flag_files;
-
-  # Close the directory.
-  close( OMP_DIR );
-
-  # Go through each flag file, open it, and retrieve the list of files
-  # within it. If the flag file size is 0 bytes, then we assume that
-  # the observation file associated with that flag file is of the same
-  # naming convention, removing the dot from the front and replacing
-  # the .ok on the end with .sdf.
-  foreach my $flag_file ( @flag_files ) {
-
-    # Zero-byte filesize.
-    if ( -z $flag_file ) {
-
-      $flag_file =~ /(.+)\.(\w+)\.ok$/;
-      my $data_file = $1 . $2 . ".sdf";
-
-      my @array;
-      push @array, $data_file;
-      push @return, \@array;
-
-    } else {
-
-      open my $flag_fh, "<", $flag_file;
-
-      my @array;
-      while (<$flag_fh>) {
-        chomp;
-        push @array, File::Spec->catfile( $directory, $_ );
-      }
-      push @return, \@array;
-
-      close $flag_fh;
-
-    }
-
-  }
-
-  if( wantarray ) {
-    return @return;
-  } else {
-    return \@return;
-  }
+  return $flags;
 }
 
 =back
@@ -169,7 +293,7 @@ Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2006 Particle Physics and Astronomy Research Council.
+Copyright (C) 2006-2009 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
