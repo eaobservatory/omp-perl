@@ -475,20 +475,8 @@ sub new_instrument {
       my $msbtid = $obs->msbtid;
       my $has_msbtid = defined $msbtid;
 
-      # Retrieve the MSB title.
-      if( ! exists( $msbtitles{ $checksum } ) ) {
-
-        my $title = $msbdb->titleMSB( $checksum );
-        $msbtitles{ $checksum } =
-            defined $title ? $title : 'Unknown MSB' ;
-      }
-
 use lib '/home/agarwal/comp/perl5/lib';
 use Anubhav::Debug qw[ err_pkg_line err_trace ];
-
-      # If the current MSB differs from the MSB to which this
-      # observation belongs, we need to insert text denoting the start
-      # of the MSB. Ignore blank MSBTIDS.
 
       if ( $has_msbtid ) {
 
@@ -503,8 +491,6 @@ use Anubhav::Debug qw[ err_pkg_line err_trace ];
       # 2009 -- the case for ukirt..COMMON table, unlike jcmt..COMMON.msbtid.
       else {
 
-err_pkg_line( [ $old_checksum , $is_new_checksum , $msbtitles{ $checksum } ] );
-
         $is_new_checksum =
           ! ( $old_checksum eq $checksum
               ||
@@ -514,14 +500,22 @@ err_pkg_line( [ $old_checksum , $is_new_checksum , $msbtitles{ $checksum } ] );
 
         $old_checksum = $checksum
           if $is_new_checksum;
-
-err_pkg_line( [ $old_checksum , $is_new_checksum , $msbtitles{ $checksum } ] );
-
       }
 
       my ( $index, $otag, $start );
 
-      if ( $is_new_msbtid || $is_new_checksum ) {
+      # If the current MSB differs from the MSB to which this
+      # observation belongs, we need to insert text denoting the start
+      # of the MSB. Ignore blank MSBTIDS.
+      if ( $checksum && ( $is_new_msbtid || $is_new_checksum ) ) {
+
+        # Retrieve the MSB title.
+        if( ! exists( $msbtitles{ $checksum } ) ) {
+
+          my $title = $msbdb->titleMSB( $checksum );
+          $msbtitles{ $checksum } =
+              defined $title ? $title : 'Unknown MSB' ;
+        }
 
         $index = $counter;
         $otag = "o" . $index;
