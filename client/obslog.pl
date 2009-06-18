@@ -443,7 +443,6 @@ sub new_instrument {
 
     my $counter = 0;
     my ( $old_checksum, $old_msbtid ) = ( '' ) x2;
-    my ( $is_new_checksum, $is_new_msbtid ) ;
 
     foreach my $obs( $obsgrp->obs ) {
       my %nightlog = $obs->nightlog(display => 'long',
@@ -470,13 +469,13 @@ sub new_instrument {
         $header_printed = 1;
       }
 
+      # In case msbtid column is missing or has no value (calibration), use checksum.
       my $checksum = $obs->checksum;
 
       my $msbtid = $obs->msbtid;
-      my $has_msbtid = defined $msbtid;
+      my $has_msbtid = defined $msbtid && length $msbtid;
 
-use lib '/home/agarwal/comp/perl5/lib';
-use Anubhav::Debug qw[ err_pkg_line err_trace ];
+      my ( $is_new_checksum, $is_new_msbtid );
 
       if ( $has_msbtid ) {
 
@@ -485,10 +484,12 @@ use Anubhav::Debug qw[ err_pkg_line err_trace ];
           && $msbtid ne $old_msbtid ;
 
         $old_msbtid = $msbtid
-          if $has_msbtid;
+          if $is_new_msbtid;
+
+        # Reset to later handle case of 'calibration' since checksum 'CAL' never
+        # changes.
+        $old_checksum = '';
       }
-      # Set true iff msbtid is not being used, as is currently -- as of Jun 15,
-      # 2009 -- the case for ukirt..COMMON table, unlike jcmt..COMMON.msbtid.
       else {
 
         $is_new_checksum =
@@ -561,9 +562,8 @@ use Anubhav::Debug qw[ err_pkg_line err_trace ];
                          -foreground => $FOREGROUNDMSB,
                        );
 
-        # Binding to add comment to start/status of MSB iff msbtid is also
-        # available.  Else, SaveMSBComment() will carp out.
-        if ( $checksum ne 'CAL' && $has_msbtid ) {
+        # Binding to add comment to start/status of MSB
+        if ( $checksum ne 'CAL' ) {
 
           $nbContent->tag( 'bind', $otag,
                           '<Double-Button-1>' =>
@@ -1516,11 +1516,10 @@ sub SaveMSBComment {
     unless $user;
 
   throw OMP::Error::FatalError( <<'NOINFO'
-Cannot save: Need OMP::Info::Obs object with project id, transaction id, and MSB checksum.
+Cannot save: Need OMP::Info::Obs object with project id and MSB checksum.
 NOINFO
                               )
-    unless $obs->msbtid
-    && $obs->checksum
+    unless $obs->checksum
     && $obs->projectid ;
 
   my $db = OMP::MSBDoneDB->new( 'ProjectID' => $obs->projectid,
