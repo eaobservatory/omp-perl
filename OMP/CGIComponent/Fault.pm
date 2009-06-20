@@ -188,11 +188,7 @@ sub fault_table {
   ($fault->isUrgent) and $urgencyhtml = "<b><font color=#d10000>THIS FAULT IS URGENT</font></b>";
 
   # Get available statuses
-  my %status = $fault->isNotSafety
-                ? $fault->faultStatus()
-                : $fault->faultStatus_Safety
-                ;
-  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
+  my ( $labels, $values ) = $self->get_status_labels( $fault );
 
   my $width = $self->_get_table_width;
   # First show the fault info
@@ -215,8 +211,8 @@ sub fault_table {
     print $q->hidden(-name=>'faultid', -default=>$fault->id);
     print $q->popup_menu(-name=>'status',
                          -default=>$fault->status,
-                         -values=>[values %status],
-                         -labels=>\%labels,);
+                         -values=> $values,
+                         -labels=> $labels,);
     print " ";
     print $q->submit(-name=>'change_status',
                      -label=>'Change',);
@@ -332,7 +328,14 @@ sub query_fault_form {
 
   if ( 'anycat' eq lc $category ) {
 
-    %status = ( %status, OMP::Fault->faultStatus_Safety );
+    %status = ( %status,
+                map { OMP::Fault->$_ }
+                  qw[ faultStatus_Safety faultStatus_EventLog  ]
+              );
+  }
+  elsif ( 'event log' eq lc $category ) {
+
+    %status = OMP::Fault->faultStatus_EventLog;
   }
   elsif ( ! $not_safety ) {
 
@@ -553,26 +556,23 @@ Only argument is an C<OMP::Fault> object.
 
 =cut
 
+
 sub change_status_form {
   my $self = shift;
   my $fault= shift;
   my $q = $self->cgi;
 
+  my ( $labels, $values ) = $self->get_status_labels( $fault );
+
   my $faultid = $fault->id;
-  # Get available statuses
-  my %status = $fault->isNotSafety
-                ? OMP::Fault->faultStatus
-                : OMP::Fault->faultStatus_Safety
-                ;
-  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
 
   print $q->startform;
   print $q->hidden(-name=>'show_output', -default=>'true');
   print $q->hidden(-name=>'faultid', -default=>$faultid);
   print $q->popup_menu(-name=>'status',
                        -default=>$fault->status,
-                       -values=>[values %status],
-                       -labels=>\%labels,);
+                       -values=> $values,
+                       -labels=> $labels,);
   print " ";
   print $q->submit(-name=>'change_status',
                    -label=>'Change',);
@@ -617,7 +617,14 @@ sub file_fault_form {
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
   # Get available statuses
-  my $staus_meth = $not_safety ? 'faultStatus' : 'faultStatus_Safety';
+  my $staus_meth =
+    'event log' eq lc $category
+    ? 'faultStatus_EventLog'
+    : $not_safety
+      ? 'faultStatus'
+      : 'faultStatus_Safety'
+      ;
+
   my %status = OMP::Fault->$staus_meth;
   my @status_values = map {$status{$_}} sort keys %status;
   my %status_labels = map {$status{$_}, $_} %status;
@@ -958,12 +965,7 @@ sub response_form {
   # Get a new key for this form
   my $formkey = OMP::KeyServer->genKey;
 
-  # Get available statuses
-  my %status = $fault->isNotSafety
-                ? $fault->faultStatus
-                : $fault->faultStatus_Safety
-                ;
-  my %labels = map {$status{$_}, $_} %status; # pop-up menu labels
+  my ( $labels, $values ) = $self->get_status_labels( $fault );
 
   # Set defaults.  Use cookie values if param values aren't available.
   my %defaults;
@@ -1027,8 +1029,8 @@ sub response_form {
     print "</td><tr><td><b>Status: </b></td><td>";
     print $q->popup_menu(-name=>'status',
                          -default=>$defaults{status},
-                         -values=>[values %status],
-                         -labels=>\%labels,);
+                         -values=> $values,
+                         -labels=> $labels,);
   }
 
   print "</td><tr><td></td><td>";
@@ -1245,13 +1247,17 @@ element will appear in a smaller font below the top-bar.
     my $script = $q->url(-relative=>1);
 
     my $cat = $self->category;
+    my $low_cat = lc $cat;
+
     my $toptitle =
-        lc $cat eq 'safety'
+        $low_cat eq 'safety'
         ? "$cat Reporting"
-        : lc $cat ne 'anycat'
-          ? "$cat Faults"
-          : 'All Faults'
-          ;
+        : $low_cat eq 'event log'
+          ? 'Event Log'
+          : $low_cat ne 'anycat'
+            ? "$cat Faults"
+            : 'All Faults'
+            ;
 
     my $width = $self->_get_table_width;
     print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
@@ -1435,6 +1441,33 @@ sub category_xml {
   } else {
     return "";
   }
+}
+
+=item B<get_status_labels>
+
+Given L<OMP::Fault> objects, returns a list of an array reference
+value, and a hash reference of labels for HTML selection menu.
+
+ ( $status, $labels ) = $comp->get_status_labels( $fault );
+
+=cut
+
+sub get_status_labels {
+
+  my ( $self, $fault ) = @_;
+
+  my %status =
+    $fault->isEventLog
+    ? OMP::Fault->faultStatus_EventLog
+    : $fault->isNotSafety
+      ? OMP::Fault->faultStatus
+      : OMP::Fault->faultStatus_Safety
+      ;
+
+  # Pop-up menu labels.
+  my %label = map { $status{$_}, $_ } %status;
+
+  return (  \%label, [ values %status ] );
 }
 
 =back
