@@ -287,10 +287,14 @@ sub query_fault_output {
   my $category = $self->_get_param('cat');
 
   # XML query to return faults from the last 14 days
-  my %faultstatus = 'safety' ne lc $category
-                      ? OMP::Fault->faultStatus
-                      : OMP::Fault->faultStatus_Safety
-                      ;
+  my %faultstatus =
+    'safety' eq lc $category
+    ? OMP::Fault->faultStatus_Safety
+    : 'event log' eq lc $category
+      ? OMP::Fault->faultStatus_EventLog
+      : OMP::Fault->faultStatus
+      ;
+
   my $currentxml = "<FaultQuery>".
     $comp->category_xml().
       "<date delta='-14'>" . $t->datetime . "</date>".
@@ -344,7 +348,8 @@ sub query_fault_output {
 
         # Do query on all closed statuses
         my %status = ( OMP::Fault->faultStatusClosed,
-                        OMP::Fault->faultStatusClosed_Safety
+                        OMP::Fault->faultStatusClosed_Safety,
+                        OMP::Fault->faultStatusClosed_EventLog
                       );
 
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
@@ -352,7 +357,8 @@ sub query_fault_output {
 
         # Do a query on all open statuses
         my %status = ( OMP::Fault->faultStatusOpen,
-                        OMP::Fault->faultStatusOpen_Safety
+                        OMP::Fault->faultStatusOpen_Safety,
+                        OMP::Fault->faultStatusOpen_EventLog
                       );
 
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
@@ -360,7 +366,8 @@ sub query_fault_output {
 
         # Do a query on just a single status
         my %status = ( OMP::Fault->faultStatus,
-                        OMP::Fault->faultStatus_Safety
+                        OMP::Fault->faultStatus_Safety,
+                        OMP::Fault->faultStatus_EventLog
                       );
 
         push (@xml, "<status>$status</status>");
@@ -740,7 +747,11 @@ sub view_fault_output {
     # Now update the status if necessary
     if ($status != $fault->status) {
       # Lookup table for status
-      my %status = ( OMP::Fault->faultStatus(), OMP::Fault->faultStatus_Safety );
+      my %status =
+        ( OMP::Fault->faultStatus(),
+          OMP::Fault->faultStatus_Safety,
+          OMP::Fault->faultStatus_EventLog
+        );
 
       # Change status in fault object
       $fault->status($status);
@@ -1601,7 +1612,8 @@ sub _write_login {
 
 BEGIN {
 
-  my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ANYCAT ];
+  my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ];
+  push @order, 'EVENT LOG', 'ANYCAT';
 
   my %long_text =
     ( 'CSG'      => 'JAC computer services',
@@ -1611,20 +1623,21 @@ BEGIN {
       'DR'       => 'data reduction systems',
       'FACILITY' => 'facilities',
       'SAFETY'   => 'safety',
+      'EVENT LOG' => 'event log',
       'ANYCAT'   => 'all categories',
     );
 
   sub _fault_sys_links {
 
     my %links;
-    for ( @order ) {
+    for my $type ( @order ) {
 
-      next if $_ eq 'SAFETY';
+      next if grep { $type eq $_ } ( 'SAFETY', 'EVENT LOG' );
 
-      $links{ $_ } =
-        { 'url'   => "queryfault.pl?cat=$_",
-          'text'  => "$_ Faults",
-          'extra' => 'faults relating to ' . $long_text{ $_ }
+      $links{ $type } =
+        { 'url'   => "queryfault.pl?cat=$type",
+          'text'  => "$type Faults",
+          'extra' => 'faults relating to ' . $long_text{ $type }
         };
     }
 
@@ -1632,6 +1645,12 @@ BEGIN {
       { 'url'   => 'queryfault.pl?cat=SAFETY',
         'text'  => 'Safety Reporting',
         'extra' => 'issues relating to safety'
+      };
+
+    $links{'EVENT LOG'} =
+      { 'url'   => 'queryfault.pl?cat=EVENT LOG',
+        'text'  => 'Event Log',
+        'extra' => ''
       };
 
     #  Fine tune 'ANYCAT' description.
