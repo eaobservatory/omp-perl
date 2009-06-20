@@ -556,7 +556,6 @@ Only argument is an C<OMP::Fault> object.
 
 =cut
 
-
 sub change_status_form {
   my $self = shift;
   my $fault= shift;
