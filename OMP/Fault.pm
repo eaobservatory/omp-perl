@@ -116,6 +116,16 @@ use constant SURF => 1062;
 use constant STARLINK => 1063;
 use constant WORF => 1064;
 
+# FRONT_END_HARP is 2001.
+use constant {
+  FTS2     => FRONT_END_HARP +  1,
+  OCS_JOS  => FRONT_END_HARP +  2,
+  POINTING => FRONT_END_HARP +  3,
+  POL2     => FRONT_END_HARP +  4,
+  ROVER    => FRONT_END_HARP +  5,
+  SMU_TMU  => FRONT_END_HARP +  6,
+};
+
 # Safety - severity.
 use constant SAFETY_CLARAFICATION_SEVERITY => 3000;
 use constant {
@@ -173,28 +183,28 @@ use constant {
   PLUMBING        => INSECT + 2,
   AC_DEHUMIDIFIER => INSECT + 3,
   ALARM_SYS       => INSECT + 4,
-  ELECTTICAL      => INSECT + 5,
+  ELECTRICAL      => INSECT + 5,
 };
 
 # Even log - system.
-use constant EV_LOG => 5040;
+use constant EV_LOG => 6000;
 use constant {
 
   # Already set elsewhere.
   #ACSIS - Back end ACSIS.
   #COMPUTER
-  #SOFTWARE/DR - ORAC-DR
+  #FTS2
   #HARP, RXA, RXW - Front end HARP, RX[AW].
-  #SCUBA-2, SCUBA2
+  #OCS/JOS - OCS_JOS
+  #POINTING
+  #POL2
+  #ROVER
+  #SCUBA-2 - SCUBA2
+  #SMU_TMU
+  #SOFTWARE/DR - ORAC-DR
   #TELESCOPE
 
-  FTS2     => EV_LOG + 1,
-  OCS_JOS  => EV_LOG + 2,
-  RXH3_SURFACE => EV_LOG + 3,
-  ROVER    => EV_LOG + 4,
-  POL2     => EV_LOG + 5,
-  POINTING => EV_LOG + 6,
-  SMU_TMU  => EV_LOG + 7,
+  RXH3_SURFACE => EV_LOG + 1,
 };
 
 # Event log - type.
@@ -381,7 +391,7 @@ my %DATA = (
                                         'Plumbing'            => PLUMBING        ,
                                         'A/C or dehumidifier' => AC_DEHUMIDIFIER ,
                                         'Alarm system'        => ALARM_SYS       ,
-                                        'Electrical'          => ELECTTICAL      ,
+                                        'Electrical'          => ELECTRICAL      ,
                                         'Network'             => NETWORK         ,
                                         'Computer'            => COMPUTER        ,
                                         'Other'               => TYPEOTHER       ,
