@@ -176,6 +176,39 @@ use constant {
   ELECTTICAL      => INSECT + 5,
 };
 
+# Even log - system.
+use constant EV_LOG => 5040;
+use constant {
+
+  # Already set elsewhere.
+  #ACSIS - Back end ACSIS.
+  #COMPUTER
+  #SOFTWARE/DR - ORAC-DR
+  #HARP, RXA, RXW - Front end HARP, RX[AW].
+  #SCUBA-2, SCUBA2
+  #TELESCOPE
+
+  FTS2     => EV_LOG + 1,
+  OCS_JOS  => EV_LOG + 2,
+  RXH3_SURFACE => EV_LOG + 3,
+  ROVER    => EV_LOG + 4,
+  POL2     => EV_LOG + 5,
+  POINTING => EV_LOG + 6,
+  SMU_TMU  => EV_LOG + 7,
+};
+
+# Event log - type.
+# Already set elsewhere.
+#HARDWARE
+#SOFTWARE
+
+# Event log - status.
+use constant {
+  COMMISSIONING => EV_LOG + 10,
+  ONGOING       => EV_LOG + 11,
+  COMPLETE      => EV_LOG + 12,
+};
+
 # Mailing list
 my %MAILLIST = (
                   'CSG'   => 'csg_faults@jach.hawaii.edu'   ,
@@ -185,6 +218,7 @@ my %MAILLIST = (
                   'DR'    => 'dr_faults@jach.hawaii.edu'    ,
                   'SAFETY'   => 'safety_faults@jach.hawaii.edu'   ,
                   'FACILITY' => 'facility_faults@jach.hawaii.edu' ,
+                  'EVENT LOG' => 'jcmt_event_log@jach.hawaii.edu' ,
                );
 
 my %DATA = (
@@ -353,6 +387,29 @@ my %DATA = (
                                         'Other'               => TYPEOTHER       ,
                                       },
                           },
+                'EVENT LOG' => {
+                      'SYSTEM' => {
+                                    'ACSIS'         =>  BACK_END_ACSIS ,
+                                    'Computer'      =>  COMPUTER       ,
+                                    'FTS2'          =>  FTS2           ,
+                                    'HARP'          =>  FRONT_END_HARP ,
+                                    'OCS/JOS'       =>  OCS_JOS        ,
+                                    'Pointing'      =>  POINTING       ,
+                                    'POL2'          =>  POL2           ,
+                                    'Rover'         =>  ROVER          ,
+                                    'RxA'           =>  FRONT_END_RXA  ,
+                                    'RxW'           =>  FRONT_END_RXW  ,
+                                    'RxH3/Surface'  =>  RXH3_SURFACE   ,
+                                    'SCUBA-2'       =>  SCUBA2         ,
+                                    'SMU/TMU'       =>  SMU_TMU        ,
+                                    'Software-DR'   =>  ORAC_DR        ,
+                                    'Telescope'     =>  TELESCOPE      ,
+                                  },
+                      'TYPE' => {
+                                  'Hardware' =>  HARDWARE ,
+                                  'Software' =>  SOFTWARE ,
+                                },
+                  }
             );
 
 my %LOCATION = (
@@ -394,8 +451,10 @@ my %OPTIONS = (
                               CAN_LOSE_TIME => 0,
                               CAN_ASSOC_PROJECTS => 0,
                               IS_TELESCOPE => 0,
-                            }
+                            },
               );
+
+$OPTIONS{'EVENT LOG'} = { %{ $OPTIONS{'SAFETY'} } };
 
 # Urgency
 my %URGENCY = (
@@ -437,6 +496,15 @@ my %STATUS = ( %STATUS_OPEN, %STATUS_CLOSED );
 
 my %SAFETY_STATUS = ( %SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED );
 
+my %EV_LOG_STATUS_OPEN = ( 'Commissioning' => COMMISSIONING,
+                           'Ongoing' => ONGOING,
+                          );
+
+my %EV_LOG_STATUS_CLOSED = ( 'Complete' => COMPLETE,
+                            );
+
+my %EV_LOG_STATUS = ( %EV_LOG_STATUS_OPEN, %EV_LOG_STATUS_CLOSED );
+
 # Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
@@ -455,6 +523,10 @@ for (keys %STATUS) {
 
 for (keys %SAFETY_STATUS ) {
   $INVERSE_STATUS{ $SAFETY_STATUS{$_} } = $_;
+}
+
+for (keys %EV_LOG_STATUS ) {
+  $INVERSE_STATUS{ $EV_LOG_STATUS{$_} } = $_;
 }
 
 my %INVERSE_PLACE;
@@ -643,6 +715,23 @@ sub faultLocation_Safety {
 
   my $class = shift;
   return %LOCATION;
+}
+
+sub faultStatus_EventLog {
+  my $class = shift;
+  return %EV_LOG_STATUS;
+}
+
+sub faultStatusOpen_EventLog {
+
+  my $class = shift;
+  return %EV_LOG_STATUS_OPEN;
+}
+
+sub faultStatusClosed_EventLog {
+
+  my $class = shift;
+  return %EV_LOG_STATUS_CLOSED;
 }
 
 =item B<faultCanAssocProjects>
@@ -1005,13 +1094,19 @@ Is the fault open or closed?
 sub isOpen {
   my $self = shift;
   my $status = $self->status;
-  return ( $status == OPEN or $status == WILL_BE_FIXED
-           or $status == FOLLOW_UP
-           or $status == IMMEDIATE_ACTION
-           or $status == REFER_TO_SAFETY_COMMITTEE
-            ? 1
-            : 0
-          );
+
+  return
+    grep
+      { $status == $_ }
+      ( OPEN(),
+        WILL_BE_FIXED(),
+        FOLLOW_UP(),
+        IMMEDIATE_ACTION(),
+        REFER_TO_SAFETY_COMMITTEE(),
+        COMMISSIONING(),
+        ONGOING(),
+      )
+    ? 1 : 0 ;
 }
 
 =item B<isNew>
@@ -1030,11 +1125,22 @@ sub isNew {
   return ( $date >= $t ? 1 : 0 );
 }
 
+sub isSafety {
+
+  my ( $self ) = @_;
+  return 'safety' eq lc $self->category;
+}
+
 sub isNotSafety {
 
   my ( $self ) = @_;
+  return ! $self->isSafety;
+}
 
-  return 'safety' ne lc $self->category;
+sub isEventLog {
+
+  my ( $self ) = @_;
+  return 'event log' eq lc $self->category;
 }
 
 =item B<subject>
