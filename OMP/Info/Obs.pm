@@ -89,10 +89,7 @@ sub new {
   # translate the fits header to generic
   my %args = @_;
 
-  # count keys
-  if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 4) {
-    $obs->_populate();
-  }
+  $obs->_populate();
 
   return $obs;
 }
@@ -1384,7 +1381,10 @@ sub _populate {
   my $self = shift;
 
   my $header = $self->hdrhash;
+  return unless $header;
+
   my %generic_header = Astro::FITS::HdrTrans::translate_from_FITS($header, frameset => $self->wcs);
+  return unless keys %generic_header;
 
   $self->projectid( $generic_header{PROJECT} );
   $self->checksum( $generic_header{MSBID} );
