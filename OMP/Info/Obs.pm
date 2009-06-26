@@ -88,10 +88,6 @@ sub new {
   # if we have fits but nothing else
   # translate the fits header to generic
   my %args = @_;
-  if( exists( $args{retainhdr} ) ) {
-    $obs->retainhdr($args{retainhdr});
-    delete $args{retainhdr};
-  }
 
   # count keys
   if ( ( ( exists $args{fits} ) || ( exists $args{hdrhash} ) ) && scalar( keys %args ) < 4) {
