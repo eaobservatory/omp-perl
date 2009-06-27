@@ -89,7 +89,10 @@ sub new {
   # translate the fits header to generic
   my %args = @_;
 
-  $obs->_populate();
+  $obs->_populate()
+    if ( $args{'fits'}    && $args{'fits'}    )
+    || ( $args{'hdrhash'} && $args{'hdrhash'} )
+    ;
 
   return $obs;
 }
