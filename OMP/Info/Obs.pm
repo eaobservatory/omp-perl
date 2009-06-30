@@ -1220,11 +1220,11 @@ sub rawdatadir {
   try {
 
     my $cfg = OMP::Config->new;
-    my $inst = $self->backend;
+    my $back = $self->backend() || $instrument;
     $new_dir =
-      $cfg->getData( "${inst}.rawdatadir",
+      $cfg->getData( "${back}.rawdatadir",
                       telescope => $cfg->inferTelescope( 'instruments', $instrument),
-                      instrument => $inst,
+                      instrument => $back,
                       utdate => $utdate,
                     );
   }
