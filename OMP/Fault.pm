@@ -203,7 +203,7 @@ use constant {
   #SMU_TMU
   #TELESCOPE
 
-  # Per Jessica D's email, keep RxH3 & Surface as one type; SOFTWARE-DR includes
+  # Per Jessica D's email, keep RxH3 & Surface as one type; Software-DR includes
   # more than just ORAC-DR.
   RXH3_SURFACE => EV_LOG + 1,
   SOFTWARE_DR  => EV_LOG + 2,
