@@ -201,10 +201,12 @@ use constant {
   #ROVER
   #SCUBA-2 - SCUBA2
   #SMU_TMU
-  #SOFTWARE/DR - ORAC-DR
   #TELESCOPE
 
+  # Per Jessica D's email, keep RxH3 & Surface as one type; SOFTWARE-DR includes
+  # more than just ORAC-DR.
   RXH3_SURFACE => EV_LOG + 1,
+  SOFTWARE_DR  => EV_LOG + 2,
 };
 
 # Event log - type.
@@ -412,7 +414,7 @@ my %DATA = (
                                     'RxH3/Surface'  =>  RXH3_SURFACE   ,
                                     'SCUBA-2'       =>  SCUBA2         ,
                                     'SMU/TMU'       =>  SMU_TMU        ,
-                                    'Software-DR'   =>  ORAC_DR        ,
+                                    'Software-DR'   =>  SOFTWARE_DR    ,
                                     'Telescope'     =>  TELESCOPE      ,
                                   },
                       'TYPE' => {
