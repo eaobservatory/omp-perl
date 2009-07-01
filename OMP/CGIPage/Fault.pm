@@ -1650,7 +1650,7 @@ BEGIN {
     $links{'EVENT LOG'} =
       { 'url'   => 'queryfault.pl?cat=EVENT LOG',
         'text'  => 'Event Log',
-        'extra' => ''
+        'extra' => 'event logging'
       };
 
     #  Fine tune 'ANYCAT' description.
