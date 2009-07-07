@@ -90,8 +90,8 @@ sub new {
   my %args = @_;
 
   $obs->_populate()
-    if ( $args{'fits'}    && $args{'fits'}    )
-    || ( $args{'hdrhash'} && $args{'hdrhash'} )
+    if ( exists $args{'fits'}    && $args{'fits'}    )
+    || ( exists $args{'hdrhash'} && $args{'hdrhash'} )
     ;
 
   return $obs;
