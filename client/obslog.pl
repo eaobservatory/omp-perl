@@ -436,13 +436,14 @@ sub new_instrument {
   $nbContent->configure( -state => 'normal' );
   $nbContent->delete('0.0','end');
 
-  my $counter = 0;
-  my $currentmsb = '';
-
   # Set up a connection to the MSBDB.
   my $msbdb = new OMP::MSBDoneDB( DB => new OMP::DBbackend );
 
   if( defined( $obsgrp ) ) {
+
+    my $counter = 0;
+    my ( $old_checksum, $old_msbtid ) = ( '' ) x2;
+
     foreach my $obs( $obsgrp->obs ) {
       my %nightlog = $obs->nightlog(display => 'long',
                                   comments => 1, );
@@ -468,30 +469,73 @@ sub new_instrument {
         $header_printed = 1;
       }
 
+      # In case msbtid column is missing or has no value (calibration), use checksum.
+      my $checksum = $obs->checksum;
+
+      my $msbtid = $obs->msbtid;
+      my $has_msbtid = defined $msbtid && length $msbtid;
+
+      my ( $is_new_checksum, $is_new_msbtid );
+
+      if ( $has_msbtid ) {
+
+        $is_new_msbtid =
+          $msbtid ne ''
+          && $msbtid ne $old_msbtid ;
+
+        $old_msbtid = $msbtid
+          if $is_new_msbtid;
+
+        # Reset to later handle case of 'calibration' since checksum 'CAL' never
+        # changes.
+        $old_checksum = '';
+      }
+      else {
+
+        $is_new_checksum =
+          ! ( $old_checksum eq $checksum
+              ||
+              # Title is produced for TimeGap object elsewhere.
+              UNIVERSAL::isa( $obs, 'OMP::Info::Obs::TimeGap' )
+            ) ;
+
+        $old_checksum = $checksum
+          if $is_new_checksum;
+      }
+
+      my ( $index, $otag, $start );
+
       # If the current MSB differs from the MSB to which this
       # observation belongs, we need to insert text denoting the start
       # of the MSB. Ignore blank MSBTIDS.
-      if( (defined $obs->msbtid) && ( $obs->msbtid ne '' )
-          && ( $obs->msbtid ne $currentmsb ) ) {
+      if ( $checksum && ( $is_new_msbtid || $is_new_checksum ) ) {
 
         # Retrieve the MSB title.
-        if( ! exists( $msbtitles{$obs->checksum} ) ) {
-          my $title = $msbdb->titleMSB( $obs->checksum );
-          $title = "Unknown MSB" unless defined $title;
-          $msbtitles{$obs->checksum} = $title;
+        if( ! exists( $msbtitles{ $checksum } ) ) {
+
+          my $title = $msbdb->titleMSB( $checksum );
+          $msbtitles{ $checksum } =
+              defined $title ? $title : 'Unknown MSB' ;
         }
 
-        $currentmsb = $obs->msbtid;
+        $index = $counter;
+        $otag = "o" . $index;
+        $start = $nbContent->index('insert');
+        $nbContent->insert( 'end',
+                            'Beginning of MSB titled: '
+                            . $msbtitles{ $checksum }
+                            . "\n"
+                          );
 
-        my $index = $counter;
-        my $otag = "o" . $index;
-        my $start = $nbContent->index('insert');
-        $nbContent->insert( 'end', "Beginning of MSB titled: " . $msbtitles{$obs->checksum} . "\n" );
+        $nbContent->tag( 'configure', $otag,
+                         -background => $BACKGROUNDMSB,
+                         -foreground => $FOREGROUNDMSB,
+                       );
 
         # Get any activity associated with this MSB accept
         my $history;
         try {
-          $history = $msbdb->historyMSBtid( $obs->msbtid ) if defined $obs->msbtid;
+          $history = $msbdb->historyMSBtid( $msbtid ) if $has_msbtid;
         } otherwise {
           my $E = shift;
           print $E;
@@ -518,13 +562,13 @@ sub new_instrument {
                          -foreground => $FOREGROUNDMSB,
                        );
 
-        # Binding to add comment to start/status of MSB.
-        if ( $obs->checksum ne 'CAL' ) {
+        # Binding to add comment to start/status of MSB
+        if ( $checksum ne 'CAL' ) {
 
           $nbContent->tag( 'bind', $otag,
                           '<Double-Button-1>' =>
                               [ \&RaiseMSBComment, $obs,
-                                $msbtitles{$obs->checksum}, @comments
+                                $msbtitles{ $checksum }, @comments
                               ]
                           );
 
@@ -541,10 +585,10 @@ sub new_instrument {
       }
 
       # Take a local copy of the index for callbacks
-      my $index = $counter;
+      $index = $counter;
 
       # Generate the tag name based on the index.
-      my $otag = "o" . $index;
+      $otag = "o" . $index;
 
       # Get the reference position
       my $start = $nbContent->index('insert');
@@ -1472,11 +1516,10 @@ sub SaveMSBComment {
     unless $user;
 
   throw OMP::Error::FatalError( <<'NOINFO'
-Cannot save: Need OMP::Info::Obs object with project id, transaction id, and MSB checksum.
+Cannot save: Need OMP::Info::Obs object with project id and MSB checksum.
 NOINFO
                               )
-    unless $obs->msbtid
-    && $obs->checksum
+    unless $obs->checksum
     && $obs->projectid ;
 
   my $db = OMP::MSBDoneDB->new( 'ProjectID' => $obs->projectid,
