@@ -7,10 +7,10 @@ OMP::MSBDB - A database of MSBs
 =head1 SYNOPSIS
 
   $sp = new OMP::SciProg( XML => $xml );
-  $db = new OMP::MSBDB( Password => $passwd, 
+  $db = new OMP::MSBDB( Password => $passwd,
                         ProjectID => $sp->projectID,
-			DB => $connection,
-		      );
+                        DB => $connection,
+                      );
 
   $status = $db->storeSciProg( SciProg => $sp );
 
@@ -23,7 +23,7 @@ OMP::MSBDB - A database of MSBs
 
 =head1 DESCRIPTION
 
-This class is responsible for storing and retrieving science 
+This class is responsible for storing and retrieving science
 programs and MSBs to and from the database. Database is loosely
 defined in this context.
 
@@ -96,9 +96,9 @@ use constant HAMAX => 4.5;
 Create a new instance of an C<OMP::MSBDB> object.
 
   $db = new OMP::MSBDB( ProjectID => $project,
-			Password  => $passwd
-			DB => $connection,
-		      );
+                        Password  => $passwd
+                        DB => $connection,
+                      );
 
 The password and project if arguments are required for Science Program
 access.  The password refers to the Project (see C<OMP::ProjDB>).
@@ -241,7 +241,7 @@ sub storeSciProg {
 
   # Write the Science Program to disk
   $self->_store_sci_prog( $args{SciProg}, $args{FreezeTimeStamp},
-			  $args{Force}, $args{NoCache} )
+                          $args{Force}, $args{NoCache} )
     or throw OMP::Error::SpStoreFail("Error storing science program into database\n");
 
   # Get the summaries for each msb as a hash containing observations
@@ -267,12 +267,12 @@ sub storeSciProg {
     my $note = $self->_password_text_info();
 
     $self->_notify_feedback_system(
-				   subject => "Science program submitted",
-				   text => "Science program submitted for project <b>".
-				            $self->projectid ."</b> $note\n",
-				   status => OMP__FB_HIDDEN,
-				   msgtype => OMP__FB_MSG_SP_SUBMITTED,
-				  );
+                                   subject => "Science program submitted",
+                                   text => "Science program submitted for project <b>".
+                                            $self->projectid ."</b> $note\n",
+                                   status => OMP__FB_HIDDEN,
+                                   msgtype => OMP__FB_MSG_SP_SUBMITTED,
+                                  );
   }
 
   # Now disconnect from the database and free the lock
@@ -382,16 +382,16 @@ sub removeSciProg {
   my $note = $self->_password_text_info();
 
   $self->_notify_feedback_system(
-				 subject => "Science program deleted",
-				 text => "Science program for project <b>".
-				 $self->projectid ."</b> deleted $note\n",
-				 msgtype => OMP__FB_MSG_SP_DELETED,
-				);
+                                 subject => "Science program deleted",
+                                 text => "Science program for project <b>".
+                                 $self->projectid ."</b> deleted $note\n",
+                                 msgtype => OMP__FB_MSG_SP_DELETED,
+                                );
 
   OMP::General->log_message( "Science program deleted for project " .
-			     $self->projectid() . 
-			     " $note\n"
-			   );
+                             $self->projectid() .
+                             " $note\n"
+                           );
 
   # Now disconnect from the database and free the lock
   $self->_dbunlock;
@@ -551,9 +551,9 @@ sub fetchMSB {
 
   # We also need to obtain the project constraints
   my %pconst;
-  my $projdb = new OMP::ProjDB( DB => $self->db, 
-				ProjectID => $sp->projectID,
-			      );
+  my $projdb = new OMP::ProjDB( DB => $self->db,
+                                ProjectID => $sp->projectID,
+                              );
   my $pobj = $projdb->projectDetailsNoAuth( 'object' );
 
   $msb->addFITStoObs( $pobj );
@@ -565,7 +565,7 @@ sub fetchMSB {
   # science program during the observation. This requires a transaction.
   # Connect to the DB (and lock it out)
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   "MSB retrieved from DB", OMP__DONE_FETCH );
+                           "MSB retrieved from DB", OMP__DONE_FETCH );
 
   return $msb;
 }
@@ -616,7 +616,7 @@ sub queryMSB {
   my $t0 = [gettimeofday];
   my @xml = map { scalar($_->summary($format))  } @results;
   OMP::General->log_message("Reformatting to XML: ". tv_interval($t0) . " seconds\n",
-			    OMP__LOG_DEBUG );
+                            OMP__LOG_DEBUG );
 
   return @xml;
 }
@@ -722,7 +722,7 @@ sub doneMSB {
   # no longer exists in the science program). Note that this implies
   # the science program exists....Probably should be using self->projectid
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   $comment );
+                           $comment );
 
   OMP::General->log_message("Marked MSB as done in the done table");
 
@@ -754,17 +754,17 @@ sub doneMSB {
   # Now decrement the time for the project if required
   if ($optargs{adjusttime}) {
     my $acctdb = new OMP::TimeAcctDB(
-				     ProjectID => $sp->projectID,
-				     DB => $self->db,
-				    );
+                                     ProjectID => $sp->projectID,
+                                     DB => $self->db,
+                                    );
 
     # need TimeAcct object
     my $acct = new OMP::Project::TimeAcct(
-					  projectid => $sp->projectID,
-					  confirmed => 0,
-					  date => scalar(gmtime()),
-					  timespent => $msb->estimated_time,
-					 );
+                                          projectid => $sp->projectID,
+                                          confirmed => 0,
+                                          date => scalar(gmtime()),
+                                          timespent => $msb->estimated_time,
+                                         );
 
     $acctdb->incPending( $acct );
     OMP::General->log_message("Incremented time on project");
@@ -779,13 +779,13 @@ sub doneMSB {
   }
 
   $self->_notify_feedback_system(
-				 program => "OMP::MSBDB",
-				 subject => "MSB Observed",
-				 text => "Marked MSB with checksum"
-				 . " $checksum as done $reason",
-				 author => $author,
-				 msgtype => OMP__FB_MSG_MSB_OBSERVED,
-				);
+                                 program => "OMP::MSBDB",
+                                 subject => "MSB Observed",
+                                 text => "Marked MSB with checksum"
+                                 . " $checksum as done $reason",
+                                 author => $author,
+                                 msgtype => OMP__FB_MSG_MSB_OBSERVED,
+                                );
 
   OMP::General->log_message("Send feedback message and complete transaction");
 
@@ -868,13 +868,13 @@ sub undoMSB {
   # Might want to send a message to the feedback system at this
   # point
   $self->_notify_feedback_system(
-				 program => "OMP::MSBDB",
-				 subject => "MSB Observe Undone",
-				 text => "Incremented by 1 the number of remaining ".
+                                 program => "OMP::MSBDB",
+                                 subject => "MSB Observe Undone",
+                                 text => "Incremented by 1 the number of remaining ".
                                           "observations for MSB with checksum" .
-				          " $checksum",
-				 msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
-				);
+                                          " $checksum",
+                                 msgtype => OMP__FB_MSG_MSB_UNOBSERVED,
+                                );
 
   # Disconnect
   $self->_dbunlock;
@@ -927,8 +927,8 @@ sub alldoneMSB {
   # Update the msb done table (need to do this even if the MSB
   # no longer exists in the science program
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   "MSB removed from consideration",
-			   OMP__DONE_ALLDONE );
+                           "MSB removed from consideration",
+                           OMP__DONE_ALLDONE );
 
   # Give up if we dont have a match
   unless (defined $msb) {
@@ -953,12 +953,12 @@ sub alldoneMSB {
   # Might want to send a message to the feedback system at this
   # point
   $self->_notify_feedback_system(
-				 program => "OMP::MSBDB",
-				 subject => "MSB All Observed",
-				 text => "Marked MSB with checksum"
-				 . " $checksum as completely done",
-				 msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
-				);
+                                 program => "OMP::MSBDB",
+                                 subject => "MSB All Observed",
+                                 text => "Marked MSB with checksum"
+                                 . " $checksum as completely done",
+                                 msgtype => OMP__FB_MSG_MSB_ALL_OBSERVED,
+                                );
 
   # Disconnect
   $self->_dbunlock;
@@ -1038,18 +1038,18 @@ sub suspendMSB {
   # point
   # do this early in case the MSBDone message fails!
   $self->_notify_feedback_system(
-				 program => "OMP::MSBDB",
-				 subject => "MSB suspended",
-				 text => "$msg : checksum is $checksum",
-				 author => $author,
-				 msgtype => OMP__FB_MSG_MSB_SUSPENDED,
-				);
+                                 program => "OMP::MSBDB",
+                                 subject => "MSB suspended",
+                                 text => "$msg : checksum is $checksum",
+                                 author => $author,
+                                 msgtype => OMP__FB_MSG_MSB_SUSPENDED,
+                                );
 
   # if the MSB never existed in the system this will generate an error
   # message and throw an exception. In practice this is not a problem
   # since it was clearly never retrieved from the system!
   $self->_notify_msb_done( $checksum, $sp->projectID, $msb,
-			   $msg, OMP__DONE_SUSPENDED, $author, $msbtid );
+                           $msg, OMP__DONE_SUSPENDED, $author, $msbtid );
 
   # Give up if we dont have a match
   unless (defined $msb) {
@@ -1114,8 +1114,8 @@ sub getSubmitted {
   my @projects;
   for my $projectid (@projectids) {
     my $projdb = new OMP::ProjDB( DB => $self->db,
-				  ProjectID => $projectid,
-				  Password => $self->password, );
+                                  ProjectID => $projectid,
+                                  Password => $self->password, );
 
     my $obj  = $projdb->projectDetails('object');
     push @projects, $obj;
@@ -1281,10 +1281,10 @@ sub _store_sci_prog {
       # already)
       my $spstamp = $sp->timestamp;
       if (defined $spstamp) {
-	throw OMP::Error::SpChangedOnDisk("Science Program has changed on disk\n")
-	  unless $tstamp == $spstamp;
+        throw OMP::Error::SpChangedOnDisk("Science Program has changed on disk\n")
+          unless $tstamp == $spstamp;
       } else {
-	throw OMP::Error::SpChangedOnDisk("A science program is already in the database with a timestamp but this science program does not include a timestamp at all.\n")
+        throw OMP::Error::SpChangedOnDisk("A science program is already in the database with a timestamp but this science program does not include a timestamp at all.\n")
 
       }
     }
@@ -1320,8 +1320,8 @@ sub _store_sci_prog {
       OMP::General->log_message( $err, OMP__LOG_ERROR );
 
       my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
-		     from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
-		     subject => 'failed to write sci prog to disk');
+                     from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
+                     subject => 'failed to write sci prog to disk');
       $self->_mail_information(%deferr, message => $err);
     };
   }
@@ -1350,7 +1350,7 @@ sub _remove_old_sciprog {
 
 =item B<_get_old_sciprog_timestamp>
 
-This retrieves the timestamp of a science program as stored 
+This retrieves the timestamp of a science program as stored
 in the "database". If no such science program exists returns
 undef.
 
@@ -1418,16 +1418,16 @@ sub _db_store_sciprog {
 
   # Insert the data into the science program
   $self->_db_insert_data($SCITABLE,
-			 { COLUMN => 'projectid',
-			   QUOTE => 1,
-			   POSN => 0,
-			 },
-			 $proj, $timestamp,
-			 {
-			  TEXT => $spxml,
-			  COLUMN => 'sciprog',
-			 }
-			);
+                         { COLUMN => 'projectid',
+                           QUOTE => 1,
+                           POSN => 0,
+                         },
+                         $proj, $timestamp,
+                         {
+                          TEXT => $spxml,
+                          COLUMN => 'sciprog',
+                         }
+                        );
 
 
   # Now check for truncation issues
@@ -1486,7 +1486,7 @@ sub _store_sciprog_todisk {
 
   # Get the project ID and replace '/' with '_'
   my $projectid = uc($sp->projectID);
-  $projectid =~ s/\//_/g;
+  $projectid =~ s@\//_/g;
 
   # Check we have a directory
   throw OMP::Error::CacheFailure( "Cache directory $cachedir not present")
@@ -1528,7 +1528,7 @@ sub _store_sciprog_todisk {
 
     # Create the file name
     my $file = File::Spec->catfile($cachedir,
-				   sprintf($fmt,$projectid,$i));
+                                   sprintf($fmt,$projectid,$i));
 
     my $open_success = sysopen($fh, $file,
                                O_CREAT|O_RDWR|O_EXCL,0600);
@@ -1568,7 +1568,7 @@ sub _store_sciprog_todisk {
     my $last = $#numbers - 3;
     for my $n (@numbers[0..$last]) {
       my $file = File::Spec->catdir($cachedir,
-				    sprintf($fmt,$projectid,$n));
+                                    sprintf($fmt,$projectid,$n));
       # do not test return value
       unlink($file);
     }
@@ -1644,7 +1644,7 @@ sub _db_fetch_sciprog {
   # the science program itself. I would like to do this by setting
   # it to the length of the current science program but frossie
   # insists that I just pick a large number and be done with it
-  # (until the JCMT board is over) - that is a funny comment given the 
+  # (until the JCMT board is over) - that is a funny comment given the
   # timescales
   my $sql = ($self->db->has_textsize ? "SET TEXTSIZE 330000000" : "" ) .
     "(SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')";
@@ -1702,7 +1702,7 @@ sub _clear_counter_add_feedback_post_fetch {
 Return the primary index to use for each row in the MSB database. This
 number is determined to be unique for all entries ever made.
 
-The current index is obtained by reading the highest value from the 
+The current index is obtained by reading the highest value from the
 database. For efficiency we only want to do this once per transaction.
 
 In order to guarantee uniqueness it should be obtained before the old
@@ -1736,14 +1736,14 @@ sub _verify_project_exists {
 
   # Ask the project DB class
   my $proj = new OMP::ProjDB(
-			     ProjectID => $self->projectid,
-			     DB => $self->db,
-			     Password => $self->password,
-			    );
+                             ProjectID => $self->projectid,
+                             DB => $self->db,
+                             Password => $self->password,
+                            );
   my $there = $proj->verifyProject();
 
   throw OMP::Error::UnknownProject("Project ".$self->projectid .
-				   " does not exist. Please try another project id" ) unless $there;
+                                   " does not exist. Please try another project id" ) unless $there;
   return 1;
 }
 
@@ -1789,14 +1789,14 @@ sub _verify_project_password {
 
   # Ask the project DB class
   my $proj = new OMP::ProjDB(
-			     ProjectID => $self->projectid,
-			     DB => $self->db,
-			     Password => $self->password,
-			    );
+                             ProjectID => $self->projectid,
+                             DB => $self->db,
+                             Password => $self->password,
+                            );
 
   $proj->verifyPassword()
     or throw OMP::Error::Authentication("Incorrect password for project ID ".
-					$self->projectid );
+                                        $self->projectid );
 
   return;
 }
@@ -1831,14 +1831,14 @@ sub _verify_project_constraints {
 
   # Ask the project DB class for project object
   my $projdb = new OMP::ProjDB(
-			     ProjectID => $self->projectid,
-			     DB => $self->db,
-			     Password => $self->password,
-			    );
+                             ProjectID => $self->projectid,
+                             DB => $self->db,
+                             Password => $self->password,
+                            );
   my $proj = $projdb->_get_project_row();
   if (!defined $proj) {
     throw OMP::Error::FatalError("Attempting to verify constraints but project '".
-				 $self->projectid."' is not available");
+                                 $self->projectid."' is not available");
   }
 
   # this will take some time if there are lots of MSBs...
@@ -1857,37 +1857,37 @@ sub _verify_project_constraints {
       # method for project object
       my $pmethod = $attr . "range";
       my $prange = $proj->$pmethod();
-      $prange = $prange->copy; # need to make sure we modify a copy 
+      $prange = $prange->copy; # need to make sure we modify a copy
 
       # does it intersect? Inverted intervals will be caught here since they
       # may well result in two intervals (hence the eval to catch this).
       my $istat;
       eval {
-	$istat = $prange->intersection( $weather{$attr} );
+        $istat = $prange->intersection( $weather{$attr} );
       };
       if (!$istat) {
-	# failure to intersect
-	my $inv = ( $weather{$attr}->isinverted ? "($attr constraint is inverted)" : "");
-	throw OMP::Error::MSBBadConstraint("Specified $attr constraint of '".
-					   $weather{$attr} .
-					   "' for MSB titled '".$msb->msbtitle.
-					   "' is not consistent with TAG constraint of '".
-					  $prange . "' $inv");
+        # failure to intersect
+        my $inv = ( $weather{$attr}->isinverted ? "($attr constraint is inverted)" : "");
+        throw OMP::Error::MSBBadConstraint("Specified $attr constraint of '".
+                                           $weather{$attr} .
+                                           "' for MSB titled '".$msb->msbtitle.
+                                           "' is not consistent with TAG constraint of '".
+                                          $prange . "' $inv");
       }
 
       # need to warn for case where the intersection is an equality
       # note that $prange will have been modified above
-      if (($attr eq 'seeing' || $attr eq 'tau') && 
-	  defined $prange->min && defined $prange->max && $prange->min == $prange->max) {
-	push(@warnings,
-	     "WARNING: $attr constraint is only matched for a single exact value of ".
-	     $prange->min . " for MSB titled '".$msb->msbtitle."'");
+      if (($attr eq 'seeing' || $attr eq 'tau') &&
+          defined $prange->min && defined $prange->max && $prange->min == $prange->max) {
+        push(@warnings,
+             "WARNING: $attr constraint is only matched for a single exact value of ".
+             $prange->min . " for MSB titled '".$msb->msbtitle."'");
       }
 
       # it is possible for an inverted range to not be fatal so issue a warning
       if ($weather{$attr}->isinverted) {
-	push(@warnings,
-	     "WARNING: $attr constraint for MSB titled '".$msb->msbtitle."' is inverted");
+        push(@warnings,
+             "WARNING: $attr constraint for MSB titled '".$msb->msbtitle."' is inverted");
       }
 
     }
@@ -1896,8 +1896,8 @@ sub _verify_project_constraints {
     my %schedcon = $msb->sched_constraints;
     if ($schedcon{datemin}->epoch > $schedcon{datemax}->epoch) {
       throw OMP::Error::MSBBadConstraint("Scheduling constraint for MSB titled '".
-					 $msb->msbtitle ."' is such that this MSB can ".
-					 "never be scheduled (earliest > latest)");
+                                         $msb->msbtitle ."' is such that this MSB can ".
+                                         "never be scheduled (earliest > latest)");
     }
 
   }
@@ -1933,10 +1933,10 @@ sub _password_text_info {
   } else {
     # get database connection
     my $projdb = new OMP::ProjDB(
-				 ProjectID => $self->projectid,
-				 DB => $self->db,
-				 Password => $self->password,
-				);
+                                 ProjectID => $self->projectid,
+                                 DB => $self->db,
+                                 Password => $self->password,
+                                );
 
     # get the project information
     my $proj = $projdb->projectDetails('object');
@@ -1985,14 +1985,14 @@ sub _insert_rows {
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
-  # Now loop over each summary inserting the information 
+  # Now loop over each summary inserting the information
   for my $summary (@summaries) {
 
     # Add the contents to the database
     $self->_insert_row( $summary,
-			dbh  => $dbh,
-			index=> $index,
-		      );
+                        dbh  => $dbh,
+                        index=> $index,
+                      );
 
     # increment the index for next pass
     $index++;
@@ -2064,7 +2064,7 @@ sub _insert_row {
   # Convert the ranges to database values
   my ($taumin, $taumax) = OMP::SiteQuality::to_db('TAU',$data{tau});
   my ($seeingmin, $seeingmax) = OMP::SiteQuality::to_db('SEEING',
-							$data{seeing});
+                                                        $data{seeing});
   my ($cloudmin, $cloudmax) = OMP::SiteQuality::to_db('CLOUD',$data{cloud});
   my ($skymin, $skymax) = OMP::SiteQuality::to_db('SKY',$data{sky});
   my ($moonmin, $moonmax) = OMP::SiteQuality::to_db('MOON',$data{moon});
@@ -2081,14 +2081,14 @@ sub _insert_row {
 
   # Insert the MSB data
   $self->_db_insert_data( $MSBTABLE,
-			  $index, $proj, $data{remaining}, $data{checksum},
-			  $data{obscount}, $data{tau}->min, $taumax, 
-			  $data{seeing}->min, $seeingmax, $data{priority},
-			  $data{telescope}, int($moonmax), int($cloudmax),
-			  $data{timeest}, $data{title},
-			  "$data{datemin}", "$data{datemax}", $minel,
-			  $maxel, $data{approach}, int($moonmin),
-			  int($cloudmin), $skymin, $skymax);
+                          $index, $proj, $data{remaining}, $data{checksum},
+                          $data{obscount}, $data{tau}->min, $taumax,
+                          $data{seeing}->min, $seeingmax, $data{priority},
+                          $data{telescope}, int($moonmax), int($cloudmax),
+                          $data{timeest}, $data{title},
+                          "$data{datemin}", "$data{datemax}", $minel,
+                          $maxel, $data{approach}, int($moonmin),
+                          int($cloudmin), $skymin, $skymax);
 
   # Now the observations
   # We dont use the generic interface here since we want to
@@ -2108,8 +2108,8 @@ sub _insert_row {
     # If coordinates have not been set then we need to raise an exception
     # since we can not schedule this. Note that calibrations
     # will come back as Astro::Coords::Calibration
-    unless (exists $obs->{coords} and defined $obs->{coords} 
-	   and UNIVERSAL::isa($obs->{coords},"Astro::Coords")) {
+    unless (exists $obs->{coords} and defined $obs->{coords}
+           and UNIVERSAL::isa($obs->{coords},"Astro::Coords")) {
       throw OMP::Error::SpBadStructure("Coordinate information could not be found in an MSB. Unable to schedule.\n");
     }
     my @coords = $obs->{coords}->array;
@@ -2121,16 +2121,16 @@ sub _insert_row {
 
     # Wavelength must be a number (just check for presence of any number)
     $obs->{wavelength} = $obs->{waveband}->wavelength if $obs->{waveband};
-    $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and 
+    $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and
                                      $obs->{wavelength} =~ /\d/);
 
     $obsst->execute(
-		    $obsid, $index, $proj, uc($obs->{instrument}), 
-		    $obs->{type}, $obs->{pol}, $obs->{wavelength},
-		    $obs->{disperser},
-		    $obs->{coords}->type, $obs->{target},
-		    @coords[1..10], $obs->{timeest}
-		   )
+                    $obsid, $index, $proj, uc($obs->{instrument}),
+                    $obs->{type}, $obs->{pol}, $obs->{wavelength},
+                    $obs->{disperser},
+                    $obs->{coords}->type, $obs->{target},
+                    @coords[1..10], $obs->{timeest}
+                   )
       or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
 
   }
@@ -2202,7 +2202,7 @@ sub _fetch_row {
   # Assume that query keys match column names
   my @substrings = map { " $_ = ? " } sort keys %query;
 
-  # and construct the SQL command using bind variables so that 
+  # and construct the SQL command using bind variables so that
   # we dont have to worry about quoting
   my $sql = "SELECT * FROM $MSBTABLE WHERE" .
     join("AND", @substrings);
@@ -2210,8 +2210,8 @@ sub _fetch_row {
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash($sql,
-					    map { $query{$_} } sort keys %query
-					   );
+                                            map { $query{$_} } sort keys %query
+                                           );
 
   # Dont throw an error here. It is up to the caller to decide whether
   # to do or not.
@@ -2388,7 +2388,7 @@ sub _run_query {
     #  1. Checking that the observation is above that requested
     #     in SpSchedConstraint
     #  2. Checking that the target is within the allowed range
-    #     (between 10 and 87 deg el at JCMT and 
+    #     (between 10 and 87 deg el at JCMT and
     #      HA = +/- 4.5h and dec > -42 and dec < 60 deg at UKIRT )
     #  3. Check that it stays within that range for the duration
     #     of the observation
@@ -2403,7 +2403,7 @@ sub _run_query {
 
     # Determine whether we are interested in checking for
     # observability. We cant jump out the for loop because
-    # the person receiving the query will still want to 
+    # the person receiving the query will still want to
     # know hour angle and things
     my %qconstraints = $query->constraints;
 
@@ -2451,17 +2451,17 @@ sub _run_query {
 
       # Get the seeing limits for this MSB and set up a range.
       my $msb_seeingrange = OMP::SiteQuality::from_db( "seeing",
-						       $msb->{seeingmin},
-						       $msb->{seeingmax} );
+                                                       $msb->{seeingmin},
+                                                       $msb->{seeingmax} );
       OMP::SiteQuality::undef_to_default( "seeing", $msb_seeingrange);
       if ($msb_seeingrange->isinverted) {
-	# seeing values are null set so if we are checking seeing no
-	# MSB can match
-	$msb_seeingrange = undef;
-	OMP::General->log_message("Unable to match MSB ".$msb->{checksum}.
-				  " of project " . $msb->{projectid} .
-				  " because the seeing bounds do not intersect",
-				  OMP__LOG_ERROR);
+        # seeing values are null set so if we are checking seeing no
+        # MSB can match
+        $msb_seeingrange = undef;
+        OMP::General->log_message("Unable to match MSB ".$msb->{checksum}.
+                                  " of project " . $msb->{projectid} .
+                                  " because the seeing bounds do not intersect",
+                                  OMP__LOG_ERROR);
       }
 
       my $zoa = $qconstraints{zoa};
@@ -2470,35 +2470,35 @@ sub _run_query {
       # for this telescope if we don't already have it.
       if( $zoa ) {
         if( ! defined( $zoa_phase ) ) {
-	  # missing key is allowed
-	  try {
-	    $zoa_phase = OMP::Config->getData( 'zoa_phase',
-					       telescope => $msb->{telescope} );
-	  } catch OMP::Error with {
-	    # ignore
-	  };
+          # missing key is allowed
+          try {
+            $zoa_phase = OMP::Config->getData( 'zoa_phase',
+                                               telescope => $msb->{telescope} );
+          } catch OMP::Error with {
+            # ignore
+          };
         }
         if( ! defined( $zoa_target ) ) {
-	  try {
-	    $zoa_target = OMP::Config->getData( 'zoa_target',
-						telescope => $msb->{telescope} );
-	  } catch OMP::Error with {
-	    # ignore
-	  };
+          try {
+            $zoa_target = OMP::Config->getData( 'zoa_target',
+                                                telescope => $msb->{telescope} );
+          } catch OMP::Error with {
+            # ignore
+          };
         }
         if( ! defined( $zoa_radius ) ) {
-	  try {
-	    $zoa_radius = OMP::Config->getData( 'zoa_radius',
-						telescope => $msb->{telescope} );
-	  } catch OMP::Error with {
-	    # ignore
-	    $zoa_radius = 0;
-	  };
+          try {
+            $zoa_radius = OMP::Config->getData( 'zoa_radius',
+                                                telescope => $msb->{telescope} );
+          } catch OMP::Error with {
+            # ignore
+            $zoa_radius = 0;
+          };
         }
-	# The config file could specify a blank target if there is nothing to avoid
-	if (!$zoa_target) {
-	  $zoa = 0;
-	}
+        # The config file could specify a blank target if there is nothing to avoid
+        if (!$zoa_target) {
+          $zoa = 0;
+        }
 
         if( $zoa && ! defined( $zoa_coords ) ) {
           $zoa_coords = new Astro::Coords( planet => $zoa_target );
@@ -2543,11 +2543,11 @@ sub _run_query {
         otherwise {
           $perform_seeing_calc = 0;
         };
-	if (!$perform_seeing_calc) {
-	  # put an error message in the log
-	  OMP::General->log_message( "Error decoding adjusted seeing formula",
-				   OMP__LOG_ERROR);
-	}
+        if (!$perform_seeing_calc) {
+          # put an error message in the log
+          OMP::General->log_message( "Error decoding adjusted seeing formula",
+                                   OMP__LOG_ERROR);
+        }
       }
 
       # Do not do ZOA calculations if the current phase is smaller
@@ -2719,10 +2719,10 @@ sub _run_query {
 
           if( $perform_seeing_calc ) {
 
-	    if (!$msb_seeingrange) {
-	      $isObservable = 0;
-	      last OBSLOOP;
-	    }
+            if (!$msb_seeingrange) {
+              $isObservable = 0;
+              last OBSLOOP;
+            }
 
             # Get the wavelength and airmass.
             $obs_wavelength = $obs->{waveband}->wavelength;
@@ -2731,7 +2731,7 @@ sub _run_query {
 
               # Calculate the new seeing.
               my $new_seeing = &$seeing_coderef;
-	      OMP::General->log_message("Testing Seeing of $new_seeing against ". $msb_seeingrange, OMP__LOG_DEBUG);
+              OMP::General->log_message("Testing Seeing of $new_seeing against ". $msb_seeingrange, OMP__LOG_DEBUG);
               if( ! $msb_seeingrange->contains( $new_seeing ) ) {
                 $isObservable = 0;
                 last OBSLOOP;
@@ -2938,9 +2938,9 @@ sub _msb_row_to_msb_object {
 
       # convert to range object
       $msb->{$key} = OMP::SiteQuality::from_db( $key,
-						$msb->{$minkey},
-						$msb->{$maxkey}
-					      );
+                                                $msb->{$minkey},
+                                                $msb->{$maxkey}
+                                              );
 
       # ensure that we have the correct handling in case some nulls
       # crept into the table
@@ -2963,7 +2963,7 @@ sub _msb_row_to_msb_object {
     # Now convert Observations to OMP::Info::Obs objects
     if (exists $msb->{observations}) {
       for my $obs (@{$msb->{observations}}) {
-	$obs = new OMP::Info::Obs( %$obs );
+        $obs = new OMP::Info::Obs( %$obs );
       }
     }
 
@@ -2973,7 +2973,7 @@ sub _msb_row_to_msb_object {
 
   my $t1 = [gettimeofday];
   OMP::General->log_message( "Row converted to objects: " . tv_interval( $t0, $t1 ) . " seconds\n",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
   $t0 = $t1;
 
   return @observable;
@@ -2991,9 +2991,9 @@ Send a message to the MSB done system so that the message can be
 stored in the done table.
 
   $self->_notify_msb_done( $checksum, $projectid, $msb,
-			   "MSB retrieved from DB", OMP__DONE_FETCH,
-			   $user,
-			 );
+                           "MSB retrieved from DB", OMP__DONE_FETCH,
+                           $user,
+                         );
 
 The arguments are:
 
@@ -3028,9 +3028,9 @@ sub _notify_msb_done {
     unless defined $projectid;
 
   my $done = new OMP::MSBDoneDB(
-				ProjectID => $projectid,
-			        DB => $self->db,
-			       );
+                                ProjectID => $projectid,
+                                DB => $self->db,
+                               );
 
   # If we have an msb object, get the info object
   # else just have the checksum
@@ -3045,7 +3045,7 @@ sub _notify_msb_done {
   } else {
     # Create a comment object
     $comment = new OMP::Info::Comment( text => $text,
-				       status => $status);
+                                       status => $status);
 
     # Add the author if supplied
     $comment->author( $user ) if defined $user;
@@ -3176,8 +3176,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
