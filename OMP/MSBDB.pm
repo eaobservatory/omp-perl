@@ -1509,7 +1509,10 @@ sub _store_sciprog_todisk {
 
   # Get current umask and set to known umask
   my $umask = umask;
-  umask(066);
+
+  # Allow anybody in "software" group to do back up of science program files
+  # (parent directory has permissions of "drwxrws--x").
+  umask(026);
 
   # Now try to open the file up to 20 times
   # The looping is not really required if combined with the
