@@ -1113,6 +1113,7 @@ sub isOpen {
 
   return
     grep
+    (
       { $status == $_ }
       ( OPEN(),
         WILL_BE_FIXED(),
@@ -1122,6 +1123,7 @@ sub isOpen {
         COMMISSIONING(),
         ONGOING(),
       )
+    )
     ? 1 : 0 ;
 }
 
