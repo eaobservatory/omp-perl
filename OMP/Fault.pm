@@ -202,6 +202,7 @@ use constant {
   #SCUBA-2 - SCUBA2
   #SMU_TMU
   #TELESCOPE
+  #WMV (Water Vapor Monitor) - Water vapor rad(iometer)
 
   # Per Jessica D's email, keep RxH3 & Surface as one type; Software-DR includes
   # more than just ORAC-DR.
@@ -416,6 +417,7 @@ my %DATA = (
                                     'SMU/TMU'       =>  SMU_TMU        ,
                                     'Software-DR'   =>  SOFTWARE_DR    ,
                                     'Telescope'     =>  TELESCOPE      ,
+                                    'Water Vapor Monitor' => WATER_VAPOR_RAD ,
                                   },
                       'TYPE' => {
                                   'Hardware' =>  HARDWARE ,
