@@ -425,6 +425,13 @@ sub SpInsertCat {
   my ($sp, @info);
   try {
 
+    # Attempt to gunzip it if it looks like a gzip stream
+    if (substr($xml,0,2) eq chr(0x1f).chr(0x8b)) {
+      # GZIP magic number verifies
+      $tmp = Compress::Zlib::memGunzip( $xml );
+      if( defined $tmp ){ $xml = $tmp ; }
+    }
+
     # Create a science program from the string
     $sp = new OMP::SciProg( XML => $xml );
     my $proj = $sp->projectID;
