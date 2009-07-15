@@ -1486,7 +1486,7 @@ sub _store_sciprog_todisk {
 
   # Get the project ID and replace '/' with '_'
   my $projectid = uc($sp->projectID);
-  $projectid =~ s@\//_/g;
+  $projectid =~ s/\//_/g;
 
   # Check we have a directory
   throw OMP::Error::CacheFailure( "Cache directory $cachedir not present")
