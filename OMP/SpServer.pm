@@ -428,7 +428,7 @@ sub SpInsertCat {
     # Attempt to gunzip it if it looks like a gzip stream
     if (substr($xml,0,2) eq chr(0x1f).chr(0x8b)) {
       # GZIP magic number verifies
-      $tmp = Compress::Zlib::memGunzip( $xml );
+      my $tmp = Compress::Zlib::memGunzip( $xml );
       if( defined $tmp ){ $xml = $tmp ; }
     }
 
