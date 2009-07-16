@@ -189,7 +189,7 @@ via a SOAP request. Requests for OMP::SciProg will pass through untouched.
 
 sub compressReturnedItem {
 
-  my $program = shift;
+  my $sp = shift;
   my $rettype = shift;
 
   $rettype = OMP__SCIPROG_XML unless defined $rettype;
@@ -282,7 +282,6 @@ sub fetchProgram {
     OMP::General->log_message("fetchProgram: Complete in ".tv_interval($t0)." seconds\n");
 
     return $string;
-  }
 
 }
 
