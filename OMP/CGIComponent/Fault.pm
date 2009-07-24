@@ -813,15 +813,24 @@ sub file_fault_form {
                         -default=>$defaults{loss},
                         -size=>'4',
                         -maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>:</td><td>";
-    print $q->textfield(-name=>'time',
-                        -default=>$defaults{time},
-                        -size=>20,
-                        -maxlength=>128,);
-    print "&nbsp;";
-    print $q->popup_menu(-name=>'tz',
-                         -values=>['UT','HST'],
-                         -default=>$defaults{tz},);
+  }
+
+  if ( OMP::Fault->faultCanLoseTime($category)
+      || $category =~ /\bevent[ _]log\b/i
+      ) {
+
+    print q[</td><tr valign="top"><td align="right">]
+      . q[<b>Time of fault:</b>]
+      . q[</td><td>]
+      . $q->textfield(-name=>'time',
+                      -default=>$defaults{time},
+                      -size=>20,
+                      -maxlength=>128,)
+      . q[&nbsp;]
+      . $q->popup_menu(-name=>'tz',
+                        -values=>['UT','HST'],
+                        -default=>$defaults{tz},)
+      . q[<br /><small>(YYYY-MM-DDTHH:MM or HH:MM)</small>] ;
   }
 
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
