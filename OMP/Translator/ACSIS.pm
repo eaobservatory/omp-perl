@@ -2749,9 +2749,8 @@ sub need_offset_tracking {
     # a fully sampled map so do not offset
     return if $info{jigglePattern} =~ /^HARP/;
 
-    # if we have an origin in the pattern we are probably expecting to be
-    # centred on a receptor;
-    return unless $jig->has_origin;
+    # if this is not a HARP jiggle pattern we simply assume that it
+    # will be centred on a specific receptor.
   }
 
   return 1;
