@@ -1620,7 +1620,7 @@ sub jig_info {
 
 
   my ($jpa, $jsys);
-  if ($inst =~ /HARP/i && $info{jigglePattern} ne '2x1') {
+  if ($inst =~ /HARP/i) {
     # Always jiggle in FPLANE with a PA=0 and rely on the rotator to rotate the receptors
     # on the sky
     $jpa = 0;
