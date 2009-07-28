@@ -862,6 +862,14 @@ sub rotator_config {
       # but we make sure we use the requested value
       $system = $info{jiggleSystem} || 'TRACKING';
       $pa = new Astro::Coords::Angle( ($info{jigglePA} || 0), units => 'deg' );
+
+      # Restrict the rotator choices if we have a jiggle pattern that is not
+      # symmetric about all 4 positions
+      # Currently use a bit of a hack
+      if ($info{jigglePattern} eq '2x1') {
+        @choices = (0,2);
+      }
+
     } elsif ($info{mapping_mode} eq 'grid' && exists $info{stareSystem}
              && defined $info{stareSystem}) {
       # override K mirror option
