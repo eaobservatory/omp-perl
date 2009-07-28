@@ -203,6 +203,7 @@ sub proj_sum_table {
   <td>Support</td>
   <td># MSBs</td>
   <td>Priority</td>
+  <td>Adjusted priority</td>
   <td>Allocated</td>
   <td>Completed</td>
   <td>Instruments</td>
@@ -259,6 +260,17 @@ TABLE
       (! defined $nmsb) and $nmsb = 0;
       (! defined $nremaining) and $nremaining = 0;
 
+      my $adj_priority = '--';
+      for ( $project ) {
+
+        # Suppress printing of adjusted priority when it will be the same as
+        # already assigned priority.
+        if ( my $adj = $_->tagadjustment( $_->primaryqueue ) ) {
+
+          $adj_priority = $_->tagpriority() + $adj;
+        }
+      }
+
       # Get seeing and tau info
       my $taurange = $project->taurange;
       my $seerange = $project->seeingrange;
@@ -293,6 +305,7 @@ STATUS
       print "<td>". $support ."</td>";
       print "<td align=center>$nremaining/$nmsb</td>";
       print "<td align=center>". $project->tagpriority ."</td>";
+      print "<td align=center>". $adj_priority ."</td>";
       print "<td align=center>". $project->allocated->pretty_print ."</td>";
       print "<td align=center>". sprintf("%.0f",$project->percentComplete) . "%</td>";
 
