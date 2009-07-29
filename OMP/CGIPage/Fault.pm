@@ -1649,7 +1649,7 @@ BEGIN {
 
     $links{'JCMT_EVENT_LOG'} =
       { 'url'   => 'queryfault.pl?cat=JCMT_EVENT_LOG',
-        'text'  => 'JCMT Event Log',
+        'text'  => 'JCMT Events',
         'extra' => 'event logging for JCMT'
       };
 
