@@ -1151,10 +1151,10 @@ sub isNotSafety {
   return ! $self->isSafety;
 }
 
-sub isEventLog {
+sub isJCMTEventLog {
 
   my ( $self ) = @_;
-  return 'event log' eq lc $self->category;
+  return 'jcmt_event_log' eq lc $self->category;
 }
 
 =item B<subject>
