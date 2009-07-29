@@ -816,7 +816,7 @@ sub file_fault_form {
   }
 
   if ( OMP::Fault->faultCanLoseTime($category)
-      || $category =~ /\bevent[ _]log\b/i
+      || $category =~ /events\b/i
       ) {
 
     print q[</td><tr valign="top"><td align="right">]
