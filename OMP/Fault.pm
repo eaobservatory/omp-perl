@@ -231,7 +231,7 @@ my %MAILLIST = (
                   'DR'    => 'dr_faults@jach.hawaii.edu'    ,
                   'SAFETY'   => 'safety_faults@jach.hawaii.edu'   ,
                   'FACILITY' => 'facility_faults@jach.hawaii.edu' ,
-                  'EVENT LOG' => 'jcmt_event_log@jach.hawaii.edu' ,
+                  'JCMT_EVENT_LOG' => 'jcmt_event_log@jach.hawaii.edu' ,
                );
 
 my %DATA = (
@@ -400,7 +400,7 @@ my %DATA = (
                                         'Other'               => TYPEOTHER       ,
                                       },
                           },
-                'EVENT LOG' => {
+                'JCMT_EVENT_LOG' => {
                       'SYSTEM' => {
                                     'ACSIS'         =>  BACK_END_ACSIS ,
                                     'Computer'      =>  COMPUTER       ,
@@ -468,7 +468,7 @@ my %OPTIONS = (
                             },
               );
 
-$OPTIONS{'EVENT LOG'} = { %{ $OPTIONS{'SAFETY'} } };
+$OPTIONS{'JCMT_EVENT_LOG'} = { %{ $OPTIONS{'SAFETY'} } };
 
 # Urgency
 my %URGENCY = (

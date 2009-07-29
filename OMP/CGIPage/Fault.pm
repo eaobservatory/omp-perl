@@ -1613,7 +1613,7 @@ sub _write_login {
 BEGIN {
 
   my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ];
-  push @order, 'EVENT LOG', 'ANYCAT';
+  push @order, 'JCMT_EVENT_LOG', 'ANYCAT';
 
   my %long_text =
     ( 'CSG'      => 'JAC computer services',
@@ -1623,7 +1623,7 @@ BEGIN {
       'DR'       => 'data reduction systems',
       'FACILITY' => 'facilities',
       'SAFETY'   => 'safety',
-      'EVENT LOG' => 'event log',
+      'JCMT_EVENT_LOG' => 'event log',
       'ANYCAT'   => 'all categories',
     );
 
@@ -1632,7 +1632,7 @@ BEGIN {
     my %links;
     for my $type ( @order ) {
 
-      next if grep { $type eq $_ } ( 'SAFETY', 'EVENT LOG' );
+      next if grep { $type eq $_ } ( 'SAFETY', 'JCMT_EVENT_LOG' );
 
       $links{ $type } =
         { 'url'   => "queryfault.pl?cat=$type",
@@ -1647,10 +1647,10 @@ BEGIN {
         'extra' => 'issues relating to safety'
       };
 
-    $links{'EVENT LOG'} =
-      { 'url'   => 'queryfault.pl?cat=EVENT LOG',
-        'text'  => 'Event Log',
-        'extra' => 'event logging'
+    $links{'JCMT_EVENT_LOG'} =
+      { 'url'   => 'queryfault.pl?cat=JCMT_EVENT_LOG',
+        'text'  => 'JCMT Event Log',
+        'extra' => 'event logging for JCMT'
       };
 
     #  Fine tune 'ANYCAT' description.
