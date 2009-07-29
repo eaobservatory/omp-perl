@@ -1612,8 +1612,8 @@ sub _write_login {
 
 BEGIN {
 
-  my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ];
-  push @order, 'JCMT_EVENT_LOG', 'ANYCAT';
+  my @order = qw[ CSG OMP UKIRT JCMT JCMT_EVENT_LOG DR FACILITY SAFETY ];
+  push @order, 'ANYCAT';
 
   my %long_text =
     ( 'CSG'      => 'JAC computer services',
