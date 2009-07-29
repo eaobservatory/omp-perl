@@ -748,7 +748,7 @@ sub _mail_fault {
 
   my $faultuser = OMP::User->new( 'name' =>
                                     $category
-                                    . ( $fault->isJCMTEventLog
+                                    . ( $fault->isJCMTEvents
                                         ? ''
                                         : $fault->isSafety
                                           ? ' Reporting'
