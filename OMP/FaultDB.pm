@@ -748,7 +748,12 @@ sub _mail_fault {
 
   my $faultuser = OMP::User->new( 'name' =>
                                     $category
-                                    . ( $fault->isNotSafety ? ' Faults' : ' Reporting' ),
+                                    . ( $fault->isJCMTEvents
+                                        ? ''
+                                        : $fault->isSafety
+                                          ? ' Reporting'
+                                          : ' Faults'
+                                      ),
 
                                   'email' => $fault->mail_list
                                  );

@@ -187,7 +187,7 @@ use constant {
 };
 
 # Even log - system.
-use constant EV_LOG => 6000;
+use constant JCMT_EVENTS => 6000;
 use constant {
 
   # Already set elsewhere.
@@ -202,35 +202,36 @@ use constant {
   #SCUBA-2 - SCUBA2
   #SMU_TMU
   #TELESCOPE
+  #WMV (Water Vapor Monitor) - Water vapor rad(iometer)
 
   # Per Jessica D's email, keep RxH3 & Surface as one type; Software-DR includes
   # more than just ORAC-DR.
-  RXH3_SURFACE => EV_LOG + 1,
-  SOFTWARE_DR  => EV_LOG + 2,
+  RXH3_SURFACE => JCMT_EVENTS + 1,
+  SOFTWARE_DR  => JCMT_EVENTS + 2,
 };
 
-# Event log - type.
+# JCMT Event log - type.
 # Already set elsewhere.
 #HARDWARE
 #SOFTWARE
 
-# Event log - status.
+# JCMT Event log - status.
 use constant {
-  COMMISSIONING => EV_LOG + 10,
-  ONGOING       => EV_LOG + 11,
-  COMPLETE      => EV_LOG + 12,
+  COMMISSIONING => JCMT_EVENTS + 10,
+  ONGOING       => JCMT_EVENTS + 11,
+  COMPLETE      => JCMT_EVENTS + 12,
 };
 
 # Mailing list
 my %MAILLIST = (
                   'CSG'   => 'csg_faults@jach.hawaii.edu'   ,
                   'JCMT'  => 'jcmt_faults@jach.hawaii.edu'  ,
+                  'JCMT_EVENTS' => 'jcmt_event_log@jach.hawaii.edu' ,
                   'UKIRT' => 'ukirt_faults@jach.hawaii.edu' ,
                   'OMP'   => 'omp_faults@jach.hawaii.edu'   ,
                   'DR'    => 'dr_faults@jach.hawaii.edu'    ,
                   'SAFETY'   => 'safety_faults@jach.hawaii.edu'   ,
                   'FACILITY' => 'facility_faults@jach.hawaii.edu' ,
-                  'EVENT LOG' => 'jcmt_event_log@jach.hawaii.edu' ,
                );
 
 my %DATA = (
@@ -399,7 +400,7 @@ my %DATA = (
                                         'Other'               => TYPEOTHER       ,
                                       },
                           },
-                'EVENT LOG' => {
+                'JCMT_EVENTS' => {
                       'SYSTEM' => {
                                     'ACSIS'         =>  BACK_END_ACSIS ,
                                     'Computer'      =>  COMPUTER       ,
@@ -416,6 +417,7 @@ my %DATA = (
                                     'SMU/TMU'       =>  SMU_TMU        ,
                                     'Software-DR'   =>  SOFTWARE_DR    ,
                                     'Telescope'     =>  TELESCOPE      ,
+                                    'Water Vapor Monitor' => WATER_VAPOR_RAD ,
                                   },
                       'TYPE' => {
                                   'Hardware' =>  HARDWARE ,
@@ -466,7 +468,7 @@ my %OPTIONS = (
                             },
               );
 
-$OPTIONS{'EVENT LOG'} = { %{ $OPTIONS{'SAFETY'} } };
+$OPTIONS{'JCMT_EVENTS'} = { %{ $OPTIONS{'SAFETY'} } };
 
 # Urgency
 my %URGENCY = (
@@ -508,14 +510,14 @@ my %STATUS = ( %STATUS_OPEN, %STATUS_CLOSED );
 
 my %SAFETY_STATUS = ( %SAFETY_STATUS_OPEN, %SAFETY_STATUS_CLOSED );
 
-my %EV_LOG_STATUS_OPEN = ( 'Commissioning' => COMMISSIONING,
+my %JCMT_EVENTS_STATUS_OPEN = ( 'Commissioning' => COMMISSIONING,
                            'Ongoing' => ONGOING,
                           );
 
-my %EV_LOG_STATUS_CLOSED = ( 'Complete' => COMPLETE,
+my %JCMT_EVENTS_STATUS_CLOSED = ( 'Complete' => COMPLETE,
                             );
 
-my %EV_LOG_STATUS = ( %EV_LOG_STATUS_OPEN, %EV_LOG_STATUS_CLOSED );
+my %JCMT_EVENTS_STATUS = ( %JCMT_EVENTS_STATUS_OPEN, %JCMT_EVENTS_STATUS_CLOSED );
 
 # Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
@@ -537,8 +539,8 @@ for (keys %SAFETY_STATUS ) {
   $INVERSE_STATUS{ $SAFETY_STATUS{$_} } = $_;
 }
 
-for (keys %EV_LOG_STATUS ) {
-  $INVERSE_STATUS{ $EV_LOG_STATUS{$_} } = $_;
+for (keys %JCMT_EVENTS_STATUS ) {
+  $INVERSE_STATUS{ $JCMT_EVENTS_STATUS{$_} } = $_;
 }
 
 my %INVERSE_PLACE;
@@ -729,21 +731,21 @@ sub faultLocation_Safety {
   return %LOCATION;
 }
 
-sub faultStatus_EventLog {
+sub faultStatus_JCMTEvents {
   my $class = shift;
-  return %EV_LOG_STATUS;
+  return %JCMT_EVENTS_STATUS;
 }
 
-sub faultStatusOpen_EventLog {
+sub faultStatusOpen_JCMTEvents {
 
   my $class = shift;
-  return %EV_LOG_STATUS_OPEN;
+  return %JCMT_EVENTS_STATUS_OPEN;
 }
 
-sub faultStatusClosed_EventLog {
+sub faultStatusClosed_JCMTEvents {
 
   my $class = shift;
-  return %EV_LOG_STATUS_CLOSED;
+  return %JCMT_EVENTS_STATUS_CLOSED;
 }
 
 =item B<faultCanAssocProjects>
@@ -1149,10 +1151,10 @@ sub isNotSafety {
   return ! $self->isSafety;
 }
 
-sub isEventLog {
+sub isJCMTEvents {
 
   my ( $self ) = @_;
-  return 'event log' eq lc $self->category;
+  return 'jcmt_events' eq lc $self->category;
 }
 
 =item B<subject>

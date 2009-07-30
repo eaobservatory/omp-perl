@@ -290,8 +290,8 @@ sub query_fault_output {
   my %faultstatus =
     'safety' eq lc $category
     ? OMP::Fault->faultStatus_Safety
-    : 'event log' eq lc $category
-      ? OMP::Fault->faultStatus_EventLog
+    : 'jcmt_events' eq lc $category
+      ? OMP::Fault->faultStatus_JCMTEvents
       : OMP::Fault->faultStatus
       ;
 
@@ -367,7 +367,7 @@ sub query_fault_output {
         # Do a query on just a single status
         my %status = ( OMP::Fault->faultStatus,
                         OMP::Fault->faultStatus_Safety,
-                        OMP::Fault->faultStatus_EventLog
+                        OMP::Fault->faultStatus_JCMTEvents
                       );
 
         push (@xml, "<status>$status</status>");
@@ -750,7 +750,7 @@ sub view_fault_output {
       my %status =
         ( OMP::Fault->faultStatus(),
           OMP::Fault->faultStatus_Safety,
-          OMP::Fault->faultStatus_EventLog
+          OMP::Fault->faultStatus_JCMTEvents
         );
 
       # Change status in fault object
@@ -1470,11 +1470,23 @@ sub _sidebar {
   my $q = $self->cgi;
   my $cat = $self->_get_param('cat');
 
-  my $suffix = 'safety' ne lc $cat ? 'Faults' : 'Reporting';
+  my $suffix =
+    $cat =~ /events/i
+    ? ''
+    : 'safety' eq lc $cat
+      ? 'Reporting'
+      : 'Faults'
+      ;
+
   my $title =
     defined $cat && uc $cat ne 'ANYCAT'
     ? "$cat $suffix"
     : 'Select a fault system';
+
+  if ( $title =~ /_log/i ) {
+
+    $title =~ tr/_/ /;
+  }
 
    $title = qq[<font color="#ffffff">$title</font>];
 
@@ -1509,9 +1521,16 @@ sub _sidebar {
 
   if (defined $cat and uc $cat ne "ANYCAT") {
 
+    my ( $text, $prop ) = ( 'fault', 'a' );
+    if ( $cat =~ /event/i ) {
+
+      $text = 'event';
+      $prop = 'an';
+    }
+
     unshift @sidebarlinks,
-      $self->_make_side_link( qq[filefault.pl?cat=$cat], 'File a fault' ),
-      $self->_make_side_link( $query_link{ uc $cat }->{'url'}, 'View faults', '<br><br>' )
+      $self->_make_side_link( qq[filefault.pl?cat=$cat], qq[File $prop $text] ),
+      $self->_make_side_link( $query_link{ uc $cat }->{'url'}, qq[View ${text}s], '<br><br>' )
       ;
   }
 
@@ -1612,18 +1631,18 @@ sub _write_login {
 
 BEGIN {
 
-  my @order = qw[ CSG OMP UKIRT JCMT DR FACILITY SAFETY ];
-  push @order, 'EVENT LOG', 'ANYCAT';
+  my @order = qw[ CSG OMP UKIRT JCMT JCMT_EVENTS DR FACILITY SAFETY ];
+  push @order, 'ANYCAT';
 
   my %long_text =
     ( 'CSG'      => 'JAC computer services',
       'OMP'      => 'Observation Management Project',
       'UKIRT'    => 'UKIRT',
       'JCMT'     => 'JCMT',
+      'JCMT_EVENTS' => 'JCMT events',
       'DR'       => 'data reduction systems',
       'FACILITY' => 'facilities',
       'SAFETY'   => 'safety',
-      'EVENT LOG' => 'event log',
       'ANYCAT'   => 'all categories',
     );
 
@@ -1632,7 +1651,7 @@ BEGIN {
     my %links;
     for my $type ( @order ) {
 
-      next if grep { $type eq $_ } ( 'SAFETY', 'EVENT LOG' );
+      next if grep { $type eq $_ } ( 'SAFETY', 'JCMT_EVENTS' );
 
       $links{ $type } =
         { 'url'   => "queryfault.pl?cat=$type",
@@ -1647,10 +1666,10 @@ BEGIN {
         'extra' => 'issues relating to safety'
       };
 
-    $links{'EVENT LOG'} =
-      { 'url'   => 'queryfault.pl?cat=EVENT LOG',
-        'text'  => 'Event Log',
-        'extra' => 'event logging'
+    $links{'JCMT_EVENTS'} =
+      { 'url'   => 'queryfault.pl?cat=JCMT_EVENTS',
+        'text'  => 'JCMT Events',
+        'extra' => 'event logging for JCMT'
       };
 
     #  Fine tune 'ANYCAT' description.

@@ -166,23 +166,10 @@ sub storeProgram {
   return [$string, $timestamp];
 }
 
-=item B<fetchProgram>
+=item B<compressReturnedItem>
+The first argument must be a science program object or XML.
 
-Retrieve a science program from the database.
-
-  $xml = OMP::SpServer->fetchProgram( $project, $password );
-
-The return argument is an XML representation of the science
-program (encoded in base64 for speed over SOAP if we are using
-SOAP).
-
-A third argument controls whether the request should be gzip compressed
-prior to Base64 encoding.
-
-A third argument controls what form the returned science program should
-take.
-
-  $gzip = OMP::SpServer->fetchProgram( $project, $password, "GZIP" );
+The second argument ( if defined, ) should be the return type as defined below.
 
 The following values can be used to specify different return
 types:
@@ -194,8 +181,65 @@ types:
 
 These are not exported and are defined in the OMP::SpServer namespace.
 
+If the return type is not defined, the value returned should be in XML.
+
 Note that for cases XML and GZIP, these will be Base64 encoded if returned
-via a SOAP request.
+via a SOAP request. Requests for OMP::SciProg will pass through untouched.
+=cut
+
+sub compressReturnedItem {
+
+  my $sp = shift;
+  my $rettype = shift;
+
+  $rettype = OMP__SCIPROG_XML unless defined $rettype;
+  $rettype = uc($rettype);
+
+  OMP::General->log_message( "Format=$rettype\n");
+
+  # Translate input strings to constants
+  if ($rettype !~ /^\d$/) {
+    if($rettype eq 'XML'){$rettype = OMP__SCIPROG_XML;}
+    elsif($rettype eq 'OBJECT'){$rettype = OMP__SCIPROG_OBJ;}
+    elsif($rettype eq 'GZIP'){$rettype = OMP__SCIPROG_GZIP;}
+    elsif($rettype eq 'AUTO'){$rettype = OMP__SCIPROG_AUTO;}
+    else{throw OMP::Error::FatalError("Unrecognised return type");}
+  }
+
+  if ($rettype != OMP__SCIPROG_OBJ) {
+  # Return the stringified form, compressed if
+  # its length is greater than the threshold value
+  # or force gzip if requested
+  my $string = "$sp";
+  if ($rettype == OMP__SCIPROG_GZIP ||
+     ($rettype == OMP__SCIPROG_AUTO && length($string) > GZIP_THRESHOLD)) {
+
+  $string = Compress::Zlib::memGzip( "$sp" );
+  throw OMP::Error::FatalError("Unable to gzip compress science program")
+  unless defined $string;
+  }
+  $sp = (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
+	    : $string );
+  };
+  return $sp;
+}
+
+=item B<fetchProgram>
+
+Retrieve a science program from the database.
+
+  $xml = OMP::SpServer->fetchProgram( $project, $password );
+
+The return argument is an XML representation of the science
+program (encoded in base64 for speed over SOAP if we are using
+SOAP).
+
+A third argument controls what form the returned science program should
+take.
+
+  $gzip = OMP::SpServer->fetchProgram( $project, $password, "GZIP" );
+
+See B<compressReturnedItem>
 
 =cut
 
@@ -205,19 +249,8 @@ sub fetchProgram {
   my $password = shift;
   my $rettype = shift;
 
-  $rettype = OMP__SCIPROG_XML unless defined $rettype;
-  $rettype = uc($rettype);
-
-  # Translate input strings to constants
-  if ($rettype !~ /^\d$/) {
-    $rettype = OMP__SCIPROG_XML  if $rettype eq 'XML';
-    $rettype = OMP__SCIPROG_OBJ  if $rettype eq 'OBJECT';
-    $rettype = OMP__SCIPROG_GZIP if $rettype eq 'GZIP';
-    $rettype = OMP__SCIPROG_AUTO if $rettype eq 'AUTO';
-  }
-
   my $t0 = [gettimeofday];
-  OMP::General->log_message( "fetchProgram: Begin.\nProject=$projectid\nFormat=$rettype\n");
+  OMP::General->log_message( "fetchProgram: Begin.\nProject=$projectid\n");
 
   my $sp;
   my $E;
@@ -239,42 +272,16 @@ sub fetchProgram {
     # This is "normal" errors. At the moment treat them like any other
     $E = shift;
 
-
   };
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
-
-  if ($rettype == OMP__SCIPROG_OBJ) {
-    # return the object
-    return $sp;
-  } else {
-
-    # Return the stringified form, compressed
-    my $string;
-    if ($rettype == OMP__SCIPROG_GZIP || $rettype == OMP__SCIPROG_AUTO) {
-      $string = "$sp";
-
-      # Force gzip if requested
-      if ($rettype == OMP__SCIPROG_GZIP || length($string) > GZIP_THRESHOLD) {
-	# Compress the string if its length is greater than the 
-	# threshold value
-	$string = Compress::Zlib::memGzip( "$sp" );
-      }
-
-      throw OMP::Error::FatalError("Unable to gzip compress science program")
-	unless defined $string;
-
-    } else {
-      $string = "$sp";
-    };
+  my $string = compressReturnedItem($sp, $rettype);
 
     OMP::General->log_message("fetchProgram: Complete in ".tv_interval($t0)." seconds\n");
 
-    return (exists $ENV{HTTP_SOAPACTION} ? SOAP::Data->type(base64 => $string)
-	    : $string );
-  }
+    return $string;
 
 }
 
@@ -402,13 +409,14 @@ sub programInstruments {
 
 Given a science program and a JCMT-format source catalogue, clone
 any blank MSBs inserting the catalogue information and return the
-result.
+result. An optional return type can be specified. See B<compressReturnedItem>
 
   [$xml, $info] = OMP::SpServer->SpInsertCat( $xml, $catalogue );
+  [$xml, $info] = OMP::SpServer->SpInsertCat( $xml, $catalogue, "GZIP" );
 
 Returns a reference to an array containing the modified science
-program XML and a string containing any informational messages
-(separated by newlines).
+program XML ( optionally compressed, ) and a string containing any informational 
+messages (separated by newlines).
 
 The catalogue is supplied as a text string including new lines.
 
@@ -418,8 +426,9 @@ sub SpInsertCat {
   my $class = shift;
   my $xml = shift;
   my $catstr = shift;
+  my $rettype = shift;
 
-  OMP::General->log_message( "SpInsertCat: processing catalog");
+  OMP::General->log_message("SpInsertCat: processing catalog");
 
   my $E;
   my ($sp, @info);
@@ -454,17 +463,17 @@ sub SpInsertCat {
     # This is "normal" errors. At the moment treat them like any other
     $E = shift;
 
-
   };
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
 
   my $infostr = join("\n", @info) . "\n";
-  my $spstr = "$sp";
+
+  my $spstr = compressReturnedItem($sp, $rettype);
 
   # Return the result
-  return [ $spstr, $infostr];
+  return [$spstr, $infostr];
 }
 
 sub returnStruct {

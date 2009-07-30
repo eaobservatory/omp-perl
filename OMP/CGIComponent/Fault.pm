@@ -330,12 +330,12 @@ sub query_fault_form {
 
     %status = ( %status,
                 map { OMP::Fault->$_ }
-                  qw[ faultStatus_Safety faultStatus_EventLog  ]
+                  qw[ faultStatus_Safety faultStatus_JCMTEvents  ]
               );
   }
-  elsif ( 'event log' eq lc $category ) {
+  elsif ( 'jcmt_events' eq lc $category ) {
 
-    %status = OMP::Fault->faultStatus_EventLog;
+    %status = OMP::Fault->faultStatus_JCMTEvents;
   }
   elsif ( ! $not_safety ) {
 
@@ -617,8 +617,8 @@ sub file_fault_form {
 
   # Get available statuses
   my $staus_meth =
-    'event log' eq lc $category
-    ? 'faultStatus_EventLog'
+    'jcmt_events' eq lc $category
+    ? 'faultStatus_JCMTEvents'
     : $not_safety
       ? 'faultStatus'
       : 'faultStatus_Safety'
@@ -813,15 +813,24 @@ sub file_fault_form {
                         -default=>$defaults{loss},
                         -size=>'4',
                         -maxlength=>'10',);
-    print "</td><tr><td align=right valign=top><b>Time of fault <small>(YYYY-MM-DDTHH:MM or HH:MM)</small>:</td><td>";
-    print $q->textfield(-name=>'time',
-                        -default=>$defaults{time},
-                        -size=>20,
-                        -maxlength=>128,);
-    print "&nbsp;";
-    print $q->popup_menu(-name=>'tz',
-                         -values=>['UT','HST'],
-                         -default=>$defaults{tz},);
+  }
+
+  if ( OMP::Fault->faultCanLoseTime($category)
+      || $category =~ /events\b/i
+      ) {
+
+    print q[</td><tr valign="top"><td align="right">]
+      . q[<b>Time of fault:</b>]
+      . q[</td><td>]
+      . $q->textfield(-name=>'time',
+                      -default=>$defaults{time},
+                      -size=>20,
+                      -maxlength=>128,)
+      . q[&nbsp;]
+      . $q->popup_menu(-name=>'tz',
+                        -values=>['UT','HST'],
+                        -default=>$defaults{tz},)
+      . q[<br /><small>(YYYY-MM-DDTHH:MM or HH:MM)</small>] ;
   }
 
   print "</td><tr><td align=right><b>Subject:</b></td><td>";
@@ -1249,14 +1258,14 @@ element will appear in a smaller font below the top-bar.
     my $low_cat = lc $cat;
 
     my $toptitle =
-        $low_cat eq 'safety'
-        ? "$cat Reporting"
-        : $low_cat eq 'event log'
-          ? 'Event Log'
-          : $low_cat ne 'anycat'
-            ? "$cat Faults"
-            : 'All Faults'
-            ;
+      $low_cat eq 'safety'
+      ? "$cat Reporting"
+      : $low_cat eq 'jcmt_events'
+        ? 'JCMT Events'
+        : $low_cat ne 'anycat'
+          ? "$cat Faults"
+          : 'All Faults'
+          ;
 
     my $width = $self->_get_table_width;
     print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
@@ -1456,8 +1465,8 @@ sub get_status_labels {
   my ( $self, $fault ) = @_;
 
   my %status =
-    $fault->isEventLog
-    ? OMP::Fault->faultStatus_EventLog
+    $fault->isJCMTEvents
+    ? OMP::Fault->faultStatus_JCMTEvents
     : $fault->isNotSafety
       ? OMP::Fault->faultStatus
       : OMP::Fault->faultStatus_Safety
