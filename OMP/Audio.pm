@@ -70,8 +70,8 @@ sub play {
   return if ! -e $file;
 
   # Do some rudimentary taint checking on the path. Only allow
-  # alpha-numerics, periods, front slashes and underscores.
-  $file =~ /^([a-zA-Z0-9\/\._]*)$/;
+  # alpha-numerics, periods, front slashes, underscores, and hyphens.
+  $file =~ /^([a-zA-Z0-9\/\._\-]*)$/;
   $file = $1;
 
   {
