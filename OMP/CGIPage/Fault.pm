@@ -568,7 +568,6 @@ sub query_fault_output {
       print "<a href='$sort_url'>Show oldest/lowest first</a> | Showing most recent/highest first";
     }
     print "<br>",
-      # Link to this script with an argument to alter sort criteria
       $self->_make_sort_by_links(),
       '<p></p>';
 
