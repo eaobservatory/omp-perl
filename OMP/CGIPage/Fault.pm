@@ -567,27 +567,14 @@ sub query_fault_output {
       my $sort_url = $comp->url_args("sort_order", "descending", "ascending");
       print "<a href='$sort_url'>Show oldest/lowest first</a> | Showing most recent/highest first";
     }
-    print "<br>";
+    print "<br>",
+      # Link to this script with an argument to alter sort criteria
+      $self->_make_sort_by_links(),
+      '<p></p>';
 
-    # Link to this script with an argument to alter sort criteria
-    my $orderby = $self->_get_param('orderby');
-    if ($orderby eq "filedate") {
-      my $url = $comp->url_args("orderby", "filedate", "response");
-      my $url2 = $comp->url_args("orderby", "filedate", "timelost");
-      print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a> | <a href='$url2'>Sort by time lost</a>";
-    } elsif ($orderby eq "timelost") {
-      my $url = $comp->url_args("orderby", "timelost", "filedate");
-      my $url2 = $comp->url_args("orderby", "timelost", "response");
-      print "<a href='$url'>Sort by file date</a> | <a href='$url2'>Sort by date of latest response</a> | Sorted by time lost</a>";
-    } else {
-      my $url = $comp->url_args("orderby", "response", "filedate");
-      my $url2 = $comp->url_args("orderby", "response", "timelost");
-      print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response | <a href='$url2'>Sort by time lost</a>";
-    }
+    my ( $orderby, $category ) =
+      map { $self->_get_param( $_ ) } qw[ orderby cat ] ;
 
-    print "<p>";
-
-    my $category = $self->_get_param('cat');
     my %showfaultargs = (
                          faults => $faults,
                          showcat => ($category ne 'ANYCAT' ? 0 : 1),
@@ -1555,6 +1542,68 @@ sub _make_side_link {
       ;
 }
 
+=iteb B<_make_sort_by_links>
+
+Returns a string of links listing the sort choices; accepts nothing.
+
+An already selected option does not result in a link; links are
+generated for the remaining choices.
+
+  $order_links = $page->_make_sort_by_links();
+
+=cut
+
+sub _make_sort_by_links {
+
+  my ( $self ) = @_;
+
+  my $comp = $self->fault_component;
+  my $chosen = $self->_get_param('orderby');
+
+  my @opt = qw[ filedate  response  timelost ];
+
+  my %text;
+  @text{ @opt } =
+    ( 'date of last response',
+      'file date',
+      'time lost',
+    );
+
+  my @out;
+  for my $opt ( @opt ) {
+
+    my $text = $text{ $opt };
+
+    if ( lc $chosen eq lc $opt ) {
+
+      push @out, qq[Sorted by $text] ;
+      next;
+    }
+
+    push @out,
+      q[<a href="]
+      . $comp->url_args( 'orderby' , $chosen, $opt )
+      . qq[">Sort by $text</a>]
+      ;
+  }
+
+  #if ($orderby eq "filedate") {
+  #  my $url = $comp->url_args("orderby", "filedate", "response");
+  #  my $url2 = $comp->url_args("orderby", "filedate", "timelost");
+  #  print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a> | <a href='$url2'>Sort by time lost</a>";
+  #} elsif ($orderby eq "timelost") {
+  #  my $url = $comp->url_args("orderby", "timelost", "filedate");
+  #  my $url2 = $comp->url_args("orderby", "timelost", "response");
+  #  print "<a href='$url'>Sort by file date</a> | <a href='$url2'>Sort by date of latest response</a> | Sorted by time lost</a>";
+  #} else {
+  #  my $url = $comp->url_args("orderby", "response", "filedate");
+  #  my $url2 = $comp->url_args("orderby", "response", "timelost");
+  #  print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response | <a href='$url2'>Sort by time lost</a>";
+  #}
+
+  return
+    join ' | ', @out;
+}
 
 =item B<_verify_login>
 
