@@ -1587,20 +1587,6 @@ sub _make_sort_by_links {
       ;
   }
 
-  #if ($orderby eq "filedate") {
-  #  my $url = $comp->url_args("orderby", "filedate", "response");
-  #  my $url2 = $comp->url_args("orderby", "filedate", "timelost");
-  #  print "Sorted by date filed | <a href='$url'>Sort by date of latest response</a> | <a href='$url2'>Sort by time lost</a>";
-  #} elsif ($orderby eq "timelost") {
-  #  my $url = $comp->url_args("orderby", "timelost", "filedate");
-  #  my $url2 = $comp->url_args("orderby", "timelost", "response");
-  #  print "<a href='$url'>Sort by file date</a> | <a href='$url2'>Sort by date of latest response</a> | Sorted by time lost</a>";
-  #} else {
-  #  my $url = $comp->url_args("orderby", "response", "filedate");
-  #  my $url2 = $comp->url_args("orderby", "response", "timelost");
-  #  print "<a href='$url'>Sort by file date</a> | Sorted by date of latest response | <a href='$url2'>Sort by time lost</a>";
-  #}
-
   return
     join ' | ', @out;
 }
