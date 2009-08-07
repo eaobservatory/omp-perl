@@ -1112,19 +1112,17 @@ sub isOpen {
   my $status = $self->status;
 
   return
-    grep
-    (
-      { $status == $_ }
-      ( OPEN(),
-        WILL_BE_FIXED(),
-        FOLLOW_UP(),
-        IMMEDIATE_ACTION(),
-        REFER_TO_SAFETY_COMMITTEE(),
-        COMMISSIONING(),
-        ONGOING(),
-      )
-    )
-    ? 1 : 0 ;
+    scalar
+      grep
+        { $status == $_ }
+        ( OPEN(),
+          WILL_BE_FIXED(),
+          FOLLOW_UP(),
+          IMMEDIATE_ACTION(),
+          REFER_TO_SAFETY_COMMITTEE(),
+          COMMISSIONING(),
+          ONGOING(),
+        ) ;
 }
 
 =item B<isNew>
