@@ -358,7 +358,7 @@ sub query_fault_output {
         # Do a query on all open statuses
         my %status = ( OMP::Fault->faultStatusOpen,
                         OMP::Fault->faultStatusOpen_Safety,
-                        OMP::Fault->faultStatus_JCMTEvents
+                        OMP::Fault->faultStatusOpen_JCMTEvents
                       );
 
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
