@@ -1123,10 +1123,8 @@ sub show_faults {
     @faults = sort {$a->timelost <=> $b->timelost} @faults;
   }
 
-  # Sort faults in the order they are to be displayed
-  if ($descending) {
-    @faults = reverse @faults;
-  }
+  @faults = reverse @faults
+    if $descending;
 
   my $alt_class;               # Keep track of alternating class style
   for my $fault (@faults) {
