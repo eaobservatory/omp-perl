@@ -1082,10 +1082,12 @@ Only the B<faults> key is required.
 sub show_faults {
   my $self = shift;
   my %args = @_;
+
   my $faults = $args{faults};
   my $descending = $args{descending};
   my $url = $args{url};
   my $showcat = $args{showcat};
+
   my $q = $self->cgi;
 
   (! $url) and $url = "viewfault.pl";
@@ -1112,8 +1114,14 @@ sub show_faults {
   print "<td><b>Replies</b></td><td> </td>";
 
   if ($args{orderby} eq 'response') {
-    @$faults = sort {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch} @$faults;
-  } elsif ($args{orderby} eq 'timelost') {
+
+    @$faults =
+      sort
+        {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch}
+        @$faults;
+  }
+  elsif ($args{orderby} eq 'timelost') {
+
     @$faults = sort {$a->timelost <=> $b->timelost} @$faults;
   }
 
