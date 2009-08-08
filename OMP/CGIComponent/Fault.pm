@@ -1085,12 +1085,10 @@ sub show_faults {
 
   my @faults = @{ $args{faults} };
   my $descending = $args{descending};
-  my $url = $args{url};
+  my $url = $args{url} or 'viewfault.pl';
   my $showcat = $args{showcat};
 
   my $q = $self->cgi;
-
-  (! $url) and $url = "viewfault.pl";
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
