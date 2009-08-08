@@ -1094,7 +1094,7 @@ sub show_faults {
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
-  my $stats = new OMP::FaultGroup( faults => \@faults );
+  my $stats = OMP::FaultGroup->new( faults => \@faults );
 
   my $width = $self->_get_table_width;
   print "<table width=$width cellspacing=0>";
