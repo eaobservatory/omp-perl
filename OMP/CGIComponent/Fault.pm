@@ -1083,7 +1083,7 @@ sub show_faults {
   my $self = shift;
   my %args = @_;
 
-  my $faults = $args{faults};
+  my @faults = @{ $args{faults} };
   my $descending = $args{descending};
   my $url = $args{url};
   my $showcat = $args{showcat};
@@ -1094,7 +1094,7 @@ sub show_faults {
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
-  my $stats = new OMP::FaultGroup( faults => $faults );
+  my $stats = new OMP::FaultGroup( faults => \@faults );
 
   my $width = $self->_get_table_width;
   print "<table width=$width cellspacing=0>";
@@ -1115,22 +1115,19 @@ sub show_faults {
 
   if ($args{orderby} eq 'response') {
 
-    @$faults =
+    @faults =
       sort
         {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch}
-        @$faults;
+        @faults;
   }
   elsif ($args{orderby} eq 'timelost') {
 
-    @$faults = sort {$a->timelost <=> $b->timelost} @$faults;
+    @faults = sort {$a->timelost <=> $b->timelost} @faults;
   }
 
-  my @faults;
   # Sort faults in the order they are to be displayed
   if ($descending) {
-    @faults = reverse @$faults;
-  } else {
-    @faults = @$faults;
+    @faults = reverse @faults;
   }
 
   my $alt_class;               # Keep track of alternating class style
