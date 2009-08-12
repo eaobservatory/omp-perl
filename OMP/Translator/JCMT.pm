@@ -1206,6 +1206,7 @@ sub rts_config {
     # is actually a jiggle_chop
     $obsmode = "jiggle_chop" if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
+    $obsmode = 'jiggle_freqsw' if $obsmode eq 'grid_freqsw';
 
     $root = $obsmode;
 
