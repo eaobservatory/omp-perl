@@ -1190,6 +1190,78 @@ sub jos_config {
                                                                           * $jos->num_cycles) . " sec\n";
     }
 
+  } elsif ($info{observing_mode} =~ /freqsw/) {
+
+    # Parameters to calculate
+    # JOS_MULT         => Number of complete jiggle maps per sequence
+    # NUM_CYCLES       => Number of distinct sequences
+
+    # Just need to set JOS_MULT
+    my $jos_mult;
+
+    # A grid/freqsw will not need a jiggle object, but for jiggle mode we need to know
+    # how many distinct points we will be observing. We also need to retrieve
+    # the total requested integration time per point
+    my $npts = 1;
+    my $secs_per_point = 0;
+    if ($info{observing_mode} =~ /jiggle/) {
+
+      # first get the Secondary object, via the TCS
+      my $tcs = $cfg->tcs;
+      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+
+      # ... and secondary
+      my $secondary = $tcs->getSecondary();
+      throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
+
+      # N_JIGS_ON etc
+      my %timing = $secondary->timing;
+      # Get the full jigle parameters from the secondary object
+      my $jig = $secondary->jiggle;
+      throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
+
+      # we need to know how many points are in the pattern
+      $npts = $jig->npts;
+
+      # Get the requested integration time per point
+      $secs_per_point = $info{secsPerJiggle};
+    } else {
+      $secs_per_point = $info{secsPerCycle};
+    }
+
+    # Number of frequency switches
+    my $nfreqs = 2;
+
+    # The total amount of observing time is pretty straightforward
+    # (ignoring number of offsets)
+    my $total_time = $secs_per_point * $npts;
+
+    # Maximum allowed time per sequence
+    my $max_time_on = min( $total_time,
+                           OMP::Config->getData( 'acsis_translator.freqsw_max_seq_length' ));
+    # if the step time means that we can not get round the pattern in this
+    # time we have no choice but to change that time
+    $max_time_on = max( $max_time_on, ($nfreqs * $npts * $jos->step_time ) );
+
+    # Number of cycles
+    my $num_cycles = ceil( $total_time / $max_time_on );
+    $jos->num_cycles( $num_cycles );
+
+    # Now calculate JOS_MULT
+    $jos_mult = ceil( $secs_per_point / ( $nfreqs * $jos->step_time * $num_cycles ));
+
+    $jos->jos_mult($jos_mult);
+    if ($self->verbose) {
+      print {$self->outhdl} "Frequency Switch JOS parameters:\n";
+      print {$self->outhdl} "\tRequested integration time (ON+OFF) per sky position: $secs_per_point secs\n";
+      print {$self->outhdl} "\tTime to complete jiggle pattern once : ". ($nfreqs * $npts * $jos->step_time )." secs\n";
+      print {$self->outhdl} "\tNumber of steps per jiggle position: $jos_mult\n";
+      print {$self->outhdl} "\tNumber of frequency switches: $nfreqs\n";
+      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
+      print {$self->outhdl} "\tActual integration time per sky position:".
+        ( $jos_mult * $nfreqs * $num_cycles * $jos->step_time) ."\n";
+    }
+
   } elsif ($info{observing_mode} =~ /grid/) {
 
     # N.B. The NUM_CYCLES has already been set to
@@ -1338,45 +1410,6 @@ sub jos_config {
       print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       print {$self->outhdl} "\tActual integration time per grid position: ".
         ($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
-    }
-
-  } elsif ($info{observing_mode} =~ /freqsw/) {
-
-    # Parameters to calculate 
-    # NUM_CYCLES       => Number of complete iterations
-    # JOS_MULT         => Number of complete jiggle maps per sequence
-    # STEP_TIME        => RTS step time during an RTS sequence
-    # N_CALSAMPLES     => Number of load samples per cal
-
-    # NUM_CYCLES has already been set above.
-    # N_CALSAMPLES has already been set too.
-    # STEP_TIME ditto
-
-    # Just need to set JOS_MULT
-    my $jos_mult;
-
-    # first get the Secondary object, via the TCS
-    my $tcs = $cfg->tcs;
-    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-
-    # ... and secondary
-    my $secondary = $tcs->getSecondary();
-    throw OMP::Error::FatalError('for some reason Secondary configuration is not available. This can not happen') unless defined $secondary;
-
-    # N_JIGS_ON etc
-    my %timing = $secondary->timing;
-    # Get the full jigle parameters from the secondary object
-    my $jig = $secondary->jiggle;
-    throw OMP::Error::FatalError('for some reason the Jiggle configuration is not available. This can not happen for a jiggle observation') unless defined $jig;
-
-    # Now calculate JOS_MULT
-    # +1 to make sure we get 
-    # at least the requested integration time
-    $jos_mult = int ( $info{secsPerJiggle} / (2 * $jos->step_time * $jig->npts ) )+1;
-
-    $jos->jos_mult($jos_mult);
-    if ($self->verbose) {
-      print {$self->outhdl} "JOS_MULT = $jos_mult\n";
     }
 
   } else {
@@ -3279,6 +3312,8 @@ sub step_time {
       $step = $self->step_time_reduce( $time_per_nod, $max_time_per_chop, $min_step );
     }
 
+  } elsif ($info{observing_mode} =~ /freqsw/) {
+    $step = OMP::Config->getData( 'acsis_translator.step_time_fast_freqsw' );
   } else {
     # eg jiggle/chop continuum mode
     $step = OMP::Config->getData( 'acsis_translator.step_time' );
