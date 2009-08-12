@@ -946,6 +946,7 @@ sub jos_config {
                 pointing    => 'pointing',
                 skydip      => 'raster_pssw',
                 jiggle_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
+                grid_freqsw => ( $self->is_fast_freqsw(%info) ? 'fast_jiggle_fsw' : 'slow_jiggle_fsw'),
                 jiggle_chop => 'jiggle_chop',
                 jiggle_pssw => 'grid_pssw',
                 grid_chop   => 'jiggle_chop',
@@ -1890,6 +1891,7 @@ sub acsisdr_recipe {
 
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
+    $obsmode = 'jiggle_freqsw' if $obsmode eq 'grid_freqsw';
 
     # Need to special case chop and chop-jiggle vs jiggle-chop
     if ($obsmode =~ /jiggle/) {
@@ -2378,6 +2380,8 @@ sub rtd_config {
 
     $obsmode = 'jiggle_chop' if $obsmode eq 'grid_chop';
     $obsmode = 'grid_pssw' if $obsmode eq 'jiggle_pssw';
+    $obsmode = 'jiggle_freqsw' if $obsmode eq 'grid_freqsw';
+
     $root = $obsmode;
   } else {
     # keyed on observing type
