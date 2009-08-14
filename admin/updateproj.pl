@@ -86,6 +86,8 @@ tie %alloc, 'Config::IniFiles', ( -file => $file );
 # Connect to the database
 my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
 
+my $val_split = qr[\s*,\s*];
+
 # Loop over each project and update it
 for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
@@ -110,7 +112,7 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
     # Verify that SUPPORT info is correct
     if ($mod eq 'support') {
-      my @support = split(/,/,$alloc{$proj}->{$mod});
+      my @support = split($val_split, $alloc{$proj}->{$mod});
       for my $s (@support) {
         die "Unable to locate user $s in database [mode = $mod]\n"
           unless OMP::UserServer->verifyUser( $s );
@@ -132,8 +134,20 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
     } elsif ($project->can($mod)) {
       print "Changing $mod from ".$project->$mod ." ";
-      $project->$mod( $alloc{$proj}->{$mod} );
-      print " to " .$alloc{$proj}->{$mod} ."\n";
+
+      my $val = $alloc{$proj}->{$mod};
+
+      # OMP::Project->coi expects userids to be separated by a colon by default.
+      # ($OMP::Project::DELIM).  A project configuration has, however, values
+      # separated by a comma not a colon.
+      local $OMP::Project::DELIM =
+        lc $mod eq 'coi'
+        ? $val_split
+        : ':'
+        ;
+
+      $project->$mod( $val );
+      print " to $val\n";
     } elsif ($mod eq 'incalloc') {
       # Special case
       my $inc = $alloc{$proj}->{$mod} * 3600;
@@ -167,7 +181,7 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
       print "to $new seconds\n";
     } elsif ($mod eq 'band') {
       # A tau band
-      my @bands = split( /,/, $alloc{$proj}->{band});
+      my @bands = split( $val_split, $alloc{$proj}->{band});
       my $taurange = OMP::SiteQuality::get_tauband_range($project->telescope, @bands);
       die "Error determining tau range from band ".$alloc{proj}->{band}." !"
         unless defined $taurange;
