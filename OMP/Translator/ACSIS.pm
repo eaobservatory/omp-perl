@@ -542,6 +542,19 @@ sub handle_special_modes {
     }
   }
 
+  # For now we need to morph a grid/freqsw into a 1x1 jiggle/freqsw
+  if ( $info->{mapping_mode} eq 'grid' && $info->{switching_mode} =~ /freqsw/ ) {
+    $info->{mapping_mode} = 'jiggle';
+    $info->{observing_mode} = 'jiggle_freqsw';
+    $info->{jigglePattern} = '1x1';
+    $info->{scaleFactor} = 1;
+    $info->{secsPerJiggle} = $info->{secsPerCycle};
+    if ($self->verbose) {
+      print {$self->outhdl} "Converting grid/freqsw to jiggle/freqsw observation\n";
+    }
+
+  }
+
   return;
 }
 
