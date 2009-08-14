@@ -27,7 +27,7 @@ use File::Spec;
 use Astro::Coords::Offset;
 use List::Util qw/ min max /;
 use Scalar::Util qw/ blessed /;
-use POSIX qw/ ceil /;
+use POSIX qw/ ceil floor /;
 use Math::Trig qw/ rad2deg /;
 
 use JCMT::ACSIS::HWMap;
@@ -1232,6 +1232,14 @@ sub jos_config {
     # Number of frequency switches
     my $nfreqs = 2;
 
+    # Calculate how many steps we need at each jiggle position. This
+    # is the total number of repeats of the jiggle pattern and will
+    # need to be normalized later when calculating num_cycles
+    my $total_jos_mult = ceil( $secs_per_point / ( $nfreqs * $jos->step_time ) );
+
+    # Calculate the duration of a single run round the jiggle pattern
+    my $pattern_length = $jos->step_time * $nfreqs * $npts;
+
     # The total amount of observing time is pretty straightforward
     # (ignoring number of offsets)
     my $total_time = $secs_per_point * $npts;
@@ -1241,21 +1249,24 @@ sub jos_config {
                            OMP::Config->getData( 'acsis_translator.freqsw_max_seq_length' ));
     # if the step time means that we can not get round the pattern in this
     # time we have no choice but to change that time
-    $max_time_on = max( $max_time_on, ($nfreqs * $npts * $jos->step_time ) );
+    $max_time_on = max( $max_time_on, $pattern_length );
+
+    # Number of times round the pattern we can go in a single cycle (this is JOS_MULT)
+    my $jos_mult = floor( $max_time_on / $pattern_length );
+    $jos->jos_mult($jos_mult);
 
     # Number of cycles
-    my $num_cycles = ceil( $total_time / $max_time_on );
+    my $num_cycles = ceil( $total_jos_mult / $jos_mult );
     $jos->num_cycles( $num_cycles );
 
-    # Now calculate JOS_MULT
-    $jos_mult = ceil( $secs_per_point / ( $nfreqs * $jos->step_time * $num_cycles ));
+    # Force steps_btwn_refs to be the steps between cals
+    $jos->steps_btwn_refs( $jos->steps_btwn_cals );
 
-    $jos->jos_mult($jos_mult);
     if ($self->verbose) {
       print {$self->outhdl} "Frequency Switch JOS parameters:\n";
       print {$self->outhdl} "\tRequested integration time (ON+OFF) per sky position: $secs_per_point secs\n";
-      print {$self->outhdl} "\tTime to complete jiggle pattern once : ". ($nfreqs * $npts * $jos->step_time )." secs\n";
-      print {$self->outhdl} "\tNumber of steps per jiggle position: $jos_mult\n";
+      print {$self->outhdl} "\tTime to complete jiggle pattern once : $pattern_length secs\n";
+      print {$self->outhdl} "\tNumber of times round the pattern each cycle: $jos_mult\n";
       print {$self->outhdl} "\tNumber of frequency switches: $nfreqs\n";
       print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
       print {$self->outhdl} "\tActual integration time per sky position:".
