@@ -715,7 +715,9 @@ sub fe_config {
   # Frequency offset
   my $freq_off = 0.0;
   if ($info{switching_mode} =~ /freqsw/ && defined $info{frequencyOffset}) {
-    $freq_off = $info{frequencyOffset};
+    # want the spacing to be frequencyOffset and not 2xfrequencyOffset (since the
+    # observing system goes to -1 and +1 not -0.5 and +0.5
+    $freq_off = $info{frequencyOffset} / 2.0;
   }
   $fe->freq_off_scale( $freq_off );
 
