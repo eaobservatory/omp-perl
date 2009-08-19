@@ -2233,6 +2233,18 @@ sub cubes {
       # Convolve them with the instrument footprint
       my @convolved = $self->convolve_footprint( $matchpa, \@footprint_h, \@offsets );
 
+      # Get the required telescope offsets. These will always be in tracking coordinates TAN.
+      my @teloffsets;
+      @teloffsets = @{$info{offsets}} if (exists $info{offsets} && defined $info{offsets});
+
+      # Should fix up earlier code to add SYSTEM
+      for (@teloffsets) {
+        $_->{SYSTEM} = "TRACKING";
+      }
+
+      # And convolve again
+      @convolved = $self->convolve_footprint( $matchpa, \@convolved, \@teloffsets );
+
       # calculate the pattern without a global offset
       ($nx, $ny, $xsiz, $ysiz, $mappa, $offx, $offy) = $self->calc_grid( $self->nyquist(%info)->arcsec,
                                                                          @convolved);
