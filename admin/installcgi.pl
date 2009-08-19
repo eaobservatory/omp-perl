@@ -39,14 +39,37 @@ Place,Suite 330, Boston, MA  02111-1307, USA
 use warnings;
 use strict;
 
+use FindBin;
 use File::Copy;
 use File::Spec;
+
+use lib qq[$FindBin::RealBin/..];
+use OMP::Config;
+use OMP::Error qw[ :try ];
 
 my $source = "/jac_sw/omp/msbserver";
 
 my $privdest = "/WWW/omp-private";
 
 my $pubdest = "/WWW/omp";
+
+my $config = OMP::Config->new;
+if ( $config->in_test_mode ) {
+
+    $source = $config->getData( 'test.root' );
+
+    $pubdest = $config->getData( 'test-web-install.public' );
+
+    my $temp;
+    try {
+      $tmp = $config->getData( 'test-web-install.private' );
+    }
+    catch OMP::Error with {
+
+      # Swallow errors; "private" key could be missing altogether.
+    };
+    $privdest = $temp if $temp;
+}
 
 my @srcdirs = qw/ cgi server web /;
 
