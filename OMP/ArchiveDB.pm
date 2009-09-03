@@ -682,7 +682,19 @@ sub _merge_dupes {
       # merge it later
       $info->{header} = Astro::FITS::Header->new( Hash => $hdr );
     }
-    my $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    my $class;
+
+    eval {
+      $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    };
+    if ( $@ ) {
+
+      warn sprintf "Skipped '%s' due to: %s\n",
+        $info->{'filename'},
+        $@;
+    }
+
+    next unless $class;
 
     my $obsid = $class->to_OBSERVATION_ID( $hdr, $info->{frameset} );
 
