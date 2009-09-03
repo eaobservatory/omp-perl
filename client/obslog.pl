@@ -239,7 +239,8 @@ sub display_loading_status {
   if ( $opt{'database'} ) {
 
     $OMP::ArchiveDB::SkipDBLookup = 0;
-    $OMP::ArchiveDB::FallbackToFile = 1;
+    $OMP::ArchiveDB::FallbackToFiles = 0;
+    $OMP::ArchiveDB::AnyDate = 1;
   }
 
   eval 'use OMP::ArcQuery';
