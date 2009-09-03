@@ -157,8 +157,6 @@ sub queryArc {
     $ignorebad = 0;
   }
 
-  my @results;
-
   my $grp = retrieve_archive( $query, 1, $retainhdr );
 
   if (defined($grp)) {
@@ -185,6 +183,8 @@ sub queryArc {
   # Control whether we have queried the DB or not
   # True means we have done a successful query.
   my $dbqueryok = 0;
+
+  my @results;
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
