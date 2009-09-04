@@ -443,6 +443,8 @@ sub in_test_mode {
 
   my ( $self ) = @_;
 
+  $self = _get_instance( $self );
+
   return
     exists $self->{'test-mode'}
     && !! $self->{'test-mode'}
