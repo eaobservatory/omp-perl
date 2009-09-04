@@ -397,7 +397,7 @@ sub set_config {
     ;
 
   if ( $force_test
-        || -e File::Spec->catfile(  $FindBin::RealBin, $TEST_MODE_FLAG )
+        || -e File::Spec->catfile( $self->cfgdir(), $TEST_MODE_FLAG )
       ) {
 
     $DEBUG and print "Setting \$DEFAULT_CONFIG to 'omp-dev'\n";
