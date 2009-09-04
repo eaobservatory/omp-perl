@@ -402,7 +402,11 @@ sub set_config {
 
     $DEBUG and print "Setting \$DEFAULT_CONFIG to 'omp-dev'\n";
 
-    $self->{'test-mode'} = $DEFAULT_CONFIG = 'omp-dev';
+    $DEFAULT_CONFIG = 'omp-dev';
+
+    # Need a hash reference (see change
+    # 7804d4b33b38ab2476b1d4195d0ee535ed6fbc36).
+    $self->{'test-mode'} = { 1 };
 
     unless ( $from_new ) {
 
