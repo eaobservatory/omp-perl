@@ -51,6 +51,7 @@ use constant NOT_A_FAULT => 3;
 use constant WON_T_BE_FIXED => 4;
 use constant DUPLICATE => 5;
 use constant WILL_BE_FIXED => 6;
+use constant SUSPENDED => 7;
 use constant SUN_SOLARIS => 1000;
 use constant ALPHA_OSF => 1001;
 use constant PC_WINDOWS => 1002;
@@ -513,6 +514,7 @@ my %CONDITION = (
 my %STATUS_OPEN = (
                    Open                   => OPEN,
                    "Open - Will be fixed" => WILL_BE_FIXED,
+                   'Suspended'            => SUSPENDED,
                   );
 
 my %STATUS_CLOSED = (
