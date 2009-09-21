@@ -80,10 +80,8 @@ sub getDRRecipe {
   # if there was no DR component we have to guess
   if ($obstype eq 'pointing') {
     $recipe = 'REDUCE_POINTING';
-    $recipe .= "_SCAN" if $mapmode eq 'scan';
   } elsif ($obstype eq 'focus') {
     $recipe = 'REDUCE_FOCUS';
-    $recipe .= "_SCAN" if $mapmode eq 'scan';
   } elsif ($obstype eq 'skydip') {
     $recipe = "REDUCE_SKYDIP";
   } elsif ($obstype eq 'flatfield') {
