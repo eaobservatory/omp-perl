@@ -24,6 +24,7 @@ use warnings::register;
 use File::Basename qw[ fileparse ];
 use File::Spec;
 use OMP::Error qw[ :try ];
+use OMP::Config;
 
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
