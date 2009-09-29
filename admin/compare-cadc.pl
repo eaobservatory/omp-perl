@@ -48,7 +48,7 @@ pod2usage( '-exitval' => 2, '-verbose' => 1,
   if scalar values %config > scalar grep { -f $_ && -r _ } values %config;
 
 my @jcmt =
-  sort qw[ ACSIS FILES COMMON ];
+  sort qw[ ACSIS SCUBA2 FILES COMMON ];
 
 my @omp =
   sort
