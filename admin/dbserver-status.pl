@@ -9,6 +9,7 @@ use Carp qw[ carp cluck ];
 use DBI;
 use FindBin;
 use Getopt::Long qw[ :config gnu_compat no_ignore_case no_debug ];
+use List::Util qw[ first ];
 use MIME::Lite;
 use Pod::Usage;
 
@@ -17,11 +18,12 @@ use OMP::Config;
 
 # Check servers both at JAC & CADC by default.
 my ( $cadc, $jac ) = ( 1, 1);
-my ( $help, $short, @addr );
+my ( $help, $short, $err_only, @addr );
 GetOptions(
     'help'   => \$help,
-    'short!' => \$short,
-    'mail=s' => \@addr,
+    'e|error' => \$err_only,
+    's|short' => \$short,
+    'm|mail=s' => \@addr,
     'cadc!' => \$cadc,
     'jac!' => \$jac,
   )
@@ -47,18 +49,13 @@ my %cadc =
         } ,
   );
 
-$jac = format_server_status( check_server( %jac ) )
+$jac = format_server_status( $err_only, check_server( %jac ) )
  if $jac;
 
-$cadc = format_server_status( check_server( %cadc ) )
+$cadc = format_server_status( $err_only, check_server( %cadc ) )
   if $cadc;
 
-my $err = find_err( $jac , $cadc );
-$err =
-  $err
-  ? 'Problem - Server, database status'
-  : 'OK Server, database status'
-  ;
+my $title = make_title( $err_only, $jac, $cadc );
 
 my $report =
   $short
@@ -70,38 +67,21 @@ my $report =
 
 if ( ! scalar @addr ) {
 
-  printf "%s\n", $err;
-  print $report;
+  printf "%s\n", $title if $title;
+  print $report if $report;
 
 }
-else {
+elsif ( $title || $report ) {
 
   MIME::Lite->send("smtp", "mailhost", Timeout => 30);
   my $mail =
     MIME::Lite->new( 'From' => 'jcmtarch@jach.hawaii.edu',
                       'to'  => join( ', ', @addr ),
-                      'Subject' => $err,
+                      'Subject' => $title,
                       'Data'    => $report,
                     );
 
   $mail->send or die "Error sending message: $!\n";
-}
-
-# Given a list of strings, returns a truth value indicating one of the lines
-# starts with "ERR".
-sub find_err {
-
-  my ( @string ) = @_;
-  my $err_re = qr[^ ERR \b]imx;
-
-  for ( @string ) {
-
-    next unless defined $_;
-
-    return 1 if /$err_re/;
-  }
-
-  return;
 }
 
 # Given a hash of server names as keys & array references of status messages as
@@ -114,27 +94,72 @@ sub find_err {
 #
 sub format_server_status {
 
-  my ( $status ) = @_;
+  my ( $err_only, $status ) = @_;
 
   my $msg = '';
   for my $server ( sort keys %{ $status } ) {
 
-    $msg .=
-      sprintf "%s\n%s\n",
-        $server, format_db_status( $status->{ $server } );
+    my $tmp = format_db_status( $err_only, $status->{ $server } )
+      or next;
+
+    $msg .= sprintf "%s\n%s\n", $server, $tmp;
   }
 
   return $msg;
 }
 
-# Given an array reference of status strings, returns a joined string, each
-# line is prefixed with two spaces.
-sub format_db_status {
+BEGIN {
 
-  my ( $status ) = @_;
+  my $err_re = qr[^ \s* ERR \b]mix;
 
-  return
-    (' ') x 2 . join "\n  ", @{ $status };
+  # Given an array reference of status strings, returns a joined string, each
+  # line is prefixed with two spaces.
+  sub format_db_status {
+
+    my ( $err_only, $status ) = @_;
+
+    return unless scalar @{ $status };
+
+    my $prefix = ' ' x 2;
+    my $joiner = qq[\n${prefix}];
+
+    return $prefix . join $joiner, @{ $status }
+      unless $err_only;
+
+    my @err;
+    for ( @{ $status } ) {
+
+      push @err, $_ if /$err_re/;
+    }
+
+    return unless scalar @err;
+
+    return $prefix . join $joiner, @err;
+  }
+
+  sub make_title {
+
+    my ( $err_only, $jac, $cadc ) = @_;
+
+    if ( ! $jac && ! $cadc ) {
+
+      return if $err_only;
+
+      return '(mu) Received no status messages';
+    }
+
+    # Using "first" directly as the condition results in "Useless use of private
+    # variable in void context".
+    my $err =
+      first { /$err_re/ }
+        map { defined $_ ? $_ : () } ( $jac, $cadc );
+
+    return
+      $err
+      ? 'Problem - Server, database status'
+      : 'OK Server, database status'
+      ;
+  }
 }
 
 # Given a hash with server names, database names, log-in data, checks if servers
@@ -159,7 +184,7 @@ sub check_server {
 
     unless ( $server =~ $cadc || $server =~ $jac ) {
 
-      $out{ $server } = [ qq[UNKNOWN SERVER: $server] ];
+      $out{ $server } = [ qq[ERR UNKNOWN SERVER: $server] ];
       next SERVER;
     }
 
@@ -349,15 +374,19 @@ agent has been enabled.
 
 Show this message.
 
-=item B<n-ocadc>
+=item B<-nocadc>
 
 Skip database & servers at CADC.
 
-=item B<n-ojac>
+=item B<-nojac>
 
 Skip databases & servers at JAC.
 
-=item B<m-ail> email-address
+=item B<-error>
+
+Print|Email only the errors, if any.
+
+=item B<-mail> email-address
 
 Send email to the given address instead of printing the result on
 standard output.  Specify multiple time to send mail to multiple
