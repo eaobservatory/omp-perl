@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 199;
+use Test::More tests => 197;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -636,12 +636,3 @@ is_deeply([split(/\s+/,OMP::General->preify_text("< > &"))],
 $pstring = "<htMl>html formatted string";
 is(OMP::General->preify_text($pstring),'html formatted string','Strip out beginning <html> string');
 
-print "# HTML to plaintext\n";
-my $html = "<strong>Hello<br>there</strong>";
-is(OMP::General->html_to_plain($html),"Hello\nthere\n", "Convert BR to newline");
-
-$html = "<a href='ftp://ftp.jach.hawaii.edu/'>FTP link</a>";
-is(OMP::General->html_to_plain($html),"FTP link [ ftp://ftp.jach.hawaii.edu/ ]\n", "Display hyperlink URL");
-
-#$html = "<a href='http://www.jach.hawaii.edu/index.html' class='biglink'>Home</a>";
-#is(OMP::General->html_to_plain($html),"Home [http://www.jach.hawaii.edu/index.html]\n", "Display hyperlink URL but not other hyperlink attributes");
