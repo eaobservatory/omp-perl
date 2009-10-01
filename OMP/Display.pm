@@ -24,9 +24,6 @@ use Carp;
 use File::Spec;
 use OMP::Config;
 
-require HTML::TreeBuilder;
-require HTML::FormatText;
-
 our $VERSION = (qw$Revision$)[1];
 
 =head1 METHODS
@@ -52,11 +49,13 @@ sub html2plain {
   $text =~ s!<a\shref=\W*(\w+://.*?)\W*?>(.*?)</a>!$2 \[$1\]!gis;
 
   # Create the HTML tree and parse it
+  require HTML::TreeBuilder;
   my $tree = HTML::TreeBuilder->new;
   $tree->parse($text);
   $tree->eof;
 
   # Convert the HTML to text and store it
+  require HTML::FormatText;
   my $formatter = HTML::FormatText->new(leftmargin => 0);
   my $plaintext = $formatter->format($tree);
 
