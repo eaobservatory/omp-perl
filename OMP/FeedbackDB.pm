@@ -39,6 +39,7 @@ use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
 use OMP::Password;
+use OMP::General::HTML;
 
 use Text::Wrap;
 
@@ -238,7 +239,7 @@ sub addComment {
   }
 
   # Prepare text for storage and subsequent display
-  $comment->{text} = OMP::General->preify_text($comment->{text});
+  $comment->{text} = OMP::General::HTML->preify_text($comment->{text});
 
   # Must have sourceinfo if we don't have an author
   #  if (! $comment->{author} and ! $comment->{sourceinfo}) {

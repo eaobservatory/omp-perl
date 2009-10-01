@@ -32,6 +32,7 @@ use OMP::CGIComponent::Project;
 use OMP::Config;
 use OMP::DBServer;
 use OMP::General;
+use OMP::General::HTML;
 use OMP::Fault;
 use OMP::FaultDB;
 use OMP::FaultUtil;
@@ -762,7 +763,7 @@ sub view_fault_output {
       # Strip out the <html> and </html> tags
       $text =~ s!</*html>!!ig;
     } else {
-      $text = OMP::General->preify_text($text);
+      $text = OMP::General::HTML->preify_text($text);
     }
 
     # Strip out ^M
@@ -941,7 +942,7 @@ sub update_fault_output {
   # "Preify" the text before we compare responses
   my $newtext = $newdetails{text};
   $newtext =~ s!</*html>!!ig;
-  $newtext = OMP::General->preify_text($newtext);
+  $newtext = OMP::General::HTML->preify_text($newtext);
 
   my @response_changed = OMP::FaultUtil->compare($new_r, $fault->responses->[0]);
 
@@ -1052,7 +1053,7 @@ sub update_resp_output {
     # Strip out the <html> and </html> tags
     $text =~ s!</*html>!!ig;
   } else {
-    $text = OMP::General->preify_text($text);
+    $text = OMP::General::HTML->preify_text($text);
   }
 
   # Strip out ^M
@@ -1310,7 +1311,7 @@ sub fault_summary_content {
 
           # Setup the preview
           my $preview = substr($fault->responses->[0]->text, 0, 87);
-          $preview = OMP::General->html_to_plain($preview);
+          $preview = OMP::General::HTML->html_to_plain($preview);
           $preview =~ s/\"/\'\'/gi;
           $preview =~ s/\s+/ /gi;
 
