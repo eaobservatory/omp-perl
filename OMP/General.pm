@@ -56,9 +56,6 @@ use OMP::SiteQuality;
 use POSIX qw/ /;
 use Astro::Coords;   # For  sunrise, sunset
 
-require HTML::TreeBuilder;
-require HTML::FormatText;
-
 # Note we have to require this module rather than use it because
 # there is a circular dependency with OMP::General such that determine_host
 # must be defined before OMP::Config BEGIN block can trigger
