@@ -230,16 +230,16 @@ sub get_raw_files {
   }
 
   my @filtered;
-  for my $set ( @raw ) {
+  for ( my $i = 0; $i <= $#raw; $i++ ) {
 
-    for my $r ( @{ $set } ) {
+    for my $r ( @{ $raw[ $i ] } ) {
 
       my $read = -r $r;
       my $exist = -e _;
 
       if ( $read ) {
 
-        push @filtered, $r;
+        push @{ $filtered[ $i ] }, $r;
         next;
       }
 
