@@ -31,6 +31,7 @@ use Text::Wrap;
 use OMP::Config;
 use OMP::Display;
 use OMP::General;
+use OMP::General::HTML;
 use OMP::Error qw(:try);
 use OMP::Fault;
 use OMP::FaultDB;
@@ -706,7 +707,7 @@ sub file_fault_form {
     # an opening <html> tag.
     my $message = $fault->responses->[0]->text;
     if ($message =~ m!^<pre>(.*?)</pre>$!is) {
-      $message = OMP::General->replace_entity($1);
+      $message = OMP::General::HTML->replace_entity($1);
     } else {
       $message = "<html>" . $message;
     }
@@ -985,7 +986,7 @@ sub response_form {
 
     # Prepare text for editing
     if ($text =~ m!^<pre>(.*?)</pre>$!is) {
-      $text = OMP::General->replace_entity($1);
+      $text = OMP::General::HTML->replace_entity($1);
     } else {
       $text = "<html>" . $text;
     }
@@ -1385,7 +1386,7 @@ sub parse_file_fault_form {
   # tag present
   my $text = $q->param('message');
 
-  $parsed{text} = OMP::General->preify_text($text);
+  $parsed{text} = OMP::General::HTML->preify_text($text);
 
   return %parsed;
 }

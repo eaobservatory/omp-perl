@@ -37,6 +37,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
+use OMP::General::HTML;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
@@ -994,7 +995,7 @@ Project Time Summary
     # Get the text and format it as plain text from HTML
     my $text = $c->text;
     $text =~ s/\t/ /g;
-    $text = OMP::General->html_to_plain( $text );
+    $text = OMP::General::HTML->html_to_plain( $text );
 
     # Word wrap (but do not "fill")
     $text = wrap("    ","    ",$text);
