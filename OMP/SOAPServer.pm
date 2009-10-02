@@ -28,8 +28,8 @@ use warnings;
 # External dependencies
 use SOAP::Lite;
 use OMP::Constants qw/ :status :logging /;
+use OMP::Display;
 use OMP::General;
-use OMP::General::HTML;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -89,7 +89,7 @@ sub throwException {
   chomp($Estring);
 
   # it seems that we may need to sanitize the message
-  $Estring = OMP::General::HTML::escape_entity( $Estring );
+  $Estring = OMP::Display::escape_entity( $Estring );
 
   # Get the error number - defaulting to OMP__ERROR if required
   # Make sure we can invoke the value method.

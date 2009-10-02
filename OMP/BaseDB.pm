@@ -28,8 +28,8 @@ use Carp;
 # OMP Dependencies
 use OMP::Error;
 use OMP::Constants qw/ :fb :logging /;
+use OMP::Display;
 use OMP::General;
-use OMP::General::HTML;
 use OMP::FeedbackDB;
 
 use Mail::Internet;
@@ -979,7 +979,7 @@ sub _mail_information {
 
     # Convert the HTML to text and store it
     my $text = $args{message};
-    my $plaintext = OMP::General::HTML->html_to_plain($text);
+    my $plaintext = OMP::Display->html2plain($text);
 
     # Attach the plain text message
     $top->attach(Type=>"text/plain",

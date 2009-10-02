@@ -25,8 +25,8 @@ use Net::Domain qw/ hostfqdn /;
 use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
+use OMP::Display;
 use OMP::General;
-use OMP::General::HTML;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
 use OMP::Info::ObsGroup;
@@ -513,7 +513,7 @@ sub obs_table {
                       . $comment->date->cdate . ' UT / '
                       . $comment->author->name . ':'
                       . ' '
-                      . OMP::General::HTML::escape_entity( $comment->text )
+                      . OMP::Display::escape_entity( $comment->text )
                       . '</span>';
 
           $string =~ s/\n/\<br\>/g;

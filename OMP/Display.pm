@@ -23,6 +23,7 @@ use Carp;
 
 use File::Spec;
 use OMP::Config;
+use OMP::Error;
 
 our $VERSION = (qw$Revision$)[1];
 
@@ -31,6 +32,100 @@ our $VERSION = (qw$Revision$)[1];
 =head2 General Methods
 
 =over 4
+
+=item B<escape_entity>
+
+Replace a & > or < with the corresponding HTML entity.
+
+  $esc = escape_entity( $text );
+
+=cut
+
+sub escape_entity {
+  my $text = shift;
+
+  # Escape sequence lookup table
+  my %lut = (">" => "&gt;",
+             "<" => "&lt;",
+             "&" => "&amp;",
+             '"' => "&quot;",);
+
+  # Do the search and replace
+  # Make sure we replace ampersands first, otherwise we'll end
+  # up replacing the ampersands in the escape sequences
+  for ("&", ">", "<", '"') {
+    $text =~ s/$_/$lut{$_}/g;
+  }
+
+  return $text;
+}
+
+=item B<make_hidden_fields>
+
+Generates a list of (HTML form) hidden field strings given CGI object
+and a hash reference with field names as keys and default values as,
+well, values. The keys & values are passed to C<hidden> method of the
+given CGI object.
+
+  my @hidden = OMP::Display->make_hidden_fields(
+                  $cgi,
+                  { 'fruit' => 'kiwi', 'drink' => 'coconut juice' }
+                );
+
+Essentially, it is a wrapper around C<CGI::hidden> method to operate
+on multiple key-value pairs.
+
+It optionally takes a code reference as a filter to select only some
+of the fields.
+
+=over 4
+
+=item *
+
+If missing, then all the hidden fields will be produced from the hash
+reference.
+
+=item *
+
+If given, the reference is passed the values of fields (those listed
+in the hash reference) already associated with the CGI object.  Only a
+true value returned will allow the production of each associated
+hidden field.
+
+  my @non_empty = OMP::Display->make_hidden_fields(
+                    $cgi,
+                    { 'fruit' => 'kiwi', 'drink' => 'coconut juice' },
+                    sub { length $_[0] }
+                  );
+
+=back
+
+Throws C<OMP::Error::BadArgs> error if hash reference isn't one, or
+filter isn't a code reference.
+
+=cut
+
+sub make_hidden_fields {
+
+  my ( $self, $cgi, $fields, $filter ) = @_;
+
+  throw OMP::Error::BadArgs(
+    'Need hash reference of field names and default values.'
+  )
+    unless $fields && ref $fields;
+
+  throw OMP::Error::BadArgs( 'Filter is not a code reference.' )
+    if $filter && ! ref $filter;
+
+  $filter = sub { 1 } unless $filter;
+
+  return
+    map { $filter->( $cgi->param( $_ ) )
+          ? $cgi->hidden( '-name' => $_, '-default' => $fields->{ $_ } )
+          : ()
+        }
+        keys %{ $fields } ;
+}
 
 =item B<html2plain>
 
@@ -60,6 +155,67 @@ sub html2plain {
   my $plaintext = $formatter->format($tree);
 
   return $plaintext;
+}
+
+=item B<preify_text>
+
+This method is used to prepare text for storage to the database so
+that when it is retrieved it can be displayed properly in HTML format.
+If the text is not HTML formatted then it goes inside PRE tags and
+HTML characters (such as <, > and &) are replaced with their
+associated entities.  Also strips out windows ^M characters.
+
+  $escaped = $self->preify_text($text);
+
+Text is considered to be HTML formatted if it begins with the string
+"<html>" (case-insensitive).  This string is stripped off if found.
+
+=cut
+
+sub preify_text {
+  my $self = shift;
+  my $string = shift;
+
+  if ($string !~ /^<html>/i) {
+    $string = escape_entity( $string );
+    $string = "<pre>$string</pre>";
+  } else {
+    $string =~ s!</*html>!!ig;
+  }
+
+  # Strip ^M
+  $string =~ s/\015//g;
+
+  return $string;
+}
+
+=item B<replace_entity>
+
+Replace some HTML entity references with their associated characters.
+
+  $text = OMP::Display->replace_entity($text);
+
+Returns an empty string if $text is undefined.
+
+=cut
+
+sub replace_entity {
+  my $self = shift;
+  my $string = shift;
+  return '' unless defined $string;
+
+  # Escape sequence lookup table
+  my %lut = ("&gt;" => ">",
+             "&lt;" => "<",
+             "&amp;" => "&",
+             "&quot;" => '"',);
+
+  # Do the search and replace
+  for (keys %lut) {
+    $string =~ s/$_/$lut{$_}/gi;
+  }
+
+  return $string;
 }
 
 =item B<userhtml>

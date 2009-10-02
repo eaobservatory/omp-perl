@@ -22,11 +22,12 @@ use 5.006;
 use warnings;
 use strict;
 use OMP::Info::Comment;
+use OMP::Display;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::ShiftQuery;
 use OMP::General;
-use OMP::General::HTML;
+
 use Astro::Telescope;
 
 use Data::Dumper;
@@ -281,7 +282,7 @@ sub _insert_shiftlog {
   my $t = $comment->date; # - $comment->date->sec;
   my $date = $t->strftime("%b %e %Y %T");
 
-  my %text = ( "TEXT" => OMP::General::HTML->preify_text( $comment->text ),
+  my %text = ( "TEXT" => OMP::Display->preify_text( $comment->text ),
                "COLUMN" => "text" );
 
   $self->_db_insert_data( $SHIFTLOGTABLE,

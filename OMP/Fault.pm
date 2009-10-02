@@ -32,6 +32,7 @@ use Time::Piece;
 use Time::Seconds;
 
 use OMP::Config;
+use OMP::Display;
 use OMP::Error qw[ :try ];
 
 our $VERSION = (qw$Revision$)[1];
@@ -1661,11 +1662,11 @@ sub stringify {
 "                                Actual time of failure: $actfaultdate\n".
 "\n";
 
-  $output .= OMP::General::HTML->html_to_plain("$firstresponse")."\n\n";
+  $output .= OMP::Display->html2plain("$firstresponse")."\n\n";
 
   # Now loop over remaining responses and add them in
   for (@responses[1..$#responses]) {
-    my $plain = OMP::General::HTML->html_to_plain( "$_" );
+    my $plain = OMP::Display->html2plain( "$_" );
     $output .= "$plain\n";
   }
 

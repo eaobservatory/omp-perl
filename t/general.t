@@ -549,15 +549,6 @@ is_deeply([OMP::General->split_string($sstring)],
 	  \@compare_string,
 	  "Split string with odd number of double-quotes");
 
-print "# HTML entity replacement\n";
-$sstring = '&quot;foo &amp; bar&quot;';
-is(OMP::General->replace_entity($sstring),'"foo & bar"', 'Replace entities in simple string');
-
-my @compare_ent = ('<','>','"','&',);
-is_deeply([split(/\s+/,OMP::General->replace_entity('&lt; &gt; &quot; &amp;'))],
-	  \@compare_ent,
-	  "Replace all known entities");
-
 print "# Extended time\n";
 
 my ($projtime,$extend) = OMP::General->determine_extended( 
@@ -623,16 +614,4 @@ is($extend->seconds, 600, "Check extended time");
 							 );
 is($projtime->seconds, 1200, "Check project time");
 is($extend->seconds, 600, "Check extended time");
-
-print "# Convert text to HTML format\n";
-my $pstring = "<foo bar=\"baz\"><&>";
-is(OMP::General->preify_text($pstring),'<pre>&lt;foo bar=&quot;baz&quot;&gt;&lt;&amp;&gt;</pre>', 'Escape HTML in string');
-
-my @compare_pre = ('<pre>&lt;','&gt;','&amp;</pre>');
-is_deeply([split(/\s+/,OMP::General->preify_text("< > &"))],
-	  \@compare_pre,
-	  "Make sure that ampersands in escape sequences aren't escaped");
-
-$pstring = "<htMl>html formatted string";
-is(OMP::General->preify_text($pstring),'html formatted string','Strip out beginning <html> string');
 
