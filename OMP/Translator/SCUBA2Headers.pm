@@ -52,6 +52,50 @@ sub default_project {
   return "EC30";
 }
 
+=item B<override_headers>
+
+In most cases the default translations or entries in the header files are
+correct but in a few cases some final mode-dependent tweaking may be
+necessary.
+
+ $class->override_headers( $hdrcfg, %info );
+
+This method is called after headers have been excluded and after
+translator callbacks have been run. Unlike the translation methods
+below that take similar arguments and return the result, this
+method works in place on the JAC::OCS::Config::Header object.
+
+For SCUBA-2 the main purpose here is that the OBJECT header will
+not be set if the TCS is not involved in the observation. This
+can cause difficulties when trying to disambiguate a standard
+dark from a DARK-NOISE.
+
+=cut
+
+sub override_headers {
+  my $self = shift;
+  my $hdr = shift;
+  my %info = @_;
+
+  # For the special case of a DARK-NOISE we set the OBJECT
+  # to DARK. Otherwise we can't tell a default dark from
+  # a useful dark.
+  if ($info{obs_type} =~ /noise/i &&
+      $info{noiseSource} =~ /dark/i) {
+
+    # Get object and set value. Should have an undef source already
+    my $item = $hdr->item( "OBJECT" );
+    if (defined $item->source) {
+      throw OMP::Error::FatalError( "OBJECT for noise observation unexpectedly has a source defined");
+    }
+    if ($item->value) {
+      throw OMP::Error::FatalError( "OBJECT for noise observation already has a value of ". $item->value );
+    }
+    $item->value( "DARK" );
+  }
+  return;
+}
+
 =head1 TRANSLATION METHODS
 
 =over 4
