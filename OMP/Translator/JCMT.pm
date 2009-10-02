@@ -1168,6 +1168,13 @@ sub header_config {
     }
   }
 
+  # call any overrides (these are required if something needs to happen
+  # for a special observing mode but 99% of the times a nice default
+  # is fine.
+  if ($pkg->can( "override_headers") ) {
+    $pkg->override_headers( $hdr, %info );
+  }
+
   # clear global handles to allow the file to close at some point
   OMP::Translator::JCMTHeaders->HANDLES( undef );
 
