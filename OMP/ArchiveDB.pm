@@ -45,7 +45,7 @@ use Time::Seconds;
 use NDF;
 use SCUBA::ODF;
 
-use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup /;
+use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup $AnyDate /;
 
 use Scalar::Util qw/ blessed /;
 use Data::Dumper;
@@ -58,6 +58,9 @@ $FallbackToFiles = 1;
 
 # Do we want to skip the database lookup?
 $SkipDBLookup = 0;
+
+# To Force to search database for any date, not just past day or two.
+$AnyDate = 0;
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -189,7 +192,7 @@ sub queryArc {
     # First go to the database if we're looking for things that are
     # older than three days and we've been told not to skip the DB
     # lookup.
-    if (!$istoday && !$SkipDBLookup) {
+    if ( ( !$istoday || $AnyDate ) && !$SkipDBLookup ) {
 
       # Check for a connection. If we have one, good, but otherwise
       # set one up.
