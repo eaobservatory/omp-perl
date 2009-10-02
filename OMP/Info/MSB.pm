@@ -40,8 +40,9 @@ use OMP::Range;
 use OMP::Error;
 use OMP::Constants qw/ :msb /;
 use Time::Seconds;
+use OMP::Display;
 use OMP::General; # For Time::Seconds::pretty_print
-use OMP::General::HTML;
+
 
 use base qw/ OMP::Info::Base /;
 
@@ -843,7 +844,7 @@ sub summary {
 	next unless UNIVERSAL::isa( $summary{$key}, "OMP::Range");
 
 	# Now we know we have to escape the > and < and &
-	$summary{$key} = OMP::General::HTML::escape_entity( $summary{$key}."" );
+	$summary{$key} = OMP::Display::escape_entity( $summary{$key}."" );
       }
 
       # Currently Matt needs the msbid to be included

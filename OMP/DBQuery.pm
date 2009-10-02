@@ -26,9 +26,9 @@ use Carp;
 
 # External modules
 use XML::LibXML; # Our standard parser
+use OMP::Display;
 use OMP::Error;
 use OMP::General;
-use OMP::General::HTML;
 use OMP::Range;
 use Time::Piece ':override'; # for gmtime
 use Time::Seconds;
@@ -525,7 +525,7 @@ sub _add_text_to_hash {
   $value =~ s/\s+\Z//;
 
   # Convert &quot; &amp; etc... to " &
-  $value = OMP::General::HTML->replace_entity($value);
+  $value = OMP::Display->replace_entity($value);
 
   if (exists $hash->{$key}) {
 

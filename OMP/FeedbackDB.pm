@@ -31,6 +31,7 @@ use Carp;
 use Time::Piece;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
+use OMP::Display;
 use OMP::FBQuery;
 use OMP::Project;
 use OMP::ProjDB;
@@ -39,7 +40,6 @@ use OMP::Constants;
 use OMP::Error;
 use OMP::Config;
 use OMP::Password;
-use OMP::General::HTML;
 
 use Text::Wrap;
 
@@ -239,7 +239,7 @@ sub addComment {
   }
 
   # Prepare text for storage and subsequent display
-  $comment->{text} = OMP::General::HTML->preify_text($comment->{text});
+  $comment->{text} = OMP::Display->preify_text($comment->{text});
 
   # Must have sourceinfo if we don't have an author
   #  if (! $comment->{author} and ! $comment->{sourceinfo}) {

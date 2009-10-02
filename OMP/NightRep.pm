@@ -37,7 +37,6 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Error qw/ :try /;
 use OMP::Constants;
 use OMP::General;
-use OMP::General::HTML;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
@@ -57,6 +56,7 @@ use OMP::MSBDoneQuery;
 use Time::Piece qw/ :override /;
 use Text::Wrap;
 use OMP::BaseDB;
+use OMP::Display;
 
 # This is the key used to specify warnings in result hashes
 use vars qw/ $WARNKEY /;
@@ -995,7 +995,7 @@ Project Time Summary
     # Get the text and format it as plain text from HTML
     my $text = $c->text;
     $text =~ s/\t/ /g;
-    $text = OMP::General::HTML->html_to_plain( $text );
+    $text = OMP::Display->html2plain( $text );
 
     # Word wrap (but do not "fill")
     $text = wrap("    ","    ",$text);

@@ -2021,7 +2021,42 @@ sub split_string {
   return @substrings;
 }
 
+=item B<find_in_post_or_get>
 
+Given a L<CGI> object and an array of parameter names, reutrns a hash
+of names as keys and parameter values as, well, values which may be
+present either in C<POST> or in C<GET> request.  Only if a paramter is
+missing from C<POST> request, a value from C<GET> request will be
+returned.
+
+  my %found = OMP::General
+              ->find_in_post_or_get( $cgi, qw/fruit drink/ );
+
+=cut
+
+sub find_in_post_or_get {
+
+  my ( $self, $cgi, @names ) = @_;
+
+  my %got;
+
+  NAME:
+  for my $key ( @names ) {
+
+    POSITION:
+    for my $get qw( param url_param ) {
+
+      my $val = $cgi->$get( $key );
+      if ( defined $val ) {
+
+        $got{ $key } = $val;
+        last POSITION;
+      }
+    }
+  }
+
+  return %got;
+}
 
 =item B<nint>
 

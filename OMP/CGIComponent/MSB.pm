@@ -27,9 +27,9 @@ use OMP::CGIComponent::Helper;
 use OMP::CGIDBHelper;
 use OMP::Constants qw(:done);
 use OMP::DBServer;
+use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::General;
-use OMP::General::HTML;
 use OMP::Info::Comment;
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
@@ -312,7 +312,7 @@ TABLE
         'comment-colspan' => $table_cols - 2,
         'colors' => \%colors,
         'hidden' =>
-          [ OMP::General::HTML->make_hidden_fields(
+          [ OMP::Display->make_hidden_fields(
               $q, { %common_hidden, 'transaction' => $msb->msbtid }
             )
           ],
@@ -331,7 +331,7 @@ TABLE
               ( $spmsb->isRemoved ? $q->submit('unRemove')
                   : $q->submit('Remove'), $NBSP, $q->submit('Undo')
               ),
-              OMP::General::HTML->make_hidden_fields( $q, { %common_hidden } ),
+              OMP::Display->make_hidden_fields( $q, { %common_hidden } ),
               _make_non_empty_hidden_fields( $q, qw[utdate telescope] ),
               $q->endform
             )
@@ -413,7 +413,7 @@ sub msb_comment_form {
   print "</td><tr><td valign=top>Comment: </td><td>";
 
   print
-    OMP::General::HTML->make_hidden_fields(
+    OMP::Display->make_hidden_fields(
       $q,
       { 'show_output' => 1,
         'submit_msb_comment' => 1,
@@ -619,7 +619,7 @@ sub observed_form {
 
   # Match case of telescope type value as present in database so that it would
   # be already selected in selection list.
-  my %tel = OMP::General::HTML->find_in_post_or_get( $q, 'telescope' );
+  my %tel = OMP::General->find_in_post_or_get( $q, 'telescope' );
   for ( $tel{'telescope'} ) {
 
     defined $_ and $q->param( 'telescope', uc $_ );
@@ -833,7 +833,7 @@ sub _make_non_empty_hidden_fields {
   my ( $cgi, @fields ) = @_;
 
   return
-    OMP::General::HTML->make_hidden_fields(
+    OMP::Display->make_hidden_fields(
       $cgi,
       { map
           { length $cgi->param( $_ ) ? ( $_ => $cgi->param( $_ ) )
