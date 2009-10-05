@@ -68,7 +68,9 @@ method works in place on the JAC::OCS::Config::Header object.
 For SCUBA-2 the main purpose here is that the OBJECT header will
 not be set if the TCS is not involved in the observation. This
 can cause difficulties when trying to disambiguate a standard
-dark from a DARK-NOISE.
+dark from a DARK-NOISE. Additionally, if the telescope is not
+involved in the observation then the telescope coordinates will
+not be available (but they are required by CADC even so).
 
 =cut
 
@@ -93,6 +95,25 @@ sub override_headers {
     }
     $item->value( "DARK" );
   }
+
+  # Coordinates of the telescope can be nulled out for observations that do
+  # not involve the TCS. In that case put them back in for CADC. They do not
+  # need to be super accurate.
+  my %coords = ( "ALT-OBS" => 4120.0,
+                 "LAT-OBS" => 19.822838905884,
+                 "LONG-OBS" => -155.477027838737,
+                 "OBSGEO-X" => -5464589.95643476,
+                 "OBSGEO-Y" => -2492998.89278856,
+                 "OBSGEO-Z" => 2150652.04160241,
+               );
+  for my $k (keys %coords) {
+    my $item = $hdr->item( $k );
+    if ( ! $item->source() && ! $item->value ) {
+      $item->value( $coords{$k} );
+    }
+  }
+
+
   return;
 }
 
