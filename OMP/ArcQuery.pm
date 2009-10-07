@@ -50,6 +50,57 @@ our $AFILESTAB = 'jcmt..FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WI
 our $SCUBA2TAB = 'jcmt..SCUBA2 S2';
 our $S2FILESTAB = 'jcmt..FILES F';
 
+{
+  my $cf = OMP::Config->new;
+  # In test mode, switch to development databases.
+  if ( $cf->in_test_mode ) {
+
+    my %db;
+    # Need to keep list of table references here in sync with above.
+    $db{'jcmt'} =
+      [
+        \$JCMTTAB,
+        \$ACSISTAB,
+        \$AFILESTAB,
+        \$SCUBA2TAB,
+        \$S2FILESTAB,
+      ];
+
+    $db{'jcmt_tms'} =
+      [
+        \$SCUTAB,
+        \$GSDTAB,
+        \$SUBTAB,
+        \$SPHTAB,
+      ];
+
+    $db{'ukirt'} =
+      [
+        \$UKIRTTAB,
+        \$UFTITAB,
+        \$CGS4TAB,
+        \$UISTTAB,
+        \$IRCAMTAB,
+        \$WFCAMTAB,
+      ];
+
+    my $keys = join '|' , keys %db;
+    $keys = qr/^(?:$keys) (?=[.]{2})/x;
+
+    for my $key ( keys %db ) {
+
+      my $test = $cf->getData( 'test-database.' . $key );
+
+      # The Switchroo.
+      for my $table ( @{ $db{ $key } } ) {
+
+        ${ $table } =~ s/$keys/$test/x;
+      }
+    }
+
+  }
+}
+
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
                    UIST => [ $UKIRTTAB, $UISTTAB ],

@@ -56,6 +56,12 @@ my $LAST_INST;
 # The relevant config table. Only choices are "omp" and a valid telescope
 my $DEFAULT_CONFIG = 'omp';
 
+# Flag file present in one directory up (of this package) to switch into test
+# mode.
+my $TEST_MODE_FLAG = '.omp-test';
+
+# Switch to test mode, by using another configuration file.
+
 =head1 METHODS
 
 The config files are always read whenever the config directory is
@@ -115,6 +121,7 @@ BEGIN
     $prop->{'_init'}{ $_ } = $opt{ $_ } for @opt;
 
     $LAST_INST = bless $prop, $class;
+    $LAST_INST->set_config( $opt{'test-mode'} );
     $LAST_INST->_checkConfig;
     return $LAST_INST;
   }
@@ -360,6 +367,93 @@ sub inferTelescope {
   $tel = '' if $tel eq 'omp';
 
   return $tel;
+}
+
+=item B<set_config>
+
+Sets the configuration to test mode configuration if F<.omp-test> file
+is present in the parent directory of this module.  Test mode
+configuration can be forced by providing the only argument as a true
+value.  Else, normal configuration data is used.
+
+  # Use the configuration based on presence of above mentioned file.
+  $config->set_config;
+
+  # Force test mode.
+  $config->set_config( 'engage test mode' );
+
+=cut
+
+sub set_config {
+
+  my ( $self, $force_test ) = @_;
+
+  # Save called location to decide if to force re-reading of configuration
+  # files, as new() already calls it.
+  my ( $pkg, $sub ) = ( caller(0) )[0, 3];
+  my $from_new =
+    $pkg eq ref $self
+    && $sub eq 'new'
+    ;
+
+  if ( $force_test
+        || -e File::Spec->catfile( $self->cfgdir(), $TEST_MODE_FLAG )
+      ) {
+
+    $DEBUG and print "Setting \$DEFAULT_CONFIG to 'omp-dev'\n";
+
+    $DEFAULT_CONFIG = 'omp-dev';
+
+    # Need a hash reference (see change
+    # 7804d4b33b38ab2476b1d4195d0ee535ed6fbc36).  Key-value does not matter as
+    # long as there is /a/ hash reference.
+    $self->{'test-mode'} = { };
+
+    unless ( $from_new ) {
+
+      $DEBUG and print "Re-reading configuration files\n";
+
+      $self->_checkConfig;
+    }
+
+    return;
+  }
+
+  $DEBUG and print "Setting \$DEFAULT_CONFIG to 'omp'\n";
+
+  $DEFAULT_CONFIG = 'omp';
+  undef $self->{'test-mode'};
+
+  unless ( $from_new ) {
+
+    $DEBUG and print "Re-reading configuration files\n";
+
+    $self->_checkConfig;
+  }
+
+  return;
+}
+
+=item B<in_test_mode>
+
+Returns a truth value indicating if the test mode configuration is
+being used.
+
+  print "in test mode"
+    if $config->in_test_mode;
+
+=cut
+
+sub in_test_mode {
+
+  my ( $self ) = @_;
+
+  $self = _get_instance( $self );
+
+  return
+    exists $self->{'test-mode'}
+    && !! $self->{'test-mode'}
+    ;
 }
 
 =item B<dumpData>

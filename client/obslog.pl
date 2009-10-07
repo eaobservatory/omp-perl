@@ -26,6 +26,15 @@ The following options are supported:
 
 =over 4
 
+=item B<-db>
+
+Specify to search for data only in the database, repeatedly if
+necessary.  This option causes to ignore any and all files present on
+hard disk.
+
+Without this option, efforts are made to find data both in database
+and in files on the hard disk.
+
 =item B<-ut>
 
 Override the UT date used for the report. By default the current date
@@ -114,6 +123,7 @@ my $id;
 my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
+                        "db|database" => \$opt{database},
                         "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -226,6 +236,14 @@ sub display_loading_status {
 
   eval 'use OMP::ArchiveDB';
   die "Error loading OMP::ArchiveDB: $@" if $@;
+
+  if ( $opt{'database'} ) {
+
+    $OMP::ArchiveDB::SkipDBLookup = 0;
+    $OMP::ArchiveDB::FallbackToFiles = 0;
+    $OMP::ArchiveDB::AnyDate = 1;
+  }
+
   eval 'use OMP::ArcQuery';
   die "Error loading OMP::ArcQuery: $@" if $@;
 

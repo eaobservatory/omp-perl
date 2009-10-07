@@ -228,16 +228,39 @@ use constant {
 };
 
 # Mailing list
-my %MAILLIST = (
-                  'CSG'   => 'csg_faults@jach.hawaii.edu'   ,
-                  'JCMT'  => 'jcmt_faults@jach.hawaii.edu'  ,
-                  'JCMT_EVENTS' => 'jcmt_event_log@jach.hawaii.edu' ,
-                  'UKIRT' => 'ukirt_faults@jach.hawaii.edu' ,
-                  'OMP'   => 'omp_faults@jach.hawaii.edu'   ,
-                  'DR'    => 'dr_faults@jach.hawaii.edu'    ,
-                  'SAFETY'   => 'safety_faults@jach.hawaii.edu'   ,
-                  'FACILITY' => 'facility_faults@jach.hawaii.edu' ,
-               );
+my @list_name =
+  ( 'CSG'  ,
+    'JCMT' ,
+    'JCMT_EVENTS' ,
+    'UKIRT' ,
+    'OMP'   ,
+    'DR'    ,
+    'SAFETY'   ,
+    'FACILITY' ,
+  );
+
+my %MAILLIST;
+@MAILLIST{ @list_name } =
+  ( 'csg_faults@jach.hawaii.edu'   ,
+    'jcmt_faults@jach.hawaii.edu'  ,
+    'jcmt_event_log@jach.hawaii.edu' ,
+    'ukirt_faults@jach.hawaii.edu' ,
+    'omp_faults@jach.hawaii.edu'   ,
+    'dr_faults@jach.hawaii.edu'    ,
+    'safety_faults@jach.hawaii.edu'   ,
+    'facility_faults@jach.hawaii.edu' ,
+  );
+
+my $config = OMP::Config->new;
+if ( $config->in_test_mode ) {
+
+  undef %MAILLIST;
+  for my $name ( @list_name ) {
+
+    $MAILLIST{ uc $name } =
+      $config->getData( 'test-email-address.' . lc $name );
+  }
+}
 
 my %DATA = (
              "CSG" => {

@@ -1082,17 +1082,17 @@ Only the B<faults> key is required.
 sub show_faults {
   my $self = shift;
   my %args = @_;
-  my $faults = $args{faults};
-  my $descending = $args{descending};
-  my $url = $args{url};
-  my $showcat = $args{showcat};
-  my $q = $self->cgi;
 
-  (! $url) and $url = "viewfault.pl";
+  my @faults = @{ $args{faults} };
+  my $descending = $args{descending};
+  my $url = $args{url} or 'viewfault.pl';
+  my $showcat = $args{showcat};
+
+  my $q = $self->cgi;
 
   # Generate stats so we can decide to show fields like "time lost"
   # only if any faults have lost time
-  my $stats = new OMP::FaultGroup( faults => $faults );
+  my $stats = OMP::FaultGroup->new( faults => \@faults );
 
   my $width = $self->_get_table_width;
   print "<table width=$width cellspacing=0>";
@@ -1112,18 +1112,19 @@ sub show_faults {
   print "<td><b>Replies</b></td><td> </td>";
 
   if ($args{orderby} eq 'response') {
-    @$faults = sort {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch} @$faults;
-  } elsif ($args{orderby} eq 'timelost') {
-    @$faults = sort {$a->timelost <=> $b->timelost} @$faults;
+
+    @faults =
+      sort
+        {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch}
+        @faults;
+  }
+  elsif ($args{orderby} eq 'timelost') {
+
+    @faults = sort {$a->timelost <=> $b->timelost} @faults;
   }
 
-  my @faults;
-  # Sort faults in the order they are to be displayed
-  if ($descending) {
-    @faults = reverse @$faults;
-  } else {
-    @faults = @$faults;
-  }
+  @faults = reverse @faults
+    if $descending;
 
   my $alt_class;               # Keep track of alternating class style
   for my $fault (@faults) {

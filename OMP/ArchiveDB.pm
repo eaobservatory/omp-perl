@@ -62,6 +62,7 @@ $SkipDBLookup = 0;
 # To Force to search database for any date, not just past day or two.
 $AnyDate = 0;
 
+
 # Cache a hash of files that we've already warned about.
 our %WARNED;
 
@@ -147,10 +148,7 @@ database query by adding additional matches from disk).
 =cut
 
 sub queryArc {
-  my $self = shift;
-  my $query = shift;
-  my $retainhdr = shift;
-  my $ignorebad = shift;
+  my ( $self, $query, $retainhdr, $ignorebad, ) = @_;
 
   if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
@@ -160,77 +158,76 @@ sub queryArc {
     $ignorebad = 0;
   }
 
-  my @results;
-
   my $grp = retrieve_archive( $query, 1, $retainhdr );
 
   if (defined($grp)) {
-    @results = $grp->obs;
-  } else {
+    return $grp->obs;
+  }
 
-    # Check to see if the global flags $FallbackToFiles and
-    # $SkipDBLookup are set such that neither DB nor file
-    # lookup can happen. If that's the case, then throw an
-    # exception.
-    if ( !$FallbackToFiles && $SkipDBLookup ) {
-      throw OMP::Error("FallbackToFiles and SkipDBLookup are both set to return no information.");
+  # Check to see if the global flags $FallbackToFiles and
+  # $SkipDBLookup are set such that neither DB nor file
+  # lookup can happen. If that's the case, then throw an
+  # exception.
+  if ( !$FallbackToFiles && $SkipDBLookup ) {
+    throw OMP::Error("FallbackToFiles and SkipDBLookup are both set to return no information.");
+  }
+
+  my $date = $query->daterange->min;
+  my $currentdate = gmtime;
+
+  # Determine time difference in seconds
+  my $tdiff = $currentdate - $date;
+
+  # Determine whether we are "today"
+  my $istoday = $query->istoday;
+
+  # Control whether we have queried the DB or not
+  # True means we have done a successful query.
+  my $dbqueryok = 0;
+
+  my @results;
+
+  # First go to the database if we're looking for things that are
+  # older than three days and we've been told not to skip the DB
+  # lookup.
+  if ( ( !$istoday || $AnyDate ) && !$SkipDBLookup) {
+
+    # Check for a connection. If we have one, good, but otherwise
+    # set one up.
+    if ( ! defined( $self->db ) ) {
+      $self->db( new OMP::DBbackend::Archive );
     }
 
-    my $date = $query->daterange->min;
-    my $currentdate = gmtime;
+    # Trap errors with connection. If we have fatal error
+    # talking to DB we should fallback to files (if allowed)
+    try {
+      @results = $self->_query_arcdb( $query, $retainhdr );
+      $dbqueryok = 1;
+    } otherwise {
+      my $Error = shift;
+      my $errortext = $Error->{'-text'};
 
-    # Determine time difference in seconds
-    my $tdiff = $currentdate - $date;
+      OMP::General->log_message( "Header DB query problem: $errortext", OMP__LOG_WARNING );
+      # just need to drop through and catch any exceptions
+    };
+  }
 
-    # Determine whether we are "today"
-    my $istoday = $query->istoday;
+  # if we do not yet have results we should query the file system
+  # unless forbidden to do so for some reason (this was originally
+  # because we threw an exception if the directories did not exist).
+  if ($FallbackToFiles) {
 
-    # Control whether we have queried the DB or not
-    # True means we have done a successful query.
-    my $dbqueryok = 0;
+    # We fallback to files if the query failed in some way
+    # (no connection, or error from the query)
+    # OR if the query succeded but we can not be sure the data are
+    # in the DB yet (ie less than a week)
+    if ( !$dbqueryok ||       # Always look to files if query failed
+          (!@results)          # look to files if we got no results
+        ) {
 
-    # First go to the database if we're looking for things that are
-    # older than three days and we've been told not to skip the DB
-    # lookup.
-    if ( ( !$istoday || $AnyDate ) && !$SkipDBLookup ) {
-
-      # Check for a connection. If we have one, good, but otherwise
-      # set one up.
-      if ( ! defined( $self->db ) ) {
-        $self->db( new OMP::DBbackend::Archive );
-      }
-
-      # Trap errors with connection. If we have fatal error
-      # talking to DB we should fallback to files (if allowed)
-      try {
-        @results = $self->_query_arcdb( $query, $retainhdr );
-        $dbqueryok = 1;
-      } otherwise {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-
-        OMP::General->log_message( "Header DB query problem: $errortext", OMP__LOG_WARNING );
-        # just need to drop through and catch any exceptions
-      };
-    }
-
-    # if we do not yet have results we should query the file system
-    # unless forbidden to do so for some reason (this was originally
-    # because we threw an exception if the directories did not exist).
-    if ($FallbackToFiles) {
-
-      # We fallback to files if the query failed in some way
-      # (no connection, or error from the query)
-      # OR if the query succeded but we can not be sure the data are
-      # in the DB yet (ie less than a week)
-      if ( !$dbqueryok ||       # Always look to files if query failed
-           (!@results)          # look to files if we got no results
-         ) {
-
-        # then go to files
-        OMP::General->log_message("Querying disk files", OMP__LOG_DEBUG);
-        @results = $self->_query_files( $query, $retainhdr, $ignorebad );
-      }
+      # then go to files
+      OMP::General->log_message("Querying disk files", OMP__LOG_DEBUG);
+      @results = $self->_query_files( $query, $retainhdr, $ignorebad );
     }
   }
 
@@ -686,7 +683,19 @@ sub _merge_dupes {
       # merge it later
       $info->{header} = Astro::FITS::Header->new( Hash => $hdr );
     }
-    my $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    my $class;
+
+    eval {
+      $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    };
+    if ( $@ ) {
+
+      warn sprintf "Skipped '%s' due to: %s\n",
+        $info->{'filename'},
+        $@;
+    }
+
+    next unless $class;
 
     my $obsid = $class->to_OBSERVATION_ID( $hdr, $info->{frameset} );
 
