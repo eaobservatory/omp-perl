@@ -255,7 +255,7 @@ sub get_raw_files {
     }
   }
 
-  return @filtered;
+  return grep { defined $_ } @filtered;
 }
 
 sub make_raw_name_from_flag {
