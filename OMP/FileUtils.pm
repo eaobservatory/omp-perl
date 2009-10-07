@@ -225,17 +225,37 @@ sub get_raw_files {
       throw $err
         unless $err =~ /^Cannot open file/i;
     };
-    if ( $err ) {
-
-      warn $err;
-      warn "... skipped\n";
-      next;
-    }
 
     push @raw, [ map { File::Spec->catfile( $dir, $_ ) } @{ $lines } ];
   }
 
-  return @raw;
+  my @filtered;
+  for ( my $i = 0; $i <= $#raw; $i++ ) {
+
+    for my $r ( @{ $raw[ $i ] } ) {
+
+      my $read = -r $r;
+      my $exist = -e _;
+
+      if ( $read ) {
+
+        push @{ $filtered[ $i ] }, $r;
+        next;
+      }
+
+      my $text =
+        ! $exist
+        ? 'does not exist'
+        : ! $read
+          ? 'is not readable'
+          : '!?'
+          ;
+
+      warn qq[$r $text (listed in flag file); skipped\n];
+    }
+  }
+
+  return @filtered;
 }
 
 sub make_raw_name_from_flag {
