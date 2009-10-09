@@ -1085,7 +1085,7 @@ sub show_faults {
 
   my @faults = @{ $args{faults} };
   my $descending = $args{descending};
-  my $url = $args{url} or 'viewfault.pl';
+  my $url = $args{url} || 'viewfault.pl';
   my $showcat = $args{showcat};
 
   my $q = $self->cgi;
