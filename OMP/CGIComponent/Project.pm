@@ -75,8 +75,8 @@ sub list_projects_form {
 
   my @c = $db->listCountries;
 
-  # Take serv and jac out of the countries list
-  my @countries = grep {$_ !~ /^serv$|^jac$/i} @c;
+  # Take serv out of the countries list
+  my @countries = grep {$_ !~ /^serv$/i} @c;
   unshift @countries, 'Any';
 
   print "<table border=0><tr><td align=right>Semester: </td><td>";
