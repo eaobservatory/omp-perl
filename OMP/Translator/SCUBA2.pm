@@ -192,8 +192,7 @@ Except that some Noise observations need the TCS and others do not.
 sub is_private_sequence {
   my $self = shift;
   my %info = @_;
-  if ($info{obs_type} eq 'flatfield' ||
-      $info{obs_type} eq 'array_tests' ) {
+  if ($info{obs_type} =~ /^flatfield/ ) {
     return 1;
   } elsif ($info{obs_type} eq 'noise') {
     if ($info{noiseSource} =~ /^(dark|blackbody)$/i) {
@@ -216,6 +215,8 @@ Since the Observing Tool is setup such that pointing and focus
 observations do not necessarily inherit observing parameters from the
 enclosing observation and they definitely do not include a
 specification on chopping scheme.
+
+Array Tests are converted to a special flatfield observation.
 
 =cut
 
@@ -251,17 +252,25 @@ sub handle_special_modes {
     }
 
   } elsif ($info->{obs_type} =~ /array_tests/) {
-    # Array Tests is currently shorthand for a long noise
-    # observation
+    # Array Tests is currently shorthand for a short flatfield
+    if ($self->verbose) {
+      print {$self->outhdl} "Array tests implemented as short flatfield.\n";
+    }
+
+    $info->{obs_type} = "flatfield";
+    $info->{is_quick} = 1;
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
-                                                 "array_tests_integration");
-    $info->{noiseSource} = "DARK";
+                                                 "flatfield_quick_integration");
+    $info->{flatSource} = "DARK";
 
   } elsif ($info->{obs_type} =~ /noise/) {
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
                                                  "noise_integration");
 
   } elsif ($info->{obs_type} =~ /flatfield/) {
+    if ($self->verbose) {
+      print {$self->outhdl} "Setting integration time for ".$info->{obs_type}. "observation\n";
+    }
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
                                                  "flatfield_integration");
   }
@@ -351,9 +360,7 @@ sub jos_config {
   #   scuba2_noise
 
   my $recipe = $info{obs_type};
-  if ($info{obs_type} eq 'array_tests') {
-    $recipe = "noise";
-  } elsif ($info{obs_type} eq 'science') {
+  if ($info{obs_type} eq 'science') {
     $recipe = $info{observing_mode};
   }
   # prepend scuba2
@@ -412,12 +419,15 @@ sub jos_config {
 
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
+    # Sort out prefix into config system
+    my $pre = ".". $info{obs_type} . ($info{is_quick} ? "_quick" : "") . "_";
+
     # This is the integration time directly from 
     my $inttime = $info{secsPerCycle};
     my $nsteps = $inttime / $jos->step_time;
     $jos->n_calsamples( $nsteps );
-    $jos->num_cycles( OMP::Config->getData($self->cfgkey.
-                                           ".flatfield_num_cycles"));
+    $jos->num_cycles( OMP::Config->getData($self->cfgkey. $pre .
+                                           "num_cycles"));
 
     # next set depends on flatfield mode
     my @keys;
@@ -431,8 +441,8 @@ sub jos_config {
 
     # read the values from the config file
     for my $k (@keys) {
-      my $value = OMP::Config->getData($self->cfgkey.
-                                       ".flatfield_".$k);
+      my $value = OMP::Config->getData($self->cfgkey. $pre .
+                                       $k);
       $jos->$k( $value );
     }
 
@@ -494,18 +504,16 @@ sub jos_config {
     }
     OMP::Error::FatalError->throw("Could not determine integration time for $info{mapping_mode} observation") unless defined $inttime;
 
-    # Need an obsArea for number of microsteps (except for array tests)
+    # Need an obsArea for number of microsteps
     my $nms = 1;
-    if ($info{obs_type} ne 'array_tests') {
-      my $tcs = $cfg->tcs;
-      throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
-      my $obsArea = $tcs->getObsArea();
-      throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
 
-      # This time should be spread over the number of microsteps
-      my @ms = $obsArea->microsteps;
-      $nms = (@ms ? @ms : 1);
-    }
+    # This time should be spread over the number of microsteps
+    my @ms = $obsArea->microsteps;
+    $nms = (@ms ? @ms : 1);
 
     # convert total integration time to steps
     my $nsteps = $inttime / $jos->step_time;
@@ -635,9 +643,10 @@ sub step_time {
 
   # Try obs type version first
   my $step;
-  if ($info{obs_type} =~ /^(flatfield|array_tests|noise)$/) {
+  if ($info{obs_type} =~ /^(flatfield|noise)$/) {
+    my $q = ($info{is_quick} ? "_quick" : "" );
     $step = eval { OMP::Config->getData( $self->cfgkey . ".step_time_".
-                                         $info{obs_type} ) };
+                                         $info{obs_type} . $q) };
   }
   $step = OMP::Config->getData( $self->cfgkey . '.step_time' )
     unless defined $step;
@@ -754,7 +763,7 @@ sub determine_inbeam {
 
   # see if we have a source in the beam
   my $source;
-  if ($info{obs_type} eq 'flatfield') {
+  if ($info{obs_type} =~ /^flatfield/) {
     $source = lc($info{flatSource});
   } elsif (exists $info{noiseSource}) {
     $source = lc($info{noiseSource});
