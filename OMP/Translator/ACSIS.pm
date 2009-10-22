@@ -921,18 +921,22 @@ sub rotator_config {
 
   # if we have a pointing following a science we bounce for the pointing
   # else we stay as we are. This only happens if we have more than one
-  # science observation (else we are better off not bouncing)
+  # science observation (else we are better off not bouncing) and some pointings
   # The aim is for the sequence
   #    point sci point sci
   # to bounce after the sci so that we have a pointing that is aligned
   # with the next sci.
-  if ($nobs->{science} > 1) {
+  if ($nobs->{science} > 1 && $nobs->{pointing} > 1) {
 
-    if (defined $info{prev_obs_type} && $info{prev_obs_type} eq 'science'
-        && $info{obs_type} eq 'pointing') {
+    if (!defined $info{prev_obs_type}){
+      # first obs so always use LONGEST_TRACK
+      $slew = "LONGEST_TRACK";
+    } elsif ( $info{prev_obs_type} eq 'science'
+              && $info{obs_type} eq 'pointing') {
       $slew = "LONGEST_SLEW";
+    } elsif ( $info{obs_type} eq 'science' ) {
+      $slew = "TRACK_TIME";
     }
-
   }
 
   # only bounce if the MSB consists entirely of pointings
@@ -946,6 +950,10 @@ sub rotator_config {
   if ( $nonpnt == 0 && $nobs->{pointing} > 1 && $info{obs_type} eq 'pointing' ) {
     # if we only have pointings, bounce
     $slew = "LONGEST_SLEW";
+  }
+
+  if ($self->verbose) {
+    print {$self->outhdl} "\tSelected rotator slew option: $slew\n";
   }
 
   # do not know enough about ROTATOR behaviour yet
