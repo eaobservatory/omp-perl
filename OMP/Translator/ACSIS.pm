@@ -919,6 +919,22 @@ sub rotator_config {
 #    $slew = "LONGEST_SLEW";
 #  } els
 
+  # if we have a pointing following a science we bounce for the pointing
+  # else we stay as we are. This only happens if we have more than one
+  # science observation (else we are better off not bouncing)
+  # The aim is for the sequence
+  #    point sci point sci
+  # to bounce after the sci so that we have a pointing that is aligned
+  # with the next sci.
+  if ($nobs->{science} > 1) {
+
+    if (defined $info{prev_obs_type} && $info{prev_obs_type} eq 'science'
+        && $info{obs_type} eq 'pointing') {
+      $slew = "LONGEST_SLEW";
+    }
+
+  }
+
   # only bounce if the MSB consists entirely of pointings
   # ideally we'd like to bounce for continuous chunks of pointings but this is easier
   # and solves the pointing run issue.
