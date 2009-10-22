@@ -147,12 +147,18 @@ sub translate {
 
   # Now loop over each observation and translate it to a config object
   my @configs;
+  my $prev_obs_type;
   for my $obs (@unrolled) {
 
     # Translate observing mode information to internal form
     # Repeat here so that information is properly reported in the
     # stream of information associated with this observation.
     $self->observing_mode( $obs );
+
+    # We may want to know if we have just followed a particular
+    # observation
+    $obs->{prev_obs_type} = $prev_obs_type;
+    $prev_obs_type = $obs->{obs_type};
 
     # if there are any special patch ups call them here
     $self->fixup_historical_problems( $obs )
