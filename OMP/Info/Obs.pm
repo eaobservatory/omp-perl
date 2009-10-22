@@ -1180,7 +1180,7 @@ sub rawdatadir {
                                  telescope => 'UKIRT',
                                  instrument => $instrument,
                                  utdate => $utdate );
-  } elsif( $self->backend =~ /acsis/i ) {
+  } elsif( defined( $self->backend ) && $self->backend =~ /acsis/i ) {
     $dir = OMP::Config->getData( 'rawdatadir',
                                  telescope => 'JCMT',
                                  instrument => 'ACSIS',
@@ -1539,7 +1539,8 @@ sub _populate {
 # not really on-sky observations.
     if( ! defined( $self->type ) || ( defined( $self->type ) && $self->type !~ /ARC|DARK|BIAS/ ) ) {
 
-      if( $self->target =~ /MERCURY|VENUS|MARS|JUPITER|SATURN|URANUS|NEPTUNE|PLUTO/ ) {
+      if( defined( $self->target ) &&
+          $self->target =~ /MERCURY|VENUS|MARS|JUPITER|SATURN|URANUS|NEPTUNE|PLUTO/ ) {
 
 # Set up a planet coordinate system.
         my $coords = new Astro::Coords( planet => $self->target );
