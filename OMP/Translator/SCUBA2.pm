@@ -22,10 +22,11 @@ use warnings;
 use Carp;
 
 use Data::Dumper;
-
+use List::Util qw/ max min /;
 use File::Spec;
 use JAC::OCS::Config;
 use JAC::OCS::Config::Error qw/ :try /;
+use JCMT::TCS::Pong;
 
 use OMP::Config;
 use OMP::Error;
@@ -275,27 +276,53 @@ sub handle_special_modes {
                                                  "flatfield_integration");
   }
 
-  # fix up point source scanning
-  if ($info->{mapping_mode} eq 'scan' && 
-      $info->{scanPattern} eq 'Point Source') {
+  if ($info->{mapping_mode} eq 'scan' ) {
 
-    $info->{scanPattern} = OMP::Config->getData($self->cfgkey.
-                                                ".scan_pntsrc_pattern");
-    $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey.
-                                                ".scan_pntsrc_map_height");
-    $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey.
+    # fix up point source scanning
+    if ($info->{scanPattern} eq 'Point Source') {
+
+      $info->{scanPattern} = OMP::Config->getData($self->cfgkey.
+                                                  ".scan_pntsrc_pattern");
+      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey.
+                                                 ".scan_pntsrc_map_height");
+      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey.
                                                 ".scan_pntsrc_map_width");
-    $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey.
-                                                ".scan_pntsrc_velocity");
-    $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey.
-                                                ".scan_pntsrc_scan_dy");
+      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey.
+                                                    ".scan_pntsrc_velocity");
+      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey.
+                                              ".scan_pntsrc_scan_dy");
 
-    $info->{SCAN_SYSTEM} = "FPLANE";
-    $info->{MAP_PA} = 0;
+      $info->{SCAN_SYSTEM} = "FPLANE";
+      $info->{MAP_PA} = 0;
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Defining point source scan map from config.\n";
+      if ($self->verbose) {
+        print {$self->outhdl} "Defining point source scan map from config.\n";
+      }
+
+    } elsif ($info->{scanPattern} =~ /liss|pong/i) {
+
+      my $scan_dy = eval { OMP::Config->getData( $self->cfgkey.
+                                                 ".scan_pong_scan_dy") };
+      my $scan_vel = eval { OMP::Config->getData( $self->cfgkey.
+                                                  ".scan_pong_velocity") };
+
+      if (defined $scan_dy) {
+        if ($self->verbose && defined $info->{SCAN_DY}) {
+          print {$self->outhdl} "\tOverriding scan spacing given in the OT.".
+            " Changing $info->{SCAN_DY} to $scan_dy arcsec\n";
+        }
+        $info->{SCAN_DY} = $scan_dy;
+      }
+      if (defined $scan_vel) {
+        if ($self->verbose && defined $info->{SCAN_VELOCITY} ) {
+          print {$self->outhdl} "\tOverriding scan velocity given in the OT.".
+            " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n";
+        }
+        $info->{SCAN_VELOCITY} = $scan_vel;
+      }
+
     }
+
 
   }
 
@@ -537,45 +564,103 @@ sub jos_config {
         ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n";
     }
   } elsif ($info{mapping_mode} eq 'scan') {
-    # in most cases, we set jos_min to 1 and the number of cycles
-    # to be the number of map area repeats. The TCS knows when to go to 
-    # a dark. If we have an explicit sampleTime though, we use that
-    # for JOS_MIN - it indicates that the OT has requested a particular
-    # amount of time doing the observation not a particular number of
-    # complete map areas. This is assumed to be used in point source mode.
+    # The aim here is to use the minimum number of sequences
+    # to get the correct map area. For "point source" it is easy
+    # because we assume that the time requested is the length
+    # of the sequence. For normal scan maps we are given an area
+    # and a number of repeats so we need to know how long that will be.
+    # We end up with a JOS_MIN value. In principal we have to ensure
+    # that we break at steps_between_darks.
 
     if ($self->verbose) {
       print {$self->outhdl} "Scan map JOS parameters\n";
     }
 
-    if (exists $info{sampleTime} && defined $info{sampleTime}) {
-      my $nsteps = $info{sampleTime} / $jos->step_time;
-      my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
-      my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
-      $jos->jos_min( $jos_min );
-      $jos->num_cycles( $num_cycles );
+    # Since the TCS works in integer times-round-the-map
+    # Need to know the map area
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+      unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+      unless defined $obsArea;
 
+    # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.
+    my %mapping_info = ($obsArea->scan, $obsArea->maparea );
+    my $duration_per_area;
+    if ($info{scanPattern} =~ /liss|pong/i) {
+      $duration_per_area = JCMT::TCS::Pong::get_pong_dur( %mapping_info );
+    } elsif ($info{scanPattern} =~ /bous/i) {
+      my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
+      my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
+      $duration_per_area = ($maparea / $pixarea) * $jos->step_time;
+    } else {
+      throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
+    }
+
+    if ($self->verbose) {
+      print {$self->outhdl} "\tEstimated time to cover the map area once: $duration_per_area sec\n";
+    }
+
+    my $nsteps;
+    if (exists $info{sampleTime} && defined $info{sampleTime}) {
+      # Specify the length of the sequence
+      $nsteps = $info{sampleTime} / $jos->step_time;
       if ($self->verbose) {
         print {$self->outhdl} "\tScan map executing for a specific time. Not map coverage\n";
-        print {$self->outhdl} "\tTotal duration of scan map: $info{sampleTime} secs.\n";
-        print {$self->outhdl} "\tNumber of steps in scan map sequence: $jos_min\n";
-        print {$self->outhdl} "\tNumber of repeats: $num_cycles\n";
+        print {$self->outhdl} "\tTotal duration requested for scan map: $info{sampleTime} secs.\n";
       }
-    } else { 
 
-      # jos_min is always 1 and num_cycles is the number of times round
-      # the map. The TCS will work out when to do the dark.
-      $jos->jos_min(1);
-      $jos->num_cycles($info{nintegrations} ? $info{nintegrations} : 1);
-      
+    } else {
+      my $nrepeats = ($info{nintegrations} ? $info{nintegrations} : 1 );
+
       if ($self->verbose) {
-        print {$self->outhdl} "\tNumber of repeats of map area: ".
-          $jos->num_cycles."\n";
+        print "\tNumber of repeats of map area requested: $nrepeats\n";
       }
+      $nsteps = ($nrepeats * $duration_per_area) / $jos->step_time;
+    }
+
+    # This calculation may well be inefficient given the TCS requirement
+    # to use an integer number of scan areas in a sequence. It could be tricky
+    # if we want 5 repeats but do them as 2 sets of 3 or 3 sets of 2. We tend
+    # to hope that steps_between_darks will be so high that this is irrelevant.
+
+    # steps between darks must be at least the duration_per_area
+    # otherwise the num_cycles calculation means that you end up with
+    # too many repeats
+    my $steps_per_pass = $duration_per_area / $jos->step_time;
+    $tbdark = max( $tbdark, $steps_per_pass );
+
+    # for pointings we need to be able to control the number of repeats
+    # dynamically in the JOS so we go for the less optimal solution
+    # of causing the map to be split up into chunks
+    my $num_cycles;
+    my $jos_min;
+    my $tot_time;
+    if ($info{obs_type} =~ /point|focus/i) {
+      my $minlen = OMP::Config->getData($self->cfgkey .".".$info{obs_type}."_min_cycle_duration");
+      $num_cycles = POSIX::ceil( $nsteps / $steps_per_pass );
+
+      my $div = POSIX::ceil( min( $nsteps*$jos->step_time, $minlen) / $duration_per_area);
+      $num_cycles = POSIX::ceil( $num_cycles / $div );
+
+      # No point requesting more steps than we wanted originally
+      $jos_min = min( $nsteps, $div * $steps_per_pass);
+    } else {
+      $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+      $jos_min = OMP::General::nint( $nsteps / $num_cycles );
+    }
+    $tot_time = $num_cycles * $jos_min * $jos->step_time;
+    $jos->jos_min( $jos_min );
+    $jos->num_cycles( $num_cycles );
+
+    if ($self->verbose) {
+      print {$self->outhdl} "\tNumber of steps in scan map sequence: $jos_min\n";
+      print {$self->outhdl} "\tNumber of repeats: $num_cycles\n";
+      print {$self->outhdl} "\tTime spent mapping: $tot_time sec\n";
     }
 
   }
-
 
   # Non science observing types
   if ($info{obs_type} =~ /focus/ ) {
@@ -592,10 +677,6 @@ sub jos_config {
     $jos->focus_step( $stepsize );
     $jos->focus_axis( $info{focusAxis} );
   }
-
-  # now that we have used to time between darksin calculations, lie to the JOS
-  # so that it does one after every sequence
-  $jos->steps_btwn_dark(1);
 
   # store it
   $cfg->jos( $jos );
