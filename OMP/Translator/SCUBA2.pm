@@ -435,6 +435,9 @@ sub jos_config {
         print {$self->outhdl} "\tSteps per discrete elevation: ". $jos->jos_min()."\n";
       }
 
+      # make sure we always do a dark between positions
+      $jos->steps_btwn_dark( 1 );
+
     } else {
       # scan so JOS_MIN is 1
       $jos->jos_min(1);
