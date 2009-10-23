@@ -318,6 +318,15 @@ sub populate {
       $args{date} = $args{date}->strftime("%Y-%m-%d");
     }
     $xmlbit = "<date delta=\"1\">$args{date}</date>";
+  } elsif( exists( $args{'daterange'} ) ) {
+    my $daterange = $args{'daterange'};
+    $xmlbit = "<date>";
+    if( defined( $daterange->min ) ) {
+      $xmlbit .= "<min>" . $daterange->min->datetime . "</min>";
+    }
+    if( defined( $daterange->max ) ) {
+      $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
+    }
   }
 
   # If we have a project ID but no telescope we must determine
@@ -337,6 +346,12 @@ sub populate {
   if (exists $args{projectid} && exists $args{date}
       && exists $args{inccal}) {
     $inccal = $args{inccal};
+  }
+
+  if( exists( $args{'projectid'} ) &&
+      ! ( exists( $args{'date'} ) ||
+          exists( $args{'daterange'} ) ) ) {
+    $xmlbit .= "<date><min>20000101</min></date>";
   }
 
   # if we are including calibrations we should not include projectid
