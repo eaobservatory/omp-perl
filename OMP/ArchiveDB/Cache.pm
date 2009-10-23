@@ -589,7 +589,7 @@ sub _filename_from_query {
 
   if( defined( $daterange ) ) {
     $startdate = $daterange->min->datetime;
-    $enddate = $daterange->max->datetime;
+    $enddate = ( $daterange->max != -1 ? $daterange->max->datetime : undef );
   }
 
   $filename .= ( defined( $startdate ) ? $startdate : "" );
