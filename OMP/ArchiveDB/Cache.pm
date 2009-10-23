@@ -581,15 +581,18 @@ sub _filename_from_query {
     }
   } elsif( UNIVERSAL::isa( $qhash->{date}, "OMP::Range" ) ) {
     $daterange = $qhash->{date};
-    # Subtract one second from the range, because the max date is not inclusive.
-    my $max = $daterange->max;
-    $max = $max - 1;
-    $daterange->max($max);
+    # Subtract one second from the range, because the max date is not
+    # inclusive, but only if the max is actually defined.
+    if( defined( $daterange->max ) ) {
+      my $max = $daterange->max;
+      $max = $max - 1;
+      $daterange->max($max);
+    }
   }
 
   if( defined( $daterange ) ) {
     $startdate = $daterange->min->datetime;
-    $enddate = ( $daterange->max != -1 ? $daterange->max->datetime : undef );
+    $enddate = ( defined( $daterange->max ) ? $daterange->max->datetime : undef );
   }
 
   $filename .= ( defined( $startdate ) ? $startdate : "" );

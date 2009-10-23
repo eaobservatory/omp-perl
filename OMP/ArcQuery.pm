@@ -244,10 +244,13 @@ sub daterange {
     }
   } elsif( UNIVERSAL::isa( $query_hash->{date}, "OMP::Range" ) ) {
     $daterange = $query_hash->{date};
-    # Subtract one second from the range, because the max date is not inclusive.
-    my $max = $daterange->max;
-    $max = $max - 1;
-    $daterange->max($max);
+    # Subtract one second from the range, because the max date is not
+    # inclusive, but only if the max is actually defined.
+    if( defined( $daterange->max ) ) {
+      my $max = $daterange->max;
+      $max = $max - 1;
+      $daterange->max($max);
+    }
   } else {
     throw OMP::Error( "Unable to get date range from query" );
   }
