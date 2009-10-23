@@ -327,6 +327,10 @@ sub populate {
     if( defined( $daterange->max ) ) {
       $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
     }
+    # If the range is unbounded, disable comment lookup.
+    if( ! $daterange->isbound ) {
+      $nocomments = 1;
+    }
   }
 
   # If we have a project ID but no telescope we must determine
@@ -348,10 +352,14 @@ sub populate {
     $inccal = $args{inccal};
   }
 
+  # If we've been given a project ID but no dates, get all
+  # observations from the beginning of time for that project. Disable
+  # comment lookups for this case though.
   if( exists( $args{'projectid'} ) &&
       ! ( exists( $args{'date'} ) ||
           exists( $args{'daterange'} ) ) ) {
     $xmlbit .= "<date><min>20000101</min></date>";
+    $nocomments = 1;
   }
 
   # if we are including calibrations we should not include projectid
