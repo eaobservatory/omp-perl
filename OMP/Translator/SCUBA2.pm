@@ -634,6 +634,9 @@ sub jos_config {
     my $steps_per_pass = $duration_per_area / $jos->step_time;
     $tbdark = max( $tbdark, $steps_per_pass );
 
+    # Maximum length of a sequence
+    my $jos_max = OMP::Config->getData($self->cfgkey . ".jos_max" );
+
     # for pointings we need to be able to control the number of repeats
     # dynamically in the JOS so we go for the less optimal solution
     # of causing the map to be split up into chunks
@@ -653,6 +656,17 @@ sub jos_config {
       $num_cycles = POSIX::ceil( $nsteps / $tbdark );
       $jos_min = OMP::General::nint( $nsteps / $num_cycles );
     }
+
+    if ($jos_min > $jos_max) {
+      # We have a problem
+      my $mult = POSIX::ceil( $jos_min / $jos_max );
+      $jos_min /= $mult;
+      $num_cycles *= $mult;
+      if ($self->verbose) {
+        print {$self->outhdl} "\tSequence too long. Scaling down by factor of $mult\n";
+      }
+    }
+
     $tot_time = $num_cycles * $jos_min * $jos->step_time;
     $jos->jos_min( $jos_min );
     $jos->num_cycles( $num_cycles );
