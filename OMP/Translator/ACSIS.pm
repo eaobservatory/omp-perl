@@ -331,6 +331,8 @@ observations do not necessarily inherit observing parameters from the
 enclosing observation and they definitely do not include a
 specification on chopping scheme.
 
+Also handles point source scan requests.
+
 =cut
 
 sub handle_special_modes {
@@ -553,6 +555,39 @@ sub handle_special_modes {
       print {$self->outhdl} "Converting grid/freqsw to jiggle/freqsw observation\n";
     }
 
+  }
+
+  if ($info->{mapping_mode} eq 'scan' ) {
+
+    # fix up point source scanning
+    if ($info->{scanPattern} eq 'Point Source') {
+
+      $info->{scanPattern} = OMP::Config->getData($self->cfgkey.
+                                                  ".scan_pntsrc_pattern");
+      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey.
+                                                 ".scan_pntsrc_map_height");
+      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey.
+                                                ".scan_pntsrc_map_width");
+      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey.
+                                                    ".scan_pntsrc_velocity");
+      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey.
+                                              ".scan_pntsrc_scan_dy");
+
+      $info->{SCAN_SYSTEM} = "FPLANE";
+      $info->{MAP_PA} = 0;
+
+      # to be consistenet we set sampleTime to our required step time
+      # and use a new key for the toal time
+      $info->{totalIntegrationTime} = $info->{sampleTime};
+
+      # this becomes the step time in scan mode
+      $info->{sampleTime} = OMP::Config->getData($self->cfgkey.
+                                                 ".scan_pntsrc_step_time");
+
+      if ($self->verbose) {
+        print {$self->outhdl} "Defining point source scan map from config.\n";
+      }
+    }
   }
 
   return;
@@ -1058,12 +1093,57 @@ sub jos_config {
 
     # Number of ref samples now calculated by the JOS
 
-    # JOS_MIN (should always be 1)
-    $jos->jos_min(1);
+    # Since the TCS works in integer times-round-the-map
+    # Need to know the map area
+    my $tcs = $cfg->tcs;
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen')
+      unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen')
+      unless defined $obsArea;
+
+    # need to calculate the length of a pong. Should be in a module somewhere. Code in JAC::OCS::Config.
+    my %mapping_info = ($obsArea->scan, $obsArea->maparea );
+    my $duration_per_area;
+    if ($info{scanPattern} =~ /liss|pong/i) {
+      $duration_per_area = JCMT::TCS::Pong::get_pong_dur( %mapping_info );
+    } elsif ($info{scanPattern} =~ /bous/i) {
+      my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
+      my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
+      $duration_per_area = ($maparea / $pixarea) * $jos->step_time;
+    } else {
+      throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
+    }
+
+    # JOS_MIN (should always be 1) for normal scanning
+    # the integration time if point source
+    my $tot_time;
+    if (exists $info{totalIntegrationTime} && defined $info{totalIntegrationTime}) {
+      # steps between darks must be at least the duration_per_area
+      # otherwise the num_cycles calculation means that you end up with
+      # too many repeats
+      my $steps_per_pass = $duration_per_area / $jos->step_time;
+      my $tbdark = max( $jos->steps_btwn_refs, $steps_per_pass );
+
+      my $nsteps = $info{totalIntegrationTime} / $jos->step_time;
+      my $num_cycles = POSIX::ceil( $nsteps / $tbdark );
+      # this won't handle the TCS splitting things up on integer patterns
+      $nsteps = OMP::General::nint( $nsteps / $num_cycles );
+      $jos->num_cycles( $num_cycles );
+      $jos->jos_min( $nsteps );
+      my $npasses = POSIX::ceil( $jos->jos_min / $steps_per_pass );
+      $tot_time = $jos->num_cycles * ( $npasses * $steps_per_pass ) * $jos->step_time;
+    } else {
+      $jos->jos_min(1);
+      $tot_time = $duration_per_area;
+    }
 
     if ($self->verbose) {
       print {$self->outhdl} "Scan map JOS parameters:\n";
       print {$self->outhdl} "\tDuration of reference calculated by JOS dynamically\n";
+      print {$self->outhdl} "\tEstimated time to cover the map area once: $duration_per_area sec\n";
+      print {$self->outhdl} "\tNumber of repeats: ". $jos->num_cycles."\n";
+      print {$self->outhdl} "\tTime spent mapping: $tot_time sec\n";
     }
 
 
