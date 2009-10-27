@@ -190,7 +190,7 @@ sub determine_scan_angles {
   my %info = @_;
 
   # only calculate angles for bous or raster
-  return () unless $pattern =~ /BOUS|RASTER/i;
+  return ($info{SCAN_SYSTEM}) unless $pattern =~ /BOUS|RASTER/i;
 
   # Need to know the frontend
   my $frontend = $self->ocs_frontend($info{instrument});
