@@ -72,8 +72,10 @@ $DEBUG = 0;
 Object constructor. Accept arguments in hash form with keys:
 
   obs - expects to point to array ref of Info::Obs objects
+
   telescope/instrument/projectid - arguments recognized by
      populate methods are forwarded to the populate method.
+
   timegap - interleaves observations with timegaps if a gap
             longer than the value in this hash is detected.
 
