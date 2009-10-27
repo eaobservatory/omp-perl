@@ -667,6 +667,12 @@ sub jos_config {
       }
     }
 
+    # for now set steps between dark to the JOS_MIN, otherwise the JOS
+    # will try to get clever and multiply up the NUM_CYCLES
+    # For focus we definitely do not want darks between the focus positions though.
+    $jos->steps_btwn_dark( $jos_min )
+      unless $info{obs_type} =~ /focus/;
+
     $tot_time = $num_cycles * $jos_min * $jos->step_time;
     $jos->jos_min( $jos_min );
     $jos->num_cycles( $num_cycles );
