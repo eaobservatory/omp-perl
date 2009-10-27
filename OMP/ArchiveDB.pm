@@ -116,7 +116,7 @@ sub getObs {
   if ( defined( $args{instrument} ) && length( $args{instrument} ) ) {
     $xml .= "<instrument>" . $args{instrument} . "</instrument>";
   }
-  if ( defined( $args{ut} ) && length( $args{ut} ) > 0 ) {
+  if ( defined( $args{ut} ) && length( $args{ut} ) ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
   }
 
