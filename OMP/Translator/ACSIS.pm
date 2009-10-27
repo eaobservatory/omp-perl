@@ -1107,12 +1107,11 @@ sub jos_config {
     my $duration_per_area;
     if ($info{scanPattern} =~ /liss|pong/i) {
       $duration_per_area = JCMT::TCS::Pong::get_pong_dur( %mapping_info );
-    } elsif ($info{scanPattern} =~ /bous/i) {
+    } else {
+      # Assume bous
       my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
       my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
       $duration_per_area = ($maparea / $pixarea) * $jos->step_time;
-    } else {
-      throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
     }
 
     # JOS_MIN (should always be 1) for normal scanning
