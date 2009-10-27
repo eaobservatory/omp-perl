@@ -107,16 +107,16 @@ sub getObs {
   my %args = @_;
 
   my $xml = "<ArcQuery>";
-  if ( defined( $args{telescope} ) && length( $args{telescope} . '' ) > 0 ) {
+  if ( defined( $args{telescope} ) && length( $args{telescope} ) ) {
     $xml .= "<telescope>" . $args{telescope} . "</telescope>";
   }
-  if ( defined( $args{runnr} ) && length( $args{runnr} . '' ) > 0 ) {
+  if ( defined( $args{runnr} ) && length( $args{runnr} ) ) {
     $xml .= "<runnr>" . $args{runnr} . "</runnr>";
   }
-  if ( defined( $args{instrument} ) && length( $args{instrument} . '' ) > 0 ) {
+  if ( defined( $args{instrument} ) && length( $args{instrument} ) ) {
     $xml .= "<instrument>" . $args{instrument} . "</instrument>";
   }
-  if ( defined( $args{ut} ) && length( $args{ut} . '' ) > 0 ) {
+  if ( defined( $args{ut} ) && length( $args{ut} ) > 0 ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
   }
 
