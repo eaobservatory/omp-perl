@@ -432,7 +432,7 @@ sub get_observed_targets {
   print STDERR "# Connecting to OMP server...";
   $dbh = DBI->connect(
      "dbi:Sybase:server=${server};database=${database};timeout=30",
-     "staff","***REMOVED***") 
+     "staff","***REMOVED***")
      || die ("*ERROR* JCMT DB_LOGIN failed\n");
   print STDERR "done\n";
 
