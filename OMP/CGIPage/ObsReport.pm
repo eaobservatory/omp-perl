@@ -83,9 +83,9 @@ sub night_report {
     if ($q->url_param('delta')) {
       my $deltastr = $q->param('delta');
       if ($deltastr =~ /^(\d+)$/) {
-	$delta = $1;
+        $delta = $1;
       } else {
-	croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
+        croak("Delta [$deltastr] does not match the expect format so we are not allowed to untaint it!");
       }
     }
 
@@ -103,7 +103,7 @@ sub night_report {
 
       # Subtract delta (days) from date if we have a delta
       if ($delta) {
-	$utdate -= $delta * ONE_DAY;
+        $utdate -= $delta * ONE_DAY;
       }
     }
 
@@ -134,7 +134,7 @@ sub night_report {
 
   # Setup our arguments for retrieving night report
   my %args = (date => $utdate->ymd,
-	      telescope => $tel,);
+              telescope => $tel,);
   ($delta) and $args{delta_day} = $delta;
 
   # Get the night report
@@ -176,12 +176,12 @@ sub night_report {
       print $q->startform;
       print "View report for ";
       print $q->textfield(-name=>"utdate_form",
-			  -size=>10,
-			  -default=>substr($utdate->ymd, 0, 8),);
+                          -size=>10,
+                          -default=>substr($utdate->ymd, 0, 8),);
       print "</td><tr><td colspan=2 align=right>";
 
       print $q->submit(-name=>"view_report",
-		       -label=>"Submit",);
+                       -label=>"Submit",);
       print $q->endform;
 
       # Link to multi night report
@@ -192,14 +192,14 @@ sub night_report {
      print $q->startform;
       print "View report starting on ";
       print $q->textfield(-name=>"utdate_form",
-			  -size=>10,
-			  -default=>$utdate->ymd,);
+                          -size=>10,
+                          -default=>$utdate->ymd,);
       print " and ending on ";
       print $q->textfield(-name=>"utdate_end",
-			  -size=>10,);
+                          -size=>10,);
       print " UT ";
       print $q->submit(-name=>"view_report",
-		       -label=>"Submit",);
+                       -label=>"Submit",);
       print $q->endform;
 
       # Link to single night report
@@ -374,12 +374,12 @@ sub report_output {
   # Get the MSBs observed during this shift sorted by project
   my $xml = "<MSBDoneQuery>".
       "<date delta='-8' units='hours'>". $t->datetime ."</date>".
-	# Right now we're specifying the telescope's instruments
-	# in the query instead of the telescope since we can't query
-	# on telescope yet
-	"".
-	  "<status>". OMP__DONE_DONE ."</status>".
-	    "</MSBDoneQuery>";
+        # Right now we're specifying the telescope's instruments
+        # in the query instead of the telescope since we can't query
+        # on telescope yet
+        "".
+          "<status>". OMP__DONE_DONE ."</status>".
+            "</MSBDoneQuery>";
 
   my $commentref = OMP::MSBServer->observedMSBs({});
   msb_comments_by_project($q, $commentref);

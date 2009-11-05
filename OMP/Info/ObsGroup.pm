@@ -72,8 +72,10 @@ $DEBUG = 0;
 Object constructor. Accept arguments in hash form with keys:
 
   obs - expects to point to array ref of Info::Obs objects
+
   telescope/instrument/projectid - arguments recognized by
      populate methods are forwarded to the populate method.
+
   timegap - interleaves observations with timegaps if a gap
             longer than the value in this hash is detected.
 
@@ -318,6 +320,19 @@ sub populate {
       $args{date} = $args{date}->strftime("%Y-%m-%d");
     }
     $xmlbit = "<date delta=\"1\">$args{date}</date>";
+  } elsif( exists( $args{'daterange'} ) ) {
+    my $daterange = $args{'daterange'};
+    $xmlbit = "<date>";
+    if( defined( $daterange->min ) ) {
+      $xmlbit .= "<min>" . $daterange->min->datetime . "</min>";
+    }
+    if( defined( $daterange->max ) ) {
+      $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
+    }
+    # If the range is unbounded, disable comment lookup.
+    if( ! $daterange->isbound ) {
+      $nocomments = 1;
+    }
   }
 
   # If we have a project ID but no telescope we must determine
@@ -337,6 +352,16 @@ sub populate {
   if (exists $args{projectid} && exists $args{date}
       && exists $args{inccal}) {
     $inccal = $args{inccal};
+  }
+
+  # If we've been given a project ID but no dates, get all
+  # observations from the beginning of time for that project. Disable
+  # comment lookups for this case though.
+  if( exists( $args{'projectid'} ) &&
+      ! ( exists( $args{'date'} ) ||
+          exists( $args{'daterange'} ) ) ) {
+    $xmlbit .= "<date><min>20000101</min></date>";
+    $nocomments = 1;
   }
 
   # if we are including calibrations we should not include projectid
