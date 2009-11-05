@@ -148,6 +148,8 @@ use Astro::Telescope;
 
 use DBI;
 
+use OMP::Password;
+
 my $HPI = pi/2;
 
 # ----------------------------------------------------------------------
@@ -318,8 +320,12 @@ print "\n";
 
 # Get observed targets
 unless ($coords) {
+
+  my $password =
+    OMP::Password->get_password( { 'prompt' => 'Please enter the staff password: ' } );
+
   # from COMMON table in JCMT DB sorted by project.
-  $observed = &get_observed_targets( $utstart, $utstop,
+  $observed = &get_observed_targets( $utstart, $utstop, $password,
                                       "$projects", $telescope );
 } else {
   # or for user-specified coordinates
@@ -399,11 +405,12 @@ sub get_observed_targets {
 # Would have like to use OMP::ObsGroups but, due to a bug, it does
 # not presently return the Coord object. Hence used a direct query.
 #
-# Use: $observed = get_observed_targets ( $utstart, $utstop,
+# Use: $observed = get_observed_targets ( $utstart, $utstop, $password,
 #                                         $projects, $telescope )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
+#    $password: password to use to log in to database
 #    $projects: string, possibly with wild cards ('*')
 #    $telescope: telescope to query COMMON table for (not yet used)
 #
@@ -415,7 +422,7 @@ sub get_observed_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $projids, $telescope) = @_;
+  my ($utstart, $utstop, $password, $projids, $telescope) = @_;
 
   my $prjclause = "";
   if ($projects ne "") {
@@ -432,7 +439,7 @@ sub get_observed_targets {
   print STDERR "# Connecting to OMP server...";
   $dbh = DBI->connect(
      "dbi:Sybase:server=${server};database=${database};timeout=30",
-     "staff","***REMOVED***")
+     "staff", $password )
      || die ("*ERROR* JCMT DB_LOGIN failed\n");
   print STDERR "done\n";
 
