@@ -185,8 +185,8 @@ and so do not generate configuration XML.
 
   $trans->is_private_sequence( %info );
 
-For SCUBA-2 returns true for Flatfield and Array Tests, false otherwise.
-Except that some Noise observations need the TCS and others do not.
+For SCUBA-2 returns true for observations in the dark or using the blackbody,
+false otherwise.
 
 =cut
 
@@ -194,7 +194,9 @@ sub is_private_sequence {
   my $self = shift;
   my %info = @_;
   if ($info{obs_type} =~ /^flatfield/ ) {
-    return 1;
+    if ($info{flatSource} =~ /^(dark|blackbody)$/i) {
+      return 1;
+    }
   } elsif ($info{obs_type} eq 'noise') {
     if ($info{noiseSource} =~ /^(dark|blackbody)$/i) {
       return 1;
@@ -270,7 +272,7 @@ sub handle_special_modes {
 
   } elsif ($info->{obs_type} =~ /flatfield/) {
     if ($self->verbose) {
-      print {$self->outhdl} "Setting integration time for ".$info->{obs_type}. "observation\n";
+      print {$self->outhdl} "Setting integration time for ".$info->{obs_type}. " observation\n";
     }
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
                                                  "flatfield_integration");
@@ -405,8 +407,11 @@ sub jos_config {
   $jos->steps_btwn_dark( $tbdark );
 
   # Length of dark is fixed for all except observations that 
-  # have a noiseSource of "DARK".
-  unless (exists $info{noiseSource} && $info{noiseSource} =~ /DARK/) {
+  # have a noiseSource of "DARK" or flatsource of "DARK"
+  if ( (exists $info{noiseSource} && $info{noiseSource} =~ /dark/i) ||
+       (exists $info{flatSource} && $info{flatSource} =~ /dark/i) ) {
+    # want to set n_calsamples ourselves
+  } else {
     my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
     $jos->n_calsamples( $darklen / $jos->step_time );
   }
@@ -452,10 +457,17 @@ sub jos_config {
     # Sort out prefix into config system
     my $pre = ".". $info{obs_type} . ($info{is_quick} ? "_quick" : "") . "_";
 
-    # This is the integration time directly from 
+    # This is the integration time directly from the config file
+    # use it for N_CALSAMPLES if we are dark else use it for JOS_MIN
     my $inttime = $info{secsPerCycle};
-    my $nsteps = $inttime / $jos->step_time;
-    $jos->n_calsamples( $nsteps );
+    my $nsteps = OMP::General::nint( $inttime / $jos->step_time );
+
+    if ( $info{flatSource} =~ /dark/i) {
+      $jos->n_calsamples( $nsteps );
+      $jos->jos_min( 0 );
+    } else {
+      $jos->jos_min( $nsteps );
+    }
     $jos->num_cycles( OMP::Config->getData($self->cfgkey. $pre .
                                            "num_cycles"));
 
@@ -463,8 +475,16 @@ sub jos_config {
     my @keys;
     if ($info{flatSource} =~ /^blackbody$/i) {
       @keys = (qw/ bb_temp_start bb_temp_step bb_temp_wait shut_frac /);
-    } elsif ($info{flatSource} =~ /^dark$/i) {
+    } elsif ($info{flatSource} =~ /^(dark|zenith|sky)$/i) {
       @keys = (qw/ heat_cur_step /);
+
+      # Shutter location is hard-coded
+      if ($info{flatSource} =~ /^dark$/i) {
+        $jos->shut_frac( 0.0 );
+      } else {
+        $jos->shut_frac( 1.0 );
+      }
+
     } else {
       throw OMP::Error::FatalError("Unrecognized flatfield source: $info{flatSource}");
     }
@@ -513,8 +533,10 @@ sub jos_config {
     if ($info{noiseSource} eq 'DARK') {
       $jos->jos_min(0);
       $jos->n_calsamples( $jos_min );
+      $jos->shut_frac( 0.0 );
     } else {
       $jos->jos_min($jos_min);
+      $jos->shut_frac( 1.0 );
     }
 
   } elsif ($info{mapping_mode} eq 'stare'
