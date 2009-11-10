@@ -522,9 +522,9 @@ sub tcs_base {
     return;
   }
 
-  # if this is a skydip or noise and does not have a BASE position do not worry
+  # if this is a skydip, noise or flatfield and does not have a BASE position do not worry
   # since we will default to using the current Azimuth in this case.
-  if ($info{obs_type} =~ /skydip|noise/ && $info{coords}->type eq 'CAL') {
+  if ($info{obs_type} =~ /skydip|noise|flatfield/ && $info{coords}->type eq 'CAL') {
     if ($self->verbose) {
       print {$self->outhdl} "No target supplied for $info{obs_type}. Using current Azimuth.\n";
     }
@@ -744,16 +744,18 @@ sub observing_area {
     # store the elevations
     $oa->skydip( @el );
 
-  } elsif ($info{obs_type} eq 'noise' &&
-           $info{noiseSource} =~ /(zenith|sky)/i ) {
-
-    if ($info{noiseSource} =~ /zenith/i) {
+  } elsif ( ($info{obs_type} eq 'noise' &&
+             $info{noiseSource} =~ /(zenith|sky)/i) ||
+            ($info{obs_type} eq 'flatfield' &&
+             $info{flatSource} =~ /(zenith|sky)/i) ) {
+    my $source = (exists $info{noiseSource} ? $info{noiseSource} : $info{flatSource} );
+    if ($source =~ /zenith/i) {
       # default elevation for now
       $oa->is_zenith_mode(1);
-    } elsif ($info{noiseSource} =~ /sky/i) {
+    } elsif ($source =~ /sky/i) {
       $oa->is_sky_mode(1);
     } else {
-      OMP::Error::FatalError->throw("Unexpectedly fell off if clause in noise: $info{noiseSource}");
+      OMP::Error::FatalError->throw("Unexpectedly fell off if clause in $info{obs_type}: $source");
     }
 
   } elsif ($obsmode eq 'scan') {
