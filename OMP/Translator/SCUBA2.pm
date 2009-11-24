@@ -245,7 +245,7 @@ sub handle_special_modes {
 
     if ($info->{mapping_mode} eq 'scan') {
       # do this as a point source
-      $info->{scanPattern} = 'Point Source';
+      $info->{scanPattern} = $info->{obs_type};
       $info->{sampleTime} = $exptime;
 
     } elsif ($info->{mapping_mode} eq 'stare') {
@@ -281,25 +281,31 @@ sub handle_special_modes {
   if ($info->{mapping_mode} eq 'scan' ) {
 
     # fix up point source scanning
-    if ($info->{scanPattern} eq 'Point Source') {
+    if ($info->{scanPattern} eq 'Point Source' ||
+       $info->{scanPattern} =~ /pointing|focus/ ) {
+      my $smode = $info->{scanPattern};
+      if ($info->{scanPattern} =~ /Source/) {
+        $smode = 'pntsrc';
+      }
 
-      $info->{scanPattern} = OMP::Config->getData($self->cfgkey.
-                                                  ".scan_pntsrc_pattern");
-      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey.
-                                                 ".scan_pntsrc_map_height");
-      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey.
-                                                ".scan_pntsrc_map_width");
-      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey.
-                                                    ".scan_pntsrc_velocity");
-      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey.
-                                              ".scan_pntsrc_scan_dy");
+      if ($self->verbose) {
+        print {$self->outhdl} "Defining ".$info->{scanPattern}." scan map from config.\n";
+      }
+
+      my $key = ".scan_". $smode . "_";
+      $info->{scanPattern} = OMP::Config->getData($self->cfgkey. $key .
+                                                  "pattern");
+      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey. $key .
+                                                 "map_height");
+      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey. $key .
+                                                "map_width");
+      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey. $key .
+                                                    "velocity");
+      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey. $key .
+                                              "scan_dy");
 
       $info->{SCAN_SYSTEM} = "FPLANE";
       $info->{MAP_PA} = 0;
-
-      if ($self->verbose) {
-        print {$self->outhdl} "Defining point source scan map from config.\n";
-      }
 
     } elsif ($info->{scanPattern} =~ /liss|pong/i) {
 
