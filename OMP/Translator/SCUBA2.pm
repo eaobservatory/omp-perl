@@ -193,6 +193,59 @@ false otherwise.
 sub is_private_sequence {
   my $self = shift;
   my %info = @_;
+  if ($self->is_dark_or_blackbody(%info)) {
+    return 1;
+  }
+  return 0;
+}
+
+=item B<is_with_rts_only>
+
+Returns true if the observation is a sequence that just involves the
+instrument and the RTS.
+
+ $trans->is_with_rts_only( %info );
+
+Similar to is_private_sequence except the RTS can be included (but
+not the telescope). Used to determine whether tasks other than the
+instrument and RTS should be configured.
+
+Returns false if other tasks are required.
+
+Returns false if only the instrument is required.
+
+=cut
+
+sub is_only_with_rts {
+  my $self = shift;
+  my %info = @_;
+
+  # so we only return true if we are a dark-noise/blackbody or
+  # flatfield-dark/blackbody that should use the RTS
+  if ( $self->is_dark_or_blackbody(%info) ) {
+    # so now query the config system to see how to handle this
+    my $key = $info{obs_type};
+    if ($info{obs_type} =~ /^flatfield/) {
+      $key = "flatfield";
+    }
+    $key .= "_use_rts";
+    return OMP::Config->getData($self->cfgkey.".". $key );
+  }
+  return 0;
+}
+
+=item B<is_dark_or_blackbody>
+
+Returns true if this is an observation that is in the dark or
+uses a blackbody source but does not involve another component.
+
+  $trans->is_dark_or_blackbody( %info );
+
+=cut
+
+sub is_dark_or_blackbody {
+  my $self = shift;
+  my %info = @_;
   if ($info{obs_type} =~ /^flatfield/ ) {
     if ($info{flatSource} =~ /^(dark|blackbody)$/i) {
       return 1;
@@ -205,6 +258,7 @@ sub is_private_sequence {
 
   return 0;
 }
+
 
 =item B<handle_special_modes>
 

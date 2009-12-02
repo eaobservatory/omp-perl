@@ -170,6 +170,8 @@ sub translate {
 
     # Do we need other tasks?
     my $ispriv = $self->is_private_sequence( %$obs );
+    my $onlyrts;
+    $onlyrts = $self->is_only_with_rts( %$obs ) if $self->can("is_only_with_rts");
 
     # Create blank configuration
     my $cfg = new JAC::OCS::Config;
@@ -209,7 +211,7 @@ sub translate {
     $self->pol_config( $cfg, %$obs ) unless $ispriv;
 
     # RTS
-    $self->rts_config( $cfg, %$obs ) unless $ispriv;
+    $self->rts_config( $cfg, %$obs ) unless ($ispriv && !$onlyrts);
 
     # JOS Config
     $self->jos_config( $cfg, %$obs );
