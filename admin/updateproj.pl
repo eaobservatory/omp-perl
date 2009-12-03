@@ -66,7 +66,8 @@ my ($help, $man, $version,$force);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
-                       );
+                       )
+                or pod2usage(1);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
