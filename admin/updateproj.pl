@@ -197,12 +197,10 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
   }
 
-
   # Now store the project details back in the database
   $projdb->_update_project_row( $project );
 
   print "Updated details\n";
-
 }
 
 
