@@ -361,7 +361,7 @@ sub getResponse {
     $fault_id = qr/(?:199|2\d{3})\d[01]\d[0-3]\d\.\d{3}/
         unless $fault_id;
 
-    $text = s!($fault_id)!<a href="$baseurl/viewfault.pl?id=$1">$1</a>!g;
+    $text =~ s!($fault_id)!<a href="$baseurl/viewfault.pl?id=$1">$1</a>!g;
     return $text;
   }
 }
