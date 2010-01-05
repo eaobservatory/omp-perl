@@ -274,7 +274,7 @@ sub fault_table {
     }
 
     # Now turn fault IDs into links
-    $text =~ s!((?:199|2\d{3})\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?id=$1'>$1</a>!g;
+    $text =~ s!((?:199|2\d{2})\d[01]\d[0-3]\d\.\d{3})!<a href='viewfault.pl?id=$1'>$1</a>!g;
 
     print "<tr bgcolor=$bgcolor><td colspan=2><table border=0><tr><td><font color=$bgcolor>___</font></td><td>$text</td></table><br></td>";
   }
