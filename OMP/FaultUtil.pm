@@ -115,8 +115,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       # Wrap the message text
       $text = wrap('', '', $text);
 
-      # Now turn fault IDs into links
-      $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$baseurl/viewfault.pl?id=$1'>$1</a>!g;
+      $text = _make_fault_id_link( $baseurl, $text );
 
       if ($_->isfault) {
          push(@faulttext, "$category fault filed by $author on $date<br><br>");
@@ -152,8 +151,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     # Wrap the message text
     $text = wrap('', '', $text);
 
-    # Now turn fault IDs into links
-    $text =~ s!([21][90][90]\d[01]\d[0-3]\d\.\d{3})!<a href='$baseurl/viewfault.pl?id=$1'>$1</a>!g;
+    $text = _make_fault_id_link( $baseurl, $text );
 
     push(@faulttext, "$category fault filed by $author on $date<br><br>");
 
@@ -352,6 +350,20 @@ sub getResponse {
     throw OMP::Error::BadArgs("Argument to getResponse must be an object of the type OMP::Fault\n");
   }
 
+}
+
+{
+  my $fault_id;
+  sub _make_fault_id_link {
+
+    my ( $baseurl, $text ) = @_;
+
+    $fault_id = qr/(?:199|2\d{3})\d[01]\d[0-3]\d\.\d{3}/
+        unless $fault_id;
+
+    $text = s!($fault_id)!<a href="$baseurl/viewfault.pl?id=$1">$1</a>!g;
+    return $text;
+  }
 }
 
 =back
