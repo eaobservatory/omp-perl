@@ -807,6 +807,9 @@ sub nightlog {
 
   my $instrument = $self->instrument;
 
+  #  Longest project found as of Jan 6, 2010 is similar to "U/UKIDSS/LAS16B".
+  my $ukirt_proj_format = '%16.16s';
+
   if($instrument =~ /scuba/i) {
 
 # *** SCUBA
@@ -833,10 +836,39 @@ sub nightlog {
                           "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
 
     $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers";
-    $return{'_STRING'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0]);
+    $return{'_STRING'} =
+      sprintf "%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s",
+        $return{'Run'},
+        $return{'UT time'},
+        $return{'Obsmode'},
+        $return{'Project ID'},
+        $return{'Object'},
+        $return{'Tau225'},
+        $return{'Seeing'},
+        $return{'Filter'},
+        $return{'Bolometers'}[0]
+        ;
 
     $return{'_STRING_HEADER_LONG'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
-    $return{'_STRING_LONG'} = sprintf("%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s", $return{'Run'}, $return{'UT time'}, $return{'Obsmode'}, $return{'Project ID'}, $return{'Object'}, $return{'Tau225'}, $return{'Seeing'}, $return{'Filter'}, $return{'Bolometers'}[0], $return{'RA'}, $return{'Dec'}, $return{'Coordinate Type'}, $return{'Mean Airmass'}, $return{'Chop Throw'}, $return{'Chop Angle'}, $return{'Chop System'});
+    $return{'_STRING_LONG'} =
+      sprintf "%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s",
+        $return{'Run'},
+        $return{'UT time'},
+        $return{'Obsmode'},
+        $return{'Project ID'},
+        $return{'Object'},
+        $return{'Tau225'},
+        $return{'Seeing'},
+        $return{'Filter'},
+        $return{'Bolometers'}[0],
+        $return{'RA'},
+        $return{'Dec'},
+        $return{'Coordinate Type'},
+        $return{'Mean Airmass'},
+        $return{'Chop Throw'},
+        $return{'Chop Angle'},
+        $return{'Chop System'}
+        ;
 
   } elsif( $instrument =~ /^(rx|mpi|fts|harp)/i ) {
 
@@ -875,7 +907,21 @@ sub nightlog {
 
     $return{'_STRING_HEADER'} = "Run  UT start              Mode     Project          Source  Sec/Cyc  Rest Freq   Vel/Velsys     BW Mode";
 #    $return{'_STRING_HEADER'} = " Run  Project           UT start      Mode      Source Sec/Cyc   Rec Freq   Vel/Velsys";
-    $return{'_STRING'} = sprintf("%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %5s/%6s %11s", $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'Project ID'}, $return{'Source'}, $return{'Cycle Length'}, $return{'Number of Cycles'}, $return{'Frequency'}, $return{'Velocity'}, $return{'Velsys'}, $return{'Bandwidth Mode'});
+    $return{'_STRING'} =
+      sprintf "%3s  %8s  %16.16s %11s %15.15s  %3s/%3d    %7.3f %5s/%6s %11s",
+        $return{'Run'},
+        $return{'UT'},
+        $return{'Mode'},
+        $return{'Project ID'},
+        $return{'Source'},
+        $return{'Cycle Length'},
+        $return{'Number of Cycles'},
+        $return{'Frequency'},
+        $return{'Velocity'},
+        $return{'Velsys'},
+        $return{'Bandwidth Mode'}
+        ;
+
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
 
@@ -901,8 +947,25 @@ sub nightlog {
     $return{'_ORDER'} = [ "Observation", "Group", "Tile", "Project ID", "UT time", "Object",
                           "Observation type", "Exposure time", "Number of coadds", "Waveband",
                           "RA offset", "Dec offset", "Airmass", "Hour Angle", "DR Recipe" ];
-    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %4d %14.14s %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s", $return{'Observation'}, $return{'Group'}, $return{'Tile'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+
+                                #.... .... .... ....5....0....5.
+    $return{'_STRING_HEADER'} = " Obs  Grp Tile     Project ID   UT Start          Object     Type  ExpT  Filt     Offsets   AM Recipe";
+    $return{'_STRING'} =
+      sprintf "%4d %4d %4d ${ukirt_proj_format} %8.8s %15.15s %8.8s %5.2f %5.5s %5.1f/%5.1f %4.2f %-12.12s",
+        $return{'Observation'},
+        $return{'Group'},
+        $return{'Tile'},
+        $return{'Project ID'},
+        $return{'UT time'},
+        $return{'Object'},
+        $return{'Observation type'},
+        $return{'Exposure time'},
+        $return{'Waveband'},
+        $return{'RA offset'},
+        $return{'Dec offset'},
+        $return{'Airmass'},
+        $return{'DR Recipe'}
+        ;
 
   } elsif($instrument =~ /(cgs4|ircam|ufti|uist|michelle)/i) {
 
@@ -924,8 +987,23 @@ sub nightlog {
                           "Observation type", "Exposure time", "Waveband", "RA offset", "Dec offset",
                           "Airmass", "DR Recipe" ];
 
-    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID UT Start      Object     Type   ExpT Wvbnd     Offsets    AM Recipe";
-    $return{'_STRING'} = sprintf("%4d %4d %11.11s %8.8s %11.11s %8.8s %6.2f %5.5s %5.1f/%5.1f  %4.2f %-22.22s", $return{'Observation'}, $return{'Group'}, $return{'Project ID'}, $return{'UT time'}, $return{'Object'}, $return{'Observation type'}, $return{'Exposure time'}, $return{'Waveband'}, $return{'RA offset'}, $return{'Dec offset'}, $return{'Airmass'}, $return{'DR Recipe'});
+                                #.... .... ....5....0....5.
+    $return{'_STRING_HEADER'} = " Obs  Grp  Project ID      UT Start      Object     Type   ExpT Wvbnd     Offsets    AM Recipe";
+    $return{'_STRING'} =
+      sprintf "%4d %4d ${ukirt_proj_format} %8.8s %11.11s %8.8s %6.2f %5.5s %5.1f/%5.1f  %4.2f %-22.22s",
+        $return{'Observation'},
+        $return{'Group'},
+        $return{'Project ID'},
+        $return{'UT time'},
+        $return{'Object'},
+        $return{'Observation type'},
+        $return{'Exposure time'},
+        $return{'Waveband'},
+        $return{'RA offset'},
+        $return{'Dec offset'},
+        $return{'Airmass'},
+        $return{'DR Recipe'}
+        ;
 
 # And now for the specifics.
 
@@ -947,7 +1025,17 @@ sub nightlog {
 
       push @{$return{'_ORDER'}}, ( "Slit Name", "PA", "Grating", "Order", "Wavelength", "RA", "Dec", "Nexp" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Slit Name      PA    Grating  Order            RA          Dec  Coadds";
-      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %6d", $return{'Slit Name'}, $return{'PA'}, $return{'Grating'}, $return{'Order'}, $return{'RA'}, $return{'Dec'}, $return{'Coadds'});
+      $return{'_STRING_LONG'} =
+        $return{'_STRING'}
+        . sprintf "\n   %9.9s  %6.2f %10.10s  %5d  %12.12s %12.12s  %6d",
+            $return{'Slit Name'},
+            $return{'PA'},
+            $return{'Grating'},
+            $return{'Order'},
+            $return{'RA'},
+            $return{'Dec'},
+            $return{'Coadds'}
+            ;
 
     } elsif( $instrument =~ /ircam/i ) {
 
@@ -967,7 +1055,16 @@ sub nightlog {
 
       push @{$return{'_ORDER'}}, ( "Filter", "Readout Area", "Speed", "RA", "Dec" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n   Filter  Readout Area      Speed            RA          Dec  Nexp";
-      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n   %6.6s     %9.9s %10s  %12.12s %12.12s  %4d", $return{'Filter'}, $return{'Readout Area'}, $return{'Speed'}, $return{'RA'}, $return{'Dec'}, $return{'Nexp'});
+      $return{'_STRING_LONG'} =
+        $return{'_STRING'}
+        . sprintf "\n   %6.6s     %9.9s %10s  %12.12s %12.12s  %4d",
+            $return{'Filter'},
+            $return{'Readout Area'},
+            $return{'Speed'},
+            $return{'RA'},
+            $return{'Dec'},
+            $return{'Nexp'}
+            ;
 
     } elsif( $instrument =~ /uist/i ) {
 
@@ -999,7 +1096,20 @@ sub nightlog {
 
       push @{$return{'_ORDER'}}, ( "Mode", "Slit", "Slit Angle", "Grism", "Wavelength", "Filter", "Readout Area", "Camera", "Nexp", "Speed" );
       $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'} . "\n          Mode Slit     PA      Grism Wvlnth Filter  Readout Area  Camera Nexp   Speed";
-      $return{'_STRING_LONG'} = $return{'_STRING'} . sprintf("\n  %12.12s %4.4s %6.2f %10.10s %6.3f %6.6s     %9.9s  %6.6s %4d %7.7s", $return{'Mode'}, $return{'Slit'}, $return{'Slit Angle'}, $return{'Grism'}, $return{'Wavelength'}, $return{'Filter'}, $return{'Readout Area'}, $return{'Camera'}, $return{'Nexp'}, $return{'Speed'});
+      $return{'_STRING_LONG'} =
+        $return{'_STRING'}
+        . sprintf "\n  %12.12s %4.4s %6.2f %10.10s %6.3f %6.6s     %9.9s  %6.6s %4d %7.7s",
+            $return{'Mode'},
+            $return{'Slit'},
+            $return{'Slit Angle'},
+            $return{'Grism'},
+            $return{'Wavelength'},
+            $return{'Filter'},
+            $return{'Readout Area'},
+            $return{'Camera'},
+            $return{'Nexp'},
+            $return{'Speed'}
+            ;
 
     } elsif( $instrument =~ /michelle/i ) {
       $return{'Mode'} = $self->mode;
@@ -1026,9 +1136,15 @@ sub nightlog {
 
     $return{_ORDER} = [ "Run", "UT", "Mode", "ProjectID", "Source" ];
     $return{_STRING_HEADER} = "Run  UT start              Mode     Project          Source";
-    $return{_STRING} = sprintf("%3s  %8s  %16.16s %11s %15s",
-                               $return{'Run'}, $return{'UT'}, $return{'Mode'}, $return{'ProjectID'},
-                               $return{'Source'});
+    $return{_STRING} =
+      sprintf "%3s  %8s  %16.16s %11s %15s",
+        $return{'Run'},
+        $return{'UT'},
+        $return{'Mode'},
+        $return{'ProjectID'},
+        $return{'Source'}
+        ;
+
     $return{'_STRING_HEADER_LONG'} = $return{'_STRING_HEADER'};
     $return{'_STRING_LONG'} = $return{'_STRING'};
   }
