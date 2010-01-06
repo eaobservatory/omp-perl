@@ -583,7 +583,7 @@ sub query_fault_output {
                          showcat => ($category ne 'ANYCAT' ? 0 : 1),
                         );
 
-    for my $opt ( qw[ response filedate faultdate timelost ] ) {
+    for my $opt ( qw[ response filedate faulttime timelost ] ) {
 
       if ( $orderby eq $opt ) {
 
@@ -1564,11 +1564,12 @@ sub _make_sort_by_links {
   my $comp = $self->fault_component;
   my $chosen = $self->_get_param('orderby');
 
-  my @opt = qw[ filedate  response  timelost ];
+  my @opt = qw[ filedate  faulttime  response  timelost ];
 
   my %text;
   @text{ @opt } =
     ( 'file date',
+      'fault time',
       'date of last response',
       'time lost',
     );
