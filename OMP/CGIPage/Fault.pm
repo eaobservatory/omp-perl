@@ -1564,8 +1564,8 @@ sub _make_sort_by_links {
 
   my %text;
   @text{ @opt } =
-    ( 'date of last response',
-      'file date',
+    ( 'file date',
+      'date of last response',
       'time lost',
     );
 
