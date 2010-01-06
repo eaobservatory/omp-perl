@@ -181,6 +181,8 @@ sub get_raw_files_from_meta {
       if $err =~ /n[o']t open directory/i;
   };
 
+  return unless $metas;
+
   # Get flag file list by reading meta files.
   my ( @flag );
   for my $file ( @{ $metas } ) {

@@ -66,7 +66,8 @@ my ($help, $man, $version,$force);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
-                       );
+                       )
+                or pod2usage(1);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -91,12 +92,14 @@ my $val_split = qr[\s*,\s*];
 # Loop over each project and update it
 for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
 
+  printf "Processing project: %s ...\n", uc $proj;
+
   # Set the project ID in the DB object
   $projdb->projectid( $proj );
 
   # First check that the project exists
   if (! $projdb->verifyProject) {
-    warn "Project $proj does not exist in DB so can not update it!\n";
+    warn "Project does not exist in DB so can not update it!\n";
     next;
   }
 
@@ -189,17 +192,15 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
       $project->taurange( $taurange );
 
     } else {
-      warn "Unrecognized key in project $proj: $mod\n";
+      warn "Unrecognized key: $mod\n";
     }
 
   }
 
-
   # Now store the project details back in the database
   $projdb->_update_project_row( $project );
 
-  print "Update details for project $proj\n";
-
+  print "Updated details\n";
 }
 
 

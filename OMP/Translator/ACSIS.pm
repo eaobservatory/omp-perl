@@ -2228,9 +2228,12 @@ sub cubes {
     $cube->spw_id( $ss->{spw} );
 
     # Tangent point (aka group centre) is the base position without offsets
-    # Not used if we are in a moving (eg PLANET) frame
-    $cube->group_centre( $info{coords} ) 
-      if ($info{obs_type} ne "skydip" && $info{coords}->type eq 'RADEC');
+    # Not used if we are in a moving (eg PLANET) frame, if we are autoTarget
+    # or indeed if we are not science. A case could be made for never bothering
+    # since the translator always centres the map on the base position and that
+    # is where ACSIS will centre it by default anyhow.
+    $cube->group_centre( $info{coords} )
+      if ( $info{obs_type} eq "science" && $info{coords}->type eq 'RADEC' && !$info{autoTarget} );
 
     # Calculate Nyquist value for this map
     my $nyq = $self->nyquist( %info );
@@ -2487,6 +2490,7 @@ sub cubes {
       print {$self->outhdl} "\tPixel Size: $xsiz x $ysiz arcsec\n";
       print {$self->outhdl} "\tMap frame:  ". $cube->tcs_coord ."\n";
       print {$self->outhdl} "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
+      print {$self->outhdl} "\tGroup centre is ".(defined $cube->group_centre ? "" : "not ")."defined\n";
       print {$self->outhdl} "\tMap PA:     $mappa deg\n";
       print {$self->outhdl} "\tSpectral channels: ".($maxchan-$minchan+1).
         " as $int (cf ".($ss->{nchannels_full})." total)\n";

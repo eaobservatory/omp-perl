@@ -193,7 +193,6 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
-
   my @result = $adb->queryArc( $q, $retainhdr, $ignorebad );
 
   # Store the results
@@ -329,6 +328,7 @@ sub populate {
     if( defined( $daterange->max ) ) {
       $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
     }
+    $xmlbit .= "</date>";
     # If the range is unbounded, disable comment lookup.
     if( ! $daterange->isbound ) {
       $nocomments = 1;

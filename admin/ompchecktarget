@@ -148,6 +148,8 @@ use Astro::Telescope;
 
 use DBI;
 
+use OMP::Password;
+
 my $HPI = pi/2;
 
 # ----------------------------------------------------------------------
@@ -158,13 +160,6 @@ $| = 1;
 
 # Program name
 my $prog = (split /\//,$0)[-1];
-
-# Security
-#   1. Make sure program is not readable to the world.
-#   2. Exit if not in group staff
-#   Will try to set world permission bit to 0 if different.
-
-&check_permissions( "$0" );
 
 my $observed = []; # Array of hashes with observed targets (J2000),
                    # keys:
@@ -318,8 +313,12 @@ print "\n";
 
 # Get observed targets
 unless ($coords) {
+
+  my $password =
+    OMP::Password->get_password( { 'prompt' => 'Please enter the staff password: ' } );
+
   # from COMMON table in JCMT DB sorted by project.
-  $observed = &get_observed_targets( $utstart, $utstop,
+  $observed = &get_observed_targets( $utstart, $utstop, $password,
                                       "$projects", $telescope );
 } else {
   # or for user-specified coordinates
@@ -399,11 +398,12 @@ sub get_observed_targets {
 # Would have like to use OMP::ObsGroups but, due to a bug, it does
 # not presently return the Coord object. Hence used a direct query.
 #
-# Use: $observed = get_observed_targets ( $utstart, $utstop,
+# Use: $observed = get_observed_targets ( $utstart, $utstop, $password,
 #                                         $projects, $telescope )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
+#    $password: password to use to log in to database
 #    $projects: string, possibly with wild cards ('*')
 #    $telescope: telescope to query COMMON table for (not yet used)
 #
@@ -415,7 +415,7 @@ sub get_observed_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $projids, $telescope) = @_;
+  my ($utstart, $utstop, $password, $projids, $telescope) = @_;
 
   my $prjclause = "";
   if ($projects ne "") {
@@ -432,7 +432,7 @@ sub get_observed_targets {
   print STDERR "# Connecting to OMP server...";
   $dbh = DBI->connect(
      "dbi:Sybase:server=${server};database=${database};timeout=30",
-     "staff","***REMOVED***")
+     "staff", $password )
      || die ("*ERROR* JCMT DB_LOGIN failed\n");
   print STDERR "done\n";
 
@@ -858,45 +858,6 @@ sub print_cat {
     print "$line\n";
 
   }
-
-}
-
-#----------------------------------------------------------------------
-
-sub check_permissions {
-
-# Check file permissions program and group id of user.
-# Die unless permission for world is 'no access' group is 'staff'.
-# Will first attempt to set the world permission bit on the program
-# file to 0.
-#
-# Use: check_permissions( $program )
-#
-# $program: program with full path (typically $0)
-
-  my $program = shift;
-
-  my $user = $ENV{'USER'};
-
-  my ($dev,$ino,$fmode,$nlink,$uid,$gid,$rdev,$size,
-         $atime,$mtime,$ctime,$blksize,$blocks)
-             = stat($0);
-  my $mode = sprintf "%04o", $fmode & 07777;
-  my $world = substr $mode, (length $mode)-1, 1;
-
-  print "User: $user  World: $world  Group: $gid\n" if ($debug);
-
-  $mode -= $world;
-  system "chmod 0$mode $program" if ($world != 0);
-
-  ( ($world == 0 && $gid == 10)) ||
-    die qq { 
--------------------------------------------------------------- 
-        Error: ${prog} can only be used by 'staff'
-        and can not be 'world' readable.
--------------------------------------------------------------- 
-
-};
 
 }
 
