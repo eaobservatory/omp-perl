@@ -1555,13 +1555,25 @@ sub _sort_by_fault_time {
   }
 
   return
-    [ ( sort { $b->faultdate <=> $a->faultdate } @fault ),
+    [ ( sort
+        { $b->faultdate <=> $a->faultdate
+          ||
+          $b->filedate  <=> $a->filedate
+        }
+        @fault
+      ),
       ( sort { $b->filedate  <=> $a->filedate  } @file )
     ]
     if $descend;
 
   return
-    [ ( sort { $a->faultdate <=> $b->faultdate } @fault ),
+    [ ( sort
+        { $a->faultdate <=> $b->faultdate
+          ||
+          $a->filedate  <=> $b->filedate
+        }
+        @fault
+      ),
       ( sort { $a->filedate  <=> $b->filedate  } @file )
     ];
 }
