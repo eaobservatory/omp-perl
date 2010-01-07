@@ -844,7 +844,7 @@ sub alter_proj {
 
   print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
 
-  return process_project_changes( $q, $userid, $project )
+  return process_project_changes( $q, $userid, $project, $projdb )
     if $q->param('alter_submit');
 
   # Display form for updating project details
@@ -857,6 +857,23 @@ sub alter_proj {
                     -default=>$userid,);
 
   print "<table>";
+
+  print qq[<tr><td align="right">PI</td> <td>],
+    $q->textfield( 'pi', $project->pi->userid, 32, 32 ),
+    qq[</td></tr>];
+
+  my $supp = join "\n", map { $_->userid } $project->support;
+  print qq[<tr><td align="right">Support</td> <td>],
+    $q->textarea( -name => 'support',
+                  -default => $supp,
+                  -rows => 5,
+                  -columns => 32,
+                ),
+    qq[</td></tr>];
+
+  print qq[<tr><td align="right">Title</td> <td>],
+    $q->textfield( 'title', $project->title, 50, 255 ),
+    qq[</td></tr>];
 
   # Allocation
   print "<tr><td align='right'>Allocation</td>";
@@ -951,21 +968,54 @@ sub alter_proj {
 
   print "</table>";
 
-  print "<br>";
-
-  print $q->submit(-name=>"alter_submit",
-                    -label=>"Submit",);
-
-  print $q->end_form();
+  print "<br>",
+    $q->submit( -name=>"alter_submit",
+                -label=>"Submit",
+              ),
+    ( '&nbsp;' ) x 4,
+    $q->reset,
+    $q->end_form();
 }
 
 sub process_project_changes {
 
-  my ( $q, $userid, $project ) = @_;
+  my ( $q, $userid, $project, $projdb ) = @_;
 
   my @msg; # Build up output message
 
-  # The alteration form has been submitted, so apply changes
+  my $err;
+  try {
+
+    push @msg, update_pi( $project, $q->param( 'pi' ) );
+  }
+  catch OMP::Error with {
+
+    my ( $e ) = @_;
+    $err = _print_user_err( $e->text );
+  };
+
+  { my $supp = $q->param( 'support' );
+    try {
+
+      push @msg, update_support( $project, split /[;:,\s]+/, $supp );
+    }
+    catch OMP::Error with {
+
+      my ( $e ) = @_;
+      $err = _print_user_err( $e->text );
+    };
+  }
+
+  return if $err;
+
+  push @msg,
+    _update_project_make_message( $project,
+                                  \&_match_string,
+                                  'update' => 'title',
+                                  'field-text' => 'title',
+                                  'old' => $project->title,
+                                  'new' => $q->param( 'title' )
+                                );
 
   # Check whether allocation has changed
   my $new_alloc_h = $q->param('alloc_h') * 3600;
@@ -1084,17 +1134,120 @@ sub process_project_changes {
   if ($msg[0]) {
     print join("<br>", @msg);
 
-    if (scalar(@msg) == 1) {
-      print "<br><br>This change has been committed.<br>";
-    } else {
-      print "<br><br>These changes have been committed.<br>";
-    }
+    print '<br><br>',
+      ( scalar @msg == 1 ? 'This change has' : 'These changes have' ),
+      ' been committed.<br>';
+
   } else {
     print "<br>No changes were submitted.</br>";
   }
 
   return;
 }
+
+sub update_pi {
+
+  my ( $proj, $userid ) = @_;
+
+  my $old = $proj->pi;
+  my $old_id = $old->userid;
+
+  return if _match_string( $old_id, $userid );
+
+  return
+    _update_project_make_message( $proj,
+                                  undef,
+                                  'update' => 'pi',
+                                  'field-text' => 'PI',
+                                  'old' => $old,
+                                  'new' => _make_user( $userid ),
+                                );
+}
+
+sub update_support {
+
+  my ( $proj, @userid ) = @_;
+
+  return unless $proj && scalar @userid;
+
+  my @old = $proj->support;
+
+  my $old_id = join ',', map { $_->userid } @old;
+  return if _match_string( $old_id, join ',', @userid );
+
+  my @user = map { _make_user( $_ ) } @userid;
+
+  $proj->support( @user );
+
+  my $join = sub { join ', ', map { $_->name } @_ };
+  return
+    sprintf 'Updated support from %s to %s',
+      $join->( @old ),
+      $join->( @user )
+      ;
+}
+
+sub _make_user {
+
+  my ( $userid ) = @_;
+
+  return unless $userid;
+
+  my $user = OMP::UserServer->getUser( $userid )
+    or throw OMP::Error "Unknown user id given: $userid";
+
+  return $user;
+}
+
+sub _print_user_err {
+
+  my ( $text ) = @_;
+
+  return
+    unless $text
+    && $text =~ m/^Unknown user id given/;
+
+  printf "<p>%s</p>\n", $text;
+  return 1;
+}
+
+sub _match_string {
+
+  my ( $one, $two ) = @_;
+
+  return
+    ( defined $one && defined $two )
+    &&
+    ( $one eq $two )
+    ;
+}
+
+sub _match_number {
+
+  my ( $one, $two ) = @_;
+
+  return
+    ( defined $one && defined $two )
+    &&
+    ( $one == $two )
+    ;
+}
+
+sub _update_project_make_message {
+
+  my ( $project, $match, %args ) = @_;
+
+  my ( $old, $new ) = @args{qw[ old new ]};
+
+  return if $match && $match->( $old, $new );
+
+  my $update = $args{'update'};
+  $project->$update( $new )
+    and return qq[Updated $args{'field-text'} from "$old" to "$new".];
+
+  return;
+}
+
 
 =back
 
