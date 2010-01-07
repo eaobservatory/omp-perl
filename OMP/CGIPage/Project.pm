@@ -829,272 +829,272 @@ sub alter_proj {
 
   my $userid = $cookie{userid};
 
-  if ($projectid) {
-    print "<h3>Alter project details for ". uc($projectid) ."</h3>";
+  return unless $projectid;
 
-    # Connect to the database
-    my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
+  print "<h3>Alter project details for ". uc($projectid) ."</h3>";
 
-    # Set the project ID in the DB object
-    $projdb->projectid( $projectid );
+  # Connect to the database
+  my $projdb = new OMP::ProjDB( DB => new OMP::DBbackend );
 
-    # Retrieve the project object
-    my $project = $projdb->_get_project_row();
+  # Set the project ID in the DB object
+  $projdb->projectid( $projectid );
 
-    print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
+  # Retrieve the project object
+  my $project = $projdb->_get_project_row();
 
-    if ($q->param('alter_submit')) {
-      my $changed;
-      my @msg; # Build up output message
+  print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
 
-      # The alteration form has been submitted, so apply changes
+  if ($q->param('alter_submit')) {
+    my $changed;
+    my @msg; # Build up output message
 
-      # Check whether allocation has changed
-      my $new_alloc_h = $q->param('alloc_h') * 3600;
-      my $new_alloc_m = $q->param('alloc_m') * 60;
-      my $new_alloc_s = $q->param('alloc_s');
-      my $new_alloc = Time::Seconds->new($new_alloc_h + $new_alloc_m + $new_alloc_s);
-      my $old_alloc = $project->allocated;
+    # The alteration form has been submitted, so apply changes
 
-      if ($new_alloc != $old_alloc) {
+    # Check whether allocation has changed
+    my $new_alloc_h = $q->param('alloc_h') * 3600;
+    my $new_alloc_m = $q->param('alloc_m') * 60;
+    my $new_alloc_s = $q->param('alloc_s');
+    my $new_alloc = Time::Seconds->new($new_alloc_h + $new_alloc_m + $new_alloc_s);
+    my $old_alloc = $project->allocated;
+
+    if ($new_alloc != $old_alloc) {
+      $changed++;
+
+      # Allocation was changed
+      $project->fixAlloc($new_alloc->hours);
+
+      push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
+    }
+
+    # Check whether semester has changed
+    my $new_sem = $q->param('semester');
+    my $old_sem = $project->semester;
+
+    if ($new_sem ne $old_sem) {
+      $changed++;
+
+      # Semester waschanged
+      $project->semester($new_sem);
+
+      push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
+    }
+
+    # Check whether cloud constraint has changed
+    my $new_cloud_max = $q->param('cloud');
+    my $new_cloud = OMP::SiteQuality::default_range('CLOUD');
+    $new_cloud->max($new_cloud_max);
+    my $old_cloud = $project->cloudrange;
+
+    if ($new_cloud->max() != $old_cloud->max()) {
+      $changed++;
+
+      # Cloud constraint was changed
+      $project->cloudrange($new_cloud);
+
+      push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
+    }
+
+    # Check whether TAG adjustment has changed
+    my %oldadj = $project->tagadjustment;
+    my %newadj;
+    for my $queue (keys %oldadj) {
+      $newadj{$queue} = $q->param('tag_'. $queue);
+
+      # Taint checking
+
+
+      if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
         $changed++;
 
-        # Allocation was changed
-        $project->fixAlloc($new_alloc->hours);
+        # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
+        # tagpriority to change, which is okay when reading a project
+        # object, but not okay when storing the object back to the database.
+        # In order to reset the tagpriority, the tagpriority method is
+        # called with its original value.
 
-        push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
+        my $oldpriority = $project->tagpriority($queue);
+
+        $project->tagadjustment({$queue, $newadj{$queue}});
+
+        $project->tagpriority($queue => $oldpriority);
+
+        push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
       }
+    }
 
-      # Check whether semester has changed
-      my $new_sem = $q->param('semester');
-      my $old_sem = $project->semester;
+    # Check whether TAU range has changed
+    my $old_taurange = $project->taurange;
+    my %tau_params;
+    $tau_params{Min} = $q->param('taumin');
+    $tau_params{Max} = $q->param('taumax')
+      unless (! $q->param('taumax'));
+    my $new_taurange = new OMP::Range(%tau_params);
 
-      if ($new_sem ne $old_sem) {
-        $changed++;
+    if ($old_taurange->min() != $new_taurange->min()
+        or $old_taurange->max() != $new_taurange->max()) {
+      $changed++;
 
-        # Semester waschanged
-        $project->semester($new_sem);
+      $project->taurange($new_taurange);
 
-        push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
-      }
+      push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
+    }
 
-      # Check whether cloud constraint has changed
-      my $new_cloud_max = $q->param('cloud');
-      my $new_cloud = OMP::SiteQuality::default_range('CLOUD');
-      $new_cloud->max($new_cloud_max);
-      my $old_cloud = $project->cloudrange;
+    # Check whether Seeing range has changed
+    my $old_seeingrange = $project->seeingrange;
+    my %seeing_params;
+    $seeing_params{Min} = $q->param('seeingmin');
+    $seeing_params{Max} = $q->param('seeingmax')
+      unless (! $q->param('seeingmax'));
+    my $new_seeingrange = new OMP::Range(%seeing_params);
 
-      if ($new_cloud->max() != $old_cloud->max()) {
-        $changed++;
+    if ($old_seeingrange->min() != $new_seeingrange->min()
+        or $old_seeingrange->max() != $new_seeingrange->max()) {
+      $changed++;
 
-        # Cloud constraint was changed
-        $project->cloudrange($new_cloud);
+      $project->seeingrange($new_seeingrange);
 
-        push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
-      }
+      push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
+    }
 
-      # Check whether TAG adjustment has changed
-      my %oldadj = $project->tagadjustment;
-      my %newadj;
-      for my $queue (keys %oldadj) {
-        $newadj{$queue} = $q->param('tag_'. $queue);
+    # Generate feedback message
 
-        # Taint checking
+    # Get OMP user object
+    my $user_obj = OMP::UserServer->getUser($userid);
+    OMP::FBServer->addComment($project->projectid,
+                              {author => $user_obj,
+                                subject => 'Project details altered',
+                                text => "The following changes have been made to this project:\n\n".
+                                join("\n", @msg)},
+                              );
 
+    # Now store the changes
+    $projdb->_update_project_row( $project );
 
-        if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
-          $changed++;
+    if ($msg[0]) {
+      print join("<br>", @msg);
 
-          # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
-          # tagpriority to change, which is okay when reading a project
-          # object, but not okay when storing the object back to the database.
-          # In order to reset the tagpriority, the tagpriority method is
-          # called with its original value.
-
-          my $oldpriority = $project->tagpriority($queue);
-
-          $project->tagadjustment({$queue, $newadj{$queue}});
-
-          $project->tagpriority($queue => $oldpriority);
-
-          push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
-        }
-      }
-
-      # Check whether TAU range has changed
-      my $old_taurange = $project->taurange;
-      my %tau_params;
-      $tau_params{Min} = $q->param('taumin');
-      $tau_params{Max} = $q->param('taumax')
-        unless (! $q->param('taumax'));
-      my $new_taurange = new OMP::Range(%tau_params);
-
-      if ($old_taurange->min() != $new_taurange->min()
-          or $old_taurange->max() != $new_taurange->max()) {
-        $changed++;
-
-        $project->taurange($new_taurange);
-
-        push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
-      }
-
-      # Check whether Seeing range has changed
-      my $old_seeingrange = $project->seeingrange;
-      my %seeing_params;
-      $seeing_params{Min} = $q->param('seeingmin');
-      $seeing_params{Max} = $q->param('seeingmax')
-        unless (! $q->param('seeingmax'));
-      my $new_seeingrange = new OMP::Range(%seeing_params);
-
-      if ($old_seeingrange->min() != $new_seeingrange->min()
-          or $old_seeingrange->max() != $new_seeingrange->max()) {
-        $changed++;
-
-        $project->seeingrange($new_seeingrange);
-
-        push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
-      }
-
-      # Generate feedback message
-
-      # Get OMP user object
-      my $user_obj = OMP::UserServer->getUser($userid);
-      OMP::FBServer->addComment($project->projectid,
-                                {author => $user_obj,
-                                 subject => 'Project details altered',
-                                 text => "The following changes have been made to this project:\n\n".
-                                 join("\n", @msg)},
-                               );
-
-      # Now store the changes
-      $projdb->_update_project_row( $project );
-
-      if ($msg[0]) {
-        print join("<br>", @msg);
-
-        if (scalar(@msg) == 1) {
-          print "<br><br>This change has been committed.<br>";
-        } else {
-          print "<br><br>These changes have been committed.<br>";
-        }
+      if (scalar(@msg) == 1) {
+        print "<br><br>This change has been committed.<br>";
       } else {
-        print "<br>No changes were submitted.</br>";
+        print "<br><br>These changes have been committed.<br>";
       }
-
-      return;
+    } else {
+      print "<br>No changes were submitted.</br>";
     }
 
-    # Display form for updating project details
-    print $q->start_form(-name=>'alter_project');
-
-    print $q->hidden(-name=>'projectid',
-                     -default=>$project->projectid,);
-
-    print $q->hidden(-name=>'userid',
-                     -default=>$userid,);
-
-    print "<table>";
-
-    # Allocation
-    print "<tr><td align='right'>Allocation</td>";
-    my $allocated = $project->allocated;
-    my $remaining = $project->remaining;
-#    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
-    my $alloc_h = int( $allocated / 3600 );
-    my $alloc_m = int( ( $allocated - $alloc_h * 3600 ) / 60 );
-    my $alloc_s = $allocated - $alloc_h * 3600 - $alloc_m * 60;
-    print "<td>";
-    print $q->textfield('alloc_h',$alloc_h,3,5);
-    print " hours ";
-    print $q->textfield('alloc_m',$alloc_m,2,2);
-    print " minutes ";
-    print $q->textfield('alloc_s',$alloc_s,2,2);
-    print " seconds";
-    print "</td></tr><tr><td align='right'>Remaining</td><td>". $remaining->pretty_print;
-    print "</td></tr>";
-
-    # Semester
-    print "<tr><td align='right'>Semester</td>";
-    my $semester = $project->semester;
-
-    # Get semester options
-    my @semesters = $projdb->listSemesters();
-
-    print "<td>";
-    print $q->popup_menu(-name=>'semester',
-                         -default=>$semester,
-                         -values=>[@semesters]);
-    print "</td></tr>";
-
-    # Cloud
-    print "<tr><td align='right'>Cloud</td>";
-    my $cloud = $project->cloudrange;
-
-    # Get cloud options
-    my %cloud_lut = OMP::SiteQuality::get_cloud_text();
-    my %cloud_labels = map {$cloud_lut{$_}->max(), $_} keys %cloud_lut;
-
-    print "<td>";
-    print $q->popup_menu(-name=>'cloud',
-                         -default=>int($cloud->max()),
-                         -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
-                         -labels=>\%cloud_labels,);
-    print "</td></tr>";
-
-    # Tag adjustment
-    print "<tr><td align='right' valign='top'>TAG adj.</td>";
-    my %tagpriority = $project->queue;
-    my %tagadj = $project->tagadjustment;
-
-    my $keycount;
-    for my $queue (keys %tagpriority) {
-      $keycount++;
-      print "<tr><td></td>"
-        if ($keycount > 1);
-
-      print "<td valign='top'>";
-      print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
-        unless ($keycount > 1);
-
-      print $q->textfield("tag_${queue}",
-                          ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
-                          4,32);
-      print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
-
-      print "</td></tr>";
-    }
-
-    # TAU Range
-    print "<tr><td align='right' valign='top'>TAU range</td>";
-    my $taurange = $project->taurange;
-    my $taumin = $taurange->min();
-    my $taumax = $taurange->max();
-    print "<td>";
-    print $q->textfield("taumin", $taumin, 3, 4);
-    print " - ";
-    print $q->textfield("taumax", $taumax, 3, 4);
-    print "</td></tr>";
-
-    # Seeing Range
-    print "<tr><td align='right' valign='top'>Seeing range</td>";
-    my $seeingrange = $project->seeingrange;
-    my $seeingmin = $seeingrange->min();
-    my $seeingmax = $seeingrange->max();
-    print "<td>";
-    print $q->textfield("seeingmin", $seeingmin, 3, 4);
-    print " - ";
-    print $q->textfield("seeingmax", $seeingmax, 3, 4);
-    print "</td></tr>";
-
-    print "</table>";
-
-    print "<br>";
-
-    print $q->submit(-name=>"alter_submit",
-                     -label=>"Submit",);
-
-    print $q->end_form();
+    return;
   }
+
+  # Display form for updating project details
+  print $q->start_form(-name=>'alter_project');
+
+  print $q->hidden(-name=>'projectid',
+                    -default=>$project->projectid,);
+
+  print $q->hidden(-name=>'userid',
+                    -default=>$userid,);
+
+  print "<table>";
+
+  # Allocation
+  print "<tr><td align='right'>Allocation</td>";
+  my $allocated = $project->allocated;
+  my $remaining = $project->remaining;
+#    my ($alloc_h, $alloc_m, $alloc_s) = split(/\D/,$allocated->pretty_print);
+  my $alloc_h = int( $allocated / 3600 );
+  my $alloc_m = int( ( $allocated - $alloc_h * 3600 ) / 60 );
+  my $alloc_s = $allocated - $alloc_h * 3600 - $alloc_m * 60;
+  print "<td>";
+  print $q->textfield('alloc_h',$alloc_h,3,5);
+  print " hours ";
+  print $q->textfield('alloc_m',$alloc_m,2,2);
+  print " minutes ";
+  print $q->textfield('alloc_s',$alloc_s,2,2);
+  print " seconds";
+  print "</td></tr><tr><td align='right'>Remaining</td><td>". $remaining->pretty_print;
+  print "</td></tr>";
+
+  # Semester
+  print "<tr><td align='right'>Semester</td>";
+  my $semester = $project->semester;
+
+  # Get semester options
+  my @semesters = $projdb->listSemesters();
+
+  print "<td>";
+  print $q->popup_menu(-name=>'semester',
+                        -default=>$semester,
+                        -values=>[@semesters]);
+  print "</td></tr>";
+
+  # Cloud
+  print "<tr><td align='right'>Cloud</td>";
+  my $cloud = $project->cloudrange;
+
+  # Get cloud options
+  my %cloud_lut = OMP::SiteQuality::get_cloud_text();
+  my %cloud_labels = map {$cloud_lut{$_}->max(), $_} keys %cloud_lut;
+
+  print "<td>";
+  print $q->popup_menu(-name=>'cloud',
+                        -default=>int($cloud->max()),
+                        -values=>[reverse sort {$a <=> $b} keys %cloud_labels],
+                        -labels=>\%cloud_labels,);
+  print "</td></tr>";
+
+  # Tag adjustment
+  print "<tr><td align='right' valign='top'>TAG adj.</td>";
+  my %tagpriority = $project->queue;
+  my %tagadj = $project->tagadjustment;
+
+  my $keycount;
+  for my $queue (keys %tagpriority) {
+    $keycount++;
+    print "<tr><td></td>"
+      if ($keycount > 1);
+
+    print "<td valign='top'>";
+    print "<font size=-1>Note: a negative number increases the project's priority</font><br>"
+      unless ($keycount > 1);
+
+    print $q->textfield("tag_${queue}",
+                        ($tagadj{$queue} =~ /^\d+$/ ? '+' : '') . $tagadj{$queue},
+                        4,32);
+    print " <font size=-1>(Queue: $queue Priority: $tagpriority{$queue})</font>";
+
+    print "</td></tr>";
+  }
+
+  # TAU Range
+  print "<tr><td align='right' valign='top'>TAU range</td>";
+  my $taurange = $project->taurange;
+  my $taumin = $taurange->min();
+  my $taumax = $taurange->max();
+  print "<td>";
+  print $q->textfield("taumin", $taumin, 3, 4);
+  print " - ";
+  print $q->textfield("taumax", $taumax, 3, 4);
+  print "</td></tr>";
+
+  # Seeing Range
+  print "<tr><td align='right' valign='top'>Seeing range</td>";
+  my $seeingrange = $project->seeingrange;
+  my $seeingmin = $seeingrange->min();
+  my $seeingmax = $seeingrange->max();
+  print "<td>";
+  print $q->textfield("seeingmin", $seeingmin, 3, 4);
+  print " - ";
+  print $q->textfield("seeingmax", $seeingmax, 3, 4);
+  print "</td></tr>";
+
+  print "</table>";
+
+  print "<br>";
+
+  print $q->submit(-name=>"alter_submit",
+                    -label=>"Submit",);
+
+  print $q->end_form();
 }
 
 =back
