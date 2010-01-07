@@ -844,146 +844,8 @@ sub alter_proj {
 
   print "<b>(". $project->pi .")</b> ". $project->title ."<br><br>";
 
-  if ($q->param('alter_submit')) {
-    my $changed;
-    my @msg; # Build up output message
-
-    # The alteration form has been submitted, so apply changes
-
-    # Check whether allocation has changed
-    my $new_alloc_h = $q->param('alloc_h') * 3600;
-    my $new_alloc_m = $q->param('alloc_m') * 60;
-    my $new_alloc_s = $q->param('alloc_s');
-    my $new_alloc = Time::Seconds->new($new_alloc_h + $new_alloc_m + $new_alloc_s);
-    my $old_alloc = $project->allocated;
-
-    if ($new_alloc != $old_alloc) {
-      $changed++;
-
-      # Allocation was changed
-      $project->fixAlloc($new_alloc->hours);
-
-      push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
-    }
-
-    # Check whether semester has changed
-    my $new_sem = $q->param('semester');
-    my $old_sem = $project->semester;
-
-    if ($new_sem ne $old_sem) {
-      $changed++;
-
-      # Semester waschanged
-      $project->semester($new_sem);
-
-      push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
-    }
-
-    # Check whether cloud constraint has changed
-    my $new_cloud_max = $q->param('cloud');
-    my $new_cloud = OMP::SiteQuality::default_range('CLOUD');
-    $new_cloud->max($new_cloud_max);
-    my $old_cloud = $project->cloudrange;
-
-    if ($new_cloud->max() != $old_cloud->max()) {
-      $changed++;
-
-      # Cloud constraint was changed
-      $project->cloudrange($new_cloud);
-
-      push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
-    }
-
-    # Check whether TAG adjustment has changed
-    my %oldadj = $project->tagadjustment;
-    my %newadj;
-    for my $queue (keys %oldadj) {
-      $newadj{$queue} = $q->param('tag_'. $queue);
-
-      # Taint checking
-
-
-      if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
-        $changed++;
-
-        # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
-        # tagpriority to change, which is okay when reading a project
-        # object, but not okay when storing the object back to the database.
-        # In order to reset the tagpriority, the tagpriority method is
-        # called with its original value.
-
-        my $oldpriority = $project->tagpriority($queue);
-
-        $project->tagadjustment({$queue, $newadj{$queue}});
-
-        $project->tagpriority($queue => $oldpriority);
-
-        push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
-      }
-    }
-
-    # Check whether TAU range has changed
-    my $old_taurange = $project->taurange;
-    my %tau_params;
-    $tau_params{Min} = $q->param('taumin');
-    $tau_params{Max} = $q->param('taumax')
-      unless (! $q->param('taumax'));
-    my $new_taurange = new OMP::Range(%tau_params);
-
-    if ($old_taurange->min() != $new_taurange->min()
-        or $old_taurange->max() != $new_taurange->max()) {
-      $changed++;
-
-      $project->taurange($new_taurange);
-
-      push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
-    }
-
-    # Check whether Seeing range has changed
-    my $old_seeingrange = $project->seeingrange;
-    my %seeing_params;
-    $seeing_params{Min} = $q->param('seeingmin');
-    $seeing_params{Max} = $q->param('seeingmax')
-      unless (! $q->param('seeingmax'));
-    my $new_seeingrange = new OMP::Range(%seeing_params);
-
-    if ($old_seeingrange->min() != $new_seeingrange->min()
-        or $old_seeingrange->max() != $new_seeingrange->max()) {
-      $changed++;
-
-      $project->seeingrange($new_seeingrange);
-
-      push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
-    }
-
-    # Generate feedback message
-
-    # Get OMP user object
-    my $user_obj = OMP::UserServer->getUser($userid);
-    OMP::FBServer->addComment($project->projectid,
-                              {author => $user_obj,
-                                subject => 'Project details altered',
-                                text => "The following changes have been made to this project:\n\n".
-                                join("\n", @msg)},
-                              );
-
-    # Now store the changes
-    $projdb->_update_project_row( $project );
-
-    if ($msg[0]) {
-      print join("<br>", @msg);
-
-      if (scalar(@msg) == 1) {
-        print "<br><br>This change has been committed.<br>";
-      } else {
-        print "<br><br>These changes have been committed.<br>";
-      }
-    } else {
-      print "<br>No changes were submitted.</br>";
-    }
-
-    return;
-  }
+  return process_project_changes( $q, $userid, $project )
+    if $q->param('alter_submit');
 
   # Display form for updating project details
   print $q->start_form(-name=>'alter_project');
@@ -1095,6 +957,143 @@ sub alter_proj {
                     -label=>"Submit",);
 
   print $q->end_form();
+}
+
+sub process_project_changes {
+
+  my ( $q, $userid, $project ) = @_;
+
+  my @msg; # Build up output message
+
+  # The alteration form has been submitted, so apply changes
+
+  # Check whether allocation has changed
+  my $new_alloc_h = $q->param('alloc_h') * 3600;
+  my $new_alloc_m = $q->param('alloc_m') * 60;
+  my $new_alloc_s = $q->param('alloc_s');
+  my $new_alloc = Time::Seconds->new($new_alloc_h + $new_alloc_m + $new_alloc_s);
+  my $old_alloc = $project->allocated;
+
+  if ($new_alloc != $old_alloc) {
+
+    # Allocation was changed
+    $project->fixAlloc($new_alloc->hours);
+
+    push @msg, "Updated allocated time from ". $old_alloc->pretty_print ." to ". $new_alloc->pretty_print .".";
+  }
+
+  # Check whether semester has changed
+  my $new_sem = $q->param('semester');
+  my $old_sem = $project->semester;
+
+  if ($new_sem ne $old_sem) {
+
+    # Semester waschanged
+    $project->semester($new_sem);
+
+    push @msg, "Updated semester from ". $old_sem ." to ". $new_sem .".";
+  }
+
+  # Check whether cloud constraint has changed
+  my $new_cloud_max = $q->param('cloud');
+  my $new_cloud = OMP::SiteQuality::default_range('CLOUD');
+  $new_cloud->max($new_cloud_max);
+  my $old_cloud = $project->cloudrange;
+
+  if ($new_cloud->max() != $old_cloud->max()) {
+
+    # Cloud constraint was changed
+    $project->cloudrange($new_cloud);
+
+    push @msg, "Updated cloud range constraint from ". $old_cloud." to ". $new_cloud .".";
+  }
+
+  # Check whether TAG adjustment has changed
+  my %oldadj = $project->tagadjustment;
+  my %newadj;
+  for my $queue (keys %oldadj) {
+    $newadj{$queue} = $q->param('tag_'. $queue);
+
+    # Taint checking
+
+
+    if (defined $newadj{$queue} and $newadj{$queue} != $oldadj{$queue}) {
+
+      # POSSIBLE KLUGE: setting a new tagadjustment causes the actual
+      # tagpriority to change, which is okay when reading a project
+      # object, but not okay when storing the object back to the database.
+      # In order to reset the tagpriority, the tagpriority method is
+      # called with its original value.
+
+      my $oldpriority = $project->tagpriority($queue);
+
+      $project->tagadjustment({$queue, $newadj{$queue}});
+
+      $project->tagpriority($queue => $oldpriority);
+
+      push @msg, "Updated TAG adjustment for $queue queue from $oldadj{$queue} to $newadj{$queue}."
+    }
+  }
+
+  # Check whether TAU range has changed
+  my $old_taurange = $project->taurange;
+  my %tau_params;
+  $tau_params{Min} = $q->param('taumin');
+  $tau_params{Max} = $q->param('taumax')
+    unless (! $q->param('taumax'));
+  my $new_taurange = new OMP::Range(%tau_params);
+
+  if ($old_taurange->min() != $new_taurange->min()
+      or $old_taurange->max() != $new_taurange->max()) {
+
+    $project->taurange($new_taurange);
+
+    push @msg, "Updated TAU range from ". $old_taurange ." to ". $new_taurange .".";
+  }
+
+  # Check whether Seeing range has changed
+  my $old_seeingrange = $project->seeingrange;
+  my %seeing_params;
+  $seeing_params{Min} = $q->param('seeingmin');
+  $seeing_params{Max} = $q->param('seeingmax')
+    unless (! $q->param('seeingmax'));
+  my $new_seeingrange = new OMP::Range(%seeing_params);
+
+  if ($old_seeingrange->min() != $new_seeingrange->min()
+      or $old_seeingrange->max() != $new_seeingrange->max()) {
+
+    $project->seeingrange($new_seeingrange);
+
+    push @msg, "Updated Seeing range from ". $old_seeingrange ." to ". $new_seeingrange .".";
+  }
+
+  # Generate feedback message
+
+  # Get OMP user object
+  my $user_obj = OMP::UserServer->getUser($userid);
+  OMP::FBServer->addComment($project->projectid,
+                            {author => $user_obj,
+                              subject => 'Project details altered',
+                              text => "The following changes have been made to this project:\n\n".
+                              join("\n", @msg)},
+                            );
+
+  # Now store the changes
+  $projdb->_update_project_row( $project );
+
+  if ($msg[0]) {
+    print join("<br>", @msg);
+
+    if (scalar(@msg) == 1) {
+      print "<br><br>This change has been committed.<br>";
+    } else {
+      print "<br><br>These changes have been committed.<br>";
+    }
+  } else {
+    print "<br>No changes were submitted.</br>";
+  }
+
+  return;
 }
 
 =back
