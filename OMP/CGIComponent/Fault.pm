@@ -1111,20 +1111,35 @@ sub show_faults {
 
   print "<td><b>Replies</b></td><td> </td>";
 
-  if ($args{orderby} eq 'response') {
+  my $order = $args{'orderby'};
 
-    @faults =
-      sort
-        {$a->responses->[-1]->date->epoch <=> $b->responses->[-1]->date->epoch}
-        @faults;
+  if ( $order && lc $order eq 'faulttime' ) {
+
+    @faults = @{ _sort_by_fault_time( \@faults, $descending ) };
   }
-  elsif ($args{orderby} eq 'timelost') {
+  else {
 
-    @faults = sort {$a->timelost <=> $b->timelost} @faults;
+    my %sort =
+      ( 'response' =>
+          sub {
+            $a->responses->[-1]->date->epoch
+              <=>
+            $b->responses->[-1]->date->epoch
+          },
+
+        'timelost' =>
+          sub { $a->timelost <=> $b->timelost },
+      );
+
+    my $sort;
+    $sort = $sort{ $order }
+      if exists $sort{ $order };
+
+    @faults = sort $sort @faults if $sort;
+
+    @faults = reverse @faults
+      if $descending;
   }
-
-  @faults = reverse @faults
-    if $descending;
 
   my $alt_class;               # Keep track of alternating class style
   for my $fault (@faults) {
@@ -1506,6 +1521,49 @@ Set the table width parameter value
     my $self = shift;
     $TABLEWIDTH = shift;
   }
+}
+
+=item B<_sort_by_fault_time>
+
+Returns an array reference of faults sorted by fault times & file
+dates, given an array reference of faults & optional truth value if to
+sort in descending order.
+
+  $faults = _sort_by_fault_time( \@fault, my $descending = 1 );
+
+Faults are first sorted by fault time, when available.  All the
+remaining faults (without a fault date) are then sorted by the filing
+date.
+
+=cut
+
+sub _sort_by_fault_time {
+
+  my ( $faults, $descend ) = @_;
+
+  my ( @fault, @file );
+  for my $f ( @{ $faults } ) {
+
+    if ( $f->faultdate ) {
+
+      push @fault, $f;
+    }
+    else {
+
+      push @file, $f;
+    }
+  }
+
+  return
+    [ ( sort { $b->faultdate <=> $a->faultdate } @fault ),
+      ( sort { $b->filedate  <=> $a->filedate  } @file )
+    ]
+    if $descend;
+
+  return
+    [ ( sort { $a->faultdate <=> $b->faultdate } @fault ),
+      ( sort { $a->filedate  <=> $b->filedate  } @file )
+    ];
 }
 
 =back

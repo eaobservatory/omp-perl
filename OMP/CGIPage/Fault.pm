@@ -575,17 +575,21 @@ sub query_fault_output {
     my ( $orderby, $category ) =
       map { $self->_get_param( $_ ) } qw[ orderby cat ] ;
 
+    $orderby = 'response'
+      unless defined $orderby;
+
     my %showfaultargs = (
                          faults => $faults,
                          showcat => ($category ne 'ANYCAT' ? 0 : 1),
                         );
 
-    if ($orderby eq 'response' or ! defined $orderby) {
-      $showfaultargs{orderby} = 'response';
-    } elsif ($q->param('orderby') eq 'filedate') {
-      $showfaultargs{orderby} = 'filedate';
-    } elsif ($q->param('orderby') eq 'timelost') {
-      $showfaultargs{orderby} = 'timelost';
+    for my $opt ( qw[ response filedate faulttime timelost ] ) {
+
+      if ( $orderby eq $opt ) {
+
+        $showfaultargs{'orderby'} = $opt;
+        last;
+      }
     }
 
     if ($faults->[0]) {
@@ -1560,12 +1564,13 @@ sub _make_sort_by_links {
   my $comp = $self->fault_component;
   my $chosen = $self->_get_param('orderby');
 
-  my @opt = qw[ filedate  response  timelost ];
+  my @opt = qw[ filedate  faulttime  response  timelost ];
 
   my %text;
   @text{ @opt } =
-    ( 'date of last response',
-      'file date',
+    ( 'file date',
+      'fault time',
+      'date of last response',
       'time lost',
     );
 
