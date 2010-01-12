@@ -164,6 +164,26 @@ sub queryArc {
     return $grp->obs;
   }
 
+  my $force_db;
+  try {
+
+    $force_db = OMP::Config->getData( 'header_search.force_db' );
+  }
+  catch OMP::Error with {
+
+    my ( $e ) = @_;
+
+    OMP::General->log_message( 'Problem with searching for "header_search.force_db" value: '
+                                . $e->text,
+                                OMP__LOG_WARNING
+                              );
+  };
+  if ( $force_db ) {
+
+    $AnyDate = 1;
+    $SkipDBLookup = 0;
+  }
+
   # Check to see if the global flags $FallbackToFiles and
   # $SkipDBLookup are set such that neither DB nor file
   # lookup can happen. If that's the case, then throw an
