@@ -664,6 +664,29 @@ sub obs {
   # Convert XML to an sql query
   my $query = new OMP::ArcQuery( XML => $xml );
 
+  my $force_db;
+  if ( $self->telescope && 'jcmt' eq lc $self->telescope ) {
+
+    try {
+
+      $force_db = OMP::Config->getData( 'header_search.force_db' );
+    }
+    catch OMP::Error with {
+
+      my ( $e ) = @_;
+
+      OMP::General->log_message( 'Problem with searching for "header_search.force_db" value: '
+                                  . $e->text,
+                                  OMP__LOG_WARNING
+                                );
+    };
+  }
+  if ( $force_db ) {
+
+    $OMP::ArchiveDB::AnyDate = 1;
+    $OMP::ArchiveDB::SkipDBLookup = 0;
+  }
+
   # Get observations
   my @obs = $db->queryArc( $query, 0, 1 );
 
