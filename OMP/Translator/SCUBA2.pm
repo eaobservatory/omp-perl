@@ -24,6 +24,8 @@ use Carp;
 use Data::Dumper;
 use List::Util qw/ max min /;
 use File::Spec;
+use Math::Trig ':pi';
+
 use JAC::OCS::Config;
 use JAC::OCS::Config::Error qw/ :try /;
 use JCMT::TCS::Pong;
@@ -106,6 +108,8 @@ sub translate_scan_pattern {
     return "CURVY_PONG";
   } elsif ($otpatt eq 'lissajous') {
     return "LISSAJOUS";
+  } elsif ($otpatt eq 'ellipse') {
+    return "ELLIPSE";
   } else {
     OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
   }
@@ -679,6 +683,13 @@ sub jos_config {
       my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
       my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
       $duration_per_area = ($maparea / $pixarea) * $jos->step_time;
+    } elsif ($info{scanPattern} =~ /ell/i) {
+      my $rx = $mapping_info{WIDTH};
+      my $ry = $mapping_info{HEIGHT};
+      # Calculate an approximate "radius" for the ellipse
+      my $r = sqrt( ( $rx*$rx + $ry*$ry ) / 2.0 );
+      my $perimeter = 2.0 * pi * $r;
+      $duration_per_area = $perimeter / $mapping_info{VELOCITY};
     } else {
       throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
     }

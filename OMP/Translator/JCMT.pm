@@ -779,23 +779,27 @@ sub observing_area {
 
     # The scan position angle is either supplied or automatic.
     # If it is not supplied we have to give the TCS a hint.
+    # Ellipse does not need a system or pa.
     my @scanpas;
-    my $scan_sys = $info{SCAN_SYSTEM};
-    if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
-      @scanpas = @{ $info{SCAN_PA} };
-    } else {
-      # Scan angle strategy depends on instrument
-      ($scan_sys, @scanpas) = $self->determine_scan_angles($pattern, %info );
+    my $scan_sys;
+    if ($pattern !~ /ellipse/i) {
+      $scan_sys = $info{SCAN_SYSTEM};
+      if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
+        @scanpas = @{ $info{SCAN_PA} };
+      } else {
+        # Scan angle strategy depends on instrument
+        ($scan_sys, @scanpas) = $self->determine_scan_angles($pattern, %info );
 
+      }
+      # convert from deg to object
+      @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
     }
-    # convert from deg to object
-    @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
-
+    delete $info{SCAN_DY} if $pattern =~ /ellipse/i;
 
     # Scan specification
     $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
-               DY => $info{SCAN_DY},
-               SYSTEM => $scan_sys,
+               (exists $info{SCAN_DY} ? (DY => $info{SCAN_DY}) : ()),
+               (defined $scan_sys ? (SYSTEM => $scan_sys) : () ),
                PATTERN => $pattern,
                (@scanpas ? (PA => \@scanpas) : ()),
              );
