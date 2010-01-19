@@ -1271,9 +1271,9 @@ sub _write_login {
   }
 
   if ($projectid) {
-    print "Please enter the password required for access to project information and data.";
+    print "Please enter the password required for access to project information and data. ";
   } else {
-    print "Please enter the project ID and password. These are required for access to project information and data.";
+    print "Please enter the project ID and password. These are required for access to project information and data. ";
   }
 
   print 'Passwords are project-specific, not user-specific. If you have lost your password and you are the PI, you can get <a href="/cgi-bin/issuepwd.pl"> generate a new password </a>.';
