@@ -405,6 +405,7 @@ sub verify_queman_password {
   # At some point we'll pick this up from somewhere else.
   my %passwords = (
                    UH => OMP::Config->getData("password.uh"),
+                   CA => OMP::Config->getData("password.ca"),
                   );
 
   my $admin = (exists $passwords{$queue} ? $passwords{$queue} : "noadmin");
