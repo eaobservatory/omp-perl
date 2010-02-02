@@ -438,7 +438,7 @@ sub pkgdata {
   $self->_mktarfile();
 
   # Send a message to the feedback system
-  $self->_add_comment();
+  $self->add_fb_comment();
 
 }
 
@@ -925,17 +925,23 @@ sub _log_request {
 
 }
 
-=item B<_add_comment>
+=item B<add_fb_comment>
 
 Send a message to the feedback system indicating that the data
 have been packaged.
 
-  $pkg->_add_comment();
+  $pkg->add_fb_comment();
+
+An optional argument can be used to supply additional text.
+
+  $pkg->add_fb_comment( "(via CADC)" );
 
 =cut
 
-sub _add_comment {
+sub add_fb_comment {
   my $self = shift;
+  my $text = shift;
+  $text = '' unless defined $text;
 
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
@@ -959,7 +965,7 @@ sub _add_comment {
                              program => $0,
                              sourceinfo => $host,
                              status => OMP__FB_SUPPORT,
-                             text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi",
+                             text => "<html>Data have been requested by $email for project $projectid from UT $utstr<br><br>Project PI: $pi $text",
                              msgtype => OMP__FB_MSG_DATA_REQUESTED,
                             }
                            )
