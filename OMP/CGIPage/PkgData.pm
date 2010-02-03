@@ -229,6 +229,9 @@ sub _package_data_cadc {
    supplied with the data by the JAC.  It is not sufficient to have a
    userid at both institutions, even if they are the same!</p>\n";
 
+  # Write a feedback message even though we can not be sure the person will click on the link
+  $pkg->add_fb_comment( "(via CADC)" );
+
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
   

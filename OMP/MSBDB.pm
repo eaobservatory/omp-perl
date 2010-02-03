@@ -1497,12 +1497,12 @@ sub _store_sciprog_todisk {
   # First read the disk to get the number
   my $guess = $projectid . '_(\d\d\d)';
   opendir my $DIRH,$cachedir
-    or throw OMP::Error::CacheFailure( "Error reading directory $cachedir");
+    or throw OMP::Error::CacheFailure( "Error reading directory $cachedir: $!");
 
   my @numbers = sort { $a <=> $b }
     map { /$guess/ && $1 }  grep /$guess$/, readdir($DIRH);
   closedir($DIRH)
-    or throw OMP::Error::CacheFailure( "Error closing directory $cachedir");
+    or throw OMP::Error::CacheFailure( "Error closing directory $cachedir: $!");
 
   # First index to try
   my $start = 1 + (@numbers ? $numbers[-1] : 0 );
