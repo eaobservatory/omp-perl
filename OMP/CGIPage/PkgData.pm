@@ -111,14 +111,14 @@ sub _write_form {
   print $q->startform;
   print "<b>Enter a UT date: (YYYY-MM-DD)</b></td><td>";
   print $q->textfield(-name=>'utdate',
-		      -size=>15,
-		      -maxlength=>32);
+                      -size=>15,
+                      -maxlength=>32);
   print "</td><tr><td>";
   print "Include calibrations:</td><td>";
   print $q->radio_group(-name=>'inccal',
-			-labels => { 1 => 'Yes', 0 => 'No' },
-			-values=>[1,0],
-			-default=>1);
+                        -labels => { 1 => 'Yes', 0 => 'No' },
+                        -values=>[1,0],
+                        -default=>1);
   print "</td><tr><td colspan=2 align=right>";
 
   print $q->submit(-name=>'Submit');
@@ -155,10 +155,10 @@ sub _package_data {
   # we use verbose messages
   print "<PRE>\n";
   my $pkg = new OMP::PackageData( utdate => $utdate,
-				  projectid => $cookie->{projectid},
-				  password => $cookie->{password},
-				  inccal => $inccal,
-				);
+                                  projectid => $cookie->{projectid},
+                                  password => $cookie->{password},
+                                  inccal => $inccal,
+                                );
 
   $pkg->pkgdata;
   print "</PRE>\n";
@@ -205,10 +205,10 @@ sub _package_data_cadc {
   my $E;
   try {
     $pkg = new OMP::PackageData( utdate => $utdate,
-				 projectid => $cookie->{projectid},
-				 password => $cookie->{password},
-				 inccal => $inccal,
-			       );
+                                 projectid => $cookie->{projectid},
+                                 password => $cookie->{password},
+                                 inccal => $inccal,
+                               );
   } catch OMP::Error::UnknownProject with {
     $E = shift;
     print "This project ID is not recognized by the OMP<br>\n";
@@ -220,8 +220,8 @@ sub _package_data_cadc {
   return if defined $E;
 
   print "<P>Data retrieval is now handled by the Canadian Astronomical Data Centre (CADC). ".
-	"Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. ".
-	"You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
+        "Pressing the button below will take you to the CADC data retrieval page with all your project files pre-selected. ".
+        "You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
 
   print "<p>To have access to any proprietary data, <B>you must have
    registered your CADC userid with the JAC.</B> Access permissions
@@ -234,15 +234,16 @@ sub _package_data_cadc {
 
   # Get the obsGrp
   my $obsgrp = $pkg->obsGrp;
-  
+
   # Now form the CADC form
   print $q->startform( -action=> "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/jcmt/search/downloads");
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
   my @files = map { $_->simple_filename } @obs;
-  print $q->hidden( -name => "fileNameClass",
-		    -default => \@files );
+  print "$_\n"
+    for $q->hidden( -name => "fileNameClass",
+                    -default => \@files );
 
   print $q->submit(-name => "Retrieve from CADC" );
   print $q->endform;
