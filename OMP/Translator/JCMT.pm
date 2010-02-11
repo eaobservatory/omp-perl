@@ -779,10 +779,10 @@ sub observing_area {
 
     # The scan position angle is either supplied or automatic.
     # If it is not supplied we have to give the TCS a hint.
-    # Ellipse does not need a system or pa.
+    # Neither Ellipse nor Daisy need a system or pa.
     my @scanpas;
     my $scan_sys;
-    if ($pattern !~ /ellipse/i) {
+    if ($pattern !~ /ellipse|daisy/i) {
       $scan_sys = $info{SCAN_SYSTEM};
       if (exists $info{SCAN_PA} && defined $info{SCAN_PA} && @{$info{SCAN_PA}}) {
         @scanpas = @{ $info{SCAN_PA} };

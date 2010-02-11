@@ -110,6 +110,8 @@ sub translate_scan_pattern {
     return "LISSAJOUS";
   } elsif ($otpatt eq 'ellipse') {
     return "ELLIPSE";
+  } elsif ($otpatt eq 'daisy') {
+    return "DAISY";
   } else {
     OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
   }
@@ -690,6 +692,12 @@ sub jos_config {
       my $r = sqrt( ( $rx*$rx + $ry*$ry ) / 2.0 );
       my $perimeter = 2.0 * pi * $r;
       $duration_per_area = $perimeter / $mapping_info{VELOCITY};
+    } elsif ($info{scanPattern} =~ /daisy/i) {
+      # From Per Friberg
+      my $r0 = ($mapping_info{WIDTH}+$mapping_info{HEIGHT}) / 4;
+      my $o = $mapping_info{VELOCITY} / $mapping_info{DY} / $r0;
+      my $O = $o / 10.1;
+      $duration_per_area = 2.0 * pi / $O;
     } else {
       throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
     }
