@@ -768,6 +768,9 @@ sub jos_config {
       }
     }
 
+    # Force jos_min to be an integer
+    $jos_min = OMP::General::nint( $jos_min );
+
     # For some modes we want a change in PA each time round the map so we have to do that
     # now. Used for PONG, LISSAJOUS and BOUSTROPHEDON patterns. Do this if we only have
     # a single position angle or no position angle.
