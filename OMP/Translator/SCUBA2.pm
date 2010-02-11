@@ -768,6 +768,34 @@ sub jos_config {
       }
     }
 
+    # For some modes we want a change in PA each time round the map so we have to do that
+    # now. Used for PONG, LISSAJOUS and BOUSTROPHEDON patterns. Do this if we only have
+    # a single position angle or no position angle.
+    my @posang = $obsArea->posang;
+    if ($obsArea->scan_pattern =~ /pong|liss|bous/i && @posang < 2) {
+      # work out how many times round the pattern we are going to go
+      my $npatterns = OMP::General::nint ( ($jos_min * $jos->step_time) / $duration_per_area );
+      if ($npatterns > 1) {
+        # get the base position angle
+        my $ref_pa = $posang[0];
+        if (!defined $ref_pa) {
+          $ref_pa = 0;
+        } else {
+          $ref_pa = $ref_pa->degrees;
+        }
+
+        # delta
+        my $delta = 90 / $npatterns;
+        if ($self->verbose) {
+          print {$self->outhdl} "\tRotating map PA by $delta deg each time for $npatterns repeats\n";
+        }
+
+        @posang = map { $ref_pa + ($_*$delta) } (0..$npatterns-1);
+        $obsArea->posang( map { Astro::Coords::Angle->new( $_, units=>'degrees') } @posang );
+      }
+
+    }
+
     # for now set steps between dark to the JOS_MIN, otherwise the JOS
     # will try to get clever and multiply up the NUM_CYCLES
     # For focus we definitely do not want darks between the focus positions though.
