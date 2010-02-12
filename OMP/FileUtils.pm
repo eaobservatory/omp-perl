@@ -238,8 +238,9 @@ sub get_raw_files {
 
       my $read = -r $r;
       my $exist = -e _;
+      my $non_empty = -s _;
 
-      if ( $read ) {
+      if ( $read && $non_empty ) {
 
         push @{ $filtered[ $i ] }, $r;
         next;
@@ -250,8 +251,10 @@ sub get_raw_files {
         ? 'does not exist'
         : ! $read
           ? 'is not readable'
-          : '!?'
-          ;
+          : ! $non_empty
+            ? 'is empty'
+            : 'has some UNCLASSIFIED PROBLEM'
+            ;
 
       warn qq[$r $text (listed in flag file); skipped\n];
     }
