@@ -237,6 +237,14 @@ reason. It's constructor takes two arguments. The first is a text
 value, the second is a numeric value, C<OMP__FATAL>. These values are
 what will be returned by the overload methods.
 
+=item B<OMP::Error::FileNotFound>
+
+The requested file could not be found.
+
+=item B<OMP::Error::FileUseless>
+
+The given file exists but could not be used for some reason.
+
 =item B<OMP::Error::InvalidUser>
 
 The user supplied to the routine is not a valid OMP user.
@@ -395,6 +403,12 @@ package OMP::Error::DirectoryNotFound;
 use base qw/ OMP::Error /;
 
 package OMP::Error::FatalError;
+use base qw/ OMP::Error /;
+
+package OMP::Error::FileNotFound;
+use base qw/ OMP::Error /;
+
+package OMP::Error::FileUseless;
 use base qw/ OMP::Error /;
 
 package OMP::Error::InvalidUser;
