@@ -787,7 +787,7 @@ sub observing_area {
 
     # The scan position angle is either supplied or automatic.
     # If it is not supplied we have to give the TCS a hint.
-    # Neither Ellipse nor Daisy need a system or pa.
+    #  Ellipse does not need a system or pa. Daisy does not need a PA
     my @scanpas;
     my $scan_sys;
     if ($pattern !~ /ellipse|daisy/i) {
@@ -801,6 +801,9 @@ sub observing_area {
       }
       # convert from deg to object
       @scanpas = map { new Astro::Coords::Angle( $_, units => 'deg', range => "2PI" ) } @scanpas;
+    } elsif ($pattern =~ /daisy/i) {
+      # Always use AZEL for DAISY
+      $scan_sys = "AZEL";
     }
     delete $info{SCAN_DY} if $pattern =~ /ellipse/i;
 
