@@ -24,16 +24,20 @@ interface.
 
 The following options are supported:
 
+Note that if both I<-db> and I<-disk> are given, database will be
+searched for past data and files on disk for data for current date.
+
 =over 4
 
 =item B<-db>
 
-Specify to search for data only in the database, repeatedly if
-necessary.  This option causes to ignore any and all files present on
-hard disk.
+Specify to search for data B<only in the database>, repeatedly if
+necessary.
 
-Without this option, efforts are made to find data both in database
-and in files on the hard disk.
+=item B<-disk>
+
+Specify to search for data B<only in files on disk>, repeatedly if
+necessary.
 
 =item B<-ut>
 
@@ -86,6 +90,7 @@ BEGIN {
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
 
+  use OMP::ArchiveDB;
   use OMP::Constants;
   use OMP::Display;
   use OMP::General;
@@ -124,6 +129,7 @@ my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s"  => \$opt{ut},
                         "tel=s" => \$opt{tel},
 
+                        "disk|file"   => \$opt{disk},
                         "db|database" => \$opt{database},
 
                         "help"    => \$help,
@@ -146,6 +152,9 @@ if( $version ) {
 my $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
 my $currentut = OMP::General->today;
 my $utdisp = "Current UT date: $ut";
+
+my $arcdb = OMP::ArchiveDB->new( 'DB' => OMP::DBbackend::Archive->new() );
+$arcdb->use_existing_criteria( 1 );
 
 my $user;
 
@@ -239,13 +248,6 @@ sub display_loading_status {
 
   eval 'use OMP::ArchiveDB';
   die "Error loading OMP::ArchiveDB: $@" if $@;
-
-  if ( $opt{'database'} ) {
-
-    $OMP::ArchiveDB::SkipDBLookup = 0;
-    $OMP::ArchiveDB::FallbackToFiles = 0;
-    $OMP::ArchiveDB::AnyDate = 1;
-  }
 
   eval 'use OMP::ArcQuery';
   die "Error loading OMP::ArcQuery: $@" if $@;
@@ -793,6 +795,9 @@ sub full_rescan {
   my $ut = shift;
   my $telescope = shift;
 
+  # It is here, instead of running it once at the beginning, as current date may
+  # change during use, which would cause files to be searched only at the start.
+  update_search_options();
   rescan( $ut, $telescope );
   redraw( undef, $current_instrument, $verbose );
 
@@ -2121,6 +2126,22 @@ sub set_telescope {
 
   }
 
+}
+
+sub update_search_options {
+
+  my ( $disk, $db ) = @opt{qw[ disk database ]};
+
+  if  ( $disk && $db || !( $disk || $db ) ) {
+
+    OMP::ArchiveDB::search_files();
+    OMP::ArchiveDB::search_db_skip_today();
+    return;
+  }
+
+  return OMP::ArchiveDB::search_only_db() if $db;
+
+  return OMP::ArchiveDB::search_only_files() if $disk;
 }
 
 sub grp_to_ref {
