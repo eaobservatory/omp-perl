@@ -26,13 +26,13 @@ OMP::Error - Exception handling in an object orientated manner.
     try {
        stuff();
     }
-    catch OMP::Error::FatalError with 
+    catch OMP::Error::FatalError with
     {
         # its a fatal error
         my $Error = shift;
-	orac_exit_normally($Error);
+        orac_exit_normally($Error);
     }
-    otherwise 
+    otherwise
     {
        # this block catches croaks and other dies
        my $Error = shift;
@@ -113,10 +113,10 @@ initialized with the arguments that are passed to it's
 constructor. The elements that are used by, or are retrievable by the
 C<OMP::Error> class are listed below, other classes may add to these.
 
-	-file
-	-line
-	-text
-	-value
+        -file
+        -line
+        -text
+        -value
 
 If C<-file> or C<-line> are not specified in the constructor arguments
 then these will be initialized with the file name and line number
@@ -148,7 +148,7 @@ Create a new C<OMP::Error> object and returns it. This is defined for
 syntactic sugar, eg
 
     record OMP::Error::AuthenticationFail ( $message, OMP__ABORT )
-	and return;
+        and return;
 
 =back
 
@@ -354,8 +354,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program (see SLA_CONDITIONS); if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
