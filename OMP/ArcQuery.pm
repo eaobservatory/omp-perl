@@ -584,6 +584,10 @@ sub _post_process_hash {
         $tables{$SCUTAB}++;
         $tels{JCMT}++;
         $insts{SCUBA}++;
+      } elsif ( $inst =~ /^SCUBA-?2/i ) {
+        $tables{$SCUBA2TAB}++;
+        $tels{JCMT}++;
+        $insts{'SCUBA-2'}++;
       } elsif ($inst =~ /^HARP/i) {
         # Only new data for harp so no GSD
         $tables{$JCMTTAB}++;
