@@ -136,7 +136,7 @@ my %lut = (
         $SCUTAB => undef, # implied
         $GSDTAB => 'G.frontend',
         $UKIRTTAB => 'U.INSTRUME',
-        $JCMTTAB => 'J.instrument',
+        $JCMTTAB => 'J.instrume',
        },
      date => {
         $SCUTAB => 'S.ut',
