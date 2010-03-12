@@ -85,6 +85,9 @@ sub store_archive {
   if( ! defined( $query ) ) {
     throw OMP::Error::BadArgs( "Must supply a query to store information in cache" );
   }
+
+  return unless _use_cache( $query );
+
   if( ! defined( $obsgrp ) ) {
     throw OMP::Error::BadArgs( "Must supply an ObsGroup object to store information in cache" );
   }
@@ -213,6 +216,8 @@ sub retrieve_archive {
 
   # Is this a simple query?
   if( !simple_query( $query ) ) { return; }
+
+  return unless _use_cache( $query );
 
   # Is this a suspect cache?
   if( $return_if_suspect && suspect_cache( $query ) ) { return; }
@@ -604,6 +609,43 @@ sub _filename_from_query {
   $query->isfile($isfile);
 
   return $filename;
+}
+
+=item B<_use_cache>
+
+Given an C<OMP::ArcQuery> object with telescope, returns a truth value
+if to skip cache retrival if configured such (in the telescope
+specific configuration file).  It currently treats the missing name of
+the option, use_header_cache, as if cache retrival has been enabled to
+preserve old status quo.
+
+  return unless _use_cache( $query );
+
+  # Else, fetch|check cache.
+
+=cut
+
+sub _use_cache {
+
+  my ( $query ) = @_;
+
+  my $use = 1;
+  my $key = 'use_header_cache';
+  try {
+
+    $use = OMP::Config->getData( $key,
+                                  'telescope' => $query->telescope
+                                );
+  }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e ) = @_;
+
+    throw $e
+      unless $e->text =~ m/^Key $key could not be found in OMP config/;
+  };
+
+  return $use;
 }
 
 =back
