@@ -642,7 +642,7 @@ sub _use_cache {
     my ( $e ) = @_;
 
     throw $e
-      unless $e->text =~ m/^Key $key could not be found in OMP config/;
+      unless $e->text =~ m/^Key.*?\b$key\b.*could not be found in OMP config/;
   };
 
   return $use;
