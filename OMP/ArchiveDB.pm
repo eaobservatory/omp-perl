@@ -150,6 +150,8 @@ database query by adding additional matches from disk).
 sub queryArc {
   my ( $self, $query, $retainhdr, $ignorebad, ) = @_;
 
+  my $tel = $query->telescope;
+
   if ( !defined( $retainhdr ) ) {
     $retainhdr = 0;
   }
@@ -186,6 +188,8 @@ sub queryArc {
   my $dbqueryok = 0;
 
   my @results;
+
+  $self->_set_search_criteria( $tel );
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
@@ -796,6 +800,73 @@ sub _hdrs_to_obs {
   }
 
   return @observations;
+}
+
+=item B<_set_search_criteria>
+
+Given a telescope name, sets the places to search.  For JCMT, default is always
+first to search the database.  If nothing is found, then search files on disk.
+For UKIRT, database search for current date is not forced.
+
+
+  $archdb->_set_search_criteria( 'jcmt' );
+
+=cut
+
+sub _set_search_criteria {
+
+  my ( $self, $tel ) = @_;
+
+  throw OMP::Error::BadArgs "No telescope given to set search criteria."
+    unless $tel;
+
+  throw OMP::Error::BadArgs "Unknown telescope, $tel, given to set search criteria."
+    unless lc $tel eq 'jcmt'
+        || lc $tel eq 'ukirt';
+
+  # Default options.
+  $SkipDBLookup = 0;
+  $FallbackToFiles = 1;
+  # Search database even for today's data if telescope is JCMT.  UKIRT data is
+  # not continously fed into database but at particular time intervals.
+  $AnyDate = lc $tel eq 'jcmt' ;
+
+  my $where;
+  try {
+
+    $where = OMP::Config->getData( 'header_search',
+                                    'telescope' => $tel,
+                                  );
+  }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e ) = @_;
+
+    my $text = $e->text;
+
+    # Ignore missing key.
+    throw $e
+      unless $text =~ m/Key.*?\bheader_search\b.*?could not be found/;
+  };
+
+  return
+    unless defined $where
+      && length $where;
+
+  if ( $where eq 'db' ) {
+
+    $AnyDate = 1;
+    $SkipDBLookup = 0;
+    $FallbackToFiles = 0;
+  }
+  elsif ( $where eq 'disk' ) {
+
+    $AnyDate = 0;
+    $SkipDBLookup = 1;
+    $FallbackToFiles = 1;
+  }
+
+  return;
 }
 
 =back
