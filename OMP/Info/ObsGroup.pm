@@ -179,6 +179,7 @@ sub runQuery {
   my $retainhdr = shift;
   my $ignorebad = shift;
   my $nocomments = shift;
+  my $db_entry = shift;
 
   throw OMP::Error::FatalError("runQuery: The query argument must be an OMP::ArcQuery class")
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
@@ -193,7 +194,7 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
-  my @result = $adb->queryArc( $q, $retainhdr, $ignorebad );
+  my @result = $adb->queryArc( $q, $retainhdr, $ignorebad, $db_entry );
 
   # Store the results
   $self->obs(\@result);
@@ -307,6 +308,13 @@ sub populate {
     delete $args{nocomments};
   }
 
+  my $db_entry;
+  for ( 'db_entry' ) {
+
+    $db_entry = delete $args{ $_ }
+      if exists $args{ $_ };
+  }
+
   throw OMP::Error::BadArgs("Must supply a telescope or instrument or projectid")
     unless exists $args{telescope} || exists $args{instrument}
       || exists $args{projectid};
@@ -339,6 +347,9 @@ sub populate {
   # the telescope from the database
   if (exists $args{projectid} && !exists $args{telescope}) {
     $args{telescope} = OMP::ProjServer->getTelescope( $args{projectid});
+  }
+  elsif ( exists $args{instrument} && $args{instrument} =~ /^ACSIS/i ) {
+    $args{telescope} = 'JCMT';
   }
 
   # List of interesting keys for the query
@@ -397,7 +408,7 @@ sub populate {
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
   # run the query
-  $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments );
+  $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments, $db_entry );
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
