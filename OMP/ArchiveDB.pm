@@ -148,7 +148,7 @@ database query by adding additional matches from disk).
 =cut
 
 sub queryArc {
-  my ( $self, $query, $retainhdr, $ignorebad, ) = @_;
+  my ( $self, $query, $retainhdr, $ignorebad, $db_entry ) = @_;
 
   my $tel = $query->telescope;
 
@@ -189,7 +189,7 @@ sub queryArc {
 
   my @results;
 
-  $self->_set_search_criteria( $tel );
+  $self->_set_search_criteria( $tel, $db_entry );
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
@@ -815,7 +815,7 @@ For UKIRT, database search for current date is not forced.
 
 sub _set_search_criteria {
 
-  my ( $self, $tel ) = @_;
+  my ( $self, $tel, $db_entry ) = @_;
 
   throw OMP::Error::BadArgs "No telescope given to set search criteria."
     unless $tel;
@@ -830,6 +830,13 @@ sub _set_search_criteria {
   # Search database even for today's data if telescope is JCMT.  UKIRT data is
   # not continously fed into database but at particular time intervals.
   $AnyDate = lc $tel eq 'jcmt' ;
+
+  if ( $db_entry ) {
+
+    $SkipDBLookup = 1;
+    $FallbackToFiles = 1;
+    return;
+  }
 
   my $where;
   try {
