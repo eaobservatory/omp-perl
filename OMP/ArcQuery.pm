@@ -136,7 +136,7 @@ my %lut = (
         $SCUTAB => undef, # implied
         $GSDTAB => 'G.frontend',
         $UKIRTTAB => 'U.INSTRUME',
-        $JCMTTAB => 'J.instrument',
+        $JCMTTAB => 'J.instrume',
        },
      date => {
         $SCUTAB => 'S.ut',
@@ -593,6 +593,14 @@ sub _post_process_hash {
         $tables{$JCMTTAB}++;
         $tels{JCMT}++;
         $insts{ACSIS}++;
+      } elsif ( $inst =~ /^ACSIS/i ) {
+
+        $tables{$JCMTTAB}++;
+        $tels{JCMT}++;
+
+        # ACSIS is a backend, not an instrument.  So if $insts{ACSIS} is set,
+        # then that could result in zero rows returned from dataabse.
+
       } elsif ($inst =~ /^UKT/) {
         # must be old JCMT
         $tels{JCMT}++;
