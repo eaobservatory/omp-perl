@@ -19,11 +19,15 @@ $ENV{'SYBASE'} = qw[/local/progs/sybase];
 BEGIN{ our $DEBUG = 0; }
 our $DEBUG;
 
-my ( $help, %config, @addr );
+my @cadc_cf =
+  qw[ /jac_sw/etc/jcmtmd-db.cfg
+      /jac_sw/etc/jcmtmd-standby-db.cfg
+    ];
 
-@config{qw[ jcmtmd jcmt omp ]} =
+my ( $help, %config, @addr, @cadc );
+
+@config{qw[ jcmt omp ]} =
   qw[
-      /jac_sw/etc/jcmtmd-db.cfg
       /jac_sw/etc/jcmt-db.cfg
       /jac_sw/etc/ompsite.cfg
     ];
@@ -34,7 +38,7 @@ GetOptions(
 
     'omp=s'         => \$config{'omp'},
     'jcmt=s'        => \$config{'jcmt'},
-    'cadc|jcmtmd=s' => \$config{'jcmtmd'},
+    'cadc|jcmtmd=s@' => \@cadc,
 
     'mail=s' => \@addr,
   )
@@ -42,10 +46,11 @@ GetOptions(
 
 pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 
-pod2usage( '-exitval' => 2, '-verbose' => 1,
-            '-msg' => 'Need readable configuration files.'
-          )
-  if scalar values %config > scalar grep { -f $_ && -r _ } values %config;
+#pod2usage( '-exitval' => 2, '-verbose' => 1,
+#            '-msg' => 'Need readable configuration files.'
+#          )
+#  if scalar values %config > scalar grep { -f $_ && -r _ } values %config;
+@cadc_cf = @cadc if scalar @cadc;
 
 my @jcmt =
   sort qw[ ACSIS SCUBA2 FILES COMMON ];
@@ -67,33 +72,45 @@ my @omp =
 #  Tables are currently empty, at least on JAC side.
 my @skip = sort qw[ ompfaultbodypub ompfaultpub ];
 
-my %stat = connect_and_get_db_stats( \%config, \@jcmt, \@omp, @skip );
+my $omp_cf = OMP::Config->new;
 
-my $diff = any_diff( \%stat, @skip );
+for my $file ( @cadc_cf ) {
 
-my $result =
-  sprintf "Any difference: %s\n\nSkipped tables: %s\n\n%s",
-    $diff ? 'yes' : 'no',
-    join( ', ', @skip),
-    make_diff_status( max( map { length $_ } @jcmt, @omp ), %stat )
-  ;
+  $config{'jcmtmd'} = $file;
 
-if ( $DEBUG || ! scalar @addr ) {
+  my %stat =
+    connect_and_get_db_stats( $omp_cf, \%config, \@jcmt, \@omp, @skip );
 
-  print $result;
-}
-else {
+  my $diff = any_diff( \%stat, @skip );
 
-  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
-  my $mail =
-    MIME::Lite->new( 'From' => 'jcmtarch@jach.hawaii.edu',
-                      'to'  => join( ', ', @addr ),
-                      'Subject' =>
-                        ( $diff ? 'Different count' : 'OK' ) . ' - CADC replication',
-                      'Data'    => $result,
-                    );
+  $omp_cf->configDatabase( $file );
+  my $server = $omp_cf->getData( "database.server" );
 
-  $mail->send or die "Error sending message: $!\n";
+  my $result =
+    sprintf "%s\n==============\nAny difference: %s\n\nSkipped tables: %s\n\n%s",
+      $server,
+      $diff ? 'yes' : 'no',
+      join( ', ', @skip),
+      make_diff_status( max( map { length $_ } @jcmt, @omp ), %stat )
+    ;
+
+  if ( $DEBUG || ! scalar @addr ) {
+
+    print $result;
+  }
+  else {
+
+    MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+    my $mail =
+      MIME::Lite->new( 'From' => 'jcmtarch@jach.hawaii.edu',
+                        'to'  => join( ', ', @addr ),
+                        'Subject' =>
+                          ( $diff ? 'Different count' : 'OK' ) . qq[ - $server replication],
+                        'Data'    => $result,
+                      );
+
+    $mail->send or die "Error sending message: $!\n";
+  }
 }
 
 exit;
@@ -106,28 +123,27 @@ exit;
 # of 'omp' database tables; and a combined list of tables to skip.
 sub connect_and_get_db_stats {
 
-  my ( $config, $jcmt, $omp, @skip ) = @_;
+  my ( $omp_cf, $config, $jcmt, $omp, @skip ) = @_;
 
   #  "jcmtmd" database, present at CADC, contains all of the tables.
-  my $cf = OMP::Config->new;
-  $cf->configDatabase( $config->{'jcmtmd'} );
+  $omp_cf->configDatabase( $config->{'jcmtmd'} );
 
-  my $jcmtmd_dbh = make_connection( $cf );
+  my $jcmtmd_dbh = make_connection( $omp_cf );
 
-  $cf->configDatabase( $config->{'jcmt'} );
+  $omp_cf->configDatabase( $config->{'jcmt'} );
 
-  my $jcmt_dbh = make_connection( $cf );
+  my $jcmt_dbh = make_connection( $omp_cf );
 
-  %stat = get_table_stats( { 'cadc' => $jcmtmd_dbh, 'jac' => $jcmt_dbh },
-                            $jcmt, @skip
-                          );
+  my %stat = get_table_stats( { 'cadc' => $jcmtmd_dbh, 'jac' => $jcmt_dbh },
+                              $jcmt, @skip
+                            );
 
   $DEBUG and warn "Disconnecting from SYB_JAC*.jcmt";
   $jcmt_dbh->disconnect;
 
-  $cf->configDatabase( $config->{'omp'} );
+  $omp_cf->configDatabase( $config->{'omp'} );
 
-  my $omp_dbh = make_connection( $cf );
+  my $omp_dbh = make_connection( $omp_cf );
   {
     my %tmp = get_table_stats( { 'cadc' => $jcmtmd_dbh, 'jac' => $omp_dbh },
                                 $omp, @skip
@@ -138,7 +154,7 @@ sub connect_and_get_db_stats {
   $DEBUG and warn "Disconnecting from SYB_JAC*.omp";
   $omp_dbh->disconnect;
 
-  $DEBUG and warn "Disconnecting from CADC_ASE.jcmtmd";
+  $DEBUG and warn "Disconnecting from CADC*.jcmtmd";
   $jcmtmd_dbh->disconnect;
 
   return %stat;
@@ -151,11 +167,11 @@ sub any_diff {
 
   my ( $stats, @skip ) = @_;
 
-  for my $table ( keys %stat )
+  for my $table ( keys %{ $stats } )
   {
     next if scalar @skip && first { $table eq $_ } @skip;
 
-    local $_ = $stat{ $table };
+    local $_ = $stats->{ $table };
     next unless defined;
     return 1 if 0 != $_->{ 'jac' } - $_->{ 'cadc' };
   }
