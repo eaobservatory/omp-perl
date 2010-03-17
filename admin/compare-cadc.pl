@@ -112,12 +112,10 @@ sub connect_and_get_db_stats {
   my $cf = OMP::Config->new;
   $cf->configDatabase( $config->{'jcmtmd'} );
 
-  $DEBUG and warn "Connecting to CADC_ASE.jcmtmd";
   my $jcmtmd_dbh = make_connection( $cf );
 
   $cf->configDatabase( $config->{'jcmt'} );
 
-  $DEBUG and warn "Connecting to SYB_JAC*.jcmt";
   my $jcmt_dbh = make_connection( $cf );
 
   %stat = get_table_stats( { 'cadc' => $jcmtmd_dbh, 'jac' => $jcmt_dbh },
@@ -129,7 +127,6 @@ sub connect_and_get_db_stats {
 
   $cf->configDatabase( $config->{'omp'} );
 
-  $DEBUG and warn "Connecting to SYB_JAC*.omp";
   my $omp_dbh = make_connection( $cf );
   {
     my %tmp = get_table_stats( { 'cadc' => $jcmtmd_dbh, 'jac' => $omp_dbh },
@@ -244,6 +241,7 @@ sub make_connection {
   die "No database log in data found"
     if grep { ! defined }  $server, $db, $user, $pass;
 
+  $DEBUG and warn "Connecting to ${server}.${db} as ${user}";
   my $dbh =
     DBI->connect( "dbi:Sybase:server=$server" , $user, $pass
                   , { 'RaiseError' => 1
