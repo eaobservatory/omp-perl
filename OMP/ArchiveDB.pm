@@ -53,15 +53,8 @@ use base qw/ OMP::BaseDB /;
 
 our $VERSION = (qw$Revision$)[1];
 
-# Do we want to fall back to files?
-$FallbackToFiles = 1;
-
-# Do we want to skip the database lookup?
-$SkipDBLookup = 0;
-
-# To Force to search database for any date, not just past day or two.
-$AnyDate = 0;
-
+search_db_skip_today();
+search_files();
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -69,6 +62,204 @@ our %WARNED;
 =head1 METHODS
 
 =over 4
+
+=item B<search_db>
+
+Sets options to search database including current date.  It does not change
+existing file search options.
+
+Returns nothing.
+
+=cut
+
+sub search_db {
+
+  $AnyDate = 1;
+  $SkipDBLookup = 0;
+  return;
+}
+
+=item B<search_db_skip_today>
+
+Sets options to search database not including current date.  It does not change
+existing file search options.
+
+Returns nothing.
+
+=cut
+
+sub search_db_skip_today {
+
+  $AnyDate = 0;
+  $SkipDBLookup = 0;
+  return;
+}
+
+=item B<search_files>
+
+Sets options to search for files.  It does not change existing database options.
+
+Returns nothing.
+
+=cut
+
+sub search_files {
+
+  $FallbackToFiles = 1;
+  return;
+}
+
+=item B<search_only_db>
+
+Sets options to search only the database.  It disables file search options.
+
+Returns nothing.
+
+=cut
+
+sub search_only_db {
+
+  search_db();
+  $FallbackToFiles = 0;
+  return;
+}
+
+=item B<search_only_files>
+
+Sets options to search only for the files.  It disables database search options.
+
+Returns nothing.
+
+=cut
+
+sub search_only_files {
+
+  $AnyDate = 0;
+  $SkipDBLookup = 1;
+  search_files();
+  return;
+}
+
+=item B<use_existing_criteria>
+
+Given no arguments, returns a truth value indicating if to use
+existing search options (or to calculate new ones (see above)).
+
+  $db->set_search_criteria()
+    unless $db->use_existing_criteria;
+
+Provide a truth value to inidicate to toggle use of existing criteria.
+
+  $db->search_only_files();
+  $db->use_existing_criteria( 1 );
+
+=cut
+
+my $old_criteria;
+sub use_existing_criteria {
+
+  my $self = shift @_;
+
+  return $old_criteria unless scalar @_;
+
+  $old_criteria = !! $_[0];
+  return;
+}
+
+=item B<set_search_criteria>
+
+Returns the search ciretia word found; else return nothing.
+
+Given an optional telescope name and/or optional search criteria, sets
+the places to search.  Default is set to search in database (excluding
+current date) & for files.
+
+  OMP::ArchiveDB->set_search_criteria();
+
+Sets search criteria by getting I<header_search> option value from
+"ini" style configuration file for JCMT ...
+
+  OMP::ArchiveDB->set_search_criteria( 'telescope' => 'jcmt' );
+
+Directly specfiy a search criteria (files only search in this case)
+...
+
+  OMP::ArchiveDB->set_search_criteria( 'header_search' => 'files' );
+
+Valid values for I<header_search> are ...
+
+  db       - search only database, including current date
+
+  files    - search only for files
+
+  db-files - search database, and files if database returns nothing
+
+  db-skip-today-files - search both database & files; change from
+                        previous criteria is that current date is
+                        skipped from database serach
+
+If both, C<telescope> & C<header_search> are sepecifed, then defined
+C<header_search> value will bypass telescope configuration file.
+
+=cut
+
+sub set_search_criteria {
+
+  my ( $self, %opt ) = @_;
+
+  my $search_opt = 'header_search';
+  my $where = $opt{ $search_opt };
+
+  my $tel = $opt{'telescope'};
+
+  my %search =
+    ( 'db'   => \&search_only_db,
+      'files' => \&search_only_files,
+      'db-files' =>
+        sub{ search_db(); return search_files(); },
+
+      'db-skip-today-files' =>
+        sub{ search_db_skip_today(); return search_files(); },
+    );
+
+  # Default options.
+  return $search{'db-skip-today-disk' }->()
+    if ! $tel
+    && ! defined $where;
+
+  # Search database for current date too.
+  search_db() if lc $tel eq 'jcmt';
+
+  unless ( defined $where ) {
+
+    try {
+
+      $where = OMP::Config->getData( $search_opt,
+                                      'telescope' => $tel,
+                                    );
+    }
+    catch OMP::Error::BadCfgKey with {
+
+      my ( $e ) = @_;
+
+      my $text = $e->text;
+
+      # Ignore missing key.
+      throw $e
+        unless $text =~ m/Key.*?\b$search_opt\b.*?could not be found/;
+    };
+  }
+
+  return
+    unless defined $where
+      && length $where ;
+
+  throw OMP::Error::BadArgs "Unknown search criteria, '$where', given\n"
+    unless exists $search{ $where };
+
+  $search{ $where }->();
+  return $where;
+}
 
 =item B<getObs>
 
@@ -148,7 +339,7 @@ database query by adding additional matches from disk).
 =cut
 
 sub queryArc {
-  my ( $self, $query, $retainhdr, $ignorebad, $db_entry ) = @_;
+  my ( $self, $query, $retainhdr, $ignorebad, $search ) = @_;
 
   my $tel = $query->telescope;
 
@@ -189,7 +380,10 @@ sub queryArc {
 
   my @results;
 
-  $self->_set_search_criteria( $tel, $db_entry );
+  $self->set_search_criteria( ref $search ? %{ $search } : (),
+                              'telescope' => $tel,
+                             )
+    unless $self->use_existing_criteria();
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
@@ -800,80 +994,6 @@ sub _hdrs_to_obs {
   }
 
   return @observations;
-}
-
-=item B<_set_search_criteria>
-
-Given a telescope name, sets the places to search.  For JCMT, default is always
-first to search the database.  If nothing is found, then search files on disk.
-For UKIRT, database search for current date is not forced.
-
-
-  $archdb->_set_search_criteria( 'jcmt' );
-
-=cut
-
-sub _set_search_criteria {
-
-  my ( $self, $tel, $db_entry ) = @_;
-
-  throw OMP::Error::BadArgs "No telescope given to set search criteria."
-    unless $tel;
-
-  throw OMP::Error::BadArgs "Unknown telescope, $tel, given to set search criteria."
-    unless lc $tel eq 'jcmt'
-        || lc $tel eq 'ukirt';
-
-  # Default options.
-  $SkipDBLookup = 0;
-  $FallbackToFiles = 1;
-  # Search database even for today's data if telescope is JCMT.  UKIRT data is
-  # not continously fed into database but at particular time intervals.
-  $AnyDate = lc $tel eq 'jcmt' ;
-
-  if ( $db_entry ) {
-
-    $SkipDBLookup = 1;
-    $FallbackToFiles = 1;
-    return;
-  }
-
-  my $where;
-  try {
-
-    $where = OMP::Config->getData( 'header_search',
-                                    'telescope' => $tel,
-                                  );
-  }
-  catch OMP::Error::BadCfgKey with {
-
-    my ( $e ) = @_;
-
-    my $text = $e->text;
-
-    # Ignore missing key.
-    throw $e
-      unless $text =~ m/Key.*?\bheader_search\b.*?could not be found/;
-  };
-
-  return
-    unless defined $where
-      && length $where;
-
-  if ( $where eq 'db' ) {
-
-    $AnyDate = 1;
-    $SkipDBLookup = 0;
-    $FallbackToFiles = 0;
-  }
-  elsif ( $where eq 'disk' ) {
-
-    $AnyDate = 0;
-    $SkipDBLookup = 1;
-    $FallbackToFiles = 1;
-  }
-
-  return;
 }
 
 =back

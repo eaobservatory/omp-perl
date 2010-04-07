@@ -148,6 +148,8 @@ use Astro::Telescope;
 
 use DBI;
 
+use JAC::Setup qw[ omp ];
+
 use OMP::Password;
 
 my $HPI = pi/2;
@@ -314,8 +316,27 @@ print "\n";
 # Get observed targets
 unless ($coords) {
 
-  my $password =
-    OMP::Password->get_password( { 'prompt' => 'Please enter the staff password: ' } );
+  my $password;
+  if ( -t STDIN ) {
+
+    $password =
+      OMP::Password->get_password( { 'prompt' => 'Please enter the staff password: ' } );
+  }
+  else {
+
+    require OMP::Config;
+
+    my $user = 'staff';
+
+    if ( $user eq OMP::Config->getData( "hdr_database.user" ) ) {
+
+      $password = OMP::Config->getData( "hdr_database.password" );
+    }
+    else{
+
+      die "'$user' user database log in data not found.\n";
+    }
+  }
 
   # from COMMON table in JCMT DB sorted by project.
   $observed = &get_observed_targets( $utstart, $utstop, $password,

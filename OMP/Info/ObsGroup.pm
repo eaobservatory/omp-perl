@@ -179,7 +179,7 @@ sub runQuery {
   my $retainhdr = shift;
   my $ignorebad = shift;
   my $nocomments = shift;
-  my $db_entry = shift;
+  my $search = shift;
 
   throw OMP::Error::FatalError("runQuery: The query argument must be an OMP::ArcQuery class")
     unless UNIVERSAL::isa($q, "OMP::ArcQuery");
@@ -194,7 +194,14 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
-  my @result = $adb->queryArc( $q, $retainhdr, $ignorebad, $db_entry );
+
+  if ( $search ) {
+
+    $adb->set_search_criteria( 'header_search' => $search ) if $search;
+    $adb->use_existing_criteria( 1 );
+  }
+
+  my @result = $adb->queryArc( $q, $retainhdr, $ignorebad, $search );
 
   # Store the results
   $self->obs(\@result);
@@ -308,10 +315,10 @@ sub populate {
     delete $args{nocomments};
   }
 
-  my $db_entry;
-  for ( 'db_entry' ) {
+  my $search;
+  for ( 'header_search' ) {
 
-    $db_entry = delete $args{ $_ }
+    $search = delete $args{ $_ }
       if exists $args{ $_ };
   }
 
@@ -408,7 +415,7 @@ sub populate {
   my $arcquery = new OMP::ArcQuery( XML => $xml );
 
   # run the query
-  $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments, $db_entry );
+  $self->runQuery( $arcquery, $retainhdr, $ignorebad, $nocomments, $search );
 
   # If we are really looking for a single project plus calibrations we
   # have to massage the entries removing other science observations.
