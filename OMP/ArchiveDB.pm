@@ -140,6 +140,32 @@ sub search_only_files {
   return;
 }
 
+=item B<use_existing_criteria>
+
+Given no arguments, returns a truth value indicating if to use
+existing search options (or to calculate new ones (see above)).
+
+  $db->set_search_criteria()
+    unless $db->use_existing_criteria;
+
+Provide a truth value to inidicate to toggle use of existing criteria.
+
+  $db->search_only_files();
+  $db->use_existing_criteria( 1 );
+
+=cut
+
+my $old_criteria;
+sub use_existing_criteria {
+
+  my $self = shift @_;
+
+  return $old_criteria unless scalar @_;
+
+  $old_criteria = !! $_[0];
+  return;
+}
+
 =item B<set_search_criteria>
 
 Returns the search ciretia word found; else return nothing.
@@ -354,7 +380,10 @@ sub queryArc {
 
   my @results;
 
-  $self->set_search_criteria( $tel, ref $search ? %{ $search } : () );
+  $self->set_search_criteria( ref $search ? %{ $search } : (),
+                              'telescope' => $tel,
+                             )
+    unless $self->use_existing_criteria();
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
