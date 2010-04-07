@@ -194,6 +194,13 @@ sub runQuery {
 
   # Grab the results.
   my $adb = new OMP::ArchiveDB();
+
+  if ( $search ) {
+
+    $adb->set_search_criteria( 'header_search' => $search ) if $search;
+    $adb->use_existing_criteria( 1 );
+  }
+
   my @result = $adb->queryArc( $q, $retainhdr, $ignorebad, $search );
 
   # Store the results
@@ -309,7 +316,7 @@ sub populate {
   }
 
   my $search;
-  for ( 'search' ) {
+  for ( 'header_search' ) {
 
     $search = delete $args{ $_ }
       if exists $args{ $_ };
