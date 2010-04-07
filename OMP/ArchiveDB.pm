@@ -313,7 +313,7 @@ database query by adding additional matches from disk).
 =cut
 
 sub queryArc {
-  my ( $self, $query, $retainhdr, $ignorebad, $db_entry ) = @_;
+  my ( $self, $query, $retainhdr, $ignorebad, $search ) = @_;
 
   my $tel = $query->telescope;
 
@@ -354,7 +354,7 @@ sub queryArc {
 
   my @results;
 
-  $self->set_search_criteria( $tel, $db_entry );
+  $self->set_search_criteria( $tel, ref $search ? %{ $search } : () );
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
