@@ -862,6 +862,19 @@ sub alter_proj {
     $q->textfield( 'pi', $project->pi->userid, 32, 32 ),
     qq[</td></tr>];
 
+  print qq[<tr><td align="right">Title</td> <td>],
+    $q->textfield( 'title', $project->title, 50, 255 ),
+    qq[</td></tr>];
+
+  my $coi = join "\n", map { $_->userid } $project->coi;
+  print qq[<tr><td align="right">Co-I</td> <td>],
+    $q->textarea( -name => 'coi',
+                  -default => $coi,
+                  -rows => 5,
+                  -columns => 32,
+                ),
+    qq[</td></tr>];
+
   my $supp = join "\n", map { $_->userid } $project->support;
   print qq[<tr><td align="right">Support</td> <td>],
     $q->textarea( -name => 'support',
@@ -869,10 +882,6 @@ sub alter_proj {
                   -rows => 5,
                   -columns => 32,
                 ),
-    qq[</td></tr>];
-
-  print qq[<tr><td align="right">Title</td> <td>],
-    $q->textfield( 'title', $project->title, 50, 255 ),
     qq[</td></tr>];
 
   # Allocation
@@ -984,20 +993,22 @@ sub process_project_changes {
   my @msg; # Build up output message
 
   my $err;
-  try {
+  #try {
 
-    push @msg, update_pi( $project, $q->param( 'pi' ) );
-  }
-  catch OMP::Error with {
+  #  push @msg, update_pi( $project, $q->param( 'pi' ) );
+  #}
+  #catch OMP::Error with {
 
-    my ( $e ) = @_;
-    $err = _print_user_err( $e->text );
-  };
+  #  my ( $e ) = @_;
+  #  $err = _print_user_err( $e->text );
+  #};
 
-  { my $supp = $q->param( 'support' );
+  for my $type ( qw[ pi coi support ] ) {
+
+    my $users = $q->param( $type );
     try {
 
-      push @msg, update_support( $project, split /[;:,\s]+/, $supp );
+      push @msg, update_users( $project, $type, split /[;:,\s]+/, $users );
     }
     catch OMP::Error with {
 
@@ -1145,43 +1156,25 @@ sub process_project_changes {
   return;
 }
 
-sub update_pi {
+sub update_users {
 
-  my ( $proj, $userid ) = @_;
-
-  my $old = $proj->pi;
-  my $old_id = $old->userid;
-
-  return if _match_string( $old_id, $userid );
-
-  return
-    _update_project_make_message( $proj,
-                                  undef,
-                                  'update' => 'pi',
-                                  'field-text' => 'PI',
-                                  'old' => $old,
-                                  'new' => _make_user( $userid ),
-                                );
-}
-
-sub update_support {
-
-  my ( $proj, @userid ) = @_;
+  my ( $proj, $type, @userid ) = @_;
 
   return unless $proj && scalar @userid;
 
-  my @old = $proj->support;
+  my @old = $proj->$type;
 
   my $old_id = join ',', map { $_->userid } @old;
   return if _match_string( $old_id, join ',', @userid );
 
   my @user = map { _make_user( $_ ) } @userid;
 
-  $proj->support( @user );
+  $proj->$type( @user );
 
   my $join = sub { join ', ', map { $_->name } @_ };
   return
-    sprintf 'Updated support from %s to %s',
+    sprintf 'Updated %s from (%s) to (%s)',
+      $type,
       $join->( @old ),
       $join->( @user )
       ;
