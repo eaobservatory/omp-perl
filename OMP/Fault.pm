@@ -271,7 +271,7 @@ my %MAILLIST;
     'dr_faults@jach.hawaii.edu'    ,
     'safety_faults@jach.hawaii.edu'   ,
     'facility_faults@jach.hawaii.edu' ,
-    'vehicle_incident@jach.hawaii.edu' ,
+    'vehicle@jach.hawaii.edu' ,
   );
 
 my $config = OMP::Config->new;
