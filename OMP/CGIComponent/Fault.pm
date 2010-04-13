@@ -628,10 +628,12 @@ sub file_fault_form {
   my $staus_meth =
     'jcmt_events' eq lc $category
     ? 'faultStatus_JCMTEvents'
-    : $not_safety
-      ? 'faultStatus'
-      : 'faultStatus_Safety'
-      ;
+    : 'vehicle_incident' eq lc $category
+      ? 'faultStatus_VehicleIncident'
+      : ! $not_safety
+        ? 'faultStatus_Safety'
+        : 'faultStatus'
+        ;
 
   my %status = OMP::Fault->$staus_meth;
   my @status_values = map {$status{$_}} sort keys %status;
@@ -658,8 +660,8 @@ sub file_fault_form {
     $type_labels{''} = "Select a type";
 
     my $text =
-      $category eq 'vehicle_incident'
-      ? 'vehicle'
+      lc $category eq 'vehicle_incident'
+      ? 'vehicle (group)'
       : ! $not_safety
         ? 'severity level'
           : 'system'
