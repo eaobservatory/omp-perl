@@ -227,6 +227,26 @@ use constant {
   COMPLETE      => JCMT_EVENTS + 12,
 };
 
+# Vehichle Incident Reporting (VIR) - System aka Vehcile.
+use constant VEHICLE_I_R => 6500;
+use constant {
+
+  VEHICLE_1_7  => VEHICLE_I_R() + 1,
+  VEHICLE_9_11 => VEHICLE_I_R() + 2,
+  VEHICLE_13   => VEHICLE_I_R() + 3,
+  VEHICLE_14   => VEHICLE_I_R() + 4,
+};
+
+# VIR Type.
+use constant {
+
+  ENGINE         => VEHICLE_I_R() + 20,
+  TIRES          => VEHICLE_I_R() + 21,
+  VEHICHLE_LIGHTS => VEHICLE_I_R() + 22,
+  VEHICLE_WARNING_LIGHTS  => VEHICLE_I_R() + 23,
+  # OTHER is covered by TYPEOTHER() set elsewhere.
+};
+
 # Mailing list
 my @list_name =
   ( 'CSG'  ,
@@ -237,6 +257,7 @@ my @list_name =
     'DR'    ,
     'SAFETY'   ,
     'FACILITY' ,
+    'VEHICLE_INCIDENT' ,
   );
 
 my %MAILLIST;
@@ -249,6 +270,7 @@ my %MAILLIST;
     'dr_faults@jach.hawaii.edu'    ,
     'safety_faults@jach.hawaii.edu'   ,
     'facility_faults@jach.hawaii.edu' ,
+    'vehicle_incident@jach.hawaii.edu' ,
   );
 
 my $config = OMP::Config->new;
@@ -453,7 +475,23 @@ my %DATA = (
                                   'Hardware' =>  HARDWARE ,
                                   'Software' =>  SOFTWARE ,
                                 },
-                  }
+                  },
+            'VEHICLE_INCIDENT' => {
+                            # 'VEHICLE' is same as 'SYSTEM'.
+                            'VEHICLE' => {
+                                            'Vehicle 1 - 7' => VEHICLE_1_7(),
+                                            'Vehicle 9 - 11' => VEHICLE_9_11(),
+                                            'Vehicle 13' => VEHICLE_13(),
+                                            'Vehicle 14' => VEHICLE_14(),
+                                          },
+                            'TYPE' => {
+                                          'Engine' => ENGINE(),
+                                          'Tires' => TIRES(),
+                                          'Lights' => VEHICHLE_LIGHTS(),
+                                          'Warning lights' => VEHICLE_WARNING_LIGHTS(),
+                                          'Other' => TYPEOTHER(),
+                                        },
+                        },
             );
 
 my %LOCATION = (
@@ -498,7 +536,9 @@ my %OPTIONS = (
                             },
               );
 
-$OPTIONS{'JCMT_EVENTS'} = { %{ $OPTIONS{'SAFETY'} } };
+$OPTIONS{'VEHICLE_INCIDENT'} =
+$OPTIONS{'JCMT_EVENTS'} =
+  { %{ $OPTIONS{'SAFETY'} } };
 
 # Urgency
 my %URGENCY = (
@@ -550,6 +590,23 @@ my %JCMT_EVENTS_STATUS_CLOSED = ( 'Complete' => COMPLETE,
 
 my %JCMT_EVENTS_STATUS = ( %JCMT_EVENTS_STATUS_OPEN, %JCMT_EVENTS_STATUS_CLOSED );
 
+my %VEHICLE_INCIDENT_STATUS_OPEN =
+  ( 'Open' => OPEN(),
+    'Open - Will be fixed' => WILL_BE_FIXED(),
+  );
+
+my %VEHICLE_INCIDENT_STATUS_CLOSED =
+  (
+    'Duplicate'      => DUPLICATE(),
+    'Closed'         => CLOSED(),
+    "Won't be fixed" => WON_T_BE_FIXED(),
+  );
+
+my %VEHICLE_INCIDENT_STATUS =
+  ( %VEHICLE_INCIDENT_STATUS_OPEN,
+    %VEHICLE_INCIDENT_STATUS_CLOSED
+  );
+
 # Now invert %DATA, %URGENCY, and %CONDITION
 my %INVERSE_URGENCY;
 for (keys %URGENCY) {
@@ -572,6 +629,10 @@ for (keys %SAFETY_STATUS ) {
 
 for (keys %JCMT_EVENTS_STATUS ) {
   $INVERSE_STATUS{ $JCMT_EVENTS_STATUS{$_} } = $_;
+}
+
+for (keys %VEHICLE_INCIDENT_STATUS ) {
+  $INVERSE_STATUS{ $VEHICLE_INCIDENT_STATUS{$_} } = $_;
 }
 
 my %INVERSE_PLACE;
@@ -640,11 +701,15 @@ sub faultSystems {
   my $class = shift;
   my $category = uc(shift);
 
-  if (exists $DATA{$category}) {
-    return $DATA{$category}{ $category ne 'SAFETY' ? 'SYSTEM' : 'SEVERITY' };
-  } else {
-    return ();
-  }
+  return unless exists $DATA{$category};
+
+  return
+    $DATA{$category}{ $category eq 'SAFETY'
+                          ? 'SEVERITY'
+                          : $category eq 'VEHICLE_INCIDENT'
+                            ? 'VEHICLE'
+                            : 'SYSTEM'
+                    };
 }
 
 =item B<faultTypes>
@@ -779,6 +844,23 @@ sub faultStatusClosed_JCMTEvents {
   return %JCMT_EVENTS_STATUS_CLOSED;
 }
 
+sub faultStatus_VehicleIncident {
+  my $class = shift;
+  return %VEHICLE_INCIDENT_STATUS;
+}
+
+sub faultStatusOpen_VehicleIncident {
+
+  my $class = shift;
+  return %VEHICLE_INCIDENT_STATUS_OPEN;
+}
+
+sub faultStatusClosed_VehicleIncident {
+
+  my $class = shift;
+  return %VEHICLE_INCIDENT_STATUS_CLOSED;
+}
+
 =item B<faultCanAssocProjects>
 
 Given a fault category, this badly named method will return true if faults for that
@@ -903,6 +985,7 @@ sub new {
                      TimeLost => 0,
                      Severity => undef,
                      Location => undef,
+                     Vehcile => undef,
                      FaultDate => undef,
                      Urgency => $URGENCY{Normal},
                      Condition => $CONDITION{Normal},
@@ -1009,11 +1092,20 @@ BEGIN {
 
   sub system {
     my $self = shift;
-    $self->{Severity} = $self->{System} = shift if @_;
+
+    if ( @_ ) {
+
+      $self->{Vehicle} =
+      $self->{Severity} =
+      $self->{System} =
+        shift @_ ;
+    }
+
     return $self->{System};
   }
 
   *severity = \&system;
+  *vehicle = \&system;
 }
 
 =item B<typeText>
@@ -1042,10 +1134,13 @@ A fault can not be modified using this method.
 sub systemText {
   my $self = shift;
 
-  return $INVERSE{$self->category}{SYSTEM}{$self->system}
-    if $self->isNotSafety;
+  return $self->severityText
+    if $self->isSafety;
 
-  return $self->severityText;
+  return $self->vehicleIncidentText
+    if $self->isVehicleIncident;
+
+  return $INVERSE{$self->category}{SYSTEM}{$self->system};
 }
 
 sub severityText {
@@ -1068,6 +1163,11 @@ sub locationText {
   return $INVERSE_PLACE{ $self->location };
 }
 
+sub vehicleIncidentText {
+
+  my $self = shift;
+  return $INVERSE{$self->category}{'VEHICLE'}{$self->vehicle};
+}
 
 =item B<statusText>
 
@@ -1188,6 +1288,11 @@ sub isJCMTEvents {
   return 'jcmt_events' eq lc $self->category;
 }
 
+sub isVehicleIncident {
+
+  my ( $self ) = @_;
+  return 'vehicle_incident' eq lc $self->category;
+}
 =item B<subject>
 
 Short description of the fault that can be easily displayed
