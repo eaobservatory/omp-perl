@@ -429,6 +429,9 @@ my %DATA = (
                         },
             'FACILITY' => {
                             'SYSTEM' => {
+                                          'JCMT'          => JCMT         ,
+                                          'UKIRT'         => UKIRT        ,
+                                          'HP'            => HP           ,
                                           'Toilet'        => TOILET       ,
                                           'Office'        => OFFICE       ,
                                           'Library'       => LIBRARY      ,
