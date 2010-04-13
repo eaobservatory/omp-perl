@@ -53,6 +53,7 @@ use constant WON_T_BE_FIXED => 4;
 use constant DUPLICATE => 5;
 use constant WILL_BE_FIXED => 6;
 use constant SUSPENDED => 7;
+use constant KNOWN_FAULT => 8;
 use constant SUN_SOLARIS => 1000;
 use constant ALPHA_OSF => 1001;
 use constant PC_WINDOWS => 1002;
@@ -596,6 +597,7 @@ my %JCMT_EVENTS_STATUS = ( %JCMT_EVENTS_STATUS_OPEN, %JCMT_EVENTS_STATUS_CLOSED 
 my %VEHICLE_INCIDENT_STATUS_OPEN =
   ( 'Open' => OPEN(),
     'Open - Will be fixed' => WILL_BE_FIXED(),
+    'Known fault' => KNOWN_FAULT(),
   );
 
 my %VEHICLE_INCIDENT_STATUS_CLOSED =
