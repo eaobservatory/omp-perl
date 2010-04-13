@@ -280,8 +280,11 @@ if ( $config->in_test_mode ) {
   undef %MAILLIST;
   for my $name ( @list_name ) {
 
+    my $alt = lc $name;
+    $alt = 'vehicle' if $name eq 'VEHICLE_INCIDENT';
+
     $MAILLIST{ uc $name } =
-      $config->getData( 'test-email-address.' . lc $name );
+      $config->getData( 'test-email-address.' . $alt );
   }
 }
 
