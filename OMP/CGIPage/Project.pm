@@ -1000,16 +1000,6 @@ sub process_project_changes {
   my @msg; # Build up output message
 
   my $err;
-  #try {
-
-  #  push @msg, update_pi( $project, $q->param( 'pi' ) );
-  #}
-  #catch OMP::Error with {
-
-  #  my ( $e ) = @_;
-  #  $err = _print_user_err( $e->text );
-  #};
-
   for my $type ( qw[ pi coi support ] ) {
 
     my $users = $q->param( $type );
