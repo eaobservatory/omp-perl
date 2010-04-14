@@ -977,12 +977,19 @@ sub alter_proj {
 
   print "</table>";
 
-  print "<br>",
+  print q[<p>],
+    $q->checkbox( -name => 'send-mail',
+                  -checked => 0,
+                  -value => 1,
+                  -label => 'Send email about project changes'
+                ),
+    q[</p><p>],
     $q->submit( -name=>"alter_submit",
                 -label=>"Submit",
               ),
     ( '&nbsp;' ) x 4,
     $q->reset,
+    q[</p>],
     $q->end_form();
 }
 
@@ -1131,13 +1138,16 @@ sub process_project_changes {
   # Generate feedback message
 
   # Get OMP user object
-  my $user_obj = OMP::UserServer->getUser($userid);
-  OMP::FBServer->addComment($project->projectid,
-                            {author => $user_obj,
-                              subject => 'Project details altered',
-                              text => "The following changes have been made to this project:\n\n".
-                              join("\n", @msg)},
-                            );
+  if ( $q->param( 'send-mail' ) ) {
+
+    my $user_obj = OMP::UserServer->getUser($userid);
+    OMP::FBServer->addComment($project->projectid,
+                              {author => $user_obj,
+                                subject => 'Project details altered',
+                                text => "The following changes have been made to this project:\n\n".
+                                join("\n", @msg)},
+                              );
+  }
 
   # Now store the changes
   $projdb->_update_project_row( $project );
