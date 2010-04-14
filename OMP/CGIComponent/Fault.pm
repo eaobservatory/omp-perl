@@ -192,13 +192,15 @@ sub fault_table {
 
   my $width = $self->_get_table_width;
   # First show the fault info
+  my $sys_text = _get_system_label( $fault->category );
+
   print "<div class='black'>";
   print $q->startform;
   print "<table width=$width bgcolor=#6161aa cellspacing=1 cellpadding=0 border=0><td><b class='white'>Report by: " . OMP::Display->userhtml($fault->author, $q) . "</b></td>";
   print "<tr><td>";
   print "<table cellpadding=3 cellspacing=0 border=0 width=100%>";
   print "<tr bgcolor=#ffffff><td><b>Date filed: </b>$filedate</td><td><b>"
-    . ( 'safety' ne lc $fault->category ? 'System:' : 'Severity:' )
+    . qq[${sys_text}:]
     . '</b> ' . $fault->systemText . '</td>'
     ;
 
@@ -302,6 +304,7 @@ sub query_fault_form {
   # Get category
   my $category = $self->category;
   my $not_safety = 'safety' ne lc $category;
+  my $sys_label = _get_system_label( $category );
 
   my $systems;
   my $types;
@@ -330,12 +333,18 @@ sub query_fault_form {
 
     %status = ( %status,
                 map { OMP::Fault->$_ }
-                  qw[ faultStatus_Safety faultStatus_JCMTEvents  ]
+                  qw[ faultStatus_Safety faultStatus_JCMTEvents
+                      faultStatus_VehicleIncident
+                    ]
               );
   }
   elsif ( 'jcmt_events' eq lc $category ) {
 
     %status = OMP::Fault->faultStatus_JCMTEvents;
+  }
+  elsif ( 'vehicle_incident' eq lc $category ) {
+
+    %status = OMP::Fault->faultStatus_VehicleIncident;
   }
   elsif ( ! $not_safety ) {
 
@@ -393,7 +402,7 @@ sub query_fault_form {
   print "</b></td><tr><td colspan=2>";
 
   if (! $hidefields) {
-    print '<b>' . ( $not_safety ? 'System' : 'Severity' ) . '</b> ';
+    print '<b>' . $sys_label . '</b> ';
     print $q->popup_menu(-name=>'system',
                          -values=>\@systems,
                          -labels=>\%syslabels,
@@ -619,10 +628,12 @@ sub file_fault_form {
   my $staus_meth =
     'jcmt_events' eq lc $category
     ? 'faultStatus_JCMTEvents'
-    : $not_safety
-      ? 'faultStatus'
-      : 'faultStatus_Safety'
-      ;
+    : 'vehicle_incident' eq lc $category
+      ? 'faultStatus_VehicleIncident'
+      : ! $not_safety
+        ? 'faultStatus_Safety'
+        : 'faultStatus'
+        ;
 
   my %status = OMP::Fault->$staus_meth;
   my @status_values = map {$status{$_}} sort keys %status;
@@ -647,7 +658,16 @@ sub file_fault_form {
     push @system_values, undef;
     push @type_values, undef;
     $type_labels{''} = "Select a type";
-    $system_labels{''} = 'Select a ' . ( $not_safety ? 'system' : 'severity level' );
+
+    my $text =
+      lc $category eq 'vehicle_incident'
+      ? 'vehicle (group)'
+      : ! $not_safety
+        ? 'severity level'
+          : 'system'
+          ;
+
+    $system_labels{''} = qq[Select a $text];
 
     unless ( $not_safety ) {
 
@@ -772,11 +792,11 @@ sub file_fault_form {
     print $q->hidden(-name=>'user_hidden', -default=>$defaults{user});
   }
 
-  print '</td><tr><td align=right><b>',
-    ( $not_safety ? 'System:' : 'Severity:' ),
-    '</b></td><td>';
+  my $sys_label = _get_system_label( $category );
 
-  print $q->popup_menu(-name=> ( $not_safety ? 'system' : 'severity' ),
+  print '</td><tr><td align=right><b>', $sys_label, '</b></td><td>';
+
+  print $q->popup_menu(-name=> lc $sys_label,
                        -values=>\@system_values,
                        -default=>$defaults{system},
                        -labels=>\%system_labels,);
@@ -1278,10 +1298,12 @@ element will appear in a smaller font below the top-bar.
       ? "$cat Reporting"
       : $low_cat eq 'jcmt_events'
         ? 'JCMT Events'
-        : $low_cat ne 'anycat'
-          ? "$cat Faults"
-          : 'All Faults'
-          ;
+        : $low_cat eq 'vehicle_incident'
+          ? 'Vehicle Incident Reporting'
+          : $low_cat ne 'anycat'
+            ? "$cat Faults"
+            : 'All Faults'
+            ;
 
     my $width = $self->_get_table_width;
     print "<table width=$width><tr bgcolor=#babadd><td><font size=+1><b>$toptitle:&nbsp;&nbsp;".$title->[0]."</font></td>";
@@ -1312,14 +1334,18 @@ sub parse_file_fault_form {
                 type => $q->param('type'),
                 status => $q->param('status'));
 
-  if ( 'safety' ne lc $q->param( 'category' ) ) {
-
-    $parsed{'system'} =  $q->param('system');
-  }
-  else {
+  if ( 'safety' eq lc $q->param( 'category' ) ) {
 
     $parsed{'system'} = $parsed{'severity'} =  $q->param('severity');
     $parsed{'location'} =  $q->param('location');
+  }
+  elsif ( 'vehicle_incident' eq lc $q->param( 'category' ) ) {
+
+    $parsed{'system'} = $parsed{'vehicle'} =  $q->param('vehicle');
+  }
+  else {
+
+    $parsed{'system'} =  $q->param('system');
   }
 
   # Determine urgency and condition
@@ -1483,10 +1509,12 @@ sub get_status_labels {
   my %status =
     $fault->isJCMTEvents
     ? OMP::Fault->faultStatus_JCMTEvents
-    : $fault->isNotSafety
-      ? OMP::Fault->faultStatus
-      : OMP::Fault->faultStatus_Safety
-      ;
+    : $fault->isSafety
+      ? OMP::Fault->faultStatus_Safety
+      : $fault->isVehicleIncident
+        ? OMP::Fault->faultStatus_VehicleIncident
+        : OMP::Fault->faultStatus
+        ;
 
   # Pop-up menu labels.
   my %label = map { $status{$_}, $_ } %status;
@@ -1576,6 +1604,20 @@ sub _sort_by_fault_time {
       ),
       ( sort { $a->filedate  <=> $b->filedate  } @file )
     ];
+}
+
+
+sub _get_system_label {
+
+  my ( $cat ) = @_;
+
+  return
+    'safety' eq lc $cat
+    ? 'Severity'
+    : 'vehicle_incident' eq lc $cat
+      ? 'Vehicle'
+      : 'System'
+      ;
 }
 
 =back

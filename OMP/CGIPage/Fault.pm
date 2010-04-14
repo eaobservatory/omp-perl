@@ -178,6 +178,11 @@ sub file_fault_output {
     $params{'Location'} = 'location';
     $params{'Severity'} = 'severity';
   }
+  elsif ( 'vehicle_incident' eq lc $self->_get_param( 'cat' ) ) {
+
+    delete $params{'System'};
+    $params{'Vehicle'} = 'vehicle';
+  }
 
   my @error;
   for (keys %params) {
@@ -293,8 +298,10 @@ sub query_fault_output {
     ? OMP::Fault->faultStatus_Safety
     : 'jcmt_events' eq lc $category
       ? OMP::Fault->faultStatus_JCMTEvents
-      : OMP::Fault->faultStatus
-      ;
+      : 'vehicle_incident' eq lc $category
+        ? OMP::Fault->faultStatus_VehicleIncident
+        : OMP::Fault->faultStatus
+        ;
 
   my $currentxml = "<FaultQuery>".
     $comp->category_xml().
@@ -350,7 +357,8 @@ sub query_fault_output {
         # Do query on all closed statuses
         my %status = ( OMP::Fault->faultStatusClosed,
                         OMP::Fault->faultStatusClosed_Safety,
-                        OMP::Fault->faultStatusClosed_JCMTEvents
+                        OMP::Fault->faultStatusClosed_JCMTEvents,
+                        OMP::Fault->faultStatusClosed_VehicleIncident,
                       );
 
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
@@ -359,7 +367,8 @@ sub query_fault_output {
         # Do a query on all open statuses
         my %status = ( OMP::Fault->faultStatusOpen,
                         OMP::Fault->faultStatusOpen_Safety,
-                        OMP::Fault->faultStatusOpen_JCMTEvents
+                        OMP::Fault->faultStatusOpen_JCMTEvents,
+                        OMP::Fault->faultStatusOpen_VehicleIncident,
                       );
 
         push (@xml, join("",map {"<status>$status{$_}</status>"} %status));
@@ -368,7 +377,8 @@ sub query_fault_output {
         # Do a query on just a single status
         my %status = ( OMP::Fault->faultStatus,
                         OMP::Fault->faultStatus_Safety,
-                        OMP::Fault->faultStatus_JCMTEvents
+                        OMP::Fault->faultStatus_JCMTEvents,
+                        OMP::Fault->faultStatus_VehicleIncident,
                       );
 
         push (@xml, "<status>$status</status>");
@@ -741,7 +751,8 @@ sub view_fault_output {
       my %status =
         ( OMP::Fault->faultStatus(),
           OMP::Fault->faultStatus_Safety,
-          OMP::Fault->faultStatus_JCMTEvents
+          OMP::Fault->faultStatus_JCMTEvents,
+          OMP::Fault->faultStatus_VehicleIncident,
         );
 
       # Change status in fault object
@@ -1464,7 +1475,7 @@ sub _sidebar {
   my $suffix =
     $cat =~ /events/i
     ? ''
-    : 'safety' eq lc $cat
+    : 'safety' eq lc $cat || 'vehicle_incident' eq lc $cat
       ? 'Reporting'
       : 'Faults'
       ;
@@ -1671,7 +1682,10 @@ sub _write_login {
 
 BEGIN {
 
-  my @order = qw[ CSG OMP UKIRT JCMT JCMT_EVENTS DR FACILITY SAFETY ];
+  my @order = qw[ CSG OMP UKIRT JCMT JCMT_EVENTS DR FACILITY SAFETY
+                  VEHICLE_INCIDENT
+                ];
+
   push @order, 'ANYCAT';
 
   my %long_text =
@@ -1683,6 +1697,7 @@ BEGIN {
       'DR'       => 'data reduction systems',
       'FACILITY' => 'facilities',
       'SAFETY'   => 'safety',
+      'VEHICLE_INCIDENT' => 'vehicle incident',
       'ANYCAT'   => 'all categories',
     );
 
@@ -1691,7 +1706,9 @@ BEGIN {
     my %links;
     for my $type ( @order ) {
 
-      next if grep { $type eq $_ } ( 'SAFETY', 'JCMT_EVENTS' );
+      next
+        if grep { $type eq $_ }
+            ( 'SAFETY', 'JCMT_EVENTS', 'VEHICLE_INCIDENT' );
 
       $links{ $type } =
         { 'url'   => "queryfault.pl?cat=$type",
@@ -1712,6 +1729,11 @@ BEGIN {
         'extra' => 'event logging for JCMT'
       };
 
+    $links{'VEHICLE_INCIDENT'} =
+      { 'url'   => 'queryfault.pl?cat=VEHICLE_INCIDENT',
+        'text'  => 'Vehicle Incident Reporting',
+        'extra' => 'vehicle incident issues'
+      };
     #  Fine tune 'ANYCAT' description.
     $links{'ANYCAT'}->{'extra'} = 'faults in all categories';
 
