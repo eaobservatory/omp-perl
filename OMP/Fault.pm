@@ -232,19 +232,29 @@ use constant {
 use constant VEHICLE_I_R => 6500;
 use constant {
 
-  VEHICLE_1_7  => VEHICLE_I_R() + 1,
-  VEHICLE_9_11 => VEHICLE_I_R() + 2,
-  VEHICLE_13   => VEHICLE_I_R() + 3,
-  VEHICLE_14   => VEHICLE_I_R() + 4,
+  VEHICLE_01 => VEHICLE_I_R() +  1,
+  VEHICLE_02 => VEHICLE_I_R() +  2,
+  VEHICLE_03 => VEHICLE_I_R() +  3,
+  VEHICLE_04 => VEHICLE_I_R() +  4,
+  VEHICLE_05 => VEHICLE_I_R() +  5,
+  VEHICLE_06 => VEHICLE_I_R() +  6,
+  VEHICLE_07 => VEHICLE_I_R() +  7,
+  VEHICLE_08 => VEHICLE_I_R() +  8,
+  VEHICLE_09 => VEHICLE_I_R() +  9,
+  VEHICLE_10 => VEHICLE_I_R() + 10,
+  VEHICLE_11 => VEHICLE_I_R() + 11,
+  VEHICLE_12 => VEHICLE_I_R() + 12,
+  VEHICLE_13 => VEHICLE_I_R() + 13,
+  VEHICLE_14 => VEHICLE_I_R() + 14,
 };
 
 # VIR Type.
 use constant {
 
-  ENGINE         => VEHICLE_I_R() + 20,
-  TIRES          => VEHICLE_I_R() + 21,
-  VEHICHLE_LIGHTS => VEHICLE_I_R() + 22,
-  VEHICLE_WARNING_LIGHTS  => VEHICLE_I_R() + 23,
+  ENGINE         => VEHICLE_I_R() + 30,
+  TIRES          => VEHICLE_I_R() + 31,
+  VEHICHLE_LIGHTS => VEHICLE_I_R() + 32,
+  VEHICLE_WARNING_LIGHTS  => VEHICLE_I_R() + 33,
   # OTHER is covered by TYPEOTHER() set elsewhere.
 };
 
@@ -486,10 +496,18 @@ my %DATA = (
             'VEHICLE_INCIDENT' => {
                             # 'VEHICLE' is same as 'SYSTEM'.
                             'VEHICLE' => {
-                                            'Vehicle 1 - 7' => VEHICLE_1_7(),
-                                            'Vehicle 9 - 11' => VEHICLE_9_11(),
-                                            'Vehicle 13' => VEHICLE_13(),
-                                            'Vehicle 14' => VEHICLE_14(),
+                                            '1'  => VEHICLE_01(),
+                                            '2'  => VEHICLE_02(),
+                                            '3'  => VEHICLE_03(),
+                                            '4'  => VEHICLE_04(),
+                                            '5'  => VEHICLE_05(),
+                                            '6'  => VEHICLE_06(),
+                                            '7'  => VEHICLE_07(),
+                                            '9'  => VEHICLE_09(),
+                                            '10' => VEHICLE_10(),
+                                            '11' => VEHICLE_11(),
+                                            '13' => VEHICLE_13(),
+                                            '14' => VEHICLE_14(),
                                           },
                             'TYPE' => {
                                           'Engine' => ENGINE(),
