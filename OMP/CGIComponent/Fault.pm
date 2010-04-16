@@ -303,7 +303,6 @@ sub query_fault_form {
 
   # Get category
   my $category = $self->category;
-  my $not_safety = 'safety' ne lc $category;
   my $sys_label = _get_system_label( $category );
 
   my $systems;
@@ -327,33 +326,16 @@ sub query_fault_form {
     $typelabels{any} = 'Any';
   }
 
-  my %status = OMP::Fault->faultStatus;
-
-  if ( 'anycat' eq lc $category ) {
-
-    %status = ( %status,
-                map { OMP::Fault->$_ }
-                  qw[ faultStatus_Safety faultStatus_JCMTEvents
-                      faultStatus_VehicleIncident
-                    ]
-              );
-  }
-  elsif ( 'jcmt_events' eq lc $category ) {
-
-    %status = OMP::Fault->faultStatus_JCMTEvents;
-  }
-  elsif ( 'vehicle_incident' eq lc $category ) {
-
-    %status = OMP::Fault->faultStatus_VehicleIncident;
-  }
-  elsif ( ! $not_safety ) {
-
-    %status = OMP::Fault->faultStatus_Safety;
+  my ( %status, %statuslabels );
+  {
+    my ( $labels, $status ) = _get_status_labels_by_name( $category );
+    %status = %{ $status };
+    %statuslabels = %{ $labels };
   }
 
   my @status = map {$status{$_}} sort keys %status;
   unshift( @status, "any", "all_open", "all_closed");
-  my %statuslabels = map {$status{$_}, $_} %status;
+
   $statuslabels{any} = 'Any';
   $statuslabels{all_open} = 'All open';
   $statuslabels{all_closed} = 'All closed';
@@ -404,7 +386,7 @@ sub query_fault_form {
   if (! $hidefields) {
     print '<b>' . $sys_label . '</b> ';
     print $q->popup_menu(-name=>'system',
-                         -values=>\@systems,
+                         -values=> [ _sort_values( \@systems, $category ) ],
                          -labels=>\%syslabels,
                          -default=>'any',);
     print " <b>Type</b> ";
@@ -613,35 +595,31 @@ sub file_fault_form {
   my $formkey = OMP::KeyServer->genKey;
 
   my $category = $self->category;
-  my $not_safety = lc $category ne 'safety';
+  my $is_safety = _is_safety( $category );
 
   # Create values and labels for the popup_menus
   my $systems = OMP::Fault->faultSystems( $category );
-  my @system_values = map {$systems->{$_}} sort keys %$systems;
-  my %system_labels = map {$systems->{$_}, $_} keys %$systems;
+  my @sys_key = keys %$systems;
+  my @system_values = _sort_values( \@sys_key, $category );
+
+  my %system_labels = map {$systems->{$_}, $_} @sys_key;
 
   my $types = OMP::Fault->faultTypes($category);
   my @type_values = map {$types->{$_}} sort keys %$types;
   my %type_labels = map {$types->{$_}, $_} keys %$types;
 
-  # Get available statuses
-  my $staus_meth =
-    'jcmt_events' eq lc $category
-    ? 'faultStatus_JCMTEvents'
-    : 'vehicle_incident' eq lc $category
-      ? 'faultStatus_VehicleIncident'
-      : ! $not_safety
-        ? 'faultStatus_Safety'
-        : 'faultStatus'
-        ;
+  my ( %status, %status_labels );
+  {
+    my ( $labels, $status ) = _get_status_labels_by_name( $category );
+    %status = %{ $status };
+    %status_labels = %{ $labels };
+  }
 
-  my %status = OMP::Fault->$staus_meth;
   my @status_values = map {$status{$_}} sort keys %status;
-  my %status_labels = map {$status{$_}, $_} %status;
 
   # Location (for "Safety" category).
   my ( @place_values, %place_labels );
-  unless ( $not_safety ) {
+  if ( $is_safety ) {
 
     my %places = OMP::Fault->faultLocation_Safety;
 
@@ -660,16 +638,16 @@ sub file_fault_form {
     $type_labels{''} = "Select a type";
 
     my $text =
-      lc $category eq 'vehicle_incident'
-      ? 'vehicle (group)'
-      : ! $not_safety
+      _is_vehicle_incident( $category )
+      ? 'vehicle'
+      : $is_safety
         ? 'severity level'
           : 'system'
           ;
 
     $system_labels{''} = qq[Select a $text];
 
-    unless ( $not_safety ) {
+    if ( $is_safety ) {
 
       push @place_values, undef;
       $place_labels{''} = 'Select a location';
@@ -686,7 +664,7 @@ sub file_fault_form {
                  system => '',
                  type => '',
                  location => '',
-                 status => $not_safety ? $status{Open} : $status{'Follow up required'},
+                 status => ! $is_safety ? $status{Open} : $status{'Follow up required'},
                  loss => undef,
                  time => undef,
                  tz => 'HST',
@@ -808,15 +786,15 @@ sub file_fault_form {
 
   unless ($fault) {
 
-   unless ( $not_safety ) {
+    if ( $is_safety ) {
 
-    print '</td><tr><td align="right"><b>Location:</b></td><td>',
+        print '</td><tr><td align="right"><b>Location:</b></td><td>',
           $q->popup_menu( '-name'    => 'location',
                           '-values'  => \@place_values,
                           '-default' => $defaults{'location'},
                           '-labels'  => \%place_labels,
                         );
-   }
+    }
 
     print "</td><tr><td align=right><b>Status:</b></td><td>";
     print $q->popup_menu(-name=>'status',
@@ -1291,16 +1269,15 @@ element will appear in a smaller font below the top-bar.
     my $script = $q->url(-relative=>1);
 
     my $cat = $self->category;
-    my $low_cat = lc $cat;
 
     my $toptitle =
-      $low_cat eq 'safety'
+      _is_safety( $cat )
       ? "$cat Reporting"
-      : $low_cat eq 'jcmt_events'
+      : _is_jcmt_events( $cat )
         ? 'JCMT Events'
-        : $low_cat eq 'vehicle_incident'
+        : _is_vehicle_incident( $cat )
           ? 'Vehicle Incident Reporting'
-          : $low_cat ne 'anycat'
+          : lc $cat ne 'anycat'
             ? "$cat Faults"
             : 'All Faults'
             ;
@@ -1330,16 +1307,18 @@ sub parse_file_fault_form {
   my $self = shift;
   my $q = $self->cgi;
 
+  my $category = $q->param( 'category' );
+
   my %parsed = (subject => $q->param('subject'),
                 type => $q->param('type'),
                 status => $q->param('status'));
 
-  if ( 'safety' eq lc $q->param( 'category' ) ) {
+  if ( _is_safety( $category ) ) {
 
     $parsed{'system'} = $parsed{'severity'} =  $q->param('severity');
     $parsed{'location'} =  $q->param('location');
   }
-  elsif ( 'vehicle_incident' eq lc $q->param( 'category' ) ) {
+  elsif ( _is_vehicle_incident( $category ) ) {
 
     $parsed{'system'} = $parsed{'vehicle'} =  $q->param('vehicle');
   }
@@ -1495,10 +1474,10 @@ sub category_xml {
 
 =item B<get_status_labels>
 
-Given L<OMP::Fault> objects, returns a list of an array reference
-value, and a hash reference of labels for HTML selection menu.
+Given a L<OMP::Fault> object, returns a a hash reference of labels for HTML
+selection menu, and list of an array reference value
 
- ( $status, $labels ) = $comp->get_status_labels( $fault );
+ ( $labels, $status ) = $comp->get_status_labels( $fault );
 
 =cut
 
@@ -1549,6 +1528,47 @@ Set the table width parameter value
     my $self = shift;
     $TABLEWIDTH = shift;
   }
+}
+
+=item B<_get_status_labels_by_name>
+
+Given a fault category name, returns a hash reference (status values as keys,
+names as values for HTML selection list) and a hash reference of status (reverse
+of first argument).  All of the status types are returned for category of
+C<ANYCAT>.  (It is somehwhat similar to I<get_status_labels>.)
+
+  ( $labels, $status_values ) = _get_status_labels_by_name( 'OMP' );
+
+=cut
+
+sub _get_status_labels_by_name {
+
+  my ( $cat ) = @_;
+
+  $cat = lc $cat;
+
+  my $default = '_default_';
+  my %method =
+    ( $default => 'faultStatus',
+      'safety' => 'faultStatus_Safety',
+      'jcmt_events' => 'faultStatus_JCMTEvents',
+      'vehicle_incident' => 'faultStatus_VehicleIncident',
+    );
+
+  my %status;
+  if ( $cat =~ m/^any/i  ) {
+
+    %status = map { OMP::Fault->$_() } values %method;
+  }
+  else {
+
+    my $method = $method{ exists $method{ $cat } ? $cat : $default };
+    %status = OMP::Fault->$method();
+  }
+
+  my $labels = { map {$status{$_}, $_} %status };
+
+  return ( $labels, \%status );
 }
 
 =item B<_sort_by_fault_time>
@@ -1612,12 +1632,55 @@ sub _get_system_label {
   my ( $cat ) = @_;
 
   return
-    'safety' eq lc $cat
+    _is_safety( $cat )
     ? 'Severity'
-    : 'vehicle_incident' eq lc $cat
+    : _is_vehicle_incident( $cat )
       ? 'Vehicle'
       : 'System'
       ;
+}
+
+sub _sort_values {
+
+  my ( $in, $cat, $mode ) = @_;
+
+  unless ( $cat ) {
+
+    $mode = 'alpha'
+      unless scalar grep( $mode eq $_, qw[ num alphanum ] );
+  }
+  elsif ( _is_vehicle_incident( $cat ) ) {
+
+    $mode = 'num';
+  }
+
+  my $sort =
+    $mode eq 'num'
+    ? sub { $a <=> $b }
+    : $mode eq 'alphanum'
+      ? sub { $a <=> $b || $a cmp $b }
+      : sub { $a cmp $b }
+      ;
+
+  return sort $sort @{ $in }
+}
+
+sub _is_safety {
+
+  my ( $cat ) = @_;
+  return 'safety' eq lc $cat
+}
+
+sub _is_jcmt_events {
+
+  my ( $cat ) = @_;
+  return 'jcmt_events' eq lc $cat
+}
+
+sub _is_vehicle_incident {
+
+  my ( $cat ) = @_;
+  return 'vehicle_incident' eq lc $cat
 }
 
 =back
