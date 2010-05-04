@@ -386,7 +386,7 @@ sub query_fault_form {
   if (! $hidefields) {
     print '<b>' . $sys_label . '</b> ';
     print $q->popup_menu(-name=>'system',
-                         -values=> [ _sort_values( \@systems, $category ) ],
+                         -values=> [ _sort_values( \@systems, $systems, $category ) ],
                          -labels=>\%syslabels,
                          -default=>'any',);
     print " <b>Type</b> ";
@@ -600,7 +600,7 @@ sub file_fault_form {
   # Create values and labels for the popup_menus
   my $systems = OMP::Fault->faultSystems( $category );
   my @sys_key = keys %$systems;
-  my @system_values = _sort_values( \@sys_key, $category );
+  my @system_values = _sort_values( \@sys_key, $systems, $category );
 
   my %system_labels = map {$systems->{$_}, $_} @sys_key;
 
@@ -1642,7 +1642,7 @@ sub _get_system_label {
 
 sub _sort_values {
 
-  my ( $in, $cat, $mode ) = @_;
+  my ( $keys, $sys, $cat, $mode ) = @_;
 
   unless ( $cat ) {
 
@@ -1662,7 +1662,7 @@ sub _sort_values {
       : sub { $a cmp $b }
       ;
 
-  return sort $sort @{ $in }
+  return map { $sys->{ $_ } } sort $sort @{ $keys };
 }
 
 sub _is_safety {
