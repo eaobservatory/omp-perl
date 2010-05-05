@@ -386,7 +386,7 @@ sub query_fault_form {
   if (! $hidefields) {
     print '<b>' . $sys_label . '</b> ';
     print $q->popup_menu(-name=>'system',
-                         -values=> [ _sort_values( \@systems, $systems, $category ) ],
+                         -values=> \@systems,
                          -labels=>\%syslabels,
                          -default=>'any',);
     print " <b>Type</b> ";
