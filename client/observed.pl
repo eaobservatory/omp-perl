@@ -89,10 +89,10 @@ use Time::Piece;
 # Options
 my ($help, $man, $debug, $yesterday);
 my $optstatus = GetOptions("help" => \$help,
-			   "man" => \$man,
-			   "debug" => \$debug,
-			   "yesterday" => \$yesterday,
-			  );
+                           "man" => \$man,
+                           "debug" => \$debug,
+                           "yesterday" => \$yesterday,
+                          );
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -116,8 +116,8 @@ if (!$utdate) {
 
 # Get the list of MSBs
 my $done = OMP::MSBServer->observedMSBs( {date => $utdate,
-					  returnall => 0,
-					  format => 'data'} );
+                                          returnall => 0,
+                                          format => 'data'} );
 
 # Now sort by project ID
 my %sorted;
@@ -160,7 +160,7 @@ for my $proj (keys %sorted) {
 
   # Decide whether to show MSB targets or MSB name
   my $display_msb_name = OMP::Config->getData( 'msbtabdisplayname',
-					       telescope => $proj_details->telescope,);
+                                               telescope => $proj_details->telescope,);
   my $alt_msb_column = ($display_msb_name ? 'Name' : 'Target');
 
   $msg .= "MSB Summary\n-----------\n\n";
@@ -178,9 +178,9 @@ for my $proj (keys %sorted) {
     # This will be problematic if the format is modified
     $msg .= sprintf "$fmt\n",
       $proj,$msbid->nrepeats,
-	substr(($display_msb_name ? $msbid->title : $msbid->target),0,20),
-	  substr($msbid->instrument,0,20),
-	    substr($msbid->waveband,0,10);
+        substr(($display_msb_name ? $msbid->title : $msbid->target),0,20),
+          substr($msbid->instrument,0,20),
+            substr($msbid->waveband,0,10);
   }
 
   # Attach shift log
@@ -190,8 +190,8 @@ for my $proj (keys %sorted) {
 
     my $squery_xml = "<ShiftQuery>".
       "<date delta=\"1\">". $utdate ."</date>".
-	"<telescope>". $proj_details->telescope ."</telescope>".
-	  "</ShiftQuery>";
+        "<telescope>". $proj_details->telescope ."</telescope>".
+          "</ShiftQuery>";
 
     my $query = new OMP::ShiftQuery( XML => $squery_xml );
 
@@ -232,8 +232,8 @@ for my $proj (keys %sorted) {
 
   # Attach observation log
   my $grp = new OMP::Info::ObsGroup(projectid => $proj,
-				    date => $utdate,
-				    inccal => 0,);
+                                    date => $utdate,
+                                    inccal => 0,);
 
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
 
@@ -262,17 +262,17 @@ for my $proj (keys %sorted) {
 
     # Provide a feedback comment informing project users that data has been obtained
     OMP::FBServer->addComment(
-			      $proj,
-			      {
-			       author => undef, # this is done by cron
-			       subject => "Data obtained for project on ". $utdate->ymd,
-			       program => "observed.pl",
-			       sourceinfo => $host,
-			       status => $status,
-#			       text => "$fixed_text<pre>\n$msg\n</pre>\n",
-			       text => "$fixed_text\n",
-			      }
-			     );
+                              $proj,
+                              {
+                               author => undef, # this is done by cron
+                               subject => "Data obtained for project on ". $utdate->ymd,
+                               program => "observed.pl",
+                               sourceinfo => $host,
+                               status => $status,
+#                              text => "$fixed_text<pre>\n$msg\n</pre>\n",
+                               text => "$fixed_text\n",
+                              }
+                             );
 
     # Email the detailed log to the project users
 
@@ -284,10 +284,10 @@ for my $proj (keys %sorted) {
     my $flexuser = OMP::User->new(email=>'flex@jach.hawaii.edu');
 
     $basedb->_mail_information( to => \@contacts,
-				from => $flexuser,
-				subject => "[$proj] Project log for $utdate",
-				message => "$msg\n",
-			      );
+                                from => $flexuser,
+                                subject => "[$proj] Project log for $utdate",
+                                message => "$msg\n",
+                              );
 
  }
 
