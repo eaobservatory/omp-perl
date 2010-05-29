@@ -380,10 +380,17 @@ sub queryArc {
 
   my @results;
 
-  $self->set_search_criteria( ref $search ? %{ $search } : (),
-                              'telescope' => $tel,
-                             )
-    unless $self->use_existing_criteria();
+  unless ( $self->use_existing_criteria() ) {
+
+    $self->set_search_criteria( ref $search ? %{ $search } : (),
+                                'telescope' => $tel,
+                              );
+
+    # Undo database lookup avoidance as old data will certainly be in database,
+    # but possibly missing from disk.
+    $SkipDBLookup = 0
+      unless $istoday ;
+  }
 
   # First go to the database if we're looking for things that are
   # older than three days and we've been told not to skip the DB
