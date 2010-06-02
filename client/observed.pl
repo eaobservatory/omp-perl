@@ -72,7 +72,7 @@ use lib "$FindBin::RealBin/..";
 # Load the servers (but use them locally without SOAP)
 use OMP::BaseDB;
 use OMP::Config;
-use OMP::Constants qw(:fb);
+use OMP::Constants qw(:fb :logging );
 use OMP::DBbackend;
 use OMP::FBServer;
 use OMP::General;
@@ -115,9 +115,14 @@ if (!$utdate) {
 }
 
 # Get the list of MSBs
+
+_log_message( qq[Getting MSBs for $utdate] );
+
 my $done = OMP::MSBServer->observedMSBs( {date => $utdate,
                                           returnall => 0,
                                           format => 'data'} );
+
+_log_err( $! );
 
 # Now sort by project ID
 my %sorted;
@@ -146,7 +151,12 @@ for my $proj (keys %sorted) {
   my $msg;
 
   # Get project object
+
+  _log_message( qq[Getting project details for $proj] );
+
   my $proj_details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
+
+  _log_err( $! );
 
   # Include project completion stats
   $msg .= "Your project [". uc($proj) ."] is now ";
@@ -195,7 +205,11 @@ for my $proj (keys %sorted) {
 
     my $query = new OMP::ShiftQuery( XML => $squery_xml );
 
+    _log_message( qq[Getting shift log for $utdate ] . $proj_details->telescope );
+
     @{$shiftlog{$proj_details->telescope}} = $sdb->getShiftLogs( $query );
+
+    _log_err( $! );
 
     # TEMPORARY FIX FOR GARBLED NIGHTREP
     # Strip HTML from comments
@@ -231,9 +245,14 @@ for my $proj (keys %sorted) {
   }
 
   # Attach observation log
+
+  _log_message( qq[Making obs group for $proj & $utdate] );
+
   my $grp = new OMP::Info::ObsGroup(projectid => $proj,
                                     date => $utdate,
                                     inccal => 0,);
+
+  _log_err( $! );
 
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
 
@@ -261,6 +280,9 @@ for my $proj (keys %sorted) {
     }
 
     # Provide a feedback comment informing project users that data has been obtained
+
+    _log_message( qq[Adding comment for $proj (host: $host, status: $status)] );
+
     OMP::FBServer->addComment(
                               $proj,
                               {
@@ -274,6 +296,8 @@ for my $proj (keys %sorted) {
                               }
                              );
 
+    _log_err( $! );
+
     # Email the detailed log to the project users
 
     # Get project contacts
@@ -283,14 +307,39 @@ for my $proj (keys %sorted) {
 
     my $flexuser = OMP::User->new(email=>'flex@jach.hawaii.edu');
 
+    _log_message( qq[Sending email for $proj, $utdate] );
+
     $basedb->_mail_information( to => \@contacts,
                                 from => $flexuser,
                                 subject => "[$proj] Project log for $utdate",
                                 message => "$msg\n",
                               );
 
+    _log_err( $! );
  }
 
+}
+
+sub _log_message {
+
+  my ( $text ) = @_;
+
+  OMP::General->log_message( qq[observed: $text], OMP__LOG_INFO );
+  return;
+}
+
+sub _log_err {
+
+  my ( @e ) = @_;
+
+  @e = grep { defined $_ } @e;
+
+  return unless scalar @e;
+
+  OMP::General->log_message( qq[observed: Possible errors: ] . join( "\n" , @e ),
+                             OMP__LOG_ERROR
+                            );
+  return;
 }
 
 
