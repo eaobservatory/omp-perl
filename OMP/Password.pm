@@ -279,23 +279,7 @@ sub verify_administrator_password {
   # At some point we'll pick this up from somewhere else.
   my $admin = OMP::Config->getData("password.admin");
 
-  # Encrypt the supplied password using the admin password as salt
-  # unless the supplied password is undefined
-  my $encrypted = ( defined $password ? crypt($password, $admin) : "fail" );
-
-  # A bit simplistic at the present time
-  my $status;
-  if ($encrypted eq $admin) {
-    $status = 1;
-  } else {
-    # Throw an exception if required
-    if ($retval) {
-      $status = 0;
-    } else {
-      throw OMP::Error::Authentication("Failed to match administrator password\n");
-    }
-  }
-  return $status;
+  return $self->_verify_password( $password, $admin, $retval, "Failed to match administrator password" );
 }
 
 =pod
@@ -339,22 +323,7 @@ sub verify_staff_password {
   # At some point we'll pick this up from somewhere else.
   my $admin = OMP::Config->getData("password.staff");
 
-  # Encrypt the supplied password using the staff password as salt
-  # unless the supplied password is undefined
-  my $encrypted = ( defined $password ? crypt($password, $admin) : "fail" );
-
-  # A bit simplistic at the present time
-  if ($encrypted eq $admin) {
-    $status = 1;
-  } else {
-    # Throw an exception if required
-    if ($retval) {
-      $status = 0;
-    } else {
-      throw OMP::Error::Authentication("Failed to match staff password\n");
-    }
-  }
-  return $status;
+  return $self->_verify_password( $password, $admin, $retval, "Failed to match staff password" );
 }
 
 =pod
@@ -395,43 +364,100 @@ sub verify_queman_password {
   # Else try against the queue password
   return $status if $status;
 
-  # rather than throwing conditional exceptions with complicated
-  # repeating if statements just paper over the cracks until the
-  # final failure triggers the throwing of exceptions
-  $queue = "UNKNOWN" unless $queue;
-  $queue = uc($queue);
+  # if we do not have an input password we abort
+  return $self->_handle_bad_status( $retval, "No queue defined for queue manager verification" )
+    if !defined $queue;
 
-  # The encrypted passwords
-  # At some point we'll pick this up from somewhere else.
-  my %passwords = (
-                   UH => OMP::Config->getData("password.uh"),
-                   CA => OMP::Config->getData("password.ca"),
-                  );
+  # Assume that the queue password is in the config file
+  # indexed by the queue name. This will generate an exception
+  # if the queue password is not available so we trap that because
+  # we don't require that every queue has a queue manager password
+  my $admin;
+  try {
+    $admin = OMP::Config->getData( "password." . lc($queue) );
+  } catch OMP::Error::BadCfgKey with {
+    return $self->_handle_bad_status( $retval, "No queue manager password defined for queue $queue" );
+  };
 
-  my $admin = (exists $passwords{$queue} ? $passwords{$queue} : "noadmin");
-
-  # Encrypt the supplied password using the queue password as salt
-  # unless the supplied password is undefined
-  my $encrypted = ( defined $password ? crypt($password, $admin)
-                    : "fail" );
-
-  # A bit simplistic at the present time
-  if ($encrypted eq $admin) {
-    $status = 1;
-  } else {
-    # Throw an exception if required
-    if ($retval) {
-      $status = 0;
-    } else {
-      throw OMP::Error::Authentication("Failed to match queue manager password for queue '$queue'\n");
-    }
-  }
-  return $status;
+  return $self->_verify_password( $password, $admin, $retval, "Failed to match password for queue $queue" );
 }
 
-=pod
+=back
+
+=begin __INTERNAL
+
+=head2 Verification Support Routines
+
+=over 4
+
+=item B<_verify_password>
+
+Given a plain text value and an encrypted value, see if they
+are equivalent and act accordingly.
+
+  $isokay = $class->_verify_password( $plain, $encrypted, $retval );
+
+where the third argument indicates whether a return value is required
+or not. If false an OMP::Error::Authentication exception is thrown
+rather than returning a boolen. An optional 4th argument contains
+the error message that will be included in the exception and is
+only used if $retval is false.
+
+  $isokay = $class->_verify_password( $plain, $encrypted, $retval,
+                    $errtext );
+
+=cut
+
+sub _verify_password {
+  my $class = shift;
+  my $password = shift;
+  my $reference = shift;
+  my $retval = shift;
+  my $errtext = shift;
+
+  # Encrypt the supplied password using the encrypted password as salt
+  # unless the supplied password is undefined
+  my $encrypted = ( defined $password ? crypt($password, $reference) : "fail" );
+
+  # A bit simplistic at the present time
+  if ($encrypted eq $reference) {
+    return 1; # everything is good
+  } else {
+    return $class->_handle_bad_status( $retval, $errtext );
+  }
+}
+
+=item B<_handle_bad_status>
+
+Determines whether an exception or bad status should be returned
+based on the "use_retval" argument. If use_retval is true the
+return value will be returned (always a false values) else you
+will get the exception.
+
+  return $class->_handle_bad_status( $use_retval, $errtext );
+
+$errtext is the error message if an exception is required.
+
+=cut
+
+sub _handle_bad_status {
+  my $class = shift;
+  my $retval = shift;
+  my $user_errtext = shift;
+
+  # Throw an exception if required
+  if (!$retval) {
+    my $errtext = ( defined $user_errtext ? $user_errtext :
+                    "Failed to authenticate supplied password");
+    chomp $errtext;
+    throw OMP::Error::Authentication( $errtext . "\n" );
+  }
+  return 0;
+}
 
 =back
+
+=end __INTERNAL
 
 =head1 AUTHORS
 
@@ -441,7 +467,7 @@ Anubhav A. E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007 Science and Technology Facilities Council.
+Copyright (C) 2007, 2010 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
