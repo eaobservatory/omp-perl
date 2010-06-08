@@ -305,6 +305,10 @@ Always fails if the supplied password is undefined.
 The password is always compared with the administrator password
 first.
 
+The password is verified by both looking at the "password.staff"
+config file entry (done first) and also the "password.external"
+config file entry.
+
 =cut
 
 sub verify_staff_password {
@@ -321,9 +325,16 @@ sub verify_staff_password {
 
   # The encrypted staff password
   # At some point we'll pick this up from somewhere else.
-  my $admin = OMP::Config->getData("password.staff");
+  my @trials = ( OMP::Config->getData("password.staff") );
 
-  return $self->_verify_password( $password, $admin, $retval, "Failed to match staff password" );
+  # we may not have an external available
+  try {
+    push(@trials, OMP::Config->getData("password.external"));
+  } catch OMP::Error::BadCfgKey with {
+    # do not worry about a lack of external
+  };
+
+  return $self->_verify_password( $password, \@trials, $retval, "Failed to match staff password" );
 }
 
 =pod
@@ -415,12 +426,22 @@ sub _verify_password {
   my $retval = shift;
   my $errtext = shift;
 
-  # Encrypt the supplied password using the encrypted password as salt
-  # unless the supplied password is undefined
-  my $encrypted = ( defined $password ? crypt($password, $reference) : "fail" );
+  # The reference enrypted passwords can be an array reference so unpack here
+  my @to_compare = ( ref($reference) ? @$reference : $reference );
 
-  # A bit simplistic at the present time
-  if ($encrypted eq $reference) {
+  my $matches = 0;
+  for my $trial (@to_compare) {
+    # Encrypt the supplied password using the encrypted password as salt
+    # unless the supplied password is undefined
+    my $encrypted = ( defined $password ? crypt($password, $trial) : "fail" );
+    if ($encrypted eq $trial) {
+      $matches = 1;
+      last;
+    }
+  }
+
+  # handle what to do if we did or did not match
+  if ($matches) {
     return 1; # everything is good
   } else {
     return $class->_handle_bad_status( $retval, $errtext );
