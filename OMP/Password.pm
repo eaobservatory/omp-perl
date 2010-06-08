@@ -67,7 +67,7 @@ There are no instance methods, only class (static) methods.
 
 =item B<get_password>
 
-A wrapper around L<&Term::ReadLine::readline> function to ask for
+A wrapper around L<Term::ReadLine/"readline"> function to ask for
 password; the prompt may be highlighted with underline.
 
 It takes an optional hash reference to set behaviour, and returns the
