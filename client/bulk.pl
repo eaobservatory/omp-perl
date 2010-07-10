@@ -159,8 +159,18 @@ OMP::Password->verify_staff_password($passwd);
 
 # Get the projects
 open(my $proj_fh, '<', $projectsfile) or die ("Couldn't open file [$projectsfile]: $!\n");
-my @projects = <$proj_fh>; # Slurrrrp!
+
+my @projects;
+while ( my $id = <$proj_fh> ) {
+
+  next
+    if $id =~ m/^\s*#/
+    or $id =~ m/^\s*$/;
+
+  push @projects, $id;
+}
 chomp(@projects);
+
 close($proj_fh);
 
 # Verify that the projects exist
