@@ -121,11 +121,13 @@ $msbtitles{'CAL'} = "Calibration";
 my $id;
 
 my ( %opt, $help, $man, $version );
-my $status = GetOptions("ut=s" => \$opt{ut},
+my $status = GetOptions("ut=s"  => \$opt{ut},
                         "tel=s" => \$opt{tel},
+
                         "db|database" => \$opt{database},
-                        "help" => \$help,
-                        "man" => \$man,
+
+                        "help"    => \$help,
+                        "man"     => \$man,
                         "version" => \$version,
                        )
                 or pod2usage(1);
