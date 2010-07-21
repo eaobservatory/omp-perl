@@ -1377,10 +1377,8 @@ sub remove_comment {
 
   $db->removeComment( $self, $userid );
 
-  my @obs;
-  push @obs, $self;
-
-  @obs = $db->updateObsComment( \@obs );
+  # Reread all remaining comments (inefficient but reliable)
+  $db->updateObsComment( [ $self ] );
 
 }
 

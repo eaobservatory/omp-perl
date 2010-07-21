@@ -399,16 +399,12 @@ sub updateObsComment {
     push @{$commhash{$comment->obsid}}, $comment;
   }
 
-  my @finalobs;
-
   foreach my $obs ( @$obs_arrayref ) {
     if( exists( $commhash{$obs->obsid} ) ) {
       $obs->comments( $commhash{$obs->obsid} );
     }
-    push @finalobs, $obs;
   }
 
-  return @finalobs;
 }
 
 =back
