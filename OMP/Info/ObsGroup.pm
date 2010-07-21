@@ -87,7 +87,6 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
   my %args = @_;
-
   my $grp = bless {
                    ObsArray => [],
                   }, $class;
@@ -632,12 +631,10 @@ Ensure that the comments stored in the observations are up-to-date.
 
 sub commentScan {
   my $self = shift;
-  my $obs = $self->obs;
-
   # Add the comments.
   my $odb = new OMP::ObslogDB( DB => new OMP::DBbackend );
-  my @newobs = $odb->updateObsComment( $obs );
-  $self->obs( \@newobs );
+  $odb->updateObsComment( scalar $self->obs );
+  return;
 }
 
 =item B<projectStats>
