@@ -364,6 +364,37 @@ sub mail_date {
   return $string;
 }
 
+=item B<determine_night_length>
+
+Given the start and end times for the night defined in the "freetimeut"
+config parameter, return the nominal length of the night as a
+Time::Seconds object.
+
+  $length = OMP::General->determine_nigt_length( date => $date,
+                                                 tel => 'JCMT' );
+
+Both arguments are mandatory. The date object is used for sunset/sunrise
+times if required.
+
+=cut
+
+sub determine_night_length {
+  my $class = shift;
+  my %args = @_;
+
+  throw OMP::Error::BadArgs("A telescope must be supplied else we can not determine the valid observing times")
+    unless exists $args{tel};
+
+  # key is different in api
+  $args{start} = $args{date};
+
+  # Get the range for this date
+  my ($min, $max) = $class->_get_freeut_range( %args );
+
+  return scalar ($max - $min );
+
+}
+
 =item B<determine_extended>
 
 Given a start and end time, or a start time and duration, return
@@ -438,19 +469,7 @@ sub determine_extended {
         exists $args{duration} && defined $args{duration};
 
   # Now we need to get the valid ranges
-  # We assume that the UT date matches that of the start and end times
-  # For testing we allow an override so that we do not have to test
-  # the Config system as well as this method
-  my @range;
-  if (exists $args{freetimeut} && defined $args{freetimeut}) {
-    @range = @{ $args{freetimeut} };
-  } else {
-    @range = OMP::Config->getData('freetimeut',telescope=>$args{tel});
-  }
-
-  # Now convert to Time::Piece object
-  my ($min, $max) = $class->_process_freeut_range( $args{tel}, $args{start}, @range );
-  print "Min = $min  Max = $max  duration = ".(($max-$min)/3600)."\n" if $DEBUG;
+  my ($min, $max) = $class->_get_freeut_range( %args );
 
   throw OMP::Error::BadArgs("Error parsing the extended boundary string")
     unless defined $min && defined $max;
@@ -488,6 +507,30 @@ sub determine_extended {
 
   return ($timespent, $extended);
 
+}
+
+# Work out what the range should be based.
+# %args needs to have keys "tel" and "start" and optionally
+# an override values "freetimeut".
+
+sub _get_freeut_range {
+  my $class = shift;
+  my %args = @_;
+
+  # We assume that the UT date matches that of the start and end times
+  # For testing we allow an override so that we do not have to test
+  # the Config system as well as this method
+  my @range;
+  if (exists $args{freetimeut} && defined $args{freetimeut}) {
+    @range = @{ $args{freetimeut} };
+  } else {
+    @range = OMP::Config->getData('freetimeut',telescope=>$args{tel});
+  }
+
+  # Now convert to Time::Piece object
+  my ($min, $max) = $class->_process_freeut_range( $args{tel}, $args{start}, @range );
+  print "Min = $min  Max = $max  duration = ".(($max-$min)/3600)."\n" if $DEBUG;
+return ($min, $max);
 }
 
 # Convert a range parameter as provided in the config file, to a date object.
