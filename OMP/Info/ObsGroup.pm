@@ -42,7 +42,7 @@ statistical information and summary from groups of observations.
 use 5.006;
 use strict;
 use warnings;
-use OMP::Constants qw/ :timegap /;
+use OMP::Constants qw/ :timegap :obs /;
 use OMP::ProjServer;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
@@ -653,6 +653,514 @@ by the time accounting tool. Usually these will indicate calibrations
 that are not required by any science observations, or science
 observations that have no corresponding calibration.
 
+Observations taken outside the normal observing periods
+are not charged to any particular project but are charged
+to project $tel"EXTENDED". This definition of extended time
+is telescope dependent.
+
+Does not yet take the observation status (questionable, bad, good)
+into account when calculating the statistics. In principal observations
+marked as bad should be charged to the general overhead.
+
+Also does not charge for time gaps even if they have been flagged
+as WEATHER.
+
+If an observation has a calibration type that matches the project ID
+then we assume that the data are self-calibrating rather than
+complaining that there is no calibration.
+
+If a time gap associated with an observation is smaller than a certain
+threshold (say 5 minutes) then that time is charged to the following
+project rather than to OTHER. This will allow us to compensate for
+small gaps between data files associated with slewing and tuning.
+If a small gap is between calibration observations it is charged
+to $telCAL project [they should probably be charged to the project
+in proportion to instrument usage but that requires more work].
+
+=cut
+
+sub projectStats {
+  my $self = shift;
+
+  # Need to determine the telescope to decide which charging
+  # scheme is to be used. We assume that the telescope associated
+  # with the first observation is the relevant one.
+  my @obs = $self->obs;
+
+  # If we do not have any observations we return empty
+  return (["No observations for statistics"]) unless @obs;
+
+  my $tel = uc($obs[0]->telescope);
+  my $charge_scheme = OMP::Config->getData( 'time_accounting_mode',
+                                            telescope => $tel);
+
+  if ($charge_scheme =~ /shared/i) {
+    print "USING SHARED\n";
+    return $self->projectStatsShared;
+  } else {
+    print "USING SIMPLE\n";
+    return $self->projectStatsSimple;
+  }
+}
+
+=item B<projectStatsSimple>
+
+Return an array of C<Project::TimeAcct> objects for the given
+C<ObsGroup> object and associated warnings. This implementation
+pushes all calibrations and time associated with bad observations
+into a calibration project. A science project will only be charged
+for its science time.
+
+  my ($warnings, @timeacct) = $obsgroup->projectStatsSimple;
+
+This method will determine all the projects in the given
+C<ObsGroup> object, then use time allocations in that object
+to populate the C<Project::TimeAcct> objects.
+
+The first argument returned is an array of warning messages generated
+by the time accounting tool. Usually these will indicate calibrations
+that are not required by any science observations, or science
+observations that have no corresponding calibration.
+
+Observations taken outside the normal observing periods
+are not charged to any particular project but are charged
+to project $tel"EXTENDED". This definition of extended time
+is telescope dependent.
+
+Bad observations are charged to the calibration project.
+
+Also does not charge for time gaps even if they have been flagged
+as WEATHER.
+
+If a time gap associated with an observation is smaller than a certain
+threshold (say 5 minutes) then that time is charged to the following
+project rather than to OTHER. This will allow us to compensate for
+small gaps between data files associated with slewing and tuning.
+If a small gap is between calibration observations it is charged
+to $telCAL project [they should probably be charged to the project
+in proportion to instrument usage but that requires more work].
+
+=cut
+
+sub projectStatsSimple {
+  my $self = shift;
+  my @obs = $self->obs;
+
+  # If we do not have any observations we return empty
+  return (["No observations for statistics"]) unless @obs;
+
+  # This is the threshold for unspecified gaps
+  # Below this threshold we attempt to associate them with the
+  # relevant project. Above this threshold we simply charge them
+  # to OTHER. This unit is in seconds
+  # If this is set to 0, all unallocated gaps will be charged to OTHER
+  my $GAP_THRESHOLD = OMP::Config->getData( 'timegap' );
+
+  # We will store all calibrations in a $tel.$CAL_NAME project
+  # rather than tracking them in separate hashes.
+  my @warnings;
+  my %other; # Extended time, weather time and OTHER gaps by telescope
+
+  # These are the generic key names for certain cal projects
+  my $WEATHER_GAP = "WEATHER";
+  my $OTHER_GAP   = "OTHER";
+  my $CAL_NAME    = "CAL";
+  my $EXTENDED_KEY= "EXTENDED";
+
+  # This is a hash indexed by UT and tel (since we cannot mix them yet)
+  # pointing to an array.  This array contains the projects as we
+  # encounter them. We use it to make sure we assign small gaps to
+  # projects properly. We try to make sure we do not push a project on
+  # that is already at the end of the array
+  my %gapproj;
+
+  # Keep a list of ALL significant projects. In general this is not
+  # much of a problem but is important if we have projects that
+  # only consist of calibrations (esp E&C)
+  my %sigprojects;
+
+  my %proj_totals;
+  my %night_totals;
+
+  # In some cases we need to know the most recent observation
+  my $prevobs;
+
+  # Go through all the observations, determining the time spent on
+  # each project.
+  for my $obs (@obs) {
+    my $projectid = $obs->projectid;
+    my $tel = uc($obs->telescope);
+
+    my $calproj = $tel . $CAL_NAME;
+
+    # If we have a TIMEGAP we want to treat it as a special observation
+    # that only depends on telescope (like JCMTCAL)
+    my $isgap = 0;
+    if (UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap")) {
+      $isgap = 1;
+
+      # The projectid for these things should really be $tel . $type
+      # but that is not how these have been implemented so we need to do it ourselves
+      # Faults are explicitly calculated elsewhere in the fault system itself
+      my $status = $obs->status;
+      if ($status == OMP__TIMEGAP_FAULT) {
+        # but we include them in the total so that the "length of night" is correct
+        my $ymd = $obs->startobs->ymd;
+        my $faultlen = $obs->endobs - $obs->startobs;
+        $night_totals{$tel}{$ymd} += $faultlen;
+      }
+      next if $status == OMP__TIMEGAP_FAULT;
+
+      if ($status == OMP__TIMEGAP_INSTRUMENT || $status == OMP__TIMEGAP_NEXT_PROJECT) {
+        # INSTRUMENT and PROJECT gaps are shared amongst the projects. INSTRUMENT
+        # gaps are shared by instrument, PROJECT gaps are given to the following
+        # project. In both cases we handle it properly in the next section.
+        # Simply let the default project ID go through since it will be ignored
+        # in a little while.
+      } elsif ($status == OMP__TIMEGAP_WEATHER) {
+        $projectid = $WEATHER_GAP;
+      } elsif ($status == OMP__TIMEGAP_PREV_PROJECT) {
+        # This is time that should be charged to the project
+        # preceeding this gap. For now we do not need to do anything
+
+      } else {
+        $projectid = $OTHER_GAP;
+      }
+    }
+
+    print "Processing observation from project $projectid (duration ". ($obs->endobs - $obs->startobs). " s)\n"
+      if (!$isgap && $DEBUG && $DEBUG > 1);
+
+    # if we have a SCUBA project ID that seems to be a science observation
+    # we charge this to projectID JCMTCAL. Clearly SCUBA::ODF should be responsible
+    # for this logic but for now we add it here for testing.
+    # This should be a rare occurence
+    if ($projectid =~  /scuba/i && $obs->isScience) {
+      # use JCMTCAL rather than tagging as a calibrator because we don't
+      # want other people charged for it
+      $projectid = 'JCMTCAL';
+    }
+
+    # if this is a calibration observation and not a gap we assign
+    # it to the calibration project
+    if ( !$isgap && !$obs->isScience) {
+      $projectid = $calproj;
+    }
+
+    # if somehow we have got a projectid of $CAL_NAME force it to
+    # be telescope specific
+    $projectid = $calproj if $projectid =~ /$CAL_NAME$/;
+
+    my $inst = $obs->instrument;
+    my $startobs = $obs->startobs;
+    my $endobs = $obs->endobs;
+    my $ymd = $obs->startobs->ymd;
+    my $timespent;
+    my $duration = $obs->duration;
+
+    # Store the project ID if it is significant
+    $sigprojects{$ymd}{$projectid}++ if ($projectid !~ /$CAL_NAME$/
+                                         && $projectid !~ /$WEATHER_GAP$/
+                                         && $projectid !~ /$OTHER_GAP$/
+                                         && $projectid !~ /$EXTENDED_KEY$/
+                                         && $projectid !~ /^scuba$/i
+                                         && !$isgap
+                                        );
+
+    # if the observation is not a gap and is bad charge it to overhead
+    if (!$isgap && $obs->status == OMP__OBS_BAD && $projectid ne $calproj) {
+      print "Observation from project $projectid is marked BAD, charging to overhead\n" if $DEBUG;
+      $projectid = $calproj;
+    }
+
+    # Store the project ID for gap processing
+    # In general should make sure we dont get projects that are all calibrations
+    if (!exists $gapproj{$ymd}{$tel}) {
+      $gapproj{$ymd}{$tel} = [];
+    }
+
+    # This is the project to store in the gap analysis
+    my $gapprojid = $projectid;
+
+    # But we want to make sure that gaps solely between calibration
+    # observations are not charged to OTHER when it would be better
+    # if they were attached to generic calibration overheadds for the
+    # instrument (and apportioned to real data).
+    # We therefore must store the instrument as well
+    $gapprojid = $calproj if (!$isgap && ! $obs->isScience);
+
+    # Store the array ref with projectid and instrument
+    # but only this is the first entry or if we are not repeating
+    # the same projectID
+
+    # Always push if we are the first element
+    # Also push a projectid on the array if previous isnot an array (ie a gap)
+    # OR if the previous project is not the same as the current project
+    # We do not want to push a gap onto this array since a gap should be
+    # the content [previously we pushed all gaps and then replaced them
+    # with the actual gap later on]
+    if (!$isgap) {
+      push(@{$gapproj{$ymd}{$tel}}, [$gapprojid,$inst])
+        if (scalar(@{$gapproj{$ymd}{$tel}}) == 0 ||
+            (ref($gapproj{$ymd}->{$tel}->[-1]) ne 'ARRAY') ||
+            (ref($gapproj{$ymd}->{$tel}->[-1]) eq 'ARRAY' &&
+             $gapproj{$ymd}->{$tel}->[-1]->[0] ne $gapprojid));
+    }
+
+    # We can calculate extended time so long as we have 2 of startobs, endobs and duration
+    if( (defined $startobs && defined $endobs ) ||
+        (defined $startobs && defined $duration) ||
+        (defined $endobs   && defined $duration)
+      ) {
+
+      # Get the extended time
+      ($timespent, my $extended) = OMP::General->determine_extended(
+                                                                    duration => $duration,
+                                                                    start=> $startobs,
+                                                                    end=> $endobs,
+                                                                    tel => $tel,
+                                                                   );
+
+      # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
+      # "nothing" to extended observing!]
+      # unless the gap is small (less than the threshold)
+      # since most people define extended as time from when we really
+      # start to when we really end the observing.
+      $other{$ymd}{$tel}{$EXTENDED_KEY} += $extended->seconds
+        if defined $extended && $extended->seconds > 0
+        && (!$isgap || ($isgap && $extended->seconds < $GAP_THRESHOLD));
+
+      # If the duration is negative set it to zero rather than kludging
+      # by adding ONE_DAY
+      if ($timespent->seconds < 0 ) {
+        $timespent = new Time::Seconds(0);
+      }
+    } else {
+      # We cannot tell whether this was done in extended time or not
+      # so assume not.
+      $timespent = Time::Seconds->new( $obs->duration );
+    }
+    $night_totals{$tel}{$ymd} += $timespent->seconds;
+
+    if ($isgap) {
+      # Just need to add into the %other hash
+      # UNLESS this is an OTHER gap that is smaller than the required threshold
+      if ($projectid eq $OTHER_GAP && $timespent->seconds < $GAP_THRESHOLD
+          && $timespent->seconds > 0) {
+        # Replace the project entry with a hash pointing to the gap
+        # Use a hash ref just to make it easy to spot rather than matching
+        # to a digit
+        push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+      } elsif ($obs->status == OMP__TIMEGAP_NEXT_PROJECT) {
+        # Always charge PROJECT gaps to the following project (this
+        # is the same logic as for short gaps). Keep this separate
+        # in case we had different types of accounting (especially
+        # if we start to share between previous project or have a POSTPROJECT
+        # and PREVPROJECT gap type). In that case will adjust the key here
+        # to be PREVIOUS, POST or SHARED
+        print "CHARGING ".$timespent->seconds." TO PROJECT GAP\n"
+          if $DEBUG;
+        push(@{$gapproj{$ymd}->{$tel}}, { OTHER => $timespent->seconds });
+      } elsif ($obs->status == OMP__TIMEGAP_PREV_PROJECT) {
+        # Must charge the previous project
+        print "CHARGING " . $timespent->seconds . " TO PREVIOUS PROJECT\n"
+          if $DEBUG;
+        if (defined $prevobs) {
+          my $previnst = $prevobs->instrument;
+          my $prevymd = $prevobs->startobs->ymd;
+          my $prevprojectid = $prevobs->projectid;
+          my $prevtel = uc($prevobs->telescope);
+
+          # This is a horrible hack. Should not be duplicating this code
+          if ($prevobs->isScience) {
+            # Charge to the project
+            $proj_totals{$prevymd}{$prevprojectid} += $timespent->seconds;
+          } else {
+            $proj_totals{$prevymd}{$calproj} += $timespent->seconds;
+          }
+        }
+      } elsif ($obs->status == OMP__TIMEGAP_INSTRUMENT) {
+        # Simply treat this as a generic calibration
+        print "CHARGING ".$timespent->seconds." TO INSTRUMENT GAP [$inst]\n"
+          if $DEBUG;
+        $proj_totals{$ymd}{$calproj} += $timespent->seconds;
+      } elsif ($timespent->seconds > 0) {
+        # Just charge to OTHER [unless we have negative time gap]
+        print "CHARGING ".$timespent->seconds." TO $projectid\n"
+          if $DEBUG;
+        $other{$ymd}{$tel}{$projectid} += $timespent->seconds;
+      }
+
+    } elsif ($obs->isScience) {
+      $proj_totals{$ymd}{$projectid} += $timespent->seconds;
+    } else {
+      $proj_totals{$ymd}{$calproj} += $timespent->seconds;
+    }
+
+    # Log the most recent information
+    $prevobs = $obs if !$isgap;
+
+  }
+
+  if ($DEBUG) {
+    if ($DEBUG > 1) {
+      print Dumper(\%proj_totals, \%gapproj, \%other);
+    } else {
+      print "Initial Project totals: ". Dumper(\%proj_totals);
+    }
+  }
+
+  # And any small forgotten leftover time gaps
+  # Including charging gaps between calibrations to generic calibrations
+  print "Processing gaps:\n" if $DEBUG;
+  for my $ymd (keys %gapproj) {
+    for my $tel (keys %{ $gapproj{$ymd} }) {
+
+      my $calproj = $tel . $CAL_NAME;
+
+      # Now step through the data charging time gaps 50% each to the projects
+      # on either side IF an entry exists in the %proj_totals hash
+      # If an entry is not there, charge it to OTHER (since it may just have
+      # done cals all night)
+      my @projects = @{ $gapproj{$ymd}{$tel}};
+      # If we only have 1 or 2 entries here then the number of gaps to apportion
+      # is tiny and we only have one side. Charge to OTHER
+      if (@projects > 2) {
+        for my $i (1..$#projects) {
+          # Can not be a gap in the very first entry so start at 1
+          # and can not be one at the end
+          if (ref($projects[$i]) eq 'HASH') {
+            # We have a gap. This should be charged to the following
+            # project
+            my $gap = $projects[$i]->{OTHER};
+
+            # but make sure we do not extend the array indefinitely
+            # This code is more complicated in case we want to apportion
+            # the gap to projects on either side
+            my @either;
+            push(@either, $projects[$i+1]) if $#projects != $i;
+
+            # if we do not have a project following this
+            # charge to OTHER
+            if (@either) {
+              for my $projdata (@either) {
+                next unless defined $projdata;
+                next unless ref($projdata) eq 'ARRAY';
+
+                my $proj = $projdata->[0];
+
+                # Only charge to the gap if we have already charged to it
+                # CAL should be charged to shared calibrations
+                if (exists $proj_totals{$ymd}{$proj} &&
+                    $proj !~ /$CAL_NAME$/) {
+                  $proj_totals{$ymd}{$proj} += $gap;
+                  print "Adding $gap to $proj\n" if $DEBUG;
+                } else {
+                  # Charge to calibration regardless
+                  $proj_totals{$ymd}{$calproj} += $gap;
+                  print "Adding $gap to CALibration\n" if $DEBUG;
+                }
+              }
+            } else {
+              # We should charge this to $tel OTHER
+              # regardless of the project name
+              print "Adding $gap to OTHER\n" if $DEBUG;
+              $other{$ymd}{$tel}{$OTHER_GAP} += $gap;
+            }
+          }
+        }
+      } else {
+        # We should charge this to $tel OTHER
+        # regardless of the project name
+        for my $entry (@projects) {
+          next unless ref($entry) eq 'HASH';
+          $other{$ymd}{$tel}{$OTHER_GAP} += $entry->{OTHER};
+          print "Adding ". $entry->{OTHER} ." to OTHER[2]\n" if $DEBUG;
+        }
+      }
+    }
+  }
+
+  print "Gaps have been processed. New totals: ". Dumper(\%proj_totals) if $DEBUG;
+
+  # Add in the extended/weather and other time
+  for my $ymd (keys %other) {
+    for my $tel (keys %{ $other{$ymd} }) {
+      for my $type (keys %{ $other{$ymd}{$tel} }) {
+        my $key = $tel . $type;
+        $proj_totals{$ymd}{$key} += $other{$ymd}{$tel}{$type};
+      }
+    }
+  }
+
+  # Now add in the missing projects - forcing an entry
+  for my $ymd (keys %sigprojects) {
+    for my $proj (keys %{$sigprojects{$ymd}}) {
+      $proj_totals{$ymd}{$proj} += 0;
+    }
+  }
+
+  print "Final totals: ".Dumper(\%proj_totals) if $DEBUG;
+
+  # Work out the night total
+  if ($DEBUG) {
+    for my $ymd (keys %proj_totals) {
+      my $total = 0;
+      for my $proj (keys %{$proj_totals{$ymd}}) {
+        next if $proj =~ /$EXTENDED_KEY$/;
+        $total += $proj_totals{$ymd}{$proj};
+      }
+      $total /= 3600.0;
+      printf "$ymd: %.2f hrs (without extended)\n",$total;
+
+      my $refdate = OMP::General->parse_date($ymd . "T12:00");
+      for my $tel (keys %night_totals) {
+        my $nightlen = OMP::General->determine_night_length( tel => $tel, date => $refdate );
+        printf "From observation data for tel $tel (inc faults): %.2f hrs\n", $night_totals{$tel}{$ymd}/3600.0;
+        my $extend = $night_totals{$tel}{$ymd} - $nightlen;
+        printf "Expected length of night = %.2f hrs (%s)\n",
+          ( $nightlen / 3600 ),
+          ( $extend >= 0 ? "Extended time = $extend s" : "No extended time" );
+      }
+    }
+  }
+
+  # Now create the time accounting objects and store them in an
+  # array
+  my @timeacct;
+  for my $ymd (keys %proj_totals) {
+    my $date = OMP::General->parse_date( $ymd );
+    print "Date: $ymd\n" if $DEBUG;
+    for my $proj (keys %{$proj_totals{$ymd}}) {
+      printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG;
+      push @timeacct, new OMP::Project::TimeAcct(projectid => $proj,
+                                                 date => $date,
+                                                 timespent => new Time::Seconds($proj_totals{$ymd}{$proj})
+                                                );
+    }
+  }
+
+  return (\@warnings,@timeacct);
+
+}
+
+=item B<projectStatsShared>
+
+Return an array of C<Project::TimeAcct> objects for the given
+C<ObsGroup> object and associated warnings. This implementation
+shares calibrations amongst projects.
+
+  my ($warnings, @timeacct) = $obsgroup->projectStatsShared;
+
+This method will determine all the projects in the given
+C<ObsGroup> object, then use time allocations in that object
+to populate the C<Project::TimeAcct> objects.
+
+The first argument returned is an array of warning messages generated
+by the time accounting tool. Usually these will indicate calibrations
+that are not required by any science observations, or science
+observations that have no corresponding calibration.
+
 Calibrations are shared amongst those projects that required
 them. General calibrations are shared amongst all projects
 in proportion to the amount of time used by the project.
@@ -687,7 +1195,7 @@ in proportion to instrument usage but that requires more work].
 
 =cut
 
-sub projectStats {
+sub projectStatsShared {
   my $self = shift;
   my @obs = $self->obs;
 
