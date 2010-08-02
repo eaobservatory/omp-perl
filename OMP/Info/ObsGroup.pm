@@ -695,10 +695,10 @@ sub projectStats {
                                             telescope => $tel);
 
   if ($charge_scheme =~ /shared/i) {
-    print "USING SHARED\n";
+    print "USING SHARED\n" if $DEBUG;
     return $self->projectStatsShared;
   } else {
-    print "USING SIMPLE\n";
+    print "USING SIMPLE\n" if $DEBUG;
     return $self->projectStatsSimple;
   }
 }
