@@ -357,7 +357,7 @@ sub inferTelescope {
   }
 
   if (scalar(@matches) == 0) {
-    throw OMP::Error::BadCfgKey("No matches in config system for value $refval using key $refkey");
+    throw OMP::Error::BadCfgKey("No matches in config system for value '$refval' using key '$refkey'. Unable to infer telescope.");
   } elsif (scalar(@matches) > 1) {
     throw OMP::Error::FatalError("Multiple matches in config system for value $refval using key $refkey. Telescopes: " . join(",",@matches));
   }
