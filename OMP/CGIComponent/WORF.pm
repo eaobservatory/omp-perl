@@ -75,7 +75,7 @@ sub display_graphic {
 
   my $inst;
   if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $qv->{'inst'} =~ /^([\-\w\d]+)$/;
     $inst = $1;
   }
 
@@ -173,7 +173,7 @@ sub return_fits {
 
   my $inst;
   if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $qv->{'inst'} =~ /^([\-\w\d]+)$/;
     $inst = $1;
   }
 
@@ -232,7 +232,7 @@ sub return_ndf {
 
   my $inst;
   if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /^([\w\d]+)$/;
+    $qv->{'inst'} =~ /^([\-\w\d]+)$/;
     $inst = $1;
   }
 

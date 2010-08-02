@@ -57,7 +57,7 @@ sub display_page {
   # Filter out CGI variables.
   my $inst;
   if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /([\w\d]+)/;
+    $qv->{'inst'} =~ /([\-\w\d]+)/;
     $inst = $1;
   }
   my $runnr;
