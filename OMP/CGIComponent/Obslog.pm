@@ -839,7 +839,7 @@ sub obs_comment_form {
                     -value => 1,
                   );
 
-  print '</td></tr>\n<tr><td colspan="2">';
+  print "</td></tr>\n<tr><td colspan=\"2\">";
 
   print $q->submit( -name => 'Submit Comment' );
 
