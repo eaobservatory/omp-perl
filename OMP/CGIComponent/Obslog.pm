@@ -940,33 +940,20 @@ inst - The instrument that the observation was taken with. Case-insensitive.
 sub cgi_to_obs {
   my $q = shift;
 
-  my $qv = $q->Vars;
+  my $verify =
+   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/,
+     'runnr'   => qr/^(\d+)$/,
+     'inst'    => qr/^([\-\w\d]+)$/,
+     'timegap' => qr/^([01])$/,
+     'oid'     => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
+   };
 
-  my $ut;
-  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
-    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
-    $ut = $1;
-  }
-
-  my $runnr;
-  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
-    $qv->{'runnr'} =~ /^(\d+)$/;
-    $runnr = $1;
-  }
-
-  my $inst;
-  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /^([\-\w\d]+)$/;
-    $inst = $1;
-  }
-
-  my $timegap;
-  if( exists( $qv->{'timegap'} ) && defined( $qv->{'timegap'} ) ) {
-    $qv->{'timegap'} =~ /^([01])$/;
-    $timegap = $1;
-  } else {
-    $timegap = 0;
-  }
+  my $ut      = _cleanse_query_value( $q, 'ut',      $verify );
+  my $runnr   = _cleanse_query_value( $q, 'runnr',   $verify );
+  my $inst    = _cleanse_query_value( $q, 'inst',    $verify );
+  my $timegap = _cleanse_query_value( $q, 'timegap', $verify );
+  $timegap   ||= 0;
+  my $obsid   = _cleanse_query_value( $q, 'oid',     $verify );
 
   # Form the Time::Piece object
   my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
@@ -981,12 +968,14 @@ sub cgi_to_obs {
                                         startobs => $startobs,
                                         instrument => $inst,
                                         telescope => $telescope,
+                                        obsid     => $obsid,
                                       );
   } else {
     $obs = new OMP::Info::Obs( runnr => $runnr,
                                startobs => $startobs,
                                instrument => $inst,
                                telescope => $telescope,
+                               obsid     => $obsid,
                              );
   }
 
@@ -1220,6 +1209,23 @@ Currently a no-op.
 
 sub print_obscomment_footer {
 
+}
+
+# Given CGI object, paramter name, and a hash reference of keys with paramter
+# name & values of compiled regexen, returns the cleansed value.
+sub _cleanse_query_value {
+
+  my ( $q, $key, $verify ) = @_;
+
+  my $val   = $q->param( $key );
+  my $regex = $verify->{ $key };
+
+  return
+    unless defined $val
+    && length $val
+    && $regex;
+
+  return ( $val =~ $regex )[0];
 }
 
 =back
