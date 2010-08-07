@@ -213,21 +213,58 @@ sub list_users {
   my $rowclass = 'row_shaded';
 
   if (@$users) {
+
+    # Set up list of initials
+    my @temparray;
+    for (@users) {
+       push @temparray, uc substr($_->userid,0,1);
+    }
+    my %hashTemp = map { $_ => 1 } @temparray;
+    my @alphabet = sort keys %hashTemp;
+
     my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
+    # Print list of initials for anchors
+    print "<p>\n| ";
+    foreach my $letter (@alphabet) {
+       print qq{<a href="#${letter}">${letter}</a> |};
+     }
+    print "</p>\n";
+
+    my $letnr = 0;
+    my $letter = $alphabet[$letnr];
+
+    print "<p>\n";
     print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
+    print qq{<a name="${letter}"></a>\n};
+
     for (@$users) {
+
+      while ( $user !~ /^${letter}/i && $letnr < $#alphabet ) {
+        $letnr++;
+        $letter = $alphabet[$letnr]
+        print qq{<a name="${letter}"></a>\n};
+      }
+
       print "<tr class='${rowclass}'>";
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
       print "<TD>" . $_->cadcuser . "</TD>";
       print "<TD><a href=\"update_user.pl?user=".$_->userid."\">Update</a></TD>";
+      print "</TR>\n";
 
       # Alternate row style
       $rowclass = ($rowclass eq 'row_shaded' ? 'row_clear' : 'row_shaded');
     }
     print "</TABLE>\n";
+
+    print "<p>\n| ";
+    foreach $letter (@alphabet) {
+       print qq{<a href="#${letter}">${letter}</a> |};
+    }
+    print "</p>\n";
+
   } else {
     print "No OMP users found!<br>\n";
   }

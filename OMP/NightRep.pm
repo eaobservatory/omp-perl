@@ -913,7 +913,7 @@ Project Time Summary
   my %text = ( WEATHER => "Time lost to weather:",
                OTHER   =>  "Other time:",
                EXTENDED => "Extended Time:",
-               CAL      => "Unallocated calibrations:",
+               CAL      => "Calibrations:",
              );
 
   for my $proj (qw/ WEATHER OTHER EXTENDED CAL /) {
@@ -1137,7 +1137,7 @@ sub ashtml {
               WEATHER => "<tr class='proj_time_sum_weather_row'><td>Time lost to weather</td>",
               EXTENDED => "<tr class='proj_time_sum_extended_row'><td>Extended Time</td>",
               OTHER => "<tr class='proj_time_sum_other_row'><td>Other Time</td>",
-              CAL => "<tr class='proj_time_sum_weather_row'><td>Unallocated Calibrations</td>",
+              CAL => "<tr class='proj_time_sum_weather_row'><td>Calibrations</td>",
              );
 
   for my $proj (qw/WEATHER OTHER EXTENDED CAL/) {
