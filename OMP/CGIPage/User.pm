@@ -216,7 +216,7 @@ sub list_users {
 
     # Set up list of initials
     my @temparray;
-    for (@users) {
+    for (@$users) {
        push @temparray, uc substr($_->userid,0,1);
     }
     my %hashTemp = map { $_ => 1 } @temparray;
@@ -240,9 +240,9 @@ sub list_users {
 
     for (@$users) {
 
-      while ( $user !~ /^${letter}/i && $letnr < $#alphabet ) {
+      while ( $_ !~ /^${letter}/i && $letnr < $#alphabet ) {
         $letnr++;
-        $letter = $alphabet[$letnr]
+        $letter = $alphabet[$letnr];
         print qq{<a name="${letter}"></a>\n};
       }
 
