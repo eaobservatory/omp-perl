@@ -1211,19 +1211,29 @@ sub print_obscomment_footer {
 
 }
 
-# Given CGI object, paramter name, and a hash reference of keys with paramter
-# name & values of compiled regexen, returns the cleansed value.
+=item B<_cleanse_query_value>
+
+Returns the cleansed query parameter value given a CGI object, query
+parameter name, and a hash reference of parameter names as keys &
+compiled regexen (capturing a value to be returned) as values.
+
+  $value = _cleanse_query_value( $cgi, 'number',
+                                  { 'number' => qr/^(\d+)$/, }
+                                );
+
+=cut
+
 sub _cleanse_query_value {
 
   my ( $q, $key, $verify ) = @_;
 
-  my $val   = $q->param( $key );
-  my $regex = $verify->{ $key };
+  my $val = $q->param( $key );
 
   return
     unless defined $val
-    && length $val
-    && $regex;
+    && length $val;
+
+  my $regex = $verify->{ $key } or return;
 
   return ( $val =~ $regex )[0];
 }
