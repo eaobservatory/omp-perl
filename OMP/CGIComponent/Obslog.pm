@@ -822,24 +822,26 @@ sub obs_comment_form {
   my $ut = $obs->startobs->ymd;
   my $runnr = $obs->runnr;
   my $instrument = $obs->instrument;
-  print $q->hidden( -name => 'ut',
-                    -value => $ut,
-                  );
-  print $q->hidden( -name => 'runnr',
-                    -value => $runnr,
-                  );
-  print $q->hidden( -name => 'inst',
-                    -value => $instrument,
-                  );
-  print $q->hidden( -name => 'timegap',
-                    -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
-                  );
+  print
+    "\n", join "\n",
+    $q->hidden( -name => 'ut',
+                -value => $ut,
+              ),
+    $q->hidden( -name => 'runnr',
+                -value => $runnr,
+              ),
+    $q->hidden( -name => 'inst',
+                -value => $instrument,
+              ),
+    $q->hidden( -name => 'timegap',
+                -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
+              ),
+    $q->hidden( -name => 'show_output',
+                -value => 1,
+              )
+              ;
 
-  print $q->hidden( -name => 'show_output',
-                    -value => 1,
-                  );
-
-  print "</td></tr>\n<tr><td colspan=\"2\">";
+  print "\n</td></tr>\n<tr><td colspan=\"2\">";
 
   print $q->submit( -name => 'Submit Comment' );
 
