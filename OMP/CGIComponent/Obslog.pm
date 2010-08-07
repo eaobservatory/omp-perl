@@ -353,6 +353,7 @@ sub obs_table {
     }
 
     my $comments = $obs->comments;
+    my $obsid  = $obs->obsid;
     my $status = $obs->status;
     my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
@@ -395,7 +396,8 @@ sub obs_table {
 
       my %param = ( 'ut'  => $obsut,
                     'runnr' => $obs->runnr,
-                    'inst' => $instrument
+                    'inst' => $instrument,
+                    'oid'  => $obsid,
                   );
 
       $param{'timegap'} = 1
@@ -835,6 +837,9 @@ sub obs_comment_form {
               ),
     $q->hidden( -name => 'timegap',
                 -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
+              ),
+    $q->hidden( -name => 'oid',
+                -value => $q->param( 'oid' ),
               ),
     $q->hidden( -name => 'show_output',
                 -value => 1,
