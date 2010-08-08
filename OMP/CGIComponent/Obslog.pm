@@ -353,6 +353,7 @@ sub obs_table {
     }
 
     my $comments = $obs->comments;
+    my $obsid  = $obs->obsid;
     my $status = $obs->status;
     my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
@@ -395,14 +396,15 @@ sub obs_table {
 
       my %param = ( 'ut'  => $obsut,
                     'runnr' => $obs->runnr,
-                    'inst' => $instrument
+                    'inst' => $instrument,
+                    'oid'  => $obsid,
                   );
 
       $param{'timegap'} = 1
         if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
 
       print qq[</td><td><a class="link_dark_small" href="$commentlink?]
-            . join( '&', map { $_ . '=' . $param{ $_ } } keys %param )
+            . join( '&', map { $_ . '=' . $param{ $_ } } grep { defined $param{$_} } keys %param )
             . qq[">comment</a></td>];
     }
 
@@ -581,6 +583,9 @@ sub obs_summary {
   } else {
     print " observation ";
     print $obs->runnr;
+    if (defined $obs->obsid) {
+       print " (".$obs->obsid.")";
+    }
   }
   print " on " . $obs->startobs->ymd;
   print "</strong></td></tr></table>\n";
@@ -822,24 +827,29 @@ sub obs_comment_form {
   my $ut = $obs->startobs->ymd;
   my $runnr = $obs->runnr;
   my $instrument = $obs->instrument;
-  print $q->hidden( -name => 'ut',
-                    -value => $ut,
-                  );
-  print $q->hidden( -name => 'runnr',
-                    -value => $runnr,
-                  );
-  print $q->hidden( -name => 'inst',
-                    -value => $instrument,
-                  );
-  print $q->hidden( -name => 'timegap',
-                    -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
-                  );
+  print
+    "\n", join "\n",
+    $q->hidden( -name => 'ut',
+                -value => $ut,
+              ),
+    $q->hidden( -name => 'runnr',
+                -value => $runnr,
+              ),
+    $q->hidden( -name => 'inst',
+                -value => $instrument,
+              ),
+    $q->hidden( -name => 'timegap',
+                -value => UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ),
+              ),
+    $q->hidden( -name => 'oid',
+                -value => $q->param( 'oid' ),
+              ),
+    $q->hidden( -name => 'show_output',
+                -value => 1,
+              )
+              ;
 
-  print $q->hidden( -name => 'show_output',
-                    -value => 1,
-                  );
-
-  print "</td></tr>\n<tr><td colspan=\"2\">";
+  print "\n</td></tr>\n<tr><td colspan=\"2\">";
 
   print $q->submit( -name => 'Submit Comment' );
 
@@ -933,33 +943,20 @@ inst - The instrument that the observation was taken with. Case-insensitive.
 sub cgi_to_obs {
   my $q = shift;
 
-  my $qv = $q->Vars;
+  my $verify =
+   { 'ut'      => qr/^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/,
+     'runnr'   => qr/^(\d+)$/,
+     'inst'    => qr/^([\-\w\d]+)$/,
+     'timegap' => qr/^([01])$/,
+     'oid'     => qr/^([a-zA-Z]+[-_A-Za-z0-9]+)$/,
+   };
 
-  my $ut;
-  if( exists( $qv->{'ut'} ) && defined( $qv->{'ut'} ) ) {
-    $qv->{'ut'} =~ /^(\d{4}-\d\d-\d\d-\d\d?-\d\d?-\d\d?)/;
-    $ut = $1;
-  }
-
-  my $runnr;
-  if( exists( $qv->{'runnr'} ) && defined( $qv->{'runnr'} ) ) {
-    $qv->{'runnr'} =~ /^(\d+)$/;
-    $runnr = $1;
-  }
-
-  my $inst;
-  if( exists( $qv->{'inst'} ) && defined( $qv->{'inst'} ) ) {
-    $qv->{'inst'} =~ /^([\-\w\d]+)$/;
-    $inst = $1;
-  }
-
-  my $timegap;
-  if( exists( $qv->{'timegap'} ) && defined( $qv->{'timegap'} ) ) {
-    $qv->{'timegap'} =~ /^([01])$/;
-    $timegap = $1;
-  } else {
-    $timegap = 0;
-  }
+  my $ut      = _cleanse_query_value( $q, 'ut',      $verify );
+  my $runnr   = _cleanse_query_value( $q, 'runnr',   $verify );
+  my $inst    = _cleanse_query_value( $q, 'inst',    $verify );
+  my $timegap = _cleanse_query_value( $q, 'timegap', $verify );
+  $timegap   ||= 0;
+  my $obsid   = _cleanse_query_value( $q, 'oid',     $verify );
 
   # Form the Time::Piece object
   my $startobs = Time::Piece->strptime( $ut, '%Y-%m-%d-%H-%M-%S' );
@@ -974,12 +971,14 @@ sub cgi_to_obs {
                                         startobs => $startobs,
                                         instrument => $inst,
                                         telescope => $telescope,
+                                        obsid     => $obsid,
                                       );
   } else {
     $obs = new OMP::Info::Obs( runnr => $runnr,
                                startobs => $startobs,
                                instrument => $inst,
                                telescope => $telescope,
+                               obsid     => $obsid,
                              );
   }
 
@@ -1213,6 +1212,33 @@ Currently a no-op.
 
 sub print_obscomment_footer {
 
+}
+
+=item B<_cleanse_query_value>
+
+Returns the cleansed query parameter value given a CGI object, query
+parameter name, and a hash reference of parameter names as keys &
+compiled regexen (capturing a value to be returned) as values.
+
+  $value = _cleanse_query_value( $cgi, 'number',
+                                  { 'number' => qr/^(\d+)$/, }
+                                );
+
+=cut
+
+sub _cleanse_query_value {
+
+  my ( $q, $key, $verify ) = @_;
+
+  my $val = $q->param( $key );
+
+  return
+    unless defined $val
+    && length $val;
+
+  my $regex = $verify->{ $key } or return;
+
+  return ( $val =~ $regex )[0];
 }
 
 =back
