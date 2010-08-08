@@ -404,7 +404,7 @@ sub obs_table {
         if UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap");
 
       print qq[</td><td><a class="link_dark_small" href="$commentlink?]
-            . join( '&', map { $_ . '=' . $param{ $_ } } keys %param )
+            . join( '&', map { $_ . '=' . $param{ $_ } } grep { defined $param{$_} } keys %param )
             . qq[">comment</a></td>];
     }
 
@@ -583,6 +583,9 @@ sub obs_summary {
   } else {
     print " observation ";
     print $obs->runnr;
+    if (defined $obs->obsid) {
+       print " (".$obs->obsid.")";
+    }
   }
   print " on " . $obs->startobs->ymd;
   print "</strong></td></tr></table>\n";
