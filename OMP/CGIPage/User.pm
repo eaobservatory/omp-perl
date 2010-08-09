@@ -240,7 +240,7 @@ sub list_users {
 
     for (@$users) {
 
-      while ( $_ !~ /^${letter}/i && $letnr < $#alphabet ) {
+      while ( $_->userid !~ /^${letter}/i && $letnr < $#alphabet ) {
         $letnr++;
         $letter = $alphabet[$letnr];
         print qq{<a name="${letter}"></a>\n};
