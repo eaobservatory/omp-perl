@@ -235,7 +235,7 @@ sub list_users {
     my $letter = $alphabet[$letnr];
 
     print $index, "<p>\n";
-    print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
+    print "<TABLE border='0' cellspacing='0' cellpadding='4' width=$TABLEWIDTH>\n";
 
     my $colnr = 5;
     print "<TR class='${rowclass}'>";
