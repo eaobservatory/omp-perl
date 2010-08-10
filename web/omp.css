@@ -493,6 +493,17 @@ a.sidemain:visited { color:#ffffff; font-size:11px; font-weight:bold; text-decor
 a.sidemain:active  { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
 a.sidemain:hover   { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
 
+.index-title {
+  font-weight: bold;
+  background-color: #808080;
+  color: #fff;
+}
+
+a.index-title-link:link    { color: #fff; }
+a.index-title-link:visited { color: #fff; }
+a.index-title-link:active  { color: #9ff; }
+a.index-title-link:hover   { color: #9ff; }
+
 .cell_standout {
   border: 1px solid #d63e3e;
   background-color: #f9b1b1;

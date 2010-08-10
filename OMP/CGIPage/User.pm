@@ -225,28 +225,45 @@ sub list_users {
     my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
     # Print list of initials for anchors
-    print "<p>\n| ";
+    my $index = qq[<p>\n<a name="top"></a>| ];
     foreach my $letter (@alphabet) {
-       print qq{<a href="#${letter}">${letter}</a> |};
+       $index .= qq{<a href="#${letter}">${letter}</a> | };
      }
-    print "</p>\n";
+    $index .= "</p>\n";
 
     my $letnr = 0;
     my $letter = $alphabet[$letnr];
 
-    print "<p>\n";
-    print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
-    print qq{<a name="${letter}"></a>\n};
+    print $index, "<p>\n";
+    print "<TABLE border='0' cellspacing='0' cellpadding='4' width=$TABLEWIDTH>\n";
+
+    my $colnr = 5;
+    print "<TR class='${rowclass}'>";
+    print "<TH>OMP userid</TH>";
+    print "<TH>Name</TH>";
+    print "<TH>Email</TH>";
+    print "<TH>CADC user</TH>";
+    print "<TH>Update</TH>";
+    print "</TR>\n";
+
+    my $index_row =
+      sprintf
+          qq{<tr class="index-title"><td colspan="%d" align=left>}
+        . qq{<a name="%%s">%%s</a> <i>(<a class="index-title-link" href="#top">top</a>)</i>}
+        . qq{</td></tr>\n},
+        ${colnr};
+
+    printf $index_row, ( $letter ) x 2;
 
     for (@$users) {
 
-      while ( $_ !~ /^${letter}/i && $letnr < $#alphabet ) {
+      while ( $_->userid !~ /^${letter}/i && $letnr < $#alphabet ) {
         $letnr++;
         $letter = $alphabet[$letnr];
-        print qq{<a name="${letter}"></a>\n};
+        printf $index_row, ( $letter ) x 2;
       }
 
-      print "<tr class='${rowclass}'>";
+      print "<TR class='${rowclass}'>";
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
@@ -259,11 +276,7 @@ sub list_users {
     }
     print "</TABLE>\n";
 
-    print "<p>\n| ";
-    foreach $letter (@alphabet) {
-       print qq{<a href="#${letter}">${letter}</a> |};
-    }
-    print "</p>\n";
+    print $index;
 
   } else {
     print "No OMP users found!<br>\n";
