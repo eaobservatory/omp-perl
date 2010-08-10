@@ -225,19 +225,19 @@ sub list_users {
     my $ompurl = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir');
 
     # Print list of initials for anchors
-    print "<p>\n| ";
+    my $index = qq[<p>\n<a name="top"></a>| ];
     foreach my $letter (@alphabet) {
-       print qq{<a href="#${letter}">${letter}</a> |};
+       $index .= qq{<a href="#${letter}">${letter}</a> | };
      }
-    print "</p>\n";
+    $index .= "</p>\n";
 
     my $letnr = 0;
     my $letter = $alphabet[$letnr];
 
-    print "<p>\n";
+    print $index, "<p>\n";
     print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
 
-    my $colnr = 5
+    my $colnr = 5;
     print "<TR class='${rowclass}'>";
     print "<TH>OMP userid</TH>";
     print "<TH>Name</TH>";
@@ -246,14 +246,21 @@ sub list_users {
     print "<TH>Update</TH>";
     print "</TR>\n";
 
-    print qq{<tr><td colspan=${colnr} align=left><a name="${letter}">${letter}</a></td></tr>\n};
+    my $index_row =
+      sprintf
+          qq{<tr class="index-title"><td colspan="%d" align=left>}
+        . qq{<a name="%%s">%%s</a> <i>(<a class="index-title-link" href="#top">top</a>)</i>}
+        . qq{</td></tr>\n},
+        ${colnr};
+
+    printf $index_row, ( $letter ) x 2;
 
     for (@$users) {
 
       while ( $_->userid !~ /^${letter}/i && $letnr < $#alphabet ) {
         $letnr++;
         $letter = $alphabet[$letnr];
-        print qq{<tr><td colspan=${colnr} align=left><a name="${letter}">${letter}</a></td></tr>\n};
+        printf $index_row, ( $letter ) x 2;
       }
 
       print "<TR class='${rowclass}'>";
@@ -269,11 +276,7 @@ sub list_users {
     }
     print "</TABLE>\n";
 
-    print "<p>\n| ";
-    foreach $letter (@alphabet) {
-       print qq{<a href="#${letter}">${letter}</a> |};
-    }
-    print "</p>\n";
+    print $index;
 
   } else {
     print "No OMP users found!<br>\n";
