@@ -236,17 +236,27 @@ sub list_users {
 
     print "<p>\n";
     print "<TABLE border='0' cellspacing='0' width=$TABLEWIDTH>\n";
-    print qq{<a name="${letter}"></a>\n};
+
+    my $colnr = 5
+    print "<TR class='${rowclass}'>";
+    print "<TH>OMP userid</TH>";
+    print "<TH>Name</TH>";
+    print "<TH>Email</TH>";
+    print "<TH>CADC user</TH>";
+    print "<TH>Update</TH>";
+    print "</TR>\n";
+
+    print qq{<tr><td colspan=${colnr} align=left><a name="${letter}">${letter}</a></td></tr>\n};
 
     for (@$users) {
 
       while ( $_->userid !~ /^${letter}/i && $letnr < $#alphabet ) {
         $letnr++;
         $letter = $alphabet[$letnr];
-        print qq{<a name="${letter}"></a>\n};
+        print qq{<tr><td colspan=${colnr} align=left><a name="${letter}">${letter}</a></td></tr>\n};
       }
 
-      print "<tr class='${rowclass}'>";
+      print "<TR class='${rowclass}'>";
       print "<TD>" . $_->userid ."</TD>";
       print "<TD>". OMP::Display->userhtml($_, $q) ."</TD>";
       print "<TD>" . $_->email . "</TD>";
