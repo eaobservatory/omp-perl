@@ -284,7 +284,10 @@ false (0).
 
 If "nocomments" is true, observation comments will not be automatically
 associated with the C<OMP::Info::Obs> objects. Default is false (0);
-comments will be attached.
+comments will be attached, for queries with bound dates and true
+(no comments) by default for project queries or unbound date
+queries. This can be overridden by using an explicit (defined) value
+for "nocomments".
 
 A "verbose" flag can be used to turn on message output. Default
 is false.
@@ -343,9 +346,10 @@ sub populate {
       $xmlbit .= "<max>" . $daterange->max->datetime . "</max>";
     }
     $xmlbit .= "</date>";
-    # If the range is unbounded, disable comment lookup.
+    # If the range is unbounded, disable comment lookup unless it was
+    # specified explicitly.
     if( ! $daterange->isbound ) {
-      $nocomments = 1;
+      $nocomments = 1 unless defined $nocomments;
     }
   }
 
@@ -373,12 +377,13 @@ sub populate {
 
   # If we've been given a project ID but no dates, get all
   # observations from the beginning of time for that project. Disable
-  # comment lookups for this case though.
+  # comment lookups for this case though unless we are explicitly
+  # told otherwise
   if( exists( $args{'projectid'} ) &&
       ! ( exists( $args{'date'} ) ||
           exists( $args{'daterange'} ) ) ) {
     $xmlbit .= "<date><min>20000101</min></date>";
-    $nocomments = 1;
+    $nocomments = 1 unless defined $nocomments;
   }
 
   # if we are including calibrations we should not include projectid
