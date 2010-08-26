@@ -18,7 +18,7 @@ my $VERBOSE = 0;
 my ( $push, $help, @other );
 GetOptions( 'help' => \$help,
 
-            'push=s'   => \$push
+            'push=s'   => \$push,
             'verbose+' => \$VERBOSE,
           )
     or die pod2usage( '-exitval' => 2, '-verbose' => 1 );
