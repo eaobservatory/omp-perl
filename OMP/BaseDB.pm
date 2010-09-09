@@ -932,12 +932,15 @@ sub _mail_information {
   # by checking for the presence of HTML in the message
   my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
 
+  my %utf8 = ( 'Charset' => 'utf-8' );
+
   # Setup the message
   my %details = (From=>$args{from}->as_email_hdr,
                  Subject=>$args{subject},
                  Type=>$type,
-                 Charset=>'utf-8',
-                 Encoding=>'8bit',);
+                 Encoding=>'8bit',
+                 %utf8,
+                 );
 
   # Get rid of duplicate users
   my %users;
@@ -984,12 +987,15 @@ sub _mail_information {
 
     # Attach the plain text message
     $top->attach(Type=>"text/plain",
-                 Data=>$plaintext)
+                 %utf8,
+                 Data=>$plaintext,
+                 )
       or throw OMP::Error::MailError("Error attaching plain text message\n");
 
     # Now attach the original message (it should come up as the default message
     # in the mail reader)
     $top->attach(Type=>"text/html",
+                 %utf8,
                  Data=>$args{message})
       or throw OMP::Error::MailError("Error attaching HTML message\n");
   }
