@@ -48,9 +48,9 @@ class.
 
 
   $db = new OMP::BaseDB( ProjectID => $project,
-			 Password  => $passwd
-			 DB => $connection,
-		       );
+                         Password  => $passwd
+                         DB => $connection,
+                       );
 
 See C<OMP::ProjDB> and C<OMP::MSBDB> for more details on the
 use of these arguments and for further keys.
@@ -70,12 +70,12 @@ sub new {
   %args = @_ if @_;
 
   my $db = {
-	    InTrans => 0,
-	    Locked => 0,
-	    Password => undef,
-	    ProjectID => undef,
-	    DB => undef,
-	   };
+            InTrans => 0,
+            Locked => 0,
+            Password => undef,
+            ProjectID => undef,
+            DB => undef,
+           };
 
   # create the object (else we cant use accessor methods)
   my $object = bless $db, $class;
@@ -252,7 +252,7 @@ sub _db_begin_trans {
     or throw OMP::Error::DBError("Database connection not valid");
 
   OMP::General->log_message( "Begin DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
   $db->begin_trans;
 
   # Keep a per-class count so that we can control
@@ -260,7 +260,7 @@ sub _db_begin_trans {
   $self->_inctrans;
 
   OMP::General->log_message( "Begun DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
 
 }
 
@@ -280,7 +280,7 @@ sub _db_commit_trans {
     or throw OMP::Error::DBError("Database connection not valid");
 
   OMP::General->log_message( "Commit DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
   $db->commit_trans;
 
   # Keep a per-class count so that we can control
@@ -288,7 +288,7 @@ sub _db_commit_trans {
   $self->_dectrans;
 
   OMP::General->log_message( "Committed DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
 
 }
 
@@ -312,14 +312,14 @@ sub _db_rollback_trans {
     or throw OMP::Error::DBError("Database connection not valid");
 
   OMP::General->log_message( "Rolling back DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
   $db->rollback_trans;
 
   # Reset the counter
   $self->_intrans(0);
 
   OMP::General->log_message( "Rolled back DB transaction",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
 
 }
 
@@ -474,12 +474,12 @@ sub _db_insert_data {
   if (defined $hints) {
     $UNIQCOL = $hints->{COLUMN};
     if (defined $hints->{POSN} &&
-	($hints->{POSN} >= 0 || $hints->{POSN} <= $#data)) {
+        ($hints->{POSN} >= 0 || $hints->{POSN} <= $#data)) {
       $UNIQVAL = $data[$hints->{POSN}];
       $UNIQVAL = "'$UNIQVAL'" if $hints->{QUOTE};
     } else {
       throw OMP::Error::BadArgs("Database hint out of range (0<".
-				(defined $hints->{POSN} ? $hints->{POSN} : "undef")."<$#data");
+                                (defined $hints->{POSN} ? $hints->{POSN} : "undef")."<$#data");
     }
   }
 
@@ -527,51 +527,51 @@ sub _db_insert_data {
       $placeholder .= "?";
 
     } elsif (ref($column) eq "HASH"
-	     && exists $column->{TEXT}
-	     && exists $column->{COLUMN}) {
+             && exists $column->{TEXT}
+             && exists $column->{COLUMN}) {
 
       my $textlen = length($column->{TEXT});
 
       if ($has_write_text && $textlen > $TEXT_THRESHOLD) {
-	# Use the optimized non-truncating writetext function
-	OMP::General->log_message( "Inserting $textlen bytes of TEXT using WRITETEXT into colummn ".
-				   $column->{COLUMN} .
-				   " in $table",
-				   OMP__LOG_DEBUG );
+        # Use the optimized non-truncating writetext function
+        OMP::General->log_message( "Inserting $textlen bytes of TEXT using WRITETEXT into colummn ".
+                                   $column->{COLUMN} .
+                                   " in $table",
+                                   OMP__LOG_DEBUG );
 
-	# Add the dummy text to the hash
-	$column->{DUMMY} = $dummytext;
+        # Add the dummy text to the hash
+        $column->{DUMMY} = $dummytext;
 
-	# store the information for later
-	# including the dummy string
-	push(@textfields, $column);
+        # store the information for later
+        # including the dummy string
+        push(@textfields, $column);
 
-	# Update the SQL placeholder
-	$placeholder .= "'$dummytext'";
+        # Update the SQL placeholder
+        $placeholder .= "'$dummytext'";
 
-	# Update the dummy string for next time
-	$dummytext++;
+        # Update the dummy string for next time
+        $dummytext++;
 
       } else {
-	unless ($textlen > $TEXT_THRESHOLD) {
-	  OMP::General->log_message("Inserting $textlen bytes of TEXT using normal INSERT into column ".
-				    $column->{COLUMN} . " in $table",
-				    OMP__LOG_DEBUG);
-	}
-	# on some systems we can use placeholders for TEXT inserts.
-	if ($self->db->has_textinsert_placeholders) {
-	  push(@toinsert, $column->{TEXT});
-	  $placeholder .= "?";
-	} else {
-	  # escape quotes
-	  my $text = $self->_quote_text_insert( $column->{TEXT} );
-	  $placeholder.= "'$text'";
-	}
+        unless ($textlen > $TEXT_THRESHOLD) {
+          OMP::General->log_message("Inserting $textlen bytes of TEXT using normal INSERT into column ".
+                                    $column->{COLUMN} . " in $table",
+                                    OMP__LOG_DEBUG);
+        }
+        # on some systems we can use placeholders for TEXT inserts.
+        if ($self->db->has_textinsert_placeholders) {
+          push(@toinsert, $column->{TEXT});
+          $placeholder .= "?";
+        } else {
+          # escape quotes
+          my $text = $self->_quote_text_insert( $column->{TEXT} );
+          $placeholder.= "'$text'";
+        }
       }
 
     } else {
       throw OMP::Error::DBError("Do not understand how to insert data of class '".
-				ref($column) ."' into a database");
+                                ref($column) ."' into a database");
     }
 
   }
@@ -581,7 +581,7 @@ sub _db_insert_data {
   my $sql = "INSERT INTO $table VALUES ($placeholder)";
 
   OMP::General->log_message( "Inserting DB data and retrieving handle",
-			     OMP__LOG_DEBUG );
+                             OMP__LOG_DEBUG );
 
   # Get the database handle
   my $dbh = $self->_dbhandle or
@@ -602,7 +602,7 @@ sub _db_insert_data {
     my $col = $textdata->{COLUMN};
 
     OMP::General->log_message( "Inserting DB text data column: $col",
-			       OMP__LOG_DEBUG );
+                               OMP__LOG_DEBUG );
 
     # escape quotes
     $text = $self->_quote_text_insert( $text );
@@ -680,7 +680,7 @@ sub _db_retrieve_data_ashash {
     if $dbh->err;
 
   OMP::General->log_message("Data retrieved: " . (scalar @$ref) .
-			    " rows match", OMP__LOG_DEBUG);
+                            " rows match", OMP__LOG_DEBUG);
 
   # Return the results
   return $ref;
@@ -724,7 +724,7 @@ sub _db_update_data {
     # If "undef" we need to use NULL
     if (defined $change->{$col}) {
       $change->{$col} = "'" . $change->{$col} . "'"
-	if $change->{$col} =~ /[A-Za-z:]/;
+        if $change->{$col} =~ /[A-Za-z:]/;
     } else {
       $change->{$col} = "NULL";
     }
@@ -862,8 +862,8 @@ sub _notify_feedback_system {
   # locked out the project table making it impossible for
   # the feedback system to verify the project
   my $fbdb = new OMP::FeedbackDB( ProjectID => $self->projectid,
-				  DB => $self->db,
-				);
+                                  DB => $self->db,
+                                );
 
   # text and subject must be present
   throw OMP::Error::FatalError("Feedback message must have subject and text\n")
@@ -905,13 +905,13 @@ environment. The argument hash should have the following keys:
            in paramhash format
 
   $db->_mail_information( to => [$user1, $user2],
-			  from => $user3,
-			  subject => "hello",
-			  message => "this is the content\n",
-			  headers => {
-				      Reply-To => "you\@yourself.com",
-				     },
-			);
+                          from => $user3,
+                          subject => "hello",
+                          message => "this is the content\n",
+                          headers => {
+                                      Reply-To => "you\@yourself.com",
+                                     },
+                        );
 
 Composes a multipart message with a plaintext attachment if any HTML is in the
 message.  Throws an exception on error.
@@ -934,9 +934,10 @@ sub _mail_information {
 
   # Setup the message
   my %details = (From=>$args{from}->as_email_hdr,
-		 Subject=>$args{subject},
-		 Type=>$type,
-		 Encoding=>'8bit',);
+                 Subject=>$args{subject},
+                 Type=>$type,
+                 Charset=>'utf-8',
+                 Encoding=>'8bit',);
 
   # Get rid of duplicate users
   my %users;
@@ -983,13 +984,13 @@ sub _mail_information {
 
     # Attach the plain text message
     $top->attach(Type=>"text/plain",
-		 Data=>$plaintext)
+                 Data=>$plaintext)
       or throw OMP::Error::MailError("Error attaching plain text message\n");
 
     # Now attach the original message (it should come up as the default message
     # in the mail reader)
     $top->attach(Type=>"text/html",
-		 Data=>$args{message})
+                 Data=>$args{message})
       or throw OMP::Error::MailError("Error attaching HTML message\n");
   }
 
@@ -999,11 +1000,11 @@ sub _mail_information {
   OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
   eval {
     $top->smtpsend(Host => $mailhost,
-		   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
+                   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
   };
   ($@) and throw OMP::Error::MailError("$@\n");
   OMP::General->log_message("Mail message sent to ". join(",",@{$args{to}} ),
-			    OMP__LOG_INFO);
+                            OMP__LOG_INFO);
   return;
 }
 
@@ -1045,16 +1046,16 @@ sub DESTROY {
     if ($thiscount == $thatcount) {
       # fair enough. Rollback (doesnt matter if both == 0)
       OMP::General->log_message("DESTROY: Rollback transaction $thiscount",
-				OMP__LOG_DEBUG);
+                                OMP__LOG_DEBUG);
       $self->_db_rollback_trans;
 
     } elsif ($thiscount < $thatcount) {
 
       # Simply decrement this and that until we hit zero
       while ($thiscount > 0) {
-	$self->_dectrans;
-	$db->_dectrans;
-	$thiscount--;
+        $self->_dectrans;
+        $db->_dectrans;
+        $thiscount--;
       }
 
     } else {
