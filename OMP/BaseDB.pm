@@ -936,6 +936,7 @@ sub _mail_information {
   my %details = (From=>$args{from}->as_email_hdr,
                  Subject=>$args{subject},
                  Type=>$type,
+                 Charset=>'utf-8',
                  Encoding=>'8bit',);
 
   # Get rid of duplicate users
