@@ -532,9 +532,9 @@ sub tcs_base {
     return;
   }
 
-  # if this is a skydip, noise or flatfield and does not have a BASE position do not worry
+  # if this is a skydip, noise, setup or flatfield and does not have a BASE position do not worry
   # since we will default to using the current Azimuth in this case.
-  if ($info{obs_type} =~ /skydip|noise|flatfield/ && $info{coords}->type eq 'CAL') {
+  if ($info{obs_type} =~ /skydip|noise|flatfield|setup/ && $info{coords}->type eq 'CAL') {
     if ($self->verbose) {
       print {$self->outhdl} "No target supplied for $info{obs_type}. Using current Azimuth.\n";
     }
@@ -767,6 +767,11 @@ sub observing_area {
     } else {
       OMP::Error::FatalError->throw("Unexpectedly fell off if clause in $info{obs_type}: $source");
     }
+
+  } elsif ( $info{obs_type} eq 'setup' ) {
+
+    # Sky mode is our default state. The queue can change us to a particular azimuth
+    $oa->is_sky_mode(1);
 
   } elsif ($obsmode eq 'scan') {
 

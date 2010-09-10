@@ -468,11 +468,15 @@ sub jos_config {
   #   scuba2_skydip
   #   scuba2_flatField
   #   scuba2_noise
+  #   scuba2_setup_subarrays
 
   my $recipe = $info{obs_type};
   if ($info{obs_type} eq 'science') {
     $recipe = $info{observing_mode};
+  } elsif ($info{obs_type} eq 'setup') {
+    $recipe = "setup_subarrays";
   }
+
   # prepend scuba2
   $recipe = "scuba2_".$recipe;
 
@@ -531,6 +535,12 @@ sub jos_config {
       if ($self->verbose) {
         print {$self->outhdl} "\tContinuous scanning skydip\n";
       }
+    }
+
+  } elsif ($info{obs_type} =~ /^setup/) {
+
+    if ($self->verbose) {
+      print {$self->outhdl} "Setup JOS parameters:\n";
     }
 
   } elsif ($info{obs_type} =~ /^flatfield/) {
@@ -970,6 +980,9 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterNoiseObs') {
     $obs_type = 'noise';
     $mapping_mode = 'stare';
+  } elsif ($mode eq 'SpIterSetupObs') {
+    $obs_type = 'setup';
+    $mapping_mode = 'stare';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
     if ($sdip_mode =~ /^cont/) {
@@ -1046,7 +1059,7 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright (C) 2007-2008 Science and Technology Facilities Council.
+Copyright (C) 2007-2010 Science and Technology Facilities Council.
 Copyright (C) 2003-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
