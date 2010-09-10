@@ -138,12 +138,8 @@ sub translate {
   $self->verbose( $verbcur );
 
   # Now report useful information
-  if ($self->verbose) {
-    print {$self->outhdl} "Number of configurations: ".@unrolled."\n";
-    for my $t (keys %obstypes) {
-      print {$self->outhdl} "Number of $t observations: $obstypes{$t}\n";
-    }
-  }
+  $self->output("Number of configurations: ".@unrolled."\n",
+                map { "Number of $_ observations: $obstypes{$_}\n" } (keys %obstypes ) );
 
   # Now loop over each observation and translate it to a config object
   my @configs;
@@ -315,6 +311,26 @@ Method to enable and disable global verbosity state.
   }
 }
 
+=item B<output>
+
+Output a message to the default file handle if we are in verbose mode.
+
+  $trans->output( @messages );
+
+A newline will not be added if one is missing from the supplied message.
+
+=cut
+
+sub output {
+  my $self = shift;
+  return unless $self->verbose;
+
+  my $outhdl = $self->outhdl;
+  for my $msg (@_) {
+    print {$outhdl} $msg;
+  }
+  return;
+}
 
 =item B<transdir>
 
@@ -505,9 +521,7 @@ sub tcs_base {
   # Find out if we have to offset to a particular receptor
   my $instap = $self->tracking_receptor_or_subarray( $cfg, %info );
 
-  if ($self->verbose) {
-    print {$self->outhdl} "Tracking: ".(defined $instap ? $instap : "<ORIGIN>")."\n";
-  }
+  $self->output("Tracking: ".(defined $instap ? $instap : "<ORIGIN>")."\n");
 
   # Store the pixel
   $tcs->aperture_name( $instap ) if defined $instap;
@@ -517,27 +531,21 @@ sub tcs_base {
 
   # We might want to have autoTarget calibrators
   if ($self->standard_is_autoTarget( %info ) ) {
-    if ($self->verbose) {
-      print {$self->outhdl} "Calibration observation. Ignoring specified target\n";
-    }
+    $self->output("Calibration observation. Ignoring specified target\n");
     return;
   }
 
   # if we are supposed to do do this observation at the current azimuth
   # no base position is required
   if ($info{currentAz}) {
-    if ($self->verbose) {
-      print {$self->outhdl} "Using current azimuth for observation.\n";
-    }
+    $self->output("Using current azimuth for observation.\n");
     return;
   }
 
   # if this is a skydip, noise, setup or flatfield and does not have a BASE position do not worry
   # since we will default to using the current Azimuth in this case.
   if ($info{obs_type} =~ /skydip|noise|flatfield|setup/ && $info{coords}->type eq 'CAL') {
-    if ($self->verbose) {
-      print {$self->outhdl} "No target supplied for $info{obs_type}. Using current Azimuth.\n";
-    }
+    $self->output("No target supplied for $info{obs_type}. Using current Azimuth.\n");
     return;
   }
 
@@ -565,7 +573,7 @@ sub tcs_base {
   # if we have override velocity information we need to apply it now
   my @vover = $self->velOverride( %info );
   if (@vover) {
-    print {$self->outhdl} "Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n" if $self->verbose;
+    $self->output("Overriding target velocity with (vel,vdef,vfr) = (",join(",",@vover),")\n");
     for my $t (keys %tags) {
       my $c = $tags{$t}{coords};
       if ($c->can( "set_vel_pars")) {
@@ -622,9 +630,8 @@ sub tcs_base {
       $ref->coords( $scicoords );
       my $off = new Astro::Coords::Offset( @offsets, system => "J2000", projection => "TAN" );
       $ref->offset( $off );
-      print {$self->outhdl} "Converting absolute REFERENCE position to offset from SCIENCE of (".
-        sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n"
-          if $self->verbose;
+      $self->output("Converting absolute REFERENCE position to offset from SCIENCE of (".
+        sprintf("%.2f, %.2f", $offsets[0]->arcsec, $offsets[1]->arcsec). ") arcsec\n");
 
     }
   }
@@ -742,13 +749,11 @@ sub observing_area {
       throw OMP::Error::FatalError("Unknown skydip mode '$obsmode'");
     }
 
-    if ($self->verbose) {
-      if ($isskydip) {
-        print {$self->outhdl} $oa->skydip_mode
-          ." skydip from $maxel to $minel degrees elevation\n";
-      } else {
-        print {$self->outhdl} "$info{obs_type} observation at elevation $maxel deg\n";
-      }
+    if ($isskydip) {
+      $self->output($oa->skydip_mode
+                    ." skydip from $maxel to $minel degrees elevation\n");
+    } else {
+      $self->output("$info{obs_type} observation at elevation $maxel deg\n");
     }
 
     # store the elevations
@@ -785,8 +790,8 @@ sub observing_area {
     my $pattern = $self->translate_scan_pattern( $info{scanPattern} );
 
     if ($self->verbose) {
-      print {$self->outhdl} "Scanning area $info{MAP_HEIGHT} x $info{MAP_WIDTH} arcsec at $info{MAP_PA} deg\n";
-      print {$self->outhdl} "Using scanning pattern '$pattern'\n";
+      $self->output("Scanning area $info{MAP_HEIGHT} x $info{MAP_WIDTH} arcsec at $info{MAP_PA} deg\n",
+                    "Using scanning pattern '$pattern'\n");
 
     }
 
@@ -877,9 +882,7 @@ sub observing_area {
                                               system => "FPLANE" ));
       }
       $oa->microsteps( @ms );
-      if ($self->verbose) {
-        print {$self->outhdl} "Microstep pattern '$info{ms_pattern}' : ".@ms." microsteps\n";
-      }
+      $self->output("Microstep pattern '$info{ms_pattern}' : ".@ms." microsteps\n");
     }
 
   }
@@ -945,9 +948,7 @@ sub secondary_mirror {
 
     $smu->dream( %DREAM );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Using $DREAM{NAME} dream pattern\n";
-    }
+    $self->output("Using $DREAM{NAME} dream pattern\n");
   }
 
   # Since we need access to the jiggle pattern to calculate step time
@@ -1063,9 +1064,7 @@ sub dome {
     }
   }
 
-  if ($self->verbose) {
-    print {$self->outhdl} "Selecting dome mode of $dmode\n";
-  }        
+  $self->output("Selecting dome mode of $dmode\n");
 
   # set the dome mode itself
   $tcs->dome_mode( $dmode );
@@ -1288,7 +1287,7 @@ sub pol_config {
 
   # see if we have a polarimeter
   return unless $info{pol};
-  print {$self->outhdl} "Polarimeter observation:\n" if $self->verbose;
+  $self->output("Polarimeter observation:\n");
 
   # we currently only support grid/pssw observations
   throw OMP::Error::FatalError("Can only use ROVER in grid/pssw mode not '$info{observing_mode}'\n")
@@ -1306,10 +1305,8 @@ sub pol_config {
 
     $pol->discrete_angles( @pa );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "\tStep and Integrate\n";
-      print {$self->outhdl} "\t ". join(",",map {$_->degrees} @pa)."\n";
-    }
+    $self->output("\tStep and Integrate\n",
+                  "\t ". join(",",map {$_->degrees} @pa)."\n");
 
   } else {
 
@@ -1325,10 +1322,8 @@ sub pol_config {
     my $speed = (360/$nsteps)/$step_time;
 
     $pol->spin_speed( $speed );
-    if ($self->verbose) {
-      print {$self->outhdl} "\t$nsteps spectra per cycle\n";
-      print {$self->outhdl} "\tContinuous Spin: $speed deg/sec\n";
-    }
+    $self->output("\t$nsteps spectra per cycle\n",
+                  "\tContinuous Spin: $speed deg/sec\n");
 
   }
 
@@ -1437,16 +1432,14 @@ sub observing_mode {
 
   $info->{observing_mode} = join("_",@parts);
 
-  if ($self->verbose) {
-    print {$self->outhdl} "\n";
-    print {$self->outhdl} "Observing Mode Overview:\n";
-    print {$self->outhdl} "\tObserving Mode: $info->{observing_mode}\n";
-    print {$self->outhdl} "\tObservation Type: $info->{obs_type}\n";
-    print {$self->outhdl} "\tMapping Mode: $info->{mapping_mode}\n";
-    print {$self->outhdl} "\tSwitching Mode: $info->{switching_mode}\n";
-    print {$self->outhdl} "\tIn Beam: ".join(",",@{$info->{inbeam}})."\n"
-      if $info->{inbeam};
-  }
+  $self->output("\n",
+                "Observing Mode Overview:\n",
+                "\tObserving Mode: $info->{observing_mode}\n",
+                "\tObservation Type: $info->{obs_type}\n",
+                "\tMapping Mode: $info->{mapping_mode}\n",
+                "\tSwitching Mode: $info->{switching_mode}\n");
+  $self->output("\tIn Beam: ".join(",",@{$info->{inbeam}})."\n")
+    if $info->{inbeam};
 
   return;
 }
