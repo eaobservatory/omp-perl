@@ -844,6 +844,15 @@ observation.
 =cut
 
 sub need_offset_tracking {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # Never offset track for noise, skydip, flatfield or setup
+  if ( $info{obs_type} =~ /noise|skydip|flat|setup/i) {
+    return 0;
+  }
+
   # with only 2 subarrays we can be sure that we are meant to
   # use them
   return 1;
