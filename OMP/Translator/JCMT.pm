@@ -542,9 +542,25 @@ sub tcs_base {
     return;
   }
 
-  # if this is a skydip, noise, setup or flatfield and does not have a BASE position do not worry
+  # if this is a skydip, noise or setup where we do not have an explicit target
+  # and where we have not indicated that we should use the current Azimuth
+  # we insert a dummy base position that the queue will recognize as a
+  # placeholder and replace with a real target (that will usually be the
+  # following target in the queue or a blank target).
+  if ($info{obs_type} =~ /setup|skydip|noise/ && $info{coords}->type eq 'CAL') {
+    my $dummy_tag = "FOLLOWINGAZ";
+    my $b = JAC::OCS::Config::TCS::BASE->new();
+    $b->tag( $dummy_tag );
+    $b->tracking_system( "TRACKING" );
+    $b->coords( Astro::Coords::Fixed->new( az => 0, el => -90,
+                                           name => "Following" ) );
+    $tcs->tags( $dummy_tag => $b );
+    return;
+  }
+
+  # if this is a flatfield and does not have a BASE position do not worry
   # since we will default to using the current Azimuth in this case.
-  if ($info{obs_type} =~ /skydip|noise|flatfield|setup/ && $info{coords}->type eq 'CAL') {
+  if ($info{obs_type} =~ /flatfield/ && $info{coords}->type eq 'CAL') {
     $self->output("No target supplied for $info{obs_type}. Using current Azimuth.\n");
     return;
   }
