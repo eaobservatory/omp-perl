@@ -526,6 +526,26 @@ sub tcs_base {
   # Store the pixel
   $tcs->aperture_name( $instap ) if defined $instap;
 
+  # Do this early since the obs_type is more significant than the global
+  # MSB state of whether there is an autotarget or not.
+  # if this is a skydip, noise or setup where we do not have an explicit target
+  # and where we have not indicated that we should use the current Azimuth
+  # we insert a dummy base position that the queue will recognize as a
+  # placeholder and replace with a real target (that will usually be the
+  # following target in the queue or a blank target).
+  if ($info{obs_type} =~ /setup|skydip|noise/ &&
+      ( $info{coords}->type eq 'CAL' || $self->standard_is_autoTarget(%info) ||
+        $info{autoTarget}) && !$info{currentAz} ) {
+    my $dummy_tag = "FOLLOWINGAZ";
+    my $b = JAC::OCS::Config::TCS::BASE->new();
+    $b->tag( $dummy_tag );
+    $b->tracking_system( "TRACKING" );
+    $b->coords( Astro::Coords::Fixed->new( az => 0, el => -90,
+                                           name => "Following" ) );
+    $tcs->tags( $dummy_tag => $b );
+    return;
+  }
+
   # if we do not know the position return
   return if $info{autoTarget};
 
@@ -539,22 +559,6 @@ sub tcs_base {
   # no base position is required
   if ($info{currentAz}) {
     $self->output("Using current azimuth for observation.\n");
-    return;
-  }
-
-  # if this is a skydip, noise or setup where we do not have an explicit target
-  # and where we have not indicated that we should use the current Azimuth
-  # we insert a dummy base position that the queue will recognize as a
-  # placeholder and replace with a real target (that will usually be the
-  # following target in the queue or a blank target).
-  if ($info{obs_type} =~ /setup|skydip|noise/ && $info{coords}->type eq 'CAL') {
-    my $dummy_tag = "FOLLOWINGAZ";
-    my $b = JAC::OCS::Config::TCS::BASE->new();
-    $b->tag( $dummy_tag );
-    $b->tracking_system( "TRACKING" );
-    $b->coords( Astro::Coords::Fixed->new( az => 0, el => -90,
-                                           name => "Following" ) );
-    $tcs->tags( $dummy_tag => $b );
     return;
   }
 
