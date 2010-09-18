@@ -191,8 +191,8 @@ and so do not generate configuration XML.
 
   $trans->is_private_sequence( %info );
 
-For SCUBA-2 returns true for observations in the dark or using the blackbody,
-false otherwise.
+For SCUBA-2 returns true for observations in the dark, using the blackbody,
+or a setup at the current telescope location, false otherwise.
 
 =cut
 
@@ -202,6 +202,14 @@ sub is_private_sequence {
   if ($self->is_dark_or_blackbody(%info)) {
     return 1;
   }
+
+  # if this is a setup observation and we have been told to use the current
+  # Azimuth then we can just treat this as a private sequence. We do not really
+  # need the telescope in setup observations
+  if ($info{obs_type} =~ /^setup/i && $info{currentAz}) {
+    return 1;
+  }
+
   return 0;
 }
 
