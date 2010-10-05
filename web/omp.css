@@ -468,7 +468,7 @@ A {
   color: #ffffff;
 }
 
-.obslog-good, .obslog-bad, .obslog-questionable, .obslog-rejected {
+.obslog-good, .obslog-bad, .obslog-questionable, .obslog-junk, .obslog-rejected {
   background-color: transparent;
 }
 
@@ -478,6 +478,10 @@ A {
 
 .obslog-bad {
   color: #f30;
+}
+
+.obslog-junk {
+  color: #f00;
 }
 
 .obslog-questionable {
