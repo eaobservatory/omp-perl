@@ -1005,7 +1005,7 @@ sub RaiseComment {
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
                                                            );
-    my $radioQuestionable = $radioFrame->Radiobutton( -text => 'rejected',
+    my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
                                                       -value => OMP__OBS_REJECTED,
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
@@ -1182,6 +1182,11 @@ sub RaiseMultiComment {
                                                     -variable => \$status,
                                                   )->pack( -side => 'left',
                                                          );
+  my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
+                                                -value => OMP__OBS_REJECTED,
+                                                -variable => \$status,
+                                              )->pack( -side => 'left',
+                                                     );
 
   # $textUser displays the current user id.
   my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
