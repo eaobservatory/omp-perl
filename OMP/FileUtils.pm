@@ -311,6 +311,134 @@ sub get_flag_files {
   return $flags;
 }
 
+=item B<merge_dupes>
+
+Given an array of hashes containing header object, filename and frameset, merge into a hash indexed
+by OBSID where headers have been merged and filenames have been combined into arrays.
+
+  %merged = OMP::FileUtils->merge_dupes( @unmerged );
+
+In the returned merged version, header hash item will contain an Astro::FITS::Header object
+if the supplied entry in @unmerged was a simple hash reference.
+
+Input keys:
+
+   header - reference to hash or an Astro::FITS::Header object
+   filename - single filename (optional)
+   frameset - optional Starlink::AST frameset
+
+If the 'filename' is not supplied yet a header translation reports that FILENAME
+is available, the value will be stored from the translation into the filename slot.
+
+Output keys
+
+   header - Astro::FITS::Header object
+   filenames - reference to array of filenames
+   frameset - optional Starlink::AST frameset (from first in list)
+
+=cut
+
+sub merge_dupes {
+
+  my $self = shift;
+
+  # Take local copies so that we can add information without affecting caller
+  my @unmerged = map { {%$_} } @_;
+
+  my %unique;
+  for my $info ( @unmerged ) {
+
+    # First need to work out which item corresponds to the unique observation ID
+    # We do this via header translation. Since we can in principal have multiple
+    # instruments we have to redetermine the class each time round the loop.
+
+    # Convert fits header to hash if required
+    my $hdr = $info->{header};
+    if (blessed($hdr)) {
+      tie my %header, ref($hdr), $hdr;
+      $hdr = \%header;
+    } else {
+      # convert the header hash to a Astro::FITS::Header object so that we can easily
+      # merge it later
+      $info->{header} = Astro::FITS::Header->new( Hash => $hdr );
+    }
+    my $class;
+
+    eval {
+      $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    };
+    if ( $@ ) {
+
+      warn sprintf "Skipped '%s' due to: %s\n",
+        $info->{'filename'},
+        $@;
+    }
+
+    next unless $class;
+
+    my $obsid = $class->to_OBSERVATION_ID( $hdr, $info->{frameset} );
+
+    # check for translated filename
+    if (!exists $info->{filename}) {
+      my $filename = $class->to_FILENAME( $hdr );
+      if (defined $filename) {
+        $info->{filename} = $filename;
+      }
+    }
+
+    # store it on hash indexed by obsid
+    $unique{$obsid} = [] unless exists $unique{$obsid};
+    push(@{$unique{$obsid}}, $info);
+  }
+
+  # Now go through again and merge the headers and filename information for multiple files
+  # but identical obsid.
+  for my $obsid (keys %unique) {
+    # To simplify syntax get array of headers and filenames
+    my (@fits, @files, $frameset);
+    for my $f (@{$unique{$obsid}}) {
+      push(@fits, $f->{header});
+      push(@files, $f->{filename});
+      $frameset = $f->{frameset} if defined $f->{frameset};
+    }
+
+    # Merge if necessary (shift off the primary)
+    my $fitshdr = shift(@fits);
+    #    use Data::Dumper; print Dumper($fitshdr);
+    if (@fits) {
+      # need to merge
+      #      print "FITS:$_\n" for @fits;
+      my ( $merged, @different ) = $fitshdr->merge_primary( { merge_unique => 1 }, @fits );
+      #      print Dumper(\@different);
+
+      $merged->subhdrs( @different );
+      #      print Dumper({merged => $merged, different => \@different});
+      $fitshdr = $merged;
+    }
+
+    # Some queries result in duplicate rows for filename so uniqify
+    # Do not use a hash directly to get the list because that would scramble
+    # the original order and we get upset when the OBSIDSS does not match the filename.
+    my %files_uniq;
+    my @compressed;
+    for my $f (@files) {
+      if (!exists $files_uniq{$f}) {
+        $files_uniq{$f}++;
+        push(@compressed, $f);
+      }
+    }
+    @files = @compressed;
+
+    $unique{$obsid} = {
+                       header => $fitshdr,
+                       filenames => \@files,
+                       frameset => $frameset,
+                      };
+  }
+
+  return %unique;
+}
+
 =back
 
 =head1 AUTHORS
