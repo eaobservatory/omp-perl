@@ -705,7 +705,7 @@ sub _query_files {
   my %headers = OMP::FileUtils->merge_dupes( @allheaders );
 
   # and create obs objects
-  my @observations = $self->_hdrs_to_obs( $retainhdr, %headers);
+  my @observations = OMP::Info::Obs->hdrs_to_obs( $retainhdr, %headers);
 
   # Now filter
   foreach my $obs ( @observations ) {
@@ -836,46 +836,7 @@ sub _reorganize_archive {
   my %unique = OMP::FileUtils->merge_dupes( @rearranged );
 
   # now convert into Obs::Info objects
-  return $self->_hdrs_to_obs( $retainhdr, %unique);
-}
-
-=item B<_hdrs_to_obs>
-
-Convert the result from OMP::FileUtils->merge_dupes() method to an
-array of C<OMP::Info::Obs> objects.
-
-  @obs = $arcdb->_hdrs_to_obs( $retainhdr, %merged );
-
-=cut
-
-sub _hdrs_to_obs {
-  my $self = shift;
-  my $retainhdr = shift;
-  my %merged = @_;
-
-  my @observations;
-  foreach my $obsid ( keys %merged ) {
-
-    # Create the Obs object.
-    my $obs = new OMP::Info::Obs( fits => $merged{$obsid}{header},
-                                  retainhdr => $retainhdr,
-                                  wcs => $merged{$obsid}{frameset},
-                                );
-
-    if ( !defined( $obs ) ) {
-      print "Error creating obs $obsid\n";next;
-    }
-
-    # store the filename information
-    $obs->filename( \@{$merged{$obsid}{'filenames'}}, 1 );
-
-    # Ask for the raw data directory
-    my $rawdir = $obs->rawdatadir;
-
-    push(@observations, $obs);
-  }
-
-  return @observations;
+  return OMP::Info::Obs->hdrs_to_obs( $retainhdr, %unique);
 }
 
 =back
