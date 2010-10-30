@@ -286,6 +286,55 @@ sub subsystems {
   return @obs;
 }
 
+=item B<hdrs_to_obs>
+
+Convert the result from OMP::FileUtils->merge_dupes() method to an
+array of C<OMP::Info::Obs> objects.
+
+  @obs = OMP::Info::Obs->hdrs_to_obs( $retainhdr, %merged );
+
+=cut
+
+sub hdrs_to_obs {
+  my $self = shift;
+  my $retainhdr = shift;
+  my %merged = @_;
+
+errt( 20 );
+
+  my @observations;
+  foreach my $obsid ( keys %merged ) {
+
+#eph( 'fits' , $merged{$obsid}{header} );
+
+    # Create the Obs object.
+    my $obs = OMP::Info::Obs->new(  fits => $merged{$obsid}{header},
+                                    retainhdr => $retainhdr,
+                                    wcs => $merged{$obsid}{frameset},
+                                  );
+
+#epl( [ @{ $merged{ $obsid } }{ qw[ filenames frameset ] } ]);
+
+    if ( !defined( $obs ) ) {
+      print "Error creating obs $obsid\n";next;
+    }
+
+#epl( { 'before filename(); can? ' =>  $obs->can( 'filename' ) } );
+
+    # store the filename information
+    $obs->filename( \@{$merged{$obsid}{'filenames'}}, 1 );
+
+    # Ask for the raw data directory
+    my $rawdir = $obs->rawdatadir;
+
+    push(@observations, $obs);
+  }
+
+epl( { 'obs' => scalar @observations } );
+
+  return @observations;
+}
+
 =back
 
 =begin __PRIVATE__
