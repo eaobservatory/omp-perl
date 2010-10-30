@@ -313,13 +313,15 @@ sub get_flag_files {
 
 =item B<merge_dupes>
 
-Given an array of hashes containing header object, filename and frameset, merge into a hash indexed
-by OBSID where headers have been merged and filenames have been combined into arrays.
+Given an array of hashes containing header object, filename and
+frameset, merge into a hash indexed by OBSID where headers have been
+merged and filenames have been combined into arrays.
 
   %merged = OMP::FileUtils->merge_dupes( @unmerged );
 
-In the returned merged version, header hash item will contain an Astro::FITS::Header object
-if the supplied entry in @unmerged was a simple hash reference.
+In the returned merged version, header hash item will contain an
+Astro::FITS::Header object if the supplied entry in @unmerged was a
+simple hash reference.
 
 Input keys:
 
@@ -327,8 +329,9 @@ Input keys:
    filename - single filename (optional)
    frameset - optional Starlink::AST frameset
 
-If the 'filename' is not supplied yet a header translation reports that FILENAME
-is available, the value will be stored from the translation into the filename slot.
+If the 'filename' is not supplied yet a header translation reports
+that FILENAME is available, the value will be stored from the
+translation into the filename slot.
 
 Output keys
 
