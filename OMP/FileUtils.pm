@@ -23,6 +23,7 @@ use warnings::register;
 
 use File::Basename qw[ fileparse ];
 use File::Spec;
+use Scalar::Util qw[ blessed ];
 use OMP::Error qw[ :try ];
 use OMP::Config;
 
