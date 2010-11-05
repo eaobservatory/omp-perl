@@ -300,12 +300,8 @@ sub hdrs_to_obs {
   my $retainhdr = shift;
   my %merged = @_;
 
-errt( 20 );
-
   my @observations;
   foreach my $obsid ( keys %merged ) {
-
-#eph( 'fits' , $merged{$obsid}{header} );
 
     # Create the Obs object.
     my $obs = OMP::Info::Obs->new(  fits => $merged{$obsid}{header},
@@ -313,13 +309,9 @@ errt( 20 );
                                     wcs => $merged{$obsid}{frameset},
                                   );
 
-#epl( [ @{ $merged{ $obsid } }{ qw[ filenames frameset ] } ]);
-
     if ( !defined( $obs ) ) {
       print "Error creating obs $obsid\n";next;
     }
-
-#epl( { 'before filename(); can? ' =>  $obs->can( 'filename' ) } );
 
     # store the filename information
     $obs->filename( \@{$merged{$obsid}{'filenames'}}, 1 );
@@ -329,8 +321,6 @@ errt( 20 );
 
     push(@observations, $obs);
   }
-
-epl( { 'obs' => scalar @observations } );
 
   return @observations;
 }
