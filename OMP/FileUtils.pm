@@ -24,6 +24,7 @@ use warnings::register;
 
 use File::Basename qw[ fileparse ];
 use File::Spec;
+use List::MoreUtils qw[ any ];
 use Scalar::Util qw[ blessed ];
 use OMP::Error qw[ :try ];
 use OMP::Config;
@@ -136,13 +137,14 @@ sub files_on_disk {
   if ( $class->use_raw_meta_opt( $sys_config, %config ) ) {
 
     @return =
-      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp );
+      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $recent );
   }
   else {
 
     @return =
       $class->get_raw_files( $directory,
-                              $class->get_flag_files( $directory, $flagfileregexp, $runnr )
+                              $class->get_flag_files( $directory, $flagfileregexp, $runnr, $recent ),
+                              $recent,
                             );
   }
 
@@ -173,7 +175,7 @@ sub use_raw_meta_opt {
 
 sub get_raw_files_from_meta {
 
-  my ( $class, $sys_config, $config, $flag_re ) = @_;
+  my ( $class, $sys_config, $config, $flag_re, $recent ) = @_;
 
   $flag_re = qr{$flag_re};
 
@@ -216,13 +218,20 @@ sub get_raw_files_from_meta {
     push @flag, map { File::Spec->catfile( $meta_dir, $_ ) } @{ $flags };
   }
 
-  return $class->get_raw_files( $meta_dir, \@flag );
+  return
+    $class->get_raw_files( $meta_dir,
+                            _get_recent(  'files' => \@flag,
+                                          'count' => $recent,
+                                          'type'  => "flag-${inst}",
+                                        ),
+                            $recent,
+                          );
 }
 
 # Go through each flag file, open it, and retrieve the list of files within it.
 sub get_raw_files {
 
-  my ( $class, $dir, $flags ) = @_;
+  my ( $class, $dir, $flags, $recent ) = @_;
 
   return
     unless $flags && scalar @{ $flags };
@@ -236,7 +245,11 @@ sub get_raw_files {
     # the dot from the front and replacing the .ok on the end with .sdf.
     if ( -z $file ) {
 
-      push @raw, [ $class->make_raw_name_from_flag( $file ) ];
+      my $raw = $class->make_raw_name_from_flag( $file );
+
+      next unless _sanity_check_file( $raw );
+
+      push @raw, [ $raw ];
       next;
     }
 
@@ -252,39 +265,24 @@ sub get_raw_files {
         unless $err =~ /^Cannot open file/i;
     };
 
-    push @raw, [ map { File::Spec->catfile( $dir, $_ ) } @{ $lines } ];
-  }
+    my @checked;
+    for my $file ( @{ $lines } ) {
 
-  my @filtered;
-  for ( my $i = 0; $i <= $#raw; $i++ ) {
+      my $f = File::Spec->catfile( $dir, $file );
 
-    for my $r ( @{ $raw[ $i ] } ) {
+      next unless _sanity_check_file( $f );
 
-      my $read = -r $r;
-      my $exist = -e _;
-      my $non_empty = -s _;
-
-      if ( $read && $non_empty ) {
-
-        push @{ $filtered[ $i ] }, $r;
-        next;
-      }
-
-      my $text =
-        ! $exist
-        ? 'does not exist'
-        : ! $read
-          ? 'is not readable'
-          : ! $non_empty
-            ? 'is empty'
-            : 'has some UNCLASSIFIED PROBLEM'
-            ;
-
-      warn qq[$r $text (listed in flag file); skipped\n];
+      push @checked, $f;
     }
+
+    push @raw, [ @checked ];
   }
 
-  return grep { defined $_ } @filtered;
+  my $out = _get_recent(  'files' => \@raw,
+                          'count' => $recent,
+                          'type'  => "raw-${dir}",
+                        );
+  return @{ $out };
 }
 
 sub make_raw_name_from_flag {
@@ -301,7 +299,7 @@ sub make_raw_name_from_flag {
 
 sub get_flag_files {
 
-  my ( $class, $dir, $filter, $runnr ) = @_;
+  my ( $class, $dir, $filter, $runnr, $recent ) = @_;
 
   my $flags;
   try {
@@ -332,7 +330,11 @@ sub get_flag_files {
     }
   }
 
-  return $flags;
+  return
+    _get_recent(  'files' => $flags,
+                  'count' => $recent,
+                  'type'  => "flag-${dir}",
+                );
 }
 
 =item B<merge_dupes>
@@ -464,6 +466,107 @@ sub merge_dupes {
   }
 
   return %unique;
+}
+
+
+sub _sanity_check_file {
+
+  my ( $file, $no_warn ) = @_;
+
+  my $read      = -r $file;
+  my $exist     = -e _;
+  my $non_empty = -s _;
+
+  return 1 if $read && $non_empty;
+
+  return if $no_warn;
+
+  my $text =
+    ! $exist
+    ? 'does not exist'
+    : ! $read
+      ? 'is not readable'
+      : ! $non_empty
+        ? 'is empty'
+        : 'has some UNCLASSIFIED PROBLEM'
+        ;
+
+  warn qq[$file $text (listed in flag file); skipped\n];
+  return;
+}
+
+# Given a hash of array reference of file paths and the number of recent files
+# to keep track of, returns a list of files filerted by recent modification
+# time.
+#
+{
+  my ( %last );
+
+  # It stores time when it was last called; returns only those files which have
+  # modification time greater or equal to last called time.  On the first call,
+  # it returns all the files.
+  sub _get_recent {
+
+    my ( %arg ) = @_;
+
+    my ( $files, $count, $type ) = @arg{qw[files count type]};
+    $type ||= '<default>';
+
+    return $files unless $count && $count > 0;
+
+    # On first run, every file is a recently updated file.
+    unless ( $last{ $type } ) {
+
+      $last{ $type } = time();
+      return $files;
+    }
+
+    my %time = _get_mod_epoch( $files )
+      or return [];
+
+    my @keep =
+      grep { $last{ $type } <= $_ } _sort_recent_time( $count, values %time );
+
+    # For future calls.
+    $last{ $type } = time();
+
+    return [] unless scalar @keep;
+
+    my @out;
+    while ( my ( $file, $mod ) = each %time ) {
+
+      push @out, $file
+        if any { $mod == $_ } @keep;
+    }
+    return [ @out ] if scalar @out;
+    return [];
+  }
+}
+
+sub _get_mod_epoch {
+
+  my ( $files ) = @_;
+
+  my %time;
+  for my $f ( @{ $files } ) {
+
+    my ( $mod ) = ( stat $f )[9]
+      or do {
+              warn "Could not get modification time of '$f': $!\n";
+              next;
+            };
+
+    $time{ $f } = $mod;
+  }
+  return %time;
+}
+
+# Most recent $count many modification times sorted in ascending order.
+sub _sort_recent_time {
+
+  my ( $count, @epoch ) = @_;
+
+  return reverse( ( sort { $b <=> $a } @epoch )[0 .. $count - 1] );
 }
 
 =back
