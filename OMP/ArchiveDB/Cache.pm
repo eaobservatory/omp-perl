@@ -371,7 +371,10 @@ sub unstored_files {
 
       next if( $inst =~ /^rx/i );
 
-      my @files = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
+      my @files = OMP::FileUtils->files_on_disk( 'instrument' => $inst,
+                                                  'date'      => $day,
+                                                  'run'       => $runnr,
+                                                );
 
       push @ifiles, @files;
     }

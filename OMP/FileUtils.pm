@@ -8,7 +8,8 @@ OMP::FileUtils - File-related utilities for the OMP.
 
   use OMP::FileUtils;
 
-  @files = OMP::FileUtils->files_on_disk( $inst, $date );
+  @files =
+    OMP::FileUtils->files_on_disk( 'instrument' => $inst, 'date' => $date );
 
 =head1 DESCRIPTION
 
@@ -41,11 +42,23 @@ There are no instance methods, only class (static) methods.
 For a given instrument and UT date, this method returns a list of
 observation files.
 
-  my @files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
-  my $files = OMP::General->files_on_disk( 'CGS4', $date, $runnr );
+  my @files =
+    OMP::FileUtils->files_on_disk( 'instrument' => 'CGS4',
+                                   'date'       => $date,
+                                 );
+
+  my $files =
+    OMP::FileUtils->files_on_disk( 'instrument' => 'CGS4',
+                                   'date'       => $date,
+                                   'run'        => $runnr,
+                                 );
 
   @files =
-    OMP::General->files_on_disk( 'SCUBA-2', $date, $runnr, $subarray );
+    OMP::FileUtils->files_on_disk( 'instrument' => 'SCUBA-2',
+                                   'date'       => $date,
+                                   'subarray'   => $subarray,
+                                   'recent'     => 2,
+                                 );
 
 The   instrument must be  a string.   The date  must be  a Time::Piece
 object.  If the date  is  not passed as   a Time::Piece object then an
@@ -56,6 +69,10 @@ by run number will be done.
 For SCUBA2 files, a subarray must be specified (from '4a' to '4d', or
 '8a' to '8d').
 
+Optionally specify number of files to return that were most recently
+updated on second & later calls. On first call, all the files will be
+returned.
+
 If called in list context, returns a list of array references. Each
 array reference points to a list of observation files for a single
 observation. If called in scalar context, returns a reference to an
@@ -64,7 +81,10 @@ array of array references.
 =cut
 
 sub files_on_disk {
-  my ( $class, $instrument, $utdate, $runnr, $subarray ) = @_;
+  my ( $class, %arg ) = @_;
+
+  my ( $instrument, $utdate, $runnr, $subarray, $recent ) =
+    @arg{qw[ instrument date run subarry recent ]};
 
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
     throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::Piece object" );
@@ -203,6 +223,9 @@ sub get_raw_files_from_meta {
 sub get_raw_files {
 
   my ( $class, $dir, $flags ) = @_;
+
+  return
+    unless $flags && scalar @{ $flags };
 
   my @raw;
 

@@ -620,7 +620,10 @@ sub _query_files {
         ################################################################################
         next if( $inst =~ /^rx/i );
 
-        my @tfiles = OMP::FileUtils->files_on_disk( $inst, $day, $runnr );
+        my @tfiles = OMP::FileUtils->files_on_disk( 'instrument' => $inst,
+                                                    'date'       => $day,
+                                                    'run'        => $runnr,
+                                                  );
         foreach my $arr_ref ( @tfiles ) {
           push @files, $arr_ref;
         }
