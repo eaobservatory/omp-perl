@@ -1,4 +1,4 @@
-#!/local/perl/bin/perl -XT
+#!/local/perl/bin/perl -XT 
 
 BEGIN { $ENV{LANG} = "C" }
 
@@ -6,6 +6,8 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase"
 	  if $^O eq "solaris"; }
 
 BEGIN { $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"; }
+
+BEGIN { $ENV{'LD_LIBRARY_PATH'} = "/usr/lib:/usr/lib64:/star64/lib"; }
 
 use strict;
 use lib "/jac_sw/omp/msbserver";
@@ -51,7 +53,7 @@ use OMP::UserServer;
 sub accept_feedback {
   my $self = shift;
 
-  Mail::Audit::_log(1,"Accepting");
+  $self->log(1 => "Accepting");
 
   # Get the information we need
   my $from = $self->get("from");
@@ -80,22 +82,22 @@ sub accept_feedback {
 
       if ($users->[0]) {
 	$author = $users->[0];
-	Mail::Audit::_log(1,"Determined OMP user by email address: [EMAIL=".
+	$self->log(1 => "Determined OMP user by email address: [EMAIL=".
 			  $author->email."]");
       }
     }
   }
 
   if ($author) {
-    Mail::Audit::_log(1,"Determined OMP user: $author [ID=".
+    $self->log(1 => "Determined OMP user: $author [ID=".
 		      $author->userid."]");
   } else {
-    Mail::Audit::_log(1,"Unable to determine OMP user from From address");
+    $self->log(1 => "Unable to determine OMP user from From address");
   }
 
   # Need to translate the from address to a valid OMP user id
   # if possible. For now we have to just use undef
-  Mail::Audit::_log(1,"Sending to feedback system with Project $project");
+  $self->log(1 => "Sending to feedback system with Project $project");
 
   # Contact the feedback system
   OMP::FBServer->addComment( $project, {
@@ -106,11 +108,11 @@ sub accept_feedback {
 					text => $text,
 				       });
 
-  Mail::Audit::_log(1, "Sent to feedback system with Project $project");
+  $self->log(1 => "Sent to feedback system with Project $project");
 
   # Exit after delivery if required
   if (!$self->{noexit}) {
-    Mail::Audit::_log(2,"Exiting with status ".Mail::Audit::DELIVERED);
+    $self->log(2 => "Exiting with status ".Mail::Audit::DELIVERED);
     exit Mail::Audit::DELIVERED;
   }
 
@@ -127,10 +129,10 @@ sub projectid {
   my $pid = OMP::General->extract_projectid( $subject );
   if (defined $pid) {
     $self->put_header("projectid", $pid);
-    Mail::Audit::_log(1, "Project from subject: $pid");
+    $self->log(1 => "Project from subject: $pid");
     return 1;
   } else {
-    Mail::Audit::_log(1, "Could not determine project from subject line");
+    $self->log(1 => "Could not determine project from subject line");
     return 0;
   }
 
