@@ -79,6 +79,7 @@ sub play {
 
     # Log this play to the log file.
     OMP::General->log_message( "Playing $file audio file..." );
+    JAC::Audio::register_log_command( sub { OMP::General->log_message( $_ ) for @_ } );
     JAC::Audio::play( $file );
   }
 }
