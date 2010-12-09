@@ -185,7 +185,7 @@ sub translate {
 
     # Add comment
     $cfg->comment( "Translated on ". gmtime() ."UT on host ".
-                   Net::Domain::hostfqdn() . " by $ENV{USER} \n".
+                   Net::Domain::hostfqdn() . " by $ENV{USER}\n".
                    "using Translator version $VERSION on an MSB created by the OT version $otver\n");
 
     # Observation summary
