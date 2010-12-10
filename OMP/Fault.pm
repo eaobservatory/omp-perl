@@ -121,6 +121,7 @@ use constant AIPSPLUSPLUS => 1061;
 use constant SURF => 1062;
 use constant STARLINK => 1063;
 use constant WORF => 1064;
+use constant REMOTE_OP => 1066;
 
 # FRONT_END_HARP is 2001.
 use constant {
@@ -381,6 +382,7 @@ my %DATA = (
                                   "Software" => SOFTWARE,
                                   Network => NETWORK,
                                   Cryogenic => CRYOGENIC,
+                                  "Remote Operations" => REMOTE_OP,
                                   "Other/Unknown" => TYPEOTHER,
                                   Human => HUMAN,
                                  },
