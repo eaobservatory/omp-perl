@@ -249,6 +249,66 @@ sub get_verified_password {
 
 =over 4
 
+=item B<encrypt_password>
+
+Encrypts the supplied plain password, returning the encrypted
+value.
+
+ $encrypted = OMP::Password->encrypt_password( $plain );
+
+=cut
+
+sub encrypt_password {
+  my $self = shift;
+  my $plain = shift;
+
+  # Time to encrypt
+  # Generate the salt from a random set
+  # See the crypt entry in perlfunc
+  my $salt = join '',
+    ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
+
+  #Encrypt it
+  return crypt( $plain, $salt );
+}
+
+=item B<verify_password>
+
+Compare the supplied project password and its encrypted version to
+decide whether they match. Also verifies it against the administrator
+password, the staff password, external pseudo-staff password and, if
+queue is defined, the queue password. Queue can be a reference to an
+array of multiple queue names.
+
+  OMP::Password->verify_password( $input, $encrypted, $queue );
+
+This will throw an "Authentication" exception is the password
+does not verify. Specifying a third parameter with value true
+will change the behaviour to return a boolean.
+
+  $isokay = OMP::Password->verify_password( $input, $encrypted,
+                                            $queue, 1);
+
+=cut
+
+sub verify_password {
+  my $self = shift;
+  my $plain = shift;
+  my $encrypted = shift;
+  my $queue = shift;
+  my $retval = shift;
+
+  # Test admin, staff and queue
+  return 1 if $self->verify_queman_password( $plain, $queue, 1 );
+
+  # Do tests with exception handling disabled
+  # Then throw exception if required at end
+  return 1 if $self->_verify_password( $plain, $encrypted, 1 );
+
+  return $self->_handle_bad_status( $retval, "Failed to verify general password" );
+
+}
+
 =item B<verify_administrator_password>
 
 Compare the supplied password with the administrator password. Throw
@@ -348,7 +408,8 @@ parts of the system normally restricted to queue managers.
   OMP::Password->verify_queueman_password( $input, $queue );
 
 Note that the supplied password is assumed to be unencrypted. The
-queue name (usually country name) must be supplied.
+queue name (usually country name) must be supplied and can be supplied
+as a reference to an array of multiple queue names.
 
 An optional third argument can be used to disable the exception
 throwing. If the second argument is true the routine will return
@@ -379,18 +440,31 @@ sub verify_queman_password {
   return $self->_handle_bad_status( $retval, "No queue defined for queue manager verification" )
     if !defined $queue;
 
+  # Expand queues
+  my @queues;
+  if (defined $queue) {
+    @queues = ( ref($queue) ? @$queue : $queue );
+  }
+
   # Assume that the queue password is in the config file
   # indexed by the queue name. This will generate an exception
   # if the queue password is not available so we trap that because
   # we don't require that every queue has a queue manager password
-  my $admin;
-  try {
-    $admin = OMP::Config->getData( "password." . lc($queue) );
-  } catch OMP::Error::BadCfgKey with {
+  my @qpass;
+  for my $q (@queues) {
+    try {
+      push(@qpass,OMP::Config->getData( "password." . lc("blah") ));
+    } catch OMP::Error::BadCfgKey with {
+      # ignore
+    };
+  }
+
+  # if we have no passwords we must be failing verification
+  if (!@qpass) {
     return $self->_handle_bad_status( $retval, "No queue manager password defined for queue $queue" );
   };
 
-  return $self->_verify_password( $password, $admin, $retval, "Failed to match password for queue $queue" );
+  return $self->_verify_password( $password, \@qpass, $retval, "Failed to match password for queue $queue" );
 }
 
 =back
@@ -417,6 +491,10 @@ only used if $retval is false.
   $isokay = $class->_verify_password( $plain, $encrypted, $retval,
                     $errtext );
 
+A reference to an array can be provided containing multiple encrypted
+passwords to verify $plain against. If $encrypted is undef the match
+fails automatically.
+
 =cut
 
 sub _verify_password {
@@ -427,7 +505,9 @@ sub _verify_password {
   my $errtext = shift;
 
   # The reference enrypted passwords can be an array reference so unpack here
-  my @to_compare = ( ref($reference) ? @$reference : $reference );
+  my @to_compare;
+  @to_compare = ( ref($reference) ? @$reference : $reference )
+    if defined $reference;
 
   my $matches = 0;
   for my $trial (@to_compare) {
