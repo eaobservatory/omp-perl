@@ -77,41 +77,10 @@ sub play {
   {
     local $ENV{'PATH'} = "/bin:/usr/bin";
 
-    my $cmd;
-
-    # Commands and arguments
-    my %cmds = ( play => {
-			     path => '/usr/bin/play',
-			     },
-		 qtplay => {
-			    # OS X
-			    path => '/usr/local/bin/qtplay',
-			    args => '-q',
-			   });
-
-    for my $c (keys %cmds) {
-      print "Checking for command  '$c'..." if $DEBUG;
-      if (-e $cmds{$c}->{path}) {
-	$cmd = $c;
-	print "Found.\n" if $DEBUG;
-	last;
-      }
-      print "\n" if $DEBUG;
-    }
-
-    print "running '$cmd $file'\n" if $DEBUG;
-
     # Log this play to the log file.
     OMP::General->log_message( "Playing $file audio file..." );
-
-    my @system_args = ( $cmds{$cmd}{path} );
-    if( defined( $cmds{$cmd}{args} ) ) {
-      push @system_args, $cmds{$cmd}{args};
-    }
-    push @system_args, $file;
-
-    # Do the system call to the wav player
-    system( @system_args );
+    JAC::Audio::register_log_command( sub { OMP::General->log_message( $_ ) for @_ } );
+    JAC::Audio::play( $file );
   }
 }
 
@@ -124,6 +93,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
+Copyright (C) 2010 Science and Technology Facilities Council.
 Copyright (C) 2005 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 

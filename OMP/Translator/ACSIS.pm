@@ -457,19 +457,17 @@ sub handle_special_modes {
       throw OMP::Error::FatalError( "Unable to understand scale factor request for pointing" );
     }
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Determining POINTING parameters...\n";
-      print {$self->outhdl} "\tJiggle Pattern: $info->{jigglePattern} ($info->{jiggleSystem})\n";
-      print {$self->outhdl} "\tSMU Scale factor: $info->{scaleFactor} arcsec\n";
-      print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
-      print {$self->outhdl} "\tSeconds per jiggle position: $info->{secsPerJiggle}\n";
-      if ($info->{disableNonTracking}) {
-        print {$self->outhdl} "\tPointing on a single receptor\n";
-      } else {
-        print {$self->outhdl} "\tAll receptors active\n";
-      }
-      print {$self->outhdl} "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
+    $self->output("Determining POINTING parameters...\n",
+                  "\tJiggle Pattern: $info->{jigglePattern} ($info->{jiggleSystem})\n",
+                  "\tSMU Scale factor: $info->{scaleFactor} arcsec\n",
+                  "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n",
+                  "\tSeconds per jiggle position: $info->{secsPerJiggle}\n");
+    if ($info->{disableNonTracking}) {
+      $self->output("\tPointing on a single receptor\n");
+    } else {
+      $self->output("\tAll receptors active\n");
     }
+    $self->output("\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n");
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -521,13 +519,10 @@ sub handle_special_modes {
       $info->{stareSystem} = $staresys;
     }
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Determining FOCUS parameters...\n";
-      print {$self->outhdl} "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n";
-      print {$self->outhdl} "\tSeconds per focus position: $info->{secsPerCycle}\n";
-      print {$self->outhdl} "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n";
-    }
-
+    $self->output("Determining FOCUS parameters...\n",
+                  "\tChop parameters: $info->{CHOP_THROW} arcsec @ $info->{CHOP_PA} deg ($info->{CHOP_SYSTEM})\n",
+                  "\tSeconds per focus position: $info->{secsPerCycle}\n",
+                  "\tOptimizing for ". ($info->{continuumMode} ? "continuum" : "spectral line" ) . " mode\n");
 
     # Kill baseline removal
     if (exists $info->{data_reduction}) {
@@ -551,9 +546,7 @@ sub handle_special_modes {
     $info->{jigglePattern} = '1x1';
     $info->{scaleFactor} = 1;
     $info->{secsPerJiggle} = $info->{secsPerCycle};
-    if ($self->verbose) {
-      print {$self->outhdl} "Converting grid/freqsw to jiggle/freqsw observation\n";
-    }
+    $self->output("Converting grid/freqsw to jiggle/freqsw observation\n");
 
   }
 
@@ -584,9 +577,7 @@ sub handle_special_modes {
       $info->{sampleTime} = OMP::Config->getData($self->cfgkey.
                                                  ".scan_pntsrc_step_time");
 
-      if ($self->verbose) {
-        print {$self->outhdl} "Defining point source scan map from config.\n";
-      }
+      $self->output("Defining point source scan map from config.\n");
     }
   }
 
@@ -708,13 +699,9 @@ sub fe_config {
 
       }
 
-      if ($self->verbose) {
-        print {$self->outhdl} "Selected sideband $sb for sky frequency of $skyFreq GHz\n";
-      }
+      $self->output("Selected sideband $sb for sky frequency of $skyFreq GHz\n");
     } else {
-      if ($self->verbose) {
-        print {$self->outhdl} "No sideband helper file for $inst so assuming $sb will be acceptable\n";
-      }
+      $self->output("No sideband helper file for $inst so assuming $sb will be acceptable\n");
     }
   }
   $fe->sideband( $sb );
@@ -734,15 +721,12 @@ sub fe_config {
 
   $restfreq += $offset;
   $fe->rest_frequency( $restfreq );
-  if ($self->verbose) {
-    print {$self->outhdl} "Tuning to a rest frequency of ".
-      sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n";
-    if (abs($offset) > 0.001) {
-      print {$self->outhdl} "Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
-        " MHz to correct for offset of first subsystem in band\n";
-    }
+  $self->output("Tuning to a rest frequency of ".
+                sprintf("%.3f",$restfreq)." GHz ".uc($sb)."\n");
+  if (abs($offset) > 0.001) {
+    $self->output("Tuning adjusted by ". sprintf("%.0f",($offset * 1e3)).
+        " MHz to correct for offset of first subsystem in band\n");
   }
-
 
   # doppler mode
   $fe->doppler( ELEC_TUNING => 'DISCRETE', MECH_TUNING => 'ONCE' );
@@ -862,7 +846,7 @@ sub rotator_config {
   my $scan_adj = 0;
   my @choices = (0..3);         # four fold symmetry
   if ($inst->name =~ /HARP/) {
-    print {$self->outhdl} "Selecting K-mirror angles\n" if $self->verbose;
+    $self->output("Selecting K-mirror angles\n");
 
     # need the TCS information
     my $tcs = $cfg->tcs();
@@ -894,8 +878,8 @@ sub rotator_config {
             my $diff = abs($scanpas[$i]->degrees - $scanpas[$i-1]->degrees);
             if ($diff % 90.0) {
               if ($self->verbose) {
-                print {$self->outhdl} "\tScan selections do not differ by multiples of 90 degrees.\n";
-                print {$self->outhdl} "\tUsing map PA for K-mirror angle.\n";
+                $self->output("\tScan selections do not differ by multiples of 90 degrees.\n",
+                              "\tUsing map PA for K-mirror angle.\n");
               }
               $use_scan = 0;
               last;
@@ -929,8 +913,7 @@ sub rotator_config {
     }
   }
 
-  print {$self->outhdl} "\tAligning K-mirror to ".$pa->degrees." deg with $scan_adj sampling adjustment ($system)\n"
-    if $self->verbose;
+  $self->output("\tAligning K-mirror to ".$pa->degrees." deg with $scan_adj sampling adjustment ($system)\n");
 
   # convert to set of allowed angles and remove duplicates
   my @angles = map {  ($_*90) + $scan_adj } @choices;
@@ -987,9 +970,7 @@ sub rotator_config {
     $slew = "LONGEST_SLEW";
   }
 
-  if ($self->verbose) {
-    print {$self->outhdl} "\tSelected rotator slew option: $slew\n";
-  }
+  $self->output("\tSelected rotator slew option: $slew\n");
 
   # do not know enough about ROTATOR behaviour yet
   $tcs->rotator( SLEW_OPTION => $slew,
@@ -1048,13 +1029,11 @@ sub jos_config {
   # Calculate the cal time and time between cals/refs in steps
   my ($calgap, $refgap) = $self->calc_jos_times( $jos, %info );
 
-  if ($self->verbose) {
-    print {$self->outhdl} "Generic JOS parameters:\n";
-    print {$self->outhdl} "\tStep Time: ". $jos->step_time ." sec\n";
-    print {$self->outhdl} "\tSteps between ref: ". $jos->steps_btwn_refs ."\n";
-    print {$self->outhdl} "\tNumber of Cal samples: ". $jos->n_calsamples ."\n";
-    print {$self->outhdl} "\tSteps between Cal: ". $jos->steps_btwn_cals ."\n";
-  }
+  $self->output("Generic JOS parameters:\n",
+                "\tStep Time: ". $jos->step_time ." sec\n",
+                "\tSteps between ref: ". $jos->steps_btwn_refs ."\n",
+                "\tNumber of Cal samples: ". $jos->n_calsamples ."\n",
+                "\tSteps between Cal: ". $jos->steps_btwn_cals ."\n");
 
   # Always start at the first TCS index (row or offset)
   # - if a science observation
@@ -1065,26 +1044,19 @@ sub jos_config {
 
   if ($info{obs_type} =~ /^skydip/) {
 
-   if ($self->verbose) {
-     print {$self->outhdl} "Skydip JOS parameters:\n";
-   }
+    $self->output("Skydip JOS parameters:\n");
 
     if ($info{observing_mode} =~ /^stare/) {
       # need JOS_MIN since we have multiple offsets
       my $integ = OMP::Config->getData( 'acsis_translator.skydip_integ' );
       $jos->jos_min( POSIX::ceil($integ / $jos->step_time));
 
-      if ($self->verbose) {
-        print {$self->outhdl} "\tSteps per discrete elevation: ". $jos->jos_min()."\n";
-      }
+      $self->output("\tSteps per discrete elevation: ". $jos->jos_min()."\n");
 
     } else {
       # scan so JOS_MIN is 1
       $jos->jos_min(1);
-
-      if ($self->verbose) {
-        print {$self->outhdl} "\tContinuous scanning skydip\n";
-      }
+      $self->output("\tContinuous scanning skydip\n");
     }
 
   } elsif ($info{observing_mode} =~ /^scan/) {
@@ -1137,14 +1109,11 @@ sub jos_config {
       $tot_time = $duration_per_area;
     }
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Scan map JOS parameters:\n";
-      print {$self->outhdl} "\tDuration of reference calculated by JOS dynamically\n";
-      print {$self->outhdl} "\tEstimated time to cover the map area once: $duration_per_area sec\n";
-      print {$self->outhdl} "\tNumber of repeats: ". $jos->num_cycles."\n";
-      print {$self->outhdl} "\tTime spent mapping: $tot_time sec\n";
-    }
-
+    $self->output("Scan map JOS parameters:\n",
+                  "\tDuration of reference calculated by JOS dynamically\n",
+                  "\tEstimated time to cover the map area once: $duration_per_area sec\n",
+                  "\tNumber of repeats: ". $jos->num_cycles."\n",
+                  "\tTime spent mapping: $tot_time sec\n");
 
   } elsif ($info{observing_mode} =~ /jiggle_chop/) {
 
@@ -1233,26 +1202,24 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Jiggle with chop JOS parameters:\n";
-      if (defined $timing{CHOPS_PER_JIG}) {
-        print {$self->outhdl} "\tChopping then Jiggling\n";
-      } else {
-        print {$self->outhdl} "\tJiggling then Chopping\n";
-      }
-      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print {$self->outhdl} "\tOffs are ".($info{separateOffs} ? "not " : "") . "shared\n";
-      print {$self->outhdl} "\tDuration of single jiggle pattern: $timePerJig sec (".$jig->npts." points)\n";
-      print {$self->outhdl} "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n";
-      print {$self->outhdl} "\tN repeats of whole jiggle pattern required: $nrepeats\n";
-      print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
-      print {$self->outhdl} "\tMax allowed JOS_MULT : $max_jos_mult\n";
-      print {$self->outhdl} "\tActual JOS_MULT : $jos_mult\n";
-      print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
-        ($nod_set_size == 2 ? "AB" : "ABBA").")\n";
-      print {$self->outhdl} "\tActual integration time per jiggle position: ".
-        ($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n";
+    $self->output("Jiggle with chop JOS parameters:\n");
+    if (defined $timing{CHOPS_PER_JIG}) {
+      $self->output("\tChopping then Jiggling\n");
+    } else {
+      $self->output("\tJiggling then Chopping\n");
     }
+    $self->output("\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n",
+                  "\tOffs are ".($info{separateOffs} ? "not " : "") . "shared\n",
+                  "\tDuration of single jiggle pattern: $timePerJig sec (".$jig->npts." points)\n",
+                  "\tRequested integration time per pixel: $info{secsPerJiggle} sec\n",
+                  "\tN repeats of whole jiggle pattern required: $nrepeats\n",
+                  "\tRequired total JOS_MULT: $total_jos_mult\n",
+                  "\tMax allowed JOS_MULT : $max_jos_mult\n",
+                  "\tActual JOS_MULT : $jos_mult\n",
+                  "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult jiggle repeats (nod set is ".
+                  ($nod_set_size == 2 ? "AB" : "ABBA").")\n",
+                  "\tActual integration time per jiggle position: ".
+                  ($num_nod_sets * $nod_set_size * $jos_mult * $jos->step_time)." secs\n");
 
   } elsif ($info{observing_mode} =~ /grid_chop/) {
 
@@ -1295,18 +1262,16 @@ sub jos_config {
     $jos->jos_mult( $jos_mult );
     $jos->num_nod_sets( $num_nod_sets );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Chop JOS parameters:\n";
-      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print {$self->outhdl} "\tRequested integration time per grid point: $info{secsPerCycle} sec\n";
-      print {$self->outhdl} "\tStep time for chop: ". $jos->step_time . " sec\n";
-      print {$self->outhdl} "\tRequired total JOS_MULT: $total_jos_mult\n";
-      print {$self->outhdl} "\tMax allowed JOS_MULT : $max_steps_nod\n";
-      print {$self->outhdl} "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
-        ($nod_set_size == 2 ? "AB" : "ABBA").")\n";
-      print {$self->outhdl} "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time 
-                                                                          * $jos->num_cycles) . " sec\n";
-    }
+    $self->output("Chop JOS parameters:\n",
+                  "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n",
+                  "\tRequested integration time per grid point: $info{secsPerCycle} sec\n",
+                  "\tStep time for chop: ". $jos->step_time . " sec\n",
+                  "\tRequired total JOS_MULT: $total_jos_mult\n",
+                  "\tMax allowed JOS_MULT : $max_steps_nod\n",
+                  "\tNumber of nod sets: $num_nod_sets in groups of $jos_mult steps per nod (nod set is ".
+                  ($nod_set_size == 2 ? "AB" : "ABBA").")\n",
+                  "\tActual integration time per grid point: ".($num_nod_sets * $jos_mult * $nod_set_size * $jos->step_time
+                                                                * $jos->num_cycles) . " sec\n");
 
   } elsif ($info{observing_mode} =~ /freqsw/) {
 
@@ -1380,16 +1345,14 @@ sub jos_config {
     # Force steps_btwn_refs to be the steps between cals
     $jos->steps_btwn_refs( $jos->steps_btwn_cals );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Frequency Switch JOS parameters:\n";
-      print {$self->outhdl} "\tRequested integration time (ON+OFF) per sky position: $secs_per_point secs\n";
-      print {$self->outhdl} "\tTime to complete jiggle pattern once : $pattern_length secs\n";
-      print {$self->outhdl} "\tNumber of times round the pattern each cycle: $jos_mult\n";
-      print {$self->outhdl} "\tNumber of frequency switches: $nfreqs\n";
-      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
-      print {$self->outhdl} "\tActual integration time per sky position:".
-        ( $jos_mult * $nfreqs * $num_cycles * $jos->step_time) ."\n";
-    }
+    $self->output("Frequency Switch JOS parameters:\n",
+                  "\tRequested integration time (ON+OFF) per sky position: $secs_per_point secs\n",
+                  "\tTime to complete jiggle pattern once : $pattern_length secs\n",
+                  "\tNumber of times round the pattern each cycle: $jos_mult\n",
+                  "\tNumber of frequency switches: $nfreqs\n",
+                  "\tNumber of cycles calculated: $num_cycles\n",
+                  "\tActual integration time per sky position:".
+                  ( $jos_mult * $nfreqs * $num_cycles * $jos->step_time) ."\n");
 
   } elsif ($info{observing_mode} =~ /grid/) {
 
@@ -1481,21 +1444,19 @@ sub jos_config {
     }
     $jos->shareoff( $separateOffs ? 0 : 1 );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Grid JOS parameters:\n";
-      print {$self->outhdl} "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n";
-      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
-      print {$self->outhdl} "\tNumber of steps per on: $jos_min\n";
-      if ($num_cycles > 1 && $recalc) {
-        print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
-      }
-      if ($recalc_cal_gap) {
-        print {$self->outhdl} "\tSteps between cals recalculated to be ".$jos->steps_btwn_cals."\n";
-      }
-      print {$self->outhdl} "\tActual integration time per grid position: ".
-        ($jos_min * $num_cycles * $nwplate *$jos->step_time)." secs\n";
+    $self->output("Grid JOS parameters:\n",
+                  "\tRequested integration (ON) time per grid position: $info{secsPerCycle} secs\n",
+                  "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n",
+                  "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n",
+                  "\tNumber of steps per on: $jos_min\n");
+    if ($num_cycles > 1 && $recalc) {
+      $self->output("\tNumber of cycles calculated: $num_cycles\n");
     }
+    if ($recalc_cal_gap) {
+      $self->output("\tSteps between cals recalculated to be ".$jos->steps_btwn_cals."\n");
+    }
+    $self->output("\tActual integration time per grid position: ".
+                  ($jos_min * $num_cycles * $nwplate *$jos->step_time)." secs\n");
 
   } elsif ($info{observing_mode} eq 'jiggle_pssw') {
     # We know the requested time per point
@@ -1528,18 +1489,16 @@ sub jos_config {
     # Sharing the off?
     $jos->shareoff( $info{separateOffs} ? 0 : 1 );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Jiggle/PSSW JOS parameters:\n";
-      print {$self->outhdl} "\tRequested integration (ON) time per position: $info{secsPerJiggle} secs ".
-        "($total_steps_per_jigpos steps)\n";
-      print {$self->outhdl} "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n";
-      print {$self->outhdl} "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n";
-      print {$self->outhdl} "\tNumber of steps per on: ".$jos->jos_min."\n";
-      print {$self->outhdl} "\tNumber of points in jiggle pattern: ". $jig->npts."\n";
-      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
-      print {$self->outhdl} "\tActual integration time per grid position: ".
-        ($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n";
-    }
+    $self->output("Jiggle/PSSW JOS parameters:\n",
+                  "\tRequested integration (ON) time per position: $info{secsPerJiggle} secs ".
+                  "($total_steps_per_jigpos steps)\n",
+                  "\t".($info{continuumMode} ? "Continuum" : "Spectral Line") . " mode enabled\n",
+                  "\tOffs are ".($jos->shareoff ? "" : "not ") . "shared\n",
+                  "\tNumber of steps per on: ".$jos->jos_min."\n",
+                  "\tNumber of points in jiggle pattern: ". $jig->npts."\n",
+                  "\tNumber of cycles calculated: $num_cycles\n",
+                  "\tActual integration time per grid position: ".
+                  ($times_round_pattern_per_seq * $num_cycles * $jos->step_time)." secs\n");
 
   } else {
     throw OMP::Error::TranslateFail("Unrecognized observing mode for JOS configuration '$info{observing_mode}'");
@@ -2088,7 +2047,7 @@ sub acsisdr_recipe {
   my $dr = new JAC::OCS::Config::ACSIS::RedConfigList( EntityFile => $filename,
                                                        validation => 0);
   $acsis->red_config_list( $dr );
-  print {$self->outhdl} "Read ACSIS DR recipe from '$filename'\n" if $self->verbose;
+  $self->output("Read ACSIS DR recipe from '$filename'\n");
 
   # and now the mapping that is also recipe specific
   my $sl = new JAC::OCS::Config::ACSIS::SemanticLinks( EntityFile => $filename,
@@ -2484,24 +2443,22 @@ sub cubes {
     $cube->spw_interval( $int );
 
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Cube parameters [$cubid/".$cube->spw_id."]:\n";
-      print {$self->outhdl} "\tDimensions: $nx x $ny\n";
-      print {$self->outhdl} "\tPixel Size: $xsiz x $ysiz arcsec\n";
-      print {$self->outhdl} "\tMap frame:  ". $cube->tcs_coord ."\n";
-      print {$self->outhdl} "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n";
-      print {$self->outhdl} "\tGroup centre is ".(defined $cube->group_centre ? "" : "not ")."defined\n";
-      print {$self->outhdl} "\tMap PA:     $mappa deg\n";
-      print {$self->outhdl} "\tSpectral channels: ".($maxchan-$minchan+1).
-        " as $int (cf ".($ss->{nchannels_full})." total)\n";
-      print {$self->outhdl} "\tSlice size: ".($nchan_per_gridder * $npix_per_chan * 4 /
-                                              (1024*1024))." MB\n";
-      print {$self->outhdl} "\tGrid Function: $grid_func\n";
-      if ( $grid_func eq 'Gaussian') {
-        print {$self->outhdl} "\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n";
-      }
-      print {$self->outhdl} "\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n";
+    $self->output("Cube parameters [$cubid/".$cube->spw_id."]:\n",
+                  "\tDimensions: $nx x $ny\n",
+                  "\tPixel Size: $xsiz x $ysiz arcsec\n",
+                  "\tMap frame:  ". $cube->tcs_coord ."\n",
+                  "\tMap Offset: $offx, $offy arcsec ($offx_pix, $offy_pix) pixels\n",
+                  "\tGroup centre is ".(defined $cube->group_centre ? "" : "not ")."defined\n",
+                  "\tMap PA:     $mappa deg\n",
+                  "\tSpectral channels: ".($maxchan-$minchan+1).
+                  " as $int (cf ".($ss->{nchannels_full})." total)\n",
+                  "\tSlice size: ".($nchan_per_gridder * $npix_per_chan * 4 /
+                                    (1024*1024))." MB\n",
+                  "\tGrid Function: $grid_func\n");
+    if ( $grid_func eq 'Gaussian') {
+      $self->output("\t  Gaussian FWHM: " . $cube->fwhm() . " arcsec\n");
     }
+    $self->output("\t  Truncation radius: ". $cube->truncation_radius() . " arcsec\n");
 
     $cubes{$cubid} = $cube;
     $count++;
@@ -2584,8 +2541,7 @@ sub rtd_config {
   throw OMP::Error::FatalError("Unable to find RTD entity file with root $root\n")
     unless defined $filename;
 
-  print {$self->outhdl} "Read ACSIS RTD configuration $filename\n"
-    if $self->verbose;
+  $self->output("Read ACSIS RTD configuration $filename\n");
 
   # Read the entity
   my $il = new JAC::OCS::Config::ACSIS::RTDConfig( EntityFile => $filename,
@@ -2846,7 +2802,7 @@ sub acsis_layout {
   my $lay_file = File::Spec->catfile( $self->wiredir, 'acsis',$appropriate_layout);
   my $layout = $self->_read_file( $lay_file );
 
-  print {$self->outhdl} "Read ACSIS layout $lay_file\n" if $self->verbose;
+  $self->output("Read ACSIS layout $lay_file\n");
 
   # Now we need to replace the entities.
   $layout =~ s/\&machine_table\;/$machtable/g;
@@ -3010,7 +2966,7 @@ sub bandwidth_mode {
 
   # loop over each subsystem
   for my $s (@subs) {
-    print {$self->outhdl} "Processing subsystem...\n" if $self->verbose;
+    $self->output("Processing subsystem...\n");
 
     # These are the hybridised subsystem parameters
     my $hbw = $s->{bw};
@@ -3053,9 +3009,8 @@ sub bandwidth_mode {
         }
         $count++;
       }
-      print {$self->outhdl} "\tDuplicate subsystem detected. Shifting by ".$count.
-        " channel".($count > 1 ? "s" : '')." to make unique.\n"
-          if $self->verbose;
+      $self->output("\tDuplicate subsystem detected. Shifting by ".$count.
+        " channel".($count > 1 ? "s" : '')." to make unique.\n");
     }
 
     # Currently, we determine whether we are hybridised from the
@@ -3078,7 +3033,7 @@ sub bandwidth_mode {
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
 
-    print {$self->outhdl} "\tBandwidth: $mhz MHz\n" if $self->verbose;
+    $self->output("\tBandwidth: $mhz MHz\n");
 
     # store the bandwidth in Hz for reference
     $s->{bandwidth} = $mhz * 1E6;
@@ -3103,9 +3058,8 @@ sub bandwidth_mode {
     $chanwid = $bw / $nchan;
     $s->{channwidth} = $chanwid;
 
-    print {$self->outhdl} "\tChanwid : $chanwid Hz\n" if $self->verbose;
-
-    print {$self->outhdl} "\tNumber of channels: $nchan\n" if $self->verbose;
+    $self->output("\tChanwid : $chanwid Hz\n",
+                  "\tNumber of channels: $nchan\n");
 
     # number of channels per subband
     my $nchan_per_sub = $nchan / $nsubband;
@@ -3137,7 +3091,7 @@ sub bandwidth_mode {
       unless exists $BWMAP{$s->{sbbwlabel}};
     my %bwmap = %{ $BWMAP{ $s->{sbbwlabel} } };
 
-    print {$self->outhdl} "\tBW per sub: $bw_per_sub MHz with overlap : $olap Hz\n" if $self->verbose;
+    $self->output("\tBW per sub: $bw_per_sub MHz with overlap : $olap Hz\n");
 
     # The usable channels are defined by the overlap
     # Simply using the channel width to calculate the offset
@@ -3149,7 +3103,7 @@ sub bandwidth_mode {
     my $nch_lo = $olap_in_chan;
     my $nch_hi = $nchan_per_sub - $olap_in_chan - 1;
 
-    print {$self->outhdl} "\tUsable channel range: $nch_lo to $nch_hi\n" if $self->verbose;
+    $self->output("\tUsable channel range: $nch_lo to $nch_hi\n");
 
     my $d_nch = $nch_hi - $nch_lo + 1;
 
@@ -3181,8 +3135,8 @@ sub bandwidth_mode {
     # Now calculate the offset from the centre for reference
     my @ifoff = map { $_ - $if_center_freq } @sbif;
 
-    print {$self->outhdl} "\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
-      " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E6)." MHz)\n" if $self->verbose;
+    $self->output("\tIF within band: ".sprintf("%.6f",$s->{if}/1E9).
+      " GHz (offset = ".sprintf("%.3f",$ifoff[0]/1E6)." MHz)\n");
 
     # For the LO2 settings we need to offset the IF by the number of channels
     # from the beginning of the band
@@ -3212,16 +3166,12 @@ sub bandwidth_mode {
 
     $s->{align_shift} = \@align_shift;
 
-    if ($self->verbose) {
-      print {$self->outhdl} "\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (chann)\n";
-      for my $i (0..$#lo2exact) {
-        printf {$self->outhdl} "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
-          $refchan[$i], $chan_offset[$i]/1E9,
-            $lo2exact[$i]/1E9,
-              $lo2true[$i]/1E9,
-                $align_shift[$i];
-      }
-    }
+    $self->output("\tRefChan\tRefChanIF (GHz)\tLO2 Exact (GHz)\tLO2 Quantized (GHz)\tCorrection (chann)\n",
+                  map { sprintf( "\t%7d\t%14.6f\t%14.6f\t%14.6f\t\t%14.3f\n",
+                                 $refchan[$_], $chan_offset[$_]/1E9,
+                                 $lo2exact[$_]/1E9,
+                                 $lo2true[$_]/1E9,
+                                 $align_shift[$_]); } (0..$#lo2exact) );
 
     # Store the reference channel for each subband
     $s->{if_ref_channel} = \@refchan;
@@ -3950,7 +3900,7 @@ sub _calc_offset_stats {
 
       my @grid = map { $trialref + ($_*$spacing) }  (0 .. ($npix-1) );
 
-      #      print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
+      #      $self->output("Grid: ".join(",",@grid)."\n");
 
       # Calculate the residual from that grid by comparing with @sort
       # use the fact that we are sorted
@@ -3971,7 +3921,7 @@ sub _calc_offset_stats {
             next CMP;
           } elsif ( $cmp < $startpix ) {
             if ($i == 0) {
-              #print {$self->outhdl} "Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n";
+              #$self->output("Position $cmp lies below pixel $i with bounds $startpix -> $endpix\n");
               push(@errors, 1E5); # make it highly unlikely
             } else {
               # Probably a rounding error
@@ -3990,7 +3940,7 @@ sub _calc_offset_stats {
 
         if ($i > $#grid) {
           my $endpix = $grid[$#grid] + $halfpix;
-          #print {$self->outhdl} "Position $cmp lies above pixel $#grid ( > $endpix)\n";
+          #$self->output("Position $cmp lies above pixel $#grid ( > $endpix)\n");
           push(@errors, 1E5);   # Make it highly unlikely
         }
 
@@ -3999,9 +3949,9 @@ sub _calc_offset_stats {
       my $rms = _find_rms( @errors );
 
       if ($rms < 0.1) {
-        # print {$self->outhdl} "Grid: ".join(",",@grid)."\n";
-        # print {$self->outhdl} "Sort: ". join(",",@sort). "\n";
-        # print {$self->outhdl} "Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n";
+        # $self->output("Grid: ".join(",",@grid)."\n");
+        # $self->output("Sort: ". join(",",@sort). "\n");
+        # $self->output("Rms= $rms -  $spacing arcsec from $grid[0] to $grid[$#grid]\n");
       }
 
       if (!defined $lowest_rms || abs($rms) < $lowest_rms) {
@@ -4015,15 +3965,15 @@ sub _calc_offset_stats {
         my $midpoint = int( scalar(@grid) / 2 ) + 1 - 1;
 
         my $temp_centre; 
-        if ( scalar(@grid)%2) { #print {$self->outhdl} "Odd\n";
+        if ( scalar(@grid)%2) { #$self->output("Odd\n");
           $temp_centre = $grid[$midpoint];
-        } else {                #print {$self->outhdl} "Even\n";
+        } else {                #$self->output("Even\n");
           #$temp_centre = $grid[$midpoint];
           $temp_centre=  $grid[$midpoint] - ($grid[$midpoint]-$grid[$midpoint-1])/2.0;
         }
 
-        #print {$self->outhdl} "Temp centre --> $temp_centre \n";
-        
+        #$self->output("Temp centre --> $temp_centre \n");
+
         %best = (
                  rms => $lowest_rms,
                  spacing => $spacing,

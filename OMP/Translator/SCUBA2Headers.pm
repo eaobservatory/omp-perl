@@ -151,6 +151,9 @@ sub getDRRecipe {
     $recipe = "REDUCE_SKYDIP";
   } elsif ($obstype eq 'flatfield') {
     $recipe = "REDUCE_FLATFIELD";
+  } elsif ($obstype eq 'setup') {
+    # for now a setup is just a fast flat ramp
+    $recipe = "REDUCE_FASTFLAT";
   } elsif ($obstype eq 'array_tests') {
     $recipe = "ARRAY_TESTS";
   } elsif ($obstype eq 'noise') {

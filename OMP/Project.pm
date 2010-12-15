@@ -537,18 +537,12 @@ sub password {
     # version. This is also necessary to allow the encrypted()
     # method to clear the plain text password
     if (defined $plain) {
-      # Time to encrypt
-      # Generate the salt from a random set
-      # See the crypt entry in perlfunc
-      my $salt = join '',
-        ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
-
       # Encrypt and store it
       # Note that we store the plain password after this
       # step to prevent the encrypted() method clearing it
       # and ruining everything [the easy approach is simply
       # to not use the accessor method]
-      $self->encrypted( crypt( $plain, $salt) );
+      $self->encrypted( OMP::Password->encrypt_password( $plain ) );
 
     }
 
@@ -1289,25 +1283,10 @@ sub verify_password {
     $plain = $self->password;
   }
 
-  # First verify against staff and queue manager passwords.
-  # Need to turn off exceptions
-  # Need to check each country
-  for my $c ($self->country) {
-    return 1
-      if OMP::Password->verify_queman_password( $plain, $c,1);
-  }
-
-  # Need to verify against this password
-  my $encrypted = $self->encrypted;
-
-  # Return false immediately if either are undefined
-  return 0 unless defined $plain and defined $encrypted;
-
-  # The encrypted password includes the salt as the first
-  # two letters. Therefore we encrypt the plain text password
-  # using the encrypted password as salt
-  return ( crypt($plain, $encrypted) eq $encrypted );
-
+  return OMP::Password->verify_password( $plain,
+                                         $self->encrypted,
+                                         [ $self->country ],
+                                         1);
 }
 
 =item B<conditionstxt>

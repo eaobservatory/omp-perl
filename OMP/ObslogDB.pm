@@ -311,8 +311,6 @@ sub queryComments {
     if(UNIVERSAL::isa($date, 'OMP::Range')) {
       if($date->isinverted or !$date->isbound) {
         throw OMP::Error::BadArgs("Date range muse be closed and consecutive");
-      } elsif( ( $date->{Max} - $date->{Min} ) > ONE_YEAR ) {
-        throw OMP::Error::BadArgs("Date range must be less than one year");
       }
     }
   } else {

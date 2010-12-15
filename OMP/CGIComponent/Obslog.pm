@@ -59,6 +59,7 @@ our %css = (
                OMP__OBS_GOOD() => 'obslog-good',
                OMP__OBS_QUESTIONABLE() => 'obslog-questionable',
                OMP__OBS_BAD() => 'obslog-bad',
+               OMP__OBS_JUNK() => 'obslog-junk',
                OMP__OBS_REJECTED() => 'obslog-rejected'
               );
 
@@ -233,6 +234,7 @@ sub obs_table {
         [ OMP__OBS_GOOD(),         'good'         ],
         [ OMP__OBS_QUESTIONABLE(), 'questionable' ],
         [ OMP__OBS_BAD(),          'bad'          ],
+        [ OMP__OBS_JUNK(),         'junk'         ],
         [ OMP__OBS_REJECTED(),     'rejected'     ]
       ) ;
     print  "</td></tr>\n";
@@ -753,6 +755,7 @@ sub obs_comment_form {
   my %status_label = ( OMP__OBS_GOOD() => 'Good',
                        OMP__OBS_QUESTIONABLE() => 'Questionable',
                        OMP__OBS_BAD() => 'Bad',
+                       OMP__OBS_JUNK() => 'Junk',
                        OMP__OBS_REJECTED() => "Rejected",
                      ) ;
   my @status_value = sort keys %status_label;

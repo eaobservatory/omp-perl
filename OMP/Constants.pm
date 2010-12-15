@@ -45,7 +45,7 @@ my @done = qw/ OMP__DONE_FETCH OMP__DONE_DONE OMP__DONE_ALLDONE
   OMP__DONE_REJECTED OMP__DONE_SUSPENDED   /;
 my @msb = qw/ OMP__MSB_REMOVED /;
 my @obs = qw/ OMP__OBS_GOOD OMP__OBS_BAD OMP__OBS_QUESTIONABLE
-            OMP__OBS_REJECTED /;
+            OMP__OBS_REJECTED OMP__OBS_JUNK /;
 my @timegap = qw/ OMP__TIMEGAP_INSTRUMENT OMP__TIMEGAP_WEATHER
                   OMP__TIMEGAP_FAULT OMP__TIMEGAP_UNKNOWN
                   OMP__TIMEGAP_PREV_PROJECT OMP__TIMEGAP_NEXT_PROJECT
@@ -436,6 +436,20 @@ to be marked as bad (and so invisible in the science archive).
 =cut
 
 use constant OMP__OBS_REJECTED => 3;
+
+=item OMP__OBS_JUNK
+
+Flags an observation as junk. To be used if data are not at
+all usable in any shape or form. For example the doors were
+closed, a SCUBA-2 observation failed immediately after the
+dark was taken.
+
+This state prevents the file from being processed in the
+science archive.
+
+=cut
+
+use constant OMP__OBS_JUNK => 4;
 
 =back
 

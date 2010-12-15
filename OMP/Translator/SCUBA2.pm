@@ -191,8 +191,8 @@ and so do not generate configuration XML.
 
   $trans->is_private_sequence( %info );
 
-For SCUBA-2 returns true for observations in the dark or using the blackbody,
-false otherwise.
+For SCUBA-2 returns true for observations in the dark, using the blackbody,
+or a setup at the current telescope location, false otherwise.
 
 =cut
 
@@ -202,6 +202,14 @@ sub is_private_sequence {
   if ($self->is_dark_or_blackbody(%info)) {
     return 1;
   }
+
+  # if this is a setup observation and we have been told to use the current
+  # Azimuth then we can just treat this as a private sequence. We do not really
+  # need the telescope in setup observations
+  if ($info{obs_type} =~ /^setup/i && $info{currentAz}) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -312,11 +320,8 @@ sub handle_special_modes {
                                        $info->{obs_type}.
                                        "_integration");
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Determining ".uc($info->{obs_type}).
-        " parameters...\n";
-      print {$self->outhdl} "\tIntegration time: $exptime secs\n";
-    }
+    $self->output( "Determining ".uc($info->{obs_type}). " parameters...\n",
+                   "\tIntegration time: $exptime secs\n");
 
     if ($info->{mapping_mode} eq 'scan') {
       # do this as a point source
@@ -331,9 +336,7 @@ sub handle_special_modes {
 
   } elsif ($info->{obs_type} =~ /array_tests/) {
     # Array Tests is currently shorthand for a short flatfield
-    if ($self->verbose) {
-      print {$self->outhdl} "Array tests implemented as short flatfield.\n";
-    }
+    $self->output( "Array tests implemented as short flatfield.\n" );
 
     $info->{obs_type} = "flatfield";
     $info->{is_quick} = 1;
@@ -346,9 +349,8 @@ sub handle_special_modes {
                                                  "noise_integration");
 
   } elsif ($info->{obs_type} =~ /flatfield/) {
-    if ($self->verbose) {
-      print {$self->outhdl} "Setting integration time for ".$info->{obs_type}. " observation\n";
-    }
+    $self->output( "Setting integration time for ".$info->{obs_type}. " observation\n");
+
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
                                                  "flatfield_integration");
   }
@@ -363,9 +365,7 @@ sub handle_special_modes {
         $smode = 'pntsrc';
       }
 
-      if ($self->verbose) {
-        print {$self->outhdl} "Defining ".$info->{scanPattern}." scan map from config.\n";
-      }
+      $self->output( "Defining ".$info->{scanPattern}." scan map from config.\n");
 
       my $key = ".scan_". $smode . "_";
       $info->{scanPattern} = OMP::Config->getData($self->cfgkey. $key .
@@ -390,16 +390,16 @@ sub handle_special_modes {
                                                   ".scan_pong_velocity") };
 
       if (defined $scan_dy) {
-        if ($self->verbose && defined $info->{SCAN_DY}) {
-          print {$self->outhdl} "\tOverriding scan spacing given in the OT.".
-            " Changing $info->{SCAN_DY} to $scan_dy arcsec\n";
+        if (defined $info->{SCAN_DY}) {
+          $self->output( "\tOverriding scan spacing given in the OT.".
+                         " Changing $info->{SCAN_DY} to $scan_dy arcsec\n");
         }
         $info->{SCAN_DY} = $scan_dy;
       }
       if (defined $scan_vel) {
-        if ($self->verbose && defined $info->{SCAN_VELOCITY} ) {
-          print {$self->outhdl} "\tOverriding scan velocity given in the OT.".
-            " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n";
+        if (defined $info->{SCAN_VELOCITY}) {
+          $self->output( "\tOverriding scan velocity given in the OT.".
+            " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n");
         }
         $info->{SCAN_VELOCITY} = $scan_vel;
       }
@@ -468,11 +468,15 @@ sub jos_config {
   #   scuba2_skydip
   #   scuba2_flatField
   #   scuba2_noise
+  #   scuba2_setup_subarrays
 
   my $recipe = $info{obs_type};
   if ($info{obs_type} eq 'science') {
     $recipe = $info{observing_mode};
+  } elsif ($info{obs_type} eq 'setup') {
+    $recipe = "setup_subarrays";
   }
+
   # prepend scuba2
   $recipe = "scuba2_".$recipe;
 
@@ -497,29 +501,22 @@ sub jos_config {
     $jos->n_calsamples( $darklen / $jos->step_time );
   }
 
-  if ($self->verbose) {
-    print {$self->outhdl} "Generic JOS parameters:\n";
-    print {$self->outhdl} "\tStep time: ".$jos->step_time." secs\n";
-    print {$self->outhdl} "\tSteps between darks: ". $jos->steps_btwn_dark().
-      "\n";
-    print {$self->outhdl} "\tDark duration: ".$jos->n_calsamples(). " steps\n"
-      if $jos->n_calsamples;
-  }
+  $self->output("Generic JOS parameters:\n",
+                "\tStep time: ".$jos->step_time." secs\n",
+                "\tSteps between darks: ". $jos->steps_btwn_dark()."\n");
+  $self->output( "\tDark duration: ".$jos->n_calsamples(). " steps\n" )
+    if $jos->n_calsamples;
 
   if ($info{obs_type} =~ /^skydip/) {
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Skydip JOS parameters:\n";
-    }
+    $self->output( "Skydip JOS parameters:\n");
 
     if ($info{observing_mode} =~ /^stare/) {
       # need JOS_MIN since we have multiple offsets
       my $integ = OMP::Config->getData( $self->cfgkey.'.skydip_integ' );
       $jos->jos_min( POSIX::ceil($integ / $jos->step_time));
 
-      if ($self->verbose) {
-        print {$self->outhdl} "\tSteps per discrete elevation: ". $jos->jos_min()."\n";
-      }
+      $self->output( "\tSteps per discrete elevation: ". $jos->jos_min()."\n");
 
       # make sure we always do a dark between positions
       $jos->steps_btwn_dark( 1 );
@@ -528,10 +525,12 @@ sub jos_config {
       # scan so JOS_MIN is 1
       $jos->jos_min(1);
 
-      if ($self->verbose) {
-        print {$self->outhdl} "\tContinuous scanning skydip\n";
-      }
+      $self->output( "\tContinuous scanning skydip\n");
     }
+
+  } elsif ($info{obs_type} =~ /^setup/) {
+
+    $self->output("Setup JOS parameters:\n");
 
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
@@ -577,9 +576,7 @@ sub jos_config {
       $jos->$k( $value );
     }
 
-    if ($self->verbose) {
-      print {$self->outhdl} "\tFlatfield source: $info{flatSource}\n";
-    }
+    $self->output( "\tFlatfield source: $info{flatSource}\n" );
 
   } elsif ($info{obs_type} eq 'noise') {
 
@@ -601,14 +598,12 @@ sub jos_config {
     my $jos_min = OMP::General::nint( $nsteps / $num_cycles );
     $jos->num_cycles($num_cycles);
 
-    if ($self->verbose) {
-      print {$self->outhdl} ucfirst($info{obs_type})." JOS parameters:\n";
-      print {$self->outhdl} "\tNoise source: $info{noiseSource}\n";
-      print {$self->outhdl} "\tRequested integration time: $inttime secs\n";
-      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
-      print {$self->outhdl} "\tActual integration time: ".
-        ($jos_min * $num_cycles * $jos->step_time)." secs\n";
-    }
+    $self->output(ucfirst($info{obs_type})." JOS parameters:\n",
+                  "\tNoise source: $info{noiseSource}\n",
+                  "\tRequested integration time: $inttime secs\n",
+                  "\tNumber of cycles calculated: $num_cycles\n",
+                  "\tActual integration time: ".
+                  ($jos_min * $num_cycles * $jos->step_time)." secs\n");
 
     # The DARK mode is special since we never open the shutter
     if ($info{noiseSource} eq 'DARK') {
@@ -661,14 +656,13 @@ sub jos_config {
     $jos->jos_min($jos_min);
     $jos->num_cycles($num_cycles);
 
-    if ($self->verbose) {
-      print {$self->outhdl} uc($info{mapping_mode})." JOS parameters:\n";
-      print {$self->outhdl} "\tRequested integration time per pixel: $inttime secs\n";
-      print {$self->outhdl} "\tNumber of steps per microstep/offset: $jos_min\n";
-      print {$self->outhdl} "\tNumber of cycles calculated: $num_cycles\n";
-      print {$self->outhdl} "\tActual integration time per stare position: ".
-        ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n";
-    }
+    $self->output( uc($info{mapping_mode})." JOS parameters:\n",
+                   "\tRequested integration time per pixel: $inttime secs\n",
+                   "\tNumber of steps per microstep/offset: $jos_min\n",
+                   "\tNumber of cycles calculated: $num_cycles\n",
+                   "\tActual integration time per stare position: ".
+                   ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n");
+
   } elsif ($info{mapping_mode} eq 'scan') {
     # The aim here is to use the minimum number of sequences
     # to get the correct map area. For "point source" it is easy
@@ -678,9 +672,7 @@ sub jos_config {
     # We end up with a JOS_MIN value. In principal we have to ensure
     # that we break at steps_between_darks.
 
-    if ($self->verbose) {
-      print {$self->outhdl} "Scan map JOS parameters\n";
-    }
+    $self->output( "Scan map JOS parameters\n");
 
     # Since the TCS works in integer times-round-the-map
     # Need to know the map area
@@ -717,25 +709,19 @@ sub jos_config {
       throw OMP::Error::FatalError("Unrecognized scan pattern: $info{scanPattern}");
     }
 
-    if ($self->verbose) {
-      print {$self->outhdl} "\tEstimated time to cover the map area once: $duration_per_area sec\n";
-    }
+    $self->output( "\tEstimated time to cover the map area once: $duration_per_area sec\n" );
 
     my $nsteps;
     if (exists $info{sampleTime} && defined $info{sampleTime}) {
       # Specify the length of the sequence
       $nsteps = $info{sampleTime} / $jos->step_time;
-      if ($self->verbose) {
-        print {$self->outhdl} "\tScan map executing for a specific time. Not map coverage\n";
-        print {$self->outhdl} "\tTotal duration requested for scan map: $info{sampleTime} secs.\n";
-      }
+      $self->output( "\tScan map executing for a specific time. Not map coverage\n",
+                     "\tTotal duration requested for scan map: $info{sampleTime} secs.\n");
 
     } else {
       my $nrepeats = ($info{nintegrations} ? $info{nintegrations} : 1 );
 
-      if ($self->verbose) {
-        print "\tNumber of repeats of map area requested: $nrepeats\n";
-      }
+      $self->output("\tNumber of repeats of map area requested: $nrepeats\n");
       $nsteps = ($nrepeats * $duration_per_area) / $jos->step_time;
     }
 
@@ -778,9 +764,7 @@ sub jos_config {
       my $mult = POSIX::ceil( $jos_min / $jos_max );
       $jos_min /= $mult;
       $num_cycles *= $mult;
-      if ($self->verbose) {
-        print {$self->outhdl} "\tSequence too long. Scaling down by factor of $mult\n";
-      }
+      $self->output("\tSequence too long. Scaling down by factor of $mult\n");
     }
 
     # Force jos_min to be an integer
@@ -804,9 +788,7 @@ sub jos_config {
 
         # delta
         my $delta = 90 / $npatterns;
-        if ($self->verbose) {
-          print {$self->outhdl} "\tRotating map PA by $delta deg each time for $npatterns repeats\n";
-        }
+        $self->output("\tRotating map PA by $delta deg each time for $npatterns repeats\n");
 
         @posang = map { $ref_pa + ($_*$delta) } (0..$npatterns-1);
         $obsArea->posang( map { Astro::Coords::Angle->new( $_, units=>'degrees') } @posang );
@@ -824,11 +806,9 @@ sub jos_config {
     $jos->jos_min( $jos_min );
     $jos->num_cycles( $num_cycles );
 
-    if ($self->verbose) {
-      print {$self->outhdl} "\tNumber of steps in scan map sequence: $jos_min\n";
-      print {$self->outhdl} "\tNumber of repeats: $num_cycles\n";
-      print {$self->outhdl} "\tTime spent mapping: $tot_time sec\n";
-    }
+  $self->output( "\tNumber of steps in scan map sequence: $jos_min\n",
+                 "\tNumber of repeats: $num_cycles\n",
+                 "\tTime spent mapping: $tot_time sec\n");
 
   }
 
@@ -872,6 +852,15 @@ observation.
 =cut
 
 sub need_offset_tracking {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # Never offset track for noise, skydip, flatfield or setup
+  if ( $info{obs_type} =~ /noise|skydip|flat|setup/i) {
+    return 0;
+  }
+
   # with only 2 subarrays we can be sure that we are meant to
   # use them
   return 1;
@@ -970,6 +959,9 @@ sub determine_map_and_switch_mode {
   } elsif ($mode eq 'SpIterNoiseObs') {
     $obs_type = 'noise';
     $mapping_mode = 'stare';
+  } elsif ($mode eq 'SpIterSetupObs') {
+    $obs_type = 'setup';
+    $mapping_mode = 'stare';
   } elsif ($mode eq 'SpIterSkydipObs') {
     my $sdip_mode = OMP::Config->getData( $self->cfgkey . ".skydip_mode" );
     if ($sdip_mode =~ /^cont/) {
@@ -1046,7 +1038,7 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright (C) 2007-2008 Science and Technology Facilities Council.
+Copyright (C) 2007-2010 Science and Technology Facilities Council.
 Copyright (C) 2003-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 

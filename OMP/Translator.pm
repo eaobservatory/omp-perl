@@ -90,6 +90,7 @@ are:
 
   SCUBA -   SCUBA::ODF
   ACSIS -   JAC::OCS::Config
+  SCUBA-2 - JAC::OCS::Config
   DAS   -   OMP::Translator::DASHTML
 
 If there is more than one MSB to translate, REMOVED MSBs will be ignored.

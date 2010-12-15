@@ -16,7 +16,7 @@ obslog - Review and comment on observations and timegaps for observing runs.
 
 This program allows you to review and comment on observations and timegaps
 for a night of observing. It allows for changing the status of an observation
-(good, questionable, or bad) or the underlying reason for a timegap (unknown,
+(good, questionable, junk or bad) or the underlying reason for a timegap (unknown,
 weather, or fault). It also supports multiple instruments via a tabbed window
 interface.
 
@@ -180,7 +180,7 @@ if(defined($opt{tel})) {
 # starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
 my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff' );
+my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff', '#ff0000' );
 my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
@@ -1000,12 +1000,17 @@ sub RaiseComment {
                                              -variable => \$status,
                                            )->pack( -side => 'left',
                                                   );
+    my $radioJunk = $radioFrame->Radiobutton( -text => 'junk',
+                                              -value => OMP__OBS_JUNK,
+                                              -variable => \$status,
+                                            )->pack( -side => 'left',
+                                                   );
     my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
                                                       -value => OMP__OBS_QUESTIONABLE,
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
                                                            );
-    my $radioQuestionable = $radioFrame->Radiobutton( -text => 'rejected',
+    my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
                                                       -value => OMP__OBS_REJECTED,
                                                       -variable => \$status,
                                                     )->pack( -side => 'left',
@@ -1177,11 +1182,21 @@ sub RaiseMultiComment {
                                            -variable => \$status,
                                          )->pack( -side => 'left',
                                                 );
+  my $radioJunk = $radioFrame->Radiobutton( -text => 'junk',
+                                            -value => OMP__OBS_JUNK,
+                                            -variable => \$status,
+                                          )->pack( -side => 'left',
+                                                 );
   my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
                                                     -value => OMP__OBS_QUESTIONABLE,
                                                     -variable => \$status,
                                                   )->pack( -side => 'left',
                                                          );
+  my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
+                                                -value => OMP__OBS_REJECTED,
+                                                -variable => \$status,
+                                              )->pack( -side => 'left',
+                                                     );
 
   # $textUser displays the current user id.
   my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',

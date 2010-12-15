@@ -3653,7 +3653,7 @@ sub SpObs {
        grep /Pointing|Photom|Jiggle|Stare|Raster|DREAM|Focus/, @{$summary{obstype}}) {
     $use_sci_coords = 1;
     $optional_coords = 0; # need a target unless autotarget
-  } elsif ( grep /Skydip|Noise/, @{$summary{obstype}}) {
+  } elsif ( grep /Skydip|Noise|Setup/, @{$summary{obstype}}) {
     # Note that the translator gets to decide whether to really use the target
     # information based on noiseSource and UseCurrentAz flags.
     $use_sci_coords = ( exists $summary{coords} ? 1 : 0);
@@ -4245,6 +4245,20 @@ sub SpIterFolder {
       push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                        nintegrations => $nint,
                                                        noiseSource => $source,
+                                                       currentAz => $currAz,
+                                                      }});
+
+    } elsif ($name eq 'SpIterSetupObs') {
+
+      my $currAz = $self->_get_pcdata( $child, 'useCurrentAz');
+      # Defaults to true if not present
+      if (defined $currAz) {
+        $currAz = $self->_str_to_bool( $currAz );
+      } else {
+        $currAz = 1;
+      }
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
                                                        currentAz => $currAz,
                                                       }});
 

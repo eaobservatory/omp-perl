@@ -117,6 +117,10 @@ sub islocal {
 
 =item B<getProject>
 
+Return the project ID that should be used. We use a calibration
+project if the observation is marked a STANDARD or if is not
+a science observation.
+
 =cut
 
 sub getProject {
@@ -124,8 +128,19 @@ sub getProject {
   my $cfg = shift;
   my %info = @_;
 
-  # if the project ID is not known, we need to use a ACSIS or SCUBA2 project
-  if ( defined $info{PROJECTID} && $info{PROJECTID} ne 'UNKNOWN' ) {
+  my $obs_type = lc($info{obs_type});
+  my $standard = $class->getStandard($cfg, %info);
+
+  if ($standard || $obs_type ne 'science' || $info{autoTarget} ) {
+    if ($class->VERBOSE) {
+      # only warn if we are called from outside this package
+      if (!$class->islocal(caller)) {
+        print {$class->HANDLES} "Using calibration project ID\n";
+      }
+    }
+    return "JCMTCAL";
+  } elsif ( defined $info{PROJECTID} && $info{PROJECTID} ne 'UNKNOWN' ) {
+    # if the project ID is not known, we need to use a ACSIS or SCUBA2 project
     return $info{PROJECTID};
   } else {
     my $sem = OMP::General->determine_semester( tel => 'JCMT' );
