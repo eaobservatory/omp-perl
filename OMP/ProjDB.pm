@@ -160,28 +160,24 @@ sub verifyPassword {
     $password = $self->password;
   }
 
-  # Obviate the need for a db query
-  return 1 if OMP::Password->verify_administrator_password( $password, 1 );
-
-  # If we have a user name of "staff" then we special case
-  # the authentication
-  return OMP::Password->verify_staff_password( $password, 1 )
-    if $self->projectid =~ /^staff$/i;
+  # Obviate the need for a db query by checking staff password
+  return 1 if OMP::Password->verify_staff_password( $password, 1 );
 
   # Retrieve the contents of the table
   my $verify;
+  my $E;
   try {
     my $project = $self->_get_project_row();
 
     # Now verify the passwords
     $verify = $project->verify_password( $password );
   } catch OMP::Error::UnknownProject with {
-    my $E = shift;
+    # Ignore
   } otherwise {
-    my $E = shift;
-    croak "An error has occurred: $E";
+    $E = shift;
   };
 
+  croak "An error has occurred: $E" if defined $E;
   return $verify;
 
 }
