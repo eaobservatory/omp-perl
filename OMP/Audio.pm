@@ -23,6 +23,7 @@ use warnings;
 
 use File::Spec;
 use OMP::Config;
+use JAC::Audio;
 
 our $VERSION = (qw$Revision$)[1];
 
