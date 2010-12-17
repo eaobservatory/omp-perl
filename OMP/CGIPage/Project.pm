@@ -736,7 +736,17 @@ sub support {
   }
 
   # Get project details (as object)
-  my $project = $projdb->projectDetails("object");
+  my $project;
+  try {
+    $project = $projdb->projectDetails("object");
+  }
+  catch OMP::Error::Authentication with {
+
+    my ( $E ) = @_;
+    print "<h3>An error occurred while getting project details.</h3>",
+      "<p>$E</p>";
+  };
+  return unless $project;
 
   # Make contact changes, if any
   if ($q->param('change_primary')) {
