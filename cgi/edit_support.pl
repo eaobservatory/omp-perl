@@ -26,5 +26,5 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 my $title = $cgi->html_title;
 
 $cgi->html_title("$title: Edit support contacts");
-$cgi->write_page_noauth( \&OMP::CGIPage::Project::support,
-			 \&OMP::CGIPage::Project::support );
+$cgi->write_page_staff( \&OMP::CGIPage::Project::support,
+                        \&OMP::CGIPage::Project::support );
