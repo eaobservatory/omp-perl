@@ -200,8 +200,9 @@ if (defined $labpos && $labpos ne "curve") {
 
 if ($outdev eq 'gif') {
   $sargs{'hdevice'} = '/gif';
-  $prj = (split/\@/,$projlis)[0];
-  $sargs{'output'} = "${prj}.gif";
+#  $prj = (split/\@/,$projlis)[0];
+#  $sargs{'output'} = "${prj}.gif";
+  $sargs{'output'} = "${projlis}.gif";
   $sargs{'output'} =~ s/\///g;
 } else {
   $sargs{'hdevice'} = '/xw';
