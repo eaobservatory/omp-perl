@@ -75,7 +75,7 @@ if (!$query->param) {
 }
 
 $proj = $query->param('projid');
-$proj =~ /^([\w\/\$\.\_]+)$/ && ($projid = $1) || (do {
+$proj =~ /^([\w\/\$\.\_\@]+)$/ && ($projid = $1) || (do {
        $projid = "";
        $msg .= "***ERROR*** must specify a project!<br>";
     } );
