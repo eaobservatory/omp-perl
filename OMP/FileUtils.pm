@@ -70,8 +70,8 @@ by run number will be done.
 For SCUBA2 files, a subarray must be specified (from '4a' to '4d', or
 '8a' to '8d').
 
-Optionally specify number of files to return that were most recently
-updated on second & later calls. On first call, all the files will be
+Optionally specify number of files older than new ones on second &
+later calls to be returned. On first call, all the files will be
 returned.
 
 If called in list context, returns a list of array references. Each
@@ -84,8 +84,8 @@ array of array references.
 sub files_on_disk {
   my ( $class, %arg ) = @_;
 
-  my ( $instrument, $utdate, $runnr, $subarray, $recent ) =
-    @arg{qw[ instrument date run subarry recent ]};
+  my ( $instrument, $utdate, $runnr, $subarray, $old ) =
+    @arg{qw[ instrument date run subarry old ]};
 
   if( ! UNIVERSAL::isa( $utdate, "Time::Piece" ) ) {
     throw OMP::Error::BadArgs( "Date parameter to OMP::General::files_on_disk must be a Time::Piece object" );
@@ -137,14 +137,14 @@ sub files_on_disk {
   if ( $class->use_raw_meta_opt( $sys_config, %config ) ) {
 
     @return =
-      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $recent );
+      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $old );
   }
   else {
 
     @return =
       $class->get_raw_files( $directory,
-                              $class->get_flag_files( $directory, $flagfileregexp, $runnr, $recent ),
-                              $recent,
+                              $class->get_flag_files( $directory, $flagfileregexp, $runnr, $old ),
+                              $old,
                             );
   }
 
@@ -175,7 +175,7 @@ sub use_raw_meta_opt {
 
 sub get_raw_files_from_meta {
 
-  my ( $class, $sys_config, $config, $flag_re, $recent ) = @_;
+  my ( $class, $sys_config, $config, $flag_re, $old ) = @_;
 
   $flag_re = qr{$flag_re};
 
@@ -206,9 +206,16 @@ sub get_raw_files_from_meta {
 
   return unless $metas;
 
+  my $read =
+    _get_recent(  'files' => $metas,
+                  'old'   => $old,
+                  'type'  => "meta-${inst}",
+                )
+                or return;
+
   # Get flag file list by reading meta files.
   my ( @flag );
-  for my $file ( @{ $metas } ) {
+  for my $file ( @{ $read } ) {
 
     my $flags = OMP::General->get_file_contents( 'file' => $file,
                                                   'filter' => $flag_re,
@@ -221,17 +228,17 @@ sub get_raw_files_from_meta {
   return
     $class->get_raw_files( $meta_dir,
                             _get_recent(  'files' => \@flag,
-                                          'count' => $recent,
+                                          'old'   => $old,
                                           'type'  => "flag-${inst}",
                                         ),
-                            $recent,
+                            $old,
                           );
 }
 
 # Go through each flag file, open it, and retrieve the list of files within it.
 sub get_raw_files {
 
-  my ( $class, $dir, $flags, $recent ) = @_;
+  my ( $class, $dir, $flags, $old ) = @_;
 
   return
     unless $flags && scalar @{ $flags };
@@ -279,7 +286,7 @@ sub get_raw_files {
   }
 
   my $out = _get_recent(  'files' => \@raw,
-                          'count' => $recent,
+                          'old'   => $old,
                           'type'  => "raw-${dir}",
                         );
   return @{ $out };
@@ -299,7 +306,7 @@ sub make_raw_name_from_flag {
 
 sub get_flag_files {
 
-  my ( $class, $dir, $filter, $runnr, $recent ) = @_;
+  my ( $class, $dir, $filter, $runnr, $old ) = @_;
 
   my $flags;
   try {
@@ -332,7 +339,7 @@ sub get_flag_files {
 
   return
     _get_recent(  'files' => $flags,
-                  'count' => $recent,
+                  'old'   => $old,
                   'type'  => "flag-${dir}",
                 );
 }
@@ -495,12 +502,12 @@ sub _sanity_check_file {
   return;
 }
 
-# Given a hash of array reference of file paths and the number of recent files
-# to keep track of, returns a list of files filerted by recent modification
-# time.
+# Given a hash of array reference of file paths and the number of old
+# files to return in addition to new ones, returns a list of files
+# filerted by recent modification time.
 #
 {
-  my ( %last );
+  my ( %called );
 
   # It stores time when it was last called; returns only those files which have
   # modification time greater or equal to last called time.  On the first call,
@@ -509,26 +516,43 @@ sub _sanity_check_file {
 
     my ( %arg ) = @_;
 
-    my ( $files, $count, $type ) = @arg{qw[files count type]};
+    my ( $files, $old, $type ) = @arg{qw[files old type]};
     $type ||= '<default>';
 
-    return $files unless $count && $count > 0;
+    return $files unless $old && $old > 0;
 
     # On first run, every file is a recently updated file.
-    unless ( $last{ $type } ) {
+    unless ( $called{ $type } ) {
 
-      $last{ $type } = time();
+      $called{ $type } = time();
       return $files;
     }
+
+    my $last = $called{ $type };
+    # For future calls.
+    $called{ $type } = time();
 
     my %time = _get_mod_epoch( $files )
       or return [];
 
-    my @keep =
-      grep { $last{ $type } <= $_ } _sort_recent_time( $count, values %time );
+    my ( @keep, @old );
+    for my $time ( sort { $a <=> $b } values %time ) {
 
-    # For future calls.
-    $last{ $type } = time();
+      if ( $time >= $last ) {
+
+        push @keep, $time;
+        next;
+      }
+      push @old, $time;
+    }
+
+    # Merge older file list.
+    if ( scalar @old && $type =~ m/\b(?:flag|raw)/i )  {
+
+      $old = 1 if ! $old || $old < 0;
+
+      @keep = ( reverse( ( reverse @old )[ 0 .. $old - 1 ] ), @keep );
+    }
 
     return [] unless scalar @keep;
 
@@ -559,14 +583,6 @@ sub _get_mod_epoch {
     $time{ $f } = $mod;
   }
   return %time;
-}
-
-# Most recent $count many modification times sorted in ascending order.
-sub _sort_recent_time {
-
-  my ( $count, @epoch ) = @_;
-
-  return reverse( ( sort { $b <=> $a } @epoch )[0 .. $count - 1] );
 }
 
 =back
