@@ -97,6 +97,12 @@ BEGIN
     my $class = shift;
     my %opt = @_;
 
+    my $force = $opt{'force'};
+
+    return $LAST_INST
+      if ! $force
+      && $LAST_INST && ref $LAST_INST;
+
     $DEBUG and print "In new(), remaining: \@_ \n  ", Dumper( \%opt );
 
     # Set default configuration directory.
