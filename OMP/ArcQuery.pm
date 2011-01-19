@@ -203,7 +203,7 @@ sub isfile {
   return $self->{IsFILE};
 }
 
-=item B<mindate>
+=item B<daterange>
 
 Date range for the given query.
 
@@ -326,7 +326,7 @@ sub telescope {
 
 =item B<instrument>
 
-Instrument to use for this query. Returns undef if no instrument
+First instrument to use for this query. Returns undef if no instrument
 is supplied.
 
 =cut
@@ -335,7 +335,7 @@ sub instrument {
   my $self = shift;
 
   # Get the hash form of the query
-  my $href = $self->query_hash;
+  my $href = $self->raw_query_hash;
 
   # check for telescope
   my $instrument;
@@ -635,7 +635,7 @@ sub _post_process_hash {
 
     # No instrument specified so we must select the tables
     my $tel = $href->{telescope}->[0];
-    if ($tel eq 'UKIRT') {
+    if (defined $tel && $tel eq 'UKIRT') {
       $tables{$UKIRTTAB}++;
       $insts{CGS4}++;
       $insts{IRCAM}++;
@@ -643,7 +643,7 @@ sub _post_process_hash {
       $insts{MICHELLE}++;
       $insts{UIST}++;
       $insts{WFCAM}++;
-    } elsif ($tel eq 'JCMT') {
+    } elsif (defined $tel && $tel eq 'JCMT') {
       if (defined $newjcmt) {
         if ($newjcmt) {
           $tables{$JCMTTAB}++;
@@ -672,7 +672,8 @@ sub _post_process_hash {
 
 
     } else {
-      throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " . $tel);
+      throw OMP::Error::DBMalformedQuery("Unable to determine tables from telescope name " .
+                                         (defined $tel ? "'$tel'" : "'<undef>'") );
     }
   }
 
