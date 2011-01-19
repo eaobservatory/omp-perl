@@ -278,6 +278,10 @@ run number stand a much better chance of working.
 Information is returned as a C<OMP::Info::Obs> object (or C<undef>
 if no observation matches).
 
+A single observation ID is sufficient in some cases.
+
+  $obsinfo = $db->getObs( obsid => $obsid );
+
 A telescope is required since the information is stored in different
 tables and it is possible that a single ut and run number will
 match at multiple telescopes. This could be handled via subclassing
@@ -309,6 +313,9 @@ sub getObs {
   }
   if ( defined( $args{ut} ) && length( $args{ut} ) ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
+  }
+  if ( defined $args{obsid} && length $args{obsid} ) {
+    $xml .= "<obsid>$args{obsid}</obsid>";
   }
 
   $xml .= "</ArcQuery>";

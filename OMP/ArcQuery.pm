@@ -156,6 +156,12 @@ my %lut = (
         $UKIRTTAB => 'U.OBSNUM',
         $JCMTTAB => 'J.obsnum',
        },
+     obsid => {
+        $SCUTAB => undef,
+        $GSDTAB => undef,
+        $UKIRTTAB => "U.OBSID",
+        $JCMTTAB => "J.obsid",
+     },
      projectid => {
         $SCUTAB => 'S.proj_id',
         $GSDTAB => 'G.projid',
@@ -344,6 +350,22 @@ sub instrument {
   }
 
   return $instrument;
+}
+
+=item B<obsid>
+
+First observation ID to use for this query. Returns undef if no
+ID supplied.
+
+=cut
+
+sub obsid {
+  my $self = shift;
+  my $href = $self->raw_query_hash;
+  if (exists $href->{obsid}) {
+    return $href->{obsid}->[0];
+  }
+  return;
 }
 
 =item B<_tables>
