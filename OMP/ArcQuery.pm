@@ -425,6 +425,10 @@ sub sql {
 
     my $subsql = $self->_qhash_tosql( [qw/ telescope /], $t );
 
+    # if there is no sql returned here then we have an open query
+    # so skip this telescope
+    next unless $subsql;
+
     # Form the join.
     my @join;
     if( $#{$insttable{$t}} > 0 ) {
