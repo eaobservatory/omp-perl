@@ -132,6 +132,13 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   # Copy the data from the file and merge with the defaults
   my %details = ( %defaults, %{ $alloc{$proj} });
 
+  for my $key ( keys %details ) {
+
+    next unless defined $details{ $key };
+
+    $details{ $key } =~ s/\s*#.*$//;
+  }
+
   collect_err( "No country code given" )
    unless exists $details{'country'}
      and defined $details{'country'}
