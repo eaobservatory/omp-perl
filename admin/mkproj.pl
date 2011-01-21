@@ -32,6 +32,9 @@ file format.
 
 =head1 OPTIONS
 
+See also B<info> blurb elsewhere in relation to I<country>,
+I<priority>, I<semester>, I<telescope> options.
+
 The following options are supported:
 
 =over 4
@@ -55,6 +58,22 @@ A help message.
 
 This manual page.
 
+=item B<-country> "country" code
+
+Specify default country code to use for a project missing one.
+
+=item B<-priority> integer
+
+Specify default tag priority to use.
+
+=item B<-semester> semester
+
+Specify default semester to use.
+
+=item B<-telescope> UKIRT | JCMT
+
+Specify default telescope.
+
 =back
 
 =cut
@@ -77,11 +96,16 @@ use Pod::Usage;
 use Getopt::Long;
 
 # Options
-my ($help, $man, $version,$force);
+my ($help, $man, $version,$force, %defaults );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "force" => \$force,
+
+                        "country=s"   => \$defaults{'country'},
+                        "priority=i"  => \$defaults{'priority'},
+                        "semester=s"  => \$defaults{'semester'},
+                        "telescope=s" => \$defaults{'telescope'},
                        );
 
 pod2usage(1) if $help;
@@ -100,8 +124,7 @@ my %alloc;
 tie %alloc, 'Config::IniFiles', ( -file => $file );
 
 # Get the defaults (if specified)
-my %defaults;
-%defaults = %{ $alloc{info} }
+%defaults = ( %defaults, %{ $alloc{info} } )
   if $alloc{info};
 
 # Get the support information
