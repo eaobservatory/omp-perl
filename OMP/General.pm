@@ -987,9 +987,9 @@ sub determine_semester {
   } else {
     $date = gmtime();
   }
-
-  my $tel = uc($args{tel});
-  $tel = 'PPARC' unless $tel;
+  Carp::cluck("Hello from semester\n");
+  my $tel = "PPARC";
+  $tel = uc($args{tel}) if (exists $args{tel} && defined $args{tel});
 
   # First we can automatically run through any special semesters
   # in a generic search. This will have minimal impact on a telescope
