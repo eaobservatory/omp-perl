@@ -1464,6 +1464,52 @@ sub observing_mode {
   return;
 }
 
+=item B<translate_scan_pattern>
+
+Given a requested OT scan pattern, return the pattern name suitable
+for use in the TCS.
+
+  $tcspatt = $trans->translate_scan_pattern( $ot_pattern );
+
+=cut
+
+sub translate_scan_pattern {
+  my $self = shift;
+  my $otpatt = shift;
+
+  # if we do not have a pattern, default to bous
+  $otpatt = "boustrophedon" unless defined $otpatt;
+  $otpatt = lc($otpatt);
+
+  # Get the lookup table
+  my %lut = $self->translate_scan_pattern_lut();
+
+  if (exists $lut{$otpatt}) {
+    return $lut{$otpatt};
+  }
+  OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
+}
+
+=item B<translate_scan_pattern_lut>
+
+Default lookup table to map OT pattern name to PTCS
+scan pattern name.
+
+ %lut = $trans->translate_scan_pattern_lut();
+
+=cut
+
+sub translate_scan_pattern_lut {
+  return (
+          raster => "RASTER",
+          boustrophedon => "DISCRETE_BOUSTROPHEDON",
+          pong => "CURVY_PONG",
+          lissajous => "LISSAJOUS",
+          ellipse => "ELLIPSE",
+          daisy => "DAISY",
+         );
+}
+
 =item B<is_pol_step_integ>
 
 We are a polarimeter step and integrate observation.
