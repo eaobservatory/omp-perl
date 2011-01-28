@@ -111,37 +111,23 @@ sub hdrpkg {
   return "OMP::Translator::ACSISHeaders";
 }
 
-=item B<translate_scan_pattern>
+=item B<translate_scan_pattern_lut>
 
-Given a requested OT scan pattern, return the pattern name suitable
-for use in the TCS.
+Returns a lookup table (hash) mapping OT scan pattern name (in lower
+case) to the corresponding PTCS scan pattern name.
 
-  $tcspatt = $trans->translate_scan_pattern( $ot_pattern );
+  %lut = $trans->translate_scan_pattern_lut();
 
 ACSIS uses the discrete patterns.
 
 =cut
 
-sub translate_scan_pattern {
+sub translate_scan_pattern_lut {
   my $self = shift;
-  my $otpatt = shift;
 
-  # if we do not have a pattern, default to bous
-  $otpatt = "boustrophedon" unless defined $otpatt;
-  $otpatt = lc($otpatt);
-
-  if ($otpatt eq "raster") {
-    return "RASTER";
-  } elsif ($otpatt eq "boustrophedon") {
-    return "DISCRETE_BOUSTROPHEDON";
-  } elsif ($otpatt eq "pong") {
-    return "CURVY_PONG";
-  } elsif ($otpatt eq 'lissajous') {
-    return "LISSAJOUS";
-  } else {
-    OMP::Error::SpBadStructure->throw("Unrecognized OT scan pattern: '$otpatt'");
-  }
-
+  # Get the base class lut and merge it with the local overrides
+  return ($self->SUPER::translate_scan_pattern_lut(),
+         boustrophedon => "DISCRETE_BOUSTROPHEDON" );
 }
 
 =item B<header_exclusion_file>
