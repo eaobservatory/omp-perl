@@ -1507,6 +1507,7 @@ sub translate_scan_pattern_lut {
           lissajous => "LISSAJOUS",
           ellipse => "ELLIPSE",
           daisy => "DAISY",
+          cv_daisy => "CV_DAISY",
          );
 }
 
