@@ -987,7 +987,7 @@ sub determine_semester {
   } else {
     $date = gmtime();
   }
-  Carp::cluck("Hello from semester\n");
+
   my $tel = "PPARC";
   $tel = uc($args{tel}) if (exists $args{tel} && defined $args{tel});
 
