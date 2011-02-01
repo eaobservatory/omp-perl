@@ -837,12 +837,20 @@ sub observing_area {
     }
     delete $info{SCAN_DY} if $pattern =~ /ellipse/i;
 
+    # Items that propagate directly from config file
+    my %scanextras;
+    for my $attr (qw/ VELOCITY DY TURN_RADIUS XSTART YSTART VX VY / ) {
+      my $key = "SCAN_". $attr;
+      $scanextras{$attr} = $info{$key}
+        if (exists $info{$key} && defined $info{$key});
+    }
+
     # Scan specification
-    $oa->scan( VELOCITY => $info{SCAN_VELOCITY},
-               (exists $info{SCAN_DY} ? (DY => $info{SCAN_DY}) : ()),
+    $oa->scan(
                (defined $scan_sys ? (SYSTEM => $scan_sys) : () ),
                PATTERN => $pattern,
                (@scanpas ? (PA => \@scanpas) : ()),
+               %scanextras,
              );
 
     # Offset
