@@ -453,7 +453,7 @@ sub verify_queman_password {
   my @qpass;
   for my $q (@queues) {
     try {
-      push(@qpass,OMP::Config->getData( "password." . lc("blah") ));
+      push(@qpass,OMP::Config->getData( "password." . lc($q) ));
     } catch OMP::Error::BadCfgKey with {
       # ignore
     };
