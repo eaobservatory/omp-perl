@@ -30,7 +30,7 @@ use Scalar::Util qw[ blessed ];
 use OMP::Error qw[ :try ];
 use OMP::Config;
 # For logging.
-use OMP::Constants qw[ :logging ]
+use OMP::Constants qw[ :logging ];
 use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
