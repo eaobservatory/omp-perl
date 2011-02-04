@@ -26,8 +26,12 @@ use File::Basename qw[ fileparse ];
 use File::Spec;
 use List::MoreUtils qw[ any ];
 use Scalar::Util qw[ blessed ];
+
 use OMP::Error qw[ :try ];
 use OMP::Config;
+# For logging.
+use OMP::Constants qw[ :logging ]
+use OMP::General;
 
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
@@ -498,7 +502,10 @@ sub _sanity_check_file {
         : 'has some UNCLASSIFIED PROBLEM'
         ;
 
-  warn qq[$file $text (listed in flag file); skipped\n];
+  OMP::General->log_message( qq[$file $text (listed in flag file), skipped\n],
+                              OMP__LOG_WARNING
+                            );
+
   return;
 }
 
