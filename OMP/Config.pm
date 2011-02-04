@@ -97,6 +97,12 @@ BEGIN
     my $class = shift;
     my %opt = @_;
 
+    my $force = $opt{'force'};
+
+    return $LAST_INST
+      if ! $force
+      && $LAST_INST && ref $LAST_INST;
+
     $DEBUG and print "In new(), remaining: \@_ \n  ", Dumper( \%opt );
 
     # Set default configuration directory.
@@ -1017,14 +1023,16 @@ sub _format_output {
     $tel{tel} = $args{telescope} if (exists $args{telescope} && defined $args{telescope});
     if ($ut) {
       $places{UTDATE} = $ut->strftime("%Y%m%d");
-      $places{SEMESTER} = uc(OMP::General->determine_semester(date => $ut, %tel));
-      $places{semester} = lc($places{SEMESTER});
 
       # Warn if the string includes SEMESTER without us being given a telescope
-      if (!exists $tel{tel}) {
-        my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
-        warnings::warnif("Warning. Telescope not supplied despite request for semester")
-          if $all =~ /_\+semester\+_/i;
+      # and only calculate the semester if we need it
+      my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
+      if ($all =~ /_\+semester\+_/i ) {
+        $places{SEMESTER} = uc(OMP::General->determine_semester(date => $ut, %tel));
+        $places{semester} = lc($places{SEMESTER});
+        if (!exists $tel{tel}) {
+          warnings::warnif("Warning. Telescope not supplied despite request for semester");
+        }
       }
     }
   }

@@ -278,6 +278,10 @@ run number stand a much better chance of working.
 Information is returned as a C<OMP::Info::Obs> object (or C<undef>
 if no observation matches).
 
+A single observation ID is sufficient in some cases.
+
+  $obsinfo = $db->getObs( obsid => $obsid );
+
 A telescope is required since the information is stored in different
 tables and it is possible that a single ut and run number will
 match at multiple telescopes. This could be handled via subclassing
@@ -309,6 +313,9 @@ sub getObs {
   }
   if ( defined( $args{ut} ) && length( $args{ut} ) ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
+  }
+  if ( defined $args{obsid} && length $args{obsid} ) {
+    $xml .= "<obsid>$args{obsid}</obsid>";
   }
 
   $xml .= "</ArcQuery>";
@@ -365,14 +372,14 @@ sub queryArc {
     throw OMP::Error("FallbackToFiles and SkipDBLookup are both set to return no information.");
   }
 
-  my $date = $query->daterange->min;
-  my $currentdate = gmtime;
-
-  # Determine time difference in seconds
-  my $tdiff = $currentdate - $date;
-
-  # Determine whether we are "today"
-  my $istoday = $query->istoday;
+  # Always use the database for obsid queries since that is completely constrained.
+  my $istoday = 0;
+  if (defined $query->obsid) {
+    $istoday = 0;
+  } else {
+    # Determine whether we are "today"
+    $istoday = $query->istoday;
+  }
 
   # Control whether we have queried the DB or not
   # True means we have done a successful query.

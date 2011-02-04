@@ -191,6 +191,34 @@ sub query_hash {
   return $self->{QHash};
 }
 
+=item B<raw_query_hash>
+
+Retrieve query in the form of a perl hash. Entries are either hashes
+or arrays. Keys with array references refer to multiple matches (OR
+relationship) [assuming there is more than one element in the array]
+and Keys with hash references refer to ranges (whose hashes must have
+C<max> and/or C<min> as keys).
+
+  $hashref = $query->raw_query_hash();
+
+This is similar to C<query_hash> but has not been post processed
+with database table information.
+
+=cut
+
+sub raw_query_hash {
+  my $self = shift;
+  if (@_) {
+    $self->{RawQHash} = shift;
+  } else {
+    # Check to see if we have something
+    unless (%{ $self->{RawQHash} }) {
+      $self->_convert_to_perl;
+    }
+  }
+  return $self->{RawQHash};
+}
+
 
 =back
 
@@ -448,6 +476,9 @@ sub _convert_to_perl {
 
 
   }
+
+  # Store it before post-processing
+  $self->raw_query_hash( { %query } );
 
   # Do some post processing to convert to OMP::Ranges and
   # to fix up some standard keys

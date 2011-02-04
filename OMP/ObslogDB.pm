@@ -55,8 +55,8 @@ Add a comment to the database.
 
   $db->addComment( $comment, $obs, $user );
 
-The supplied parameters are an C<Info::Comment> object or a string as
-the comment text, and an C<Info::Obs> object for which the comment was
+The supplied parameters are an C<OMP::Info::Comment> object or a string as
+the comment text, and an C<OMP::Info::Obs> object for which the comment was
 made. The third paramter is optional, and can either be a string
 containing a user ID or an C<OMP::User> object.
 
