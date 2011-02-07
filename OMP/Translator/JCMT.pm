@@ -541,6 +541,7 @@ sub tcs_base {
     $b->tag( $dummy_tag );
     $b->tracking_system( "TRACKING" );
     $b->coords( Astro::Coords::Fixed->new( az => 0, el => -90,
+                                           units => "degrees",
                                            name => "Following" ) );
     $tcs->tags( $dummy_tag => $b );
     return;
