@@ -26,7 +26,7 @@ use List::Util qw/ max min /;
 use File::Spec;
 use Math::Trig ':pi';
 
-use JAC::OCS::Config;
+use JAC::OCS::Config 1.02;
 use JAC::OCS::Config::Error qw/ :try /;
 use JCMT::TCS::Pong;
 
@@ -79,6 +79,123 @@ Name of the class implementing DERIVED header configuration.
 
 sub hdrpkg {
   return "OMP::Translator::SCUBA2Headers";
+}
+
+=item B<insert_setup_obs>
+
+Given a list of JAC::OCS::Config objects representing a set of SCUBA-2
+observations, insert relevant setup observations.
+
+  @withsetup = $trans->insert_setup_obs( @configs );
+
+Optional first argument is a reference to hash of information that
+should be passed to the translate() method when creating the setup
+config.
+
+ @withsetup = $trans->insert_setup_obs( { simulate => 1 }, @configs );
+
+Returns empty list if given an empty list.
+
+Note that this works on translated observations.
+
+=cut
+
+sub insert_setup_obs {
+  my $class = shift;
+
+  my %transargs;
+  if (ref($_[0]) eq 'HASH') {
+    my $opts = shift;
+    %transargs = %$opts;
+  }
+
+  my @configs = @_;
+  return () unless @configs;
+
+  # we start from OT XML to make things robust with translator changes
+  require OMP::MSB;
+
+  my $setupxml = q|
+  <SpObs msb="true" optional="false" remaining="1" type="ob" subtype="none">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <estimatedDuration units="seconds">60.0</estimatedDuration>
+    <priority>99</priority>
+    <standard>false</standard>
+    <title>Observation</title>
+    <totalDuration units="seconds">0.0</totalDuration>
+    <SpInstSCUBA2 id="0" type="oc" subtype="inst.SCUBA2">
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpIterFolder type="if" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <SpIterSetupObs type="ic" subtype="setupObs">
+        <useCurrentAz>false</useCurrentAz>
+      </SpIterSetupObs>
+    </SpIterFolder>
+  </SpObs>
+|;
+
+  my $setupmsb = OMP::MSB->new( XML => $setupxml,
+                                PROJECTID => "JCMTCAL" );
+  OMP::Error::TranslateFail->throw( "Could not create MSB of setup observation" )
+      unless defined $setupmsb;
+
+  my @setups = $class->translate( $setupmsb, %transargs );
+
+  # we do a setup when the previous target is different to the current
+  # target. Always put a setup at the front unless the first is an explicit
+  # setup.
+  my @outconfigs;
+  my $prev_was_setup;
+  my $prevtarg = '';
+
+  if ($configs[0]->obsmode !~ /setup/i) {
+    $prev_was_setup = 1;
+    push(@outconfigs, @setups);
+  }
+
+  for my $cfg (@configs) {
+
+    # If we had a setup inserted anyhow we can just pass it along
+    # NOTE there is the possibility that this setup is for "currentAz"
+    # and not for "FollowingAz"...
+    my $obsmode = $cfg->obsmode;
+    if ($obsmode =~ /setup/i) {
+      push(@outconfigs,$cfg) ;
+      $prev_was_setup = 1;
+      next;
+    }
+
+    # get the target name
+    my $thistarg = lc($cfg->qtarget);
+
+    # Skydips always move the telescope so we want to make sure we get
+    # a setup after one
+    $thistarg .= "_skydip" if $obsmode =~ /skydip/i;
+
+    # if we had inserted a setup for this previously
+    # then set this as the previous target
+    if ($prev_was_setup) {
+      $prevtarg = $thistarg;
+      $prev_was_setup = 0;
+    }
+
+    if ( $prevtarg ne $thistarg ) {
+      # Change of target information. We trap some magic values
+      # since some items won't move the telescope
+      if ($thistarg eq 'dark' || $thistarg eq "currentaz" ) {
+        # no need for a setup and do not update prevtarg
+      } else {
+        # Change of target so insert a setup
+        push(@outconfigs, @setups);
+        $prevtarg = $thistarg;
+      }
+    }
+
+    push(@outconfigs,$cfg);
+  }
+
+  return @outconfigs;
 }
 
 =item B<translate_scan_pattern_lut>

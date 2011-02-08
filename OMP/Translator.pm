@@ -196,6 +196,7 @@ sub translate {
 
   # Loop over each MSB
   my @configs; # Somewhere to put the translated output
+  my @classes; # and translator class used
   for my $msb (@msbs) {
 
     # Survey Containers in child nodes present a problem since
@@ -352,8 +353,36 @@ sub translate {
       # Store them in the main config array
       push(@configs, @new);
 
+      # and store the class for each config
+      push(@classes, $class) for @new;
+
     }
 
+  }
+
+  # Post process the config files to insert any additional items needed for
+  # observing. Send them to the relevant translator class in bulk
+  if (@configs) {
+    my @contiguous;
+    for my $i (0..$#configs) {
+      if ( @contiguous && $contiguous[-1]->{class} eq $classes[$i] ) {
+        push( @{ $contiguous[-1]->{configs} }, $configs[$i] );
+      } else {
+        push(@contiguous, { class => $classes[$i], configs => [ $configs[$i] ] } );
+      }
+    }
+
+    my @newconfigs;
+    for my $groups (@contiguous) {
+      my $class = $groups->{class};
+      my @theseconfigs = @{ $groups->{configs} };
+      if ($class->can("insert_setup_obs") ) {
+        push(@newconfigs, $class->insert_setup_obs( { simulate => $opts{simulate} }, @theseconfigs ));
+      } else {
+        push(@newconfigs, @theseconfigs );
+      }
+    }
+    @configs = @newconfigs;
   }
 
   # Clear logging handles.
