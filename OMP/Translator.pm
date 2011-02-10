@@ -377,7 +377,9 @@ sub translate {
       my $class = $groups->{class};
       my @theseconfigs = @{ $groups->{configs} };
       if ($class->can("insert_setup_obs") ) {
+        $class->outhdl( @handles ) if $class->can("outhdl");
         push(@newconfigs, $class->insert_setup_obs( { simulate => $opts{simulate} }, @theseconfigs ));
+        $class->outhdl( undef ) if $class->can("outhdl");
       } else {
         push(@newconfigs, @theseconfigs );
       }
