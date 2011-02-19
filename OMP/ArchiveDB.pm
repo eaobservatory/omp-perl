@@ -636,17 +636,20 @@ sub _fetch_files {
 
 sub _prepare_FILES_select {
 
-  my $sql    = <<'_SQL_';
+  my $sql = <<'_SQL_';
     SELECT obsid_subsysnr , file_id
-    FROM jcmt..FILES
+    FROM %s
     WHERE obsid_subsysnr = ?
     ORDER BY obsid_subsysnr
 _SQL_
 
-  $ENV{'OMP_SITE_CONFIG'} =
-    '/home/jcmtarch/enterdata-cfg/enterdata.cfg'
-    ;
-  my $cfg = OMP::Config->new( 'force' => 1 );
+  require OMP::ArcQuery;
+  $sql = sprintf $sql, $OMP::ArcQuery::AFILESTAB;
+
+  #$ENV{'OMP_SITE_CONFIG'} =
+  #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg'
+  #  ;
+  #my $cfg = OMP::Config->new( 'force' => 1 );
 
   my $db  = OMP::DBbackend::Archive->new();
   my $dbh = $db->handle();
