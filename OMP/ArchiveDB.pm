@@ -557,7 +557,8 @@ sub _add_files_in_headers {
   my ( $self, $list, $file_key ) = @_;
 
   return
-    unless $list && ref $list;
+    unless $list && ref $list
+    && scalar @{ $list };
 
   my ( $st, $dbh ) = _prepare_FILES_select();
 
