@@ -905,10 +905,12 @@ sub _query_files {
   }
 
   # merge duplicate information into a hash indexed by obsid
-  my %headers = OMP::FileUtils->merge_dupes( @allheaders );
+  my $headers = OMP::FileUtils->merge_dupes( @allheaders );
 
   # and create obs objects
-  my @observations = OMP::Info::Obs->hdrs_to_obs( $retainhdr, %headers);
+  my @observations = OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => $retainhdr,
+                                                  'fits'      => $headers,
+                                                );
 
   # Now filter
   foreach my $obs ( @observations ) {
@@ -1036,10 +1038,13 @@ sub _reorganize_archive {
     }
     push(@rearranged, { header => \%newrow } );
   }
-  my %unique = OMP::FileUtils->merge_dupes( @rearranged );
+  my $unique = OMP::FileUtils->merge_dupes( @rearranged );
 
   # now convert into Obs::Info objects
-  return OMP::Info::Obs->hdrs_to_obs( $retainhdr, %unique);
+  return
+    OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => $retainhdr,
+                                  'fits'     => $unique
+                                );
 }
 
 =back

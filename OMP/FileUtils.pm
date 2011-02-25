@@ -476,7 +476,8 @@ sub merge_dupes {
                       };
   }
 
-  return %unique;
+  return unless scalar %unique;
+  return { %unique };
 }
 
 
