@@ -24,7 +24,7 @@ use warnings::register;
 
 use File::Basename qw[ fileparse ];
 use File::Spec;
-use List::MoreUtils qw[ any ];
+use List::MoreUtils qw[ any all ];
 use Scalar::Util qw[ blessed ];
 
 use OMP::Error qw[ :try ];
@@ -354,7 +354,7 @@ Given an array of hashes containing header object, filename and
 frameset, merge into a hash indexed by OBSID where headers have been
 merged and filenames have been combined into arrays.
 
-  %merged = OMP::FileUtils->merge_dupes( @unmerged );
+  $merged = OMP::FileUtils->merge_dupes( @unmerged );
 
 In the returned merged version, header hash item will contain an
 Astro::FITS::Header object if the supplied entry in @unmerged was a
@@ -480,6 +480,156 @@ sub merge_dupes {
   return { %unique };
 }
 
+
+=item B<merge_dupes_no_fits>
+
+Merges given list of hash references of database rows into a hash
+with OBSIDs as keys.  Filenames are put in its own key-value pair
+('filenames' is the key & value is an array reference).
+
+  $merged = OMP::FileUtils->merge_dupes_no_fits( @unmerged );
+
+Input keys:
+
+   header - header hash reference
+
+Output keys
+
+   header - header hash reference
+   filenames - reference to array of filenames
+
+=cut
+
+sub merge_dupes_no_fits {
+
+  my $self = shift;
+
+  # Take local copies so that we can add information without affecting caller
+  my @unmerged = map { { %$_ } } @_;
+
+my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
+
+  my %unique;
+  for my $info ( @unmerged ) {
+
+    next
+      unless $info
+      && keys %{ $info } ;
+
+    my $obsid = $info->{'header'}{'OBSID'}
+      or next;
+
+    $unique{ $obsid } = [] unless exists $unique{ $obsid };
+    push @{ $unique{ $obsid } }, $info;
+  }
+
+  # Merge the headers and filename information for multiple files but identical
+  # obsid.
+  for my $obsid ( keys %unique ) {
+
+    my $headers = $unique{ $obsid };
+
+    # Collect ordered, unique file names.
+    my ( @file, %seen );
+    for my $h ( @{ $headers } ) {
+
+      next
+        unless exists $h->{'header'}{'FILE_ID'}
+            && $h->{'header'}{'FILE_ID'};
+
+      push @file, delete $h->{'header'}{'FILE_ID'};
+    }
+    @file = grep { ! $seen{ $_ }++ } @file;
+
+    # Merege rest of headers.
+
+    $unique{ $obsid } =
+      { 'header'    => _merge_header_hashes( $headers ),
+        'filenames' => [ @file ],
+      };
+  }
+
+  return unless scalar %unique;
+  return { %unique };
+}
+
+
+=item B<_merge_header_hashes>
+
+Given a array reference of hash references (with "header" as the key),
+merges them into a hash reference.  If any of the values differ for a
+given key (database table column), all of the values appear in
+"SUBHEADERS" array reference of hash references.
+
+  $merged =
+    _merge_header_hashes( [ { 'header' => { ... } },
+                            { 'header' => { ... } },
+                          ]
+                        );
+
+=cut
+
+sub _merge_header_hashes {
+
+  my ( $list ) = @_;
+
+  return
+    unless $list && scalar @{ $list };
+
+  my @list = @{ $list };
+
+  my %common;
+  # Special case of a single hash reference.
+  my $first = $list[0];
+  %common  = %{ $first } if $first && ref $first;
+
+  return delete $common{'header'}
+    if 1 == scalar @list;
+
+  # Rebuild.
+  my %collect = _value_to_aref( @list );
+
+  for my $k ( keys %collect ) {
+
+    next if 'subheaders' eq lc $k;
+
+    my @val   = @{ $collect{ $k } };
+    my $first = ( grep{ defined $_ && length $_ } @val )[0];
+    my $isnum = Scalar::Util::looks_like_number( $first );
+
+    if (     ( all { ! defined $_ } @val )
+          || ( $isnum && all { $first == $_ } @val )
+          || ( defined $first && all { $first eq $_ } @val )
+        ) {
+
+      $common{'header'}->{ $k } = $first;
+      next;
+    }
+
+    delete $common{'header'}->{ $k };
+    for my $i ( 0 .. scalar @val - 1 ) {
+
+      $common{'header'}->{'SUBHEADERS'}->[ $i ]->{ $k } = $val[ $i ];
+    }
+  }
+
+  return delete $common{'header'};
+}
+
+sub _value_to_aref {
+
+  my ( @list ) = @_;
+
+  my %hash;
+  for my $href ( @list ) {
+
+    while ( my ( $k, $v ) = each %{ $href->{'header'} } ) {
+
+      push @{ $hash{ $k } }, $v;
+    }
+  }
+  return %hash;
+}
 
 sub _sanity_check_file {
 
