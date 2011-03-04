@@ -473,6 +473,8 @@ sub _query_arcdb {
     $retainhdr = 0;
   }
 
+  my $tel = $query->telescope();
+
   my @return;
 
   # Get the SQL
@@ -489,6 +491,10 @@ sub _query_arcdb {
 
     # Fetch the data
     my $ref = $self->_db_retrieve_data_ashash( $sql );
+
+    $self->_add_files_in_headers( $ref, 'file_id' )
+      if $tel
+      && 'jcmt' eq lc $tel;
 
     # Convert the data from a hash into an array of Info::Obs objects.
     my @reorg = $self->_reorganize_archive( $ref, $retainhdr );
@@ -511,6 +517,193 @@ sub _query_arcdb {
   }
 
   return @return;
+}
+
+sub _add_files_in_obs {
+
+  my ( $self, $list, $file_key ) = @_;
+
+  return
+    unless $list && ref $list;
+
+  my ( $st, $dbh ) = _prepare_FILES_select();
+
+  return
+    unless $st  && ref $st
+        && $dbh && ref $dbh
+        ;
+
+  for my $obs ( @{ $list } ) {
+
+    my $header = $obs->hdrhash()
+      or next;
+
+    my @file = _add_files(  'header'    => $header,
+                            'st-handle' => $st,
+                            'db-handle' => $dbh,
+                            'file-key'  => $file_key
+                          );
+
+    next unless scalar @file;
+
+    $obs->filename( @file );
+  }
+
+  return;
+}
+
+sub _add_files_in_headers {
+
+  my ( $self, $list, $file_key ) = @_;
+
+  return
+    unless $list && ref $list
+    && scalar @{ $list };
+
+  my ( $st, $dbh ) = _prepare_FILES_select();
+
+  return
+    unless $st  && ref $st
+        && $dbh && ref $dbh
+        ;
+
+  for my $header ( @{ $list } ) {
+
+    _add_files( 'header'    => $header,
+                'st-handle' => $st,
+                'db-handle' => $dbh,
+                'file-key'  => $file_key
+              );
+
+  }
+  return;
+}
+
+sub _add_files {
+
+  my ( %arg ) = @_;
+
+  my ( $header, $st, $dbh, $key ) =
+    @arg{qw[ header st-handle db-handle file-key ]};
+
+  $key = 'filename' unless defined $key;
+
+  return if _any_filename( $header );
+
+  my @file = _fetch_files(  'st-handle' => $st,
+                            'db-handle' => $dbh,
+                            'header'    => $header
+                          );
+
+  return unless scalar @file;
+
+  warn "More than one file found" if scalar @file > 1;
+
+  $header->{ $key } = $file[0];
+
+  return @file if wantarray();
+  return;
+}
+
+sub _fetch_files {
+
+  my ( %arg ) = @_;
+
+  my $id_key = 'obsid_subsysnr';
+  my ( $st, $dbh, $header ) = @arg{qw[ st-handle db-handle header ]};
+
+  my @id = _get_header_values( $header, $id_key );
+  unless ( scalar @id ) {
+
+    warn "No $id_key found\n";
+    return;
+  }
+
+  my ( @file );
+  for my $id ( @id ) {
+
+    my $rv = $st->execute( $id );
+    $rv or throw OMP::Error::DBError qq[execute() failed ($rv): ], $st->errstr();
+
+    my %tmp = $st->fetchrow_array()
+      or throw OMP::Error::DBError q[Error with fetchrow_array(): ], $dbh->errstr();
+
+    next unless defined $tmp{ $id };
+    push @file, $tmp{ $id };
+  }
+
+  return @file;
+}
+
+sub _prepare_FILES_select {
+
+  my $sql = <<'_SQL_';
+    SELECT obsid_subsysnr , file_id
+    FROM %s
+    WHERE obsid_subsysnr = ?
+    ORDER BY obsid_subsysnr
+_SQL_
+
+  require OMP::ArcQuery;
+  $sql = sprintf $sql, $OMP::ArcQuery::AFILESTAB;
+
+  #$ENV{'OMP_SITE_CONFIG'} =
+  #  '/home/jcmtarch/enterdata-cfg/enterdata.cfg'
+  #  ;
+  #my $cfg = OMP::Config->new( 'force' => 1 );
+
+  my $db  = OMP::DBbackend::Archive->new();
+  my $dbh = $db->handle();
+  $dbh->{'syb_show_sql'} = 1;
+  $dbh->{'syb_show_eed'} = 1;
+
+  my $st = $dbh->prepare( $sql )
+    or throw OMP::Error::DBError q[Error with prepare() of file statement: ], $dbh->errstr();
+
+  return ( $st, $dbh );
+}
+
+sub _any_filename {
+
+  my ( @header ) = @_;
+
+  for my $in ( @header ) {
+
+    my $ok = scalar map
+                    { ! $_
+                      ? ()
+                      : $_ && ref $_
+                        ?  @{ $_ }
+                        : $_
+                    }
+                    _get_header_values( $in, 'filename' )
+                    ;
+
+    return 1 if $ok;
+  }
+
+  return;
+}
+
+sub _get_header_values {
+
+  my ( $header, $key ) = @_;
+
+  return unless $header;
+
+  return $header->{ $key }
+    if exists $header->{ $key };
+
+  my @val;
+  for my $subh ( @{ $header->{'SUBHEADERS'} } ) {
+
+    next
+      unless defined $subh
+      && exists $subh->{ $key };
+
+    push @val, $subh->{ $key };
+  }
+  return @val;
 }
 
 =item B<_query_files>
