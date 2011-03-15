@@ -1038,12 +1038,12 @@ sub _reorganize_archive {
     }
     push(@rearranged, { header => \%newrow } );
   }
-  my $unique = OMP::FileUtils->merge_dupes( @rearranged );
+  my $unique = OMP::FileUtils->merge_dupes_no_fits( @rearranged );
 
   # now convert into Obs::Info objects
   return
     OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => $retainhdr,
-                                  'fits'     => $unique
+                                  'hdrhash'  => $unique
                                 );
 }
 
