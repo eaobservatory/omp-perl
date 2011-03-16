@@ -516,18 +516,20 @@ my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
       unless $info
       && keys %{ $info } ;
 
-    my $obsid = $info->{'header'}{'OBSID'}
-      or next;
+    my $collect = $info->{'header'}{'OBSID'};
+    unless ( defined $collect ) {
 
-    $unique{ $obsid } = [] unless exists $unique{ $obsid };
-    push @{ $unique{ $obsid } }, $info;
+      $collect = $info->{'header'}{'DATE_OBS'};
+    }
+
+    push @{ $unique{ $collect } }, $info;
   }
 
   # Merge the headers and filename information for multiple files but identical
-  # obsid.
-  for my $obsid ( keys %unique ) {
+  # sorting key.
+  for my $key ( keys %unique ) {
 
-    my $headers = $unique{ $obsid };
+    my $headers = $unique{ $key };
 
     # Collect ordered, unique file names.
     my ( @file, %seen );
@@ -543,7 +545,7 @@ my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
 
     # Merege rest of headers.
 
-    $unique{ $obsid } =
+    $unique{ $key } =
       { 'header'    => _merge_header_hashes( $headers ),
         'filenames' => [ @file ],
       };
