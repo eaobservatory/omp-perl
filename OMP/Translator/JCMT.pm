@@ -840,7 +840,7 @@ sub observing_area {
 
     # Items that propagate directly from config file
     my %scanextras;
-    for my $attr (qw/ VELOCITY DY TURN_RADIUS XSTART YSTART VX VY / ) {
+    for my $attr (qw/ VELOCITY DY TURN_RADIUS ACCEL XSTART YSTART VX VY / ) {
       my $key = "SCAN_". $attr;
       $scanextras{$attr} = $info{$key}
         if (exists $info{$key} && defined $info{$key});
