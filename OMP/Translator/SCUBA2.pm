@@ -478,7 +478,7 @@ sub handle_special_modes {
       $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey. $key .
                                               "scan_dy");
 
-      for my $extras (qw/ TURN_RADIUS XSTART YSTART VX VY / ) {
+      for my $extras (qw/ TURN_RADIUS ACCEL XSTART YSTART VX VY / ) {
         my $cfgitem = lc($extras);
         my $cfgvalue = eval { OMP::Config->getData( $self->cfgkey . $key .
                                                     $cfgitem ) };
