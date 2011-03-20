@@ -196,10 +196,14 @@ sub get_raw_files_from_meta {
                                         'filter' => $flag_re,
                                       );
 
+    next unless $flags && scalar @{ $flags };
+
     push @flag,
-      map
-      { File::Spec->catfile( $meta_dir, $_ ) }
-      _get_updated_files( $flags );
+      _get_updated_files( [ map
+                            { File::Spec->catfile( $meta_dir, $_ ) }
+                            @{ $flags }
+                          ]
+                        );
   }
 
   return
