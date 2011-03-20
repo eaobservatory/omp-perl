@@ -181,6 +181,35 @@ sub get_raw_files_from_meta {
 
   my ( $class, $sys_config, $config, $flag_re, $old ) = @_;
 
+  my $inst = $config->{'instrument'};
+  my $meta_dir
+    = $sys_config->getData( "${inst}.metafiledir", %{ $config } );
+
+  my @meta = get_meta_files( $sys_config, $config, $flag_re );
+
+  my ( @flag );
+  for my $file ( @meta ) {
+
+    # Get flag file list by reading meta files.
+    my $flags =
+      OMP::General->get_file_contents(  'file'   => $file,
+                                        'filter' => $flag_re,
+                                      );
+
+    push @flag,
+      map
+      { File::Spec->catfile( $meta_dir, $_ ) }
+      _get_updated_files( $flags );
+  }
+
+  return
+    $class->get_raw_files( $meta_dir, [ @flag ], $old,);
+}
+
+sub get_meta_files {
+
+  my ( $sys_config, $config, $flag_re ) = @_;
+
   $flag_re = qr{$flag_re};
 
   # Get meta file list.
@@ -209,103 +238,7 @@ sub get_raw_files_from_meta {
   };
 
   return unless $metas;
-
-  my $read =
-    _get_recent(  'files' => $metas,
-                  'old'   => $old,
-                  'type'  => "meta-${inst}",
-                )
-                or return;
-
-  # Get flag file list by reading meta files.
-  my ( @flag );
-  for my $file ( @{ $read } ) {
-
-    my $flags = OMP::General->get_file_contents( 'file' => $file,
-                                                  'filter' => $flag_re,
-                                                );
-    next unless scalar @{ $flags };
-
-    push @flag, map { File::Spec->catfile( $meta_dir, $_ ) } @{ $flags };
-  }
-
-  return
-    $class->get_raw_files( $meta_dir,
-                            _get_recent(  'files' => \@flag,
-                                          'old'   => $old,
-                                          'type'  => "flag-${inst}",
-                                        ),
-                            $old,
-                          );
-}
-
-# Go through each flag file, open it, and retrieve the list of files within it.
-sub get_raw_files {
-
-  my ( $class, $dir, $flags, $old ) = @_;
-
-  return
-    unless $flags && scalar @{ $flags };
-
-  my @raw;
-
-  foreach my $file ( @{ $flags } ) {
-
-    # If the flag file size is 0 bytes, then we assume that the observation file
-    # associated with that flag file is of the same naming convention, removing
-    # the dot from the front and replacing the .ok on the end with .sdf.
-    if ( -z $file ) {
-
-      my $raw = $class->make_raw_name_from_flag( $file );
-
-      next unless _sanity_check_file( $raw );
-
-      push @raw, [ $raw ];
-      next;
-    }
-
-    my ( $lines, $err );
-    try {
-
-      $lines = OMP::General->get_file_contents( 'file' => $file );
-    }
-    catch OMP::Error::FatalError with {
-
-      ( $err ) = @_;
-      throw $err
-        unless $err =~ /^Cannot open file/i;
-    };
-
-    my @checked;
-    for my $file ( @{ $lines } ) {
-
-      my $f = File::Spec->catfile( $dir, $file );
-
-      next unless _sanity_check_file( $f );
-
-      push @checked, $f;
-    }
-
-    push @raw, [ @checked ];
-  }
-
-  my $out = _get_recent(  'files' => \@raw,
-                          'old'   => $old,
-                          'type'  => "raw-${dir}",
-                        );
-  return @{ $out };
-}
-
-sub make_raw_name_from_flag {
-
-  my ( $class, $flag ) = @_;
-
-  my $suffix = '.sdf';
-
-  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
-  $raw =~ s/^[.]//;
-
-  return File::Spec->catfile( $dir, $raw . $suffix );
+  return @{ $metas };
 }
 
 sub get_flag_files {
@@ -341,12 +274,113 @@ sub get_flag_files {
     }
   }
 
-  return
-    _get_recent(  'files' => $flags,
-                  'old'   => $old,
-                  'type'  => "flag-${dir}",
-                );
+  my @updated = _get_updated_files( $flags );
+
+  return [] unless scalar @updated;
+  return [ @updated ];
 }
+
+{
+  my ( %file_time );
+  sub _get_updated_files {
+
+    my ( $list ) = @_;
+
+    return unless $list && scalar @{ $list };
+
+    my @send;
+    my %mod = _get_mod_epoch( $list );
+
+    while ( my ( $f, $t ) = each %mod ) {
+
+      next
+        if exists $file_time{ $f }
+        &&        $file_time{ $f }
+        && $t <=  $file_time{ $f };
+
+      $file_time{ $f } = $t;
+      push @send, $f;
+    }
+
+    return unless scalar @send;
+    return
+      # Sort files by ascending modification times.
+      map  { $_->[0] }
+      sort { $a->[1] <=> $b->[1] }
+      map  { [ $_ , $mod{ $_ } ] }
+      @send;
+  }
+}
+
+# Go through each flag file, open it, and retrieve the list of files within it.
+{
+  my ( %raw );
+  sub get_raw_files {
+
+    my ( $class, $dir, $flags, $old ) = @_;
+
+    return
+      unless $flags && scalar @{ $flags };
+
+    my @raw;
+
+    foreach my $file ( @{ $flags } ) {
+
+      # If the flag file size is 0 bytes, then we assume that the observation file
+      # associated with that flag file is of the same naming convention, removing
+      # the dot from the front and replacing the .ok on the end with .sdf.
+      if ( -z $file ) {
+
+        my $raw = $class->make_raw_name_from_flag( $file );
+
+        next unless _sanity_check_file( $raw );
+
+        push @raw, [ $raw ];
+        next;
+      }
+
+      my ( $lines, $err );
+      try {
+
+        $lines = OMP::General->get_file_contents( 'file' => $file );
+      }
+      catch OMP::Error::FatalError with {
+
+        ( $err ) = @_;
+        throw $err
+          unless $err =~ /^Cannot open file/i;
+      };
+
+      my @checked;
+      for my $file ( @{ $lines } ) {
+
+        my $f = File::Spec->catfile( $dir, $file );
+
+        next if exists $raw{ $f };
+        next unless _sanity_check_file( $f );
+
+        undef $raw{ $f };
+        push @checked, $f;
+      }
+      push @raw, [ @checked ];
+    }
+
+    return @raw;
+  }
+}
+
+sub make_raw_name_from_flag {
+
+  my ( $class, $flag ) = @_;
+
+  my $suffix = '.sdf';
+
+  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
+  $raw =~ s/^[.]//;
+
+  return File::Spec->catfile( $dir, $raw . $suffix );
+}
+
 
 =item B<merge_dupes>
 
