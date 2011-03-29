@@ -413,6 +413,7 @@ Output keys
    header - Astro::FITS::Header object
    filenames - reference to array of filenames
    frameset - optional Starlink::AST frameset (from first in list)
+   obsidss_files - hash of files indexed by obsidss
 
 =cut
 
@@ -464,6 +465,13 @@ sub merge_dupes {
       }
     }
 
+    # Keep the obsidss around (assume only a single one from a row)
+    if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+      my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
+      $info->{obsidss} = $obsidss->[0]
+	if defined $obsidss && ref($obsidss) && @$obsidss;
+    }
+
     # store it on hash indexed by obsid
     $unique{$obsid} = [] unless exists $unique{$obsid};
     push(@{$unique{$obsid}}, $info);
@@ -473,10 +481,15 @@ sub merge_dupes {
   # but identical obsid.
   for my $obsid (keys %unique) {
     # To simplify syntax get array of headers and filenames
-    my (@fits, @files, $frameset);
+    my (@fits, @files, $frameset, %obsidss_files);
     for my $f (@{$unique{$obsid}}) {
       push(@fits, $f->{header});
       push(@files, $f->{filename});
+      if (exists $f->{obsidss}) {
+	my $key = $f->{obsidss};
+	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+	push(@{$obsidss_files{$key}}, $f->{filename});
+      }
       $frameset = $f->{frameset} if defined $f->{frameset};
     }
 
@@ -510,6 +523,7 @@ sub merge_dupes {
     $unique{$obsid} = {
                        header => $fitshdr,
                        filenames => \@files,
+		       obsidss_files => \%obsidss_files,
                        frameset => $frameset,
                       };
   }
@@ -554,13 +568,31 @@ my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
       unless $info
       && keys %{ $info } ;
 
-    my $collect = $info->{'header'}{'OBSID'};
-    unless ( defined $collect ) {
+    # Need to get a unique key via header translation
+    my $hdr = $info->{header};
+    my $class;
+    eval {
+      $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    };
+    if ( $@ ) {
 
-      $collect = $info->{'header'}{'DATE_OBS'};
+      warn sprintf "Skipped '%s' due to: %s\n",
+        $info->{'filename'},
+        $@;
     }
 
-    push @{ $unique{ $collect } }, $info;
+    next unless $class;
+
+    my $obsid = $class->to_OBSERVATION_ID( $hdr, $info->{frameset} );
+
+    # Keep the obsidss around (assume only a single one from a row)
+    if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+      my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
+      $info->{obsidss} = $obsidss->[0]
+	if defined $obsidss && ref($obsidss) && @$obsidss;
+    }
+
+    push @{ $unique{ $obsid } }, $info;
   }
 
   # Merge the headers and filename information for multiple files but identical
@@ -570,15 +602,23 @@ my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
     my $headers = $unique{ $key };
 
     # Collect ordered, unique file names.
-    my ( @file, %seen );
+    my ( @file, %seen, %obsidss_files );
     for my $h ( @{ $headers } ) {
 
       next
         unless exists $h->{'header'}{'FILE_ID'}
             && $h->{'header'}{'FILE_ID'};
 
-      push @file, delete $h->{'header'}{'FILE_ID'};
+      my $thisfile = delete $h->{header}->{FILE_ID};
+      my @newfiles = (ref $thisfile ? @$thisfile : $thisfile);
+      push @file, @newfiles;
+      if (exists $h->{obsidss}) {
+	my $key = $h->{obsidss};
+	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+	push(@{$obsidss_files{$key}}, @newfiles);
+      }
     }
+
     @file = grep { ! $seen{ $_ }++ } @file;
 
     # Merege rest of headers.
@@ -586,6 +626,7 @@ my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
     $unique{ $key } =
       { 'header'    => _merge_header_hashes( $headers ),
         'filenames' => [ @file ],
+	'obsidss_files' => \%obsidss_files,
       };
   }
 

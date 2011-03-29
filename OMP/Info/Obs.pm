@@ -224,32 +224,27 @@ sub subsystems {
   my %common = %$hdr;
   delete $common{SUBHEADERS};
 
+  # Get obsidss names
+  my @obsidss = $self->obsidss;
+  my %subscans;
+  if (@obsidss) {
+    for my $subid (@obsidss) {
+      $subscans{$subid} = [ $self->subsystem_files($subid) ];
+    }
+  }
+
   # and then get the actual subheaders
   my @subhdrs = $fits->subhdrs;
 
-  # Get the filenames
-  my @filenames = $copy->filename;
-
-  # sanity check
-  if (@filenames != @{$hdr->{SUBHEADERS}}) {
-    throw OMP::Error::FatalError("Number of filenames in Obs object does not match number of subheaders\n");
-  }
-
-
   # Now get the subheaders and split them up on the basis of primary key
-  # Need to track filenames as well (which are assumed to track the subheader)
   my %subsys;
-  my %subscans;
   my @suborder;
-  for my $i (0..$#filenames) {
-    my $subhdr = $subhdrs[$i];
+  for my $subhdr (@subhdrs) {
     my $subid = $subhdr->value($idkey);
     if (!exists $subsys{$subid}) {
       $subsys{$subid} = [];
-      $subscans{$subid} = [];
-      push(@suborder, $subid); # keep track of original order
+      push(@suborder, $subid);
     }
-    push(@{$subscans{$subid}}, $filenames[$i]);
     push(@{$subsys{$subid}}, $subhdr);
   }
 
@@ -280,11 +275,40 @@ sub subsystems {
   for my $subid (@suborder) {
     my $obs = new OMP::Info::Obs( fits => $headers{$subid}, retainhdr => $copy->retainhdr );
     $obs->filename( $subscans{$subid} );
+    $obs->obsidss( $subid );
     push(@obs, $obs);
   }
 
   return @obs;
 }
+
+=item B<subsystem_filenames>
+
+Returns the files associated with a particular subsystem.
+
+  @files = $obs->subsystem_filenames( $subsys_id );
+
+First argument is the subsystem identifier (OBSIDSS).
+
+Can be used to set the filenames:
+
+  $obs->subsystem_filenames( $subsys_id, @files );
+
+=cut
+
+sub subsystem_filenames {
+  my $self = shift;
+  my $obsidss = shift;
+  $self->{_SUBSYS_FILES} = {} unless exists $self->{_SUBSYS_FILES};
+  if (@_) {
+    $self->{_SUBSYS_FILES}{$obsidss} = \@_;
+  }
+  if (exists $self->{_SUBSYS_FILES}{$obsidss}) {
+    return @{$self->{_SUBSYS_FILES}{$obsidss}};
+  }
+  return;
+}
+
 
 =item B<hdrs_to_obs>
 
@@ -294,6 +318,19 @@ array of C<OMP::Info::Obs> objects.
   @obs = OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => 1,
                                       'fits'      => \%merged
                                     );
+
+Allows keys:
+
+  retainhdr => Keep the header in the Obs object
+  fits      => Construct from a FITS header
+  hdrhash   => Construct from a header hash
+
+FITS and HdrHash are both references to hashes with keys
+
+  header    => The thing being passed to the constructor
+  filenames => Filenames associated with Obs
+  obsidss_files => Hash lut for obsidss to file list
+  frameset  => WCS frameset if available
 
 =cut
 
@@ -329,6 +366,15 @@ sub hdrs_to_obs {
 
     # store the filename information
     $obs->filename( \@{$merged->{$obsid}{'filenames'}}, 1 );
+
+    # Store the obsidss filename information
+    if ( exists $merged->{$obsid}{obsidss_files}) {
+      my %obsidss = %{ $merged->{$obsid}{obsidss_files}};
+      $obs->obsidss( keys %obsidss );
+      for my $ss (keys %obsidss) {
+	$obs->subsystem_filenames( $ss => $obsidss{$ss});
+      }
+    }
 
     # Ask for the raw data directory
     my $rawdir = $obs->rawdatadir;
@@ -390,6 +436,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               number_of_cycles => '$',
                               object => '$',
                               obsid => '$',
+			      obsidss => '@',
                               order => '$',
                               pol => '$',
                               pol_in => '$',
@@ -1822,6 +1869,14 @@ sub _populate {
     my $obsid = $instrument . '_' . $self->runnr . '_' . $date_str;
     $self->obsid( $obsid );
   }
+
+  # Subsystem OBSID
+  my $key = "OBSERVATION_ID_SUBSYSTEM";
+  if ( exists $generic_header{$key}) {
+    my @list = (ref $generic_header{$key} ? @{$generic_header{$key}} : $generic_header{$key});
+    $self->obsidss(@list);
+  }
+
 
   if( ! $self->retainhdr ) {
     $self->fits( undef );

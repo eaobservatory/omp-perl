@@ -45,7 +45,15 @@ our $JCMTTAB = 'jcmt..COMMON J';
 our $ACSISTAB = 'jcmt..ACSIS A';
 our $AFILESTAB = 'jcmt..FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
 
-# Extra description for Tim: In the %jointable the $AFILESTAB and $S2FILESTAB are used as hash keys. Now, these both point to the same table, so they both interpolate to the same string. When that happens, the join string for the SCUBA-2 files table overwrites that for the ACSIS files table, and if you're doing ACSIS lookups it tries to join against the SCUBA-2 table, which clearly doesn't work. If we add the space to the end of the $AFILESTAB string it doesn't affect the resulting SQL statement, but the two keys become unique and thus the hash works as it should.
+# Extra description for Tim: In the %jointable the $AFILESTAB and
+# $S2FILESTAB are used as hash keys. Now, these both point to the same
+# table, so they both interpolate to the same string. When that
+# happens, the join string for the SCUBA-2 files table overwrites that
+# for the ACSIS files table, and if you're doing ACSIS lookups it
+# tries to join against the SCUBA-2 table, which clearly doesn't
+# work. If we add the space to the end of the $AFILESTAB string it
+# doesn't affect the resulting SQL statement, but the two keys become
+# unique and thus the hash works as it should.
 
 our $SCUBA2TAB = 'jcmt..SCUBA2 S2';
 our $S2FILESTAB = 'jcmt..FILES F';
@@ -61,9 +69,7 @@ our $S2FILESTAB = 'jcmt..FILES F';
       [
         \$JCMTTAB,
         \$ACSISTAB,
-        \$AFILESTAB,
         \$SCUBA2TAB,
-        \$S2FILESTAB,
       ];
 
     $db{'jcmt_tms'} =
@@ -109,9 +115,9 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
                    HETERODYNE => [ $GSDTAB, $SUBTAB ],
-                   ACSIS => [ $JCMTTAB, $ACSISTAB, $AFILESTAB ],
+                   ACSIS => [ $JCMTTAB, $ACSISTAB ],
                    #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
-                   'SCUBA-2' => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
+                   'SCUBA-2' => [ $JCMTTAB, $SCUBA2TAB ],
                  );
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
