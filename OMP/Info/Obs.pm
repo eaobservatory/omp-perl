@@ -229,7 +229,7 @@ sub subsystems {
   my %subscans;
   if (@obsidss) {
     for my $subid (@obsidss) {
-      $subscans{$subid} = [ $self->subsystem_files($subid) ];
+      $subscans{$subid} = [ $self->subsystem_filenames($subid) ];
     }
   }
 
@@ -293,6 +293,10 @@ First argument is the subsystem identifier (OBSIDSS).
 Can be used to set the filenames:
 
   $obs->subsystem_filenames( $subsys_id, @files );
+  $obs->subsystem_filenames( $subsys_id, \@files );
+
+It is assumed that the keys used in this hash match the
+return values of the C<obsidss> method.
 
 =cut
 
@@ -301,7 +305,13 @@ sub subsystem_filenames {
   my $obsidss = shift;
   $self->{_SUBSYS_FILES} = {} unless exists $self->{_SUBSYS_FILES};
   if (@_) {
-    $self->{_SUBSYS_FILES}{$obsidss} = \@_;
+    my @new;
+    if (ref($_[0]) eq 'ARRAY') {
+      @new = @{$_[0]};
+    } else {
+      @new = @_;
+    }
+    $self->{_SUBSYS_FILES}{$obsidss} = \@new;
   }
   if (exists $self->{_SUBSYS_FILES}{$obsidss}) {
     return @{$self->{_SUBSYS_FILES}{$obsidss}};
