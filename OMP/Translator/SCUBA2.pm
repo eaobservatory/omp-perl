@@ -26,7 +26,7 @@ use List::Util qw/ max min /;
 use File::Spec;
 use Math::Trig ':pi';
 
-use JAC::OCS::Config 1.02;
+use JAC::OCS::Config 1.03;
 use JAC::OCS::Config::Error qw/ :try /;
 use JCMT::TCS::Pong;
 
@@ -141,6 +141,12 @@ sub insert_setup_obs {
       unless defined $setupmsb;
 
   my @setups = $class->translate( $setupmsb, %transargs );
+
+  # Get the MSBID from the first config and force the setup to inherit it
+  my $refid = $configs[0]->msbid;
+  for my $stp (@setups) {
+    $stp->msbid($refid);
+  }
 
   # we do a setup when the previous target is different to the current
   # target. Always put a setup at the front unless the first is an explicit
