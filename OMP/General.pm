@@ -54,7 +54,6 @@ use Time::Seconds qw/ ONE_DAY /;
 use Text::Balanced qw/ extract_delimited /;
 use OMP::SiteQuality;
 use POSIX qw/ /;
-use Astro::Coords;   # For  sunrise, sunset
 
 # Note we have to require this module rather than use it because
 # there is a circular dependency with OMP::General such that determine_host
@@ -558,6 +557,7 @@ sub _process_freeut_range {
       # HH:MM
       $out = $class->parse_date($refdate->ymd . "T$r"); 
     } elsif ($r =~ /^(sunrise|sunset)\s*([\+\-]\s*\d+)\s*$/) {
+      require Astro::Coords;
       my $mode = $1;
       my $offset = $2;
       if (!defined $Sun) {
