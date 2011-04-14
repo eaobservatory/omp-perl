@@ -93,6 +93,8 @@ BEGIN {
   use OMP::ArchiveDB;
   use OMP::Constants;
   use OMP::Display;
+  use OMP::DateTools;
+  use OMP::NetTools;
   use OMP::General;
   use OMP::Config;
   use OMP::Error qw/ :try /;
@@ -149,8 +151,8 @@ if( $version ) {
 }
 
 # initialise
-my $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
-my $currentut = OMP::General->today;
+my $ut = OMP::DateTools->determine_utdate( $opt{ut} )->ymd;
+my $currentut = OMP::DateTools->today;
 my $utdisp = "Current UT date: $ut";
 
 my $arcdb = OMP::ArchiveDB->new( 'DB' => OMP::DBbackend::Archive->new() );
@@ -1826,7 +1828,7 @@ sub save_shift_comment {
   if (defined $time && $time =~ /\d/) {
     # Now need to parse the time (either as UT or local time)
     my $islocal = ( $TZ eq 'UT' ? 0 : 1 );
-    $date = OMP::General->parse_date( $time, $islocal );
+    $date = OMP::DateTools->parse_date( $time, $islocal );
 
     # if it did not parse tell people
     if (!defined $date) {
@@ -2095,7 +2097,7 @@ sub set_UT {
 
   my $newUT = $$RefUT;
 
-  my $UTdate = OMP::General->parse_date( $newUT );
+  my $UTdate = OMP::DateTools->parse_date( $newUT );
 
   if(!defined($UTdate)) {
     # we've got an error in the date

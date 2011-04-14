@@ -24,6 +24,7 @@ use warnings;
 use Carp;
 
 use OMP::Config;
+use OMP::DateTools;
 use OMP::General;
 use Time::Seconds qw(ONE_DAY);
 
@@ -281,8 +282,8 @@ sub wvm_graph_code {
   my $wvm_url = OMP::Config->getData('wvm-url');
 
   # Convert dates to time objects
-  $wvmstart = OMP::General->parse_date($wvmstart);
-  $wvmend = OMP::General->parse_date($wvmend);
+  $wvmstart = OMP::DateTools->parse_date($wvmstart);
+  $wvmend = OMP::DateTools->parse_date($wvmend);
 
   my $string;
 

@@ -70,6 +70,7 @@ BEGIN {
     unless exists $ENV{OMP_CFG_DIR};
 };
 
+use OMP::DateTools;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserServer;
@@ -98,9 +99,9 @@ if( $version ) {
 # default to today;
 my $ut;
 if (defined $opt{ut}) {
-  $ut = OMP::General->determine_utdate( $opt{ut} )->ymd;
+  $ut = OMP::DateTools->determine_utdate( $opt{ut} )->ymd;
 } else {
-  $ut = OMP::General->today(1);
+  $ut = OMP::DateTools->today(1);
   print "Defaulting to today (".$ut->ymd.")\n";
 }
 

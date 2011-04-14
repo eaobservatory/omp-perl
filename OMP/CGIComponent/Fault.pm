@@ -30,6 +30,7 @@ use Text::Wrap;
 
 use OMP::Config;
 use OMP::Display;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Error qw(:try);
 use OMP::Fault;
@@ -1372,16 +1373,16 @@ sub parse_file_fault_form {
       my $mm = $2;
       if ($islocal) {
         # Time is local
-        # Using Time::Piece localtime() method until OMP::General today()
+        # Using Time::Piece localtime() method until OMP::DateTools::today()
         # method supports local time
         my $today = localtime;
-        $utdate = OMP::General->parse_date($today->ymd . "T$hh:$mm", 1);
+        $utdate = OMP::DateTools->parse_date($today->ymd . "T$hh:$mm", 1);
       } else {
-        my $today = OMP::General->today;
-        $utdate = OMP::General->parse_date("$today" . "T$hh:$mm");
+        my $today = OMP::DateTools->today;
+        $utdate = OMP::DateTools->parse_date("$today" . "T$hh:$mm");
       }
     } else {
-      $utdate = OMP::General->parse_date($time, $islocal);
+      $utdate = OMP::DateTools->parse_date($time, $islocal);
     }
 
     # Store the faultdate

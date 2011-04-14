@@ -24,6 +24,7 @@ use Carp;
 
 # External modules
 use OMP::Error qw/ :try /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Range;
 use OMP::SiteQuality;
@@ -715,7 +716,7 @@ sub _post_process_hash {
     my %options;
     $options{date} = $href->{date}->[0]
       if exists $href->{date}->[0]; 
-    $href->{semester} = [ OMP::General->determine_semester(tel => $href->{telescope}->[0], %options)];
+    $href->{semester} = [ OMP::DateTools->determine_semester(tel => $href->{telescope}->[0], %options)];
   }
 
 

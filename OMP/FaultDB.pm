@@ -33,6 +33,7 @@ use OMP::FaultQuery;
 use OMP::FaultUtil;
 use OMP::Error;
 use OMP::UserDB;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Config;
 use Text::Wrap;
@@ -548,8 +549,8 @@ sub _query_faultdb {
 
     # First convert dates to date objects
     # 'Mar 15 2002  7:04AM' is Sybase format
-    $faultref->{date} = OMP::General->parse_date( $faultref->{date} );
-    $faultref->{faultdate} = OMP::General->parse_date( $faultref->{faultdate})
+    $faultref->{date} = OMP::DateTools->parse_date( $faultref->{date} );
+    $faultref->{faultdate} = OMP::DateTools->parse_date( $faultref->{faultdate})
       if defined $faultref->{faultdate};
 
     # Generate a user object [hope the multiple Sybase accesses

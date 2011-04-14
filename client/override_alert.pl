@@ -67,6 +67,7 @@ BEGIN {
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
 
+  use OMP::DateTools;
   use OMP::Audio;
   use OMP::Error qw/ :try /;
   use OMP::General;
@@ -189,7 +190,7 @@ sub scan_for_msbs {
   $class->throwException( $E ) if defined $E;
 
   # Get the current semester from OMP::General.
-  my $current_semester = OMP::General->determine_semester( tel => $telescope );
+  my $current_semester = OMP::DateTools->determine_semester( tel => $telescope );
 
   # Push the current semester onto the list of semesters.
   push @semesters, $current_semester;

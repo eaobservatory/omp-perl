@@ -28,6 +28,7 @@ our $VERSION = (qw$ Revision: $ )[1];
 
 use OMP::Fault;
 use OMP::FaultDB;
+use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
 use OMP::Project::TimeAcct;
@@ -542,7 +543,7 @@ sub timeacct {
   for my $ut (sort keys %faults_by_ut) {
     my $fgroup = $self->new(faults=>$faults_by_ut{$ut});
     my $acct = new OMP::Project::TimeAcct(projectid => '__FAULT__',
-					  date => OMP::General->parse_date($ut),
+					  date => OMP::DateTools->parse_date($ut),
 					  timespent => $fgroup->timelost,
 					  confirmed => 1,);
     push @acct, $acct;

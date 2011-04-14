@@ -22,6 +22,7 @@ use warnings;
 use Carp;
 
 # External modules
+use OMP::DateTools;
 use OMP::Config;
 use OMP::Error qw/ :try /;
 use OMP::General;

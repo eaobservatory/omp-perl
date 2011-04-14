@@ -31,6 +31,7 @@ use warnings;
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::DBbackend;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::UserServer;
@@ -47,7 +48,7 @@ for my $line (<>) {
 
   my ($date,$proj,$checksum,$accept,$user,$comment) = split /,/, $line;
 
-  $date = OMP::General->parse_date( $date );
+  $date = OMP::DateTools->parse_date( $date );
   $user = OMP::UserServer->getUser( $user );
 
   my $status = ($accept ? OMP__DONE_DONE : OMP__DONE_REJECTED );

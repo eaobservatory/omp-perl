@@ -26,6 +26,7 @@ use OMP::Display;
 use OMP::Error;
 use OMP::UserDB;
 use OMP::ShiftQuery;
+use OMP::DateTools;
 use OMP::General;
 
 use Astro::Telescope;
@@ -231,7 +232,7 @@ sub _reorganize_shiftlog {
 
     my $obs = new OMP::Info::Comment(
                      text => $row->{text},
-                     date => OMP::General->parse_date( $row->{longdate} ),
+                     date => OMP::DateTools->parse_date( $row->{longdate} ),
                      author => $user
       );
 

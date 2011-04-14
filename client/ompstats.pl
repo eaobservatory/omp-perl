@@ -83,7 +83,7 @@ die ("Please specify -tel and -sem\n")
   unless (defined $tel and defined $sems[0]);
 
 # Get semester boundaries
-my ($startdate, $enddate) = OMP::General->semester_boundary(semester=>\@sems, tel=>$tel);
+my ($startdate, $enddate) = OMP::DateTools->semester_boundary(semester=>\@sems, tel=>$tel);
 
 # Create the night report
 my $nr = new OMP::NightRep(date => $startdate->ymd,

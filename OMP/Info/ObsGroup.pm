@@ -43,6 +43,8 @@ use 5.006;
 use strict;
 use warnings;
 use OMP::Constants qw/ :timegap :obs /;
+use OMP::DateTools;
+use OMP::DateSun;
 use OMP::ProjServer;
 use OMP::DBbackend::Archive;
 use OMP::ArchiveDB;
@@ -919,12 +921,12 @@ sub projectStatsSimple {
       ) {
 
       # Get the extended time
-      ($timespent, my $extended) = OMP::General->determine_extended(
-                                                                    duration => $duration,
-                                                                    start=> $startobs,
-                                                                    end=> $endobs,
-                                                                    tel => $tel,
-                                                                   );
+      ($timespent, my $extended) = OMP::DateSun->determine_extended(
+                                                                          duration => $duration,
+                                                                          start=> $startobs,
+                                                                          end=> $endobs,
+                                                                          tel => $tel,
+                                                                        );
 
       # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
       # "nothing" to extended observing!]
@@ -1118,9 +1120,9 @@ sub projectStatsSimple {
       $total /= 3600.0;
       printf "$ymd: %.2f hrs (without extended)\n",$total;
 
-      my $refdate = OMP::General->parse_date($ymd . "T12:00");
+      my $refdate = OMP::DateTools->parse_date($ymd . "T12:00");
       for my $tel (keys %night_totals) {
-        my $nightlen = OMP::General->determine_night_length( tel => $tel, date => $refdate );
+        my $nightlen = OMP::DateSun->determine_night_length( tel => $tel, date => $refdate );
         printf "From observation data for tel $tel (inc faults): %.2f hrs\n", $night_totals{$tel}{$ymd}/3600.0;
         my $extend = $night_totals{$tel}{$ymd} - $nightlen;
         printf "Expected length of night = %.2f hrs (%s)\n",
@@ -1134,7 +1136,7 @@ sub projectStatsSimple {
   # array
   my @timeacct;
   for my $ymd (keys %proj_totals) {
-    my $date = OMP::General->parse_date( $ymd );
+    my $date = OMP::DateTools->parse_date( $ymd );
     print "Date: $ymd\n" if $DEBUG;
     for my $proj (keys %{$proj_totals{$ymd}}) {
       printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG;
@@ -1346,12 +1348,12 @@ sub projectStatsShared {
       ) {
 
       # Get the extended time
-      ($timespent, my $extended) = OMP::General->determine_extended(
-                                                                    duration => $duration,
-                                                                    start=> $startobs,
-                                                                    end=> $endobs,
-                                                                    tel => $tel,
-                                                                   );
+      ($timespent, my $extended) = OMP::DateSun->determine_extended(
+                                                                          duration => $duration,
+                                                                          start=> $startobs,
+                                                                          end=> $endobs,
+                                                                          tel => $tel,
+                                                                        );
 
       # And sort out the EXTENDED time UNLESS THIS IS ACTUALLY A TIMEGAP [cannot charge
       # "nothing" to extended observing!]
@@ -1710,7 +1712,7 @@ sub projectStatsShared {
   # array
   my @timeacct;
   for my $ymd (keys %proj_totals) {
-    my $date = OMP::General->parse_date( $ymd );
+    my $date = OMP::DateTools->parse_date( $ymd );
     print "Date: $ymd\n" if $DEBUG;
     for my $proj (keys %{$proj_totals{$ymd}}) {
       printf "Project $proj : %.2f\n", $proj_totals{$ymd}{$proj}/3600 if $DEBUG;

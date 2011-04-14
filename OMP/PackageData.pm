@@ -51,6 +51,8 @@ use File::Path '1.05';
 
 use File::Basename;
 use Cwd;
+use OMP::DateTools;
+use OMP::NetTools;
 use OMP::General;
 use OMP::Error;
 use OMP::ProjServer;
@@ -173,7 +175,7 @@ sub utdate {
     if (defined $ut) {
       if (not ref $ut) {
         # A scalar, try to parse
-        my $parsed = OMP::General->parse_date($ut);
+        my $parsed = OMP::DateTools->parse_date($ut);
         throw OMP::Error::BadArgs("Unable to parse string '$ut' as a date. Must be YYYY-MM-DD") unless $parsed;
 
         # overwrite $ut
@@ -945,7 +947,7 @@ sub add_fb_comment {
 
   my $projectid = $self->projectid();
   my $utdate = $self->utdate();
-  my ($user, $host, $email) = OMP::General->determine_host;
+  my ($user, $host, $email) = OMP::NetTools->determine_host;
   my $utstr = (defined $utdate ? $utdate->strftime('%Y-%m-%d'): '<undefined>');
 
   # In some cases with weird firewalls the host is not actually available

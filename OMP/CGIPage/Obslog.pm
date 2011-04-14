@@ -33,6 +33,7 @@ use OMP::CGIComponent::Weather;
 use OMP::CGIDBHelper;
 use OMP::Config;
 use OMP::Constants;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -305,7 +306,7 @@ sub projlog_content {
   # To keep people from following the links before the data are available
   # for download gray out the links if the current UT date is the same as the
   # UT date of the observations
-  my $today = OMP::General->today(1);
+  my $today = OMP::DateTools->today(1);
   if ($today->ymd =~ $utdate) {
     $today += ONE_DAY;
     print "Retrieve data [This link will become active on " . $today->strftime("%Y-%m-%d %H:%M") . " GMT]";

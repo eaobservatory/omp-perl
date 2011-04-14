@@ -29,6 +29,7 @@ use Carp;
 use OMP::Error;
 use OMP::Constants qw/ :fb :logging /;
 use OMP::Display;
+use OMP::NetTools;
 use OMP::General;
 use OMP::FeedbackDB;
 
@@ -871,7 +872,7 @@ sub _notify_feedback_system {
 
   # If the author, program or sourceinfo fields are empty supply them
   # ourselves.
-  my ($user, $addr, $email) = OMP::General->determine_host;
+  my ($user, $addr, $email) = OMP::NetTools->determine_host;
   $comment{author} = undef unless exists $comment{author};
   $comment{sourceinfo} = $addr unless exists $comment{sourceinfo};
   $comment{program} = $0 unless exists $comment{program};

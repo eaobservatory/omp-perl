@@ -75,6 +75,7 @@ use lib "$FindBin::RealBin/..";
 
 # OMP Classes
 use OMP::Error qw/ :try /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::NightRep;
 
@@ -108,7 +109,7 @@ $MW->withdraw;
 
 # First thing we need to do is determine the telescope and
 # the UT date
-$ut = OMP::General->determine_utdate( $ut )->ymd;
+$ut = OMP::DateTools->determine_utdate( $ut )->ymd;
 
 # Telescope
 my $telescope;

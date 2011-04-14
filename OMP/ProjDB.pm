@@ -36,6 +36,7 @@ use OMP::ProjQuery;
 use OMP::Constants qw/ :fb /;
 use OMP::User;
 use OMP::UserDB;
+use OMP::NetTools;
 use OMP::General;
 use OMP::Password;
 use OMP::Project::TimeAcct;
@@ -1289,7 +1290,7 @@ sub _mail_password {
       unless defined $password;
 
     # Try and work out who is making the request
-    my ($user, $ip, $addr) = OMP::General->determine_host;
+    my ($user, $ip, $addr) = OMP::NetTools->determine_host;
 
     # List of recipients of mail
     my @addr = $proj->contacts;

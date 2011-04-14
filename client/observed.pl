@@ -75,6 +75,8 @@ use OMP::Config;
 use OMP::Constants qw(:fb :logging );
 use OMP::DBbackend;
 use OMP::FBServer;
+use OMP::DateTools;
+use OMP::NetTools;
 use OMP::General;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
@@ -106,12 +108,12 @@ die "Can not specify both a date [$utdate] and the -yesterday flag\n"
 # Default the date
 if (!$utdate) {
   if ($yesterday) {
-    $utdate = OMP::General->yesterday(1);
+    $utdate = OMP::DateTools->yesterday(1);
   } else {
-    $utdate = OMP::General->today(1);
+    $utdate = OMP::DateTools->today(1);
   }
 } else {
-  $utdate = OMP::General->parse_date($utdate);
+  $utdate = OMP::DateTools->parse_date($utdate);
 }
 
 # Get the list of MSBs
@@ -268,7 +270,7 @@ for my $proj (keys %sorted) {
     print "\nStatus: $status\n";
 
   } else {
-    my ($user, $host, $email) = OMP::General->determine_host;
+    my ($user, $host, $email) = OMP::NetTools->determine_host;
 
     my $fixed_text = "<html><p>Data were obtained for your project on date $utdate.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
 

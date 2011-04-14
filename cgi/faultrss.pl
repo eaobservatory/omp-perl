@@ -21,6 +21,7 @@ use XML::RSS;
 
 use OMP::Config;
 use OMP::FaultServer;
+use OMP::DateTools;
 use OMP::General;
 
 # Fault system URL

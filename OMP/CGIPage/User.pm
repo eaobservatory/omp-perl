@@ -26,6 +26,7 @@ use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FaultQuery;
 use OMP::FaultServer;
+use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -165,7 +166,7 @@ sub details {
   }
 
   # Query for faults user is associated with
-  my $today = OMP::General->today . "T23:59";
+  my $today = OMP::DateTools->today . "T23:59";
   my $xml = "<FaultQuery>".
     "<author>".$user->userid."</author>".
       "<date delta=\"-14\">$today</date>".

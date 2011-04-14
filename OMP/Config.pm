@@ -34,6 +34,8 @@ use strict;
 use warnings;
 use warnings::register;
 
+use OMP::DateTools;
+use OMP::NetTools;
 use OMP::General;
 use File::Spec;
 use File::Basename;
@@ -905,7 +907,7 @@ sub _determine_constants {
   } else {
     # Get the fully qualified domain name
     # being careful to disable checks for REMOTE_HOST
-    (my $user, $host, my $email) = OMP::General->determine_host( 1 );
+    (my $user, $host, my $email) = OMP::NetTools->determine_host( 1 );
 
     # split the host name on dots
     ($host, $domain) = split(/\./,$host,2);
@@ -1018,7 +1020,7 @@ sub _format_output {
     }
   }
   if (exists $args{utdate}) {
-    my $ut = OMP::General->parse_date( $args{utdate} );
+    my $ut = OMP::DateTools->parse_date( $args{utdate} );
     my %tel;
     $tel{tel} = $args{telescope} if (exists $args{telescope} && defined $args{telescope});
     if ($ut) {
@@ -1028,7 +1030,7 @@ sub _format_output {
       # and only calculate the semester if we need it
       my $all = (ref($input) eq 'ARRAY' ? join("",@$input) : $input);
       if ($all =~ /_\+semester\+_/i ) {
-        $places{SEMESTER} = uc(OMP::General->determine_semester(date => $ut, %tel));
+        $places{SEMESTER} = uc(OMP::DateTools->determine_semester(date => $ut, %tel));
         $places{semester} = lc($places{SEMESTER});
         if (!exists $tel{tel}) {
           warnings::warnif("Warning. Telescope not supplied despite request for semester");

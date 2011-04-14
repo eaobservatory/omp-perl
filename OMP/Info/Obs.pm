@@ -32,6 +32,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
@@ -1641,11 +1642,11 @@ sub _populate {
 
   # Build the Time::Piece startobs and endobs objects
   if(length($generic_header{UTSTART} . "") != 0) {
-    my $startobs = OMP::General->parse_date($generic_header{UTSTART});
+    my $startobs = OMP::DateTools->parse_date($generic_header{UTSTART});
     $self->startobs( $startobs );
   }
   if(length($generic_header{UTEND} . "") != 0) {
-    my $endobs = OMP::General->parse_date($generic_header{UTEND});
+    my $endobs = OMP::DateTools->parse_date($generic_header{UTEND});
     $self->endobs( $endobs );
   }
 

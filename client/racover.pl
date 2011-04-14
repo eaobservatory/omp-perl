@@ -88,6 +88,7 @@ use lib "$FindBin::RealBin/..";
 
 # OMP Classes
 use OMP::Error qw/ :try /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Password;
 use OMP::SciProgStats;
@@ -172,7 +173,7 @@ if (@projects) {
   }
 
   # Default the semester if necessary
-  $semester = OMP::General->determine_semester( tel => $telescope )
+  $semester = OMP::DateTools->determine_semester( tel => $telescope )
     unless defined $semester;
 
   # Form the country part of the query [and a useful string for later]

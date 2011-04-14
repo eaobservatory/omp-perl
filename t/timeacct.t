@@ -80,7 +80,7 @@ my @acct = map { new OMP::Project::TimeAcct(
 					    confirmed => $_->{confirmed},
 					    timespent => $_->{timespent},
 					    projectid => $_->{projectid},
-					    date => OMP::General->parse_date($_->{date}),
+					    date => OMP::DateTools->parse_date($_->{date}),
 					   )   } @input;
 
 is(scalar(@acct), scalar(@input), "make sure we have equal in and out");

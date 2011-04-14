@@ -288,7 +288,7 @@ sub thumbnails_page {
     ( $ut = $qv->{'ut'} ) =~ s/-//g;
   } else {
     # Default to today's UT date.
-    ( $ut = OMP::General->today() ) =~ s/-//g;
+    ( $ut = OMP::DateTools->today() ) =~ s/-//g;
   }
 
   # Get the list of instruments for that telescope.

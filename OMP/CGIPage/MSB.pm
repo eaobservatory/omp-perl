@@ -26,6 +26,7 @@ use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Project;
 use OMP::Constants qw(:fb :done :msb);
 use OMP::Error qw(:try);
+use OMP::DateTools;
 
 $| = 1;
 
@@ -207,7 +208,7 @@ Create a page with a list of all the MSBs observed for a given UT sorted by proj
 sub observed {
   my $q = shift;
 
-#  my $utdate = OMP::General->today;
+#  my $utdate = OMP::DateTools->today;
 
 #  my $commentref = OMP::MSBServer->observedMSBs($utdate, 0, 'data');
 

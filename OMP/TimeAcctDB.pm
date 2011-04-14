@@ -28,6 +28,7 @@ our $VERSION = (qw$ Revision: 1.2 $ )[1];
 use OMP::Error qw/ :try /;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctQuery;
+use OMP::DateTools;
 use OMP::General;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -338,7 +339,7 @@ sub _run_timeacct_query {
 
   # First parse the date field and convert it to a date object
   for my $row (@$ref) {
-    my $date = OMP::General->parse_date( $row->{date} );
+    my $date = OMP::DateTools->parse_date( $row->{date} );
     throw OMP::Error::FatalError("Unable to parse Sybase date '".$row->{date}. 
 				 "' from time accounting table")
       unless defined $date;

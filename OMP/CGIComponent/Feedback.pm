@@ -27,6 +27,7 @@ use Text::Wrap;
 use OMP::Constants qw(:fb);
 use OMP::Error qw(:try);
 use OMP::FBServer;
+use OMP::NetTools;
 use OMP::General;
 
 $| = 1;
@@ -217,7 +218,7 @@ sub submit_fb_comment {
 
   # Get the address of the machine remotely running this cgi script to be given
   # to the addComment method as the sourceinfo param
-  my @host = OMP::General->determine_host;
+  my @host = OMP::NetTools->determine_host;
 
   # Get the OMP::User object
   my $user = OMP::UserServer->getUser($q->param('author')) or

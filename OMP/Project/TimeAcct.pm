@@ -10,7 +10,7 @@ OMP::Project::TimeAcct - Time spent observing a project for a given UT date
 
   $t = new OMP::Project::TimeAcct(
                          projectid => 'm02bu104',
-                         date    => OMP::General->parse_date('2002-08-15'),
+                         date    => OMP::DateTools->parse_date('2002-08-15'),
 			 timespent => new Time::Seconds(3600),
                          confirmed => 1);
 
@@ -43,6 +43,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use OMP::DateTools;
 use OMP::General;
 
 use overload "==" => "isEqual";

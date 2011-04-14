@@ -25,6 +25,7 @@ use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::Display;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :status /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::MSBServer;
 use OMP::ProjDB;
@@ -54,7 +55,7 @@ sub list_projects_form {
   # get the current semester for the default telescope case
   # so it can be defaulted in addition to the list of all semesters
   # in the database
-  my $sem = OMP::General->determine_semester;
+  my $sem = OMP::DateTools->determine_semester;
   my @sem = $db->listSemesters;
 
   # Make sure the current semester is a selectable option

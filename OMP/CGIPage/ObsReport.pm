@@ -20,6 +20,7 @@ use strict;
 use warnings;
 use Carp;
 
+use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
@@ -57,8 +58,8 @@ sub night_report {
 
   # Get delta and start UT date from multi night form
   if ($q->param('utdate_end')) {
-    $utdate = OMP::General->parse_date($q->param('utdate_form'));
-    $utdate_end = OMP::General->parse_date($q->param('utdate_end'));
+    $utdate = OMP::DateTools->parse_date($q->param('utdate_form'));
+    $utdate_end = OMP::DateTools->parse_date($q->param('utdate_end'));
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
@@ -70,7 +71,7 @@ sub night_report {
                                 # to include last day
   } elsif ($q->param('utdate_form')) {
     # Get UT date from single night form
-    $utdate = OMP::General->parse_date($q->param('utdate_form'));
+    $utdate = OMP::DateTools->parse_date($q->param('utdate_form'));
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
@@ -91,7 +92,7 @@ sub night_report {
 
     # Get start date from URL
     if ($q->url_param('utdate')) {
-      $utdate = OMP::General->parse_date($q->url_param('utdate'));
+      $utdate = OMP::DateTools->parse_date($q->url_param('utdate'));
 
     # Croak if date format is wrong
     croak("The date string provided is invalid.  Please provide dates in the format of YYYY-MM-DD")
@@ -99,7 +100,7 @@ sub night_report {
 
     } else {
       # No UT date in URL.  Use current date.
-      $utdate = OMP::General->today(1);
+      $utdate = OMP::DateTools->today(1);
 
       # Subtract delta (days) from date if we have a delta
       if ($delta) {
