@@ -47,7 +47,7 @@ use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
-use omp::DateTools;
+use OMP::DateTools;
 use OMP::FaultDB;
 use OMP::FaultQuery;
 use OMP::FaultGroup;
