@@ -15,7 +15,7 @@ BEGIN {
 
 # Load OMP modules
 use OMP::CGIPage::Fault;
-use OMP::General;
+use OMP::NetTools;
 
 my $arg = shift @ARGV;
 
@@ -26,7 +26,7 @@ $cgi->html_title("OMP Fault System: Update fault");
 
 # If the user is outside the JAC network write the page with
 # authentication
-if (OMP::General->is_host_local) {
+if (OMP::NetTools->is_host_local) {
   $cgi->write_page('update_fault_content',
 		   'update_fault_output');
 } else {

@@ -20,7 +20,7 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIPage::Shiftlog;
-use OMP::General;
+use OMP::NetTools;
 
 my $cquery = new CGI;
 my $cgi = new OMP::CGIPage( CGI => $cquery );
@@ -28,7 +28,7 @@ $cgi->html_title( "OMP Shiftlog" );
 
 # write the page
 
-if (OMP::General->is_host_local) {
+if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&shiftlog_page, \&shiftlog_page );
 } else {
   $cgi->write_page_staff( \&shiftlog_page, \&shiftlog_page, "noauth" );

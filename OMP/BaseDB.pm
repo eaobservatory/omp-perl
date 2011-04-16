@@ -29,6 +29,7 @@ use Carp;
 use OMP::Error;
 use OMP::Constants qw/ :fb :logging /;
 use OMP::Display;
+use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
 use OMP::FeedbackDB;
@@ -971,7 +972,7 @@ sub _mail_information {
   my $top = MIME::Entity->build(%details);
 
   # Create a Date header since the mail server might not create one
-  $args{headers}->{date} = OMP::General->mail_date;
+  $args{headers}->{date} = OMP::DateTools->mail_date;
 
   # Add any additional headers
   for my $hdr (keys %{ $args{headers} }) {

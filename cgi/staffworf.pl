@@ -37,7 +37,7 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIPage::WORF;
-use OMP::General;
+use OMP::NetTools;
 
 
 # Set up global variables, system variables, etc.
@@ -47,7 +47,7 @@ my $cgi = new OMP::CGIPage( CGI => $query );
 $cgi->html_title("WORF: WWW Observing Remotely Facility");
 
 # write the page
-if (OMP::General->is_host_local) {
+if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&display_page, \&display_page );
 } else {
   $cgi->write_page_staff( \&display_page, \&display_page, "noauth" );
