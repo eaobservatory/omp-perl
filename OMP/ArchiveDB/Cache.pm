@@ -392,7 +392,7 @@ sub unstored_files {
   my @return;
   foreach my $arr_ref (@ifiles) {
     my @difffiles;
-    foreach my $item ( @$arr_ref ) {
+    foreach my $item ( ref $arr_ref ? @{ $arr_ref } : $arr_ref ) {
       push( @difffiles, $item ) unless exists $seen{$item};
     }
     push @return, \@difffiles;
