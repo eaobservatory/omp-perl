@@ -851,10 +851,9 @@ sub _track_file {
 
   my ( $label, @descr ) = @_;
 
-  require Log::Log4perl;
-
-  my $log = Log::Log4perl->get_logger( '' );
-  $log->debug( $label, scalar @descr ? join( "\n  ", @descr ) : '<none>' );
+  OMP::General->log_message( join( "\n  ", $label, scalar @descr ? @descr : '<none>' ),
+                              OMP__LOG_INFO
+                            );
   return;
 }
 
