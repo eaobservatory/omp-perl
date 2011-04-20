@@ -142,6 +142,8 @@ sub files_on_disk {
 
     @return =
       $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $old );
+
+    _track_file( 'returning: ' => @return );
   }
   else {
 
@@ -181,6 +183,9 @@ sub get_raw_files_from_meta {
 
   my ( $class, $sys_config, $config, $flag_re, $old ) = @_;
 
+  $old ||=  2 * 4;
+  my $old_raw = 2 * $old;
+
   my $inst = $config->{'instrument'};
   my $meta_dir
     = $sys_config->getData( "${inst}.metafiledir", %{ $config } );
@@ -198,6 +203,8 @@ sub get_raw_files_from_meta {
 
     next unless $flags && scalar @{ $flags };
 
+    _track_file( 'flag files: ', @{ $flags } );
+
     push @flag,
       _get_updated_files( [ map
                             { File::Spec->catfile( $meta_dir, $_ ) }
@@ -207,7 +214,7 @@ sub get_raw_files_from_meta {
   }
 
   return
-    $class->get_raw_files( $meta_dir, [ @flag ], $old,);
+    $class->get_raw_files( $meta_dir, [ @flag ], $old, );
 }
 
 sub get_meta_files {
@@ -240,6 +247,8 @@ sub get_meta_files {
     return
       if $err =~ /n[o']t open directory/i;
   };
+
+  _track_file( 'meta files: ', $metas && ref $metas ? @{ $metas } : () );
 
   return unless $metas;
   return @{ $metas };
@@ -758,6 +767,8 @@ sub _sanity_check_file {
     my ( $files, $old, $type ) = @arg{qw[files old type]};
     $type ||= '<default>';
 
+    _track_file( 'type: ' => $type );
+
     return $files unless $old && $old > 0;
 
     # On first run, every file is a recently updated file.
@@ -768,11 +779,18 @@ sub _sanity_check_file {
     }
 
     my $last = $called{ $type };
+
+    _track_file( 'time, last: ' => $last );
+
     # For future calls.
     $called{ $type } = time();
 
-    my %time = _get_mod_epoch( $files )
+    my %time = _get_mod_epoch( [ map { ref $_ ? @{ $_ } : $_ } @{ $files } ] )
       or return [];
+
+    #_track_file( 'file time: ',
+    #              map { $_ . ' : ' . $time{ $_ } } sort keys %time
+    #            );
 
     my ( @keep, @old );
     for my $time ( sort { $a <=> $b } values %time ) {
@@ -801,6 +819,9 @@ sub _sanity_check_file {
       push @out, $file
         if any { $mod == $_ } @keep;
     }
+
+    _track_file( 'returning recent: ' => @out );
+
     return [ @out ] if scalar @out;
     return [];
   }
@@ -811,7 +832,7 @@ sub _get_mod_epoch {
   my ( $files ) = @_;
 
   my %time;
-  for my $f ( @{ $files } ) {
+  for my $f ( map { ref $_ ? @{ $_ } : $_ }  @{ $files } ) {
 
     my ( $mod ) = ( stat $f )[9]
       or do {
@@ -824,11 +845,34 @@ sub _get_mod_epoch {
   return %time;
 }
 
+sub _track_file {
+
+  return unless $DEBUG;
+
+  my ( $label, @descr ) = @_;
+
+  require Log::Log4perl;
+
+  my $log = Log::Log4perl->get_logger( '' );
+  $log->debug( $label, scalar @descr ? join( "\n  ", @descr ) : '<none>' );
+  return;
+}
+
 =back
 
 =head1 AUTHORS
 
+=over 4
+
+=item *
+
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=item *
+
+Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
+
+=back
 
 =head1 COPYRIGHT
 
