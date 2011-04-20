@@ -1654,7 +1654,7 @@ sub _populate {
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
   $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
-  if( defined( $generic_header{AIRMASS_END} ) ) {
+  if( defined( $generic_header{AIRMASS_START} ) && defined( $generic_header{AIRMASS_END} ) ) {
     $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
   } else {
     $self->airmass( $generic_header{AIRMASS_START} );
