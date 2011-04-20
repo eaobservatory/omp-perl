@@ -16,6 +16,7 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIPage::User;
+use OMP::NetTools;
 
 my $arg = shift @ARGV;
 
@@ -30,7 +31,7 @@ my ( $in, $out ) =
   ( \&OMP::CGIPage::User::list_users,
     \&OMP::CGIPage::User::list_users );
 
-if ( OMP::General->is_host_local ) {
+if ( OMP::NetTools->is_host_local ) {
   # Skip inapplicable project authentication.
   $cgi->write_page( $in, $out, 'skip-proj-auth' );
 } else {

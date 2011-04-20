@@ -61,6 +61,8 @@ use lib "$FindBin::RealBin/..";
 
 # OMP classes
 use OMP::Config;
+use OMP::DateTools;
+use OMP::DateSun;
 use OMP::General;
 use OMP::Password;
 use OMP::DBbackend;
@@ -129,7 +131,7 @@ my $db = new OMP::MSBDB( DB => $backend );
 # Run a simulated set of queries to determine which projects
 # have MSBs available
 
-my $today = OMP::General->today(1);
+my $today = OMP::DateTools->today(1);
 
 # The hour range for queries should be restricted by the freetimeut
 # parameter from the config system
@@ -137,7 +139,7 @@ my ($utmin, $utmax) = OMP::Config->getData( 'freetimeut',
 					    telescope => $telescope);
 
 # parse the values, get them back as date objects
-($utmin, $utmax) = OMP::General->_process_freeut_range( $telescope,
+($utmin, $utmax) = OMP::DateSun->_process_freeut_range( $telescope,
                                                         $today,
                                                         $utmin, $utmax);
 

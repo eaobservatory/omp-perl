@@ -36,6 +36,7 @@ use strict;
 use warnings;
 use Carp;
 use Data::Dumper;
+use OMP::DateTools;
 
 =head1 HELPER METHODS
 
@@ -143,7 +144,7 @@ sub getProject {
     # if the project ID is not known, we need to use a ACSIS or SCUBA2 project
     return $info{PROJECTID};
   } else {
-    my $sem = OMP::General->determine_semester( tel => 'JCMT' );
+    my $sem = OMP::DateTools->determine_semester( tel => 'JCMT' );
     my $pid = "M$sem" . $class->default_project();
     if ($class->VERBOSE) {
       # only warn if we are called from outside this package

@@ -16,7 +16,7 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIPage::User;
-use OMP::General;
+use OMP::NetTools;
 use OMP::UserServer;
 use OMP::Error qw(:try);
 
@@ -39,7 +39,7 @@ try {
 $cgi->html_title("$title: User Details for $user");
 
 # Do project authentication if the user is not local
-if (OMP::General->is_host_local) {
+if (OMP::NetTools->is_host_local) {
   $cgi->write_page_noauth( \&OMP::CGIPage::User::details,
 			   \&OMP::CGIPage::User::details );
 } else {

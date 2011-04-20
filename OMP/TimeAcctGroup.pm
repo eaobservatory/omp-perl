@@ -30,6 +30,7 @@ our $VERSION = (qw$ Revision: $ )[1];
 use OMP::Config;
 use OMP::DBbackend;
 use OMP::Error qw(:try);
+use OMP::DateTools;
 use OMP::General;
 use OMP::PlotHelper;
 use OMP::ProjDB;
@@ -1013,7 +1014,7 @@ sub _get_semesters {
   my @accts = $self->_get_non_special_accts;
   my $tel = $self->_get_telescope;
   my %sem = map {
-    OMP::General->determine_semester(date => $_->date, tel => $tel), undef
+    OMP::DateTools->determine_semester(date => $_->date, tel => $tel), undef
     } @accts;
 
   if (wantarray) {

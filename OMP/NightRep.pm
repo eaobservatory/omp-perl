@@ -47,6 +47,7 @@ use OMP::TimeAcctGroup;
 use OMP::TimeAcctQuery;
 use OMP::ShiftDB;
 use OMP::ShiftQuery;
+use OMP::DateTools;
 use OMP::FaultDB;
 use OMP::FaultQuery;
 use OMP::FaultGroup;
@@ -153,14 +154,14 @@ sub date {
   if (@_) {
     # parse_date can handle local time
     my $arg = shift;
-    my $date = OMP::General->parse_date( $arg );
+    my $date = OMP::DateTools->parse_date( $arg );
     throw OMP::Error::BadArgs("Unable to parse $arg as a date")
       unless defined $date;
     $self->{UTDate} = $date;
   }
 
   if (!defined $self->{UTDate}) {
-    return OMP::General->today( 1 );
+    return OMP::DateTools->today( 1 );
   } else {
     return $self->{UTDate};
   }
@@ -192,7 +193,7 @@ sub date_end {
   if (@_) {
     # parse_date can handle local time
     my $arg = shift;
-    my $date = OMP::General->parse_date( $arg );
+    my $date = OMP::DateTools->parse_date( $arg );
     throw OMP::Error::BadArgs("Unable to parse $arg as a date")
       unless defined $date;
     $self->{UTDateEND} = $date;

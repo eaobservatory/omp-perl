@@ -28,6 +28,7 @@ use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
+use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds;
 
@@ -111,7 +112,7 @@ sub parse_query {
 # Date. This is in yyyy-mm-dd format. If it is not set, it
 # will default to the current UT date.
   if( exists( $q->{'date'} ) ) {
-    my $dateobj = OMP::General->parse_date( $q->{'date'} );
+    my $dateobj = OMP::DateTools->parse_date( $q->{'date'} );
     $return{'date'} = $dateobj->ymd;
   } else {
     my $dateobj = gmtime;

@@ -122,6 +122,7 @@ use constant SURF => 1062;
 use constant STARLINK => 1063;
 use constant WORF => 1064;
 use constant REMOTE_OP => 1066;
+use constant SMURF => 1067;
 
 # FRONT_END_HARP is 2001.
 use constant {
@@ -416,6 +417,7 @@ my %DATA = (
                                     SURF => SURF,
                                     STARLINK => STARLINK,
                                     "ORAC-DR" => ORAC_DR,
+                                    SMURF => SMURF,
                                     OTHER => SYSTEMOTHER,
                                    },
                          TYPE => {

@@ -24,7 +24,7 @@ use warnings::register;
 
 use File::Basename qw[ fileparse ];
 use File::Spec;
-use List::MoreUtils qw[ any ];
+use List::MoreUtils qw[ any all ];
 use Scalar::Util qw[ blessed ];
 
 use OMP::Error qw[ :try ];
@@ -142,6 +142,8 @@ sub files_on_disk {
 
     @return =
       $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $old );
+
+    _track_file( 'returning: ' => @return );
   }
   else {
 
@@ -181,6 +183,44 @@ sub get_raw_files_from_meta {
 
   my ( $class, $sys_config, $config, $flag_re, $old ) = @_;
 
+  $old ||=  2 * 4;
+  my $old_raw = 2 * $old;
+
+  my $inst = $config->{'instrument'};
+  my $meta_dir
+    = $sys_config->getData( "${inst}.metafiledir", %{ $config } );
+
+  my @meta = get_meta_files( $sys_config, $config, $flag_re );
+
+  my ( @flag );
+  for my $file ( @meta ) {
+
+    # Get flag file list by reading meta files.
+    my $flags =
+      OMP::General->get_file_contents(  'file'   => $file,
+                                        'filter' => $flag_re,
+                                      );
+
+    next unless $flags && scalar @{ $flags };
+
+    _track_file( 'flag files: ', @{ $flags } );
+
+    push @flag,
+      _get_updated_files( [ map
+                            { File::Spec->catfile( $meta_dir, $_ ) }
+                            @{ $flags }
+                          ]
+                        );
+  }
+
+  return
+    $class->get_raw_files( $meta_dir, [ @flag ], $old, );
+}
+
+sub get_meta_files {
+
+  my ( $sys_config, $config, $flag_re ) = @_;
+
   $flag_re = qr{$flag_re};
 
   # Get meta file list.
@@ -208,104 +248,10 @@ sub get_raw_files_from_meta {
       if $err =~ /n[o']t open directory/i;
   };
 
+  _track_file( 'meta files: ', $metas && ref $metas ? @{ $metas } : () );
+
   return unless $metas;
-
-  my $read =
-    _get_recent(  'files' => $metas,
-                  'old'   => $old,
-                  'type'  => "meta-${inst}",
-                )
-                or return;
-
-  # Get flag file list by reading meta files.
-  my ( @flag );
-  for my $file ( @{ $read } ) {
-
-    my $flags = OMP::General->get_file_contents( 'file' => $file,
-                                                  'filter' => $flag_re,
-                                                );
-    next unless scalar @{ $flags };
-
-    push @flag, map { File::Spec->catfile( $meta_dir, $_ ) } @{ $flags };
-  }
-
-  return
-    $class->get_raw_files( $meta_dir,
-                            _get_recent(  'files' => \@flag,
-                                          'old'   => $old,
-                                          'type'  => "flag-${inst}",
-                                        ),
-                            $old,
-                          );
-}
-
-# Go through each flag file, open it, and retrieve the list of files within it.
-sub get_raw_files {
-
-  my ( $class, $dir, $flags, $old ) = @_;
-
-  return
-    unless $flags && scalar @{ $flags };
-
-  my @raw;
-
-  foreach my $file ( @{ $flags } ) {
-
-    # If the flag file size is 0 bytes, then we assume that the observation file
-    # associated with that flag file is of the same naming convention, removing
-    # the dot from the front and replacing the .ok on the end with .sdf.
-    if ( -z $file ) {
-
-      my $raw = $class->make_raw_name_from_flag( $file );
-
-      next unless _sanity_check_file( $raw );
-
-      push @raw, [ $raw ];
-      next;
-    }
-
-    my ( $lines, $err );
-    try {
-
-      $lines = OMP::General->get_file_contents( 'file' => $file );
-    }
-    catch OMP::Error::FatalError with {
-
-      ( $err ) = @_;
-      throw $err
-        unless $err =~ /^Cannot open file/i;
-    };
-
-    my @checked;
-    for my $file ( @{ $lines } ) {
-
-      my $f = File::Spec->catfile( $dir, $file );
-
-      next unless _sanity_check_file( $f );
-
-      push @checked, $f;
-    }
-
-    push @raw, [ @checked ];
-  }
-
-  my $out = _get_recent(  'files' => \@raw,
-                          'old'   => $old,
-                          'type'  => "raw-${dir}",
-                        );
-  return @{ $out };
-}
-
-sub make_raw_name_from_flag {
-
-  my ( $class, $flag ) = @_;
-
-  my $suffix = '.sdf';
-
-  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
-  $raw =~ s/^[.]//;
-
-  return File::Spec->catfile( $dir, $raw . $suffix );
+  return @{ $metas };
 }
 
 sub get_flag_files {
@@ -341,12 +287,113 @@ sub get_flag_files {
     }
   }
 
-  return
-    _get_recent(  'files' => $flags,
-                  'old'   => $old,
-                  'type'  => "flag-${dir}",
-                );
+  my @updated = _get_updated_files( $flags );
+
+  return [] unless scalar @updated;
+  return [ @updated ];
 }
+
+{
+  my ( %file_time );
+  sub _get_updated_files {
+
+    my ( $list ) = @_;
+
+    return unless $list && scalar @{ $list };
+
+    my @send;
+    my %mod = _get_mod_epoch( $list );
+
+    while ( my ( $f, $t ) = each %mod ) {
+
+      next
+        if exists $file_time{ $f }
+        &&        $file_time{ $f }
+        && $t <=  $file_time{ $f };
+
+      $file_time{ $f } = $t;
+      push @send, $f;
+    }
+
+    return unless scalar @send;
+    return
+      # Sort files by ascending modification times.
+      map  { $_->[0] }
+      sort { $a->[1] <=> $b->[1] }
+      map  { [ $_ , $mod{ $_ } ] }
+      @send;
+  }
+}
+
+# Go through each flag file, open it, and retrieve the list of files within it.
+{
+  my ( %raw );
+  sub get_raw_files {
+
+    my ( $class, $dir, $flags, $old ) = @_;
+
+    return
+      unless $flags && scalar @{ $flags };
+
+    my @raw;
+
+    foreach my $file ( @{ $flags } ) {
+
+      # If the flag file size is 0 bytes, then we assume that the observation file
+      # associated with that flag file is of the same naming convention, removing
+      # the dot from the front and replacing the .ok on the end with .sdf.
+      if ( -z $file ) {
+
+        my $raw = $class->make_raw_name_from_flag( $file );
+
+        next unless _sanity_check_file( $raw );
+
+        push @raw, [ $raw ];
+        next;
+      }
+
+      my ( $lines, $err );
+      try {
+
+        $lines = OMP::General->get_file_contents( 'file' => $file );
+      }
+      catch OMP::Error::FatalError with {
+
+        ( $err ) = @_;
+        throw $err
+          unless $err =~ /^Cannot open file/i;
+      };
+
+      my @checked;
+      for my $file ( @{ $lines } ) {
+
+        my $f = File::Spec->catfile( $dir, $file );
+
+        next if exists $raw{ $f };
+        next unless _sanity_check_file( $f );
+
+        undef $raw{ $f };
+        push @checked, $f;
+      }
+      push @raw, [ @checked ];
+    }
+
+    return @raw;
+  }
+}
+
+sub make_raw_name_from_flag {
+
+  my ( $class, $flag ) = @_;
+
+  my $suffix = '.sdf';
+
+  my ( $raw, $dir ) = fileparse( $flag, '.ok' );
+  $raw =~ s/^[.]//;
+
+  return File::Spec->catfile( $dir, $raw . $suffix );
+}
+
 
 =item B<merge_dupes>
 
@@ -354,7 +401,7 @@ Given an array of hashes containing header object, filename and
 frameset, merge into a hash indexed by OBSID where headers have been
 merged and filenames have been combined into arrays.
 
-  %merged = OMP::FileUtils->merge_dupes( @unmerged );
+  $merged = OMP::FileUtils->merge_dupes( @unmerged );
 
 In the returned merged version, header hash item will contain an
 Astro::FITS::Header object if the supplied entry in @unmerged was a
@@ -375,6 +422,7 @@ Output keys
    header - Astro::FITS::Header object
    filenames - reference to array of filenames
    frameset - optional Starlink::AST frameset (from first in list)
+   obsidss_files - hash of files indexed by obsidss
 
 =cut
 
@@ -426,6 +474,13 @@ sub merge_dupes {
       }
     }
 
+    # Keep the obsidss around (assume only a single one from a row)
+    if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+      my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
+      $info->{obsidss} = $obsidss->[0]
+	if defined $obsidss && ref($obsidss) && @$obsidss;
+    }
+
     # store it on hash indexed by obsid
     $unique{$obsid} = [] unless exists $unique{$obsid};
     push(@{$unique{$obsid}}, $info);
@@ -435,10 +490,15 @@ sub merge_dupes {
   # but identical obsid.
   for my $obsid (keys %unique) {
     # To simplify syntax get array of headers and filenames
-    my (@fits, @files, $frameset);
+    my (@fits, @files, $frameset, %obsidss_files);
     for my $f (@{$unique{$obsid}}) {
       push(@fits, $f->{header});
       push(@files, $f->{filename});
+      if (exists $f->{obsidss}) {
+	my $key = $f->{obsidss};
+	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+	push(@{$obsidss_files{$key}}, $f->{filename});
+      }
       $frameset = $f->{frameset} if defined $f->{frameset};
     }
 
@@ -472,13 +532,194 @@ sub merge_dupes {
     $unique{$obsid} = {
                        header => $fitshdr,
                        filenames => \@files,
+		       obsidss_files => \%obsidss_files,
                        frameset => $frameset,
                       };
   }
 
-  return %unique;
+  return unless scalar %unique;
+  return { %unique };
 }
 
+
+=item B<merge_dupes_no_fits>
+
+Merges given list of hash references of database rows into a hash
+with OBSIDs as keys.  Filenames are put in its own key-value pair
+('filenames' is the key & value is an array reference).
+
+  $merged = OMP::FileUtils->merge_dupes_no_fits( @unmerged );
+
+Input keys:
+
+   header - header hash reference
+
+Output keys
+
+   header - header hash reference
+   filenames - reference to array of filenames
+
+=cut
+
+sub merge_dupes_no_fits {
+
+  my $self = shift;
+
+  # Take local copies so that we can add information without affecting caller
+  my @unmerged = map { { %$_ } } @_;
+
+my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
+
+  my %unique;
+  for my $info ( @unmerged ) {
+
+    next
+      unless $info
+      && keys %{ $info } ;
+
+    # Need to get a unique key via header translation
+    my $hdr = $info->{header};
+    my $class;
+    eval {
+      $class = Astro::FITS::HdrTrans::determine_class( $hdr, undef, 1);
+    };
+    if ( $@ ) {
+
+      warn sprintf "Skipped '%s' due to: %s\n",
+        $info->{'filename'},
+        $@;
+    }
+
+    next unless $class;
+
+    my $obsid = $class->to_OBSERVATION_ID( $hdr, $info->{frameset} );
+
+    # Keep the obsidss around (assume only a single one from a row)
+    if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
+      my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
+      $info->{obsidss} = $obsidss->[0]
+	if defined $obsidss && ref($obsidss) && @$obsidss;
+    }
+
+    push @{ $unique{ $obsid } }, $info;
+  }
+
+  # Merge the headers and filename information for multiple files but identical
+  # sorting key.
+  for my $key ( keys %unique ) {
+
+    my $headers = $unique{ $key };
+
+    # Collect ordered, unique file names.
+    my ( @file, %seen, %obsidss_files );
+    for my $h ( @{ $headers } ) {
+
+      next
+        unless exists $h->{'header'}{'FILE_ID'}
+            && $h->{'header'}{'FILE_ID'};
+
+      my $thisfile = delete $h->{header}->{FILE_ID};
+      my @newfiles = (ref $thisfile ? @$thisfile : $thisfile);
+      push @file, @newfiles;
+      if (exists $h->{obsidss}) {
+	my $key = $h->{obsidss};
+	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+	push(@{$obsidss_files{$key}}, @newfiles);
+      }
+    }
+
+    @file = grep { ! $seen{ $_ }++ } @file;
+
+    # Merege rest of headers.
+
+    $unique{ $key } =
+      { 'header'    => _merge_header_hashes( $headers ),
+        'filenames' => [ @file ],
+	'obsidss_files' => \%obsidss_files,
+      };
+  }
+
+  return unless scalar %unique;
+  return { %unique };
+}
+
+
+=item B<_merge_header_hashes>
+
+Given a array reference of hash references (with "header" as the key),
+merges them into a hash reference.  If any of the values differ for a
+given key (database table column), all of the values appear in
+"SUBHEADERS" array reference of hash references.
+
+  $merged =
+    _merge_header_hashes( [ { 'header' => { ... } },
+                            { 'header' => { ... } },
+                          ]
+                        );
+
+=cut
+
+sub _merge_header_hashes {
+
+  my ( $list ) = @_;
+
+  return
+    unless $list && scalar @{ $list };
+
+  my @list = @{ $list };
+
+  my %common;
+  # Special case of a single hash reference.
+  my $first = $list[0];
+  %common  = %{ $first } if $first && ref $first;
+
+  return delete $common{'header'}
+    if 1 == scalar @list;
+
+  # Rebuild.
+  my %collect = _value_to_aref( @list );
+
+  for my $k ( keys %collect ) {
+
+    next if 'subheaders' eq lc $k;
+
+    my @val   = @{ $collect{ $k } };
+    my $first = ( grep{ defined $_ && length $_ } @val )[0];
+    my $isnum = Scalar::Util::looks_like_number( $first );
+
+    if (     ( all { ! defined $_ } @val )
+          || ( $isnum && all { $first == $_ } @val )
+          || ( defined $first && all { $first eq $_ } @val )
+        ) {
+
+      $common{'header'}->{ $k } = $first;
+      next;
+    }
+
+    delete $common{'header'}->{ $k };
+    for my $i ( 0 .. scalar @val - 1 ) {
+
+      $common{'header'}->{'SUBHEADERS'}->[ $i ]->{ $k } = $val[ $i ];
+    }
+  }
+
+  return delete $common{'header'};
+}
+
+sub _value_to_aref {
+
+  my ( @list ) = @_;
+
+  my %hash;
+  for my $href ( @list ) {
+
+    while ( my ( $k, $v ) = each %{ $href->{'header'} } ) {
+
+      push @{ $hash{ $k } }, $v;
+    }
+  }
+  return %hash;
+}
 
 sub _sanity_check_file {
 
@@ -526,6 +767,8 @@ sub _sanity_check_file {
     my ( $files, $old, $type ) = @arg{qw[files old type]};
     $type ||= '<default>';
 
+    _track_file( 'type: ' => $type );
+
     return $files unless $old && $old > 0;
 
     # On first run, every file is a recently updated file.
@@ -536,11 +779,18 @@ sub _sanity_check_file {
     }
 
     my $last = $called{ $type };
+
+    _track_file( 'time, last: ' => $last );
+
     # For future calls.
     $called{ $type } = time();
 
-    my %time = _get_mod_epoch( $files )
+    my %time = _get_mod_epoch( [ map { ref $_ ? @{ $_ } : $_ } @{ $files } ] )
       or return [];
+
+    #_track_file( 'file time: ',
+    #              map { $_ . ' : ' . $time{ $_ } } sort keys %time
+    #            );
 
     my ( @keep, @old );
     for my $time ( sort { $a <=> $b } values %time ) {
@@ -569,6 +819,9 @@ sub _sanity_check_file {
       push @out, $file
         if any { $mod == $_ } @keep;
     }
+
+    _track_file( 'returning recent: ' => @out );
+
     return [ @out ] if scalar @out;
     return [];
   }
@@ -579,7 +832,7 @@ sub _get_mod_epoch {
   my ( $files ) = @_;
 
   my %time;
-  for my $f ( @{ $files } ) {
+  for my $f ( map { ref $_ ? @{ $_ } : $_ }  @{ $files } ) {
 
     my ( $mod ) = ( stat $f )[9]
       or do {
@@ -592,11 +845,34 @@ sub _get_mod_epoch {
   return %time;
 }
 
+sub _track_file {
+
+  return unless $DEBUG;
+
+  my ( $label, @descr ) = @_;
+
+  require Log::Log4perl;
+
+  my $log = Log::Log4perl->get_logger( '' );
+  $log->debug( $label, scalar @descr ? join( "\n  ", @descr ) : '<none>' );
+  return;
+}
+
 =back
 
 =head1 AUTHORS
 
+=over 4
+
+=item *
+
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>
+
+=item *
+
+Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
+
+=back
 
 =head1 COPYRIGHT
 

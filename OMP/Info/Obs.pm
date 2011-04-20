@@ -32,6 +32,7 @@ use strict;
 use warnings;
 use Carp;
 use OMP::Range;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Constants qw/ :obs :logging /;
 use OMP::Error qw/ :try /;
@@ -224,32 +225,27 @@ sub subsystems {
   my %common = %$hdr;
   delete $common{SUBHEADERS};
 
+  # Get obsidss names
+  my @obsidss = $self->obsidss;
+  my %subscans;
+  if (@obsidss) {
+    for my $subid (@obsidss) {
+      $subscans{$subid} = [ $self->subsystem_filenames($subid) ];
+    }
+  }
+
   # and then get the actual subheaders
   my @subhdrs = $fits->subhdrs;
 
-  # Get the filenames
-  my @filenames = $copy->filename;
-
-  # sanity check
-  if (@filenames != @{$hdr->{SUBHEADERS}}) {
-    throw OMP::Error::FatalError("Number of filenames in Obs object does not match number of subheaders\n");
-  }
-
-
   # Now get the subheaders and split them up on the basis of primary key
-  # Need to track filenames as well (which are assumed to track the subheader)
   my %subsys;
-  my %subscans;
   my @suborder;
-  for my $i (0..$#filenames) {
-    my $subhdr = $subhdrs[$i];
+  for my $subhdr (@subhdrs) {
     my $subid = $subhdr->value($idkey);
     if (!exists $subsys{$subid}) {
       $subsys{$subid} = [];
-      $subscans{$subid} = [];
-      push(@suborder, $subid); # keep track of original order
+      push(@suborder, $subid);
     }
-    push(@{$subscans{$subid}}, $filenames[$i]);
     push(@{$subsys{$subid}}, $subhdr);
   }
 
@@ -280,33 +276,99 @@ sub subsystems {
   for my $subid (@suborder) {
     my $obs = new OMP::Info::Obs( fits => $headers{$subid}, retainhdr => $copy->retainhdr );
     $obs->filename( $subscans{$subid} );
+    $obs->obsidss( $subid );
     push(@obs, $obs);
   }
 
   return @obs;
 }
 
+=item B<subsystem_filenames>
+
+Returns the files associated with a particular subsystem.
+
+  @files = $obs->subsystem_filenames( $subsys_id );
+
+First argument is the subsystem identifier (OBSIDSS).
+
+Can be used to set the filenames:
+
+  $obs->subsystem_filenames( $subsys_id, @files );
+  $obs->subsystem_filenames( $subsys_id, \@files );
+
+It is assumed that the keys used in this hash match the
+return values of the C<obsidss> method.
+
+=cut
+
+sub subsystem_filenames {
+  my $self = shift;
+  my $obsidss = shift;
+  $self->{_SUBSYS_FILES} = {} unless exists $self->{_SUBSYS_FILES};
+  if (@_) {
+    my @new;
+    if (ref($_[0]) eq 'ARRAY') {
+      @new = @{$_[0]};
+    } else {
+      @new = @_;
+    }
+    $self->{_SUBSYS_FILES}{$obsidss} = \@new;
+  }
+  if (exists $self->{_SUBSYS_FILES}{$obsidss}) {
+    return @{$self->{_SUBSYS_FILES}{$obsidss}};
+  }
+  return;
+}
+
+
 =item B<hdrs_to_obs>
 
 Convert the result from OMP::FileUtils->merge_dupes() method to an
 array of C<OMP::Info::Obs> objects.
 
-  @obs = OMP::Info::Obs->hdrs_to_obs( $retainhdr, %merged );
+  @obs = OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => 1,
+                                      'fits'      => \%merged
+                                    );
+
+Allows keys:
+
+  retainhdr => Keep the header in the Obs object
+  fits      => Construct from a FITS header
+  hdrhash   => Construct from a header hash
+
+FITS and HdrHash are both references to hashes with keys
+
+  header    => The thing being passed to the constructor
+  filenames => Filenames associated with Obs
+  obsidss_files => Hash lut for obsidss to file list
+  frameset  => WCS frameset if available
 
 =cut
 
 sub hdrs_to_obs {
   my $self = shift;
-  my $retainhdr = shift;
-  my %merged = @_;
+  my ( %arg ) = @_;
+
+  my $retainhdr = $arg{'retainhdr'};
+
+  my ( $merged, $type );
+  for ( qw[ hdrhash fits ] ) {
+
+    if ( exists $arg{ $_ } ) {
+
+      $type   = $_;
+      $merged = $arg{ $type };
+      last;
+    }
+  }
 
   my @observations;
-  foreach my $obsid ( keys %merged ) {
+  foreach my $obsid ( keys %{ $merged } ) {
 
     # Create the Obs object.
-    my $obs = OMP::Info::Obs->new(  fits => $merged{$obsid}{header},
+    my $obs = OMP::Info::Obs->new(  $type => $merged->{$obsid}{header},
                                     retainhdr => $retainhdr,
-                                    wcs => $merged{$obsid}{frameset},
+                                    wcs => $merged->{$obsid}{frameset},
                                   );
 
     if ( !defined( $obs ) ) {
@@ -314,7 +376,16 @@ sub hdrs_to_obs {
     }
 
     # store the filename information
-    $obs->filename( \@{$merged{$obsid}{'filenames'}}, 1 );
+    $obs->filename( \@{$merged->{$obsid}{'filenames'}}, 1 );
+
+    # Store the obsidss filename information
+    if ( exists $merged->{$obsid}{obsidss_files}) {
+      my %obsidss = %{ $merged->{$obsid}{obsidss_files}};
+      $obs->obsidss( keys %obsidss );
+      for my $ss (keys %obsidss) {
+	$obs->subsystem_filenames( $ss => $obsidss{$ss});
+      }
+    }
 
     # Ask for the raw data directory
     my $rawdir = $obs->rawdatadir;
@@ -376,6 +447,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               number_of_cycles => '$',
                               object => '$',
                               obsid => '$',
+			      obsidss => '@',
                               order => '$',
                               pol => '$',
                               pol_in => '$',
@@ -1570,11 +1642,11 @@ sub _populate {
 
   # Build the Time::Piece startobs and endobs objects
   if(length($generic_header{UTSTART} . "") != 0) {
-    my $startobs = OMP::General->parse_date($generic_header{UTSTART});
+    my $startobs = OMP::DateTools->parse_date($generic_header{UTSTART});
     $self->startobs( $startobs );
   }
   if(length($generic_header{UTEND} . "") != 0) {
-    my $endobs = OMP::General->parse_date($generic_header{UTEND});
+    my $endobs = OMP::DateTools->parse_date($generic_header{UTEND});
     $self->endobs( $endobs );
   }
 
@@ -1582,7 +1654,7 @@ sub _populate {
   $self->runnr( $generic_header{OBSERVATION_NUMBER} );
   $self->utdate( $generic_header{UTDATE} );
   $self->speed( $generic_header{SPEED_GAIN} );
-  if( defined( $generic_header{AIRMASS_END} ) ) {
+  if( defined( $generic_header{AIRMASS_START} ) && defined( $generic_header{AIRMASS_END} ) ) {
     $self->airmass( ( $generic_header{AIRMASS_START} + $generic_header{AIRMASS_END} ) / 2 );
   } else {
     $self->airmass( $generic_header{AIRMASS_START} );
@@ -1808,6 +1880,14 @@ sub _populate {
     my $obsid = $instrument . '_' . $self->runnr . '_' . $date_str;
     $self->obsid( $obsid );
   }
+
+  # Subsystem OBSID
+  my $key = "OBSERVATION_ID_SUBSYSTEM";
+  if ( exists $generic_header{$key}) {
+    my @list = (ref $generic_header{$key} ? @{$generic_header{$key}} : $generic_header{$key});
+    $self->obsidss(@list);
+  }
+
 
   if( ! $self->retainhdr ) {
     $self->fits( undef );

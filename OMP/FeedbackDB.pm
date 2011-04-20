@@ -28,6 +28,7 @@ use 5.006;
 use strict;
 use warnings;
 use Carp;
+use OMP::DateTools;
 use Time::Piece;
 our $VERSION = (qw$ Revision: 1.2 $ )[1];
 
@@ -552,7 +553,7 @@ sub _fetch_comments {
     my $user = $_->{author};
     ($user) and $_->{author} = OMP::UserServer->getUser($user);
 
-    my $date = OMP::General->parse_date($_->{date});
+    my $date = OMP::DateTools->parse_date($_->{date});
     $_->{date} = $date;
   }
 

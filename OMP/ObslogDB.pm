@@ -30,6 +30,7 @@ use strict;
 use Carp;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :obs /;
+use OMP::DateTools;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Info::Comment;
@@ -468,11 +469,11 @@ sub _reorganize_comments {
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
-    my $date = OMP::General->parse_date( $row->{longcommentdate} );
+    my $date = OMP::DateTools->parse_date( $row->{longcommentdate} );
     throw OMP::Error("Unable to parse comment date (".$row->{longcommentdate}. ")")
       unless defined $date;
 
-    my $startobs = OMP::General->parse_date( $row->{longdate} );
+    my $startobs = OMP::DateTools->parse_date( $row->{longdate} );
     throw OMP::Error("Unable to parse observation start date (".$row->{longdate} .")")
       unless defined $startobs;
 

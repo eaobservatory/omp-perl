@@ -29,6 +29,7 @@ use OMP::Constants qw(:done);
 use OMP::DBServer;
 use OMP::Display;
 use OMP::Error qw(:try);
+use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::MSBDB;
@@ -629,7 +630,7 @@ sub observed_form {
   my $db = new OMP::ProjDB( DB => OMP::DBServer->dbConnection, );
 
   # Get today's date and use that ase the default
-  my $utdate = OMP::General->today;
+  my $utdate = OMP::DateTools->today;
 
   # Get the telescopes for our popup menu
   my @tel = $db->listTelescopes;

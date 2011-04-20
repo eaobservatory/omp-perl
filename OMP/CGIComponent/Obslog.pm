@@ -26,6 +26,7 @@ use OMP::CGIComponent::Helper qw/ public_url /;
 use OMP::Config;
 use OMP::Constants qw/ :obs :timegap /;
 use OMP::Display;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Info::Comment;
 use OMP::Info::Obs;
@@ -642,7 +643,7 @@ sub obs_inst_summary {
 
   my $qv = $q->Vars;
 
-  my $ut = ( defined( $qv->{'ut'} ) ? $qv->{'ut'} : OMP::General->today() );
+  my $ut = ( defined( $qv->{'ut'} ) ? $qv->{'ut'} : OMP::DateTools->today() );
 
   my $firstinst;
   if( defined( $qv->{'inst'} ) ) {

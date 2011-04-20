@@ -576,6 +576,7 @@ sub _add_files_in_headers {
               );
 
   }
+
   return;
 }
 
@@ -595,11 +596,7 @@ sub _add_files {
                             'header'    => $header
                           );
 
-  return unless scalar @file;
-
-  warn "More than one file found" if scalar @file > 1;
-
-  $header->{ $key } = $file[0];
+  $header->{ $key } = \@file;
 
   return @file if wantarray();
   return;
@@ -625,11 +622,15 @@ sub _fetch_files {
     my $rv = $st->execute( $id );
     $rv or throw OMP::Error::DBError qq[execute() failed ($rv): ], $st->errstr();
 
-    my %tmp = $st->fetchrow_array()
-      or throw OMP::Error::DBError q[Error with fetchrow_array(): ], $dbh->errstr();
+    my @results;
+    while (my $row = $st->fetchrow_arrayref()) {
+      push(@results, @$row);
+    }
 
-    next unless defined $tmp{ $id };
-    push @file, $tmp{ $id };
+    throw OMP::Error::DBError q[Error with fetchrow_array(): ], $dbh->errstr()
+      unless @results;
+
+    push @file, @results;
   }
 
   return @file;
@@ -638,7 +639,7 @@ sub _fetch_files {
 sub _prepare_FILES_select {
 
   my $sql = <<'_SQL_';
-    SELECT obsid_subsysnr , file_id
+    SELECT file_id
     FROM %s
     WHERE obsid_subsysnr = ?
     ORDER BY obsid_subsysnr
@@ -905,10 +906,12 @@ sub _query_files {
   }
 
   # merge duplicate information into a hash indexed by obsid
-  my %headers = OMP::FileUtils->merge_dupes( @allheaders );
+  my $headers = OMP::FileUtils->merge_dupes( @allheaders );
 
   # and create obs objects
-  my @observations = OMP::Info::Obs->hdrs_to_obs( $retainhdr, %headers);
+  my @observations = OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => $retainhdr,
+                                                  'fits'      => $headers,
+                                                );
 
   # Now filter
   foreach my $obs ( @observations ) {
@@ -1036,10 +1039,13 @@ sub _reorganize_archive {
     }
     push(@rearranged, { header => \%newrow } );
   }
-  my %unique = OMP::FileUtils->merge_dupes( @rearranged );
+  my $unique = OMP::FileUtils->merge_dupes_no_fits( @rearranged );
 
   # now convert into Obs::Info objects
-  return OMP::Info::Obs->hdrs_to_obs( $retainhdr, %unique);
+  return
+    OMP::Info::Obs->hdrs_to_obs( 'retainhdr' => $retainhdr,
+                                  'hdrhash'  => $unique
+                                );
 }
 
 =back

@@ -18,6 +18,7 @@ BEGIN {
 }
 
 use OMP::Constants qw/ :logging /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::BaseDB;
 use OMP::DBbackend;
@@ -71,7 +72,7 @@ BEGIN {
     # Special handling of date.
     for ( $rec[2] ) {
 
-      $_ = OMP::General->parse_date( $_ ) || '';
+      $_ = OMP::DateTools->parse_date( $_ ) || '';
       $_ = $_->ymd if blessed( $_ ) =~ m/^Time::Piece\b/;
     }
 

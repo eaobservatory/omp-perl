@@ -32,6 +32,8 @@ use OMP::CGIComponent::Project;
 use OMP::Config;
 use OMP::DBServer;
 use OMP::Display;
+use OMP::DateTools;
+use OMP::NetTools;
 use OMP::General;
 use OMP::Fault;
 use OMP::FaultDB;
@@ -404,7 +406,7 @@ sub query_fault_output {
       my $maxdatestr = $q->param('maxdate');
 
       # Check that we will understand the dates` formats
-      # Maybe OMP::General parse_date method should be
+      # Maybe OMP::DateTools::parse_date method should be
       # catching these...
       for ($mindatestr, $maxdatestr) {
         if ($_) {
@@ -419,8 +421,8 @@ sub query_fault_output {
       }
 
       # Convert dates to UT
-      $mindate = OMP::General->parse_date($mindatestr, 1);
-      $maxdate = OMP::General->parse_date($maxdatestr, 1);
+      $mindate = OMP::DateTools->parse_date($mindatestr, 1);
+      $maxdate = OMP::DateTools->parse_date($maxdatestr, 1);
 
       # Imply end of day (23:59) for max date if no time was specified
       ($maxdate and $maxdatestr !~ /T/) and $maxdate += ONE_DAY - 1;
@@ -817,7 +819,7 @@ sub view_fault_output {
 
     if ($status != $fault->status) {
       # Get host (and user maybe) info
-      my @user = OMP::General->determine_host;
+      my @user = OMP::NetTools->determine_host;
       my $author;
 
       # Make author either an email address or "user on [machine name]"
@@ -924,7 +926,7 @@ sub update_fault_output {
   my $faultid = $q->param('faultid');
 
   # Get host (and user maybe) info of the user who is modifying the fault
-  my @user = OMP::General->determine_host;
+  my @user = OMP::NetTools->determine_host;
   my $author;
 
   # Make author either an email address or "user on [machine name]"

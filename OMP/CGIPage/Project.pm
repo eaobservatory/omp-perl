@@ -32,6 +32,7 @@ use OMP::Display;
 use OMP::Error qw(:try);
 use OMP::FBServer;
 use OMP::UserServer;
+use OMP::DateTools;
 use OMP::General;
 use OMP::MSBServer;
 use OMP::ProjDB;
@@ -439,7 +440,7 @@ _HEADER_
   }
 
   # Link to obslog for current day
-  my $today = OMP::General->today();
+  my $today = OMP::DateTools->today();
   print "<br><a href=\"utprojlog.pl?urlprojid=$cookie{projectid}&utdate=$today\">".
     "Click here to remote eavesdrop</a><br>";
 

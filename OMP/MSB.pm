@@ -26,6 +26,7 @@ use Carp;
 use XML::LibXML;                # Our standard parser
 use Digest::MD5 2.20 qw/ md5_hex /;
 use OMP::Error qw/ :try /;
+use OMP::DateTools;
 use OMP::General;
 use OMP::Range;
 use OMP::Info::MSB;
@@ -52,8 +53,8 @@ use overload '""' => "stringify";
 
 # Specify default time interval. These limits
 # are the limits of unix epoch (more or less)
-our $MAXTIME = OMP::General->parse_date("2035-01-01T01:00");
-our $MINTIME = OMP::General->parse_date("1971-01-01T01:00");
+our $MAXTIME = OMP::DateTools->parse_date("2035-01-01T01:00");
+our $MINTIME = OMP::DateTools->parse_date("1971-01-01T01:00");
 
 # This is the attribute name for the observation counter
 my $OBSNUM_ATTR = "obsnum";
@@ -2918,7 +2919,7 @@ sub _get_sched_constraints {
   for my $key ( qw/ earliest latest / ) {
     my $val = $self->_get_pcdata( $el, $key );
     if (defined $val) {
-      my $date = OMP::General->parse_date($val);
+      my $date = OMP::DateTools->parse_date($val);
       $summary{$columns{$key}} = $date if defined $date;
     }
   }

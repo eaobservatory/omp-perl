@@ -38,6 +38,8 @@ use Carp;
 use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
+use OMP::DateTools;
+use OMP::NetTools;
 use OMP::General;
 use OMP::Password;
 use OMP::ProjDB;
@@ -1097,7 +1099,7 @@ sub getSubmitted {
 
   # Default to now
   if (!$hidate) {
-    my $now = OMP::General->today();
+    my $now = OMP::DateTools->today();
     $hidate = $now->epoch;
   }
 
@@ -1311,7 +1313,7 @@ sub _store_sci_prog {
       # Trigger email
 
       # Construct a simple error message
-      my ($user, $addr, $email) = OMP::General->determine_host;
+      my ($user, $addr, $email) = OMP::NetTools->determine_host;
       my $projectid = uc($sp->projectID);
 
       my $err = "Error writing science program ($projectid) to disk\n" .
@@ -2957,7 +2959,7 @@ sub _msb_row_to_msb_object {
 
     # Fix up date objects - should be OMP::Range
     for (qw/ datemax datemin /) {
-      $msb->{$_} = OMP::General->parse_date( $msb->{$_});
+      $msb->{$_} = OMP::DateTools->parse_date( $msb->{$_});
     }
 
     # Now convert Observations to OMP::Info::Obs objects

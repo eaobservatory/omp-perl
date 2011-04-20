@@ -489,7 +489,7 @@ sub handle_special_modes {
         my $cfgvalue = eval { OMP::Config->getData( $self->cfgkey . $key .
                                                     $cfgitem ) };
         $info->{"SCAN_$extras"} = $cfgvalue
-          if defined $cfgvalue;
+          if (defined $cfgvalue && length($cfgvalue));
       }
 
       $info->{SCAN_SYSTEM} = "FPLANE";

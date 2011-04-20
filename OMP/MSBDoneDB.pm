@@ -52,6 +52,7 @@ use OMP::Info::MSB;
 use OMP::Info::Comment;
 use OMP::UserServer;
 use OMP::MSBDoneQuery;
+use OMP::DateTools;
 use OMP::General;
 use Time::Piece;
 
@@ -320,7 +321,7 @@ sub observedMSBs {
   # Do we mean today? Override if we have usenow
   my $date;
   if (exists $args{usenow} && $args{usenow}) {
-    $date = OMP::General->today;
+    $date = OMP::DateTools->today;
   } elsif (exists $args{date}) {
     # Use the supplied date if we have one
     $date = $args{date};
@@ -430,7 +431,7 @@ sub observedDates {
   # converting to objects if needed
   my @dates = sort keys %days;
 
-  @dates = map { OMP::General->parse_date($_); } @dates
+  @dates = map { OMP::DateTools->parse_date($_); } @dates
     if $useobj;
 
   return @dates;
@@ -875,7 +876,7 @@ sub _reorganize_msb_done {
 
     # Convert the date to a date object
     my $datekey = (exists $row->{longdate} ? "longdate" : "date");
-    $row->{$datekey} =  OMP::General->parse_date( $row->{$datekey} );
+    $row->{$datekey} =  OMP::DateTools->parse_date( $row->{$datekey} );
 
     # nasty hack since for some reason we have leading null
     # characters on our MSB checksums

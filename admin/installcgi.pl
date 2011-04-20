@@ -62,7 +62,7 @@ if ( $config->in_test_mode ) {
 
     my $temp;
     try {
-      $tmp = $config->getData( 'test-web-install.private' );
+      $temp = $config->getData( 'test-web-install.private' );
     }
     catch OMP::Error with {
 
