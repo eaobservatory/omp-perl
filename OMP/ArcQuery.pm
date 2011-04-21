@@ -70,7 +70,9 @@ our $S2FILESTAB = 'jcmt..FILES F';
       [
         \$JCMTTAB,
         \$ACSISTAB,
+        \$AFILESTAB,
         \$SCUBA2TAB,
+        \$S2FILESTAB,
       ];
 
     $db{'jcmt_tms'} =
