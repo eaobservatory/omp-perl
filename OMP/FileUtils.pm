@@ -36,6 +36,9 @@ use OMP::General;
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
 
+# Set to return files previously not ecncountered.
+our $RETURN_RECENT_FILES = 0;
+
 =head1 METHODS
 
 There are no instance methods, only class (static) methods.
@@ -287,6 +290,9 @@ sub get_flag_files {
     }
   }
 
+  return $flags
+    unless $RETURN_RECENT_FILES;
+
   my @updated = _get_updated_files( $flags );
 
   return [] unless scalar @updated;
@@ -369,7 +375,10 @@ sub get_flag_files {
 
         my $f = File::Spec->catfile( $dir, $file );
 
-        next if exists $raw{ $f };
+        next
+          if $RETURN_RECENT_FILES
+          && exists $raw{ $f };
+
         next unless _sanity_check_file( $f );
 
         undef $raw{ $f };
