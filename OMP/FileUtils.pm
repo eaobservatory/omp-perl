@@ -136,15 +136,25 @@ sub files_on_disk {
   catch OMP::Error::BadCfgKey with {
 
     my ( $e  ) = @_;
+
+    OMP::General->log_message( $e->text(), OMP__LOG_WARNING );
+
     throw $e unless $e =~ /^Key.+could not be found in OMP config system/i;
   };
 
+  my $mute_miss_raw  = 0;
+  my $mute_miss_flag = 1;
   my ( $use_meta, @return );
 
   if ( $class->use_raw_meta_opt( $sys_config, %config ) ) {
 
     @return =
-      $class->get_raw_files_from_meta( $sys_config, \%config, $flagfileregexp, $old );
+      $class->get_raw_files_from_meta(  'omp-config'     => $sys_config,
+                                        'search-config'  => \%config,
+                                        'flag-regex'     => $flagfileregexp,
+                                        'mute-miss-flag' => $mute_miss_flag,
+                                        'mute-miss-raw'  => $mute_miss_raw,
+                                      );
 
     _track_file( 'returning: ' => @return );
   }
@@ -152,8 +162,10 @@ sub files_on_disk {
 
     @return =
       $class->get_raw_files( $directory,
-                              $class->get_flag_files( $directory, $flagfileregexp, $runnr, $old ),
-                              $old,
+                              $class->get_flag_files( $directory, $flagfileregexp,
+                                                      $runnr, $mute_miss_flag
+                                                    ),
+                              $mute_miss_raw
                             );
   }
 
@@ -175,6 +187,8 @@ sub use_raw_meta_opt {
 
     my ( $e  ) = @_;
 
+    OMP::General->log_message( $e->text(), OMP__LOG_WARNING );
+
     throw $e
       unless $e =~ /^Key.+could not be found in OMP config system/i;
   };
@@ -184,10 +198,19 @@ sub use_raw_meta_opt {
 
 sub get_raw_files_from_meta {
 
-  my ( $class, $sys_config, $config, $flag_re, $old ) = @_;
+  my ( $class, %arg ) = @_;
 
-  $old ||=  2 * 4;
-  my $old_raw = 2 * $old;
+  my ( $sys_config, $config, $flag_re, $mute_flag, $mute_raw ) =
+    @arg{ qw[ omp-config
+              search-config
+              flag-regex
+              mute-miss-flag
+              mute-miss-raw
+            ]
+        };
+
+  $mute_raw  = defined $mute_raw  ? $mute_raw  : 1;
+  $mute_flag = defined $mute_flag ? $mute_flag : 0;
 
   my $inst = $config->{'instrument'};
   my $meta_dir
@@ -212,12 +235,13 @@ sub get_raw_files_from_meta {
       _get_updated_files( [ map
                             { File::Spec->catfile( $meta_dir, $_ ) }
                             @{ $flags }
-                          ]
+                          ],
+                          $mute_flag
                         );
   }
 
   return
-    $class->get_raw_files( $meta_dir, [ @flag ], $old, );
+    $class->get_raw_files( $meta_dir, [ @flag ], $mute_raw );
 }
 
 sub get_meta_files {
@@ -247,6 +271,9 @@ sub get_meta_files {
   catch OMP::Error::FatalError with {
 
     my ( $err ) = @_;
+
+    OMP::General->log_message( $err->text(), OMP__LOG_WARNING );
+
     return
       if $err =~ /n[o']t open directory/i;
   };
@@ -259,7 +286,7 @@ sub get_meta_files {
 
 sub get_flag_files {
 
-  my ( $class, $dir, $filter, $runnr, $old ) = @_;
+  my ( $class, $dir, $filter, $runnr, $mute_err ) = @_;
 
   my $flags;
   try {
@@ -272,6 +299,9 @@ sub get_flag_files {
   catch OMP::Error::FatalError with {
 
     my ( $err ) = @_;
+
+    OMP::General->log_message( $err->text(), OMP__LOG_WARNING );
+
     return
       if $err =~ /n[o']t open directory/i;
   };
@@ -293,7 +323,7 @@ sub get_flag_files {
   return $flags
     unless $RETURN_RECENT_FILES;
 
-  my @updated = _get_updated_files( $flags );
+  my @updated = _get_updated_files( $flags, $mute_err );
 
   return [] unless scalar @updated;
   return [ @updated ];
@@ -303,12 +333,12 @@ sub get_flag_files {
   my ( %file_time );
   sub _get_updated_files {
 
-    my ( $list ) = @_;
+    my ( $list, $mute ) = @_;
 
     return unless $list && scalar @{ $list };
 
     my @send;
-    my %mod = _get_mod_epoch( $list );
+    my %mod = _get_mod_epoch( $list, $mute );
 
     while ( my ( $f, $t ) = each %mod ) {
 
@@ -336,7 +366,7 @@ sub get_flag_files {
   my ( %raw );
   sub get_raw_files {
 
-    my ( $class, $dir, $flags, $old ) = @_;
+    my ( $class, $dir, $flags, $mute_err ) = @_;
 
     return
       unless $flags && scalar @{ $flags };
@@ -366,8 +396,14 @@ sub get_flag_files {
       catch OMP::Error::FatalError with {
 
         ( $err ) = @_;
-        throw $err
-          unless $err =~ /^Cannot open file/i;
+
+        OMP::General->log_message( $err->text(), OMP__LOG_WARNING );
+
+        unless ( $mute_err ) {
+
+          throw $err
+            unless $err =~ /^Cannot open file/i;
+        }
       };
 
       my @checked;
@@ -381,7 +417,7 @@ sub get_flag_files {
 
         next unless _sanity_check_file( $f );
 
-        undef $raw{ $f };
+        undef $raw{ $f } if $RETURN_RECENT_FILES;
         push @checked, $f;
       }
       push @raw, [ @checked ];
@@ -759,93 +795,16 @@ sub _sanity_check_file {
   return;
 }
 
-# Given a hash of array reference of file paths and the number of old
-# files to return in addition to new ones, returns a list of files
-# filerted by recent modification time.
-#
-{
-  my ( %called );
-
-  # It stores time when it was last called; returns only those files which have
-  # modification time greater or equal to last called time.  On the first call,
-  # it returns all the files.
-  sub _get_recent {
-
-    my ( %arg ) = @_;
-
-    my ( $files, $old, $type ) = @arg{qw[files old type]};
-    $type ||= '<default>';
-
-    _track_file( 'type: ' => $type );
-
-    return $files unless $old && $old > 0;
-
-    # On first run, every file is a recently updated file.
-    unless ( $called{ $type } ) {
-
-      $called{ $type } = time();
-      return $files;
-    }
-
-    my $last = $called{ $type };
-
-    _track_file( 'time, last: ' => $last );
-
-    # For future calls.
-    $called{ $type } = time();
-
-    my %time = _get_mod_epoch( [ map { ref $_ ? @{ $_ } : $_ } @{ $files } ] )
-      or return [];
-
-    #_track_file( 'file time: ',
-    #              map { $_ . ' : ' . $time{ $_ } } sort keys %time
-    #            );
-
-    my ( @keep, @old );
-    for my $time ( sort { $a <=> $b } values %time ) {
-
-      if ( $time >= $last ) {
-
-        push @keep, $time;
-        next;
-      }
-      push @old, $time;
-    }
-
-    # Merge older file list.
-    if ( scalar @old && $type =~ m/\b(?:flag|raw)/i )  {
-
-      $old = 1 if ! $old || $old < 0;
-
-      @keep = ( reverse( ( reverse @old )[ 0 .. $old - 1 ] ), @keep );
-    }
-
-    return [] unless scalar @keep;
-
-    my @out;
-    while ( my ( $file, $mod ) = each %time ) {
-
-      push @out, $file
-        if any { $mod == $_ } @keep;
-    }
-
-    _track_file( 'returning recent: ' => @out );
-
-    return [ @out ] if scalar @out;
-    return [];
-  }
-}
-
 sub _get_mod_epoch {
 
-  my ( $files ) = @_;
+  my ( $files, $mute ) = @_;
 
   my %time;
   for my $f ( map { ref $_ ? @{ $_ } : $_ }  @{ $files } ) {
 
     my ( $mod ) = ( stat $f )[9]
       or do {
-              warn "Could not get modification time of '$f': $!\n";
+              $mute or warn "Could not get modification time of '$f': $!\n";
               next;
             };
 
