@@ -99,6 +99,8 @@ BEGIN {
   use OMP::Config;
   use OMP::Error qw/ :try /;
   use OMP::CommentServer;
+  use OMP::FileUtils;
+  $OMP::FileUtils::RETURN_RECENT_FILES = 0;
 
   use Time::Piece qw/ :override /;
   use Pod::Usage;
