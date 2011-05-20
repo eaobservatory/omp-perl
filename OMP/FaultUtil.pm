@@ -25,6 +25,7 @@ use Carp;
 
 use Text::Wrap;
 
+use OMP::DateTools;
 use OMP::Config;
 
 =head1 METHODS
@@ -76,7 +77,7 @@ sub format_fault {
     my $faultdate = localtime($fault->faultdate->epoch);
 
     # Now convert date to string for appending to time lost
-    $faultdatetext = "hrs at ". OMP::General->display_date($faultdate);
+    $faultdatetext = "hrs at ". OMP::DateTools->display_date($faultdate);
   }
 
   my $faultauthor = $fault->author->html;
@@ -108,7 +109,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
       my $user = $_->author;
       my $author = $user->html; # This is an html mailto
       my $date = localtime($_->date->epoch);  # convert date to localtime
-      $date = OMP::General->display_date($date);
+      $date = OMP::DateTools->display_date($date);
 
       my $text = $_->text;
 
@@ -144,7 +145,7 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     my $date = localtime($responses[0]->date->epoch);
 
     # now convert date to a string for display
-    $date = OMP::General->display_date($date);
+    $date = OMP::DateTools->display_date($date);
 
     my $text = $responses[0]->text;
 
