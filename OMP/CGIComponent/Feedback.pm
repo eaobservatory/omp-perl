@@ -110,7 +110,7 @@ sub fb_entries {
     # Wrap the message text
     my $text = wrap('', '' ,$row->{'text'});
 
-    my $date = OMP::General->display_date($row->{date});
+    my $date = OMP::DateTools->display_date($row->{date});
 
     print "<font size=+1>Entry $row->{entrynum} (on $date by ",
 
