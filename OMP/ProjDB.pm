@@ -1327,19 +1327,6 @@ sub _mail_password {
                              headers => {"Reply-To" => 'flex@jach.hawaii.edu',
                                         },
                             );
-
-    # Mail a copy to frossie.  For some reason the Bcc and Cc headers
-    # aren't working...
-    $self->_mail_information(
-                             message => $msg,
-                             to => [OMP::User->new(email=>'frossie@jach.hawaii.edu')],
-                             from => OMP::User->new(name => "omp-auto-reply"),
-                             subject => "[$projectid] OMP reissue of password for $projectid",
-                             headers => {"Reply-To" => 'flex@jach.hawaii.edu',
-                                        },
-                            );
-
-
   } else {
 
     throw OMP::Error::BadArgs("Argument to _mail_password must be of type OMP::Project\n");
