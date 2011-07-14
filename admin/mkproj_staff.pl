@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/local/perl/bin/perl
 
 # Populates project database with initial details
 # of JAC staff test projects

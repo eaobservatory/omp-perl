@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/local/perl/bin/perl
 
 use strict;
 use warnings;
