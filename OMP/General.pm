@@ -1082,7 +1082,7 @@ sub find_in_post_or_get {
   for my $key ( @names ) {
 
     POSITION:
-    for my $get qw( param url_param ) {
+    for my $get ( qw( param url_param ) ) {
 
       my $val = $cgi->$get( $key );
       if ( defined $val ) {

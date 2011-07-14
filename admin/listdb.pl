@@ -1,4 +1,4 @@
-#!/local/bin/perl
+#!/local/perl/bin/perl
 
 # List the full contents of the 3 OMP tables
 

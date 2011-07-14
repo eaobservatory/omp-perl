@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/local/perl/bin/perl
 
 #  Given a CSV file, with each record on one line, in format of ...
 #

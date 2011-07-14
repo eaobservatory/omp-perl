@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/local/perl/bin/perl
 
 =head1 NAME
 
@@ -217,10 +217,10 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   # Now weather bands
   my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
   if (exists $details{taurange}) {
-    ($taumin, $taumax) = split(/,/, $details{taurange});
+    ($taumin, $taumax) = split_range( $details{taurange} );
   } elsif (exists $details{band}) {
     # Get the tau range from the weather bands if it exists
-    my @bands = split( /,/, $details{band});
+    my @bands = split_range( $details{band} );
     my $taurange = OMP::SiteQuality::get_tauband_range($details{telescope},
                                                        @bands);
     collect_err( "Error determining tau range from band '$details{band}' !" )
@@ -233,25 +233,25 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   # And seeing
   my ($seemin, $seemax) = OMP::SiteQuality::default_range('SEEING');
   if (exists $details{seeing}) {
-    ($seemin, $seemax) = split(/,/, $details{seeing});
+    ($seemin, $seemax) = split_range( $details{seeing} );
   }
 
   # cloud
   my ($cloudmin, $cloudmax) = OMP::SiteQuality::default_range('CLOUD');
   if (exists $details{cloud}) {
     # if we have no comma, assume this is a cloudmax and "upgrade" it
-    if ($details{cloud} !~ /,/) {
+    if ($details{cloud} !~ /[-,]/) {
       my $r = OMP::SiteQuality::upgrade_cloud( $details{cloud} );
       ($cloudmin, $cloudmax) = $r->minmax;
     } else {
-      ($cloudmin, $cloudmax) = split(/,/, $details{cloud});
+      ($cloudmin, $cloudmax) = split_range( $details{cloud} );
     }
   }
 
   # And sky brightness
   my ($skymin, $skymax) = OMP::SiteQuality::default_range('SKY');
   if (exists $details{sky}) {
-    ($skymin, $skymax) = split(/,/, $details{sky});
+    ($skymin, $skymax) = split_range( $details{sky} );
   }
 
   # Now convert the allocation to seconds instead of hours
@@ -382,6 +382,17 @@ sub upcase {
     }
   }
   return;
+}
+
+sub split_range {
+
+  my ( $in ) = @_;
+
+  return
+    unless defined $in
+    && length $in;
+
+  return split /[-,]/, $in;
 }
 
 =head1 FORMAT

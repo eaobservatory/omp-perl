@@ -1,4 +1,4 @@
-#!/local/bin/perl
+#!/local/perl/bin/perl
 
 # Dump the contents of the omp tables to disk
 # [excluding the sciprog, user, obs and msb tables]

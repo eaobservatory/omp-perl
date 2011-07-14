@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/local/perl/bin/perl -w
 # Import old faults into the new fault system.
 # Takes the fault system as the only argument.
 # section for storing faults is commented out for safety resons.
