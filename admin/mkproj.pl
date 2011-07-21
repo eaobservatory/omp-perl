@@ -211,8 +211,9 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     }
   }
 
-  collect_err( "Must supply a telescope!!!" )
-    unless exists $details{telescope};
+  collect_err( "Must supply a valid telescope." )
+    unless exists $details{telescope}
+        && verify_telescope( $details{telescope} );
 
   # Now weather bands
   my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
@@ -330,6 +331,14 @@ sub unverified_users {
     }
   }
   return sort { uc $a cmp uc $b } @user;
+}
+
+sub verify_telescope {
+
+  my ( $tel ) = @_;
+
+  return defined $tel
+    && grep { uc $tel eq $_ } ( 'JCMT', 'UKIRT' );
 }
 
 # Collect the errors for a project.
