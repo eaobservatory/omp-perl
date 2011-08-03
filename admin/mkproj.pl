@@ -203,11 +203,15 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Deal with support issues
   # but do not overrride one if it is already set
-  if (!defined $details{support}) {
-    if (exists $support{$details{country}->[0]}) {
-      $details{support} = $support{$details{country}->[0]};
+  if ( !defined $details{support}
+        && exists $details{country}
+        && exists $details{country}->[0]
+      ) {
+    my $country = $details{country}->[0];
+    if (exists $support{$country}) {
+      $details{support} = $support{$country};
     } else {
-      collect_err( "Can not find support for country " . $details{country}->[0] );
+      collect_err( "Can not find support for country " . $country );
     }
   }
 
