@@ -258,8 +258,15 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   # Now convert the allocation to seconds instead of hours
   collect_err( "[project $proj] Allocation is mandatory!" )
     unless defined $details{allocation};
-  collect_err( "[project $proj] Allocation must be positive!" )
-    unless $details{allocation} >= 0;
+
+  # Set minimum of 1 s of time to avoid divide-by-zero problem elsewhere.
+  # Further, specifying (in configuration file) decimal result of 1/3600 is a
+  # pain.
+  $details{allocation} ||= 1/3600;
+
+  collect_err( "[project $proj] Allocation must be non-zero and positive!" )
+    unless $details{allocation} > 0;
+
   $details{allocation} *= 3600;
 
   # User ids
