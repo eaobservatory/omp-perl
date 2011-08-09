@@ -210,7 +210,7 @@ sub get_coords  {
 #      @projids:  Array with projids for which to check objects
 #
 #      @objects:  Array of hashes with selected object to find:
-#                 {'name},[ {'ra'}, {'dec'}, {'coordsys'} ]:
+#                 {'name'},[ {'ra'}, {'dec'}, {'coordsys'} ]:
 #                 {'ra'} and {'dec'} ':' or space separated sexagesimal:
 #                                 hh:mm:ss.s  [-]dd mm ss.s.
 #                 {'coordsys'}: B1950, J2000, or galactic. (or their
@@ -286,7 +286,7 @@ sub get_coords  {
   foreach my $obj (@objects) {
 
     while ( my ($key, $value) = each(%$obj) ) {
-      print "$key => $value\n";
+      print "$key => $value\n" if ( $debug );
     }
 
     my $objname = lc ${$obj}{'name'};
@@ -370,9 +370,9 @@ sub get_coords  {
 
       # Get coordinates of observations in MSBs
       push( @coords, get_omp_coords( \@sciprogs,
-                                   \@objects,
-                                   'msbmode' =>   $args{'msbmode'},
-                                   'telescope' => $args{'telescope'}
+                                     \@objects,
+				     'msbmode' =>   $args{'msbmode'},
+				     'telescope' => $args{'telescope'}
                                  ) );
     }
 
@@ -413,6 +413,7 @@ sub get_omp_coords {
   #                array of coord objects with targets.
 
   # Set up defaults
+
   my %defaults = (
      'msbmode'   => "all",        # msbs to retrieve:
                                 #      [all | active | completed]
@@ -425,7 +426,7 @@ sub get_omp_coords {
   my @sciprogs = @{$spref};
   my @objects = @{$objref};
 
-  
+
   # Override defaults with remaining arguments
   my %args = ( %defaults, @_ );
 
@@ -458,11 +459,17 @@ sub get_omp_coords {
   my %targets;
 
   # Loop over the science programs
+
+  printf "nr of science program to plot: %d\n", $#sciprogs+1 if ($debug);
   foreach my $sp (@sciprogs) {
 
-    printf "Extract MSBs\n" if( $debug );
+    printf "Extract MSBs for %s\n", $sp->projectID if( $debug );
     my @msbs = $sp->msb;
     printf "%d MSBs returned\n", $#msbs+1 if( $debug );
+
+    my $prjstr = $sp->projectID . '@';
+    $prjstr =~ s/^m\d{2}[a,b]//i;
+    print "Project string: $prjstr\n" if ( $debug );
 
     # Handle each MSB
     foreach my $msb (@msbs) {
@@ -507,10 +514,18 @@ sub get_omp_coords {
           next unless( exists $selected_targets{lc $target->name} );
         }
 
-        # Oops, can not handle other coord systems but equatorial
-        print "...Skip un-equatorial and 0,0 coordinates\n" if( $debug );
-        next unless( $target->type eq 'RADEC' );
+        # Skip 0,0 coordinates. They should not exist.
+        print "...Skip 0,0 coordinates\n" if( $debug );
         next if( $target->ra == 0.0 and $target->dec == 0.0 );
+
+        # If there is more than one project add the project to the name
+	if ($#sciprogs > 0) {
+	  my $newname = $prjstr . $target->name;
+	  if ( $target->name !~ /^$prjstr/i ) {
+	    $target->name ( $newname );
+	    printf "...Target renamed to '%s'\n", $target->name if ( $debug );
+	  }
+	}
 
         # Handle duplicate sources through the hash key
         my $target_info = $target->name . '_' .
@@ -622,12 +637,16 @@ sub get_catalog_coords {
 
     next if( $line =~ /^\#|\%|\!|\*/ );             # Skip comment lines
 
+    my $prjstr = "";
     if( $#projids >= 0 ) {
       # Check if project id is on the line
       my $found = 0;
       foreach my $proj (@projids) {
         if( $line =~ /$proj/i ) {
           $found = 1;
+          $prjstr = "${proj}@";
+	  $prjstr =~ s/^m\d{2}[a,b]//i;
+	  print "Project string: $prjstr\n" if ( $debug );
           last;
         }
       }
@@ -647,6 +666,15 @@ sub get_catalog_coords {
     if( $selected_targets_only > 0 ) {
       print "...Skip unrequested targets\n" if( $debug );
       next unless( exists $selected_targets{lc $target{'name'}} );
+    }
+
+    # If more than one project
+    if ($#projids > 0) {
+      my $newname = $prjstr . $target{'name'};
+      if ( $target{'name'} !~ /^$prjstr/i ) {
+	$target{'name'} = "$newname";
+	printf "...Target renamed to '%s'\n", $target{'name'} if ( $debug );
+      }
     }
 
     # Handle duplicate sources through the hash key

@@ -105,6 +105,11 @@ unless (defined $prj) {
 }
 $prj =~ /^([\w\@\/\$\.\_]+)$/ && ($projlis = $1) || ($projlis = "");
 
+my $objlis;
+if (defined $objs) {
+  $objs =~ /^([\w\@\/\$\.\_\s]+)$/ && ($objlis = $1) || ($objlis = "");
+}
+
 # UT date
 my $utdate;
 if (defined $pld) {
@@ -238,6 +243,34 @@ my @projids = split( /\@/, $projlis );
 
 # Array of hashes
 my @objects;
+if ( $objlis ne "" ) {
+
+  my @solar = ('mars', 'jupiter', 'saturn', 'uranus', 'neptune',
+	       'mercury', 'venus', 'pluto', 'sun', 'moon');
+
+  foreach my $obj (split( /\@/, $objlis )){
+
+    if ( $obj ne "planets" && $obj ne "5planets" &&
+	 $obj ne "solar" ) {
+
+      my %ref;
+      $ref{'name'} = "$obj";
+      push @objects, \%ref;
+
+    } else {
+
+      my $nrplanets = 8;
+      $nrplanets = 10 if ($obj eq "solar");
+      $nrplanets = 5 if ($obj eq "5planets");
+      for (my $i = 0; $i < $nrplanets; $i++) {
+	my %ref;
+	$ref{'name'} = $solar[$i];
+	push @objects, \%ref;	
+      }
+
+    }
+  }
+}
 
 $sargs{'telescope'} = $telescope;
 $sargs{'msbmode'} = $plmode;

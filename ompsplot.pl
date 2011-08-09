@@ -89,7 +89,7 @@ $utd =~ /^(\d{8})$/ && ($utdate = $1) || (do {
     } );
 
 $objs = $query->param('object');
-$objs =~ /^([\w\/\$\.\_]+)$/ && ($object = $1) || ($object = "");
+$objs =~ /^([\w\/\$\.\_\@\"\'\s]+)$/ && ($object = $1) || ($object = "");
 
 $mod = $query->param('mode');
 $mod =~ /^([\w\+\-\.\_]+)$/ && ($mode = $1) || ($mode = "");
@@ -147,12 +147,12 @@ if ($msg =~ /^\*/) {
 
 # Option to specify source not implemented yet.
 #$object = 'N7538 IRS1';
-if ($object eq "") {
+#if ($object eq "") {
   $gif = "${projid}.gif";
-} else {
-  $obj = (split(/\s+/,$object))[0];
-  $gif = "${projid}_${obj}.gif";
-}
+#} else {
+#  $obj = (split(/\s+/,$object))[0];
+#  $gif = "${projid}_${obj}.gif";
+#}
 $gif =~ s/\///g;
 
 if (-e "$command") {
@@ -171,7 +171,7 @@ if (-e "$command") {
   my $cmd_line = "${projid} ${objopt} ${utopt} ${options} -out gif";
   my $command_line;
   # Untaint command-line
-  ($cmd_line =~ /^([\w\d\@\=\_\-\ \/\*]+)$/) && 
+  ($cmd_line =~ /^([\w\d\@\=\_\-\ \/\'\"\*]+)$/) && 
                ($command_line = "$1") || ($command_line = "");
   $ENV{"PATH"} = "";
   $rep = "";
@@ -347,11 +347,12 @@ sub show_inputpage {
   };
 
 # Objects
-#  print STDOUT qq {
-#\n<TR><TD ALIGN=RIGHT>Object(s):</TD>\n
-#<TD><INPUT TYPE="text" NAME="object" SIZE="16" value=$object></TD>\n
-#<TD>(optional) Separate by '\@'</TD></TR>\n
-#  };
+  print STDOUT qq {
+\n<TR><TD ALIGN=RIGHT>Object(s):</TD>\n
+<TD><INPUT TYPE="text" NAME="object" SIZE="16" value=$object></TD>\n
+<TD>(Optional) One or more separated by '\@'.<br>Any planets in this list will always be plotted<br>and not matched against project sources.</td></tr>\n
+<tr><td colspan=3>'5planets' will plot mars thru neptune; 'planets' will plot all 9;<br>'solar' will add the Sun and Moon.</TD></TR>\n
+  };
 
 # Plot options section
   print STDOUT qq {
