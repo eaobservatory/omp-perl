@@ -308,6 +308,8 @@ sub obs_table {
 
   my $rowclass = "row_b";
 
+  reset_for_msb_comments();
+
   foreach my $obs (@allobs) {
 
     next if( ( length( $instrument . '' ) > 0 ) &&
@@ -360,6 +362,8 @@ sub obs_table {
     my $status = $obs->status;
     my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
+    my @msb_comment;
+
     if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap") ) {
       if( $text ) {
         print $nightlog{'_STRING'}, "\n";
@@ -369,9 +373,31 @@ sub obs_table {
         print $nightlog{'_STRING'};
       }
     } else {
+
+      @msb_comment =
+        format_msb_comment( $text, get_msb_comments( $obs, my $get_title = 0 ) );
+
+      my $any_msb_comment = scalar @msb_comment;
+
       if( $text ) {
-        print $nightlog{'_STRING'}, "\n";
+
+        my @text;
+        push @text, @msb_comment;
+
+        print @text, "\n", $nightlog{'_STRING'}, "\n";
       } else {
+
+        $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
+
+        if ( scalar @msb_comment ) {
+
+          print qq[<tr class="$rowclass"><td class="msb-comment-nightrep $css_status" colspan="$ncols"><p>],
+            join '</p><p>',
+             @msb_comment;
+
+          print qq[</p></td></tr>];
+        }
+
         print qq[<tr class="$rowclass"><td class="$css_status">],
           join qq[</td><td class="$css_status">],
             map
@@ -380,8 +406,6 @@ sub obs_table {
               : $nightlog{$_};
             }
             @{$nightlog{_ORDER}} ;
-
-        $ncols = scalar( @{$nightlog{_ORDER}} ) + 2;
       }
     }
 
@@ -543,6 +567,173 @@ sub obs_table {
     print "</table>\n";
   }
 
+}
+
+
+{
+  my ( $msbdb, $old_sum, $old_tid, %title );
+
+  # To be called before looping ober $obs list.
+  sub reset_for_msb_comments {
+
+    $title{'CAL'} = 'Calibration';
+    $old_sum = $old_tid = '';
+
+    unless ( defined $msbdb ) {
+
+      $msbdb = OMP::MSBDoneDB->new( DB => OMP::DBbackend->new() );
+    }
+
+    return;
+  }
+
+  sub get_msb_comments {
+
+    my ( $obs, $get_title ) = @_;
+
+    # In case msbtid column is missing or has no value (calibration), use checksum.
+    my $checksum = $obs->checksum;
+    my $msbtid   = $obs->msbtid;
+
+    my ( $is_new_checksum, $is_new_msbtid, $has_msbtid ) =
+      _are_new_sum_tid( $obs, $checksum, $msbtid );
+
+    # If the current MSB differs from the MSB to which this observation belongs,
+    # we need to insert as the start of the MSB. Ignore blank MSBTIDS.
+    return if ! ( $checksum && ( $is_new_msbtid || $is_new_checksum ) );
+
+    my ( %extract );
+
+    if ( $get_title ) {
+
+      unless ( exists( $title{ $checksum } ) ) {
+
+        my $title = $msbdb->titleMSB( $checksum );
+        $title{ $checksum } =
+            defined $title ? $title : 'Unknown MSB' ;
+      }
+
+      $extract{'title'} = $title{ $checksum };
+    }
+
+    # Get any activity associated with this MSB accept.
+    my $history;
+    try {
+
+      $history = $msbdb->historyMSBtid( $msbtid ) if $has_msbtid;
+    } otherwise {
+
+      my $E = shift;
+      print $E;
+    };
+
+    return %extract
+      unless defined $history;
+
+    for my $c ( $history->comments() ) {
+
+      my $author = $c->author;
+      # we should never get undef author.
+      my $name =
+        defined $author
+        ? $c->author->name()
+        : '<UNKNOWN>'
+        ;
+
+      push @{ $extract{'comments'} },
+        {
+          'name' => $name,
+          'date' => $c->date(),
+          'text' => $c->text(),
+        };
+    }
+
+    return %extract;
+  }
+
+  sub _are_new_sum_tid {
+
+    my ( $obs, $sum, $tid ) = @_;
+
+    my $has_tid = defined $tid && length $tid;
+
+    my ( $is_new_tid, $is_new_sum );
+
+    if ( $has_tid ) {
+
+      $is_new_tid =
+            $tid ne ''
+        &&  $tid ne $old_tid ;
+
+      $old_tid = $tid if $is_new_tid;
+
+      # Reset to later handle case of 'calibration' since sum 'CAL' never
+      # changes.
+      $old_sum = '';
+
+      return ( $is_new_sum, $is_new_tid, $has_tid );
+    }
+
+    $is_new_sum =
+      ! ( $old_sum eq $sum
+          ||
+          # Title is produced for TimeGap object elsewhere.
+          ( defined $obs && $obs->isa( 'OMP::Info::Obs::TimeGap' ) )
+        ) ;
+
+    $old_sum = $sum if $is_new_sum;
+
+    return ( $is_new_sum, $is_new_tid, $has_tid );
+  }
+}
+
+sub format_msb_comment {
+
+  my ( $text, %comment ) = @_;
+
+  return unless scalar keys %comment;
+
+  my @comment;
+
+  my $title_form =
+    $text
+    ? "%s\n"
+    # 'html' is the default format.
+    : qq[<b>%s</b><br>\n]
+    ;
+
+  my $title = '';
+  $title = sprintf $title_form, $comment{'title'}
+    if exists     $comment{'title'}
+    && defined    $comment{'title'}
+    && 2 < length $comment{'title'};
+
+  my $rest_form =
+    $text
+    ? "%s UT by %s\n%s\n"
+    : qq[%s UT by %s\n<br>%s\n]
+    ;
+
+  for my $c ( @{ $comment{'comments'} } ) {
+
+    my ( $date, $name, $text ) = map { $c->{ $_ } } (qw[ date name text ]);
+
+    next
+      unless defined $text
+      && length $text;
+
+    $date = 'UNKNOWN DATE'
+      unless defined $date
+          && length $date;
+
+    $name = 'UNKNOWN PERSON'
+      unless defined $name
+          && length $name;
+
+    push @comment, $title . sprintf $rest_form, $date, $name, $text;
+  }
+
+  return @comment;
 }
 
 =item B<obs_summary>

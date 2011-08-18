@@ -203,16 +203,21 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   # Deal with support issues
   # but do not overrride one if it is already set
-  if (!defined $details{support}) {
-    if (exists $support{$details{country}->[0]}) {
-      $details{support} = $support{$details{country}->[0]};
+  if ( !defined $details{support}
+        && exists $details{country}
+        && exists $details{country}->[0]
+      ) {
+    my $country = $details{country}->[0];
+    if (exists $support{$country}) {
+      $details{support} = $support{$country};
     } else {
-      collect_err( "Can not find support for country " . $details{country}->[0] );
+      collect_err( "Can not find support for country " . $country );
     }
   }
 
-  collect_err( "Must supply a telescope!!!" )
-    unless exists $details{telescope};
+  collect_err( "Must supply a valid telescope." )
+    unless exists $details{telescope}
+        && verify_telescope( $details{telescope} );
 
   # Now weather bands
   my ($taumin, $taumax) = OMP::SiteQuality::default_range('TAU');
@@ -257,8 +262,15 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   # Now convert the allocation to seconds instead of hours
   collect_err( "[project $proj] Allocation is mandatory!" )
     unless defined $details{allocation};
-  collect_err( "[project $proj] Allocation must be positive!" )
-    unless $details{allocation} >= 0;
+
+  # Set minimum of 1 s of time to avoid divide-by-zero problem elsewhere.
+  # Further, specifying (in configuration file) decimal result of 1/3600 is a
+  # pain.
+  $details{allocation} ||= 1/3600;
+
+  collect_err( "[project $proj] Allocation must be non-zero and positive!" )
+    unless $details{allocation} > 0;
+
   $details{allocation} *= 3600;
 
   # User ids
@@ -330,6 +342,14 @@ sub unverified_users {
     }
   }
   return sort { uc $a cmp uc $b } @user;
+}
+
+sub verify_telescope {
+
+  my ( $tel ) = @_;
+
+  return defined $tel
+    && grep { uc $tel eq $_ } ( 'JCMT', 'UKIRT' );
 }
 
 # Collect the errors for a project.

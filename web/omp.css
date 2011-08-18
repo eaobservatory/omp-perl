@@ -492,6 +492,13 @@ A {
   color: #25f;
 }
 
+.msb-comment-nightrep {
+
+  font-style: italic;
+  border-left: 1ex solid #999;
+  padding-left: 1ex;
+}
+
 a.sidemain:link    { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
 a.sidemain:visited { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:none; }
 a.sidemain:active  { color:#ffffff; font-size:11px; font-weight:bold; text-decoration:underline; }
