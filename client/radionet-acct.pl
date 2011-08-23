@@ -101,7 +101,7 @@ sub show_formatted {
       # Convert second to hour.
       $_ = $_ / 3600 for ( $spent, $cal );
 
-      my $proj_sum = $spent + $cal - $lost;
+      my $proj_sum = $spent + $cal;
 
       $sum += $proj_sum;
 
@@ -253,6 +253,19 @@ _SQL_
   push @bind, ( $start, $end );
   my $where = sql_between( 't.date' );
 
+  if ( $opt->{'projects'}
+        && ref $opt->{'projects'}
+        && scalar @{ $opt->{'projects'} }
+      ) {
+
+    push @bind, @{ $opt->{'projects'} };
+
+    $where = sprintf " %s AND %s ",
+      $where,
+      sql_in( 't.projectid', $opt->{'projects'} )
+      ;
+  }
+
   $sql = sprintf $sql, $where;
 
   my $times =
@@ -289,20 +302,25 @@ sub sql_between {
 #  Process options.
 sub process_options {
 
-  my ( %opt ) = @_;
+  my ( %opt, @proj ) = @_;
 
   my ( $help );
   GetOptions(
     'h|help|man' => \$help,
+    'proj=s@'    => \@proj,
   )
     or pod2usage( '-exitval' => 2, '-verbose' => 1,);
 
   pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 
+  $opt{'projects'} = [ @proj ]
+    if scalar @proj;
+
   pod2usage( '-exitval' => 2, '-verbose' => 99, '-sections' => 'SYNOPSIS',
               '-msg' => 'No semester was given.'
             )
     if ! scalar @ARGV;
+
 
   $opt{'semesters'} = [ map { $_ ? uc $_ : () } @ARGV ];
 
@@ -350,12 +368,32 @@ radionet-acct.pl - Show time statistics for JCMT projects for a semester.
 
 =head1 SYNOPSIS
 
-  radionet-acct.pl 10b
+To get statistics for a semester ...
+
+  radionet-acct.pl  10a
+
+To get statistics for projects in a semester ...
+
+  radionet-acct.pl -proj M09BI143 -proj M10AN04  10a
 
 =head1 DESCRIPTION
 
-Given a semester, this program prints the time spent and lost due to faults for
-JCMT projects.
+Given a semester, this program prints the time spent and lost statistics due to
+faults for JCMT projects.
+
+Printed output is sorted by date, then by project id. For example, for semester
+10a, output would be ...
+
+  Date        Project      Spent (h)  CAL Portion (h)  Lost to Fault (h)   Total (h)
+  2010-02-02  M09AC09           2.50             0.00               0.00        2.50
+  2010-02-02  M09BEC04          0.00             0.00               0.00        0.00
+  2010-02-02  M10AEC04          0.55             0.00               0.00        0.55
+  . . .
+  2010-07-30  M10BC04           2.45             0.08               0.00        2.53
+  2010-07-31  M10BC04           4.10             1.27               0.15        5.37
+  . . .
+                                                               TOTAL (h):    1914.20
+
 
 =head2 OPTIONS
 
@@ -364,6 +402,12 @@ JCMT projects.
 =item B<-help> | B<-man>
 
 Show the full help message.
+
+=item B<-proj> projectid
+
+Specify a project to be shown in a given semester.
+
+Use multiple times to select multiple projects.
 
 =back
 
