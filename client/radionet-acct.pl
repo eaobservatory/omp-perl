@@ -42,9 +42,16 @@ for my $sm ( @{ $opt{'semesters'} } ) {
 
   my $times = get_sci_time_by_sql( $dbh, \%opt, $start, $end );
 
+  add_cal_time( $times->{ $_ } ) for keys %{ $times };
+
   save_fault_time( $times, $start, $end );
 
-  show_formatted( $times );
+  show_grand_sum( ( $opt{'per-day'}
+                    ? show_per_day( $times )
+                    : show_per_proj( $times )
+                  ),
+                  $opt{'per-day'}
+                );
 
 }
 
@@ -57,34 +64,57 @@ sub extract_date {
   return ( $_[0] =~ $date_re )[0];
 }
 
-sub show_formatted {
+sub formatting {
 
-  my ( $times ) = @_;
+  my ( $get, $by_day ) = @_;
 
   my $sum_length = 10;
 
-  my $header =
-    sprintf "%-10s  %-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
-      'Date',
+  return $sum_length if $get eq 'sum_length';
+
+  my @header =
+    ( 'Date',
       'Project',
       'Spent (h)',
       'CAL Portion (h)',
       'Lost to Fault (h)',
       'Total (h)'
+    );
+
+  my $header =
+    $by_day
+    ? sprintf( "%-10s  %-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
+               @header
+              )
+    
+      : sprintf( "%-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
+                 @header[1 .. 5 ]
+                )
       ;
 
-  my $footer_shift = length $header;
+  return $header if $get eq 'header';
 
   my $rec_format =
     "%10s  %-10s  %${sum_length}.2f  %15.2f  %17.2f  %${sum_length}.2f\n";
 
-  print $header;
+  ! $by_day
+    and $rec_format = join '  ', (split /  /, $rec_format)[1 .. 5];
+
+  return $rec_format if $get eq 'rec_format';
+}
+
+sub show_per_day {
+
+  my ( $times ) = @_;
+
+  print formatting( 'date_header', 1 );
+
+  my $rec_format = formatting( 'rec_format', 1);
 
   my $sum = 0;
   for my $date ( sort keys %{ $times } ) {
 
     my $list = $times->{ $date };
-    add_cal_time( $list );
 
     for my $proj ( sort keys %{ $list } ) {
 
@@ -97,9 +127,6 @@ sub show_formatted {
         { $cur->{ $_ } ? $cur->{ $_ } : 0 }
         (qw[ timespent cal-portion fault-lost-time ])
         ;
-
-      # Convert second to hour.
-      $_ = $_ / 3600 for ( $spent, $cal );
 
       my $proj_sum = $spent + $cal;
 
@@ -116,7 +143,71 @@ sub show_formatted {
     }
   }
 
-  my $sum_label = 'TOTAL (h)';
+  return $sum;
+}
+
+
+sub show_per_proj {
+
+  my ( $times ) = @_;
+
+  print formatting( 'proj_header', 0 );
+
+  my $rec_format = formatting( 'rec_format', 0 );
+
+  my %stat;
+  for my $date ( keys %{ $times } ) {
+
+    my $list = $times->{ $date };
+
+    for my $proj ( keys %{ $list } ) {
+
+      next if $proj =~ /cal$/i;
+
+      my $cur = $list->{ $proj };
+
+      my ( $spent, $cal, $lost ) =
+        map
+        { $cur->{ $_ } ? $cur->{ $_ } : 0 }
+        (qw[ timespent cal-portion fault-lost-time ])
+        ;
+
+      $stat{ $proj }->{'spent'} += $spent;
+      $stat{ $proj }->{'cal'}   += $cal;
+      $stat{ $proj }->{'lost'}  += $lost;
+    }
+  }
+
+  my $sum = 0;
+  for my $proj ( sort keys %stat ) {
+
+    my ( $spent, $cal, $lost ) =
+      map { $stat{ $proj }->{ $_ } } (qw[ spent cal lost ]);
+
+    my $proj_sum = $spent + $cal;
+
+    $sum += $proj_sum;
+
+    printf $rec_format,
+      $proj,
+      $spent,
+      $cal,
+      $lost,
+      $proj_sum
+      ;
+  }
+
+  return ( $sum );
+}
+
+sub show_grand_sum {
+
+  my ( $sum, $by_day ) = @_;
+
+  my $sum_label  = 'TOTAL (h)';
+  my $sum_length = formatting( 'sum_length' );
+
+  my $footer_shift = length formatting( 'header', $by_day );
 
   $footer_shift -= ( $sum_length + 3 );
 
@@ -274,7 +365,27 @@ _SQL_
     $dbh->selectall_hashref( $sql, ['date' , 'projectid' ], undef, @bind )
       or die log_db_error( $dbh->errstr );
 
+
+  convert_to_hour( $times );
+
   return $times;
+}
+
+sub convert_to_hour {
+  
+  my ( $raw_results ) = @_;
+
+  for my $date ( keys %{ $raw_results } ) {
+
+    my $list = $raw_results->{ $date };
+
+    for my $proj ( keys %{ $list } ) {
+
+      $_ /= 3600 for $list->{ $proj }{'timespent'};
+    }
+  }
+
+  return;
 }
 
 sub sql_in {
@@ -307,6 +418,10 @@ sub process_options {
   my ( $help );
   GetOptions(
     'h|help|man' => \$help,
+
+    'D|by-day'     => sub { $opt{'per-proj'} = 0; $opt{'per-day'} = 1; },
+    'P|by-project' => sub { $opt{'per-proj'} = 1; $opt{'per-day'} = 0; },
+
     'proj=s@'    => \@proj,
   )
     or pod2usage( '-exitval' => 2, '-verbose' => 1,);
@@ -402,6 +517,14 @@ Printed output is sorted by date, then by project id. For example, for semester
 =item B<-help> | B<-man>
 
 Show the full help message.
+
+=item B<-by-day> | B<-D>
+
+Show statistics collected by date and project id.
+
+=item B<-by-project> | B<-P>
+
+Show statistics collected by project.  It is I<default>.
 
 =item B<-proj> projectid
 
