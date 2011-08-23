@@ -151,7 +151,7 @@ sub show_per_proj {
 
   my ( $times ) = @_;
 
-  print formatting( 'proj_header', 0 );
+  print formatting( 'header', 0 );
 
   my $rec_format = formatting( 'rec_format', 0 );
 
