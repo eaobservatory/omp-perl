@@ -35,24 +35,22 @@ $opt{'telescope'} = 'JCMT';
 my $db = OMP::DBbackend->new();
 my $dbh = $db->handle();
 
+my $show = $opt{'per-day'} ? \&show_per_day : \&show_per_proj;
 
 for my $sm ( @{ $opt{'semesters'} } ) {
 
   my ( $start, $end ) = dates_from_semester( $sm, $opt{'telescope'} );
 
-  my $times = get_sci_time_by_sql( $dbh, \%opt, $start, $end );
+  my $times = get_sci_time_by_sql( $dbh, \%opt, $start, $end )
+    or next;
 
-  add_cal_time( $times->{ $_ } ) for keys %{ $times };
-
+  convert_to_hour( $times );
+  add_cal_time( $times );
   save_fault_time( $times, $start, $end );
 
-  show_grand_sum( ( $opt{'per-day'}
-                    ? show_per_day( $times )
-                    : show_per_proj( $times )
-                  ),
-                  $opt{'per-day'}
-                );
-
+  show_grand_sum( $show->( $times ), $opt{'per-day'} );
+  # Separate two semester output.
+  print "\n";
 }
 
 exit;
@@ -106,7 +104,7 @@ sub show_per_day {
 
   my ( $times ) = @_;
 
-  print formatting( 'date_header', 1 );
+  print formatting( 'header', 1 );
 
   my $rec_format = formatting( 'rec_format', 1);
 
@@ -144,7 +142,6 @@ sub show_per_day {
 
   return $sum;
 }
-
 
 sub show_per_proj {
 
@@ -222,35 +219,40 @@ sub add_cal_time {
 
   my ( $times ) = @_;
 
-  my $cal = 0;
-  my $proj_sum = 0;
-
   my $cal_re = qr{cal$}i;
 
-  for my $proj ( keys %{ $times } ) {
+  for my $date ( keys %{ $times } ) {
 
-    my $time = $times->{ $proj }{'timespent'};
+    my $list = $times->{ $date };
 
-    if ( $proj =~ $cal_re ) {
+    my $cal = 0;
+    my $proj_sum = 0;
 
-      $cal += $time;
-      next;
+    for my $proj ( keys %{ $list } ) {
+
+      my $time = $list->{ $proj }{'timespent'};
+
+      if ( $proj =~ $cal_re ) {
+
+        $cal += $time;
+        next;
+      }
+
+      $proj_sum  += $time;
     }
 
-    $proj_sum  += $time;
-  }
+    for my $proj ( keys %{ $list } ) {
 
-  for my $proj ( keys %{ $times } ) {
+      next if $proj =~ $cal_re;
 
-    next if $proj =~ $cal_re;
+      my $cur = $list->{ $proj };
 
-    my $cur = $times->{ $proj };
-
-    $cur->{'cal-portion'} =
-      $cal && $proj_sum
-      ? $cur->{'timespent'} * $cal / $proj_sum
-      : 0
-      ;
+      $cur->{'cal-portion'} =
+        $cal && $proj_sum
+        ? $cur->{'timespent'} * $cal / $proj_sum
+        : 0
+        ;
+    }
   }
 
   return;
@@ -363,9 +365,6 @@ _SQL_
     # due to faults without creating another data structure.
     $dbh->selectall_hashref( $sql, ['date' , 'projectid' ], undef, @bind )
       or die log_db_error( $dbh->errstr );
-
-
-  convert_to_hour( $times );
 
   return $times;
 }
@@ -493,7 +492,8 @@ To get statistics for projects in a semester ...
 =head1 DESCRIPTION
 
 Given a semester, this program prints the time spent and lost statistics due to
-faults for JCMT projects.
+faults for JCMT projects.  For statistics for multiple semesters, just specify
+them, e.g. C<radionet-acct.pl 10a 10b>.
 
 Printed output is sorted by date, then by project id. For example, for semester
 10a, output would be ...
@@ -521,9 +521,13 @@ Show the full help message.
 
 Show statistics collected by date and project id.
 
+It is mutually exculsive with I<-by-project>.
+
 =item B<-by-project> | B<-P>
 
-Show statistics collected by project.  It is I<default>.
+Show statistics collected by project, I<default>.
+
+It is mutually exculsive with I<-by-day>.
 
 =item B<-proj> projectid
 
@@ -536,6 +540,26 @@ Use multiple times to select multiple projects.
 =head1 AUTHORS
 
 Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2011 Science and Technology Facilities Council.
+All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful,but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place,Suite 330, Boston, MA  02111-1307,
+USA
 
 =cut
 
