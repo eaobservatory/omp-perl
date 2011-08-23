@@ -84,13 +84,12 @@ sub formatting {
   my $header =
     $by_day
     ? sprintf( "%-10s  %-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
-               @header
+                @header
               )
-    
-      : sprintf( "%-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
-                 @header[1 .. 5 ]
-                )
-      ;
+    : sprintf( "%-10s  %${sum_length}s  %15s  %17s  %${sum_length}s\n",
+                @header[1 .. 5 ]
+              )
+    ;
 
   return $header if $get eq 'header';
 
