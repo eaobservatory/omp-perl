@@ -125,7 +125,7 @@ sub show_per_day {
         (qw[ timespent cal-portion fault-lost-time ])
         ;
 
-      my $proj_sum = $spent + $cal;
+      my $proj_sum = add_time( $spent, $cal, $lost );
 
       $sum += $proj_sum;
 
@@ -180,7 +180,7 @@ sub show_per_proj {
     my ( $spent, $cal, $lost ) =
       map { $stat{ $proj }->{ $_ } } (qw[ spent cal lost ]);
 
-    my $proj_sum = $spent + $cal;
+    my $proj_sum = add_time( $spent, $cal, $lost );
 
     $sum += $proj_sum;
 
@@ -194,6 +194,16 @@ sub show_per_proj {
   }
 
   return ( $sum );
+}
+
+sub add_time {
+
+  my ( @n ) = @_;
+
+  my $s = 0;
+  $s += $_ for @n;
+
+  return $s;
 }
 
 sub show_grand_sum {
