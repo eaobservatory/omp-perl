@@ -323,7 +323,9 @@ sub getObs {
   # Construct a query
   my $query = new OMP::ArcQuery( XML => $xml );
 
-  my @result = $self->queryArc( $query );
+  # retain the fits header since it is probably useful if we
+  # are retrieving single observations
+  my @result = $self->queryArc( $query, 1 );
 
   # Just return the first result.
   return $result[0];
