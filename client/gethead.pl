@@ -104,8 +104,23 @@ my $arcdb = OMP::ArchiveDB->new();
 my $obs= $arcdb->getObs( %args );
 
 if ($obs) {
+
   my $fits = $obs->fits;
   print join( "\n", sort $fits->cards ),"\n";
+  my $dateobs = $obs->startobs;
+  my $mjd;
+  if (defined $dateobs) {
+    $mjd = $dateobs->mjd;
+  }
+  $dateobs = $obs->endobs;
+  if (defined $dateobs) {
+    my $endmjd = $dateobs->mjd;
+    $mjd = ($mjd + $endmjd) / 2.0;
+  }
+  use Astro::FITS::Header::Item;
+  my $mjdavg = Astro::FITS::Header::Item->new( Keyword => "MJD-AVG",
+                                               Value => $mjd, Type => 'FLOAT' );
+  print $mjdavg ."\n";
 }
 
 =head1 AUTHOR
