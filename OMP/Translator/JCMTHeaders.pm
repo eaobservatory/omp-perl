@@ -316,7 +316,7 @@ sub getSurveyName {
     my $short = $1;
     if ($short eq 'G') {
       return "GBS";
-    } elsif ($short eq 'A') {
+    } elsif ($short eq 'Y') {
       return "SASSY";
     } elsif ($short eq 'D') {
       return "DDS";
