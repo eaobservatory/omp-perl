@@ -688,6 +688,12 @@ sub _read_cfg_file {
   print "File $file: ".Dumper \%data
     if $DEBUG;
 
+  if (!tied(%data)) {
+    # Trigger a warning at the moment instead of bombing out since
+    # the OMP relies heavily on this code not dying
+    warn "Bad config file: ".join("\n",@Config::IniFiles::errors);
+  }
+
   # determine the key order. host overrides, domain overrides. default
 
   # The first thing to do is to look for host and domain aliases
