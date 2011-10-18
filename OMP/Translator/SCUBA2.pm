@@ -497,24 +497,81 @@ sub handle_special_modes {
 
     } elsif ($info->{scanPattern} =~ /liss|pong/i) {
 
+      my $pongmode = eval { OMP::Config->getData( $self->cfgkey .
+                                                    ".scan_pong_mode" ) };
       my $scan_dy = eval { OMP::Config->getData( $self->cfgkey.
                                                  ".scan_pong_scan_dy") };
       my $scan_vel = eval { OMP::Config->getData( $self->cfgkey.
                                                   ".scan_pong_velocity") };
 
-      if (defined $scan_dy) {
-        if (defined $info->{SCAN_DY}) {
-          $self->output( "\tOverriding scan spacing given in the OT.".
-                         " Changing $info->{SCAN_DY} to $scan_dy arcsec\n");
+      if (defined $pongmode &&
+          ( $pongmode =~ /^dyn/ ||
+            $pongmode =~ /^fine/
+          )
+         ) {
+        my $map_width = $info->{MAP_WIDTH};
+        my $map_height = $info->{MAP_HEIGHT};
+        my $avwidth = ($map_width + $map_height) / 2;
+
+        if ($pongmode =~ /^dyn/) {
+
+          if ( $avwidth <= 600) {
+            $scan_dy = 30;
+            # Try to have about two seconds of scanning
+            $scan_vel = $avwidth / 2.0;
+          } elsif ($avwidth <= 1200) {
+            $scan_dy = 30;
+            $scan_vel = 280;
+          } elsif ($avwidth <= 2200) {
+            $scan_dy = 30;
+            $scan_vel = 480;
+          } elsif ($avwidth <= 4800) {
+            $scan_dy = 180;
+            $scan_vel = 600;
+          } else {
+            # Largest maps
+            $scan_dy = 360;
+            $scan_vel = 600;
+          }
+        } elsif ($pongmode =~ /^fine/) {
+          # Finely spaced map always has dy of 3
+          $scan_dy = 3.0;
+          if ($avwidth <= 150) {
+            $scan_vel = 60;
+          } elsif ($avwidth <= 400) {
+            $scan_vel = 120;
+          } else {
+            $scan_vel = 240;
+          }
+
+        } else {
+          # something has gone wrong
+          throw OMP::Error::FatalError("Unable to understand pong mode $pongmode. Programming error.");
         }
+
+        $self->output( "\tOverriding scan parameters given in the OT based on map size and mode '$pongmode'".
+                       " to use a DY of $scan_dy arcsec and speed of $scan_vel arcsec/sec\n");
         $info->{SCAN_DY} = $scan_dy;
-      }
-      if (defined $scan_vel) {
-        if (defined $info->{SCAN_VELOCITY}) {
-          $self->output( "\tOverriding scan velocity given in the OT.".
-            " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n");
-        }
         $info->{SCAN_VELOCITY} = $scan_vel;
+
+      } else {
+        # pongmode not set or not recognized or set to "ot".
+        if (defined $scan_dy) {
+          if (defined $info->{SCAN_DY}) {
+            $self->output( "\tOverriding scan spacing given in the OT.".
+                           " Changing $info->{SCAN_DY} to $scan_dy arcsec\n")
+              if $info->{SCAN_DY} != $scan_dy;
+          }
+          $info->{SCAN_DY} = $scan_dy;
+        }
+        if (defined $scan_vel) {
+          if (defined $info->{SCAN_VELOCITY}) {
+            $self->output( "\tOverriding scan velocity given in the OT.".
+                           " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n")
+              if $info->{SCAN_VELOCITY} != $scan_vel;
+          }
+          $info->{SCAN_VELOCITY} = $scan_vel;
+        }
       }
 
     }
