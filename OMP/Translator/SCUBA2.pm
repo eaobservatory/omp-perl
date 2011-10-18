@@ -497,24 +497,81 @@ sub handle_special_modes {
 
     } elsif ($info->{scanPattern} =~ /liss|pong/i) {
 
+      my $pongmode = eval { OMP::Config->getData( $self->cfgkey .
+                                                    ".scan_pong_mode" ) };
       my $scan_dy = eval { OMP::Config->getData( $self->cfgkey.
                                                  ".scan_pong_scan_dy") };
       my $scan_vel = eval { OMP::Config->getData( $self->cfgkey.
                                                   ".scan_pong_velocity") };
 
-      if (defined $scan_dy) {
-        if (defined $info->{SCAN_DY}) {
-          $self->output( "\tOverriding scan spacing given in the OT.".
-                         " Changing $info->{SCAN_DY} to $scan_dy arcsec\n");
+      if (defined $pongmode &&
+          ( $pongmode =~ /^dyn/ ||
+            $pongmode =~ /^fine/
+          )
+         ) {
+        my $map_width = $info->{MAP_WIDTH};
+        my $map_height = $info->{MAP_HEIGHT};
+        my $avwidth = ($map_width + $map_height) / 2;
+
+        if ($pongmode =~ /^dyn/) {
+
+          if ( $avwidth <= 600) {
+            $scan_dy = 30;
+            # Try to have about two seconds of scanning
+            $scan_vel = $avwidth / 2.0;
+          } elsif ($avwidth <= 1200) {
+            $scan_dy = 30;
+            $scan_vel = 280;
+          } elsif ($avwidth <= 2200) {
+            $scan_dy = 30;
+            $scan_vel = 480;
+          } elsif ($avwidth <= 4800) {
+            $scan_dy = 180;
+            $scan_vel = 600;
+          } else {
+            # Largest maps
+            $scan_dy = 360;
+            $scan_vel = 600;
+          }
+        } elsif ($pongmode =~ /^fine/) {
+          # Finely spaced map always has dy of 3
+          $scan_dy = 3.0;
+          if ($avwidth <= 150) {
+            $scan_vel = 60;
+          } elsif ($avwidth <= 400) {
+            $scan_vel = 120;
+          } else {
+            $scan_vel = 240;
+          }
+
+        } else {
+          # something has gone wrong
+          throw OMP::Error::FatalError("Unable to understand pong mode $pongmode. Programming error.");
         }
+
+        $self->output( "\tOverriding scan parameters given in the OT based on map size and mode '$pongmode'".
+                       " to use a DY of $scan_dy arcsec and speed of $scan_vel arcsec/sec\n");
         $info->{SCAN_DY} = $scan_dy;
-      }
-      if (defined $scan_vel) {
-        if (defined $info->{SCAN_VELOCITY}) {
-          $self->output( "\tOverriding scan velocity given in the OT.".
-            " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n");
-        }
         $info->{SCAN_VELOCITY} = $scan_vel;
+
+      } else {
+        # pongmode not set or not recognized or set to "ot".
+        if (defined $scan_dy) {
+          if (defined $info->{SCAN_DY}) {
+            $self->output( "\tOverriding scan spacing given in the OT.".
+                           " Changing $info->{SCAN_DY} to $scan_dy arcsec\n")
+              if $info->{SCAN_DY} != $scan_dy;
+          }
+          $info->{SCAN_DY} = $scan_dy;
+        }
+        if (defined $scan_vel) {
+          if (defined $info->{SCAN_VELOCITY}) {
+            $self->output( "\tOverriding scan velocity given in the OT.".
+                           " Changing $info->{SCAN_VELOCITY} to $scan_vel arcsec/sec\n")
+              if $info->{SCAN_VELOCITY} != $scan_vel;
+          }
+          $info->{SCAN_VELOCITY} = $scan_vel;
+        }
       }
 
     }
@@ -574,6 +631,11 @@ sub jos_config {
   $jos->step_time( $self->step_time($cfg, %info) );
   $jos->start_index( 1 );
 
+  # Calculate the effective step time
+  my $steperr = eval { OMP::Config->getData( $self->cfgkey . ".step_time_error" ); };
+  $steperr = 1.0 unless defined $steperr;
+  my $eff_step_time = $jos->step_time * $steperr;
+
   # Allowed JOS recipes seem to be
   #   scuba2_scan
   #   scuba2_dream
@@ -600,7 +662,7 @@ sub jos_config {
   my $obsmode_strip = $info{observing_mode};
   $obsmode_strip =~ s/_.*$//;
   my $tbdark = OMP::Config->getData( "scuba2_translator.time_between_dark_".
-                                     $obsmode_strip ) / $jos->step_time;
+                                     $obsmode_strip ) / $eff_step_time;
 
   $jos->steps_btwn_dark( $tbdark );
 
@@ -611,11 +673,11 @@ sub jos_config {
     # want to set n_calsamples ourselves
   } else {
     my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
-    $jos->n_calsamples( $darklen / $jos->step_time );
+    $jos->n_calsamples( $darklen / $eff_step_time );
   }
 
   $self->output("Generic JOS parameters:\n",
-                "\tStep time: ".$jos->step_time." secs\n",
+                "\tStep time: ".$jos->step_time." secs (effective: $eff_step_time)\n",
                 "\tSteps between darks: ". $jos->steps_btwn_dark()."\n");
   $self->output( "\tDark duration: ".$jos->n_calsamples(). " steps\n" )
     if $jos->n_calsamples;
@@ -627,7 +689,7 @@ sub jos_config {
     if ($info{observing_mode} =~ /^stare/) {
       # need JOS_MIN since we have multiple offsets
       my $integ = OMP::Config->getData( $self->cfgkey.'.skydip_integ' );
-      $jos->jos_min( POSIX::ceil($integ / $jos->step_time));
+      $jos->jos_min( POSIX::ceil($integ / $eff_step_time));
 
       $self->output( "\tSteps per discrete elevation: ". $jos->jos_min()."\n");
 
@@ -653,7 +715,7 @@ sub jos_config {
     # This is the integration time directly from the config file
     # use it for N_CALSAMPLES if we are dark else use it for JOS_MIN
     my $inttime = $info{secsPerCycle};
-    my $nsteps = OMP::General::nint( $inttime / $jos->step_time );
+    my $nsteps = OMP::General::nint( $inttime / $eff_step_time );
 
     if ( $info{flatSource} =~ /dark/i) {
       $jos->n_calsamples( $nsteps );
@@ -703,7 +765,7 @@ sub jos_config {
     my $inttime = $info{secsPerCycle};
 
     # convert total integration time to steps
-    my $nsteps = $inttime / $jos->step_time;
+    my $nsteps = $inttime / $eff_step_time;
 
     # The whole point of noise is to have a continuous time series
     # so we never split it up
@@ -716,7 +778,7 @@ sub jos_config {
                   "\tRequested integration time: $inttime secs\n",
                   "\tNumber of cycles calculated: $num_cycles\n",
                   "\tActual integration time: ".
-                  ($jos_min * $num_cycles * $jos->step_time)." secs\n");
+                  ($jos_min * $num_cycles * $eff_step_time)." secs\n");
 
     # The DARK mode is special since we never open the shutter
     if ($info{noiseSource} eq 'DARK') {
@@ -757,7 +819,7 @@ sub jos_config {
     $nms = (@ms ? @ms : 1);
 
     # convert total integration time to steps
-    my $nsteps = $inttime / $jos->step_time;
+    my $nsteps = $inttime / $eff_step_time;
 
     # Spread over microsteps
     $nsteps /= $nms;
@@ -774,7 +836,7 @@ sub jos_config {
                    "\tNumber of steps per microstep/offset: $jos_min\n",
                    "\tNumber of cycles calculated: $num_cycles\n",
                    "\tActual integration time per stare position: ".
-                   ($jos_min * $num_cycles * $nms * $jos->step_time)." secs\n");
+                   ($jos_min * $num_cycles * $nms * $eff_step_time)." secs\n");
 
   } elsif ($info{mapping_mode} eq 'scan') {
     # The aim here is to use the minimum number of sequences
@@ -804,7 +866,7 @@ sub jos_config {
     } elsif ($info{scanPattern} =~ /bous/i) {
       my $pixarea = $mapping_info{DY} * $mapping_info{VELOCITY};
       my $maparea = $mapping_info{WIDTH} * $mapping_info{HEIGHT};
-      $duration_per_area = ($maparea / $pixarea) * $jos->step_time;
+      $duration_per_area = ($maparea / $pixarea) * $eff_step_time;
     } elsif ($info{scanPattern} =~ /ell/i) {
       my $rx = $mapping_info{WIDTH};
       my $ry = $mapping_info{HEIGHT};
@@ -827,7 +889,7 @@ sub jos_config {
     my $nsteps;
     if (exists $info{sampleTime} && defined $info{sampleTime}) {
       # Specify the length of the sequence
-      $nsteps = $info{sampleTime} / $jos->step_time;
+      $nsteps = $info{sampleTime} / $eff_step_time;
       $self->output( "\tScan map executing for a specific time. Not map coverage\n",
                      "\tTotal duration requested for scan map: $info{sampleTime} secs.\n");
 
@@ -835,7 +897,7 @@ sub jos_config {
       my $nrepeats = ($info{nintegrations} ? $info{nintegrations} : 1 );
 
       $self->output("\tNumber of repeats of map area requested: $nrepeats\n");
-      $nsteps = ($nrepeats * $duration_per_area) / $jos->step_time;
+      $nsteps = ($nrepeats * $duration_per_area) / $eff_step_time;
     }
 
     # This calculation may well be inefficient given the TCS requirement
@@ -846,7 +908,7 @@ sub jos_config {
     # steps between darks must be at least the duration_per_area
     # otherwise the num_cycles calculation means that you end up with
     # too many repeats
-    my $steps_per_pass = $duration_per_area / $jos->step_time;
+    my $steps_per_pass = $duration_per_area / $eff_step_time;
     $tbdark = max( $tbdark, $steps_per_pass );
 
     # Maximum length of a sequence
@@ -862,7 +924,7 @@ sub jos_config {
       my $minlen = OMP::Config->getData($self->cfgkey .".".$info{obs_type}."_min_cycle_duration");
       $num_cycles = POSIX::ceil( $nsteps / $steps_per_pass );
 
-      my $div = POSIX::ceil( min( $nsteps*$jos->step_time, $minlen) / $duration_per_area);
+      my $div = POSIX::ceil( min( $nsteps*$eff_step_time, $minlen) / $duration_per_area);
       $num_cycles = POSIX::ceil( $num_cycles / $div );
 
       # No point requesting more steps than we wanted originally
@@ -889,7 +951,7 @@ sub jos_config {
     my @posang = $obsArea->posang;
     if ($obsArea->scan_pattern =~ /pong|liss|bous/i && @posang < 2) {
       # work out how many times round the pattern we are going to go
-      my $npatterns = OMP::General::nint ( ($jos_min * $jos->step_time) / $duration_per_area );
+      my $npatterns = OMP::General::nint ( ($jos_min * $eff_step_time) / $duration_per_area );
       if ($npatterns > 1) {
         # get the base position angle
         my $ref_pa = $posang[0];
@@ -915,7 +977,7 @@ sub jos_config {
     $jos->steps_btwn_dark( $jos_min )
       unless $info{obs_type} =~ /focus/;
 
-    $tot_time = $num_cycles * $jos_min * $jos->step_time;
+    $tot_time = $num_cycles * $jos_min * $eff_step_time;
     $jos->jos_min( $jos_min );
     $jos->num_cycles( $num_cycles );
 
