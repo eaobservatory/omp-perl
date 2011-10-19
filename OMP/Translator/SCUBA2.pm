@@ -505,15 +505,15 @@ sub handle_special_modes {
                                                   ".scan_pong_velocity") };
 
       if (defined $pongmode &&
-          ( $pongmode =~ /^dyn/ ||
-            $pongmode =~ /^fine/
+          ( $pongmode =~ /^dyn/i ||
+            $pongmode =~ /^fine/i
           )
          ) {
         my $map_width = $info->{MAP_WIDTH};
         my $map_height = $info->{MAP_HEIGHT};
         my $avwidth = ($map_width + $map_height) / 2;
 
-        if ($pongmode =~ /^dyn/) {
+        if ($pongmode =~ /^dyn/i) {
 
           if ( $avwidth <= 600) {
             $scan_dy = 30;
@@ -533,7 +533,7 @@ sub handle_special_modes {
             $scan_dy = 360;
             $scan_vel = 600;
           }
-        } elsif ($pongmode =~ /^fine/) {
+        } elsif ($pongmode =~ /^fine/i) {
           # Finely spaced map always has dy of 3
           $scan_dy = 3.0;
           if ($avwidth <= 150) {
