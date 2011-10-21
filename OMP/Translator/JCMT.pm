@@ -33,7 +33,7 @@ use Storable;
 use Math::Trig ();
 
 use JCMT::SMU::Jiggle;
-use JAC::OCS::Config;
+use JAC::OCS::Config 1.04;
 use JAC::OCS::Config::Error qw/ :try /;
 
 use OMP::Config;
@@ -536,14 +536,7 @@ sub tcs_base {
   if ($info{obs_type} =~ /setup|skydip|noise/ &&
       ( $info{coords}->type eq 'CAL' || $self->standard_is_autoTarget(%info) ||
         $info{autoTarget}) && !$info{currentAz} ) {
-    my $dummy_tag = "FOLLOWINGAZ";
-    my $b = JAC::OCS::Config::TCS::BASE->new();
-    $b->tag( $dummy_tag );
-    $b->tracking_system( "TRACKING" );
-    $b->coords( Astro::Coords::Fixed->new( az => 0, el => -90,
-                                           units => "degrees",
-                                           name => "Following" ) );
-    $tcs->tags( $dummy_tag => $b );
+    $tcs->insertDummyFollowingAzTag();
     return;
   }
 
