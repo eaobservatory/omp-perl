@@ -523,8 +523,8 @@ sub handle_special_modes {
             $scan_dy = 30;
             $scan_vel = 280;
           } elsif ($avwidth <= 2200) {
-            $scan_dy = 30;
-            $scan_vel = 480;
+            $scan_dy = 60;
+            $scan_vel = 400;
           } elsif ($avwidth <= 4800) {
             $scan_dy = 180;
             $scan_vel = 600;
