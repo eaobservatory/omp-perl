@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 107;
+use Test::More tests => 110;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -317,6 +317,9 @@ my %extract = (
                'm03ad07a'  => 'A JCMT DDT project m03ad07a',
 	       'm03bu135d' => 'A fallback project m03bu135d of a different type',
 	       'u/ukidss/las15' => '[u/ukidss/las15] Survey time',
+               'u/ukidss/las_p11b'   => '[u/ukidss/las_p11b]',
+               'u/ukidss/las_j2_12a' => 'make u/ukidss/las_j2_12a similar to las_p11b',
+               'u/ukidss/uds'   => 'Add special project u/ukidss/uds',
                'U/11B/H50C' => '[U/11B/H50C]',
 	      );
 
