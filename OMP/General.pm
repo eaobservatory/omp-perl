@@ -370,6 +370,21 @@ sub extract_projectid {
 
   my $projid;
 
+  my $ukidss   = qr{u/ukidss}i;
+  my $ukidss_3 = qr{$ukidss/[a-z]{3}}i;
+
+  # UKIRT UKIDSS survey program as communucations channel, like GPS, UDS;
+  my $ukidss_comm     = qr{\b($ukidss / (?:dx|g[cp]|la|ud)s )\b}xi;
+
+  # like GPS14, LAS7D;
+  my $ukidss_alphnum  = qr{\b($ukidss_3 \d+ [a-z]?)\b}xi;
+
+  # (Based on number of parts around "_" at the end.)
+  # like LAS_p11b, UDS_SV;
+  my $ukidss_two      = qr{\b($ukidss_3 _ (?:[a-z]+ \d+ [a-z]? | sv) )\b}xi;
+  # like LAS_J2_12A.
+  my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
+
   if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abc]?)\b}i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
@@ -378,11 +393,14 @@ sub extract_projectid {
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ m{\b(u/serv/\d+)\b}i            # UKIRT serv
       or $string =~ m{\b(u/ec/\d+)\b}i              # UKIRT E&C
-      or $string =~ m{\b(u/ukidss/[a-z]{3}(\d+[a-z]?|_sv)?)\b}i # UKIRT UKIDSS program
-      or $string =~ m{\b(u/ukidss/b\d+)\b}i         # UKIRT Backup UKIDSS programs
-      or $string =~ m{\b(u/ukidss/0)\b}i            # UKIRT project for email use
-      or $string =~ m{\b(u/ukidss/uh)\b}i           # UKIRT project for email use w/ UH
-      or $string =~ m{\b(u/ukidss/casu)\b}i         # UKIRT project for email use w/ CASU
+      or $string =~ $ukidss_alphnum
+      or $string =~ $ukidss_two
+      or $string =~ $ukidss_three
+      or $string =~ $ukidss_comm
+      or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
+      or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
+      or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH
+      or $string =~ m{\b($ukidss/casu)\b}i          # UKIRT project for email use w/ CASU
       or $string =~ m{\b(u/cmp/\d+)\b}i             # UKIRT Campaigns
       or $string =~ /\b(nls\d+)\b/i                 # JCMT Dutch service (deprecated format)
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
