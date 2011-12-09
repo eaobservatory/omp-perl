@@ -278,6 +278,14 @@ run number stand a much better chance of working.
 Information is returned as a C<OMP::Info::Obs> object (or C<undef>
 if no observation matches).
 
+If you aren't sure what instrument was used but know that it was
+a heterodyne instrument then you can specify multiple instruments.
+
+  $obsinfo = $db->getObs( telescope => "JCMT",
+                         ut => 20111026,
+                         instruments => [qw/ HARP RXA3 RXWD /],
+                         runnr => 57 );
+
 A single observation ID is sufficient in some cases.
 
   $obsinfo = $db->getObs( obsid => $obsid );
@@ -308,8 +316,17 @@ sub getObs {
   if ( defined( $args{runnr} ) && length( $args{runnr} ) ) {
     $xml .= "<runnr>" . $args{runnr} . "</runnr>";
   }
-  if ( defined( $args{instrument} ) && length( $args{instrument} ) ) {
-    $xml .= "<instrument>" . $args{instrument} . "</instrument>";
+  if ( exists $args{instrument} && defined( $args{instrument} ) ) {
+    my @instruments;
+    if (ref($args{instrument}) eq 'ARRAY') {
+      push(@instruments, @{$args{instrument}});
+    } else {
+      push(@instruments, $args{instrument});
+    }
+    for my $i (@instruments) {
+      $xml .= "<instrument>" . $i . "</instrument>"
+        if (defined $i && length($i));
+    }
   }
   if ( defined( $args{ut} ) && length( $args{ut} ) ) {
     $xml .= "<date delta=\"1\">" . $args{ut} . "</date>";
