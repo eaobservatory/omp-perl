@@ -140,6 +140,10 @@ sub getProject {
       }
     }
     return "JCMTCAL";
+  } elsif ( defined $info{PROJECTID} && $info{PROJECTID} eq 'CAL') {
+    # CAL project ID but was not flagged as standard
+    # so force to JCMTCAL for consistency with standards
+    return "JCMTCAL";
   } elsif ( defined $info{PROJECTID} && $info{PROJECTID} ne 'UNKNOWN' ) {
     # if the project ID is not known, we need to use a ACSIS or SCUBA2 project
     return $info{PROJECTID};
