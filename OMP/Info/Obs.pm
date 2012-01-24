@@ -582,7 +582,6 @@ Array Accessors
 
 =item B<comments>
 
-=back
 
 =item B<filename>
 
@@ -603,6 +602,8 @@ An optional flag can be used to force a raw data directory to be prepended
 if no path is present in the filename.
 
   $obs->filename( \@filesnames, $ensure_full_path );
+
+=back
 
 =cut
 
