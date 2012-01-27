@@ -2,17 +2,17 @@
 
 =head1 NAME
 
-scuba2-time - Generate SCUBA-2 usage statistics
+scuba2-acct - Generate SCUBA-2 usage statistics
 
 =head1 SYNOPSIS
 
 Show usage only for Jan 13 2012 ...
 
-  scuba2-time  20120113
+  scuba2-acct  20120113
 
 Show usage for Jan 13 2012 to Jan 23 2012 ...
 
-  scuba2-time  20120113 20120123
+  scuba2-acct  20120113 20120123
 
 
 =head1 DESCRIPTION
