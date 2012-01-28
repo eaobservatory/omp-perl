@@ -337,6 +337,9 @@ sub get_flag_files {
 
     return unless $list && scalar @{ $list };
 
+    return @{ $list }
+      unless $RETURN_RECENT_FILES;
+
     my @send;
     my %mod = _get_mod_epoch( $list, $mute );
 
