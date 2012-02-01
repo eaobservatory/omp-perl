@@ -28,6 +28,8 @@ Currently assumes JCMT.
 
 =head1 OPTIONS
 
+=over 2
+
 =item B<-help>
 
 A help message.
@@ -65,13 +67,13 @@ my $OTHER_INST = 'Other Instruments';
 
 my $man;
 my $help;
-my $verbose;
 
-my $result = GetOptions(
-                        "verbose" => \$verbose,
-                        "h|help" => \$help,
-                        "man" => \$man,
-                       );
+my $result = GetOptions( "h|help" => \$help,
+                          "man"   => \$man,
+                        );
+
+$man  and pod2usage( '-exitval' => 1, '=verbose' => 10);
+$help and pod2usage( '-exitval' => 1, '=verbose' => 0);
 
 my ( $start_date , $end_date ) = @ARGV[0,1];
 
