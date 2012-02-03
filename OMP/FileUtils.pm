@@ -340,6 +340,10 @@ sub get_flag_files {
     return @{ $list }
       unless $RETURN_RECENT_FILES;
 
+    # Skip filtering to narrow down temporary time gap problem.
+    return @{ $list }
+      if $list->[0] =~ /[.](?:meta|ok)\b/;
+
     my @send;
     my %mod = _get_mod_epoch( $list, $mute );
 
