@@ -410,7 +410,7 @@ sub populate {
 
   # Form the XML.[restrict the keys]
   for my $key ( @keys ) {
-    if (exists $args{$key}) {
+    if (exists $args{$key} && defined $args{$key}) {
       $xmlbit .= "<$key>$args{$key}</$key>";
     }
   }
