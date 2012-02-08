@@ -55,6 +55,7 @@ BEGIN {
 
 use OMP::DateTools;
 use OMP::NightRep;
+use OMP::SCUBA2Acct;
 
 use Getopt::Long;
 use Pod::Usage;
@@ -65,11 +66,11 @@ my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
 
-my $man;
-my $help;
+my ( $man, $help, $tss_sched );
 
 my $result = GetOptions( "h|help" => \$help,
                           "man"   => \$man,
+                          'tss=s' => \$tss_sched,
                         );
 
 $man  and pod2usage( '-exitval' => 1, '=verbose' => 10);
@@ -86,6 +87,8 @@ for ( $start_date, $end_date ) {
   $_ = OMP::DateTools->parse_date( $_ );
 }
 $end_date = $start_date unless $end_date;
+
+my %schedule = OMP::SCUBA2Acct::make_schedule( $tss_sched );
 
 my ( %stat );
 my $date = $start_date;
