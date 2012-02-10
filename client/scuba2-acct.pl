@@ -138,13 +138,18 @@ sub generate_stat {
 
   my $group = $rep->obs() or return;
 
-  my ( %stat, @scuba2 );
+  my ( %stat, @scuba2, %obs_time );
   for my $obs ( $group->obs() )
   {
     my $inst = $obs->instrument() or return;
 
-    push @scuba2, $obs->projectid()
-      if $SCUBA2 eq uc $inst;
+    if ( $SCUBA2 eq uc $inst ) {
+
+      push @scuba2, $obs->projectid();
+
+      $obs_time{ $date } or $obs_time{ $date } = {};
+      save_obs_time( $obs_time{ $date }, $obs->startobs(), $obs->endobs() );
+    }
   }
   if ( scalar @scuba2 ) {
 
@@ -153,9 +158,29 @@ sub generate_stat {
 
     $stat{'inst'}  = get_inst_proj_time( \%acct, @scuba2 );
     $stat{'fault'} = get_fault_time( $rep->faults(), @scuba2 );
+
+    $stat{'start-end'} = { %obs_time };
   }
 
   return %stat;
+}
+
+sub save_obs_time {
+
+  my ( $hash, $start, $end ) = @_;
+
+  my $old_start = $hash->{'start'};
+  my $old_end   = $hash->{'end'};
+
+  $hash->{'start'} = $start
+    if ! defined $old_start
+    || ( defined $start && $start < $old_start );
+
+  $hash->{'end'} = $end
+    if ! defined $old_end
+    || ( defined $end && $end > $old_end );
+
+  return;
 }
 
 sub get_inst_proj_time {
