@@ -36,7 +36,7 @@ our $DEBUG = 0;
 
 my @month_name = (qw[jan feb mar apr may jun jul aug sep oct nov dec]);
 my ( %map_month, %rev_map_month );
-@map_month{ @month_name } = ( 1 .. 12 );
+@map_month{ @month_name } = map { sprintf '%02d' , $_ } ( 1 .. 12 );
 @rev_map_month{ values %map_month } = keys %map_month;
 
 =head1 METHODS/FUNCTIONS
@@ -60,7 +60,7 @@ my ( %map_month, %rev_map_month );
 #
 #     TSS     UTdate
 #
-#         Oct
+#        2011-10
 #
 #     JAC     2
 #     "       3
@@ -114,8 +114,18 @@ sub make_schedule {
         )
       }ix;
 
-  my $month_re = join '|', @month_name;
-     $month_re = qr{^\s*($month_re)\b}ix;
+  my $date_sep_re = qr{[-./ ]+};
+
+  # Make regex to take care of either month name or number.
+  my $month_name_re = join '|', @month_name;
+  my $month_num_re  = join '|', sort values %map_month;
+  my $month_re      = qr{^\s*
+                          ( \d{4}
+                            (?:$date_sep_re)?
+                            (?:$month_num_re|$month_name_re)
+                          )
+                          \b
+                        }ix;
 
   my $tss_repeat    = q["];
   my $tss_sep       = q[/];
@@ -135,7 +145,7 @@ sub make_schedule {
 
     if ( $line =~ $month_re ) {
 
-      $month = lc $1;
+      ( $month = lc $1 ) =~ s{$date_sep_re}//g;
       next;
     }
 
@@ -147,7 +157,9 @@ sub make_schedule {
     ! $use_old and $old_tss = $tss;
 
     my $date =
-      sprintf "%02d-%02d", $map_month{ $month }, $day;
+      sprintf "%02d%02d",
+        exists $map_month{ $month } ? $map_month{ $month } : $month,
+        $day;
 
     push @{ $data{ $date } },
       split $tss_sep, $use_old ? $old_tss : $tss
