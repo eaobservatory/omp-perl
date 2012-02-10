@@ -59,6 +59,7 @@ use OMP::SCUBA2Acct;
 
 use Getopt::Long;
 use Pod::Usage;
+use List::Util 'max';
 use Time::Seconds 'ONE_DAY';
 
 my $TELESCOPE  = 'JCMT';
@@ -66,45 +67,86 @@ my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
 
-my ( $man, $help, $tss_sched );
-
+my ( $schedule_file );
+my ( $man, $help );
 my $result = GetOptions( "h|help" => \$help,
                           "man"   => \$man,
-                          'tss=s' => \$tss_sched,
-                        );
+                          'tss=s' => \$schedule_file,
+                        )
+                or pod2usage( '-exitval' => 1, '=verbose' => 10);
 
 $man  and pod2usage( '-exitval' => 1, '=verbose' => 10);
 $help and pod2usage( '-exitval' => 1, '=verbose' => 0);
 
-my ( $start_date , $end_date ) = @ARGV[0,1];
+my ( %tss_sched, @date );
 
-die "No start date given.\n"
-  unless $start_date;
+if ( $schedule_file ) {
 
-for ( $start_date, $end_date ) {
+  die "TSS schedule ($schedule_file) is unreadable\n"
+    unless -r $schedule_file;
 
-  next unless $_;
-  $_ = OMP::DateTools->parse_date( $_ );
+  %tss_sched = OMP::SCUBA2Acct::make_schedule( $schedule_file );
+
+  @date = sort keys %tss_sched;
 }
-$end_date = $start_date unless $end_date;
+else {
 
-my %schedule = OMP::SCUBA2Acct::make_schedule( $tss_sched );
+  @date = get_dates( @ARGV[0,1] );
+}
 
-my ( %stat );
-my $date = $start_date;
+my %stat;
+for my $date ( @date ) {
 
-while ( $date <= $end_date ) {
+  my %data = generate_stat( $date ) or next;
+  $stat{ $date } = $data{'inst'};
+  $stat{ $date }->{'FAULTS'} = $data{'fault'};
 
-  my $date_str = $date->ymd( '' );
+  $stat{ $date }->{'TSS'} =
+    exists $tss_sched{ $date }
+    ? $tss_sched{ $date }
+    : ''
+    ;
+}
+print_stat( %stat );
+exit;
 
-  my $rep = OMP::NightRep->new( 'date' => $date_str, 'telescope' => $TELESCOPE );
 
-  my $group = $rep->obs() or next;
+sub get_dates {
 
-  my @scuba2;
+  my ( $start, $end ) = @_;
+
+  die "No start date given.\n" unless $start;
+
+  for ( $start, $end ) {
+
+    next unless $_;
+    $_ = OMP::DateTools->parse_date( $_ );
+  }
+
+  my ( @list, $date );
+
+  $end = $start unless $end;
+  while ( $date <= $end ) {
+
+    push @list, $date->ymd( '' );
+    $date += ONE_DAY;
+  }
+
+  return @list;
+}
+
+sub generate_stat {
+
+  my ( $date ) = @_;
+
+  my $rep = OMP::NightRep->new( 'date' => $date, 'telescope' => $TELESCOPE );
+
+  my $group = $rep->obs() or return;
+
+  my ( %stat, @scuba2 );
   for my $obs ( $group->obs() )
   {
-    my $inst = $obs->instrument() or next;
+    my $inst = $obs->instrument() or return;
 
     push @scuba2, $obs->projectid()
       if $SCUBA2 eq uc $inst;
@@ -114,44 +156,56 @@ while ( $date <= $end_date ) {
     my %acct = $rep->accounting();
     show_warnings( \%acct );
 
-    $stat{ $date_str } = get_inst_proj_time( \%acct, @scuba2 );
-    $stat{ $date_str }->{'FAULTS'} = get_fault_time( $rep->faults(), @scuba2 );
+    $stat{'inst'}  = get_inst_proj_time( \%acct, @scuba2 );
+    $stat{'fault'} = get_fault_time( $rep->faults(), @scuba2 );
   }
 
-  $date += ONE_DAY;
+  return %stat;
 }
 
-print_stat( %stat );
-exit;
+sub get_inst_proj_time {
 
+ my ( $acct, @scuba2_proj ) = @_;
 
-sub print_stat {
+  my @ignore = ( 'WEATHER', 'EXTENDED', 'OTHER', 'UNKNOWN', 'FAULTS' , 'CAL' );
+  my $ignore = join '|', @ignore;
+     $ignore = qr{(?:$ignore)$}i;
 
-  my ( %stat ) = @_;
+  my %time;
+  for my $proj ( keys %{ $acct } ) {
 
-             print "Date     SCUBA-2 Time    CAL Time  Fault Loss\n";
-  my     $format = "%8s       %0.2f          %0.2f     %0.2f\n";
-  my $format_sum = (' ') x ( 8 + 6 )
-                           . "%0.2f         %0.2f     %0.2f\n";
+    next if $proj =~ $ignore;
 
-  my ( $s2_sum, $s2_cal_sum, $fault_sum );
+    my $save =
+      scalar grep( $proj eq $_, @scuba2_proj )
+      ? $SCUBA2
+      : $OTHER_INST;
 
-  for my $date ( sort keys %stat ) {
-
-    my @time = map { $stat{ $date }->{ $_ } } ( $SCUBA2, $SCUBA2_CAL, 'FAULTS' );
-
-    $s2_sum     += $time[0];
-    $s2_cal_sum += $time[1];
-    $fault_sum  += $time[2];
-
-    printf $format, $date, @time;
+    # Instead of creating a layer of indirection with $time{ $save }->{ $proj }
+    # to be expanded later, just sum up now.
+    $time{ $save } += extract_time( $acct->{ $proj } );
   }
 
-  print "-------------------------------------------------\n";
-  printf $format_sum, $s2_sum, $s2_cal_sum, $fault_sum;
-  return;
-}
+  my @cal = grep { /CAL/ } keys %{ $acct };
+  $time{'CAL'} += extract_time( $acct->{ $_ } ) for @cal;
 
+  # 1 microsecond.
+  my $min_diff = 1e-6;
+
+  my $s2_time    = $time{ $SCUBA2 } || 0.0;
+  my $other_time = $time{ $OTHER_INST } || 0.0;
+  my $inst_total = $s2_time + $other_time;
+  if ( $inst_total > $min_diff ) {
+
+    $time{ $SCUBA2_CAL } = ( $time{'CAL'} * $s2_time ) / $inst_total ;
+  }
+  # Convert to hours.
+  for my $key ( keys %time ) {
+
+    $time{ $key } = sprintf '%0.2f', $time{ $key }/3600;
+  }
+  return \%time;
+}
 
 sub get_fault_time {
 
@@ -178,52 +232,11 @@ sub get_fault_time {
   return sum_hashref_time( \%time );
 }
 
-sub get_inst_proj_time {
-
- my ( $acct, @scuba2_proj ) = @_;
-
-  my @ignore = ( 'WEATHER', 'EXTENDED', 'OTHER', 'UNKNOWN', 'FAULTS' , 'CAL' );
-  my $ignore = join '|', @ignore;
-     $ignore = qr{(?:$ignore)$}i;
-
-  my %time;
-  for my $proj ( keys %{ $acct } ) {
-
-    next if $proj =~ $ignore;
-
-    my $save =
-      scalar grep( $proj eq $_, @scuba2_proj )
-      ? $SCUBA2
-      : $OTHER_INST;
-
-    # Instead of creating a layer of indirection with $time{ $save }->{ $proj }
-    # to be expanded later, just sum up now.
-    $time{ $save } += extract_hours( $acct->{ $proj } );
-  }
-
-  my @cal = grep { /CAL/ } keys %{ $acct };
-  $time{'CAL'} += extract_hours( $acct->{ $_ } ) for @cal;
-
-  my $s2_time    = $time{ $SCUBA2 };
-  my $other_time = $time{ $OTHER_INST };
-  my $inst_total = $s2_time + $other_time;
-  if ( $inst_total > 0 ) {
-
-    $time{ $SCUBA2_CAL } = ( $time{'CAL'} * $s2_time ) / $inst_total ;
-  }
-  # Convert to hours.
-  for my $key ( keys %time ) {
-
-    $time{ $key } /= 3600;
-  }
-  return \%time;
-}
-
 sub sum_hashref_time {
 
   my ( $hash ) = @_;
 
-  my $s = 0;
+  my $s = 0.0;
   for my $k ( keys %{ $hash } ) {
 
     $s += $hash->{ $k };
@@ -231,7 +244,7 @@ sub sum_hashref_time {
   return $s;
 }
 
-sub extract_hours {
+sub extract_time {
 
   my ( $acct ) = @_;
 
@@ -270,6 +283,86 @@ sub show_warnings {
 
   print join "\n", "Warnings from header analysis:", @{ $warn }, '';
   return;
+}
+
+sub print_stat {
+
+  my ( %stat ) = @_;
+
+  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'TOTAL' );
+  my @col_name = ( 'Date   ', @time_name, 'TSS' );
+
+  my $format = make_col_format( \@time_name, \@col_name );
+
+#epl( $format , \@col_name ) ; die;
+
+  my $header = sprintf $format, @col_name;
+  print $header;
+
+  my ( $s2_sum, $s2_cal_sum, $fault_sum, $row_sum );
+
+  for my $date ( sort keys %stat ) {
+
+    my @time =
+      map { defined $_ ? $_ : 0.0 }
+      map { $stat{ $date }->{ $_ } } ( $SCUBA2, $SCUBA2_CAL, 'FAULTS' );
+
+    $s2_sum     += $time[0];
+    $s2_cal_sum += $time[1];
+    $fault_sum  += $time[2];
+
+    my $row;
+    $row     += $_ for @time;
+    $row_sum += $row;
+
+    printf $format,
+      $date,
+      map( sprintf( '%0.2f', $_ ), @time, $row ),
+      join ' ', @{ $stat{ $date }->{'TSS'} }
+      ;
+  }
+
+  print +( '-' ) x length $header, "\n";
+  printf $format,
+    '',
+    ( map sprintf( '%0.2f', $_ ),
+            $s2_sum,
+            $s2_cal_sum,
+            $fault_sum,
+            $row_sum,
+    ),
+    ''
+    ;
+
+  return;
+}
+
+sub make_col_format {
+
+  my ( $time_name, $col_name ) = @_;
+
+  my %col_format;
+
+  # End columns.
+  for my $name ( @{ $col_name } ) {
+
+    if ( $name =~ /Date/ ) {
+
+      $col_format{ $name } = '%8s';
+    }
+    elsif ( $name eq 'TSS' ) {
+
+      $col_format{ $name } = '%3s';
+    }
+  }
+  # Time format.
+  for my $name ( @{ $time_name } ) {
+
+    my $max = max ( length $name, 6 );
+    $col_format{ $name } = '%' . $max . 's';
+  }
+
+  return join( '  ', @col_format{ @{ $col_name } } ) . "\n";
 }
 
 
