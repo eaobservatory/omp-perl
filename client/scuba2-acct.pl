@@ -92,61 +92,42 @@ my $result = GetOptions( "h|help" => \$help,
 $man  and pod2usage( '-exitval' => 1, '=verbose' => 10);
 $help and pod2usage( '-exitval' => 1, '=verbose' => 0);
 
-my ( %tss_sched, @date );
+die "TSS schedule ($schedule_file) is unreadable\n"
+  unless -r $schedule_file;
 
-if ( $schedule_file ) {
+my %tss_sched = OMP::SCUBA2Acct::make_schedule( $schedule_file )
+  or die "Could not parse schedule file.\n";
 
-  die "TSS schedule ($schedule_file) is unreadable\n"
-    unless -r $schedule_file;
-
-  %tss_sched = OMP::SCUBA2Acct::make_schedule( $schedule_file );
-
-  @date = sort keys %tss_sched;
-}
-else {
-
-  @date = get_dates( @ARGV[0,1] );
-}
+my @filter = verify_date( @ARGV );
+@filter = sort keys %tss_sched
+  unless scalar @filter;
 
 my %stat;
-for my $date ( @date ) {
+for my $date ( @filter ) {
 
   my %data = generate_stat( $date ) or next;
   $stat{ $date } = $data{'inst'};
   $stat{ $date }->{'FAULTS'} = $data{'fault'};
 
-  $stat{ $date }->{'TSS'} =
-    exists $tss_sched{ $date }
-    ? $tss_sched{ $date }
-    : ''
-    ;
+  $stat{ $date }->{'TSS'} = $tss_sched{ $date }
+    if exists $tss_sched{ $date } ;
 }
 print_stat( %stat );
 exit;
 
 
-sub get_dates {
+sub verify_date {
 
-  my ( $start, $end ) = @_;
+  my ( @date ) = @_;
 
-  die "No start date given.\n" unless $start;
-
-  for ( $start, $end ) {
+  for ( @date ) {
 
     next unless $_;
-    $_ = OMP::DateTools->parse_date( $_ );
+    $_ = OMP::DateTools->parse_date( $_ ) or next;
+    $_ = $_->ymd( '' );
   }
 
-  my ( @list, $date );
-
-  $end = $start unless $end;
-  while ( $date <= $end ) {
-
-    push @list, $date->ymd( '' );
-    $date += ONE_DAY;
-  }
-
-  return @list;
+  return @date;
 }
 
 sub generate_stat {
@@ -258,6 +239,20 @@ sub sum_hashref_time {
   return $s;
 }
 
+sub sum_time {
+
+  my ( $list ) = @_;
+
+  my $s = 0.0;
+  for my $k ( @{ $list } ) {
+
+    $s += $k;
+  }
+  return $s;
+}
+
+
+
 sub extract_time {
 
   my ( $acct ) = @_;
@@ -319,6 +314,7 @@ sub print_stat {
   my $header = sprintf $format, @col_name;
   print $header;
 
+  my %tss_sum;
   my ( $s2_sum, $s2_cal_sum, $fault_sum, $row_sum );
 
   for my $date ( sort keys %stat ) {
@@ -326,6 +322,10 @@ sub print_stat {
     my @time =
       map { defined $_ ? $_ : 0.0 }
       map { $stat{ $date }->{ $_ } } ( $SCUBA2, $SCUBA2_CAL, 'FAULTS' );
+
+    my @tss_list;
+    @tss_list = @{ $stat{ $date }->{'TSS'} }
+      if exists $stat{ $date }->{'TSS'};
 
     $s2_sum     += $time[0];
     $s2_cal_sum += $time[1];
@@ -335,10 +335,15 @@ sub print_stat {
     $row     += $_ for @time;
     $row_sum += $row;
 
+    for my $tss ( @tss_list ) {
+
+      $tss_sum{ $tss } += $row;
+    }
+
     printf $format,
       $date,
       map( sprintf( '%0.2f', $_ ), @time, $row ),
-      join ' ', @{ $stat{ $date }->{'TSS'} }
+      join ' ', @tss_list
       ;
   }
 
@@ -353,6 +358,14 @@ sub print_stat {
     ),
     ''
     ;
+
+  my $tss_sum_format = "  %s  %0.2f\n";
+
+  print "\n";
+  for my $tss ( sort keys %tss_sum ) {
+
+    printf $tss_sum_format, $tss, $tss_sum{ $tss };
+  }
 
   return;
 }
@@ -372,7 +385,7 @@ sub make_col_format {
     }
     elsif ( $name eq 'TSS' ) {
 
-      $col_format{ $name } = '%3s';
+      $col_format{ $name } = '%s';
     }
   }
   # Time format.
