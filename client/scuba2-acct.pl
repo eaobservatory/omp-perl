@@ -67,6 +67,20 @@ my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
 
+#  "It seems reasonable for you to define daytime as anything after 9:30am and
+#  before 2pm [HST] and after 2pm and before 5pm [HST]. Note that in UT-land a
+#  daytime TSS can be in two UT dates and [...] they will all probably start
+#  before 2pm on the UT date listed and continue afterwards [...]" -- Tim,
+#  <CA+G92Rfe547Yte4j6fA-FGa398=+JcRzFyC-ZNCkiMEvieY5cQ@mail.gmail.com>.
+#
+# Schedule is in HST time zone (-1000).
+my %DAYTIME_UT =
+  ( # 9.30a to < 2p HST;
+    'prev' => [ '19:30:00', '23:59:59' ],
+    # 2p    to < 5p HST.
+    'next' => [ '00:00:00', '03:59:59' ],
+  );
+
 my ( $schedule_file );
 my ( $man, $help );
 my $result = GetOptions( "h|help" => \$help,
@@ -288,6 +302,12 @@ sub show_warnings {
 sub print_stat {
 
   my ( %stat ) = @_;
+
+  unless ( scalar keys %stat ) {
+
+    print "No data found.\n";
+    return;
+  }
 
   my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'TOTAL' );
   my @col_name = ( 'Date   ', @time_name, 'TSS' );
