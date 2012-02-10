@@ -276,8 +276,6 @@ sub sum_time {
   return $s;
 }
 
-
-
 sub extract_time {
 
   my ( $acct ) = @_;
