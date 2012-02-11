@@ -60,25 +60,35 @@ use OMP::SCUBA2Acct;
 use Getopt::Long;
 use Pod::Usage;
 use List::Util 'max';
-use Time::Seconds 'ONE_DAY';
+
+use DateTime;
+use DateTime::Duration;
+use DateTime::Format::ISO8601;
+
+#use Time::Piece ( 'localtime' );
+#use Time::Seconds 'ONE_DAY';
 
 my $TELESCOPE  = 'JCMT';
 my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
 
+my $UTC_TZ = 'UTC';
+my $HST_TZ = 'Pacific/Honolulu';
+my $HST_OFFSET = DateTime->now( 'time_zone' => $HST_TZ )->offset();
+
 #  "It seems reasonable for you to define daytime as anything after 9:30am and
-#  before 2pm [HST] and after 2pm and before 5pm [HST]. Note that in UT-land a
+#  before 2pm and after 2pm and before 5pm Note that in UT-land a
 #  daytime TSS can be in two UT dates and [...] they will all probably start
 #  before 2pm on the UT date listed and continue afterwards [...]" -- Tim,
 #  <CA+G92Rfe547Yte4j6fA-FGa398=+JcRzFyC-ZNCkiMEvieY5cQ@mail.gmail.com>.
 #
 # Schedule is in HST time zone (-1000).
-my %DAYTIME_UT =
+my %DAYTIME_HST =
   ( # 9.30a to < 2p HST;
-    'prev' => [ '19:30:00', '23:59:59' ],
+    'prev' => [ '09:30:00', '14:00:00' ],
     # 2p    to < 5p HST.
-    'next' => [ '00:00:00', '03:59:59' ],
+    'next' => [ '14:00:00',  '17:00:00' ]
   );
 
 my ( $schedule_file );
@@ -111,6 +121,8 @@ for my $date ( @filter ) {
 
   $stat{ $date }->{'TSS'} = $tss_sched{ $date }
     if exists $tss_sched{ $date } ;
+
+  $stat{ $date }->{'start-end'} = $data{'start-end'};
 }
 print_stat( %stat );
 exit;
@@ -139,6 +151,7 @@ sub generate_stat {
   my $group = $rep->obs() or return;
 
   my ( %stat, @scuba2, %obs_time );
+  my $i = 0;
   for my $obs ( $group->obs() )
   {
     my $inst = $obs->instrument() or return;
@@ -147,8 +160,7 @@ sub generate_stat {
 
       push @scuba2, $obs->projectid();
 
-      $obs_time{ $date } or $obs_time{ $date } = {};
-      save_obs_time( $obs_time{ $date }, $obs->startobs(), $obs->endobs() );
+      $stat{'start-end'}->[ $i++ ] = [ $obs->startobs(), $obs->endobs() ];
     }
   }
   if ( scalar @scuba2 ) {
@@ -158,8 +170,6 @@ sub generate_stat {
 
     $stat{'inst'}  = get_inst_proj_time( \%acct, @scuba2 );
     $stat{'fault'} = get_fault_time( $rep->faults(), @scuba2 );
-
-    $stat{'start-end'} = { %obs_time };
   }
 
   return %stat;
@@ -327,18 +337,16 @@ sub print_stat {
     return;
   }
 
-  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'TOTAL' );
+  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', '(Daytime)', 'TOTAL' );
   my @col_name = ( 'Date   ', @time_name, 'TSS' );
 
-  my $format = make_col_format( \@time_name, \@col_name );
-
-#epl( $format , \@col_name ) ; die;
+  my $format     = make_col_format( \@time_name, \@col_name );
 
   my $header = sprintf $format, @col_name;
   print $header;
 
   my %tss_sum;
-  my ( $s2_sum, $s2_cal_sum, $fault_sum, $row_sum );
+  my ( $s2_sum, $s2_cal_sum, $fault_sum, $day_sum, $row_sum );
 
   for my $date ( sort keys %stat ) {
 
@@ -358,25 +366,33 @@ sub print_stat {
     $row     += $_ for @time;
     $row_sum += $row;
 
+    my %day_time = day_time( $stat{ $date }->{'start-end'} );
+    my $day_tss  = 0.0;
+       $day_tss += $day_time{ $date } for keys %day_time;
+
+    $day_sum += $day_tss;
+
     for my $tss ( @tss_list ) {
 
-      $tss_sum{ $tss } += $row;
+      $tss_sum{ $tss }->{'total'}    += $row;
+      $tss_sum{ $tss }->{'day-time'} += $day_tss;
     }
 
     printf $format,
       $date,
-      map( sprintf( '%0.2f', $_ ), @time, $row ),
+      map( sprintf( '%0.2f', $_ ), @time, $day_tss, $row ),
       join ' ', @tss_list
       ;
   }
 
   print +( '-' ) x length $header, "\n";
-  printf $format,
+  printf $sum_format,
     '',
     ( map sprintf( '%0.2f', $_ ),
             $s2_sum,
             $s2_cal_sum,
             $fault_sum,
+            $day_sum,
             $row_sum,
     ),
     ''
@@ -391,15 +407,148 @@ sub print_tss_stat {
 
   return unless keys %{ $tss_sum };
 
-  my $tss_sum_format = "  %s  %0.2f\n";
-
+  my $tss_sum_format = "  %s  %6s\n";
   print "\n";
   for my $tss ( sort keys %{ $tss_sum } ) {
 
-    printf $tss_sum_format, $tss, $tss_sum->{ $tss };
+    printf $tss_sum_format, $tss, $tss_sum->{ $tss }{'total'};
   }
 
   return;
+}
+
+sub day_time {
+
+  my ( $time ) = @_;
+
+  return
+    unless $time
+    && ref $time
+    && scalar @{ $time };
+
+  my @prev = @{ $DAYTIME_HST{'prev'} };
+  my @next = @{ $DAYTIME_HST{'next'} };
+
+  my ( %time );
+  for my $pair( @{ $time } ) {
+
+    my ( $start, $end ) = @{ $pair }[0,1];
+
+    # Time::Piece objects come via OMP::Info::Obs.
+    die "Need obs start and end times as Time::Piece objects to find daytime hours.\n"
+      unless is_TimePiece( $start )
+          && is_TimePiece( $end );
+
+    my ( $start_hst, $end_hst ) = to_HST( $start, $end );
+
+    my ( $start_date, $end_date ) = map { $_->ymd( '' ) } ( $start_hst, $end_hst );
+
+    # Prime, in case no daytime duration is available.
+    $time{ $start_date } += 0.0;
+    $time{ $end_date }   += 0.0;
+
+    my ( $at_930, undef, $at_1400, $at_1700 ) =
+      map { make_time( $start_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
+
+    my ( $at_930_e, undef, $at_1400_e, $at_1700_e ) =
+      map { make_time( $end_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
+
+   # Before 9.30a or after 5p.
+    next
+      if $end_hst   <  $at_930_e
+      || $start_hst >= $at_1700;
+
+    # Latest time.
+    my $alt_start = $start_hst < $at_930    ? $at_930  : $start_hst;
+
+    # Earliest time.
+    my $alt_end   = $end_hst   < $at_1700_e ? $end_hst : $at_1700_e;
+
+    # Contained within same UT date:
+    #    start >= 9.30a & end < 2p
+    # OR start >= 2p    & end < 5p.
+    if ( $end_hst < $at_1400_e || $start_hst >= $at_1400 ) {
+
+      $time{ $start_date } += diff_time( $alt_start, $alt_end );
+      next;
+    }
+
+    # Split over two UT dates:
+    #  9.30a <= start < 2p, end > 2p.
+    $time{ $start_date } += diff_time( $alt_start, $at_1400 );
+    $time{ $end_date }   += diff_time( $at_1400, $alt_end );
+  }
+
+  return %time;
+}
+
+sub to_HST {
+
+  my ( @time ) = @_;
+
+  my @out;
+  for my $t ( @time ) {
+
+    my $alt =
+      is_DateTime( $t )
+      ? $t
+      : is_TimePiece( $t )
+        ? TimePiece_to_DateTime( $t )
+        : undef
+        ;
+
+    $alt->set_time_zone( $HST_TZ )
+      unless $HST_OFFSET == $alt->offset();
+
+    push @out,  $alt;
+  }
+
+  return @out;
+}
+
+sub diff_time {
+
+  my ( $t1, $t2 ) = @_;
+
+  # Don't care for negative values.
+  die "Unexpected values given: t1: $t1, t2: $t2\n"
+    if $t1 > $t2;
+
+  # Difference is Time::Seconds; so convert to hours.
+  my $diff = $t2 - $t1;
+  return $diff->in_units( 'hours' );
+
+}
+
+sub is_TimePiece { return _is_type( $_[0], 'Time::Piece' ); }
+sub is_DateTime  { return _is_type( $_[0], 'DateTime' ); }
+sub _is_type     { return $_[0] && ref $_[0] && $_[0]->isa( $_[1] ); }
+
+sub TimePiece_to_DateTime {
+
+  my ( $tp, $tz ) = @_;
+
+  return
+    DateTime->from_epoch( 'epoch'     => $tp->epoch(),
+                          'time_zone' => defined $tz ? $tz : $UTC_TZ
+                        );
+}
+
+sub make_time {
+
+  my ( $date, $time, $tz ) = @_;
+
+  $tz = $UTC_TZ unless defined $tz;
+
+  my $sep_re  = qr{[-.:/\ ]*}x;
+  my $num2_re = qr{(\d{2})};
+  my @date = ( $date =~ m{^(\d{4})  $sep_re $num2_re $sep_re $num2_re }x );
+  my @time = ( $time =~ m{^$num2_re $sep_re $num2_re $sep_re $num2_re }x );
+  my %dt;
+  @dt{('year', 'month', 'day')}     = @date;
+  @dt{('hour', 'minute', 'second')} = @time;
+
+  return DateTime->new( %dt, 'time_zone' => $tz );
 }
 
 sub make_col_format {
