@@ -382,12 +382,21 @@ sub print_stat {
     ''
     ;
 
+  return print_tss_stat( $stat{'start-end'}, \%tss_sum );
+}
+
+sub print_tss_stat {
+
+  my ( $obs_time, $tss_sum ) = @_;
+
+  return unless keys %{ $tss_sum };
+
   my $tss_sum_format = "  %s  %0.2f\n";
 
   print "\n";
-  for my $tss ( sort keys %tss_sum ) {
+  for my $tss ( sort keys %{ $tss_sum } ) {
 
-    printf $tss_sum_format, $tss, $tss_sum{ $tss };
+    printf $tss_sum_format, $tss, $tss_sum->{ $tss };
   }
 
   return;
