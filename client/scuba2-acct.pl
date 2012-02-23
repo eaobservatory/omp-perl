@@ -368,7 +368,7 @@ sub print_stat {
 
     my %day_time = day_time( $stat{ $date }->{'start-end'} );
     my $day_tss  = 0.0;
-       $day_tss += $day_time{ $date } for keys %day_time;
+       $day_tss += $day_time{ $date } || 0.0 for keys %day_time;
 
     $day_sum += $day_tss;
 
@@ -386,7 +386,7 @@ sub print_stat {
   }
 
   print +( '-' ) x length $header, "\n";
-  printf $sum_format,
+  printf $format,
     '',
     ( map sprintf( '%0.2f', $_ ),
             $s2_sum,
@@ -439,13 +439,16 @@ sub day_time {
       unless is_TimePiece( $start )
           && is_TimePiece( $end );
 
+    my ( $start_ut_string, $end_ut_string ) =
+      map { $_->ymd( '' ) } ( $start, $end );
+
     my ( $start_hst, $end_hst ) = to_HST( $start, $end );
 
     my ( $start_date, $end_date ) = map { $_->ymd( '' ) } ( $start_hst, $end_hst );
 
     # Prime, in case no daytime duration is available.
-    $time{ $start_date } += 0.0;
-    $time{ $end_date }   += 0.0;
+    $time{ $start_ut_string } += 0.0;
+    $time{ $end_ut_string }   += 0.0;
 
     my ( $at_930, undef, $at_1400, $at_1700 ) =
       map { make_time( $start_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
@@ -469,14 +472,14 @@ sub day_time {
     # OR start >= 2p    & end < 5p.
     if ( $end_hst < $at_1400_e || $start_hst >= $at_1400 ) {
 
-      $time{ $start_date } += diff_time( $alt_start, $alt_end );
+      $time{ $start_ut_string } += diff_time( $alt_start, $alt_end );
       next;
     }
 
     # Split over two UT dates:
     #  9.30a <= start < 2p, end > 2p.
-    $time{ $start_date } += diff_time( $alt_start, $at_1400 );
-    $time{ $end_date }   += diff_time( $at_1400, $alt_end );
+    $time{ $start_ut_string } += diff_time( $alt_start, $at_1400 );
+    $time{ $end_ut_string }   += diff_time( $at_1400, $alt_end );
   }
 
   return %time;
@@ -514,9 +517,8 @@ sub diff_time {
   die "Unexpected values given: t1: $t1, t2: $t2\n"
     if $t1 > $t2;
 
-  # Difference is Time::Seconds; so convert to hours.
-  my $diff = $t2 - $t1;
-  return $diff->in_units( 'hours' );
+  my $diff = $t2->subtract_datetime_absolute( $t1 );
+  return $diff->in_units( 'seconds' ) / 3600;
 
 }
 
