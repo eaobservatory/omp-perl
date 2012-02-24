@@ -26,7 +26,7 @@ use List::Util qw/ max min /;
 use File::Spec;
 use Math::Trig ':pi';
 
-use JAC::OCS::Config 1.03;
+use JAC::OCS::Config 1.05;
 use JAC::OCS::Config::Error qw/ :try /;
 use JCMT::TCS::Pong;
 
@@ -407,7 +407,7 @@ observations do not necessarily inherit observing parameters from the
 enclosing observation and they definitely do not include a
 specification on chopping scheme.
 
-Array Tests are converted to a special flatfield observation.
+Array Tests are converted to a special noise observation.
 
 =cut
 
@@ -440,14 +440,12 @@ sub handle_special_modes {
     }
 
   } elsif ($info->{obs_type} =~ /array_tests/) {
-    # Array Tests is currently shorthand for a short flatfield
-    $self->output( "Array tests implemented as short flatfield.\n" );
+    $self->output( "Array tests implemented as short dark noise.\n" );
 
-    $info->{obs_type} = "flatfield";
-    $info->{is_quick} = 1;
+    $info->{obs_type} = "noise";
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
-                                                 "flatfield_quick_integration");
-    $info->{flatSource} = "DARK";
+                                                 "array_tests_integration");
+    $info->{noiseSource} = "dark";
 
   } elsif ($info->{obs_type} =~ /noise/) {
     $info->{secsPerCycle} = OMP::Config->getData($self->cfgkey.".".
@@ -666,21 +664,27 @@ sub jos_config {
 
   $jos->steps_btwn_dark( $tbdark );
 
-  # Length of dark is fixed for all except observations that 
-  # have a noiseSource of "DARK" or flatsource of "DARK"
-  if ( (exists $info{noiseSource} && $info{noiseSource} =~ /dark/i) ||
-       (exists $info{flatSource} && $info{flatSource} =~ /dark/i) ) {
-    # want to set n_calsamples ourselves
+  # This controls the length of the initial dark if one is used.
+  # A DARK noise will use JOS_MIN as for any other observation
+  my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
+  $jos->n_darksamples( $darklen / $eff_step_time );
+
+  # Flat ramp
+  if ($info{obs_type} !~ /^skydip/) {
+    my $flatramplen = OMP::Config->getData( $self->cfgkey. ".flatramp_time" );
+    $jos->n_flatsamples( $flatramplen / $eff_step_time );
   } else {
-    my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
-    $jos->n_calsamples( $darklen / $eff_step_time );
+    # For now do not do the flat ramp for skydips
+    $jos->n_flatsamples( 0 );
   }
 
   $self->output("Generic JOS parameters:\n",
                 "\tStep time: ".$jos->step_time." secs (effective: $eff_step_time)\n",
                 "\tSteps between darks: ". $jos->steps_btwn_dark()."\n");
-  $self->output( "\tDark duration: ".$jos->n_calsamples(). " steps\n" )
-    if $jos->n_calsamples;
+  $self->output( "\tDark duration: ".$jos->n_darksamples(). " steps\n" )
+    if $jos->n_darksamples;
+  $self->output( "\tFlat ramp duration: ".$jos->n_flatsamples(). " steps\n" )
+    if $jos->n_flatsamples;
 
   if ($info{obs_type} =~ /^skydip/) {
 
@@ -709,57 +713,16 @@ sub jos_config {
 
   } elsif ($info{obs_type} =~ /^flatfield/) {
 
-    # Sort out prefix into config system
-    my $pre = ".". $info{obs_type} . ($info{is_quick} ? "_quick" : "") . "_";
-
     # This is the integration time directly from the config file
-    # use it for N_CALSAMPLES if we are dark else use it for JOS_MIN
+    # and directly corresponds to JOS_MIN
     my $inttime = $info{secsPerCycle};
     my $nsteps = OMP::General::nint( $inttime / $eff_step_time );
 
-    if ( $info{flatSource} =~ /dark/i) {
-      $jos->n_calsamples( $nsteps );
-      $jos->jos_min( 0 );
-    } else {
-      $jos->jos_min( $nsteps );
-    }
-    $jos->num_cycles( OMP::Config->getData($self->cfgkey. $pre .
-                                           "num_cycles"));
-
-    # next set depends on flatfield mode
-    my @keys;
-    if ($info{flatSource} =~ /^blackbody$/i) {
-      @keys = (qw/ bb_temp_start bb_temp_step bb_temp_wait shut_frac /);
-    } elsif ($info{flatSource} =~ /^(dark|zenith|sky)$/i) {
-      @keys = (qw/ heat_cur_step /);
-
-      # Shutter location is hard-coded
-      if ($info{flatSource} =~ /^dark$/i) {
-        $jos->shut_frac( 0.0 );
-      } else {
-        $jos->shut_frac( 1.0 );
-      }
-
-    } else {
-      throw OMP::Error::FatalError("Unrecognized flatfield source: $info{flatSource}");
-    }
-
-    # read the values from the config file
-    for my $k (@keys) {
-      my $value = OMP::Config->getData($self->cfgkey. $pre .
-                                       $k);
-      $jos->$k( $value );
-    }
+    $jos->jos_min( $nsteps );
 
     $self->output( "\tFlatfield source: $info{flatSource}\n" );
 
   } elsif ($info{obs_type} eq 'noise') {
-
-    # see if the blackbody is needed
-    if ($info{noiseSource} =~ /^blackbody$/i) {
-      my $bbtemp = OMP::Config->getData($self->cfgkey .".noise_bbtemp");
-      $jos->bb_temp_start( $bbtemp );
-    }
 
     # Requested duration of noise observation
     my $inttime = $info{secsPerCycle};
@@ -780,15 +743,8 @@ sub jos_config {
                   "\tActual integration time: ".
                   ($jos_min * $num_cycles * $eff_step_time)." secs\n");
 
-    # The DARK mode is special since we never open the shutter
-    if ($info{noiseSource} eq 'DARK') {
-      $jos->jos_min(0);
-      $jos->n_calsamples( $jos_min );
-      $jos->shut_frac( 0.0 );
-    } else {
-      $jos->jos_min($jos_min);
-      $jos->shut_frac( 1.0 );
-    }
+    # Set the duration
+    $jos->jos_min($jos_min);
 
   } elsif ($info{mapping_mode} eq 'stare'
           || $info{mapping_mode} eq 'dream') {
@@ -1167,8 +1123,8 @@ sub determine_map_and_switch_mode {
 
 =item B<determine_inbeam>
 
-Decide what should be in the beam. Empty if "DARK", blackbody does not
-allow FTS.
+Decide what should be in the beam. Uses "shutter" for a dark observation.
+Blackbody does not allow FTS.
 
   @inbeam = $trans->determine_inbeam( %info );
 
@@ -1179,6 +1135,11 @@ sub determine_inbeam {
   my %info = @_;
   my @inbeam;
 
+  if ($info{obs_type} eq 'setup' || $info{obs_type} eq 'array_tests') {
+    # Setup always in dark
+    return ("shutter");
+  }
+
   # see if we have a source in the beam
   my $source;
   if ($info{obs_type} =~ /^flatfield/) {
@@ -1188,11 +1149,11 @@ sub determine_inbeam {
   }
 
   if (defined $source) {
+
     if ($source =~ /blackbody/i) {
       push(@inbeam, "blackbody");
     } elsif ($source =~ /dark/i) {
-      # can not be anything in the beam for a dark
-      return ();
+      return ("shutter");
     }
   }
 
@@ -1213,7 +1174,7 @@ OCS/ICD/001.
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
-Copyright (C) 2007-2010 Science and Technology Facilities Council.
+Copyright (C) 2007-2012 Science and Technology Facilities Council.
 Copyright (C) 2003-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 

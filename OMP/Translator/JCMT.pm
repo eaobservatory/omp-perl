@@ -1450,7 +1450,10 @@ sub observing_mode {
   if ($switching_mode !~ /^(none|self)$/) {
     push(@parts, $switching_mode);
   }
-  push(@parts, @{$info->{inbeam}});
+
+  # shutter in the beam is usually not a relevant part of the observing mode
+  my @inbeam_clean = grep { $_ !~ /shutter/ } @{$info->{inbeam}};
+  push(@parts, @inbeam_clean);
 
   $info->{observing_mode} = join("_",@parts);
 
