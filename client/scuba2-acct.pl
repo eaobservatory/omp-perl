@@ -6,13 +6,17 @@ scuba2-acct - Generate SCUBA-2 usage statistics
 
 =head1 SYNOPSIS
 
+Show usage only for every date in the schedule ...
+
+  scuba2-acct -tss schedule-file
+
 Show usage only for Jan 13 2012 ...
 
-  scuba2-acct  20120113
+  scuba2-acct -tss schedule-file  20120113
 
 Show usage for Jan 13 2012 to Jan 23 2012 ...
 
-  scuba2-acct  20120113 20120123
+  scuba2-acct -tss schedule-file  20120113 20120123
 
 
 =head1 DESCRIPTION
@@ -23,6 +27,10 @@ the amount of science time spent relative to other projects.
 
 Fault time is charged if a fault on the night is associated with a
 SCUBA-2 project.
+
+If no date is given, listing for all the dates in the schedule file
+will be printed. Else, a date I<range> is used, generated from the
+earliest and latest dates in given dates.
 
 Currently assumes JCMT.
 
@@ -37,6 +45,25 @@ A help message.
 =item B<-man>
 
 This manual page.
+
+=item B<-tss>
+
+It is B<required>.
+
+Specify the schedule file in the following format ...
+
+  <4 digit year>-<2 digit month>
+  <TSS id>  <2 digit date>
+
+A exmaple would be ...
+
+  2011-10
+  ABC      02
+  PQR      03
+  ABC/PQR  04
+  XYZ/UVW  05
+  ...
+
 
 =back
 
@@ -102,7 +129,12 @@ my $result = GetOptions( "h|help" => \$help,
 $man  and pod2usage( '-exitval' => 1, '=verbose' => 10);
 $help and pod2usage( '-exitval' => 1, '=verbose' => 0);
 
-die "TSS schedule ($schedule_file) is unreadable\n"
+$schedule_file
+  or pod2usage( '-exitval' => 1, '=verbose' => 10,
+                '-message' => "TSS schedule file is not given.\n"
+              );
+
+die "TSS schedule file, $schedule_file, is unreadable\n"
   unless -r $schedule_file;
 
 my %tss_sched = OMP::SCUBA2Acct::make_schedule( $schedule_file )
