@@ -59,7 +59,7 @@ use OMP::SCUBA2Acct;
 
 use Getopt::Long;
 use Pod::Usage;
-use List::Util 'max';
+use List::Util ( 'min', 'max' );
 
 use DateTime;
 use DateTime::Duration;
@@ -108,7 +108,7 @@ die "TSS schedule ($schedule_file) is unreadable\n"
 my %tss_sched = OMP::SCUBA2Acct::make_schedule( $schedule_file )
   or die "Could not parse schedule file.\n";
 
-my @filter = verify_date( @ARGV );
+my @filter = expand_date_range( verify_date( @ARGV ) );
 @filter = sort keys %tss_sched
   unless scalar @filter;
 
@@ -132,14 +132,42 @@ sub verify_date {
 
   my ( @date ) = @_;
 
-  for ( @date ) {
+  for my $d ( @date ) {
 
-    next unless $_;
-    $_ = OMP::DateTools->parse_date( $_ ) or next;
-    $_ = $_->ymd( '' );
+    next unless $d;
+
+   # When a date cannot be parsed, the given parameter is becomes undef. This
+   # needs to be changed.
+    my $tmp = $d;
+    $d = OMP::DateTools->parse_date( $d )
+      or die "Could not parse date: $tmp.\n";
+
+    $d = $d->ymd( '' );
   }
 
   return @date;
+}
+
+sub expand_date_range {
+
+  my ( @date ) = @_;
+
+  return unless @date;
+
+  my $min = min @date;
+  my $max = max @date;
+
+  my @out;
+  while ( $min <= $max ) {
+
+    push @out, $min;
+
+    my $t = make_time( $min, '00:00:00', $UTC_TZ );
+    $t->add( days => 1 );
+    $min = $t->ymd( '' );
+  }
+
+  return @out;
 }
 
 sub generate_stat {
