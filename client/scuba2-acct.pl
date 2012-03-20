@@ -229,7 +229,7 @@ sub generate_stat {
     show_warnings( \%acct );
 
     $stat{'inst'}  = get_inst_proj_time( \%acct, @scuba2 );
-    $stat{'fault'} = get_fault_time( $rep->faults(), @scuba2 );
+    $stat{'fault'} = get_fault_time( $rep->faults() );
   }
 
   return %stat;
@@ -299,23 +299,24 @@ sub get_inst_proj_time {
 
 sub get_fault_time {
 
-  my ( $group, @scuba2 ) = @_;
+  my ( $group ) = @_;
 
   return unless $group;
 
   my %time;
-  for my $proj ( @scuba2 ) {
+  for my $fault ( $group->faults() ) {
 
-    next if exists $time{ $proj };
+    next unless $fault->isSCUBA2Fault();
 
-    for my $fault ( $group->faults() ) {
+    my $date = $fault->date();
+    if ( $date ) {
 
-      if ( grep { m/$proj/i } $fault->projects() ) {
-
-        # Returns in hours.
-        $time{ $proj } += $fault->timelost();
-      }
+      # Returns in hours.
+      $time{ $fault->date() } += $fault->timelost();
+      next;
     }
+
+    warn "Could not find a date to add time loss for fault:\n", "$fault", "\n";
   }
 
   return unless values %time;
