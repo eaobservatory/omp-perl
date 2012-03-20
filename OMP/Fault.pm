@@ -1323,6 +1323,15 @@ sub isVehicleIncident {
   my ( $self ) = @_;
   return 'vehicle_incident' eq lc $self->category;
 }
+
+sub isSCUBA2Fault {
+
+  my ( $self ) = @_;
+
+  my $sys = $self->system();
+  return $sys && $sys == $DATA{'JCMT'}->{'SYSTEM'}{'SCUBA-2'};
+}
+
 =item B<subject>
 
 Short description of the fault that can be easily displayed
