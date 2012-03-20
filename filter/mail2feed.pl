@@ -2,8 +2,7 @@
 
 BEGIN { $ENV{LANG} = "C" }
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase"
-	  if $^O eq "solaris"; }
+BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
 
 BEGIN { $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"; }
 
