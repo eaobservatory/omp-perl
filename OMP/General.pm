@@ -370,6 +370,8 @@ sub extract_projectid {
 
   my $projid;
 
+  my $any_ukirt = qr{\b ( u/ [^/\s]+? / [-_a-z0-9]+ ) \b}xi;
+
   my $ukidss   = qr{u/ukidss}i;
   my $ukidss_3 = qr{$ukidss/[a-z]{3}}i;
 
@@ -385,6 +387,12 @@ sub extract_projectid {
   # like LAS_J2_12A.
   my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
 
+  # UKIDSS Hemisphere Survey, UHS.
+  my $uhs         = qr{u/uhs}i;
+  my $uhs_comm    = qr{\b ($uhs / uhs) \b}xi;
+  # J & K bands projects.
+  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] [0-9][1-9]+ ) \b}xi;
+
   if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abc]?)\b}i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
@@ -393,6 +401,8 @@ sub extract_projectid {
       or $string =~ /\b(m\d\d[ab]h\d+[a-z]\d?)\b/i  # UH funny suffix JCMT
       or $string =~ m{\b(u/serv/\d+)\b}i            # UKIRT serv
       or $string =~ m{\b(u/ec/\d+)\b}i              # UKIRT E&C
+      or $string =~ $uhs_alphnum
+      or $string =~ $uhs_comm
       or $string =~ $ukidss_alphnum
       or $string =~ $ukidss_two
       or $string =~ $ukidss_three
@@ -406,7 +416,9 @@ sub extract_projectid {
       or $string =~ /\b([LS]X_\d\d\w\w_\w\w)\b/i    # SHADES proposal
       or $string =~ /\b([A-Za-z]+CAL)\b/i           # Things like JCMTCAL
       or ($string =~ /\b([A-Za-z]{2,}\d{2,})\b/     # Staff projects TJ02
-          && $string !~ /\bs[uinc]\d+\b/ ) # but not JCMT service abbrev
+            && $string !~ /\bs[uinc]\d+\b/          # but not JCMT service abbrev
+            && $string !~ $any_ukirt                # and not UKIRTS ones u/*/*.
+          )
      ) {
     $projid = $1;
   }
