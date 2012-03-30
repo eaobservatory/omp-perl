@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 110;
+use Test::More tests => 115;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -320,6 +320,9 @@ my %extract = (
                'u/ukidss/las_p11b'   => '[u/ukidss/las_p11b]',
                'u/ukidss/las_j2_12a' => 'make u/ukidss/las_j2_12a similar to las_p11b',
                'u/ukidss/uds'   => 'Add special project u/ukidss/uds',
+               'u/uhs/uhs'    => ' u/uhs/uhs which is used for comments and feedback',
+               'U/UHS/UHSK03' => 'K band third project: U/UHS/UHSK03',
+               'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
                'U/11B/H50C' => '[U/11B/H50C]',
 	      );
 
@@ -329,7 +332,13 @@ for my $proj (keys %extract) {
 }
 
 # some failures
-my @fail = (qw/ [su03] [sc04] [s06] /);
+my @fail =
+  ( '[su03]',  '[sc04]', '[s06]',
+    # No UHS project that matches '00$', ,..
+    'u/uhs/uhsK00',
+    # ... or in band other than (J, K).
+    '[u/uhs/uhsL02]',
+  );
 for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
 }
