@@ -822,8 +822,12 @@ sub summary {
     # summaries such as waveband and target]
 
     # Add ha, airmass and ra
+    #
+    # These should already be present?  Therefore adding a check
+    # to avoid evaluating them again.
     for my $method (qw/ ha airmass ra dec az /) {
-      $summary{$method} = $self->$method();
+      $summary{$method} = $self->$method()
+        unless exists $summary{$method};
     }
 
     # XML version
@@ -1019,7 +1023,7 @@ sub _process_coords {
   my @results;
   for my $obs ($self->observations ) {
     my $coords = $obs->coords;
-    next unless $coords;
+    next unless defined $coords;
     my $type = $coords->type;
     if ($type ne "CAL") {
       push(@results, $cb->($coords));
