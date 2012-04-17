@@ -334,8 +334,8 @@ for my $proj (keys %extract) {
 # some failures
 my @fail =
   ( '[su03]',  '[sc04]', '[s06]',
-    # No UHS project that matches '00$', ,..
-    'u/uhs/uhsK00',
+    # No UHS project that matches '00\d, ,..
+    'u/uhs/uhsK003',
     # ... or in band other than (J, K).
     '[u/uhs/uhsL02]',
   );

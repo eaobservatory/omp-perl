@@ -388,10 +388,10 @@ sub extract_projectid {
   my $ukidss_three    = qr{\b($ukidss_3 _ [a-z]+ \d+ _ \d+ [a-z]?)\b}xi;
 
   # UKIDSS Hemisphere Survey, UHS.
-  my $uhs         = qr{u/uhs}i;
+  my $uhs         = 'u/uhs';
   my $uhs_comm    = qr{\b ($uhs / uhs) \b}xi;
   # J & K bands projects.
-  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] [0-9][1-9]+ ) \b}xi;
+  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] [0-9]{2} ) \b}xi;
 
   if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abc]?)\b}i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
