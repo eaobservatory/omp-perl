@@ -619,7 +619,7 @@ sub new_instrument {
       $otag = "o" . $index;
 
       # Get the reference position
-      my $start = $nbContent->index('insert');
+      $start = $nbContent->index('insert');
 
       # Insert the line
       if( $verbose && exists($nightlog{'_STRING_LONG'}) ) {
