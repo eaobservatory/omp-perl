@@ -620,8 +620,6 @@ sub merge_dupes_no_fits {
   # Take local copies so that we can add information without affecting caller
   my @unmerged = map { { %$_ } } @_;
 
-my $t_merge_nofits = [ Time::HiRes::gettimeofday() ];
-
   my %unique;
   for my $info ( @unmerged ) {
 
