@@ -2657,7 +2657,9 @@ sub _run_query {
                       );
           } elsif ($coordstype eq 'FIXED') {
             %coords = ( az => $obs->{ra2000},
-                        el => $obs->{dec2000});
+                        el => $obs->{dec2001},
+                        units => 'radians',
+                       );
           }
           $coords{name} = $obs->{target};
 
