@@ -2622,10 +2622,17 @@ sub _run_query {
           my %coords;
           my $coordstype = $obs->{coordstype};
           if ($coordstype eq 'RADEC') {
+            # Prepare to create an Astro::Coords::Interpolated
+            # object which will have the effect of treating
+            # the coordinates as apparent coordiates.
             %coords = (
-                       ra => $obs->{ra2000},
-                       dec => $obs->{dec2000},
-                       type => 'J2000',
+                       ra1 => $obs->{ra2000},
+                       ra2 => $obs->{ra2000},
+                       dec1 => $obs->{dec2000},
+                       dec2 => $obs->{dec2000},
+                       mjd1 => 50000,
+                       mjd2 => 50000,
+                       units => 'radians',
                       );
           } elsif ($coordstype eq 'PLANET') {
             %coords = ( planet => $obs->{target});
@@ -2971,6 +2978,15 @@ sub _msb_row_to_msb_object {
 
     # Now convert the hashes to OMP::Info objects
     $msb = new OMP::Info::MSB( %$msb );
+
+    # Change INTERP coordstypes to RADEC because interpolated
+    # coordinates do not appear in the database -- they are only
+    # present because they have been used to represent apparent
+    # RA and Dec.  Since the list is 'compressed' we should only
+    # need to replace one instance, not globally.
+    my $coordstype = $msb->coordstype();
+    $coordstype =~ s/INTERP/RADEC/;
+    $msb->coordstype($coordstype);
   }
 
   my $t1 = [gettimeofday];
