@@ -116,9 +116,10 @@ sub list_projects_form {
 		       -default=>'Any',);
   print "</td></tr><tr><td align='right'>Order by:</td><td colspan=2>";
   print $q->radio_group(-name=>'order',
-			-values=>['priority', 'projectid'],
+			-values=>['priority', 'projectid', 'adj-priority'],
 		        -labels=>{priority => 'Priority',
-				  projectid => 'Project ID',},
+				  projectid => 'Project ID',
+				  'adj-priority' => 'Adjusted priority',},
 		        -default=>'priority',);
   print "</td></tr><tr><td colspan=2>";
   print $q->checkbox(-name=>'table_format',
