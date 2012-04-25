@@ -216,7 +216,7 @@ sub list_projects_output {
     # If grouping by project ID, group by telescope, semester, and
     # country, then sort by project number.
     # Otherwise, group the projects by country and telescope, then
-    # sort by TAG priority
+    # sort by TAG priority, or adjusted priority.
     #
     # NOTE: This may be too slow.  We will probably want to let the
     # database do the sorting and grouping for us in the future,
@@ -255,8 +255,22 @@ sub list_projects_output {
         }
       }
     } else {
+
+      my %adj_priority;
+      for ( @$projects ) {
+
+        $adj_priority{$_} = $_->tagpriority();
+
+        next unless $order eq 'adj-priority';
+
+        my $adj = $_->tagadjustment( $_->primaryqueue() )
+          or next;
+
+        $adj_priority{$_} += $adj;
+      }
+
       if ($telescope and $country) {
-        @sorted = sort {$a->tagpriority <=> $b->tagpriority} @$projects;
+        @sorted = sort {$adj_priority{$a} <=> $adj_priority{$b}} @$projects;
       } else {
         my %group;
         for (@$projects) {
@@ -265,7 +279,7 @@ sub list_projects_output {
 
         for my $telescope (sort keys %group) {
           for my $country (sort keys %{$group{$telescope}}) {
-            my @sortedcountry = sort {$a->tagpriority <=> $b->tagpriority} @{$group{$telescope}{$country}};
+            my @sortedcountry = sort {$adj_priority{$a} <=> $adj_priority{$b}} @{$group{$telescope}{$country}};
             push @sorted, @sortedcountry;
           }
         }
