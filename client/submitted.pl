@@ -145,6 +145,23 @@ my $projquery = new OMP::ProjQuery( XML => $projxml );
 # Retrieve details for all projects returned
 my @projects = $projdb->listProjects( $projquery );
 
+# Find out which of the projects is a new submission.
+# Probably easiest just to have the database do the hard work
+# and make a complete list of first submissions.
+my %new_submission = ();
+my $dbh = $dbconnection->handle();
+my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
+                       . $OMP::FeedbackDB::FBTABLE
+                       . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
+                       . ' GROUP BY projectid');
+die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
+$sth->execute();
+die 'Error executing minimum date query: ' . $DBI::errstr if $DBI::err;
+while (my ($proj, $first) = $sth->fetchrow_array()) {
+  my $first = OMP::DateTools->parse_date($first);
+  $new_submission{$proj} = ($first >= $mindate);
+}
+
 # Sort projects according to support person
 my %proj_by_support;
 for my $project (@projects) {
@@ -157,25 +174,38 @@ if ($debug) {
   for (keys %proj_by_support) {
     print "$_:\n";
     for (@{$proj_by_support{$_}}) {
-      print "\t\t" . $_->projectid . "\n";
+      print "\t\t" . ($new_submission{$_->projectid} ? 'New' : 'Resub.')
+          . "\t" . $_->projectid
+          . "\n";
     }
   }
 } else {
   # Send out emails
   for my $support (keys %proj_by_support) {
+    my $projects = $proj_by_support{$support};
 
     # Construct the message
-    my $text;
-    if ($proj_by_support{$support}->[1]) {
-      $text = "Science programs have been submitted for the following projects:\n\n" .
-	join("\n", map {$_->projectid . " [" . $_->pi . "]"} @{$proj_by_support{$support}});
-    } else {
-      $text = "A science program has been submitted for project " . $proj_by_support{$support}->[0]->projectid . " [" . $proj_by_support{$support}->[0]->pi . "].\n";
-    }
+    my $anyNew = 0;
+    my $text = join("\n",
+      'Science programs have been submitted for the following projects:',
+      '',
+      map {
+        my $projectid = $_->projectid;
+        my $isNew = $new_submission{$projectid};
+        $anyNew ||= $isNew;
+        ($isNew ? 'NEW ' : '    ') . $projectid . ' [' . $_->pi . ']'
+      } @{$projects});
+
+    my $subject = 'Science program submissions'
+                . ($anyNew
+                  ? ' [NEW]'
+                  : ' [resubmission]');
+
+#print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
     my $msg = MIME::Lite->new( From => 'flex@jach.hawaii.edu',
 			       To => $support,
-			       Subject => 'Science program submissions',
+			       Subject => $subject,
 			       Data => $text, );
 
     MIME::Lite->send("smtp", "mailhost", Timeout => 30);
