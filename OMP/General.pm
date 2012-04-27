@@ -393,7 +393,7 @@ sub extract_projectid {
   # J & K bands projects.
   my $uhs_alphnum = qr{\b ($uhs / uhs [jk] [0-9]{2} ) \b}xi;
 
-  if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abc]?)\b}i    # UKIRT
+  if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abcd]?)\b}i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
