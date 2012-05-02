@@ -52,6 +52,10 @@ Produce a list of regions to be observed.
 
 Selects the format in which to report the regions.
 
+=item B<-type> new | progress | complete
+
+Outputs only regions in the specified state.
+
 =item B<-plot>
 
 Display a plot of regions instead of outputting a text description.
@@ -86,13 +90,17 @@ use OMP::SpServer;
 
 
 # Options
-my ($format, $help, $man, $version, $mode_region, $mode_plot) = ('stcs');
+my ($format, $mode_type, $plotting_method,
+    $help, $man, $version, $mode_region, $mode_plot)
+  = ('stcs', 'all', 'cmpregion');
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "region" => \$mode_region,
                         "plot" => \$mode_plot,
                         'format=s' => \$format,
+                        'type=s' => \$mode_type,
+                        'plottingmethod=s' => \$plotting_method,
                        );
 
 pod2usage(1) if $help;
@@ -195,8 +203,14 @@ sub region_report {
             );
 
   my %cmp = ();
+  my %uniq = (all => {}, 'new' => {}, progress => {}, complete => {});
+  my %separate = (all => [], 'new' => [], progress => [], complete => []);
+
   my $add_region = sub {
     my ($name, $region) = @_;
+
+    push @{$separate{$name}}, $region;
+
     unless (exists $cmp{$name}) {
       $cmp{$name} = $region;
     }
@@ -206,18 +220,29 @@ sub region_report {
     }
   };
 
-  my %uniq = (all => {}, 'new' => {}, progress => {}, complete => {});
+  die 'Type must be one of: '. join ', ', keys %uniq
+    unless exists $uniq{$mode_type};
 
   foreach my $msb ($sp->msb) {
     my $remaining = $msb->remaining();
     my $observed  = $msb->observed();
 
     foreach my $obs ($msb->unroll_obs()) {
-      #use Data::Dumper; print Dumper($obs);
-
       # Retrieve Astro::Coords object
       my $coords = $obs->{'coords'};
       next if $coords->type() eq 'CAL';
+      #use Data::Dumper; print Dumper($obs);
+
+      if (exists $obs->{'OFFSET_DX'} or exists $obs->{'OFFSET_DY'}) {
+        my $offset = new Astro::Coords::Offset(
+          $obs->{'OFFSET_DX'} || 0,
+          $obs->{'OFFSET_DY'} || 0,
+          posangle   => $obs->{'OFFSET_PA'},
+          'system'   => $obs->{'OFFSET_SYSTEM'} || 'J2000',
+          projection => 'TAN');
+
+        $coords = $offset->apply_offset($coords);
+      }
 
       my $fov = $fov{$obs->{'instrument'}} || 1;
       my $height = $obs->{'MAP_HEIGHT'}    || $fov;
@@ -228,8 +253,8 @@ sub region_report {
                  * (($height > $width) ? $height : $width) / 2;
 
       # Create a key so that we can check by uniqueness.
-      my $id = $coords->ra2000()->radians()
-       . ' ' . $coords->dec2000()->radians()
+      my $id = sprintf('%.6f', $coords->ra2000()->radians())
+       . ' ' . sprintf('%.6f', $coords->dec2000()->radians())
        . ' ' . $radius. "\n";
 
       my $skyframe = new Starlink::AST::SkyFrame('SYSTEM=FK5');
@@ -243,24 +268,27 @@ sub region_report {
       $add_region->('all', $region) unless exists $uniq{'all'}->{$id};
       $uniq{'all'}->{$id} = 1;
 
-      if (! $observed and ! exists $uniq{'new'}->{$id}) {
+      # Rearranged the if statements into this order to handle the
+      # case where the 'observed' field is empty and shows 0 for everything:
+      # now in-progress observations appear new rather than complete.
+      if (! $remaining > 0 and ! exists $uniq{'complete'}->{$id}) {
+        $add_region->('complete', $region);
+        $uniq{'complete'}->{$id} = 1;
+      }
+      elsif (! $observed and ! exists $uniq{'new'}->{$id}) {
         $add_region->('new', $region);
         $uniq{'new'}->{$id} = 1;
       }
-      elsif ($remaining and ! exists $uniq{'progress'}->{$id}) {
+      elsif (! exists $uniq{'progress'}->{$id}) {
         $add_region->('progress', $region);
         $uniq{'progress'}->{$id} = 1;
-      }
-      elsif (! exists $uniq{'complete'}->{$id}) {
-        $add_region->('complete', $region);
-        $uniq{'complete'}->{$id} = 1;
       }
     }
   }
 
-  my $cmp = $cmp{'all'};
-
   if ($mode_region) {
+    my $cmp = $cmp{$mode_type};
+
     if (lc($format) eq 'stcs') {
       my $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
       $ch->Write($cmp);
@@ -279,7 +307,6 @@ sub region_report {
 
     my (@lbnd, @ubnd);
     $cmp{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
-    use Data::Dumper; print Dumper(\@lbnd, \@ubnd);
 
     my $fchan = new Starlink::AST::FitsChan();
     foreach (
@@ -321,19 +348,38 @@ sub region_report {
 
     foreach my $colour (keys %colour) {
       next unless exists $cmp{$colour};
-      $cmp = $cmp{$colour};
+      next unless $mode_type eq 'all' or $mode_type eq $colour;
 
-      my $fs = $plot->Convert($cmp, '');
-      $plot->Set('Base='.$fitswcsb);
-      my $map = $fs->GetMapping(Starlink::AST::AST__BASE(),
-                                Starlink::AST::AST__CURRENT());
-      $plot->AddFrame(Starlink::AST::AST__CURRENT(), $map, $cmp);
-      $plot->Set('colour(border)='. $colour{$colour});
-      $plot->Border();
+      if ($plotting_method eq 'cmpregion') {
+        my $cmp = $cmp{$colour};
 
-      my $current = $plot->Get('Current');
-      $plot->RemoveFrame($current);
-      $plot->Set('Current='.$fitswcsc);
+        my $fs = $plot->Convert($cmp, '');
+        $plot->Set('Base='.$fitswcsb);
+        my $map = $fs->GetMapping(Starlink::AST::AST__BASE(),
+                                  Starlink::AST::AST__CURRENT());
+        $plot->AddFrame(Starlink::AST::AST__CURRENT(), $map, $cmp);
+        $plot->Set('colour(border)='. $colour{$colour});
+        $plot->Border();
+
+        my $current = $plot->Get('Current');
+        $plot->RemoveFrame($current);
+        $plot->Set('Current='.$fitswcsc);
+      }
+      else {
+        foreach my $cmp (@{$separate{$colour}}) {
+          my $fs = $plot->Convert($cmp, '');
+          $plot->Set('Base='.$fitswcsb);
+          my $map = $fs->GetMapping(Starlink::AST::AST__BASE(),
+                                    Starlink::AST::AST__CURRENT());
+          $plot->AddFrame(Starlink::AST::AST__CURRENT(), $map, $cmp);
+          $plot->Set('colour(border)='. $colour{$colour});
+          $plot->Border();
+
+          my $current = $plot->Get('Current');
+          $plot->RemoveFrame($current);
+          $plot->Set('Current='.$fitswcsc);
+        }
+      }
     }
   }
 }
