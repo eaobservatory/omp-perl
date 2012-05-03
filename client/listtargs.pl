@@ -188,10 +188,14 @@ for my $n (@targnames) {
 
 # Subroutine to produce the region report type.
 
+# Calculate bounds for Polygons and CmpRegions manually?
+use constant WORKAROUND_BOUNDS => 1;
+
 sub region_report {
   my $sp = shift;
 
   my @regions;
+  my (@lbnd, @ubnd);
 
   # Data copied from JCMT::Survey::Coverage::RADIUS because
   # it is a private variable in that package and adding SCUBA
@@ -237,11 +241,11 @@ sub region_report {
         my $offset = new Astro::Coords::Offset(
           $obs->{'OFFSET_DX'} || 0,
           $obs->{'OFFSET_DY'} || 0,
-          posangle   => $obs->{'OFFSET_PA'},
+          posang   => $obs->{'OFFSET_PA'},
           'system'   => $obs->{'OFFSET_SYSTEM'} || 'J2000',
           projection => 'TAN');
 
-        $coords = $offset->apply_offset($coords);
+        $coords = $coords->apply_offset($offset);
       }
 
       my $fov = $fov{$obs->{'instrument'}} || 1;
@@ -259,10 +263,40 @@ sub region_report {
 
       my $skyframe = new Starlink::AST::SkyFrame('SYSTEM=FK5');
 
-      my $region = Starlink::AST::Circle->new(
+
+      my $region = undef;
+
+      unless (lc($obs->{'scanPattern'}) eq 'boustrophedon'
+           or lc($obs->{'scanPattern'}) eq 'raster') {
+        $region = Starlink::AST::Circle->new(
                              $skyframe, 1, [$coords->ra2000()->radians(),
                                         $coords->dec2000()->radians()],
                              [$radius], undef, '');
+
+        WORKAROUND_BOUNDS && _add_bounds(\@lbnd, \@ubnd, $region);
+      }
+      else {
+        my @corner = ();
+        foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+          my $offset = new Astro::Coords::Offset(
+                             $cf->[0] * $width / 2, $cf->[1] * $height / 2,
+                             posang     => $obs->{'MAP_PA'},
+                             'system'   => 'J2000',
+                             projection => 'TAN');
+          push @corner, $coords->apply_offset($offset);
+
+          WORKAROUND_BOUNDS && _add_bounds(\@lbnd, \@ubnd,
+            $corner[-1]->ra2000()->radians(),
+            $corner[-1]->dec2000()->radians());
+        }
+
+        $region = new Starlink::AST::Polygon($skyframe,
+                                    [map {$_->ra2000()->radians()} @corner],
+                                    [map {$_->dec2000()->radians()} @corner],
+                                    undef, '');
+      }
+
+      die 'Failed to create region' unless defined $region;
 
       push @regions, $region;
       $add_region->('all', $region) unless exists $uniq{'all'}->{$id};
@@ -305,8 +339,7 @@ sub region_report {
     require PGPLOT;
     require Starlink::AST::PGPLOT;
 
-    my (@lbnd, @ubnd);
-    $cmp{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
+    WORKAROUND_BOUNDS || $cmp{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
 
     my $fchan = new Starlink::AST::FitsChan();
     foreach (
@@ -316,8 +349,8 @@ sub region_report {
         'CRPIX2  = 500',
         'CRVAL1  = ' . Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2,
         'CRVAL2  = ' . Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2,
-        'CTYPE1  = \'RA---TAN\'',
-        'CTYPE2  = \'DEC--TAN\'',
+        'CTYPE1  = \'RA---MER\'',
+        'CTYPE2  = \'DEC--MER\'',
         'RADESYS = \'FK5\'',
         'CD1_1   = ' . Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) / 1000,
         'CD2_2   = ' . Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) / 1000,
@@ -380,6 +413,31 @@ sub region_report {
           $plot->Set('Current='.$fitswcsc);
         }
       }
+    }
+  }
+}
+
+# Add either the bounds of a region or a specific point to the bounds
+sub _add_bounds {
+  my $lbnd = shift;
+  my $ubnd = shift;
+  my $region = shift;
+
+  die 'calling _add_bounds wrongly' unless WORKAROUND_BOUNDS;
+
+  if (ref $region) {
+    my (@l, @u); $region->GetRegionBounds(\@l, \@u);
+
+    foreach (0, 1) {
+      $lbnd->[$_] = $l[$_] if (! defined $lbnd->[$_] || $l[$_] < $lbnd->[$_]);
+      $ubnd->[$_] = $u[$_] if (! defined $ubnd->[$_] || $u[$_] > $ubnd->[$_]);
+    }
+  }
+  else {
+    my @c = ($region, shift);
+    foreach (0, 1) {
+      $lbnd->[$_] = $c[$_] if (! defined $lbnd->[$_] || $c[$_] < $lbnd->[$_]);
+      $ubnd->[$_] = $c[$_] if (! defined $ubnd->[$_] || $c[$_] > $ubnd->[$_]);
     }
   }
 }
