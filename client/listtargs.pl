@@ -70,18 +70,17 @@ use warnings;
 use Pod::Usage;
 use Getopt::Long;
 
-# Must load AST early to avoid problems with PGPLOT.
-use Starlink::AST;
-use Astro::PAL;
-
 # Locate the OMP software through guess work
 use FindBin;
 use lib "$FindBin::RealBin/..";
 
+# Must load AST early to avoid problems with PGPLOT.
+# Therefore load OMP::SpRegion now.
+use OMP::SpRegion;
+
 # External modules
 use DateTime;
 use Term::ReadLine;
-use Math::Trig qw/pi/;
 
 # OMP classes
 use OMP::SciProg;
@@ -92,7 +91,7 @@ use OMP::SpServer;
 # Options
 my ($format, $mode_type, $plotting_method,
     $help, $man, $version, $mode_region, $mode_plot)
-  = ('stcs', 'all', 'cmpregion');
+  = ('stcs', undef, 'cmpregion');
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -188,147 +187,17 @@ for my $n (@targnames) {
 
 # Subroutine to produce the region report type.
 
-# Calculate bounds for Polygons and CmpRegions manually?
-use constant WORKAROUND_BOUNDS => 1;
-
 sub region_report {
   my $sp = shift;
 
-  my @regions;
-  my (@lbnd, @ubnd);
-
-  # Data copied from JCMT::Survey::Coverage::RADIUS because
-  # it is a private variable in that package and adding SCUBA
-  # to allow older projects to be plotted.
-  my %fov = (
-              HARP      => 60,
-              SCUBA     => 2.3 * 60,
-              'SCUBA-2' => 5 * 60,
-            );
-
-  my %cmp = ();
-  my %uniq = (all => {}, 'new' => {}, progress => {}, complete => {});
-  my %separate = (all => [], 'new' => [], progress => [], complete => []);
-
-  my $add_region = sub {
-    my ($name, $region) = @_;
-
-    push @{$separate{$name}}, $region;
-
-    unless (exists $cmp{$name}) {
-      $cmp{$name} = $region;
-    }
-    else {
-      $cmp{$name} = $cmp{$name}->CmpRegion($region,
-        Starlink::AST::Region::AST__OR(), '');
-    }
-  };
-
-  die 'Type must be one of: '. join ', ', keys %uniq
-    unless exists $uniq{$mode_type};
-
-  foreach my $msb ($sp->msb) {
-    my $remaining = $msb->remaining();
-    my $observed  = $msb->observed();
-
-    foreach my $obs ($msb->unroll_obs()) {
-      # Retrieve Astro::Coords object
-      my $coords = $obs->{'coords'};
-      next if $coords->type() eq 'CAL';
-      #use Data::Dumper; print Dumper($obs);
-
-      if (exists $obs->{'OFFSET_DX'} or exists $obs->{'OFFSET_DY'}) {
-        my $offset = new Astro::Coords::Offset(
-          $obs->{'OFFSET_DX'} || 0,
-          $obs->{'OFFSET_DY'} || 0,
-          posang   => $obs->{'OFFSET_PA'},
-          'system'   => $obs->{'OFFSET_SYSTEM'} || 'J2000',
-          projection => 'TAN');
-
-        $coords = $coords->apply_offset($offset);
-      }
-
-      my $fov = $fov{$obs->{'instrument'}} || 1;
-      my $height = $obs->{'MAP_HEIGHT'}    || $fov;
-      my $width  = $obs->{'MAP_WIDTH'}     || $fov;
-      $height    = $fov if $height < $fov;
-      $width     = $fov if $width < $fov;
-      my $radius = Astro::PAL::DAS2R
-                 * (($height > $width) ? $height : $width) / 2;
-
-      # Create a key so that we can check by uniqueness.
-      my $id = sprintf('%.6f', $coords->ra2000()->radians())
-       . ' ' . sprintf('%.6f', $coords->dec2000()->radians())
-       . ' ' . $radius. "\n";
-
-      my $skyframe = new Starlink::AST::SkyFrame('SYSTEM=FK5');
-
-
-      my $region = undef;
-
-      unless (lc($obs->{'scanPattern'}) eq 'boustrophedon'
-           or lc($obs->{'scanPattern'}) eq 'raster') {
-        $region = Starlink::AST::Circle->new(
-                             $skyframe, 1, [$coords->ra2000()->radians(),
-                                        $coords->dec2000()->radians()],
-                             [$radius], undef, '');
-
-        WORKAROUND_BOUNDS && _add_bounds(\@lbnd, \@ubnd, $region);
-      }
-      else {
-        my @corner = ();
-        foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
-          my $offset = new Astro::Coords::Offset(
-                             $cf->[0] * $width / 2, $cf->[1] * $height / 2,
-                             posang     => $obs->{'MAP_PA'},
-                             'system'   => 'J2000',
-                             projection => 'TAN');
-          push @corner, $coords->apply_offset($offset);
-
-          WORKAROUND_BOUNDS && _add_bounds(\@lbnd, \@ubnd,
-            $corner[-1]->ra2000()->radians(),
-            $corner[-1]->dec2000()->radians());
-        }
-
-        $region = new Starlink::AST::Polygon($skyframe,
-                                    [map {$_->ra2000()->radians()} @corner],
-                                    [map {$_->dec2000()->radians()} @corner],
-                                    undef, '');
-      }
-
-      die 'Failed to create region' unless defined $region;
-
-      push @regions, $region;
-      $add_region->('all', $region) unless exists $uniq{'all'}->{$id};
-      $uniq{'all'}->{$id} = 1;
-
-      # Rearranged the if statements into this order to handle the
-      # case where the 'observed' field is empty and shows 0 for everything:
-      # now in-progress observations appear new rather than complete.
-      if (! $remaining > 0 and ! exists $uniq{'complete'}->{$id}) {
-        $add_region->('complete', $region);
-        $uniq{'complete'}->{$id} = 1;
-      }
-      elsif (! $observed and ! exists $uniq{'new'}->{$id}) {
-        $add_region->('new', $region);
-        $uniq{'new'}->{$id} = 1;
-      }
-      elsif (! exists $uniq{'progress'}->{$id}) {
-        $add_region->('progress', $region);
-        $uniq{'progress'}->{$id} = 1;
-      }
-    }
-  }
+  my $region = new OMP::SpRegion($sp);
 
   if ($mode_region) {
-    my $cmp = $cmp{$mode_type};
-
     if (lc($format) eq 'stcs') {
-      my $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
-      $ch->Write($cmp);
+      $region->write_stcs(type => $mode_type);
     }
     elsif (lc($format) eq 'ast') {
-      $cmp->Show();
+      $region->write_ast(type => $mode_type);
     }
     else {
       die 'Unknown region output format ' . $format;
@@ -339,106 +208,12 @@ sub region_report {
     require PGPLOT;
     require Starlink::AST::PGPLOT;
 
-    WORKAROUND_BOUNDS || $cmp{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
-
-    my $fchan = new Starlink::AST::FitsChan();
-    foreach (
-        'NAXIS1  = 1000',
-        'NAXIS2  = 1000 ',
-        'CRPIX1  = 500 ',
-        'CRPIX2  = 500',
-        'CRVAL1  = ' . Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2,
-        'CRVAL2  = ' . Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2,
-        'CTYPE1  = \'RA---MER\'',
-        'CTYPE2  = \'DEC--MER\'',
-        'RADESYS = \'FK5\'',
-        'CD1_1   = ' . Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) / 1000,
-        'CD2_2   = ' . Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) / 1000,
-      ) {$fchan->PutFits($_, 0);}
-    $fchan->Clear('Card');
-    my $wcs = $fchan->Read();
-
     my $pgdev = PGPLOT::pgopen('/xserve');
     PGPLOT::pgwnad(0, 1, 0, 1);
     PGPLOT::pgqwin(my $x1, my $y1, my $x2, my $y2);
 
-    my $plot = new Starlink::AST::Plot($wcs, [0.0, 0.0, 1.0, 1.0],
-                                       [0.5, 0.5, 1000.5, 1000.5],
-                   'Grid=1,tickall=0,border=1,tol=0.001'
-                   . ',colour(border)=4,colour(grid)=3,colour(ticks)=3'
-                   . ',colour(numlab)=5,colour(axes)=3');
-    $plot->pgplot();
-    $plot->Grid();
-    $plot->Set('System=FK5');
-
-    my $fitswcsb = $plot->Get('Base');
-    my $fitswcsc = $plot->Get('Current');
-
-    my %colour = (
-      'new' => 1,     # white
-      progress => 2,  # red
-      complete => 4); # blue
-
-    foreach my $colour (keys %colour) {
-      next unless exists $cmp{$colour};
-      next unless $mode_type eq 'all' or $mode_type eq $colour;
-
-      if ($plotting_method eq 'cmpregion') {
-        my $cmp = $cmp{$colour};
-
-        my $fs = $plot->Convert($cmp, '');
-        $plot->Set('Base='.$fitswcsb);
-        my $map = $fs->GetMapping(Starlink::AST::AST__BASE(),
-                                  Starlink::AST::AST__CURRENT());
-        $plot->AddFrame(Starlink::AST::AST__CURRENT(), $map, $cmp);
-        $plot->Set('colour(border)='. $colour{$colour});
-        $plot->Border();
-
-        my $current = $plot->Get('Current');
-        $plot->RemoveFrame($current);
-        $plot->Set('Current='.$fitswcsc);
-      }
-      else {
-        foreach my $cmp (@{$separate{$colour}}) {
-          my $fs = $plot->Convert($cmp, '');
-          $plot->Set('Base='.$fitswcsb);
-          my $map = $fs->GetMapping(Starlink::AST::AST__BASE(),
-                                    Starlink::AST::AST__CURRENT());
-          $plot->AddFrame(Starlink::AST::AST__CURRENT(), $map, $cmp);
-          $plot->Set('colour(border)='. $colour{$colour});
-          $plot->Border();
-
-          my $current = $plot->Get('Current');
-          $plot->RemoveFrame($current);
-          $plot->Set('Current='.$fitswcsc);
-        }
-      }
-    }
-  }
-}
-
-# Add either the bounds of a region or a specific point to the bounds
-sub _add_bounds {
-  my $lbnd = shift;
-  my $ubnd = shift;
-  my $region = shift;
-
-  die 'calling _add_bounds wrongly' unless WORKAROUND_BOUNDS;
-
-  if (ref $region) {
-    my (@l, @u); $region->GetRegionBounds(\@l, \@u);
-
-    foreach (0, 1) {
-      $lbnd->[$_] = $l[$_] if (! defined $lbnd->[$_] || $l[$_] < $lbnd->[$_]);
-      $ubnd->[$_] = $u[$_] if (! defined $ubnd->[$_] || $u[$_] > $ubnd->[$_]);
-    }
-  }
-  else {
-    my @c = ($region, shift);
-    foreach (0, 1) {
-      $lbnd->[$_] = $c[$_] if (! defined $lbnd->[$_] || $c[$_] < $lbnd->[$_]);
-      $ubnd->[$_] = $c[$_] if (! defined $ubnd->[$_] || $c[$_] > $ubnd->[$_]);
-    }
+    $region->plot_pgplot(type => $mode_type,
+                         method => $plotting_method);
   }
 }
 
