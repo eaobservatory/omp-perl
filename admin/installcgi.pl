@@ -42,10 +42,14 @@ use strict;
 use FindBin;
 use File::Copy;
 use File::Spec;
+use Getopt::Long;
 
 use lib qq[$FindBin::RealBin/..];
 use OMP::Config;
 use OMP::Error qw[ :try ];
+
+my $dry_run = undef;
+my $status = GetOptions("dry-run" => \$dry_run);
 
 my $source = "/jac_sw/omp/msbserver";
 
@@ -116,8 +120,10 @@ for my $subdir (@srcdirs) {
       push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
       $dest = File::Spec->catfile(@$path, $file);
       print "Copying $srcfile to $dest\n";
-      copy($srcfile, $dest) or
-        warn "Error copying file $srcfile to $dest: $!";
+      unless ($dry_run) {
+        copy($srcfile, $dest) or
+          warn "Error copying file $srcfile to $dest: $!";
+      }
     }
   }
 }
