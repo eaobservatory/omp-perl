@@ -551,6 +551,9 @@ _HEADER_
   # Link to the program details page
   print "<br>Click <a href='fbmsb.pl'>here</a> for more details on the science program.";
 
+  # Link to the region plot / download
+  print '<br>Click <a href="spregion.pl">here</a> to download or plot the regions observed in this program.';
+
   # Get the "important" feedback comments
   my $comments = OMP::FBServer->getComments($cookie{projectid},
                                             $cookie{password},
