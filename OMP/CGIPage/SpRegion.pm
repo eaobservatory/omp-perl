@@ -54,7 +54,7 @@ sub view_region {
                                       ast => 'AST region file',
                                       png => 'Plot as PNG image'})),
         $q->p(
-          $q->hidden(name => 'show_output', value => 'true'),
+          $q->hidden(-name => 'show_output', -value => 'true'),
           $q->submit(-value => 'Download / Plot')),
         $q->end_form;
 }

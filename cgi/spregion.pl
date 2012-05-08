@@ -26,5 +26,6 @@ $ompcgi->html_title("$title: Science Program Regions");
 
 # Use the 'proposals' page template so that we can set an appropriate
 # content type for the region files and plot.
-$ompcgi->write_page_proposals(\&OMP::CGIPage::SpRegion::view_region,
-                              \&OMP::CGIPage::SpRegion::view_region_output);
+$ompcgi->write_page(\&OMP::CGIPage::SpRegion::view_region,
+                    \&OMP::CGIPage::SpRegion::view_region_output,
+                    0, 1);
