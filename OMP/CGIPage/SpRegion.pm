@@ -98,9 +98,9 @@ sub view_region_output {
 
   # Print the output.
 
-  my %header = (-type => $format);
+  my %header = (-type => $mime{$format});
   $header{'-attachment'} = $projectid.'.'.$format
-    if $mime{$format} =~ /^application/;
+    unless $mime{$format} =~ /^image/;
 
   print $q->header(%header);
 
