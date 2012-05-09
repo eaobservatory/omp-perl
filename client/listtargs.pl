@@ -130,7 +130,7 @@ if (-e $file) {
   my $password = $term->readline( "Please enter project or staff password: ");
   $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
-  print "Retrieving science programme $file\n";
+  print STDERR "Retrieving science programme $file\n";
   $sp = OMP::SpServer->fetchProgram( $file, $password, "OBJECT" );
 
 } else {
@@ -191,6 +191,10 @@ sub region_report {
   my $sp = shift;
 
   my $region = new OMP::SpRegion($sp);
+  unless (defined $region) {
+    print STDERR "No regions found\n";
+    exit(0);
+  }
 
   if ($mode_region) {
     if (lc($format) eq 'stcs') {
@@ -214,6 +218,8 @@ sub region_report {
 
     $region->plot_pgplot(type => $mode_type,
                          method => $plotting_method);
+
+    PGPLOT::pgend();
   }
 }
 

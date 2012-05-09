@@ -69,6 +69,8 @@ AST regions for the objects within.
 
   my $region = new OMP::SpRegion($sp);
 
+Returns undef if there are no regions found in the Science Programme.
+
 =cut
 
 sub new {
@@ -82,10 +84,10 @@ sub new {
     separate => {all => [], 'new' => [], progress => [], complete => []},
     lbnd => [],
     ubnd => [],
+    uniq => {all => {}, 'new' => {}, progress => {}, complete => {}},
   };
 
   bless $self, $class;
-  my %uniq = (all => {}, 'new' => {}, progress => {}, complete => {});
   my $skyframe = new Starlink::AST::SkyFrame('SYSTEM=FK5');
 
   foreach my $msb ($sp->msb) {
@@ -109,6 +111,7 @@ sub new {
         $coords = $coords->apply_offset($offset);
       }
 
+      my ($ra2000, $dec2000) = $coords->radec2000();
       my $fov = $fov_inst{$obs->{'instrument'}} || 1;
       my $height = $obs->{'MAP_HEIGHT'}    || $fov;
       my $width  = $obs->{'MAP_WIDTH'}     || $fov;
@@ -118,17 +121,17 @@ sub new {
                  * (($height > $width) ? $height : $width) / 2;
 
       # Create a key so that we can check by uniqueness.
-      my $id = sprintf('%.6f', $coords->ra2000()->radians())
-       . ' ' . sprintf('%.6f', $coords->dec2000()->radians())
-       . ' ' . $radius. "\n";
+      my $id = sprintf('%.6f', $ra2000->radians())
+       . ' ' . sprintf('%.6f', $dec2000->radians())
+       . ' ' . sprintf('%.6f', $radius) . "\n";
 
       my $region = undef;
 
       unless (lc($obs->{'scanPattern'}) eq 'boustrophedon'
            or lc($obs->{'scanPattern'}) eq 'raster') {
         $region = Starlink::AST::Circle->new(
-                             $skyframe, 1, [$coords->ra2000()->radians(),
-                                        $coords->dec2000()->radians()],
+                             $skyframe, 1, [$ra2000->radians(),
+                                        $dec2000->radians()],
                              [$radius], undef, '');
 
         WORKAROUND_BOUNDS && $self->_add_bounds($region);
@@ -144,39 +147,35 @@ sub new {
           push @corner, $coords->apply_offset($offset);
 
           WORKAROUND_BOUNDS && $self->_add_bounds(
-            $corner[-1]->ra2000()->radians(),
-            $corner[-1]->dec2000()->radians());
+            map {$_->radians()} $corner[-1]->radec2000());
         }
 
         $region = new Starlink::AST::Polygon($skyframe,
-                                    [map {$_->ra2000()->radians()} @corner],
-                                    [map {$_->dec2000()->radians()} @corner],
+                                    [map {my ($ra,  undef) = $_->radec2000();  $ra->radians()} @corner],
+                                    [map {my (undef, $dec) = $_->radec2000(); $dec->radians()} @corner],
                                     undef, '');
       }
 
       die 'OMP::SpRegion: failed to create region' unless defined $region;
 
-      $self->_add_region('all', $region) unless exists $uniq{'all'}->{$id};
-      $uniq{'all'}->{$id} = 1;
+      $self->_add_region('all', $region, $id);
 
       # Rearranged the if statements into this order to handle the
       # case where the 'observed' field is empty and shows 0 for everything:
       # now in-progress observations appear new rather than complete.
-      if (! $remaining > 0 and ! exists $uniq{'complete'}->{$id}) {
-        $self->_add_region('complete', $region);
-        $uniq{'complete'}->{$id} = 1;
+      if (! $remaining > 0) {
+        $self->_add_region('complete', $region, $id);
       }
-      elsif (! $observed and ! exists $uniq{'new'}->{$id}) {
-        $self->_add_region('new', $region);
-        $uniq{'new'}->{$id} = 1;
+      elsif (! $observed) {
+        $self->_add_region('new', $region, $id);
       }
-      elsif (! exists $uniq{'progress'}->{$id}) {
-        $self->_add_region('progress', $region);
-        $uniq{'progress'}->{$id} = 1;
+      else {
+        $self->_add_region('progress', $region, $id);
       }
     }
   }
 
+  return undef unless scalar @{$self->{'separate'}->{'all'}};
   return $self;
 }
 
@@ -337,15 +336,18 @@ sub plot_pgplot {
 =item B<_add_region>
 
 Adds a region to the object.  It is stored both as a separate region
-and added to the CmpRegion for the given type.
+and added to the CmpRegion for the given type.  A unique ID label must be
+given to allow this method to reject duplicate regions.
 
-  $self->_add_region($type, $region);
+  $self->_add_region($type, $region, $id);
 
 =cut
 
 sub _add_region {
   my $self = shift;
-  my ($name, $region) = @_;
+  my ($name, $region, $id) = @_;
+
+  return if exists $self->{'uniq'}->{$name}->{$id};
 
   push @{$self->{'separate'}->{$name}}, $region;
 
@@ -357,6 +359,8 @@ sub _add_region {
       = $self->{'cmp'}->{$name}->CmpRegion($region,
           Starlink::AST::Region::AST__OR(), '');
   }
+
+  $self->{'uniq'}->{$name}->{$id} = 1;
 }
 
 =item B<_add_bounds>
@@ -409,19 +413,40 @@ sub _make_wcs {
 
   WORKAROUND_BOUNDS || $self->{'cmp'}->{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
 
+  # Check aspect ratio is going to give a sensible projection
+
+  my $border_factor = 1.2;
+
+  my $width = Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) * $border_factor;
+  my $height = Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) * $border_factor;
+
+  if ($height < 0.5 * -$width) {$height = -$width;};
+  if (-$width < 0.5 * $height) {$width  = -$height};
+
+  $height = 180 if $height > 180;
+  $width  = 360 if $width  > 360;
+
+  my $xmid = Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2;
+  my $ymid = Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2;
+
+  $ymid = 0 if ($ymid + ($height / 2)) > 90
+               || ($ymid - ($height / 2)) < -90;
+
+  # Create FITS header and pass to AST
+
   my $fchan = new Starlink::AST::FitsChan();
   foreach (
         'NAXIS1  = 1000',
         'NAXIS2  = 1000 ',
         'CRPIX1  = 500 ',
         'CRPIX2  = 500',
-        'CRVAL1  = ' . Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2,
-        'CRVAL2  = ' . Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2,
+        'CRVAL1  = ' . $xmid,
+        'CRVAL2  = ' . $ymid,
         'CTYPE1  = \'RA---MER\'',
         'CTYPE2  = \'DEC--MER\'',
         'RADESYS = \'FK5\'',
-        'CD1_1   = ' . Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) / 1000,
-        'CD2_2   = ' . Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) / 1000,
+        'CD1_1   = ' . $width / 1000,
+        'CD2_2   = ' . $height / 1000,
     ) {$fchan->PutFits($_, 0);}
   $fchan->Clear('Card');
   my $wcs = $fchan->Read();
