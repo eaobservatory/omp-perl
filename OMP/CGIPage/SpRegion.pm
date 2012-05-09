@@ -90,10 +90,33 @@ sub view_region_output {
   die 'Unrecognised output format' unless exists $types{$type};
 
 
-  # Prepare region object.
+  # Prepare region object, by fetching the SP and converting it.
+  # Note that safeFetchSciProg will print warnings, so we need to
+  # redirect its output as we have not yet printed the script header.
 
+  select(STDERR);
   my $sp = OMP::CGIDBHelper::safeFetchSciProg($projectid, $cookie{'password'});
+  select(STDOUT);
+
+  unless (defined $sp) {
+    print $q->header(),
+          $q->start_html('Error: no science program'),
+          $q->h2('Error'),
+          $q->p('The science program could not be fetched for this project.'),
+          $q->end_html();
+    return;
+  }
+
   my $region = new OMP::SpRegion($sp);
+
+  unless (defined $region) {
+    print $q->header(),
+          $q->start_html('Error: no regions found'),
+          $q->h2('Error'),
+          $q->p('No regions were found for this project.'),
+          $q->end_html();
+    return;
+  }
 
 
   # Print the output.
