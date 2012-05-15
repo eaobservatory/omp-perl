@@ -1970,35 +1970,100 @@ provided in the array of hashes:
 
 where @summaries contains elements of class C<OMP::Info::MSB>.
 
+This method extracts basic information from the database to determine whether
+each MSB can simply be updated, or whether it needs to be re-inserted.
+The following fields can be updated without re-insertion:
+
+=over 4
+
+=item * remaining
+
+=back
+
+Since the scheduler depends on the observations being in the right order,
+if the MSB has changed we delete it and its observations, and
+re-insert them.
+
 =cut
 
 sub _insert_rows {
   my $self = shift;
   my @summaries = @_;
 
-  # Get the next index to use for the MSB table
-  my $index = $self->_get_next_index();
-
-  # We need to remove the existing rows associated with this
-  # project id
-  $self->_clear_old_rows;
-
   # Get the DB handle
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
-  # Now loop over each summary inserting the information
+  # Get the current database status.
+  my $sth = $dbh->prepare('SELECT msbid, checksum, remaining'
+                        . ' FROM ' . $MSBTABLE
+                        . ' WHERE projectid=?')
+    or throw OMP::Error::DBError('Error preparing MSB check SQL: '
+                               . $DBI::errstr);
+
+  $sth->execute($self->projectid())
+    or throw OMP::Error::DBError('Error executing MSB check: ' . $DBI::errstr);
+
+  my $dbhash = $sth->fetchall_hashref('checksum');
+  throw OMP::Error::DBError('Error fetching from MSB check: ' . $DBI::errstr)
+    if $sth->err();
+
+  # Get the next index to use for the MSB table
+  my $index = $self->_get_next_index();
+
+  # Now loop over each summary and compare the information.  We remove the
+  # entries from $dbhash as we go so that it will only include entries no
+  # longer in the programme.
   for my $summary (@summaries) {
+    my $checksum = $summary->checksum();
 
-    # Add the contents to the database
-    $self->_insert_row( $summary,
-                        dbh  => $dbh,
-                        index=> $index,
-                      );
+    if (exists $dbhash->{$checksum}) {
+      my $dbrow = $dbhash->{$checksum};
 
-    # increment the index for next pass
-    $index++;
+      # This comparison must check all fields which are accessible in the
+      # database but are not included in the checksum.  These should be
+      # the same fields we update with _db_update_data.
+      if ($dbrow->{'remaining'} != $summary->remaining()) {
+        $DEBUG && print "Insert Rows: updating $checksum\n";
 
+        my $msbid =  $dbrow->{'msbid'};
+        throw OMP::Error::DBError("MSB ID not defined")
+          unless defined $msbid;
+
+        $self->_db_update_data($MSBTABLE,
+                        {remaining => $summary->remaining()},
+                        'msbid='.$msbid);
+      }
+      else {
+        $DEBUG && print "Insert Rows: no action for $checksum\n";
+      }
+
+      delete $dbhash->{$checksum};
+    }
+    else {
+      $DEBUG && print "Insert Rows: inserting $checksum\n";
+
+      $self->_insert_row($summary,
+                          dbh   => $dbh,
+                          index => $index,
+                        );
+
+      # increment the index for next pass
+      $index++;
+    }
+  }
+
+  # Entries remaining in $dbhash must have been removed/altered in the science
+  # programme, so we delete the old versions in the database.
+  for my $checksum (keys %$dbhash) {
+      $DEBUG && print "Insert Rows: deleting $checksum\n";
+      my $dbrow = $dbhash->{$checksum};
+      my $msbid =  $dbrow->{'msbid'};
+      throw OMP::Error::DBError("MSB ID not defined")
+        unless defined $msbid;
+
+      $self->_db_delete_data($_, 'msbid=' . $msbid)
+        foreach ($MSBTABLE, $OBSTABLE);
   }
 
 }
