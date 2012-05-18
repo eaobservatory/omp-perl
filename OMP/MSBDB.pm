@@ -2022,7 +2022,8 @@ sub _insert_rows {
 
       # This comparison must check all fields which are accessible in the
       # database but are not included in the checksum.  These should be
-      # the same fields we update with _db_update_data.
+      # the same fields we update with _db_update_data.  Note: these fields
+      # must also be checked / updated in the OR folder special case below!
       if ($dbrow->{'remaining'} != $summary->remaining()) {
         $DEBUG && print "Insert Rows: updating $checksum\n";
 
@@ -2039,6 +2040,27 @@ sub _insert_rows {
       }
 
       delete $dbhash->{$checksum};
+    }
+    # Check whether the entry has been moved out of an OR folder.  We can
+    # do this by seeing if the database had the same checksum with an O
+    # suffix because md5_hex returns a fixed length string as the checksum.
+    # Since we need to execute one UPDATE statement on the MSB table
+    # anyway, we might as well update the remaining counter as it probably changed.
+    elsif (exists $dbhash->{$checksum.'O'}) {
+      $DEBUG && print "Insert Rows: moving out of OR folder $checksum\n";
+
+      my $oldchecksum = $checksum.'O';
+      my $dbrow = $dbhash->{$oldchecksum};
+      my $msbid =  $dbrow->{'msbid'};
+      throw OMP::Error::DBError("MSB ID not defined")
+        unless defined $msbid;
+
+      $self->_db_update_data($MSBTABLE,
+                        {remaining => $summary->remaining(),
+                         checksum  => $checksum},
+                        'msbid='.$msbid);
+
+      delete $dbhash->{$oldchecksum};
     }
     else {
       $DEBUG && print "Insert Rows: inserting $checksum\n";
