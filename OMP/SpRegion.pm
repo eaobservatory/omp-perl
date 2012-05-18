@@ -382,7 +382,8 @@ sub _add_bounds {
   my (@l, @u);
 
   if (ref $region) {
-    $region->GetRegionBounds(\@l, \@u);
+    my ($l, $u) = $region->GetRegionBounds();
+    @l = @$l; @u = @$u;
   }
   else {
     @l = ($region, shift);
@@ -411,7 +412,10 @@ sub _make_wcs {
   my @lbnd = @{$self->{'lbnd'}};
   my @ubnd = @{$self->{'ubnd'}};
 
-  WORKAROUND_BOUNDS || $self->{'cmp'}->{'all'}->GetRegionBounds(\@lbnd, \@ubnd);
+  unless(WORKAROUND_BOUNDS) {
+    my ($l, $u) = $self->{'cmp'}->{'all'}->GetRegionBounds();
+    @lbnd = @$l; @ubnd = @$u;
+  }
 
   # Check aspect ratio is going to give a sensible projection
 
