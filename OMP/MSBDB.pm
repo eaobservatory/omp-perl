@@ -2183,16 +2183,13 @@ sub _insert_row {
   # We dont use the generic interface here since we want to
   # reuse the statement handle
   # Get the observation query handle
-  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   my $count;
   for my $obs (@{ $data{observations} }) {
 
     $count++;
-
-    # Get the obs id (based on the msb id)
-    my $obsid = sprintf( "%d%03d", $index, $count);
 
     # If coordinates have not been set then we need to raise an exception
     # since we can not schedule this. Note that calibrations
@@ -2214,7 +2211,7 @@ sub _insert_row {
                                      $obs->{wavelength} =~ /\d/);
 
     $obsst->execute(
-                    $obsid, $index, $proj, uc($obs->{instrument}),
+                    $index, $proj, uc($obs->{instrument}),
                     $obs->{type}, $obs->{pol}, $obs->{wavelength},
                     $obs->{disperser},
                     $obs->{coords}->type, $obs->{target},
