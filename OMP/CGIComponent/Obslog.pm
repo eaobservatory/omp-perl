@@ -17,7 +17,6 @@ obslog -- variable verification, form creation, etc.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI::Carp qw/fatalsToBrowser/;
 use Net::Domain qw/ hostfqdn /;

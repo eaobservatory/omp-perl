@@ -47,12 +47,11 @@ our $TASK;
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORTER = qw( );
-our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options
-                  file_exists fits ndf /;
+
 our %EXPORT_TAGS = (
-                    'all' => [ qw( @EXPORT ) ],
-                    );
+    'all' => [qw/worf_determine_class new plot obs parse_display_options
+                 file_exists fits ndf/],
+  );
 
 Exporter::export_tags(qw/ all /);
 

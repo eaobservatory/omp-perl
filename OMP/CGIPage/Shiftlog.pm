@@ -19,7 +19,6 @@ shiftlog information, and submitting shiftlog comments.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;

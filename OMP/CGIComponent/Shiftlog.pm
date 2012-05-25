@@ -24,7 +24,6 @@ submission, etc.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;

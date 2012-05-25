@@ -17,7 +17,6 @@ WORF web pages.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
@@ -35,11 +34,10 @@ our $VERSION = (qw$Revision$ )[1];
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw( display_page thumbnails_page );
 
 our %EXPORT_TAGS = (
-                    'all' => [ @EXPORT ]
-                    );
+    'all' => [qw/display_page thumbnails_page/]
+  );
 
 Exporter::export_tags(qw/ all /);
 

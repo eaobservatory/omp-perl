@@ -19,7 +19,6 @@ It also provides the CGI infrastructure for such display.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
@@ -34,12 +33,11 @@ our $VERSION = (qw$Revision$ )[1];
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw( display_graphic display_observation
-                  options_form obsnumsort return_fits return_ndf );
 
 our %EXPORT_TAGS = (
-                    'all' => [ @EXPORT ]
-                    );
+    'all' => [qw/display_graphic display_observation
+                 options_form obsnumsort return_fits return_ndf/]
+  );
 
 Exporter::export_tags(qw/ all /);
 
