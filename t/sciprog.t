@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 273;
+use Test::More tests => 295;
 use Data::Dumper;
 
 require_ok( 'OMP::SciProg' );
@@ -69,8 +69,16 @@ ok( ! $obj->existsMSB( "blahblah" ), "Check nonexistence");
 
 # Go through the MSBs to see what we can find out about them
 for my $msb ($obj->msb) {
-  if (exists $results{$msb->checksum}) {
-    ok(1, "MSB exists");
+  SKIP: {
+    if (exists $results{$msb->checksum}) {
+      ok(1, "MSB exists");
+    }
+    else {
+      ok(0);
+      # skip the next few tests
+      skip("Pointless testing MSB when checksum does not match [".
+           $msb->checksum. "] [title=".$msb->msbtitle."]",1);
+    }
 
     my %cmp = %{ $results{ $msb->checksum} };
     my $info = $msb->info;
@@ -116,20 +124,17 @@ for my $msb ($obj->msb) {
 	  }
 	}
 
-      } else {
-
+      }
+      elsif (UNIVERSAL::isa($cmp{$key}, 'OMP::Range')) {
+        ok($cmp{$key}->equate($msbsum{$key}), 'Comparing range ' . $key
+          #. ' expected ' . $cmp{$key}->stringify() . ' got ' .$msbsum{$key}->stringify());
+          . ' expected ' . Dumper($cmp{$key}) . ' got ' . Dumper($msbsum{$key}));
+      }
+      else {
 	next if ref( $cmp{$key});
 	is( $msbsum{$key}, $cmp{$key}, "Comparing $key");
-	
       }
-
     }
-
-  } else {
-    ok(0);
-    # skip the next few tests
-    skip("Pointless testing MSB when checksum does not match [".
-	 $msb->checksum. "] [title=".$msb->msbtitle."]",1);
   }
 }
 
@@ -176,10 +181,10 @@ exit;
 
 __DATA__
 $VAR1 = {
-#          'f75a6dc58da9273913d3266a1c3f3463A' => {
 	   '455c01c9b8309d014dc81271c45fe75fA' => {
                                                    'telescope' => 'UKIRT',
-                                                   'cloud' => 101,
+                                                   'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                    'remaining' => '1',
                                                    'obscount' => 1,
                                                    'observations' => [
@@ -217,17 +222,17 @@ $VAR1 = {
                                                    'title' => '-',
                                                    'timeest' => '0.24',
                                                    'projectid' => 'TJ01',
-                                                   'moon' => 101,
-                                                   'tau' => bless( {
+                                                   'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                   'tau' => new OMP::Range(
                                                                      'Min' => 0,
-                                                                     'Max' => undef
-                                                                   }, 'OMP::Range' ),
+                                                                     'Max' => undef),
                                                    'priority' => 99
                                                  },
-#	 'b4822233821bd8f53ab1a3c95b327c28O' => {
-         '9be325e8058efc658e3e04cda69fa4abO' => {                                                 'telescope' => 'UKIRT',
+         '9be325e8058efc658e3e04cda69fa4abO' => {
                                                    'telescope' => 'UKIRT',
-                                                   'cloud' => 101,
+                                                   'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                    'remaining' => '2',
                                                    'obscount' => 1,
                                                    'observations' => [
@@ -265,17 +270,17 @@ $VAR1 = {
                                                    'title' => 'FS101_00h13m_30d J-band',
                                                    'timeest' => '30.0',
                                                    'projectid' => 'TJ01',
-                                                   'moon' => 101,
-                                                   'tau' => bless( {
+                                                   'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                   'tau' => new OMP::Range(
                                                                      'Min' => 0,
-                                                                     'Max' => undef
-                                                                   }, 'OMP::Range' ),
+                                                                     'Max' => 0.09),
                                                    'priority' => 99
                                                  },
-#          'f723d9868568bb625755d3ff57ba1915' => {
            'c050ad5c7961d3ad21e654269e7b28a4' => {
                                                   'telescope' => 'UKIRT',
-                                                  'cloud' => 101,
+                                                  'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                   'remaining' => '1',
                                                   'obscount' => 3,
                                                   'observations' => [
@@ -368,17 +373,17 @@ $VAR1 = {
                                                   'title' => 'Array Tests',
                                                   'timeest' => '329.0',
                                                   'projectid' => 'TJ01',
-                                                  'moon' => 101,
-                                                  'tau' => bless( {
+                                                  'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                  'tau' => new OMP::Range(
                                                                     'Min' => 0,
-                                                                    'Max' => undef
-                                                                  }, 'OMP::Range' ),
+                                                                    'Max' => 0.09),
                                                   'priority' => 99
                                                 },
-#          '21bef2414c47c1d1b863cb036801a26d' => {
            'ed69d6514357775e2037d6dc0301434d' => {
                                                   'telescope' => 'UKIRT',
-                                                  'cloud' => 101,
+                                                  'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                   'remaining' => '1',
                                                   'obscount' => 1,
                                                   'observations' => [
@@ -415,17 +420,17 @@ $VAR1 = {
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
                                                   'projectid' => 'TJ01',
-                                                  'moon' => 101,
-                                                  'tau' => bless( {
+                                                  'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                  'tau' => new OMP::Range(
                                                                     'Min' => 0,
-                                                                    'Max' => undef
-                                                                  }, 'OMP::Range' ),
+                                                                    'Max' => 0.09),
                                                   'priority' => 99
                                                 },
-#          'bc34d57d94224154a445598ad60e147eOA' => {
-           '53dd1ebb190da0b306d65ecd79a8b434OA' => {
+           '346fc27c0b7fc418b3e918c541ccfb9cOA' => {
                                                     'telescope' => 'UKIRT',
-                                                    'cloud' => 101,
+                                                    'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                     'remaining' => '1',
                                                     'obscount' => 1,
                                                     'observations' => [
@@ -461,17 +466,17 @@ $VAR1 = {
                                                     'title' => 'BS1532_4h47m_-16d_G1V',
                                                     'timeest' => '64.0',
                                                     'projectid' => 'TJ01',
-                                                    'moon' => 101,
-                                                    'tau' => bless( {
+                                                    'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                    'tau' => new OMP::Range(
                                                                       'Min' => 0,
-                                                                      'Max' => undef
-                                                                    }, 'OMP::Range' ),
+                                                                      'Max' => 0.09),
                                                     'priority' => 99
                                                   },
-#          '15a547e0edb2cb0c81f0af34c1242b06A' => {
            '50431bcfb6237208fe27008d5676b0f2A' => {
                                                    'telescope' => 'UKIRT',
-                                                   'cloud' => 101,
+                                                   'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                    'remaining' => '6',
                                                    'obscount' => 3,
                                                    'observations' => [
@@ -553,17 +558,17 @@ $VAR1 = {
                                                    'title' => 'Pol test',
                                                    'timeest' => '131.992004876',
                                                    'projectid' => 'TJ01',
-                                                   'moon' => 101,
-                                                   'tau' => bless( {
+                                                   'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                   'tau' => new OMP::Range(
                                                                      'Min' => 0,
-                                                                     'Max' => undef
-                                                                   }, 'OMP::Range' ),
+                                                                     'Max' => 0.09),
                                                    'priority' => 50
                                                  },
-#          '75487f16203ecf5c8af5377cbf5cfd3eO' => {
            '36bcaeaba76f6a44b7088e71b34856d5O' => {
                                                    'telescope' => 'UKIRT',
-                                                   'cloud' => 101,
+                                                   'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                    'remaining' => '1',
                                                    'obscount' => 1,
                                                    'observations' => [
@@ -601,17 +606,17 @@ $VAR1 = {
                                                    'title' => 'FS1_00h33m_-12d I-band',
                                                    'timeest' => '240.0',
                                                    'projectid' => 'TJ01',
-                                                   'moon' => 101,
-                                                   'tau' => bless( {
+                                                   'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                   'tau' => new OMP::Range(
                                                                      'Min' => 0,
-                                                                     'Max' => undef
-                                                                   }, 'OMP::Range' ),
+                                                                     'Max' => 0.09),
                                                    'priority' => 99
                                                  },
-#          '35f15b8b7d395bb3ea0b955567ec454c' => {
           'f5e0350c606c4f082269b459d1736b50' => {
                                                   'telescope' => 'UKIRT',
-                                                  'cloud' => 101,
+                                                  'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                   'remaining' => '1',
                                                   'obscount' => 1,
                                                   'observations' => [
@@ -648,17 +653,17 @@ $VAR1 = {
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
                                                   'projectid' => 'TJ01',
-                                                  'moon' => 101,
-                                                  'tau' => bless( {
+                                                  'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                  'tau' => new OMP::Range(
                                                                     'Min' => 0,
-                                                                    'Max' => undef
-                                                                  }, 'OMP::Range' ),
+                                                                    'Max' => 0.09),
                                                   'priority' => 99
                                                 },
-#          'f001ffe51a696895375246378d7e034cOA' => {
-           '32c856c0ddbb532c748d134169ccb312OA' => {
+           'f1c5dcd038c186c1e7cd2d9caa174efcOA' => {
                                                     'telescope' => 'UKIRT',
-                                                    'cloud' => 101,
+                                                    'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                     'remaining' => '1',
                                                     'obscount' => 1,
                                                     'observations' => [
@@ -694,17 +699,17 @@ $VAR1 = {
                                                     'title' => 'BS5_0h6m_58d_G5V',
                                                     'timeest' => '64.0',
                                                     'projectid' => 'TJ01',
-                                                    'moon' => 101,
-                                                    'tau' => bless( {
+                                                    'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                    'tau' => new OMP::Range(
                                                                       'Min' => 0,
-                                                                      'Max' => undef
-                                                                    }, 'OMP::Range' ),
+                                                                      'Max' => 0.09),
                                                     'priority' => 99
                                                   },
-#          '7cad9ca196339ba303eb436ed3ce7801' => {
            'c08db4fb2eea8e8486e99bc1ee0f7ac2' => {
                                                   'telescope' => 'UKIRT',
-                                                  'cloud' => 101,
+                                                  'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                   'remaining' => '2',
                                                   'obscount' => 2,
                                                   'observations' => [
@@ -768,17 +773,17 @@ $VAR1 = {
                                                   'title' => 'UFTI standards',
                                                   'timeest' => '180.0',
                                                   'projectid' => 'TJ01',
-                                                  'moon' => 101,
-                                                  'tau' => bless( {
+                                                  'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                  'tau' => new OMP::Range(
                                                                     'Min' => 0,
-                                                                    'Max' => undef
-                                                                  }, 'OMP::Range' ),
+                                                                    'Max' => 0.09),
                                                   'priority' => 99
                                                 },
-#          '971e659be8cbb43a91fce29383319b84O' => {
            'f7ec47641cadef30e7a3cc62002b632cO' => {
                                                    'telescope' => 'UKIRT',
-                                                   'cloud' => 101,
+                                                   'cloud' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
                                                    'remaining' => '1',
                                                    'obscount' => 1,
                                                    'observations' => [
@@ -815,11 +820,11 @@ $VAR1 = {
                                                    'title' => 'Copy',
                                                    'timeest' => '40.501227375',
                                                    'projectid' => 'TJ01',
-                                                   'moon' => 101,
-                                                   'tau' => bless( {
+                                                   'moon' => new OMP::Range(Max => 100,
+                                                                             Min => 0),
+                                                   'tau' => new OMP::Range(
                                                                      'Min' => 0,
-                                                                     'Max' => undef
-                                                                   }, 'OMP::Range' ),
+                                                                     'Max' => 0.09),
                                                    'priority' => 99
                                                  }
         };
