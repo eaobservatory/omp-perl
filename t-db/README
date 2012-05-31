@@ -1,0 +1,9 @@
+omp-perl/t-db directory
+-----------------------
+
+This directory contains additional test scripts which involve writing to the
+database.
+
+Usage:
+
+    % make test
