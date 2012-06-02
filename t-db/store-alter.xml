@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>store-alter.xml</meta_gui_filename>
+  <country>UK</country>
+  <ot_version>20120531</ot_version>
+  <pi>Tim Jenness</pi>
+  <projectID>TJ04</projectID>
+  <telescope>jcmt</telescope>
+  <title>OMP Database Test Program</title>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpDRRecipeRef idref="3"/>
+    <SpInstHeterodyneRef idref="1"/>
+    <SpSiteQualityObsCompRef idref="2"/>
+    <SpTelescopeObsCompRef idref="0"/>
+    <estimatedDuration units="seconds">3692.0461666913493</estimatedDuration>
+    <library_version>$Revision$</library_version>
+    <priority>99</priority>
+    <title>Raster 1</title>
+    <totalDuration units="seconds">3692.0461666913493</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for heterodyne
+ MSB. PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+* Calibration details
+
+1) Overall observing strategy for your science program. A paragraph
+   conveying the general ideas behind your science program is useful
+   for the observer (who may not be an expert in your field) and the
+   TSS. (Check "show to the Observer").
+
+2) Details of calibration observations.
+   Spell out any specific calibrations you require in the note which is selected 
+  as "show-to-observer". Example  instructions might include:
+
+   "Short sample on a nearby spectral line standard with a good
+   CO(3-2) line e.g. OMC1".
+
+    and/or
+
+   "Short sample on a point-like planet (e.g. Uranus), with same
+   backend set up as science target."
+
+   In short, you'll at least want something to check back-end setup
+   and receiver performance (e.g. a spectral line standard). Optional is
+   an efficiency measurement on a planet to check the convertion
+   of the measured antenna temperature to an astrophysical brightness
+   temperature. However, isolated efficiency observations scatter 
+   considerably and using a suitable average of archived values may be
+   preferential.
+
+3) If you want more specific standard or calibration measurement you should
+   make a separate MSBs with these measurements or include them as extra
+   observation in your MSBs. Calibration observations should be flagged as
+   'calibration' on their title page to prevent unnecessary repeats.</note>
+      <title>Please read</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="2" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpInstHeterodyne id="1" type="oc" subtype="inst.Heterodyne">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <band>best</band>
+      <bandMode>1</bandMode>
+      <beName>acsis</beName>
+      <feBandWidth>2.0E9</feBandWidth>
+      <feIF>5.0E9</feIF>
+      <feName>HARP</feName>
+      <mixers>1</mixers>
+      <mode>ssb</mode>
+      <skyFrequency>3.457959899E11</skyFrequency>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+      <!--          ACSIS Configuration XML        -->
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+      <subsystems>
+          <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="8192">
+              <line species="CO" transition="3  - 2 " rest_freq="3.457959899E11"/>
+          </subsystem>
+      </subsystems>
+
+    </SpInstHeterodyne>
+    <SpDRRecipe id="3" type="oc" subtype="DRRecipe">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpDRRecipe>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>Calibrations:
+----------
+
+The JCMT observing software needs further development to enable 
+a more flexible inclusion of calibration observations:
+presently there is no easy way to insert calibration observation MSBs.
+Without any specific instructions in the science program the operators
+will insert calibrations by observing one of the 'standard' lines in a
+calibration source. There are several options for the calibration: 
+==&gt; See the 'Calibration Instructions' in the Optional Calibration Template
+in the ACSIS OT library for additional instructions regarding options 2
+and 3.
+
+PIs are strongly advised to, at a minimum, add instructions and
+wishes regarding calibrations in this 'Calibration Note' to the TSS and
+observers.
+
+Examples:
+
+1) No specific calibration MSB is provided. Calibrations can be carried
+    out on a suitable calibration source selected by the TSS and at a 
+    'standard' frequency, possibly different from MSB tuning or redshift.
+
+2) A set of separate calibration MSBs, named ...., is available for use with 
+    this MSB. Please select one suitable for the time of observation, the MSBs
+    span the range of RAs in the science program.
+
+3) Calibration observations are embedded as an (optional) part of this
+    MSB.
+
+Please make sure to add additional wishes and requests to the note!
+Issue to consider may be:
+
+- How important is a precise calibration? For many projects it is
+  sufficient to ensure that the telescope and receiver are within
+  spec.
+
+- Can the calibration be done at a 'standard' frequency, possibly
+  different from MSB tuning or redshift? Or should the calibration be
+  done with the "Het setup" of the science observation and, if not
+  close to a standard frequency, should a line-rich source be selected
+  that will allow for the relative calibration of observations from
+  night-to-night?
+
+- Can the calibration be done using a different bandwidth than the
+  science observation? Is an increase in bandwidth allowed to catch
+  a nearby standard line? Increasing the bandwidth should not affect the
+  calibration, except that the peak of very narrow lines will drop
+  because of the lower resolution.
+
+- Is it important to observe a planet? Can this be done at one of
+  the standard frequencies or should the "Het setup" from the
+  science MSB be used?  Efficiencies derived from isolated observations
+  of the continuum level of planets typically are not very
+  accurate.</note>
+      <title>Calibration</title>
+    </SpNote>
+    <SpTelescopeObsComp id="0" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="REFERENCE">
+        <target>
+          <targetName></targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>0:00:00.0</c1>
+            <c2>0:00:00.0</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName></targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>0:00:00</c1>
+            <c2>0:00:00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">3692.0461666913493</estimatedDuration>
+      <standard>false</standard>
+      <title>Science Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterRepeat type="ic" subtype="repeat">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <repeatCount>1</repeatCount>
+          <SpIterOffset type="ic" subtype="offset">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <meta_gui_selectedOffsetPos>Offset0</meta_gui_selectedOffsetPos>
+            <obsArea>
+              <PA>0.0</PA>
+              <OFFSET>
+                <DC1>0.0</DC1>
+                <DC2>0.0</DC2>
+              </OFFSET>
+            </obsArea>
+            <SpIterRasterObs type="ic" subtype="rasterObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <obsArea>
+                <PA>0.0</PA>
+                <SCAN_AREA>
+                  <AREA HEIGHT="180.0" WIDTH="180.0"/>
+                  <SCAN DY="10.0" VELOCITY="2.5" SYSTEM="TRACKING">
+                  </SCAN>
+                </SCAN_AREA>
+              </obsArea>
+              <continuumMode>false</continuumMode>
+              <rowsPerCal>1</rowsPerCal>
+              <rowsPerRef>1</rowsPerRef>
+              <sampleTime>4</sampleTime>
+              <switchingMode>Position</switchingMode>
+            </SpIterRasterObs>
+          </SpIterOffset>
+        </SpIterRepeat>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpAND type="fo" subtype="and">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>true</meta_gui_collapsed>
+      <SpDRRecipeRef idref="7"/>
+      <SpInstSCUBA2Ref idref="5"/>
+      <SpSiteQualityObsCompRef idref="6"/>
+      <SpTelescopeObsCompRef idref="4"/>
+      <estimatedDuration units="seconds">1860.0</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Daisy 1</title>
+      <totalDuration units="seconds">1860.0</totalDuration>
+      <SpNote observeInstruction="true" type="no" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for SCUBA-2 MSBs.
+
+ PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+1) Overall observing strategy for your science program. A paragraph
+conveying the general ideas behind your science program is useful for
+the observer (who may not be an expert in your field) and the
+TSS. (Make sure to check "show to the Observer").
+
+2) Details of calibration observations. By default, the TSS will add
+suitable calibration, pointing, and focus observations throughout the
+night and it typically is not necessary to include these observations
+in your MSBs.
+
+If you have special calibration requirements make sure to describe to
+the TSS what is needed. In this case you can also explicitly add a
+calibration observation to the MSB by adding an "Observation"
+component and checking the "calibration" box. Similarly for pointing
+and focus observations. See the examples under "Example optionals".
+
+3) If you need a specific calibration measurement but only want it a
+few times for your run include it as a separate calibration MSB noting
+how often you want it to be done and that it should only be done when
+a science observation for your project is being observed. Calibration
+observations should be flagged as 'calibration' on their title page.
+See the examples under "Example optionals".</note>
+        <title>Please read</title>
+      </SpNote>
+      <SpSiteQualityObsComp id="6" type="oc" subtype="schedInfo">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <noiseCalculationTau>0.08</noiseCalculationTau>
+      </SpSiteQualityObsComp>
+      <SpDRRecipe id="7" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpDRRecipe>
+      <SpInstSCUBA2 id="5" type="oc" subtype="inst.SCUBA2">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpInstSCUBA2>
+      <SpTelescopeObsComp id="4" type="oc" subtype="targetList">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+        <meta_unique>true</meta_unique>
+        <BASE TYPE="SCIENCE">
+          <target>
+            <targetName></targetName>
+            <spherSystem SYSTEM="J2000">
+              <c1>0:00:00</c1>
+              <c2>0:00:00</c2>
+              <rv defn="radio" frame="LSRK">0.0</rv>
+            </spherSystem>
+          </target>
+        </BASE>
+      </SpTelescopeObsComp>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">1860.0</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterRepeat type="ic" subtype="repeat">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <repeatCount>1</repeatCount>
+            <SpIterRasterObs type="ic" subtype="rasterObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <obsArea>
+                <PA>0.0</PA>
+                <SCAN_AREA>
+                  <AREA HEIGHT="100.0" WIDTH="100.0"/>
+                  <SCAN DY="30.0" VELOCITY="50.0" SYSTEM="FPLANE">
+                  </SCAN>
+                </SCAN_AREA>
+              </obsArea>
+              <sampleTime>1800.0</sampleTime>
+              <scanPattern>Point Source</scanPattern>
+            </SpIterRasterObs>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>true</meta_gui_collapsed>
+      <SpDRRecipeRef idref="11"/>
+      <SpInstHeterodyneRef idref="9"/>
+      <SpSiteQualityObsCompRef idref="10"/>
+      <SpTelescopeObsCompRef idref="8"/>
+      <estimatedDuration units="seconds">252.4</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Jiggle 1</title>
+      <totalDuration units="seconds">252.4</totalDuration>
+      <SpNote observeInstruction="true" type="no" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for heterodyne
+ MSB. PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+* Calibration details
+
+1) Overall observing strategy for your science program. A paragraph
+   conveying the general ideas behind your science program is useful
+   for the observer (who may not be an expert in your field) and the
+   TSS. (Check "show to the Observer").
+
+2) Details of calibration observations.
+   Spell out any specific calibrations you require in the note which is selected 
+  as "show-to-observer". Example  instructions might include:
+
+   "Short sample on a nearby spectral line standard with a good
+   CO(3-2) line e.g. OMC1".
+
+    and/or
+
+   "Short sample on a point-like planet (e.g. Uranus), with same
+   backend set up as science target."
+
+   In short, you'll at least want something to check back-end setup
+   and receiver performance (e.g. a spectral line standard). Optional is
+   an efficiency measurement on a planet to check the convertion
+   of the measured antenna temperature to an astrophysical brightness
+   temperature. However, isolated efficiency observations scatter 
+   considerably and using a suitable average of archived values may be
+   preferential.
+
+3) If you want more specific standard or calibration measurement you should
+   make a separate MSBs with these measurements or include them as extra
+   observation in your MSBs. Calibration observations should be flagged as
+   'calibration' on their title page to prevent unnecessary repeats.</note>
+        <title>Please read</title>
+      </SpNote>
+      <SpSiteQualityObsComp id="10" type="oc" subtype="schedInfo">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <noiseCalculationTau>0.08</noiseCalculationTau>
+      </SpSiteQualityObsComp>
+      <SpInstHeterodyne id="9" type="oc" subtype="inst.Heterodyne">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <band>best</band>
+        <bandMode>1</bandMode>
+        <beName>acsis</beName>
+        <feBandWidth>2.0E9</feBandWidth>
+        <feIF>5.0E9</feIF>
+        <feName>HARP</feName>
+        <mixers>1</mixers>
+        <mode>ssb</mode>
+        <skyFrequency>3.457959899E11</skyFrequency>
+
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+        <!--          ACSIS Configuration XML        -->
+        <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+        <subsystems>
+            <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="8192">
+                <line species="CO" transition="3  - 2 " rest_freq="3.457959899E11"/>
+            </subsystem>
+        </subsystems>
+
+      </SpInstHeterodyne>
+      <SpDRRecipe id="11" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpDRRecipe>
+      <SpNote observeInstruction="true" type="no" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <note>Calibrations:
+----------
+
+The JCMT observing software needs further development to enable 
+a more flexible inclusion of calibration observations:
+presently there is no easy way to insert calibration observation MSBs.
+Without any specific instructions in the science program the operators
+will insert calibrations by observing one of the 'standard' lines in a
+calibration source. There are several options for the calibration: 
+==&gt; See the 'Calibration Instructions' in the Optional Calibration Template
+in the ACSIS OT library for additional instructions regarding options 2
+and 3.
+
+PIs are strongly advised to, at a minimum, add instructions and
+wishes regarding calibrations in this 'Calibration Note' to the TSS and
+observers.
+
+Examples:
+
+1) No specific calibration MSB is provided. Calibrations can be carried
+    out on a suitable calibration source selected by the TSS and at a 
+    'standard' frequency, possibly different from MSB tuning or redshift.
+
+2) A set of separate calibration MSBs, named ...., is available for use with 
+    this MSB. Please select one suitable for the time of observation, the MSBs
+    span the range of RAs in the science program.
+
+3) Calibration observations are embedded as an (optional) part of this
+    MSB.
+
+Please make sure to add additional wishes and requests to the note!
+Issue to consider may be:
+
+- How important is a precise calibration? For many projects it is
+  sufficient to ensure that the telescope and receiver are within
+  spec.
+
+- Can the calibration be done at a 'standard' frequency, possibly
+  different from MSB tuning or redshift? Or should the calibration be
+  done with the "Het setup" of the science observation and, if not
+  close to a standard frequency, should a line-rich source be selected
+  that will allow for the relative calibration of observations from
+  night-to-night?
+
+- Can the calibration be done using a different bandwidth than the
+  science observation? Is an increase in bandwidth allowed to catch
+  a nearby standard line? Increasing the bandwidth should not affect the
+  calibration, except that the peak of very narrow lines will drop
+  because of the lower resolution.
+
+- Is it important to observe a planet? Can this be done at one of
+  the standard frequencies or should the "Het setup" from the
+  science MSB be used?  Efficiencies derived from isolated observations
+  of the continuum level of planets typically are not very
+  accurate.</note>
+        <title>Calibration</title>
+      </SpNote>
+      <SpTelescopeObsComp id="8" type="oc" subtype="targetList">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+        <meta_unique>true</meta_unique>
+        <BASE TYPE="SCIENCE">
+          <target>
+            <targetName></targetName>
+            <spherSystem SYSTEM="J2000">
+              <c1>0:00:00</c1>
+              <c2>0:00:00</c2>
+              <rv defn="radio" frame="LSRK">0.0</rv>
+            </spherSystem>
+          </target>
+        </BASE>
+      </SpTelescopeObsComp>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">252.4</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterRepeat type="ic" subtype="repeat">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <repeatCount>1</repeatCount>
+            <SpIterChop type="ic" subtype="chop">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <SECONDARY>
+                <CHOP SYSTEM="AZEL">
+                  <THROW>60.0</THROW>
+                  <PA>90.0</PA>
+                </CHOP>
+              </SECONDARY>
+              <SpIterJiggleObs type="ic" subtype="jiggleObs">
+                <meta_gui_collapsed>false</meta_gui_collapsed>
+                <continuumMode>false</continuumMode>
+                <jigglePa>0.0</jigglePa>
+                <jigglePattern>3x3</jigglePattern>
+                <jigglePerCycle>1</jigglePerCycle>
+                <jiggleSystem>TRACKING</jiggleSystem>
+                <scaleFactor>10.0</scaleFactor>
+                <secsPerCycle>10</secsPerCycle>
+                <switchingMode>Beam</switchingMode>
+              </SpIterJiggleObs>
+            </SpIterChop>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
+  </SpAND>
+  <SpOR numberOfItems="1" type="of" subtype="or">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>true</meta_gui_collapsed>
+      <SpDRRecipeRef idref="15"/>
+      <SpInstSCUBA2Ref idref="13"/>
+      <SpSiteQualityObsCompRef idref="14"/>
+      <SpTelescopeObsCompRef idref="12"/>
+      <estimatedDuration units="seconds">2450.43</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Pong 1</title>
+      <totalDuration units="seconds">2450.43</totalDuration>
+      <SpNote observeInstruction="true" type="no" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for SCUBA-2 MSBs.
+
+ PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+1) Overall observing strategy for your science program. A paragraph
+conveying the general ideas behind your science program is useful for
+the observer (who may not be an expert in your field) and the
+TSS. (Make sure to check "show to the Observer").
+
+2) Details of calibration observations. By default, the TSS will add
+suitable calibration, pointing, and focus observations throughout the
+night and it typically is not necessary to include these observations
+in your MSBs.
+
+If you have special calibration requirements make sure to describe to
+the TSS what is needed. In this case you can also explicitly add a
+calibration observation to the MSB by adding an "Observation"
+component and checking the "calibration" box. Similarly for pointing
+and focus observations. See the examples under "Example optionals".
+
+3) If you need a specific calibration measurement but only want it a
+few times for your run include it as a separate calibration MSB noting
+how often you want it to be done and that it should only be done when
+a science observation for your project is being observed. Calibration
+observations should be flagged as 'calibration' on their title page.
+See the examples under "Example optionals".</note>
+        <title>Please read</title>
+      </SpNote>
+      <SpSiteQualityObsComp id="14" type="oc" subtype="schedInfo">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <noiseCalculationTau>0.08</noiseCalculationTau>
+      </SpSiteQualityObsComp>
+      <SpDRRecipe id="15" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpDRRecipe>
+      <SpInstSCUBA2 id="13" type="oc" subtype="inst.SCUBA2">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpInstSCUBA2>
+      <SpTelescopeObsComp id="12" type="oc" subtype="targetList">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+        <meta_unique>true</meta_unique>
+        <BASE TYPE="SCIENCE">
+          <target>
+            <targetName></targetName>
+            <spherSystem SYSTEM="J2000">
+              <c1>0:00:00</c1>
+              <c2>0:00:00</c2>
+              <rv defn="radio" frame="LSRK">0.0</rv>
+            </spherSystem>
+          </target>
+        </BASE>
+      </SpTelescopeObsComp>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">2450.43</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterRepeat type="ic" subtype="repeat">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <repeatCount>1</repeatCount>
+            <SpIterOffset type="ic" subtype="offset">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <meta_gui_selectedOffsetPos>Offset0</meta_gui_selectedOffsetPos>
+              <obsArea>
+                <PA>0.0</PA>
+                <OFFSET>
+                  <DC1>0.0</DC1>
+                  <DC2>0.0</DC2>
+                </OFFSET>
+              </obsArea>
+              <SpIterRasterObs type="ic" subtype="rasterObs">
+                <meta_gui_collapsed>false</meta_gui_collapsed>
+                <obsArea>
+                  <PA>0.0</PA>
+                  <SCAN_AREA>
+                    <AREA HEIGHT="900.0" WIDTH="900.0"/>
+                    <SCAN DY="30.0" VELOCITY="280.0" SYSTEM="FPLANE">
+                    </SCAN>
+                  </SCAN_AREA>
+                </obsArea>
+                <integrations>11</integrations>
+                <scanPattern>Pong</scanPattern>
+              </SpIterRasterObs>
+            </SpIterOffset>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
+    <SpMSB remaining="1" type="og" subtype="msb">
+      <meta_gui_collapsed>true</meta_gui_collapsed>
+      <SpDRRecipeRef idref="19"/>
+      <SpInstSCUBA2Ref idref="17"/>
+      <SpSiteQualityObsCompRef idref="18"/>
+      <SpTelescopeObsCompRef idref="16"/>
+      <estimatedDuration units="seconds">2493.8</estimatedDuration>
+      <library_version>$Revision$</library_version>
+      <priority>99</priority>
+      <title>Pong 2</title>
+      <totalDuration units="seconds">2493.8</totalDuration>
+      <SpNote observeInstruction="true" type="no" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for SCUBA-2 MSBs.
+
+ PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+1) Overall observing strategy for your science program. A paragraph
+conveying the general ideas behind your science program is useful for
+the observer (who may not be an expert in your field) and the
+TSS. (Make sure to check "show to the Observer").
+
+2) Details of calibration observations. By default, the TSS will add
+suitable calibration, pointing, and focus observations throughout the
+night and it typically is not necessary to include these observations
+in your MSBs.
+
+If you have special calibration requirements make sure to describe to
+the TSS what is needed. In this case you can also explicitly add a
+calibration observation to the MSB by adding an "Observation"
+component and checking the "calibration" box. Similarly for pointing
+and focus observations. See the examples under "Example optionals".
+
+3) If you need a specific calibration measurement but only want it a
+few times for your run include it as a separate calibration MSB noting
+how often you want it to be done and that it should only be done when
+a science observation for your project is being observed. Calibration
+observations should be flagged as 'calibration' on their title page.
+See the examples under "Example optionals".</note>
+        <title>Please read</title>
+      </SpNote>
+      <SpSiteQualityObsComp id="18" type="oc" subtype="schedInfo">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+        <noiseCalculationTau>0.08</noiseCalculationTau>
+      </SpSiteQualityObsComp>
+      <SpDRRecipe id="19" type="oc" subtype="DRRecipe">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpDRRecipe>
+      <SpInstSCUBA2 id="17" type="oc" subtype="inst.SCUBA2">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_unique>true</meta_unique>
+      </SpInstSCUBA2>
+      <SpTelescopeObsComp id="16" type="oc" subtype="targetList">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+        <meta_unique>true</meta_unique>
+        <BASE TYPE="SCIENCE">
+          <target>
+            <targetName></targetName>
+            <spherSystem SYSTEM="J2000">
+              <c1>0:00:00</c1>
+              <c2>0:00:00</c2>
+              <rv defn="radio" frame="LSRK">0.0</rv>
+            </spherSystem>
+          </target>
+        </BASE>
+      </SpTelescopeObsComp>
+      <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <estimatedDuration units="seconds">2493.8</estimatedDuration>
+        <standard>false</standard>
+        <title>Science Observation</title>
+        <SpIterFolder type="if" subtype="none">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpIterRepeat type="ic" subtype="repeat">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <repeatCount>1</repeatCount>
+            <SpIterOffset type="ic" subtype="offset">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <meta_gui_selectedOffsetPos>Offset0</meta_gui_selectedOffsetPos>
+              <obsArea>
+                <PA>0.0</PA>
+                <OFFSET>
+                  <DC1>0.0</DC1>
+                  <DC2>0.0</DC2>
+                </OFFSET>
+              </obsArea>
+              <SpIterRasterObs type="ic" subtype="rasterObs">
+                <meta_gui_collapsed>false</meta_gui_collapsed>
+                <obsArea>
+                  <PA>0.0</PA>
+                  <SCAN_AREA>
+                    <AREA HEIGHT="1800.0" WIDTH="1800.0"/>
+                    <SCAN DY="60.0" VELOCITY="400.0" SYSTEM="FPLANE">
+                    </SCAN>
+                  </SCAN_AREA>
+                </obsArea>
+                <integrations>8</integrations>
+                <scanPattern>Pong</scanPattern>
+              </SpIterRasterObs>
+            </SpIterOffset>
+          </SpIterRepeat>
+        </SpIterFolder>
+      </SpObs>
+    </SpMSB>
+  </SpOR>
+</SpProg>
