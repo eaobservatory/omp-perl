@@ -56,7 +56,24 @@ sub view_region {
         $q->p(
           $q->hidden(-name => 'show_output', -value => 'true'),
           $q->submit(-value => 'Download / Plot')),
-        $q->end_form;
+        $q->end_form,
+        $q->h3('Notes'),
+        $q->p('The downloaded region files can be plotted using the',
+          $q->tt('kappa'),
+          'package command',
+          $q->tt('ardplot.'),
+          'For example to overlay the region on an existing file:'),
+        $q->p($q->pre('display IMAGE.sdf',
+          "\n" . 'ardplot region=REGION.ast')),
+        $q->p('This should also work for the STC-S files.'),
+        $q->p('In the PNG image plot, observations are colour-coded ',
+          'as follows:'),
+        $q->ul(
+          $q->li($q->b('White:'), 'new observations.'),
+          $q->li($q->b('Red:'), 'observations in progress, ',
+            'when it is possible to determine that an observation has ',
+            'been observed, otherwise it will appear white until complete.'),
+          $q->li($q->b('Blue:'), 'completed observations.'));
 }
 
 =iten B<view_region_output>
