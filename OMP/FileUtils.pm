@@ -39,6 +39,11 @@ our $DEBUG = 0;
 # Set to return files previously not encountered.
 our $RETURN_RECENT_FILES = 0;
 
+my $MISS_CONFIG_KEY =
+  qr{ \b
+        Key .+? could \s+ not \s+ be \s+ found \s+ in \s+ OMP \s+ config
+    }xi;
+
 =head1 METHODS
 
 There are no instance methods, only class (static) methods.
@@ -137,9 +142,9 @@ sub files_on_disk {
 
     my ( $e  ) = @_;
 
-    OMP::General->log_message( $e->text(), OMP__LOG_WARNING );
-
-    throw $e unless $e =~ /^Key.+could not be found in OMP config system/i;
+    my $text = $e->text();
+    _log_filtered( $text, $MISS_CONFIG_KEY );
+    throw $e unless $text =~ $MISS_CONFIG_KEY;
   };
 
   my $mute_miss_raw  = 0;
@@ -187,10 +192,9 @@ sub use_raw_meta_opt {
 
     my ( $e  ) = @_;
 
-    OMP::General->log_message( $e->text(), OMP__LOG_WARNING );
-
-    throw $e
-      unless $e =~ /^Key.+could not be found in OMP config system/i;
+    my $text = $e->text();
+    _log_filtered( $text, $MISS_CONFIG_KEY );
+    throw $e unless $text =~ $MISS_CONFIG_KEY;
   };
 
   return !!$meta;
@@ -827,6 +831,44 @@ sub _track_file {
   OMP::General->log_message( join( "\n  ", $label, scalar @descr ? @descr : '<none>' ),
                               OMP__LOG_INFO
                             );
+  return;
+}
+
+sub _log_filtered {
+
+ my ( $err, $skip_re ) = @_;
+
+  return
+    unless defined $err
+       && $skip_re;
+
+  my $text = _extract_err_text( $err ) or return;
+
+  blessed $skip_re or $skip_re = qr{$skip_re};
+  return if $text =~ $skip_re;
+
+  OMP::General->log_message( $text, OMP__LOG_WARNING );
+  return;
+}
+
+sub _extract_err_text {
+
+  my ( $err ) = @_;
+
+  return      unless defined $err;
+  return $err unless blessed $err;
+
+  for my $class ( 'OMP::Error',
+                  'JSA::Error',
+                  'Error::Simple'
+                ) {
+
+    next unless $err->isa( $class );
+
+    return $err->text()
+      if $err->can( 'text' );
+  }
+
   return;
 }
 
