@@ -258,8 +258,11 @@ for my $proj (keys %sorted) {
 
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
 
+  my $summary = $grp->summary('72col');
+  defined $summary or $summary = '';
+
   $msg .= "\nObservation Log\n---------------\n\n";
-  $msg .= $grp->summary('72col');
+  $msg .= $summary;
 
   my $status = OMP__FB_IMPORTANT;
 
