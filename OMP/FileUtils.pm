@@ -44,6 +44,14 @@ my $MISS_CONFIG_KEY =
         Key .+? could \s+ not \s+ be \s+ found \s+ in \s+ OMP \s+ config
     }xi;
 
+my $MISS_DIRECTORY =
+  qr{ \b
+      n[o']t \s+ open \s+ dir .+?
+      \b 
+      No \s+ such \s+ file
+      \b
+    }xis;
+
 =head1 METHODS
 
 There are no instance methods, only class (static) methods.
@@ -276,10 +284,11 @@ sub get_meta_files {
 
     my ( $err ) = @_;
 
-    OMP::General->log_message( $err->text(), OMP__LOG_WARNING );
+    my $text = $err->text();
+    _log_filtered( $text, $MISS_DIRECTORY );
 
     return
-      if $err =~ /n[o']t open directory/i;
+      if $text =~ /n[o']t open directory/i;
   };
 
   _track_file( 'meta files: ', $metas && ref $metas ? @{ $metas } : () );
@@ -304,10 +313,11 @@ sub get_flag_files {
 
     my ( $err ) = @_;
 
-    OMP::General->log_message( $err->text(), OMP__LOG_WARNING );
+    my $text = $err->text();
+    _log_filtered( $text, $MISS_DIRECTORY );
 
     return
-      if $err =~ /n[o']t open directory/i;
+      if $text =~ /n[o']t open directory/i;
   };
 
   # Purge the list if runnr is not zero.
