@@ -992,8 +992,6 @@ sub fts2_config {
   my $fts2 = new JAC::OCS::Config::FTS2();
 
   my $mode = $info{'SpecialMode'};
-  my $port = $info{'TrackingPort'};
-  my $dual = $info{'isDualPort'};   # Boolean
 
   # OT includes sampleTime for the FTS-2 observation but it's not
   # part of the FTS2_CONFIG.
@@ -1053,6 +1051,40 @@ sub fts2_config {
   }
 
   $cfg->fts2($fts2);
+
+  # Finished configuring FTS-2, now configure TCS.
+  $fts2 = undef; # Prevent accidental usage which will not be saved.
+
+  my $port = $info{'TrackingPort'};
+  my $tcs = $cfg->tcs();
+  if ($port == 1) {
+    # FTS-2 port 1 is S4A and S8D
+    $cfg->tcs()->aperture_name('fts8d');
+  }
+  elsif ($port == 2) {
+    # FTS-2 port 2 is S4B and S8C
+    $cfg->tcs()->aperture_name('fts8c');
+  }
+  else {
+    throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+  }
+
+  my $dual = $info{'isDualPort'};   # Boolean
+
+  if ($dual) {
+    # Open both shutters.
+  }
+  else {
+    if ($port == 1) {
+      # Open shutter 1 and close shutter 2.
+    }
+    elsif ($port == 2) {
+      # Open shutter 2 and close shutter 1.
+    }
+    else {
+      throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+    }
+  }
 }
 
 =item B<need_offset_tracking>
