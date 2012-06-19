@@ -7,7 +7,7 @@ OMP::SciProg - Class representing an OMP Science Program
 =head1 SYNOPSIS
 
   $sp = new OMP::SciProg( XML => $xml );
-  @msbs = $sp->msbs;
+  @msbs = $sp->msb;
 
 
 =head1 DESCRIPTION
