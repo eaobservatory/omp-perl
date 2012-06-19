@@ -965,6 +965,16 @@ sub rotator_config {
                );
 }
 
+=item B<fts2_config>
+
+FTS-2 is not used with ACSIS.
+
+=cut
+
+sub fts2_config {
+}
+
+
 =item B<jos_config>
 
 Configure the JOS.

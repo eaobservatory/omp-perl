@@ -206,6 +206,9 @@ sub translate {
     # Polarimeter
     $self->pol_config( $cfg, %$obs ) unless $ispriv;
 
+    # Fourier Transform Spectrometer
+    $self->fts2_config( $cfg, %$obs ) unless $ispriv;
+
     # RTS
     $self->rts_config( $cfg, %$obs ) unless ($ispriv && !$onlyrts);
 

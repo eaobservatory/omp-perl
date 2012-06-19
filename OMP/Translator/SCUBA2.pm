@@ -973,6 +973,88 @@ There is no rotator for SCUBA-2.
 sub rotator_config {
 }
 
+=item B<fts2_config>
+
+Reads the information from OMP::MSB (which should be in a simple hash form from
+the unroll_obs method) and creates a JAC::OCS::Config::FTS2 object.
+
+=cut
+
+sub fts2_config {
+  my $self = shift;
+  my $cfg = shift;
+  my %info = @_;
+
+  # Check if this is an FTS-2 observation.
+  return unless $info{'MODE'} eq 'SpIterFTS2Obs';
+  $self->output("FTS-2 observation:\n");
+
+  my $fts2 = new JAC::OCS::Config::FTS2();
+
+  my $mode = $info{'SpecialMode'};
+  my $port = $info{'TrackingPort'};
+  my $dual = $info{'isDualPort'};   # Boolean
+
+  # OT includes sampleTime for the FTS-2 observation but it's not
+  # part of the FTS2_CONFIG.
+  # my $samptime = $info{'sampleTime'};
+
+  if ($mode eq 'SED') {
+    # The SED observation mode produces low-resolution double-sided
+    # interferograms using the dual-port configuration.
+
+    $fts2->scan_mode('RAPID_SCAN');
+    $fts2->scan_dir('DIR_ARBITRARY');
+    $fts2->scan_origin(0);
+  }
+  elsif ($mode eq 'Spectral Line') {
+    # The Spectral Line mode acquires high-resolution single-sided 
+    # interferograms using the dual-port configuration.
+
+    $fts2->scan_mode('RAPID_SCAN');
+    $fts2->scan_dir('DIR_ARBITRARY');
+    $fts2->scan_origin(0);
+    $fts2->scan_spd(0);
+    $fts2->scan_length(0);
+  }
+  elsif ($mode eq 'Spectral Flatfield') {
+    # Don't know what this mode is.
+
+    $fts2->scan_mode('RAPID_SCAN');
+    $fts2->scan_dir('DIR_ARBITRARY');
+    $fts2->scan_origin(0);
+  }
+  elsif ($mode eq 'ZPD') {
+    # The ZPD operating mode records a short double-sided interferogram with
+    # the FTS configured in the single-port mode and one of the blackbody
+    # shutters closed.
+
+    $fts2->scan_mode('ZPD_MODE');
+    $fts2->scan_dir('DIR_ARBITRARY');
+    $fts2->scan_origin(0);
+    $fts2->scan_spd(0);
+    $fts2->step_dist(0);
+  }
+  elsif ($mode eq 'Variable Mode') {
+    # With this mode selected the OT allows the resolution and scan-speed
+    # to be configured.  (It greys these options out in the other modes.)
+
+    my $speed = $info{'ScanSpeed'};
+    my $resolution = $info{'resolution'};
+
+    $fts2->scan_mode('RAPID_SCAN');
+    $fts2->scan_dir('DIR_ARBITRARY');
+    $fts2->scan_origin(0);
+    $fts2->scan_spd(0);    # Calculate from $speed parameter?
+    $fts2->scan_length(0); # Calculate from $resolution parameter?
+  }
+  else {
+    throw OMP::Error::TranslateFail('Unknown FTS-2 "Special Mode": ' . $mode)
+  }
+
+  $cfg->fts2($fts2);
+}
+
 =item B<need_offset_tracking>
 
 Returns true if we need to use a particular sub array for this
@@ -1075,6 +1157,9 @@ sub determine_map_and_switch_mode {
     $mapping_mode = 'stare';
   } elsif ($mode eq 'SpIterDREAMObs') {
     $mapping_mode = 'dream';
+  } elsif ($mode eq 'SpIterFTS2Obs') {
+    $mapping_mode = 'stare';
+    $switching_mode = 'self';
   } elsif ($mode eq 'SpIterPointingObs') {
     $mapping_mode = OMP::Config->getData($self->cfgkey.".pointing_obsmode");
     $obs_type = 'pointing';
@@ -1155,6 +1240,13 @@ sub determine_inbeam {
     } elsif ($source =~ /dark/i) {
       return ("shutter");
     }
+  }
+
+  # Detect FTS2 observations.  Also check for blackbody because
+  # of the POD comment above.
+  if ($info{'MODE'} eq 'SpIterFTS2Obs' and not
+      (defined $source and $source =~ /blackbody/i)) {
+    push @inbeam, 'fts2';
   }
 
   # get base class values
