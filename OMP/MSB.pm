@@ -3651,7 +3651,7 @@ sub SpObs {
   my $optional_coords = 0;
   my $use_sci_coords = 0;
   if ( grep /^Observe$/, @{$summary{obstype}} or
-       grep /Pointing|Photom|Jiggle|Stare|Raster|DREAM|Focus/, @{$summary{obstype}}) {
+       grep /Pointing|Photom|Jiggle|Stare|Raster|FTS2|DREAM|Focus/, @{$summary{obstype}}) {
     $use_sci_coords = 1;
     $optional_coords = 0; # need a target unless autotarget
   } elsif ( grep /Skydip|Noise|Setup/, @{$summary{obstype}}) {
@@ -4323,8 +4323,35 @@ sub SpIterFolder {
 
       push(@{$summary{$parent}{CHILDREN}}, { SpIterRasterObs => \%scan});
 
-    }
+    } elsif ($name eq 'SpIterFTS2Obs') {
+      $summary{scitarget} = 1;
+      $summary{autoTarget} = 0;
 
+      my %fts = ();
+
+      my $mode = $self->_get_pcdata($child, 'SpecialMode');
+      $fts{'SpecialMode'} = $mode if defined $mode;
+
+      my $port = $self->_get_pcdata($child, 'TrackingPort');
+      $fts{'TrackingPort'} = $port if defined $port;
+
+      my $dual = $self->_get_pcdata($child, 'isDualPort');
+      $fts{'isDualPort'} = $self->_str_to_bool($dual) if defined $dual;
+
+      my $speed = $self->_get_pcdata($child, 'ScanSpeed');
+      $fts{'ScanSpeed'} = $speed if defined $speed;
+
+      my $resolution = $self->_get_pcdata($child, 'resolution');
+      $fts{'resolution'} = $resolution if defined $resolution;
+
+      my $samptime = $self->_get_pcdata($child, "sampleTime");
+      $fts{'sampleTime'} = $samptime if defined $samptime;
+
+      #use Data::Dumper;
+      #print "FTS HASH: " . Dumper(\%fts) . "\n";
+
+      push(@{$summary{$parent}{'CHILDREN'}}, { $name => \%fts });
+    }
 
     # Remove the SpIter string
     $name =~ s/^SpIter//;
