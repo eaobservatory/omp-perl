@@ -1005,14 +1005,46 @@ sub _mail_information {
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
 
+  my @sent;
+  my @addr = map { $_->email } @{$args{to}}, @{$args{cc}}, @{$args{bcc}};
+
   OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
   eval {
-    $top->smtpsend(Host => $mailhost,
-                   To =>[map{$_->email} @{$args{to}}, @{$args{cc}}, @{$args{bcc}}],);
+    @sent =
+      $top->smtpsend( Host => $mailhost,
+                      To   => [ @addr ],
+                    );
   };
   ($@) and throw OMP::Error::MailError("$@\n");
-  OMP::General->log_message("Mail message sent to ". join(",",@{$args{to}} ),
-                            OMP__LOG_INFO);
+
+  scalar @sent
+    and OMP::General->log_message(  "Mail message sent to " . join( ',', @sent ),
+                                    OMP__LOG_INFO
+                                  );
+
+  _log_mail_missed( \@sent, @addr );
+
+  return;
+}
+
+sub _log_mail_missed {
+
+  my ( $sent, @all ) = @_;
+
+  return unless scalar @all;
+
+  my %miss;
+  @miss{ @all } = ();
+
+  if ( $sent && ref $sent ) {
+
+    delete $miss{ $_ } for @{ $sent };
+  }
+  return if 0 == scalar keys %miss;
+
+  OMP::General->log_message(  "Mail message NOT sent to " . join( ',', sort keys %miss ),
+                              OMP__LOG_WARNING
+                            );
   return;
 }
 
