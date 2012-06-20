@@ -139,10 +139,12 @@ sub new {
       else {
         my @corner = ();
         foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+          my $system = 'J2000';
+          $system = 'GAL' if $coords->native() eq 'glonglat';
           my $offset = new Astro::Coords::Offset(
                              $cf->[0] * $width / 2, $cf->[1] * $height / 2,
                              posang     => $obs->{'MAP_PA'},
-                             'system'   => 'J2000',
+                             'system'   => $system,
                              projection => 'TAN');
           push @corner, $coords->apply_offset($offset);
 
