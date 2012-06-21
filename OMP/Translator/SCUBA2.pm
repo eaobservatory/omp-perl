@@ -1320,6 +1320,18 @@ sub determine_inbeam {
     push @inbeam, 'fts2';
   }
 
+  # Read inbeam hash entry for focus and pointing, allowing fts2 and pol2
+  # to be in the beam, subject to the constraint mentioned above.
+  if (($info{'MODE'} eq 'SpIterFocusObs' or
+       $info{'MODE'} eq 'SpIterPointingObs') and
+      (defined $info{'inbeam'} and ref $info{'inbeam'})) {
+
+    push @inbeam, 'fts2' if grep {lc($_) eq 'fts2'} @{$info{'inbeam'}}
+                         and not (defined $source and $source =~ /blackbody/i);
+
+    push @inbeam, 'pol2' if grep {lc($_) eq 'pol2'} @{$info{'inbeam'}};
+  }
+
   # get base class values
   push(@inbeam, $self->SUPER::determine_inbeam(%info));
   
