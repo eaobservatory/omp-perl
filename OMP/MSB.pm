@@ -4181,11 +4181,16 @@ sub SpIterFolder {
         $summary{autoTarget} = 0;
       }
 
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { 
-                                                       nintegrations => $nint,
-                                                       autoTarget => $auto,
-                                                       #pointingPixel => $pix,
-                                                      }});
+      my %point = (
+                      nintegrations => $nint,
+                      autoTarget => $auto,
+                      #pointingPixel => $pix,
+      );
+
+      my $inbeam = $self->_get_pcdata($child, "in_beam");
+      $point{'inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => \%point });
 
 
     } elsif ($name eq 'SpIterFocusObs') {
@@ -4209,13 +4214,18 @@ sub SpIterFolder {
         $summary{autoTarget} = 0;
       }
 
-      push(@{$summary{$parent}{CHILDREN}}, { $name => { 
-                                                       nintegrations => $nint,
-                                                       autoTarget => $auto,
-                                                       focusPoints => $npoints,
-                                                       focusAxis => $axis,
-                                                       focusStep => $steps,
-                                                      }});
+      my %focus = (
+                   nintegrations => $nint,
+                   autoTarget => $auto,
+                   focusPoints => $npoints,
+                   focusAxis => $axis,
+                   focusStep => $steps,
+      );
+
+      my $inbeam = $self->_get_pcdata($child, "in_beam");
+      $focus{'inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => \%focus });
 
 
     } elsif ($name eq 'SpIterFlatObs') {
