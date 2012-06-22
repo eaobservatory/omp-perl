@@ -1006,7 +1006,14 @@ sub _mail_information {
   my $mailhost = OMP::Config->getData("mailhost");
 
   my @sent;
-  my @addr = map { $_->email } @{$args{to}}, @{$args{cc}}, @{$args{bcc}};
+  my @addr =
+    map
+    { my $e = $_->email();
+      defined $e && length $e ? $e : ()
+    }
+    @{$args{to}}, @{$args{cc}}, @{$args{bcc}};
+
+  return unless scalar @addr;
 
   OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
   eval {
