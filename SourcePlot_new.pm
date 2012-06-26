@@ -272,7 +272,7 @@ sub sourceplot {
 
 
   # Override defaults with arguments
-  my %args = ( %defaults, @_ );
+  my %args = (%defaults, @_);
 
   # Extract for compacter calculations
   my $debug = 0;
@@ -287,7 +287,7 @@ sub sourceplot {
   $args{'plot_center'} /= 3600.0;
 
   # PGPLOT device name
-  $args{'hdevice'} = '/' . $args{'hdevice'} if( $args{'hdevice'} !~ /^\// );
+  $args{'hdevice'} = '/' . $args{'hdevice'} if ($args{'hdevice'} !~ /^\//);
   my $hdevice = $args{'output'} . $args{'hdevice'};
 
   # Pick up some required date information from first coords object, unless
@@ -329,8 +329,8 @@ sub sourceplot {
   my $utint = $args{'plot_int'}/3600.0;
   my $utleft = $ut0hr - $utint + $args{'plot_center'};
   my $utright  = $utleft + 2*$utint;
-  $utleft += 24.0 if( $utleft < -24.0 );
-  $utleft -= 24.0 if( $utleft >  12.0 );
+  $utleft += 24.0 if ($utleft < -24.0);
+  $utleft -= 24.0 if ($utleft >  12.0);
 
   # Calculate LST axis for the same interval.
   # See page B7 of the Almanac for the factor 1.002 737 9093
@@ -353,13 +353,13 @@ sub sourceplot {
   # Weird need to inquire after normalized and real both!
   #pgqvp (0, $nx1, $nx2, $ny1, $ny2);    # Inquire about dimensions
   print "SOURCEPLOT DEBUG: Inquire about dimensions.\n" if($debug);
-  pgqvp (1, $vx1, $vx2, $vy1, $vy2);     # Inquire about dimensions
+  pgqvp(1, $vx1, $vx2, $vy1, $vy2);     # Inquire about dimensions
   my $polscale = 11/8;
   $polscale = ($nx2-$nx1)/($ny2-$ny1)*($vx2-$vx1)/($vy2-$vy1)
-        if( ($ny2-$ny1)*($vy2-$vy1) != 0 );
+        if ( ($ny2-$ny1)*($vy2-$vy1) != 0);
 
   my ($lw);
-  pgqlw( $lw );                          # Query default line weight device
+  pgqlw($lw);                            # Query default line weight device
 
   # Plot box variables: need to be available outside plot format scope.
   my ($xlo, $xhi, $xint, $xlabel);
@@ -370,18 +370,18 @@ sub sourceplot {
 
   # Set up plot limits, grid spacing and label for X and Y-axis
   # Everything following this block is coded 'scale-free'.
-  if( $args{'format'} =~ /azel/i ) {
+  if ($args{'format'} =~ /azel/i) {
     ($xlo, $xhi, $xint, $xlabel) = (-90, 90,  15.0, 'AZ');
     ($ylo, $yhi, $yint, $ylabel) = (-90, 90,  10.0, 'EL');
 
   } else {
     # Set up plot limits, grid spacing and label for X and Y-axis
     ($xlo, $xhi, $xint, $xlabel) = ($utleft, $utright,   4.0, 'UT');
-    if( $args{'format'} =~ /timepa/i ) {
+    if ($args{'format'} =~ /timepa/i) {
       ($ylo, $yhi, $yint, $ylabel) = ( -180.0, 180.0, 60.0, 'PA');
-    } elsif( $args{'format'} =~ /timeaz/i ) {
+    } elsif ($args{'format'} =~ /timeaz/i) {
       ($ylo, $yhi, $yint, $ylabel) = (    0.0, 360.0, 60.0, 'AZ');
-    } elsif( $args{'format'} =~ /timena/i ) {
+    } elsif ($args{'format'} =~ /timena/i) {
       ($ylo, $yhi, $yint, $ylabel) = ( -180.0, 180.0, 60.0, 'NA');
     } else {                #timeel
       ($ylo, $yhi, $yint, $ylabel) = (    0.0, 89.99, 20.0, 'EL');
@@ -400,29 +400,28 @@ sub sourceplot {
 
   # PLOT AZ-EL Bulls-eye
   print "SOURCEPLOT DEBUG: Setting up plot window.\n" if($debug);
-  if( $args{'format'} =~ /azel/i ) {
+  if ($args{'format'} =~ /azel/i) {
 
-    pgwindow( $polscale*$args{'mag'}*$xlo,
-              $polscale*$args{'mag'}*$xhi,
-              $args{'mag'}*$ylo,
-              $args{'mag'}*$yhi
-            );
+    pgwindow($polscale*$args{'mag'}*$xlo,
+             $polscale*$args{'mag'}*$xhi,
+             $args{'mag'}*$ylo,
+             $args{'mag'}*$yhi);
     print "SOURCEPLOT DEBUG: AZEL window defined.\n" if($debug);
 
-    pgsci( $args{'defcol'} );
+    pgsci($args{'defcol'});
 
     # Extra large plot label, then conform to desired size
-    pgsch( $args{'titlescale'} );
+    pgsch($args{'titlescale'});
     $x[0] = $xlo;
     $y[0] = $ylo + 1.06*$yrange;
-    pgtext( $x[0], $y[0], "$telescope   $utdate" );
-    pgsch( $args{'axisscale'} );
+    pgtext($x[0], $y[0], "$telescope   $utdate");
+    pgsch($args{'axisscale'});
     $x[0] = $xlo + 0.7*$xrange;
     $y[0] = $ylo;
-    pgtext( $x[0], $y[0], "dots mark local time" );
+    pgtext($x[0], $y[0], "dots mark local time");
 
     # Draw bulls-eye (outline of circles only)
-    pgsfs( 2 );
+    pgsfs(2);
 
     # Draw concentric circles at 'yint' intervals in elevation
     # Elevation:
@@ -451,23 +450,21 @@ sub sourceplot {
 	}
       }
       # Outer circle solid in default frame color, other gridstyle
-      if( $eld != 0 && $args{'gridstyle'} >= 0 ) {
-        pgsci( $args{'gridcol'} );
-        pgsls( $args{'gridstyle'} );
+      if ($eld != 0 && $args{'gridstyle'} >= 0) {
+        pgsci($args{'gridcol'});
+        pgsls($args{'gridstyle'});
       }
-      pgslw( $args{'heavylw'}*$lw )
-           if( $eld == 0 or $eld == 30 ); # thicker 0 & 30 circle
+      pgslw($args{'heavylw'}*$lw)
+           if($eld == 0 or $eld == 30); # thicker 0 & 30 circle
 
-      if( $eld == 0 or $args{'gridstyle'} >= 0 ) {
-	pgcirc( 0,0,90-$eld );
+      if ($eld == 0 or $args{'gridstyle'} >= 0) {
+	pgcirc(0,0,90-$eld);
       }
 
-      pgslw( $lw );                            # Reset default styles
-      pgsci( $args{'defcol'} );
+      pgslw($lw);                              # Reset default styles
+      pgsci($args{'defcol'});
       pgsls($args{'defstyle'});
-      if( $eld != 0 ) {
-        pgtext(-2.5,90-$eld,"$eye")
-      }
+      pgtext(-2.5,90-$eld,"$eye") if ($eld != 0);
     }
 
     # Draw Min elevation in dotted style if requested
@@ -482,57 +479,57 @@ sub sourceplot {
     my $expand = 1.05; # expand scale to create labels around graph
     my $lyoff = -1.0;  # need to move expanded circle down a bit
 
-    pgsls( $args{'gridstyle'} );
+    pgsls($args{'gridstyle'});
     for (my $az = 0; $az < 360; $az += $xint) {
        my $xend = 90.0*sin($az*pi/180.0);
        my $yend = 90.0*cos($az*pi/180.0);
-       if( $args{'gridstyle'} >= 0 ) {
-         pgsci( $args{'gridcol'} );
+       if ($args{'gridstyle'} >= 0) {
+         pgsci($args{'gridcol'});
          pgmove(0,0);
-         pgdraw( $xend,$yend );
-         pgsci( $args{'defcol'} );
+         pgdraw($xend,$yend);
+         pgsci($args{'defcol'});
        }
-       if( $az == 0 ) {
-         pgptxt( $expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "N" );
-       } elsif( $az == 90 ) {
-         pgptxt( $expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "E" );
-       } elsif( $az == 180 ) {
-         pgptxt( $expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "S" );
-       } elsif( $az == 270 ) {
-         pgptxt( $expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "W" );
+       if ($az == 0) {
+         pgptxt($expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "N");
+       } elsif ($az == 90) {
+         pgptxt($expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "E");
+       } elsif ($az == 180) {
+         pgptxt($expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "S");
+       } elsif ($az == 270) {
+         pgptxt($expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "W");
        } else {
-         pgptxt( $expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "$az" );
+         pgptxt($expand*$xend,$expand*$yend+$lyoff, 0.0, 0.5, "$az");
        }
     }
 
-    pgsls( $args{'defstyle'} );
-    pgsch( 1.0 );
+    pgsls($args{'defstyle'});
+    pgsch(1.0);
 
   # PLOT TIME-X BOX
   } else {                  #time-x
 
-    my $ymag = abs( $yrange/90.0 );    # rel. Y-size wrt. timeel plot; 
+    my $ymag = abs($yrange/90.0);    # rel. Y-size wrt. timeel plot; 
 
     # Shrink the y-plot to create space for extra 'local time' axis
-    my $yext = int( $yrange/10+0.5 );
+    my $yext = int($yrange/10+0.5);
 
     # Main window includes LST axis along top
-    pgwindow( $args{'mag'}*$xlo, $args{'mag'}*$xhi,
-              $args{'mag'}*$ylo, $args{'mag'}*($yhi+$yext) );
+    pgwindow($args{'mag'}*$xlo, $args{'mag'}*$xhi,
+             $args{'mag'}*$ylo, $args{'mag'}*($yhi+$yext));
 
     # White box and labels, scale labels
-    pgsci( $args{'defcol'} );
+    pgsci($args{'defcol'});
 
     # Extra large plot label, then conform to desired size
-    pgsch( $args{'titlescale'} );
+    pgsch($args{'titlescale'});
     $x[0] = $xlo;
     $y[0] = $ylo + 1.06*($yrange+$yext);
     my $title = "$telescope   $utdate   $args{title}";
-    pgtext( $x[0], $y[0], "$title" );
-    pgsch( $args{'axisscale'} );
+    pgtext($x[0], $y[0], "$title");
+    pgsch($args{'axisscale'});
     $x[0] = $xlo + 0.87 * $xrange;
     $y[0] = $ylo - 0.075 * $yrange;
-    pgtext( $x[0], $y[0], "dots mark LST" );
+    pgtext($x[0], $y[0], "dots mark LST");
 
     # Draw thin grid every 1.0 hour in x 10 deg in y
     # +  regular grid every 4.0 hours. Use the pgbox command
@@ -543,78 +540,78 @@ sub sourceplot {
     # Draw horizontals 'by hand' below if airmassgrid wanted
     $ytmp = 100*$ytmp if( $args{'airmassgrid'} == 1 );
 
-    if( $args{'gridstyle'} >= 0 ) {
-      pgsci( $args{'gridcol'} );
-      pgsls( $args{'gridstyle'} );
-      pgbox( 'G',1.0,0,'G',0.5*$ytmp,0 );
-      pgslw( $args{'heavylw'}*$lw );
-      pgsls( $args{'defstyle'} );
-      pgbox( 'G',$xint,0,'G',1.5*$ytmp,0 );
-      pgslw( $lw );
-      pgsci( $args{'defcol'} );
+    if ($args{'gridstyle'} >= 0) {
+      pgsci($args{'gridcol'});
+      pgsls($args{'gridstyle'});
+      pgbox('G',1.0,0,'G',0.5*$ytmp,0);
+      pgslw($args{'heavylw'}*$lw);
+      pgsls($args{'defstyle'});
+      pgbox('G',$xint,0,'G',1.5*$ytmp,0);
+      pgslw($lw);
+      pgsci($args{'defcol'});
     }
 
     # Draw main box (draw OVER any underlying lines sofar)
-    pgbox( 'BVST',$xint,0,'BNVST',$yint,0 );    # draw outer box, do
+    pgbox('BVST',$xint,0,'BNVST',$yint,0);      # draw outer box, do
                                                 # X-labeling by hand
 
     # Draw LST axis along top UT axis and AIRMASS axis on right
-    pgbox( 'C',$xint,0,'C',$yint,0 );           # No tickmarks etc.
+    pgbox('C',$xint,0,'C',$yint,0);             # No tickmarks etc.
 
     # Draw UT axis last to ensure it ends on top!
 
     # Draw heavy vertical 'centre' line at "plot_center" location
-    pgslw( $args{'heavylw'}*$lw );
-    pgmove( $args{'plot_center'}+$ut0hr,$ylo );
-    pgdraw( $args{'plot_center'}+$ut0hr,$yhi );
-    pgslw( $lw );
+    pgslw($args{'heavylw'}*$lw);
+    pgmove($args{'plot_center'}+$ut0hr,$ylo);
+    pgdraw($args{'plot_center'}+$ut0hr,$yhi);
+    pgslw($lw);
 
     # Main outside labels
-    pgsch( $args{'labelscale'} );
-    pglabel( 'Local Time',$ylabel,'LST' );      # Local along bottom, LST
-    pgsch( $args{'axisscale'} );                        # along top
+    pgsch($args{'labelscale'});
+    pglabel('Local Time',$ylabel,'LST');        # Local along bottom, LST
+    pgsch($args{'axisscale'});                          # along top
 
     # Labels, tick marks UT and Local Time axes
     my $istart = $xint * int($utleft/$xint);    # Nearest integer inside
-    $istart += $xint if( $istart == $xlo );
+    $istart += $xint if ($istart == $xlo);
     for (my $iut = $istart; $iut < $xhi-0.1; $iut += $xint) {
       my $ltime = $iut - $ut0hr;
-      $ltime += 24.0 if( $ltime <  0.0 );
-      $ltime -= 24.0 if( $ltime > 24.0 );
+      $ltime += 24.0 if ($ltime <  0.0);
+      $ltime -= 24.0 if ($ltime > 24.0);
       my $lt = int($ltime);
-      pgsch( .4 );                                     # shorten the |'s
-      pgptxt( $iut,$yhi-1.0*$ymag, 0.0, 0.0,'|' );
-      pgsch( $args{'axisscale'} );
-      pgptxt( $iut,$yhi+1.75*$ymag, 0.0, 0.5, "$iut" );
-      pgptxt( $iut,$ylo-3.75*$ymag, 0.0, 0.5, "$lt" );
+      pgsch(.4);                                       # shorten the |'s
+      pgptxt($iut,$yhi-1.0*$ymag, 0.0, 0.0,'|');
+      pgsch($args{'axisscale'});
+      pgptxt($iut,$yhi+1.75*$ymag, 0.0, 0.5, "$iut");
+      pgptxt($iut,$ylo-3.75*$ymag, 0.0, 0.5, "$lt");
     }
-    pgsch( $args{'labelscale'} );
-    pgptxt(  $xlo+0.5*$xrange, $ylo+0.95*($yrange+$yext), 0.0, 0.5,
-            'UT' );
-    pgsch( $args{'axisscale'} );
+    pgsch($args{'labelscale'});
+    pgptxt( $xlo+0.5*$xrange, $ylo+0.95*($yrange+$yext), 0.0, 0.5,
+            'UT');
+    pgsch($args{'axisscale'});
 
     # LST ticks and annotation
-    my $ilstart = $xint * int( $lstleft/$xint );   # Nearest integer inside
-    $ilstart += $xint if( $ilstart <= $lstleft );
+    my $ilstart = $xint * int($lstleft/$xint);    # Nearest integer inside
+    $ilstart += $xint if ($ilstart <= $lstleft);
     for (my $ilst = $ilstart; $ilst < $lstright-0.1; $ilst += $xint) {
       my $uttime = $ut0hr + ($ilst-$st0hr)/1.0027379093;
-      $uttime += 24.0 if( $uttime < $xlo );
-      $uttime -= 24.0 if( $uttime > $xhi );
-      pgsch( .4 );                                     # shorten the |'s
-      pgptxt( $uttime,$yhi+$yext-1.0*$ymag, 0.0, 0.0,'|' );
-      pgsch( $args{'axisscale'} );
-      pgptxt( $uttime,$yhi+$yext+1.75*$ymag, 0.0, 0.5, "$ilst" );
+      $uttime += 24.0 if ($uttime < $xlo);
+      $uttime -= 24.0 if ($uttime > $xhi);
+      pgsch(.4);                                       # shorten the |'s
+      pgptxt($uttime,$yhi+$yext-1.0*$ymag, 0.0, 0.0,'|');
+      pgsch($args{'axisscale'});
+      pgptxt($uttime,$yhi+$yext+1.75*$ymag, 0.0, 0.5, "$ilst");
     }
-    pgsch( $args{'axisscale'} );
+    pgsch($args{'axisscale'});
 
     # Airmass ticks along right vertical axis if timeel
     # plus dotted min el line if requested
-    if( $args{'format'} =~ /timeel/i ) {
+    if ($args{'format'} =~ /timeel/i) {
       $x[0] = $xhi + 0.025 * $xrange;
       $y[0] = $ylo + 0.5 * $yrange;
-      pgsch( $args{'labelscale'} );
-      pgptxt( $x[0]+0.35,$y[0],270.0,0.5,'AIRMASS' );
-      pgsch( $args{'axisscale'} );
+      pgsch($args{'labelscale'});
+      pgptxt($x[0]+0.35,$y[0],270.0,0.5,'AIRMASS');
+      pgsch($args{'axisscale'});
       $x[0] = $xhi - 0.01 * $xrange;
       $x[1] = $xhi;
       foreach my $i ( 1, 1.1, 1.2, 1.3, 1.5, 1.7, 2, 2.5, 3, 4, 5 ) {
@@ -624,14 +621,14 @@ sub sourceplot {
         if( $args{'gridstyle'} >= 0 and $args{'airmassgrid'} == 1 ) {
           pgsci( $args{'gridcol'} );
           pgsls( $args{'gridstyle'} );
-          pgmove( $xlo+0.002*($xhi-$xlo ),$y[0]);
+          pgmove( $xlo+0.002*($xhi-$xlo ),$y[0] );
           pgdraw( $xhi,$y[0] );
           pgsci( $args{'defcol'} );
           pgsls( $args{'defstyle'} );
 	}
         # tick mark
-        pgline( 2,\@x,\@y );
-        pgptxt( ($x[1]+0.35),($y[1]-0.5*$ymag),0.0,0.5,"$i" );
+        pgline(2,\@x,\@y);
+        pgptxt(($x[1]+0.35),($y[1]-0.5*$ymag),0.0,0.5,"$i");
       }
       $min_el = $args{'annominel'};
       if( $min_el > 0 and $min_el < 90 ) {
@@ -641,8 +638,8 @@ sub sourceplot {
       }
     }
 
-    pgsls( $args{'defstyle'} );
-    pgsch( 1.0 );
+    pgsls($args{'defstyle'});
+    pgsch(1.0);
 
     # Draw UT time axis
     pgmove( $xlo,$yhi );                        # Draw UT time axis line
@@ -658,13 +655,13 @@ sub sourceplot {
 
   print "SOURCEPLOT DEBUG: Plot objects.\n" if($debug);
   # Scaling and weight for source names
-  pgsch( $args{'objscale'} );
-  pgslw( $args{'objlw'}*$lw );
+  pgsch($args{'objscale'});
+  pgslw($args{'objlw'}*$lw);
 
   my $iobj = 0;
   foreach my $c (@{$coords}) {
 
-    pgsci( ($iobj )%10+2);              # rotate colors
+    pgsci(($iobj)%10+2);                # rotate colors
 
     # Dots with annotation
     my $dotnr = 0;
@@ -679,39 +676,39 @@ sub sourceplot {
     $c->telescope( new Astro::Telescope( $telescope ));
 
     # Calculate Time, Az, El, PA, LST arrays for given object
-    my @points = $c->calculate( start => $args{'start'},
-                                  end => $args{'end'},
-                                  inc => $args{'increment'},
-                                units => 'deg'
-                              );
+    my @points = $c->calculate(  start => $args{'start'},
+                                   end => $args{'end'},
+                                   inc => $args{'increment'},
+                                 units => 'deg'
+                                );
 
     # Store position of maximum in curve for labeling
     my ($xmax, $ymax) = (999.0, -999.0);
 
     my $nr = 0;
     my $prev_utt = -999;
-    $utnow -= 24.0 if( $utnow > $xhi );
-    $utnow += 24.0 if( $utnow < $xlo );
+    $utnow -= 24.0 if ($utnow > $xhi);
+    $utnow += 24.0 if ($utnow < $xlo);
 
     foreach my $point (@points) {
 
       my $utt = $point->{'time'}->hour +
   	        $point->{'time'}->minute/60.0 +
 	        $point->{'time'}->second/3600.0;
-      $utt -= 24.0 if( $utt > $xhi );
-      $utt += 24.0 if( $utt < $xlo );
+      $utt -= 24.0 if ($utt > $xhi);
+      $utt += 24.0 if ($utt < $xlo);
 
       my $lst = 12.0/pi*$point->{'lst'};
       my $local_time = $lst-$st0hr;
 
       # Plot current segment if jumping in time from one to other side
       # or EL dropped below 0 previous point
-      if(  $nr > 0 && 
+      if ( $nr > 0 && 
            (abs($utt-$prev_utt) > 12) or ($point->{'elevation'} < 0) ) {
-	pgline( $nr,\@xx,\@yy );
-	pgpt( $dotnr,\@dotx,\@doty,17 );
+	pgline($nr,\@xx,\@yy);
+	pgpt($dotnr,\@dotx,\@doty,17);
 	for ($idot = 0; $idot < $dotnr; $idot++) {
-	  pgtext( 1.05*($dotx[$idot]-2.5), $doty[$idot]-4, $dotlabel[$idot] );
+	  pgtext(1.05*($dotx[$idot]-2.5), $doty[$idot]-4, $dotlabel[$idot]);
 	}
 	$nr = 0;
 	$dotnr = 0;
@@ -720,12 +717,12 @@ sub sourceplot {
       $prev_utt = $utt;
 
       # AZ-EL format (Annotate dots with local time)
-      if( $args{'format'} =~ /azel/i ) {
+      if ($args{'format'} =~ /azel/i) {
 
 	# Map AZ onto regular 0-360 circle CCW starting on X-axis
 	# just to keep sin and cos conventional for polar plot.
 	my $angle =  90.0-$point->{'azimuth'};
-	$angle = 360.0 + $angle if( $angle < 0.0 );
+	$angle = 360.0 + $angle if ($angle < 0.0);
 
 	# Radius polar plot is given by the zenith angle.
 	my $zenith = 90.0-$point->{'elevation'};
@@ -740,14 +737,14 @@ sub sourceplot {
 
 	$xx[$nr] = $utt;
 
-	if( $args{'format'} =~ /timepa/i ) {
+	if ($args{'format'} =~ /timepa/i) {
 	  $yy[$nr] = $point->{'parang'};
-	} elsif( $args{'format'} =~ /timeaz/i ) {
+	} elsif ($args{'format'} =~ /timeaz/i) {
 	  $yy[$nr] = $point->{'azimuth'};
-	} elsif( $args{'format'} =~ /timena/i ) {
+	} elsif ($args{'format'} =~ /timena/i) {
 	  $yy[$nr] = $point->{'parang'}-$point->{'elevation'};
-          $yy[$nr] += 360 if( $yy[$nr] < $ylo );
-          $yy[$nr] -= 360 if( $yy[$nr] > $yhi );
+          $yy[$nr] += 360 if ($yy[$nr] < $ylo);
+          $yy[$nr] -= 360 if ($yy[$nr] > $yhi);
 	} else {               #timeel
 	  $yy[$nr] = $point->{'elevation'};
 	}
@@ -757,38 +754,38 @@ sub sourceplot {
       }
 
       # No need for rest if below 0: wrap around to plot segment
-      next if( $point->{'elevation'} < 0 );
+      next if ($point->{'elevation'} < 0);
 
       # Mark current position source
-      if(  $args{'objdot'} &&
+      if ( $args{'objdot'} &&
            abs($utt-$utnow) < 0.5*$args{'increment'}/3600.0 ) {
-         pgslw( $args{'heavylw'}*$lw*6 );
-         pgpt( 1,$xx[$nr],$yy[$nr],17 );
-         pgslw( $lw );
+         pgslw($args{'heavylw'}*$lw*6);
+         pgpt(1,$xx[$nr],$yy[$nr],17);
+         pgslw($lw);
       }
 
       # Check if a new dot and annotation needed
-      if( abs($dottime-int($dottime )) < $args{'increment'}/3600.0 ) {
+      if ( abs($dottime-int($dottime)) < $args{'increment'}/3600.0 ) {
 #        && abs(int($dottime)-int($prev_dottime)) > 0 ) {
 	$prev_dottime = $dottime;
-	$dottime -= 24.0 if( $dottime > 24.0 );
-	$dottime += 24.0 if( $dottime <  0.0 );
+	$dottime -= 24.0 if ($dottime > 24.0);
+	$dottime += 24.0 if ($dottime <  0.0);
 	$dotx[$dotnr] = $xx[$nr];
 	$doty[$dotnr] = $yy[$nr];
 	$dotlabel[$dotnr] = '';
 
         # Annotate dot AZEL: others too messy
 	$dotlabel[$dotnr] = int($dottime+0.5)
-	   if( $args{'format'} =~ /azel/i && 
+	   if ($args{'format'} =~ /azel/i && 
 	       $args{annotrack} &&
 	       $dottime%$dotlint == 0 );
 
 	# Object label near max curve
-	($xmax, $ymax) = ($xx[$nr], $yy[$nr]) if( $yy[$nr] > $ymax );
+	($xmax, $ymax) = ($xx[$nr], $yy[$nr]) if ($yy[$nr] > $ymax);
 
 	# AZ-EL Object label at left-most (smallest x) dot position
 	($xmax, $ymax) = ($xx[$nr], $yy[$nr]) 
-               if( $args{'format'} =~ /azel/i && $xx[$nr] < $xmax );
+               if ($args{'format'} =~ /azel/i && $xx[$nr] < $xmax);
 
 	$dotnr++;
       }
@@ -798,12 +795,12 @@ sub sourceplot {
     }
 
     # Plot any remaining segment
-    if( $nr > 0 ) {
-      pgline( $nr,\@xx,\@yy );
+    if ($nr > 0) {
+      pgline($nr,\@xx,\@yy);
       $nr = 0;
-      pgpt( $dotnr,\@dotx,\@doty,17 );
+      pgpt($dotnr,\@dotx,\@doty,17);
       for ($idot = 0; $idot < $dotnr; $idot++) {
-	pgtext( 1.05*($dotx[$idot]-2.5),$doty[$idot]-4,$dotlabel[$idot] );
+	pgtext(1.05*($dotx[$idot]-2.5),$doty[$idot]-4,$dotlabel[$idot]);
       }
       $dotnr = 0;
       $prev_dottime = 999;
@@ -812,19 +809,19 @@ sub sourceplot {
     # label the objects: as list on left, else label near max curve.
     my $object = $c->name;
     $object = '??' unless defined $object;
-    if( $args{'objlabel'} eq 'list' ) {
+    if ($args{'objlabel'} eq 'list') {
       $x[0] = $xlo + 0.001 * $xrange;
       $x[1] = $xlo + 0.016 * $xrange;
       $y[0] = $yhi - (0.01 + 0.03*($iobj-1)) * $yrange;
       $y[1] = $y[0];
-      pgline( 2,\@x,\@y );
+      pgline(2,\@x,\@y);
       $x[2] = $xlo + 0.024 * $xrange;
       $y[2] = $y[1] - 1.0;
       pgtext($x[2],$y[2],"$object");
-    } elsif( $args{'objlabel'} eq 'curve' ) {
+    } elsif ($args{'objlabel'} eq 'curve') {
       $x[1] = $xmax;
       $y[1] = $ymax + 0.015 * $yrange;
-      pgtext( $x[1],$y[1],"$object" );
+      pgtext($x[1],$y[1],"$object");
     }
 
     $iobj++;
@@ -832,10 +829,10 @@ sub sourceplot {
 
   print "SOURCEPLOT DEBUG: Reset plot options and close plot.\n" if($debug);
   # Reset pgplot (just in case)
-  pgsch( 1.0 );
-  pgsci( 1 );
-  pgsls( 1 );
-  pgslw( 1 );
+  pgsch(1.0);
+  pgsci(1);
+  pgsls(1);
+  pgslw(1);
 
   pgend;
 
