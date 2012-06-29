@@ -120,7 +120,7 @@ my $fbquery = new OMP::FBQuery( XML => $fbxml, );
 # Run our query to retrieve comments
 my $comments = $db->_fetch_comments( $fbquery );
 
-if (! defined @$comments) {
+if (! scalar grep { defined $_ } @$comments) {
   if ($debug) {
     print "No comments returned by query.\n";
   }
