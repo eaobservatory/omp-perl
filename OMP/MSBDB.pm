@@ -59,6 +59,7 @@ use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
+use Astro::SLA;
 use Data::Dumper;
 
 use POSIX qw/ log10 /;
