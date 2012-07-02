@@ -1097,7 +1097,7 @@ sub fts2_config {
   # Configure shutters based on port selection.
 
   my $dual = $info{'isDualPort'};   # Boolean
-  my $port = $info{'TrackingPort'}; # Currently a number. Change to name?
+  my $port = $info{'TrackingPort'}; # Name: 8D or 8C.
 
   if ($dual) {
     # Open both shutters.
@@ -1105,12 +1105,12 @@ sub fts2_config {
     $fts2->shutter_8c('OUTOFBEAM');
   }
   else {
-    if ($port == 1) {
+    if (uc($port) eq '8D') {
       # Open shutter 1 and close shutter 2.
       $fts2->shutter_8d('OUTOFBEAM');
       $fts2->shutter_8c('INBEAM');
     }
-    elsif ($port == 2) {
+    elsif (uc($port) eq '8C') {
       # Open shutter 2 and close shutter 1.
       $fts2->shutter_8d('INBEAM');
       $fts2->shutter_8c('OUTOFBEAM');
@@ -1126,11 +1126,11 @@ sub fts2_config {
   # Finished configuring FTS-2, now configure TCS.
 
   my $tcs = $cfg->tcs();
-  if ($port == 1) {
+  if (uc($port) eq '8D') {
     # FTS-2 port 1 is S4A and S8D
     $cfg->tcs()->aperture_name('fts8d');
   }
-  elsif ($port == 2) {
+  elsif (uc($port) eq '8C') {
     # FTS-2 port 2 is S4B and S8C
     $cfg->tcs()->aperture_name('fts8c');
   }
