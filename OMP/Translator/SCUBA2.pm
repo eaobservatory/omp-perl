@@ -1094,12 +1094,37 @@ sub fts2_config {
     throw OMP::Error::TranslateFail('Unknown FTS-2 "Special Mode": ' . $mode)
   }
 
-  $cfg->fts2($fts2);
+  # Configure shutters based on port selection.
 
-  # Finished configuring FTS-2, now configure TCS.
+  my $dual = $info{'isDualPort'};   # Boolean
+  my $port = $info{'TrackingPort'}; # Currently a number. Change to name?
+
+  if ($dual) {
+    # Open both shutters.
+    $fts2->shutter_8d('OUTOFBEAM');
+    $fts2->shutter_8c('OUTOFBEAM');
+  }
+  else {
+    if ($port == 1) {
+      # Open shutter 1 and close shutter 2.
+      $fts2->shutter_8d('OUTOFBEAM');
+      $fts2->shutter_8c('INBEAM');
+    }
+    elsif ($port == 2) {
+      # Open shutter 2 and close shutter 1.
+      $fts2->shutter_8d('INBEAM');
+      $fts2->shutter_8c('OUTOFBEAM');
+    }
+    else {
+      throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+    }
+  }
+
+  $cfg->fts2($fts2);
   $fts2 = undef; # Prevent accidental usage which will not be saved.
 
-  my $port = $info{'TrackingPort'};
+  # Finished configuring FTS-2, now configure TCS.
+
   my $tcs = $cfg->tcs();
   if ($port == 1) {
     # FTS-2 port 1 is S4A and S8D
@@ -1111,23 +1136,6 @@ sub fts2_config {
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
-  }
-
-  my $dual = $info{'isDualPort'};   # Boolean
-
-  if ($dual) {
-    # Open both shutters.
-  }
-  else {
-    if ($port == 1) {
-      # Open shutter 1 and close shutter 2.
-    }
-    elsif ($port == 2) {
-      # Open shutter 2 and close shutter 1.
-    }
-    else {
-      throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
-    }
   }
 }
 
