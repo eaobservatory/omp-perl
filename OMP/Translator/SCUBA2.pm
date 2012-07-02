@@ -1003,7 +1003,9 @@ sub fts2_config {
 
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(0);
+    $fts2->scan_origin(182);
+    $fts2->scan_spd(2.0);
+    $fts2->scan_length(85.0);
   }
   elsif ($mode eq 'Spectral Line') {
     # The Spectral Line mode acquires high-resolution single-sided 
