@@ -33,6 +33,8 @@ use Astro::PAL;
 
 # Calculate bounds for Polygons and CmpRegions manually?
 use constant WORKAROUND_BOUNDS => 1;
+# Defer CmpRegion creation until we really need it?
+use constant DEFER_CMPREGION => 1;
 
 =head1 DATA
 
@@ -220,6 +222,9 @@ sub write_ast {
   my $type = $opt{'type'} || 'all';
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
     unless exists $self->{'separate'}{$type};
+
+  DEFER_CMPREGION && $self->_build_cmpregions();
+
   my $cmp = $self->{'cmp'}->{$type};
   $cmp->Show();
 }
@@ -237,6 +242,9 @@ sub write_stcs {
   my $type = $opt{'type'} || 'all';
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
     unless exists $self->{'separate'}{$type};
+
+  DEFER_CMPREGION && $self->_build_cmpregions();
+
   my $cmp = $self->{'cmp'}->{$type};
   my $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
   $ch->Write($cmp);
@@ -293,10 +301,14 @@ sub plot_pgplot {
     complete => 4); # blue
 
   foreach my $colour (keys %colour) {
-    next unless exists $self->{'cmp'}->{$colour};
+    next unless exists $self->{'cmp'}->{$colour}
+      or DEFER_CMPREGION && scalar @{$self->{'separate'}->{$colour}};
     next unless $type eq 'all' or $type eq $colour;
 
     if ((defined $opt{'method'}) && ($opt{'method'} eq 'cmpregion')) {
+
+      DEFER_CMPREGION && $self->_build_cmpregions();
+
       my $cmp = $self->{'cmp'}->{$colour};
 
       my $fs = $plot->Convert($cmp, '');
@@ -343,6 +355,9 @@ given to allow this method to reject duplicate regions.
 
   $self->_add_region($type, $region, $id);
 
+If the DEFER_CMPREGION constant is set to a true value, we skip adding
+the region to the CmpRegion.
+
 =cut
 
 sub _add_region {
@@ -350,8 +365,11 @@ sub _add_region {
   my ($name, $region, $id) = @_;
 
   return if exists $self->{'uniq'}->{$name}->{$id};
+  $self->{'uniq'}->{$name}->{$id} = 1;
 
   push @{$self->{'separate'}->{$name}}, $region;
+
+  return if DEFER_CMPREGION;
 
   unless (exists $self->{'cmp'}->{$name}) {
     $self->{'cmp'}->{$name} = $region;
@@ -361,8 +379,35 @@ sub _add_region {
       = $self->{'cmp'}->{$name}->CmpRegion($region,
           Starlink::AST::Region::AST__OR(), '');
   }
+}
 
-  $self->{'uniq'}->{$name}->{$id} = 1;
+=item B<_build_cmpregions>
+
+Checks that the AST CmpRegions have been built.
+
+=cut
+
+sub _build_cmpregions {
+  my $self = shift;
+
+  foreach my $name (keys %{$self->{'separate'}}) {
+    next if exists $self->{'cmp'}->{$name};
+    next unless scalar @{$self->{'separate'}->{$name}};
+
+    my $cmp = undef;
+
+    foreach my $region (@{$self->{'separate'}->{$name}}) {
+      unless ($cmp) {
+        $cmp =  $region;
+      }
+      else {
+        $cmp = $cmp->CmpRegion($region,
+                 Starlink::AST::Region::AST__OR(), '');
+      }
+    }
+
+    $self->{'cmp'}->{$name} = $cmp;
+  }
 }
 
 =item B<_add_bounds>
@@ -415,6 +460,9 @@ sub _make_wcs {
   my @ubnd = @{$self->{'ubnd'}};
 
   unless(WORKAROUND_BOUNDS) {
+
+    DEFER_CMPREGION && $self->_build_cmpregions();
+
     my ($l, $u) = $self->{'cmp'}->{'all'}->GetRegionBounds();
     @lbnd = @$l; @ubnd = @$u;
   }
