@@ -50,11 +50,16 @@ minimum field size.
 # Data copied from JCMT::Survey::Coverage::RADIUS because
 # it is a private variable in that package and adding SCUBA
 # to allow older projects to be plotted.
+# Also added WFCAM detector size from the OT.
 our %fov_inst = (
               HARP      => 60,
               SCUBA     => 2.3 * 60,
               'SCUBA-2' => 5 * 60,
+              WFCAM     => 817.2,
             );
+
+# Gap between detectors as a fraction of the detector size.
+our $WFCAM_SPACING = 0.94;
 
 =back
 
@@ -123,14 +128,54 @@ sub new {
                  * (($height > $width) ? $height : $width) / 2;
 
       # Create a key so that we can check by uniqueness.
-      my $id = sprintf('%.6f', $ra2000->radians())
-       . ' ' . sprintf('%.6f', $dec2000->radians())
-       . ' ' . sprintf('%.6f', $radius) . "\n";
+      my $id = sprintf('%.6f %.6f %.6f',
+                       $ra2000->radians(),
+                       $dec2000->radians(),
+                       $radius);
 
       my $region = undef;
 
-      unless (lc($obs->{'scanPattern'}) eq 'boustrophedon'
-           or lc($obs->{'scanPattern'}) eq 'raster') {
+      if ($obs->{'instrument'} eq 'WFCAM') {
+        $region = [];
+        $id = [];
+
+        foreach my $of ([1, 1], [1, -1], [-1, -1], [-1, 1]) {
+          my $subarray_offset = new Astro::Coords::Offset(
+                                  $of->[0] * $fov * (1 + $WFCAM_SPACING) / 2,
+                                  $of->[1] * $fov * (1 + $WFCAM_SPACING) / 2,
+                                  posang => 0,
+                                  'system' => 'J2000',
+                                  projection => 'TAN');
+          my $subarray = $coords->apply_offset($subarray_offset);
+          my ($ra2000, $dec2000) = $subarray->radec2000();
+          push @$id, sprintf('%.6f %.6f %.6f',
+                       $ra2000->radians(),
+                       $dec2000->radians(),
+                       $radius);
+          my @corner = ();
+
+          foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+            my $offset = new Astro::Coords::Offset(
+                             $cf->[0] * $fov / 2, $cf->[1] * $fov / 2,
+                             posang     => 0,
+                             'system'   => 'J2000',
+                             projection => 'TAN');
+            push @corner, $subarray->apply_offset($offset);
+
+            WORKAROUND_BOUNDS && $self->_add_bounds(
+              map {$_->radians()} $corner[-1]->radec2000());
+          }
+
+          my $subregion = new Starlink::AST::Polygon($skyframe,
+                                    [map {my ($ra,  undef) = $_->radec2000();  $ra->radians()} @corner],
+                                    [map {my (undef, $dec) = $_->radec2000(); $dec->radians()} @corner],
+                                    undef, '');
+
+          push @$region, $subregion;
+        }
+      }
+      elsif (not (lc($obs->{'scanPattern'}) eq 'boustrophedon'
+               or lc($obs->{'scanPattern'}) eq 'raster')) {
         $region = Starlink::AST::Circle->new(
                              $skyframe, 1, [$ra2000->radians(),
                                         $dec2000->radians()],
@@ -162,19 +207,23 @@ sub new {
 
       die 'OMP::SpRegion: failed to create region' unless defined $region;
 
-      $self->_add_region('all', $region, $id);
+      foreach my $subregion (ref $region eq 'ARRAY' ? @$region : $region) {
+        my $subid = ref $id ? shift @$id : $id;
 
-      # Rearranged the if statements into this order to handle the
-      # case where the 'observed' field is empty and shows 0 for everything:
-      # now in-progress observations appear new rather than complete.
-      if (! $remaining > 0) {
-        $self->_add_region('complete', $region, $id);
-      }
-      elsif (! $observed) {
-        $self->_add_region('new', $region, $id);
-      }
-      else {
-        $self->_add_region('progress', $region, $id);
+        $self->_add_region('all', $subregion, $subid);
+
+        # Rearranged the if statements into this order to handle the
+        # case where the 'observed' field is empty and shows 0 for everything:
+        # now in-progress observations appear new rather than complete.
+        if (! $remaining > 0) {
+          $self->_add_region('complete', $subregion, $subid);
+        }
+        elsif (! $observed) {
+          $self->_add_region('new', $subregion, $subid);
+        }
+        else {
+          $self->_add_region('progress', $subregion, $subid);
+        }
       }
     }
   }

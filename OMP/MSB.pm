@@ -3517,7 +3517,7 @@ sub _unroll_obs_recurse {
 
     my $key = $keys[0];
 
-    if ($key =~ /Obs$/) {
+    if ($key =~ /Obs(erve)?$/) {
       # An observation
       # Calculate the label
       $$obscounter_ref++;
@@ -4361,6 +4361,15 @@ sub SpIterFolder {
       #print "FTS HASH: " . Dumper(\%fts) . "\n";
 
       push(@{$summary{$parent}{'CHILDREN'}}, { $name => \%fts });
+
+    } elsif ($name eq 'SpIterObserve') {
+      # Add the basic SpIterObserve "eye" (used for example with
+      # WFCAM at UKIRT) to the summary in order to trigger
+      # unroll_obs properly.
+
+      push(@{$summary{$parent}{CHILDREN}}, { $name => {
+                                                        }});
+
     }
 
     # Remove the SpIter string
