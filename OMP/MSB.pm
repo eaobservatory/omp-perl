@@ -4188,7 +4188,7 @@ sub SpIterFolder {
       );
 
       my $inbeam = $self->_get_pcdata($child, "in_beam");
-      $point{'inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
+      $point{'point_focus_inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%point });
 
@@ -4223,7 +4223,7 @@ sub SpIterFolder {
       );
 
       my $inbeam = $self->_get_pcdata($child, "in_beam");
-      $focus{'inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
+      $focus{'point_focus_inbeam'} = [split ' ', $inbeam] if defined $inbeam and $inbeam;
 
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%focus });
 
