@@ -1297,10 +1297,10 @@ sub determine_inbeam {
        $info{'MODE'} eq 'SpIterPointingObs') and
       (defined $info{'inbeam'} and ref $info{'inbeam'})) {
 
-    push @inbeam, 'fts2' if grep {lc($_) eq 'fts2'} @{$info{'inbeam'}}
+    push @inbeam, 'fts2' if grep {lc($_) eq 'fts2'} @{$info{'point_focus_inbeam'}}
                          and not (defined $source and $source =~ /blackbody/i);
 
-    push @inbeam, 'pol2' if grep {lc($_) eq 'pol2'} @{$info{'inbeam'}};
+    push @inbeam, 'pol' if grep {lc($_) eq 'pol2'} @{$info{'point_focus_inbeam'}};
   }
 
   # get base class values
