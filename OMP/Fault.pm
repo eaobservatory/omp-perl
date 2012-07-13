@@ -602,7 +602,7 @@ my %SAFETY_STATUS_OPEN = (
                           );
 
 my %SAFETY_STATUS_CLOSED = (
-                              'No futher action' => NO_ACTION,
+                              'No further action' => NO_ACTION,
                               'Closed' => $STATUS_CLOSED{'Closed'}
                             );
 
