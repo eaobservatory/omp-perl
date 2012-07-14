@@ -22,6 +22,7 @@ use warnings;
 use Carp;
 
 use Data::Dumper;
+use IO::File;
 use List::Util qw/ max min /;
 use File::Spec;
 use Math::Trig ':pi';
@@ -582,6 +583,33 @@ sub handle_special_modes {
   return;
 }
 
+=item B<read_extra_apertures>
+
+Reads the extra apertures file and returns a hashref of name to X, Y pair.
+
+=cut
+
+{
+  my $extra_apertures = undef;
+  sub read_extra_apertures {
+    unless (defined $extra_apertures) {
+      my $self = shift;
+      my %hash = ();
+      my $file = File::Spec->catfile($self->wiredir(), 'extra_apertures.txt');
+      my $fh = new IO::File($file);
+      if ($fh) {
+        while (<$fh>) {
+          chomp;
+          my ($name, $x, $y, undef) = split;
+          $hash{$name} = [$x, $y];
+        }
+      }
+      $extra_apertures = \%hash;
+    }
+    return $extra_apertures;
+  }
+}
+
 =back
 
 =head1 CONFIG GENERATORS
@@ -1128,16 +1156,33 @@ sub fts2_config {
   # Finished configuring FTS-2, now configure TCS.
 
   my $tcs = $cfg->tcs();
+  my $instap = $cfg->header()->item('INSTAP');
+  my $aperture_name;
+
   if (uc($port) eq '8D') {
     # FTS-2 port 1 is S4A and S8D
-    $cfg->tcs()->aperture_name('fts8d');
+    $aperture_name = 'fts8d'
   }
   elsif (uc($port) eq '8C') {
     # FTS-2 port 2 is S4B and S8C
-    $cfg->tcs()->aperture_name('fts8c');
+    $aperture_name = 'fts8c'
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+  }
+
+  $tcs->aperture_name($aperture_name);
+  $instap->value($aperture_name);
+
+  my $extra_apertures = $self->read_extra_apertures();
+
+  if (exists $extra_apertures->{$aperture_name}) {
+    my $coords = $extra_apertures->{$aperture_name};
+      throw OMP::Error::TranslateFail('Did not get valid aperture coordinates for: ' . $aperture_name)
+        unless ref $coords;
+    $tcs->aperture_xy(@$coords);
+  } else {
+    throw OMP::Error::TranslateFail('Could not determine aperture coordinates for: ' . $aperture_name)
   }
 }
 
