@@ -79,6 +79,8 @@ sub issuePassword {
 
   };
 
+  defined $E and OMP::General->log_message("issuePassword error: $E\n");
+
   # This has to be outside the catch block else we get
   # a problem where we cant use die (it becomes throw)
   $class->throwException( $E ) if defined $E;
