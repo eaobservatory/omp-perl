@@ -338,7 +338,7 @@ sub _log_err {
 
   my ( @e ) = @_;
 
-  @e = grep { defined $_ } @e;
+  @e = grep { defined $_ && length $_ } @e;
 
   return unless scalar @e;
 
