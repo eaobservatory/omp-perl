@@ -670,10 +670,28 @@ sub jos_config {
   #   scuba2_flatField
   #   scuba2_noise
   #   scuba2_setup_subarrays
+  #   scuba2_stepAndIntegrate (for FTS-2 or POL-2)
+  #   scuba2_constantVelocity (for FTS-2 or POL-2)
+  #   scuba2_zpd (for FTS-2)
 
   my $recipe = $info{obs_type};
   if ($info{obs_type} eq 'science') {
-    $recipe = $info{observing_mode};
+    unless ($info{observing_mode} eq 'stare_fts2') {
+      $recipe = $info{observing_mode};
+    } else {
+      my $fts2 = $cfg->fts2();
+      OMP::Error::FatalError->throw("Could not determine observing recipe for FTS-2 observation because the FTS-2 configuration object was not present") unless defined $fts2;
+      my $scan_mode = $fts2->scan_mode();
+      if ($scan_mode eq 'RAPID_SCAN') {
+        $recipe = 'constantVelocity';
+      } elsif ($scan_mode eq 'STEP_AND_INTEGRATE') {
+        $recipe = 'stepAndIntegrate';
+      } elsif ($scan_mode eq 'ZPD_MODE') {
+        $recipe = 'zpd';
+      } else {
+        OMP::Error::FatalError->throw("Could not determine observing recipe for FTS-2 observation because the scan mode $scan_mode was not recognised");
+      }
+    }
   } elsif ($info{obs_type} eq 'setup') {
     $recipe = "setup_subarrays";
   }
