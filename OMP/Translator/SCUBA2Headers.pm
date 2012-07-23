@@ -160,7 +160,11 @@ sub getDRRecipe {
   } elsif ($mapmode eq 'scan') {
     $recipe = "REDUCE_SCAN";
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
-    $recipe = "REDUCE_DREAMSTARE";
+    if (ref $info{'inbeam'} and grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+      $recipe = "REDUCE_FTS2";
+    } else {
+      $recipe = "REDUCE_DREAMSTARE";
+    }
   } else {
     OMP::Error::TranslateFail->throw("Unexpected obs mode ($obstype/$mapmode)".
                                     " when calculating DR recipe");
