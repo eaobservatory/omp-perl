@@ -792,6 +792,56 @@ sub jos_config {
     # Set the duration
     $jos->jos_min($jos_min);
 
+  } elsif ($info{observing_mode} eq 'stare_fts2') {
+    # Handle FTS-2 before stare/dream as it is a special case
+    # of stare.  Probably clearer to have a separate block rather than
+    # having the stare/dream case also deal with FTS-2.
+    # Also for FTS-2 we do not want to break a scan for darks
+    # or microstepping.
+
+    my $fts2 = $cfg->fts2();
+    throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
+    my $scan_length = $fts2->scan_length();
+    throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan length is not specified") unless defined $scan_length;
+
+    my $inttime;
+    my $scan_mode = $fts2->scan_mode();
+    if ($scan_mode eq 'RAPID_SCAN' or $scan_mode eq 'ZPD_MODE') {
+
+      my $scan_spd = $fts2->scan_spd();
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is not specified") unless defined $scan_spd;
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is zero") if 0 == $scan_spd;
+
+      $inttime = $scan_length / $scan_spd;
+
+    } elsif ($scan_mode eq 'STEP_AND_INTEGRATE') {
+
+      my $step_dist = $fts2->step_dist();
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the step distance is not specified") unless defined $step_dist;
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the step distance is zero") if 0 == $step_dist;
+      my $sample_time = $info{'sampleTime'};
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because there was no sampleTime for STEP_AND INTEGRATE") unless defined $sample_time;
+
+      $inttime = $sample_time * $scan_length / $step_dist;
+    }
+
+    throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation, probably because the scan mode '$scan_mode' was not recognised") unless defined $inttime;
+
+    # convert total integration time to steps
+    # but don't split into chunks
+    my $num_cycles = 1;
+    my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
+
+    $jos->jos_min($jos_min);
+    $jos->num_cycles($num_cycles);
+
+    $self->output( "FTS-2 JOS parameters:\n",
+                   "\tCalculated time per scan: $inttime secs\n",
+                   "\tNumber of steps per scan: $jos_min\n",
+                   "\tActual time per scan: ".
+                   ($jos_min * $num_cycles * $eff_step_time)." secs\n");
+
+
   } elsif ($info{mapping_mode} eq 'stare'
           || $info{mapping_mode} eq 'dream') {
     # STARE and DREAM have the same calculations because the
