@@ -1158,6 +1158,19 @@ sub fts2_config {
   } else {
     throw OMP::Error::TranslateFail('Could not determine aperture coordinates for: ' . $aperture_name)
   }
+
+  $tcs = undef; # Prevent accidental usage.
+
+  # Adjust SCUBA-2 mask.
+
+  my $scuba2 = $cfg->scuba2();
+  my %mask = $scuba2->mask();
+  my @unused = qw/s4c s4d s8a s8b/;
+
+  @mask{@unused} = ('OFF') x scalar @unused;
+  $mask{'s' . lc($port)} = 'NEED';
+
+  $scuba2->mask(%mask);
 }
 
 =item B<need_offset_tracking>
