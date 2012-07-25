@@ -876,6 +876,11 @@ sub jos_config {
     my $num_cycles = 1;
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
 
+    # Raise an error if the number of steps exceeeds the maximum
+    # which FTS-2 can handle.
+    my $jos_max = OMP::Config->getData($self->cfgkey . '.fts_max_steps');
+    throw OMP::Error::FatalError("Number of sequence steps ($jos_min) exceeds the maximum permissible ($jos_max) for FTS-2 observations") if $jos_min > $jos_max;
+
     $jos->jos_min($jos_min);
     $jos->num_cycles($num_cycles);
 
@@ -1132,6 +1137,7 @@ sub fts2_config {
   my $fts2 = new JAC::OCS::Config::FTS2();
 
   my $mode = $info{'SpecialMode'};
+  my $centre = OMP::Config->getData($self->cfgkey . '.fts_centre_position');
 
   # OT includes sampleTime for the FTS-2 observation but it's not
   # part of the FTS2_CONFIG.
@@ -1143,7 +1149,7 @@ sub fts2_config {
 
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(182);
+    $fts2->scan_origin($centre - 42.5);
     $fts2->scan_spd(2.0);
     $fts2->scan_length(85.0);
   }
