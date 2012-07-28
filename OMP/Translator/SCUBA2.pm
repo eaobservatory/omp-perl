@@ -1103,52 +1103,74 @@ sub fts2_config {
     # The SED observation mode produces low-resolution double-sided
     # interferograms using the dual-port configuration.
 
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_sed_length');
+
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin($centre - 42.5);
-    $fts2->scan_spd(2.0);
-    $fts2->scan_length(85.0);
+    $fts2->scan_origin($centre - $length / 2);
+    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_sed_speed'));
+    $fts2->scan_length($length);
   }
   elsif ($mode eq 'Spectral Line') {
     # The Spectral Line mode acquires high-resolution single-sided 
     # interferograms using the dual-port configuration.
 
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_spectralline_length');
+
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(0);
-    $fts2->scan_spd(0);
-    $fts2->scan_length(0);
+    $fts2->scan_origin($centre - $length / 2);
+    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_spectralline_speed'));
+    $fts2->scan_length($length);
   }
   elsif ($mode eq 'Spectral Flatfield') {
     # Don't know what this mode is.
 
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_spectralflat_length');
+
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(0);
+    $fts2->scan_origin($centre - $length / 2);
+    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_spectralflat_speed'));
+    $fts2->scan_length($length);
+
   }
   elsif ($mode eq 'ZPD') {
     # The ZPD operating mode records a short double-sided interferogram with
     # the FTS configured in the single-port mode and one of the blackbody
     # shutters closed.
 
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_zpd_length');
+
     $fts2->scan_mode('ZPD_MODE');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(0);
-    $fts2->scan_spd(0);
-    $fts2->step_dist(0);
+    $fts2->scan_origin($centre - $length / 2);
+    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_zpd_speed'));
+    $fts2->scan_length($length);
   }
   elsif ($mode eq 'Variable Mode') {
     # With this mode selected the OT allows the resolution and scan-speed
     # to be configured.  (It greys these options out in the other modes.)
 
     my $speed = $info{'ScanSpeed'};
+    throw OMP::Error::TranslateFail('Excessive scan speed: ' . $speed)
+      if $speed > OMP::Config->getData($self->cfgkey . '.fts_variable_maxspeed');
+    throw OMP::Error::TranslateFail('Scan speed too low: ' . $speed)
+      if $speed <= 0.0;
+
     my $resolution = $info{'resolution'};
+    throw OMP::Error::TranslateFail('Resolution zero or negative')
+      if $resolution <= 0.0;
+
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_variable_resolutionfactor') / $resolution;
+    throw OMP::Error::TranslateFail('Excessive scan length: ' . $length)
+      if $length > OMP::Config->getData($self->cfgkey . '.fts_variable_maxlength');
 
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin(0);
-    $fts2->scan_spd(0);    # Calculate from $speed parameter?
-    $fts2->scan_length(0); # Calculate from $resolution parameter?
+    $fts2->scan_origin($centre - $length / 2);
+    $fts2->scan_spd($speed); # OT commit 587fc38 says these are mm/s already.
+    $fts2->scan_length($length);
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 "Special Mode": ' . $mode)
