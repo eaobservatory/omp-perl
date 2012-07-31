@@ -1442,6 +1442,9 @@ sub observing_mode {
     if ($self->is_pol_spin(%$info)) {
       if ($switching_mode =~ /^(none|self)$/) {
         $switching_mode = 'spin';
+        # Also need to write into the hash for POL-2.
+        $info->{switching_mode} = $switching_mode
+          if $info->{'instrument'} eq 'SCUBA-2';
       } else {
         $switching_mode .= '_spin';
       }
