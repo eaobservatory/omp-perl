@@ -678,9 +678,7 @@ sub jos_config {
 
   my $recipe = $info{obs_type};
   if ($info{obs_type} eq 'science') {
-    unless ($info{observing_mode} eq 'stare_fts2') {
-      $recipe = $info{observing_mode};
-    } else {
+    if ($info{observing_mode} eq 'stare_fts2') {
       my $fts2 = $cfg->fts2();
       OMP::Error::FatalError->throw("Could not determine observing recipe for FTS-2 observation because the FTS-2 configuration object was not present") unless defined $fts2;
       my $scan_mode = $fts2->scan_mode();
@@ -693,6 +691,10 @@ sub jos_config {
       } else {
         OMP::Error::FatalError->throw("Could not determine observing recipe for FTS-2 observation because the scan mode $scan_mode was not recognised");
       }
+    } elsif ($info{observing_mode} eq 'stare_spin_pol') {
+      $recipe = 'constantVelocity';
+    } else {
+      $recipe = $info{observing_mode};
     }
   } elsif ($info{obs_type} eq 'setup') {
     $recipe = "setup_subarrays";
