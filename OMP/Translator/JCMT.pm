@@ -1344,11 +1344,11 @@ sub pol_config {
 
     # number of steps in a cycle controls the spin speed
     my $nsteps = OMP::Config->getData( $self->cfgkey.'.steps_per_cycle_pol' );
-    my $speed = (360/$nsteps)/$step_time;
+    my $speed = 1.0 / ($nsteps * $step_time);
 
     $pol->spin_speed( $speed );
     $self->output("\t$nsteps spectra per cycle\n",
-                  "\tContinuous Spin: $speed deg/sec\n");
+                  "\tContinuous Spin: $speed rev/sec\n");
 
   }
 
