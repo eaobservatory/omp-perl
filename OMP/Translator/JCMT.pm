@@ -110,7 +110,7 @@ sub translate {
   # Note that there may be a requirement to convert non-regular offset
   # patterns into individual observations rather than having a very sparse
   # but large grid
-  $self->correct_offsets( $msb, "Stare" );
+  $self->correct_offsets( $msb, "Stare", 'FTS2' );
 
   # Now unroll the MSB into constituent observations details
   # Do a deep copy - we need independence because the translator writes
