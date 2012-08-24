@@ -900,9 +900,14 @@ sub find_nearest {
         $obs->{'coords'}->dec2000(format => 'sex') 
         if ( $obs->{'coords'}->name !~ /user defined\:/ );
     if ($mindist != 1e+12) {
-      $msg .= sprintf "Closest proposed target is [%s] %-16s at %5.2f $unit",
-        $$proposed[$idxmin]->{'project'}, 
-        $$proposed[$idxmin]->{'coords'}->name, $prtdist;
+      $msg .= sprintf "Closest proposed:%s%12s %12s\n%s             [%s] %-16s at %5.2f $unit",
+        (' ' x (length($mode) - 6)),
+        $$proposed[$idxmin]->{'coords'}->ra2000( format => 'sex' ),
+        $$proposed[$idxmin]->{'coords'}->dec2000( format => 'sex' ),
+        (' ' x length($mode)),
+        uc($$proposed[$idxmin]->{'project'}),
+        $$proposed[$idxmin]->{'coords'}->name,
+        $prtdist;
     } else {
       $msg .= "No close proposed targets";
     }
