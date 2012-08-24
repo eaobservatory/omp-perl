@@ -13,7 +13,7 @@ ompchecktarget - checks observed targets against targets proposed for the
  ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000"
  ompchecktarget -proj m08bu01 -cat > m08bu01.cat
  ompchecktarget -man | -help | -version
- ompchecktarget -semester 12B
+ ompchecktarget -semester 12B -utdate 20120824 -utstop 1
 
 =head1 DESCRIPTION
 
@@ -137,7 +137,9 @@ Switch on debug output
 Switches to "scheduled observation checking" mode.  The specified
 "semester" is used to build a project-ID filter (after prepending
 a 'M' prefix.  (It can therefore be extended to include a country
-queue, e.g. 12BU, or even a project ID.)
+queue, e.g. 12BU, or even a project ID.)  Selects observations
+where the corresponding timestamp in the science programme table
+is within the given UT range.
 
 =back
 
@@ -363,7 +365,7 @@ unless ($coords) {
                                         "$projects", $telescope );
   }
   else {
-    $observed = get_scheduled_targets($semester, $password);
+    $observed = get_scheduled_targets($utstart, $utstop, $semester, $password);
   }
 } else {
   # or for user-specified coordinates
@@ -550,6 +552,7 @@ sub get_scheduled_targets {
 # Use: $scheduled = get_scheduled_targets ( $semester, $password )
 #
 # Input:
+#    $utstart, $utstop: observed date range (yyyymmdd)
 #    $semester: semester to search (matches as project ID prefix
 #               following initial M, so it can specify a country,
 #               or project)
@@ -563,7 +566,7 @@ sub get_scheduled_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($semester, $password) = @_;
+  my ($utstart, $utstop, $semester, $password) = @_;
 
   my $projectpattern = 'M' . $semester . '%';
 
@@ -572,6 +575,11 @@ sub get_scheduled_targets {
   my $database = "omp";
   my $dbtable  = "ompobs";
   my $dbh;
+
+  # This strptime function appears to assume UT, so we can
+  # use the specified dates directly to get the timestamps.
+  $utstart = new Time::Piece->strptime("$utstart", "%Y%m%d")->epoch();
+  $utstop  = new Time::Piece->strptime("$utstop 23:59:59", "%Y%m%d %H:%M:%S")->epoch();
 
   print STDERR "# Connecting to OMP server...";
   $dbh = DBI->connect(
@@ -582,9 +590,11 @@ sub get_scheduled_targets {
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
-    SELECT distinct projectid AS project, name=target, ra=ra2000, dec=dec2000
-    FROM $dbtable WHERE
-    projectid LIKE "$projectpattern"
+    SELECT distinct $dbtable.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
+    FROM $dbtable JOIN ompsciprog ON $dbtable.projectid = ompsciprog.projectid
+    WHERE
+    $dbtable.projectid LIKE "$projectpattern"
+    AND timestamp BETWEEN $utstart AND $utstop
     ORDER BY project, name
     }
     );
@@ -600,7 +610,7 @@ sub get_scheduled_targets {
 
     $ref->{'type'}    = 'j2000';
     $ref->{'units'}   = 'rad';
-    $ref->{'utdate'}  = '00000000';
+    $ref->{'utdate'}  = new Time::Piece->strptime($ref->{'timestamp'}, '%s')->ymd('');
     if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
 
       printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
