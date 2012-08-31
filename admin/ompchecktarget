@@ -388,8 +388,9 @@ foreach my $obs (@$observed) {
   unless ( defined $obs->{'ra'} and defined $obs->{'dec'}
            and $obs->{'ra'} ne "" and $obs->{'dec'} ne "" ) {
     my $msg = sprintf 
-      "[%s] target '%s': No $mode coordinates in OMP DB",
-      $obs->{'project'}, $obs->{'name'};
+      "[%s] target '%s' (obs %i): No %s coordinates in %s DB",
+      $obs->{'project'}, $obs->{'name'}, $obs->{'obsnum'}, $mode,
+      ($mode eq 'scheduled' ? 'OMP' : 'JCMT');
     unless (exists $results{ "$msg" } ) {
       $results{ "$msg" } = "$utdate";
     } else {
@@ -485,7 +486,7 @@ sub get_observed_targets {
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
-    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec
+    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec, obsnum
     FROM $dbtable WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
@@ -611,6 +612,7 @@ sub get_scheduled_targets {
     $ref->{'type'}    = 'j2000';
     $ref->{'units'}   = 'rad';
     $ref->{'utdate'}  = new Time::Piece->strptime($ref->{'timestamp'}, '%s')->ymd('');
+    $ref->{'obsnum'}  = 0;
     if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
 
       printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
