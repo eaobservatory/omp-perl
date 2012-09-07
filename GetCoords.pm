@@ -22,6 +22,8 @@ be obtained using ephemerides.
 
 =cut
 
+BEGIN  { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver" };
+
 use strict;
 use warnings;
 
@@ -348,21 +350,27 @@ sub get_coords  {
   # Querying omp
   if( $method =~ /^o/i and $#projids > -1 ) {
 
+
+    # Get staff password
+    my $access = OMP::Config->getData( "hdr_database.password" );
+
     # Retrieve Science Project objects
     my @sciprogs;
     foreach my $projid ( @projids ) {
       printf "Retrieve science program for $projid\n" if( $debug );
       my $E;
       try {
-        my $sp =  OMP::SpServer->fetchProgram($projid,"PASSWORD",1);
+        my $sp =  OMP::SpServer->fetchProgram($projid,$access,1);
         push( @sciprogs,$sp );
       } catch OMP::Error with {
         # Just catch OMP::Error exceptions
         # Server infrastructure should catch everything else
         $E = shift;
+        print "Error SpServer: $E\n" if ( $debug );
       } otherwise {
         # This is "normal" errors. At the moment treat them like any other
         $E = shift;
+        print "Error SpServer: $E\n" if ( $debug );
       }
     }
 
@@ -917,4 +925,3 @@ Copyright (C) 2003 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
 =cut
-
