@@ -821,17 +821,23 @@ sub jos_config {
       my $step_dist = $fts2->step_dist();
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the step distance is not specified") unless defined $step_dist;
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the step distance is zero") if 0 == $step_dist;
-      my $sample_time = $info{'sampleTime'};
-      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because there was no sampleTime for STEP_AND INTEGRATE") unless defined $sample_time;
 
-      $inttime = $sample_time * $scan_length / $step_dist;
+      my $step_integrate_time = OMP::Config->getData($self->cfgkey . '.fts_step_and_integrate_time');
+      throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the STEP_AND INTEGRATE time was not defined") unless defined $step_integrate_time;
+
+      $inttime = $step_integrate_time * $scan_length / $step_dist;
     }
 
-    throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation, probably because the scan mode '$scan_mode' was not recognised") unless defined $inttime;
+    throw OMP::Error::FatalError("Could not determine cycle time for FTS-2 observation, probably because the scan mode '$scan_mode' was not recognised") unless defined $inttime;
 
-    # convert total integration time to steps
-    # but don't split into chunks
-    my $num_cycles = 1;
+    my $sample_time = $info{'sampleTime'};
+    throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because there was no sampleTime parameter") unless defined $sample_time;
+
+
+    # Convert total integration time to steps
+    # but don't split into chunks.
+    # Use sufficient FTS-2 scans to give the desired integration time.
+    my $num_cycles = POSIX::ceil( $sample_time / $inttime );
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
 
     # Raise an error if the number of steps exceeeds the maximum
@@ -843,9 +849,11 @@ sub jos_config {
     $jos->num_cycles($num_cycles);
 
     $self->output( "FTS-2 JOS parameters:\n",
+                   "\tRequested integration time: $sample_time secs\n",
                    "\tCalculated time per scan: $inttime secs\n",
                    "\tNumber of steps per scan: $jos_min\n",
-                   "\tActual time per scan: ".
+                   "\tNumber of cycles calculated: $num_cycles\n",
+                   "\tActual total time: ".
                    ($jos_min * $num_cycles * $eff_step_time)." secs\n");
 
 
