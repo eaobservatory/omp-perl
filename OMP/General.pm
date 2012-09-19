@@ -391,7 +391,7 @@ sub extract_projectid {
   my $uhs         = 'u/uhs';
   my $uhs_comm    = qr{\b ($uhs / uhs) \b}xi;
   # J & K bands projects.
-  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] [0-9]{2} ) \b}xi;
+  my $uhs_alphnum = qr{\b ($uhs / uhs [jk] (?:[0-9]{2}|_[a-z]+) ) \b}xi;
 
   # UKIRT KASI.
   my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
