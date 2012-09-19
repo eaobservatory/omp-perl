@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 118;
+use Test::More tests => 119;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -328,6 +328,7 @@ my %extract = (
                'U/11B/H50C' => '[U/11B/H50C]',
                'u/12a/h01d' => '[u/12a/h01d]',
                'u/12a/kasi2' => '[u/12a/kasi2]',
+               'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
 	      );
 
 for my $proj (keys %extract) {
