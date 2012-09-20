@@ -54,7 +54,7 @@ if ($tel == "JCMT") then
     echo "***************************************************************" \
          >> ${meeting}.rep
 
-    ompchecktarget -ut $utstart -uts 7 >> ${meeting}.re
+    ompchecktarget -ut $utstart -uts 7 >> ${meeting}.rep
 
   endif
   if ($tel == "JCMT") then
