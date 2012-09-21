@@ -1137,8 +1137,6 @@ value. 0.5 is rounded up.
 
   $nint = OMP::General::nint( $in );
 
-=back
-
 =cut
 
 sub nint {

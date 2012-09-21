@@ -1559,7 +1559,7 @@ sub _make_side_link {
       ;
 }
 
-=iteb B<_make_sort_by_links>
+=item B<_make_sort_by_links>
 
 Returns a string of links listing the sort choices; accepts nothing.
 

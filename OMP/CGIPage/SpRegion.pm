@@ -76,7 +76,7 @@ sub view_region {
           $q->li($q->b('Blue:'), 'completed observations.'));
 }
 
-=iten B<view_region_output>
+=item B<view_region_output>
 
 Outputs the region file.
 
