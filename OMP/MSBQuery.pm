@@ -115,7 +115,7 @@ sub airmass {
 
     # Use simple calculation to convert to airmass
     # Dont worry about refraction effects (no reason
-    # to add a SLALIB dependency here)
+    # to add a PAL dependency here)
     for my $method (qw/max min/) {
       my $value = $elevation->$method;
       next unless defined $value;
