@@ -59,7 +59,7 @@ use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
-use Astro::SLA;
+use Astro::PAL;
 use Data::Dumper;
 
 use POSIX qw/ log10 /;
@@ -2671,10 +2671,10 @@ sub _run_query {
       # THIS MUST BE IN DEGREES
       my $minel = $msb->{minel};
       $minel = 30 unless defined $minel; # use 30 for now as min
-      $minel *= Astro::SLA::DD2R; # convert to radians
+      $minel *= Astro::PAL::DD2R; # convert to radians
 
       my $maxel = $msb->{maxel};
-      $maxel *= Astro::SLA::DD2R if defined $maxel;
+      $maxel *= Astro::PAL::DD2R if defined $maxel;
 
       # create the range object
       my $elconstraint = new OMP::Range( Max => $maxel, Min => $minel );
@@ -2881,7 +2881,7 @@ sub _run_query {
         $hamean = $hasum / $nh if $hasum > 0;
 
         # and convert to hours
-        $hamean *= Astro::SLA::DR2H;
+        $hamean *= Astro::PAL::DR2H;
 
         # Store the mean hour angle for later
         $msb->{hamean} = $hamean;

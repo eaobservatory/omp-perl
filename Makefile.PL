@@ -8,7 +8,7 @@ WriteMakefile(
                     Crypt::PassGen => 0,
                     Number::Interval => 0,
 		    Digest::MD5 => '2.20',
-		    Astro::SLA  => '0.95',
+		    Astro::PAL  => '1.02',
 		    Astro::Coords => '0.05',
 		    Astro::FITS::HdrTrans => 0,
 		    Astro::WaveBand => 0,

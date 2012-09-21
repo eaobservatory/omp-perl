@@ -27,7 +27,7 @@ use warnings::register;
 
 use OMP::Error;
 use Astro::Telescope;
-use Astro::SLA ();
+use Astro::PAL;
 use File::Spec;
 use Astro::Catalog;
 use Astro::Catalog::IO::JCMT; # For clean_target_name
@@ -728,7 +728,7 @@ sub switchConfig {
       my @offsets = $c->distance($refc);
 
       # Convert to arcseconds
-      ($offx, $offy) = map { sprintf("%.1f",$_ * Astro::SLA::DR2AS) } @offsets;
+      ($offx, $offy) = map { sprintf("%.1f",$_ * Astro::PAL::DR2AS) } @offsets;
     }
 
 
