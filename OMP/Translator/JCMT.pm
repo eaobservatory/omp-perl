@@ -1336,7 +1336,7 @@ sub pol_config {
   } else {
 
     # note that pol_spin
-    throw OMP::Error::TranslateFail("No spin flag for continuous spin polarimeter observation")
+    throw OMP::Error::TranslateFail("There are no waveplates specified but this does not seem to be continuous spin. Please check the OT.")
       unless $self->is_pol_spin(%info);
 
     # Spin speed depends on the step time
