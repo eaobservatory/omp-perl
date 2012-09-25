@@ -272,9 +272,10 @@ sub write_ast {
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
     unless exists $self->{'separate'}{$type};
 
-  DEFER_CMPREGION && $self->_build_cmpregions();
+  DEFER_CMPREGION && $self->_build_cmpregion($type);
 
   my $cmp = $self->{'cmp'}->{$type};
+  return unless $cmp;
   $cmp->Show();
 }
 
@@ -292,9 +293,10 @@ sub write_stcs {
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
     unless exists $self->{'separate'}{$type};
 
-  DEFER_CMPREGION && $self->_build_cmpregions();
+  DEFER_CMPREGION && $self->_build_cmpregion($type);
 
   my $cmp = $self->{'cmp'}->{$type};
+  return unless $cmp;
   my $ch = new Starlink::AST::StcsChan(sink => sub {print "$_[0]\n"});
   $ch->Write($cmp);
 }
@@ -356,9 +358,10 @@ sub plot_pgplot {
 
     if ((defined $opt{'method'}) && ($opt{'method'} eq 'cmpregion')) {
 
-      DEFER_CMPREGION && $self->_build_cmpregions();
+      DEFER_CMPREGION && $self->_build_cmpregion($colour);
 
       my $cmp = $self->{'cmp'}->{$colour};
+      next unless $cmp;
 
       my $fs = $plot->Convert($cmp, '');
       $plot->Set('Base='.$fitswcsb);
@@ -430,33 +433,58 @@ sub _add_region {
   }
 }
 
-=item B<_build_cmpregions>
+=item B<_build_cmpregion>
 
-Checks that the AST CmpRegions have been built.
+Checks that the given AST CmpRegion has been built.
 
 =cut
 
-sub _build_cmpregions {
+sub _build_cmpregion {
   my $self = shift;
+  my $name = shift;
 
-  foreach my $name (keys %{$self->{'separate'}}) {
-    next if exists $self->{'cmp'}->{$name};
-    next unless scalar @{$self->{'separate'}->{$name}};
+  return if exists $self->{'cmp'}->{$name};
+  return unless scalar @{$self->{'separate'}->{$name}};
 
-    my $cmp = undef;
+  $self->{'cmp'}->{$name} = _merge_regions($self->{'separate'}->{$name});
+}
 
-    foreach my $region (@{$self->{'separate'}->{$name}}) {
-      unless ($cmp) {
-        $cmp =  $region;
+=item B<_merge_regions>
+
+Takes a reference to an array of AST regions and returns a single
+CmpRegion object.  The CmpRegion is built in a tree manner rather
+than linearly to minimize the maximum depth.
+
+=cut
+
+sub _merge_regions {
+  my $ref = shift;
+  my @regions = @$ref;
+
+  return unless @regions;
+
+  # While we have more than one region in our list, keep
+  # merging them.
+  while (1 < scalar @regions) {
+    my @tmp = ();
+
+    # Step over the list, 2 spots at a time, taking the two
+    # regions and making them into a CmpRegion.
+    for (my $i = 0; $i <= $#regions; $i += 2) {
+      # Odd number of regions? Allow the last through unmerged.
+      if ($i == $#regions) {
+        push @tmp, $regions[$i];
       }
       else {
-        $cmp = $cmp->CmpRegion($region,
+        push @tmp, $regions[$i]->CmpRegion($regions[$i + 1],
                  Starlink::AST::Region::AST__OR(), '');
       }
     }
 
-    $self->{'cmp'}->{$name} = $cmp;
+    @regions = @tmp;
   }
+
+  return $regions[0];
 }
 
 =item B<_add_bounds>
@@ -510,7 +538,7 @@ sub _make_wcs {
 
   unless(WORKAROUND_BOUNDS) {
 
-    DEFER_CMPREGION && $self->_build_cmpregions();
+    DEFER_CMPREGION && $self->_build_cmpregion('all');
 
     my ($l, $u) = $self->{'cmp'}->{'all'}->GetRegionBounds();
     @lbnd = @$l; @ubnd = @$u;
