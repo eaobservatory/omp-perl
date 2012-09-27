@@ -162,6 +162,9 @@ sub getDRRecipe {
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
     if (ref $info{'inbeam'} and grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
       $recipe = "REDUCE_FTS2";
+    }
+    elsif (ref $info{'inbeam'} and grep {$_ =~ /^pol/} @{$info{'inbeam'}}) {
+      $recipe = "REDUCE_POL_STARE";
     } else {
       $recipe = "REDUCE_DREAMSTARE";
     }
