@@ -843,7 +843,7 @@ sub jos_config {
     # Raise an error if the number of steps exceeeds the maximum
     # which FTS-2 can handle.
     my $jos_max = OMP::Config->getData($self->cfgkey . '.fts_max_steps');
-    throw OMP::Error::FatalError("Number of sequence steps ($jos_min) exceeds the maximum permissible ($jos_max) for FTS-2 observations") if $jos_min > $jos_max;
+    throw OMP::Error::FatalError("Number of sequence steps ($jos_min) exceeds the maximum permissible ($jos_max) for FTS-2 observations") if $jos_max && $jos_min > $jos_max;
 
     $jos->jos_min($jos_min);
     $jos->num_cycles($num_cycles);
