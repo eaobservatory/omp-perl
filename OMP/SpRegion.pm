@@ -27,6 +27,7 @@ use strict;
 use warnings;
 
 use Starlink::AST;
+use Starlink::ATL::Region qw/merge_regions/;
 use Astro::Coords;
 use Astro::Coords::Offset;
 use Astro::PAL;
@@ -446,45 +447,7 @@ sub _build_cmpregion {
   return if exists $self->{'cmp'}->{$name};
   return unless scalar @{$self->{'separate'}->{$name}};
 
-  $self->{'cmp'}->{$name} = _merge_regions($self->{'separate'}->{$name});
-}
-
-=item B<_merge_regions>
-
-Takes a reference to an array of AST regions and returns a single
-CmpRegion object.  The CmpRegion is built in a tree manner rather
-than linearly to minimize the maximum depth.
-
-=cut
-
-sub _merge_regions {
-  my $ref = shift;
-  my @regions = @$ref;
-
-  return unless @regions;
-
-  # While we have more than one region in our list, keep
-  # merging them.
-  while (1 < scalar @regions) {
-    my @tmp = ();
-
-    # Step over the list, 2 spots at a time, taking the two
-    # regions and making them into a CmpRegion.
-    for (my $i = 0; $i <= $#regions; $i += 2) {
-      # Odd number of regions? Allow the last through unmerged.
-      if ($i == $#regions) {
-        push @tmp, $regions[$i];
-      }
-      else {
-        push @tmp, $regions[$i]->CmpRegion($regions[$i + 1],
-                 Starlink::AST::Region::AST__OR(), '');
-      }
-    }
-
-    @regions = @tmp;
-  }
-
-  return $regions[0];
+  $self->{'cmp'}->{$name} = merge_regions($self->{'separate'}->{$name});
 }
 
 =item B<_add_bounds>
