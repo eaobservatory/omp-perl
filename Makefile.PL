@@ -30,6 +30,7 @@ WriteMakefile(
 		    Config::IniFiles => 0,
 		    DBI => 0,
 		    Time::Piece => '1.00',
+                    Starlink::ATL::Region => '0.01',
 		   },
     dist          => { COMPRESS => "gzip -9f" },
    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
