@@ -7,6 +7,7 @@ obslog - Review and comment on observations and timegaps for observing runs.
 =head1 SYNOPSIS
 
   obslog
+  obslog -disk
   obslog -ut 2002-12-10
   obslog -tel jcmt
   obslog -ut 2002-10-05 -tel ukirt
@@ -24,15 +25,16 @@ interface.
 
 The following options are supported:
 
-Note that if both I<-db> and I<-disk> are given, database will be
-searched for past data and files on disk for data for current date.
+Note that if both I<-db> and I<-disk> are either set to true or false,
+database will be searched for past data and files on disk for data for
+current date.
 
 =over 4
 
 =item B<-db>
 
 Specify to search for data B<only in the database>, repeatedly if
-necessary.
+necessary. It is default.
 
 =item B<-disk>
 
@@ -130,11 +132,13 @@ $msbtitles{'CAL'} = "Calibration";
 my $id;
 
 my ( %opt, $help, $man, $version );
+# Look in database by default.
+$opt{'database'} = 1;
 my $status = GetOptions("ut=s"  => \$opt{ut},
                         "tel=s" => \$opt{tel},
 
-                        "disk|file"   => \$opt{disk},
-                        "db|database" => \$opt{database},
+                        "disk|file!"   => \$opt{disk},
+                        "db|database!" => \$opt{database},
 
                         "help"    => \$help,
                         "man"     => \$man,
