@@ -60,6 +60,24 @@ Outputs only regions in the specified state.
 
 Display a plot of regions instead of outputting a text description.
 
+=item B<-plottingmethod> separate | cmpregion
+
+Allows regions to be plotted separately to avoid problems
+plotting AST CmpRegions.
+
+=item B<-plottingsystem> fk5 | gal
+
+Selects coordinate system in which to plot.
+
+Note: when WORKAROUND_BOUNDS is on to avoid problems calculating
+the boundaries of AST regions, the bounds are only calculated
+for FK5 coordinates.
+
+=item B<-plottingbounds>
+
+Specify explit plotting boundaries, comma separated, in degrees,
+eg: -6,6,-4,4.
+
 =back
 
 =cut
@@ -89,9 +107,9 @@ use OMP::SpServer;
 
 
 # Options
-my ($format, $mode_type, $plotting_method,
-    $help, $man, $version, $mode_region, $mode_plot)
-  = ('stcs', undef, 'cmpregion');
+my ($format, $mode_type, $plotting_method, $plotting_system,
+    $help, $man, $version, $mode_region, $mode_plot, $plotting_bounds)
+  = ('stcs', undef, 'cmpregion', 'fk5');
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -100,6 +118,8 @@ my $status = GetOptions("help" => \$help,
                         'format=s' => \$format,
                         'type=s' => \$mode_type,
                         'plottingmethod=s' => \$plotting_method,
+                        'plottingsystem=s' => \$plotting_system,
+                        'plottingbounds=s' => \$plotting_bounds,
                        );
 
 pod2usage(1) if $help;
@@ -217,7 +237,9 @@ sub region_report {
     PGPLOT::pgqwin(my $x1, my $y1, my $x2, my $y2);
 
     $region->plot_pgplot(type => $mode_type,
-                         method => $plotting_method);
+                         method => $plotting_method,
+                         system => $plotting_system,
+                         bounds => $plotting_bounds);
 
     PGPLOT::pgend();
   }

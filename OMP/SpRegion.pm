@@ -333,7 +333,7 @@ sub plot_pgplot {
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
   unless exists $self->{'separate'}{$type};
 
-  my $wcs = $self->_make_wcs();
+  my $wcs = $self->_make_wcs($opt{'system'}, $opt{'bounds'});
 
   my $plot = new Starlink::AST::Plot($wcs, [0.0, 0.0, 1.0, 1.0],
                                      [0.5, 0.5, 1000.5, 1000.5],
@@ -495,33 +495,75 @@ a suitable AST object.
 
 sub _make_wcs {
   my $self = shift;
+  my $system = shift;
+  my $bounds = shift;
 
   my @lbnd = @{$self->{'lbnd'}};
   my @ubnd = @{$self->{'ubnd'}};
 
-  unless(WORKAROUND_BOUNDS) {
+  my ($xaxis, $yaxis);
+
+  if ($system and $system =~ /^gal/i) {
+    $xaxis = 'GLON';
+    $yaxis = 'GLAT';
+    $system = 'GAL';
+  }
+  else {
+    $xaxis = 'RA--';
+    $yaxis = 'DEC-';
+    $system = 'FK5';
+  }
+
+  if ($bounds) {
+    my @bounds = split ',', $bounds;
+    die 'Wrong number of bounds' unless 4 == scalar @bounds;
+    @lbnd = @bounds[0, 2];
+    @ubnd = @bounds[1, 3];
+  }
+  elsif (! WORKAROUND_BOUNDS) {
 
     DEFER_CMPREGION && $self->_build_cmpregion('all');
 
-    my ($l, $u) = $self->{'cmp'}->{'all'}->GetRegionBounds();
+    my $all = $self->{'cmp'}->{'all'};
+    my ($l, $u);
+
+    if ($system eq 'GAL') {
+      my $galframe = new Starlink::AST::SkyFrame('SYSTEM=GALACTIC');
+      my $frameset = $all->Convert($galframe, '');
+      my $galregion = $all->MapRegion($frameset, $galframe);
+      ($l, $u) = $galregion->GetRegionBounds();
+    }
+    else {
+      ($l, $u) = $all->GetRegionBounds();
+    }
     @lbnd = @$l; @ubnd = @$u;
   }
 
+  my $width = $lbnd[0] - $ubnd[0];
+  my $height = $ubnd[1] - $lbnd[1];
+
   # Check aspect ratio is going to give a sensible projection
+  # Do not apply corrections if user specified explit bounds (in degrees)
+  unless ($bounds) {
+    my $border_factor = 1.2;
 
-  my $border_factor = 1.2;
+    $width *= Astro::PAL::DR2D * $border_factor;
+    $height *= Astro::PAL::DR2D * $border_factor;
 
-  my $width = Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) * $border_factor;
-  my $height = Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) * $border_factor;
+    if ($height < 0.5 * -$width) {$height = -$width;};
+    if (-$width < 0.5 * $height) {$width  = -$height};
+  }
 
-  if ($height < 0.5 * -$width) {$height = -$width;};
-  if (-$width < 0.5 * $height) {$width  = -$height};
+  $height =  180 if $height >  180;
+  $width  = -360 if $width  < -360;
 
-  $height = 180 if $height > 180;
-  $width  = 360 if $width  > 360;
+  my $xmid = ($lbnd[0] + $ubnd[0]) / 2;
+  my $ymid = ($lbnd[1] + $ubnd[1]) / 2;
 
-  my $xmid = Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2;
-  my $ymid = Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2;
+  unless ($bounds) {
+    $xmid *= Astro::PAL::DR2D;
+    $ymid *= Astro::PAL::DR2D;
+  }
 
   $ymid = 0 if ($ymid + ($height / 2)) > 90
                || ($ymid - ($height / 2)) < -90;
@@ -536,12 +578,12 @@ sub _make_wcs {
         'CRPIX2  = 500',
         'CRVAL1  = ' . $xmid,
         'CRVAL2  = ' . $ymid,
-        'CTYPE1  = \'RA---MER\'',
-        'CTYPE2  = \'DEC--MER\'',
-        'RADESYS = \'FK5\'',
+        'CTYPE1  = \'' . $xaxis . '-MER\'',
+        'CTYPE2  = \'' . $yaxis . '-MER\'',
         'CD1_1   = ' . $width / 1000,
         'CD2_2   = ' . $height / 1000,
     ) {$fchan->PutFits($_, 0);}
+  $fchan->PutFits('RADESYS = \'' . $system . '\'', 0) unless $system eq 'GAL';
   $fchan->Clear('Card');
   my $wcs = $fchan->Read();
   return $wcs;
