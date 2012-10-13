@@ -572,7 +572,7 @@ sub connect {
   my $info = ''; # informational message in error
   my $dboptions = "";
   if ($DBIdriver eq "Sybase") {
-    $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=150";
+    $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=300";
     $info = "$DBserver Sybenv=$ENV{SYBASE}";
   } elsif ($DBIdriver eq 'Pg') {
     $DBserver = "<IRRELEVANT>";
