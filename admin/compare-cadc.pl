@@ -74,6 +74,7 @@ my @skip = sort qw[ ompfaultbodypub ompfaultpub ];
 
 my $omp_cf = OMP::Config->new;
 
+my $one_diff = 0;
 for my $file ( @cadc_cf ) {
 
   $config{'jcmtmd'} = $file;
@@ -82,6 +83,7 @@ for my $file ( @cadc_cf ) {
     connect_and_get_db_stats( $omp_cf, \%config, \@jcmt, \@omp, @skip );
 
   my $diff = any_diff( \%stat, @skip );
+  $one_diff++ if $diff;
 
   $omp_cf->configDatabase( $file );
   my $server = $omp_cf->getData( "database.server" );
@@ -113,7 +115,7 @@ for my $file ( @cadc_cf ) {
   }
 }
 
-exit;
+exit $one_diff;
 
 # Returns a hash with table as the keys, and hash references of database server
 # name and row count as values.
