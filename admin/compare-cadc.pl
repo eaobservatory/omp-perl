@@ -99,6 +99,7 @@ for my $file ( @cadc_cf ) {
   if ( $DEBUG || ! scalar @addr ) {
 
     print $result;
+    print "\n";
   }
   else {
 
