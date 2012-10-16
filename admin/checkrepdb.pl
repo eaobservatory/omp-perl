@@ -2,12 +2,18 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib
+  "$FindBin::RealBin/..",
+  '/jac_sw/hlsroot/perl-JAC-ErrExit/lib'
+  ;
 
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
 use Pod::Usage;
 use MIME::Lite;
 use List::Util qw/ max /;
+
+use JAC::ErrExit 'err_exit';
+
 use OMP::BaseDB;
 use OMP::DBbackend;
 use OMP::Error qw/ :try /;
@@ -155,7 +161,7 @@ else {
   warn $msg;
 }
 
-exit;
+err_exit( $subject, 'pass' => qr{^OK\b}i );
 
 sub check_missing_msb {
 
