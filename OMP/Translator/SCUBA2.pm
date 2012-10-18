@@ -712,6 +712,11 @@ sub jos_config {
 
   $jos->steps_btwn_dark( $tbdark );
 
+  my $tbflat = OMP::Config->getData( "scuba2_translator.time_between_flat_".
+                                     $obsmode_strip ) / $eff_step_time;
+
+  $jos->steps_btwn_flat($tbflat);
+
   # This controls the length of the initial dark if one is used.
   # A DARK noise will use JOS_MIN as for any other observation
   my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
@@ -728,7 +733,8 @@ sub jos_config {
 
   $self->output("Generic JOS parameters:\n",
                 "\tStep time: ".$jos->step_time." secs (effective: $eff_step_time)\n",
-                "\tSteps between darks: ". $jos->steps_btwn_dark()."\n");
+                "\tSteps between darks: ". $jos->steps_btwn_dark()."\n",
+                "\tSteps between flatfields: ". $jos->steps_btwn_flat()."\n");
   $self->output( "\tDark duration: ".$jos->n_darksamples(). " steps\n" )
     if $jos->n_darksamples;
   $self->output( "\tFlat ramp duration: ".$jos->n_flatsamples(). " steps\n" )
