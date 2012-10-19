@@ -394,6 +394,9 @@ sub query_fault_output {
       # map the an alias to a user ID)
       my $user = OMP::UserServer->getUser($author);
 
+      croak qq[Could not find user '$author']
+        unless $user;
+
       push (@xml, "<author>".$user->userid."</author>");
     }
 
