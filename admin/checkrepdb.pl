@@ -32,7 +32,7 @@ my $fault = 0;
 my $primary_db = "SYB_JAC";
 my $secondary_db = "SYB_JAC2";
 
-my ( @to_addr, @cc_addr, $debug, $progress );
+my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
 
 {
   my $help;
@@ -42,6 +42,7 @@ my ( @to_addr, @cc_addr, $debug, $progress );
     's|sec|secondary=s' => \$secondary_db,
     'to=s' => \@to_addr,
     'cc=s' => \@cc_addr,
+    'nomail' => \$nomail,
     'debug' => \$debug,
     'progress' => \$progress
   ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
@@ -147,7 +148,11 @@ if ($critical) {
 }
 $subject .= " - Replication status ($primary_db -> $secondary_db)";
 
-unless ( $debug ) {
+if ( $debug || $nomail ) {
+
+  print $subject, "\n", $msg;
+}
+else {
 
   my %addr =
     (
@@ -155,10 +160,6 @@ unless ( $debug ) {
       scalar @cc_addr ? ( 'Cc' => join ', ', @cc_addr ) : ()
     );
   send_mail( $subject, $msg, %addr );
-}
-else {
-
-  warn $msg;
 }
 
 err_exit( $subject, 'pass' => qr{^OK\b}i );
@@ -442,6 +443,10 @@ Specify email address as the carbon copy recipient of the check report.
 Note that if given, default email address will not be used.
 
 It can be specified multiple times to send email to more than one address.
+
+=item B<-nomail>
+
+Do not send any mail. Messages are printed to standard output.
 
 =item B<-p> <db server> | B<-primary> <db server>
 
