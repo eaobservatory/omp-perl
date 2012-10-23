@@ -78,13 +78,13 @@ unless ( $primary_db_down || $secondary_db_down ) {
     check_rep( $primary_db, $primary_kdb, $secondary_db, $secondary_kdb );
 
   my @msg;
-  #( $msg[0], $trunc ) = check_truncated_sciprog();
+  ( $msg[0], $trunc ) = check_truncated_sciprog();
 
-  #( $msg[1], $missing_prog ) = check_missing_sciprog();
+  ( $msg[1], $missing_prog ) = check_missing_sciprog();
 
-  #( $msg[2], $row_count ) = compare_row_count();
+  ( $msg[2], $row_count ) = compare_row_count();
 
-  #( $msg[3], $missing_msb ) = check_missing_msb();
+  ( $msg[3], $missing_msb ) = check_missing_msb();
 
   $msg .= join '', grep { $_ } ( $tmp, @msg );
 }
