@@ -24,7 +24,7 @@ my $trunc;
 my $missing_prog;
 my $row_count;
 my $missing_msb;
-my $critical;
+my $critical = 0;
 my $fault = 0;
 
 # Roles are as defined by the entries in a "interfaces" file.  In this case,
@@ -54,80 +54,39 @@ my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
 @to_addr = ( 'omp_group@jach.hawaii.edu' )
   if 0 == scalar @to_addr + scalar @cc_addr ;
 
-my $primary_kdb;
-my $secondary_kdb;
-my $primary_db_down;
-my $secondary_db_down;
+my (  $primary_kdb,
+      $primary_db_down,
+      $secondary_kdb,
+      $secondary_db_down,
+      $tmp
+    );
 
-# Do insert on primary DB
-$ENV{OMP_DBSERVER} = $primary_db;
-try {
+( $primary_kdb, $primary_db_down, $tmp ) = check_db_up( $primary_db );
+$msg .= $tmp;
 
-  progress( "Checking if $primary_db is up" );
+( $secondary_kdb, $secondary_db_down, $tmp ) = check_db_up( $secondary_db );
+$msg .= $tmp;
 
-  $primary_kdb = new OMP::KeyDB( DB => new OMP::DBbackend );
-} catch OMP::Error with {
-  my $E = shift;
-  $primary_db_down = 1;
-  $critical = 1;
-};
+if ( $primary_db_down || $secondary_db_down ) {
 
-$msg .= make_server_status( $primary_db, $primary_db_down );
-
-progress( "Generating a key in database on $primary_db" );
-
-my $key = !!$primary_kdb && $primary_kdb->genKey();
-
-progress( "Sleeping for 20 seconds" );
-
-sleep 20;
-
-# Look for insert on replicate DB
-$ENV{OMP_DBSERVER} = $secondary_db;
-try {
-
-  progress( "Checking if $secondary_db is up" );
-
-  $secondary_kdb = new OMP::KeyDB( DB => new OMP::DBbackend(1) )
-} catch OMP::Error with {
-  $secondary_db_down = 1;
-  $critical = 1;
-};
-
-$msg .= make_server_status( $secondary_db, $secondary_db_down );
-
-progress( "Verifying key in database on $secondary_db" );
-
-my $verify = !!$secondary_kdb && $secondary_kdb->verifyKey($key);
-
-if ($primary_db_down or $secondary_db_down) {
+  $critical++;
   $msg .= "\nCannot proceed with tests.\n";
 }
+unless ( $primary_db_down || $secondary_db_down ) {
 
-unless ($primary_db_down or $secondary_db_down) {
-  if ($verify) {
-    $msg .= "\nReplication server ($primary_db -> $secondary_db) is actively replicating. [OK]\n\n";
-  } else {
-    $critical = 1;
-    $msg .= <<"REP_SERVER";
-
-Replication server ($primary_db -> $secondary_db) is not replicating!
-(key used to verify was $key)
-
-REP_SERVER
-  }
+  ( $critical, $tmp ) =
+    check_rep( $primary_db, $primary_kdb, $secondary_db, $secondary_kdb );
 
   my @msg;
-  ( $msg[0], $trunc ) = check_truncated_sciprog();
+  #( $msg[0], $trunc ) = check_truncated_sciprog();
 
-  ( $msg[1], $missing_prog ) = check_missing_sciprog();
+  #( $msg[1], $missing_prog ) = check_missing_sciprog();
 
-  ( $msg[2], $row_count ) = compare_row_count();
+  #( $msg[2], $row_count ) = compare_row_count();
 
-  ( $msg[3], $missing_msb ) = check_missing_msb();
+  #( $msg[3], $missing_msb ) = check_missing_msb();
 
-  $msg .= join '', grep { $_ } @msg;
-
+  $msg .= join '', grep { $_ } ( $tmp, @msg );
 }
 
 my $subject;
@@ -162,7 +121,109 @@ else {
   send_mail( $subject, $msg, %addr );
 }
 
-err_exit( $subject, 'pass' => qr{^OK\b}i );
+err_exit( $subject, 'pass' => qr{^OK\b}i, 'use-exit' => 1, 'show-text' => 0 );
+
+
+sub check_rep {
+
+  my (  $pri_db, $pri_kdb, $sec_db, $sec_kdb ) = @_;
+
+  my $msg = '';
+  my $critical = 0;
+
+  my ( $key, $verify, $time_msg ) =
+    check_key_rep(  $pri_db, $sec_db, $pri_kdb, $sec_kdb,
+                    'wait'         => 20,
+                    'till-success' => 1
+                  );
+
+  $msg .= $time_msg;
+
+  if ( $verify ) {
+
+    $msg .= "\nReplication server ($pri_db -> $sec_db) is actively replicating. [OK]\n\n";
+  }
+  else {
+
+    $critical++;
+    $msg .= sprintf "Replication server (%s -> %s) is not replicating!\n"
+                    . "(key used to verify was %s)\n",
+                    $pri_db, $sec_db, $key;
+  }
+
+  return ( $critical, $msg );
+}
+
+sub check_key_rep {
+
+  my ( $pri_db, $sec_db, $pri_kdb, $sec_kdb, %opt ) = @_;
+
+  # Do not wait without a limit.
+  # 0-index based due to "do{}while( $max-- );" test.
+  my $max_tries = 9;
+
+  my $wait = $opt{'wait'} || 20;
+
+  my $msg = '';
+  my ( $key, $verify );
+
+  if ( !! $pri_kdb ) {
+
+    progress( "Generating a key in database on $pri_db" );
+    $key = $pri_kdb->genKey();
+  }
+  $key or return ( $key, $verify, $msg );
+
+  progress( "Verifying key in database on $sec_db" );
+
+  # XXX To find the replication time.
+  my $loops = 0;
+  use Time::HiRes ( 'gettimeofday', 'tv_interval' );
+  my $_rep_time = [ gettimeofday() ];
+
+  do {
+
+    $loops++;
+    unless ( $verify ) {
+
+      progress( "Sleeping for $wait seconds" );
+      sleep $wait;
+    }
+
+    !!$sec_kdb and $verify = $sec_kdb->verifyKey( $key );
+  }
+  while ( !$verify && $opt{'till-success'} && $max_tries-- );
+
+  # XXX To find the replication time.
+  $msg .= sprintf "\n( key replication: total wait: %0.2f s,  wait/try: %0.2f s, tries: %d )\n",
+            tv_interval( $_rep_time ),
+            $wait,
+            $loops;
+
+  return ( $key, $verify, $msg );
+}
+
+sub check_db_up {
+
+  my ( $db ) = @_;
+
+  progress( "Checking if $db is up" );
+
+  my $kdb;
+  my $down = 0;
+
+  $ENV{OMP_DBSERVER} = $db;
+  try {
+
+    $kdb = OMP::KeyDB->new( 'DB' => OMP::DBbackend->new(1) );
+  }
+  catch OMP::Error with {
+
+    $down = 1;
+  };
+
+  return ( $kdb, $down, make_server_status( $db, $down ) );
+}
 
 sub check_missing_msb {
 
@@ -402,7 +463,11 @@ sub make_diff_status {
 
 sub progress {
 
-  $progress and warn @_ , ( $_[-1] =~ m/\n$/ ? () : "\n" );
+  my ( $text ) = @_;
+
+  return unless $progress;
+
+  warn join $text, '#  ',  ( $text =~ m/\n$/ ? () : "\n" );
   return;
 }
 
