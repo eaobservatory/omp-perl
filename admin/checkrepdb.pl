@@ -133,8 +133,8 @@ sub check_rep {
 
   my ( $key, $verify, $time_msg ) =
     check_key_rep(  $pri_db, $sec_db, $pri_kdb, $sec_kdb,
-                    'wait'         => 20,
-                    'till-success' => 1
+                    'wait'  => 20,
+                    'tries' => 10,
                   );
 
   $msg .= $time_msg;
@@ -158,11 +158,8 @@ sub check_key_rep {
 
   my ( $pri_db, $sec_db, $pri_kdb, $sec_kdb, %opt ) = @_;
 
-  # Do not wait without a limit.
-  # 0-index based due to "do{}while( $max-- );" test.
-  my $max_tries = 9;
-
-  my $wait = $opt{'wait'} || 20;
+  my $wait  = $opt{'wait'}  || 20;
+  my $tries = $opt{'tries'} || 10;
 
   my $msg = '';
   my ( $key, $verify );
@@ -192,12 +189,11 @@ sub check_key_rep {
 
     !!$sec_kdb and $verify = $sec_kdb->verifyKey( $key );
   }
-  while ( !$verify && $opt{'till-success'} && $max_tries-- );
+  while ( !$verify && --$tries );
 
   # XXX To find the replication time.
-  $msg .= sprintf "\n( key replication: total wait: %0.2f s,  wait/try: %0.2f s, tries: %d )\n",
+  $msg .= sprintf "\n( key replication: total wait: %0.2f s,  tries: %d )\n",
             tv_interval( $_rep_time ),
-            $wait,
             $loops;
 
   return ( $key, $verify, $msg );
