@@ -166,12 +166,12 @@ sub check_key_rep {
 
   if ( !! $pri_kdb ) {
 
-    progress( "Generating a key in database on $pri_db" );
     $key = $pri_kdb->genKey();
+    progress( "key on $prid_db to check: $key" );
   }
   $key or return ( $key, $verify, $msg );
 
-  progress( "Verifying key in database on $sec_db" );
+  progress( "Verifying key on $sec_db" );
 
   # XXX To find the replication time.
   my $loops = 0;
@@ -183,7 +183,7 @@ sub check_key_rep {
     $loops++;
     unless ( $verify ) {
 
-      progress( "Sleeping for $wait seconds" );
+      progress( "Sleeping for $wait seconds ($loops)" );
       sleep $wait;
     }
 
