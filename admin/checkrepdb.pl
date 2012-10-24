@@ -37,13 +37,13 @@ my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
 {
   my $help;
   GetOptions(
-    'h|help' => \$help,
-    'p|pri|primary=s' => \$primary_db,
+    'h|help'   => \$help,
+    'p|pri|primary=s'   => \$primary_db,
     's|sec|secondary=s' => \$secondary_db,
-    'to=s' => \@to_addr,
-    'cc=s' => \@cc_addr,
-    'nomail' => \$nomail,
-    'debug' => \$debug,
+    'to=s'     => \@to_addr,
+    'cc=s'     => \@cc_addr,
+    'nomail'   => \$nomail,
+    'debug'    => \$debug,
     'progress' => \$progress
   ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
