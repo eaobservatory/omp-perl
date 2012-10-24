@@ -173,7 +173,7 @@ sub check_key_rep {
   if ( !! $pri_kdb ) {
 
     $key = $pri_kdb->genKey();
-    progress( "key on $prid_db to check: $key" );
+    progress( "key on $pri_db to check: $key" );
   }
   $key or return ( $key, $verify, $msg );
 
