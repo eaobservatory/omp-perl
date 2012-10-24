@@ -32,6 +32,8 @@ my $fault = 0;
 my $primary_db = "SYB_JAC";
 my $secondary_db = "SYB_JAC2";
 
+my $wait  = 20;
+my $tries = 15;
 my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
 
 {
@@ -44,7 +46,9 @@ my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
     'cc=s'     => \@cc_addr,
     'nomail'   => \$nomail,
     'debug'    => \$debug,
-    'progress' => \$progress
+    'progress' => \$progress,
+    'wait=i'   => \$wait,
+    'tries=i'  => \$tries,
   ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
   pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
@@ -75,7 +79,10 @@ if ( $primary_db_down || $secondary_db_down ) {
 unless ( $primary_db_down || $secondary_db_down ) {
 
   ( $critical, $tmp ) =
-    check_rep( $primary_db, $primary_kdb, $secondary_db, $secondary_kdb );
+    check_rep(  $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
+                'wait'  => $wait,
+                'tries' => $tries
+              );
 
   my @msg;
   ( $msg[0], $trunc ) = check_truncated_sciprog();
@@ -126,15 +133,14 @@ err_exit( $subject, 'pass' => qr{^OK\b}i, 'use-exit' => 1, 'show-text' => 0 );
 
 sub check_rep {
 
-  my (  $pri_db, $pri_kdb, $sec_db, $sec_kdb ) = @_;
+  my (  $pri_db, $pri_kdb, $sec_db, $sec_kdb, %wait ) = @_;
 
   my $msg = '';
   my $critical = 0;
 
   my ( $key, $verify, $time_msg ) =
     check_key_rep(  $pri_db, $sec_db, $pri_kdb, $sec_kdb,
-                    'wait'  => 20,
-                    'tries' => 10,
+                    %wait
                   );
 
   $msg .= $time_msg;
@@ -159,7 +165,7 @@ sub check_key_rep {
   my ( $pri_db, $sec_db, $pri_kdb, $sec_kdb, %opt ) = @_;
 
   my $wait  = $opt{'wait'}  || 20;
-  my $tries = $opt{'tries'} || 10;
+  my $tries = $opt{'tries'} || 15;
 
   my $msg = '';
   my ( $key, $verify );
@@ -520,6 +526,16 @@ Specify secondary database server (replicate); default is "SYB_JAC2".
 =item B<-progress>
 
 Prints what is going to be done next on standard error.
+
+=item B<-wait> time in second
+
+Specify the time to wait before checking replication of a key
+generated per try.
+
+=item B<-tries> number
+
+Specify the number of tries over which to check the replication of a
+key generated.
 
 =back
 
