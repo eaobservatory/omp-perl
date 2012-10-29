@@ -155,7 +155,7 @@ sub new {
                        $radius);
           my @corner = ();
 
-          foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+          foreach my $cf ([-1, 1], [1, 1], [1, -1], [-1, -1]) {
             my $offset = new Astro::Coords::Offset(
                              $cf->[0] * $fov / 2, $cf->[1] * $fov / 2,
                              posang     => 0,
@@ -186,7 +186,7 @@ sub new {
       }
       else {
         my @corner = ();
-        foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+        foreach my $cf ([-1, 1], [1, 1], [1, -1], [-1, -1]) {
           my $system = 'J2000';
           $system = 'GAL' if $coords->native() eq 'glonglat';
           my $offset = new Astro::Coords::Offset(
