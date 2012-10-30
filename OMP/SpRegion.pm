@@ -102,6 +102,15 @@ sub new {
     my $remaining = $msb->remaining();
     my $observed  = $msb->observed();
 
+    # Ensure that the obsnum counters are present to avoid errors
+    # creating obslabel strings as part of the unrolling.  This is
+    # unfortunately necessary because we will have fetched the XML
+    # in non-internal mode which will have cleared out the counters
+    # (unless the XML was old in which case the fixup method would
+    # have resulted in the counters being read from the XML before
+    # being cleared).  Please see Trac ticket 130 for discussion.
+    $msb->_set_obs_counter();
+
     foreach my $obs ($msb->unroll_obs()) {
       # Retrieve Astro::Coords object
       my $coords = $obs->{'coords'};
