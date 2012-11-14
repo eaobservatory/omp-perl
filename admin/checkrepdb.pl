@@ -48,15 +48,18 @@ my %run =
   my $help;
   GetOptions(
     'h|help'   => \$help,
-    'p|pri|primary=s'   => \$primary_db,
-    's|sec|secondary=s' => \$secondary_db,
+
+    'debug'    => \$debug,
+    'progress' => \$progress,
+
     'to=s'     => \@to_addr,
     'cc=s'     => \@cc_addr,
     'nomail'   => \$nomail,
-    'debug'    => \$debug,
-    'progress' => \$progress,
-    'wait=i'   => \$wait,
-    'tries=i'  => \$tries,
+
+    'p|pri|primary=s'   => \$primary_db,
+    's|sec|secondary=s' => \$secondary_db,
+    'wait=i'            => \$wait,
+    'tries=i'           => \$tries,
 
     'truncated-prog|tp!' => \$run{'truncated-prog'},
     'missed-prog|mp!'    => \$run{'missed-prog'},
@@ -508,20 +511,36 @@ checkrepdb.pl - Check database replication
     [ -to root@example.org [, -to tech@example.org ] ] \
     [ -cc support@example.net [, -cc sales@example.com ] ]
 
+  checkrepdb.pl -notruncated-prog -nomissed-prog
+
 =head1 OPTIONS
+
+=head2 General
 
 =over 2
 
-=item B<-h> | B<-help>
+=item B<-debug>
+
+Run in debug mode. No email is sent.
+
+=item B<-help> | B<-h>
 
 Prints this message.
 
-=item B<-to> <email address>
+=item B<-progress>
 
-Specify email address as the recipient of the check report; default is
-"omp_group@jach.hawaii.edu".
+Prints what is going to be done next on standard error.
 
-It can be specified multiple times to send email to more than one address.
+=back
+
+=head2 Email
+
+=over 2
+
+=item B<-nomail>
+
+Do not send any mail. Messages are printed to standard output. It
+overrides I<-to> and I<-cc> options.
 
 =item B<-cc> <email address>
 
@@ -530,63 +549,88 @@ Note that if given, default email address will not be used.
 
 It can be specified multiple times to send email to more than one address.
 
-=item B<-nomail>
+=item B<-to> <email address>
 
-Do not send any mail. Messages are printed to standard output.
+Specify email address as the recipient of the check report; default is
+"omp_group@jach.hawaii.edu".
 
-=item B<-p> <db server> | B<-primary> <db server>
+It can be specified multiple times to send email to more than one address.
+
+=back
+
+=head2 Database Servers
+
+=over 2
+
+=item B<-primary> | B<-p> <db server>
 
 Specify primary database server (source); default is "SYB_JAC".
 
-=item B<-s> <db server> | B<-secondary> <db server>
+=item B<-secondary> | B<-s> <db server>
 
 Specify secondary database server (replicate); default is "SYB_JAC2".
-
-=item B<-progress>
-
-Prints what is going to be done next on standard error.
-
-=item B<-wait> time in second
-
-Specify the time to wait before checking replication of a key
-generated per try.
 
 =item B<-tries> number
 
 Specify the number of tries over which to check the replication of a
 key generated.
 
-=item B<-truncated-prog> | B<-tp>
+=item B<-wait> time in second
 
-Check for truncated science programs (default).
-
-Specify B<-notruncated-prog> or B<-notp> to not to check.
-
-=item B<-missed-msb> | B<-mm>
-
-Check for missed MSBs (default).
-
-Specify B<-nomissed-msb> or B<-nomm> to not to check.
-
-=item B<-missed-prog> | B<-mp>
-
-Check for missed science programs (default).
-
-Specify B<-nomissed-prog> or B<-nomp> to not to check.
-
-=item B<-replication>
-
-Check for continuing replication (default).
-
-Specify B<-noreplication> to not to.
-
-=item B<-rows>
-
-Check for same row counts in tables (default).
-
-Specify B<-norows> not to.
+Specify the time to wait before checking replication of a key
+generated per try.
 
 =back
+
+=head2 Checks
+
+All the checks are run by default.
+
+=over 2
+
+=item B<-nomissed-msb> | B<-nomm>
+
+Specify to skip check for missed MSBs in a science program.
+
+=item B<-nomissed-prog> | B<-nomp>
+
+Specify to skip check for missed science programs.
+
+=item B<-noreplication>
+
+Specify to skip check for continuing replication.
+
+=item B<-norows>
+
+Specify to skip checking of same number of rows.
+
+=item B<-notruncated-prog> | B<-notp>
+
+Specify to skip check for truncated science programs.
+
+=back
+
+=head1 AUTHOR
+
+Kynan Delorey <k.delorey@jach.hawaii.edu>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2007-2012 Science and Technology Facilities Council.
+All Rights Reserved.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful,but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
 
