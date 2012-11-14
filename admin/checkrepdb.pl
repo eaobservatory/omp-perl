@@ -36,6 +36,14 @@ my $wait  = 20;
 my $tries = 15;
 my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
 
+my %run =
+  ( 'truncated-prog' => 1,
+    'missed-prog'    => 1,
+    'missed-msb'     => 1,
+    'rows'           => 1,
+    'replication'    => 1
+  );
+
 {
   my $help;
   GetOptions(
@@ -49,6 +57,12 @@ my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
     'progress' => \$progress,
     'wait=i'   => \$wait,
     'tries=i'  => \$tries,
+
+    'truncated-prog|tp!' => \$run{'truncated-prog'},
+    'missed-prog|mp!'    => \$run{'missed-prog'},
+    'missed-msb|mm!'     => \$run{'missed-msb'},
+    'rows!'              => \$run{'rows'},
+    'replication!'       => \$run{'replication'},
   ) || die pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
   pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
@@ -78,20 +92,25 @@ if ( $primary_db_down || $secondary_db_down ) {
 }
 unless ( $primary_db_down || $secondary_db_down ) {
 
-  ( $critical, $tmp ) =
-    check_rep(  $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
-                'wait'  => $wait,
-                'tries' => $tries
-              );
+  $run{'replication'} and
+    ( $critical, $tmp ) =
+      check_rep(  $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
+                  'wait'  => $wait,
+                  'tries' => $tries
+                );
 
   my @msg;
-  ( $msg[0], $trunc ) = check_truncated_sciprog();
+  $run{'truncated-prog'} and
+    ( $msg[0], $trunc ) = check_truncated_sciprog();
 
-  ( $msg[1], $missing_prog ) = check_missing_sciprog();
+  $run{'missed-prog'} and
+    ( $msg[1], $missing_prog ) = check_missing_sciprog();
 
-  ( $msg[2], $row_count ) = compare_row_count();
+  $run{'rows'} and
+    ( $msg[2], $row_count ) = compare_row_count();
 
-  ( $msg[3], $missing_msb ) = check_missing_msb();
+  $run{'missed-msb'} and
+    ( $msg[3], $missing_msb ) = check_missing_msb();
 
   $msg .= join '', grep { $_ } ( $tmp, @msg );
 }
@@ -536,6 +555,36 @@ generated per try.
 
 Specify the number of tries over which to check the replication of a
 key generated.
+
+=item B<-truncated-prog> | B<-tp>
+
+Check for truncated science programs (default).
+
+Specify B<-notruncated-prog> or B<-notp> to not to check.
+
+=item B<-missed-msb> | B<-mm>
+
+Check for missed MSBs (default).
+
+Specify B<-nomissed-msb> or B<-nomm> to not to check.
+
+=item B<-missed-prog> | B<-mp>
+
+Check for missed science programs (default).
+
+Specify B<-nomissed-prog> or B<-nomp> to not to check.
+
+=item B<-replication>
+
+Check for continuing replication (default).
+
+Specify B<-noreplication> to not to.
+
+=item B<-rows>
+
+Check for same row counts in tables (default).
+
+Specify B<-norows> not to.
 
 =back
 
