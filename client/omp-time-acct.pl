@@ -198,7 +198,7 @@ sub process_options {
       my %range;
       @range{qw/ min max /} =
         map { $_->ymd }
-          OMP::General
+          OMP::DateTools
           ->semester_boundary( 'tel' => $opt{'telescope'}, 'semester' => $sem )
           ;
 

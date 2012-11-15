@@ -4046,6 +4046,13 @@ sub SpIterFolder {
         delete $dummy{$name};
       }
 
+      # Merge subtype if necessary
+      if (exists $dummy{type} and exists $summary{type}
+                              and $dummy{type} =~ s/^\?-/-/) {
+          $summary{type} .= $dummy{type};
+          delete $dummy{type};
+      }
+
       # Merge information with child iterators
       # [probably redundant except for the "pol" flag
       %summary = (%summary, %dummy);
@@ -4103,6 +4110,7 @@ sub SpIterFolder {
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
+      $summary{type} = (exists $summary{type} ? $summary{type} : '?') . '-stare';
 
     } elsif ($name eq 'SpIterDREAMObs') {
       my %dream;
@@ -4159,6 +4167,7 @@ sub SpIterFolder {
 
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
+      $summary{type} = (exists $summary{type} ? $summary{type} : '?') . '-jiggle';
 
       push(@{$summary{$parent}{CHILDREN}}, { SpIterJiggleObs => \%jiggle});
 
@@ -4327,6 +4336,12 @@ sub SpIterFolder {
 
       $scan{scanPattern} = $self->_get_pcdata( $child, "scanPattern" );
 
+      my %typenames = ('Point Source' => 'daisy', 'Pong' => 'pong');
+      $summary{type} = (exists $summary{type} ? $summary{type} : '?') . '-' .
+                       (defined $scan{scanPattern} &&
+                        exists $typenames{$scan{scanPattern}}
+                             ? $typenames{$scan{scanPattern}} : 'bous');
+
       # Dont use _get_pcdata here since we want multiple matches
       my (@scanpa) = $node->findnodes(".//PA");
       $scan{SCAN_PA} = [ map { $_->firstChild->toString } @scanpa ];
@@ -4336,6 +4351,7 @@ sub SpIterFolder {
     } elsif ($name eq 'SpIterFTS2Obs') {
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
+      $summary{type} = 's-stare';
 
       my %fts = ();
 
@@ -5034,7 +5050,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
+along with this program; if not, write to the 
 Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
 Boston, MA  02111-1307  USA
 

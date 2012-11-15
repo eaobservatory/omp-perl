@@ -13,12 +13,13 @@ ompchecktarget - checks observed targets against targets proposed for the
  ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000"
  ompchecktarget -proj m08bu01 -cat > m08bu01.cat
  ompchecktarget -man | -help | -version
+ ompchecktarget -semester 12B -utdate 20120824 -utstop 1
 
 =head1 DESCRIPTION
 
 Note: this program can only be run by the 'staff' group members.
 
-There are three basic ways to use this program:
+There are four basic ways to use this program:
 
 1. Check observed targets against NORTHSTAR DB:
 The first way to use this program is to check already observed and
@@ -45,6 +46,11 @@ in single or double quotes (see -coords).
 A third way to use the program is to extract proposed targets for a
 project from the NORTHSTAR DB and print them in a JAC-style catalog
 format (see -cat) for use with e.g. sourceplot.
+
+4. Check scheduled targets against the NORTHSTAR DB:
+This mode is selected if the -semester option is specified.  It works
+the same as mode (1) but looks at scheduled observations from the
+OMP database instead of looking at the archive database.
 
 =head1 OPTIONS
 
@@ -126,6 +132,15 @@ Show manual page.
 
 Switch on debug output
 
+=item B<-semester>
+
+Switches to "scheduled observation checking" mode.  The specified
+"semester" is used to build a project-ID filter (after prepending
+a 'M' prefix.  (It can therefore be extended to include a country
+queue, e.g. 12BU, or even a project ID.)  Selects observations
+where the corresponding timestamp in the science programme table
+is within the given UT range.
+
 =back
 
 =cut
@@ -184,7 +199,7 @@ my %results;       # Set up a hash with the printed line as key and the
 # Command-line parameters
 #
 my ($help, $man, $version, $dbg);
-my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds);
+my ($utd, $uts, $max, $all, $tel, $prjs, $cat, $crds, $semester);
 
 my $status = GetOptions("ut=s"       => \$utd,
                         "utstop=s"   => \$uts,
@@ -198,6 +213,7 @@ my $status = GetOptions("ut=s"       => \$utd,
                         "man"        => \$man,
                         "version"    => \$version,
                         "debug"      => \$dbg,
+                        "semester=s" => \$semester,
                        );
 
 pod2usage(1) if $help;
@@ -213,6 +229,11 @@ if( $version ) {
 # Switch debug output to STDERR on (1; else 0)
 my $debug = 0;
 $debug = 1 if (defined $dbg);
+
+# Choose "mode" name -- only used to cusomtize the output.
+# Actual mode should be determined by seeing if $semester
+# is defined rather than reading this string!
+my $mode = defined $semester ? 'scheduled' : 'observed';
 
 
 # Telescope (currently hard-wired to JCMT)
@@ -304,7 +325,7 @@ unless (defined $crds) {
   print "$telescope ${prog} results for user specified coordinates\n";
 }
 printf 
-  "Max distance allowed between observed and proposed targets: %5.2f %s\n",
+  "Max distance allowed between $mode and proposed targets: %5.2f %s\n",
   $prtdist, $unit;
 
 print "\n";
@@ -338,9 +359,14 @@ unless ($coords) {
     }
   }
 
-  # from COMMON table in JCMT DB sorted by project.
-  $observed = &get_observed_targets( $utstart, $utstop, $password,
-                                      "$projects", $telescope );
+  unless ($semester) {
+    # from COMMON table in JCMT DB sorted by project.
+    $observed = &get_observed_targets( $utstart, $utstop, $password,
+                                        "$projects", $telescope );
+  }
+  else {
+    $observed = get_scheduled_targets($utstart, $utstop, $semester, $password);
+  }
 } else {
   # or for user-specified coordinates
   $observed = &get_user_target( "$projects", $telescope, $coords );
@@ -362,8 +388,9 @@ foreach my $obs (@$observed) {
   unless ( defined $obs->{'ra'} and defined $obs->{'dec'}
            and $obs->{'ra'} ne "" and $obs->{'dec'} ne "" ) {
     my $msg = sprintf 
-      "[%s] target '%s': No observed coordinates in OMP DB",
-      $obs->{'project'}, $obs->{'name'};
+      "[%s] target '%s' (obs %i): No %s coordinates in %s DB",
+      $obs->{'project'}, $obs->{'name'}, $obs->{'obsnum'}, $mode,
+      ($mode eq 'scheduled' ? 'OMP' : 'JCMT');
     unless (exists $results{ "$msg" } ) {
       $results{ "$msg" } = "$utdate";
     } else {
@@ -372,7 +399,7 @@ foreach my $obs (@$observed) {
     next;
   }
 
-  printf STDERR "Observed: %-16s %12s %12s J2000\n",
+  printf STDERR ucfirst($mode).": %-16s %12s %12s J2000\n",
        $obs->{'coords'}->{'name'},
        $obs->{'coords'}->ra2000( format => 'sex' ),
        $obs->{'coords'}->dec2000( format => 'sex' ),
@@ -393,7 +420,7 @@ foreach my $obs (@$observed) {
 
 }
 
-print "\nObserved targets sorted by project, ";
+print "\n".ucfirst($mode)." targets sorted by project, ";
 unless (defined $crds) {
   if ($show_all) {
     print "results include matching targets:\n";
@@ -452,14 +479,14 @@ sub get_observed_targets {
 
   print STDERR "# Connecting to OMP server...";
   $dbh = DBI->connect(
-     "dbi:Sybase:server=${server};database=${database};timeout=30",
+     "dbi:Sybase:server=${server};database=${database};timeout=150",
      "staff", $password )
      || die ("*ERROR* JCMT DB_LOGIN failed\n");
   print STDERR "done\n";
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
-    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec
+    SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec, obsnum
     FROM $dbtable WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
@@ -475,7 +502,7 @@ sub get_observed_targets {
     next unless ( $ref->{'project'} =~ /^M\d\d(A|B)/i and
                   $ref->{'project'} !~ /^M\d\d(A|B)EC/i );
 
-    printf STDERR "[%s] Observed: %-16s", $ref->{'project'}, $ref->{'name'}
+    printf STDERR "[%s] ".ucfirst($mode).": %-16s", $ref->{'project'}, $ref->{'name'}
           if $debug;
 
     $ref->{'type'}    = 'j2000';
@@ -510,6 +537,112 @@ sub get_observed_targets {
     printf STDERR "# Fetched %d observed targets\n", $#observed+1;
   } else {
     print STDERR "No observed targets found\nFinished\n";
+    exit;
+  }
+
+  return \@observed;
+
+}
+
+#----------------------------------------------------------------------
+
+sub get_scheduled_targets {
+
+# Get the scheduled targets from the ompobs table in OMP database.
+#
+# Use: $scheduled = get_scheduled_targets ( $semester, $password )
+#
+# Input:
+#    $utstart, $utstop: observed date range (yyyymmdd)
+#    $semester: semester to search (matches as project ID prefix
+#               following initial M, so it can specify a country,
+#               or project)
+#    $password: password to use to log in to database
+#
+# Returned:
+#    Reference to array of hashes with observed targets, keys:
+#       'project' (string), 'utdate' (yyyymmdd), 'name', 'ra', 'dec',
+#       'type' (e.g. j2000), 'units' (e.g. deg) as retrieved from DB.
+#       To facilitate easy coordinate conversions, this information
+#       has also been configured into an Astro::Coords object
+#       as hash key 'coords'.
+
+  my ($utstart, $utstop, $semester, $password) = @_;
+
+  my $projectpattern = 'M' . $semester . '%';
+
+  # Connect to the database.
+  my $server   = "SYB_JAC";
+  my $database = "omp";
+  my $dbtable  = "ompobs";
+  my $dbh;
+
+  # This strptime function appears to assume UT, so we can
+  # use the specified dates directly to get the timestamps.
+  $utstart = new Time::Piece->strptime("$utstart", "%Y%m%d")->epoch();
+  $utstop  = new Time::Piece->strptime("$utstop 23:59:59", "%Y%m%d %H:%M:%S")->epoch();
+
+  print STDERR "# Connecting to OMP server...";
+  $dbh = DBI->connect(
+     "dbi:Sybase:server=${server};database=${database};timeout=150",
+     "staff", $password )
+     || die ("*ERROR* OMP DB_LOGIN failed\n");
+  print STDERR "done\n";
+
+  # Now retrieve data from the table.
+  my $sth = $dbh->prepare(qq{
+    SELECT distinct $dbtable.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
+    FROM $dbtable JOIN ompsciprog ON $dbtable.projectid = ompsciprog.projectid
+    WHERE
+    $dbtable.projectid LIKE "$projectpattern"
+    AND timestamp BETWEEN $utstart AND $utstop
+    ORDER BY project, name
+    }
+    );
+  $sth->execute();
+
+  my @observed;
+  while (my $ref = $sth->fetchrow_hashref()) {
+
+    next unless ( $ref->{'project'} !~ /^M\d\d(A|B)EC/i );
+
+    printf STDERR "[%s] Scheduled: %-16s", $ref->{'project'}, $ref->{'name'}
+          if $debug;
+
+    $ref->{'type'}    = 'j2000';
+    $ref->{'units'}   = 'rad';
+    $ref->{'utdate'}  = new Time::Piece->strptime($ref->{'timestamp'}, '%s')->ymd('');
+    $ref->{'obsnum'}  = 0;
+    if (defined $ref->{'ra'} and defined $ref->{'dec'}) {
+
+      printf STDERR " %12s %12s", $ref->{'ra'}, $ref->{'dec'}
+          if $debug;
+
+      my $ocoords = new Astro::Coords(  name  => $ref->{'name'},
+                                        ra    => $ref->{'ra'},
+                                        dec   => $ref->{'dec'},
+                                        type  => $ref->{'type'},
+                                        units => $ref->{'units'}
+                                     );
+      $ocoords->telescope( new Astro::Telescope( 'JCMT' ));
+
+      $ref->{'coords'}   = $ocoords;
+
+    }
+    print STDERR "\n" if $debug;
+
+    push @observed, $ref;
+  }
+
+  $sth->finish();
+
+  # Disconnect from the database.
+  $dbh->disconnect();
+
+  if (@observed > 0) {
+    printf STDERR "# Fetched %d scheduled targets\n", $#observed+1;
+  } else {
+    print STDERR "No scheduled targets found\nFinished\n";
     exit;
   }
 
@@ -764,14 +897,19 @@ sub find_nearest {
     $msg = sprintf 
         "[%s] target %-16s is *NOT* found in NORTHSTAR!\n",
         $obs->{'project'}, $obs->{'coords'}->name;
-    $msg .= sprintf "Observed position: %12s %12s J2000\n",
+    $msg .= sprintf ucfirst($mode)." position: %12s %12s J2000\n",
         $obs->{'coords'}->ra2000( format => 'sex' ),
         $obs->{'coords'}->dec2000(format => 'sex') 
         if ( $obs->{'coords'}->name !~ /user defined\:/ );
     if ($mindist != 1e+12) {
-      $msg .= sprintf "Closest proposed target is [%s] %-16s at %5.2f $unit",
-        $$proposed[$idxmin]->{'project'}, 
-        $$proposed[$idxmin]->{'coords'}->name, $prtdist;
+      $msg .= sprintf "Closest proposed:%s%12s %12s\n%s             [%s] %-16s at %5.2f $unit",
+        (' ' x (length($mode) - 6)),
+        $$proposed[$idxmin]->{'coords'}->ra2000( format => 'sex' ),
+        $$proposed[$idxmin]->{'coords'}->dec2000( format => 'sex' ),
+        (' ' x length($mode)),
+        uc($$proposed[$idxmin]->{'project'}),
+        $$proposed[$idxmin]->{'coords'}->name,
+        $prtdist;
     } else {
       $msg .= "No close proposed targets";
     }

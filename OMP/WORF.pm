@@ -47,12 +47,11 @@ our $TASK;
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORTER = qw( );
-our @EXPORT = qw/ worf_determine_class new plot obs parse_display_options
-                  file_exists fits ndf /;
+
 our %EXPORT_TAGS = (
-                    'all' => [ qw( @EXPORT ) ],
-                    );
+    'all' => [qw/worf_determine_class new plot obs parse_display_options
+                 file_exists fits ndf/],
+  );
 
 Exporter::export_tags(qw/ all /);
 
@@ -1318,7 +1317,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the 
+along with this program; if not, write to the 
 Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
 Boston, MA  02111-1307  USA
 

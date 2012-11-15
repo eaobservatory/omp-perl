@@ -1137,8 +1137,6 @@ value. 0.5 is rounded up.
 
   $nint = OMP::General::nint( $in );
 
-=back
-
 =cut
 
 sub nint {
@@ -1254,7 +1252,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the
+along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 

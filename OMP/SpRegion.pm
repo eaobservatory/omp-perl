@@ -27,6 +27,7 @@ use strict;
 use warnings;
 
 use Starlink::AST;
+use Starlink::ATL::Region qw/merge_regions/;
 use Astro::Coords;
 use Astro::Coords::Offset;
 use Astro::PAL;
@@ -101,6 +102,15 @@ sub new {
     my $remaining = $msb->remaining();
     my $observed  = $msb->observed();
 
+    # Ensure that the obsnum counters are present to avoid errors
+    # creating obslabel strings as part of the unrolling.  This is
+    # unfortunately necessary because we will have fetched the XML
+    # in non-internal mode which will have cleared out the counters
+    # (unless the XML was old in which case the fixup method would
+    # have resulted in the counters being read from the XML before
+    # being cleared).  Please see Trac ticket 130 for discussion.
+    $msb->_set_obs_counter();
+
     foreach my $obs ($msb->unroll_obs()) {
       # Retrieve Astro::Coords object
       my $coords = $obs->{'coords'};
@@ -154,7 +164,7 @@ sub new {
                        $radius);
           my @corner = ();
 
-          foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+          foreach my $cf ([-1, 1], [1, 1], [1, -1], [-1, -1]) {
             my $offset = new Astro::Coords::Offset(
                              $cf->[0] * $fov / 2, $cf->[1] * $fov / 2,
                              posang     => 0,
@@ -185,7 +195,7 @@ sub new {
       }
       else {
         my @corner = ();
-        foreach my $cf ([1, 1], [-1, 1], [-1, -1], [1, -1]) {
+        foreach my $cf ([-1, 1], [1, 1], [1, -1], [-1, -1]) {
           my $system = 'J2000';
           $system = 'GAL' if $coords->native() eq 'glonglat';
           my $offset = new Astro::Coords::Offset(
@@ -332,7 +342,7 @@ sub plot_pgplot {
   die 'OMP::SpRegion: type must be one of: ' . join ', ', keys %{$self->{'separate'}}
   unless exists $self->{'separate'}{$type};
 
-  my $wcs = $self->_make_wcs();
+  my $wcs = $self->_make_wcs($opt{'system'}, $opt{'bounds'});
 
   my $plot = new Starlink::AST::Plot($wcs, [0.0, 0.0, 1.0, 1.0],
                                      [0.5, 0.5, 1000.5, 1000.5],
@@ -446,45 +456,7 @@ sub _build_cmpregion {
   return if exists $self->{'cmp'}->{$name};
   return unless scalar @{$self->{'separate'}->{$name}};
 
-  $self->{'cmp'}->{$name} = _merge_regions($self->{'separate'}->{$name});
-}
-
-=item B<_merge_regions>
-
-Takes a reference to an array of AST regions and returns a single
-CmpRegion object.  The CmpRegion is built in a tree manner rather
-than linearly to minimize the maximum depth.
-
-=cut
-
-sub _merge_regions {
-  my $ref = shift;
-  my @regions = @$ref;
-
-  return unless @regions;
-
-  # While we have more than one region in our list, keep
-  # merging them.
-  while (1 < scalar @regions) {
-    my @tmp = ();
-
-    # Step over the list, 2 spots at a time, taking the two
-    # regions and making them into a CmpRegion.
-    for (my $i = 0; $i <= $#regions; $i += 2) {
-      # Odd number of regions? Allow the last through unmerged.
-      if ($i == $#regions) {
-        push @tmp, $regions[$i];
-      }
-      else {
-        push @tmp, $regions[$i]->CmpRegion($regions[$i + 1],
-                 Starlink::AST::Region::AST__OR(), '');
-      }
-    }
-
-    @regions = @tmp;
-  }
-
-  return $regions[0];
+  $self->{'cmp'}->{$name} = merge_regions($self->{'separate'}->{$name});
 }
 
 =item B<_add_bounds>
@@ -532,33 +504,75 @@ a suitable AST object.
 
 sub _make_wcs {
   my $self = shift;
+  my $system = shift;
+  my $bounds = shift;
 
   my @lbnd = @{$self->{'lbnd'}};
   my @ubnd = @{$self->{'ubnd'}};
 
-  unless(WORKAROUND_BOUNDS) {
+  my ($xaxis, $yaxis);
+
+  if ($system and $system =~ /^gal/i) {
+    $xaxis = 'GLON';
+    $yaxis = 'GLAT';
+    $system = 'GAL';
+  }
+  else {
+    $xaxis = 'RA--';
+    $yaxis = 'DEC-';
+    $system = 'FK5';
+  }
+
+  if ($bounds) {
+    my @bounds = split ',', $bounds;
+    die 'Wrong number of bounds' unless 4 == scalar @bounds;
+    @lbnd = @bounds[0, 2];
+    @ubnd = @bounds[1, 3];
+  }
+  elsif (! WORKAROUND_BOUNDS) {
 
     DEFER_CMPREGION && $self->_build_cmpregion('all');
 
-    my ($l, $u) = $self->{'cmp'}->{'all'}->GetRegionBounds();
+    my $all = $self->{'cmp'}->{'all'};
+    my ($l, $u);
+
+    if ($system eq 'GAL') {
+      my $galframe = new Starlink::AST::SkyFrame('SYSTEM=GALACTIC');
+      my $frameset = $all->Convert($galframe, '');
+      my $galregion = $all->MapRegion($frameset, $galframe);
+      ($l, $u) = $galregion->GetRegionBounds();
+    }
+    else {
+      ($l, $u) = $all->GetRegionBounds();
+    }
     @lbnd = @$l; @ubnd = @$u;
   }
 
+  my $width = $lbnd[0] - $ubnd[0];
+  my $height = $ubnd[1] - $lbnd[1];
+
   # Check aspect ratio is going to give a sensible projection
+  # Do not apply corrections if user specified explit bounds (in degrees)
+  unless ($bounds) {
+    my $border_factor = 1.2;
 
-  my $border_factor = 1.2;
+    $width *= Astro::PAL::DR2D * $border_factor;
+    $height *= Astro::PAL::DR2D * $border_factor;
 
-  my $width = Astro::PAL::DR2D * ($lbnd[0] - $ubnd[0]) * $border_factor;
-  my $height = Astro::PAL::DR2D * ($ubnd[1] - $lbnd[1]) * $border_factor;
+    if ($height < 0.5 * -$width) {$height = -$width;};
+    if (-$width < 0.5 * $height) {$width  = -$height};
+  }
 
-  if ($height < 0.5 * -$width) {$height = -$width;};
-  if (-$width < 0.5 * $height) {$width  = -$height};
+  $height =  180 if $height >  180;
+  $width  = -360 if $width  < -360;
 
-  $height = 180 if $height > 180;
-  $width  = 360 if $width  > 360;
+  my $xmid = ($lbnd[0] + $ubnd[0]) / 2;
+  my $ymid = ($lbnd[1] + $ubnd[1]) / 2;
 
-  my $xmid = Astro::PAL::DR2D * ($lbnd[0] + $ubnd[0]) / 2;
-  my $ymid = Astro::PAL::DR2D * ($lbnd[1] + $ubnd[1]) / 2;
+  unless ($bounds) {
+    $xmid *= Astro::PAL::DR2D;
+    $ymid *= Astro::PAL::DR2D;
+  }
 
   $ymid = 0 if ($ymid + ($height / 2)) > 90
                || ($ymid - ($height / 2)) < -90;
@@ -573,12 +587,12 @@ sub _make_wcs {
         'CRPIX2  = 500',
         'CRVAL1  = ' . $xmid,
         'CRVAL2  = ' . $ymid,
-        'CTYPE1  = \'RA---MER\'',
-        'CTYPE2  = \'DEC--MER\'',
-        'RADESYS = \'FK5\'',
+        'CTYPE1  = \'' . $xaxis . '-MER\'',
+        'CTYPE2  = \'' . $yaxis . '-MER\'',
         'CD1_1   = ' . $width / 1000,
         'CD2_2   = ' . $height / 1000,
     ) {$fchan->PutFits($_, 0);}
+  $fchan->PutFits('RADESYS = \'' . $system . '\'', 0) unless $system eq 'GAL';
   $fchan->Clear('Card');
   my $wcs = $fchan->Read();
   return $wcs;

@@ -19,7 +19,8 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 73;
+use Test::More tests => 74;
+use Test::Warn qw/warning_like/;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -148,7 +149,10 @@ print "# UT date determination\n";
 my $detut = OMP::DateTools->determine_utdate();
 is($detut->epoch, $today->epoch, "Blank should be today");
 
-$detut = OMP::DateTools->determine_utdate("blah");
+$detut = undef;
+warning_like {$detut = OMP::DateTools->determine_utdate("blah");}
+  qr/Unable to parse UT date blah. Using today's date\./,
+  q/Warning about date blah/;
 is($detut->epoch, $today->epoch, "Unparsable should be today");
 
 # Now force a parse

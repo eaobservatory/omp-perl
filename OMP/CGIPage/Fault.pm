@@ -1562,7 +1562,7 @@ sub _make_side_link {
       ;
 }
 
-=iteb B<_make_sort_by_links>
+=item B<_make_sort_by_links>
 
 Returns a string of links listing the sort choices; accepts nothing.
 
@@ -1778,7 +1778,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the
+along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 

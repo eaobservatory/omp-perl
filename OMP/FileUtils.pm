@@ -36,7 +36,7 @@ use OMP::General;
 our $VERSION = (qw$Revision$)[1];
 our $DEBUG = 0;
 
-# Set to return files previously not ecncountered.
+# Set to return files previously not encountered.
 our $RETURN_RECENT_FILES = 0;
 
 my $MISS_CONFIG_KEY =

@@ -1,0 +1,68 @@
+#!/bin/csh -f
+
+# Wrapper around projrep.pl and faults.pl to generate 7-day operations
+# summary for the opsmeeting.
+
+set tel = "JCMT"
+set meeting = "opsmeeting"
+
+#set tel = "UKIRT"
+#set meeting = "schedmeeting"
+
+echo ""
+echo "This utility creates the projects, accounting and faults sections"
+echo "for the ${meeting} minutes."
+
+if ($?1) then
+  set utstart = "$1"
+else
+  echo ""
+  echo -n "Start UT date (i.e. last week friday HST) yyyymmdd: "
+  set utstart = $<
+endif
+
+if ($utstart < 20000101 || $utstart > 20200101) then
+  echo ""
+  echo "ERROR: '$utstart' is not a valid YYYYMMDD date"
+  echo ""
+  exit
+endif
+
+echo ""
+echo "Running project summary for 7 nights starting ${utstart} UT"
+echo "...(can take a minute)..."
+
+projrep.pl -tel "$tel" $utstart >! ${meeting}.rep
+
+echo "Running faults  summary for 7 nights starting ${utstart} UT"
+echo "..."
+
+faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
+
+if ($tel == "JCMT") then
+
+  echo -n "Do you want to run ompchecktarget too? y/[n]: "
+  set ans = $<
+  if ($ans =~ [Yy]) then
+    echo "Running ompchecktarget summary for 7 nights starting ${utstart} UT:"
+    echo "        ompchecktarget -ut "$utstart" -uts 7"
+    echo " " >> ${meeting}.rep
+    echo "***************************************************************" \
+         >> ${meeting}.rep
+    echo "***WARNING *** Delete ompchecktarget results below from minutes" \
+         >> ${meeting}.rep
+    echo "***************************************************************" \
+         >> ${meeting}.rep
+
+    ompchecktarget -ut $utstart -uts 7 >> ${meeting}.rep
+
+  endif
+  if ($tel == "JCMT") then
+endif
+
+echo ""
+echo "Finished: result is in the file '${meeting}.rep'"
+echo "You need to review the closed faults and only keep"
+echo "significant older faults."
+
+echo ""

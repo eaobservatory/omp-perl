@@ -59,7 +59,7 @@ use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
-use Astro::SLA;
+use Astro::PAL;
 use Data::Dumper;
 
 use POSIX qw/ log10 /;
@@ -1971,35 +1971,122 @@ provided in the array of hashes:
 
 where @summaries contains elements of class C<OMP::Info::MSB>.
 
+This method extracts basic information from the database to determine whether
+each MSB can simply be updated, or whether it needs to be re-inserted.
+The following fields can be updated without re-insertion:
+
+=over 4
+
+=item * remaining
+
+=back
+
+Since the scheduler depends on the observations being in the right order,
+if the MSB has changed we delete it and its observations, and
+re-insert them.
+
 =cut
 
 sub _insert_rows {
   my $self = shift;
   my @summaries = @_;
 
-  # Get the next index to use for the MSB table
-  my $index = $self->_get_next_index();
-
-  # We need to remove the existing rows associated with this
-  # project id
-  $self->_clear_old_rows;
-
   # Get the DB handle
   my $dbh = $self->_dbhandle or
     throw OMP::Error::DBError("Database handle not valid");
 
-  # Now loop over each summary inserting the information
+  # Get the current database status.
+  my $sth = $dbh->prepare('SELECT msbid, checksum, remaining'
+                        . ' FROM ' . $MSBTABLE
+                        . ' WHERE projectid=?')
+    or throw OMP::Error::DBError('Error preparing MSB check SQL: '
+                               . $DBI::errstr);
+
+  $sth->execute($self->projectid())
+    or throw OMP::Error::DBError('Error executing MSB check: ' . $DBI::errstr);
+
+  my $dbhash = $sth->fetchall_hashref('checksum');
+  throw OMP::Error::DBError('Error fetching from MSB check: ' . $DBI::errstr)
+    if $sth->err();
+
+  # Get the next index to use for the MSB table
+  my $index = $self->_get_next_index();
+
+  # Now loop over each summary and compare the information.  We remove the
+  # entries from $dbhash as we go so that it will only include entries no
+  # longer in the programme.
   for my $summary (@summaries) {
+    my $checksum = $summary->checksum();
 
-    # Add the contents to the database
-    $self->_insert_row( $summary,
-                        dbh  => $dbh,
-                        index=> $index,
-                      );
+    if (exists $dbhash->{$checksum}) {
+      my $dbrow = $dbhash->{$checksum};
 
-    # increment the index for next pass
-    $index++;
+      # This comparison must check all fields which are accessible in the
+      # database but are not included in the checksum.  These should be
+      # the same fields we update with _db_update_data.  Note: these fields
+      # must also be checked / updated in the OR folder special case below!
+      if ($dbrow->{'remaining'} != $summary->remaining()) {
+        $DEBUG && print "Insert Rows: updating $checksum\n";
 
+        my $msbid =  $dbrow->{'msbid'};
+        throw OMP::Error::DBError("MSB ID not defined")
+          unless defined $msbid;
+
+        $self->_db_update_data($MSBTABLE,
+                        {remaining => $summary->remaining()},
+                        'msbid='.$msbid);
+      }
+      else {
+        $DEBUG && print "Insert Rows: no action for $checksum\n";
+      }
+
+      delete $dbhash->{$checksum};
+    }
+    # Check whether the entry has been moved out of an OR folder.  We can
+    # do this by seeing if the database had the same checksum with an O
+    # suffix because md5_hex returns a fixed length string as the checksum.
+    # Since we need to execute one UPDATE statement on the MSB table
+    # anyway, we might as well update the remaining counter as it probably changed.
+    elsif (exists $dbhash->{$checksum.'O'}) {
+      $DEBUG && print "Insert Rows: moving out of OR folder $checksum\n";
+
+      my $oldchecksum = $checksum.'O';
+      my $dbrow = $dbhash->{$oldchecksum};
+      my $msbid =  $dbrow->{'msbid'};
+      throw OMP::Error::DBError("MSB ID not defined")
+        unless defined $msbid;
+
+      $self->_db_update_data($MSBTABLE,
+                        {remaining => $summary->remaining(),
+                         checksum  => $checksum},
+                        'msbid='.$msbid);
+
+      delete $dbhash->{$oldchecksum};
+    }
+    else {
+      $DEBUG && print "Insert Rows: inserting $checksum\n";
+
+      $self->_insert_row($summary,
+                          dbh   => $dbh,
+                          index => $index,
+                        );
+
+      # increment the index for next pass
+      $index++;
+    }
+  }
+
+  # Entries remaining in $dbhash must have been removed/altered in the science
+  # programme, so we delete the old versions in the database.
+  for my $checksum (keys %$dbhash) {
+      $DEBUG && print "Insert Rows: deleting $checksum\n";
+      my $dbrow = $dbhash->{$checksum};
+      my $msbid =  $dbrow->{'msbid'};
+      throw OMP::Error::DBError("MSB ID not defined")
+        unless defined $msbid;
+
+      $self->_db_delete_data($_, 'msbid=' . $msbid)
+        foreach ($MSBTABLE, $OBSTABLE);
   }
 
 }
@@ -2584,10 +2671,10 @@ sub _run_query {
       # THIS MUST BE IN DEGREES
       my $minel = $msb->{minel};
       $minel = 30 unless defined $minel; # use 30 for now as min
-      $minel *= Astro::SLA::DD2R; # convert to radians
+      $minel *= Astro::PAL::DD2R; # convert to radians
 
       my $maxel = $msb->{maxel};
-      $maxel *= Astro::SLA::DD2R if defined $maxel;
+      $maxel *= Astro::PAL::DD2R if defined $maxel;
 
       # create the range object
       my $elconstraint = new OMP::Range( Max => $maxel, Min => $minel );
@@ -2794,7 +2881,7 @@ sub _run_query {
         $hamean = $hasum / $nh if $hasum > 0;
 
         # and convert to hours
-        $hamean *= Astro::SLA::DR2H;
+        $hamean *= Astro::PAL::DR2H;
 
         # Store the mean hour angle for later
         $msb->{hamean} = $hamean;
@@ -3194,7 +3281,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the
+along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 

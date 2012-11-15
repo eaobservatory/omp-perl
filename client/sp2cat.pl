@@ -124,8 +124,8 @@ Requires the availability of the OMP infrastructure modules
 (specifically L<OMP::SciProg|OMP::SciProg> which depends on the CPAN
 module L<XML::LibXML|XML::LibXML> which requires a modern version of
 the C<libxml2> library from C<www.xmlsoft.org>) as well as the
-C<SrcCatalog::JCMT> module (which depends on the CPAN modules
-L<Astro::SLA|Astro::SLA> and L<Astro::Coords|Astro::Coords>).
+C<SrcCatalog::JCMT> module (which depends on the CPAN module
+L<Astro::Coords|Astro::Coords>).
 
 =head1 AUTHOR
 

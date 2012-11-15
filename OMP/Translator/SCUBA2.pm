@@ -987,6 +987,22 @@ sub jos_config {
     # Maximum length of a sequence
     my $jos_max = OMP::Config->getData($self->cfgkey . ".jos_max" );
 
+    # Check whether the scanning pattern has a defined maximum
+    # cycle defined.  If it does, use it to lower $jos_max
+    # if necessary, so that the scan will be chunked into
+    # a number of cycles.
+
+    try {
+      my  $max_cycle_steps = OMP::Config->getData($self->cfgkey
+                               . '.scan_max_cycle_duration_'
+                               . lc($info{scanPattern})) / $eff_step_time;
+      $self->output("\tMax cycle steps: $max_cycle_steps\n");
+      $jos_max = min($jos_max, $max_cycle_steps);
+    } catch OMP::Error::BadCfgKey with {
+      # Do nothing -- this key is optional.
+      $self->output("\tMax cycle steps: not applied\n");
+    };
+
     # for pointings we need to be able to control the number of repeats
     # dynamically in the JOS so we go for the less optimal solution
     # of causing the map to be split up into chunks

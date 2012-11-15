@@ -19,7 +19,6 @@ It also provides the CGI infrastructure for such display.
 
 use strict;
 use warnings;
-use Carp;
 
 use CGI;
 use CGI::Carp qw/ fatalsToBrowser /;
@@ -34,12 +33,11 @@ our $VERSION = (qw$Revision$ )[1];
 require Exporter;
 
 our @ISA = qw/Exporter/;
-our @EXPORT = qw( display_graphic display_observation
-                  options_form obsnumsort return_fits return_ndf );
 
 our %EXPORT_TAGS = (
-                    'all' => [ @EXPORT ]
-                    );
+    'all' => [qw/display_graphic display_observation
+                 options_form obsnumsort return_fits return_ndf/]
+  );
 
 Exporter::export_tags(qw/ all /);
 
@@ -438,7 +436,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program (see SLA_CONDITIONS); if not, write to the
+along with this program; if not, write to the
 Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 

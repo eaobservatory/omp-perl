@@ -1275,9 +1275,6 @@ sub jos_config {
     # JOS_MULT         => Number of complete jiggle maps per sequence
     # NUM_CYCLES       => Number of distinct sequences
 
-    # Just need to set JOS_MULT
-    my $jos_mult;
-
     # A grid/freqsw will not need a jiggle object, but for jiggle mode we need to know
     # how many distinct points we will be observing. We also need to retrieve
     # the total requested integration time per point
@@ -3620,7 +3617,7 @@ sub get_nod_set_size {
 
   my $nod_set_size;
   if (!defined $info{nodSetDefinition}) {
-    $nod_set_size = 4; "ABBA";
+    $nod_set_size = 4; #ABBA
   } elsif ($info{nodSetDefinition} eq 'AB') {
     $nod_set_size = 2;
   } elsif ($info{nodSetDefinition} eq 'ABBA') {
