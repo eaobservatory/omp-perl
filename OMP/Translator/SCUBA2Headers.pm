@@ -161,6 +161,23 @@ sub getDRRecipe {
     $recipe = "REDUCE_SCAN";
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
     if (ref $info{'inbeam'} and grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+
+      # The superclass fails to find the FTS-2 recipes because
+      # the mode doesn't match.
+      if (exists $info{'data_reduction'} &&
+          exists $info{'data_reduction'}->{'stare'}) {
+
+        $recipe = $info{'data_reduction'}->{'stare'};
+
+        if ($class->VERBOSE) {
+          print {$class->HANDLES}
+            "Using FTS-2 DR recipe $recipe provided by user\n";
+        }
+
+        return $recipe;
+      }
+
+      # Otherwise use default FTS recipe.
       $recipe = "REDUCE_FTS_SCAN";
     }
     elsif (ref $info{'inbeam'} and grep {$_ =~ /^pol/} @{$info{'inbeam'}}) {
