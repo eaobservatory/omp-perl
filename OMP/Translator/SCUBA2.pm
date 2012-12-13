@@ -1131,28 +1131,28 @@ sub fts2_config {
   # part of the FTS2_CONFIG.
   # my $samptime = $info{'sampleTime'};
 
-  if ($mode eq 'SED') {
-    # The SED observation mode produces low-resolution double-sided
-    # interferograms using the dual-port configuration.
+  # Mapping from standard mode names to config file parameter keys:
+  my %standardmodes = (
+      # The SED observation mode produces low-resolution double-sided
+      # interferograms using the dual-port configuration.
+      'SED'                 => 'sed',
+      'SED 850um'           => 'sed850',
 
-    my $length = OMP::Config->getData($self->cfgkey . '.fts_sed_length');
+      # The Spectral Line mode acquires high-resolution single-sided 
+      # interferograms using the dual-port configuration.
+      'Spectral Line'       => 'spectralline',
+      'Spectral Line 850um' => 'spectralline850',
+  );
+
+  if (exists $standardmodes{$mode}) {
+    my $key = $standardmodes{$mode};
+
+    my $length = OMP::Config->getData($self->cfgkey . '.fts_' . $key . '_length');
 
     $fts2->scan_mode('RAPID_SCAN');
     $fts2->scan_dir('DIR_ARBITRARY');
     $fts2->scan_origin($centre - $length / 2);
-    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_sed_speed'));
-    $fts2->scan_length($length);
-  }
-  elsif ($mode eq 'Spectral Line') {
-    # The Spectral Line mode acquires high-resolution single-sided 
-    # interferograms using the dual-port configuration.
-
-    my $length = OMP::Config->getData($self->cfgkey . '.fts_spectralline_length');
-
-    $fts2->scan_mode('RAPID_SCAN');
-    $fts2->scan_dir('DIR_ARBITRARY');
-    $fts2->scan_origin($centre - $length / 2);
-    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_spectralline_speed'));
+    $fts2->scan_spd(OMP::Config->getData($self->cfgkey . '.fts_' . $key . '_speed'));
     $fts2->scan_length($length);
   }
   elsif ($mode eq 'Spectral Flatfield') {
