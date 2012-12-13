@@ -11,6 +11,11 @@ use strict;
 use lib "/jac_sw/omp/msbserver";
 use Mail::Audit;
 
+use OMP::FBServer;
+use OMP::General;
+use OMP::User;
+use OMP::UserServer;
+
 my $mail = new Mail::Audit(
                             loglevel => 4,
                             log => "/tmp/omp-mailaudit.log",
@@ -23,7 +28,7 @@ $mail->ignore("Ignore message because X-Loop header exists") if $mail->get("X-Lo
 # Note that the act of searching for the projectid forces the
 # project ID to become a header itself.
 $mail->reject("Sorry. Could not discern project ID from the subject line.")
-  unless $mail->projectid;
+  unless projectid( $mail );
 
 # Look for spam
 $mail->reject("Sorry. This email looks like spam. Rejecting.")
@@ -31,34 +36,25 @@ $mail->reject("Sorry. This email looks like spam. Rejecting.")
 
 
 # looks like we can accept this
-$mail->accept_feedback;
+accept_feedback( $mail );
 
 
 exit;
 
-# Simply have to place new routines in the Mail::Audit package since
-# we are not able to subclass.
-package Mail::Audit;
 
 # Process OMP feedback mail messages
-use base qw/ Mail::Audit/;
-use OMP::FBServer;
-use OMP::General;
-use OMP::User;
-use OMP::UserServer;
-
 # Accept a message and send it to the feedback system
 sub accept_feedback {
-  my $self = shift;
+  my $audit = shift;
 
-  $self->log(1 => "Accepting");
+  $audit->log(1 => "Accepting");
 
   # Get the information we need
-  my $from = $self->get("from");
+  my $from = $audit->get("from");
   my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
-  my $subject = $self->get("subject");
-  my $text = join('',@{ $self->body });
-  my $project = $self->get("projectid");
+  my $subject = $audit->get("subject");
+  my $text = join('',@{ $audit->body });
+  my $project = $audit->get("projectid");
   chomp($project); # header includes newline
 
   # Try to guess the author
@@ -80,22 +76,22 @@ sub accept_feedback {
 
       if ($users->[0]) {
         $author = $users->[0];
-        $self->log(1 => "Determined OMP user by email address: [EMAIL=".
+        $audit->log(1 => "Determined OMP user by email address: [EMAIL=".
                           $author->email."]");
       }
     }
   }
 
   if ($author) {
-    $self->log(1 => "Determined OMP user: $author [ID=".
+    $audit->log(1 => "Determined OMP user: $author [ID=".
                       $author->userid."]");
   } else {
-    $self->log(1 => "Unable to determine OMP user from From address");
+    $audit->log(1 => "Unable to determine OMP user from From address");
   }
 
   # Need to translate the from address to a valid OMP user id
   # if possible. For now we have to just use undef
-  $self->log(1 => "Sending to feedback system with Project $project");
+  $audit->log(1 => "Sending to feedback system with Project $project");
 
   # Contact the feedback system
   OMP::FBServer->addComment( $project, {
@@ -106,11 +102,11 @@ sub accept_feedback {
                                         text => $text,
                                        });
 
-  $self->log(1 => "Sent to feedback system with Project $project");
+  $audit->log(1 => "Sent to feedback system with Project $project");
 
   # Exit after delivery if required
-  if (!$self->{noexit}) {
-    $self->log(2 => "Exiting with status ".Mail::Audit::DELIVERED);
+  if (!$audit->{noexit}) {
+    $audit->log(2 => "Exiting with status ".Mail::Audit::DELIVERED);
     exit Mail::Audit::DELIVERED;
   }
 
@@ -120,17 +116,17 @@ sub accept_feedback {
 # store it in the mail header
 # Return 1 if subject found, else false
 sub projectid {
-  my $self = shift;
-  my $subject = $self->get("subject");
+  my $audit = shift;
+  my $subject = $audit->get("subject");
 
   # Attempt to match
   my $pid = OMP::General->extract_projectid( $subject );
   if (defined $pid) {
-    $self->put_header("projectid", $pid);
-    $self->log(1 => "Project from subject: $pid");
+    $audit->put_header("projectid", $pid);
+    $audit->log(1 => "Project from subject: $pid");
     return 1;
   } else {
-    $self->log(1 => "Could not determine project from subject line");
+    $audit->log(1 => "Could not determine project from subject line");
     return 0;
   }
 
