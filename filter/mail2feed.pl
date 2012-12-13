@@ -1,12 +1,11 @@
 #!/local/perl/bin/perl -XT
 
-BEGIN { $ENV{LANG} = "C" }
-
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
-
-BEGIN { $ENV{PATH} = "/bin:/usr/bin:/usr/local/bin"; }
-
-BEGIN { $ENV{'LD_LIBRARY_PATH'} = "/usr/lib:/usr/lib64:/star64/lib"; }
+BEGIN {
+  $ENV{LANG}   = "C";
+  $ENV{SYBASE} = "/local/progs/sybase";
+  $ENV{PATH}   = "/bin:/usr/bin:/usr/local/bin";
+  $ENV{'LD_LIBRARY_PATH'} = "/usr/lib:/usr/lib64:/star64/lib";
+}
 
 use strict;
 use lib "/jac_sw/omp/msbserver";
