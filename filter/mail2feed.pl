@@ -1,4 +1,4 @@
-#!/local/perl/bin/perl -XT 
+#!/local/perl/bin/perl -XT
 
 BEGIN { $ENV{LANG} = "C" }
 
@@ -13,9 +13,9 @@ use lib "/jac_sw/omp/msbserver";
 use Mail::Audit;
 
 my $mail = new Mail::Audit(
-			   loglevel => 4,
-			   log => "/tmp/omp-mailaudit.log",
-			  );
+                            loglevel => 4,
+                            log => "/tmp/omp-mailaudit.log",
+                          );
 
 # See if this was an automated reply
 $mail->ignore("Ignore message because X-Loop header exists") if $mail->get("X-Loop");
@@ -80,16 +80,16 @@ sub accept_feedback {
       my $users = OMP::UserServer->queryUsers($query, 'object');
 
       if ($users->[0]) {
-	$author = $users->[0];
-	$self->log(1 => "Determined OMP user by email address: [EMAIL=".
-			  $author->email."]");
+        $author = $users->[0];
+        $self->log(1 => "Determined OMP user by email address: [EMAIL=".
+                          $author->email."]");
       }
     }
   }
 
   if ($author) {
     $self->log(1 => "Determined OMP user: $author [ID=".
-		      $author->userid."]");
+                      $author->userid."]");
   } else {
     $self->log(1 => "Unable to determine OMP user from From address");
   }
@@ -100,12 +100,12 @@ sub accept_feedback {
 
   # Contact the feedback system
   OMP::FBServer->addComment( $project, {
-					author => $author,
-					program => $0,
-					subject => $subject,
-					sourceinfo => $srcip,
-					text => $text,
-				       });
+                                        author => $author,
+                                        program => $0,
+                                        subject => $subject,
+                                        sourceinfo => $srcip,
+                                        text => $text,
+                                       });
 
   $self->log(1 => "Sent to feedback system with Project $project");
 
