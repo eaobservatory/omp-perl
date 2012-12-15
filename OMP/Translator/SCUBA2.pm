@@ -1242,14 +1242,17 @@ sub fts2_config {
   my $tcs = $cfg->tcs();
   my $instap = $cfg->header()->item('INSTAP');
   my $aperture_name;
+  my $short_port;
 
   if (uc($port) eq '8D') {
     # FTS-2 port 1 is S4A and S8D
-    $aperture_name = 'fts8d'
+    $aperture_name = 'fts8d';
+    $short_port = '4A';
   }
   elsif (uc($port) eq '8C') {
     # FTS-2 port 2 is S4B and S8C
-    $aperture_name = 'fts8c'
+    $aperture_name = 'fts8c';
+    $short_port = '4B';
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
@@ -1276,6 +1279,9 @@ sub fts2_config {
   my $scuba2 = $cfg->scuba2();
   my %mask = $scuba2->mask();
   my @unused = qw/s4c s4d s8a s8b/;
+
+  push @unused, qw/s4a s4b/ if $mode =~ /850um/;
+  $port = $short_port if $mode eq 'ZPD';
 
   @mask{@unused} = ('OFF') x scalar @unused;
   $mask{'s' . lc($port)} = 'NEED';
