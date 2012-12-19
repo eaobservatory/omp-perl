@@ -846,6 +846,9 @@ sub jos_config {
     my $num_cycles = POSIX::ceil( $sample_time / $inttime );
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
 
+    # Ensure that number of steps is a multiple of 50.
+    $jos_min = 50 * POSIX::ceil($jos_min / 50);
+
     # Raise an error if the number of steps exceeeds the maximum
     # which FTS-2 can handle.
     my $jos_max = OMP::Config->getData($self->cfgkey . '.fts_max_steps');
