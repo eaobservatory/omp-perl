@@ -1,0 +1,9 @@
+
+SHELL='/jac_sw/bin/crabsh'
+MAILTO='jcmt_archive@jach.hawaii.edu'
+SYBASE='/local/progs/sybase'
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/star/lib:/local/progs/sybase/lib"
+
+03 11 * * * /jac_sw/omp/msbserver/admin/db-dump-backup.sh
+
+
