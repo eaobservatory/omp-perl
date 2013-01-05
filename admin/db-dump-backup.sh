@@ -9,8 +9,19 @@ backup_dir='/export/data/sybase/db-dump'
 # On omp{3,4} for any of SYB_JAC{,2} database servers.
 dump_dir='/opt/omp/db-dump'
 
+showtime()
+{
+  local text time
+  text="${1:-Time}"
+  time=$( date +'%a %b %d %H:%M:%S' )
+
+  printf " * %-5s : %s *\n" "${text}" "${time}"
+}
+
 make_backup()
 {
+  local db_host db_server
+
   db_host=
   db_server=
   case $# in
@@ -40,12 +51,21 @@ make_backup()
     ;;
   esac
 
-  nice rsync -rltgDz --quite --delete-after --size-only --bwlimit=10000  \
-    "${db_host}:${dump_dir}"  \
+  printf "Copying %s:%s/ to %s/ ...\n" \
+    "${db_host}"  "${dump_dir}"  \
     "${backup_dir}/${db_server}"
+
+  nice rsync -rltgDz --quite --delete-after --size-only --bwlimit=10000  \
+    "${db_host}:${dump_dir}/"      \
+    "${backup_dir}/${db_server}/"
 }
 
-make_backup -jac
-make_backup -jac2
+for type in -jac -jac2
+do
+  showtime 'Start'
 
+  make_backup $type
+
+  showtime 'End'
+done
 
