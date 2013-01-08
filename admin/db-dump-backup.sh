@@ -18,9 +18,10 @@ showtime()
   printf " * %-5s : %s *\n" "${text}" "${time}"
 }
 
+rc=0
 make_backup()
 {
-  local db_host db_server
+  local db_host db_server tmp
 
   db_host=
   db_server=
@@ -55,9 +56,17 @@ make_backup()
     "${db_host}"  "${dump_dir}"  \
     "${backup_dir}/${db_server}"
 
-  nice rsync -rltgDz --quite --delete-after --size-only --bwlimit=10000  \
+  nice rsync -rltgDz --quiet --delete-after --size-only --bwlimit=10000  \
     "${db_host}:${dump_dir}/"      \
     "${backup_dir}/${db_server}/"
+
+  tmp="$?"
+
+  if [ "$tmp" -ne 0 ]
+  then
+    rc="$tmp"
+  fi
+
 }
 
 for type in -jac -jac2
@@ -68,4 +77,6 @@ do
 
   showtime 'End'
 done
+
+exit $rc
 
