@@ -141,12 +141,14 @@ sub getDRRecipe {
   # Get the observation type and the mapping mode
   my $obstype = $info{obs_type};
   my $mapmode = $info{mapping_mode};
+  my $has_fts = scalar grep {$_ eq 'fts2'} @{$info{'inbeam'}};
+  my $has_pol = scalar grep {$_ =~ /^pol/} @{$info{'inbeam'}};
 
   # if there was no DR component we have to guess
   if ($obstype eq 'pointing') {
-    $recipe = 'REDUCE_POINTING';
+    $recipe = $has_fts ? 'REDUCE_FTS_POINTING' : 'REDUCE_POINTING';
   } elsif ($obstype eq 'focus') {
-    $recipe = 'REDUCE_FOCUS';
+    $recipe = $has_fts ? 'REDUCE_FTS_FOCUS' : 'REDUCE_FOCUS';
   } elsif ($obstype eq 'skydip') {
     $recipe = "REDUCE_SKYDIP";
   } elsif ($obstype eq 'flatfield') {
@@ -160,7 +162,7 @@ sub getDRRecipe {
   } elsif ($mapmode eq 'scan') {
     $recipe = "REDUCE_SCAN";
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
-    if (ref $info{'inbeam'} and grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+    if (ref $info{'inbeam'} and $has_fts) {
 
       # The superclass fails to find the FTS-2 recipes because
       # the mode doesn't match.
@@ -180,7 +182,7 @@ sub getDRRecipe {
       # Otherwise use default FTS recipe.
       $recipe = "REDUCE_FTS_SCAN";
     }
-    elsif (ref $info{'inbeam'} and grep {$_ =~ /^pol/} @{$info{'inbeam'}}) {
+    elsif (ref $info{'inbeam'} and $has_pol) {
       $recipe = "REDUCE_POL_STARE";
     } else {
       $recipe = "REDUCE_DREAMSTARE";
