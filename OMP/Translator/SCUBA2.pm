@@ -471,17 +471,31 @@ sub handle_special_modes {
 
       $self->output( "Defining ".$info->{scanPattern}." scan map from config.\n");
 
+      my %scan_parameters = (
+                              scanPattern => "pattern",
+                              MAP_HEIGHT => "map_height",
+                              MAP_WIDTH => "map_width",
+                              SCAN_VELOCITY => "velocity",
+                              SCAN_DY => "scan_dy",
+      );
+
       my $key = ".scan_". $smode . "_";
-      $info->{scanPattern} = OMP::Config->getData($self->cfgkey. $key .
-                                                  "pattern");
-      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey. $key .
-                                                 "map_height");
-      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey. $key .
-                                                "map_width");
-      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey. $key .
-                                                    "velocity");
-      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey. $key .
-                                              "scan_dy");
+      my $prefix = (scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}}) ? 'fts' : undef;
+
+      foreach my $param (keys %scan_parameters) {
+        my $name = $scan_parameters{$param};
+        $info->{$param} = OMP::Config->getData($self->cfgkey . $key . $name);
+
+        next unless defined $prefix;
+
+        my $override = eval {OMP::Config->getData($self->cfgkey . '.' .
+                             $prefix . '_' . substr($key, 1) . $name);};
+
+        next unless defined $override;
+
+        $self->output('        Overriding ' . $param . ' parameter for ' . $prefix . ".\n");
+        $info->{$param} = $override;
+      }
 
       for my $extras (qw/ TURN_RADIUS ACCEL XSTART YSTART VX VY / ) {
         my $cfgitem = lc($extras);
