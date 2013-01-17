@@ -1235,24 +1235,43 @@ sub fts2_config {
   }
 
   $cfg->fts2($fts2);
-  $fts2 = undef; # Prevent accidental usage which will not be saved.
 
   # Finished configuring FTS-2, now configure TCS.
+  $self->fts2_tcs_config($cfg, $port);
+
+  # Adjust SCUBA-2 mask.
+  $self->fts2_scuba2_config($cfg, $port, $mode);
+}
+
+=item B<fts2_tcs_config>
+
+Adjusts TCS configuration for observations with FTS-2 in the beam.
+
+  $self->fts2_tcs_config($cfg, $port);
+
+The C<$port> should be '8D' or '8C'.
+
+This subroutine looks up the given port in the extra apertures
+file and configures the TCS and INSTAP header accordingly.
+
+=cut
+
+sub fts2_tcs_config {
+  my $self = shift;
+  my $cfg = shift;
+  my $port = shift;
 
   my $tcs = $cfg->tcs();
   my $instap = $cfg->header()->item('INSTAP');
   my $aperture_name;
-  my $short_port;
 
   if (uc($port) eq '8D') {
     # FTS-2 port 1 is S4A and S8D
     $aperture_name = 'fts8d';
-    $short_port = '4A';
   }
   elsif (uc($port) eq '8C') {
     # FTS-2 port 2 is S4B and S8C
     $aperture_name = 'fts8c';
-    $short_port = '4B';
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
@@ -1271,14 +1290,57 @@ sub fts2_config {
   } else {
     throw OMP::Error::TranslateFail('Could not determine aperture coordinates for: ' . $aperture_name)
   }
+}
 
-  $tcs = undef; # Prevent accidental usage.
+=item B<fts2_scuba2_config>
 
-  # Adjust SCUBA-2 mask.
+Adjusts SCUBA-2 configuration for observations with FTS-2 in the beam.
+
+  $self->fts2_scuba2_config($cfg, $port, $mode);
+
+This subroutine turns off the non-FTS subarrays, and sets the
+main subarray corresponding to the given port to NEED.  The
+C<$port> value is as for L<fts2_tcs_config>.
+
+The C<$mode> parameter is used to further adjust the subarray
+requirements:
+
+=over 4
+
+=item ZPD
+
+The 450um equivalent subarray is set to NEED instead.
+
+=item Contains 850um
+
+The 450um subarrays are disabled.
+
+=back
+
+=cut
+
+sub fts2_scuba2_config {
+  my $self = shift;
+  my $cfg = shift;
+  my $port = shift;
+  my $mode = shift;
 
   my $scuba2 = $cfg->scuba2();
   my %mask = $scuba2->mask();
   my @unused = qw/s4c s4d s8a s8b/;
+  my $short_port;
+
+  if (uc($port) eq '8D') {
+    # FTS-2 port 1 is S4A and S8D
+    $short_port = '4A';
+  }
+  elsif (uc($port) eq '8C') {
+    # FTS-2 port 2 is S4B and S8C
+    $short_port = '4B';
+  }
+  else {
+    throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+  }
 
   push @unused, qw/s4a s4b/ if $mode =~ /850um/;
   $port = $short_port if $mode eq 'ZPD';
