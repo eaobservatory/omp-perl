@@ -1111,6 +1111,9 @@ sub rotator_config {
 Reads the information from OMP::MSB (which should be in a simple hash form from
 the unroll_obs method) and creates a JAC::OCS::Config::FTS2 object.
 
+In the case of pointing and focus, it doesn't do that, but it just tweaks
+the SCUBA-2 and TCS configurations accordingly.
+
 =cut
 
 sub fts2_config {
@@ -1118,8 +1121,25 @@ sub fts2_config {
   my $cfg = shift;
   my %info = @_;
 
-  # Check if this is an FTS-2 observation.
-  return unless $info{'MODE'} eq 'SpIterFTS2Obs';
+  if ($info{'MODE'} eq 'SpIterPointingObs'
+  or  $info{'MODE'} eq 'SpIterFocusObs') {
+    # If this is a pointing or focus, check if FTS-2 is in the beam.
+    if (grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+      $self->output("FTS-2 pointing/focus observation\n");
+      my $port = OMP::Config->getData($self->cfgkey . '.fts_'
+               . (($info{'MODE'} eq 'SpIterFocusObs') ? 'focus' : 'pointing')
+               . '_port');
+      $self->fts2_tcs_config($cfg, $port);
+      $self->fts2_scuba2_config($cfg, $port, '');
+    }
+
+    # Return now as we do not need to configure FTS-2 itself.
+    return;
+  }
+  elsif ($info{'MODE'} ne 'SpIterFTS2Obs') {
+    # Return now if this is not an FTS-2 observation.
+    return;
+  }
   $self->output("FTS-2 observation:\n");
 
   my $fts2 = new JAC::OCS::Config::FTS2();
