@@ -3010,18 +3010,28 @@ sub bandwidth_mode {
     # presence of non-zero overlap
     my $nsubband;
     if ($olap > 0) {
-      # assumes only ever have 2 subbands per subsystem
-      $nsubband = 2;
+      if ($info{'instrument'} =~ /RXA3M/i) {
+        # new code to guess number of subbands as required for RXA3M upgrade
+        my $subbw = ($hbw >= 1.0E9) ? 1.0E9 : 250.0E6;
+        $nsubband = OMP::General::nint($hbw / ($subbw - $olap));
+      }
+      else {
+        # assumes only ever have 2 subbands per subsystem
+        $nsubband = 2;
+      }
     } else {
       $nsubband = 1;
+      # ensure overlap is really zero for subsequent calculations
+      $olap = 0.0;
     }
 
-    # Number of overlaps in the hybrisisation
-    my $noverlap = $nsubband - 1;
-
-    # calculate the full bandwidth non-hybridised
-    # For each overlap region we need to add on twice the overlap
-    my $bw = $hbw + ( $noverlap * 2 * $olap );
+    # Calculate the full bandwidth non-hybridised.
+    # Calculation has been updated to match that in the OT:
+    # if we are using a hybrid mode ($nsubband != 0) then
+    # subtract the overlap for each subband, i.e. we're also
+    # removing 1/2 of the overlap region at each end of the
+    # whole spectrum.
+    my $bw = $hbw + ( $nsubband * $olap );
 
     # Convert this to nearest 10 MHz to remove rounding errors
     my $mhz = int ( ( $bw / ( 1E6 * 10 ) ) + 0.5 ) * 10;
@@ -3099,6 +3109,7 @@ sub bandwidth_mode {
     $self->output("\tUsable channel range: $nch_lo to $nch_hi\n");
 
     my $d_nch = $nch_hi - $nch_lo + 1;
+    my $nch_mid = $nch_lo + OMP::General::nint($d_nch / 2);
 
     # Now calculate the IF setting for each subband
     # For 1 subband just choose the middle channel.
@@ -3106,24 +3117,53 @@ sub bandwidth_mode {
     # is the centre of the overlap region and is the same for each.
     my @refchan;                # Reference channel for each subband
 
+    # This is the exact value of the IF and is forced to be the same
+    # for all channels ( in one or 2 subband versions).
+    my @sbif;
+
     if ($nsubband == 1) {
       # middle usable channel
-      my $nch_ref = $nch_lo + OMP::General::nint($d_nch / 2);
-      push(@refchan, $nch_ref);
+      #         [ |  :  | ]
+      @refchan = ($nch_mid);
+      @sbif = ($s->{'if'});
 
     } elsif ($nsubband == 2) {
       # Subband 1 is referenced to LO channel and subband 2 to HI
-      push(@refchan, $nch_lo, $nch_hi );
+      #             [:|     | ]
+      #     [ |     |:]
+      @refchan = ($nch_lo, $nch_hi);
+      @sbif = ($s->{'if'}) x 2;
+
+    } elsif ($nsubband == 3) {
+      # Subbands all referenced to their centres
+      #                 [ |  :  | ]
+      #         [ |  :  | ]
+      # [ |  :  | ]
+      @refchan = ($nch_mid) x 3;
+      @sbif = ($s->{'if'} - ($bw_per_sub * 1.0E6 - $olap),
+               $s->{'if'},
+               $s->{'if'} + ($bw_per_sub * 1.0E6 - $olap));
+
+    } elsif ($nsubband == 4) {
+      # Subbands 1 and 4 referenced to their centres
+      #                         [ |  :  | ]
+      #                 [:|     | ]
+      #         [ |     |:]
+      # [ |  :  | ]
+      @refchan = ($nch_mid, $nch_lo, $nch_hi, $nch_mid);
+      @sbif = ($s->{'if'} - 1.5 * ($bw_per_sub * 1.0E6 - $olap),
+               $s->{'if'},
+               $s->{'if'},
+               $s->{'if'} + 1.5 * ($bw_per_sub * 1.0E6 - $olap));
 
     } else {
-      # THIS ONLY WORKS FOR 2 SUBBANDS
-      croak "Only 2 subbands supported not $nsubband!";
+      # THIS ONLY WORKS FOR 4 SUBBANDS
+      die "Only 4 subbands supported not $nsubband!";
     }
 
-    # This is the exact value of the IF and is forced to be the same
-    # for all channels ( in one or 2 subband versions).
-    my @sbif = map { $s->{if} } (1..$nsubband);
+    # Store the reference frequency and channel for each subband
     $s->{if_per_subband} = \@sbif;
+    $s->{if_ref_channel} = \@refchan;
 
     # Now calculate the offset from the centre for reference
     my @ifoff = map { $_ - $if_center_freq } @sbif;
@@ -3165,9 +3205,6 @@ sub bandwidth_mode {
                                  $lo2exact[$_]/1E9,
                                  $lo2true[$_]/1E9,
                                  $align_shift[$_]); } (0..$#lo2exact) );
-
-    # Store the reference channel for each subband
-    $s->{if_ref_channel} = \@refchan;
   }
 
   # We currently do not want to do hybridisation in the real time DR
