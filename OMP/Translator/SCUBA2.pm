@@ -804,8 +804,7 @@ sub jos_config {
     # Handle FTS-2 before stare/dream as it is a special case
     # of stare.  Probably clearer to have a separate block rather than
     # having the stare/dream case also deal with FTS-2.
-    # Also for FTS-2 we do not want to break a scan for darks
-    # or microstepping.
+    # Also for FTS-2 we do not want to break a scan for darks.
 
     my $fts2 = $cfg->fts2();
     throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
@@ -839,6 +838,15 @@ sub jos_config {
     my $sample_time = $info{'sampleTime'};
     throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because there was no sampleTime parameter") unless defined $sample_time;
 
+    # This time should be spread over the number of microsteps
+    # for which we need an obsArea.
+    my $tcs = $cfg->tcs();
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    my @ms = $obsArea->microsteps();
+    my $nms = (@ms ? @ms : 1);
+    $sample_time /= $nms;
 
     # Convert total integration time to steps
     # but don't split into chunks.
@@ -856,6 +864,7 @@ sub jos_config {
 
     $self->output( "FTS-2 JOS parameters:\n",
                    "\tRequested integration time: $sample_time secs\n",
+                   "\tTo be spread over: $nms microsteps\n",
                    "\tCalculated time per scan: $inttime secs\n",
                    "\tNumber of steps per scan: $jos_min\n",
                    "\tNumber of cycles calculated: $num_cycles\n",
