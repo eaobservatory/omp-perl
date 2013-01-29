@@ -988,9 +988,25 @@ sub jos_config {
       my $perimeter = 2.0 * pi * $r;
       $duration_per_area = $perimeter / $mapping_info{VELOCITY};
     } elsif ($info{scanPattern} =~ /daisy/i) {
-      # From Per Friberg
+      # Originally from Per Friberg, committed Wed Feb 10 15:32:12 2010 -1000
       my $r0 = ($mapping_info{WIDTH}+$mapping_info{HEIGHT}) / 4;
-      my $o = $mapping_info{VELOCITY} / $mapping_info{DY} / $r0;
+      # Negative DY values have been used as a hack to adjust the daisy
+      # pattern, but they disturb the calculation.  Therefore check
+      # if we have a negative value and if so, use the default.
+      my $dy = $mapping_info{DY};
+      if ($dy < 0) {
+        if (OMP::Config->getData($self->cfgkey . '.scan_pntsrc_pattern')
+            == 'cv_daisy') {
+          $dy = OMP::Config->getData($self->cfgkey . '.scan_pntsrc_scan_dy');
+          $self->output("\tNegative DY: found value DY=$dy for calculation.\n");
+        }
+        else {
+          # Have to just take the default value...
+          $dy = 0.6;
+          $self->output("\tNegative DY: used default DY=$dy for calculation.\n");
+        }
+      }
+      my $o = $mapping_info{VELOCITY} / $dy / $r0;
       my $O = $o / 10.1;
       $duration_per_area = 2.0 * pi / $O;
     } else {
