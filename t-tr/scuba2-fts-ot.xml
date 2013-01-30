@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>scuba2-fts-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="1"/>
+    <SpSiteQualityObsCompRef idref="2"/>
+    <SpTelescopeObsCompRef idref="0"/>
+    <estimatedDuration units="seconds">1865.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SL Dual Port 1</title>
+    <totalDuration units="seconds">1865.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="1" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="0" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>OMC-1</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>05:35:14.000</c1>
+            <c2>-05:22:24.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="2" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1865.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>FTS2</pattern>
+          <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SpecialMode>Spectral Line</SpecialMode>
+            <TrackingPort>8D</TrackingPort>
+            <isDualPort>true</isDualPort>
+            <resolution>0.0060</resolution>
+            <sampleTime>1800.0</sampleTime>
+          </SpIterFTS2Obs>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="4"/>
+    <SpSiteQualityObsCompRef idref="5"/>
+    <SpTelescopeObsCompRef idref="3"/>
+    <estimatedDuration units="seconds">1865.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SL 850 Dual Port 1</title>
+    <totalDuration units="seconds">1865.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="4" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="3" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>OMC-1</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>05:35:14.000</c1>
+            <c2>-05:22:24.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="5" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1865.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>FTS2</pattern>
+          <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SpecialMode>Spectral Line 850um</SpecialMode>
+            <TrackingPort>8D</TrackingPort>
+            <isDualPort>true</isDualPort>
+            <resolution>0.0060</resolution>
+            <sampleTime>1800.0</sampleTime>
+          </SpIterFTS2Obs>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="7"/>
+    <SpSiteQualityObsCompRef idref="8"/>
+    <SpTelescopeObsCompRef idref="6"/>
+    <estimatedDuration units="seconds">1865.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SL Dual Port 2</title>
+    <totalDuration units="seconds">1865.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="7" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="6" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>OMC-1</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>05:35:14.000</c1>
+            <c2>-05:22:24.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="8" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1865.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>FTS2</pattern>
+          <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SpecialMode>Spectral Line</SpecialMode>
+            <TrackingPort>8C</TrackingPort>
+            <isDualPort>true</isDualPort>
+            <resolution>0.0060</resolution>
+            <sampleTime>1800.0</sampleTime>
+          </SpIterFTS2Obs>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="10"/>
+    <SpSiteQualityObsCompRef idref="11"/>
+    <SpTelescopeObsCompRef idref="9"/>
+    <estimatedDuration units="seconds">1865.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SL Single Port 1</title>
+    <totalDuration units="seconds">1865.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="10" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="9" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>OMC-1</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>05:35:14.000</c1>
+            <c2>-05:22:24.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="11" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1865.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>FTS2</pattern>
+          <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SpecialMode>Spectral Line</SpecialMode>
+            <TrackingPort>8D</TrackingPort>
+            <isDualPort>false</isDualPort>
+            <resolution>0.0060</resolution>
+            <sampleTime>1800.0</sampleTime>
+          </SpIterFTS2Obs>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="13"/>
+    <SpSiteQualityObsCompRef idref="14"/>
+    <SpTelescopeObsCompRef idref="12"/>
+    <estimatedDuration units="seconds">1865.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SL Single Port 2</title>
+    <totalDuration units="seconds">1865.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="13" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="12" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>OMC-1</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>05:35:14.000</c1>
+            <c2>-05:22:24.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="14" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1865.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>FTS2</pattern>
+          <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SpecialMode>Spectral Line</SpecialMode>
+            <TrackingPort>8C</TrackingPort>
+            <isDualPort>false</isDualPort>
+            <resolution>0.0060</resolution>
+            <sampleTime>1800.0</sampleTime>
+          </SpIterFTS2Obs>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="16"/>
+    <SpSiteQualityObsCompRef idref="17"/>
+    <SpTelescopeObsCompRef idref="15"/>
+    <estimatedDuration units="seconds">360.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SED Dual Port 1</title>
+    <totalDuration units="seconds">360.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="16" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="15" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>Venus</targetName>
+          <namedSystem TYPE="major"/>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="17" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">360.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpecialMode>SED</SpecialMode>
+          <TrackingPort>8D</TrackingPort>
+          <isDualPort>true</isDualPort>
+          <resolution>0.0060</resolution>
+          <sampleTime>300.0</sampleTime>
+        </SpIterFTS2Obs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="19"/>
+    <SpSiteQualityObsCompRef idref="20"/>
+    <SpTelescopeObsCompRef idref="18"/>
+    <estimatedDuration units="seconds">360.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SED 850 Dual Port 1</title>
+    <totalDuration units="seconds">360.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="19" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="18" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>Venus</targetName>
+          <namedSystem TYPE="major"/>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="20" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">360.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpecialMode>SED 850um</SpecialMode>
+          <TrackingPort>8D</TrackingPort>
+          <isDualPort>true</isDualPort>
+          <resolution>0.0060</resolution>
+          <sampleTime>300.0</sampleTime>
+        </SpIterFTS2Obs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>true</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="22"/>
+    <SpSiteQualityObsCompRef idref="23"/>
+    <SpTelescopeObsCompRef idref="21"/>
+    <estimatedDuration units="seconds">360.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SED Dual Port 2</title>
+    <totalDuration units="seconds">360.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>This is an FTS-2 translator test observation.</note>
+      <title>Translator test observation</title>
+    </SpNote>
+    <SpInstSCUBA2 id="22" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="21" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>Venus</targetName>
+          <namedSystem TYPE="major"/>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="23" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">360.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFTS2Obs type="ic" subtype="FTS2Obs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <SpecialMode>SED</SpecialMode>
+          <TrackingPort>8C</TrackingPort>
+          <isDualPort>true</isDualPort>
+          <resolution>0.0060</resolution>
+          <sampleTime>300.0</sampleTime>
+        </SpIterFTS2Obs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
