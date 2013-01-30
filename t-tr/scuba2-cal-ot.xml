@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>scuba2-cal-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpMSB checksum="29ca35954d8df03c54e22968e2c82921A" observed="4" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="0"/>
+    <SpSiteQualityObsCompRef idref="1"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Flatfield Sky</title>
+    <totalDuration units="seconds">60.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="1" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="0" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="6c6784203e534d7380d50496a71558eeA" msb="false" observed="2" optional="true" remaining="0" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">60.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Flatfield Sky</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFlatObs type="ic" subtype="flatObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <flatSource>SKY</flatSource>
+        </SpIterFlatObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="877fa528d881e595f6373cd30258ffd6A" observed="4" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="2"/>
+    <SpSiteQualityObsCompRef idref="3"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Flatfield Dark</title>
+    <totalDuration units="seconds">60.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="3" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="2" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="6c6784203e534d7380d50496a71558eeA" msb="false" observed="2" optional="true" remaining="0" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">60.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Flatfield Dark</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFlatObs type="ic" subtype="flatObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <flatSource>DARK</flatSource>
+        </SpIterFlatObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="6e932a0abc06195e196b60f362d1356cA" observed="9" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="4"/>
+    <SpSiteQualityObsCompRef idref="5"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Pointing</title>
+    <totalDuration units="seconds">120.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="5" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="4" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="61907b1f66e338cbc17fb68ebaa21835A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">120.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Pointing</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterPointingObs type="ic" subtype="pointingObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+        </SpIterPointingObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="b1c475ce4835bfd8e1c7df536186e704A" observed="3" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="6"/>
+    <SpSiteQualityObsCompRef idref="7"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Focus Z 7-steps</title>
+    <totalDuration units="seconds">480.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="7" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="6" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="4fa2a8e03c0e4f7e0bb736f1e9e34703A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">480.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Focus Z 7-steps</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFocusObs type="ic" subtype="focusObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+          <axis>z</axis>
+          <focusPoints>7</focusPoints>
+          <steps>0.3</steps>
+        </SpIterFocusObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="45150e63947da53826c16c6fd090dd70A" observed="3" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="8"/>
+    <SpSiteQualityObsCompRef idref="9"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Focus X 7-steps</title>
+    <totalDuration units="seconds">480.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="9" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="8" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="4fa2a8e03c0e4f7e0bb736f1e9e34703A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">480.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Focus X 7-steps</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFocusObs type="ic" subtype="focusObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+          <axis>x</axis>
+          <focusPoints>7</focusPoints>
+          <steps>1.0</steps>
+        </SpIterFocusObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="9132e72f4bdfe55762a09edc1a353a04A" observed="3" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="10"/>
+    <SpSiteQualityObsCompRef idref="11"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Focus Y 7-steps</title>
+    <totalDuration units="seconds">480.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="11" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="10" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="4fa2a8e03c0e4f7e0bb736f1e9e34703A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">480.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Focus Y 7-steps</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFocusObs type="ic" subtype="focusObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+          <axis>y</axis>
+          <focusPoints>7</focusPoints>
+          <steps>1.0</steps>
+        </SpIterFocusObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
