@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>scuba2-pol-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="1"/>
+    <SpSiteQualityObsCompRef idref="2"/>
+    <SpTelescopeObsCompRef idref="0"/>
+    <estimatedDuration units="seconds">665.0</estimatedDuration>
+    <priority>99</priority>
+    <title>POL-2 Stare with Microsteps</title>
+    <totalDuration units="seconds">665.0</totalDuration>
+    <SpInstSCUBA2 id="1" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="0" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>DR21</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>20:39:01.100</c1>
+            <c2>+42:19:43.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpSiteQualityObsComp id="2" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">665.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterMicroStep type="ic" subtype="microstep">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <pattern>POL2</pattern>
+          <SpIterPOL type="ic" subtype="instPOL">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <continuousSpin>0.0</continuousSpin>
+            <SpIterStareObs type="ic" subtype="stareObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <secsPerCycle>600</secsPerCycle>
+            </SpIterStareObs>
+          </SpIterPOL>
+        </SpIterMicroStep>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
