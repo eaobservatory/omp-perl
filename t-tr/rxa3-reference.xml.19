@@ -1159,7 +1159,7 @@
       </RTS_CONFIG>
       <FRONTEND_CONFIG>
          
-         <REST_FREQUENCY>221.2603568</REST_FREQUENCY>
+         <REST_FREQUENCY>219.5603568</REST_FREQUENCY>
          <FREQ_OFF_SCALE>0</FREQ_OFF_SCALE>
          <SIDEBAND>USB</SIDEBAND>
          <SB_MODE>DSB</SB_MODE>
@@ -1168,13 +1168,13 @@
          <RECEPTOR_MASK RECEPTOR_ID="A" VALUE="NEED"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_A"
-                  SERIAL="RxA3M"
+                  SERIAL="RxA3"
                   FOC_STATION="DIRECT"
                   X="0.0"
                   Y="0.0"
                   WAVELENGTH="1365.42161968285" >
          
-         <IF_CENTER_FREQ>5.7</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >

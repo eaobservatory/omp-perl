@@ -1170,7 +1170,7 @@
       </RTS_CONFIG>
       <FRONTEND_CONFIG>
          
-         <REST_FREQUENCY>232.238</REST_FREQUENCY>
+         <REST_FREQUENCY>230.538</REST_FREQUENCY>
          <FREQ_OFF_SCALE>0</FREQ_OFF_SCALE>
          <SIDEBAND>LSB</SIDEBAND>
          <SB_MODE>DSB</SB_MODE>
@@ -1179,13 +1179,13 @@
          <RECEPTOR_MASK RECEPTOR_ID="A" VALUE="ON"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_A"
-                  SERIAL="RxA3M"
+                  SERIAL="RxA3"
                   FOC_STATION="DIRECT"
                   X="0.0"
                   Y="0.0"
                   WAVELENGTH="1300.40365579644" >
          
-         <IF_CENTER_FREQ>5.7</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >
@@ -1331,7 +1331,7 @@
                <rest_freq_ref ref="trCO2-1" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">7.4</if_ref_freq>
+                  <if_ref_freq units="GHz">4</if_ref_freq>
                   <if_ref_channel>4096</if_ref_channel>
                   <if_chan_width units="Hz">30517.578125</if_chan_width>
                   <if_nchans>8192</if_nchans>
@@ -1373,10 +1373,10 @@
             <dcm id="29" bw_mode="250MHz"/>
             <dcm id="30" bw_mode="250MHz"/>
             <dcm id="31" bw_mode="250MHz"/>
-            <lo2 id="0" freq="10025"/>
-            <lo2 id="1" freq="10025"/>
-            <lo2 id="2" freq="10025"/>
-            <lo2 id="3" freq="10025"/>
+            <lo2 id="0" freq="6625"/>
+            <lo2 id="1" freq="6625"/>
+            <lo2 id="2" freq="6625"/>
+            <lo2 id="3" freq="6625"/>
             <lo3 freq="2000.0"/>
             <quadrant id="0" subband_mode="4"/>
          </ACSIS_IF>
