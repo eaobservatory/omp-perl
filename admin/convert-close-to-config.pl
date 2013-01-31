@@ -29,10 +29,29 @@ pod2usage( '-exitval' => 0 , '-verbose' => 3 ) if $help;
 my $file = shift @ARGV
   or die "No file was given to convert.\n";
 
+my $parse_line_re =
+  qr{^\s*
+      ( co-?is? | pi | support
+        # Not a bona fied key but is needed to mark section heading.
+        | proj(?:ect)
+        | title | allocations? | tagpriority
+        | semester | telescope | country
+        | taurange | band | seeing | cloud | sky
+      )
+      \s* [=:] \s*
+      (.+?)
+      \s*$
+    }xi;
 
-my $parse_line_re = qr{^\s* ([a-z-]+) \s* [=:] \s* (.+?) \s* $}xi;
+my $skip_val = qr{^\s* (?:none | $) }ix;
 
 my @user = (qw[ coi pi support ]);
+
+my %alt_key =
+  ( 'cois'  => 'coi',
+    'co-is' => 'coi',
+    'allocations' => 'allocation'
+  );
 
 my %user_map =
   ( 'TOM KERR'     => 'kerrt'
@@ -84,12 +103,14 @@ sub process_block
 
     my ( $key , $val ) = ( $line =~ $parse_line_re );
 
-    unless ( $key )
+    unless ( $key && defined $val )
     {
       next;
     }
 
     ( $key , $val ) = format_key_val( $key , $val );
+
+    $val =~ $skip_val and next;
 
     if ( $key =~ /^proj/ )
     {
@@ -111,6 +132,8 @@ sub format_key_val
   {
     $_ = lc $_;
     tr/-//d;
+
+    exists $alt_key{ $_ } and $_ = $alt_key{ $_ };
   }
 
   if ( any { $k eq $_ } @uppercase )
