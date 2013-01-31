@@ -36,7 +36,7 @@ my $parse_line_re =
         | proj(?:ect)
         | title | allocations? | tagpriority
         | semester | telescope | country
-        | taurange | band | seeing | cloud | sky
+        | taurange | band | seeing | clouds? | sky(?:[-\s]* brightness)? | constraints?
       )
       \s* [=:] \s*
       (.+?)
@@ -118,6 +118,16 @@ sub process_block
       next;
     }
 
+    if ( $key =~ /^constraint/ )
+    {
+      my %cond = parse_conditions( $val );
+      for my $type ( sort keys %cond )
+      {
+        printf "%s= %s\n" , $type , $cond{ $type };
+      }
+      next;
+    }
+
     printf "%s= %s\n" , $key , $val;
   }
 
@@ -130,7 +140,7 @@ sub format_key_val
 
   for ( $k )
   {
-    $_ = lc $_;
+    $_ = make_singular( lc $_ );
     tr/-//d;
 
     exists $alt_key{ $_ } and $_ = $alt_key{ $_ };
@@ -143,7 +153,7 @@ sub format_key_val
 
   if ( $k eq 'allocation' )
   {
-    $v =~ s/\s*h(?:ou)?rs?\s*//i
+    $v =~ s/\s*h(?:ou)?rs?\b//i
   }
   elsif ( any { $k eq $_ } @user )
   {
@@ -171,6 +181,90 @@ sub format_users
   }
 
   return join ' , ' , @user;
+}
+
+sub parse_conditions
+{
+  my ( $condition ) = @_;
+
+  my @attr = split /\s*,\s*/ , $condition
+    or return;
+
+  my $cloud_re = qr{ ([a-z]* \s* (?: photometric | cirrus ) \s* [a-z]* ) }xi;
+
+  my $many_re =
+    qr{ \b
+        # type;
+        (seeing
+          |
+          sky (?: \s* brightness)?
+          |
+          clouds?
+        )
+        \b
+        \s+
+        # range;
+        (?: ( [<>=]+ ) \s*)?
+        # value.
+        (.+)
+        \s* $
+      }xi;
+
+  my %condition;
+  for my $cond ( @attr )
+  {
+    my ( $type, $limit, $val ) = ( $cond =~ $many_re );
+    if ( defined $type && defined $val )
+    {
+      $type = lc $type;
+
+      if ( $type =~ m/sky \s* bright/xi )
+      {
+        $type = 'sky';
+      }
+
+      $type = make_singular( $type );
+
+      $condition{ $type } = make_range( $val , $limit );
+
+      next;
+    }
+
+    $cond =~ $cloud_re
+      and $condition{'cloud'} = $1;
+  }
+
+  if ( exists $condition{'cloud'} )
+  {
+    $condition{'cloud'} =~ s/thin//;
+  }
+
+  return %condition;
+}
+
+sub make_singular
+{
+  my ( $v ) = @_;
+
+  $v =~ s{\b ([a-z_]+)s \b}/$1/xig;
+  return $v
+}
+
+sub make_range
+{
+  my ( $val , $limit ) = @_;
+
+  return ''
+    if ! defined $val
+    || $val =~ m{\b none \b}xi;
+
+  return
+    ! $limit || $limit eq '='
+    ? $val
+    : $limit eq '<' || $limit eq '<=' || $limit eq '=<'
+      ? join '-' , 0.0 , $val
+      : join '-' , $val , 'inf'
+      ;
 }
 
 __END__
