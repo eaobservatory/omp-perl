@@ -13,23 +13,25 @@
 #
 #     *.diff           Differences between the reference and translated files.
 #
-# To clean up the directory and try to translate all of the OT XML files:
+# To clean up the directory, translate and check all of the OT XML files:
 #
 #     make clean
-#     make test
+#     make
 #
-# To compare them with the reference translations:
+# Or as individual steps:
 #
+#     make translate
 #     make diff
+#     make report
 #
 # If all of the differences are intentional, update the reference files:
 #
 #     make updatereference
 #     (and commit them to the Git repository)
 
-.PHONY: default test diff updatereference clean
+.PHONY: default translate diff report updatereference clean
 
-default: test
+default: report
 
 PID:=$(shell echo $$PPID)
 PERL=perl -I .. -I ../perl-JAC-OCS-Config/lib
@@ -39,9 +41,12 @@ OTXML=$(wildcard *-ot.xml)
 TRANS=$(subst -ot.xml,-translated.xml,$(OTXML))
 DIFF=$(subst -ot.xml,.diff,$(OTXML))
 
-test: $(TRANS)
+translate: $(TRANS)
 
 diff: $(DIFF)
+
+report: $(DIFF)
+	wc -l $(DIFF)
 
 updatereference:
 	for file in *-translated.xml; do \
@@ -49,7 +54,7 @@ updatereference:
 	done
 
 clean:
-	rm -f *-translated.xml *.diff
+	rm -f *-translated.xml *.diff *.manifest
 
 %.diff: %-reference.xml %-translated.xml
 	diff $^ > $@ || cat $@

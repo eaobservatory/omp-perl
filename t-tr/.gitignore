@@ -1,3 +1,4 @@
 *.xml.BAK
 *-translated.xml
 *.diff
+*.manifest
