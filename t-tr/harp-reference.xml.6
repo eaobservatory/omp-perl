@@ -1,0 +1,3820 @@
+<?xml version="1.0" encoding="US-ASCII"?><!DOCTYPE OCS_CONFIG  SYSTEM  "/jac_sw/itsroot//ICD/001/ocs.dtd">
+   <OCS_CONFIG>
+      
+      <OBS_SUMMARY>
+         
+         <mapping_mode>grid</mapping_mode>
+         <switching_mode>chop</switching_mode>
+         <obs_type>science</obs_type>
+      </OBS_SUMMARY>
+      <JOS_CONFIG>
+         
+         <tasks>RTS FE_HARPB PTCS SMU CONTROLLER CORRTASK1 CORRTASK2 CORRTASK3 CORRTASK4 CORRTASK5 CORRTASK6 CORRTASK7 CORRTASK8 IFTASK</tasks>
+         <recipe NAME="jiggle_chop">
+            <parameters 
+                        STEPS_BTWN_CALS="960"
+                        STEPS_BTWN_REFS="16"
+                        N_CALSAMPLES="3"
+                        JOS_MULT="8"
+                        START_INDEX="1"
+                        NUM_CYCLES="1"
+                        NUM_NOD_SETS="1"
+                        STEP_TIME="1.875"
+            />
+         </recipe>
+      </JOS_CONFIG>
+      <HEADER_CONFIG>
+         
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="EXTEND"
+                 COMMENT="Extension exists"
+                 VALUE="1" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="TELESCOP"
+                 COMMENT="Name of Telescope"
+                 VALUE="JCMT" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="ORIGIN"
+                 COMMENT="Origin of file"
+                 VALUE="Joint Astronomy Centre, Hilo" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- x,y,z triplet for JCMT relative to centre of earth ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALT-OBS"
+                 COMMENT="[m] Height of observatory above sea level"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.HT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LAT-OBS"
+                 COMMENT="[deg] Latitude of Observatory"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.LAT" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LONG-OBS"
+                 COMMENT="[deg] East longitude of observatory"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.LONG" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-X"
+                 COMMENT="[m]"
+                 VALUE="-5464595.65" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.X" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-Y"
+                 COMMENT="[m]"
+                 VALUE="-2492691.376" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.Y" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-Z"
+                 COMMENT="[m]"
+                 VALUE="2150965.17" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.Z" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ETAL"
+                 COMMENT="Telescope efficiency"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillETAL" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- WCS info and axis descriptions ----" />
+         <HEADER TYPE="INT"
+                 KEYWORD="WCSAXES"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillWCSAXES" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WCSNAME"
+                 COMMENT="Frequency observed sideband"
+                 VALUE="FREQ-OBS" />
+         <HEADER TYPE="BLOCK"
+                 KEYWORD="ASTROMETRY"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillAst1" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLOCK"
+                 KEYWORD="ASTROMETRY"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillAst2" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="STRING"
+                 KEYWORD="CTYPE3"
+                 VALUE="FREQ" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CRVAL3"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillCRVAL3" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CDELT3"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillCDELT3" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="PC3_3"
+                 VALUE="1.0" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CRPIX3"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillCRPIX3" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="CUNIT3"
+                 VALUE="Hz" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SPECSYS"
+                 VALUE="TOPOCENT" >
+            <DRAMA TASK="PTCS" PARAM="SCIENCE.RV_FRAME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SSYSSRC"
+                 VALUE="TOPOCENT" >
+            <DRAMA TASK="PTCS" PARAM="SCIENCE.RV_FRAME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ZSOURCE"
+                 COMMENT="Redshift of source (OPTICAL)"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillZSOURCE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="RESTFREQ"
+                 COMMENT="[Hz] Rest Freq. of expected Line"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillRestFreq" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="IMAGFREQ"
+                 COMMENT="[Hz] Rest frequency in image sideband"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillImagFreq" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="RADESYS"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TRACKING_SYSTEM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="EQUINOX"
+                 COMMENT="[years]"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillEQUINOX" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- OMP and ORAC-DR Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="PROJECT"
+                 COMMENT="PATT number"
+                 VALUE="MXXXJXX" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="RECIPE"
+                 COMMENT="ORAC-DR recipe"
+                 VALUE="REDUCE_SCIENCE" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="DRGROUP"
+                 COMMENT="Data Reduction group ID"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="MSBID"
+                 COMMENT="Id of minimum scheduable block"
+                 VALUE="d3eceb6961d2a2b646507784ff5418a0A" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="MSBTID"
+                 COMMENT="Transaction ID of MSB"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SURVEY"
+                 COMMENT="Survey Name"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="RMTAGENT"
+                 COMMENT="Name of Remote Agent"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="AGENTID"
+                 COMMENT="Unique identifier for remote agent"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Obs Id, Date, Pointing Info ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBJECT"
+                 COMMENT="Object of interest"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCIENCE.ID" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="STANDARD"
+                 COMMENT="True if the observation is a calibrator"
+                 VALUE="0" />
+         <HEADER TYPE="INT"
+                 KEYWORD="OBSNUM"
+                 COMMENT="Observation number"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillObsNum" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NSUBSCAN"
+                 COMMENT="Subscan number for this file"
+                 VALUE="" />
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="OBSEND"
+                 COMMENT="True if file is last subscan in obs."
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="UTDATE"
+                 COMMENT="UT Date as integer in yyyymmdd format"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillUTDate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DATE-OBS"
+                 COMMENT="UTC Datetime of start of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setUTCDate" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DATE-END"
+                 COMMENT="UTC Datetime of end of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setUTCDate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DUT1"
+                 COMMENT="[d] UT1-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBSID"
+                 COMMENT="Unique observation identifier"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillObsId" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBSIDSS"
+                 COMMENT="Unique observation subsys identifier"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillObsIdSubSys" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="INSTAP"
+                 COMMENT="Receptor at tracking centre (if any)"
+                 VALUE="H10" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INSTAP_X"
+                 COMMENT="[arcsec] Aperture X off. rel. to instr centre"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AXIS_XY.X_AS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INSTAP_Y"
+                 COMMENT="[arcsec] Aperture Y off. rel. to instr centre"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AXIS_XY.Y_AS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AMSTART"
+                 COMMENT="Airmass at start of obervation"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AIRMASS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AMEND"
+                 COMMENT="Airmass at end of obervation"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AIRMASS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AZSTART"
+                 COMMENT="[deg] Azimuth at obs. start - mount sys."
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="DEMAND.A" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AZEND"
+                 COMMENT="[deg] Azimuth at obs. end - mount sys."
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="DEMAND.A" EVENT="END" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ELSTART"
+                 COMMENT="[deg] Elevation at obs. start - mount sys."
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="DEMAND.B" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ELEND"
+                 COMMENT="[deg] Elevation at obs. end - mount sys."
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="DEMAND.B" EVENT="END" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TRACKSYS"
+                 COMMENT="TCS Tracking coordinate system"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TRACKING_SYSTEM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BASEC1"
+                 COMMENT="[deg] TCS BASE position (longitude) in TRACKSYS"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TEL_BASE.C1_DEG" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BASEC2"
+                 COMMENT="[deg] TCS BASE position (latitude) in TRACKSYS"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TEL_BASE.C2_DEG" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MJD-AVG"
+                 COMMENT="[d] Reference epoch for gridded WCS"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillMJDAVG" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="HSTSTART"
+                 COMMENT="HST at start of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setLocalTime" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="HSTEND"
+                 COMMENT="HST at end of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setLocalTime" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="LSTSTART"
+                 COMMENT="LST at start of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setLST" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="LSTEND"
+                 COMMENT="LST at end of observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setLST" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Integration time related -----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INT_TIME"
+                 COMMENT="[s] Time spent integrating, entire obs."
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillINT_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="EXP_TIME"
+                 COMMENT="[s] Exp. time per pixel, averaged over cube "
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillEXP_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- ACSIS Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="BACKEND"
+                 COMMENT="Name of the backend"
+                 VALUE="ACSIS" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="MOLECULE"
+                 COMMENT="Target molecular species"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillMolecule" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TRANSITI"
+                 COMMENT="Target transition for MOLECULE"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillTransition" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DRRECIPE"
+                 COMMENT="ACSIS-DR recipe name"
+                 VALUE="chop_jiggle_dr_recipe.ent" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="BWMODE"
+                 COMMENT="ACSIS total bandwidth set up"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillBWMODE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SUBSYSNR"
+                 COMMENT="Sub-system number"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSubSysNum" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SUBBANDS"
+                 COMMENT="ACSIS sub-band set up"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSubbands" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NSUBBAND"
+                 COMMENT="Number of subbands"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillNumSubbands" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SUBREFP1"
+                 COMMENT="Reference channel for subband1"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSUBREFP1" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SUBREFP2"
+                 COMMENT="Reference channel for subband2"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillSUBREFP2" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NCHNSUBS"
+                 COMMENT="No. of channels in this sub-system"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillNSubsysChans" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="REFCHAN"
+                 COMMENT="Reference IF channel No."
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillREFCHAN" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="IFCHANSP"
+                 COMMENT="[Hz] TOPO IF channel spacing (signed)"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillIFCHANSP" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="FFT_WIN"
+                 COMMENT="Type of window used for FFT"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillFFT_WIN" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BEDEGFAC"
+                 COMMENT="Backend degradation factor"
+                 VALUE="1.23" >
+            <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.be_deg_factor" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="GRIDFUNC"
+                 COMMENT="Gridding convolution function"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.cube_list.cube.grid_function.type" ALT="OCS_CONFIG.ACSIS_CONFIG.cube_list.cube[1].grid_function.type" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TRUNCRAD"
+                 COMMENT="[arcsec] Trunc. radius of gridding func."
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.cube_list.cube.smoothing_rad" ALT="OCS_CONFIG.ACSIS_CONFIG.cube_list.cube[1].smoothing_rad" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="MSROOT"
+                 COMMENT="Root name of raw measurement sets"
+                 VALUE="FILL ME" >
+            <SELF PARAM="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter.ms_root" ALT="OCS_CONFIG.ACSIS_CONFIG.red_config_list.red_config.mswriter[1].ms_root" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- FE Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="INSTRUME"
+                 COMMENT="Front-end receiver"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.INSTRUMENT.SERIAL" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SB_MODE"
+                 COMMENT="Sideband mode"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.FRONTEND_CONFIG.SB_MODE" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="IFFREQ"
+                 COMMENT="[GHz] IF Frequency"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillIFFREQ" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="N_MIX"
+                 COMMENT="No. of mixers"
+                 VALUE="15" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBS_SB"
+                 COMMENT="The observed sideband"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.FRONTEND_CONFIG.SIDEBAND" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LOFREQS"
+                 COMMENT="[GHz] LO Frequency at start of obs."
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillLOFREQS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LOFREQE"
+                 COMMENT="[GHz] LO Frequency at end of obs."
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillLOFREQE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="RECPTORS"
+                 COMMENT="Active FE receptor IDs for this observation"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setReceptors" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="REFRECEP"
+                 COMMENT="Receptor with unit sensitivity"
+                 VALUE="H05" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MEDTSYS"
+                 COMMENT="[K] Median of the T_sys across all pixels"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillMEDTSYS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="BUNIT"
+                 COMMENT="Units of data, which is  T_A*"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillBUNIT" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TEMPSCAL"
+                 COMMENT="Temperature scale in use"
+                 VALUE="" >
+            <DERIVED TASK="GRIDDER" METHOD="fillTEMPSCAL" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DOPPLER"
+                 COMMENT="Doppler velocity definition"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCIENCE.RV_DEFN" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SSYSOBS"
+                 COMMENT="Spectral ref. frame during observation"
+                 VALUE="TOPOCENT" />
+         <HEADER TYPE="INT"
+                 KEYWORD="NFREQSW"
+                 COMMENT="Number of frequency switches"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FREQ_THR"
+                 COMMENT="[MHz] The throw used in the frequency switch"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TSPSTART"
+                 COMMENT="[K] Temperature of the building at start of observation"
+                 VALUE="" >
+            <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TSPEND"
+                 COMMENT="[K] Temperature of the building at end of observation"
+                 VALUE="" >
+            <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Environmental Data ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ATSTART"
+                 COMMENT="[degC] Air temp at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Air_Temp" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ATEND"
+                 COMMENT="[degC] Air temp at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Air_Temp" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="HUMSTART"
+                 COMMENT="Rel. Humidity at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Humidity" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="HUMEND"
+                 COMMENT="Rel. Humidity at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Humidity" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BPSTART"
+                 COMMENT="[mbar] Pressure at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Pressure" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BPEND"
+                 COMMENT="[mbar] Pressure at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Pressure" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDSPDST"
+                 COMMENT="[km/h] Wind Speed at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Wind_Speed" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDSPDEN"
+                 COMMENT="[km/h] Wind Speed at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Wind_Speed" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDDIRST"
+                 COMMENT="[deg] Wind direction, azimuth at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Wind_Dir" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDDIREN"
+                 COMMENT="[deg] Wind direction, azimuth at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Wind_Dir" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TAU225ST"
+                 COMMENT="Tau at 225 GHz from CSO at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.CSO_TAU" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TAU225EN"
+                 COMMENT="Tau at 225 GHz from CSO at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.CSO_TAU" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUDATST"
+                 COMMENT="Time of TAU225ST observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.CSO_TAU_TIME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUDATEN"
+                 COMMENT="Time of TAU225EN observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.CSO_TAU_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUSRC"
+                 COMMENT="Source of the TAU225 value"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.CSO_TAU_SRC" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WVMTAUST"
+                 COMMENT="183.31 GHz Tau via WVM at start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.JCMT_TAU" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WVMTAUEN"
+                 COMMENT="183.31 GHz Tau via WVM at end"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.JCMT_TAU" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WVMDATST"
+                 COMMENT="Time of WVMTAUST"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.JCMT_TAU_TIME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WVMDATEN"
+                 COMMENT="Time of WVMTAUEN"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.JCMT_TAU_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SEEINGST"
+                 COMMENT="[arcsec] SAO atmospheric seeing (start)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SEEINGEN"
+                 COMMENT="[arcsec] SAO atmospheric seeing (end)"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SEEDATST"
+                 COMMENT="Date/Time of SEEINGST"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SEEDATEN"
+                 COMMENT="Date/Time of SEEINGEN"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FRLEGTST"
+                 COMMENT="[degC] Mean Front leg temperature - Start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Mean_Front_Leg" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FRLEGTEN"
+                 COMMENT="[degC] Mean Front Leg temperature -End"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Mean_Front_Leg" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BKLEGTST"
+                 COMMENT="[degC] Mean back leg temperature -Start"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Mean_Back_Leg" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BKLEGTEN"
+                 COMMENT="[degC] Mean back leg temperature -End"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Mean_Back_Leg" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Switching and Map setup for the observation ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SAM_MODE"
+                 COMMENT="Sampling Mode"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.mapping_mode" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SW_MODE"
+                 COMMENT="Switch Mode: CHOP, PSSW, NONE, etc"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.switching_mode" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="INBEAM"
+                 COMMENT="Hardware in the beam"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setInbeam" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SKYREFX"
+                 COMMENT="X co-ord of Reference Position"
+                 VALUE="[OFFSET] 0 [J2000]" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SKYREFY"
+                 COMMENT="Y co-ord of Reference Position"
+                 VALUE="[OFFSET] 900 [J2000]" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBS_TYPE"
+                 COMMENT="Type of observation"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.obs_type" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="CHOP_CRD"
+                 COMMENT="Chopping co-ordinate system"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.CHOP_SYS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_FRQ"
+                 COMMENT="[Hz] Chop frequency"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.FREQ" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_PA"
+                 COMMENT="[deg] Chop PA; 0=in lat, 90=in long"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.CHOP_PA" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_THR"
+                 COMMENT="[arcsec] Chop throw"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.THROW" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="JIGL_CNT"
+                 COMMENT="Number of offsets in jiggle pattern"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="JIGL_NAM"
+                 COMMENT="File containing the jiggle offsets"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="JIG_PA"
+                 COMMENT="[deg] Jiggling PA; 0=in lat, 90=in long"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="JIG_CRD"
+                 COMMENT="Jiggling co-ordinate system"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="JIG_SCAL"
+                 COMMENT="[arcsec] Scale of jiggle pattern"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_HGHT"
+                 COMMENT="[arcsec] Requested height of map"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_PA"
+                 COMMENT="[deg] Requested PA of map"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_WDTH"
+                 COMMENT="[arcsec] Requested width of map"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="LOCL_CRD"
+                 COMMENT="Local offset/map PA co-ordinate system"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_X"
+                 COMMENT="[arcsec] Requested map offset from tel centre"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_Y"
+                 COMMENT="[arcsec] Requested map offset from tel centre"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SCAN_CRD"
+                 COMMENT="Co-ordinate system for scanning direction"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_VEL"
+                 COMMENT="[arcsec/sec] Scan velocity along scan axis"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_DY"
+                 COMMENT="[arcsec] Scan spacing perp. to scan axis"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_PA"
+                 COMMENT="[deg] Scan PA relative to SAM_CRDS"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SCAN_PAT"
+                 COMMENT="Scan pattern name"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- SMU ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALIGN_DX"
+                 COMMENT="SMU tables X axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DX" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALIGN_DY"
+                 COMMENT="SMU tables Y axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DY" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FOCUS_DZ"
+                 COMMENT="SMU tables Z axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DZ" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DAZ"
+                 COMMENT="SMU azimuth pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_SMU_CA" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DEL"
+                 COMMENT="SMU elevation pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_SMU_IE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="UAZ"
+                 COMMENT="User azimuth pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_USER_CA" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="UEL"
+                 COMMENT="User elevation pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_USER_IE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- JOS parameters ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="STEPTIME"
+                 COMMENT="RTS step time during an RTS sequence"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.STEP_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NUM_CYC"
+                 COMMENT="Number of times to repeat entire recipe"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.NUM_CYCLES" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="JOS_MULT"
+                 COMMENT="MULT from JOS used in total steps calculation"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.JOS_MULT" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="JOS_MIN"
+                 COMMENT="MIN from JOS used in total steps calculation"
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="NUM_NODS"
+                 COMMENT="Number of times to repeat nod set"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.NUM_NOD_SETS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NCALSTEP"
+                 COMMENT="Number of RTS steps for each CAL (if any)"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.N_CALSAMPLES" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NREFSTEP"
+                 COMMENT="Mean no. of RTS steps for each REF (if any)"
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="STBETREF"
+                 COMMENT="Target number of RTS steps between refs"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.STEPS_BTWN_REFS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="STBETCAL"
+                 COMMENT="Target number of RTS steps between cals"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.STEPS_BTWN_CALS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="STARTIDX"
+                 COMMENT="Index into pattern at start of obs"
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.START_INDEX" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="FOCAXIS"
+                 COMMENT="Focus Axis to move (X, Y, Z)"
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="NFOCSTEP"
+                 COMMENT="Number of focal position steps (odd number)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FOCSTEP"
+                 COMMENT="Distance between focus steps"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Miscellaneous ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OCSCFG"
+                 COMMENT="OCS config filename"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="DHSVER"
+                 COMMENT="Data Handling System Version"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setDHSVer" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR1"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK1" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR2"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK2" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR3"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK3" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR4"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK4" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR5"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK5" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR6"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK6" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR7"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK7" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_COR8"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DRAMA TASK="CORRTASK8" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_CORR"
+                 COMMENT="True if any CORRTASK is simulated"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setSimulate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_IF"
+                 COMMENT="True if IF data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="IFTASK" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_SMU"
+                 COMMENT="True if SMU data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_TCS"
+                 COMMENT="True if TCS data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_RTS"
+                 COMMENT="True if RTS data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="RTS" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_POL"
+                 COMMENT="True if polarization data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="ROVER" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIMULATE"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DERIVED TASK="HEADERS" METHOD="setSimulate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="STATUS"
+                 COMMENT="Status of end of obervation"
+                 VALUE="UNKNOWN" >
+            <DERIVED TASK="GRIDDER" METHOD="fillStatus" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Polarimeter Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="POL_MODE"
+                 COMMENT="Step-and-integrate (STOP_START) or Spin (CONSTANT)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ROTAFREQ"
+                 COMMENT="[Hz] Spin frequency (if spinning) of polarimeter"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="POL_CRD"
+                 COMMENT="Coordinate system of polarimeter"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="POL_FAXS"
+                 COMMENT="Frequency dependency of waveplate offset of polarimeter"
+                 VALUE="" />
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="POL_CONN"
+                 COMMENT="True if pol is connected"
+                 VALUE="0" >
+            <DERIVED TASK="HEADERS" METHOD="setPolInBeam" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- K-mirror Specific ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ROT_PA"
+                 COMMENT="[deg] K-mirror angle"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="ROTATOR.PA_RSYS" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="ROT_CRD"
+                 COMMENT="K-mirror coordinate system"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="ROTATOR.SYSTEM" EVENT="START" />
+         </HEADER>
+      </HEADER_CONFIG>
+      <RTS_CONFIG>
+         
+         <stTimeout value="15000" />
+         <sampTimeout value="20.0" />
+         <opMode value="1" />
+         <Sequence size="0" />
+      </RTS_CONFIG>
+      <FRONTEND_CONFIG>
+         
+         <REST_FREQUENCY>345.7959899</REST_FREQUENCY>
+         <FREQ_OFF_SCALE>0</FREQ_OFF_SCALE>
+         <SIDEBAND>USB</SIDEBAND>
+         <SB_MODE>SSB</SB_MODE>
+         <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
+                        MECH_TUNING="ONCE" />
+         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H01" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H02" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H03" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H04" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H05" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H06" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H07" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H08" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H09" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H10" VALUE="NEED"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H11" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H12" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H13" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H14" VALUE="ANY"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H15" VALUE="ON"/>
+      </FRONTEND_CONFIG>
+      <INSTRUMENT NAME="FE_HARPB"
+                  SERIAL="HARP"
+                  FOC_STATION="NASMYTH_L"
+                  X="0.0"
+                  Y="0.0"
+                  WAVELENGTH="866.963373654785" >
+         
+         <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
+         <bw units="MHz" value="1800" />
+         <smu_offset X="+0.15" Y="0.17" Z="0.28" />
+         <pointing_offset CA="13.5" IE="33.0" IA="0" NPAE="0" AW="0" AN="0" TF="0" CE="0" />
+         <array_area radius="60"/>
+         <waveBand band="B" label="B" units="Hz" centre="350E9" width="52.0E9" >
+            <etal>0.95</etal>
+         </waveBand>
+         <receptor id="H00"
+                   band="B"
+                   health="ON"
+                   x="-45"
+                   y="+45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H01"
+                   band="B"
+                   health="ON"
+                   x="-15"
+                   y="+45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H02"
+                   band="B"
+                   health="ON"
+                   x="+15"
+                   y="+45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H03"
+                   band="B"
+                   health="ON"
+                   x="+45"
+                   y="+45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H04"
+                   band="B"
+                   health="ON"
+                   x="+45"
+                   y="+15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H05"
+                   band="B"
+                   health="ON"
+                   x="+15"
+                   y="+15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H06"
+                   band="B"
+                   health="ON"
+                   x="-15"
+                   y="+15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H07"
+                   band="B"
+                   health="ON"
+                   x="-45"
+                   y="+15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H08"
+                   band="B"
+                   health="ON"
+                   x="-45"
+                   y="-15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H09"
+                   band="B"
+                   health="ON"
+                   x="-15"
+                   y="-15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H10"
+                   band="B"
+                   health="ON"
+                   x="+15"
+                   y="-15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H11"
+                   band="B"
+                   health="ON"
+                   x="+45"
+                   y="-15"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H12"
+                   band="B"
+                   health="ON"
+                   x="+45"
+                   y="-45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H13"
+                   band="B"
+                   health="ON"
+                   x="+15"
+                   y="-45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H14"
+                   band="B"
+                   health="OFF"
+                   x="-15"
+                   y="-45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="H15"
+                   band="B"
+                   health="ON"
+                   x="-45"
+                   y="-45"
+                   pol_type="Linear" >
+            <sensitivity reference="H05"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+      </INSTRUMENT>
+      <TCS_CONFIG TELESCOPE="JCMT">
+         
+         
+         
+         <BASE TYPE="SCIENCE">
+            
+            <target>
+               <targetName>SgrA*</targetName>
+               <spherSystem SYSTEM="J2000">
+                  <c1>17:45:40.0</c1>
+                  <c2>-29:00:28.12</c2>
+                  <rv defn="radio" frame="LSR">0.0</rv>
+               </spherSystem>
+            </target>
+            
+            <TRACKING_SYSTEM SYSTEM="ICRS" />
+         </BASE>
+         
+         
+         <BASE TYPE="REFERENCE">
+            
+            <target>
+               <targetName></targetName>
+               <spherSystem SYSTEM="J2000">
+                  <c1>17:45:40.0</c1>
+                  <c2>-29:00:28.12</c2>
+                  <rv defn="radio" frame="LSR">0.0</rv>
+               </spherSystem>
+            </target>
+            
+            <OFFSET SYSTEM="J2000" TYPE="TAN" >
+               <DC1>0</DC1>
+               <DC2>900</DC2>
+            </OFFSET>
+            
+            <TRACKING_SYSTEM SYSTEM="ICRS" />
+         </BASE>
+
+         
+
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="194.625"  />
+
+         
+
+         <obsArea>
+            
+            <PA>0</PA>
+            <OFFSET SYSTEM="TRACKING" TYPE="TAN" >
+               <DC1>0</DC1>
+               <DC2>0</DC2>
+            </OFFSET>
+         </obsArea>
+
+         
+
+         <SECONDARY MOTION="CONTINUOUS">
+            
+            <CHOP SYSTEM="AZEL" >
+               <THROW>60.0</THROW>
+               <PA>90</PA>
+            </CHOP>
+         </SECONDARY>
+
+         
+
+         <ROTATOR SYSTEM="TRACKING"
+                  SLEW_OPTION="LONGEST_TRACK" >
+            <PA>180</PA>
+            <PA>90</PA>
+            <PA>0</PA>
+            <PA>270</PA>
+         </ROTATOR>
+         <INST_AP NAME="H10" />
+         <DOME MODE="BASE" />
+      </TCS_CONFIG>
+      <ACSIS_CONFIG>
+         
+         <cube_list>
+            
+            <cube id="CUBE1">
+               <group_centre>
+                  <spherSystem SYSTEM="J2000">
+                     <c1>17:45:40.0</c1>
+                     <c2>-29:00:28.12</c2>
+                     <rv defn="radio" frame="LSR">0.0</rv>
+                  </spherSystem>
+               </group_centre>
+               <x_pix_size units="arcsec">30</x_pix_size>
+               <y_pix_size units="arcsec">30</y_pix_size>
+               <data_source>
+                  <spw_ref ref="SPW1"/>
+                  <range units="channel">
+                     <min>1023</min>
+                     <max>7167</max>
+                  </range>
+               </data_source>
+               <x_offset>0</x_offset>
+               <y_offset>0</y_offset>
+               <x_npix>5</x_npix>
+               <y_npix>5</y_npix>
+               <projection type="TAN" />
+               <grid_function type="TopHat" />
+               <pos_ang>0</pos_ang>
+               <tcs_coord type="TRACKING" />
+               <smoothing_rad>15</smoothing_rad>
+            </cube>
+         </cube_list>
+
+         <line_list>
+            
+            <rest_frequency id="trCO3-2" units="GHz" molecule="CO" transition="3  - 2" >
+                     345.7959899
+            </rest_frequency>
+         </line_list>
+
+         <spw_list>
+            
+            <doppler_field ref="FE.DOPPLER"/>
+            <spw_id_field ref="SPEC_WINDOW_ID"/>
+            <fe_lo_field ref="FE.LO_FREQUENCY"/>
+            <spectral_window id="SPW1">
+               <bandwidth_mode mode="250MHzx8192" />
+               <window type="truncate" />
+               <align_shift>0</align_shift>
+               <rest_freq_ref ref="trCO3-2" />
+               <fe_sideband sideband="1" />
+               <if_coordinate>
+                  <if_ref_freq units="GHz">5</if_ref_freq>
+                  <if_ref_channel>4096</if_ref_channel>
+                  <if_chan_width units="Hz">30517.578125</if_chan_width>
+                  <if_nchans>8192</if_nchans>
+               </if_coordinate>
+            </spectral_window>
+         </spw_list>
+
+         <ACSIS_IF>
+            
+            <dcm id="0" bw_mode="250MHz"/>
+            <dcm id="1" bw_mode="250MHz"/>
+            <dcm id="2" bw_mode="250MHz"/>
+            <dcm id="3" bw_mode="250MHz"/>
+            <dcm id="4" bw_mode="250MHz"/>
+            <dcm id="5" bw_mode="250MHz"/>
+            <dcm id="6" bw_mode="250MHz"/>
+            <dcm id="7" bw_mode="250MHz"/>
+            <dcm id="8" bw_mode="250MHz"/>
+            <dcm id="9" bw_mode="250MHz"/>
+            <dcm id="10" bw_mode="250MHz"/>
+            <dcm id="11" bw_mode="250MHz"/>
+            <dcm id="12" bw_mode="250MHz"/>
+            <dcm id="13" bw_mode="250MHz"/>
+            <dcm id="14" bw_mode="250MHz"/>
+            <dcm id="15" bw_mode="250MHz"/>
+            <dcm id="16" bw_mode="250MHz"/>
+            <dcm id="17" bw_mode="250MHz"/>
+            <dcm id="18" bw_mode="250MHz"/>
+            <dcm id="19" bw_mode="250MHz"/>
+            <dcm id="20" bw_mode="250MHz"/>
+            <dcm id="21" bw_mode="250MHz"/>
+            <dcm id="22" bw_mode="250MHz"/>
+            <dcm id="23" bw_mode="250MHz"/>
+            <dcm id="24" bw_mode="250MHz"/>
+            <dcm id="25" bw_mode="250MHz"/>
+            <dcm id="26" bw_mode="250MHz"/>
+            <dcm id="27" bw_mode="250MHz"/>
+            <dcm id="28" bw_mode="250MHz"/>
+            <dcm id="29" bw_mode="250MHz"/>
+            <dcm id="30" bw_mode="250MHz"/>
+            <dcm id="31" bw_mode="250MHz"/>
+            <lo2 id="0" freq="7625"/>
+            <lo2 id="1" freq="7625"/>
+            <lo2 id="2" freq="7625"/>
+            <lo2 id="3" freq="7625"/>
+            <lo3 freq="2000.0"/>
+            <quadrant id="0" subband_mode="2"/>
+            <quadrant id="1" subband_mode="2"/>
+            <quadrant id="2" subband_mode="2"/>
+            <quadrant id="3" subband_mode="2"/>
+         </ACSIS_IF>
+
+         <ACSIS_corr>
+            
+            <cm id="0" bw_mode="250MHzx8192"/>
+            <cm id="1" bw_mode="250MHzx8192"/>
+            <cm id="2" bw_mode="250MHzx8192"/>
+            <cm id="3" bw_mode="250MHzx8192"/>
+            <cm id="4" bw_mode="250MHzx8192"/>
+            <cm id="5" bw_mode="250MHzx8192"/>
+            <cm id="6" bw_mode="250MHzx8192"/>
+            <cm id="7" bw_mode="250MHzx8192"/>
+            <cm id="8" bw_mode="250MHzx8192"/>
+            <cm id="9" bw_mode="250MHzx8192"/>
+            <cm id="10" bw_mode="250MHzx8192"/>
+            <cm id="11" bw_mode="250MHzx8192"/>
+            <cm id="12" bw_mode="250MHzx8192"/>
+            <cm id="13" bw_mode="250MHzx8192"/>
+            <cm id="14" bw_mode="250MHzx8192"/>
+            <cm id="15" bw_mode="250MHzx8192"/>
+            <cm id="16" bw_mode="250MHzx8192"/>
+            <cm id="17" bw_mode="250MHzx8192"/>
+            <cm id="18" bw_mode="250MHzx8192"/>
+            <cm id="19" bw_mode="250MHzx8192"/>
+            <cm id="20" bw_mode="250MHzx8192"/>
+            <cm id="21" bw_mode="250MHzx8192"/>
+            <cm id="22" bw_mode="250MHzx8192"/>
+            <cm id="23" bw_mode="250MHzx8192"/>
+            <cm id="24" bw_mode="250MHzx8192"/>
+            <cm id="25" bw_mode="250MHzx8192"/>
+            <cm id="26" bw_mode="250MHzx8192"/>
+            <cm id="27" bw_mode="250MHzx8192"/>
+            <cm id="28" bw_mode="250MHzx8192"/>
+            <cm id="29" bw_mode="250MHzx8192"/>
+            <cm id="30" bw_mode="250MHzx8192"/>
+            <cm id="31" bw_mode="250MHzx8192"/>
+            <rts_parms int_interval="50" timing_src="RTS_SOFT"/>
+         </ACSIS_corr>
+
+         <ACSIS_map>
+            
+            
+            <map_id cm_id="0" dcm_id="0" receptor_id="H06" spw_id="SPW1"/>
+            <map_id cm_id="2" dcm_id="2" receptor_id="H01" spw_id="SPW1"/>
+            <map_id cm_id="4" dcm_id="4" receptor_id="H07" spw_id="SPW1"/>
+            <map_id cm_id="6" dcm_id="6" receptor_id="H00" spw_id="SPW1"/>
+            <map_id cm_id="8" dcm_id="8" receptor_id="H05" spw_id="SPW1"/>
+            <map_id cm_id="10" dcm_id="10" receptor_id="H02" spw_id="SPW1"/>
+            <map_id cm_id="12" dcm_id="12" receptor_id="H04" spw_id="SPW1"/>
+            <map_id cm_id="14" dcm_id="14" receptor_id="H03" spw_id="SPW1"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="H09" spw_id="SPW1"/>
+            <map_id cm_id="18" dcm_id="18" receptor_id="H14" spw_id="SPW1"/>
+            <map_id cm_id="20" dcm_id="20" receptor_id="H08" spw_id="SPW1"/>
+            <map_id cm_id="22" dcm_id="22" receptor_id="H15" spw_id="SPW1"/>
+            <map_id cm_id="24" dcm_id="24" receptor_id="H10" spw_id="SPW1"/>
+            <map_id cm_id="26" dcm_id="26" receptor_id="H13" spw_id="SPW1"/>
+            <map_id cm_id="28" dcm_id="28" receptor_id="H11" spw_id="SPW1"/>
+            <map_id cm_id="30" dcm_id="30" receptor_id="H12" spw_id="SPW1"/>
+         </ACSIS_map>
+
+         <be_deg_factor>1.23</be_deg_factor>
+         <red_obs_mode>grid/chop</red_obs_mode>
+         <red_recipe_id>incorrect. Should be read from file</red_recipe_id>
+         <semantic_links>
+            <spw_field ref="SPEC_WINDOW_ID"/> 
+         </semantic_links>
+         <red_config_list>
+
+            <red_config xmlns:xi="http://www.w3.org/2001/XInclude" id="SPECTRUM_REDUCTION">
+
+               <reducer id="RAW" display="engineering" xml:base="reducers/RAW.ent">   
+                  <help>
+                     Receives all data from the Sync task and completes a well-formed data
+                  record for passing to the rest of the system.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="SYNC_TASK"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     
+                     <in_ref ref="CM_DATA.CM_ID"/>
+                     <function name="rvalue"/>
+                     <function name="enter"/>
+                     <function name="enter"/>
+                     <function name="cm2spw"/>
+                     <out_object id="SPEC_WINDOW_ID"/>
+                     <function name="lvalue"/>
+                     <function name="cm2feed"/>
+                     <function name="enter"/>
+                     <out_object id="FEED1"/>
+                     <function name="lvalue"/>
+                     
+                     <in_ref ref="RTS.NUMBER"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="END_SEQ_NO"/>
+                     <function name="rvalue"/>
+                     <function name="subtract"/>
+                     <out_object id="STEPS_TO_END_SEQ"/>
+                     <function name="lvalue"/>
+                     
+                     <out_object id="DESCRIMINATOR_TSYS"/>
+                     <marker/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <in_ref ref="FEED1"/>
+                     <function name="make_id_string"/>
+                     
+                     <out_object id="DESCRIMINATOR_ON-OFF"/>
+                     <marker/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <in_ref ref="FEED1"/>
+                     
+                     <in_ref ref="STEPS_TO_END_SEQ"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <taql>DRCONTROLBITS.SHARED_OFFS || (isdefined(ROVER.POL_INDEX))</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <in_ref ref="ROVER.POL_INDEX"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <taql>DRCONTROLBITS.SHARED_OFFS || ! (isdefined(ROVER.POL_INDEX))</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <in_ref ref="ROVER.POL_CYCLE"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <taql>DRCONTROLBITS.SHARED_OFFS || ! (isdefined(ROVER.POL_CYCLE))</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <function name="make_id_string"/>
+                     
+                     <out_object id="DESCRIMINATOR_COADD"/>
+                     <marker/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <in_ref ref="FEED1"/>
+                     
+                     <in_ref ref="FEED1"/>
+                     <in_ref ref="SMU.JIG_INDEX"/>
+                     <taql>isdefined(SMU)</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <in_ref ref="ROVER.POL_INDEX"/>
+                     <taql>isdefined(ROVER.POL_INDEX)</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <in_ref ref="ROVER.POL_CYCLE"/>
+                     <taql>isdefined(ROVER.POL_CYCLE)</taql>
+                     <function name="evaluate_taql"/>
+                     <function name="select"/>
+                     <function name="make_id_string"/>
+                     
+                     <in_ref ref="FE.CHANNEL_MASK"/>
+                     <function name="rvalue"/>
+                     <function name="array_element"/>
+                     <out_object id="CHANNEL_MASK"/>
+                     <function name="lvalue"/>
+                     
+                     <function name="cm2dcm"/>
+                     <function name="enter"/>
+                     <out_object id="DCM_ID"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="IF_MONITOR.DCM_TP_IN"/>
+                     <function name="rvalue"/>
+                     <function name="array_element"/>
+                     <out_object id="DCM_TP_IN"/>
+                     <function name="lvalue"/>
+                      
+                     <double> 2 </double>
+                     <in_ref ref="RTS.TAI_START"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="RTS.TAI_END"/>
+                     <function name="rvalue"/>  
+                     <function name="add"/>   
+                     <function name="divide"/>
+                     <out_object id="TIME"/>
+                     <function name="lvalue"/>  
+                     
+                     <in_ref ref="RTS.STEP_TIME"/>  
+                     <function name="rvalue"/>   
+                     <out_object id="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="RTS.STEP_TIME"/>  
+                     <function name="rvalue"/>
+                     <out_object id="INTERVAL"/>
+                     <function name="lvalue"/>
+                     <integer> 0 </integer>
+                     <out_object id="POL_ID"/>
+                     <function name="lvalue"/>
+                     
+                     <in_ref ref="CM_DATA.CM_LAGS"/>
+                     <out_object id="FLOAT_DATA"/>
+                     <function name="rename"/>
+
+                     <out_object id="FREQ_SCALE"/>
+                     <function name="get_frequency_scale"/>
+                  </ro_recipe>
+               </reducer>
+               
+               <reducer id="A_REFSKY" display="engineering" xml:base="reducers/A_REFSKY.ent">
+                  <help>
+                     Does basic reduction on measurements of the empty SKY load when the source 
+                  is in the A beam.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                                     isdefined(TCS.SOURCE) &amp;&amp;
+                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="A" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="B" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <string>SMU.LAST_CHOP_PHASE==1</string>
+                     <function name="evaluate_taql"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/>
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>   
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/> 
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE" display="engineering" xml:base="reducers/A_SOURCE.ent">
+                  <help>
+                     Performs basic reduction on all source spectra taken with the source in 
+                  the A beam.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                                     isdefined(TCS.SOURCE) &amp;&amp;
+                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="A" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="A" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/>
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>       
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE_CAL" display="engineering" xml:base="reducers/A_SOURCE_CAL_previous.ent">
+                  <help>
+                     Does the 'on-off/off' calculation where the 'off' where the previous
+                     off is used. The result is multiplied by the last TSYS measured and
+                  the beam sensitivity for that feed.</help>
+                  <ro_source_list>
+                     <ro_source> 
+                        SELECT FROM <in_ref ref="A_SOURCE"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="A_REFSKY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TSYS"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="A_REFSKY"/>
+                     <function name="previous"/>
+                     <out_object id="EXPOSURE_OFF_A"/>
+                     <function name="lvalue"/>
+                     
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="A_REFSKY"/>
+                     <function name="previous"/>
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="subtract"/>
+                     <function name="divide"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FEED1"/>
+                     <function name="rvalue"/>
+                     <function name="get_feed_sensitivity"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="TSYS_MEDIAN"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <in_ref ref="TSYS_MEDIAN"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="TREC_MEDIAN"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <in_ref ref="TREC_MEDIAN"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="ETAL"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <in_ref ref="ETAL"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_DISPLAY.ent">
+                  <help>
+                     Does the 'on-off/off' calculation where the 'off' used is the A_REFSKY
+                     taken before the source integration. The
+                     result is multiplied by the last TSYS measured and the beam sensitivity
+                  for that feed.</help>
+                  <ro_source_list>
+                     <ro_source> 
+                        SELECT FROM <in_ref ref="A_SOURCE"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="A_REFSKY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TSYS"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="A_REFSKY"/>
+                     <function name="previous"/>
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="subtract"/>
+                     <function name="divide"/>
+                     <function name="swapxy"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FEED1"/>
+                     <function name="rvalue"/>
+                     <function name="get_feed_sensitivity"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE_CAL_MERGED" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED.ent">
+                  <help>
+                     Does a weighted merge of the subbands in the system. The weights are 
+                  derived from the calibration reference sky measurements for higher S/N.</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="A_SOURCE_CAL"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="CAL_REFSKY"/>
+                     <function name="previous"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="RTS.NUMBER"/>
+                     <in_ref ref="FEED1"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="merge"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE_CAL_MERGED_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED_DISPLAY.ent">
+                  <help>
+                     Does a weighted merge of the subbands in the system. The weights are 
+                  derived from the calibration reference sky measurements for higher S/N.</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="A_SOURCE_CAL_DISPLAY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="CAL_REFSKY"/>
+                     <function name="previous"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="RTS.NUMBER"/>
+                     <in_ref ref="FEED1"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="merge"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="A_SOURCE_CAL_MERGED_COADD" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED_COADD.ent">
+                  <help>
+                     Coadds the results from A_SOURCE_CAL_MERGED. It would be faster
+                     to do the merge after the coadd but perhaps not so robust (perhaps
+                  different numbers of coadds into each merged spectrum).</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="A_SOURCE_CAL_MERGED"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <string>SMU.LAST_SMU_CYCLE==1</string>
+                     <function name="evaluate_taql"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="DESCRIMINATOR_COADD"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <function name="enter"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="EXPOSURE_OFF_A"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE_OFF_A"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_REFSKY" display="engineering" xml:base="reducers/B_REFSKY.ent">
+                  <help>
+                     Does basic reduction on measurements of the empty SKY load at the
+                  reference position when the source is in the B beam.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                                     isdefined(TCS.SOURCE) &amp;&amp;
+                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="B" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="A" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <string>SMU.LAST_CHOP_PHASE==1</string>
+                     <function name="evaluate_taql"/> 
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/>
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>
+                     <function name="rvalue"/>  
+                     <function name="multiply"/>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/> 
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>   
+                     
+                     
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE" display="engineering" xml:base="reducers/B_SOURCE.ent">
+                  <help>
+                     Basic reduction on all source spectra taken with the source in the B
+                  beam.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                                     isdefined(TCS.SOURCE) &amp;&amp;
+                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="B" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="B" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/>
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>
+                     <function name="rvalue"/> 
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>   
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE_CAL" display="engineering" xml:base="reducers/B_SOURCE_CAL_previous.ent">
+                  <help>
+                     Does the 'on-off/off' calculation where the 'off' where the previous
+                     off is used. The result is multiplied by the last TSYS measured and
+                  the beam sensitivity for that feed.</help>
+                  <ro_source_list>
+                     <ro_source> 
+                        SELECT FROM <in_ref ref="B_SOURCE"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="B_REFSKY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TSYS"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>  
+                     <in_ref ref="EXPOSURE"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="B_REFSKY"/>
+                     <function name="previous"/>
+                     <out_object id="EXPOSURE_OFF_B"/>
+                     <function name="lvalue"/>
+                     
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>  
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="B_REFSKY"/>
+                     <function name="previous"/>
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="subtract"/>
+                     <function name="divide"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>  
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FEED1"/>
+                     <function name="rvalue"/>
+                     <function name="get_feed_sensitivity"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/B_SOURCE_CAL_DISPLAY.ent">
+                  <help>
+                     Does the 'on-off/off' calculation where the 'off' used the
+                     B_REFSKY taken before the source integration. The
+                     result is multiplied by the last TSYS measured and the beam sensitivity
+                  for that feed.</help>
+                  <ro_source_list>
+                     <ro_source> 
+                        SELECT FROM <in_ref ref="B_SOURCE"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="B_REFSKY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TSYS"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>  
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="B_REFSKY"/>
+                     <function name="previous"/>
+                     <function name="enter"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="subtract"/>
+                     <function name="divide"/>
+                     <function name="swapxy"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="TSYS"/>
+                     <function name="previous"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FEED1"/>
+                     <function name="rvalue"/>
+                     <function name="get_feed_sensitivity"/>
+                     <function name="multiply"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE_CAL_MERGED" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED.ent">
+                  <help>
+                     Does a weighted merge of the subbands in the system. The weights are 
+                  derived from the calibration reference sky measurements for higher S/N.</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="B_SOURCE_CAL"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="CAL_REFSKY"/>
+                     <function name="previous"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="RTS.NUMBER"/>
+                     <in_ref ref="FEED1"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="merge"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE_CAL_MERGED_DISPLAY" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED_DISPLAY.ent">
+                  <help>
+                     Does a weighted merge of the subbands in the system. The weights are 
+                  derived from the calibration reference sky measurements for higher S/N.</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="B_SOURCE_CAL_DISPLAY"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="TIME"/>
+                     <in_ref ref="CAL_REFSKY"/>
+                     <function name="previous"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="RTS.NUMBER"/>
+                     <in_ref ref="FEED1"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="merge"/>
+                     <in_ref ref="SPEC_WINDOW_ID"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="B_SOURCE_CAL_MERGED_COADD" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED_COADD.ent">
+                  <help>
+                     Coadds the results from B_SOURCE_CAL_MERGED. It would be faster
+                     to do the merge after the coadd but perhaps not so robust (perhaps
+                  different numbers of coadds into each merged spectrum).</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="B_SOURCE_CAL_MERGED"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <string>SMU.LAST_SMU_CYCLE==1</string>
+                     <function name="evaluate_taql"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="DESCRIMINATOR_COADD"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <function name="enter"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     <in_ref ref="EXPOSURE_OFF_B"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE_OFF_B"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               
+               
+               <reducer id="AMBIENT" display="engineering" xml:base="reducers/AMBIENT.ent">
+                  <help>
+                  Basic reduction on measurements of the AMBIENT load.</help>
+                  <ro_source_list>
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                        <in_ref ref="FE.LOAD"/>=="AMBIENT" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <taql>RTS.LAST_INTEG==1</taql>  
+                     <function name="evaluate_taql"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/> 
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="CAL_ASSEMBLER" display="engineering" xml:base="reducers/CAL_ASSEMBLER.ent">
+                  <help>
+                     Assembles reduced data from a calibration group into a single record that
+                     can be archived. This object does not provide data for 
+                  display.</help>
+                  <ro_source_list>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TSYS"/>
+                     </ro_source>
+                     <ro_source>
+                        SELECT FROM <in_ref ref="TREC"/>
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <out_object id="TSYS_SPECTRUM"/>
+                     <function name="rename"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <in_ref ref="FLOAT_DATA"/>
+                     <in_ref ref="GROUP"/>
+                     <in_ref ref="TREC"/>
+                     <function name="near"/>
+                     <out_object id="TREC_SPECTRUM"/>
+                     <function name="lvalue"/>
+                  </ro_recipe>
+               </reducer>
+               <reducer id="CAL_REFSKY" display="engineering" xml:base="reducers/CAL_REFSKY.ent">
+                  <help>
+                     Does basic reduction on measurements of the empty SKY load to be used for 
+                  calculating TSYS.</help>
+                  <ro_source_list>   
+                     <ro_source handshaking="1">
+                        SELECT FROM <in_ref ref="RAW"/> WHERE
+                                     isdefined(TCS.SOURCE) &amp;&amp;
+                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="REFERENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="MIDDLE" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="MIDDLE" &amp;&amp;
+                        <in_ref ref="CHANNEL_MASK"/>=="ON"
+                     </ro_source>
+                  </ro_source_list>
+                  <ro_recipe>
+                     <taql>RTS.LAST_INTEG==1</taql>
+                     <function name="evaluate_taql"/> 
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="rvalue"/>
+                     <function name="window"/>
+                     <function name="align"/>
+                     <function name="fft"/>
+                     <in_ref ref="DCM_TP_IN"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
+                     <function name="rvalue"/>
+                     <function name="coadd"/> 
+                     <in_ref ref="FLOAT_DATA"/>
+                     <function name="lvalue"/>
+                     
+                     
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="rvalue"/>
+                     <function name="multiply"/>
+                     <in_ref ref="EXPOSURE"/>
+                     <function name="lvalue"/>
+                     
+                  </ro_recipe>
+               </reducer>
+               <reducer id="ETA_SKY" display="engineering" xml:base="reducers/ETA_SKY.ent">
+               <help>
+                  Calculates eta_sky from TA_SKY using the formula:
+                            
+                                          eta_tel*(Jatm - Jspill) - TAsky(n) + Jspill
+                            eta_sky(n) = {_______________________________________}**1/A
+               eta_tel * Jatm</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TASKY"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <function name="get_observed_marker_frequency"/>
+                  <function name="enter"/>
+                  <in_ref ref="FE.TEMP_TSPILL"/>
+                  <function name="rvalue"/>
+                  <function name="brightness_temperature"/>
+                  <function name="swapxy"/>
+                  <function name="enter"/>
+                  <in_ref ref="WEATHER.Air_Temp"/>
+                  <function name="rvalue"/>
+                  <function name="brightness_temperature"/>
+                  <function name="swapxy"/>
+                  <function name="get_eta_tel"/>
+                  <function name="enter"/>
+                  <function name="roll_down"/>
+                  <function name="multiply"/>
+                  <function name="roll_down"/>
+                  <function name="roll_down"/>
+                  <float>     1.0 </float>
+                  <function name="subtract"/>
+                  <function name="roll_down"/>
+                  <function name="roll_down"/>
+                  <function name="multiply"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="swapxy"/>
+                  <function name="subtract"/>
+                  <function name="swapxy"/>
+                  <function name="enter"/>
+                  <function name="roll_down"/>
+                  <function name="add"/>
+                  <function name="divide"/>
+                  <in_ref ref="TCS.AZEL.ACTUAL.C2"/>
+                  <function name="rvalue"/>
+                  <function name="airmass"/>
+                  <float> 1.0 </float>
+                  <function name="divide"/>
+                  <function name="y_to_the_x"/>
+                  <in_ref ref="FLOAT_DATA"/> 
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+            <reducer id="GAIN" display="engineering" xml:base="reducers/GAIN.ent">
+               <help>
+                  Calculates the receiver gain from LOAD2 and AMBIENT using the following
+                  formula:
+                            
+                                      Vload2(n) - Vamb(n)
+                            gain(n) = __________________
+               Jload2 - Jamb</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="LOAD2"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="AMBIENT"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <function name="get_observed_marker_frequency"/>
+                  <function name="enter"/>   
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FE.TEMP_AMBIENT"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="AMBIENT"/>
+                  <function name="near"/>
+                  <function name="brightness_temperature"/>
+                  <function name="swapxy"/>
+                  <in_ref ref="FE.TEMP_LOAD2"/>
+                  <function name="rvalue"/> 
+                  <function name="brightness_temperature"/>
+                  <function name="subtract"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="AMBIENT"/>
+                  <function name="near"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="subtract"/>
+                  <function name="divide"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+            <reducer id="LOAD2" display="engineering" xml:base="reducers/LOAD2.ent">
+               <help>
+               Basic reduction on measurements of the LOAD2 load.</help>  
+               <ro_source_list>
+                  <ro_source handshaking="1">
+                     SELECT FROM <in_ref ref="RAW"/> WHERE
+                     <in_ref ref="FE.LOAD"/>=="LOAD2" &amp;&amp;
+                     <in_ref ref="CHANNEL_MASK"/>=="ON"
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <taql>RTS.LAST_INTEG==1</taql>
+                  <function name="evaluate_taql"/> 
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="window"/> 
+                  <function name="align"/>
+                  <function name="fft"/>
+                  <in_ref ref="DCM_TP_IN"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <function name="coadd"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  
+                  
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>
+            <reducer id="TASKY" display="engineering" xml:base="reducers/TASKY.ent">
+               <help>
+                  Calculates TAsky from each REFSKY measurement and TREC and GAIN according
+                  to the formula:
+                            
+                                       Vsky(n)
+                            TAsky(n) = _______  -  Trec(n)
+               gain(n)</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="CAL_REFSKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TREC"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="GAIN"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="TREC"/>
+                  <function name="near"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="GAIN"/>
+                  <function name="near"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="divide"/>
+                  <function name="subtract"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+            <reducer id="TREC" display="engineering" xml:base="reducers/TREC.ent">
+               <help>
+                  Calculates the receiver temperature from LOAD2 and AMBIENT measurements
+                  using the formula:
+                            
+                                      AMBIENT(n)*Jload2 - LOAD2(n)*Jamb
+                            Trec(n) = _____________________________
+               LOAD2(n) - AMBIENT(n)</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="LOAD2"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="AMBIENT"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/> 
+                  <in_ref ref="AMBIENT"/>
+                  <function name="near"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="subtract"/>
+                  <function name="get_observed_marker_frequency"/>
+                  <function name="enter"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FE.TEMP_AMBIENT"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="AMBIENT"/>
+                  <function name="near"/>
+                  <function name="brightness_temperature"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <function name="swapxy"/>
+                  <in_ref ref="FE.TEMP_LOAD2"/>
+                  <function name="rvalue"/>
+                  <function name="brightness_temperature"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/> 
+                  <in_ref ref="AMBIENT"/>
+                  <function name="near"/>
+                  <function name="multiply"/>  
+                  <function name="subtract"/>
+                  <function name="divide"/>  
+                  
+                  <function name="enter"/>
+                  <function name="median"/>
+                  <out_object id="TREC_MEDIAN"/>
+                  <function name="lvalue"/>
+                  
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>       
+               </ro_recipe>
+            </reducer>
+            <reducer id="TSYS" display="observing" xml:base="reducers/TSYS.ent">
+               <help>
+                  Calculates the system temperature from TA_SKY, TREC and ETA_SKY using the
+                  following formula:
+                            
+                                            TAsky(n) + Trec(n)
+                            Tsys(n) = ____________________________
+                                      Gs * eta_tel * eta_sky(n)**A
+                            
+               The median of the TSYS spectrum is placed in TSYS_MEDIAN</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TASKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="ETA_SKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TREC"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="TREC"/>
+                  <function name="near"/>
+                  <function name="add"/>
+                  <function name="get_observed_marker_frequency"/>
+                  <function name="enter"/>
+                  <function name="get_eta_tel"/>
+                  
+                  <function name="enter"/>
+                  <out_object id="ETAL"/>
+                  <function name="lvalue"/>
+                  
+                  <function name="swapxy"/>
+                  <in_ref ref="FEED1"/>
+                  <function name="rvalue"/>
+                  <function name="get_Gs"/>
+                  <function name="multiply"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="ETA_SKY"/>
+                  <function name="near"/>
+                  <in_ref ref="TCS.AZEL.ACTUAL.C2"/>
+                  <function name="rvalue"/>
+                  <function name="airmass"/>
+                  <function name="y_to_the_x"/>
+                  <function name="multiply"/>
+                  <function name="swapxy"/>
+                  <function name="divide"/>
+                  <function name="enter"/>
+                  <function name="median"/>
+                  <out_object id="TSYS_MEDIAN"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TREC_MEDIAN"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="TREC"/>
+                  <function name="near"/>
+                  <in_ref ref="TREC_MEDIAN"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>
+            
+
+            <reducer id="TSYS_LOGGER" xml:base="reducers/TSYS_LOGGER.ent">
+               <help>Logs some values to a file</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TSYS"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TREC"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TASKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="ETA_SKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="GAIN"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="mean"/>
+                  <out_object id="TSYS_MEAN"/>
+                  <function name="lvalue"/>
+
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="TREC"/>
+                  <function name="near"/>
+                  <function name="mean"/>
+                  <out_object id="TREC_MEAN"/>
+                  <function name="lvalue"/>
+
+                  <function name="get_observed_marker_frequency"/>
+                  <in_ref ref="WEATHER.Air_Temp"/>
+                  <function name="rvalue"/>
+                  <function name="brightness_temperature"/>
+                  <out_object id="Jatm"/>
+                  <function name="lvalue"/>
+
+                  <function name="get_observed_marker_frequency"/>
+                  <in_ref ref="FE.TEMP_TSPILL"/>
+                  <function name="rvalue"/>
+                  <function name="brightness_temperature"/>
+                  <out_object id="Jspill"/>
+                  <function name="lvalue"/>
+
+
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="GAIN"/>
+                  <function name="near"/>
+                  <function name="mean"/>
+                  <out_object id="GAIN_MEAN"/>
+                  <function name="lvalue"/>
+
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="TASKY"/>
+                  <function name="near"/>
+                  <function name="mean"/>
+                  <out_object id="TA_SKY_MEAN"/>
+                  <function name="lvalue"/>
+
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="ETA_SKY"/>
+                  <function name="near"/>
+                  <function name="mean"/>
+                  <out_object id="ETA_SKY_MEAN"/>
+                  <function name="lvalue"/>
+
+                  <marker/>
+                  <string>TSYS_vars</string>
+                  <in_ref ref="FEED1"/>
+                  <in_ref ref="SPEC_WINDOW_ID"/>
+                  <in_ref ref="TA_SKY_MEAN"/>
+                  <in_ref ref="Jspill"/>
+                  <in_ref ref="Jatm"/>
+                  <in_ref ref="GAIN_MEAN"/>
+                  <in_ref ref="ETA_SKY_MEAN"/>
+                  <in_ref ref="TREC_MEAN"/>
+                  <in_ref ref="TSYS_MEAN"/>
+                  <function name="logTable"/>
+
+               </ro_recipe>
+            </reducer>
+
+            <reducer id="SOURCE" display="engineering" xml:base="reducers/SOURCE_chop.ent">
+               <help>
+                  Average of the results from A_SOURCE_CAL_MERGED_COADD and 
+               B_SOURCE_CAL_MERGED_COADD.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="A_SOURCE_CAL_MERGED_COADD"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="DESCRIMINATOR_COADD"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
+                  <function name="near"/>
+                  <function name="add"/>
+                  <float> 2.0 </float>  
+                  <function name="swapxy"/>
+                  <function name="divide"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="DESCRIMINATOR_COADD"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
+                  <function name="near"/>
+                  <function name="add"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="EXPOSURE_OFF_A"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="DESCRIMINATOR_COADD"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="EXPOSURE_OFF_B"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
+                  <function name="near"/>
+                  <function name="add"/>
+                  <out_object id="EXPOSURE_OFF"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>
+            <reducer id="SOURCE_BASELINE" display="engineering" xml:base="reducers/SOURCE_BASELINE.ent">
+               <help>
+               Fits a baseline to the result of SOURCE.</help>   
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE"/>
+                  </ro_source>
+               </ro_source_list> 
+               <ro_recipe>     
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="baseline"/>  
+                  <out_object id="FIT_PARAMETERS"/>
+                  <function name="lvalue"/>
+                  <out_object id="FIT_TYPE"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  <out_object id="FIT_RMS"/>
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+            <reducer id="SPECTRUM_RESULT" display="observing" xml:base="reducers/SPECTRUM_RESULT_chop_cal.ent">
+               <help>
+                  This is the fully reduced spectrum. It is obtained by subtracting the next
+                  baseline received from SOURCE_BASELINE off each spectrum received from 
+               SOURCE.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE_BASELINE"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <function name="enter"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="SOURCE_BASELINE"/>
+                  <function name="next"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="subtract"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="FIT_RMS"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="SOURCE_BASELINE"/>
+                  <function name="next"/>
+                  <in_ref ref="FIT_RMS"/>
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+
+            <mswriter id="RAW_MSWRITER">
+               <ms_root> raw_jiggle_chop </ms_root>
+               <ms_chunk_size> 5000 </ms_chunk_size>
+               <ms_main xml:base="reducers/MSWRITER.MS_MAIN.ent">
+                  <ro_source handshaking="1">
+                     SELECT FROM <in_ref ref="RAW"/>
+                  </ro_source>
+                  <main_columns>
+                     <ANTENNA1 default="0"/>
+                     <ANTENNA2 default="0"/>
+                     <ARRAY_ID default="-1"/>
+                     <DATA_DESC_ID/>
+                     <EXPOSURE field_ref="EXPOSURE"/>
+                     <FEED1 field_ref="FEED1"/>
+                     <FEED2 field_ref="FEED1"/>
+                     <FIELD_ID/>
+                     <FLAG/>
+                     <FLAG_CATEGORY/>
+                     <FLAG_ROW default="0"/>
+                     <INTERVAL field_ref="INTERVAL"/>
+                     <OBSERVATION_ID/>
+                     <PROCESSOR_ID default="0"/>
+                     <SCAN_NUMBER field_ref="RTS.NUMBER"/>
+                     <SIGMA/>
+                     <STATE_ID/>
+                     <TIME field_ref="TIME"/>
+                     <TIME_CENTROID field_ref="TIME"/>
+                     <UVW/>
+                     <WEIGHT/>
+                     <FLOAT_DATA field_ref="FLOAT_DATA"/>
+                     <ms_column column_id="NS_JCMT_GROUP" field_ref="GROUP" type="TpInt"/>
+                     <ms_column column_id="NS_JCMT_DESCRIMINATOR_TSYS" field_ref="DESCRIMINATOR_TSYS" type="TpString"/>
+                     <ms_column column_id="NS_JCMT_DESCRIMINATOR_ON-OFF" field_ref="DESCRIMINATOR_ON-OFF" type="TpString"/>
+                     <ms_column column_id="NS_JCMT_DESCRIMINATOR_COADD" field_ref="DESCRIMINATOR_COADD" type="TpString"/>
+                     <ms_column column_id="NS_JCMT_DRCONTROL" field_ref="DRCONTROL" type="TpInt"/>
+                     <ms_column column_id="NS_JCMT_DRCONTROLBITS" field_ref="DRCONTROLBITS" type="TpRecord"/>	
+                     <ms_column column_id="NS_JCMT_CHANNEL_MASK" field_ref="CHANNEL_MASK" type="TpString"/>
+                     <ms_column column_id="NS_JCMT_TOTAL_POWER" field_ref="DCM_TP_IN" type="TpFloat"/>
+                     <ms_column column_id="NS_JCMT_RTS_STATE" field_ref="RTS" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_SMU_STATE" field_ref="SMU" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_FE_STATE" field_ref="FE" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_IF_MONITOR_STATE" field_ref="IF_MONITOR" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_CM_DATA_STATE" field_ref="CM_DATA" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_TCS_STATE" field_ref="TCS" type="TpRecord"/>
+                     <ms_column column_id="NS_JCMT_WEATHER_STATE" field_ref="WEATHER" type="TpRecord"/>
+                  </main_columns>
+                  <data_desc_cols>
+                     <SPEC_WINDOW_ID field_ref="SPEC_WINDOW_ID"/>
+                     <POLARIZATION_ID field_ref="POL_ID"/>
+                     <FLAG_ROW/>
+                  </data_desc_cols>
+                  <field_columns>
+                     <NAME default="Undefined"/>
+                     <CODE field_ref="TCS.SOURCE"/>
+                     <TIME field_ref="TIME"/>
+                     <NUM_POLY default="0"/>
+                     <DELAY_DIR field_long="TCS.TRACKING.ACTUAL.C1" field_lat="TCS.TRACKING.ACTUAL.C2" field_tracking="TCS.TRACKING.SYSTEM"/>
+                     <PHASE_DIR field_long="TCS.TRACKING.ACTUAL.C1" field_lat="TCS.TRACKING.ACTUAL.C2" field_tracking="TCS.TRACKING.SYSTEM"/>
+                     <SOURCE_ID default="-1"/>
+                  </field_columns>
+                  <state_columns>
+                     <CAL default="0"/>
+                     <LOAD default="0"/>
+                     <SUB_SCAN default="0"/>
+                     <OBS_MODE/>
+                     <FLAG_ROW default="0"/>
+                  </state_columns>
+               </ms_main>
+               <ms_syscal xml:base="reducers/MSWRITER.MS_SYSCAL.ent">
+               <ro_source>
+                  SELECT FROM <in_ref ref="CAL_ASSEMBLER"/>
+               </ro_source>
+               <syscal_columns>
+                  <ANTENNA_ID default="0"/>
+                  <FEED_ID field_ref="FEED1"/>
+                  <SPEC_WINDOW_ID field_ref="SPEC_WINDOW_ID"/>
+                  <TIME field_ref="TIME"/>
+                  <INTERVAL default="-1"/>
+                  <TRX_SPECTRUM field_ref="TREC_SPECTRUM"/>
+                  <TRX_FLAG default="0"/>
+                  <TSYS_SPECTRUM field_ref="TSYS_SPECTRUM"/>
+                  <TSYS_FLAG default="0"/>
+               </syscal_columns>
+            </ms_syscal>
+            <ms_weather xml:base="reducers/MSWRITER.MS_WEATHER.ent">
+            <ro_source handshaking="1">
+               SELECT FROM <in_ref ref="RAW"/>
+            </ro_source>
+            <weather_columns>
+               <ANTENNA_ID default="0"/>  
+               <TIME field_ref="TIME"/>
+               <INTERVAL default="-1"/>
+               <PRESSURE field_ref="WEATHER.Pressure"/>
+               <REL_HUMIDITY field_ref="WEATHER.Humidity"/>
+               <TEMPERATURE field_ref="WEATHER.Air_Temp"/>
+               <ms_column column_id="NS_JCMT_TSPILL" field_ref="FE.TEMP_TSPILL" type="TpDouble"/>
+            </weather_columns>
+         </ms_weather>
+      </mswriter>   
+              
+   </red_config>
+
+</red_config_list>
+<gridder_config xml:base="reducers/GRIDDER_CONFIG_cal.ent">
+   <gridder_source>
+      <source_params>
+         <in_ref ref="RTS"/>
+         <in_ref ref="DRCONTROL"/>
+         <in_ref ref="SOURCE_RP"/>
+         <in_ref ref="SOURCE_RO"/>
+         <in_ref ref="FEED1"/>  
+         <in_ref ref="SPEC_WINDOW_ID"/>
+         <in_ref ref="TIME"/>
+         <in_ref ref="TCS"/>
+         <in_ref ref="FE"/>
+         <in_ref ref="FREQ_SCALE"/>
+         <in_ref ref="ROVER"/>
+         <in_ref ref="EXPOSURE"/>
+         <in_ref ref="EXPOSURE_OFF"/>
+         <in_ref ref="INTERVAL"/>
+         <in_ref ref="TSYS_MEDIAN"/>
+         <in_ref ref="TREC_MEDIAN"/>
+         <in_ref ref="ETAL"/>
+         <in_ref ref="END_SEQ_NO"/> 
+      </source_params>
+      <source_object ref="SPECTRUM_RESULT"/>
+   </gridder_source>
+   <source_data ref="FLOAT_DATA"/>
+</gridder_config>
+<swriter_config xml:base="reducers/SWRITER_CONFIG.ent">
+   <swriter_source>
+      <source_params>
+         <in_ref ref="RTS"/>
+         <in_ref ref="DRCONTROL"/>
+         <in_ref ref="SOURCE_RP"/>
+         <in_ref ref="SOURCE_RO"/>
+         <in_ref ref="END_SEQ_NO"/>
+         <in_ref ref="FEED1"/>
+         <in_ref ref="SPEC_WINDOW_ID"/>
+         <in_ref ref="TIME"/>
+         <in_ref ref="TCS"/>
+         <in_ref ref="SMU"/>
+         <in_ref ref="FE"/>
+         <in_ref ref="FREQ_SCALE"/>
+         <in_ref ref="ROVER"/>
+         <in_ref ref="EXPOSURE"/>
+         <in_ref ref="EXPOSURE_OFF"/>
+         <in_ref ref="INTERVAL"/>
+         <in_ref ref="TSYS_MEDIAN"/>
+         <in_ref ref="TREC_MEDIAN"/>
+         <in_ref ref="ETAL"/>
+         <in_ref ref="WEATHER"/>
+      </source_params>
+      <s_object_list>
+         <source_object ref="SPECTRUM_RESULT"/>
+      </s_object_list>
+   </swriter_source>
+   <source_data ref="FLOAT_DATA"/>
+</swriter_config>
+<rtd_config>
+
+   <display_timeout> 120  </display_timeout>
+    
+   <spectrum_disp id="display0">
+      <source_object ref="A_SOURCE_CAL_MERGED_DISPLAY"/>
+      <source_data ref="FLOAT_DATA"/>
+      <source_params>
+         <in_ref ref="RTS"/>
+         <in_ref ref="DRCONTROL"/>
+         <in_ref ref="SOURCE_RP"/>
+         <in_ref ref="SOURCE_RO"/>
+         <in_ref ref="FEED1"/>
+         <in_ref ref="SPEC_WINDOW_ID"/>
+         <in_ref ref="TSYS_MEDIAN"/>
+         <in_ref ref="TIME"/>
+         <in_ref ref="TCS"/>
+      </source_params>
+      <spec_wind ref="SPW1"/>
+      <spec_scale type="VELOCITY" freq_reference="LSRK" vel_reference="RADIO">
+      </spec_scale>
+      <sequence_stride number="30"/>
+      <channel_stride number="1"/>
+      <average number="1"/>
+      <spectrum_bin number="0"/>
+      <spectrum_offset number="5"/>
+      <display_geom hilo="display_small" jcmt="display_large">
+      <display_small>-geometry 640x480</display_small>
+      <display_large>-geometry 1250x1000+1280+1068</display_large>
+   </display_geom>
+   <acceptable_tsys>
+      <range units="K">
+         <min> 0.0 </min>
+         <max> 2000.0 </max>
+      </range>
+   </acceptable_tsys>
+</spectrum_disp>
+
+<image_disp id="display2">
+   <source_cube ref="CUBE1"/>
+   <data_selection type="MAX_VALUE"/>
+   <spec_scale type="VELOCITY" freq_reference="LSRK" vel_reference="RADIO">
+      
+      <range units="channel">
+         <min> -100 </min>
+         <max> 100 </max>
+      </range>
+   </spec_scale>
+   <update_rate number="100"/>
+</image_disp>
+
+</rtd_config>
+<process_layout> 
+    
+    
+<machine_table>
+   <dr_machine virtual_machine="number0" real_machine="ocsmaster"/>
+   <dr_machine virtual_machine="number1" real_machine="acsis1"/>
+   <dr_machine virtual_machine="number2" real_machine="acsis2"/>
+   <dr_machine virtual_machine="number3" real_machine="acsis3"/>
+   <dr_machine virtual_machine="number4" real_machine="acsis4"/>
+   <dr_machine virtual_machine="number5" real_machine="acsis5"/>
+   <dr_machine virtual_machine="number6" real_machine="acsis6"/>
+   <dr_machine virtual_machine="number7" real_machine="acsis7"/>
+   <dr_machine virtual_machine="number8" real_machine="acsis8"/>
+   <dr_machine virtual_machine="number9" real_machine="acsis9"/>
+   <dr_machine virtual_machine="number10" real_machine="acsis10"/>
+   <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
+   <dr_machine virtual_machine="gridder_machine" real_machine="acsis9"/>
+   <dr_machine virtual_machine="fe_wrapper_machine" real_machine="acsis11"/>
+
+   <dr_disp_machine virtual_machine="dr_disp_machine" real_machine="acsis10"/>
+
+   <da_machine virtual_machine="sc2da8a" real_machine="sc2da8a"/>
+   <da_machine virtual_machine="sc2da8b" real_machine="sc2da8b"/>
+   <da_machine virtual_machine="sc2da8c" real_machine="sc2da8c"/>
+   <da_machine virtual_machine="sc2da8d" real_machine="sc2da8d"/>
+   <da_machine virtual_machine="sc2da4a" real_machine="sc2da4a"/>
+   <da_machine virtual_machine="sc2da4c" real_machine="sc2da4c"/>
+   <da_machine virtual_machine="sc2da4d" real_machine="sc2da4d"/>
+   <da_machine virtual_machine="sc2da4b" real_machine="sc2da4b"/>
+   <da_machine virtual_machine="sc2aux" real_machine="pol2"/>
+
+</machine_table>
+
+
+<monitor_layout> 
+       
+   <monitor_process id="corr_monitor1" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK1"/>
+
+   <monitor_process id="corr_monitor2" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK2"/>
+
+   <monitor_process id="corr_monitor3" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK3"/>
+
+   <monitor_process id="corr_monitor4" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK4"/>
+
+   <monitor_process id="corr_monitor5" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK5"/>
+
+   <monitor_process id="corr_monitor6" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK6"/>
+
+   <monitor_process id="corr_monitor7" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK7"/>
+
+   <monitor_process id="corr_monitor8" interface="CORR_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="CORRTASK8"/>
+
+   <monitor_process id="fe_monitor" interface="FE_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source=""/>
+
+   <monitor_process id="ws_monitor" interface="WEATHER_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="ENVIRO"/>
+
+   <monitor_process id="if_monitor" interface="IF_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="IFTASK"/>
+
+   
+
+   <monitor_process id="smu_monitor" interface="SMU_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="SMU"/>
+
+   <monitor_process id="tcs_monitor" interface="TCS_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="PTCS"/>
+
+   <monitor_process id="rts_monitor" interface="RTS_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="RTS"/>
+
+   <monitor_process id="rover_monitor" interface="ROVER_MONITOR_INTERFACE" machine="" task_exe="generic_monitor" source="ROVER"/>
+
+</monitor_layout>
+
+
+<acsis_process id="sync1" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer1"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync2" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer2"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync3" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer3"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync4" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer4"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync5" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer5"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync6" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer6"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync7" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer7"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="sync8" interface="SYNC_TASK" machine="" task_exe="sync_task">
+   <process_params>
+      <process_param idref="scratch"> /tmp </process_param>
+   </process_params>
+   <proc_out_events>
+      <process_event id="data_4_reducer8"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer1" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+      <process_event id="data_4_gridder1"/>
+      <process_event id="data_4_gridder2"/>
+      <process_event id="data_4_gridder3"/>
+      <process_event id="data_4_gridder4"/>
+      <process_event id="data_4_gridder5"/>
+      <process_event id="data_4_gridder6"/>
+      <process_event id="data_4_gridder7"/>
+      <process_event id="data_4_gridder8"/>	
+      <process_event id="data_4_specwriter2"/>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer2" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer3" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer4" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer5" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer6" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer7" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="reducer8" interface="REDUCERPROCESS_INTERFACE" machine="" task_exe="ReducerProcess">
+   <process_params/>
+   <process_config ref="SPECTRUM_REDUCTION"/>
+   <proc_out_events>
+   </proc_out_events>
+</acsis_process>
+
+<acsis_process id="gridder9" interface="ACSIS_GRIDDER_INTERFACE" machine="" task_exe="acsis_gridder">
+   <process_params>
+      <process_param idref="type"> gridder </process_param>
+   </process_params>
+   <proc_out_events/>
+</acsis_process>
+
+<acsis_process id="specwriter" interface="ACSIS_GRIDDER_INTERFACE" machine="" task_exe="acsis_gridder">
+   <process_params>
+      <process_param idref="type"> spec_writer </process_param>
+   </process_params>
+   <proc_out_events/>
+</acsis_process>
+
+</process_layout>
+<process_links>
+
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync1" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync1" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync1" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync1" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+<glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
+<glish_link from_ref="sync1" from_event="data_4_reducer1" to_ref="reducer1" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync2" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync2" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync2" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync2" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync2" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync2" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync2" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor2" from_event="corr_data" to_ref="sync2" to_event="corr_data"/>
+<glish_link from_ref="reducer2" from_event="reducer_target.attach" to_ref="sync2" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer2" from_event="reducer_target.detach" to_ref="sync2" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer2" from_event="reducer_target.available" to_ref="sync2" to_event="sync_source.available"/>
+<glish_link from_ref="sync2" from_event="data_4_reducer2" to_ref="reducer2" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync3" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync3" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync3" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync3" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync3" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync3" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync3" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor3" from_event="corr_data" to_ref="sync3" to_event="corr_data"/>
+<glish_link from_ref="reducer3" from_event="reducer_target.attach" to_ref="sync3" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer3" from_event="reducer_target.detach" to_ref="sync3" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer3" from_event="reducer_target.available" to_ref="sync3" to_event="sync_source.available"/>
+<glish_link from_ref="sync3" from_event="data_4_reducer3" to_ref="reducer3" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync4" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync4" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync4" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync4" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync4" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync4" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync4" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor4" from_event="corr_data" to_ref="sync4" to_event="corr_data"/>
+<glish_link from_ref="reducer4" from_event="reducer_target.attach" to_ref="sync4" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer4" from_event="reducer_target.detach" to_ref="sync4" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer4" from_event="reducer_target.available" to_ref="sync4" to_event="sync_source.available"/>
+<glish_link from_ref="sync4" from_event="data_4_reducer4" to_ref="reducer4" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync5" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync5" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync5" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync5" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync5" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync5" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync5" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync5" to_event="corr_data"/>
+<glish_link from_ref="reducer5" from_event="reducer_target.attach" to_ref="sync5" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer5" from_event="reducer_target.detach" to_ref="sync5" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer5" from_event="reducer_target.available" to_ref="sync5" to_event="sync_source.available"/>
+<glish_link from_ref="sync5" from_event="data_4_reducer5" to_ref="reducer5" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync6" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync6" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync6" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync6" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync6" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync6" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync6" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor6" from_event="corr_data" to_ref="sync6" to_event="corr_data"/>
+<glish_link from_ref="reducer6" from_event="reducer_target.attach" to_ref="sync6" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer6" from_event="reducer_target.detach" to_ref="sync6" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer6" from_event="reducer_target.available" to_ref="sync6" to_event="sync_source.available"/>
+<glish_link from_ref="sync6" from_event="data_4_reducer6" to_ref="reducer6" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync7" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync7" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync7" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync7" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync7" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync7" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync7" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor7" from_event="corr_data" to_ref="sync7" to_event="corr_data"/>
+<glish_link from_ref="reducer7" from_event="reducer_target.attach" to_ref="sync7" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer7" from_event="reducer_target.detach" to_ref="sync7" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer7" from_event="reducer_target.available" to_ref="sync7" to_event="sync_source.available"/>
+<glish_link from_ref="sync7" from_event="data_4_reducer7" to_ref="reducer7" to_event="reducer_target.data"/>
+<glish_link from_ref="smu_monitor" from_event="smu_data" to_ref="sync8" to_event="smu_data"/>
+<glish_link from_ref="fe_monitor" from_event="fe_data" to_ref="sync8" to_event="fe_data"/>
+<glish_link from_ref="tcs_monitor" from_event="tcs_data" to_ref="sync8" to_event="tcs_data"/>
+<glish_link from_ref="ws_monitor" from_event="weather_data" to_ref="sync8" to_event="weather_data"/>
+<glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync8" to_event="rts_data"/>
+<glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync8" to_event="if_data"/>
+<glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync8" to_event="rover_data"/>
+<glish_link from_ref="corr_monitor8" from_event="corr_data" to_ref="sync8" to_event="corr_data"/>
+<glish_link from_ref="reducer8" from_event="reducer_target.attach" to_ref="sync8" to_event="sync_source.attach"/>
+<glish_link from_ref="reducer8" from_event="reducer_target.detach" to_ref="sync8" to_event="sync_source.detach"/>
+<glish_link from_ref="reducer8" from_event="reducer_target.available" to_ref="sync8" to_event="sync_source.available"/>
+<glish_link from_ref="sync8" from_event="data_4_reducer8" to_ref="reducer8" to_event="reducer_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer1" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer1" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer1" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer1" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer1" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer2" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer2" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer2" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer2" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer2" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer2" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer2" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer2" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer3" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer3" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer3" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer3" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer3" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer3" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer3" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer3" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer4" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer4" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer4" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer4" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer4" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer4" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer4" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer4" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer5" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer5" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer5" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer5" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer5" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer5" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer5" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer5" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer6" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer6" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer6" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer6" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer6" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer6" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer6" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer6" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer7" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer7" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer7" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer7" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer7" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer7" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer7" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer7" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.attach" to_ref="reducer8" to_event="reducer_source.attach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.detach" to_ref="reducer8" to_event="reducer_source.detach"/>
+<glish_link from_ref="specwriter2" from_event="gridder_target.available" to_ref="reducer8" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer8" from_event="data_4_specwriter2" to_ref="specwriter2" to_event="gridder_target.data"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.attach" to_ref="reducer8" to_event="reducer_source.attach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.detach" to_ref="reducer8" to_event="reducer_source.detach"/>
+<glish_link from_ref="gridder1" from_event="gridder_target.available" to_ref="reducer8" to_event="reducer_source.available"/>
+<glish_link from_ref="reducer8" from_event="data_4_gridder1" to_ref="gridder1" to_event="gridder_target.data"/>
+</process_links>
+
+<interface_list>
+
+
+
+<interface id="TCS_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="tcs_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="TCS" type="record"/>
+      <param id="TCS.NUMBER" type="int"/>
+      <param id="TCS.BEAM" type="string"/>
+      <param id="TCS.SOURCE" type="string"/>
+      <param id="TCS.INDEX" type="int"/>
+      <param id="TCS.STEP_TIME" type="double" units="s"/>
+      <param id="TCS.TAI" type="double" units="d"/>
+      <param id="TCS.AIRMASS" type="double"/>
+      <param id="TCS.TRACKING" type="record"/>
+      <param id="TCS.TRACKING.SYSTEM" type="string"/>
+      <param id="TCS.TRACKING.FP_ANGLE" type="double" units="rad"/>
+      <param id="TCS.TRACKING.ACTUAL" type="record"/>
+      <param id="TCS.TRACKING.ACTUAL.C1" type="double" units="rad"/>
+      <param id="TCS.TRACKING.ACTUAL.C2" type="double" units="rad"/>
+      <param id="TCS.TRACKING.DEMAND" type="record"/>
+      <param id="TCS.TRACKING.DEMAND.C1" type="double" units="rad"/>
+      <param id="TCS.TRACKING.DEMAND.C2" type="double" units="rad"/>
+      <param id="TCS.TRACKING.BASE" type="record"/>
+      <param id="TCS.TRACKING.BASE.C1" type="double" units="rad"/>
+      <param id="TCS.TRACKING.BASE.C2" type="double" units="rad"/>
+      <param id="TCS.AZEL" type="record"/>
+      <param id="TCS.AZEL.FP_ANGLE" type="double" units="rad"/>
+      <param id="TCS.AZEL.ACTUAL" type="record"/>
+      <param id="TCS.AZEL.ACTUAL.C1" type="double" units="rad"/>
+      <param id="TCS.AZEL.ACTUAL.C2" type="double" units="rad"/>
+      <param id="TCS.AZEL.DEMAND" type="record"/>
+      <param id="TCS.AZEL.DEMAND.C1" type="double" units="rad"/>
+      <param id="TCS.AZEL.DEMAND.C2" type="double" units="rad"/>
+      <param id="TCS.AZEL.BASE" type="record"/>
+      <param id="TCS.AZEL.BASE.C1" type="double" units="rad"/>
+      <param id="TCS.AZEL.BASE.C2" type="double" units="rad"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="SMU_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="smu_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="SMU" type="record"/>
+      <param id="SMU.NUMBER" type="int"/>
+      <param id="SMU.SMU_X" type="double"/>
+      <param id="SMU.SMU_Y" type="double"/>
+      <param id="SMU.SMU_Z" type="double"/>
+      <param id="SMU.CHOP_PHASE" type="string"/>
+      <param id="SMU.TRACKING" type="record"/>
+      <param id="SMU.TRACKING.CHOP" type="record"/>
+      <param id="SMU.TRACKING.CHOP.X" type="double"/>
+      <param id="SMU.TRACKING.CHOP.Y" type="double"/>
+      <param id="SMU.TRACKING.JIGGLE" type="record"/>
+      <param id="SMU.TRACKING.JIGGLE.X" type="double"/>
+      <param id="SMU.TRACKING.JIGGLE.Y" type="double"/>
+      <param id="SMU.AZEL" type="record"/>
+      <param id="SMU.AZEL.CHOP" type="record"/>
+      <param id="SMU.AZEL.CHOP.X" type="double"/>
+      <param id="SMU.AZEL.CHOP.Y" type="double"/>
+      <param id="SMU.AZEL.JIGGLE" type="record"/>
+      <param id="SMU.AZEL.JIGGLE.X" type="double"/>
+      <param id="SMU.AZEL.JIGGLE.Y" type="double"/>
+      <param id="SMU.JIG_INDEX" type="int"/>
+   </out_parameters>
+</interface>
+
+
+        
+<interface id="RTS_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="rts_data"/>
+   </out_events>
+   <in_parameters/> 
+   <out_parameters>
+      <param id="RTS" type="record"/>
+      <param id="RTS.NUMBER" type="int"/>
+      <param id="RTS.STEP_TIME" type="double" units="s"/>
+      <param id="RTS.TASKS" type="string"/>
+      <param id="RTS.TAI_START" type="double" units="d"/>
+      <param id="RTS.TAI_END" type="double" units="d"/>
+      <param id="RTS.TASK_ERRORS" type="string"/>
+      <param id="RTS.STATUS" type="int"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="FE_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="fe_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="FE" type="record"/>
+      <param id="FE.NUMBER" type="record"/>
+      <param id="FE.FREQ_OFFSET" type="double"/>
+      <param id="FE.LO_FREQUENCY" type="double" units="GHz"/>
+      <param id="FE.LOAD" type="string"/>
+      <param id="FE.CHANNEL_MASK" type="record"/>
+      <param id="FE.TEMP_AMBIENT" type="float" units="K"/>
+      <param id="FE.TEMP_LOAD2" type="float" units="K"/>
+      <param id="FE.TEMP_TSPILL" type="float" units="K"/>
+      <param id="FE.DOPPLER" type="double"/>
+      <param id="FE.LINE_SOURCE" type="string"/>
+      <param id="FE.LINE_FREQUENCY" type="double" units="MHz"/>
+      <param id="FE.LINE_POWER" type="double" units="dBm"/>
+      <param id="FE.TEMP_SPILLOVER" type="float" units="K"/>
+      <param id="FE.LOCKED" type="string"/>
+      <param id="FE.FE_STATE" type="string"/>
+   </out_parameters>
+</interface>
+
+
+
+
+<interface id="IF_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="if_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="IF_MONITOR.NUMBER" type="int"/>
+      <param id="IF_MONITOR.STATUS" type="string"/>
+      <param id="IF_MONITOR.SEQ_STATE" type="string"/>
+      <param id="IF_MONITOR.INLET_TEMP" type="floatarray" units="K"/>
+      <param id="IF_MONITOR.EXHAUST_TEMP" type="floatarray" units="K"/>
+      <param id="IF_MONITOR.CASS_SW" type="intarray"/>
+      <param id="IF_MONITOR.NASMYTH_SW" type="intarray"/>
+      <param id="IF_MONITOR.SECOND_LO_FREQS" type="doublearray" units="GHz"/>
+      <param id="IF_MONITOR.DCM_STATUS" type="intarray"/>
+      <param id="IF_MONITOR.DCM_TP_IN" type="floatarray" units="mW"/>
+      <param id="IF_MONITOR.DCM_TP_OUT" type="floatarray" units="mW"/>
+      <param id="IF_MONITOR.DCM_CFREQ" type="floatarray" units="GHz"/>
+      <param id="IF_MONITOR.DCM_BW" type="int" units="MHz"/>
+      <param id="IF_MONITOR.DCM_TEMP" type="floatarray" units="K"/>  
+      <param id="IF_MONITOR.DCM_SN" type="intarray"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="ROVER_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="rover_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="ROVER" type="record"/>
+      <param id="ROVER.NUMBER" type="int"/>
+      <param id="ROVER.ANGLE" type="double" units="deg"/>
+      <param id="ROVER.INST_ANGLE" type="double" units="deg"/>
+      <param id="ROVER.SYS_ANGLE" type="double" units="deg"/>
+      <param id="ROVER.POL_INDEX" type="int"/>
+      <param id="ROVER.POL_CYCLE" type="int"/>
+   </out_parameters>
+</interface>
+
+
+
+
+<interface id="CORR_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="corr_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="CM_DATA.SEQUENCE_NUM" type="int"/>
+      <param id="CM_DATA.CM_ID" type="int"/>
+      <param id="CM_DATA.DCM_ID" type="int"/>
+      <param id="CM_DATA.SPEC_WINDOW_ID" type="int"/>
+      <param id="CM_DATA.FEED" type="string"/>
+      <param id="CM_DATA.SUBBAND_ID" type="int"/>
+      <param id="CM_DATA.CORR_SN" type="int"/>
+      <param id="CM_DATA.SAMPLER_SN" type="int"/>
+      <param id="CM_DATA.STATUS" type="string"/>   
+      <param id="CM_DATA.SEQ_STATE" type="string"/>
+      <param id="CM_DATA.INLET_TEMP" type="float" units="K"/>
+      <param id="CM_DATA.EXHAUST_TEMP" type="float" units="K"/>
+      <param id="CM_DATA.CM_TEMP" type="floatarray" units="K"/>
+      <param id="CM_DATA.CM_5V" type="floatarray" units="V"/>
+      <param id="CM_DATA.CM_3V" type="float" units="V"/>
+      <param id="CM_DATA.CM_3A" type="float" units="A"/>
+      <param id="CM_DATA.CM_BW_MODE" type="string"/>
+      <param id="CM_DATA.CM_N_LAGS" type="int"/>
+      <param id="CM_DATA.CM_N_SAMPLES" type="int"/>
+      <param id="CM_DATA.CM_LAGS" type="floatarray"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="WEATHER_MONITOR_INTERFACE">
+   <in_events/>
+   <out_events>
+      <event id="weather_data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters>
+      <param id="WEATHER" type="record"/>
+      <param id="WEATHER.Humidity" type="float"/>
+      <param id="WEATHER.Pressure" type="float" units="Pa"/> 
+      <param id="WEATHER.Air_Temp" type="float" units="K"/>
+      <param id="WEATHER.Wind_Speed" type="float" units="m.s-1"/>
+      <param id="WEATHER.Wind_Dir" type="float" units="deg"/>
+      <param id="WEATHER.CSO_TAU" type="float"/>
+      <param id="WEATHER.JCMT_TAU" type="float"/>
+      <param id="WEATHER.Seeing" type="float" units="arcsec"/>
+      <param id="WEATHER.Mean_Front_Leg" type="float" units="K"/>
+      <param id="WEATHER.Mean_Back_Leg" type="float" units="K"/>
+      <param id="WEATHER.CSO_TAU_TIME" type="string"/>
+      <param id="WEATHER.CSO_SRC" type="string"/>
+      <param id="WEATHER.JCMT_TAU_TIME" type="string"/>
+      <param id="WEATHER.Seeing_TIME" type="string"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="SYNC_TASK">
+   <in_events>
+      <event id="sync_source.available"/>
+      <event id="sync_source.attach"/>
+      <event id="sync_source.detach"/>
+      <event id="sync_target.data"/>
+   </in_events>
+   <out_events>
+      <event id="sync_source.data"/>
+   </out_events>
+   <in_parameters>
+      <param id="scratch"/>
+      <param id="MONITORsource"/>
+      <param id="MONITORevent"/>
+      <param id="CORRELATORsource"/>
+      <param id="CORRELATORevent"/>
+   </in_parameters>
+   <out_parameters>
+      <param id="SEQUENCE_NUM" type="int"/>
+      <param id="SOURCE_RO" type="string"/>
+      <param id="SOURCE_RP" type="string"/>
+      <param id="END_SEQ_NO" type="int"/>
+      <param id="DRCONTROL" type="int"/>
+      <param id="DRCONTROLBITS" type="int"/>
+      <param id="GROUP" type="int"/>
+   </out_parameters>
+</interface>
+
+
+
+<interface id="REDUCERPROCESS_INTERFACE">
+   <in_events>
+      <event id="reducer_source.available"/>
+      <event id="reducer_source.attach"/>
+      <event id="reducer_source.detach"/>
+      <event id="reducer_target.data"/>
+   </in_events>
+   <out_events>
+      <event id="reducer_target.available"/>
+      <event id="reducer_target.attach"/>
+      <event id="reducer_target.detach"/>
+      <event id="reducer_source.data"/>
+   </out_events>
+   <in_parameters/>
+   <out_parameters/>
+</interface>
+
+
+
+<interface id="ACSIS_GRIDDER_INTERFACE">
+   <in_events>
+      <event id="gridder_source.available"/>
+      <event id="gridder_source.attach"/>
+      <event id="gridder_source.detach"/>
+      <event id="gridder_target.data"/>
+   </in_events>
+   <out_events>
+      <event id="gridder_target.available"/>
+      <event id="gridder_target.attach"/>
+      <event id="gridder_target.detach"/>
+      <event id="gridder_source.data"/>
+   </out_events>
+   <in_parameters>
+      <param id="type"/>
+   </in_parameters>
+   <out_parameters/>
+</interface>
+
+</interface_list>
+
+</ACSIS_CONFIG>
+</OCS_CONFIG>

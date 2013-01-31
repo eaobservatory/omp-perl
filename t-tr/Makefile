@@ -2,16 +2,18 @@
 #
 # The files comprise:
 #
-#     *-ot.xml        OT XML files describing observations.
+#     *-ot.xml          OT XML files describing observations.
 #
-#     *-reference.xml Reference translated OCS configuration file.
-#                     (All XML files concatenated and without comments.)
+#     *-reference.xml.N Reference translated OCS configuration file.
+#                       (All XML files concatenated and without comments.)
 #
 # Additionally testing creates:
 #
-#     *-translated.xml OCS configuration translated from the OT XML files.
+#     *-translated.xml   Manifest of translated files.
 #
-#     *.diff           Differences between the reference and translated files.
+#     *-translated.xml.N OCS configuration translated from the OT XML files.
+#
+#     *.diff, *.diff.N   Differences between the reference and translated files.
 #
 # To clean up the directory, translate and check all of the OT XML files:
 #
@@ -46,29 +48,32 @@ translate: $(TRANS)
 diff: $(DIFF)
 
 report: $(DIFF)
-	wc -l $(DIFF)
+	cat $(DIFF)
 
 updatereference:
-	for file in *-translated.xml; do \
-	  cp $$file $${file%-translated.xml}-reference.xml ;\
+	for file in *-translated.xml.*; do \
+	  cp $$file $${file/-translated/-reference} ;\
 	done
 
 clean:
-	rm -f *-translated.xml *.diff *.manifest
+	rm -f *-translated.xml *-translated.xml.* *.diff *.diff.* *.manifest
 
-%.diff: %-reference.xml %-translated.xml
-	diff $^ > $@ || cat $@
+%.diff: %-translated.xml
+	echo -n > $@
+	for file in $<.*; do \
+	  difffile=$${file/-translated.xml/.diff} ;\
+	  diff $${file/-translated/-reference} $$file > $$difffile || cat $$difffile ;\
+	  wc -l $$difffile >> $@ ;\
+	done
 
 %-translated.xml: %-ot.xml
 	$(TRANSLATOR) $< > $(PID).manifest
-	echo -n > $@
+	mv $$(< $(PID).manifest) $@
+	rm $(PID).manifest
 	
-	manifest=`cat $(PID).manifest` ;\
-	for file in `sed -n -e 's/ *<\/\?Entry[^>]*>//gp' \
-	    $$manifest`; do \
-	    perl strip-xml.pl < $$file >> $@ ;\
+	n=0 ;\
+	for file in `sed -n -e 's/ *<\/\?Entry[^>]*>//gp' $@` ; do \
+	    n=$$(( n + 1 )) ;\
+	    perl strip-xml.pl < $$file > $@.$$n ;\
 	    rm $$file ;\
 	  done ;\
-	rm $$manifest
-	
-	rm $(PID).manifest

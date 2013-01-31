@@ -1,0 +1,1129 @@
+<?xml version="1.0" encoding="US-ASCII"?><!DOCTYPE OCS_CONFIG  SYSTEM  "/jac_sw/itsroot//ICD/001/ocs.dtd">
+   <OCS_CONFIG>
+      
+      <OBS_SUMMARY>
+         
+         <mapping_mode>stare</mapping_mode>
+         <switching_mode>none</switching_mode>
+         <obs_type>setup</obs_type>
+         <in_beam>shutter</in_beam>
+      </OBS_SUMMARY>
+      <JOS_CONFIG>
+         
+         <tasks>RTS SCUBA2 PTCS SMU</tasks>
+         <recipe NAME="scuba2_setup_subarrays">
+            <parameters 
+                        STEPS_BTWN_DARK="34482758.6206897"
+                        N_FLATSAMPLES="1724.13793103448"
+                        STEPS_BTWN_FLAT="0"
+                        N_DARKSAMPLES="1724.13793103448"
+                        STEP_TIME="0.005"
+                        START_INDEX="1"
+            />
+         </recipe>
+      </JOS_CONFIG>
+      <HEADER_CONFIG>
+         
+         <HEADER TYPE="STRING"
+                 KEYWORD="TELESCOP"
+                 COMMENT="Name of Telescope"
+                 VALUE="JCMT" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="ORIGIN"
+                 COMMENT="Origin of file"
+                 VALUE="Joint Astronomy Centre, Hilo" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- x,y,z triplet for JCMT relative to centre of earth ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALT-OBS"
+                 COMMENT="[m] Height of observatory above sea level"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.HT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LAT-OBS"
+                 COMMENT="[deg] Latitude of Observatory"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.LAT" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="LONG-OBS"
+                 COMMENT="[deg] East longitude of observatory"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.LONG" EVENT="START" MULT="57.2957795131" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-X"
+                 COMMENT="[m]"
+                 VALUE="-5464595.65" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.X" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-Y"
+                 COMMENT="[m]"
+                 VALUE="-2492691.376" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.Y" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="OBSGEO-Z"
+                 COMMENT="[m]"
+                 VALUE="2150965.17" >
+            <DRAMA TASK="PTCS" PARAM="TELESCOPE.Z" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ETAL"
+                 COMMENT="Telescope efficiency"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillETAL" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- OMP and ORAC-DR Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="PROJECT"
+                 COMMENT="PATT number"
+                 VALUE="JCMTCAL" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="RECIPE"
+                 COMMENT="ORAC-DR recipe"
+                 VALUE="REDUCE_SETUP" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="DRGROUP"
+                 COMMENT="Data Reduction group ID"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="MSBID"
+                 COMMENT="Id of minimum scheduable block"
+                 VALUE="b54e4e8f266e546016aea2e08811907e" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="MSBTID"
+                 COMMENT="Transaction ID of MSB"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SURVEY"
+                 COMMENT="Survey Name"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="RMTAGENT"
+                 COMMENT="Name of Remote Agent"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="AGENTID"
+                 COMMENT="Unique identifier for remote agent"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Obs Id, Date, Pointing Info ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBJECT"
+                 COMMENT="Object of interest"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCIENCE.ID" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="STANDARD"
+                 COMMENT="True if the observation is a calibrator"
+                 VALUE="0" />
+         <HEADER TYPE="INT"
+                 KEYWORD="OBSNUM"
+                 COMMENT="Observation number"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillObsNum" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NSUBSCAN"
+                 COMMENT="Subscan number for this file"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getNSubScan" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="OBSEND"
+                 COMMENT="True if file is last subscan in obs."
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getObsend" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="UTDATE"
+                 COMMENT="UT Date as integer in yyyymmdd format"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillUTDate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DATE-OBS"
+                 COMMENT="UTC Datetime of start of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setUTCDate" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DATE-END"
+                 COMMENT="UTC Datetime of end of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setUTCDate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DUT1"
+                 COMMENT="[d] UT1-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBSID"
+                 COMMENT="Unique observation identifier"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillObsId" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBSIDSS"
+                 COMMENT="Unique observation subsys identifier"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillObsIdSubSys" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="INSTAP"
+                 COMMENT="Subarray at tracking centre (if any)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INSTAP_X"
+                 COMMENT="[arcsec] Aperture X off. rel. to instr centre"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AXIS_XY.X_AS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INSTAP_Y"
+                 COMMENT="[arcsec] Aperture Y off. rel. to instr centre"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="AXIS_XY.Y_AS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AMSTART"
+                 COMMENT="Airmass at start of sub-scan"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AIRMASS" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AMEND"
+                 COMMENT="Airmass at end of sub-scan"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AIRMASS" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AZSTART"
+                 COMMENT="[deg] Azimuth at sub-scan start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AZ_AC1" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="AZEND"
+                 COMMENT="[deg] Azimuth at sub-scan end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AZ_AC1" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ELSTART"
+                 COMMENT="[deg] Elevation at sub-scan start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AZ_AC2" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ELEND"
+                 COMMENT="[deg] Elevation at sub-scan end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_AZ_AC2" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TRACKSYS"
+                 COMMENT="TCS Tracking coordinate system"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TRACKING_SYSTEM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BASEC1"
+                 COMMENT="[deg] Base C1 at sub-scan start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_TR_BC1" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BASEC2"
+                 COMMENT="[deg] Base C2 at sub-scan start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="TCS_TR_BC2" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="HSTSTART"
+                 COMMENT="HST at start of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setLocalTime" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="HSTEND"
+                 COMMENT="HST at end of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setLocalTime" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="LSTSTART"
+                 COMMENT="LST at start of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setLST" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="LSTEND"
+                 COMMENT="LST at end of observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setLST" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Integration time related -----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="INT_TIME"
+                 COMMENT="[s] Integration time per bolometer (TSTREAM) or  pixel (IMAGE)"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="inttime" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="EXP_TIME"
+                 COMMENT="[s] Exposure time for each basic measurement"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="exptime" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SEQSTART"
+                 COMMENT="RTS index number of first frame"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seqstart" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SEQEND"
+                 COMMENT="RTS index number of last frame"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seqend" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- SCUBA-2 Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="INSTRUME"
+                 COMMENT="Instrument name"
+                 VALUE="SCUBA-2" >
+            <SELF PARAM="OCS_CONFIG.INSTRUMENT.SERIAL" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SUBARRAY"
+                 COMMENT="[s8a-d] for 850 micron, [s4a-d] for 450 micron  arrays"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="subarray" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="ARRAYID"
+                 COMMENT="Manufacturer's serial number for the subarray"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="subarrid" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SHUTTER"
+                 COMMENT="shutter position 0-Closed 1-Open"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="shutter" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="FILTER"
+                 COMMENT="Filter name"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="filter" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WAVELEN"
+                 COMMENT="[m] Filter central wavelength"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="wavelen" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BANDWID"
+                 COMMENT="[m] Filter bandwidth"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="bandwidth" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="DATAMODE"
+                 COMMENT="Data Acquisition mode"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillDataMode" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BOLODIST"
+                 COMMENT="[arcsec]  Nominal Bolometer spacing"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="bolodist" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BBHEAT"
+                 COMMENT="[deg C] Blackbody temperature"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="tbbody" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="DARKHEAT"
+                 COMMENT="Bolometer heater D/A dark setting"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillDarkHeat" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="PIXHEAT"
+                 COMMENT="Bolometer heater D/A setting"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="pixheat" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="DETBIAS"
+                 COMMENT="Bolometer Bias D/A setting"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="detbias" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MUXTEMP"
+                 COMMENT="[K] Mux temperature"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="tmux" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BASETEMP"
+                 COMMENT="[K] Base temperature"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="tmix" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MIXSETP"
+                 COMMENT="[ohms] Mixing chamber set point"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="mixsetp" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="FLAT"
+                 COMMENT="Name of flat-field file"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="fillFlat" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SEQCOUNT"
+                 COMMENT="Setup Sequence Counter"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seqcount" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Environmental Data ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ATSTART"
+                 COMMENT="[degC] Air temp at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getAir_Temp" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ATEND"
+                 COMMENT="[degC] Air temp at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getAir_Temp" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="HUMSTART"
+                 COMMENT="Rel. Humidity at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getHumidity" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="HUMEND"
+                 COMMENT="Rel. Humidity at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getHumidity" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BPSTART"
+                 COMMENT="[mbar] Pressure at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getPressure" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BPEND"
+                 COMMENT="[mbar] Pressure at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getPressure" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDSPDST"
+                 COMMENT="[km/h] Wind Speed at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getWind_Speed" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDSPDEN"
+                 COMMENT="[km/h] Wind Speed at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getWind_Speed" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDDIRST"
+                 COMMENT="[deg] Wind direction, azimuth at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getWind_Dir" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WNDDIREN"
+                 COMMENT="[deg] Wind direction, azimuth at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getWind_Dir" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TAU225ST"
+                 COMMENT="Tau at 225 GHz from CSO at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getCSO_TAU" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="TAU225EN"
+                 COMMENT="Tau at 225 GHz from CSO at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getCSO_TAU" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUDATST"
+                 COMMENT="Time of TAU225ST observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getCSO_TAU_TIME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUDATEN"
+                 COMMENT="Time of TAU225EN observation"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getCSO_TAU_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="TAUSRC"
+                 COMMENT="Source of the TAU225 value"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getCSO_TAU_SRC" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WVMTAUST"
+                 COMMENT="183.31 GHz Tau via WVM at start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getJCMT_TAU" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="WVMTAUEN"
+                 COMMENT="183.31 GHz Tau via WVM at end"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getJCMT_TAU" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WVMDATST"
+                 COMMENT="Time of WVMTAUST"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getJCMT_TAU_TIME" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WVMDATEN"
+                 COMMENT="Time of WVMTAUEN"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getJCMT_TAU_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SEEINGST"
+                 COMMENT="[arcsec] SAO atmospheric seeing (start)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SEEINGEN"
+                 COMMENT="[arcsec] SAO atmospheric seeing (end)"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SEEDATST"
+                 COMMENT="Date/Time of SEEINGST"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SEEDATEN"
+                 COMMENT="Date/Time of SEEINGEN"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FRLEGTST"
+                 COMMENT="[degC] Mean Front leg temperature - Start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getMean_Front_Leg" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FRLEGTEN"
+                 COMMENT="[degC] Mean Front Leg temperature -End"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getMean_Front_Leg" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BKLEGTST"
+                 COMMENT="[degC] Mean back leg temperature -Start"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getMean_Back_Leg" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="BKLEGTEN"
+                 COMMENT="[degC] Mean back leg temperature -End"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="getMean_Back_Leg" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Switching and Map setup for the observation ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SAM_MODE"
+                 COMMENT="Sampling Mode"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.mapping_mode" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SW_MODE"
+                 COMMENT="Switch Mode: CHOP, PSSW, NONE, etc"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.switching_mode" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="INBEAM"
+                 COMMENT="Hardware in the beam"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setInbeam" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="SEQ_TYPE"
+                 COMMENT="Type of sequence"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seq_type" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="OBS_TYPE"
+                 COMMENT="Type of observation"
+                 VALUE="" >
+            <SELF PARAM="OCS_CONFIG.OBS_SUMMARY.obs_type" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="CHOP_CRD"
+                 COMMENT="Chopping co-ordinate system"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_FRQ"
+                 COMMENT="[Hz] Chop frequency"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_PA"
+                 COMMENT="[deg] Chop PA; 0=in lat, 90=in long"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="CHOP_THR"
+                 COMMENT="[arcsec] Chop throw"
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="JIGL_CNT"
+                 COMMENT="Number of offsets in jiggle pattern"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="JIGL_NAM"
+                 COMMENT="File containing the jiggle offsets"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="JIG_PA"
+                 COMMENT="[deg] Jiggling PA; 0=in lat, 90=in long"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="JIG_CRD"
+                 COMMENT="Jiggling co-ordinate system"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="JIG_SCAL"
+                 COMMENT="[arcsec] Scale of jiggle pattern"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="DRMWGHTS"
+                 COMMENT="Name of file containing DREAM weights"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_HGHT"
+                 COMMENT="[arcsec] Requested height of map"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_PA"
+                 COMMENT="[deg] Requested PA of map"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_WDTH"
+                 COMMENT="[arcsec] Requested width of map"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="LOCL_CRD"
+                 COMMENT="Local offset/map PA co-ordinate system"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_X"
+                 COMMENT="[arcsec] Requested map offset from tel centre"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="MAP_Y"
+                 COMMENT="[arcsec] Requested map offset from tel centre"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SCAN_CRD"
+                 COMMENT="Co-ordinate system for scanning direction"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_VEL"
+                 COMMENT="[arcsec/sec] Scan velocity along scan axis"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_DY"
+                 COMMENT="[arcsec] Scan spacing perp. to scan axis"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCAN_PA"
+                 COMMENT="[deg] Scan PA relative to SAM_CRDS"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="SCAN_PAT"
+                 COMMENT="Scan pattern name"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- SMU ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALIGN_DX"
+                 COMMENT="SMU tables X axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DX" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ALIGN_DY"
+                 COMMENT="SMU tables Y axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DY" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FOCUS_DZ"
+                 COMMENT="SMU tables Z axis focus offset"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.DZ" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DAZ"
+                 COMMENT="SMU azimuth pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_SMU_CA" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DEL"
+                 COMMENT="SMU elevation pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_SMU_IE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="UAZ"
+                 COMMENT="User azimuth pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_USER_CA" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="UEL"
+                 COMMENT="User elevation pointing offset"
+                 VALUE="" >
+            <DRAMA TASK="TEL" PARAM="CURR_USER_IE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- JOS parameters ----" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="STEPTIME"
+                 COMMENT="RTS step time during an RTS sequence"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.STEP_TIME" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NUM_CYC"
+                 COMMENT="Number of times to repeat entire recipe"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.NUM_CYCLES" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="JOS_MULT"
+                 COMMENT="MULT from JOS used in total steps calculation"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.JOS_MULT" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="JOS_MIN"
+                 COMMENT="MIN from JOS used in total steps calculation"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.JOS_MIN" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="NDRKSTEP"
+                 COMMENT="Number of RTS steps for each Dark (if any)"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.N_DARKSAMPLES" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="STBETDRK"
+                 COMMENT="Target number of RTS steps between darks"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.STEPS_BTWN_DARK" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="STARTIDX"
+                 COMMENT="Index into pattern at start of obs"
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.START_INDEX" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="FOCAXIS"
+                 COMMENT="Focus Axis to move (X, Y, Z)"
+                 VALUE="" />
+         <HEADER TYPE="INT"
+                 KEYWORD="NFOCSTEP"
+                 COMMENT="Number of focal position steps (odd number)"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FOCSTEP"
+                 COMMENT="Distance between focus steps"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="FOCPOSN"
+                 COMMENT="[mm] Relative SMU position"
+                 VALUE="" />
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Miscellaneous ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="OCSCFG"
+                 COMMENT="OCS config filename"
+                 VALUE="" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="DHSVER"
+                 COMMENT="Data Handling System Version"
+                 VALUE="" />
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_SMU"
+                 COMMENT="True if SMU data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_TCS"
+                 COMMENT="True if TCS data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_RTS"
+                 COMMENT="True if RTS data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="RTS" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_POL"
+                 COMMENT="True if polarization data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="SIMULATE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIMULATE"
+                 COMMENT="True if any data are simulated"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setSimulate" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="STATUS"
+                 COMMENT="Status of end of obervation"
+                 VALUE="UNKNOWN" >
+            <DERIVED TASK="SC2DA" METHOD="fillStatus" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- Polarimeter Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="POL_MODE"
+                 COMMENT="Step-and-integrate (STOP_START) or Spin (CONSTANT)"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="POL_MODE" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="ROTAFREQ"
+                 COMMENT="[Hz] Spin frequency (if spinning) of polarimeter"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="ROTAFREQ" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="POL_CRD"
+                 COMMENT="Coordinate system of polarimeter"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="COORD_SYSTEM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="POL_FAXS"
+                 COMMENT="Frequency dependency of waveplate offset of polarimeter"
+                 VALUE="" />
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="POLCALIN"
+                 COMMENT="True if polarimeter calibrator is in the beam"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="POL_CAL_INBEAM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="POLWAVIN"
+                 COMMENT="True if polarimeter waveplate is in the beam"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="POL_WP_INBEAM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="POLANLIN"
+                 COMMENT="True if polarimeter analyzer is in the beam"
+                 VALUE="" >
+            <DRAMA TASK="POL2" PARAM="POL_ANA_INBEAM" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="BLANKFIELD"
+         />
+         <HEADER TYPE="COMMENT"
+                 VALUE="---- FTS Specific ----" />
+         <HEADER TYPE="STRING"
+                 KEYWORD="FTS_MODE"
+                 COMMENT="Step-and-integrate (STEPINT) or fast-scanning  (FSCAN)"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="FTS_MODE" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="SCANVEL"
+                 COMMENT="[mm/s] Mirror scan rate in FSCAN mode"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="SCANVEL" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="FTS_IN"
+                 COMMENT="True if FTS pickoff mirror is in the beam"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="FTS_INBEAM" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="INT"
+                 KEYWORD="SCANDIR"
+                 COMMENT="1 -> back to front, -1 -> front to back"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="SCANDIR" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="STEPDIST"
+                 COMMENT="[mm] Amount to move each step in STEPINT mode"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="STEPDIST" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="LOGICAL"
+                 KEYWORD="SIM_FTS"
+                 COMMENT="True if FTS data is simulated"
+                 VALUE="" >
+            <DRAMA TASK="FTS2" PARAM="SIMULATE" EVENT="START" />
+         </HEADER>
+         <SUBHEADER TYPE="COMMENT"
+                 VALUE="---- IMAGE specific ----" />
+         <SUBHEADER TYPE="STRING"
+                 KEYWORD="DATE-OBS"
+                 COMMENT="UTC Datetime of start of image"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setUTCDate" EVENT="START" />
+         </SUBHEADER>
+         <SUBHEADER TYPE="STRING"
+                 KEYWORD="DATE-END"
+                 COMMENT="UTC Datetime of end of image"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="setUTCDate" EVENT="END" />
+         </SUBHEADER>
+         <SUBHEADER TYPE="INT"
+                 KEYWORD="SEQSTART"
+                 COMMENT="RTS index number of first frame contributing to  image"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seqstart" EVENT="START" />
+         </SUBHEADER>
+         <SUBHEADER TYPE="INT"
+                 KEYWORD="SEQEND"
+                 COMMENT="RTS index number of last frame contributing to  image"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seqend" EVENT="END" />
+         </SUBHEADER>
+         <SUBHEADER TYPE="FLOAT"
+                 KEYWORD="EXP_TIME"
+                 COMMENT="[s] Exposure time for image"
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="exptime" EVENT="START" />
+         </SUBHEADER>
+      </HEADER_CONFIG>
+      <RTS_CONFIG>
+         
+         <stTimeout value="10000" />
+         <sampTimeout value="30.0" />
+         <opMode value="1" />
+         <Sequence size="0" />
+      </RTS_CONFIG>
+      <SCUBA2_CONFIG>
+         
+         <SUBARRAY_MASK SUBARRAY_ID="s4a" VALUE="ON"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4b" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="ON"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8c" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="ON"/>
+      </SCUBA2_CONFIG>
+      <INSTRUMENT NAME="SCUBA2"
+                  SERIAL="SCUBA-2"
+                  FOC_STATION="NASMYTH_R"
+                  X="0.0"
+                  Y="0.0"
+                  WAVELENGTH="863" >
+         
+         <smu_offset X="0.0" Y="0.0" Z="0.2" />
+         <pointing_offset CA="31.4" IE="31.4" IA="-5.5" NPAE="6.8" AW="0.0" AN="0.4" TF="-34.7" CE="0" />
+         <array_area radius="240"/>
+         <waveBand band="B450" label="450" units="m" centre="0.00045" width="7e-5" >
+            <etal>0.6</etal>
+         </waveBand>
+         <waveBand band="B850" label="850" units="m" centre="0.00085" width="7e-5" >
+            <etal>0.85</etal>
+         </waveBand>
+         <subArray id="s4a"
+                   band="B450"
+                   health="ON"
+                   x="+132"
+                   y="-108"
+                   mceport="0"
+                   chipId="SG450_M1004D1000"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s4a_flat"
+                   task="SC2DA4A"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4a_drmwght"
+         />
+         <subArray id="s4b"
+                   band="B450"
+                   health="OFF"
+                   x="-108"
+                   y="-132"
+                   mceport="1"
+                   chipId="CG450Mk2_M0907D0501"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s4b_flat"
+                   task="SC2DA4B"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4b_drmwght"
+         />
+         <subArray id="s4c"
+                   band="B450"
+                   health="OFF"
+                   x="-132"
+                   y="+108"
+                   mceport="2"
+                   chipId="s450200806"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s4c_flat"
+                   task="SC2DA4C"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4c_drmwght"
+         />
+         <subArray id="s4d"
+                   band="B450"
+                   health="OFF"
+                   x="+108"
+                   y="+132"
+                   mceport="3"
+                   chipId="s450200807"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s4d_flat"
+                   task="SC2DA4D"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4d_drmwght"
+         />
+         <subArray id="s8a"
+                   band="B850"
+                   health="ON"
+                   x="+132"
+                   y="+108"
+                   mceport="4"
+                   chipId="s8a_test_mce"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s8a_flat"
+                   task="SC2DA8A"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8a_drmwght"
+         />
+         <subArray id="s8b"
+                   band="B850"
+                   health="OFF"
+                   x="-108"
+                   y="+132"
+                   mceport="5"
+                   chipId="s850200801"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s8b_flat"
+                   task="SC2DA8B"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8b_drmwght"
+         />
+         <subArray id="s8c"
+                   band="B850"
+                   health="OFF"
+                   x="-132"
+                   y="-108"
+                   mceport="6"
+                   chipId="CG850Mk2_M0904D0503"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s8c_flat"
+                   task="SC2DA8C"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8c_drmwght"
+         />
+         <subArray id="s8d"
+                   band="B850"
+                   health="ON"
+                   x="+108"
+                   y="-132"
+                   mceport="7"
+                   chipId="SG850_M1002D1006"
+                   flatfile="/jac_sw/itsroot/install/scuba2Files/s8d_flat"
+                   task="SC2DA8D"
+                   dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8d_drmwght"
+         />
+      </INSTRUMENT>
+      <TCS_CONFIG TELESCOPE="JCMT">
+         
+         
+         
+         <BASE TYPE="FOLLOWINGAZ">
+            
+            <target>
+               <targetName>Following</targetName>
+               <spherSystem SYSTEM="AZEL">
+                  <c1>00:00:00.00</c1>
+                  <c2>-90:00:00.00</c2>
+               </spherSystem>
+            </target>
+            
+            <TRACKING_SYSTEM SYSTEM="AZEL" />
+         </BASE>
+
+         
+
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="264"  />
+
+         
+
+         <obsArea>
+            
+            <SKY/>
+         </obsArea>
+
+         
+
+         <SECONDARY MOTION="CONTINUOUS">
+            
+         </SECONDARY>
+
+         
+
+         <DOME MODE="BASE" />
+      </TCS_CONFIG>
+   </OCS_CONFIG>
