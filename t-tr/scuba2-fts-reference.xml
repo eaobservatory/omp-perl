@@ -1145,11 +1145,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         STEPS_BTWN_FLAT="0"
                         N_FLATSAMPLES="1724.13793103448"
-                        NUM_CYCLES="23"
+                        NUM_CYCLES="3"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="13800"
+                        JOS_MIN="13793"
             />
          </recipe>
       </JOS_CONFIG>
@@ -2239,7 +2239,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="17004.28"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="2235.9838"  />
 
          
 
@@ -2301,11 +2301,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         N_FLATSAMPLES="1724.13793103448"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="45"
+                        NUM_CYCLES="5"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="6900"
+                        JOS_MIN="6897"
             />
          </recipe>
       </JOS_CONFIG>
@@ -3395,7 +3395,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="17040.1"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="1912.117"  />
 
          
 
@@ -3457,11 +3457,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         N_FLATSAMPLES="1724.13793103448"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="23"
+                        NUM_CYCLES="3"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="13800"
+                        JOS_MIN="13793"
             />
          </recipe>
       </JOS_CONFIG>
@@ -4551,7 +4551,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="17004.28"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="2235.9838"  />
 
          
 
@@ -4613,11 +4613,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         N_FLATSAMPLES="1724.13793103448"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="23"
+                        NUM_CYCLES="3"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="13800"
+                        JOS_MIN="13793"
             />
          </recipe>
       </JOS_CONFIG>
@@ -5707,7 +5707,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="17004.28"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="2235.9838"  />
 
          
 
@@ -5769,11 +5769,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         N_FLATSAMPLES="1724.13793103448"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="23"
+                        NUM_CYCLES="3"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="13800"
+                        JOS_MIN="13793"
             />
          </recipe>
       </JOS_CONFIG>
@@ -6863,7 +6863,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="17004.28"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="2235.9838"  />
 
          
 
@@ -8058,7 +8058,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="14700"
+                        JOS_MIN="14655"
             />
          </recipe>
       </JOS_CONFIG>
@@ -9144,7 +9144,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="371.04"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="369.996"  />
 
          
 
@@ -9201,7 +9201,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="7350"
+                        JOS_MIN="7328"
             />
          </recipe>
       </JOS_CONFIG>
@@ -10287,7 +10287,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="379.04"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="378.0192"  />
 
          
 
@@ -10344,7 +10344,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="14700"
+                        JOS_MIN="14655"
             />
          </recipe>
       </JOS_CONFIG>
@@ -11430,7 +11430,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="371.04"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="369.996"  />
 
          
 

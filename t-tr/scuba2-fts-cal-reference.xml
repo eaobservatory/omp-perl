@@ -1149,7 +1149,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="3450"
+                        JOS_MIN="3448"
             />
          </recipe>
       </JOS_CONFIG>
@@ -2238,7 +2238,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="88.03"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="87.9952"  />
 
          
 
@@ -2295,7 +2295,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="3450"
+                        JOS_MIN="3448"
             />
          </recipe>
       </JOS_CONFIG>
@@ -3384,7 +3384,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="88.03"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="87.9952"  />
 
          
 
@@ -4641,7 +4641,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
                  COMMENT="ORAC-DR recipe"
-                 VALUE="REDUCE_POINTING" />
+                 VALUE="REDUCE_FTS_POINTING" />
          <HEADER TYPE="STRING"
                  KEYWORD="DRGROUP"
                  COMMENT="Data Reduction group ID"
@@ -4737,7 +4737,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="INSTAP"
                  COMMENT="Subarray at tracking centre (if any)"
-                 VALUE="" />
+                 VALUE="fts8d" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="INSTAP_X"
                  COMMENT="[arcsec] Aperture X off. rel. to instr centre"
@@ -5548,12 +5548,12 @@
          
          <SUBARRAY_MASK SUBARRAY_ID="s4a" VALUE="ON"/>
          <SUBARRAY_MASK SUBARRAY_ID="s4b" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="ON"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="OFF"/>
          <SUBARRAY_MASK SUBARRAY_ID="s8c" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="ON"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="NEED"/>
       </SCUBA2_CONFIG>
       <INSTRUMENT NAME="SCUBA2"
                   SERIAL="SCUBA-2"
@@ -5699,6 +5699,7 @@
 
          
 
+         <INST_AP NAME="fts8d" X="105" Y="-105" />
          <DOME MODE="BASE" />
       </TCS_CONFIG>
    </OCS_CONFIG>
@@ -5798,7 +5799,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
                  COMMENT="ORAC-DR recipe"
-                 VALUE="REDUCE_FOCUS" />
+                 VALUE="REDUCE_FTS_FOCUS" />
          <HEADER TYPE="STRING"
                  KEYWORD="DRGROUP"
                  COMMENT="Data Reduction group ID"
@@ -5894,7 +5895,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="INSTAP"
                  COMMENT="Subarray at tracking centre (if any)"
-                 VALUE="" />
+                 VALUE="fts8d" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="INSTAP_X"
                  COMMENT="[arcsec] Aperture X off. rel. to instr centre"
@@ -6713,12 +6714,12 @@
          
          <SUBARRAY_MASK SUBARRAY_ID="s4a" VALUE="ON"/>
          <SUBARRAY_MASK SUBARRAY_ID="s4b" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="ON"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="OFF"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="OFF"/>
          <SUBARRAY_MASK SUBARRAY_ID="s8c" VALUE="ANY"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="ON"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="NEED"/>
       </SCUBA2_CONFIG>
       <INSTRUMENT NAME="SCUBA2"
                   SERIAL="SCUBA-2"
@@ -6864,6 +6865,7 @@
 
          
 
+         <INST_AP NAME="fts8d" X="105" Y="-105" />
          <DOME MODE="BASE" />
       </TCS_CONFIG>
    </OCS_CONFIG>
