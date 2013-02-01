@@ -618,6 +618,33 @@ sub fe_config {
   # Get the basic frontend setup from the freqconfig key
   my %fc = %{ $info{freqconfig} };
 
+  # Check whether the instrument configuration matches what
+  # the OT thought it was.
+  do {
+    my $iffreq = $inst->if_center_freq * 1.0E9; # to GHz
+    my $iffreq_ot = $fc{'otConfigIF'};
+
+    if ($iffreq != $iffreq_ot) {
+      my $message = 'The instrument IF frequency specified in '
+        . 'the instrument XML ('
+        . $iffreq
+        . ') does not match the IF frequency given in the observation ('
+        . $iffreq_ot
+        . ').  The frequency settings '
+        . 'may be calculated incorrectly if the OT used a different '
+        . 'IF frequency when creating the observation.';
+
+      if (OMP::Config->getData('acsis_translator.ignore_if_freq_mismatch')) {
+        $self->output('WARNING: ' . $message . "\n");
+      }
+      else {
+        throw OMP::Error::FatalError($message
+          . ' You can force the translation of the observation by enabling '
+          . 'ignore_if_freq_mismatch in the acsis_translator settings.');
+      }
+    }
+  };
+
   # Sideband mode
   $fe->sb_mode( $fc{sideBandMode} );
 

@@ -4871,6 +4871,12 @@ sub SpInstHeterodyne {
                           configuration => $self->_get_pcdata($el,"configuration"),
                           subsystems => \@subsystems,
 
+                          # Read the configuration data which the OT has
+                          # included in the file so that the translator can
+                          # check whether it still matches the instrument XML.
+                          otConfigIF => $self->_get_pcdata($el, "feIF"),
+                          otConfigBW => $self->_get_pcdata($el, "feBandwidth"),
+
                           # In new TOML the velocity is stored in the telescope
                           # object. Read the old values for compatibility
                           # with old DAS TOML. Also, it is possible for Het Setup to override
