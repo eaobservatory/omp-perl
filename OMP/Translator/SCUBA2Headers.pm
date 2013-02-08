@@ -167,7 +167,8 @@ sub getDRRecipe {
       # The superclass fails to find the FTS-2 recipes because
       # the mode doesn't match.
       if (exists $info{'data_reduction'} &&
-          exists $info{'data_reduction'}->{'stare'}) {
+          exists $info{'data_reduction'}->{'stare'} &&
+          defined $info{'data_reduction'}->{'stare'}) {
 
         $recipe = $info{'data_reduction'}->{'stare'};
 
@@ -179,8 +180,14 @@ sub getDRRecipe {
         return $recipe;
       }
 
-      # Otherwise use default FTS recipe.
-      $recipe = "REDUCE_FTS_SCAN";
+      # Check whether this is a ZPD measurement.
+      if ((exists $info{'SpecialMode'}) and ($info{'SpecialMode'} eq 'ZPD')) {
+        $recipe = "REDUCE_FTS_ZPD";
+      }
+      else {
+        # Otherwise use default FTS recipe.
+        $recipe = "REDUCE_FTS_SCAN";
+      }
     }
     elsif (ref $info{'inbeam'} and $has_pol) {
       $recipe = "REDUCE_POL_STARE";
