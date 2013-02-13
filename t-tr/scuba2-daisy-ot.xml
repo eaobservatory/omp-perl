@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>scuba2-daisy-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpMSB checksum="4413faa08acee2475e38dffb4472a8ebA" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="1"/>
+    <SpSiteQualityObsCompRef idref="2"/>
+    <SpTelescopeObsCompRef idref="0"/>
+    <estimatedDuration units="seconds">215.0</estimatedDuration>
+    <priority>99</priority>
+    <title>Standard:CRL2688</title>
+    <totalDuration units="seconds">215.0</totalDuration>
+    <SpTelescopeObsComp id="0" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>CRL2688</targetName>
+          <spherSystem SYSTEM="J2000">
+            <c1>21:02:18.270</c1>
+            <c2>+36:41:37.00</c2>
+            <rv defn="radio" frame="LSRK">0.0</rv>
+          </spherSystem>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>Near the bottom of the local.cfg file, under the section SCAN - POINT SOURCE, you will need to UNCOMMENT the CV Daisy example in the local.cfg file and COMMENT OUT the defaut daisy section. 
+
+Then make sure that the following parameters are set
+
+   scan_pntsrc_map_width = 240
+   scan_pntsrc_map_heigth = 240
+   scan_pntsrc_velocity = 155
+   scan_pntsrc_turn_radius= 120
+
+ Remember to set things back to default at the end of this test.</note>
+      <title>Scan parameters</title>
+    </SpNote>
+    <SpInstSCUBA2 id="1" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpSiteQualityObsComp id="2" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpObs checksum="cf3c96bac84d766d9f9ff5e8b5b24e8bA" msb="false" observed="84" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">215.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterOffset type="ic" subtype="offset">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <meta_gui_selectedOffsetPos>Offset0</meta_gui_selectedOffsetPos>
+          <obsArea>
+            <PA>0.0</PA>
+            <OFFSET>
+              <DC1>0.0</DC1>
+              <DC2>0.0</DC2>
+            </OFFSET>
+          </obsArea>
+          <SpIterRasterObs type="ic" subtype="rasterObs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <obsArea>
+              <PA>0.0</PA>
+              <SCAN_AREA>
+                <AREA HEIGHT="180.0" WIDTH="180.0"/>
+                <SCAN DY="30.0" VELOCITY="90.0" SYSTEM="FPLANE">
+                </SCAN>
+              </SCAN_AREA>
+            </obsArea>
+            <sampleTime>150.0</sampleTime>
+            <scanPattern>Point Source</scanPattern>
+          </SpIterRasterObs>
+        </SpIterOffset>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpDRRecipeRef idref="6"/>
+    <SpInstSCUBA2Ref idref="4"/>
+    <SpSiteQualityObsCompRef idref="5"/>
+    <SpTelescopeObsCompRef idref="3"/>
+    <estimatedDuration units="seconds">1860.0</estimatedDuration>
+    <library_version>$Revision$</library_version>
+    <priority>99</priority>
+    <title>Daisy observation of Jupiter</title>
+    <totalDuration units="seconds">1860.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note>A note about notes
+----------------
+
+ This is a note outlining good practice in note writing for SCUBA-2 MSBs.
+
+ PLEASE replace this note with your own note or delete altogether
+ BEFORE submitting the MSB.
+
+
+Things to include in your notes
+-------------------------------
+
+1) Overall observing strategy for your science program. A paragraph
+conveying the general ideas behind your science program is useful for
+the observer (who may not be an expert in your field) and the
+TSS. (Make sure to check "show to the Observer").
+
+2) Details of calibration observations. By default, the TSS will add
+suitable calibration, pointing, and focus observations throughout the
+night and it typically is not necessary to include these observations
+in your MSBs.
+
+If you have special calibration requirements make sure to describe to
+the TSS what is needed. In this case you can also explicitly add a
+calibration observation to the MSB by adding an "Observation"
+component and checking the "calibration" box. Similarly for pointing
+and focus observations. See the examples under "Example optionals".
+
+3) If you need a specific calibration measurement but only want it a
+few times for your run include it as a separate calibration MSB noting
+how often you want it to be done and that it should only be done when
+a science observation for your project is being observed. Calibration
+observations should be flagged as 'calibration' on their title page.
+See the examples under "Example optionals".</note>
+      <title>Please read</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="5" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+    </SpSiteQualityObsComp>
+    <SpDRRecipe id="6" type="oc" subtype="DRRecipe">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpDRRecipe>
+    <SpInstSCUBA2 id="4" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpTelescopeObsComp id="3" type="oc" subtype="targetList">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_gui_selectedTelescopePos>SCIENCE</meta_gui_selectedTelescopePos>
+      <meta_unique>true</meta_unique>
+      <BASE TYPE="SCIENCE">
+        <target>
+          <targetName>Jupiter</targetName>
+          <namedSystem TYPE="major"/>
+        </target>
+      </BASE>
+    </SpTelescopeObsComp>
+    <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">1860.0</estimatedDuration>
+      <standard>false</standard>
+      <title>Science Observation</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterRepeat type="ic" subtype="repeat">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <repeatCount>1</repeatCount>
+          <SpIterRasterObs type="ic" subtype="rasterObs">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <obsArea>
+              <PA>0.0</PA>
+              <SCAN_AREA>
+                <AREA HEIGHT="100.0" WIDTH="100.0"/>
+                <SCAN DY="30.0" VELOCITY="50.0" SYSTEM="FPLANE">
+                </SCAN>
+              </SCAN_AREA>
+            </obsArea>
+            <sampleTime>1800.0</sampleTime>
+            <scanPattern>Point Source</scanPattern>
+          </SpIterRasterObs>
+        </SpIterRepeat>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>

@@ -53,6 +53,7 @@ our $VERSION = sprintf("%d", q$Revision: 14936 $ =~ /(\d+)/);
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (
                RXA3 => 'RXA',
+               RXA3M => 'RXA',
                RXWB => 'RXWB',
                RXWD => 'RXWD',
                RXB3 => 'RXB',

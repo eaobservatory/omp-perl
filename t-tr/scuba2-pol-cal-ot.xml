@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>scuba2-pol-cal-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpMSB checksum="6e932a0abc06195e196b60f362d1356cA" observed="9" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="0"/>
+    <SpSiteQualityObsCompRef idref="1"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Pointing</title>
+    <totalDuration units="seconds">120.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="1" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="0" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="61907b1f66e338cbc17fb68ebaa21835A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">120.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Pointing</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterPointingObs type="ic" subtype="pointingObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+          <in_beam>pol2</in_beam>
+        </SpIterPointingObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+  <SpMSB checksum="b1c475ce4835bfd8e1c7df536186e704A" observed="3" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstSCUBA2Ref idref="2"/>
+    <SpSiteQualityObsCompRef idref="3"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <priority>99</priority>
+    <title>SCUBA-2 Focus Z 7-steps</title>
+    <totalDuration units="seconds">480.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Instructions for the observer</title>
+    </SpNote>
+    <SpSiteQualityObsComp id="3" type="oc" subtype="schedInfo">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+      <noiseCalculationTau>0.08</noiseCalculationTau>
+      <seeing>
+        <min>0.0</min>
+        <max>3.0</max>
+      </seeing>
+    </SpSiteQualityObsComp>
+    <SpInstSCUBA2 id="2" type="oc" subtype="inst.SCUBA2">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <meta_unique>true</meta_unique>
+    </SpInstSCUBA2>
+    <SpObs checksum="4fa2a8e03c0e4f7e0bb736f1e9e34703A" msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">480.0</estimatedDuration>
+      <standard>true</standard>
+      <title>SCUBA-2 Focus Z 7-steps</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterFocusObs type="ic" subtype="focusObs">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <autoTarget>true</autoTarget>
+          <axis>z</axis>
+          <focusPoints>7</focusPoints>
+          <in_beam>pol2</in_beam>
+          <steps>0.3</steps>
+        </SpIterFocusObs>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>

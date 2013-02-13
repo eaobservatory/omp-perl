@@ -804,8 +804,7 @@ sub jos_config {
     # Handle FTS-2 before stare/dream as it is a special case
     # of stare.  Probably clearer to have a separate block rather than
     # having the stare/dream case also deal with FTS-2.
-    # Also for FTS-2 we do not want to break a scan for darks
-    # or microstepping.
+    # Also for FTS-2 we do not want to break a scan for darks.
 
     my $fts2 = $cfg->fts2();
     throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
@@ -839,15 +838,21 @@ sub jos_config {
     my $sample_time = $info{'sampleTime'};
     throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because there was no sampleTime parameter") unless defined $sample_time;
 
+    # This time should be spread over the number of microsteps
+    # for which we need an obsArea.
+    my $tcs = $cfg->tcs();
+    throw OMP::Error::FatalError('for some reason TCS setup is not available. This can not happen') unless defined $tcs;
+    my $obsArea = $tcs->getObsArea();
+    throw OMP::Error::FatalError('for some reason TCS obsArea is not available. This can not happen') unless defined $obsArea;
+    my @ms = $obsArea->microsteps();
+    my $nms = (@ms ? @ms : 1);
+    $sample_time /= $nms;
 
     # Convert total integration time to steps
     # but don't split into chunks.
     # Use sufficient FTS-2 scans to give the desired integration time.
     my $num_cycles = POSIX::ceil( $sample_time / $inttime );
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
-
-    # Ensure that number of steps is a multiple of 50.
-    $jos_min = 50 * POSIX::ceil($jos_min / 50);
 
     # Raise an error if the number of steps exceeeds the maximum
     # which FTS-2 can handle.
@@ -859,6 +864,7 @@ sub jos_config {
 
     $self->output( "FTS-2 JOS parameters:\n",
                    "\tRequested integration time: $sample_time secs\n",
+                   "\tTo be spread over: $nms microsteps\n",
                    "\tCalculated time per scan: $inttime secs\n",
                    "\tNumber of steps per scan: $jos_min\n",
                    "\tNumber of cycles calculated: $num_cycles\n",
@@ -1114,6 +1120,9 @@ sub rotator_config {
 Reads the information from OMP::MSB (which should be in a simple hash form from
 the unroll_obs method) and creates a JAC::OCS::Config::FTS2 object.
 
+In the case of pointing and focus, it doesn't do that, but it just tweaks
+the SCUBA-2 and TCS configurations accordingly.
+
 =cut
 
 sub fts2_config {
@@ -1121,8 +1130,25 @@ sub fts2_config {
   my $cfg = shift;
   my %info = @_;
 
-  # Check if this is an FTS-2 observation.
-  return unless $info{'MODE'} eq 'SpIterFTS2Obs';
+  if ($info{'MODE'} eq 'SpIterPointingObs'
+  or  $info{'MODE'} eq 'SpIterFocusObs') {
+    # If this is a pointing or focus, check if FTS-2 is in the beam.
+    if (grep {$_ eq 'fts2'} @{$info{'inbeam'}}) {
+      $self->output("FTS-2 pointing/focus observation\n");
+      my $port = OMP::Config->getData($self->cfgkey . '.fts_'
+               . (($info{'MODE'} eq 'SpIterFocusObs') ? 'focus' : 'pointing')
+               . '_port');
+      $self->fts2_tcs_config($cfg, $port);
+      $self->fts2_scuba2_config($cfg, $port, '');
+    }
+
+    # Return now as we do not need to configure FTS-2 itself.
+    return;
+  }
+  elsif ($info{'MODE'} ne 'SpIterFTS2Obs') {
+    # Return now if this is not an FTS-2 observation.
+    return;
+  }
   $self->output("FTS-2 observation:\n");
 
   my $fts2 = new JAC::OCS::Config::FTS2();
@@ -1238,24 +1264,43 @@ sub fts2_config {
   }
 
   $cfg->fts2($fts2);
-  $fts2 = undef; # Prevent accidental usage which will not be saved.
 
   # Finished configuring FTS-2, now configure TCS.
+  $self->fts2_tcs_config($cfg, $port);
+
+  # Adjust SCUBA-2 mask.
+  $self->fts2_scuba2_config($cfg, $port, $mode);
+}
+
+=item B<fts2_tcs_config>
+
+Adjusts TCS configuration for observations with FTS-2 in the beam.
+
+  $self->fts2_tcs_config($cfg, $port);
+
+The C<$port> should be '8D' or '8C'.
+
+This subroutine looks up the given port in the extra apertures
+file and configures the TCS and INSTAP header accordingly.
+
+=cut
+
+sub fts2_tcs_config {
+  my $self = shift;
+  my $cfg = shift;
+  my $port = shift;
 
   my $tcs = $cfg->tcs();
   my $instap = $cfg->header()->item('INSTAP');
   my $aperture_name;
-  my $short_port;
 
   if (uc($port) eq '8D') {
     # FTS-2 port 1 is S4A and S8D
     $aperture_name = 'fts8d';
-    $short_port = '4A';
   }
   elsif (uc($port) eq '8C') {
     # FTS-2 port 2 is S4B and S8C
     $aperture_name = 'fts8c';
-    $short_port = '4B';
   }
   else {
     throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
@@ -1274,14 +1319,57 @@ sub fts2_config {
   } else {
     throw OMP::Error::TranslateFail('Could not determine aperture coordinates for: ' . $aperture_name)
   }
+}
 
-  $tcs = undef; # Prevent accidental usage.
+=item B<fts2_scuba2_config>
 
-  # Adjust SCUBA-2 mask.
+Adjusts SCUBA-2 configuration for observations with FTS-2 in the beam.
+
+  $self->fts2_scuba2_config($cfg, $port, $mode);
+
+This subroutine turns off the non-FTS subarrays, and sets the
+main subarray corresponding to the given port to NEED.  The
+C<$port> value is as for L<fts2_tcs_config>.
+
+The C<$mode> parameter is used to further adjust the subarray
+requirements:
+
+=over 4
+
+=item ZPD
+
+The 450um equivalent subarray is set to NEED instead.
+
+=item Contains 850um
+
+The 450um subarrays are disabled.
+
+=back
+
+=cut
+
+sub fts2_scuba2_config {
+  my $self = shift;
+  my $cfg = shift;
+  my $port = shift;
+  my $mode = shift;
 
   my $scuba2 = $cfg->scuba2();
   my %mask = $scuba2->mask();
   my @unused = qw/s4c s4d s8a s8b/;
+  my $short_port;
+
+  if (uc($port) eq '8D') {
+    # FTS-2 port 1 is S4A and S8D
+    $short_port = '4A';
+  }
+  elsif (uc($port) eq '8C') {
+    # FTS-2 port 2 is S4B and S8C
+    $short_port = '4B';
+  }
+  else {
+    throw OMP::Error::TranslateFail('Unknown FTS-2 Port: ' . $port)
+  }
 
   push @unused, qw/s4a s4b/ if $mode =~ /850um/;
   $port = $short_port if $mode eq 'ZPD';

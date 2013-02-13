@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SpProg type="pr" subtype="none"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+
+  <meta_gui_collapsed>false</meta_gui_collapsed>
+  <meta_gui_filename>harp-cal-ot.xml</meta_gui_filename>
+  <country>JAC</country>
+  <ot_version>20121213</ot_version>
+  <pi>Graham Bell</pi>
+  <projectID>MXXXJXX</projectID>
+  <telescope>jcmt</telescope>
+  <title>Translator Test</title>
+  <SpInstHeterodyne id="0" type="oc" subtype="inst.Heterodyne">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <meta_unique>true</meta_unique>
+    <band>best</band>
+    <bandMode>1</bandMode>
+    <beName>acsis</beName>
+    <feBandWidth>2.0E9</feBandWidth>
+    <feIF>5.0E9</feIF>
+    <feName>HARP</feName>
+    <mixers>1</mixers>
+    <mode>ssb</mode>
+    <skyFrequency>3.457959899E11</skyFrequency>
+
+    <!-- - - - - - - - - - - - - - - - - - - - - -->
+    <!--          ACSIS Configuration XML        -->
+    <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+    <subsystems>
+        <subsystem if="5.0E9" bw="1.0E9" overlap="0.0" channels="2048">
+            <line species="CO" transition="3  - 2" rest_freq="3.457959899E11"/>
+        </subsystem>
+    </subsystems>
+
+  </SpInstHeterodyne>
+  <SpMSB checksum="fa487385f60e76f61e06c6d4b0c0c984A" remaining="1" type="og" subtype="msb">
+    <meta_gui_collapsed>false</meta_gui_collapsed>
+    <SpInstHeterodyneRef idref="0"/>
+    <estimatedDuration units="seconds">0.0</estimatedDuration>
+    <library_version>$Revision: 1.5 $</library_version>
+    <priority>98</priority>
+    <title>RxA Point Focus-ZXY (7-sample)</title>
+    <totalDuration units="seconds">570.0</totalDuration>
+    <SpNote observeInstruction="true" type="no" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <note></note>
+      <title>Pointing</title>
+    </SpNote>
+    <SpObs msb="false" optional="true" remaining="1" type="ob" subtype="none">
+      <meta_gui_collapsed>false</meta_gui_collapsed>
+      <estimatedDuration units="seconds">570.0</estimatedDuration>
+      <standard>true</standard>
+      <title>RxA Point Focus-ZXY (7-sample)</title>
+      <SpIterFolder type="if" subtype="none">
+        <meta_gui_collapsed>false</meta_gui_collapsed>
+        <SpIterRepeat type="ic" subtype="repeat">
+          <meta_gui_collapsed>false</meta_gui_collapsed>
+          <repeatCount>1</repeatCount>
+          <SpIterChop type="ic" subtype="chop">
+            <meta_gui_collapsed>false</meta_gui_collapsed>
+            <SECONDARY>
+              <CHOP SYSTEM="AZEL">
+                <THROW>60.0</THROW>
+                <PA>90.0</PA>
+              </CHOP>
+            </SECONDARY>
+            <SpIterPointingObs type="ic" subtype="pointingObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <autoTarget>true</autoTarget>
+              <switchingMode>Beam</switchingMode>
+            </SpIterPointingObs>
+            <SpIterFocusObs type="ic" subtype="focusObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <autoTarget>true</autoTarget>
+              <axis>z</axis>
+              <focusPoints>7</focusPoints>
+              <steps>0.3</steps>
+              <switchingMode>Beam</switchingMode>
+            </SpIterFocusObs>
+            <SpIterFocusObs type="ic" subtype="focusObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <autoTarget>true</autoTarget>
+              <axis>x</axis>
+              <focusPoints>7</focusPoints>
+              <steps>1.0</steps>
+              <switchingMode>Beam</switchingMode>
+            </SpIterFocusObs>
+            <SpIterFocusObs type="ic" subtype="focusObs">
+              <meta_gui_collapsed>false</meta_gui_collapsed>
+              <autoTarget>true</autoTarget>
+              <axis>y</axis>
+              <focusPoints>7</focusPoints>
+              <steps>1.0</steps>
+              <switchingMode>Beam</switchingMode>
+            </SpIterFocusObs>
+          </SpIterChop>
+        </SpIterRepeat>
+      </SpIterFolder>
+    </SpObs>
+  </SpMSB>
+</SpProg>
