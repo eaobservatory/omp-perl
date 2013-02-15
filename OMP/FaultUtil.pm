@@ -89,6 +89,10 @@ sprintf("%-58s %s","<b>System:</b> $system","<b>Fault type:</b> $type<br>").
 sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
 "</pre><br>";
 
+  $meta .= '<pre>'.
+'<b>Location:</b> ' . $fault->locationText().
+'</pre><br>' if $fault->location();
+
   my @faulttext;
 
   # Create the fault text

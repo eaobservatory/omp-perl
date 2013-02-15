@@ -226,6 +226,10 @@ sub fault_table {
   }
   print "</td>";
 
+  # Display location if specified
+  print "<tr bgcolor=#ffffff><td><b>Location: </b>" . $fault->locationText()
+     . " </td><td>&nbsp;</td>" if $fault->location();
+
   # Display links to projects associated with this fault if any
   my @projects = $fault->projects;
 
