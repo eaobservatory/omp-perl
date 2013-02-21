@@ -26,6 +26,7 @@ use Time::Seconds qw/ ONE_DAY /;
 
 use OMP::CGIComponent::Obslog;
 use OMP::CGIComponent::Helper qw/ public_url /;
+use OMP::CGIComponent::IncludeFile qw/include_file_ut/;
 use OMP::CGIComponent::MSB;
 use OMP::CGIComponent::Shiftlog;
 use OMP::CGIComponent::Weather;
@@ -398,6 +399,9 @@ sub projlog_content {
   # Display WVM graph
   my $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate);
   print $wvm_html;
+
+  # Include nightly data quality analysis.
+  include_file_ut('dq-nightly', $utdate);
 }
 
 =back
