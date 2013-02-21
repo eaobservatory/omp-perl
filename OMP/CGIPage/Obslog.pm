@@ -401,6 +401,7 @@ sub projlog_content {
   print $wvm_html;
 
   # Include nightly data quality analysis.
+  print "\n<h2>Data Quality Analysis</h2>\n\n";
   include_file_ut('dq-nightly', $utdate);
 }
 
