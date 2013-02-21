@@ -537,3 +537,18 @@ a.index-title-link:hover   { color: #9ff; }
   background-color: #cbcbcd;
   color: #949494;
 }
+
+table.bordered {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+table.bordered td, table.bordered th {
+  border: 1px solid black;
+  padding: 5px;
+}
+
+table.bordered caption {
+  padding: 5px;
+  font-weight: bold;
+}
