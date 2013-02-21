@@ -79,7 +79,9 @@ my @srcdirs = qw/ cgi server web /;
 
 my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
-                   fbworfthumb.pl feedback.pl filefault.pl index.html issuepwd.pl
+                   fbworfthumb.pl feedback.pl filefault.pl
+                   get_resource.pl
+                   index.html issuepwd.pl
                    listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
                    projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
