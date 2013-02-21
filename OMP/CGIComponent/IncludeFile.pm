@@ -154,6 +154,7 @@ sub get_resource {
 
   unless (scalar @$observed) {
     print header(-status => '403 Forbidden');
+    print '<h1>403 Forbidden</h1>';
     return;
   }
 
@@ -207,6 +208,7 @@ sub _get_resource_ut {
 
   unless (-e $pathname) {
     print header(-status => '404 Not Found');
+    print '<h1>404 Not Found</h1>';
     return;
   }
 
