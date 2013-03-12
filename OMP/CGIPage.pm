@@ -543,6 +543,10 @@ sub write_page {
   my $mode_output = ($q->param('show_output')  or $q->url_param('output'))
                 && !($q->param('show_content') or $q->url_param('content'));
 
+  # Force output mode if there's no form (the 2 subroutines are the same)
+  # and we want to server non-HTML.
+  $mode_output ||= ($output_wo_header and $form_content == $form_output);
+
   # Print HTML header (including sidebar)
   $self->_write_header()
     unless $output_wo_header && $mode_output;
