@@ -401,7 +401,11 @@ sub projlog_content {
   print $wvm_html;
 
   # Include nightly data quality analysis.
-  print "\n<h2>Data Quality Analysis</h2>\n\n";
+  print "\n<h2>Data Quality Analysis</h2>\n\n",
+        '<p><a href="http://pipelinesandarchives.blogspot.com/',
+        '2013/03/new-omp-features-for-projects.html">',
+        'Explanation of the graphs and tables.',
+        "</a></p>\n\n";
   include_file_ut('dq-nightly', $utdate);
 }
 
