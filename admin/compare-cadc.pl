@@ -237,48 +237,103 @@ sub get_count {
 
   my ( $dbh, $table ) = @_;
 
-  die "Need db handle & a table name" unless scalar @_ > 1;
+  defined $dbh
+    or die_via_disconnect( undef, 'Database handle has become undefined.' );
+
+  die_via_disconnect( undef, 'Need db handle & a table name' ) unless scalar @_ > 1;
 
   my $sql = qq[SELECT COUNT(*) FROM $table];
-  my $count = $dbh->selectrow_arrayref( $sql ) or die $dbh->errstr;
+
+  my $count = $dbh->selectrow_arrayref( $sql )
+    or die_via_disconnect( undef,
+                            qq[Error occurred while getting count from table $table: ]
+                            . $DBI::errstr
+                          );
 
   return unless defined $count;
   return $count->[0];
 }
 
-# Given a OMP::Config object containing database connection data, returns a
-# database handle.
-sub make_connection {
+{
+  my %dbcache;
 
-  my ( $cf ) = @_;
+  # Given a OMP::Config object containing database connection data, returns a
+  # database handle.
+  sub make_connection {
 
-  my ( $server, $db, $user, $pass ) =
-    map
-      { $cf->getData( "database.$_" ) }
-      qw[ server  database  user  password ];
+    my ( $cf ) = @_;
 
-  die "No database log in data found"
-    if grep { ! defined }  $server, $db, $user, $pass;
+    my ( $server, $db, $user, $pass ) =
+      map
+        { $cf->getData( "database.$_" ) }
+        qw[ server  database  user  password ];
 
-  $DEBUG and warn "Connecting to ${server}.${db} as ${user}";
-  my $dbh =
-    DBI->connect( "dbi:Sybase:server=$server" , $user, $pass
-                  , { 'RaiseError' => 1
-                    , 'PrintError' => 0
-                    , 'AutoCommit' => 0
-                    }
-                )
-      or croak $DBI::errstr;
+    die_via_disconnect( undef, "No database log in data found" )
+      if grep { ! defined }  $server, $db, $user, $pass;
 
-  for ( $dbh )
-  {
-    $_->{'syb_show_sql'} = 1 ;
-    $_->{'syb_show_eed'} = 1 ;
+    my $connection = qq[${server}.${db}:${user}];
 
-    $_->do( "use $db" ) or die $_->errstr;
+    $DEBUG and warn "Connecting to $connection";
+    my $dbh =
+      DBI->connect( "dbi:Sybase:server=$server;timeout=300" , $user, $pass
+                    , { 'RaiseError' => 1
+                      , 'PrintError' => 0
+                      , 'AutoCommit' => 1
+                      }
+                  )
+        or do { disconnect_all(); croak $DBI::errstr; };
+
+    $dbcache{ $connection } = $dbh;
+
+    for ( $dbh )
+    {
+      $_->{'syb_show_sql'} = 1 ;
+      $_->{'syb_show_eed'} = 1 ;
+
+      $_->do( "use $db" ) or die_via_disconnect( $_ );
+    }
+
+    return $dbh ;
   }
 
-  return $dbh ;
+  sub disconnect_all {
+
+    for my $con ( sort keys %dbcache ) {
+
+      my $dbh = delete $dbcache{ $con };
+      if ( defined $dbh ) {
+
+        $DEBUG and warn 'Disconnecting from ', "$con", "\n";
+
+        $dbh->disconnect()
+          or warn 'Error during disconnect: ', $dbh->errstr(), "\n";
+      }
+    }
+
+    return;
+  }
+}
+
+
+sub die_via_disconnect {
+
+  my ( $dbh, $text ) = @_;
+
+  $text and warn $text, "\n";
+
+  if ( defined $dbh ) {
+
+    unless ( $text ) {
+
+      my $err = $dbh->errstr();
+      $err and warn $err, "\n";
+    }
+
+    $dbh->disconnect();
+  }
+
+  disconnect_all();
+  exit 1;
 }
 
 =pod
