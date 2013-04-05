@@ -237,6 +237,8 @@ sub get_count {
 
   my ( $dbh, $table ) = @_;
 
+  local ( $!, $@ );
+
   defined $dbh
     or die_via_disconnect( undef, 'Database handle has become undefined.' );
 
@@ -247,11 +249,28 @@ sub get_count {
   my $count = $dbh->selectrow_arrayref( $sql )
     or die_via_disconnect( undef,
                             qq[Error occurred while getting count from table $table: ]
-                            . $DBI::errstr
+                            . _make_errtext( 'DBI ERROR'   => $DBI::errstr,
+                                              'EVAL ERROR' => $@,
+                                              'OS ERROR'   => $!,
+                                            )
                           );
 
   return unless defined $count;
   return $count->[0];
+}
+
+sub _make_errtext {
+
+  my ( %type ) = @_;
+
+  return
+    join "\n",
+      map
+      { defined $type{ $_ } && length $type{ $_ }
+        ? sprintf( '(%s) %s', $_ => $type{ $_ } )
+        : ()
+      }
+      keys %type;
 }
 
 {
