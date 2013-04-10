@@ -309,6 +309,10 @@ sub _make_errtext {
       $_->{'syb_show_sql'} = 1 ;
       $_->{'syb_show_eed'} = 1 ;
 
+      # XXX Remove|Disable the trace() for normal run. Currently set to see
+      # reason of not getting a row count from random table.
+      $_->trace( 2 );
+
       $_->do( "use $db" ) or die_via_disconnect( $_ );
     }
 
