@@ -415,6 +415,7 @@ Array Tests are converted to a special noise observation.
 sub handle_special_modes {
   my $self = shift;
   my $info = shift;
+  my $has_fts = scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}};
 
   # The trick is to fill in the blanks
 
@@ -424,7 +425,8 @@ sub handle_special_modes {
     # Get the integration time in seconds
     my $exptime = OMP::Config->getData($self->cfgkey.".".
                                        $info->{obs_type}.
-                                       "_integration");
+                                       "_integration".
+                                       ($has_fts ? '_fts' : ''));
 
     $self->output( "Determining ".uc($info->{obs_type}). " parameters...\n",
                    "\tIntegration time: $exptime secs\n");
@@ -471,17 +473,31 @@ sub handle_special_modes {
 
       $self->output( "Defining ".$info->{scanPattern}." scan map from config.\n");
 
+      my %scan_parameters = (
+                              scanPattern => "pattern",
+                              MAP_HEIGHT => "map_height",
+                              MAP_WIDTH => "map_width",
+                              SCAN_VELOCITY => "velocity",
+                              SCAN_DY => "scan_dy",
+      );
+
       my $key = ".scan_". $smode . "_";
-      $info->{scanPattern} = OMP::Config->getData($self->cfgkey. $key .
-                                                  "pattern");
-      $info->{MAP_HEIGHT} = OMP::Config->getData($self->cfgkey. $key .
-                                                 "map_height");
-      $info->{MAP_WIDTH} = OMP::Config->getData($self->cfgkey. $key .
-                                                "map_width");
-      $info->{SCAN_VELOCITY} = OMP::Config->getData($self->cfgkey. $key .
-                                                    "velocity");
-      $info->{SCAN_DY} = OMP::Config->getData($self->cfgkey. $key .
-                                              "scan_dy");
+      my $prefix = $has_fts ? 'fts' : undef;
+
+      foreach my $param (keys %scan_parameters) {
+        my $name = $scan_parameters{$param};
+        $info->{$param} = OMP::Config->getData($self->cfgkey . $key . $name);
+
+        next unless defined $prefix;
+
+        my $override = eval {OMP::Config->getData($self->cfgkey . '.' .
+                             $prefix . '_' . substr($key, 1) . $name);};
+
+        next unless defined $override;
+
+        $self->output('        Overriding ' . $param . ' parameter for ' . $prefix . ".\n");
+        $info->{$param} = $override;
+      }
 
       for my $extras (qw/ TURN_RADIUS ACCEL XSTART YSTART VX VY / ) {
         my $cfgitem = lc($extras);
@@ -819,7 +835,16 @@ sub jos_config {
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is not specified") unless defined $scan_spd;
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is zero") if 0 == $scan_spd;
 
-      $inttime = $scan_length / $scan_spd;
+      my $acceleration = OMP::Config->getData($self->cfgkey . '.fts_acceleration');
+
+      # Correct for time spent accelerating.
+      # During t_accel = speed / accel
+      # at the start of the scan we cover a distance of
+      # 1/2 * accel * t_accel^2 = 1/2 * spd * t_accel
+      # i.e. half the expected distance.   So including both
+      # ends of the scan we need to spend an extra t_accel
+      # at full speed to cover the requested scan length.
+      $inttime = ($scan_length / $scan_spd) + ($scan_spd / $acceleration);
 
     } elsif ($scan_mode eq 'STEP_AND_INTEGRATE') {
 
@@ -854,6 +879,14 @@ sub jos_config {
     my $num_cycles = POSIX::ceil( $sample_time / $inttime );
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
 
+    # Continuous scanning in one sequence?
+    # For RAPID_SCAN / ZPD_MODE we now plan to scan back and forth within
+    # a sequence, so recombine the cycles.
+    if ($scan_mode eq 'RAPID_SCAN' or $scan_mode eq 'ZPD_MODE') {
+      $jos_min *= $num_cycles;
+      $num_cycles = 1;
+    }
+
     # Raise an error if the number of steps exceeeds the maximum
     # which FTS-2 can handle.
     my $jos_max = OMP::Config->getData($self->cfgkey . '.fts_max_steps');
@@ -866,7 +899,7 @@ sub jos_config {
                    "\tRequested integration time: $sample_time secs\n",
                    "\tTo be spread over: $nms microsteps\n",
                    "\tCalculated time per scan: $inttime secs\n",
-                   "\tNumber of steps per scan: $jos_min\n",
+                   "\tNumber of steps per sequence: $jos_min\n",
                    "\tNumber of cycles calculated: $num_cycles\n",
                    "\tActual total time: ".
                    ($jos_min * $num_cycles * $eff_step_time)." secs\n");
@@ -957,9 +990,25 @@ sub jos_config {
       my $perimeter = 2.0 * pi * $r;
       $duration_per_area = $perimeter / $mapping_info{VELOCITY};
     } elsif ($info{scanPattern} =~ /daisy/i) {
-      # From Per Friberg
+      # Originally from Per Friberg, committed Wed Feb 10 15:32:12 2010 -1000
       my $r0 = ($mapping_info{WIDTH}+$mapping_info{HEIGHT}) / 4;
-      my $o = $mapping_info{VELOCITY} / $mapping_info{DY} / $r0;
+      # Negative DY values have been used as a hack to adjust the daisy
+      # pattern, but they disturb the calculation.  Therefore check
+      # if we have a negative value and if so, use the default.
+      my $dy = $mapping_info{DY};
+      if ($dy < 0) {
+        if (OMP::Config->getData($self->cfgkey . '.scan_pntsrc_pattern')
+            == 'cv_daisy') {
+          $dy = OMP::Config->getData($self->cfgkey . '.scan_pntsrc_scan_dy');
+          $self->output("\tNegative DY: found value DY=$dy for calculation.\n");
+        }
+        else {
+          # Have to just take the default value...
+          $dy = 0.6;
+          $self->output("\tNegative DY: used default DY=$dy for calculation.\n");
+        }
+      }
+      my $o = $mapping_info{VELOCITY} / $dy / $r0;
       my $O = $o / 10.1;
       $duration_per_area = 2.0 * pi / $O;
     } else {
