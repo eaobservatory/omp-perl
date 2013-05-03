@@ -863,6 +863,14 @@ sub jos_config {
     my $num_cycles = POSIX::ceil( $sample_time / $inttime );
     my $jos_min = OMP::General::nint( $inttime / $eff_step_time );
 
+    # Continuous scanning in one sequence?
+    # For RAPID_SCAN / ZPD_MODE we now plan to scan back and forth within
+    # a sequence, so recombine the cycles.
+    if ($scan_mode eq 'RAPID_SCAN' or $scan_mode eq 'ZPD_MODE') {
+      $jos_min *= $num_cycles;
+      $num_cycles = 1;
+    }
+
     # Raise an error if the number of steps exceeeds the maximum
     # which FTS-2 can handle.
     my $jos_max = OMP::Config->getData($self->cfgkey . '.fts_max_steps');
@@ -875,7 +883,7 @@ sub jos_config {
                    "\tRequested integration time: $sample_time secs\n",
                    "\tTo be spread over: $nms microsteps\n",
                    "\tCalculated time per scan: $inttime secs\n",
-                   "\tNumber of steps per scan: $jos_min\n",
+                   "\tNumber of steps per sequence: $jos_min\n",
                    "\tNumber of cycles calculated: $num_cycles\n",
                    "\tActual total time: ".
                    ($jos_min * $num_cycles * $eff_step_time)." secs\n");
