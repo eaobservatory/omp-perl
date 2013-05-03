@@ -819,7 +819,16 @@ sub jos_config {
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is not specified") unless defined $scan_spd;
       throw OMP::Error::FatalError("Could not determine observing time for FTS-2 observation because the scan speed is zero") if 0 == $scan_spd;
 
-      $inttime = $scan_length / $scan_spd;
+      my $acceleration = OMP::Config->getData($self->cfgkey . '.fts_acceleration');
+
+      # Correct for time spent accelerating.
+      # During t_accel = speed / accel
+      # at the start of the scan we cover a distance of
+      # 1/2 * accel * t_accel^2 = 1/2 * spd * t_accel
+      # i.e. half the expected distance.   So including both
+      # ends of the scan we need to spend an extra t_accel
+      # at full speed to cover the requested scan length.
+      $inttime = ($scan_length / $scan_spd) + ($scan_spd / $acceleration);
 
     } elsif ($scan_mode eq 'STEP_AND_INTEGRATE') {
 
