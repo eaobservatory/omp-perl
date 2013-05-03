@@ -16,11 +16,11 @@
                         STEPS_BTWN_DARK="34482758.6206897"
                         N_FLATSAMPLES="1724.13793103448"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="4"
+                        NUM_CYCLES="18"
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="14655"
+                        JOS_MIN="2931"
             />
          </recipe>
       </JOS_CONFIG>
@@ -1106,7 +1106,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="369.996"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="363.9964"  />
 
          
 
@@ -1134,10 +1134,10 @@
          
          <SCAN_MODE VALUE="RAPID_SCAN" />
          <SCAN_DIR VALUE="DIR_ARBITRARY" />
-         <SCAN_ORIGIN UNIT="mm">182.5</SCAN_ORIGIN>
+         <SCAN_ORIGIN UNIT="mm">185.5</SCAN_ORIGIN>
          <SHUT8C VALUE="OUTOFBEAM" />
          <SHUT8D VALUE="OUTOFBEAM" />
-         <SCAN_SPD UNIT="mm/s">1.0</SCAN_SPD>
+         <SCAN_SPD UNIT="mm/s">5.0</SCAN_SPD>
          <SCAN_LENGTH UNIT="mm">85.0</SCAN_LENGTH>
       </FTS2_CONFIG>
    </OCS_CONFIG>
