@@ -415,6 +415,7 @@ Array Tests are converted to a special noise observation.
 sub handle_special_modes {
   my $self = shift;
   my $info = shift;
+  my $has_fts = scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}};
 
   # The trick is to fill in the blanks
 
@@ -424,7 +425,8 @@ sub handle_special_modes {
     # Get the integration time in seconds
     my $exptime = OMP::Config->getData($self->cfgkey.".".
                                        $info->{obs_type}.
-                                       "_integration");
+                                       "_integration".
+                                       ($has_fts ? '_fts' : ''));
 
     $self->output( "Determining ".uc($info->{obs_type}). " parameters...\n",
                    "\tIntegration time: $exptime secs\n");
@@ -480,7 +482,7 @@ sub handle_special_modes {
       );
 
       my $key = ".scan_". $smode . "_";
-      my $prefix = (scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}}) ? 'fts' : undef;
+      my $prefix = $has_fts ? 'fts' : undef;
 
       foreach my $param (keys %scan_parameters) {
         my $name = $scan_parameters{$param};
