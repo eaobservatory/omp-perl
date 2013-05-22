@@ -1214,11 +1214,13 @@ sub fts2_config {
       # The SED observation mode produces low-resolution double-sided
       # interferograms using the dual-port configuration.
       'SED'                 => 'sed',
+      'SED 450um'           => 'sed450',
       'SED 850um'           => 'sed850',
 
       # The Spectral Line mode acquires high-resolution single-sided 
       # interferograms using the dual-port configuration.
       'Spectral Line'       => 'spectralline',
+      'Spectral Line 450um' => 'spectralline450',
       'Spectral Line 850um' => 'spectralline850',
   );
 
