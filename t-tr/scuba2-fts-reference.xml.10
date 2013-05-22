@@ -20,7 +20,7 @@
                         N_DARKSAMPLES="1724.13793103448"
                         STEP_TIME="0.005"
                         START_INDEX="1"
-                        JOS_MIN="52920"
+                        JOS_MIN="55182"
             />
          </recipe>
       </JOS_CONFIG>
@@ -1106,7 +1106,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="330.936"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="344.0556"  />
 
          
 
@@ -1134,10 +1134,10 @@
          
          <SCAN_MODE VALUE="RAPID_SCAN" />
          <SCAN_DIR VALUE="DIR_ARBITRARY" />
-         <SCAN_ORIGIN UNIT="mm">185.5</SCAN_ORIGIN>
+         <SCAN_ORIGIN UNIT="mm">209</SCAN_ORIGIN>
          <SHUT8C VALUE="OUTOFBEAM" />
          <SHUT8D VALUE="OUTOFBEAM" />
-         <SCAN_SPD UNIT="mm/s">5.0</SCAN_SPD>
-         <SCAN_LENGTH UNIT="mm">85.0</SCAN_LENGTH>
+         <SCAN_SPD UNIT="mm/s">4.2</SCAN_SPD>
+         <SCAN_LENGTH UNIT="mm">38.0</SCAN_LENGTH>
       </FTS2_CONFIG>
    </OCS_CONFIG>

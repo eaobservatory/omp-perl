@@ -822,6 +822,20 @@ sub jos_config {
     # having the stare/dream case also deal with FTS-2.
     # Also for FTS-2 we do not want to break a scan for darks.
 
+    # For FTS-2 we currently disable some of the sub-arrays which has
+    # the knock-on effect of slighly reducing the delays in the system
+    # which cause the average step time to exceed the requested
+    # step time.  Therefore as requested by Doug Johnstone
+    # (by Polycom, 2013-05-22, during FTS-2 E&C run), allow an
+    # alternate value of step_time_error to be specified for FTS-2
+    # observations.  This should allow us to avoid the problem of
+    # FTS-2 scans ending too early because the steps in them end up
+    # shorter than expected by giving a smaller error factor.
+    my $ftssteperr = eval {OMP::Config->getData($self->cfgkey . '.fts_step_time_error');};
+    if (defined $ftssteperr) {
+        $eff_step_time = $jos->step_time() * $ftssteperr;
+    }
+
     my $fts2 = $cfg->fts2();
     throw OMP::Error::FatalError('for some reason FTS-2 setup is not available. This shoud not happen for stare_fts2 observing mode') unless defined $fts2;
     my $scan_length = $fts2->scan_length();
@@ -896,6 +910,7 @@ sub jos_config {
     $jos->num_cycles($num_cycles);
 
     $self->output( "FTS-2 JOS parameters:\n",
+                   "\tEffective step time: $eff_step_time secs\n",
                    "\tRequested integration time: $sample_time secs\n",
                    "\tTo be spread over: $nms microsteps\n",
                    "\tCalculated time per scan: $inttime secs\n",
