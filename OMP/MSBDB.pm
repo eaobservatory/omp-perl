@@ -250,7 +250,7 @@ sub storeSciProg {
   # Get the summaries for each msb as a hash containing observations
   # as arrays of hashes
   my @rows = map {
-    my $info = $_->info;
+    my $info = $_->info({check_select_zero_or_folder => 1});
 
     # Check that tau and seeing are there
     throw OMP::Error::SpBadStructure("No scheduling information in science program. Did you forget to put in a Site Quality component?\n")

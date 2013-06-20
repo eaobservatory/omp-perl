@@ -1166,17 +1166,46 @@ contained in the XML.
 
   $info = $msb->info();
 
+The optional parameter \%opt can include:
+
+=over 4
+
+=item check_select_zero_or_folder
+
+Before writing a positive remaining count into the info object, check whether
+the MSB is contained within an or folder with select zero specified.  In
+that case OMP__MSB_REMOVED should be returned as the remaning count.
+
+=back
+
 =cut
 
 sub info {
   my $self = shift;
+  my $opt = shift || {};
 
   # Create a hash summary of *this* class
   my %summary;
 
   # Populate the hash from the object
   $summary{checksum} = $self->checksum;
-  $summary{remaining} = $self->remaining;
+
+  # Deal with "remaining" count in a do block to
+  # localize the variables.
+  do {
+    my $remaining = $self->remaining;
+
+    if ($remaining > 0 and $opt->{'check_select_zero_or_folder'}) {
+      my ($or_folder) = $self->_tree->findnodes('ancestor-or-self::SpOR');
+
+      if ($or_folder and $or_folder->getAttribute('numberOfItems') == 0) {
+        $remaining = OMP__MSB_REMOVED;
+      }
+    }
+
+    $summary{remaining} = $remaining;
+  };
+
   $summary{projectid} = $self->projectID;
   $summary{telescope} = $self->telescope;
   %summary = (%summary, $self->weather);
