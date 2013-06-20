@@ -329,7 +329,7 @@ sub alias {
   return $self->{Alias};
 }
 
-=item B<alias>
+=item B<cadcuser>
 
 Return the user's CADC user name.
 

@@ -69,18 +69,15 @@ while (<>) {
     $user{email} = $details[1];
   }
 
+  unless ( defined $user{name} && length $user{name} ) {
 
-  # Convert broken email to undef. Define broken as an email address
-  # that does not have an @
-  $user{email} = undef unless $user{email} =~ /\@/;
+    warn "Skipped: no user name given in $line.\n";
+    next;
+  }
 
-  # remove spaces from email address
-  $user{email} =~ s/\s//g if defined $user{email};
+  $user{userid} = check_get_userid( $user{name}, $user{userid} );
 
-
-  # Derive user id
-  $user{userid} = OMP::User->infer_userid( $user{name} )
-    unless defined $user{userid} && length $user{userid};
+  $_ = cleanse_addr( $_ ) for $user{email};
 
   # Create new object
   my $ompuser = new OMP::User( %user );
@@ -88,8 +85,7 @@ while (<>) {
   die "Error creating user object: $user{userid}\n"
     unless $ompuser;
 
-  print $ompuser->userid . ":" . $ompuser->name ."," .
-    (defined $ompuser->email ? $ompuser->email  : "EMPTY" )."\n";
+  show_detail( $ompuser->userid, $ompuser->name, $ompuser->email );
 
   # More efficient to do the add and catch the failure rather than
   # do an explicit verify
@@ -99,17 +95,76 @@ while (<>) {
     # Get the user
     my $exist = OMP::UserServer->getUser( $ompuser->userid );
     if ($exist) {
-      print "\n*** ";
-      print "Failed to add user. Existing entry retrieved for comparison:\n";
-      print "#" .$exist->userid . ":" . $exist->name ."," .
-        (defined $exist->email ? $exist->email : "EMPTY" )."\n";
+      print "\n*** ",
+        "Failed to add user. Existing entry retrieved for comparison:\n";
+
+      show_detail( $exist->userid, $exist->name, $exist->email, '  ' );
+
       print "***\n";
     } else {
-      print "ERROR ADDING USER $user{userid}\n";
       my $E= shift;
-      print $E;
+      print "ERROR ADDING USER $user{userid}\n", $E;
     }
+  };
+  print "\n";
+}
 
+#  Prints user detail in the same format as expected to be provided.
+sub show_detail {
+
+  my ( $id, $name, $addr, $prefix ) = @_;
+
+  printf "%s%s\n",
+    ( defined $prefix ? $prefix : '' ),
+    join ' , ', $id, $name, (defined $addr ? $addr : () )
+    ;
+
+  return;
+}
+
+# Returns a cleansed given email address.
+sub cleanse_addr {
+
+  my ( $addr ) = @_;
+
+  defined $addr && $addr =~ m{\@}
+    or return undef;
+
+  for ( $addr ) {
+
+    s/\s+//g;
+
+    # Sometimes an address is shrouded in '<' & '>'.
+    s/^<//;
+    s/>$//;
   }
+  return $addr;
+}
 
+# Returns an user id given a name. It also prints a warning if optional user id
+# is given but does not match the system generated one.
+sub check_get_userid {
+
+  my ( $name, $id ) = @_;
+
+  # Derive user id
+  my $omp_userid = OMP::User->infer_userid( $name );
+
+  defined $id && length $id
+    or return $omp_userid;
+
+  $id = uc $id;
+  # It is entirely possible for user ids to not match when an user id has a
+  # number at the end to distinguish from the others. In that case warning
+  # should suggest that.
+  if ( $id ne $omp_userid ) {
+
+    warn sprintf
+            "#  Given and system generated user IDs do not match ...\n"
+            .
+            "#     given: %s\n#    system: %s\n",
+            $id,
+            $omp_userid;
+  }
+  return $id;
 }
