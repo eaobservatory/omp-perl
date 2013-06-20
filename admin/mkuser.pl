@@ -85,8 +85,7 @@ while (<>) {
   die "Error creating user object: $user{userid}\n"
     unless $ompuser;
 
-  print $ompuser->userid . ":" . $ompuser->name ."," .
-    (defined $ompuser->email ? $ompuser->email  : "EMPTY" )."\n";
+  show_detail( $ompuser->userid, $ompuser->name, $ompuser->email );
 
   # More efficient to do the add and catch the failure rather than
   # do an explicit verify
@@ -96,19 +95,31 @@ while (<>) {
     # Get the user
     my $exist = OMP::UserServer->getUser( $ompuser->userid );
     if ($exist) {
-      print "\n*** ";
-      print "Failed to add user. Existing entry retrieved for comparison:\n";
-      print "#" .$exist->userid . ":" . $exist->name ."," .
-        (defined $exist->email ? $exist->email : "EMPTY" )."\n";
+      print "\n*** ",
+        "Failed to add user. Existing entry retrieved for comparison:\n";
+
+      show_detail( $exist->userid, $exist->name, $exist->email, '  ' );
+
       print "***\n";
     } else {
-      print "ERROR ADDING USER $user{userid}\n";
       my $E= shift;
-      print $E;
+      print "ERROR ADDING USER $user{userid}\n", $E;
     }
+  };
+  print "\n";
+}
 
-  }
+#  Prints user detail in the same format as expected to be provided.
+sub show_detail {
 
+  my ( $id, $name, $addr, $prefix ) = @_;
+
+  printf "%s%s\n",
+    ( defined $prefix ? $prefix : '' ),
+    join ' , ', $id, $name, (defined $addr ? $addr : () )
+    ;
+
+  return;
 }
 
 # Returns a cleansed given email address.
