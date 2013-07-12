@@ -4049,6 +4049,11 @@ sub SpIterFolder {
       }
       $summary{$parent}{ATTR} = \@offsets;
     }
+    elsif ($name eq 'SpIterPOL') {
+      my $inbeam = $self->_get_pcdata($child, "in_beam");
+      $summary{'extra_inbeam'} = [map {lc $_} split ' ', $inbeam]
+        if defined $inbeam and $inbeam;
+    }
 
     # Only interested in iterators
     next unless $name =~ /SpIter/;
