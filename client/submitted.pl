@@ -148,9 +148,14 @@ my @projects = $projdb->listProjects( $projquery );
 # Find out which of the projects is a new submission.
 # Probably easiest just to have the database do the hard work
 # and make a complete list of first submissions.
+# First convert $mindate to a string only including the
+# date part.  Otherwise we can get incorrect results
+# if the script is run in non-debug mode since $mindate
+# includes the time.
+my $mindate_str = $mindate->ymd('');
 my %new_submission = ();
 my $dbh = $dbconnection->handle();
-my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
+my $sth = $dbh->prepare('SELECT projectid, CONVERT(char, MIN(date), 112) FROM '
                        . $OMP::FeedbackDB::FBTABLE
                        . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
                        . ' GROUP BY projectid');
@@ -158,8 +163,7 @@ die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
 $sth->execute();
 die 'Error executing minimum date query: ' . $DBI::errstr if $DBI::err;
 while (my ($proj, $first) = $sth->fetchrow_array()) {
-  my $first = OMP::DateTools->parse_date($first);
-  $new_submission{$proj} = ($first >= $mindate);
+  $new_submission{$proj} = ($first ge $mindate_str);
 }
 
 # Sort projects according to support person
