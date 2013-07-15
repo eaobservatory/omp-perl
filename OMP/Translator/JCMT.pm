@@ -417,8 +417,31 @@ sub obs_summary {
   $obs->switching_mode( defined $info{switching_mode} 
                         ? $info{switching_mode} : 'none' );
   $obs->type( $info{obs_type} );
-  $obs->inbeam( @{$info{inbeam}} )
-    if (exists $info{inbeam} && defined $info{inbeam});
+
+  do {
+    my @inbeam = ();
+
+    if (exists $info{inbeam} && defined $info{inbeam}) {
+      push @inbeam, @{$info{inbeam}};
+    }
+
+    # Delay adding extra in-beam components until now so that
+    # they don't end up being used unexpectedly elsewhere, such
+    # as in the observing mode.
+
+    if (exists $info{'extra_inbeam'} and defined $info{'extra_inbeam'}) {
+      my @extra = @{$info{'extra_inbeam'}};
+
+      if ((grep {$_ eq 'pol2_cal'} @extra)
+          and not (grep {$_ eq 'pol2_cal'} @inbeam)) {
+        # Explode any existing 'pol' component before adding the calibrator.
+        @inbeam = ((map {$_ ne 'pol' ? $_ : qw/pol2_wp pol2_ana/} @inbeam),
+                  'pol2_cal');
+      }
+    }
+
+    $obs->inbeam(@inbeam) if scalar @inbeam;
+  };
 
   $cfg->obs_summary( $obs );
 }
