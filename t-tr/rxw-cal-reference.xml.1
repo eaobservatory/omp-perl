@@ -1176,13 +1176,14 @@
       <INSTRUMENT NAME="FE_WB"
                   SERIAL="RxWB"
                   FOC_STATION="DIRECT"
-                  X="9.4"
-                  Y="-24.7"
+                  X="0.0"
+                  Y="0.0"
                   WAVELENGTH="866.963373654785" >
          
          <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="-0.25" Y="-0.03" Z="+0.09" />
+         <pointing_offset CA="10.5" IE="19.5" IA="0" NPAE="0" AW="0" AN="0" TF="0" CE="0" />
          <waveBand band="B" label="B" units="Hz" centre="350E9" width="60.0E9" >
             <etal>0.95</etal>
          </waveBand>
@@ -2209,13 +2210,19 @@
          <dr_machine virtual_machine="number6" real_machine="acsis6"/>
          <dr_machine virtual_machine="number7" real_machine="acsis7"/>
          <dr_machine virtual_machine="number8" real_machine="acsis8"/>
-         <dr_machine virtual_machine="number9" real_machine="acsis9"/>
+         <dr_machine virtual_machine="number9" real_machine="acsis2"/>
          <dr_machine virtual_machine="number10" real_machine="acsis10"/>
          <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
-         <dr_machine virtual_machine="gridder_machine" real_machine="acsis9"/>
+         <dr_machine virtual_machine="gridder_machine" real_machine="acsis7"/>
          <dr_machine virtual_machine="fe_wrapper_machine" real_machine="acsis11"/>
-
          <dr_disp_machine virtual_machine="dr_disp_machine" real_machine="acsis10"/>
+         <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
+
+
+         #NOTE: DA micros are specific to an array. If you try to reassign processes
+         #      you need to contact Craig Walther and/or Dan Bintley.  This may be
+         #      something that can be done by the TSS in the future. But for now
+         #      it would screw things up rather horribly
 
          <da_machine virtual_machine="sc2da8a" real_machine="sc2da8a"/>
          <da_machine virtual_machine="sc2da8b" real_machine="sc2da8b"/>

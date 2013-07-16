@@ -977,12 +977,12 @@
       <SCUBA2_CONFIG>
          
          <SUBARRAY_MASK SUBARRAY_ID="s4a" VALUE="ON"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s4b" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s4b" VALUE="ON"/>
          <SUBARRAY_MASK SUBARRAY_ID="s4c" VALUE="OFF"/>
          <SUBARRAY_MASK SUBARRAY_ID="s4d" VALUE="OFF"/>
          <SUBARRAY_MASK SUBARRAY_ID="s8a" VALUE="OFF"/>
          <SUBARRAY_MASK SUBARRAY_ID="s8b" VALUE="OFF"/>
-         <SUBARRAY_MASK SUBARRAY_ID="s8c" VALUE="ANY"/>
+         <SUBARRAY_MASK SUBARRAY_ID="s8c" VALUE="ON"/>
          <SUBARRAY_MASK SUBARRAY_ID="s8d" VALUE="NEED"/>
       </SCUBA2_CONFIG>
       <INSTRUMENT NAME="SCUBA2"
@@ -992,8 +992,8 @@
                   Y="0.0"
                   WAVELENGTH="863" >
          
-         <smu_offset X="0.0" Y="0.0" Z="0.2" />
-         <pointing_offset CA="31.4" IE="31.4" IA="-5.5" NPAE="6.8" AW="0.0" AN="0.4" TF="-34.7" CE="0" />
+         <smu_offset X="0.0" Y="0.0" Z="0.0" />
+         <pointing_offset CA="-9.8" IE="6.1" IA="6.5" NPAE="22.3" AW="-0.8" AN="0.2" TF="-33.9" CE="0" />
          <array_area radius="240"/>
          <waveBand band="B450" label="450" units="m" centre="0.00045" width="7e-5" >
             <etal>0.6</etal>
@@ -1014,33 +1014,33 @@
          />
          <subArray id="s4b"
                    band="B450"
-                   health="OFF"
+                   health="ON"
                    x="-108"
                    y="-132"
                    mceport="1"
-                   chipId="CG450Mk2_M0907D0501"
+                   chipId="SG450_M1007D1002"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s4b_flat"
                    task="SC2DA4B"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4b_drmwght"
          />
          <subArray id="s4c"
                    band="B450"
-                   health="OFF"
+                   health="ON"
                    x="-132"
                    y="+108"
                    mceport="2"
-                   chipId="s450200806"
+                   chipId="SG450_M1006D1003"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s4c_flat"
                    task="SC2DA4C"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4c_drmwght"
          />
          <subArray id="s4d"
                    band="B450"
-                   health="OFF"
+                   health="ON"
                    x="+108"
                    y="+132"
                    mceport="3"
-                   chipId="s450200807"
+                   chipId="SG450_M1009D1008"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s4d_flat"
                    task="SC2DA4D"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s4d_drmwght"
@@ -1051,29 +1051,29 @@
                    x="+132"
                    y="+108"
                    mceport="4"
-                   chipId="s8a_test_mce"
+                   chipId="SG850_M0906D1005"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s8a_flat"
                    task="SC2DA8A"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8a_drmwght"
          />
          <subArray id="s8b"
                    band="B850"
-                   health="OFF"
+                   health="ON"
                    x="-108"
                    y="+132"
                    mceport="5"
-                   chipId="s850200801"
+                   chipId="SG850_M1002D1006"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s8b_flat"
                    task="SC2DA8B"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8b_drmwght"
          />
          <subArray id="s8c"
                    band="B850"
-                   health="OFF"
+                   health="ON"
                    x="-132"
                    y="-108"
                    mceport="6"
-                   chipId="CG850Mk2_M0904D0503"
+                   chipId="SG850_M1005D1007"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s8c_flat"
                    task="SC2DA8C"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8c_drmwght"
@@ -1084,7 +1084,7 @@
                    x="+108"
                    y="-132"
                    mceport="7"
-                   chipId="SG850_M1002D1006"
+                   chipId="SG850_M1003D1004"
                    flatfile="/jac_sw/itsroot/install/scuba2Files/s8d_flat"
                    task="SC2DA8D"
                    dreamweightfile="/jac_sw/itsroot/install/scuba2Files/s8d_drmwght"

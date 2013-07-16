@@ -519,7 +519,7 @@
          <HEADER TYPE="INT"
                  KEYWORD="N_MIX"
                  COMMENT="No. of mixers"
-                 VALUE="2" />
+                 VALUE="1" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
                  COMMENT="The observed sideband"
@@ -1163,10 +1163,14 @@
       </HEADER_CONFIG>
       <RTS_CONFIG>
          
-         <stTimeout value="15000" />
+         <stTimeout value="60000" />
          <sampTimeout value="0.99" />
          <opMode value="0" />
-         <Sequence size="0" />
+         <Sequence size="1">
+            <position num="1">
+               <waitNSR name="PTCS" input="1"  value="0" />
+            </position>
+         </Sequence>
       </RTS_CONFIG>
       <FRONTEND_CONFIG>
          
@@ -1176,25 +1180,26 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="ANY"/>
          <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ON"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_WD"
                   SERIAL="RxWD2"
                   FOC_STATION="DIRECT"
-                  X="-2.8"
-                  Y="-19.9"
+                  X="0.0"
+                  Y="0.0"
                   WAVELENGTH="433.556226952694" >
          
          <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.13" Y="0.16" Z="0.19" />
+         <pointing_offset CA="-24.7" IE="1.2" IA="0" NPAE="0" AW="0" AN="0" TF="0" CE="0" />
          <waveBand band="D" label="D" units="Hz" centre="667.5E9" width="85.0E9" >
             <etal>0.95</etal>
          </waveBand>
          <receptor id="DA"
                    band="D"
-                   health="ON"
+                   health="OFF"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
@@ -2625,13 +2630,19 @@
    <dr_machine virtual_machine="number6" real_machine="acsis6"/>
    <dr_machine virtual_machine="number7" real_machine="acsis7"/>
    <dr_machine virtual_machine="number8" real_machine="acsis8"/>
-   <dr_machine virtual_machine="number9" real_machine="acsis9"/>
+   <dr_machine virtual_machine="number9" real_machine="acsis2"/>
    <dr_machine virtual_machine="number10" real_machine="acsis10"/>
    <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
-   <dr_machine virtual_machine="gridder_machine" real_machine="acsis9"/>
+   <dr_machine virtual_machine="gridder_machine" real_machine="acsis7"/>
    <dr_machine virtual_machine="fe_wrapper_machine" real_machine="acsis11"/>
-
    <dr_disp_machine virtual_machine="dr_disp_machine" real_machine="acsis10"/>
+   <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
+
+
+   #NOTE: DA micros are specific to an array. If you try to reassign processes
+   #      you need to contact Craig Walther and/or Dan Bintley.  This may be
+   #      something that can be done by the TSS in the future. But for now
+   #      it would screw things up rather horribly
 
    <da_machine virtual_machine="sc2da8a" real_machine="sc2da8a"/>
    <da_machine virtual_machine="sc2da8b" real_machine="sc2da8b"/>
