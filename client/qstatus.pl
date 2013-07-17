@@ -6,7 +6,7 @@ qstatus - List current status of the observing queue
 
 =head1 SYNOPSIS
 
- qstatus -tel ukirt -country uk
+ qstatus -tel ukirt -country uk [-semester 10b -fullday]
 
 =head1 DESCRIPTION
 
@@ -31,6 +31,15 @@ than one telescope).
 
 Country to query. Defaults to all countries.
 
+=item B<-fullday>
+
+Give results for a full 24 hour period rather than the
+telescope's normal operating hours.
+
+=item B<-semester>
+
+Semester to query. Defaults to current semester.
+
 =item B<-version>
 
 Report the version number.
@@ -53,7 +62,6 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use Term::ReadLine;
 
 # Locate the OMP software through guess work
 use FindBin;
@@ -74,12 +82,14 @@ use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
 # Options
-my ($help, $man, $version, $tel, $country);
+my ($help, $man, $version, $tel, $country, $semester, $full_day);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "country=s" => \$country,
+                        "semester=s" => \$semester,
                         "tel=s" => \$tel,
+                        'fullday' => \$full_day,
                        );
 
 pod2usage(1) if $help;
@@ -93,26 +103,32 @@ if ($version) {
 }
 
 # First thing we do is ask for a password and possibly telescope
-my $term = new Term::ReadLine 'Gather queue parameters';
 
+my $password = (exists $ENV{'STAFF_PASSWORD'})
+             ? $ENV{'STAFF_PASSWORD'} : undef;
 
-# Telescope
-my $telescope;
-if(defined($tel)) {
-  $telescope = uc($tel);
-} else {
-  # Should be able to pass in a readline object if Tk not desired
-  $telescope = OMP::General->determine_tel($term);
-  die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
-  die "Unable to determine telescope [too many choices]. Exiting.\n"
-     if ref $telescope;
+my $telescope = (defined $tel) ? uc($tel) : undef;
+
+unless (defined $telescope and defined $password) {
+  require Term::ReadLine;
+  my $term = new Term::ReadLine 'Gather queue parameters';
+
+  unless (defined $telescope) {
+    # Should be able to pass in a readline object if Tk not desired
+    $telescope = OMP::General->determine_tel($term);
+    die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
+    die "Unable to determine telescope [too many choices]. Exiting.\n"
+       if ref $telescope;
+  }
+
+  unless (defined $password) {
+    # Needs Term::ReadLine::Gnu
+    my $attribs = $term->Attribs;
+    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+    $password = $term->readline( "Please enter staff password: ");
+    $attribs->{redisplay_function} = $attribs->{rl_redisplay};
+  }
 }
-
-# Needs Term::ReadLine::Gnu
-my $attribs = $term->Attribs;
-$attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-my $password = $term->readline( "Please enter staff password: ");
-$attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
 OMP::Password->verify_staff_password( $password );
 
@@ -120,6 +136,7 @@ OMP::Password->verify_staff_password( $password );
 
 my $qxml = "<MSBQuery><telescope>$telescope</telescope>\n".
         ( defined $country ? "<country>$country</country>\n" : "\n" ).
+        ( defined $semester ? "<semester>$semester</semester>\n" : "\n" ).
            "<date>REFDATE</date>\n".
              "</MSBQuery>\n";
 
@@ -134,18 +151,26 @@ my $db = new OMP::MSBDB( DB => $backend );
 my $today = OMP::DateTools->today(1);
 
 # The hour range for queries should be restricted by the freetimeut
-# parameter from the config system
-my ($utmin, $utmax) = OMP::Config->getData( 'freetimeut',
-					    telescope => $telescope);
+# parameter from the config system, unless the -fullday command line
+# switch was supplied.
+my ($utmin, $utmax);
+unless ($full_day) {
+  ($utmin, $utmax) = OMP::Config->getData( 'freetimeut',
+                                              telescope => $telescope);
 
-# parse the values, get them back as date objects
-($utmin, $utmax) = OMP::DateSun->_process_freeut_range( $telescope,
-                                                        $today,
-                                                        $utmin, $utmax);
+  # parse the values, get them back as date objects
+  ($utmin, $utmax) = OMP::DateSun->_process_freeut_range( $telescope,
+                                                          $today,
+                                                          $utmin, $utmax);
 
-# easier for now to convert them back to an hour
-$utmin = $utmin->hour;
-$utmax = $utmax->hour + ($utmax->min > 0 ? 1 : 0);
+  # easier for now to convert them back to an hour
+  $utmin = $utmin->hour;
+  $utmax = $utmax->hour + ($utmax->min > 0 ? 1 : 0);
+}
+else {
+  $utmin = 0;
+  $utmax = 23.9999;
+}
 $today = $today->ymd;
 
 # Calculate localtime to GMT offset (hours)
