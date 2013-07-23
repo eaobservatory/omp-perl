@@ -1,4 +1,11 @@
-AuthName "JAC Staff only"
 AuthType Basic
-require valid-user 
-AuthUserFile "/var/www/wikis/staff_wiki/.htpasswd"
+AuthName "JAC Staff Only - use your JAC username and password"
+require valid-user
+AuthBasicProvider ldap
+AuthLDAPURL ldap://10.100.1.1/ou=People,dc=jach,dc=hawaii,dc=edu?uid??(gidNumber=10)
+<FilesMatch ".*">
+    SSLRequireSSL
+    ErrorDocument 403 /jac-bin/sslauth.pl
+    Require valid-user
+</FilesMatch>
+
