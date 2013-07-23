@@ -684,9 +684,9 @@ sub get_catalog_coords {
 #        ra.rrrrr [-]dec.ddddd
 #
 #   Hence, format of the R.A. and Dec fields is relatively free.
-#   The logic is that any [+,-] indicate the start of Dec fields and 
-#   any [RB] or [B,J]#### or any number [1900,2099] the start of the 
-#   epoch field. Hence there are a maximum 7 numerical items expected on 
+#   The logic is that any [+,-] indicate the start of Dec fields and
+#   any [RB] or [B,J]#### or any number [1900,2099] the start of the
+#   epoch field. Hence there are a maximum 7 numerical items expected on
 #   the line, with nitem (1-7) in the sequence as above.
 #   Parsing is helped by explicitly putting a '+' or '-' sign with Dec.
 #   In addition to the above it can also use the ":" character to
@@ -744,7 +744,7 @@ sub parse_coords {
           if( $fdum > 1900.0 && $fdum < 2099.99 ) {
 	    $epoch = $fdum;
           # Epoch string following?
-          } elsif( $i < $#words && 
+          } elsif( $i < $#words &&
               $words[$i+1] > 1900.0 && $words[$i+1] < 2099.99 ) {
             $epoch = $words[$i+1];
 	  }
@@ -795,7 +795,7 @@ sub parse_coords {
   if( $isign == 0 ) {
     @words = split( /\:/,$ra );
     if( ($#words+1)%2 == 1 ) {
-      # Odd number of arguments: 
+      # Odd number of arguments:
       # no way to know how to divide between RA and Dec.
       return %target ;
     }
