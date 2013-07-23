@@ -50,70 +50,119 @@ use Exporter;
 
 =head1 FUNCTIONS
 
-=over 4
+=over 2
 
+=item B<get_coords>
 
+Return coordinate objects for all objects specified. It takes
+following positonal parameters:
+
+=over 2
+
+=item I<string as method of obtaining coordinates>
+
+=over 2
+
+=item omp
+
+Query OMP DB. In this case, B<project ids> are B<required>.
+
+Only C<name> is used if objects are given.
+
+=item catalog
+
+Read coordinates from a catalog file. The general format of the file
+is:
+
+  Name   Long  Lat  Coordsys  ... ...   Projid ...
+
+B<Name of the catalog> is B<required> via otherwise optional hash with
+key of C<name>.
+
+Project ids and objects are optional. Only C<name> key is used from
+objects if given.
+
+=item user
+
+Use user-supplied values. Fully specified B<objects> are B<required>
+with the keys C<name>, C<ra>, C<dec>, and C<coorsys>.
+
+Project ids are not used.
+
+=back
+
+=item I<array reference of project ids>
+
+Project ids for which to check objects.
+
+=item I<array reference of of hash references of objects>
+
+Objects with selected object to find:
+
+  {'name'},[ {'ra'}, {'dec'}, {'coordsys'} ]:
+
+=over
+
+=item C<ra> and C<dec>
+
+C<:> or space separated sexagesimal in C<hh:mm:ss.s  [-]dd mm ss.s>
+format.
+
+Note: For galactic coordinates the values porvided with C<ra> and
+C<dec> will be interpreted as "long" and "lat".
+
+=item C<coordsys>
+
+B1950, J2000, or galactic (or their short-hands RB, RJ, RG, GA).
+
+=back
+
+=item I<other arguments>
+
+A hash of optional arguments (see also description methods):
+
+=over 2
+
+=item msbmode =E<gt> [ All | Active | Completed ]
+
+Only process targets for MSBs matching the specified criterium. Default: All.
+
+=item telescope =E<gt> name
+
+If provided the appropriate telescope object will be added to the
+coord object
+
+=item debug =E<gt> [ 0 | 1 ]
+
+=over 2
+
+=item 0
+
+Stay quiet.
+
+=item 1
+
+Turn on debug output, including in called routines.
+
+=back
+
+=back
 
 =back
 
 =cut
 
-
-
 sub get_coords  {
 
-#
-# Get source coordinates:
-#
-#      my @coords = get_coords ( $method, \@projids, \@objects, %args )
-#
-#
-#      $method:   [ omp | catalog | user ] Method of obtaining
-#                 coordinates: Query OMP DB, read a catalog file,
-#                 or use user-supplied values.
-#
-#      @projids:  Array with projids for which to check objects
-#
-#      @objects:  Array of hashes with selected object to find:
-#                 {'name'},[ {'ra'}, {'dec'}, {'coordsys'} ]:
-#                 {'ra'} and {'dec'} ':' or space separated sexagesimal:
-#                                 hh:mm:ss.s  [-]dd mm ss.s.
-#                 {'coordsys'}: B1950, J2000, or galactic. (or their
-#                             short-hands RB, RJ, RG, GA). Note: for
-#                 galactic coordinates the values porvided with 'ra'
-#                 and 'dec' will be interpreted as 'long' and 'lat'.
-#
-#     %args:      Additional arguments (see also description methods).
-#                 Optional for all methods:
-#
-#                 {'telescope'}: Name of the telescope. If provided the
-#                        appropriate telescope object will be added
-#                        to the coord object
-#                 {'debug'}: 0: Stay quiet; 1: Turn on debug output,
-#                        including in called routines.
-#
-#
 # Query OMP DB:
-#         @projids is a required parameter. %objects is optional and
-#         only the {name} key is used.
 #
 #         The coord objects from all MSBs of the requested projects are
 #         retrieved and returned. If objects{name}s have been specified
 #         only the coords of targets for which the name matches exactly
 #         will be returned.
 #
-#         Additional optional keys for %args:
-#            {msbmode}:  [ All | Active | Completed ] 
-#                        Only process targets for msbs matching the
-#                        specified criterium. Default: All.
-#
 # Read catalog:
-#         @projids is an optional parameter. %objects is optional and
-#         only the {name} key is used.
 #
-#         Read the coordinates from a catalog file. The general format
-#         of the file is:
-#             Name   Long  Lat  Coordsys  ... ...   Projid ...
 #         The abbreviations RB, RJ, GA, RG are accepted for B1950, J2000,
 #         galactic, respectively. Coord objects will be returned for
 #         all selected objects.
@@ -122,8 +171,6 @@ sub get_coords  {
 #            $args{'catalog'}
 #
 # User supplied:
-#         @projids is not used. A fully specified %objects is required
-#         with the keys {name}, {ra}, {dec}, and {coorsys}. 
 #
 #         Return coord objects for all objects specified.
 
@@ -265,6 +312,12 @@ sub get_coords  {
 
 }
 
+
+=item B<get_omp_coords>
+
+...
+
+=cut
 
 sub get_omp_coords {
 
@@ -435,6 +488,13 @@ sub get_omp_coords {
 
 }
 
+
+=item B<get_catalog_coords>
+
+...
+
+=cut
+
 sub get_catalog_coords {
 
   # Use:  my @coords = get_catalog_coords( \@projids,
@@ -602,6 +662,12 @@ sub get_catalog_coords {
   return(@coords);
 
 }
+
+=item B<parse_coords>
+
+...
+
+=cut
 
 # **********************************************************************
 #   %target = parse_coords(catalog_line)
