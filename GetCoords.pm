@@ -289,8 +289,8 @@ sub get_coords  {
       # Get coordinates of observations in MSBs
       push( @coords, get_omp_coords( \@sciprogs,
                                      \@objects,
-				     'msbmode' =>   $args{'msbmode'},
-				     'telescope' => $args{'telescope'}
+                                     'msbmode' =>   $args{'msbmode'},
+                                     'telescope' => $args{'telescope'}
                                  ) );
     }
 
@@ -443,17 +443,17 @@ sub get_omp_coords {
         next if( $target->ra == 0.0 and $target->dec == 0.0 );
 
         # If there is more than one project add the project to the name
-	if ($#sciprogs > 0) {
-	  my $newname = $prjstr . $target->name;
-	  if ( $target->name !~ /^$prjstr/i ) {
-	    $target->name ( $newname );
-	    printf "...Target renamed to '%s'\n", $target->name if ( $debug );
-	  }
-	}
+        if ($#sciprogs > 0) {
+          my $newname = $prjstr . $target->name;
+          if ( $target->name !~ /^$prjstr/i ) {
+            $target->name ( $newname );
+            printf "...Target renamed to '%s'\n", $target->name if ( $debug );
+          }
+        }
 
         # Handle duplicate sources through the hash key
         my $target_info = $target->name . '_' .
-	    $target->ra . '_' . $target->dec;
+            $target->ra . '_' . $target->dec;
 
         # Name and coordinates identical.
         print "...Skip duplicate targets\n" if( $debug );
@@ -576,8 +576,8 @@ sub get_catalog_coords {
         if( $line =~ /$proj/i ) {
           $found = 1;
           $prjstr = "${proj}@";
-	  $prjstr =~ s/^m\d{2}[a,b]//i;
-	  print "Project string: $prjstr\n" if ( $debug );
+          $prjstr =~ s/^m\d{2}[a,b]//i;
+          print "Project string: $prjstr\n" if ( $debug );
           last;
         }
       }
@@ -603,8 +603,8 @@ sub get_catalog_coords {
     if ($#projids > 0) {
       my $newname = $prjstr . $target{'name'};
       if ( $target{'name'} !~ /^$prjstr/i ) {
-	$target{'name'} = "$newname";
-	printf "...Target renamed to '%s'\n", $target{'name'} if ( $debug );
+        $target{'name'} = "$newname";
+        printf "...Target renamed to '%s'\n", $target{'name'} if ( $debug );
       }
     }
 
@@ -735,30 +735,30 @@ sub parse_coords {
 
       # Any coordinate system terminates the coordinate string
       if( $words[$i] =~ /^R(B|J|G )/i) {
-	  $equinox = substr( $words[$i],1,1 );
+          $equinox = substr( $words[$i],1,1 );
           last;
       } elsif( $words[$i] =~ /^(B|J|G )/i) {
-	  $equinox = substr( $words[$i],0,1 );
+          $equinox = substr( $words[$i],0,1 );
           my $fdum = substr( $words[$i],1 );
           # Epoch string attached?
           if( $fdum > 1900.0 && $fdum < 2099.99 ) {
-	    $epoch = $fdum;
+            $epoch = $fdum;
           # Epoch string following?
           } elsif( $i < $#words &&
               $words[$i+1] > 1900.0 && $words[$i+1] < 2099.99 ) {
             $epoch = $words[$i+1];
-	  }
+          }
           last;
       # Bare epoch string? Place B to J boundary at 1976.0
       } elsif( $words[$i] > 1900.0 && $words[$i] < 2099.99 ) {
           $epoch = $words[$i];
           if( $equinox eq "" ) {
-	    if( $epoch < 1976.0 ) {
-	      $equinox = 'B';
+            if( $epoch < 1976.0 ) {
+              $equinox = 'B';
             } else {
-	      $equinox = 'J';
-	    }
-	  }
+              $equinox = 'J';
+            }
+          }
           last;
       # Any sign provides clear split of coordinates field
       } elsif( $words[$i] =~ /^(\+|\-)/ ) {
@@ -771,14 +771,14 @@ sub parse_coords {
             last if( $num == 6 );   # Might as well stop: mystery
             $dec = "$words[$i] ";
             $num++;
-	  }
+          }
       } elsif( $words[$i] =~ /^[0-9]/ ) {
           last if( $num == 6 );   # Might as well stop: what to do with
           if( $isign == 0 ) {     # another number that is not an epoch?
             $ra .= "$words[$i] ";
-	  } else {
+          } else {
             $dec .= "$words[$i] ";
-	  }
+          }
           $num++;
       }
   }
