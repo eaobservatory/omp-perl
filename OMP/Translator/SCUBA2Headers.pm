@@ -113,6 +113,22 @@ sub override_headers {
     }
   }
 
+  # In stare mode, we can't get the MAP_X and MAP_Y headers from the normal
+  # place (SCAN_PARAM).
+  if ($info{'mapping_mode'} eq 'stare') {
+    my %map_xy = (MAP_X => {param => 'DEM_OFFSET.DC1', mult => 206264.8062},
+                  MAP_Y => {param => 'DEM_OFFSET.DC2', mult => 206264.8062},
+    );
+
+    foreach my $name (keys %map_xy) {
+        my $header = $hdr->item($name);
+        my $values = $map_xy{$name};
+        next unless defined $header;
+        foreach my $field (keys %$values) {
+          $header->$field($values->{$field});
+        }
+    }
+  }
 
   return;
 }
