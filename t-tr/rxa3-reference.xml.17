@@ -3071,7 +3071,7 @@
    <dr_machine virtual_machine="number6" real_machine="acsis6"/>
    <dr_machine virtual_machine="number7" real_machine="acsis7"/>
    <dr_machine virtual_machine="number8" real_machine="acsis8"/>
-   <dr_machine virtual_machine="number9" real_machine="acsis2"/>
+   <dr_machine virtual_machine="number9" real_machine="acsis8"/>
    <dr_machine virtual_machine="number10" real_machine="acsis10"/>
    <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
    <dr_machine virtual_machine="gridder_machine" real_machine="acsis7"/>
