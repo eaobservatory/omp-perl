@@ -221,6 +221,20 @@ sub getDRRecipe {
   return $recipe;
 }
 
+=item B<getFTSCenterPosition>
+
+The mirror center position which the translator used in calculating
+the scan parameters.  This will allow the translator to pass the
+center position on to ORAC-DR in case the zero position is changed
+again.
+
+=cut
+
+sub getFTSCenterPosition {
+  return sprintf('%f',
+    OMP::Config->getData('scuba2_translator.fts_centre_position'));
+}
+
 =back
 
 =head1 AUTHOR
