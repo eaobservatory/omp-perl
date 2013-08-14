@@ -43,7 +43,6 @@ use Astro::Coords;
 use Time::Piece;
 use Time::Seconds;
 use NDF;
-use SCUBA::ODF;
 
 use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup $AnyDate /;
 
