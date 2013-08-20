@@ -27,7 +27,7 @@ use List::Util qw/ max min /;
 use File::Spec;
 use Math::Trig ':pi';
 
-use JAC::OCS::Config 1.05;
+use JAC::OCS::Config 1.06;
 use JAC::OCS::Config::Error qw/ :try /;
 use JCMT::TCS::Pong;
 
@@ -736,12 +736,12 @@ sub jos_config {
   # This controls the length of the initial dark if one is used.
   # A DARK noise will use JOS_MIN as for any other observation
   my $darklen = OMP::Config->getData( $self->cfgkey .".dark_time" );
-  $jos->n_darksamples( $darklen / $eff_step_time );
+  $jos->n_darksamples(OMP::General::nint($darklen / $eff_step_time));
 
   # Flat ramp
   if ($info{obs_type} !~ /^skydip/) {
     my $flatramplen = OMP::Config->getData( $self->cfgkey. ".flatramp_time" );
-    $jos->n_flatsamples( $flatramplen / $eff_step_time );
+    $jos->n_flatsamples(OMP::General::nint($flatramplen / $eff_step_time));
   } else {
     # For now do not do the flat ramp for skydips
     $jos->n_flatsamples( 0 );
@@ -1164,6 +1164,31 @@ sub jos_config {
     $jos->focus_step( $stepsize );
     $jos->focus_axis( $info{focusAxis} );
   }
+
+  # Craig requested that the translator inform the JOS how many
+  # offset indices there are, and how many microstep patterns.
+  # The reason for this is that the TCS gets the list of positions
+  # and only informs the JOS whether there is another one left
+  # or not.  Adding the number will allow the JOS monitor to
+  # display how many steps there are along with the current
+  # index.
+  do {
+    my $n_index = 1;
+    my $n_ms_index = 1;
+
+    my $tcs = $cfg->tcs();
+    if (defined $tcs) {
+      my $obsArea = $tcs->getObsArea();
+      if (defined $obsArea) {
+        my @os = $obsArea->offsets();
+        $n_index = scalar @os if @os;
+        my @ms = $obsArea->microsteps();
+        $n_ms_index = scalar @ms if @ms;
+      }
+    }
+    $jos->n_index($n_index);
+    $jos->n_ms_index($n_ms_index);
+  };
 
   # store it
   $cfg->jos( $jos );
