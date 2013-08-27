@@ -1012,7 +1012,7 @@ sub _format_output {
   my %places;
 
   for my $key (qw/ instrument telescope runnr subarray /) {
-    if (exists $args{$key}) {
+    if (exists $args{$key} && defined $args{$key}) {
       my $up = uc($key);
       my $down = lc($key);
 
