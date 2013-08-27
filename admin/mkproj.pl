@@ -304,7 +304,7 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     collect_err( 'Unverified user(s): ' . join ', ', @unknown );
   }
 
-  print "Adding [$proj]\n";
+  print "\nAdding [$proj]\n";
 
   if ( any_err() ) {
 
