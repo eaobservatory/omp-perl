@@ -123,6 +123,27 @@ my $file = shift(@ARGV);
 my %alloc;
 tie %alloc, 'Config::IniFiles', ( -file => $file );
 
+my %ok_field;
+{ my @field =
+    ( 'allocation',
+      'band',
+      'cloud',
+      'coi',
+      'country',
+      'pi',
+      'seeing',
+      'semester',
+      'sky',
+      'support',
+      'tagadjustment',
+      'tagpriority',
+      'taurange',
+      'telescope',
+      'title',
+    );
+  @ok_field{ @field } = ();
+}
+
 # Get the defaults (if specified)
 %defaults = ( %defaults, %{ $alloc{info} } )
   if $alloc{info};
@@ -151,6 +172,10 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
   next if $proj eq 'info';
 
   reset_err();
+
+  normalize_field_case( $alloc{$proj} );
+  normalize_coi( $alloc{$proj} );
+  check_fields( $alloc{$proj} );
 
   # Copy the data from the file and merge with the defaults
   my %details = ( %defaults, %{ $alloc{$proj} });
@@ -413,6 +438,56 @@ sub split_range {
     && length $in;
 
   return split /[-,]/, $in;
+}
+
+# Change field name to lower case.
+sub normalize_field_case {
+
+  my ( $details ) = @_;
+
+  for my $key ( keys %{ $details } ) {
+
+    $key eq lc $key and next;
+
+    $details->{ lc $key } = delete $details->{ $key };
+  }
+  return;
+}
+
+# Convert all variations on 'coi' to 'coi'.
+sub normalize_coi {
+
+  my ( $details ) = @_;
+
+  for my $alt ( 'cois', 'co-i', 'co-is' ) {
+
+    exists $details->{ $alt } or next;
+
+    $details->{'coi'} =
+      join ',',
+        ( exists $details->{'coi'} ? $details->{'coi'} : () ),
+        delete $details->{ $alt };
+  }
+
+  return;
+}
+
+# Check for unknown, possibly misspelled, fields.
+sub check_fields {
+
+  my ( $details ) = @_;
+
+  my @unknown;
+  for my $field ( sort { lc $a cmp lc $b } keys %{ $details } ) {
+
+    exists $ok_field{ lc $field }
+      or push @unknown, $field;
+  }
+
+  scalar @unknown or return 1;
+
+  collect_err( sprintf q[Unknown field(s) listed:\n  %s.], join ', ', @unknown );
+  return;
 }
 
 =head1 FORMAT
