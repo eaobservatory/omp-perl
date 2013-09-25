@@ -123,6 +123,7 @@ use constant STARLINK => 1063;
 use constant WORF => 1064;
 use constant REMOTE_OP => 1066;
 use constant SMURF => 1067;
+use constant NORTHSTAR => 1068;
 
 # FRONT_END_HARP is 2001.
 use constant {
@@ -397,6 +398,7 @@ my %DATA = (
                                     "Sequencer/Queue" => SEQUENCER_QUEUE,
                                     Translator => TRANSLATOR,
                                     "Monitor/Console" => MONITOR_CONSOLE,
+                                    NorthStar => NORTHSTAR,
                                     "Other/Unknown" => SYSTEMOTHER,
                                    },
                          TYPE => {
