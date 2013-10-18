@@ -5,23 +5,26 @@
          
          <mapping_mode>scan</mapping_mode>
          <switching_mode>self</switching_mode>
-         <obs_type>pointing</obs_type>
+         <obs_type>focus</obs_type>
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
          <tasks>RTS SCUBA2 PTCS SMU</tasks>
-         <recipe NAME="scuba2_pointing">
+         <recipe NAME="scuba2_focus">
             <parameters 
-                        STEPS_BTWN_DARK="5082"
+                        STEPS_BTWN_DARK="34482758.6206897"
+                        NUM_FOCUS_STEPS="7"
                         N_INDEX="1"
                         N_DARKSAMPLES="1724"
                         START_INDEX="1"
                         N_FLATSAMPLES="1724"
                         STEPS_BTWN_FLAT="0"
-                        NUM_CYCLES="4"
+                        FOCUS_AXIS="Z"
+                        NUM_CYCLES="1"
                         N_MS_INDEX="1"
                         STEP_TIME="0.005"
-                        JOS_MIN="5082"
+                        FOCUS_STEP="0.3"
+                        JOS_MIN="1724"
             />
          </recipe>
       </JOS_CONFIG>
@@ -92,7 +95,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
                  COMMENT="ORAC-DR recipe"
-                 VALUE="REDUCE_POINTING" />
+                 VALUE="REDUCE_FOCUS" />
          <HEADER TYPE="STRING"
                  KEYWORD="DRGROUP"
                  COMMENT="Data Reduction group ID"
@@ -100,7 +103,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum scheduable block"
-                 VALUE="013ebd19d3752c9885541fd6e422d1a9" />
+                 VALUE="36dc0368ea29c6a2716b91e24648aa0a" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -810,19 +813,27 @@
          <HEADER TYPE="STRING"
                  KEYWORD="FOCAXIS"
                  COMMENT="Focus Axis to move (X, Y, Z)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.FOCAXIS" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="INT"
                  KEYWORD="NFOCSTEP"
                  COMMENT="Number of focal position steps (odd number)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.NUM_FOCUS_STEPS" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="FOCSTEP"
                  COMMENT="Distance between focus steps"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="JOS_SCUBA2" PARAM="RECIPE.PARAMETERS.FOCUS_STEP" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="FOCPOSN"
                  COMMENT="[mm] Relative SMU position"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="SMU" PARAM="DISPLAY.FOCPOSN" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1132,7 +1143,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="153.9024"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="105.9944"  />
 
          
 
