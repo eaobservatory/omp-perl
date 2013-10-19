@@ -35,6 +35,7 @@ use strict;
 use DateTime;
 use DateTime::Duration;
 use File::Path qw/make_path/;
+use FindBin;
 use Getopt::Long;
 use IO::File;
 use Pod::Usage;
@@ -65,7 +66,7 @@ my $telescope = 'jcmt';
 
 # Number of observations to fetch for each scenario.  Could be a
 # command line option?
-my $nobs = 5;
+my $nobs = 15;
 
 # Tau values taken from the "representative values"
 # on the SCUBA-2 ITC.
@@ -155,7 +156,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     $title =~ s/[^a-zA-Z0-9]/_/g;
 
                     # Construct filenames.
-                    my $filename = join '_', $n, $result->projectid, $title;
+                    my $filename = join '_', sprintf("%02d", $n), $result->projectid, $title;
                     my $pathname = "$directory/$filename.xml";
                     my $pathnameinfo = "$directory/$filename.info";
 
