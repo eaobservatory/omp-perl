@@ -36,7 +36,7 @@
 default: report
 
 PID:=$(shell echo $$PPID)
-PERL=perl -I .. -I ../perl-JAC-OCS-Config/lib
+PERL=perl -I .. -I ../../perl-JAC-OCS-Config/lib
 TRANSLATOR=$(PERL) ../client/jcmttranslator.pl -cwd
 
 OTXML=$(wildcard *-ot.xml)
