@@ -175,8 +175,22 @@ class ObserveBackup(Frame):
             button.pack(side='left')
 
     def send_to_queue(self, xmlfile):
-        showerror('Error sending to queue', 'Not implemented.')
+        try:
+            manifest = subprocess.check_output(['jcmttranslator', xmlfile])
+        except Exception as err:
+            showerror('Error sending to queue',
+                'Could not translate observation.\n' + str(err))
+            return
 
+        manifest = manifest.strip()
+
+        try:
+            subprocess.check_output(['ditscmd', 'OCSQUEUE', 'ADDBACK', manifest])
+        except Exception as err:
+            showerror('Error sending to queue',
+                'Could not add observation to queue.\n\n' + str(err) +
+                '\n\nPlease check terminal window for messages.')
+            return
 
 # For some reason, if we try to make the closure inside the
 # file loop then we get a bunch of callbacks that all call
