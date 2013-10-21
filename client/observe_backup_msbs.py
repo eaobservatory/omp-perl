@@ -39,6 +39,7 @@ queries = {
     'Nothing left': 'nl',
 }
 
+valid_date = re.compile('^\d\d\d\d-\d\d-\d\d$')
 valid_time = re.compile('^\d\d-\d\d-\d\d$')
 
 class ObserveBackup(Frame):
@@ -234,7 +235,7 @@ except subprocess.CalledProcessError as err:
 
 # Start the application:
 
-dates = sorted(os.listdir(args.directory))
+dates = sorted(filter((lambda x: valid_date.match(x)), os.listdir(args.directory)))
 
 app = ObserveBackup()
 monospace = Font(family='DejaVu Sans Mono', size=8)
