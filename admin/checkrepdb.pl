@@ -236,15 +236,25 @@ sub check_db_up {
   my $kdb;
   my $down = 0;
 
+  my $err_die;
   $ENV{OMP_DBSERVER} = $db;
   try {
 
     $kdb = OMP::KeyDB->new( 'DB' => OMP::DBbackend->new(1) );
   }
+  catch OMP::Error::BadCfgKey with {
+
+    my ( $e ) = @_;
+
+    # Cannot do anything sensible with bad configurartion.
+    $err_die = $e->text();
+  }
   catch OMP::Error with {
 
     $down = 1;
   };
+
+  $err_die and die $err_die;
 
   return ( $kdb, $down, make_server_status( $db, $down ) );
 }
