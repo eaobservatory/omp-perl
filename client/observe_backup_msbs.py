@@ -1,7 +1,22 @@
 #!/local/python/bin/python2
 
+# Copyright (C) 2013 Science and Technology Facilities Council.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from __future__ import print_function
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from datetime import datetime
 import errno
 import os
@@ -18,6 +33,41 @@ except ImportError:
     from tkinter.font import Font
     from tkinter.messagebox import showerror
 import xml.etree.ElementTree as ET
+
+program_description = '''
+observe_backup_msbs - Find and observe backup MSBs while offline
+
+This script is designed to read a directory of backup MSBs previously
+fetched by the fetch_backup_msbs script.  This directory contains a
+selection of MSBs which could be observed for a given date and time
+under various conditions.  It can be used to keep observing in the
+case of the database being inaccessible.
+'''
+
+program_epilog = '''
+A search dialog box will appear, allowing various search parameters to
+be selected.  The date menu shows a list of directories of observations
+which have been fetched for offline observation.  If the database has
+been unavailable for some time, the most recently fetched dates may have
+failed and so it might be necessary to go back a few days.
+
+When the search button is pressed, the next available time of day for
+which there are saved MSBs will be found.  If any MSBs are available
+these will be lised, along with some summary information.  Clicking the
+"Send to queue" button will have the script attempt to translate the
+MSB and add it to the queue.
+
+The "jcmttranslator" and "ditscmd" commands must be available, so the
+relevant setup files must be sourced before using this tool.
+
+WARNING: this script does not update the number of observations remaining
+for each MSB.  It should only be used in case of a failure of the
+database, and if used for an extended period, it may be necessary to
+track the number of observations remaining for each MSB ID manually.
+'''
+
+# These are the directory names which the fetch_backup_msbs script
+# will use to organise the MSBs:
 
 bands = {
     'Band 1': 'band_1',
@@ -38,6 +88,8 @@ queries = {
     'PI projects': 'pi',
     'Nothing left': 'nl',
 }
+
+# Identify date and time directories using these patterns:
 
 valid_date = re.compile('^\d\d\d\d-\d\d-\d\d$')
 valid_time = re.compile('^\d\d-\d\d-\d\d$')
@@ -192,6 +244,7 @@ class ObserveBackup(Frame):
                 '\n\nPlease check terminal window for messages.')
             return
 
+
 # For some reason, if we try to make the closure inside the
 # file loop then we get a bunch of callbacks that all call
 # with the same file (the last one used)...
@@ -201,7 +254,12 @@ def callback_maker(obj, file):
 
     return func
 
-parser = ArgumentParser()
+
+# Use ArgumentParser to determine the path to the MSB directory:
+
+parser = ArgumentParser(description=program_description,
+                        epilog=program_epilog,
+                        formatter_class=RawDescriptionHelpFormatter)
 
 parser.add_argument('--directory', type=str, dest='directory', required=True)
 
