@@ -573,9 +573,9 @@ sub _determine_pparc_semester_boundary {
     my $ny   = $year;
     $ny =~ s/^0//;
 
-    # Convert into a 4 digit year. We are in trouble in 2094 but I'm not going to
+    # Convert into a 4 digit year. We are in trouble in 2074 but I'm not going to
     # worry about it
-    if ($old || $ny > 93) {
+    if ($old || $ny > 73) {
       $year = "19" . $year;
     } else {
       $year = "20" . $year;

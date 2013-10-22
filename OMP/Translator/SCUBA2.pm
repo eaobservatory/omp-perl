@@ -156,12 +156,19 @@ sub insert_setup_obs {
   my $prev_was_setup;
   my $prevtarg = '';
 
-  if ($configs[0]->obsmode !~ /setup/i) {
+  if ($configs[0]->obsmode !~ /setup/i and
+      not _not_needing_setup($configs[0])) {
     $prev_was_setup = 1;
     push(@outconfigs, @setups);
   }
 
   for my $cfg (@configs) {
+    # If the observation type does not require a setup, abort here
+    # before entering the target tracking code.
+    if (_not_needing_setup($cfg)) {
+      push @outconfigs, $cfg;
+      next;
+    }
 
     # If we had a setup inserted anyhow we can just pass it along
     # NOTE there is the possibility that this setup is for "currentAz"
@@ -203,6 +210,27 @@ sub insert_setup_obs {
   }
 
   return @outconfigs;
+}
+
+# _not_needing_setup($config)
+#
+# Returns true for observations for which a setup is not
+# required.
+#
+# This should not include setup obsevations themselves
+# as these are handled specifically by insert_setup_obs.
+#
+# The JCMT operators have determined that a
+# setup is not required before focus or pointing, since
+# that will normally be followed immediately by a setup
+# on the science target.
+
+sub _not_needing_setup {
+    my $config = shift;
+
+    my $mode = $config->obsmode();
+
+    return ($mode eq 'scan_focus' or $mode eq 'scan_pointing');
 }
 
 =item B<translate_scan_pattern_lut>

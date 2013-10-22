@@ -3,24 +3,25 @@
       
       <OBS_SUMMARY>
          
-         <mapping_mode>stare</mapping_mode>
-         <switching_mode>none</switching_mode>
-         <obs_type>setup</obs_type>
-         <in_beam>shutter</in_beam>
+         <mapping_mode>scan</mapping_mode>
+         <switching_mode>self</switching_mode>
+         <obs_type>pointing</obs_type>
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
          <tasks>RTS SCUBA2 PTCS SMU</tasks>
-         <recipe NAME="scuba2_setup_subarrays">
+         <recipe NAME="scuba2_pointing">
             <parameters 
-                        STEPS_BTWN_DARK="34482758.6206897"
+                        STEPS_BTWN_DARK="5082"
                         N_INDEX="1"
                         N_DARKSAMPLES="1724"
                         START_INDEX="1"
                         N_FLATSAMPLES="1724"
                         STEPS_BTWN_FLAT="0"
+                        NUM_CYCLES="4"
                         N_MS_INDEX="1"
                         STEP_TIME="0.005"
+                        JOS_MIN="5082"
             />
          </recipe>
       </JOS_CONFIG>
@@ -91,7 +92,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
                  COMMENT="ORAC-DR recipe"
-                 VALUE="REDUCE_SETUP" />
+                 VALUE="REDUCE_POINTING" />
          <HEADER TYPE="STRING"
                  KEYWORD="DRGROUP"
                  COMMENT="Data Reduction group ID"
@@ -99,7 +100,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum scheduable block"
-                 VALUE="6863184dd94ced9817f83ee62c8c76d0" />
+                 VALUE="013ebd19d3752c9885541fd6e422d1a9" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -129,7 +130,7 @@
          <HEADER TYPE="LOGICAL"
                  KEYWORD="STANDARD"
                  COMMENT="True if the observation is a calibrator"
-                 VALUE="0" />
+                 VALUE="1" />
          <HEADER TYPE="INT"
                  KEYWORD="OBSNUM"
                  COMMENT="Observation number"
@@ -653,51 +654,67 @@
          <HEADER TYPE="FLOAT"
                  KEYWORD="MAP_HGHT"
                  COMMENT="[arcsec] Requested height of map"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.HEIGHT" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="MAP_PA"
                  COMMENT="[deg] Requested PA of map"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.THETA" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="MAP_WDTH"
                  COMMENT="[arcsec] Requested width of map"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.WIDTH" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="LOCL_CRD"
                  COMMENT="Local offset/map PA co-ordinate system"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.OFF_SYS" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="MAP_X"
                  COMMENT="[arcsec] Requested map offset from tel centre"
                  VALUE="" >
-            <DRAMA TASK="PTCS" PARAM="DEM_OFFSET.DC1" EVENT="START" MULT="206264.8062" />
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.OFF_DC1" EVENT="START" />
          </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="MAP_Y"
                  COMMENT="[arcsec] Requested map offset from tel centre"
                  VALUE="" >
-            <DRAMA TASK="PTCS" PARAM="DEM_OFFSET.DC2" EVENT="START" MULT="206264.8062" />
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.OFF_DC2" EVENT="START" />
          </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SCAN_CRD"
                  COMMENT="Co-ordinate system for scanning direction"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.SYSTEM" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SCAN_VEL"
                  COMMENT="[arcsec/sec] Scan velocity along scan axis"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.VELOCITY" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SCAN_DY"
                  COMMENT="[arcsec] Scan spacing perp. to scan axis"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.DY" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SCAN_PA"
                  COMMENT="[deg] Scan PA relative to SAM_CRDS"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="SCAN_PARAM.RHO_B" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SCAN_PAT"
                  COMMENT="Scan pattern name"
-                 VALUE="" />
+                 VALUE="CV_DAISY" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -1112,30 +1129,33 @@
       </INSTRUMENT>
       <TCS_CONFIG TELESCOPE="JCMT">
          
-         
-         
-         <BASE TYPE="FOLLOWINGAZ">
-            
-            <target>
-               <targetName>Following</targetName>
-               <spherSystem SYSTEM="AZEL">
-                  <c1>00:00:00.00</c1>
-                  <c2>-90:00:00.00</c2>
-               </spherSystem>
-            </target>
-            
-            <TRACKING_SYSTEM SYSTEM="AZEL" />
-         </BASE>
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="264"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="153.9024"  />
 
          
 
          <obsArea>
             
-            <SKY/>
+            <PA>0</PA>
+            <SCAN_AREA>
+               <OFFSET SYSTEM="TRACKING" TYPE="TAN" >
+                  <DC1>0</DC1>
+                  <DC2>0</DC2>
+               </OFFSET>
+               <AREA HEIGHT="240" WIDTH="240" />
+               <SCAN
+                     VX="1"
+                     ACCEL="300"
+                     TURN_RADIUS="120"
+                     DY="0.6"
+                     PATTERN="CV_DAISY"
+                     VY="0"
+                     SYSTEM="AZEL"
+                     VELOCITY="155" >
+               </SCAN>
+            </SCAN_AREA>
          </obsArea>
 
          
