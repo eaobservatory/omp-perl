@@ -47,12 +47,13 @@ use OMP::MSBQuery;
 use OMP::DBbackend;
 use OMP::MSBDB;
 
-my ($help, $man, $basedir);
+my ($help, $man, $basedir, $cal);
 
 my $status = GetOptions(
     'help' => \$help,
     'man' => \$man,
     'directory=s' => \$basedir,
+    'onlycalibration' => \$cal,
 );
 
 pod2usage(1) if $help;
@@ -87,6 +88,26 @@ my %query = (
     nl => '<country>NL</country><semester/>',
 );
 
+# Calibration patterns.  Only include calibrations observations if
+# they match one of these patterns.
+my %cal_patterns = (
+    'SCUBA-2' => [
+        qr/Setup/,
+        qr/Pointing/,
+        qr/Focus.*7-steps/,
+        qr/^Standard/,
+        qr/^Planet/,
+    ],
+    'HARP' => [
+        qr/Point/,
+        qr/Focus/,
+    ],
+    'RxA3' => [
+        qr/Point/,
+        qr/Focus/,
+    ],
+);
+
 # Determine range of times to query for.
 my ($date_start, $date_end) = map {
     my ($h, $m) = split ':';
@@ -103,6 +124,70 @@ my $backend = new OMP::DBbackend;
 
 my $utdate = $date_start->ymd('-');
 my %msb_filename = ();
+
+
+# In calibration mode we simply loop over instruments and fetch suitable
+# calibrations.
+do {
+    foreach my $instrument (qw/SCUBA-2 HARP RxA3/) {
+        print "CAL $instrument\n\n";
+
+        my $qxml = "<MSBQuery>\n" .
+            "<telescope>JCMT</telescope>\n" .
+            "<projectid full=\"1\">JCMTCAL</projectid>\n" .
+            "<instrument>$instrument</instrument>\n" .
+
+            "<disableconstraint>remaining</disableconstraint>\n" .
+            "<disableconstraint>allocation</disableconstraint>\n" .
+            "<disableconstraint>observability</disableconstraint>\n " .
+            "<disableconstraint>zoa</disableconstraint>\n " .
+            "</MSBQuery>\n";
+
+        my $db = new OMP::MSBDB(DB => $backend);
+        my @results = $db->queryMSB(new OMP::MSBQuery(XML => $qxml), 'object');
+
+        next unless scalar @results;
+
+        # Results were found, so prepare to write them out.
+        my $directory = join '/', $basedir, $utdate, 'CAL', lc($instrument);
+
+        foreach my $result (@results) {
+            my $msbid = $result->msbid();
+            my $title = $result->title();
+            next unless grep {$title =~ $_} @{$cal_patterns{$instrument}};
+
+            # Make safe version of MSB title for inclusion in the file name.
+            my $filename = substr($result->title(), 0, 30);
+            $filename =~ s/[^a-zA-Z0-9]/_/g;
+
+            my $pathname = "$directory/$filename.xml";
+            my $pathnameinfo = "$directory/$filename.info";
+
+            # Abort if the file already exists.
+            if (-e $pathname) {
+                print STDERR "File already exists: $pathname\n";
+                next;
+            }
+
+            # Write the XML to a file.
+
+            my $xml = fetch_msb($result->projectid, $msbid);
+
+            print "Writing: $pathname\n";
+            make_path($directory);
+            my $fh = new IO::File($pathname, 'w');
+            print $fh $xml;
+            $fh->close();
+
+            # Write the MSB information to another file.
+            my $fh = new IO::File($pathnameinfo, 'w');
+            print $fh $result->summary('xmlshort');
+            $fh->close();
+        }
+    }
+
+    exit(0) if $cal;
+};
 
 # Enter main loop, over: time, band, instrument and query type.
 for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
@@ -174,39 +259,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     }
                     else {
                         # This is a new MSB, so fetch from the database.
-
-                        # The OMP::MSBDB seems to burn in the project ID after
-                        # fetching so we need a new one every time!
-                        my $db = new OMP::MSBDB(DB => $backend);
-
-                        my $msb = eval {$db->fetchMSB(msbid => $msbid)};
-                        unless (defined $msb) {
-                            print STDERR "Failed to fetch $msbid $@\n";
-                            next;
-                        }
-
-                        # SP writing code based on OMP::MSBServer::fetchMSB as
-                        # unfortunately that code isn't in a subroutine we can
-                        # use.  Might not quite validate, but for the purposes
-                        # of having emergency backup MSBs, it's probably OK
-                        # so long as the translator can handle it.
-                        my @xml = (
-                            '<?xml version="1.0" encoding="ISO-8859-1"?>',
-                            '<SpProg type="pr" subtype="none" ' .
-                                'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
-                                'xmlns="http://omp.jach.hawaii.edu/schema/TOML">',
-                            '<meta_gui_collapsed>false</meta_gui_collapsed>',
-                            '<meta_gui_filename>ompdummy.xml</meta_gui_filename>',
-                            '<country>UNKNOWN</country>',
-                        );
-                        push @xml, '<ot_version>'.$msb->ot_version.'</ot_version>' if defined $msb->ot_version;
-                        push @xml, (
-                            '<projectID>' . $result->projectid . '</projectID>',
-                            "$msb",
-                            '</SpProg>'
-                        );
-
-                        my $xml = join("\n", @xml);
+                        my $xml = fetch_msb($result->projectid, $msbid);
 
                         # Write the XML to a file.
 
@@ -236,6 +289,44 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
             }
         }
     }
+}
+
+sub fetch_msb {
+    my $projectid = shift;
+    my $msbid = shift;
+
+    # The OMP::MSBDB seems to burn in the project ID after
+    # fetching so we need a new one every time!
+    my $db = new OMP::MSBDB(DB => $backend);
+
+    my $msb = eval {$db->fetchMSB(msbid => $msbid)};
+    unless (defined $msb) {
+        print STDERR "Failed to fetch $msbid $@\n";
+        next;
+    }
+
+    # SP writing code based on OMP::MSBServer::fetchMSB as
+    # unfortunately that code isn't in a subroutine we can
+    # use.  Might not quite validate, but for the purposes
+    # of having emergency backup MSBs, it's probably OK
+    # so long as the translator can handle it.
+    my @xml = (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>',
+        '<SpProg type="pr" subtype="none" ' .
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
+            'xmlns="http://omp.jach.hawaii.edu/schema/TOML">',
+        '<meta_gui_collapsed>false</meta_gui_collapsed>',
+        '<meta_gui_filename>ompdummy.xml</meta_gui_filename>',
+        '<country>UNKNOWN</country>',
+    );
+    push @xml, '<ot_version>'.$msb->ot_version.'</ot_version>' if defined $msb->ot_version;
+    push @xml, (
+        '<projectID>' . $projectid . '</projectID>',
+        "$msb",
+        '</SpProg>'
+    );
+
+    return join("\n", @xml);
 }
 
 =head1 AUTHOR

@@ -140,40 +140,56 @@ class ObserveBackup(Frame):
         search = Button(self, text='Search', command=self.search)
         search.grid(row=0, column=9)
 
+        label = Label(self, text='    ')
+        label.grid(row=0, column=10)
+
+        search = Button(self, text='Calibrations',
+            command=lambda: self.search(calibration=True))
+        search.grid(row=0, column=11)
+
         self.results = None
 
-    def search(self):
-        times = []
-        for time in os.listdir(os.path.join(args.directory, self.date.get())):
-            if valid_time.match(time):
-                times.append(time)
+    def search(self, calibration=False):
+        if calibration:
+            best_time = 'CAL'
+            directory = os.path.join(
+                args.directory,
+                self.date.get(),
+                best_time,
+                instruments[self.instrument.get()])
 
-        current_time = datetime.now().strftime('%H-%M-%S')
-
-        if current_time in times:
-            best_time = current_time
         else:
-            times.append(current_time)
-            times.sort()
-            i = times.index(current_time)
-            if i == len(times) - 1:
-                best_time = times[0]
-            else:
-                best_time = times[i + 1]
+            times = []
+            for time in os.listdir(os.path.join(args.directory, self.date.get())):
+                if valid_time.match(time):
+                    times.append(time)
 
-        directory = os.path.join(
-            args.directory,
-            self.date.get(),
-            best_time,
-            bands[self.band.get()],
-            instruments[self.instrument.get()],
-            queries[self.query.get()])
+            current_time = datetime.now().strftime('%H-%M-%S')
+
+            if current_time in times:
+                best_time = current_time
+            else:
+                times.append(current_time)
+                times.sort()
+                i = times.index(current_time)
+                if i == len(times) - 1:
+                    best_time = times[0]
+                else:
+                    best_time = times[i + 1]
+
+            directory = os.path.join(
+                args.directory,
+                self.date.get(),
+                best_time,
+                bands[self.band.get()],
+                instruments[self.instrument.get()],
+                queries[self.query.get()])
 
         if self.results is not None:
             self.results.destroy()
 
         self.results = LabelFrame(self, text='Results')
-        self.results.grid(row=1, column=0, columnspan=10)
+        self.results.grid(row=1, column=0, columnspan=12)
 
         label = Label(self.results, text='Directory: ' + directory)
         label.pack()
