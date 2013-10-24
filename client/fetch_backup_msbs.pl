@@ -214,12 +214,15 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
 
                 next unless scalar @results;
 
-                # Results were found, so prepare to write them out.
-                my $directory = join '/', $basedir,
-                    $utdate, $hst,
+                # Results were found, so prepare to write them out. Number
+                # of components of $subdir must match number of ..
+                # components in $relpathname below.
+                my $subdir = join '/',
+                    $hst,
                     'band_' . $band,
                     lc($instrument),
                     $query;
+                my $directory = join '/', $basedir, $utdate, $subdir;
 
                 my $n = 1;
                 my %result_id = ();
@@ -240,10 +243,11 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     my $title = substr($result->title(), 0, 20);
                     $title =~ s/[^a-zA-Z0-9]/_/g;
 
-                    # Construct filenames.
+                    # Construct filenames. ($relpathname is for symlinks)
                     my $filename = join '_', sprintf("%02d", $n), $result->projectid, $title;
                     my $pathname = "$directory/$filename.xml";
                     my $pathnameinfo = "$directory/$filename.info";
+                    my $relpathname = "../../../../$subdir/$filename.xml";
 
                     # Abort if the file already exists.
                     if (-e $pathname) {
@@ -271,7 +275,9 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                         $fh->close();
 
                         # Record this MSB's filenames in case we see it again.
-                        $msb_filename{$msbid} = $pathname;
+                        # Must be relative pathname so that we can use the files
+                        # from another host via the /net/hostname mount.
+                        $msb_filename{$msbid} = $relpathname;
                     }
 
                     # Write the MSB information to another file, and do this
