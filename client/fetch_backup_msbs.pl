@@ -97,6 +97,8 @@ my %cal_patterns = (
         qr/Focus.*7-steps/,
         qr/^Standard/,
         qr/^Planet/,
+        qr/Noise Sky/,
+        qr/Noise Dark/,
     ],
     'HARP' => [
         qr/Point/,
