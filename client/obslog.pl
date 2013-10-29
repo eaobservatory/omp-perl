@@ -805,7 +805,7 @@ sub full_rescan {
 
   # It is here, instead of running it once at the beginning, as current date may
   # change during use, which would cause files to be searched only at the start.
-  update_search_options();
+  update_search_options( $ut, $telescope );
   rescan( $ut, $telescope );
   redraw( undef, $current_instrument, $verbose );
 
@@ -2153,9 +2153,13 @@ sub set_telescope {
 
 sub update_search_options {
 
+  my ( $date, $tel ) = @_;
+
+  my $today_ukirt = ( $date eq $currentut ) && ( lc $tel eq 'ukirt' );
+
   my ( $disk, $db ) = @opt{qw[ disk database ]};
 
-  if  ( $disk && $db || !( $disk || $db ) ) {
+  if  ( $today_ukirt || ( $disk && $db ) || !( $disk || $db ) ) {
 
     OMP::ArchiveDB::search_files();
     OMP::ArchiveDB::search_db_skip_today();
