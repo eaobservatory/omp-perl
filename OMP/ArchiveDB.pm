@@ -222,7 +222,7 @@ sub set_search_criteria {
     );
 
   # Default options.
-  return $search{'db-skip-today-disk' }->()
+  return $search{'db-skip-today-files'}->()
     if ! $tel
     && ! defined $where;
 
