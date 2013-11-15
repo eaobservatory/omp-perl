@@ -684,12 +684,21 @@ sub _copy_data {
   for my $obs ($grp->obs) {
 
     # Untaint the filename
+    my $possible = $obs->filename;
+    for ( $possible ) {
+      defined $_ or last;
+      s/^s+//;
+      s/\s+$//;
+    }
     my $file;
-    if ($obs->filename =~ m/(.*\.(sdf|gsd))$/ ) {
-      $file = $1;
-    } else {
-      print "Error untainting filename. Must skip\n";
-      next;
+    if ( defined $possible && length $possible ) {
+
+      if ( $possible =~ m/(.*\.(sdf|gsd|dat))$/ ) {
+        $file = $1;
+      } else {
+        print "Error untainting filename. Must skip\n";
+        next;
+      }
     }
 
     #    my $file = $obs->filename;
