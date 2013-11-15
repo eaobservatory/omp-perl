@@ -754,7 +754,7 @@ sub _copy_data {
   print "Copied $count files out of ".scalar(@{$grp->obs}) ."\n"
     if $self->verbose;
 
-  throw OMP::Error::FatalError("Unable to copy any files. Aborting.")
+  throw OMP::Error::FatalError("Unable to copy any files. Aborting.\n")
     if $count == 0;
 
 }
