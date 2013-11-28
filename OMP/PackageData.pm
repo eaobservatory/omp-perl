@@ -709,7 +709,7 @@ sub _copy_data {
     try {
       $file =_extract_raw_path( $obs->filename() );
     }
-    catch OMP::Error::BadArgs {
+    catch OMP::Error::BadArgs with {
 
       my ( $e ) = @_;
       $extract_err++;
