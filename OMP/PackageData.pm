@@ -69,6 +69,27 @@ use constant ONE_DAY => 60 * 60 * 24;
 # Age in days of files to be purged
 use constant OLD_AGE => 1;
 
+my $Raw_Base_Re =
+  qq{ ( # needs to start with a letter or number.
+        [a-z0-9]
+        [-._a-z0-9]+
+        [.]
+        (?:sdf|gsd|dat)
+      )
+    };
+
+my $Raw_Path_Re =
+  qr{ ^
+      ( # Possible path;
+        (?: .*? / )?
+        $Raw_Base_Re
+      )
+      $
+    }xi;
+
+# Make string a proper regex.
+$Raw_Base_Re = qr{\b ( $Raw_Base_Re ) \b}xi;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -684,24 +705,17 @@ sub _copy_data {
   for my $obs ($grp->obs) {
 
     # Untaint the filename
-    my $possible = $obs->filename;
-    for ( $possible ) {
-      defined $_ or last;
-      s/^s+//;
-      s/\s+$//;
+    my ( $file, $extract_err );
+    try {
+      $file =_extract_raw_path( $obs->filename() );
     }
-    my $file;
-    if ( defined $possible && length $possible ) {
+    catch OMP::Error::BadArgs {
 
-      if ( $possible =~ m/(.*\.(sdf|gsd|dat))$/ ) {
-        $file = $1;
-      } else {
-        print "Error untainting filename. Must skip\n";
-        next;
-      }
-    }
-
-    #    my $file = $obs->filename;
+      my ( $e ) = @_;
+      $extract_err++;
+      print "$e";
+    };
+    $extract_err and next;
 
     if (!defined $file) {
       print "File for this observation was not defined. Must skip.\n";
@@ -717,7 +731,7 @@ sub _copy_data {
 
     # Get the actual filename without path
     my $base = $obs->simple_filename;
-    if ($base =~ /(.*\.(sdf|gsd|dat))$/) {
+    if ($base =~ $Raw_Base_Re ) {
       $base = $1;
     } else {
       print "Error untainting base file. Must skip\n";
@@ -757,6 +771,18 @@ sub _copy_data {
   throw OMP::Error::FatalError("Unable to copy any files. Aborting.\n")
     if $count == 0;
 
+}
+
+sub _extract_raw_path {
+
+  my ( $in ) = @_;
+
+  defined $in && length $in or return;
+
+  $in =~ $Raw_Path_Re and return $1;
+
+  throw OMP::Error::BadArgs( qq[Error extracting file path from "$in". Must skip\n] );
+  return;
 }
 
 =item B<_mktarfile>
