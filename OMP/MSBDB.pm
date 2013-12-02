@@ -2789,10 +2789,22 @@ sub _run_query {
           # queries but is a scheduling constraint) In some cases we
           # dont even want to test for observability
           if ($qconstraints{observability}) {
-            if  ( ! $coords->isObservable or
+            my $unobservable = eval {
+                  ! $coords->isObservable or
                   ! $elconstraint->contains( $coords->el ) or
                   ! ($coords->ha(normalize=>1)*$approach >= 0)
-                ) {
+            };
+            unless (defined $unobservable) {
+              print STDERR "Error calculating observability of source for project:\n",
+                           $msb->{'projectid'}, ' ',
+                           $msb->{'checksum'}, ' ',
+                           $obs->{'target'}, "\n",
+                           $msb->{'title'}, "\n",
+                           'Message: ', $@, "\n";
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+            elsif ($unobservable) {
               $isObservable = 0;
               last OBSLOOP;
             }
