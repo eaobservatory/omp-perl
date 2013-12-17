@@ -1525,13 +1525,15 @@ sub simple_filename {
 
   my $scuba_re = qr{^scuba-?2?$}i;
 
+  require JSA::EnterData::ACSIS;
   for my $infile (@infiles) {
 
     # Get the filename without path
     my $base = basename( $infile );
 
     if ($self->telescope eq 'JCMT' && $self->instrument !~ $scuba_re
-        && uc( $self->backend ) ne 'ACSIS') {
+          && ! JSA::EnterData::ACSIS->name_is_similar( $self->backend() )
+        ) {
 
       # Want YYYYMMDD_backend_nnnn.dat
       my $yyyy = $self->startobs->strftime('%Y%m%d');
