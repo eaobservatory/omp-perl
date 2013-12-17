@@ -1331,7 +1331,7 @@ sub file_from_bits {
     $filename = File::Spec->catdir( $rawdir, $instprefix. $utdate . "_" . $runnr . ".sdf" );
 
   } elsif( $instrument =~ /^(rx|het|fts)/i &&
-           uc( $self->backend ) ne 'ACSIS' ) {
+           ! $self->_backend_acsis_like() ) {
     my $project = $self->projectid;
     my $ut = $self->startobs;
     my $timestring = sprintf("%02u%02u%02u_%02u%02u%02u",
@@ -1350,7 +1350,7 @@ sub file_from_bits {
     my $runnr = sprintf( "%04u", $self->runnr );
 
     $filename = File::Spec->catfile( $rawdir, $utdate . "_dem_" . $runnr . ".sdf");
-  } elsif( $self->backend =~ /acsis/i ) {
+  } elsif( $self->_backend_acsis_like() ) {
     my $utdate;
     ( $utdate = $self->startobs->ymd ) =~ s/-//g;
     my $runnr = sprintf( "%05u", $self->runnr );
@@ -1408,7 +1408,7 @@ sub rawdatadir {
                                  telescope => 'UKIRT',
                                  instrument => $instrument,
                                  utdate => $utdate );
-  } elsif( defined( $self->backend ) && $self->backend =~ /acsis/i ) {
+  } elsif( $self->_backend_acsis_like() ) {
     $dir = OMP::Config->getData( 'rawdatadir',
                                  telescope => 'JCMT',
                                  instrument => 'ACSIS',
@@ -1531,7 +1531,7 @@ sub simple_filename {
     my $base = basename( $infile );
 
     if ($self->telescope eq 'JCMT' && $self->instrument !~ $scuba_re
-        && uc( $self->backend ) ne 'ACSIS') {
+        && ! $self->_backend_acsis_like() ) {
 
       # Want YYYYMMDD_backend_nnnn.dat
       my $yyyy = $self->startobs->strftime('%Y%m%d');
@@ -1563,7 +1563,7 @@ sub uniqueid {
               ! defined( $self->telescope ) ||
               ! defined( $self->startobs ) );
 
-  if( uc( $self->backend ) eq 'ACSIS' ) {
+  if( $self->_backend_acsis_like() ) {
     return $self->runnr . $self->backend . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
   }
   return $self->runnr . $self->instrument . $self->telescope . $self->startobs->ymd . $self->startobs->hms;
@@ -1895,6 +1895,14 @@ sub _populate {
     $self->hdrhash( undef );
   }
 
+}
+
+sub _backend_acsis_like {
+
+  my ( $self ) = @_;
+
+  my $name = $self->backend();
+  return defined $name && $name =~ m{^(?: ACSIS | DAS )$}ix;
 }
 
 =back
