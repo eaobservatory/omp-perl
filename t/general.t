@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 119;
+use Test::More tests => 127;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -328,6 +328,12 @@ my %extract = (
                'u/12a/h01d' => '[u/12a/h01d]',
                'u/12a/kasi2' => '[u/12a/kasi2]',
                'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
+               'u/14a/lm01' => 'Lockheed Martin projects starts with u/14a/lm01',
+               'u/14a/LM88' => 'Lockheed Martin project, u/14a/LM88',
+               'U/14A/LM99' => 'U/14A/LM99 would be the last Lockheed Martin project.',
+               'U/14A/UA01' => 'University of Arizona projects starts with U/14A/UA01',
+               'u/14a/ua88' => 'University of Arizona project, u/14a/ua88',
+               'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.'
               );
 
 for my $proj (keys %extract) {
@@ -342,6 +348,10 @@ my @fail =
     'u/uhs/uhsK003',
     # ... or in band other than (J, K).
     '[u/uhs/uhsL02]',
+    # could not possibly be in past.
+    'u/13b/ua01',
+    #  starts from 1, not 0.
+    'u/14a/lm00'
   );
 for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
