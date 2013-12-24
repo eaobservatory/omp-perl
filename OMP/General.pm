@@ -396,6 +396,9 @@ sub extract_projectid {
   # UKIRT KASI.
   my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
 
+  # Lockheed Martin & Univ of AZ.
+  my $ukirt_lm_az = qr{\b (u / 1[4-9][ab] / (?: lm | ua ) [0-9][1-9] )\b}xi;
+
   if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abcd]?)\b}i    # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
@@ -411,6 +414,7 @@ sub extract_projectid {
       or $string =~ $ukidss_three
       or $string =~ $ukidss_comm
       or $string =~ $ukirt_kasi
+      or $string =~ $ukirt_lm_az
       or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
       or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
       or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH
