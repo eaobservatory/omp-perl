@@ -325,7 +325,6 @@ my %extract = (
                'U/UHS/UHSK03' => 'K band third project: U/UHS/UHSK03',
                'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
                'U/11B/H50C' => '[U/11B/H50C]',
-               'U/11B/H50C' => '[U/11B/H50C]',
                'u/12a/h01d' => '[u/12a/h01d]',
                'u/12a/kasi2' => '[u/12a/kasi2]',
                'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
