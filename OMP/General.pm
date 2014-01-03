@@ -400,7 +400,7 @@ sub extract_projectid {
   my $ukirt_lm_az =
     qr{ \b
         ( u
-          / 1[4-9][ab]
+          / 1[3-9][ab]
           / (?: lm | ua ) (?: [0-9][1-9] | [1-9]0 )
         )
         \b
