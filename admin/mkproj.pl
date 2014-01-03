@@ -62,6 +62,14 @@ This manual page.
 
 Specify default country code to use for a project missing one.
 
+=item B<-no-country-check> | B<-no-cc>
+
+Specify that project with new country code is being added, so
+avoid country code check.
+
+This implies that B<country code check will be avoided for all of the
+projects being added> during current run.
+
 =item B<-priority> integer
 
 Specify default tag priority to use.
@@ -96,11 +104,13 @@ use Pod::Usage;
 use Getopt::Long;
 
 # Options
+my $do_country_check = 1;
 my ($help, $man, $version,$force, %defaults );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "force" => \$force,
+                        'no-cc|no-country-check' => sub { $do_country_check = 0 ; },
 
                         "country=s"   => \$defaults{'country'},
                         "priority=i"  => \$defaults{'priority'},
@@ -200,15 +210,8 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
 
   upcase( \%details, qw/ pi coi support semester telescope / );
 
-  # Validate country (if we add a new country we should remove
-  # this test for the first upload
-  my $projdb = OMP::ProjDB->new( DB => OMP::DBServer->dbConnection );
-  my %allowed = map { $_ => undef } $projdb->listCountries;
-  for my $c (@{$details{country}}) {
-    if (!exists $allowed{$c}) {
-      collect_err( "Unrecognized country code: $c" );
-    }
-  }
+  $do_country_check
+    and check_country( $details{country} );
 
   # TAG priority
   my @tag;
@@ -375,6 +378,24 @@ sub verify_telescope {
 
   return defined $tel
     && grep { uc $tel eq $_ } ( 'JCMT', 'UKIRT' );
+}
+
+sub check_country {
+
+  my ( $countries ) = @_;
+
+  my $projdb  = OMP::ProjDB->new( DB => OMP::DBServer->dbConnection );
+  my %allowed = map { $_ => undef } $projdb->listCountries;
+  my $ok      = 1;
+  for my $c ( @{ $countries } ) {
+
+    unless ( exists $allowed{ $c } ) {
+
+      collect_err( "Unrecognized country code: $c" );
+      $ok = 0;
+    }
+  }
+  return $ok;
 }
 
 # Collect the errors for a project.
