@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 129;
+use Test::More tests => 133;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -328,12 +328,15 @@ my %extract = (
                'u/12a/h01d' => '[u/12a/h01d]',
                'u/12a/kasi2' => '[u/12a/kasi2]',
                'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
-               'u/14a/lm01' => 'Lockheed Martin projects starts with u/14a/lm01',
-               'u/14a/LM88' => 'Lockheed Martin project, u/14a/LM88',
+               'u/13a/lm01' => 'Lockheed Martin projects start with u/13a/lm01',
+               'u/13b/lm10' => 'Lockheed Martin project: u/13b/lm10',
+               'u/14a/lm01' => 'Lockheed Martin project: u/14a/lm01',
+               'u/14a/LM88' => 'Lockheed Martin project(u/14a/LM88)',
                'U/14A/LM90' => 'U/14A/LM90 would be a Lockheed Martin project.',
                'U/14A/LM99' => 'U/14A/LM99 would be the last Lockheed Martin project.',
-               'U/14A/UA01' => 'University of Arizona projects starts with U/14A/UA01',
-               'u/14a/ua20' => 'University of Arizona project, u/14a/ua20',
+               'U/13A/UA01' => 'University of Arizona projects start with U/13A/UA01',
+               'U/14A/UA01' => 'University of Arizona project: U/14A/UA01',
+               'u/14a/ua20' => 'University of Arizona project<u/14a/ua20>',
                'u/14a/ua88' => 'University of Arizona project, u/14a/ua88',
                'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.'
               );
@@ -351,8 +354,9 @@ my @fail =
     # ... or in band other than (J, K).
     '[u/uhs/uhsL02]',
     # could not possibly be in past.
-    'u/13b/ua01',
+    'u/12b/ua01',
     #  starts from 1, not 0.
+    'u/13a/lm00',
     'u/14a/lm00'
   );
 for my $string (@fail) {
