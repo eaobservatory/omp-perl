@@ -194,6 +194,24 @@ sub seeing {
   return $seeing;
 }
 
+=item B<tau>
+
+Return the given tau value.
+
+=cut
+
+sub tau {
+    my $self = shift;
+
+    my $href = $self->raw_query_hash();
+
+    return undef
+        unless (exists $href->{'tau'})
+           and (ref $href->{'tau'});
+
+    return $href->{'tau'}->[0];
+}
+
 =item B<constraints>
 
 Returns a hash containing the general project constraints that 
