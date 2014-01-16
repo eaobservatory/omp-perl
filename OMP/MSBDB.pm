@@ -61,6 +61,7 @@ use Astro::Telescope;
 use Astro::Coords;
 use Astro::PAL;
 use Data::Dumper;
+use Number::Interval;
 
 use POSIX qw/ log10 /;
 
@@ -2330,6 +2331,15 @@ can be retrieved (see L<OMP::MSBQuery/maxCount>).
 
 =cut
 
+# List of priority kludges to apply.  This list maps project patterns
+# to the amount by which to increase the priority value (lowering the
+# priority) and the tau interval over which to apply this.  Only one
+# (the first matching) tweak will be applied to any MSB.
+my @priority_tweaks = (
+    [qr/^TJ01$/,        100, new Number::Interval(Min => 0.05, Max => 0.08,
+                                                  IncMin => 1, IncMax => 0)],
+);
+
 sub _run_query {
   my $self = shift;
   my $query = shift;
@@ -2342,6 +2352,10 @@ sub _run_query {
                          $OMP::ProjDB::PROJUSERTABLE );
 
   print "SQL: $sql\n" if $DEBUG;
+
+  # Obtain tau value from the query in order to check for priority adjustments
+  # for survey projects being observed out of band.
+  my $tau = $query->tau();
 
   # Run the initial query
   my $ref = $self->_db_retrieve_data_ashash( $sql );
@@ -2452,6 +2466,10 @@ sub _run_query {
   # max and min priority in all acceptable results
   my $primin = 1E30;
   my $primax = -1E30;
+
+  # Have we tweaked any priority values?  If so we'll need
+  # to re-sort the results at the end.
+  my $priority_tweaked = 0;
 
   # Decide whether to do an explicit check for observability
   if (0) {
@@ -2879,6 +2897,18 @@ sub _run_query {
       if ($isObservable) {
         push(@observable, $msb);
 
+        # Check whether any of the priority kludges apply to this
+        # MSB.
+        foreach my $tweak (@priority_tweaks) {
+          my ($projpattern, $tweakval, $tauinterval) = @$tweak;
+          next unless ($msb->{'projectid'} =~ $projpattern)
+               and $tauinterval->contains($tau);
+
+          $msb->{'priority'} += $tweakval;
+          $priority_tweaked = 1;
+          last;
+        }
+
         # check priority [TAG range]
         my $pri = int($msb->{priority});
         if ($pri > $primax) {
@@ -2979,7 +3009,9 @@ sub _run_query {
     };
 
     if ($sortby eq 'priority') {
-      # already done
+      # Already done unless we tweaked the priorities.
+      @observable = sort {$a->{'priority'} <=> $b->{'priority'}} @observable
+          if $priority_tweaked;
     } elsif ($sortby eq 'schedpri') {
       @observable = sort { $a->{schedpri} <=> $b->{schedpri} } @observable;
     } else {
