@@ -213,7 +213,7 @@ sub raw_query_hash {
     $self->{RawQHash} = shift;
   } else {
     # Check to see if we have something
-    unless (%{ $self->{RawQHash} }) {
+    unless ((exists $self->{'RawQHash'}) and %{ $self->{RawQHash} }) {
       $self->_convert_to_perl;
     }
   }
