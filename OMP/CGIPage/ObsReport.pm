@@ -24,6 +24,7 @@ use OMP::DateTools;
 use Time::Piece;
 use Time::Seconds qw(ONE_DAY);
 
+use OMP::CGIComponent::IncludeFile qw/include_file_ut/;
 use OMP::CGIComponent::Weather;
 use OMP::Constants qw(:done);
 use OMP::DBbackend;
@@ -256,6 +257,11 @@ sub night_report {
 
     $nr->ashtml( worfstyle => 'staff',
                  commentstyle => 'staff', );
+
+    if ($tel eq 'JCMT') {
+      print "\n<h2>Data Quality Analysis</h2>\n\n";
+      include_file_ut('dq-nightly', $utdate->ymd());
+    }
 
     # Display tau plot
     ($plot_html) and print "<p>$plot_html</p>";
