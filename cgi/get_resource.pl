@@ -16,10 +16,12 @@ BEGIN {
 # Load OMP modules
 use OMP::CGIPage;
 use OMP::CGIComponent::IncludeFile;
+use OMP::NetTools;
 
 my $q = new CGI;
 my $cgi = new OMP::CGIPage(CGI => $q);
 
 $cgi->write_page(\&OMP::CGIComponent::IncludeFile::get_resource,
                  \&OMP::CGIComponent::IncludeFile::get_resource,
-                 0, 1);
+                 OMP::NetTools->is_host_local(),
+                 1);
