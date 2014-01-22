@@ -34,6 +34,7 @@ use IO::File;
 use OMP::Config;
 use OMP::General;
 use OMP::MSBServer;
+use OMP::NetTools;
 
 our @ISA = qw/Exporter/;
 our @EXPORT_OK = qw/include_file_ut/;
@@ -121,7 +122,8 @@ the user is permitted to view the resource.
 Currently we check that the project had observations
 on the night in question.  If more 'types' of resources
 are to be added, it may be necessary to perform a
-different kind of authorization for each one. 
+different kind of authorization for each one.  Also allow
+local access to all resources.
 
 =cut
 
@@ -133,29 +135,31 @@ sub get_resource {
   my $utdate = $q->url_param('utdate');
   my $filename = $q->url_param('filename');
 
-  # Check we are allowed to access this project.
-  my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
-  croak 'Did not receive a valid project ID.' unless $projectid;
+  unless (OMP::NetTools->is_host_local()) {
+    # Check we are allowed to access this project.
+    my $projectid = OMP::General->extract_projectid($cookie{'projectid'});
+    croak 'Did not receive a valid project ID.' unless $projectid;
 
-  # Check UT date is valid.
-  $utdate =~ s/-//g;
-  if ($utdate =~ /^([0-9]{8})$/) {
-    $utdate = $1;
-  }
-  else {
-    croak('UT date string ['.$utdate.'] is not valid.');
-  }
+    # Check UT date is valid.
+    $utdate =~ s/-//g;
+    if ($utdate =~ /^([0-9]{8})$/) {
+      $utdate = $1;
+    }
+    else {
+      croak('UT date string ['.$utdate.'] is not valid.');
+    }
 
-  my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
-                                               date => $utdate,
-                                               comments => 0,
-                                               transactions => 0,
-                                               format => 'data',});
+    my $observed = OMP::MSBServer->observedMSBs({projectid => $projectid,
+                                                 date => $utdate,
+                                                 comments => 0,
+                                                 transactions => 0,
+                                                 format => 'data',});
 
-  unless (scalar @$observed) {
-    print header(-status => '403 Forbidden');
-    print '<h1>403 Forbidden</h1>';
-    return;
+    unless (scalar @$observed) {
+      print header(-status => '403 Forbidden');
+      print '<h1>403 Forbidden</h1>';
+      return;
+    }
   }
 
   _get_resource_ut($type, $utdate, $filename);
