@@ -170,6 +170,18 @@ sub determine_extended {
       exists $args{end} && defined $args{end} &&
         exists $args{duration} && defined $args{duration};
 
+
+  # Check whether "free time" is currently disabled.  If so, return all
+  # the time as "time spent" with zero extended time.
+
+  my $freetime_disable = OMP::Config->getData('freetimedisable',
+                                              telescope => $args{'tel'});
+
+  if ($freetime_disable) {
+    return ($args{'end'} - $args{'start'}, new Time::Seconds(0));
+  }
+
+
   # Now we need to get the valid ranges
   my ($min, $max) = $class->_get_freeut_range( %args );
 
