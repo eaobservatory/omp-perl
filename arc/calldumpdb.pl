@@ -20,5 +20,6 @@ BEGIN {
 die "$err\n" if defined $err;
 my $status = system('/local/perl/bin/perl /jac_sw/omp/msbserver/admin/dumpdb.pl');
 if ($status != 0) {
-  print "Error running dumpdb.pl (exit code = $status)\n"
+  print "Error running dumpdb.pl (exit code = $status)\n";
+  exit 1;
 }
