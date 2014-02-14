@@ -2805,15 +2805,48 @@ sub _run_query {
         # Loop over two times. The current time and the current time
         # incremented by the observation time estimate Note that we do
         # not test for the case where the source is not observable
-        # between the two reference times For example at JCMT where
-        # the source may transit above 87 degrees
-        for my $delta (0, $obs->{timeest}) {
+        # between the two reference times except for additionally
+        # checking transit if it transited between the start and
+        # end times.  The transit test is preformed by adding the
+        # special string 'TRANSIT' as a "$delta", in order to avoid
+        # having to duplicate all the logic from the loop for the
+        # transit test.  If sources dipping below the minimum elevation
+        # at some point during the observation becomes a problem,
+        # then the transit test could replaced with one that tests
+        # at the source's lower as well as upper culmination.
+        my @is_rising = ();
+        for my $delta (0, $obs->{timeest}, 'TRANSIT') {
+          my $test_date = undef;
 
-          # increment the date
-          $date += $delta;
+          unless ($delta eq 'TRANSIT') {
+            # Increment the date (which persists between observations which
+            # we are checking).
+            $date += $delta;
+
+            # Perform the test at the same date.
+            $test_date = $date;
+          }
+          else {
+            throw OMP::Error::FatalError('Source rising/setting ' .
+              'information missing for determination of whether a transit '.
+              'check is necessary') unless 2 == scalar @is_rising;
+
+            # Skip the transit check unless the source was rising at
+            # the start of the observation and setting at the end.
+            next unless $is_rising[0] && ! $is_rising[1];
+
+            # Since we will have just checked the end of the
+            # observation, ask Astro::Coords to find the closest
+            # transit before the current time.
+            $test_date = $coords->meridian_time(event => -1);
+          }
 
           # Set the time in the coordinates object
-          $coords->datetime( $date );
+          $coords->datetime( $test_date );
+
+          # Record whether the source was rising at this time
+          # by checking the sign of the hour angle.
+          push @is_rising, ($coords->ha(normalize=>1) < 0);
 
           # If we are a CAL observation just skip
           # make sure to add the time estimate though!
@@ -2888,11 +2921,11 @@ sub _run_query {
           # Julian Day for comparison so we can compare Time::Piece
           # with DateTime objects.
           if( ( $zoa ) &&
-              ( (   $zoa_targetup && $date->mjd < $zoa_targetset->mjd ) ||
-                ( ! $zoa_targetup && $date->mjd > $zoa_targetrise->mjd ) ) ) {
+              ( (   $zoa_targetup && $test_date->mjd < $zoa_targetset->mjd ) ||
+                ( ! $zoa_targetup && $test_date->mjd > $zoa_targetrise->mjd ) ) ) {
 
             # Calculate the position of the zone-of-avoidance target.
-            $zoa_coords->datetime( $date );
+            $zoa_coords->datetime( $test_date );
 
             # Find the distance between our observation and the zoa
             # target. If it's less than the radius (which is in
@@ -2904,10 +2937,11 @@ sub _run_query {
             }
           }
 
-          # Include the HA for the start and end of the observation
-          $nh++;
-          $hasum += abs($coords->ha( format => 'radians' ));
-
+          unless ($delta eq 'TRANSIT') {
+            # Include the HA for the start and end of the observation
+            $nh++;
+            $hasum += abs($coords->ha( format => 'radians' ));
+          }
         }
 
       }
