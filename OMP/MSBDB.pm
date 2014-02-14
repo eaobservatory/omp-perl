@@ -2409,6 +2409,7 @@ sub _run_query {
   # correct place. First need to create the obs arrays by msbid
   # (using msbid as key)
   my %msbs;
+  my %instruments_used = ();
   for my $row (@observations) {
     my $msb = $row->{msbid};
     if (exists $msbs{$msb}) {
@@ -2426,6 +2427,14 @@ sub _run_query {
     $row->{waveband} = new Astro::WaveBand(Instrument => $row->{instrument},
                                            Wavelength => $row->{wavelength});
 
+    # Record which instruments are used for this MSB (because instrument
+    # is a property of the observation rather than MSB).
+    if (exists $instruments_used{$msb}) {
+      $instruments_used{$msb}->{$row->{'instrument'}} ++;
+    }
+    else {
+      $instruments_used{$msb} = {$row->{'instrument'} => 1};
+    }
   }
 
   $t1 = [gettimeofday];
@@ -2449,6 +2458,8 @@ sub _run_query {
     $row->{priority} = $row->{newpriority} if exists $row->{newpriority};
     delete $row->{newpriority};
 
+    # Attach the set of instruments used.
+    $row->{'instruments_used'} = $instruments_used{$msb};
   }
 
   $t1 = [gettimeofday];
@@ -2692,6 +2703,14 @@ sub _run_query {
       $minel *= Astro::PAL::DD2R; # convert to radians
 
       my $maxel = $msb->{maxel};
+      # Use 75 degrees as the default maximum elevation for SCUBA-2
+      # as agreed at the JCMT meeting of 2/13/14.
+      # (Implemented for any observation including SCUBA-2 to avoid having
+      # multiple elevation constraints because at present switching
+      # instruments is time consuming so there won't be many MSBs with a
+      # mixture of instruments.)
+      $maxel = 75 if (not defined $maxel)
+                  and (exists $msb->{'instruments_used'}->{'SCUBA-2'});
       $maxel *= Astro::PAL::DD2R if defined $maxel;
 
       # create the range object
