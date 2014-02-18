@@ -406,6 +406,33 @@ sub get_sql_typecast {
   }
 }
 
+=item B<timeout>
+
+Set or retrieve the database timeout in seconds.  For example in a GUI
+application where you don't want to be waiting for the database if it
+is not responding promptly:
+
+    OMP::DBbackend->timeout(5);
+
+Note: this is currently only read by the connect method for the Sybase
+driver.  It is applied when connecting to the database, so when you
+want to set the timeout, this method must be called before the (shared)
+connection is made.
+
+The default value is 300 seconds.
+
+=cut
+
+{
+  my $timeout = 300;
+
+  sub timeout {
+    my $sclass = shift;
+    $timeout = shift if @_;
+    return $timeout;
+  }
+}
+
 =back
 
 =head2 Constructor
@@ -566,13 +593,14 @@ sub connect {
   my $DBuser     = $details{user};
   my $DBpwd      = $details{password};
   my $DBdatabase = $details{database};
+  my $DBtimeout  = $self->timeout();
 
   # Work out arguments for "generic" DBI layer. Shame they can not all
   # be the same
   my $info = ''; # informational message in error
   my $dboptions = "";
   if ($DBIdriver eq "Sybase") {
-    $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=300";
+    $dboptions = ":server=${DBserver};database=$DBdatabase;timeout=$DBtimeout";
     $info = "$DBserver Sybenv=$ENV{SYBASE}";
   } elsif ($DBIdriver eq 'Pg') {
     $DBserver = "<IRRELEVANT>";
