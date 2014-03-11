@@ -396,12 +396,22 @@ sub extract_projectid {
   # UKIRT KASI.
   my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
 
-  # Lockheed Martin & Univ of AZ.
+  # Lockheed Martin & Univ of AZ as project id.
   my $ukirt_lm_az =
     qr{ \b
         ( u
           / 1[3-9][ab]
           / (?: lm | ua ) (?: [0-9][1-9] | [1-9]0 )
+        )
+        \b
+      }xi;
+
+  # Lockheed Martin & Univ of AZ as semester.
+  my $ukirt_lm_az_sem =
+    qr{ \b
+        ( u
+          / (?: lm | ua )
+          / (?: casu | wfau )
         )
         \b
       }xi;
@@ -422,6 +432,7 @@ sub extract_projectid {
       or $string =~ $ukidss_comm
       or $string =~ $ukirt_kasi
       or $string =~ $ukirt_lm_az
+      or $string =~ $ukirt_lm_az_sem
       or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
       or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
       or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH
