@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 133;
+use Test::More tests => 145;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -338,7 +338,11 @@ my %extract = (
                'U/14A/UA01' => 'University of Arizona project: U/14A/UA01',
                'u/14a/ua20' => 'University of Arizona project<u/14a/ua20>',
                'u/14a/ua88' => 'University of Arizona project, u/14a/ua88',
-               'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.'
+               'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.',
+               'u/ua/casu'  => 'Univ of AZ as semester in u/ua/casu',
+               'u/ua/wfau'  => 'Univ of AZ as semester in u/ua/wfau',
+               'u/lm/casu'  => 'Lockheed Martin as semester in u/lm/casu',
+               'u/lm/wfau'  => 'Lockheed Martin as semester in u/lm/wfau',
               );
 
 for my $proj (keys %extract) {
@@ -357,7 +361,17 @@ my @fail =
     'u/12b/ua01',
     #  starts from 1, not 0.
     'u/13a/lm00',
-    'u/14a/lm00'
+    'u/14a/lm00',
+    # no numbers or extra alphas.
+    'u/ua/casu1',
+    'u/ua/casu_1',
+    'u/ua/wfau2',
+    'u/ua/wfau_2',
+    'u/lm/casu1',
+    'u/lm/casu_1',
+    'u/lm/wfau2',
+    'u/lm/wfau_2',
+
   );
 for my $string (@fail) {
   is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
