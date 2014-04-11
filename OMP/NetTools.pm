@@ -117,11 +117,14 @@ sub determine_host {
 
     # localhost
     $addr = hostfqdn;
+    # FQDN is having one at the end at least since Mar 26 2014, that results in
+    # no match being found in OMP::Config. See
+    # http://omp.jach.hawaii.edu/cgi-bin/viewfault.pl?id=20140327.003.
+    $addr =~ s/[.]$//;
+
     $user = (exists $ENV{USER} ? $ENV{USER} : '' );
 
   }
-  # Remove "." as FQDN is having one at the end at least since Mar 26 2014.
-  $addr =~ s/ ([.]edu) [.] $/$1/x;
 
   # Build a pseudo email address
   my $email = '';
