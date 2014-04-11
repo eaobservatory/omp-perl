@@ -120,6 +120,8 @@ sub determine_host {
     $user = (exists $ENV{USER} ? $ENV{USER} : '' );
 
   }
+  # Remove "." as FQDN is having one at the end at least since Mar 26 2014.
+  $addr =~ s/ ([.]edu) [.] $/$1/x;
 
   # Build a pseudo email address
   my $email = '';
