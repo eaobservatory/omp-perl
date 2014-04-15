@@ -227,7 +227,7 @@ sub set_search_criteria {
     && ! defined $where;
 
   # Search database for current date too.
-  search_db() if lc $tel eq 'jcmt';
+  search_db() if $tel && lc $tel eq 'jcmt';
 
   unless ( defined $where ) {
 
