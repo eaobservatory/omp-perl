@@ -141,6 +141,9 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                },
                  );
 
+
+my $ukirt_inst = qr{^(?: CGS4 | IRCAM | UFTI | MICHELLE | UIST | WFCAM )}x;
+
 # Lookup table
 my %lut = (
      # XML tag -> database table -> column name
@@ -664,7 +667,7 @@ sub _post_process_hash {
           $insts{HETERODYNE}++;
         }
         $tels{JCMT}++;
-      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST|WFCAM)/) {
+      } elsif ($inst =~ $ukirt_inst ) {
         $tables{$UKIRTTAB}++;
         $tels{UKIRT}++;
         $insts{$inst}++;
@@ -761,22 +764,7 @@ sub _post_process_hash {
       }
     }
 
-    if (exists $href->{$inst}->{instrument}) {
-      $self->_process_elements($href->{$inst}->{instrument}, sub { lc(shift) },
-                               [ $lut{instrument}{$GSDTAB} ] );
-      $self->_process_elements($href->{$inst}->{instrument}, sub { uc(shift);},
-                               [ $lut{instrument}{$UKIRTTAB}]);
-    } else {
-      if ($inst =~ /^(RX|UKT)/i) {
-        $href->{$inst}->{instrument}->{ $lut{instrument}{$GSDTAB} } = [ qw/ HETERODYNE / ];
-        $self->_process_elements($href->{$inst}->{instrument}, sub { lc(shift) },
-                                 [ $lut{instrument}{$GSDTAB} ] );
-      } elsif ($inst =~ /^(CGS4|IRCAM|UFTI|MICHELLE|UIST|WFCAM)/) {
-        $href->{$inst}->{instrument}->{ $lut{instrument}{$UKIRTTAB} } =  [ "$inst" ] ;
-        $self->_process_elements($href->{$inst}->{instrument}, sub { uc(shift);},
-                                 [ $lut{instrument}{$UKIRTTAB}]);
-      }
-    }
+    $self->_adjust_instrument( $href, $inst );
 
     if (exists $href->{$inst}->{projectid}) {
       $self->_process_elements($href->{$inst}->{projectid}, sub { lc(shift);  },
@@ -795,6 +783,47 @@ sub _post_process_hash {
   delete $href->{_attr};
 
   return 1;
+}
+
+=item B<_adjust_instrument>
+
+Given hash reference and instrumnet, adjusts the instrument case, and sometimes
+name, based on table name.
+
+  $q->_adjust_instrument( $href, $inst );
+
+=cut
+
+sub _adjust_instrument {
+
+  my ( $self, $href, $inst ) = @_;
+
+  my %inst_case =
+    ( $GSDTAB   => sub { lc( shift ) },
+      $JCMTTAB  => sub { uc( shift ) },
+      $UKIRTTAB => sub { uc( shift ) },
+    );
+
+  my $gsd_inst   = qr{^(?: RX | UKT )}ix;
+
+  unless( exists $href->{ $inst }->{instrument}) {
+
+    if ( $inst =~ $gsd_inst ) {
+      $href->{ $inst }->{instrument}->{ $lut{instrument}{ $GSDTAB } } = [ qw/ HETERODYNE / ];
+    }
+    elsif ( $inst =~ $ukirt_inst ) {
+      $href->{ $inst }->{instrument}->{ $lut{instrument}{ $UKIRTTAB } } =  [ "$inst" ] ;
+    }
+  }
+  for ( keys %inst_case ) {
+
+    exists $href->{ $inst }->{instrument}
+      and $self->_process_elements( $href->{ $inst }->{instrument},
+                                    $inst_case{ $_ },
+                                    [ $lut{instrument}{ $_ } ]
+                                  );
+  }
+  return;
 }
 
 =item B<_qhash_tosql>
