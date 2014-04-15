@@ -31,6 +31,9 @@ use OMP::Range;
 use Time::Piece;
 use Time::Seconds;
 
+# To fetch GSD data converted to ACSIS format.
+our $GSD_FROM_JCMT_INSTEAD = 0;
+
 # TABLES
 our $SCUTAB = 'jcmt_tms..SCU S';
 our $GSDTAB = 'jcmt_tms..SCA G';
@@ -585,11 +588,15 @@ sub _post_process_hash {
     $self->_process_elements($href, sub { uc(shift) }, [qw/telescope/]);
   }
 
+  my $newjcmt;
+  # Override date dance to get GSD data from jcmt..{COMMON,ACSIS} tables.
+  if ( $GSD_FROM_JCMT_INSTEAD ) {
+    $newjcmt = 1;
+  }
   # For JCMT there is a date at which we switch from bespoke tables to a COMMON+Instrument format
   # This knowledge can help to optimize queries (although it may get complicate if the heterodyne
   # data are moved to COMMON leaving behind the continuum data)
-  my $newjcmt;
-  if (exists $href->{date}) {
+  elsif (exists $href->{date}) {
     # Use semester 06B as break: 20060801
     my $refdate = 1154391000; # no need to be spot on
     my $min = $href->{date}->min;
