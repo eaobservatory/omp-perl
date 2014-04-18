@@ -175,6 +175,10 @@ my $prevlid = ''; # MSB TID or MSB ID used last time
 my $prevdate = 0;
 my $prevtime;
 my $prevproj = '';
+# JTD request 4/17/14 to include observation number when we ask whether to
+# accept an MSB because the TSS won't necessarily immediately recognise it
+# by its checksum.
+my @prevobsnum = ();
 for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
 
   my $msbid = $obs->checksum;
@@ -197,10 +201,14 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
   if ($prevlid ne $localtid) {
     # New MSB, dump the previous one
     if ($prevlid && $prevlid ne 'CAL') {
-      print "[$prevproj] $previd -> $prevdate\n";
+      my $obsnum = join ', ', @prevobsnum;
+      print "[$prevproj] $previd -> $prevdate $obsnum\n";
       push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
 			     msbid => $previd,
-			     msbtid => $prevtid} );
+			     msbtid => $prevtid,
+                             obsnum => $obsnum,
+                           } );
+      @prevobsnum = ();
     }
   }
 
@@ -211,14 +219,17 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
   $prevdate = $end;
   $prevproj = $project;
   $prevtime = $obs->endobs;
-
+  push @prevobsnum, $obs->instrument() . ' ' . $obs->runnr();
 }
 
 # and last 
 if ($prevlid && $prevlid ne 'CAL') {
-  print "[$prevproj] $previd -> $prevdate\n" unless $previd eq 'CAL';
+  my $obsnum = join ', ', @prevobsnum;
+  print "[$prevproj] $previd -> $prevdate $obsnum\n" unless $previd eq 'CAL';
   push(@sorted_msbhdr, { date => $prevtime, projectid => $prevproj,
-			 msbid => $previd, msbtid => $prevtid } );
+			 msbid => $previd, msbtid => $prevtid,
+                         obsnum => $obsnum,
+                       } );
 }
 
 if ($grp->numobs == 0) {
@@ -293,6 +304,7 @@ for my $i ( 0..$#sorted_msbhdr ) {
   # Print a header
   print "MSB $id for project ". $msb->{projectid} ." completed at ".$msb->{date}->datetime."\n";
   print "\tMSB title: ". (exists  $TITLES{$id} ? $TITLES{$id} : "<unknown>")."\n";
+  print "\tObservations: " . $msb->{'obsnum'} . "\n";
 
   if (exists $DB{$key}) {
     # We had some activity. If this is the only entry in the HDR info, dump
@@ -393,6 +405,8 @@ if (@missing) {
       my $date = $msb->{date};
       my $msbtid = $msb->{msbtid};
       print "Processing MSB $id for project $projectid\n";
+      print "\tMSB title: " . $TITLES{$id} . "\n" if exists $TITLES{$id};
+      print "\tObservations: " . $msb->{'obsnum'} . "\n";
       my $continue = $term->readline("\tAccept [Aa] / Reject [Rr] / Skip [] ");
       my $accept;
       if ($continue =~ /^A/i) {
