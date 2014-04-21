@@ -226,24 +226,6 @@ while ($ut <= $endut) {
     push @country_totals, $ctotal;
   }
 
-  my $cnr = 0;
-  foreach my $country ( split(/\s/,$countrylist) ) {
-    my $done_first = 0;
-    foreach my $proj (keys %acct) {
-      my ($ptime, $pcountry) = split(/\@/,$items{$proj});
-      if ($pcountry eq $country) {
-	#        printf "%-10.10s %6.2f hrs", $proj, abs($ptime);
-	#        printf "    %-3.3s %6.2f hrs", $country, $country_totals[$cnr]
-	#	    if ($done_first eq 0);
-	$done_first++;
-	#        print  "   [pending]" if ($ptime < 0);
-	#        print  "\n";
-      }
-    }
-    #   print "\n" if ($done_first > 0);
-    $cnr++;
-  }
-
   foreach my $proj (qw/WEATHER OTHER EXTENDED CAL _SHUTDOWN/) {
     my $time = 0.0;
     my $pending;
