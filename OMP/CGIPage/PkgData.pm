@@ -236,11 +236,14 @@ sub _package_data_cadc {
   my $obsgrp = $pkg->obsGrp;
 
   # Now form the CADC form
-  print $q->startform( -action=> "http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/jcmt/search/downloads");
+  print $q->startform( -action => 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/download' );
 
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
-  my @files = map { $_->simple_filename } @obs;
+  my @files =
+    map { join '/', q[ad:JCMT], $_ }
+    map { $_->simple_filename } @obs;
+
   print "$_\n"
     for $q->hidden( -name => "fileNameClass",
                     -default => \@files );
