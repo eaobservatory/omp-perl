@@ -245,7 +245,7 @@ sub _package_data_cadc {
     map { $_->simple_filename } @obs;
 
   print "$_\n"
-    for $q->hidden( -name => "fileNameClass",
+    for $q->hidden( -name => 'uri',
                     -default => \@files );
 
   print $q->submit(-name => "Retrieve from CADC" );
