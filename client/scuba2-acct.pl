@@ -87,6 +87,7 @@ use OMP::SCUBA2Acct;
 use Getopt::Long;
 use Pod::Usage;
 use List::Util ( 'min', 'max' );
+use List::MoreUtils qw[ any ];
 
 use DateTime;
 use DateTime::Duration;
@@ -99,6 +100,7 @@ my $TELESCOPE  = 'JCMT';
 my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
+my @TSS_TYPE   = qw[ regular extended ];
 
 my $UTC_TZ = 'UTC';
 my $HST_TZ = 'Pacific/Honolulu';
@@ -113,7 +115,7 @@ my $HST_OFFSET = DateTime->now( 'time_zone' => $HST_TZ )->offset();
 # Schedule is in HST time zone (-1000).
 my %DAYTIME_HST =
   ( # 9.30a to < 2p HST;
-    'prev' => [ '09:30:00', '14:00:00' ],
+    'prev' => [ '07:30:00', '14:00:00' ],
     # 2p    to < 5p HST.
     'next' => [ '14:00:00',  '17:00:00' ]
   );
@@ -144,6 +146,14 @@ my @filter = expand_date_range( verify_date( @ARGV ) );
 @filter = sort keys %tss_sched
   unless scalar @filter;
 
+
+sub _time_string {
+
+  my ( $list ) = @_;
+
+  return [ map { [ map { $_ . '' } @$_ ] } @{ $list } ];
+}
+
 my %stat;
 for my $date ( @filter ) {
 
@@ -151,8 +161,15 @@ for my $date ( @filter ) {
   $stat{ $date } = $data{'inst'};
   $stat{ $date }->{'FAULTS'} = $data{'fault'};
 
-  $stat{ $date }->{'TSS'} = $tss_sched{ $date }
-    if exists $tss_sched{ $date } ;
+  for my $type ( @TSS_TYPE ) {
+
+    my $val = $tss_sched{ $date }->{ $type };
+
+    $stat{ $date }->{ $type } = $val
+      if exists $tss_sched{ $date }
+      && $val
+      && scalar @{ $val };
+  }
 
   $stat{ $date }->{'start-end'} = $data{'start-end'};
 }
@@ -230,6 +247,16 @@ sub generate_stat {
 
     $stat{'inst'}  = get_inst_proj_time( \%acct, @scuba2 );
     $stat{'fault'} = get_fault_time( $rep->faults() );
+  }
+
+  if ( $stat{'start-end'} )
+  {
+    my @period =
+      sort
+      { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] }
+      @{ $stat{'start-end'} }
+      ;
+    $stat{'start-end'} = [ @period ];
   }
 
   return %stat;
@@ -398,8 +425,8 @@ sub print_stat {
     return;
   }
 
-  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', '(Daytime)', 'TOTAL' );
-  my @col_name = ( 'Date   ', @time_name, 'TSS' );
+  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'Daytime', 'TOTAL' );
+  my @col_name  = ( 'Date   ', @time_name, map qq[TSS:$_], @TSS_TYPE );
 
   my $format     = make_col_format( \@time_name, \@col_name );
 
@@ -415,9 +442,10 @@ sub print_stat {
       map { defined $_ ? $_ : 0.0 }
       map { $stat{ $date }->{ $_ } } ( $SCUBA2, $SCUBA2_CAL, 'FAULTS' );
 
-    my @tss_list;
-    @tss_list = @{ $stat{ $date }->{'TSS'} }
-      if exists $stat{ $date }->{'TSS'};
+
+    my ( @tss_reg, @tss_eo );
+    exists $stat{ $date }->{'regular'}  and @tss_reg = @{ $stat{ $date }->{'regular'} };
+    exists $stat{ $date }->{'extended'} and @tss_eo  = @{ $stat{ $date }->{'extended'} };
 
     $s2_sum     += $time[0];
     $s2_cal_sum += $time[1];
@@ -425,24 +453,31 @@ sub print_stat {
 
     my $row;
     $row     += $_ for @time;
-    $row_sum += $row;
 
     my %day_time = day_time( $stat{ $date }->{'start-end'} );
     my $day_tss  = 0.0;
        $day_tss += $day_time{ $date } || 0.0 for keys %day_time;
 
+    $row     += $day_tss;
+    $row_sum += $day_tss;
     $day_sum += $day_tss;
 
-    for my $tss ( @tss_list ) {
+    for my $tss ( @tss_eo ) {
 
-      $tss_sum{ $tss }->{'total'}    += $row;
       $tss_sum{ $tss }->{'day-time'} += $day_tss;
     }
+    for my $tss ( @tss_reg, @tss_eo ) {
+
+      $tss_sum{ $tss }->{'total'}    += $row;
+    }
+
+    $row_sum += $row;
 
     printf $format,
       $date,
       map( sprintf( '%0.2f', $_ ), @time, $day_tss, $row ),
-      join ' ', @tss_list
+      join( ' ', @tss_reg ) || '-' ,
+      join( ' ', @tss_eo  ) || '-'
       ;
   }
 
@@ -456,6 +491,7 @@ sub print_stat {
             $day_sum,
             $row_sum,
     ),
+    '',
     ''
     ;
 
@@ -468,13 +504,21 @@ sub print_tss_stat {
 
   return unless keys %{ $tss_sum };
 
-  my $tss_sum_format = "  %s  %6s\n";
+  my $tss_sum_format = "  %5s  %8s  %8s\n";
+  my $div_size = 2 * 3 + 5 + 8 * 2;
+
   print "\n";
+  printf $tss_sum_format, qw[ TSS Daytime Regular ];
+  print  join '', ('-') x $div_size, "\n";
+
   for my $tss ( sort keys %{ $tss_sum } ) {
 
-    printf $tss_sum_format, $tss, $tss_sum->{ $tss }{'total'};
-  }
+    my ( $day, $reg ) = map { $tss_sum->{ $tss }{ $_ } || 0 } qw[ day-time total ];
 
+    printf $tss_sum_format,
+      $tss,
+      map { sprintf '%0.2f', $_ } $day ? ( $day, 0 ) : ( 0 , $reg )
+  }
   return;
 }
 
@@ -511,25 +555,25 @@ sub day_time {
     $time{ $start_ut_string } += 0.0;
     $time{ $end_ut_string }   += 0.0;
 
-    my ( $at_930, undef, $at_1400, $at_1700 ) =
+    my ( $at_730, undef, $at_1400, $at_1700 ) =
       map { make_time( $start_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
 
-    my ( $at_930_e, undef, $at_1400_e, $at_1700_e ) =
+    my ( $at_730_e, undef, $at_1400_e, $at_1700_e ) =
       map { make_time( $end_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
 
    # Before 9.30a or after 5p.
     next
-      if $end_hst   <  $at_930_e
+      if $end_hst   <  $at_730_e
       || $start_hst >= $at_1700;
 
     # Latest time.
-    my $alt_start = $start_hst < $at_930    ? $at_930  : $start_hst;
+    my $alt_start = $start_hst < $at_730    ? $at_730  : $start_hst;
 
     # Earliest time.
     my $alt_end   = $end_hst   < $at_1700_e ? $end_hst : $at_1700_e;
 
     # Contained within same UT date:
-    #    start >= 9.30a & end < 2p
+    #    start >= 7.30a & end < 2p
     # OR start >= 2p    & end < 5p.
     if ( $end_hst < $at_1400_e || $start_hst >= $at_1400 ) {
 
@@ -538,7 +582,7 @@ sub day_time {
     }
 
     # Split over two UT dates:
-    #  9.30a <= start < 2p, end > 2p.
+    #  7.30a <= start < 2p, end > 2p.
     $time{ $start_ut_string } += diff_time( $alt_start, $at_1400 );
     $time{ $end_ut_string }   += diff_time( $at_1400, $alt_end );
   }
@@ -627,10 +671,6 @@ sub make_col_format {
 
       $col_format{ $name } = '%8s';
     }
-    elsif ( $name eq 'TSS' ) {
-
-      $col_format{ $name } = '%s';
-    }
   }
   # Time format.
   for my $name ( @{ $time_name } ) {
@@ -638,6 +678,8 @@ sub make_col_format {
     my $max = max ( length $name, 6 );
     $col_format{ $name } = '%' . $max . 's';
   }
+  # TSS types.
+  $col_format{ qq[TSS:$_] } = '%11s' for @TSS_TYPE;
 
   return join( '  ', @col_format{ @{ $col_name } } ) . "\n";
 }
