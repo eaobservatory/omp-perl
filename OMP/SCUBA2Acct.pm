@@ -62,24 +62,24 @@ my ( %map_month, %rev_map_month );
 #
 #        2011-10
 #
-#     JAC     2
-#     "       3
-#     "       4
-#     "       5
-#     WKM     6
-#     "       7
-#     "       8
-#     "       9
-#     "       10
-#     JGW     11
-#     "       12
-#     JCH     13
-#     "       14
-#     "       15
-#     WKM/JCH 16
-#     "       17
-#     JCH     18
-#     WKM     19
+#     JAC ; XYZ :    2
+#     "  ; :  3
+#     "  ; :  4
+#     "  ; :  5
+#     WKM ; XYZ :   6
+#     "  ; :  7
+#     "  ; :  8
+#     "  ; :  9
+#     "   ; : 10
+#     JGW ; : 11
+#     "   ; : 12
+#     JCH ; : 13
+#     "   ; : 14
+#     "   ; : 15
+#     WKM/JCH ; : 16
+#     "   ; : 17
+#     JCH ; : 18
+#     WKM ; : 19
 #     ...
 #     none    25
 #     ...
@@ -132,9 +132,23 @@ sub make_schedule {
   my $tss_re        = qr{[a-z]+}i;
   my $tss_duo_re    = qr{$tss_re \s* $tss_sep \s* $tss_re }x;
   my $tss_tri_re    = qr{$tss_duo_re \s* $tss_sep \s* $tss_re }x;
-  my $tss_date_re   = qr{^\s* ($tss_tri_re|$tss_duo_re|$tss_re|$tss_repeat) \s+ (\d+) \b}x;
+  my $tss_date_re   = qr{^\s*
+                          # Primary TSS;
+                          ($tss_tri_re|$tss_duo_re|$tss_re|$tss_repeat)
+                          \s*
+                          ;
+                          \s*
+                          # Extended Observing TSS (optional);
+                          ($tss_tri_re|$tss_duo_re|$tss_re|$tss_repeat)?
+                          \s*
+                          :
+                          \s*
+                          # day.
+                          (\d+)
+                          \b
+                        }x;
 
-  my ( %data, $old_tss, $month );
+  my ( %data, $old_tss, $old_tss_eo, $month );
 
   open my $fh, '<', $file
     or die "Cannot open '$file' to read: $!\n";
@@ -149,20 +163,23 @@ sub make_schedule {
       next;
     }
 
-    my ( $tss, $day ) =
+    my ( $tss, $tss_eo, $day ) =
       ( $line =~ $tss_date_re ) or next;
 
-    my $use_old = $tss eq $tss_repeat;
-
-    ! $use_old and $old_tss = $tss;
+    #my $use_old = $tss eq $tss_repeat;
+    #! $use_old and $old_tss = $tss;
 
     my $date =
       sprintf "%02d%02d",
         exists $map_month{ $month } ? $map_month{ $month } : $month,
         $day;
 
-    push @{ $data{ $date } },
-      split $tss_sep, $use_old ? $old_tss : $tss
+    my %list = ( 'regular' => $tss , 'extended' => $tss_eo );
+    for my $type ( keys %list ) {
+
+      push @{ $data{ $date }->{ $type } },
+        $list{ $type } ? ( split $tss_sep, $list{ $type } ) : ();
+    }
 
   }
 
@@ -181,7 +198,7 @@ Anubhav AgarwalE<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2012 Science and Technology Facilities Council.
+Copyright (C) 2012, 2014 Science and Technology Facilities Council.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
