@@ -112,9 +112,11 @@ my $HST_OFFSET = DateTime->now( 'time_zone' => $HST_TZ )->offset();
 #  before 2pm on the UT date listed and continue afterwards [...]" -- Tim,
 #  <CA+G92Rfe547Yte4j6fA-FGa398=+JcRzFyC-ZNCkiMEvieY5cQ@mail.gmail.com>.
 #
+#  Day start time has been changed to 7.30a.
+#
 # Schedule is in HST time zone (-1000).
 my %DAYTIME_HST =
-  ( # 9.30a to < 2p HST;
+  ( # 7.30a to < 2p HST;
     'prev' => [ '07:30:00', '14:00:00' ],
     # 2p    to < 5p HST.
     'next' => [ '14:00:00',  '17:00:00' ]
@@ -565,7 +567,7 @@ sub day_time {
     my ( $at_730_e, undef, $at_1400_e, $at_1700_e ) =
       map { make_time( $end_hst->ymd( '' ), $_, $HST_TZ ) } ( @prev, @next );
 
-   # Before 9.30a or after 5p.
+   # Before 7.30a or after 5p.
     next
       if $end_hst   <  $at_730_e
       || $start_hst >= $at_1700;
