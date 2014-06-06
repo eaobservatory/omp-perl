@@ -428,7 +428,7 @@ sub print_stat {
   my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'Regular', 'Daytime', 'TOTAL' );
   my @col_name  = ( 'Date   ', @time_name, map qq[TSS:$_], @TSS_TYPE );
 
-  my $format     = make_col_format( \@time_name, \@col_name );
+  my $format = make_col_format( \@time_name, \@col_name );
 
   my $header = sprintf $format, @col_name;
   print $header;
