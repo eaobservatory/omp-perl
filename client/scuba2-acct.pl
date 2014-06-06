@@ -100,7 +100,7 @@ my $TELESCOPE  = 'JCMT';
 my $SCUBA2     = 'SCUBA-2';
 my $SCUBA2_CAL = 'SCUBA-2-CAL';
 my $OTHER_INST = 'Other Instruments';
-my @TSS_TYPE   = qw[ regular extended ];
+my @TSS_TYPE   = qw[ regular daytime ];
 
 my $UTC_TZ = 'UTC';
 my $HST_TZ = 'Pacific/Honolulu';
@@ -425,7 +425,7 @@ sub print_stat {
     return;
   }
 
-  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'Daytime', 'TOTAL' );
+  my @time_name = ( 'SCUBA-2 Time', 'CAL Time', 'Fault Loss', 'Regular', 'Daytime', 'TOTAL' );
   my @col_name  = ( 'Date   ', @time_name, map qq[TSS:$_], @TSS_TYPE );
 
   my $format     = make_col_format( \@time_name, \@col_name );
@@ -434,7 +434,7 @@ sub print_stat {
   print $header;
 
   my %tss_sum;
-  my ( $s2_sum, $s2_cal_sum, $fault_sum, $day_sum, $row_sum );
+  my ( $s2_sum, $s2_cal_sum, $fault_sum, $reg_sum, $day_sum, $row_sum );
 
   for my $date ( sort keys %stat ) {
 
@@ -443,9 +443,9 @@ sub print_stat {
       map { $stat{ $date }->{ $_ } } ( $SCUBA2, $SCUBA2_CAL, 'FAULTS' );
 
 
-    my ( @tss_reg, @tss_eo );
+    my ( @tss_reg, @tss_day );
     exists $stat{ $date }->{'regular'}  and @tss_reg = @{ $stat{ $date }->{'regular'} };
-    exists $stat{ $date }->{'extended'} and @tss_eo  = @{ $stat{ $date }->{'extended'} };
+    exists $stat{ $date }->{'daytime'} and @tss_day  = @{ $stat{ $date }->{'daytime'} };
 
     $s2_sum     += $time[0];
     $s2_cal_sum += $time[1];
@@ -462,22 +462,25 @@ sub print_stat {
     $row_sum += $day_tss;
     $day_sum += $day_tss;
 
-    for my $tss ( @tss_eo ) {
+    my $reg_tss = $row - $day_tss;
+    $reg_sum += $reg_tss;
 
-      $tss_sum{ $tss }->{'day-time'} += $day_tss;
+    for my $tss ( @tss_day ) {
+
+      $tss_sum{ $tss }->{'daytime'} += $day_tss;
     }
-    for my $tss ( @tss_reg, @tss_eo ) {
+    for my $tss ( @tss_reg ) {
 
-      $tss_sum{ $tss }->{'total'}    += $row;
+      $tss_sum{ $tss }->{'regular'} += $reg_tss;
     }
 
     $row_sum += $row;
 
     printf $format,
       $date,
-      map( sprintf( '%0.2f', $_ ), @time, $day_tss, $row ),
+      map( sprintf( '%0.2f', $_ ), @time, $reg_tss, $day_tss, $row ),
       join( ' ', @tss_reg ) || '-' ,
-      join( ' ', @tss_eo  ) || '-'
+      join( ' ', @tss_day  ) || '-'
       ;
   }
 
@@ -488,6 +491,7 @@ sub print_stat {
             $s2_sum,
             $s2_cal_sum,
             $fault_sum,
+            $reg_sum,
             $day_sum,
             $row_sum,
     ),
@@ -513,7 +517,7 @@ sub print_tss_stat {
 
   for my $tss ( sort keys %{ $tss_sum } ) {
 
-    my ( $day, $reg ) = map { $tss_sum->{ $tss }{ $_ } || 0 } qw[ day-time total ];
+    my ( $day, $reg ) = map { $tss_sum->{ $tss }{ $_ } || 0 } qw[ daytime regular ];
 
     printf $tss_sum_format,
       $tss,

@@ -138,7 +138,7 @@ sub make_schedule {
                           \s*
                           ;
                           \s*
-                          # Extended Observing TSS (optional);
+                          # Daytime Observing TSS (optional);
                           ($tss_tri_re|$tss_duo_re|$tss_re|$tss_repeat)?
                           \s*
                           :
@@ -148,7 +148,7 @@ sub make_schedule {
                           \b
                         }x;
 
-  my ( %data, $old_tss, $old_tss_eo, $month );
+  my ( %data, $old_tss, $old_tss_day, $month );
 
   open my $fh, '<', $file
     or die "Cannot open '$file' to read: $!\n";
@@ -163,7 +163,7 @@ sub make_schedule {
       next;
     }
 
-    my ( $tss, $tss_eo, $day ) =
+    my ( $tss, $tss_day, $day ) =
       ( $line =~ $tss_date_re ) or next;
 
     #my $use_old = $tss eq $tss_repeat;
@@ -174,7 +174,7 @@ sub make_schedule {
         exists $map_month{ $month } ? $map_month{ $month } : $month,
         $day;
 
-    my %list = ( 'regular' => $tss , 'extended' => $tss_eo );
+    my %list = ( 'regular' => $tss , 'daytime' => $tss_day );
     for my $type ( keys %list ) {
 
       push @{ $data{ $date }->{ $type } },
