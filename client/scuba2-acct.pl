@@ -490,7 +490,6 @@ sub print_stat {
     }
 
     $row     += $day_tss;
-    $row_sum += $day_tss;
     $day_sum += $day_tss;
 
     my $reg_tss = $row - $day_tss;
