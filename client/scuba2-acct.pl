@@ -115,9 +115,13 @@ my $HST_OFFSET = DateTime->now( 'time_zone' => $HST_TZ )->offset();
 #  Day start time has been changed to 7.30a.
 #
 # Schedule is in HST time zone (-1000).
+
+#  7:30:00a HST.
+my @DAYTIME_START_HST = qw( 07 30 00 );
+my %DAYTIME_START_HST = ( 'hour' => 7, 'minute' => 30, 'second' => 0 );
 my %DAYTIME_HST =
   ( # 7.30a to < 2p HST;
-    'prev' => [ '07:30:00', '14:00:00' ],
+    'prev' => [ sprintf( '%02d:%02d:%02d', @DAYTIME_START_HST ), '14:00:00' ],
     # 2p    to < 5p HST.
     'next' => [ '14:00:00',  '17:00:00' ]
   );
@@ -400,6 +404,21 @@ sub extract_time {
   return $acct->{ $source }->timespent()->seconds();
 }
 
+sub last_obs_end_time {
+
+  my ( $times ) = @_;
+
+  my $last = ( sort
+                { $b->[1] <=> $a->[1]
+                  ||
+                  $b->[0] <=> $a->[0]
+                }
+                @{ $times }
+              )[0];
+
+  return max( @{ $last } );
+}
+
 sub show_warnings {
 
   my ( $acct ) = @_;
@@ -456,9 +475,19 @@ sub print_stat {
     my $row;
     $row     += $_ for @time;
 
-    my %day_time = day_time( $stat{ $date }->{'start-end'} );
-    my $day_tss  = 0.0;
-       $day_tss += $day_time{ $date } || 0.0 for keys %day_time;
+    my $day_tss = 0.0;
+    my $day_end = last_obs_end_time( $stat{ $date }->{'start-end'} );
+    if ( defined $day_end ) {
+
+      my $end   = TimePiece_to_DateTime( $day_end, $UTC_TZ );
+      my $start = DateTime->new( %DAYTIME_START_HST, 'time_zone' => $HST_TZ,
+                                  map { $_ => $end->$_() } qw[ year month day ]
+                                );
+      $start->set_time_zone( $UTC_TZ );
+
+      # In case there is no daytime observing.
+      $start < $end and $day_tss  = diff_time( $start, $end );
+    }
 
     $row     += $day_tss;
     $row_sum += $day_tss;
