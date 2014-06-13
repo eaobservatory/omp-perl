@@ -2549,6 +2549,7 @@ sub _run_query {
     my $zoa_phase;
     my $zoa_target;
     my $zoa_radius;
+    my $zoa_azdist;
 
     my $zoa_targetrise;
     my $zoa_targetset;
@@ -2609,6 +2610,14 @@ sub _run_query {
           } catch OMP::Error with {
             # ignore
             $zoa_radius = 0;
+          };
+        }
+        unless (defined $zoa_azdist) {
+          try {
+            $zoa_azdist = OMP::Config->getData('zoa_azdist',
+                                               telescope => $msb->{'telescope'});
+          } catch OMP::Error with {
+            $zoa_azdist = 0;
           };
         }
         # The config file could specify a blank target if there is nothing to avoid
@@ -2934,6 +2943,22 @@ sub _run_query {
             if( defined $distance && $distance->degrees < $zoa_radius ) {
               $isObservable = 0;
               last OBSLOOP;
+            }
+
+            # If a ZOA azimuth distance has been set, also check it.
+            if ($zoa_azdist) {
+              my $azimuth = $coords->az(format => 'deg');
+              my $zoa_azimuth = $zoa_coords->az(format => 'deg');
+
+              if ((defined $azimuth)
+                  and (defined $zoa_azimuth)) {
+                my $azdist = abs($zoa_azimuth - $azimuth);
+                $azdist = 360.0 - $azdist if $azdist > 180.0;
+                if ($azdist < $zoa_azdist) {
+                  $isObservable = 0;
+                  last OBSLOOP;
+                }
+              }
             }
           }
 
