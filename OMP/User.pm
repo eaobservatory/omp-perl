@@ -60,12 +60,12 @@ sub new {
 
   # Create and bless
   my $user = bless {
-		    UserID => undef,
-		    Email => undef,
-		    Name => undef,
-		    Alias => undef,
-		    CADC => undef,
-		   }, $class;
+                    UserID => undef,
+                    Email => undef,
+                    Name => undef,
+                    Alias => undef,
+                    CADC => undef,
+                   }, $class;
 
   # Go through the input args invoking relevant methods
   for my $key (keys %args) {
@@ -117,7 +117,7 @@ sub extract_user {
 
 Attempt to extract a OMP::User object from an email
 "From:" line. Assumes the email information is of the
-form 
+form
 
    Name Label <x@a.b.c>
 
@@ -176,8 +176,8 @@ sub extract_user_from_email {
 
   # Form a valid object
   return $class->new( name => $name,
-		      userid => $userid,
-		      email => $email);
+                      userid => $userid,
+                      email => $email);
 
 }
 
@@ -236,8 +236,8 @@ sub extract_user_from_href {
 
   # Form a valid object
   return $class->new( name => $name,
-		      userid => $userid,
-		      email => $email);
+                      userid => $userid,
+                      email => $email);
 
 }
 
@@ -297,14 +297,14 @@ A null string is treated as undef.
 
 sub email {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     my $addr = shift;
     if (defined $addr) {
       # Also translate '' to undef
       if (length($addr) == 0) {
-	# Need to do this so that we match our input string
-	$self->{Email} = undef;
-	return '';
+        # Need to do this so that we match our input string
+        $self->{Email} = undef;
+        return '';
       }
       return undef unless $addr =~ /\@/;
     }
@@ -503,7 +503,7 @@ sub addressee {
 
 =item B<as_email_hdr>
 
-Return the user name and email address in the format suitable for 
+Return the user name and email address in the format suitable for
 use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
 
   $email_hdr = $u->as_email_hdr;
@@ -513,7 +513,7 @@ use in an email header. (i.e.: "Kynan Delorey <kynan@jach.hawaii.edu>").
 sub as_email_hdr {
   my $self = shift;
 
-  # Done this way to get rid of multiple "Use of uninitialized value in 
+  # Done this way to get rid of multiple "Use of uninitialized value in
   # concatenation (.) or string at msbserver/OMP/User.pm line 477" errors
   # which are annoying me like crazy. Preserves the original functionality
   # of the as_email_hdr() function, which was simply...
@@ -525,10 +525,10 @@ sub as_email_hdr {
   #
   # Modified by Alasdair Allan  (20-JUL-2003)
   # Extensive docs due to fact I probably shouldn't be playing with this...
-  
+
   my $name = $self->name;
   my $email = $self->email;
- 
+
   if ( defined $name && defined $email ) {
      return $name . " <" . $email . ">";
   } elsif ( defined $name ) {
@@ -536,7 +536,7 @@ sub as_email_hdr {
   } elsif ( defined $email ) {
      return "$email";
   } else {
-     return "No contact information";         
+     return "No contact information";
   }
 }
 
@@ -616,13 +616,13 @@ sub infer_userid {
     # van der Blah is VANDERBLAH
     if (scalar(@parts) > 2) {
       if ($parts[-2] =~ /^(LE)$/i ||
-	  $parts[-2] =~ /^DE$/i ||
-	  $parts[-2] =~ /^van$/i
-	 ) {
-	$surname = $parts[-2] . $surname;
-      } elsif (scalar(@parts) > 3 && 
-	       $parts[-3] =~ /^van$/i && $parts[-2] =~ /^der$/) {
-	$surname = $parts[-3] . $parts[-2] . $surname;
+          $parts[-2] =~ /^DE$/i ||
+          $parts[-2] =~ /^van$/i
+         ) {
+        $surname = $parts[-2] . $surname;
+      } elsif (scalar(@parts) > 3 &&
+               $parts[-3] =~ /^van$/i && $parts[-2] =~ /^der$/) {
+        $surname = $parts[-3] . $parts[-2] . $surname;
       }
 
     }
@@ -686,8 +686,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 
