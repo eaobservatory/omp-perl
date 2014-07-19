@@ -2791,6 +2791,9 @@ sub _run_query {
                         el => $obs->{dec2000},
                         units => 'radians',
                        );
+          } else {
+            throw OMP::Error::FatalError('Unknown coordinate type:' .
+                                         $coordstype);
           }
           $coords{name} = $obs->{target};
 
