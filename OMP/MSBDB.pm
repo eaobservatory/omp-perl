@@ -59,6 +59,8 @@ use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
+use Astro::Coords::Angle;
+use Astro::Coords::TLE;
 use Astro::PAL;
 use Data::Dumper;
 use Number::Interval;
@@ -2750,23 +2752,23 @@ sub _run_query {
         if ($obs->{coordstype} eq 'CAL') {
           $obs->{coords} = new Astro::Coords();
         } else {
-          my %coords;
           my $coordstype = $obs->{coordstype};
           if ($coordstype eq 'RADEC') {
             # Prepare to create an Astro::Coords::Interpolated
             # object which will have the effect of treating
             # the coordinates as apparent coordiates.
-            %coords = (
-                       ra1 => $obs->{ra2000},
-                       ra2 => $obs->{ra2000},
-                       dec1 => $obs->{dec2000},
-                       dec2 => $obs->{dec2000},
-                       mjd1 => 50000,
-                       mjd2 => 50000,
-                       units => 'radians',
-                      );
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        ra1 => $obs->{ra2000},
+                        ra2 => $obs->{ra2000},
+                        dec1 => $obs->{dec2000},
+                        dec2 => $obs->{dec2000},
+                        mjd1 => 50000,
+                        mjd2 => 50000,
+                        units => 'radians',
+            );
           } elsif ($coordstype eq 'PLANET') {
-            %coords = ( planet => $obs->{target});
+            $obs->{'coords'} = new Astro::Coords(planet => $obs->{target});
           } elsif ($coordstype eq 'ELEMENTS') {
 
             print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
@@ -2774,8 +2776,9 @@ sub _run_query {
             # Use the array constructor since the columns were
             # populated using array() method and we do not want to
             # repeat the logic
-            %coords = (
-                       elements => [ 'ELEMENTS', undef, undef,
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        elements => [ 'ELEMENTS', undef, undef,
                                      $obs->{el1},
                                      $obs->{el2},
                                      $obs->{el3},
@@ -2785,24 +2788,42 @@ sub _run_query {
                                      $obs->{el7},
                                      $obs->{el8},
                                    ],
-                      );
+            );
           } elsif ($coordstype eq 'FIXED') {
-            %coords = ( az => $obs->{ra2000},
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        az => $obs->{ra2000},
                         el => $obs->{dec2000},
                         units => 'radians',
-                       );
+            );
+
+          } elsif ($coordstype eq 'TLE') {
+            $obs->{'coords'} = new Astro::Coords::TLE(
+                        name => $obs->{'target'},
+                        epoch => $obs->{'el1'},
+                        bstar => $obs->{'el2'},
+                        inclination => new Astro::Coords::Angle(
+                                            $obs->{'el3'}, units => 'rad'),
+                        raanode => new Astro::Coords::Angle(
+                                            $obs->{'el4'}, units => 'rad'),
+                        e => $obs->{'el5'},
+                        perigee => new Astro::Coords::Angle(
+                                            $obs->{'el6'}, units => 'rad'),
+                        mean_anomaly => new Astro::Coords::Angle(
+                                            $obs->{'el7'}, units => 'rad'),
+                        mean_motion => $obs->{'el8'},
+            );
+
           } else {
             throw OMP::Error::FatalError('Unknown coordinate type:' .
                                          $coordstype);
           }
-          $coords{name} = $obs->{target};
-
-          # and create the object
-          $obs->{coords} = new Astro::Coords(%coords);
 
           # throw if we have a problem
-          throw OMP::Error::FatalError("Major problem generating coordinate object from ". Dumper($msb,\%coords)) unless defined $obs->{coords};
-
+          throw OMP::Error::FatalError(
+                  'Major problem generating coordinate object from ' .
+                  Dumper($msb, $obs))
+              unless defined $obs->{'coords'};
         }
 
         # Get the coordinate object.

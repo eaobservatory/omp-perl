@@ -10,6 +10,7 @@ WriteMakefile(
                     Digest::MD5 => '2.20',
                     Astro::PAL  => '1.02',
                     Astro::Coords => '0.05',
+                    Astro::Coords::TLE => 0,
                     Astro::FITS::HdrTrans => 0,
                     Astro::WaveBand => 0,
                     Astro::FITS::Header => 0,
