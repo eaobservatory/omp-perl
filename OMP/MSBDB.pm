@@ -2864,6 +2864,11 @@ sub _run_query {
               'information missing for determination of whether a transit '.
               'check is necessary') unless 2 == scalar @is_rising;
 
+            # Skip the transit test for TLE coordinates until meridian_time
+            # is implemented for Astro::Coords::TLE, if it turns out that
+            # this test would be useful for TLEs.
+            next if $coords->type() eq 'TLE';
+
             # Skip the transit check unless the source was rising at
             # the start of the observation and setting at the end.
             next unless $is_rising[0] && ! $is_rising[1];
