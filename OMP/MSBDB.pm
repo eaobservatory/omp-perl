@@ -2797,7 +2797,18 @@ sub _run_query {
                         units => 'radians',
             );
 
-          } elsif ($coordstype eq 'TLE') {
+          } elsif ($coordstype eq 'TLE' or $coordstype eq 'AUTO-TLE') {
+            # Check for NULL TLE elements.  This should only happen for
+            # AUTO-TLE before the elements have been inserted, but we might
+            # as well do this check for regular TLE elements too.
+            if (grep {not defined $obs->{$_}}
+                     qw/el1 el2 el3 el4 el5 el6 el7 el8/) {
+              # If the elements haven't been inserted, assume that we just
+              # don't have them, and so the target is unobservable.
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+
             $obs->{'coords'} = new Astro::Coords::TLE(
                         name => $obs->{'target'},
                         epoch => $obs->{'el1'},
@@ -2867,7 +2878,8 @@ sub _run_query {
             # Skip the transit test for TLE coordinates until meridian_time
             # is implemented for Astro::Coords::TLE, if it turns out that
             # this test would be useful for TLEs.
-            next if $coords->type() eq 'TLE';
+            next if $coords->type() eq 'TLE'
+                 or $coords->type() eq 'AUTO-TLE';
 
             # Skip the transit check unless the source was rising at
             # the start of the observation and setting at the end.
