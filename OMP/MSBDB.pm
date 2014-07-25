@@ -2815,7 +2815,7 @@ sub _run_query {
             );
 
           } else {
-            throw OMP::Error::FatalError('Unknown coordinate type:' .
+            throw OMP::Error::FatalError('Unknown coordinate type: ' .
                                          $coordstype);
           }
 
