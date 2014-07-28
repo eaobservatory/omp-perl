@@ -549,6 +549,10 @@ sub fetchMSB {
     }
   }
 
+  # Check for "auto" coordinates which must be filled in before the MSB is
+  # sent for translation.
+  $msb->processAutoCoords();
+
   # To aid with the translation to a sequence we now
   # have to add checksum and projectid as explicit elements
   # in each SpObs in the MSB (since each SpObs is translated
