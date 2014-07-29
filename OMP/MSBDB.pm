@@ -52,6 +52,7 @@ use OMP::Info::Comment;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
+use OMP::TLEDB qw/tle_row_to_coord/;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -2813,21 +2814,7 @@ sub _run_query {
               last OBSLOOP;
             }
 
-            $obs->{'coords'} = new Astro::Coords::TLE(
-                        name => $obs->{'target'},
-                        epoch => $obs->{'el1'},
-                        bstar => $obs->{'el2'},
-                        inclination => new Astro::Coords::Angle(
-                                            $obs->{'el3'}, units => 'rad'),
-                        raanode => new Astro::Coords::Angle(
-                                            $obs->{'el4'}, units => 'rad'),
-                        e => $obs->{'el5'},
-                        perigee => new Astro::Coords::Angle(
-                                            $obs->{'el6'}, units => 'rad'),
-                        mean_anomaly => new Astro::Coords::Angle(
-                                            $obs->{'el7'}, units => 'rad'),
-                        mean_motion => $obs->{'el8'},
-            );
+            $obs->{'coords'} = tle_row_to_coord($obs);
 
           } else {
             throw OMP::Error::FatalError('Unknown coordinate type: ' .

@@ -11,6 +11,10 @@ use warnings;
 
 use Astro::Coords::TLE;
 
+use parent qw/Exporter/;
+
+our @EXPORT_OK = qw/tle_row_to_coord/;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -62,6 +66,34 @@ sub get_coord {
         perigee => new Astro::Coords::Angle(42.8768, units => 'degrees'),
         mean_anomaly => new Astro::Coords::Angle(204.2600, units => 'degrees'),
         mean_motion => 1.00276036,
+    );
+}
+
+=back
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item tle_row_to_coord
+
+Converts a hashref representation of a database row containing the target
+name and elements el1 -- el8 to an Astro::Coords::TLE object.
+
+=cut
+
+sub tle_row_to_coord {
+    my $row = shift;
+    return new Astro::Coords::TLE(
+        name => $row->{'target'},
+        epoch => $row->{'el1'},
+        bstar => $row->{'el2'},
+        inclination => new Astro::Coords::Angle($row->{'el3'}, units => 'rad'),
+        raanode => new Astro::Coords::Angle($row->{'el4'}, units => 'rad'),
+        e => $row->{'el5'},
+        perigee => new Astro::Coords::Angle($row->{'el6'}, units => 'rad'),
+        mean_anomaly => new Astro::Coords::Angle($row->{'el7'}, units => 'rad'),
+        mean_motion => $row->{'el8'},
     );
 }
 
