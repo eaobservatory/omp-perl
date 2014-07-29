@@ -10,6 +10,7 @@ use strict;
 use warnings;
 
 use Astro::Coords::TLE;
+use OMP::DBbackend;
 
 use parent qw/Exporter/;
 
@@ -31,6 +32,7 @@ sub new {
     my $class = shift;
 
     my $self = {
+        DB => new OMP::DBbackend(),
     };
 
     return bless $self, (ref $class) || $class;
@@ -45,9 +47,8 @@ sub new {
 =item get_coord
 
 Retrieve TLE coordinates by object name.  This will be an
-Astro::Coords::TLE object.
-
-B<Currently a dummy implementation.>
+Astro::Coords::TLE object.  Returns undef if the target is
+not found.
 
 =cut
 
@@ -55,18 +56,15 @@ sub get_coord {
     my $self = shift;
     my $object = shift;
 
-    return new Astro::Coords::TLE(
-        name => $object,
-        epoch_year => 2014,
-        epoch_day => 90.51853956,
-        bstar => 0.0,
-        inclination => new Astro::Coords::Angle(6.9693, units => 'degrees'),
-        raanode => new Astro::Coords::Angle(338.3797, units => 'degrees'),
-        e => 0.0001636,
-        perigee => new Astro::Coords::Angle(42.8768, units => 'degrees'),
-        mean_anomaly => new Astro::Coords::Angle(204.2600, units => 'degrees'),
-        mean_motion => 1.00276036,
+    my $row = $self->{'DB'}->handle()->selectrow_hashref(
+        'SELECT * FROM omptle WHERE target=?',
+        {},
+        $object,
     );
+
+    return undef unless defined $row;
+
+    return tle_row_to_coord($row);
 }
 
 =back
