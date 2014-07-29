@@ -2351,8 +2351,14 @@ sub processAutoCoords {
 
       if ($coord->type() eq 'AUTO-TLE') {
         $tledb = new OMP::TLEDB() unless defined $tledb;
+        my $object = $coord->name();
+        $coord = $tledb->get_coord($object);
 
-        $tcs->coords($tledb->get_coord($tcs->coords()->name()));
+        throw OMP::Error::FatalError('Coordinates for auto TLE object ' .
+                                     $object . ' not found in TLE database')
+            unless defined $coord;
+
+        $tcs->coords($coord);
       }
       else {
         # If no "auto" coordinates were found, go on to the next BASE
