@@ -1,6 +1,12 @@
 /*
  * Create omp logins
+ *
+ * Please set the login password and ensure it matches the
+ * value in the OMP configuration file. Do not run this
+ * script directly or commit a version to the repository
+ * with the actual password embedded.
+ *
  */
 
-sp_addlogin omp, "***REMOVED***", omp, null, "OMP DB Manager"
+sp_addlogin omp, "**PASSWORD**", omp, null, "OMP DB Manager"
 go
