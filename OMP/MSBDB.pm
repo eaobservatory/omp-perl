@@ -178,6 +178,7 @@ and NoCache (unless set explicitly).
                                FreezeTimeStamp => 1,
                                NoFeedback => 1,
                                NoCache => 1,
+                               NoConstraintCheck => 0,
                                NoAuth => 0 );
 
 The NoFeedback key can be used to disable the writing of an
@@ -199,6 +200,17 @@ to the database even if the timestamps do not match. This option
 should be used with care. Default is false (no force).
 
 The scheduling fields (eg tau and seeing) must be populated.
+
+If the C<NoConstraintCheck> parameter is given then the constraint checking
+step (a call to _verify_project_constraints) is omitted.  This should only
+be done when updating the science program automatically, such as when
+marking an MSB as done, in order to stop this failing unnecessarily.
+(See e.g. fault 20140801.005 where automated updating of the scheduling
+constraint caused it to fail the check.)  Failure to mark MSBs as done
+is a serious problem which has caused time loss because the MSB is then
+re-observed when it should not have been (see the above fault and also
+20131213.003) and so a blanket exception from the constraint checks is
+not unreasonable in this case.
 
 Suspend flags are not touched since now the Observing Tool
 has the ability to un-suspend.
@@ -230,8 +242,11 @@ sub storeSciProg {
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
   # Verify constraints since it is much better to tell people on submission
-  # than to spend hours debugging query problems.
-  my @cons_warnings = $self->_verify_project_constraints($args{SciProg});
+  # than to spend hours debugging query problems.  Do not perform this check
+  # if the "NoConstraintCheck" option is given.
+  my @cons_warnings = $args{'NoConstraintCheck'}
+                    ? ()
+                    : $self->_verify_project_constraints($args{SciProg});
 
   # Implied states
   $args{NoCache} = 1 if (!exists $args{NoCache} && $args{FreezeTimeStamp});
@@ -758,7 +773,8 @@ sub doneMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1,
+                       NoAuth => 1, NoConstraintCheck => 1 );
 
   OMP::General->log_message("Science program stored back to database");
 
