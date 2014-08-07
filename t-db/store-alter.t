@@ -67,6 +67,7 @@ my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <disableconstraint>remaining</disableconstraint>
   <disableconstraint>allocation</disableconstraint>
   <disableconstraint>observability</disableconstraint>
+  <disableconstraint>zoa</disableconstraint>
 </MSBQuery>');
 my @results = $msbdb->queryMSB($query, 'object');
 
