@@ -44,6 +44,12 @@ my $cf = OMP::Config->new();
 $cf->configDatabase('/jac_sw/etc/ompsite-dev.cfg');
 my $db = OMP::DBbackend->new();
 
+# Disable writing the science programme to the cache directory.  We don't
+# want to do this anyway from the test script, and if we let it try to do
+# it, it is likely to fail and send warning emails to the OMP list.
+delete $cf->{'omp'}->{'sciprog_cachedir'};
+delete $cf->{'omp-dev'}->{'sciprog_cachedir'};
+
 my $project = 'TJ04';
 
 die 'Not using test database' unless {$db->loginhash()}->{'database'}
@@ -81,6 +87,7 @@ my $query = new OMP::MSBQuery(XML => '<MSBQuery>
   <!-- <disableconstraint>remaining</disableconstraint> -->
   <disableconstraint>allocation</disableconstraint>
   <disableconstraint>observability</disableconstraint>
+  <disableconstraint>zoa</disableconstraint>
 </MSBQuery>');
 my @results = $msbdb->queryMSB($query, 'object');
 #print Dumper(\@results); exit(0);

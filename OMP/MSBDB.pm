@@ -52,6 +52,7 @@ use OMP::Info::Comment;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
+use OMP::TLEDB qw/tle_row_to_coord/;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -59,6 +60,8 @@ use Time::HiRes qw/ gettimeofday tv_interval /;
 
 use Astro::Telescope;
 use Astro::Coords;
+use Astro::Coords::Angle;
+use Astro::Coords::TLE;
 use Astro::PAL;
 use Data::Dumper;
 use Number::Interval;
@@ -175,6 +178,7 @@ and NoCache (unless set explicitly).
                                FreezeTimeStamp => 1,
                                NoFeedback => 1,
                                NoCache => 1,
+                               NoConstraintCheck => 0,
                                NoAuth => 0 );
 
 The NoFeedback key can be used to disable the writing of an
@@ -196,6 +200,17 @@ to the database even if the timestamps do not match. This option
 should be used with care. Default is false (no force).
 
 The scheduling fields (eg tau and seeing) must be populated.
+
+If the C<NoConstraintCheck> parameter is given then the constraint checking
+step (a call to _verify_project_constraints) is omitted.  This should only
+be done when updating the science program automatically, such as when
+marking an MSB as done, in order to stop this failing unnecessarily.
+(See e.g. fault 20140801.005 where automated updating of the scheduling
+constraint caused it to fail the check.)  Failure to mark MSBs as done
+is a serious problem which has caused time loss because the MSB is then
+re-observed when it should not have been (see the above fault and also
+20131213.003) and so a blanket exception from the constraint checks is
+not unreasonable in this case.
 
 Suspend flags are not touched since now the Observing Tool
 has the ability to un-suspend.
@@ -227,8 +242,11 @@ sub storeSciProg {
   return undef unless UNIVERSAL::isa($args{SciProg}, "OMP::SciProg");
 
   # Verify constraints since it is much better to tell people on submission
-  # than to spend hours debugging query problems.
-  my @cons_warnings = $self->_verify_project_constraints($args{SciProg});
+  # than to spend hours debugging query problems.  Do not perform this check
+  # if the "NoConstraintCheck" option is given.
+  my @cons_warnings = $args{'NoConstraintCheck'}
+                    ? ()
+                    : $self->_verify_project_constraints($args{SciProg});
 
   # Implied states
   $args{NoCache} = 1 if (!exists $args{NoCache} && $args{FreezeTimeStamp});
@@ -547,6 +565,10 @@ sub fetchMSB {
     }
   }
 
+  # Check for "auto" coordinates which must be filled in before the MSB is
+  # sent for translation.
+  $msb->processAutoCoords();
+
   # To aid with the translation to a sequence we now
   # have to add checksum and projectid as explicit elements
   # in each SpObs in the MSB (since each SpObs is translated
@@ -751,7 +773,8 @@ sub doneMSB {
   # Note that we need the timestamp to change but do not want
   # feedback table notification of this (since we have done that
   # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1, NoAuth => 1 );
+  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1,
+                       NoAuth => 1, NoConstraintCheck => 1 );
 
   OMP::General->log_message("Science program stored back to database");
 
@@ -1323,7 +1346,7 @@ sub _store_sci_prog {
 
       OMP::General->log_message( $err, OMP__LOG_ERROR );
 
-      my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
+      my %deferr = ( to => [OMP::User->new(email=>'omp_group@jach.hawaii.edu')],
                      from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
                      subject => 'failed to write sci prog to disk');
       $self->_mail_information(%deferr, message => $err);
@@ -2750,23 +2773,23 @@ sub _run_query {
         if ($obs->{coordstype} eq 'CAL') {
           $obs->{coords} = new Astro::Coords();
         } else {
-          my %coords;
           my $coordstype = $obs->{coordstype};
           if ($coordstype eq 'RADEC') {
             # Prepare to create an Astro::Coords::Interpolated
             # object which will have the effect of treating
             # the coordinates as apparent coordiates.
-            %coords = (
-                       ra1 => $obs->{ra2000},
-                       ra2 => $obs->{ra2000},
-                       dec1 => $obs->{dec2000},
-                       dec2 => $obs->{dec2000},
-                       mjd1 => 50000,
-                       mjd2 => 50000,
-                       units => 'radians',
-                      );
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        ra1 => $obs->{ra2000},
+                        ra2 => $obs->{ra2000},
+                        dec1 => $obs->{dec2000},
+                        dec2 => $obs->{dec2000},
+                        mjd1 => 50000,
+                        mjd2 => 50000,
+                        units => 'radians',
+            );
           } elsif ($coordstype eq 'PLANET') {
-            %coords = ( planet => $obs->{target});
+            $obs->{'coords'} = new Astro::Coords(planet => $obs->{target});
           } elsif ($coordstype eq 'ELEMENTS') {
 
             print "Got ELEMENTS: ". $obs->{target}."\n" if $DEBUG;
@@ -2774,8 +2797,9 @@ sub _run_query {
             # Use the array constructor since the columns were
             # populated using array() method and we do not want to
             # repeat the logic
-            %coords = (
-                       elements => [ 'ELEMENTS', undef, undef,
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        elements => [ 'ELEMENTS', undef, undef,
                                      $obs->{el1},
                                      $obs->{el2},
                                      $obs->{el3},
@@ -2785,21 +2809,39 @@ sub _run_query {
                                      $obs->{el7},
                                      $obs->{el8},
                                    ],
-                      );
+            );
           } elsif ($coordstype eq 'FIXED') {
-            %coords = ( az => $obs->{ra2000},
+            $obs->{'coords'} = new Astro::Coords(
+                        name => $obs->{'target'},
+                        az => $obs->{ra2000},
                         el => $obs->{dec2000},
                         units => 'radians',
-                       );
-          }
-          $coords{name} = $obs->{target};
+            );
 
-          # and create the object
-          $obs->{coords} = new Astro::Coords(%coords);
+          } elsif ($coordstype eq 'TLE' or $coordstype eq 'AUTO-TLE') {
+            # Check for NULL TLE elements.  This should only happen for
+            # AUTO-TLE before the elements have been inserted, but we might
+            # as well do this check for regular TLE elements too.
+            if (grep {not defined $obs->{$_}}
+                     qw/el1 el2 el3 el4 el5 el6 el7 el8/) {
+              # If the elements haven't been inserted, assume that we just
+              # don't have them, and so the target is unobservable.
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+
+            $obs->{'coords'} = tle_row_to_coord($obs);
+
+          } else {
+            throw OMP::Error::FatalError('Unknown coordinate type: ' .
+                                         $coordstype);
+          }
 
           # throw if we have a problem
-          throw OMP::Error::FatalError("Major problem generating coordinate object from ". Dumper($msb,\%coords)) unless defined $obs->{coords};
-
+          throw OMP::Error::FatalError(
+                  'Major problem generating coordinate object from ' .
+                  Dumper($msb, $obs))
+              unless defined $obs->{'coords'};
         }
 
         # Get the coordinate object.
@@ -2839,6 +2881,12 @@ sub _run_query {
             throw OMP::Error::FatalError('Source rising/setting ' .
               'information missing for determination of whether a transit '.
               'check is necessary') unless 2 == scalar @is_rising;
+
+            # Skip the transit test for TLE coordinates until meridian_time
+            # is implemented for Astro::Coords::TLE, if it turns out that
+            # this test would be useful for TLEs.
+            next if $coords->type() eq 'TLE'
+                 or $coords->type() eq 'AUTO-TLE';
 
             # Skip the transit check unless the source was rising at
             # the start of the observation and setting at the end.

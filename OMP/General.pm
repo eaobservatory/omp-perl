@@ -55,7 +55,7 @@ use OMP::DateTools;
 use Term::ANSIColor qw/ colored /;
 use Time::Piece ':override';
 use File::Spec;
-use Fcntl qw/ :flock /;
+use Fcntl qw/ :flock SEEK_END /;
 use OMP::Error qw/ :try /;
 use Text::Balanced qw/ extract_delimited /;
 use OMP::SiteQuality;
@@ -887,8 +887,26 @@ sub log_message {
     open my $fh, '>>', $path
       or next;
 
-    # Get an exclusive lock (this blocks)
-    flock $fh, LOCK_EX;
+    # Attempt to get a lock in a resonable amount of time.
+    # (Currently the timeout is set to 5 seconds.)
+    # Use eval/die pair as recommended by perlfunc for
+    # alarm when used with system calls.
+    eval {
+      local $SIG{'ALRM'} = sub {die "TIMEOUT\n";};
+      my $prev_alarm = alarm 5;
+      # Get an exclusive lock (this blocks)
+      flock $fh, LOCK_EX;
+      alarm $prev_alarm;
+    };
+    if ($@) {
+      die unless $@ eq "TIMEOUT\n";
+      close $fh;
+      next;
+    }
+
+    # Seek in case the file was appended while we were
+    # waiting (see perlfunc flock "mailbox appender" example).
+    seek $fh, 0, SEEK_END;
 
     # write out the message
     print $fh $logmsg;

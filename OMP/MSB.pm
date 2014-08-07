@@ -33,11 +33,13 @@ use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/ :msb /;
 use OMP::SiteQuality;
+use OMP::TLEDB;
 use Astro::Coords;
 use Astro::WaveBand;
 
 # Generic TCS configuration parsing
 use JAC::OCS::Config::TCS;
+use JAC::OCS::Config::TCS::BASE;
 
 use Data::Dumper;
 use Time::Piece ':override';
@@ -2312,6 +2314,66 @@ sub fill_template {
   }
   $self->find_checksum();
   return $c;
+}
+
+=item B<processAutoCoords>
+
+Look for "auto" type coordinates and replace them with the actual
+up-to-date coordinate values.  Supports the following types:
+
+=over 4
+
+=item AUTO-TLE
+
+=back
+
+=cut
+
+sub processAutoCoords {
+  my $self = shift;
+
+  # Declare variable for OMP::TLEDB object but defer construction
+  # until it is needed.
+  my $tledb = undef;
+
+  # Inspect all BASE elements.
+  foreach my $base_node ($self->_tree()->findnodes('.//BASE')) {
+
+    # Make a quick check for the presence TLE coordinates.  This check would
+    # need to be removed if it becomes necessary to support "auto"
+    # coordinates in systems other than TLE.
+    if ($base_node->exists('.//tleSystem')) {
+      my $tcs = new JAC::OCS::Config::TCS::BASE(validation => 0,
+                                                DOM => $base_node,
+                                                telescope => 'UKIRT');
+
+      my $coord = $tcs->coords();
+
+      if ($coord->type() eq 'AUTO-TLE') {
+        $tledb = new OMP::TLEDB() unless defined $tledb;
+        my $object = $coord->name();
+        $coord = $tledb->get_coord($object);
+
+        throw OMP::Error::FatalError('Coordinates for auto TLE object ' .
+                                     $object . ' not found in TLE database')
+            unless defined $coord;
+
+        $tcs->coords($coord);
+      }
+      else {
+        # If no "auto" coordinates were found, go on to the next BASE
+        # element.
+        next;
+      }
+
+      # At this point we know that we need to replace the BASE node.
+      # So we have to serialize the TCS BASE object in order to
+      # parse the new XML and insert it into the MSB.
+      my $parser = new XML::LibXML(validation => 0);
+      $base_node->replaceNode(
+          $parser->parse_string($tcs->stringify())->getDocumentElement());
+    }
+  }
 }
 
 =item B<_is_blank_target>
