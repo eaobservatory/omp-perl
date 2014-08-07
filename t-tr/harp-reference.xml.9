@@ -520,7 +520,7 @@
          <HEADER TYPE="INT"
                  KEYWORD="N_MIX"
                  COMMENT="No. of mixers"
-                 VALUE="12" />
+                 VALUE="14" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
                  COMMENT="The observed sideband"
@@ -1175,7 +1175,7 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ANY"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H01" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H02" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H03" VALUE="ON"/>
@@ -1185,10 +1185,10 @@
          <RECEPTOR_MASK RECEPTOR_ID="H07" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H08" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H09" VALUE="ON"/>
-         <RECEPTOR_MASK RECEPTOR_ID="H10" VALUE="ANY"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H10" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H11" VALUE="ON"/>
-         <RECEPTOR_MASK RECEPTOR_ID="H12" VALUE="ANY"/>
-         <RECEPTOR_MASK RECEPTOR_ID="H13" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H12" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H13" VALUE="ANY"/>
          <RECEPTOR_MASK RECEPTOR_ID="H14" VALUE="ANY"/>
          <RECEPTOR_MASK RECEPTOR_ID="H15" VALUE="ON"/>
       </FRONTEND_CONFIG>
@@ -1209,7 +1209,7 @@
          </waveBand>
          <receptor id="H00"
                    band="B"
-                   health="OFF"
+                   health="ON"
                    x="-45"
                    y="+45"
                    pol_type="Linear" >
@@ -1309,7 +1309,7 @@
          </receptor>
          <receptor id="H10"
                    band="B"
-                   health="OFF"
+                   health="ON"
                    x="+15"
                    y="-15"
                    pol_type="Linear" >
@@ -1329,7 +1329,7 @@
          </receptor>
          <receptor id="H12"
                    band="B"
-                   health="OFF"
+                   health="ON"
                    x="+45"
                    y="-45"
                    pol_type="Linear" >
@@ -1339,7 +1339,7 @@
          </receptor>
          <receptor id="H13"
                    band="B"
-                   health="ON"
+                   health="OFF"
                    x="+15"
                    y="-45"
                    pol_type="Linear" >
