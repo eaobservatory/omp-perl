@@ -25,13 +25,13 @@ require_ok("OMP::User");
 
 # Create a simply user object
 my $user = new OMP::User( name => "Frossie Economou",
-			  email => 'frossie@frossie.net',
+			  email => 'frossie@blah.net',
 			  userid => 'FROSSIE',
 			);
 
 isa_ok( $user, "OMP::User" );
 is( $user->name, "Frossie Economou", "Check name");
-is( $user->email, 'frossie@frossie.net', "Check email");
+is( $user->email, 'frossie@blah.net', "Check email");
 is( $user->userid, "FROSSIE", "Check userid");
 is( $user->domain, "frossie.net", "Check email domain");
 is( $user->addressee, "frossie", "Check email addressee");
@@ -73,11 +73,11 @@ for my $userid (keys %guessed) {
 # Now extract User information from emails and HTML
 my @extract = (
 	       {
-		href => '<A href="mailto:timj@jach.hawaii.edu">Tim Jenness</a>',
-		email => 'Tim Jenness <timj@jach.hawaii.edu>',
+		href => '<A href="mailto:timtest@jach.hawaii.edu">Tim Jenness</a>',
+		email => 'Tim Jenness <timtest@jach.hawaii.edu>',
 		output => new OMP::User( userid=> 'JENNESST',
 					 name => 'Tim Jenness',
-					 email => 'timj@jach.hawaii.edu'),
+					 email => 'timtest@jach.hawaii.edu'),
 	       },
 	       {
 		href => '<A href="mailto:t.jenness@jach">t.jenness@jach</a>',
