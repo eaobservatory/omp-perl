@@ -1346,7 +1346,7 @@ sub _store_sci_prog {
 
       OMP::General->log_message( $err, OMP__LOG_ERROR );
 
-      my %deferr = ( to => [OMP::User->new(email=>'timj@jach.hawaii.edu')],
+      my %deferr = ( to => [OMP::User->new(email=>'omp_group@jach.hawaii.edu')],
                      from => new OMP::User->new(email=>'omp_group@jach.hawaii.edu'),
                      subject => 'failed to write sci prog to disk');
       $self->_mail_information(%deferr, message => $err);
