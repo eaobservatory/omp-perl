@@ -33,7 +33,7 @@ isa_ok( $user, "OMP::User" );
 is( $user->name, "Frossie Economou", "Check name");
 is( $user->email, 'frossie@blah.net', "Check email");
 is( $user->userid, "FROSSIE", "Check userid");
-is( $user->domain, "frossie.net", "Check email domain");
+is( $user->domain, "blah.net", "Check email domain");
 is( $user->addressee, "frossie", "Check email addressee");
 
 # see if we can guess some user ids
