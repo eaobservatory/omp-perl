@@ -887,22 +887,27 @@ sub log_message {
     open my $fh, '>>', $path
       or next;
 
-    # Attempt to get a lock in a resonable amount of time.
-    # (Currently the timeout is set to 5 seconds.)
-    # Use eval/die pair as recommended by perlfunc for
-    # alarm when used with system calls.
-    eval {
-      local $SIG{'ALRM'} = sub {die "TIMEOUT\n";};
-      my $prev_alarm = alarm 5;
-      # Get an exclusive lock (this blocks)
-      flock $fh, LOCK_EX;
-      alarm $prev_alarm;
+    # Attempt to get a lock in a reasonable amount of time.
+    # (Currently we try for 5 seconds.)
+    do {
+      # Try to get an exclusive lock (non-blocking).
+      my $lock_mode = LOCK_EX | LOCK_NB;
+      my $locked = flock($fh, $lock_mode);
+
+      # If we didn't get the lock, try 5 more times after
+      # 1 second delays.
+      for (my $i = 0; ((not $locked) and ($i < 5)); $i ++) {
+        sleep 1;
+        $locked = flock($fh, $lock_mode);
+      }
+
+      # If we still don't have the lock, give up on this log file
+      # and try the next.
+      unless ($locked) {
+        close $fh;
+        next;
+      }
     };
-    if ($@) {
-      die unless $@ eq "TIMEOUT\n";
-      close $fh;
-      next;
-    }
 
     # Seek in case the file was appended while we were
     # waiting (see perlfunc flock "mailbox appender" example).
