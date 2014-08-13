@@ -241,7 +241,7 @@ sub _package_data_cadc {
   # get the file names and strip path information if present
   my @obs = $obsgrp->obs();
   my @files =
-    map { join '/', q[ad:JCMT], $_ }
+    map { s/\.sdf$//; join '/', q[ad:JCMT], $_ }
     map { $_->simple_filename } @obs;
 
   print "$_\n"
