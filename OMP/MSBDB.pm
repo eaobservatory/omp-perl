@@ -2789,6 +2789,13 @@ sub _run_query {
                         units => 'radians',
             );
           } elsif ($coordstype eq 'PLANET') {
+            if ($obs->{'target'} eq 'pluto') {
+              # Astro::Coords not longer supports Pluto so we cannot calculate
+              # whether or not it is observable.
+              $isObservable = 0;
+              last OBSLOOP;
+            }
+
             $obs->{'coords'} = new Astro::Coords(planet => $obs->{target});
           } elsif ($coordstype eq 'ELEMENTS') {
 
