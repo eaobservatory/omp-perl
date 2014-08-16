@@ -54,7 +54,7 @@ use Cwd;
 use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
-use OMP::Error;
+use OMP::Error qw/:try/;
 use OMP::ProjServer;
 use OMP::Constants qw/ :fb /;
 use OMP::FBServer;
