@@ -52,7 +52,7 @@ use OMP::Info::Comment;
 use OMP::Project::TimeAcct;
 use OMP::TimeAcctDB;
 use OMP::MSBDoneDB;
-use OMP::TLEDB qw/tle_row_to_coord/;
+use OMP::TLEDB qw/standardize_tle_name tle_row_to_coord/;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -2235,11 +2235,21 @@ sub _insert_row {
     $obs->{wavelength} = -1 unless (defined $obs->{wavelength} and
                                      $obs->{wavelength} =~ /\d/);
 
+    # Retrieve coordstype and target name, so that if the coordstype
+    # requires validation of the target name, we can apply that.
+    my $coordstype = $obs->{'coords'}->type();
+    my $target = $obs->{'target'};
+    if ($coordstype eq 'AUTO-TLE') {
+        # AUTO-TLE requires standardized target names.  This subroutine
+        # throws an error if the target name is invalid.
+        $target = standardize_tle_name($target);
+    }
+
     $obsst->execute(
                     $index, $proj, uc($obs->{instrument}),
                     $obs->{type}, $obs->{pol}, $obs->{wavelength},
                     $obs->{disperser},
-                    $obs->{coords}->type, $obs->{target},
+                    $coordstype, $target,
                     @coords[1..10], $obs->{timeest}
                    )
       or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
