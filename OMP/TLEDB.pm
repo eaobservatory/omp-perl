@@ -11,10 +11,11 @@ use warnings;
 
 use Astro::Coords::TLE;
 use OMP::DBbackend;
+use OMP::Error;
 
 use parent qw/Exporter/;
 
-our @EXPORT_OK = qw/tle_row_to_coord/;
+our @EXPORT_OK = qw/standardize_tle_name tle_row_to_coord/;
 
 =head1 METHODS
 
@@ -72,6 +73,30 @@ sub get_coord {
 =head1 SUBROUTINES
 
 =over 4
+
+=item standardize_tle_name
+
+As decided in the TLE meeting of 8/19/2014, the "target" name for
+AUTO-TLE coordinates is to be standardized in the database.  This
+will help with the caching of TLE coordinates and the insertion
+of them into MSBs.
+
+=cut
+
+sub standardize_tle_name {
+    my $target = shift;
+
+    if ($target =~ /^\s*NORAD\s*(\d{1,5})\s*$/i) {
+        # Target is a "NORAD" catalog identifier.
+
+        my $norad = $1;
+        return sprintf('NORAD%05i', $norad);
+    }
+
+    # We did not find a match.
+    throw OMP::Error::FatalError(
+        'Did not understand AUTO-TLE target name "' . $target . '"');
+}
 
 =item tle_row_to_coord
 
