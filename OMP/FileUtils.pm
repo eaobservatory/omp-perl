@@ -544,7 +544,7 @@ sub merge_dupes {
     if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
       my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
       $info->{obsidss} = $obsidss->[0]
-	if defined $obsidss && ref($obsidss) && @$obsidss;
+        if defined $obsidss && ref($obsidss) && @$obsidss;
     }
 
     # store it on hash indexed by obsid
@@ -561,9 +561,9 @@ sub merge_dupes {
       push(@fits, $f->{header});
       push(@files, $f->{filename});
       if (exists $f->{obsidss}) {
-	my $key = $f->{obsidss};
-	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
-	push(@{$obsidss_files{$key}}, $f->{filename});
+        my $key = $f->{obsidss};
+        $obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+        push(@{$obsidss_files{$key}}, $f->{filename});
       }
       $frameset = $f->{frameset} if defined $f->{frameset};
     }
@@ -598,7 +598,7 @@ sub merge_dupes {
     $unique{$obsid} = {
                        header => $fitshdr,
                        filenames => \@files,
-		       obsidss_files => \%obsidss_files,
+                       obsidss_files => \%obsidss_files,
                        frameset => $frameset,
                       };
   }
@@ -662,7 +662,7 @@ sub merge_dupes_no_fits {
     if ($class->can("to_OBSERVATION_ID_SUBSYSTEM")) {
       my $obsidss = $class->to_OBSERVATION_ID_SUBSYSTEM( $hdr );
       $info->{obsidss} = $obsidss->[0]
-	if defined $obsidss && ref($obsidss) && @$obsidss;
+        if defined $obsidss && ref($obsidss) && @$obsidss;
     }
 
     push @{ $unique{ $obsid } }, $info;
@@ -694,9 +694,9 @@ sub merge_dupes_no_fits {
       my @newfiles = (ref $thisfile ? @$thisfile : $thisfile);
       push @file, @newfiles;
       if (exists $h->{obsidss}) {
-	my $key = $h->{obsidss};
-	$obsidss_files{$key} = [] unless exists $obsidss_files{$key};
-	push(@{$obsidss_files{$key}}, @newfiles);
+        my $key = $h->{obsidss};
+        $obsidss_files{$key} = [] unless exists $obsidss_files{$key};
+        push(@{$obsidss_files{$key}}, @newfiles);
       }
     }
 
@@ -707,7 +707,7 @@ sub merge_dupes_no_fits {
     $unique{ $key } =
       { 'header'    => _merge_header_hashes( $headers ),
         'filenames' => [ @file ],
-	'obsidss_files' => \%obsidss_files,
+        'obsidss_files' => \%obsidss_files,
       };
   }
 
