@@ -33,7 +33,7 @@ use OMP::Info::MSB;
 use OMP::Info::Obs;
 use OMP::Constants qw/ :msb /;
 use OMP::SiteQuality;
-use OMP::TLEDB;
+use OMP::TLEDB qw/standardize_tle_name/;
 use Astro::Coords;
 use Astro::WaveBand;
 
@@ -2351,11 +2351,16 @@ sub processAutoCoords {
 
       if ($coord->type() eq 'AUTO-TLE') {
         $tledb = new OMP::TLEDB() unless defined $tledb;
-        my $object = $coord->name();
+
+        # Need to standardize the TLE target name before looking
+        # it up in the TLE database table.  This routine raises
+        # an error if the target name is not understood.
+        my $object = standardize_tle_name($coord->name());
+
         $coord = $tledb->get_coord($object);
 
-        throw OMP::Error::FatalError('Coordinates for auto TLE object ' .
-                                     $object . ' not found in TLE database')
+        throw OMP::Error::FatalError('Coordinates for auto TLE object "' .
+                                     $object . '" not found in TLE database')
             unless defined $coord;
 
         $tcs->coords($coord);
