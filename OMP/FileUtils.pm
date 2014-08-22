@@ -678,11 +678,19 @@ sub merge_dupes_no_fits {
     my ( @file, %seen, %obsidss_files );
     for my $h ( @{ $headers } ) {
 
-      next
-        unless exists $h->{'header'}{'FILE_ID'}
-            && $h->{'header'}{'FILE_ID'};
+      my $fkey =
+        exists $h->{'header'}{'FILE_ID'}
+        ? 'FILE_ID'
+          : exists $h->{'header'}{'FILENAME'}
+          ? 'FILENAME'
+          : undef
+          ;
+      $fkey or next;
 
-      my $thisfile = delete $h->{header}->{FILE_ID};
+      # Don't delete() the $fkey entry so that Astro::FITS::HdrTrans does not fail
+      # when searching for header translation class (happens for CGS4 instrument
+      # at least).
+      my $thisfile = $h->{header}->{ $fkey };
       my @newfiles = (ref $thisfile ? @$thisfile : $thisfile);
       push @file, @newfiles;
       if (exists $h->{obsidss}) {
