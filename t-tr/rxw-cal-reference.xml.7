@@ -276,7 +276,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="INSTAP"
                  COMMENT="Receptor at tracking centre (if any)"
-                 VALUE="DB" />
+                 VALUE="DA" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="INSTAP_X"
                  COMMENT="[arcsec] Aperture X off. rel. to instr centre"
@@ -1169,8 +1169,8 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="ANY"/>
-         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="NEED"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="NEED"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ANY"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_WD"
                   SERIAL="RxWD2"
@@ -1188,7 +1188,7 @@
          </waveBand>
          <receptor id="DA"
                    band="D"
-                   health="OFF"
+                   health="ON"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
@@ -1198,7 +1198,7 @@
          </receptor>
          <receptor id="DB"
                    band="D"
-                   health="ON"
+                   health="OFF"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
@@ -1237,7 +1237,7 @@
 
          
 
-         <INST_AP NAME="DB" />
+         <INST_AP NAME="DA" />
          <DOME MODE="BASE" />
       </TCS_CONFIG>
       <ACSIS_CONFIG>
