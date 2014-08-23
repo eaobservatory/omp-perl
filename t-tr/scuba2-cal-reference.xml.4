@@ -502,19 +502,27 @@
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGST"
                  COMMENT="[arcsec] SAO atmospheric seeing (start)"
-                 VALUE="" />
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seeing" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGEN"
                  COMMENT="[arcsec] SAO atmospheric seeing (end)"
-                 VALUE="" />
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seeing" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATST"
                  COMMENT="Date/Time of SEEINGST"
-                 VALUE="" />
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seedat" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATEN"
                  COMMENT="Date/Time of SEEINGEN"
-                 VALUE="" />
+                 VALUE="" >
+            <DERIVED TASK="SC2DA" METHOD="seedat" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="FRLEGTST"
                  COMMENT="[degC] Mean Front leg temperature - Start"

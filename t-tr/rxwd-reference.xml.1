@@ -718,19 +718,27 @@
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGST"
                  COMMENT="[arcsec] SAO atmospheric seeing (start)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGEN"
                  COMMENT="[arcsec] SAO atmospheric seeing (end)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATST"
                  COMMENT="Date/Time of SEEINGST"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing_TIME" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATEN"
                  COMMENT="Date/Time of SEEINGEN"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing_TIME" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="FRLEGTST"
                  COMMENT="[degC] Mean Front leg temperature - Start"
