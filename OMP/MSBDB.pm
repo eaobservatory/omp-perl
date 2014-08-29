@@ -2920,7 +2920,22 @@ sub _run_query {
 
           # Record whether the source was rising at this time
           # by checking the sign of the hour angle.
-          push @is_rising, ($coords->ha(normalize=>1) < 0);
+          my $n_is_rising = eval {
+            push @is_rising, ($coords->ha(normalize=>1) < 0);
+          };
+          # Push should return the new length of @is_rising, but if there is
+          # an error, eval will return undef.  In that case we print an error
+          # message and assume the observation is not observable.
+          unless (defined $n_is_rising) {
+            print STDERR "Error calculating HA of source for project:\n",
+                         $msb->{'projectid'}, ' ',
+                         $msb->{'checksum'}, ' ',
+                         $obs->{'target'}, "\n",
+                         $msb->{'title'}, "\n",
+                         'Message: ', $@, "\n";
+            $isObservable = 0;
+            last OBSLOOP;
+          }
 
           # If we are a CAL observation just skip
           # make sure to add the time estimate though!
