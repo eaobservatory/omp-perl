@@ -2208,7 +2208,8 @@ sub _insert_row {
   # We dont use the generic interface here since we want to
   # reuse the statement handle
   # Get the observation query handle
-  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  my $obsst_sql = "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  my $obsst = $dbh->prepare($obsst_sql)
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   my $count;
@@ -2243,6 +2244,22 @@ sub _insert_row {
         # AUTO-TLE requires standardized target names.  This subroutine
         # throws an error if the target name is invalid.
         $target = standardize_tle_name($target);
+
+        # Before storing the AUTO-TLE observation, check whether we already
+        # have the target in the TLE database.  If so, use its elements.
+        # However Sybase doesn't allow us to have two active statement handles
+        # here, so we must deactivate $obsst and re-prepare it afterwards!
+        $obsst->finish();
+
+        my $tledb = new OMP::TLEDB();
+        my $autocoord = $tledb->get_coord($target);
+        if (defined $autocoord) {
+            @coords = $autocoord->array();
+        }
+
+        $obsst = $dbh->prepare($obsst_sql)
+            or throw OMP::Error::DBError(
+                "Error re-preparing MSBOBS insert SQL: $DBI::errstr\n");
     }
 
     $obsst->execute(
