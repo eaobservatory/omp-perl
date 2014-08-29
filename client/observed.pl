@@ -179,11 +179,8 @@ for my $proj (keys %sorted) {
   $msg .= sprintf "$hfmt\n", "Project", $alt_msb_column, "Instrument",
     "Waveband";
 
-  # UKIRT KLUGE: Find out if project is a WFCAM project
-  my $wfcam_proj;
-  if ($sorted{$proj}->[0]->instrument eq 'WFCAM') {
-    $wfcam_proj = 1;
-  }
+  # UKIRT KLUGE: Find out if project is a UKIRT project
+  my $ukirt_proj = ($proj_details->telescope() eq 'UKIRT');
 
   for my $msbid ( @{ $sorted{$proj} } ) {
     # Note that %s does not truncate strings so we have to do that
@@ -278,11 +275,11 @@ for my $proj (keys %sorted) {
 
     my $fixed_text = "<html><p>Data were obtained for your project on date $datestr.\nYou can retrieve it from the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a>.</p><p>The password required for data retrieval is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n<p>Processed data from this night should be available within 24 hours directly from CADC by searching in the Proprietary JSA Processed Data section.</p>\n\n";
 
-    # UKIRT KLUGE: Provide a different message for WFCAM users
-    my $wfcam_text = "<html><p>Data were obtained for your project on date $utdate.\nFor more details log in to the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
+    # UKIRT KLUGE: Provide a different message for UKIRT users
+    my $ukirt_text = "<html><p>Data were obtained for your project on date $datestr.\nFor more details log in to the <a href=\"http://omp.jach.hawaii.edu/cgi-bin/projecthome.pl\">OMP feedback system</a></p><p>The password required to log in is the same one you used when submitting your programme.  If you have forgotten your password go to the <a href=\"http://omp.jach.hawaii.edu\">OMP home page</a> and click on the \"Issue password\" link to issue yourself a new password.</p>\n\n";
 
-    if ($wfcam_proj) {
-      $fixed_text = $wfcam_text;
+    if ($ukirt_proj) {
+      $fixed_text = $ukirt_text;
     }
 
     # Provide a feedback comment informing project users that data has been obtained
