@@ -717,19 +717,27 @@
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGST"
                  COMMENT="[arcsec] SAO atmospheric seeing (start)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="SEEINGEN"
                  COMMENT="[arcsec] SAO atmospheric seeing (end)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATST"
                  COMMENT="Date/Time of SEEINGST"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing_TIME" EVENT="START" />
+         </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="SEEDATEN"
                  COMMENT="Date/Time of SEEINGEN"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.Seeing_TIME" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="FRLEGTST"
                  COMMENT="[degC] Mean Front leg temperature - Start"
@@ -1180,8 +1188,8 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="ANY"/>
-         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ANY"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_WD"
                   SERIAL="RxWD2"
@@ -1199,7 +1207,7 @@
          </waveBand>
          <receptor id="DA"
                    band="D"
-                   health="OFF"
+                   health="ON"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
@@ -1209,7 +1217,7 @@
          </receptor>
          <receptor id="DB"
                    band="D"
-                   health="ON"
+                   health="OFF"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >

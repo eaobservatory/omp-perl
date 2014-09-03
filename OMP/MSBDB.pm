@@ -2208,7 +2208,8 @@ sub _insert_row {
   # We dont use the generic interface here since we want to
   # reuse the statement handle
   # Get the observation query handle
-  my $obsst = $dbh->prepare("INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  my $obsst_sql = "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  my $obsst = $dbh->prepare($obsst_sql)
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   my $count;
@@ -2243,6 +2244,22 @@ sub _insert_row {
         # AUTO-TLE requires standardized target names.  This subroutine
         # throws an error if the target name is invalid.
         $target = standardize_tle_name($target);
+
+        # Before storing the AUTO-TLE observation, check whether we already
+        # have the target in the TLE database.  If so, use its elements.
+        # However Sybase doesn't allow us to have two active statement handles
+        # here, so we must deactivate $obsst and re-prepare it afterwards!
+        $obsst->finish();
+
+        my $tledb = new OMP::TLEDB();
+        my $autocoord = $tledb->get_coord($target);
+        if (defined $autocoord) {
+            @coords = $autocoord->array();
+        }
+
+        $obsst = $dbh->prepare($obsst_sql)
+            or throw OMP::Error::DBError(
+                "Error re-preparing MSBOBS insert SQL: $DBI::errstr\n");
     }
 
     $obsst->execute(
@@ -2920,7 +2937,22 @@ sub _run_query {
 
           # Record whether the source was rising at this time
           # by checking the sign of the hour angle.
-          push @is_rising, ($coords->ha(normalize=>1) < 0);
+          my $n_is_rising = eval {
+            push @is_rising, ($coords->ha(normalize=>1) < 0);
+          };
+          # Push should return the new length of @is_rising, but if there is
+          # an error, eval will return undef.  In that case we print an error
+          # message and assume the observation is not observable.
+          unless (defined $n_is_rising) {
+            print STDERR "Error calculating HA of source for project:\n",
+                         $msb->{'projectid'}, ' ',
+                         $msb->{'checksum'}, ' ',
+                         $obs->{'target'}, "\n",
+                         $msb->{'title'}, "\n",
+                         'Message: ', $@, "\n";
+            $isObservable = 0;
+            last OBSLOOP;
+          }
 
           # If we are a CAL observation just skip
           # make sure to add the time estimate though!
