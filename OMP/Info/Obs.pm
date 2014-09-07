@@ -1087,7 +1087,12 @@ sub nightlog {
     $return{'Group'} = defined($self->group) ? $self->group : 0;
     $return{'Object'} = defined($self->target) ? $self->target : '';
     $return{'Observation type'} = defined($self->type) ? $self->type : '';
-    $return{'Waveband'} = defined($self->waveband->filter) ? $self->waveband->filter : ( defined( $self->waveband->wavelength ) ? sprintf("%.2f", $self->waveband->wavelength) : '' );
+    if (defined($self->waveband())) {
+      $return{'Waveband'} = defined($self->waveband->filter) ? $self->waveband->filter : ( defined( $self->waveband->wavelength ) ? sprintf("%.2f", $self->waveband->wavelength) : '' );
+    }
+    else {
+      $return{'Waveband'} = '';
+    }
     $return{'RA offset'} = defined($self->raoff) ? sprintf( "%.3f", $self->raoff) : 0;
     $return{'Dec offset'} = defined($self->decoff) ? sprintf( "%.3f", $self->decoff) : 0;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
