@@ -1006,7 +1006,9 @@ sub _compress_array {
 For each observation, retrieve the coordinate object if present.  If
 the observation is not a calibration frame, run the callback and store
 the result in an array. If it is a calibration store "CAL" in the
-array.  Return the array when complete
+array, and if it is an "AUTO-TLE" observation, store "TLE" (since
+"AUTO-TLE" indicates a lack of known coordinates.)  Return the array when
+complete.
 
 The callback is passed the calibration object.
 
@@ -1025,10 +1027,12 @@ sub _process_coords {
     my $coords = $obs->coords;
     next unless defined $coords;
     my $type = $coords->type;
-    if ($type ne "CAL") {
-      push(@results, $cb->($coords));
-    } else {
+    if ($type eq "CAL") {
       push(@results, "CAL");
+    } elsif ($type eq 'AUTO-TLE') {
+      push(@results, 'TLE');
+    } else {
+      push(@results, $cb->($coords));
     }
   }
 
