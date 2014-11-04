@@ -348,8 +348,7 @@ sub _store_comment {
   $self->_db_insert_data( $FBTABLE,
                           { COLUMN => 'projectid',
                             QUOTE => 1,
-                            POSN => 1 },
-                          $entrynum,
+                            POSN => 0 },
                           $projectid,
                           (defined $comment->{author} ?
                            $comment->{author}->userid : undef),
@@ -364,6 +363,7 @@ sub _store_comment {
                            COLUMN => 'text',
                           },
                           $comment->{msgtype},
+                          $entrynum,
                         );
 
 }

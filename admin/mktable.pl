@@ -216,7 +216,6 @@ my %tables = (
               # See OMP::FeedbackDB
               ompfeedback => {
                               commid => $NUMID,
-                              entrynum => "numeric(4,0) not null",
                               projectid => PROJECTID,
                               author => USERID . "null",
                               date => "$DATE not null",
@@ -226,10 +225,11 @@ my %tables = (
                               status => "integer null",
                               text => "text not null",
                               msgtype => "integer null",
+                              entrynum => "numeric(9,0) not null",
                               _ORDER => [qw/
-                                         commid entrynum projectid author date
+                                         commid projectid author date
                                          subject program sourceinfo status text
-                                         msgtype
+                                         msgtype entrynum
                                         /],
                              },
               # Bug/Fault meta-data
