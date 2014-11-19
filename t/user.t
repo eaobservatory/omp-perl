@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 63;
+use Test::More tests => 65;
 use strict;
 require_ok("OMP::User");
 
@@ -91,7 +91,9 @@ my @extract = (
 for my $test ( @extract ) {
 
   # First explicitly
-  my $emailuser = OMP::User->extract_user_from_email( $test->{email} );
+  my $emailref;
+  my $emailuser = OMP::User->extract_user_from_email( $test->{email},
+                                                      \$emailref );
   my $hrefuser = OMP::User->extract_user_from_href( $test->{href} );
 
   # then implictly
@@ -114,4 +116,8 @@ for my $test ( @extract ) {
       }
     }
   }
+
+  # Check the value written to $emailref.
+  is($emailref, $test->{'output'}->email(),
+     'Compare email address returned by reference');
 }
