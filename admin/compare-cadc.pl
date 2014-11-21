@@ -294,7 +294,7 @@ sub _make_errtext {
 
     $DEBUG and warn "Connecting to $connection";
     my $dbh =
-      DBI->connect( "dbi:Sybase:server=$server;timeout=300" , $user, $pass
+      DBI->connect( "dbi:Sybase:server=$server;loginTimeout=60;timeout=600" , $user, $pass
                     , { 'RaiseError' => 1
                       , 'PrintError' => 0
                       , 'AutoCommit' => 1
