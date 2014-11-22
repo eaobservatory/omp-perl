@@ -5,6 +5,8 @@ $ENV{'SYBASE'} = qw[/local/progs/sybase];
 
 use strict; use warnings;
 
+$| = 1;
+
 use Carp qw[ carp cluck ];
 use DBI;
 use FindBin;
@@ -18,18 +20,48 @@ use OMP::Config;
 
 # Check servers both at JAC & CADC by default.
 my ( $cadc, $jac ) = ( 1, 1);
-my ( $help, $short, $err_only, @addr );
+my ( $verbose, $track_time, $help, $short, $err_only, @addr ) = ( 0 );
 GetOptions(
     'help'   => \$help,
     'e|error' => \$err_only,
     's|short' => \$short,
     'm|mail=s' => \@addr,
+    'debug!'   => sub { @addr = () },
+    'time'   => \$track_time,
+    'verbose+' => \$verbose,
     'cadc!' => \$cadc,
     'jac!' => \$jac,
   )
     or pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
 pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
+
+$track_time ||= $verbose > 1;
+my $sidenote = q[#];
+
+if ( $track_time ) {
+
+  require Time::HiRes;
+  import Time::HiRes qw[ gettimeofday tv_interval ];
+
+  my $tick;
+  sub init_clock   { $track_time and $tick = [ gettimeofday() ]; return; }
+  sub elapsed_time {
+
+    $track_time or return;
+
+    my ( $reinit , $prefix, $suffix ) = @_;
+
+    my $out = join ' ', $sidenote . ( $prefix // '' ) ,
+                        sprintf(  q[time gone: %0.2f s] ,
+                                  tv_interval( $tick , [ gettimeofday() ] )
+                                ),
+                        $suffix // ()
+                          ;
+    $reinit and init_clock();
+    return $out . "\n";
+   }
+}
 
 my %jac =
   ( 'db-server' => [ qw[ SYB_JAC SYB_JAC2 ] ] ,
@@ -108,6 +140,12 @@ sub format_server_status {
   return $msg;
 }
 
+sub indent {
+
+  my ( $count ) = @_ || (1);
+  return join '', (q[  ]) x $count;
+}
+
 BEGIN {
 
   my $err_re = qr[^ \s* ERR \b]mix;
@@ -120,7 +158,7 @@ BEGIN {
 
     return unless scalar @{ $status };
 
-    my $prefix = ' ' x 2;
+    my $prefix = indent(1);
     my $joiner = qq[\n${prefix}];
 
     return $prefix . join $joiner, @{ $status }
@@ -178,6 +216,8 @@ sub check_server {
   my $cadc = qr{CADC};
   my $jac = qr{JAC};
 
+  my @timearg = ( 1, indent(1) );
+
   my %out;
   SERVER:
   for my $server ( @{ $place{'db-server'} } ) {
@@ -188,16 +228,26 @@ sub check_server {
       next SERVER;
     }
 
+    $verbose and warn qq[Checking server: $server ...\n];
+    init_clock();
+
     my $dbh;
     eval { $dbh = make_connection( $cf, $section, $server ) };
+
     if ( $@ ) {
 
-      push @{ $out{ $server } }, qq[ERR could not connect to $server: $@];
+      push @{ $out{ $server } },
+        qq[ERR could not connect to $server: $@],
+        elapsed_time( @timearg )
+        ;
       next SERVER;
     }
 
     my @server;
-    push @server , 'OK connected';
+    push @server ,
+      'OK connected' ,
+      elapsed_time( @timearg )
+      ;
 
     push @server, check_db_use( $dbh, $place{'db'} );
 
@@ -231,16 +281,25 @@ sub check_db_use {
 
   my ( $dbh, $databases ) = @_;
 
+  my @timearg = ( 1 , indent(2) );
   my @msg;
   for my $db ( @{ $databases } ) {
 
+    $verbose and push @msg, $sidenote . indent(2) . qq[trying "use $db" ...];
+    init_clock();
     eval{ $dbh->do( qq[use $db] ) };
     if ( $@ ) {
 
-      push @msg, qq[ERR could not run 'use $db': $@];
+      push @msg,
+        qq[ERR could not run 'use $db': $@],
+        elapsed_time( @timearg )
+        ;
       next;
     }
-    push @msg, qq[OK $db is up];
+    push @msg,
+      qq[OK $db is up] ,
+      elapsed_time( @timearg )
+      ;
   }
 
   return @msg;
@@ -254,21 +313,29 @@ sub check_db_repagent {
 
   my ( $dbh, $databases ) = @_;
 
+  my @timearg = ( 1 , indent(2) );
   my @msg;
   for my $db ( @{ $databases } ) {
+
+    $verbose and push @msg, $sidenote . indent(2) . qq[checking rep agent of $db ...];
+    init_clock();
 
     my $rep;
     eval { $rep = run_parse_repagent_opt( $dbh, $db ) };
     if ( $@ ) {
 
-      push @msg, qq[ERR could not run $db..sp_configure: $@];
+      push @msg,
+        qq[ERR could not run $db..sp_configure: $@] ,
+        elapsed_time( @timearg )
+        ;
       next;
     }
 
     push @msg,
       # For on going replication, need to have "run value" of 1.
       ( defined $rep && $rep >= 1 ? 'OK ' : 'ERR ' )
-      . join ': ', $db, 'rep agent enabled',  $rep
+      . join( ': ', $db, 'rep agent enabled',  $rep ) ,
+      elapsed_time( @timearg )
       ;
   }
 
@@ -321,7 +388,7 @@ sub make_connection {
   $server = $server_in if $server_in;
 
   my $dbh =
-    DBI->connect( "dbi:Sybase:server=$server", $user, $pass,
+    DBI->connect( "dbi:Sybase:server=$server;loginTimeout=60;timeout=300", $user, $pass,
                   { 'RaiseError' => 1 ,
                     'PrintError' => 0 ,
                     'AutoCommit' => 0 ,
@@ -382,6 +449,10 @@ Skip database & servers at CADC.
 
 Skip databases & servers at JAC.
 
+=item B<-debug>
+
+Print report instead of sending an email; overrides the I<-mail> option.
+
 =item B<-error>
 
 Print|Email only the errors, if any.
@@ -398,6 +469,14 @@ No email is sent by default.
 
 Specify to produce only one line status message, instead of a detailed
 report.
+
+=item B<-time>
+
+Show elapsed time for each step.
+
+=item B<-verbose>
+
+Show what is currently being done.
 
 =back
 
