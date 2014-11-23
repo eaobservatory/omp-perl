@@ -179,7 +179,7 @@ sub stringify {
 
 =item B<summary>
 
-Summary of the object in different formats.
+Summary of the object in different formats (XML, text, hash).
 
   $xml = $comm->summary( 'xml' );
 
@@ -191,15 +191,28 @@ sub summary {
 
   $format = 'xml' unless $format;
 
+  my @order = qw/ status date author tid text /;
   # Create hash
   my %summary;
-  for (qw/ text author status date tid /) {
+  for ( @order ) {
     $summary{$_} = $self->$_();
   }
 
   if ($format eq 'hash') {
     return (wantarray ? %summary : \%summary );
-  } elsif ($format eq 'xml') {
+  }
+
+  if ( $format eq 'text' ) {
+
+    my $out = '';
+    for ( @order ) {
+
+      $out .= sprintf "%7s: %s\n" , $_ , $summary{ $_ };
+    }
+    return $out;
+  }
+
+  if ($format eq 'xml') {
     my $xml = "<SpComment>\n";
     for my $key (keys %summary) {
       next if $key =~ /^_/;
