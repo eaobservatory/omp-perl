@@ -21,18 +21,17 @@ use OMP::Config;
 # Check servers both at JAC & CADC by default.
 my ( $cadc, $jac ) = ( 1, 1);
 my ( $verbose, $track_time, $help, $short, $err_only, @addr ) = ( 0 );
-GetOptions(
-    'help'   => \$help,
-    'e|error' => \$err_only,
-    's|short' => \$short,
-    'm|mail=s' => \@addr,
-    'debug!'   => sub { @addr = () },
-    'time'   => \$track_time,
-    'verbose+' => \$verbose,
-    'cadc!' => \$cadc,
-    'jac!' => \$jac,
-  )
-    or pod2usage( '-exitval' => 2, '-verbose' => 1 );
+GetOptions( 'help'    => \$help,
+            'e|error' => \$err_only,
+            's|short' => \$short,
+            'm|mail=s' => \@addr,
+            'debug!'   => sub { @addr = () },
+            'time'     => \$track_time,
+            'verbose+' => \$verbose,
+            'cadc!'    => \$cadc,
+            'jac!'     => \$jac,
+          )
+          or pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
 pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 
