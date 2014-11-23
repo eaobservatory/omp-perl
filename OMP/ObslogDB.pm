@@ -29,7 +29,7 @@ use strict;
 
 use Carp;
 use OMP::Error qw/ :try /;
-use OMP::Constants qw/ :obs /;
+use OMP::Constants qw/ :obs :logging /;
 use OMP::DateTools;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
@@ -169,6 +169,83 @@ sub addComment {
   $self->_db_commit_trans;
 
   OMP::General->log_message( "ObslogDB: Database unlocked.\n" );
+
+  return $self->_mail_staff_no_good( $obs, $comment );
+}
+
+sub _mail_staff_no_good {
+
+  my ( $self, $obs, $comment ) = @_;
+
+  my $status =  $obs->status();
+
+my $old_level = OMP::General->log_level();
+OMP::General->log_level( OMP__LOG_DEBUG );
+OMP::General->log_message( qq[ObslogDB: obs status: $status\n]
+                          , OMP__LOG_DEBUG
+                          );
+
+  my @cond   = ( OMP__OBS_REJECTED() );
+  defined $status && scalar grep { $status == $_ } @cond
+    or return;
+
+  my ( $tel, $proj, obsid ) = map { $obs->$_() } qw[ telescope projectid obsid ];
+  my $obsref = join ': ', $obsid , $proj , $tel;
+
+  OMP::General->log_message( qq[ObslogDB: Preparing to send mail about obs ($obsref) no good.\n] );
+
+  my $to_key = 'mail.to-obs-rejected';
+  my @to = split /\s*,\s*/ , OMP::Config->getData( $to_key,
+                                                    'telescope' => $tel
+                                                  );
+
+OMP::General->log_message( sprintf( qq[ObslogDB: To: addr: %s\n], join ' ' , @to )
+                          , OMP__LOG_DEBUG
+                          );
+
+  unless ( scalar @to ) {
+
+OMP::General->log_level( $old_level );
+
+    OMP::General->log_message( qq[ObslogDB: No recipient email address ($to_key) found in $tel configuration.\n],
+                                OMP__LOG_WARNING
+                             );
+    return;
+  }
+
+  my $from = OMP::Config->getData( 'mail.from-obs-rejected',
+                                   'telescope' => $tel
+                                  )
+              || 'flex@jach.hawaii.edu';
+
+  # Only for useful Subject: header.
+  my $com_user = $comment->author();
+  my ( $com_name, $com_addr ) = map { $com_user->$_() } qw[ name email ];
+  $com_name ||= ( $com_addr || '<Comment User Not Found!>' );
+
+OMP::General->log_message( sprintf( qq[ObslogDB: comment user: %s\n] , qq[$com_user] ),
+                          , OMP__LOG_DEBUG
+                          );
+
+  ( $from, @to ) = map { OMP::User->new( 'email' => $_ ) } ( $from , @to );
+
+OMP::General->log_message( sprintf( qq[ObslogDB: sending mail\nfrom: %s\nto: %s\nsubject: %s\nbody; %s\n]
+                                  , $from->email()
+                                  , join( ' ' , map $_->email() , @to  )
+                                  , qq[$obsref: obs status changed, via $com_name]
+                                  , $obs->summary( '72col' )
+                                  )
+                          , OMP__LOG_DEBUG
+                          );
+
+OMP::General->log_level( $old_level );
+
+  return
+    $self->_mail_information( 'from'    => $from ,
+                              'to'      => \@to ,
+                              'subject' => qq[$obsref: obs status changed, via $com_name] ,
+                              'message' => $obs->summary( '72col' )
+                            );
 }
 
 =item B<getComment>
@@ -528,12 +605,33 @@ This method will store the comment as being active, i.e. the
 =cut
 
 sub _store_comment {
+
   my $self = shift;
   my $obs = shift;
   my $comment = shift;
 
-  my $t;
-  my $obsid;
+  my %data = _extract_data( $obs, $comment );
+
+  $self->_db_insert_data( $OBSLOGTABLE,
+                          { 'COLUMN' => 'commentauthor',
+                            'QUOTE'  => 1,
+                            'POSN'   => 6
+                          },
+                          @data{qw/ runnr instrument telescope obs-date /},
+                          '1',
+                          @data{qw/ comment-date userid /},
+                          { 'COLUMN' => 'commenttext'
+                            'TEXT'   => $data{text},
+                          },
+                          @data{qw/ status obsid /}
+                        );
+}
+
+sub _extract_data {
+
+  my ( $obs, $comment, $as_text ) = @_;
+
+  my ( $t, %data );
 
   # For now, store comments the usual way, but include the obsid
   # in the insert (NULL obsid if it's a timegap comment).  Eventually,
@@ -553,7 +651,7 @@ sub _store_comment {
       throw OMP::Error::BadArgs("Must supply instrument, startobs, and runnr properties to store a comment in the database");
     }
     $t = $obs->startobs;
-    $obsid = $obs->obsid;
+    $data{'obsid'} = $obs->obsid;
   }
 
   if( !defined($comment) ) {
@@ -561,38 +659,44 @@ sub _store_comment {
   }
 
   # Check the comment status. Default it to OMP__OBS_GOOD.
-  my $status;
   if(defined($comment->status)) {
-    $status = $comment->status;
+    $data{'status'} = $comment->status;
   } else {
-    $status = OMP__OBS_GOOD;
+    $data{'status'} = OMP__OBS_GOOD;
   }
 
-  my $date = $t->strftime("%b %e %Y %T");
+  $data{'obs-date'} = $t->strftime("%b %e %Y %T");
 
   my $ct = $comment->date;
-  my $cdate = $ct->strftime("%b %e %Y %T");
+  $data{'comment-date'} = $ct->strftime("%b %e %Y %T");
 
-  my %text = ( "TEXT" => $comment->text,
-               "COLUMN" => "commenttext" );
+  $data{'text'}   = $comment->text();
+  $data{'userid'} = $comment->author()->userid(),
 
-  $self->_db_insert_data( $OBSLOGTABLE,
-			  { COLUMN => 'commentauthor',
-			    QUOTE => 1,
-			    POSN => 6 },
-                          $obs->runnr,
-                          $obs->instrument,
-                          $obs->telescope,
-                          $date,
-                          "1",
-                          $cdate,
-                          $comment->author->userid,
-                          \%text,
-                          $status,
-			  $obsid,
-                        );
+  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope / ),
 
+  $as_text or return %data;
+
+
+  my $format = sub { sprintf qq[%11s: %s\n] , @_[0,1] };
+
+  my @order_obs = qw/ telescope
+                      instrument
+                      obs-date
+                      runnr
+                    /;
+  my $out = join '', map { $format->( $_ $data{ $_ } ) } @order_obs;
+  $out .= "\n";
+
+  my $author_str =
+    join ' ' , grep { defined $_ } map { $comment->author()->$_() } qw/ name email /;
+
+  $author_str and $out .= $format->( 'author' , $author_str );
+
+  $out .= $format->( $_ , $data{ $_ } ) for qw/ comment-date text /;
+  return $out;
 }
+
 
 =item B<_set_inactive>
 
