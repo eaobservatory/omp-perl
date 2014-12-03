@@ -673,7 +673,9 @@ sub _extract_data {
 
   $data{'text'}   = $comment->text();
   $data{'userid'} = $comment->author()->userid();
-  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope /;
+
+  $data{ $_ } = $obs->$_()
+    for ( qw/ runnr instrument telescope / );
 
   $as_text or return %data;
 
