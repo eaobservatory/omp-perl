@@ -31,6 +31,7 @@ use Carp;
 use OMP::Error qw/ :try /;
 use OMP::Constants qw/ :obs :logging /;
 use OMP::DateTools;
+use OMP::General;
 use OMP::Info::Obs;
 use OMP::Info::Obs::TimeGap;
 use OMP::Info::Comment;
