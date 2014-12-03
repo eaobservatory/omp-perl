@@ -671,12 +671,10 @@ sub _extract_data {
   $data{'comment-date'} = $ct->strftime("%b %e %Y %T");
 
   $data{'text'}   = $comment->text();
-  $data{'userid'} = $comment->author()->userid(),
-
-  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope / ),
+  $data{'userid'} = $comment->author()->userid();
+  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope / );
 
   $as_text or return %data;
-
 
   my $format = sub { sprintf qq[%11s: %s\n] , @_[0,1] };
 
