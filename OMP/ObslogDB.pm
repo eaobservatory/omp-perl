@@ -189,7 +189,7 @@ OMP::General->log_message( qq[ObslogDB: obs status: $status\n]
   defined $status && scalar grep { $status == $_ } @cond
     or return;
 
-  my ( $tel, $proj, obsid ) = map { $obs->$_() } qw[ telescope projectid obsid ];
+  my ( $tel, $proj, $obsid ) = map { $obs->$_() } qw[ telescope projectid obsid ];
   my $obsref = join ': ', $obsid , $proj , $tel;
 
   OMP::General->log_message( qq[ObslogDB: Preparing to send mail about obs ($obsref) no good.\n] );
