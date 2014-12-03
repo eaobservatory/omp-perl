@@ -196,9 +196,7 @@ OMP::General->log_message( qq[ObslogDB: obs status: $status\n]
   OMP::General->log_message( qq[ObslogDB: Preparing to send mail about obs ($obsref) no good.\n] );
 
   my $to_key = 'mail.to-obs-rejected';
-  my @to = split /\s*,\s*/ , OMP::Config->getData( $to_key,
-                                                    'telescope' => $tel
-                                                  );
+  my @to = OMP::Config->getData( $to_key, 'telescope' => $tel );
 
 OMP::General->log_message( sprintf( qq[ObslogDB: To: addr: %s\n], join ' ' , @to )
                           , OMP__LOG_DEBUG
@@ -221,7 +219,11 @@ OMP::General->log_level( $old_level );
 
   # Only for useful Subject: header.
   my $com_user = $comment->author();
-  my ( $com_name, $com_addr ) = map { $com_user->$_() } qw[ name email ];
+  my ( $com_name, $com_addr );
+  if ( $com_user ) {
+
+    ( $com_name, $com_addr ) = map { $com_user->$_() } qw[ name email ];
+  }
   $com_name ||= ( $com_addr || '<Comment User Not Found!>' );
 
 OMP::General->log_message( sprintf( qq[ObslogDB: comment user: %s\n] , qq[$com_user] ),
