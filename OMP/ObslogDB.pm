@@ -672,7 +672,7 @@ sub _extract_data {
 
   $data{'text'}   = $comment->text();
   $data{'userid'} = $comment->author()->userid();
-  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope / );
+  map { $data{ $_ } => $obs->$_() } qw/ runnr instrument telescope /;
 
   $as_text or return %data;
 
@@ -683,7 +683,7 @@ sub _extract_data {
                       obs-date
                       runnr
                     /;
-  my $out = join '', map { $format->( $_ $data{ $_ } ) } @order_obs;
+  my $out = join '', map { $format->( $_ , $data{ $_ } ) } @order_obs;
   $out .= "\n";
 
   my $author_str =
