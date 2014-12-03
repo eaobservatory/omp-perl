@@ -178,33 +178,21 @@ sub _mail_staff_no_good {
 
   my ( $self, $obs, $comment ) = @_;
 
-  my $status =  $obs->status();
-
-my $old_level = OMP::General->log_level();
-OMP::General->log_level( OMP__LOG_DEBUG );
-OMP::General->log_message( qq[ObslogDB: obs status: $status\n]
-                          , OMP__LOG_DEBUG
-                          );
+  my $status =  $comment->status();
 
   my @cond   = ( OMP__OBS_REJECTED() );
   defined $status && scalar grep { $status == $_ } @cond
     or return;
 
   my ( $tel, $proj, $obsid ) = map { $obs->$_() } qw[ telescope projectid obsid ];
-  my $obsref = join ': ', $obsid , $proj , $tel;
+  my $obsref = join ': ', grep { defined $_ } $obsid , $proj , $tel;
 
   OMP::General->log_message( qq[ObslogDB: Preparing to send mail about obs ($obsref) no good.\n] );
 
   my $to_key = 'mail.to-obs-rejected';
   my @to = OMP::Config->getData( $to_key, 'telescope' => $tel );
 
-OMP::General->log_message( sprintf( qq[ObslogDB: To: addr: %s\n], join ' ' , @to )
-                          , OMP__LOG_DEBUG
-                          );
-
   unless ( scalar @to ) {
-
-OMP::General->log_level( $old_level );
 
     OMP::General->log_message( qq[ObslogDB: No recipient email address ($to_key) found in $tel configuration.\n],
                                 OMP__LOG_WARNING
@@ -226,28 +214,21 @@ OMP::General->log_level( $old_level );
   }
   $com_name ||= ( $com_addr || '<Comment User Not Found!>' );
 
-OMP::General->log_message( sprintf( qq[ObslogDB: comment user: %s\n] , qq[$com_user] ),
-                          , OMP__LOG_DEBUG
-                          );
-
   ( $from, @to ) = map { OMP::User->new( 'email' => $_ ) } ( $from , @to );
 
-OMP::General->log_message( sprintf( qq[ObslogDB: sending mail\nfrom: %s\nto: %s\nsubject: %s\nbody; %s\n]
-                                  , $from->email()
-                                  , join( ' ' , map $_->email() , @to  )
-                                  , qq[$obsref: obs status changed, via $com_name]
-                                  , $obs->summary( '72col' )
-                                  )
-                          , OMP__LOG_DEBUG
-                          );
+  my $subj = qq[$obsref: obs status changed, via $com_name];
 
-OMP::General->log_level( $old_level );
+  my $body =
+      qq[Obs summary:\n] . $obs->summary( 'text' )
+    . qq[\n\n]
+    . qq[Comment:\n] . $comment->summary( 'text' )
+    ;
 
   return
     $self->_mail_information( 'from'    => $from ,
                               'to'      => \@to ,
-                              'subject' => qq[$obsref: obs status changed, via $com_name] ,
-                              'message' => $obs->summary( '72col' )
+                              'subject' => $subj,
+                              'message' => $body
                             );
 }
 
