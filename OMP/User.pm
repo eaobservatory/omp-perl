@@ -135,12 +135,21 @@ Even though this method is technically a constructor it is not called
 directly from the normal constructor because it is forced to guess the
 user ID.
 
+If a second argument is given, then it should be a scalar reference
+to which the extracted email address will be writted.  This allows
+the method to return an email address in the event of failure to find
+an name and thus to infer the OMP user ID.
+
+  my $addr;
+  OMP::User->extract_user_from_email($email_string, \$addr);
+
 =cut
 
 sub extract_user_from_email {
   my $class = shift;
 
   my $string = shift;
+  my $addr_ref = shift;
 
   # Look for  "Name <addr>"
   # [^>] matches any character that is not a ">"
@@ -165,6 +174,10 @@ sub extract_user_from_email {
     # Treat it as a name if it includes a dot (e.g. t.jenness@jach)
     $name = $to if $to =~ /\./;
   }
+
+  # Did we get a scalar reference to which we can write the
+  # extracted email adddress?
+  $$addr_ref = $email if 'SCALAR' eq ref $addr_ref;
 
   # do not continue if we have no name
   return undef unless defined $name;

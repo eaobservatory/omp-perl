@@ -248,6 +248,15 @@ sub _package_data_cadc {
     for $q->hidden( -name => 'uri',
                     -default => \@files );
 
+  # The "runid" is to allow CADC to recognise which download requests came
+  # from the OMP rather than their own systems.  CADC have indicated that
+  # any common string will do -- and "omp" has been chosen.  We can add
+  # additional parts to the end of the string (up to 16 characters total)
+  # if we would like to add extra tracking for diagnostic purposes.  They
+  # log the value in their transfer database.
+  print $q->hidden( -name => 'runid',
+                    -default => 'omp' ), "\n";
+
   print $q->submit(-name => "Retrieve from CADC" );
   print $q->endform;
 

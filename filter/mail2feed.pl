@@ -16,6 +16,8 @@ use OMP::General;
 use OMP::User;
 use OMP::UserServer;
 
+our $VERSION = '0.001';
+
 my $mail = new Mail::Audit(
                             loglevel => 4,
                             log => "/tmp/omp-mailaudit.log",
@@ -47,7 +49,7 @@ exit;
 sub accept_feedback {
   my $audit = shift;
 
-  $audit->log(1 => "Accepting");
+  $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
   # Get the information we need
   my $from = $audit->get("from");
@@ -58,28 +60,34 @@ sub accept_feedback {
   chomp($project); # header includes newline
 
   # Try to guess the author
-  my $author_guess = OMP::User->extract_user_from_email( $from );
+  my $email = undef;
+  my $author_guess = OMP::User->extract_user_from_email( $from, \$email );
 
-  my $author;
-  if ($author_guess) {
+  my $author = undef;
+
+  # Attempt to retrive user object from the user DB.
+  #
+  # Try the email address first, because we now have several OMP
+  # users with the same first initial and last name.  Inferring
+  # the OMP user ID from the name therefore sometimes identifies
+  # the wrong user.  See fault 20140717.002.
+  if ($email) {
+    my $query = "<UserQuery><email>$email</email></UserQuery>";
+    my $users = OMP::UserServer->queryUsers($query, 'object');
+
+    if ($users->[0]) {
+      $author = $users->[0];
+      $audit->log(1 => "Determined OMP user by email address: [EMAIL=".
+                        $author->email."]");
+    }
+  }
+
+  # If we didn't get an email address or failed to look it up, then
+  # try the inferred user ID.
+  if ((not $author) and $author_guess) {
     my $userid = $author_guess->userid;
-    my $email = $author_guess->email;
-
-    # Attempt to retrive user object from the user DB.
-    # Try the inferred user ID first, then the email address.
 
     $author = OMP::UserServer->getUser($userid);
-
-    if (! $author) {
-      my $query = "<UserQuery><email>$email</email></UserQuery>";
-      my $users = OMP::UserServer->queryUsers($query, 'object');
-
-      if ($users->[0]) {
-        $author = $users->[0];
-        $audit->log(1 => "Determined OMP user by email address: [EMAIL=".
-                          $author->email."]");
-      }
-    }
   }
 
   if ($author) {

@@ -46,6 +46,12 @@ GetOptions(
 
 pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 
+if ( $DEBUG > 1 ) {
+
+  require Time::HiRes;
+  import Time::HiRes qw[ gettimeofday tv_interval ];
+}
+
 #pod2usage( '-exitval' => 2, '-verbose' => 1,
 #            '-msg' => 'Need readable configuration files.'
 #          )
@@ -154,10 +160,10 @@ sub connect_and_get_db_stats {
     @stat{ keys %tmp } = values %tmp;
   }
 
-  $DEBUG and warn "Disconnecting from SYB_JAC*.omp";
+  $DEBUG and warn "Disconnecting from SYB_JAC*.omp\n";
   $omp_dbh->disconnect;
 
-  $DEBUG and warn "Disconnecting from CADC*.jcmtmd";
+  $DEBUG and warn "Disconnecting from CADC*.jcmtmd\n";
   $jcmtmd_dbh->disconnect;
 
   return %stat;
@@ -220,12 +226,12 @@ sub get_table_stats {
   my %stat;
   for my $table ( @{ $tables } ) {
 
-    $DEBUG and warn "Current table: $table";
+    $DEBUG and warn "** Current table: $table\n";
     next if first { $table eq $_ } @skip;
 
     for my $server ( keys %{ $dbhs } )
     {
-      $DEBUG and warn "Getting count from $server";
+      $DEBUG and warn sprintf "  getting count from >> %s <<\n" , uc $server;
       $stat{ $table }->{ $server } = get_count( $dbhs->{ $server }, $table );
     }
   }
@@ -246,6 +252,9 @@ sub get_count {
 
   my $sql = qq[SELECT COUNT(*) FROM $table];
 
+  my $_now0;
+  $DEBUG > 1 and $_now0 = [ gettimeofday() ];
+
   my $count = $dbh->selectrow_arrayref( $sql )
     or die_via_disconnect( undef,
                             qq[Error occurred while getting count from table $table: ]
@@ -254,6 +263,9 @@ sub get_count {
                                               'OS ERROR'   => $!,
                                             )
                           );
+
+  $DEBUG > 1
+    and warn sprintf "    query time: %f\n", tv_interval( $_now0 , [ gettimeofday() ] );
 
   return unless defined $count;
   return $count->[0];
@@ -292,9 +304,9 @@ sub _make_errtext {
 
     my $connection = qq[${server}.${db}:${user}];
 
-    $DEBUG and warn "Connecting to $connection";
+    $DEBUG and warn "Connecting to $connection\n";
     my $dbh =
-      DBI->connect( "dbi:Sybase:server=$server;timeout=300" , $user, $pass
+      DBI->connect( "dbi:Sybase:server=$server;loginTimeout=60;timeout=600" , $user, $pass
                     , { 'RaiseError' => 1
                       , 'PrintError' => 0
                       , 'AutoCommit' => 1
