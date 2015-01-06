@@ -73,7 +73,7 @@ for type in -jac -jac2
 do
   showtime 'Start'
 
-  make_backup $type
+  make_backup $type 2>&1
 
   showtime 'End'
 done
