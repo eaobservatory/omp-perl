@@ -396,12 +396,12 @@ sub extract_projectid {
   # UKIRT KASI.
   my $ukirt_kasi = qr{\b(u / \d\d[ab] / kasi \d+)\b}xi;
 
-  # Lockheed Martin & Univ of AZ as project id.
+  # Lockheed Martin, Univ of AZ, NASA as project id.
   my $ukirt_lm_az =
     qr{ \b
         ( u
           / 1[3-9][ab]
-          / (?: lm | ua ) (?: [0-9][1-9] | [1-9]0 )
+          / (?: lm | ua | na ) (?: [0-9][1-9] | [1-9]0 ) [a-z]?
         )
         \b
       }xi;

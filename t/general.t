@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 145;
+use Test::More tests => 154;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -343,6 +343,14 @@ my %extract = (
                'u/ua/wfau'  => 'Univ of AZ as semester in u/ua/wfau',
                'u/lm/casu'  => 'Lockheed Martin as semester in u/lm/casu',
                'u/lm/wfau'  => 'Lockheed Martin as semester in u/lm/wfau',
+               'U/15A/NA05' => 'U/15A/NA05        NA_SUP',
+               'U/15A/NA01b' => 'more projects: U/15A/NA01b NA_OD',
+               'U/15A/NA03a' => 'more projects: U/15A/NA03a NA_OD',
+               'U/15A/UA09' => 'U/15A/UA09        UA',
+               'U/15A/UA04a' => 'U/15A/UA04a       UA',
+               'U/15A/UA10a' => 'U/15A/UA10a       UA',
+               'U/15A/UA13b' => 'U/15A/UA13b      UA',
+
               );
 
 for my $proj (keys %extract) {
@@ -371,10 +379,15 @@ my @fail =
     'u/lm/casu_1',
     'u/lm/wfau2',
     'u/lm/wfau_2',
+    # none such requirement yet.
+    "U/NA/casu",
+    "U/NA/WFAU"
 
   );
 for my $string (@fail) {
-  is(OMP::General->extract_projectid($string), undef, "Test failure of project extraction");
+  is(OMP::General->extract_projectid($string), undef,
+      "Test failure of project extraction: $string"
+    );
 }
 
 print "# String splitting\n";
