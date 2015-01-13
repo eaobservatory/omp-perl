@@ -390,6 +390,9 @@ sub verify_staff_password {
   # we may not have an external available
   try {
     push(@trials, OMP::Config->getData("password.external"));
+
+    # Non-JAC UKIRT support staff.
+    push(@trials, OMP::Config->getData("password.extern-ukirt-supp"));
   } catch OMP::Error::BadCfgKey with {
     # do not worry about a lack of external
   };
