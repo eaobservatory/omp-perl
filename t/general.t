@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 154;
+use Test::More tests => 156;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -326,6 +326,8 @@ my %extract = (
                'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
                'U/11B/H50C' => '[U/11B/H50C]',
                'u/12a/h01d' => '[u/12a/h01d]',
+               'U/15A/H10A1' => 'for U/15A/H10A1 mail bounced back',
+               'U/15A/H10A2' => 'have not tried anything for U/15A/H10A2 ...',
                'u/12a/kasi2' => '[u/12a/kasi2]',
                'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
                'u/13a/lm01' => 'Lockheed Martin projects start with u/13a/lm01',
