@@ -372,6 +372,9 @@ sub extract_projectid {
 
   my $any_ukirt = qr{\b ( u/ [^/\s]+? / [-_a-z0-9]+ ) \b}xi;
 
+  my $ukirt_dk = q{ u/ \d\d[ab] / [dhjk]? [0-9]+ };
+  my $ukirt_sem = qr{\b( $ukirt_dk (?: [a-d] [0-9]* )? )\b}xi;
+
   my $ukidss   = qr{u/ukidss}i;
   my $ukidss_3 = qr{$ukidss/[a-z]{3}}i;
 
@@ -416,7 +419,7 @@ sub extract_projectid {
         \b
       }xi;
 
-  if ($string =~ m{\b(u/\d\d[ab]/[jhdk]?\d+[abcd]?)\b}i    # UKIRT
+  if ($string =~ $ukirt_sem                          # UKIRT
       or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
