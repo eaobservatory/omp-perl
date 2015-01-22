@@ -65,6 +65,7 @@ sub new {
                     Name => undef,
                     Alias => undef,
                     CADC => undef,
+                    Obfuscated => 0
                    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -358,6 +359,26 @@ sub cadcuser {
 }
 
 
+=item B<is_obfuscated>
+
+Tell if the user data (name, user id, alias) is obfuscated.
+
+  $obfu = $u->is_obfuscated;
+  $u->is_obfuscated( 1 );
+
+=cut
+
+sub is_obfuscated {
+
+  my $self = shift;
+
+  my $key = 'Obfuscated';
+
+  if ( @_ ) { $self->{ $key } = !! $_[0] ? 1 : 0 ;}
+
+  return $self->{ $key };
+}
+
 =back
 
 =head2 General
@@ -435,6 +456,7 @@ sub text_summary {
   $text .=   "EMAIL:  " .(defined $email ? $email : "UNDEFINED")."\n";
   $text .=   "ALIAS:  " .(defined $alias ? $email : "UNDEFINED")."\n";
   $text .=   "CADC:   " .(defined $cadcuser ? $email : "UNDEFINED")."\n";
+  $text .=   'OBFUSCATED:  ' . $self->is_obfuscated() ."\n";
 
   return $text;
 }
@@ -648,6 +670,83 @@ sub infer_userid {
   $id =~ s/\W//g;
 
   return uc($id);
+}
+
+=item <obfuscate>
+
+Returns new obfuscated User object sans email address if not already
+obfuscated (CADC user id is kept as is). Else, returns the same object
+on which the method is called.
+
+  $obfu_user = $user->obfuscate();
+
+=cut
+
+sub obfuscate {
+
+  my ( $self ) = @_;
+
+  $self->is_obfuscated() and return $self;
+
+  my ( $id, $name , $alias ) = $self->_obfu_rot13();
+  my $user = User->new( 'UserID' => $id,
+                        'Name'   => $name,
+                        'Alias'  => $alias,
+                        'CADC'   => $self->cadcuser(),
+                      );
+  $user->email( undef );
+  $user->is_obfuscated( 1 );
+  return $user;
+}
+
+=item <obfuscate>
+
+Returns new de-obfuscated User object only if already obfuscated.
+Else, returns the same object on which the method is called.
+
+  $user = $obfu_user->deobfuscate();
+
+An email address can be optionally supplied in case it was lost due to
+obfuscation.
+
+  $user = $obfu_user->deobfuscate( $email );
+
+=cut
+
+sub deobfuscate {
+
+  my ( $self, $email ) = @_;
+
+  $self->is_obfuscated() or return $self;
+
+  my ( $id, $name , $alias ) = $self->_obfu_rot13();
+  my $user = User->new( 'UserID' => $id,
+                        'Name'  => $name,
+                        'Alias' => $alias,
+                        'CADC'  => $self->cadcuser()
+                      );
+  $user->email( $email // $self->email() );
+  $user->is_obfuscated( 0 );
+  return $user;
+}
+
+sub _obfu_rot13 {
+
+  my ( $self , $again )  = @_;
+
+  return _rot13( map { $self->$_() } qw[ userid name alias ] );
+}
+
+sub _rot13 {
+
+  my @in = @_;
+
+  for ( @in ) {
+
+    defined $_ or next;
+    tr/A-Za-z/N-ZA-Mn-za-m/;
+  }
+  return @in;
 }
 
 =back
