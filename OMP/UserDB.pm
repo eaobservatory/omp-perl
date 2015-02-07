@@ -378,6 +378,7 @@ sub _add_user {
                           $email,
                           $user->alias,
                           $user->cadcuser,
+                          $user->is_obfuscated()
                         );
 
 }
@@ -404,6 +405,7 @@ sub _update_user {
                            uname => $user->name,
                            alias => $user->alias,
                            cadcuser => $user->cadcuser,
+                           obfuscated => $user->is_obfuscated()
                           },
                           " userid = '".$user->userid ."' ");
 
@@ -479,7 +481,7 @@ sub _query_userdb_expensive {
   }
 
   my $sql =
-      'SELECT DISTINCT ' . join(  ', ', @col )
+      'SELECT DISTINCT ' . join(  ', ', ( @col , 'obfuscated' ) )
     . qq[ FROM $OMP::UserDB::USERTABLE ]
     . ' WHERE ' . join( ' OR ', map { " $_ LIKE ? " } keys %check )
     . ' ORDER BY userid , email , uname'
