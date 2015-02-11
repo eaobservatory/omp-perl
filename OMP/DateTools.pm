@@ -450,6 +450,10 @@ my %SEM_BOUND = (
                            '08A' => [ 20080129, 20080801 ],
                            '14A' => [ 20140202, 20141001 ],
                            '14B' => [ 20141002, 20150201 ],
+                           # 15A (EAO pilot semester) really starts 3/1/15 HST,
+                           # but using 2/1/15 HST to avoid a gap during the
+                           # shutdown -- not sure if this is necessary or not.
+                           '15A' => [ 20150202, 20150701 ],
                           },
                 );
 
