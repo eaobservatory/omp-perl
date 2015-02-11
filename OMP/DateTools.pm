@@ -462,20 +462,21 @@ sub determine_semester {
   my $self = shift;
   my %args = @_;
   my $date = $args{date};
-  if (defined $date) {
-
-    croak 'determine_semester: Date should be of class Time::Piece'
-        . qq[ or a "yyyymmdd" formatted string rather than "$date"]
-      unless UNIVERSAL::isa($date, "Time::Piece")
-          or $date =~ m/
+  unless (defined $date) {
+    $date = gmtime();
+  } elsif (UNIVERSAL::isa($date, "Time::Piece")) {
+    # Already have a Time::Piece -- do nothing.
+  } elsif ($date =~ m/
                         ^\d{4}
                         (?: [01]\d | 1[0-2])
                         (?: [0-2]\d | 3[01])
                         $
-                      /x;
-
+                      /x) {
+    # Convert to Time::Piece.
+    $date = Time::Piece->strptime($date, '%Y%m%d');
   } else {
-    $date = gmtime();
+    croak 'determine_semester: Date should be of class Time::Piece'
+        . qq[ or a "yyyymmdd" formatted string rather than "$date"];
   }
 
   my $tel = "PPARC";
@@ -486,9 +487,7 @@ sub determine_semester {
   # that has never had a special semester boundary (apart from the
   # requirement to convert date to YYYYMMDD only once)
 
-  my $ymd = $date =~ m/^\d{8}$/
-            ? $date
-            : $date->strftime("%Y%m%d");
+  my $ymd = $date->strftime("%Y%m%d");
 
   if (exists $SEM_BOUND{$tel}) {
     for my $lsem (keys %{ $SEM_BOUND{$tel} } ) {
@@ -520,18 +519,8 @@ sub determine_semester {
 sub _determine_pparc_semester {
   my $date = shift;
 
-  #  Parse date into 4-digit year & 4-digit month.day portions.
-  my ( $yyyy, $mmdd );
-
-  if ( $date =~ m/^ (\d{4}) (\d{4}) $/x ) {
-
-    ( $yyyy, $mmdd ) = ( "$1", "$2" );
-  }
-  else {
-
-    $yyyy = $date->year;
-    $mmdd = $date->mon . sprintf( "%02d", $date->mday );
-  }
+  my $yyyy = $date->year;
+  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
 
   # Calculate previous year
   my $prev_yyyy = $yyyy - 1;
