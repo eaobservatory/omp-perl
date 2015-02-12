@@ -205,7 +205,7 @@ is(OMP::DateTools->determine_semester(date => '20140201', tel => 'JCMT'),
     "13B", "Check JCMT semester 13B end");
 is(OMP::DateTools->determine_semester(date => '20141002', tel => 'JCMT'),
     "14B", "Check JCMT semester 14B start");
-is(OMP::DateTools->determine_semester(date => '20150201', tel => 'JCMT'),
+is(OMP::DateTools->determine_semester(date => '20150301', tel => 'JCMT'),
     "14B", "Check JCMT semester 14B end");
 is(OMP::DateTools->determine_semester(date => '20150302', tel => 'JCMT'),
     "15A", "Check JCMT semester 15A start");
