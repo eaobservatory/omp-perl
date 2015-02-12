@@ -544,6 +544,38 @@ sub _determine_eao_semester {
 }
 
 
+# Private helper subroutine for determine_semester_boundary.
+# Takes a semester name as argument.
+
+sub _determine_eao_semester_boundary {
+  my $sem = uc(shift);
+
+  unless ($sem =~ /^(\d\d)([AB])$/) {
+    croak "This semester ($sem) does not look like an EAO style semester designation";
+  }
+
+  my $year = $1;
+  my $ab   = $2;
+
+  # Boundaries without the year prefix
+  # incyr indicates whether the year should be incremented prior to
+  # concatenation
+  my %bound = (
+               A => {
+                     incyr  => [0, 0],
+                     suffix => [qw/0102 0701/],
+                    },
+               B => {
+                     incyr  => [0, 1],
+                     suffix => [qw/0702 0101/],
+                    },
+              );
+
+  my %semdetails = %{$bound{$ab}};
+  return map {'20' . ($year + $semdetails{'incyr'}[$_]) . $semdetails{'suffix'}[$_]} (0, 1);
+}
+
+
 # Private helper sub for determine_semester
 # implements the standard PPARC calculation
 # Probably an off by one error since the PPARC boundaries are local time
@@ -685,7 +717,19 @@ sub semester_boundary {
     }
 
     # telescope specific
-    if ($args{tel} eq 'PPARC' || $args{tel} eq 'JCMT' || $args{tel} eq 'UKIRT') {
+    if ($args{'tel'} eq 'JCMT') {
+      # Determine whether this is a "PPARC" or EAO semester.
+      my $eao = 0;
+      if ($sem =~ /^(\d\d)[AB]$/) {
+        $eao = 1 if $1 >= 15;
+      }
+
+      if ($eao) {
+        push(@dates, [_determine_eao_semester_boundary($sem)]);
+      } else {
+        push(@dates, [_determine_pparc_semester_boundary($sem)]);
+      }
+    } elsif ($args{tel} eq 'PPARC' || $args{tel} eq 'UKIRT') {
       push(@dates, [ _determine_pparc_semester_boundary( $sem ) ] );
     } else {
       croak "Unrecognized telescope '$args{tel}'. Should not happen.\n";
