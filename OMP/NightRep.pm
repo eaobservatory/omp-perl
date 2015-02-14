@@ -971,8 +971,8 @@ Project Time Summary
     for my $fault (@faults) {
       my $date = $fault->date;
       my $local = localtime($date->epoch);
-      $str.= "  ". $fault->faultid ." [". $local->strftime("%H:%M %Z")."] ".
-        $fault->subject ."(".$fault->timelost." hrs lost)\n";
+      $str.= "  ". ( $fault->faultid || '(No FaultID)' ) ." [". $local->strftime("%H:%M %Z")."] ".
+        ( $fault->subject || '(No Subject)' ) ."(".$fault->timelost." hrs lost)\n";
 
     }
   } else {
@@ -991,7 +991,7 @@ Project Time Summary
     # Use local time
     my $date = $c->date;
     my $local = localtime( $date->epoch );
-    my $author = $c->author->name;
+    my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
 
     # Get the text and format it as plain text from HTML
     my $text = $c->text;
