@@ -971,8 +971,12 @@ Project Time Summary
     for my $fault (@faults) {
       my $date = $fault->date;
       my $local = localtime($date->epoch);
-      $str.= "  ". ( $fault->faultid || '(No FaultID)' ) ." [". $local->strftime("%H:%M %Z")."] ".
-        ( $fault->subject || '(No Subject)' ) ."(".$fault->timelost." hrs lost)\n";
+      $str.= sprintf qq[  %s [%s] %s (%s hrs lost)\n],
+                ( $fault->faultid() || '(No Fault ID)' ),
+                $local->strftime( '%H:%M %Z' ),
+                ( $fault->subject() || '(No Subject)' ),
+                $fault->timelost()
+                ;
 
     }
   } else {
