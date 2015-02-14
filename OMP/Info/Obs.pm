@@ -823,7 +823,8 @@ sub summary {
     my $commentsum;
     foreach my $comment ( $self->comments ) {
       if(defined($comment)) {
-        my $tc = sprintf("%19s UT / %s: %s\n", $comment->date->ymd . " " . $comment->date->hms, $comment->author->name, $comment->text);
+        my $name = $comment->author() ? $comment->author()->name() : '(Unknown Auhtor)';
+        my $tc = sprintf("%19s UT / %s: %s\n", $comment->date->ymd . " " . $comment->date->hms, $name, $comment->text);
         $commentsum .= wrap(' ',' ',$tc)
       }
     }
