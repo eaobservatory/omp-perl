@@ -17,13 +17,15 @@ use OMP::NightRep;
 use lib '/home/agarwal/comp/perl5/lib';
 use Anubhav::Debug qw[ epl eph errt ];
 
-my $ROOT   = q[/tmp];
+my $ROOT   = q[/export/data/obslog-dump];
 my %OK_TEL = ( 'jcmt' => undef , 'ukirt' => undef );
 
 my $noisy = 1;
 my ( $tel , $start , $end );
 GetOptions( 'help'      => \( my $help ) ,
             'verbose=i' => \$noisy ,
+
+            'root=s' => \$ROOT ,
 
             'start=s' => \$start ,
             'end=s'   => \$end ,
