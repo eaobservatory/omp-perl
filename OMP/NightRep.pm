@@ -26,7 +26,7 @@ taken on a night, faults occuring and project accounting.
 
 =cut
 
-use 5.006;
+use 5.010; # for //
 use strict;
 use warnings;
 use Carp;
@@ -1015,7 +1015,7 @@ Project Time Summary
 
   my $grp = $self->obs;
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
-  $str .= $grp->summary('72col');
+  $str .= $grp->summary('72col') // '';
 
   if (wantarray) {
     return split("\n", $str);
