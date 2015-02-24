@@ -209,7 +209,7 @@ sub list_users {
 
   print "<h2>OMP users</h2>";
 
-  my $users = OMP::UserServer->queryUsers( "<UserQuery></UserQuery>" );
+  my $users = OMP::UserServer->queryUsers( "<UserQuery><obfuscated>0</obfuscated></UserQuery>" );
 
   my $rowclass = 'row_shaded';
 
