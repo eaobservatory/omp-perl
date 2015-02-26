@@ -1028,7 +1028,11 @@ sub contacts {
 
   # Get all the User objects
   # Store in a hash to weed out duplicates
-  my %users = map {$_->userid, $_} grep {$self->contactable($_->userid) and $_->email} ( $self->investigators, $self->support );
+  my %users = map
+              { $_->userid, $_ }
+              grep
+              { $self->contactable($_->userid) and $_->email }
+              ( $self->investigators, $self->support );
 
   return map {$users{$_}} keys %users;
 }
