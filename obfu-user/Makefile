@@ -16,8 +16,8 @@ collect_userid=      $(path)/02.collect-userid.sh
 collect_userid_out=  02.collect-userid--USERID-ONLY
 inject_csv=          00.inject-name-email-userid.csv
 
-obfuscate_sql=      $(path)/03.obfu-user-sql.pl
-obfuscate_sql_out=  03.obfu-user-sql.SQL
+obfuscate_sql=      $(path)/03.obfu-all-user-sql.pl
+obfuscate_sql_out=  03.obfu-all-user-sql.SQL
 
 
 most: obfuscate
