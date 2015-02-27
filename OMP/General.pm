@@ -1279,6 +1279,31 @@ BEGIN {
   }
 }
 
+
+=item B<rot13>
+
+Given a list of strings, returns list of ROT-13 obfuscated strings. In scalar
+context, returns a string of all the strings given.
+
+
+  # 'cbyxn qbg' is retuned.
+  @rot = OMP::General->rot13( 'polka dot' );
+
+=cut
+
+sub rot13 {
+
+  my ( $self , @in ) = @_;
+
+  for ( @in ) {
+
+    defined $_
+      and tr/A-Za-z/N-ZA-Mn-za-m/;
+  }
+  return wantarray() ? @in : join '' , @in ;
+}
+
+
 =head1 AUTHORS
 
 Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>,
