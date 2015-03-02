@@ -63,7 +63,7 @@ function toggle(systemID) {
 	  rowflag = (row.className == 'hide');
         }
         row.className = (rowflag) ? 'show' : 'hide';
-        img.src = (rowflag) ? 'http://omp.jach.hawaii.edu/images/hide.gif' : 'http://omp.jach.hawaii.edu/images/show.gif';
+        img.src = (rowflag) ? 'http://omp.eao.hawaii.edu/images/hide.gif' : 'http://omp.eao.hawaii.edu/images/show.gif';
       }
     }
   }
@@ -76,11 +76,11 @@ function toggleFunction(ID) {
   if (current == 'hide') {
     functionTag.innerHTML = 'Hide closed faults';
     functionTag.setAttribute('function', 'hide');
-    img.src = 'http://omp.jach.hawaii.edu/images/hide.gif'
+    img.src = 'http://omp.eao.hawaii.edu/images/hide.gif'
   } else {
     functionTag.innerHTML = 'Show closed faults';
     functionTag.setAttribute('function', 'show');
-    img.src = 'http://omp.jach.hawaii.edu/images/show.gif'
+    img.src = 'http://omp.eao.hawaii.edu/images/show.gif'
   }
 }
 
