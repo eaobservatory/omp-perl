@@ -1,7 +1,7 @@
 @ALLOWSIDEBARMOD=1;
 @NOSIDEBAR=0;
 @NAVBAR=0;
-@SIDEBARMENUTITLE=<font color=#ffffff>JAC</font>;
+@SIDEBARMENUTITLE=<font color=#ffffff>EAO</font>;
 @MORELINKSTITLE=<font color=#ffffff>OMP</font>;
 @INFO=
 <A HREF="http://omp.eao.hawaii.edu/cgi-bin/projecthome.pl" class="sidemain">

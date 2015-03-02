@@ -11,7 +11,7 @@
 @ALLOWSIDEBARMOD=1;
 @SIDEBARTOP=<a href=http://www.eao.hawaii.edu/>East Asian
 Observatory</A>;
-@SIDEBARMENUTITLE=JAC Divisions;
+@SIDEBARMENUTITLE=EAO Divisions;
 @SIDEBARMENULINKS=<A HREF="/JACpublic/JCMT">JCMT</A>,
                   <A HREF="/JACpublic/UKIRT">UKIRT</A>,
                   <A HREF="/JACpublic/JAC/ets">Engineering & Technical Services</A>,
