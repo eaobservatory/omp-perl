@@ -343,7 +343,6 @@ sub _write_footer {
 
   print $theme->MakeTopBottomBar();
   print "</td></table></td></tr></table>";
-  print "<br><div class='footer'>This system provided by the <a href='http://www.jach.hawaii.edu/JAC/software'>Joint Astronomy Centre Software Group</a></div>";
   print "<div ALIGN='right'><h6><a HREF='#top'>return to top...</a></h6></div></body>";
   print $theme->EndHTML();
 
@@ -1224,18 +1223,13 @@ sub _write_header {
 
   $theme->SetHTMLStartString($start_string);
 
-  $theme->SetSideBarTop("<a class='sidemain' href='http://www.jach.hawaii.edu/'>Joint Astronomy Centre</a>");
+  $theme->SetSideBarTop("<a class='sidemain' href='http://www.eao.hawaii.edu/'>EAO local home</a>");
 
   # These links will go under the 'JAC Divisions' heading
-  my @links = ("<a class='sidemain' HREF='http://www.jach.hawaii.edu'>JAC Home</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/JCMT/'>JCMT</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/UKIRT/'>UKIRT</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/divisions.html'>JAC Divisions</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/staff_wiki'>Staff Wiki</a>",
-	       "<a class='sidemain' HREF='http://outreach.jach.hawaii.edu/'>Outreach</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/weather/'>Weather</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/Seminars/seminars.html'>JAC Seminars</a>",
-	       "<a class='sidemain' HREF='http://www.jach.hawaii.edu/admin/contact.html'>Contact info</a>",
+  my @links = ("<a class='sidemain' HREF='http://www.eaobservatory.org/'>EAO Home</a>",
+	       "<a class='sidemain' HREF='http://www.eaobservatory.org/jcmt/'>JCMT</a>",
+	       "<a class='sidemain' HREF='http://www.ukirt.hawaii.edu/'>UKIRT</a>",
+	       "<a class='sidemain' HREF='http://www.eao.hawaii.edu/weather/'>Weather</a>",
 
 );
 
