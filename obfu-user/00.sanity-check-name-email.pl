@@ -57,12 +57,13 @@ unlink( $log );
 init_logger( $log );
 
 my $dbh_sel = connect_to_db( $cred );
+$dbh_sel->trace( 0 );
 
 my @data = process_user_list( @file );
 my $data = to_userid( $dbh_sel , @data );
 
-show_mismatch( $mismatches , $data );
-show_userid( $list_to_userids , $data );
+$data and show_mismatch( $mismatches , $data );
+$data and show_userid( $list_to_userids , $data );
 
 exit;
 
@@ -207,6 +208,8 @@ sub to_userid
 
   my $sth = $dbh->prepare( select_any() );
 
+  my $obfuscated = 0;
+
   my ( %out );
   for my $d ( sort
                   { $a->{'userid-infer'} cmp $b->{'userid-infer'}
@@ -221,9 +224,7 @@ sub to_userid
 
     # To make issues with name|email address obvious.
     my $key = user_hash( $addr , $name , $infer_id );
-    $out{ $key } = {};
-
-    my $res = make_select( $dbh , $sth , 0 , $addr , $name , $infer_id );
+    my $res = make_select( $dbh , $sth , $obfuscated , $addr , $name , $infer_id );
     for my $ref ( $res ? @{ $res } : () )
     {
       my %ref = %{ $ref };
@@ -250,8 +251,7 @@ sub to_userid
         }
       }
     }
-
-    $out{ $key } or warn qq[NO DATA found for "$key".\n];
+    exists $out{ $key } or warn qq[NO DATA found for "$key".\n];
   }
 
   return { %out };
