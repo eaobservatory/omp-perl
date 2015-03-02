@@ -6,7 +6,7 @@ msbsrv - MSB Server
 
 =head1 SYNOPSIS
 
-  my $msb = new SOAP::Lite( uri => 'http://www.jach.hawaii.edu/OMP::MSBServer',
+  my $msb = new SOAP::Lite( uri => 'http://www.eao.hawaii.edu/OMP::MSBServer',
                            proxy => 'http://www.whereever.edu/cgi-bin/msbsrv.pl'
                           );
 

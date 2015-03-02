@@ -276,15 +276,15 @@ my @list_name =
 
 my %MAILLIST;
 @MAILLIST{ @list_name } =
-  ( 'csg_faults@jach.hawaii.edu'   ,
-    'jcmt_faults@jach.hawaii.edu'  ,
-    'jcmt_event_log@jach.hawaii.edu' ,
-    'ukirt_faults@jach.hawaii.edu' ,
-    'omp_faults@jach.hawaii.edu'   ,
-    'dr_faults@jach.hawaii.edu'    ,
-    'safety_faults@jach.hawaii.edu'   ,
-    'facility_faults@jach.hawaii.edu' ,
-    'vehicle@jach.hawaii.edu' ,
+  ( 'csg_faults@eao.hawaii.edu'   ,
+    'jcmt_faults@eao.hawaii.edu'  ,
+    'jcmt_event_log@eao.hawaii.edu' ,
+    'ukirt_faults@eao.hawaii.edu' ,
+    'omp_faults@eao.hawaii.edu'   ,
+    'dr_faults@eao.hawaii.edu'    ,
+    'safety_faults@eao.hawaii.edu'   ,
+    'facility_faults@eao.hawaii.edu' ,
+    'vehicle@eao.hawaii.edu' ,
   );
 
 my $config = OMP::Config->new;

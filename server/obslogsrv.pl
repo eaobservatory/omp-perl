@@ -6,7 +6,7 @@ obslogsrv - Obslog Comment Server
 
 =head1 SYNOPSIS
 
-  my $sp = new SOAP::Lite( uri => 'http://www.jach.hawaii.edu/OMP::ObslogServer',
+  my $sp = new SOAP::Lite( uri => 'http://www.eao.hawaii.edu/OMP::ObslogServer',
                            proxy => 'http://www.whereever.edu/cgi-bin/obslogsrv.pl'
                           );
 

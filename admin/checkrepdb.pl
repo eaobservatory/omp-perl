@@ -72,7 +72,7 @@ my %run =
 }
 
 #  Default address.
-@to_addr = ( 'omp_group@jach.hawaii.edu' )
+@to_addr = ( 'omp_group@eao.hawaii.edu' )
   if 0 == scalar @to_addr + scalar @cc_addr ;
 
 my (  $primary_kdb,
@@ -456,7 +456,7 @@ sub send_mail {
 
   my ( $subj, $msg, %addr ) = @_;
 
-  my $email = MIME::Lite->new( From => 'jcmtarch@jach.hawaii.edu',
+  my $email = MIME::Lite->new( From => 'jcmtarch@eao.hawaii.edu',
                                 %addr,
                                 Subject => $subject,
                                 Data => $msg,
@@ -562,7 +562,7 @@ It can be specified multiple times to send email to more than one address.
 =item B<-to> <email address>
 
 Specify email address as the recipient of the check report; default is
-"omp_group@jach.hawaii.edu".
+"omp_group@eao.hawaii.edu".
 
 It can be specified multiple times to send email to more than one address.
 
