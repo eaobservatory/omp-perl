@@ -26,7 +26,7 @@ use JAC::Setup      qw[ omp jsa ];
 use JSA::LogInitialize qw[ init_logger ];
 use JSA::DB::Sybase qw[ connect_to_db ];
 
-use OMP::User;
+use OMP::General;
 
 my $log = q[/home/agarwal/src/jac-git/omp-perl/obfu-user/obfu-user.log];
 unlink( $log );
@@ -66,13 +66,13 @@ while ( my $row = $sth_id->fetchrow_hashref() )
 {
   exists $keep{ $row->{'userid'} } and next;
 
-  my @obfu = rot13( @{ $row }{qw[ userid name alias ]} )
+  my @obfu = OMP::General->rot13( @{ $row }{qw[ userid name alias ]} )
     or next;
 
   @obfu[1,2] = quote_or_null( @obfu[1,2] );
 
   my $info = join qq[\n] ,
-                sprintf( qq[print "-- %s\n"] , join ' ; ' , rot13( @obfu ) ) ,
+                sprintf( qq[print "-- %s\n"] , join ' ; ' , OMP::General->rot13( @obfu ) ) ,
                 sprintf( qq[print "-- %s\n"] , join ' ; ' , @obfu )
                 ;
 
@@ -127,18 +127,6 @@ sub parse_file
 
   close $fh or die qq[Could not close $file: $!\n];
   return %keep;
-}
-
-sub rot13
-{
-  my ( @in ) = @_;
-
-  for ( @in )
-  {
-    defined $_ && fc( $_ ) ne fc( 'null' )
-      and tr/A-Za-z/N-ZA-Mn-za-m/;
-  }
-  return @in;
 }
 
 sub select_userid
