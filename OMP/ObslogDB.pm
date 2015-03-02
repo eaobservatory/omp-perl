@@ -203,7 +203,7 @@ sub _mail_staff_no_good {
   my $from = OMP::Config->getData( 'mail.from-obs-rejected',
                                    'telescope' => $tel
                                   )
-              || 'flex@jach.hawaii.edu';
+              || 'flex@eaobservatory.org';
 
   # Only for useful Subject: header.
   my $com_user = $comment->author();

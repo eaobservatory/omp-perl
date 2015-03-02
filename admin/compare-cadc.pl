@@ -111,7 +111,7 @@ for my $file ( @cadc_cf ) {
 
     MIME::Lite->send("smtp", "mailhost", Timeout => 30);
     my $mail =
-      MIME::Lite->new( 'From' => 'jcmtarch@jach.hawaii.edu',
+      MIME::Lite->new( 'From' => 'jcmtarch@eao.hawaii.edu',
                         'to'  => join( ', ', @addr ),
                         'Subject' =>
                           ( $diff ? 'Different count' : 'OK' ) . qq[ - $server replication],

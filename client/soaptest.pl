@@ -17,23 +17,23 @@ my $xml = <$fh>;
 close($fh);
 
 #print SOAP::Lite
-#  -> uri('http://www.jach.hawaii.edu/OMP::SpServer')
-#  -> proxy('http://www-private.jach.hawaii.edu:81/cgi-bin/spsrv.pl')
+#  -> uri('http://www.eao.hawaii.edu/OMP::SpServer')
+#  -> proxy('http://www-private.eao.hawaii.edu:81/cgi-bin/spsrv.pl')
 #  -> fetchProgram("M01BU53","junk")
 #  -> result;
 
 my $msb = new SOAP::Lite(
-			  uri =>'http://www.jach.hawaii.edu/OMP::MSBServer',
-#			  proxy =>'http://www-private.jach.hawaii.edu:81/cgi-bin/msbsrvtj.pl',
-			  proxy =>'http://www.jach.hawaii.edu/JAClocal/cgi-bin/msbsrv.pl',
-#			  proxy =>'http://www-private.jach.hawaii.edu:81/cgi-bin/msbsrv.pl',
+			  uri =>'http://www.eao.hawaii.edu/OMP::MSBServer',
+#			  proxy =>'http://www-private.eao.hawaii.edu:81/cgi-bin/msbsrvtj.pl',
+			  proxy =>'http://www.eao.hawaii.edu/JAClocal/cgi-bin/msbsrv.pl',
+#			  proxy =>'http://www-private.eao.hawaii.edu:81/cgi-bin/msbsrv.pl',
 			 );
 
 my $sp = new SOAP::Lite(
-			  uri =>'http://www.jach.hawaii.edu/OMP::SpServer',
-#			  proxy =>'http://www-private.jach.hawaii.edu:81/cgi-bin/spsrvtj.pl',
-			  proxy =>'http://www.jach.hawaii.edu/JAClocal/cgi-bin/spsrv.pl',
-#			  proxy =>'http://www-private.jach.hawaii.edu:81/cgi-bin/spsrv.pl',
+			  uri =>'http://www.eao.hawaii.edu/OMP::SpServer',
+#			  proxy =>'http://www-private.eao.hawaii.edu:81/cgi-bin/spsrvtj.pl',
+			  proxy =>'http://www.eao.hawaii.edu/JAClocal/cgi-bin/spsrv.pl',
+#			  proxy =>'http://www-private.eao.hawaii.edu:81/cgi-bin/spsrv.pl',
 			 );
 
 #$sp = "OMP::SpServer";

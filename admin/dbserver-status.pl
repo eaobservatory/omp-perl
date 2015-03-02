@@ -106,7 +106,7 @@ elsif ( $title || $report ) {
 
   MIME::Lite->send("smtp", "mailhost", Timeout => 30);
   my $mail =
-    MIME::Lite->new( 'From' => 'jcmtarch@jach.hawaii.edu',
+    MIME::Lite->new( 'From' => 'jcmtarch@eao.hawaii.edu',
                       'to'  => join( ', ', @addr ),
                       'Subject' => $title,
                       'Data'    => $report,

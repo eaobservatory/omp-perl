@@ -4,11 +4,14 @@ use strict; use warnings;
 use 5.016;  # for fc() & say().
 
 use Carp   qw[ carp croak confess ];
-use Try::Tiny;
 
 our $VERSION = '0.01';
 
+select STDERR ; $| = 1;
+select STDOUT ; $| = 1;
+
 use DBI;
+use File::Basename  qw[ fileparse ];
 use File::Slurp     qw[ read_file ];
 
 use Getopt::Long    qw[ :config gnu_compat no_ignore_case require_order ];
@@ -24,15 +27,15 @@ use JSA::DB::Sybase qw[ connect_to_db ];
 
 use OMP::User;
 
-use lib '/home/agarwal/comp/perl5/lib';
-use Anubhav::Debug          qw[ epl eph errt ];
-$Anubhav::Debug::Keys_As_Given = 0;
-
 my $cred =
-  #q[/jac_sw/etc/ompsite.cfg]
-  q[/jac_sw/etc/ompsite-dev.cfg]
+  q[/jac_sw/etc/ompsite.cfg]
+  #q[/jac_sw/etc/ompsite-dev.cfg]
   ;
 my $dbquery_chunk = 200;
+
+my $my_name = ( fileparse( $0 , '.p[lm]' ) )[0];
+my $mismatches = join '-' , $my_name , 'MISMATCH' ;
+my $list_to_userids = join '-' , $my_name , 'USERID.CSV' ;
 
 
 my ( $verbose , $help );
@@ -55,16 +58,12 @@ init_logger( $log );
 
 my $dbh_sel = connect_to_db( $cred );
 
-my %data = process_user_list( @file );
+my @data = process_user_list( @file );
+my $data = to_userid( $dbh_sel , @data );
 
-eph( %data );
-#die;
+show_mismatch( $mismatches , $data );
+show_userid( $list_to_userids , $data );
 
-my $data = to_userid( $dbh_sel , %data );
-epl( $data );
-#die;
-
-show_mismatch( $data );
 exit;
 
 
@@ -74,15 +73,15 @@ BEGIN
 
   sub show_mismatch
   {
-    my ( $data ) = @_;
+    my ( $file , $data ) = @_;
 
     my ( $max_in , @max ) = max_length( $data );
 
-    my $col_div = q[ | ] ;
+    my $col_div = q[  ] ;
     my $column = join $col_div ,
                     sprintf( q[%%-%ds] , $max_in ) ,
                     map
-                    { sprintf q[%%-%ds / %%-%ds] , ($_) x 2 }
+                    { sprintf q[%%-%ds : %%-%ds] , ($_) x 2 }
                     @max
                     ;
     $column .= "\n";
@@ -91,23 +90,22 @@ BEGIN
                   2 , scalar( @max ) ,
                   $max_in , map {; 1 , $_ * 2 } @max
                   ;
-    $div = join '' , ('-') x $div;
+    $div = join '' , ('#') x $div;
     $div .= "\n";
 
-    ( my $header_div = $div ) =~ tr/-/#/;
     my $header =
-      $header_div
+      $div
       . sprintf( $column , 'list input' , ( qw[ list database ] ) x3 )
       . sprintf( $column , '' , map { ( $_ ) x 2 } qw[ userid name email ] )
-      . $header_div
+      . $div
       ;
 
     my $out = $header;
     for my $key ( sort keys %{ $data } )
     {
-      exists $data->{ $key }{'mismatch'} or next;
+      exists $data->{ $key }{'MISMATCH'} or next;
 
-      my ( $id , $name , $addr ) = map { $data->{ $key }{'mismatch'}{ $_ } } @field;
+      my ( $id , $name , $addr ) = map { $data->{ $key }{'MISMATCH'}{ $_ } } @field;
       $out .=
         sprintf $column ,
                   $key ,
@@ -115,7 +113,7 @@ BEGIN
                   { $_->{'list' } // '' , $_->{'db'} // '' }
                   ( $id , $name , $addr)
                   ;
-      $out .= $div;
+      $out .= "\n";
     }
     $out .= $header;
     for ( $out )
@@ -123,7 +121,8 @@ BEGIN
       s/^[ ]/./mg;
       s/[ ]+$/ /mg;
     }
-    print $out;
+    warn qq[saving mismatches in file $file ...\n];
+    return print_buffer( $file , $out );
   }
 
   sub max_length
@@ -133,13 +132,11 @@ BEGIN
     my ( @key , @name , @id , @addr );
     for my $key ( keys %{ $data } )
     {
-      exists $data->{ $key }{'mismatch'} or next;
-
-      epl( $data->{ $key }{'mismatch'} );
+      exists $data->{ $key }{'MISMATCH'} or next;
 
       push @key , length $key ;
 
-      my ( $id , $name , $addr ) = map { $data->{ $key }{'mismatch'}{ $_ } } @field;
+      my ( $id , $name , $addr ) = map { $data->{ $key }{'MISMATCH'}{ $_ } } @field;
       $id   and push @id   , map length( $id->{ $_ }   ) , qw[ list db ] ;
       $name and push @name , map length( $name->{ $_ } ) , qw[ list db ] ;
       $addr and push @addr , map length( $addr->{ $_ } ) , qw[ list db ] ;
@@ -149,20 +146,82 @@ BEGIN
   }
 }
 
+sub show_userid
+{
+  my ( $file , $data ) = @_;
+
+  # input;
+  # userid , name, email
+  my $format = qq[#  %s\n%s%s ; %s ; %s\n];
+
+  my $div = join( '' , ('#' ) x 80 ) . "\n";
+
+  my $header = sprintf $format ,
+                  q[given name ; addr ; derived-userid] ,
+                  q[#  ],
+                  qw[ db-userid db-name db-addr ]
+                  ;
+  $header = $div . $header . $div;
+
+  my $out = $header;
+  for my $given ( sort
+                  {
+                    ( $data->{ $a }{'userid'} cmp $data->{ $b }{'userid'} )
+                    ||
+                    ( $data->{ $a }{'name'} cmp $data->{ $b }{'name'} )
+                    ||
+                    ( $a cmp $b )
+                  }
+                  keys %{ $data }
+              )
+  {
+     $out .= sprintf $format ,
+                $given ,
+                '   ' ,
+                map
+                { $data->{ $given }{ $_ } // '' }
+                qw[ userid name email ]
+                ;
+    $out .= "\n";
+  }
+
+  warn qq[saving userid;name;addr in file $file ...\n];
+  return print_buffer( $file , $out . $header );
+}
+
+sub print_buffer
+{
+  my ( $file , $buf ) = @_;
+
+  open my $fh , '>' , $file or croak( qq[Cannot open $file to write: $!] );
+  print $fh $buf;
+  close $fh  or croak( qq[Could not close $file after writing: $!] );
+
+  return;
+}
+
+
 sub to_userid
 {
-  my ( $dbh , %data ) = @_;
+  my ( $dbh , @data ) = @_;
 
   my $sth = $dbh->prepare( select_any() );
 
   my ( %out );
-  for my $addr ( sort keys %data )
+  for my $d ( sort
+                  { $a->{'userid-infer'} cmp $b->{'userid-infer'}
+                    ||
+                    $a->{'name'} cmp $b->{'name'}
+                  }
+                  @data
+                )
   {
-    my $name = $data{ $addr };
-    my $infer_id = OMP::User->infer_userid( $name );
+    my ( $name , $addr , $infer_id ) =
+      map  { $d->{ $_ } } qw[ name addr userid-infer ];
+
     # To make issues with name|email address obvious.
     my $key = user_hash( $addr , $name , $infer_id );
-    $out{ $key } = undef;
+    $out{ $key } = {};
 
     my $res = make_select( $dbh , $sth , 0 , $addr , $name , $infer_id );
     for my $ref ( $res ? @{ $res } : () )
@@ -170,20 +229,26 @@ sub to_userid
       my %ref = %{ $ref };
       $out{ $key } = { map {; $_ => $ref{ $_ } } keys %ref };
 
-epl( [ $name , $addr , $infer_id ] , $ref );
-
       my %mis = get_mismatch( # From list;
                               { 'addr' => $addr ,
                                 'name' => $name ,
                                 'userid' => $infer_id
                               } ,
                               # from database;
-                              { 'addr' => $ref{'email'} ,
-                                'name' => $ref{'uname'} ,
+                              { 'addr' => $ref{'email'} // '' ,
+                                'name' => $ref{'name'} // '' ,
                                 'userid' => $ref{'userid'}
                               }
                             );
-      %mis and $out{ $key }->{'mismatch'} = { %mis };
+      if ( scalar keys %mis )
+      {
+        $out{ $key }->{'MISMATCH'} = { %mis };
+        if ( ! exists $mis{'name'} && ! exists $mis{'userid'} )
+        {
+          warn qq[** Changing email address ...\n];
+          $out{ $key }->{'email'} = $mis{'addr'}->{'list'};
+        }
+      }
     }
 
     $out{ $key } or warn qq[NO DATA found for "$key".\n];
@@ -221,9 +286,9 @@ sub user_hash
 {
   my ( $addr , $name , $id ) = @_;
   return join ' ; ' ,
-            $addr // '<no email addr>' ,
+            $id   // '<no userid>' ,
             $name // '<no name>' ,
-            $id   // '<no userid>'
+            $addr // '<no email addr>'
             ;
 }
 
@@ -231,7 +296,7 @@ sub process_user_list
 {
   my ( @file ) = @_;
 
-  my ( %stat , %data , %check );
+  my ( %stat , @data , %data , %check );
   #  Process user lists.
   for my $in ( @file )
   {
@@ -245,7 +310,12 @@ sub process_user_list
 
       unless ( exists $data{ $addr } )
       {
-        $data{ $addr } = $name;
+        $data{ $addr }++;
+        my $id = OMP::User->infer_userid( $name );
+        push @data , { 'addr' => $addr ,
+                        'name' => $name ,
+                        'userid-infer' => $id
+                      };
       }
       elsif ( addr_with_multi_names( $addr , $data{ $addr } , $name ) )
       {
@@ -269,9 +339,9 @@ sub process_user_list
       }
     }
   }
-  parsed_summary( scalar( keys %data ) , %stat );
+  parsed_summary( scalar( @data ) , %stat );
 
-  return %data;
+  return @data;
 }
 
 sub parsed_summary
@@ -386,7 +456,7 @@ sub make_select
 sub select_any
 {
   return <<'_SELECT_';
-    SELECT DISTINCT userid , uname , email , obfuscated
+    SELECT DISTINCT userid , uname AS name , email , alias , obfuscated
     FROM ompuser
     WHERE obfuscated = ?
       AND (
@@ -396,7 +466,7 @@ sub select_any
             --   derived-userid search;
             OR UPPER( userid ) = UPPER( ? )
           )
-    ORDER BY uname , email , userid
+    ORDER BY userid , uname , email
 _SELECT_
 
 }
@@ -404,9 +474,10 @@ _SELECT_
 sub select_userid
 {
   return <<'_SELECT_';
-    SELECT userid , uname , email , obfuscated
+    SELECT userid , uname AS name , email , alias , obfuscated
     FROM ompuser
     WHERE UPPER( userid ) = UPPER( ? ) AND obfuscated = ?
+    ORDER BY userid , uname , email
 _SELECT_
 
 }
@@ -414,9 +485,10 @@ _SELECT_
 sub select_addr
 {
   return <<'_SELECT_';
-    SELECT userid , uname , email , obfuscated
+    SELECT userid , uname AS name , email , alias , obfuscated
     FROM ompuser
     WHERE UPPER( email ) = UPPER( ? ) AND obfuscated = ?
+    ORDER BY userid , uname , email
 _SELECT_
 
 }
@@ -431,8 +503,8 @@ sub format_select_name
     s/^\s+//;
     s/\s+$//;
 
-    s/^/%/;
-    s/$/%/;
+    #s/^/%/;
+    #s/$/%/;
     s/[. ]+/%/g;
   }
   return $n;

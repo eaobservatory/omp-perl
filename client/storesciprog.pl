@@ -5,8 +5,8 @@ use SOAP::Lite;
 use OMP::SpServer;
 
 #my $sps = new SOAP::Lite(
-#                          uri =>'http://www.jach.hawaii.edu/OMP::SpServer',
-#                        proxy => 'http://omp-dev.jach.hawaii.edu/cgi-bin/spsrv.pl',
+#                          uri =>'http://www.eao.hawaii.edu/OMP::SpServer',
+#                        proxy => 'http://omp-dev.eao.hawaii.edu/cgi-bin/spsrv.pl',
 #                         );
 
 my $sps = "OMP::SpServer";

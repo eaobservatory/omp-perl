@@ -322,7 +322,7 @@ sub fetch_msb {
         '<?xml version="1.0" encoding="ISO-8859-1"?>',
         '<SpProg type="pr" subtype="none" ' .
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
-            'xmlns="http://omp.jach.hawaii.edu/schema/TOML">',
+            'xmlns="http://omp.eao.hawaii.edu/schema/TOML">',
         '<meta_gui_collapsed>false</meta_gui_collapsed>',
         '<meta_gui_filename>ompdummy.xml</meta_gui_filename>',
         '<country>UNKNOWN</country>',

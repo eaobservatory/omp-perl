@@ -26,7 +26,7 @@ taken on a night, faults occuring and project accounting.
 
 =cut
 
-use 5.006;
+use 5.010; # for //
 use strict;
 use warnings;
 use Carp;
@@ -971,8 +971,12 @@ Project Time Summary
     for my $fault (@faults) {
       my $date = $fault->date;
       my $local = localtime($date->epoch);
-      $str.= "  ". $fault->faultid ." [". $local->strftime("%H:%M %Z")."] ".
-        $fault->subject ."(".$fault->timelost." hrs lost)\n";
+      $str.= sprintf qq[  %s [%s] %s (%s hrs lost)\n],
+                ( $fault->faultid() || '(No Fault ID)' ),
+                $local->strftime( '%H:%M %Z' ),
+                ( $fault->subject() || '(No Subject)' ),
+                $fault->timelost()
+                ;
 
     }
   } else {
@@ -991,7 +995,7 @@ Project Time Summary
     # Use local time
     my $date = $c->date;
     my $local = localtime( $date->epoch );
-    my $author = $c->author->name;
+    my $author = $c->author() ? $c->author()->name() : '(Unknown Author)' ;
 
     # Get the text and format it as plain text from HTML
     my $text = $c->text;
@@ -1011,7 +1015,7 @@ Project Time Summary
 
   my $grp = $self->obs;
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
-  $str .= $grp->summary('72col');
+  $str .= $grp->summary('72col') // '';
 
   if (wantarray) {
     return split("\n", $str);

@@ -207,7 +207,7 @@ if ($debug) {
 
 #print 'Email to: ', $support, "\nSubject: ", $subject, "\n", $text, "\n\n";
 
-    my $msg = MIME::Lite->new( From => 'flex@jach.hawaii.edu',
+    my $msg = MIME::Lite->new( From => 'flex@eaobservatory.org',
 			       To => $support,
 			       Subject => $subject,
 			       Data => $text, );

@@ -9,8 +9,8 @@ my $PROJECT = "U/UHS/UHSJ16";
 my $PASSWORD = "YOURPASSWORD";
 
 my $sps = SOAP::Lite->new(
-                          uri => "http://www.jach.hawaii.edu/OMP::SpServer",
-                          proxy => "http://omp.jach.hawaii.edu/cgi-bin/spsrv.pl",
+                          uri => "http://www.eao.hawaii.edu/OMP::SpServer",
+                          proxy => "http://omp.eao.hawaii.edu/cgi-bin/spsrv.pl",
                          );
 
 my $reply = $sps->fetchProgram( $PROJECT, $PASSWORD );

@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 156;
+use Test::More tests => 160;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -413,4 +413,13 @@ is_deeply([OMP::General->split_string($sstring)],
           \@compare_string,
           "Split string with odd number of double-quotes");
 
+# ROT-13.
+my $in   = 'polka.dot' ;
+my $in13 = 'cbyxn.qbg' ;
+is( OMP::General->rot13( $in )   , $in13 , 'rot13: string with dot' );
+is( OMP::General->rot13( $in13 ) , $in   , 'rot13 reverse: string with dot' );
 
+$in   = 'a123Z';
+$in13 = 'n123M';
+is( OMP::General->rot13( $in )   , $in13 , 'rto13: alphanum' );
+is( OMP::General->rot13( $in13 ) , $in   , 'rto13 reverse: alphanum' );
