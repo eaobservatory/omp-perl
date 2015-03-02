@@ -734,19 +734,8 @@ sub _obfu_rot13 {
 
   my ( $self , $again )  = @_;
 
-  return _rot13( map { $self->$_() } qw[ userid name alias ] );
-}
-
-sub _rot13 {
-
-  my @in = @_;
-
-  for ( @in ) {
-
-    defined $_ or next;
-    tr/A-Za-z/N-ZA-Mn-za-m/;
-  }
-  return @in;
+  require OMP::General;
+  return OMP::General->rot13( map { $self->$_() } qw[ userid name alias ] );
 }
 
 =back
