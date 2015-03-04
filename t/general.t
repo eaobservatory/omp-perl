@@ -416,10 +416,10 @@ is_deeply([OMP::General->split_string($sstring)],
 # ROT-13.
 my $in   = 'polka.dot' ;
 my $in13 = 'cbyxn.qbg' ;
-is( OMP::General->rot13( $in )   , $in13 , 'rot13: string with dot' );
-is( OMP::General->rot13( $in13 ) , $in   , 'rot13 reverse: string with dot' );
+is( ( OMP::General->rot13( $in )   )[0], $in13 , 'rot13: string with dot' );
+is( ( OMP::General->rot13( $in13 ) )[0], $in   , 'rot13 reverse: string with dot' );
 
 $in   = 'a123Z';
 $in13 = 'n123M';
-is( OMP::General->rot13( $in )   , $in13 , 'rto13: alphanum' );
-is( OMP::General->rot13( $in13 ) , $in   , 'rto13 reverse: alphanum' );
+is( ( OMP::General->rot13( $in )   )[0], $in13 , 'rto13: alphanum' );
+is( ( OMP::General->rot13( $in13 ) )[0], $in   , 'rto13 reverse: alphanum' );
