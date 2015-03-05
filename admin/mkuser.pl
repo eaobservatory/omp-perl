@@ -26,10 +26,16 @@
 use warnings;
 use strict;
 
+select \*STDERR ; $| = 1;
+select \*STDOUT ; $| = 1;
+
 use OMP::UserDB;
 use OMP::User;
 use OMP::UserServer;
 use OMP::Error qw/ :try /;
+
+my $SEP_IN  = q/[,;]+/;
+my $SEP_OUT = q/,/;
 
 while (<>) {
 
@@ -50,7 +56,7 @@ while (<>) {
   # and a missing userid
   #  name,email
   # If a single name is supplied this is fine it it ends in a ,
-  my @details  = split(/\s*,\s*/,$line,3);
+  my @details  = split(/\s*$SEP_IN\s*/,$line,3);
 
   for ( @details ) {
 
@@ -116,7 +122,7 @@ sub show_detail {
 
   printf "%s%s\n",
     ( defined $prefix ? $prefix : '' ),
-    join ' , ', $id, $name, (defined $addr ? $addr : () )
+    join qq[ $SEP_OUT ], $id, $name, (defined $addr ? $addr : '<no mail>' )
     ;
 
   return;
@@ -160,9 +166,10 @@ sub check_get_userid {
   if ( $id ne $omp_userid ) {
 
     warn sprintf
-            "#  Given and system generated user IDs do not match ...\n"
+            "#  %s: Given and system generated user IDs do not match ...\n"
             .
             "#     given: %s\n#    system: %s\n",
+            $name ,
             $id,
             $omp_userid;
   }
