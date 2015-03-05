@@ -643,7 +643,9 @@ sub infer_userid {
       @parts = split(/\./, $name);
     }
 
-    return undef if scalar(@parts) < 2;
+    return undef if scalar(@parts) < 1;
+    return _clean_id( $parts[0] ) if scalar @parts == 1;
+
     $forname = $parts[0];
     $surname = $parts[-1];
 
@@ -664,12 +666,17 @@ sub infer_userid {
 
   }
 
-  my $id = $surname . substr($forname,0,1);
+  return _clean_id( $surname . substr($forname,0,1) );
+}
+
+sub _clean_id {
+
+  my ( $id ) = @_;
 
   # Remove characters that are not  letter (eg hyphens)
   $id =~ s/\W//g;
 
-  return uc($id);
+  return uc( $id );
 }
 
 =item <obfuscate>
