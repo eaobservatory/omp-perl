@@ -477,7 +477,9 @@ sub _query_userdb_expensive {
     next unless exists $attr{ $k } && defined $attr{ $k };
 
     $attr{ $k } = uc $attr{ $k } if first { $k eq $_ } @up_case;
-    $check{ $k } = join $attr{ $k }, '%', '%' ;
+    $check{ $k } = $attr{ $k };
+    #  Try a bit relaxed name search.
+    $k eq 'name' and $check{ $k } =~ tr/. /%/;
   }
 
   my $sql =
