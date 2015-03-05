@@ -18,16 +18,16 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 65;
+use Test::More tests => 66;
 use strict;
 require_ok("OMP::User");
 
 
 # Create a simply user object
 my $user = new OMP::User( name => "Frossie Economou",
-			  email => 'frossie@blah.net',
-			  userid => 'FROSSIE',
-			);
+                          email => 'frossie@blah.net',
+                          userid => 'FROSSIE',
+                        );
 
 isa_ok( $user, "OMP::User" );
 is( $user->name, "Frossie Economou", "Check name");
@@ -38,31 +38,32 @@ is( $user->addressee, "frossie", "Check email addressee");
 
 # see if we can guess some user ids
 my %guessed = (
-	       VANDERHUCHTK => "Karel van der Hucht",
-	       JENNESST => " Tim Jenness ",
-	       ECONOMOUF => "Frossie Economou",
-	       MORIARTYSCHIEVENG => "Gerald Moriarty-Schieven",
-	       PERSONA => "A. Person Jr",
-	       PERSONB => "Person Sr, B",
-	       PERSONC => "Person Sr., C",
-	       FULLERG => "Dr. G. Fuller",
-	       STEVENSJ=> "Dr J. A. Stevens",
-	       PERSOND => "Prof. D. Person",
-	       PERSONE => "Mrs E. Person",
-	       PERSONF => "Mr. F Person",
-	       PERSONG => "Mrs. G. Person",
-	       PERSONH => "Person, Ms. H",
-	       PERSONI => "Person, Prof I",
-	       ADAMSONA => "Adamson, Andy",
-	       BARNUMP => 'P. T. Barnum',
-	       VANBEETHOVENL => "Ludwig van Beethoven",
-	       MOZARTW => 'Wolfgang Gottlieb Mozart',
-	       LEGUINU => 'Ursula K Le Guin',
-	       LEPERSONA => 'Le Person, A.',
-	       CDEA    => 'A.B.CDE',
-	       DELOREYK => 'K.Delorey',
-	       DEWITTS => 'Shaun de Witt',
-	      );
+               VANDERHUCHTK => "Karel van der Hucht",
+               JENNESST => " Tim Jenness ",
+               ECONOMOUF => "Frossie Economou",
+               MORIARTYSCHIEVENG => "Gerald Moriarty-Schieven",
+               PERSONA => "A. Person Jr",
+               PERSONB => "Person Sr, B",
+               PERSONC => "Person Sr., C",
+               FULLERG => "Dr. G. Fuller",
+               STEVENSJ=> "Dr J. A. Stevens",
+               PERSOND => "Prof. D. Person",
+               PERSONE => "Mrs E. Person",
+               PERSONF => "Mr. F Person",
+               PERSONG => "Mrs. G. Person",
+               PERSONH => "Person, Ms. H",
+               PERSONI => "Person, Prof I",
+               ADAMSONA => "Adamson, Andy",
+               BARNUMP => 'P. T. Barnum',
+               VANBEETHOVENL => "Ludwig van Beethoven",
+               MOZARTW => 'Wolfgang Gottlieb Mozart',
+               LEGUINU => 'Ursula K Le Guin',
+               LEPERSONA => 'Le Person, A.',
+               CDEA    => 'A.B.CDE',
+               DELOREYK => 'K.Delorey',
+               DEWITTS => 'Shaun de Witt',
+               ROGERSMITH => 'Rogersmith'
+              );
 
 for my $userid (keys %guessed) {
   print "# $guessed{$userid}\n";
@@ -72,21 +73,21 @@ for my $userid (keys %guessed) {
 
 # Now extract User information from emails and HTML
 my @extract = (
-	       {
-		href => '<A href="mailto:timtest@jach.hawaii.edu">Tim Jenness</a>',
-		email => 'Tim Jenness <timtest@jach.hawaii.edu>',
-		output => new OMP::User( userid=> 'JENNESST',
-					 name => 'Tim Jenness',
-					 email => 'timtest@jach.hawaii.edu'),
-	       },
-	       {
-		href => '<A href="mailto:t.jenness@jach">t.jenness@jach</a>',
-		email => 't.jenness@jach',
-		output => new OMP::User( userid=> 'JENNESST',
-					 name => 'T.Jenness',
-					 email => 't.jenness@jach'),
-	       },
-	    );
+               {
+                href => '<A href="mailto:timtest@jach.hawaii.edu">Tim Jenness</a>',
+                email => 'Tim Jenness <timtest@jach.hawaii.edu>',
+                output => new OMP::User( userid=> 'JENNESST',
+                                         name => 'Tim Jenness',
+                                         email => 'timtest@jach.hawaii.edu'),
+               },
+               {
+                href => '<A href="mailto:t.jenness@jach">t.jenness@jach</a>',
+                email => 't.jenness@jach',
+                output => new OMP::User( userid=> 'JENNESST',
+                                         name => 'T.Jenness',
+                                         email => 't.jenness@jach'),
+               },
+            );
 
 for my $test ( @extract ) {
 
@@ -108,11 +109,11 @@ for my $test ( @extract ) {
       # now loop over user information
       # and compare (all lower case)
       for my $method (qw/ userid name email /) {
-	is( lc($user->$method), lc($test->{output}->$method), "Compare $method");
+        is( lc($user->$method), lc($test->{output}->$method), "Compare $method");
       }
     } else {
       for (1..3) {
-	ok(0, "Did not get valid user");
+        ok(0, "Did not get valid user");
       }
     }
   }
