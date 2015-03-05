@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 65;
+use Test::More tests => 66;
 use strict;
 require_ok("OMP::User");
 
@@ -62,6 +62,7 @@ my %guessed = (
                CDEA    => 'A.B.CDE',
                DELOREYK => 'K.Delorey',
                DEWITTS => 'Shaun de Witt',
+               ROGERSMITH => 'Rogersmith'
               );
 
 for my $userid (keys %guessed) {
