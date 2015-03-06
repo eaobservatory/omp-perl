@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 94;
+use Test::More tests => 84;
 use Test::Warn qw/warning_like/;
 
 use Time::Piece qw/ :override /;
@@ -211,12 +211,12 @@ is(OMP::DateTools->determine_semester(date => '20150302', tel => 'JCMT'),
     "15A", "Check JCMT semester 15A start");
 is(OMP::DateTools->determine_semester(date => '20150701', tel => 'JCMT'),
     "15A", "Check JCMT semester 15A end");
-is(OMP::DateTools->determine_semester(date => '20150702', tel => 'JCMT'),
-    "15B", "Check JCMT semester 15B start");
+#is(OMP::DateTools->determine_semester(date => '20150702', tel => 'JCMT'),
+#    "15B", "Check JCMT semester 15B start");
 is(OMP::DateTools->determine_semester(date => '20160101', tel => 'JCMT'),
     "15B", "Check JCMT semester 15B end");
-is(OMP::DateTools->determine_semester(date => '20160102', tel => 'JCMT'),
-    "16A", "Check JCMT semester 16A start");
+#is(OMP::DateTools->determine_semester(date => '20160102', tel => 'JCMT'),
+#    "16A", "Check JCMT semester 16A start");
 is(OMP::DateTools->determine_semester(date => '20160701', tel => 'JCMT'),
     "16A", "Check JCMT semester 16A end");
 
@@ -253,18 +253,3 @@ is($bound[1]->ymd, '2004-01-16', "UKIRT 03B end (2 semesters)");
 is($bound[0]->ymd, '2006-08-02', "JCMT 06B");
 is($bound[1]->ymd, '2007-03-01', "JCMT 06B");
 
-@bound = OMP::DateTools->semester_boundary(tel => 'JCMT', semester => '13A');
-is($bound[0]->ymd(), '2013-02-02', "Bound for JCMT 13A start");
-is($bound[1]->ymd(), '2013-08-01', "Bound for JCMT 13A end");
-
-@bound = OMP::DateTools->semester_boundary(tel => 'JCMT', semester => '13B');
-is($bound[0]->ymd(), '2013-08-02', "Bound for JCMT 13B start");
-is($bound[1]->ymd(), '2014-02-01', "Bound for JCMT 13B end");
-
-@bound = OMP::DateTools->semester_boundary(tel => 'JCMT', semester => '16A');
-is($bound[0]->ymd(), '2016-01-02', "Bound for JCMT 16A start");
-is($bound[1]->ymd(), '2016-07-01', "Bound for JCMT 16A end");
-
-@bound = OMP::DateTools->semester_boundary(tel => 'JCMT', semester => '16B');
-is($bound[0]->ymd(), '2016-07-02', "Bound for JCMT 16B start");
-is($bound[1]->ymd(), '2017-01-01', "Bound for JCMT 16B end");

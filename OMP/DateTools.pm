@@ -412,9 +412,9 @@ where the year is split into two parts (labelled "A" and "B")
 beginning in February and ending in August. The year is prefixed to
 the A/B label as a two digit year. eg 99B or 05A.
 
-Other supported telescopes are JCMT (PPARC until semester 14B, EAO
-from semester 15A onwards) and UKIRT (some special boundaries in some
-semesters due to instrument deliveries).
+Other supported telescopes are JCMT (an alias for PPARC) and UKIRT
+(some special boundaries in some semesters due to instrument
+deliveries).
 
 Note that currently the PPARC calculation is probably incorrect for
 telescopes other than Hawaii. This is because the semester technically
@@ -450,7 +450,7 @@ my %SEM_BOUND = (
                            '08A' => [ 20080129, 20080801 ],
                            '14A' => [ 20140202, 20141001 ],
                            '14B' => [ 20141002, 20150301 ],
-                           '15A' => [ 20150302, 20150701 ],
+                           '15A' => [ 20150302, 20150801 ],
                           },
                 );
 
@@ -496,82 +496,14 @@ sub determine_semester {
     }
   }
 
-  if ($tel eq 'JCMT' and $ymd > 20150201) {
-    # Use EAO semesters.
-    return _determine_eao_semester($date);
-  } elsif ($tel eq 'PPARC' || $tel eq 'JCMT' || $tel eq 'UKIRT') {
-    # This is the standard PPARC calculation
+  # This is the standard PPARC calculation
+  if ($tel eq 'PPARC' || $tel eq 'JCMT' || $tel eq 'UKIRT') {
     return _determine_pparc_semester( $date );
   } else {
     croak "Unrecognized telescope '$tel'. Should not happen.\n";
   }
 
 }
-
-
-# Private helper sub for determine_semester
-# implements the new EAO calculation
-# Takes a Time::Piece object
-# Returns the semester 15B 16A etc
-# Not a class method
-
-sub _determine_eao_semester {
-  my $date = shift;
-
-  my $yyyy = $date->year;
-  my $mmdd = $date->mon . sprintf( "%02d", $date->mday );
-
-  # Calculate previous year
-  my $prev_yyyy = $yyyy - 1;
-
-  # Two digit years
-  my $yy = substr( $yyyy, 2, 2);
-  my $prevyy = substr( $prev_yyyy, 2, 2);
-
-  # Need to put the month in the correct
-  # semester. Note that 201?0101 is in the
-  # previous semester, same for 201?0701
-  if ($mmdd == 101) {
-    return $prevyy . 'B';
-  } elsif ($mmdd < 702) {
-    return $yy . 'A';
-  } else {
-    return $yy . 'B';
-  }
-}
-
-
-# Private helper subroutine for determine_semester_boundary.
-# Takes a semester name as argument.
-
-sub _determine_eao_semester_boundary {
-  my $sem = uc(shift);
-
-  unless ($sem =~ /^(\d\d)([AB])$/) {
-    croak "This semester ($sem) does not look like an EAO style semester designation";
-  }
-
-  my $year = $1;
-  my $ab   = $2;
-
-  # Boundaries without the year prefix
-  # incyr indicates whether the year should be incremented prior to
-  # concatenation
-  my %bound = (
-               A => {
-                     incyr  => [0, 0],
-                     suffix => [qw/0102 0701/],
-                    },
-               B => {
-                     incyr  => [0, 1],
-                     suffix => [qw/0702 0101/],
-                    },
-              );
-
-  my %semdetails = %{$bound{$ab}};
-  return map {'20' . ($year + $semdetails{'incyr'}[$_]) . $semdetails{'suffix'}[$_]} (0, 1);
-}
-
 
 # Private helper sub for determine_semester
 # implements the standard PPARC calculation
@@ -714,19 +646,7 @@ sub semester_boundary {
     }
 
     # telescope specific
-    if ($args{'tel'} eq 'JCMT') {
-      # Determine whether this is a "PPARC" or EAO semester.
-      my $eao = 0;
-      if ($sem =~ /^(\d\d)[AB]$/) {
-        $eao = 1 if $1 >= 15;
-      }
-
-      if ($eao) {
-        push(@dates, [_determine_eao_semester_boundary($sem)]);
-      } else {
-        push(@dates, [_determine_pparc_semester_boundary($sem)]);
-      }
-    } elsif ($args{tel} eq 'PPARC' || $args{tel} eq 'UKIRT') {
+    if ($args{tel} eq 'PPARC' || $args{tel} eq 'JCMT' || $args{tel} eq 'UKIRT') {
       push(@dates, [ _determine_pparc_semester_boundary( $sem ) ] );
     } else {
       croak "Unrecognized telescope '$args{tel}'. Should not happen.\n";
