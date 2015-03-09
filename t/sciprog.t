@@ -217,7 +217,9 @@ $VAR1 = {
                                                             ],
                                                    'seeing' => bless( {
                                                                         'Min' => '0.0',
-                                                                        'Max' => '0.8'
+                                                                        'Max' => '0.8',
+                                                                        'IncMin' => 1,
+                                                                        'IncMax' => 1,
                                                                       }, 'OMP::Range' ),
                                                    'title' => '-',
                                                    'timeest' => '0.24',
@@ -265,7 +267,9 @@ $VAR1 = {
                                                             ],
                                                    'seeing' => bless( {
                                                                         'Min' => '0.0',
-                                                                        'Max' => '0.4'
+                                                                        'Max' => '0.4',
+                                                                        'IncMin' => 1,
+                                                                        'IncMax' => 1,
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'FS101_00h13m_30d J-band',
                                                    'timeest' => '30.0',
@@ -368,7 +372,9 @@ $VAR1 = {
                                                            ],
                                                   'seeing' => bless( {
                                                                        'Min' => '0.0',
-                                                                       'Max' => '0.4'
+                                                                       'Max' => '0.4',
+                                                                       'IncMin' => 1,
+                                                                       'IncMax' => 1,
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Array Tests',
                                                   'timeest' => '329.0',
@@ -415,7 +421,9 @@ $VAR1 = {
                                                            ],
                                                   'seeing' => bless( {
                                                                        'Min' => '0.0',
-                                                                       'Max' => '0.4'
+                                                                       'Max' => '0.4',
+                                                                       'IncMin' => 1,
+                                                                       'IncMax' => 1,
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
@@ -461,7 +469,9 @@ $VAR1 = {
                                                              ],
                                                     'seeing' => bless( {
                                                                          'Min' => '0.0',
-                                                                         'Max' => '0.4'
+                                                                         'Max' => '0.4',
+                                                                         'IncMin' => 1,
+                                                                         'IncMax' => 1,
                                                                        }, 'OMP::Range' ),
                                                     'title' => 'BS1532_4h47m_-16d_G1V',
                                                     'timeest' => '64.0',
@@ -553,7 +563,9 @@ $VAR1 = {
                                                             ],
                                                    'seeing' => bless( {
                                                                         'Min' => '0.0',
-                                                                        'Max' => '0.4'
+                                                                        'Max' => '0.4',
+                                                                        'IncMin' => 1,
+                                                                        'IncMax' => 1,
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'Pol test',
                                                    'timeest' => '131.992004876',
@@ -601,7 +613,9 @@ $VAR1 = {
                                                             ],
                                                    'seeing' => bless( {
                                                                         'Min' => '0.0',
-                                                                        'Max' => '0.4'
+                                                                        'Max' => '0.4',
+                                                                        'IncMin' => 1,
+                                                                        'IncMax' => 1,
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'FS1_00h33m_-12d I-band',
                                                    'timeest' => '240.0',
@@ -648,7 +662,9 @@ $VAR1 = {
                                                            ],
                                                   'seeing' => bless( {
                                                                        'Min' => '0.0',
-                                                                       'Max' => '0.4'
+                                                                       'Max' => '0.4',
+                                                                       'IncMin' => 1,
+                                                                       'IncMax' => 1,
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'Copy',
                                                   'timeest' => '40.501227375',
@@ -694,7 +710,9 @@ $VAR1 = {
                                                              ],
                                                     'seeing' => bless( {
                                                                          'Min' => '0.0',
-                                                                         'Max' => '0.4'
+                                                                         'Max' => '0.4',
+                                                                         'IncMin' => 1,
+                                                                         'IncMax' => 1,
                                                                        }, 'OMP::Range' ),
                                                     'title' => 'BS5_0h6m_58d_G5V',
                                                     'timeest' => '64.0',
@@ -768,7 +786,9 @@ $VAR1 = {
                                                            ],
                                                   'seeing' => bless( {
                                                                        'Min' => '0.0',
-                                                                       'Max' => '0.4'
+                                                                       'Max' => '0.4',
+                                                                       'IncMin' => 1,
+                                                                       'IncMax' => 1,
                                                                      }, 'OMP::Range' ),
                                                   'title' => 'UFTI standards',
                                                   'timeest' => '180.0',
@@ -815,7 +835,9 @@ $VAR1 = {
                                                             ],
                                                    'seeing' => bless( {
                                                                         'Min' => '0.0',
-                                                                        'Max' => '0.4'
+                                                                        'Max' => '0.4',
+                                                                        'IncMin' => 1,
+                                                                        'IncMax' => 1,
                                                                       }, 'OMP::Range' ),
                                                    'title' => 'Copy',
                                                    'timeest' => '40.501227375',

@@ -580,10 +580,8 @@ sub _filename_from_query {
         $maxdate = $timepiece + ONE_DAY - 1; # constant from Time::Seconds
       } else {
         # We're looking at a specific time, so set up an OMP::Range object with Min equal to
-        # this date minus one second and Max equal to this date plus one second. These plus/minus
-        # seconds are necessary because OMP::Range does an exclusive check instead of inclusive.
-        $maxdate = $timepiece + 1;
-        $timepiece = $timepiece - 1;
+        # this date and Max equal to this date.
+        $maxdate = $timepiece;
       }
       $daterange = new OMP::Range( Min => $timepiece, Max => $maxdate );
     }
