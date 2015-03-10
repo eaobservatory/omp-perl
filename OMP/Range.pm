@@ -49,7 +49,7 @@ keys C<Max> and C<Min>.
 
 sub new {
   my $class = shift;
-  my $i = $class->SUPER::new( @_ );
+  my $i = $class->SUPER::new( IncMin => 1, IncMax => 1, @_ );
 
   # Populate it with units
   if (@_) {

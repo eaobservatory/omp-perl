@@ -30,7 +30,7 @@ isa_ok( $r, "OMP::Range" );
 # Easy
 is($r->min, 5,"Check min");
 is($r->max, 20,"Check max");
-is("$r","(5,20)","Check stringification");
+is("$r","[5,20]","Check stringification");
 ok(!$r->isinverted,"Check not inverted range");
 
 # Test an accessor
@@ -59,7 +59,7 @@ for (@outside) {
 # change range
 $r->min( 30 );
 
-is("$r","< 20 and > 30" );
+is("$r","<=20 and >=30" );
 ok($r->isinverted);
 
 # Test arrays
