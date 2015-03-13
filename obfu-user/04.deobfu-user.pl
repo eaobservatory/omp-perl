@@ -27,10 +27,10 @@ $help and pod2usage( '-exitval' => 0 , '-verbose' => 3 );
 
 my $file = $ARGV[0]
     or pod2usage( '-exitval' => 1 , '-verbose'  => 0 ,
-                  '-message' => 
+                  '-message' =>
                     qq[Give a file with ";"-separated (unobfuscated) user id, name, & email address.\n]
                 );
-              
+
 
 my @list = fill_userid( parse_list( $file ) );
 $show and show_list( @list );
@@ -39,7 +39,7 @@ my $update = update_sql_deobfu();
 for my $user ( @list )
 {
   my $userid = $user->[0];
-  my $obfu_id = OMP::General->rot13( $userid );
+  my ( $obfu_id ) = OMP::General->rot13( $userid );
 
   print qq[begin tran\n] ;
   print map { make_sql_print( $_ ) } ( $user , [ $obfu_id ] );
@@ -142,7 +142,7 @@ __END__
 
 =head1 NAME
 
-04.deobfu-user.pl - Generate SQL to unobfuscate user data 
+04.deobfu-user.pl - Generate SQL to unobfuscate user data
 
 =head1 SYNOPSIS
 
