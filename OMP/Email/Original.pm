@@ -50,8 +50,11 @@ sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
 
-  my $object = 'Nothing Stored';
-  return bless \$object , $class;
+  my $list = {  'to'   => undef ,
+                'cc'   => undef ,
+                'bcc'  => undef
+              };
+  return bless $list , $class;
 }
 
 =item B<build>
@@ -79,7 +82,7 @@ Returns a L<MIME::Entity> object, given the following as a hash ...
 
 sub build {
 
-  my $class = shift @_;
+  my $self = shift @_;
   my %args  = @_;
 
   # Check that we have the correct keys
@@ -92,16 +95,16 @@ sub build {
   # by checking for the presence of HTML in the message
   my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
 
-  my %utf8 = ( 'Charset' => 'utf-8' );
   # Setup the message
+  my %utf8 = ( 'Charset' => 'utf-8' );
+  my %recipient = $self->process_addr( map { $_ => $args{ $_ } } qw[ to cc bcc ] );
   my %details = ( %utf8,
                   From    => $args{from}->as_email_hdr(),
                   Subject => $args{subject},
                   Type     => $type,
                   Encoding =>'8bit',
-                  process_address( $args{to} , $args{cc} )
+                  %recipient
                 );
-
 
   throw OMP::Error::MailError("Undefined address [we have nobody to send the email to]")
     unless ($details{To});
@@ -148,33 +151,27 @@ sub build {
   return $mess;
 }
 
-sub process_address {
+sub process_addr {
 
-  my ( $to , $cc ) = @_;
-
-  # Get rid of duplicate users
-  my %users;
-  %{$users{to}} = remove_empty( $to );
-
-  if ( $cc ) {
-
-    %{$users{cc}} =
-      remove_empty( [ grep {! $users{to}{$_->email}} @{$cc} ] ) ;
-  }
+  my ( $self, %list ) = @_;
 
   #  Convert OMP::User objects to suitable mail headers.
-  my %out;
-  for my $hdr (qw/ To Cc /) {
+  my ( %out , %seen );
+  for my $hdr (qw/ To Cc Bcc/) {
 
     my $alt = lc $hdr;
-    if (defined $users{ $alt } ) {
+    my $users = $list{ $alt };
+    my @tmp;
+    for my $user ( @{ $users } ) {
 
-      $out{ $hdr } =
-        join ',', map
-                  { $users{ $alt }{ $_ }->as_email_hdr() }
-                  keys %{ $users{ $alt } }
-                  ;
+      my $addr = $user->email();
+      $addr && length $addr or next;
+      $seen{ $addr }++ and next;
+
+      push @tmp , $user->as_email_hdr();
+      push @{ $self->{ $alt } } , $addr;
     }
+    scalar @tmp and $out{ $hdr } = join ', ' , @tmp;
   }
   return %out;
 }
@@ -183,17 +180,38 @@ sub remove_empty {
 
   my ( $list ) = @_;
 
-  $list // return;
+  $list or return;
+
   return
+    # Generates address & O::User pair.
     map
-    { $_->email()
+    { $_ && $_->email()
       ? ( $_->email() => $_ )
       : ()
     }
     @{ $list } ;
 }
 
+# All of get_* methods rely on process_addr() being called before hand.
+sub get_all_addr {
 
+  my ( $self ) = @_;
+
+  return
+    map
+    { $self->$_() }
+    qw[ get_to_addr get_cc_addr get_bcc_addr ];
+}
+sub get_to_addr      { my ( $self ) = @_; return $self->_get_header_addr( 'to' ); }
+sub get_cc_addr      { my ( $self ) = @_; return $self->_get_header_addr( 'cc' ); }
+sub get_bcc_addr     { my ( $self ) = @_; return $self->_get_header_addr( 'bcc' ); }
+sub _get_header_addr {
+
+  my ( $self , $header ) = @_;
+
+  my $list = $self->{ $header } or return;
+  return @{ $list };
+}
 
 =item B<send>
 
@@ -203,30 +221,26 @@ error.
 
   $email->send( $mime_entity_obj );
 
-Uses C<Net::SMTP> for the mail service so that it can run in a tainted
+Uses L<Net::SMTP> for the mail service so that it can run in a tainted
 environment.
 
 =cut
 
 sub send {
 
-  my $class = shift;
+  my ( $self , $mess ) = @_;
 
-  my ( $mess ) = @_;
+  my @addr = $self->get_all_addr();
+  unless ( scalar @addr ) {
+
+    OMP::General->log_message( q[No addresses found.] , OMP__LOG_WARNING );
+    return;
+  }
 
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
 
   my @sent;
-  my @addr =
-    map
-    { my $e = $_->email();
-      defined $e && length $e ? $e : ()
-    }
-    @{$args{to}}, @{$args{cc}}, @{$args{bcc}};
-
-  return unless scalar @addr;
-
   OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
   eval {
     @sent = $mess->smtpsend( Host => $mailhost,
