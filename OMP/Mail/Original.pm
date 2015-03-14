@@ -32,6 +32,8 @@ use OMP::General;
 use Mail::Internet;
 use MIME::Entity;
 
+our $DEBUG = 0;
+
 =head1 METHODS
 
 =head2 Constructor
@@ -233,26 +235,31 @@ sub send {
   my @addr = $self->get_all_addr();
   unless ( scalar @addr ) {
 
-    OMP::General->log_message( q[No addresses found.] , OMP__LOG_WARNING );
+    _logger( q[No addresses found.] , OMP__LOG_WARNING );
     return;
   }
 
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
+  $mailhost = 'mailhost';
 
   my @sent;
-  OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
+  _logger( "Connecting to mailhost: $mailhost", OMP__LOG_INFO );
+
+  $DEBUG
+    and Carp::carp( qq[Trying to send mail to: ] . join ' ' , @addr  );
+
   eval {
-    @sent = $mess->smtpsend( Host => $mailhost,
-                              To  => [ @addr ],
+    # Net::SMTP is used via Mail::Internet via MIME::Entity.
+    @sent = $mess->smtpsend( Host      => $mailhost ,
+                              MailFrom => q[flex@eaobservatory.org] ,
+                              Debug    => $DEBUG
                             );
   };
   $@ and throw OMP::Error::MailError("$@\n");
 
   scalar @sent
-    and OMP::General->log_message(  "Mail message sent to " . join( ',', @sent ),
-                                    OMP__LOG_INFO
-                                  );
+    and _logger( "Mail message sent to " . join( ', ', @sent ), OMP__LOG_INFO );
 
   log_mail_missed( \@sent, @addr );
 
@@ -274,9 +281,17 @@ sub log_mail_missed {
   }
   return if 0 == scalar keys %miss;
 
-  OMP::General->log_message(  "Mail message NOT sent to " . join( ',', sort keys %miss ),
-                              OMP__LOG_WARNING
-                            );
+  _logger( "Mail message NOT sent to " . join( ',', sort keys %miss ), OMP__LOG_WARNING );
+  return;
+}
+
+sub _logger {
+
+  my ( $mess , $level ) = @_;
+
+  $DEBUG and Carp::carp( $mess );
+
+  OMP::General->log_message( $mess , $level );
   return;
 }
 
