@@ -1,8 +1,8 @@
-package OMP::Email::Original;
+package OMP::Mail::Original;
 
 =head1 NAME
 
-OMP::Email::Original - Email functionality taken from OMP::BaseDB.
+OMP::Mail::Original - Email functionality taken from OMP::BaseDB.
 
 =head1 SYNOPSIS
 
@@ -40,9 +40,9 @@ use MIME::Entity;
 
 =item B<new>
 
-Construct L<OMP::Email::Original> object; accepts no arguments.
+Construct L<OMP::Mail::Original> object; accepts no arguments.
 
-  $email = OMP::Email::Original->new();
+  $email = OMP::Mail::Original->new();
 
 =cut
 
