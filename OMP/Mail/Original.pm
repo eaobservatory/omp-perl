@@ -22,6 +22,8 @@ use strict;
 use warnings;
 use Carp ();
 
+our $VERSION = '0.05';
+
 # OMP Dependencies
 use OMP::Error;
 use OMP::Constants qw/ :logging /;
@@ -33,6 +35,7 @@ use Mail::Internet;
 use MIME::Entity;
 
 our $DEBUG = 0;
+our $DEBUG_NetSMTP = 0;
 
 =head1 METHODS
 
@@ -253,7 +256,7 @@ sub send {
     # Net::SMTP is used via Mail::Internet via MIME::Entity.
     @sent = $mess->smtpsend( Host      => $mailhost ,
                               MailFrom => q[flex@eaobservatory.org] ,
-                              Debug    => $DEBUG
+                              Debug    => $DEBUG_NetSMTP
                             );
   };
   $@ and throw OMP::Error::MailError("$@\n");
