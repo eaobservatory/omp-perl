@@ -5,35 +5,73 @@ use 5.016;
 select \*STDERR ; $| = 1;
 select \*STDOUT ; $| = 1;
 
-our $VERSION = '0.00';
+our $VERSION = '0.05';
 
-#use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
-#use Pod::Usage;
-use Data::Dumper qw[ Dump ];
+use Getopt::Long   qw[ :config gnu_compat no_ignore_case require_order ];
+use Pod::Usage;
+use Data::Dumper   qw[ Dumper ];
+use File::Basename qw[ fileparse ];
 
 use JAC::Setup   qw[ omp ];
-
 use OMP::User ;
 use OMP::Mail::Original;
-local $OMP::Mail::Original::DEBUG = 1;
+
+my $MY_NAME = ( fileparse( $0 ) )[0];
+
+my ( @cc ,
+      $debug ,
+      $debug_mail_orig , $debug_net_smtp
+    );
+GetOptions( 'h|help|man' => \( my $help ) ,
+
+            'cc=s@' => \@cc ,
+
+            'd|debug!'            => \$debug ,
+            'DM|debug-mail-orig!' => \$debug_mail_orig ,
+            'DS|debug-smtp!'      => \$debug_net_smtp ,
+          )
+  or pod2usage( '-exitval'  => 2 , '-verbose'  => 1 ) ;
+
+$help and pod2usage( '-exitval' => 0 , '-verbose' => 3 );
+
+
+my $to_addr = $ARGV[0]
+  or die qq[Give an email address to send mail to.\n];
 
 my $flex = q[flex@eaobservatory.org];
+my $from_user = make_user( $flex )->[0];
+$from_user->name( $MY_NAME );
 
-my $some  = OMP::User->new( 'name'  => 'test-internal'
-                          , 'email' => 'a.agarwal@eaobservatory.org'
-                          );
+my $to_user  = make_user( $to_addr );
+my $cc_users = make_user( @cc );
 
+local $OMP::Mail::Original::DEBUG         = $debug_mail_orig;
+local $OMP::Mail::Original::DEBUG_NetSMTP = $debug_net_smtp;
 my $mailer = OMP::Mail::Original->new();
-my $mess = $mailer->build(  'to'   => [ $some ]
-                          , 'from' => $some
-                          , 'subject' => 'test mail, ' . lc( scalar localtime() )
-                          , 'message' => qq[testing separate mailing code...\n]
-                          , 'headers' => { 'Sender' => $flex }
+my $mess = $mailer->build(  'to'      => $to_user ,
+                            'from'    => $from_user ,
+                            'headers' => { 'Sender' => $flex } ,
+                            ( $cc_users ? ( 'cc' => $cc_users ) : () ) ,
+                            'subject' => 'test mail, ' . lc( scalar localtime()) ,
+                            'message' => qq[testing separate mailing code...\n]
                           );
 
-warn Dumper( $mess );
-# Send mail.
-warn Dumper( $mailer->send( $mess ) );
+$debug and warn Dumper( $mess );
+
+my @sent = $mailer->send( $mess );
+$debug && scalar @sent and warn Dumper( @sent );
+
+warn qq[  ... finished ($MY_NAME)\n];
+exit;
+
+
+sub make_user {
+
+  my ( @addr ) = @_ or return;
+
+  return [ map { OMP::User->new( 'email' => $_ ) } @addr ];
+}
+
 
 __END__
 
@@ -41,23 +79,64 @@ __END__
 
 =head1 NAME
 
+test-mail-original.pl - Driver to test original mail-only functionality.
 
 =head1 SYNOPSIS
 
+Send an email to C<someone@example.com> ...
+
+  test-mail-original.pl  someone@example.com
+
+
+See progress ...
+
+  test-mail-original.pl -debug-mail-orig  someone@example.com
 
 =head1  DESCRIPTION
 
+It is a driver to test original mail-only functionality contained in
+L<OMP::Mail::Original>; database is not
+touched.
 
+An email message is build with L<MIME::Entity>. It is then send via its
+c<smtpsend> method, which uses L<Mail::Internet> module which uses L<Net::SMTP>
+to actually send out the mail via SMTP connection.
 
 =head2  OPTIONS
 
 =over 2
 
-=item *
+=item B<-help>
 
+Show this message
 
-=item *
+=item B<-cc> <mail@address>
 
+Specify recipeint email addresses to "carbon copy" to. Repeat the option for
+multiple addresses.
+
+=item B<-debug> | B<-d>
+
+Dumps L<MIME::Entity> object and any return value after sending the email.
+
+=item B<-debug-mail-orig> | B<-DM>
+
+Turn on debug option of L<OMP::Mail::Original>. Currently it behaves as progress
+indicator.
+
+=item B<-debug-smtp> | B<-DS>
+
+Turn on debug option of L<Net::SMTP>.
+
+=back
+
+=head1 SEE ALSO
+
+=over 2
+
+=item * L<OMP::BaseDB>, L<OMP::Mail::Original>
+
+=item * L<MIME::Entity>, L<Mail::Internet>, L<Net::SMTP>
 
 =back
 
