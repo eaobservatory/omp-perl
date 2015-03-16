@@ -7,11 +7,11 @@ select \*STDOUT ; $| = 1;
 
 our $VERSION = '0.00';
 
-#use Getopt::Long    qw[ :config gnu_compat no_ignore_case require_order ];
+#use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
 #use Pod::Usage;
 use Data::Dumper qw[ Dump ];
 
-use JAC::Setup      qw[ omp ];
+use JAC::Setup   qw[ omp ];
 
 use OMP::User ;
 use OMP::Mail::Original;
@@ -32,11 +32,8 @@ my $mess = $mailer->build(  'to'   => [ $some ]
                           );
 
 warn Dumper( $mess );
-
 # Send mail.
-warn Dumper(
-              $mailer->send( $mess )
-            );
+warn Dumper( $mailer->send( $mess ) );
 
 __END__
 
