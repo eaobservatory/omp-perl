@@ -55,8 +55,17 @@ sub accept_feedback {
   my $from = $audit->get("from");
   my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
   my $subject = $audit->get("subject");
-  my $text = join('',@{ $audit->body });
+  my $text;
+
+  # Get body of email.
+  if ( $audit->is_mime) {
+      $text = extract_body( $audit );
+  } else {
+      $text = join('',@{ $audit->body });
+  }
+
   my $project = $audit->get("projectid");
+
   chomp($project); # header includes newline
 
   # Try to guess the author
@@ -120,6 +129,38 @@ sub accept_feedback {
 
 }
 
+# Return the body of an email, and a notation about any removed attachments.
+sub extract_body {
+    my $entity = shift;
+    my @bodytexts = ();
+
+    my $num_parts = $entity->parts;
+
+    # If more than one part, call this routine again.
+    if ($num_parts > 0) {
+        foreach (0..($num_parts-1)) {
+            my $part = $entity->parts($_);
+            push @bodytexts, extract_body( $part);
+        }
+    } else {
+
+        # If in final part, return the body if its a text type.
+        my $mime_type = $entity->mime_type;
+
+        if ("$mime_type" =~ 'text') {
+            my $bh = $entity->bodyhandle;
+            my $text = $bh->as_string;
+            push @bodytexts, $text;
+
+        } else {
+            push @bodytexts, "One attachment of type [$mime_type] was removed.";
+        }
+    }
+
+    return join("\n\n", @bodytexts);
+}
+
+
 # Determine the project ID from the subject and
 # store it in the mail header
 # Return 1 if subject found, else false
@@ -154,7 +195,8 @@ mail2feedback.pl - Forward mail message to OMP feedback system
 
 This program reads in mail messages from standard input, determines
 the project ID from the subject line and forwards the message to
-the OMP feedback system.
+the OMP feedback system. For MIME mail it attempts to only forward
+parts in a text MIME-type.
 
 =head1 AUTHOR
 
