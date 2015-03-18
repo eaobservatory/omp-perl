@@ -8,17 +8,17 @@ BEGIN {
 }
 
 use strict;
-use lib "/jac_sw/omp/msbserver";
 use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
 use Pod::Usage;
 use Mail::Audit;
 
+use lib "/jac_sw/omp/msbserver";
 use OMP::FBServer;
 use OMP::General;
 use OMP::User;
 use OMP::UserServer;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 my $DRY_RUN;
 GetOptions( 'help|man'  => \( my $help ),
