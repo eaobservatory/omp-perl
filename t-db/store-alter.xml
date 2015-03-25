@@ -8,7 +8,7 @@
   <country>UK</country>
   <ot_version>20120531</ot_version>
   <pi>Tim Jenness</pi>
-  <projectID>TJ04</projectID>
+  <projectID>UNITTEST01</projectID>
   <telescope>jcmt</telescope>
   <title>OMP Database Test Program</title>
   <SpMSB remaining="1" type="og" subtype="msb">

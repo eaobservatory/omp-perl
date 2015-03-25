@@ -36,7 +36,7 @@ my $db = OMP::DBbackend->new();
 delete $cf->{'omp'}->{'sciprog_cachedir'};
 delete $cf->{'omp-dev'}->{'sciprog_cachedir'};
 
-my $project = 'TJ04';
+my $project = 'UNITTEST01';
 
 die 'Not using test database' unless {$db->loginhash()}->{'database'}
                                   eq 'devomp';

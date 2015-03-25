@@ -45,6 +45,7 @@ our $CGS4TAB = 'ukirt..CGS4 C';
 our $UISTTAB = 'ukirt..UIST I';
 our $IRCAMTAB = 'ukirt..IRCAM3 I';
 our $WFCAMTAB = 'ukirt..WFCAM W';
+our $MICHELLETAB = 'ukirt..MICHELLE M';
 our $JCMTTAB = 'jcmt..COMMON J';
 our $ACSISTAB = 'jcmt..ACSIS A';
 our $AFILESTAB = 'jcmt..FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
@@ -94,6 +95,7 @@ our $S2FILESTAB = 'jcmt..FILES F';
         \$UISTTAB,
         \$IRCAMTAB,
         \$WFCAMTAB,
+        \$MICHELLETAB,
       ];
 
     my $keys = join '|' , keys %db;
@@ -116,7 +118,7 @@ our $S2FILESTAB = 'jcmt..FILES F';
 our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    UFTI => [ $UKIRTTAB, $UFTITAB ],
                    UIST => [ $UKIRTTAB, $UISTTAB ],
-                   MICHELLE => [ $UKIRTTAB ],
+                   MICHELLE => [ $UKIRTTAB, $MICHELLETAB ],
                    WFCAM => [ $UKIRTTAB, $WFCAMTAB ],
                    IRCAM => [ $UKIRTTAB, $IRCAMTAB ],
                    SCUBA => [ $SCUTAB ],
@@ -133,6 +135,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                                   $UISTTAB => '(U.idkey = I.idkey)',
                                   $IRCAMTAB => '(U.idkey = I.idkey)',
                                   $WFCAMTAB => '(U.idkey = W.idkey)',
+                                  $MICHELLETAB => '(U.idkey = M.idkey)'
                                 },
                    $JCMTTAB => { $ACSISTAB => '(J.obsid = A.obsid)',
                                  $AFILESTAB => '(A.obsid_subsysnr = F.obsid_subsysnr)',
