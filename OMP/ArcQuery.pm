@@ -127,6 +127,8 @@ our %insttable = ( CGS4 => [ $UKIRTTAB, $CGS4TAB ],
                    #SCUBA2 => [ $JCMTTAB, $SCUBA2TAB, $S2FILESTAB ],
                    'SCUBA-2' => [ $JCMTTAB, $SCUBA2TAB ],
                  );
+# ukirt..COMMON.INSTRUME column has values in both cases.
+$insttable{Michelle} = $insttable{MICHELLE};
 
 our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                               },
