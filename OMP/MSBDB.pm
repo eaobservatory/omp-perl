@@ -3189,6 +3189,13 @@ sub _run_query {
           if $priority_tweaked;
     } elsif ($sortby eq 'schedpri') {
       @observable = sort { $a->{schedpri} <=> $b->{schedpri} } @observable;
+    } elsif ($sortby eq 'completion') {
+      # Sorting priority for EAO pilot science semester: consider
+      # completion (least complete first) and user priority only.
+      @observable = sort {
+        $a->{'completion'} <=> $b->{'completion'}
+        || $a->{'userpriority'} <=> $b->{'userpriority'}
+      } @observable;
     } else {
       throw OMP::Error::FatalError("Unknown sorting scheme: $sortby");
     }
