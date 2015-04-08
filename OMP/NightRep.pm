@@ -1015,7 +1015,7 @@ Project Time Summary
   my $grp = $self->obs;
   $grp->locate_timegaps( OMP::Config->getData("timegap") );
   my $tmp = $grp->summary('72col');
-  $str   .= defined $tmp ? $tmp || '';
+  $str   .= defined $tmp ? $tmp : '' ;
 
   if (wantarray) {
     return split("\n", $str);
