@@ -107,6 +107,15 @@ GetOptions( "help"    => \$help,
           )
           or pod2usage(1) ;
 
+( defined $use_cache || $dump )
+  and die q[Option(s) -- ],
+          join( q[, ] ,
+                ( defined $use_cache ? q["-cache" & "-no-cache"] : () ) ,
+                ( $dump ? q["-dump"] : () )
+              ),
+          qq[ -- is(are) not implemented yet.\n];
+
+
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
