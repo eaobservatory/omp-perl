@@ -97,14 +97,15 @@ $DEBUG = 0;
 
 # Options
 my ($help, $man, $version, $dump, $tel, $ut, $use_cache );
-my $status = GetOptions("help" => \$help,
-                        "man" => \$man,
-                        "version" => \$version,
-                        'dump' => \$dump,
-			"ut=s" => \$ut,
-			"tel=s" => \$tel,
-                        'cache!' => \$use_cache
-                       );
+GetOptions("help" => \$help,
+            "man" => \$man,
+            "version" => \$version,
+            'dump' => \$dump,
+            "ut=s" => \$ut,
+            "tel=s" => \$tel,
+            'cache!' => \$use_cache
+          )
+          or pod2usage(1) ;
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
