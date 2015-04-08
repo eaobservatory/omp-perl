@@ -28,6 +28,19 @@ The following options are supported:
 
 =over 4
 
+=item B<-cache>
+
+=item B<-no-cache>
+
+I<NOT IMPLEMENTED YET.>
+Ignore any observations cache files related to given UT dates.
+Default is to use cache files.
+
+=item B<-dump>
+
+I<NOT IMPLEMENTED YET.>
+Print mail to standard out instead of actually sending it.
+
 =item B<-ut>
 
 Override the UT date used for the report. By default the current date
@@ -63,7 +76,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use Getopt::Long;
+use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
 use Pod::Usage;
 
 use Tk;
@@ -83,12 +96,14 @@ use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
 # Options
-my ($help, $man, $version, $tel, $ut);
+my ($help, $man, $version, $dump, $tel, $ut, $use_cache );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
+                        'dump' => \$dump,
 			"ut=s" => \$ut,
 			"tel=s" => \$tel,
+                        'cache!' => \$use_cache
                        );
 
 pod2usage(1) if $help;
@@ -555,6 +570,9 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
+
+Copyright (C) 2105 East Asian Observatory.
+
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it under
