@@ -28,14 +28,10 @@ use Carp;
 # OMP Dependencies
 use OMP::Error;
 use OMP::Constants qw/ :fb :logging /;
-use OMP::Display;
-use OMP::DateTools;
 use OMP::NetTools;
 use OMP::General;
 use OMP::FeedbackDB;
-
-use Mail::Internet;
-use MIME::Entity;
+use OMP::Mail::Original;
 
 =head1 METHODS
 
@@ -924,135 +920,9 @@ sub _mail_information {
   my $self = shift;
   my %args = @_;
 
-  # Check that we have the correct keys
-  for my $key (qw/ to from subject message /) {
-    throw OMP::Error::BadArgs("_mail_information: Key $key is required")
-      unless exists $args{$key};
-  }
-
-  # Decide if we'll have attachments or not and set the MIME type accordingly
-  # by checking for the presence of HTML in the message
-  my $type = ($args{message} =~ m!(</|<br>|<p>)!im ? "multipart/alternative" : "text/plain");
-
-  my %utf8 = ( 'Charset' => 'utf-8' );
-
-  # Setup the message
-  my %details = (From=>$args{from}->as_email_hdr,
-                 Subject=>$args{subject},
-                 Type=>$type,
-                 Encoding=>'8bit',
-                 %utf8,
-                 );
-
-  # Get rid of duplicate users
-  my %users;
-  %{$users{to}} = map {$_->email, $_} grep {$_->email} @{$args{to}};
-
-  if ($args{cc}) {
-    %{$users{cc}} = map {$_->email, $_} grep {$_->email}
-      grep {! $users{to}{$_->email}} @{$args{cc}};
-  }
-
-  # Form To and Cc address lists
-  for my $hdr (qw/ To Cc /) {
-    # If $users{$hdr} is defined it may just be an empty list...
-    if (defined $users{lc($hdr)} && %{$users{lc($hdr)}}) {
-      $details{$hdr} = join(',', map {$users{lc($hdr)}{$_}->as_email_hdr} keys %{$users{lc($hdr)}});
-    }
-  }
-
-  throw OMP::Error::MailError("Undefined address [we have nobody to send the email to]")
-    unless ($details{To});
-
-  # No HTML in message so we won't be attaching anything.  Just include the
-  # message content
-  ($type eq "text/plain") and $details{Data} = $args{message};
-
-  # Create the message
-  my $top = MIME::Entity->build(%details);
-
-  # Create a Date header since the mail server might not create one
-  $args{headers}->{date} = OMP::DateTools->mail_date;
-
-  # Add any additional headers
-  for my $hdr (keys %{ $args{headers} }) {
-    $top->add($hdr => $args{headers}->{$hdr});
-  }
-
-  # Convert the HTML to plain text and attach it to the message if we're
-  # sending a multipart/alternative message
-  if ($type eq "multipart/alternative" ) {
-
-    # Convert the HTML to text and store it
-    my $text = $args{message};
-    my $plaintext = OMP::Display->html2plain($text);
-
-    # Attach the plain text message
-    $top->attach(Type=>"text/plain",
-                 %utf8,
-                 Data=>$plaintext,
-                 )
-      or throw OMP::Error::MailError("Error attaching plain text message\n");
-
-    # Now attach the original message (it should come up as the default message
-    # in the mail reader)
-    $top->attach(Type=>"text/html",
-                 %utf8,
-                 Data=>$args{message})
-      or throw OMP::Error::MailError("Error attaching HTML message\n");
-  }
-
-  # Send message (via Net::SMTP)
-  my $mailhost = OMP::Config->getData("mailhost");
-
-  my @sent;
-  my @addr =
-    map
-    { my $e = $_->email();
-      defined $e && length $e ? $e : ()
-    }
-    @{$args{to}}, @{$args{cc}}, @{$args{bcc}};
-
-  return unless scalar @addr;
-
-  OMP::General->log_message("Connecting to mailhost: $mailhost", OMP__LOG_INFO);
-  eval {
-    @sent =
-      $top->smtpsend( Host => $mailhost,
-                      To   => [ @addr ],
-                    );
-  };
-  ($@) and throw OMP::Error::MailError("$@\n");
-
-  scalar @sent
-    and OMP::General->log_message(  "Mail message sent to " . join( ',', @sent ),
-                                    OMP__LOG_INFO
-                                  );
-
-  _log_mail_missed( \@sent, @addr );
-
-  return;
-}
-
-sub _log_mail_missed {
-
-  my ( $sent, @all ) = @_;
-
-  return unless scalar @all;
-
-  my %miss;
-  @miss{ @all } = ();
-
-  if ( $sent && ref $sent ) {
-
-    delete $miss{ $_ } for @{ $sent };
-  }
-  return if 0 == scalar keys %miss;
-
-  OMP::General->log_message(  "Mail message NOT sent to " . join( ',', sort keys %miss ),
-                              OMP__LOG_WARNING
-                            );
-  return;
+  my $mailer = OMP::Mail::Original->new();
+  my $mess   = $mailer->build( %args );
+  return $mailer->send( $mess );
 }
 
 =item B<DESTROY>
