@@ -41,13 +41,13 @@ Default is to use cache files.
 I<NOT IMPLEMENTED YET.>
 Print mail to standard out instead of actually sending it.
 
-=item B<-ut>
+=item B<-ut> YYYYMMDD | YYYY-MM-DD
 
 Override the UT date used for the report. By default the current date
 is used. The UT can be specified in either YYYY-MM-DD or YYYYMMDD format.
 If the supplied date is not parseable, the current date will be used.
 
-=item B<-tel>
+=item B<-tel> jcmt | ukirt
 
 Specify the telescope to use for the report. If the telescope can
 be determined from the domain name it will be used automatically.
