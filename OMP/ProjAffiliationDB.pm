@@ -8,13 +8,26 @@ OMP::ProjAffiliationDB - Manipulate the project affiliation table
 
 use strict;
 
-use base qw/OMP::BaseDB/;
+use base qw/OMP::BaseDB Exporter/;
+
+our @EXPORT_OK = qw/%AFFILIATION_NAMES @AFFILIATIONS/;
 
 # Table in which to store affiliation information.
 our $AFFILIATIONTABLE = 'ompprojaffiliation';
 
+# Printable names for affiliation codes.
+our %AFFILIATION_NAMES = (
+    ca => 'Canada',
+    cn => 'China',
+    ea => 'EAO',
+    kr => 'Korea',
+    jp => 'Japan',
+    tw => 'Taiwan',
+    uk => 'UK',
+);
+
 # List of recognised affiliations.
-our @AFFILIATIONS = qw/ca cn ea kr jp tw uk/;
+our @AFFILIATIONS = keys %AFFILIATION_NAMES;
 
 =head1 METHODS
 
