@@ -3196,6 +3196,13 @@ sub _run_query {
         $a->{'completion'} <=> $b->{'completion'}
         || $a->{'userpriority'} <=> $b->{'userpriority'}
       } @observable;
+    } elsif ($sortby eq 'time_observed') {
+      # Another possible scheme for EAO pilot science semester: consider
+      # time observed (least time first) and user priority only.
+      @observable = sort {
+        $a->{'time_observed'} <=> $b->{'time_observed'}
+        || $a->{'userpriority'} <=> $b->{'userpriority'}
+      } @observable;
     } else {
       throw OMP::Error::FatalError("Unknown sorting scheme: $sortby");
     }
