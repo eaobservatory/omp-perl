@@ -6,7 +6,13 @@ affiliationstats - Generate observing statistics by affiliation
 
 =head1 SYNOPSIS
 
-  client/affiliationstats.pl TELESCOPE SEMESTER
+  client/affiliationstats.pl TELESCOPE SEMESTER [--store]
+
+=head1 DESCRIPTION
+
+Displays observing statistics by affiliation for a given semester.  If the
+--store argument is given, then the hours observed are written into the
+OMP affiliation allocation table.
 
 =cut
 
@@ -17,8 +23,9 @@ use OMP::ProjDB;
 use OMP::ProjQuery;
 use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
 
-my $telescope = $ARGV[0] or die 'Telescope not specified';
-my $semester = $ARGV[1] or die 'Semester not specified';
+my $telescope = uc($ARGV[0]) or die 'Telescope not specified';
+my $semester = uc($ARGV[1]) or die 'Semester not specified';
+my $store_to_database = (exists $ARGV[2]) && (lc($ARGV[2]) eq '--store');
 
 my $project_db = new OMP::ProjDB(
     DB => OMP::DBServer->dbConnection());
@@ -79,6 +86,17 @@ foreach my $affiliation (sort {$affiliations{$b} <=> $affiliations{$a}}
         keys %affiliations) {
     printf "%-10s %8.2f\n", $AFFILIATION_NAMES{$affiliation},
         $affiliations{$affiliation};
+}
+
+if ($store_to_database) {
+    print "\nStoring affilation hours observed to database...";
+
+    while (my ($affiliation, $observed) = each %affiliations) {
+        $affiliation_db->set_affiliation_observed(
+            $semester, $affiliation, $observed);
+    }
+
+    print " [DONE]\n";
 }
 
 __END__
