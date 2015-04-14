@@ -43,6 +43,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Password;
 use OMP::ProjDB;
+use OMP::ProjAffiliationDB;
 use OMP::Constants qw/ :done :fb :logging /;
 use OMP::SiteQuality;
 use OMP::Range;
@@ -3198,9 +3199,36 @@ sub _run_query {
       } @observable;
     } elsif ($sortby eq 'time_observed') {
       # Another possible scheme for EAO pilot science semester: consider
+      # allocation usage by affiliation,
       # time observed (least time first) and user priority only.
+      my $affiliation_db = new OMP::ProjAffiliationDB(DB => $self->db());
+      my $proj_affiliation = $affiliation_db->get_all_affiliations();
+      my $sem_affiliation = $affiliation_db->get_all_affiliation_allocations();
+
+      # Compute affiliation allocation usage for each MSB.  This is:
+      # usage = sum_affiliation fraction_affiliation * completion_affiliation
+      # Where:
+      # completion_affiliation = observed_affiliation / allocation_affiliation
+      foreach my $msb (@observable) {
+        my $usage = 0.0;
+        my $affiliations = $proj_affiliation->{$msb->{'projectid'}};
+        unless (scalar keys %$affiliations) {
+            $usage = 1.0;
+        }
+        else {
+            my $semester = $sem_affiliation->{$msb->{'semester'}};
+            while (my ($affiliation, $fraction) = each %$affiliations) {
+                my $allocation = $semester->{$affiliation};
+                $usage += 1.0 * $fraction *
+                    $allocation->{'observed'} / $allocation->{'allocation'};
+            }
+        }
+        $msb->{'affiliation_usage'} = $usage;
+      }
+
       @observable = sort {
-        $a->{'time_observed'} <=> $b->{'time_observed'}
+        $a->{'affiliation_usage'} <=> $b->{'affiliation_usage'}
+        || $a->{'time_observed'} <=> $b->{'time_observed'}
         || $a->{'userpriority'} <=> $b->{'userpriority'}
       } @observable;
     } else {
