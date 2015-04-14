@@ -33,6 +33,37 @@ our @AFFILIATIONS = keys %AFFILIATION_NAMES;
 
 =over 4
 
+=item get_all_affiliations
+
+Returns a hash of project identifiers to affiliation hashes
+similar to those returned by get_project_affiliations.
+
+=cut
+
+sub get_all_affiliations {
+    my $self = shift;
+
+    my $results = $self->_db_retrieve_data_ashash(
+        'SELECT * FROM ' . $AFFILIATIONTABLE);
+
+    my %projects;
+
+    foreach my $row (@$results) {
+        my $project;
+        if (exists $projects{$row->{'projectid'}}) {
+            $project = $projects{$row->{'projectid'}};
+        }
+        else {
+            $project = {};
+            $projects{$row->{'projectid'}} = $project;
+        }
+
+        $project->{$row->{'affiliation'}} = $row->{'fraction'};
+    }
+
+    return \%projects;
+}
+
 =item get_project_affiliations($project)
 
 Returns a reference to a hash of affiliation fractions by
