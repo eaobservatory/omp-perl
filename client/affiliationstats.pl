@@ -30,6 +30,8 @@ my @projects;
 my %affiliations;
 my $total = 0.0;
 
+print "\nProjects without affiliation:\n\n";
+
 foreach my $project ($project_db->listProjects(
         new OMP::ProjQuery(XML => '<ProjQuery><telescope>' . $telescope .
             '</telescope><semester>' . $semester .
@@ -44,7 +46,10 @@ foreach my $project ($project_db->listProjects(
     my $project_affiliations =
         $affiliation_db->get_project_affiliations($project_id);
 
-    next unless %$project_affiliations;
+    unless (scalar %$project_affiliations) {
+        printf "%-10s %8.2f\n", $project_id, $observed;
+        next;
+    }
 
     $total += $observed;
 
@@ -56,7 +61,7 @@ foreach my $project ($project_db->listProjects(
     }
 }
 
-printf "Total time observed: %8.2f hours\n", $total;
+printf "\nTotal time observed: %8.2f hours\n", $total;
 
 print "\nProject observing time:\n\n";
 
