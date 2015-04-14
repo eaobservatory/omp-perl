@@ -486,7 +486,8 @@ sub sql {
 			    . "/100) AS newpriority,
                M2.priority AS userpriority,
                ((P2.allocated-(P2.remaining-P2.pending))/P2.allocated * 100.0) AS completion,
-               (P2.allocated + P2.pending - P2.remaining) AS time_observed
+               (P2.allocated + P2.pending - P2.remaining) AS time_observed,
+               P2.semester
                 FROM $msbtable M2, $tempcount T, $projtable P2, 
                        $projqueuetable Q2
                  WHERE (M2.msbid = T.msbid
