@@ -68,7 +68,8 @@ foreach my $project ($project_db->listProjects(
     }
 }
 
-printf "\nTotal time observed: %8.2f hours\n", $total;
+printf "\nTotal time observed: %8.2f hours (projects with affiliations only)\n",
+    $total;
 
 print "\nProject observing time:\n\n";
 
