@@ -33,6 +33,8 @@ my $project_db = new OMP::ProjDB(
 my $affiliation_db = new OMP::ProjAffiliationDB(
     DB => OMP::DBServer->dbConnection());
 
+my $allocations = $affiliation_db->get_all_affiliation_allocations();
+
 my @projects;
 my %affiliations;
 my $total = 0.0;
@@ -83,10 +85,20 @@ foreach my $info (sort {$b->[1] <=> $a->[1]} @projects) {
 
 print "\nAffiliation summary:\n\n";
 
-foreach my $affiliation (sort {$affiliations{$b} <=> $affiliations{$a}}
+my %percentages = ();
+while (my ($affiliation, $observed) = each %affiliations) {
+    $percentages{$affiliation} = 100.0 * $observed
+        / $allocations->{$semester}->{$affiliation}->{'allocation'};
+}
+
+foreach my $affiliation (sort {$percentages{$b} <=> $percentages{$a}}
         keys %affiliations) {
-    printf "%-10s %8.2f\n", $AFFILIATION_NAMES{$affiliation},
-        $affiliations{$affiliation};
+    my $allocation = $allocations->{$semester}->{$affiliation}->{'allocation'};
+    printf "%-10s %8.2f / %8.2f (%5.1f %%)\n",
+        $AFFILIATION_NAMES{$affiliation},
+        $affiliations{$affiliation},
+        $allocation,
+        $percentages{$affiliation};
 }
 
 if ($store_to_database) {
