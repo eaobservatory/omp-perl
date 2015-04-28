@@ -70,6 +70,8 @@ sub query_queue_status {
     my %projmsb;
     my %projinst;
 
+    my %msb;
+
     # Run a simulated set of queries to determine which projects
     # have MSBs available
     for (my $refdate = $utmin; $refdate <= $utmax; $refdate += ONE_HOUR) {
@@ -105,16 +107,21 @@ sub query_queue_status {
 
             # store the MSB id so that we know how many MSBs were
             # observable in the period
-            $projmsb{$p}{$msb->checksum()} ++;
+            my $checksum = $msb->checksum();
+            $projmsb{$p}{$checksum} ++;
 
             # Store the instrument information
             my $inst = $msb->instrument();
             for my $i (split(/\//,$inst)) {
                 $projinst{$p}{$i} ++;
             }
+
+            $msb{$p} = {} unless exists $msb{$p};
+            $msb{$p}->{$checksum} = $msb unless exists $msb{$p}->{$checksum};
         }
     }
 
+    return (\%msb, $utmin, $utmax) if $opt{'return_proj_msb'};
     return (\%projq, \%projmsb, \%projinst, $utmin->hour(), $utmax->hour());
 }
 
