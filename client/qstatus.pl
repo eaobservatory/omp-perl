@@ -68,14 +68,10 @@ use FindBin;
 use lib "$FindBin::RealBin/..";
 
 # OMP classes
-use OMP::Config;
-use OMP::DateTools;
-use OMP::DateSun;
 use OMP::General;
 use OMP::Password;
 use OMP::DBbackend;
-use OMP::MSBDB;
-use OMP::MSBQuery;
+use OMP::QStatus qw/query_queue_status/;
 use Time::Piece qw/ :override /;
 
 use vars qw/ $DEBUG /;
@@ -132,91 +128,29 @@ unless (defined $telescope and defined $password) {
 
 OMP::Password->verify_staff_password( $password );
 
-# Form template query XML
-
-my $qxml = "<MSBQuery><telescope>$telescope</telescope>\n".
-        ( defined $country ? "<country>$country</country>\n" : "\n" ).
-        ( defined $semester ? "<semester>$semester</semester>\n" : "\n" ).
-           "<date>REFDATE</date>\n".
-             "</MSBQuery>\n";
-
-
-# Create MSB database instance
-my $backend = new OMP::DBbackend;
-my $db = new OMP::MSBDB( DB => $backend );
-
-# Run a simulated set of queries to determine which projects
-# have MSBs available
-
-my $today = OMP::DateTools->today(1);
-
-# The hour range for queries should be restricted by the freetimeut
-# parameter from the config system, unless the -fullday command line
-# switch was supplied.
-my ($utmin, $utmax);
-unless ($full_day) {
-  ($utmin, $utmax) = OMP::Config->getData( 'freetimeut',
-                                              telescope => $telescope);
-
-  # parse the values, get them back as date objects
-  ($utmin, $utmax) = OMP::DateSun->_process_freeut_range( $telescope,
-                                                          $today,
-                                                          $utmin, $utmax);
-
-  # easier for now to convert them back to an hour
-  $utmin = $utmin->hour;
-  $utmax = $utmax->hour + ($utmax->min > 0 ? 1 : 0);
-}
-else {
-  $utmin = 0;
-  $utmax = 23.9999;
-}
-$today = $today->ymd;
-
 # Calculate localtime to GMT offset (hours)
 my $tzoffset = gmtime()->tzoffset->hours;
 
-
 print "Password Verified. Now analyzing ".
-   (defined $country ? uc($country) . ' ' : ' ') .
-     "queue status for UT hours $utmin to $utmax.\n";
+   (defined $country ? uc($country) . ' ' : '') .
+     "queue status.\n";
 
+my (%projq, %projmsb, %projinst, $utmin, $utmax);
+do {
+    my ($q, $m, $i);
+    ($q, $m, $i, $utmin, $utmax) = query_queue_status(
+        telescope => $telescope,
+        country => $country,
+        semester => $semester,
+        full_day => $full_day,
+    );
+    %projq = %$q;
+    %projmsb = %$m;
+    %projinst = %$i;
+};
 
-my %projq;
-my %projmsb;
-my %projinst;
-for my $hr ($utmin..$utmax) {
-#  print "HOUR: $hr\n";
+print "For UT hours $utmin to $utmax:\n";
 
-  my $refdate = $today . "T". sprintf("%02d",$hr) .":00";
-  my $xml = $qxml;
-  $xml =~ s/REFDATE/$refdate/;
-
-  # Query object
-  my $query = new OMP::MSBQuery( XML => $xml );
-
-  my @results = $db->queryMSB( $query, 'object' );
-
-  for my $msb (@results) {
-    my $p = $msb->projectid;
-    # init array
-    $projq{$p} = [ map { 0 } (0..23) ] unless exists $projq{$p};
-
-    # indicate a hit for this project with this MSB
-    $projq{$p}[$hr]++;
-
-    # store the MSB id so that we know how many MSBs were
-    # observable in the period
-    $projmsb{$p}{$msb->checksum}++;
-
-    # Store the instrument information
-    my $inst = $msb->instrument;
-    for my $i (split(/\//,$inst)) {
-      $projinst{$p}{$i}++;
-    }
-#    print $msb->summary('textshort') ."\n";
-  }
-}
 
 # Now go through the project hits and work out availability ranges
 # and total number of MSBs available in the period
@@ -277,6 +211,7 @@ for my $p (keys %projq) {
 
 
 # Now populate the project hash with project details
+my $backend = new OMP::DBbackend();
 my $projdb = new OMP::ProjDB( 
 			     Password => $password,
 			     DB => $backend,
