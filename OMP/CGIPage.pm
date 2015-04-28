@@ -667,17 +667,18 @@ sub write_page_noauth {
 
 Do a staff authentication login, then create pages as normal.
 
-  $cgi->write_page_staff( \&form_content, \&form_output, $noauth );
+  $cgi->write_page_staff( \&form_content, \&form_output, $noauth,
+                          $output_without_header );
 
 If the optional third argument is true, no project login authentication
-is done.
+is done.  If the fourth argument is true, the header and footer are omitted
+for the output page to allow the output of types other than HTML.
 
 =cut
 
 sub write_page_staff {
   my $self = shift;
   my @args = @_;
-  my $noauth = defined $args[2] ? pop @args : undef;
   my $q = $self->cgi;
 
   # Initialize the cookie
@@ -725,13 +726,7 @@ sub write_page_staff {
     $cookie{password} = $password;
     $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie);
 
-    # Only write page with  project authentication if the noauth
-    # argument is false
-    if (! $noauth) {
-      $self->write_page(@args);
-    } else {
-      $self->write_page_noauth(@args);
-    }
+    $self->write_page(@args);
   } else {
     # Login details were incorrect
     $self->_write_staff_login(1);
