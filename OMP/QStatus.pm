@@ -14,6 +14,7 @@ use strict;
 
 use base 'Exporter';
 
+use Time::Piece;
 use Time::Seconds qw/ONE_MINUTE ONE_HOUR/;
 
 use OMP::Config;
@@ -61,6 +62,9 @@ sub query_queue_status {
       $utmin -= ONE_MINUTE * $utmin->min() if $utmin->min() > 0;
       $utmax += ONE_MINUTE * (60 - $utmax->min()) if $utmax->min() > 0;
     }
+
+    $utmin = gmtime($utmin->epoch());
+    $utmax = gmtime($utmax->epoch());
 
     my %projq;
     my %projmsb;
