@@ -14,6 +14,8 @@ use strict;
 
 use base 'Exporter';
 
+use Time::Seconds qw/ONE_MINUTE ONE_HOUR/;
+
 use OMP::Config;
 use OMP::DateTools;
 use OMP::DateSun;
@@ -43,8 +45,8 @@ sub query_queue_status {
     my $today = exists $opt{'date'} ? $opt{'date'} : OMP::DateTools->today(1);
     my ($utmin, $utmax);
     if ($opt{'full_day'}) {
-        $utmin = 0;
-        $utmax = 23.9999;
+        $utmin = OMP::DateTools->parse_date($today->ymd() . 'T00:00:00');
+        $utmax = OMP::DateTools->parse_date($today->ymd() . 'T23:59:59');
     }
     else {
       ($utmin, $utmax) = OMP::Config->getData('freetimeut',
@@ -55,11 +57,10 @@ sub query_queue_status {
                                                              $today,
                                                              $utmin, $utmax);
 
-      # easier for now to convert them back to an hour
-      $utmin = $utmin->hour;
-      $utmax = $utmax->hour + ($utmax->min > 0 ? 1 : 0);
+      # Expand range to hour boundaries.
+      $utmin -= ONE_MINUTE * $utmin->min() if $utmin->min() > 0;
+      $utmax += ONE_MINUTE * (60 - $utmax->min()) if $utmax->min() > 0;
     }
-    $today = $today->ymd();
 
     my %projq;
     my %projmsb;
@@ -67,8 +68,8 @@ sub query_queue_status {
 
     # Run a simulated set of queries to determine which projects
     # have MSBs available
-    for my $hr ($utmin..$utmax) {
-        my $refdate = $today . "T". sprintf("%02d",$hr) .":00";
+    for (my $refdate = $utmin; $refdate <= $utmax; $refdate += ONE_HOUR) {
+        my $hr = $refdate->hour();
 
         # Form query object via XML
         my $query = new OMP::MSBQuery(XML => '<MSBQuery>' .
@@ -85,7 +86,7 @@ sub query_queue_status {
             (exists $opt{'tau'}
                 ? '<tau>' . $opt{'tau'} . ' </tau>'
                 : '') .
-            '<date>' . $refdate . '</date>' .
+            '<date>' . $refdate->datetime() . '</date>' .
             '</MSBQuery>');
 
         my @results = $db->queryMSB($query, 'object');
@@ -110,7 +111,7 @@ sub query_queue_status {
         }
     }
 
-    return (\%projq, \%projmsb, \%projinst, $utmin, $utmax);
+    return (\%projq, \%projmsb, \%projinst, $utmin->hour(), $utmax->hour());
 }
 
 1;
