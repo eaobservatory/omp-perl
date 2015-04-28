@@ -31,10 +31,6 @@ sub query_queue_status {
     my %opt = @_;
 
     my $telescope = $opt{'telescope'};
-    my $country = $opt{'country'};
-    my $semester = $opt{'semester'};
-    my $full_day = $opt{'full_day'};
-
     die 'telescope not specified' unless defined $telescope;
 
     # Create MSB database instance
@@ -44,9 +40,9 @@ sub query_queue_status {
     # The hour range for queries should be restricted by the freetimeut
     # parameter from the config system, unless the -fullday command line
     # switch was supplied.
-    my $today = OMP::DateTools->today(1);
+    my $today = exists $opt{'date'} ? $opt{'date'} : OMP::DateTools->today(1);
     my ($utmin, $utmax);
-    if ($full_day) {
+    if ($opt{'full_day'}) {
         $utmin = 0;
         $utmax = 23.9999;
     }
@@ -77,8 +73,18 @@ sub query_queue_status {
         # Form query object via XML
         my $query = new OMP::MSBQuery(XML => '<MSBQuery>' .
             '<telescope>' . $telescope . '</telescope>' .
-            (defined $country ? '<country>' . $country . '</country>' : '') .
-            (defined $semester ? '<semester>' . $semester . '</semester>' : '') .
+            (exists $opt{'country'}
+                ? '<country>' . $opt{'country'} . '</country>'
+                : '') .
+            (exists $opt{'semester'}
+                ? '<semester>' . $opt{'semester'} . '</semester>'
+                : '') .
+            (exists $opt{'instrument'}
+                ? '<instrument>'. $opt{'instrument'} . '</instrument>'
+                : '') .
+            (exists $opt{'tau'}
+                ? '<tau>' . $opt{'tau'} . ' </tau>'
+                : '') .
             '<date>' . $refdate . '</date>' .
             '</MSBQuery>');
 
