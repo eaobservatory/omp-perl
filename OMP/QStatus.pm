@@ -28,6 +28,63 @@ our @EXPORT_OK = qw/query_queue_status/;
 
 =item query_queue_status(%opt)
 
+Perform a series of MSB queries in order to generate information about
+the status of the observing queue.
+
+Contains code extracted from the F<client/qstatus.pl> script.
+
+Options:
+
+=over 4
+
+=item telescope
+
+Required.
+
+=item date
+
+Optional Time::Piece object.
+
+=item full_day
+
+If specified, query for the whole day rather than usual observing time
+as determined by C<OMP::DateSun::_process_freeut_range>.
+
+=item country
+
+Optional.
+
+=item semester
+
+Optional.
+
+=item instrument
+
+Optional.
+
+=item tau
+
+Optional.
+
+=item return_proj_msb
+
+If specified, return a reference to a hash of projects giving hashes of MSBs
+by checksum, along with start and end times as Time::Piece objects.
+
+    my ($proj_msb, $utmin, $utmax) = query_queue_status(
+        return_proj_msb => 1, %opt);
+
+Otherwise returns the data structures originally accumulated by
+F<client/qstatus.pl> where C<$utmin> and C<$utmax> are now hour numbers:
+
+
+    ($projq, $projmsb, $projinst, $utmin, $utmax) = query_queue_status(%opt);
+
+=back
+
+B<Note:> currently generates the queue information by performing queries
+at one hour increments.
+
 =cut
 
 sub query_queue_status {
