@@ -84,7 +84,8 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    index.html issuepwd.pl
                    listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
-                   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
+                   projecthome.pl projusers.pl props.pl
+                   qstatus.pl queryfault.pl shiftlog.pl
                    spregion.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
