@@ -38,7 +38,7 @@ OMP::QStatus::query_queue_status.
 
 Affiliation code.
 
-=item outout
+=item output
 
 Output file (passed on to Astro::SourcePlot::sourceplot).
 
