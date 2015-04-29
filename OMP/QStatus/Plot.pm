@@ -99,6 +99,8 @@ sub create_queue_status_plot {
         }
     }
 
+    die 'No observations found' unless @coords;
+
     # Calculate time plotting range.
     my $time_range = $utmax - $utmin;
     my $time_mid = localtime($utmin->epoch() + $time_range / 2);
