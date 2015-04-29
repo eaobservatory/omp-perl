@@ -35,7 +35,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="ORIGIN"
                  COMMENT="Origin of file"
-                 VALUE="Joint Astronomy Centre, Hilo" />
+                 VALUE="East Asian Observatory" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -188,7 +188,7 @@
                  VALUE="" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
-                 COMMENT="Id of minimum scheduable block"
+                 COMMENT="Id of minimum schedulable block"
                  VALUE="49e28a5bfd8827e5eacde2d6dc77996eA" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
