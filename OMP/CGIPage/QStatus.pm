@@ -152,11 +152,10 @@ sub view_queue_status_output {
         }
     };
 
-    print $q->header(-type => 'image/png');
-
     create_queue_status_plot(
         output => '-',
         hdevice => '/PNG',
+        output_header => $q->header(-type => 'image/png'),
         %opt,
     );
 }
