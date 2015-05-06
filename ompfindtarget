@@ -229,7 +229,7 @@ my $row_ref = $db->selectall_arrayref( qq{exec $sqlcmd}) || die qq {
 $db->disconnect;
 
 # Print output
-$ssep = "default" if (not defined $$sep);
+$ssep = "default" if (not defined $sep);
 my ($hh, $mm, $ss, $sss, $sign, $dd, $am, $as, $ass );
 my $pi = 4.0*atan(1.0);
 
