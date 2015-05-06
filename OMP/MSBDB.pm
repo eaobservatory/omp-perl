@@ -3227,11 +3227,13 @@ sub _run_query {
             sort {$affiliations->{$b} <=> $affiliations->{$a}} keys %$affiliations);
       }
 
+      # 1st pass sort: time observed and user priority.
       @observable = sort {
-        $a->{'affiliation_usage'} <=> $b->{'affiliation_usage'}
-        || $a->{'time_observed'} <=> $b->{'time_observed'}
+        $a->{'time_observed'} <=> $b->{'time_observed'}
         || $a->{'userpriority'} <=> $b->{'userpriority'}
       } @observable;
+      # 2nd pass sort: affiliation usage with 10% tolerance.
+      stable_fuzzy_sort(sub {$_[0]->{'affiliation_usage'}}, 0.1, \@observable);
     } else {
       throw OMP::Error::FatalError("Unknown sorting scheme: $sortby");
     }
