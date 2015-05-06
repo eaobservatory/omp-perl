@@ -3224,6 +3224,10 @@ sub _run_query {
             }
         }
         $msb->{'affiliation_usage'} = $usage;
+        # Write the affiliations into the MSB so that they can be shown in
+        # the query results.
+        $msb->{'affiliation'} = join('/',
+            sort {$affiliations->{$b} <=> $affiliations->{$a}} keys %$affiliations);
       }
 
       @observable = sort {
