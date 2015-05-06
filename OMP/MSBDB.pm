@@ -1227,9 +1227,6 @@ sub listModifiedPrograms {
   my @results = map { $_->{projectid} } @$ref;
 }
 
-
-=cut
-
 =back
 
 =head2 Internal Methods
