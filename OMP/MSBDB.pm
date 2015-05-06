@@ -3516,6 +3516,39 @@ sub _get_msb_count {
 
 =back
 
+=head1 SUBROUTINES
+
+=over 4
+
+=item stable_fuzzy_sort(\&key, $tolerance, \@array)
+
+Sort array (in place) via (numerical) comparison of the values returned
+by the key subroutine applied to each member, with the given tolerance.
+Intended to be a stable sort, i.e. the original order is only changed
+where necessary.  There are multiple ways in which such an sort could
+be performed -- this one works by bringing forward any member which
+originally appeared behind a member which was greater by more than the
+given tolerance.  To sort in descending order, have the key function
+return -1.0 times the actual keys.
+
+=cut
+
+sub stable_fuzzy_sort {
+    my $key = shift;
+    my $tol = shift;
+    my $arr = shift;
+
+    foreach my $i (1 .. $#$arr) {
+        for (my $j = 0; $j < $i; $j ++) {
+            # Move element $i before element $j if it belongs before it.
+            splice @$arr, $j, 0, splice @$arr, $i, 1
+                if $key->($arr->[$i]) + $tol < $key->($arr->[$j]);
+        }
+    }
+}
+
+=back
+
 =head1 SEE ALSO
 
 This class inherits from C<OMP::BaseDB>.
