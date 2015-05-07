@@ -230,7 +230,7 @@ sub plot_sources {
     if ( $objlis ne "" ) {
 
         my @solar = ('mars', 'jupiter', 'saturn', 'uranus', 'neptune',
-                     'mercury', 'venus', 'pluto', 'sun', 'moon');
+                     'mercury', 'venus', 'sun', 'moon');
 
         foreach my $obj (split( /\@/, $objlis )){
 
@@ -243,8 +243,8 @@ sub plot_sources {
 
             } else {
 
-                my $nrplanets = 8;
-                $nrplanets = 10 if ($obj eq "solar");
+                my $nrplanets = 7;
+                $nrplanets = 9 if ($obj eq "solar");
                 $nrplanets = 5 if ($obj eq "5planets");
                 for (my $i = 0; $i < $nrplanets; $i++) {
                     my %ref;
