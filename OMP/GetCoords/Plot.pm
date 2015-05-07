@@ -73,9 +73,13 @@ Sources to plot: [active] | completed | all
 
 [curve] along track; list: on the side
 
-=item out
+=item output
 
-Plot to GIF file (projid.gif) or XW device: Gif/[XW]
+Output file (passed on to Astro::SourcePlot::sourceplot).
+
+=item hdevice
+
+PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
 
 =back
 
@@ -96,7 +100,8 @@ sub plot_sources {
     my $tzone = $opt{'tzone'};
     my $agrid = $opt{'agrid'};
     my $labpos = $opt{'label'};
-    my $out = $opt{'out'};
+    my $output = $opt{'output'} || '';
+    my $hdevice = $opt{'hdevice'} || '/XW';
 
     # Make all parameters trusted
 
@@ -149,20 +154,12 @@ sub plot_sources {
         $plmode = "Active";
     }
 
-    # Output device
-    my $outdev;
-    if (defined $out) {
-        $out =~ /^([\w\+\-\.\_]+)$/ && ($outdev = $1) || ($outdev = "");
-        if ($outdev ne "gif" and $outdev ne "xw") {
-            die "OUT '$outdev' should be either 'gif' or 'xw'";
-        }
-    } else {
-        $outdev = "xw";
-    }
-
     #----------------------------------------------------------------------
     # Hash with regular sourceplot arguments being passed through directly
-    my %sargs;
+    my %sargs = (
+        output => $output,
+        hdevice => $hdevice,
+    );
 
     # Debug: pipe debug request down to Sourceplot
     if ($debug) {
@@ -188,18 +185,6 @@ sub plot_sources {
     if (defined $labpos && $labpos ne "curve") {
         $labpos =~ /^([\w\+\-\.\_]+)$/ && ($sargs{'objlabel'} = "$1");
     }
-
-    if ($outdev eq 'gif') {
-        $sargs{'hdevice'} = '/gif';
-        $sargs{'output'} = "${projlis}.gif";
-        $sargs{'output'} =~ s/\///g;
-    }
-    else {
-        $sargs{'hdevice'} = '/xw';
-        $sargs{'output'} = '';
-    }
-
-    my $output = $sargs{'output'};
 
     if ($utdate =~ /^\d{8}$/) {
         $sargs{'start'} = Time::Piece->strptime( "${utdate}T00:00:00", "%Y%m%dT%T");
@@ -258,7 +243,7 @@ sub plot_sources {
     $sargs{'telescope'} = $telescope;
     $sargs{'msbmode'} = $plmode;
 
-    print "Projid: $projlis $utdate $telescope $plmode $outdev $output\n" if ($debug);
+    print "Projid: $projlis $utdate $telescope $plmode $output $hdevice\n" if ($debug);
 
     my @coords = get_coords( 'omp', \@projids, \@objects, %sargs );
     printf "Nr of objects found: %d\n", $#coords+1 if ($debug);
@@ -269,7 +254,7 @@ sub plot_sources {
     if ($#coords >= 0) {
       print "Calling sourceplot...\n" if ($debug);
       $plot = sourceplot( coords => \@coords, %sargs );
-      print "Output saved to: ${plot}\n" if ($debug and $outdev eq "gif");
+      print "Output saved to: ${plot}\n" if ($debug and $hdevice ne "xw");
     } else {
       die "No objects found";
     }
