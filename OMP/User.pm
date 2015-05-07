@@ -732,7 +732,7 @@ sub deobfuscate {
                         'Alias' => $alias,
                         'CADC'  => $self->cadcuser()
                       );
-  $user->email( $email // $self->email() );
+  $user->email( defined $email ? $email : $self->email() );
   $user->is_obfuscated( 0 );
   return $user;
 }

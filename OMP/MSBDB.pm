@@ -43,6 +43,7 @@ use OMP::NetTools;
 use OMP::General;
 use OMP::Password;
 use OMP::ProjDB;
+use OMP::ProjAffiliationDB;
 use OMP::Constants qw/ :done :fb :logging /;
 use OMP::SiteQuality;
 use OMP::Range;
@@ -1225,9 +1226,6 @@ sub listModifiedPrograms {
 
   my @results = map { $_->{projectid} } @$ref;
 }
-
-
-=cut
 
 =back
 
@@ -3189,6 +3187,53 @@ sub _run_query {
           if $priority_tweaked;
     } elsif ($sortby eq 'schedpri') {
       @observable = sort { $a->{schedpri} <=> $b->{schedpri} } @observable;
+    } elsif ($sortby eq 'completion') {
+      # Sorting priority for EAO pilot science semester: consider
+      # completion (least complete first) and user priority only.
+      @observable = sort {
+        $a->{'completion'} <=> $b->{'completion'}
+        || $a->{'userpriority'} <=> $b->{'userpriority'}
+      } @observable;
+    } elsif ($sortby eq 'time_observed') {
+      # Another possible scheme for EAO pilot science semester: consider
+      # allocation usage by affiliation,
+      # time observed (least time first) and user priority only.
+      my $affiliation_db = new OMP::ProjAffiliationDB(DB => $self->db());
+      my $proj_affiliation = $affiliation_db->get_all_affiliations();
+      my $sem_affiliation = $affiliation_db->get_all_affiliation_allocations();
+
+      # Compute affiliation allocation usage for each MSB.  This is:
+      # usage = sum_affiliation fraction_affiliation * completion_affiliation
+      # Where:
+      # completion_affiliation = observed_affiliation / allocation_affiliation
+      foreach my $msb (@observable) {
+        my $usage = 0.0;
+        my $affiliations = $proj_affiliation->{$msb->{'projectid'}};
+        unless (scalar keys %$affiliations) {
+            $usage = 1.0;
+        }
+        else {
+            my $semester = $sem_affiliation->{$msb->{'semester'}};
+            while (my ($affiliation, $fraction) = each %$affiliations) {
+                my $allocation = $semester->{$affiliation};
+                $usage += 1.0 * $fraction *
+                    $allocation->{'observed'} / $allocation->{'allocation'};
+            }
+        }
+        $msb->{'affiliation_usage'} = $usage;
+        # Write the affiliations into the MSB so that they can be shown in
+        # the query results.
+        $msb->{'affiliation'} = join('/',
+            sort {$affiliations->{$b} <=> $affiliations->{$a}} keys %$affiliations);
+      }
+
+      # 1st pass sort: time observed and user priority.
+      @observable = sort {
+        $a->{'time_observed'} <=> $b->{'time_observed'}
+        || $a->{'userpriority'} <=> $b->{'userpriority'}
+      } @observable;
+      # 2nd pass sort: affiliation usage with 10% tolerance.
+      stable_fuzzy_sort(sub {$_[0]->{'affiliation_usage'}}, 0.1, \@observable);
     } else {
       throw OMP::Error::FatalError("Unknown sorting scheme: $sortby");
     }
@@ -3469,6 +3514,39 @@ sub _get_msb_count {
   }
 
   return %projectid;
+}
+
+=back
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item stable_fuzzy_sort(\&key, $tolerance, \@array)
+
+Sort array (in place) via (numerical) comparison of the values returned
+by the key subroutine applied to each member, with the given tolerance.
+Intended to be a stable sort, i.e. the original order is only changed
+where necessary.  There are multiple ways in which such an sort could
+be performed -- this one works by bringing forward any member which
+originally appeared behind a member which was greater by more than the
+given tolerance.  To sort in descending order, have the key function
+return -1.0 times the actual keys.
+
+=cut
+
+sub stable_fuzzy_sort {
+    my $key = shift;
+    my $tol = shift;
+    my $arr = shift;
+
+    foreach my $i (1 .. $#$arr) {
+        for (my $j = 0; $j < $i; $j ++) {
+            # Move element $i before element $j if it belongs before it.
+            splice @$arr, $j, 0, splice @$arr, $i, 1
+                if $key->($arr->[$i]) + $tol < $key->($arr->[$j]);
+        }
+    }
 }
 
 =back

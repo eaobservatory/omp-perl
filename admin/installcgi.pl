@@ -80,12 +80,14 @@ my @srcdirs = qw/ cgi server web /;
 my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
+                   findtarget.pl
                    get_resource.pl
                    index.html issuepwd.pl
                    listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
-                   projecthome.pl projusers.pl props.pl queryfault.pl shiftlog.pl
-                   spregion.pl
+                   projecthome.pl projusers.pl props.pl
+                   qstatus.pl queryfault.pl shiftlog.pl
+                   sourceplot.pl spregion.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
                    updatefault.pl updateresp.pl update_user.pl userdetails.pl
                    utprojlog.pl

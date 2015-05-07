@@ -650,6 +650,8 @@ Neither C<telescope> nor C<semesters> are mandatory keys.
 CURRENTLY THE HASH ARGUMENTS ARE IGNORED. THIS METHOD IS FOR TESTING
 ONLY.
 
+Users whose OMP data have been obfuscated are not included.
+
 =cut
 
 sub listSupport {
@@ -665,7 +667,7 @@ sub listSupport {
   my $supref = $self->_db_retrieve_data_ashash( <<"USER_SQL" );
     SELECT DISTINCT S.userid, email, uname as 'name'
     FROM $PROJUSERTABLE S, $utable U
-    WHERE S.userid = U.userid AND capacity = 'SUPPORT'
+    WHERE S.userid = U.userid AND capacity = 'SUPPORT' AND U.obfuscated=0
 USER_SQL
 
   map { new OMP::User( %$_ ) } @$supref

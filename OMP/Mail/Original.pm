@@ -17,12 +17,12 @@ Purpose is to test various email composition & mailing out methods.
 =cut
 
 
-use 5.016;
+use 5.8.7;
 use strict;
 use warnings;
 use Carp ();
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 # OMP Dependencies
 use OMP::Error;

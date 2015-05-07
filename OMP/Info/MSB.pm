@@ -75,6 +75,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               seeing => 'OMP::Range',
                               priority => '$',
 			      schedpri => '$',
+                              affiliation => '$',
                               moon =>  'OMP::Range',
 			      sky => 'OMP::Range',
                               timeest => '$',
@@ -118,6 +119,8 @@ Priority allocated by the TAG (integer part) and the PI (decimal part).
 The scheduling priority. Not necessarily the same as the (TAG) priority.
 Usually depends on the time it was calculated (the airmass/hour angle is used
 in the calculation) and so is not calculated dynamically in this class.
+
+=item B<affiliation>
 
 =item B<timeest>
 
@@ -646,7 +649,7 @@ sub summary {
   # These are the scalar/objects
   my @elements = qw/ projectid checksum tau seeing priority moon timeest title
 		     elevation datemin datemax telescope cloud sky remaining
-                     msbid approach schedpri completion /;
+                     msbid approach schedpri completion affiliation /;
 
   # Include astrometry elements unless 'noast' option is being used
   push @elements, qw/ ra airmass ha dec az /
@@ -712,7 +715,7 @@ sub summary {
   }
 
   # Fill in some unknowns
-  for (qw/ timeest priority title seeing tau cloud sky /) {
+  for (qw/ timeest priority title seeing tau cloud sky affiliation /) {
     $summary{$_} = "??" unless defined $summary{$_};
   }
 
@@ -1076,7 +1079,7 @@ sub getResultColumns {
   # The order must be forced
   my @order;
   if ($tel eq 'JCMT') {
-    @order = qw/ projectid priority schedpri completion instrument waveband title target
+    @order = qw/ projectid priority schedpri affiliation completion instrument waveband title target
                  ra dec coordstype ha az airmass tau pol type
 	         timeest remaining obscount
                  checksum msbid /;
@@ -1111,6 +1114,7 @@ Uses a telescope name to control the column information.
 # best to use a single data structure for this
 my %coltypes = (
 		schedpri => 'Float',
+                affiliation => 'String',
 		remaining => 'Integer',
 		projectid => 'String',
 		priority => 'Float',

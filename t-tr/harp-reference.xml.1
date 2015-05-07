@@ -36,7 +36,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="ORIGIN"
                  COMMENT="Origin of file"
-                 VALUE="Joint Astronomy Centre, Hilo" />
+                 VALUE="East Asian Observatory" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
@@ -189,7 +189,7 @@
                  VALUE="" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
-                 COMMENT="Id of minimum scheduable block"
+                 COMMENT="Id of minimum schedulable block"
                  VALUE="e06f00e437116f6ce718c1a099c5cbabA" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
@@ -520,7 +520,7 @@
          <HEADER TYPE="INT"
                  KEYWORD="N_MIX"
                  COMMENT="No. of mixers"
-                 VALUE="14" />
+                 VALUE="13" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
                  COMMENT="The observed sideband"
@@ -1165,7 +1165,7 @@
          <SB_MODE>SSB</SB_MODE>
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
-         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="H00" VALUE="ANY"/>
          <RECEPTOR_MASK RECEPTOR_ID="H01" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H02" VALUE="ON"/>
          <RECEPTOR_MASK RECEPTOR_ID="H03" VALUE="ON"/>
@@ -1199,7 +1199,7 @@
          </waveBand>
          <receptor id="H00"
                    band="B"
-                   health="ON"
+                   health="OFF"
                    x="-45"
                    y="+45"
                    pol_type="Linear" >
@@ -2822,13 +2822,12 @@
 </rtd_config>
 <process_layout> 
     
-    
 <machine_table>
    <dr_machine virtual_machine="number0" real_machine="ocsmaster"/>
    <dr_machine virtual_machine="number1" real_machine="acsis1"/>
    <dr_machine virtual_machine="number2" real_machine="acsis2"/>
    <dr_machine virtual_machine="number3" real_machine="acsis3"/>
-   <dr_machine virtual_machine="number4" real_machine="acsis5"/>
+   <dr_machine virtual_machine="number4" real_machine="acsis4"/>
    <dr_machine virtual_machine="number5" real_machine="acsis5"/>
    <dr_machine virtual_machine="number6" real_machine="acsis6"/>
    <dr_machine virtual_machine="number7" real_machine="acsis7"/>
