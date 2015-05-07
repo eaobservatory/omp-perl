@@ -185,7 +185,7 @@ sub get_coords  {
   # Handle planets separately
   my %planets = ('sun',     0, 'mercury', 1, 'venus',  2, 'moon',   3,
                  'mars',    4, 'jupiter', 5, 'saturn', 6, 'uranus', 7,
-                 'neptune', 8, 'pluto',   9);
+                 'neptune', 8);
   my $nr_planets = 0;
   foreach my $obj (@objects) {
 
