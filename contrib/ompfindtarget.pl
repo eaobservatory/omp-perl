@@ -16,16 +16,15 @@ BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
-use DBI;
-use DBD::Sybase;
 
 use lib "/jac_sw/omp/msbserver";
-use OMP::DBbackend;
-use Astro::SLA;
 
 use strict;
+
 use Getopt::Long;
-use Math::Trig;
+
+use OMP::Config;
+use OMP::FindTarget qw/find_and_display_targets/;
 
 OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
 
@@ -34,10 +33,7 @@ my $debug = 0;
 
 # This routine can be used to mine coordinates in the OMP. 
 # Hence: only continue if permission for world is 'no access'
-# group is 'staff' or user is 'http*' (assuming that htpasswd
-# will be used to regulate access though a cgi script.)
-
-my $user = $ENV{'USER'};
+# group is 'staff'.
 
 my ($dev,$ino,$fmode,$nlink,$uid,$gid,$rdev,$size,
        $atime,$mtime,$ctime,$blksize,$blocks)
@@ -45,13 +41,12 @@ my ($dev,$ino,$fmode,$nlink,$uid,$gid,$rdev,$size,
 my $mode = sprintf "%04o", $fmode & 07777;
 my $world = substr $mode, (length $mode)-1, 1;
 
-print "User: $user  World: $world  Group: $gid\n" if ($debug);
+print "World: $world  Group: $gid\n" if ($debug);
 
-( ($user =~ /^http/) || ($world == 0 && $gid == 10)) ||
+($world == 0 && $gid == 10) ||
   die qq { 
 -------------------------------------------------------------- 
 	Error:       ompfindtarget can only be used by 'staff'
-                     or through password protected http access. 
 -------------------------------------------------------------- 
 }; 
 
@@ -176,7 +171,7 @@ if ( $ttel =~ /^[u,j]/i ) {
 print "Telescope: $tel\n" if ($debug);
 
 # Semester:
-my ($sem, $psem) = &find_semester();
+my ($sem, $psem) = find_semester();
 
 if ( $ssem =~ /^([\d\*\&])+[AB]$/i ) {
   $ssem = uc $ssem;
@@ -202,72 +197,14 @@ unless ( $radec ne "" || $proj ne "" ) {
 };
 }
 
-my $sqlcmd = "ompfindtarget ${proj}${radec},${sep},${tel},${sem}";
-$sqlcmd =~ s/(\,)+/\,/g;
-$sqlcmd =~ s/\,$//;
-print "$sqlcmd\n";
-
-#----------------------------------------------------------------------
-# Get the connection handle
-
-my $dbs =  new OMP::DBbackend;
-my $dbtable = "ompproj";
-
-my $db = $dbs->handle || die qq {
---------------------------------------------------------------
- Error:       Connecting to Db: $DBI::errstr
---------------------------------------------------------------
-};
-
-my $row_ref = $db->selectall_arrayref( qq{exec $sqlcmd}) || die qq {
---------------------------------------------------------------
- Error:       Executing DB procedure: $DBI::errstr
---------------------------------------------------------------
-};
-
-# Disconnect from DB server
-$db->disconnect;
-
-# Print output
-$ssep = "default" if (not defined $sep);
-my ($hh, $mm, $ss, $sss, $sign, $dd, $am, $as, $ass );
-my $pi = 4.0*atan(1.0);
-
-print "----------------------------------------------------------------------------\n";
-if ($#$row_ref < 0 ) {
-  print "No targets within $dsep arcsecs from reference.\n";
-} else {
-
-  my $n = 0;
-  my $pref = "";
-  foreach my $row (@$row_ref) {
-    $n++;
-
-    my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
-
-    my (@hh, @dd, $sign);
-    if ($n == 1 || $ref ne $pref ) {
-      if ($ref =~ /^\d/) {
-        my ($ra_r, $dec_r) = split /\s+/, $ref;
-        slaDr2tf (2, $ra_r,  $sign, @hh);
-        slaDr2af (2, $dec_r, $sign, @dd);
-        $ref = sprintf "%2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d",
-                     $hh[0], $hh[1], $hh[2], $hh[3],
-                     $sign, $dd[0], $dd[1], $dd[2], $dd[3];
-      }
-      print "Targets within $dsep arcsecs from  ${ref}:\n";
-      $pref = $ref;
-    }
-
-    slaDr2tf (2, $ra,  $sign, @hh);
-    slaDr2af (2, $dec, $sign, @dd);
-
-    printf qq{%-12s %12s %8d"  %2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d %8s\n},
-      $proj, $target, int($sep+0.5), $hh[0], $hh[1], $hh[2], $hh[3], 
-                     $sign, $dd[0], $dd[1], $dd[2], $dd[3], $instr;
-  }
-}
-print "----------------------------------------------------------------------------\n";
+find_and_display_targets(
+    proj  => $proj,
+    radec => $radec,
+    sep   => $sep,
+    tel   => $tel,
+    sem   => $sem,
+    dsep  => $dsep,
+);
 
 sub find_semester {
 
