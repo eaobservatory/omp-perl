@@ -8,7 +8,7 @@ package OMP::FindTarget;
 
 use strict;
 
-use Astro::SLA;
+use Astro::PAL;
 use DBI;
 use Math::Trig;
 
@@ -80,12 +80,11 @@ sub find_and_display_targets {
 
         my ($ref, $proj, $target, $sep, $ra, $dec, $instr) = @$row;
 
-        my (@hh, @dd, $sign);
         if ($n == 1 || $ref ne $pref ) {
           if ($ref =~ /^\d/) {
             my ($ra_r, $dec_r) = split /\s+/, $ref;
-            slaDr2tf (2, $ra_r,  $sign, @hh);
-            slaDr2af (2, $dec_r, $sign, @dd);
+            my ($sign_ra, @hh) = palDr2tf(2, $ra_r);
+            my ($sign,    @dd) = palDr2af(2, $dec_r);
             $ref = sprintf "%2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d",
                          $hh[0], $hh[1], $hh[2], $hh[3],
                          $sign, $dd[0], $dd[1], $dd[2], $dd[3];
@@ -94,8 +93,8 @@ sub find_and_display_targets {
           $pref = $ref;
         }
 
-        slaDr2tf (2, $ra,  $sign, @hh);
-        slaDr2af (2, $dec, $sign, @dd);
+        my ($sign_ra, @hh) = palDr2tf(2, $ra);
+        my ($sign,    @dd) = palDr2af(2, $dec);
 
         printf qq{%-12s %12s %8d"  %2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d %8s\n},
           $proj, $target, int($sep+0.5), $hh[0], $hh[1], $hh[2], $hh[3], 
