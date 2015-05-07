@@ -14,7 +14,7 @@ use lib qw( /web/jac-bin/ompsplot );
 
 use strict;
 use Astro::SourcePlot qw/ sourceplot /;
-use GetCoords qw/ get_coords /;
+use OMP::GetCoords qw/ get_coords /;
 
 use lib qw( /jac_sw/omp/msbserver );
 

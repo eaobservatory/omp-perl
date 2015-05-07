@@ -1,15 +1,13 @@
-package GetCoords;
-
-#package Astro::SourcePlot_new;
+package OMP::GetCoords;
 
 =head1 NAME
 
-Astro::GetCoords - Return an array of ASTRO coordinate objects from
-                   the OMP, a catalog, or user supplied positions.
+OMP::GetCoords - Return an array of ASTRO coordinate objects from
+                 the OMP, a catalog, or user supplied positions.
 
 =head1 SYNOPSIS
 
-  use Astro::GetCoords qw/ get_coords /;
+  use OMP::GetCoords qw/ get_coords /;
   my @coords = get_coords ( $method, \@projids, \@objects, %args );
 
 =head1 DESCRIPTION
@@ -22,8 +20,6 @@ be obtained using ephemerides.
 
 =cut
 
-BEGIN  { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver" };
-
 use strict;
 use warnings;
 
@@ -31,15 +27,11 @@ use Astro::Coords;
 use Astro::Telescope;
 use Time::Piece qw/ :override /;
 
-use lib qw( /jac_sw/omp/msbserver );
-
 use OMP::Config;
 use OMP::SpServer;
 use OMP::SciProg;
 use OMP::MSB;
 use OMP::Error qw/ :try /;
-
-OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg" );
 
 use vars qw/ $VERSION @ISA @EXPORT_OK/;
 $VERSION = '1.1';
