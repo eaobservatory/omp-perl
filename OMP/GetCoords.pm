@@ -800,7 +800,9 @@ sub parse_coords {
   return %target ;
 }
 
+1;
 
+__END__
 
 =back
 
