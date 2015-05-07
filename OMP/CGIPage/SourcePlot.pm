@@ -245,8 +245,6 @@ __END__
 
 =back
 
-=cut
-
 =head1 AUTHOR
 
 Remo Tilanus, Joint Astronomy Centre E<lt>r.tilanus@jach.hawaii.eduE<gt>
