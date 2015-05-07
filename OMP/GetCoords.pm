@@ -61,6 +61,11 @@ Query OMP DB. In this case, B<project ids> are B<required>.
 
 Only C<name> is used if objects are given.
 
+The coord objects from all MSBs of the requested projects are
+retrieved and returned. If objects{name}s have been specified
+only the coords of targets for which the name matches exactly
+will be returned.
+
 =item catalog
 
 Read coordinates from a catalog file. The general format of the file
@@ -73,6 +78,13 @@ key of C<name>.
 
 Project ids and objects are optional. Only C<name> key is used from
 objects if given.
+
+The abbreviations RB, RJ, GA, RG are accepted for B1950, J2000,
+galactic, respectively. Coord objects will be returned for
+all selected objects.
+
+Required: the name of the catalog needs to be supplied through
+$args{'catalog'}
 
 =item user
 
@@ -145,27 +157,6 @@ Turn on debug output, including in called routines.
 =cut
 
 sub get_coords  {
-
-# Query OMP DB:
-#
-#         The coord objects from all MSBs of the requested projects are
-#         retrieved and returned. If objects{name}s have been specified
-#         only the coords of targets for which the name matches exactly
-#         will be returned.
-#
-# Read catalog:
-#
-#         The abbreviations RB, RJ, GA, RG are accepted for B1950, J2000,
-#         galactic, respectively. Coord objects will be returned for
-#         all selected objects.
-#
-#         Required: the name of the catalog needs to be supplied through
-#            $args{'catalog'}
-#
-# User supplied:
-#
-#         Return coord objects for all objects specified.
-
   # Parameters:
   my ($method, $projref, $objref, %args ) = @_;
   my @projids = @{$projref};
@@ -307,29 +298,25 @@ sub get_coords  {
 
 =item B<get_omp_coords>
 
-...
+Use:
+    my @coords = get_omp_coords( @sciprogs, @objects, %args );
+
+Parameters:
+
+    @sciprogs:  array of science project objects
+    @objects:   array of hashes with names of selective targets
+                to find (optional)
+    %args:      hash with optional arguments:
+                msbmode: select [ "All" | "Active" | "Completed" ]
+                         msbs. Default "All".
+                telescope: if provided, will be added to coord object
+
+Returned: array of coord objects with targets.
 
 =cut
 
 sub get_omp_coords {
-
-
-  # Use:  my @coords = get_omp_coords( @sciprogs, @objects, %args );
-  #
-  # Parameters:
-  #    @sciprogs:  array of science project objects
-  #    @objects:   array of hashes with names of selective targets
-  #                to find (optional)
-  #    %args:      hash with optional arguments:
-  #                msbmode: select [ "All" | "Active" | "Completed" ]
-  #                         msbs. Default "All".
-  #                telescope: if provided, will be added to coord object
-  #
-  # Returned:
-  #                array of coord objects with targets.
-
   # Set up defaults
-
   my %defaults = (
      'msbmode'   => "all",        # msbs to retrieve:
                                 #      [all | active | completed]
@@ -483,26 +470,23 @@ sub get_omp_coords {
 
 =item B<get_catalog_coords>
 
-...
+Use:
+    my @coords = get_catalog_coords( \@projids,
+                                     \@objects,
+                                     catalog => $catalog, %args );
+
+Parameters:
+    @projids:   array with project ids
+    @objects:   array with names of selective targets find (optional)
+    {catalog}:  Name of the catalog (can also be given through %args)
+    %args:      hash with optional arguments:
+                telescope: if provided, will be added to coord object
+
+Returned: array of coord objects with targets.
 
 =cut
 
 sub get_catalog_coords {
-
-  # Use:  my @coords = get_catalog_coords( \@projids,
-  #                                        \@objects,
-  #                                        catalog => $catalog, %args );
-  #
-  # Parameters:
-  #    @projids:   array with project ids
-  #    @objects:   array with names of selective targets find (optional)
-  #    {catalog}:  Name of the catalog (can also be given through %args)
-  #    %args:      hash with optional arguments:
-  #                telescope: if provided, will be added to coord object
-  #
-  # Returned:
-  #                array of coord objects with targets.
-
   # Set up defaults
   my %defaults = (
      'telescope' => "TELUNKNOWN"   # telescope not provided
@@ -657,46 +641,42 @@ sub get_catalog_coords {
 
 =item B<parse_coords>
 
-...
+Use:
+   %target = parse_coords(catalog_line)
+
+Returned target hash: {name}, {ra}, {dec}, {coordsys}
+
+Purpose: Parse a relatively free format coordinate line
+
+Decode line which is expected to be something like:
+    RA-field(s) [+,-] Dec-field(s) [Epoch]  e.g.
+
+    hr min sec [+,-] deg amin asec [RB]   or
+    hr:min     [+,-] deg:amin:asec J1986 or
+    ra.rrrrr [-]dec.ddddd
+
+Hence, format of the R.A. and Dec fields is relatively free.
+The logic is that any [+,-] indicate the start of Dec fields and
+any [RB] or [B,J]#### or any number [1900,2099] the start of the
+epoch field. Hence there are a maximum 7 numerical items expected on
+the line, with nitem (1-7) in the sequence as above.
+Parsing is helped by explicitly putting a '+' or '-' sign with Dec.
+In addition to the above it can also use the ":" character to
+delineate coordinate fields.
+
+Returned:
+
+    $ra, $dec: Right Ascention and Declination in radians.
+
+    $equinox, $epoch: 'B' Besselian, 'J' Julian, 'D' of date  and
+                      the epoch. The epoch will be '0' for 'D' and
+                      needs to be determined by the calling routine.
+
+    $status = -1: Can not decide on split between RA and Dec i.e.
+                  odd number numerical fields preceeding any equinox/
+                  epoch field without a sign indicator.
 
 =cut
-
-# **********************************************************************
-#   %target = parse_coords(catalog_line)
-#
-#   Returned target hash: {name}, {ra}, {dec}, {coordsys}
-#
-#   Purpose : Parse a relatively free format coordinate line
-#
-#   Decode line which is expected to be something like:
-#        RA-field(s) [+,-] Dec-field(s) [Epoch]  e.g.
-#
-#        hr min sec [+,-] deg amin asec [RB]   or
-#        hr:min     [+,-] deg:amin:asec J1986 or
-#        ra.rrrrr [-]dec.ddddd
-#
-#   Hence, format of the R.A. and Dec fields is relatively free.
-#   The logic is that any [+,-] indicate the start of Dec fields and
-#   any [RB] or [B,J]#### or any number [1900,2099] the start of the
-#   epoch field. Hence there are a maximum 7 numerical items expected on
-#   the line, with nitem (1-7) in the sequence as above.
-#   Parsing is helped by explicitly putting a '+' or '-' sign with Dec.
-#   In addition to the above it can also use the ":" character to
-#   delineate coordinate fields.
-#
-#   Returned:
-#
-#      $ra, $dec:    Right Ascention and Declination in radians.
-#
-#      $equinox, $epoch: 'B' Besselian, 'J' Julian, 'D' of date  and
-#                    the epoch. The epoch will be '0' for 'D' and
-#                    needs to be determined by the calling routine.
-#
-#      $status = -1: Can not decide on split between RA and Dec i.e.
-#                    odd number numerical fields preceeding any equinox/
-#                    epoch field without a sign indicator.
-#
-# **********************************************************************
 
 sub parse_coords {
 
