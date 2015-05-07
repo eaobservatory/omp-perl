@@ -97,7 +97,7 @@ sub find_and_display_targets {
         my ($sign,    @dd) = palDr2af(2, $dec);
 
         printf qq{%-12s %12s %8d"  %2.2d %2.2d %2.2d.%2.2d %1.1s%2.2d %2.2d %2.2d.%2.2d %8s\n},
-          $proj, $target, int($sep+0.5), $hh[0], $hh[1], $hh[2], $hh[3], 
+          $proj, $target, int($sep+0.5), $hh[0], $hh[1], $hh[2], $hh[3],
                          $sign, $dd[0], $dd[1], $dd[2], $dd[3], $instr;
       }
     }
