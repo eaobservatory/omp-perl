@@ -32,13 +32,17 @@ Finds and displays targets.
 sub find_and_display_targets {
     my %opt = @_;
 
-    my $proj  = $opt{'proj'};
-    my $radec = $opt{'radec'};
-    my $sep   = $opt{'sep'};
-    my $tel   = $opt{'tel'};
-    my $sem   = $opt{'sem'};
-    my $dsep  = $opt{'dsep'};
+    my $proj  = $opt{'proj'}
+              ? '@proj=\'' . $opt{'proj'} . '\''
+              : '';
+    my $radec = ($opt{'ra'} and $opt{'dec'})
+              ? '@ra=\'' . $opt{'ra'} . '\',@dec=\'' . $opt{'dec'} . '\''
+              : '';
+    my $dsep  = $opt{'sep'};
+    my $tel   = '@tel=\'' . $opt{'tel'} . '\'';
+    my $sem   = '@sem=\'' . $opt{'sem'} . '\'';
 
+    my $sep    = '@sep=' . $dsep;
     my $sqlcmd = "ompfindtarget ${proj}${radec},${sep},${tel},${sem}";
     $sqlcmd =~ s/(\,)+/\,/g;
     $sqlcmd =~ s/\,$//;

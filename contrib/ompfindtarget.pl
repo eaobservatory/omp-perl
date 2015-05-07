@@ -110,8 +110,8 @@ if (defined($help)) {
 # Ra, Dec, Project:
 my $proj = "";
 if ( $prj =~ /^([\w\/\*]+)$/ ) {
-  $prj = uc $prj;
-  $proj = "\@proj='$prj'";
+  $proj = uc $1;
+  $proj =~ s/\*/\&/g;
 } elsif ( defined $prj ) {
   die qq {
 --------------------------------------------------------------
@@ -119,32 +119,47 @@ if ( $prj =~ /^([\w\/\*]+)$/ ) {
 --------------------------------------------------------------
 };
 }
-$proj =~ s/\*/\&/g;
 print "Projectid: $proj\n" if ($debug);
 
-my $radec = "";
-if ($proj eq "" && $rra =~ /^([\d\:\.\ ]+)$/ && $ddec =~ /^([\d\-\:\.\ ]+)$/ ) {
-  $rra  .= ' 00' if (length $rra < 7);
-  $ddec .= ' 00' if (length $ddec < 7);
-  $rra  .= ' 00' if (length $rra < 7);
-  $ddec .= ' 00' if (length $ddec < 7);
-  $radec = "\@ra='$rra',\@dec='$ddec'";
-  $radec =~ s/\:/\ /g;
-} elsif ( $proj eq "" && (defined $rra || defined $ddec) ) {
-  die qq {
+my $ra = "";
+my $dec = "";
+if ($proj eq "" && (defined $rra || defined $ddec)) {
+  if ($rra =~ /^([\d\:\.\ ]+)$/) {
+    $ra = $1;
+  }
+  else {
+    die qq {
 --------------------------------------------------------------
- Error:       Invalid format for ra and/or dec:\t '$rra' '$ddec'
+ Error:       Invalid format for ra: '$rra'
 --------------------------------------------------------------
 };
+  }
+
+  if ($ddec =~ /^([\d\-\:\.\ ]+)$/ ) {
+    $dec = $1;
+  }
+  else {
+    die qq {
+--------------------------------------------------------------
+ Error:       Invalid format for dec: '$ddec'
+--------------------------------------------------------------
+};
+  }
+
+  $ra  .= ' 00' if (length $ra < 7);
+  $dec .= ' 00' if (length $dec < 7);
+  $ra  .= ' 00' if (length $ra < 7);
+  $dec .= ' 00' if (length $dec < 7);
+  $ra  =~ s/\:/\ /g;
+  $dec =~ s/\:/\ /g;
 }
-print "RA Dec: $radec\n" if ($debug);
+
+print "RA Dec: $ra / $dec\n" if ($debug);
 
 # Separation:
-my $dsep = 600;
-my $sep = "\@sep=${dsep}";
+my $sep = 600;
 if ( $ssep =~ /^(\d+)$/ ) {
-  $sep = "\@sep=$ssep";
-  $dsep = $ssep;
+  $sep = $1;
 } elsif ( defined $ssep ) {
   die qq {
 --------------------------------------------------------------
@@ -155,10 +170,11 @@ if ( $ssep =~ /^(\d+)$/ ) {
 print "Separation: $sep arcsecs\n" if ($debug);
 
 # Telescope:
-my $tel = "\@tel='UKIRT'";
-if ( $ttel =~ /^[u,j]/i ) {
-  $ttel = uc $ttel;
-  $tel = "\@tel='$ttel'";
+my $tel = "UKIRT";
+if ( $ttel =~ /^u/i ) {
+  # Is default: do nothing.
+} elsif ( $ttel =~ /^j/i ) {
+  $tel = "JCMT";
 } elsif ( $ttel =~ /^a/i ) {
   $tel = "";                    # Wildcard is default 
 } elsif ( defined $ttel ) {
@@ -173,9 +189,8 @@ print "Telescope: $tel\n" if ($debug);
 # Semester:
 my ($sem, $psem) = find_semester();
 
-if ( $ssem =~ /^([\d\*\&])+[AB]$/i ) {
-  $ssem = uc $ssem;
-  $sem = "\@sem='$ssem'";
+if ( $ssem =~ /^([\d\*\&]+[AB])$/i ) {
+  $sem = uc $1;
 } elsif ( $ssem =~ /^a/i ) {
   $sem = "";                     # Empty string defaults to all
 } elsif ( defined $ssem ) {
@@ -188,7 +203,7 @@ if ( $ssem =~ /^([\d\*\&])+[AB]$/i ) {
 $sem =~ s/\*/\&/g;
 print "Semester: $sem\n" if ($debug);
 
-unless ( $radec ne "" || $proj ne "" ) {
+unless ( ($ra ne "" && $dec ne "")  || $proj ne "" ) {
   die qq {
 --------------------------------------------------------------
  Error:       You must specify ra \& dec or a science program.
@@ -199,11 +214,11 @@ unless ( $radec ne "" || $proj ne "" ) {
 
 find_and_display_targets(
     proj  => $proj,
-    radec => $radec,
+    ra    => $ra,
+    dec   => $dec,
     sep   => $sep,
     tel   => $tel,
     sem   => $sem,
-    dsep  => $dsep,
 );
 
 sub find_semester {
@@ -226,7 +241,5 @@ sub find_semester {
       $psem = "${year}A";
   }
 
-  $sem = "\@sem='$sem'";
-  $psem = "\@psem='$psem'";
   return($sem, $psem);
 }
