@@ -208,7 +208,7 @@ sub _show_plot {
     $labpos =~ s/\ /\\\+/g;
 
     if (@msg) {
-        print $q->p(@msg);
+        print $q->p(\@msg);
     }
     else {
         # Open catalog and extract object from project to temporary catalog
