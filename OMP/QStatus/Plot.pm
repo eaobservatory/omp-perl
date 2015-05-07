@@ -46,7 +46,7 @@ Output file (passed on to Astro::SourcePlot::sourceplot).
 
 Text to be printed before the image is output.
 
-=item device
+=item hdevice
 
 PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
 
