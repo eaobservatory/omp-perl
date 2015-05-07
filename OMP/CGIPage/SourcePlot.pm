@@ -155,9 +155,6 @@ Prints HTML to show the source plot.
 sub _show_plot {
     my $q = shift;
 
-    # Work out semester
-    my ($sem,$psem) = &find_semester();
-
     my $projid = "";
     my $utdate = "";
     my $object = "";
@@ -240,37 +237,6 @@ sub _show_plot {
         #print $q->h2($projid),
         #      $q->p($q->img({src => '', alt => 'OMP source plot'}));
     }
-}
-
-=item find_semester
-
-Finds the current semester.
-
-B<TODO:> replace this with the standard OMP semester detection method.
-
-=cut
-
-sub find_semester {
-
-  my ($us, $um, $uh, $md, $mo, $yr, $wd, $yd, $isdst) = gmtime(time);
-  my $ut = 10000*(1900+$yr)+100*($mo+1)+($md);
-  my $year = substr($ut,2,2);
-  my $pyear = substr(($ut-10000),2,2);
-  my $monthday= substr($ut,4,4);
-
-  my ($sem, $psem);
-  if ( $monthday > 201 && $monthday < 802 ) {
-      $sem = "m${year}a";
-      $psem = "m${pyear}b";
-  } elsif  ( $monthday < 202 ) {
-      $sem = "m${pyear}b";
-      $psem = "m${pyear}a";
-  } else {
-      $sem = "m${year}b";
-      $psem = "m${year}a";
-  }
-
-  return($sem, $psem);
 }
 
 1;
