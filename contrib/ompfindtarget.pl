@@ -24,6 +24,7 @@ use strict;
 use Getopt::Long;
 
 use OMP::Config;
+use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
 
 OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
@@ -187,7 +188,7 @@ if ( $ttel =~ /^u/i ) {
 print "Telescope: $tel\n" if ($debug);
 
 # Semester:
-my ($sem, $psem) = find_semester();
+my $sem = OMP::DateTools->determine_semester(tel => $tel);
 
 if ( $ssem =~ /^([\d\*\&]+[AB])$/i ) {
   $sem = uc $1;
@@ -220,26 +221,3 @@ find_and_display_targets(
     tel   => $tel,
     sem   => $sem,
 );
-
-sub find_semester {
-
-  my ($us, $um, $uh, $md, $mo, $yr, $wd, $yd, $isdst) = gmtime(time);
-  my $ut = 10000*(1900+$yr)+100*($mo+1)+($md);
-  my $year = substr($ut,2,2);
-  my $pyear = substr(($ut-10000),2,2);
-  my $monthday= substr($ut,4,4);
-
-  my ($sem, $psem);
-  if ( $monthday > 201 && $monthday < 802 ) {
-      $sem = "${year}A";
-      $psem = "${pyear}B";
-    } elsif  ( $monthday < 202 ) {
-      $sem = "${pyear}B";
-      $psem = "${pyear}A";
-    } else {
-      $sem = "${year}B";
-      $psem = "${year}A";
-  }
-
-  return($sem, $psem);
-}
