@@ -824,14 +824,6 @@ sub parse_coords {
 
 =back
 
-=head1 NOTES
-
-Currently only supports PGPLOT devices.
-
-=head1 TODO
-
-Support Tk widgets.
-
 =head1 SEE ALSO
 
 L<Astro::Coords>
