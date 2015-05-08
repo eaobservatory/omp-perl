@@ -23,12 +23,12 @@ use OMP::QStatus qw/query_queue_status/;
 
 our @EXPORT_OK = qw/create_queue_status_plot/;
 
-=item create_queue_status_plot(%opts)
+=item create_queue_status_plot($proj_msb, $utmin, $utmax, %opts)
 
 Generate a plot showing MSB queue status via Astro::SourcePlot.
 
-Options other than the following are passed on to
-OMP::QStatus::query_queue_status.
+Takes the 3 arguments from OMP::QStatus::query_queue_status
+(in "return_proj_msb" mode), plus the following options:
 
 =over 4
 
@@ -45,15 +45,14 @@ PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
 =cut
 
 sub create_queue_status_plot {
+    my $proj_msb = shift;
+    my $utmin = shift;
+    my $utmax = shift;
     my %opt = @_;
 
     # Extract plotting options from options hash.
-    my $output = delete $opt{'output'} || '';
-    my $hdevice = delete $opt{'hdevice'} || '/XW';
-
-    # Pass remaining options to query_queue_status.
-    my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %opt);
+    my $output = $opt{'output'} || '';
+    my $hdevice = $opt{'hdevice'} || '/XW';
 
     # Collect the coordinates from each MSB found.
     my @coords = ();

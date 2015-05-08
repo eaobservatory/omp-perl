@@ -20,6 +20,7 @@ use OMP::General;
 use OMP::ProjAffiliationDB qw/%AFFILIATION_NAMES/;
 use OMP::ProjDB;
 use OMP::SiteQuality;
+use OMP::QStatus qw/query_queue_status/;
 use OMP::QStatus::Plot qw/create_queue_status_plot/;
 
 our $telescope = 'JCMT';
@@ -104,13 +105,17 @@ sub view_queue_status_output {
         }
     };
 
+    # Pass options to query_queue_status.
+    my ($proj_msb, $utmin, $utmax) = query_queue_status(
+        return_proj_msb => 1, %opt);
+
     print
         $q->h2('Search results'),
         $q->p(capture_png_as_img($q, sub {
             create_queue_status_plot(
+                $proj_msb, $utmin, $utmax,
                 output => '-',
                 hdevice => '/PNG',
-                %opt,
             );
         }));
 }
