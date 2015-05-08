@@ -40,56 +40,7 @@ sub view_queue_status {
     my $q = shift;
     my %cookie = @_;
 
-    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
-    my $semester = OMP::DateTools->determine_semester();
-    my @semesters = $db->listSemesters();
-    unshift @semesters, $semester unless grep {$_ eq $semester} @semesters;
-
-    my @countries = ('Any', grep {! /^ *$/ || /^serv$/i} $db->listCountries());
-
-    my @affiliation_codes = ('Any',
-      sort {$AFFILIATION_NAMES{$a} cmp $AFFILIATION_NAMES{$b}}
-      keys %AFFILIATION_NAMES);
-    my %affiliation_names = (Any => 'Any', %AFFILIATION_NAMES);
-
-    my @instruments = qw/Any SCUBA-2 HARP RXA3/;
-
-    print $q->h2('View Queue Status'),
-          $q->start_form(),
-          $q->p(
-              $q->b('Semester'),
-              $q->popup_menu(-name => 'semester',
-                             -values => \@semesters,
-                             -default => $semester)),
-          $q->p(
-              $q->b('Country'),
-              $q->popup_menu(-name => 'country',
-                             -values => \@countries,
-                             -default => 'Any')),
-          $q->p(
-              $q->b('Affiliation'),
-              $q->popup_menu(-name => 'affiliation',
-                             -values => \@affiliation_codes,
-                             -default => 'Any',
-                             -labels => \%affiliation_names)),
-          $q->p(
-              $q->b('Instrument'),
-              $q->popup_menu(-name => 'instrument',
-                             -values => \@instruments,
-                             -default => 'Any')),
-          $q->p(
-              $q->b('Band'),
-              $q->popup_menu(-name => 'band',
-                             -values => [qw/Any 1 2 3 4 5/],
-                             -default => 'Any')),
-          $q->p(
-              $q->b('Date'),
-              $q->textfield(-name => 'date', -default => ''),
-              '(default today)'),
-          $q->p(
-            $q->hidden(-name => 'show_output', -value => 'true'),
-            $q->submit(-value => 'Plot')),
-          $q->end_form();
+    _show_input_page($q);
 }
 
 =item B<view_queue_status_output>
@@ -101,6 +52,8 @@ Outputs the queue status plot.
 sub view_queue_status_output {
     my $q = shift;
     my %cookie = @_;
+
+    _show_input_page($q);
 
     my %opt = (telescope => $telescope);
 
@@ -166,7 +119,70 @@ sub view_queue_status_output {
 
 =back
 
+=head2 Private Subroutines
+
+=over 4
+
+=item _show_input_page
+
+Shows the input parameters form.
+
 =cut
+
+sub _show_input_page {
+    my $q = shift;
+
+    my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
+    my $semester = OMP::DateTools->determine_semester();
+    my @semesters = $db->listSemesters();
+    unshift @semesters, $semester unless grep {$_ eq $semester} @semesters;
+
+    my @countries = ('Any', grep {! /^ *$/ || /^serv$/i} $db->listCountries());
+
+    my @affiliation_codes = ('Any',
+      sort {$AFFILIATION_NAMES{$a} cmp $AFFILIATION_NAMES{$b}}
+      keys %AFFILIATION_NAMES);
+    my %affiliation_names = (Any => 'Any', %AFFILIATION_NAMES);
+
+    my @instruments = qw/Any SCUBA-2 HARP RXA3/;
+
+    print $q->h2('View Queue Status'),
+          $q->start_form(),
+          $q->p(
+              $q->b('Semester'),
+              $q->popup_menu(-name => 'semester',
+                             -values => \@semesters,
+                             -default => $semester)),
+          $q->p(
+              $q->b('Country'),
+              $q->popup_menu(-name => 'country',
+                             -values => \@countries,
+                             -default => 'Any')),
+          $q->p(
+              $q->b('Affiliation'),
+              $q->popup_menu(-name => 'affiliation',
+                             -values => \@affiliation_codes,
+                             -default => 'Any',
+                             -labels => \%affiliation_names)),
+          $q->p(
+              $q->b('Instrument'),
+              $q->popup_menu(-name => 'instrument',
+                             -values => \@instruments,
+                             -default => 'Any')),
+          $q->p(
+              $q->b('Band'),
+              $q->popup_menu(-name => 'band',
+                             -values => [qw/Any 1 2 3 4 5/],
+                             -default => 'Any')),
+          $q->p(
+              $q->b('Date'),
+              $q->textfield(-name => 'date', -default => ''),
+              '(default today)'),
+          $q->p(
+            $q->hidden(-name => 'show_output', -value => 'true'),
+            $q->submit(-value => 'Plot')),
+          $q->end_form();
+}
 
 1;
 
