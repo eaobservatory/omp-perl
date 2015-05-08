@@ -122,15 +122,20 @@ sub view_queue_status_output {
         $proj_msb_filt = $proj_msb;
     }
 
-    print
-        $q->h2('Search results'),
-        $q->p(capture_png_as_img($q, sub {
-            create_queue_status_plot(
-                $proj_msb_filt, $utmin, $utmax,
-                output => '-',
-                hdevice => '/PNG',
-            );
-        }));
+    print $q->h2('Search results');
+
+    if (%$proj_msb_filt) {
+        print $q->p(capture_png_as_img($q, sub {
+                create_queue_status_plot(
+                    $proj_msb_filt, $utmin, $utmax,
+                    output => '-',
+                    hdevice => '/PNG',
+                );
+            }));
+    }
+    else {
+        print $q->p($q->i('No observations found'));
+    }
 }
 
 =back
