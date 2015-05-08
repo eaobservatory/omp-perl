@@ -15,6 +15,7 @@ done by OMP::GetCoords::Plot module.
 
 use strict;
 
+use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
 use OMP::GetCoords::Plot qw/plot_sources/;
 
 use CGI;
@@ -47,7 +48,7 @@ sub view_source_plot_output {
     my $q = shift;
     my %cookie = @_;
 
-    #_show_inputpage($q);
+    _show_inputpage($q);
     _show_plot($q);
 }
 
@@ -226,16 +227,15 @@ sub _show_plot {
         $opt{'agrid'} = $agrid  if (defined $agrid && $agrid ne "");
         $opt{'label'} = $labpos if (defined $labpos && $labpos ne "");
 
-        print $q->header(-type => 'image/png');
-
-        plot_sources(
-            output => '-',
-            hdevice => '/PNG',
-            %opt,
-        );
-
-        #print $q->h2($projid),
-        #      $q->p($q->img({src => '', alt => 'OMP source plot'}));
+        print
+            $q->h2($projid),
+            $q->p(capture_png_as_img($q, sub {
+                plot_sources(
+                    output => '-',
+                    hdevice => '/PNG',
+                    %opt,
+                );
+            }));
     }
 }
 

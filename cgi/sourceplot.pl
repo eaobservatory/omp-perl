@@ -26,4 +26,4 @@ $ompcgi->html_title("$title: Source Plot");
 
 $ompcgi->write_page_staff(\&OMP::CGIPage::SourcePlot::view_source_plot,
                           \&OMP::CGIPage::SourcePlot::view_source_plot_output,
-                          1, 1);
+                          1);
