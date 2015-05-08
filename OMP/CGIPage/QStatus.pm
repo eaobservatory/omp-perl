@@ -9,12 +9,10 @@ OMP::CGIPage::QStatus - Plot the queue status
 use strict;
 use warnings;
 
-use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
-use OMP::QStatus::Plot;
-
 use CGI;
 use CGI::Carp qw/fatalsToBrowser/;
 
+use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
 use OMP::CGIDBHelper;
 use OMP::DBbackend;
 use OMP::DateTools;
