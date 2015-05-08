@@ -19,8 +19,6 @@ $ENV{PGPLOT_DIR} = '/star/bin' unless exists $ENV{PGPLOT_DIR};
 $ENV{PGPLOT_FONT} = '/star/bin/grfont.dat' unless exists $ENV{PGPLOT_FONT};
 
 use Astro::SourcePlot qw/sourceplot/;
-use OMP::DBbackend;
-use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
 use OMP::QStatus qw/query_queue_status/;
 
 our @EXPORT_OK = qw/create_queue_status_plot/;
@@ -33,10 +31,6 @@ Options other than the following are passed on to
 OMP::QStatus::query_queue_status.
 
 =over 4
-
-=item affiliation
-
-Affiliation code.
 
 =item output
 
@@ -53,19 +47,6 @@ PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
 sub create_queue_status_plot {
     my %opt = @_;
 
-    # Are we searching for a particular affiliation?  If so read the list
-    # of project affiliations.
-    my $affiliation = delete $opt{'affiliation'};
-    my $affiliations = undef;
-    if ($affiliation) {
-        die 'Unknown affiliation "' . $affiliation .'"'
-            unless grep {$_ eq $affiliation} @AFFILIATIONS;
-
-        my $affiliation_db = new OMP::ProjAffiliationDB(
-            DB => new OMP::DBbackend());
-        $affiliations = $affiliation_db->get_all_affiliations();
-    }
-
     # Extract plotting options from options hash.
     my $output = delete $opt{'output'} || '';
     my $hdevice = delete $opt{'hdevice'} || '/XW';
@@ -78,10 +59,6 @@ sub create_queue_status_plot {
     my @coords = ();
 
     foreach my $proj (sort keys %$proj_msb) {
-        if (defined $affiliation) {
-            next unless exists $affiliations->{$proj}->{$affiliation};
-        }
-
         foreach my $msb (values %{$proj_msb->{$proj}}) {
             foreach my $obs ($msb->observations()) {
                 foreach my $coord ($obs->coords()) {

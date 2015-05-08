@@ -23,6 +23,7 @@ use OMP::DateSun;
 use OMP::DBbackend;
 use OMP::MSBDB;
 use OMP::MSBQuery;
+use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
 
 our @EXPORT_OK = qw/query_queue_status/;
 
@@ -66,6 +67,10 @@ Optional.
 
 Optional.
 
+=item affiliation
+
+Affiliation code (optional).
+
 =item return_proj_msb
 
 If specified, return a reference to a hash of projects giving hashes of MSBs
@@ -96,6 +101,18 @@ sub query_queue_status {
     # Create MSB database instance
     my $backend = new OMP::DBbackend();
     my $db = new OMP::MSBDB(DB => $backend);
+
+    # Are we searching for a particular affiliation?  If so read the list
+    # of project affiliations.
+    my $affiliation = $opt{'affiliation'};
+    my $affiliations = undef;
+    if ($affiliation) {
+        die 'Unknown affiliation "' . $affiliation .'"'
+            unless grep {$_ eq $affiliation} @AFFILIATIONS;
+
+        my $affiliation_db = new OMP::ProjAffiliationDB(DB => $backend);
+        $affiliations = $affiliation_db->get_all_affiliations();
+    }
 
     # The hour range for queries should be restricted by the freetimeut
     # parameter from the config system, unless the -fullday command line
@@ -156,6 +173,12 @@ sub query_queue_status {
 
         for my $msb (@results) {
             my $p = $msb->projectid();
+
+            # If we have an affiliation constraint, apply it now.
+            if (defined $affiliation) {
+                next unless exists $affiliations->{$p}->{$affiliation};
+            }
+
             # init array
             $projq{$p} = [map {0} (0..23)] unless exists $projq{$p};
 
