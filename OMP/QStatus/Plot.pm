@@ -42,10 +42,6 @@ Affiliation code.
 
 Output file (passed on to Astro::SourcePlot::sourceplot).
 
-=item output_header
-
-Text to be printed before the image is output.
-
 =item hdevice
 
 PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
@@ -73,7 +69,6 @@ sub create_queue_status_plot {
     # Extract plotting options from options hash.
     my $output = delete $opt{'output'} || '';
     my $hdevice = delete $opt{'hdevice'} || '/XW';
-    my $output_header = delete $opt{'output_header'};
 
     # Pass remaining options to query_queue_status.
     my ($proj_msb, $utmin, $utmax) = query_queue_status(
@@ -109,12 +104,6 @@ sub create_queue_status_plot {
               + $time_mid->second();
 
     $time_mid = 24 * 3600 - $time_mid if $time_mid > 12 * 3600;
-
-    # Output header once we are ready to create the plot.
-    if (defined $output_header) {
-        local $| = 1;
-        print $output_header;
-    }
 
     # Create the plot.
     sourceplot(
