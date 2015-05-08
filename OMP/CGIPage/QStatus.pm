@@ -152,39 +152,50 @@ sub _show_input_page {
     print
         $q->h2('View Queue Status'),
         $q->start_form(),
-        $q->p(
-            $q->b('Semester'),
-            $q->popup_menu(-name => 'semester',
-                           -values => \@semesters,
-                           -default => $semester)),
-        $q->p(
-            $q->b('Country'),
-            $q->popup_menu(-name => 'country',
-                           -values => \@countries,
-                           -default => 'Any')),
-        $q->p(
-            $q->b('Affiliation'),
-            $q->popup_menu(-name => 'affiliation',
-                           -values => \@affiliation_codes,
-                           -default => 'Any',
-                           -labels => \%affiliation_names)),
-        $q->p(
-            $q->b('Instrument'),
-            $q->popup_menu(-name => 'instrument',
-                           -values => \@instruments,
-                           -default => 'Any')),
-        $q->p(
-            $q->b('Band'),
-            $q->popup_menu(-name => 'band',
-                           -values => [qw/Any 1 2 3 4 5/],
-                           -default => 'Any')),
-        $q->p(
-            $q->b('Date'),
-            $q->textfield(-name => 'date', -default => ''),
-            '(default today)'),
-        $q->p(
-          $q->hidden(-name => 'show_output', -value => 'true'),
-          $q->submit(-value => 'Plot')),
+        $q->table(
+            $q->Tr([
+                $q->td([
+                    $q->b('Semester'),
+                    $q->popup_menu(-name => 'semester',
+                                   -values => \@semesters,
+                                   -default => $semester)
+                ]),
+                $q->td([
+                    $q->b('Country'),
+                    $q->popup_menu(-name => 'country',
+                                   -values => \@countries,
+                                   -default => 'Any')
+                ]),
+                $q->td([
+                    $q->b('Affiliation'),
+                    $q->popup_menu(-name => 'affiliation',
+                                   -values => \@affiliation_codes,
+                                   -default => 'Any',
+                                   -labels => \%affiliation_names)
+                ]),
+                $q->td([
+                    $q->b('Instrument'),
+                    $q->popup_menu(-name => 'instrument',
+                                   -values => \@instruments,
+                                   -default => 'Any')
+                ]),
+                $q->td([
+                    $q->b('Band'),
+                    $q->popup_menu(-name => 'band',
+                                   -values => [qw/Any 1 2 3 4 5/],
+                                   -default => 'Any')
+                ]),
+                $q->td([
+                    $q->b('Date'),
+                    $q->textfield(-name => 'date', -default => '') .
+                        ' (default today)'
+                ]),
+                $q->td([
+                  $q->hidden(-name => 'show_output', -value => 'true'),
+                  $q->submit(-value => 'Plot')
+                ]),
+            ]),
+        ),
         $q->end_form();
 }
 
