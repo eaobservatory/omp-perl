@@ -9,6 +9,7 @@ OMP::CGIPage::QStatus - Plot the queue status
 use strict;
 use warnings;
 
+use OMP::CGIComponent::CaptureImage qw/capture_png_as_img/;
 use OMP::QStatus::Plot;
 
 use CGI;
@@ -152,12 +153,15 @@ sub view_queue_status_output {
         }
     };
 
-    create_queue_status_plot(
-        output => '-',
-        hdevice => '/PNG',
-        output_header => $q->header(-type => 'image/png'),
-        %opt,
-    );
+    print
+        $q->h2('Search results'),
+        $q->p(capture_png_as_img($q, sub {
+            create_queue_status_plot(
+                output => '-',
+                hdevice => '/PNG',
+                %opt,
+            );
+        }));
 }
 
 =back
