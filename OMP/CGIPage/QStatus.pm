@@ -52,8 +52,6 @@ sub view_queue_status_output {
     my $q = shift;
     my %cookie = @_;
 
-    _show_input_page($q);
-
     my %opt = (telescope => $telescope);
 
     do {
@@ -109,11 +107,26 @@ sub view_queue_status_output {
     my ($proj_msb, $utmin, $utmax) = query_queue_status(
         return_proj_msb => 1, %opt);
 
+    _show_input_page($q, project => [sort keys %$proj_msb]);
+
+    my @project = $q->param('project');
+    my $proj_msb_filt = {};
+    if (scalar @project) {
+        # Filter hash by project.
+        foreach (@project) {
+            $proj_msb_filt->{$_} = $proj_msb->{$_} if exists $proj_msb->{$_};
+        }
+    }
+    else {
+        # No filter to apply.
+        $proj_msb_filt = $proj_msb;
+    }
+
     print
         $q->h2('Search results'),
         $q->p(capture_png_as_img($q, sub {
             create_queue_status_plot(
-                $proj_msb, $utmin, $utmax,
+                $proj_msb_filt, $utmin, $utmax,
                 output => '-',
                 hdevice => '/PNG',
             );
@@ -134,6 +147,7 @@ Shows the input parameters form.
 
 sub _show_input_page {
     my $q = shift;
+    my %opt = @_;
 
     my $db = new OMP::ProjDB(DB => new OMP::DBbackend());
     my $semester = OMP::DateTools->determine_semester();
@@ -149,17 +163,26 @@ sub _show_input_page {
 
     my @instruments = qw/Any SCUBA-2 HARP RXA3/;
 
+    my @project = (exists $opt{'project'}) ? @{$opt{'project'}} : ();
+
     print
         $q->h2('View Queue Status'),
         $q->start_form(),
         $q->table(
             $q->Tr([
-                $q->td([
-                    $q->b('Semester'),
-                    $q->popup_menu(-name => 'semester',
-                                   -values => \@semesters,
-                                   -default => $semester)
-                ]),
+                $q->td($q->b('Semester')) .
+                    $q->td($q->popup_menu(-name => 'semester',
+                                          -values => \@semesters,
+                                          -default => $semester)) .
+                    $q->td({-rowspan => 7}, (scalar @project)
+                        ? $q->b('Project') .
+                            $q->br() .
+                            $q->scrolling_list(-name => 'project',
+                                               -values => \@project,
+                                               -multiple => 1,
+                                               -size => 10)
+                        : $q->i('No projects from previous search')
+                    ),
                 $q->td([
                     $q->b('Country'),
                     $q->popup_menu(-name => 'country',
