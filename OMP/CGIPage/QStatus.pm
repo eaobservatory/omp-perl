@@ -299,8 +299,9 @@ sub _show_result_table_project {
                 }
 
                 push @row, [
-                    ($proj_first ? $msb->projectid()  : '&nbsp'),
-                    ($msb_first   ? $msb->title()     : '&nbsp'),
+                    ($proj_first ? _project_link($q, $msb->projectid())
+                                                      : '&nbsp'),
+                    ($msb_first  ? $msb->title()      : '&nbsp'),
                     ($coord->name()                   // 'Unnamed target'),
                     $ra, $dec, $type,
                     ($obs_first  ? $obs->instrument() : '&nbsp;'),
@@ -316,6 +317,23 @@ sub _show_result_table_project {
     }
 
     return $q->Tr(\%attrib, [map {$q->td($_)} @row]);
+}
+
+=item _project_link
+
+Returns HTML linking to a project.
+
+=cut
+
+sub _project_link {
+    my $q = shift;
+    my $project = shift;
+
+    return
+        $q->a({-href => 'projecthome.pl?urlprojid=' . $project}, $project) .
+        ' (' .
+        $q->a({-href => 'sourceplot.pl?projid=' . $project}, 'plot') .
+        ')';
 }
 
 1;
