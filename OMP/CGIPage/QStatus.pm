@@ -132,6 +132,8 @@ sub view_queue_status_output {
                     hdevice => '/PNG',
                 );
             }));
+
+        _show_result_table($q, $proj_msb, \@project);
     }
     else {
         print $q->p($q->i('No observations found'));
@@ -225,6 +227,95 @@ sub _show_input_page {
             ]),
         ),
         $q->end_form();
+}
+
+=item _show_result_table
+
+Shows a table of the query results.
+
+=cut
+
+sub _show_result_table {
+    my $q = shift;
+    my $proj_msb = shift;
+    my $proj_search = shift;
+
+    my @proj_shown = ();
+    my @proj_hidden = ();
+
+    my $no_filter = not scalar @$proj_search;
+
+    foreach my $project (sort keys %$proj_msb) {
+        if ($no_filter or grep {$_ eq $project} @$proj_search) {
+            push @proj_shown, $proj_msb->{$project};
+        }
+        else {
+            push @proj_hidden, $proj_msb->{$project};
+        }
+    }
+
+    print $q->table(
+        $q->Tr($q->th({-align => 'left'},
+            [qw/Project MSB Target RA Dec Type Instrument Tau Remaining Time Completion/])),
+        (map {_show_result_table_project($q, $_, 1)} @proj_shown),
+        (map {_show_result_table_project($q, $_, 0)} @proj_hidden),
+    );
+}
+
+=item _show_result_table_project
+
+Returns a section of results table for one project.
+
+=cut
+
+sub _show_result_table_project {
+    my $q = shift;
+    my $proj = shift;
+    my $shown = shift;
+
+    my %attrib = ();
+    $attrib{'-style'} ='opacity: 0.5' unless $shown;
+
+    my @row = ();
+    my $proj_first = 1;
+
+    foreach my $msb (values %$proj) {
+        my $msb_first = 1;
+        my $time = $msb->timeest();
+        $time = sprintf('%02i min %02i sec', int($time / 60), $time % 60);
+        my $completion = sprintf('%.1f %%', $msb->completion());
+
+        foreach my $obs ($msb->observations()) {
+            my $obs_first = 1;
+
+            foreach my $coord ($obs->coords()) {
+                my $type = $coord->type();
+                $type = 'RADEC' if $type eq 'INTERP';
+                my $ra = $type;
+                my $dec = $type;
+                unless ($type eq 'CAL' or $type eq 'AUTO-TLE') {
+                    $ra = $coord->ra();
+                    $dec = $coord->dec();
+                }
+
+                push @row, [
+                    ($proj_first ? $msb->projectid()  : '&nbsp'),
+                    ($msb_first   ? $msb->title()     : '&nbsp'),
+                    ($coord->name()                   // 'Unnamed target'),
+                    $ra, $dec, $type,
+                    ($obs_first  ? $obs->instrument() : '&nbsp;'),
+                    ($msb_first  ? $msb->tau()        : '&nbsp;'),
+                    ($msb_first  ? $msb->remaining()  : '&nbsp;'),
+                    ($msb_first  ? $time              : '&nbsp;'),
+                    ($proj_first ? $completion        : '&nbsp;'),
+                ];
+
+                $proj_first = $msb_first = $obs_first = 0;
+            }
+        }
+    }
+
+    return $q->Tr(\%attrib, [map {$q->td($_)} @row]);
 }
 
 1;
