@@ -19,32 +19,22 @@ $ENV{PGPLOT_DIR} = '/star/bin' unless exists $ENV{PGPLOT_DIR};
 $ENV{PGPLOT_FONT} = '/star/bin/grfont.dat' unless exists $ENV{PGPLOT_FONT};
 
 use Astro::SourcePlot qw/sourceplot/;
-use OMP::DBbackend;
-use OMP::ProjAffiliationDB qw/@AFFILIATIONS/;
 use OMP::QStatus qw/query_queue_status/;
 
 our @EXPORT_OK = qw/create_queue_status_plot/;
 
-=item create_queue_status_plot(%opts)
+=item create_queue_status_plot($proj_msb, $utmin, $utmax, %opts)
 
 Generate a plot showing MSB queue status via Astro::SourcePlot.
 
-Options other than the following are passed on to
-OMP::QStatus::query_queue_status.
+Takes the 3 arguments from OMP::QStatus::query_queue_status
+(in "return_proj_msb" mode), plus the following options:
 
 =over 4
-
-=item affiliation
-
-Affiliation code.
 
 =item output
 
 Output file (passed on to Astro::SourcePlot::sourceplot).
-
-=item output_header
-
-Text to be printed before the image is output.
 
 =item hdevice
 
@@ -55,38 +45,19 @@ PGPLOT device (passed on to Astro::SourcePlot::sourceplot).
 =cut
 
 sub create_queue_status_plot {
+    my $proj_msb = shift;
+    my $utmin = shift;
+    my $utmax = shift;
     my %opt = @_;
 
-    # Are we searching for a particular affiliation?  If so read the list
-    # of project affiliations.
-    my $affiliation = delete $opt{'affiliation'};
-    my $affiliations = undef;
-    if ($affiliation) {
-        die 'Unknown affiliation "' . $affiliation .'"'
-            unless grep {$_ eq $affiliation} @AFFILIATIONS;
-
-        my $affiliation_db = new OMP::ProjAffiliationDB(
-            DB => new OMP::DBbackend());
-        $affiliations = $affiliation_db->get_all_affiliations();
-    }
-
     # Extract plotting options from options hash.
-    my $output = delete $opt{'output'} || '';
-    my $hdevice = delete $opt{'hdevice'} || '/XW';
-    my $output_header = delete $opt{'output_header'};
-
-    # Pass remaining options to query_queue_status.
-    my ($proj_msb, $utmin, $utmax) = query_queue_status(
-        return_proj_msb => 1, %opt);
+    my $output = $opt{'output'} || '';
+    my $hdevice = $opt{'hdevice'} || '/XW';
 
     # Collect the coordinates from each MSB found.
     my @coords = ();
 
     foreach my $proj (sort keys %$proj_msb) {
-        if (defined $affiliation) {
-            next unless exists $affiliations->{$proj}->{$affiliation};
-        }
-
         foreach my $msb (values %{$proj_msb->{$proj}}) {
             foreach my $obs ($msb->observations()) {
                 foreach my $coord ($obs->coords()) {
@@ -109,12 +80,6 @@ sub create_queue_status_plot {
               + $time_mid->second();
 
     $time_mid = 24 * 3600 - $time_mid if $time_mid > 12 * 3600;
-
-    # Output header once we are ready to create the plot.
-    if (defined $output_header) {
-        local $| = 1;
-        print $output_header;
-    }
 
     # Create the plot.
     sourceplot(

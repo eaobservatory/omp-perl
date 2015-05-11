@@ -26,4 +26,4 @@ $ompcgi->html_title("$title: Queue Status");
 
 $ompcgi->write_page_staff(\&OMP::CGIPage::QStatus::view_queue_status,
                           \&OMP::CGIPage::QStatus::view_queue_status_output,
-                          1, 1);
+                          1);

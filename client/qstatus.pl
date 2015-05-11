@@ -40,6 +40,11 @@ telescope's normal operating hours.
 
 Semester to query. Defaults to current semester.
 
+=item B<--affiliation>
+
+Affiliation code.  If specified, only projects with this affiliation
+will be considered.
+
 =item B<-version>
 
 Report the version number.
@@ -78,12 +83,13 @@ use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
 # Options
-my ($help, $man, $version, $tel, $country, $semester, $full_day);
+my ($help, $man, $version, $tel, $country, $semester, $affiliation, $full_day);
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "country=s" => \$country,
                         "semester=s" => \$semester,
+                        'affiliation=s' => \$affiliation,
                         "tel=s" => \$tel,
                         'fullday' => \$full_day,
                        );
@@ -142,6 +148,7 @@ do {
         telescope => $telescope,
         country => $country,
         semester => $semester,
+        affiliation => $affiliation,
         full_day => $full_day,
     );
     %projq = %$q;

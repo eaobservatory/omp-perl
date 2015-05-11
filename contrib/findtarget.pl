@@ -32,24 +32,21 @@ OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
 # not 0: debug output
 my $debug = 0;
 
-# This routine can be used to mine coordinates in the OMP. 
-# Hence: only continue if permission for world is 'no access'
-# group is 'staff'.
+# Authorize access via staff password
+my $password = (exists $ENV{'STAFF_PASSWORD'})
+             ? $ENV{'STAFF_PASSWORD'} : undef;
+unless (defined $password) {
+    require Term::ReadLine;
+    my $term = new Term::ReadLine 'Find OMP targets';
 
-my ($dev,$ino,$fmode,$nlink,$uid,$gid,$rdev,$size,
-       $atime,$mtime,$ctime,$blksize,$blocks)
-           = stat($0);
-my $mode = sprintf "%04o", $fmode & 07777;
-my $world = substr $mode, (length $mode)-1, 1;
+    # Needs Term::ReadLine::Gnu
+    my $attribs = $term->Attribs;
+    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+    $password = $term->readline( "Please enter staff password: ");
+    $attribs->{redisplay_function} = $attribs->{rl_redisplay};
+}
 
-print "World: $world  Group: $gid\n" if ($debug);
-
-($world == 0 && $gid == 10) ||
-  die qq { 
--------------------------------------------------------------- 
-	Error:       ompfindtarget can only be used by 'staff'
--------------------------------------------------------------- 
-}; 
+OMP::Password->verify_staff_password($password);
 
 # Program name
 my $program = ( split( /\//, $0 ) )[-1];
