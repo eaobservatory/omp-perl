@@ -1,9 +1,22 @@
-
 SHELL='/jac_sw/bin/crabsh'
-MAILTO='jcmt_archive@jach.hawaii.edu'
+MAILTO='jcmt_archive@eao.hawaii.edu'
 SYBASE='/local/progs/sybase'
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/star/lib:/local/progs/sybase/lib"
 
-03 11 * * * /jac_sw/omp/msbserver/admin/db-dump-backup.sh
+20,50 * * * * CRABID=ingest-cso-tau /jac_sw/archiving/jcmt/ingest_csotau.pl
 
+00 08 * * * CRABID=submitted /local/perl/bin/perl /jac_sw/omp/msbserver/client/submitted.pl
 
+46 09,17 * * * CRABID=sp-cp-omp3 /usr/bin/scp -r omp3:/opt/omp/cache/sciprogs /export/data/jcmtdata/jcmtarch/ompbak/omp3/
+46 09,17 * * * CRABID=sp-cp-omp4 /usr/bin/scp -r omp4:/opt/omp/cache/sciprogs /export/data/jcmtdata/jcmtarch/ompbak/omp4/
+
+03 11    * * * CRABID=dump-backup /jac_sw/omp/msbserver/admin/db-dump-backup.sh
+36 22    * * * CRABID=dump-backup-X /jac_sw/omp/msbserver/admin/db-dump-backup.sh 2>&1
+
+30 12 14,28 * * CRABID=omp-bak /local/perl/bin/perl /jac_sw/omp/msbserver/admin/ompbak.pl
+
+10 16 * * * CRABID=observed /local/perl/bin/perl /jac_sw/omp/msbserver/client/observed.pl -yesterday
+
+50 07,10,13,15 * * * CRABID=jcmt-sync-1 CRABPIDFILE=/home/jcmtarch/lock/jcmt-sync-1-crab.pid /jac_sw/archiving/jcmt/jcmtsync.sh 2>&1
+05 15          * * * CRABID=jcmt-sync-2 CRABPIDFILE=/home/jcmtarch/lock/jcmt-sync-2-crab.pid /jac_sw/archiving/jcmt/jcmtsync.sh 2>&1
+37 07,10,13,15 * * * CRABID=s2-nonraw-sync /jac_sw/archiving/jcmt/scuba2-nonraw-sync.sh 2>&1

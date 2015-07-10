@@ -103,7 +103,7 @@ sub throwException {
     ->faultstring("$Estring")
       # Rebless the error into a sanitized class and add code key
       ->faultdetail(bless {%$E, code => $Enum} => $Eclass)
-	->faultactor('http://www.jach.hawaii.edu/JACpublic/software/OMP');
+	->faultactor('http://omp.eao.hawaii.edu/');
 
 }
 
