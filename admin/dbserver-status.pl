@@ -104,7 +104,7 @@ if ( ! scalar @addr ) {
 }
 elsif ( $title || $report ) {
 
-  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+  MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
   my $mail =
     MIME::Lite->new( 'From' => 'jcmtarch@eao.hawaii.edu',
                       'to'  => join( ', ', @addr ),
