@@ -212,7 +212,7 @@ if ($debug) {
 			       Subject => $subject,
 			       Data => $text, );
 
-    MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+    MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
 
     # Send the message
     $msg->send

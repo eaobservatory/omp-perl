@@ -244,7 +244,6 @@ sub send {
 
   # Send message (via Net::SMTP)
   my $mailhost = OMP::Config->getData("mailhost");
-  $mailhost = 'mailhost';
 
   my @sent;
   _logger( "Connecting to mailhost: $mailhost", OMP__LOG_INFO );

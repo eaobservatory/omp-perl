@@ -462,7 +462,7 @@ sub send_mail {
                                 Data => $msg,
                               );
 
-  MIME::Lite->send("smtp", "mailhost", Timeout => 30);
+  MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
 
   # Send the message
   $email->send
