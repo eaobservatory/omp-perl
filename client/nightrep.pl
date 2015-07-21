@@ -121,8 +121,8 @@ if ($version) {
   exit;
 }
 
-unless ( $use_cache )
-{
+unless ( $use_cache ) {
+
   require OMP::ArchiveDB;
   OMP::ArchiveDB::skip_cache_query();
 }
