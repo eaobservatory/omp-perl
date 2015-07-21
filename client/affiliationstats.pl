@@ -62,7 +62,8 @@ foreach my $project ($project_db->listProjects(
 
     $total += $observed;
 
-    push @projects, [$project_id, $observed, $project_affiliations];
+    push @projects, [$project_id, $observed, $project_affiliations,
+                     $project->pi()->name()];
 
     while (my ($affiliation, $fraction) = each %$project_affiliations) {
         $affiliations{$affiliation} =
@@ -76,11 +77,11 @@ printf "\nTotal time observed: %8.2f hours (projects with affiliations only)\n",
 print "\nProject observing time:\n\n";
 
 foreach my $info (sort {$b->[1] <=> $a->[1]} @projects) {
-    printf "%-10s %8.2f %s\n", $info->[0], $info->[1],
-        join ', ', map {
+    printf "%-10s %8.2f %-15s %s\n", $info->[0], $info->[1],
+        (join ', ', map {
             sprintf('%.0f%% %s', $info->[2]->{$_} * 100.0,
                 $AFFILIATION_NAMES{$_})
-        } keys %{$info->[2]};
+        } keys %{$info->[2]}), $info->[3];
 }
 
 print "\nAffiliation summary:\n\n";
