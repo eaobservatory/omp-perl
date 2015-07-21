@@ -18,8 +18,6 @@ use Pod::Usage;
 use lib "$FindBin::RealBin/..";
 use OMP::Config;
 
-# Check servers both at JAC & CADC by default.
-my ( $cadc, $jac ) = ( 1, 1);
 my ( $verbose, $track_time, $help, $short, $err_only, @addr ) = ( 0 );
 GetOptions( 'help'    => \$help,
             'e|error' => \$err_only,
@@ -28,8 +26,6 @@ GetOptions( 'help'    => \$help,
             'debug!'   => sub { @addr = () },
             'time'     => \$track_time,
             'verbose+' => \$verbose,
-            'cadc!'    => \$cadc,
-            'jac!'     => \$jac,
           )
           or pod2usage( '-exitval' => 2, '-verbose' => 1 );
 
@@ -71,29 +67,15 @@ my %jac =
         } ,
   );
 
-my %cadc =
-  ( 'db-server' => [ qw[ CADC_MAS CADC_STANDBY ] ] ,
-    'db' => [ qw[ jcmtmd ] ] ,
-    'config' =>
-        { 'file' => '/jac_sw/etc/jcmtmd-db.cfg' ,
-          'section' => 'database' ,
-        } ,
-  );
+my $jac = format_server_status( $err_only, check_server( %jac ) );
 
-$jac = format_server_status( $err_only, check_server( %jac ) )
- if $jac;
-
-$cadc = format_server_status( $err_only, check_server( %cadc ) )
-  if $cadc;
-
-my $title = make_title( $err_only, $jac, $cadc );
+my $title = make_title( $err_only, $jac );
 
 my $report =
   $short
   ? ''
   : join "\n",
       ( $jac ? $jac : () ),
-      ( $cadc ? $cadc : () )
   ;
 
 if ( ! scalar @addr ) {
@@ -176,9 +158,9 @@ BEGIN {
 
   sub make_title {
 
-    my ( $err_only, $jac, $cadc ) = @_;
+    my ( $err_only, $jac ) = @_;
 
-    if ( ! $jac && ! $cadc ) {
+    if ( ! $jac ) {
 
       return if $err_only;
 
@@ -189,7 +171,7 @@ BEGIN {
     # variable in void context".
     my $err =
       first { /$err_re/ }
-        map { defined $_ ? $_ : () } ( $jac, $cadc );
+        map { defined $_ ? $_ : () } ( $jac );
 
     return
       $err
@@ -212,7 +194,6 @@ sub check_server {
   my $cf = OMP::Config->new;
   $cf->configDatabase( $file );
 
-  my $cadc = qr{CADC};
   my $jac = qr{JAC};
 
   my @timearg = ( 1, indent(1) );
@@ -221,7 +202,7 @@ sub check_server {
   SERVER:
   for my $server ( @{ $place{'db-server'} } ) {
 
-    unless ( $server =~ $cadc || $server =~ $jac ) {
+    unless ( $server =~ $jac ) {
 
       $out{ $server } = [ qq[ERR UNKNOWN SERVER: $server] ];
       next SERVER;
@@ -419,11 +400,7 @@ Send output via mail ...
 Check only servers at JAC (output goes to standard out, no email is
 sent) ...
 
-  dbserver-status.pl -jac
-
-Check only servers at CADC ...
-
-  dbserver-status.pl -cadc
+  dbserver-status.pl
 
 
 =head1 DESCRIPTION
@@ -439,14 +416,6 @@ agent has been enabled.
 =item B<-help>
 
 Show this message.
-
-=item B<-nocadc>
-
-Skip database & servers at CADC.
-
-=item B<-nojac>
-
-Skip databases & servers at JAC.
 
 =item B<-debug>
 
