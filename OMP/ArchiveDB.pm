@@ -44,7 +44,9 @@ use Time::Piece;
 use Time::Seconds;
 use NDF;
 
-use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup $AnyDate /;
+use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup $AnyDate
+             $QueryCache $MakeCache
+            /;
 
 use Scalar::Util qw/ blessed /;
 use Data::Dumper;
@@ -54,6 +56,7 @@ our $VERSION = (qw$Revision$)[1];
 
 search_db_skip_today();
 search_files();
+use_cache();
 
 # Cache a hash of files that we've already warned about.
 our %WARNED;
@@ -260,6 +263,50 @@ sub set_search_criteria {
   return $where;
 }
 
+=item B<use_cache>
+
+Sets options to query and create cache files, of L<OMP::Info::ObsGroup> object,
+to true.
+
+Returns nothing.
+
+=cut
+
+sub use_cache {
+
+  $QueryCache = 1;
+  $MakeCache  = 1;
+  return;
+}
+
+=item B<skip_cache_query>
+
+Sets option to not query cache files for L<OMP::Info::ObsGroup> object.
+
+Returns nothing.
+
+=cut
+
+sub skip_cache_query {
+
+  $QueryCache = 0;
+  return;
+}
+
+=item B<skip_cache_making>
+
+Sets option to not create cache file of L<OMP::Info::ObsGroup> object.
+
+Returns nothing.
+
+=cut
+
+sub skip_cache_making {
+
+  $MakeCache = 0;
+  return;
+}
+
 =item B<getObs>
 
 Get information about a specific observation. The observation
@@ -376,7 +423,8 @@ sub queryArc {
     $ignorebad = 0;
   }
 
-  my $grp = retrieve_archive( $query, 1, $retainhdr );
+  my $grp;
+  $QueryCache and $grp = retrieve_archive( $query, 1, $retainhdr );
 
   if (defined($grp)) {
     return $grp->obs;
@@ -520,19 +568,7 @@ sub _query_arcdb {
     push @return, @reorg;
   }
 
-  if ( scalar( @return ) > 0 ) {
-    # Push the stuff in the cache, but only if we have results.
-    try {
-      store_archive( $query, new OMP::Info::ObsGroup( obs => \@return ) );
-    }
-      catch OMP::Error::CacheFailure with {
-        my $Error = shift;
-        my $errortext = $Error->{'-text'};
-        print STDERR "Warning when storing archive: $errortext. Continuing.\n";
-        OMP::General->log_message( $errortext, OMP__LOG_WARNING );
-      };
-
-  }
+  _make_cache( $query , \@return );
 
   return @return;
 }
@@ -1008,19 +1044,43 @@ sub _query_files {
   # We need to sort the return array by date.
   @returnarray = sort {$a->startobs->epoch <=> $b->startobs->epoch} @returnarray;
 
-  # And store it in the cache.
-  try {
-    my $obsgroup = new OMP::Info::ObsGroup( obs => \@returnarray );
-    store_archive( $query, $obsgroup );
-  }
-    catch OMP::Error::CacheFailure with {
-      my $Error = shift;
-      my $errortext = $Error->{'-text'};
-      print STDERR "Warning: $errortext\n";
-      OMP::General->log_message( $errortext, OMP__LOG_WARNING );
-    };
+  _make_cache( $query , \@returnarray );
 
   return @returnarray;
+}
+
+=item B<_make_cache>
+
+Gievn a query object and an array reference of L<OMP::Info::Obs> objects,
+creates cache file. On error, throws L<OMP::Error::CacheFailure> exception.
+
+  _make_cache( $query , \@obs );
+
+See C<&OMP::ArchiveDB::Cache::store_archive> sub for details.
+
+=cut
+
+sub _make_cache {
+
+  $MakeCache or return;
+
+  my ( $query , $obs ) = @_;
+
+  # Save only if there is at least one Obs object.
+  $#{ $obs } >= 0 or return;
+
+  try {
+    my $obsgroup = OMP::Info::ObsGroup->new( obs => $obs );
+    store_archive( $query, $obsgroup );
+  }
+  catch OMP::Error::CacheFailure with {
+    my $Error = shift;
+    my $errortext = $Error->{'-text'};
+    print STDERR "Warning when storing archive: $errortext\n";
+    OMP::General->log_message( $errortext, OMP__LOG_WARNING );
+  };
+
+  return;
 }
 
 =item B<_reorganize_archive>
