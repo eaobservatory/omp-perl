@@ -32,7 +32,6 @@ The following options are supported:
 
 =item B<-no-cache>
 
-I<EXPERIMENTAL.>
 Ignore any observations cache files related to given UT dates.
 Default is to query cache files.
 
@@ -121,6 +120,7 @@ if ($version) {
   exit;
 }
 
+# Modify only the non-default behaviour.
 unless ( $use_cache ) {
 
   require OMP::ArchiveDB;
