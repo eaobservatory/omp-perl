@@ -32,9 +32,9 @@ The following options are supported:
 
 =item B<-no-cache>
 
-I<NOT IMPLEMENTED YET.>
+I<EXPERIMENTAL.>
 Ignore any observations cache files related to given UT dates.
-Default is to use cache files.
+Default is to query cache files.
 
 =item B<-dump>
 
@@ -96,7 +96,8 @@ use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
 # Options
-my ($help, $man, $version, $dump, $tel, $ut, $use_cache );
+my $use_cache = 1;
+my ($help, $man, $version, $dump, $tel, $ut );
 GetOptions( "help"    => \$help,
             "man"     => \$man,
             "version" => \$version,
@@ -107,13 +108,7 @@ GetOptions( "help"    => \$help,
           )
           or pod2usage(1) ;
 
-( defined $use_cache || $dump )
-  and die q[Option(s) -- ],
-          join( q[, ] ,
-                ( defined $use_cache ? q["-cache" & "-no-cache"] : () ) ,
-                ( $dump ? q["-dump"] : () )
-              ),
-          qq[ -- is(are) not implemented yet.\n];
+$dump and die qq[Option "-dump" is not implemented yet.\n];
 
 
 pod2usage(1) if $help;
@@ -124,6 +119,12 @@ if ($version) {
   print "nightrep - End of night reporting tool\n";
   print " Source code revision: $id\n";
   exit;
+}
+
+unless ( $use_cache )
+{
+  require OMP::ArchiveDB;
+  OMP::ArchiveDB::skip_cache_query();
 }
 
 # Now we can start
