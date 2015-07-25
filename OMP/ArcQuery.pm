@@ -147,7 +147,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                  );
 
 
-my $ukirt_inst = qr{^(?: CGS4 | IRCAM | UFTI | MICHELLE | UIST | WFCAM )}x;
+my $ukirt_inst = qr{^(?: CGS4 | IRCAM | UFTI | MICHELLE | UIST | WFCAM )}xi;
 
 # Lookup table
 my %lut = (
