@@ -784,8 +784,8 @@ sub _querify {
   $quote = "'" if $value =~ /[A-Za-z:]/;
 
   # We do not want to quote if we have a SQL function
-  # dateadd is special
-  $quote = '' if $value =~ /^dateadd/;
+  # dateadd & datediff are special
+  $quote = '' if $value =~ /^date(?:add|diff)/i;
 
   # If we have "name" then we need to create a query on both
   # pi and coi together. This is of course not portable and should
