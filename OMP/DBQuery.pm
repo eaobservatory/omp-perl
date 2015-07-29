@@ -751,10 +751,10 @@ sub _querify {
   my $self = shift;
   my ($name, $value, $cmp) = @_;
 
-  $cmp = lc($cmp);
-
   # Default comparator is "equal"
   $cmp = "equal" unless defined $cmp;
+
+  $cmp = lc($cmp);
 
   # Lookup table for comparators
   my %cmptable = (
