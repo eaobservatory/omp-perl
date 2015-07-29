@@ -97,15 +97,23 @@ sub parse_list
 {
   my ( $file ) = @_;
 
-  return
-    map
-    { [  map
-        { s/^\s+// ; s/\s+$//; $_ }
-        # userid (if any); name; email address
-        split /\s*[,;]\s*/ , $_
-      ]
+  my @out;
+  for my $line ( read_file( $file ) )
+  {
+    $line =~ m/^\s*#/ || $line =~ m/^\s*$/
+      and next;
+
+    my @store;
+    # userid (if any); name; email address
+    for my $el ( split /\s*[,;]\s*/ , $line , 3 )
+    {
+      $el =~ s/^\s+// ;
+      $el =~ s/\s+$// ;
+      push @store , $el ;
     }
-    read_file( $file ) ;
+    push @out , [ @store ];
+  }
+  return @out;
 }
 
 sub update_sql_deobfu
@@ -117,7 +125,6 @@ sub update_sql_deobfu
     SELECT @keep = '%s' , @remove = '%s'
 
     UPDATE  omp..ompfaultbody     SET     author        = @keep WHERE author        = @remove
-    UPDATE  omp..ompfaultbodypub  SET     author        = @keep WHERE author        = @remove
     UPDATE  omp..ompfeedback      SET     author        = @keep WHERE author        = @remove
     UPDATE  omp..ompshiftlog      SET     author        = @keep WHERE author        = @remove
     UPDATE  omp..ompobslog        SET     commentauthor = @keep WHERE commentauthor = @remove

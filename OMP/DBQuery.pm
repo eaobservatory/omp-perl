@@ -84,11 +84,11 @@ sub new {
   }
 
   my $q = {
-	   Parser => $parser,
-	   Tree => $tree,
-	   QHash => {},
-	   Constraints => undef,
-	  };
+           Parser => $parser,
+           Tree => $tree,
+           QHash => {},
+           Constraints => undef,
+          };
 
   # and create the object
   bless $q, $class;
@@ -181,8 +181,8 @@ C<max> and/or C<min> as keys).
 
 sub query_hash {
   my $self = shift;
-  if (@_) { 
-    $self->{QHash} = shift; 
+  if (@_) {
+    $self->{QHash} = shift;
   } else {
     # Check to see if we have something
     unless (%{ $self->{QHash} }) {
@@ -317,8 +317,8 @@ Returns a chunk of SQL
 
   $sql = $self->_create_sql_recurse( $column, $entry );
 
-where C<$column> is the database column name and 
-C<$entry> can be 
+where C<$column> is the database column name and
+C<$entry> can be
 
   - An array of values that will be ORed
   - An OMP::Range object
@@ -362,20 +362,20 @@ sub _create_sql_recurse {
     # are a TEXT query
     if ($column =~ /^TEXTFIELD__/) {
       $sql = "(".join( " OR ",
-		       # Join all of the search strings with an AND
-		       # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
-		       map { join( " AND ",
-				   map {
-				     $self->_querify($colname, $_, $cmp);
-				   } OMP::General->split_string($_) )
-			   } @{ $entry } ) . ")";
+                       # Join all of the search strings with an AND
+                       # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
+                       map { join( " AND ",
+                                   map {
+                                     $self->_querify($colname, $_, $cmp);
+                                   } OMP::General->split_string($_) )
+                           } @{ $entry } ) . ")";
     } else {
       # Just OR the individual entries
       # No special handling of spaces in strings
       $sql = "(".join( " OR ",
-		       map { $self->_querify($colname, $_, $cmp); }
-		       @{ $entry }
-		       ) . ")";
+                       map { $self->_querify($colname, $_, $cmp); }
+                       @{ $entry }
+                       ) . ")";
     }
 
 
@@ -385,14 +385,14 @@ sub _create_sql_recurse {
 
     # an AND clause
     $sql = join(" AND ",
-		map { $self->_querify($column, $range{$_}, $_);}
-		keys %range
-	       );
+                map { $self->_querify($column, $range{$_}, $_);}
+                keys %range
+               );
 
   } elsif (ref($entry) eq 'HASH') {
     # Call myself but join with an OR or AND
     my @chunks = map { $self->_create_sql_recurse( $_, $entry->{$_} )
-		      } keys %$entry;
+                      } keys %$entry;
 
     # Use an OR by default but if we have a key _JOIN then use it
     my $j = ( exists $entry->{_JOIN} ? uc($entry->{_JOIN}) : "OR");
@@ -449,28 +449,28 @@ sub _convert_to_perl {
 
       if ($grand->isa("XML::LibXML::Text")) {
 
-	# This is just PCDATA
+        # This is just PCDATA
 
-	# Make sure this is not simply white space
-	my $string = $grand->toString;
-	next unless $string =~ /\w/;
+        # Make sure this is not simply white space
+        my $string = $grand->toString;
+        next unless $string =~ /\w/;
 
-	$self->_add_text_to_hash( \%query, $name, $string, \%attr );
+        $self->_add_text_to_hash( \%query, $name, $string, \%attr );
 
       } else {
 
-	# We have an element. Get its name and add the contents
-	# to the hash (we assume only one text node)
-	my $childname = $grand->getName;
+        # We have an element. Get its name and add the contents
+        # to the hash (we assume only one text node)
+        my $childname = $grand->getName;
 
-	# it is possible for the xml to be <max/> (sent by the QT
-	# so we must trap that
-	my $firstchild = $grand->firstChild;
-	if ($firstchild) {
-	  $self->_add_text_to_hash(\%query, 
-				   $name, $firstchild->toString,
-				   $childname, \%attr );
-	}
+        # it is possible for the xml to be <max/> (sent by the QT
+        # so we must trap that
+        my $firstchild = $grand->firstChild;
+        if ($firstchild) {
+          $self->_add_text_to_hash(\%query,
+                                   $name, $firstchild->toString,
+                                   $childname, \%attr );
+        }
       }
 
     }
@@ -636,62 +636,62 @@ sub _post_process_hash {
     if ($key =~ /date/ ) {
 
       # If we are in a hash convert all hash members
-      $self->_process_elements($href, 
-			       sub { my $string = shift;
-				     my $date = OMP::DateTools->parse_date($string);
-				     throw OMP::Error::DBMalformedQuery("Error parsing date string '$string'")
-				       unless defined $date;
-				     return $date;
-				   },
-			       [ $key ] );
+      $self->_process_elements($href,
+                               sub { my $string = shift;
+                                     my $date = OMP::DateTools->parse_date($string);
+                                     throw OMP::Error::DBMalformedQuery("Error parsing date string '$string'")
+                                       unless defined $date;
+                                     return $date;
+                                   },
+                               [ $key ] );
 
       # See if there is a range attribute
       if (exists $href->{_attr}->{$key}->{delta}) {
 
-	# There is but now see if we have an array
-	if (ref($href->{$key}) eq 'ARRAY') {
+        # There is but now see if we have an array
+        if (ref($href->{$key}) eq 'ARRAY') {
 
-	  # with only one element
-	  if (scalar( @{$href->{$key}} ) == 1) {
+          # with only one element
+          if (scalar( @{$href->{$key}} ) == 1) {
 
-	    # Now convert to a range
-	    my $date = $href->{$key}->[0];
-	    my $delta = $href->{_attr}->{$key}->{delta};
+            # Now convert to a range
+            my $date = $href->{$key}->[0];
+            my $delta = $href->{_attr}->{$key}->{delta};
 
-	    # Get the units
-	    my $units = "days";
-	    $units =  $href->{_attr}->{$key}->{units}
-	      if exists $href->{_attr}->{$key}->{units};
+            # Get the units
+            my $units = "days";
+            $units =  $href->{_attr}->{$key}->{units}
+              if exists $href->{_attr}->{$key}->{units};
 
-	    # Derive sql units
-	    my %sqlunits =(
-			   'days' => ONE_DAY,
-			   'seconds' => 1,
-			   'minutes' => ONE_MINUTE,
-			   'hours' => ONE_HOUR,
-			   'years' => ONE_YEAR,
-			  );
+            # Derive sql units
+            my %sqlunits =(
+                           'days' => ONE_DAY,
+                           'seconds' => 1,
+                           'minutes' => ONE_MINUTE,
+                           'hours' => ONE_HOUR,
+                           'years' => ONE_YEAR,
+                          );
 
-	    # KLUGE This returns a Time::Piece object rather than
-	    # the class of object that was passed in. Need to rebless
-	    my $enddate = $date + $sqlunits{$units} * $delta;
-	    bless $enddate, ref($date);
+            # KLUGE This returns a Time::Piece object rather than
+            # the class of object that was passed in. Need to rebless
+            my $enddate = $date + $sqlunits{$units} * $delta;
+            bless $enddate, ref($date);
 
-	    my ($min, $max) = ( 'Min', 'Max');
-	    if ($delta < 0) {
-	      # negative
-	      $min = 'Max';
-	      $max = 'Min';
-	    }
+            my ($min, $max) = ( 'Min', 'Max');
+            if ($delta < 0) {
+              # negative
+              $min = 'Max';
+              $max = 'Min';
+            }
 
-	    $href->{$key} = new OMP::Range( $min => $date,
-					    $max => $enddate);
-
-
-	  }
+            $href->{$key} = new OMP::Range( $min => $date,
+                                            $max => $enddate);
 
 
-	}
+          }
+
+
+        }
 
 
       }
@@ -708,8 +708,8 @@ sub _post_process_hash {
     if (ref($href->{$key}) eq "HASH") {
       # Convert to OMP::Range object
       $href->{$key} = new OMP::Range( Min => $href->{$key}->{min},
-				      Max => $href->{$key}->{max},
-				    );
+                                      Max => $href->{$key}->{max},
+                                    );
     }
   }
 
@@ -751,18 +751,18 @@ sub _querify {
   my $self = shift;
   my ($name, $value, $cmp) = @_;
 
-  $cmp = lc($cmp);
-
   # Default comparator is "equal"
   $cmp = "equal" unless defined $cmp;
 
+  $cmp = lc($cmp);
+
   # Lookup table for comparators
   my %cmptable = (
-		  equal => "=",
-		  min   => ">=",
-		  max   => "<=",
-		  like  => "like",
-		 );
+                  equal => "=",
+                  min   => ">=",
+                  max   => "<=",
+                  like  => "like",
+                 );
 
   # Convert the string form to SQL form
   throw OMP::Error::MSBMalformedQuery("Unknown comparator '$cmp' in query\n")
@@ -784,8 +784,8 @@ sub _querify {
   $quote = "'" if $value =~ /[A-Za-z:]/;
 
   # We do not want to quote if we have a SQL function
-  # dateadd is special
-  $quote = '' if $value =~ /^dateadd/;
+  # dateadd & datediff are special
+  $quote = '' if $value =~ /^date(?:add|diff)/i;
 
   # If we have "name" then we need to create a query on both
   # pi and coi together. This is of course not portable and should
@@ -801,7 +801,7 @@ sub _querify {
 
   # Loop over all keys in list
   my $sql = join( " OR ",
-		  map { "$_ $cmptable{$cmp} $quote$value$quote"  } @list);
+                  map { "$_ $cmptable{$cmp} $quote$value$quote"  } @list);
 
 
   # Form query
@@ -845,28 +845,28 @@ sub _process_elements {
       my $val = $href->{$key}; # The value
 
       if (not $ref) {
-	# Simple scalar
-	$href->{$key} = $cb->( $val );
+        # Simple scalar
+        $href->{$key} = $cb->( $val );
 
       } elsif ($ref eq "ARRAY" ) {
-	# An array
-	$href->{$key} = [ map { $cb->($_); } @{ $val } ];
+        # An array
+        $href->{$key} = [ map { $cb->($_); } @{ $val } ];
 
       } elsif ($ref eq "HASH") {
-	# Simple hash
-	my %hash = %$val;
-	for my $hkey (keys %hash) {
-	  $hash{$hkey} = $cb->( $hash{$hkey} );
-	}
-	$href->{$key} = \%hash;
+        # Simple hash
+        my %hash = %$val;
+        for my $hkey (keys %hash) {
+          $hash{$hkey} = $cb->( $hash{$hkey} );
+        }
+        $href->{$key} = \%hash;
 
       } elsif ($val->isa("OMP::RANGE")) {
 
-	$val->min( $cb->($val->min) ) if defined $val->min;
-	$val->max( $cb->($val->max) ) if defined $val->max;
+        $val->min( $cb->($val->min) ) if defined $val->min;
+        $val->max( $cb->($val->max) ) if defined $val->max;
 
       } else {
-	throw OMP::Error::DBMalformedQuery("Unable to process class of type '$ref'");
+        throw OMP::Error::DBMalformedQuery("Unable to process class of type '$ref'");
       }
 
     }
@@ -972,8 +972,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

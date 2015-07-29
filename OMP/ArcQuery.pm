@@ -147,7 +147,7 @@ our %jointable = ( $GSDTAB => { $SUBTAB => '(G.sca# = H.sca#)',
                  );
 
 
-my $ukirt_inst = qr{^(?: CGS4 | IRCAM | UFTI | MICHELLE | UIST | WFCAM )}x;
+my $ukirt_inst = qr{^(?: CGS4 | IRCAM | UFTI | MICHELLE | UIST | WFCAM )}xi;
 
 # Lookup table
 my %lut = (
@@ -975,6 +975,47 @@ sub _create_sql_recurse {
   # print "SQL: $column: $sql\n";
   return $sql;
 }
+
+=item B><_querify>
+
+Make SQL to match instrument or backend values by matching upper case versions.
+Rest of the calls are sent to the parent C<_querify> method; see L<OMP::DBQuery>
+for details.
+
+  $sql = $q->_querify( "instrument", "SCUBA" );
+
+=cut
+
+sub _querify {
+
+  my ( $self, $name, $val, $cmp ) = @_;
+
+  $name =~ m/\b(?: instrum | back.?end )/ix
+    or return $self->SUPER::_querify( $name, $val, $cmp );
+
+  # Default is "=";
+  $cmp = lc( $cmp ||= 'equal' );
+  # only care for "=" or "like" comparison.
+  $cmp =~ m/^(?: like | equal )$/x
+    or throw OMP::Error::DBMalformedQuery( qq[Do not know how to use "$cmp" operator with "$name" column and "$val" value.\n] );
+
+  if ( $cmp eq 'equal' ) {
+
+    $cmp = '=' ;
+  }
+  else {
+
+    $val = '%' . $val . '%';
+  }
+
+  return
+    sprintf q[ UPPER( %s ) %s UPPER( %s ) ],
+      $name,
+      $cmp,
+      qq['$val']
+      ;
+}
+
 
 =end __PRIVATE__METHODS__
 
