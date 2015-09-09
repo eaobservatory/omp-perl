@@ -789,12 +789,11 @@ sub obs_summary {
 
     my $rowclass = 'row_a';
     foreach my $comment (@comments) {
-      print '<tr class="$rowclass"><td>';
-      my $string = '<font color="';
-      $string .= ( defined( $css{$comment->status} ) ) ? $css{$comment->status} : "BLACK";
+      print '<tr class="$rowclass"><td class=';
+      my $string = '"';
+      $string .= ( defined( $css{$comment->status} ) ) ? $css{$comment->status} : 'obslog-good';
       $string .= '"><strong>' . $comment->date->cdate . " UT / " . $comment->author->name . ":";
       $string .= "</strong> " . $comment->text;
-      $string .= "</font>";
       $string =~ s/\n/\<br\>/g;
       print $string . "</td></tr>";
       $rowclass = ( $rowclass eq 'row_a' ) ? 'row_b' : 'row_a';
