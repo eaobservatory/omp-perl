@@ -477,11 +477,11 @@ A {
 }
 
 .obslog-bad {
-  color: #f30;
+  color: #f33;
 }
 
 .obslog-junk {
-  color: #f00;
+  color: #f0f;
 }
 
 .obslog-questionable {
@@ -489,7 +489,7 @@ A {
 }
 
 .obslog-rejected {
-  color: #25f;
+  color: #00f;
 }
 
 .msb-comment-nightrep {
