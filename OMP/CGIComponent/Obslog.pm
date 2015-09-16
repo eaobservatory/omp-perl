@@ -62,7 +62,8 @@ our %css = (
                OMP__OBS_BAD() => 'obslog-bad',
                OMP__OBS_JUNK() => 'obslog-junk',
                OMP__OBS_REJECTED() => 'obslog-rejected'
-              );
+    );
+
 
 =head1 Routines
 
@@ -303,7 +304,7 @@ sub obs_table {
     # Print the column headings.
     print "<tr class=\"sum_other\"><td>";
     print join ( "</td><td>", @{$nightlog{_ORDER}} );
-    print "</td><td>Comments</td><td>WORF</td><td>Observation</td></tr>\n";
+    print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
   }
 
   my $rowclass = "row_b";
@@ -361,6 +362,7 @@ sub obs_table {
     my $obsid  = $obs->obsid;
     my $status = $obs->status;
     my $css_status = defined( $status ) ? $css{$status} : $css{OMP__OBS_GOOD()};
+    my $label_status = defined( $status ) ? $status_label{$status} : $status_label{OMP__OBS_GOOD()};
     my $instrument = $obs->instrument;
     my @msb_comment;
 
@@ -518,6 +520,8 @@ sub obs_table {
         print "<td>&nbsp;</td>";
       }
       print qq[<td class="$css_status">] . $obs->runnr . '</td>';
+      # Print the status of the observation explicitly.
+      print qq[<td class="$css_status">] . $label_status . '</td>';
       print "</tr>\n";
     }
 
