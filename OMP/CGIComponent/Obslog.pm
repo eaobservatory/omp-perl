@@ -64,6 +64,13 @@ our %css = (
                OMP__OBS_REJECTED() => 'obslog-rejected'
     );
 
+# Labels for observation status.
+our %status_label = ( OMP__OBS_GOOD() => 'Good',
+		      OMP__OBS_QUESTIONABLE() => 'Questionable',
+		      OMP__OBS_BAD() => 'Bad',
+		      OMP__OBS_JUNK() => 'Junk',
+		      OMP__OBS_REJECTED() => "Rejected",
+    ) ;
 
 =head1 Routines
 
@@ -947,12 +954,6 @@ sub obs_comment_form {
   my $obs = shift;
   my $cookie = shift;
 
-  my %status_label = ( OMP__OBS_GOOD() => 'Good',
-                       OMP__OBS_QUESTIONABLE() => 'Questionable',
-                       OMP__OBS_BAD() => 'Bad',
-                       OMP__OBS_JUNK() => 'Junk',
-                       OMP__OBS_REJECTED() => "Rejected",
-                     ) ;
   my @status_value = sort keys %status_label;
 
   # Note that we want Unknown to appear at the end
