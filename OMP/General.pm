@@ -420,7 +420,7 @@ sub extract_projectid {
       }xi;
 
   if ($string =~ $ukirt_sem                          # UKIRT
-      or $string =~ /\b([ms]\d\d[ab][junchid]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
+      or $string =~ /\b([ms]\d\d[ab][junchidpt]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
       or $string =~ /\b(m\d\d[ab]gt\d+)\b/i         # JCMT Guaranteed Time
       or $string =~ /\b(mjls[sgncdjty]\d+)\b/i      # JCMT Legacy Surveys
