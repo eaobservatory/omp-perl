@@ -404,7 +404,7 @@ sub _handle_role {
     or throw OMP::Error::BadArgs( qq[Unknown role, $role, given; know only about "coi" and "support".] )
     ;
   # Generate role specific sub name.
-  my $handler = q[_handle_] . $type;
+  my $handler = q[_handle_] . $role;
 
   if (@_) {
     my @names;
