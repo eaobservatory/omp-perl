@@ -345,75 +345,10 @@ the C<contactable> method if the CoI information is updated.
 =cut
 
 sub coi {
-  my $self = shift;
-  if (@_) {
-    my @names;
-    if (ref($_[0]) eq 'ARRAY') {
-      @names = @{ $_[0] };
-    } elsif (defined $_[0]) {
-      # If the first name isnt valid assume none are
-      @names = @_;
-    }
 
-    # Now go through the array retrieving the OMP::User
-    # objects and strings
-    my @users;
-    for my $name (@names) {
-      if (UNIVERSAL::isa($name, "OMP::User")) {
-        push(@users, $name);
-      } else {
-        # Split on delimiter
-        my @split = split /$DELIM/, $name;
-
-        # Convert them to OMP::User objects
-        push(@users, map { new OMP::User( userid => $_ ) } @split);
-      }
-    }
-
-    # And store the result
-    $self->{CoI} = \@users;
-  }
-
-  # Return either the array of name objects or a delimited string
-  my @output = @{ $self->{CoI} };
-  if (wantarray) {
-    return @output;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, map { $_->userid } @output);
-  }
-
-}
-
-=item B<coiemail>
-
-The email addresses of co-investigators associated with the project.
-
-  @email = $proj->coiemail;
-  $emails   = $proj->coiemail;
-
-If this method is called in a scalar context the addresses will be
-returned as a single string joined by a comma.
-
-Consider using the C<coi> method to access the C<OMP::User> objects
-directly. Email addresses can not be modified using this method.
-
-=cut
-
-sub coiemail {
   my $self = shift;
 
-  # Only use defined emails
-  my @email = grep { $_ } map { $_->email } $self->coi ;
-
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email);
-  }
-
+  return $self->_handle_role( { 'role' => 'coi' } , @_ );
 }
 
 =item B<support>
@@ -445,7 +380,32 @@ is not the case the C<contactable> method must be called explicitly.
 =cut
 
 sub support {
+
   my $self = shift;
+
+  return $self->_handle_role( { 'role' => 'support' } , @_ );
+}
+
+sub _handle_role {
+
+  my $self = shift;
+  my $type = shift;
+
+  my %map =
+    ( 'coi'     => 'CoI',
+      'support' => 'Support'
+    );
+
+  my $role = $type->{'role'};
+  unless ( defined $role ) { throw OMP::Error::BadArgs( q[No role was given.] ); }
+  else                     { $role = lc $role; }
+
+  my $key  = $map{ $role }
+    or throw OMP::Error::BadArgs( qq[Unknown role, $role, given; know only about "coi" and "support".] )
+    ;
+  # Generate role specific sub name.
+  my $handler = q[_handle_] . $type;
+
   if (@_) {
     my @names;
     if (ref($_[0]) eq 'ARRAY') {
@@ -466,25 +426,100 @@ sub support {
         my @split = split /$DELIM/, $name;
 
         # Convert them to OMP::User objects
-        push(@users, map { new OMP::User( userid => $_ ) } @split);
+        push(@users, map { OMP::User->new( userid => $_ ) } @split);
       }
     }
 
-    # make them contactable
-    for (@users) {
-      $self->contactable( $_->userid => 1 );
-    }
-
     # And store the result
-    $self->{Support} = \@users;
+    $self->$handler( _uniq_users( @users ) );
   }
 
   # Return either the array of name objects or a delimited string
+  my @output = @{ $self->$handler() };
   if (wantarray) {
-    return @{ $self->{Support} };
+    return @output;
   } else {
     # This returns empty string if we dont have anything
-    return join($DELIM, @{ $self->{Support} } );
+    return join($DELIM, map { $_->userid } @output);
+  }
+
+}
+
+sub _handle_coi {
+
+  my ( $self, @user ) = @_;
+
+  my $key = 'CoI';
+
+  if ( scalar @user ) {
+
+    $self->{ $key } = [ @user ];
+  }
+
+  return $self->{ $key };
+}
+
+sub _handle_support {
+
+  my ( $self, @user ) = @_;
+
+  my $key = 'Support';
+
+  if ( scalar @user ) {
+
+    # Force being contactable.
+    $self->contactable( $_->userid => 1 ) for @user;
+
+    $self->{ $key } = [ @user ];
+  }
+
+  return $self->{ $key };
+}
+
+# Expects list of OMP::User objects.
+sub _uniq_users {
+
+  my ( @user ) = @_;
+
+  my %seen;
+  return
+    map
+    { $_->[1] }
+    grep
+    { ! $seen{ $_->[0] }++ }
+    map
+    { [ $_->userid() , $_ ] }
+    @user
+    ;
+}
+
+=item B<coiemail>
+
+The email addresses of co-investigators associated with the project.
+
+  @email = $proj->coiemail;
+  $emails   = $proj->coiemail;
+
+If this method is called in a scalar context the addresses will be
+returned as a single string joined by a comma.
+
+Consider using the C<coi> method to access the C<OMP::User> objects
+directly. Email addresses can not be modified using this method.
+
+=cut
+
+sub coiemail {
+  my $self = shift;
+
+  # Only use defined emails
+  my @email = grep { $_ } map { $_->email } $self->coi ;
+
+  # Return either the array of emails or a delimited string
+  if (wantarray) {
+    return @email;
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @email);
   }
 
 }
