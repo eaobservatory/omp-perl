@@ -416,6 +416,108 @@ sub coiemail {
 
 }
 
+=item B<support>
+
+The names of any staff contacts associated with the project.
+
+Return the names as an arrayC<OMP::User> objects:
+
+  @names = $proj->support;
+
+Return a colon-separated list of the support user ids:
+
+  $names = $proj->support;
+
+Provide all the staff contacts for the project as an array of
+C<OMP::User> objects. If a supplied name is a string it is assumed to
+be a user ID that should be retrieved from the database:
+
+  $proj->support( @names );
+  $proj->support( \@names );
+
+Provide a list of colon-separated user IDs:
+
+  $proj->support( "name1:name2" );
+
+By default when a support contact is updated it is made contactable. If this
+is not the case the C<contactable> method must be called explicitly.
+
+=cut
+
+sub support {
+  my $self = shift;
+  if (@_) {
+    my @names;
+    if (ref($_[0]) eq 'ARRAY') {
+      @names = @{ $_[0] };
+    } elsif (defined $_[0]) {
+      # If the first name isnt valid assume none are
+      @names = @_;
+    }
+
+    # Now go through the array retrieving the OMP::User
+    # objects and strings
+    my @users;
+    for my $name (@names) {
+      if (UNIVERSAL::isa($name, "OMP::User")) {
+        push(@users, $name);
+      } else {
+        # Split on delimiter
+        my @split = split /$DELIM/, $name;
+
+        # Convert them to OMP::User objects
+        push(@users, map { new OMP::User( userid => $_ ) } @split);
+      }
+    }
+
+    # make them contactable
+    for (@users) {
+      $self->contactable( $_->userid => 1 );
+    }
+
+    # And store the result
+    $self->{Support} = \@users;
+  }
+
+  # Return either the array of name objects or a delimited string
+  if (wantarray) {
+    return @{ $self->{Support} };
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @{ $self->{Support} } );
+  }
+
+}
+
+=item B<supportemail>
+
+The email addresses of co-investigators associated with the project.
+
+  @email = $proj->supportemail;
+  $emails   = $proj->supportemail;
+
+If this method is called in a scalar context the addresses will be
+returned as a single string joined by a comma.
+
+Consider using the C<support> method to access the C<OMP::User> objects
+directly. Email addresses can not be modified using this method.
+
+=cut
+
+sub supportemail {
+  my $self = shift;
+
+  my @email = map { $_->email } $self->support;
+  # Return either the array of emails or a delimited string
+  if (wantarray) {
+    return @email;
+  } else {
+    # This returns empty string if we dont have anything
+    return join($DELIM, @email);
+  }
+
+}
+
 =item B<country>
 
 Country from which project is allocated.
@@ -665,108 +767,6 @@ sub projectid {
   return $self->{ProjectID};
 }
 
-
-=item B<support>
-
-The names of any staff contacts associated with the project.
-
-Return the names as an arrayC<OMP::User> objects:
-
-  @names = $proj->support;
-
-Return a colon-separated list of the support user ids:
-
-  $names = $proj->support;
-
-Provide all the staff contacts for the project as an array of
-C<OMP::User> objects. If a supplied name is a string it is assumed to
-be a user ID that should be retrieved from the database:
-
-  $proj->support( @names );
-  $proj->support( \@names );
-
-Provide a list of colon-separated user IDs:
-
-  $proj->support( "name1:name2" );
-
-By default when a support contact is updated it is made contactable. If this
-is not the case the C<contactable> method must be called explicitly.
-
-=cut
-
-sub support {
-  my $self = shift;
-  if (@_) {
-    my @names;
-    if (ref($_[0]) eq 'ARRAY') {
-      @names = @{ $_[0] };
-    } elsif (defined $_[0]) {
-      # If the first name isnt valid assume none are
-      @names = @_;
-    }
-
-    # Now go through the array retrieving the OMP::User
-    # objects and strings
-    my @users;
-    for my $name (@names) {
-      if (UNIVERSAL::isa($name, "OMP::User")) {
-        push(@users, $name);
-      } else {
-        # Split on delimiter
-        my @split = split /$DELIM/, $name;
-
-        # Convert them to OMP::User objects
-        push(@users, map { new OMP::User( userid => $_ ) } @split);
-      }
-    }
-
-    # make them contactable
-    for (@users) {
-      $self->contactable( $_->userid => 1 );
-    }
-
-    # And store the result
-    $self->{Support} = \@users;
-  }
-
-  # Return either the array of name objects or a delimited string
-  if (wantarray) {
-    return @{ $self->{Support} };
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @{ $self->{Support} } );
-  }
-
-}
-
-=item B<supportemail>
-
-The email addresses of co-investigators associated with the project.
-
-  @email = $proj->supportemail;
-  $emails   = $proj->supportemail;
-
-If this method is called in a scalar context the addresses will be
-returned as a single string joined by a comma.
-
-Consider using the C<support> method to access the C<OMP::User> objects
-directly. Email addresses can not be modified using this method.
-
-=cut
-
-sub supportemail {
-  my $self = shift;
-
-  my @email = map { $_->email } $self->support;
-  # Return either the array of emails or a delimited string
-  if (wantarray) {
-    return @email;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, @email);
-  }
-
-}
 
 =item B<remaining>
 
