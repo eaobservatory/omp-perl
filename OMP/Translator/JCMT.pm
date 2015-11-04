@@ -1338,9 +1338,16 @@ sub pol_config {
   return unless $info{pol};
   $self->output("Polarimeter observation:\n");
 
-  # we currently only support grid/pssw or stare observations
-  throw OMP::Error::FatalError("Can only use ROVER in grid/pssw or stare mode not '$info{observing_mode}'\n")
-    unless $info{observing_mode} =~ /^grid_pssw/ or $info{observing_mode} =~ /^stare/;
+  if ($info{'instrument'} eq 'SCUBA-2') {
+    # Allow stare or scan with POL-2.
+    throw OMP::Error::FatalError("Can only use POL-2 in stare or scan mode not '$info{observing_mode}'\n")
+      unless $info{'observing_mode'} =~ /^stare/ or $info{'observing_mode'} =~ /^scan/;
+  }
+  else {
+    # we currently only support grid/pssw observations
+    throw OMP::Error::FatalError("Can only use ROVER in grid/pssw mode not '$info{observing_mode}'\n")
+      unless $info{'observing_mode'} =~ /^grid_pssw/;
+  }
 
   # create a blank object
   my $pol = JAC::OCS::Config::POL->new();
