@@ -31,7 +31,7 @@ my $user = new OMP::User( name => "Frossie Economou",
 
 isa_ok( $user, "OMP::User" );
 is( $user->name, "Frossie Economou", "Check name");
-is( "$user", "Frossie Economou", "Check stringification (name)");
+is( "$user", $user->name(), "Check stringification (name)");
 is( $user->email, 'frossie@blah.net', "Check email");
 is( $user->userid, "FROSSIE", "Check userid");
 is( $user->domain, "blah.net", "Check email domain");
