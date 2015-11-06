@@ -32,25 +32,26 @@ my @coiemail = ( qw/email1@a email2@b email3@c / );
 
 # Project hash
 my %project = (
-	      # country => ['UK','CA'],
-	       tagpriority => 5,
-	       password => "atest",
-	       projectid => "M01Btj",
-	       pi => new OMP::User( userid => "JBLOGGS",
-				    name => "Joe Bloggs",
-				    email => "joe\@jach.hawaii.edu"),
-	       piemail => "joe\@jach.hawaii.edu",
-	       coi => "name1:name2:name3",
-	       support => [new OMP::User( userid => 'xx',
-					 name => 'fem',
-					 email => 'xx@jach',
-				       ),
-	       new OMP::User( userid => 'xy',
-					 name => 'bloke',
-					 email => 'xy@jach',
-				       ),],
-	       allocated => 3000,
-	      );
+              # country => ['UK','CA'],
+               tagpriority => 5,
+               password => "atest",
+               projectid => "M01Btj",
+               pi => new OMP::User( userid => "JBLOGGS",
+                                    name => "Joe Bloggs",
+                                    email => "joe\@jach.hawaii.edu"),
+               piemail => "joe\@jach.hawaii.edu",
+               coi => "name1:name2:name3",
+               support => [ new OMP::User( userid => 'xx',
+                                            name => 'fem',
+                                            email => 'xx@jach',
+                                          ),
+                            new OMP::User( userid => 'xy',
+                                            name => 'bloke',
+                                            email => 'xy@jach',
+                                          ),
+                          ],
+               allocated => 3000,
+              );
 
 # Instantiate a Project object
 my $proj = new OMP::Project( %project );
@@ -77,7 +78,7 @@ is($proj->primaryqueue, $countries[0], "Check primary queue");
 
 
 is($proj->tagpriority($countries[1]), $project{tagpriority},
-		     "Priority by country");
+                     "Priority by country");
 is($proj->country, $countries[0], "Country list in scalar context");
 is($proj->tagpriority, $project{tagpriority},
   "check that we have the right number of priorities in scalar context");
@@ -136,8 +137,8 @@ is( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail),
   "Join coi email addresses using delimiter");
 
 # Support email
-is( $proj->supportemail, join("$OMP::Project::DELIM", 
-			      map { $_->email } @{$project{support}}),
+is( $proj->supportemail, join("$OMP::Project::DELIM",
+                              map { $_->email } @{$project{support}}),
   "test support addresses");
 
 # and investigators
