@@ -348,7 +348,17 @@ sub coi {
 
   my $self = shift;
 
-  return $self->_handle_role( { 'role' => 'coi' } , @_ );
+  my $key = 'CoI';
+
+  if ( scalar @_ ) {
+
+    my @user = $self->_handle_role( lc( $key ) , @_ );
+    $self->{ $key } = [ @user ];
+  }
+
+  my $list = $self->{ $key };
+  wantarray() and return @{ $list };
+  return join $DELIM, map $list->[$_]->userid() , 0 .. $#{ $list };
 }
 
 =item B<support>
@@ -383,97 +393,65 @@ sub support {
 
   my $self = shift;
 
-  return $self->_handle_role( { 'role' => 'support' } , @_ );
+  my $key = 'Support';
+
+  if ( scalar @_ ) {
+
+    my @user = $self->_handle_role( lc( $key ) , @_ );
+
+    # Force being contactable.
+    $self->contactable( $_->userid() => 1 ) for @user;
+
+    $self->{ $key } = [ @user ];
+  }
+
+  my $list = $self->{ $key };
+  wantarray() and return @{ $list };
+  #  OMP::User object stringifies to user name not user id!
+  return join $DELIM, map $list->[$_] , 0 .. $#{ $list };
 }
 
 sub _handle_role {
 
   my $self = shift;
-  my $type = shift;
+  my $role = shift;
 
-  my %map =
-    ( 'coi'     => 'CoI',
-      'support' => 'Support'
-    );
+  scalar @_ or return;
 
-  my $role = $type->{'role'};
+  my @ok = qw[ coi support ];
+  my $ok_re = join '|', @ok;
+     $ok_re = qr/^(?: $ok_re )$/x;
+
   unless ( defined $role ) { throw OMP::Error::BadArgs( q[No role was given.] ); }
   else                     { $role = lc $role; }
 
-  my $key  = $map{ $role }
-    or throw OMP::Error::BadArgs( qq[Unknown role, $role, given; know only about "coi" and "support".] )
-    ;
-  # Generate role specific sub name.
-  my $handler = q[_handle_] . $role;
+  $role =~ /$ok_re/
+    or throw OMP::Error::BadArgs( qq[Unknown role, $role, given; known: ] . join ', ' , @ok ) ;
 
-  if (@_) {
-    my @names;
-    if (ref($_[0]) eq 'ARRAY') {
-      @names = @{ $_[0] };
-    } elsif (defined $_[0]) {
-      # If the first name isnt valid assume none are
-      @names = @_;
+  my @names;
+  if (ref($_[0]) eq 'ARRAY') {
+    @names = @{ $_[0] };
+  } elsif (defined $_[0]) {
+    # If the first name isnt valid assume none are
+    @names = @_;
+  }
+
+  # Now go through the array retrieving the OMP::User
+  # objects and strings
+  my @users;
+  for my $name (@names) {
+    if (UNIVERSAL::isa($name, "OMP::User")) {
+      push(@users, $name);
+    } else {
+      # Split on delimiter
+      my @split = split /$DELIM/, $name;
+
+      # Convert them to OMP::User objects
+      push(@users, map { OMP::User->new( userid => $_ ) } @split);
     }
-
-    # Now go through the array retrieving the OMP::User
-    # objects and strings
-    my @users;
-    for my $name (@names) {
-      if (UNIVERSAL::isa($name, "OMP::User")) {
-        push(@users, $name);
-      } else {
-        # Split on delimiter
-        my @split = split /$DELIM/, $name;
-
-        # Convert them to OMP::User objects
-        push(@users, map { OMP::User->new( userid => $_ ) } @split);
-      }
-    }
-
-    # And store the result
-    $self->$handler( _uniq_users( @users ) );
   }
 
-  # Return either the array of name objects or a delimited string
-  my @output = @{ $self->$handler() };
-  if (wantarray) {
-    return @output;
-  } else {
-    # This returns empty string if we dont have anything
-    return join($DELIM, map { $_->userid } @output);
-  }
-
-}
-
-sub _handle_coi {
-
-  my ( $self, @user ) = @_;
-
-  my $key = 'CoI';
-
-  if ( scalar @user ) {
-
-    $self->{ $key } = [ @user ];
-  }
-
-  return $self->{ $key };
-}
-
-sub _handle_support {
-
-  my ( $self, @user ) = @_;
-
-  my $key = 'Support';
-
-  if ( scalar @user ) {
-
-    # Force being contactable.
-    $self->contactable( $_->userid => 1 ) for @user;
-
-    $self->{ $key } = [ @user ];
-  }
-
-  return $self->{ $key };
+  return _uniq_users( @users );
 }
 
 # Expects list of OMP::User objects.
@@ -492,6 +470,7 @@ sub _uniq_users {
     @user
     ;
 }
+
 
 =item B<coiemail>
 
