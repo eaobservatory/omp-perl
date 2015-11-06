@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 46;
+use Test::More tests => 50;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -52,6 +52,13 @@ my %project = (
                           ],
                allocated => 3000,
               );
+
+my $dup_support =  OMP::User->new( userid => 'xy',
+                                    name => 'bloke',
+                                    email => 'xy-2@jach',
+                                  );
+
+my $dup_coi =  'name3';
 
 # Instantiate a Project object
 my $proj = new OMP::Project( %project );
@@ -151,6 +158,41 @@ $proj->contactable( name1 => 1);
 # should now be 4 contacts for the project
 is( $proj->contacts, (1 + 1 + scalar(@{$project{support}})),
   "number of contacts");
+
+# No duplication.
+my $old_supp_mail = $proj->supportemail();
+#
+push @{ $project{support} }, $dup_support;
+$proj->support( $proj->support() , $dup_support );
+print map { "#$_\n" } split "\n",
+  Dumper( { 'all old support email' => $old_supp_mail,
+            'new support user'      => $dup_support,
+            'all new support email: $project{support}' =>  join( $OMP::Project::DELIM, map { $_->email } @{$project{support}} ),
+            'new support: $proj->support()' => [ $proj->support() ]
+          }
+        );
+is( $old_supp_mail,
+      $proj->supportemail(),
+      'no duplicate support user id: new should be same as old'
+    );
+isnt( $old_supp_mail,
+      join( $OMP::Project::DELIM, map { $_->email } @{$project{support}} ),
+      'no duplicate support user id: only adding via $proj->support() counts'
+    );
+
+
+my $old_coi_list = $proj->coi();
+my $new_coi_list = join $OMP::Project::DELIM, $old_coi_list, $dup_coi;
+$proj->coi( $new_coi_list );
+#
+is( $old_coi_list,
+      $proj->coi(),
+      'no duplicate coi user id: new should be same as old'
+    );
+isnt( $old_coi_list,
+      $new_coi_list,
+      'no duplicate coi user id: only adding via $proj->coi() counts'
+    );
 
 # Check the time allocation
 print "# Time allocation\n";
