@@ -735,6 +735,8 @@ sub jos_config {
       }
     } elsif ($info{observing_mode} eq 'stare_spin_pol') {
       $recipe = 'constantVelocity';
+    } elsif ($info{'observing_mode'} eq 'scan_spin_pol') {
+      $recipe = 'scan';
     } else {
       $recipe = $info{observing_mode};
     }
