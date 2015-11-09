@@ -176,7 +176,11 @@ sub getDRRecipe {
   } elsif ($obstype eq 'noise') {
     $recipe = 'REDUCE_NOISE';
   } elsif ($mapmode eq 'scan') {
-    $recipe = "REDUCE_SCAN";
+    if (ref $info{'inbeam'} and $has_pol) {
+      $recipe = "REDUCE_POL_SCAN";
+    } else {
+      $recipe = "REDUCE_SCAN";
+    }
   } elsif ($mapmode eq 'stare' || $mapmode eq 'dream') {
     if (ref $info{'inbeam'} and $has_fts) {
 
