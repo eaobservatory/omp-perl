@@ -505,7 +505,7 @@ _HEADER_
       if (exists $accounts{$ymd}) {
         my $timespent = $accounts{$ymd}->timespent;
         if ($timespent->hours) {
-          my $h = sprintf("%.1f", $timespent->hours);
+          my $h = sprintf("%.2f", $timespent->hours);
 
           # If the time spent is unconfirmed, say so
           print "[UNCONFIRMED] " unless ($accounts{$ymd}->confirmed);
