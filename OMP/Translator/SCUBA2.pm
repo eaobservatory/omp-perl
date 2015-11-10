@@ -444,6 +444,7 @@ sub handle_special_modes {
   my $self = shift;
   my $info = shift;
   my $has_fts = scalar grep {$_ eq 'fts2'} @{$info->{'inbeam'}};
+  my $has_pol = scalar grep {$_ =~ /^pol/} @{$info->{'inbeam'}};
 
   # The trick is to fill in the blanks
 
@@ -510,7 +511,7 @@ sub handle_special_modes {
       );
 
       my $key = ".scan_". $smode . "_";
-      my $prefix = $has_fts ? 'fts' : undef;
+      my $prefix = $has_fts ? 'fts' : ($has_pol ? 'pol' : undef);
 
       foreach my $param (keys %scan_parameters) {
         my $name = $scan_parameters{$param};
@@ -533,6 +534,16 @@ sub handle_special_modes {
                                                     $cfgitem ) };
         $info->{"SCAN_$extras"} = $cfgvalue
           if (defined $cfgvalue && length($cfgvalue));
+
+        next unless defined $prefix;
+
+        my $override = eval {OMP::Config->getData($self->cfgkey . '.' .
+                             $prefix . '_' . substr($key, 1) . $cfgitem);};
+
+        next unless defined $override;
+
+        $self->output('        Overriding ' . $extras . ' extra parameter for ' . $prefix . ".\n");
+        $info->{'SCAN_' . $extras} = $override;
       }
 
       $info->{SCAN_SYSTEM} = "FPLANE";
