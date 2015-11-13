@@ -708,15 +708,6 @@ sub get_proposed_targets {
 
     print STDERR "Obtaining proposed targets for $projid\n" if ($debug);
 
-    # Get any UH projects sources from hardcoded subroutine below for now.
-    if ( $projid =~ /h/i  or $projid =~ /\%/ ) {
-
-      my $uhproposed = &get_uh_proposed( $projid );
-      foreach my $ref (@$uhproposed) {
-        push @proposed, $ref;
-      }
-    }
-
     # Now retrieve proposed targets from NORTHSTAR tables.
     my $sth = $dbh->prepare(qq{
       SELECT proposal.code AS project, fieldname AS name,
@@ -1017,51 +1008,5 @@ sub print_cat {
     print "$line\n";
 
   }
-
-}
-
-# ----------------------------------------------------------------------
-
-sub get_uh_proposed {
-
-# Load proposed UH targets since they are not in the NORTHSTAR DB.
-# For now UH targets are hard-coded below.
-#
-
-  my $projids = shift;
-  $projids =~ s/\%/\.\*/g;
-
-  my @proposed;
-
-  if ( "M08BH002" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH002',
-                         'name' => 'Braid Nebula', 'type' => 'J2000',
-                           'ra' => '21:00:00', 'dec' => '+52:00:00',
-                        'units' => 'sexagesimal' };
-  }
-
-  if ( "M08BH015" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W3', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W4', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W5', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-  } 
-
-  if ( "M08BH020" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH020',
-                         'name' => 'G030.88+00.13', 'type' => 'J2000',
-                           'ra' => '18:47:13.5', 'dec' => '-01:45:00',
-                        'units' => 'sexagesimal' };
-  }
-
-  return \@proposed;
 
 }
