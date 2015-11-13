@@ -931,12 +931,19 @@ sub nightlog {
 
 # *** SCUBA
 
+    my %form = ( # Number of decimal places.
+                  'tau-dec' => 2,
+                  # To trim object name (+3 for "...").
+                  'obj-length' => 14,
+                );
+    $form{'obj-pad-length'} = $form{'obj-length'} + 3;
+
     $return{'Run'} = $self->runnr;
     $return{'UT time'} = defined($self->startobs) ? $self->startobs->hms : '';
     $return{'Obsmode'} = $self->mode;
     $return{'Project ID'} = $self->projectid;
     $return{'Object'} = $self->target;
-    $return{'Tau225'} = sprintf( "%.2f", $self->tau);
+    $return{'Tau225'} = sprintf( "%.$form{'tau-dec'}f", $self->tau);
     $return{'Seeing'} = $self->seeing;
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Pol In?'} = defined( $self->pol_in ) ? $self->pol_in : '';
@@ -952,32 +959,33 @@ sub nightlog {
     $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                           "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
 
-    $return{'_STRING_HEADER'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers";
-    $return{'_STRING'} =
-      sprintf "%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s",
-        $return{'Run'},
-        $return{'UT time'},
-        $return{'Obsmode'},
-        $return{'Project ID'},
-        $return{'Object'},
-        $return{'Tau225'},
-        $return{'Seeing'},
-        $return{'Filter'},
-        $return{'Bolometers'}[0]
-        ;
+    my @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
+    push @short_val , $return{'Bolometers'}[0] ;
+    # Trim object name.
+    for ( $short_val[4] ) {
 
-    $return{'_STRING_HEADER_LONG'} = "Run  UT start        Mode     Project          Source Tau225  Seeing  Filter     Bolometers\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
+      length $_ > $form{'obj-length'}
+        and $_ = substr( $_ , 0 , $form{'obj-length'} ) . '...' ;
+    }
+
+    my $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.3f %-10s  %-7s %-15s";
+
+    ( my $short_form_head = $short_form_val ) =~ tr/f/s/;
+    for ( $short_form_head ) {
+      s/\b([0-9]+)\.([0-9]+)\b/$1 + $2 + 1/e;
+    }
+
+    $return{'_STRING_HEADER'} = sprintf $short_form_head, @{ $return{'_ORDER'} };
+    $return{'_STRING'} = sprintf $short_form_val, @short_val;
+
+    my $long_form_val = $short_form_val . "\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s";
+
+    $return{'_STRING_HEADER_LONG'} =
+      $return{'_STRING_HEADER'} . "\n            RA           Dec  Coord Type  Mean AM  Chop Throw  Chop Angle  Chop Coords";
+
     $return{'_STRING_LONG'} =
-      sprintf "%3s  %8s  %10.10s %11s %15s  %-6.3f  %-6.3f  %-10s %-15s\n %13.13s %13.13s    %8.8s  %7.2f  %10.1f  %10.1f  %11.11s",
-        $return{'Run'},
-        $return{'UT time'},
-        $return{'Obsmode'},
-        $return{'Project ID'},
-        $return{'Object'},
-        $return{'Tau225'},
-        $return{'Seeing'},
-        $return{'Filter'},
-        $return{'Bolometers'}[0],
+      sprintf $long_form_val,
+        @short_val,
         $return{'RA'},
         $return{'Dec'},
         $return{'Coordinate Type'},
