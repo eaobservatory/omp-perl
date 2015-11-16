@@ -9,11 +9,11 @@ ompchecktarget - checks observed targets against targets proposed for the
 =head1 SYNOPSIS
 
  ompchecktarget
- ompchecktarget -ut 20080208  -utstop 20080826 -max 3d -all
- ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000"
- ompchecktarget -proj m08bu01 -cat > m08bu01.cat
+ ompchecktarget -ut 20080208  -utstop 20080826 -max 3d -all -targetdir DIR
+ ompchecktarget -proj m08bu01 -coords "12:30:30 -10:10:10 J2000" -targetdir DIR
+ ompchecktarget -proj m08bu01 -cat -targetdir DIR > m08bu01.cat
  ompchecktarget -man | -help | -version
- ompchecktarget -semester 12B -utdate 20120824 -utstop 1
+ ompchecktarget -semester 12B -utdate 20120824 -utstop 1 -targetdir DIR
 
 =head1 DESCRIPTION
 
@@ -21,13 +21,13 @@ Note: this program can only be run by the 'staff' group members.
 
 There are four basic ways to use this program:
 
-1. Check observed targets against NORTHSTAR DB:
+1. Check observed targets against targets exported from Hedwig:
 The first way to use this program is to check already observed and
 archived targets against the ones proposed for the project. The
 program will extract observed targets (names, projects, coordinates)
 from the JCMT Archive COMMON table for the UT date(s) requested and
 compares those against the coordinates of targets for the associated
-project in the NORTHSTAR proposal DB.
+project as exported from Hedwig.
 
 By default ompchecktarget will print observed targets for which NO
 matching proposed target can be found within the search radius
@@ -36,18 +36,18 @@ closest proposed target. If '-all' is specified, information on
 all observed targets, including ones with matching proposed targets,
 is printed.
 
-2. Check user provided position against NORTHSTAR DB:
+2. Check user provided position against targets exported from Hedwig:
 A second way to use the program is to compare a user-provided position
 against proposed targets for a particular project. The position needs
 to be specified on the command-line as a set of coordinates enclosed
 in single or double quotes (see -coords).
 
-3. Extract JAC-style catalog from NORTHSTAR DB:
+3. Extract JAC-style catalog from targets exported from Hedwig:
 A third way to use the program is to extract proposed targets for a
-project from the NORTHSTAR DB and print them in a JAC-style catalog
+project and print them in a JAC-style catalog
 format (see -cat) for use with e.g. sourceplot.
 
-4. Check scheduled targets against the NORTHSTAR DB:
+4. Check scheduled targets against those exported from Hedwig:
 This mode is selected if the -semester option is specified.  It works
 the same as mode (1) but looks at scheduled observations from the
 OMP database instead of looking at the archive database.
@@ -92,7 +92,7 @@ back-slashed: \*
 
 =item B<-cat>
 
-Extract proposed targets from the NORTHSTAR DB and print their position
+Extract proposed targets and print their position
 in a JAC-style catalog format. It requires -project to be specified as
 well, all other command-line settings are ignored. E.g. 
    ompchecktarget -proj M08BN\* -cat 
@@ -141,6 +141,12 @@ queue, e.g. 12BU, or even a project ID.)  Selects observations
 where the corresponding timestamp in the science programme table
 is within the given UT range.
 
+=item B<-targetdir>
+
+Specify the directory from which to load target files as exported
+from Hedwig using the hedwig2omp utility.  All files named *.json
+in this directory will be loaded.
+
 =back
 
 =cut
@@ -157,6 +163,8 @@ use Getopt::Long;
 use Math::Trig;
 use Time::Piece;
 use Pod::Usage;
+use IO::File;
+use JSON;
 
 use Astro::Coords;
 use Astro::Telescope;
@@ -195,6 +203,8 @@ my %results;       # Set up a hash with the printed line as key and the
                    # of the key duplication for the same source observed
                    # on multiple dates is avoided.
 
+my $targetdir = undef;
+
 # ----------------------------------------------------------------------
 # Command-line parameters
 #
@@ -214,6 +224,7 @@ my $status = GetOptions("ut=s"       => \$utd,
                         "version"    => \$version,
                         "debug"      => \$dbg,
                         "semester=s" => \$semester,
+                        'targetdir=s' => \$targetdir,
                        );
 
 pod2usage(1) if $help;
@@ -655,7 +666,10 @@ sub get_scheduled_targets {
 
 sub get_proposed_targets {
 
-# Get the proposed sources from the MYSQL NORTHSTAR DB.
+# Get the proposed sources from files exported from Hedwig.
+#
+# The location of these files must be specified via the "-targetdir"
+# command line option.  (This is retrieved from the $targetdir variable.)
 #
 # Use: $proposed = get_proposed_targets ( $telescope, \@observed )
 #
@@ -663,16 +677,12 @@ sub get_proposed_targets {
 #
 # $observed:
 #    Array of hashes with a key 'project'  with valid project names.
-#    Duplicate entries may exist: the DB will only be queries once
-#    for each unique project. Any other keys that may be present
+#    Duplicate entries may exist. Any other keys that may be present
 #    for each entry are ignored.
 #
 # Returned:
 #    Ref to array of hashes with observed targets, keys:
-#         'project' (string), 'utdate' (yyyymmdd), 'name', 'ra', 'dec',
-#         'type' (e.g. j2000), 'units' (e.g. deg) as retrieved from DB.
-#         To facilitate easy coordinate conversions, this information
-#         has also been configured into an Astro::Coords object
+#         'project' (string), 'name' and an Astro::Coords object
 #         as hash key 'coords'.
 
   my ($telescope, $observed) = @_;
@@ -680,110 +690,67 @@ sub get_proposed_targets {
   # Array of hashes for results
   my @proposed;
 
-  # Connect to the Nortstar database.
-  my $server = "hokuakau";
-  my $database = "northstar";
-  my $dbtable = "target, observation, observingrequest, proposal";
-  my $dbh;
+  # Create hash of project identifiers.
+  my %observed = map {$_->{'project'} => 1} @$observed;
 
-  print STDERR "# Connecting to NORTHSTAR server...";
-  $dbh = DBI->connect(
-     "DBI:mysql:database=${database};host=${server};timeout=120",
-     "jac", "8hokupaa9", {'RaiseError' => 1} )
-     || die ("*ERROR* NORTHSTAR DB_LOGIN failed\n");
-  print STDERR "done\n";
+  # Iterate over files in the target files directory.
+  die 'Target files directory (-targetdir) not specified'
+    unless defined $targetdir;
 
-  my $previous = "";
+  for my $filename (<$targetdir/*.json>) {
+    print STDERR "Obtaining proposed targets from file " . $filename
+        . "\n" if ($debug);
+    local $/;
+    my $fh = new IO::File($filename, 'r');
+    my $projects = decode_json(<$fh>);
+    $fh->close();
 
-  foreach my $obs (sort {$$a{'project'} cmp $$b{'project'}} @$observed){
+    while (my ($proposed_project, $proposed_targets) = each %$projects) {
+      next unless exists $observed{$proposed_project};
 
-    # Fix up project id for NORTHSTAR standard of having 3-digit numbers.
-    my $projid = $obs->{'project'};
+      foreach my $proposed_target (@$proposed_targets) {
+        my $ref = {
+            project => $proposed_project,
+            name => $proposed_target->{'name'},
+        };
 
-    next if ($projid eq $previous);
-    $previous = $projid;
+        printf STDERR "Proposed: [%s] %-16s", $ref->{'project'},
+            $ref->{'name'} if ($debug);
 
-    $projid =~ s/^(M\d\d(A|B)\w)(\d\d)(\w*)$/${1}0${3}/i;
-    $projid =~ s/\*/\%/g;
+        if ($proposed_target->{'system'} eq 'ICRS') {
+          $ref->{'coords'} = new Astro::Coords(
+              name  => $proposed_target->{'name'},
+              ra    => $proposed_target->{'x'},
+              dec   => $proposed_target->{'y'},
+              type  => 'J2000',
+              units => 'degrees');
+        }
+        elsif ($proposed_target->{'system'} eq 'Galactic') {
+          $ref->{'coords'} = new Astro::Coords(
+              name  => $proposed_target->{'name'},
+              long  => $proposed_target->{'x'},
+              lat   => $proposed_target->{'y'},
+              type  => 'galactic',
+              units => 'degrees');
+        }
+        else {
+          print STDERR ' Unknown coordinate system: '
+              . $proposed_target->{'system'} . "\n" if $debug;
+          next;
+        }
 
-    print STDERR "Obtaining proposed targets for $projid\n" if ($debug);
+        $ref->{'coords'}->telescope(new Astro::Telescope($telescope));
 
-    # Get any UH projects sources from hardcoded subroutine below for now.
-    if ( $projid =~ /h/i  or $projid =~ /\%/ ) {
+        printf STDERR " %12s %12s J2000\n",
+            $ref->{'coords'}->ra2000(format => 'sex'),
+            $ref->{'coords'}->dec2000(format => 'sex')
+            if $debug;
 
-      my $uhproposed = &get_uh_proposed( $projid );
-      foreach my $ref (@$uhproposed) {
         push @proposed, $ref;
       }
     }
-
-    # Now retrieve proposed targets from NORTHSTAR tables.
-    my $sth = $dbh->prepare(qq{
-      SELECT proposal.code AS project, fieldname AS name,
-             ra, decl, epoch AS type
-       FROM $dbtable
-       WHERE
-         target.observationid = observation.id 
-         AND observation.observingrequestid = observingrequest.id
-         AND observingrequest.proposalid = proposal.id
-         AND proposal.code like "$projid"
-         ORDER BY proposal.code
-      }
-      );
-
-    $sth->execute();
-
-    while (my $ref = $sth->fetchrow_hashref()) {
-
-      # Somehow 'dec' as is protected as variable name in MySQL query
-      # Create column here
-      $ref->{'dec'} = $ref->{'decl'} if (defined $ref->{'decl'});
-
-      $ref->{'units'} = 'degrees' unless (exists $ref->{'units'});
-
-
-      push @proposed, $ref;
-
-    }
-
-    $sth->finish();
-
   }
 
-  # Disconnect from the database.
-  $dbh->disconnect();
-
-
-  foreach my $ref ( @proposed ) {
-
-    $ref->{'project'} =~ s/^(M\d\d(A|B)\w)0(\d\d)(\w*)$/${1}${3}${4}/i;
-
-    printf STDERR "Proposed: [%s] %-16s", $ref->{'project'},
-                $ref->{'name'} if ($debug);
-
-    if (defined $ref->{'ra'} and defined $ref->{'dec'}
-        and defined $ref->{'type'} 
-        and $ref->{'type'} ne 'Other system') {
-
-      my $pcoords = new Astro::Coords(  name  => $ref->{'name'},
-                                        ra    => $ref->{'ra'},
-                                        dec   => $ref->{'dec'},
-                                        type  => $ref->{'type'},
-                                        units => $ref->{'units'}
-                                      );
-      $pcoords->telescope( new Astro::Telescope( $telescope ));
-
-      $ref->{'coords'} = $pcoords;
-
-      printf STDERR " %12s %12s J2000", 
-         $ref->{'coords'}->ra2000( format => 'sex' ),
-         $ref->{'coords'}->dec2000( format => 'sex' )
-      if ($debug);
-
-    }
-    print STDERR "\n" if $debug;
-
-  }
 
   if (@proposed > 0) {
     printf STDERR "# Fetched %d proposed targets\n", $#proposed+1;
@@ -863,9 +830,9 @@ sub find_nearest {
 
   my $msg = "";
 
-  # Project not in NORTHSTAR DB
+  # Project not in files exported from Hedwig
   if ( $idxmin < 0 ) {
-    $msg = sprintf "[%s] target %-16s: project *NOT* in NORTHSTAR DB",
+    $msg = sprintf "[%s] target %-16s: project *NOT* in Hedwig exported files",
       $obs->{'project'}, $obs->{'coords'}->name;
     return $msg;
   }
@@ -895,7 +862,7 @@ sub find_nearest {
 
     # Target not found
     $msg = sprintf 
-        "[%s] target %-16s is *NOT* found in NORTHSTAR!\n",
+        "[%s] target %-16s is *NOT* found in Hedwig exported files!\n",
         $obs->{'project'}, $obs->{'coords'}->name;
     $msg .= sprintf ucfirst($mode)." position: %12s %12s J2000\n",
         $obs->{'coords'}->ra2000( format => 'sex' ),
@@ -980,7 +947,7 @@ sub get_user_target {
 
 sub print_cat {
 
-# Query NORTHSTAR DB for project targets and print JAC-style catalog
+# Retrieve project targets as exported from Hedwig and print JAC-style catalog
 #
 # Use: print_cat( $telescope, "$projects" );
 #
@@ -1017,51 +984,5 @@ sub print_cat {
     print "$line\n";
 
   }
-
-}
-
-# ----------------------------------------------------------------------
-
-sub get_uh_proposed {
-
-# Load proposed UH targets since they are not in the NORTHSTAR DB.
-# For now UH targets are hard-coded below.
-#
-
-  my $projids = shift;
-  $projids =~ s/\%/\.\*/g;
-
-  my @proposed;
-
-  if ( "M08BH002" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH002',
-                         'name' => 'Braid Nebula', 'type' => 'J2000',
-                           'ra' => '21:00:00', 'dec' => '+52:00:00',
-                        'units' => 'sexagesimal' };
-  }
-
-  if ( "M08BH015" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W3', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W4', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-    push @proposed, { 'project' => 'M08BH015',
-                         'name' => 'W5', 'type' => 'J2000',
-                           'ra' => '02:30:00', 'dec' => '+61:52:00',
-                        'units' => 'sexagesimal' };
-  } 
-
-  if ( "M08BH020" =~ /$projids/i ) {
-    push @proposed, { 'project' => 'M08BH020',
-                         'name' => 'G030.88+00.13', 'type' => 'J2000',
-                           'ra' => '18:47:13.5', 'dec' => '-01:45:00',
-                        'units' => 'sexagesimal' };
-  }
-
-  return \@proposed;
 
 }

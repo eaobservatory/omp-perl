@@ -18,7 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
-use Test::More tests => 66;
+use Test::More tests => 67;
 use strict;
 require_ok("OMP::User");
 
@@ -31,6 +31,7 @@ my $user = new OMP::User( name => "Frossie Economou",
 
 isa_ok( $user, "OMP::User" );
 is( $user->name, "Frossie Economou", "Check name");
+is( "$user", $user->name(), "Check stringification (name)");
 is( $user->email, 'frossie@blah.net', "Check email");
 is( $user->userid, "FROSSIE", "Check userid");
 is( $user->domain, "blah.net", "Check email domain");

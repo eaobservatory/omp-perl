@@ -4,6 +4,7 @@ $ENV{'LC_ALL'} = $ENV{'LANG'} = 'C';
 $ENV{'SYBASE'} = qw[/local/progs/sybase];
 
 use strict; use warnings;
+use 5.16.0;
 
 $| = 1;
 
@@ -223,6 +224,11 @@ sub check_server {
       next SERVER;
     }
 
+    #  Sometimes getting "Message String: ct_cmd_alloc(): user api layer:
+    #  external error: The connection has been marked dead" error. Try to see
+    #  when/where that happens.
+    $dbh->trace(1);
+
     my @server;
     push @server ,
       'OK connected' ,
@@ -236,6 +242,7 @@ sub check_server {
       push @server, check_db_repagent( $dbh, $place{'db'} );
     }
 
+    $dbh->trace(0);
     $dbh->disconnect;
 
     $out{ $server } = [ @server ];

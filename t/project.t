@@ -21,7 +21,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 46;
+use Test::More tests => 50;
 use Data::Dumper;
 
 require_ok( 'OMP::Project' );
@@ -32,25 +32,33 @@ my @coiemail = ( qw/email1@a email2@b email3@c / );
 
 # Project hash
 my %project = (
-	      # country => ['UK','CA'],
-	       tagpriority => 5,
-	       password => "atest",
-	       projectid => "M01Btj",
-	       pi => new OMP::User( userid => "JBLOGGS",
-				    name => "Joe Bloggs",
-				    email => "joe\@jach.hawaii.edu"),
-	       piemail => "joe\@jach.hawaii.edu",
-	       coi => "name1:name2:name3",
-	       support => [new OMP::User( userid => 'xx',
-					 name => 'fem',
-					 email => 'xx@jach',
-				       ),
-	       new OMP::User( userid => 'xy',
-					 name => 'bloke',
-					 email => 'xy@jach',
-				       ),],
-	       allocated => 3000,
-	      );
+              # country => ['UK','CA'],
+               tagpriority => 5,
+               password => "atest",
+               projectid => "M01Btj",
+               pi => new OMP::User( userid => "JBLOGGS",
+                                    name => "Joe Bloggs",
+                                    email => "joe\@jach.hawaii.edu"),
+               piemail => "joe\@jach.hawaii.edu",
+               coi => "name1:name2:name3",
+               support => [ new OMP::User( userid => 'xx',
+                                            name => 'fem',
+                                            email => 'xx@jach',
+                                          ),
+                            new OMP::User( userid => 'xy',
+                                            name => 'bloke',
+                                            email => 'xy@jach',
+                                          ),
+                          ],
+               allocated => 3000,
+              );
+
+my $dup_support =  OMP::User->new( userid => 'xy',
+                                    name => 'bloke',
+                                    email => 'xy-2@jach',
+                                  );
+
+my $dup_coi =  'name3';
 
 # Instantiate a Project object
 my $proj = new OMP::Project( %project );
@@ -77,7 +85,7 @@ is($proj->primaryqueue, $countries[0], "Check primary queue");
 
 
 is($proj->tagpriority($countries[1]), $project{tagpriority},
-		     "Priority by country");
+                     "Priority by country");
 is($proj->country, $countries[0], "Country list in scalar context");
 is($proj->tagpriority, $project{tagpriority},
   "check that we have the right number of priorities in scalar context");
@@ -136,8 +144,8 @@ is( $proj->coiemail, join("$OMP::Project::DELIM", @coiemail),
   "Join coi email addresses using delimiter");
 
 # Support email
-is( $proj->supportemail, join("$OMP::Project::DELIM", 
-			      map { $_->email } @{$project{support}}),
+is( $proj->supportemail, join("$OMP::Project::DELIM",
+                              map { $_->email } @{$project{support}}),
   "test support addresses");
 
 # and investigators
@@ -150,6 +158,41 @@ $proj->contactable( name1 => 1);
 # should now be 4 contacts for the project
 is( $proj->contacts, (1 + 1 + scalar(@{$project{support}})),
   "number of contacts");
+
+# No duplication.
+my $old_supp_mail = $proj->supportemail();
+#
+push @{ $project{support} }, $dup_support;
+$proj->support( $proj->support() , $dup_support );
+print map { "#$_\n" } split "\n",
+  Dumper( { 'all old support email' => $old_supp_mail,
+            'new support user'      => $dup_support,
+            'all new support email: $project{support}' =>  join( $OMP::Project::DELIM, map { $_->email } @{$project{support}} ),
+            'new support: $proj->support()' => [ $proj->support() ]
+          }
+        );
+is( $old_supp_mail,
+      $proj->supportemail(),
+      'no duplicate support user id: new should be same as old'
+    );
+isnt( $old_supp_mail,
+      join( $OMP::Project::DELIM, map { $_->email } @{$project{support}} ),
+      'no duplicate support user id: only adding via $proj->support() counts'
+    );
+
+
+my $old_coi_list = $proj->coi();
+my $new_coi_list = join $OMP::Project::DELIM, $old_coi_list, $dup_coi;
+$proj->coi( $new_coi_list );
+#
+is( $old_coi_list,
+      $proj->coi(),
+      'no duplicate coi user id: new should be same as old'
+    );
+isnt( $old_coi_list,
+      $new_coi_list,
+      'no duplicate coi user id: only adding via $proj->coi() counts'
+    );
 
 # Check the time allocation
 print "# Time allocation\n";

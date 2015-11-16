@@ -41,11 +41,41 @@ necessary. It is default.
 Specify to search for data B<only in files on disk>, repeatedly if
 necessary.
 
-=item B<-ut>
+=item B<-font> font-description
 
-Override the UT date used for the report. By default the current date
-is used.  The UT can be specified in either YYYY-MM-DD or YYYYMMDD format.
-If the supplied date is not parseable, the current date will be used.
+Specify the font for everything; default is
+I<-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*>.
+
+Another font to try is C<Dejavu LGC Sans Mono:8:medium>. If you do, you may also
+need to change the window size via I<-geometry> option.
+
+=item B<-font-comment> | B<-fc> font-description
+
+Specify the font for comments; default is same as metioned in I<-font>
+description.
+
+=item B<-font-fixed> | B<-ff> font-description
+
+Specify the fixed-width font; default is same as metioned in I<-font>
+description.
+
+It is used for observation listings, headers, and.
+
+Another font to try is C<Dejavu LGC Sans Mono::medium>.
+
+=item B<-font-var> | B<-fv>  font-description
+
+Specify variable width font; default is same as metioned in I<-font>
+description.
+
+It is used for buttons, labels, and comments.
+
+Another font to try is C<Dejavu LGC Sans::medium>.
+
+=item B<-geometry> window-geometry
+
+Specify window location and size of the main obslog window; default is
+I<785x450>.
 
 =item B<-tel>
 
@@ -55,6 +85,16 @@ If the telescope can not be determined from the domain and this
 option has not been specified a popup window will request the
 telescope from the supplied list (assume the list contains more
 than one telescope).
+
+=item B<-ut>
+
+Override the UT date used for the report. By default the current date
+is used.  The UT can be specified in either YYYY-MM-DD or YYYYMMDD format.
+If the supplied date is not parseable, the current date will be used.
+
+=item B<-width> integer
+
+Specify the number of characters in each line before line break.
 
 =item B<-version>
 
@@ -113,6 +153,9 @@ BEGIN {
 
 }
 
+use Tk::Font;
+
+
 # global variables
 $| = 1;
 my $MainWindow;          # The Toplevel frame for obslog itself
@@ -131,7 +174,21 @@ my %msbtitles;           # md5 to title
 $msbtitles{'CAL'} = "Calibration";
 my $id;
 
-my ( %opt, $help, $man, $version );
+
+# Number of characters to display for observation summary before linewrapping.
+my $BREAK       = 98;
+
+my %opt = ( 'geometry'         => '785x450' ,
+            'geometry-comment' => '760x300' ,
+            'geometry-comment-small' => '760x190' ,
+            # Fixed width font;
+            'font-fixed' =>
+              '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*' ,
+          );
+# variable width font & font used for comments/summary.
+( $opt{'font-var'} , my $CONTENTFONT ) = ( $opt{'font-fixed'} ) x2;
+
+my ( $help, $man, $version );
 # Look in database by default.
 $opt{'database'} = 1;
 my $status = GetOptions("ut=s"  => \$opt{ut},
@@ -139,6 +196,14 @@ my $status = GetOptions("ut=s"  => \$opt{ut},
 
                         "disk|file!"   => \$opt{disk},
                         "db|database!" => \$opt{database},
+
+                        'width=i'    => \$BREAK,
+                        'geometry=s' => \$opt{'geometry'},
+
+                        'font-comment|fc=s'  => \$CONTENTFONT,
+                        'font-fixed|ff=s'    => \$opt{'font-fixed'},
+                        'font-var|fv=s'      => \$opt{'font-var'},
+                        'font=s'             => \$opt{'font-all'},
 
                         "help"    => \$help,
                         "man"     => \$man,
@@ -172,6 +237,24 @@ my $user;
 my $MW = new MainWindow;
 $MW->withdraw; # hide it
 
+for my $fn ( grep { /font-/ && defined $opt{ $_ } } keys %opt ) {
+
+  $opt{ $fn } = font_parse( $MW , $opt{ $fn } );
+}
+
+$opt{'font-all'}
+  and $opt{'font-fixed'} = $opt{'font-var'} = $CONTENTFONT = $opt{'font-all'};
+
+#  Table data, looks best in monospace font.
+my ( $HEADERFONT , $LISTFONT ) = ( $opt{'font-fixed'} ) x 2;
+
+#  Make bold font.
+for my $fn ( qw[ font-fixed font-var ] ) {
+
+  $opt{ qq[$fn-bold] } = font_medium_to_bold_it( $MW , $opt{ $fn } );
+}
+
+
 my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
@@ -187,17 +270,12 @@ if(defined($opt{tel})) {
 # for an observation. It assumes that OBS comments status is an integer
 # starting at 0 (Good)
 my $HEADERCOLOUR = 'midnightblue';
-my $HEADERFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my @CONTENTCOLOUR = ( '#000000', '#bb3333', '#ff3300', '#2255ff', '#ff0000' );
-my $CONTENTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
-my $LISTFONT = '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*';
 my $HIGHLIGHTBACKGROUND = '#CCCCFF';
 my $BACKGROUND1 = '#D3D3D3';
 my $BACKGROUND2 = '#DDDDDD';
 my $BACKGROUNDMSB = '#CCFFCC';
 my $FOREGROUNDMSB = '#000000';
-my $BREAK = 92; # Number of characters to display for observation summary
-                # before linewrapping.
 my $SCANFREQ = 300000;  # scan every five minutes
 
 #$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
@@ -307,7 +385,7 @@ sub get_userid {
 sub create_main_window {
   $MainWindow = $MW->Toplevel;
   $MainWindow->title("OMP Observation Log Tool");
-  $MainWindow->geometry('785x450');
+  $MainWindow->geometry( $opt{'geometry'} );
 
 # $mainFrame contains the entire frame.
   my $mainFrame = $MainWindow->Frame;
@@ -319,7 +397,8 @@ sub create_main_window {
 
 # $buttonExit is the button that exits the program.
   my $buttonExit = $buttonbarFrame->Button( -text => 'EXIT',
-                                            -command => 'exit'
+                                            -command => 'exit',
+                                            -font => $opt{'font-var'},
                                           );
 
 # $buttonRescan is the button that rescans for new observations and
@@ -328,6 +407,7 @@ sub create_main_window {
                                               -command => sub{
                                                 full_rescan( $ut, $telescope );
                                               },
+                                              -font => $opt{'font-var'},
                                             );
 
 # $buttonDumpText is the button that dumps the current listing to disk.
@@ -335,6 +415,7 @@ sub create_main_window {
                                                 -command => sub {
                                                   dump_to_disk();
                                                 },
+                                                -font => $opt{'font-var'},
                                               );
 
 # $buttonVerbose is the button that switches between short and long display.
@@ -345,10 +426,12 @@ sub create_main_window {
                                                               $current_instrument,
                                                               $verbose );
                                                     },
+                                                    -font => $opt{'font-var'},
                                                   );
 
 # $labelUT is a label that tells the UT date
   my $labelUT = $buttonbarFrame->Label( -textvariable => \$utdisp,
+                                        -font => $opt{'font-var-bold'},
                                       );
 
 # $buttonHelp is the button that brings up a help dialogue.
@@ -436,9 +519,9 @@ sub new_instrument {
   my $nbPageFrame = $nbPage->Frame( );
   my $nbHeader = $nbPageFrame->Text( -wrap => 'none',
                                      -relief => 'flat',
-                                     -foreground => 'midnightblue',
+                                     -foreground => $HEADERCOLOUR,
                                      -height => 2,
-                                     -font => $LISTFONT,
+                                      -font => $LISTFONT,
                                      -takefocus => 0
                                    );
 
@@ -446,6 +529,7 @@ sub new_instrument {
                                          -wrap => 'word',
                                          -scrollbars => 'oe',
                                          -height => 100,
+                                          -font => $LISTFONT,
                                         );
 
   $notebook_contents{$instrument} = $nbContent;
@@ -487,7 +571,9 @@ sub new_instrument {
 
       # Draw the header, if necessary.
       if( !$header_printed && exists($nightlog{'_STRING_HEADER'})) {
-        $nbHeader->configure( -state => 'normal' );
+        $nbHeader->configure( -state => 'normal',
+                              -font => $LISTFONT,
+                            );
         $nbHeader->delete('0.0','end');
 
         if( $verbose && exists($nightlog{'_STRING_HEADER_LONG'})) {
@@ -497,7 +583,9 @@ sub new_instrument {
         }
 
         # Clean up.
-        $nbHeader->configure( -state => 'disabled' );
+        $nbHeader->configure( -state => 'disabled',
+                              -font => $LISTFONT,
+                            );
         $header_printed = 1;
       }
 
@@ -562,6 +650,7 @@ sub new_instrument {
         $nbContent->tag( 'configure', $otag,
                          -background => $BACKGROUNDMSB,
                          -foreground => $FOREGROUNDMSB,
+                          -font => $LISTFONT,
                        );
 
         # Get any activity associated with this MSB accept
@@ -592,6 +681,7 @@ sub new_instrument {
         $nbContent->tag( 'configure', $otag,
                          -background => $BACKGROUNDMSB,
                          -foreground => $FOREGROUNDMSB,
+                          -font => $LISTFONT,
                        );
 
         # Binding to add comment to start/status of MSB
@@ -652,11 +742,13 @@ sub new_instrument {
         $nbContent->tag('configure', $otag,
                         -foreground => $CONTENTCOLOUR[$status],
                         -background => $bgcolour,
+                          -font => $LISTFONT,
                        );
       } else {
         $nbContent->tag('configure', $otag,
                         -foreground => $CONTENTCOLOUR[$status],
                         -background => $bgcolour,
+                          -font => $LISTFONT,
                        );
       }
 
@@ -761,6 +853,7 @@ sub rescan {
     new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
+                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
@@ -778,6 +871,7 @@ sub rescan {
     new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
+                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
@@ -851,6 +945,7 @@ sub dump_to_disk {
   close $fh;
   my $dbox = $MainWindow->DialogBox( -title => "File Saved",
                                      -buttons => ["OK"],
+                                      -font => $opt{'font-var'},
                                    );
   my $label = $dbox->add( 'Label',
                           -text => "Data has been saved in " . $filename )->pack;
@@ -874,7 +969,7 @@ sub RaiseComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
-  $CommentWindow->geometry('760x300');
+  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -899,7 +994,7 @@ sub RaiseComment {
                                            -relief => 'flat',
                                            -foreground => $HEADERCOLOUR,
                                            -height => 1,
-                                           -font => $HEADERFONT,
+                                            -font => $HEADERFONT,
                                            -takefocus => 0,
                                            -state => 'disabled',
                                          )->pack( -side => 'top',
@@ -911,7 +1006,7 @@ sub RaiseComment {
                                             -wrap => 'word',
                                             -relief => 'flat',
                                             -height => 5,
-                                            -font => $CONTENTFONT,
+                                            -font => $LISTFONT,
                                             -takefocus => 0,
                                             -state => 'disabled',
                                             -scrollbars => 'oe',
@@ -923,6 +1018,7 @@ sub RaiseComment {
   $scrolledComment = $entryFrame->Scrolled( 'Text',
                                             -wrap => 'word',
                                             -height => 10,
+                                            -font => $CONTENTFONT,
                                             -scrollbars => 'oe',
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
@@ -934,33 +1030,39 @@ sub RaiseComment {
                                            );
 
   # $textStatus displays the string "Status:"
-  my $textStatus = $radioFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
-                                                                  );
+  my $textStatus = $radioFrame->Label( -text => 'Status: ',
+                                        -font => $opt{'font-var'},
+                                      )->pack( -side => 'left',);
 
   if( UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
     my $radioWeather = $radioFrame->Radiobutton( -text => 'weather',
                                                  -value => OMP__TIMEGAP_WEATHER,
                                                  -variable => \$status,
+                                                  -font => $opt{'font-var'},
                                                )->pack( -side => 'left',
                                                       );
     my $radioInstrument = $radioFrame->Radiobutton( -text => 'instrument',
                                                     -value => OMP__TIMEGAP_INSTRUMENT,
                                                     -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'left',
                                                          );
     my $radioFault = $radioFrame->Radiobutton( -text => 'fault',
                                                -value => OMP__TIMEGAP_FAULT,
                                                -variable => \$status,
+                                                -font => $opt{'font-var'},
                                              )->pack( -side => 'left',
                                                     );
     my $radioLastProject = $radioFrame->Radiobutton( -text => 'last proj.',
                                                      -value => OMP__TIMEGAP_PREV_PROJECT,
                                                      -variable => \$status,
+                                                      -font => $opt{'font-var'},
                                                    )->pack( -side => 'left',
                                                           );
     my $radioNextProject = $radioFrame->Radiobutton( -text => 'next proj.',
                                                      -value => OMP__TIMEGAP_NEXT_PROJECT,
                                                      -variable => \$status,
+                                                      -font => $opt{'font-var'},
                                                    )->pack( -side => 'left',
                                                           );
 
@@ -974,26 +1076,31 @@ sub RaiseComment {
     my $radioNotDriver = $radioFrame2->Radiobutton( -text => 'observer not driver',
                                                     -value => OMP__TIMEGAP_NOT_DRIVER,
                                                     -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'left',
                                                          );
     my $radioScheduled = $radioFrame2->Radiobutton( -text => 'scheduled downtime',
                                                     -value => OMP__TIMEGAP_SCHEDULED,
                                                     -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'left',
                                                          );
     my $radioOverhead = $radioFrame2->Radiobutton( -text => 'queue overhead',
                                                    -value => OMP__TIMEGAP_QUEUE_OVERHEAD,
                                                    -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                  )->pack( -side => 'left',
                                                         );
     my $radioLogistics = $radioFrame2->Radiobutton( -text => 'logistics',
                                                     -value => OMP__TIMEGAP_LOGISTICS,
                                                     -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'left',
                                                          );
     my $radioUnknown = $radioFrame->Radiobutton( -text => 'unknown',
                                                  -value => OMP__TIMEGAP_UNKNOWN,
                                                  -variable => \$status,
+                                                  -font => $opt{'font-var'},
                                                )->pack( -side => 'left',
                                                       );
 
@@ -1001,34 +1108,41 @@ sub RaiseComment {
     my $radioGood = $radioFrame->Radiobutton( -text => 'good',
                                               -value => OMP__OBS_GOOD,
                                               -variable => \$status,
+                                              -font => $opt{'font-var'},
                                             )->pack( -side => 'left',
                                                    );
     my $radioBad = $radioFrame->Radiobutton( -text => 'bad',
                                              -value => OMP__OBS_BAD,
                                              -variable => \$status,
+                                              -font => $opt{'font-var'},
                                            )->pack( -side => 'left',
                                                   );
     my $radioJunk = $radioFrame->Radiobutton( -text => 'junk',
                                               -value => OMP__OBS_JUNK,
                                               -variable => \$status,
+                                              -font => $opt{'font-var'},
                                             )->pack( -side => 'left',
                                                    );
     my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
                                                       -value => OMP__OBS_QUESTIONABLE,
                                                       -variable => \$status,
+                                                      -font => $opt{'font-var'},
                                                     )->pack( -side => 'left',
                                                            );
     my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
                                                       -value => OMP__OBS_REJECTED,
                                                       -variable => \$status,
+                                                      -font => $opt{'font-var'},
                                                     )->pack( -side => 'left',
                                                            );
 
   }
 
   # $textUser displays the current user id.
-  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
-                                                                                      );
+  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid,
+                                      -font => $opt{'font-var-bold'},
+                                    )->pack( -side => 'left',
+                                            );
 
   # $buttonSave is the button that allows the user to save the comment
   # to the database.
@@ -1042,6 +1156,7 @@ sub RaiseComment {
                                                         $index );
                                            redraw_rescan_close_window( $obs, $CommentWindow );
                                          },
+                                        -font => $opt{'font-var-bold'},
                                        )->pack( -side => 'left',
                                                 -anchor => 'n',
                                               );
@@ -1050,6 +1165,7 @@ sub RaiseComment {
   # any changes.
   my $buttonCancel = $buttonFrame->Button( -text => 'Cancel',
                                            -command => sub { rescan_close_window( $CommentWindow ); },
+                                            -font => $opt{'font-var-bold'},
                                          )->pack( -side => 'left',
                                                   -anchor => 'n',
                                                 );
@@ -1066,6 +1182,7 @@ sub RaiseComment {
                                                              $index );
                                                 redraw_rescan_close_window( $obs, $CommentWindow );
                                               },
+                                              -font => $opt{'font-var'},
                                             )->pack( -side => 'right',
                                                      -anchor => 'n',
                                                    );
@@ -1080,6 +1197,7 @@ sub RaiseComment {
                                                                    $index );
                                                       redraw_rescan_close_window( $obs, $CommentWindow );
                                                     },
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'right',
                                                            -anchor => 'n',
                                                          );
@@ -1127,7 +1245,7 @@ sub RaiseMultiComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
-  $CommentWindow->geometry('760x240');
+  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1136,17 +1254,24 @@ sub RaiseMultiComment {
                                                 );
 
   my $obsFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
-  my $obsLabel = $obsFrame->Label( -text => 'Observations: ' )->pack( -side => 'left' );
+  my $obsLabel = $obsFrame->Label( -text => 'Observations: ',
+                                    -font => $opt{'font-var'},
+                                  )->pack( -side => 'left' );
   my $obsEntry = $obsFrame->Entry( -textvariable => \$observations )->pack( -side => 'left' );
-  my $obsExamp = $obsFrame->Label( -text => 'e.g. 10-12 or 10-12,14' )->pack( -side => 'left' );
+  my $obsExamp = $obsFrame->Label( -text => 'e.g. 10-12 or 10-12,14',
+                                    -font => $opt{'font-var'},
+                                  )->pack( -side => 'left' );
 
   my $instFrame = $commentFrame->Frame->pack( -side => 'top', -fill => 'x' );
-  my $instLabel = $instFrame->Label( -text => 'Instrument: ' )->pack( -side => 'left' );
+  my $instLabel = $instFrame->Label( -text => 'Instrument: ',
+                                      -font => $opt{'font-var'},
+                                    )->pack( -side => 'left' );
   my @instRadios;
   foreach my $i ( 0..$#insts ) {
     $instRadios[$i] = $instFrame->Radiobutton( -text => $insts[$i],
                                                -value => $insts[$i],
                                                -variable => \$instrument,
+                                                -font => $opt{'font-var'},
                                              )->pack( -side => 'left' );
     if( $#insts == 0 ) {
       $instrument = $insts[0];
@@ -1168,6 +1293,7 @@ sub RaiseMultiComment {
                                             -wrap => 'word',
                                             -height => 10,
                                             -scrollbars => 'oe',
+                                            -font => $CONTENTFONT,
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
                                                    -fill => 'both',
@@ -1178,37 +1304,44 @@ sub RaiseMultiComment {
                                            );
 
   # $textStatus displays the string "Status:"
-  my $textStatus = $radioFrame->Label( -text => 'Status: ' )->pack( -side => 'left',
-                                                                  );
+  my $textStatus = $radioFrame->Label( -text => 'Status: ',
+                                        -font => $opt{'font-var'},
+                                      )->pack( -side => 'left',);
   my $radioGood = $radioFrame->Radiobutton( -text => 'good',
                                             -value => OMP__OBS_GOOD,
                                             -variable => \$status,
+                                            -font => $opt{'font-var'},
                                           )->pack( -side => 'left',
                                                  );
   my $radioBad = $radioFrame->Radiobutton( -text => 'bad',
                                            -value => OMP__OBS_BAD,
                                            -variable => \$status,
+                                            -font => $opt{'font-var'},
                                          )->pack( -side => 'left',
                                                 );
   my $radioJunk = $radioFrame->Radiobutton( -text => 'junk',
                                             -value => OMP__OBS_JUNK,
                                             -variable => \$status,
+                                            -font => $opt{'font-var'},
                                           )->pack( -side => 'left',
                                                  );
   my $radioQuestionable = $radioFrame->Radiobutton( -text => 'questionable',
                                                     -value => OMP__OBS_QUESTIONABLE,
                                                     -variable => \$status,
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'left',
                                                          );
   my $radioRejected = $radioFrame->Radiobutton( -text => 'rejected',
                                                 -value => OMP__OBS_REJECTED,
                                                 -variable => \$status,
+                                                -font => $opt{'font-var'},
                                               )->pack( -side => 'left',
                                                      );
 
   # $textUser displays the current user id.
-  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid )->pack( -side => 'left',
-                                                                                      );
+  my $textUser = $radioFrame->Label( -text => "Current user: " . $user->userid,
+                                      -font => $opt{'font-var-bold'},
+                                    )->pack( -side => 'left',);
 
   # $buttonSave is the button that allows the user to save the comment
   # to the database.
@@ -1227,6 +1360,7 @@ sub RaiseMultiComment {
                                            };
                                            CloseWindow( $CommentWindow );
                                          },
+                                          -font => $opt{'font-var-bold'},
                                        )->pack( -side => 'left',
                                                 -anchor => 'n',
                                               );
@@ -1237,6 +1371,7 @@ sub RaiseMultiComment {
                                            -command => sub {
                                              rescan_close_window( $CommentWindow );
                                            },
+                                            -font => $opt{'font-var-bold'},
                                          )->pack( -side => 'left',
                                                   -anchor => 'n',
                                                 );
@@ -1258,6 +1393,7 @@ sub RaiseMultiComment {
                                                 };
                                                 CloseWindow( $CommentWindow );
                                               },
+                                              -font => $opt{'font-var'},
                                             )->pack( -side => 'right',
                                                      -anchor => 'n',
                                                    );
@@ -1277,6 +1413,7 @@ sub RaiseMultiComment {
                                                       };
                                                       CloseWindow( $CommentWindow );
                                                     },
+                                                    -font => $opt{'font-var'},
                                                   )->pack( -side => 'right',
                                                            -anchor => 'n',
                                                          );
@@ -1367,7 +1504,7 @@ sub RaiseMSBComment {
                                               );
 
   my $userLabel = $entryFrame->Label( -text => 'Current user: ' . $user->userid,
-                                      -font => $HEADERFONT,
+                                      -font => $opt{'font-var-bold'},
                                     )->pack( -expand => 1,
                                               -side => 'top',
                                               -anchor => 'nw'
@@ -1395,6 +1532,7 @@ sub RaiseMSBComment {
                                             );
                               redraw_rescan_close_window( $obs, $CommentWindow );
                             },
+                            -font => $opt{'font-var-bold'},
                         )->pack( -side => 'left',
                                   -anchor => 'n',
                                 ) ;
@@ -1404,6 +1542,7 @@ sub RaiseMSBComment {
   my $buttonCancel =
     $buttonFrame->Button( -text => 'Cancel',
                           -command => sub { rescan_close_window( $CommentWindow ) },
+                          -font => $opt{'font-var-bold'},
                         )->pack( -side => 'left',
                                   -anchor => 'n',
                                 ) ;
@@ -1415,9 +1554,13 @@ sub RaiseMSBComment {
   for my $conf ( [ $titleFrame, qq{MSB: $title} ],
                   [ $summaryFrame, $obs->summary( 'text')] ) {
 
-    $conf->[0]->configure( -state => 'normal' );
+    $conf->[0]->configure( -state => 'normal',
+                            -font => $opt{'font-var'},
+                          );
     $conf->[0]->insert( 'end', $conf->[1] );
-    $conf->[0]->configure( -state => 'disabled' );
+    $conf->[0]->configure( -state => 'disabled',
+                            -font => $opt{'font-var'},
+                         );
   }
 
   #  Add old comments if any.
@@ -1458,7 +1601,9 @@ sub RaiseMSBComment {
     $rows = $min >= $rows ? $min
             : $max <= $rows ? $max
               : $rows ;
-    $histText->configure( -height => $rows );
+    $histText->configure( -height => $rows,
+                          -font => $opt{'font-var'},
+                        );
 
     $histText->configure( -state => 'normal' );
     $histText->delete( '0.0', 'end');
@@ -1665,6 +1810,7 @@ sub create_shiftlog_widget {
   $shiftcommentText = $shiftlog->Scrolled( 'Text',
                                            -height => 6,
                                            -scrollbars => 'oe',
+                                           -font => $opt{'font-var'},
                                          )->pack( -side => 'bottom',
                                                   -expand => 1,
                                                   -fill => 'x');
@@ -1674,22 +1820,30 @@ sub create_shiftlog_widget {
   my $TZ = "LocalTime";
 
   # A label.
-  $topbar->Label( -text => "Shift comments. ")->pack(-side=>'left');
-  $topbar->Label( -textvariable => \$utdisp )->pack( -side => 'left' );
+  $topbar->Label( -text => "Shift comments. ",
+                  -font => $opt{'font-var'},
+                )->pack(-side=>'left');
+  $topbar->Label( -textvariable => \$utdisp,
+                  -font => $opt{'font-var-bold'},
+                )->pack( -side => 'left' );
 
   # Button to add a new comment.
   $topbar->Button( -text => 'Add New Shift Comment',
                    -command => sub { raise_shift_comment() },
+                    -font => $opt{'font-var'},
                  )->pack( -side => 'right' );
 
   # Button to add comments for multiple observations.
   $topbar->Button( -text => 'Multi-Observation Comment',
                    -command => sub { RaiseMultiComment() },
+                    -font => $opt{'font-var'},
                  )->pack( -side => 'right' );
 
   &BindMouseWheel( $shiftcommentText );
 
-  $shiftcommentText->configure( -state => 'disable' );
+  $shiftcommentText->configure( -state => 'disable',
+                                -font => $opt{'font-var'},
+                              );
   $shiftcommentText->see("end");
 }
 
@@ -1703,9 +1857,12 @@ sub update_shiftlog_comments {
     require Tk::DialogBox;
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
+                                        -font => $opt{'font-var'},
                                      );
     my $label = $dbox->add( 'Label',
-                            -text => "Error: " . $Error->{-text} )->pack;
+                            -text => "Error: " . $Error->{-text},
+                            -font => $opt{'font-var'},
+                          )->pack;
     my $but = $dbox->Show;
 
     # Add logging.
@@ -1720,10 +1877,13 @@ sub update_shiftlog_comments {
 
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
+                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
-                            -text => "Error: " . $Error->{-text} )->pack;
+                            -text => "Error: " . $Error->{-text},
+                            -font => $opt{'font-var'},
+                          )->pack;
     my $but = $dbox->Show;
 
     # Add logging.
@@ -1770,6 +1930,7 @@ sub populate_shiftlog_widget {
 
     # Insert the string.
     $shiftcommentText->insert('end', $insertstring );
+    $shiftcommentText->configure( -font => $opt{'font-fixed-bold'} );
 
     # Remove all tags at this position.
     foreach my $tag ( $shiftcommentText->tag('names', $start ) ) {
@@ -1815,7 +1976,9 @@ sub populate_shiftlog_widget {
     $counter++;
   }
 
-  $shiftcommentText->configure( -state => 'disable' );
+  $shiftcommentText->configure( -state => 'disable',
+                                -font => $opt{'font-var'},
+                              );
   $shiftcommentText->see("end");
 
 }
@@ -1844,6 +2007,7 @@ sub save_shift_comment {
                                -title => "Error parsing time",
                                -buttons => ["Abort"],
                                -bitmap => 'error',
+                                -font => $opt{'font-var'},
                              );
 
       $dialog->Show;
@@ -1873,7 +2037,7 @@ sub raise_shift_comment {
 
   my $ShiftCommentWindow = MainWindow->new;
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
-  $ShiftCommentWindow->geometry('760x190');
+  $ShiftCommentWindow->geometry( $opt{'geometry-comment-small'} );
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
                                                        -fill => 'both',
@@ -1897,12 +2061,15 @@ sub raise_shift_comment {
                                                -height => 10,
                                                -scrollbars => 'oe',
                                                -takefocus => 1,
+                                                -font => $opt{'font-var'},
                                              )->pack( -side => 'bottom',
                                                       -expand => 1,
                                                       -fill => 'x',
                                                     );
 
-  my $infoText = $entryFrame->Label( -text => "Comment from " . $user->name . ":" )->pack( -side => 'left' );
+  my $infoText = $entryFrame->Label( -text => "Comment from " . $user->name .  ":",
+                                      -font => $opt{'font-var'},
+                                    )->pack( -side => 'left' );
 
   my $buttonSave = $buttonFrame->Button( -text => 'Save',
                                          -command => sub {
@@ -1913,6 +2080,7 @@ sub raise_shift_comment {
                                            &populate_shiftlog_widget();
                                            CloseWindow( $ShiftCommentWindow );
                                          },
+                                        -font => $opt{'font-var-bold'},
                                        )->pack( -side => 'left',
                                                 -anchor => 'n',
                                               );
@@ -1921,6 +2089,7 @@ sub raise_shift_comment {
                                            -command => sub {
                                              CloseWindow( $ShiftCommentWindow );
                                            },
+                                          -font => $opt{'font-var-bold'},
                                          )->pack( -side => 'left',
                                                   -anchor => 'n',
                                                 );
@@ -1929,14 +2098,20 @@ sub raise_shift_comment {
   my $buttonTZLocal = $buttonFrame->Radiobutton( -variable => \$TZ,
                                                  -text => "Local Time",
                                                  -value => 'LocalTime',
+                                                  -font => $opt{'font-var'},
                                                )->pack( -side => 'right' );
   my $buttonTZUT = $buttonFrame->Radiobutton( -variable => \$TZ,
                                               -text => "UT",
                                               -value => 'UT',
+                                              -font => $opt{'font-var'},
                                             )->pack( -side => 'right' );
   my $timeText = $buttonFrame->Entry( -textvariable => \$RefTime,
-                                      -width => 20 )->pack( -side => 'right' );
-  $buttonFrame->Label( -text => "Comment time: " )->pack( -side => 'right' );
+                                      -width => 20,
+                                      -font => $opt{'font-var'},
+                                    )->pack( -side => 'right' );
+  $buttonFrame->Label( -text => "Comment time: ",
+                        -font => $opt{'font-var'},
+                      )->pack( -side => 'right' );
 
   # Need to populate the time field
   # We use closures rather than array ref for passing arguments
@@ -2020,11 +2195,13 @@ sub create_options_widget {
   # Fill in the top line.
   $topline->Label( -text => 'Current user:',
                    -width => 15,
+                    -font => $opt{'font-var'},
                  )->pack( -side => 'left' );
 
   my $RefUser = $user->userid;
   $topline->Entry( -textvariable => \$RefUser,
                    -width => 20,
+                    -font => $opt{'font-var-bold'},
                  )->pack( -side => 'left' );
 
   $topline->Button( -text => 'Set User',
@@ -2033,25 +2210,30 @@ sub create_options_widget {
                                       populate_shiftlog_widget();
                     },
                     -width => 10,
+                    -font => $opt{'font-var'},
                   )->pack( -side => 'left' );
 
   $topline->Label( -text => 'Current telescope:',
+                    -font => $opt{'font-var'},
                  )->pack( -side => 'left',
                         );
 
   # Fill in the bottom line.
   $bottomline->Label( -text => 'Current UT:',
                       -width => 15,
+                      -font => $opt{'font-var'},
                     )->pack( -side => 'left' );
 
   my $RefUT = $ut;
   $bottomline->Entry( -textvariable => \$RefUT,
                       -width => 20,
+                      -font => $opt{'font-var-bold'},
                     )->pack( -side => 'left' );
 
   $bottomline->Button( -text => 'Set UT',
                        -command => sub { set_UT( \$RefUT, $w ) },
                        -width => 10,
+                        -font => $opt{'font-var'},
                      )->pack( -side => 'left' );
 
   # Create radiobuttons for the available telescopes
@@ -2069,6 +2251,7 @@ sub create_options_widget {
                               -value => $ttel,
                               -variable => \$newTel,
                               -command => sub { set_telescope( \$ttel, $w ) },
+                              -font => $opt{'font-var'},
                             )->pack( -side => 'left' );
   }
 
@@ -2090,6 +2273,7 @@ sub set_user {
 
     my $txt = $dbox->add('Label',
                          -text => "User ID " . $$RefUser . " does not exist in database\nUser ID not changed.",
+                          -font => $opt{'font-var'},
                         )->pack;
     my $but = $dbox->Show;
   }
@@ -2182,6 +2366,24 @@ sub grp_to_ref {
   }
 }
 
+
+# Derive other fonts.
+sub font_medium_to_bold_it {
+
+  my ( $ui , $med ) = @_;
+
+  my $font = font_parse( $ui, $med );
+  $font->configure( '-weight' => 'bold' , '-slant' => 'italic' );
+  return $font;
+}
+
+sub font_parse {
+
+  my ( $ui , $in ) = @_;
+
+  return $ui->fontCreate( $ui->fontActual( $in ) );
+}
+
 =head1 AUTHORS
 
 Brad Cavanagh E<lt>b.cavanagh@jach.hawaii.eduE<gt>,
@@ -2189,7 +2391,8 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2008 Science and Technology Facilities Council.
+Copyright (C) 2015 East Asian Observatory.
+Copyright (C) 2008-2013 Science and Technology Facilities Council.
 Copyright (C) 2002-2007 Particle Physics and Astronomy Research Council.
 All Rights Reserved.
 
