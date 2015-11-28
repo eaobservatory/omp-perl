@@ -147,68 +147,73 @@ sub night_report {
     return;
   }
 
-  print "<table border=0><td colspan=2>";
-
-  if ($delta) {
-    print "<h2 class='title'>Observing Report for ". $utdate->ymd ." to ". $utdate_end->ymd ." at $tel</h2>";
-  } else {
-    print "<h2 class='title'>Observing Report for ". $utdate->ymd ." at $tel</h2>";
-  }
-
   # Get our current URL
 #    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
   my $url = $q->url(-path_info=>1);
 
-  # Display a different form and different links if we are displaying
-  # for multiple nights
-  if (! $delta) {
-    # Get the next and previous UT dates
-    my $prevdate = gmtime($utdate->epoch - ONE_DAY);
-    my $nextdate = gmtime($utdate->epoch + ONE_DAY);
+  my $colspan = 1;
+  my $start = $utdate->ymd();
+  my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x4;
+  if ( $delta ) {
 
-    # Link to previous and next date reports
-    print "</td><tr><td>";
+    $other_date_link =
+      qq[<a href='$url?tel=$tel'>Click here to view a single night report</a>];
 
-    print "<a href='$url?utdate=".$prevdate->ymd."&tel=$tel'>Go to previous</a>";
-    print " | ";
-    print "<a href='$url?utdate=".$nextdate->ymd."&tel=$tel'>Go to next</a>";
-
-    print "</td><td align='right'>";
-
-    # Form for viewing another report
-    print $q->startform;
-    print "View report for ";
-    print $q->textfield(-name=>"utdate_form",
-                        -size=>10,
-                        -default=>substr($utdate->ymd, 0, 8),);
-    print "</td><tr><td colspan=2 align=right>";
-
-    print $q->submit(-name=>"view_report",
-                      -label=>"Submit",);
-    print $q->endform;
-
-    # Link to multi night report
-    print "</td><tr><td colspan=2><a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>";
-    print "</td></table>";
-  } else {
-    print "</td><tr><td colspan=2>";
-    print $q->startform;
-    print "View report starting on ";
-    print $q->textfield(-name=>"utdate_form",
-                        -size=>10,
-                        -default=>$utdate->ymd,);
-    print " and ending on ";
-    print $q->textfield(-name=>"utdate_end",
-                        -size=>10,);
-    print " UT ";
-    print $q->submit(-name=>"view_report",
-                      -label=>"Submit",);
-    print $q->endform;
-
-    # Link to single night report
-    print "</td><tr><td colspan=2><a href='$url?tel=$tel'>Click here to view a single night report</a>";
-    print "</td></table>";
+    $end_field = " and ending on "
+                .  $q->textfield( -name=>"utdate_end", -size=>10 )
+                ;
   }
+  else {
+
+    $other_date_link =
+      qq[<a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>];
+
+    $start = substr( $start, 0, 8);
+
+    my $epoch = $utdate->epoch();
+    my $day_format = sprintf qq[<a href='%s?utdate=%%s&tel=%s'>Go to %%s], $url, $tel;
+
+    my $prev = sprintf $day_format , ( $epoch - ONE_DAY() ) , 'previous';
+    my $next = sprintf $day_format , ( $epoch + ONE_DAY() ) , 'next';
+    $prev_next_link = join ' | ' , $prev , $next;
+  }
+
+  print "<table border=1>";
+
+  _print_tr( _print_td( 2 ,
+                        "<h2 class='title'>Observing Report for " ,
+                        $utdate->ymd , $delta ? ( ' to ' . $utdate_end->ymd ) : () ,
+                        " at $tel</h2> "
+                      )
+            );
+
+  my @start_form =
+    ( $q->startform() ,
+      "\nView report " ,
+      ( $delta ? ' starting on ' : ' for ' ) ,
+      $q->textfield(  -name => "utdate_form",
+                      -size => 10,
+                      -default => $start,
+                    ) ,
+      $end_field ,
+      ' UT '
+    );
+
+  $delta and _print_tr( _print_td( 1 , $prev_next_link ) ) ;
+
+  _print_tr( _print_td( $delta ? 2 : 1 , @start_form ) );
+
+  _print_tr( "<td colspan=2 align=right>" ,
+              $q->submit( -name  => "view_report",
+                          -label => "Submit"
+                        ) ,
+              $q->endform() ,
+              '</td>'
+            );
+
+  _ptrint_tr( _print_td( 2 , $other_date_link ) );
+
+  print "\n</table>";
 
   print "<p>";
 
@@ -293,6 +298,19 @@ sub night_report {
   # Display forecast plot.
   ( $forecast_html ) and print "<p>$forecast_html</p>\n";
 
+  return;
+}
+
+sub _print_tr { print qq[\n<tr>] , @_ , qq[\n</tr>]; return; }
+
+sub _print_td {
+
+  scalar @_ or return;
+
+  my ( $span , @text ) = @_;
+
+  $span || = 1;
+  print qq[<td colspan='$span'>] , @text , q[</td>];
   return;
 }
 
