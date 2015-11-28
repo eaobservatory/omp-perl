@@ -309,7 +309,7 @@ sub _print_td {
 
   my ( $span , @text ) = @_;
 
-  $span || = 1;
+  $span ||= 1;
   print qq[<td colspan='$span'>] , @text , q[</td>];
   return;
 }
