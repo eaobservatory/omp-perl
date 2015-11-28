@@ -120,6 +120,8 @@ sub night_report {
   # Get the telescope from the URL
   my $telstr = $q->url_param('tel');
 
+  my $nr_url = $q->url(-path_info=>0);
+
   # Untaint the telescope string
   my $tel;
   if ($telstr) {
@@ -130,7 +132,7 @@ sub night_report {
     }
   } else {
     print "Please select a telescope to view observing reports for<br>";
-    print "<a href='nightrep.pl?tel=jcmt'>JCMT</a> | <a href='nightrep.pl?tel=ukirt'>UKIRT</a>";
+    print "<a href='${nr_url}?tel=jcmt'>JCMT</a> | <a href='${nr_url}?tel=ukirt'>UKIRT</a>";
     return;
   }
 
@@ -139,11 +141,22 @@ sub night_report {
               telescope => $tel,);
   ($delta) and $args{delta_day} = $delta;
 
+  my $other_nr_link = $tel =~ m/^jcmt$/i ? 'ukirt' : 'jcmt' ;
+  $other_nr_link = sprintf '<i>(view <a href="%s?tel=%s&utdate_form=%s&utdate_end=%s">%s</a> report)</i>' ,
+                      $nr_url ,
+                      $other_nr_link ,
+                      $utdate->ymd() ,
+                      ( $utdate_end ? $utdate_end->ymd() : '' ) ,
+                      uc( $other_nr_link )
+                      ;
+
   # Get the night report
   my $nr = new OMP::NightRep(%args);
 
   if (! $nr) {
     print "<h2>No observing report available for". $utdate->ymd ."at $tel</h2>";
+
+    print '<p>' , $other_nr_link , '<p>';
     return;
   }
 
@@ -208,6 +221,8 @@ sub night_report {
             );
 
   _print_tr( _make_td( 1 , $other_date_link ) );
+
+  _print_tr( _make_td( 1 , $other_nr_link ) );
 
   print "\n</table>";
 
