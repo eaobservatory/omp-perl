@@ -192,7 +192,7 @@ sub night_report {
     $prev_next_link = join ' | ' , $prev , $next;
   }
 
-  print "<table border=1>";
+  print "<table border=0>";
 
   _print_tr( _make_td( 1 ,
                         "<h2 class='title'>Observing Report for " ,
