@@ -151,9 +151,8 @@ sub night_report {
 #    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
   my $url = $q->url(-path_info=>1);
 
-  my $colspan = 1;
   my $start = $utdate->ymd();
-  my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x4;
+  my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x3;
   if ( $delta ) {
 
     $other_date_link =
@@ -171,47 +170,44 @@ sub night_report {
     $start = substr( $start, 0, 8);
 
     my $epoch = $utdate->epoch();
-    my $day_format = sprintf qq[<a href='%s?utdate=%%s&tel=%s'>Go to %%s], $url, $tel;
+    my ( $prev , $next ) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
 
-    my $prev = sprintf $day_format , ( $epoch - ONE_DAY() ) , 'previous';
-    my $next = sprintf $day_format , ( $epoch + ONE_DAY() ) , 'next';
+    my $day_format = qq[<a href='%s?utdate=%s&tel=%s'>Go to %s</a>];
+    $prev = sprintf $day_format , $url , $prev->ymd() , $tel , 'previous'; #'
+    $next = sprintf $day_format , $url , $next->ymd() , $tel , 'next'; #'
+
     $prev_next_link = join ' | ' , $prev , $next;
   }
 
   print "<table border=1>";
 
-  _print_tr( _print_td( 2 ,
+  _print_tr( _make_td( 1 ,
                         "<h2 class='title'>Observing Report for " ,
                         $utdate->ymd , $delta ? ( ' to ' . $utdate_end->ymd ) : () ,
                         " at $tel</h2> "
                       )
             );
 
-  my @start_form =
-    ( $q->startform() ,
-      "\nView report " ,
-      ( $delta ? ' starting on ' : ' for ' ) ,
-      $q->textfield(  -name => "utdate_form",
-                      -size => 10,
-                      -default => $start,
-                    ) ,
-      $end_field ,
-      ' UT '
-    );
+  $delta or _print_tr( _make_td( 1 , $prev_next_link ) );
 
-  $delta and _print_tr( _print_td( 1 , $prev_next_link ) ) ;
-
-  _print_tr( _print_td( $delta ? 2 : 1 , @start_form ) );
-
-  _print_tr( "<td colspan=2 align=right>" ,
-              $q->submit( -name  => "view_report",
-                          -label => "Submit"
-                        ) ,
-              $q->endform() ,
-              '</td>'
+  _print_tr( _make_td( 1 ,
+                        $q->startform() ,
+                        "\nView report " ,
+                        ( $delta ? ' starting on ' : ' for ' ) ,
+                        $q->textfield(  -name => "utdate_form",
+                                        -size => 10,
+                                        -default => $start,
+                                      ) ,
+                        $end_field ,
+                        ' UT ' .
+                        $q->submit( -name  => "view_report",
+                                    -label => "Submit"
+                                  ) ,
+                        $q->endform()
+                      )
             );
 
-  _ptrint_tr( _print_td( 2 , $other_date_link ) );
+  _print_tr( _make_td( 1 , $other_date_link ) );
 
   print "\n</table>";
 
@@ -301,17 +297,26 @@ sub night_report {
   return;
 }
 
-sub _print_tr { print qq[\n<tr>] , @_ , qq[\n</tr>]; return; }
+sub _print_tr {
 
-sub _print_td {
+  my ( @text ) = @_;
+
+  print qq[\n<tr>] , @_ , qq[\n</tr>];
+  return;
+
+}
+
+sub _make_td {
 
   scalar @_ or return;
 
   my ( $span , @text ) = @_;
 
   $span ||= 1;
-  print qq[<td colspan='$span'>] , @text , q[</td>];
-  return;
+  return
+    qq[<td colspan='$span'>]
+    . join '' , @text , q[</td>]
+    ;
 }
 
 =item B<nightlog_content>
