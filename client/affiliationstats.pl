@@ -78,10 +78,11 @@ print "\nProject observing time:\n\n";
 
 foreach my $info (sort {$b->[1] <=> $a->[1]} @projects) {
     printf "%-10s %8.2f %-15s %s\n", $info->[0], $info->[1],
-        (join ', ', map {
+        substr($info->[3], 0, 15),
+        join ', ', map {
             sprintf('%.0f%% %s', $info->[2]->{$_} * 100.0,
                 $AFFILIATION_NAMES{$_})
-        } keys %{$info->[2]}), $info->[3];
+        } keys %{$info->[2]};
 }
 
 print "\nAffiliation summary:\n\n";
