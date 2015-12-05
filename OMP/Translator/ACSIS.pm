@@ -532,8 +532,11 @@ sub handle_special_modes {
     $info->{jigglePattern} = '1x1';
     $info->{scaleFactor} = 1;
     $info->{secsPerJiggle} = $info->{secsPerCycle};
+    # Record the fact that this conversion has been made.  This can be
+    # important, e.g. when setting the rotator angle, we need to know that
+    # we should access the original grid / stare PA parameters.
+    $info->{'isConvertedGridFreqSw'} = 1;
     $self->output("Converting grid/freqsw to jiggle/freqsw observation\n");
-
   }
 
   if ($info->{mapping_mode} eq 'scan' ) {
@@ -904,9 +907,12 @@ sub rotator_config {
         }
         $system = $scan{SYSTEM};
       }
-    } elsif ($info{mapping_mode} eq 'jiggle') {
+    } elsif (($info{mapping_mode} eq 'jiggle')
+             and not $info{'isConvertedGridFreqSw'}) {
       # override the system from the jiggle. The PA should be matching the cube
       # but we make sure we use the requested value
+      # Note: we don't do this if the observation is a grid/freqsw converted
+      # to a 1x1 jiggle because we want to retain the original PA information.
       $system = $info{jiggleSystem} || 'TRACKING';
       $pa = new Astro::Coords::Angle( ($info{jigglePA} || 0), units => 'deg' );
 
@@ -917,7 +923,9 @@ sub rotator_config {
         @choices = (0,2);
       }
 
-    } elsif ($info{mapping_mode} eq 'grid' && exists $info{stareSystem}
+    } elsif ((($info{mapping_mode} eq 'grid')
+                 or $info{'isConvertedGridFreqSw'})
+             && exists $info{stareSystem}
              && defined $info{stareSystem}) {
       # override K mirror option
       # For now only allow when there are no offsets (simplifies map making)
