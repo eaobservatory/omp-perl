@@ -3719,6 +3719,13 @@ sub SpObs {
   # Retrieve the observation number in this MSB
   $summary{msb_obsnum} = $self->_get_attribute( $el, $OBSNUM_ATTR );
 
+  # Retrieve additional FITS header information which may have been
+  # added to the SpObs.  These elements are added by addFITStoObs
+  # (orignally for UKIRT) but are now being retrieved for addition
+  # to the FITS headers by the Translator at JCMT.
+  $summary{'rq_mntau'} = $self->_get_pcdata($el, 'rq_mntau');
+  $summary{'rq_mxtau'} = $self->_get_pcdata($el, 'rq_mxtau');
+
   # Now walk through all the child elements extracting information
   # and overriding the default values (if present)
   # This is almost the same as the summarize() method but I can not

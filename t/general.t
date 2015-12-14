@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 163;
+use Test::More tests => 164;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -355,7 +355,7 @@ my %extract = (
                'U/15A/UA04a' => 'U/15A/UA04a       UA',
                'U/15A/UA10a' => 'U/15A/UA10a       UA',
                'U/15A/UA13b' => 'U/15A/UA13b      UA',
-
+               'U/15B/NA05A' => 'Project U/15B/NA05A has A suffix',
               );
 
 for my $proj (keys %extract) {

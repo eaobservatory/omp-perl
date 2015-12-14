@@ -120,6 +120,8 @@ sub night_report {
   # Get the telescope from the URL
   my $telstr = $q->url_param('tel');
 
+  my $nr_url = $q->url(-path_info=>0);
+
   # Untaint the telescope string
   my $tel;
   if ($telstr) {
@@ -130,7 +132,7 @@ sub night_report {
     }
   } else {
     print "Please select a telescope to view observing reports for<br>";
-    print "<a href='nightrep.pl?tel=jcmt'>JCMT</a> | <a href='nightrep.pl?tel=ukirt'>UKIRT</a>";
+    print "<a href='${nr_url}?tel=jcmt'>JCMT</a> | <a href='${nr_url}?tel=ukirt'>UKIRT</a>";
     return;
   }
 
@@ -139,160 +141,197 @@ sub night_report {
               telescope => $tel,);
   ($delta) and $args{delta_day} = $delta;
 
+  my $other_nr_link = $tel =~ m/^jcmt$/i ? 'ukirt' : 'jcmt' ;
+  $other_nr_link = sprintf '<i>(view <a href="%s?tel=%s&utdate_form=%s&utdate_end=%s">%s</a> report)</i>' ,
+                      $nr_url ,
+                      $other_nr_link ,
+                      $utdate->ymd() ,
+                      ( $utdate_end ? $utdate_end->ymd() : '' ) ,
+                      uc( $other_nr_link )
+                      ;
+
   # Get the night report
   my $nr = new OMP::NightRep(%args);
 
   if (! $nr) {
     print "<h2>No observing report available for". $utdate->ymd ."at $tel</h2>";
-  } else {
 
-    print "<table border=0><td colspan=2>";
+    print '<p>' , $other_nr_link , '<p>';
+    return;
+  }
 
-    if ($delta) {
-      print "<h2 class='title'>Observing Report for ". $utdate->ymd ." to ". $utdate_end->ymd ." at $tel</h2>";
-    } else {
-      print "<h2 class='title'>Observing Report for ". $utdate->ymd ." at $tel</h2>";
-    }
-
-    # Get our current URL
+  # Get our current URL
 #    my $url = OMP::Config->getData('omp-private') . OMP::Config->getData('cgidir') . "/nightrep.pl";
-    my $url = $q->url(-path_info=>1);
+  my $url = $q->url(-path_info=>1);
 
-    # Display a different form and different links if we are displaying
-    # for multiple nights
-    if (! $delta) {
-      # Get the next and previous UT dates
-      my $prevdate = gmtime($utdate->epoch - ONE_DAY);
-      my $nextdate = gmtime($utdate->epoch + ONE_DAY);
+  my $start = $utdate->ymd();
+  my ( $end_field , $prev_next_link , $other_date_link ) = ( '' ) x3;
+  if ( $delta ) {
 
-      # Link to previous and next date reports
-      print "</td><tr><td>";
+    $other_date_link =
+      qq[<a href='$url?tel=$tel'>Click here to view a single night report</a>];
 
-      print "<a href='$url?utdate=".$prevdate->ymd."&tel=$tel'>Go to previous</a>";
-      print " | ";
-      print "<a href='$url?utdate=".$nextdate->ymd."&tel=$tel'>Go to next</a>";
+    $end_field = " and ending on "
+                .  $q->textfield( -name=>"utdate_end", -size=>10 )
+                ;
+  }
+  else {
 
-      print "</td><td align='right'>";
+    $other_date_link =
+      qq[<a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>];
 
-      # Form for viewing another report
-      print $q->startform;
-      print "View report for ";
-      print $q->textfield(-name=>"utdate_form",
-                          -size=>10,
-                          -default=>substr($utdate->ymd, 0, 8),);
-      print "</td><tr><td colspan=2 align=right>";
+    $start = substr( $start, 0, 8);
 
-      print $q->submit(-name=>"view_report",
-                       -label=>"Submit",);
-      print $q->endform;
+    my $epoch = $utdate->epoch();
+    my ( $prev , $next ) = map { scalar gmtime( $epoch + $_ ) } ( -1 * ONE_DAY() , ONE_DAY() );
 
-      # Link to multi night report
-      print "</td><tr><td colspan=2><a href='$url?tel=$tel&delta=7'>Click here to view a report for multiple nights</a>";
-      print "</td></table>";
-    } else {
-      print "</td><tr><td colspan=2>";
-     print $q->startform;
-      print "View report starting on ";
-      print $q->textfield(-name=>"utdate_form",
-                          -size=>10,
-                          -default=>$utdate->ymd,);
-      print " and ending on ";
-      print $q->textfield(-name=>"utdate_end",
-                          -size=>10,);
-      print " UT ";
-      print $q->submit(-name=>"view_report",
-                       -label=>"Submit",);
-      print $q->endform;
+    my $day_format = qq[<a href='%s?utdate=%s&tel=%s'>Go to %s</a>];
+    $prev = sprintf $day_format , $url , $prev->ymd() , $tel , 'previous'; #'
+    $next = sprintf $day_format , $url , $next->ymd() , $tel , 'next'; #'
 
-      # Link to single night report
-      print "</td><tr><td colspan=2><a href='$url?tel=$tel'>Click here to view a single night report</a>";
-      print "</td></table>";
-    }
+    $prev_next_link = join ' | ' , $prev , $next;
+  }
 
-    print "<p>";
+  print "<table border=0>";
+
+  _print_tr( _make_td( 1 ,
+                        "<h2 class='title'>Observing Report for " ,
+                        $utdate->ymd , $delta ? ( ' to ' . $utdate_end->ymd ) : () ,
+                        " at $tel</h2> "
+                      )
+            );
+
+  $delta or _print_tr( _make_td( 1 , $prev_next_link ) );
+
+  _print_tr( _make_td( 1 ,
+                        $q->startform() ,
+                        "\nView report " ,
+                        ( $delta ? ' starting on ' : ' for ' ) ,
+                        $q->textfield(  -name => "utdate_form",
+                                        -size => 10,
+                                        -default => $start,
+                                      ) ,
+                        $end_field ,
+                        ' UT ' .
+                        $q->submit( -name  => "view_report",
+                                    -label => "Submit"
+                                  ) ,
+                        $q->endform()
+                      )
+            );
+
+  _print_tr( _make_td( 1 , $other_date_link ) );
+
+  _print_tr( _make_td( 1 , $other_nr_link ) );
+
+  print "\n</table>";
+
+  print "<p>";
 
 
-    # Link to CSO fits tau plot
-    my $plot_html = OMP::CGIComponent::Weather::tau_plot_code($utdate);
-    ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
+  # Link to CSO fits tau plot
+  my $plot_html = OMP::CGIComponent::Weather::tau_plot_code($utdate);
+  ($plot_html) and print "<a href='#taufits'>View tau plot</a><br>";
 
-    # Link to WVM graph
-    if (! $utdate_end) {
+  # Link to WVM graph
+  if (! $utdate_end) {
 #      print "<a href='#wvm'>View WVM graph</a><br>";
-    }
+  }
 
-    # Retrieve HTML for the various plots.
-    my $extinction_html = OMP::CGIComponent::Weather::extinction_plot_code( $utdate );
-    my $forecast_html = OMP::CGIComponent::Weather::forecast_plot_code( $utdate );
-    my $meteogram_html = OMP::CGIComponent::Weather::meteogram_plot_code( $utdate );
-    my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
-    my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
-    my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
-    my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
+  # Retrieve HTML for the various plots.
+  my $extinction_html = OMP::CGIComponent::Weather::extinction_plot_code( $utdate );
+  my $forecast_html = OMP::CGIComponent::Weather::forecast_plot_code( $utdate );
+  my $meteogram_html = OMP::CGIComponent::Weather::meteogram_plot_code( $utdate );
+  my $opacity_html = OMP::CGIComponent::Weather::opacity_plot_code( $utdate );
+  my $seeing_html = OMP::CGIComponent::Weather::seeing_plot_code( $utdate );
+  my $transp_html = OMP::CGIComponent::Weather::transparency_plot_code( $utdate );
+  my $zeropoint_html = OMP::CGIComponent::Weather::zeropoint_plot_code( $utdate );
 
-    print "Weather information: ";
+  print "Weather information: ";
 
-    # Link to meteogram plot.
-    ( $meteogram_html ) and print "<a href='#meteogram'>JAC meteogram</a> ";
+  # Link to meteogram plot.
+  ( $meteogram_html ) and print "<a href='#meteogram'>JAC meteogram</a> ";
 
-    # Link to opacity plot.
-    ( $opacity_html ) and print "<a href='#opacity'>Mauna Kea opacity</a> ";
+  # Link to opacity plot.
+  ( $opacity_html ) and print "<a href='#opacity'>Mauna Kea opacity</a> ";
 
-    # Link to seeing plot.
-    ( $seeing_html ) and print "<a href='#seeing'>UKIRT K-band seeing</a> ";
+  # Link to seeing plot.
+  ( $seeing_html ) and print "<a href='#seeing'>UKIRT K-band seeing</a> ";
 
-    # Make it pretty.
-    print "<br>\n";
+  # Make it pretty.
+  print "<br>\n";
 
-    # Link to UKIRT extinction plot.
-    ( $extinction_html ) and print "<a href='#extinction'>UKIRT extinction</a> ";
+  # Link to UKIRT extinction plot.
+  ( $extinction_html ) and print "<a href='#extinction'>UKIRT extinction</a> ";
 
-    # Link to CFHT transparency plot.
-    ( $transp_html ) and print "<a href='#transparency'>CFHT transparency</a> ";
+  # Link to CFHT transparency plot.
+  ( $transp_html ) and print "<a href='#transparency'>CFHT transparency</a> ";
 
-    # Link to forecast plot.
-    ( $forecast_html ) and print "<a href='#forecast'>MKWC forecast</a>";
+  # Link to forecast plot.
+  ( $forecast_html ) and print "<a href='#forecast'>MKWC forecast</a>";
 
-    print "<p/>\n";
+  print "<p/>\n";
 
-    $nr->ashtml( worfstyle => 'staff',
-                 commentstyle => 'staff', );
+  $nr->ashtml( worfstyle => 'staff',
+                commentstyle => 'staff', );
 
-    if ($tel eq 'JCMT') {
-      print "\n<h2>Data Quality Analysis</h2>\n\n";
-      include_file_ut('dq-nightly', $utdate->ymd());
-    }
+  if ($tel eq 'JCMT') {
+    print "\n<h2>Data Quality Analysis</h2>\n\n";
+    include_file_ut('dq-nightly', $utdate->ymd());
+  }
 
-    # Display tau plot
-    ($plot_html) and print "<p>$plot_html</p>";
+  # Display tau plot
+  ($plot_html) and print "<p>$plot_html</p>";
 
-    # Display WVM graph
-    my $wvm_html;
+  # Display WVM graph
+  my $wvm_html;
 
-    if (! $utdate_end) {
+  if (! $utdate_end) {
 #      $wvm_html = OMP::CGIComponent::Weather::wvm_graph_code($utdate->ymd);
 #      print $wvm_html;
-    }
-
-    # Display JAC meteogram.
-    ( $meteogram_html ) and print "<p>$meteogram_html</p>\n";
-
-    # Display opacity plot.
-    ( $opacity_html ) and print "<p>$opacity_html</p>\n";
-
-    # Display seeing plot.
-    ( $seeing_html ) and print "<p>$seeing_html</p>\n";
-
-    # Display extinction plot.
-    ( $extinction_html ) and print "<p>$extinction_html</p>\n";
-
-    # Display transparency plot.
-    ( $transp_html ) and print "<p>$transp_html</p>\n";
-
-    # Display forecast plot.
-    ( $forecast_html ) and print "<p>$forecast_html</p>\n";
-
   }
+
+  # Display JAC meteogram.
+  ( $meteogram_html ) and print "<p>$meteogram_html</p>\n";
+
+  # Display opacity plot.
+  ( $opacity_html ) and print "<p>$opacity_html</p>\n";
+
+  # Display seeing plot.
+  ( $seeing_html ) and print "<p>$seeing_html</p>\n";
+
+  # Display extinction plot.
+  ( $extinction_html ) and print "<p>$extinction_html</p>\n";
+
+  # Display transparency plot.
+  ( $transp_html ) and print "<p>$transp_html</p>\n";
+
+  # Display forecast plot.
+  ( $forecast_html ) and print "<p>$forecast_html</p>\n";
+
+  return;
+}
+
+sub _print_tr {
+
+  my ( @text ) = @_;
+
+  print qq[\n<tr>] , @_ , qq[\n</tr>];
+  return;
+
+}
+
+sub _make_td {
+
+  scalar @_ or return;
+
+  my ( $span , @text ) = @_;
+
+  $span ||= 1;
+  return
+    qq[<td colspan='$span'>]
+    . join '' , @text , q[</td>]
+    ;
 }
 
 =item B<nightlog_content>

@@ -303,6 +303,34 @@ sub getDRGroup {
   return '';
 }
 
+=item B<getRequestedMaxTau>
+
+Get the requested maximum tau constraint.
+
+=cut
+
+sub getRequestedMaxTau {
+    my $cls = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    return $info{'rq_mxtau'} // '';
+}
+
+=item B<getRequestedMinTau>
+
+Get the requested minimum tau constraint.
+
+=cut
+
+sub getRequestedMinTau {
+    my $cls = shift;
+    my $cfg = shift;
+    my %info = @_;
+
+    return $info{'rq_mntau'} // '';
+}
+
 =item B<getSurveyName>
 
 Need to get survey information from the TOML.
