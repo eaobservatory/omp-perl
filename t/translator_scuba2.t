@@ -18,7 +18,7 @@
 
 use strict;
 
-use Test::More tests => 1 + (7 * 2);
+use Test::More tests => 1 + (8 * 2);
 use Test::Number::Delta;
 
 require_ok('OMP::Translator::SCUBA2');
@@ -33,6 +33,10 @@ is($vel, 600, 'PONG7200 vel');
 ($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(3600.0);
 is($dy, 180, 'PONG3600 dy');
 is($vel, 600, 'PONG3600 vel');
+
+($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(2700.0);
+is($dy, 105, 'PONG2700 dy');
+is($vel, 540, 'PONG2700 vel');
 
 ($dy, $vel) = OMP::Translator::SCUBA2->_get_dyn_pong_parameters(1800.0);
 is($dy, 60, 'PONG1800 dy');
