@@ -568,25 +568,7 @@ sub handle_special_modes {
         my $avwidth = ($map_width + $map_height) / 2;
 
         if ($pongmode =~ /^dyn/i) {
-
-          if ( $avwidth <= 600) {
-            $scan_dy = 30;
-            # Try to have about two seconds of scanning
-            $scan_vel = $avwidth / 2.0;
-          } elsif ($avwidth <= 1200) {
-            $scan_dy = 30;
-            $scan_vel = 280;
-          } elsif ($avwidth <= 2200) {
-            $scan_dy = 60;
-            $scan_vel = 400;
-          } elsif ($avwidth <= 4800) {
-            $scan_dy = 180;
-            $scan_vel = 600;
-          } else {
-            # Largest maps
-            $scan_dy = 360;
-            $scan_vel = 600;
-          }
+          ($scan_dy, $scan_vel) = $self->_get_dyn_pong_parameters($avwidth);
         } elsif ($pongmode =~ /^fine/i) {
           # Finely spaced map always has dy of 3
           $scan_dy = 3.0;
@@ -634,6 +616,43 @@ sub handle_special_modes {
   }
 
   return;
+}
+
+=item B<_get_dyn_pong_parameters>
+
+Determine pong parameters for "dynamic" mode, based on the map size.
+
+    my $av_size = ($map_width + $map_height) / 2;
+    my ($scan_dy, $scan_vel) = $self->_get_dyn_pong_parameters($av_size);
+
+=cut
+
+sub _get_dyn_pong_parameters {
+    my $self = shift;
+    my $avwidth = shift;
+
+    my ($scan_dy, $scan_vel);
+
+    if ( $avwidth <= 600) {
+        $scan_dy = 30;
+        # Try to have about two seconds of scanning
+        $scan_vel = $avwidth / 2.0;
+    } elsif ($avwidth <= 1200) {
+        $scan_dy = 30;
+        $scan_vel = 280;
+    } elsif ($avwidth <= 2200) {
+        $scan_dy = 60;
+        $scan_vel = 400;
+    } elsif ($avwidth <= 4800) {
+        $scan_dy = 180;
+        $scan_vel = 600;
+    } else {
+        # Largest maps
+        $scan_dy = 360;
+        $scan_vel = 600;
+    }
+
+    return ($scan_dy, $scan_vel);
 }
 
 =item B<read_extra_apertures>
