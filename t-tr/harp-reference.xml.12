@@ -207,6 +207,14 @@
                  KEYWORD="AGENTID"
                  COMMENT="Unique identifier for remote agent"
                  VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="RQ_MNTAU"
+                 COMMENT="Requested min tau constraint"
+                 VALUE="" />
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="RQ_MXTAU"
+                 COMMENT="Requested max tau constraint"
+                 VALUE="" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"
