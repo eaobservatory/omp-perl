@@ -168,7 +168,7 @@ sub _show_input_page {
       keys %AFFILIATION_NAMES);
     my %affiliation_names = (Any => 'Any', %AFFILIATION_NAMES);
 
-    my @instruments = qw/Any SCUBA-2 HARP RXA3/;
+    my @instruments = qw/Any SCUBA-2 HARP RXA3M/;
 
     my @project = (exists $opt{'project'}) ? @{$opt{'project'}} : ();
 
