@@ -104,7 +104,7 @@ my %cal_patterns = (
         qr/Point/,
         qr/Focus/,
     ],
-    'RxA3' => [
+    'RxA3m' => [
         qr/Point/,
         qr/Focus/,
     ],
@@ -131,7 +131,7 @@ my %msb_filename = ();
 # In calibration mode we simply loop over instruments and fetch suitable
 # calibrations.
 do {
-    foreach my $instrument (qw/SCUBA-2 HARP RxA3/) {
+    foreach my $instrument (qw/SCUBA-2 HARP RxA3m/) {
         print "CAL $instrument\n\n";
 
         my $qxml = "<MSBQuery>\n" .
@@ -198,7 +198,7 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
     $hst = $hst->hms('-');
 
     while (my ($band, $tau) = each %band) {
-        foreach my $instrument (qw/SCUBA-2 HARP RxA3/) {
+        foreach my $instrument (qw/SCUBA-2 HARP RxA3m/) {
             while (my ($query, $countrysemester) = each %query) {
                 print "$utdate $hst band $band $instrument $query\n\n";
 
