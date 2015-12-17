@@ -62,7 +62,7 @@ my $nr = OMP::NightRep->new(date => $startut,
 			    telescope => $telescope,
 			    delta_day => $delta,);
 
-my $countrylist = "DDT EC CA INT NL UH UK JLS GT JAC";
+my $countrylist = "DDT EC CA INT NL UH UK PI JLS GT JAC LAP";
 
 my %acct = $nr->accounting_db(1);
 
