@@ -80,11 +80,11 @@ my %band = (
 );
 
 # Query types to perform.  This has a general PI query instead of
-# UK, CA, INT separately.  Include as XML to deal with the annoying
-# fact that we need to set the semester also for JLS.
+# PI, INT separately.  Include as XML to deal with the annoying
+# fact that we need to set the semester also for LAP.
 my %query = (
-    jls => '<country>JLS</country><semester>JLS</semester>',
-    pi => '<country>CA</country><country>INT</country><country>UK</country><semester/>',
+    lap => '<country>LAP</country><semester>LAP</semester>',
+    pi => '<country>PI</country><country>INT</country><semester/>',
     nl => '<country>NL</country><semester/>',
 );
 
@@ -237,9 +237,9 @@ for (my $date = $date_start; $date <= $date_end; $date += $date_step) {
                     next if exists $result_id{$msbid};
                     $result_id{$msbid} = 1;
 
-                    # And skip JLS observations outside of the JLS queue
+                    # And skip LAP observations outside of the LAP queue
                     # to get a better selection of emergency MSBs...
-                    next if $result->projectid() =~ /^MJLS/ && $query ne 'jls';
+                    next if $result->projectid() =~ /^M\d\d[AB]L/ && $query ne 'lap';
 
                     # Make safe version of MSB title for inclusion in the file name.
                     my $title = substr($result->title(), 0, 20);
