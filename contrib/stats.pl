@@ -309,7 +309,7 @@ while ($ut <= $endut) {
     $total_proj += $account->{total}->hours;
 
     # Get project details instead
-    my $details = OMP::ProjServer->projectDetails($proj, "***REMOVED***", "object");
+    my $details = OMP::ProjServer->projectDetailsNoAuth($proj, "object");
 
     my $country = $details->country;
     if ( $country =~ /ec/i ) {
