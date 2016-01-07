@@ -12,13 +12,13 @@
          <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
          <recipe NAME="jiggle_chop">
             <parameters 
-                        STEPS_BTWN_CALS="2400"
-                        STEPS_BTWN_REFS="40"
-                        N_CALSAMPLES="7"
                         JOS_MULT="3"
-                        START_INDEX="1"
                         NUM_CYCLES="1"
                         NUM_NOD_SETS="7"
+                        N_CALSAMPLES="7"
+                        START_INDEX="1"
+                        STEPS_BTWN_CALS="2400"
+                        STEPS_BTWN_REFS="40"
                         STEP_TIME="0.75"
             />
          </recipe>

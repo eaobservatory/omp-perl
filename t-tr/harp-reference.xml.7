@@ -12,14 +12,14 @@
          <tasks>RTS FE_HARPB PTCS SMU CONTROLLER CORRTASK1 CORRTASK2 CORRTASK3 CORRTASK4 CORRTASK5 CORRTASK6 CORRTASK7 CORRTASK8 IFTASK</tasks>
          <recipe NAME="grid_pssw">
             <parameters 
+                        JOS_MIN="30"
+                        NUM_CYCLES="2"
+                        N_CALSAMPLES="5"
+                        SHAREOFF="0"
+                        START_INDEX="1"
                         STEPS_BTWN_CALS="1800"
                         STEPS_BTWN_REFS="30"
-                        SHAREOFF="0"
-                        N_CALSAMPLES="5"
-                        START_INDEX="1"
-                        NUM_CYCLES="2"
                         STEP_TIME="1"
-                        JOS_MIN="30"
             />
          </recipe>
       </JOS_CONFIG>

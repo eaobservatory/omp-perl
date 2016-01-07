@@ -12,13 +12,13 @@
          <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
          <recipe NAME="raster_pssw">
             <parameters 
-                        STEPS_BTWN_CALS="450"
-                        STEPS_BTWN_REFS="8"
+                        JOS_MIN="1"
+                        NUM_CYCLES="1"
                         N_CALSAMPLES="1"
                         START_INDEX="1"
-                        NUM_CYCLES="1"
+                        STEPS_BTWN_CALS="450"
+                        STEPS_BTWN_REFS="8"
                         STEP_TIME="4"
-                        JOS_MIN="1"
             />
          </recipe>
       </JOS_CONFIG>
