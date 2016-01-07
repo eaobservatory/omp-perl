@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <SpProg type="pr" subtype="none"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns="http://omp.jach.hawaii.edu/schema/TOML">
+	xmlns="http://omp.eao.hawaii.edu/schema/TOML">
 
   <meta_gui_collapsed>false</meta_gui_collapsed>
   <meta_gui_filename>rxa3-cal-ot.xml</meta_gui_filename>
@@ -18,8 +18,8 @@
     <bandMode>1</bandMode>
     <beName>acsis</beName>
     <feBandWidth>1.8E9</feBandWidth>
-    <feIF>4.0E9</feIF>
-    <feName>A3</feName>
+    <feIF>5.0E9</feIF>
+    <feName>A3m</feName>
     <mixers>1</mixers>
     <mode>dsb</mode>
     <skyFrequency>2.30538E11</skyFrequency>
@@ -29,7 +29,7 @@
     <!-- - - - - - - - - - - - - - - - - - - - - -->
 
     <subsystems>
-        <subsystem if="4.0E9" bw="1.0E9" overlap="0.0" channels="2048">
+        <subsystem if="5.0E9" bw="1.0E9" overlap="0.0" channels="2048">
             <line species="CO" transition="2  - 1" rest_freq="2.30538E11"/>
         </subsystem>
     </subsystems>
