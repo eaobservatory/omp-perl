@@ -1465,14 +1465,14 @@
 
          <ROTATOR SYSTEM="TRACKING"
                   SLEW_OPTION="LONGEST_TRACK" >
+            <PA>345.96</PA>
+            <PA>14.04</PA>
+            <PA>75.96</PA>
+            <PA>104.04</PA>
             <PA>165.96</PA>
             <PA>194.04</PA>
-            <PA>14.04</PA>
             <PA>255.96</PA>
             <PA>284.04</PA>
-            <PA>104.04</PA>
-            <PA>75.96</PA>
-            <PA>345.96</PA>
          </ROTATOR>
          <DOME MODE="BASE" />
       </TCS_CONFIG>
