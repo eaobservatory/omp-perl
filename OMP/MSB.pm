@@ -4186,6 +4186,7 @@ sub SpIterFolder {
       my $contmode = $self->_get_pcdata( $child, "continuumMode" );
       my $stareSystem = $self->_get_pcdata( $child, "stareSystem" );
       my $starePA = $self->_get_pcdata( $child, "starePa");
+      my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
 
       # Frequency switch parameters [inc backwards compatibility]
       my $freqRate = $self->_get_pcdata( $child, 'frequencyOffset.rate');
@@ -4215,6 +4216,8 @@ sub SpIterFolder {
       $stare{stareSystem} = $stareSystem if defined $stareSystem;
       $stare{starePA} = $starePA if defined $starePA;
 
+      $stare{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
+
       push(@{$summary{$parent}{CHILDREN}}, { $name => \%stare});
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
@@ -4238,6 +4241,7 @@ sub SpIterFolder {
       my $scaleFactor = $self->_get_pcdata( $child, 'scaleFactor' );
       my $contmode = $self->_get_pcdata( $child, "continuumMode" );
       my $separateOffs = $self->_get_pcdata( $child, 'separateOffs' );
+      my @rotatorAngles = $self->_get_pcvalues($child, 'rotatorAngles');
 
       # seconds per cycle is deprecated in favor of seconds per jiggle point
       # we assume that secsPerCycle *means* secsPerJiggle in modern usage
@@ -4272,6 +4276,8 @@ sub SpIterFolder {
 
       $jiggle{continuumMode} = $self->_str_to_bool( $contmode )
         if defined $contmode;
+
+      $jiggle{'rotatorAngles'} = \@rotatorAngles if @rotatorAngles;
 
       $summary{scitarget} = 1;
       $summary{autoTarget} = 0;
