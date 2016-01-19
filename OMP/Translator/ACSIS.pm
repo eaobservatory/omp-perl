@@ -936,14 +936,23 @@ sub rotator_config {
 
   $self->output("\tAligning K-mirror to ".$pa->degrees." deg with $scan_adj sampling adjustment ($system)\n");
 
-  # convert to set of allowed angles and remove duplicates
-  my @angles = map {  ($_*90) + $scan_adj } @choices;
-  push(@angles, map { ($_*90) - $scan_adj } @choices);
+  # Convert to set of allowed angles and remove duplicates, using the automatic
+  # "choices" x 90 degrees unless a set of allowed rotator angles has been
+  # specified.
+  my @raw_angles = (exists $info{'rotatorAngles'})
+                 ? @{$info{'rotatorAngles'}}
+                 : (map {$_ * 90} @choices);
+  my @angles = map {  $_ + $scan_adj } @raw_angles;
+  push(@angles, map { $_ - $scan_adj } @raw_angles);
   my %angles = map { $_, undef } @angles;
 
+  # Sort angles so that the XML produced is stable.  (The hash keys could
+  # be in random order.)  Sorting before applying range constraint isn't
+  # perfect but should be good enough for stable XML.
   my @pas = map { new Astro::Coords::Angle( $pa->degrees + $_,
                                             units => 'degrees',
-                                            range => "2PI") } keys %angles;
+                                            range => "2PI")
+  } sort {$a <=> $b} keys %angles;
 
   # decide on slew option
   my $slew = "LONGEST_TRACK";

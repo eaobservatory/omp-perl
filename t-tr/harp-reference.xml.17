@@ -12,13 +12,13 @@
          <tasks>RTS FE_HARPB PTCS SMU CONTROLLER CORRTASK1 CORRTASK2 CORRTASK3 CORRTASK4 CORRTASK5 CORRTASK6 CORRTASK7 CORRTASK8 IFTASK</tasks>
          <recipe NAME="raster_pssw">
             <parameters 
-                        STEPS_BTWN_CALS="450"
-                        STEPS_BTWN_REFS="8"
+                        JOS_MIN="1"
+                        NUM_CYCLES="1"
                         N_CALSAMPLES="1"
                         START_INDEX="1"
-                        NUM_CYCLES="1"
+                        STEPS_BTWN_CALS="450"
+                        STEPS_BTWN_REFS="8"
                         STEP_TIME="4"
-                        JOS_MIN="1"
             />
          </recipe>
       </JOS_CONFIG>
@@ -1465,14 +1465,14 @@
 
          <ROTATOR SYSTEM="TRACKING"
                   SLEW_OPTION="LONGEST_TRACK" >
+            <PA>345.96</PA>
+            <PA>14.04</PA>
+            <PA>75.96</PA>
+            <PA>104.04</PA>
             <PA>165.96</PA>
             <PA>194.04</PA>
-            <PA>14.04</PA>
             <PA>255.96</PA>
             <PA>284.04</PA>
-            <PA>104.04</PA>
-            <PA>75.96</PA>
-            <PA>345.96</PA>
          </ROTATOR>
          <DOME MODE="BASE" />
       </TCS_CONFIG>

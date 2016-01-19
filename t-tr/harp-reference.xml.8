@@ -12,13 +12,13 @@
          <tasks>RTS FE_HARPB PTCS SMU CONTROLLER CORRTASK1 CORRTASK2 CORRTASK3 CORRTASK4 CORRTASK5 CORRTASK6 CORRTASK7 CORRTASK8 IFTASK</tasks>
          <recipe NAME="jiggle_chop">
             <parameters 
-                        STEPS_BTWN_CALS="960"
-                        STEPS_BTWN_REFS="16"
-                        N_CALSAMPLES="3"
                         JOS_MULT="8"
-                        START_INDEX="1"
                         NUM_CYCLES="1"
                         NUM_NOD_SETS="1"
+                        N_CALSAMPLES="3"
+                        START_INDEX="1"
+                        STEPS_BTWN_CALS="960"
+                        STEPS_BTWN_REFS="16"
                         STEP_TIME="1.875"
             />
          </recipe>
@@ -1501,9 +1501,9 @@
 
          <ROTATOR SYSTEM="TRACKING"
                   SLEW_OPTION="LONGEST_TRACK" >
-            <PA>180</PA>
-            <PA>90</PA>
             <PA>0</PA>
+            <PA>90</PA>
+            <PA>180</PA>
             <PA>270</PA>
          </ROTATOR>
          <INST_AP NAME="H05" />

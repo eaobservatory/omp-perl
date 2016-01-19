@@ -12,13 +12,13 @@
          <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
          <recipe NAME="jiggle_chop">
             <parameters 
-                        STEPS_BTWN_CALS="960"
-                        STEPS_BTWN_REFS="16"
-                        N_CALSAMPLES="3"
                         JOS_MULT="8"
-                        START_INDEX="1"
                         NUM_CYCLES="1"
                         NUM_NOD_SETS="1"
+                        N_CALSAMPLES="3"
+                        START_INDEX="1"
+                        STEPS_BTWN_CALS="960"
+                        STEPS_BTWN_REFS="16"
                         STEP_TIME="1.875"
             />
          </recipe>
@@ -190,7 +190,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="3694e31531eea9050951d7688880733eA" />
+                 VALUE="d151f8ed6c6b024afcd72d65df41a40eA" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -1184,13 +1184,13 @@
          <RECEPTOR_MASK RECEPTOR_ID="A" VALUE="NEED"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_A"
-                  SERIAL="RxA3"
+                  SERIAL="RxA3m"
                   FOC_STATION="DIRECT"
                   X="0.0"
                   Y="0.0"
                   WAVELENGTH="1365.42161968285" >
          
-         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >
@@ -1411,7 +1411,7 @@
                <rest_freq_ref ref="trC-18-O2-1" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4</if_ref_freq>
+                  <if_ref_freq units="GHz">5</if_ref_freq>
                   <if_ref_channel>410</if_ref_channel>
                   <if_chan_width units="Hz">61035.15625</if_chan_width>
                   <if_nchans>4096</if_nchans>
@@ -1424,7 +1424,7 @@
                <rest_freq_ref ref="trC-18-O2-1" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4</if_ref_freq>
+                  <if_ref_freq units="GHz">5</if_ref_freq>
                   <if_ref_channel>3685</if_ref_channel>
                   <if_chan_width units="Hz">61035.15625</if_chan_width>
                   <if_nchans>4096</if_nchans>
@@ -1437,7 +1437,7 @@
                <rest_freq_ref ref="trHNCO10_3_7-9_3_6" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">3.903586</if_ref_freq>
+                  <if_ref_freq units="GHz">4.903586</if_ref_freq>
                   <if_ref_channel>102</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1450,7 +1450,7 @@
                <rest_freq_ref ref="trHNCO10_3_7-9_3_6" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">3.903586</if_ref_freq>
+                  <if_ref_freq units="GHz">4.903586</if_ref_freq>
                   <if_ref_channel>921</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1492,10 +1492,10 @@
             <dcm id="29" bw_mode="250MHz"/>
             <dcm id="30" bw_mode="250MHz"/>
             <dcm id="31" bw_mode="250MHz"/>
-            <lo2 id="0" freq="6525"/>
-            <lo2 id="1" freq="6725"/>
-            <lo2 id="2" freq="6003"/>
-            <lo2 id="3" freq="6803"/>
+            <lo2 id="0" freq="7525"/>
+            <lo2 id="1" freq="7725"/>
+            <lo2 id="2" freq="7003"/>
+            <lo2 id="3" freq="7803"/>
             <lo3 freq="2000.0"/>
             <quadrant id="0" subband_mode="4"/>
          </ACSIS_IF>
