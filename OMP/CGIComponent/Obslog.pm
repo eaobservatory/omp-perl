@@ -321,9 +321,9 @@ sub obs_table {
 
     # Don't include WORF links if they were specifically not requested.
     if ($worflink eq 'none') {
-        print "</td><td>Comments</td><td>Observation</td><td>Status</td></tr>\n";
+        print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
     } else {
-        print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+        print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
     }
   }
 
@@ -377,9 +377,9 @@ sub obs_table {
 
         # Don't include WORF columns if they were specifically not requested.
         if ($worflink eq 'none') {
-            print "</td><td>Comments</td><td>Observation</td><td>Status</td></tr>\n";
+            print "</td><td>Comments</td><td>Run</td><td>Status</td></tr>\n";
         } else {
-            print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+            print "</td><td>Comments</td><td>WORF</td><td>Run</td><td>Status</td></tr>\n";
         }
       }
     }
