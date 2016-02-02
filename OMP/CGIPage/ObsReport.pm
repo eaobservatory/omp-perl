@@ -272,8 +272,13 @@ sub night_report {
 
   print "<p/>\n";
 
-  $nr->ashtml( worfstyle => 'staff',
-                commentstyle => 'staff', );
+  if ($tel eq 'JCMT') {
+      $nr->ashtml( worfstyle => 'none',
+                   commentstyle => 'staff', );
+  } else {
+      $nr->ashtml( worfstyle => 'staff',
+                   commentstyle => 'staff', );
+  }
 
   if ($tel eq 'JCMT') {
     print "\n<h2>Data Quality Analysis</h2>\n\n";

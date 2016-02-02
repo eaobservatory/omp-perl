@@ -119,8 +119,8 @@ to 0 (false).
 
 =item *
 
-worfstyle - Write WORF links to the staff WORF page. Can be either 'staff'
-or 'project', and if the parameter is not 'staff', will default to 'project'.
+worfstyle - Write WORF links to the staff WORF page. Can be either 'none', 'staff'
+or 'project', and if the parameter is not 'staff' or 'none', will default to 'project'.
 
 =back
 
@@ -147,6 +147,9 @@ sub obs_table {
   if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
       lc( $options{worfstyle} ) eq 'staff' ) {
     $worflink = 'staffworf.pl';
+  } else if (exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+             lc( $options{worfstyle} ) eq 'none' ) {
+      $worflink = 'none';
   } else {
     $worflink = 'fbworf.pl';
   }
@@ -275,29 +278,33 @@ sub obs_table {
     }
   }
 
-# Check to see if we should be doing WORF raw or reduced links. We do
-# this by checking for the raw and reduced data directories to see if
-# they exist.
-  my $rawdir = OMP::Config->getData( 'rawdatadir',
-                                     telescope => $allobs[0]->telescope,
-                                     instrument => lc( $currentinst ),
-                                     utdate => $allobs[0]->startobs->ymd );
-  my $reduceddir = OMP::Config->getData( 'reduceddatadir',
+
+  if ($worflink ne 'none') {
+      # Check to see if we should be doing WORF raw or reduced links. We do
+      # this by checking for the raw and reduced data directories to see if
+      # they exist.
+      my $rawdir = OMP::Config->getData( 'rawdatadir',
                                          telescope => $allobs[0]->telescope,
                                          instrument => lc( $currentinst ),
                                          utdate => $allobs[0]->startobs->ymd );
-  my %worfraw;
-  my %worfreduced;
-  if( -d $rawdir ) {
-    $worfraw{$currentinst} = 1;
-  } else {
-    $worfraw{$currentinst} = 0;
+      my $reduceddir = OMP::Config->getData( 'reduceddatadir',
+                                             telescope => $allobs[0]->telescope,
+                                             instrument => lc( $currentinst ),
+                                             utdate => $allobs[0]->startobs->ymd );
+      my %worfraw;
+      my %worfreduced;
+      if( -d $rawdir ) {
+          $worfraw{$currentinst} = 1;
+      } else {
+          $worfraw{$currentinst} = 0;
+      }
+      if( -d $reduceddir ) {
+          $worfreduced{$currentinst} = 1;
+      } else {
+          $worfreduced{$currentinst} = 0;
+      }
   }
-  if( -d $reduceddir ) {
-    $worfreduced{$currentinst} = 1;
-  } else {
-    $worfreduced{$currentinst} = 0;
-  }
+
 
   my $ncols;
   if( $text ) {
@@ -311,7 +318,13 @@ sub obs_table {
     # Print the column headings.
     print "<tr class=\"sum_other\"><td>";
     print join ( "</td><td>", @{$nightlog{_ORDER}} );
-    print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+
+    # Don't include WORF links if they were specifically not requested.
+    if ($worflink eq 'none') {
+        print "</td><td>Comments</td><td>Observation</td><td>Status</td></tr>\n";
+    } else {
+        print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+    }
   }
 
   my $rowclass = "row_b";
@@ -361,7 +374,13 @@ sub obs_table {
         # Print the column headings.
         print "<tr class=\"sum_other\"><td>";
         print join ( "</td><td>", @{$nightlog{_ORDER}} );
-        print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+
+        # Don't include WORF columns if they were specifically not requested.
+        if ($worflink eq 'none') {
+            print "</td><td>Comments</td><td>Observation</td><td>Status</td></tr>\n";
+        } else {
+            print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
+        }
       }
     }
 
@@ -449,7 +468,7 @@ sub obs_table {
     } else {
 
       # Display WORF box if we do not have a TimeGap.
-      if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) ) {
+      if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) && ($worflink ne 'none'))   {
 
         my $worf;
         try {
