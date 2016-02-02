@@ -361,7 +361,7 @@ sub obs_table {
         # Print the column headings.
         print "<tr class=\"sum_other\"><td>";
         print join ( "</td><td>", @{$nightlog{_ORDER}} );
-        print "</td><td>Comments</td><td>WORF</td><td>Observation</td></tr>\n";
+        print "</td><td>Comments</td><td>WORF</td><td>Observation</td><td>Status</td></tr>\n";
       }
     }
 
