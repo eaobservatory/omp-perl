@@ -1058,7 +1058,7 @@ sub ashtml {
       lc( $options{worfstyle} ) eq 'staff' ) {
     $worfstyle = 'staff';
     $worflink = 'staffworfthumb.pl';
-  } else if ( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+  } elsif ( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
               lc( $options{worfstyle} ) eq 'none' ) {
       $worfstyle = 'none';
       $worflink = '';

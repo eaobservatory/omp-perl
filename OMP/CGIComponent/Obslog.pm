@@ -147,7 +147,7 @@ sub obs_table {
   if( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
       lc( $options{worfstyle} ) eq 'staff' ) {
     $worflink = 'staffworf.pl';
-  } else if (exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+  } elsif (exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
              lc( $options{worfstyle} ) eq 'none' ) {
       $worflink = 'none';
   } else {
@@ -279,6 +279,9 @@ sub obs_table {
   }
 
 
+  my %worfraw;
+  my %worfreduced;
+
   if ($worflink ne 'none') {
       # Check to see if we should be doing WORF raw or reduced links. We do
       # this by checking for the raw and reduced data directories to see if
@@ -291,8 +294,6 @@ sub obs_table {
                                              telescope => $allobs[0]->telescope,
                                              instrument => lc( $currentinst ),
                                              utdate => $allobs[0]->startobs->ymd );
-      my %worfraw;
-      my %worfreduced;
       if( -d $rawdir ) {
           $worfraw{$currentinst} = 1;
       } else {
@@ -343,7 +344,7 @@ sub obs_table {
     if( uc($obs->instrument) ne uc($currentinst) && !UNIVERSAL::isa($obs, "OMP::Info::Obs::TimeGap") ) {
       $currentinst = $obs->instrument;
 
-      if( ! defined( $worfraw{$currentinst} ) ) {
+      if( ($worflink ne 'none') && (! defined( $worfraw{$currentinst} ))) {
 
         my $rawdir = OMP::Config->getData( 'rawdatadir',
                                            telescope => $allobs[0]->telescope,
@@ -362,6 +363,7 @@ sub obs_table {
           $worfreduced{$currentinst} = 1;
         }
       }
+
 
       if( $text ) {
         print "\nObservations for " . uc( $currentinst ) . "\n";
