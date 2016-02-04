@@ -469,84 +469,87 @@ sub obs_table {
 
     } else {
 
+      if ($worflink ne 'none') {
       # Display WORF box if we do not have a TimeGap.
-      if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ) && ($worflink ne 'none'))   {
+        if( !UNIVERSAL::isa( $obs, "OMP::Info::Obs::TimeGap" ))   {
 
-        my $worf;
-        try {
+          my $worf;
+          try {
 
-          print "<td>";
+            print "<td>";
 
-          # First the raw.
-          if( $worfraw{$currentinst} ) {
-            # Form an OMP::WORF object for the obs
-            if( ! defined( $worf ) ) {
-              $worf = new OMP::WORF( obs => $obs );
+            # First the raw.
+            if( $worfraw{$currentinst} ) {
+              # Form an OMP::WORF object for the obs
+              if( ! defined( $worf ) ) {
+                $worf = new OMP::WORF( obs => $obs );
+              }
+              if( $worf->file_exists( suffix => '', group => 0 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "\">raw</a> ";
+              }
             }
-            if( $worf->file_exists( suffix => '', group => 0 ) ) {
-              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-              print $obsut;
-              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-              print "\">raw</a> ";
+
+            # Then the individual reduced.
+            if( $worfreduced{$currentinst} ) {
+              if( ! defined( $worf ) ) {
+                $worf = new OMP::WORF( obs => $obs );
+              }
+              my @ind_suffices = $worf->suffices;
+              foreach my $suffix ( @ind_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 0 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix\">$suffix</a> ";
+              }
             }
+
+            print "/ ";
+
+            # And the group reduced.
+            if( $worfreduced{$currentinst} ) {
+              if( ! defined( $worf ) ) {
+                $worf = new OMP::WORF( obs => $obs );
+              }
+              # Get a list of suffices
+              my @grp_suffices = $worf->suffices( 1 );
+              if( $worf->file_exists( suffix => '', group => 1 ) ) {
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&group=1\">group</a> ";
+              }
+              foreach my $suffix ( @grp_suffices ) {
+                next if ! $worf->file_exists( suffix => $suffix, group => 1 );
+                print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
+                print $obsut;
+                print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
+                print "&suffix=$suffix&group=1\">$suffix</a> ";
+              }
+            }
+
+           print "</td>";
           }
-
-          # Then the individual reduced.
-          if( $worfreduced{$currentinst} ) {
-            if( ! defined( $worf ) ) {
-              $worf = new OMP::WORF( obs => $obs );
-            }
-            my @ind_suffices = $worf->suffices;
-            foreach my $suffix ( @ind_suffices ) {
-              next if ! $worf->file_exists( suffix => $suffix, group => 0 );
-              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-              print $obsut;
-              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-              print "&suffix=$suffix\">$suffix</a> ";
-            }
+          catch OMP::Error with {
+            my $Error = shift;
+#            print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+            print "<td>Error 1</td>";
+#          next;
           }
-
-          print "/ ";
-
-          # And the group reduced.
-          if( $worfreduced{$currentinst} ) {
-            if( ! defined( $worf ) ) {
-              $worf = new OMP::WORF( obs => $obs );
-            }
-            # Get a list of suffices
-            my @grp_suffices = $worf->suffices( 1 );
-            if( $worf->file_exists( suffix => '', group => 1 ) ) {
-              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-              print $obsut;
-              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-              print "&group=1\">group</a> ";
-            }
-            foreach my $suffix ( @grp_suffices ) {
-              next if ! $worf->file_exists( suffix => $suffix, group => 1 );
-              print "<a class=\"link_dark_small\" href=\"$worflink?ut=";
-              print $obsut;
-              print "&runnr=" . $obs->runnr . "&inst=" . $instrument;
-              print "&suffix=$suffix&group=1\">$suffix</a> ";
-            }
-          }
-
-          print "</td>";
+          otherwise {
+            my $Error = shift;
+#            print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
+            print "<td>" . $Error->{'-text'} . "</td>";
+#          next;
+          };
+        } else {
+          print "<td>&nbsp;</td>";
         }
-        catch OMP::Error with {
-          my $Error = shift;
-#          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
-          print "<td>Error 1</td>";
-#        next;
-        }
-        otherwise {
-          my $Error = shift;
-#          print STDERR "Error in OMP::CGIObslog::obs_table: " . $Error->{'-text'} . "\n";
-          print "<td>" . $Error->{'-text'} . "</td>";
-#        next;
-        };
-      } else {
-        print "<td>&nbsp;</td>";
       }
+
       print qq[<td class="$css_status">] . $obs->runnr . '</td>';
       # Print the status of the observation explicitly.
       print qq[<td class="$css_status">] . $label_status . '</td>';
