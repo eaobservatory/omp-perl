@@ -46,7 +46,7 @@ necessary.
 Specify the font for everything; default is
 I<-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*>.
 
-Another font to try is C<Dejavu LGC Sans Mono:8:medium>. If you do, you may also
+Another font to try is C<{Dejavu LGC Sans Mono}:8:medium>. If you do, you may also
 need to change the window size via I<-geometry> option.
 
 =item B<-font-comment> | B<-fc> font-description
