@@ -212,8 +212,8 @@ sub set_affiliation_allocation {
     die 'Unknown affiliation "' . $valid_affiliation .'"'
         unless grep {$_ eq $valid_affiliation} @AFFILIATIONS;
 
-    die 'Invalid allocation' unless $allocation =~ /^([0-9]+)$/;
-    my $valid_allocation = int($1);
+    die 'Invalid allocation' unless $allocation =~ /^([0-9.]+)$/;
+    my $valid_allocation = 0.0 + $1;
 
     # Check if we already have a record for this semester and
     # affiliation.

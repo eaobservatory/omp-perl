@@ -1035,8 +1035,8 @@ This method takes an optional hash argument with the following keys:
 
 =item *
 
-worfstyle - Write WORF links to the staff WORF page. Can be either 'staff'
-or 'project', and will default to 'project'.
+worfstyle - Write WORF links to the staff WORF page. Can be either
+'staff', 'none', or 'project', and will default to 'project'.
 
 =item *
 
@@ -1058,6 +1058,10 @@ sub ashtml {
       lc( $options{worfstyle} ) eq 'staff' ) {
     $worfstyle = 'staff';
     $worflink = 'staffworfthumb.pl';
+  } elsif ( exists( $options{worfstyle} ) && defined( $options{worfstyle} ) &&
+              lc( $options{worfstyle} ) eq 'none' ) {
+      $worfstyle = 'none';
+      $worflink = '';
   } else {
     $worfstyle = 'project';
     $worflink = 'fbworfthumb.pl';
@@ -1085,7 +1089,10 @@ sub ashtml {
 
   my $ompurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
-  print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
+  if ($worfstyle ne 'none') {
+      print "<a href='$worflink?ut=$date&telescope=$tel'>View WORF thumbnails</a><br>";
+  }
+
   if ($self->delta_day < 14) {
     print "<a href='#faultsum'>Fault Summary</a><br>";
     print "<a href='#shiftcom'>Shift Log Comments</a> / <a href=\"shiftlog.pl?date=$date&telescope=$tel\">Add shift log comment</a><br>";

@@ -46,7 +46,7 @@ necessary.
 Specify the font for everything; default is
 I<-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*>.
 
-Another font to try is C<Dejavu LGC Sans Mono:8:medium>. If you do, you may also
+Another font to try is C<{Dejavu LGC Sans Mono}:8:medium>. If you do, you may also
 need to change the window size via I<-geometry> option.
 
 =item B<-font-comment> | B<-fc> font-description
@@ -853,7 +853,6 @@ sub rescan {
     new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
-                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
@@ -871,7 +870,6 @@ sub rescan {
     new_instrument( "NONE", undef, 1 );
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
-                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
@@ -945,7 +943,6 @@ sub dump_to_disk {
   close $fh;
   my $dbox = $MainWindow->DialogBox( -title => "File Saved",
                                      -buttons => ["OK"],
-                                      -font => $opt{'font-var'},
                                    );
   my $label = $dbox->add( 'Label',
                           -text => "Data has been saved in " . $filename )->pack;
@@ -1857,7 +1854,6 @@ sub update_shiftlog_comments {
     require Tk::DialogBox;
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
-                                        -font => $opt{'font-var'},
                                      );
     my $label = $dbox->add( 'Label',
                             -text => "Error: " . $Error->{-text},
@@ -1874,10 +1870,8 @@ sub update_shiftlog_comments {
   otherwise {
     my $Error = shift;
     require Tk::DialogBox;
-
     my $dbox = $MainWindow->DialogBox( -title => "Error",
                                        -buttons => ["OK"],
-                                        -font => $opt{'font-var'},
                                      );
 
     my $label = $dbox->add( 'Label',
