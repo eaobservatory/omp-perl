@@ -1703,9 +1703,7 @@ sub _populate {
   $self->grating( $generic_header{GRATING_NAME} );
   $self->order( $generic_header{GRATING_ORDER} );
   $self->tau( $generic_header{TAU} );
-  $self->seeing( defined( $generic_header{SEEING} ?
-                           sprintf("%.1f",$generic_header{SEEING}) :
-                           "" ) );
+  $self->seeing( $generic_header{SEEING} );
   $self->bolometers( $generic_header{BOLOMETERS} );
   $self->velocity( $generic_header{VELOCITY} );
   $self->velsys( $generic_header{SYSTEM_VELOCITY} );
