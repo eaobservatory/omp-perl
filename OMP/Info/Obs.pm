@@ -946,7 +946,7 @@ sub nightlog {
     $return{'Project ID'} = $self->projectid;
     $return{'Object'} = $self->target;
     $return{'Tau225'} = sprintf( "%.$form{'tau-dec'}f", $self->tau);
-    $return{'Seeing'} = $self->seeing;
+    $return{'Seeing'} = sprintf( "%.$form{'seeing-dec'}f", $self->seeing);
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Pol In?'} = defined( $self->pol_in ) ? $self->pol_in : '';
     $return{'Bolometers'} = $self->bolometers;
