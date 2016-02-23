@@ -96,7 +96,7 @@ while (my ($affiliation, $observed) = each %affiliations) {
 foreach my $affiliation (sort {$percentages{$b} <=> $percentages{$a}}
         keys %affiliations) {
     my $allocation = $allocations->{$semester}->{$affiliation}->{'allocation'};
-    printf "%-10s %8.2f / %8.2f (%5.1f %%)\n",
+    printf "%-20s %8.2f / %8.2f (%5.1f %%)\n",
         $AFFILIATION_NAMES{$affiliation},
         $affiliations{$affiliation},
         $allocation,
