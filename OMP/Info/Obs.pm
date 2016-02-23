@@ -964,13 +964,13 @@ sub nightlog {
     if ($instrument =~ /scuba-2/i) {
         $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?"];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
-        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.3f  %-7s";
+        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.1f  %-7s";
     } else {
         $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
         push @short_val , $return{'Bolometers'}[0] ;
-        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.3f %-10s  %-7s %-15s";
+        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.1f %-10s  %-7s %-15s";
     }
 
     # Trim object name.
