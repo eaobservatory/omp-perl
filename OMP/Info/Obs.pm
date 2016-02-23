@@ -967,6 +967,7 @@ sub nightlog {
     if ($instrument =~ /scuba-2/i) {
         $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?"];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
+        push @short_val, $return{'Pol In?'};
         $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s";
         $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s";
     } else {
