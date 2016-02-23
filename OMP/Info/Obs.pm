@@ -935,6 +935,8 @@ sub nightlog {
                   'tau-dec' => 2,
                   # To trim object name (+3 for "...").
                   'obj-length' => 14,
+                  # Number of decimal places to show seeing to.
+                  'seeing-dec' => 1,
                 );
     $form{'obj-pad-length'} = $form{'obj-length'} + 3;
 
@@ -959,18 +961,21 @@ sub nightlog {
 
     my @short_val;
     my $short_form_val;
+    my $short_form_head;
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
         $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?"];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
-        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.1f  %-7s";
+        $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s";
+        $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s";
     } else {
         $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
         @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
         push @short_val , $return{'Bolometers'}[0] ;
-        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.1f %-10s  %-7s %-15s";
+        $short_form_val = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f %-10s  %-7s %-15s";
+        $short_form_head = "%3s  %8s  %10.10s %11s %$form{'obj-pad-length'}s  %6s  %6s %10s  %7s %15s";
     }
 
     # Trim object name.
@@ -981,7 +986,6 @@ sub nightlog {
     }
 
 
-    ( my $short_form_head = $short_form_val ) =~ tr/f/s/;
     for ( $short_form_head ) {
       s/\b([0-9]+)\.([0-9]+)\b/$1 + $2 + 1/e;
     }
