@@ -3,16 +3,31 @@
 #  Program is by Michael Peppler, mpeppler@peppler.org, posted at ...
 #
 #   http://www.perlmonks.org/?node_id=130299
+#
+#  ... with minor addition of options check.
+
 
 use strict; use warnings;
 
+use strict;
 use DBI;
 
 use Getopt::Long;
 
+sub usage
+{ return "Usage:\n  $0 -S <server> -U <user> -P <password> -D <database name>\n" ; }
+
 my %args;
 
-GetOptions(\%args, '-U=s', '-P=s', '-S=s', '-D=s');
+GetOptions(\%args, '-U=s', '-P=s', '-S=s', '-D=s')
+  or die usage();
+
+for my $opt (qw[ S U P D ]) {
+
+  defined $args{ $opt } and next;
+
+  die qq[No argument given for option "-$opt".\n] , usage();
+}
 
 my $dbh = DBI->connect("dbi:Sybase:server=$args{S};database=$args{D}", $args{U}, $args{P});
 
