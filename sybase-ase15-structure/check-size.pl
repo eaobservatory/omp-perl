@@ -17,6 +17,10 @@ use Getopt::Long;
 sub usage
 { return "Usage:\n  $0 -S <server> -U <user> -P <password> -D <database name>\n" ; }
 
+#  Free space threshold as fraction of total space (log & data are kept seprately).
+my $dataFreeThresh = 0.25;
+my $logFreeThresh  = 0.25;
+
 my %args;
 
 GetOptions(\%args, '-U=s', '-P=s', '-S=s', '-D=s')
@@ -77,22 +81,22 @@ $dbinfo->{size} -= $dbinfo->{log};
 my $free    = $dbinfo->{size} - $dbinfo->{reserved};
 my $freepct = $free / $dbinfo->{size};
 
+my $log_freepct = $dbinfo->{logfree} / $dbinfo->{log};
+
 print "$args{S}/$args{D} spaceusage report\n\n";
 printf "Database size: %10.2f MB\n", $dbinfo->{size};
 printf "Reserved:      %10.2f MB\n", $dbinfo->{reserved};
 printf "Data:          %10.2f MB\n", $dbinfo->{data};
 printf "Indexes:       %10.2f MB\n", $dbinfo->{index};
 printf "Free space:    %10.2f MB (%0.2f %%)\n", $free , $freepct * 100;
-
-if($freepct < .25) {
-    printf "**WARNING**: Free data space is below 25%% (%.2f%%)\n\n", $freepct * 100;
-}
+lowSpaceWarn( $freepct, $dataFreeThresh, 'data' );
 
 print "\n";
 printf "Log size:      %10.2f MB\n", $dbinfo->{log};
-printf "Free Log:      %10.2f MB\n", $dbinfo->{logfree}; 
+printf "Free Log:      %10.2f MB (%2.2f %%)\n", $dbinfo->{logfree}, $log_freepct * 100;
+lowSpaceWarn( $log_freepct, $logFreeThresh, 'log' );
 
-print "\nTable information (in MB):\n\n";
+print "\n\nTable information (in MB):\n\n";
 printf "%15s %15s %10s %10s %10s\n\n", "Table", "Rows", "Reserved", "Data", "Indexes";
 
 my @tables = getTables($dbh);
@@ -126,5 +130,18 @@ sub getTables {
     } while($sth->{syb_more_results});
 
     @tables;
+}
+
+sub lowSpaceWarn {
+
+  my ( $space, $thresh, $text ) = @_;
+
+  $text = $text ? ' ' . $text : '';
+
+  if( $space < $thresh ) {
+      printf "**WARNING**: Free%s space is below %0.2f%% (%0.2f%%)\n",
+        $text, map { $_ * 100 } $thresh, $space;
+  }
+  return;
 }
 
