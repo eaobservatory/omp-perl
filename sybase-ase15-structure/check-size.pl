@@ -66,11 +66,11 @@ $sth = $dbh->prepare("sp_helpdb $args{D}");
 $sth->execute;
 do {
     while(my $d = $sth->fetch) {
-        if($d->[2] && $d->[2] =~ /log only/) {
+        if($d->[2] && $d->[2] =~ /\blog only/) {
             $d->[1] =~ s/[^\d\.]//g;
             $dbinfo->{log} += $d->[1];
         }
-        if($d->[0] =~ /log only .* (\d+)/) {
+        if($d->[0] =~ /\blog only free .+? (\d+)/) {
             $dbinfo->{logfree} = $1 / 1024;
         }
     }
