@@ -1,0 +1,75 @@
+create procedure sp_thresholdaction
+  @db         varchar(30),
+  @segment    varchar(30),
+  @space_free int,
+  @status     int
+as
+  /*  Adapted from "Chapter 17: Managing Free Space with Thresholds: A more
+   *  complex procedure",
+   *  http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31644.1570/html/sag2/X75933.htm
+  */
+
+  declare @file      varchar(250),
+          @time      datetime,
+          @size_pre  int,
+          @size_post int,
+          @error     int
+
+  print "Log dump activation via threshold levels for '%1!' database on '%2!' with %3! free pages.",
+        @db, @segment, @space_free
+
+  if ( @status & 1 ) = 1
+  begin
+    print "Last Chance Threshold Activation! Log FULL."
+  end
+
+  /*  Log segment is 2 in syssegments 
+  table.
+   *  Data segment full!
+  */
+  if @segment != ( select name from syssegments where segment = 2 )
+  begin
+    print "Increase Data Segment NOW!"
+    /*  Also send an email somehow?.
+    */
+  end
+  else
+  begin
+    select @time = getdate(),
+        
+    @size_pre = reserved_pages( db_id() , object_id( "syslogs" ) )
+
+    select @file = '/opt/omp/db-dump/threshold/'
+                    || str_replace( convert( char(10) , @time , 23 ), '-', '.' )
+                    || '.'
+                    || str_replace( convert( char(8) , @time , 8 ), ':', '.' )
+                    || '-'
+                    || @db
+                    || '.trans'
+
+    print "Transaction dump file: '%1!' ...", @file
+    dump transaction @db to @file
+
+    select @error = @@error
+    
+  if @error != 0
+    begin
+      print " ... ERROR during transaction dump to file: %1!", @error
+
+      /*  Possibly try to dump transaction to truncate only, or with no log
+       *  option instead.
+      */
+    end
+
+    select @size_post = reserved_pages( db_id(), object_id( "syslogs" ) )
+
+    if @size_pre != @size_post
+    begin
+      print "Log space (in pages) (before dump, after): %1!, %2!", @size_pre, @size_post
+    end
+    else
+    begin
+      print "Log space (in pages) after dump: %1!", @size_post
+    end
+  end
+
