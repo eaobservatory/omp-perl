@@ -22,6 +22,9 @@ my %args;
 GetOptions(\%args, '-U=s', '-P=s', '-S=s', '-D=s')
   or die usage();
 
+defined $args{'S'} or $args{'S'} = 'SYB_JAC';
+
+
 for my $opt (qw[ S U P D ]) {
 
   defined $args{ $opt } and next;
@@ -71,7 +74,8 @@ do {
 
 $dbinfo->{size} -= $dbinfo->{log};
 
-my $freepct = ($dbinfo->{size} - $dbinfo->{reserved}) / $dbinfo->{size};
+my $free    = $dbinfo->{size} - $dbinfo->{reserved};
+my $freepct = $free / $dbinfo->{size};
 
 print "$args{S}/$args{D} spaceusage report\n\n";
 printf "Database size: %10.2f MB\n", $dbinfo->{size};
@@ -80,10 +84,10 @@ printf "Free Log:      %10.2f MB\n", $dbinfo->{logfree};
 printf "Reserved:      %10.2f MB\n", $dbinfo->{reserved};
 printf "Data:          %10.2f MB\n", $dbinfo->{data};
 printf "Indexes:       %10.2f MB\n", $dbinfo->{index};
-printf "Free space:    %10.2f %%\n", $freepct * 100;
+printf "Free space:    %10.2f MB (%0.2f %%)\n", $free , $freepct * 100;
 
 if($freepct < .25) {
-    printf "**WARNING**: Free space is below 25%% (%.2f%%)\n\n", $freepct * 100;
+    printf "**WARNING**: Free data space is below 25%% (%.2f%%)\n\n", $freepct * 100;
 }
 
 print "\nTable information (in MB):\n\n";
