@@ -14,6 +14,9 @@ use DBI;
 
 use Getopt::Long;
 
+use JAC::Setup qw[ omp ];
+use OMP::Config;
+
 sub usage
 { return "Usage:\n  $0 -S <server> -U <user> -P <password> -D <database name>\n" ; }
 
@@ -26,8 +29,10 @@ my %args;
 GetOptions(\%args, '-U=s', '-P=s', '-S=s', '-D=s')
   or die usage();
 
-defined $args{'S'} or $args{'S'} = 'SYB_JAC';
-
+# user & password.
+$args{'S'} ||= OMP::Config->getData( 'database.server' );
+$args{'U'} ||= OMP::Config->getData( 'hdr_database.user' );
+$args{'P'} ||= OMP::Config->getData( 'hdr_database.password' );
 
 for my $opt (qw[ S U P D ]) {
 
