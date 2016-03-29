@@ -79,8 +79,6 @@ my $freepct = $free / $dbinfo->{size};
 
 print "$args{S}/$args{D} spaceusage report\n\n";
 printf "Database size: %10.2f MB\n", $dbinfo->{size};
-printf "Log size:      %10.2f MB\n", $dbinfo->{log};
-printf "Free Log:      %10.2f MB\n", $dbinfo->{logfree}; 
 printf "Reserved:      %10.2f MB\n", $dbinfo->{reserved};
 printf "Data:          %10.2f MB\n", $dbinfo->{data};
 printf "Indexes:       %10.2f MB\n", $dbinfo->{index};
@@ -89,6 +87,10 @@ printf "Free space:    %10.2f MB (%0.2f %%)\n", $free , $freepct * 100;
 if($freepct < .25) {
     printf "**WARNING**: Free data space is below 25%% (%.2f%%)\n\n", $freepct * 100;
 }
+
+print "\n";
+printf "Log size:      %10.2f MB\n", $dbinfo->{log};
+printf "Free Log:      %10.2f MB\n", $dbinfo->{logfree}; 
 
 print "\nTable information (in MB):\n\n";
 printf "%15s %15s %10s %10s %10s\n\n", "Table", "Rows", "Reserved", "Data", "Indexes";
