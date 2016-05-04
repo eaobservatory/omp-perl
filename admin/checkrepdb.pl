@@ -2,17 +2,12 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib
-  "$FindBin::RealBin/..",
-  '/jac_sw/hlsroot/perl-JAC-ErrExit/lib'
-  ;
+use lib "$FindBin::RealBin/..";
 
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
 use Pod::Usage;
 use MIME::Lite;
 use List::Util qw/ max /;
-
-use JAC::ErrExit 'err_exit';
 
 use OMP::BaseDB;
 use OMP::DBbackend;
@@ -119,6 +114,7 @@ unless ( $primary_db_down || $secondary_db_down ) {
 }
 
 my $subject;
+my $is_ok = 0;
 if ($critical) {
   $subject = 'CRITICAL!';
 } elsif ($fault > 1) {
@@ -133,6 +129,7 @@ if ($critical) {
   $subject = 'MISSING MSBS DETECTED!';
 } else {
   $subject = 'OK';
+  $is_ok = 1;
 }
 $subject .= " - Replication status ($primary_db -> $secondary_db)";
 
@@ -150,7 +147,8 @@ else {
   send_mail( $subject, $msg, %addr );
 }
 
-err_exit( $subject, 'pass' => qr{^OK\b}i, 'use-exit' => 1, 'show-text' => 0 );
+exit 1 unless $is_ok;
+exit;
 
 
 sub check_rep {
