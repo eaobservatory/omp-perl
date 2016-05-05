@@ -10,6 +10,99 @@ convert-close-to-config.pl - Converts project definition to Config::Ini syntax
 
   convert-close-to-config.pl project-definition-file > converted.ini
 
+=head1  DESCRIPTION
+
+Converts project definitions given in a file to L<Config::Ini>
+parsable syntax given in similar-to-but-not-quite syntax for
+L<Config::Ini>. See also F</jac_sw/omp/msbserver/admin/mkproj.pl>.
+
+So far only three user names, when matched exactly, are converted to
+user ids: Myungshin Im, Tom Kerr, Watson.
+
+Note that this program B<relies on having completely blank lines>
+(without any spaces) between any two program definitions and/or
+comment lines.
+
+Original input is copied in output preceded with C<##  >.  This is to
+verify the conversion and to take care unmatched user names manually.
+
+Output is sent to standard output.
+
+For example, given (note that line 4 has only a single space) ...
+
+  ,----------
+  | #More projects for the OMP. All semester 11B, country "KR" (Korea),
+  | #priority 50.
+  | #
+  | 
+  |
+  | #IMM : Myungshin Im
+  |
+  |
+  | Project: U/11B/K1
+  | Title: CEOU time in 11B - block 1
+  | Allocation: 110 hrs
+  | PI: Myungshin Im <myungshin.im@gmail.com>
+  | Co-I:
+  | Support: Watson, Tom Kerr
+  |
+  | Project: U/11B/K2
+  | Title: CEOU time in 11B - block 2
+  | Allocation: 55 hrs
+  | PI: Myungshin Im <myungshin.im@gmail.com>
+  | Co-I:
+  | Support: Tom Kerr, Watson
+  `----------
+
+... is changed to ...
+
+  ,----------
+  | ##  #More projects for the OMP. All semester 11B, country "KR" (Korea),
+  | ##  #priority 50.
+  | ##  #
+  | ## 
+  |
+  |
+  | ##  #IMM : Myungshin Im
+  |
+  |
+  | ##  Project: U/11B/K1
+  | ##  Title: CEOU time in 11B - block 1
+  | ##  Allocation: 110 hrs
+  | ##  PI: Myungshin Im <myungshin.im@gmail.com>
+  | ##  Co-I:
+  | ##  Support: Watson, Tom Kerr
+  |
+  | [U/11B/K1]
+  | title= CEOU time in 11B - block 1
+  | allocation= 110
+  | pi= imm
+  | support= varricattw , kerrt
+  |
+  | ##  Project: U/11B/K2
+  | ##  Title: CEOU time in 11B - block 2
+  | ##  Allocation: 55 hrs
+  | ##  PI: Myungshin Im <myungshin.im@gmail.com>
+  | ##  Co-I:
+  | ##  Support: Tom Kerr, Watson
+  |
+  | [U/11B/K2]
+  | title= CEOU time in 11B - block 2
+  | allocation= 55
+  | pi= imm
+  | support= kerrt , varricattw
+  `----------
+
+=head1 OPTIONS
+
+=over 2
+
+=item B<-man> | B<-help>
+
+Show help message.
+
+=back
+
 =cut
 
 use strict;
@@ -269,101 +362,6 @@ sub make_range
 
 __END__
 
-=pod
-
-=head1  DESCRIPTION
-
-Converts project definitions given in a file to L<Config::Ini>
-parsable syntax given in similar-to-but-not-quite syntax for
-L<Config::Ini>. See also F</jac_sw/omp/msbserver/admin/mkproj.pl>.
-
-So far only three user names, when matched exactly, are converted to
-user ids: Myungshin Im, Tom Kerr, Watson.
-
-Note that this program B<relies on having completely blank lines>
-(without any spaces) between any two program definitions and/or
-comment lines.
-
-Original input is copied in output preceded with C<##  >.  This is to
-verify the conversion and to take care unmatched user names manually.
-
-Output is sent to standard output.
-
-For example, given (note that line 4 has only a single space) ...
-
-  ,----------
-  | #More projects for the OMP. All semester 11B, country "KR" (Korea),
-  | #priority 50.
-  | #
-  | 
-  |
-  | #IMM : Myungshin Im
-  |
-  |
-  | Project: U/11B/K1
-  | Title: CEOU time in 11B - block 1
-  | Allocation: 110 hrs
-  | PI: Myungshin Im <myungshin.im@gmail.com>
-  | Co-I:
-  | Support: Watson, Tom Kerr
-  |
-  | Project: U/11B/K2
-  | Title: CEOU time in 11B - block 2
-  | Allocation: 55 hrs
-  | PI: Myungshin Im <myungshin.im@gmail.com>
-  | Co-I:
-  | Support: Tom Kerr, Watson
-  `----------
-
-... is changed to ...
-
-  ,----------
-  | ##  #More projects for the OMP. All semester 11B, country "KR" (Korea),
-  | ##  #priority 50.
-  | ##  #
-  | ## 
-  |
-  |
-  | ##  #IMM : Myungshin Im
-  |
-  |
-  | ##  Project: U/11B/K1
-  | ##  Title: CEOU time in 11B - block 1
-  | ##  Allocation: 110 hrs
-  | ##  PI: Myungshin Im <myungshin.im@gmail.com>
-  | ##  Co-I:
-  | ##  Support: Watson, Tom Kerr
-  |
-  | [U/11B/K1]
-  | title= CEOU time in 11B - block 1
-  | allocation= 110
-  | pi= imm
-  | support= varricattw , kerrt
-  |
-  | ##  Project: U/11B/K2
-  | ##  Title: CEOU time in 11B - block 2
-  | ##  Allocation: 55 hrs
-  | ##  PI: Myungshin Im <myungshin.im@gmail.com>
-  | ##  Co-I:
-  | ##  Support: Tom Kerr, Watson
-  |
-  | [U/11B/K2]
-  | title= CEOU time in 11B - block 2
-  | allocation= 55
-  | pi= imm
-  | support= kerrt , varricattw
-  `----------
-
-=head1 OPTIONS
-
-=over 2
-
-=item B<-man> | B<-help>
-
-Show help message.
-
-=back
-
 =head1 AUTHOR
 
 Anubhav <a.agarwal@jach.hawaii.edu>
@@ -389,4 +387,3 @@ Foundation, Inc., 59 Temple Place,Suite 330, Boston, MA  02111-1307,
 USA.
 
 =cut
-

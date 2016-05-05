@@ -1,5 +1,66 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+show-fault-types.pl - Show fault types avialable.
+
+=head1 SYNOPSIS
+
+List everything ...
+
+  show-fault-types.pl
+
+List only the matching "Category" and associated "System" and "Type"
+choices ...
+
+  show-fault-types.pl -category vehicle
+
+=head1  DESCRIPTION
+
+Main purpose of this program is to show the fault classification
+information to help move a fault from one "Category" to the other.
+Else it comes handy as reference without having to wade the source
+code.
+
+=head2  OPTIONS
+
+=over 2
+
+=item B<-help>
+
+Show this message.
+
+=item <category> string
+
+Search fault "Category" for the given string.
+
+=item B<end>
+
+Search for given word near the end of possibilities.
+It is mutually exclusive with I<start> and I<word> options.
+
+=item B<start>
+
+Search for given word at start of possibilities.
+It is mutually exclusive with I<end> and I<word> options.
+
+=item <system> string
+
+Search fault "System" for the given string.
+
+=item <type> string
+
+Search fault "Type" for the given string.
+
+=item B<word>
+
+Search for given string as a whole word.
+It is mutually exclusive with I<start> and I<end> options.
+
+=back
+
+=cut
+
 use strict; use warnings FATAL => 'all';
 our $VERSION = '0.01';
 use v5.10;
@@ -134,70 +195,7 @@ BEGIN
   sub term_reverse   { return map { join '' , $reverse, $_ , $norm  } @_; }
 }
 
-
-
 __END__
-
-=pod
-
-=head1 NAME
-
-show-fault-types.pl - Show fault types avialable.
-
-=head1 SYNOPSIS
-
-List everything ...
-
-  show-fault-types.pl
-
-List only the matching "Category" and associated "System" and "Type"
-choices ...
-
-  show-fault-types.pl -category vehicle
-
-=head1  DESCRIPTION
-
-Main purpose of this program is to show the fault classification
-information to help move a fault from one "Category" to the other.
-Else it comes handy as reference without having to wade the source
-code.
-
-=head2  OPTIONS
-
-=over 2
-
-=item B<-help>
-
-Show this message.
-
-=item <category> string
-
-Search fault "Category" for the given string.
-
-=item B<end>
-
-Search for given word near the end of possibilities.
-It is mutually exclusive with I<start> and I<word> options.
-
-=item B<start>
-
-Search for given word at start of possibilities.
-It is mutually exclusive with I<end> and I<word> options.
-
-=item <system> string
-
-Search fault "System" for the given string.
-
-=item <type> string
-
-Search fault "Type" for the given string.
-
-=item B<word>
-
-Search for given string as a whole word.
-It is mutually exclusive with I<start> and I<end> options.
-
-=back
 
 =head1 COPYRIGHT
 
@@ -220,5 +218,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-

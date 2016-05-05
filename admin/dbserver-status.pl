@@ -1,5 +1,68 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+dbserver-status.pl - Check datbaser server status
+
+=head1 SYNOPSIS
+
+Send output via mail ...
+
+  dbserver-status.pl -mail 'somebody@example.org'
+
+Check only servers at JAC (output goes to standard out, no email is
+sent) ...
+
+  dbserver-status.pl
+
+
+=head1 DESCRIPTION
+
+This program checks if the databases and database servers are up at
+JAC & CADC.  For a database at JAC, it also checks if replication
+agent has been enabled.
+
+=head2 OPTIONS
+
+=over 4
+
+=item B<-help>
+
+Show this message.
+
+=item B<-debug>
+
+Print report instead of sending an email; overrides the I<-mail> option.
+
+=item B<-error>
+
+Print|Email only the errors, if any.
+
+=item B<-mail> email-address
+
+Send email to the given address instead of printing the result on
+standard output.  Specify multiple time to send mail to multiple
+addresses.
+
+No email is sent by default.
+
+=item B<-short>
+
+Specify to produce only one line status message, instead of a detailed
+report.
+
+=item B<-time>
+
+Show elapsed time for each step.
+
+=item B<-verbose>
+
+Show what is currently being done.
+
+=back
+
+=cut
+
 $ENV{'LC_ALL'} = $ENV{'LANG'} = 'C';
 $ENV{'SYBASE'} = qw[/local/progs/sybase];
 
@@ -392,68 +455,7 @@ sub make_connection {
   return $dbh ;
 }
 
-=pod
-
-=head1 NAME
-
-dbserver-status.pl - Check datbaser server status
-
-=head1 SYNOPSIS
-
-Send output via mail ...
-
-  dbserver-status.pl -mail 'somebody@example.org'
-
-Check only servers at JAC (output goes to standard out, no email is
-sent) ...
-
-  dbserver-status.pl
-
-
-=head1 DESCRIPTION
-
-This program checks if the databases and database servers are up at
-JAC & CADC.  For a database at JAC, it also checks if replication
-agent has been enabled.
-
-=head2 OPTIONS
-
-=over 4
-
-=item B<-help>
-
-Show this message.
-
-=item B<-debug>
-
-Print report instead of sending an email; overrides the I<-mail> option.
-
-=item B<-error>
-
-Print|Email only the errors, if any.
-
-=item B<-mail> email-address
-
-Send email to the given address instead of printing the result on
-standard output.  Specify multiple time to send mail to multiple
-addresses.
-
-No email is sent by default.
-
-=item B<-short>
-
-Specify to produce only one line status message, instead of a detailed
-report.
-
-=item B<-time>
-
-Show elapsed time for each step.
-
-=item B<-verbose>
-
-Show what is currently being done.
-
-=back
+__END__
 
 =head1 AUTHOR
 
@@ -480,4 +482,3 @@ Foundation, Inc., 59 Temple Place,Suite 330, Boston, MA  02111-1307,
 USA.
 
 =cut
-

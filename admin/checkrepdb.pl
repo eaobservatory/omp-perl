@@ -1,3 +1,120 @@
+#!/local/perl/bin/perl
+
+=head1 NAME
+
+checkrepdb.pl - Check database replication
+
+=head1 SYNOPSIS
+
+  checkrepdb.pl -help
+
+  checkrepdb.pl \
+    [ -progress ] \
+    [-p <primary db server>] [-s <secondary db server>] \
+    [ -to root@example.org [, -to tech@example.org ] ] \
+    [ -cc support@example.net [, -cc sales@example.com ] ]
+
+  checkrepdb.pl -notruncated-prog -nomissed-prog
+
+=head1 OPTIONS
+
+=head2 General
+
+=over 2
+
+=item B<-debug>
+
+Run in debug mode. No email is sent.
+
+=item B<-help> | B<-h>
+
+Prints this message.
+
+=item B<-progress>
+
+Prints what is going to be done next on standard error.
+
+=back
+
+=head2 Email
+
+=over 2
+
+=item B<-nomail>
+
+Do not send any mail. Messages are printed to standard output. It
+overrides I<-to> and I<-cc> options.
+
+=item B<-cc> <email address>
+
+Specify email address as the carbon copy recipient of the check report.
+Note that if given, default email address will not be used.
+
+It can be specified multiple times to send email to more than one address.
+
+=item B<-to> <email address>
+
+Specify email address as the recipient of the check report; default is
+"omp_group@eao.hawaii.edu".
+
+It can be specified multiple times to send email to more than one address.
+
+=back
+
+=head2 Database Servers
+
+=over 2
+
+=item B<-primary> | B<-p> <db server>
+
+Specify primary database server (source); default is "SYB_JAC".
+
+=item B<-secondary> | B<-s> <db server>
+
+Specify secondary database server (replicate); default is "SYB_JAC2".
+
+=item B<-tries> number
+
+Specify the number of tries over which to check the replication of a
+key generated.
+
+=item B<-wait> time in second
+
+Specify the time to wait before checking replication of a key
+generated per try.
+
+=back
+
+=head2 Checks
+
+All the checks are run by default.
+
+=over 2
+
+=item B<-nomissed-msb> | B<-nomm>
+
+Specify to skip check for missed MSBs in a science program.
+
+=item B<-nomissed-prog> | B<-nomp>
+
+Specify to skip check for missed science programs.
+
+=item B<-noreplication>
+
+Specify to skip check for continuing replication.
+
+=item B<-norows>
+
+Specify to skip checking of same number of rows.
+
+=item B<-notruncated-prog> | B<-notp>
+
+Specify to skip check for truncated science programs.
+
+=back
+
+=cut
+
 use warnings;
 use strict;
 
@@ -503,120 +620,7 @@ sub progress {
   return;
 }
 
-=pod
-
-=head1 NAME
-
-checkrepdb.pl - Check database replication
-
-=head1 SYNOPSIS
-
-  checkrepdb.pl -help
-
-  checkrepdb.pl \
-    [ -progress ] \
-    [-p <primary db server>] [-s <secondary db server>] \
-    [ -to root@example.org [, -to tech@example.org ] ] \
-    [ -cc support@example.net [, -cc sales@example.com ] ]
-
-  checkrepdb.pl -notruncated-prog -nomissed-prog
-
-=head1 OPTIONS
-
-=head2 General
-
-=over 2
-
-=item B<-debug>
-
-Run in debug mode. No email is sent.
-
-=item B<-help> | B<-h>
-
-Prints this message.
-
-=item B<-progress>
-
-Prints what is going to be done next on standard error.
-
-=back
-
-=head2 Email
-
-=over 2
-
-=item B<-nomail>
-
-Do not send any mail. Messages are printed to standard output. It
-overrides I<-to> and I<-cc> options.
-
-=item B<-cc> <email address>
-
-Specify email address as the carbon copy recipient of the check report.
-Note that if given, default email address will not be used.
-
-It can be specified multiple times to send email to more than one address.
-
-=item B<-to> <email address>
-
-Specify email address as the recipient of the check report; default is
-"omp_group@eao.hawaii.edu".
-
-It can be specified multiple times to send email to more than one address.
-
-=back
-
-=head2 Database Servers
-
-=over 2
-
-=item B<-primary> | B<-p> <db server>
-
-Specify primary database server (source); default is "SYB_JAC".
-
-=item B<-secondary> | B<-s> <db server>
-
-Specify secondary database server (replicate); default is "SYB_JAC2".
-
-=item B<-tries> number
-
-Specify the number of tries over which to check the replication of a
-key generated.
-
-=item B<-wait> time in second
-
-Specify the time to wait before checking replication of a key
-generated per try.
-
-=back
-
-=head2 Checks
-
-All the checks are run by default.
-
-=over 2
-
-=item B<-nomissed-msb> | B<-nomm>
-
-Specify to skip check for missed MSBs in a science program.
-
-=item B<-nomissed-prog> | B<-nomp>
-
-Specify to skip check for missed science programs.
-
-=item B<-noreplication>
-
-Specify to skip check for continuing replication.
-
-=item B<-norows>
-
-Specify to skip checking of same number of rows.
-
-=item B<-notruncated-prog> | B<-notp>
-
-Specify to skip check for truncated science programs.
-
-=back
+__END__
 
 =head1 AUTHOR
 
@@ -641,4 +645,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-

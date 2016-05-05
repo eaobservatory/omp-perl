@@ -24,13 +24,6 @@ remember the full name.
 
 Comment lines are skipped.
 
-=head1 AUTHOR
-
-Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
-
-Copyright (C) 2002-2003 Particle Physics and Astronomy
-Research Council. All Rights Reserved.
-
 =cut
 
 use OMP::User;
@@ -65,3 +58,15 @@ foreach my $line (<>) {
   print "Update:\t".$user->as_email_hdr."\n\n";
   OMP::UserServer->updateUser( $user );
 }
+
+__END__
+
+
+=head1 AUTHOR
+
+Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
+
+Copyright (C) 2002-2003 Particle Physics and Astronomy
+Research Council. All Rights Reserved.
+
+=cut
