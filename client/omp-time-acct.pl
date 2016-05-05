@@ -1,5 +1,105 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+omp-time-acct.pl - Show time spent on a project as CSV
+
+=head1 SYNOPSIS
+
+  Project ids provided as arguments (lists all the time spent on given
+  projects) ...
+
+    omp-time-acct.pl project-id [ project-id ... ]
+
+
+  ... or, in a file ...
+
+    omp-time-acct.pl -f project-id-file
+
+
+  ... or, on standard input ...
+
+    echo project-id | omp-time-acct.pl
+
+
+  Telescope and semester provided (lists all the projects in semester
+  08A, where date range of the semester is as appropriate for JCMT)
+  ...
+
+    omp-time-acct.pl -semester 08A -telescope jcmt
+
+
+  Project id, semester and telescope are provided (lists time spent on
+  given project in the semester 08A as appropriate for UKIRT) ...
+
+    omp-time-acct.pl -semester 08A -telescope ukirt project-id
+
+
+=head1 DESCRIPTION
+
+Given a list of project ids, this program generates comma separated
+values of time spent on each date for each given project id.  The
+output format is ...
+
+  project-id,time-spent-in-seconds,date,confirmed
+
+
+Project ids can be specified as arguments to the program, given in a
+file, or provided on standard input.
+
+If semester is provided and also specify the telescope.
+
+Semester can be given with or without a project id.  If a project id
+is not given, then the listing would have all the projects in a given
+semester for any telescope.  Otherwise, listing would have accounting
+for given projects in a given semester.
+
+=head2 OPTIONS
+
+=over 2
+
+=item B<-help> | B<-man>
+
+Show the full help message.
+
+=item B<-file> file-containing-project-ids
+
+Specify a file name which has white space separated project ids.
+This option can be specified multiple times.
+
+File name of I<-> specifies to read from standard input.
+
+=item B<-header>
+
+Specify if to print a header (default).
+
+=item B<-noheader> | B<-H>
+
+Turn off header printing.
+
+=item B<-semester> <semester_1, [semester_2, ...]>
+
+Specify a semester.
+
+It can be used multiple times to specify multiple semesters.
+
+The I<telescope> option would also needed to be specified if a
+semester is given.
+
+=item B<-telescope> | B<-tel> <jcmt | ukirt>
+
+Specify a telescope to be used with all the given semesters.  It is
+I<required> if a I<-semester> option was specified.
+
+I<This is used only to find a date range from given semester as
+applicable for the given telescope.>  In other words, this option is
+not used to filter out projects related to one telescope (use project
+ids).
+
+=back
+
+=cut
+
 use warnings;
 use strict;
 use Data::Dumper;
@@ -291,105 +391,7 @@ sub log_db_error {
   return $err;
 }
 
-=pod
-
-=head1 NAME
-
-omp-time-acct.pl - Show time spent on a project as CSV
-
-=head1 SYNOPSIS
-
-  Project ids provided as arguments (lists all the time spent on given
-  projects) ...
-
-    omp-time-acct.pl project-id [ project-id ... ]
-
-
-  ... or, in a file ...
-
-    omp-time-acct.pl -f project-id-file
-
-
-  ... or, on standard input ...
-
-    echo project-id | omp-time-acct.pl
-
-
-  Telescope and semester provided (lists all the projects in semester
-  08A, where date range of the semester is as appropriate for JCMT)
-  ...
-
-    omp-time-acct.pl -semester 08A -telescope jcmt
-
-
-  Project id, semester and telescope are provided (lists time spent on
-  given project in the semester 08A as appropriate for UKIRT) ...
-
-    omp-time-acct.pl -semester 08A -telescope ukirt project-id
-
-
-=head1 DESCRIPTION
-
-Given a list of project ids, this program generates comma separated
-values of time spent on each date for each given project id.  The
-output format is ...
-
-  project-id,time-spent-in-seconds,date,confirmed
-
-
-Project ids can be specified as arguments to the program, given in a
-file, or provided on standard input.
-
-If semester is provided and also specify the telescope.
-
-Semester can be given with or without a project id.  If a project id
-is not given, then the listing would have all the projects in a given
-semester for any telescope.  Otherwise, listing would have accounting
-for given projects in a given semester.
-
-=head2 OPTIONS
-
-=over 2
-
-=item B<-help> | B<-man>
-
-Show the full help message.
-
-=item B<-file> file-containing-project-ids
-
-Specify a file name which has white space separated project ids.
-This option can be specified multiple times.
-
-File name of I<-> specifies to read from standard input.
-
-=item B<-header>
-
-Specify if to print a header (default).
-
-=item B<-noheader> | B<-H>
-
-Turn off header printing.
-
-=item B<-semester> <semester_1, [semester_2, ...]>
-
-Specify a semester.
-
-It can be used multiple times to specify multiple semesters.
-
-The I<telescope> option would also needed to be specified if a
-semester is given.
-
-=item B<-telescope> | B<-tel> <jcmt | ukirt>
-
-Specify a telescope to be used with all the given semesters.  It is
-I<required> if a I<-semester> option was specified.
-
-I<This is used only to find a date range from given semester as
-applicable for the given telescope.>  In other words, this option is
-not used to filter out projects related to one telescope (use project
-ids).
-
-=back
+__END__
 
 =head1 BUGS
 
@@ -400,4 +402,3 @@ Not known yet.
 Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =cut
-

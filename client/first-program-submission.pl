@@ -1,5 +1,67 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+first-program-submission - Show time of first program submission
+
+=head1 SYNOPSIS
+
+first-program-submission I<project-id> [ I<project-id> ... ]
+
+first-program-submission -f I<file-containing-project-ids>
+
+first-program-submission < I<file-containing-project-ids>
+
+echo I<project-id> | first-program-submission
+
+=head1 DESCRIPTION
+
+Given a list of project ids, this program generates comma separated values of
+date-time of first program submission for each given project id.  The output
+format is ...
+
+  project-id,date
+
+
+Project ids can be specified as arguments to the program, given in a
+file, or provided on standard input.
+
+=head2 OPTIONS
+
+=over 2
+
+=item B<-help> | B<-man>
+
+Show the full help message.
+
+=item B<-divider>
+
+Print a blank line after output of each project id.  Default is not to
+print the blank line.
+
+=item B<-file> file-containing-project-ids
+
+Specify a file name which has white space separated project ids.
+This option can be specified multiple times.
+
+File name of I<-> specifies to read from standard input.
+
+=item B<-header>
+
+If specified once, print the header only in the beginning (default).
+
+If specified more than once, header is printed before output for each
+project id.
+
+=item B<-noheader> | B<-H>
+
+Turn off header printing.
+
+=back
+
+=cut
+
+
 use warnings;
 use strict;
 
@@ -203,66 +265,7 @@ sub wrap {
   return qq{<$tag>} . join( ' ' , @val ) . qq{</$tag>};
 }
 
-=pod
-
-=head1 NAME
-
-first-program-submission - Show time of first program submission
-
-=head1 SYNOPSIS
-
-first-program-submission I<project-id> [ I<project-id> ... ]
-
-first-program-submission -f I<file-containing-project-ids>
-
-first-program-submission < I<file-containing-project-ids>
-
-echo I<project-id> | first-program-submission
-
-=head1 DESCRIPTION
-
-Given a list of project ids, this program generates comma separated values of
-date-time of first program submission for each given project id.  The output
-format is ...
-
-  project-id,date
-
-
-Project ids can be specified as arguments to the program, given in a
-file, or provided on standard input.
-
-=head2 OPTIONS
-
-=over 2
-
-=item B<-help> | B<-man>
-
-Show the full help message.
-
-=item B<-divider>
-
-Print a blank line after output of each project id.  Default is not to
-print the blank line.
-
-=item B<-file> file-containing-project-ids
-
-Specify a file name which has white space separated project ids.
-This option can be specified multiple times.
-
-File name of I<-> specifies to read from standard input.
-
-=item B<-header>
-
-If specified once, print the header only in the beginning (default).
-
-If specified more than once, header is printed before output for each
-project id.
-
-=item B<-noheader> | B<-H>
-
-Turn off header printing.
-
-=back
+__END__
 
 =head1 BUGS
 
@@ -273,4 +276,3 @@ Not known yet.
 Anubhav E<lt>a.agarwal@jach.hawaii.eduE<gt>
 
 =cut
-
