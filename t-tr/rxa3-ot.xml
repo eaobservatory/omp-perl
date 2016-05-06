@@ -36,7 +36,7 @@
         <bandMode>1</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -47,7 +47,7 @@
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="8192">
+            <subsystem if="4.0E9" bw="2.5E8" overlap="0.0" channels="8192">
                 <line species="H2CO" transition="3 0 3  - 2 0 2 " rest_freq="2.18222186E11"/>
             </subsystem>
         </subsystems>
@@ -150,7 +150,7 @@
         <bandMode>1</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -161,7 +161,7 @@
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="4.2E8" overlap="4.0E7" channels="13762">
+            <subsystem if="4.0E9" bw="4.2E8" overlap="4.0E7" channels="13762">
                 <line species="CH3OH" transition="5 0 5 +0  - 4 0 4 +0 " rest_freq="2.41791431E11"/>
             </subsystem>
         </subsystems>
@@ -264,7 +264,7 @@
         <bandMode>1</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -275,7 +275,7 @@
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="1.0E9" overlap="0.0" channels="2048">
+            <subsystem if="4.0E9" bw="1.0E9" overlap="0.0" channels="2048">
                 <line species="CS" transition="5  - 4 " rest_freq="2.449356435E11"/>
             </subsystem>
         </subsystems>
@@ -378,7 +378,7 @@
         <bandMode>1</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -389,7 +389,7 @@
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="1.8E9" overlap="1.0E8" channels="3686">
+            <subsystem if="4.0E9" bw="1.8E9" overlap="1.0E8" channels="3686">
                 <line species="CO" transition="2  - 1" rest_freq="2.30538E11"/>
             </subsystem>
         </subsystems>
@@ -481,7 +481,7 @@
       <bandMode>1</bandMode>
       <beName>acsis</beName>
       <feBandWidth>1.8E9</feBandWidth>
-      <feIF>5.0E9</feIF>
+      <feIF>4.0E9</feIF>
       <feName>A3m</feName>
       <mixers>1</mixers>
       <mode>dsb</mode>
@@ -492,7 +492,7 @@
       <!-- - - - - - - - - - - - - - - - - - - - - -->
 
       <subsystems>
-          <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="8192">
+          <subsystem if="4.0E9" bw="2.5E8" overlap="0.0" channels="8192">
               <line species="CO" transition="2  - 1" rest_freq="2.30538E11"/>
           </subsystem>
       </subsystems>
@@ -1304,7 +1304,7 @@ Things to include in your notes
         <bandMode>4</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1315,16 +1315,16 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="4.0E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="13-CO" transition="2  - 1 " rest_freq="2.203986765E11"/>
             </subsystem>
-            <subsystem if="4.5098485E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="3.5098485E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="H2C-13-O" transition="3 1 2  - 2 1 1" rest_freq="2.19908525E11"/>
             </subsystem>
-            <subsystem if="4.6392906E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="3.6392906E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="t-HCOOH" transition="10 0 10  - 9 0 9" rest_freq="2.200379671E11"/>
             </subsystem>
-            <subsystem if="5.3485847E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="4.3485847E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="CH3CN v8=0" transition="12 0  - 11 0" rest_freq="2.207472612E11"/>
             </subsystem>
         </subsystems>
@@ -1421,7 +1421,7 @@ Things to include in your notes
         <bandMode>4</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1432,16 +1432,16 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="1.0E9" overlap="0.0" channels="1024">
+            <subsystem if="4.0E9" bw="1.0E9" overlap="0.0" channels="1024">
                 <line species="13-CO" transition="2  - 1 " rest_freq="2.203986765E11"/>
             </subsystem>
-            <subsystem if="4.6E9" bw="1.0E9" overlap="0.0" channels="1024">
-                <line species="H2C-13-O" transition="3 1 2  - 2 1 1" rest_freq="2.19908525E11"/>
+            <subsystem if="3.6E9" bw="1.0E9" overlap="0.0" channels="1024">
+                <line species="H2C-13-O" transition="3 1 2  - 2 1 1 " rest_freq="2.19908525E11"/>
             </subsystem>
-            <subsystem if="4.6392906E9" bw="1.0E9" overlap="0.0" channels="1024">
+            <subsystem if="3.6392906E9" bw="1.0E9" overlap="0.0" channels="1024">
                 <line species="t-HCOOH" transition="10 0 10  - 9 0 9 " rest_freq="2.200379671E11"/>
             </subsystem>
-            <subsystem if="5.3485847E9" bw="1.0E9" overlap="0.0" channels="1024">
+            <subsystem if="4.3485847E9" bw="1.0E9" overlap="0.0" channels="1024">
                 <line species="CH3CN v8=0" transition="12 0  - 11 0 " rest_freq="2.207472612E11"/>
             </subsystem>
         </subsystems>
@@ -1539,7 +1539,7 @@ Things to include in your notes
         <beName>acsis</beName>
         <configuration>RxA3m_13C18O_250X4</configuration>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1550,16 +1550,16 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.344106699751862E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="4.344106699751862E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="13-CO" transition="2  - 1" rest_freq="2.203986765E11"/>
             </subsystem>
-            <subsystem if="4.505786999751862E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="3.5057869997518616E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="C-18-O" transition="2  - 1" rest_freq="2.195603568E11"/>
             </subsystem>
-            <subsystem if="4.894872199751862E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="3.8948721997518616E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="SO" transition="5 6  - 4 5" rest_freq="2.19949442E11"/>
             </subsystem>
-            <subsystem if="4.894872199751862E9" bw="1.0E9" overlap="0.0" channels="1024">
+            <subsystem if="3.8948721997518616E9" bw="1.0E9" overlap="0.0" channels="1024">
                 <line species="SO" transition="5 6  - 4 5" rest_freq="2.19949442E11"/>
             </subsystem>
         </subsystems>
@@ -1656,7 +1656,7 @@ Things to include in your notes
         <bandMode>2</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1667,10 +1667,10 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="4.0E8" overlap="5.0E7" channels="6553">
+            <subsystem if="4.0E9" bw="4.0E8" overlap="5.0E7" channels="6553">
                 <line species="C-18-O" transition="2  - 1 " rest_freq="2.195603568E11"/>
             </subsystem>
-            <subsystem if="5.096414E9" bw="1.6E9" overlap="2.0E8" channels="1638">
+            <subsystem if="4.096414E9" bw="1.6E9" overlap="2.0E8" channels="1638">
                 <line species="HNCO" transition="10 3 7  - 9 3 6" rest_freq="2.196567708E11"/>
             </subsystem>
         </subsystems>
@@ -1767,7 +1767,7 @@ Things to include in your notes
         <bandMode>2</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1778,10 +1778,10 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="4.0E8" overlap="5.0E7" channels="6553">
+            <subsystem if="4.0E9" bw="4.0E8" overlap="5.0E7" channels="6553">
                 <line species="C-18-O" transition="2  - 1 " rest_freq="2.195603568E11"/>
             </subsystem>
-            <subsystem if="4.903586E9" bw="1.6E9" overlap="2.0E8" channels="1638">
+            <subsystem if="3.903586E9" bw="1.6E9" overlap="2.0E8" channels="1638">
                 <line species="HNCO" transition="10 3 7  - 9 3 6 " rest_freq="2.196567708E11"/>
             </subsystem>
         </subsystems>
@@ -1878,7 +1878,7 @@ Things to include in your notes
         <bandMode>3</bandMode>
         <beName>acsis</beName>
         <feBandWidth>1.8E9</feBandWidth>
-        <feIF>5.0E9</feIF>
+        <feIF>4.0E9</feIF>
         <feName>A3m</feName>
         <mixers>1</mixers>
         <mode>dsb</mode>
@@ -1889,13 +1889,13 @@ Things to include in your notes
         <!-- - - - - - - - - - - - - - - - - - - - - -->
 
         <subsystems>
-            <subsystem if="5.0E9" bw="2.5E8" overlap="0.0" channels="4096">
+            <subsystem if="4.0E9" bw="2.5E8" overlap="0.0" channels="4096">
                 <line species="C-18-O" transition="2  - 1 " rest_freq="2.195603568E11"/>
             </subsystem>
-            <subsystem if="5.2379172E9" bw="1.0E9" overlap="0.0" channels="1024">
+            <subsystem if="4.2379172E9" bw="1.0E9" overlap="0.0" channels="1024">
                 <line species="HNCO" transition="10 0 10  - 9 0 9" rest_freq="2.19798274E11"/>
             </subsystem>
-            <subsystem if="4.3429997E9" bw="4.0E8" overlap="5.0E7" channels="6553">
+            <subsystem if="3.3429997E9" bw="4.0E8" overlap="5.0E7" channels="6553">
                 <line species="OCS" transition="18  - 17" rest_freq="2.189033565E11"/>
             </subsystem>
         </subsystems>
