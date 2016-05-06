@@ -179,8 +179,8 @@ my $id;
 my $BREAK       = 98;
 
 my %opt = ( 'geometry'         => '785x450' ,
-            'geometry-comment' => '760x300' ,
-            'geometry-comment-small' => '760x190' ,
+            'geometry-comment' => '760x360' ,
+            'geometry-comment-small' => '760x290' ,
             # Fixed width font;
             'font-fixed' =>
               '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*' ,
