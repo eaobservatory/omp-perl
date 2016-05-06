@@ -190,7 +190,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="e9db1c2d6b120f768546ec8e49119936A" />
+                 VALUE="c3560f5d0479c8898c93e90498c8225cA" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -1190,7 +1190,7 @@
                   Y="0.0"
                   WAVELENGTH="1360.22803204084" >
          
-         <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >
@@ -1417,7 +1417,7 @@
                <rest_freq_ref ref="tr13-CO2-1" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">5</if_ref_freq>
+                  <if_ref_freq units="GHz">4</if_ref_freq>
                   <if_ref_channel>512</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1430,7 +1430,7 @@
                <rest_freq_ref ref="trH2C-13-O3_1_2-2_1_1" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4.6</if_ref_freq>
+                  <if_ref_freq units="GHz">3.6</if_ref_freq>
                   <if_ref_channel>512</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1443,7 +1443,7 @@
                <rest_freq_ref ref="trT-HCOOH10_0_10-9_0_9" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4.6392906</if_ref_freq>
+                  <if_ref_freq units="GHz">3.6392906</if_ref_freq>
                   <if_ref_channel>512</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1456,7 +1456,7 @@
                <rest_freq_ref ref="trCH3CNV8=012_0-11_0" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">5.3485847</if_ref_freq>
+                  <if_ref_freq units="GHz">4.3485847</if_ref_freq>
                   <if_ref_channel>512</if_ref_channel>
                   <if_chan_width units="Hz">976562.5</if_chan_width>
                   <if_nchans>1024</if_nchans>
@@ -1498,10 +1498,10 @@
             <dcm id="29" bw_mode="1GHz"/>
             <dcm id="30" bw_mode="1GHz"/>
             <dcm id="31" bw_mode="1GHz"/>
-            <lo2 id="0" freq="7500"/>
-            <lo2 id="1" freq="7100"/>
-            <lo2 id="2" freq="7139.5"/>
-            <lo2 id="3" freq="7848.5"/>
+            <lo2 id="0" freq="6500"/>
+            <lo2 id="1" freq="6100"/>
+            <lo2 id="2" freq="6139.5"/>
+            <lo2 id="3" freq="6848.5"/>
             <lo3 freq="2000.0"/>
             <quadrant id="0" subband_mode="4"/>
          </ACSIS_IF>
