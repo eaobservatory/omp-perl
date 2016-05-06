@@ -48,6 +48,32 @@ This manual page.
 
 =back
 
+=head1 FORMAT
+
+The input project definitions file is in the C<.ini> file format with
+the following layout. Individual projects are specified in sections,
+indexed by project ID. The column names in this file must match
+accessor method names in an C<OMP::Project> object.
+
+ [m01bu32]
+ tagpriority=1
+ semester=03A
+ incalloc=40.0
+ support=GMS,TKERR
+
+The exception to this rule is C<incalloc>. This key is taken to imply
+that the specified time (in hours) should be added to the allocation
+such that that time is the new time remaining on the project (this is
+used for carry over of one project from one semester to another).
+
+The C<fixalloc> key is used to force a specific allocation on the
+project (not an increment). This is to be preferred over simply using
+the C<allocated> key since the remaining time on the project will be
+corrected at the same time. This also uses hours rather than seconds.
+
+If you are overriding normal time-based entries, the values should be
+in seconds to match the C<OMP::Project> interface.
+
 =cut
 
 use warnings;
@@ -203,33 +229,7 @@ for my $proj (sort { lc $a cmp lc $b } keys %alloc) {
   print "Updated details\n";
 }
 
-
-=head1 FORMAT
-
-The input project definitions file is in the C<.ini> file format with
-the following layout. Individual projects are specified in sections,
-indexed by project ID. The column names in this file must match
-accessor method names in an C<OMP::Project> object.
-
- [m01bu32]
- tagpriority=1
- semester=03A
- incalloc=40.0
- support=GMS,TKERR
-
-The exception to this rule is C<incalloc>. This key is taken to imply
-that the specified time (in hours) should be added to the allocation
-such that that time is the new time remaining on the project (this is
-used for carry over of one project from one semester to another).
-
-The C<fixalloc> key is used to force a specific allocation on the
-project (not an increment). This is to be preferred over simply using
-the C<allocated> key since the remaining time on the project will be
-corrected at the same time. This also uses hours rather than seconds.
-
-If you are overriding normal time-based entries, the values should be
-in seconds to match the C<OMP::Project> interface.
-
+__END__
 
 =head1 AUTHOR
 

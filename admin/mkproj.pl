@@ -84,6 +84,55 @@ Specify default telescope.
 
 =back
 
+=head1 FORMAT
+
+The input project definitions file is in the C<.ini> file format
+with the following layout. A header C<[info]> and C<[support]>
+provide general defaults that should apply to all projects
+in the file, with support indexed by country:
+
+
+ [info]
+ semester=02B
+ telescope=JCMT
+
+ [support]
+ UK=IMC
+ CN=GMS
+ INT=GMS
+ UH=GMS
+ NL=RPT
+
+Individual projects are specified in the following sections, indexed
+by project ID. C<pi>, C<coi> and C<support> must be valid OMP User IDs
+(comma-separated).
+
+ [m01bu32]
+ tagpriority=1
+ country=UK
+ pi=HOLLANDW
+ coi=GREAVESJ,ZUCKERMANB
+ title=The Vega phenomenom around nearby stars
+ allocation=24
+ band=1
+
+ [m01bu44]
+ tagpriority=2
+ country=UK
+ pi=RICHERJ
+ coi=FULLERG,HATCHELLJ
+ title=Completion of the SCUBA survey
+ allocation=28
+ band=1
+
+Allocations are in hours and "band" is the weather band. C<taurange>
+can be used directly (as a comma delimited range) if it is known.
+
+Multiple countries can be specified (comma-separated). If there is
+more than one TAG priority (comma-separated) then there must
+be one priority for every country. SUPPORT lookups only used the
+first country. The first country is the primary key.
+
 =cut
 
 # Uses the infrastructure classes so each project is inserted
@@ -511,54 +560,7 @@ sub check_fields {
   return;
 }
 
-=head1 FORMAT
-
-The input project definitions file is in the C<.ini> file format
-with the following layout. A header C<[info]> and C<[support]>
-provide general defaults that should apply to all projects
-in the file, with support indexed by country:
-
-
- [info]
- semester=02B
- telescope=JCMT
-
- [support]
- UK=IMC
- CN=GMS
- INT=GMS
- UH=GMS
- NL=RPT
-
-Individual projects are specified in the following sections, indexed
-by project ID. C<pi>, C<coi> and C<support> must be valid OMP User IDs
-(comma-separated).
-
- [m01bu32]
- tagpriority=1
- country=UK
- pi=HOLLANDW
- coi=GREAVESJ,ZUCKERMANB
- title=The Vega phenomenom around nearby stars
- allocation=24
- band=1
-
- [m01bu44]
- tagpriority=2
- country=UK
- pi=RICHERJ
- coi=FULLERG,HATCHELLJ
- title=Completion of the SCUBA survey
- allocation=28
- band=1
-
-Allocations are in hours and "band" is the weather band. C<taurange>
-can be used directly (as a comma delimited range) if it is known.
-
-Multiple countries can be specified (comma-separated). If there is
-more than one TAG priority (comma-separated) then there must
-be one priority for every country. SUPPORT lookups only used the
-first country. The first country is the primary key.
+__END__
 
 =head1 AUTHOR
 
@@ -583,6 +585,3 @@ this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 Place,Suite 330, Boston, MA  02111-1307, USA
 
 =cut
-
-
-

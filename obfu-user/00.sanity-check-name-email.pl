@@ -19,7 +19,6 @@ use Pod::Usage;
 use List::MoreUtils qw[ any all natatime ];
 use List::Util      qw[ first min max sum ];
 
-use JAC::ErrExit;
 use JAC::Setup      qw[ omp jsa ];
 
 use JSA::LogInitialize qw[ init_logger ];

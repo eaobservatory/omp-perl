@@ -1,5 +1,67 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+link-projqueue.pl - Make one project queue to appear in other queues
+
+=head1 SYNOPSIS
+
+To have "projectid" appear in "projectid-1" & "projectid-2" queues ...
+
+  link-projqueue.pl   \
+    [ -verbose ]      \
+    -push projectid   \
+    projectid-1 projectid-2
+
+=head1 DESCRIPTION
+
+This program makes the one project turn up in other project (given as
+plain arguments) queues.
+
+=head2 OPTIONS
+
+=over 2
+
+=item B<-help>
+
+Shows this message.
+
+=item B<-verbose>
+
+Specify multiple times to increase verbosity.
+
+=item B<-push> projectid
+
+Specify a projectid which should appear in another project's queue.
+
+This option is B<required>.
+
+=back
+
+=head1 EXAMPLE
+
+Say M10BU08 need to show up in M10BC07 queue; the project queue table
+has ...
+
+  projectid   country   tagpriority isprimary tagadj
+  ----------- --------- ----------- --------- -----------
+  M10BC07     CA                364         1           0
+  M10BU08     UK                244         1           0
+
+To have M10BU08 project appear in M10BC07 queue ...
+
+  link-project.pl -push M10BU08  M10BC07
+
+... afterword the table entries would be ...
+
+  projectid   country   tagpriority isprimary tagadj
+  ----------- --------- ----------- --------- -----------
+  M10BC07     CA                364         1           0
+  M10BU08     UK                244         1           0
+  M10BU08     CA                364         0           0
+
+=cut
+
 use warnings;
 use strict;
 
@@ -174,68 +236,6 @@ sub make_noise {
 
 __END__
 
-=pod
-
-=head1 NAME
-
-link-projqueue.pl - Make one project queue to appear in other queues
-
-=head1 SYNOPSIS
-
-To have "projectid" appear in "projectid-1" & "projectid-2" queues ...
-
-  link-projqueue.pl   \
-    [ -verbose ]      \
-    -push projectid   \
-    projectid-1 projectid-2
-
-=head1 DESCRIPTION
-
-This program makes the one project turn up in other project (given as
-plain arguments) queues.
-
-=head2 OPTIONS
-
-=over 2
-
-=item B<-help>
-
-Shows this message.
-
-=item B<-verbose>
-
-Specify multiple times to increase verbosity.
-
-=item B<-push> projectid
-
-Specify a projectid which should appear in another project's queue.
-
-This option is B<required>.
-
-=back
-
-=head1 EXAMPLE
-
-Say M10BU08 need to show up in M10BC07 queue; the project queue table
-has ...
-
-  projectid   country   tagpriority isprimary tagadj
-  ----------- --------- ----------- --------- -----------
-  M10BC07     CA                364         1           0
-  M10BU08     UK                244         1           0
-
-To have M10BU08 project appear in M10BC07 queue ...
-
-  link-project.pl -push M10BU08  M10BC07
-
-... afterword the table entries would be ...
-
-  projectid   country   tagpriority isprimary tagadj
-  ----------- --------- ----------- --------- -----------
-  M10BC07     CA                364         1           0
-  M10BU08     UK                244         1           0
-  M10BU08     CA                364         0           0
-
 =head1 BUGS
 
 Please notify the OMP group if there are any.
@@ -265,4 +265,3 @@ Foundation, Inc., 59 Temple Place,Suite 330, Boston, MA  02111-1307,
 USA.
 
 =cut
-

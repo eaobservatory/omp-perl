@@ -1,5 +1,34 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+semester-dates.pl - Show date range of a semester
+
+=head1 SYNOPSIS
+
+  semester-dates.pl -tel jcmt 14a
+
+=head1  DESCRIPTION
+
+Given a list of semester and a telescope, prints a table of date-ranges for each
+semester.
+
+=head2  OPTIONS
+
+=over 2
+
+=item B<help>
+
+Shows this message.
+
+=item B<telescope>
+
+Specify a telescope: UKIRT or JCMT; B<required>.
+
+=back
+
+=cut
+
 use strict; use warnings;
 our $VERSION = '0.01';
 use 5.010;
@@ -76,37 +105,7 @@ sub simplify {
   return ( $sem , map { $_->ymd() } @{ $range->{ $sem } } );
 }
 
-
 __END__
-
-=pod
-
-=head1 NAME
-
-semester-dates.pl - Show date range of a semester
-
-=head1 SYNOPSIS
-
-  semester-dates.pl -tel jcmt 14a
-
-=head1  DESCRIPTION
-
-Given a list of semester and a telescope, prints a table of date-ranges for each
-semester.
-
-=head2  OPTIONS
-
-=over 2
-
-=item B<help>
-
-Shows this message.
-
-=item B<telescope>
-
-Specify a telescope: UKIRT or JCMT; B<required>.
-
-=back
 
 =head1 COPYRIGHT
 
@@ -129,5 +128,3 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 =cut
-
-
