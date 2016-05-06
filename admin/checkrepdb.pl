@@ -11,8 +11,6 @@ checkrepdb.pl - Check database replication
   checkrepdb.pl \
     [ -progress ] \
     [-p <primary db server>] [-s <secondary db server>] \
-    [ -to root@example.org [, -to tech@example.org ] ] \
-    [ -cc support@example.net [, -cc sales@example.com ] ]
 
   checkrepdb.pl -notruncated-prog -nomissed-prog
 
@@ -22,10 +20,6 @@ checkrepdb.pl - Check database replication
 
 =over 2
 
-=item B<-debug>
-
-Run in debug mode. No email is sent.
-
 =item B<-help> | B<-h>
 
 Prints this message.
@@ -33,31 +27,6 @@ Prints this message.
 =item B<-progress>
 
 Prints what is going to be done next on standard error.
-
-=back
-
-=head2 Email
-
-=over 2
-
-=item B<-nomail>
-
-Do not send any mail. Messages are printed to standard output. It
-overrides I<-to> and I<-cc> options.
-
-=item B<-cc> <email address>
-
-Specify email address as the carbon copy recipient of the check report.
-Note that if given, default email address will not be used.
-
-It can be specified multiple times to send email to more than one address.
-
-=item B<-to> <email address>
-
-Specify email address as the recipient of the check report; default is
-"omp_group@eao.hawaii.edu".
-
-It can be specified multiple times to send email to more than one address.
 
 =back
 
@@ -123,7 +92,6 @@ use lib "$FindBin::RealBin/..";
 
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
 use Pod::Usage;
-use MIME::Lite;
 use List::Util qw/ max /;
 
 use OMP::BaseDB;
@@ -146,7 +114,7 @@ my $secondary_db = "SYB_JAC2";
 
 my $wait  = 20;
 my $tries = 15;
-my ( @to_addr, @cc_addr, $nomail, $debug, $progress );
+my ( $progress );
 
 my %run =
   ( 'truncated-prog' => 1,
@@ -161,12 +129,7 @@ my %run =
   GetOptions(
     'h|help'   => \$help,
 
-    'debug'    => \$debug,
     'progress' => \$progress,
-
-    'to=s'     => \@to_addr,
-    'cc=s'     => \@cc_addr,
-    'nomail'   => \$nomail,
 
     'p|pri|primary=s'   => \$primary_db,
     's|sec|secondary=s' => \$secondary_db,
@@ -182,10 +145,6 @@ my %run =
 
   pod2usage( '-exitval' => 1, '-verbose' => 2 ) if $help;
 }
-
-#  Default address.
-@to_addr = ( 'omp_group@eao.hawaii.edu' )
-  if 0 == scalar @to_addr + scalar @cc_addr ;
 
 my (  $primary_kdb,
       $primary_db_down,
@@ -250,19 +209,7 @@ if ($critical) {
 }
 $subject .= " - Replication status ($primary_db -> $secondary_db)";
 
-if ( $debug || $nomail ) {
-
-  print $subject, "\n", $msg;
-}
-else {
-
-  my %addr =
-    (
-      scalar @to_addr ? ( 'To' => join ', ', @to_addr ) : (),
-      scalar @cc_addr ? ( 'Cc' => join ', ', @cc_addr ) : ()
-    );
-  send_mail( $subject, $msg, %addr );
-}
+print $subject, "\n\n", $msg;
 
 exit 1 unless $is_ok;
 exit;
@@ -565,23 +512,6 @@ sub check_truncated_sciprog {
   }
 
   return ( $msg, $trunc );
-}
-
-sub send_mail {
-
-  my ( $subj, $msg, %addr ) = @_;
-
-  my $email = MIME::Lite->new( From => 'jcmtarch@eao.hawaii.edu',
-                                %addr,
-                                Subject => $subject,
-                                Data => $msg,
-                              );
-
-  MIME::Lite->send("smtp", "malama.eao.hawaii.edu", Timeout => 30);
-
-  # Send the message
-  $email->send
-    or die "Error sending message: $!\n";
 }
 
 sub make_server_status {
