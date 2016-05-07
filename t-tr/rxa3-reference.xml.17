@@ -9,7 +9,7 @@
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
+         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK5 IFTASK</tasks>
          <recipe NAME="jiggle_chop">
             <parameters 
                         JOS_MULT="8"
@@ -1462,8 +1462,8 @@
             
             <dcm id="0" bw_mode="250MHz"/>
             <dcm id="1" bw_mode="250MHz"/>
-            <dcm id="2" bw_mode="1GHz"/>
-            <dcm id="3" bw_mode="1GHz"/>
+            <dcm id="2" bw_mode="250MHz"/>
+            <dcm id="3" bw_mode="250MHz"/>
             <dcm id="4" bw_mode="250MHz"/>
             <dcm id="5" bw_mode="250MHz"/>
             <dcm id="6" bw_mode="250MHz"/>
@@ -1478,8 +1478,8 @@
             <dcm id="15" bw_mode="250MHz"/>
             <dcm id="16" bw_mode="250MHz"/>
             <dcm id="17" bw_mode="250MHz"/>
-            <dcm id="18" bw_mode="250MHz"/>
-            <dcm id="19" bw_mode="250MHz"/>
+            <dcm id="18" bw_mode="1GHz"/>
+            <dcm id="19" bw_mode="1GHz"/>
             <dcm id="20" bw_mode="250MHz"/>
             <dcm id="21" bw_mode="250MHz"/>
             <dcm id="22" bw_mode="250MHz"/>
@@ -1497,15 +1497,15 @@
             <lo2 id="2" freq="6196"/>
             <lo2 id="3" freq="6996"/>
             <lo3 freq="2000.0"/>
-            <quadrant id="0" subband_mode="4"/>
+            <quadrant id="2" subband_mode="4"/>
          </ACSIS_IF>
 
          <ACSIS_corr>
             
             <cm id="0" bw_mode="250MHzx4096"/>
             <cm id="1" bw_mode="250MHzx4096"/>
-            <cm id="2" bw_mode="1GHzx1024"/>
-            <cm id="3" bw_mode="1GHzx1024"/>
+            <cm id="2" bw_mode="250MHzx4096"/>
+            <cm id="3" bw_mode="250MHzx4096"/>
             <cm id="4" bw_mode="250MHzx4096"/>
             <cm id="5" bw_mode="250MHzx4096"/>
             <cm id="6" bw_mode="250MHzx4096"/>
@@ -1520,8 +1520,8 @@
             <cm id="15" bw_mode="250MHzx4096"/>
             <cm id="16" bw_mode="250MHzx4096"/>
             <cm id="17" bw_mode="250MHzx4096"/>
-            <cm id="18" bw_mode="250MHzx4096"/>
-            <cm id="19" bw_mode="250MHzx4096"/>
+            <cm id="18" bw_mode="1GHzx1024"/>
+            <cm id="19" bw_mode="1GHzx1024"/>
             <cm id="20" bw_mode="250MHzx4096"/>
             <cm id="21" bw_mode="250MHzx4096"/>
             <cm id="22" bw_mode="250MHzx4096"/>
@@ -1540,10 +1540,10 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="0" dcm_id="0" receptor_id="A" spw_id="SPW1"/>
-            <map_id cm_id="1" dcm_id="1" receptor_id="A" spw_id="SPW2"/>
-            <map_id cm_id="2" dcm_id="2" receptor_id="A" spw_id="SPW3"/>
-            <map_id cm_id="3" dcm_id="3" receptor_id="A" spw_id="SPW4"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="A" spw_id="SPW1"/>
+            <map_id cm_id="17" dcm_id="17" receptor_id="A" spw_id="SPW2"/>
+            <map_id cm_id="18" dcm_id="18" receptor_id="A" spw_id="SPW3"/>
+            <map_id cm_id="19" dcm_id="19" receptor_id="A" spw_id="SPW4"/>
          </ACSIS_map>
 
          <be_deg_factor>1.23</be_deg_factor>
@@ -3219,7 +3219,7 @@
 <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
 <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
 <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+<glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
