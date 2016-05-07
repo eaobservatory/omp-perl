@@ -115,45 +115,53 @@ This manual page.
 use warnings;
 use strict;
 
-my ($VERSION, $BAR, $STATUS);
+use Tk;
+use Tk::Toplevel;
+use Tk::NoteBook;
+use Tk::Radiobutton;
+use Tk::Dialog;
+use Tk::Font;
+
+use Getopt::Long;
+use Time::Piece qw/ :override /;
+use Pod::Usage;
+use File::Spec;
+use FindBin;
 
 BEGIN {
-
-# set up the intial Tk "status loading" window and load in the Tk modules
-
-  use Tk;
-  use Tk::Toplevel;
-  use Tk::NoteBook;
-  use Tk::ProgressBar;
-
-  use Getopt::Long;
-
-  use FindBin;
   use constant OMPLIB => "$FindBin::RealBin/..";
   use lib OMPLIB;
-
-  use OMP::ArchiveDB;
-  use OMP::Constants;
-  use OMP::Display;
-  use OMP::DateTools;
-  use OMP::NetTools;
-  use OMP::General;
-  use OMP::Config;
-  use OMP::Error qw/ :try /;
-  use OMP::CommentServer;
-  use OMP::FileUtils;
-  $OMP::FileUtils::RETURN_RECENT_FILES = 0;
-
-  use Time::Piece qw/ :override /;
-  use Pod::Usage;
-
-  use File::Spec;
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
-    unless exists $ENV{'OMP_CFG_DIR'};
-
 }
 
-use Tk::Font;
+use OMP::ArchiveDB;
+use OMP::Constants;
+use OMP::Display;
+use OMP::DateTools;
+use OMP::NetTools;
+use OMP::General;
+use OMP::Config;
+use OMP::Error qw/ :try /;
+use OMP::CommentServer;
+use OMP::FileUtils;
+
+BEGIN {
+  $OMP::FileUtils::RETURN_RECENT_FILES = 0;
+
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{'OMP_CFG_DIR'};
+}
+
+use OMP::ObslogDB;
+use OMP::ObsQuery;
+use OMP::MSB;
+use OMP::MSBDoneDB;
+use OMP::ArcQuery;
+use OMP::ShiftDB;
+use OMP::ShiftQuery;
+use OMP::Info::Obs;
+use OMP::Info::Comment;
+use OMP::DBbackend;
+use OMP::DBbackend::Archive;
 
 
 # global variables
@@ -278,10 +286,6 @@ my $BACKGROUNDMSB = '#CCFFCC';
 my $FOREGROUNDMSB = '#000000';
 my $SCANFREQ = 300000;  # scan every five minutes
 
-#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
-
-&display_loading_status();
-
 $user = &get_userid();
 
 &create_main_window();
@@ -289,88 +293,6 @@ $user = &get_userid();
 &full_rescan($ut, $telescope);
 
 MainLoop();
-
-sub display_loading_status {
-  my $w = $MW->Toplevel;
-  $w->positionfrom('user');
-  $w->geometry('+40+40');
-  $w->title('Observation Log Utility');
-  $w->resizable(0,0);
-  $w->iconname('obslog');
-  $STATUS = $w->Label(qw(-width 40 -anchor w -foreground blue),
-                        -text => "Obslog $VERSION ...");
-  $STATUS->grid(-row => 0, -column => 0, -sticky => 'w');
-  $BAR = $w->ProgressBar(-from =>0, -to=>100,
-                          -width=>15, -length=>270,
-                          -blocks => 20, -anchor => 'w',
-                          -colors => [0, 'blue'],
-                          -relief => 'sunken',
-                          -borderwidth => 3,
-                          -troughcolor => 'grey',
-                          )->grid(-sticky => 's');
-  $w->update;
-
-  use subs 'update_status';
-
-  update_status 'Loading Obslog modules', 10, $w, $STATUS, $BAR;
-
-  # Tk
-  require Tk::Radiobutton;
-  require Tk::Dialog;
-
-  eval 'use OMP::ObslogDB';
-  die "Error loading OMP::ObslogDB: $@" if $@;
-  eval 'use OMP::ObsQuery';
-  die "Error loading OMP::ObsQuery: $@" if $@;
-
-  update_status 'Loading MSB modules', 20, $w, $STATUS, $BAR;
-
-  eval 'use OMP::MSB';
-  die "Error loading OMP::MSB: $@" if $@;
-  eval 'use OMP::MSBDoneDB';
-  die "Error loading OMP::MSBDoneDB: $@" if $@;
-
-  update_status 'Loading Archive modules', 35, $w, $STATUS, $BAR;
-
-  eval 'use OMP::ArchiveDB';
-  die "Error loading OMP::ArchiveDB: $@" if $@;
-
-  eval 'use OMP::ArcQuery';
-  die "Error loading OMP::ArcQuery: $@" if $@;
-
-  update_status 'Loading Shiftlog modules', 50, $w, $STATUS, $BAR;
-
-  eval 'use OMP::ShiftDB';
-  die "Error loading OMP::ShiftDB: $@" if $@;
-  eval 'use OMP::ShiftQuery';
-  die "Error loading OMP::ShiftQuery: $@" if $@;
-
-  update_status 'Loading Info modules', 60, $w, $STATUS, $BAR;
-
-  eval 'use OMP::Info::Obs';
-  die "Error loading OMP::Info::Obs: $@" if $@;
-  eval 'use OMP::Info::Comment';
-  die "Error loading OMP::Info::Comment: $@" if $@;
-
-  update_status 'Loading Time::Piece modules', 65, $w, $STATUS, $BAR;
-
-  eval 'use Time::Piece qw/ :override /';
-  die "Error loading Time::Piece: $@" if $@;
-
-  update_status 'Loading DBbackend modules', 75, $w, $STATUS, $BAR;
-
-  eval 'use OMP::DBbackend';
-  die "Error loading OMP::DBbackend: $@" if $@;
-  eval 'use OMP::DBbackend::Archive';
-  die "Error loading OMP::DBbackend::Archive: $@" if $@;
-
-  update_status 'Complete', 99, $w, $STATUS, $BAR;
-  sleep 1;
-  $STATUS->destroy if Exists($STATUS);
-  $BAR->destroy if Exists($BAR);
-  $w->destroy if Exists($w);
-
-}
 
 sub get_userid {
    my $w = $MW->Toplevel;
@@ -487,16 +409,6 @@ sub create_main_window {
 
 
 }
-
-sub update_status {
-  die 'Wrong # args: Should be (text, barsize, frame,label, bar)'
-    unless scalar(@_) == 5;
-  my($status_text, $something, $w, $status, $bar) = @_;
-
-  $status->configure(-text => "$status_text ...");
-  $bar->value($something);
-  $w->update;
-} # end update_status
 
 sub new_instrument {
   my $instrument = shift;
