@@ -999,11 +999,11 @@ Things to include in your notes
       <SpInstHeterodyneRef idref="13"/>
       <SpSiteQualityObsCompRef idref="14"/>
       <SpTelescopeObsCompRef idref="12"/>
-      <estimatedDuration units="seconds">2028.8</estimatedDuration>
+      <estimatedDuration units="seconds">1014.4</estimatedDuration>
       <library_version>$Revision$</library_version>
       <priority>99</priority>
       <title>Jiggle-chop</title>
-      <totalDuration units="seconds">2028.8</totalDuration>
+      <totalDuration units="seconds">1014.4</totalDuration>
       <SpNote observeInstruction="true" type="no" subtype="none">
         <meta_gui_collapsed>false</meta_gui_collapsed>
         <note>A note about notes
@@ -1052,15 +1052,15 @@ Things to include in your notes
       </SpNote>
       <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
         <meta_gui_collapsed>false</meta_gui_collapsed>
-        <estimatedDuration units="seconds">2028.8</estimatedDuration>
+        <estimatedDuration units="seconds">1014.4</estimatedDuration>
         <standard>false</standard>
         <title>Science Observation</title>
         <SpIterFolder type="if" subtype="none">
           <meta_gui_collapsed>false</meta_gui_collapsed>
           <SpIterRepeat type="ic" subtype="repeat">
             <meta_gui_collapsed>false</meta_gui_collapsed>
-            <repeatCount>2</repeatCount>
-            <title>Repeat 2X</title>
+            <repeatCount>1</repeatCount>
+            <title>Repeat 1X</title>
             <SpIterChop type="ic" subtype="chop">
               <meta_gui_collapsed>false</meta_gui_collapsed>
               <SECONDARY>
@@ -1090,11 +1090,11 @@ Things to include in your notes
       <SpInstHeterodyneRef idref="13"/>
       <SpSiteQualityObsCompRef idref="14"/>
       <SpTelescopeObsCompRef idref="12"/>
-      <estimatedDuration units="seconds">1105.0</estimatedDuration>
+      <estimatedDuration units="seconds">552.5</estimatedDuration>
       <library_version>$Revision$</library_version>
       <priority>99</priority>
       <title>Jiggle position-switch</title>
-      <totalDuration units="seconds">1105.0</totalDuration>
+      <totalDuration units="seconds">552.5</totalDuration>
       <SpNote observeInstruction="true" type="no" subtype="none">
         <meta_gui_collapsed>false</meta_gui_collapsed>
         <note>A note about notes
@@ -1143,15 +1143,15 @@ Things to include in your notes
       </SpNote>
       <SpObs msb="false" optional="false" remaining="1" type="ob" subtype="none">
         <meta_gui_collapsed>false</meta_gui_collapsed>
-        <estimatedDuration units="seconds">1105.0</estimatedDuration>
+        <estimatedDuration units="seconds">552.5</estimatedDuration>
         <standard>false</standard>
         <title>Science Observation</title>
         <SpIterFolder type="if" subtype="none">
           <meta_gui_collapsed>false</meta_gui_collapsed>
           <SpIterRepeat type="ic" subtype="repeat">
             <meta_gui_collapsed>false</meta_gui_collapsed>
-            <repeatCount>2</repeatCount>
-            <title>Repeat 2X</title>
+            <repeatCount>1</repeatCount>
+            <title>Repeat 1X</title>
             <SpIterJiggleObs type="ic" subtype="jiggleObs">
               <meta_gui_collapsed>false</meta_gui_collapsed>
               <continuumMode>false</continuumMode>
