@@ -9,7 +9,7 @@
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
+         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK5 IFTASK</tasks>
          <recipe NAME="jiggle_chop">
             <parameters 
                         JOS_MULT="8"
@@ -190,7 +190,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="c9b4dbcb8235ec2adf65b10ca6b8dd79A" />
+                 VALUE="ba66f5fb90b8660a54cff20308ae50b3A" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -1175,7 +1175,7 @@
       </RTS_CONFIG>
       <FRONTEND_CONFIG>
          
-         <REST_FREQUENCY>220.3986765</REST_FREQUENCY>
+         <REST_FREQUENCY>220.054569800248</REST_FREQUENCY>
          <FREQ_OFF_SCALE>0</FREQ_OFF_SCALE>
          <SIDEBAND>USB</SIDEBAND>
          <SB_MODE>DSB</SB_MODE>
@@ -1190,7 +1190,7 @@
                   Y="0.0"
                   WAVELENGTH="1360.22803204084" >
          
-         <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >
@@ -1373,8 +1373,8 @@
                <data_source>
                   <spw_ref ref="SPW4"/>
                   <range units="channel">
-                     <min>511</min>
-                     <max>3583</max>
+                     <min>127</min>
+                     <max>895</max>
                   </range>
                </data_source>
                <x_offset>0</x_offset>
@@ -1391,17 +1391,14 @@
 
          <line_list>
             
-            <rest_frequency id="trT-HCOOH10_0_10-9_0_9" units="GHz" molecule="t-HCOOH" transition="10 0 10  - 9 0 9" >
-                     220.0379671
+            <rest_frequency id="trC-18-O2-1" units="GHz" molecule="C-18-O" transition="2  - 1" >
+                     219.5603568
             </rest_frequency>
             <rest_frequency id="tr13-CO2-1" units="GHz" molecule="13-CO" transition="2  - 1" >
                      220.3986765
             </rest_frequency>
-            <rest_frequency id="trCH3CNV8=012_0-11_0" units="GHz" molecule="CH3CN v8=0" transition="12 0  - 11 0" >
-                     220.7472612
-            </rest_frequency>
-            <rest_frequency id="trH2C-13-O3_1_2-2_1_1" units="GHz" molecule="H2C-13-O" transition="3 1 2  - 2 1 1" >
-                     219.908525
+            <rest_frequency id="trSO5_6-4_5" units="GHz" molecule="SO" transition="5 6  - 4 5" >
+                     219.949442
             </rest_frequency>
          </line_list>
 
@@ -1413,11 +1410,11 @@
             <spectral_window id="SPW1">
                <bandwidth_mode mode="250MHzx4096" />
                <window type="truncate" />
-               <align_shift>0</align_shift>
+               <align_shift>1.7481687345</align_shift>
                <rest_freq_ref ref="tr13-CO2-1" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">5</if_ref_freq>
+                  <if_ref_freq units="GHz">4.34410669975186</if_ref_freq>
                   <if_ref_channel>2048</if_ref_channel>
                   <if_chan_width units="Hz">61035.15625</if_chan_width>
                   <if_nchans>4096</if_nchans>
@@ -1426,11 +1423,11 @@
             <spectral_window id="SPW2">
                <bandwidth_mode mode="250MHzx4096" />
                <window type="truncate" />
-               <align_shift>-2.482176</align_shift>
-               <rest_freq_ref ref="trH2C-13-O3_1_2-2_1_1" />
+               <align_shift>-3.4897960655</align_shift>
+               <rest_freq_ref ref="trC-18-O2-1" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4.5098485</if_ref_freq>
+                  <if_ref_freq units="GHz">3.50578699975186</if_ref_freq>
                   <if_ref_channel>2048</if_ref_channel>
                   <if_chan_width units="Hz">61035.15625</if_chan_width>
                   <if_nchans>4096</if_nchans>
@@ -1439,27 +1436,27 @@
             <spectral_window id="SPW3">
                <bandwidth_mode mode="250MHzx4096" />
                <window type="truncate" />
-               <align_shift>-3.4308096</align_shift>
-               <rest_freq_ref ref="trT-HCOOH10_0_10-9_0_9" />
+               <align_shift>-2.0938792655</align_shift>
+               <rest_freq_ref ref="trSO5_6-4_5" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">4.6392906</if_ref_freq>
+                  <if_ref_freq units="GHz">3.89487219975186</if_ref_freq>
                   <if_ref_channel>2048</if_ref_channel>
                   <if_chan_width units="Hz">61035.15625</if_chan_width>
                   <if_nchans>4096</if_nchans>
                </if_coordinate>
             </spectral_window>
             <spectral_window id="SPW4">
-               <bandwidth_mode mode="250MHzx4096" />
+               <bandwidth_mode mode="1GHzx1024" />
                <window type="truncate" />
-               <align_shift>1.3877248</align_shift>
-               <rest_freq_ref ref="trCH3CNV8=012_0-11_0" />
+               <align_shift>-0.13086745409375</align_shift>
+               <rest_freq_ref ref="trSO5_6-4_5" />
                <fe_sideband sideband="1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">5.3485847</if_ref_freq>
-                  <if_ref_channel>2048</if_ref_channel>
-                  <if_chan_width units="Hz">61035.15625</if_chan_width>
-                  <if_nchans>4096</if_nchans>
+                  <if_ref_freq units="GHz">3.89487219975186</if_ref_freq>
+                  <if_ref_channel>512</if_ref_channel>
+                  <if_chan_width units="Hz">976562.5</if_chan_width>
+                  <if_nchans>1024</if_nchans>
                </if_coordinate>
             </spectral_window>
          </spw_list>
@@ -1485,7 +1482,7 @@
             <dcm id="16" bw_mode="250MHz"/>
             <dcm id="17" bw_mode="250MHz"/>
             <dcm id="18" bw_mode="250MHz"/>
-            <dcm id="19" bw_mode="250MHz"/>
+            <dcm id="19" bw_mode="1GHz"/>
             <dcm id="20" bw_mode="250MHz"/>
             <dcm id="21" bw_mode="250MHz"/>
             <dcm id="22" bw_mode="250MHz"/>
@@ -1498,12 +1495,12 @@
             <dcm id="29" bw_mode="250MHz"/>
             <dcm id="30" bw_mode="250MHz"/>
             <dcm id="31" bw_mode="250MHz"/>
-            <lo2 id="0" freq="7625"/>
-            <lo2 id="1" freq="7135"/>
-            <lo2 id="2" freq="7264.5"/>
-            <lo2 id="3" freq="7973.5"/>
+            <lo2 id="0" freq="6969"/>
+            <lo2 id="1" freq="6131"/>
+            <lo2 id="2" freq="6520"/>
+            <lo2 id="3" freq="6395"/>
             <lo3 freq="2000.0"/>
-            <quadrant id="0" subband_mode="4"/>
+            <quadrant id="2" subband_mode="4"/>
          </ACSIS_IF>
 
          <ACSIS_corr>
@@ -1527,7 +1524,7 @@
             <cm id="16" bw_mode="250MHzx4096"/>
             <cm id="17" bw_mode="250MHzx4096"/>
             <cm id="18" bw_mode="250MHzx4096"/>
-            <cm id="19" bw_mode="250MHzx4096"/>
+            <cm id="19" bw_mode="1GHzx1024"/>
             <cm id="20" bw_mode="250MHzx4096"/>
             <cm id="21" bw_mode="250MHzx4096"/>
             <cm id="22" bw_mode="250MHzx4096"/>
@@ -1546,10 +1543,10 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="0" dcm_id="0" receptor_id="A" spw_id="SPW1"/>
-            <map_id cm_id="1" dcm_id="1" receptor_id="A" spw_id="SPW2"/>
-            <map_id cm_id="2" dcm_id="2" receptor_id="A" spw_id="SPW3"/>
-            <map_id cm_id="3" dcm_id="3" receptor_id="A" spw_id="SPW4"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="A" spw_id="SPW1"/>
+            <map_id cm_id="17" dcm_id="17" receptor_id="A" spw_id="SPW2"/>
+            <map_id cm_id="18" dcm_id="18" receptor_id="A" spw_id="SPW3"/>
+            <map_id cm_id="19" dcm_id="19" receptor_id="A" spw_id="SPW4"/>
          </ACSIS_map>
 
          <be_deg_factor>1.23</be_deg_factor>
@@ -3225,7 +3222,7 @@
 <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
 <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
 <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+<glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>

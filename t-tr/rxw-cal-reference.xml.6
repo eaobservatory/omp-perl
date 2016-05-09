@@ -9,7 +9,7 @@
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK5 CORRTASK7 IFTASK</tasks>
+         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK1 CORRTASK7 IFTASK</tasks>
          <recipe NAME="focus">
             <parameters 
                         FOCUS_AXIS="Z"
@@ -1198,7 +1198,7 @@
          <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.13" Y="0.16" Z="0.19" />
-         <pointing_offset CA="-24.7" IE="1.2" IA="0" NPAE="0" AW="0" AN="0" TF="0" CE="0" />
+         <!-- pointing_offset removed -->
          <waveBand band="D" label="D" units="Hz" centre="667.5E9" width="85.0E9" >
             <etal>0.95</etal>
          </waveBand>
@@ -1354,7 +1354,7 @@
             <lo2 id="2" freq="6500"/>
             <lo2 id="3" freq="6500"/>
             <lo3 freq="2000.0"/>
-            <quadrant id="2" subband_mode="4"/>
+            <quadrant id="0" subband_mode="4"/>
             <quadrant id="3" subband_mode="4"/>
          </ACSIS_IF>
 
@@ -1398,7 +1398,7 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="16" dcm_id="16" receptor_id="DA" spw_id="SPW1"/>
+            <map_id cm_id="0" dcm_id="0" receptor_id="DA" spw_id="SPW1"/>
             <map_id cm_id="24" dcm_id="24" receptor_id="DB" spw_id="SPW1"/>
          </ACSIS_map>
 
@@ -2264,7 +2264,7 @@
       <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
       <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
       <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-      <glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+      <glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
       <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
       <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
       <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>

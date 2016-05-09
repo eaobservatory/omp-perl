@@ -4,22 +4,22 @@
       <OBS_SUMMARY>
          
          <mapping_mode>jiggle</mapping_mode>
-         <switching_mode>chop</switching_mode>
+         <switching_mode>pssw</switching_mode>
          <obs_type>science</obs_type>
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK1 IFTASK</tasks>
-         <recipe NAME="jiggle_chop">
+         <tasks>RTS FE_A PTCS SMU CONTROLLER CORRTASK5 IFTASK</tasks>
+         <recipe NAME="grid_pssw">
             <parameters 
-                        JOS_MULT="3"
-                        NUM_CYCLES="1"
-                        NUM_NOD_SETS="7"
-                        N_CALSAMPLES="7"
+                        JOS_MIN="18"
+                        NUM_CYCLES="9"
+                        N_CALSAMPLES="3"
+                        SHAREOFF="1"
                         START_INDEX="1"
-                        STEPS_BTWN_CALS="2400"
-                        STEPS_BTWN_REFS="40"
-                        STEP_TIME="0.75"
+                        STEPS_BTWN_CALS="1080"
+                        STEPS_BTWN_REFS="18"
+                        STEP_TIME="1.66666666666667"
             />
          </recipe>
       </JOS_CONFIG>
@@ -190,7 +190,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
-                 VALUE="74f907b363b0d026d22d600a7676e0c4A" />
+                 VALUE="c021a1a9d09fb2710a9ef070f5b25034A" />
          <HEADER TYPE="STRING"
                  KEYWORD="MSBTID"
                  COMMENT="Transaction ID of MSB"
@@ -418,7 +418,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="DRRECIPE"
                  COMMENT="ACSIS-DR recipe name"
-                 VALUE="jiggle_chop_dr_recipe.ent" />
+                 VALUE="grid_pssw_dr_recipe.ent" />
          <HEADER TYPE="STRING"
                  KEYWORD="BWMODE"
                  COMMENT="ACSIS total bandwidth set up"
@@ -810,27 +810,19 @@
          <HEADER TYPE="STRING"
                  KEYWORD="CHOP_CRD"
                  COMMENT="Chopping co-ordinate system"
-                 VALUE="" >
-            <DRAMA TASK="SMU" PARAM="DISPLAY.CHOP_SYS" EVENT="START" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="CHOP_FRQ"
                  COMMENT="[Hz] Chop frequency"
-                 VALUE="" >
-            <DRAMA TASK="SMU" PARAM="DISPLAY.FREQ" EVENT="END" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="CHOP_PA"
                  COMMENT="[deg] Chop PA; 0=in lat, 90=in long"
-                 VALUE="" >
-            <DRAMA TASK="SMU" PARAM="DISPLAY.CHOP_PA" EVENT="START" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="CHOP_THR"
                  COMMENT="[arcsec] Chop throw"
-                 VALUE="" >
-            <DRAMA TASK="SMU" PARAM="DISPLAY.THROW" EVENT="START" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="INT"
                  KEYWORD="JIGL_CNT"
                  COMMENT="Number of offsets in jiggle pattern"
@@ -970,19 +962,17 @@
          <HEADER TYPE="INT"
                  KEYWORD="JOS_MULT"
                  COMMENT="MULT from JOS used in total steps calculation"
-                 VALUE="" >
-            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.JOS_MULT" EVENT="END" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="INT"
                  KEYWORD="JOS_MIN"
                  COMMENT="MIN from JOS used in total steps calculation"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.JOS_MIN" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="INT"
                  KEYWORD="NUM_NODS"
                  COMMENT="Number of times to repeat nod set"
-                 VALUE="" >
-            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.PARAMETERS.NUM_NOD_SETS" EVENT="END" />
-         </HEADER>
+                 VALUE="" />
          <HEADER TYPE="INT"
                  KEYWORD="NCALSTEP"
                  COMMENT="Number of RTS steps for each CAL (if any)"
@@ -992,7 +982,9 @@
          <HEADER TYPE="INT"
                  KEYWORD="NREFSTEP"
                  COMMENT="Mean no. of RTS steps for each REF (if any)"
-                 VALUE="" />
+                 VALUE="" >
+            <DRAMA TASK="JOS_ACSIS" PARAM="RECIPE.COMPUTED.MEAN_N_REFSAMP" EVENT="END" />
+         </HEADER>
          <HEADER TYPE="INT"
                  KEYWORD="STBETREF"
                  COMMENT="Target number of RTS steps between refs"
@@ -1178,8 +1170,8 @@
       </HEADER_CONFIG>
       <RTS_CONFIG>
          
-         <stTimeout value="15000" />
-         <sampTimeout value="20.0" />
+         <stTimeout value="10000" />
+         <sampTimeout value="3.0" />
          <opMode value="1" />
          <Sequence size="0" />
       </RTS_CONFIG>
@@ -1200,7 +1192,7 @@
                   Y="0.0"
                   WAVELENGTH="1300.40365579644" >
          
-         <IF_CENTER_FREQ>5.0</IF_CENTER_FREQ>
+         <IF_CENTER_FREQ>4.0</IF_CENTER_FREQ>
          <bw units="MHz" value="1800" />
          <smu_offset X="0.0" Y="0.0" Z="0.0" />
          <waveBand band="Aband" label="A" units="Hz" centre="244E9" width="66.0E9" >
@@ -1257,7 +1249,7 @@
 
          
 
-         <SLEW OPTION="TRACK_TIME" TRACK_TIME="827.25"  />
+         <SLEW OPTION="TRACK_TIME" TRACK_TIME="540"  />
 
          
 
@@ -1274,21 +1266,11 @@
 
          <SECONDARY MOTION="CONTINUOUS">
             
-            <JIGGLE_CHOP>
-               <JIGGLE NAME="smu_3x3.dat"
-                       SYSTEM="TRACKING"
-                       SCALE="10.0" >
-                  <PA>0</PA>
-               </JIGGLE>
-               <CHOP SYSTEM="AZEL" >
-                  <THROW>60.0</THROW>
-                  <PA>90</PA>
-               </CHOP>
-               <TIMING>
-                  <JIGS_PER_CHOP N_JIGS_ON="9"
-                                 N_CYC_OFF="2" />
-               </TIMING>
-            </JIGGLE_CHOP>
+            <JIGGLE NAME="smu_3x3.dat"
+                    SYSTEM="TRACKING"
+                    SCALE="10.0" >
+               <PA>0</PA>
+            </JIGGLE>
          </SECONDARY>
 
          
@@ -1348,7 +1330,7 @@
                <rest_freq_ref ref="trCO2-1" />
                <fe_sideband sideband="-1" />
                <if_coordinate>
-                  <if_ref_freq units="GHz">5</if_ref_freq>
+                  <if_ref_freq units="GHz">4</if_ref_freq>
                   <if_ref_channel>4096</if_ref_channel>
                   <if_chan_width units="Hz">30517.578125</if_chan_width>
                   <if_nchans>8192</if_nchans>
@@ -1390,12 +1372,12 @@
             <dcm id="29" bw_mode="250MHz"/>
             <dcm id="30" bw_mode="250MHz"/>
             <dcm id="31" bw_mode="250MHz"/>
-            <lo2 id="0" freq="7625"/>
-            <lo2 id="1" freq="7625"/>
-            <lo2 id="2" freq="7625"/>
-            <lo2 id="3" freq="7625"/>
+            <lo2 id="0" freq="6625"/>
+            <lo2 id="1" freq="6625"/>
+            <lo2 id="2" freq="6625"/>
+            <lo2 id="3" freq="6625"/>
             <lo3 freq="2000.0"/>
-            <quadrant id="0" subband_mode="4"/>
+            <quadrant id="2" subband_mode="4"/>
          </ACSIS_IF>
 
          <ACSIS_corr>
@@ -1438,18 +1420,18 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="0" dcm_id="0" receptor_id="A" spw_id="SPW1"/>
+            <map_id cm_id="16" dcm_id="16" receptor_id="A" spw_id="SPW1"/>
          </ACSIS_map>
 
          <be_deg_factor>1.23</be_deg_factor>
-         <red_obs_mode>jiggle/chop</red_obs_mode>
+         <red_obs_mode>jiggle/pssw</red_obs_mode>
          <red_recipe_id>incorrect. Should be read from file</red_recipe_id>
          <semantic_links>
             <spw_field ref="SPEC_WINDOW_ID"/> 
          </semantic_links>
-         <red_config_list>
+         <red_config_list xmlns:xi="http://www.w3.org/2001/XInclude">
 
-            <red_config xmlns:xi="http://www.w3.org/2001/XInclude" id="SPECTRUM_REDUCTION">
+            <red_config id="SPECTRUM_REDUCTION">
 
                <reducer id="RAW" display="engineering" xml:base="reducers/RAW.ent">   
                   <help>
@@ -1577,323 +1559,26 @@
                      <out_object id="FREQ_SCALE"/>
                      <function name="get_frequency_scale"/>
                   </ro_recipe>
-               </reducer>
+               </reducer>   
+
                
-               <reducer id="A_REFSKY" display="engineering" xml:base="reducers/A_REFSKY.ent">
+               <reducer id="CAL_REFSKY" display="engineering" xml:base="reducers/CAL_REFSKY.ent">
                   <help>
-                     Does basic reduction on measurements of the empty SKY load when the source 
-                  is in the A beam.</help>
-                  <ro_source_list>
+                     Does basic reduction on measurements of the empty SKY load to be used for 
+                  calculating TSYS.</help>
+                  <ro_source_list>   
                      <ro_source handshaking="1">
                         SELECT FROM <in_ref ref="RAW"/> WHERE
                                      isdefined(TCS.SOURCE) &amp;&amp;
                         <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
-                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
-                        <in_ref ref="TCS.BEAM"/>=="A" &amp;&amp;
-                        <in_ref ref="SMU.CHOP_PHASE"/>=="B" &amp;&amp;
+                        <in_ref ref="TCS.SOURCE"/>=="REFERENCE" &amp;&amp;
+                        <in_ref ref="TCS.BEAM"/>=="MIDDLE" &amp;&amp;
+                        <in_ref ref="SMU.CHOP_PHASE"/>=="MIDDLE" &amp;&amp;
                         <in_ref ref="CHANNEL_MASK"/>=="ON"
                      </ro_source>
                   </ro_source_list>
                   <ro_recipe>
-                     <string>SMU.LAST_CHOP_PHASE==1</string>
-                     <function name="evaluate_taql"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="window"/>
-                     <function name="align"/>
-                     <function name="fft"/>
-                     <in_ref ref="DCM_TP_IN"/>   
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <function name="coadd"/> 
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                     
-                     
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="lvalue"/>
-                     
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE" display="engineering" xml:base="reducers/A_SOURCE.ent">
-                  <help>
-                     Performs basic reduction on all source spectra taken with the source in 
-                  the A beam.</help>
-                  <ro_source_list>
-                     <ro_source handshaking="1">
-                        SELECT FROM <in_ref ref="RAW"/> WHERE
-                                     isdefined(TCS.SOURCE) &amp;&amp;
-                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
-                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
-                        <in_ref ref="TCS.BEAM"/>=="A" &amp;&amp;
-                        <in_ref ref="SMU.CHOP_PHASE"/>=="A" &amp;&amp;
-                        <in_ref ref="CHANNEL_MASK"/>=="ON"
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="window"/>
-                     <function name="align"/>
-                     <function name="fft"/>
-                     <in_ref ref="DCM_TP_IN"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>       
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE_CAL" display="engineering" xml:base="reducers/A_SOURCE_CAL_average.ent">
-                  <help>
-                     Does the 'on-off/off' calculation where the 'off' used is averaged
-                     between A_REFSKYs taken before and after the source integration. The
-                     result is multiplied by the last TSYS measured and the beam sensitivity
-                  for that feed.</help>
-                  <ro_source_list>
-                     <ro_source> 
-                        SELECT FROM <in_ref ref="A_SOURCE"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="A_REFSKY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="TSYS"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="A_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="A_REFSKY"/>
-                     <function name="next"/>
-                     <function name="add"/>
-                     <out_object id="EXPOSURE_OFF_A"/>
-                     <function name="lvalue"/>
-                     
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="A_REFSKY"/>
-                     <function name="average"/>
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="subtract"/>
-                     <function name="divide"/>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FEED1"/>
-                     <function name="rvalue"/>
-                     <function name="get_feed_sensitivity"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                     
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="TSYS_MEDIAN"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <in_ref ref="TSYS_MEDIAN"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="TREC_MEDIAN"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <in_ref ref="TREC_MEDIAN"/>
-                     <function name="lvalue"/>
-                     
-                     
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="ETAL"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <in_ref ref="ETAL"/>
-                     <function name="lvalue"/>
-                     
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_DISPLAY.ent">
-                  <help>
-                     Does the 'on-off/off' calculation where the 'off' used is the A_REFSKY
-                     taken before the source integration. The
-                     result is multiplied by the last TSYS measured and the beam sensitivity
-                  for that feed.</help>
-                  <ro_source_list>
-                     <ro_source> 
-                        SELECT FROM <in_ref ref="A_SOURCE"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="A_REFSKY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="TSYS"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="A_REFSKY"/>
-                     <function name="previous"/>
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="subtract"/>
-                     <function name="divide"/>
-                     <function name="swapxy"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FEED1"/>
-                     <function name="rvalue"/>
-                     <function name="get_feed_sensitivity"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE_CAL_MERGED" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED.ent">
-                  <help>
-                     Does a weighted merge of the subbands in the system. The weights are 
-                  derived from the calibration reference sky measurements for higher S/N.</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="A_SOURCE_CAL"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="CAL_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="RTS.NUMBER"/>
-                     <in_ref ref="FEED1"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="merge"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE_CAL_MERGED_DISPLAY" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED_DISPLAY.ent">
-                  <help>
-                     Does a weighted merge of the subbands in the system. The weights are 
-                  derived from the calibration reference sky measurements for higher S/N.</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="A_SOURCE_CAL_DISPLAY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="CAL_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="RTS.NUMBER"/>
-                     <in_ref ref="FEED1"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="merge"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="A_SOURCE_CAL_MERGED_COADD" display="engineering" xml:base="reducers/A_SOURCE_CAL_MERGED_COADD.ent">
-                  <help>
-                     Coadds the results from A_SOURCE_CAL_MERGED. It would be faster
-                     to do the merge after the coadd but perhaps not so robust (perhaps
-                  different numbers of coadds into each merged spectrum).</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="A_SOURCE_CAL_MERGED"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <string>SMU.LAST_SMU_CYCLE==1</string>
-                     <function name="evaluate_taql"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="DESCRIMINATOR_COADD"/>
-                     <function name="rvalue"/>
-                     <function name="coadd"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                     
-                     
-                     <function name="enter"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="EXPOSURE_OFF_A"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE_OFF_A"/>
-                     <function name="lvalue"/>
-                     
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_REFSKY" display="engineering" xml:base="reducers/B_REFSKY.ent">
-                  <help>
-                     Does basic reduction on measurements of the empty SKY load at the
-                  reference position when the source is in the B beam.</help>
-                  <ro_source_list>
-                     <ro_source handshaking="1">
-                        SELECT FROM <in_ref ref="RAW"/> WHERE
-                                     isdefined(TCS.SOURCE) &amp;&amp;
-                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
-                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
-                        <in_ref ref="TCS.BEAM"/>=="B" &amp;&amp;
-                        <in_ref ref="SMU.CHOP_PHASE"/>=="A" &amp;&amp;
-                        <in_ref ref="CHANNEL_MASK"/>=="ON"
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <string>SMU.LAST_CHOP_PHASE==1</string>
+                     <taql>RTS.LAST_INTEG==1</taql>
                      <function name="evaluate_taql"/> 
                      <in_ref ref="FLOAT_DATA"/>
                      <function name="rvalue"/>
@@ -1901,13 +1586,13 @@
                      <function name="align"/>
                      <function name="fft"/>
                      <in_ref ref="DCM_TP_IN"/>
-                     <function name="rvalue"/>  
+                     <function name="rvalue"/>
                      <function name="multiply"/>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                     <in_ref ref="DESCRIMINATOR_TSYS"/>
                      <function name="rvalue"/>
                      <function name="coadd"/> 
                      <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>   
+                     <function name="lvalue"/>
                      
                      
                      <in_ref ref="EXPOSURE"/>
@@ -1917,238 +1602,7 @@
                      <function name="lvalue"/>
                      
                   </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE" display="engineering" xml:base="reducers/B_SOURCE.ent">
-                  <help>
-                     Basic reduction on all source spectra taken with the source in the B
-                  beam.</help>
-                  <ro_source_list>
-                     <ro_source handshaking="1">
-                        SELECT FROM <in_ref ref="RAW"/> WHERE
-                                     isdefined(TCS.SOURCE) &amp;&amp;
-                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
-                        <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
-                        <in_ref ref="TCS.BEAM"/>=="B" &amp;&amp;
-                        <in_ref ref="SMU.CHOP_PHASE"/>=="B" &amp;&amp;
-                        <in_ref ref="CHANNEL_MASK"/>=="ON"
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="window"/>
-                     <function name="align"/>
-                     <function name="fft"/>
-                     <in_ref ref="DCM_TP_IN"/>
-                     <function name="rvalue"/> 
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>   
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE_CAL" display="engineering" xml:base="reducers/B_SOURCE_CAL_average.ent">
-                  <help>
-                     Does the 'on-off/off' calculation where the 'off' used is averaged
-                     between B_REFSKYs taken before and after the source integration. The
-                     result is multiplied by the last TSYS measured and the beam sensitivity
-                  for that feed.</help>
-                  <ro_source_list>
-                     <ro_source> 
-                        SELECT FROM <in_ref ref="B_SOURCE"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="B_REFSKY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="TSYS"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>  
-                     <in_ref ref="EXPOSURE"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="B_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>  
-                     <in_ref ref="EXPOSURE"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="B_REFSKY"/>
-                     <function name="next"/>
-                     <function name="add"/>
-                     <out_object id="EXPOSURE_OFF_B"/>
-                     <function name="lvalue"/>
-                     
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>  
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="B_REFSKY"/>
-                     <function name="average"/>
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="subtract"/>
-                     <function name="divide"/>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>  
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FEED1"/>
-                     <function name="rvalue"/>
-                     <function name="get_feed_sensitivity"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE_CAL_DISPLAY" display="engineering" xml:base="reducers/B_SOURCE_CAL_DISPLAY.ent">
-                  <help>
-                     Does the 'on-off/off' calculation where the 'off' used the
-                     B_REFSKY taken before the source integration. The
-                     result is multiplied by the last TSYS measured and the beam sensitivity
-                  for that feed.</help>
-                  <ro_source_list>
-                     <ro_source> 
-                        SELECT FROM <in_ref ref="B_SOURCE"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="B_REFSKY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="TSYS"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>  
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="B_REFSKY"/>
-                     <function name="previous"/>
-                     <function name="enter"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="subtract"/>
-                     <function name="divide"/>
-                     <function name="swapxy"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="TSYS"/>
-                     <function name="previous"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FEED1"/>
-                     <function name="rvalue"/>
-                     <function name="get_feed_sensitivity"/>
-                     <function name="multiply"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE_CAL_MERGED" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED.ent">
-                  <help>
-                     Does a weighted merge of the subbands in the system. The weights are 
-                  derived from the calibration reference sky measurements for higher S/N.</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="B_SOURCE_CAL"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="CAL_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="RTS.NUMBER"/>
-                     <in_ref ref="FEED1"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="merge"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE_CAL_MERGED_DISPLAY" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED_DISPLAY.ent">
-                  <help>
-                     Does a weighted merge of the subbands in the system. The weights are 
-                  derived from the calibration reference sky measurements for higher S/N.</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="B_SOURCE_CAL_DISPLAY"/>
-                     </ro_source>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="CAL_REFSKY"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <in_ref ref="DESCRIMINATOR_ON-OFF"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="TIME"/>
-                     <in_ref ref="CAL_REFSKY"/>
-                     <function name="previous"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <in_ref ref="RTS.NUMBER"/>
-                     <in_ref ref="FEED1"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="merge"/>
-                     <in_ref ref="SPEC_WINDOW_ID"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="B_SOURCE_CAL_MERGED_COADD" display="engineering" xml:base="reducers/B_SOURCE_CAL_MERGED_COADD.ent">
-                  <help>
-                     Coadds the results from B_SOURCE_CAL_MERGED. It would be faster
-                     to do the merge after the coadd but perhaps not so robust (perhaps
-                  different numbers of coadds into each merged spectrum).</help>
-                  <ro_source_list>
-                     <ro_source>
-                        SELECT FROM <in_ref ref="B_SOURCE_CAL_MERGED"/>
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <string>SMU.LAST_SMU_CYCLE==1</string>
-                     <function name="evaluate_taql"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <in_ref ref="DESCRIMINATOR_COADD"/>
-                     <function name="rvalue"/>
-                     <function name="coadd"/>
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                     
-                     
-                     <function name="enter"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="lvalue"/>
-                     <in_ref ref="EXPOSURE_OFF_B"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE_OFF_B"/>
-                     <function name="lvalue"/>
-                     
-                  </ro_recipe>
-               </reducer>
-               
-               
+               </reducer>   
                <reducer id="AMBIENT" display="engineering" xml:base="reducers/AMBIENT.ent">
                   <help>
                   Basic reduction on measurements of the AMBIENT load.</help>
@@ -2210,47 +1664,6 @@
                      <function name="near"/>
                      <out_object id="TREC_SPECTRUM"/>
                      <function name="lvalue"/>
-                  </ro_recipe>
-               </reducer>
-               <reducer id="CAL_REFSKY" display="engineering" xml:base="reducers/CAL_REFSKY.ent">
-                  <help>
-                     Does basic reduction on measurements of the empty SKY load to be used for 
-                  calculating TSYS.</help>
-                  <ro_source_list>   
-                     <ro_source handshaking="1">
-                        SELECT FROM <in_ref ref="RAW"/> WHERE
-                                     isdefined(TCS.SOURCE) &amp;&amp;
-                        <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
-                        <in_ref ref="TCS.SOURCE"/>=="REFERENCE" &amp;&amp;
-                        <in_ref ref="TCS.BEAM"/>=="MIDDLE" &amp;&amp;
-                        <in_ref ref="SMU.CHOP_PHASE"/>=="MIDDLE" &amp;&amp;
-                        <in_ref ref="CHANNEL_MASK"/>=="ON"
-                     </ro_source>
-                  </ro_source_list>
-                  <ro_recipe>
-                     <taql>RTS.LAST_INTEG==1</taql>
-                     <function name="evaluate_taql"/> 
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="rvalue"/>
-                     <function name="window"/>
-                     <function name="align"/>
-                     <function name="fft"/>
-                     <in_ref ref="DCM_TP_IN"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="DESCRIMINATOR_TSYS"/>
-                     <function name="rvalue"/>
-                     <function name="coadd"/> 
-                     <in_ref ref="FLOAT_DATA"/>
-                     <function name="lvalue"/>
-                     
-                     
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="rvalue"/>
-                     <function name="multiply"/>
-                     <in_ref ref="EXPOSURE"/>
-                     <function name="lvalue"/>
-                     
                   </ro_recipe>
                </reducer>
                <reducer id="ETA_SKY" display="engineering" xml:base="reducers/ETA_SKY.ent">
@@ -2664,71 +2077,323 @@
                </ro_recipe>
             </reducer>
 
-            <reducer id="SOURCE" display="engineering" xml:base="reducers/SOURCE_chop.ent">
+                  
+            <reducer id="REFSKY" display="engineering" xml:base="reducers/REFSKY.ent">   
                <help>
-                  Average of the results from A_SOURCE_CAL_MERGED_COADD and 
-               B_SOURCE_CAL_MERGED_COADD.</help>
+               Basic reduction on measurements of the reference sky.</help>
                <ro_source_list>
-                  <ro_source>
-                     SELECT FROM <in_ref ref="A_SOURCE_CAL_MERGED_COADD"/>
+                  <ro_source handshaking="1">
+                     SELECT FROM <in_ref ref="RAW"/> WHERE
+                                  isdefined(TCS.SOURCE) &amp;&amp;
+                     <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                     <in_ref ref="TCS.SOURCE"/>=="REFERENCE" &amp;&amp;
+                     <in_ref ref="CHANNEL_MASK"/>=="ON"
                   </ro_source>
-                  <ro_source>
-                     SELECT FROM <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
+               </ro_source_list>
+               <ro_recipe>
+                  <taql>!DRCONTROLBITS.SHARED_OFFS || RTS.LAST_INTEG==1</taql>
+                  <function name="evaluate_taql"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="window"/>
+                  <function name="align"/>
+                  <function name="fft"/>
+                  <in_ref ref="DCM_TP_IN"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <function name="coadd"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>  
+                  
+                  
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>   
+            <reducer id="SOURCE" display="engineering" xml:base="reducers/SOURCE_pssw.ent">
+               <help>
+               Basic reduction on all source spectra.</help>
+               <ro_source_list>
+                  <ro_source handshaking="1">
+                     SELECT FROM <in_ref ref="RAW"/> WHERE
+                                  isdefined(TCS.SOURCE) &amp;&amp;
+                     <in_ref ref="FE.LOAD"/>=="SKY" &amp;&amp;
+                     <in_ref ref="TCS.SOURCE"/>=="SCIENCE" &amp;&amp;
+                     <in_ref ref="CHANNEL_MASK"/>=="ON"
                   </ro_source>
                </ro_source_list>
                <ro_recipe>
                   <in_ref ref="FLOAT_DATA"/>
                   <function name="rvalue"/>
-                  <in_ref ref="DESCRIMINATOR_COADD"/>
+                  <function name="window"/>
+                  <function name="align"/>
+                  <function name="fft"/>
+                  <in_ref ref="DCM_TP_IN"/>
                   <function name="rvalue"/>
-                  <in_ref ref="FLOAT_DATA"/>
-                  <in_ref ref="GROUP"/>
-                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
-                  <function name="near"/>
-                  <function name="add"/>
-                  <float> 2.0 </float>  
-                  <function name="swapxy"/>
-                  <function name="divide"/>
+                  <function name="multiply"/>
                   <in_ref ref="FLOAT_DATA"/>
                   <function name="lvalue"/>
-                  
-                  <in_ref ref="EXPOSURE"/>
-                  <function name="rvalue"/>
-                  <in_ref ref="DESCRIMINATOR_COADD"/>
-                  <function name="rvalue"/>
-                  <in_ref ref="EXPOSURE"/>
-                  <in_ref ref="GROUP"/>
-                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
-                  <function name="near"/>
-                  <function name="add"/>
-                  <in_ref ref="EXPOSURE"/>
-                  <function name="lvalue"/>
-                  <in_ref ref="EXPOSURE_OFF_A"/>
-                  <function name="rvalue"/>
-                  <in_ref ref="DESCRIMINATOR_COADD"/>
-                  <function name="rvalue"/>
-                  <in_ref ref="EXPOSURE_OFF_B"/>
-                  <in_ref ref="GROUP"/>
-                  <in_ref ref="B_SOURCE_CAL_MERGED_COADD"/>
-                  <function name="near"/>
-                  <function name="add"/>
-                  <out_object id="EXPOSURE_OFF"/>
-                  <function name="lvalue"/>
-                  
                </ro_recipe>
             </reducer>
-            <reducer id="SOURCE_BASELINE" display="engineering" xml:base="reducers/SOURCE_BASELINE.ent">
+            <reducer id="SOURCE_CAL" display="engineering" xml:base="reducers/SOURCE_CAL_group.ent">
                <help>
-               Fits a baseline to the result of SOURCE.</help>   
+                  Does the 'on-off/off' calculation for each SOURCE spectrum, then
+                  multiplies the result by TSYS and the beam sensitivty for that feed.
+               </help>
                <ro_source_list>
                   <ro_source>
                      SELECT FROM <in_ref ref="SOURCE"/>
                   </ro_source>
-               </ro_source_list> 
-               <ro_recipe>     
+                  <ro_source>
+                     SELECT FROM <in_ref ref="REFSKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TSYS"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="near"/>
+                  <function name="enter"/>
                   <in_ref ref="FLOAT_DATA"/>
                   <function name="rvalue"/>
-                  <function name="baseline"/>  
+                  <function name="subtract"/>
+                  <function name="divide"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <function name="multiply"/>
+                  <in_ref ref="FEED1"/>
+                  <function name="rvalue"/>
+                  <function name="get_feed_sensitivity"/>
+                  <function name="multiply"/>  
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_MEDIAN"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_MEDIAN"/>
+                  <function name="lvalue"/>
+                  
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FE.LO_FREQUENCY"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="near"/>
+                  <in_ref ref="FE.LO_FREQUENCY"/>
+                  <function name="rvalue"/>
+                  <function name="add"/>
+                  <double>0.5</double>
+                  <function name="multiply"/>
+                  <in_ref ref="FE.LO_FREQUENCY"/>
+                  <function name="lvalue"/>
+                  
+                  
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="near"/>
+                  <out_object id="EXPOSURE_OFF"/>
+                  <function name="lvalue"/>
+                  
+                  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TREC_MEDIAN"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TREC_MEDIAN"/>
+                  <function name="lvalue"/>
+                  
+                  
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="ETAL"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="ETAL"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>
+            <reducer id="SOURCE_CAL_DISPLAY" display="observing" xml:base="reducers/SOURCE_CAL_DISPLAY.ent">
+               <help>
+                  Does the 'on-off/off' calculation for each SOURCE spectrum, then
+                  multiplies the result by TSYS and the beam sensitivity for that feed.
+                  The 'off' used is the last REFSKY taken before the SOURCE, so the spectrum
+                  will be shown on the display immediately. This might not be the same reference 
+               that is used for that actual spectrum (see SOURCE_CAL)</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="REFSKY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="TSYS"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="previous"/> 
+                  <function name="enter"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="subtract"/>
+                  <function name="divide"/>
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <function name="multiply"/>
+                  <in_ref ref="FEED1"/>
+                  <function name="rvalue"/>
+                  <function name="get_feed_sensitivity"/>
+                  <function name="multiply"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>   
+                  <in_ref ref="DESCRIMINATOR_TSYS"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="TSYS_MEDIAN"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="TSYS"/>
+                  <function name="previous"/>
+                  <in_ref ref="TSYS_MEDIAN"/>
+                  <function name="lvalue"/>  
+               </ro_recipe>
+            </reducer>
+            <reducer id="SOURCE_CAL_MERGED" display="engineering" xml:base="reducers/SOURCE_CAL_MERGED_group.ent">
+               <help>
+                  Does a weighted merge of data from SOURCE_CAL, if necessary. The weights
+               are derived from the REFSKY measurements.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE_CAL"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="REFSKY"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="GROUP"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="near"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="RTS.NUMBER"/>
+                  <in_ref ref="FEED1"/>
+                  <in_ref ref="SPEC_WINDOW_ID"/>
+                  <function name="merge"/>   
+                  <in_ref ref="SPEC_WINDOW_ID"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+               </ro_recipe>
+            </reducer>
+            <reducer id="SOURCE_CAL_MERGED_DISPLAY" display="observing" xml:base="reducers/SOURCE_CAL_MERGED_DISPLAY.ent">
+               <help>
+                  Does a weighted merge of data from SOURCE_CAL_DISPLAY, if necessary. The
+                  weights are derived from the previous REFSKY measurements, so the spectrum
+                  will be shown on the display immediately. This might not be the same reference 
+                  that is used for that actual spectrum (see SOURCE_CAL_MERGED)
+
+               Updates will occur after each measurement along a raster row.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE_CAL_DISPLAY"/>
+                  </ro_source>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="REFSKY"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="TIME"/>
+                  <in_ref ref="REFSKY"/>
+                  <function name="previous"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <in_ref ref="RTS.NUMBER"/>
+                  <in_ref ref="FEED1"/>
+                  <in_ref ref="SPEC_WINDOW_ID"/>
+                  <function name="merge"/>   
+                  <in_ref ref="SPEC_WINDOW_ID"/>
+                  <function name="lvalue"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+               </ro_recipe>  
+            </reducer>
+            <reducer id="SOURCE_CAL_MERGED_COADD" display="engineering" xml:base="reducers/SOURCE_CAL_MERGED_COADD.ent">
+               <help>
+               Coadds the output from SOURCE_CAL_MERGED for each row.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE_CAL_MERGED"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <taql>!DRCONTROLBITS.SHARED_OFFS || SMU.LAST_SMU_CYCLE==1 || RTS.LAST_INTEG==1 || isdefined(ROVER.POL_INDEX) </taql>
+                  <function name="evaluate_taql"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <in_ref ref="DESCRIMINATOR_COADD"/>
+                  <function name="rvalue"/>
+                  <function name="coadd"/>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="lvalue"/>
+                  
+                  
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="rvalue"/>
+                  <function name="multiply"/>
+                  <in_ref ref="EXPOSURE"/>
+                  <function name="lvalue"/>
+                  
+               </ro_recipe>
+            </reducer>
+            <reducer id="SOURCE_CAL_MERGED_COADD_BASELINE" display="engineering" xml:base="reducers/SOURCE_CAL_MERGED_COADD_BASELINE.ent">
+               <help>
+               Fits a baseline to the output from SOURCE_CAL_MERGED_COADD.</help>
+               <ro_source_list>
+                  <ro_source>
+                     SELECT FROM <in_ref ref="SOURCE_CAL_MERGED_COADD"/>
+                  </ro_source>
+               </ro_source_list>
+               <ro_recipe>
+                  <in_ref ref="FLOAT_DATA"/>
+                  <function name="rvalue"/>
+                  <function name="baseline"/>
                   <out_object id="FIT_PARAMETERS"/>
                   <function name="lvalue"/>
                   <out_object id="FIT_TYPE"/>
@@ -2739,26 +2404,26 @@
                   <function name="lvalue"/>
                </ro_recipe>
             </reducer>
-            <reducer id="SPECTRUM_RESULT" display="observing" xml:base="reducers/SPECTRUM_RESULT_chop_cal.ent">
+            <reducer id="SPECTRUM_RESULT" display="observing" xml:base="reducers/SPECTRUM_RESULT_grid.ent">
                <help>
                   This is the fully reduced spectrum. It is obtained by subtracting the next
-                  baseline received from SOURCE_BASELINE off each spectrum received from 
-               SOURCE.</help>
+                  baseline received from SOURCE_CAL_MERGED_COADD_BASELINE off the spectrum
+               received from SOURCE_CAL_MERGED_COADD.</help>
                <ro_source_list>
                   <ro_source>
-                     SELECT FROM <in_ref ref="SOURCE"/>
+                     SELECT FROM <in_ref ref="SOURCE_CAL_MERGED_COADD"/>
                   </ro_source>
                   <ro_source>
-                     SELECT FROM <in_ref ref="SOURCE_BASELINE"/>
+                     SELECT FROM <in_ref ref="SOURCE_CAL_MERGED_COADD_BASELINE"/>
                   </ro_source>
                </ro_source_list>
                <ro_recipe>
-                  <in_ref ref="DESCRIMINATOR_ON-OFF"/>
+                  <in_ref ref="DESCRIMINATOR_COADD"/>
                   <function name="rvalue"/>
-                  <function name="enter"/>
+                  <function name="enter"/>  
                   <in_ref ref="FLOAT_DATA"/>
                   <in_ref ref="TIME"/>
-                  <in_ref ref="SOURCE_BASELINE"/>
+                  <in_ref ref="SOURCE_CAL_MERGED_COADD_BASELINE"/>
                   <function name="next"/>
                   <in_ref ref="FLOAT_DATA"/>
                   <function name="rvalue"/>
@@ -2767,15 +2432,16 @@
                   <function name="lvalue"/>
                   <in_ref ref="FIT_RMS"/>
                   <in_ref ref="TIME"/>
-                  <in_ref ref="SOURCE_BASELINE"/>
+                  <in_ref ref="SOURCE_CAL_MERGED_COADD_BASELINE"/>
                   <function name="next"/>
                   <in_ref ref="FIT_RMS"/>
                   <function name="lvalue"/>
                </ro_recipe>
             </reducer>
+                  
 
             <mswriter id="RAW_MSWRITER">
-               <ms_root> raw_jiggle_chop </ms_root>
+               <ms_root> raw_grid_pssw </ms_root>
                <ms_chunk_size> 5000 </ms_chunk_size>
                <ms_main xml:base="reducers/MSWRITER.MS_MAIN.ent">
                   <ro_source handshaking="1">
@@ -2936,9 +2602,9 @@
 <rtd_config>
 
    <display_timeout> 120  </display_timeout>
-    
+
    <spectrum_disp id="display0">
-      <source_object ref="A_SOURCE_CAL_MERGED_DISPLAY"/>
+      <source_object ref="SOURCE_CAL_MERGED_DISPLAY"/>
       <source_data ref="FLOAT_DATA"/>
       <source_params>
          <in_ref ref="RTS"/>
@@ -2958,7 +2624,7 @@
       <channel_stride number="1"/>
       <average number="1"/>
       <spectrum_bin number="0"/>
-      <spectrum_offset number="5"/>
+      <spectrum_offset number="15"/>
       <display_geom hilo="display_small" jcmt="display_large">
       <display_small>-geometry 640x480</display_small>
       <display_large>-geometry 1250x1000+1280+1068</display_large>
@@ -2976,12 +2642,12 @@
    <data_selection type="MAX_VALUE"/>
    <spec_scale type="VELOCITY" freq_reference="LSRK" vel_reference="RADIO">
       
-      <range units="channel">
-         <min> -100 </min>
-         <max> 100 </max>
+      <range units="km.s-1">
+         <min> -100.0 </min>
+         <max> 100.0 </max>
       </range>
    </spec_scale>
-   <update_rate number="8"/>
+   <update_rate number="4"/>
 </image_disp>
 
 </rtd_config>
@@ -3106,7 +2772,7 @@
 <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
 <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
 <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+<glish_link from_ref="corr_monitor5" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
