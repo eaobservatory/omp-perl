@@ -187,7 +187,7 @@ my $id;
 my $BREAK       = 98;
 
 my %opt = ( 'geometry'         => '785x450' ,
-            'geometry-comment' => '760x360' ,
+            'geometry-comment' => '760x400' ,
             'geometry-comment-small' => '760x290' ,
             # Fixed width font;
             'font-fixed' =>
@@ -927,7 +927,7 @@ sub RaiseComment {
   $scrolledComment = $entryFrame->Scrolled( 'Text',
                                             -wrap => 'word',
                                             -height => 10,
-                                            -font => $CONTENTFONT,
+                                            -font => $opt{'font-var'},
                                             -scrollbars => 'oe',
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
@@ -1202,7 +1202,7 @@ sub RaiseMultiComment {
                                             -wrap => 'word',
                                             -height => 10,
                                             -scrollbars => 'oe',
-                                            -font => $CONTENTFONT,
+                                            -font => $opt{'font-var'},
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
                                                    -fill => 'both',
@@ -1424,7 +1424,7 @@ sub RaiseMSBComment {
                                             -wrap => 'word',
                                             -height => 10,
                                             -scrollbars => 'oe',
-                                            -font => $CONTENTFONT,
+                                            -font => $opt{'font-var'},
                                           )->pack( -expand => 1,
                                                     -side => 'top',
                                                     -fill => 'x',
