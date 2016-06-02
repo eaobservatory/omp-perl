@@ -889,7 +889,8 @@ sub RaiseComment {
                                                );
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
-                                                                      -fill => 'x',
+                                                                      -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -929,7 +930,7 @@ sub RaiseComment {
                                             -scrollbars => 'oe',
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
-                                                   -fill => 'x',
+                                                   -fill => 'both',
                                                  );
 
   my $radioFrame = $entryFrame->Frame->pack( -side => 'top',
@@ -1188,6 +1189,7 @@ sub RaiseMultiComment {
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
                                                                       -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1349,7 +1351,8 @@ sub RaiseMSBComment {
                                                );
 
   my $entryFrame = $commentFrame->Frame->pack( -side => 'top',
-                                                -fill => 'x',
+                                                -fill => 'both',
+                                                -expand => 1,
                                               );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1387,7 +1390,7 @@ sub RaiseMSBComment {
 
   my $histLabel = $entryFrame->Label( -text => q{History:},
                                       -font => $HEADERFONT,
-                                    )->pack( -expand => 1,
+                                    )->pack(
                                               -side => 'top',
                                               -anchor => 'nw'
                                             );
@@ -1400,13 +1403,12 @@ sub RaiseMSBComment {
                                         -borderwidth => 0,
                                         -font => $CONTENTFONT,
                                       )->pack( -side => 'top',
-                                                -expand => 1,
                                                 -fill => 'x',
                                               );
 
   my $userLabel = $entryFrame->Label( -text => 'Current user: ' . $user->userid,
                                       -font => $opt{'font-var-bold'},
-                                    )->pack( -expand => 1,
+                                    )->pack(
                                               -side => 'top',
                                               -anchor => 'nw'
                                             );
@@ -1419,7 +1421,7 @@ sub RaiseMSBComment {
                                             -font => $opt{'font-var'},
                                           )->pack( -expand => 1,
                                                     -side => 'top',
-                                                    -fill => 'x',
+                                                    -fill => 'both',
                                                   );
 
   # $buttonSave is the button that allows the user to save the comment
@@ -1946,7 +1948,8 @@ sub raise_shift_comment {
                                                );
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
-                                                                      -fill => 'x',
+                                                                      -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1961,7 +1964,7 @@ sub raise_shift_comment {
                                                 -font => $opt{'font-var'},
                                              )->pack( -side => 'bottom',
                                                       -expand => 1,
-                                                      -fill => 'x',
+                                                      -fill => 'both',
                                                     );
 
   my $infoText = $entryFrame->Label( -text => "Comment from " . $user->name .  ":",
