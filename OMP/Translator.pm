@@ -48,7 +48,7 @@ use OMP::General;
 use OMP::MSB;
 use OMP::Translator::Base;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 our $DEBUG = 0;
 our $VERBOSE = 0;
 

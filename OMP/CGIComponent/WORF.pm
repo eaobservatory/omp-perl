@@ -28,7 +28,7 @@ use OMP::Error qw/ :try /;
 use OMP::Info::Obs;
 use OMP::WORF;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

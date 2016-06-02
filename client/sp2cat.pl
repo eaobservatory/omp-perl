@@ -63,6 +63,8 @@ use lib "$FindBin::RealBin/..";
 
 use OMP::SciProg;
 
+our $VERSION = '2.000';
+
 # Options
 my ($help, $man, $version);
 my $status = GetOptions("help" => \$help,
@@ -74,9 +76,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "sp2cat - science program source extractor\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

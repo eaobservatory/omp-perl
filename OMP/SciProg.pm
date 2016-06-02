@@ -26,7 +26,7 @@ use XML::LibXML; # Our standard parser
 use OMP::MSB;    # Standard MSB organization
 use OMP::Error;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Overloading
 use overload '""' => "stringify";

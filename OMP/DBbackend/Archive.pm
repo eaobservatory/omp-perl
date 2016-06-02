@@ -32,7 +32,7 @@ use OMP::Error qw/ :try /;
 use base qw/ OMP::DBbackend /;
 
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

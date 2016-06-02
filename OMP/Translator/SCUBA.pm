@@ -39,7 +39,7 @@ use Astro::Telescope;
 
 use base qw/ OMP::Translator::Base /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Unix directory for writing ODFs
 our $TRANS_DIR = OMP::Config->getData( "scuba_translator.transdir" );

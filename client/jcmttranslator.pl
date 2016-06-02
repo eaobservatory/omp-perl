@@ -138,9 +138,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "jcmttranslator - Translate Science Program MSBs to OCS configs\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $OMP::Translator::VERSION, "\n";
   exit;
 }
 

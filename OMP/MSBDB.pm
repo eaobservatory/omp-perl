@@ -76,7 +76,7 @@ use Errno; # else $!{EEXIST} does not work
 
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Name of the table containing the MSB data
 our $MSBTABLE = "ompmsb";

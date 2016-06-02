@@ -163,6 +163,8 @@ use OMP::Info::Comment;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 
+our $VERSION = '2.000';
+
 
 # global variables
 $| = 1;
@@ -187,8 +189,6 @@ my $id;
 my $BREAK       = 98;
 
 my %opt = ( 'geometry'         => '785x450' ,
-            'geometry-comment' => '760x400' ,
-            'geometry-comment-small' => '760x290' ,
             # Fixed width font;
             'font-fixed' =>
               '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*' ,
@@ -223,9 +223,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if( $version ) {
-    my $id = '$Id$ ';
   print "obslog - Observation reporting tool\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 
@@ -795,7 +794,7 @@ sub rescan {
 
   &update_shiftlog_comments;
 
-  $id->cancel unless !defined($id);
+  $id->cancel if defined($id);
   if( $ut eq $currentut ) {
     $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
   };
@@ -871,14 +870,13 @@ sub RaiseComment {
   my $status;
   my $scrolledComment;
 
-  $id->cancel unless !defined $id;
+  $id->cancel if defined $id;
 
   my @comments = $obs->comments;
   $status = $obs->status;
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
-  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -891,7 +889,8 @@ sub RaiseComment {
                                                );
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
-                                                                      -fill => 'x',
+                                                                      -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -931,7 +930,7 @@ sub RaiseComment {
                                             -scrollbars => 'oe',
                                           )->pack( -side => 'bottom',
                                                    -expand => 1,
-                                                   -fill => 'x',
+                                                   -fill => 'both',
                                                  );
 
   my $radioFrame = $entryFrame->Frame->pack( -side => 'top',
@@ -1154,7 +1153,6 @@ sub RaiseMultiComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
-  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1191,6 +1189,7 @@ sub RaiseMultiComment {
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
                                                                       -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1341,11 +1340,6 @@ sub RaiseMSBComment {
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title( "OMP MSB Log Tool: $title" );
 
-  # Following is ok for Courier 12pt medium normal, but is not big enough for
-  # 14pt.  As geometry works for a particular font size, so let the Tk to
-  # calculate it.
-  #$CommentWindow->geometry('700x370');
-
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
                                                   -fill => 'both',
@@ -1357,7 +1351,8 @@ sub RaiseMSBComment {
                                                );
 
   my $entryFrame = $commentFrame->Frame->pack( -side => 'top',
-                                                -fill => 'x',
+                                                -fill => 'both',
+                                                -expand => 1,
                                               );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1395,7 +1390,7 @@ sub RaiseMSBComment {
 
   my $histLabel = $entryFrame->Label( -text => q{History:},
                                       -font => $HEADERFONT,
-                                    )->pack( -expand => 1,
+                                    )->pack(
                                               -side => 'top',
                                               -anchor => 'nw'
                                             );
@@ -1408,13 +1403,12 @@ sub RaiseMSBComment {
                                         -borderwidth => 0,
                                         -font => $CONTENTFONT,
                                       )->pack( -side => 'top',
-                                                -expand => 1,
                                                 -fill => 'x',
                                               );
 
   my $userLabel = $entryFrame->Label( -text => 'Current user: ' . $user->userid,
                                       -font => $opt{'font-var-bold'},
-                                    )->pack( -expand => 1,
+                                    )->pack(
                                               -side => 'top',
                                               -anchor => 'nw'
                                             );
@@ -1427,7 +1421,7 @@ sub RaiseMSBComment {
                                             -font => $opt{'font-var'},
                                           )->pack( -expand => 1,
                                                     -side => 'top',
-                                                    -fill => 'x',
+                                                    -fill => 'both',
                                                   );
 
   # $buttonSave is the button that allows the user to save the comment
@@ -1943,7 +1937,6 @@ sub raise_shift_comment {
 
   my $ShiftCommentWindow = MainWindow->new;
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
-  $ShiftCommentWindow->geometry( $opt{'geometry-comment-small'} );
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
                                                        -fill => 'both',
@@ -1955,7 +1948,8 @@ sub raise_shift_comment {
                                                );
 
   my $entryFrame = $commentFrame->Frame( -relief => 'groove' )->pack( -side => 'top',
-                                                                      -fill => 'x',
+                                                                      -fill => 'both',
+                                                                      -expand => 1,
                                                                     );
 
   my $buttonFrame = $commentFrame->Frame->pack( -side => 'bottom',
@@ -1970,7 +1964,7 @@ sub raise_shift_comment {
                                                 -font => $opt{'font-var'},
                                              )->pack( -side => 'bottom',
                                                       -expand => 1,
-                                                      -fill => 'x',
+                                                      -fill => 'both',
                                                     );
 
   my $infoText = $entryFrame->Label( -text => "Comment from " . $user->name .  ":",
@@ -2212,7 +2206,7 @@ sub set_UT {
 
     full_rescan($ut, $telescope);
 
-    $id->cancel unless !defined($id);
+    $id->cancel if defined($id);
     if( $ut eq $currentut ) {
       $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
     };
@@ -2232,7 +2226,7 @@ sub set_telescope {
 
     full_rescan( $ut, $telescope );
 
-    $id->cancel unless !defined($id);
+    $id->cancel if defined($id);
     if( $ut eq $currentut ) {
       $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
     };

@@ -37,8 +37,8 @@ use Carp;
 use OMP::Error;
 use OMP::Range;
 
-use vars qw/ $VERSION %DBRANGES %OMPRANGES %CLOUDTERMS/;
-#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+use vars qw/ %DBRANGES %OMPRANGES %CLOUDTERMS/;
+our $VERSION = '2.000';
 
 
 =head1 CONSTANTS

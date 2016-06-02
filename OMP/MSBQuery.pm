@@ -34,7 +34,7 @@ use Time::Piece ':override'; # for gmtime
 use base qw/ OMP::DBQuery /;
 
 # Package globals
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 # Constants
 use constant D2R => 4 * atan2(1,1) / 180.0; # Degrees to radians

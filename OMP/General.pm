@@ -68,7 +68,7 @@ use POSIX qw/ /;
 require OMP::Config;
 require OMP::UserServer;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $DEBUG = 0;
 

@@ -48,7 +48,7 @@ use base qw/ OMP::Translator::Base /;
 our $TRANS_DIR = OMP::Config->getData( 'jcmt_translator.transdir');
 
 # Version number
-our $VERSION = sprintf("%d", q$Revision: 14936 $ =~ /(\d+)/);
+our $VERSION = '2.000';
 
 # Mapping from OMP to OCS frontend names
 our %FE_MAP = (

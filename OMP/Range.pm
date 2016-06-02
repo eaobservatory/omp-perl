@@ -27,9 +27,8 @@ use warnings;
 use Carp;
 
 use base qw/ Number::Interval /;
-use vars qw/ $VERSION /;
 
-#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+our $VERSION = '2.000';
 
 =head1 METHODS
 

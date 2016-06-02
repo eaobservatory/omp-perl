@@ -25,7 +25,7 @@ use CGI::Carp qw/ fatalsToBrowser /;
 
 use OMP::CGIComponent::Shiftlog;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

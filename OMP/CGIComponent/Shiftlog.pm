@@ -35,7 +35,7 @@ use OMP::ShiftQuery;
 use OMP::ShiftDB;
 use OMP::Error qw/ :try /;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

@@ -365,9 +365,7 @@ use Error;
 use warnings;
 use strict;
 
-use vars qw/$VERSION/;
-
-'$Revision$ ' =~ /.*:\s(.*)\s\$/ && ($VERSION = $1);
+our $VERSION = '2.000';
 
 # flush method added to the base class
 use base qw/ Error::Simple /;

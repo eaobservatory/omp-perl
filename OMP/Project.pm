@@ -39,7 +39,7 @@ use OMP::User;
 use Scalar::Util qw/ looks_like_number /;
 use List::Util qw/ min max /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Delimiter for co-i strings
 our $DELIM = ":";

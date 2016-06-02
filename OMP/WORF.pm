@@ -39,7 +39,7 @@ use Starlink::AMS::Init;
 use Starlink::AMS::Task;
 use Starlink::EMS qw/ :sai get_facility_error /;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 # Cache the Starlink task for ndf2fits.
 our $TASK;

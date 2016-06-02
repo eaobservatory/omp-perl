@@ -36,7 +36,7 @@ use base qw/ OMP::Info::Obs /;
 # Text wrap column size.
 $Text::Wrap::columns = 72;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

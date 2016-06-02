@@ -25,7 +25,7 @@ use File::Spec;
 use OMP::Config;
 use OMP::Error;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

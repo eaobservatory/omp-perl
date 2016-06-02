@@ -53,7 +53,7 @@ use POSIX qw/ /;
 # defined before OMP::Config BEGIN block can trigger
 require OMP::Config;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $DEBUG = 0;
 

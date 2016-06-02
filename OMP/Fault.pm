@@ -35,7 +35,7 @@ use OMP::Config;
 use OMP::Display;
 use OMP::Error qw[ :try ];
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Overloading
 use overload '""' => "stringify";

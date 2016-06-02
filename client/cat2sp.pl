@@ -112,6 +112,8 @@ use lib "$FindBin::RealBin/..";
 use Astro::Catalog;
 use OMP::SciProg;
 
+our $VERSION = '2.000';
+
 # Options
 my ($help, $man, $version);
 my $status = GetOptions("help" => \$help,
@@ -123,9 +125,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "cat2sp - catalogue to science program importer\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

@@ -104,6 +104,8 @@ use PGPLOT;
 use strict;
 use warnings;
 
+our $VERSION = '2.000';
+
 # ----------------------------------------------------------------------
 
 my $progname = (split(/\//,"$0"))[-1];
@@ -135,9 +137,8 @@ my $ostatus = GetOptions(   "help"        => \$help,
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose =>2) if $man;
 if ($version) {
-    my $id = '$Id: checkrms 24552 2008-01-27 21:22:00Z rpt $';
     print "${prog} - show UKIRT/JCMT operations statistics.\n";
-    print " CVS revision: $id\n";
+    print "Version: ", $VERSION, "\n";
     exit;
 }
 

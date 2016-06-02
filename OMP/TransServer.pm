@@ -28,7 +28,7 @@ use OMP::Translator;
 # Inherit server specific class
 use base qw/ OMP::SOAPServer /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 
 =head1 METHODS
