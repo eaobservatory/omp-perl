@@ -58,7 +58,7 @@ use Time::Piece;
 
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 our $MSBDONETABLE = "ompmsbdone";
 
 =head1 METHODS

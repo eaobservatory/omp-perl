@@ -73,6 +73,8 @@ use OMP::DBbackend;
 use OMP::General;
 use OMP::ProjDB;
 
+our $VERSION = '2.000';
+
 # Options
 my ($help, $man, $version, $idstr, $enable, $disable);
 my $status = GetOptions("help" => \$help,
@@ -87,9 +89,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "state - Disable or enable a project\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

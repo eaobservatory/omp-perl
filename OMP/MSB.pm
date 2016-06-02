@@ -46,7 +46,7 @@ use Time::Piece ':override';
 use Time::Seconds;
 use Scalar::Util qw/ blessed /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $DEBUG = 0;
 

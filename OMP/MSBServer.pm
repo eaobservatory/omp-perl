@@ -50,7 +50,7 @@ use constant GZIP_THRESHOLD => 30_000;
 # Inherit server specific class
 use base qw/OMP::SOAPServer OMP::DBServer/;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

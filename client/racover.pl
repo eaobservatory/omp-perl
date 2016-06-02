@@ -95,8 +95,8 @@ use OMP::SciProgStats;
 use OMP::ProjServer;
 use OMP::SpServer;
 
-use vars qw/ $DEBUG /;
-$DEBUG = 0;
+our $DEBUG = 0;
+our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $tel, $semester, $country, $instrument, @projects);
@@ -114,9 +114,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "ompracover - Display RA coverage for a semester\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

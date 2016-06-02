@@ -31,7 +31,7 @@ use OMP::Constants qw/ :status :logging /;
 use OMP::Display;
 use OMP::General;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 
 =head1 METHODS

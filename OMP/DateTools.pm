@@ -45,7 +45,7 @@ use Time::Piece ':override';
 use Time::Seconds qw/ ONE_DAY /;
 use POSIX qw/ /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $DEBUG = 0;
 

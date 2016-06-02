@@ -91,6 +91,8 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::NightRep;
 
+our $VERSION = '2.000';
+
 use vars qw/ $DEBUG /;
 $DEBUG = 0;
 
@@ -114,9 +116,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "nightrep - End of night reporting tool\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

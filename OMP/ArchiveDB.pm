@@ -44,7 +44,7 @@ use Time::Piece;
 use Time::Seconds;
 use NDF;
 
-use vars qw/ $VERSION $FallbackToFiles $SkipDBLookup $AnyDate
+use vars qw/ $FallbackToFiles $SkipDBLookup $AnyDate
              $QueryCache $MakeCache
             /;
 
@@ -52,7 +52,7 @@ use Scalar::Util qw/ blessed /;
 use Data::Dumper;
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 search_db_skip_today();
 search_files();

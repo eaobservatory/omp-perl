@@ -87,6 +87,8 @@ use OMP::SiteQuality;
 use Pod::Usage;
 use Getopt::Long;
 
+our $VERSION = '2.000';
+
 # Options
 my ($help, $man, $version,$force);
 my $status = GetOptions("help" => \$help,
@@ -99,9 +101,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "updateproj - update project details from file\n";
-  print " CVS revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

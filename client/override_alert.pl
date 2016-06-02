@@ -82,6 +82,8 @@ END {
   OMP::General->log_message( "override_alert.pl: Closing override_alert program." );
 }
 
+our $VERSION = '2.000';
+
 OMP::General->log_message( "override_alert.pl: Starting up override_alert program..." );
 
 $| = 1;
@@ -101,9 +103,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if( $version ) {
-  my $id = '$Id$ ';
   print "override_alert - Provide alerts for overrides\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

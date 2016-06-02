@@ -41,7 +41,7 @@ use PDL::Graphics::LUT;
 
 use base qw/ OMP::WORF /;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

@@ -33,7 +33,7 @@ use Carp;
 
 use Time::Piece;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 # Overloading
 use overload '""' => "stringify";

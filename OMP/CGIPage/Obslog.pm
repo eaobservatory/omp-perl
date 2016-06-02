@@ -46,7 +46,7 @@ use OMP::ArchiveDB;
 use OMP::DBbackend::Archive;
 use OMP::Error qw/ :try /;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

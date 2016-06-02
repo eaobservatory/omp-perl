@@ -36,7 +36,7 @@ use Time::Seconds;
 
 # Package globals
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 # Default number of results to return from a query
 our $DEFAULT_RESULT_COUNT = 500;

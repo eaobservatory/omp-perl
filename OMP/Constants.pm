@@ -20,8 +20,8 @@ to return an OMP__ABORT or OMP__FATAL status using OMP::Error.
 use strict;
 use warnings;
 
-use vars qw/ $VERSION @ISA %EXPORT_TAGS @EXPORT_OK/;
-'$Revision$ ' =~ /.*:\s(.*)\s\$/ && ($VERSION = $1);
+use vars qw/ @ISA %EXPORT_TAGS @EXPORT_OK/;
+our $VERSION = '2.000';
 
 require Exporter;
 
@@ -657,10 +657,6 @@ or
 =head1 SEE ALSO
 
 L<constants>
-
-=head1 REVISION
-
-$Id$
 
 =head1 AUTHOR
 

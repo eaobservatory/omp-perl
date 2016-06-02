@@ -30,7 +30,7 @@ use base qw/ OMP::DBQuery /;
 
 # Package globals
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 =head1 METHODS
 

@@ -34,7 +34,7 @@ use OMP::UserQuery;
 
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision: 10923 $)[1];
+our $VERSION = '2.000';
 
 our $USERTABLE = "ompuser";
 

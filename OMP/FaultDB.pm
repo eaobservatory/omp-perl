@@ -41,7 +41,7 @@ $Text::Wrap::columns = 80;
 
 use base qw/ OMP::BaseDB /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $FAULTTABLE = "ompfault";
 our $FAULTBODYTABLE = "ompfaultbody";

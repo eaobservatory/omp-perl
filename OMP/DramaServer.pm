@@ -30,8 +30,7 @@ use OMP::Error qw/ :try /;
 # Inherit server specific class
 use base qw/OMP::SOAPServer /;
 
-use vars qw/ $VERSION /;
-#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+our $VERSION = '2.000';
 
 
 =head1 METHODS

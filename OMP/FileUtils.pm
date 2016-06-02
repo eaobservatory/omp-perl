@@ -33,7 +33,7 @@ use OMP::Config;
 use OMP::Constants qw[ :logging ];
 use OMP::General;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 our $DEBUG = 0;
 
 # Set to return files previously not encountered.

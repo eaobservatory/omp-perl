@@ -163,6 +163,8 @@ use OMP::Info::Comment;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
 
+our $VERSION = '2.000';
+
 
 # global variables
 $| = 1;
@@ -223,9 +225,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if( $version ) {
-    my $id = '$Id$ ';
   print "obslog - Observation reporting tool\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

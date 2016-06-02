@@ -79,8 +79,8 @@ use OMP::DBbackend;
 use OMP::QStatus qw/query_queue_status/;
 use Time::Piece qw/ :override /;
 
-use vars qw/ $DEBUG /;
-$DEBUG = 0;
+our $DEBUG = 0;
+our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $tel, $country, $semester, $affiliation, $full_day);
@@ -98,9 +98,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "ompqstatus - Display current queue status\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

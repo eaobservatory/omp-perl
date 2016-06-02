@@ -40,7 +40,7 @@ use Carp;
 use Net::Domain qw/ hostfqdn /;
 use Net::hostent qw/ gethost /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $DEBUG = 0;
 

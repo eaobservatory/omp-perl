@@ -114,6 +114,8 @@ use OMP::Password;
 use OMP::UserServer;
 use OMP::ProjServer;
 
+our $VERSION = '2.000';
+
 # Options
 my ($commentfile, $help, $man, $projectsfile, $author, $version, $type);
 
@@ -131,9 +133,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "bulk - Submit a feedback comment to multiple projects\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

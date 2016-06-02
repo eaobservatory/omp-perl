@@ -47,7 +47,7 @@ use JCMT::DAS qw/ das_merge /;
 
 use base qw/ OMP::WORF /;
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

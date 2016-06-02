@@ -105,6 +105,7 @@ use OMP::SciProg;
 use OMP::ProjServer;
 use OMP::SpServer;
 
+our $VERSION = '2.000';
 
 # Options
 my ($format, $mode_type, $plotting_method, $plotting_system,
@@ -126,9 +127,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "omplisttargs - List targets found in science programme\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

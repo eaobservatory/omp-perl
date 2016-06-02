@@ -152,6 +152,8 @@ use OMP::UserServer;
 use Pod::Usage;
 use Getopt::Long;
 
+our $VERSION = '2.000';
+
 # Options
 my $do_country_check = 1;
 my ($help, $man, $version,$force, %defaults );
@@ -171,9 +173,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id: mkproj.pl 16396 2009-01-23 02:50:27Z agarwal $ ';
   print "mkproj - upload project details from file\n";
-  print " CVS revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

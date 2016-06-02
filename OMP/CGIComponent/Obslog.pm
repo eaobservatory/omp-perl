@@ -38,7 +38,7 @@ use OMP::Error qw/ :try /;
 
 use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 
-our $VERSION = (qw$Revision$ )[1];
+our $VERSION = '2.000';
 
 require Exporter;
 

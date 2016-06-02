@@ -41,7 +41,7 @@ use Storable qw/ nstore_fd fd_retrieve /;
 use Time::Piece qw/ :override /;
 use Time::Seconds;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 our $TEMPDIR = OMP::Config->getData( 'cachedir' );
 

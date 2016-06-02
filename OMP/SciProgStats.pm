@@ -31,8 +31,7 @@ use warnings;
 use warnings::register;
 use Carp;
 
-use vars qw/ $VERSION /;
-#$VERSION = sprintf("%d", q$Revision$ =~ /(\d+)/);
+our $VERSION = '2.000';
 
 =head1 METHODS
 

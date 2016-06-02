@@ -77,6 +77,8 @@ use OMP::UserServer;
 use OMP::ProjServer;
 use OMP::Constants qw/ :done /;
 
+our $VERSION = '2.000';
+
 # Command line parsing
 my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
@@ -90,9 +92,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if( $version ) {
-  my $id = '$Id$ ';
   print "ompmsbcheck - MSB integrity verification\n";
-  print " CVS revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

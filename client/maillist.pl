@@ -56,6 +56,8 @@ use lib "$FindBin::RealBin/..";
 
 use OMP::ProjServer;
 
+our $VERSION = '2.000';
+
 $| = 1; # Make unbuffered
 
 # Options
@@ -72,9 +74,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "maillist - Generate a list of PI and Co-I email addresses\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

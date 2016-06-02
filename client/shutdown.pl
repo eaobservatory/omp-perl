@@ -80,8 +80,8 @@ use OMP::TimeAcctDB;
 use OMP::TimeAcctGroup;
 use OMP::UserDB;
 
-use vars qw/ $DEBUG /;
-$DEBUG = 0;
+our $DEBUG = 0;
+our $VERSION = '2.000';
 
 # Options
 my ($help, $man, $version, $tel, $semester, $ut);
@@ -97,9 +97,8 @@ pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
-  my $id = '$Id$ ';
   print "shutdown - Produce time accounting for shutdown periods\n";
-  print " Source code revision: $id\n";
+  print "Version: ", $VERSION, "\n";
   exit;
 }
 

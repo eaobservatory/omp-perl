@@ -46,7 +46,7 @@ use OMP::General; # For Time::Seconds::pretty_print
 
 use base qw/ OMP::Info::Base /;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 
 use overload '""' => "stringify";
 

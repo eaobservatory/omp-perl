@@ -44,7 +44,7 @@ use OMP::Error;
 use OMP::General;
 use DBI;
 
-our $VERSION = (qw$Revision$)[1];
+our $VERSION = '2.000';
 our $DEBUG = 0;
 
 =head1 METHODS
