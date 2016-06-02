@@ -795,7 +795,7 @@ sub rescan {
 
   &update_shiftlog_comments;
 
-  $id->cancel unless !defined($id);
+  $id->cancel if defined($id);
   if( $ut eq $currentut ) {
     $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
   };
@@ -871,7 +871,7 @@ sub RaiseComment {
   my $status;
   my $scrolledComment;
 
-  $id->cancel unless !defined $id;
+  $id->cancel if defined $id;
 
   my @comments = $obs->comments;
   $status = $obs->status;
@@ -2212,7 +2212,7 @@ sub set_UT {
 
     full_rescan($ut, $telescope);
 
-    $id->cancel unless !defined($id);
+    $id->cancel if defined($id);
     if( $ut eq $currentut ) {
       $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
     };
@@ -2232,7 +2232,7 @@ sub set_telescope {
 
     full_rescan( $ut, $telescope );
 
-    $id->cancel unless !defined($id);
+    $id->cancel if defined($id);
     if( $ut eq $currentut ) {
       $id = $MainWindow->after($SCANFREQ, sub { full_rescan($ut, $telescope); });
     };
