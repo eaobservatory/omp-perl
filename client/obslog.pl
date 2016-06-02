@@ -189,8 +189,6 @@ my $id;
 my $BREAK       = 98;
 
 my %opt = ( 'geometry'         => '785x450' ,
-            'geometry-comment' => '760x400' ,
-            'geometry-comment-small' => '760x290' ,
             # Fixed width font;
             'font-fixed' =>
               '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*' ,
@@ -879,7 +877,6 @@ sub RaiseComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
-  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1155,7 +1152,6 @@ sub RaiseMultiComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
-  $CommentWindow->geometry( $opt{'geometry-comment'} );
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1341,11 +1337,6 @@ sub RaiseMSBComment {
 
   my $CommentWindow = MainWindow->new;
   $CommentWindow->title( "OMP MSB Log Tool: $title" );
-
-  # Following is ok for Courier 12pt medium normal, but is not big enough for
-  # 14pt.  As geometry works for a particular font size, so let the Tk to
-  # calculate it.
-  #$CommentWindow->geometry('700x370');
 
   # $commentFrame contains the entire frame.
   my $commentFrame = $CommentWindow->Frame->pack( -side => 'top',
@@ -1944,7 +1935,6 @@ sub raise_shift_comment {
 
   my $ShiftCommentWindow = MainWindow->new;
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
-  $ShiftCommentWindow->geometry( $opt{'geometry-comment-small'} );
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
                                                        -fill => 'both',
