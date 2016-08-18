@@ -1635,6 +1635,7 @@ sub addFITStoObs {
   my $moon = $info->moon;
   my $tau = $info->tau;
   my $see = $info->seeing;
+  my $queue = undef;
 
   # Ngah. Different method names for Project and MSB constraints make
   # this painful!  Calculate the intersection of project with msb
@@ -1657,12 +1658,14 @@ sub addFITStoObs {
     $sb = $psb if defined $psb;
     $tau = $ptau if defined $ptau;
     $see = $psee if defined $psee;
+    $queue = $proj->primaryqueue();
   }
 
   # Create hash with information we wish to insert
   my %data = (
               msbid => $self->checksum,
               project => $self->projectID,
+              omp_queue => $queue,
               rq_minsb => (defined $sb   ? $sb->min   : undef ),
               rq_maxsb => (defined $sb   ? $sb->max   : undef ),
               rq_mnsee => (defined $see  ? $see->min  : undef ),
