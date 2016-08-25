@@ -269,6 +269,9 @@ sub translate {
                                  OTVERSION => $msb->ot_version,
                                );
 
+      # Copy the MSB title.
+      $tmpmsb->msbtitle($msb->msbtitle());
+
       # This may have trashed the checksum so we need to make sure
       # it's consistent
       $tmpmsb->checksum( $msb->checksum );

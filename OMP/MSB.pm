@@ -3551,6 +3551,11 @@ sub unroll_obs {
     $config{PROJECTID} = $self->projectID;
     $config{SUSPENDED} = $self->isSuspended;
     $config{REMOTE_TRIGGER} = { $self->remote_trigger };
+    # In the case of undefined titles, the POD for "msbtitle" appears to claim
+    # both that it returns undef and that it returns "-".  Intercept "-" and
+    # turn it back to undef.
+    my $msbtitle = $self->msbtitle();
+    $config{'MSBTITLE'} = ($msbtitle eq '-') ? undef : $msbtitle;
 
     # this counts the number of "observes" in an SpObs
     # the "minor" counter
