@@ -122,7 +122,7 @@ sub insert_setup_obs {
     <estimatedDuration units="seconds">60.0</estimatedDuration>
     <priority>99</priority>
     <standard>false</standard>
-    <title>Observation</title>
+    <title>SCUBA-2 Setup</title>
     <totalDuration units="seconds">0.0</totalDuration>
     <SpInstSCUBA2 id="0" type="oc" subtype="inst.SCUBA2">
       <meta_unique>true</meta_unique>
