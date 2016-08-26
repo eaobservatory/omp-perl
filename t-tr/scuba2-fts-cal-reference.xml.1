@@ -97,6 +97,10 @@
                  COMMENT="Data Reduction group ID"
                  VALUE="" />
          <HEADER TYPE="STRING"
+                 KEYWORD="MSBTITLE"
+                 COMMENT="Title of minimum schedulable block"
+                 VALUE="SCUBA-2 Setup" />
+         <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
                  VALUE="629945587e0e9e3637250b90413813be" />
@@ -179,6 +183,12 @@
                  COMMENT="[d] UT1-UTC correction"
                  VALUE="" >
             <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DTAI"
+                 COMMENT="[s] TAI-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELAT" EVENT="START" MULT="86400.0" />
          </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="OBSID"
