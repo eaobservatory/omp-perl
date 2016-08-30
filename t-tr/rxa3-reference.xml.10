@@ -1228,7 +1228,7 @@
             <target>
                <targetName>OMC-1</targetName>
                <spherSystem SYSTEM="J2000">
-                  <c1>05:35:14.0</c1>
+                  <c1>05:35:14.000</c1>
                   <c2>-05:22:24.00</c2>
                   <rv defn="radio" frame="LSR">0.0</rv>
                </spherSystem>
@@ -1243,7 +1243,7 @@
             <target>
                <targetName></targetName>
                <spherSystem SYSTEM="J2000">
-                  <c1>05:35:14.0</c1>
+                  <c1>05:35:14.000</c1>
                   <c2>-05:22:24.00</c2>
                   <rv defn="radio" frame="LSR">0.0</rv>
                </spherSystem>
@@ -1295,7 +1295,7 @@
             <cube id="CUBE1">
                <group_centre>
                   <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.0</c1>
+                     <c1>05:35:14.000</c1>
                      <c2>-05:22:24.00</c2>
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
