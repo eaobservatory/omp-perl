@@ -173,6 +173,21 @@ sub getMSBID {
   return $info{MSBID};
 }
 
+=item B<getMSBTitle>
+
+Get the title of the MSB.
+
+=cut
+
+sub getMSBTitle {
+    my $class = shift;
+    my $cfg = shift;
+    my %info = @_;
+    my $title = $info{'MSBTITLE'};
+    return undef unless defined $title;
+    return substr($title, 0, 68);
+}
+
 =item B<getRemoteAgent>
 
 =cut

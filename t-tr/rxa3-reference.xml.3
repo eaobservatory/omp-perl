@@ -188,6 +188,10 @@
                  COMMENT="Data Reduction group ID"
                  VALUE="" />
          <HEADER TYPE="STRING"
+                 KEYWORD="MSBTITLE"
+                 COMMENT="Title of minimum schedulable block"
+                 VALUE="N7538IRS1 CS(5-4) 244.9357 1GHz Best SB" />
+         <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
                  VALUE="d2bf83ef05985c975b05cfe62d0841b4A" />
@@ -266,6 +270,12 @@
                  COMMENT="[d] UT1-UTC correction"
                  VALUE="" >
             <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DTAI"
+                 COMMENT="[s] TAI-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELAT" EVENT="START" MULT="86400.0" />
          </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="OBSID"

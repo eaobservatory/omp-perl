@@ -99,6 +99,10 @@
                  COMMENT="Data Reduction group ID"
                  VALUE="" />
          <HEADER TYPE="STRING"
+                 KEYWORD="MSBTITLE"
+                 COMMENT="Title of minimum schedulable block"
+                 VALUE="POL-2 Stare with Microsteps" />
+         <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
                  VALUE="cfedddc89ed77843a2946cd037e72b63" />
@@ -181,6 +185,12 @@
                  COMMENT="[d] UT1-UTC correction"
                  VALUE="" >
             <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DTAI"
+                 COMMENT="[s] TAI-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELAT" EVENT="START" MULT="86400.0" />
          </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="OBSID"

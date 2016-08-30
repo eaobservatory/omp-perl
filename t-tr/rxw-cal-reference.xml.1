@@ -187,6 +187,10 @@
                  COMMENT="Data Reduction group ID"
                  VALUE="" />
          <HEADER TYPE="STRING"
+                 KEYWORD="MSBTITLE"
+                 COMMENT="Title of minimum schedulable block"
+                 VALUE="RxWB Point Focus-ZXY (7-sample)" />
+         <HEADER TYPE="STRING"
                  KEYWORD="MSBID"
                  COMMENT="Id of minimum schedulable block"
                  VALUE="b030f7b3450a340a5e051174f2a67e61" />
@@ -265,6 +269,12 @@
                  COMMENT="[d] UT1-UTC correction"
                  VALUE="" >
             <DRAMA TASK="PTCS" PARAM="TPM.DELUT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="FLOAT"
+                 KEYWORD="DTAI"
+                 COMMENT="[s] TAI-UTC correction"
+                 VALUE="" >
+            <DRAMA TASK="PTCS" PARAM="TPM.DELAT" EVENT="START" MULT="86400.0" />
          </HEADER>
          <HEADER TYPE="STRING"
                  KEYWORD="OBSID"
