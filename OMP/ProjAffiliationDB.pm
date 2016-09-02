@@ -28,6 +28,7 @@ our %AFFILIATION_NAMES = (
     jp => 'Japan',
     tw => 'Taiwan',
     uk => 'UK',
+    zz => 'Unknown',
 );
 
 # List of recognised affiliations.
