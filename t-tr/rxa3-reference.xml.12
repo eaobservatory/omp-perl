@@ -1226,7 +1226,7 @@
             <target>
                <targetName>OMC-1</targetName>
                <spherSystem SYSTEM="J2000">
-                  <c1>05:35:14.0</c1>
+                  <c1>05:35:14.000</c1>
                   <c2>-05:22:24.00</c2>
                   <rv defn="radio" frame="LSR">0.0</rv>
                </spherSystem>
@@ -1241,7 +1241,7 @@
             <target>
                <targetName>OMC-1</targetName>
                <spherSystem SYSTEM="J2000">
-                  <c1>05:35:14.0</c1>
+                  <c1>05:35:14.000</c1>
                   <c2>-05:22:24.00</c2>
                   <rv defn="radio" frame="LSR">0.0</rv>
                </spherSystem>
@@ -1292,7 +1292,7 @@
             <cube id="CUBE1">
                <group_centre>
                   <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.0</c1>
+                     <c1>05:35:14.000</c1>
                      <c2>-05:22:24.00</c2>
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
@@ -1319,7 +1319,7 @@
             <cube id="CUBE2">
                <group_centre>
                   <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.0</c1>
+                     <c1>05:35:14.000</c1>
                      <c2>-05:22:24.00</c2>
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
@@ -1346,7 +1346,7 @@
             <cube id="CUBE3">
                <group_centre>
                   <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.0</c1>
+                     <c1>05:35:14.000</c1>
                      <c2>-05:22:24.00</c2>
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
@@ -1373,7 +1373,7 @@
             <cube id="CUBE4">
                <group_centre>
                   <spherSystem SYSTEM="J2000">
-                     <c1>05:35:14.0</c1>
+                     <c1>05:35:14.000</c1>
                      <c2>-05:22:24.00</c2>
                      <rv defn="radio" frame="LSR">0.0</rv>
                   </spherSystem>
@@ -3107,7 +3107,7 @@
    <dr_machine virtual_machine="specwriter_machine" real_machine="acsis11"/>
    <dr_machine virtual_machine="fe_wrapper_machine" real_machine="acsis11"/>
    <dr_disp_machine virtual_machine="dr_disp_machine" real_machine="acsis10"/>
-   <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="awa.eao.hawaii.edu"/>
+   <dr_disp_machine virtual_machine="dr_disp_remote" real_machine="awa"/>
    <dr_machine virtual_machine="rxa_micro" real_machine="rxa" no_nuke="1"/>
 
 

@@ -224,9 +224,9 @@ sub _package_data_cadc {
         "You will be required to authenticate yourself to CADC. Note that calibration observations are not password protected so you may be asked for your password midway through the transfer. </P>";
 
   print "<p>To have access to any proprietary data, <B>you must have
-   registered your CADC userid with the JAC.</B> Access permissions
+   registered your CADC userid with the EAO.</B> Access permissions
    at the CADC are assigned to each file based on the CADC userid
-   supplied with the data by the JAC.  It is not sufficient to have a
+   supplied with the data by the EAO.  It is not sufficient to have a
    userid at both institutions, even if they are the same!</p>\n";
 
   # Write a feedback message even though we can not be sure the person will click on the link
