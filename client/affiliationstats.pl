@@ -89,18 +89,29 @@ print "\nAffiliation summary:\n\n";
 
 my %percentages = ();
 while (my ($affiliation, $observed) = each %affiliations) {
-    $percentages{$affiliation} = 100.0 * $observed
-        / $allocations->{$semester}->{$affiliation}->{'allocation'};
+    my $allocation = $allocations->{$semester}->{$affiliation}->{'allocation'};
+    $percentages{$affiliation} = (defined $allocation)
+                               ? 100.0 * $observed / $allocation
+                               : undef;
 }
 
 foreach my $affiliation (sort {$percentages{$b} <=> $percentages{$a}}
         keys %affiliations) {
     my $allocation = $allocations->{$semester}->{$affiliation}->{'allocation'};
-    printf "%-20s %8.2f / %8.2f (%5.1f %%)\n",
+    my $percentage = $percentages{$affiliation};
+    my $pattern = "%-20s %8.2f / %8.2f";
+    my @parameters = (
         $AFFILIATION_NAMES{$affiliation},
         $affiliations{$affiliation},
         $allocation,
-        $percentages{$affiliation};
+    );
+
+    if (defined $percentage) {
+        $pattern .= " (%5.1f %%)";
+        push @parameters, $percentage;
+    }
+
+    printf $pattern . "\n", @parameters;
 }
 
 if ($store_to_database) {
