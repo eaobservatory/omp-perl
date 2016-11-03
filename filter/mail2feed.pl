@@ -11,6 +11,7 @@ use strict;
 use Getopt::Long qw[ :config gnu_compat no_ignore_case require_order ];
 use Pod::Usage;
 use Mail::Audit;
+use Encode qw/decode/;
 
 use lib "/jac_sw/omp/msbserver";
 use OMP::FBServer;
@@ -85,9 +86,9 @@ sub accept_feedback {
   $audit->log(1 => "Accepting [VERSION=$VERSION]");
 
   # Get the information we need
-  my $from = $audit->get("from");
+  my $from = decode('MIME-Header', $audit->get("from"));
   my $srcip = (  $from =~ /@(.*)\b/ ? $1 : $from );
-  my $subject = $audit->get("subject");
+  my $subject = decode('MIME-Header', $audit->get("subject"));
   my $text;
 
   # Get body of email.
@@ -228,7 +229,7 @@ sub extract_body {
 # Return 1 if subject found, else false
 sub projectid {
   my $audit = shift;
-  my $subject = $audit->get("subject");
+  my $subject = decode('MIME-Header', $audit->get("subject"));
 
   # Attempt to match
   my $pid = OMP::General->extract_projectid( $subject );
