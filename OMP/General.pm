@@ -404,7 +404,7 @@ sub extract_projectid {
     qr{ \b
         ( u
           / 1[3-9][ab]
-          / (?: lm | ua | na ) (?: [0-9][1-9] | [1-9]0 ) [a-z]?
+          / (?: lm | ua | na | osu | nau ) (?: [0-9][1-9] | [1-9]0 ) [a-z]?
         )
         \b
       }xi;
