@@ -721,7 +721,7 @@ sub _db_update_data {
     # check for text and quote if needed
     # If "undef" we need to use NULL
     if (defined $change->{$col}) {
-      $change->{$col} = "'" . $change->{$col} . "'"
+      $change->{$col} = "'" . $self->_quote_text_insert($change->{$col}) . "'"
         if $change->{$col} =~ /[A-Za-z:]/;
     } else {
       $change->{$col} = "NULL";
