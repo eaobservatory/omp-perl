@@ -439,7 +439,7 @@ sub edit_details {
     my $doupdate = 1; # allow updates
     if ( $q->param("name") ) {
       # we were given a value
-      if ($q->param("name") =~ /^([\w\s\.\-\(\)]+)$/) {
+      if ($q->param("name") =~ /^([\w\s\.\-\(\)']+)$/) {
 	$from_form{name} = $1;
         # trim leading space
         $from_form{name} =~ s/^\s*//;
