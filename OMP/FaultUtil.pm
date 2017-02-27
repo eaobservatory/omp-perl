@@ -57,6 +57,11 @@ sub format_fault {
   # Get the fault system URL
   my $baseurl = OMP::Config->getData('omp-url') . OMP::Config->getData('cgidir');
 
+  # Set link to response page
+  my $url = "$baseurl/viewfault.pl?id=$faultid";
+
+  my $responselink = qq[<a href="$url">$url</a>];
+
   # Get the fault response(s)
   my @responses = $fault->responses;
 
@@ -103,6 +108,9 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     # Make it noticeable if this fault is urgent
     push(@faulttext, "<div align=center><b>* * * * * URGENT * * * * *</b></div><br>")
       if $fault->isUrgent;
+
+    # Include a response link at the top for convenience.
+    push(@faulttext, "To respond to this fault go to $responselink<br>\n--------------------------------<br>\n<br>\n");
 
     # If we aren't bottom posting arrange the responses in descending order
     my @order;
@@ -166,13 +174,8 @@ sprintf("%-58s %s","<b>Time lost:</b> $loss" . "$faultdatetext","$status ").
     push(@faulttext, "$meta================================================================================<br>$text<br><br>");
   }
 
-  # Set link to response page
-  my $url = "$baseurl/viewfault.pl?id=$faultid";
-
-  my $responselink = qq[<a href="$url">here</a>];
-
   # Add the response link to the bottom of our message
-  push(@faulttext, "--------------------------------<br>To respond to this fault go $responselink<br><br>$url\n<br>\n");
+  push(@faulttext, "--------------------------------<br>To respond to this fault go to $responselink<br>\n");
 
   return join('',@faulttext);
 }
