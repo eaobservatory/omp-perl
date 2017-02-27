@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 11;
+use Test::More tests => 13;
 use strict;
 require_ok("OMP::User");
 require_ok("OMP::Fault");
@@ -68,3 +68,21 @@ my $string = "$fault";
 my @lines = split("\n", $string);
 $string = join("", map { "#$_\n"} @lines);
 print $string;
+
+# Test safety fault locations.  By default we should now hide "JAC".
+is_deeply({OMP::Fault->faultLocation_Safety(include_hidden => 1)}, {
+    'In transit' => 4000,
+    JAC => 4001,
+    HP => 4002,
+    JCMT => 4003,
+    UKIRT => 4004,
+    EAO => 4005,
+});
+
+is_deeply({OMP::Fault->faultLocation_Safety()}, {
+    'In transit' => 4000,
+    HP => 4002,
+    JCMT => 4003,
+    UKIRT => 4004,
+    EAO => 4005,
+});

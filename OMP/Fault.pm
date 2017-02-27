@@ -172,6 +172,7 @@ use constant {
   HP     => IN_TRANSIT + 2,
   JCMT   => IN_TRANSIT + 3,
   UKIRT  => IN_TRANSIT + 4,
+  EAO    => IN_TRANSIT + 5,
 };
 
 # Facility - system.
@@ -534,8 +535,13 @@ my %LOCATION = (
                   'JCMT' => JCMT,
                   'HP' => HP,
                   'JAC' => JAC,
+                  'EAO' => EAO,
                   'In transit' => IN_TRANSIT
                 );
+
+my %LOCATION_HIDDEN = (
+    JAC => 1,
+);
 
 # Miscellaneous options for each category
 my %OPTIONS = (
@@ -860,7 +866,15 @@ sub faultStatusClosed_Safety {
 sub faultLocation_Safety {
 
   my $class = shift;
-  return %LOCATION;
+  my %opt = @_;
+
+  return %LOCATION if $opt{'include_hidden'};
+
+  my %non_hidden;
+  $non_hidden{$_} = $LOCATION{$_}
+    foreach grep {! $LOCATION_HIDDEN{$_}} keys %LOCATION;
+
+  return %non_hidden;
 }
 
 sub faultStatus_JCMTEvents {
