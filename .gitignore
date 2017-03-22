@@ -4,3 +4,8 @@
 acsis_*.xml
 translated_*.xml
 scuba2_*.xml
+
+/MYMETA.*
+/Makefile
+/blib
+/pm_to_blib
