@@ -1,8 +1,12 @@
 *~
 ._*
+.*.swp
 
 acsis_*.xml
 translated_*.xml
 scuba2_*.xml
-x-maren
-x-maren/*
+
+/MYMETA.*
+/Makefile
+/blib
+/pm_to_blib

@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 166;
+use Test::More tests => 168;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -346,6 +346,8 @@ my %extract = (
                'u/14a/ua20' => 'University of Arizona project<u/14a/ua20>',
                'u/14a/ua88' => 'University of Arizona project, u/14a/ua88',
                'U/14A/UA99' => 'U/14A/UA99 would be the last University of Arizona project.',
+               'U/17A/OSU99' => 'OSU project U/17A/OSU99',
+               'U/17A/NAU99' => 'NAU project U/17A/NAU99',
                'u/ua/casu'  => 'Univ of AZ as semester in u/ua/casu',
                'u/ua/wfau'  => 'Univ of AZ as semester in u/ua/wfau',
                'u/lm/casu'  => 'Lockheed Martin as semester in u/lm/casu',
