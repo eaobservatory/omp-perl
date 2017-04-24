@@ -1056,7 +1056,7 @@ Set the URL of the style-sheet
 =cut
 
 {
-  my $EXPTIME = 40;
+  my $EXPTIME = 120;
   my $STYLE = OMP::Config->getData('omp-url') . OMP::Config->getData('www-css');
 
   sub _get_exp_time {
