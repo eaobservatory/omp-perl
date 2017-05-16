@@ -373,7 +373,7 @@ sub _write_staff_login {
   print "<strong>The login details you provided were incorrect.</strong><br><br>"
     if (defined $arg);
 
-  print "These pages are restricted to JAC staff only.  Please provide your user ID and the staff password.<br>";
+  print "These pages are restricted to EAO and UKIRT staff only.  Please provide your user ID and the staff password.<br>";
 
   print "<table><tr valign=bottom><td align=right>";
   print $q->startform;
