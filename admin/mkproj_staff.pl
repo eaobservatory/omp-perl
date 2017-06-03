@@ -100,7 +100,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject( $pass, $force, @details[0..10] );
+    OMP::ProjServer->addProject( $pass, $force, @details[0..10], 1 );
   }
 
 }
