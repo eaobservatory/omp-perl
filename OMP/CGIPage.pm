@@ -944,8 +944,7 @@ sub _get_default_cookie_params {
   if ($q->param('projectid')) {
     $params{projectid} = $q->param('projectid');
   }
-
-  if ($q->url_param('urlprojid')) {
+  elsif ($q->url_param('urlprojid')) {
     $params{projectid} = $q->url_param('urlprojid');
   }
 
@@ -1137,6 +1136,7 @@ sub _verify_login {
   my %cookie = $c->getCookie;
 
   # Use URL parameter projectid if it's available
+  # (except when projectid and password parameters both specified)
   my $projectid = $q->url_param('urlprojid');
   my $password;
 
@@ -1147,8 +1147,7 @@ sub _verify_login {
     $password = $cookie{password};
   } elsif (defined $q->param('projectid') and defined $q->param('password')) {
     # Use query parameter details
-    $projectid = $q->param('projectid')
-      unless (defined $projectid);
+    $projectid = $q->param('projectid');
     $password = $q->param('password');
   } else {
     # No login details exist
