@@ -875,7 +875,7 @@ sub RaiseComment {
   my @comments = $obs->comments;
   $status = $obs->status;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1151,7 +1151,7 @@ sub RaiseMultiComment {
 
   my @insts = keys %obs;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1337,7 +1337,7 @@ sub RaiseMSBComment {
 
   $id->cancel if defined $id;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title( "OMP MSB Log Tool: $title" );
 
   # $commentFrame contains the entire frame.
@@ -1935,7 +1935,7 @@ sub raise_shift_comment {
   my $TZ = "LocalTime";
   my $RefTime;
 
-  my $ShiftCommentWindow = MainWindow->new;
+  my $ShiftCommentWindow = $MW->Toplevel();
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
