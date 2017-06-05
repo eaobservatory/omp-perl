@@ -682,7 +682,7 @@ sub write_page_staff {
   my $q = $self->cgi;
 
   # Initialize the cookie
-  $self->_set_cookie(name=>"OMPSTAFF");
+  $self->_set_cookie(name=>"OMPSTAFF", exp_time => 2880);
   my $cookie = $self->_get_cookie("OMPSTAFF");
   my %cookie;
 
@@ -724,7 +724,7 @@ sub write_page_staff {
     # cookie and continue as normal.
     $cookie{userid} = $userid;
     $cookie{password} = $password;
-    $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie);
+    $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie, exp_time => 2880);
 
     $self->write_page(@args);
   } else {
@@ -733,89 +733,6 @@ sub write_page_staff {
   }
 }
 
-=item B<write_page_admin>
-
-Like write_page_staff but takes the admin password instead.
-
-  $cgi->write_page_admin( \&form_content, \&form_output );
-
-In order for the output subroutine to be called, the form that submits
-parameters should also contain a CGI query parameter called B<show_output>:
-
-  $query->start_form;
-
-  $query->textfield(name=>'name', value=>'Bob');
-
-  $query->hidden(name=>'show_output', value=>'true');
-
-  $query->submit;
-
-  $query->end_form;
-
-=cut
-
-sub write_page_admin {
-  my $self = shift;
-  my ($form_content, $form_output) = @_;
-
-  my $q = $self->cgi;
-
-  my $c = new OMP::Cookie( CGI => $q, );
-  $self->cookie( $c );
-
-  my %cookie = $c->getCookie;
-
-  # If we just came from the login form override the cookie contents with
-  # the query parameters.
-  if ($q->param('login_form')) {
-    $cookie{userid} = $q->param('userid');
-    $cookie{password} = $q->param('password');
-  }
-
-  my $verifyuser;
-  my $verifypass;
-  if ($cookie{userid} and $cookie{password}) {
-    $verifyuser = OMP::UserServer->verifyUser($cookie{userid});
-    $verifypass = OMP::Password->verify_administrator_password($cookie{password});
-  }
-
-  $self->_make_theme;
-
-  if ($verifyuser and $verifypass) {
-    # The user ID and password have been verified.  Continue as normal.
-    $c->setCookie( $self->_get_exp_time, %cookie );
-
-    $self->_write_header();
-
-    if ($q->param('show_output')) {
-      $form_output->($q, %cookie);
-    } else {
-      $form_content->($q, %cookie);
-    }
-
-      $self->_write_footer();
-
-  } else {
-    # The user ID and password were not verified.  This could be because
-    # we haven't attempted to log in yet, or because the password or user ID
-    # provided on the login page were incorrect.
-
-    if ($q->param('login_form')) {
-      # The login form was filled out, but atleast some of the information provided
-      # was incorrect
-
-      if (! $verifyuser or ! $verifypass) {
-	$self->_write_admin_login();
-      }
-
-    } else {
-
-      # We haven't been to the login page yet so let's go there
-      $self->_write_admin_login;
-    }
-  }
-
-}
 
 =item B<write_page_logout>
 
@@ -944,8 +861,7 @@ sub _get_default_cookie_params {
   if ($q->param('projectid')) {
     $params{projectid} = $q->param('projectid');
   }
-
-  if ($q->url_param('urlprojid')) {
+  elsif ($q->url_param('urlprojid')) {
     $params{projectid} = $q->url_param('urlprojid');
   }
 
@@ -1007,6 +923,7 @@ accepted:
   params - The key=value pairs to store to the cookie as a hash
            reference. If not provided, cookie will retain its
            current values.
+  exp_time - Expiry time (minutes).
 
 =cut
 
@@ -1031,7 +948,7 @@ sub _set_cookie {
   %params = (%params ? (%curr_params, %params) : %curr_params);
 
   # Now set and store the cookie
-  $cookie->setCookie( $self->_get_exp_time, %params );
+  $cookie->setCookie( ($args{'exp_time'} // $self->_get_exp_time), %params );
   $self->cookie( $cookie );
 
   return;
@@ -1137,6 +1054,7 @@ sub _verify_login {
   my %cookie = $c->getCookie;
 
   # Use URL parameter projectid if it's available
+  # (except when projectid and password parameters both specified)
   my $projectid = $q->url_param('urlprojid');
   my $password;
 
@@ -1147,8 +1065,7 @@ sub _verify_login {
     $password = $cookie{password};
   } elsif (defined $q->param('projectid') and defined $q->param('password')) {
     # Use query parameter details
-    $projectid = $q->param('projectid')
-      unless (defined $projectid);
+    $projectid = $q->param('projectid');
     $password = $q->param('password');
   } else {
     # No login details exist

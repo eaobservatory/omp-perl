@@ -82,6 +82,10 @@ Specify default semester to use.
 
 Specify default telescope.
 
+=item B<--disable>
+
+Create projects in the "disabled" state.
+
 =back
 
 =head1 FORMAT
@@ -156,11 +160,12 @@ our $VERSION = '2.000';
 
 # Options
 my $do_country_check = 1;
-my ($help, $man, $version,$force, %defaults );
+my ($help, $man, $version,$force, $disable, %defaults );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "force" => \$force,
+                        "disable" => \$disable,
                         'no-cc|no-country-check' => sub { $do_country_check = 0 ; },
 
                         "country=s"   => \$defaults{'country'},
@@ -384,6 +389,7 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
                                 $seemin,$seemax,
                                 $cloudmin, $cloudmax,
                                 $skymin, $skymax,
+                                ($disable ? 0 : 1),
                                );
 
   } catch OMP::Error::ProjectExists with {

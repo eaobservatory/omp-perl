@@ -333,7 +333,8 @@ Add details of a project to the database.
 			      $semester, $proj_password, $allocated
                               $telescope, $taumin, $taumax, 
 			      $seemin, $seemax, $cloudmin, $cloudmax,
-                              $skymin, $skymax
+                              $skymin, $skymax,
+                              $state
                              );
 
 The first password is used to verify that you are allowed to modify
@@ -458,6 +459,7 @@ sub addProject {
 				seeingrange => $seerange,
 				cloudrange => $cloudrange,
 				skyrange => $skyrange,
+				state => $project[20],
 			       );
 
     my $db = new OMP::ProjDB(

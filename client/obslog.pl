@@ -49,11 +49,6 @@ I<-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*>.
 Another font to try is C<{Dejavu LGC Sans Mono}:8:medium>. If you do, you may also
 need to change the window size via I<-geometry> option.
 
-=item B<-font-comment> | B<-fc> font-description
-
-Specify the font for comments; default is same as metioned in I<-font>
-description.
-
 =item B<-font-fixed> | B<-ff> font-description
 
 Specify the fixed-width font; default is same as metioned in I<-font>
@@ -193,8 +188,8 @@ my %opt = ( 'geometry'         => '785x450' ,
             'font-fixed' =>
               '-*-Courier-Medium-R-Normal--*-120-*-*-*-*-*-*' ,
           );
-# variable width font & font used for comments/summary.
-( $opt{'font-var'} , my $CONTENTFONT ) = ( $opt{'font-fixed'} ) x2;
+# variable width font.
+$opt{'font-var'} = $opt{'font-fixed'};
 
 my ( $help, $man, $version );
 # Look in database by default.
@@ -208,7 +203,6 @@ my $status = GetOptions("ut=s"  => \$opt{ut},
                         'width=i'    => \$BREAK,
                         'geometry=s' => \$opt{'geometry'},
 
-                        'font-comment|fc=s'  => \$CONTENTFONT,
                         'font-fixed|ff=s'    => \$opt{'font-fixed'},
                         'font-var|fv=s'      => \$opt{'font-var'},
                         'font=s'             => \$opt{'font-all'},
@@ -250,7 +244,7 @@ for my $fn ( grep { /font-/ && defined $opt{ $_ } } keys %opt ) {
 }
 
 $opt{'font-all'}
-  and $opt{'font-fixed'} = $opt{'font-var'} = $CONTENTFONT = $opt{'font-all'};
+  and $opt{'font-fixed'} = $opt{'font-var'} = $opt{'font-all'};
 
 #  Table data, looks best in monospace font.
 my ( $HEADERFONT , $LISTFONT ) = ( $opt{'font-fixed'} ) x 2;
@@ -875,7 +869,7 @@ sub RaiseComment {
   my @comments = $obs->comments;
   $status = $obs->status;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1151,7 +1145,7 @@ sub RaiseMultiComment {
 
   my @insts = keys %obs;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1337,7 +1331,7 @@ sub RaiseMSBComment {
 
   $id->cancel if defined $id;
 
-  my $CommentWindow = MainWindow->new;
+  my $CommentWindow = $MW->Toplevel();
   $CommentWindow->title( "OMP MSB Log Tool: $title" );
 
   # $commentFrame contains the entire frame.
@@ -1373,7 +1367,7 @@ sub RaiseMSBComment {
   my $summaryFrame = $contentFrame->Scrolled( 'Text',
                                               -wrap => 'word',
                                               -relief => 'flat',
-                                              -font => $CONTENTFONT,
+                                              -font => $opt{'font-var'},
                                               -takefocus => 0,
                                               -state => 'disabled',
                                               -scrollbars => 'oe',
@@ -1401,7 +1395,7 @@ sub RaiseMSBComment {
                                         -scrollbars => 'oe',
                                         -state => 'disabled',
                                         -borderwidth => 0,
-                                        -font => $CONTENTFONT,
+                                        -font => $opt{'font-var'},
                                       )->pack( -side => 'top',
                                                 -fill => 'x',
                                               );
@@ -1505,7 +1499,6 @@ sub RaiseMSBComment {
             : $max <= $rows ? $max
               : $rows ;
     $histText->configure( -height => $rows,
-                          -font => $opt{'font-var'},
                         );
 
     $histText->configure( -state => 'normal' );
@@ -1935,7 +1928,7 @@ sub raise_shift_comment {
   my $TZ = "LocalTime";
   my $RefTime;
 
-  my $ShiftCommentWindow = MainWindow->new;
+  my $ShiftCommentWindow = $MW->Toplevel();
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
