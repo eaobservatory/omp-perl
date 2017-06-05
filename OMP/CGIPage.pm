@@ -682,7 +682,7 @@ sub write_page_staff {
   my $q = $self->cgi;
 
   # Initialize the cookie
-  $self->_set_cookie(name=>"OMPSTAFF");
+  $self->_set_cookie(name=>"OMPSTAFF", exp_time => 2880);
   my $cookie = $self->_get_cookie("OMPSTAFF");
   my %cookie;
 
@@ -724,7 +724,7 @@ sub write_page_staff {
     # cookie and continue as normal.
     $cookie{userid} = $userid;
     $cookie{password} = $password;
-    $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie);
+    $self->_set_cookie(name=>"OMPSTAFF", params=>\%cookie, exp_time => 2880);
 
     $self->write_page(@args);
   } else {
@@ -923,6 +923,7 @@ accepted:
   params - The key=value pairs to store to the cookie as a hash
            reference. If not provided, cookie will retain its
            current values.
+  exp_time - Expiry time (minutes).
 
 =cut
 
@@ -947,7 +948,7 @@ sub _set_cookie {
   %params = (%params ? (%curr_params, %params) : %curr_params);
 
   # Now set and store the cookie
-  $cookie->setCookie( $self->_get_exp_time, %params );
+  $cookie->setCookie( ($args{'exp_time'} // $self->_get_exp_time), %params );
   $self->cookie( $cookie );
 
   return;
