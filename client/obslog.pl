@@ -163,7 +163,6 @@ our $VERSION = '2.000';
 
 # global variables
 $| = 1;
-my $MainWindow;          # The Toplevel frame for obslog itself
 my $obslog;              # refers to the object that holds the obslog information
 my %obs;                 # keys are instruments, values are ObsGroup objects
 my %obs_ref;             # Quick lookup for observations.
@@ -235,12 +234,12 @@ my $user;
 # Create a mainwindow that can be shared by everyone
 # we have found that creating two MainWindow's sometimes leads
 # to core dumps on some X servers
-my $MW = new MainWindow;
-$MW->withdraw; # hide it
+my $MainWindow = new MainWindow;
+$MainWindow->withdraw; # hide it
 
 for my $fn ( grep { /font-/ && defined $opt{ $_ } } keys %opt ) {
 
-  $opt{ $fn } = font_parse( $MW , $opt{ $fn } );
+  $opt{ $fn } = font_parse( $MainWindow , $opt{ $fn } );
 }
 
 $opt{'font-all'}
@@ -252,7 +251,7 @@ my ( $HEADERFONT , $LISTFONT ) = ( $opt{'font-fixed'} ) x 2;
 #  Make bold font.
 for my $fn ( qw[ font-fixed font-var ] ) {
 
-  $opt{ qq[$fn-bold] } = font_medium_to_bold_it( $MW , $opt{ $fn } );
+  $opt{ qq[$fn-bold] } = font_medium_to_bold_it( $MainWindow , $opt{ $fn } );
 }
 
 
@@ -260,7 +259,7 @@ my $telescope;
 if(defined($opt{tel})) {
   $telescope = uc($opt{tel});
 } else {
-  my $w = $MW->Toplevel;
+  my $w = $MainWindow->Toplevel;
   $w->withdraw;
   $telescope = OMP::General->determine_tel( $w );
   $w->destroy if Exists($w);
@@ -288,7 +287,7 @@ $user = &get_userid();
 MainLoop();
 
 sub get_userid {
-   my $w = $MW->Toplevel;
+   my $w = $MainWindow->Toplevel;
    $w->withdraw;
    my $user = OMP::General->determine_user( $w );
    throw OMP::Error::Authentication("Unable to obtain valid user name")
@@ -298,7 +297,6 @@ sub get_userid {
 }
 
 sub create_main_window {
-  $MainWindow = $MW->Toplevel;
   $MainWindow->title("OMP Observation Log Tool");
   $MainWindow->geometry( $opt{'geometry'} );
 
@@ -400,7 +398,8 @@ sub create_main_window {
                    -expand => 1,
                  );
 
-
+  $MainWindow->deiconify();
+  $MainWindow->raise();
 }
 
 sub new_instrument {
@@ -869,7 +868,7 @@ sub RaiseComment {
   my @comments = $obs->comments;
   $status = $obs->status;
 
-  my $CommentWindow = $MW->Toplevel();
+  my $CommentWindow = $MainWindow->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1145,7 +1144,7 @@ sub RaiseMultiComment {
 
   my @insts = keys %obs;
 
-  my $CommentWindow = $MW->Toplevel();
+  my $CommentWindow = $MainWindow->Toplevel();
   $CommentWindow->title("OMP Observation Log Tool Multiple Observation Commenting System");
 
   # $commentFrame contains the entire frame.
@@ -1331,7 +1330,7 @@ sub RaiseMSBComment {
 
   $id->cancel if defined $id;
 
-  my $CommentWindow = $MW->Toplevel();
+  my $CommentWindow = $MainWindow->Toplevel();
   $CommentWindow->title( "OMP MSB Log Tool: $title" );
 
   # $commentFrame contains the entire frame.
@@ -1928,7 +1927,7 @@ sub raise_shift_comment {
   my $TZ = "LocalTime";
   my $RefTime;
 
-  my $ShiftCommentWindow = $MW->Toplevel();
+  my $ShiftCommentWindow = $MainWindow->Toplevel();
   $ShiftCommentWindow->title( "OMP Shift Log Tool Commenting System");
 
   my $commentFrame = $ShiftCommentWindow->Frame->pack( -side => 'top',
