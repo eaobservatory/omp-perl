@@ -506,6 +506,7 @@ my %DATA = (
                                     'Software-DR'   =>  SOFTWARE_DR    ,
                                     'Telescope'     =>  TELESCOPE      ,
                                     'Water Vapor Monitor' => WATER_VAPOR_RAD ,
+                                    'Other'         =>  SYSTEMOTHER,
                                   },
                       'TYPE' => {
                                   'Hardware' =>  HARDWARE ,
