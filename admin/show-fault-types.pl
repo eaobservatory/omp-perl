@@ -57,6 +57,10 @@ Search fault "Type" for the given string.
 Search for given string as a whole word.
 It is mutually exclusive with I<start> and I<end> options.
 
+=item B<hidden>
+
+Include hidden entries.
+
 =back
 
 =cut
@@ -77,8 +81,7 @@ use OMP::Fault;
 
 
 my ( $match_any, $match_word, $match_start, $match_end ) = ( 1 );
-my ( $category, $system, $type );
-my ( $help );
+my ( $category, $system, $type, $help, $hidden );
 GetOptions( 'help'     => \$help,
 
             'start' =>
@@ -91,6 +94,7 @@ GetOptions( 'help'     => \$help,
             'category=s' => \$category,
             'system=s'   => \$system,
             'type=s'     => \$type,
+            'hidden'     => \$hidden,
           )
   or pod2usage( '-exitval'  => 2 , '-verbose'  => 1 ) ;
 
@@ -108,7 +112,7 @@ sub show {
 
   for my $c ( sort keys %{ $cats } ) {
 
-    my $sys_o  = make_system( $c, $sys ) or next;
+    my $sys_o  = make_system( $c, $sys, $hidden ) or next;
     my $type_o = make_type( $c, $type ) or next;
 
     printf "\n%s: %s\n",
@@ -128,9 +132,9 @@ sub show {
 
 sub make_system {
 
-  my ( $cat, $sys ) = @_;
+  my ( $cat, $sys, $hidden ) = @_;
 
-  return _make_type_or_sys( $sys, OMP::Fault->faultSystems( $cat ) );
+  return _make_type_or_sys( $sys, OMP::Fault->faultSystems( $cat, include_hidden => $hidden ) );
 }
 
 sub make_type {

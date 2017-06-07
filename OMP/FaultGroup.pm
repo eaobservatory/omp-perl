@@ -580,7 +580,7 @@ sub _getSystems {
   # a default value
   my %systems;
   for my $category (@categories) {
-    my $sysref = OMP::Fault->faultSystems($category);
+    my $sysref = OMP::Fault->faultSystems($category, include_hidden => 1);
     map {$systems{$category}{$_} = $default} keys %$sysref;
   }
 

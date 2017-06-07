@@ -3,6 +3,7 @@
 # Test OMP::Fault
 
 # Copyright (C) 2002-2005 Particle Physics and Astronomy Research Council.
+# Copyright (C) 2017 East Asian Observatory.
 # All Rights Reserved.
 
 # This program is free software; you can redistribute it and/or modify it under
@@ -19,7 +20,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 
-use Test::More tests => 13;
+use Test::More tests => 17;
 use strict;
 require_ok("OMP::User");
 require_ok("OMP::Fault");
@@ -85,4 +86,70 @@ is_deeply({OMP::Fault->faultLocation_Safety()}, {
     JCMT => 4003,
     UKIRT => 4004,
     EAO => 4005,
+});
+
+# Test fault systems.
+is_deeply(OMP::Fault->faultSystems('JCMT', include_hidden => 1), {
+    Telescope => 1016,
+    'Back End - DAS' => 1044,
+    'Back End - ACSIS' => 1045,
+    'Back End - CBE' => 1046,
+    'Back End - IFD' => 1047,
+    'Front End - HARP' => 2001,
+    'Front End - RxA' => 1048,
+    'Front End - RxB' => 1049,
+    'Front End - RxW' => 1050,
+    'Front End - RxH3' => 1054,
+    Surface => 1055,
+    SCUBA   => 1051,
+    'SCUBA-2' => 1065,
+    IFS => 1053,
+    'Water Vapor Rad.' => 1052,
+    'Visitor Instruments' => 1042,
+    Instrument => 1043,
+    Computer => 1011,
+    Carousel => 1012,
+    'Other/Unknown' => -1,
+});
+
+is_deeply(OMP::Fault->faultSystems('JCMT'), {
+    Telescope => 1016,
+    'Back End - ACSIS' => 1045,
+    'Front End - HARP' => 2001,
+    'Front End - RxA' => 1048,
+    'Front End - RxH3' => 1054,
+    Surface => 1055,
+    'SCUBA-2' => 1065,
+    IFS => 1053,
+    'Water Vapor Rad.' => 1052,
+    'Visitor Instruments' => 1042,
+    Instrument => 1043,
+    Computer => 1011,
+    Carousel => 1012,
+    'Other/Unknown' => -1,
+});
+
+is_deeply(OMP::Fault->faultSystems('SAFETY'), {
+    'Severe injury or death' => 3004,
+    'Major injury' => 3003,
+    'Minor injury' => 3002,
+    'Equipment damage' => 3001,
+    'Clarification' => 3000,
+    'Environmental issue' => 3005,
+    'Environmental incident' => 3006,
+});
+
+is_deeply(OMP::Fault->faultSystems('VEHICLE_INCIDENT'), {
+    '1'  => 6501,
+    '2'  => 6502,
+    '3'  => 6503,
+    '4'  => 6504,
+    '5'  => 6505,
+    '6'  => 6506,
+    '7'  => 6507,
+    '9'  => 6509,
+    '10' => 6510,
+    '11' => 6511,
+    '13' => 6513,
+    '14' => 6514,
 });
