@@ -346,6 +346,14 @@ my %DATA = (
                                    Carousel => CAROUSEL,
                                    "Other/Unknown" => SYSTEMOTHER,
                                   },
+                        SYSTEM_HIDDEN => {
+                            BACK_END_DAS() => 1,
+                            BACK_END_CBE() => 1,
+                            BACK_END_IFD() => 1,
+                            FRONT_END_RXB() => 1,
+                            FRONT_END_RXW() => 1,
+                            SCUBA() => 1,
+                        },
                         TYPE => {
                                  Mechanical => MECHANICAL,
                                  Electronic => ELECTRONIC,
@@ -540,7 +548,7 @@ my %LOCATION = (
                 );
 
 my %LOCATION_HIDDEN = (
-    JAC => 1,
+    JAC() => 1,
 );
 
 # Miscellaneous options for each category
@@ -742,16 +750,32 @@ Returns empty list if the fault category is not recognized.
 sub faultSystems {
   my $class = shift;
   my $category = uc(shift);
+  my %opt = @_;
 
   return unless exists $DATA{$category};
 
-  return
-    $DATA{$category}{ $category eq 'SAFETY'
-                          ? 'SEVERITY'
-                          : $category eq 'VEHICLE_INCIDENT'
-                            ? 'VEHICLE'
-                            : 'SYSTEM'
-                    };
+  my %cat_section = (
+    SAFETY => 'SEVERITY',
+    VEHICLE_INCIDENT => 'VEHICLE',
+  );
+
+  my $section = $cat_section{$category} // 'SYSTEM';
+
+  my $systems = $DATA{$category}{$section};
+
+  return $systems if $opt{'include_hidden'};
+
+  my $hidden = $DATA{$category}{$section . '_HIDDEN'};
+
+  return $systems unless defined $hidden;
+
+  my %non_hidden = ();
+
+  while (my ($name, $code) = each %$systems) {
+      $non_hidden{$name} = $code unless $hidden->{$code};
+  }
+
+  return \%non_hidden;
 }
 
 =item B<faultTypes>
@@ -871,8 +895,10 @@ sub faultLocation_Safety {
   return %LOCATION if $opt{'include_hidden'};
 
   my %non_hidden;
-  $non_hidden{$_} = $LOCATION{$_}
-    foreach grep {! $LOCATION_HIDDEN{$_}} keys %LOCATION;
+
+  while (my ($name, $code) = each %LOCATION) {
+      $non_hidden{$name} = $code unless $LOCATION_HIDDEN{$code};
+  }
 
   return %non_hidden;
 }
@@ -1850,6 +1876,7 @@ Tim Jenness E<lt>t.jenness@jach.hawaii.eduE<gt>
 =head1 COPYRIGHT
 
 Copyright (C) 2002 Particle Physics and Astronomy Research Council.
+Copyright (C) 2015-2017 East Asian Observatory.
 All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify
