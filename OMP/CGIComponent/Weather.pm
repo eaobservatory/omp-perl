@@ -121,7 +121,7 @@ sub meteogram_plot_code {
 
   my $string = "<a name='meteogram'></a>\n";
   $string .= "<br>";
-  $string .= "<strong class='small_title'>JAC meteogram</strong><p>";
+  $string .= "<strong class='small_title'>EAO meteogram</strong><p>";
   $string .= "<div align=left>";
   $string .= "<img src='$URL'><br><br></p>";
 

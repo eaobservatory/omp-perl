@@ -1694,7 +1694,7 @@ BEGIN {
   push @order, 'ANYCAT';
 
   my %long_text =
-    ( 'CSG'      => 'JAC computer services',
+    ( 'CSG'      => 'EAO computer services',
       'OMP'      => 'Observation Management Project',
       'UKIRT'    => 'UKIRT',
       'JCMT'     => 'JCMT',
