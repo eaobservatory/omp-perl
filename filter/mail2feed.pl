@@ -21,6 +21,9 @@ use OMP::UserServer;
 
 our $VERSION = '0.003';
 
+# Address to which we send rejected messages for inspection.
+my $REJECT_ADDRESS = 'omp_group@eao.hawaii.edu';
+
 my $DRY_RUN;
 GetOptions( 'help|man'  => \( my $help ),
             'n|dry-run' => \$DRY_RUN,
@@ -29,7 +32,7 @@ GetOptions( 'help|man'  => \( my $help ),
 
 $help and pod2usage( '-exitval' => 0, '-verbose' => 3 );
 
-my @order = qw[ loop no-project spam ];
+my @order = qw[ loop no-project spam mailer-daemon ];
 # Give Mail::Audit object & text, the given text is logged in dry run mode,
 # followed by exit with error. Else. a "ignore" or "reject" method is called.
 my %check =
@@ -54,7 +57,20 @@ my %check =
         'action' => ! $DRY_RUN
                     ? sub { $_[0]->reject( $_[1] ) }
                     : \&log_exit
-      }
+      },
+      # Check for messages which Mail::Audit thinks are from a mailer
+      # or a daemon process.
+      'mailer-daemon' => {
+          'text'   => 'Message appears to be from a mailer / daemon.',
+          'test'   => sub {$_[0]->from_mailer() || $_[0]->from_daemon()},
+          'action' => ! $DRY_RUN
+                      ? sub {
+                            $_[0]->put_header('X-OMP-Subject' => $_[0]->get_header('Subject'));
+                            $_[0]->replace_header('Subject' => 'Message rejected by flex (mailer/daemon)');
+                            $_[0]->resend($REJECT_ADDRESS);
+                        }
+                      : \&log_exit
+      },
   );
 
 my $logfile = q[/tmp/omp-mailaudit.log];
