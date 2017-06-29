@@ -73,6 +73,7 @@ my %check =
                             $_[0]->put_header('X-OMP-Error' => $_[1]);
                             $_[0]->replace_header('Subject' => 'Message rejected by flex (mailer/daemon)');
                             $_[0]->replace_header('From' => $REJECT_FROM_ADDRESS);
+                            $_[0]->replace_header('To' => $REJECT_ADDRESS);
                             $_[0]->resend($REJECT_ADDRESS);
                         }
                       : \&log_exit
