@@ -35,7 +35,7 @@ GetOptions( 'help|man'  => \( my $help ),
 
 $help and pod2usage( '-exitval' => 0, '-verbose' => 3 );
 
-my @order = qw[ loop no-project spam mailer-daemon ];
+my @order = qw[ loop spam mailer-daemon no-project ];
 # Give Mail::Audit object & text, the given text is logged in dry run mode,
 # followed by exit with error. Else. a "ignore" or "reject" method is called.
 my %check =
