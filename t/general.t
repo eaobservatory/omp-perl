@@ -19,7 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use strict;
-use Test::More tests => 168;
+use Test::More tests => 172;
 
 use Time::Piece qw/ :override /;
 use Time::Seconds;
@@ -329,12 +329,15 @@ my %extract = (
                'u/uhs/uhs'    => ' u/uhs/uhs which is used for comments and feedback',
                'U/UHS/UHSK03' => 'K band third project: U/UHS/UHSK03',
                'u/uhs/uhsj25' => 'u/uhs/uhsj25 - J band project',
+               'U/UHSK/UHSK'    => ' U/UHSK/UHSK which is used for comments and feedback',
+               'U/UHSK/UHSK25' => 'U/UHSK/UHSK25 - K band project',
                'U/11B/H50C' => '[U/11B/H50C]',
                'u/12a/h01d' => '[u/12a/h01d]',
                'U/15A/H10A1' => 'for U/15A/H10A1 mail bounced back',
                'U/15A/H10A2' => 'have not tried anything for U/15A/H10A2 ...',
                'u/12a/kasi2' => '[u/12a/kasi2]',
                'U/UHS/UHSJ_PATCH' => 'U/UHS/UHSJ_PATCH: UHS J Patch Up',
+               'U/UHSK/UHSK_PATCH' => 'U/UHSK/UHSK_PATCH: UHSK K Patch Up',
                'u/13a/lm01' => 'Lockheed Martin projects start with u/13a/lm01',
                'u/13b/lm10' => 'Lockheed Martin project: u/13b/lm10',
                'u/14a/lm01' => 'Lockheed Martin project: u/14a/lm01',
@@ -360,6 +363,7 @@ my %extract = (
                'U/15A/UA10a' => 'U/15A/UA10a       UA',
                'U/15A/UA13b' => 'U/15A/UA13b      UA',
                'U/15B/NA05A' => 'Project U/15B/NA05A has A suffix',
+               'U/17B/NAV05' => 'Project U/17B/NAV05 for USNO',
               );
 
 for my $proj (keys %extract) {
