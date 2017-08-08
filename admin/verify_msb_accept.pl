@@ -35,6 +35,10 @@ option has not been specified a popup window will request the
 telescope from the supplied list (assume the list contains more
 than one telescope).
 
+=item B<--ignorebad>
+
+Skip files which cannot be read to extract the relevant information.
+
 =item B<-version>
 
 Report the version number.
@@ -83,6 +87,7 @@ our $VERSION = '2.000';
 my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
+                        'ignorebad' => \$opt{'ignorebad'},
                         "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -166,6 +171,7 @@ for my $msb (@sorted_msbdb) {
 print "---> Data headers ----\n";
 my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
 				   date => $ut,
+				   ignorebad => $opt{'ignorebad'},
 				 );
 
 # Go through looking for MSBs

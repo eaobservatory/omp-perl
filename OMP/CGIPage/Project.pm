@@ -201,6 +201,7 @@ sub list_projects_output {
   my $telescope = $q->param('telescope');
   my $order = $q->param('order');
 
+  undef $semester if $semester =~ /any/i;
   ($support eq 'dontcare') and $support = undef;
   ($country =~ /any/i) and $country = undef;
   ($telescope =~ /any/i) and $telescope = undef;

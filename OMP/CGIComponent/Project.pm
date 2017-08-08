@@ -62,6 +62,9 @@ sub list_projects_form {
   my @a = grep {$_ =~ /$sem/i} @sem;
   (!@a) and unshift @sem, $sem;
 
+  # Add "Any" to semester list.
+  unshift @sem, 'Any';
+
   # Get the telescopes for our popup menu
   my @tel = $db->listTelescopes;
   unshift @tel, "Any";

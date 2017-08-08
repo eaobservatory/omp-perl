@@ -92,7 +92,7 @@ sub fb_msb_active {
       }
 
       # Now print the table (with an est. time column) if we have content
-      msb_table(cgi=>$q, msbs=>$active, est_column=>1, telescope=>$proj->telescope,);
+      msb_table(cgi=>$q, msbs=>$active, est_column=>1, opacity_column=>1, telescope=>$proj->telescope,);
 
     }
   }
@@ -525,6 +525,7 @@ keys:
   msbs       - An array reference containing C<OMP::Info::MSB> objects (required).
   est_column - True if an "Est. time" column, for presenting the estimated
                time in seconds, should be presented.
+  opacity_column - True if opacity range column should be presented.
   telescope  - A telescope name.
 
 =cut
@@ -541,6 +542,7 @@ sub msb_table {
   my $q = $args{cgi};
   my $program = $args{msbs};
   my $est_column = $args{est_column};
+  my $opacity_column = $args{'opacity_column'};
   my $telescope = $args{telescope};
 
   # Decide whether to show MSB targets or MSB name
@@ -557,6 +559,8 @@ sub msb_table {
   # Show the estimated time column  if it's been asked for
   print "<td><b>Est. time</b></td>"
     unless (! $est_column);
+
+  print '<td><b>Opacity range</b></td>' if $opacity_column;
 
   # Only bother with a remaining column if we have remaining
   # information
@@ -594,6 +598,16 @@ sub msb_table {
         my $timeest = sprintf "%.2f hours", ($msb->timeest / ONE_HOUR);
         print "<td>$timeest</td>";
       } else {
+        print "<td>--</td>";
+      }
+    }
+
+    if ($opacity_column) {
+      my $opacity_range = $msb->tau();
+      if ($opacity_range) {
+        print '<td>' . $opacity_range . '</td>';
+      }
+      else {
         print "<td>--</td>";
       }
     }
