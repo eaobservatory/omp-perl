@@ -1537,7 +1537,7 @@ sub _store_sciprog_todisk {
 
   # Allow anybody in "software" group to do back up of science program files
   # (parent directory has permissions of "drwxrws--x").
-  umask(026);
+  umask(022);
 
   # Now try to open the file up to 20 times
   # The looping is not really required if combined with the
@@ -1556,7 +1556,7 @@ sub _store_sciprog_todisk {
                                    sprintf($fmt,$projectid,$i));
 
     my $open_success = sysopen($fh, $file,
-                               O_CREAT|O_RDWR|O_EXCL,0600);
+                               O_CREAT|O_RDWR|O_EXCL,0644);
 
     if ($open_success) {
       # abort the loop

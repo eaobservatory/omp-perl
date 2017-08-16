@@ -730,25 +730,30 @@ sub rescan {
                                        ignorebad => 1,
                                      );
     if(!$grp->numobs) {
-      throw OMP::Error("There are no observations available for this night.");
+      # No longer raise an error for there being no observations -- just set
+      # up the dummy "NONE" instrument.  We don't need to call new_instrument
+      # (to lay out the window) if we're not opening a dialog box.
+      %obs = (NONE => undef);
     }
-    my $gaplength = OMP::Config->getData( 'timegap' );
-    $grp->locate_timegaps( $gaplength );
+    else {
+      my $gaplength = OMP::Config->getData( 'timegap' );
+      $grp->locate_timegaps( $gaplength );
 
-    %obs = $grp->groupby('instrument');
-    grp_to_ref( $grp );
+      %obs = $grp->groupby('instrument');
+      grp_to_ref( $grp );
 
-    # Kluge to work around the case where
-    # obs object doesn't have an instrument defined
-    delete $obs{''};
-    throw OMP::Error("Instrument is undefined for all observations.")
-      unless (scalar(keys %obs));
+      # Kluge to work around the case where
+      # obs object doesn't have an instrument defined
+      delete $obs{''};
+      throw OMP::Error("Instrument is undefined for all observations.")
+        unless (scalar(keys %obs));
 
-    my @sorted_obs = sort {
-      $b->startobs <=> $a->startobs
-    } $grp->obs;
+      my @sorted_obs = sort {
+        $b->startobs <=> $a->startobs
+      } $grp->obs;
 
-    $lastinst = $sorted_obs[0]->instrument;
+      $lastinst = $sorted_obs[0]->instrument;
+    }
 
   }
   catch OMP::Error with {
