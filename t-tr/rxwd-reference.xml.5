@@ -9,7 +9,7 @@
       </OBS_SUMMARY>
       <JOS_CONFIG>
          
-         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK1 CORRTASK7 IFTASK</tasks>
+         <tasks>RTS FE_WD PTCS SMU CONTROLLER CORRTASK3 CORRTASK4 CORRTASK6 CORRTASK7 IFTASK</tasks>
          <recipe NAME="grid_pssw">
             <parameters 
                         JOS_MIN="30"
@@ -538,7 +538,7 @@
          <HEADER TYPE="INT"
                  KEYWORD="N_MIX"
                  COMMENT="No. of mixers"
-                 VALUE="1" />
+                 VALUE="4" />
          <HEADER TYPE="STRING"
                  KEYWORD="OBS_SB"
                  COMMENT="The observed sideband"
@@ -566,7 +566,7 @@
          <HEADER TYPE="STRING"
                  KEYWORD="REFRECEP"
                  COMMENT="Receptor with unit sensitivity"
-                 VALUE="DB" />
+                 VALUE="DA" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="MEDTSYS"
                  COMMENT="[K] Median of the T_sys across all pixels"
@@ -1184,7 +1184,9 @@
          <DOPPLER_TRACK ELEC_TUNING="DISCRETE"
                         MECH_TUNING="ONCE" />
          <RECEPTOR_MASK RECEPTOR_ID="DA" VALUE="NEED"/>
-         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ANY"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DB" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DC" VALUE="ON"/>
+         <RECEPTOR_MASK RECEPTOR_ID="DD" VALUE="ON"/>
       </FRONTEND_CONFIG>
       <INSTRUMENT NAME="FE_WD"
                   SERIAL="RxWD2"
@@ -1206,17 +1208,37 @@
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
-            <sensitivity reference="DB"
+            <sensitivity reference="DA"
                          value="1.0" />
             <angle units="rad" value="0.5463" />
          </receptor>
          <receptor id="DB"
                    band="D"
-                   health="OFF"
+                   health="ON"
                    x="0.0"
                    y="0.0"
                    pol_type="Linear" >
-            <sensitivity reference="DB"
+            <sensitivity reference="DA"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="DC"
+                   band="D"
+                   health="ON"
+                   x="0.0"
+                   y="0.0"
+                   pol_type="Linear" >
+            <sensitivity reference="DA"
+                         value="1.0" />
+            <angle units="rad" value="2.117" />
+         </receptor>
+         <receptor id="DD"
+                   band="D"
+                   health="ON"
+                   x="0.0"
+                   y="0.0"
+                   pol_type="Linear" >
+            <sensitivity reference="DA"
                          value="1.0" />
             <angle units="rad" value="2.117" />
          </receptor>
@@ -1384,7 +1406,8 @@
             <lo2 id="2" freq="6625"/>
             <lo2 id="3" freq="6625"/>
             <lo3 freq="2000.0"/>
-            <quadrant id="0" subband_mode="4"/>
+            <quadrant id="1" subband_mode="4"/>
+            <quadrant id="2" subband_mode="4"/>
             <quadrant id="3" subband_mode="4"/>
          </ACSIS_IF>
 
@@ -1428,8 +1451,10 @@
          <ACSIS_map>
             
             
-            <map_id cm_id="0" dcm_id="0" receptor_id="DA" spw_id="SPW1"/>
-            <map_id cm_id="24" dcm_id="24" receptor_id="DB" spw_id="SPW1"/>
+            <map_id cm_id="8" dcm_id="8" receptor_id="DB" spw_id="SPW1"/>
+            <map_id cm_id="12" dcm_id="12" receptor_id="DD" spw_id="SPW1"/>
+            <map_id cm_id="20" dcm_id="20" receptor_id="DC" spw_id="SPW1"/>
+            <map_id cm_id="24" dcm_id="24" receptor_id="DA" spw_id="SPW1"/>
          </ACSIS_map>
 
          <be_deg_factor>1.23</be_deg_factor>
@@ -2792,7 +2817,7 @@
 <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync1" to_event="rts_data"/>
 <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync1" to_event="if_data"/>
 <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync1" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor1" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
+<glish_link from_ref="corr_monitor3" from_event="corr_data" to_ref="sync1" to_event="corr_data"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.attach" to_ref="sync1" to_event="sync_source.attach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.detach" to_ref="sync1" to_event="sync_source.detach"/>
 <glish_link from_ref="reducer1" from_event="reducer_target.available" to_ref="sync1" to_event="sync_source.available"/>
@@ -2804,7 +2829,7 @@
 <glish_link from_ref="rts_monitor" from_event="rts_data" to_ref="sync2" to_event="rts_data"/>
 <glish_link from_ref="if_monitor" from_event="if_data" to_ref="sync2" to_event="if_data"/>
 <glish_link from_ref="rover_monitor" from_event="rover_data" to_ref="sync2" to_event="rover_data"/>
-<glish_link from_ref="corr_monitor7" from_event="corr_data" to_ref="sync2" to_event="corr_data"/>
+<glish_link from_ref="corr_monitor4" from_event="corr_data" to_ref="sync2" to_event="corr_data"/>
 <glish_link from_ref="reducer2" from_event="reducer_target.attach" to_ref="sync2" to_event="sync_source.attach"/>
 <glish_link from_ref="reducer2" from_event="reducer_target.detach" to_ref="sync2" to_event="sync_source.detach"/>
 <glish_link from_ref="reducer2" from_event="reducer_target.available" to_ref="sync2" to_event="sync_source.available"/>
