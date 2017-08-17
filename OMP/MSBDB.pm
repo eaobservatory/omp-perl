@@ -559,6 +559,11 @@ sub fetchMSB {
   unless ($msb) {
     if ($usingmsbid) {
       # used an MSBID
+      eval {
+        my $checksums = join "\n", map {$_->checksum()} $sp->msb();
+        my $projectid = $self->projectid();
+        OMP::General->log_message("Checksum $checksum (for MSB ID $args{msbid}) from DB not found in SP (for project $projectid) which has checksums:\n$checksums");
+      };
       throw OMP::Error::FatalError("A checksum was obtained from the database table but there was no corresponding MSB in the science program. This likely means that the checksum calculation has been changed/broken since the Science Program was submitted");
     } else {
       # user supplied checksum
