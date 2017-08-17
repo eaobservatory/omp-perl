@@ -604,13 +604,13 @@
                  VALUE="" />
          <HEADER TYPE="FLOAT"
                  KEYWORD="TSPSTART"
-                 COMMENT="[K] Temperature of the building at start of observation"
+                 COMMENT="[K] Spillover temperature at start of observation"
                  VALUE="" >
             <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="START" />
          </HEADER>
          <HEADER TYPE="FLOAT"
                  KEYWORD="TSPEND"
-                 COMMENT="[K] Temperature of the building at end of observation"
+                 COMMENT="[K] Spillover temperature at end of observation"
                  VALUE="" >
             <DRAMA TASK="FE_" PARAM="TEMP_TSPILL" EVENT="END" />
          </HEADER>
