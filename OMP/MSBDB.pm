@@ -681,15 +681,20 @@ Invokes the C<hasBeenObserved> method on the MSB object.
 Configuration arguments can be supplied via a reference to a hash
 as the last argument.
 
-The only configuration option is
+The only configuration options are:
 
   adjusttime => 1/0
+
+  nodecrement => 1/0
 
 Default is to adjust the time accounting when accepting an MSB. If this
 argument is false the time pending will not be incremented.
 
   $db->doneMSB( $checksum, { adjusttime => 0 });
   $db->doneMSB( $checksum, $comment, { adjusttime => 0 });
+
+If set to a true value, the "nodecrement" option supresses alteration
+of the science program to decrement the MSB's "remaining" counter.
 
 =cut
 
@@ -698,7 +703,7 @@ sub doneMSB {
   my $checksum = shift;
 
   # If last arg is a hash read it off
-  my %optargs = ( adjusttime => 1 );
+  my %optargs = ( adjusttime => 1, nodecrement => 0 );
   if (ref($_[-1]) eq 'HASH') {
     # Remove last element from @_
     my $newopt = pop(@_);
@@ -768,21 +773,23 @@ sub doneMSB {
     return;
   }
 
-  # Mark it as observed
-  $msb->hasBeenObserved();
+  unless ($optargs{'nodecrement'}) {
+    # Mark it as observed
+    $msb->hasBeenObserved();
 
-  OMP::General->log_message("MSB marked as done in science program object");
+    OMP::General->log_message("MSB marked as done in science program object");
 
-  # Now need to store the MSB back to disk again
-  # since this has the advantage of updating the database table
-  # and making sure reorganized Science Program is stored.
-  # Note that we need the timestamp to change but do not want
-  # feedback table notification of this (since we have done that
-  # already).
-  $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1,
-                       NoAuth => 1, NoConstraintCheck => 1 );
+    # Now need to store the MSB back to disk again
+    # since this has the advantage of updating the database table
+    # and making sure reorganized Science Program is stored.
+    # Note that we need the timestamp to change but do not want
+    # feedback table notification of this (since we have done that
+    # already).
+    $self->storeSciProg( SciProg => $sp, NoCache => 1, NoFeedback => 1,
+                         NoAuth => 1, NoConstraintCheck => 1 );
 
-  OMP::General->log_message("Science program stored back to database");
+    OMP::General->log_message("Science program stored back to database");
+  }
 
   # Now decrement the time for the project if required
   if ($optargs{adjusttime}) {

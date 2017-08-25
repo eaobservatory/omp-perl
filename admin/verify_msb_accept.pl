@@ -39,6 +39,10 @@ than one telescope).
 
 Skip files which cannot be read to extract the relevant information.
 
+=item B<--nodecrement>
+
+Do not decrement the "remaining" counters of MSBs.
+
 =item B<-version>
 
 Report the version number.
@@ -88,6 +92,7 @@ my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
                         'ignorebad' => \$opt{'ignorebad'},
+                        'nodecrement' => \$opt{'nodecrement'},
                         "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -432,7 +437,7 @@ if (@missing) {
       if ($accept) {
 	print "\tAccepting MSB. Please wait.\n";
 	$msbdb->projectid( $projectid );
-	$msbdb->doneMSB( $id, $c, { adjusttime => 0 } );
+	$msbdb->doneMSB( $id, $c, { adjusttime => 0, nodecrement => $opt{'nodecrement'} } );
       } else {
 	$c->text("This MSB was observed but was not accepted by the observer/TSS. No reason was given.");
 	$msbdone->projectid( $projectid );
