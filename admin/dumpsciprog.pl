@@ -42,9 +42,17 @@ my $date;
 if (-e $dumplog) {
   open my $fh, '<', $dumplog or die "Error opening file $dumplog: $!";
   my $line = <$fh>;
+  chomp $line;
   close $fh;
+
+  # It looks like "gmtime" might accept anything, so check the format here.
+  # The check below may not actually ever trigger.
+  die "Date of last dump not in expected format"
+    unless $line =~ /^\d{10}$/;
+
   $date = gmtime($line);
-  (! $date) and die "Unable to parse date of last dump!";
+  die "Unable to parse date of last dump!"
+    unless $date;
 }
 
 my $db = new OMP::MSBDB( DB => new OMP::DBbackend );
