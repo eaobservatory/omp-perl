@@ -42,8 +42,13 @@ my $date;
 if (-e $dumplog) {
   open my $fh, '<', $dumplog or die "Error opening file $dumplog: $!";
   my $line = <$fh>;
-  chomp $line;
   close $fh;
+
+  # Abort early if nothing at all was read from the file.
+  die "Could not read date of last dump from the log file"
+    unless defined $line;
+
+  chomp $line;
 
   # It looks like "gmtime" might accept anything, so check the format here.
   # The check below may not actually ever trigger.
