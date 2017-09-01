@@ -4,7 +4,7 @@
 # Non-interactive (command-line) routine to do a pencil-beam search in
 # the OMP for targets around a position certain position or around 
 # targets from a particular project. Basically a user interface for
-# the ompfindtarget stored procedure in the DB.
+# the OMP::FindTarget::find_and_display_targets function.
 # This version connects directly to the OMP to retrieve source
 # coordinates and should remain access restricted!!!!
 #----------------------------------------------------------------------

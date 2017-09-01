@@ -8,6 +8,7 @@ package OMP::FindTarget;
 
 use strict;
 
+use Astro::Coords;
 use Astro::PAL;
 use DBI;
 use Math::Trig;
@@ -32,26 +33,113 @@ Finds and displays targets.
 sub find_and_display_targets {
     my %opt = @_;
 
-    my $proj  = $opt{'proj'}
-              ? '@proj=\'' . $opt{'proj'} . '\''
-              : '';
-    my $radec = ($opt{'ra'} and $opt{'dec'})
-              ? '@ra=\'' . $opt{'ra'} . '\',@dec=\'' . $opt{'dec'} . '\''
-              : '';
-    my $dsep  = $opt{'sep'};
-    my $tel   = '@tel=\'' . $opt{'tel'} . '\'';
-    my $sem   = '@sem=\'' . $opt{'sem'} . '\'';
+    my $dsep = undef;
+    my $sep_rad = undef;
+    my $tel = '%';
+    my $sem = '%';
+    my $sqlcmd = undef;
 
-    my $sep    = '@sep=' . $dsep;
-    my $sqlcmd = "ompfindtarget ${proj}${radec},${sep},${tel},${sem}";
-    $sqlcmd =~ s/(\,)+/\,/g;
-    $sqlcmd =~ s/\,$//;
-    print "$sqlcmd\n";
+    if ($opt{'sep'}) {
+        $dsep = $opt{'sep'};
+        $sep_rad = $dsep * DD2R / 3600.0;
+    }
+    else {
+        die 'find_and_display_targets: sep not specified'
+    }
+
+    if ($opt{'tel'}) {
+        die 'find_and_display_targets: invalid telescope'
+            unless $opt{'tel'} =~ /^([A-Z0-9]+)$/i;
+        $tel = $1;
+    }
+
+    if ($opt{'sem'} ) {
+        die 'find_and_display_targets: invalid semester'
+            unless $opt{'sem'} =~ /^([A-Z0-9]+)$/i;
+        $sem = $1;
+    }
+
+    # The original "ompfindtarget" stored procedure had two separate
+    # queries for project-based cross-match and plain position search.
+    # These have been imported separately for now but could be merged.
+    if ($opt{'proj'}) {
+        die 'find_and_display_targets: invalid project'
+            unless $opt{'proj'} =~ /^([A-Z0-9\/]+)$/i;
+        my $proj = $1;
+
+        $sqlcmd = "SELECT DISTINCT
+                convert(varchar(24),Q2.target) AS reference, P.projectid,
+                Q.target AS target,
+                3600.0/${\(DD2R)}*abs(acos(round(
+                    cos(PI()/2 - Q2.dec2000)*cos(PI()/2 - Q.dec2000)+
+                    sin(PI()/2 - Q2.dec2000)*sin(PI()/2 - Q.dec2000)*cos(Q2.ra2000 - Q.ra2000),
+                12))) AS separation,
+                Q.ra2000, Q.dec2000, Q.instrument
+            FROM ompproj P, ompmsb M, ompobs Q,
+                ompproj P2, ompmsb M2, ompobs Q2
+            WHERE P2.projectid LIKE \"$proj\"
+                AND M2.projectid = P2.projectid
+                AND Q2.msbid = M2.msbid
+                AND P2.telescope LIKE \"$tel\"
+                AND P2.semester LIKE \"$sem\"
+                AND Q2.coordstype = \"RADEC\"
+                AND P.projectid NOT LIKE P2.projectid
+                AND P.projectid NOT LIKE '%EC%'
+                AND M.projectid = P.projectid
+                AND Q.msbid = M.msbid
+                AND P.telescope LIKE \"$tel\"
+                AND P.semester LIKE \"$sem\"
+                AND Q.coordstype = 'RADEC' and P.state=1
+                AND abs(acos(round(
+                    cos(PI()/2 - Q2.dec2000)*cos(PI()/2 - Q.dec2000)+
+                    sin(PI()/2 - Q2.dec2000)*sin(PI()/2 - Q.dec2000)*cos(Q2.ra2000 - Q.ra2000),
+                12))) < $sep_rad
+            ORDER BY Q2.target";
+    }
+    elsif ($opt{'ra'} and $opt{'dec'}) {
+        my $coord = new Astro::Coords(
+            ra => $opt{'ra'},
+            dec => $opt{'dec'},
+            type => 'J2000',
+            units=> 'sexagesimal');
+
+        my $ra = $coord->ra2000();
+        my $dec = $coord->dec2000();
+
+        my $ra_rad = $ra->radians();
+        my $dec_rad = $dec->radians();
+
+        my $ref = "$ra $dec";
+
+        $sqlcmd = "SELECT DISTINCT
+                \"$ref\" AS reference, P.projectid, Q.target AS target2,
+                3600.0/${\(DD2R)}*abs(acos(round(
+                    cos(PI()/2 - $dec_rad)*cos(PI()/2 - Q.dec2000)+
+                    sin(PI()/2 - $dec_rad)*sin(PI()/2 - Q.dec2000)*cos($ra_rad - Q.ra2000),
+                12))) AS separation,
+                Q.ra2000, Q.dec2000, Q.instrument
+            FROM ompproj P, ompmsb M, ompobs Q
+            WHERE P.projectid NOT LIKE '%EC%'
+                AND M.projectid = P.projectid
+                AND Q.msbid = M.msbid
+                AND P.telescope LIKE \"$tel\"
+                AND P.semester LIKE \"$sem\"
+                AND Q.coordstype = \"RADEC\" AND P.state=1
+                AND abs(acos(round(
+                    cos(PI()/2 - $dec_rad)*cos(PI()/2 - Q.dec2000)+
+                    sin(PI()/2 - $dec_rad)*sin(PI()/2 - Q.dec2000)*cos($ra_rad - Q.ra2000),
+                12))) < $sep_rad
+            ORDER BY Q.target";
+    }
+    else {
+        die 'find_and_display_targets: neither proj nor ra and dec specified';
+    }
+
+    print "$sqlcmd\n" if $debug;
 
     # Get the connection handle
 
     my $dbs = new OMP::DBbackend();
-    my $dbtable = "ompproj";
 
     my $db = $dbs->handle() || die qq {
     --------------------------------------------------------------
@@ -59,9 +147,9 @@ sub find_and_display_targets {
     --------------------------------------------------------------
     };
 
-    my $row_ref = $db->selectall_arrayref( qq{exec $sqlcmd}) || die qq {
+    my $row_ref = $db->selectall_arrayref($sqlcmd) || die qq {
     --------------------------------------------------------------
-     Error:       Executing DB procedure: $DBI::errstr
+     Error:       Executing DB query: $DBI::errstr
     --------------------------------------------------------------
     };
 
