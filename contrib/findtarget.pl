@@ -9,15 +9,19 @@
 # coordinates and should remain access restricted!!!!
 #----------------------------------------------------------------------
 
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
 
-use lib "/jac_sw/omp/msbserver";
+use lib OMPLIB;
 
 use strict;
 
@@ -26,8 +30,6 @@ use Getopt::Long;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
-
-OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
 
 # not 0: debug output
 my $debug = 0;

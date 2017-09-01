@@ -4,14 +4,18 @@
 # time interval based from the accounting in the OMP.
 #
 
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
 
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin";
       }
 
-use lib "/jac_sw/omp/msbserver";
+use lib OMPLIB;
 use OMP::NightRep;
 use Time::Seconds;
 use Time::Piece;
