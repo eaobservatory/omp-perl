@@ -12,12 +12,17 @@ use 5.006;
 use strict;
 use warnings;
 
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
 BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg";
+	$ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+            unless exists $ENV{OMP_CFG_DIR};
 	$ENV{PATH} = "/usr/bin";
       }
 
-use lib qw(/jac_sw/omp/msbserver);
+use lib OMPLIB;
 
 use OMP::Config;
 use OMP::MSBDB;

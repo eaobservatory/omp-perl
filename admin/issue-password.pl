@@ -1,14 +1,17 @@
 #!/local/perl/bin/perl
 
 use strict; use warnings;
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
 
 BEGIN
 {
-  our $lib = '/jac_sw/omp/msbserver';
-  $ENV{'OMP_CFG_DIR'} = $lib . '/cfg';
+  $ENV{'OMP_CFG_DIR'} = $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+    unless exists $ENV{OMP_CFG_DIR};
 }
-our $lib;
-use lib $lib;
+
+use lib OMPLIB;
 
 use OMP::ProjServer;
 

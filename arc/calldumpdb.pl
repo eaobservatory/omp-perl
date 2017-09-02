@@ -1,6 +1,7 @@
 #!/local/perl/bin/perl
 
 use strict;
+use FindBin;
 
 my $err;
 BEGIN {
@@ -18,7 +19,11 @@ BEGIN {
  }
 }
 die "$err\n" if defined $err;
-my $status = system('/local/perl/bin/perl /jac_sw/omp/msbserver/admin/dumpdb.pl');
+
+die 'Invalid path to calldumpdb script'
+    unless $FindBin::RealBin =~ /^([-_a-zA-Z0-9\/\.]+)$/;
+
+my $status = system("/local/perl/bin/perl $1/../admin/dumpdb.pl");
 if ($status != 0) {
   print "Error running dumpdb.pl (exit code = $status)\n";
   exit 1;

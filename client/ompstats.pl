@@ -41,20 +41,22 @@ This manual page.
 
 =cut
 
+# Locate the OMP software through guess work
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
 
 BEGIN {
   # command line tools probably do not want full logging enabled
   # unless they are asking for it
   $ENV{OMP_LOG_LEVEL} = 'IMPORTANT'
     unless exists $ENV{OMP_LOG_LEVEL};
-  $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg";
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+    unless exists $ENV{OMP_CFG_DIR};
 }
 
 use strict;
 
-# Locate the OMP software through guess work
-use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib OMPLIB;
 
 use Pod::Usage;
 use Getopt::Long;
