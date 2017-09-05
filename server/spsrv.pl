@@ -23,10 +23,18 @@ use 5.006;
 use warnings;
 use strict;
 
-BEGIN { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"; }
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase"; }
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-srv-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-srv-init.pl: $@" if $@;
+    warn "couldn't do omp-srv-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-srv-init.pl"       unless $retval;
+    exit;
+  }
+}
 
-use lib "/jac_sw/omp/msbserver";
 use OMP::SpServer;
 
 use SOAP::Transport::HTTP;

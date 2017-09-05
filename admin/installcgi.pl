@@ -73,7 +73,7 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp.css omp.js LookAndFeelConfig /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig /;
 
 my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
