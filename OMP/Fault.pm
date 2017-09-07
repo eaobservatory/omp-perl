@@ -278,30 +278,10 @@ my @list_name =
   );
 
 my %MAILLIST;
-@MAILLIST{ @list_name } =
-  ( 'csg_faults@eao.hawaii.edu'   ,
-    'jcmt_faults@eao.hawaii.edu'  ,
-    'jcmt_event_log@eao.hawaii.edu' ,
-    'ukirt_faults@eao.hawaii.edu' ,
-    'omp_faults@eao.hawaii.edu'   ,
-    'dr_faults@eao.hawaii.edu'    ,
-    'safety_faults@eao.hawaii.edu'   ,
-    'facility_faults@eao.hawaii.edu' ,
-    'vehicle@eao.hawaii.edu' ,
-  );
 
-my $config = OMP::Config->new;
-if ( $config->in_test_mode ) {
-
-  undef %MAILLIST;
-  for my $name ( @list_name ) {
-
-    my $alt = lc $name;
-    $alt = 'vehicle' if $name eq 'VEHICLE_INCIDENT';
-
-    $MAILLIST{ uc $name } =
-      $config->getData( 'test-email-address.' . $alt );
-  }
+my $config = OMP::Config->new();
+for my $name (@list_name) {
+    $MAILLIST{$name} = $config->getData('email-address.' . lc $name);
 }
 
 my %DATA = (
