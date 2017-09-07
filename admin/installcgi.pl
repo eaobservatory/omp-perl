@@ -22,36 +22,19 @@ use File::Copy;
 use File::Spec;
 use Getopt::Long;
 
-use lib qq[$FindBin::RealBin/..];
+use constant OMPLIB => "$FindBin::RealBin/..";
+use lib OMPLIB;
+
 use OMP::Config;
 use OMP::Error qw[ :try ];
 
 my $dry_run = undef;
 my $status = GetOptions("dry-run" => \$dry_run);
 
-my $source = "/jac_sw/omp/msbserver";
-
-my $privdest = "/WWW/omp-private";
-
-my $pubdest = "/WWW/omp";
-
 my $config = OMP::Config->new;
-if ( $config->in_test_mode ) {
 
-    $source = $config->getData( 'test.root' );
-
-    $pubdest = $config->getData( 'test-web-install.public' );
-
-    my $temp;
-    try {
-      $temp = $config->getData( 'test-web-install.private' );
-    }
-    catch OMP::Error with {
-
-      # Swallow errors; "private" key could be missing altogether.
-    };
-    $privdest = $temp if $temp;
-}
+my $pubdest = $config->getData('web-install.public');
+my $privdest = $config->getData('web-install.private');
 
 my @srcdirs = qw/ cgi server web /;
 
@@ -79,7 +62,7 @@ my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
 
 for my $subdir (@srcdirs) {
-  my $dir = File::Spec->catdir($source, $subdir);
+  my $dir = File::Spec->catdir(OMPLIB, $subdir);
   opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
   my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl)$/} readdir(DIR);
   closedir(DIR);
