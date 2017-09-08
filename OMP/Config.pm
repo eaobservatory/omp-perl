@@ -36,7 +36,6 @@ use warnings::register;
 
 use OMP::DateTools;
 use OMP::NetTools;
-use OMP::General;
 use File::Spec;
 use File::Basename;
 use Config::IniFiles;
