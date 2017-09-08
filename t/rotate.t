@@ -19,6 +19,7 @@
 # Place,Suite 330, Boston, MA  02111-1307, USA
 
 use Test::More tests => 36;
+use Test::Number::Delta;
 require_ok("OMP::Translator::DAS");
 require_ok("OMP::Translator::SCUBA");
 
@@ -157,8 +158,8 @@ for my $test (@inputs) {
     " Offset: ". $test->{offx} . ",". $test->{offy} .",". $test->{offpa};
 
   # Convert the numbers to something comparable and test
-  is(_fmt_float($x), _fmt_float($test->{celloffx}), "compare X with $str");
-  is(_fmt_float($y), _fmt_float($test->{celloffy}), "compare Y with $str");
+  delta_ok($x, $test->{celloffx}, "compare X with $str");
+  delta_ok($y, $test->{celloffy}, "compare Y with $str");
 
   # Test the SCUBA offsets. These are the same as the heterodyne offsets
   # except that the cell is always 1,1,0
@@ -171,11 +172,11 @@ for my $test (@inputs) {
 						    );
 
     # Format (scaling by cellx and celly to correct)
-    is(_fmt_float($mapping{MAP_X}),
-       _fmt_float($test->{celloffx}*$test->{cellx}),
-       "SCUBA compare X with $str");
-    is(_fmt_float($mapping{MAP_Y}),
-       _fmt_float($test->{celloffy}*$test->{celly}),
+    delta_ok(
+      $mapping{MAP_X}, $test->{celloffx}*$test->{cellx},
+      "SCUBA compare X with $str");
+    delta_ok(
+      $mapping{MAP_Y}, $test->{celloffy}*$test->{celly},
        "SCUBA compare Y with $str");
 
 
@@ -184,17 +185,3 @@ for my $test (@inputs) {
 }
 
 exit;
-
-# Helper routine to format the floating point number
-# Also converts -0.00 to 0.00
-# Returns a string.
-
-sub _fmt_float {
-  my $in = shift;
-  my $f = '%.3f';
-  my $out = sprintf($f,$in);
-
-  # trap -0.00 by formatting a negative zero
-  $out = sprintf($f,0.0) if $out eq sprintf($f,-0.0);
-  return $out;
-}
