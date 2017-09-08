@@ -699,7 +699,6 @@ sub _prepare_FILES_select {
     ORDER BY obsid_subsysnr
 _SQL_
 
-  require OMP::ArcQuery;
   $sql = sprintf $sql, $OMP::ArcQuery::AFILESTAB;
 
   #$ENV{'OMP_SITE_CONFIG'} =
