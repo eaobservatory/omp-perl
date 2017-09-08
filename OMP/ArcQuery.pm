@@ -65,8 +65,10 @@ our $S2FILESTAB = 'jcmt..FILES F';
 
 {
   my $cf = OMP::Config->new;
-  # In test mode, switch to development databases.
-  if ( $cf->in_test_mode ) {
+
+  # If a table name prefix is configured, apply it.
+  my $prefix = $cf->getData('arc-table-prefix');
+  if ( $prefix ) {
 
     my %db;
     # Need to keep list of table references here in sync with above.
@@ -99,16 +101,13 @@ our $S2FILESTAB = 'jcmt..FILES F';
       ];
 
     my $keys = join '|' , keys %db;
-    $keys = qr/^(?:$keys) (?=[.]{2})/x;
 
     for my $key ( keys %db ) {
-
-      my $test = $cf->getData( 'test-database.' . $key );
 
       # The Switchroo.
       for my $table ( @{ $db{ $key } } ) {
 
-        ${ $table } =~ s/$keys/$test/x;
+        ${ $table } =~ s/^/$prefix/x;
       }
     }
 
