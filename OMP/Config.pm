@@ -442,28 +442,6 @@ sub set_config {
   return;
 }
 
-=item B<in_test_mode>
-
-Returns a truth value indicating if the test mode configuration is
-being used.
-
-  print "in test mode"
-    if $config->in_test_mode;
-
-=cut
-
-sub in_test_mode {
-
-  my ( $self ) = @_;
-
-  $self = _get_instance( $self );
-
-  return
-    exists $self->{'test-mode'}
-    && !! $self->{'test-mode'}
-    ;
-}
-
 =item B<dumpData>
 
 Debugging method to dump the contents of the config system to stdout.
