@@ -436,18 +436,11 @@ sub sql {
   # is required so that the QT user can get a feel for how marginal an
   # observation is. The SQL code for this is quite repetitive so we
   # define it here in a loop.
-  # There is no explicit function to find the min or max of 2 columns
-  # from a row so we calculate the SIGN and use that to control which
-  # of the project mins or MSB mins is returned
-  # The factor of 2 comes in because we either add 1, say to +1 or to -1
-  # obtaining 2 and 0 (or 0 and -2)
   my $minmax;
   for my $col (qw/ tau seeing cloud sky / ) {
     $minmax .= "
-    (abs(1-sign(M2.${col}min-P2.${col}min))*P2.${col}min/2 + 
-         abs(sign(P2.${col}min-M2.${col}min)-1)*M2.${col}min/2) AS ${col}min,
-    (abs(sign(P2.${col}max-M2.${col}max)-1)*P2.${col}max/2 + 
-         abs(1-sign(M2.${col}max-P2.${col}max))*M2.${col}max/2) AS ${col}max,\n";
+      GREATEST(M2.${col}min, P2.${col}min) AS ${col}min,
+      LEAST(M2.${col}max, P2.${col}max) AS ${col}max,\n";
   }
 
   # The end of the query is generic
