@@ -352,21 +352,15 @@ sub sql {
 
   # Some explanation is probably in order.
   # We do three queries
-  # 1. Do a query on MSB and OBS tables looking for relevant
+  # 1. Do a table subquery on MSB and OBS tables looking for relevant
   #    matches but only retrieving the matching MSBID, the
   #    corresponding MSB obscount and the total number of observations
-  #    that matched within each MSB. The result is stored to a temp table
-  # 2. Query the temporary table to determine all the MSB's that had
+  #    that matched within each MSB.
+  # 2. Use the table subquery to determine all the MSB's that had
   #    all their observations match and return the MSB information
-
-  # We also DROP the temporary table immediately since sybase
-  # keeps them around for until the connection is ended.
 
   # It is assumed that the observation information will be retrieved
   # in a subsequent query if required.
-
-  # Get the names of the temporary tables
-  my $tempcount = "ompcnt";
 
   # Additionally there are a number of constraints that are
   # always applied to the query simply because they make
@@ -425,7 +419,6 @@ sub sql {
   # we need DISTINCT here....
   my $top_sql = "SELECT
          DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
-           INTO TEMPORARY $tempcount
             FROM $msbtable M,$obstable O, $projtable P " .
 	     join(" ", @join_tables)
           ."  WHERE M.msbid = O.msbid
@@ -443,7 +436,7 @@ sub sql {
       LEAST(M2.${col}max, P2.${col}max) AS ${col}max,\n";
   }
 
-  # The end of the query is generic
+  # The outer query is generic.
   # make sure we include tagpriority here since it is faster
   # than doing an explicit project query later on (although
   # there may be a saving in the fact that the number of MSBs
@@ -455,32 +448,28 @@ sub sql {
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
   # We always need to join the QUEUE table since that includes the priority.
-  my $bottom_sql = "GROUP BY M.msbid, Q.country ;
-              SELECT M2.*," .
-                $minmax .
-               "(Q2.tagpriority + Q2.tagadj + (M2.priority / 100)) AS newpriority,
+  my $sql = "SELECT M2.*,
+               $minmax
+               (Q2.tagpriority + Q2.tagadj + (M2.priority / 100)) AS newpriority,
                M2.priority AS userpriority,
                ((P2.allocated-(P2.remaining-P2.pending))/P2.allocated * 100.0) AS completion,
                (P2.allocated + P2.pending - P2.remaining) AS time_observed,
                P2.semester
-                FROM $msbtable M2, $tempcount T, $projtable P2, 
-                       $projqueuetable Q2
+                FROM $msbtable M2,
+                     (
+                        $top_sql
+                        $constraint_sql
+                        $subsql
+                        GROUP BY M.msbid, Q.country
+                     ) AS T,
+                     $projtable P2,
+                     $projqueuetable Q2
                  WHERE (M2.msbid = T.msbid
                    AND M2.obscount = T.nobs 
                     AND M2.projectid = P2.projectid 
                       AND M2.projectid = Q2.projectid 
                         AND Q2.country = T.country)
-                          ORDER BY newpriority 
-
-                DROP TABLE $tempcount";
-  # PostgresQL will not allow the DROP TABLE within the same query.
-  # Need to provide an explicit cleanup method to all query classes.
-
-  # Now need to put this SQL into the template query
-  my $sql = "$top_sql
-              $constraint_sql
-                $subsql
-                  $bottom_sql";
+                          ORDER BY newpriority";
 
   #print "$sql\n";
 
