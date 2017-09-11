@@ -75,11 +75,11 @@ sub refDate {
   if ( exists $href->{date} ) {
     $date = $href->{date}->[0];
   } else {
-    # Need to get a gmtime object that stringifies as a Sybase date
+    # Need to get a gmtime object that stringifies as a MySQL date
     $date = gmtime;
 
     # Rebless
-    bless $date, "Time::Piece::Sybase";
+    bless $date, "Time::Piece::MySQL";
   }
   return $date;
 }
@@ -598,11 +598,11 @@ sub _post_process_hash {
       unless ref($href->{date}) eq "ARRAY";
 
   } else {
-    # Need to get a gmtime object that stringifies as a Sybase date
+    # Need to get a gmtime object that stringifies as a MySQL date
     my $date = gmtime;
 
     # Rebless
-    bless $date, "Time::Piece::Sybase";
+    bless $date, "Time::Piece::MySQL";
 
     # And store it
     $href->{date} = [ $date ];

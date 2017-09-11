@@ -69,7 +69,7 @@ If the argument is already a C<Time::Piece> object it is returned
 unchanged if the time is a UT time, else a new object is returned
 using a UT representation (this does not change the epoch).
 
-It will also recognize a Sybase style date: 'Mar 15 2002  7:04AM'
+It will also recognize a MySQL style date: '2002-03-15 07:04:00'
 and a simple YYYYMMDD.
 
 The date is assumed to be in UT. If the optional second argument is true,
@@ -92,7 +92,7 @@ sub parse_date {
       my $epoch = $date->epoch;
       $date = gmtime( $epoch );
     }
-    return bless $date, "Time::Piece::Sybase"
+    return bless $date, "Time::Piece::MySQL"
   }
 
   # Clean trailing and leading spaces from the string and remove new lines
@@ -107,8 +107,15 @@ sub parse_date {
 
   my $format;
 
-  # Need to disambiguate ISO date from Sybase date
-  if ($date =~ /\d\d\d\d-\d\d-\d\d/) {
+  # Need to disambiguate ISO date from MySQL date
+  if ($date =~/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/) {
+    # MySQL
+
+    $format = "%Y-%m-%d %T";
+
+    print "$date = MySQL date with format $format\n" if $DEBUG;
+
+  } elsif ($date =~ /\d\d\d\d-\d\d-\d\d/) {
     # ISO
 
     # All arguments should have a day, month and year
@@ -135,27 +142,6 @@ sub parse_date {
       print "$date = YYYYMMDD with format $format\n" if $DEBUG;
     }
 
-  } elsif ($date =~ /^\w+\s+\d+\s+\d+\s+\d+:\d+[ap]m/i) {
-    # Sybase date
-    # Mar 15 2002  7:04AM
-
-    # On OSX %t seems to mean a real tab but on linux %t seems to be interpreted
-    # as "any number of spaces". Replace all spaces with underscores before doing
-    # the match.
-    $date =~ s/\s+/_/g;
-
-    $format = "%b_%d_%Y_%I:%M%p";
-
-    print "$date = Sybase with Format $format\n" if $DEBUG;
-  } elsif ($date =~ /^\w+\s+\d+\s+\d+\s+\d+:\d+:\d+:\d+[ap]m/i) {
-    # Sybase Long Date from ObsLog
-    # Mar 14 2002 7:04:50:000AM
-
-    # Help %t definition
-    $date =~ s/\s+/_/g;
-
-    $format = "%b_%d_%Y_%I:%M:%S:000%p";
-    print "$date = Sybase Long date with Format $format\n" if $DEBUG;
   } else {
     print ">>>>>>>>>>>>>>> $date Was Not recognized\n" if $DEBUG;
     return undef;
@@ -176,12 +162,12 @@ sub parse_date {
   #  }
   #}
 
-  # Now need to bless into class Time::Piece::Sybase
-  #return bless $time, "Time::Piece::Sybase";
+  # Now need to bless into class Time::Piece::MySQL
+  #return bless $time, "Time::Piece::MySQL";
 
   # Now parse
-  # Use Time::Piece::Sybase so that we can instantiate
-  # the object in a state that can be used for sybase queries
+  # Use Time::Piece::MySQL so that we can instantiate
+  # the object in a state that can be used for MySQL queries
   # This won't work if we use standard overridden gmtime.
   # Note also that this time is treated as "local" rather than "gm"
   my $time = eval { Time::Piece->strptime( $date, $format ); };
@@ -232,8 +218,8 @@ sub parse_date {
 
     print "Got result: " . $time->datetime ."\n" if $DEBUG;
 
-    # Now need to bless into class Time::Piece::Sybase
-    return bless $time, "Time::Piece::Sybase";
+    # Now need to bless into class Time::Piece::MySQL
+    return bless $time, "Time::Piece::MySQL";
 
   }
 
@@ -701,9 +687,9 @@ Boston, MA  02111-1307  USA
 
 =cut
 
-# For sybase format dates
+# For MySQL format dates
 
-package Time::Piece::Sybase;
+package Time::Piece::MySQL;
 
 our @ISA = qw/ Time::Piece /;
 
@@ -711,7 +697,7 @@ use overload '""' => "stringify";
 
 sub stringify {
   my $self = shift;
-  my $string = $self->strftime("%Y%m%d %T");
+  my $string = $self->strftime("%Y-%m-%d %T");
   return $string;
 }
 
