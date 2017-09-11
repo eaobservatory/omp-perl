@@ -1677,14 +1677,7 @@ sub _db_fetch_sciprog {
   my $dbh = $self->_dbhandle;
   throw OMP::Error::DBError("Database handle not valid") unless defined $dbh;
 
-  # need to set the textsize to a value large enough to contain
-  # the science program itself. I would like to do this by setting
-  # it to the length of the current science program but frossie
-  # insists that I just pick a large number and be done with it
-  # (until the JCMT board is over) - that is a funny comment given the
-  # timescales
-  my $sql = ($self->db->has_textsize ? "SET TEXTSIZE 330000000" : "" ) .
-    "(SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj')";
+  my $sql = "SELECT sciprog FROM $SCITABLE WHERE projectid = '$proj'";
 
   # Run the query
   my $ref = $self->_db_retrieve_data_ashash( $sql );

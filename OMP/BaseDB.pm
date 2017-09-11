@@ -485,22 +485,6 @@ sub _db_insert_data {
   # deciding which fields can be stored immediately and which must be
   # insert as text fields
 
-  # Sybase has a special routine for storing large text fields
-  # Otherwise try to use the actual INSERT command
-  my $has_write_text = $self->db->has_writetext;
-
-  # even if we have writetext we do not necessarily need to use it
-  # if the content is very small. In that case it is more efficient
-  # to simply insert the text in the main INSERT
-
-  # THRESHOLD (in bytes) to use for proper TEXT inserts using WRITETEXT
-  my $TEXT_THRESHOLD = 32 * 1024;
-
-  # Some dummy text field that we can replace later
-  # Have something that ends in a number so that ++ will
-  # work for us in a logical way
-  my $dummytext = 'dummytext_'. int(rand(999999999));
-
   # The insert place holder SQL
   my $placeholder = '';
 
@@ -528,44 +512,8 @@ sub _db_insert_data {
              && exists $column->{TEXT}
              && exists $column->{COLUMN}) {
 
-      my $textlen = length($column->{TEXT});
-
-      if ($has_write_text && $textlen > $TEXT_THRESHOLD) {
-        # Use the optimized non-truncating writetext function
-        OMP::General->log_message( "Inserting $textlen bytes of TEXT using WRITETEXT into colummn ".
-                                   $column->{COLUMN} .
-                                   " in $table",
-                                   OMP__LOG_DEBUG );
-
-        # Add the dummy text to the hash
-        $column->{DUMMY} = $dummytext;
-
-        # store the information for later
-        # including the dummy string
-        push(@textfields, $column);
-
-        # Update the SQL placeholder
-        $placeholder .= "'$dummytext'";
-
-        # Update the dummy string for next time
-        $dummytext++;
-
-      } else {
-        unless ($textlen > $TEXT_THRESHOLD) {
-          OMP::General->log_message("Inserting $textlen bytes of TEXT using normal INSERT into column ".
-                                    $column->{COLUMN} . " in $table",
-                                    OMP__LOG_DEBUG);
-        }
-        # on some systems we can use placeholders for TEXT inserts.
-        if ($self->db->has_textinsert_placeholders) {
-          push(@toinsert, $column->{TEXT});
-          $placeholder .= "?";
-        } else {
-          # escape quotes
-          my $text = $self->_quote_text_insert( $column->{TEXT} );
-          $placeholder.= "'$text'";
-        }
-      }
+      push(@toinsert, $column->{TEXT});
+      $placeholder .= "?";
 
     } else {
       throw OMP::Error::DBError("Do not understand how to insert data of class '".

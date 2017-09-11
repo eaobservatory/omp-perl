@@ -366,19 +366,7 @@ sub sql {
   # in a subsequent query if required.
 
   # Get the names of the temporary tables
-  # Sybase limit if 13 characters for uniqueness
-  # Assumes we are connecting to OMP::DBbackend
-  my $tempcount = OMP::DBbackend->get_temptable_prefix."ompcnt";
-
-  # Get string we need to use in select to signify we are 
-  # creating a temporary table
-  my $tempnew = OMP::DBbackend->get_temptable_constructor();
-
-  # Sybase allows us to bracket a select statement so that
-  # it does not interfere with a second SELECT in the block.
-  # Postgres does not like that and prefers a ;
-  my $stmt_start = OMP::DBbackend->get_stmt_start();
-  my $stmt_end = OMP::DBbackend->get_stmt_end();
+  my $tempcount = "ompcnt";
 
   # Additionally there are a number of constraints that are
   # always applied to the query simply because they make
@@ -396,9 +384,7 @@ sub sql {
   $constraint_sql .= " AND M.remaining > 0 " if $constraints{remaining};
   $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
     if $constraints{allocation};
-  $constraint_sql .= " AND P.state = ".
-    OMP::DBbackend->get_boolean_true 
-    ." " if $constraints{state};
+  $constraint_sql .= " AND P.state " if $constraints{state};
 
   # It is more efficient if we only join the COI table
   # if we are actually going to use it. Also if no coitable
@@ -437,9 +423,9 @@ sub sql {
   # go crazy and we get millions of rows when trying to group
   # by msbid and by country. Have not really worked out why
   # we need DISTINCT here....
-  my $top_sql = $stmt_start . "SELECT
+  my $top_sql = "SELECT
          DISTINCT M.msbid, max(M.obscount) AS obscount, Q.country, COUNT(*) AS nobs
-           INTO $tempnew $tempcount
+           INTO TEMPORARY $tempcount
             FROM $msbtable M,$obstable O, $projtable P " .
 	     join(" ", @join_tables)
           ."  WHERE M.msbid = O.msbid
@@ -476,14 +462,10 @@ sub sql {
   # and internal priority field to aid searching and sorting in the QT and to
   # retuce the number of fields. Internal priority is 1 to 99.
   # We always need to join the QUEUE table since that includes the priority.
-  my $bottom_sql = "GROUP BY M.msbid, Q.country $stmt_end
+  my $bottom_sql = "GROUP BY M.msbid, Q.country ;
               SELECT M2.*," .
                 $minmax .
-                "(".
- 		  OMP::DBbackend->get_sql_typecast("float","Q2.tagpriority + Q2.tagadj")
-		      . " + " .
-			OMP::DBbackend->get_sql_typecast("float","M2.priority")
-			    . "/100) AS newpriority,
+               "(Q2.tagpriority + Q2.tagadj + (M2.priority / 100)) AS newpriority,
                M2.priority AS userpriority,
                ((P2.allocated-(P2.remaining-P2.pending))/P2.allocated * 100.0) AS completion,
                (P2.allocated + P2.pending - P2.remaining) AS time_observed,
