@@ -14,7 +14,7 @@ use Getopt::Long;
 
 use constant OMPLIB => "$FindBin::RealBin/..";
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
+BEGIN {
         $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";

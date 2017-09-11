@@ -90,7 +90,6 @@ use File::Spec;
 use constant OMPLIB => "$FindBin::RealBin/..";
 
 BEGIN { 
-  $ENV{SYBASE} = "/local/progs/sybase";
   $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
          unless exists $ENV{OMP_CFG_DIR};
   $ENV{PGPLOT_DIR} = "/star/bin"

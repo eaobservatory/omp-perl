@@ -62,7 +62,7 @@ This manual page.
 use strict;
 use warnings;
 
-use JAC::Setup qw/ omp sybase /;
+use JAC::Setup qw/ omp /;
 use Getopt::Long;
 use Pod::Usage;
 

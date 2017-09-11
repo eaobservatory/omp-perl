@@ -12,10 +12,6 @@ BEGIN {
   # For taint checking, restrict our path
   $ENV{PATH} = "/bin:/usr/bin";
 
-  # Sybase environment variable (unless already set)
-  $ENV{SYBASE} = "/local/progs/sybase"
-    unless exists $ENV{SYBASE};
-
   # Global OMP location
   use constant OMPLIB => "/jac_sw/omp/msbserver";
   use File::Spec;

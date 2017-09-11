@@ -153,10 +153,6 @@ in this directory will be loaded.
 
 # ----------------------------------------------------------------------
 
-BEGIN {
-  $ENV{SYBASE} = "/local/progs/sybase";
-}
-
 use warnings;
 use strict;
 use Getopt::Long;

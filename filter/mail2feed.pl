@@ -4,7 +4,6 @@ use FindBin;
 
 BEGIN {
   $ENV{LANG}   = "C";
-  $ENV{SYBASE} = "/local/progs/sybase";
   $ENV{PATH}   = "/bin:/usr/bin:/usr/local/bin";
   $ENV{'LD_LIBRARY_PATH'} = "/usr/lib:/usr/lib64:/star64/lib";
 
