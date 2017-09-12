@@ -2447,7 +2447,9 @@ sub _run_query {
                       $start_index + $MAX_ID : $#$ref);
     my @clauses = map { " msbid = ".$_->{msbid}. ' ' }
       @$ref[$start_index..$end_index];
-    $sql = "SELECT * FROM $OBSTABLE WHERE ". join(" OR ", @clauses);
+    $sql = "SELECT * FROM $OBSTABLE WHERE "
+        . join(" OR ", @clauses)
+        . " ORDER BY obsid ASC";
     my $obsref = $self->_db_retrieve_data_ashash( $sql );
     push(@observations, @$obsref);
     $start_index = $end_index + 1;
