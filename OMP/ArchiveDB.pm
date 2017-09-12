@@ -27,6 +27,8 @@ use 5.006;
 use strict;
 use warnings;
 
+use JAC::Setup qw/hdrtrans/;
+
 use OMP::ArcQuery;
 use OMP::ArchiveDB::Cache;
 use OMP::Constants qw/ :logging /;

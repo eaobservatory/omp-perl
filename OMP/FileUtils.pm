@@ -22,6 +22,9 @@ use 5.006;
 use strict;
 use warnings::register;
 
+use JAC::Setup qw/hdrtrans/;
+
+use Astro::FITS::HdrTrans;
 use File::Basename qw[ fileparse ];
 use File::Spec;
 use List::MoreUtils qw[ any all ];

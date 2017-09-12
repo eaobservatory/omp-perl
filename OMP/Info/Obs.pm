@@ -30,6 +30,9 @@ component observations.
 use 5.006;
 use strict;
 use warnings;
+
+use JAC::Setup qw/hdrtrans/;
+
 use Carp;
 use OMP::Range;
 use OMP::DateTools;
