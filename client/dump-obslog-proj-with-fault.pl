@@ -10,7 +10,17 @@ use Pod::Usage;
 use Text::Wrap    qw[ wrap ];
 use Time::Moment;
 
-use JAC::Setup qw[ omp ];
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use OMP::NightRep;
 
 

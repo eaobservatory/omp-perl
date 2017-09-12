@@ -155,6 +155,18 @@ in this directory will be loaded.
 
 use warnings;
 use strict;
+
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use Getopt::Long;
 use Math::Trig;
 use Time::Piece;
@@ -166,8 +178,6 @@ use Astro::Coords;
 use Astro::Telescope;
 
 use DBI;
-
-use JAC::Setup qw[ omp ];
 
 use OMP::Password;
 

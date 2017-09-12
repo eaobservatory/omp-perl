@@ -12,7 +12,17 @@ use Pod::Usage;
 use Data::Dumper   qw[ Dumper ];
 use File::Basename qw[ fileparse ];
 
-use JAC::Setup   qw[ omp ];
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use OMP::User ;
 use OMP::Mail::Original;
 
