@@ -552,7 +552,7 @@ sub _query_faultdb {
     $faultref->{faultdate} = OMP::DateTools->parse_date( $faultref->{faultdate})
       if defined $faultref->{faultdate};
 
-    # Generate a user object [hope the multiple Sybase accesses
+    # Generate a user object [hope the multiple database accesses
     # are not too much of an overhead. Else will have to do a join
     # in the initial fault query.] and cache it
     my $userid = $faultref->{author};
