@@ -21,7 +21,6 @@ BEGIN {
       }
 
 use DBI;
-use DBD::Sybase;
 
 use lib OMPLIB;
 use OMP::DBbackend;
