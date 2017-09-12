@@ -46,7 +46,7 @@ This class method returns the information required to connect to the
 database. The details are returned in a hash with the following
 keys:
 
-  server  =>  Database server (e.g. SYB_*)
+  server  =>  Database server (e.g. omp4)
   database=>  The database to use for the transaction
   user    =>  database login name
   password=>  password for user
@@ -80,10 +80,8 @@ sub loginhash {
 		);
 
   # possible override
-  if ($details{driver} eq 'Sybase') {
-    $details{server} = $ENV{OMP_ARCDBSERVER}
-      if (exists $ENV{OMP_ARCDBSERVER} and defined $ENV{OMP_ARCDBSERVER});
-  }
+  $details{server} = $ENV{OMP_ARCDBSERVER}
+    if (exists $ENV{OMP_ARCDBSERVER} and defined $ENV{OMP_ARCDBSERVER});
 
   return %details;
 

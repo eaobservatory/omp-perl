@@ -57,8 +57,8 @@ This class method returns the information required to connect to a
 database. The details are returned in a hash with the following
 keys:
 
-  driver  =>  DBI driver to use for database connection [Sybase or Pg]
-  server  =>  Database server (e.g. SYB_*) [only used for sybase]
+  driver  =>  DBI driver to use for database connection [mysql]
+  server  =>  Database server (e.g. omp4)
   database=>  The database to use for the transaction
   user    =>  database login name
   password=>  password for user
@@ -87,16 +87,8 @@ sub loginhash {
                  password => OMP::Config->getData("database.password"),
                 );
 
-  # possible override for sybase users
-  if ($details{driver} eq 'Sybase') {
-    $details{server} = $ENV{OMP_DBSERVER}
-      if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
-
-    # If we are now switching to SYB_UKIRT we have to change
-    # the database field [this is only for development]
-    $details{database} = 'archive'
-      if (defined $details{server} && $details{server} eq 'SYB_UKIRT');
-  }
+  $details{server} = $ENV{OMP_DBSERVER}
+    if (exists $ENV{OMP_DBSERVER} and defined $ENV{OMP_DBSERVER});
 
   return %details;
 }
@@ -275,7 +267,6 @@ sub connect {
 
   OMP::General->log_message( "------------> Login to DB $DBIdriver server $DBserver, database $DBdatabase, as $DBuser <-----");
 
-  # We are using sybase
   my $dbh = DBI->connect("dbi:$DBIdriver".$dboptions, $DBuser, $DBpwd, { PrintError => 0 })
     or throw OMP::Error::DBConnection("Cannot connect to database $DBserver: $DBI::errstr");
 
