@@ -35,20 +35,20 @@ use Time::Seconds;
 our $GSD_FROM_JCMT_INSTEAD = 0;
 
 # TABLES
-our $SCUTAB = 'jcmt_tms..SCU S';
-our $GSDTAB = 'jcmt_tms..SCA G';
-our $SUBTAB = 'jcmt_tms..SUB H';
-our $SPHTAB = 'jcmt_tms..SPH I';
-our $UKIRTTAB = 'ukirt..COMMON U';
-our $UFTITAB = 'ukirt..UFTI F';
-our $CGS4TAB = 'ukirt..CGS4 C';
-our $UISTTAB = 'ukirt..UIST I';
-our $IRCAMTAB = 'ukirt..IRCAM3 I';
-our $WFCAMTAB = 'ukirt..WFCAM W';
-our $MICHELLETAB = 'ukirt..MICHELLE M';
-our $JCMTTAB = 'jcmt..COMMON J';
-our $ACSISTAB = 'jcmt..ACSIS A';
-our $AFILESTAB = 'jcmt..FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
+our $SCUTAB = 'jcmt_tms.SCU S';
+our $GSDTAB = 'jcmt_tms.SCA G';
+our $SUBTAB = 'jcmt_tms.SUB H';
+our $SPHTAB = 'jcmt_tms.SPH I';
+our $UKIRTTAB = 'ukirt.COMMON U';
+our $UFTITAB = 'ukirt.UFTI F';
+our $CGS4TAB = 'ukirt.CGS4 C';
+our $UISTTAB = 'ukirt.UIST I';
+our $IRCAMTAB = 'ukirt.IRCAM3 I';
+our $WFCAMTAB = 'ukirt.WFCAM W';
+our $MICHELLETAB = 'ukirt.MICHELLE M';
+our $JCMTTAB = 'jcmt.COMMON J';
+our $ACSISTAB = 'jcmt.ACSIS A';
+our $AFILESTAB = 'jcmt.FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WILL END.
 
 # Extra description for Tim: In the %jointable the $AFILESTAB and
 # $S2FILESTAB are used as hash keys. Now, these both point to the same
@@ -60,8 +60,8 @@ our $AFILESTAB = 'jcmt..FILES F '; # LEAVE THE TRAILING SPACE IN OR THE WORLD WI
 # doesn't affect the resulting SQL statement, but the two keys become
 # unique and thus the hash works as it should.
 
-our $SCUBA2TAB = 'jcmt..SCUBA2 S2';
-our $S2FILESTAB = 'jcmt..FILES F';
+our $SCUBA2TAB = 'jcmt.SCUBA2 S2';
+our $S2FILESTAB = 'jcmt.FILES F';
 
 {
   my $cf = OMP::Config->new;
@@ -592,7 +592,7 @@ sub _post_process_hash {
   }
 
   my $newjcmt;
-  # Override date dance to get GSD data from jcmt..{COMMON,ACSIS} tables.
+  # Override date dance to get GSD data from jcmt.{COMMON,ACSIS} tables.
   if ( $GSD_FROM_JCMT_INSTEAD ) {
     $newjcmt = 1;
   }

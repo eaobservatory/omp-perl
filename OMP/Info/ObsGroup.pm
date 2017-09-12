@@ -396,8 +396,8 @@ sub populate {
   # Expand out and remap heterodyne instruments.
   if( exists $args{instrument} ) {
 
-    # Old GSD in jcmt_tms..SCA table has "rxa3i", converted GSD data in
-    # jcmt..COMMON has "RXA3".
+    # Old GSD in jcmt_tms.SCA table has "rxa3i", converted GSD data in
+    # jcmt.COMMON has "RXA3".
     my $rxa3 = '<instrument>rxa3i</instrument><instrument>rxa3</instrument>';
 
     if( $args{instrument} =~ /^rxa/i ) {
