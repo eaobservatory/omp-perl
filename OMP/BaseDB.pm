@@ -526,19 +526,6 @@ sub _db_insert_data {
   OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
 }
 
-# internal method to quote text ready for insert
-sub _quote_text_insert {
-  my $self = shift;
-  my $text = shift;
-
-  # Need to double up quotes to escape them in SQL
-  # Since we are quoting $text with a single quote
-  # we need to double up single quotes
-  $text =~ s/\'/\'\'/g;
-
-  return $text;
-}
-
 =item B<_db_retrieve_data_ashash>
 
 Retrieve data from a database table as a reference to
@@ -605,37 +592,33 @@ sub _db_update_data {
   my $clause = shift;
 
   # Add WHERE
-  $clause = "WHERE ". $clause if $clause;
+  $clause = " WHERE ". $clause if $clause;
 
   # Get the handle
   my $dbh = $self->_dbhandle
     or throw OMP::Error::DBError("Database handle not valid");
 
+  my @change_cols = ();
+  my @change_vals = ();
+
   # Loop over each key
   for my $col (keys %$change) {
-
-    # check for text and quote if needed
-    # If "undef" we need to use NULL
-    if (defined $change->{$col}) {
-      $change->{$col} = "'" . $self->_quote_text_insert($change->{$col}) . "'"
-        if $change->{$col} =~ /[A-Za-z:]/;
-    } else {
-      $change->{$col} = "NULL";
-    }
-
-    # Construct the SQL
-    my $sql = "UPDATE $table SET $col = " . $change->{$col} . " $clause ";
-
-    OMP::General->log_message( "Updating DB row: $sql", OMP__LOG_DEBUG );
-
-    # Execute the SQL
-    $dbh->do($sql)
-      or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
-
-    OMP::General->log_message("Row updated.", OMP__LOG_DEBUG);
-
+    push @change_cols, $col;
+    push @change_vals, $change->{$col};
   }
 
+  # Construct the SQL
+  my $sql = "UPDATE $table SET " .
+        join(", ", map {"$_ = ?"} @change_cols) .
+        $clause;
+
+  OMP::General->log_message( "Updating DB row: $sql", OMP__LOG_DEBUG );
+
+  # Execute the SQL
+  $dbh->do($sql, {}, @change_vals)
+    or throw OMP::Error::DBError("Error updating [$sql]: " .$dbh->errstr);
+
+  OMP::General->log_message("Row updated.", OMP__LOG_DEBUG);
 }
 
 =item B<_db_delete_data>
