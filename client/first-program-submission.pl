@@ -238,13 +238,8 @@ sub make_query {
   # Only if a constant could be used in string interpolation.
   my $submitted = OMP__FB_MSG_SP_SUBMITTED;
 
-  # 102 (date) style is 'yyyy.mm.dd'.
-  # STUFF() is similar to s///.
   return <<"__SQL__";
-    SELECT f.projectid,
-      STUFF( STUFF( CONVERT( VARCHAR, date, 102) , 5, 1, '-' ), 8, 1, '-' )
-      + 'T'
-      + CONVERT( CHAR(8), date, 108) date
+    SELECT f.projectid, date
     FROM ompfeedback f
     WHERE f.projectid IN ( $list )
       AND f.date =

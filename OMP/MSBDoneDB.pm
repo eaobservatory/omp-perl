@@ -875,8 +875,7 @@ sub _reorganize_msb_done {
   for my $row (@$rows) {
 
     # Convert the date to a date object
-    my $datekey = (exists $row->{longdate} ? "longdate" : "date");
-    $row->{$datekey} =  OMP::DateTools->parse_date( $row->{$datekey} );
+    $row->{'date'} =  OMP::DateTools->parse_date( $row->{'date'} );
 
     # nasty hack since for some reason we have leading null
     # characters on our MSB checksums
@@ -884,7 +883,7 @@ sub _reorganize_msb_done {
 
     # Prepare comment details
     my %details = (text => $row->{comment},
-                   date => $row->{$datekey},
+                   date => $row->{'date'},
                    status => $row->{status},
                    tid => $row->{msbtid},);
 

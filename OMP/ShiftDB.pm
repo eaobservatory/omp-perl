@@ -232,7 +232,7 @@ sub _reorganize_shiftlog {
 
     my $obs = new OMP::Info::Comment(
                      text => $row->{text},
-                     date => OMP::DateTools->parse_date( $row->{longdate} ),
+                     date => OMP::DateTools->parse_date( $row->{date} ),
                      author => $user
       );
 

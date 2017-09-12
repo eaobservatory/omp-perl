@@ -530,12 +530,12 @@ sub _reorganize_comments {
 # For each row returned by the query, create an Info::Comment object
 # out of the information contained within.
   for my $row (@$rows) {
-    my $date = OMP::DateTools->parse_date( $row->{longcommentdate} );
-    throw OMP::Error("Unable to parse comment date (".$row->{longcommentdate}. ")")
+    my $date = OMP::DateTools->parse_date( $row->{commentdate} );
+    throw OMP::Error("Unable to parse comment date (".$row->{commentdate}. ")")
       unless defined $date;
 
-    my $startobs = OMP::DateTools->parse_date( $row->{longdate} );
-    throw OMP::Error("Unable to parse observation start date (".$row->{longdate} .")")
+    my $startobs = OMP::DateTools->parse_date( $row->{date} );
+    throw OMP::Error("Unable to parse observation start date (".$row->{date} .")")
       unless defined $startobs;
 
     my $obsid;

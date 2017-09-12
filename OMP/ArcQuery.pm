@@ -488,10 +488,9 @@ sub sql {
     if ($tel eq 'JCMT') {
 
       $sql  = "SELECT *, ";
-      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'date_obs', ";
-      $sql .= "CONVERT(CHAR(32), " . $lut{date}->{$insttable{$t}->[0]} . ",109) AS 'longdateobs' ";
+      $sql .= $lut{date}->{$insttable{$t}->[0]} . " AS 'date_obs' ";
       if( defined( $lut{dateend}->{$insttable{$t}->[0]} ) ) {
-        $sql .= ", CONVERT(CHAR(32), " . $lut{dateend}->{$insttable{$t}->[0]} . ",109) AS 'date_end' ";
+        $sql .= ", " . $lut{dateend}->{$insttable{$t}->[0]} . " AS 'date_end' ";
       }
       $sql .= "FROM $tables $where";
 
