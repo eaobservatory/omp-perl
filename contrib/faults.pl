@@ -93,14 +93,14 @@ qq{___________________________________________________________________________
 my $current_ref = $db->selectall_arrayref(
       qq{select
               F.faultid,
-              convert(char(5),dateadd(hh,-10,date),8)+'HST',
+              date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
               substring(subject,1,80),
               author,
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
          from ompfault F, ompfaultbody FB
          where date between "$startut" and
-                            dateadd(hh,${delta}*24,"$startut")
+                            date_add("$startut", interval ${delta} day)
          and FB.faultid = F.faultid
          and category='${telescope}' and isfault = 1
          order by substring(subject,1,80),faultid})
@@ -187,13 +187,13 @@ print qq{
 my $previous_ref = $db->selectall_arrayref(
       qq{select
               F.faultid,
-              convert(char(5),dateadd(hh,-10,date),8)+'HST',
+              date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
               substring(subject,1,80),
               author,
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
          from ompfault F, ompfaultbody FB
-         where date between dateadd(hh,-${delta}*24,"$startut")
+         where date between date_sub("$startut", interval ${delta} day)
                         and "$startut"
          and FB.faultid = F.faultid
          and category='${telescope}' and isfault = 1
@@ -221,11 +221,11 @@ my $previous_ref = $db->selectall_arrayref(
       qq{select
               distinct F.faultid,
               substring(subject,1,80),
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
          from ompfault F, ompfaultbody FB
          where date between "$startut" and
-                            dateadd(hh,${delta}*24,"$startut")
+                            date_add("$startut", interval ${delta} day)
          and faultdate < "$startut"
          and FB.faultid = F.faultid
          and status = 1
