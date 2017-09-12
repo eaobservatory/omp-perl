@@ -466,21 +466,6 @@ sub _db_insert_data {
   # read the columns
   my @data = @_;
 
-  # read the hint
-  my $UNIQCOL;
-  my $UNIQVAL;
-  if (defined $hints) {
-    $UNIQCOL = $hints->{COLUMN};
-    if (defined $hints->{POSN} &&
-        ($hints->{POSN} >= 0 || $hints->{POSN} <= $#data)) {
-      $UNIQVAL = $data[$hints->{POSN}];
-      $UNIQVAL = "'$UNIQVAL'" if $hints->{QUOTE};
-    } else {
-      throw OMP::Error::BadArgs("Database hint out of range (0<".
-                                (defined $hints->{POSN} ? $hints->{POSN} : "undef")."<$#data");
-    }
-  }
-
   # Now go through the data array building up the placeholder sql
   # deciding which fields can be stored immediately and which must be
   # insert as text fields
@@ -492,7 +477,6 @@ sub _db_insert_data {
   my @toinsert;
 
   # Data to store later
-  my @textfields;
   for my $column (@data) {
 
     # Prepend a comma
@@ -538,42 +522,6 @@ sub _db_insert_data {
   # Insert the easy data
   $dbh->do($sql,undef,@toinsert)
     or throw OMP::Error::DBError("Error inserting data into table $table [$sql]: $DBI::errstr");
-
-  OMP::General->log_message( "Inserted easy data.", OMP__LOG_DEBUG );
-
-  # Now the text data
-  for my $textdata ( @textfields ) {
-    my $text = $textdata->{TEXT};
-    my $dummy = $textdata->{DUMMY};
-    my $col = $textdata->{COLUMN};
-
-    OMP::General->log_message( "Inserting DB text data column: $col",
-                               OMP__LOG_DEBUG );
-
-    # escape quotes
-    $text = $self->_quote_text_insert( $text );
-
-    # Now replace the dummy text using writetext
-    my $sql = "declare \@val varbinary(16)
-select \@val = textptr($col) from $table where $col LIKE \"$dummy\" ";
-
-    # any hint? This should help to make the select faster since the TEXT field
-    # will not be an indexed field
-    if (defined $UNIQVAL && defined $UNIQCOL) {
-      $sql .= " AND $UNIQCOL = $UNIQVAL";
-
-      OMP::General->log_message("Using writetext with a hint of $UNIQCOL = $UNIQVAL", OMP__LOG_DEBUG);
-    }
-    # final chunk
-    $sql .= "\nwritetext $table.$col \@val '$text'";
-
-    # run it
-    $dbh->do( $sql )
-      or throw OMP::Error::DBError("Error inserting text data into table '$table', column '$col' into database: ". $dbh->errstr);
-
-    OMP::General->log_message( "Text data inserted using WRITETEXT.", OMP__LOG_DEBUG );
-
-  }
 
   OMP::General->log_message( "Inserted DB data", OMP__LOG_DEBUG );
 }
