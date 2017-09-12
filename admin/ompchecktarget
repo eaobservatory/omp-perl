@@ -180,6 +180,8 @@ use Astro::Telescope;
 use DBI;
 
 use OMP::Password;
+use OMP::DBbackend;
+use OMP::DBbackend::Archive;
 
 my $HPI = pi/2;
 
@@ -354,35 +356,13 @@ print "\n";
 # Get observed targets
 unless ($coords) {
 
-  my $password;
-  if ( -t STDIN ) {
-
-    $password =
-      OMP::Password->get_password( { 'prompt' => 'Please enter the staff password: ' } );
-  }
-  else {
-
-    require OMP::Config;
-
-    my $user = 'staff';
-
-    if ( $user eq OMP::Config->getData( "hdr_database.user" ) ) {
-
-      $password = OMP::Config->getData( "hdr_database.password" );
-    }
-    else{
-
-      die "'$user' user database log in data not found.\n";
-    }
-  }
-
   unless ($semester) {
     # from COMMON table in JCMT DB sorted by project.
-    $observed = &get_observed_targets( $utstart, $utstop, $password,
+    $observed = &get_observed_targets( $utstart, $utstop,
                                         "$projects", $telescope );
   }
   else {
-    $observed = get_scheduled_targets($utstart, $utstop, $semester, $password);
+    $observed = get_scheduled_targets($utstart, $utstop, $semester);
   }
 } else {
   # or for user-specified coordinates
@@ -463,12 +443,11 @@ sub get_observed_targets {
 # Would have like to use OMP::ObsGroups but, due to a bug, it does
 # not presently return the Coord object. Hence used a direct query.
 #
-# Use: $observed = get_observed_targets ( $utstart, $utstop, $password,
+# Use: $observed = get_observed_targets ( $utstart, $utstop,
 #                                         $projects, $telescope )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
-#    $password: password to use to log in to database
 #    $projects: string, possibly with wild cards ('*')
 #    $telescope: telescope to query COMMON table for (not yet used)
 #
@@ -480,7 +459,7 @@ sub get_observed_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $password, $projids, $telescope) = @_;
+  my ($utstart, $utstop, $projids, $telescope) = @_;
 
   my $prjclause = "";
   if ($projects ne "") {
@@ -489,22 +468,15 @@ sub get_observed_targets {
   }
 
   # Connect to the database.
-  my $server   = "SYB_JAC";
-  my $database = "jcmt";
-  my $dbtable  = "COMMON";
-  my $dbh;
-
   print STDERR "# Connecting to OMP server...";
-  $dbh = DBI->connect(
-     "dbi:Sybase:server=${server};database=${database};timeout=150",
-     "staff", $password )
-     || die ("*ERROR* JCMT DB_LOGIN failed\n");
+  my $dbbackend = new OMP::DBbackend::Archive();
+  my $dbh = $dbbackend->handle();
   print STDERR "done\n";
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
     SELECT distinct project, utdate, name=object, ra=obsra, dec=obsdec, obsnum
-    FROM $dbtable WHERE
+    FROM jcmt.COMMON WHERE
     utdate BETWEEN $utstart AND $utstop
     $prjclause
     AND telescop="$telescope"
@@ -548,7 +520,8 @@ sub get_observed_targets {
   $sth->finish();
 
   # Disconnect from the database.
-  $dbh->disconnect();
+  $dbbackend->disconnect();
+  undef $dbh;
 
   if (@observed > 0) {
     printf STDERR "# Fetched %d observed targets\n", $#observed+1;
@@ -567,14 +540,13 @@ sub get_scheduled_targets {
 
 # Get the scheduled targets from the ompobs table in OMP database.
 #
-# Use: $scheduled = get_scheduled_targets ( $semester, $password )
+# Use: $scheduled = get_scheduled_targets ( $utstart, $utstop, $semester )
 #
 # Input:
 #    $utstart, $utstop: observed date range (yyyymmdd)
 #    $semester: semester to search (matches as project ID prefix
 #               following initial M, so it can specify a country,
 #               or project)
-#    $password: password to use to log in to database
 #
 # Returned:
 #    Reference to array of hashes with observed targets, keys:
@@ -584,34 +556,27 @@ sub get_scheduled_targets {
 #       has also been configured into an Astro::Coords object
 #       as hash key 'coords'.
 
-  my ($utstart, $utstop, $semester, $password) = @_;
+  my ($utstart, $utstop, $semester) = @_;
 
   my $projectpattern = 'M' . $semester . '%';
-
-  # Connect to the database.
-  my $server   = "SYB_JAC";
-  my $database = "omp";
-  my $dbtable  = "ompobs";
-  my $dbh;
 
   # This strptime function appears to assume UT, so we can
   # use the specified dates directly to get the timestamps.
   $utstart = new Time::Piece->strptime("$utstart", "%Y%m%d")->epoch();
   $utstop  = new Time::Piece->strptime("$utstop 23:59:59", "%Y%m%d %H:%M:%S")->epoch();
 
+  # Connect to the database.
   print STDERR "# Connecting to OMP server...";
-  $dbh = DBI->connect(
-     "dbi:Sybase:server=${server};database=${database};timeout=150",
-     "staff", $password )
-     || die ("*ERROR* OMP DB_LOGIN failed\n");
+  my $dbbackend = new OMP::DBbackend();
+  my $dbh = $dbbackend->handle();
   print STDERR "done\n";
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
-    SELECT distinct $dbtable.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
-    FROM $dbtable JOIN ompsciprog ON $dbtable.projectid = ompsciprog.projectid
+    SELECT distinct ompobs.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
+    FROM ompobs JOIN ompsciprog ON ompobs.projectid = ompsciprog.projectid
     WHERE
-    $dbtable.projectid LIKE "$projectpattern"
+    ompobs.projectid LIKE "$projectpattern"
     AND timestamp BETWEEN $utstart AND $utstop
     ORDER BY project, name
     }
@@ -654,7 +619,8 @@ sub get_scheduled_targets {
   $sth->finish();
 
   # Disconnect from the database.
-  $dbh->disconnect();
+  $dbbackend->disconnect();
+  undef $dbh;
 
   if (@observed > 0) {
     printf STDERR "# Fetched %d scheduled targets\n", $#observed+1;
