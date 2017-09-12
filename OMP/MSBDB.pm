@@ -2207,19 +2207,12 @@ sub _insert_row {
                           $maxel, $data{approach}, int($moonmin),
                           int($cloudmin), $skymin, $skymax);
 
-  # Now the observations
-  # We dont use the generic interface here since we want to
-  # reuse the statement handle
-  # Get the observation query handle
-  my $obsst_sql = "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-  my $obsst = $dbh->prepare($obsst_sql)
-    or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
+  # Now the observations.  Prepare the rows for insert and then insert
+  # them all at the end.  This is in case we need to look up any AUTO-TLE
+  # targets, since we will need to prepare a different SQL query for that.
+  my @obsrows = ();
 
-  my $count;
   for my $obs (@{ $data{observations} }) {
-
-    $count++;
-
     # If coordinates have not been set then we need to raise an exception
     # since we can not schedule this. Note that calibrations
     # will come back as Astro::Coords::Calibration
@@ -2250,32 +2243,33 @@ sub _insert_row {
 
         # Before storing the AUTO-TLE observation, check whether we already
         # have the target in the TLE database.  If so, use its elements.
-        # However Sybase doesn't allow us to have two active statement handles
-        # here, so we must deactivate $obsst and re-prepare it afterwards!
-        $obsst->finish();
-
         my $tledb = new OMP::TLEDB();
         my $autocoord = $tledb->get_coord($target);
         if (defined $autocoord) {
             @coords = $autocoord->array();
         }
-
-        $obsst = $dbh->prepare($obsst_sql)
-            or throw OMP::Error::DBError(
-                "Error re-preparing MSBOBS insert SQL: $DBI::errstr\n");
     }
 
-    $obsst->execute(
+    push @obsrows, [
                     $index, $proj, uc($obs->{instrument}),
                     $obs->{type}, $obs->{pol}, $obs->{wavelength},
                     $obs->{disperser},
                     $coordstype, $target,
                     @coords[1..10], $obs->{timeest}
-                   )
-      or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
+                   ];
 
   }
 
+  # We dont use the generic interface here since we want to
+  # reuse the statement handle.
+  my $obsst = $dbh->prepare(
+    "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
+
+  foreach my $obsrow (@obsrows) {
+    $obsst->execute(@$obsrow)
+      or throw OMP::Error::DBError("Error inserting new obs rows: $DBI::errstr");
+  }
 }
 
 
