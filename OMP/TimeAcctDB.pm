@@ -340,7 +340,7 @@ sub _run_timeacct_query {
   # First parse the date field and convert it to a date object
   for my $row (@$ref) {
     my $date = OMP::DateTools->parse_date( $row->{date} );
-    throw OMP::Error::FatalError("Unable to parse Sybase date '".$row->{date}. 
+    throw OMP::Error::FatalError("Unable to parse date '".$row->{date}.
 				 "' from time accounting table")
       unless defined $date;
     $row->{date} = $date;

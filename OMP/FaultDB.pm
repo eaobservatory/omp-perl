@@ -418,9 +418,9 @@ sub _store_new_fault {
 
   # First store the main fault information
 
-  # Date must be formatted for sybase
+  # Date must be formatted for MySQL
   my $faultdate = $fault->faultdate;
-  $faultdate = $faultdate->strftime("%Y%m%d %T")
+  $faultdate = $faultdate->strftime("%Y-%m-%d %T")
     if defined $faultdate;
 
   # Insert the data into the table
@@ -476,8 +476,8 @@ sub _add_new_response {
   throw OMP::Error::Authentication("Must supply a valid user id for the fault system ['".$author->userid."' invalid]") unless ($userid);
 
 
-  # Format the date in a way that sybase understands
-  $date = $date->strftime("%Y%m%d %T");
+  # Format the date in a way that MySQL understands
+  $date = $date->strftime("%Y-%m-%d %T");
 
   $self->_db_insert_data( $FAULTBODYTABLE,
                           { COLUMN => 'faultid',
@@ -548,7 +548,6 @@ sub _query_faultdb {
   for my $faultref (@$ref) {
 
     # First convert dates to date objects
-    # 'Mar 15 2002  7:04AM' is Sybase format
     $faultref->{date} = OMP::DateTools->parse_date( $faultref->{date} );
     $faultref->{faultdate} = OMP::DateTools->parse_date( $faultref->{faultdate})
       if defined $faultref->{faultdate};
@@ -628,9 +627,9 @@ sub _update_fault_row {
     # Delete the row for this fault
     $self->_db_delete_data( $FAULTTABLE, $clause );
 
-    # Date must be formatted for sybase
+    # Date must be formatted for MySQL
     my $faultdate = $fault->faultdate;
-    $faultdate = $faultdate->strftime("%Y%m%d %T")
+    $faultdate = $faultdate->strftime("%Y-%m-%d %T")
       if defined $faultdate;
 
     # Insert the new values

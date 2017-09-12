@@ -297,7 +297,7 @@ sub _get_expiry_date {
   my $localtime = localtime;
   my $expiry = $localtime + $timeout->seconds;
 
-  return $expiry->strftime("%Y%m%d %T"); # Sybase format
+  return $expiry->strftime("%Y-%m-%d %T"); # MySQL format
 }
 
 =back
