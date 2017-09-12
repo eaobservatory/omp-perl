@@ -643,15 +643,12 @@ sub _db_delete_data {
   throw OMP::Error::BadArgs("db_delete_data: Must supply a WHERE clause")
     unless $clause;
 
-  # Add WHERE
-  $clause = "WHERE ". $clause;
-
   # Get the handle
   my $dbh = $self->_dbhandle
     or throw OMP::Error::DBError("Database handle not valid");
 
   # Construct the SQL
-  my $sql = "DELETE FROM $table $clause";
+  my $sql = "DELETE FROM $table WHERE $clause";
 
   OMP::General->log_message( "Deleting DB data: $sql", OMP__LOG_DEBUG );
 
