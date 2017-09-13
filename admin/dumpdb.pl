@@ -17,7 +17,15 @@ use strict;
 
 # Pick up the OMP database
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::DBbackend;
 use Storable qw(nstore);
 use File::Copy;

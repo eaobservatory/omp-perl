@@ -26,6 +26,16 @@
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 select \*STDERR ; $| = 1;
 select \*STDOUT ; $| = 1;
 

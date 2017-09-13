@@ -13,6 +13,17 @@
 use 5.006;
 use strict;
 use warnings;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::SpServer;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;

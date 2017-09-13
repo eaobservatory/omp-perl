@@ -66,6 +66,17 @@ Include hidden entries.
 =cut
 
 use strict; use warnings FATAL => 'all';
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 our $VERSION = '0.01';
 use v5.10;
 use autodie         qw[ :2.13 ];

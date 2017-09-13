@@ -156,6 +156,16 @@ use OMP::UserServer;
 use Pod::Usage;
 use Getopt::Long;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 our $VERSION = '2.000';
 
 # Options

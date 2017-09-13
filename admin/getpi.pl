@@ -6,6 +6,19 @@
 
 # Takes the file name as argument.
 
+use warnings;
+use strict;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use Config::IniFiles;
 use OMP::UserServer;
 use Data::Dumper;

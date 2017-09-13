@@ -79,7 +79,15 @@ use List::Util qw[ first ];
 use MIME::Lite;
 use Pod::Usage;
 
-use lib "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::Config;
 
 my ( $verbose, $track_time, $help, $short, $err_only, @addr ) = ( 0 );

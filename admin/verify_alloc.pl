@@ -24,6 +24,18 @@
 # coi and title can be null. For JCMT support is inserted automatically
 # depending on the country.
 
+use warnings;
+use strict;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
 
 use Config::IniFiles;
 use OMP::UserServer;

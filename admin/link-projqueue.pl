@@ -65,6 +65,16 @@ To have M10BU08 project appear in M10BC07 queue ...
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use Getopt::Long qw(:config gnu_compat no_ignore_case no_debug);
 use Pod::Usage;
 use List::MoreUtils qw[ uniq ];
