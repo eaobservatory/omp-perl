@@ -106,15 +106,14 @@ sub sql {
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $temp = "#ompfaultid";
-  my $sql = "(SELECT F.faultid 
-               INTO $temp
-                FROM $faulttable F $r_table
-                 $where GROUP BY F.faultid)
-             (SELECT * FROM $temp T, $faulttable F, $resptable R
-                WHERE T.faultid = F.faultid AND F.faultid = R.faultid )
-             ORDER BY R.isfault desc, R.date
-             DROP TABLE $temp";
+  my $sql = "SELECT * FROM $faulttable F, $resptable R
+             WHERE F.faultid IN (
+                 SELECT F.faultid
+                 FROM $faulttable F $r_table
+                 $where
+             )
+             AND F.faultid = R.faultid
+             ORDER BY R.isfault desc, R.date";
 
   return "$sql\n";
 
