@@ -56,7 +56,7 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig robots.txt /;
 
 my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
@@ -64,7 +64,7 @@ my %shared = map {$_, undef} @sharedfiles;
 for my $subdir (@srcdirs) {
   my $dir = File::Spec->catdir(OMPLIB, $subdir);
   opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
-  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl)$/} readdir(DIR);
+  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl|\.txt)$/} readdir(DIR);
   closedir(DIR);
 
   for my $file (@files) {
