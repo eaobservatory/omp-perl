@@ -714,7 +714,7 @@ sub _add_msb_done_info {
 
   # First get the timestamp and format it
   my $t = $comment->date;
-  my $date = $t->strftime("%b %e %Y %T");
+  my $date = $t->strftime("%Y-%m-%d %T");
 
   # insert rows into table
   # Note that "title" was added at a later date - hence its position

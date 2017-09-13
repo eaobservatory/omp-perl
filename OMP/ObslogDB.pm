@@ -649,10 +649,10 @@ sub _extract_data {
     $data{'status'} = OMP__OBS_GOOD;
   }
 
-  $data{'obs-date'} = $t->strftime("%b %e %Y %T");
+  $data{'obs-date'} = $t->strftime("%Y-%m-%d %T");
 
   my $ct = $comment->date;
-  $data{'comment-date'} = $ct->strftime("%b %e %Y %T");
+  $data{'comment-date'} = $ct->strftime("%Y-%m-%d %T");
 
   $data{'text'}   = $comment->text();
   $data{'userid'} = $comment->author()->userid();
@@ -732,7 +732,7 @@ sub _set_inactive {
   my $instrument = $obs->instrument;
   my $runnr = $obs->runnr;
 
-  my $date = $t->strftime("%Y%m%d %T");
+  my $date = $t->strftime("%Y-%m-%d %T");
 
   # Form the WHERE clause.
   my $where = "date = '$date' AND instrument = '$instrument' AND runnr = $runnr AND commentauthor = '$userid'";

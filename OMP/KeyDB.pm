@@ -253,7 +253,7 @@ sub _expire_keys {
   my $self = shift;
 
   my $localtime = localtime;
-  $localtime = $localtime->strftime("%Y%m%d %T");
+  $localtime = $localtime->strftime("%Y-%m-%d %T");
 
   # Our sql clause for the delete
   my $clause = "$EXPCOLUMN < \"$localtime\"";

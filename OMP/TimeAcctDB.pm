@@ -421,7 +421,7 @@ sub _insert_timeacct_entry {
   my $proj = uc($acct->projectid);
   my $timespent = $acct->timespent->seconds;
   my $conf = $acct->confirmed;
-  my $date = $acct->date->strftime('%Y%m%d');
+  my $date = $acct->date->strftime('%Y-%m-%d');
 
   # insert
   $self->_db_insert_data( $ACCTTABLE, $date, $proj, $timespent,

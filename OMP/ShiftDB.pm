@@ -281,7 +281,7 @@ sub _insert_shiftlog {
   }
 
   my $t = $comment->date; # - $comment->date->sec;
-  my $date = $t->strftime("%b %e %Y %T");
+  my $date = $t->strftime("%Y-%m-%d %T");
 
   my %text = ( "TEXT" => OMP::Display->preify_text( $comment->text ),
                "COLUMN" => "text" );

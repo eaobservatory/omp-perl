@@ -224,7 +224,7 @@ sub addComment {
 
   my $t = gmtime;
   my %defaults = ( subject => 'none',
-                   date => $t->strftime("%b %e %Y %T"),
+                   date => $t->strftime("%Y-%m-%d %T"),
                    program => 'unspecified',
                    sourceinfo => 'unspecified',
                    status => OMP__FB_IMPORTANT,
