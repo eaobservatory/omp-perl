@@ -7,7 +7,7 @@ OMP::FaultQuery - Class representing an XML OMP query of the fault database
 =head1 SYNOPSIS
 
   $query = new OMP::FaultQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $faulttable, $resptable );
 
 =head1 DESCRIPTION
 

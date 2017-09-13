@@ -7,7 +7,7 @@ OMP::ObsQuery - Class representing an XML OMP query of the Observation table
 =head1 SYNOPSIS
 
   $query = new OMP::ObsQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $obslogtable );
 
 =head1 DESCRIPTION
 
@@ -71,7 +71,7 @@ sub checksums {
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $faulttable, $resptable );
+  $sql = $query->sql( $obslogtable );
 
 Returns undef if the query could not be formed.
 
@@ -94,7 +94,7 @@ sub sql {
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
     unless scalar(@_) == 1;
 
-  my ($donetable) = @_;
+  my ($table) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -116,7 +116,7 @@ sub sql {
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "($select FROM $donetable $where)";
+  my $sql = "($select FROM $table $where)";
 
   return "$sql\n";
 

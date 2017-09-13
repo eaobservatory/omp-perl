@@ -7,7 +7,7 @@ OMP::ShiftQuery - Class representing queries of the shift log table.
 =head1 SYNOPSIS
 
 $query = new OMP::ShiftQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $shiftlogtable );
 
 =head1 DESCRIPTION
 
@@ -43,7 +43,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $table )
+  $sql = $query->sql( $shiftlogtable )
 
 Returns undef if the query could not be formed.
 
@@ -59,7 +59,7 @@ sub sql {
   throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) == 1;
 
-  my ($donetable) = @_;
+  my ($table) = @_;
 
   # Generate the WHERE clause from the query hash
   # Note that we ignore elevation, airmass and date since
@@ -78,7 +78,7 @@ sub sql {
   # Now need to put this SQL into the template query
   # This returns a row per response
   # So will duplicate static fault info
-  my $sql = "(SELECT * FROM $donetable $where)";
+  my $sql = "(SELECT * FROM $table $where)";
 
   return "$sql\n";
 

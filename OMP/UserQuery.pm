@@ -7,7 +7,7 @@ OMP::UserQuery - Class representing an XML OMP query of the user database
 =head1 SYNOPSIS
 
   $query = new OMP::UserQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $usertable );
 
 =head1 DESCRIPTION
 

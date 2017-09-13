@@ -7,7 +7,7 @@ OMP::MSBDoneQuery - Class representing an XML OMP query of the MSB done table
 =head1 SYNOPSIS
 
   $query = new OMP::MSBDoneQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $msbdonetable );
 
 =head1 DESCRIPTION
 
@@ -71,7 +71,7 @@ sub checksums {
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $faulttable, $resptable );
+  $sql = $query->sql( $msbdonetable );
 
 Returns undef if the query could not be formed.
 

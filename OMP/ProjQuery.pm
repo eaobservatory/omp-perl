@@ -7,7 +7,7 @@ OMP::ProjQuery - Class representing an XML OMP query of the Project database
 =head1 SYNOPSIS
 
   $query = new OMP::ProjQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $projtable, $projqueuetable, $projusertable );
 
 
 =head1 DESCRIPTION
@@ -46,7 +46,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $projtable, $projusertable );
+  $sql = $query->sql( $projtable, $projqueuetable, $projusertable );
 
 Returns undef if the query could not be formed.
 

@@ -7,7 +7,7 @@ OMP::ArcQuery - Class representing an XML OMP query of the header archive
 =head1 SYNOPSIS
 
   $query = new OMP::ArcQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql();
 
 =head1 DESCRIPTION
 

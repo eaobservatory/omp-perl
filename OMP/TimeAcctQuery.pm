@@ -7,7 +7,7 @@ OMP::TimeAcctQuery - Class representing an XML OMP query of the time accouting d
 =head1 SYNOPSIS
 
   $query = new OMP::TimeAcctQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $accttable );
 
 =head1 DESCRIPTION
 
@@ -40,7 +40,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $projtable, $coitable );
+  $sql = $query->sql( $accttable );
 
 Returns undef if the query could not be formed.
 

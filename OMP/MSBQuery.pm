@@ -7,7 +7,8 @@ OMP::MSBQuery - Class representing an OMP query of the MSB database
 =head1 SYNOPSIS
 
   $query = new OMP::MSBQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $msbtable, $obstable,
+                      $projtable, $projqueuetable, $projusertable );
 
 
 =head1 DESCRIPTION
@@ -292,7 +293,8 @@ sub constraints {
 Returns an SQL representation of the MSB Query using the specified
 database table.
 
-  $sql = $query->sql( $msbtable, $obstable, $projtable, $coitable );
+  $sql = $query->sql( $msbtable, $obstable,
+                      $projtable, $projqueuetable, $projusertable );
 
 Returns undef if the query could not be formed.
 

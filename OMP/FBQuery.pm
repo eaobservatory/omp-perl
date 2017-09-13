@@ -7,7 +7,7 @@ OMP::FBQuery - Class representing queries of the feedback message system
 =head1 SYNOPSIS
 
 $query = new OMP::FBQuery( XML => $xml );
-  $sql = $query->sql( $table );
+  $sql = $query->sql( $fbtable );
 
 =head1 DESCRIPTION
 
@@ -43,7 +43,7 @@ our $VERSION = '2.000';
 Returns an SQL representation of the XML Query using the specified
 database table.
 
-  $sql = $query->sql( $table )
+  $sql = $query->sql( $fbtable )
 
 Returns undef if the query could not be formed.
 
