@@ -483,7 +483,7 @@ sub _add_new_response {
                           { COLUMN => 'faultid',
                             QUOTE => 0,
                             POSN => 0 },
-                          $id, $date, $userid, $resp->isfault,
+                          undef, $id, $date, $userid, $resp->isfault,
                           {
                            TEXT => $text,
                            COLUMN => 'text',
@@ -709,7 +709,7 @@ sub _insert_assoc_rows {
 
   my @entries = map { [ $faultid, $_ ]  } @projects;
   for my $assoc (@entries) {
-    $self->_db_insert_data( $ASSOCTABLE, $assoc->[0], $assoc->[1] );
+    $self->_db_insert_data( $ASSOCTABLE, undef, $assoc->[0], $assoc->[1] );
   }
 }
 

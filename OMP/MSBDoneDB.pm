@@ -739,6 +739,7 @@ sub _add_msb_done_info {
                           { COLUMN => 'checksum',
                             QUOTE => 1,
                             POSN => 0 },
+                          undef,
                           $checksum, $comment->status,
                           $projectid, $date,
                           $target, $msbinfo->instrument,

@@ -2263,7 +2263,7 @@ sub _insert_row {
   # We dont use the generic interface here since we want to
   # reuse the statement handle.
   my $obsst = $dbh->prepare(
-    "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    "INSERT INTO $OBSTABLE VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)")
     or throw OMP::Error::DBError("Error preparing MSBOBS insert SQL: $DBI::errstr\n");
 
   foreach my $obsrow (@obsrows) {

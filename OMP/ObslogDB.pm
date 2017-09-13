@@ -601,6 +601,7 @@ sub _store_comment {
                             'QUOTE'  => 1,
                             'POSN'   => 6
                           },
+                          undef,
                           @data{qw/ runnr instrument telescope obs-date /},
                           '1',
                           @data{qw/ comment-date userid /},

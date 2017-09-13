@@ -349,6 +349,7 @@ sub _store_comment {
                           { COLUMN => 'projectid',
                             QUOTE => 1,
                             POSN => 0 },
+                          undef,
                           $projectid,
                           (defined $comment->{author} ?
                            $comment->{author}->userid : undef),

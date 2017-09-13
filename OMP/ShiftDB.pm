@@ -291,6 +291,7 @@ sub _insert_shiftlog {
 			    QUOTE => 1,
 			    POSN => 1
 			  },
+                          undef,
                           $date,
                           $author->userid,
                           $telstring,

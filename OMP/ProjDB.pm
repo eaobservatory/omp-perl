@@ -567,6 +567,7 @@ sub enqueueProject {
     my $prim = ($primary eq uc($c) ? 1 : 0);
 
     $self->_db_insert_data( $PROJQUEUETABLE,
+                            undef,
                             $proj->projectid,
                             uc($c), ($queue{$c} - $adj),
                             $prim, $adj,
@@ -1038,6 +1039,7 @@ sub _insert_project_user {
   # Note that we must convert undef to 0 here for the DB
   $attr{'contactable'} = $attr{'contactable'} ? 1 : 0;
   $self->_db_insert_data( $PROJUSERTABLE,
+                          undef,
                           map { $attr{$_} }
                               qw( projectid userid role contactable
                                   capacity_order
