@@ -17,6 +17,8 @@ use parent qw/Exporter/;
 
 our @EXPORT_OK = qw/standardize_tle_name tle_row_to_coord/;
 
+our $TLETABLE = 'omptle';
+
 =head1 METHODS
 
 =head2 Constructor
@@ -58,7 +60,7 @@ sub get_coord {
     my $object = shift;
 
     my $row = $self->{'DB'}->handle()->selectrow_hashref(
-        'SELECT * FROM omptle WHERE target=?',
+        "SELECT * FROM $TLETABLE WHERE target=?",
         {},
         $object,
     );

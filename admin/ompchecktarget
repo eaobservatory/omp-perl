@@ -182,6 +182,7 @@ use DBI;
 use OMP::Password;
 use OMP::DBbackend;
 use OMP::DBbackend::Archive;
+use OMP::MSBDB;
 
 my $HPI = pi/2;
 
@@ -573,10 +574,10 @@ sub get_scheduled_targets {
 
   # Now retrieve data from the table.
   my $sth = $dbh->prepare(qq{
-    SELECT distinct ompobs.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
-    FROM ompobs JOIN ompsciprog ON ompobs.projectid = ompsciprog.projectid
+    SELECT distinct Q.projectid AS project, name=target, ra=ra2000, dec=dec2000, timestamp
+    FROM $OMP::MSBDB::OBSTABLE AS Q JOIN $OMP::MSBDB::SCITABLE as S ON Q.projectid = S.projectid
     WHERE
-    ompobs.projectid LIKE "$projectpattern"
+    Q.projectid LIKE "$projectpattern"
     AND timestamp BETWEEN $utstart AND $utstop
     ORDER BY project, name
     }

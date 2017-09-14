@@ -24,10 +24,9 @@ use DBI;
 
 use lib OMPLIB;
 use OMP::DBbackend;
+use OMP::FaultDB;
 
 my $dbs =  new OMP::DBbackend;
-my $dbtable = "ompfaultbody,ompfault";
-
 
 my ($help, $man, $tel, $ut, $days);
 my $status = GetOptions("help" => \$help,
@@ -98,7 +97,7 @@ my $current_ref = $db->selectall_arrayref(
               author,
               0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
          where date between "$startut" and
                             date_add("$startut", interval ${delta} day)
          and FB.faultid = F.faultid
@@ -192,7 +191,7 @@ my $previous_ref = $db->selectall_arrayref(
               author,
               0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
          where date between date_sub("$startut", interval ${delta} day)
                         and "$startut"
          and FB.faultid = F.faultid
@@ -223,7 +222,7 @@ my $previous_ref = $db->selectall_arrayref(
               substring(subject,1,80),
               0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
          where date between "$startut" and
                             date_add("$startut", interval ${delta} day)
          and faultdate < "$startut"
