@@ -276,7 +276,7 @@ sub process_options {
   GetOptions(
     'h|help|man' => \$help,
     'file=s'     => \@file,
-    'header|'    => \$opt{'header'},
+    'header!'    => \$opt{'header'},
     'H|noheader' => sub{ $opt{'header'} = 0 },
     'semester=s'  => \@sem,
     'telescope=s' => \$opt{'telescope'},
