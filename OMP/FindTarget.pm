@@ -68,7 +68,7 @@ sub find_and_display_targets {
         my $proj = $1;
 
         $sqlcmd = "SELECT DISTINCT
-                convert(varchar(24),Q2.target) AS reference, P.projectid,
+                cast(Q2.target AS char(24)) AS reference, P.projectid,
                 Q.target AS target,
                 3600.0/${\(DD2R)}*abs(acos(round(
                     cos(PI()/2 - Q2.dec2000)*cos(PI()/2 - Q.dec2000)+
