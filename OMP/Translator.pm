@@ -35,8 +35,6 @@ use File::Path qw/ mkpath /;
 use Time::HiRes qw/ gettimeofday /;
 use Data::Dumper;
 
-# Path must include the queue classes
-use lib '/jac_sw/hlsroot/ocsq/lib';
 use Queue::EntryXMLIO qw/ writeXML /;
 
 use OMP::Error qw/ :try /;

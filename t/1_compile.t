@@ -24,6 +24,9 @@
 
 use strict;
 use warnings;
+
+use JAC::Setup qw/ocsq/;
+
 use Test; # Not really needed since we don't use ok()
 
 use File::Find;

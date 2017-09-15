@@ -105,9 +105,8 @@ $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
 
 
 # We need to set the search path for the Queue classes
-# and the OCS Config classes. Hard wire the location.
-use lib qw| /jac_sw/hlsroot/ocsq/lib |;
-use lib qw| /jac_sw/hlsroot/OCScfg/lib |;
+# and the OCS Config classes.
+use JAC::Setup qw/ocsq ocscfg/;
 
 # Load the servers (but use them locally without SOAP)
 use OMP::TransServer;
