@@ -9,6 +9,9 @@ set meeting = "opsmeeting"
 #set tel = "UKIRT"
 #set meeting = "schedmeeting"
 
+set OPSMEETING_DIR = `dirname $0`
+set OPSMEETING_DIR = `readlink -f $OPSMEETING_DIR`
+
 echo ""
 echo "This utility creates the projects, accounting and faults sections"
 echo "for the ${meeting} minutes."
@@ -32,12 +35,12 @@ echo ""
 echo "Running project summary for 7 nights starting ${utstart} UT"
 echo "...(can take a minute)..."
 
-projrep.pl -tel "$tel" $utstart >! ${meeting}.rep
+${OPSMEETING_DIR}/projrep.pl -tel "$tel" $utstart >! ${meeting}.rep
 
 echo "Running faults  summary for 7 nights starting ${utstart} UT"
 echo "..."
 
-faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
+${OPSMEETING_DIR}/faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
 
 if ($tel == "JCMT") then
 
