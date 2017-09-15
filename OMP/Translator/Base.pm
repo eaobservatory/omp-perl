@@ -17,10 +17,7 @@ OMP::Translator::Base - translate science program to sequence
 This class converts a science program object (an C<OMP::SciProg>)
 into a sequence understood by the data acquisition system.
 
-In the case of SCUBA, an Observation Definition File (ODF) is
-generated (or multiple ODFs). For DAS heterodyne systems a HTML
-summary of the MSB will be generated. For ACSIS, XML configuration files
-are generated.
+For ACSIS and SCUBA-2, XML configuration files are generated.
 
 The actual translation is done in a subclass. The top level class
 determines the correct class to use for the MSB and delegates the

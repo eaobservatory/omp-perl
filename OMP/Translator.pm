@@ -16,10 +16,7 @@ OMP::Translator - translate science program to sequence
 This class converts a science program object (an C<OMP::SciProg>)
 into a sequence understood by the data acquisition system.
 
-In the case of SCUBA, an Observation Definition File (ODF) is
-generated (or multiple ODFs). For DAS heterodyne systems a HTML
-summary of the MSB will be generated. For ACSIS, XML configuration files
-are generated.
+For ACSIS and SCUBA-2, XML configuration files are generated.
 
 The actual translation is done in a subclass. The top level class
 determines the correct class to use for the MSB and delegates the
@@ -68,7 +65,7 @@ system.
                                           simulate => 1);
 
 The actual translation is implemented by the relevant subclass.
-Currently JCMT Heterodyne and SCUBA data can be translated.
+Currently JCMT Heterodyne and SCUBA-2 data can be translated.
 
 By default, this method returns the name of an XML file that specifies
 the location of each translated configuration using the dialect
@@ -88,10 +85,8 @@ are:
             the instrument) or a reference to an array of such objects
             (depending on context).  The expected object classes will be:
 
-  SCUBA -   SCUBA::ODF
   ACSIS -   JAC::OCS::Config
   SCUBA-2 - JAC::OCS::Config
-  DAS   -   OMP::Translator::DASHTML
 
 If there is more than one MSB to translate, REMOVED MSBs will be ignored.
 
@@ -130,22 +125,11 @@ sub translate {
   # Translator class associated with each instrument
   # This should be configuration driven
   #  OMP::Config->getData( 'translator.SCUBA' );
-  my %class_lut = ( SCUBA => 'SCUBA',
-                    A3 => 'DAS',
-                    B3 => 'DAS',
+  my %class_lut = (
                     WB => 'ACSIS',
-                    WC => 'DAS',
-                    WD => 'DAS',
-                    RXA3 => 'DAS',
-                    RXA3 => 'DAS',
-                    RXB3 => 'DAS',
                     RXWB => 'ACSIS',
-                    RXWC => 'DAS',
-                    RXWD => 'DAS',
-                    RXW=> 'DAS',
                     HARP => 'ACSIS',
                     # the backend name is the one that counts
-                    DAS => 'ACSIS',
                     ACSIS => 'ACSIS',
                     SCUBA2 => 'SCUBA2',
                     "SCUBA-2" => "SCUBA2",
@@ -394,16 +378,11 @@ sub translate {
   @handles = ();
 
   # Now we have an array of translated objects
-  # Array of SCUBA::ODF objects
-  #   - What do we do about the waveplate files?
   # Array of JAC::OCS::Config objects
   #
   # Now need to either return them or write them to disk
   # If we write them to disk we return the QueueEntry XML to the
   # caller.
-
-  # SCUBA::ODF and JAC::OCS::Config should have the same interface
-  # for writing to disk. OMP::Translator::DASHTML also matches.
 
   # If they want the data we do not write anything
   if ($opts{asdata}) {
