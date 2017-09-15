@@ -42,27 +42,6 @@ echo "..."
 
 ${OPSMEETING_DIR}/faults.pl  -tel "$tel" $utstart >> ${meeting}.rep
 
-if ($tel == "JCMT") then
-
-  echo -n "Do you want to run ompchecktarget too? y/[n]: "
-  set ans = $<
-  if ($ans =~ [Yy]) then
-    echo "Running ompchecktarget summary for 7 nights starting ${utstart} UT:"
-    echo "        ompchecktarget -ut "$utstart" -uts 7"
-    echo " " >> ${meeting}.rep
-    echo "***************************************************************" \
-         >> ${meeting}.rep
-    echo "***WARNING *** Delete ompchecktarget results below from minutes" \
-         >> ${meeting}.rep
-    echo "***************************************************************" \
-         >> ${meeting}.rep
-
-    ompchecktarget -ut $utstart -uts 7 >> ${meeting}.rep
-
-  endif
-  if ($tel == "JCMT") then
-endif
-
 echo ""
 echo "Finished: result is in the file '${meeting}.rep'"
 echo "You need to review the closed faults and only keep"
