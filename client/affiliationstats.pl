@@ -18,6 +18,18 @@ OMP affiliation allocation table.
 
 use strict;
 
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use OMP::DBServer;
 use OMP::ProjDB;
 use OMP::ProjQuery;

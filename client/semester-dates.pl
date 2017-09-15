@@ -30,6 +30,19 @@ Specify a telescope: UKIRT or JCMT; B<required>.
 =cut
 
 use strict; use warnings;
+
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => "$FindBin::RealBin/..";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 our $VERSION = '0.01';
 use 5.010;
 
