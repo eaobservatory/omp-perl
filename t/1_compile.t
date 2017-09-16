@@ -85,16 +85,6 @@ for my $module (@modules) {
 }
 
 
-
-# We do this as a separate process else we'll blow the hell
-# out of our namespace.
-sub compile_module {
-    my ($module) = $_[0];
-    return scalar `$^X "-Ilib" t/lib/compmod.pl $module` =~ /^ok/;
-}
-
-
-
 # This determines whether we are interested in the module
 # and then stores it in the array @modules
 
