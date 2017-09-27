@@ -18,7 +18,7 @@ use warnings;
 use strict;
 
 use FindBin;
-use File::Copy;
+use File::Copy qw/cp/;
 use File::Spec;
 use Getopt::Long;
 
@@ -86,7 +86,7 @@ for my $subdir (@srcdirs) {
       $dest = File::Spec->catfile(@$path, $file);
       print "Copying $srcfile to $dest\n";
       unless ($dry_run) {
-        copy($srcfile, $dest) or
+        cp($srcfile, $dest) or
           warn "Error copying file $srcfile to $dest: $!";
       }
     }
