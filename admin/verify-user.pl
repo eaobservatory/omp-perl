@@ -5,12 +5,12 @@ use strict;
 use 5.016;  # for //.
 
 use FindBin;
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
     unless exists $ENV{OMP_CFG_DIR};
 };
 

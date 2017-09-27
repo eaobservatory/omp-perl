@@ -103,7 +103,7 @@ use Getopt::Long;
 
 # Locate the OMP software through guess work
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 # This code will be much much more complicated if we have to do it
 # without Astro::Coords and without XML::LibXML [aka OMP::SciProg]

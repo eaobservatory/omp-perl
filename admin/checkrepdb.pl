@@ -89,13 +89,12 @@ use strict;
 
 use FindBin;
 
-use FindBin;
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
     unless exists $ENV{OMP_CFG_DIR};
 };
 

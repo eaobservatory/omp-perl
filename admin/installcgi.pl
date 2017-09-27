@@ -22,7 +22,7 @@ use File::Copy;
 use File::Spec;
 use Getopt::Long;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 use lib OMPLIB;
 
 use OMP::Config;
@@ -62,7 +62,7 @@ my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
 
 for my $subdir (@srcdirs) {
-  my $dir = File::Spec->catdir(OMPLIB, $subdir);
+  my $dir = File::Spec->catdir(OMPLIB, File::Spec->updir(), $subdir);
   opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
   my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl|\.txt)$/} readdir(DIR);
   closedir(DIR);

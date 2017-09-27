@@ -5,7 +5,7 @@
 
 # Pick up the OMP database
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 use OMP::DBbackend;
 use OMP::ProjDB;
 use OMP::Password;

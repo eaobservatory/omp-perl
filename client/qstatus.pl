@@ -70,7 +70,7 @@ use Pod::Usage;
 
 # Locate the OMP software through guess work
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 # OMP classes
 use OMP::General;

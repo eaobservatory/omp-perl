@@ -6,10 +6,10 @@
 use FindBin;
 use File::Spec;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
-        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }

@@ -11,7 +11,7 @@ use Data::Dumper;
 
 # Pick up the OMP database
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 use Storable qw(retrieve);
 
 use OMP::DBbackend;

@@ -98,9 +98,9 @@ use Getopt::Long;
 # run relative to the client directory. Also set config directory.
 use FindBin;
 use constant OMPLIB => File::Spec->catdir("$FindBin::RealBin",
-					  File::Spec->updir );
+					  File::Spec->updir, 'lib' );
 use lib OMPLIB;
-$ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+$ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
   unless exists $ENV{'OMP_CFG_DIR'};
 
 

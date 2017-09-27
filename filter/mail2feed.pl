@@ -10,7 +10,7 @@ BEGIN {
   # Taint mode is selected, so we must validate the path before using it.
   die 'Invalid path to mail2feed script'
       unless $FindBin::RealBin =~ /^([-_a-zA-Z0-9\/\.]+)$/;
-  unshift @INC, "$1/..";
+  unshift @INC, "$1/../lib";
 }
 
 use strict;

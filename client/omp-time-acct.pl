@@ -111,10 +111,11 @@ use Scalar::Util qw/ blessed openhandle /;
 
 BEGIN {
   use FindBin;
-  use constant OMPLIB => "$FindBin::RealBin/..";
+  use constant OMPLIB => "$FindBin::RealBin/../lib";
   use lib OMPLIB;
 
-  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
+  $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
+    unless exists $ENV{'OMP_DIR'};
 }
 
 use OMP::Constants qw/ :logging /;

@@ -67,7 +67,7 @@ use Getopt::Long;
 
 # Add to @INC for OMP libraries.
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 # Load the servers (but use them locally without SOAP)
 use OMP::BaseDB;

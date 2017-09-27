@@ -67,7 +67,7 @@ use MIME::Lite;
 
 # Add to @INC for OMP libraries.
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw(:fb);
 use OMP::DBbackend;
