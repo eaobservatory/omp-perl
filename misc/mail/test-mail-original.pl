@@ -14,7 +14,7 @@ use File::Basename qw[ fileparse ];
 
 use FindBin;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../..";
 
 BEGIN {
     $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
