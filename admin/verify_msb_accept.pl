@@ -43,6 +43,10 @@ Skip files which cannot be read to extract the relevant information.
 
 Do not decrement the "remaining" counters of MSBs.
 
+=item B<--disk>
+
+Search for observations on disk rather than in the database.
+
 =item B<-version>
 
 Report the version number.
@@ -78,7 +82,9 @@ BEGIN {
     unless exists $ENV{OMP_CFG_DIR};
 };
 
+use OMP::ArchiveDB;
 use OMP::DateTools;
+use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserServer;
@@ -91,6 +97,7 @@ our $VERSION = '2.000';
 my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
+                        "disk" => \$opt{'disk'},
                         'ignorebad' => \$opt{'ignorebad'},
                         'nodecrement' => \$opt{'nodecrement'},
                         "help" => \$help,
@@ -174,6 +181,14 @@ for my $msb (@sorted_msbdb) {
 
 # Look at the real data:
 print "---> Data headers ----\n";
+
+if ($opt{'disk'}) {
+    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
+    OMP::ArchiveDB::search_only_files();
+    OMP::ArchiveDB::skip_cache_query();
+    OMP::ArchiveDB->use_existing_criteria(1);
+}
+
 my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
 				   date => $ut,
 				   ignorebad => $opt{'ignorebad'},
