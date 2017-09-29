@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-verify_msb_accept
+ompmsbcheck
 
 =head1 SYNOPSIS
 
-  verify_msb_accept -ut 2002-12-10 -tel jcmt
+  ompmsbcheck -ut 2002-12-10 -tel jcmt
 
 =head1 DESCRIPTION
 
