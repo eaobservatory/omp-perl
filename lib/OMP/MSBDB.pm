@@ -1727,31 +1727,6 @@ sub _clear_counter_add_feedback_post_fetch {
   return;
 }
 
-=item B<_get_next_msb_index>
-
-Return the primary index to use for each row in the MSB database. This
-number is determined to be unique for all entries ever made.
-
-The current index is obtained by reading the highest value from the
-database. For efficiency we only want to do this once per transaction.
-
-In order to guarantee uniqueness it should be obtained before the old
-rows are removed.
-
-=cut
-
-sub _get_next_index {
-  my $self = shift;
-
-  # Return the current max index
-  my $max = $self->_db_findmax( $MSBTABLE, "msbid" );
-
-  # Get the next highest
-  $max++;
-
-  return $max;
-}
-
 =item B<_verify_project_exists>
 
 Looks in the project database to determine whether the project ID
@@ -2036,9 +2011,6 @@ sub _insert_rows {
   throw OMP::Error::DBError('Error fetching from MSB check: ' . $DBI::errstr)
     if $sth->err();
 
-  # Get the next index to use for the MSB table
-  my $index = $self->_get_next_index();
-
   # Now loop over each summary and compare the information.  We remove the
   # entries from $dbhash as we go so that it will only include entries no
   # longer in the programme.
@@ -2095,11 +2067,7 @@ sub _insert_rows {
 
       $self->_insert_row($summary,
                           dbh   => $dbh,
-                          index => $index,
                         );
-
-      # increment the index for next pass
-      $index++;
     }
   }
 
@@ -2135,7 +2103,6 @@ summaries into the observation table.
 Usually called from C<_insert_rows>. Expects the config hash to include
 special keys:
 
-  index  - index to use for next MSB row
   dbh    - the database handle
 
 that are used to share state between row inserts. This provides
@@ -2155,9 +2122,6 @@ sub _insert_row {
 
   print "Entering _insert_row\n" if $DEBUG;
 
-  # Get the next index
-  my $index = $config{index};
-
   # Get the database handle from the hash
   my $dbh = $config{dbh} or
     throw OMP::Error::DBError("Database handle not valid in _insert_row");
@@ -2175,8 +2139,8 @@ sub _insert_row {
 
   # Store the data
   my $proj = $self->projectid;
-  print "Inserting row as index $index\n" if $DEBUG;
-  OMP::General->log_message( "Inserting MSB row as index $index [$proj]");
+  print "Inserting row\n" if $DEBUG;
+  OMP::General->log_message( "Inserting MSB row [$proj]");
 
   # Convert the ranges to database values
   my ($taumin, $taumax) = OMP::SiteQuality::to_db('TAU',$data{tau});
@@ -2198,7 +2162,7 @@ sub _insert_row {
 
   # Insert the MSB data
   $self->_db_insert_data( $MSBTABLE,
-                          $index, $proj, $data{remaining}, $data{checksum},
+                          undef, $proj, $data{remaining}, $data{checksum},
                           $data{obscount}, $data{tau}->min, $taumax,
                           $data{seeing}->min, $seeingmax, $data{priority},
                           $data{telescope}, int($moonmax), int($cloudmax),
@@ -2206,6 +2170,8 @@ sub _insert_row {
                           "$data{datemin}", "$data{datemax}", $minel,
                           $maxel, $data{approach}, int($moonmin),
                           int($cloudmin), $skymin, $skymax);
+
+  my $index = $dbh->last_insert_id(undef, undef, undef, undef);
 
   # Now the observations.  Prepare the rows for insert and then insert
   # them all at the end.  This is in case we need to look up any AUTO-TLE
