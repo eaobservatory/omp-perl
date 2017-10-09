@@ -710,8 +710,6 @@ _SQL_
 
   my $db  = OMP::DBbackend::Archive->new();
   my $dbh = $db->handle();
-  $dbh->{'syb_show_sql'} = 1;
-  $dbh->{'syb_show_eed'} = 1;
 
   my $st = $dbh->prepare( $sql )
     or throw OMP::Error::DBError q[Error with prepare() of file statement: ], $dbh->errstr();
