@@ -1,24 +1,29 @@
 #!/local/perl/bin/perl
 
+=head1 NAME
+
+calldumpdb - Run dumpdb for specified database server
+
+=head1 SYNOPSIS
+
+    calldumpdb.pl [--server ompX]
+
+=cut
+
 use strict;
 use FindBin;
 
-my $err;
 BEGIN {
  use Getopt::Long;
- my ($main, $secondary);
- my $status = GetOptions("jac" => \$main, "jac2" => \$secondary );
- if ($main && $secondary) {
-   $err = "Can not use both JAC and JAC2";
- } elsif ($main) {
-   $ENV{OMP_DBSERVER} = 'SYB_JAC';
- } elsif ($secondary) {
-   $ENV{OMP_DBSERVER} = 'SYB_JAC2';
- } else {
-   $err = "Must specify -jac or -jac2";
+ use Pod::Usage;
+ my $server = undef;
+ GetOptions("server=s" => \$server)
+    or pod2usage('-exitval' => 2, '-verbose' => 1);
+ if (defined $server) {
+   die 'Database server name is invaid' unless $server =~/^([-_A-Za-z0-9\.]+)$/;
+   $ENV{OMP_DBSERVER} = $1;
  }
 }
-die "$err\n" if defined $err;
 
 die 'Invalid path to calldumpdb script'
     unless $FindBin::RealBin =~ /^([-_a-zA-Z0-9\/\.]+)$/;
