@@ -27,6 +27,7 @@ use warnings;
 
 # External dependencies
 use SOAP::Lite;
+use OMP::Config;
 use OMP::Constants qw/ :status :logging /;
 use OMP::Display;
 use OMP::General;
@@ -103,7 +104,7 @@ sub throwException {
     ->faultstring("$Estring")
       # Rebless the error into a sanitized class and add code key
       ->faultdetail(bless {%$E, code => $Enum} => $Eclass)
-	->faultactor('http://omp.eao.hawaii.edu/');
+	->faultactor(OMP::Config->getData('omp-url') . '/');
 
 }
 
