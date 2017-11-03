@@ -28,4 +28,4 @@ $cgi->html_title("Alter Project");
 $cgi->write_page_staff(
     \&OMP::CGIPage::Project::alter_proj,
     \&OMP::CGIPage::Project::alter_proj,
-    1;
+    1);
