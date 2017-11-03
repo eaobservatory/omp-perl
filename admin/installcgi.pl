@@ -63,6 +63,11 @@ my %renamed_files = (
     'index_private.html' => 'index.html',
 );
 
+# Files which are not installed.
+my %no_install_files = map {$_ => undef} qw/
+    retrieve_data.pl
+/;
+
 my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
 
@@ -73,6 +78,7 @@ for my $subdir (@srcdirs) {
   closedir(DIR);
 
   for my $file (@files) {
+    next if exists $no_install_files{$file};
     my $srcfile = File::Spec->catfile($dir, $file);
     my $destfile = $renamed_files{$file} // $file;
     my @paths;
