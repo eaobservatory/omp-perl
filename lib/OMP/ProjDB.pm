@@ -1076,7 +1076,7 @@ sub _get_projects {
   my $uproj_alias = 'P';
   my $userquery_sql = <<"USER_SQL";
   SELECT $uproj_alias.projectid, $uproj_alias.userid, $uproj_alias.capacity,
-         $uproj_alias.contactable,
+         $uproj_alias.contactable, $uproj_alias.affiliation,
          U.uname, U.email
     FROM $PROJUSERTABLE $uproj_alias, $utable U
       WHERE $uproj_alias.userid = U.userid AND
@@ -1122,6 +1122,7 @@ WHERE_ORDER_SQL
            new OMP::User( userid => $userid,
                           name => $row->{uname},
                           email => $row->{email},
+                          affiliation => $row->{'affiliation'},
                         ));
 
       $projcontactable{$projectid}->{$userid} = $row->{contactable};

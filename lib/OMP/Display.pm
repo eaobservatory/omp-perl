@@ -224,7 +224,7 @@ Returns html for a hyperlink to the user details page for a user.  Also
 displays an icon next to the hyperlink indicating whether or not the user
 receieves project emails.
 
-  $html = OMP::Display->userhtml($user, $cgi, $getemails, $projectid);
+  $html = OMP::Display->userhtml($user, $cgi, $getemails, $projectid, %opts);
 
 First argument should be an C<OMP::User> object.  Second argument
 should be an C<OMP::CGI> object.  If the optional third
@@ -241,6 +241,7 @@ sub userhtml {
   my $cgi = shift;
   my $emailstatus = shift;
   my $project = shift;
+  my %opt = @_;
   if (defined $emailstatus and ! defined $project) {
     $emailstatus = undef;
   }
@@ -266,6 +267,10 @@ sub userhtml {
       $project,
       join( '/', $iconsdir, $mail[0] ),
       $mail[1] ;
+  }
+
+  if ((exists $opt{'affiliation'}) and (defined $opt{'affiliation'})) {
+    $html .= '<small>(' . $opt{'affiliation'} . ')</small>';
   }
 
   return $html;

@@ -163,14 +163,17 @@ sub proj_status_table {
   my $case_href = qq[<a href="$pub/props.pl?urlprojid=$projectid">Science Case</a>];
 
   # Get the CoI email(s)
-  my $coiemail = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid) } $project->coi);
+  my $coiemail = join(", ",map{
+    OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
+      affiliation => $_->affiliation())
+    } $project->coi);
 
   # Get the support
   my $supportemail = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
   print "<table class='infobox' cellspacing=1 cellpadding=2 width='100%'>",
 	"<tr>",
-	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid)."</td>",
+	"<td><b>PI:</b>".OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid, affiliation => $project->pi()->affiliation())."</td>",
 	"<td><b>Title:</b> " . $project->title . "</td>",
 	"<td> $case_href </td></tr>",
 	"<tr><td colspan='2'><b>CoI:</b> $coiemail</td>",

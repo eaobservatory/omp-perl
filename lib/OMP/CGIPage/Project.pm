@@ -35,6 +35,7 @@ use OMP::UserServer;
 use OMP::DateTools;
 use OMP::General;
 use OMP::MSBServer;
+use OMP::ProjAffiliationDB;
 use OMP::ProjDB;
 use OMP::ProjServer;
 use OMP::TimeAcctDB;
@@ -363,14 +364,19 @@ sub project_home {
   my $allocated = $project->allocated->pretty_print;
   ($project->allRemaining->seconds > 0) and
     my $remaining = $project->allRemaining->pretty_print;
-  my $pi = OMP::Display->userhtml($project->pi, $q, $project->contactable($project->pi->userid), $project->projectid);
+  my $pi = OMP::Display->userhtml(
+    $project->pi, $q, $project->contactable($project->pi->userid), $project->projectid,
+    affiliation => $project->pi()->affiliation());
   my $taurange = $project->taurange;
   my $seerange = $project->seeingrange;
   my $skyrange = $project->skyrange;
   my $cloud = $project->cloudrange;
 
   # Store coi and support html emails
-  my $coi = join(", ",map{OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid)} $project->coi);
+  my $coi = join(", ",map{
+    OMP::Display->userhtml($_, $q, $project->contactable($_->userid), $project->projectid,
+    affiliation => $_->affiliation())
+  } $project->coi);
 
   my $support = join(", ",map{OMP::Display->userhtml($_, $q)} $project->support);
 
@@ -887,15 +893,23 @@ sub alter_proj {
 
   print "<table>";
 
+  my $pi = $project->pi->userid();
+  my $pi_affiliation = $project->pi->affiliation();
+  $pi .= ':' . $pi_affiliation if defined $pi_affiliation;
   print qq[<tr><td align="right">PI</td> <td>],
-    $q->textfield( 'pi', $project->pi->userid, 32, 32 ),
+    $q->textfield( 'pi', $pi, 32, 32 ),
     qq[</td></tr>];
 
   print qq[<tr><td align="right">Title</td> <td>],
     $q->textfield( 'title', $project->title, 50, 255 ),
     qq[</td></tr>];
 
-  my $coi = join "\n", map { $_->userid } $project->coi;
+  my $coi = join "\n", map {
+    my $userid = $_->userid();
+    my $coi_affiliation = $_->affiliation();
+    $userid .= ':' . $coi_affiliation if defined $coi_affiliation;
+    $userid;
+  } $project->coi;
   print qq[<tr><td align="right">Co-I</td> <td>],
     $q->textarea( -name => 'coi',
                   -default => $coi,
@@ -1034,7 +1048,7 @@ sub process_project_changes {
     my $users = $q->param( $type );
     try {
 
-      push @msg, update_users( $project, $type, split /[;:,\s]+/, $users );
+      push @msg, update_users( $project, $type, split /[;,\s]+/, $users );
     }
     catch OMP::Error with {
 
@@ -1193,7 +1207,12 @@ sub update_users {
 
   my @old = $proj->$type;
 
-  my $old_id = join ',', map { $_->userid } @old;
+  my $old_id = join ',', map {
+    my $id = $_->userid();
+    my $affiliation = $_->affiliation();
+    $id .= ':' . $affiliation if defined $affiliation;
+    $id;
+  } @old;
   return if _match_string( $old_id, join ',', @userid );
 
   my @user = map { _make_user( $_ ) } @userid;
@@ -1215,8 +1234,16 @@ sub _make_user {
 
   return unless $userid;
 
+  my $affiliation;
+  ($userid, $affiliation) = split ':', shift, 2;
+
   my $user = OMP::UserServer->getUser( $userid )
     or throw OMP::Error "Unknown user id given: $userid";
+
+  throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
+    unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+
+  $user->affiliation($affiliation) if defined $affiliation;
 
   return $user;
 }
