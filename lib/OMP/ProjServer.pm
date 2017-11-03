@@ -26,6 +26,7 @@ use Carp;
 
 # OMP dependencies
 use OMP::ProjDB;
+use OMP::ProjAffiliationDB;
 use OMP::SiteQuality;
 use OMP::Project;
 use OMP::Error qw/ :try /;
@@ -334,7 +335,7 @@ Add details of a project to the database.
                               $telescope, $taumin, $taumax, 
 			      $seemin, $seemax, $cloudmin, $cloudmax,
                               $skymin, $skymax,
-                              $state
+                              $state, $pi_affiliation, $coi_affiliation,
                              );
 
 The first password is used to verify that you are allowed to modify
@@ -383,6 +384,17 @@ sub addProject {
 		     or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
         split /[:,]/, $project[2];
     }
+    if (defined $project[22]) {
+        my @coi_affiliations = split /[:,]/, $project[22];
+        foreach my $this_coi (@coi) {
+            last unless scalar @coi_affiliations;
+            my $affiliation = shift @coi_affiliations;
+            throw OMP::Error::FatalError("CoI [$project[1]] affiliation '$affiliation' not recognized by the OMP")
+                unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+            $this_coi->affiliation($affiliation);
+        }
+    }
+
     my @support;
     if ($project[3]) {
       @support = map { $userdb->getUser($_) or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]") } split /[:,]/, $project[3];
@@ -437,6 +449,11 @@ sub addProject {
     my $pi = $userdb->getUser( $project[1] );
     throw OMP::Error::FatalError("PI [$project[1]] not recognized by the OMP")
       unless defined $pi;
+    if (defined $project[21]) {
+        throw OMP::Error::FatalError("PI [$project[1]] affiliation '$project[21]' not recognized by the OMP")
+            unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$project[21]};
+        $pi->affiliation($project[21]);
+    }
 
     throw OMP::Error::FatalError( "Semester is mandatory." )
       if !defined $project[8];

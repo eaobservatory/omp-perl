@@ -210,6 +210,7 @@ CREATE TABLE `ompprojuser` (
   `capacity` varchar(16) NOT NULL,
   `contactable` tinyint(4) NOT NULL,
   `capacity_order` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `affiliation` varchar(32) DEFAULT NULL,
   UNIQUE KEY `idx_ompprojuser_1` (`uniqid`),
   UNIQUE KEY `idx_ompprojuser_2` (`projectid`,`userid`,`capacity`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

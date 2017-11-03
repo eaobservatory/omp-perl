@@ -210,8 +210,10 @@ my %ok_field;
       'band',
       'cloud',
       'coi',
+      'coi_affiliation',
       'country',
       'pi',
+      'pi_affiliation',
       'seeing',
       'semester',
       'sky',
@@ -283,6 +285,8 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     #if exists $details{country};
 
   upcase( \%details, qw/ pi coi support semester telescope / );
+
+  downcase(\%details, qw/pi_affiliation coi_affiliation/);
 
   $do_country_check
     and check_country( $details{country} );
@@ -407,6 +411,8 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     $cloudmin, $cloudmax,
     $skymin, $skymax,
     ($disable ? 0 : 1),
+    $details{'pi_affiliation'},
+    $details{'coi_affiliation'},
   );
 
   # Stop here in dry-run mode.
@@ -531,6 +537,13 @@ sub upcase {
     }
   }
   return;
+}
+
+sub downcase {
+    my ($hash, @keys) = @_;
+    foreach my $key (@keys) {
+        $hash->{$key} = lc $hash->{$key} if exists $hash->{$key};
+    }
 }
 
 sub split_range {

@@ -1012,6 +1012,7 @@ sub _insert_project_row {
                                     'role' => $role,
                                     'contactable' => $contactable{ $user->userid },
                                     'capacity_order' => $order++,
+                                    affiliation => $user->affiliation(),
                                   );
     }
   }
@@ -1042,7 +1043,7 @@ sub _insert_project_user {
                           undef,
                           map { $attr{$_} }
                               qw( projectid userid role contactable
-                                  capacity_order
+                                  capacity_order affiliation
                                 )
                         );
   return;

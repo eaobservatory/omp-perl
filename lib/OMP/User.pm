@@ -65,7 +65,8 @@ sub new {
                     Name => undef,
                     Alias => undef,
                     CADC => undef,
-                    Obfuscated => 0
+                    Obfuscated => 0,
+                    Affiliation => undef,
                    }, $class;
 
   # Go through the input args invoking relevant methods
@@ -377,6 +378,21 @@ sub is_obfuscated {
   if ( @_ ) { $self->{ $key } = !! $_[0] ? 1 : 0 ;}
 
   return $self->{ $key };
+}
+
+=item B<affiliation>
+
+Return the user's affiliation.
+
+  $affiliation = $u->affiliation();
+  $u->affiliation($affiliation);
+
+=cut
+
+sub affiliation {
+  my $self = shift;
+  if (@_) {$self->{'Affiliation'} = shift;}
+  return $self->{'Affiliation'};
 }
 
 =back

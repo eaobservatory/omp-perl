@@ -101,6 +101,8 @@ while (<>) {
                  undef, undef,
                  undef, undef,
                  undef, undef,
+                 1,
+                 undef, undef,
 		);
 
   print join("--",@details),"\n";
@@ -116,7 +118,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject( $pass, $force, @details, 1 );
+    OMP::ProjServer->addProject( $pass, $force, @details );
   }
 
 }
