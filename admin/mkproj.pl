@@ -149,6 +149,16 @@ first country. The first country is the primary key.
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
 use Data::Dumper;
@@ -160,16 +170,6 @@ use OMP::Password;
 use OMP::UserServer;
 use Pod::Usage;
 use Getopt::Long;
-
-use FindBin;
-use constant OMPLIB => "$FindBin::RealBin/../lib";
-
-use lib OMPLIB;
-
-BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
-    unless exists $ENV{OMP_CFG_DIR};
-};
 
 our $VERSION = '2.000';
 
