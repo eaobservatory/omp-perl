@@ -328,9 +328,8 @@ C<$entry> can be
     hash that can be used in the join rather than OR. ie
     _TYPE => 'AND' will allow the hash values to be ANDed
 
-KLUGE: If the key begins with TEXTFIELD__ a "like" match
-will be performed rather than a "=". This is so that text fields
-can be queried.
+KLUGE: If the key begins with TEXTFIELD__ a full text search
+will be performed.
 
 Note that the hashref option does not use the column name at all
 in the final SQL.
@@ -354,29 +353,15 @@ sub _create_sql_recurse {
     my $cmp = "equal";
     if ($colname =~ /^TEXTFIELD__/) {
       $colname =~ s/^TEXTFIELD__//;
-      $cmp = "like";
+      $cmp = 'fulltext';
     }
 
     # Link all of the search queries together with an OR [must be inside
-    # parentheses] but AND them if we have spaces in the string and
-    # are a TEXT query
-    if ($column =~ /^TEXTFIELD__/) {
-      $sql = "(".join( " OR ",
-                       # Join all of the search strings with an AND
-                       # [ex: "John Doe", "Jane" becomes John Doe AND Jane]
-                       map { join( " AND ",
-                                   map {
-                                     $self->_querify($colname, $_, $cmp);
-                                   } OMP::General->split_string($_) )
-                           } @{ $entry } ) . ")";
-    } else {
-      # Just OR the individual entries
-      # No special handling of spaces in strings
-      $sql = "(".join( " OR ",
-                       map { $self->_querify($colname, $_, $cmp); }
-                       @{ $entry }
-                       ) . ")";
-    }
+    # parentheses].
+    $sql = "(".join( " OR ",
+                     map { $self->_querify($colname, $_, $cmp); }
+                     @{ $entry }
+                     ) . ")";
 
 
   } elsif (UNIVERSAL::isa( $entry, "OMP::Range")) {
@@ -755,6 +740,12 @@ sub _querify {
   $cmp = "equal" unless defined $cmp;
 
   $cmp = lc($cmp);
+
+  # Special case for fulltext search.
+  if ($cmp eq 'fulltext') {
+    $value =~ s/([\\'])/\\$1/g;
+    return "(MATCH ($name) AGAINST ('$value'))";
+  }
 
   # Lookup table for comparators
   my %cmptable = (
