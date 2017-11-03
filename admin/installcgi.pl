@@ -58,6 +58,11 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
 # Files to be installed in both public and private roots
 my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig robots.txt /;
 
+# Files which are renamed.
+my %renamed_files = (
+    'index_private.html' => 'index.html',
+);
+
 my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
 
@@ -69,7 +74,7 @@ for my $subdir (@srcdirs) {
 
   for my $file (@files) {
     my $srcfile = File::Spec->catfile($dir, $file);
-    my $dest;
+    my $destfile = $renamed_files{$file} // $file;
     my @paths;
     if (exists $pub{$file}) {
       push @paths, [$pubdest];
@@ -83,7 +88,7 @@ for my $subdir (@srcdirs) {
 
     for my $path (@paths) {
       push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
-      $dest = File::Spec->catfile(@$path, $file);
+      my $dest = File::Spec->catfile(@$path, $destfile);
       print "Copying $srcfile to $dest\n";
       unless ($dry_run) {
         cp($srcfile, $dest) or
