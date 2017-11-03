@@ -4,6 +4,7 @@ SCHEMAS=omp.sql jcmt.sql jcmt_tms.sql ukirt.sql
 
 all: $(SCHEMAS)
 
+export OMP_CFG_DIR=../../cfg
 SERVER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"server"}'`
 USER=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"user"}'`
 PASSWORD=`perl -I ../../lib -MOMP::DBbackend::Archive -e 'my %lh = OMP::DBbackend::Archive->loginhash(); print $$lh{"password"}'`
