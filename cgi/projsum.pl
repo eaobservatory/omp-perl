@@ -23,5 +23,6 @@ my $ompcgi = new OMP::CGIPage( CGI => $q );
 
 my $title = $ompcgi->html_title;
 $ompcgi->html_title("$title: Project Details");
-$ompcgi->write_page_noauth( \&OMP::CGIPage::Project::proj_sum_page,
-			    \&OMP::CGIPage::Project::proj_sum_page );
+$ompcgi->write_page_staff(
+    \&OMP::CGIPage::Project::proj_sum_page,
+    \&OMP::CGIPage::Project::proj_sum_page);
