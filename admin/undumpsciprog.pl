@@ -71,7 +71,7 @@ foreach my $filename (@files) {
     OMP::SpServer->storeProgram( $xml, $pass, 1);
   } otherwise {
     my $E = shift;
-    print "Error storing sciece program $filename\n";
+    print "Error storing science program $filename: $E\n";
     $n_err ++;
   };
 }
