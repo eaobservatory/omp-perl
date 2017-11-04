@@ -80,6 +80,8 @@ while (<>) {
     $user{userid} = $details[0];
     $user{name} = $details[1];
     $user{email} = $details[2];
+    die 'Invalid user ID: ' .  $user{'userid'}
+      unless $user{'userid'} =~ /^[A-Z0-9]+$/;
   } else {
     $user{name} = $details[0];
     $user{email} = $details[1];
