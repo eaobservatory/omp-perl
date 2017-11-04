@@ -75,6 +75,7 @@ my @projects = $db->listModifiedPrograms($date);
 exit unless (@projects);
 
 # Now for each of these projects attempt to read a science program
+my $n_err = 0;
 for my $projid (@projects) {
   try {
 
@@ -98,10 +99,11 @@ for my $projid (@projects) {
     # Want to know if a program stored in the DB is truncated
     my $E = shift;
     print "Science program truncated [$projid]: $E\n";
+    $n_err ++;
   } otherwise {
     my $E = shift;
-    print "$E\n";
-
+    print "Error retrieving program [$projid]: $E\n";
+    $n_err ++;
   };
 
 }
@@ -112,3 +114,6 @@ open my $log, '>', $dumplog or die "Error opening file $dumplog: $!";
 print $log $today->epoch;
 print $log "\nTHIS FILE KEEPS TRACK OF THE MOST RECENT SCIENCE PROGRAM DUMP.\nREMOVING THIS FILE WILL RESULT IN A REFETCH OF ALL SCIENCE PROGRAMS.";
 close $log;
+
+# Exit with bad status if errors were encountered.
+exit(1) if $n_err;
