@@ -350,21 +350,26 @@ sub fetchSciProg {
 
 Retrieve a science program from the database.
 
-  $sp = $db->fetchSciProgNoAuth()
+  $sp = $db->fetchSciProgNoAuth($internal, %opt)
 
 It is same as I<fetchSciProg> method in that it needs a project id.  It,
 however, does not need a password to verify.
+
+Additional options:
+
+    raw - return raw science program XML (without constructing
+          an OMP::SciProg object.
 
 =cut
 
 sub fetchSciProgNoAuth {
 
-  my ( $self, $internal ) = @_;
+  my ( $self, $internal, %opt ) = @_;
 
-  my $sp = $self->_really_fetch_sciprog;
+  my $sp = $self->_really_fetch_sciprog(raw => $opt{'raw'});
 
   $self->_clear_counter_add_feedback_post_fetch( $sp )
-    unless $internal ;
+    unless $internal or $opt{'raw'};
 
   return $sp;
 }
@@ -1633,7 +1638,7 @@ fails or science program cannot be parsed.
 
 sub _really_fetch_sciprog {
 
-  my ( $self ) = @_;
+  my ( $self, %opt ) = @_;
 
   # Test to see if the file exists first so that we can
   # raise a special UnknownProject exception.
@@ -1650,6 +1655,8 @@ sub _really_fetch_sciprog {
   if ($xml !~ /SpProg>$/) {
     throw OMP::Error::SpTruncated("Science program for $pid is present in the database but is truncated!!! This should not happen");
   }
+
+  return $xml if $opt{'raw'};
 
   # Instantiate a new Science Program object
   # The file name is derived automatically

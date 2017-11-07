@@ -84,7 +84,7 @@ for my $projid (@projects) {
 			     ProjectID => $projid,
 			     DB => new OMP::DBbackend );
 
-    my $xml = $db->fetchSciProgNoAuth(1);
+    my $xml = $db->fetchSciProgNoAuth(1, raw => 1);
 
     print "Retrieved science program for project $projid\n";
 
