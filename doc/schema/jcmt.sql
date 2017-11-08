@@ -161,7 +161,7 @@ CREATE TABLE `COMMON` (
   `instrume` varchar(8) DEFAULT NULL,
   `backend` varchar(8) DEFAULT NULL,
   `release_date` datetime DEFAULT NULL,
-  `last_modified` datetime DEFAULT NULL,
+  `last_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `obsra` float DEFAULT NULL,
   `obsdec` float DEFAULT NULL,
   `obsratl` float DEFAULT NULL,
