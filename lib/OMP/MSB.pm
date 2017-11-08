@@ -1636,6 +1636,8 @@ sub addFITStoObs {
   my $tau = $info->tau;
   my $see = $info->seeing;
   my $queue = undef;
+  my $msbtitle = $info->title();
+  $msbtitle = undef if grep {$msbtitle eq $_} ('', '-', 'unknown');
 
   # Ngah. Different method names for Project and MSB constraints make
   # this painful!  Calculate the intersection of project with msb
@@ -1664,6 +1666,7 @@ sub addFITStoObs {
   # Create hash with information we wish to insert
   my %data = (
               msbid => $self->checksum,
+              msbtitle => $msbtitle,
               project => $self->projectID,
               omp_queue => $queue,
               rq_minsb => (defined $sb   ? $sb->min   : undef ),
