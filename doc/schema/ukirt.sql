@@ -1,5 +1,5 @@
 CREATE TABLE `CGS4` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `CLOCK0` double DEFAULT NULL,
   `CLOCK1` double DEFAULT NULL,
   `CLOCK2` double DEFAULT NULL,
@@ -53,10 +53,10 @@ CREATE TABLE `CGS4` (
   `BBTEMP` double DEFAULT NULL,
   `CALAPER` double DEFAULT NULL,
   `THLEVEL` double DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `COMMON` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL AUTO_INCREMENT,
   `TELESCOP` varchar(70) DEFAULT NULL,
   `INSTRUME` varchar(70) NOT NULL,
   `OBSERVER` varchar(70) NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE `COMMON` (
   `PROJECT` varchar(70) DEFAULT NULL,
   `STANDARD` char(1) DEFAULT NULL,
   `OBSID` varchar(48) DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`),
+  PRIMARY KEY (`idkey`),
   UNIQUE KEY `index_2` (`filename`,`INSTRUME`),
   KEY `UT_DATE_in` (`UT_DATE`),
   KEY `index_3` (`ut_dmf`),
@@ -111,7 +111,7 @@ CREATE TABLE `COMMON` (
   KEY `index_6` (`IDATE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `IRCAM3` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `CLOCK0` double DEFAULT NULL,
   `CLOCK1` double DEFAULT NULL,
   `CLOCK2` double DEFAULT NULL,
@@ -154,10 +154,10 @@ CREATE TABLE `IRCAM3` (
   `DETNINCR` int(11) DEFAULT NULL,
   `WPLANGLE` double DEFAULT NULL,
   `CROTA2` double DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `MICHELLE` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `GRPMEM` int(11) DEFAULT NULL,
   `RDOUT_X1` int(11) DEFAULT NULL,
   `RDOUT_X2` int(11) DEFAULT NULL,
@@ -209,10 +209,10 @@ CREATE TABLE `MICHELLE` (
   `IRDEG` double DEFAULT NULL,
   `DETINCR` double DEFAULT NULL,
   `CROTA2` double DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `UFTI` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `RDOUT_X1` int(11) DEFAULT NULL,
   `RDOUT_X2` int(11) DEFAULT NULL,
   `RDOUT_Y1` int(11) DEFAULT NULL,
@@ -279,10 +279,10 @@ CREATE TABLE `UFTI` (
   `V8` double DEFAULT NULL,
   `V13` double DEFAULT NULL,
   `V15` double DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `UIST` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `GRPMEM` int(11) DEFAULT NULL,
   `RDOUT_X1` int(11) DEFAULT NULL,
   `RDOUT_X2` int(11) DEFAULT NULL,
@@ -323,10 +323,10 @@ CREATE TABLE `UIST` (
   `CDELT2` double DEFAULT NULL,
   `CRPIX1` double DEFAULT NULL,
   `CRPIX2` double DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `WFCAM` (
-  `idkey` decimal(18,0) NOT NULL,
+  `idkey` bigint(20) NOT NULL,
   `FOC_I` int(11) DEFAULT NULL,
   `FOC_OFF` double DEFAULT NULL,
   `DHSVER` varchar(70) DEFAULT NULL,
@@ -419,7 +419,7 @@ CREATE TABLE `WFCAM` (
   `CNFINDEX` int(11) DEFAULT NULL,
   `DET_TEMP` double DEFAULT NULL,
   `CAMNUM` smallint(6) DEFAULT NULL,
-  UNIQUE KEY `index_1` (`idkey`)
+  PRIMARY KEY (`idkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `tapeinfo` (
   `ut_dmf` int(11) NOT NULL,
