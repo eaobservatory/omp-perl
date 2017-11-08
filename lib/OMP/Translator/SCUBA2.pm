@@ -143,10 +143,13 @@ sub insert_setup_obs {
 
   my @setups = $class->translate( $setupmsb, %transargs );
 
-  # Get the MSBID from the first config and force the setup to inherit it
+  # Get the MSBID and title from the first config and force the setup
+  # to inherit them.
   my $refid = $configs[0]->msbid;
+  my $reftitle =  $configs[0]->msbtitle();
   for my $stp (@setups) {
     $stp->msbid($refid);
+    $stp->msbtitle($reftitle);
   }
 
   # we do a setup when the previous target is different to the current
