@@ -100,8 +100,11 @@ use FindBin;
 use constant OMPLIB => File::Spec->catdir("$FindBin::RealBin",
 					  File::Spec->updir, 'lib' );
 use lib OMPLIB;
-$ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
-  unless exists $ENV{'OMP_CFG_DIR'};
+
+BEGIN {
+    $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
+      unless exists $ENV{'OMP_CFG_DIR'};
+}
 
 
 # We need to set the search path for the Queue classes
