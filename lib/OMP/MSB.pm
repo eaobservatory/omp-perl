@@ -1666,7 +1666,7 @@ sub addFITStoObs {
   # Create hash with information we wish to insert
   my %data = (
               msbid => $self->checksum,
-              msbtitle => $msbtitle,
+              msb_title => $msbtitle,
               project => $self->projectID,
               omp_queue => $queue,
               rq_minsb => (defined $sb   ? $sb->min   : undef ),
