@@ -92,15 +92,15 @@ CREATE TABLE `CSONIGHT` (
   `grade` double DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `CSOTAU` (
-  `tau#` int(11) DEFAULT NULL,
+  `tau#` bigint(20) NOT NULL AUTO_INCREMENT,
   `cso_ut` datetime DEFAULT NULL,
   `hst` float DEFAULT NULL,
   `tau` float DEFAULT NULL,
   `tau_rms` float DEFAULT NULL,
   `cso_ut_dmf` int(11) DEFAULT NULL,
   `tuple_id` int(11) NOT NULL,
+  PRIMARY KEY (`tau#`),
   UNIQUE KEY `CSOTAUcsoutind` (`cso_ut`),
-  UNIQUE KEY `CSOTAUtau#ind` (`tau#`),
   KEY `CSOTAUcsodmfind` (`cso_ut_dmf`),
   KEY `CSOTAUtupind` (`tuple_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
