@@ -7,10 +7,10 @@
 use FindBin;
 use File::Spec;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+BEGIN {
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin";
       }
@@ -184,7 +184,7 @@ while ($ut <= $endut) {
 			      telescope => $tel,
 			      delta_day => $delta,);
 
-  my $countrylist = "DDT EC CA INT NL UH UK JLS";
+  my $countrylist = "DDT EC CA INT NL UH UK JLS LAP PI";
 
   my %acct = $nr->accounting_db(1);
 
@@ -245,9 +245,9 @@ while ($ut <= $endut) {
     $items{lc("$proj")} = $time;
   }
 
-  print OUTPUT "  UT        Projects Weather T.flts  H.flts  Other  Extended J_cal   Closed  Unreport Total  t.fperc  h.fperc\n" if ($loop == 1);
+  print OUTPUT "  UT        Projects Weather T_flts  H_flts  Other  Extended J_cal   Closed  Unreport Total  N_total t_fperc  h_fperc tn_fperc hn_fperc Cal_perc Cal_clear_perc\n" if ($loop == 1);
 
-  printf OUTPUT "%2.2d/%2.2d/%4.4d",$mm,$dd,$yy;
+  printf OUTPUT "%4.4d-%2.2d-%2.2d",$yy,$mm,$dd;
   printf OUTPUT "  %6.2f",$total_proj;
   printf OUTPUT "  %6.2f",abs($items{"weather"});
   print  OUTPUT  "p" if ($items{"weather"} < 0);
@@ -263,13 +263,34 @@ while ($ut <= $endut) {
   print  OUTPUT  "p" if ($items{"_shutdown"} < 0);
   printf OUTPUT "  %6.2f",$delta*12-($total+abs($items{"_shutdown"}));
   printf OUTPUT "  %6.2f",$total;
+  printf OUTPUT "  %6.2f", $total + ($delta*12-($total+abs($items{"_shutdown"})));
   my $denom = $total-abs($items{"weather"});
   if ($denom > 0.1) {
-    printf OUTPUT "  %6.2f\%",100.0*$faultloss/$denom;
-    printf OUTPUT "  %6.2f\%",100.0*($faultloss-$technicalloss)/$denom;
+    printf OUTPUT "  %6.2f",100.0*$faultloss/$denom;
+    printf OUTPUT "  %6.2f",100.0*($faultloss-$technicalloss)/$denom;
   } else {
-    printf OUTPUT "  %6.2f\%",0.0;
-    printf OUTPUT "  %6.2f\%",0.0;
+    printf OUTPUT "  %6.2f",0.0;
+    printf OUTPUT "  %6.2f",0.0;
+  }
+
+  my $eo = sprintf("%6.2f", abs($delta*12-($total+abs($items{"_shutdown"}))));
+  my $ntotal = sprintf("%6.0f",$total - $eo);
+  if ($ntotal != 12){
+      print "On $iut there was $eo EO and $ntotal hours obs\n";
+  }
+
+
+  my $ndenom = $ntotal-abs($items{"weather"});
+  if ($ndenom > 0.1) {
+    printf OUTPUT "  %6.2f",100.0*$faultloss/$ndenom;
+    printf OUTPUT "  %6.2f",100.0*($faultloss-$technicalloss)/$ndenom;
+    printf OUTPUT "  %6.2f",100.0*abs($items{"cal"})/$total;
+    printf OUTPUT "  %6.2f",100.0*abs($items{"cal"})/$ndenom;
+  } else {
+    printf OUTPUT "  %6.2f",0.0;
+    printf OUTPUT "  %6.2f",0.0;
+    printf OUTPUT "  %6.2f",0.0;
+    printf OUTPUT "  %6.2f",0.0;
   }
 
   print OUTPUT  "\n";
@@ -287,6 +308,9 @@ while ($ut <= $endut) {
   $grand{"shutdown"} += abs($items{"_shutdown"});
   $grand{"unrep"}    += $delta*12-($total+abs($items{"_shutdown"}));
   $grand{"hours"}    += $total;
+  $grand{"eo"}       += abs($delta*12-($total+abs($items{"_shutdown"})));
+  $grand{"proj_n"}   += $total_proj -  abs($delta*12-($total+abs($items{"_shutdown"})));
+  $grand{"hours_n"}   += $total - abs($delta*12-($total+abs($items{"_shutdown"})));
 
   # Add delta to the datetime object
   $t += (24*3600*$delta);
@@ -314,6 +338,8 @@ printf OUTPUT "Clear Time lost to Human Faults     %7.2f  %6.2f%\n",
         $grand{"hfaults"}, 100*$grand{"hfaults"}/($grand{"hours"}-$grand{"weather"});
 printf OUTPUT "Calibrations                        %7.2f  %6.2f%\n",
         $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/$grand{"hours"};
+printf OUTPUT "Clear Time Calibrations             %7.2f  %6.2f%\n",
+    $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/($grand{"hours"}-$grand{"weather"});
 printf OUTPUT "Other Time                          %7.2f  %6.2f%\n",
         $grand{"other"}, 100*$grand{"other"}/$grand{"hours"};
 printf OUTPUT "Unreported Time                     %7.2f  %6.2f%\n",
@@ -327,6 +353,36 @@ printf OUTPUT "Total Nighttime available           %7.2f  %6.2f%\n",
         100*($grand{"hours"}+$grand{"shutdown"})/$grand{"hours"};
 printf OUTPUT "Extended Time                       %7.2f  %6.2f%\n\n\n",
         $grand{"extended"}, 100*$grand{"extended"}/$grand{"hours"};
+printf OUTPUT "Extended Obs                      %7.2f  %6.2f%\n\n\n",
+        $grand{"eo"}, 100*$grand{"eo"}/$grand{"hours"};
+
+print OUTPUT "Now numbers excluding Extended Observing project time\n";
+
+printf OUTPUT "Scheduled Time used for Observing   %7.2f  %6.2f%\n",
+        $grand{"proj_n"}, 100*$grand{"proj_n"}/$grand{"hours_n"};
+printf OUTPUT "Time lost to Weather                %7.2f  %6.2f%\n",
+        $grand{"weather"}, 100*$grand{"weather"}/$grand{"hours_n"};
+printf OUTPUT "Clear Time lost to Technical Faults %7.2f  %6.2f%\n",
+        $grand{"tfaults"}, 100*$grand{"tfaults"}/($grand{"hours_n"}-$grand{"weather"});
+printf OUTPUT "Clear Time lost to Human Faults     %7.2f  %6.2f%\n",
+        $grand{"hfaults"}, 100*$grand{"hfaults"}/($grand{"hours_n"}-$grand{"weather"});
+printf OUTPUT "Calibrations                        %7.2f  %6.2f%\n",
+        $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/$grand{"hours_n"};
+printf OUTPUT "Clear Time Calibrations             %7.2f  %6.2f%\n",
+        $grand{"jcmtcal"}, 100*$grand{"jcmtcal"}/($grand{"hours_n"}-$grand{"weather"});
+printf OUTPUT "Other Time                          %7.2f  %6.2f%\n",
+        $grand{"other"}, 100*$grand{"other"}/$grand{"hours_n"};
+printf OUTPUT "Unreported Time                     %7.2f  %6.2f%\n",
+        $grand{"unrep"}, 100*$grand{"unrep"}/$grand{"hours_n"};
+printf OUTPUT "Total Time Scheduled                %7.2f  %6.2f%\n",
+        $grand{"hours_n"}, 100*$grand{"hours_n"}/$grand{"hours_n"};
+printf OUTPUT "Facility Shutdown                   %7.2f  %6.2f%\n",
+        $grand{"shutdown"}, 100*$grand{"shutdown"}/$grand{"hours_n"};
+printf OUTPUT "Total Nighttime available           %7.2f  %6.2f%\n",
+        ($grand{"hours_n"}+$grand{"shutdown"}),
+        100*($grand{"hours_n"}+$grand{"shutdown"})/$grand{"hours_n"};
+
+
 
 close OUTPUT;
 

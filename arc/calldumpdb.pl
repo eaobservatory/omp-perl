@@ -1,30 +1,35 @@
 #!/local/perl/bin/perl
 
-use strict;
-use FindBin;
+=head1 NAME
 
-my $err;
-BEGIN {
- use Getopt::Long;
- my ($main, $secondary);
- my $status = GetOptions("jac" => \$main, "jac2" => \$secondary );
- if ($main && $secondary) {
-   $err = "Can not use both JAC and JAC2";
- } elsif ($main) {
-   $ENV{OMP_DBSERVER} = 'SYB_JAC';
- } elsif ($secondary) {
-   $ENV{OMP_DBSERVER} = 'SYB_JAC2';
- } else {
-   $err = "Must specify -jac or -jac2";
- }
+calldumpdb - Run dumpdb for specified database server
+
+=head1 SYNOPSIS
+
+    calldumpdb.pl [--server ompX]
+
+=cut
+
+use strict;
+
+use FindBin;
+use Getopt::Long;
+use Pod::Usage;
+
+my $server = undef;
+GetOptions("server=s" => \$server)
+    or pod2usage('-exitval' => 2, '-verbose' => 1);
+
+if (defined $server) {
+    die 'Database server name is invaid' unless $server =~/^([-_A-Za-z0-9\.]+)$/;
+    $ENV{OMP_DBSERVER} = $1;
 }
-die "$err\n" if defined $err;
 
 die 'Invalid path to calldumpdb script'
     unless $FindBin::RealBin =~ /^([-_a-zA-Z0-9\/\.]+)$/;
 
 my $status = system("/local/perl/bin/perl $1/../admin/dumpdb.pl");
 if ($status != 0) {
-  print "Error running dumpdb.pl (exit code = $status)\n";
-  exit 1;
+    print "Error running dumpdb.pl (exit code = $status)\n";
+    exit 1;
 }

@@ -6,16 +6,15 @@
 use FindBin;
 use File::Spec;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+BEGIN {
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
 use DBI;
-use DBD::Sybase;
 
 use lib OMPLIB;
 use OMP::NightRep;

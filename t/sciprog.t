@@ -41,7 +41,7 @@ my %results = %$VAR1;
 
 
 # Filename - use the test XML that covers all the bases
-my $file = "test.xml";
+my $file = "t/data/test.xml";
 
 my $obj = new OMP::SciProg( FILE => $file );
 

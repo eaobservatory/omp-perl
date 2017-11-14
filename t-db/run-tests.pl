@@ -1,7 +1,7 @@
 #!/local/perl/bin/perl
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 use Test::Harness;
 

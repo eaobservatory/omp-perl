@@ -5,6 +5,17 @@
 # as a majordomo mailing list import.
 
 use warnings;
+use strict;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
 
 use OMP::ProjServer;
 
@@ -12,7 +23,7 @@ my $SEM = '04A';
 my $TEL = 'JCMT';
 
 # Query the database
-$projects = OMP::ProjServer->listProjects( "<ProjQuery><semester>$SEM</semester><telescope>$TEL</telescope></ProjQuery>", "object");
+my $projects = OMP::ProjServer->listProjects( "<ProjQuery><semester>$SEM</semester><telescope>$TEL</telescope></ProjQuery>", "object");
 
 
 # Extract PI users and remove duplicates

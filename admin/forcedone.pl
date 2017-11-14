@@ -28,6 +28,16 @@ use 5.006;
 use strict;
 use warnings;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::MSBDB;
 use OMP::MSBDoneDB;
 use OMP::DBbackend;

@@ -43,14 +43,14 @@ This manual page.
 
 # Locate the OMP software through guess work
 use FindBin;
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 BEGIN {
   # command line tools probably do not want full logging enabled
   # unless they are asking for it
   $ENV{OMP_LOG_LEVEL} = 'IMPORTANT'
     unless exists $ENV{OMP_LOG_LEVEL};
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "cfg")
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
     unless exists $ENV{OMP_CFG_DIR};
 }
 

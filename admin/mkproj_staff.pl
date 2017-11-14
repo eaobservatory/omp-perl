@@ -47,6 +47,16 @@
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::ProjDB;
 use OMP::Project;
 use OMP::ProjServer;
@@ -91,6 +101,8 @@ while (<>) {
                  undef, undef,
                  undef, undef,
                  undef, undef,
+                 1,
+                 undef, undef,
 		);
 
   print join("--",@details),"\n";
@@ -106,7 +118,7 @@ while (<>) {
     }
 
     # Upload
-    OMP::ProjServer->addProject( $pass, $force, @details, 1 );
+    OMP::ProjServer->addProject( $pass, $force, @details );
   }
 
 }

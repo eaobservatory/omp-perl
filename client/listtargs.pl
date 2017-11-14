@@ -90,7 +90,7 @@ use Getopt::Long;
 
 # Locate the OMP software through guess work
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 # Must load AST early to avoid problems with PGPLOT.
 # Therefore load OMP::SpRegion now.

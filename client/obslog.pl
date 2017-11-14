@@ -124,7 +124,7 @@ use File::Spec;
 use FindBin;
 
 BEGIN {
-  use constant OMPLIB => "$FindBin::RealBin/..";
+  use constant OMPLIB => "$FindBin::RealBin/../lib";
   use lib OMPLIB;
 }
 
@@ -142,7 +142,7 @@ use OMP::FileUtils;
 BEGIN {
   $OMP::FileUtils::RETURN_RECENT_FILES = 0;
 
-  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "cfg" )
+  $ENV{'OMP_CFG_DIR'} = File::Spec->catdir( OMPLIB, "../cfg" )
     unless exists $ENV{'OMP_CFG_DIR'};
 }
 

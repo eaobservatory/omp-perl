@@ -25,8 +25,7 @@ my $cgi = new OMP::CGIPage( CGI => $q );
 
 $cgi->html_title("Alter Project");
 
-# If the user is outside the JAC network write the page with
-# authentication
-$cgi->write_page_staff( \&OMP::CGIPage::Project::alter_proj,
-			\&OMP::CGIPage::Project::alter_proj,
-			"noauth",);
+$cgi->write_page_staff(
+    \&OMP::CGIPage::Project::alter_proj,
+    \&OMP::CGIPage::Project::alter_proj,
+    1);

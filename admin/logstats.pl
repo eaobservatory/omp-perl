@@ -1,6 +1,17 @@
 #!/local/perl/bin/perl
 use strict;
 use warnings;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use Time::Piece qw/ :override /;
 use List::Util qw/ min max /;
 use OMP::Config;

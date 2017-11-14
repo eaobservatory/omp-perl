@@ -8,7 +8,7 @@ use Term::ReadLine;
 
 # Pick up the OMP database
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 use OMP::DBbackend;
 use OMP::Password;
 
@@ -36,12 +36,7 @@ use constant PROJECTID => "VARCHAR(32) not null";
 use constant USERID => "VARCHAR(32)";
 use constant FAULTID => "DOUBLE PRECISION"; # Need this precision
 use constant TITLE => "VARCHAR(255) null";
-
-# Sybase stores dates in 'datetime', Postgres in 'timestamp'
-my $HAS_AUTO_IDENT = OMP::DBbackend->has_automatic_serial_on_insert();
-my $NUMID     = OMP::DBbackend->get_serial_type();
-my $DATE      = OMP::DBbackend->get_datetime_type();
-my $BOOL      = OMP::DBbackend->get_boolean_type();
+use constant NUMID => 'BIGINT'; # Also needs AUTO_INCREMENT flag
 
 # Actual table descriptions
 my %tables = (
@@ -63,10 +58,10 @@ my %tables = (
                          timeest => "REAL",
                          title => TITLE,
                          obscount => "INTEGER",
-                         datemin => $DATE,
+                         datemin => 'DATETIME',
                          cloudmax => "INTEGER",
                          cloudmin => "INTEGER",
-                         datemax => $DATE,
+                         datemax => 'DATETIME',
                          telescope => "VARCHAR(16)",
                          minel => "REAL NULL",
                          maxel => "REAL NULL",
@@ -83,12 +78,12 @@ my %tables = (
               # Associates users with a project
               # See OMP::ProjDB
               ompprojuser => {
-                              uniqid => $NUMID,
+                              uniqid => NUMID,
                               userid => USERID,
                               projectid => PROJECTID,
                               # PI, COI, SUPPORT
                               capacity => "VARCHAR(16)",
-                              contactable => $BOOL,
+                              contactable => 'BOOLEAN',
                               capacity_order => 'TINYINT DEFAULT 0 NOT NULL',
                               _ORDER => [qw/
                                          uniqid projectid userid
@@ -115,7 +110,7 @@ my %tables = (
                           cloudmin => "INTEGER",
                           skymax => "REAL",
                           skymin => "REAL",
-                          state => $BOOL,
+                          state => 'BOOLEAN',
                           _ORDER => [qw/projectid pi
                                      title semester encrypted allocated
                                      remaining pending telescope taumin
@@ -126,8 +121,8 @@ my %tables = (
               # Queue details for each project
               ompprojqueue => {
                                projectid => PROJECTID,
-                               isprimary => $BOOL,
-                               uniqid => $NUMID,
+                               isprimary => 'BOOLEAN',
+                               uniqid => NUMID,
                                country => 'VARCHAR(32) NOT NULL',
                                tagpriority => 'INTEGER',
                                tagadj => 'INTEGER',
@@ -140,8 +135,8 @@ my %tables = (
               # See OMP::ProjDB
               omptimeacct => {
                               projectid => PROJECTID,
-                              date => $DATE,
-                              confirmed => $BOOL,
+                              date => 'DATETIME',
+                              confirmed => 'BOOLEAN',
                               timespent => 'INTEGER',
                               _ORDER => [qw/ date projectid timespent
                                          confirmed
@@ -169,7 +164,7 @@ my %tables = (
                          el6 => "REAL NULL",
                          el7 => "REAL NULL",
                          el8 => "REAL NULL",
-                         pol => $BOOL,
+                         pol => 'BOOLEAN',
                          timeest => "REAL",
                          type => "VARCHAR(32)",
                          _ORDER => [qw/obsid msbid projectid
@@ -184,10 +179,10 @@ my %tables = (
               # we explicitly log when an MSB is observed (done)
               # See OMP::MSBDoneDB
               ompmsbdone => {
-                             commid => $NUMID,
+                             commid => NUMID,
                              checksum => "VARCHAR(64)",
                              projectid => PROJECTID,
-                             date => $DATE,
+                             date => 'DATETIME',
                              comment => "TEXT",
                              instrument => "VARCHAR(64)",
                              waveband => "VARCHAR(64)",
@@ -215,10 +210,10 @@ my %tables = (
               # General comments associated with a project.
               # See OMP::FeedbackDB
               ompfeedback => {
-                              commid => $NUMID,
+                              commid => NUMID,
                               projectid => PROJECTID,
                               author => USERID . "null",
-                              date => "$DATE not null",
+                              date => "DATETIME not null",
                               subject => "varchar(128) null",
                               program => "varchar(50) not null",
                               sourceinfo => "varchar(60) not null",
@@ -241,7 +236,7 @@ my %tables = (
                            fsystem => "integer",
                            category => "VARCHAR(32)",
                            timelost => "REAL",
-                           faultdate => "$DATE null",
+                           faultdate => "DATETIME null",
                            status => "INTEGER",
                            subject => "VARCHAR(128) null",
                            urgency => "INTEGER",
@@ -257,9 +252,9 @@ my %tables = (
               # responsees or the actual fault report
               # See OMP::FaultDB
               ompfaultbody => {
-                               respid => $NUMID,
+                               respid => NUMID,
                                faultid => FAULTID,
-                               date => $DATE,
+                               date => 'DATETIME',
                                isfault => "integer",
                                text => "text",
                                author => USERID,
@@ -271,7 +266,7 @@ my %tables = (
               # Table associating individual faults with projects
               # See OMP::FaultDB
               ompfaultassoc => {
-                                associd => $NUMID,
+                                associd => NUMID,
                                 faultid => FAULTID,
                                 projectid => PROJECTID,
                                 _ORDER => [qw/ associd faultid projectid /],
@@ -291,8 +286,8 @@ my %tables = (
               # basically a narrative timestamped log
               # See OMP::ShiftDB
               ompshiftlog => {
-                              shiftid => $NUMID,
-                              date => $DATE,
+                              shiftid => NUMID,
+                              date => 'DATETIME',
                               author => USERID,
                               telescope => "VARCHAR(32)",
                               text => "TEXT",
@@ -304,13 +299,13 @@ my %tables = (
               # comments associated with those observations.
               # See OMP::ArchiveDB
               ompobslog => {
-                            obslogid => $NUMID,
+                            obslogid => NUMID,
                             runnr => "INT",
                             instrument => "VARCHAR(32)",
                             telescope => "VARCHAR(32) NULL",
-                            date => $DATE,
+                            date => 'DATETIME',
                             obsactive => "INTEGER",
-                            commentdate => $DATE,
+                            commentdate => 'DATETIME',
                             commentauthor => USERID,
                             commenttext => "TEXT NULL",
                             commentstatus => "INTEGER",
@@ -323,7 +318,7 @@ my %tables = (
               # submissions.
               ompkey => {
                          keystring => "VARCHAR(64)",
-                         expiry => $DATE,
+                         expiry => 'DATETIME',
                          _ORDER => [qw/ keystring expiry /],
                         },
              );
@@ -355,9 +350,7 @@ for my $table (sort keys %tables) {
     "$_ " .$tables{$table}->{$_}
   } grep {
     # Always return TRUE if we are not a NUMID column
-    if ($tables{$table}->{$_} ne $NUMID ) {
-      1;
-    } elsif ($HAS_AUTO_IDENT) {
+    if ($tables{$table}->{$_} ne NUMID ) {
       1;
     } else {
       0;

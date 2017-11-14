@@ -86,6 +86,10 @@ Specify default telescope.
 
 Create projects in the "disabled" state.
 
+=item B<--dry-run>
+
+Dry run mode: do not actually add projects to the database.
+
 =back
 
 =head1 FORMAT
@@ -145,8 +149,19 @@ first country. The first country is the primary key.
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::Error qw/ :try /;
 use Config::IniFiles;
+use Data::Dumper;
 use OMP::DBServer;
 use OMP::ProjDB;
 use OMP::ProjServer;
@@ -160,12 +175,13 @@ our $VERSION = '2.000';
 
 # Options
 my $do_country_check = 1;
-my ($help, $man, $version,$force, $disable, %defaults );
+my ($help, $man, $version,$force, $disable, $dry_run, %defaults );
 my $status = GetOptions("help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
                         "force" => \$force,
                         "disable" => \$disable,
+                        "dry-run" => \$dry_run,
                         'no-cc|no-country-check' => sub { $do_country_check = 0 ; },
 
                         "country=s"   => \$defaults{'country'},
@@ -194,8 +210,10 @@ my %ok_field;
       'band',
       'cloud',
       'coi',
+      'coi_affiliation',
       'country',
       'pi',
+      'pi_affiliation',
       'seeing',
       'semester',
       'sky',
@@ -226,10 +244,13 @@ if (!keys %alloc) {
   die "Did not find any projects in input file!"
 }
 
-my $pass = OMP::Password->get_verified_password({
+my $pass;
+unless ($dry_run) {
+    $pass = OMP::Password->get_verified_password({
                 'prompt' => 'Enter administrator password: ',
                 'verify' => 'verify_administrator_password',
             }) ;
+}
 
 # Loop over each project and add it in
 for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
@@ -264,6 +285,8 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     #if exists $details{country};
 
   upcase( \%details, qw/ pi coi support semester telescope / );
+
+  downcase(\%details, qw/pi_affiliation coi_affiliation/);
 
   $do_country_check
     and check_country( $details{country} );
@@ -370,27 +393,37 @@ for my $proj (sort { uc $a cmp uc $b } keys %alloc) {
     next;
   }
 
+  my @project_args = (
+    $proj,  # project id
+    $details{pi},
+    $details{coi},
+    $details{support},
+    $details{title},
+    $details{tagpriority},
+    $details{country},
+    $details{tagadjustment},
+    $details{semester},
+    "xxxxxx", # default password
+    $details{allocation},
+    $details{telescope},
+    $taumin, $taumax,
+    $seemin,$seemax,
+    $cloudmin, $cloudmax,
+    $skymin, $skymax,
+    ($disable ? 0 : 1),
+    $details{'pi_affiliation'},
+    $details{'coi_affiliation'},
+  );
+
+  # Stop here in dry-run mode.
+  if ($dry_run) {
+    print Dumper(\@project_args);
+    next;
+  }
+
   # Now add the project
   try {
-    OMP::ProjServer->addProject( $pass, $force,
-                                $proj,  # project id
-                                $details{pi},
-                                $details{coi},
-                                $details{support},
-                                $details{title},
-                                $details{tagpriority},
-                                $details{country},
-                                $details{tagadjustment},
-                                $details{semester},
-                                "xxxxxx", # default password
-                                $details{allocation},
-                                $details{telescope},
-                                $taumin, $taumax,
-                                $seemin,$seemax,
-                                $cloudmin, $cloudmax,
-                                $skymin, $skymax,
-                                ($disable ? 0 : 1),
-                               );
+    OMP::ProjServer->addProject( $pass, $force, @project_args);
 
   } catch OMP::Error::ProjectExists with {
     print " - but the project already exists. Skipping.\n";
@@ -504,6 +537,13 @@ sub upcase {
     }
   }
   return;
+}
+
+sub downcase {
+    my ($hash, @keys) = @_;
+    foreach my $key (@keys) {
+        $hash->{$key} = lc $hash->{$key} if exists $hash->{$key};
+    }
 }
 
 sub split_range {

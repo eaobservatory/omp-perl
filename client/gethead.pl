@@ -62,7 +62,17 @@ This manual page.
 use strict;
 use warnings;
 
-use JAC::Setup qw/ omp sybase /;
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use Getopt::Long;
 use Pod::Usage;
 

@@ -64,7 +64,7 @@ BEGIN {
   use Pod::Usage;
 
   use FindBin;
-  use constant OMPLIB => "$FindBin::RealBin/..";
+  use constant OMPLIB => "$FindBin::RealBin/../lib";
   use lib OMPLIB;
 
   use OMP::DateTools;
@@ -74,7 +74,8 @@ BEGIN {
   use OMP::MSBQuery;
   use OMP::MSBServer;
 
-  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
+  $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
+    unless exists $ENV{'OMP_DIR'};
 
 }
 
