@@ -11,12 +11,12 @@ CREATE TABLE `AZEL` (
   `end_el` double DEFAULT NULL,
   `utstart` varchar(19) NOT NULL,
   `utstop` varchar(19) NOT NULL,
-  UNIQUE KEY `AZELutind` (`ut`),
   KEY `AZELendazind` (`end_az`),
   KEY `AZELendelind` (`end_el`),
   KEY `AZELprojind` (`projid`),
   KEY `AZELstrtazind` (`strt_az`),
-  KEY `AZELstrtelind` (`strt_el`)
+  KEY `AZELstrtelind` (`strt_el`),
+  KEY `AZELutind` (`ut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `AZEL2` (
   `projid` varchar(16) DEFAULT NULL,
@@ -34,13 +34,13 @@ CREATE TABLE `AZEL2` (
   `strt_f2` float DEFAULT NULL,
   `end_f2` float DEFAULT NULL,
   `avg_f2` float NOT NULL,
-  UNIQUE KEY `AZEL2utind` (`ut`),
   KEY `AZELavgf2ind` (`avg_f2`),
   KEY `AZELendazind` (`end_az`),
   KEY `AZELendelind` (`end_el`),
   KEY `AZELprojind` (`projid`),
   KEY `AZELstrtazind` (`strt_az`),
-  KEY `AZELstrtelind` (`strt_el`)
+  KEY `AZELstrtelind` (`strt_el`),
+  KEY `AZEL2utind` (`ut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `CAL` (
   `cal#` decimal(9,0) NOT NULL,
@@ -52,8 +52,8 @@ CREATE TABLE `CAL` (
   `sbmode` char(3) DEFAULT NULL,
   `flag` smallint(6) DEFAULT NULL,
   `note` varchar(255) DEFAULT NULL,
-  UNIQUE KEY `CALdateind` (`date`),
-  KEY `CALlofreqind` (`lofreq`)
+  KEY `CALlofreqind` (`lofreq`),
+  KEY `CALdateind` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `CRYO` (
   `cryo#` int(11) DEFAULT NULL,
@@ -117,9 +117,9 @@ CREATE TABLE `DBLOG` (
   `scan` double DEFAULT NULL,
   `utstart` datetime DEFAULT NULL,
   `utstop` datetime DEFAULT NULL,
-  UNIQUE KEY `DBLOGut1ind` (`utstart`),
   KEY `DBLOGprojind` (`projid`),
-  KEY `DBLOGut2ind` (`utstop`)
+  KEY `DBLOGut2ind` (`utstop`),
+  KEY `DBLOGut1ind` (`utstart`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `FLUX` (
   `flux#` int(11) DEFAULT NULL,
@@ -159,8 +159,8 @@ CREATE TABLE `MIXER` (
   `trx_sd` double DEFAULT NULL,
   `tsys_mean` double DEFAULT NULL,
   `tsys_sd` double DEFAULT NULL,
-  UNIQUE KEY `MIXdatemix` (`date`,`mixid`),
-  KEY `MIXmixid` (`mix#`)
+  KEY `MIXmixid` (`mix#`),
+  KEY `MIXdatemix` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `MOTOR` (
   `motor#` int(11) DEFAULT NULL,
@@ -228,10 +228,10 @@ CREATE TABLE `RXTAU` (
   `ut` datetime DEFAULT NULL,
   `tau` float DEFAULT NULL,
   `inttime` float DEFAULT NULL,
-  UNIQUE KEY `RXTAUut` (`ut`),
   KEY `RXprojid` (`projid`),
   KEY `RXrx` (`frontend`),
-  KEY `RXtau` (`tau`)
+  KEY `RXtau` (`tau`),
+  KEY `RXTAUut` (`ut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SAOPHA` (
   `pha#` int(11) DEFAULT NULL,
