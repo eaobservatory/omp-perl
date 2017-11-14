@@ -4,20 +4,24 @@
 # Non-interactive (command-line) routine to do a pencil-beam search in
 # the OMP for targets around a position certain position or around 
 # targets from a particular project. Basically a user interface for
-# the ompfindtarget stored procedure in the DB.
+# the OMP::FindTarget::find_and_display_targets function.
 # This version connects directly to the OMP to retrieve source
 # coordinates and should remain access restricted!!!!
 #----------------------------------------------------------------------
 
+use FindBin;
+use File::Spec;
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+BEGIN {
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
 
-use lib "/jac_sw/omp/msbserver";
+use lib OMPLIB;
 
 use strict;
 
@@ -26,8 +30,6 @@ use Getopt::Long;
 use OMP::Config;
 use OMP::DateTools;
 use OMP::FindTarget qw/find_and_display_targets/;
-
-OMP::Config->cfgdir( "/jac_sw/omp/msbserver/cfg");
 
 # not 0: debug output
 my $debug = 0;

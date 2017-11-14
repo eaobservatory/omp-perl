@@ -36,16 +36,16 @@ my $mm   = 15;
 my $sec  = 0.0;
 
 # Create two input dates. One in ISO format, the other in
-# Sybase style
+# MySQL style
 my @dateinput;
 
 # ISO
 push(@dateinput,  sprintf("%04d-%02d-%02dT%02d:%02d",
 	   	     $year, $mon, $day, $hh, $mm));
 
-# Sybase
-push(@dateinput,  sprintf("$mon_str %02d %04d  %d:%02dAM",
-		      $day, $year, $hh, $mm));
+# MySQL
+push(@dateinput,  sprintf("%04d-%02d-%02d %02d:%02d:%02d",
+		      $year, $mon, $day, $hh, $mm, $sec));
 
 print "# parse_date\n";
 

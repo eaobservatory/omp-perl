@@ -67,7 +67,7 @@ use MIME::Lite;
 
 # Add to @INC for OMP libraries.
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 use OMP::Constants qw(:fb);
 use OMP::DBbackend;
@@ -155,7 +155,7 @@ my @projects = $projdb->listProjects( $projquery );
 my $mindate_str = $mindate->ymd('');
 my %new_submission = ();
 my $dbh = $dbconnection->handle();
-my $sth = $dbh->prepare('SELECT projectid, CONVERT(char, MIN(date), 112) FROM '
+my $sth = $dbh->prepare('SELECT projectid, MIN(date) FROM '
                        . $OMP::FeedbackDB::FBTABLE
                        . ' WHERE msgtype=' . OMP__FB_MSG_SP_SUBMITTED
                        . ' GROUP BY projectid');
@@ -163,6 +163,8 @@ die 'Error preparing minimum date query: ' . $DBI::errstr if $DBI::err;
 $sth->execute();
 die 'Error executing minimum date query: ' . $DBI::errstr if $DBI::err;
 while (my ($proj, $first) = $sth->fetchrow_array()) {
+  die 'Did not understand date' unless $first =~ /^(\d\d\d\d)-(\d\d)-(\d\d) /;
+  $first = "$1$2$3";
   $new_submission{$proj} = ($first ge $mindate_str);
 }
 

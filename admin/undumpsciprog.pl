@@ -13,6 +13,17 @@
 use 5.006;
 use strict;
 use warnings;
+
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::SpServer;
 use OMP::ProjServer;
 use OMP::Error qw/ :try /;
@@ -35,24 +46,34 @@ my @files = readdir($dh);
 closedir $dh
   or die "Could not stop reading directory: $!\n";
 
+my $pass = OMP::Password->get_verified_password({
+    prompt => 'Enter administrator password: ',
+    verify => 'verify_administrator_password',
+});
+
+
 # slurp mode
 $/ = undef;
 
 # Go through the files looking for xml
-for (@files) {
-  next unless /\.xml$/;
-  print "$_\n";
+my $n_err = 0;
+foreach my $filename (@files) {
+  next unless $filename =~ /\.xml$/;
+  print "$filename\n";
 
   # Read the file
-  open my $fh, '<', $_ or die "Could not open file $_: $!\n";
+  open my $fh, '<', $filename or die "Could not open file $filename: $!\n";
   my $xml = <$fh>;
   close($fh) or die "Error closing file: $!\n";
 
-  # Force overwrite
-  my $pass =
-    OMP::Password->get_verified_password({
-      'prompt' => 'Enter administrator password: ',
-      'verify' => 'verify_administrator_password',
-    }) ;
-  OMP::SpServer->storeProgram( $xml, $pass, 1);
+  try {
+    # Force overwrite
+    OMP::SpServer->storeProgram( $xml, $pass, 1);
+  } otherwise {
+    my $E = shift;
+    print "Error storing science program $filename: $E\n";
+    $n_err ++;
+  };
 }
+
+exit(1) if $n_err;

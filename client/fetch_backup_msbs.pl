@@ -40,7 +40,7 @@ use Getopt::Long;
 use IO::File;
 use Pod::Usage;
 
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 use OMP::Config;
 use OMP::MSBQuery;

@@ -47,6 +47,16 @@
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 use OMP::ProjDB;
 use OMP::Project;
 use OMP::ProjServer;
@@ -81,10 +91,18 @@ while (<>) {
 		 $file[1],
 		 "Support scientist testing",
 		 1,
-		 "JAC",
-		 "JAC",
+		 ["EAO"],
+                 0,
+		 "EAO",
 		 "omptest",  # Password should be supplied by user
-		 10000,$tel
+		 10000,
+                 $tel,
+                 undef, undef,
+                 undef, undef,
+                 undef, undef,
+                 undef, undef,
+                 1,
+                 undef, undef,
 		);
 
   print join("--",@details),"\n";
@@ -96,11 +114,11 @@ while (<>) {
 
     # Insert telescope
     if (!$file[2]) {
-      $details[10] = ( $i <= 5 ? "UKIRT" : "JCMT" );
+      $details[11] = ( $i <= 5 ? "UKIRT" : "JCMT" );
     }
 
     # Upload
-    OMP::ProjServer->addProject( $pass, $force, @details[0..10], 1 );
+    OMP::ProjServer->addProject( $pass, $force, @details );
   }
 
 }

@@ -72,16 +72,18 @@ use Scalar::Util qw/ blessed openhandle /;
 
 BEGIN {
   use FindBin;
-  use constant OMPLIB => "$FindBin::RealBin/..";
+  use constant OMPLIB => "$FindBin::RealBin/../lib";
   use lib OMPLIB;
 
-  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
+  $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
+    unless exists $ENV{'OMP_DIR'};
 }
 
 use OMP::Constants qw/ :fb /;
 use OMP::General;
 use OMP::BaseDB;
 use OMP::DBbackend;
+use OMP::FeedbackDB;
 
 my %opt =
   ( 'header' => undef,
@@ -238,18 +240,13 @@ sub make_query {
   # Only if a constant could be used in string interpolation.
   my $submitted = OMP__FB_MSG_SP_SUBMITTED;
 
-  # 102 (date) style is 'yyyy.mm.dd'.
-  # STUFF() is similar to s///.
   return <<"__SQL__";
-    SELECT f.projectid,
-      STUFF( STUFF( CONVERT( VARCHAR, date, 102) , 5, 1, '-' ), 8, 1, '-' )
-      + 'T'
-      + CONVERT( CHAR(8), date, 108) date
-    FROM ompfeedback f
+    SELECT f.projectid, date
+    FROM $OMP::FeedbackDB::FBTABLE f
     WHERE f.projectid IN ( $list )
       AND f.date =
         ( SELECT MIN(f2.date)
-          FROM ompfeedback f2
+          FROM $OMP::FeedbackDB::FBTABLE f2
           WHERE f2.projectid = f.projectid
             AND ( f2.msgtype = $submitted OR f2.subject LIKE 'Science program submitted%' )
         )

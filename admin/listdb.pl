@@ -9,7 +9,7 @@ use Data::Dumper;
 
 # Pick up the OMP database
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 use OMP::DBbackend;
 
 # Maximum length of text displayed from a column

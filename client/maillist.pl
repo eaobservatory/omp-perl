@@ -52,7 +52,7 @@ use Term::ReadLine;
 
 # Locate the OMP software through guess work
 use FindBin;
-use lib "$FindBin::RealBin/..";
+use lib "$FindBin::RealBin/../lib";
 
 use OMP::ProjServer;
 

@@ -30,6 +30,8 @@ BEGIN {
   # Make sure hosts and domains are predictable
   $ENV{OMP_NOGETHOST} = 1;
 
+  # Unset the OMP_SITE_CONFIG variable to prevent it overriding our settings.
+  delete $ENV{'OMP_SITE_CONFIG'} if exists $ENV{'OMP_SITE_CONFIG'};
 }
 
 BEGIN { use_ok( 'OMP::Config' ); }

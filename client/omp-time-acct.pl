@@ -111,10 +111,11 @@ use Scalar::Util qw/ blessed openhandle /;
 
 BEGIN {
   use FindBin;
-  use constant OMPLIB => "$FindBin::RealBin/..";
+  use constant OMPLIB => "$FindBin::RealBin/../lib";
   use lib OMPLIB;
 
-  $ENV{'OMP_DIR'} = OMPLIB unless exists $ENV{'OMP_DIR'};
+  $ENV{'OMP_DIR'} = File::Spec->catdir(OMPLIB, File::Spec->updir())
+    unless exists $ENV{'OMP_DIR'};
 }
 
 use OMP::Constants qw/ :logging /;
@@ -122,6 +123,7 @@ use OMP::DateTools;
 use OMP::General;
 use OMP::BaseDB;
 use OMP::DBbackend;
+use OMP::TimeAcctDB;
 
 my %default_opt =
   ( 'header'   => undef,
@@ -226,7 +228,7 @@ NO_SQL
 
   return <<"_SQL_";
     SELECT projectid, timespent, date, confirmed
-    FROM omptimeacct
+    FROM $OMP::TimeAcctDB::ACCTTABLE
     WHERE $sql
     ORDER BY projectid, date
 _SQL_
@@ -276,7 +278,7 @@ sub process_options {
   GetOptions(
     'h|help|man' => \$help,
     'file=s'     => \@file,
-    'header|'    => \$opt{'header'},
+    'header!'    => \$opt{'header'},
     'H|noheader' => sub{ $opt{'header'} = 0 },
     'semester=s'  => \@sem,
     'telescope=s' => \$opt{'telescope'},

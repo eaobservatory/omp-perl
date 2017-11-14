@@ -4,12 +4,23 @@
 # reports for given collections of faults.  The example is currently
 # set up to report leaks and spills at JCMT and at JAC in Hilo.
 
+use strict;
+use FindBin;
+use File::Spec;
+
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+BEGIN {
+    $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
+        unless exists $ENV{OMP_CFG_DIR};
+}
+
+use lib OMPLIB;
+
 use OMP::Display;
 use OMP::Fault;
 use OMP::FaultUtil;
 use OMP::FaultServer;
-
-use strict;
 
 # Specify text phrases to search for.
 

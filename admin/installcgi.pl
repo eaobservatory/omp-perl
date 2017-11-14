@@ -18,44 +18,28 @@ use warnings;
 use strict;
 
 use FindBin;
-use File::Copy;
+use File::Copy qw/cp/;
 use File::Spec;
 use Getopt::Long;
 
-use lib qq[$FindBin::RealBin/..];
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+use lib OMPLIB;
+
 use OMP::Config;
 use OMP::Error qw[ :try ];
 
 my $dry_run = undef;
 my $status = GetOptions("dry-run" => \$dry_run);
 
-my $source = "/jac_sw/omp/msbserver";
-
-my $privdest = "/WWW/omp-private";
-
-my $pubdest = "/WWW/omp";
-
 my $config = OMP::Config->new;
-if ( $config->in_test_mode ) {
 
-    $source = $config->getData( 'test.root' );
-
-    $pubdest = $config->getData( 'test-web-install.public' );
-
-    my $temp;
-    try {
-      $temp = $config->getData( 'test-web-install.private' );
-    }
-    catch OMP::Error with {
-
-      # Swallow errors; "private" key could be missing altogether.
-    };
-    $privdest = $temp if $temp;
-}
+my $pubdest = $config->getData('web-install.public');
+my $privdest = $config->getData('web-install.private');
 
 my @srcdirs = qw/ cgi server web /;
 
-my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
+my @pubfiles = qw/ alterproj.pl edit_support.pl
+                   faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    fbmsb.pl fbobscomment.pl fbshiftlog.pl fbsummary.pl fbworf.pl
                    fbworfthumb.pl feedback.pl filefault.pl
                    findtarget.pl
@@ -63,7 +47,7 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    index.html issuepwd.pl
                    listprojects.pl msbhist.pl nightrep.pl obslog_text.pl
                    ompusers.pl
-                   projecthome.pl projusers.pl props.pl
+                   projecthome.pl projusers.pl projsum.pl props.pl
                    qstatus.pl queryfault.pl shiftlog.pl
                    sourceplot.pl spregion.pl
                    spsrv.pl staffobscomment.pl staffworf.pl staffworfthumb.pl
@@ -73,20 +57,31 @@ my @pubfiles = qw/ faultrss.pl faultsum.pl fbcomment.pl fbfault.pl fblogout.pl
                    worf_image.pl worf_ndf.pl worf_thumb.pl wwwobserved.pl /;
 
 # Files to be installed in both public and private roots
-my @sharedfiles = qw/ omp-cgi-init.pl omp.css omp.js LookAndFeelConfig /;
+my @sharedfiles = qw/ omp-cgi-init.pl omp-srv-init.pl omp.css omp.js LookAndFeelConfig robots.txt /;
+
+# Files which are renamed.
+my %renamed_files = (
+    'index_private.html' => 'index.html',
+);
+
+# Files which are not installed.
+my %no_install_files = map {$_ => undef} qw/
+    retrieve_data.pl
+/;
 
 my %pub = map {$_, undef} @pubfiles;
 my %shared = map {$_, undef} @sharedfiles;
 
 for my $subdir (@srcdirs) {
-  my $dir = File::Spec->catdir($source, $subdir);
+  my $dir = File::Spec->catdir(OMPLIB, File::Spec->updir(), $subdir);
   opendir(DIR, $dir) or die "Could not open directory $dir: $!\n";
-  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl)$/} readdir(DIR);
+  my @files = grep {/(\.js|\.css|Feel|Config|\.html|\.pl|\.txt)$/} readdir(DIR);
   closedir(DIR);
 
   for my $file (@files) {
+    next if exists $no_install_files{$file};
     my $srcfile = File::Spec->catfile($dir, $file);
-    my $dest;
+    my $destfile = $renamed_files{$file} // $file;
     my @paths;
     if (exists $pub{$file}) {
       push @paths, [$pubdest];
@@ -100,10 +95,10 @@ for my $subdir (@srcdirs) {
 
     for my $path (@paths) {
       push(@$path, 'cgi-bin') if ($file =~ /.pl$/);
-      $dest = File::Spec->catfile(@$path, $file);
+      my $dest = File::Spec->catfile(@$path, $destfile);
       print "Copying $srcfile to $dest\n";
       unless ($dry_run) {
-        copy($srcfile, $dest) or
+        cp($srcfile, $dest) or
           warn "Error copying file $srcfile to $dest: $!";
       }
     }

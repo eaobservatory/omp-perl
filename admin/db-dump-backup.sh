@@ -56,7 +56,9 @@ make_backup()
     "${db_host}"  "${dump_dir}"  \
     "${backup_dir}/${db_server}"
 
-  nice rsync -rltgDz --quiet --delete-after --size-only --bwlimit=10000  \
+# Option delete-after removed. DAF 28-Aug-2017
+# Leave all of the backups on mtserver for now.
+  nice rsync -rltgDz --quiet --size-only --bwlimit=10000  \
     "${db_host}:${dump_dir}/"      \
     "${backup_dir}/${db_server}/"
 

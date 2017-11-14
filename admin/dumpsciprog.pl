@@ -12,12 +12,17 @@ use 5.006;
 use strict;
 use warnings;
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-	$ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg";
+use FindBin;
+
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+BEGIN {
+	$ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
+            unless exists $ENV{OMP_CFG_DIR};
 	$ENV{PATH} = "/usr/bin";
       }
 
-use lib qw(/jac_sw/omp/msbserver);
+use lib OMPLIB;
 
 use OMP::Config;
 use OMP::MSBDB;
@@ -43,8 +48,21 @@ if (-e $dumplog) {
   open my $fh, '<', $dumplog or die "Error opening file $dumplog: $!";
   my $line = <$fh>;
   close $fh;
+
+  # Abort early if nothing at all was read from the file.
+  die "Could not read date of last dump from the log file"
+    unless defined $line;
+
+  chomp $line;
+
+  # It looks like "gmtime" might accept anything, so check the format here.
+  # The check below may not actually ever trigger.
+  die "Date of last dump not in expected format"
+    unless $line =~ /^\d{10}$/;
+
   $date = gmtime($line);
-  (! $date) and die "Unable to parse date of last dump!";
+  die "Unable to parse date of last dump!"
+    unless $date;
 }
 
 my $db = new OMP::MSBDB( DB => new OMP::DBbackend );
@@ -57,6 +75,7 @@ my @projects = $db->listModifiedPrograms($date);
 exit unless (@projects);
 
 # Now for each of these projects attempt to read a science program
+my $n_err = 0;
 for my $projid (@projects) {
   try {
 
@@ -65,7 +84,7 @@ for my $projid (@projects) {
 			     ProjectID => $projid,
 			     DB => new OMP::DBbackend );
 
-    my $xml = $db->fetchSciProgNoAuth(1);
+    my $xml = $db->fetchSciProgNoAuth(1, raw => 1);
 
     print "Retrieved science program for project $projid\n";
 
@@ -80,10 +99,11 @@ for my $projid (@projects) {
     # Want to know if a program stored in the DB is truncated
     my $E = shift;
     print "Science program truncated [$projid]: $E\n";
+    $n_err ++;
   } otherwise {
     my $E = shift;
-    print "$E\n";
-
+    print "Error retrieving program [$projid]: $E\n";
+    $n_err ++;
   };
 
 }
@@ -94,3 +114,6 @@ open my $log, '>', $dumplog or die "Error opening file $dumplog: $!";
 print $log $today->epoch;
 print $log "\nTHIS FILE KEEPS TRACK OF THE MOST RECENT SCIENCE PROGRAM DUMP.\nREMOVING THIS FILE WILL RESULT IN A REFETCH OF ALL SCIENCE PROGRAMS.";
 close $log;
+
+# Exit with bad status if errors were encountered.
+exit(1) if $n_err;

@@ -3,21 +3,20 @@
 use 5.006;
 use strict;
 
-use FindBin;
-#use lib "$FindBin::RealBin/../";
-use lib "/jac_sw/omp/msbserver";
+# Standard initialisation (not much shorter than the previous
+# code but no longer has the module path hard-coded)
+BEGIN {
+  my $retval = do "./omp-cgi-init.pl";
+  unless ($retval) {
+    warn "couldn't parse omp-cgi-init.pl: $@" if $@;
+    warn "couldn't do omp-cgi-init.pl: $!"    unless defined $retval;
+    warn "couldn't run omp-cgi-init.pl"       unless $retval;
+    exit;
+  }
+}
 
-BEGIN { $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"; }
-
-use CGI;
-use CGI::Carp qw/fatalsToBrowser/;
 use OMP::CGIPage;
 use OMP::CGIPage::PkgData;
-
-
-# unbuffered
-$| = 1;
-
 
 # Create the new object for this transaction
 my $cquery = new CGI;

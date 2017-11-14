@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-verify_msb_accept
+ompmsbcheck
 
 =head1 SYNOPSIS
 
-  verify_msb_accept -ut 2002-12-10 -tel jcmt
+  ompmsbcheck -ut 2002-12-10 -tel jcmt
 
 =head1 DESCRIPTION
 
@@ -39,6 +39,14 @@ than one telescope).
 
 Skip files which cannot be read to extract the relevant information.
 
+=item B<--nodecrement>
+
+Do not decrement the "remaining" counters of MSBs.
+
+=item B<--disk>
+
+Search for observations on disk rather than in the database.
+
 =item B<-version>
 
 Report the version number.
@@ -65,16 +73,18 @@ use File::Spec;
 use Data::Dumper;
 use Term::ReadLine;
 
-use constant OMPLIB => "$FindBin::RealBin/..";
+use constant OMPLIB => "$FindBin::RealBin/../lib";
 
 use lib OMPLIB;
 
 BEGIN {
-  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "cfg" )
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
     unless exists $ENV{OMP_CFG_DIR};
 };
 
+use OMP::ArchiveDB;
 use OMP::DateTools;
+use OMP::FileUtils;
 use OMP::Info::ObsGroup;
 use OMP::MSBServer;
 use OMP::UserServer;
@@ -87,7 +97,9 @@ our $VERSION = '2.000';
 my ( %opt, $help, $man, $version );
 my $status = GetOptions("ut=s" => \$opt{ut},
                         "tel=s" => \$opt{tel},
+                        "disk" => \$opt{'disk'},
                         'ignorebad' => \$opt{'ignorebad'},
+                        'nodecrement' => \$opt{'nodecrement'},
                         "help" => \$help,
                         "man" => \$man,
                         "version" => \$version,
@@ -169,6 +181,14 @@ for my $msb (@sorted_msbdb) {
 
 # Look at the real data:
 print "---> Data headers ----\n";
+
+if ($opt{'disk'}) {
+    $OMP::FileUtils::RETURN_RECENT_FILES = 0;
+    OMP::ArchiveDB::search_only_files();
+    OMP::ArchiveDB::skip_cache_query();
+    OMP::ArchiveDB->use_existing_criteria(1);
+}
+
 my $grp = new OMP::Info::ObsGroup( telescope => $telescope,
 				   date => $ut,
 				   ignorebad => $opt{'ignorebad'},
@@ -432,7 +452,7 @@ if (@missing) {
       if ($accept) {
 	print "\tAccepting MSB. Please wait.\n";
 	$msbdb->projectid( $projectid );
-	$msbdb->doneMSB( $id, $c, { adjusttime => 0 } );
+	$msbdb->doneMSB( $id, $c, { adjusttime => 0, nodecrement => $opt{'nodecrement'} } );
       } else {
 	$c->text("This MSB was observed but was not accepted by the observer/TSS. No reason was given.");
 	$msbdone->projectid( $projectid );

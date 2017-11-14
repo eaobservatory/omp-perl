@@ -8,23 +8,25 @@
 #
 
 use strict;
+use FindBin;
+use File::Spec;
 use Getopt::Long;
 
-BEGIN { $ENV{SYBASE} = "/local/progs/sybase";
-        $ENV{OMP_CFG_DIR} = "/jac_sw/omp/msbserver/cfg"
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+BEGIN {
+        $ENV{OMP_CFG_DIR} = File::Spec->catdir(OMPLIB, "../cfg")
           unless exists $ENV{OMP_CFG_DIR};
         $ENV{PATH} = "/usr/bin:/usr/local/bin:/usr/local/progs/bin:/usr/sbin";
       }
 
 use DBI;
-use DBD::Sybase;
 
-use lib "/jac_sw/omp/msbserver";
+use lib OMPLIB;
 use OMP::DBbackend;
+use OMP::FaultDB;
 
 my $dbs =  new OMP::DBbackend;
-my $dbtable = "ompfaultbody,ompfault";
-
 
 my ($help, $man, $tel, $ut, $days);
 my $status = GetOptions("help" => \$help,
@@ -90,14 +92,14 @@ qq{___________________________________________________________________________
 my $current_ref = $db->selectall_arrayref(
       qq{select
               F.faultid,
-              convert(char(5),dateadd(hh,-10,date),8)+'HST',
+              date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
               substring(subject,1,80),
               author,
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
          where date between "$startut" and
-                            dateadd(hh,${delta}*24,"$startut")
+                            date_add("$startut", interval ${delta} day)
          and FB.faultid = F.faultid
          and category='${telescope}' and isfault = 1
          order by substring(subject,1,80),faultid})
@@ -184,13 +186,13 @@ print qq{
 my $previous_ref = $db->selectall_arrayref(
       qq{select
               F.faultid,
-              convert(char(5),dateadd(hh,-10,date),8)+'HST',
+              date_format(date_sub(date, interval 10 hour), "%H:%i HST"),
               substring(subject,1,80),
               author,
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
-         where date between dateadd(hh,-${delta}*24,"$startut")
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
+         where date between date_sub("$startut", interval ${delta} day)
                         and "$startut"
          and FB.faultid = F.faultid
          and category='${telescope}' and isfault = 1
@@ -218,11 +220,11 @@ my $previous_ref = $db->selectall_arrayref(
       qq{select
               distinct F.faultid,
               substring(subject,1,80),
-              0.01*convert(int,100*timelost),
+              0.01*floor(100*timelost),
               status
-         from ompfault F, ompfaultbody FB
+         from $OMP::FaultDB::FAULTTABLE F, $OMP::FaultDB::FAULTBODYTABLE FB
          where date between "$startut" and
-                            dateadd(hh,${delta}*24,"$startut")
+                            date_add("$startut", interval ${delta} day)
          and faultdate < "$startut"
          and FB.faultid = F.faultid
          and status = 1

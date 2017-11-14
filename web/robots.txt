@@ -1,0 +1,10 @@
+# robots.txt - tell those pesky robots what not to get!
+#
+User-agent: *                  # Yeah, you!
+Disallow: /  
+#
+# Allow our own indexer access to everything
+User-agent: JACdigger	       # ht://dig 3.4 running locally
+Disallow: 
+#  HPS  13 Jan 2000
+#

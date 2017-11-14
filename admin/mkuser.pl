@@ -26,6 +26,16 @@
 use warnings;
 use strict;
 
+use FindBin;
+use constant OMPLIB => "$FindBin::RealBin/../lib";
+
+use lib OMPLIB;
+
+BEGIN {
+  $ENV{OMP_CFG_DIR} = File::Spec->catdir( OMPLIB, "../cfg" )
+    unless exists $ENV{OMP_CFG_DIR};
+};
+
 select \*STDERR ; $| = 1;
 select \*STDOUT ; $| = 1;
 
@@ -70,6 +80,8 @@ while (<>) {
     $user{userid} = $details[0];
     $user{name} = $details[1];
     $user{email} = $details[2];
+    die 'Invalid user ID: ' .  $user{'userid'}
+      unless $user{'userid'} =~ /^[A-Z0-9]+$/;
   } else {
     $user{name} = $details[0];
     $user{email} = $details[1];
