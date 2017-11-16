@@ -33,6 +33,10 @@ use Data::Dumper;
 use Time::Piece;
 use File::Spec;
 
+# Get the timestamp before doing the query, so we get programs which changed
+# while we were doing the export.
+my $today = gmtime;
+
 # Abort if $OMP_DUMP_DIR is not set
 $ENV{OMP_DUMP_DIR} = '/opt/omp/cache/sciprogs'
   unless exists $ENV{OMP_DUMP_DIR};
@@ -108,8 +112,7 @@ for my $projid (@projects) {
 
 }
 
-# Write date of this dump to the log
-my $today = gmtime;
+# Write date of this dump to the log (using the date logged at the start).
 open my $log, '>', $dumplog or die "Error opening file $dumplog: $!";
 print $log $today->epoch;
 print $log "\nTHIS FILE KEEPS TRACK OF THE MOST RECENT SCIENCE PROGRAM DUMP.\nREMOVING THIS FILE WILL RESULT IN A REFETCH OF ALL SCIENCE PROGRAMS.";
