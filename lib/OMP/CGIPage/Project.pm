@@ -1252,9 +1252,9 @@ sub _print_user_err {
 
   my ( $text ) = @_;
 
-  return
-    unless $text
-    && $text =~ m/^Unknown user id given/;
+  return unless $text && (
+    $text =~ m/^Unknown user id given/
+    || $text =~ m/not recognized by the OMP$/);
 
   printf "<p>%s</p>\n", $text;
   return 1;
