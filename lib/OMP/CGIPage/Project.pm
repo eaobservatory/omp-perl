@@ -1235,15 +1235,17 @@ sub _make_user {
   return unless $userid;
 
   my $affiliation;
-  ($userid, $affiliation) = split ':', shift, 2;
+  ($userid, $affiliation) = split ':', $userid, 2;
 
   my $user = OMP::UserServer->getUser( $userid )
     or throw OMP::Error "Unknown user id given: $userid";
 
-  throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
-    unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
+  if (defined $affiliation) {
+    throw OMP::Error::FatalError("User $userid affiliation '$affiliation' not recognized by the OMP")
+      unless exists $OMP::ProjAffiliationDB::AFFILIATION_NAMES{$affiliation};
 
-  $user->affiliation($affiliation) if defined $affiliation;
+    $user->affiliation($affiliation);
+  }
 
   return $user;
 }
