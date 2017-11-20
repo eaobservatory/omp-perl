@@ -129,7 +129,8 @@ my $status = GetOptions(
                         "support" => sub { $type = 'support' },
                        );
 
-pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 99, -sections => [
+    qw/SYNOPSIS OPTIONS FORMAT/]) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 
 if ($version) {
