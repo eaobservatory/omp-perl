@@ -28,6 +28,7 @@ our %AFFILIATION_NAMES = (
     jp => 'Japan',
     tw => 'Taiwan',
     uk => 'UK',
+    vn => 'Vietnam',
     zz => 'Unknown',
 );
 
