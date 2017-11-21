@@ -40,7 +40,7 @@ Specify primary database server (source); default is "omp1".
 
 =item B<-secondary> | B<-s> <db server>
 
-Specify secondary database server (replicate); default is "omp2".
+Specify secondary database server (replicate); default is none.
 
 =item B<-tries> number
 
@@ -121,7 +121,7 @@ do {
 
     # Database server host names.
     my $primary_db   = "omp1";
-    my $secondary_db = "omp2";
+    my $secondary_db = undef;  # "omp2";
 
     my $wait  = 20;
     my $tries = 15;
@@ -165,26 +165,48 @@ do {
     ($primary_kdb, $primary_db_down, $tmp) = check_db_up($primary_db);
     push @msg, $tmp;
 
-    ($secondary_kdb, $secondary_db_down, $tmp) = check_db_up($secondary_db);
-    push @msg, $tmp;
-
-    if ($primary_db_down || $secondary_db_down) {
-        $critical ++;
-        push @msg, "\nCannot proceed with tests.\n";
+    # Only check secondary database if it was defined.
+    if (defined $secondary_db) {
+        ($secondary_kdb, $secondary_db_down, $tmp) = check_db_up($secondary_db);
+        push @msg, $tmp;
+    }
+    else {
+        $secondary_db_down = 1;
     }
 
-    unless ($primary_db_down || $secondary_db_down) {
+    if ($primary_db_down and $secondary_db_down) {
+        $critical ++;
+        push @msg, "\nBoth servers down: cannot proceed with tests.\n";
+    }
+    else {
+        unless ($primary_db_down or $secondary_db_down) {
+            # Perform test of replication (requires both databases).
 
-        if ($run{'replication'}) {
-            ($tmp, $key_replication) = check_rep(
-                $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
-                'wait'  => $wait,
-                'tries' => $tries);
-            push @msg, $tmp;
-            $critical += $key_replication;
+            if ($run{'replication'}) {
+                ($tmp, $key_replication) = check_rep(
+                    $primary_db, $primary_kdb, $secondary_db, $secondary_kdb,
+                    'wait'  => $wait,
+                    'tries' => $tries);
+                push @msg, $tmp;
+                $critical += $key_replication;
+            }
+
+            if ($run{'rows'}) {
+                ($tmp, $row_count) = compare_row_count(
+                    $primary_db, $secondary_db);
+                push @msg, $tmp;
+                $fault += $row_count;
+            }
+        }
+        elsif (defined $secondary_db) {
+            $critical ++;
+            push @msg, "\nOne database server down: skipping replication tests.\n";
         }
 
-        my @databases = ($primary_db, $secondary_db);
+        # Perform tests which are done on individual databases.
+        my @databases = ();
+        push @databases, $primary_db unless $primary_db_down;
+        push @databases, $secondary_db unless $secondary_db_down;
 
         if ($run{'truncated-prog'}) {
             ($tmp, $trunc) = check_truncated_sciprog(@databases);
@@ -196,12 +218,6 @@ do {
             ($tmp, $missing_prog) = check_missing_sciprog(@databases);
             push @msg, $tmp;
             $fault += $missing_prog;
-        }
-
-        if ($run{'rows'}) {
-            ($tmp, $row_count) = compare_row_count(@databases);
-            push @msg, $tmp;
-            $fault += $row_count;
         }
 
         if ($run{'missed-msb'}) {
@@ -237,7 +253,8 @@ do {
         $is_ok = 1;
     }
 
-    $subject .= " - Replication status ($primary_db -> $secondary_db)";
+    $subject .= " - Replication status ($primary_db -> $secondary_db)"
+        if defined $secondary_db;
 
     print $subject, "\n\n", join("\n", @msg);
 
