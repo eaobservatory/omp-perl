@@ -36,11 +36,11 @@ Prints what is going to be done next on standard error.
 
 =item B<-primary> | B<-p> <db server>
 
-Specify primary database server (source); default is "SYB_JAC".
+Specify primary database server (source); default is "omp1".
 
 =item B<-secondary> | B<-s> <db server>
 
-Specify secondary database server (replicate); default is "SYB_JAC2".
+Specify secondary database server (replicate); default is "omp2".
 
 =item B<-tries> number
 
@@ -115,10 +115,9 @@ my $missing_msb;
 my $critical = 0;
 my $fault = 0;
 
-# Roles are as defined by the entries in a "interfaces" file.  In this case,
-# they are based on the file as found in "/local/progs/sybase".
-my $primary_db   = "SYB_JAC";
-my $secondary_db = "SYB_JAC2";
+# Database server host name.
+my $primary_db   = "omp1";
+my $secondary_db = "omp2";
 
 my $wait  = 20;
 my $tries = 15;
