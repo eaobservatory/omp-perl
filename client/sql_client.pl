@@ -34,7 +34,7 @@ use OMP::DBbackend::Archive;
 
 my %lh = OMP::DBbackend::Archive->loginhash();
 
-print 'Connecting to MySQL server on ', $lh{'server'}, ' as ', $lh{'user'}, ".\n";
+print STDERR 'Connecting to MySQL server on ', $lh{'server'}, ' as ', $lh{'user'}, ".\n";
 
 exec('mysql', '-h', $lh{'server'}, '-u', $lh{'user'}, '-p', @ARGV);
 
