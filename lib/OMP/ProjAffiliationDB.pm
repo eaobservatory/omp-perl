@@ -26,6 +26,7 @@ our %AFFILIATION_NAMES = (
     ea => 'EAO',
     kr => 'Korea',
     jp => 'Japan',
+    th => 'Thailand',
     tw => 'Taiwan',
     uk => 'UK',
     vn => 'Vietnam',
