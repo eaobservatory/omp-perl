@@ -156,7 +156,8 @@ CREATE TABLE `ompobslog` (
   `commenttext` longtext,
   `commentstatus` int(11) NOT NULL,
   `obsid` varchar(48) DEFAULT NULL,
-  UNIQUE KEY `idx_ompobslog_1` (`obslogid`)
+  UNIQUE KEY `idx_ompobslog_1` (`obslogid`),
+  KEY `idx_obsid` (`obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompproj` (
   `projectid` varchar(32) NOT NULL,
