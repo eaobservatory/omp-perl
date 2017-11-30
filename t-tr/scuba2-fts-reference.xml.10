@@ -88,7 +88,7 @@
                  VALUE="---- OMP and ORAC-DR Specific ----" />
          <HEADER TYPE="STRING"
                  KEYWORD="PROJECT"
-                 COMMENT="PATT number"
+                 COMMENT="Project code"
                  VALUE="MXXXJXX" />
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
