@@ -15,8 +15,8 @@
 
 
 -- DDLGen started with the following arguments
--- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/2016-0308/omp.ddl.2016-0308-0153 -L omp.progress.2016-0308-0153 -T DB -N omp 
--- at 03/08/16 1:53:45 HST
+-- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/omp.ddl -L omp.progress.2017-1206-0938 -T DB -N omp 
+-- at 12/06/17 9:38:18 HST
 
 
 USE master
@@ -43,35 +43,36 @@ go
 
 CREATE DATABASE omp
 	    ON dev_omp_db_0 = '7168M' -- 3670016 pages
-	LOG ON dev_omp_log_0 = '3378M' -- 1729536 pages
-	     , dev_omp_log_0 = '170M' -- 87040 pages
-WITH DURABILITY = FULL
-   , LOB_COMPRESSION = 
+	LOG ON dev_omp_db_0 = '3548M' -- 1816576 pages
+WITH OVERRIDE
+   , DURABILITY = FULL
 go
 
 
 ALTER DATABASE omp
-	    ON dev_omp_db_0 = '512M' -- 262144 pages
+	    ON dev_omp_db_0 = '2512M' -- 1286144 pages
+	LOG ON dev_omp_db_0 = '84M' -- 43008 pages
+	     , dev_omp_db_1 = '2168M' -- 1110016 pages
 go
 
 
 ALTER DATABASE omp
-	    ON dev_omp_db_0 = '2000M' -- 1024000 pages
+	    ON dev_omp_db_1 = '5000M' -- 2560000 pages
+	LOG ON dev_omp_db_1 = '6600M' -- 3379200 pages
+WITH OVERRIDE
 go
 
 
 ALTER DATABASE omp
-	LOG ON dev_omp_log_0 = '652M' -- 333824 pages
+	    ON dev_omp_db_1 = '3400M' -- 1740800 pages
+	LOG ON dev_omp_db_1 = '13843M' -- 7087616 pages
 go
 
 
 ALTER DATABASE omp
-	LOG ON dev_omp_log_1 = '1600M' -- 819200 pages
-go
-
-
-ALTER DATABASE omp
-	    ON dev_omp_db_0 = '2000M' -- 1024000 pages
+	    ON dev_omp_db_1 = '1757M' -- 899584 pages
+	LOG ON dev_omp_log_0 = '3500M' -- 1792000 pages
+	     , dev_omp_log_1 = '16384M' -- 8388608 pages
 go
 
 
@@ -116,6 +117,17 @@ print '<<<<< CREATING User - "datareader" >>>>>'
 go 
 
 exec sp_adduser 'datareader' ,'datareader' ,'public'
+go 
+
+
+-----------------------------------------------------------------------------
+-- DDL for User 'omp_maint'
+-----------------------------------------------------------------------------
+
+print '<<<<< CREATING User - "omp_maint" >>>>>'
+go 
+
+exec sp_adduser 'omp_maint' ,'omp_maint' ,'public'
 go 
 
 
@@ -2575,7 +2587,7 @@ create table ompuser (
 	uname                           varchar(255)                     not null,
 	email                           varchar(64)                          null,
 	alias                           varchar(32)                          null,
-	cadcuser                        varchar(16)                          null,
+	cadcuser                        varchar(20)                          null,
 	obfuscated                      bit                             DEFAULT  0
 
   not null 
@@ -2661,6 +2673,24 @@ with dml_logging = full
  on 'default'
 go 
 
+Grant Delete Statistics on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Truncate Table on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Update Statistics on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Transfer Table on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant References on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Select on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Insert on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Delete on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Update on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
 
 setuser
 go 
@@ -2714,6 +2744,77 @@ go
 
 create unique clustered index rs_threads_idx 
 on omp.dbo.rs_threads(id)
+go 
+
+
+-----------------------------------------------------------------------------
+-- DDL for Table 'omp.dbo.rs_ticket_history'
+-----------------------------------------------------------------------------
+print '<<<<< CREATING Table - "omp.dbo.rs_ticket_history" >>>>>'
+go
+
+setuser 'dbo'
+go 
+
+create table rs_ticket_history (
+	cnt                             numeric(8,0)                     identity,
+	h1                              varchar(10)                      not null,
+	h2                              varchar(10)                      not null,
+	h3                              varchar(10)                      not null,
+	h4                              varchar(50)                      not null,
+	pdb                             varchar(30)                      not null,
+	prs                             varchar(30)                      not null,
+	rrs                             varchar(30)                      not null,
+	rdb                             varchar(30)                      not null,
+	pdb_t                           datetime                         not null,
+	exec_t                          datetime                         not null,
+	dist_t                          datetime                         not null,
+	rsi_t                           datetime                         not null,
+	dsi_t                           datetime                         not null,
+	rdb_t                           datetime                        DEFAULT  getdate()
+  not null,
+	exec_b                          numeric(22,0)                    not null,
+	rsi_b                           numeric(22,0)                    not null,
+	dsi_tnx                         numeric(22,0)                    not null,
+	dsi_cmd                         numeric(22,0)                    not null,
+	ticket                          varchar(1024)                    not null 
+)
+lock allpages
+with dml_logging = full
+ on 'default'
+go 
+
+Grant Delete Statistics on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Truncate Table on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Update Statistics on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Transfer Table on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant References on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Select on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Insert on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Delete on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Update on dbo.rs_ticket_history to public Granted by dbo
+go
+
+setuser
+go 
+
+-----------------------------------------------------------------------------
+-- DDL for Index 'rs_ticket_idx'
+-----------------------------------------------------------------------------
+
+print '<<<<< CREATING Index - "rs_ticket_idx" >>>>>'
+go 
+
+create unique clustered index rs_ticket_idx 
+on omp.dbo.rs_ticket_history(cnt)
 go 
 
 
@@ -2954,9 +3055,11 @@ as
 	else
 		select 0
 
-
+ 
 go 
 
+Grant Execute on dbo.rs_check_repl_stat to public Granted by dbo
+go
 
 sp_procxmode 'rs_check_repl_stat', unchained
 go 
@@ -2980,9 +3083,11 @@ create procedure rs_get_lastcommit
 as
 	select origin, origin_qid, secondary_qid
 		from rs_lastcommit
-
+ 
 go 
 
+Grant Execute on dbo.rs_get_lastcommit to omp_maint Granted by dbo
+go
 
 sp_procxmode 'rs_get_lastcommit', unchained
 go 
@@ -3006,7 +3111,7 @@ create procedure rs_initialize_threads
 as
 	delete from rs_threads where id = @rs_id
 	insert into rs_threads values (@rs_id, 0, "", "", "", "")
-
+ 
 go 
 
 Grant Execute on dbo.rs_initialize_threads to public Granted by dbo
@@ -3032,7 +3137,7 @@ go
 /* Create the procedure which marks the log when a subscription is created. */
 
 create procedure rs_marker 
-	@rs_api varchar(255)
+	@rs_api varchar(16383)
 as
 	/* Setup the bit that reflects a SQL Server replicated object. */
 	declare	@rep_constant	smallint
@@ -3054,11 +3159,60 @@ as
 	** should have been logged into the transaction log and picked up
 	** by the SQL Server LTM.
 	*/
+ 
+go 
 
+Grant Execute on dbo.rs_marker to public Granted by dbo
+go
+
+sp_procxmode 'rs_marker', unchained
+go 
+
+setuser
+go 
+
+-----------------------------------------------------------------------------
+-- DDL for Stored Procedure 'omp.dbo.rs_send_repserver_cmd'
+-----------------------------------------------------------------------------
+
+print '<<<<< CREATING Stored Procedure - "omp.dbo.rs_send_repserver_cmd" >>>>>'
+go 
+
+setuser 'dbo'
+go 
+
+create procedure rs_send_repserver_cmd
+        @rs_api varchar (16370)
+as
+begin
+declare @cmd varchar (16384)
+
+/* Make sure the Repserver Command Language does not contain keyword 'rs_rcl' */
+if (patindex("%rs_rcl%", lower(@rs_api)) > 0)
+begin
+	print "The Replication Server command should not contain the keyword 'rs_rcl'" 
+	return(1)
+end
+
+/* Build the command into a format recognized by the Replication Server, 
+** replacing each single quotes with two single quotes.
+*/
+select @cmd = "rs_rcl '" + STR_REPLACE(@rs_api, "'", "''") + "' rs_rcl" 
+
+/* If the last few characters are not "rs_rcl", the input must be too long */
+if (compare ("rs_rcl", substring (@cmd, datalength(@cmd) - 5, 6)) != 0)
+begin
+	print "The Replication Server command is too long."
+	print "Please split it into two or more commands"
+	return (1)
+end
+        exec rs_marker @cmd
+end
+ 
 go 
 
 
-sp_procxmode 'rs_marker', unchained
+sp_procxmode 'rs_send_repserver_cmd', unchained
 go 
 
 setuser
@@ -3086,24 +3240,41 @@ go
 **   head3: the third header. Default is null.
 **   head4: the last header. Default is null.
 **
-** rs_ticket parameter Canonical Form
-**   rs_ticket_param ::= <section> | <rs_ticket_param>;<section>
-**   section         ::= <tagxxx>=<value>
+** rs_ticket parameter Canonical Form:
+**   rs_ticket_param ::= <stamp> | <rs_ticket_param>;<stamp>
+**   stamp           ::= <tag>=<value> | <tag>(info)=<value>
 **   tag             ::= V | H | PDB | EXEC | B | DIST | DSI | RDB | ...
-**   Version value   ::= integer
-**   Header value    ::= string of varchar(10)
-**   DB value        ::= database name
-**   Byte value      ::= integer
-**   Time value      ::= hh:mm:ss.ddd
+**   info            ::= Spid | PDB name
+**   value           ::= integer | string | mm/dd/yy hh:mm:ss.ddd
+**
+** rs_ticket tag:
+**   V:     Version number. Version 2 adds date and a few other tags.
+**   Hx:    Headers for identifying one or a set of tickets.
+**   PDB:   Time stamp when ticket passing PDB.
+**   EXEC:  Time stamps when ticket passing EXEC module.
+**   DIST:  Time stamps when ticket passing DIST module.
+**   RSI:   Time stamps when ticket passing RSI module.
+**   DSI:   Time stamps when ticket passing DSI module.
+**   RDB:   Time stamps when ticket passing RDB.
+**   B:     Total bytes EXEC received from RepAgent.
+**   RSI_B: Total bytes RSI sent to downstream Repserver.
+**   DSI_T: Total transaction DSI sent to RDB.
+**   DSI_C: Total commands DSI sent to RDB.
+**   PRS:   Primary Repserver name.
+**   RRS:   Replicate Repserver name.
 **
 ** Note:
 **   1. Don't mark rs_ticket for replication.
 **   2. Headers must be 10 character or less.
 **   3. For more than 4 headers, passing something like
 **        "four;H5=five;H6=six..."
-**   4. Don't pass too many headers. rs_ticket_param must be less 255.
-**   5. Don't put any single or double quotation mark in header.
-**   6. Keep header simple to avoid confusing Repserver parser.
+**   4. Don't pass too many headers. rs_ticket_param must be less 1024.
+**   5. Use only [A-Za-z0-9;:._]. Never use ['"] in ticket.
+**   6. Repserver accepts tickets with any version number.
+**   7. Version > 1 ticket will include date information.
+**   8. Version > 1 ticket will include RSI information.
+**   9. Version > 1 ticket will include Repserver names.
+**  10. Version > 1 ticket will include DSI_T and DSI_C tag.
 */
 create procedure rs_ticket
 @head1 varchar(10) = "ticket",
@@ -3117,21 +3288,22 @@ set nocount on
 declare @cmd	varchar(255),
 	@c_time	datetime
 
-select @cmd = "V=1;H1=" + @head1
+select @cmd = "V=2;H1=" + @head1
 if @head2 != null select @cmd = @cmd + ";H2=" + @head2
 if @head3 != null select @cmd = @cmd + ";H3=" + @head3
 if @head4 != null select @cmd = @cmd + ";H4=" + @head4
 
--- @cmd = "rs_ticket 'V=1;H1=ticket;PDB(name)=hh:mm:ss.ddd'"
+-- @cmd = "rs_ticket 'V=2;H1=ticket;PDB(name)=mm/dd/yy hh:mm:ss.ddd'"
 select @c_time = getdate()
 select @cmd = "rs_ticket '" + @cmd + ";PDB(" + db_name() + ")="
+	    + convert(varchar(8),@c_time,1) + " "
 	    + convert(varchar(8),@c_time,8) + "." + right("00"
 	    + convert(varchar(3),datepart(ms,@c_time)),3) + "'"
 
 -- print "exec rs_marker %1!", @cmd
 exec rs_marker @cmd
 end
-
+ 
 go 
 
 Grant Execute on dbo.rs_ticket to public Granted by dbo
@@ -3157,28 +3329,42 @@ go
 /*
 ** Name: rs_ticket_report
 **   Append PDB timestamp to rs_ticket_param.
-**   DSI calls rs_ticket_report if DSI_RS_TICKET_REPORT in on.
+**   Repserver rs_ticket_report function string can be modified
+**	to call this stored proceudre to process ticket.
 **
 ** Parameter
 **   rs_ticket_param: rs_ticket parameter in canonical form.
 **
-** rs_ticket_param Canonical Form
-**   rs_ticket_param ::= <section> | <rs_ticket_param>;<section>
-**   section         ::= <tagxxx>=<value>
+** rs_ticket parameter Canonical Form:
+**   rs_ticket_param ::= <stamp> | <rs_ticket_param>;<stamp>
+**   stamp           ::= <tag>=<value> | <tag>(info)=<value>
 **   tag             ::= V | H | PDB | EXEC | B | DIST | DSI | RDB | ...
-**   Version value   ::= integer
-**   Header value    ::= string of varchar(10)
-**   DB value        ::= database name
-**   Byte value      ::= integer
-**   Time value      ::= hh:mm:ss.ddd
+**   info            ::= Spid | PDB name
+**   value           ::= integer | string | mm/dd/yy hh:mm:ss.ddd
+**
+** rs_ticket tag:
+**   V:     Version number.
+**   Hx:    Headers for identifying one or one set of tickets.
+**   PDB:   Time stamp when ticket passing PDB.
+**   EXEC:  Time stamps when ticket passing EXEC module.
+**   DIST:  Time stamps when ticket passing DIST module.
+**   RSI:   Time stamps when ticket passing RSI module.
+**   DSI:   Time stamps when ticket passing DSI module.
+**   RDB:   Time stamps when ticket passing RDB.
+**   B:     Total bytes EXEC received from RepAgent.
+**   RSI_B: Total bytes RSI sent to downstream Repserver.
+**   DSI_T: Total transaction DSI sent to RDB.
+**   DSI_C: Total commands DSI sent to RDB.
+**   PRS:   Primary Repserver name.
+**   RRS:   Replicate Repserver name.
 **
 ** Note:
 **   1. Don't mark rs_ticket_report for replication.
-**   2. DSI calls rs_ticket_report iff DSI_RS_TICKET_REPORT in on.
+**   2. DSI will call rs_ticket_report iff DSI_RS_TICKET_REPORT in on.
 **   3. This is an example stored procedure that demonstrates how to
 **      add RDB timestamp to rs_ticket_param.
 **   4. One should customize this function for parsing and inserting
-**      timestamp to tables.
+**      timestamp to a table.
 */
 create procedure rs_ticket_report
 @rs_ticket_param varchar(255)
@@ -3189,21 +3375,89 @@ set nocount on
 declare @n_param varchar(255),
 	@c_time	 datetime
 
--- @n_param = "@rs_ticket_param;RDB(name)=hh:mm:ss.ddd"
+-- @n_param = "@rs_ticket_param;RDB(name)=mm/dd/yy hh:mm:ss.ddd"
 select @c_time = getdate()
 select @n_param = @rs_ticket_param + ";RDB(" + db_name() + ")="
+		+ convert(varchar(8),@c_time, 1) + " "
 		+ convert(varchar(8), @c_time, 8) + "." + right("00"
 		+ convert(varchar(3),datepart(ms,@c_time)) ,3)
 
 -- print @n_param
 end
-
+ 
 go 
 
 Grant Execute on dbo.rs_ticket_report to public Granted by dbo
 go
 
 sp_procxmode 'rs_ticket_report', unchained
+go 
+
+setuser
+go 
+
+-----------------------------------------------------------------------------
+-- DDL for Stored Procedure 'omp.dbo.rs_ticket_v1'
+-----------------------------------------------------------------------------
+
+print '<<<<< CREATING Stored Procedure - "omp.dbo.rs_ticket_v1" >>>>>'
+go 
+
+setuser 'dbo'
+go 
+
+
+/*
+** Name: rs_ticket_v1
+**   Version one rs_ticket
+**
+** Parameter
+**   head1: the first header. Default is "ticket"
+**   head2: the second header. Default is null.
+**   head3: the third header. Default is null.
+**   head4: the last header. Default is null.
+**
+** Note:
+**   1. Use rs_ticket_v1 to issue version one ticket.
+**   2. Repserver accepts tickets with any version number.
+**   3. Version one ticket will not have date information.
+**   4. Version one ticket will not have RSI information.
+**   5. Version one ticket will not have Repserver names.
+**   6. Version one ticket will not have DSI_T and DSI_C tag.
+*/
+create procedure rs_ticket_v1
+@head1 varchar(10) = "ticket",
+@head2 varchar(10) = null,
+@head3 varchar(10) = null,
+@head4 varchar(50) = null
+as
+begin
+set nocount on
+
+declare @cmd	varchar(255),
+	@c_time	datetime
+
+select @cmd = "V=1;H1=" + @head1
+if @head2 != null select @cmd = @cmd + ";H2=" + @head2
+if @head3 != null select @cmd = @cmd + ";H3=" + @head3
+if @head4 != null select @cmd = @cmd + ";H4=" + @head4
+
+-- @cmd = "rs_ticket 'V=1;H1=ticket;PDB(name)=hh:mm:ss.ddd'"
+select @c_time = getdate()
+select @cmd = "rs_ticket '" + @cmd + ";PDB(" + db_name() + ")="
+	    + convert(varchar(8),@c_time,8) + "." + right("00"
+	    + convert(varchar(3),datepart(ms,@c_time)),3) + "'"
+
+-- print "exec rs_marker %1!", @cmd
+exec rs_marker @cmd
+end
+ 
+go 
+
+Grant Execute on dbo.rs_ticket_v1 to public Granted by dbo
+go
+
+sp_procxmode 'rs_ticket_v1', unchained
 go 
 
 setuser
@@ -3240,9 +3494,11 @@ as
 				@origin_time, getdate(),
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 	end
-
+ 
 go 
 
+Grant Execute on dbo.rs_update_lastcommit to public Granted by dbo
+go
 
 sp_procxmode 'rs_update_lastcommit', unchained
 go 
@@ -3266,7 +3522,7 @@ create procedure rs_update_threads
         @rs_seq         int
 as
         update rs_threads set seq = @rs_seq where id = @rs_id
-
+ 
 go 
 
 Grant Execute on dbo.rs_update_threads to public Granted by dbo
@@ -3284,7 +3540,7 @@ go
 use omp
 go 
 
-sp_addthreshold omp, 'logsegment', 211296, sp_thresholdaction
+sp_addthreshold omp, 'logsegment', 1680352, sp_thresholdaction
 go 
 
 sp_addthreshold omp, 'logsegment', 1336320, sp_thresholdaction
@@ -3348,11 +3604,37 @@ Grant Execute on dbo.ompfindtarget to public Granted by dbo
 go
 Grant Select on dbo.rs_threads to public Granted by dbo
 go
+Grant Execute on dbo.rs_update_lastcommit to public Granted by dbo
+go
 Grant Execute on dbo.rs_update_threads to public Granted by dbo
 go
 Grant Execute on dbo.rs_initialize_threads to public Granted by dbo
 go
+Grant Execute on dbo.rs_marker to public Granted by dbo
+go
+Grant Execute on dbo.rs_check_repl_stat to public Granted by dbo
+go
+Grant References on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Select on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Insert on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Delete on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Update on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Delete Statistics on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Truncate Table on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Update Statistics on dbo.rs_ticket_history to public Granted by dbo
+go
+Grant Transfer Table on dbo.rs_ticket_history to public Granted by dbo
+go
 Grant Execute on dbo.rs_ticket to public Granted by dbo
+go
+Grant Execute on dbo.rs_ticket_v1 to public Granted by dbo
 go
 Grant Execute on dbo.rs_ticket_report to public Granted by dbo
 go
@@ -3416,6 +3698,26 @@ Grant Select on dbo.ompprojuser to datareader Granted by dbo
 go
 Grant Select on dbo.ompfeedback to datareader Granted by dbo
 go
+Grant References on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Select on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Insert on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Delete on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Update on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Delete Statistics on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Truncate Table on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Update Statistics on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Transfer Table on dbo.rs_lastcommit to omp_maint Granted by dbo
+go
+Grant Execute on dbo.rs_get_lastcommit to omp_maint Granted by dbo
+go
 Grant Select on dbo.ompproj to russell Granted by dbo
 go
 Grant Select on dbo.ompuser to russell Granted by dbo
@@ -3461,13 +3763,10 @@ go
 exec sp_addalias 'omp', 'dbo'
 go 
 
-exec sp_addalias 'omp_maint', 'dbo'
-go 
-
 exec sp_addalias 'jcmtmd_maint', 'dbo'
 go 
 
 
 
 -- DDLGen Completed
--- at 03/08/16 1:53:52 HST
+-- at 12/06/17 9:38:26 HST
