@@ -476,25 +476,6 @@ sub SpInsertCat {
   return [$spstr, $infostr];
 }
 
-sub returnStruct {
-  my $self = shift;
-
-  return {  summary => "hello", timestamp => 52 };
-
-}
-
-sub returnArray {
-  my $self = shift;
-
-  return [ "hello", 52 ];
-
-}
-
-sub returnList {
-  my $self = shift;
-  return ("hello", 52);
-}
-
 
 =back
 
