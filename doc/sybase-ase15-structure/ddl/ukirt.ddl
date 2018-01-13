@@ -15,8 +15,8 @@
 
 
 -- DDLGen started with the following arguments
--- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/2016-0308/ukirt.ddl.2016-0308-0153 -L ukirt.progress.2016-0308-0153 -T DB -N ukirt 
--- at 03/08/16 1:53:53 HST
+-- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/ukirt.ddl -L ukirt.progress.2017-1206-0938 -T DB -N ukirt 
+-- at 12/06/17 9:38:27 HST
 
 
 USE master
@@ -43,29 +43,24 @@ go
 
 CREATE DATABASE ukirt
 	    ON dev_ukirt_db_0 = '6000M' -- 3072000 pages
-	LOG ON dev_ukirt_log_0 = '600M' -- 307200 pages
-WITH DURABILITY = FULL
-   , LOB_COMPRESSION = 
+	LOG ON dev_ukirt_db_0 = '600M' -- 307200 pages
+WITH OVERRIDE
+   , DURABILITY = FULL
 go
 
 
 ALTER DATABASE ukirt
-	    ON dev_ukirt_db_0 = '2000M' -- 1024000 pages
-go
-
-
-ALTER DATABASE ukirt
-	    ON dev_ukirt_db_0 = '1000M' -- 512000 pages
+	    ON dev_ukirt_db_0 = '3640M' -- 1863680 pages
+	     , dev_ukirt_db_1 = '3072M' -- 1572864 pages
+	     , dev_ukirt_log_0 = '88M' -- 45056 pages
+	     , dev_ukirt_log_0 = '612M' -- 313344 pages
 go
 
 
 use ukirt
 go
 
-exec sp_changedbowner 'ukirtsa', true 
-go
-
-exec master.dbo.sp_dboption ukirt, 'select into/bulkcopy/pllsort', true
+exec sp_changedbowner 'sa', true 
 go
 
 exec master.dbo.sp_dboption ukirt, 'abort tran on log full', true
@@ -2200,10 +2195,7 @@ Grant Truncate Table on dbo.ukrev to arc Granted by dbo
 go
 Grant Update Statistics on dbo.ukrev to arc Granted by dbo
 go
-exec sp_addalias 'omp_maint', 'dbo'
-go 
-
 
 
 -- DDLGen Completed
--- at 03/08/16 1:53:56 HST
+-- at 12/06/17 9:38:31 HST

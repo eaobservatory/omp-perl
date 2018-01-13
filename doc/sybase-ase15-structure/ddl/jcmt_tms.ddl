@@ -15,18 +15,50 @@
 
 
 -- DDLGen started with the following arguments
--- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/2016-0308/jcmt_tms.ddl.2016-0308-0153 -L jcmt_tms.progress.2016-0308-0153 -T DB -N jcmt_tms 
--- at 03/08/16 1:54:02 HST
+-- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/jcmt_tms.ddl -L jcmt_tms.progress.2017-1206-0938 -T DB -N jcmt_tms 
+-- at 12/06/17 9:38:38 HST
 
 
-Found 1 dbids with wrong number of rows cached in '#seginfo' v/s the rows in 'master.dbo.sysusages'
+USE master
+go
+
+
+PRINT "<<<< CREATE DATABASE jcmt_tms>>>>"
+go
+
+
+IF EXISTS (SELECT 1 FROM master.dbo.sysdatabases
+	   WHERE name = 'jcmt_tms')
+	DROP DATABASE jcmt_tms
+go
+
+
+IF (@@error != 0)
+BEGIN
+	PRINT "Error dropping database 'jcmt_tms'"
+	SELECT syb_quit()
+END
+go
+
+
+CREATE DATABASE jcmt_tms
+	    ON dev_jcmt_tms_db_0 = '6000M' -- 3072000 pages
+	LOG ON dev_jcmt_tms_db_0 = '4000M' -- 2048000 pages
+WITH OVERRIDE
+   , DURABILITY = FULL
+go
+
+
+ALTER DATABASE jcmt_tms
+	    ON dev_jcmt_tms_db_0 = '5360M' -- 2744320 pages
+	LOG ON dev_jcmt_tms_log_0 = '3000M' -- 1536000 pages
+go
+
+
 use jcmt_tms
 go
 
 exec sp_changedbowner 'jach', true 
-go
-
-exec master.dbo.sp_dboption jcmt_tms, 'select into/bulkcopy/pllsort', true
 go
 
 exec master.dbo.sp_dboption jcmt_tms, 'abort tran on log full', true
@@ -8746,7 +8778,7 @@ go
 use jcmt_tms
 go 
 
-sp_addthreshold jcmt_tms, 'logsegment', 51016, sp_thresholdaction
+sp_addthreshold jcmt_tms, 'logsegment', 255016, sp_thresholdaction
 go 
 
 sp_addthreshold jcmt_tms, 'logsegment', 921600, sp_thresholdaction
@@ -9026,10 +9058,7 @@ Grant Select on dbo.SES to visitors Granted by dbo
 go
 Grant Execute on dbo.findobj to staff Granted by dbo
 go
-exec sp_addalias 'omp_maint', 'dbo'
-go 
-
 
 
 -- DDLGen Completed
--- at 03/08/16 1:54:14 HST
+-- at 12/06/17 9:38:53 HST

@@ -1,7 +1,7 @@
 CREATE TABLE `AZEL` (
   `projid` varchar(16) DEFAULT NULL,
   `scan` double DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `object` varchar(16) DEFAULT NULL,
   `raj2000` double DEFAULT NULL,
   `decj2000` double DEFAULT NULL,
@@ -11,17 +11,17 @@ CREATE TABLE `AZEL` (
   `end_el` double DEFAULT NULL,
   `utstart` varchar(19) NOT NULL,
   `utstop` varchar(19) NOT NULL,
+  UNIQUE KEY `AZELutind` (`ut`),
   KEY `AZELendazind` (`end_az`),
   KEY `AZELendelind` (`end_el`),
   KEY `AZELprojind` (`projid`),
   KEY `AZELstrtazind` (`strt_az`),
-  KEY `AZELstrtelind` (`strt_el`),
-  KEY `AZELutind` (`ut`)
+  KEY `AZELstrtelind` (`strt_el`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `AZEL2` (
   `projid` varchar(16) DEFAULT NULL,
   `scan` double DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `object` varchar(16) DEFAULT NULL,
   `raj2000` double DEFAULT NULL,
   `decj2000` double DEFAULT NULL,
@@ -34,17 +34,17 @@ CREATE TABLE `AZEL2` (
   `strt_f2` float DEFAULT NULL,
   `end_f2` float DEFAULT NULL,
   `avg_f2` float NOT NULL,
+  UNIQUE KEY `AZEL2utind` (`ut`),
   KEY `AZELavgf2ind` (`avg_f2`),
   KEY `AZELendazind` (`end_az`),
   KEY `AZELendelind` (`end_el`),
   KEY `AZELprojind` (`projid`),
   KEY `AZELstrtazind` (`strt_az`),
-  KEY `AZELstrtelind` (`strt_el`),
-  KEY `AZEL2utind` (`ut`)
+  KEY `AZELstrtelind` (`strt_el`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `CAL` (
-  `cal#` decimal(9,0) NOT NULL,
-  `date` datetime DEFAULT NULL,
+  `cal#` bigint(20) NOT NULL AUTO_INCREMENT,
+  `date` datetime(3) DEFAULT NULL,
   `mode` varchar(8) DEFAULT NULL,
   `lofreq` double DEFAULT NULL,
   `freq` double DEFAULT NULL,
@@ -52,8 +52,9 @@ CREATE TABLE `CAL` (
   `sbmode` char(3) DEFAULT NULL,
   `flag` smallint(6) DEFAULT NULL,
   `note` varchar(255) DEFAULT NULL,
-  KEY `CALlofreqind` (`lofreq`),
-  KEY `CALdateind` (`date`)
+  PRIMARY KEY (`cal#`),
+  UNIQUE KEY `CALdateind` (`date`),
+  KEY `CALlofreqind` (`lofreq`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `CRYO` (
   `cryo#` int(11) DEFAULT NULL,
@@ -115,11 +116,11 @@ CREATE TABLE `CSOTEMP` (
 CREATE TABLE `DBLOG` (
   `projid` varchar(16) DEFAULT NULL,
   `scan` double DEFAULT NULL,
-  `utstart` datetime DEFAULT NULL,
-  `utstop` datetime DEFAULT NULL,
+  `utstart` datetime(3) DEFAULT NULL,
+  `utstop` datetime(3) DEFAULT NULL,
+  UNIQUE KEY `DBLOGut1ind` (`utstart`),
   KEY `DBLOGprojind` (`projid`),
-  KEY `DBLOGut2ind` (`utstop`),
-  KEY `DBLOGut1ind` (`utstart`)
+  KEY `DBLOGut2ind` (`utstop`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `FLUX` (
   `flux#` int(11) DEFAULT NULL,
@@ -142,7 +143,7 @@ CREATE TABLE `LINE` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `LOG` (
   `log#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `proj_id` varchar(16) DEFAULT NULL,
   `run` int(11) DEFAULT NULL,
   `status` varchar(16) DEFAULT NULL,
@@ -152,15 +153,15 @@ CREATE TABLE `LOG` (
   KEY `LOGutind` (`ut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `MIXER` (
-  `mix#` decimal(9,0) NOT NULL,
-  `date` datetime DEFAULT NULL,
+  `mix#` bigint(20) NOT NULL AUTO_INCREMENT,
+  `date` datetime(3) DEFAULT NULL,
   `mixid` smallint(6) DEFAULT NULL,
   `trx_mean` double DEFAULT NULL,
   `trx_sd` double DEFAULT NULL,
   `tsys_mean` double DEFAULT NULL,
   `tsys_sd` double DEFAULT NULL,
-  KEY `MIXmixid` (`mix#`),
-  KEY `MIXdatemix` (`date`)
+  PRIMARY KEY (`mix#`),
+  KEY `MIXdatemix` (`date`,`mixid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `MOTOR` (
   `motor#` int(11) DEFAULT NULL,
@@ -209,7 +210,7 @@ CREATE TABLE `NOI` (
   `cal` float DEFAULT NULL,
   `cal_err` float DEFAULT NULL,
   `quality` int(11) DEFAULT NULL,
-  `ut` datetime NOT NULL,
+  `ut` datetime(3) NOT NULL,
   `chop_thr` float DEFAULT NULL,
   `source` varchar(16) DEFAULT NULL,
   `az` float DEFAULT NULL,
@@ -225,13 +226,13 @@ CREATE TABLE `RXTAU` (
   `projid` varchar(16) DEFAULT NULL,
   `scan` double DEFAULT NULL,
   `frontend` varchar(16) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `tau` float DEFAULT NULL,
   `inttime` float DEFAULT NULL,
+  UNIQUE KEY `RXTAUut` (`ut`),
   KEY `RXprojid` (`projid`),
   KEY `RXrx` (`frontend`),
-  KEY `RXtau` (`tau`),
-  KEY `RXTAUut` (`ut`)
+  KEY `RXtau` (`tau`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SAOPHA` (
   `pha#` int(11) DEFAULT NULL,
@@ -248,7 +249,7 @@ CREATE TABLE `SAOPHA` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SCA` (
   `sca#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `ses#` int(11) DEFAULT NULL,
   `sou#` int(11) DEFAULT NULL,
   `wea#` int(11) DEFAULT NULL,
@@ -345,7 +346,7 @@ CREATE TABLE `SCA` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SCU` (
   `scu#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `scu_id` varchar(64) DEFAULT NULL,
   `sdffile` varchar(64) DEFAULT NULL,
   `proj_id` varchar(16) DEFAULT NULL,
@@ -520,8 +521,8 @@ CREATE TABLE `SCU` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SES` (
   `ses#` int(11) DEFAULT NULL,
-  `utstart` datetime DEFAULT NULL,
-  `utstop` datetime DEFAULT NULL,
+  `utstart` datetime(3) DEFAULT NULL,
+  `utstop` datetime(3) DEFAULT NULL,
   `projid` varchar(16) DEFAULT NULL,
   `obsid` varchar(16) DEFAULT NULL,
   `observer` varchar(16) DEFAULT NULL,
@@ -543,7 +544,7 @@ CREATE TABLE `SES` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `SOU` (
   `sou#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `object` varchar(16) DEFAULT NULL,
   `cenmove` tinyint(3) unsigned DEFAULT NULL,
   `epoch` double DEFAULT NULL,
@@ -575,7 +576,7 @@ CREATE TABLE `SOU` (
 CREATE TABLE `SPH` (
   `sph#` int(11) DEFAULT NULL,
   `sca#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `projid` varchar(16) DEFAULT NULL,
   `scan` int(11) DEFAULT NULL,
   `band` int(11) DEFAULT NULL,
@@ -629,7 +630,7 @@ CREATE TABLE `SPH` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `STA` (
   `sta#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `sca#` int(11) DEFAULT NULL,
   `tdv` float DEFAULT NULL,
   `sb` char(3) DEFAULT NULL,
@@ -649,7 +650,7 @@ CREATE TABLE `STSOU` (
 CREATE TABLE `SUB` (
   `sub#` int(11) DEFAULT NULL,
   `sca#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `projid` varchar(16) DEFAULT NULL,
   `scan` double DEFAULT NULL,
   `subscan` smallint(6) DEFAULT NULL,
@@ -697,8 +698,8 @@ CREATE TABLE `TEL` (
   `smu#` int(11) DEFAULT NULL,
   `poi#` int(11) DEFAULT NULL,
   `foc#` int(11) DEFAULT NULL,
-  `utstart` datetime DEFAULT NULL,
-  `utstop` datetime DEFAULT NULL,
+  `utstart` datetime(3) DEFAULT NULL,
+  `utstop` datetime(3) DEFAULT NULL,
   `projid` varchar(16) DEFAULT NULL,
   `scan` int(11) DEFAULT NULL,
   `frontend` varchar(16) DEFAULT NULL,
@@ -759,8 +760,8 @@ CREATE TABLE `THI` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `WEA` (
   `wea#` int(11) DEFAULT NULL,
-  `utstart` datetime DEFAULT NULL,
-  `utstop` datetime DEFAULT NULL,
+  `utstart` datetime(3) DEFAULT NULL,
+  `utstop` datetime(3) DEFAULT NULL,
   `projid` varchar(16) DEFAULT NULL,
   `scan` int(11) DEFAULT NULL,
   `ws#` int(11) DEFAULT NULL,
@@ -786,7 +787,7 @@ CREATE TABLE `WEA` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `WS` (
   `ws#` int(11) DEFAULT NULL,
-  `ut` datetime DEFAULT NULL,
+  `ut` datetime(3) DEFAULT NULL,
   `period` varchar(16) DEFAULT NULL,
   `name` varchar(16) DEFAULT NULL,
   `avgval` float DEFAULT NULL,
@@ -806,7 +807,7 @@ CREATE TABLE `scan` (
   `release_date` datetime DEFAULT NULL,
   `obsmode` varchar(16) DEFAULT NULL,
   `lst` double DEFAULT NULL,
-  `utdate` datetime DEFAULT NULL,
+  `utdate` datetime(3) DEFAULT NULL,
   `uthour` float DEFAULT NULL,
   `ra` double DEFAULT NULL,
   `dec` double DEFAULT NULL,

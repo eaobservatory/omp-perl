@@ -31,11 +31,11 @@ interfaces="${SYBASE}/interfaces"
 user='sa'
 
 now=$( date '+%Y-%m%d-%H%M' )
-outfile="ddl.${now}"
+outfile="ddl"
 progress="progress.${now}"
 
 #  Generate date directory.
-ddl_dir='ddl/'${now%-*}
+ddl_dir='ddl'
 mkdir -p "${ddl_dir}" || exit 2
 
 

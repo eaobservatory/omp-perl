@@ -419,6 +419,9 @@ sub extract_projectid {
         \b
       }xi;
 
+  # EAO projects.
+  my $ukirt_eao = qr/\b(u\/(?:SERV\/)?\d\d[ab]\/EAP\d\d\d)\b/i;
+
   if ($string =~ $ukirt_sem                          # UKIRT
       or $string =~ /\b([ms]\d\d[abxyzw][junchidpltv]\d+([a-z]|fb)?)\b/i # JCMT [inc serv, FB and A/B suffix]
       or $string =~ /\b(m\d\d[ab]ec\d+)\b/i         # JCMT E&C
@@ -437,6 +440,7 @@ sub extract_projectid {
       or $string =~ $ukirt_kasi
       or $string =~ $ukirt_lm_az
       or $string =~ $ukirt_lm_az_sem
+      or $string =~ $ukirt_eao
       or $string =~ m{\b($ukidss/b\d+)\b}i          # UKIRT Backup UKIDSS programs
       or $string =~ m{\b($ukidss/0)\b}i             # UKIRT project for email use
       or $string =~ m{\b($ukidss/uh)\b}i            # UKIRT project for email use w/ UH

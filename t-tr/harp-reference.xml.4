@@ -177,7 +177,7 @@
                  VALUE="---- OMP and ORAC-DR Specific ----" />
          <HEADER TYPE="STRING"
                  KEYWORD="PROJECT"
-                 COMMENT="PATT number"
+                 COMMENT="Project code"
                  VALUE="JCMTCAL" />
          <HEADER TYPE="STRING"
                  KEYWORD="RECIPE"
@@ -1125,6 +1125,34 @@
                  VALUE="UNKNOWN" >
             <DERIVED TASK="GRIDDER" METHOD="fillStatus" EVENT="END" />
          </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DOORSTST"
+                 COMMENT="Status of dome doors at start of observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.DOORSTAT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="DOORSTEN"
+                 COMMENT="Status of dome doors at end of observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.DOORSTAT" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="ROOFSTST"
+                 COMMENT="Status of dome roof at start of observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.ROOFSTAT" EVENT="START" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="ROOFSTEN"
+                 COMMENT="Status of dome roof at end of observation"
+                 VALUE="" >
+            <DRAMA TASK="ENVIRO" PARAM="DYN_STATE.ROOFSTAT" EVENT="END" />
+         </HEADER>
+         <HEADER TYPE="STRING"
+                 KEYWORD="WND_BLND"
+                 COMMENT="Wind blind status"
+                 VALUE="GORE-TEX 1" />
          <HEADER TYPE="BLANKFIELD"
          />
          <HEADER TYPE="COMMENT"

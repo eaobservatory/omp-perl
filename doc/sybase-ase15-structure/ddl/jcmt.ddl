@@ -15,21 +15,66 @@
 
 
 -- DDLGen started with the following arguments
--- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/2016-0308/jcmt.ddl.2016-0308-0153 -L jcmt.progress.2016-0308-0153 -T DB -N jcmt 
--- at 03/08/16 1:53:58 HST
+-- -S SYB_JAC -I /opt2/sybase/ase-15.0/interfaces -P*** -U sa -O ddl/jcmt.ddl -L jcmt.progress.2017-1206-0938 -T DB -N jcmt 
+-- at 12/06/17 9:38:33 HST
 
 
-Found 1 dbids with wrong number of rows cached in '#seginfo' v/s the rows in 'master.dbo.sysusages'
+USE master
+go
+
+
+PRINT "<<<< CREATE DATABASE jcmt>>>>"
+go
+
+
+IF EXISTS (SELECT 1 FROM master.dbo.sysdatabases
+	   WHERE name = 'jcmt')
+	DROP DATABASE jcmt
+go
+
+
+IF (@@error != 0)
+BEGIN
+	PRINT "Error dropping database 'jcmt'"
+	SELECT syb_quit()
+END
+go
+
+
+CREATE DATABASE jcmt
+	    ON dev_jcmt_db_0 = '3072M' -- 1572864 pages
+	LOG ON dev_jcmt_db_0 = '20450M' -- 10470400 pages
+WITH OVERRIDE
+   , DURABILITY = FULL
+go
+
+
+ALTER DATABASE jcmt
+	    ON dev_jcmt_db_0 = '4394M' -- 2249728 pages
+	LOG ON dev_jcmt_db_0 = '6M' -- 3072 pages
+go
+
+
+ALTER DATABASE jcmt
+	    ON dev_jcmt_db_0 = '1478M' -- 756736 pages
+	LOG ON dev_jcmt_db_0 = '9512M' -- 4870144 pages
+	     , dev_jcmt_db_1 = '488M' -- 249856 pages
+go
+
+
+ALTER DATABASE jcmt
+	    ON dev_jcmt_db_1 = '34328M' -- 17575936 pages
+	LOG ON dev_jcmt_db_1 = '4096M' -- 2097152 pages
+	     , dev_jcmt_log_0 = '5120M' -- 2621440 pages
+	     , dev_jcmt_log_1 = '5120M' -- 2621440 pages
+WITH OVERRIDE
+go
+
+
 use jcmt
 go
 
-exec sp_changedbowner 'jcmtmd_maint', true 
-go
-
-exec master.dbo.sp_dboption jcmt, 'select into/bulkcopy/pllsort', true
-go
-
-exec master.dbo.sp_dboption jcmt, 'abort tran on log full', true
+exec sp_changedbowner 'sa', true 
 go
 
 checkpoint
@@ -589,9 +634,7 @@ create table FILES (
 	obsid                           varchar(48)                      not null,
 	subsysnr                        int                              not null,
 	nsubscan                        int                              not null,
-	obsid_subsysnr                  varchar(50)                      not null,
-	md5sum                          char(32)                             null,
-		CONSTRAINT pri_FILES_obsidss_fileid PRIMARY KEY CLUSTERED ( obsid_subsysnr, file_id )  on 'default' 
+	obsid_subsysnr                  varchar(50)                      not null 
 )
 lock allpages
 with dml_logging = full
@@ -609,6 +652,18 @@ go
 
 setuser
 go 
+
+-----------------------------------------------------------------------------
+-- DDL for Index 'pri_FILES_obsidss_fileid'
+-----------------------------------------------------------------------------
+
+print '<<<<< CREATING Index - "pri_FILES_obsidss_fileid" >>>>>'
+go 
+
+create unique clustered index pri_FILES_obsidss_fileid 
+on jcmt.dbo.FILES(obsid_subsysnr, file_id)
+go 
+
 
 -----------------------------------------------------------------------------
 -- DDL for Index 'obsid_idx'
@@ -644,6 +699,7 @@ go
 setuser 'dbo'
 go 
 
+
 create trigger files_delete
 on FILES
 for delete
@@ -652,6 +708,7 @@ as
     from COMMON c, deleted d
     where ( ( c.obsid = d.obsid )
         and ( datediff( second, getdate(), c.last_modified ) < 0 ) )
+ 
 
 go 
 
@@ -676,6 +733,7 @@ as
     from COMMON c, inserted i
     where ( ( c.obsid = i.obsid )
          and ( datediff( second, getdate(), c.last_modified ) < 0 ) )
+                                                                                                                                                                                                                                                              
 
 go 
 
@@ -700,6 +758,7 @@ as
     from COMMON c, deleted d
     where ( ( c.obsid = d.obsid )
         and ( datediff( second, getdate(), c.last_modified ) < 0 ) )
+ 
 
 go 
 
@@ -1928,7 +1987,7 @@ go
 use jcmt
 go 
 
-sp_addthreshold jcmt, 'logsegment', 287800, sp_thresholdaction
+sp_addthreshold jcmt, 'logsegment', 1631720, sp_thresholdaction
 go 
 
 sp_addthreshold jcmt, 'logsegment', 322560, sp_thresholdaction
@@ -2086,9 +2145,6 @@ Grant Create Rule to jcmt Granted by dbo
 go
 Grant Create Function to jcmt Granted by dbo
 go
-exec sp_addalias 'omp_maint', 'dbo'
-go 
-
 alter table jcmt.dbo.transfer
 add constraint state_check FOREIGN KEY (status) REFERENCES jcmt.dbo.transfer_state(state)
 go
@@ -2096,4 +2152,4 @@ go
 
 
 -- DDLGen Completed
--- at 03/08/16 1:54:01 HST
+-- at 12/06/17 9:38:37 HST
