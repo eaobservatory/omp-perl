@@ -622,6 +622,10 @@ sub obs_table {
     return;
   }
 
+  # $get_title -- if true, do a separate query for the MSB title.
+  # Unsure why this option exists, since the call to "historyMSBtid"
+  # will include the title anyway.  For now include the title it gives
+  # if this option is unset.
   sub get_msb_comments {
 
     my ( $obs, $get_title ) = @_;
@@ -664,6 +668,10 @@ sub obs_table {
 
     return %extract
       unless defined $history;
+
+    unless ($get_title) {
+      $extract{'title'} = $history->title();
+    }
 
     for my $c ( $history->comments() ) {
 
