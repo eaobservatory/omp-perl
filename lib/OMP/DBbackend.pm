@@ -257,7 +257,7 @@ sub connect {
   my $dboptions = "";
 
   if ($DBIdriver eq 'mysql') {
-    $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10;mysql_auto_reconnect=0";
+    $dboptions = ":database=$DBdatabase;host=$DBserver;mysql_connect_timeout=10;mysql_auto_reconnect=1";
   } else {
     throw OMP::Error::DBConnection("DBI driver $DBIdriver not recognized");
   }
