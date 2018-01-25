@@ -314,7 +314,7 @@ for my $proj (keys %sorted) {
 
     $basedb->_mail_information( to => \@contacts,
                                 from => $flexuser,
-                                subject => "[$proj] Project log for $utdate",
+                                subject => "[$proj] Project log for " . $utdate->ymd(),
                                 message => "$msg\n",
                               );
 
