@@ -1,9 +1,10 @@
 CREATE TABLE `ompaffiliationalloc` (
+  `telescope` varchar(32) NOT NULL,
   `semester` varchar(32) NOT NULL,
   `affiliation` varchar(32) NOT NULL,
   `allocation` double NOT NULL,
   `observed` double NOT NULL DEFAULT '0',
-  UNIQUE KEY `ompaffiliationalloc_sem_aff` (`semester`,`affiliation`)
+  PRIMARY KEY (`telescope`,`semester`,`affiliation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 CREATE TABLE `ompfault` (
   `faultid` double NOT NULL,

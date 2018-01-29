@@ -6,7 +6,7 @@ setaffiliationalloc - Set affiliation allocation
 
 =head1 SYNOPSIS
 
-  perl admin/setaffiliationalloc.pl < allocation.csv
+  admin/setaffiliationalloc.pl -tel JCMT|UKIRT allocation.csv
 
 =head1 DESCRIPTION
 
@@ -14,6 +14,16 @@ Sets the allocation for affiliations.  Accepts a set of
 affiliations and allocations on standard input, where each line
 should contain a semester identifier, affiliation code and
 allocation.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-tel>
+
+Name of telescope.
+
+=back
 
 =cut
 
@@ -29,8 +39,23 @@ BEGIN {
     unless exists $ENV{OMP_CFG_DIR};
 };
 
+use Pod::Usage;
+use Getopt::Long;
+
 use OMP::DBServer;
 use OMP::ProjAffiliationDB;
+
+my ($help, $telescope);
+
+my $status = GetOptions(
+    'help' => \$help,
+    'tel=s' => \$telescope,
+);
+
+pod2usage(0) if $help;
+
+die 'Telescope not specified'
+    unless defined $telescope;
 
 my $affiliation_db = new OMP::ProjAffiliationDB(
     DB => OMP::DBServer->dbConnection());
@@ -39,14 +64,14 @@ while (<>) {
     chomp;
     my ($semester, $affiliation, $allocation) = split ',';
     $affiliation_db->set_affiliation_allocation(
-        $semester, $affiliation, $allocation);
+        $telescope, $semester, $affiliation, $allocation);
 }
 
 __END__
 
 =head1 COPYRIGHT
 
-Copyright (C) 2017 East Asian Observatory. All Rights Reserved.
+Copyright (C) 2017-2018 East Asian Observatory. All Rights Reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
