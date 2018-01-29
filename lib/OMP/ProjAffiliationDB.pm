@@ -111,7 +111,7 @@ sub set_project_affiliations {
 
     # Validate project.
     die 'Invalid project "' .$project . '"'
-        unless $project =~ /^([A-Z0-9]+)$/;
+        unless $project =~ /^([A-Z0-9\/]+)$/;
     my $valid_project = $1;
 
     # Validate affiliations:
