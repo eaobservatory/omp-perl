@@ -3146,10 +3146,10 @@ sub _run_query {
 
   # Get the sort type based on the first telescope name
   if (@observable) {
+    my $telescope = $observable[0]->{telescope};
     my $sortby;
     try {
-      $sortby = OMP::Config->getData( 'sortby',
-                                      telescope => $observable[0]->{telescope});
+      $sortby = OMP::Config->getData('sortby', telescope => $telescope);
     } catch OMP::Error with {
       # Default behaviour
       $sortby = 'priority';
@@ -3174,7 +3174,7 @@ sub _run_query {
       # time observed (least time first) and user priority only.
       my $affiliation_db = new OMP::ProjAffiliationDB(DB => $self->db());
       my $proj_affiliation = $affiliation_db->get_all_affiliations();
-      my $sem_affiliation = $affiliation_db->get_all_affiliation_allocations();
+      my $sem_affiliation = $affiliation_db->get_all_affiliation_allocations($telescope);
 
       # Compute affiliation allocation usage for each MSB.  This is:
       # usage = sum_affiliation fraction_affiliation * completion_affiliation

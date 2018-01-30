@@ -111,7 +111,7 @@ sub set_project_affiliations {
 
     # Validate project.
     die 'Invalid project "' .$project . '"'
-        unless $project =~ /^([A-Z0-9]+)$/;
+        unless $project =~ /^([A-Z0-9\/]+)$/;
     my $valid_project = $1;
 
     # Validate affiliations:
@@ -157,7 +157,7 @@ sub set_project_affiliations {
 
 =over 4
 
-=item get_all_affiliation_allocations
+=item get_all_affiliation_allocations($telescope)
 
 Retrieve all affiliation allocations as a reference to a hash
 of semesters referencing hashes of affiliations referencing hashes
@@ -166,11 +166,14 @@ of allocations and time observed (in hours).
 =cut
 
 sub get_all_affiliation_allocations {
-
     my $self = shift;
+    my $telescope = shift;
 
     my $results = $self->_db_retrieve_data_ashash(
-        'SELECT * FROM ' . $AFFILIATIONALLOCATIONTABLE);
+        'SELECT * FROM ' .
+            $AFFILIATIONALLOCATIONTABLE .
+            ' WHERE telescope = ?',
+        $telescope);
 
     my %semesters;
 
@@ -193,7 +196,7 @@ sub get_all_affiliation_allocations {
     return \%semesters;
 }
 
-=item set_affiliation_allocation($semester, $affiliation, $hours)
+=item set_affiliation_allocation($telescope, $semester, $affiliation, $hours)
 
 Sets the allocation (integer number of hours) for a given affiliation in a
 given semester.
@@ -202,9 +205,13 @@ given semester.
 
 sub set_affiliation_allocation {
     my $self = shift;
+    my $telescope = shift;
     my $semester = shift;
     my $affiliation = shift;
     my $allocation = shift;
+
+    die 'Telescope not recognized' unless $telescope =~ /^(JCMT|UKIRT)$/;
+    my $valid_telescope = $1;
 
     die 'Invalid semester' unless $semester =~ /^([0-9]{2}[AB])$/;
     my $valid_semester = $1;
@@ -222,8 +229,8 @@ sub set_affiliation_allocation {
     # affiliation.
     my $results = $self->_db_retrieve_data_ashash(
         'SELECT COUNT(*) AS num FROM ' . $AFFILIATIONALLOCATIONTABLE .
-            ' WHERE semester = ? AND affiliation = ?',
-        $valid_semester, $valid_affiliation);
+            ' WHERE telescope = ? AND semester = ? AND affiliation = ?',
+        $valid_telescope, $valid_semester, $valid_affiliation);
     die 'Could not query number of existing rows'
         unless 1 == scalar @$results;
     my $update = $results->[0]->{'num'};
@@ -237,11 +244,12 @@ sub set_affiliation_allocation {
         $self->_db_update_data($AFFILIATIONALLOCATIONTABLE,
             {allocation => $valid_allocation},
             'semester="' . $valid_semester .
-                '" AND affiliation="' . $valid_affiliation . '"')
+                '" AND affiliation="' . $valid_affiliation .
+                '" AND telescope="' . $valid_telescope .'"')
     }
     else {
         $self->_db_insert_data($AFFILIATIONALLOCATIONTABLE,
-            $semester, $affiliation, $allocation, 0);
+            $telescope, $semester, $affiliation, $allocation, 0);
     }
 
     # End transaction.
@@ -249,7 +257,7 @@ sub set_affiliation_allocation {
     $self->_db_commit_trans();
 }
 
-=item set_affiliation_observed($semester, $affiliation, $hours)
+=item set_affiliation_observed($telescope, $semester, $affiliation, $hours)
 
 Sets the time observed for a given affiliation in a given semester.
 
@@ -261,9 +269,13 @@ allocation field.
 
 sub set_affiliation_observed {
     my $self = shift;
+    my $telescope = shift;
     my $semester = shift;
     my $affiliation = shift;
     my $observed= shift;
+
+    die 'Telescope not recognized' unless $telescope =~ /^(JCMT|UKIRT)$/;
+    my $valid_telescope = $1;
 
     die 'Invalid semester' unless $semester =~ /^([0-9]{2}[AB])$/;
     my $valid_semester = $1;
@@ -284,7 +296,8 @@ sub set_affiliation_observed {
     $self->_db_update_data($AFFILIATIONALLOCATIONTABLE,
         {observed => $valid_observed},
         'semester="' . $valid_semester .
-            '" AND affiliation="' . $valid_affiliation . '"');
+            '" AND affiliation="' . $valid_affiliation .
+            '" AND telescope="' . $valid_telescope . '"');
 
     # End transaction.
     $self->_dbunlock();
@@ -299,7 +312,7 @@ __END__
 
 =head1 COPYRIGHT
 
-Copyright (C) 2015 East Asian Observatory. All Rights Reserved.
+Copyright (C) 2015-2018 East Asian Observatory. All Rights Reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

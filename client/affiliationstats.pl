@@ -45,7 +45,7 @@ my $project_db = new OMP::ProjDB(
 my $affiliation_db = new OMP::ProjAffiliationDB(
     DB => OMP::DBServer->dbConnection());
 
-my $allocations = $affiliation_db->get_all_affiliation_allocations();
+my $allocations = $affiliation_db->get_all_affiliation_allocations($telescope);
 
 my @projects;
 my %affiliations;
@@ -131,7 +131,7 @@ if ($store_to_database) {
 
     while (my ($affiliation, $observed) = each %affiliations) {
         $affiliation_db->set_affiliation_observed(
-            $semester, $affiliation, $observed);
+            $telescope, $semester, $affiliation, $observed);
     }
 
     print " [DONE]\n";
@@ -141,7 +141,7 @@ __END__
 
 =head1 COPYRIGHT
 
-Copyright (C) 2015 East Asian Observatory. All Rights Reserved.
+Copyright (C) 2015-2018 East Asian Observatory. All Rights Reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
