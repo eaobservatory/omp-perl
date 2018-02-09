@@ -1734,12 +1734,6 @@ sub _populate {
   } else {
     $self->pol_in( 'unknown' );
   }
-  # Override for SCUBA2.
-  if ( $generic_header{INSTRUMENT} =~ /\b SCUBA-?2 \b/ix ) {
-
-    $self->pol_in( _inbeam_has_pol( $header->{INBEAM} ) ? 'T' : 'F' );
-  }
-
   $self->switch_mode( $generic_header{SWITCH_MODE} );
   $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
   $self->humidity( $generic_header{HUMIDITY} );
@@ -1944,19 +1938,6 @@ sub _backend_acsis_like {
 
   my $name = $self->backend();
   return defined $name && $name =~ m{^(?: ACSIS | DAS )$}ix;
-}
-
-sub _inbeam_has_pol {
-
-  my ( $inbeam ) = @_;
-
-  my $pol_re = qr{\b pol (?: -? [0-9]+ )? \b}xi;
-
-  return
-    defined $inbeam
-    &&
-    $inbeam =~ m/$pol_re/
-    ;
 }
 
 =back
