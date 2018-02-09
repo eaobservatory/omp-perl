@@ -437,6 +437,7 @@ __PACKAGE__->CreateAccessors( _fits => 'Astro::FITS::Header',
                               endobs => 'Time::Piece',
 #                              filename => '$',
                               filter => '$',
+                              fts_in => '$',
                               frontend => '$',
                               grating => '$',
                               group => '$',
@@ -952,6 +953,7 @@ sub nightlog {
     $return{'Seeing'} = sprintf( "%.$form{'seeing-dec'}f", $self->seeing);
     $return{'Filter'} = defined($self->waveband) ? $self->waveband->filter : '';
     $return{'Pol In?'} = defined( $self->pol_in ) ? $self->pol_in : '';
+    $return{'FTS In?'} = defined( $self->fts_in ) ? $self->fts_in : '';
     $return{'Bolometers'} = $self->bolometers;
     $return{'RA'} = defined($self->coords) ? $self->coords->ra( format => 's' ) : '';
     $return{'Dec'} = defined($self->coords) ? $self->coords->dec( format => 's' ) : '';
@@ -968,11 +970,10 @@ sub nightlog {
 
     # Some values (Bolometers and Filter) have no meaning for SCUBA-2: ensure those aren't included.
     if ($instrument =~ /scuba-2/i) {
-        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?"];
-        @short_val = map $return{ $return{'_ORDER'}->[ $_ ] } , 0 .. $#{ $return{'_ORDER'} } -1;
-        push @short_val, $return{'Pol In?'};
-        $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s";
-        $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s";
+        $return{'_ORDER'} = ["Run", "UT time", "Obsmode", "Project ID", "Object", "Tau225", "Seeing", "Pol In?", "FTS In?"];
+        @short_val = map $return{$_} , @{$return{'_ORDER'}};
+        $short_form_val = "%3s  %8s  %15.15s %11s %$form{'obj-pad-length'}s  %-6.$form{'tau-dec'}f  %-6.$form{'seeing-dec'}f  %-7s %-7s";
+        $short_form_head ="%3s %8s %15.15ss %11s %$form{'obj-pad-length'}s %6s %6s %7s %7s";
     } else {
         $return{'_ORDER'} = [ "Run", "UT time", "Obsmode", "Project ID", "Object",
                               "Tau225", "Seeing", "Filter", "Pol In?", "Bolometers" ];
@@ -1734,6 +1735,13 @@ sub _populate {
   } else {
     $self->pol_in( 'unknown' );
   }
+  if (defined $generic_header{'FOURIER_TRANSFORM_SPECTROMETER'}) {
+    $self->fts_in($generic_header{'FOURIER_TRANSFORM_SPECTROMETER'} ? 'T' : 'F');
+  }
+  else {
+    $self->fts_in('unknown');
+  }
+
   $self->switch_mode( $generic_header{SWITCH_MODE} );
   $self->ambient_temp( $generic_header{AMBIENT_TEMPERATURE} );
   $self->humidity( $generic_header{HUMIDITY} );
