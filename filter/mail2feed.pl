@@ -238,7 +238,7 @@ sub extract_body {
         # If in final part, return the body if its a text type.
         my $mime_type = $entity->mime_type;
 
-        if ("$mime_type" =~ 'text') {
+        if ($mime_type =~ /text/ and $mime_type !~ /xml/) {
             my $bh = $entity->bodyhandle;
             my $text = $bh->as_string;
             push @bodytexts, $text;
