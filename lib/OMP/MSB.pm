@@ -78,7 +78,7 @@ program as argument and returns a new object.
 
     $msb = new OMP::MSB( XML => $xml );
 
-    $msb = new OMP::MSB( TREE => $tree, REFS => \%refs 
+    $msb = new OMP::MSB( TREE => $tree, REFS => \%refs
                                      PROJECTID => $proj);
 
 The argument hash can either refer to an XML string or an
@@ -89,7 +89,7 @@ instantiated. If both C<XML> and C<TREE> keys exist, the C<XML> key
 takes priority.
 
 The PROJECTID key can be used to inform the MSB the project with
-which it is associated. This information can be added at a later 
+which it is associated. This information can be added at a later
 date by using the C<projectID()> method.
 
 The OTVERSION key can be used to set the ot_version method.
@@ -169,7 +169,7 @@ sub new {
   bless $msb, $class;
 
   # Set the telescope if defined
-  $msb->telescope( $args{TELESCOPE} ) 
+  $msb->telescope( $args{TELESCOPE} )
     if (exists $args{TELESCOPE} && defined $args{TELESCOPE});
 
   # Force the setting of an obscounter in each
@@ -289,7 +289,7 @@ A C<checksum> attribute is added to the XML tree.
 
 sub checksum {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     $self->{CheckSum} = shift;
 
     # And update the XML
@@ -691,7 +691,7 @@ sub remaining {
     }
 
     # Decrement the counter if the argument is negative
-    # unless either the current value or the new value are the 
+    # unless either the current value or the new value are the
     # MAGIC value
 
     # if the input arg is OMP__MSB_REMOVED we need to negate
@@ -1225,7 +1225,7 @@ sub info {
   my $info = new OMP::Info::MSB( %summary );
 
   # Populate with observations
-  my @obs = map { new OMP::Info::Obs( %{$_}, 
+  my @obs = map { new OMP::Info::Obs( %{$_},
                                       telescope => $summary{telescope} ) } $self->obssum;
   $info->observations(@obs);
 
@@ -1252,7 +1252,7 @@ the modified state.
 If the MSB is within an SpOR the following occurs in addition to
 decrementing the remaining counter:
 
- - Move the MSB (and enclosing SpAND or SpSurveyContainer) 
+ - Move the MSB (and enclosing SpAND or SpSurveyContainer)
    out of the SpOR into the main tree
 
  - Decrement the counter on the SpOR.
@@ -1321,7 +1321,7 @@ sub hasBeenObserved {
           # and update the XML
           $pcnode->setData( $newval );
 
-          # if the current value is 0 we need to disable all the 
+          # if the current value is 0 we need to disable all the
           # remaining fields by setting to REMOVED all survey positions
           # that do not have an "observed" count > 0.
           if ($newval == 0) {
@@ -1405,7 +1405,7 @@ sub hasBeenObserved {
     # until 04a (deliberately since it is safer that way)
     # The 04A OT was released on 20031223
     print "OT Version: ". $self->ot_version ."\n" if $DEBUG;
-    if (defined $self->ot_version && $self->ot_version > 20030522 && 
+    if (defined $self->ot_version && $self->ot_version > 20030522 &&
         $self->ot_version < 20031223) {
       print "Fudging numberOfItems due to OT bug\n" if $DEBUG;
       $n--;
@@ -1602,7 +1602,7 @@ sub clearSuspended {
 =item B<addFITStoObs>
 
 Add additional FITS headers (as XML elements) to each SpObs such
-that each SpObs can be translated standalone without having 
+that each SpObs can be translated standalone without having
 to retain context.
 
 Used to add the checksum and project ID as elements
@@ -1716,7 +1716,7 @@ remaining and observed attributes being inserted from the override.
 sub stringify {
   my $self = shift;
 
-  # Because we have to resolve references and inset overrides, we 
+  # Because we have to resolve references and inset overrides, we
   # need to build the string up from its elements
 
   my $tree = $self->_tree;      # for efficiency;
@@ -1778,7 +1778,7 @@ sub stringify {
   my @children = $self->_get_qualified_children;
 
   # String buffer, prefill with the top level element and attributes
-  my $string = "<$name ". join(" ", 
+  my $string = "<$name ". join(" ",
                                map { $_ . '="' . $attrs{$_} .'"' }
                                keys %attrs) .">\n";
 
@@ -1792,7 +1792,7 @@ sub stringify {
     # SpObs
     print "INSERTING OVERRIDE TEL NODE INTO CHILD LIST\n" if $DEBUG;
     my $inserted;
-    @children = map { 
+    @children = map {
       if ( $_->getName eq 'SpObs' && !$inserted ) {
         $inserted = 1;
         ( $override{telNode}, $_);
@@ -1906,7 +1906,7 @@ sub stringify {
     # default is to append
     $string .= $child->toString ."\n";
   }
-  
+
   # Close XML
   $string .= "\n</$name>";
   return $string;
@@ -2216,7 +2216,7 @@ Fill in a template MSB with new parameters.
 Supported hash keys are:
 
   coords => An Astro::Coords object to fill in all blank targets components
-            If more than one coordinate is supplied, (reference to an array) 
+            If more than one coordinate is supplied, (reference to an array)
             the blank targets are replaced in turn, cycling if necessary
 
 A template is defined as an MSB that has at least one blank target component
@@ -2499,7 +2499,7 @@ sub _get_tel_comps {
     $msbtel = $all[-1];
 
     # Resolve refs (only if we are inheriting and we have something)
-    $msbtel = $self->_resolve_ref($msbtel) 
+    $msbtel = $self->_resolve_ref($msbtel)
       if defined $msbtel && $args{noinherit};
   }
 
@@ -2747,7 +2747,7 @@ sub _get_obs {
     if ($self->can($name)) {
       if ($name eq 'SpObs' || $name eq 'SpSurveyContainer' ) {
         # For each SpObs if we have an override target we need to force
-        # this target into the status hash at this point so that we 
+        # this target into the status hash at this point so that we
         # can override an explict Target component at this level but not
         # override Target component that may be in the child SpObs
         %status = (%status, %$toverride) if defined $toverride;
@@ -2758,7 +2758,7 @@ sub _get_obs {
         # also special case Survey containers since they return Obs
         push(@obs, $self->$name($el, %status ));
       } else {
-        %status = $self->$name($el, %status );  
+        %status = $self->$name($el, %status );
       }
     }
   }
@@ -2855,7 +2855,7 @@ sub _get_obs_labels {
 =item B<_get_qualified_children>
 
 Retrieve the parse trees that represent the component
-elements of the MSB. This includes resolved references (any 
+elements of the MSB. This includes resolved references (any
 element that looks like <SpXXXRef idref="blah"> is replaced
 with the corresponding <SpXXX id="blah">).
 
@@ -2869,8 +2869,8 @@ sub _get_qualified_children {
   # First get the children with findnodes and then for each of those
   # store either the element itself, or for references, the resolved
   # node.
-  my @children = 
-    map { 
+  my @children =
+    map {
       $self->_resolve_ref( $_ );
     } $self->_tree->findnodes('child::*');
 
@@ -3255,7 +3255,7 @@ C<undef> if the attribute is not present.
 
   $value = $msb->_get_attribute( $el, $attrname );
 
-Wrapper around XML::LibXML methods to compensate for the 
+Wrapper around XML::LibXML methods to compensate for the
 complete lack of getAttribute method in the API.
 
 [strangely enough getAttribute does exist in the API so this
@@ -3601,7 +3601,7 @@ sub _unroll_obs_recurse {
     # name of the iterator
 
     # Attributes are stored as array of hashes. Each element
-    # of the array will contain information for a single 
+    # of the array will contain information for a single
     # observation (effectively we will recurse for each element
     # and append that information to the hash sent)
 
@@ -3649,7 +3649,7 @@ sub _unroll_obs_recurse {
 
       #print "Recursing for $key\n";
       for my $extra (@ATTR) {
-        $self->_unroll_obs_recurse( $obsarr, $obscounter_ref, $iter->{$key}, 
+        $self->_unroll_obs_recurse( $obsarr, $obscounter_ref, $iter->{$key},
                                     %config, %$extra );
       }
 
@@ -3784,7 +3784,7 @@ sub SpObs {
     # Raise an exception unless we have been configured with autoTarget
     if ($summary{autoTarget} ) {
       # Need to have a dummy CAL observation here
-      # since the translator will need to determine the 
+      # since the translator will need to determine the
       # target at "run time". This can always be scheduled.
       $summary{coords} = Astro::Coords::Calibration->new;
       $summary{coordstype} = $summary{coords}->type;
@@ -3999,7 +3999,7 @@ sub TargetList {
 
     } else {
       # new target, so create a hash containing the new target data
-      my %targdata = ( priority => $pri, remaining => $rem, 
+      my %targdata = ( priority => $pri, remaining => $rem,
                        coords => \%tel, targetNode => $targ,
                        telNode => $obscomp,
                      );
@@ -4147,7 +4147,7 @@ sub SpIterFolder {
     # recursion to retain ordering
     push(@iterators, $name);
 
-    # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL 
+    # If we are SpIterRepeat or SpIterOffset or SpIterIRPOL
     # or other iterators
     # we need to go down a level
     if ($name =~ /^SpIter(Repeat|Offset|DREAM|IRPOL|POL|Chop|MicroStep|UISTImaging|UISTSpecIFU|UFTI|FP|Nod|WFCAM)$/) {
@@ -4870,7 +4870,7 @@ sub SpInstSCUBA2 {
 
 =item B<SpInstHeterodyne>
 
-Heterodyne configuration. Extracts the front end and rest frequency 
+Heterodyne configuration. Extracts the front end and rest frequency
 from the heterodyne XML.
 
   %summary = $self->SpInstHeterodyne( $el, %summary );
@@ -4924,7 +4924,7 @@ sub SpInstHeterodyne {
       throw OMP::Error::SpBadStructure( "Can only be one line specification per subsystem/spectral region")
         if @lines != 1;
 
-      %subconf = (%subconf, 
+      %subconf = (%subconf,
                   $self->_get_attributes($lines[0],
                                          qw| species transition rest_freq |));
 
@@ -5057,7 +5057,7 @@ sub SpDRRecipe {
   for my $mode (qw/ focus jiggle pointing raster stare / ) {
     $dr{$mode} = $self->_get_pcdata($el, $mode ."Recipe" );
   }
- 
+
   # Store it
   $summary{data_reduction} = \%dr;
 
@@ -5181,8 +5181,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

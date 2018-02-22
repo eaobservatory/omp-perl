@@ -77,7 +77,7 @@ sub ra_coverage {
 
     for my $obs ($msb->obssum) {
       # skip if we are specifically looking for one instrument
-      next if (defined $args{instrument} && 
+      next if (defined $args{instrument} &&
                $obs->{instrument} ne $args{instrument});
 
       my $target = $obs->{coords};

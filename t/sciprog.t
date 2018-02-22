@@ -30,7 +30,7 @@ require_ok( 'OMP::SciProg' );
 # This information needs to change if the Science program
 # is modified by dumping a new data structure.
 
-# Read the data hash 
+# Read the data hash
 use vars qw/ $VAR1 /;
 $/ = undef;
 my $text = <DATA>;

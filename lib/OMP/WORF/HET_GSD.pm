@@ -5,7 +5,7 @@ package OMP::WORF::HET_GSD;
 OMP::WORF::HET_GSD - Specific functions for WORF for GSD files
 taken at JCMT.
 
-=head1 
+=head1
 
 SYNOPSIS
 

@@ -13,7 +13,7 @@ OMP::TimeAcctDB - Manipulate the time accounting database
 
 =head1 DESCRIPTION
 
-This class manipulates the time accounting database. It can 
+This class manipulates the time accounting database. It can
 be used to set the time spent on a particular project on a particular
 day and to return project totals.
 
@@ -296,7 +296,7 @@ sub incPending {
   # set the pending flag
   $pending->confirmed(0);
 
-  # and store it [this method does the locking but we need to 
+  # and store it [this method does the locking but we need to
   # make sure we do not get out of sync]
   $self->setTimeSpent( $pending );
 
@@ -455,8 +455,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

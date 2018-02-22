@@ -94,8 +94,8 @@ back-slashed: \*
 
 Extract proposed targets and print their position
 in a JAC-style catalog format. It requires -project to be specified as
-well, all other command-line settings are ignored. E.g. 
-   ompchecktarget -proj M08BN\* -cat 
+well, all other command-line settings are ignored. E.g.
+   ompchecktarget -proj M08BN\* -cat
 
 =item B<-co(ords)>
 
@@ -106,7 +106,7 @@ double quotes: 'long lat [type] [format]'
      long, lat: coordinates
      type:     J2000, B1950, galactic, supergalactic.
                Default: J2000
-     units:    deg(grees), rad(ians), sex(agesimal). 
+     units:    deg(grees), rad(ians), sex(agesimal).
                Default: "sexagesimal" i.e. colon separated strings.
 If coordinates are specified, -all is assumed and -ut, -utstop settings
 will be ignored.
@@ -197,10 +197,10 @@ my $prog = (split /\//,$0)[-1];
 
 my $observed = []; # Array of hashes with observed targets (J2000),
                    # keys:
-                   # 'project' (string), 'utdate' (yyyymmdd), 
-                   # 'name', 'ra', 'dec', 'type' (e.g. j2000), 
-                   # 'units' (e.g. deg) as retrieved from DB. 
-                   # To facilitate easy coordinate conversions, 
+                   # 'project' (string), 'utdate' (yyyymmdd),
+                   # 'name', 'ra', 'dec', 'type' (e.g. j2000),
+                   # 'units' (e.g. deg) as retrieved from DB.
+                   # To facilitate easy coordinate conversions,
                    # this information has also been configured into
                    # an Astro::Coords object as hash key 'coords'.
 
@@ -344,7 +344,7 @@ unless (defined $crds) {
 } else {
   print "$telescope ${prog} results for user specified coordinates\n";
 }
-printf 
+printf
   "Max distance allowed between $mode and proposed targets: %5.2f %s\n",
   $prtdist, $unit;
 
@@ -385,7 +385,7 @@ foreach my $obs (@$observed) {
   # Give warning if coordinates not recognized.
   unless ( defined $obs->{'ra'} and defined $obs->{'dec'}
            and $obs->{'ra'} ne "" and $obs->{'dec'} ne "" ) {
-    my $msg = sprintf 
+    my $msg = sprintf
       "[%s] target '%s' (obs %i): No %s coordinates in %s DB",
       $obs->{'project'}, $obs->{'name'}, $obs->{'obsnum'}, $mode,
       ($mode eq 'scheduled' ? 'OMP' : 'JCMT');
@@ -791,7 +791,7 @@ sub find_nearest {
                           cos($ora-$pra) )));
 
     printf STDERR "%-16s <--> %-16s distance: %12.2f arcsec\n",
-         $obs->{'coords'}->name, $prop->{'coords'}->name, 
+         $obs->{'coords'}->name, $prop->{'coords'}->name,
          $distance if ($debug);
 
     if ( $distance < $mindist ) {
@@ -823,23 +823,23 @@ sub find_nearest {
 
   if ( $mindist <= $maxdist ) {
 
-    # Target found 
-    $msg = sprintf 
+    # Target found
+    $msg = sprintf
       "[%s] target %-16s found\nas proposed target [%s] %s at %5.2f $unit",
       $obs->{'project'}, $obs->{'coords'}->name,
-      $$proposed[$idxmin]->{'project'}, 
+      $$proposed[$idxmin]->{'project'},
       $$proposed[$idxmin]->{'coords'}->name, $prtdist
       if $show_all;
 
   } else {
 
     # Target not found
-    $msg = sprintf 
+    $msg = sprintf
         "[%s] target %-16s is *NOT* found in Hedwig exported files!\n",
         $obs->{'project'}, $obs->{'coords'}->name;
     $msg .= sprintf ucfirst($mode)." position: %12s %12s J2000\n",
         $obs->{'coords'}->ra2000( format => 'sex' ),
-        $obs->{'coords'}->dec2000(format => 'sex') 
+        $obs->{'coords'}->dec2000(format => 'sex')
         if ( $obs->{'coords'}->name !~ /user defined\:/ );
     if ($mindist != 1e+12) {
       $msg .= sprintf "Closest proposed:%s%12s %12s\n%s             [%s] %-16s at %5.2f $unit",

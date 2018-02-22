@@ -869,7 +869,7 @@ sub _get_non_special_accts {
   my $specpart = join('|', qw/CAL EXTENDED OTHER WEATHER/);
   my $regexp = qr/^(${telpart})(${specpart})$/;
 
-  # Filter out "__FAULT__" accounts and accounts that are named 
+  # Filter out "__FAULT__" accounts and accounts that are named
   # something like TELESCOPECAL, etc.
   my @acct = grep {$_->projectid !~ $regexp and $_->projectid ne '__FAULT__'}
     $self->accounts;
@@ -1090,8 +1090,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

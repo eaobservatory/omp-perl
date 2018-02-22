@@ -106,7 +106,7 @@ sub new {
   ($root) = $tree->findnodes('.//SpObs') unless defined $root;
 
   # Abort if we have no root node at all
-  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor") 
+  throw OMP::Error::SpBadStructure("Error obtaining SpProg root node in constructor")
     unless defined $root;
 
   # Now create our Science Program hash
@@ -153,7 +153,7 @@ but only the 'projectID' tag in the document root. If no
 
 sub projectID {
   my $self = shift;
-  if (@_) { 
+  if (@_) {
     $self->{ProjectID} = uc(shift);
 
     # Fix the DOM tree.
@@ -173,7 +173,7 @@ sub projectID {
       # There is a chance that we have simply a bare SpObs
       unless (defined $root) {
         ($root) = $self->_tree->findnodes('.//SpObs');
-        # So that we do not have trouble later on we do not want to insert 
+        # So that we do not have trouble later on we do not want to insert
         # a 'projectID' node into the SpObs since that matches a method name
         # in the recursive node traversal
         $nodename = 'project';
@@ -258,8 +258,8 @@ C<locate_msbs()>.
 
 sub msb {
   my $self = shift;
-  if (@_) { 
-    @{ $self->{MSBS} } = @_; 
+  if (@_) {
+    @{ $self->{MSBS} } = @_;
   } else {
     # check to see if we have something
     unless (@{$self->{MSBS}}) {
@@ -293,8 +293,8 @@ If no keys are stored we automatically run C<locate_refs>.
 
 sub refs {
   my $self = shift;
-  if (@_) { 
-    %{ $self->{REFS} } = @_; 
+  if (@_) {
+    %{ $self->{REFS} } = @_;
   } else {
     # If people are asking for the refs we want to find them
     # if we havent already got them.
@@ -607,7 +607,7 @@ sub find_projectid {
     if (defined $element2) {
       $self->projectID( $element2->getFirstChild->toString );
     } else {
-      #    throw OMP::Error::UnknownProject("The Science Program does not contain a 
+      #    throw OMP::Error::UnknownProject("The Science Program does not contain a
       #project identifier");
       $self->projectID( "UNKNOWN" );
     }
@@ -744,7 +744,7 @@ sub locate_msbs {
 
     } else {
       # Not a survey, just create the object and store it
-      push(@objs, new OMP::MSB( TREE => $msbnode, 
+      push(@objs, new OMP::MSB( TREE => $msbnode,
                                 PARSER => $self->_parser,
                                 %EXTRAS ));
     }
@@ -780,7 +780,7 @@ sub locate_msbs {
     }
   }
 
-  # If we've deleted some msbs from the tree we need to rescan 
+  # If we've deleted some msbs from the tree we need to rescan
   # the internal idrefs to make sure that we are no longer holding
   # references to objects that are not in the tree
   # Note that since we store a hash reference in the MSB objects
@@ -1080,7 +1080,7 @@ sub cloneMSBs {
     #  info message
     my $pluraltarg = ($blanks == 1 ? '' : 's');
     my $pluralrep  = ($nrepeats == 1 ? '' : 's');
-    push(@info,"Cloned MSB with title '" . $msb->msbtitle . 
+    push(@info,"Cloned MSB with title '" . $msb->msbtitle .
          "' $nrepeats time$pluralrep replacing $blanks blank target component$pluraltarg.");
 
 
@@ -1121,8 +1121,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

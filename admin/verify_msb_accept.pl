@@ -169,11 +169,11 @@ my @sorted_msbdb = sort { $a->comments->[0]->date->epoch <=> $b->comments->[0]->
 
 print "---> MSB activity ----\n";
 for my $msb (@sorted_msbdb) {
-  print "[".$msb->projectid."] ".$msb->checksum . " -> ". 
-    $msb->comments->[0]->date->datetime. 
-      " [".(defined $msb->comments->[0]->author ? 
+  print "[".$msb->projectid."] ".$msb->checksum . " -> ".
+    $msb->comments->[0]->date->datetime.
+      " [".(defined $msb->comments->[0]->author ?
             $msb->comments->[0]->author->userid : 'UNKNOWN')."/".
-        $msb->comments->[0]->status 
+        $msb->comments->[0]->status
           ."/". $msb->comments->[0]->text
             ."]\n";
 }
@@ -249,7 +249,7 @@ for my $obs (sort { $a->startobs->epoch <=> $b->startobs->epoch} $grp->obs) {
   push @prevobsnum, $obs->instrument() . ' ' . $obs->runnr();
 }
 
-# and last 
+# and last
 if ($prevlid && $prevlid ne 'CAL') {
   my $obsnum = join ', ', @prevobsnum;
   print "[$prevproj] $previd -> $prevdate $obsnum\n" unless $previd eq 'CAL';
@@ -474,14 +474,14 @@ if (@missing) {
 
 exit;
 
-sub print_msb { 
+sub print_msb {
   my $msb = shift;
   my ($projectid, $msbid, $date, $user, $comment, $type);
   if (UNIVERSAL::isa( $msb, "OMP::Info::MSB")) {
     $projectid = $msb->projectid;
     $msbid = $msb->checksum;
     $date = $msb->comments->[0]->date->datetime;
-    $user = (defined $msb->comments->[0]->author ? 
+    $user = (defined $msb->comments->[0]->author ?
             $msb->comments->[0]->author->userid : 'UNKNOWN');
     $comment = $msb->comments->[0]->text;
     $type = 'MSB';

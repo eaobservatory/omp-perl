@@ -267,11 +267,11 @@ sub project_window {
 
 
   # And finally extended time if we determined that we had extended
-  # time (difficult to imagine extended time if we have no data 
+  # time (difficult to imagine extended time if we have no data
   # taken in extended time)
   my $exttime = (exists $times{$tel."EXTENDED"} ? $times{$tel."EXTENDED"}
                  : {});
-  add_project( $f, 1,"Extended time", $exttime, 
+  add_project( $f, 1,"Extended time", $exttime,
                \$final{$tel."EXTENDED"},$sums);
 
   # And force a summation
@@ -371,7 +371,7 @@ sub project_window {
       # Now also add the MSB estimate if it is an estimate
       # Note that we put it after the DATA estimate
       if (!$times->{DB}->confirmed) {
-        my $hrs = sprintf($hfmt, 
+        my $hrs = sprintf($hfmt,
                           _round_to_ohfive($times->{DB}->timespent->hours));
         $w->Label(-text => "$hrs hrs from MSB acceptance")->grid(-row=>$Row,
                                                                  -column=>4);
@@ -382,7 +382,7 @@ sub project_window {
     }
 
     if (exists $times->{DATA}) {
-      my $hrs = sprintf($hfmt, 
+      my $hrs = sprintf($hfmt,
                         _round_to_ohfive($times->{DATA}->timespent->hours));
       $w->Label(-text => "$hrs hrs from data headers")->grid(-row=>$Row,
                                                              -column=>3);

@@ -430,7 +430,7 @@ use constant OMP__OBS_BAD => 2;
 =item OMP__OBS_REJECTED
 
 Flags an observation as rejected. To be used if the data are not
-Good enough to be charged to a project but are good enough not 
+Good enough to be charged to a project but are good enough not
 to be marked as bad (and so invisible in the science archive).
 
 =cut
@@ -596,7 +596,7 @@ use constant OMP__LOG_DEBUG => 16;
 
 =head1 TAGS
 
-Individual sets of constants can be imported by 
+Individual sets of constants can be imported by
 including the module with tags. For example:
 
   use OMP::Constants qw/:status/;
@@ -687,8 +687,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

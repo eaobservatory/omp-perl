@@ -97,7 +97,7 @@ sub bin_up {
     throw OMP::Error::BadArgs("Argument 'startnum' must be a number")
       unless (looks_like_number $start_num);
 
-    # Make sure 'startnum' is lower than, or equal to, the lowest value 
+    # Make sure 'startnum' is lower than, or equal to, the lowest value
     # in the values array
     throw OMP::Error::BadArgs("Argument 'startnum' must be lower than or equal to lowest X value")
       unless ($start_num <= $values[0]->[0] );
@@ -293,8 +293,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

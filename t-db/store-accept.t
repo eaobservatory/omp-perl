@@ -146,7 +146,7 @@ do_msb('Raster 3');  compare_db();
 
 
 # Mark MSB as done and adjust our %prog table accordingly.
-# Logic here written without looking at the OMP classes to 
+# Logic here written without looking at the OMP classes to
 # avoid potentially copying errors accross.
 # Runs 1 test.
 sub do_msb {

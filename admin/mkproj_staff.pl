@@ -30,7 +30,7 @@
 #       "Staff testing"
 #  Tag priority
 #       1
-#  country 
+#  country
 #       JAC
 #  semester  (YYYYA/B)
 #        JAC

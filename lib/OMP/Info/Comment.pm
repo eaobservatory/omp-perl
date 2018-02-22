@@ -51,7 +51,7 @@ use overload '""' => "stringify";
 
 =item B<new>
 
-Create a new comment object. 
+Create a new comment object.
 The comment must ideally be supplied in the constructor but this is
 not enforced. "author", "status", "tid" and "date" are optional.
 

@@ -65,7 +65,7 @@ gets all the faults with that faultid]
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
+  throw OMP::Error::DBMalformedQuery("sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) ==2;
 
   my ($faulttable, $resptable) = @_;
@@ -174,7 +174,7 @@ sub _post_process_hash {
 
   }
 
-  # These entries are in more than one table so we have to 
+  # These entries are in more than one table so we have to
   # explicitly choose the Fault table
   for (qw/ faultid /) {
     if (exists $href->{$_}) {
@@ -315,8 +315,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

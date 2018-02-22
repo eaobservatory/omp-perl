@@ -332,7 +332,7 @@ Add details of a project to the database.
                               $coi, $support,
                               $title, $tagpriority, $country, $tagadj,
                               $semester, $proj_password, $allocated
-                              $telescope, $taumin, $taumax, 
+                              $telescope, $taumin, $taumax,
                               $seemin, $seemax, $cloudmin, $cloudmax,
                               $skymin, $skymax,
                               $state, $pi_affiliation, $coi_affiliation,
@@ -380,7 +380,7 @@ sub addProject {
     # Split CoI and Support on colon or comma
     my @coi;
     if ($project[2]) {
-      @coi = map { $userdb->getUser($_) 
+      @coi = map { $userdb->getUser($_)
                      or throw OMP::Error::FatalError("User ID $_ not recognized by OMP system [project=$project[0]]")}
         split /[:,]/, $project[2];
     }

@@ -11,7 +11,7 @@ OMP::Fault::Response - a fault response
   $resp = new OMP::Fault::Response( author => $user,
                                     text => $text,
                                     date => $date );
-  $resp = new OMP::Fault::Response( author => $user, 
+  $resp = new OMP::Fault::Response( author => $user,
                                     text => $text );
 
   $body = $resp->text;
@@ -53,7 +53,7 @@ constructor. The response date and an indication of whether the
 response is a true response or the actual fault (via "isfault") are
 optional.
 
-  $resp = new OMP::Fault::Response( author => $author, 
+  $resp = new OMP::Fault::Response( author => $author,
                                     text => $text,
                                     isfault => 1 );
 
@@ -241,7 +241,7 @@ sub stringify {
   $date = (defined $date ? $date->strftime("%Y-%m-%d") : "ERROR");
 
 
-  my $string = 
+  my $string =
 ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n".
 "    RESPONSE by : $author\n".
 "                                      date : $date\n".

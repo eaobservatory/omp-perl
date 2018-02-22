@@ -448,7 +448,7 @@ sub edit_details {
         # did not pass test so do not update
         $doupdate = 0;
         print "The name you provided [".$q->param("name")."] is invalid.<br>";
-      }  
+      }
     } elsif ($user->name) {
       # there is currently a value but none was supplied
       $doupdate = 0;
@@ -463,7 +463,7 @@ sub edit_details {
         # did not pass test so do not update
         $doupdate = 0;
         print "The email you provided [".$q->param("email")."] is invalid.<br>";
-      }  
+      }
     } elsif ($user->email) {
       # there is currently a value but none was supplied
       $doupdate = 0;
@@ -478,7 +478,7 @@ sub edit_details {
         # did not pass test so do not update
         $doupdate = 0;
         print "The CADC Username you provided [".$q->param("cadcuser")."] is invalid.<br>";
-      }  
+      }
     } elsif ($user->cadcuser) {
       # there is currently a value but none was supplied
       $doupdate = 0;

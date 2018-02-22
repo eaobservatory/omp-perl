@@ -294,7 +294,7 @@ sub header_exclusion_file {
 =item B<determine_scan_angles>
 
 Given a particular scan area and frontend, determine which angles can be given
-to the TCS. 
+to the TCS.
 
   ($system,@angles) = $trans->determine_scan_angles( $pattern, %info );
 
@@ -1327,7 +1327,7 @@ sub fts2_config {
       'SED 450um'           => 'sed450',
       'SED 850um'           => 'sed850',
 
-      # The Spectral Line mode acquires high-resolution single-sided 
+      # The Spectral Line mode acquires high-resolution single-sided
       # interferograms using the dual-port configuration.
       'Spectral Line'       => 'spectralline',
       'Spectral Line 450um' => 'spectralline450',
@@ -1749,7 +1749,7 @@ sub determine_inbeam {
 
   # get base class values
   push(@inbeam, $self->SUPER::determine_inbeam(%info));
-  
+
   return @inbeam;
 }
 

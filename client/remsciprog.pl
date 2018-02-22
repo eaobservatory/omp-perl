@@ -83,7 +83,7 @@ my $password = $term->readline( "Password [project or admin]: ");
 $attribs->{redisplay_function} = $attribs->{rl_redisplay};
 
 # Create the new object
-my $db = new OMP::MSBDB( 
+my $db = new OMP::MSBDB(
                         Password => $password,
                         ProjectID => $project,
                         DB => new OMP::DBbackend,

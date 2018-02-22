@@ -185,7 +185,7 @@ sub CreateAccessors {
 #line 1 OMP::Info::Base::SCALAR
                  sub METHOD {
                    my $self = shift;
-                   if (@_) { 
+                   if (@_) {
                      my $argument = shift;
          if (defined $argument) {
                        CLASS_CHECK;
@@ -256,7 +256,7 @@ sub CreateAccessors {
   my $CLASS_CHECK = q{
 #line 1 OMP::Info::Base::class_check
                       unless (UNIVERSAL::isa($argument, 'CLASS')) {
-                        croak "Argument for 'METHOD' must be of class CLASS and not class '". 
+                        croak "Argument for 'METHOD' must be of class CLASS and not class '".
                           (defined $argument ? (ref($argument) ? ref($argument) : $argument) : '<undef>') ."'";
                       }
                      };

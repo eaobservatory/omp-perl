@@ -215,7 +215,7 @@ sub tau {
 
 =item B<constraints>
 
-Returns a hash containing the general project constraints that 
+Returns a hash containing the general project constraints that
 can be applied to this query.
 
 Supported constraints are:
@@ -307,7 +307,7 @@ above the horizon and in terms of being schedulable)
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n") 
+  throw OMP::Error::MSBMalformedQuery("sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) ==5;
 
   my ($msbtable, $obstable, $projtable, $projqueuetable, $projusertable) = @_;
@@ -378,7 +378,7 @@ sub sql {
   my $constraint_sql = '';
 
   $constraint_sql .= " AND M.remaining > 0 " if $constraints{remaining};
-  $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest " 
+  $constraint_sql .= " AND (P.remaining - P.pending) >= M.timeest "
     if $constraints{allocation};
   $constraint_sql .= " AND P.state " if $constraints{state};
 
@@ -467,9 +467,9 @@ sub sql {
                      $projtable P2,
                      $projqueuetable Q2
                  WHERE (M2.msbid = T.msbid
-                   AND M2.obscount = T.nobs 
-                    AND M2.projectid = P2.projectid 
-                      AND M2.projectid = Q2.projectid 
+                   AND M2.obscount = T.nobs
+                    AND M2.projectid = P2.projectid
+                      AND M2.projectid = Q2.projectid
                         AND Q2.country = T.country)
                           ORDER BY newpriority";
 
@@ -675,7 +675,7 @@ sub _post_process_hash {
 
       # Get the telescope and date if we know it
       my %options;
-      $options{telescope} = $href->{telescope}->[0] 
+      $options{telescope} = $href->{telescope}->[0]
         if exists $href->{telescope};
       $options{date} = $href->{date}->[0]
         if exists $href->{date}->[0];
@@ -702,7 +702,7 @@ sub _post_process_hash {
     # need the date
     my %options;
     $options{date} = $href->{date}->[0]
-      if exists $href->{date}->[0]; 
+      if exists $href->{date}->[0];
     $href->{semester} = [ OMP::DateTools->determine_semester(tel => $href->{telescope}->[0], %options)];
   }
 
@@ -711,12 +711,12 @@ sub _post_process_hash {
   # If we are dealing with these we should make sure we upper
   # case them (more efficient to upper case everything than to do a
   # query that ignores case)
-  $self->_process_elements($href, sub { uc(shift) }, 
+  $self->_process_elements($href, sub { uc(shift) },
                            [qw/projectid telescope semester country name
                             pi coi instrument person /]);
 
 
-  # These entries are in more than one table so we have to 
+  # These entries are in more than one table so we have to
   # explicitly choose the MSB table
   for (qw/ projectid timeest telescope /) {
     if (exists $href->{$_}) {
@@ -758,7 +758,7 @@ sub _post_process_hash {
   # See also OMP::ProjQuery where this code is duplicated
   if (exists $href->{coi}) {
     my $U = $prefix . $counter;
-    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
+    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi},
                      "$U.capacity" => ['COI']};
     $counter++;
   }

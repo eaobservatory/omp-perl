@@ -47,7 +47,7 @@ Create a new instance of an C<OMP::Cookie> object.
 
   $c = new OMP::Cookie( Name => $name, CGI => $q );
 
-The cookie name defaults to "OMPFBLOGIN", thus the Name parameter is 
+The cookie name defaults to "OMPFBLOGIN", thus the Name parameter is
 optional in the constructor.
 
 
@@ -305,8 +305,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

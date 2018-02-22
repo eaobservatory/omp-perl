@@ -73,10 +73,10 @@ If true the timestamp test will be ignored and the program will be
 stored. This allows people to force the storing of a science program
 and should be used with care.
 
-  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog, 
+  [$summary, $timestamp] = OMP::SpServer->storeProgram($sciprog,
                                                        $password, $force);
 
-This method automatically recognizes whether the science program is 
+This method automatically recognizes whether the science program is
 gzip compressed.
 
 =cut
@@ -315,7 +315,7 @@ sub programDetails {
   try {
 
     # Create new DB object
-    my $db = new OMP::MSBDB( 
+    my $db = new OMP::MSBDB(
                             ProjectID => $projectid,
                             Password => $password,
                             DB => $class->dbConnection, );
@@ -381,7 +381,7 @@ sub programInstruments {
   try {
 
     # Create new DB object
-    my $db = new OMP::MSBDB( 
+    my $db = new OMP::MSBDB(
                             ProjectID => $projectid,
                             DB => $class->dbConnection, );
 
@@ -415,7 +415,7 @@ result. An optional return type can be specified. See B<compressReturnedItem>
   [$xml, $info] = OMP::SpServer->SpInsertCat( $xml, $catalogue, "GZIP" );
 
 Returns a reference to an array containing the modified science
-program XML ( optionally compressed, ) and a string containing any informational 
+program XML ( optionally compressed, ) and a string containing any informational
 messages (separated by newlines).
 
 The catalogue is supplied as a text string including new lines.
@@ -499,8 +499,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

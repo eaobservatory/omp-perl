@@ -45,7 +45,7 @@ the observing system.
 Returns a filename suitable for passing to the queue or the Query Tool,
 not the translated configurations themselves.
 
-Only works for JCMT translations. The UKIRT translator is written 
+Only works for JCMT translations. The UKIRT translator is written
 in Java and part of the OT software package.
 
 The location of the directory used to write these files can not be
@@ -117,8 +117,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

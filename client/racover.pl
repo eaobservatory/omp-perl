@@ -167,7 +167,7 @@ if (@projects) {
     # Should be able to pass in a readline object if Tk not desired
     $telescope = OMP::General->determine_tel($term);
     die "Unable to determine telescope. Exiting.\n" unless defined $telescope;
-    die "Unable to determine telescope [too many choices]. Exiting.\n" 
+    die "Unable to determine telescope [too many choices]. Exiting.\n"
       if ref $telescope;
   }
 
@@ -336,7 +336,7 @@ sub save_plot {
 sub print_hist {
   my @hist = @_;
   # print stats for this project. Make sure that if there is *anything* in a bin
-  # we indicate that there is something there so that if the value is less than 0.5 we 
+  # we indicate that there is something there so that if the value is less than 0.5 we
   # force 1
   printf "    ". ("%02d "x scalar(@hist))."\n", map {(($_ < 0.5 && $_ > 0) ? 1 : $_+0.5)} @hist;
 }

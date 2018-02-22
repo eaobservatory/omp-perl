@@ -26,7 +26,7 @@ A compact way of handling information associated with an MSB. This
 includes possible comments and information on component observations.
 
 
-This class should not be confused with C<OMP::MSB>. That class 
+This class should not be confused with C<OMP::MSB>. That class
 is based around the Science Program XML representation of an MSB
 and not for general purpose MSB information.
 
@@ -96,7 +96,7 @@ __PACKAGE__->CreateAccessors( projectid => '$__UC__',
                               comments => '@OMP::Info::Comment',
                               approach => '$',
                              );
-#' for the emacs color coding 
+#' for the emacs color coding
 
 =end __PRIVATE__
 
@@ -478,8 +478,8 @@ sub coordstype {
       return $cache;
     } else {
       # Ask the observations
-      my @types = map { $_->coords->type } 
-        grep { defined $_->coords } 
+      my @types = map { $_->coords->type }
+        grep { defined $_->coords }
           $self->observations;
       @types = $self->_compress_array( @types );
       return join("/", @types);
@@ -549,7 +549,7 @@ context default result if 'xml'.
 Allowed formats are:
 
  'textshort' - short text summary (one line)
- 'textshorthdr' - header for short text summary 
+ 'textshorthdr' - header for short text summary
  'textlong'  - long text summary
  'xmlshort' - XML summary where observations are compressed
  'xml' - XML summary where Observations are explicitly separate
@@ -724,7 +724,7 @@ sub summary {
   if ($format eq 'textshort' ) {
 
     # Substr each string using the supplied widths.
-    my @sub = map { 
+    my @sub = map {
       my $key;
       if (exists $summary{$keys[$_]} && defined $summary{$keys[$_]}) {
         $key = $summary{$keys[$_]};
@@ -799,7 +799,7 @@ sub summary {
       $obscount++;
       push(@text,
            "<TR bgcolor='#7979aa'>","<td>$obscount</td>",
-           map { "<td>" . $obs->$_() . "</td>" 
+           map { "<td>" . $obs->$_() . "</td>"
                } (qw/ instrument target coords waveband/));
     }
 
@@ -835,7 +835,7 @@ sub summary {
 
     # XML version
     my $xml = "<SpMSBSummary ";
-    $xml .= "id=\"$summary{msbid}\"" 
+    $xml .= "id=\"$summary{msbid}\""
       if exists $summary{msbid} and defined $summary{msbid};
     $xml .= ">\n";
 

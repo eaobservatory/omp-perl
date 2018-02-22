@@ -55,7 +55,7 @@ Returns undef if the query could not be formed.
 sub sql {
   my $self = shift;
 
-  throw OMP::Error::DBMalformedQuery("ProjQuery: sql method invoked with incorrect number of arguments\n") 
+  throw OMP::Error::DBMalformedQuery("ProjQuery: sql method invoked with incorrect number of arguments\n")
     unless scalar(@_) == 3;
 
   my ($projtable, $projqueuetable, $projusertable) = @_;
@@ -176,7 +176,7 @@ sub _post_process_hash {
   $self->_process_elements($href, sub { uc(shift) },
                            [qw/projectid telescope support coi semester person pi country/]);
 
-  # These entries are in more than one table so we have to 
+  # These entries are in more than one table so we have to
   # explicitly choose the project table
   for (qw/ projectid telescope /) {
     if (exists $href->{$_}) {
@@ -205,7 +205,7 @@ sub _post_process_hash {
   # A coi query is really a query on U.userid but with capacity of COI
   if (exists $href->{coi}) {
     my $U = $prefix . $counter;
-    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi}, 
+    $href->{coi} = { _JOIN => 'AND', "$U.userid" => $href->{coi},
                      "$U.capacity" => ['COI']};
     $counter++;
   }
@@ -213,7 +213,7 @@ sub _post_process_hash {
   # Similarly for "support" query
   if (exists $href->{support}) {
     my $U = $prefix . $counter;
-    $href->{support} = { _JOIN => 'AND', "$U.userid" => $href->{support}, 
+    $href->{support} = { _JOIN => 'AND', "$U.userid" => $href->{support},
                          "$U.capacity" => ['SUPPORT']};
     $counter++;
   }
@@ -243,7 +243,7 @@ sub _post_process_hash {
   # "support" means
   #  userid = 'Y' AND capacity = 'SUPPORT'
   # but this is difficult since we have no way of grouping AND
-  # entries 
+  # entries
   # Maybe  support => { _JOIN => 'AND', capacity => 'SUPPORT', userid => 'Y'}
 
   # Remove attributes since we dont need them anymore
@@ -353,8 +353,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the 
-Free Software Foundation, Inc., 59 Temple Place, Suite 330, 
+along with this program; if not, write to the
+Free Software Foundation, Inc., 59 Temple Place, Suite 330,
 Boston, MA  02111-1307  USA
 
 

@@ -218,7 +218,7 @@ for my $p (keys %projq) {
 
 # Now populate the project hash with project details
 my $backend = new OMP::DBbackend();
-my $projdb = new OMP::ProjDB( 
+my $projdb = new OMP::ProjDB(
                              Password => $password,
                              DB => $backend,
                             );
